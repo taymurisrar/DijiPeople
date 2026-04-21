@@ -21,6 +21,9 @@ type LoginResponse = {
   message?: string;
 };
 
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || "";
+
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -92,10 +95,15 @@ export function LoginForm() {
       return;
     }
 
+    if (!API_BASE_URL) {
+      setError("API base URL is not configured.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("/api/auth/login", {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
