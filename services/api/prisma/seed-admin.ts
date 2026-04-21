@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { PrismaClient, TenantStatus, UserStatus } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { normalizeEmail } from '../src/common/utils/email.util';
+import { FOUNDATION_PERMISSION_DEFINITIONS } from '../src/common/constants/permissions';
 
 loadEnv({ path: resolve(__dirname, '../.env') });
 loadEnv();
@@ -15,10 +16,10 @@ function getBootstrapConfig() {
   const tenantSlug =
     process.env.BOOTSTRAP_TENANT_SLUG?.trim().toLowerCase() ||
     'dijipeople-demo';
-  const roleName = process.env.BOOTSTRAP_ADMIN_ROLE_NAME?.trim() || 'System Admin';
+  const roleName = process.env.BOOTSTRAP_ADMIN_ROLE_NAME?.trim() || 'Super Admin';
   const roleKey =
     process.env.BOOTSTRAP_ADMIN_ROLE_KEY?.trim().toLowerCase() ||
-    'system-admin';
+    'super-admin';
   const firstName = process.env.BOOTSTRAP_ADMIN_FIRST_NAME?.trim() || 'Taimur';
   const lastName = process.env.BOOTSTRAP_ADMIN_LAST_NAME?.trim() || 'Israr';
   const email = normalizeEmail(
@@ -106,6 +107,37 @@ async function main() {
       },
     });
 
+    await tx.permission.createMany({
+      data: FOUNDATION_PERMISSION_DEFINITIONS.map((permission) => ({
+        tenantId: tenant.id,
+        key: permission.key,
+        name: permission.name,
+        description: permission.description,
+      })),
+      skipDuplicates: true,
+    });
+
+    const permissions = await tx.permission.findMany({
+      where: {
+        tenantId: tenant.id,
+        key: {
+          in: FOUNDATION_PERMISSION_DEFINITIONS.map((permission) => permission.key),
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    await tx.rolePermission.createMany({
+      data: permissions.map((permission) => ({
+        tenantId: tenant.id,
+        roleId: role.id,
+        permissionId: permission.id,
+      })),
+      skipDuplicates: true,
+    });
+
     const existingUser = await tx.user.findUnique({
       where: { email: config.email },
       select: { id: true },
@@ -163,6 +195,7 @@ async function main() {
         user: existingUser ? 'updated' : 'created',
         userRole: existingUserRole ? 'reused' : 'created',
       },
+      permissionsAssignedToRole: permissions.length,
       usingDefaultPassword: config.usingDefaultPassword,
     };
   });
