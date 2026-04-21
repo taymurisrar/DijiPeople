@@ -373,20 +373,15 @@ export function LeadDetailManager({
           />
           <Select
             label="Industry"
-            onChange={(value) => updateForm("industry", value)}
-            options={lifecycleOptions.industries.map((value) => ({
-              value,
-              label: value,
-            }))}
+            onChange={(value) => updateForm('industry', value)}
+            options={lifecycleOptions.industries}
             value={form.industry}
           />
+
           <Select
             label="Company size"
-            onChange={(value) => updateForm("companySize", value)}
-            options={lifecycleOptions.companySizes.map((value) => ({
-              value,
-              label: value,
-            }))}
+            onChange={(value) => updateForm('companySize', value)}
+            options={lifecycleOptions.companySizes}
             value={form.companySize}
           />
           <Field

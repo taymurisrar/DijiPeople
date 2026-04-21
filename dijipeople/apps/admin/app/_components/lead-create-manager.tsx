@@ -28,23 +28,23 @@ export function LeadCreateManager({
   const [message, setMessage] = useState<string | null>(null);
 
   const [form, setForm] = useState({
-    contactFirstName: "",
-    contactLastName: "",
-    companyName: "",
-    workEmail: "",
-    phoneNumber: "",
-    industry: lifecycleOptions.industries[0] ?? "",
-    companySize: lifecycleOptions.companySizes[0] ?? "",
-    source: lifecycleOptions.lead.sources,
-    interestedPlan: "",
-    assignedToUserId: "",
-    status: lifecycleOptions.lead.statuses[0] ?? "NEW",
+    contactFirstName: '',
+    contactLastName: '',
+    companyName: '',
+    workEmail: '',
+    phoneNumber: '',
+    industry: lifecycleOptions.industries[0]?.value ?? '',
+    companySize: lifecycleOptions.companySizes[0]?.value ?? '',
+    source: lifecycleOptions.lead.sources[0]?.value ?? '',
+    interestedPlan: '',
+    assignedToUserId: '',
+    status: lifecycleOptions.lead.statuses[0] ?? 'NEW',
     subStatus:
       lifecycleOptions.lead.subStatuses[
-        lifecycleOptions.lead.statuses[0] ?? "NEW"
-      ]?.[0] ?? "",
-    notes: "",
-    requirementsSummary: "",
+      lifecycleOptions.lead.statuses[0] ?? 'NEW'
+      ]?.[0] ?? '',
+    notes: '',
+    requirementsSummary: '',
   });
 
   function updateForm<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
@@ -87,15 +87,15 @@ export function LeadCreateManager({
       companyName: "",
       workEmail: "",
       phoneNumber: "",
-      industry: lifecycleOptions.industries[0] ?? "",
-      companySize: lifecycleOptions.companySizes[0] ?? "",
-      source: lifecycleOptions.lead.sources,
+      industry: lifecycleOptions.industries[0]?.value ?? '',
+      companySize: lifecycleOptions.companySizes[0]?.value ?? '',
+      source: lifecycleOptions.lead.sources[0]?.value ?? '',
       interestedPlan: "",
       assignedToUserId: "",
       status: lifecycleOptions.lead.statuses[0] ?? "NEW",
       subStatus:
         lifecycleOptions.lead.subStatuses[
-          lifecycleOptions.lead.statuses[0] ?? "NEW"
+        lifecycleOptions.lead.statuses[0] ?? "NEW"
         ]?.[0] ?? "",
       notes: "",
       requirementsSummary: "",
@@ -250,31 +250,27 @@ export function LeadCreateManager({
           />
           <Select
             label="Industry"
-            onChange={(value) => updateForm("industry", value)}
-            options={lifecycleOptions.industries.map((value) => ({
-              value,
-              label: value,
-            }))}
+            onChange={(value) => updateForm('industry', value)}
+            options={lifecycleOptions.industries}
             value={form.industry}
           />
+
           <Select
             label="Company size"
-            onChange={(value) => updateForm("companySize", value)}
-            options={lifecycleOptions.companySizes.map((value) => ({
-              value,
-              label: value,
-            }))}
+            onChange={(value) => updateForm('companySize', value)}
+            options={lifecycleOptions.companySizes}
             value={form.companySize}
           />
-<Select
-  label="Source"
-  value={form.source}
-  onChange={(value) => updateForm("source", value)}
-  options={[
-    { value: "", label: "Select source" },
-    ...lifecycleOptions.lead.sources,
-  ]}
-/>
+
+          <Select
+            label="Source"
+            value={form.source}
+            onChange={(value) => updateForm('source', value)}
+            options={[
+              { value: '', label: 'Select source' },
+              ...lifecycleOptions.lead.sources,
+            ]}
+          />
           <Select
             label="Interested plan"
             onChange={(value) => updateForm("interestedPlan", value)}

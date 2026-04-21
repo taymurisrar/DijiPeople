@@ -123,9 +123,9 @@ export default async function EmployeesPage({
           employees={employees.items}
           formatting={formatting}
           pagination={{
-            page: employees.page ?? page,
-            pageSize: employees.pageSize ?? pageSize,
-            totalItems: employees.totalItems ?? employees.items.length,
+            page: employees.meta?.page ?? page,
+            pageSize: employees.meta?.pageSize ?? pageSize,
+            totalItems: employees.meta?.total ?? employees.items.length,
             pathname: "/dashboard/employees",
             searchParams: {
               search,

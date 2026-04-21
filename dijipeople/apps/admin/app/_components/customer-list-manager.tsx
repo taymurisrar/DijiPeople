@@ -34,8 +34,8 @@ export function CustomerListManager({
     primaryContactLastName: "",
     primaryContactEmail: "",
     primaryContactPhone: "",
-    industry: lifecycleOptions.industries[0] ?? "",
-    companySize: lifecycleOptions.companySizes[1] ?? "",
+    industry: lifecycleOptions.industries[0]?.value ?? '',
+    companySize: lifecycleOptions.companySizes[1]?.value ?? '',
     country: "United States",
     status: "PROSPECT",
     subStatus: lifecycleOptions.customer.subStatuses.PROSPECT?.[0] ?? "",
@@ -109,9 +109,17 @@ export function CustomerListManager({
             <option value="">All sub-statuses</option>
             {Object.values(lifecycleOptions.customer.subStatuses).flat().map((value) => <option key={value} value={value}>{value}</option>)}
           </select>
-          <select className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" defaultValue={currentFilters.industry ?? ""} onChange={(event) => updateFilter("industry", event.target.value)}>
+          <select
+            className="rounded-2xl border border-slate-300 px-4 py-3 text-sm"
+            defaultValue={currentFilters.industry ?? ''}
+            onChange={(event) => updateFilter('industry', event.target.value)}
+          >
             <option value="">All industries</option>
-            {lifecycleOptions.industries.map((industry) => <option key={industry} value={industry}>{industry}</option>)}
+            {lifecycleOptions.industries.map((industry) => (
+              <option key={industry.value} value={industry.value}>
+                {industry.label}
+              </option>
+            ))}
           </select>
           <select className="rounded-2xl border border-slate-300 px-4 py-3 text-sm" defaultValue={currentFilters.accountManagerUserId ?? ""} onChange={(event) => updateFilter("accountManagerUserId", event.target.value)}>
             <option value="">All account managers</option>
@@ -132,8 +140,21 @@ export function CustomerListManager({
           <TextField label="Primary last name" value={form.primaryContactLastName} onChange={(value) => setForm((current) => ({ ...current, primaryContactLastName: value }))} />
           <TextField label="Primary email" type="email" value={form.primaryContactEmail} onChange={(value) => setForm((current) => ({ ...current, primaryContactEmail: value }))} />
           <TextField label="Phone" value={form.primaryContactPhone} onChange={(value) => setForm((current) => ({ ...current, primaryContactPhone: value }))} />
-          <Select label="Industry" value={form.industry} onChange={(value) => setForm((current) => ({ ...current, industry: value }))} options={lifecycleOptions.industries.map((value) => ({ value, label: value }))} />
-          <Select label="Company size" value={form.companySize} onChange={(value) => setForm((current) => ({ ...current, companySize: value }))} options={lifecycleOptions.companySizes.map((value) => ({ value, label: value }))} />
+          <Select
+            label="Industry"
+            value={form.industry}
+            onChange={(value) => setForm((current) => ({ ...current, industry: value }))}
+            options={lifecycleOptions.industries}
+          />
+
+          <Select
+            label="Company size"
+            value={form.companySize}
+            onChange={(value) =>
+              setForm((current) => ({ ...current, companySize: value }))
+            }
+            options={lifecycleOptions.companySizes}
+          />
           <TextField label="Country" value={form.country} onChange={(value) => setForm((current) => ({ ...current, country: value }))} />
           <Select label="Plan" value={form.selectedPlanId} onChange={(value) => setForm((current) => ({ ...current, selectedPlanId: value }))} options={plans.map((plan) => ({ value: plan.id, label: plan.name }))} />
           <Select label="Status" value={form.status} onChange={(value) => setForm((current) => ({ ...current, status: value, subStatus: lifecycleOptions.customer.subStatuses[value]?.[0] ?? "" }))} options={lifecycleOptions.customer.statuses.map((value) => ({ value, label: value.replaceAll("_", " ") }))} />
