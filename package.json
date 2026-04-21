@@ -7,12 +7,14 @@
     "dev:web": "npm --workspace web run dev",
     "dev:admin": "npm --workspace admin run dev",
     "dev:api": "npm --workspace api run start:dev",
+    "bootstrap:admin": "npm --workspace api run seed:admin",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "check-types": "turbo run check-types"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.2.4",
+    "@types/node": "^25.6.0",
     "prettier": "^3.7.4",
     "turbo": "^2.9.3",
     "typescript": "5.9.2"
