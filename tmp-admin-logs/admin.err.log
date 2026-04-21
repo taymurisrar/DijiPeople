@@ -1,0 +1,55 @@
+⨯ Error: Access token is required.
+    at apiRequestJson (lib\server-api.ts:42:11)
+    at async TenantDetailPage (app\(internal)\tenants\[tenantId]\page.tsx:93:54)
+  40 |
+  41 |   if (!response.ok) {
+> 42 |     throw new ApiRequestError(
+     |           ^
+  43 |       response.status,
+  44 |       extractErrorMessage(data) ?? `Request failed with status ${response.status}.`,
+  45 |     ); {
+  status: 401,
+  digest: '274289631'
+}
+⨯ Error: Access token is required.
+    at apiRequestJson (lib\server-api.ts:42:11)
+    at async TenantDetailPage (app\(internal)\tenants\[tenantId]\page.tsx:93:54)
+  40 |
+  41 |   if (!response.ok) {
+> 42 |     throw new ApiRequestError(
+     |           ^
+  43 |       response.status,
+  44 |       extractErrorMessage(data) ?? `Request failed with status ${response.status}.`,
+  45 |     ); {
+  status: 401,
+  digest: '274289631'
+}
+⨯ [TypeError: fetch failed] {
+  digest: '3227098399',
+  [cause]: Error: connect ECONNREFUSED 127.0.0.1:3000
+      at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:3000) {
+    errno: -4078,
+    code: 'ECONNREFUSED',
+    syscall: 'connect',
+    address: '127.0.0.1',
+    port: 3000
+  }
+}
+[browser] Uncaught TypeError: fetch failed
+    at resolveErrorDev (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/admin/.next/dev/static/chunks/11er_next_dist_compiled_react-server-dom-turbopack_0vctcp3._.js:1919:150)
+    at processFullStringRow (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/admin/.next/dev/static/chunks/11er_next_dist_compiled_react-server-dom-turbopack_0vctcp3._.js:2434:29)
+    at processFullBinaryRow (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/admin/.next/dev/static/chunks/11er_next_dist_compiled_react-server-dom-turbopack_0vctcp3._.js:2393:9)
+    at processBinaryChunk (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/admin/.next/dev/static/chunks/11er_next_dist_compiled_react-server-dom-turbopack_0vctcp3._.js:2502:221)
+    at progress (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/admin/.next/dev/static/chunks/11er_next_dist_compiled_react-server-dom-turbopack_0vctcp3._.js:2689:13)
+⨯ [TypeError: fetch failed] {
+  digest: '3227098399',
+  [cause]: Error: connect ECONNREFUSED 127.0.0.1:3000
+      at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:3000) {
+    errno: -4078,
+    code: 'ECONNREFUSED',
+    syscall: 'connect',
+    address: '127.0.0.1',
+    port: 3000
+  }
+}
+^C

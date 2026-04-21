@@ -1,0 +1,6 @@
+[31m[Nest] 36980  - [39m04/14/2026, 12:56:29 AM [31m  ERROR[39m [38;5;3m[NestApplicationContext] [39m[31mError happened during shutdown[39m
+Error: kill ENOSYS
+    at process.kill (node:internal/process/per_thread:277:13)
+    at process.cleanup (D:\My Work\hrm-dijipeople\DijiPeople\dijipeople\node_modules\@nestjs\core\nest-application-context.js:220:29)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+^C

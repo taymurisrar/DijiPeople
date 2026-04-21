@@ -1,0 +1,234 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f6f7f8;
+  --background-elevated: #fcfcfd;
+  --foreground: #10212b;
+
+  --surface: rgba(255, 255, 255, 0.78);
+  --surface-strong: #ffffff;
+  --surface-muted: #f2f5f4;
+
+  --border: rgba(16, 33, 43, 0.1);
+  --border-strong: rgba(16, 33, 43, 0.16);
+
+  --accent: #0f766e;
+  --accent-strong: #115e59;
+  --accent-soft: #d8f3ef;
+  --accent-soft-strong: #bfe9e2;
+
+  --muted: #586774;
+  --muted-soft: #7b8791;
+
+  --danger: #b42318;
+  --warning: #b54708;
+  --success: #027a48;
+
+  --shadow-sm: 0 8px 24px rgba(16, 33, 43, 0.06);
+  --shadow-md: 0 16px 40px rgba(16, 33, 43, 0.08);
+  --shadow-lg: 0 24px 80px rgba(16, 33, 43, 0.12);
+
+  --radius-sm: 14px;
+  --radius-md: 20px;
+  --radius-lg: 28px;
+  --radius-xl: 36px;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-background-elevated: var(--background-elevated);
+  --color-foreground: var(--foreground);
+
+  --color-surface: var(--surface);
+  --color-surface-strong: var(--surface-strong);
+  --color-surface-muted: var(--surface-muted);
+
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-soft-strong: var(--accent-soft-strong);
+
+  --color-muted: var(--muted);
+  --color-muted-soft: var(--muted-soft);
+
+  --color-danger: var(--danger);
+  --color-warning: var(--warning);
+  --color-success: var(--success);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+* {
+  min-width: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  color: var(--foreground);
+  font-family: var(--font-sans), sans-serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background:
+    radial-gradient(circle at top left, rgba(15, 118, 110, 0.14), transparent 24%),
+    radial-gradient(circle at 86% 10%, rgba(226, 161, 76, 0.14), transparent 18%),
+    radial-gradient(circle at 50% 100%, rgba(15, 118, 110, 0.06), transparent 28%),
+    linear-gradient(180deg, #ffffff 0%, #f8faf9 38%, #f6f7f8 100%);
+}
+
+.font-serif {
+  font-family: var(--font-serif), serif;
+}
+
+::selection {
+  background: rgba(15, 118, 110, 0.18);
+  color: var(--foreground);
+}
+
+a {
+  text-decoration: none;
+}
+
+a:not([class]) {
+  color: inherit;
+}
+
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+select {
+  cursor: pointer;
+}
+
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled {
+  cursor: not-allowed;
+}
+
+input,
+select,
+textarea {
+  background-color: white;
+  color: var(--foreground);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--muted-soft);
+}
+
+:focus-visible {
+  outline: 2px solid rgba(15, 118, 110, 0.28);
+  outline-offset: 2px;
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    text-wrap: balance;
+    letter-spacing: -0.02em;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+}
+
+@layer utilities {
+  .glass-surface {
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  .surface-card {
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.96),
+      rgba(245, 248, 247, 0.94)
+    );
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .surface-card-strong {
+    background: var(--surface-strong);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-md);
+  }
+
+  .ring-accent-soft {
+    box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.08);
+  }
+
+  .text-gradient-accent {
+    background: linear-gradient(135deg, var(--accent), #0b8f83);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+  }
+
+  .border-gradient-soft {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .border-gradient-soft::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    border-radius: inherit;
+    background: linear-gradient(
+      135deg,
+      rgba(15, 118, 110, 0.18),
+      rgba(226, 161, 76, 0.12),
+      rgba(16, 33, 43, 0.08)
+    );
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    z-index: -1;
+  }
+}

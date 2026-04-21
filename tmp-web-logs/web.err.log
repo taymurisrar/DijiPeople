@@ -1,0 +1,349 @@
+http://127.0.0.1:3000/api : The term 'http://127.0.0.1:3000/api' is not recognized as the name of a cmdlet, function, 
+script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is 
+correct and try again.
+At line:1 char:50
++ ... 1; $env:API_PORT=3000; $env:API_URL=http://127.0.0.1:3000/api; npm ru ...
++                                         ~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (http://127.0.0.1:3000/api:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ 
+[browser] Uncaught TypeError: fetch failed
+    at resolveErrorDev (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_compiled_react-server-dom-turbopack_044y06i._.js:1919:105)
+    at processFullStringRow (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_compiled_react-server-dom-turbopack_044y06i._.js:2434:29)
+    at processFullBinaryRow (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_compiled_react-server-dom-turbopack_044y06i._.js:2393:9)
+    at processBinaryChunk (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_compiled_react-server-dom-turbopack_044y06i._.js:2502:221)
+    at progress (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_compiled_react-server-dom-turbopack_044y06i._.js:2689:13)
+[browser] Failed to fetch RSC payload for http://localhost:3002/tenants. Falling back to browser navigation. TypeError: Failed to fetch
+    at createFetch (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_client_0bmofkl._.js:8084:21)
+    at fetchServerResponse (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_client_0bmofkl._.js:7928:27)
+    at fetchMissingDynamicData (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_client_0bmofkl._.js:9341:75)
+    at spawnDynamicRequests (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_client_0bmofkl._.js:9149:35)
+    at navigateToKnownRoute (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_client_0bmofkl._.js:10033:54)
+    at refreshDynamicData (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_client_0bmofkl._.js:10653:49)
+    at refreshReducer (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_client_0bmofkl._.js:10627:12)
+    at clientReducer (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_client_0bmofkl._.js:11394:59)
+    at Object.action (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_client_0bmofkl._.js:11631:55)
+    at runAction (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_client_0bmofkl._.js:11536:38)
+    at runRemainingActions (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_client_0bmofkl._.js:11514:13)
+    at handleResult (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_client_0bmofkl._.js:11552:9) (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_client_0bmofkl._.js:8005:21)
+[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_0mqoqe_._.js:2431:13)
+[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_0mqoqe_._.js:2431:13)
+⨯ Error: pageSize must not be greater than 100
+    at apiRequestJson (lib\server-api.ts:43:11)
+    at async EmployeeCompensationPage (app\dashboard\payroll\compensation\page.tsx:8:38)
+  41 |
+  42 |   if (!response.ok) {
+> 43 |     throw new ApiRequestError(
+     |           ^
+  44 |       response.status,
+  45 |       extractErrorMessage(data) ?? `Request failed with status ${response.status}.`,
+  46 |     ); {
+  status: 400,
+  digest: '343834024'
+}
+[browser] Uncaught Error: pageSize must not be greater than 100
+    at apiRequestJson (lib\server-api.ts:43:11)
+    at  EmployeeCompensationPage (app\dashboard\payroll\compensation\page.tsx:8:38)
+    at resolveErrorDev (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_compiled_react-server-dom-turbopack_044y06i._.js:1919:150)
+    at processFullStringRow (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_compiled_react-server-dom-turbopack_044y06i._.js:2434:29)
+    at processFullBinaryRow (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_compiled_react-server-dom-turbopack_044y06i._.js:2393:9)
+    at processBinaryChunk (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_compiled_react-server-dom-turbopack_044y06i._.js:2502:221)
+    at progress (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_compiled_react-server-dom-turbopack_044y06i._.js:2689:13)
+  41 |
+  42 |   if (!response.ok) {
+> 43 |     throw new ApiRequestError(
+     |           ^
+  44 |       response.status,
+  45 |       extractErrorMessage(data) ?? `Request failed with status ${response.status}.`,
+  46 |     );
+[browser] Failed to fetch RSC payload for http://localhost:3002/tenants. Falling back to browser navigation. TypeError: Failed to fetch
+    at createFetch (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_client_0bmofkl._.js:8084:21)
+    at fetchServerResponse (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_client_0bmofkl._.js:7928:27)
+    at fetchMissingDynamicData (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_client_0bmofkl._.js:9341:75)
+    at spawnDynamicRequests (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_client_0bmofkl._.js:9149:35)
+    at navigateToKnownRoute (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_client_0bmofkl._.js:10033:54)
+    at refreshDynamicData (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_client_0bmofkl._.js:10653:49)
+    at refreshReducer (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_client_0bmofkl._.js:10627:12)
+    at clientReducer (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_client_0bmofkl._.js:11394:59)
+    at Object.action (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_client_0bmofkl._.js:11631:55)
+    at runAction (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_client_0bmofkl._.js:11536:38)
+    at runRemainingActions (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_client_0bmofkl._.js:11514:13)
+    at handleResult (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_client_0bmofkl._.js:11552:9) (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_client_0bmofkl._.js:8005:21)
+[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_0mqoqe_._.js:2431:13)
+⨯ [TypeError: fetch failed] {
+  digest: '3227098399',
+  [cause]: Error: connect ECONNREFUSED 127.0.0.1:3000
+      at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:3000) {
+    errno: -4078,
+    code: 'ECONNREFUSED',
+    syscall: 'connect',
+    address: '127.0.0.1',
+    port: 3000
+  }
+}
+⨯ [TypeError: fetch failed] {
+  digest: '3227098399',
+  [cause]: Error: connect ECONNREFUSED 127.0.0.1:3000
+      at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:3000) {
+    errno: -4078,
+    code: 'ECONNREFUSED',
+    syscall: 'connect',
+    address: '127.0.0.1',
+    port: 3000
+  }
+}
+[browser] Uncaught TypeError: fetch failed
+    at resolveErrorDev (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_compiled_react-server-dom-turbopack_044y06i._.js:1919:150)
+    at processFullStringRow (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_compiled_react-server-dom-turbopack_044y06i._.js:2434:29)
+    at processFullBinaryRow (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_compiled_react-server-dom-turbopack_044y06i._.js:2393:9)
+    at processBinaryChunk (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_compiled_react-server-dom-turbopack_044y06i._.js:2502:221)
+    at progress (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_compiled_react-server-dom-turbopack_044y06i._.js:2689:13)
+⨯ [TypeError: fetch failed] {
+  digest: '3227098399',
+  [cause]: Error: connect ECONNREFUSED 127.0.0.1:3000
+      at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:3000) {
+    errno: -4078,
+    code: 'ECONNREFUSED',
+    syscall: 'connect',
+    address: '127.0.0.1',
+    port: 3000
+  }
+}
+[browser] Uncaught TypeError: fetch failed
+    at resolveErrorDev (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_compiled_react-server-dom-turbopack_044y06i._.js:1919:105)
+    at processFullStringRow (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_compiled_react-server-dom-turbopack_044y06i._.js:2434:29)
+    at processFullBinaryRow (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_compiled_react-server-dom-turbopack_044y06i._.js:2393:9)
+    at processBinaryChunk (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_compiled_react-server-dom-turbopack_044y06i._.js:2502:221)
+    at progress (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_compiled_react-server-dom-turbopack_044y06i._.js:2689:13)
+[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_0mqoqe_._.js:2431:13)
+[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_0mqoqe_._.js:2431:13)
+[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_0mqoqe_._.js:2431:13)
+[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_0mqoqe_._.js:2431:13)
+⨯ Error: You do not have permission to perform this action.
+    at apiRequestJson (lib\server-api.ts:43:11)
+    at async NewLeaveRequestPage (app\dashboard\leave\new\page.tsx:6:22)
+  41 |
+  42 |   if (!response.ok) {
+> 43 |     throw new ApiRequestError(
+     |           ^
+  44 |       response.status,
+  45 |       extractErrorMessage(data) ?? `Request failed with status ${response.status}.`,
+  46 |     ); {
+  status: 403,
+  digest: '1927568882'
+}
+⨯ Error: pageSize must not be greater than 100
+    at apiRequestJson (lib\server-api.ts:43:11)
+    at async ProjectDetailPage (app\dashboard\projects\[projectId]\page.tsx:16:32)
+  41 |
+  42 |   if (!response.ok) {
+> 43 |     throw new ApiRequestError(
+     |           ^
+  44 |       response.status,
+  45 |       extractErrorMessage(data) ?? `Request failed with status ${response.status}.`,
+  46 |     ); {
+  status: 400,
+  digest: '3456308113'
+}
+[browser] Uncaught Error: pageSize must not be greater than 100
+    at apiRequestJson (lib\server-api.ts:43:11)
+    at  ProjectDetailPage (app\dashboard\projects\[projectId]\page.tsx:16:32)
+    at resolveErrorDev (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_compiled_react-server-dom-turbopack_044y06i._.js:1919:150)
+    at processFullStringRow (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_compiled_react-server-dom-turbopack_044y06i._.js:2434:29)
+    at processFullBinaryRow (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_compiled_react-server-dom-turbopack_044y06i._.js:2393:9)
+    at processBinaryChunk (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_compiled_react-server-dom-turbopack_044y06i._.js:2502:221)
+    at progress (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_compiled_react-server-dom-turbopack_044y06i._.js:2689:13)
+  41 |
+  42 |   if (!response.ok) {
+> 43 |     throw new ApiRequestError(
+     |           ^
+  44 |       response.status,
+  45 |       extractErrorMessage(data) ?? `Request failed with status ${response.status}.`,
+  46 |     );
+⨯ TypeError: Cannot read properties of undefined (reading 'map')
+    at EditEmployeePage (app\dashboard\employees\[employeeId]\edit\page.tsx:67:36)
+  65 |     provisionSystemAccess: Boolean(employee.user),
+  66 |     sendInvitationNow: employee.user?.status !== "ACTIVE",
+> 67 |     initialRoleIds: employee.user?.roles.map((role) => role.id) ?? [],
+     |                                    ^
+  68 |     addressLine1: employee.addressLine1 || "",
+  69 |     addressLine2: employee.addressLine2 || "",
+  70 |     countryId: employee.countryId || "", {
+  digest: '96168003'
+}
+⨯ TypeError: Cannot read properties of undefined (reading 'map')
+    at EditEmployeePage (app\dashboard\employees\[employeeId]\edit\page.tsx:67:36)
+  65 |     provisionSystemAccess: Boolean(employee.user),
+  66 |     sendInvitationNow: employee.user?.status !== "ACTIVE",
+> 67 |     initialRoleIds: employee.user?.roles.map((role) => role.id) ?? [],
+     |                                    ^
+  68 |     addressLine1: employee.addressLine1 || "",
+  69 |     addressLine2: employee.addressLine2 || "",
+  70 |     countryId: employee.countryId || "", {
+  digest: '96168003'
+}
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⨯ ./apps/web/app/dashboard/profile/page.tsx:5:1
+Module not found: Can't resolve '../_components/employee-self-profile-form'
+  [90m3 |[0m [36mimport[0m { apiRequestJson } [36mfrom[0m [32m"@/lib/server-api"[0m;
+  [90m4 |[0m [36mimport[0m { getCurrentEmployee } [36mfrom[0m [32m"../_lib/current-employee"[0m;
+[31m[1m>[0m [90m5 |[0m [36mimport[0m { [33mEmployeeSelfProfileForm[0m } [36mfrom[0m [32m"../_components/employee-self-profile-form"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m6 |[0m
+  [90m7 |[0m [36mtype[0m [33mUserProfile[0m = {
+  [90m8 |[0m   userId: string;
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./apps/web/app/dashboard/profile/page.tsx:5:1
+Module not found: Can't resolve '../_components/employee-self-profile-form'
+  [90m3 |[0m [36mimport[0m { apiRequestJson } [36mfrom[0m [32m"@/lib/server-api"[0m;
+  [90m4 |[0m [36mimport[0m { getCurrentEmployee } [36mfrom[0m [32m"../_lib/current-employee"[0m;
+[31m[1m>[0m [90m5 |[0m [36mimport[0m { [33mEmployeeSelfProfileForm[0m } [36mfrom[0m [32m"../_components/employee-self-profile-form"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m6 |[0m
+  [90m7 |[0m [36mtype[0m [33mUserProfile[0m = {
+  [90m8 |[0m   userId: string;
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./apps/web/app/dashboard/profile/page.tsx:5:1
+Module not found: Can't resolve '../_components/employee-self-profile-form'
+  [90m3 |[0m [36mimport[0m { apiRequestJson } [36mfrom[0m [32m"@/lib/server-api"[0m;
+  [90m4 |[0m [36mimport[0m { getCurrentEmployee } [36mfrom[0m [32m"../_lib/current-employee"[0m;
+[31m[1m>[0m [90m5 |[0m [36mimport[0m { [33mEmployeeSelfProfileForm[0m } [36mfrom[0m [32m"../_components/employee-self-profile-form"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m6 |[0m
+  [90m7 |[0m [36mtype[0m [33mUserProfile[0m = {
+  [90m8 |[0m   userId: string;
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./apps/web/app/dashboard/profile/page.tsx:5:1
+Module not found: Can't resolve '../_components/employee-self-profile-form'
+  [90m3 |[0m [36mimport[0m { apiRequestJson } [36mfrom[0m [32m"@/lib/server-api"[0m;
+  [90m4 |[0m [36mimport[0m { getCurrentEmployee } [36mfrom[0m [32m"../_lib/current-employee"[0m;
+[31m[1m>[0m [90m5 |[0m [36mimport[0m { [33mEmployeeSelfProfileForm[0m } [36mfrom[0m [32m"../_components/employee-self-profile-form"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m6 |[0m
+  [90m7 |[0m [36mtype[0m [33mUserProfile[0m = {
+  [90m8 |[0m   userId: string;
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[browser] Uncaught Error: ./apps/web/app/dashboard/profile/page.tsx:5:1
+Module not found: Can't resolve '../_components/employee-self-profile-form'
+  3 | import { apiRequestJson } from "@/lib/server-api";
+  4 | import { getCurrentEmployee } from "../_lib/current-employee";
+> 5 | import { EmployeeSelfProfileForm } from "../_components/employee-self-profile-form";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  6 |
+  7 | type UserProfile = {
+  8 |   userId: string;
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+    at <unknown> (Error: ./apps/web/app/dashboard/profile/page.tsx:5:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (Error: (./apps/web/app/dashboard/profile/page.tsx:5:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+[browser] Uncaught Error: ./apps/web/app/dashboard/profile/page.tsx:5:1
+Module not found: Can't resolve '../_components/employee-self-profile-form'
+  3 | import { apiRequestJson } from "@/lib/server-api";
+  4 | import { getCurrentEmployee } from "../_lib/current-employee";
+> 5 | import { EmployeeSelfProfileForm } from "../_components/employee-self-profile-form";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  6 |
+  7 | type UserProfile = {
+  8 |   userId: string;
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+    at <unknown> (Error: ./apps/web/app/dashboard/profile/page.tsx:5:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (Error: (./apps/web/app/dashboard/profile/page.tsx:5:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+⨯ [TypeError: fetch failed] {
+  [cause]: Error: connect ECONNREFUSED 127.0.0.1:3000
+      at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:3000) {
+    errno: -4078,
+    code: 'ECONNREFUSED',
+    syscall: 'connect',
+    address: '127.0.0.1',
+    port: 3000
+  }
+}
+[browser] Failed to fetch RSC payload for http://localhost:3002/tenants. Falling back to browser navigation. TypeError: Failed to fetch
+    at createFetch (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_client_0bmofkl._.js:8084:21)
+    at fetchServerResponse (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_client_0bmofkl._.js:7928:27)
+    at fetchMissingDynamicData (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_client_0bmofkl._.js:9341:75)
+    at spawnDynamicRequests (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_client_0bmofkl._.js:9149:35)
+    at navigateToKnownRoute (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_client_0bmofkl._.js:10033:54)
+    at refreshDynamicData (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_client_0bmofkl._.js:10653:49)
+    at refreshReducer (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_client_0bmofkl._.js:10627:12)
+    at clientReducer (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_client_0bmofkl._.js:11394:59)
+    at Object.action (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_client_0bmofkl._.js:11631:55)
+    at runAction (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_client_0bmofkl._.js:11536:38)
+    at runRemainingActions (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_client_0bmofkl._.js:11514:13)
+    at handleResult (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_client_0bmofkl._.js:11552:9) (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_client_0bmofkl._.js:8005:21)
+[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_0mqoqe_._.js:2431:13)
+⨯ Error: You do not have permission to perform this action.
+    at apiRequestJson (lib\server-api.ts:43:11)
+    at async EmployeeDetailPage (app\dashboard\employees\[employeeId]\page.tsx:46:56)
+  41 |
+  42 |   if (!response.ok) {
+> 43 |     throw new ApiRequestError(
+     |           ^
+  44 |       response.status,
+  45 |       extractErrorMessage(data) ?? `Request failed with status ${response.status}.`,
+  46 |     ); {
+  status: 403,
+  digest: '1300897374'
+}
+⨯ Error: pageSize must not be greater than 100
+    at apiRequestJson (lib\server-api.ts:43:11)
+    at async ProjectDetailPage (app\dashboard\projects\[projectId]\page.tsx:16:32)
+  41 |
+  42 |   if (!response.ok) {
+> 43 |     throw new ApiRequestError(
+     |           ^
+  44 |       response.status,
+  45 |       extractErrorMessage(data) ?? `Request failed with status ${response.status}.`,
+  46 |     ); {
+  status: 400,
+  digest: '3456308113'
+}
+[browser] Uncaught Error: pageSize must not be greater than 100
+    at apiRequestJson (lib\server-api.ts:43:11)
+    at  ProjectDetailPage (app\dashboard\projects\[projectId]\page.tsx:16:32)
+    at resolveErrorDev (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_compiled_react-server-dom-turbopack_044y06i._.js:1919:150)
+    at processFullStringRow (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_compiled_react-server-dom-turbopack_044y06i._.js:2434:29)
+    at processFullBinaryRow (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_compiled_react-server-dom-turbopack_044y06i._.js:2393:9)
+    at processBinaryChunk (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_compiled_react-server-dom-turbopack_044y06i._.js:2502:221)
+    at progress (file://D:/My Work/hrm-dijipeople/DijiPeople/dijipeople/apps/web/.next/dev/static/chunks/0fuv_next_dist_compiled_react-server-dom-turbopack_044y06i._.js:2689:13)
+  41 |
+  42 |   if (!response.ok) {
+> 43 |     throw new ApiRequestError(
+     |           ^
+  44 |       response.status,
+  45 |       extractErrorMessage(data) ?? `Request failed with status ${response.status}.`,
+  46 |     );
+^C

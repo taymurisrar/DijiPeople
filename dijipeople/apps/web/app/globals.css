@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f5f0e8;
+  --foreground: #1d1f1c;
+  --surface: rgba(255, 250, 244, 0.88);
+  --surface-strong: #fffdf8;
+  --border: rgba(53, 44, 32, 0.12);
+  --accent: #0f766e;
+  --accent-strong: #115e59;
+  --accent-soft: #d7f3ef;
+  --muted: #65594b;
+  --sidebar-muted: #586774;
+  --danger: #b42318;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-strong: var(--surface-strong);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-soft: var(--accent-soft);
+  --color-muted: var(--muted);
+  --color-danger: var(--danger);
+  --font-sans: var(--font-instrument-sans);
+  --font-serif: var(--font-literata);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-instrument-sans), sans-serif;
+  background-image:
+    radial-gradient(circle at top left, color-mix(in oklab, var(--accent) 22%, white), transparent 30%),
+    radial-gradient(circle at 85% 15%, color-mix(in oklab, var(--accent-strong) 18%, white), transparent 24%),
+    linear-gradient(180deg, var(--dp-page-gradient-start, rgba(255, 252, 247, 0.8)), var(--dp-page-gradient-end, rgba(245, 240, 232, 0.95)));
+}
+
+a {
+  text-decoration: none;
+}
+
+a:not([class]) {
+  color: inherit;
+}
+
+button,
+input {
+  font: inherit;
+}

@@ -1,0 +1,41 @@
+
+> admin@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.2 (Turbopack)
+- Local:         http://localhost:3002
+- Network:       http://192.168.18.9:3002
+- Environments: .env.local
+✓ Ready in 661ms
+Creating turbopack project {
+  dir: 'D:\\My Work\\hrm-dijipeople\\DijiPeople\\dijipeople\\apps\\admin',
+  testMode: true
+}
+
+ GET /tenants/f71fe9ca-bf80-402b-a6df-0d5046295646 307 in 1597ms (next.js: 1134ms, application-code: 463ms)
+ GET /access-denied 200 in 224ms (next.js: 31ms, application-code: 194ms)
+ OPTIONS /tenants?_rsc=1gzla 400 in 60ms
+ GET /tenants 200 in 425ms (next.js: 13ms, application-code: 411ms)
+ GET /tenants/f71fe9ca-bf80-402b-a6df-0d5046295646 200 in 253ms (next.js: 17ms, application-code: 236ms)
+ PATCH /api/super-admin/tenants/f71fe9ca-bf80-402b-a6df-0d5046295646/subscription 400 in 980ms (next.js: 935ms, application-code: 44ms)
+ GET / 307 in 327ms (next.js: 45ms, application-code: 282ms)
+ GET /tenants 200 in 227ms (next.js: 5ms, application-code: 222ms)
+ GET /tenants 200 in 109ms (next.js: 7ms, application-code: 102ms)
+ GET /tenants 200 in 88ms (next.js: 4ms, application-code: 85ms)
+ GET /tenants/f71fe9ca-bf80-402b-a6df-0d5046295646 200 in 334ms (next.js: 12ms, application-code: 322ms)
+ PATCH /api/super-admin/tenants/f71fe9ca-bf80-402b-a6df-0d5046295646/subscription 400 in 40ms (next.js: 13ms, application-code: 27ms)
+ PATCH /api/super-admin/tenants/f71fe9ca-bf80-402b-a6df-0d5046295646/subscription 400 in 47ms (next.js: 16ms, application-code: 31ms)
+ GET /tenants/f71fe9ca-bf80-402b-a6df-0d5046295646 200 in 383ms (next.js: 11ms, application-code: 372ms)
+ PATCH /api/super-admin/tenants/f71fe9ca-bf80-402b-a6df-0d5046295646/subscription 200 in 47ms (next.js: 14ms, application-code: 33ms)
+ GET /tenants/f71fe9ca-bf80-402b-a6df-0d5046295646 200 in 242ms (next.js: 17ms, application-code: 225ms)
+ PATCH /api/super-admin/tenants/f71fe9ca-bf80-402b-a6df-0d5046295646/subscription 200 in 91ms (next.js: 49ms, application-code: 42ms)
+ GET /tenants/f71fe9ca-bf80-402b-a6df-0d5046295646 200 in 277ms (next.js: 17ms, application-code: 260ms)
+ GET /tenants/f71fe9ca-bf80-402b-a6df-0d5046295646 307 in 576ms (next.js: 48ms, application-code: 528ms)
+ OPTIONS /tenants?_rsc=1gzla 400 in 11ms
+ GET /tenants 200 in 318ms (next.js: 9ms, application-code: 309ms)
+ GET /tenants 200 in 108ms (next.js: 35ms, application-code: 73ms)
+ GET /tenants 200 in 148ms (next.js: 9ms, application-code: 139ms)
+ GET /tenants 307 in 267ms (next.js: 9ms, application-code: 258ms)
+ OPTIONS /tenants?_rsc=1gzla 400 in 10ms
+ GET /tenants 200 in 450ms (next.js: 11ms, application-code: 439ms)
+ GET /tenants/f71fe9ca-bf80-402b-a6df-0d5046295646 200 in 440ms (next.js: 21ms, application-code: 419ms)
