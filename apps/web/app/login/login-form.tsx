@@ -170,12 +170,9 @@ export function LoginForm() {
           <span className="text-sm font-medium text-foreground">
             Password
           </span>
-          <Link
-            className="text-sm font-medium text-accent transition hover:text-accent-strong"
-            href="/forgot-password"
-          >
-            Forgot password?
-          </Link>
+<span className="text-sm font-medium text-muted">
+  Forgot password?
+</span>
         </div>
 
         <div className="relative">
