@@ -4,6 +4,7 @@ import { ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE } from "@/lib/auth-config";
 import { getApiBaseUrl } from "@/lib/auth";
 
 type JsonRecord = Record<string, unknown>;
+
 type LoginSuccessResponse = JsonRecord & {
   user: unknown;
   tenant: unknown;
@@ -42,13 +43,16 @@ export async function POST(request: Request) {
       );
     }
 
+    const loginData = isLoginSuccessResponse(data) ? data : null;
+
     const upstreamTokenPair = extractAuthTokensFromSetCookie(response);
-    const jsonTokenPair = isLoginSuccessResponse(data)
+    const jsonTokenPair = loginData
       ? {
-          accessToken: data.tokens.accessToken,
-          refreshToken: data.tokens.refreshToken,
+          accessToken: loginData.tokens.accessToken,
+          refreshToken: loginData.tokens.refreshToken,
         }
       : null;
+
     const tokenPair = upstreamTokenPair ?? jsonTokenPair;
 
     if (!tokenPair) {
@@ -63,6 +67,7 @@ export async function POST(request: Request) {
     }
 
     const cookieStore = await cookies();
+
     cookieStore.set(ACCESS_TOKEN_COOKIE, tokenPair.accessToken, {
       httpOnly: true,
       sameSite: "lax",
@@ -70,6 +75,7 @@ export async function POST(request: Request) {
       path: "/",
       maxAge: 60 * 15,
     });
+
     cookieStore.set(REFRESH_TOKEN_COOKIE, tokenPair.refreshToken, {
       httpOnly: true,
       sameSite: "lax",
@@ -78,7 +84,11 @@ export async function POST(request: Request) {
       maxAge: 60 * 60 * 24 * 7,
     });
 
-    return NextResponse.json({ ok: true, user: data.user, tenant: data.tenant });
+    return NextResponse.json({
+      ok: true,
+      user: loginData?.user ?? null,
+      tenant: loginData?.tenant ?? null,
+    });
   } catch (error) {
     const message =
       error instanceof Error
@@ -94,15 +104,18 @@ export async function POST(request: Request) {
   }
 }
 
-function safeParseJson(value: string) {
+function safeParseJson(value: string): JsonRecord | null {
   try {
-    return JSON.parse(value) as JsonRecord;
+    const parsed: unknown = JSON.parse(value);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as JsonRecord)
+      : null;
   } catch {
     return null;
   }
 }
 
-function extractErrorMessage(data: JsonRecord | null) {
+function extractErrorMessage(data: JsonRecord | null): string | null {
   if (!data) {
     return null;
   }
@@ -111,7 +124,10 @@ function extractErrorMessage(data: JsonRecord | null) {
     return data.message;
   }
 
-  if (Array.isArray(data.message) && data.message.every((item) => typeof item === "string")) {
+  if (
+    Array.isArray(data.message) &&
+    data.message.every((item) => typeof item === "string")
+  ) {
     return data.message.join(", ");
   }
 
@@ -126,8 +142,10 @@ function extractErrorMessage(data: JsonRecord | null) {
   return null;
 }
 
-function isLoginSuccessResponse(data: JsonRecord | null): data is LoginSuccessResponse {
-  if (!data || typeof data !== "object" || !("tokens" in data)) {
+function isLoginSuccessResponse(
+  data: JsonRecord | null,
+): data is LoginSuccessResponse {
+  if (!data || !("tokens" in data)) {
     return false;
   }
 
@@ -150,7 +168,10 @@ function extractAuthTokensFromSetCookie(response: Response) {
   }
 
   const accessToken = extractCookieValue(setCookieHeaders, ACCESS_TOKEN_COOKIE);
-  const refreshToken = extractCookieValue(setCookieHeaders, REFRESH_TOKEN_COOKIE);
+  const refreshToken = extractCookieValue(
+    setCookieHeaders,
+    REFRESH_TOKEN_COOKIE,
+  );
 
   if (!accessToken || !refreshToken) {
     return null;
@@ -162,7 +183,7 @@ function extractAuthTokensFromSetCookie(response: Response) {
   };
 }
 
-function readSetCookieHeaders(headers: Headers) {
+function readSetCookieHeaders(headers: Headers): string[] {
   const withGetSetCookie = headers as Headers & {
     getSetCookie?: () => string[];
   };
@@ -179,14 +200,17 @@ function readSetCookieHeaders(headers: Headers) {
   return splitSetCookieHeader(combined);
 }
 
-function splitSetCookieHeader(value: string) {
+function splitSetCookieHeader(value: string): string[] {
   return value
     .split(/,(?=\s*[^;,\s]+=)/g)
     .map((entry) => entry.trim())
     .filter(Boolean);
 }
 
-function extractCookieValue(setCookieHeaders: string[], cookieName: string) {
+function extractCookieValue(
+  setCookieHeaders: string[],
+  cookieName: string,
+): string | null {
   const prefix = `${cookieName}=`;
 
   for (const header of setCookieHeaders) {
