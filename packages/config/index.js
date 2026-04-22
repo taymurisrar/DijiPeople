@@ -1,3 +1,5 @@
+const DEFAULT_LOCAL_HOST = "localhost";
+
 const DEFAULT_LOCAL_PORTS = Object.freeze({
   landing: 3000,
   web: 3001,
@@ -41,8 +43,24 @@ function firstDefined(env, keys) {
   return undefined;
 }
 
+function getAppStage(env = process.env) {
+  const raw =
+    env.APP_ENV ||
+    env.NEXT_PUBLIC_APP_ENV ||
+    env.DIJIPEOPLE_ENV ||
+    env.NODE_ENV ||
+    "development";
+
+  return String(raw).trim().toLowerCase();
+}
+
 function isProductionLike(env = process.env) {
-  return env.NODE_ENV === "production" || env.VERCEL === "1" || env.RENDER === "true";
+  const stage = getAppStage(env);
+  return (
+    stage === "production" ||
+    env.VERCEL === "1" ||
+    env.RENDER === "true"
+  );
 }
 
 function getAppPort(app, env = process.env) {
@@ -55,13 +73,17 @@ function getAppOrigin(app, env = process.env) {
   if (app === "api") {
     return (
       firstDefined(env, ["API_ORIGIN", "NEXT_PUBLIC_API_ORIGIN"]) ??
-      (isProductionLike(env) ? PRODUCTION_APP_URLS.api : `http://127.0.0.1:${getAppPort("api", env)}`)
+      (isProductionLike(env)
+        ? PRODUCTION_APP_URLS.api
+        : `http://${DEFAULT_LOCAL_HOST}:${getAppPort("api", env)}`)
     );
   }
 
   return (
     firstDefined(env, APP_URL_ENV_KEYS[app]) ??
-    (isProductionLike(env) ? PRODUCTION_APP_URLS[app] : `http://localhost:${getAppPort(app, env)}`)
+    (isProductionLike(env)
+      ? PRODUCTION_APP_URLS[app]
+      : `http://${DEFAULT_LOCAL_HOST}:${getAppPort(app, env)}`)
   );
 }
 
@@ -110,4 +132,6 @@ module.exports = {
   getApiBaseUrl,
   getAllowedCorsOrigins,
   getLocalArchitecture,
+  getAppStage,
+  isProductionLike,
 };

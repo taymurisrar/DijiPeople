@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import {
-  isProtectedRoute,
   ACCESS_TOKEN_COOKIE,
+  DEFAULT_ADMIN_ROUTE,
+  LOGIN_ROUTE,
+  isAdminAuthRoute,
+  isProtectedAdminRoute,
 } from "@/lib/auth-config";
 
 export function proxy(request: NextRequest) {
@@ -10,24 +13,24 @@ export function proxy(request: NextRequest) {
   const accessToken = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value;
   const isAuthenticated = hasValidJwt(accessToken);
 
-  if (isProtectedRoute(pathname) && !isAuthenticated) {
+  if (isProtectedAdminRoute(pathname) && !isAuthenticated) {
     const loginUrl = new URL(LOGIN_ROUTE, request.url);
     loginUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(loginUrl);
+  }
+
+  if (isAdminAuthRoute(pathname) && isAuthenticated) {
+    return NextResponse.redirect(new URL(DEFAULT_ADMIN_ROUTE, request.url));
   }
 
   return NextResponse.next();
 }
 
 function hasValidJwt(token: string | undefined): boolean {
-  if (!token) {
-    return false;
-  }
+  if (!token) return false;
 
   const payload = decodeJwtPayload(token);
-  if (!payload || typeof payload !== "object") {
-    return false;
-  }
+  if (!payload || typeof payload !== "object") return false;
 
   const nowSeconds = Math.floor(Date.now() / 1000);
   const clockSkewSeconds = 5;
@@ -42,30 +45,7 @@ function hasValidJwt(token: string | undefined): boolean {
     return false;
   }
 
-  // Keep middleware auth checks aligned with server-side session parsing.
-  // Tokens missing these claims can trigger /login <-> /dashboard redirect loops.
-  if (!hasRequiredSessionClaims(payload)) {
-    return false;
-  }
-
   return true;
-}
-
-function hasRequiredSessionClaims(payload: Record<string, unknown>): boolean {
-  return (
-    typeof payload.sub === "string" &&
-    typeof payload.userId === "string" &&
-    typeof payload.tenantId === "string" &&
-    typeof payload.email === "string" &&
-    typeof payload.firstName === "string" &&
-    typeof payload.lastName === "string" &&
-    isStringArray(payload.roleIds) &&
-    isStringArray(payload.permissionKeys)
-  );
-}
-
-function isStringArray(value: unknown): value is string[] {
-  return Array.isArray(value) && value.every((item) => typeof item === "string");
 }
 
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
@@ -79,6 +59,7 @@ function decodeJwtPayload(token: string): Record<string, unknown> | null {
     const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
     const decoded = atob(padded);
     const parsed = JSON.parse(decoded) as unknown;
+
     return typeof parsed === "object" && parsed !== null
       ? (parsed as Record<string, unknown>)
       : null;
@@ -103,5 +84,5 @@ function readNumericClaim(value: unknown): number | undefined {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/login"],
+  matcher: ["/tenants/:path*", "/customers/:path*", "/settings/:path*", "/login"],
 };

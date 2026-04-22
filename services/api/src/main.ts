@@ -9,6 +9,7 @@ async function bootstrap() {
 
   app.enableShutdownHooks();
   app.setGlobalPrefix('api');
+
   app.enableCors({
     origin: getAllowedCorsOrigins(process.env),
     credentials: true,
@@ -22,7 +23,7 @@ async function bootstrap() {
     }),
   );
 
-  const port = Number(process.env.PORT) || 3001;
+  const port = Number(process.env.PORT) || 4000;
   const host = '0.0.0.0';
 
   await app.listen(port, host);

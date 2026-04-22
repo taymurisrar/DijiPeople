@@ -5,10 +5,14 @@ const require = createRequire(import.meta.url);
 const [, , command = "dev", defaultPort = "3000"] = process.argv;
 const resolvedPort = process.env.PORT?.trim() || defaultPort;
 const nextBin = require.resolve("next/dist/bin/next");
+const isDevCommand = command === "dev";
+const forceWebpackDev =
+  process.env.NEXT_DEV_BUNDLER?.toLowerCase() !== "turbopack";
+const extraArgs = isDevCommand && forceWebpackDev ? ["--webpack"] : [];
 
 const child = spawn(
   process.execPath,
-  [nextBin, command, "--port", resolvedPort],
+  [nextBin, command, "--port", resolvedPort, ...extraArgs],
   {
     stdio: "inherit",
     env: {

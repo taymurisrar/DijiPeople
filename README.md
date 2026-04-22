@@ -42,6 +42,45 @@ npm run dev:admin
 npm run dev:api
 ```
 
+## Cloud Release Bootstrap
+
+To ensure an initial full-control platform admin exists right after deploy, run:
+
+```bash
+npm run release:api
+```
+
+This runs:
+
+1. `prisma migrate deploy`
+2. `seed-admin` bootstrap (idempotent upsert)
+
+Set these environment variables in your cloud API service:
+
+- `DATABASE_URL`
+- `BOOTSTRAP_ADMIN_EMAIL` (for example: `superadmin@dijipeople.local`)
+- `BOOTSTRAP_ADMIN_PASSWORD`
+- `BOOTSTRAP_ADMIN_ROLE_KEY=super-admin`
+- `BOOTSTRAP_ADMIN_ROLE_NAME=Super Admin`
+
+Recommended release command in cloud platforms:
+
+```bash
+npm run release:api
+```
+
+For the web app build/release step, use:
+
+```bash
+npm run release:web
+```
+
+For the admin app build/release step, use:
+
+```bash
+npm run release:admin
+```
+
 Or run the existing Turborepo command:
 
 ```bash

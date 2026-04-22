@@ -42,10 +42,20 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!isLoginSuccessResponse(data)) {
+    const upstreamTokenPair = extractAuthTokensFromSetCookie(response);
+    const jsonTokenPair = isLoginSuccessResponse(data)
+      ? {
+          accessToken: data.tokens.accessToken,
+          refreshToken: data.tokens.refreshToken,
+        }
+      : null;
+    const tokenPair = upstreamTokenPair ?? jsonTokenPair;
+
+    if (!tokenPair) {
       return NextResponse.json(
         {
-          message: "API login response was missing the expected token payload.",
+          message:
+            "API login response did not include usable auth cookies or token payload.",
           upstreamStatus: response.status,
         },
         { status: 502 },
@@ -53,14 +63,14 @@ export async function POST(request: Request) {
     }
 
     const cookieStore = await cookies();
-    cookieStore.set(ACCESS_TOKEN_COOKIE, data.tokens.accessToken, {
+    cookieStore.set(ACCESS_TOKEN_COOKIE, tokenPair.accessToken, {
       httpOnly: true,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
       path: "/",
       maxAge: 60 * 15,
     });
-    cookieStore.set(REFRESH_TOKEN_COOKIE, data.tokens.refreshToken, {
+    cookieStore.set(REFRESH_TOKEN_COOKIE, tokenPair.refreshToken, {
       httpOnly: true,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
@@ -131,4 +141,63 @@ function isLoginSuccessResponse(data: JsonRecord | null): data is LoginSuccessRe
     typeof tokens.accessToken === "string" &&
     typeof tokens.refreshToken === "string"
   );
+}
+
+function extractAuthTokensFromSetCookie(response: Response) {
+  const setCookieHeaders = readSetCookieHeaders(response.headers);
+  if (setCookieHeaders.length === 0) {
+    return null;
+  }
+
+  const accessToken = extractCookieValue(setCookieHeaders, ACCESS_TOKEN_COOKIE);
+  const refreshToken = extractCookieValue(setCookieHeaders, REFRESH_TOKEN_COOKIE);
+
+  if (!accessToken || !refreshToken) {
+    return null;
+  }
+
+  return {
+    accessToken,
+    refreshToken,
+  };
+}
+
+function readSetCookieHeaders(headers: Headers) {
+  const withGetSetCookie = headers as Headers & {
+    getSetCookie?: () => string[];
+  };
+
+  if (typeof withGetSetCookie.getSetCookie === "function") {
+    return withGetSetCookie.getSetCookie();
+  }
+
+  const combined = headers.get("set-cookie");
+  if (!combined) {
+    return [];
+  }
+
+  return splitSetCookieHeader(combined);
+}
+
+function splitSetCookieHeader(value: string) {
+  return value
+    .split(/,(?=\s*[^;,\s]+=)/g)
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+function extractCookieValue(setCookieHeaders: string[], cookieName: string) {
+  const prefix = `${cookieName}=`;
+
+  for (const header of setCookieHeaders) {
+    if (!header.startsWith(prefix)) {
+      continue;
+    }
+
+    const firstSegment = header.split(";")[0];
+    const rawValue = firstSegment.slice(prefix.length);
+    return rawValue || null;
+  }
+
+  return null;
 }

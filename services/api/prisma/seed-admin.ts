@@ -16,12 +16,15 @@ function getBootstrapConfig() {
   const tenantSlug =
     process.env.BOOTSTRAP_TENANT_SLUG?.trim().toLowerCase() ||
     'dijipeople-demo';
-  const roleName = process.env.BOOTSTRAP_ADMIN_ROLE_NAME?.trim() || 'Super Admin';
+  const roleName =
+    process.env.BOOTSTRAP_ADMIN_ROLE_NAME?.trim() || 'Super Admin';
   const roleKey =
     process.env.BOOTSTRAP_ADMIN_ROLE_KEY?.trim().toLowerCase() ||
     'super-admin';
-  const firstName = process.env.BOOTSTRAP_ADMIN_FIRST_NAME?.trim() || 'Taimur';
-  const lastName = process.env.BOOTSTRAP_ADMIN_LAST_NAME?.trim() || 'Israr';
+  const firstName =
+    process.env.BOOTSTRAP_ADMIN_FIRST_NAME?.trim() || 'Taimur';
+  const lastName =
+    process.env.BOOTSTRAP_ADMIN_LAST_NAME?.trim() || 'Israr';
   const email = normalizeEmail(
     process.env.BOOTSTRAP_ADMIN_EMAIL || 'taimur@example.com',
   );
@@ -57,148 +60,133 @@ async function main() {
   const config = getBootstrapConfig();
   const passwordHash = await bcrypt.hash(config.plainPassword, 10);
 
-  const result = await prisma.$transaction(async (tx) => {
-    const existingTenant = await tx.tenant.findUnique({
-      where: { slug: config.tenantSlug },
-      select: { id: true },
-    });
+  const permissionKeys = FOUNDATION_PERMISSION_DEFINITIONS.map(
+    (permission) => permission.key,
+  );
 
-    const tenant = await tx.tenant.upsert({
-      where: { slug: config.tenantSlug },
-      update: {
-        name: config.tenantName,
-        status: TenantStatus.ACTIVE,
-      },
-      create: {
-        name: config.tenantName,
-        slug: config.tenantSlug,
-        status: TenantStatus.ACTIVE,
-      },
-    });
+  const tenant = await prisma.tenant.upsert({
+    where: { slug: config.tenantSlug },
+    update: {
+      name: config.tenantName,
+      status: TenantStatus.ACTIVE,
+    },
+    create: {
+      name: config.tenantName,
+      slug: config.tenantSlug,
+      status: TenantStatus.ACTIVE,
+    },
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+    },
+  });
 
-    const existingRole = await tx.role.findUnique({
-      where: {
-        tenantId_key: {
-          tenantId: tenant.id,
-          key: config.roleKey,
-        },
-      },
-      select: { id: true },
-    });
-
-    const role = await tx.role.upsert({
-      where: {
-        tenantId_key: {
-          tenantId: tenant.id,
-          key: config.roleKey,
-        },
-      },
-      update: {
-        name: config.roleName,
-        description: 'Bootstrap administrator role',
-        isSystem: true,
-      },
-      create: {
+  const role = await prisma.role.upsert({
+    where: {
+      tenantId_key: {
         tenantId: tenant.id,
-        name: config.roleName,
         key: config.roleKey,
-        description: 'Bootstrap administrator role',
-        isSystem: true,
       },
-    });
+    },
+    update: {
+      name: config.roleName,
+      description: 'Bootstrap administrator role',
+      isSystem: true,
+    },
+    create: {
+      tenantId: tenant.id,
+      name: config.roleName,
+      key: config.roleKey,
+      description: 'Bootstrap administrator role',
+      isSystem: true,
+    },
+    select: {
+      id: true,
+      key: true,
+      name: true,
+    },
+  });
 
-    await tx.permission.createMany({
-      data: FOUNDATION_PERMISSION_DEFINITIONS.map((permission) => ({
-        tenantId: tenant.id,
-        key: permission.key,
-        name: permission.name,
-        description: permission.description,
-      })),
-      skipDuplicates: true,
-    });
+  await prisma.permission.createMany({
+    data: FOUNDATION_PERMISSION_DEFINITIONS.map((permission) => ({
+      tenantId: tenant.id,
+      key: permission.key,
+      name: permission.name,
+      description: permission.description,
+    })),
+    skipDuplicates: true,
+  });
 
-    const permissions = await tx.permission.findMany({
-      where: {
-        tenantId: tenant.id,
-        key: {
-          in: FOUNDATION_PERMISSION_DEFINITIONS.map((permission) => permission.key),
-        },
+  const permissions = await prisma.permission.findMany({
+    where: {
+      tenantId: tenant.id,
+      key: {
+        in: permissionKeys,
       },
-      select: {
-        id: true,
-      },
-    });
+    },
+    select: {
+      id: true,
+    },
+  });
 
-    await tx.rolePermission.createMany({
-      data: permissions.map((permission) => ({
-        tenantId: tenant.id,
-        roleId: role.id,
-        permissionId: permission.id,
-      })),
-      skipDuplicates: true,
-    });
-
-    const existingUser = await tx.user.findUnique({
-      where: { email: config.email },
-      select: { id: true },
-    });
-
-    const user = await tx.user.upsert({
-      where: { email: config.email },
-      update: {
-        tenantId: tenant.id,
-        firstName: config.firstName,
-        lastName: config.lastName,
-        passwordHash,
-        status: UserStatus.ACTIVE,
-        isServiceAccount: false,
-      },
-      create: {
-        tenantId: tenant.id,
-        firstName: config.firstName,
-        lastName: config.lastName,
-        email: config.email,
-        passwordHash,
-        status: UserStatus.ACTIVE,
-        isServiceAccount: false,
-      },
-    });
-
-    const existingUserRole = await tx.userRole.findUnique({
-      where: {
-        userId_roleId: {
-          userId: user.id,
-          roleId: role.id,
-        },
-      },
-      select: { id: true },
-    });
-
-    if (!existingUserRole) {
-      await tx.userRole.create({
-        data: {
-          tenantId: tenant.id,
-          userId: user.id,
-          roleId: role.id,
-        },
-      });
-    }
-
-    return {
+  await prisma.rolePermission.createMany({
+    data: permissions.map((permission) => ({
       tenantId: tenant.id,
       roleId: role.id,
-      userId: user.id,
-      email: config.email,
-      actions: {
-        tenant: existingTenant ? 'updated' : 'created',
-        role: existingRole ? 'updated' : 'created',
-        user: existingUser ? 'updated' : 'created',
-        userRole: existingUserRole ? 'reused' : 'created',
-      },
-      permissionsAssignedToRole: permissions.length,
-      usingDefaultPassword: config.usingDefaultPassword,
-    };
+      permissionId: permission.id,
+    })),
+    skipDuplicates: true,
   });
+
+  const user = await prisma.user.upsert({
+    where: { email: config.email },
+    update: {
+      tenantId: tenant.id,
+      firstName: config.firstName,
+      lastName: config.lastName,
+      passwordHash,
+      status: UserStatus.ACTIVE,
+      isServiceAccount: false,
+    },
+    create: {
+      tenantId: tenant.id,
+      firstName: config.firstName,
+      lastName: config.lastName,
+      email: config.email,
+      passwordHash,
+      status: UserStatus.ACTIVE,
+      isServiceAccount: false,
+    },
+    select: {
+      id: true,
+      email: true,
+    },
+  });
+
+  await prisma.userRole.upsert({
+    where: {
+      userId_roleId: {
+        userId: user.id,
+        roleId: role.id,
+      },
+    },
+    update: {},
+    create: {
+      tenantId: tenant.id,
+      userId: user.id,
+      roleId: role.id,
+    },
+  });
+
+  const result = {
+    tenantId: tenant.id,
+    roleId: role.id,
+    userId: user.id,
+    email: user.email,
+    permissionsAssignedToRole: permissions.length,
+    usingDefaultPassword: config.usingDefaultPassword,
+  };
 
   console.log('Bootstrap admin seed completed successfully.');
   console.log(JSON.stringify(result, null, 2));

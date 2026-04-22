@@ -7,6 +7,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Prisma, User } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
+import type { Response } from 'express';
 import type { StringValue } from 'ms';
 import { FOUNDATION_PERMISSION_DEFINITIONS } from '../../common/constants/permissions';
 import {
@@ -28,6 +29,9 @@ import { PermissionBootstrapService } from '../permissions/permission-bootstrap.
 import { UserInvitationsService } from './user-invitations.service';
 import { LoginDto } from './dto/login.dto';
 import { SignupDto } from './dto/signup.dto';
+
+const ACCESS_TOKEN_COOKIE = 'dp_access_token';
+const REFRESH_TOKEN_COOKIE = 'dp_refresh_token';
 
 type UserWithAccess = Prisma.UserGetPayload<{
   include: {
@@ -71,7 +75,7 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly permissionBootstrapService: PermissionBootstrapService,
     private readonly userInvitationsService: UserInvitationsService,
-  ) { }
+  ) {}
 
   async signup(dto: SignupDto) {
     return this.tenantsService.signup({
@@ -98,7 +102,10 @@ export class AuthService {
       throw new UnauthorizedException('Unable to load this account.');
     }
 
-    const authResponse = this.buildAuthResponse(refreshedUser);
+    const authResponse = this.buildAuthResponse(
+      refreshedUser,
+      dto.rememberMe ?? false,
+    );
 
     await Promise.all([
       this.persistRefreshToken(
@@ -168,7 +175,8 @@ export class AuthService {
         email: currentUser.email,
         firstName: currentUser.firstName,
         lastName: currentUser.lastName,
-        isTenantOwner: tenant.customerAccount?.primaryOwnerUserId === currentUser.userId,
+        isTenantOwner:
+          tenant.customerAccount?.primaryOwnerUserId === currentUser.userId,
         roleIds: currentUser.roleIds,
         roleKeys: currentUser.roleKeys,
         permissionKeys: currentUser.permissionKeys,
@@ -188,6 +196,65 @@ export class AuthService {
 
   activateAccount(token: string, password: string) {
     return this.userInvitationsService.activateAccount(token, password);
+  }
+
+  setAuthCookies(
+    res: Response,
+    tokens: {
+      accessToken: string;
+      refreshToken: string;
+      accessTokenExpiresIn: string;
+      refreshTokenExpiresIn: string;
+    },
+    rememberMe?: boolean,
+  ) {
+    const isProduction = this.isProduction();
+
+    const accessMaxAge = rememberMe
+      ? parseDurationToMilliseconds(tokens.accessTokenExpiresIn)
+      : undefined;
+
+    const refreshMaxAge = rememberMe
+      ? parseDurationToMilliseconds(tokens.refreshTokenExpiresIn)
+      : undefined;
+
+    res.cookie(ACCESS_TOKEN_COOKIE, tokens.accessToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      path: '/',
+      maxAge: accessMaxAge,
+    });
+
+    res.cookie(REFRESH_TOKEN_COOKIE, tokens.refreshToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      path: '/',
+      maxAge: refreshMaxAge,
+    });
+  }
+
+  clearAuthCookies(res: Response) {
+    const isProduction = this.isProduction();
+
+    res.clearCookie(ACCESS_TOKEN_COOKIE, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      path: '/',
+    });
+
+    res.clearCookie(REFRESH_TOKEN_COOKIE, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      path: '/',
+    });
+  }
+
+  private isProduction() {
+    return this.configService.get<string>('NODE_ENV') === 'production';
   }
 
   private async validateCredentials(dto: LoginDto) {
@@ -297,22 +364,26 @@ export class AuthService {
       }
     }
 
-    await this.persistRefreshToken(userId, tenantId, nextRefreshToken, nextRefreshTokenTtl,);
+    await this.persistRefreshToken(
+      userId,
+      tenantId,
+      nextRefreshToken,
+      nextRefreshTokenTtl,
+    );
   }
 
-  private buildAuthResponse(user: UserWithAccess,
-    rememberMe = false,) {
+  private buildAuthResponse(user: UserWithAccess, rememberMe = false) {
     const permissionKeys = Array.from(
-      new Set(
-        [
-          ...user.userRoles.flatMap((userRole) =>
-            userRole.role.rolePermissions.map(
-              (rolePermission) => rolePermission.permission.key,
-            ),
+      new Set([
+        ...user.userRoles.flatMap((userRole) =>
+          userRole.role.rolePermissions.map(
+            (rolePermission) => rolePermission.permission.key,
           ),
-          ...user.userPermissions.map((userPermission) => userPermission.permission.key),
-        ],
-      ),
+        ),
+        ...user.userPermissions.map(
+          (userPermission) => userPermission.permission.key,
+        ),
+      ]),
     );
 
     const roleIds = user.userRoles.map((userRole) => userRole.roleId);

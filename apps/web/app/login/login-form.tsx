@@ -21,9 +21,6 @@ type LoginResponse = {
   message?: string;
 };
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || "";
-
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -83,60 +80,75 @@ export function LoginForm() {
     }
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  event.preventDefault();
 
-    setError(null);
+  setError(null);
 
-    const validationErrors = validateForm(form);
-    setFieldErrors(validationErrors);
+  const validationErrors = validateForm(form);
+  setFieldErrors(validationErrors);
 
-    if (Object.keys(validationErrors).length > 0) {
-      return;
-    }
-
-    if (!API_BASE_URL) {
-      setError("API base URL is not configured.");
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: form.email.trim().toLowerCase(),
-          password: form.password,
-          rememberMe: form.rememberMe,
-        }),
-      });
-
-      const data = (await response.json()) as LoginResponse;
-
-      if (!response.ok) {
-        setError(
-          data.message ??
-            "We could not sign you in. Check your credentials and try again.",
-        );
-        return;
-      }
-
-      const nextPath =
-        searchParams.get("next") || DEFAULT_AUTHENTICATED_ROUTE;
-      router.push(nextPath);
-      router.refresh();
-    } catch {
-      setError(
-        "The login request failed. Check that the API is running and reachable.",
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
+  if (Object.keys(validationErrors).length > 0) {
+    return;
   }
+
+  setIsSubmitting(true);
+
+  try {
+    const response = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: form.email.trim().toLowerCase(),
+        password: form.password,
+        rememberMe: form.rememberMe,
+      }),
+    });
+
+    const data = (await response.json()) as LoginResponse;
+
+    if (!response.ok) {
+      setError(
+        data.message ??
+          "We could not sign you in. Check your credentials and try again.",
+      );
+      return;
+    }
+
+    const nextPath =
+      searchParams.get("next") || DEFAULT_AUTHENTICATED_ROUTE;
+    const nextUrl = resolveNextUrl(nextPath);
+
+    if (!nextUrl) {
+      router.push(DEFAULT_AUTHENTICATED_ROUTE);
+      return;
+    }
+
+    const currentOrigin = window.location.origin;
+    const nextPathnameWithQuery = `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`;
+    const isLoginRoute =
+      nextUrl.pathname === "/login" || nextUrl.pathname.startsWith("/login/");
+
+    if (nextUrl.origin === currentOrigin) {
+      router.push(
+        isLoginRoute
+          ? DEFAULT_AUTHENTICATED_ROUTE
+          : nextPathnameWithQuery || DEFAULT_AUTHENTICATED_ROUTE,
+      );
+      return;
+    }
+
+    window.location.assign(nextUrl.toString());
+  } catch {
+    setError(
+      "The login request failed. Check that the web app and API are running.",
+    );
+  } finally {
+    setIsSubmitting(false);
+  }
+}
 
   return (
     <form className="space-y-5" noValidate onSubmit={handleSubmit}>
@@ -226,6 +238,19 @@ export function LoginForm() {
       </button>
     </form>
   );
+}
+
+function resolveNextUrl(rawNext: string) {
+  const nextValue = rawNext.trim();
+  if (!nextValue) {
+    return null;
+  }
+
+  try {
+    return new URL(nextValue, window.location.origin);
+  } catch {
+    return null;
+  }
 }
 
 function getAuthNotice(reason: string | null) {

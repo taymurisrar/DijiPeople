@@ -8,6 +8,9 @@
     "dev:admin": "npm --workspace admin run dev",
     "dev:api": "npm --workspace api run start:dev",
     "bootstrap:admin": "npm --workspace api run seed:admin",
+    "release:api": "npm --workspace api run release",
+    "release:web": "npm --workspace web run release",
+    "release:admin": "npm --workspace admin run release",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "check-types": "turbo run check-types"
