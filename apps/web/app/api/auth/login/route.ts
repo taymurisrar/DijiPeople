@@ -5,17 +5,19 @@ import { getApiBaseUrl } from "@/lib/auth";
 
 type JsonRecord = Record<string, unknown>;
 
+type TokenPair = {
+  accessToken: string;
+  refreshToken: string;
+};
+
 type LoginSuccessResponse = JsonRecord & {
   user: unknown;
   tenant: unknown;
-  tokens: {
-    accessToken: string;
-    refreshToken: string;
-  };
+  tokens: TokenPair;
 };
 
 export async function POST(request: Request) {
-  const body = await request.json();
+  const body: unknown = await request.json();
   const apiBaseUrl = getApiBaseUrl();
 
   try {
@@ -29,7 +31,7 @@ export async function POST(request: Request) {
     });
 
     const rawBody = await response.text();
-    const data = rawBody ? safeParseJson(rawBody) : null;
+    const data: JsonRecord | null = rawBody ? safeParseJson(rawBody) : null;
 
     if (!response.ok) {
       return NextResponse.json(
@@ -43,17 +45,19 @@ export async function POST(request: Request) {
       );
     }
 
-    const loginData = isLoginSuccessResponse(data) ? data : null;
+    const loginData: LoginSuccessResponse | null = isLoginSuccessResponse(data)
+      ? data
+      : null;
 
     const upstreamTokenPair = extractAuthTokensFromSetCookie(response);
-    const jsonTokenPair = loginData
+    const jsonTokenPair: TokenPair | null = loginData
       ? {
           accessToken: loginData.tokens.accessToken,
           refreshToken: loginData.tokens.refreshToken,
         }
       : null;
 
-    const tokenPair = upstreamTokenPair ?? jsonTokenPair;
+    const tokenPair: TokenPair | null = upstreamTokenPair ?? jsonTokenPair;
 
     if (!tokenPair) {
       return NextResponse.json(
@@ -89,7 +93,7 @@ export async function POST(request: Request) {
       user: loginData?.user ?? null,
       tenant: loginData?.tenant ?? null,
     });
-  } catch (error) {
+  } catch (error: unknown) {
     const message =
       error instanceof Error
         ? `Unable to reach API at ${apiBaseUrl}: ${error.message}`
@@ -145,7 +149,7 @@ function extractErrorMessage(data: JsonRecord | null): string | null {
 function isLoginSuccessResponse(
   data: JsonRecord | null,
 ): data is LoginSuccessResponse {
-  if (!data || !("tokens" in data)) {
+  if (!data) {
     return false;
   }
 
@@ -154,14 +158,12 @@ function isLoginSuccessResponse(
   return (
     typeof tokens === "object" &&
     tokens !== null &&
-    "accessToken" in tokens &&
-    "refreshToken" in tokens &&
-    typeof tokens.accessToken === "string" &&
-    typeof tokens.refreshToken === "string"
+    typeof (tokens as JsonRecord).accessToken === "string" &&
+    typeof (tokens as JsonRecord).refreshToken === "string"
   );
 }
 
-function extractAuthTokensFromSetCookie(response: Response) {
+function extractAuthTokensFromSetCookie(response: Response): TokenPair | null {
   const setCookieHeaders = readSetCookieHeaders(response.headers);
   if (setCookieHeaders.length === 0) {
     return null;
