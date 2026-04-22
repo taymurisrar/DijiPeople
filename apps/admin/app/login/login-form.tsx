@@ -7,9 +7,6 @@ type LoginResponse = {
   message?: string;
 };
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || "";
-
 const DEFAULT_ADMIN_ROUTE = "/tenants";
 
 export function AdminLoginForm() {
@@ -26,20 +23,14 @@ export function AdminLoginForm() {
     event.preventDefault();
     setError(null);
 
-    if (!API_BASE_URL) {
-      setError("API base URL is not configured.");
-      return;
-    }
-
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        credentials: "include",
         body: JSON.stringify({
           email: email.trim().toLowerCase(),
           password,
@@ -61,7 +52,7 @@ export function AdminLoginForm() {
       router.push(nextPath);
     } catch {
       setError(
-        "The login request failed. Check that the API is running and reachable.",
+        "The login request failed. Check that the admin app and API are running.",
       );
     } finally {
       setIsSubmitting(false);
