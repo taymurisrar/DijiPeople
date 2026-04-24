@@ -28,10 +28,12 @@ import {
   UpdateCustomerOnboardingDto,
 } from './dto/customer-lifecycle.dto';
 import { RecordPaymentDto } from './dto/record-payment.dto';
+import { CreateInvoiceFromSubscriptionDto } from './dto/create-invoice-from-subscription.dto';
 import { UpdateInvoiceStatusDto } from './dto/update-invoice-status.dto';
-import { UpdatePermissionAssignmentDto } from './dto/update-permission-assignment.dto';
 import { UpdatePlanDto } from './dto/update-plan.dto';
+import { UpdatePlatformSettingsDto } from './dto/update-platform-settings.dto';
 import { UpdatePrimaryOwnerDto } from './dto/update-primary-owner.dto';
+import { UpdateTenantCustomerAccountDto } from './dto/update-tenant-customer-account.dto';
 import { UpdateTenantFeaturesDto } from './dto/update-tenant-features.dto';
 import { UpdateTenantSubscriptionDto } from './dto/update-tenant-subscription.dto';
 import { UpdateTenantStatusDto } from './dto/update-tenant-status.dto';
@@ -39,7 +41,7 @@ import { SuperAdminService } from './super-admin.service';
 import { ConvertLeadToCustomerDto } from '../leads/dto/admin-lead.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@RequireRoles('super-admin')
+@RequireRoles('system-admin')
 @Controller('super-admin')
 export class SuperAdminController {
   constructor(private readonly superAdminService: SuperAdminService) {}
@@ -78,6 +80,41 @@ export class SuperAdminController {
     @Param('customerAccountId', new ParseUUIDPipe()) customerAccountId: string,
   ) {
     return this.superAdminService.getCustomerDetail(customerAccountId);
+  }
+
+  @Get('customers/:customerAccountId/onboardings')
+  getCustomerOnboardings(
+    @Param('customerAccountId', new ParseUUIDPipe()) customerAccountId: string,
+  ) {
+    return this.superAdminService.getCustomerOnboardings(customerAccountId);
+  }
+
+  @Get('customers/:customerAccountId/tenants')
+  getCustomerTenants(
+    @Param('customerAccountId', new ParseUUIDPipe()) customerAccountId: string,
+  ) {
+    return this.superAdminService.getCustomerTenants(customerAccountId);
+  }
+
+  @Get('customers/:customerAccountId/subscriptions')
+  getCustomerSubscriptions(
+    @Param('customerAccountId', new ParseUUIDPipe()) customerAccountId: string,
+  ) {
+    return this.superAdminService.getCustomerSubscriptions(customerAccountId);
+  }
+
+  @Get('customers/:customerAccountId/invoices')
+  getCustomerInvoices(
+    @Param('customerAccountId', new ParseUUIDPipe()) customerAccountId: string,
+  ) {
+    return this.superAdminService.getCustomerInvoices(customerAccountId);
+  }
+
+  @Get('customers/:customerAccountId/payments')
+  getCustomerPayments(
+    @Param('customerAccountId', new ParseUUIDPipe()) customerAccountId: string,
+  ) {
+    return this.superAdminService.getCustomerPayments(customerAccountId);
   }
 
   @Post('customers')
@@ -181,6 +218,15 @@ export class SuperAdminController {
     return this.superAdminService.getTenantDetail(tenantId);
   }
 
+  @Patch('tenants/:tenantId/customer-account')
+  updateTenantCustomerAccount(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('tenantId', new ParseUUIDPipe()) tenantId: string,
+    @Body() dto: UpdateTenantCustomerAccountDto,
+  ) {
+    return this.superAdminService.updateTenantCustomerAccount(user, tenantId, dto);
+  }
+
   @Patch('tenants/:tenantId/status')
   updateTenantStatus(
     @CurrentUser() user: AuthenticatedUser,
@@ -209,6 +255,11 @@ export class SuperAdminController {
     return this.superAdminService.listInvoices();
   }
 
+  @Get('invoices/:invoiceId')
+  getInvoiceDetail(@Param('invoiceId', new ParseUUIDPipe()) invoiceId: string) {
+    return this.superAdminService.getInvoiceDetail(invoiceId);
+  }
+
   @Patch('invoices/:invoiceId/status')
   updateInvoiceStatus(
     @CurrentUser() user: AuthenticatedUser,
@@ -216,6 +267,19 @@ export class SuperAdminController {
     @Body() dto: UpdateInvoiceStatusDto,
   ) {
     return this.superAdminService.updateInvoiceStatus(user, invoiceId, dto);
+  }
+
+  @Post('subscriptions/:subscriptionId/invoices')
+  createInvoiceFromSubscription(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('subscriptionId', new ParseUUIDPipe()) subscriptionId: string,
+    @Body() dto: CreateInvoiceFromSubscriptionDto,
+  ) {
+    return this.superAdminService.createInvoiceFromSubscription(
+      user,
+      subscriptionId,
+      dto,
+    );
   }
 
   @Get('payments')
@@ -253,6 +317,27 @@ export class SuperAdminController {
     return this.superAdminService.updatePrimaryOwner(tenantId, dto);
   }
 
+  @Get('tenants/:tenantId/owner-summary')
+  getTenantOwnerSummary(@Param('tenantId', new ParseUUIDPipe()) tenantId: string) {
+    return this.superAdminService.getTenantOwnerSummary(tenantId);
+  }
+
+  @Post('tenants/:tenantId/owner/reset-password')
+  resetTenantOwnerPassword(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('tenantId', new ParseUUIDPipe()) tenantId: string,
+  ) {
+    return this.superAdminService.resetTenantOwnerPassword(user, tenantId);
+  }
+
+  @Post('tenants/:tenantId/owner/resend-activation')
+  resendTenantOwnerActivation(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('tenantId', new ParseUUIDPipe()) tenantId: string,
+  ) {
+    return this.superAdminService.resendTenantOwnerActivation(user, tenantId);
+  }
+
   @Get('plans')
   listPlans() {
     return this.superAdminService.listPlans();
@@ -261,53 +346,6 @@ export class SuperAdminController {
   @Get('feature-catalog')
   getFeatureCatalog() {
     return this.superAdminService.getFeatureCatalog();
-  }
-
-  @Get('tenants/:tenantId/permissions')
-  listTenantPermissions(
-    @Param('tenantId', new ParseUUIDPipe()) tenantId: string,
-  ) {
-    return this.superAdminService.listTenantPermissions(tenantId);
-  }
-
-  @Get('tenants/:tenantId/roles')
-  listTenantRoles(@Param('tenantId', new ParseUUIDPipe()) tenantId: string) {
-    return this.superAdminService.listTenantRoles(tenantId);
-  }
-
-  @Patch('tenants/:tenantId/roles/:roleId/permissions')
-  updateTenantRolePermissions(
-    @CurrentUser() user: AuthenticatedUser,
-    @Param('tenantId', new ParseUUIDPipe()) tenantId: string,
-    @Param('roleId', new ParseUUIDPipe()) roleId: string,
-    @Body() dto: UpdatePermissionAssignmentDto,
-  ) {
-    return this.superAdminService.updateTenantRolePermissions(
-      user,
-      tenantId,
-      roleId,
-      dto,
-    );
-  }
-
-  @Get('tenants/:tenantId/users')
-  listTenantUsers(@Param('tenantId', new ParseUUIDPipe()) tenantId: string) {
-    return this.superAdminService.listTenantUsers(tenantId);
-  }
-
-  @Patch('tenants/:tenantId/users/:userId/permissions')
-  updateTenantUserPermissions(
-    @CurrentUser() user: AuthenticatedUser,
-    @Param('tenantId', new ParseUUIDPipe()) tenantId: string,
-    @Param('userId', new ParseUUIDPipe()) userId: string,
-    @Body() dto: UpdatePermissionAssignmentDto,
-  ) {
-    return this.superAdminService.updateTenantUserPermissions(
-      user,
-      tenantId,
-      userId,
-      dto,
-    );
   }
 
   @Get('plans/:planId')
@@ -347,4 +385,18 @@ export class SuperAdminController {
   handleStripeWebhook() {
     return this.superAdminService.handleStripeWebhook();
   }
+
+  @Get('platform-settings')
+  getPlatformSettings() {
+    return this.superAdminService.getPlatformSettings();
+  }
+
+  @Patch('platform-settings')
+  updatePlatformSettings(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: UpdatePlatformSettingsDto,
+  ) {
+    return this.superAdminService.updatePlatformSettings(user, dto);
+  }
 }
+

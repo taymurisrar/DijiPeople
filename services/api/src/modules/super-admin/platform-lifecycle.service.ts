@@ -25,6 +25,7 @@ import { AuditService } from '../audit/audit.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { RolesRepository } from '../roles/roles.repository';
 import { UsersRepository } from '../users/users.repository';
+import { UserInvitationsService } from '../auth/user-invitations.service';
 import { LeadsRepository } from '../leads/leads.repository';
 import {
   INDUSTRY_OPTIONS,
@@ -53,12 +54,18 @@ export class PlatformLifecycleService {
     private readonly permissionsService: PermissionsService,
     private readonly billingService: BillingService,
     private readonly leadsRepository: LeadsRepository,
+    private readonly userInvitationsService: UserInvitationsService,
   ) {}
 
   getLifecycleOptions() {
+    const options = getLifecycleOptions();
     return {
-      ...getLifecycleOptions(),
-      industries: INDUSTRY_OPTIONS,
+      ...options,
+      industries: INDUSTRY_OPTIONS.map((value) => ({ value, label: value })),
+      companySizes: options.companySizes.map((value) => ({
+        value,
+        label: value,
+      })),
     };
   }
 
@@ -68,7 +75,7 @@ export class PlatformLifecycleService {
         userRoles: {
           some: {
             role: {
-              key: 'super-admin',
+              key: 'system-admin',
             },
           },
         },
@@ -225,7 +232,9 @@ export class PlatformLifecycleService {
           selectedPlan: {
             select: { id: true, name: true, key: true },
           },
-          tenant: {
+          tenants: {
+            orderBy: { createdAt: 'desc' },
+            take: 3,
             include: {
               subscription: {
                 include: {
@@ -248,7 +257,10 @@ export class PlatformLifecycleService {
     ]);
 
     return {
-      items,
+      items: items.map((item) => ({
+        ...item,
+        tenant: item.tenants[0] ?? null,
+      })),
       meta: {
         page: query.page,
         pageSize: query.pageSize,
@@ -304,12 +316,13 @@ export class PlatformLifecycleService {
           },
           orderBy: { createdAt: 'desc' },
         },
-        tenant: {
+        tenants: {
           include: {
             subscription: {
               include: { plan: true },
             },
           },
+          orderBy: { createdAt: 'desc' },
         },
       },
     });
@@ -318,13 +331,130 @@ export class PlatformLifecycleService {
       throw new NotFoundException('Customer not found.');
     }
 
+    const activeOnboarding = customer.onboardings.find((record) =>
+      this.isActiveOnboardingStatus(record.status),
+    );
+    const subscriptions = customer.tenants
+      .map((tenant) => tenant.subscription)
+      .filter((subscription): subscription is NonNullable<typeof subscription> =>
+        Boolean(subscription),
+      );
+    const tenantIds = customer.tenants.map((tenant) => tenant.id);
+    const [invoices, payments] = tenantIds.length
+      ? await Promise.all([
+          this.prisma.invoice.findMany({
+            where: { tenantId: { in: tenantIds } },
+            include: {
+              tenant: {
+                select: { id: true, name: true, slug: true, status: true },
+              },
+              subscription: {
+                include: {
+                  plan: {
+                    select: { id: true, key: true, name: true },
+                  },
+                },
+              },
+              payments: {
+                orderBy: { createdAt: 'desc' },
+              },
+            },
+            orderBy: { createdAt: 'desc' },
+          }),
+          this.prisma.payment.findMany({
+            where: { tenantId: { in: tenantIds } },
+            include: {
+              tenant: {
+                select: { id: true, name: true, slug: true, status: true },
+              },
+              subscription: {
+                include: {
+                  plan: {
+                    select: { id: true, key: true, name: true },
+                  },
+                },
+              },
+              invoice: {
+                select: {
+                  id: true,
+                  invoiceNumber: true,
+                  status: true,
+                },
+              },
+            },
+            orderBy: { createdAt: 'desc' },
+          }),
+        ])
+      : [[], []];
+
+    const onboardingPrerequisites = this.getOnboardingPrerequisites(customer);
+    const activeTenantCount = customer.tenants.filter(
+      (tenant) => tenant.status === TenantStatus.ACTIVE,
+    ).length;
+
     return {
       ...customer,
+      tenant: customer.tenants[0] ?? null,
       onboardings: customer.onboardings.map((record) => ({
         ...record,
         readiness: this.getReadiness(record, customer.status),
       })),
+      subscriptions,
+      invoices,
+      payments,
+      lifecycle: {
+        currentStatus: customer.status,
+        subStatus: customer.subStatus,
+        activeOnboardingStatus: activeOnboarding?.status ?? null,
+        tenantCount: customer.tenants.length,
+        activeTenantCount,
+        subscriptionStatusSummary: subscriptions.reduce<Record<string, number>>(
+          (acc, subscription) => {
+            acc[subscription.status] = (acc[subscription.status] ?? 0) + 1;
+            return acc;
+          },
+          {},
+        ),
+        paymentStatusSummary: payments.reduce<Record<string, number>>(
+          (acc, payment) => {
+            acc[payment.status] = (acc[payment.status] ?? 0) + 1;
+            return acc;
+          },
+          {},
+        ),
+        nextRenewalDate:
+          subscriptions
+            .map((subscription) => subscription.renewalDate)
+            .filter((value): value is Date => Boolean(value))
+            .sort((left, right) => left.getTime() - right.getTime())[0] ?? null,
+      },
+      onboardingPrerequisites,
     };
+  }
+
+  async getCustomerOnboardings(customerId: string) {
+    const customer = await this.getCustomer(customerId);
+    return customer.onboardings ?? [];
+  }
+
+  async getCustomerTenants(customerId: string) {
+    const customer = await this.getCustomer(customerId);
+    return customer.tenants ?? [];
+  }
+
+  async getCustomerSubscriptions(customerId: string) {
+    const customer = await this.getCustomer(customerId);
+    return customer.subscriptions ?? [];
+  }
+
+  async getCustomerInvoices(customerId: string) {
+    const customer = await this.getCustomer(customerId);
+    return customer.invoices ?? [];
+  }
+
+  async getCustomerPayments(customerId: string) {
+    const customer = await this.getCustomer(customerId);
+    return customer.payments ?? [];
   }
 
   async createCustomer(actor: AuthenticatedUser, dto: CreateCustomerDto) {
@@ -391,7 +521,7 @@ export class PlatformLifecycleService {
     const blockers = await this.prisma.customerAccount.findMany({
       where: {
         id: { in: ids },
-        OR: [{ tenant: { isNot: null } }, { onboardings: { some: {} } }],
+        OR: [{ tenants: { some: {} } }, { onboardings: { some: {} } }],
       },
       select: { id: true, companyName: true },
     });
@@ -424,25 +554,23 @@ export class PlatformLifecycleService {
     dto?: Partial<CreateCustomerOnboardingRecordDto>,
   ) {
     const customer = await this.getCustomerOrThrow(customerId);
-    const activeOnboarding = await this.prisma.customerOnboarding.findFirst({
-      where: {
-        customerId,
-        status: {
-          in: [
-            CustomerOnboardingStatus.NOT_STARTED,
-            CustomerOnboardingStatus.IN_PROGRESS,
-            CustomerOnboardingStatus.AWAITING_CUSTOMER_INPUT,
-            CustomerOnboardingStatus.PENDING_PAYMENT,
-            CustomerOnboardingStatus.READY_FOR_TENANT_CREATION,
-            CustomerOnboardingStatus.BLOCKED,
-          ],
-        },
-      },
-      select: { id: true },
-    });
+    const activeOnboarding = await this.findActiveOnboarding(customerId);
 
     if (activeOnboarding) {
       throw new ConflictException('Customer already has an active onboarding record.');
+    }
+
+    const prerequisites = this.getOnboardingPrerequisites(customer);
+    if (!prerequisites.allPassed) {
+      throw new BadRequestException(
+        `Onboarding prerequisites are not complete: ${prerequisites.missingItems.join(', ')}.`,
+      );
+    }
+
+    if (dto?.createServiceAccount && !dto.serviceAccountEmail) {
+      throw new BadRequestException(
+        'Service account email is required when service account creation is enabled.',
+      );
     }
 
     const onboarding = await this.prisma.customerOnboarding.create({
@@ -469,9 +597,11 @@ export class PlatformLifecycleService {
           dto?.primaryOwnerWorkEmail ?? customer.primaryContactEmail ?? customer.contactEmail,
         primaryOwnerPhone:
           dto?.primaryOwnerPhone ?? customer.primaryContactPhone ?? customer.contactPhone,
-        superAdminFirstName: dto?.superAdminFirstName ?? null,
-        superAdminLastName: dto?.superAdminLastName ?? null,
-        superAdminWorkEmail: dto?.superAdminWorkEmail ?? null,
+        createServiceAccount:
+          dto?.createServiceAccount ?? Boolean(dto?.serviceAccountEmail),
+        serviceAccountDisplayName: dto?.serviceAccountDisplayName ?? null,
+        serviceAccountAssignSystemAdmin:
+          dto?.serviceAccountAssignSystemAdmin ?? true,
         serviceAccountEmail: dto?.serviceAccountEmail ?? null,
         contractSigned: dto?.contractSigned ?? false,
         paymentConfirmed: dto?.paymentConfirmed ?? false,
@@ -571,12 +701,13 @@ export class PlatformLifecycleService {
             selectedPlan: {
               select: { id: true, key: true, name: true },
             },
-            tenant: {
+            tenants: {
               include: {
                 subscription: {
                   include: { plan: true },
                 },
               },
+              orderBy: { createdAt: 'desc' },
             },
           },
         },
@@ -722,6 +853,15 @@ export class PlatformLifecycleService {
     }
 
     if (onboarding.tenantCreated || onboarding.tenantId) {
+      if (onboarding.tenantId) {
+        return {
+          tenantId: onboarding.tenantId,
+          customerId: onboarding.customerId,
+          onboardingId,
+          alreadyExists: true,
+        };
+      }
+
       throw new ConflictException('A tenant has already been created for this onboarding.');
     }
 
@@ -761,20 +901,32 @@ export class PlatformLifecycleService {
       throw new ConflictException('Tenant slug is already in use.');
     }
 
-    const [primaryOwnerEmail, superAdminEmail, serviceAccountEmail] = [
+    const shouldCreateServiceAccount =
+      dto.createServiceAccount ??
+      onboarding.createServiceAccount ??
+      Boolean(dto.serviceAccountEmail ?? onboarding.serviceAccountEmail);
+    const resolvedServiceAccountEmail =
+      dto.serviceAccountEmail ?? onboarding.serviceAccountEmail ?? null;
+    const assignServiceAccountSystemAdminRole =
+      dto.assignServiceAccountSystemAdminRole ??
+      onboarding.serviceAccountAssignSystemAdmin ??
+      true;
+
+    const [primaryOwnerEmail, serviceAccountEmail] = [
       normalizeEmail(onboarding.primaryOwnerWorkEmail),
-      onboarding.superAdminWorkEmail ? normalizeEmail(onboarding.superAdminWorkEmail) : null,
-      onboarding.serviceAccountEmail ? normalizeEmail(onboarding.serviceAccountEmail) : null,
+      shouldCreateServiceAccount && resolvedServiceAccountEmail
+        ? normalizeEmail(resolvedServiceAccountEmail)
+        : null,
     ];
 
-    const emails = [primaryOwnerEmail, superAdminEmail, serviceAccountEmail].filter(
+    const emails = [primaryOwnerEmail, serviceAccountEmail].filter(
       (value): value is string => Boolean(value),
     );
     if (new Set(emails).size !== emails.length) {
-      throw new BadRequestException('Primary owner, super admin, and service account emails must be unique.');
+      throw new BadRequestException('Tenant owner and service account emails must be unique.');
     }
 
-    const tenant = await this.prisma.$transaction(async (tx) => {
+    const provisioning = await this.prisma.$transaction(async (tx) => {
       const createdTenant = await tx.tenant.create({
         data: {
           customerAccountId: onboarding.customerId,
@@ -795,11 +947,11 @@ export class PlatformLifecycleService {
 
       const tenantSuperAdminRole = await this.rolesRepository.findByKeyAndTenant(
         createdTenant.id,
-        'super-admin',
+        'system-admin',
         tx,
       );
       if (!tenantSuperAdminRole) {
-        throw new ConflictException('Tenant super-admin role could not be provisioned.');
+        throw new ConflictException('Tenant system admin role could not be provisioned.');
       }
 
       const passwordHash = await bcrypt.hash(
@@ -821,28 +973,15 @@ export class PlatformLifecycleService {
         tx,
       );
 
-      const superAdminUser =
-        superAdminEmail && onboarding.superAdminFirstName && onboarding.superAdminLastName
-          ? await this.usersRepository.create(
-              {
-                tenantId: createdTenant.id,
-                firstName: onboarding.superAdminFirstName.trim(),
-                lastName: onboarding.superAdminLastName.trim(),
-                email: superAdminEmail,
-                passwordHash,
-                status: UserStatus.INVITED,
-                createdById: actor.userId,
-                updatedById: actor.userId,
-              },
-              tx,
-            )
-          : null;
-
       const serviceAccountUser = serviceAccountEmail
         ? await this.usersRepository.create(
             {
               tenantId: createdTenant.id,
-              firstName: dto.serviceAccountName?.trim() || 'Configuration',
+              firstName:
+                dto.serviceAccountDisplayName?.trim() ||
+                dto.serviceAccountName?.trim() ||
+                onboarding.serviceAccountDisplayName?.trim() ||
+                'Configuration',
               lastName: 'Service Account',
               email: serviceAccountEmail,
               passwordHash,
@@ -856,10 +995,7 @@ export class PlatformLifecycleService {
         : null;
 
       const roleAssignments = [primaryOwnerUser.id];
-      if (superAdminUser) {
-        roleAssignments.push(superAdminUser.id);
-      }
-      if (serviceAccountUser) {
+      if (serviceAccountUser && assignServiceAccountSystemAdminRole) {
         roleAssignments.push(serviceAccountUser.id);
       }
 
@@ -871,6 +1007,14 @@ export class PlatformLifecycleService {
           createdById: actor.userId,
         })),
         skipDuplicates: true,
+      });
+
+      await tx.tenant.update({
+        where: { id: createdTenant.id },
+        data: {
+          ownerUserId: primaryOwnerUser.id,
+          updatedById: actor.userId,
+        },
       });
 
       const subscription = await this.billingService.createOrUpdateSubscription(tx, {
@@ -938,6 +1082,13 @@ export class PlatformLifecycleService {
           tenantCreated: true,
           status: CustomerOnboardingStatus.COMPLETED,
           subStatus: 'Tenant created',
+          createServiceAccount: shouldCreateServiceAccount,
+          serviceAccountEmail,
+          serviceAccountDisplayName:
+            dto.serviceAccountDisplayName ??
+            onboarding.serviceAccountDisplayName ??
+            null,
+          serviceAccountAssignSystemAdmin: assignServiceAccountSystemAdminRole,
         },
       });
 
@@ -949,8 +1100,39 @@ export class PlatformLifecycleService {
         actorUserId: actor.userId,
       });
 
-      return createdTenant;
+      const invitedUsers = [
+        {
+          userId: primaryOwnerUser.id,
+          email: primaryOwnerEmail,
+          fullName: `${primaryOwnerUser.firstName} ${primaryOwnerUser.lastName}`,
+        },
+      ];
+
+      if (serviceAccountUser) {
+        invitedUsers.push({
+          userId: serviceAccountUser.id,
+          email: serviceAccountUser.email,
+          fullName: `${serviceAccountUser.firstName} ${serviceAccountUser.lastName}`,
+        });
+      }
+
+      return {
+        tenant: createdTenant,
+        invitedUsers,
+      };
     });
+
+    await Promise.all(
+      provisioning.invitedUsers.map((user) =>
+        this.userInvitationsService.issueInvitation({
+          tenantId: provisioning.tenant.id,
+          userId: user.userId,
+          email: user.email,
+          fullName: user.fullName,
+          createdByUserId: actor.userId,
+        }),
+      ),
+    );
 
     await this.auditService.log({
       tenantId: actor.tenantId,
@@ -958,11 +1140,11 @@ export class PlatformLifecycleService {
       action: 'PLATFORM_TENANT_CREATED_FROM_ONBOARDING',
       entityType: 'CustomerOnboarding',
       entityId: onboardingId,
-      afterSnapshot: { tenantId: tenant.id },
+      afterSnapshot: { tenantId: provisioning.tenant.id },
     });
 
     return {
-      tenantId: tenant.id,
+      tenantId: provisioning.tenant.id,
       customerId: onboarding.customerId,
       onboardingId,
     };
@@ -1096,17 +1278,17 @@ export class PlatformLifecycleService {
       ...(dto.primaryOwnerPhone !== undefined
         ? { primaryOwnerPhone: dto.primaryOwnerPhone?.trim() || null }
         : {}),
-      ...(dto.superAdminFirstName !== undefined
-        ? { superAdminFirstName: dto.superAdminFirstName?.trim() || null }
-        : {}),
-      ...(dto.superAdminLastName !== undefined
-        ? { superAdminLastName: dto.superAdminLastName?.trim() || null }
-        : {}),
-      ...(dto.superAdminWorkEmail !== undefined
-        ? { superAdminWorkEmail: dto.superAdminWorkEmail?.trim().toLowerCase() || null }
-        : {}),
       ...(dto.serviceAccountEmail !== undefined
         ? { serviceAccountEmail: dto.serviceAccountEmail?.trim().toLowerCase() || null }
+        : {}),
+      ...(dto.createServiceAccount !== undefined
+        ? { createServiceAccount: dto.createServiceAccount }
+        : {}),
+      ...(dto.serviceAccountDisplayName !== undefined
+        ? { serviceAccountDisplayName: dto.serviceAccountDisplayName?.trim() || null }
+        : {}),
+      ...(dto.serviceAccountAssignSystemAdmin !== undefined
+        ? { serviceAccountAssignSystemAdmin: dto.serviceAccountAssignSystemAdmin }
         : {}),
       ...(dto.contractSigned !== undefined ? { contractSigned: dto.contractSigned } : {}),
       ...(dto.paymentConfirmed !== undefined ? { paymentConfirmed: dto.paymentConfirmed } : {}),
@@ -1125,6 +1307,99 @@ export class PlatformLifecycleService {
     };
   }
 
+  private async findActiveOnboarding(customerId: string) {
+    return this.prisma.customerOnboarding.findFirst({
+      where: {
+        customerId,
+        status: {
+          in: [
+            CustomerOnboardingStatus.NOT_STARTED,
+            CustomerOnboardingStatus.IN_PROGRESS,
+            CustomerOnboardingStatus.AWAITING_CUSTOMER_INPUT,
+            CustomerOnboardingStatus.PENDING_PAYMENT,
+            CustomerOnboardingStatus.READY_FOR_TENANT_CREATION,
+            CustomerOnboardingStatus.BLOCKED,
+          ],
+        },
+      },
+      select: { id: true, status: true, subStatus: true },
+    });
+  }
+
+  private isActiveOnboardingStatus(status: CustomerOnboardingStatus) {
+    const activeStatuses: CustomerOnboardingStatus[] = [
+      CustomerOnboardingStatus.NOT_STARTED,
+      CustomerOnboardingStatus.IN_PROGRESS,
+      CustomerOnboardingStatus.AWAITING_CUSTOMER_INPUT,
+      CustomerOnboardingStatus.PENDING_PAYMENT,
+      CustomerOnboardingStatus.READY_FOR_TENANT_CREATION,
+      CustomerOnboardingStatus.BLOCKED,
+    ];
+
+    return activeStatuses.includes(status);
+  }
+
+  private getOnboardingPrerequisites(customer: {
+    id: string;
+    status: CustomerAccountStatus;
+    primaryContactFirstName: string | null;
+    primaryContactLastName: string | null;
+    primaryContactEmail: string | null;
+    industry: string | null;
+    companySize: string | null;
+    selectedPlanId: string | null;
+    preferredBillingCycle: BillingCycle | null;
+  }) {
+    const checks = [
+      {
+        key: 'customer-status',
+        label: 'Customer status allows onboarding',
+        passed: ([
+          CustomerAccountStatus.PROSPECT,
+          CustomerAccountStatus.ONBOARDING,
+          CustomerAccountStatus.ACTIVE,
+        ] as CustomerAccountStatus[]).includes(customer.status),
+      },
+      {
+        key: 'primary-contact',
+        label: 'Primary contact details are complete',
+        passed: Boolean(
+          customer.primaryContactFirstName &&
+            customer.primaryContactLastName &&
+            customer.primaryContactEmail,
+        ),
+      },
+      {
+        key: 'industry',
+        label: 'Industry is selected',
+        passed: Boolean(customer.industry),
+      },
+      {
+        key: 'company-size',
+        label: 'Company size is selected',
+        passed: Boolean(customer.companySize),
+      },
+      {
+        key: 'plan',
+        label: 'Plan is selected',
+        passed: Boolean(customer.selectedPlanId),
+      },
+      {
+        key: 'billing-cycle',
+        label: 'Billing cycle is selected',
+        passed: Boolean(customer.preferredBillingCycle),
+      },
+    ];
+
+    const missingItems = checks.filter((item) => !item.passed).map((item) => item.label);
+
+    return {
+      checks,
+      missingItems,
+      allPassed: missingItems.length === 0,
+    };
+  }
+
   private getReadiness(
     onboarding: {
       selectedPlanId: string | null;
@@ -1132,6 +1407,8 @@ export class PlatformLifecycleService {
       primaryOwnerFirstName: string;
       primaryOwnerLastName: string;
       primaryOwnerWorkEmail: string;
+      createServiceAccount?: boolean;
+      serviceAccountEmail?: string | null;
       contractSigned: boolean;
       paymentConfirmed: boolean;
       configurationReady: boolean;
@@ -1152,6 +1429,11 @@ export class PlatformLifecycleService {
             onboarding.primaryOwnerWorkEmail,
         ),
       },
+      {
+        label: 'Service account details complete',
+        passed:
+          !onboarding.createServiceAccount || Boolean(onboarding.serviceAccountEmail),
+      },
       { label: 'Contract signed', passed: onboarding.contractSigned },
       { label: 'Payment confirmed', passed: onboarding.paymentConfirmed },
       { label: 'Configuration ready', passed: onboarding.configurationReady },
@@ -1170,3 +1452,4 @@ export class PlatformLifecycleService {
     };
   }
 }
+

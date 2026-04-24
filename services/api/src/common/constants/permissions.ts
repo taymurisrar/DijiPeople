@@ -4,7 +4,12 @@ export type PermissionDefinition = {
   description: string;
 };
 
-export type BaseRoleKey = 'admin' | 'hr' | 'recruiter' | 'manager' | 'employee';
+export type BaseRoleKey =
+  | 'system-admin'
+  | 'hr'
+  | 'recruiter'
+  | 'manager'
+  | 'employee';
 
 export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
   {
@@ -496,8 +501,8 @@ export const BASE_ROLE_DEFINITIONS: Array<{
   isSystem: boolean;
 }> = [
     {
-      key: 'admin',
-      name: 'Admin',
+      key: 'system-admin',
+      name: 'System Admin',
       description: 'Broad tenant-wide access across current and future modules.',
       isSystem: true,
     },
@@ -528,7 +533,9 @@ export const BASE_ROLE_DEFINITIONS: Array<{
   ];
 
 export const BASE_ROLE_PERMISSION_KEYS: Record<BaseRoleKey, string[]> = {
-  admin: FOUNDATION_PERMISSION_DEFINITIONS.map((permission) => permission.key),
+  'system-admin': FOUNDATION_PERMISSION_DEFINITIONS.map(
+    (permission) => permission.key,
+  ),
   hr: [
     'dashboard.view',
     'tenant.read',

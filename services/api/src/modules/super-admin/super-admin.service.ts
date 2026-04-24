@@ -1,8 +1,10 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import * as bcrypt from 'bcryptjs';
 import {
   BillingCycle,
   CustomerAccountStatus,
@@ -13,15 +15,14 @@ import {
   SubscriptionStatus,
   TenantStatus,
   TenantFeatureSource,
+  UserStatus,
 } from '@prisma/client';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { normalizeTenantSlug } from '../../common/utils/slug.util';
-import { PermissionsService } from '../permissions/permissions.service';
 import { RolesRepository } from '../roles/roles.repository';
 import { FeatureAccessService } from '../tenant-settings/feature-access.service';
 import { TENANT_FEATURE_DEFINITIONS } from '../tenant-settings/tenant-settings.catalog';
 import { TenantsRepository } from '../tenants/tenants.repository';
-import { UsersRepository } from '../users/users.repository';
 import { BillingService } from './billing.service';
 import {
   BulkDeleteCustomerOnboardingsDto,
@@ -38,12 +39,14 @@ import { CreateCustomerOnboardingDto } from './dto/create-customer-onboarding.dt
 import { CreatePlanDto } from './dto/create-plan.dto';
 import { RecordPaymentDto } from './dto/record-payment.dto';
 import { UpdateInvoiceStatusDto } from './dto/update-invoice-status.dto';
-import { UpdatePermissionAssignmentDto } from './dto/update-permission-assignment.dto';
 import { UpdatePlanDto } from './dto/update-plan.dto';
+import { UpdatePlatformSettingsDto } from './dto/update-platform-settings.dto';
 import { UpdatePrimaryOwnerDto } from './dto/update-primary-owner.dto';
+import { UpdateTenantCustomerAccountDto } from './dto/update-tenant-customer-account.dto';
 import { UpdateTenantFeaturesDto } from './dto/update-tenant-features.dto';
 import { UpdateTenantStatusDto } from './dto/update-tenant-status.dto';
 import { UpdateTenantSubscriptionDto } from './dto/update-tenant-subscription.dto';
+import { CreateInvoiceFromSubscriptionDto } from './dto/create-invoice-from-subscription.dto';
 import { PlansRepository } from './plans.repository';
 import { DEFAULT_PLAN_DEFINITIONS } from './plans.catalog';
 import { PlatformLifecycleService } from './platform-lifecycle.service';
@@ -51,6 +54,7 @@ import { PlatformOnboardingService } from './platform-onboarding.service';
 import { PaymentsService } from './payments.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { ConvertLeadToCustomerDto } from '../leads/dto/admin-lead.dto';
+import { UserInvitationsService } from '../auth/user-invitations.service';
 
 @Injectable()
 export class SuperAdminService {
@@ -60,12 +64,11 @@ export class SuperAdminService {
     private readonly plansRepository: PlansRepository,
     private readonly featureAccessService: FeatureAccessService,
     private readonly rolesRepository: RolesRepository,
-    private readonly usersRepository: UsersRepository,
-    private readonly permissionsService: PermissionsService,
     private readonly billingService: BillingService,
     private readonly paymentsService: PaymentsService,
     private readonly platformOnboardingService: PlatformOnboardingService,
     private readonly platformLifecycleService: PlatformLifecycleService,
+    private readonly userInvitationsService: UserInvitationsService,
   ) {}
 
   getLifecycleOptions() {
@@ -116,6 +119,26 @@ export class SuperAdminService {
 
   getCustomerDetail(customerAccountId: string) {
     return this.platformLifecycleService.getCustomer(customerAccountId);
+  }
+
+  getCustomerOnboardings(customerAccountId: string) {
+    return this.platformLifecycleService.getCustomerOnboardings(customerAccountId);
+  }
+
+  getCustomerTenants(customerAccountId: string) {
+    return this.platformLifecycleService.getCustomerTenants(customerAccountId);
+  }
+
+  getCustomerSubscriptions(customerAccountId: string) {
+    return this.platformLifecycleService.getCustomerSubscriptions(customerAccountId);
+  }
+
+  getCustomerInvoices(customerAccountId: string) {
+    return this.platformLifecycleService.getCustomerInvoices(customerAccountId);
+  }
+
+  getCustomerPayments(customerAccountId: string) {
+    return this.platformLifecycleService.getCustomerPayments(customerAccountId);
   }
 
   createCustomer(actor: AuthenticatedUser, dto: CreateCustomerDto) {
@@ -214,6 +237,62 @@ export class SuperAdminService {
     return this.mapTenantDetail(tenant);
   }
 
+  async updateTenantCustomerAccount(
+    actor: AuthenticatedUser,
+    tenantId: string,
+    dto: UpdateTenantCustomerAccountDto,
+  ) {
+    const [tenant, customerAccount] = await Promise.all([
+      this.prisma.tenant.findUnique({
+        where: { id: tenantId },
+        include: {
+          subscription: true,
+          customerAccount: {
+            select: {
+              id: true,
+              companyName: true,
+            },
+          },
+        },
+      }),
+      this.prisma.customerAccount.findUnique({
+        where: { id: dto.customerAccountId },
+        select: { id: true, companyName: true, status: true },
+      }),
+    ]);
+
+    if (!tenant) {
+      throw new NotFoundException('Tenant not found.');
+    }
+
+    if (!customerAccount) {
+      throw new NotFoundException('Customer account not found.');
+    }
+
+    if (
+      tenant.customerAccountId !== dto.customerAccountId &&
+      tenant.subscription &&
+      ([SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING, SubscriptionStatus.PAST_DUE] as SubscriptionStatus[]).includes(
+        tenant.subscription.status,
+      ) &&
+      dto.forceReassignWithActiveBilling !== true
+    ) {
+      throw new BadRequestException(
+        'Tenant has an active billing relationship. Set forceReassignWithActiveBilling=true to proceed.',
+      );
+    }
+
+    await this.prisma.tenant.update({
+      where: { id: tenantId },
+      data: {
+        customerAccountId: dto.customerAccountId,
+        updatedById: actor.userId,
+      },
+    });
+
+    return this.getTenantDetail(tenantId);
+  }
+
   async updateTenantStatus(
     actor: AuthenticatedUser,
     tenantId: string,
@@ -257,6 +336,7 @@ export class SuperAdminService {
     if (!tenant?.customerAccount) {
       throw new NotFoundException('Customer account not found for this tenant.');
     }
+    const customerAccountId = tenant.customerAccount.id;
 
     const user = await this.prisma.user.findFirst({
       where: { id: dto.userId, tenantId },
@@ -268,14 +348,143 @@ export class SuperAdminService {
       );
     }
 
-    await this.prisma.customerAccount.update({
-      where: { id: tenant.customerAccount.id },
-      data: {
-        primaryOwnerUserId: user.id,
-      },
+    if (
+      tenant.ownerUserId &&
+      tenant.ownerUserId !== user.id &&
+      dto.confirmOwnershipTransfer !== true
+    ) {
+      throw new BadRequestException(
+        'Ownership transfer requires explicit confirmation.',
+      );
+    }
+
+    const systemAdminRole = await this.rolesRepository.findByKeyAndTenant(
+      tenantId,
+      'system-admin',
+    );
+
+    if (!systemAdminRole) {
+      throw new NotFoundException('Tenant system admin role was not found.');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.customerAccount.update({
+        where: { id: customerAccountId },
+        data: {
+          primaryOwnerUserId: user.id,
+        },
+      });
+
+      await tx.tenant.update({
+        where: { id: tenantId },
+        data: {
+          ownerUserId: user.id,
+        },
+      });
+
+      await tx.userRole.upsert({
+        where: {
+          userId_roleId: {
+            userId: user.id,
+            roleId: systemAdminRole.id,
+          },
+        },
+        update: {},
+        create: {
+          tenantId,
+          userId: user.id,
+          roleId: systemAdminRole.id,
+        },
+      });
     });
 
     return this.getTenantDetail(tenantId);
+  }
+
+  async getTenantOwnerSummary(tenantId: string) {
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      include: {
+        ownerUser: {
+          include: {
+            userRoles: {
+              include: {
+                role: {
+                  select: { id: true, key: true, name: true },
+                },
+              },
+            },
+            invitations: {
+              where: { status: 'PENDING', consumedAt: null },
+              orderBy: { createdAt: 'desc' },
+              take: 1,
+            },
+          },
+        },
+      },
+    });
+
+    if (!tenant) {
+      throw new NotFoundException('Tenant not found.');
+    }
+
+    if (!tenant.ownerUser) {
+      throw new NotFoundException('Tenant owner not found.');
+    }
+
+    const latestPendingInvitation = tenant.ownerUser.invitations[0] ?? null;
+
+    return {
+      tenantId: tenant.id,
+      owner: {
+        id: tenant.ownerUser.id,
+        firstName: tenant.ownerUser.firstName,
+        lastName: tenant.ownerUser.lastName,
+        email: tenant.ownerUser.email,
+        status: tenant.ownerUser.status,
+        ownershipStatus: 'TENANT_OWNER',
+        lastLoginAt: tenant.ownerUser.lastLoginAt,
+        activation: {
+          hasPendingInvitation: Boolean(latestPendingInvitation),
+          invitationExpiresAt: latestPendingInvitation?.expiresAt ?? null,
+        },
+        roles: tenant.ownerUser.userRoles.map((assignment) => ({
+          id: assignment.role.id,
+          key: assignment.role.key,
+          name: assignment.role.name,
+        })),
+      },
+    };
+  }
+
+  async resetTenantOwnerPassword(actor: AuthenticatedUser, tenantId: string) {
+    const summary = await this.getTenantOwnerSummary(tenantId);
+    const owner = summary.owner;
+
+    const passwordHash = await bcrypt.hash(
+      `owner-reset-${tenantId}-${Date.now()}`,
+      12,
+    );
+    await this.prisma.user.update({
+      where: { id: owner.id },
+      data: {
+        passwordHash,
+        status: UserStatus.INVITED,
+        updatedById: actor.userId,
+      },
+    });
+
+    return this.userInvitationsService.issueInvitation({
+      tenantId,
+      userId: owner.id,
+      email: owner.email,
+      fullName: `${owner.firstName} ${owner.lastName}`.trim(),
+      createdByUserId: actor.userId,
+    });
+  }
+
+  async resendTenantOwnerActivation(actor: AuthenticatedUser, tenantId: string) {
+    return this.resetTenantOwnerPassword(actor, tenantId);
   }
 
   async getEnabledFeatures(tenantId: string) {
@@ -344,124 +553,6 @@ export class SuperAdminService {
       label: feature.label,
       description: feature.description,
     }));
-  }
-
-  async listTenantPermissions(tenantId: string) {
-    await this.assertTenantExists(tenantId);
-    const permissions = await this.permissionsService.findByTenant(tenantId);
-
-    return permissions.map((permission) => ({
-      id: permission.id,
-      key: permission.key,
-      name: permission.name,
-      description: permission.description,
-    }));
-  }
-
-  async listTenantRoles(tenantId: string) {
-    await this.assertTenantExists(tenantId);
-    const roles = await this.rolesRepository.findByTenant(tenantId);
-
-    return roles.map((role) => ({
-      id: role.id,
-      key: role.key,
-      name: role.name,
-      description: role.description,
-      isSystem: role.isSystem,
-      permissionIds: role.rolePermissions.map((item) => item.permissionId),
-      permissions: role.rolePermissions.map((item) => ({
-        id: item.permission.id,
-        key: item.permission.key,
-        name: item.permission.name,
-      })),
-    }));
-  }
-
-  async updateTenantRolePermissions(
-    actor: AuthenticatedUser,
-    tenantId: string,
-    roleId: string,
-    dto: UpdatePermissionAssignmentDto,
-  ) {
-    await this.assertTenantExists(tenantId);
-
-    const permissions = await this.permissionsService.findByIds(
-      tenantId,
-      dto.permissionIds,
-    );
-
-    if (permissions.length !== dto.permissionIds.length) {
-      throw new NotFoundException(
-        'One or more permissions do not belong to this tenant.',
-      );
-    }
-
-    return this.rolesRepository.replacePermissions(
-      tenantId,
-      roleId,
-      dto.permissionIds,
-      actor.userId,
-    );
-  }
-
-  async listTenantUsers(tenantId: string) {
-    await this.assertTenantExists(tenantId);
-    const users = await this.usersRepository.findByTenant(tenantId);
-
-    return users.map((user) => ({
-      id: user.id,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      email: user.email,
-      status: user.status,
-      isServiceAccount: user.isServiceAccount,
-      roles: user.userRoles.map((item) => ({
-        id: item.role.id,
-        key: item.role.key,
-        name: item.role.name,
-      })),
-      directPermissionIds: user.userPermissions.map((item) => item.permissionId),
-      directPermissions: user.userPermissions.map((item) => ({
-        id: item.permission.id,
-        key: item.permission.key,
-        name: item.permission.name,
-      })),
-      effectivePermissionKeys: Array.from(
-        new Set([
-          ...user.userRoles.flatMap((item) =>
-            item.role.rolePermissions.map((permission) => permission.permission.key),
-          ),
-          ...user.userPermissions.map((item) => item.permission.key),
-        ]),
-      ),
-    }));
-  }
-
-  async updateTenantUserPermissions(
-    actor: AuthenticatedUser,
-    tenantId: string,
-    userId: string,
-    dto: UpdatePermissionAssignmentDto,
-  ) {
-    await this.assertTenantExists(tenantId);
-
-    const permissions = await this.permissionsService.findByIds(
-      tenantId,
-      dto.permissionIds,
-    );
-
-    if (permissions.length !== dto.permissionIds.length) {
-      throw new NotFoundException(
-        'One or more permissions do not belong to this tenant.',
-      );
-    }
-
-    return this.usersRepository.replaceDirectPermissions(
-      tenantId,
-      userId,
-      dto.permissionIds,
-      actor.userId,
-    );
   }
 
   async getPlanDetail(planId: string) {
@@ -635,7 +726,17 @@ export class SuperAdminService {
     const invoices = await this.prisma.invoice.findMany({
       include: {
         tenant: {
-          select: { id: true, name: true, slug: true },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            customerAccount: {
+              select: {
+                id: true,
+                companyName: true,
+              },
+            },
+          },
         },
         subscription: {
           include: {
@@ -651,29 +752,68 @@ export class SuperAdminService {
       orderBy: [{ createdAt: 'desc' }],
     });
 
-    return invoices.map((invoice) => ({
-      id: invoice.id,
-      invoiceNumber: invoice.invoiceNumber,
-      amount: Number(invoice.amount),
-      currency: invoice.currency,
-      issueDate: invoice.issueDate,
-      dueDate: invoice.dueDate,
-      status: invoice.status,
-      stripeInvoiceId: invoice.stripeInvoiceId,
-      tenant: invoice.tenant,
-      subscription: {
-        id: invoice.subscription.id,
-        plan: invoice.subscription.plan,
-        status: invoice.subscription.status,
+    return invoices.map((invoice) => this.mapInvoice(invoice));
+  }
+
+  async getInvoiceDetail(invoiceId: string) {
+    const invoice = await this.prisma.invoice.findUnique({
+      where: { id: invoiceId },
+      include: {
+        tenant: {
+          include: {
+            customerAccount: {
+              select: {
+                id: true,
+                companyName: true,
+              },
+            },
+          },
+        },
+        subscription: {
+          include: {
+            plan: {
+              select: { id: true, key: true, name: true },
+            },
+          },
+        },
+        payments: {
+          orderBy: { createdAt: 'desc' },
+        },
       },
-      payments: invoice.payments.map((payment) => ({
-        id: payment.id,
-        amount: Number(payment.amount),
-        status: payment.status,
-        paymentMethod: payment.paymentMethod,
-        paidAt: payment.paidAt,
-      })),
-    }));
+    });
+
+    if (!invoice) {
+      throw new NotFoundException('Invoice not found.');
+    }
+
+    return this.mapInvoice(invoice);
+  }
+
+  async createInvoiceFromSubscription(
+    actor: AuthenticatedUser,
+    subscriptionId: string,
+    dto: CreateInvoiceFromSubscriptionDto,
+  ) {
+    const subscription = await this.prisma.subscription.findUnique({
+      where: { id: subscriptionId },
+    });
+
+    if (!subscription) {
+      throw new NotFoundException('Subscription not found.');
+    }
+
+    const invoice = await this.billingService.createInvoice(this.prisma, {
+      tenantId: subscription.tenantId,
+      subscriptionId: subscription.id,
+      amount: dto.amount ?? Number(subscription.finalPrice),
+      currency: subscription.currency,
+      issueDate: dto.issueDate ? new Date(dto.issueDate) : undefined,
+      dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
+      status: dto.status,
+      actorUserId: actor.userId,
+    });
+
+    return this.getInvoiceDetail(invoice.id);
   }
 
   async updateInvoiceStatus(
@@ -687,6 +827,22 @@ export class SuperAdminService {
 
     if (!invoice) {
       throw new NotFoundException('Invoice not found.');
+    }
+
+    if (dto.status === InvoiceStatus.PAID) {
+      const successfulPayment = await this.prisma.payment.findFirst({
+        where: {
+          invoiceId,
+          status: PaymentStatus.SUCCEEDED,
+        },
+        select: { id: true },
+      });
+
+      if (!successfulPayment) {
+        throw new BadRequestException(
+          'Invoice cannot be marked paid without a linked successful payment.',
+        );
+      }
     }
 
     await this.prisma.invoice.update({
@@ -731,6 +887,96 @@ export class SuperAdminService {
     return this.billingService.handleStripeWebhook();
   }
 
+  async getPlatformSettings() {
+    const keys = [
+      'platform-defaults',
+      'public-plan-visibility',
+      'billing-defaults',
+      'invoice-defaults',
+      'email-provider',
+      'branding',
+      'feature-catalog',
+      'lead-definitions',
+    ] as const;
+
+    const rows = await this.prisma.platformSetting.findMany({
+      where: {
+        key: {
+          in: [...keys],
+        },
+      },
+    });
+
+    const byKey = new Map(rows.map((row) => [row.key, row.value]));
+
+    return {
+      platformDefaults: byKey.get('platform-defaults') ?? {},
+      publicPlanVisibility: byKey.get('public-plan-visibility') ?? {},
+      billingDefaults: byKey.get('billing-defaults') ?? {},
+      invoiceDefaults: byKey.get('invoice-defaults') ?? {
+        prefix: 'INV',
+        startSequence: 1,
+      },
+      emailProvider: byKey.get('email-provider') ?? {
+        provider: 'placeholder',
+        enabled: false,
+      },
+      branding: byKey.get('branding') ?? {},
+      featureCatalog: byKey.get('feature-catalog') ?? {},
+      leadDefinitions: byKey.get('lead-definitions') ?? {},
+    };
+  }
+
+  async updatePlatformSettings(
+    actor: AuthenticatedUser,
+    dto: UpdatePlatformSettingsDto,
+  ) {
+    const payload = {
+      'platform-defaults': dto.platformDefaults,
+      'public-plan-visibility': dto.publicPlanVisibility,
+      'billing-defaults': dto.billingDefaults,
+      'invoice-defaults': dto.invoiceDefaults,
+      'email-provider': dto.emailProvider,
+      branding: dto.branding,
+      'feature-catalog': dto.featureCatalog,
+      'lead-definitions': dto.leadDefinitions,
+    } as const;
+
+    const merge = dto.merge !== false;
+    const entries = Object.entries(payload).filter(
+      ([, value]) => value !== undefined,
+    ) as Array<[string, Record<string, unknown>]>;
+
+    await this.prisma.$transaction(async (tx) => {
+      for (const [key, value] of entries) {
+        const existing = await tx.platformSetting.findUnique({
+          where: { key },
+        });
+
+        const nextValue =
+          merge && existing && typeof existing.value === 'object' && existing.value !== null
+            ? { ...(existing.value as Record<string, unknown>), ...value }
+            : value;
+
+        await tx.platformSetting.upsert({
+          where: { key },
+          create: {
+            key,
+            value: nextValue as Prisma.InputJsonValue,
+            createdById: actor.userId,
+            updatedById: actor.userId,
+          },
+          update: {
+            value: nextValue as Prisma.InputJsonValue,
+            updatedById: actor.userId,
+          },
+        });
+      }
+    });
+
+    return this.getPlatformSettings();
+  }
+
   private async mapTenantSummary(
     tenant: Awaited<ReturnType<TenantsRepository['findAllForSuperAdmin']>>[number],
   ) {
@@ -750,6 +996,21 @@ export class SuperAdminService {
             id: tenant.customerAccount.id,
             companyName: tenant.customerAccount.companyName,
             status: tenant.customerAccount.status,
+          }
+        : null,
+      owner: tenant.ownerUser
+        ? {
+            id: tenant.ownerUser.id,
+            fullName: `${tenant.ownerUser.firstName} ${tenant.ownerUser.lastName}`.trim(),
+            email: tenant.ownerUser.email,
+            status: tenant.ownerUser.status,
+            isServiceAccount: tenant.ownerUser.isServiceAccount,
+            lastLoginAt: tenant.ownerUser.lastLoginAt,
+            roles: tenant.ownerUser.userRoles.map((item) => ({
+              id: item.role.id,
+              key: item.role.key,
+              name: item.role.name,
+            })),
           }
         : null,
       userCount: tenant._count.users,
@@ -785,6 +1046,37 @@ export class SuperAdminService {
             contactEmail: tenant.customerAccount.contactEmail,
           }
         : null,
+      owner: tenant.ownerUser
+        ? {
+            id: tenant.ownerUser.id,
+            firstName: tenant.ownerUser.firstName,
+            lastName: tenant.ownerUser.lastName,
+            email: tenant.ownerUser.email,
+            status: tenant.ownerUser.status,
+            isServiceAccount: tenant.ownerUser.isServiceAccount,
+            lastLoginAt: tenant.ownerUser.lastLoginAt,
+            roles: tenant.ownerUser.userRoles.map((item) => ({
+              id: item.role.id,
+              key: item.role.key,
+              name: item.role.name,
+            })),
+            ownershipStatus: tenant.ownerUser.id === tenant.ownerUserId ? 'TENANT_OWNER' : 'TENANT_USER',
+          }
+        : null,
+      serviceAccounts: tenant.users.map((user) => ({
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        status: user.status,
+        isServiceAccount: user.isServiceAccount,
+        lastLoginAt: user.lastLoginAt,
+        roles: user.userRoles.map((item) => ({
+          id: item.role.id,
+          key: item.role.key,
+          name: item.role.name,
+        })),
+      })),
       counts: {
         users: tenant._count.users,
         employees: tenant._count.employees,
@@ -918,6 +1210,74 @@ export class SuperAdminService {
       subscription: customer.tenant?.subscription
         ? this.mapSubscription(customer.tenant.subscription)
         : null,
+    };
+  }
+
+  private mapInvoice(
+    invoice: {
+      id: string;
+      invoiceNumber: string;
+      amount: Prisma.Decimal | number;
+      currency: string;
+      issueDate: Date;
+      dueDate: Date;
+      status: InvoiceStatus;
+      stripeInvoiceId: string | null;
+      tenant: {
+        id: string;
+        name: string;
+        slug: string;
+        customerAccount?: {
+          id: string;
+          companyName: string;
+        } | null;
+      };
+      subscription: {
+        id: string;
+        status: SubscriptionStatus;
+        plan: { id: string; key: string; name: string };
+      };
+      payments: Array<{
+        id: string;
+        amount: Prisma.Decimal | number;
+        status: PaymentStatus;
+        paymentMethod: string;
+        paidAt: Date | null;
+      }>;
+    },
+  ) {
+    return {
+      id: invoice.id,
+      invoiceNumber: invoice.invoiceNumber,
+      amount: Number(invoice.amount),
+      currency: invoice.currency,
+      issueDate: invoice.issueDate,
+      dueDate: invoice.dueDate,
+      status: invoice.status,
+      stripeInvoiceId: invoice.stripeInvoiceId,
+      tenant: {
+        id: invoice.tenant.id,
+        name: invoice.tenant.name,
+        slug: invoice.tenant.slug,
+      },
+      customerAccount: invoice.tenant.customerAccount
+        ? {
+            id: invoice.tenant.customerAccount.id,
+            companyName: invoice.tenant.customerAccount.companyName,
+          }
+        : null,
+      subscription: {
+        id: invoice.subscription.id,
+        plan: invoice.subscription.plan,
+        status: invoice.subscription.status,
+      },
+      payments: invoice.payments.map((payment) => ({
+        id: payment.id,
+        amount: Number(payment.amount),
+        status: payment.status,
+        paymentMethod: payment.paymentMethod,
+        paidAt: payment.paidAt,
+      })),
     };
   }
 

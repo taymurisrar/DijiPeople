@@ -131,11 +131,6 @@ export class CreateCustomerOnboardingDto {
 
   @IsOptional()
   @ValidateNested()
-  @Type(() => OnboardingUserDto)
-  superAdmin?: OnboardingUserDto;
-
-  @IsOptional()
-  @ValidateNested()
   @Type(() => ServiceAccountDto)
   serviceAccount?: ServiceAccountDto;
 

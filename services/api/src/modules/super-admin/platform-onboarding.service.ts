@@ -45,13 +45,12 @@ export class PlatformOnboardingService {
     const emails = [
       normalizeEmail(dto.contactEmail),
       normalizeEmail(dto.primaryOwner.workEmail),
-      dto.superAdmin ? normalizeEmail(dto.superAdmin.workEmail) : null,
       dto.serviceAccount ? normalizeEmail(dto.serviceAccount.workEmail) : null,
     ].filter((value): value is string => Boolean(value));
 
     if (new Set(emails).size !== emails.length) {
       throw new BadRequestException(
-        'Customer contact, primary owner, super admin, and service account emails must be unique.',
+        'Customer contact, tenant owner, and service account emails must be unique.',
       );
     }
 
@@ -118,15 +117,15 @@ export class PlatformOnboardingService {
         actor.userId,
       );
 
-      const superAdminRole = await this.rolesRepository.findByKeyAndTenant(
+      const systemAdminRole = await this.rolesRepository.findByKeyAndTenant(
         tenant.id,
-        'super-admin',
+        'system-admin',
         tx,
       );
 
-      if (!superAdminRole) {
+      if (!systemAdminRole) {
         throw new ConflictException(
-          'Tenant super-admin role could not be provisioned.',
+          'Tenant system admin role could not be provisioned.',
         );
       }
 
@@ -156,6 +155,14 @@ export class PlatformOnboardingService {
         },
       });
 
+      await tx.tenant.update({
+        where: { id: tenant.id },
+        data: {
+          ownerUserId: ownerUser.id,
+          updatedById: actor.userId,
+        },
+      });
+
       const invitedUsers = [
         {
           userId: ownerUser.id,
@@ -164,28 +171,6 @@ export class PlatformOnboardingService {
         },
       ];
       const usersToAssign = [ownerUser.id];
-
-      if (dto.superAdmin) {
-        const superAdminUser = await this.usersRepository.create(
-          {
-            tenantId: tenant.id,
-            firstName: dto.superAdmin.firstName.trim(),
-            lastName: dto.superAdmin.lastName.trim(),
-            email: normalizeEmail(dto.superAdmin.workEmail),
-            passwordHash: placeholderPasswordHash,
-            status: UserStatus.INVITED,
-            createdById: actor.userId,
-            updatedById: actor.userId,
-          },
-          tx,
-        );
-        usersToAssign.push(superAdminUser.id);
-        invitedUsers.push({
-          userId: superAdminUser.id,
-          email: normalizeEmail(dto.superAdmin.workEmail),
-          fullName: `${dto.superAdmin.firstName.trim()} ${dto.superAdmin.lastName.trim()}`,
-        });
-      }
 
       if (dto.serviceAccount) {
         const serviceAccount = await this.usersRepository.create(
@@ -203,13 +188,18 @@ export class PlatformOnboardingService {
           tx,
         );
         usersToAssign.push(serviceAccount.id);
+        invitedUsers.push({
+          userId: serviceAccount.id,
+          email: normalizeEmail(dto.serviceAccount.workEmail),
+          fullName: `${dto.serviceAccount.name.trim()} Service Account`,
+        });
       }
 
       await tx.userRole.createMany({
         data: usersToAssign.map((userId) => ({
           tenantId: tenant.id,
           userId,
-          roleId: superAdminRole.id,
+          roleId: systemAdminRole.id,
           createdById: actor.userId,
         })),
         skipDuplicates: true,
@@ -311,3 +301,4 @@ export class PlatformOnboardingService {
     };
   }
 }
+

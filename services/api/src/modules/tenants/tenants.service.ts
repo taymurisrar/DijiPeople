@@ -118,13 +118,13 @@ export class TenantsService {
 
       const adminRole = await this.rolesRepository.findByKeyAndTenant(
         tenant.id,
-        'admin',
+        'system-admin',
         tx,
       );
 
       if (!adminRole) {
         throw new ConflictException(
-          'Default admin role could not be provisioned.',
+          'Default system admin role could not be provisioned.',
         );
       }
 
@@ -147,6 +147,14 @@ export class TenantsService {
           userId: adminUser.id,
           roleId: adminRole.id,
           createdById: adminUser.id,
+        },
+      });
+
+      await tx.tenant.update({
+        where: { id: tenant.id },
+        data: {
+          ownerUserId: adminUser.id,
+          updatedById: adminUser.id,
         },
       });
 

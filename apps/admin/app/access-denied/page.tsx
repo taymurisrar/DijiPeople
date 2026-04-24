@@ -1,9 +1,6 @@
 import Link from "next/link";
-import { getAppOrigin } from "@repo/config";
 
 export default function AccessDeniedPage() {
-  const webLoginUrl = `${getAppOrigin("web", process.env)}/login`;
-
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-100 px-6 py-16">
       <div className="w-full max-w-xl rounded-3xl border border-slate-200 bg-white p-10 shadow-sm">
@@ -14,14 +11,14 @@ export default function AccessDeniedPage() {
           Access denied
         </h1>
         <p className="mt-4 text-base leading-7 text-slate-600">
-          This internal control panel is reserved for super-admin accounts. Sign in with a SaaS operations account or return to the tenant app.
+          This internal control panel is reserved for system admin accounts. Sign in with an authorized admin account to continue.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <Link
-            href={webLoginUrl}
+            href="/login"
             className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
           >
-            Open tenant login
+            Open admin login
           </Link>
           <Link
             href="/tenants"

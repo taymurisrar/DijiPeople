@@ -25,7 +25,7 @@ import {
 import { LeadsService } from './leads.service';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@RequireRoles('super-admin')
+@RequireRoles('system-admin')
 @Controller('super-admin/leads')
 export class AdminLeadsController {
   constructor(private readonly leadsService: LeadsService) {}
@@ -79,3 +79,4 @@ export class AdminLeadsController {
     return this.leadsService.bulkAssignLeads(user, dto);
   }
 }
+

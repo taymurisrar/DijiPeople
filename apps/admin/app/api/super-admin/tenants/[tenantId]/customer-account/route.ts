@@ -3,22 +3,19 @@ import { apiRequest, proxyApiJsonResponse } from "@/lib/server-api";
 
 export async function PATCH(
   request: Request,
-  context: { params: Promise<{ tenantId: string; userId: string }> },
+  context: { params: Promise<{ tenantId: string }> },
 ) {
-  const { tenantId, userId } = await context.params;
+  const { tenantId } = await context.params;
   const body = await request.text();
 
   try {
-    const response = await apiRequest(
-      `/super-admin/tenants/${tenantId}/users/${userId}/permissions`,
-      {
-        method: "PATCH",
-        body,
-        headers: {
-          "Content-Type": "application/json",
-        },
+    const response = await apiRequest(`/super-admin/tenants/${tenantId}/customer-account`, {
+      method: "PATCH",
+      body,
+      headers: {
+        "Content-Type": "application/json",
       },
-    );
+    });
 
     return proxyApiJsonResponse(response);
   } catch (error) {
@@ -27,7 +24,7 @@ export async function PATCH(
         message:
           error instanceof Error
             ? error.message
-            : "Unable to update user permissions.",
+            : "Unable to reach the API.",
       },
       { status: 502 },
     );

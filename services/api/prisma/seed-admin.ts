@@ -17,10 +17,10 @@ function getBootstrapConfig() {
     process.env.BOOTSTRAP_TENANT_SLUG?.trim().toLowerCase() ||
     'dijipeople-demo';
   const roleName =
-    process.env.BOOTSTRAP_ADMIN_ROLE_NAME?.trim() || 'Super Admin';
+    process.env.BOOTSTRAP_ADMIN_ROLE_NAME?.trim() || 'System Admin';
   const roleKey =
     process.env.BOOTSTRAP_ADMIN_ROLE_KEY?.trim().toLowerCase() ||
-    'super-admin';
+    'system-admin';
   const firstName =
     process.env.BOOTSTRAP_ADMIN_FIRST_NAME?.trim() || 'Taimur';
   const lastName =
@@ -177,6 +177,12 @@ async function main() {
       userId: user.id,
       roleId: role.id,
     },
+  });
+
+  // Keep bootstrap tenant ownership explicit and consistent with the protected owner model.
+  await prisma.tenant.update({
+    where: { id: tenant.id },
+    data: { ownerUserId: user.id },
   });
 
   const result = {

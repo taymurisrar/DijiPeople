@@ -10,6 +10,42 @@ import type {
   PlanOption,
 } from "./platform-lifecycle-types";
 
+type TabKey =
+  | "overview"
+  | "lifecycle"
+  | "onboarding"
+  | "tenants"
+  | "subscriptions"
+  | "payments"
+  | "invoices"
+  | "notes";
+
+const tabs: Array<{ key: TabKey; label: string }> = [
+  { key: "overview", label: "Overview" },
+  { key: "lifecycle", label: "Lifecycle" },
+  { key: "onboarding", label: "Onboarding" },
+  { key: "tenants", label: "Tenants" },
+  { key: "subscriptions", label: "Subscriptions" },
+  { key: "payments", label: "Payments" },
+  { key: "invoices", label: "Invoices" },
+  { key: "notes", label: "Notes / Activity" },
+];
+
+function nonEmpty(value: string) {
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function isValidUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value,
+  );
+}
+
 export function CustomerDetailManager({
   customer,
   lifecycleOptions,
@@ -31,6 +67,7 @@ export function CustomerDetailManager({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<TabKey>("overview");
   const [form, setForm] = useState({
     companyName: customer.companyName,
     primaryContactFirstName: customer.primaryContactFirstName ?? "",
@@ -48,11 +85,39 @@ export function CustomerDetailManager({
 
   function handleSave() {
     setMessage(null);
+    const primaryContactEmail = nonEmpty(form.primaryContactEmail);
+    const selectedPlanId = nonEmpty(form.selectedPlanId);
+
+    if (primaryContactEmail && !isValidEmail(primaryContactEmail)) {
+      setMessage("Primary contact email must be a valid email address.");
+      return;
+    }
+
+    if (selectedPlanId && !isValidUuid(selectedPlanId)) {
+      setMessage("Selected plan must be a valid UUID.");
+      return;
+    }
+
+    const payload = {
+      companyName: nonEmpty(form.companyName),
+      primaryContactFirstName: nonEmpty(form.primaryContactFirstName),
+      primaryContactLastName: nonEmpty(form.primaryContactLastName),
+      primaryContactEmail: primaryContactEmail?.toLowerCase(),
+      primaryContactPhone: nonEmpty(form.primaryContactPhone),
+      industry: nonEmpty(form.industry),
+      companySize: nonEmpty(form.companySize),
+      country: nonEmpty(form.country),
+      status: nonEmpty(form.status),
+      subStatus: nonEmpty(form.subStatus),
+      selectedPlanId,
+      accountManagerUserId: nonEmpty(form.accountManagerUserId),
+    };
+
     startTransition(async () => {
       const response = await fetch(`/api/super-admin/customers/${customer.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       const payload = await response.json().catch(() => null);
       if (!response.ok) {
@@ -66,6 +131,19 @@ export function CustomerDetailManager({
 
   function handleStartOnboarding() {
     setMessage(null);
+    const primaryOwnerWorkEmail = nonEmpty(form.primaryContactEmail);
+    const selectedPlanId = nonEmpty(form.selectedPlanId);
+
+    if (!primaryOwnerWorkEmail || !isValidEmail(primaryOwnerWorkEmail)) {
+      setMessage("Primary contact email must be a valid email before onboarding.");
+      return;
+    }
+
+    if (selectedPlanId && !isValidUuid(selectedPlanId)) {
+      setMessage("Selected plan must be a valid UUID.");
+      return;
+    }
+
     startTransition(async () => {
       const response = await fetch(
         `/api/super-admin/customers/${customer.id}/start-onboarding`,
@@ -73,11 +151,11 @@ export function CustomerDetailManager({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            selectedPlanId: form.selectedPlanId || undefined,
-            primaryOwnerFirstName: form.primaryContactFirstName,
-            primaryOwnerLastName: form.primaryContactLastName,
-            primaryOwnerWorkEmail: form.primaryContactEmail,
-            primaryOwnerPhone: form.primaryContactPhone || undefined,
+            selectedPlanId,
+            primaryOwnerFirstName: nonEmpty(form.primaryContactFirstName),
+            primaryOwnerLastName: nonEmpty(form.primaryContactLastName),
+            primaryOwnerWorkEmail,
+            primaryOwnerPhone: nonEmpty(form.primaryContactPhone),
             billingCycle: "MONTHLY",
             status: "NOT_STARTED",
             subStatus: "Awaiting kickoff",
@@ -93,49 +171,97 @@ export function CustomerDetailManager({
     });
   }
 
+  const prerequisites = customer.onboardingPrerequisites;
+  const canStartOnboarding = Boolean(prerequisites?.allPassed);
+
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_380px]">
+    <div className="space-y-6">
       <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-semibold text-slate-950">Customer profile</h2>
-        <div className="mt-5 grid gap-4 md:grid-cols-2">
-          <Field label="Company" value={form.companyName} onChange={(value) => setForm((current) => ({ ...current, companyName: value }))} />
-          <Field label="Primary first name" value={form.primaryContactFirstName} onChange={(value) => setForm((current) => ({ ...current, primaryContactFirstName: value }))} />
-          <Field label="Primary last name" value={form.primaryContactLastName} onChange={(value) => setForm((current) => ({ ...current, primaryContactLastName: value }))} />
-          <Field label="Primary email" type="email" value={form.primaryContactEmail} onChange={(value) => setForm((current) => ({ ...current, primaryContactEmail: value }))} />
-          <Field label="Primary phone" value={form.primaryContactPhone} onChange={(value) => setForm((current) => ({ ...current, primaryContactPhone: value }))} />
-          <Select label="Industry" value={form.industry} onChange={(value) => setForm((current) => ({ ...current, industry: value }))} options={[{ value: '', label: 'Not specified' }, ...lifecycleOptions.industries]} />
-          <Select label="Company size" value={form.companySize} onChange={(value) => setForm((current) => ({ ...current, companySize: value }))} options={[{ value: '', label: 'Not specified' }, ...lifecycleOptions.companySizes]} />
-          <Select label="Status" value={form.status} onChange={(value) => setForm((current) => ({ ...current, status: value, subStatus: lifecycleOptions.customer.subStatuses[value]?.[0] ?? "" }))} options={lifecycleOptions.customer.statuses.map((value) => ({ value, label: value.replaceAll("_", " ") }))} />
-          <Select label="Sub-status" value={form.subStatus} onChange={(value) => setForm((current) => ({ ...current, subStatus: value }))} options={[{ value: "", label: "None" }, ...(lifecycleOptions.customer.subStatuses[form.status] ?? []).map((value) => ({ value, label: value }))]} />
-          <Select label="Selected plan" value={form.selectedPlanId} onChange={(value) => setForm((current) => ({ ...current, selectedPlanId: value }))} options={[{ value: "", label: "Not selected" }, ...plans.map((plan) => ({ value: plan.id, label: plan.name }))]} />
-          <Select label="Account manager" value={form.accountManagerUserId} onChange={(value) => setForm((current) => ({ ...current, accountManagerUserId: value }))} options={[{ value: "", label: "Unassigned" }, ...operators.map((operator) => ({ value: operator.id, label: operator.fullName }))]} />
-        </div>
-        <div className="mt-6 flex items-center justify-between gap-3">
-          <div className="text-sm text-slate-600">{message ?? "Customers must be active before a tenant can be created."}</div>
-          <button className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white disabled:opacity-60" disabled={isPending} onClick={handleSave} type="button">
-            {isPending ? "Saving..." : "Save customer"}
-          </button>
+        <div className="flex flex-wrap gap-2">
+          {tabs.map((tab) => (
+            <button
+              className={`rounded-full px-4 py-2 text-sm font-medium ${
+                activeTab === tab.key
+                  ? "bg-slate-950 text-white"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
+              }`}
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              type="button"
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
       </section>
 
-      <div className="space-y-6">
+      {activeTab === "overview" ? (
+        <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-semibold text-slate-950">Customer profile</h2>
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <Field label="Company" value={form.companyName} onChange={(value) => setForm((current) => ({ ...current, companyName: value }))} />
+            <Field label="Primary first name" value={form.primaryContactFirstName} onChange={(value) => setForm((current) => ({ ...current, primaryContactFirstName: value }))} />
+            <Field label="Primary last name" value={form.primaryContactLastName} onChange={(value) => setForm((current) => ({ ...current, primaryContactLastName: value }))} />
+            <Field label="Primary email" type="email" value={form.primaryContactEmail} onChange={(value) => setForm((current) => ({ ...current, primaryContactEmail: value }))} />
+            <Field label="Primary phone" value={form.primaryContactPhone} onChange={(value) => setForm((current) => ({ ...current, primaryContactPhone: value }))} />
+            <Select label="Industry" value={form.industry} onChange={(value) => setForm((current) => ({ ...current, industry: value }))} options={[{ value: '', label: 'Not specified' }, ...lifecycleOptions.industries]} />
+            <Select label="Company size" value={form.companySize} onChange={(value) => setForm((current) => ({ ...current, companySize: value }))} options={[{ value: '', label: 'Not specified' }, ...lifecycleOptions.companySizes]} />
+            <Select label="Status" value={form.status} onChange={(value) => setForm((current) => ({ ...current, status: value, subStatus: lifecycleOptions.customer.subStatuses[value]?.[0] ?? "" }))} options={lifecycleOptions.customer.statuses.map((value) => ({ value, label: value.replaceAll("_", " ") }))} />
+            <Select label="Sub-status" value={form.subStatus} onChange={(value) => setForm((current) => ({ ...current, subStatus: value }))} options={[{ value: "", label: "None" }, ...(lifecycleOptions.customer.subStatuses[form.status] ?? []).map((value) => ({ value, label: value }))]} />
+            <Select label="Selected plan" value={form.selectedPlanId} onChange={(value) => setForm((current) => ({ ...current, selectedPlanId: value }))} options={[{ value: "", label: "Not selected" }, ...plans.map((plan) => ({ value: plan.id, label: plan.name }))]} />
+            <Select label="Account manager" value={form.accountManagerUserId} onChange={(value) => setForm((current) => ({ ...current, accountManagerUserId: value }))} options={[{ value: "", label: "Unassigned" }, ...operators.map((operator) => ({ value: operator.id, label: operator.fullName }))]} />
+          </div>
+          <div className="mt-6 flex items-center justify-between gap-3">
+            <div className="text-sm text-slate-600">{message ?? "Save profile updates before running lifecycle actions."}</div>
+            <button className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white disabled:opacity-60" disabled={isPending} onClick={handleSave} type="button">
+              {isPending ? "Saving..." : "Save customer"}
+            </button>
+          </div>
+        </section>
+      ) : null}
+
+      {activeTab === "lifecycle" ? (
         <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-xl font-semibold text-slate-950">Lifecycle</h2>
-          <div className="mt-4 space-y-3 text-sm text-slate-700">
-            <Info label="Status" value={customer.status.replaceAll("_", " ")} />
-            <Info label="Sub-status" value={customer.subStatus ?? "None"} />
-            <Info label="Source lead" value={customer.leadId ? "Linked" : "Standalone customer"} />
-            <Info label="Tenant" value={customer.tenant ? `${customer.tenant.name} (${customer.tenant.status})` : "Not created"} />
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <Info label="Status" value={customer.lifecycle?.currentStatus?.replaceAll("_", " ") ?? customer.status.replaceAll("_", " ")} />
+            <Info label="Sub-status" value={customer.lifecycle?.subStatus ?? customer.subStatus ?? "None"} />
+            <Info label="Active onboarding" value={customer.lifecycle?.activeOnboardingStatus ?? "None"} />
+            <Info label="Tenant count" value={String(customer.lifecycle?.tenantCount ?? customer.tenants?.length ?? 0)} />
+            <Info label="Active tenants" value={String(customer.lifecycle?.activeTenantCount ?? 0)} />
+            <Info label="Next renewal" value={formatDate(customer.lifecycle?.nextRenewalDate)} />
           </div>
-          {!customer.tenant ? (
-            <button className="mt-5 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 disabled:opacity-60" disabled={isPending} onClick={handleStartOnboarding} type="button">
+
+          <div className="mt-6">
+            <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">Onboarding prerequisites</h3>
+            <div className="mt-3 space-y-2">
+              {(prerequisites?.checks ?? []).map((check) => (
+                <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" key={check.key}>
+                  <span className="text-sm text-slate-700">{check.label}</span>
+                  <span className={check.passed ? "text-sm font-semibold text-emerald-700" : "text-sm font-semibold text-amber-700"}>
+                    {check.passed ? "Ready" : "Missing"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-5">
+            <button className="rounded-2xl border border-slate-200 bg-slate-950 px-4 py-3 text-sm font-semibold text-white disabled:opacity-60" disabled={isPending || !canStartOnboarding} onClick={handleStartOnboarding} type="button">
               Start onboarding
             </button>
-          ) : null}
+            {!canStartOnboarding ? (
+              <p className="mt-2 text-xs text-amber-700">
+                Complete prerequisites before starting onboarding.
+              </p>
+            ) : null}
+          </div>
         </section>
+      ) : null}
 
+      {activeTab === "onboarding" ? (
         <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-semibold text-slate-950">Onboarding</h2>
+          <h2 className="text-xl font-semibold text-slate-950">Onboarding records</h2>
           <div className="mt-4 space-y-3">
             {customer.onboardings && customer.onboardings.length > 0 ? (
               customer.onboardings.map((item) => (
@@ -145,13 +271,80 @@ export function CustomerDetailManager({
                 </Link>
               ))
             ) : (
-              <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm text-slate-600">
-                No onboarding records yet.
-              </div>
+              <EmptyState text="No onboarding records yet." />
             )}
           </div>
         </section>
-      </div>
+      ) : null}
+
+      {activeTab === "tenants" ? (
+        <SimpleTable
+          columns={["Name", "Slug", "Status"]}
+          rows={(customer.tenants ?? []).map((tenant) => [tenant.name, tenant.slug, tenant.status])}
+          emptyText="No tenants linked to this customer."
+          title="Tenants"
+        />
+      ) : null}
+
+      {activeTab === "subscriptions" ? (
+        <SimpleTable
+          columns={["Plan", "Status", "Billing", "Price"]}
+          rows={(customer.subscriptions ?? []).map((subscription) => [
+            subscription.plan.name,
+            subscription.status,
+            subscription.billingCycle,
+            `${subscription.currency} ${Number(subscription.finalPrice).toFixed(2)}`,
+          ])}
+          emptyText="No subscriptions found for this customer."
+          title="Subscriptions"
+        />
+      ) : null}
+
+      {activeTab === "payments" ? (
+        <SimpleTable
+          columns={["Amount", "Status", "Method", "Paid at"]}
+          rows={(customer.payments ?? []).map((payment) => [
+            `${payment.currency} ${Number(payment.amount).toFixed(2)}`,
+            payment.status,
+            payment.paymentMethod,
+            formatDate(payment.paidAt),
+          ])}
+          emptyText="No payments found for this customer."
+          title="Payments"
+        />
+      ) : null}
+
+      {activeTab === "invoices" ? (
+        <SimpleTable
+          columns={["Invoice #", "Amount", "Status", "Due date"]}
+          rows={(customer.invoices ?? []).map((invoice) => [
+            invoice.invoiceNumber,
+            `${invoice.currency} ${Number(invoice.amount).toFixed(2)}`,
+            invoice.status,
+            formatDate(invoice.dueDate),
+          ])}
+          emptyText="No invoices found for this customer."
+          title="Invoices"
+        />
+      ) : null}
+
+      {activeTab === "notes" ? (
+        <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-semibold text-slate-950">Notes / Activity</h2>
+          <div className="mt-4 space-y-3">
+            {customer.notes && customer.notes.length > 0 ? (
+              customer.notes.map((note) => (
+                <article className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4" key={note.id}>
+                  <p className="text-sm text-slate-800">{note.note}</p>
+                  <p className="mt-2 text-xs text-slate-500">{formatDate(note.createdAt)}</p>
+                </article>
+              ))
+            ) : (
+              <EmptyState text="No notes recorded for this customer." />
+            )}
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }
@@ -170,5 +363,66 @@ function Info({ label, value }: { label: string; value: string }) {
       <div className="text-xs uppercase tracking-[0.18em] text-slate-500">{label}</div>
       <div className="mt-2 font-medium text-slate-950">{value}</div>
     </div>
+  );
+}
+
+function formatDate(value?: string | null) {
+  if (!value) return "Not available";
+  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(new Date(value));
+}
+
+function EmptyState({ text }: { text: string }) {
+  return (
+    <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm text-slate-600">
+      {text}
+    </div>
+  );
+}
+
+function SimpleTable({
+  title,
+  columns,
+  rows,
+  emptyText,
+}: {
+  title: string;
+  columns: string[];
+  rows: string[][];
+  emptyText: string;
+}) {
+  return (
+    <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+      <h2 className="text-xl font-semibold text-slate-950">{title}</h2>
+      {rows.length === 0 ? (
+        <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm text-slate-600">
+          {emptyText}
+        </div>
+      ) : (
+        <div className="mt-4 overflow-x-auto">
+          <table className="min-w-full border-collapse text-sm">
+            <thead>
+              <tr>
+                {columns.map((column) => (
+                  <th className="border-b border-slate-200 px-3 py-2 text-left font-semibold text-slate-700" key={column}>
+                    {column}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, index) => (
+                <tr key={`${title}-${index}`}>
+                  {row.map((cell, cellIndex) => (
+                    <td className="border-b border-slate-100 px-3 py-3 text-slate-700" key={`${title}-${index}-${cellIndex}`}>
+                      {cell}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
   );
 }

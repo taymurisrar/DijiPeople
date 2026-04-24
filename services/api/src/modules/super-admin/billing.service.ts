@@ -190,30 +190,44 @@ export class BillingService {
     const dueDate =
       input.dueDate ??
       new Date(issueDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const datePart = issueDate.toISOString().slice(0, 10).replace(/-/g, '');
 
-    const invoiceCount = await db.invoice.count({
-      where: { tenantId: input.tenantId },
-    });
-    const invoiceNumber = `INV-${issueDate
-      .toISOString()
-      .slice(0, 10)
-      .replace(/-/g, '')}-${String(invoiceCount + 1).padStart(4, '0')}`;
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const entropy = String(Math.floor(Math.random() * 10_000)).padStart(
+        4,
+        '0',
+      );
+      const invoiceNumber = `INV-${datePart}-${entropy}`;
 
-    return db.invoice.create({
-      data: {
-        tenantId: input.tenantId,
-        subscriptionId: input.subscriptionId,
-        invoiceNumber,
-        amount: input.amount,
-        currency: input.currency,
-        issueDate,
-        dueDate,
-        status: input.status ?? InvoiceStatus.ISSUED,
-        stripeInvoiceId: input.stripeInvoiceId ?? null,
-        createdById: input.actorUserId,
-        updatedById: input.actorUserId,
-      },
-    });
+      try {
+        return await db.invoice.create({
+          data: {
+            tenantId: input.tenantId,
+            subscriptionId: input.subscriptionId,
+            invoiceNumber,
+            amount: input.amount,
+            currency: input.currency,
+            issueDate,
+            dueDate,
+            status: input.status ?? InvoiceStatus.ISSUED,
+            stripeInvoiceId: input.stripeInvoiceId ?? null,
+            createdById: input.actorUserId,
+            updatedById: input.actorUserId,
+          },
+        });
+      } catch (error) {
+        const isUniqueViolation =
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2002';
+        if (!isUniqueViolation) {
+          throw error;
+        }
+      }
+    }
+
+    throw new BadRequestException(
+      'Unable to generate a unique invoice number. Please retry.',
+    );
   }
 
   async recordPayment(

@@ -380,7 +380,8 @@ enum PaymentMode {
 
 model Tenant {
   id              String           @id @default(uuid())
-  customerAccountId String?        @unique
+  customerAccountId String
+  ownerUserId     String?
   name            String
   slug            String           @unique
   status          TenantStatus     @default(ACTIVE)
@@ -446,7 +447,7 @@ model Tenant {
   tenantSettings      TenantSetting[]
   tenantFeatures      TenantFeature[]
   subscription        Subscription?
-  customerAccount     CustomerAccount? @relation(fields: [customerAccountId], references: [id], onDelete: SetNull)
+  customerAccount     CustomerAccount @relation(fields: [customerAccountId], references: [id], onDelete: Restrict)
   customerOnboardings CustomerOnboarding[]
   invoices            Invoice[]
   payments            Payment[]
@@ -455,9 +456,11 @@ model Tenant {
   documentTypes       DocumentType[]
   documentCategories  DocumentCategory[]
   relationTypes       RelationType[]
+  ownerUser         User?          @relation("TenantOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
 
   @@index([status])
   @@index([customerAccountId])
+  @@index([ownerUserId])
 }
 
 model CustomerAccount {
@@ -499,7 +502,7 @@ model CustomerAccount {
   assignedToUser    User?                @relation("AssignedCustomerAccounts", fields: [assignedToUserId], references: [id], onDelete: SetNull)
   accountManagerUser User?               @relation("ManagedCustomerAccounts", fields: [accountManagerUserId], references: [id], onDelete: SetNull)
   primaryOwnerUser  User?                @relation("OwnedCustomerAccounts", fields: [primaryOwnerUserId], references: [id], onDelete: SetNull)
-  tenant            Tenant?
+  tenants           Tenant[]
   selectedPlan      Plan?                @relation("SelectedCustomerPlan", fields: [selectedPlanId], references: [id], onDelete: SetNull)
   sourceLead        Lead?                @relation("LeadToCustomer", fields: [leadId], references: [id], onDelete: SetNull)
   contacts          CustomerContact[]
@@ -599,9 +602,9 @@ model CustomerOnboarding {
   primaryOwnerLastName     String
   primaryOwnerWorkEmail    String
   primaryOwnerPhone        String?
-  superAdminFirstName      String?
-  superAdminLastName       String?
-  superAdminWorkEmail      String?
+  createServiceAccount     Boolean                  @default(false)
+  serviceAccountDisplayName String?
+  serviceAccountAssignSystemAdmin Boolean           @default(true)
   serviceAccountEmail      String?
   contractSigned           Boolean                  @default(false)
   paymentConfirmed         Boolean                  @default(false)
@@ -785,6 +788,7 @@ model User {
   customerNotes            CustomerNote[]    @relation("CustomerNotes")
   assignedLeads            Lead[]            @relation("AssignedLeads")
   ownedCustomerOnboardings CustomerOnboarding[] @relation("OwnedCustomerOnboardings")
+  ownedTenants      Tenant[]                    @relation("TenantOwner")
 
   @@index([tenantId])
   @@index([tenantId, status])
@@ -2215,6 +2219,19 @@ model TenantFeature {
   @@unique([tenantId, key])
   @@index([tenantId])
   @@index([tenantId, isEnabled])
+}
+
+model PlatformSetting {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       Json
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  updatedById String?
+
+  @@index([key])
 }
 
 model Invoice {

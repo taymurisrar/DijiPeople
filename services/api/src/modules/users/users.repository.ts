@@ -13,13 +13,12 @@ export class UsersRepository {
       where: { tenantId },
       include: {
         tenant: {
-          include: {
-            customerAccount: {
-              select: {
-                id: true,
-                primaryOwnerUserId: true,
-              },
-            },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            status: true,
+            ownerUserId: true,
           },
         },
         userPermissions: {
@@ -59,13 +58,12 @@ export class UsersRepository {
       },
       include: {
         tenant: {
-          include: {
-            customerAccount: {
-              select: {
-                id: true,
-                primaryOwnerUserId: true,
-              },
-            },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            status: true,
+            ownerUserId: true,
           },
         },
         userPermissions: {
@@ -105,13 +103,12 @@ export class UsersRepository {
       },
       include: {
         tenant: {
-          include: {
-            customerAccount: {
-              select: {
-                id: true,
-                primaryOwnerUserId: true,
-              },
-            },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            status: true,
+            ownerUserId: true,
           },
         },
         userPermissions: {
@@ -141,13 +138,12 @@ export class UsersRepository {
       where: { id },
       include: {
         tenant: {
-          include: {
-            customerAccount: {
-              select: {
-                id: true,
-                primaryOwnerUserId: true,
-              },
-            },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            status: true,
+            ownerUserId: true,
           },
         },
         userPermissions: {
@@ -257,14 +253,10 @@ export class UsersRepository {
     const tenant = await db.tenant.findUnique({
       where: { id: tenantId },
       select: {
-        customerAccount: {
-          select: {
-            primaryOwnerUserId: true,
-          },
-        },
+        ownerUserId: true,
       },
     });
 
-    return tenant?.customerAccount?.primaryOwnerUserId ?? null;
+    return tenant?.ownerUserId ?? null;
   }
 }

@@ -313,7 +313,7 @@ export class LeaveRepository {
           some: {
             role: {
               key: {
-                in: ['hr', 'admin', 'super-admin'],
+                in: ['hr', 'admin', 'system-admin'],
               },
             },
           },
@@ -357,3 +357,4 @@ function buildSearchWhere(
 
   return where;
 }
+

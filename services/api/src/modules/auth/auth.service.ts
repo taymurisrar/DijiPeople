@@ -36,12 +36,12 @@ const REFRESH_TOKEN_COOKIE = 'dp_refresh_token';
 type UserWithAccess = Prisma.UserGetPayload<{
   include: {
     tenant: {
-      include: {
-        customerAccount: {
-          select: {
-            primaryOwnerUserId: true;
-          };
-        };
+      select: {
+        id: true;
+        name: true;
+        slug: true;
+        status: true;
+        ownerUserId: true;
       };
     };
     userPermissions: {
@@ -176,7 +176,7 @@ export class AuthService {
         firstName: currentUser.firstName,
         lastName: currentUser.lastName,
         isTenantOwner:
-          tenant.customerAccount?.primaryOwnerUserId === currentUser.userId,
+          tenant.ownerUserId === currentUser.userId,
         roleIds: currentUser.roleIds,
         roleKeys: currentUser.roleKeys,
         permissionKeys: currentUser.permissionKeys,
@@ -444,7 +444,7 @@ export class AuthService {
         roleKeys,
         roles,
         permissionKeys,
-        user.tenant.customerAccount?.primaryOwnerUserId === user.id,
+        user.tenant.ownerUserId === user.id,
       ),
       tokens: {
         accessToken,

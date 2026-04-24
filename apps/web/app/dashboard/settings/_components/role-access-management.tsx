@@ -538,6 +538,7 @@ export function RoleAccessManagement({
             const expanded = expandedUserId === user.userId;
             const pendingRoleIds = getPendingRoleIds(user);
             const pendingPermissionIds = getPendingPermissionIds(user);
+            const ownerProtected = user.ownership.isTenantOwner;
 
             return (
               <article
@@ -562,6 +563,11 @@ export function RoleAccessManagement({
                       <span className="rounded-full bg-accent-soft px-3 py-1 text-xs font-semibold text-accent-strong">
                         {formatOwnershipLabel(user.ownership.designation)}
                       </span>
+                      {user.isServiceAccount ? (
+                        <span className="rounded-full bg-surface px-3 py-1 text-xs font-semibold text-muted">
+                          Service Account
+                        </span>
+                      ) : null}
                       {user.roles.map((role) => (
                         <span
                           className="rounded-full bg-surface px-3 py-1 text-xs font-medium text-muted"
@@ -587,11 +593,12 @@ export function RoleAccessManagement({
                             className="flex items-start gap-3 rounded-2xl border border-border bg-surface px-3 py-3 text-sm"
                             key={role.id}
                           >
-                            <input
-                              checked={pendingRoleIds.includes(role.id)}
-                              onChange={() =>
-                                setPendingUserRoleIds((current) => ({
-                                  ...current,
+                              <input
+                                checked={pendingRoleIds.includes(role.id)}
+                                disabled={ownerProtected}
+                                onChange={() =>
+                                  setPendingUserRoleIds((current) => ({
+                                    ...current,
                                   [user.userId]: pendingRoleIds.includes(role.id)
                                     ? pendingRoleIds.filter((id) => id !== role.id)
                                     : [...pendingRoleIds, role.id],
@@ -629,11 +636,12 @@ export function RoleAccessManagement({
                                   className="flex items-start gap-3 rounded-2xl border border-border bg-white px-3 py-3 text-sm"
                                   key={permission.id}
                                 >
-                                  <input
-                                    checked={pendingPermissionIds.includes(permission.id)}
-                                    onChange={() =>
-                                      setPendingUserPermissionIds((current) => ({
-                                        ...current,
+                              <input
+                                checked={pendingPermissionIds.includes(permission.id)}
+                                disabled={ownerProtected}
+                                onChange={() =>
+                                  setPendingUserPermissionIds((current) => ({
+                                    ...current,
                                         [user.userId]: pendingPermissionIds.includes(
                                           permission.id,
                                         )
@@ -694,6 +702,7 @@ export function RoleAccessManagement({
                           className="rounded-2xl bg-accent px-5 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:opacity-70"
                           disabled={
                             savingUserId === user.userId || deletingUserId === user.userId
+                            || ownerProtected
                           }
                           onClick={() => handleSaveUserAccess(user)}
                           type="button"

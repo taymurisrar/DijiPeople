@@ -18,9 +18,27 @@ export class TenantsRepository {
     return db.tenant.findUnique({
       where: { id },
       include: {
-        customerAccount: {
+        customerAccount: true,
+        ownerUser: {
           select: {
-            primaryOwnerUserId: true,
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            status: true,
+            isServiceAccount: true,
+            lastLoginAt: true,
+            userRoles: {
+              select: {
+                role: {
+                  select: {
+                    id: true,
+                    key: true,
+                    name: true,
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -32,6 +50,52 @@ export class TenantsRepository {
       where: { id },
       include: {
         customerAccount: true,
+        ownerUser: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            status: true,
+            isServiceAccount: true,
+            lastLoginAt: true,
+            userRoles: {
+              select: {
+                role: {
+                  select: {
+                    id: true,
+                    key: true,
+                    name: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        users: {
+          where: { isServiceAccount: true },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            status: true,
+            isServiceAccount: true,
+            lastLoginAt: true,
+            userRoles: {
+              select: {
+                role: {
+                  select: {
+                    id: true,
+                    key: true,
+                    name: true,
+                  },
+                },
+              },
+            },
+          },
+          orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+        },
         subscription: {
           include: {
             plan: true,
@@ -56,6 +120,28 @@ export class TenantsRepository {
       orderBy: { createdAt: 'desc' },
       include: {
         customerAccount: true,
+        ownerUser: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            status: true,
+            isServiceAccount: true,
+            lastLoginAt: true,
+            userRoles: {
+              select: {
+                role: {
+                  select: {
+                    id: true,
+                    key: true,
+                    name: true,
+                  },
+                },
+              },
+            },
+          },
+        },
         subscription: {
           include: {
             plan: true,
@@ -95,6 +181,52 @@ export class TenantsRepository {
       },
       include: {
         customerAccount: true,
+        ownerUser: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            status: true,
+            isServiceAccount: true,
+            lastLoginAt: true,
+            userRoles: {
+              select: {
+                role: {
+                  select: {
+                    id: true,
+                    key: true,
+                    name: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        users: {
+          where: { isServiceAccount: true },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            status: true,
+            isServiceAccount: true,
+            lastLoginAt: true,
+            userRoles: {
+              select: {
+                role: {
+                  select: {
+                    id: true,
+                    key: true,
+                    name: true,
+                  },
+                },
+              },
+            },
+          },
+          orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+        },
         subscription: {
           include: {
             plan: true,

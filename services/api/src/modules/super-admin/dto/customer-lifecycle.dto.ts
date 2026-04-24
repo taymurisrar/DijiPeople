@@ -522,28 +522,24 @@ export class CreateCustomerOnboardingRecordDto {
   primaryOwnerPhone?: string;
 
   @IsOptional()
-  @Transform(trimString)
-  @IsString()
-  @MaxLength(100)
-  superAdminFirstName?: string;
-
-  @IsOptional()
-  @Transform(trimString)
-  @IsString()
-  @MaxLength(100)
-  superAdminLastName?: string;
-
-  @IsOptional()
-  @Transform(normalizeEmail)
-  @IsEmail()
-  @MaxLength(160)
-  superAdminWorkEmail?: string;
-
-  @IsOptional()
   @Transform(normalizeEmail)
   @IsEmail()
   @MaxLength(160)
   serviceAccountEmail?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  createServiceAccount?: boolean;
+
+  @IsOptional()
+  @Transform(trimString)
+  @IsString()
+  @MaxLength(120)
+  serviceAccountDisplayName?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  serviceAccountAssignSystemAdmin?: boolean;
 
   @IsOptional()
   @IsBoolean()
@@ -652,28 +648,24 @@ export class UpdateCustomerOnboardingDto {
   primaryOwnerPhone?: string;
 
   @IsOptional()
-  @Transform(trimString)
-  @IsString()
-  @MaxLength(100)
-  superAdminFirstName?: string;
-
-  @IsOptional()
-  @Transform(trimString)
-  @IsString()
-  @MaxLength(100)
-  superAdminLastName?: string;
-
-  @IsOptional()
-  @Transform(normalizeEmail)
-  @IsEmail()
-  @MaxLength(160)
-  superAdminWorkEmail?: string;
-
-  @IsOptional()
   @Transform(normalizeEmail)
   @IsEmail()
   @MaxLength(160)
   serviceAccountEmail?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  createServiceAccount?: boolean;
+
+  @IsOptional()
+  @Transform(trimString)
+  @IsString()
+  @MaxLength(120)
+  serviceAccountDisplayName?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  serviceAccountAssignSystemAdmin?: boolean;
 
   @IsOptional()
   @IsBoolean()
@@ -758,4 +750,24 @@ export class CreateTenantFromOnboardingDto {
   @IsString()
   @MaxLength(120)
   serviceAccountName?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  createServiceAccount?: boolean;
+
+  @IsOptional()
+  @Transform(normalizeEmail)
+  @IsEmail()
+  @MaxLength(160)
+  serviceAccountEmail?: string;
+
+  @IsOptional()
+  @Transform(trimString)
+  @IsString()
+  @MaxLength(120)
+  serviceAccountDisplayName?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  assignServiceAccountSystemAdminRole?: boolean;
 }

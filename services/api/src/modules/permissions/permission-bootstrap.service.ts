@@ -57,16 +57,9 @@ export class PermissionBootstrapService {
       db.role.findMany({
         where: {
           tenantId,
-          OR: [
-            {
-              key: {
-                in: BASE_ROLE_DEFINITIONS.map((role) => role.key),
-              },
-            },
-            {
-              key: 'super-admin',
-            },
-          ],
+          key: {
+            in: BASE_ROLE_DEFINITIONS.map((role) => role.key),
+          },
         },
       }),
     ]);
@@ -77,11 +70,9 @@ export class PermissionBootstrapService {
 
     const rolePermissionAssignments = roles.flatMap((role) => {
       const permissionKeys =
-        role.key === 'super-admin'
-          ? FOUNDATION_PERMISSION_DEFINITIONS.map((permission) => permission.key)
-          : BASE_ROLE_PERMISSION_KEYS[
-              role.key as keyof typeof BASE_ROLE_PERMISSION_KEYS
-            ] ?? [];
+        BASE_ROLE_PERMISSION_KEYS[
+          role.key as keyof typeof BASE_ROLE_PERMISSION_KEYS
+        ] ?? [];
 
       return permissionKeys.reduce<
         Array<{

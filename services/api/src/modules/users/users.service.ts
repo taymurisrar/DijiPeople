@@ -110,7 +110,7 @@ export class UsersService {
     }
 
     const ownership = await this.getTenantOwnershipContext(tenantId, actorId, userId);
-    this.assertUserAccessChangeAllowed(ownership, user);
+    this.assertUserAccessChangeAllowed(ownership);
 
     const beforeSummary = this.mapUserSummary(user);
 
@@ -161,7 +161,7 @@ export class UsersService {
     }
 
     const ownership = await this.getTenantOwnershipContext(tenantId, actorId, userId);
-    this.assertUserAccessChangeAllowed(ownership, user);
+    this.assertUserAccessChangeAllowed(ownership);
 
     const beforeSummary = this.mapUserSummary(user);
     const permissions = await this.permissionsService.findByIds(
@@ -218,12 +218,6 @@ export class UsersService {
       throw new ForbiddenException('The tenant owner account cannot be deleted.');
     }
 
-    if (!ownership.isActorOwner && this.hasRole(user, 'super-admin')) {
-      throw new ForbiddenException(
-        'Only the tenant owner can delete another super admin account.',
-      );
-    }
-
     const beforeSummary = this.mapUserSummary(user);
 
     await this.usersRepository.delete(userId);
@@ -254,6 +248,7 @@ export class UsersService {
       firstName: user.firstName,
       lastName: user.lastName,
       status: user.status,
+      isServiceAccount: user.isServiceAccount,
       lastLoginAt: user.lastLoginAt,
       tenant: {
         id: user.tenant.id,
@@ -285,13 +280,14 @@ export class UsersService {
         ]),
       ),
       ownership: {
-        isTenantOwner:
-          user.tenant.customerAccount?.primaryOwnerUserId === user.id,
+        isTenantOwner: user.tenant.ownerUserId === user.id,
         designation:
-          user.tenant.customerAccount?.primaryOwnerUserId === user.id
+          user.tenant.ownerUserId === user.id
             ? 'TENANT_OWNER'
-            : user.userRoles.some((userRole) => userRole.role.key === 'super-admin')
-              ? 'SUPER_ADMIN'
+            : user.userRoles.some(
+                  (userRole) => userRole.role.key === 'system-admin',
+                )
+              ? 'SYSTEM_ADMIN'
               : 'TENANT_USER',
       },
       createdAt: user.createdAt,
@@ -315,28 +311,13 @@ export class UsersService {
 
   private assertUserAccessChangeAllowed(
     ownership: {
-      isActorOwner: boolean;
       isTargetOwner: boolean;
     },
-    user: NonNullable<Awaited<ReturnType<UsersRepository['findByIdWithAccess']>>>,
   ) {
-    if (ownership.isTargetOwner && !ownership.isActorOwner) {
+    if (ownership.isTargetOwner) {
       throw new ForbiddenException(
-        'Only the tenant owner can update the owner account access.',
+        'The tenant owner account access cannot be modified.',
       );
     }
-
-    if (!ownership.isActorOwner && this.hasRole(user, 'super-admin')) {
-      throw new ForbiddenException(
-        'Only the tenant owner can update another super admin account.',
-      );
-    }
-  }
-
-  private hasRole(
-    user: NonNullable<Awaited<ReturnType<UsersRepository['findByIdWithAccess']>>>,
-    roleKey: string,
-  ) {
-    return user.userRoles.some((userRole) => userRole.role.key === roleKey);
   }
 }

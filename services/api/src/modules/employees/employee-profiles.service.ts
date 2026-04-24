@@ -1352,7 +1352,7 @@ export class EmployeeProfilesService {
   }
 
   private isManagerScopedUser(currentUser: AuthenticatedUser) {
-    const elevatedRoleKeys = new Set(['admin', 'hr', 'super-admin']);
+    const elevatedRoleKeys = new Set(['admin', 'hr', 'system-admin']);
     return (
       currentUser.roleKeys.includes('manager') &&
       currentUser.roleKeys.every((roleKey) => !elevatedRoleKeys.has(roleKey))
@@ -1487,3 +1487,4 @@ function calculateDaysUntilBirthday(today: Date, dateOfBirth: Date) {
   }
   return differenceInDays(nextBirthday, today);
 }
+

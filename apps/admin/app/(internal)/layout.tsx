@@ -1,12 +1,12 @@
 import { AdminShell } from "@/app/_components/admin-shell";
-import { requireSuperAdminUser } from "@/lib/auth";
+import { requireSystemAdminUser } from "@/lib/auth";
 
 export default async function InternalLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const user = await requireSuperAdminUser("/tenants");
+  const user = await requireSystemAdminUser("/tenants");
 
   return (
     <AdminShell

@@ -96,6 +96,7 @@ export default async function DashboardLayout({
             isReportingManager={isReportingManager}
             isSelfService={selfService}
             permissionKeys={user.permissionKeys}
+            roleKeys={user.roleKeys}
             tenantId={user.tenantId}
             tenantName={effectiveTenantName}
             brandLogoUrl={resolvedSettings?.branding.logoUrl ?? null}

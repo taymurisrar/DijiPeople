@@ -14,7 +14,17 @@ export class PaymentsService {
     return this.prisma.payment.findMany({
       include: {
         tenant: {
-          select: { id: true, name: true, slug: true },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            customerAccount: {
+              select: {
+                id: true,
+                companyName: true,
+              },
+            },
+          },
         },
         subscription: {
           include: {

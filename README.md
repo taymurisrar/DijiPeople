@@ -60,8 +60,8 @@ Set these environment variables in your cloud API service:
 - `DATABASE_URL`
 - `BOOTSTRAP_ADMIN_EMAIL` (for example: `superadmin@dijipeople.local`)
 - `BOOTSTRAP_ADMIN_PASSWORD`
-- `BOOTSTRAP_ADMIN_ROLE_KEY=super-admin`
-- `BOOTSTRAP_ADMIN_ROLE_NAME=Super Admin`
+- `BOOTSTRAP_ADMIN_ROLE_KEY=system-admin`
+- `BOOTSTRAP_ADMIN_ROLE_NAME=System Admin`
 
 Recommended release command in cloud platforms:
 
@@ -132,3 +132,4 @@ That shared config is used to:
 - The backend API now defaults to port `4000`
 - Next.js apps keep fixed default ports, but `PORT` can still override them
 - Invitation and reset links now derive their web app URL from shared config/env instead of hardcoded localhost strings
+

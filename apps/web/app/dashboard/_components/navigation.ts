@@ -103,6 +103,7 @@ type ResolveVisibleDashboardNavItemsInput = {
   isReportingManager: boolean;
   isSelfService: boolean;
   permissionKeys: string[];
+  roleKeys?: string[];
 };
 
 export function resolveVisibleDashboardNavItems(
@@ -123,7 +124,8 @@ export function resolveVisibleDashboardNavItems(
     if (isEmployeesItem) {
       const canReadEmployees =
         input.permissionKeys.includes("employees.read") ||
-        input.permissionKeys.includes("employees.read.all");
+        input.permissionKeys.includes("employees.read.all") ||
+        (input.roleKeys ?? []).includes("system-admin");
 
       if (input.isSelfService && !input.isReportingManager) {
         return [
