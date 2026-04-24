@@ -98,7 +98,7 @@ export function CustomerDetailManager({
       return;
     }
 
-    const payload = {
+    const requestBody = {
       companyName: nonEmpty(form.companyName),
       primaryContactFirstName: nonEmpty(form.primaryContactFirstName),
       primaryContactLastName: nonEmpty(form.primaryContactLastName),
@@ -117,11 +117,11 @@ export function CustomerDetailManager({
       const response = await fetch(`/api/super-admin/customers/${customer.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(requestBody),
       });
-      const payload = await response.json().catch(() => null);
+      const responseBody = await response.json().catch(() => null);
       if (!response.ok) {
-        setMessage(payload?.message ?? "Unable to update customer.");
+        setMessage(responseBody?.message ?? "Unable to update customer.");
         return;
       }
       setMessage("Customer updated.");

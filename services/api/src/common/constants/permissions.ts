@@ -122,7 +122,23 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     key: 'documents.categories.manage',
     name: 'Manage document categories',
     description: 'Create and manage document category definitions.',
-  }, {
+  },
+  {
+    key: 'employees.read',
+    name: 'Read employees',
+    description: 'View employee records and workforce directory data.',
+  },
+  {
+    key: 'employees.create',
+    name: 'Create employees',
+    description: 'Create employee records within the current tenant.',
+  },
+  {
+    key: 'employees.update',
+    name: 'Update employees',
+    description: 'Update employee records, profile details, and assignments.',
+  },
+  {
     key: 'employees.read.self',
     name: 'Read own employee',
     description: 'View own employee profile.',

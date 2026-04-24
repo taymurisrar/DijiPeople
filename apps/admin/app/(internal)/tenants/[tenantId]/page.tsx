@@ -139,7 +139,7 @@ export default async function TenantDetailPage({
     apiRequestJson<TenantDetail>(`/super-admin/tenants/${tenantId}`),
     apiRequestJson<PlanOption[]>("/super-admin/plans"),
     apiRequestJson<FeatureCatalogItem[]>("/super-admin/feature-catalog"),
-    apiRequestJson<{ items: CustomerOption[] }>("/super-admin/customers?pageSize=200").then(
+    apiRequestJson<{ items: CustomerOption[] }>("/super-admin/customers?pageSize=100").then(
       (response) => response.items,
     ),
   ]);
