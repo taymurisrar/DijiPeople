@@ -126,6 +126,11 @@ export type TenantSettingsResponse = Partial<
   Record<TenantSettingsCategory, Record<string, TenantSettingValue>>
 >;
 
+export type TenantSettingsApiResponse = {
+  settings: TenantSettingsResponse;
+  categories: TenantSettingsCategory[];
+};
+
 export type TenantResolvedSettingsResponse = {
   organization: {
     companyDisplayName: string;
@@ -181,6 +186,7 @@ export type TenantResolvedSettingsResponse = {
     quietHoursEnabled: boolean;
   };
   branding: {
+    appTitle?: string;
     brandName: string;
     shortBrandName: string;
     legalCompanyName?: string;
@@ -195,6 +201,10 @@ export type TenantResolvedSettingsResponse = {
     accentColor?: string;
     appBackgroundColor?: string;
     appSurfaceColor?: string;
+    backgroundColor?: string;
+    surfaceColor?: string;
+    textColor?: string;
+    fontFamily?: string;
     pageGradientStartColor?: string;
     pageGradientEndColor?: string;
     cardGradientStartColor?: string;
@@ -204,6 +214,7 @@ export type TenantResolvedSettingsResponse = {
     websiteUrl?: string;
     welcomeTitle?: string;
     welcomeSubtitle?: string;
+    footerText?: string;
     employeePortalMessage?: string;
     dashboardGreeting?: string;
     sidebarStyle?: string;

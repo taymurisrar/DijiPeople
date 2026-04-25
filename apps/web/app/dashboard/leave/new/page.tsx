@@ -3,6 +3,8 @@ import { SharedLookupOption } from "@/app/dashboard/_components/documents/types"
 import { LeaveRequestForm } from "../_components/leave-request-form";
 import { LeaveTypeOption } from "../types";
 
+export const dynamic = "force-dynamic";
+
 export default async function NewLeaveRequestPage() {
   const [leaveTypes, documentTypes, documentCategories] = await Promise.all([
     apiRequestJson<LeaveTypeOption[]>("/leave-types?isActive=true").catch(
@@ -11,8 +13,12 @@ export default async function NewLeaveRequestPage() {
         return [];
       },
     ),
-    apiRequestJson<SharedLookupOption[]>("/lookups/document-types").catch(() => []),
-    apiRequestJson<SharedLookupOption[]>("/lookups/document-categories").catch(() => []),
+    apiRequestJson<SharedLookupOption[]>("/lookups/document-types").catch(
+      () => [],
+    ),
+    apiRequestJson<SharedLookupOption[]>("/lookups/document-categories").catch(
+      () => [],
+    ),
   ]);
 
   return (

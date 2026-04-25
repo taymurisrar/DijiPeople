@@ -13,6 +13,7 @@ import {
   Users,
 } from "lucide-react";
 import { TenantLogo } from "@/app/components/branding/tenant-logo";
+import { DEFAULT_BRANDING_VALUES } from "@/app/components/branding/branding-defaults";
 import { BusinessUnitAccessSummary } from "../_lib/business-unit-access";
 import { resolveVisibleDashboardNavItems } from "./navigation";
 
@@ -64,7 +65,7 @@ export function DashboardSidebar({
   });
 
   return (
-    <aside className="flex h-full min-h-0 flex-col rounded-[24px] border border-border/70 bg-white/95 p-3 shadow-[0_10px_30px_rgba(15,23,42,0.05)] backdrop-blur md:p-4 xl:rounded-[28px] xl:p-5">
+    <aside className="dp-theme-scope dp-sidebar-scope flex h-full min-h-0 flex-col rounded-[24px] border border-border/70 p-3 shadow-[0_10px_30px_rgba(15,23,42,0.05)] backdrop-blur md:p-4 xl:rounded-[28px] xl:p-5">
       <div className="hidden xl:block">
         <SidebarBrand
           brandLogoUrl={brandLogoUrl}
@@ -89,7 +90,7 @@ export function DashboardSidebar({
                 href={item.href}
                 className={`group relative min-w-[180px] shrink-0 rounded-2xl border px-3 py-3 transition-all sm:min-w-[200px] xl:min-w-0 ${
                   isActive
-                    ? "border-accent/20 bg-accent/10 text-foreground shadow-sm"
+                    ? "border-accent/30 bg-[color-mix(in_oklab,var(--dp-accent)_16%,white)] text-foreground shadow-sm"
                     : "border-transparent bg-transparent text-foreground hover:border-border/80 hover:bg-muted/20"
                 }`}
               >
@@ -98,7 +99,7 @@ export function DashboardSidebar({
                     className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition ${
                       isActive
                         ? "bg-accent text-white"
-                        : "bg-accent/5 text-muted-foreground group-hover:bg-white group-hover:text-foreground"
+                        : "bg-[color-mix(in_oklab,var(--dp-accent)_10%,white)] text-muted-foreground group-hover:bg-white group-hover:text-foreground"
                     }`}
                   >
                     <Icon className="h-4 w-4" />
@@ -148,7 +149,7 @@ function SidebarBrand({
   const effectiveBrandName =
     typeof brandName === "string" && brandName.trim().length > 0
       ? brandName.trim()
-      : "DijiPeople";
+      : DEFAULT_BRANDING_VALUES.brandName;
 
   return (
     <div className="space-y-5">
@@ -173,7 +174,7 @@ function SidebarBrand({
       <p className="text-sm leading-6 text-muted">
         {brandTagline?.trim()
           ? brandTagline
-          : "Manage your people operations from one place."}
+          : DEFAULT_BRANDING_VALUES.portalTagline}
       </p>
     </div>
   );
@@ -189,7 +190,7 @@ function CompactBrand({
   const effectiveBrandName =
     typeof brandName === "string" && brandName.trim().length > 0
       ? brandName.trim()
-      : "DijiPeople";
+      : DEFAULT_BRANDING_VALUES.brandName;
 
   return (
     <div className="flex items-center gap-3 rounded-2xl border border-border/70 bg-muted/20 px-3 py-3">

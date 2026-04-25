@@ -1,4 +1,5 @@
 import { getSessionUser } from "@/lib/auth";
+import { DEFAULT_BRANDING_VALUES } from "@/app/components/branding/branding-defaults";
 import { ApiRequestError, apiRequestJson } from "@/lib/server-api";
 import type {
   ModuleViewOption,
@@ -12,9 +13,9 @@ import { TenantResolvedSettingsResponse } from "./settings/types";
 import { TimesheetListResponse } from "./timesheets/types";
 
 type DashboardPageProps = {
-  searchParams?: {
+  searchParams?: Promise<{
     view?: string;
-  };
+  }>;
 };
 
 export default async function DashboardPage({
@@ -25,6 +26,7 @@ export default async function DashboardPage({
   if (!user) {
     return null;
   }
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
 
   const currentEmployeeContext = await getCurrentEmployee(user);
   const employee = currentEmployeeContext.employee;
@@ -51,36 +53,42 @@ export default async function DashboardPage({
   const dashboardViews = getDashboardViewSelectorConfig({
     //permissionKeys: user.permissionKeys,
     //roleKeys: user.roleKeys ?? [],
-    selectedViewId: searchParams?.view,
+    selectedViewId: resolvedSearchParams?.view,
   });
 
   return (
-    <EssDashboardContent
-      attendanceAvailable={attendanceSummary.available}
-      currentAttendanceEntry={attendanceSummary.todayEntry}
-      currentTimesheet={timesheetSummary.currentWeekTimesheet}
-      dashboardViews={dashboardViews}
-      employee={employee}
-      leaveRequests={leaveRequests}
-      notifications={notifications}
-      timesheets={timesheetSummary.items}
-      tenantContext={{
-        companyDisplayName:
-          resolvedSettings?.organization.companyDisplayName || user.tenantName,
-        dashboardGreeting:
-          resolvedSettings?.branding.dashboardGreeting || "",
-        employeePortalMessage:
-          resolvedSettings?.branding.employeePortalMessage || "",
-      }}
-      user={{
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        permissionKeys: user.permissionKeys,
-        roleLabel: user.roleKeys?.[0] ?? "Tenant User",
-        tenantId: user.tenantId,
-      }}
-    />
+    <div className="dp-theme-scope dp-dashboard-scope">
+      <EssDashboardContent
+        attendanceAvailable={attendanceSummary.available}
+        currentAttendanceEntry={attendanceSummary.todayEntry}
+        currentTimesheet={timesheetSummary.currentWeekTimesheet}
+        dashboardViews={dashboardViews}
+        employee={employee}
+        leaveRequests={leaveRequests}
+        notifications={notifications}
+        timesheets={timesheetSummary.items}
+        tenantContext={{
+          companyDisplayName:
+            resolvedSettings?.organization.companyDisplayName ||
+            resolvedSettings?.branding.brandName ||
+            DEFAULT_BRANDING_VALUES.brandName,
+          dashboardGreeting:
+            resolvedSettings?.branding.dashboardGreeting ||
+            DEFAULT_BRANDING_VALUES.dashboardGreeting,
+          employeePortalMessage:
+            resolvedSettings?.branding.employeePortalMessage ||
+            DEFAULT_BRANDING_VALUES.employeePortalMessage,
+        }}
+        user={{
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          permissionKeys: user.permissionKeys,
+          roleLabel: user.roleKeys?.[0] ?? "Tenant User",
+          tenantId: user.tenantId,
+        }}
+      />
+    </div>
   );
 }
 

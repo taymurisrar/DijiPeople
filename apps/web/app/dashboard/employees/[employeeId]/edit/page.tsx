@@ -98,7 +98,7 @@ export default async function EditEmployeePage({
   };
 
   return (
-    <main className="grid gap-6">
+    <main className="dp-theme-scope dp-employees-scope grid gap-6">
       <section className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
         <p className="text-sm uppercase tracking-[0.18em] text-muted">
           Edit Employee

@@ -1,6 +1,13 @@
 @import "tailwindcss";
 
 :root {
+  --dp-primary: #0f766e;
+  --dp-secondary: #115e59;
+  --dp-accent: #14b8a6;
+  --dp-background: #f8fafc;
+  --dp-surface: #ffffff;
+  --dp-text: #0f172a;
+  --dp-font-family: var(--font-instrument-sans);
   --background: #f5f0e8;
   --foreground: #1d1f1c;
   --surface: rgba(255, 250, 244, 0.88);
@@ -25,7 +32,7 @@
   --color-accent-soft: var(--accent-soft);
   --color-muted: var(--muted);
   --color-danger: var(--danger);
-  --font-sans: var(--font-instrument-sans);
+  --font-sans: var(--dp-font-family, var(--font-instrument-sans));
   --font-serif: var(--font-literata);
 }
 
@@ -40,11 +47,44 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-instrument-sans), sans-serif;
+  font-family: var(--dp-font-family, var(--font-instrument-sans), sans-serif);
   background-image:
     radial-gradient(circle at top left, color-mix(in oklab, var(--accent) 22%, white), transparent 30%),
     radial-gradient(circle at 85% 15%, color-mix(in oklab, var(--accent-strong) 18%, white), transparent 24%),
     linear-gradient(180deg, var(--dp-page-gradient-start, rgba(255, 252, 247, 0.8)), var(--dp-page-gradient-end, rgba(245, 240, 232, 0.95)));
+}
+
+.dp-theme-scope {
+  --foreground: var(--dp-text);
+  --accent: var(--dp-primary);
+  --accent-strong: color-mix(in oklab, var(--dp-primary) 78%, black);
+  --accent-soft: color-mix(in oklab, var(--dp-primary) 18%, white);
+  --background: var(--dp-background);
+  --surface: color-mix(in oklab, var(--dp-surface) 90%, white);
+  --surface-strong: var(--dp-surface);
+  --border: color-mix(in oklab, var(--dp-text) 16%, white);
+  --muted: color-mix(in oklab, var(--dp-text) 58%, white);
+}
+
+.dp-sidebar-scope {
+  background-color: color-mix(in oklab, var(--dp-surface) 88%, white);
+  color: var(--dp-text);
+}
+
+.dp-dashboard-scope {
+  --dp-page-gradient-start: color-mix(in oklab, var(--dp-background) 84%, white);
+  --dp-page-gradient-end: color-mix(in oklab, var(--dp-surface) 80%, var(--dp-background));
+  --dp-card-gradient-start: color-mix(in oklab, var(--dp-surface) 92%, white);
+  --dp-card-gradient-end: color-mix(in oklab, var(--dp-accent) 14%, white);
+  background-color: color-mix(in oklab, var(--dp-background) 92%, white);
+  border-radius: 28px;
+  padding: 12px;
+}
+
+.dp-employees-scope {
+  background-color: color-mix(in oklab, var(--dp-background) 94%, white);
+  border-radius: 28px;
+  padding: 8px;
 }
 
 a {

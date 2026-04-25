@@ -1,6 +1,7 @@
 import { CSSProperties, Suspense } from "react";
 import { apiRequestJson } from "@/lib/server-api";
-import { FaviconSync } from "@/app/components/branding/favicon-sync";
+import { BrandingHeadEffects } from "@/app/components/branding/branding-head-effects";
+import { DEFAULT_BRANDING_VALUES } from "@/app/components/branding/branding-defaults";
 import { TenantLogo } from "@/app/components/branding/tenant-logo";
 import { LoginForm } from "./login-form";
 
@@ -19,6 +20,7 @@ type LoginPageProps = {
 
 type PublicBrandingResponse = {
   tenantName: string;
+  appTitle?: string;
   brandName: string;
   shortBrandName: string;
   logoUrl: string;
@@ -29,6 +31,7 @@ type PublicBrandingResponse = {
   accentColor: string;
   welcomeTitle: string;
   welcomeSubtitle: string;
+  footerText?: string;
   supportEmail: string;
   showBrandingOnLoginPage?: boolean;
 };
@@ -43,18 +46,24 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     { includeAuth: false },
   ).catch(() => null);
 
-  const brandLabel = branding?.shortBrandName || branding?.brandName || "DijiPeople";
-  const welcomeTitle = branding?.welcomeTitle || "People operations, without the mess.";
+  const brandLabel =
+    branding?.shortBrandName ||
+    branding?.brandName ||
+    DEFAULT_BRANDING_VALUES.shortBrandName;
+  const welcomeTitle =
+    branding?.welcomeTitle || DEFAULT_BRANDING_VALUES.welcomeTitle;
   const welcomeSubtitle =
     branding?.welcomeSubtitle ||
-    "A clean HR workspace for admins, HR teams, managers, and employees.";
-  const primaryColor = branding?.primaryColor || "#0f766e";
-  const secondaryColor = branding?.secondaryColor || "#0f172a";
-  const accentColor = branding?.accentColor || "#14b8a6";
+    DEFAULT_BRANDING_VALUES.welcomeSubtitle;
+  const primaryColor = branding?.primaryColor || DEFAULT_BRANDING_VALUES.primaryColor;
+  const secondaryColor = branding?.secondaryColor || DEFAULT_BRANDING_VALUES.secondaryColor;
+  const accentColor = branding?.accentColor || DEFAULT_BRANDING_VALUES.accentColor;
   const showBranding = branding?.showBrandingOnLoginPage !== false;
   const loginBannerImageUrl = sanitizeLoginAssetUrl(branding?.loginBannerImageUrl) || "";
   const logoUrl = sanitizeLoginAssetUrl(branding?.logoUrl);
   const faviconUrl = sanitizeLoginAssetUrl(branding?.faviconUrl);
+  const pageTitle = branding?.appTitle || DEFAULT_BRANDING_VALUES.appTitle;
+  const footerText = branding?.footerText || DEFAULT_BRANDING_VALUES.footerText;
 
   return (
     <main
@@ -64,7 +73,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         "--accent-strong": secondaryColor,
       } as CSSProperties}
     >
-      <FaviconSync faviconUrl={faviconUrl} />
+      <BrandingHeadEffects faviconUrl={faviconUrl} title={pageTitle} />
       <div className="mx-auto flex min-h-[100svh] w-full max-w-7xl items-stretch px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8 xl:px-10">
         <div className="grid w-full overflow-hidden rounded-[24px] border border-border/70 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.08)] lg:min-h-[calc(100svh-4rem)] lg:grid-cols-[1fr_minmax(440px,0.95fr)] xl:rounded-[32px]">
           <section
@@ -142,6 +151,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 Use the email account assigned by your organization. If you were invited
                 recently, activate your account first from the invitation email.
                 {branding?.supportEmail ? ` Need help? ${branding.supportEmail}` : ""}
+                {footerText ? ` ${footerText}` : ""}
               </div>
             </div>
           </section>

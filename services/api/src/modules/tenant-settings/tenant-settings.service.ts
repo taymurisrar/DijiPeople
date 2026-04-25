@@ -18,6 +18,30 @@ type SettingsResponse = {
   categories: string[];
 };
 
+const BRANDING_COLOR_KEYS = new Set<string>([
+  'primaryColor',
+  'secondaryColor',
+  'accentColor',
+  'backgroundColor',
+  'surfaceColor',
+  'textColor',
+  'appBackgroundColor',
+  'appSurfaceColor',
+]);
+
+const BRANDING_FONT_VALUES = new Set<string>([
+  'INTER',
+  'ROBOTO',
+  'OPEN_SANS',
+  'LATO',
+  'POPPINS',
+  'MONTSERRAT',
+  'NUNITO',
+  'SOURCE_SANS_3',
+]);
+
+const HEX_COLOR_PATTERN = /^#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})$/;
+
 @Injectable()
 export class TenantSettingsService {
   constructor(
@@ -326,7 +350,36 @@ function normalizeSettingValue(category: string, key: string, value: unknown) {
         `Setting ${category}.${key} must be a string value.`,
       );
     }
-    return value.trim();
+
+    const normalizedValue = value.trim();
+
+    if (category === 'branding' && BRANDING_COLOR_KEYS.has(key)) {
+      if (normalizedValue.length === 0) {
+        return defaultValue;
+      }
+
+      if (!HEX_COLOR_PATTERN.test(normalizedValue)) {
+        throw new BadRequestException(
+          `Setting ${category}.${key} must be a valid HEX color (for example #0f766e).`,
+        );
+      }
+    }
+
+    if (category === 'branding' && key === 'fontFamily') {
+      if (normalizedValue.length === 0) {
+        return defaultValue;
+      }
+
+      const normalizedFont = normalizedValue.toUpperCase();
+      if (!BRANDING_FONT_VALUES.has(normalizedFont)) {
+        throw new BadRequestException(
+          `Setting ${category}.${key} is not supported.`,
+        );
+      }
+      return normalizedFont;
+    }
+
+    return normalizedValue;
   }
 
   if (defaultValue === null) {

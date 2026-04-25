@@ -4,6 +4,7 @@ import { getSessionUser } from "@/lib/auth";
 import { hasPermission, isSelfServiceUser } from "@/lib/permissions";
 import { apiRequestJson } from "@/lib/server-api";
 import { Button } from "@/app/components/ui/button";
+import { DEFAULT_BRANDING_VALUES } from "@/app/components/branding/branding-defaults";
 import { AccessDeniedState } from "../_components/access-denied-state";
 import { getBusinessUnitAccessSummary, hasBusinessUnitScope } from "../_lib/business-unit-access";
 import { EmployeeListResponse } from "./types";
@@ -22,7 +23,7 @@ export default async function EmployeesPage({
 
   if (!hasBusinessUnitScope(businessUnitAccess)) {
     return (
-      <main className="grid gap-6">
+      <main className="dp-theme-scope dp-employees-scope grid gap-6">
         <AccessDeniedState
           description="Your current business-unit scope does not include employee records."
           title="Employees are unavailable for your current business unit access."
@@ -78,7 +79,7 @@ export default async function EmployeesPage({
   };
 
   return (
-    <main className="grid gap-6">
+    <main className="dp-theme-scope dp-employees-scope grid gap-6">
       <section className="flex flex-col gap-4 rounded-[28px] border border-border bg-[linear-gradient(135deg,rgba(255,255,255,0.95),rgba(234,248,244,0.88))] p-8 shadow-lg lg:flex-row lg:items-end lg:justify-between">
         <div className="space-y-3">
           <p className="text-sm uppercase tracking-[0.18em] text-muted">
@@ -86,11 +87,14 @@ export default async function EmployeesPage({
           </p>
           <h3 className="font-serif text-4xl text-foreground">
             Manage{" "}
-            {resolvedSettings?.organization.companyDisplayName || "your tenant"}{" "}
+            {resolvedSettings?.organization.companyDisplayName ||
+              resolvedSettings?.branding.brandName ||
+              DEFAULT_BRANDING_VALUES.brandName}{" "}
             workforce from one place.
           </h3>
           <p className="max-w-3xl text-muted">
-            This is the first operational HR module in DijiPeople. It is
+            This is the first operational HR module in{" "}
+            {resolvedSettings?.branding.brandName || DEFAULT_BRANDING_VALUES.brandName}. It is
             tenant-aware, permission-guarded, and ready to expand into leave,
             attendance, and payroll dependencies.
           </p>

@@ -1,6 +1,7 @@
 "use client";
 
 import { Grid3X3 } from "lucide-react";
+import { DEFAULT_BRANDING_VALUES } from "./branding-defaults";
 
 type TenantLogoProps = {
   className?: string;
@@ -20,7 +21,7 @@ export function TenantLogo({
   const effectiveName =
     typeof name === "string" && name.trim().length > 0
       ? name.trim()
-      : "DijiPeople";
+      : DEFAULT_BRANDING_VALUES.brandName;
 
   if (logoUrl) {
     return (
@@ -41,4 +42,3 @@ export function TenantLogo({
     </div>
   );
 }
-

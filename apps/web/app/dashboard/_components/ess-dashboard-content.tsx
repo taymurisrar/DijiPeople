@@ -48,6 +48,9 @@ export function EssDashboardContent({
   tenantContext,
   user,
 }: EssDashboardContentProps) {
+  const dashboardGreeting =
+    tenantContext.dashboardGreeting?.trim() ||
+    `Hello, ${user.firstName}`;
   const pendingLeaveCount = leaveRequests.filter(
     (request) => request.status === "PENDING",
   ).length;
@@ -97,9 +100,7 @@ export function EssDashboardContent({
                   Admin workbench
                 </p>
                 <h2 className="mt-2 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-                  {tenantContext.dashboardGreeting?.trim()
-                    ? tenantContext.dashboardGreeting
-                    : `Welcome back, ${user.firstName}`}
+                  {dashboardGreeting}
                 </h2>
                 <p className="mt-2 text-sm text-muted sm:text-base">
                   Centralized view for day-to-day follow-up across employee self-service data.
@@ -394,9 +395,7 @@ export function EssDashboardContent({
                 Employee Self Service
               </p>
               <h2 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-                {tenantContext.dashboardGreeting?.trim()
-                  ? tenantContext.dashboardGreeting
-                  : `Welcome back, ${user.firstName}`}
+                {dashboardGreeting}
               </h2>
               <p className="text-sm text-muted sm:text-base">
                 {tenantContext.employeePortalMessage?.trim()

@@ -18,6 +18,16 @@ const ALLOWED_IMAGE_TYPES = new Set([
   "image/svg+xml",
 ]);
 
+const ALLOWED_FAVICON_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/jpg",
+  "image/webp",
+  "image/svg+xml",
+  "image/x-icon",
+  "image/vnd.microsoft.icon",
+]);
+
 const DOCUMENT_ID_KEYS: Record<string, string> = {
   logoUrl: "logoDocumentId",
   squareLogoUrl: "squareLogoDocumentId",
@@ -54,9 +64,15 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!ALLOWED_IMAGE_TYPES.has(file.type.toLowerCase())) {
+  const normalizedType = file.type.toLowerCase();
+  const isFaviconUpload = settingKey === "faviconUrl";
+  const allowedTypes = isFaviconUpload ? ALLOWED_FAVICON_TYPES : ALLOWED_IMAGE_TYPES;
+
+  if (!allowedTypes.has(normalizedType)) {
     return NextResponse.json(
-      { message: "Only PNG, JPG, WEBP, or SVG branding files are allowed." },
+      { message: isFaviconUpload
+          ? "Favicon supports PNG, JPG, WEBP, SVG, and ICO files."
+          : "Only PNG, JPG, WEBP, or SVG branding files are allowed." },
       { status: 400 },
     );
   }

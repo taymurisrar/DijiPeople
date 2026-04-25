@@ -115,6 +115,7 @@ export type NotificationSettingsResolved = {
 };
 
 export type BrandingSettingsResolved = {
+  appTitle: string;
   brandName: string;
   shortBrandName: string;
   legalCompanyName: string;
@@ -127,6 +128,10 @@ export type BrandingSettingsResolved = {
   primaryColor: string;
   secondaryColor: string;
   accentColor: string;
+  backgroundColor: string;
+  surfaceColor: string;
+  textColor: string;
+  fontFamily: string;
   appBackgroundColor: string;
   appSurfaceColor: string;
   pageGradientStartColor: string;
@@ -135,6 +140,7 @@ export type BrandingSettingsResolved = {
   cardGradientEndColor: string;
   welcomeTitle: string;
   welcomeSubtitle: string;
+  footerText: string;
   employeePortalMessage: string;
   dashboardGreeting: string;
   sidebarStyle: string;
@@ -166,6 +172,7 @@ export type PublicBrandingResolved = {
   tenantId: string | null;
   tenantSlug: string | null;
   tenantName: string;
+  appTitle: string;
   brandName: string;
   shortBrandName: string;
   logoUrl: string;
@@ -175,8 +182,10 @@ export type PublicBrandingResolved = {
   primaryColor: string;
   secondaryColor: string;
   accentColor: string;
+  fontFamily: string;
   welcomeTitle: string;
   welcomeSubtitle: string;
+  footerText: string;
   supportEmail: string;
   portalTagline: string;
   showBrandingOnLoginPage: boolean;
@@ -385,6 +394,7 @@ export class TenantSettingsResolverService {
     const category = source.branding ?? {};
 
     return {
+      appTitle: stringValue(category.appTitle, 'DijiPeople'),
       brandName: stringValue(category.brandName, 'DijiPeople'),
       shortBrandName: stringValue(category.shortBrandName, ''),
       legalCompanyName: stringValue(category.legalCompanyName, ''),
@@ -395,8 +405,12 @@ export class TenantSettingsResolverService {
       emailHeaderLogoUrl: stringValue(category.emailHeaderLogoUrl, ''),
       portalTagline: stringValue(category.portalTagline, ''),
       primaryColor: stringValue(category.primaryColor, '#0f766e'),
-      secondaryColor: stringValue(category.secondaryColor, '#0f172a'),
+      secondaryColor: stringValue(category.secondaryColor, '#115e59'),
       accentColor: stringValue(category.accentColor, '#14b8a6'),
+      backgroundColor: stringValue(category.backgroundColor, '#f8fafc'),
+      surfaceColor: stringValue(category.surfaceColor, '#ffffff'),
+      textColor: stringValue(category.textColor, '#0f172a'),
+      fontFamily: stringValue(category.fontFamily, 'INTER'),
       appBackgroundColor: stringValue(category.appBackgroundColor, '#f5f0e8'),
       appSurfaceColor: stringValue(category.appSurfaceColor, '#fffaf4'),
       pageGradientStartColor: stringValue(category.pageGradientStartColor, '#fffcf7'),
@@ -405,6 +419,7 @@ export class TenantSettingsResolverService {
       cardGradientEndColor: stringValue(category.cardGradientEndColor, '#d6f4ee'),
       welcomeTitle: stringValue(category.welcomeTitle, ''),
       welcomeSubtitle: stringValue(category.welcomeSubtitle, ''),
+      footerText: stringValue(category.footerText, 'Powered by DijiPeople'),
       employeePortalMessage: stringValue(category.employeePortalMessage, ''),
       dashboardGreeting: stringValue(category.dashboardGreeting, ''),
       sidebarStyle: stringValue(category.sidebarStyle, 'DEFAULT'),
@@ -453,6 +468,7 @@ async getPublicBrandingByTenantSlug(
     tenantId: null,
     tenantSlug: tenantSlug?.trim() || null,
     tenantName: 'DijiPeople',
+      appTitle: stringValue(fallbackBranding.appTitle, 'DijiPeople'),
       brandName: stringValue(fallbackBranding.brandName, 'DijiPeople'),
       shortBrandName: stringValue(fallbackBranding.shortBrandName, 'DijiPeople'),
       logoUrl: stringValue(fallbackBranding.logoUrl, ''),
@@ -462,6 +478,7 @@ async getPublicBrandingByTenantSlug(
     primaryColor: stringValue(fallbackBranding.primaryColor, '#0f766e'),
     secondaryColor: stringValue(fallbackBranding.secondaryColor, '#0f172a'),
     accentColor: stringValue(fallbackBranding.accentColor, '#14b8a6'),
+    fontFamily: stringValue(fallbackBranding.fontFamily, 'INTER'),
     welcomeTitle: stringValue(
       fallbackBranding.welcomeTitle,
       'People operations, without the mess.',
@@ -469,6 +486,10 @@ async getPublicBrandingByTenantSlug(
     welcomeSubtitle: stringValue(
       fallbackBranding.welcomeSubtitle,
       'A clean HR workspace for admins, HR teams, managers, and employees.',
+    ),
+    footerText: stringValue(
+      fallbackBranding.footerText,
+      'Powered by DijiPeople',
     ),
     supportEmail: stringValue(fallbackBranding.supportEmail, ''),
     portalTagline: stringValue(fallbackBranding.portalTagline, ''),
@@ -494,6 +515,7 @@ async getPublicBrandingByTenantSlug(
     tenantId: tenant.id,
     tenantSlug: tenant.slug,
     tenantName: tenant.name,
+      appTitle: stringValue(branding.appTitle, 'DijiPeople'),
       brandName: stringValue(branding.brandName, tenant.name || 'DijiPeople'),
     shortBrandName: stringValue(
       branding.shortBrandName,
@@ -506,6 +528,7 @@ async getPublicBrandingByTenantSlug(
     primaryColor: stringValue(branding.primaryColor, '#0f766e'),
     secondaryColor: stringValue(branding.secondaryColor, '#0f172a'),
     accentColor: stringValue(branding.accentColor, '#14b8a6'),
+    fontFamily: stringValue(branding.fontFamily, 'INTER'),
     welcomeTitle: stringValue(
       branding.welcomeTitle,
       'People operations, without the mess.',
@@ -514,6 +537,7 @@ async getPublicBrandingByTenantSlug(
       branding.welcomeSubtitle,
       'A clean HR workspace for admins, HR teams, managers, and employees.',
     ),
+    footerText: stringValue(branding.footerText, 'Powered by DijiPeople'),
     supportEmail: stringValue(branding.supportEmail, ''),
     portalTagline: stringValue(branding.portalTagline, ''),
     showBrandingOnLoginPage: booleanValue(

@@ -165,7 +165,7 @@ export default async function EmployeeDetailPage({
       (error.status === 403 || error.status === 404)
     ) {
       return (
-        <main className="grid gap-6">
+        <main className="dp-theme-scope dp-employees-scope grid gap-6">
           <AccessDeniedState
             description="This employee record is outside your accessible business-unit scope."
             title="You cannot view this employee record."
@@ -245,7 +245,7 @@ export default async function EmployeeDetailPage({
     formatDateTimeWithTenantSettings(value, formattingOptions);
 
   return (
-    <main className="grid gap-6">
+    <main className="dp-theme-scope dp-employees-scope grid gap-6">
       <section className="rounded-[28px] border border-border bg-[linear-gradient(135deg,rgba(255,255,255,0.95),rgba(233,246,255,0.9))] p-8 shadow-lg">
         <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
           <div className="grid gap-4">

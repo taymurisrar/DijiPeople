@@ -2,8 +2,14 @@ import { redirect } from "next/navigation";
 import { CSSProperties } from "react";
 import { requireSessionUser } from "@/lib/auth";
 import { LOGIN_ROUTE } from "@/lib/auth-config";
+import {
+  buildBrandingCssVariables,
+  BrandingSettings,
+  resolveBrandingSettings,
+} from "@/lib/branding";
 import { apiRequestJson } from "@/lib/server-api";
-import { FaviconSync } from "@/app/components/branding/favicon-sync";
+import { BrandingHeadEffects } from "@/app/components/branding/branding-head-effects";
+import { TenantFontSync } from "@/app/components/branding/tenant-font-sync";
 import { isSelfServiceUser } from "@/lib/permissions";
 import {
   TenantFeaturesResponse,
@@ -66,7 +72,8 @@ export default async function DashboardLayout({
     resolvedSettings?.branding.brandName ||
     resolvedSettings?.organization.companyDisplayName ||
     user.tenantName;
-  const themeStyle = buildTenantThemeStyle(resolvedSettings);
+  const brandingSettings = resolveBrandingSettings(resolvedSettings?.branding);
+  const themeStyle = buildTenantThemeStyle(brandingSettings);
   const sessionTimeoutMinutes = Math.max(
     15,
     resolvedSettings?.system.autoLogoutMinutes ?? 15,
@@ -97,7 +104,11 @@ export default async function DashboardLayout({
         }
         style={themeStyle}
       >
-        <FaviconSync faviconUrl={resolvedSettings?.branding.faviconUrl ?? null} />
+        <TenantFontSync fontFamily={brandingSettings.fontFamily} />
+        <BrandingHeadEffects
+          faviconUrl={brandingSettings.faviconUrl}
+          title={brandingSettings.appTitle}
+        />
         <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
           <DashboardSidebar
             enabledFeatureKeys={featureAvailability?.enabledKeys ?? null}
@@ -108,9 +119,9 @@ export default async function DashboardLayout({
             tenantId={user.tenantId}
             tenantName={effectiveTenantName}
             businessUnitAccess={businessUnitAccess}
-            brandLogoUrl={resolvedSettings?.branding.logoUrl ?? null}
-            brandName={resolvedSettings?.branding.brandName ?? null}
-            brandTagline={resolvedSettings?.branding.portalTagline ?? null}
+            brandLogoUrl={brandingSettings.logoUrl}
+            brandName={brandingSettings.brandName}
+            brandTagline={brandingSettings.portalTagline}
           />
 
           <div className="flex min-w-0 flex-col gap-6">
@@ -139,97 +150,7 @@ export default async function DashboardLayout({
 }
 
 function buildTenantThemeStyle(
-  resolvedSettings: TenantResolvedSettingsResponse | null,
+  brandingTokens: BrandingSettings,
 ) {
-  if (!resolvedSettings?.branding) {
-    return undefined;
-  }
-
-  const accent =
-    resolvedSettings.branding.accentColor ||
-    resolvedSettings.branding.primaryColor ||
-    "#0f766e";
-  const appBackgroundColor =
-    resolvedSettings.branding.appBackgroundColor || "#f5f0e8";
-  const appSurfaceColor = resolvedSettings.branding.appSurfaceColor || "#fffaf4";
-  const pageGradientStart =
-    resolvedSettings.branding.pageGradientStartColor || "#fffcf7";
-  const pageGradientEnd =
-    resolvedSettings.branding.pageGradientEndColor || "#f5f0e8";
-  const cardGradientStart =
-    resolvedSettings.branding.cardGradientStartColor || "#ffffff";
-  const cardGradientEnd =
-    resolvedSettings.branding.cardGradientEndColor || "#d6f4ee";
-  const accentStrong = darkenHex(accent, 18);
-  const accentSoft = lightenHex(accent, 82);
-
-  return {
-    "--accent": accent,
-    "--accent-strong": accentStrong,
-    "--accent-soft": accentSoft,
-    "--background": appBackgroundColor,
-    "--surface": appSurfaceColor,
-    "--surface-strong": appSurfaceColor,
-    "--dp-page-gradient-start": pageGradientStart,
-    "--dp-page-gradient-end": pageGradientEnd,
-    "--dp-card-gradient-start": cardGradientStart,
-    "--dp-card-gradient-end": cardGradientEnd,
-  } as CSSProperties;
-}
-
-function darkenHex(hex: string, percent: number) {
-  const rgb = hexToRgb(hex);
-  if (!rgb) return "#115e59";
-  return rgbToHex({
-    r: Math.max(0, Math.round(rgb.r * (1 - percent / 100))),
-    g: Math.max(0, Math.round(rgb.g * (1 - percent / 100))),
-    b: Math.max(0, Math.round(rgb.b * (1 - percent / 100))),
-  });
-}
-
-function lightenHex(hex: string, percent: number) {
-  const rgb = hexToRgb(hex);
-  if (!rgb) return "#d7f3ef";
-  const factor = percent / 100;
-  return rgbToHex({
-    r: Math.min(255, Math.round(rgb.r + (255 - rgb.r) * factor)),
-    g: Math.min(255, Math.round(rgb.g + (255 - rgb.g) * factor)),
-    b: Math.min(255, Math.round(rgb.b + (255 - rgb.b) * factor)),
-  });
-}
-
-function hexToRgb(hex: string) {
-  const normalized = hex.trim().replace("#", "");
-  const isShort = normalized.length === 3;
-  const expanded = isShort
-    ? normalized
-        .split("")
-        .map((entry) => `${entry}${entry}`)
-        .join("")
-    : normalized;
-
-  if (!/^[0-9a-fA-F]{6}$/.test(expanded)) {
-    return null;
-  }
-
-  const numeric = Number.parseInt(expanded, 16);
-  return {
-    r: (numeric >> 16) & 255,
-    g: (numeric >> 8) & 255,
-    b: numeric & 255,
-  };
-}
-
-function rgbToHex({
-  r,
-  g,
-  b,
-}: {
-  r: number;
-  g: number;
-  b: number;
-}) {
-  return `#${[r, g, b]
-    .map((value) => value.toString(16).padStart(2, "0"))
-    .join("")}`;
+  return buildBrandingCssVariables(brandingTokens) as CSSProperties;
 }

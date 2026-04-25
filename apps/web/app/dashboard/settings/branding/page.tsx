@@ -1,28 +1,45 @@
 import { apiRequestJson } from "@/lib/server-api";
-import { ConfigSettingsForm } from "../_components/config-settings-form";
+import { resolveBrandingSettings } from "@/lib/branding";
 import { SettingsShell } from "../_components/settings-shell";
 import { requireSettingsPermissions } from "../_lib/require-settings-permission";
-import { brandingSettingsSections } from "../_lib/settings-page-config";
-import { TenantSettingsResponse } from "../types";
+import { TenantSettingsApiResponse, TenantSettingValue } from "../types";
+import { BrandingSettingsForm } from "./_components/branding-settings-form";
 
 export default async function BrandingSettingsPage() {
   await requireSettingsPermissions(["settings.read"]);
 
-  const tenantSettings = await apiRequestJson<TenantSettingsResponse>(
+  const tenantSettings = await apiRequestJson<TenantSettingsApiResponse>(
     "/tenant-settings",
+  );
+  const initialValues = resolveBrandingSettings(
+    toStringSettingsRecord(tenantSettings.settings.branding),
   );
 
   return (
     <SettingsShell
-      eyebrow="Tenant Personalization"
-      title="Branding, Theme & Workspace Identity"
-      description="Let tenants shape how their workspace looks and feels across logos, colors, email identity, support touchpoints, and employee-facing experience so the platform feels aligned with their organization."
+      eyebrow="Branding"
+      title="Branding"
+      description="Set your tenant brand tokens and font for sidebar, dashboard, and employee pages."
     >
-      <ConfigSettingsForm
-        initialSettings={tenantSettings}
-        saveLabel="Save personalization settings"
-        sections={brandingSettingsSections}
-      />
+      <BrandingSettingsForm initialValues={initialValues} />
     </SettingsShell>
   );
+}
+
+function toStringSettingsRecord(
+  source: Record<string, TenantSettingValue> | undefined,
+) {
+  if (!source) {
+    return undefined;
+  }
+
+  const output: Partial<Record<string, string | null>> = {};
+
+  for (const [key, value] of Object.entries(source)) {
+    if (typeof value === "string" || value === null) {
+      output[key] = value;
+    }
+  }
+
+  return output;
 }

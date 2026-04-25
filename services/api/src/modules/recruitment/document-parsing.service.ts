@@ -56,6 +56,10 @@ type FieldConfidenceMap = {
   totalExperience: number;
 };
 
+const parsePdf = pdfParse as unknown as (
+  buffer: Buffer,
+) => Promise<{ text?: string }>;
+
 export type ResumeParseDraft = {
   firstName: string;
   middleName?: string;
@@ -92,7 +96,10 @@ export type ResumeParseDraft = {
 export class DocumentParsingService {
   async extractAndParseUploadedResume(file: UploadedResumeFile) {
     const fileType = this.detectResumeFileType(file);
-    const extractedText = await this.extractReadableText(file, fileType);
+    const extractedText: string = await this.extractReadableText(
+      file,
+      fileType,
+    );
     const normalizedText = normalizeExtractedText(extractedText);
 
     if (!isReadableResumeText(normalizedText)) {
@@ -201,20 +208,43 @@ export class DocumentParsingService {
   private async extractReadableText(
     file: UploadedResumeFile,
     fileType: ResumeFileType,
-  ) {
+  ): Promise<string> {
     if (fileType === 'pdf') {
-      const result = await pdfParse(file.buffer);
-      return result.text ?? '';
+      const result = (await parsePdf(file.buffer)) as unknown;
+
+      if (
+        typeof result === 'object' &&
+        result !== null &&
+        'text' in result &&
+        typeof result.text === 'string'
+      ) {
+        return result.text;
+      }
+
+      return '';
     }
 
-    const result = await mammoth.extractRawText({ buffer: file.buffer });
-    return result.value ?? '';
+    const result = (await mammoth.extractRawText({
+      buffer: file.buffer,
+    })) as unknown;
+
+    if (
+      typeof result === 'object' &&
+      result !== null &&
+      'value' in result &&
+      typeof result.value === 'string'
+    ) {
+      return result.value;
+    }
+
+    return '';
   }
 }
 
 function normalizeExtractedText(value: string) {
   return value
-    .replace(/\u0000/g, ' ')
+    .split('\u0000')
+    .join(' ')
     .replace(/\r\n/g, '\n')
     .replace(/\r/g, '\n')
     .replace(/[ \t]+/g, ' ')
@@ -227,7 +257,7 @@ function normalizeExtractedText(value: string) {
 
 function isReadableResumeText(value: string) {
   if (value.length < 40) return false;
-  if (/(^|\s)PK[\x03-\x08]/.test(value)) return false;
+  if (containsZipBinaryHeader(value)) return false;
   if (
     /\[Content_Types\]\.xml/i.test(value) ||
     /word\/document\.xml/i.test(value)
@@ -235,9 +265,9 @@ function isReadableResumeText(value: string) {
     return false;
 
   const totalChars = value.length;
-  const controlChars = (value.match(/[\x00-\x08\x0E-\x1F\x7F]/g) ?? []).length;
-  const replacementChars = (value.match(/\uFFFD/g) ?? []).length;
-  const letterChars = (value.match(/[a-zA-Z]/g) ?? []).length;
+  const controlChars = countControlChars(value);
+  const replacementChars = countReplacementChars(value);
+  const letterChars = countAsciiLetterChars(value);
 
   return (
     (controlChars + replacementChars) / totalChars < 0.02 &&
@@ -434,16 +464,23 @@ function extractSections(text: string): SectionMap {
 }
 
 function extractEmails(text: string) {
+  const emailMatches = matchStrings(
+    text,
+    /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi,
+  );
+
   return dedupe(
-    (text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) ?? [])
+    emailMatches
       .map((item) => item.trim().toLowerCase())
       .filter((item) => !item.endsWith('.png') && !item.endsWith('.jpg')),
   );
 }
 
 function extractPhones(text: string) {
+  const phoneMatches = matchStrings(text, /(?:\+?\d[\d\s().-]{7,}\d)/g);
+
   return dedupe(
-    (text.match(/(?:\+?\d[\d\s().-]{7,}\d)/g) ?? [])
+    phoneMatches
       .map((item) => item.trim().replace(/\s{2,}/g, ' '))
       .filter((item) => {
         const digits = item.replace(/[^\d]/g, '');
@@ -453,7 +490,7 @@ function extractPhones(text: string) {
 }
 
 function extractLinks(text: string) {
-  const urls = dedupe(text.match(/https?:\/\/[^\s)>\]]+/gi) ?? []);
+  const urls = dedupe(matchStrings(text, /https?:\/\/[^\s)>\]]+/gi));
 
   const linkedInUrl =
     urls.find((item) => /linkedin\.com/i.test(item)) ??
@@ -960,10 +997,7 @@ function inferLocation(text: string, lines: string[]) {
     },
   ];
 
-  const searchableText = [
-    lines.slice(0, 18).join(' '),
-    text.slice(0, 2500),
-  ]
+  const searchableText = [lines.slice(0, 18).join(' '), text.slice(0, 2500)]
     .join(' ')
     .toLowerCase()
     .replace(/[^\w\s,.-]/g, ' ')
@@ -1206,7 +1240,14 @@ function mergeDateRanges(ranges: Array<{ start: Date; end: Date }>) {
 function extractSkillsFromText(text: string) {
   const skillAliases: Record<string, string[]> = {
     // Frontend
-    JavaScript: ['javascript', 'java script', 'js', 'ecmascript', 'es6', 'es 6'],
+    JavaScript: [
+      'javascript',
+      'java script',
+      'js',
+      'ecmascript',
+      'es6',
+      'es 6',
+    ],
     TypeScript: ['typescript', 'type script', 'ts'],
     React: ['react', 'react.js', 'reactjs', 'react js'],
     'Next.js': ['next.js', 'nextjs', 'next js', 'next'],
@@ -1231,12 +1272,7 @@ function extractSkillsFromText(text: string) {
       'tail wind',
       'tailwind ui',
     ],
-    MaterialUI: [
-      'material ui',
-      'material-ui',
-      'mui',
-      'material design',
-    ],
+    MaterialUI: ['material ui', 'material-ui', 'mui', 'material design'],
     Redux: ['redux', 'redux toolkit', 'rtk'],
     Zustand: ['zustand'],
     jQuery: ['jquery', 'j query'],
@@ -1290,12 +1326,7 @@ function extractSkillsFromText(text: string) {
     MongoDB: ['mongodb', 'mongo db', 'mongo'],
     SQLite: ['sqlite', 'sql lite'],
     Oracle: ['oracle', 'oracle db', 'oracle database'],
-    'SQL Server': [
-      'sql server',
-      'mssql',
-      'ms sql',
-      'microsoft sql server',
-    ],
+    'SQL Server': ['sql server', 'mssql', 'ms sql', 'microsoft sql server'],
     Redis: ['redis'],
     Prisma: ['prisma', 'prisma orm'],
     Sequelize: ['sequelize'],
@@ -1341,12 +1372,7 @@ function extractSkillsFromText(text: string) {
       'cloud flow',
       'flow',
     ],
-    Dataverse: [
-      'dataverse',
-      'data verse',
-      'common data service',
-      'cds',
-    ],
+    Dataverse: ['dataverse', 'data verse', 'common data service', 'cds'],
     PowerBI: ['power bi', 'powerbi', 'pbi'],
     SharePoint: ['sharepoint', 'share point'],
     'Microsoft 365': ['microsoft 365', 'm365', 'office 365', 'o365'],
@@ -1667,10 +1693,9 @@ function extractSkillsFromText(text: string) {
       const normalizedAlias = normalizeSkillText(alias).trim();
       const escaped = escapeRegExp(normalizedAlias);
 
-      return new RegExp(
-        `(^|[^a-z0-9+#.])${escaped}([^a-z0-9+#.]|$)`,
-        'i',
-      ).test(normalized);
+      return new RegExp(`(^|[^a-z0-9+#.])${escaped}([^a-z0-9+#.]|$)`, 'i').test(
+        normalized,
+      );
     });
 
     if (matched) {
@@ -2000,6 +2025,67 @@ function capitalizeWords(value: string) {
       part ? part.charAt(0).toUpperCase() + part.slice(1).toLowerCase() : part,
     )
     .join(' ');
+}
+
+function matchStrings(value: string, pattern: RegExp): string[] {
+  const matches = value.match(pattern);
+  if (!matches) return [];
+  return matches.filter((item): item is string => typeof item === 'string');
+}
+
+function containsZipBinaryHeader(value: string): boolean {
+  for (let index = 0; index < value.length - 2; index += 1) {
+    if (value.charCodeAt(index) === 80 && value.charCodeAt(index + 1) === 75) {
+      const marker = value.charCodeAt(index + 2);
+      if (marker >= 3 && marker <= 8) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+function countControlChars(value: string): number {
+  let total = 0;
+
+  for (const character of value) {
+    const code = character.charCodeAt(0);
+    const isControlRangeOne = code >= 0 && code <= 8;
+    const isControlRangeTwo = code >= 14 && code <= 31;
+    const isDeleteChar = code === 127;
+
+    if (isControlRangeOne || isControlRangeTwo || isDeleteChar) {
+      total += 1;
+    }
+  }
+
+  return total;
+}
+
+function countReplacementChars(value: string): number {
+  let total = 0;
+
+  for (const character of value) {
+    if (character.charCodeAt(0) === 0xfffd) {
+      total += 1;
+    }
+  }
+
+  return total;
+}
+
+function countAsciiLetterChars(value: string): number {
+  let total = 0;
+
+  for (const character of value) {
+    const code = character.charCodeAt(0);
+    if ((code >= 65 && code <= 90) || (code >= 97 && code <= 122)) {
+      total += 1;
+    }
+  }
+
+  return total;
 }
 
 function escapeRegExp(value: string) {

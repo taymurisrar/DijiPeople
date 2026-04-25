@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Instrument_Sans, Literata } from "next/font/google";
+import { DEFAULT_BRANDING_VALUES } from "./components/branding/branding-defaults";
 import "./globals.css";
 
 const instrumentSans = Instrument_Sans({
@@ -13,7 +14,7 @@ const literata = Literata({
 });
 
 export const metadata: Metadata = {
-  title: "DijiPeople",
+  title: DEFAULT_BRANDING_VALUES.appTitle,
   description: "Configurable multi-tenant HRM platform for modern teams.",
 };
 
