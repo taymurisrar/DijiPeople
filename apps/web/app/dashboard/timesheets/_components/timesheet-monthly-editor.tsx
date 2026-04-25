@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { TimesheetMonthlyGrid } from "./timesheet-monthly-grid";
+import { TimesheetMONTHLYGrid } from "./timesheet-monthly-grid";
 import { TimesheetSummaryStrip } from "./timesheet-summary-strip";
 import { TimesheetEntryType, TimesheetRecord } from "../types";
 
@@ -11,7 +11,7 @@ type EditableRow = TimesheetRecord["entries"][number] & {
   uiNote: string;
 };
 
-export function TimesheetMonthlyEditor({
+export function TimesheetMONTHLYEditor({
   timesheet,
 }: {
   timesheet: TimesheetRecord;
@@ -113,7 +113,7 @@ export function TimesheetMonthlyEditor({
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <p className="text-sm uppercase tracking-[0.18em] text-muted">
-              Monthly Timesheet
+              MONTHLY Timesheet
             </p>
             <h4 className="mt-2 text-2xl font-semibold text-foreground">
               Fill each day for {monthLabel(timesheet.month, timesheet.year)}
@@ -135,7 +135,7 @@ export function TimesheetMonthlyEditor({
         </div>
 
         <div className="mt-6">
-          <TimesheetMonthlyGrid
+          <TimesheetMONTHLYGrid
             editable={!isLocked}
             invalidDates={invalidDates}
             onEntryTypeChange={(date, nextValue) =>

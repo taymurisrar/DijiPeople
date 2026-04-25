@@ -2,7 +2,7 @@
 CREATE TYPE "SubscriptionPlan" AS ENUM ('STARTER', 'GROWTH', 'ENTERPRISE');
 
 -- CreateEnum
-CREATE TYPE "SubscriptionStatus" AS ENUM ('TRIALING', 'ACTIVE', 'PAST_DUE', 'CANCELLED');
+CREATE TYPE "SubscriptionStatus" AS ENUM ('Trialing', 'Active', 'Past_Due', 'Cancelled');
 
 -- DropIndex
 DROP INDEX "TimesheetEntry_tenantId_projectId_idx";
@@ -12,7 +12,7 @@ CREATE TABLE "Subscription" (
     "id" TEXT NOT NULL,
     "tenantId" TEXT NOT NULL,
     "plan" "SubscriptionPlan" NOT NULL DEFAULT 'STARTER',
-    "status" "SubscriptionStatus" NOT NULL DEFAULT 'TRIALING',
+    "status" "SubscriptionStatus" NOT NULL DEFAULT 'Trialing',
     "startDate" TIMESTAMP(3) NOT NULL,
     "endDate" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,

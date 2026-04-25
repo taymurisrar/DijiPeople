@@ -14,7 +14,7 @@ import {
 import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { EmployeesRepository } from '../employees/employees.repository';
 import { TenantSettingsResolverService } from '../tenant-settings/tenant-settings-resolver.service';
-import { GetMonthlyTimesheetDto } from './dto/get-monthly-timesheet.dto';
+import { GetMONTHLYTimesheetDto } from './dto/get-monthly-timesheet.dto';
 import { ReviewTimesheetDto } from './dto/review-timesheet.dto';
 import { SubmitTimesheetDto } from './dto/submit-timesheet.dto';
 import { TimesheetQueryDto } from './dto/timesheet-query.dto';
@@ -26,7 +26,7 @@ type TimesheetSettings = {
   defaultWorkHours: number;
   allowWeekendWork: boolean;
   allowHolidayWork: boolean;
-  requireMonthlySubmission: boolean;
+  requireMONTHLYSubmission: boolean;
   autoFillWorkingDays: boolean;
   requireSubmissionNote: boolean;
 };
@@ -39,13 +39,13 @@ export class TimesheetsService {
     private readonly tenantSettingsResolverService: TenantSettingsResolverService,
   ) {}
 
-  async getMyMonthlyTimesheet(
+  async getMyMONTHLYTimesheet(
     currentUser: AuthenticatedUser,
-    query: GetMonthlyTimesheetDto,
+    query: GetMONTHLYTimesheetDto,
   ) {
     const employee = await this.getCurrentEmployee(currentUser);
     const { year, month } = resolveTargetMonth(query.year, query.month);
-    const timesheet = await this.getOrCreateMonthlyTimesheet(
+    const timesheet = await this.getOrCreateMONTHLYTimesheet(
       currentUser,
       employee.id,
       year,
@@ -240,9 +240,9 @@ export class TimesheetsService {
 
     const settings = await this.getTimesheetSettings(currentUser.tenantId);
 
-    if (!settings.requireMonthlySubmission) {
+    if (!settings.requireMONTHLYSubmission) {
       throw new BadRequestException(
-        'Monthly timesheet submission is currently disabled by tenant settings.',
+        'MONTHLY timesheet submission is currently disabled by tenant settings.',
       );
     }
 
@@ -284,6 +284,10 @@ export class TimesheetsService {
         updatedById: currentUser.userId,
       },
     );
+
+    if (!updated) {
+      throw new NotFoundException('Timesheet could not be updated.');
+    }
 
     return this.mapTimesheet(updated, currentUser);
   }
@@ -397,16 +401,20 @@ export class TimesheetsService {
       },
     );
 
+    if (!updated) {
+      throw new NotFoundException('Timesheet could not be reviewed.');
+    }
+
     return this.mapTimesheet(updated, currentUser);
   }
 
-  private async getOrCreateMonthlyTimesheet(
+  private async getOrCreateMONTHLYTimesheet(
     currentUser: AuthenticatedUser,
     employeeId: string,
     year: number,
     month: number,
   ) {
-    const existing = await this.timesheetsRepository.findMonthlyTimesheet(
+    const existing = await this.timesheetsRepository.findMONTHLYTimesheet(
       currentUser.tenantId,
       employeeId,
       year,
@@ -414,7 +422,7 @@ export class TimesheetsService {
     );
 
     if (existing) {
-      return this.ensureMonthlyEntries(currentUser, existing);
+      return this.ensureMONTHLYEntries(currentUser, existing);
     }
 
     const { periodStart, periodEnd } = getMonthRange(year, month);
@@ -430,10 +438,10 @@ export class TimesheetsService {
       updatedById: currentUser.userId,
     });
 
-    return this.ensureMonthlyEntries(currentUser, created);
+    return this.ensureMONTHLYEntries(currentUser, created);
   }
 
-  private async ensureMonthlyEntries(
+  private async ensureMONTHLYEntries(
     currentUser: AuthenticatedUser,
     timesheet: TimesheetWithRelations,
   ) {
@@ -611,7 +619,7 @@ export class TimesheetsService {
       defaultWorkHours: settings.defaultWorkHours,
       allowWeekendWork: settings.allowWeekendWork,
       allowHolidayWork: settings.allowHolidayWork,
-      requireMonthlySubmission: settings.requireMonthlySubmission,
+      requireMONTHLYSubmission: settings.requireMONTHLYSubmission,
       autoFillWorkingDays: settings.autoFillWorkingDays,
       requireSubmissionNote: settings.requireSubmissionNote,
     };

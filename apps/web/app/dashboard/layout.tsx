@@ -10,6 +10,7 @@ import {
   TenantResolvedSettingsResponse,
 } from "./settings/types";
 import { getCurrentEmployee } from "./_lib/current-employee";
+import { getBusinessUnitAccessSummary } from "./_lib/business-unit-access";
 import { AuthenticatedShellProvider } from "./_components/authenticated-shell-provider";
 import { DashboardSidebar } from "./_components/dashboard-sidebar";
 import { DashboardTopbar } from "./_components/dashboard-topbar";
@@ -28,7 +29,12 @@ export default async function DashboardLayout({
   const roleLabel = user.roleKeys?.[0] ?? "Tenant User";
   const selfService = isSelfServiceUser(user.permissionKeys);
 
-  const [featureAvailability, currentEmployeeContext, resolvedSettings] =
+  const [
+    featureAvailability,
+    currentEmployeeContext,
+    resolvedSettings,
+    businessUnitAccess,
+  ] =
     await Promise.all([
       apiRequestJson<TenantFeaturesResponse>(
         "/tenant-settings/features/availability",
@@ -40,6 +46,7 @@ export default async function DashboardLayout({
       apiRequestJson<TenantResolvedSettingsResponse>(
         "/tenant-settings/resolved",
       ).catch(() => null),
+      getBusinessUnitAccessSummary(),
     ]);
 
   const currentEmployee = currentEmployeeContext.employee;
@@ -78,6 +85,7 @@ export default async function DashboardLayout({
         profileHref: "/dashboard/profile",
         roleLabel,
         tenantId: user.tenantId,
+        businessUnitAccess,
       }}
     >
       <div
@@ -99,6 +107,7 @@ export default async function DashboardLayout({
             roleKeys={user.roleKeys}
             tenantId={user.tenantId}
             tenantName={effectiveTenantName}
+            businessUnitAccess={businessUnitAccess}
             brandLogoUrl={resolvedSettings?.branding.logoUrl ?? null}
             brandName={resolvedSettings?.branding.brandName ?? null}
             brandTagline={resolvedSettings?.branding.portalTagline ?? null}

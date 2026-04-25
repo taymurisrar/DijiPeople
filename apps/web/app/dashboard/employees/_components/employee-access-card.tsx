@@ -21,7 +21,7 @@ export function EmployeeAccessCard({
     ? "No access"
     : employee.user.status === "INVITED"
       ? "Invited"
-      : employee.user.status === "ACTIVE"
+      : employee.user.status === "Active"
         ? "Active"
         : "Suspended";
 

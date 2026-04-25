@@ -1,9 +1,12 @@
+import { BusinessUnitAccessSummary } from "../_lib/business-unit-access";
+
 export type DashboardNavItem = {
   hiddenForSelfService?: boolean;
   href: string;
   label: string;
   requiredAnyPermissions?: string[];
   requiredFeatureKey?: string;
+  requiresBusinessUnitScope?: boolean;
   selfServiceHref?: string;
   selfServiceLabel?: string;
   description: string;
@@ -20,6 +23,7 @@ export const dashboardNavItems: DashboardNavItem[] = [
     label: "Employees",
     description: "Ready for employee records and org data.",
     requiredFeatureKey: "employees",
+    requiresBusinessUnitScope: true,
     selfServiceHref: "/dashboard/profile",
     selfServiceLabel: "My Profile",
   },
@@ -28,6 +32,7 @@ export const dashboardNavItems: DashboardNavItem[] = [
     label: "Leave",
     description: "Requests, approvals, and policy-driven workflows.",
     requiredFeatureKey: "leave",
+    requiresBusinessUnitScope: true,
     requiredAnyPermissions: ["leave-requests.read", "leaves.read"],
   },
   {
@@ -35,6 +40,7 @@ export const dashboardNavItems: DashboardNavItem[] = [
     label: "Attendance",
     description: "Check-ins, daily entries, and team attendance visibility.",
     requiredFeatureKey: "attendance",
+    requiresBusinessUnitScope: true,
     requiredAnyPermissions: ["attendance.read"],
   },
   {
@@ -42,6 +48,7 @@ export const dashboardNavItems: DashboardNavItem[] = [
     label: "Timesheets",
     description: "Weekly work logs and manager approval flow.",
     requiredFeatureKey: "timesheets",
+    requiresBusinessUnitScope: true,
     requiredAnyPermissions: ["timesheets.read"],
   },
   {
@@ -49,6 +56,7 @@ export const dashboardNavItems: DashboardNavItem[] = [
     label: "Projects",
     description: "Project setup, staffing, and future utilization hooks.",
     requiredFeatureKey: "projects",
+    requiresBusinessUnitScope: true,
     requiredAnyPermissions: ["projects.read"],
   },
   {
@@ -57,6 +65,7 @@ export const dashboardNavItems: DashboardNavItem[] = [
     description:
       "Practical tenant summaries across workforce, leave, attendance, and hiring.",
     hiddenForSelfService: true,
+    requiresBusinessUnitScope: true,
     requiredAnyPermissions: [
       "employees.read.all",
       "reports.leave-requests.read",
@@ -71,6 +80,7 @@ export const dashboardNavItems: DashboardNavItem[] = [
       "Payroll cycles, compensation setup, and draft payroll records.",
     hiddenForSelfService: true,
     requiredFeatureKey: "payroll",
+    requiresBusinessUnitScope: true,
     requiredAnyPermissions: ["payroll.read"],
   },
   {
@@ -79,6 +89,7 @@ export const dashboardNavItems: DashboardNavItem[] = [
     description: "Job openings, candidates, and pipeline tracking.",
     hiddenForSelfService: true,
     requiredFeatureKey: "recruitment",
+    requiresBusinessUnitScope: true,
     requiredAnyPermissions: ["recruitment.read"],
   },
   {
@@ -87,6 +98,7 @@ export const dashboardNavItems: DashboardNavItem[] = [
     description: "Template-driven new hire checklists and task progress.",
     hiddenForSelfService: true,
     requiredFeatureKey: "onboarding",
+    requiresBusinessUnitScope: true,
     requiredAnyPermissions: ["onboarding.read"],
   },
   {
@@ -99,6 +111,7 @@ export const dashboardNavItems: DashboardNavItem[] = [
 ];
 
 type ResolveVisibleDashboardNavItemsInput = {
+  businessUnitAccess?: BusinessUnitAccessSummary | null;
   enabledFeatureKeys: string[] | null;
   isReportingManager: boolean;
   isSelfService: boolean;
@@ -110,6 +123,13 @@ export function resolveVisibleDashboardNavItems(
   input: ResolveVisibleDashboardNavItemsInput,
 ) {
   return dashboardNavItems.flatMap((item) => {
+    if (
+      item.requiresBusinessUnitScope &&
+      (input.businessUnitAccess?.accessibleBusinessUnitIds.length ?? 0) === 0
+    ) {
+      return [];
+    }
+
     const hasRequiredFeature =
       !item.requiredFeatureKey ||
       !input.enabledFeatureKeys ||

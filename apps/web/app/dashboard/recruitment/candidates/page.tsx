@@ -1,9 +1,24 @@
 import Link from "next/link";
 import { apiRequestJson } from "@/lib/server-api";
+import { AccessDeniedState } from "../../_components/access-denied-state";
+import { getBusinessUnitAccessSummary, hasBusinessUnitScope } from "../../_lib/business-unit-access";
 import { CandidateListResponse } from "../types";
 import { RecruitmentStageBadge } from "../_components/recruitment-stage-badge";
 
 export default async function RecruitmentCandidatesPage() {
+  const businessUnitAccess = await getBusinessUnitAccessSummary();
+
+  if (!hasBusinessUnitScope(businessUnitAccess)) {
+    return (
+      <main className="grid gap-6">
+        <AccessDeniedState
+          description="Your current business-unit scope does not include candidate records."
+          title="Candidates are unavailable for your current business unit access."
+        />
+      </main>
+    );
+  }
+
   const candidates = await apiRequestJson<CandidateListResponse>("/candidates?pageSize=50");
 
   return (

@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { AccessDeniedState } from "../_components/access-denied-state";
+import { getBusinessUnitAccessSummary, hasBusinessUnitScope } from "../_lib/business-unit-access";
 
 const recruitmentLinks = [
   {
@@ -38,6 +40,23 @@ const recruitmentLinks = [
 ];
 
 export default function RecruitmentIndexPage() {
+  return <RecruitmentIndexContent />;
+}
+
+async function RecruitmentIndexContent() {
+  const businessUnitAccess = await getBusinessUnitAccessSummary();
+
+  if (!hasBusinessUnitScope(businessUnitAccess)) {
+    return (
+      <main className="grid gap-6">
+        <AccessDeniedState
+          description="Your current business-unit scope does not include recruitment data."
+          title="Recruitment is unavailable for your current business unit access."
+        />
+      </main>
+    );
+  }
+
   return (
     <main className="grid gap-6">
       <section className="rounded-[28px] border border-border bg-[linear-gradient(135deg,rgba(255,255,255,0.95),rgba(239,248,245,0.9))] p-8 shadow-lg">

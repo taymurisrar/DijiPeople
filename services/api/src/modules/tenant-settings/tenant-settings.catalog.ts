@@ -36,7 +36,7 @@ export const DEFAULT_TENANT_SETTINGS: TenantSettingDefaults = {
     employeeIdPrefix: 'EMP',
     employeeIdSequenceLength: 4,
     autoGenerateEmployeeId: true,
-    defaultEmployeeStatus: 'ACTIVE',
+    defaultEmployeeStatus: 'Active',
     requirePersonalEmail: false,
     requireEmergencyContact: true,
     requireJoiningDate: true,
@@ -89,13 +89,13 @@ export const DEFAULT_TENANT_SETTINGS: TenantSettingDefaults = {
     defaultWorkHours: 8,
     allowWeekendWork: true,
     allowHolidayWork: true,
-    requireMonthlySubmission: true,
+    requireMONTHLYSubmission: true,
     autoFillWorkingDays: false,
     requireSubmissionNote: false,
   },
   payroll: {
     payFrequency: 'MONTHLY',
-    payrollStatus: 'ACTIVE',
+    payrollStatus: 'Active',
     defaultPayrollGroup: 'main',
     defaultPaymentMode: 'BANK_TRANSFER',
     compensationReviewCycle: 'ANNUAL',
@@ -242,7 +242,7 @@ export const TENANT_FEATURE_DEFINITIONS = [
   {
     key: 'timesheets',
     label: 'Timesheets',
-    description: 'Monthly timesheets, submission, and approval workflows.',
+    description: 'MONTHLY timesheets, submission, and approval workflows.',
     defaultEnabled: true,
   },
   {

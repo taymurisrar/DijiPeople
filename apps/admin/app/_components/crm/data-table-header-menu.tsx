@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import {
   ArrowUpDown,
@@ -101,12 +101,15 @@ export function DataTableHeaderMenu({
   const open = isControlled ? isOpen : internalOpen;
   const resolvedWidth = getPanelWidth(size, width);
 
-  function setOpen(next: boolean) {
-    if (!isControlled) {
-      setInternalOpen(next);
-    }
-    onOpenChange?.(next);
-  }
+  const setOpen = useCallback(
+    (next: boolean) => {
+      if (!isControlled) {
+        setInternalOpen(next);
+      }
+      onOpenChange?.(next);
+    },
+    [isControlled, onOpenChange],
+  );
 
   const resolvedIcon = useMemo(() => {
     if (icon) return icon;
@@ -148,7 +151,7 @@ export function DataTableHeaderMenu({
       document.removeEventListener("mousedown", handleOutsidePointer);
       document.removeEventListener("keydown", handleEscape);
     };
-  }, []);
+  }, [setOpen]);
 
   function handleTriggerClick() {
     if (disabled) return;

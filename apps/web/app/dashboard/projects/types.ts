@@ -1,9 +1,9 @@
 export type ProjectStatus =
   | "PLANNING"
-  | "ACTIVE"
+  | "Active"
   | "ON_HOLD"
   | "COMPLETED"
-  | "CANCELLED";
+  | "Cancelled";
 
 export type ProjectAssignmentRecord = {
   id: string;

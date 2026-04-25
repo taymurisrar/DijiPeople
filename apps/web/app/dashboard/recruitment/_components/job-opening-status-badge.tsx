@@ -11,7 +11,7 @@ const statusStyles: Record<JobOpeningStatus, string> = {
     "border-zinc-200 bg-zinc-100 text-zinc-700 ring-1 ring-zinc-200/70",
   FILLED:
     "border-sky-200 bg-sky-50 text-sky-700 ring-1 ring-sky-200/70",
-  CANCELLED:
+  Cancelled:
     "border-rose-200 bg-rose-50 text-rose-700 ring-1 ring-rose-200/70",
 };
 
@@ -21,7 +21,7 @@ const statusDotStyles: Record<JobOpeningStatus, string> = {
   ON_HOLD: "bg-amber-500",
   CLOSED: "bg-zinc-500",
   FILLED: "bg-sky-500",
-  CANCELLED: "bg-rose-500",
+  Cancelled: "bg-rose-500",
 };
 
 const fallbackStatus: JobOpeningStatus = "DRAFT";
@@ -33,7 +33,7 @@ function isJobOpeningStatus(value: string): value is JobOpeningStatus {
     "ON_HOLD",
     "CLOSED",
     "FILLED",
-    "CANCELLED",
+    "Cancelled",
   ].includes(value);
 }
 

@@ -223,7 +223,7 @@ export function JobOpeningForm({ mode, jobOpening }: JobOpeningFormProps) {
               <option value="ON_HOLD">ON_HOLD</option>
               <option value="CLOSED">CLOSED</option>
               <option value="FILLED">FILLED</option>
-              <option value="CANCELLED">CANCELLED</option>
+              <option value="Cancelled">Cancelled</option>
             </select>
           </label>
           <div className="rounded-[20px] border border-border bg-white p-4">

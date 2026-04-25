@@ -62,9 +62,15 @@ export class UsersService {
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
+    const actor = await this.findByIdWithAccess(actorId);
+    const fallbackBusinessUnitId =
+      actor && actor.tenantId === tenantId ? actor.businessUnitId : undefined;
 
     const user = await this.usersRepository.create({
       tenantId,
+      ...((dto.businessUnitId ?? fallbackBusinessUnitId)
+        ? { businessUnitId: dto.businessUnitId ?? fallbackBusinessUnitId }
+        : {}),
       firstName: dto.firstName.trim(),
       lastName: dto.lastName.trim(),
       email: normalizedEmail,
@@ -109,7 +115,11 @@ export class UsersService {
       throw new NotFoundException('User was not found for this tenant.');
     }
 
-    const ownership = await this.getTenantOwnershipContext(tenantId, actorId, userId);
+    const ownership = await this.getTenantOwnershipContext(
+      tenantId,
+      actorId,
+      userId,
+    );
     this.assertUserAccessChangeAllowed(ownership);
 
     const beforeSummary = this.mapUserSummary(user);
@@ -160,7 +170,11 @@ export class UsersService {
       throw new NotFoundException('User was not found for this tenant.');
     }
 
-    const ownership = await this.getTenantOwnershipContext(tenantId, actorId, userId);
+    const ownership = await this.getTenantOwnershipContext(
+      tenantId,
+      actorId,
+      userId,
+    );
     this.assertUserAccessChangeAllowed(ownership);
 
     const beforeSummary = this.mapUserSummary(user);
@@ -201,6 +215,61 @@ export class UsersService {
     return afterSummary;
   }
 
+  async assignBusinessUnit(
+    tenantId: string,
+    userId: string,
+    businessUnitId: string,
+    actorId: string,
+  ) {
+    const user = await this.findByIdWithAccess(userId);
+
+    if (!user || user.tenantId !== tenantId) {
+      throw new NotFoundException('User was not found for this tenant.');
+    }
+
+    if (!businessUnitId) {
+      throw new BadRequestException('Business unit is required.');
+    }
+
+    const businessUnit = await this.usersRepository.findBusinessUnitById(
+      tenantId,
+      businessUnitId,
+    );
+
+    if (!businessUnit) {
+      throw new BadRequestException(
+        'Business unit was not found for this tenant.',
+      );
+    }
+
+    const beforeSummary = this.mapUserSummary(user);
+
+    await this.usersRepository.update(userId, {
+      businessUnitId,
+      updatedById: actorId,
+    });
+
+    const updatedUser = await this.usersRepository.findByIdWithAccess(userId);
+
+    if (!updatedUser || updatedUser.tenantId !== tenantId) {
+      throw new NotFoundException('Updated user could not be loaded.');
+    }
+
+    const afterSummary = this.mapUserSummary(updatedUser);
+
+    await this.auditService.log({
+      tenantId,
+      actorUserId: actorId,
+      action: 'USER_BUSINESS_UNIT_UPDATED',
+      entityType: 'User',
+      entityId: updatedUser.id,
+      beforeSnapshot: beforeSummary,
+      afterSnapshot: afterSummary,
+    });
+
+    return afterSummary;
+  }
+
   async remove(tenantId: string, userId: string, actorId: string) {
     const user = await this.findByIdWithAccess(userId);
 
@@ -212,10 +281,16 @@ export class UsersService {
       throw new BadRequestException('You cannot delete your own account.');
     }
 
-    const ownership = await this.getTenantOwnershipContext(tenantId, actorId, userId);
+    const ownership = await this.getTenantOwnershipContext(
+      tenantId,
+      actorId,
+      userId,
+    );
 
     if (ownership.isTargetOwner) {
-      throw new ForbiddenException('The tenant owner account cannot be deleted.');
+      throw new ForbiddenException(
+        'The tenant owner account cannot be deleted.',
+      );
     }
 
     const beforeSummary = this.mapUserSummary(user);
@@ -250,6 +325,15 @@ export class UsersService {
       status: user.status,
       isServiceAccount: user.isServiceAccount,
       lastLoginAt: user.lastLoginAt,
+      businessUnitId: user.businessUnitId,
+      businessUnit: user.businessUnit
+        ? {
+            id: user.businessUnit.id,
+            name: user.businessUnit.name,
+            organizationId: user.businessUnit.organizationId,
+            organizationName: user.businessUnit.organization.name,
+          }
+        : null,
       tenant: {
         id: user.tenant.id,
         name: user.tenant.name,
@@ -300,7 +384,8 @@ export class UsersService {
     actorUserId: string,
     targetUserId: string,
   ) {
-    const ownerUserId = await this.usersRepository.findTenantOwnerUserId(tenantId);
+    const ownerUserId =
+      await this.usersRepository.findTenantOwnerUserId(tenantId);
 
     return {
       ownerUserId,
@@ -309,11 +394,7 @@ export class UsersService {
     };
   }
 
-  private assertUserAccessChangeAllowed(
-    ownership: {
-      isTargetOwner: boolean;
-    },
-  ) {
+  private assertUserAccessChangeAllowed(ownership: { isTargetOwner: boolean }) {
     if (ownership.isTargetOwner) {
       throw new ForbiddenException(
         'The tenant owner account access cannot be modified.',

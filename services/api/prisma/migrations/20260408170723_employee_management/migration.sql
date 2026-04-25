@@ -1,5 +1,5 @@
 -- CreateEnum
-CREATE TYPE "EmployeeEmploymentStatus" AS ENUM ('ACTIVE', 'PROBATION', 'NOTICE', 'TERMINATED');
+CREATE TYPE "EmployeeEmploymentStatus" AS ENUM ('Active', 'PROBATION', 'NOTICE', 'TERMINATED');
 
 -- CreateEnum
 CREATE TYPE "EmployeeGender" AS ENUM ('FEMALE', 'MALE', 'NON_BINARY', 'PREFER_NOT_TO_SAY');
@@ -20,7 +20,7 @@ CREATE TABLE "Employee" (
     "dateOfBirth" TIMESTAMP(3),
     "gender" "EmployeeGender",
     "maritalStatus" "EmployeeMaritalStatus",
-    "employmentStatus" "EmployeeEmploymentStatus" NOT NULL DEFAULT 'ACTIVE',
+    "employmentStatus" "EmployeeEmploymentStatus" NOT NULL DEFAULT 'Active',
     "hireDate" TIMESTAMP(3) NOT NULL,
     "terminationDate" TIMESTAMP(3),
     "departmentId" TEXT,

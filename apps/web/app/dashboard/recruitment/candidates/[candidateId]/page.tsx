@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { apiRequestJson } from "@/lib/server-api";
+import { ApiRequestError, apiRequestJson } from "@/lib/server-api";
 import { DocumentList } from "@/app/dashboard/_components/documents/document-list";
 import { DocumentUploadForm } from "@/app/dashboard/_components/documents/document-upload-form";
+import { AccessDeniedState } from "@/app/dashboard/_components/access-denied-state";
 import {
   GenericDocumentRecord,
   SharedLookupOption,
@@ -61,15 +62,38 @@ export default async function CandidateDetailPage({
 }: CandidateDetailPageProps) {
   const { candidateId } = await params;
 
-  const [candidate, documents, documentTypes, documentCategories] =
-    await Promise.all([
-      apiRequestJson<CandidateWithJobScoring>(`/candidates/${candidateId}`),
-      apiRequestJson<GenericDocumentRecord[]>(
-        `/documents/entity/CANDIDATE/${candidateId}`,
-      ),
-      apiRequestJson<SharedLookupOption[]>("/lookups/document-types"),
-      apiRequestJson<SharedLookupOption[]>("/lookups/document-categories"),
-    ]);
+  let candidate: CandidateWithJobScoring;
+  let documents: GenericDocumentRecord[];
+  let documentTypes: SharedLookupOption[];
+  let documentCategories: SharedLookupOption[];
+
+  try {
+    [candidate, documents, documentTypes, documentCategories] =
+      await Promise.all([
+        apiRequestJson<CandidateWithJobScoring>(`/candidates/${candidateId}`),
+        apiRequestJson<GenericDocumentRecord[]>(
+          `/documents/entity/CANDIDATE/${candidateId}`,
+        ),
+        apiRequestJson<SharedLookupOption[]>("/lookups/document-types"),
+        apiRequestJson<SharedLookupOption[]>("/lookups/document-categories"),
+      ]);
+  } catch (error) {
+    if (
+      error instanceof ApiRequestError &&
+      (error.status === 403 || error.status === 404)
+    ) {
+      return (
+        <main className="grid gap-6">
+          <AccessDeniedState
+            description="This candidate is outside your accessible business-unit scope."
+            title="You cannot view this candidate record."
+          />
+        </main>
+      );
+    }
+
+    throw error;
+  }
 
   const candidateName = candidate.fullName || "Candidate";
   const location =

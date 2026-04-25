@@ -8,14 +8,14 @@ const onboardingStatusStyles: Record<OnboardingStatus, string> = {
   READY_FOR_CONVERSION: "border-violet-200 bg-violet-50 text-violet-700",
   BLOCKED: "border-rose-200 bg-rose-50 text-rose-700",
   COMPLETED: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  CANCELLED: "border-rose-200 bg-rose-50 text-rose-700",
+  Cancelled: "border-rose-200 bg-rose-50 text-rose-700",
 };
 
 const taskStatusStyles: Record<OnboardingTaskStatus, string> = {
   PENDING: "border-slate-200 bg-slate-50 text-slate-700",
   IN_PROGRESS: "border-amber-200 bg-amber-50 text-amber-700",
   COMPLETED: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  CANCELLED: "border-rose-200 bg-rose-50 text-rose-700",
+  Cancelled: "border-rose-200 bg-rose-50 text-rose-700",
 };
 
 export function OnboardingStatusBadge({ status }: { status: OnboardingStatus }) {

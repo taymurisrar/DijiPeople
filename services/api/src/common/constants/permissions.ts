@@ -1,3 +1,5 @@
+import { RoleAccessLevel } from '@prisma/client';
+
 export type PermissionDefinition = {
   key: string;
   name: string;
@@ -515,36 +517,42 @@ export const BASE_ROLE_DEFINITIONS: Array<{
   name: string;
   description: string;
   isSystem: boolean;
+  accessLevel: RoleAccessLevel;
 }> = [
     {
       key: 'system-admin',
       name: 'System Admin',
       description: 'Broad tenant-wide access across current and future modules.',
       isSystem: true,
+      accessLevel: RoleAccessLevel.TENANT,
     },
     {
       key: 'hr',
       name: 'HR',
       description: 'People operations role focused on workforce administration.',
       isSystem: true,
+      accessLevel: RoleAccessLevel.ORGANIZATION,
     },
     {
       key: 'recruiter',
       name: 'Recruiter',
       description: 'Hiring-focused role for openings and candidate pipelines.',
       isSystem: true,
+      accessLevel: RoleAccessLevel.BUSINESS_UNIT,
     },
     {
       key: 'manager',
       name: 'Manager',
       description: 'Team leadership role for approvals and employee visibility.',
       isSystem: true,
+      accessLevel: RoleAccessLevel.PARENT_BU,
     },
     {
       key: 'employee',
       name: 'Employee',
       description: 'Self-service role for individual workforce actions.',
       isSystem: true,
+      accessLevel: RoleAccessLevel.USER,
     },
   ];
 

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { TimesheetMonthlyGrid } from "./timesheet-monthly-grid";
+import { TimesheetMONTHLYGrid } from "./timesheet-monthly-grid";
 import { TimesheetSummaryStrip } from "./timesheet-summary-strip";
 import { TimesheetRecord } from "../types";
 
@@ -72,7 +72,7 @@ export function TimesheetManagerReviewPanel({
         ) : null}
 
         <div className="mt-6">
-          <TimesheetMonthlyGrid
+          <TimesheetMONTHLYGrid
             rows={timesheet.entries.map((entry) => ({
               ...entry,
               uiEntryType: entry.entryType,

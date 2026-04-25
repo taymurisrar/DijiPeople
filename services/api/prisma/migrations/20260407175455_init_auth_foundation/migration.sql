@@ -1,15 +1,15 @@
 -- CreateEnum
-CREATE TYPE "TenantStatus" AS ENUM ('ACTIVE', 'SUSPENDED');
+CREATE TYPE "TenantStatus" AS ENUM ('Active', 'Suspended');
 
 -- CreateEnum
-CREATE TYPE "UserStatus" AS ENUM ('ACTIVE', 'INVITED', 'DISABLED');
+CREATE TYPE "UserStatus" AS ENUM ('Active', 'INVITED', 'DISABLED');
 
 -- CreateTable
 CREATE TABLE "Tenant" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
-    "status" "TenantStatus" NOT NULL DEFAULT 'ACTIVE',
+    "status" "TenantStatus" NOT NULL DEFAULT 'Active',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "createdById" TEXT,
@@ -26,7 +26,7 @@ CREATE TABLE "User" (
     "lastName" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "passwordHash" TEXT NOT NULL,
-    "status" "UserStatus" NOT NULL DEFAULT 'ACTIVE',
+    "status" "UserStatus" NOT NULL DEFAULT 'Active',
     "lastLoginAt" TIMESTAMP(3),
     "currentHashedRefreshToken" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { apiRequestJson } from "@/lib/server-api";
+import { ApiRequestError, apiRequestJson } from "@/lib/server-api";
 import { getSessionUser } from "@/lib/auth";
 import {
   formatDateTimeWithTenantSettings,
@@ -24,6 +24,7 @@ import { ManagerAssignmentForm } from "../_components/manager-assignment-form";
 import { ReportingStructureSection } from "../_components/reporting-structure-section";
 import { TerminateEmployeeButton } from "../_components/terminate-employee-button";
 import { Button } from "@/app/components/ui/button";
+import { AccessDeniedState } from "@/app/dashboard/_components/access-denied-state";
 import {
   EmployeeHierarchyResponse,
   EmployeeListResponse,
@@ -155,9 +156,22 @@ export default async function EmployeeDetailPage({
         () => null,
       ),
     ]);
-  } catch (error: any) {
-    if (error?.status === 401 || error?.response?.status === 401) {
+  } catch (error: unknown) {
+    if (isUnauthorizedApiError(error)) {
       redirect("/login?reason=session-expired");
+    }
+    if (
+      error instanceof ApiRequestError &&
+      (error.status === 403 || error.status === 404)
+    ) {
+      return (
+        <main className="grid gap-6">
+          <AccessDeniedState
+            description="This employee record is outside your accessible business-unit scope."
+            title="You cannot view this employee record."
+          />
+        </main>
+      );
     }
 
     throw error;
@@ -177,8 +191,8 @@ export default async function EmployeeDetailPage({
         ? apiRequestJson<TeamTimesheetsResponse>("/timesheets/team?pageSize=50")
         : Promise.resolve(null),
     ]);
-  } catch (error: any) {
-    if (error?.status === 401 || error?.response?.status === 401) {
+  } catch (error: unknown) {
+    if (isUnauthorizedApiError(error)) {
       redirect("/api/auth/logout?reason=session-expired");
     }
 
@@ -516,6 +530,25 @@ export default async function EmployeeDetailPage({
       ) : null}
     </main>
   );
+}
+
+function isUnauthorizedApiError(error: unknown) {
+  if (error instanceof ApiRequestError) {
+    return error.status === 401;
+  }
+
+  if (typeof error !== "object" || error === null) {
+    return false;
+  }
+
+  const candidate = error as {
+    status?: number;
+    response?: {
+      status?: number;
+    };
+  };
+
+  return candidate.status === 401 || candidate.response?.status === 401;
 }
 
 function OverviewGrid({

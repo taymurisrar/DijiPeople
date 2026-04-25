@@ -64,6 +64,26 @@ export const settingsNavGroups: readonly SettingsNavGroup[] = [
         requiredAnyPermissions: ["departments.read"],
       },
       {
+        href: "/dashboard/settings/organizations",
+        label: "Organization Management",
+        shortLabel: "Organizations",
+        description:
+          "Build nested organization hierarchy and parent-child structure.",
+        icon: "git-fork",
+        keywords: ["organization", "org hierarchy", "structure"],
+        requiredAnyPermissions: ["settings.read"],
+      },
+      {
+        href: "/dashboard/settings/business-units",
+        label: "Business Unit Management",
+        shortLabel: "Business Units",
+        description:
+          "Manage business units under organizations with hierarchy support.",
+        icon: "sitemap",
+        keywords: ["business units", "bu", "organization units"],
+        requiredAnyPermissions: ["settings.read"],
+      },
+      {
         href: "/dashboard/settings/designations",
         label: "Designations",
         description:

@@ -14,7 +14,7 @@ import { Permissions } from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
-import { GetMonthlyTimesheetDto } from './dto/get-monthly-timesheet.dto';
+import { GetMONTHLYTimesheetDto } from './dto/get-monthly-timesheet.dto';
 import { ReviewTimesheetDto } from './dto/review-timesheet.dto';
 import { SubmitTimesheetDto } from './dto/submit-timesheet.dto';
 import { TimesheetQueryDto } from './dto/timesheet-query.dto';
@@ -28,11 +28,11 @@ export class TimesheetsController {
 
   @Get('mine/monthly')
   @Permissions('timesheets.read')
-  getMineMonthly(
+  getMineMONTHLY(
     @CurrentUser() user: AuthenticatedUser,
-    @Query() query: GetMonthlyTimesheetDto,
+    @Query() query: GetMONTHLYTimesheetDto,
   ) {
-    return this.timesheetsService.getMyMonthlyTimesheet(user, query);
+    return this.timesheetsService.getMyMONTHLYTimesheet(user, query);
   }
 
   @Get('mine')

@@ -7,12 +7,14 @@ import {
   AccessPermissionRecord,
   AccessRoleRecord,
   AccessUserRecord,
+  BusinessUnitRecord,
 } from "../types";
 
 type RoleAccessManagementProps = {
   initialPermissions: AccessPermissionRecord[];
   initialRoles: AccessRoleRecord[];
   initialUsers: AccessUserRecord[];
+  initialBusinessUnits: BusinessUnitRecord[];
   mode?: "all" | "roles" | "users";
 };
 
@@ -27,6 +29,7 @@ export function RoleAccessManagement({
   initialPermissions,
   initialRoles,
   initialUsers,
+  initialBusinessUnits,
   mode = "all",
 }: RoleAccessManagementProps) {
   const [roles, setRoles] = useState(initialRoles);
@@ -46,6 +49,9 @@ export function RoleAccessManagement({
   const [pendingUserPermissionIds, setPendingUserPermissionIds] = useState<
     Record<string, string[]>
   >({});
+  const [pendingUserBusinessUnitIds, setPendingUserBusinessUnitIds] = useState<
+    Record<string, string>
+  >({});
   const [userFeedback, setUserFeedback] = useState<Record<string, string>>({});
   const [userError, setUserError] = useState<Record<string, string>>({});
   const [savingUserId, setSavingUserId] = useState<string | null>(null);
@@ -54,6 +60,10 @@ export function RoleAccessManagement({
   const permissionGroups = useMemo(
     () => groupPermissions(initialPermissions),
     [initialPermissions],
+  );
+  const businessUnitOptions = useMemo(
+    () => buildBusinessUnitOptions(initialBusinessUnits),
+    [initialBusinessUnits],
   );
 
   function startCreateRole() {
@@ -183,6 +193,10 @@ export function RoleAccessManagement({
     return pendingUserPermissionIds[user.userId] ?? user.directPermissions.map((permission) => permission.id);
   }
 
+  function getPendingBusinessUnitId(user: AccessUserRecord) {
+    return pendingUserBusinessUnitIds[user.userId] ?? user.businessUnitId ?? "";
+  }
+
   async function handleSaveUserAccess(user: AccessUserRecord) {
     setUserError((current) => ({ ...current, [user.userId]: "" }));
     setUserFeedback((current) => ({ ...current, [user.userId]: "" }));
@@ -191,8 +205,18 @@ export function RoleAccessManagement({
     try {
       const roleIds = getPendingRoleIds(user);
       const permissionIds = getPendingPermissionIds(user);
+      const businessUnitId = getPendingBusinessUnitId(user);
 
-      const [rolesResponse, permissionsResponse] = await Promise.all([
+      if (!businessUnitId) {
+        setUserError((current) => ({
+          ...current,
+          [user.userId]: "Business unit is required for each user.",
+        }));
+        return;
+      }
+
+      const [rolesResponse, permissionsResponse, businessUnitResponse] =
+        await Promise.all([
         fetch(`/api/users/${user.userId}/roles`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -203,6 +227,11 @@ export function RoleAccessManagement({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ permissionIds }),
         }),
+        fetch(`/api/users/${user.userId}/business-unit`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ businessUnitId }),
+        }),
       ]);
 
       const rolesPayload = (await rolesResponse.json().catch(() => null)) as
@@ -212,20 +241,29 @@ export function RoleAccessManagement({
       const permissionsPayload = (await permissionsResponse
         .json()
         .catch(() => null)) as AccessUserRecord | { message?: string } | null;
+      const businessUnitPayload = (await businessUnitResponse
+        .json()
+        .catch(() => null)) as AccessUserRecord | { message?: string } | null;
 
       if (
         !rolesResponse.ok ||
         !permissionsResponse.ok ||
+        !businessUnitResponse.ok ||
         !rolesPayload ||
         !permissionsPayload ||
+        !businessUnitPayload ||
         !("userId" in rolesPayload) ||
-        !("userId" in permissionsPayload)
+        !("userId" in permissionsPayload) ||
+        !("userId" in businessUnitPayload)
       ) {
         const message =
           (rolesPayload && "message" in rolesPayload && rolesPayload.message) ||
           (permissionsPayload &&
             "message" in permissionsPayload &&
             permissionsPayload.message) ||
+          (businessUnitPayload &&
+            "message" in businessUnitPayload &&
+            businessUnitPayload.message) ||
           "Unable to save user access.";
         setUserError((current) => ({ ...current, [user.userId]: message }));
         return;
@@ -245,6 +283,10 @@ export function RoleAccessManagement({
         [user.userId]: permissionsPayload.directPermissions.map(
           (permission) => permission.id,
         ),
+      }));
+      setPendingUserBusinessUnitIds((current) => ({
+        ...current,
+        [user.userId]: permissionsPayload.businessUnitId ?? "",
       }));
       setUserFeedback((current) => ({
         ...current,
@@ -559,6 +601,10 @@ export function RoleAccessManagement({
                       {user.firstName} {user.lastName}
                     </p>
                     <p className="mt-1 text-sm text-muted">{user.email}</p>
+                    <p className="mt-1 text-sm text-muted">
+                      BU: {user.businessUnit?.name ?? "Not assigned"} • Org:{" "}
+                      {user.businessUnit?.organizationName ?? "Not assigned"}
+                    </p>
                     <div className="mt-3 flex flex-wrap gap-2">
                       <span className="rounded-full bg-accent-soft px-3 py-1 text-xs font-semibold text-accent-strong">
                         {formatOwnershipLabel(user.ownership.designation)}
@@ -585,6 +631,31 @@ export function RoleAccessManagement({
 
                 {expanded ? (
                   <div className="mt-5 grid gap-5 border-t border-border pt-5">
+                    <section className="rounded-2xl border border-border bg-surface px-4 py-4">
+                      <h4 className="font-medium text-foreground">Business unit</h4>
+                      <p className="mt-1 text-sm text-muted">
+                        Every user must belong to exactly one business unit.
+                      </p>
+                      <select
+                        className="mt-3 w-full rounded-2xl border border-border bg-white px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
+                        disabled={ownerProtected}
+                        onChange={(event) =>
+                          setPendingUserBusinessUnitIds((current) => ({
+                            ...current,
+                            [user.userId]: event.target.value,
+                          }))
+                        }
+                        value={getPendingBusinessUnitId(user)}
+                      >
+                        <option value="">Select business unit</option>
+                        {businessUnitOptions.map((option) => (
+                          <option key={option.id} value={option.id}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </section>
+
                     <div className="grid gap-4 lg:grid-cols-2">
                       <section className="grid gap-3">
                         <h4 className="font-medium text-foreground">Assigned roles</h4>
@@ -777,4 +848,55 @@ function formatOwnershipLabel(value: AccessUserRecord["ownership"]["designation"
     .split("_")
     .map((part) => part[0]?.toUpperCase() + part.slice(1))
     .join(" ");
+}
+
+function buildBusinessUnitOptions(businessUnits: BusinessUnitRecord[]) {
+  const byId = new Map(
+    businessUnits.map((unit) => [unit.id, { ...unit, children: [] as string[] }]),
+  );
+
+  for (const unit of businessUnits) {
+    if (unit.parentBusinessUnitId && byId.has(unit.parentBusinessUnitId)) {
+      byId.get(unit.parentBusinessUnitId)?.children.push(unit.id);
+    }
+  }
+
+  const roots = businessUnits
+    .filter(
+      (unit) => !unit.parentBusinessUnitId || !byId.has(unit.parentBusinessUnitId),
+    )
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  const options: Array<{ id: string; label: string }> = [];
+
+  const visit = (unitId: string, depth: number) => {
+    const unit = byId.get(unitId);
+
+    if (!unit) {
+      return;
+    }
+
+    const organizationSuffix = unit.organization?.name
+      ? ` (${unit.organization.name})`
+      : "";
+    options.push({
+      id: unit.id,
+      label: `${"  ".repeat(depth)}${depth > 0 ? "↳ " : ""}${unit.name}${organizationSuffix}`,
+    });
+
+    const sortedChildren = [...unit.children]
+      .map((id) => byId.get(id))
+      .filter(Boolean)
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    for (const child of sortedChildren) {
+      visit(child.id, depth + 1);
+    }
+  };
+
+  for (const root of roots) {
+    visit(root.id, 0);
+  }
+
+  return options;
 }

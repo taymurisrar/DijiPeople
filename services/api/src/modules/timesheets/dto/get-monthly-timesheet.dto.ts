@@ -1,7 +1,7 @@
 import { Type } from 'class-transformer';
 import { IsOptional, Max, Min } from 'class-validator';
 
-export class GetMonthlyTimesheetDto {
+export class GetMONTHLYTimesheetDto {
   @IsOptional()
   @Type(() => Number)
   @Min(2000)

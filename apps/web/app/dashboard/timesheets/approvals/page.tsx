@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ApiRequestError, apiRequestJson } from "@/lib/server-api";
+import { getBusinessUnitAccessSummary, shouldEnforceSelfScope } from "../../_lib/business-unit-access";
 import { TimesheetManagerReviewPanel } from "../_components/timesheet-manager-review-panel";
 import { TimesheetListResponse, TimesheetRecord, TimesheetStatus } from "../types";
 
@@ -10,6 +11,26 @@ type TimesheetApprovalsPageProps = {
 export default async function TimesheetApprovalsPage({
   searchParams,
 }: TimesheetApprovalsPageProps) {
+  const businessUnitAccess = await getBusinessUnitAccessSummary();
+
+  if (shouldEnforceSelfScope(businessUnitAccess)) {
+    return (
+      <main className="grid gap-6">
+        <section className="rounded-[24px] border border-dashed border-border bg-surface p-10 text-center shadow-sm">
+          <p className="text-sm uppercase tracking-[0.18em] text-muted">
+            Self scope active
+          </p>
+          <h3 className="mt-3 text-3xl font-semibold text-foreground">
+            Timesheet approvals are not available at your current business-unit access level.
+          </h3>
+          <p className="mt-3 text-muted">
+            Your access is scoped to your own records only.
+          </p>
+        </section>
+      </main>
+    );
+  }
+
   const params = await searchParams;
   const now = new Date();
   const year = Number(getSearchParam(params.year) || now.getFullYear());
@@ -148,7 +169,6 @@ function MonthSwitcher({
   status: string;
   year: number;
 }) {
-  const current = new Date(year, month - 1, 1);
   const prev = new Date(year, month - 2, 1);
   const next = new Date(year, month, 1);
 

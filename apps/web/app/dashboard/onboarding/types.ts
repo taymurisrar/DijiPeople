@@ -6,13 +6,13 @@ export type OnboardingStatus =
   | "READY_FOR_CONVERSION"
   | "BLOCKED"
   | "COMPLETED"
-  | "CANCELLED";
+  | "Cancelled";
 
 export type OnboardingTaskStatus =
   | "PENDING"
   | "IN_PROGRESS"
   | "COMPLETED"
-  | "CANCELLED";
+  | "Cancelled";
 
 export type OnboardingTemplateRecord = {
   id: string;

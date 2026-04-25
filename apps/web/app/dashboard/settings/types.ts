@@ -157,7 +157,7 @@ export type TenantResolvedSettingsResponse = {
   timesheets: {
     weekendDays: string[];
     defaultWorkHours: number;
-    requireMonthlySubmission: boolean;
+    requireMONTHLYSubmission: boolean;
   };
   payroll: {
     payFrequency: string;
@@ -241,7 +241,7 @@ export type TenantFeatureRecord = {
 export type TenantFeaturesResponse = {
   subscription: {
     id: string;
-    status: "TRIALING" | "ACTIVE" | "PAST_DUE" | "CANCELLED";
+    status: "Trialing" | "Active" | "Past_Due" | "Cancelled";
     startDate: string;
     endDate: string | null;
     plan: {
@@ -331,6 +331,13 @@ export type AccessUserRecord = {
   status: string;
   isServiceAccount: boolean;
   lastLoginAt?: string | null;
+  businessUnitId?: string | null;
+  businessUnit?: {
+    id: string;
+    name: string;
+    organizationId: string;
+    organizationName: string;
+  } | null;
   roles: Array<{
     id: string;
     key: string;
@@ -348,3 +355,26 @@ export type TenantSettingsValue =
   | boolean
   | null
   | string[];
+
+export type OrganizationRecord = {
+  id: string;
+  tenantId: string;
+  name: string;
+  parentOrganizationId: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type BusinessUnitRecord = {
+  id: string;
+  tenantId: string;
+  name: string;
+  organizationId: string;
+  parentBusinessUnitId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  organization?: {
+    id: string;
+    name: string;
+  };
+};

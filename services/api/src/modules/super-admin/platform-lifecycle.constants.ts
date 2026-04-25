@@ -41,7 +41,7 @@ export const CUSTOMER_SUB_STATUS_OPTIONS: Record<CustomerAccountStatus, string[]
   [CustomerAccountStatus.ARCHIVED]: ['Archived'],
 };
 
-export const CUSTOMER_ONBOARDING_SUB_STATUS_OPTIONS: Record<
+export const CUSTOMER_Onboarding_SUB_STATUS_OPTIONS: Record<
   CustomerOnboardingStatus,
   string[]
 > = {
@@ -98,7 +98,7 @@ export function isValidSubStatus(
       ? LEAD_SUB_STATUS_OPTIONS[status as LeadStatus]
       : entity === 'customer'
         ? CUSTOMER_SUB_STATUS_OPTIONS[status as CustomerAccountStatus]
-        : CUSTOMER_ONBOARDING_SUB_STATUS_OPTIONS[
+        : CUSTOMER_Onboarding_SUB_STATUS_OPTIONS[
             status as CustomerOnboardingStatus
           ];
 
@@ -117,7 +117,7 @@ export function getLifecycleOptions() {
     },
     customerOnboarding: {
       statuses: Object.values(CustomerOnboardingStatus),
-      subStatuses: CUSTOMER_ONBOARDING_SUB_STATUS_OPTIONS,
+      subStatuses: CUSTOMER_Onboarding_SUB_STATUS_OPTIONS,
     },
     industries: [...INDUSTRY_OPTIONS],
     companySizes: [...COMPANY_SIZE_OPTIONS],

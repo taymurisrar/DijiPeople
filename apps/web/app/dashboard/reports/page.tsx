@@ -1,5 +1,7 @@
 import { getSessionUser } from "@/lib/auth";
 import { apiRequestJson } from "@/lib/server-api";
+import { AccessDeniedState } from "../_components/access-denied-state";
+import { getBusinessUnitAccessSummary, hasBusinessUnitScope } from "../_lib/business-unit-access";
 import { ReportsOverview } from "./_components/reports-overview";
 import {
   AttendanceSummary,
@@ -9,6 +11,19 @@ import {
 } from "./types";
 
 export default async function ReportsPage() {
+  const businessUnitAccess = await getBusinessUnitAccessSummary();
+
+  if (!hasBusinessUnitScope(businessUnitAccess)) {
+    return (
+      <main className="grid gap-8">
+        <AccessDeniedState
+          description="Your current business-unit scope does not include reportable records."
+          title="Reports are unavailable for your current business unit access."
+        />
+      </main>
+    );
+  }
+
   const user = await getSessionUser();
 
   if (!user) {

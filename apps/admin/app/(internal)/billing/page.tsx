@@ -1,5 +1,11 @@
 import Link from "next/link";
+import { CircleDollarSign, Clock3, ReceiptText } from "lucide-react";
+import { EmptyState } from "@/app/_components/ui/empty-state";
+import { MetricCard } from "@/app/_components/ui/metric-card";
+import { PageHeader } from "@/app/_components/ui/page-header";
+import { SectionCard } from "@/app/_components/ui/section-card";
 import { TenantStatusBadge } from "@/app/_components/tenant-status-badge";
+import { formatCurrency, formatNumber } from "@/lib/formatters";
 import { apiRequestJson } from "@/lib/server-api";
 
 type InvoiceRecord = {
@@ -34,85 +40,77 @@ export default async function BillingPage() {
 
   return (
     <main className="space-y-6">
-      <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
-          Billing operations
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold text-slate-950">
-          Billing overview
-        </h1>
-      </section>
+      <PageHeader eyebrow="Billing operations" title="Billing overview" />
 
       <section className="grid gap-4 md:grid-cols-3">
-        <Card label="Outstanding invoices" value={issued} />
-        <Card label="Overdue invoices" value={overdue} />
-        <Card label="Collected revenue" value={`USD ${revenue.toFixed(2)}`} />
+        <MetricCard label="Outstanding invoices" value={formatNumber(issued)} icon={ReceiptText} />
+        <MetricCard label="Overdue invoices" value={formatNumber(overdue)} icon={Clock3} />
+        <MetricCard label="Collected revenue" value={formatCurrency(revenue, "USD")} icon={CircleDollarSign} />
       </section>
 
       <section className="grid gap-6 xl:grid-cols-2">
-        <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between gap-4">
-            <h2 className="text-xl font-semibold text-slate-950">Recent invoices</h2>
+        <SectionCard
+          title="Recent invoices"
+          actions={
             <Link href="/invoices" className="text-sm font-medium text-slate-600 hover:text-slate-950">
               View all
             </Link>
-          </div>
-          <div className="mt-4 space-y-3">
-            {invoices.slice(0, 6).map((invoice) => (
-              <div
-                key={invoice.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"
-              >
-                <div>
-                  <div className="font-medium text-slate-950">
-                    {invoice.invoiceNumber}
+          }
+        >
+          {invoices.length === 0 ? (
+            <EmptyState title="No invoices yet" description="Draft and issued invoices will appear here." />
+          ) : (
+            <div className="space-y-3">
+              {invoices.slice(0, 6).map((invoice) => (
+                <div
+                  key={invoice.id}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"
+                >
+                  <div>
+                    <div className="font-medium text-slate-950">{invoice.invoiceNumber}</div>
+                    <div className="mt-1 text-sm text-slate-600">
+                      {invoice.tenant.name} | {formatCurrency(invoice.amount, invoice.currency)}
+                    </div>
                   </div>
-                  <div className="mt-1 text-sm text-slate-600">
-                    {invoice.tenant.name} • {invoice.currency} {invoice.amount.toFixed(2)}
-                  </div>
+                  <TenantStatusBadge value={invoice.status} />
                 </div>
-                <TenantStatusBadge value={invoice.status} />
-              </div>
-            ))}
-          </div>
-        </div>
+              ))}
+            </div>
+          )}
+        </SectionCard>
 
-        <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between gap-4">
-            <h2 className="text-xl font-semibold text-slate-950">Recent payments</h2>
+        <SectionCard
+          title="Recent payments"
+          actions={
             <Link href="/payments" className="text-sm font-medium text-slate-600 hover:text-slate-950">
               View all
             </Link>
-          </div>
-          <div className="mt-4 space-y-3">
-            {payments.slice(0, 6).map((payment) => (
-              <div
-                key={payment.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"
-              >
-                <div>
-                  <div className="font-medium text-slate-950">
-                    {payment.currency} {payment.amount.toFixed(2)}
+          }
+        >
+          {payments.length === 0 ? (
+            <EmptyState title="No payments yet" description="Recorded payments will appear here." />
+          ) : (
+            <div className="space-y-3">
+              {payments.slice(0, 6).map((payment) => (
+                <div
+                  key={payment.id}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"
+                >
+                  <div>
+                    <div className="font-medium text-slate-950">
+                      {formatCurrency(payment.amount, payment.currency)}
+                    </div>
+                    <div className="mt-1 text-sm text-slate-600">
+                      {payment.tenant.name} | {payment.paymentMethod}
+                    </div>
                   </div>
-                  <div className="mt-1 text-sm text-slate-600">
-                    {payment.tenant.name} • {payment.paymentMethod}
-                  </div>
+                  <TenantStatusBadge value={payment.status} />
                 </div>
-                <TenantStatusBadge value={payment.status} />
-              </div>
-            ))}
-          </div>
-        </div>
+              ))}
+            </div>
+          )}
+        </SectionCard>
       </section>
     </main>
-  );
-}
-
-function Card({ label, value }: { label: string; value: number | string }) {
-  return (
-    <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="text-sm font-medium text-slate-500">{label}</div>
-      <div className="mt-3 text-3xl font-semibold text-slate-950">{value}</div>
-    </div>
   );
 }

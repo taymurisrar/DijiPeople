@@ -8,7 +8,7 @@ CREATE TYPE "EmployeeWorkMode" AS ENUM ('OFFICE', 'REMOTE', 'HYBRID');
 CREATE TYPE "EmployeeContractType" AS ENUM ('PERMANENT', 'FIXED_TERM', 'FREELANCE', 'TEMPORARY');
 
 -- CreateEnum
-CREATE TYPE "PayrollStatus" AS ENUM ('ACTIVE', 'ON_HOLD', 'STOPPED');
+CREATE TYPE "PayrollStatus" AS ENUM ('Active', 'ON_HOLD', 'STOPPED');
 
 -- CreateEnum
 CREATE TYPE "PaymentMode" AS ENUM ('BANK_TRANSFER', 'CASH', 'CHECK', 'OTHER');
@@ -31,7 +31,7 @@ ADD COLUMN     "bankRoutingNumber" TEXT,
 ADD COLUMN     "notes" TEXT,
 ADD COLUMN     "paymentMode" "PaymentMode",
 ADD COLUMN     "payrollGroup" TEXT,
-ADD COLUMN     "payrollStatus" "PayrollStatus" NOT NULL DEFAULT 'ACTIVE',
+ADD COLUMN     "payrollStatus" "PayrollStatus" NOT NULL DEFAULT 'Active',
 ADD COLUMN     "taxIdentifier" TEXT;
 
 -- CreateTable

@@ -1,9 +1,24 @@
 import Link from "next/link";
 import { apiRequestJson } from "@/lib/server-api";
+import { AccessDeniedState } from "../../_components/access-denied-state";
+import { getBusinessUnitAccessSummary, hasBusinessUnitScope } from "../../_lib/business-unit-access";
 import { JobOpeningStatusBadge } from "../_components/job-opening-status-badge";
 import { JobOpeningListResponse } from "../types";
 
 export default async function RecruitmentJobsPage() {
+  const businessUnitAccess = await getBusinessUnitAccessSummary();
+
+  if (!hasBusinessUnitScope(businessUnitAccess)) {
+    return (
+      <main className="grid gap-6">
+        <AccessDeniedState
+          description="Your current business-unit scope does not include job opening records."
+          title="Job openings are unavailable for your current business unit access."
+        />
+      </main>
+    );
+  }
+
   const jobs = await apiRequestJson<JobOpeningListResponse>("/job-openings?pageSize=50");
 
   return (

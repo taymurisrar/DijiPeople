@@ -15,6 +15,7 @@ import {
   isSelfServiceUser,
 } from "@/lib/permissions";
 import { SessionExpiredDialog } from "@/app/components/feedback/session-expired-dialog";
+import { BusinessUnitAccessSummary } from "../_lib/business-unit-access";
 
 type AuthenticatedShellUser = {
   email: string;
@@ -24,6 +25,7 @@ type AuthenticatedShellUser = {
   profileHref: string;
   roleLabel: string;
   tenantId: string;
+  businessUnitAccess?: BusinessUnitAccessSummary | null;
   avatarSrc?: string | null;
   avatarCacheKey?: string | null;
 };
@@ -36,6 +38,9 @@ type CurrentUserAccess = {
   canAll: (permissionKeys: readonly string[]) => boolean;
   isSelfService: boolean;
   hasPermissions: readonly string[];
+  businessUnitAccess: BusinessUnitAccessSummary | null;
+  hasBusinessUnitScope: boolean;
+  requiresSelfScope: boolean;
 };
 
 const AuthenticatedShellContext =
@@ -196,6 +201,7 @@ export function AuthenticatedShellProvider({
       profileHref: user.profileHref,
       roleLabel: user.roleLabel,
       tenantId: user.tenantId,
+      businessUnitAccess: user.businessUnitAccess ?? null,
       avatarSrc: user.avatarSrc ?? null,
       avatarCacheKey: user.avatarCacheKey ?? null,
     }),
@@ -240,6 +246,9 @@ export function useCurrentUserAccess(): CurrentUserAccess {
     return {
       user,
       hasPermissions: permissionKeys,
+      businessUnitAccess: user.businessUnitAccess ?? null,
+      hasBusinessUnitScope: (user.businessUnitAccess?.accessibleBusinessUnitIds.length ?? 0) > 0,
+      requiresSelfScope: Boolean(user.businessUnitAccess?.requiresSelfScope),
       can: (permissionKey: string) => hasPermission(permissionKeys, permissionKey),
       cannot: (permissionKey: string) =>
         !hasPermission(permissionKeys, permissionKey),
@@ -252,6 +261,23 @@ export function useCurrentUserAccess(): CurrentUserAccess {
       isSelfService: isSelfServiceUser(permissionKeys),
     };
   }, [user]);
+}
+
+export function useBusinessUnitAccess() {
+  const {
+    businessUnitAccess,
+    hasBusinessUnitScope,
+    requiresSelfScope,
+  } = useCurrentUserAccess();
+
+  return {
+    businessUnitAccess,
+    hasBusinessUnitScope,
+    requiresSelfScope,
+    accessibleBusinessUnitIds:
+      businessUnitAccess?.accessibleBusinessUnitIds ?? [],
+    effectiveAccessLevel: businessUnitAccess?.effectiveAccessLevel ?? null,
+  };
 }
 
 async function handleAuthFailureResponse(

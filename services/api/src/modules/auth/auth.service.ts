@@ -90,8 +90,9 @@ export class AuthService {
 
   async login(dto: LoginDto) {
     const user = await this.validateCredentials(dto);
+    const tenantStatus = String(user.tenant.status).toUpperCase();
 
-    if (user.status !== 'ACTIVE' || user.tenant.status !== 'ACTIVE') {
+    if (user.status !== 'ACTIVE' || tenantStatus !== 'ACTIVE') {
       throw new UnauthorizedException('This account is not active.');
     }
 
@@ -128,7 +129,8 @@ export class AuthService {
       throw new UnauthorizedException('Unable to refresh this session.');
     }
 
-    if (user.status !== 'ACTIVE' || user.tenant.status !== 'ACTIVE') {
+    const tenantStatus = String(user.tenant.status).toUpperCase();
+    if (user.status !== 'ACTIVE' || tenantStatus !== 'ACTIVE') {
       throw new UnauthorizedException('This account is not active.');
     }
 

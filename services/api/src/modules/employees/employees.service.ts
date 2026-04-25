@@ -493,6 +493,9 @@ export class EmployeesService {
       `invite-${employee.id}-${Date.now()}`,
       12,
     );
+    const actor = await this.usersRepository.findByIdWithAccess(currentUser.userId);
+    const actorBusinessUnitId =
+      actor && actor.tenantId === tenantId ? actor.businessUnitId : undefined;
 
     const result = await this.prisma.$transaction(async (tx) => {
       let user = employee.userId
@@ -530,6 +533,9 @@ export class EmployeesService {
           const createdUser = await this.usersRepository.create(
             {
               tenantId,
+              ...(actorBusinessUnitId
+                ? { businessUnitId: actorBusinessUnitId }
+                : {}),
               firstName: employee.firstName.trim(),
               lastName: employee.lastName.trim(),
               email: workEmail,

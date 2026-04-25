@@ -1,11 +1,29 @@
 import Link from "next/link";
 import { apiRequestJson } from "@/lib/server-api";
+import { AccessDeniedState } from "../../_components/access-denied-state";
+import { getBusinessUnitAccessSummary, hasBusinessUnitScope } from "../../_lib/business-unit-access";
 import { PayrollLayoutShell } from "../_components/payroll-layout-shell";
 import { PayrollCycleForm } from "../_components/payroll-cycle-form";
 import { PayrollCycleStatusBadge } from "../_components/payroll-cycle-status-badge";
 import { PayrollCycleListResponse } from "../types";
 
 export default async function PayrollCyclesPage() {
+  const businessUnitAccess = await getBusinessUnitAccessSummary();
+
+  if (!hasBusinessUnitScope(businessUnitAccess)) {
+    return (
+      <PayrollLayoutShell
+        description="Payroll cycles require business-unit scoped access."
+        title="Payroll Cycles"
+      >
+        <AccessDeniedState
+          description="Your current business-unit scope does not include payroll cycle records."
+          title="Payroll cycles are unavailable for your current business unit access."
+        />
+      </PayrollLayoutShell>
+    );
+  }
+
   const cycles = await apiRequestJson<PayrollCycleListResponse>(
     "/payroll/cycles?pageSize=24",
   );
@@ -75,4 +93,3 @@ export default async function PayrollCyclesPage() {
     </PayrollLayoutShell>
   );
 }
-

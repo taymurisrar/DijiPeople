@@ -1,9 +1,24 @@
 import Link from "next/link";
 import { apiRequestJson } from "@/lib/server-api";
+import { AccessDeniedState } from "../_components/access-denied-state";
+import { getBusinessUnitAccessSummary, hasBusinessUnitScope } from "../_lib/business-unit-access";
 import { ProjectListResponse } from "./types";
 import { ProjectStatusBadge } from "./_components/project-status-badge";
 
 export default async function ProjectsPage() {
+  const businessUnitAccess = await getBusinessUnitAccessSummary();
+
+  if (!hasBusinessUnitScope(businessUnitAccess)) {
+    return (
+      <main className="grid gap-6">
+        <AccessDeniedState
+          description="Your current business-unit scope does not include project records."
+          title="Projects are unavailable for your current business unit access."
+        />
+      </main>
+    );
+  }
+
   const projects = await apiRequestJson<ProjectListResponse>("/projects?pageSize=50");
 
   return (

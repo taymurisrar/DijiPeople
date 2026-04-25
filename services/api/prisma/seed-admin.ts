@@ -1,6 +1,6 @@
 import { config as loadEnv } from 'dotenv';
 import { resolve } from 'node:path';
-import { PrismaClient, TenantStatus, UserStatus } from '@prisma/client';
+import { PrismaClient, RoleAccessLevel, TenantStatus, UserStatus } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { normalizeEmail } from '../src/common/utils/email.util';
 import { FOUNDATION_PERMISSION_DEFINITIONS } from '../src/common/constants/permissions';
@@ -93,6 +93,7 @@ async function main() {
       name: config.roleName,
       description: 'Bootstrap administrator role',
       isSystem: true,
+      accessLevel: RoleAccessLevel.TENANT,
     },
     create: {
       tenantId: tenant.id,
@@ -100,6 +101,7 @@ async function main() {
       key: config.roleKey,
       description: 'Bootstrap administrator role',
       isSystem: true,
+      accessLevel: RoleAccessLevel.TENANT,
     },
     select: {
       id: true,
@@ -139,10 +141,40 @@ async function main() {
     skipDuplicates: true,
   });
 
+  const defaultOrganization =
+    (await prisma.organization.findFirst({
+      where: { tenantId: tenant.id },
+      orderBy: [{ createdAt: 'asc' }, { name: 'asc' }],
+      select: { id: true },
+    })) ??
+    (await prisma.organization.create({
+      data: {
+        tenantId: tenant.id,
+        name: 'Default Organization',
+      },
+      select: { id: true },
+    }));
+
+  const defaultBusinessUnit =
+    (await prisma.businessUnit.findFirst({
+      where: { tenantId: tenant.id },
+      orderBy: [{ createdAt: 'asc' }, { name: 'asc' }],
+      select: { id: true },
+    })) ??
+    (await prisma.businessUnit.create({
+      data: {
+        tenantId: tenant.id,
+        organizationId: defaultOrganization.id,
+        name: 'Default Business Unit',
+      },
+      select: { id: true },
+    }));
+
   const user = await prisma.user.upsert({
     where: { email: config.email },
     update: {
       tenantId: tenant.id,
+      businessUnitId: defaultBusinessUnit.id,
       firstName: config.firstName,
       lastName: config.lastName,
       passwordHash,
@@ -151,6 +183,7 @@ async function main() {
     },
     create: {
       tenantId: tenant.id,
+      businessUnitId: defaultBusinessUnit.id,
       firstName: config.firstName,
       lastName: config.lastName,
       email: config.email,

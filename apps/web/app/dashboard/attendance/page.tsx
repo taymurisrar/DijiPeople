@@ -2,6 +2,8 @@ import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
 import { ApiRequestError, apiRequestJson } from "@/lib/server-api";
+import { AccessDeniedState } from "../_components/access-denied-state";
+import { getBusinessUnitAccessSummary, hasBusinessUnitScope } from "../_lib/business-unit-access";
 import { AttendanceCheckWidget } from "./_components/attendance-check-widget";
 import { AttendanceEntriesTable } from "./_components/attendance-entries-table";
 import { AttendanceFilterBar } from "./_components/attendance-filter-bar";
@@ -22,6 +24,19 @@ type AttendancePageProps = {
 export default async function AttendancePage({
   searchParams,
 }: AttendancePageProps) {
+  const businessUnitAccess = await getBusinessUnitAccessSummary();
+
+  if (!hasBusinessUnitScope(businessUnitAccess)) {
+    return (
+      <main className="grid gap-6">
+        <AccessDeniedState
+          description="Your current business-unit scope does not include attendance data."
+          title="Attendance is unavailable for your current business unit access."
+        />
+      </main>
+    );
+  }
+
   const params = normalizeSearchParams(await searchParams);
   const view = parseAttendanceView(params.view);
   const today = formatLocalDate(new Date());

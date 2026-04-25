@@ -2,6 +2,8 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import type { BillingCycleValue, SubscriptionStatusValue } from "@/lib/domain";
+import { formatBillingCycle, formatCurrency, formatEnumLabel } from "@/lib/formatters";
 
 type SubscriptionPlanOption = {
   id: string;
@@ -18,8 +20,8 @@ type SubscriptionFormProps = {
   currentSubscription: {
     id: string;
     plan: SubscriptionPlanOption;
-    status: "TRIALING" | "ACTIVE" | "PAST_DUE" | "CANCELLED";
-    billingCycle: "MONTHLY" | "ANNUAL";
+    status: SubscriptionStatusValue | string;
+    billingCycle: BillingCycleValue | string;
     basePrice: number;
     discountType: "NONE" | "PERCENTAGE" | "FLAT";
     discountValue: number;
@@ -44,10 +46,10 @@ export function SubscriptionForm({
   const [planId, setPlanId] = useState(
     currentSubscription?.plan.id ?? plans[0]?.id ?? "",
   );
-  const [status, setStatus] = useState<
-    "TRIALING" | "ACTIVE" | "PAST_DUE" | "CANCELLED"
-  >(currentSubscription?.status ?? "TRIALING");
-  const [billingCycle, setBillingCycle] = useState<"MONTHLY" | "ANNUAL">(
+  const [status, setStatus] = useState<SubscriptionStatusValue | string>(
+    currentSubscription?.status ?? "Trialing",
+  );
+  const [billingCycle, setBillingCycle] = useState<BillingCycleValue | string>(
     currentSubscription?.billingCycle ?? "MONTHLY",
   );
   const [discountType, setDiscountType] = useState<
@@ -84,7 +86,7 @@ export function SubscriptionForm({
 
   const pricingPreview = useMemo(() => {
     const basePrice = Number(
-      billingCycle === "ANNUAL"
+      billingCycle === "ANNUAL" || billingCycle === "Annual"
         ? selectedPlan?.annualBasePrice ?? 0
         : selectedPlan?.monthlyBasePrice ?? 0,
     );
@@ -201,10 +203,11 @@ export function SubscriptionForm({
             onChange={(event) => setStatus(event.target.value as typeof status)}
             className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-900"
           >
-            <option value="TRIALING">Trialing</option>
-            <option value="ACTIVE">Active</option>
-            <option value="PAST_DUE">Past due</option>
-            <option value="CANCELLED">Cancelled</option>
+            {(["Trialing", "Active", "Past_Due", "Cancelled"] as const).map((option) => (
+              <option key={option} value={option}>
+                {formatEnumLabel(option)}
+              </option>
+            ))}
           </select>
         </label>
       </div>
@@ -219,8 +222,11 @@ export function SubscriptionForm({
             }
             className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-900"
           >
-            <option value="MONTHLY">Monthly</option>
-            <option value="ANNUAL">Annual</option>
+            {(["MONTHLY", "ANNUAL"] as const).map((option) => (
+              <option key={option} value={option}>
+                {formatBillingCycle(option)}
+              </option>
+            ))}
           </select>
         </label>
 
@@ -334,7 +340,7 @@ export function SubscriptionForm({
               Base price
             </div>
             <div className="mt-1 text-lg font-semibold text-slate-950">
-              {currency} {pricingPreview.basePrice.toFixed(2)}
+              {formatCurrency(pricingPreview.basePrice, currency)}
             </div>
           </div>
           <div>
@@ -342,7 +348,7 @@ export function SubscriptionForm({
               Final price
             </div>
             <div className="mt-1 text-lg font-semibold text-slate-950">
-              {currency} {pricingPreview.finalPrice.toFixed(2)}
+              {formatCurrency(pricingPreview.finalPrice, currency)}
             </div>
           </div>
         </div>

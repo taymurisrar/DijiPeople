@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { apiRequestJson } from "@/lib/server-api";
+import { ApiRequestError, apiRequestJson } from "@/lib/server-api";
+import { AccessDeniedState } from "@/app/dashboard/_components/access-denied-state";
 import { JobOpeningStatusBadge } from "../../_components/job-opening-status-badge";
 import { RecruitmentStageBadge } from "../../_components/recruitment-stage-badge";
 import {
@@ -20,9 +21,29 @@ type JobOpeningWithMatchCriteria = JobOpeningRecord & {
 
 export default async function JobDetailPage({ params }: JobDetailPageProps) {
   const { jobId } = await params;
-  const job = await apiRequestJson<JobOpeningWithMatchCriteria>(
-    `/job-openings/${jobId}`,
-  );
+  let job: JobOpeningWithMatchCriteria;
+
+  try {
+    job = await apiRequestJson<JobOpeningWithMatchCriteria>(
+      `/job-openings/${jobId}`,
+    );
+  } catch (error) {
+    if (
+      error instanceof ApiRequestError &&
+      (error.status === 403 || error.status === 404)
+    ) {
+      return (
+        <main className="grid gap-6">
+          <AccessDeniedState
+            description="This job opening is outside your accessible business-unit scope."
+            title="You cannot view this job opening."
+          />
+        </main>
+      );
+    }
+
+    throw error;
+  }
 
   const matchCriteria = job.matchCriteria ?? null;
   const hasConfiguredScoring = hasMatchCriteriaConfigured(matchCriteria);

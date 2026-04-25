@@ -3,6 +3,12 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 
 type PrismaDb = PrismaService | Prisma.TransactionClient;
+type UserCreateInput = Omit<
+  Prisma.UserUncheckedCreateInput,
+  'businessUnitId'
+> & {
+  businessUnitId?: string;
+};
 
 @Injectable()
 export class UsersRepository {
@@ -19,6 +25,19 @@ export class UsersRepository {
             slug: true,
             status: true,
             ownerUserId: true,
+          },
+        },
+        businessUnit: {
+          select: {
+            id: true,
+            name: true,
+            organizationId: true,
+            organization: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
           },
         },
         userPermissions: {
@@ -66,6 +85,19 @@ export class UsersRepository {
             ownerUserId: true,
           },
         },
+        businessUnit: {
+          select: {
+            id: true,
+            name: true,
+            organizationId: true,
+            organization: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
         userPermissions: {
           include: {
             permission: true,
@@ -111,6 +143,19 @@ export class UsersRepository {
             ownerUserId: true,
           },
         },
+        businessUnit: {
+          select: {
+            id: true,
+            name: true,
+            organizationId: true,
+            organization: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
         userPermissions: {
           include: {
             permission: true,
@@ -146,6 +191,19 @@ export class UsersRepository {
             ownerUserId: true,
           },
         },
+        businessUnit: {
+          select: {
+            id: true,
+            name: true,
+            organizationId: true,
+            organization: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
         userPermissions: {
           include: {
             permission: true,
@@ -168,8 +226,8 @@ export class UsersRepository {
     });
   }
 
-  create(data: Prisma.UserUncheckedCreateInput, db: PrismaDb = this.prisma) {
-    return db.user.create({ data });
+  create(data: UserCreateInput, db: PrismaDb = this.prisma) {
+    return this.createWithDefaultBusinessUnit(data, db);
   }
 
   update(
@@ -258,5 +316,77 @@ export class UsersRepository {
     });
 
     return tenant?.ownerUserId ?? null;
+  }
+
+  findBusinessUnitById(
+    tenantId: string,
+    businessUnitId: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.businessUnit.findFirst({
+      where: {
+        id: businessUnitId,
+        tenantId,
+      },
+      select: {
+        id: true,
+      },
+    });
+  }
+
+  private async createWithDefaultBusinessUnit(
+    data: UserCreateInput,
+    db: PrismaDb,
+  ) {
+    const businessUnitId =
+      data.businessUnitId ??
+      (await this.ensureTenantDefaultBusinessUnitId(data.tenantId, db));
+
+    return db.user.create({
+      data: {
+        ...data,
+        businessUnitId,
+      },
+    });
+  }
+
+  private async ensureTenantDefaultBusinessUnitId(
+    tenantId: string,
+    db: PrismaDb,
+  ) {
+    const existingBusinessUnit = await db.businessUnit.findFirst({
+      where: { tenantId },
+      orderBy: [{ createdAt: 'asc' }, { name: 'asc' }],
+      select: { id: true },
+    });
+
+    if (existingBusinessUnit) {
+      return existingBusinessUnit.id;
+    }
+
+    const organization =
+      (await db.organization.findFirst({
+        where: { tenantId },
+        orderBy: [{ createdAt: 'asc' }, { name: 'asc' }],
+        select: { id: true },
+      })) ??
+      (await db.organization.create({
+        data: {
+          tenantId,
+          name: 'Default Organization',
+        },
+        select: { id: true },
+      }));
+
+    const businessUnit = await db.businessUnit.create({
+      data: {
+        tenantId,
+        organizationId: organization.id,
+        name: 'Default Business Unit',
+      },
+      select: { id: true },
+    });
+
+    return businessUnit.id;
   }
 }

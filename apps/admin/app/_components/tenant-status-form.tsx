@@ -2,12 +2,19 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import type { TenantStatusValue } from "@/lib/domain";
+import { formatEnumLabel } from "@/lib/formatters";
 
-type TenantStatus = "ONBOARDING" | "ACTIVE" | "SUSPENDED" | "CHURNED";
+const TENANT_STATUS_OPTIONS: TenantStatusValue[] = [
+  "Onboarding",
+  "Active",
+  "Suspended",
+  "Churned",
+];
 
 type TenantStatusFormProps = {
   tenantId: string;
-  currentStatus: TenantStatus;
+  currentStatus: TenantStatusValue | string;
 };
 
 export function TenantStatusForm({
@@ -15,7 +22,7 @@ export function TenantStatusForm({
   currentStatus,
 }: TenantStatusFormProps) {
   const router = useRouter();
-  const [status, setStatus] = useState<TenantStatus>(currentStatus);
+  const [status, setStatus] = useState<TenantStatusValue | string>(currentStatus);
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -59,13 +66,17 @@ export function TenantStatusForm({
         Status
         <select
           value={status}
-          onChange={(event) => setStatus(event.target.value as TenantStatus)}
+          onChange={(event) => setStatus(event.target.value as TenantStatusValue)}
           className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-900"
         >
-          <option value="ONBOARDING">Onboarding</option>
-          <option value="ACTIVE">Active</option>
-          <option value="SUSPENDED">Suspended</option>
-          <option value="CHURNED">Churned</option>
+          {(TENANT_STATUS_OPTIONS.includes(status as TenantStatusValue)
+            ? TENANT_STATUS_OPTIONS
+            : [status as TenantStatusValue | string, ...TENANT_STATUS_OPTIONS]
+          ).map((option) => (
+            <option key={option} value={option}>
+              {formatEnumLabel(option)}
+            </option>
+          ))}
         </select>
       </label>
 

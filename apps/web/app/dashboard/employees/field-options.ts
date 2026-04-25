@@ -1,5 +1,5 @@
 export const EMPLOYMENT_STATUS_OPTIONS = [
-  { value: "ACTIVE", label: "Active" },
+  { value: "Active", label: "Active" },
   { value: "PROBATION", label: "Probation" },
   { value: "NOTICE", label: "Notice" },
   { value: "TERMINATED", label: "Terminated" },
@@ -30,14 +30,14 @@ export const CONTRACT_TYPE_OPTIONS = [
 ] as const;
 
 export const PAY_FREQUENCY_OPTIONS = [
-  { value: "MONTHLY", label: "Monthly" },
+  { value: "MONTHLY", label: "MONTHLY" },
   { value: "SEMI_MONTHLY", label: "Semi-monthly" },
   { value: "BI_WEEKLY", label: "Bi-weekly" },
   { value: "WEEKLY", label: "Weekly" },
 ] as const;
 
 export const PAYROLL_STATUS_OPTIONS = [
-  { value: "ACTIVE", label: "Active" },
+  { value: "Active", label: "Active" },
   { value: "ON_HOLD", label: "On hold" },
   { value: "STOPPED", label: "Stopped" },
 ] as const;

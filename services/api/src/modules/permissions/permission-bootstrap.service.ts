@@ -37,11 +37,27 @@ export class PermissionBootstrapService {
         name: role.name,
         description: role.description,
         isSystem: role.isSystem,
+        accessLevel: role.accessLevel,
         createdById: actorUserId,
         updatedById: actorUserId,
       })),
       skipDuplicates: true,
     });
+
+    await Promise.all(
+      BASE_ROLE_DEFINITIONS.map((role) =>
+        db.role.updateMany({
+          where: {
+            tenantId,
+            key: role.key,
+          },
+          data: {
+            accessLevel: role.accessLevel,
+            updatedById: actorUserId,
+          },
+        }),
+      ),
+    );
 
     const [permissions, roles] = await Promise.all([
       db.permission.findMany({

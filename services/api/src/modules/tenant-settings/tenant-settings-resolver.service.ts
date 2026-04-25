@@ -69,7 +69,7 @@ export type TimesheetSettingsResolved = {
   defaultWorkHours: number;
   allowWeekendWork: boolean;
   allowHolidayWork: boolean;
-  requireMonthlySubmission: boolean;
+  requireMONTHLYSubmission: boolean;
   autoFillWorkingDays: boolean;
   requireSubmissionNote: boolean;
 };
@@ -220,7 +220,7 @@ export class TenantSettingsResolverService {
       autoGenerateEmployeeId: booleanValue(category.autoGenerateEmployeeId, true),
       defaultEmploymentType: stringValue(category.defaultEmploymentType, 'FULL_TIME'),
       defaultWorkMode: stringValue(category.defaultWorkMode, 'OFFICE'),
-      defaultEmployeeStatus: stringValue(category.defaultEmployeeStatus, 'ACTIVE'),
+      defaultEmployeeStatus: stringValue(category.defaultEmployeeStatus, 'Active'),
       requirePersonalEmail: booleanValue(category.requirePersonalEmail, false),
       requireEmergencyContact: booleanValue(category.requireEmergencyContact, true),
       requireJoiningDate: booleanValue(category.requireJoiningDate, true),
@@ -298,7 +298,7 @@ export class TenantSettingsResolverService {
       defaultWorkHours: numberValue(category.defaultWorkHours, 8, 1, 24),
       allowWeekendWork: booleanValue(category.allowWeekendWork, true),
       allowHolidayWork: booleanValue(category.allowHolidayWork, true),
-      requireMonthlySubmission: booleanValue(category.requireMonthlySubmission, true),
+      requireMONTHLYSubmission: booleanValue(category.requireMONTHLYSubmission, true),
       autoFillWorkingDays: booleanValue(category.autoFillWorkingDays, false),
       requireSubmissionNote: booleanValue(category.requireSubmissionNote, false),
     };
@@ -310,7 +310,7 @@ export class TenantSettingsResolverService {
 
     return {
       payFrequency: stringValue(category.payFrequency, 'MONTHLY'),
-      payrollStatus: stringValue(category.payrollStatus, 'ACTIVE'),
+      payrollStatus: stringValue(category.payrollStatus, 'Active'),
       defaultPayrollGroup: stringValue(category.defaultPayrollGroup, 'main'),
       defaultPaymentMode: stringValue(category.defaultPaymentMode, 'BANK_TRANSFER'),
       compensationReviewCycle: stringValue(category.compensationReviewCycle, 'ANNUAL'),

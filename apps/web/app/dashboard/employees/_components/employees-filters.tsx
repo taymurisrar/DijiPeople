@@ -16,10 +16,10 @@ export function getEmployeeFilterFields(
       label: "Status",
       type: "select",
       options: [
-        { label: "Active", value: "ACTIVE" },
+        { label: "Active", value: "Active" },
         { label: "Draft", value: "DRAFT" },
         { label: "On Leave", value: "ON_LEAVE" },
-        { label: "Inactive", value: "INACTIVE" },
+        { label: "Inactive", value: "INActive" },
         { label: "Terminated", value: "TERMINATED" },
       ],
     },

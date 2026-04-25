@@ -1,3 +1,6 @@
+import { toCanonicalEnumValue } from "@/lib/domain";
+import { formatEnumLabel } from "@/lib/formatters";
+
 const statusStyles: Record<string, string> = {
   LEAD: "border-slate-200 bg-slate-100 text-slate-700",
   PROSPECT: "border-indigo-200 bg-indigo-50 text-indigo-700",
@@ -23,14 +26,15 @@ type StatusBadgeProps = {
 };
 
 export function TenantStatusBadge({ value }: StatusBadgeProps) {
+  const canonicalValue = toCanonicalEnumValue(value);
   const className =
-    statusStyles[value] ?? "border-slate-200 bg-slate-100 text-slate-700";
+    statusStyles[canonicalValue] ?? "border-slate-200 bg-slate-100 text-slate-700";
 
   return (
     <span
-      className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${className}`}
+      className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${className}`}
     >
-      {value.replaceAll("_", " ")}
+      {formatEnumLabel(value)}
     </span>
   );
 }

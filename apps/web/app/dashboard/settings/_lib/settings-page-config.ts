@@ -54,7 +54,7 @@ export const employeeSettingsSections: SettingsSectionConfig[] = [
         label: "Default employee status",
         type: "select",
         options: [
-          { label: "Active", value: "ACTIVE" },
+          { label: "Active", value: "Active" },
           { label: "Probation", value: "PROBATION" },
           { label: "Notice", value: "NOTICE" },
         ],
@@ -253,7 +253,7 @@ export const attendanceSettingsSections: SettingsSectionConfig[] = [
       },
       {
         category: "timesheets",
-        key: "requireMonthlySubmission",
+        key: "requireMONTHLYSubmission",
         label: "Require monthly submission",
         type: "checkbox",
       },
@@ -291,7 +291,7 @@ export const payrollSettingsSections: SettingsSectionConfig[] = [
         label: "Pay frequency",
         type: "select",
         options: [
-          { label: "Monthly", value: "MONTHLY" },
+          { label: "MONTHLY", value: "MONTHLY" },
           { label: "Bi-weekly", value: "BI_WEEKLY" },
           { label: "Weekly", value: "WEEKLY" },
         ],
@@ -302,7 +302,7 @@ export const payrollSettingsSections: SettingsSectionConfig[] = [
         label: "Payroll status",
         type: "select",
         options: [
-          { label: "Active", value: "ACTIVE" },
+          { label: "Active", value: "Active" },
           { label: "Review", value: "REVIEW" },
           { label: "Paused", value: "PAUSED" },
         ],
@@ -330,7 +330,7 @@ export const payrollSettingsSections: SettingsSectionConfig[] = [
         label: "Compensation review cycle",
         type: "select",
         options: [
-          { label: "Annual", value: "ANNUAL" },
+          { label: "ANNUAL", value: "ANNUAL" },
           { label: "Semi-annual", value: "SEMI_ANNUAL" },
           { label: "Quarterly", value: "QUARTERLY" },
         ],
@@ -611,7 +611,7 @@ export const notificationSettingsSections: SettingsSectionConfig[] = [
         options: [
           { label: "Daily", value: "DAILY" },
           { label: "Weekly", value: "WEEKLY" },
-          { label: "Monthly", value: "MONTHLY" },
+          { label: "MONTHLY", value: "MONTHLY" },
         ],
       },
       {

@@ -13,6 +13,7 @@ import {
   Users,
 } from "lucide-react";
 import { TenantLogo } from "@/app/components/branding/tenant-logo";
+import { BusinessUnitAccessSummary } from "../_lib/business-unit-access";
 import { resolveVisibleDashboardNavItems } from "./navigation";
 
 type DashboardSidebarProps = {
@@ -24,6 +25,7 @@ type DashboardSidebarProps = {
   isSelfService: boolean;
   permissionKeys: string[];
   roleKeys?: string[];
+  businessUnitAccess?: BusinessUnitAccessSummary | null;
   tenantId: string;
   tenantName?: string;
 };
@@ -46,6 +48,7 @@ export function DashboardSidebar({
   isSelfService,
   permissionKeys,
   roleKeys,
+  businessUnitAccess,
   tenantId,
   tenantName,
 }: DashboardSidebarProps) {
@@ -57,6 +60,7 @@ export function DashboardSidebar({
     isSelfService,
     permissionKeys,
     roleKeys,
+    businessUnitAccess,
   });
 
   return (

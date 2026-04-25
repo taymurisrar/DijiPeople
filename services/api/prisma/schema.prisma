@@ -13,17 +13,17 @@ datasource db {
 }
 
 enum TenantStatus {
-  ONBOARDING
-  ACTIVE
-  SUSPENDED
-  CHURNED
+  Onboarding
+  Active
+  Suspended
+  Churned
 }
 
 enum SubscriptionStatus {
-  TRIALING
-  ACTIVE
-  PAST_DUE
-  CANCELLED
+  Trialing
+  Active
+  Past_Due
+  Cancelled
 }
 
 enum BillingCycle {
@@ -40,10 +40,10 @@ enum DiscountType {
 enum CustomerAccountStatus {
   LEAD
   PROSPECT
-  ONBOARDING
-  ACTIVE
-  SUSPENDED
-  CHURNED
+  Onboarding
+  Active
+  Suspended
+  Churned
   ARCHIVED
 }
 
@@ -101,7 +101,7 @@ enum DocumentEntityType {
   LEAVE_REQUEST
   PAYROLL_RECORD
   CANDIDATE
-  ONBOARDING_RECORD
+  Onboarding_RECORD
   TENANT
   INVOICE
   POLICY
@@ -109,7 +109,7 @@ enum DocumentEntityType {
 }
 
 enum UserStatus {
-  ACTIVE
+  Active
   INVITED
   DISABLED
 }
@@ -122,7 +122,7 @@ enum UserInvitationStatus {
 }
 
 enum EmployeeEmploymentStatus {
-  ACTIVE
+  Active
   PROBATION
   NOTICE
   TERMINATED
@@ -174,7 +174,7 @@ enum LeaveRequestStatus {
   PENDING
   APPROVED
   REJECTED
-  CANCELLED
+  Cancelled
 }
 
 enum LeaveApprovalStepStatus {
@@ -182,7 +182,7 @@ enum LeaveApprovalStepStatus {
   APPROVED
   REJECTED
   SKIPPED
-  CANCELLED
+  Cancelled
 }
 
 enum ApprovalActorType {
@@ -257,10 +257,10 @@ enum TimesheetEntryType {
 
 enum ProjectStatus {
   PLANNING
-  ACTIVE
+  Active
   ON_HOLD
   COMPLETED
-  CANCELLED
+  Cancelled
 }
 
 enum JobOpeningStatus {
@@ -269,7 +269,7 @@ enum JobOpeningStatus {
   ON_HOLD
   CLOSED
   FILLED
-  CANCELLED
+  Cancelled
 }
 
 enum RecruitmentStage {
@@ -330,14 +330,14 @@ enum OnboardingStatus {
   READY_FOR_CONVERSION
   BLOCKED
   COMPLETED
-  CANCELLED
+  Cancelled
 }
 
 enum OnboardingTaskStatus {
   PENDING
   IN_PROGRESS
   COMPLETED
-  CANCELLED
+  Cancelled
 }
 
 enum PayrollCycleStatus {
@@ -366,9 +366,17 @@ enum PayFrequency {
 }
 
 enum PayrollStatus {
-  ACTIVE
+  Active
   ON_HOLD
   STOPPED
+}
+
+enum RoleAccessLevel {
+  USER
+  BUSINESS_UNIT
+  PARENT_BU
+  ORGANIZATION
+  TENANT
 }
 
 enum PaymentMode {
@@ -384,7 +392,7 @@ model Tenant {
   ownerUserId     String?
   name            String
   slug            String           @unique
-  status          TenantStatus     @default(ACTIVE)
+  status          TenantStatus     @default(Active)
   subStatus       String?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
@@ -403,6 +411,8 @@ model Tenant {
   employeeHistoryRecords EmployeeHistory[]
   employeePreviousEmployments EmployeePreviousEmployment[]
   departments     Department[]
+  organizations   Organization[]
+  businessUnits   BusinessUnit[]
   designations    Designation[]
   locations       Location[]
   emergencyContacts EmergencyContact[]
@@ -738,7 +748,7 @@ model Subscription {
   discountReason String?
   finalPrice  Decimal            @default(0) @db.Decimal(12, 2)
   currency    String             @default("USD")
-  status      SubscriptionStatus @default(TRIALING)
+  status      SubscriptionStatus @default(Trialing)
   startDate   DateTime
   endDate     DateTime?
   renewalDate DateTime?
@@ -760,11 +770,12 @@ model Subscription {
 model User {
   id            String         @id @default(uuid())
   tenantId      String
+  businessUnitId String
   firstName     String
   lastName      String
   email         String         @unique
   passwordHash  String
-  status        UserStatus     @default(ACTIVE)
+  status        UserStatus     @default(Active)
   isServiceAccount Boolean     @default(false)
   lastLoginAt   DateTime?
   createdAt     DateTime       @default(now())
@@ -772,6 +783,7 @@ model User {
   createdById   String?
   updatedById   String?
   tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  businessUnit  BusinessUnit   @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
   userRoles     UserRole[]
   userPermissions UserPermission[]
   refreshTokens RefreshToken[]
@@ -791,8 +803,48 @@ model User {
   ownedTenants      Tenant[]                    @relation("TenantOwner")
 
   @@index([tenantId])
+  @@index([businessUnitId])
   @@index([tenantId, status])
   @@index([tenantId, lastName, firstName])
+}
+
+model Organization {
+  id                   String         @id @default(uuid())
+  tenantId             String
+  name                 String
+  parentOrganizationId String?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  tenant               Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  parentOrganization   Organization?  @relation("OrganizationHierarchy", fields: [parentOrganizationId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  childOrganizations   Organization[] @relation("OrganizationHierarchy")
+  businessUnits        BusinessUnit[]
+
+  @@unique([id, tenantId])
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@index([tenantId, parentOrganizationId])
+}
+
+model BusinessUnit {
+  id                   String         @id @default(uuid())
+  tenantId             String
+  name                 String
+  organizationId       String
+  parentBusinessUnitId String?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  tenant               Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  organization         Organization   @relation(fields: [organizationId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  parentBusinessUnit   BusinessUnit?  @relation("BusinessUnitHierarchy", fields: [parentBusinessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  childBusinessUnits   BusinessUnit[] @relation("BusinessUnitHierarchy")
+  users                User[]
+
+  @@unique([id, tenantId])
+  @@unique([tenantId, organizationId, name])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, parentBusinessUnitId])
 }
 
 model Role {
@@ -800,6 +852,7 @@ model Role {
   tenantId        String
   name            String
   key             String
+  accessLevel     RoleAccessLevel  @default(USER)
   description     String?
   isSystem        Boolean          @default(false)
   createdAt       DateTime         @default(now())
@@ -962,7 +1015,7 @@ model Employee {
   nationality           String?
   cnic                  String?
   bloodGroup            String?
-  employmentStatus      EmployeeEmploymentStatus  @default(ACTIVE)
+  employmentStatus      EmployeeEmploymentStatus  @default(Active)
   employeeType          EmployeeType?
   workMode              EmployeeWorkMode?
   contractType          EmployeeContractType?
@@ -2357,7 +2410,7 @@ model EmployeeCompensation {
   effectiveDate DateTime
   endDate       DateTime?
   currency      String       @default("USD")
-  payrollStatus PayrollStatus @default(ACTIVE)
+  payrollStatus PayrollStatus @default(Active)
   payrollGroup  String?
   paymentMode   PaymentMode?
   bankName      String?

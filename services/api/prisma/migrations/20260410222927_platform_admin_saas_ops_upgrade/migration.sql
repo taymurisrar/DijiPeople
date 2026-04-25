@@ -5,7 +5,7 @@ CREATE TYPE "BillingCycle" AS ENUM ('MONTHLY', 'ANNUAL');
 CREATE TYPE "DiscountType" AS ENUM ('NONE', 'PERCENTAGE', 'FLAT');
 
 -- CreateEnum
-CREATE TYPE "CustomerAccountStatus" AS ENUM ('LEAD', 'PROSPECT', 'ONBOARDING', 'ACTIVE', 'SUSPENDED', 'CHURNED');
+CREATE TYPE "CustomerAccountStatus" AS ENUM ('LEAD', 'PROSPECT', 'Onboarding', 'Active', 'Suspended', 'Churned');
 
 -- CreateEnum
 CREATE TYPE "TenantFeatureSource" AS ENUM ('PLAN', 'MANUAL', 'PROMOTIONAL', 'CUSTOM');
@@ -27,8 +27,8 @@ CREATE TYPE "InvoiceStatus" AS ENUM ('DRAFT', 'ISSUED', 'PAID', 'OVERDUE');
 -- the enum.
 
 
-ALTER TYPE "TenantStatus" ADD VALUE 'ONBOARDING';
-ALTER TYPE "TenantStatus" ADD VALUE 'CHURNED';
+ALTER TYPE "TenantStatus" ADD VALUE 'Onboarding';
+ALTER TYPE "TenantStatus" ADD VALUE 'Churned';
 
 -- AlterTable
 ALTER TABLE "Plan" ADD COLUMN     "annualBasePrice" DECIMAL(12,2) NOT NULL DEFAULT 0,

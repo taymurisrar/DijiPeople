@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { apiRequestJson } from "@/lib/server-api";
+import { ApiRequestError, apiRequestJson } from "@/lib/server-api";
+import { AccessDeniedState } from "@/app/dashboard/_components/access-denied-state";
 import { ApplicationEvaluationForm } from "../../_components/application-evaluation-form";
 import { ApplicationStageForm } from "../../_components/application-stage-form";
 import { RecruitmentStageBadge } from "../../_components/recruitment-stage-badge";
@@ -15,9 +16,30 @@ export default async function ApplicationDetailPage({
   params,
 }: ApplicationDetailPageProps) {
   const { applicationId } = await params;
-  const application = await apiRequestJson<ApplicationRecord>(
-    `/applications/${applicationId}`,
-  );
+
+  let application: ApplicationRecord;
+
+  try {
+    application = await apiRequestJson<ApplicationRecord>(
+      `/applications/${applicationId}`,
+    );
+  } catch (error) {
+    if (
+      error instanceof ApiRequestError &&
+      (error.status === 403 || error.status === 404)
+    ) {
+      return (
+        <main className="grid gap-6">
+          <AccessDeniedState
+            description="This application is outside your accessible business-unit scope."
+            title="You cannot view this application record."
+          />
+        </main>
+      );
+    }
+
+    throw error;
+  }
 
   const scoringConfigured = hasMatchCriteriaConfigured(
     application.jobOpening.matchCriteria,

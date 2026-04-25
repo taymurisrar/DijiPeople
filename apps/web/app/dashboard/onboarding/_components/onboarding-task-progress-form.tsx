@@ -64,7 +64,7 @@ export function OnboardingTaskProgressForm({
         <option value="PENDING">PENDING</option>
         <option value="IN_PROGRESS">IN PROGRESS</option>
         <option value="COMPLETED">COMPLETED</option>
-        <option value="CANCELLED">CANCELLED</option>
+        <option value="Cancelled">Cancelled</option>
       </select>
       <textarea
         className="min-h-20 w-full rounded-2xl border border-border bg-white px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"

@@ -1,9 +1,30 @@
 import Link from "next/link";
 import { ApiRequestError, apiRequestJson } from "@/lib/server-api";
+import { getBusinessUnitAccessSummary, shouldEnforceSelfScope } from "../../_lib/business-unit-access";
 import { LeaveRequestsTable } from "../_components/leave-requests-table";
 import { LeaveRequestRecord } from "../types";
 
 export default async function LeaveApprovalsPage() {
+  const businessUnitAccess = await getBusinessUnitAccessSummary();
+
+  if (shouldEnforceSelfScope(businessUnitAccess)) {
+    return (
+      <main className="grid gap-6">
+        <section className="rounded-[24px] border border-dashed border-border bg-surface p-10 text-center shadow-sm">
+          <p className="text-sm uppercase tracking-[0.18em] text-muted">
+            Self scope active
+          </p>
+          <h4 className="mt-3 text-2xl font-semibold text-foreground">
+            Team leave approvals are not available at your current business-unit access level.
+          </h4>
+          <p className="mt-3 text-muted">
+            Your access is scoped to your own records only.
+          </p>
+        </section>
+      </main>
+    );
+  }
+
   let requests: LeaveRequestRecord[] = [];
   let accessDenied = false;
 

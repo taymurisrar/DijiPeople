@@ -30,7 +30,7 @@ const currencies: CurrencyOption[] = [
   { code: "QAR", label: "Qatari Riyal", symbol: "QAR ", flag: "🇶🇦", monthlyRate: 3.64 },
 ];
 
-const baseMonthlyPrices = {
+const baseMONTHLYPrices = {
   Starter: 200,
   Growth: 400,
   Enterprise: 800,
@@ -95,23 +95,23 @@ export function PlansSection() {
 
   function getPlanPrice(planName: string) {
     const basePrice =
-      baseMonthlyPrices[planName as keyof typeof baseMonthlyPrices] ?? 200;
+      baseMONTHLYPrices[planName as keyof typeof baseMONTHLYPrices] ?? 200;
 
-    const convertedMonthly = basePrice * selectedCurrency.monthlyRate;
+    const convertedMONTHLY = basePrice * selectedCurrency.monthlyRate;
 
     if (billing === "monthly") {
       return {
-        primary: formatPrice(convertedMonthly),
+        primary: formatPrice(convertedMONTHLY),
         secondary: "/month",
         helper: "Billed monthly",
       };
     }
 
-    const discountedMonthly = convertedMonthly * (1 - annualDiscount);
-    const annualTotal = discountedMonthly * 12;
+    const discountedMONTHLY = convertedMONTHLY * (1 - annualDiscount);
+    const annualTotal = discountedMONTHLY * 12;
 
     return {
-      primary: formatPrice(discountedMonthly),
+      primary: formatPrice(discountedMONTHLY),
       secondary: "/month",
       helper: `${formatPrice(annualTotal)} billed annually`,
     };
@@ -317,7 +317,7 @@ function BillingToggle({
             : "text-muted hover:text-foreground",
         ].join(" ")}
       >
-        Monthly
+        MONTHLY
       </button>
 
       <button
@@ -330,7 +330,7 @@ function BillingToggle({
             : "text-muted hover:text-foreground",
         ].join(" ")}
       >
-        <span>Annual</span>
+        <span>ANNUAL</span>
       </button>
 
       <span className="ml-1 rounded-full bg-accent-soft px-2.5 py-1 text-[11px] font-semibold text-accent">

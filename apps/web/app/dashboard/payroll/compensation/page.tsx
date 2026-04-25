@@ -1,10 +1,28 @@
 import { apiRequestJson } from "@/lib/server-api";
 import { EmployeeListResponse } from "@/app/dashboard/employees/types";
+import { AccessDeniedState } from "../../_components/access-denied-state";
+import { getBusinessUnitAccessSummary, hasBusinessUnitScope } from "../../_lib/business-unit-access";
 import { PayrollLayoutShell } from "../_components/payroll-layout-shell";
 import { EmployeeCompensationForm } from "../_components/employee-compensation-form";
 import { EmployeeCompensationRecord } from "../types";
 
 export default async function EmployeeCompensationPage() {
+  const businessUnitAccess = await getBusinessUnitAccessSummary();
+
+  if (!hasBusinessUnitScope(businessUnitAccess)) {
+    return (
+      <PayrollLayoutShell
+        description="Compensation records require business-unit scoped access."
+        title="Employee Compensation"
+      >
+        <AccessDeniedState
+          description="Your current business-unit scope does not include compensation records."
+          title="Compensation is unavailable for your current business unit access."
+        />
+      </PayrollLayoutShell>
+    );
+  }
+
   const [compensations, employees] = await Promise.all([
     apiRequestJson<EmployeeCompensationRecord[]>("/payroll/compensations"),
     apiRequestJson<EmployeeListResponse>("/employees?pageSize=100"),
@@ -71,4 +89,3 @@ export default async function EmployeeCompensationPage() {
     </PayrollLayoutShell>
   );
 }
-

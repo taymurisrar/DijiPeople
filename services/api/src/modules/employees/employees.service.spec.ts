@@ -89,7 +89,7 @@ describe('EmployeesService', () => {
       dateOfBirth: null,
       gender: null,
       maritalStatus: null,
-      employmentStatus: 'ACTIVE',
+      employmentStatus: 'Active',
       hireDate: new Date(),
       terminationDate: null,
       departmentId: null,

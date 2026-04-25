@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { apiRequestJson } from "@/lib/server-api";
+import { ApiRequestError, apiRequestJson } from "@/lib/server-api";
+import { AccessDeniedState } from "@/app/dashboard/_components/access-denied-state";
 import {
   EmployeeListResponse,
   EmployeeProfile,
@@ -18,10 +19,31 @@ export default async function EmployeeDraftPage({
 }: EmployeeDraftPageProps) {
   const { employeeId } = await params;
 
-  const [employee, managers] = await Promise.all([
-    apiRequestJson<EmployeeProfile>(`/employees/${employeeId}`),
-    apiRequestJson<EmployeeListResponse>("/employees?pageSize=100"),
-  ]);
+  let employee: EmployeeProfile;
+  let managers: EmployeeListResponse;
+
+  try {
+    [employee, managers] = await Promise.all([
+      apiRequestJson<EmployeeProfile>(`/employees/${employeeId}`),
+      apiRequestJson<EmployeeListResponse>("/employees?pageSize=100"),
+    ]);
+  } catch (error) {
+    if (
+      error instanceof ApiRequestError &&
+      (error.status === 403 || error.status === 404)
+    ) {
+      return (
+        <main className="grid gap-6">
+          <AccessDeniedState
+            description="This employee draft is outside your accessible business-unit scope."
+            title="You cannot view this employee draft."
+          />
+        </main>
+      );
+    }
+
+    throw error;
+  }
 
   if (!employee) {
     notFound();

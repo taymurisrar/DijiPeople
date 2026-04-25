@@ -17,39 +17,45 @@ export default async function CustomersPage({
 }) {
   const params = await searchParams;
   const query = new URLSearchParams();
-  for (const key of ["status", "subStatus", "industry", "accountManagerUserId", "selectedPlanId", "search", "page"]) {
+
+  for (const key of [
+    "status",
+    "subStatus",
+    "industry",
+    "accountManagerUserId",
+    "selectedPlanId",
+    "search",
+    "sortField",
+    "sortDirection",
+    "page",
+  ]) {
     const value = params[key];
+
     if (typeof value === "string" && value.length > 0) {
       query.set(key, value);
     }
   }
+
   query.set("pageSize", "50");
 
   const [customers, lifecycleOptions, operators, plans] = await Promise.all([
-    apiRequestJson<PaginatedResponse<CustomerRecord>>(`/super-admin/customers?${query.toString()}`),
+    apiRequestJson<PaginatedResponse<CustomerRecord>>(
+      `/super-admin/customers?${query.toString()}`,
+    ),
     apiRequestJson<LifecycleOptions>("/super-admin/lifecycle-options"),
     apiRequestJson<OperatorOption[]>("/super-admin/operators"),
     apiRequestJson<PlanOption[]>("/super-admin/plans"),
   ]);
 
   return (
-    <main className="space-y-6">
-      <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
-          Customer lifecycle
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold text-slate-950">Customers</h1>
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
-          Manage qualified business accounts separately from leads and tenants,
-          then move them into onboarding only when the commercial path is ready.
-        </p>
-      </section>
-
+    <main>
       <CustomerListManager
         currentFilters={{
           status: typeof params.status === "string" ? params.status : undefined,
-          subStatus: typeof params.subStatus === "string" ? params.subStatus : undefined,
-          industry: typeof params.industry === "string" ? params.industry : undefined,
+          subStatus:
+            typeof params.subStatus === "string" ? params.subStatus : undefined,
+          industry:
+            typeof params.industry === "string" ? params.industry : undefined,
           accountManagerUserId:
             typeof params.accountManagerUserId === "string"
               ? params.accountManagerUserId
@@ -59,6 +65,12 @@ export default async function CustomersPage({
               ? params.selectedPlanId
               : undefined,
           search: typeof params.search === "string" ? params.search : undefined,
+          sortField:
+            typeof params.sortField === "string" ? params.sortField : undefined,
+          sortDirection:
+            typeof params.sortDirection === "string"
+              ? params.sortDirection
+              : undefined,
         }}
         initialData={customers}
         lifecycleOptions={lifecycleOptions}

@@ -66,7 +66,7 @@ describe('AuthService', () => {
       tenantId: 'tenant-1',
       status: 'INVITED',
       tenant: {
-        status: 'ACTIVE',
+        status: 'Active',
       },
     });
 

@@ -4,7 +4,7 @@ export type JobOpeningStatus =
   | "ON_HOLD"
   | "CLOSED"
   | "FILLED"
-  | "CANCELLED";
+  | "Cancelled";
 
 export type RecruitmentStage =
   | "APPLIED"

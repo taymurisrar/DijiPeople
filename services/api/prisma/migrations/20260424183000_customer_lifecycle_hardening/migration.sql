@@ -47,7 +47,7 @@ SELECT
   COALESCE(t."name", 'Tenant ' || SUBSTRING(t."id" FROM 1 FOR 8)),
   COALESCE(owner_user."email", 'tenant-' || REPLACE(t."id", '-', '') || '@local.dijipeople'),
   'Unknown',
-  'ACTIVE',
+  'Active',
   NOW(),
   NOW()
 FROM "_tenant_customer_backfill" map

@@ -797,7 +797,7 @@ export class PlatformLifecycleService {
     await this.auditService.log({
       tenantId: actor.tenantId,
       actorUserId: actor.userId,
-      action: 'PLATFORM_CUSTOMER_ONBOARDING_UPDATED',
+      action: 'PLATFORM_CUSTOMER_Onboarding_UPDATED',
       entityType: 'CustomerOnboarding',
       entityId: onboardingId,
     });
@@ -824,7 +824,7 @@ export class PlatformLifecycleService {
     await this.auditService.log({
       tenantId: actor.tenantId,
       actorUserId: actor.userId,
-      action: 'PLATFORM_CUSTOMER_ONBOARDINGS_DELETED',
+      action: 'PLATFORM_CUSTOMER_OnboardingS_DELETED',
       entityType: 'CustomerOnboarding',
       entityId: 'bulk',
       afterSnapshot: { ids, count: result.count },
@@ -1137,7 +1137,7 @@ export class PlatformLifecycleService {
     await this.auditService.log({
       tenantId: actor.tenantId,
       actorUserId: actor.userId,
-      action: 'PLATFORM_TENANT_CREATED_FROM_ONBOARDING',
+      action: 'PLATFORM_TENANT_CREATED_FROM_Onboarding',
       entityType: 'CustomerOnboarding',
       entityId: onboardingId,
       afterSnapshot: { tenantId: provisioning.tenant.id },

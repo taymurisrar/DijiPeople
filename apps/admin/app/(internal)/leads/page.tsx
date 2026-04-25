@@ -4,7 +4,6 @@ import type {
   OperatorOption,
   PaginatedResponse,
   LeadRecord,
-  PlanOption,
 } from "@/app/_components/platform-lifecycle-types";
 import { apiRequestJson } from "@/lib/server-api";
 
@@ -38,13 +37,12 @@ export default async function LeadsPage({
 
   query.set("pageSize", "50");
 
-  const [leads, lifecycleOptions, operators, plans] = await Promise.all([
+  const [leads, lifecycleOptions, operators] = await Promise.all([
     apiRequestJson<PaginatedResponse<LeadRecord>>(
       `/super-admin/leads?${query.toString()}`
     ),
     apiRequestJson<LifecycleOptions>("/super-admin/lifecycle-options"),
     apiRequestJson<OperatorOption[]>("/super-admin/operators"),
-    apiRequestJson<PlanOption[]>("/super-admin/plans"),
   ]);
 
   return (

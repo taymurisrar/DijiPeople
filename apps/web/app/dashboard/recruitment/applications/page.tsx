@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { apiRequestJson } from "@/lib/server-api";
+import { AccessDeniedState } from "../../_components/access-denied-state";
+import { getBusinessUnitAccessSummary, hasBusinessUnitScope } from "../../_lib/business-unit-access";
 import { ApplicationForm } from "../_components/application-form";
 import { RecruitmentApplicationsBoard } from "../_components/recruitment-applications-board";
 import {
@@ -9,6 +11,19 @@ import {
 } from "../types";
 
 export default async function RecruitmentApplicationsPage() {
+  const businessUnitAccess = await getBusinessUnitAccessSummary();
+
+  if (!hasBusinessUnitScope(businessUnitAccess)) {
+    return (
+      <main className="grid gap-6">
+        <AccessDeniedState
+          description="Your current business-unit scope does not include recruitment applications."
+          title="Applications are unavailable for your current business unit access."
+        />
+      </main>
+    );
+  }
+
   const [applications, candidates, jobs] = await Promise.all([
     apiRequestJson<ApplicationListResponse>("/applications?pageSize=100"),
     apiRequestJson<CandidateListResponse>("/candidates?pageSize=100"),
@@ -50,7 +65,7 @@ export default async function RecruitmentApplicationsPage() {
       <ApplicationForm
         candidates={candidates.items}
         jobs={jobs.items.filter(
-          (job) => !["CLOSED", "FILLED", "CANCELLED"].includes(job.status),
+          (job) => !["CLOSED", "FILLED", "Cancelled"].includes(job.status),
         )}
       />
 

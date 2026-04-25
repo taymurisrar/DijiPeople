@@ -1,5 +1,5 @@
 export type EmployeeEmploymentStatus =
-  | "ACTIVE"
+  | "Active"
   | "PROBATION"
   | "NOTICE"
   | "TERMINATED";
@@ -19,7 +19,7 @@ export type EmployeeContractType =
   | "FREELANCE"
   | "TEMPORARY";
 
-export type PayrollStatus = "ACTIVE" | "ON_HOLD" | "STOPPED";
+export type PayrollStatus = "Active" | "ON_HOLD" | "STOPPED";
 
 export type PaymentMode = "BANK_TRANSFER" | "CASH" | "CHECK" | "OTHER";
 

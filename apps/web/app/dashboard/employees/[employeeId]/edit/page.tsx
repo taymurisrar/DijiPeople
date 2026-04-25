@@ -80,7 +80,7 @@ export default async function EditEmployeePage({
         : null,
     taxIdentifier: employee.taxIdentifier || "",
     provisionSystemAccess: Boolean(employee.user),
-    sendInvitationNow: employee.user?.status !== "ACTIVE",
+    sendInvitationNow: employee.user?.status !== "Active",
     initialRoleIds: employee.user?.roles.map((role) => role.id) ?? [],
     addressLine1: employee.addressLine1 || "",
     addressLine2: employee.addressLine2 || "",

@@ -95,7 +95,7 @@ export function LeavePoliciesForm({
       <div className="grid gap-4 rounded-[24px] border border-border bg-surface p-6 shadow-sm md:grid-cols-2">
         <Field label="Policy name" required value={form.name} onChange={(name) => setForm((current) => ({ ...current, name }))} />
         <SelectField label="Accrual type" options={accrualTypeOptions.map((value) => ({ label: formatLabel(value), value }))} value={form.accrualType} onChange={(accrualType) => setForm((current) => ({ ...current, accrualType: accrualType as LeaveAccrualType }))} />
-        <Field label="Annual entitlement" required type="number" value={form.annualEntitlement} onChange={(annualEntitlement) => setForm((current) => ({ ...current, annualEntitlement }))} />
+        <Field label="ANNUAL entitlement" required type="number" value={form.annualEntitlement} onChange={(annualEntitlement) => setForm((current) => ({ ...current, annualEntitlement }))} />
         <Field label="Carry forward limit" type="number" value={form.carryForwardLimit} onChange={(carryForwardLimit) => setForm((current) => ({ ...current, carryForwardLimit }))} />
         <Field label="Requires document after days" type="number" value={form.requiresDocumentAfterDays} onChange={(requiresDocumentAfterDays) => setForm((current) => ({ ...current, requiresDocumentAfterDays }))} />
         <SelectField label="Gender restriction" options={genderOptions.map((value) => ({ label: value ? formatLabel(value) : "No restriction", value }))} value={form.genderRestriction} onChange={(genderRestriction) => setForm((current) => ({ ...current, genderRestriction }))} />

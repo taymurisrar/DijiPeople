@@ -99,12 +99,12 @@ function main() {
                                                 where: { slug: config.tenantSlug },
                                                 update: {
                                                     name: config.tenantName,
-                                                    status: client_1.TenantStatus.ACTIVE,
+                                                    status: client_1.TenantStatus.Active,
                                                 },
                                                 create: {
                                                     name: config.tenantName,
                                                     slug: config.tenantSlug,
-                                                    status: client_1.TenantStatus.ACTIVE,
+                                                    status: client_1.TenantStatus.Active,
                                                 },
                                             })];
                                     case 2:
@@ -155,7 +155,7 @@ function main() {
                                                     firstName: config.firstName,
                                                     lastName: config.lastName,
                                                     passwordHash: passwordHash,
-                                                    status: client_1.UserStatus.ACTIVE,
+                                                    status: client_1.UserStatus.Active,
                                                     isServiceAccount: false,
                                                 },
                                                 create: {
@@ -164,7 +164,7 @@ function main() {
                                                     lastName: config.lastName,
                                                     email: config.email,
                                                     passwordHash: passwordHash,
-                                                    status: client_1.UserStatus.ACTIVE,
+                                                    status: client_1.UserStatus.Active,
                                                     isServiceAccount: false,
                                                 },
                                             })];

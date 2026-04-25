@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ApiRequestError, apiRequestJson } from "@/lib/server-api";
-import { TimesheetMonthlyEditor } from "./_components/timesheet-monthly-editor";
+import { AccessDeniedState } from "../_components/access-denied-state";
+import { getBusinessUnitAccessSummary, hasBusinessUnitScope } from "../_lib/business-unit-access";
+import { TimesheetMONTHLYEditor } from "./_components/timesheet-monthly-editor";
 import { TimesheetListResponse, TimesheetRecord } from "./types";
 
 type TimesheetsPageProps = {
@@ -10,6 +12,19 @@ type TimesheetsPageProps = {
 export default async function TimesheetsPage({
   searchParams,
 }: TimesheetsPageProps) {
+  const businessUnitAccess = await getBusinessUnitAccessSummary();
+
+  if (!hasBusinessUnitScope(businessUnitAccess)) {
+    return (
+      <main className="grid gap-6">
+        <AccessDeniedState
+          description="Your current business-unit scope does not include timesheet records."
+          title="Timesheets are unavailable for your current business unit access."
+        />
+      </main>
+    );
+  }
+
   const params = await searchParams;
   const now = new Date();
   const year = Number(getSearchParam(params.year) || now.getFullYear());
@@ -71,7 +86,7 @@ export default async function TimesheetsPage({
           <p className="mt-3 max-w-3xl text-muted">{unavailableMessage}</p>
         </section>
       ) : monthlyTimesheet ? (
-        <TimesheetMonthlyEditor timesheet={monthlyTimesheet} />
+        <TimesheetMONTHLYEditor timesheet={monthlyTimesheet} />
       ) : null}
 
       <section className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
@@ -120,7 +135,6 @@ export default async function TimesheetsPage({
 }
 
 function MonthSwitcher({ month, year }: { month: number; year: number }) {
-  const current = new Date(year, month - 1, 1);
   const prev = new Date(year, month - 2, 1);
   const next = new Date(year, month, 1);
 

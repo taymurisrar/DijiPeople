@@ -23,7 +23,7 @@ export function EmployeeCompensationCard({
     effectiveDate: compensation?.effectiveDate?.slice(0, 10) ?? "",
     endDate: compensation?.endDate?.slice(0, 10) ?? "",
     currency: compensation?.currency ?? "USD",
-    payrollStatus: compensation?.payrollStatus ?? "ACTIVE",
+    payrollStatus: compensation?.payrollStatus ?? "Active",
     payrollGroup: compensation?.payrollGroup ?? "",
     paymentMode: compensation?.paymentMode ?? "",
     bankName: compensation?.bankName ?? "",

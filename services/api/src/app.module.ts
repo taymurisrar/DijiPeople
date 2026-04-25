@@ -1,9 +1,11 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { MailerModule } from './common/mailer/mailer.module';
+import { BusinessUnitAccessMiddleware } from './common/middleware/business-unit-access.middleware';
 import { PrismaModule } from './common/prisma/prisma.module';
+import { RequestContextModule } from './common/request-context/request-context.module';
 import { StorageModule } from './common/storage/storage.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
 import { AuditModule } from './modules/audit/audit.module';
@@ -32,6 +34,7 @@ import { SuperAdminModule } from './modules/super-admin/super-admin.module';
     ConfigModule.forRoot({ isGlobal: true }),
     MailerModule,
     PrismaModule,
+    RequestContextModule,
     StorageModule,
     AttendanceModule,
     AuditModule,
@@ -56,6 +59,10 @@ import { SuperAdminModule } from './modules/super-admin/super-admin.module';
     PermissionsModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, BusinessUnitAccessMiddleware],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(BusinessUnitAccessMiddleware).forRoutes('*');
+  }
+}

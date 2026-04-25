@@ -1,8 +1,8 @@
 -- CreateEnum
-CREATE TYPE "LeaveRequestStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED');
+CREATE TYPE "LeaveRequestStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED', 'Cancelled');
 
 -- CreateEnum
-CREATE TYPE "LeaveApprovalStepStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED', 'SKIPPED', 'CANCELLED');
+CREATE TYPE "LeaveApprovalStepStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED', 'SKIPPED', 'Cancelled');
 
 -- CreateEnum
 CREATE TYPE "ApprovalActorType" AS ENUM ('MANAGER', 'HR');

@@ -7,7 +7,7 @@ type EditableRow = TimesheetDayRecord & {
   uiNote: string;
 };
 
-export function TimesheetMonthlyGrid({
+export function TimesheetMONTHLYGrid({
   editable = false,
   invalidDates = [],
   onEntryTypeChange,

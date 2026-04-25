@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { apiRequestJson } from "@/lib/server-api";
+import { AccessDeniedState } from "../_components/access-denied-state";
+import { getBusinessUnitAccessSummary, hasBusinessUnitScope } from "../_lib/business-unit-access";
 import { CandidateListResponse } from "../recruitment/types";
 import { OnboardingStartForm } from "./_components/onboarding-start-form";
 import { OnboardingStatusBadge } from "./_components/onboarding-status-badge";
@@ -9,6 +11,19 @@ import {
 } from "./types";
 
 export default async function OnboardingPage() {
+  const businessUnitAccess = await getBusinessUnitAccessSummary();
+
+  if (!hasBusinessUnitScope(businessUnitAccess)) {
+    return (
+      <main className="grid gap-6">
+        <AccessDeniedState
+          description="Your current business-unit scope does not include onboarding records."
+          title="Onboarding is unavailable for your current business unit access."
+        />
+      </main>
+    );
+  }
+
   const [onboardings, candidates, templates] = await Promise.all([
     apiRequestJson<OnboardingListResponse>("/onboarding?pageSize=50"),
     apiRequestJson<CandidateListResponse>("/candidates?pageSize=100"),

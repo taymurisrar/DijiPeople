@@ -9,6 +9,110 @@ type PrismaDb = PrismaService | Prisma.TransactionClient;
 export class OrganizationRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  findOrganizations(tenantId: string, db: PrismaDb = this.prisma) {
+    return db.organization.findMany({
+      where: { tenantId },
+      orderBy: [{ createdAt: 'asc' }, { name: 'asc' }],
+    });
+  }
+
+  findOrganizationById(tenantId: string, id: string, db: PrismaDb = this.prisma) {
+    return db.organization.findFirst({
+      where: { tenantId, id },
+    });
+  }
+
+  createOrganization(
+    data: Prisma.OrganizationUncheckedCreateInput,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.organization.create({ data });
+  }
+
+  updateOrganization(
+    tenantId: string,
+    id: string,
+    data: Prisma.OrganizationUncheckedUpdateInput,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.organization.updateMany({
+      where: { tenantId, id },
+      data,
+    });
+  }
+
+  deleteOrganization(tenantId: string, id: string, db: PrismaDb = this.prisma) {
+    return db.organization.deleteMany({
+      where: { tenantId, id },
+    });
+  }
+
+  countOrganizationChildren(tenantId: string, id: string, db: PrismaDb = this.prisma) {
+    return db.organization.count({
+      where: { tenantId, parentOrganizationId: id },
+    });
+  }
+
+  countOrganizationBusinessUnits(
+    tenantId: string,
+    id: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.businessUnit.count({
+      where: { tenantId, organizationId: id },
+    });
+  }
+
+  findBusinessUnits(tenantId: string, db: PrismaDb = this.prisma) {
+    return db.businessUnit.findMany({
+      where: { tenantId },
+      orderBy: [{ createdAt: 'asc' }, { name: 'asc' }],
+    });
+  }
+
+  findBusinessUnitById(tenantId: string, id: string, db: PrismaDb = this.prisma) {
+    return db.businessUnit.findFirst({
+      where: { tenantId, id },
+    });
+  }
+
+  createBusinessUnit(
+    data: Prisma.BusinessUnitUncheckedCreateInput,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.businessUnit.create({ data });
+  }
+
+  updateBusinessUnit(
+    tenantId: string,
+    id: string,
+    data: Prisma.BusinessUnitUncheckedUpdateInput,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.businessUnit.updateMany({
+      where: { tenantId, id },
+      data,
+    });
+  }
+
+  deleteBusinessUnit(tenantId: string, id: string, db: PrismaDb = this.prisma) {
+    return db.businessUnit.deleteMany({
+      where: { tenantId, id },
+    });
+  }
+
+  countBusinessUnitChildren(tenantId: string, id: string, db: PrismaDb = this.prisma) {
+    return db.businessUnit.count({
+      where: { tenantId, parentBusinessUnitId: id },
+    });
+  }
+
+  countBusinessUnitUsers(tenantId: string, id: string, db: PrismaDb = this.prisma) {
+    return db.user.count({
+      where: { tenantId, businessUnitId: id },
+    });
+  }
+
   findDepartments(tenantId: string, query: ListMasterDataDto, db: PrismaDb = this.prisma) {
     return db.department.findMany({
       where: buildMasterDataWhere(tenantId, query, ['name', 'code', 'description']),

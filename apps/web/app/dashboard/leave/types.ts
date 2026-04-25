@@ -2,7 +2,7 @@ export type LeaveRequestStatus =
   | "PENDING"
   | "APPROVED"
   | "REJECTED"
-  | "CANCELLED";
+  | "Cancelled";
 
 export type ApprovalActorType = "MANAGER" | "HR";
 

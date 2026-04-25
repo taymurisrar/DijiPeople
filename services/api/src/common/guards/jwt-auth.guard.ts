@@ -60,12 +60,16 @@ export class JwtAuthGuard implements CanActivate {
         },
       });
 
+      const tenantStatus = user?.tenant?.status
+        ? String(user.tenant.status).toUpperCase()
+        : null;
+
       if (
         !user ||
         user.tenantId !== payload.tenantId ||
         user.status !== 'ACTIVE' ||
         !user.tenant ||
-        !['ACTIVE', 'ONBOARDING'].includes(user.tenant.status)
+        !['ACTIVE', 'ONBOARDING'].includes(tenantStatus ?? '')
       ) {
         throw new UnauthorizedException('This account is not active.');
       }

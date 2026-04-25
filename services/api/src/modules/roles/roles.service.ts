@@ -5,6 +5,7 @@ import {
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
+import { RoleAccessLevel } from '@prisma/client';
 import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { AuditService } from '../audit/audit.service';
 import { PermissionsService } from '../permissions/permissions.service';
@@ -65,6 +66,7 @@ export class RolesService {
       tenantId: currentUser.tenantId,
       name: dto.name.trim(),
       key: dto.key.trim().toLowerCase(),
+      accessLevel: dto.accessLevel ?? RoleAccessLevel.USER,
       description: dto.description?.trim(),
       createdById: currentUser.userId,
       updatedById: currentUser.userId,
@@ -158,6 +160,7 @@ export class RolesService {
     await this.rolesRepository.update(roleId, {
       name: dto.name.trim(),
       description: dto.description?.trim() || null,
+      ...(dto.accessLevel ? { accessLevel: dto.accessLevel } : {}),
       updatedById: currentUser.userId,
     });
 
@@ -232,6 +235,7 @@ export class RolesService {
       name: role.name,
       key: role.key,
       description: role.description,
+      accessLevel: role.accessLevel,
       isSystem: role.isSystem,
       userCount: role.userRoles.length,
       permissionKeys: role.rolePermissions.map((item) => item.permission.key),

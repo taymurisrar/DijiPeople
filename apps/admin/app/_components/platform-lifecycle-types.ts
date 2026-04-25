@@ -1,22 +1,22 @@
+import type { BillingCycleValue } from "@/lib/domain";
+
 export type SelectOption = {
   value: string;
   label: string;
 };
 
+type LifecycleStatusGroup = {
+  statuses: string[];
+  subStatuses: Record<string, string[]>;
+};
+
 export type LifecycleOptions = {
-  lead: {
-    statuses: string[];
-    subStatuses: Record<string, string[]>;
+  onboarding?: LifecycleStatusGroup;
+  lead: LifecycleStatusGroup & {
     sources: SelectOption[];
   };
-  customer: {
-    statuses: string[];
-    subStatuses: Record<string, string[]>;
-  };
-  customerOnboarding: {
-    statuses: string[];
-    subStatuses: Record<string, string[]>;
-  };
+  customer: LifecycleStatusGroup;
+  customerOnboarding: LifecycleStatusGroup;
   industries: SelectOption[];
   companySizes: SelectOption[];
 };
@@ -87,6 +87,7 @@ export type CustomerRecord = {
   industry?: string | null;
   companySize?: string | null;
   country: string;
+  preferredBillingCycle?: string | null;
   status: string;
   subStatus?: string | null;
   leadId?: string | null;
@@ -201,8 +202,9 @@ export type CustomerOnboardingRecord = {
   customerId: string;
   status: string;
   subStatus?: string | null;
+  onboardingOwnerUserId?: string | null;
   selectedPlanId?: string | null;
-  billingCycle?: string | null;
+  billingCycle?: BillingCycleValue | string | null;
   primaryOwnerFirstName: string;
   primaryOwnerLastName: string;
   primaryOwnerWorkEmail: string;
@@ -217,6 +219,13 @@ export type CustomerOnboardingRecord = {
   tenantCreated: boolean;
   notes?: string | null;
   customer: {
+    selectedPlan?: { id: string; key: string; name: string } | null;
+    primaryContactFirstName?: string | null;
+    primaryContactLastName?: string | null;
+    primaryContactEmail?: string | null;
+    primaryContactPhone?: string | null;
+    industry: string;
+    companySize: string;
     id: string;
     companyName: string;
     status: string;

@@ -61,7 +61,7 @@ export type TimesheetWithRelations = Prisma.TimesheetGetPayload<{
 export class TimesheetsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  findMonthlyTimesheet(
+  findMONTHLYTimesheet(
     tenantId: string,
     employeeId: string,
     year: number,
@@ -101,11 +101,17 @@ export class TimesheetsRepository {
     data: Prisma.TimesheetUncheckedUpdateInput,
     db: PrismaDb = this.prisma,
   ) {
-    return db.timesheet.update({
-      where: { id, tenantId },
-      data,
-      include: timesheetInclude,
-    });
+    return db.timesheet
+      .updateMany({
+        where: { id, tenantId },
+        data,
+      })
+      .then(() =>
+        db.timesheet.findFirst({
+          where: { id, tenantId },
+          include: timesheetInclude,
+        }),
+      );
   }
 
   findEntryByDate(
@@ -139,10 +145,16 @@ export class TimesheetsRepository {
     data: Prisma.TimesheetEntryUncheckedUpdateInput,
     db: PrismaDb = this.prisma,
   ) {
-    return db.timesheetEntry.update({
-      where: { id, tenantId },
-      data,
-    });
+    return db.timesheetEntry
+      .updateMany({
+        where: { id, tenantId },
+        data,
+      })
+      .then(() =>
+        db.timesheetEntry.findFirst({
+          where: { id, tenantId },
+        }),
+      );
   }
 
   findApprovedLeaveRequestsForMonth(

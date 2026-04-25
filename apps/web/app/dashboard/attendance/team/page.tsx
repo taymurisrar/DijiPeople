@@ -1,5 +1,6 @@
 import { ApiRequestError, apiRequestJson } from "@/lib/server-api";
 import { getSessionUser } from "@/lib/auth";
+import { getBusinessUnitAccessSummary, shouldEnforceSelfScope } from "../../_lib/business-unit-access";
 import { EmployeeListResponse } from "../../employees/types";
 import { AttendanceEntriesTable } from "../_components/attendance-entries-table";
 import { AttendanceFilterBar } from "../_components/attendance-filter-bar";
@@ -27,6 +28,26 @@ type TeamAttendancePageProps = {
 export default async function TeamAttendancePage({
   searchParams,
 }: TeamAttendancePageProps) {
+  const businessUnitAccess = await getBusinessUnitAccessSummary();
+
+  if (shouldEnforceSelfScope(businessUnitAccess)) {
+    return (
+      <main className="grid gap-6">
+        <section className="rounded-[24px] border border-dashed border-border bg-surface p-10 text-center shadow-sm">
+          <p className="text-sm uppercase tracking-[0.18em] text-muted">
+            Self scope active
+          </p>
+          <h3 className="mt-3 text-3xl font-semibold text-foreground">
+            Team attendance is not available at your current business-unit access level.
+          </h3>
+          <p className="mt-3 text-muted">
+            Your access is scoped to your own records only.
+          </p>
+        </section>
+      </main>
+    );
+  }
+
   const user = await getSessionUser();
   const params = normalizeSearchParams(await searchParams);
   const view = parseAttendanceView(params.view);

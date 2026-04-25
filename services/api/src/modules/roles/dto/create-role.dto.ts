@@ -1,10 +1,12 @@
 import {
   ArrayUnique,
   IsArray,
+  IsEnum,
   IsOptional,
   IsString,
   MaxLength,
 } from 'class-validator';
+import { RoleAccessLevel } from '@prisma/client';
 
 export class CreateRoleDto {
   @IsString()
@@ -25,4 +27,8 @@ export class CreateRoleDto {
   @ArrayUnique()
   @IsString({ each: true })
   permissionIds?: string[];
+
+  @IsOptional()
+  @IsEnum(RoleAccessLevel)
+  accessLevel?: RoleAccessLevel;
 }

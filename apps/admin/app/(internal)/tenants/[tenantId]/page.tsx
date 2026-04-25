@@ -6,13 +6,15 @@ import { TenantFeatureForm } from "@/app/_components/tenant-feature-form";
 import { TenantOwnerActions } from "@/app/_components/tenant-owner-actions";
 import { TenantStatusBadge } from "@/app/_components/tenant-status-badge";
 import { TenantStatusForm } from "@/app/_components/tenant-status-form";
+import type { BillingCycleValue, SubscriptionStatusValue, TenantStatusValue } from "@/lib/domain";
+import { formatBillingCycle, formatCurrency, formatDate } from "@/lib/formatters";
 import { apiRequestJson } from "@/lib/server-api";
 
 type TenantDetail = {
   id: string;
   name: string;
   slug: string;
-  status: "ONBOARDING" | "ACTIVE" | "SUSPENDED" | "CHURNED";
+  status: TenantStatusValue | string;
   createdAt: string;
   updatedAt: string;
   customerAccount: {
@@ -68,8 +70,8 @@ type TenantDetail = {
       key: string;
       name: string;
     };
-    status: "TRIALING" | "ACTIVE" | "PAST_DUE" | "CANCELLED";
-    billingCycle: "MONTHLY" | "ANNUAL";
+    status: SubscriptionStatusValue | string;
+    billingCycle: BillingCycleValue | string;
     basePrice: number;
     discountType: "NONE" | "PERCENTAGE" | "FLAT";
     discountValue: number;
@@ -108,13 +110,6 @@ type CustomerOption = {
 type SearchParams = Promise<{
   tab?: "overview" | "billing";
 }>;
-
-function formatDate(value: string | null | undefined) {
-  if (!value) return "Not available";
-  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(
-    new Date(value),
-  );
-}
 
 function getEnabledFeatures(features: TenantDetail["enabledFeatures"]) {
   return features.filter((feature) => feature.isEnabled);
@@ -404,10 +399,10 @@ export default async function TenantDetailPage({
               <dl className="mt-6 grid gap-4 sm:grid-cols-2">
                 <SummaryGridItem label="Plan" value={tenant.subscription.plan.name} />
                 <SummaryGridItem label="Status" value={<TenantStatusBadge value={tenant.subscription.status} />} />
-                <SummaryGridItem label="Billing cycle" value={toTitleCase(tenant.subscription.billingCycle)} />
+                <SummaryGridItem label="Billing cycle" value={formatBillingCycle(tenant.subscription.billingCycle)} />
                 <SummaryGridItem label="Currency" value={tenant.subscription.currency} />
-                <SummaryGridItem label="Base price" value={`${tenant.subscription.currency} ${tenant.subscription.basePrice.toFixed(2)}`} />
-                <SummaryGridItem label="Final price" value={`${tenant.subscription.currency} ${tenant.subscription.finalPrice.toFixed(2)}`} />
+                <SummaryGridItem label="Base price" value={formatCurrency(tenant.subscription.basePrice, tenant.subscription.currency)} />
+                <SummaryGridItem label="Final price" value={formatCurrency(tenant.subscription.finalPrice, tenant.subscription.currency)} />
               </dl>
             ) : (
               <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm text-slate-600">
@@ -496,10 +491,3 @@ function SummaryGridItem({
   );
 }
 
-function toTitleCase(value: string) {
-  return value
-    .toLowerCase()
-    .split("_")
-    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
-    .join(" ");
-}

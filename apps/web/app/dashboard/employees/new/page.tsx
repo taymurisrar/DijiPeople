@@ -1,5 +1,7 @@
 import { apiRequestJson } from "@/lib/server-api";
 import { getSessionUser } from "@/lib/auth";
+import { AccessDeniedState } from "../../_components/access-denied-state";
+import { getBusinessUnitAccessSummary, hasBusinessUnitScope } from "../../_lib/business-unit-access";
 import { EmployeeForm } from "../_components/employee-form";
 import {
   EmployeeFormValues,
@@ -9,6 +11,19 @@ import {
 import { TenantResolvedSettingsResponse } from "../../settings/types";
 
 export default async function NewEmployeePage() {
+  const businessUnitAccess = await getBusinessUnitAccessSummary();
+
+  if (!hasBusinessUnitScope(businessUnitAccess)) {
+    return (
+      <main className="grid gap-6">
+        <AccessDeniedState
+          description="Your current business-unit scope does not allow employee creation."
+          title="Create employee is unavailable for your current business unit access."
+        />
+      </main>
+    );
+  }
+
   const sessionUser = await getSessionUser();
   const canManageAccess = Boolean(
     sessionUser?.permissionKeys.includes("users.create") &&
@@ -47,7 +62,7 @@ export default async function NewEmployeePage() {
     bloodGroup: "",
     employmentStatus:
       (resolvedSettings?.employee.defaultEmployeeStatus as EmployeeFormValues["employmentStatus"]) ||
-      "ACTIVE",
+      "Active",
     employeeType: resolvedSettings?.employee.defaultEmploymentType || "",
     workMode: resolvedSettings?.employee.defaultWorkMode || "",
     contractType: "",

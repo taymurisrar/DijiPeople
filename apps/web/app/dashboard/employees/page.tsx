@@ -4,6 +4,8 @@ import { getSessionUser } from "@/lib/auth";
 import { hasPermission, isSelfServiceUser } from "@/lib/permissions";
 import { apiRequestJson } from "@/lib/server-api";
 import { Button } from "@/app/components/ui/button";
+import { AccessDeniedState } from "../_components/access-denied-state";
+import { getBusinessUnitAccessSummary, hasBusinessUnitScope } from "../_lib/business-unit-access";
 import { EmployeeListResponse } from "./types";
 import { TenantResolvedSettingsResponse } from "../settings/types";
 import { EmployeesTable } from "./_components/employees-table";
@@ -16,6 +18,19 @@ type EmployeesPageProps = {
 export default async function EmployeesPage({
   searchParams,
 }: EmployeesPageProps) {
+  const businessUnitAccess = await getBusinessUnitAccessSummary();
+
+  if (!hasBusinessUnitScope(businessUnitAccess)) {
+    return (
+      <main className="grid gap-6">
+        <AccessDeniedState
+          description="Your current business-unit scope does not include employee records."
+          title="Employees are unavailable for your current business unit access."
+        />
+      </main>
+    );
+  }
+
   const user = await getSessionUser();
   const canCreateEmployee = hasPermission(user?.permissionKeys, "employees.create");
 
