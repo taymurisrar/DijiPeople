@@ -45,7 +45,6 @@ async function clearAuthCookies() {
     cookieStore.set(cookieName, "", baseOptions);
   }
 
-  // Clear potential domain-scoped localhost cookies left from previous auth flows.
   if (!useSecureCookies) {
     for (const cookieName of cookieNames) {
       cookieStore.set(cookieName, "", {

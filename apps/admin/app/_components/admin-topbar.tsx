@@ -70,13 +70,11 @@ export function AdminTopbar({
           />
         </div>
 
-        {/* NOTIFICATIONS */}
         <button className="relative inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 text-slate-700 transition hover:bg-slate-50">
           <Bell className="h-4 w-4" />
           <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500" />
         </button>
 
-        {/* USER MENU */}
         <div className="relative">
           <button
             onClick={() => setMenuOpen((prev) => !prev)}

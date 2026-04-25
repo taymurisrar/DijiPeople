@@ -1,28 +1,29 @@
 import { SettingsFormCard } from "@/app/_components/settings/settings-form-card";
 import { SettingsShell } from "@/app/_components/settings/settings-shell";
 
-export default async function LeadDefinitionsPage() {
+export default async function EmailProviderSettingsPage() {
   return (
     <SettingsShell
-      title="Lead definitions"
-      description="Configure lead statuses, sources, qualification rules, and pipeline defaults."
+      title="Email provider"
+      description="Configure SMTP delivery, sender identity, email templates, and system notification behavior."
     >
-      <SettingsFormCard title="Lead lifecycle">
+      <SettingsFormCard title="SMTP settings">
         <div className="grid gap-4 md:grid-cols-2">
-          <Field label="Default lead status" value="New" />
-          <Field label="Qualified status" value="Qualified" />
-          <Field label="Disqualified status" value="Disqualified" />
-          <Field label="Default lead owner rule" value="Manual assignment" />
+          <Field label="SMTP host" value="smtp.example.com" />
+          <Field label="SMTP port" value="587" />
+          <Field label="SMTP username" value="notifications@dijipeople.com" />
+          <Field label="Sender email" value="no-reply@dijipeople.com" />
+          <Field label="Sender name" value="DijiPeople" />
+          <Field label="Delivery mode" value="Production" />
         </div>
       </SettingsFormCard>
 
-      <SettingsFormCard title="Lead sources">
-        <div className="grid gap-3 md:grid-cols-2">
-          {["Website", "Referral", "Upwork", "LinkedIn", "Manual", "Partner"].map(
-            (source) => (
-              <Toggle key={source} label={source} defaultChecked />
-            ),
-          )}
+      <SettingsFormCard title="Email controls">
+        <div className="space-y-3">
+          <Toggle label="Send account activation emails" defaultChecked />
+          <Toggle label="Send password reset emails" defaultChecked />
+          <Toggle label="Send billing notification emails" defaultChecked />
+          <Toggle label="Send onboarding notification emails" defaultChecked />
         </div>
       </SettingsFormCard>
     </SettingsShell>

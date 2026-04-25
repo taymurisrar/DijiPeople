@@ -1,28 +1,27 @@
 import { SettingsFormCard } from "@/app/_components/settings/settings-form-card";
 import { SettingsShell } from "@/app/_components/settings/settings-shell";
 
-export default async function LeadDefinitionsPage() {
+export default async function OnboardingDefinitionsPage() {
   return (
     <SettingsShell
-      title="Lead definitions"
-      description="Configure lead statuses, sources, qualification rules, and pipeline defaults."
+      title="Onboarding definitions"
+      description="Configure onboarding statuses, checklist behavior, and tenant readiness rules."
     >
-      <SettingsFormCard title="Lead lifecycle">
+      <SettingsFormCard title="Onboarding lifecycle">
         <div className="grid gap-4 md:grid-cols-2">
-          <Field label="Default lead status" value="New" />
-          <Field label="Qualified status" value="Qualified" />
-          <Field label="Disqualified status" value="Disqualified" />
-          <Field label="Default lead owner rule" value="Manual assignment" />
+          <Field label="Default onboarding status" value="Draft" />
+          <Field label="In-progress status" value="In progress" />
+          <Field label="Completed status" value="Completed" />
+          <Field label="Cancelled status" value="Cancelled" />
         </div>
       </SettingsFormCard>
 
-      <SettingsFormCard title="Lead sources">
-        <div className="grid gap-3 md:grid-cols-2">
-          {["Website", "Referral", "Upwork", "LinkedIn", "Manual", "Partner"].map(
-            (source) => (
-              <Toggle key={source} label={source} defaultChecked />
-            ),
-          )}
+      <SettingsFormCard title="Tenant readiness">
+        <div className="space-y-3">
+          <Toggle label="Require completed checklist before tenant activation" defaultChecked />
+          <Toggle label="Create tenant only after onboarding approval" defaultChecked />
+          <Toggle label="Allow onboarding notes" defaultChecked />
+          <Toggle label="Allow onboarding document attachments" defaultChecked />
         </div>
       </SettingsFormCard>
     </SettingsShell>

@@ -38,16 +38,38 @@ type ParsedDraft = {
   relocationHint?: string;
 };
 
-type ParseStatus = "idle" | "uploading" | "extracting" | "parsing" | "success" | "error";
+type ParseStatus =
+  | "idle"
+  | "uploading"
+  | "extracting"
+  | "parsing"
+  | "success"
+  | "error";
+
+type FieldConfidence = {
+  fullName?: number;
+  email?: number;
+  phone?: number;
+  skills?: number;
+  education?: number;
+  experience?: number;
+  location?: number;
+  designation?: number;
+  employer?: number;
+  totalExperience?: number;
+};
 
 type ParseUploadResponse = {
   fileName: string;
   fileType: "pdf" | "docx";
   extractedTextPreview?: string;
+  extractedTextFull?: string;
+  extractedTextPages?: string[];
   warnings?: string[];
   parserMetadata?: {
     parserVersion?: string;
     extractionConfidence?: number;
+    fieldConfidence?: FieldConfidence;
   };
   candidateDraft: ParsedDraft;
   message?: string;
@@ -60,27 +82,44 @@ const acceptedTypes = [
 
 const acceptedExtensions = [".pdf", ".docx"];
 
+const isParsingStatus = (status: ParseStatus) =>
+  status === "uploading" || status === "extracting" || status === "parsing";
+
 export function CvUploadParseFlow({
   countries,
   documentTypes,
+  documentCategories,
 }: {
   countries: LookupOption[];
   documentTypes: SharedLookupOption[];
+  documentCategories: SharedLookupOption[];
 }) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
-  const [parserVersion, setParserVersion] = useState<string>("");
-  const [extractionConfidence, setExtractionConfidence] = useState<number | null>(null);
+
+  const [parserVersion, setParserVersion] = useState("");
+  const [extractionConfidence, setExtractionConfidence] = useState<number | null>(
+    null,
+  );
+  const [fieldConfidence, setFieldConfidence] = useState<FieldConfidence>({});
+
   const [parseStatus, setParseStatus] = useState<ParseStatus>("idle");
   const [parsedDraft, setParsedDraft] = useState<ParsedDraft | null>(null);
+
   const [rawPreview, setRawPreview] = useState("");
+  const [previewPages, setPreviewPages] = useState<string[]>([]);
+  const [activePreviewPage, setActivePreviewPage] = useState(0);
+  const [copySuccess, setCopySuccess] = useState("");
+
   const [source, setSource] = useState("LinkedIn");
   const [selectedCountryId, setSelectedCountryId] = useState("");
 
@@ -89,43 +128,79 @@ export function CvUploadParseFlow({
       return "";
     }
 
-    const resumeType = documentTypes.find((item) =>
-      item.name.toLowerCase().includes("resume") ||
-      item.name.toLowerCase().includes("cv"),
+    const resumeType = documentTypes.find(
+      (item) =>
+        item.name.toLowerCase().includes("resume") ||
+        item.name.toLowerCase().includes("cv"),
     );
 
     return resumeType?.id ?? documentTypes[0].id;
   }, [documentTypes]);
 
+  const resumeDocumentCategoryId = useMemo(() => {
+    if (documentCategories.length === 0) {
+      return "";
+    }
+
+    const resumeCategory = documentCategories.find((item) => {
+      const name = item.name.toLowerCase();
+      return (
+        name.includes("resume") ||
+        name.includes("cv") ||
+        name.includes("candidate")
+      );
+    });
+
+    return resumeCategory?.id ?? documentCategories[0].id;
+  }, [documentCategories]);
+
   const parseStatusLabel = useMemo(() => {
-    if (parseStatus === "uploading") {
-      return "Uploading resume...";
-    }
-    if (parseStatus === "extracting") {
-      return "Extracting readable content...";
-    }
-    if (parseStatus === "parsing") {
-      return "Parsing candidate fields...";
-    }
-    if (parseStatus === "success") {
-      return "Resume parsed successfully.";
-    }
+    if (parseStatus === "uploading") return "Uploading resume...";
+    if (parseStatus === "extracting") return "Extracting readable content...";
+    if (parseStatus === "parsing") return "Parsing candidate fields...";
+    if (parseStatus === "success") return "Resume parsed successfully.";
+    if (parseStatus === "error") return "Resume parsing failed.";
     return null;
   }, [parseStatus]);
+
+  const scoreLabel = useMemo(() => {
+    if (extractionConfidence === null) {
+      return "";
+    }
+
+    if (extractionConfidence >= 80) {
+      return "Strong parse. Quick review should be enough.";
+    }
+
+    if (extractionConfidence >= 60) {
+      return "Medium parse. Review weak fields before saving.";
+    }
+
+    return "Low parse. Manual review is recommended.";
+  }, [extractionConfidence]);
 
   function triggerFilePicker() {
     fileInputRef.current?.click();
   }
 
-  function setFile(file: File | null) {
+  function resetParseState() {
     setError(null);
     setSuccess(null);
     setWarnings([]);
     setParserVersion("");
     setExtractionConfidence(null);
+    setFieldConfidence({});
     setParseStatus("idle");
     setParsedDraft(null);
     setRawPreview("");
+    setPreviewPages([]);
+    setActivePreviewPage(0);
+    setCopySuccess("");
+    setUploadProgress(0);
+  }
+
+  function setFile(file: File | null) {
+    resetParseState();
 
     if (!file) {
       setSelectedFile(null);
@@ -139,6 +214,7 @@ export function CvUploadParseFlow({
       );
 
     if (!isAllowedType) {
+      setSelectedFile(null);
       setError("Unsupported file type. Please upload a PDF or DOCX resume.");
       return;
     }
@@ -162,10 +238,17 @@ export function CvUploadParseFlow({
     setError(null);
     setSuccess(null);
     setWarnings([]);
+    setFieldConfidence({});
+    setCopySuccess("");
     setParseStatus("uploading");
 
-    const progressStates: Array<ParseStatus> = ["uploading", "extracting", "parsing"];
+    const progressStates: Array<ParseStatus> = [
+      "uploading",
+      "extracting",
+      "parsing",
+    ];
     let stateCursor = 0;
+
     const statusInterval = window.setInterval(() => {
       stateCursor = Math.min(stateCursor + 1, progressStates.length - 1);
       setParseStatus(progressStates[stateCursor]);
@@ -180,7 +263,9 @@ export function CvUploadParseFlow({
         body: formData,
       });
 
-      const payload = (await response.json()) as ParseUploadResponse | { message?: string };
+      const payload = (await response.json()) as
+        | ParseUploadResponse
+        | { message?: string };
 
       if (!response.ok || !("candidateDraft" in payload)) {
         throw new Error(
@@ -192,35 +277,77 @@ export function CvUploadParseFlow({
       setParsedDraft({
         ...payload.candidateDraft,
         firstName: payload.candidateDraft.firstName || "",
+        middleName: payload.candidateDraft.middleName || "",
         lastName: payload.candidateDraft.lastName || "",
+        fullName: payload.candidateDraft.fullName || "",
         email: payload.candidateDraft.email || "",
+        emails: payload.candidateDraft.emails ?? [],
         phone: payload.candidateDraft.phone || "",
+        phones: payload.candidateDraft.phones ?? [],
+        linkedInUrl: payload.candidateDraft.linkedInUrl || "",
+        portfolioUrl: payload.candidateDraft.portfolioUrl || "",
+        githubUrl: payload.candidateDraft.githubUrl || "",
         city: payload.candidateDraft.city || "",
         stateProvince: payload.candidateDraft.stateProvince || "",
         country: payload.candidateDraft.country || "",
         currentEmployer: payload.candidateDraft.currentEmployer || "",
         currentDesignation: payload.candidateDraft.currentDesignation || "",
         totalYearsExperience: payload.candidateDraft.totalYearsExperience || "",
-        skills: payload.candidateDraft.skills || "",
+        skills:
+          payload.candidateDraft.skills ||
+          payload.candidateDraft.skillList?.join(", ") ||
+          "",
+        skillList: payload.candidateDraft.skillList ?? [],
         education: payload.candidateDraft.education || "",
+        educationEntries: payload.candidateDraft.educationEntries ?? [],
         experience: payload.candidateDraft.experience || "",
+        experienceEntries: payload.candidateDraft.experienceEntries ?? [],
+        certifications: payload.candidateDraft.certifications ?? [],
+        languages: payload.candidateDraft.languages ?? [],
+        expectedSalaryHint: payload.candidateDraft.expectedSalaryHint || "",
+        noticePeriodHint: payload.candidateDraft.noticePeriodHint || "",
+        workModeHint: payload.candidateDraft.workModeHint || "",
+        relocationHint: payload.candidateDraft.relocationHint || "",
       });
-      setRawPreview(payload.extractedTextPreview ?? "");
+
+      const fullPreview =
+        payload.extractedTextFull ||
+        payload.extractedTextPreview ||
+        payload.extractedTextPages?.join("\n\n--- Page Break ---\n\n") ||
+        "";
+
+      setRawPreview(payload.extractedTextPreview ?? fullPreview);
+      setPreviewPages(
+        payload.extractedTextPages?.length
+          ? payload.extractedTextPages
+          : fullPreview
+            ? [fullPreview]
+            : [],
+      );
+      setActivePreviewPage(0);
+
       setWarnings(payload.warnings ?? []);
       setParserVersion(payload.parserMetadata?.parserVersion ?? "");
+      setFieldConfidence(payload.parserMetadata?.fieldConfidence ?? {});
       setExtractionConfidence(
         typeof payload.parserMetadata?.extractionConfidence === "number"
           ? payload.parserMetadata.extractionConfidence
           : null,
       );
+
       setParseStatus("success");
-      setSuccess("CV parsed into a reviewable draft. Please confirm details before saving.");
+      setSuccess(
+        "CV parsed into a reviewable draft. Please confirm details before saving.",
+      );
     } catch (parseError) {
       setParseStatus("error");
       setParsedDraft(null);
       setRawPreview("");
+      setPreviewPages([]);
+      setActivePreviewPage(0);
       setWarnings([]);
       setParserVersion("");
+      setFieldConfidence({});
       setExtractionConfidence(null);
       setError(
         parseError instanceof Error
@@ -230,6 +357,31 @@ export function CvUploadParseFlow({
     } finally {
       window.clearInterval(statusInterval);
     }
+  }
+
+  async function copyCurrentPreviewPage() {
+    const pageText = previewPages[activePreviewPage] ?? rawPreview;
+
+    if (!pageText) {
+      return;
+    }
+
+    await navigator.clipboard.writeText(pageText);
+    setCopySuccess("Copied current CV page.");
+    window.setTimeout(() => setCopySuccess(""), 1800);
+  }
+
+  async function copyFullPreview() {
+    const fullText =
+      previewPages.join("\n\n--- Page Break ---\n\n") || rawPreview;
+
+    if (!fullText) {
+      return;
+    }
+
+    await navigator.clipboard.writeText(fullText);
+    setCopySuccess("Copied full CV text.");
+    window.setTimeout(() => setCopySuccess(""), 1800);
   }
 
   async function saveCandidate() {
@@ -253,6 +405,11 @@ export function CvUploadParseFlow({
       return;
     }
 
+    if (!resumeDocumentCategoryId && documentCategories.length > 0) {
+      setError("No document category is configured for resume upload.");
+      return;
+    }
+
     if (!selectedFile) {
       setError("Please attach the CV file before saving.");
       return;
@@ -264,7 +421,9 @@ export function CvUploadParseFlow({
     setUploadProgress(0);
 
     try {
-      const countryLookup = countries.find((item) => item.id === selectedCountryId);
+      const countryLookup = countries.find(
+        (item) => item.id === selectedCountryId,
+      );
 
       const createResponse = await fetch("/api/candidates", {
         method: "POST",
@@ -295,7 +454,9 @@ export function CvUploadParseFlow({
           linkedInUrl: emptyToUndefined(parsedDraft.linkedInUrl ?? ""),
           portfolioUrl: emptyToUndefined(parsedDraft.portfolioUrl ?? ""),
           profileSummary: emptyToUndefined(
-            [parsedDraft.experience, parsedDraft.education].filter(Boolean).join("\n\n"),
+            [parsedDraft.experience, parsedDraft.education]
+              .filter(Boolean)
+              .join("\n\n"),
           ),
           recruiterNotes: emptyToUndefined(parsedDraft.experience),
           hrNotes: emptyToUndefined(parsedDraft.education),
@@ -315,33 +476,37 @@ export function CvUploadParseFlow({
       const uploadResult = await uploadResumeForCandidate({
         candidateId,
         documentTypeId: resumeDocumentTypeId,
+        documentCategoryId: resumeDocumentCategoryId || undefined,
         file: selectedFile,
         onProgress: setUploadProgress,
       });
 
-      const registerResponse = await fetch(`/api/candidates/${candidateId}/documents`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const registerResponse = await fetch(
+        `/api/candidates/${candidateId}/documents`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: "Resume",
+            kind: "resume",
+            fileName: selectedFile.name,
+            contentType: selectedFile.type || uploadResult.mimeType,
+            fileSizeBytes: selectedFile.size,
+            storageKey: uploadResult.storageKey,
+            isPrimaryResume: true,
+            sourceChannel: source,
+            parserVersion: parserVersion || "resume-parser-v4",
+            parsingStatus: "SUCCEEDED",
+            extractionConfidence:
+              extractionConfidence !== null
+                ? extractionConfidence.toFixed(2)
+                : undefined,
+            parsingWarnings: warnings,
+          }),
         },
-        body: JSON.stringify({
-          name: "Resume",
-          kind: "resume",
-          fileName: selectedFile.name,
-          contentType: selectedFile.type || uploadResult.mimeType,
-          fileSizeBytes: selectedFile.size,
-          storageKey: uploadResult.storageKey,
-          isPrimaryResume: true,
-          sourceChannel: source,
-          parserVersion: parserVersion || "resume-parser-v2",
-          parsingStatus: "SUCCEEDED",
-          extractionConfidence:
-            extractionConfidence !== null
-              ? extractionConfidence.toFixed(2)
-              : undefined,
-          parsingWarnings: warnings,
-        }),
-      });
+      );
 
       const registeredCandidate = (await registerResponse.json()) as
         | {
@@ -368,15 +533,17 @@ export function CvUploadParseFlow({
               item.storageKey === uploadResult.storageKey ||
               item.fileName === selectedFile.name,
           )
-          ?.id ??
-        registeredCandidate?.documents?.[0]?.id;
+          ?.id ?? registeredCandidate?.documents?.[0]?.id;
 
       if (linkedDocumentId) {
-        await fetch(`/api/candidates/${candidateId}/documents/${linkedDocumentId}/parse`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ parserKey: "provider-neutral" }),
-        });
+        await fetch(
+          `/api/candidates/${candidateId}/documents/${linkedDocumentId}/parse`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ parserKey: "provider-neutral" }),
+          },
+        );
       }
 
       router.push(`/dashboard/recruitment/candidates/${candidateId}`);
@@ -399,7 +566,8 @@ export function CvUploadParseFlow({
       <div className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
         <h4 className="text-2xl font-semibold text-foreground">Upload CV</h4>
         <p className="mt-2 max-w-3xl text-sm text-muted">
-          Upload a candidate resume, extract readable content, review parsed fields, then save.
+          Upload a candidate resume, extract readable content, review parsed fields,
+          then save.
         </p>
         <p className="mt-2 text-xs uppercase tracking-[0.14em] text-muted">
           Accepted file types: PDF, DOCX
@@ -434,32 +602,29 @@ export function CvUploadParseFlow({
                 : "or use the file picker button below"}
             </p>
           </div>
+
           <div className="flex flex-wrap gap-3">
-<Button variant="secondary" size="sm" onClick={triggerFilePicker} type="button">
-  Choose file
-</Button>
-<Button
-  variant="primary"
-  size="sm"
-  disabled={
-    !selectedFile ||
-    isSaving ||
-    parseStatus === "uploading" ||
-    parseStatus === "extracting" ||
-    parseStatus === "parsing"
-  }
-  loading={
-    parseStatus === "uploading" ||
-    parseStatus === "extracting" ||
-    parseStatus === "parsing"
-  }
-  loadingText="Parsing..."
-  onClick={parseSelectedFile}
-  type="button"
->
-  Parse CV
-</Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={triggerFilePicker}
+              type="button"
+            >
+              Choose file
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              disabled={!selectedFile || isSaving || isParsingStatus(parseStatus)}
+              loading={isParsingStatus(parseStatus)}
+              loadingText="Parsing..."
+              onClick={parseSelectedFile}
+              type="button"
+            >
+              Parse CV
+            </Button>
           </div>
+
           <input
             ref={fileInputRef}
             accept=".pdf,.docx"
@@ -477,26 +642,62 @@ export function CvUploadParseFlow({
 
         {isSaving ? (
           <div className="mt-4 rounded-2xl border border-border bg-white px-4 py-3">
-            <p className="text-sm font-medium text-foreground">Uploading resume...</p>
+            <p className="text-sm font-medium text-foreground">
+              Uploading resume...
+            </p>
             <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-200">
               <div
                 className="h-full rounded-full bg-accent transition-all"
                 style={{ width: `${Math.min(100, uploadProgress)}%` }}
               />
             </div>
-            <p className="mt-2 text-xs text-muted">{Math.round(uploadProgress)}%</p>
+            <p className="mt-2 text-xs text-muted">
+              {Math.round(uploadProgress)}%
+            </p>
           </div>
         ) : null}
       </div>
 
       {parsedDraft ? (
         <div className="grid gap-4 rounded-[24px] border border-border bg-surface p-6 shadow-sm md:grid-cols-2">
-          <h4 className="md:col-span-2 text-2xl font-semibold text-foreground">
+          <h4 className="text-2xl font-semibold text-foreground md:col-span-2">
             Review Parsed Candidate Data
           </h4>
-          <p className="md:col-span-2 text-sm text-muted">
-            Correct any fields before final save. Parsing is a draft, not a final truth.
+          <p className="text-sm text-muted md:col-span-2">
+            Correct any fields before final save. Parsing is a draft, not a final
+            truth.
           </p>
+
+          {extractionConfidence !== null ? (
+            <div className="grid gap-3 rounded-2xl border border-border bg-white p-4 md:col-span-2 sm:grid-cols-3">
+              <div>
+                <p className="text-xs uppercase tracking-[0.14em] text-muted">
+                  Parsing Score
+                </p>
+                <p className="mt-1 text-3xl font-semibold text-foreground">
+                  {Math.round(extractionConfidence)}%
+                </p>
+                <p className="mt-1 text-xs text-muted">{scoreLabel}</p>
+                {parserVersion ? (
+                  <p className="mt-2 text-[11px] text-muted">
+                    Parser: {parserVersion}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="grid gap-2 sm:col-span-2 sm:grid-cols-3">
+                <ConfidencePill label="Name" value={fieldConfidence.fullName} />
+                <ConfidencePill label="Email" value={fieldConfidence.email} />
+                <ConfidencePill label="Phone" value={fieldConfidence.phone} />
+                <ConfidencePill label="Location" value={fieldConfidence.location} />
+                <ConfidencePill
+                  label="Experience"
+                  value={fieldConfidence.totalExperience}
+                />
+                <ConfidencePill label="Skills" value={fieldConfidence.skills} />
+              </div>
+            </div>
+          ) : null}
 
           <Field
             label="Source"
@@ -514,6 +715,7 @@ export function CvUploadParseFlow({
               "Other",
             ]}
           />
+
           <Field
             label="Country lookup"
             value={selectedCountryId}
@@ -523,66 +725,250 @@ export function CvUploadParseFlow({
             optionFormatter={(value) => value.split("::")[1] ?? value}
             optionValueFormatter={(value) => value.split("::")[0] ?? value}
           />
-          <Field label="First name" value={parsedDraft.firstName} onChange={(value) => setParsedDraft((current) => (current ? { ...current, firstName: value } : current))} />
-          <Field label="Last name" value={parsedDraft.lastName} onChange={(value) => setParsedDraft((current) => (current ? { ...current, lastName: value } : current))} />
-          <Field label="Email" value={parsedDraft.email} onChange={(value) => setParsedDraft((current) => (current ? { ...current, email: value } : current))} />
-          <Field label="Phone" value={parsedDraft.phone} onChange={(value) => setParsedDraft((current) => (current ? { ...current, phone: value } : current))} />
-          <Field label="City" value={parsedDraft.city} onChange={(value) => setParsedDraft((current) => (current ? { ...current, city: value } : current))} />
-          <Field label="State / Province" value={parsedDraft.stateProvince} onChange={(value) => setParsedDraft((current) => (current ? { ...current, stateProvince: value } : current))} />
-          <Field label="Country (text)" value={parsedDraft.country} onChange={(value) => setParsedDraft((current) => (current ? { ...current, country: value } : current))} />
-          <Field label="Current Employer" value={parsedDraft.currentEmployer} onChange={(value) => setParsedDraft((current) => (current ? { ...current, currentEmployer: value } : current))} />
-          <Field label="Current Designation" value={parsedDraft.currentDesignation} onChange={(value) => setParsedDraft((current) => (current ? { ...current, currentDesignation: value } : current))} />
-          <Field label="Total Years of Experience" value={parsedDraft.totalYearsExperience} onChange={(value) => setParsedDraft((current) => (current ? { ...current, totalYearsExperience: value } : current))} />
+
+          <Field
+            label="First name"
+            value={parsedDraft.firstName}
+            confidence={fieldConfidence.fullName}
+            onChange={(value) =>
+              setParsedDraft((current) =>
+                current ? { ...current, firstName: value } : current,
+              )
+            }
+          />
+
+          <Field
+            label="Last name"
+            value={parsedDraft.lastName}
+            confidence={fieldConfidence.fullName}
+            onChange={(value) =>
+              setParsedDraft((current) =>
+                current ? { ...current, lastName: value } : current,
+              )
+            }
+          />
+
+          <Field
+            label="Email"
+            value={parsedDraft.email}
+            confidence={fieldConfidence.email}
+            onChange={(value) =>
+              setParsedDraft((current) =>
+                current ? { ...current, email: value } : current,
+              )
+            }
+          />
+
+          <Field
+            label="Phone"
+            value={parsedDraft.phone}
+            confidence={fieldConfidence.phone}
+            onChange={(value) =>
+              setParsedDraft((current) =>
+                current ? { ...current, phone: value } : current,
+              )
+            }
+          />
+
+          <Field
+            label="City"
+            value={parsedDraft.city}
+            confidence={fieldConfidence.location}
+            onChange={(value) =>
+              setParsedDraft((current) =>
+                current ? { ...current, city: value } : current,
+              )
+            }
+          />
+
+          <Field
+            label="State / Province"
+            value={parsedDraft.stateProvince}
+            confidence={fieldConfidence.location}
+            onChange={(value) =>
+              setParsedDraft((current) =>
+                current ? { ...current, stateProvince: value } : current,
+              )
+            }
+          />
+
+          <Field
+            label="Country (text)"
+            value={parsedDraft.country}
+            confidence={fieldConfidence.location}
+            onChange={(value) =>
+              setParsedDraft((current) =>
+                current ? { ...current, country: value } : current,
+              )
+            }
+          />
+
+          <Field
+            label="Current Employer"
+            value={parsedDraft.currentEmployer}
+            confidence={fieldConfidence.employer}
+            onChange={(value) =>
+              setParsedDraft((current) =>
+                current ? { ...current, currentEmployer: value } : current,
+              )
+            }
+          />
+
+          <Field
+            label="Current Designation"
+            value={parsedDraft.currentDesignation}
+            confidence={fieldConfidence.designation}
+            onChange={(value) =>
+              setParsedDraft((current) =>
+                current ? { ...current, currentDesignation: value } : current,
+              )
+            }
+          />
+
+          <Field
+            label="Total Years of Experience"
+            value={parsedDraft.totalYearsExperience}
+            confidence={fieldConfidence.totalExperience}
+            onChange={(value) =>
+              setParsedDraft((current) =>
+                current ? { ...current, totalYearsExperience: value } : current,
+              )
+            }
+          />
+
           <Field
             className="md:col-span-2"
             label="Skills (comma separated)"
             value={parsedDraft.skills}
+            confidence={fieldConfidence.skills}
             onChange={(value) =>
-              setParsedDraft((current) => (current ? { ...current, skills: value } : current))
-            }
-            asTextarea
-          />
-          <Field
-            className="md:col-span-2"
-            label="Education"
-            value={parsedDraft.education}
-            onChange={(value) =>
-              setParsedDraft((current) => (current ? { ...current, education: value } : current))
-            }
-            asTextarea
-          />
-          <Field
-            className="md:col-span-2"
-            label="Experience"
-            value={parsedDraft.experience}
-            onChange={(value) =>
-              setParsedDraft((current) => (current ? { ...current, experience: value } : current))
+              setParsedDraft((current) =>
+                current ? { ...current, skills: value } : current,
+              )
             }
             asTextarea
           />
 
+          <Field
+            className="md:col-span-2"
+            label="Education"
+            value={parsedDraft.education}
+            confidence={fieldConfidence.education}
+            onChange={(value) =>
+              setParsedDraft((current) =>
+                current ? { ...current, education: value } : current,
+              )
+            }
+            asTextarea
+          />
+
+          <Field
+            className="md:col-span-2"
+            label="Experience"
+            value={parsedDraft.experience}
+            confidence={fieldConfidence.experience}
+            onChange={(value) =>
+              setParsedDraft((current) =>
+                current ? { ...current, experience: value } : current,
+              )
+            }
+            asTextarea
+          />
+
+          {parsedDraft.certifications?.length ? (
+            <ReadonlyList
+              title="Detected Certifications"
+              items={parsedDraft.certifications}
+            />
+          ) : null}
+
+          {parsedDraft.languages?.length ? (
+            <ReadonlyList title="Detected Languages" items={parsedDraft.languages} />
+          ) : null}
+
           {warnings.length > 0 ? (
-            <div className="md:col-span-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 md:col-span-2">
               {warnings.map((warning) => (
                 <p key={warning}>{warning}</p>
               ))}
             </div>
           ) : null}
 
-          {rawPreview ? (
-            <div className="md:col-span-2 rounded-2xl border border-border bg-white/90 p-4">
-              <p className="text-xs uppercase tracking-[0.14em] text-muted">
-                Extracted text preview
-              </p>
-              <p className="mt-2 whitespace-pre-wrap text-sm text-muted">{rawPreview}</p>
+          {previewPages.length > 0 ? (
+            <div className="rounded-2xl border border-border bg-white/90 p-4 md:col-span-2">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.14em] text-muted">
+                    Full Copyable CV Preview
+                  </p>
+                  <p className="mt-1 text-xs text-muted">
+                    Page {activePreviewPage + 1} of {previewPages.length}
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setActivePreviewPage((page) => Math.max(0, page - 1))
+                    }
+                    disabled={activePreviewPage === 0}
+                    className="rounded-xl border border-border bg-white px-3 py-2 text-xs font-medium text-foreground disabled:opacity-50"
+                  >
+                    Previous
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setActivePreviewPage((page) =>
+                        Math.min(previewPages.length - 1, page + 1),
+                      )
+                    }
+                    disabled={activePreviewPage >= previewPages.length - 1}
+                    className="rounded-xl border border-border bg-white px-3 py-2 text-xs font-medium text-foreground disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={copyCurrentPreviewPage}
+                    className="rounded-xl border border-border bg-white px-3 py-2 text-xs font-medium text-foreground"
+                  >
+                    Copy Page
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={copyFullPreview}
+                    className="rounded-xl bg-accent px-3 py-2 text-xs font-semibold text-white"
+                  >
+                    Copy Full CV
+                  </button>
+                </div>
+              </div>
+
+              {copySuccess ? (
+                <p className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+                  {copySuccess}
+                </p>
+              ) : null}
+
+              <textarea
+                readOnly
+                value={previewPages[activePreviewPage] ?? ""}
+                className="mt-4 min-h-[420px] w-full rounded-2xl border border-border bg-slate-50 px-4 py-3 font-mono text-xs leading-6 text-slate-700 outline-none"
+              />
             </div>
           ) : (
-            <div className="md:col-span-2 rounded-2xl border border-border bg-white/90 p-4 text-sm text-muted">
-              No readable preview is available for this file, but parsed fields can still be reviewed and edited.
+            <div className="rounded-2xl border border-border bg-white/90 p-4 text-sm text-muted md:col-span-2">
+              No readable preview is available for this file, but parsed fields can
+              still be reviewed and edited.
             </div>
           )}
 
-          <div className="md:col-span-2 flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-3 md:col-span-2">
             <button
               className="rounded-2xl bg-accent px-5 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:opacity-60"
               disabled={isSaving}
@@ -600,6 +986,7 @@ export function CvUploadParseFlow({
           {success}
         </p>
       ) : null}
+
       {error ? (
         <p className="rounded-2xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
           {error}
@@ -612,11 +999,13 @@ export function CvUploadParseFlow({
 async function uploadResumeForCandidate({
   candidateId,
   documentTypeId,
+  documentCategoryId,
   file,
   onProgress,
 }: {
   candidateId: string;
   documentTypeId: string;
+  documentCategoryId?: string;
   file: File;
   onProgress: (value: number) => void;
 }) {
@@ -625,6 +1014,11 @@ async function uploadResumeForCandidate({
   formData.set("entityType", "CANDIDATE");
   formData.set("entityId", candidateId);
   formData.set("documentTypeId", documentTypeId);
+
+  if (documentCategoryId) {
+    formData.set("documentCategoryId", documentCategoryId);
+  }
+
   formData.set("title", "Resume");
   formData.set("description", "Uploaded through CV intake flow");
 
@@ -632,19 +1026,26 @@ async function uploadResumeForCandidate({
     (resolve, reject) => {
       const xhr = new XMLHttpRequest();
       xhr.open("POST", "/api/documents/upload");
+
       xhr.upload.onprogress = (event) => {
         if (!event.lengthComputable) {
           return;
         }
+
         onProgress((event.loaded / event.total) * 100);
       };
+
       xhr.onreadystatechange = () => {
         if (xhr.readyState !== XMLHttpRequest.DONE) {
           return;
         }
 
-        let data: { message?: string; storageKey?: string | null; mimeType?: string | null } | null =
-          null;
+        let data: {
+          message?: string;
+          storageKey?: string | null;
+          mimeType?: string | null;
+        } | null = null;
+
         try {
           data = JSON.parse(xhr.responseText);
         } catch {
@@ -662,6 +1063,7 @@ async function uploadResumeForCandidate({
 
         reject(new Error(data?.message ?? "Resume upload failed."));
       };
+
       xhr.onerror = () => reject(new Error("Resume upload failed."));
       xhr.send(formData);
     },
@@ -689,6 +1091,7 @@ function Field({
   asSelect = false,
   asTextarea = false,
   className = "",
+  confidence,
   label,
   onChange,
   optionFormatter,
@@ -699,6 +1102,7 @@ function Field({
   asSelect?: boolean;
   asTextarea?: boolean;
   className?: string;
+  confidence?: number;
   label: string;
   onChange: (value: string) => void;
   optionFormatter?: (value: string) => string;
@@ -708,7 +1112,13 @@ function Field({
 }) {
   return (
     <label className={`space-y-2 text-sm ${className}`}>
-      <span className="font-medium text-foreground">{label}</span>
+      <span className="flex items-center justify-between gap-2 font-medium text-foreground">
+        <span>{label}</span>
+        {typeof confidence === "number" ? (
+          <ConfidenceBadge value={confidence} />
+        ) : null}
+      </span>
+
       {asSelect ? (
         <select
           className="w-full rounded-2xl border border-border bg-white px-4 py-3 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
@@ -739,5 +1149,74 @@ function Field({
         />
       )}
     </label>
+  );
+}
+
+function ConfidenceBadge({ value }: { value: number }) {
+  return (
+    <span
+      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+        value >= 80
+          ? "bg-emerald-100 text-emerald-700"
+          : value >= 60
+            ? "bg-amber-100 text-amber-700"
+            : "bg-red-100 text-red-700"
+      }`}
+    >
+      {value}%
+    </span>
+  );
+}
+
+function ConfidencePill({
+  label,
+  value,
+}: {
+  label: string;
+  value?: number;
+}) {
+  const score = typeof value === "number" ? value : 0;
+
+  return (
+    <div className="rounded-xl border border-border bg-slate-50 px-3 py-2">
+      <p className="text-[10px] uppercase tracking-[0.14em] text-muted">
+        {label}
+      </p>
+      <p
+        className={`mt-1 text-sm font-semibold ${
+          score >= 80
+            ? "text-emerald-700"
+            : score >= 60
+              ? "text-amber-700"
+              : "text-red-700"
+        }`}
+      >
+        {score}%
+      </p>
+    </div>
+  );
+}
+
+function ReadonlyList({
+  title,
+  items,
+}: {
+  title: string;
+  items: string[];
+}) {
+  return (
+    <div className="rounded-2xl border border-border bg-white p-4 md:col-span-2">
+      <p className="text-xs uppercase tracking-[0.14em] text-muted">{title}</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {items.map((item) => (
+          <span
+            key={item}
+            className="rounded-full border border-border bg-slate-50 px-3 py-1 text-xs text-foreground"
+          >
+            {item}
+          </span>
+        ))}
+      </div>
+    </div>
   );
 }

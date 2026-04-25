@@ -1,41 +1,37 @@
-import { PlatformSettingsForm } from "@/app/_components/platform-settings-form";
-import type { PlatformSettingsRecord } from "@/app/_components/platform-lifecycle-types";
-import { apiRequestJson } from "@/lib/server-api";
+import { SettingsFormCard } from "@/app/_components/settings/settings-form-card";
+import { SettingsShell } from "@/app/_components/settings/settings-shell";
 
-export default async function PlatformDefaultsSettingsPage() {
-  const settings = await apiRequestJson<PlatformSettingsRecord>(
-    "/super-admin/platform-settings",
-  ).catch(() => ({
-    platformDefaults: {},
-    publicPlanVisibility: {},
-    billingDefaults: {},
-    invoiceDefaults: {},
-    emailProvider: {},
-    branding: {},
-    featureCatalog: {},
-    leadDefinitions: {},
-  }));
-
+export default async function PlatformDefaultsPage() {
   return (
-    <main className="space-y-6">
-      <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
-          Settings / Platform
-        </p>
+    <SettingsShell
+      title="Platform defaults"
+      description="Configure the global behavior used across DijiPeople admin, billing, tenants, and operational modules."
+    >
+      <SettingsFormCard
+        title="Regional defaults"
+        description="These values are used as the default configuration when new tenants or commercial records are created."
+      >
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="Default country" value="Qatar" />
+          <Field label="Default currency" value="USD" />
+          <Field label="Default timezone" value="Asia/Qatar" />
+          <Field label="Date format" value="DD/MM/YYYY" />
+          <Field label="Time format" value="12-hour" />
+          <Field label="Default locale" value="en-US" />
+        </div>
+      </SettingsFormCard>
+    </SettingsShell>
+  );
+}
 
-        <h1 className="mt-2 text-3xl font-semibold text-slate-950">
-          Platform defaults
-        </h1>
-
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
-          Manage global defaults that control the baseline behavior of the
-          platform across customers, billing, lifecycle, and operational setup.
-        </p>
-      </section>
-
-      <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-        <PlatformSettingsForm settings={settings} section="platformDefaults" />
-      </section>
-    </main>
+function Field({ label, value }: { label: string; value: string }) {
+  return (
+    <label className="space-y-2">
+      <span className="text-sm font-medium text-slate-900">{label}</span>
+      <input
+        defaultValue={value}
+        className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-slate-500 focus:ring-4 focus:ring-slate-100"
+      />
+    </label>
   );
 }

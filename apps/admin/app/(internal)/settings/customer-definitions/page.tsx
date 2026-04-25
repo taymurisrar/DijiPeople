@@ -1,28 +1,27 @@
 import { SettingsFormCard } from "@/app/_components/settings/settings-form-card";
 import { SettingsShell } from "@/app/_components/settings/settings-shell";
 
-export default async function LeadDefinitionsPage() {
+export default async function CustomerDefinitionsPage() {
   return (
     <SettingsShell
-      title="Lead definitions"
-      description="Configure lead statuses, sources, qualification rules, and pipeline defaults."
+      title="Customer definitions"
+      description="Manage customer lifecycle stages, account readiness rules, and conversion defaults."
     >
-      <SettingsFormCard title="Lead lifecycle">
+      <SettingsFormCard title="Customer lifecycle">
         <div className="grid gap-4 md:grid-cols-2">
-          <Field label="Default lead status" value="New" />
-          <Field label="Qualified status" value="Qualified" />
-          <Field label="Disqualified status" value="Disqualified" />
-          <Field label="Default lead owner rule" value="Manual assignment" />
+          <Field label="Default customer status" value="Prospect" />
+          <Field label="Active customer status" value="Active" />
+          <Field label="Churned customer status" value="Churned" />
+          <Field label="Default account type" value="Company" />
         </div>
       </SettingsFormCard>
 
-      <SettingsFormCard title="Lead sources">
-        <div className="grid gap-3 md:grid-cols-2">
-          {["Website", "Referral", "Upwork", "LinkedIn", "Manual", "Partner"].map(
-            (source) => (
-              <Toggle key={source} label={source} defaultChecked />
-            ),
-          )}
+      <SettingsFormCard title="Readiness rules">
+        <div className="space-y-3">
+          <Toggle label="Require billing contact before onboarding" defaultChecked />
+          <Toggle label="Require company profile before tenant creation" defaultChecked />
+          <Toggle label="Allow multiple onboarding records over time" defaultChecked />
+          <Toggle label="Allow only one active onboarding at a time" defaultChecked />
         </div>
       </SettingsFormCard>
     </SettingsShell>

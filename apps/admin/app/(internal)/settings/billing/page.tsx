@@ -1,53 +1,50 @@
-import { PlatformSettingsForm } from "@/app/_components/platform-settings-form";
-import type { PlatformSettingsRecord } from "@/app/_components/platform-lifecycle-types";
-import { apiRequestJson } from "@/lib/server-api";
+import { SettingsFormCard } from "@/app/_components/settings/settings-form-card";
+import { SettingsShell } from "@/app/_components/settings/settings-shell";
 
 export default async function BillingSettingsPage() {
-  const settings = await apiRequestJson<PlatformSettingsRecord>(
-    "/super-admin/platform-settings",
-  );
-
   return (
-    <main className="space-y-6">
-      <SettingsHeader
-        eyebrow="Settings / Commercial"
-        title="Billing defaults"
-        description="Manage billing cycles, taxes, currencies, and default commercial behavior."
+    <SettingsShell
+      title="Billing defaults"
+      description="Configure billing cycles, taxes, payment terms, and currency defaults."
+    >
+      <SettingsFormCard title="Billing behavior">
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="Default billing cycle" value="Monthly" />
+          <Field label="Default payment terms" value="Net 15" />
+          <Field label="Default currency" value="USD" />
+          <Field label="Tax calculation mode" value="Manual" />
+        </div>
+      </SettingsFormCard>
+
+      <SettingsFormCard title="Billing controls">
+        <div className="space-y-3">
+          <Toggle label="Allow monthly billing" defaultChecked />
+          <Toggle label="Allow annual billing" defaultChecked />
+          <Toggle label="Auto-create invoice after subscription activation" defaultChecked />
+          <Toggle label="Mark subscription past due when invoice is overdue" defaultChecked />
+        </div>
+      </SettingsFormCard>
+    </SettingsShell>
+  );
+}
+
+function Field({ label, value }: { label: string; value: string }) {
+  return (
+    <label className="space-y-2">
+      <span className="text-sm font-medium text-slate-900">{label}</span>
+      <input
+        defaultValue={value}
+        className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-slate-500 focus:ring-4 focus:ring-slate-100"
       />
-
-      <SettingsCard>
-        <PlatformSettingsForm settings={settings} section="billingDefaults" />
-      </SettingsCard>
-    </main>
+    </label>
   );
 }
 
-function SettingsHeader({
-  eyebrow,
-  title,
-  description,
-}: {
-  eyebrow: string;
-  title: string;
-  description: string;
-}) {
+function Toggle({ label, defaultChecked = false }: { label: string; defaultChecked?: boolean }) {
   return (
-    <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
-        {eyebrow}
-      </p>
-      <h1 className="mt-2 text-3xl font-semibold text-slate-950">{title}</h1>
-      <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
-        {description}
-      </p>
-    </section>
-  );
-}
-
-function SettingsCard({ children }: { children: React.ReactNode }) {
-  return (
-    <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-      {children}
-    </section>
+    <label className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+      <span className="text-sm font-semibold text-slate-950">{label}</span>
+      <input type="checkbox" defaultChecked={defaultChecked} className="h-4 w-4" />
+    </label>
   );
 }

@@ -5,9 +5,10 @@ import { LookupOption } from "@/app/dashboard/employees/types";
 import { CvUploadParseFlow } from "../../_components/cv-upload-parse-flow";
 
 export default async function UploadCvPage() {
-  const [countries, documentTypes] = await Promise.all([
+  const [countries, documentTypes, documentCategories] = await Promise.all([
     apiRequestJson<LookupOption[]>("/lookups/countries"),
     apiRequestJson<SharedLookupOption[]>("/lookups/document-types"),
+    apiRequestJson<SharedLookupOption[]>("/lookups/document-categories"),
   ]);
 
   return (
@@ -36,7 +37,11 @@ export default async function UploadCvPage() {
         </div>
       </section>
 
-      <CvUploadParseFlow countries={countries} documentTypes={documentTypes} />
+      <CvUploadParseFlow
+        countries={countries}
+        documentTypes={documentTypes}
+        documentCategories={documentCategories}
+      />
     </main>
   );
 }
