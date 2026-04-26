@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
+import { ExcelExportService } from '../../common/excel/excel-export.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { EmployeesModule } from '../employees/employees.module';
@@ -14,6 +15,7 @@ import { TimesheetsService } from './timesheets.service';
   providers: [
     TimesheetsRepository,
     TimesheetsService,
+    ExcelExportService,
     JwtAuthGuard,
     PermissionsGuard,
   ],

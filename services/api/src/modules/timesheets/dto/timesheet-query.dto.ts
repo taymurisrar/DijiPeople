@@ -1,6 +1,6 @@
 import { TimesheetStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
-import { IsEnum, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsEnum, IsIn, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
 
 export class TimesheetQueryDto {
   @IsOptional()
@@ -16,12 +16,34 @@ export class TimesheetQueryDto {
   month?: number;
 
   @IsOptional()
-  @IsString()
+  @IsUUID()
   employeeId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  managerEmployeeId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  departmentId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  businessUnitId?: string;
 
   @IsOptional()
   @IsEnum(TimesheetStatus)
   status?: TimesheetStatus;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['yearMonth', 'employee', 'status', 'updatedAt'])
+  sortField?: 'yearMonth' | 'employee' | 'status' | 'updatedAt';
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['asc', 'desc'])
+  sortDirection?: 'asc' | 'desc';
 
   @IsOptional()
   @Type(() => Number)

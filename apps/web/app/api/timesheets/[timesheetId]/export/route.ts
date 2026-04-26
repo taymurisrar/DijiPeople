@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { apiRequestJson } from "@/lib/server-api";
+import { ApiRequestError, apiRequestJson } from "@/lib/server-api";
 
 type RouteContext = {
   params: Promise<{
@@ -25,6 +25,13 @@ export async function GET(_request: Request, context: RouteContext) {
       },
     });
   } catch (error) {
+    if (error instanceof ApiRequestError) {
+      return NextResponse.json(
+        { message: error.message },
+        { status: error.status },
+      );
+    }
+
     return NextResponse.json(
       {
         message:

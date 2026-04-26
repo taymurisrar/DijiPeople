@@ -14,6 +14,13 @@ const payrollRecordInclude = {
       lastName: true,
       preferredName: true,
       employmentStatus: true,
+      businessUnit: {
+        select: {
+          id: true,
+          name: true,
+          type: true,
+        },
+      },
       department: {
         select: {
           id: true,
@@ -28,11 +35,29 @@ const payrollRecordInclude = {
           level: true,
         },
       },
+      user: {
+        select: {
+          businessUnit: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
     },
   },
 } satisfies Prisma.PayrollRecordInclude;
 
 const payrollCycleInclude = {
+  businessUnit: {
+    select: {
+      id: true,
+      name: true,
+      type: true,
+    },
+  },
+  processingCycle: true,
   records: {
     include: payrollRecordInclude,
     orderBy: [{ employee: { lastName: 'asc' } }, { employee: { firstName: 'asc' } }],
@@ -92,6 +117,10 @@ export class PayrollRepository {
     const where: Prisma.PayrollCycleWhereInput = {
       tenantId,
       ...(query.status ? { status: query.status } : {}),
+      ...(query.businessUnitId ? { businessUnitId: query.businessUnitId } : {}),
+      ...(query.processingCycleId
+        ? { processingCycleId: query.processingCycleId }
+        : {}),
     };
     const skip = (query.page - 1) * query.pageSize;
 
@@ -220,6 +249,92 @@ export class PayrollRepository {
     });
   }
 
+  findEmployeesInPayrollScope(
+    tenantId: string,
+    periodStart: Date,
+    periodEnd: Date,
+    businessUnitId?: string | null,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.employee.findMany({
+      where: {
+        tenantId,
+        AND: [
+          {
+            OR: [
+              { terminationDate: null },
+              { terminationDate: { gte: periodStart } },
+            ],
+          },
+          ...(businessUnitId
+            ? [
+                {
+                  OR: [
+                    { businessUnitId },
+                    { businessUnitId: null, user: { businessUnitId } },
+                  ],
+                },
+              ]
+            : []),
+        ],
+      },
+      select: {
+        id: true,
+        tenantId: true,
+        employeeCode: true,
+        recordType: true,
+        firstName: true,
+        lastName: true,
+        preferredName: true,
+        employmentStatus: true,
+        businessUnitId: true,
+        email: true,
+        businessUnit: {
+          select: {
+            id: true,
+            name: true,
+            type: true,
+          },
+        },
+        department: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          },
+        },
+        designation: {
+          select: {
+            id: true,
+            name: true,
+            level: true,
+          },
+        },
+        user: {
+          select: {
+            businessUnit: {
+              select: {
+                id: true,
+                name: true,
+                type: true,
+              },
+            },
+          },
+        },
+        compensations: {
+          where: {
+            tenantId,
+            effectiveDate: { lte: periodEnd },
+            OR: [{ endDate: null }, { endDate: { gte: periodStart } }],
+          },
+          orderBy: [{ effectiveDate: 'desc' }, { createdAt: 'desc' }],
+          take: 1,
+        },
+      },
+      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+    });
+  }
+
   createPayrollRecordsMany(
     data: Prisma.PayrollRecordCreateManyInput[],
     db: PrismaDb = this.prisma,
@@ -227,6 +342,80 @@ export class PayrollRepository {
     return db.payrollRecord.createMany({
       data,
       skipDuplicates: true,
+    });
+  }
+
+  deletePayrollRecordsForCycle(
+    tenantId: string,
+    cycleId: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.payrollRecord.deleteMany({
+      where: {
+        tenantId,
+        payrollCycleId: cycleId,
+      },
+    });
+  }
+
+  updatePayrollRecordsForCycle(
+    tenantId: string,
+    cycleId: string,
+    data: Prisma.PayrollRecordUncheckedUpdateInput,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.payrollRecord.updateMany({
+      where: {
+        tenantId,
+        payrollCycleId: cycleId,
+      },
+      data,
+    });
+  }
+
+  async findApprovedTimesheetsForPayroll(
+    tenantId: string,
+    periodStart: Date,
+    periodEnd: Date,
+    employeeIds: string[],
+    db: PrismaDb = this.prisma,
+  ) {
+    if (employeeIds.length === 0) {
+      return [];
+    }
+
+    return db.timesheet.findMany({
+      where: {
+        tenantId,
+        employeeId: { in: employeeIds },
+        status: 'APPROVED',
+        periodStart: { lte: periodEnd },
+        periodEnd: { gte: periodStart },
+      },
+      select: {
+        id: true,
+        employeeId: true,
+        year: true,
+        month: true,
+        periodStart: true,
+        periodEnd: true,
+        entries: {
+          select: {
+            entryType: true,
+            isWeekend: true,
+            isHoliday: true,
+            hours: true,
+            note: true,
+            project: {
+              select: {
+                id: true,
+                code: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
     });
   }
 }

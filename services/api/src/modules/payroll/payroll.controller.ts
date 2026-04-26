@@ -7,8 +7,10 @@ import {
   Patch,
   Post,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Permissions } from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -44,7 +46,7 @@ export class PayrollController {
   }
 
   @Post('cycles')
-  @Permissions('payroll.create')
+  @Permissions('payroll.write')
   createCycle(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreatePayrollCycleDto,
@@ -61,6 +63,52 @@ export class PayrollController {
     return this.payrollService.generateDraftRecords(user, cycleId);
   }
 
+  @Get('cycles/:cycleId/preview')
+  @Permissions('payroll.read')
+  previewGeneration(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('cycleId', new ParseUUIDPipe()) cycleId: string,
+  ) {
+    return this.payrollService.previewPayrollGeneration(user.tenantId, cycleId);
+  }
+
+  @Post('cycles/:cycleId/review')
+  @Permissions('payroll.review')
+  reviewDrafts(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('cycleId', new ParseUUIDPipe()) cycleId: string,
+  ) {
+    return this.payrollService.reviewDraftRecords(user, cycleId);
+  }
+
+  @Post('cycles/:cycleId/finalize')
+  @Permissions('payroll.finalize')
+  finalizeCycle(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('cycleId', new ParseUUIDPipe()) cycleId: string,
+  ) {
+    return this.payrollService.finalizeCycle(user, cycleId);
+  }
+
+  @Get('cycles/:cycleId/export')
+  @Permissions('payroll.export')
+  async exportCycle(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('cycleId', new ParseUUIDPipe()) cycleId: string,
+    @Res() response: Response,
+  ) {
+    const exported = await this.payrollService.exportPayrollData(
+      user.tenantId,
+      cycleId,
+    );
+    response.setHeader('Content-Type', exported.contentType);
+    response.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${exported.fileName}"`,
+    );
+    response.send(exported.content);
+  }
+
   @Get('compensations')
   @Permissions('payroll.read')
   listCompensations(@CurrentUser() user: AuthenticatedUser) {
@@ -68,7 +116,7 @@ export class PayrollController {
   }
 
   @Post('compensations')
-  @Permissions('payroll.update')
+  @Permissions('payroll.write')
   createCompensation(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateEmployeeCompensationDto,
@@ -77,7 +125,7 @@ export class PayrollController {
   }
 
   @Patch('compensations/:compensationId')
-  @Permissions('payroll.update')
+  @Permissions('payroll.write')
   updateCompensation(
     @CurrentUser() user: AuthenticatedUser,
     @Param('compensationId', new ParseUUIDPipe()) compensationId: string,

@@ -165,13 +165,23 @@ async function handleSubmit(event: FormEvent<HTMLFormElement>) {
       ) : null}
 
       <div className="space-y-2">
-        <TextField
-          label="Work email"
-          placeholder="you@company.com"
-          type="email"
-          value={form.email}
-          onChange={(value) => updateField("email", value)}
-        />
+        <label className="block space-y-2 text-sm">
+          <span className="flex items-center gap-1 font-medium text-foreground">
+            Work email
+          </span>
+          <input
+            autoCapitalize="none"
+            autoComplete="email"
+            autoCorrect="off"
+            className="block w-full min-w-0 rounded-2xl border border-border bg-white px-4 py-3 text-sm text-foreground outline-none transition placeholder:text-muted focus:border-accent focus:ring-2 focus:ring-accent/20"
+            inputMode="email"
+            onChange={(event) => updateField("email", event.target.value)}
+            placeholder="you@company.com"
+            spellCheck={false}
+            type="email"
+            value={form.email}
+          />
+        </label>
         {fieldErrors.email ? (
           <p className="text-sm text-red-600">{fieldErrors.email}</p>
         ) : null}

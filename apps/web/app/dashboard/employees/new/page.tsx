@@ -62,7 +62,7 @@ export default async function NewEmployeePage() {
     bloodGroup: "",
     employmentStatus:
       (resolvedSettings?.employee.defaultEmployeeStatus as EmployeeFormValues["employmentStatus"]) ||
-      "Active",
+      "ACTIVE",
     employeeType: resolvedSettings?.employee.defaultEmploymentType || "",
     workMode: resolvedSettings?.employee.defaultWorkMode || "",
     contractType: "",

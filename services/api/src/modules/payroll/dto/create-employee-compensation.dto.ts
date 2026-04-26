@@ -20,8 +20,9 @@ export class CreateEmployeeCompensationDto {
   })
   basicSalary!: string;
 
+  @IsOptional()
   @IsEnum(PayFrequency)
-  payFrequency!: PayFrequency;
+  payFrequency?: PayFrequency;
 
   @IsDateString()
   effectiveDate!: string;

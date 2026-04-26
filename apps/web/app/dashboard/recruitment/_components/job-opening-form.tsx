@@ -192,7 +192,7 @@ export function JobOpeningForm({ mode, jobOpening }: JobOpeningFormProps) {
         <div className="md:col-span-2 grid gap-4 md:grid-cols-2">
           <Field
             label="Job title"
-            placeholder="Senior CRM Functional Consultant"
+            placeholder="Enter preferred job title"
             value={form.title}
             onChange={(value) =>
               setForm((current) => ({ ...current, title: value }))
@@ -200,7 +200,7 @@ export function JobOpeningForm({ mode, jobOpening }: JobOpeningFormProps) {
           />
           <Field
             label="Code"
-            placeholder="CRM-001"
+            placeholder="XXX-001"
             value={form.code}
             onChange={(value) =>
               setForm((current) => ({ ...current, code: value }))

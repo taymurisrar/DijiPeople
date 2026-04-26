@@ -373,6 +373,11 @@ type BusinessUnitNode = BusinessUnitRecord & {
   children: BusinessUnitNode[];
 };
 
+type BusinessUnitOption = {
+  id: string;
+  label: string;
+};
+
 function buildBusinessUnitTree(records: BusinessUnitRecord[]) {
   const nodeMap = new Map<string, BusinessUnitNode>(
     records.map((record) => [record.id, { ...record, children: [] }]),
@@ -396,7 +401,10 @@ function buildBusinessUnitTree(records: BusinessUnitRecord[]) {
   return sortTree(roots);
 }
 
-function toBusinessUnitOptions(nodes: BusinessUnitNode[], depth = 0) {
+function toBusinessUnitOptions(
+  nodes: BusinessUnitNode[],
+  depth = 0,
+): BusinessUnitOption[] {
   return nodes.flatMap((node) => [
     {
       id: node.id,

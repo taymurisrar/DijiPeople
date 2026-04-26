@@ -7,6 +7,12 @@ import { PayrollCycleForm } from "../_components/payroll-cycle-form";
 import { PayrollCycleStatusBadge } from "../_components/payroll-cycle-status-badge";
 import { PayrollCycleListResponse } from "../types";
 
+type BusinessUnitOption = {
+  id: string;
+  name: string;
+  type?: string;
+};
+
 export default async function PayrollCyclesPage() {
   const businessUnitAccess = await getBusinessUnitAccessSummary();
 
@@ -24,16 +30,17 @@ export default async function PayrollCyclesPage() {
     );
   }
 
-  const cycles = await apiRequestJson<PayrollCycleListResponse>(
-    "/payroll/cycles?pageSize=24",
-  );
+  const [cycles, businessUnits] = await Promise.all([
+    apiRequestJson<PayrollCycleListResponse>("/payroll/cycles?pageSize=24"),
+    apiRequestJson<BusinessUnitOption[]>("/business-units"),
+  ]);
 
   return (
     <PayrollLayoutShell
-      description="Payroll cycles define the processing window and give us a clean place to generate draft payroll records before taxes, allowances, and exports are layered in later."
+      description="Payroll cycles define the processing window, check approved timesheet readiness, generate traceable draft payroll, and prepare exportable payroll outputs."
       title="Payroll Cycles"
     >
-      <PayrollCycleForm />
+      <PayrollCycleForm businessUnits={businessUnits} />
 
       {cycles.items.length === 0 ? (
         <section className="rounded-[24px] border border-dashed border-border bg-surface p-10 text-center shadow-sm">
@@ -44,7 +51,7 @@ export default async function PayrollCyclesPage() {
             Create your first payroll period.
           </h4>
           <p className="mt-3 text-muted">
-            The first version focuses on payroll period structure and draft records, not a full payroll engine.
+            Select a period and, when needed, a business unit to preview approved timesheets before generating payroll.
           </p>
         </section>
       ) : (
@@ -54,6 +61,7 @@ export default async function PayrollCyclesPage() {
               <thead className="bg-surface-strong text-left text-muted">
                 <tr>
                   <th className="px-5 py-4 font-medium">Period</th>
+                  <th className="px-5 py-4 font-medium">Business unit</th>
                   <th className="px-5 py-4 font-medium">Status</th>
                   <th className="px-5 py-4 font-medium">Run date</th>
                   <th className="px-5 py-4 font-medium">Records</th>
@@ -65,6 +73,9 @@ export default async function PayrollCyclesPage() {
                   <tr key={cycle.id} className="hover:bg-accent-soft/30">
                     <td className="px-5 py-4 font-medium text-foreground">
                       <p>{new Date(cycle.periodStart).toLocaleDateString()} - {new Date(cycle.periodEnd).toLocaleDateString()}</p>
+                    </td>
+                    <td className="px-5 py-4 text-muted">
+                      {cycle.businessUnit?.name ?? "Tenant-wide"}
                     </td>
                     <td className="px-5 py-4">
                       <PayrollCycleStatusBadge status={cycle.status} />
@@ -80,7 +91,7 @@ export default async function PayrollCyclesPage() {
                         className="text-sm font-medium text-accent transition hover:text-accent-strong"
                         href={`/dashboard/payroll/cycles/${cycle.id}`}
                       >
-                        View draft
+                        Open cycle
                       </Link>
                     </td>
                   </tr>

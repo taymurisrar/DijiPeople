@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { PermissionGate } from "../../_components/permission-gate";
 import { TimesheetMONTHLYGrid } from "./timesheet-monthly-grid";
 import { TimesheetSummaryStrip } from "./timesheet-summary-strip";
 import { TimesheetRecord } from "../types";
@@ -17,6 +18,11 @@ export function TimesheetManagerReviewPanel({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function runAction(action: "approve" | "reject") {
+    if (action === "reject" && !reviewNote.trim()) {
+      setError("Rejecting a timesheet requires a reason.");
+      return;
+    }
+
     setIsSubmitting(true);
     setError(null);
 
@@ -57,12 +63,14 @@ export function TimesheetManagerReviewPanel({
               approving or rejecting.
             </p>
           </div>
-          <a
-            className="rounded-2xl border border-border px-4 py-3 text-sm font-medium text-foreground transition hover:border-accent/30 hover:text-accent"
-            href={`/api/timesheets/${timesheet.id}/export`}
-          >
-            Export CSV
-          </a>
+          <PermissionGate permission="timesheets.export">
+            <a
+              className="rounded-2xl border border-border px-4 py-3 text-sm font-medium text-foreground transition hover:border-accent/30 hover:text-accent"
+              href={`/api/timesheets/${timesheet.id}/export`}
+            >
+              Export
+            </a>
+          </PermissionGate>
         </div>
 
         {timesheet.submittedNote ? (
@@ -71,17 +79,24 @@ export function TimesheetManagerReviewPanel({
           </p>
         ) : null}
 
-        <div className="mt-6">
-          <TimesheetMONTHLYGrid
-            rows={timesheet.entries.map((entry) => ({
-              ...entry,
-              uiEntryType: entry.entryType,
-              uiNote: entry.note ?? "",
-            }))}
-          />
-        </div>
+        {timesheet.status === "SUBMITTED" ? (
+          <div className="mt-6">
+            <TimesheetMONTHLYGrid
+              rows={timesheet.entries.map((entry) => ({
+                ...entry,
+                uiEntryType: entry.entryType,
+                uiHoursWorked: String(entry.hoursWorked ?? 0),
+                uiNote: entry.note ?? "",
+              }))}
+            />
+          </div>
+        ) : (
+          <p className="mt-6 rounded-2xl border border-border bg-white/80 px-4 py-3 text-sm text-muted">
+            Daily breakdown is shown for submitted timesheets in the approval queue.
+          </p>
+        )}
 
-        {timesheet.canCurrentUserApprove ? (
+        {timesheet.canCurrentUserApprove || timesheet.canCurrentUserReject ? (
           <div className="mt-6 grid gap-4 rounded-[24px] border border-border bg-white/80 p-5">
             <label className="grid gap-2 text-sm">
               <span className="font-medium text-foreground">Review note</span>
@@ -93,22 +108,30 @@ export function TimesheetManagerReviewPanel({
               />
             </label>
             <div className="flex flex-wrap gap-3">
-              <button
-                className="rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-70"
-                disabled={isSubmitting}
-                onClick={() => runAction("approve")}
-                type="button"
-              >
-                Approve
-              </button>
-              <button
-                className="rounded-2xl bg-rose-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:opacity-70"
-                disabled={isSubmitting}
-                onClick={() => runAction("reject")}
-                type="button"
-              >
-                Reject
-              </button>
+              {timesheet.canCurrentUserApprove ? (
+                <PermissionGate permission="timesheets.approve">
+                  <button
+                    className="rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-70"
+                    disabled={isSubmitting}
+                    onClick={() => runAction("approve")}
+                    type="button"
+                  >
+                    Approve
+                  </button>
+                </PermissionGate>
+              ) : null}
+              {timesheet.canCurrentUserReject ? (
+                <PermissionGate permission="timesheets.reject">
+                  <button
+                    className="rounded-2xl bg-rose-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:opacity-70"
+                    disabled={isSubmitting}
+                    onClick={() => runAction("reject")}
+                    type="button"
+                  >
+                    Reject
+                  </button>
+                </PermissionGate>
+              ) : null}
             </div>
             {error ? <p className="text-sm text-danger">{error}</p> : null}
           </div>

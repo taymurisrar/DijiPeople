@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { EmployeeListItem } from "@/app/dashboard/employees/types";
+import { PermissionGate } from "../../_components/permission-gate";
 import { EmployeeCompensationRecord, PayFrequency } from "../types";
 
 const payFrequencies: PayFrequency[] = [
@@ -14,20 +15,27 @@ const payFrequencies: PayFrequency[] = [
 
 export function EmployeeCompensationForm({
   compensations,
+  defaultCurrency,
+  defaultPayFrequency,
   employees,
 }: {
   compensations: EmployeeCompensationRecord[];
+  defaultCurrency: string;
+  defaultPayFrequency: string;
   employees: EmployeeListItem[];
 }) {
   const router = useRouter();
+  const resolvedDefaultPayFrequency = isPayFrequency(defaultPayFrequency)
+    ? defaultPayFrequency
+    : payFrequencies[0];
   const [selectedCompensationId, setSelectedCompensationId] = useState("");
   const [form, setForm] = useState({
     employeeId: "",
     basicSalary: "",
-    payFrequency: "MONTHLY" as PayFrequency,
+    payFrequency: resolvedDefaultPayFrequency,
     effectiveDate: "",
     endDate: "",
-    currency: "USD",
+    currency: defaultCurrency,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,10 +48,10 @@ export function EmployeeCompensationForm({
       setForm({
         employeeId: "",
         basicSalary: "",
-        payFrequency: "MONTHLY",
+        payFrequency: resolvedDefaultPayFrequency,
         effectiveDate: "",
         endDate: "",
-        currency: "USD",
+        currency: defaultCurrency,
       });
       return;
     }
@@ -101,6 +109,7 @@ export function EmployeeCompensationForm({
   }
 
   return (
+    <PermissionGate permission="payroll.write">
     <form className="grid gap-4 rounded-[24px] border border-border bg-surface p-6 shadow-sm md:grid-cols-2" onSubmit={handleSubmit}>
       <label className="space-y-2 text-sm md:col-span-2">
         <span className="font-medium text-foreground">Edit existing compensation</span>
@@ -160,7 +169,12 @@ export function EmployeeCompensationForm({
         {error ? <p className="text-sm text-danger">{error}</p> : null}
       </div>
     </form>
+    </PermissionGate>
   );
+}
+
+function isPayFrequency(value: string): value is PayFrequency {
+  return payFrequencies.includes(value as PayFrequency);
 }
 
 function Field({

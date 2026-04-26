@@ -6,7 +6,7 @@ import { payrollSettingsSections } from "../_lib/settings-page-config";
 import { TenantSettingsResponse } from "../types";
 
 export default async function PayrollSettingsPage() {
-  await requireSettingsPermissions(["settings.read", "payroll.read"]);
+  await requireSettingsPermissions(["settings.read", "payroll.settings.read"]);
   const tenantSettings = await apiRequestJson<TenantSettingsResponse>(
     "/tenant-settings",
   );

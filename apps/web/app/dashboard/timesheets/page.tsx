@@ -1,9 +1,22 @@
 import Link from "next/link";
+import { getSessionUser } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
 import { ApiRequestError, apiRequestJson } from "@/lib/server-api";
+import { EmployeeListResponse } from "../employees/types";
+import { TenantResolvedSettingsResponse } from "../settings/types";
 import { AccessDeniedState } from "../_components/access-denied-state";
 import { getBusinessUnitAccessSummary, hasBusinessUnitScope } from "../_lib/business-unit-access";
+import { TimesheetFilterBar } from "./_components/timesheet-filter-bar";
 import { TimesheetMONTHLYEditor } from "./_components/timesheet-monthly-editor";
+import { TimesheetMonthsTable } from "./_components/timesheet-months-table";
+import { TimesheetTemplateExportButton } from "./_components/timesheet-template-export-button";
+import { TimesheetTemplateImportButton } from "./_components/timesheet-template-import-button";
 import { TimesheetListResponse, TimesheetRecord } from "./types";
+
+type BusinessUnitOption = {
+  id: string;
+  name: string;
+};
 
 type TimesheetsPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -13,6 +26,10 @@ export default async function TimesheetsPage({
   searchParams,
 }: TimesheetsPageProps) {
   const businessUnitAccess = await getBusinessUnitAccessSummary();
+  const user = await getSessionUser();
+  const canReadAllTimesheets = hasPermission(user?.permissionKeys, "timesheets.read.all");
+  const canReadTeamTimesheets = hasPermission(user?.permissionKeys, "timesheets.read.team");
+  const canReviewTimesheets = canReadTeamTimesheets || canReadAllTimesheets;
 
   if (!hasBusinessUnitScope(businessUnitAccess)) {
     return (
@@ -29,17 +46,27 @@ export default async function TimesheetsPage({
   const now = new Date();
   const year = Number(getSearchParam(params.year) || now.getFullYear());
   const month = Number(getSearchParam(params.month) || now.getMonth() + 1);
+  const page = Number(getSearchParam(params.page) || 1);
+  const pageSize = Number(getSearchParam(params.pageSize) || 12);
 
   let monthlyTimesheet: TimesheetRecord | null = null;
   let history: TimesheetListResponse = emptyHistory();
+  let employees: EmployeeListResponse | null = null;
+  let businessUnits: BusinessUnitOption[] = [];
+  let resolvedSettings: TenantResolvedSettingsResponse | null = null;
   let unavailableMessage: string | null = null;
 
   try {
-    [monthlyTimesheet, history] = await Promise.all([
+    [monthlyTimesheet, history, resolvedSettings, employees, businessUnits] = await Promise.all([
       apiRequestJson<TimesheetRecord>(
         `/timesheets/mine/monthly?year=${year}&month=${month}`,
       ),
-      apiRequestJson<TimesheetListResponse>("/timesheets/mine?pageSize=12"),
+      apiRequestJson<TimesheetListResponse>(
+        `/timesheets/mine?${buildTimesheetQuery(params, { page, pageSize })}`,
+      ),
+      apiRequestJson<TenantResolvedSettingsResponse>("/tenant-settings/resolved"),
+      apiRequestJson<EmployeeListResponse>("/employees?pageSize=100"),
+      apiRequestJson<BusinessUnitOption[]>("/business-units"),
     ]);
   } catch (error) {
     if (error instanceof ApiRequestError && error.status === 400) {
@@ -57,21 +84,37 @@ export default async function TimesheetsPage({
             Timesheets
           </p>
           <h3 className="font-serif text-4xl text-foreground">
-            Fill your full monthly timesheet in one structured view.
+            Monthly timesheets for payroll-ready review.
           </h3>
           <p className="max-w-3xl text-muted">
-            Weekends and holidays are system-driven, weekdays must be resolved,
-            and submissions move through reporting-manager approval.
+            Work days, weekends, holidays, required notes, and submission rules
+            follow tenant timesheet settings.
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
           <MonthSwitcher month={month} year={year} />
-          <Link
-            className="rounded-2xl border border-border px-5 py-3 text-sm font-medium text-muted transition hover:border-accent/30 hover:text-foreground"
-            href="/dashboard/timesheets/approvals"
-          >
-            Manager approvals
-          </Link>
+          <TimesheetTemplateExportButton
+            businessUnits={businessUnitOptions(businessUnits)}
+            canReadAll={canReadAllTimesheets}
+            canReadTeam={canReadTeamTimesheets}
+            month={month}
+            year={year}
+          />
+          <TimesheetTemplateImportButton
+            businessUnits={businessUnitOptions(businessUnits)}
+            canReadAll={canReadAllTimesheets}
+            canReadTeam={canReadTeamTimesheets}
+            month={month}
+            year={year}
+          />
+          {canReviewTimesheets ? (
+            <Link
+              className="rounded-2xl border border-border px-5 py-3 text-sm font-medium text-muted transition hover:border-accent/30 hover:text-foreground"
+              href="/dashboard/timesheets/approvals"
+            >
+              Manager approvals
+            </Link>
+          ) : null}
         </div>
       </section>
 
@@ -86,49 +129,31 @@ export default async function TimesheetsPage({
           <p className="mt-3 max-w-3xl text-muted">{unavailableMessage}</p>
         </section>
       ) : monthlyTimesheet ? (
-        <TimesheetMONTHLYEditor timesheet={monthlyTimesheet} />
+        <TimesheetMONTHLYEditor
+          settings={resolvedSettings?.timesheets}
+          timesheet={monthlyTimesheet}
+        />
       ) : null}
 
       <section className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
         <p className="text-sm uppercase tracking-[0.18em] text-muted">
-          History
+          Timesheet Months
         </p>
         <h4 className="mt-2 text-2xl font-semibold text-foreground">
-          Recent monthly timesheets
+          Filter, sort, and reopen monthly records
         </h4>
-
-        {history.items.length === 0 ? (
-          <p className="mt-4 text-sm text-muted">
-            Your submitted and draft timesheets will appear here.
-          </p>
-        ) : (
-          <div className="mt-5 grid gap-3">
-            {history.items.map((timesheet) => (
-              <div
-                key={timesheet.id}
-                className="rounded-2xl border border-border bg-white/80 px-5 py-4"
-              >
-                <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <p className="font-medium text-foreground">
-                      {monthLabel(timesheet.month, timesheet.year)}
-                    </p>
-                    <p className="mt-1 text-sm text-muted">
-                      {timesheet.status} • {timesheet.summary.totalWorkDays} work
-                      day(s) • {timesheet.summary.totalLeaveDays} leave day(s)
-                    </p>
-                  </div>
-                  <Link
-                    className="text-sm font-medium text-accent hover:text-accent-strong"
-                    href={`/dashboard/timesheets?year=${timesheet.year}&month=${timesheet.month}`}
-                  >
-                    Open
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <div className="mt-5">
+          <TimesheetFilterBar
+            basePath="/dashboard/timesheets"
+            businessUnits={businessUnitOptions(businessUnits)}
+            departments={departmentOptions(employees)}
+          />
+        </div>
+        <TimesheetMonthsTable
+          basePath="/dashboard/timesheets"
+          response={history}
+          searchParams={searchParamsForPagination(params)}
+        />
       </section>
     </main>
   );
@@ -183,6 +208,55 @@ function emptyHistory(): TimesheetListResponse {
       scope: "mine",
     },
   };
+}
+
+function buildTimesheetQuery(
+  params: Record<string, string | string[] | undefined>,
+  defaults: { page: number; pageSize: number },
+) {
+  const query = new URLSearchParams();
+  [
+    "year",
+    "month",
+    "status",
+    "employeeId",
+    "managerEmployeeId",
+    "departmentId",
+    "businessUnitId",
+    "sortField",
+    "sortDirection",
+  ].forEach((key) => {
+    const value = getSearchParam(params[key]);
+    if (value) query.set(key, value);
+  });
+  query.set("page", String(defaults.page));
+  query.set("pageSize", String(defaults.pageSize));
+  return query.toString();
+}
+
+function departmentOptions(employees: EmployeeListResponse | null) {
+  const departments = new Map<string, string>();
+  employees?.items.forEach((employee) => {
+    if (employee.department) {
+      departments.set(employee.department.id, employee.department.name);
+    }
+  });
+  return Array.from(departments, ([id, label]) => ({ id, label }));
+}
+
+function businessUnitOptions(businessUnits: BusinessUnitOption[]) {
+  return businessUnits.map((businessUnit) => ({
+    id: businessUnit.id,
+    label: businessUnit.name,
+  }));
+}
+
+function searchParamsForPagination(params: Record<string, string | string[] | undefined>) {
+  const result: Record<string, string | undefined> = {};
+  Object.entries(params).forEach(([key, value]) => {
+    result[key] = getSearchParam(value) || undefined;
+  });
+  return result;
 }
 
 function getSearchParam(value?: string | string[]) {

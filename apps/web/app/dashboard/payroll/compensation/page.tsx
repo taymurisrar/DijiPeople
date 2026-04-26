@@ -1,4 +1,5 @@
 import { apiRequestJson } from "@/lib/server-api";
+import { TenantResolvedSettingsResponse } from "@/app/dashboard/settings/types";
 import { EmployeeListResponse } from "@/app/dashboard/employees/types";
 import { AccessDeniedState } from "../../_components/access-denied-state";
 import { getBusinessUnitAccessSummary, hasBusinessUnitScope } from "../../_lib/business-unit-access";
@@ -23,9 +24,10 @@ export default async function EmployeeCompensationPage() {
     );
   }
 
-  const [compensations, employees] = await Promise.all([
+  const [compensations, employees, resolvedSettings] = await Promise.all([
     apiRequestJson<EmployeeCompensationRecord[]>("/payroll/compensations"),
     apiRequestJson<EmployeeListResponse>("/employees?pageSize=100"),
+    apiRequestJson<TenantResolvedSettingsResponse>("/tenant-settings/resolved"),
   ]);
 
   return (
@@ -35,6 +37,8 @@ export default async function EmployeeCompensationPage() {
     >
       <EmployeeCompensationForm
         compensations={compensations}
+        defaultCurrency={resolvedSettings.payroll.defaultCurrency}
+        defaultPayFrequency={resolvedSettings.payroll.payFrequency}
         employees={employees.items.filter((employee) => employee.employmentStatus !== "TERMINATED")}
       />
 

@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { AttendanceMode, WorkWeekday } from '@prisma/client';
+import { PrismaService } from '../../common/prisma/prisma.service';
 import {
   DEFAULT_TENANT_SETTINGS,
   TenantSettingCategory,
@@ -65,13 +66,24 @@ export type AttendanceSettingsResolved = {
 };
 
 export type TimesheetSettingsResolved = {
+  timesheetPeriodType: 'monthly' | 'weekly' | 'biweekly';
   weekendDays: WorkWeekday[];
   defaultWorkHours: number;
+  defaultHoursForOnWork: number;
   allowWeekendWork: boolean;
   allowHolidayWork: boolean;
+  requireMonthlySubmission: boolean;
   requireMONTHLYSubmission: boolean;
   autoFillWorkingDays: boolean;
+  requireAllDaysCompletedBeforeSubmit: boolean;
   requireSubmissionNote: boolean;
+  allowBulkImport: boolean;
+  allowEmployeeSelfImport: boolean;
+  allowManagerImportForTeam: boolean;
+  requireApprovalBeforePayroll: boolean;
+  exportTemplateFormat: 'CSV' | 'XLSX';
+  lockTimesheetAfterApproval: boolean;
+  allowRejectedTimesheetResubmission: boolean;
 };
 
 export type PayrollSettingsResolved = {
@@ -81,6 +93,14 @@ export type PayrollSettingsResolved = {
   defaultPaymentMode: string;
   compensationReviewCycle: string;
   defaultCurrency: string;
+  payrollGenerationSource: 'approved_timesheets' | 'manual' | 'mixed';
+  requireApprovedTimesheetsForPayroll: boolean;
+  includeLeavesInPayrollSummary: boolean;
+  includeHolidaysInPayrollSummary: boolean;
+  includeWeekendWorkInPayrollSummary: boolean;
+  defaultPayrollCycleDay: number;
+  allowDraftPayrollAdjustments: boolean;
+  payrollExportFormat: 'CSV' | 'XLSX' | 'BANK_FILE';
 };
 
 export type RecruitmentSettingsResolved = {
@@ -195,7 +215,10 @@ export type PublicBrandingResolved = {
 export class TenantSettingsResolverService {
   private readonly cache = new Map<string, CachedSettings>();
 
-  constructor(private readonly tenantSettingsRepository: TenantSettingsRepository) {}
+  constructor(
+    private readonly tenantSettingsRepository: TenantSettingsRepository,
+    private readonly prisma: PrismaService,
+  ) {}
 
   async getOrganizationSettings(
     tenantId: string,
@@ -297,25 +320,108 @@ export class TenantSettingsResolverService {
 
   async getTimesheetSettings(tenantId: string): Promise<TimesheetSettingsResolved> {
     const source = await this.getSettingsMap(tenantId);
-    const category = source.timesheets ?? {};
+    return this.resolveTimesheetSettings(source.timesheets ?? {});
+  }
+
+  async getTimesheetSettingsForBusinessUnit(
+    tenantId: string,
+    businessUnitId?: string | null,
+  ): Promise<TimesheetSettingsResolved> {
+    const source = await this.getSettingsMap(tenantId);
+    const overrides = await this.getBusinessUnitCategorySettings(
+      tenantId,
+      businessUnitId,
+      'timesheets',
+    );
+
+    return this.resolveTimesheetSettings({
+      ...(source.timesheets ?? {}),
+      ...overrides,
+    });
+  }
+
+  private resolveTimesheetSettings(
+    category: Record<string, unknown>,
+  ): TimesheetSettingsResolved {
+    const periodType = enumStringValue(
+      category.timesheetPeriodType,
+      ['monthly', 'weekly', 'biweekly'] as const,
+      'monthly',
+    );
     const weekendDays = csvValues(category.weekendDays).filter((value): value is WorkWeekday =>
       Object.values(WorkWeekday).includes(value as WorkWeekday),
     );
+    const defaultWorkHours = numberValue(category.defaultWorkHours, 8, 1, 24);
+    const requireMonthlySubmission = booleanValue(
+      category.requireMonthlySubmission ?? category.requireMONTHLYSubmission,
+      true,
+    );
 
     return {
+      timesheetPeriodType: periodType,
       weekendDays: weekendDays.length > 0 ? weekendDays : [WorkWeekday.SATURDAY, WorkWeekday.SUNDAY],
-      defaultWorkHours: numberValue(category.defaultWorkHours, 8, 1, 24),
+      defaultWorkHours,
+      defaultHoursForOnWork: numberValue(
+        category.defaultHoursForOnWork,
+        defaultWorkHours,
+        1,
+        24,
+      ),
       allowWeekendWork: booleanValue(category.allowWeekendWork, true),
       allowHolidayWork: booleanValue(category.allowHolidayWork, true),
-      requireMONTHLYSubmission: booleanValue(category.requireMONTHLYSubmission, true),
+      requireMonthlySubmission,
+      requireMONTHLYSubmission: requireMonthlySubmission,
       autoFillWorkingDays: booleanValue(category.autoFillWorkingDays, false),
+      requireAllDaysCompletedBeforeSubmit: booleanValue(
+        category.requireAllDaysCompletedBeforeSubmit,
+        true,
+      ),
       requireSubmissionNote: booleanValue(category.requireSubmissionNote, false),
+      allowBulkImport: booleanValue(category.allowBulkImport, true),
+      allowEmployeeSelfImport: booleanValue(category.allowEmployeeSelfImport, false),
+      allowManagerImportForTeam: booleanValue(category.allowManagerImportForTeam, true),
+      requireApprovalBeforePayroll: booleanValue(
+        category.requireApprovalBeforePayroll,
+        true,
+      ),
+      exportTemplateFormat: enumStringValue(
+        category.exportTemplateFormat,
+        ['CSV', 'XLSX'] as const,
+        'CSV',
+      ),
+      lockTimesheetAfterApproval: booleanValue(category.lockTimesheetAfterApproval, true),
+      allowRejectedTimesheetResubmission: booleanValue(
+        category.allowRejectedTimesheetResubmission,
+        true,
+      ),
     };
   }
 
   async getPayrollSettings(tenantId: string): Promise<PayrollSettingsResolved> {
     const source = await this.getSettingsMap(tenantId);
-    const category = source.payroll ?? {};
+    return this.resolvePayrollSettings(source.payroll ?? {});
+  }
+
+  async getPayrollSettingsForBusinessUnit(
+    tenantId: string,
+    businessUnitId?: string | null,
+  ): Promise<PayrollSettingsResolved> {
+    const source = await this.getSettingsMap(tenantId);
+    const overrides = await this.getBusinessUnitCategorySettings(
+      tenantId,
+      businessUnitId,
+      'payroll',
+    );
+
+    return this.resolvePayrollSettings({
+      ...(source.payroll ?? {}),
+      ...overrides,
+    });
+  }
+
+  private resolvePayrollSettings(
+    category: Record<string, unknown>,
+  ): PayrollSettingsResolved {
 
     return {
       payFrequency: stringValue(category.payFrequency, 'MONTHLY'),
@@ -324,6 +430,37 @@ export class TenantSettingsResolverService {
       defaultPaymentMode: stringValue(category.defaultPaymentMode, 'BANK_TRANSFER'),
       compensationReviewCycle: stringValue(category.compensationReviewCycle, 'ANNUAL'),
       defaultCurrency: stringValue(category.defaultCurrency, 'USD'),
+      payrollGenerationSource: enumStringValue(
+        category.payrollGenerationSource,
+        ['approved_timesheets', 'manual', 'mixed'] as const,
+        'approved_timesheets',
+      ),
+      requireApprovedTimesheetsForPayroll: booleanValue(
+        category.requireApprovedTimesheetsForPayroll,
+        true,
+      ),
+      includeLeavesInPayrollSummary: booleanValue(
+        category.includeLeavesInPayrollSummary,
+        true,
+      ),
+      includeHolidaysInPayrollSummary: booleanValue(
+        category.includeHolidaysInPayrollSummary,
+        true,
+      ),
+      includeWeekendWorkInPayrollSummary: booleanValue(
+        category.includeWeekendWorkInPayrollSummary,
+        true,
+      ),
+      defaultPayrollCycleDay: numberValue(category.defaultPayrollCycleDay, 25, 1, 31),
+      allowDraftPayrollAdjustments: booleanValue(
+        category.allowDraftPayrollAdjustments,
+        true,
+      ),
+      payrollExportFormat: enumStringValue(
+        category.payrollExportFormat,
+        ['CSV', 'XLSX', 'BANK_FILE'] as const,
+        'CSV',
+      ),
     };
   }
 
@@ -586,6 +723,43 @@ async getPublicBrandingByTenantSlug(
 
     return settings;
   }
+
+  private async getBusinessUnitCategorySettings(
+    tenantId: string,
+    businessUnitId: string | null | undefined,
+    category: 'timesheets' | 'payroll',
+  ): Promise<Record<string, unknown>> {
+    if (!businessUnitId) {
+      return {};
+    }
+
+    const businessUnit = await this.prisma.businessUnit.findFirst({
+      where: {
+        tenantId,
+        id: businessUnitId,
+      },
+      select: {
+        settingsJson: true,
+      },
+    });
+
+    const settingsJson = businessUnit?.settingsJson;
+    if (!settingsJson || typeof settingsJson !== 'object' || Array.isArray(settingsJson)) {
+      return {};
+    }
+
+    const settings = settingsJson as Record<string, unknown>;
+    const categorySettings = settings[category];
+    if (
+      categorySettings &&
+      typeof categorySettings === 'object' &&
+      !Array.isArray(categorySettings)
+    ) {
+      return categorySettings as Record<string, unknown>;
+    }
+
+    return settings;
+  }
 }
 
 function booleanValue(value: unknown, fallback: boolean) {
@@ -625,6 +799,21 @@ function stringValue(value: unknown, fallback: string) {
   }
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : fallback;
+}
+
+function enumStringValue<const T extends readonly string[]>(
+  value: unknown,
+  allowedValues: T,
+  fallback: T[number],
+): T[number] {
+  if (typeof value !== 'string') {
+    return fallback;
+  }
+
+  const normalized = value.trim();
+  return allowedValues.includes(normalized as T[number])
+    ? (normalized as T[number])
+    : fallback;
 }
 
 function csvValues(value: unknown) {

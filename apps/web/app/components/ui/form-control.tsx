@@ -17,6 +17,8 @@ export type LookupOption = {
   subtitle?: string | null;
 };
 
+type TextFieldVariant = "default" | "cnic";
+
 type BaseFieldProps = {
   label: string;
   hint?: string;
@@ -142,27 +144,67 @@ export function TextField({
   className,
   disabled,
   type = "text",
+  variant = "default",
+  maxLength,
 }: BaseFieldProps & {
   onChange: (value: string) => void;
   placeholder?: string;
   value: string;
   disabled?: boolean;
   type?: "text" | "email" | "url" | "password" | "search";
+  variant?: TextFieldVariant;
+  maxLength?: number;
 }) {
+  function formatCNIC(input: string) {
+    const digits = input.replace(/\D/g, "").slice(0, 13);
+
+    const part1 = digits.slice(0, 5);
+    const part2 = digits.slice(5, 12);
+    const part3 = digits.slice(12, 13);
+
+    let formatted = part1;
+    if (part2) formatted += `-${part2}`;
+    if (part3) formatted += `-${part3}`;
+
+    return formatted;
+  }
+
+  function handleChange(rawValue: string) {
+    if (variant === "cnic") {
+      onChange(formatCNIC(rawValue));
+      return;
+    }
+
+    onChange(rawValue);
+  }
+
+  function isValidCNIC(input: string) {
+    return /^\d{5}-\d{7}-\d{1}$/.test(input);
+  }
+
+  const showError =
+    variant === "cnic" && value.length > 0 && !isValidCNIC(value);
+
   return (
     <FieldShell
       className={className}
-      hint={hint}
+      hint={showError ? "Invalid CNIC format. Use XXXXX-XXXXXXX-X" : hint}
       label={label}
       required={required}
     >
       <input
-        className={baseInputClassName}
+        className={`${baseInputClassName} ${
+          showError ? "border-red-500 focus:border-red-500" : ""
+        }`}
         disabled={disabled}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder}
+        onChange={(event) => handleChange(event.target.value)}
+        placeholder={
+          placeholder ?? (variant === "cnic" ? "12345-1234567-1" : undefined)
+        }
         type={type}
         value={value}
+        maxLength={variant === "cnic" ? 15 : maxLength}
+        inputMode={variant === "cnic" ? "numeric" : undefined}
       />
     </FieldShell>
   );
@@ -396,13 +438,6 @@ export function LookupField({
                 <span className="block truncate font-medium text-foreground">
                   {selectedOption.name}
                 </span>
-                {selectedOption.code || selectedOption.subtitle ? (
-                  <span className="block truncate text-xs text-muted">
-                    {[selectedOption.code, selectedOption.subtitle]
-                      .filter(Boolean)
-                      .join(" • ")}
-                  </span>
-                ) : null}
               </span>
             ) : (
               <span className="text-muted">{placeholder}</span>

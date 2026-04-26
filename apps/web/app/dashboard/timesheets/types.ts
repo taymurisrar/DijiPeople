@@ -63,6 +63,19 @@ export type TimesheetRecord = {
     lastName: string;
     preferredName?: string | null;
     fullName: string;
+    department?: {
+      id: string;
+      code?: string | null;
+      name: string;
+    } | null;
+    location?: {
+      id: string;
+      name: string;
+    } | null;
+    businessUnit?: {
+      id: string;
+      name: string;
+    } | null;
     reportingManager: {
       id: string;
       employeeCode: string;
@@ -79,6 +92,7 @@ export type TimesheetRecord = {
   entries: TimesheetDayRecord[];
   canCurrentUserSubmit: boolean;
   canCurrentUserApprove: boolean;
+  canCurrentUserReject: boolean;
   canCurrentUserEdit: boolean;
 };
 

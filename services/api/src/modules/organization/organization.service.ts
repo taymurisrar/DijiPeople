@@ -185,6 +185,13 @@ export class OrganizationService {
         name: dto.name.trim(),
         organizationId: dto.organizationId,
         parentBusinessUnitId: dto.parentBusinessUnitId ?? null,
+        type: dto.type ?? 'INTERNAL',
+        settingsJson: dto.settingsJson as Prisma.InputJsonValue | undefined,
+        payrollContactName: dto.payrollContactName?.trim(),
+        payrollContactEmail: dto.payrollContactEmail?.trim().toLowerCase(),
+        payrollContactPhone: dto.payrollContactPhone?.trim(),
+        approvalContactName: dto.approvalContactName?.trim(),
+        approvalContactEmail: dto.approvalContactEmail?.trim().toLowerCase(),
       });
     } catch (error) {
       this.handleUniqueError(error, 'Business unit');
@@ -224,6 +231,35 @@ export class OrganizationService {
             : {}),
           ...(dto.parentBusinessUnitId !== undefined
             ? { parentBusinessUnitId: dto.parentBusinessUnitId ?? null }
+            : {}),
+          ...(dto.type !== undefined ? { type: dto.type } : {}),
+          ...(dto.settingsJson !== undefined
+            ? {
+                settingsJson:
+                  (dto.settingsJson as Prisma.InputJsonValue | null) ??
+                  Prisma.JsonNull,
+              }
+            : {}),
+          ...(dto.payrollContactName !== undefined
+            ? { payrollContactName: dto.payrollContactName?.trim() ?? null }
+            : {}),
+          ...(dto.payrollContactEmail !== undefined
+            ? {
+                payrollContactEmail:
+                  dto.payrollContactEmail?.trim().toLowerCase() ?? null,
+              }
+            : {}),
+          ...(dto.payrollContactPhone !== undefined
+            ? { payrollContactPhone: dto.payrollContactPhone?.trim() ?? null }
+            : {}),
+          ...(dto.approvalContactName !== undefined
+            ? { approvalContactName: dto.approvalContactName?.trim() ?? null }
+            : {}),
+          ...(dto.approvalContactEmail !== undefined
+            ? {
+                approvalContactEmail:
+                  dto.approvalContactEmail?.trim().toLowerCase() ?? null,
+              }
             : {}),
         },
       );

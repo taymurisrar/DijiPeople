@@ -245,7 +245,7 @@ export class EmployeesController {
   }
 
   @Put(':employeeId/compensation')
-  @Permissions('payroll.update')
+  @Permissions('payroll.write')
   upsertCompensation(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,

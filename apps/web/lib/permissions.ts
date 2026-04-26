@@ -21,6 +21,13 @@ export const MANAGEMENT_PERMISSION_KEYS = [
   "leave-requests.reject",
   "attendance.manage",
   "timesheets.approve",
+  "timesheets.reject",
+  "timesheets.import",
+  "timesheets.export",
+  "timesheets.template.export",
+  "timesheets.lock",
+  "timesheets.unlock",
+  "timesheets.settings.update",
   "projects.create",
   "projects.update",
   "projects.assign",
@@ -29,9 +36,12 @@ export const MANAGEMENT_PERMISSION_KEYS = [
   "recruitment.advance",
   "onboarding.create",
   "onboarding.update",
-  "payroll.create",
+  "payroll.write",
   "payroll.run",
-  "payroll.update",
+  "payroll.review",
+  "payroll.finalize",
+  "payroll.export",
+  "payroll.settings.update",
 ] as const;
 
 export function hasPermission(

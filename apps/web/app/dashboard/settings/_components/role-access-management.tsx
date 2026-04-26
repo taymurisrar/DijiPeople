@@ -886,7 +886,10 @@ function buildBusinessUnitOptions(businessUnits: BusinessUnitRecord[]) {
 
     const sortedChildren = [...unit.children]
       .map((id) => byId.get(id))
-      .filter(Boolean)
+      .filter(
+        (child): child is BusinessUnitRecord & { children: string[] } =>
+          Boolean(child),
+      )
       .sort((a, b) => a.name.localeCompare(b.name));
 
     for (const child of sortedChildren) {

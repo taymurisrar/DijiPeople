@@ -195,7 +195,7 @@ export const settingsNavGroups: readonly SettingsNavGroup[] = [
         requiredAnyPermissions: [
           "settings.read",
           "attendance.read",
-          "timesheets.read",
+          "timesheets.settings.read",
         ],
       },
     ],
@@ -215,7 +215,7 @@ export const settingsNavGroups: readonly SettingsNavGroup[] = [
           "Pay frequency, compensation defaults, and payroll preferences.",
         icon: "banknote",
         keywords: ["salary", "payroll", "pay frequency"],
-        requiredAnyPermissions: ["settings.read", "payroll.read"],
+        requiredAnyPermissions: ["settings.read", "payroll.settings.read"],
       },
     ],
   },

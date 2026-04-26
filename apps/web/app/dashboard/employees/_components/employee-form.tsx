@@ -307,6 +307,7 @@ export function EmployeeForm({
           label="CNIC"
           value={form.cnic}
           onChange={(value) => updateField("cnic", value)}
+          variant="cnic"
         />
         <SelectField
           label="Blood group"

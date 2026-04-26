@@ -7,28 +7,104 @@ import {
 } from '@nestjs/common';
 import {
   Prisma,
+  TimesheetImportBatchStatus,
   TimesheetEntryType,
   TimesheetStatus,
   WorkWeekday,
 } from '@prisma/client';
+import {
+  ExcelExportService,
+  ExcelParsedRow,
+} from '../../common/excel/excel-export.service';
 import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
+import { PrismaService } from '../../common/prisma/prisma.service';
 import { EmployeesRepository } from '../employees/employees.repository';
 import { TenantSettingsResolverService } from '../tenant-settings/tenant-settings-resolver.service';
+import { ExportTimesheetTemplateDto } from './dto/export-timesheet-template.dto';
 import { GetMONTHLYTimesheetDto } from './dto/get-monthly-timesheet.dto';
+import {
+  CommitTimesheetImportDto,
+  ImportTimesheetTemplateDto,
+} from './dto/import-timesheet-template.dto';
 import { ReviewTimesheetDto } from './dto/review-timesheet.dto';
 import { SubmitTimesheetDto } from './dto/submit-timesheet.dto';
 import { TimesheetQueryDto } from './dto/timesheet-query.dto';
 import { UpsertTimesheetEntriesDto } from './dto/upsert-timesheet-entries.dto';
-import { TimesheetWithRelations, TimesheetsRepository } from './timesheets.repository';
+import {
+  TimesheetTemplateEmployee,
+  TimesheetWithRelations,
+  TimesheetsRepository,
+} from './timesheets.repository';
+
+type UploadedExcelFile = {
+  buffer: Buffer;
+  originalname: string;
+  mimetype: string;
+  size: number;
+};
+
+type TimesheetImportSeverity = 'valid' | 'warning' | 'error';
+
+type TimesheetImportPayload = {
+  employeeId: string;
+  employeeCode: string;
+  businessUnitId: string | null;
+  year: number;
+  month: number;
+  date: string;
+  dayOfWeek: WorkWeekday;
+  entryType: TimesheetEntryType;
+  hoursWorked: number;
+  isWeekend: boolean;
+  isHoliday: boolean;
+  note: string | null;
+};
+
+type TimesheetImportPreviewRow = {
+  rowNumber: number;
+  employeeCode: string;
+  employeeName: string;
+  workEmail: string;
+  date: string;
+  entryType: string;
+  hoursWorked: string;
+  severity: TimesheetImportSeverity;
+  errors: string[];
+  warnings: string[];
+  payload: TimesheetImportPayload | null;
+};
+
+type TimesheetImportPreview = {
+  fileName: string;
+  year: number;
+  month: number;
+  settings: TimesheetSettings;
+  summary: {
+    totalRows: number;
+    validRows: number;
+    warningRows: number;
+    errorRows: number;
+    affectedEmployees: number;
+  };
+  rows: TimesheetImportPreviewRow[];
+};
 
 type TimesheetSettings = {
+  timesheetPeriodType: 'monthly' | 'weekly' | 'biweekly';
   weekendDays: WorkWeekday[];
   defaultWorkHours: number;
+  defaultHoursForOnWork: number;
   allowWeekendWork: boolean;
   allowHolidayWork: boolean;
-  requireMONTHLYSubmission: boolean;
+  requireMonthlySubmission: boolean;
   autoFillWorkingDays: boolean;
+  allowBulkImport: boolean;
+  allowEmployeeSelfImport: boolean;
+  allowManagerImportForTeam: boolean;
+  requireAllDaysCompletedBeforeSubmit: boolean;
   requireSubmissionNote: boolean;
+  lockTimesheetAfterApproval: boolean;
+  allowRejectedTimesheetResubmission: boolean;
 };
 
 @Injectable()
@@ -37,6 +113,8 @@ export class TimesheetsService {
     private readonly timesheetsRepository: TimesheetsRepository,
     private readonly employeesRepository: EmployeesRepository,
     private readonly tenantSettingsResolverService: TenantSettingsResolverService,
+    private readonly excelExportService: ExcelExportService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async getMyMONTHLYTimesheet(
@@ -67,12 +145,11 @@ export class TimesheetsService {
   }
 
   async listTeam(currentUser: AuthenticatedUser, query: TimesheetQueryDto) {
-    const canApproveAll =
-      currentUser.permissionKeys.includes('timesheets.approve') &&
-      currentUser.permissionKeys.includes('timesheets.read') &&
+    const canReadAll =
+      currentUser.permissionKeys.includes('timesheets.read.all') ||
       currentUser.permissionKeys.includes('attendance.manage');
 
-    const employeeIds = canApproveAll
+    const employeeIds = canReadAll
       ? await this.resolveAllTenantEmployeeIds(currentUser.tenantId)
       : await this.resolveDirectReportIds(currentUser);
 
@@ -86,7 +163,7 @@ export class TimesheetsService {
       result.items,
       result.total,
       query,
-      canApproveAll ? 'tenant' : 'team',
+      canReadAll ? 'tenant' : 'team',
     );
   }
 
@@ -122,9 +199,12 @@ export class TimesheetsService {
       throw new ForbiddenException('You can only edit your own timesheets.');
     }
 
-    this.assertTimesheetEditable(timesheet);
-
-    const settings = await this.getTimesheetSettings(currentUser.tenantId);
+    const settings = await this.getTimesheetSettings(
+      currentUser.tenantId,
+      timesheet.businessUnitId,
+    );
+    this.assertMonthlyTimesheetsEnabled(settings);
+    this.assertTimesheetEditable(timesheet, settings);
     const periodStart = toStartOfDay(timesheet.periodStart);
     const periodEnd = toStartOfDay(timesheet.periodEnd);
     const approvedLeaves = await this.timesheetsRepository.findApprovedLeaveRequestsForMonth(
@@ -189,7 +269,7 @@ export class TimesheetsService {
       const hours = resolveHoursWorked(
         nextEntryType,
         incoming.hoursWorked,
-        settings.defaultWorkHours,
+        settings.defaultHoursForOnWork,
       );
 
       await this.timesheetsRepository.updateTimesheetEntry(currentUser.tenantId, currentEntry.id, {
@@ -236,13 +316,16 @@ export class TimesheetsService {
       throw new ForbiddenException('You can only submit your own timesheets.');
     }
 
-    this.assertTimesheetEditable(timesheet);
+    const settings = await this.getTimesheetSettings(
+      currentUser.tenantId,
+      timesheet.businessUnitId,
+    );
+    this.assertMonthlyTimesheetsEnabled(settings);
+    this.assertTimesheetEditable(timesheet, settings);
 
-    const settings = await this.getTimesheetSettings(currentUser.tenantId);
-
-    if (!settings.requireMONTHLYSubmission) {
+    if (!settings.requireMonthlySubmission) {
       throw new BadRequestException(
-        'MONTHLY timesheet submission is currently disabled by tenant settings.',
+        'Monthly timesheet submission is currently disabled by tenant settings.',
       );
     }
 
@@ -253,7 +336,7 @@ export class TimesheetsService {
     }
 
     const validation = validateTimesheetForSubmission(timesheet.entries);
-    if (!validation.isValid) {
+    if (settings.requireAllDaysCompletedBeforeSubmit && !validation.isValid) {
       throw new BadRequestException({
         message:
           'Complete all required weekday entries before submitting this timesheet.',
@@ -365,6 +448,312 @@ export class TimesheetsService {
     };
   }
 
+  async exportTimesheetTemplate(
+    currentUser: AuthenticatedUser,
+    query: ExportTimesheetTemplateDto,
+  ) {
+    const { year, month } = resolveTargetMonth(query.year, query.month);
+    const { periodStart, periodEnd } = getMonthRange(year, month);
+    const settings = await this.getTimesheetSettings(
+      currentUser.tenantId,
+      query.businessUnitId,
+    );
+    this.assertMonthlyTimesheetsEnabled(settings);
+
+    const templateScope = await this.resolveTemplateScope(currentUser, query);
+    const employees = await this.timesheetsRepository.findEmployeesForTemplate(
+      currentUser.tenantId,
+      {
+        employeeIds: templateScope.employeeIds,
+        employeeId: query.employeeId,
+        businessUnitId: query.businessUnitId,
+        departmentId: query.departmentId,
+        locationId: query.locationId,
+      },
+    );
+    const employeeIds = employees.map((employee) => employee.id);
+    const [existingTimesheets, holidays, approvedLeaves] = await Promise.all([
+      this.timesheetsRepository.findTimesheetsForTemplate(
+        currentUser.tenantId,
+        employeeIds,
+        year,
+        month,
+      ),
+      this.timesheetsRepository.findHolidaysForMonth(
+        currentUser.tenantId,
+        periodStart,
+        periodEnd,
+      ),
+      this.timesheetsRepository.findApprovedLeaveRequestsForEmployeesForMonth(
+        currentUser.tenantId,
+        employeeIds,
+        periodStart,
+        periodEnd,
+      ),
+    ]);
+
+    const rows = buildTimesheetTemplateRows({
+      dates: getDatesInRange(periodStart, periodEnd),
+      employees,
+      holidayMap: new Map(
+        holidays.map((holiday) => [toDateKey(holiday.date), holiday]),
+      ),
+      leaveMap: buildEmployeeLeaveMap(approvedLeaves),
+      month,
+      settings,
+      timesheetByEmployeeId: new Map(
+        existingTimesheets.map(
+          (timesheet) => [timesheet.employeeId, timesheet] as const,
+        ),
+      ),
+      year,
+    });
+    const buffer = this.excelExportService.buildWorkbookBuffer({
+      sheets: [
+        {
+          name: 'Timesheet',
+          columns: TIMESHEET_TEMPLATE_COLUMNS,
+          rows,
+        },
+        {
+          name: 'Instructions',
+          columns: [
+            { key: 'topic', header: 'Topic', width: 28 },
+            { key: 'details', header: 'Details', width: 96 },
+          ],
+          rows: buildTimesheetTemplateInstructions(year, month),
+        },
+        {
+          name: 'Valid Values',
+          columns: [
+            { key: 'field', header: 'Field', width: 24 },
+            { key: 'value', header: 'Valid Value', width: 24 },
+            { key: 'description', header: 'Description', width: 72 },
+          ],
+          rows: TIMESHEET_TEMPLATE_VALID_VALUES,
+        },
+      ],
+    });
+
+    return {
+      buffer,
+      contentType:
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      fileName: `timesheet-template-${year}-${String(month).padStart(2, '0')}.xlsx`,
+      employeeCount: employees.length,
+      rowCount: rows.length,
+    };
+  }
+
+  async previewTimesheetImport(
+    currentUser: AuthenticatedUser,
+    dto: ImportTimesheetTemplateDto,
+    file: UploadedExcelFile | undefined,
+  ) {
+    const validatedFile = validateTimesheetImportFile(file);
+    const preview = await this.buildTimesheetImportPreview(
+      currentUser,
+      dto,
+      validatedFile,
+    );
+    const batch = await this.timesheetsRepository.createImportBatch({
+      tenantId: currentUser.tenantId,
+      fileName: validatedFile.originalname,
+      status: TimesheetImportBatchStatus.PREVIEWED,
+      importedByUserId: currentUser.userId,
+      importedAt: new Date(),
+      totalRows: preview.summary.totalRows,
+      successCount: preview.summary.validRows,
+      warningCount: preview.summary.warningRows,
+      errorCount: preview.summary.errorRows,
+      errorSummary: summarizeImportErrors(preview.rows),
+      previewJson: JSON.stringify(preview),
+    });
+
+    return {
+      ...preview,
+      batch: {
+        id: batch.id,
+        fileName: batch.fileName,
+        importedAt: batch.importedAt,
+        status: batch.status,
+        successCount: batch.successCount,
+        errorCount: batch.errorCount,
+      },
+    };
+  }
+
+  async commitTimesheetImport(
+    currentUser: AuthenticatedUser,
+    dto: CommitTimesheetImportDto,
+  ) {
+    const batch = await this.timesheetsRepository.findImportBatchById(
+      currentUser.tenantId,
+      dto.batchId,
+    );
+
+    if (!batch) {
+      throw new NotFoundException('Timesheet import batch was not found.');
+    }
+
+    if (batch.importedByUserId !== currentUser.userId) {
+      throw new ForbiddenException('You can only commit your own import preview.');
+    }
+
+    if (batch.status !== TimesheetImportBatchStatus.PREVIEWED) {
+      throw new ConflictException('This timesheet import batch has already been processed.');
+    }
+
+    if (!batch.previewJson) {
+      throw new BadRequestException('Import preview data is missing.');
+    }
+
+    const preview = JSON.parse(batch.previewJson) as TimesheetImportPreview;
+    if (preview.summary.errorRows > 0) {
+      throw new BadRequestException('Resolve blocking row errors before confirming import.');
+    }
+
+    await this.timesheetsRepository.markImportBatchProcessing(
+      currentUser.tenantId,
+      batch.id,
+    );
+
+    const committedTimesheetIds = new Set<string>();
+    let successCount = 0;
+
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        for (const row of preview.rows) {
+          if (!row.payload || row.severity === 'error') {
+            continue;
+          }
+
+          const payload = row.payload;
+          let timesheet = await this.timesheetsRepository.findMONTHLYTimesheet(
+            currentUser.tenantId,
+            payload.employeeId,
+            payload.year,
+            payload.month,
+            tx,
+          );
+
+          if (!timesheet) {
+            const { periodStart, periodEnd } = getMonthRange(
+              payload.year,
+              payload.month,
+            );
+            timesheet = await this.timesheetsRepository.createTimesheet(
+              {
+                tenantId: currentUser.tenantId,
+                businessUnitId: payload.businessUnitId,
+                employeeId: payload.employeeId,
+                year: payload.year,
+                month: payload.month,
+                periodStart,
+                periodEnd,
+                status: TimesheetStatus.DRAFT,
+                createdById: currentUser.userId,
+                updatedById: currentUser.userId,
+              },
+              tx,
+            );
+          } else {
+            this.assertTimesheetEditable(timesheet, preview.settings);
+            await this.timesheetsRepository.updateTimesheet(
+              currentUser.tenantId,
+              timesheet.id,
+              {
+                status: TimesheetStatus.DRAFT,
+                updatedById: currentUser.userId,
+              },
+              tx,
+            );
+          }
+
+          const existingEntry = await this.timesheetsRepository.findEntryByDate(
+            currentUser.tenantId,
+            timesheet.id,
+            new Date(payload.date),
+            tx,
+          );
+          const entryData = {
+            tenantId: currentUser.tenantId,
+            timesheetId: timesheet.id,
+            employeeId: payload.employeeId,
+            date: new Date(payload.date),
+            dayOfWeek: payload.dayOfWeek,
+            entryType: payload.entryType,
+            isWeekend: payload.isWeekend,
+            isHoliday: payload.isHoliday,
+            hours: new Prisma.Decimal(payload.hoursWorked),
+            note: payload.note,
+            description: payload.note,
+            updatedById: currentUser.userId,
+          };
+
+          if (existingEntry) {
+            await this.timesheetsRepository.updateTimesheetEntry(
+              currentUser.tenantId,
+              existingEntry.id,
+              entryData,
+              tx,
+            );
+          } else {
+            await this.timesheetsRepository.createTimesheetEntry(
+              {
+                ...entryData,
+                createdById: currentUser.userId,
+              },
+              tx,
+            );
+          }
+
+          committedTimesheetIds.add(timesheet.id);
+          successCount += 1;
+        }
+
+        await this.timesheetsRepository.updateImportBatch(
+          currentUser.tenantId,
+          batch.id,
+          {
+            status: TimesheetImportBatchStatus.COMPLETED,
+            committedAt: new Date(),
+            successCount,
+            warningCount: preview.summary.warningRows,
+            errorCount: 0,
+            timesheets: {
+              connect: Array.from(committedTimesheetIds).map((id) => ({ id })),
+            },
+          },
+          tx,
+        );
+      });
+    } catch (error) {
+      await this.timesheetsRepository.updateImportBatch(
+        currentUser.tenantId,
+        batch.id,
+        {
+          status: TimesheetImportBatchStatus.FAILED,
+          errorCount: preview.summary.totalRows - successCount,
+          errorSummary:
+            error instanceof Error ? error.message : 'Timesheet import failed.',
+        },
+      );
+      throw error;
+    }
+
+    return {
+      batchId: batch.id,
+      fileName: batch.fileName,
+      status: TimesheetImportBatchStatus.COMPLETED,
+      successCount,
+      warningCount: preview.summary.warningRows,
+      errorCount: 0,
+      affectedEmployees: preview.summary.affectedEmployees,
+      affectedTimesheets: committedTimesheetIds.size,
+    };
+  }
+
   private async reviewTimesheet(
     currentUser: AuthenticatedUser,
     timesheetId: string,
@@ -384,7 +773,14 @@ export class TimesheetsService {
       throw new ConflictException('Only submitted timesheets can be reviewed.');
     }
 
-    await this.assertCanApprove(currentUser, timesheet);
+    if (
+      nextStatus === TimesheetStatus.REJECTED &&
+      !dto.reviewNote?.trim()
+    ) {
+      throw new BadRequestException('Rejecting a timesheet requires a reason.');
+    }
+
+    await this.assertCanReview(currentUser, timesheet, nextStatus);
 
     const updated = await this.timesheetsRepository.updateTimesheet(
       currentUser.tenantId,
@@ -426,8 +822,13 @@ export class TimesheetsService {
     }
 
     const { periodStart, periodEnd } = getMonthRange(year, month);
+    const employee = await this.employeesRepository.findHierarchyNodeByIdAndTenant(
+      currentUser.tenantId,
+      employeeId,
+    );
     const created = await this.timesheetsRepository.createTimesheet({
       tenantId: currentUser.tenantId,
+      businessUnitId: employee?.businessUnitId ?? employee?.user?.businessUnitId,
       employeeId,
       year,
       month,
@@ -445,7 +846,11 @@ export class TimesheetsService {
     currentUser: AuthenticatedUser,
     timesheet: TimesheetWithRelations,
   ) {
-    const settings = await this.getTimesheetSettings(currentUser.tenantId);
+    const settings = await this.getTimesheetSettings(
+      currentUser.tenantId,
+      timesheet.businessUnitId,
+    );
+    this.assertMonthlyTimesheetsEnabled(settings);
     const holidayMap = new Map(
       (
         await this.timesheetsRepository.findHolidaysForMonth(
@@ -485,7 +890,7 @@ export class TimesheetsService {
             : settings.autoFillWorkingDays
               ? TimesheetEntryType.ON_WORK
               : null;
-      const hours = resolveDefaultHours(entryType, settings.defaultWorkHours);
+      const hours = resolveDefaultHours(entryType, settings.defaultHoursForOnWork);
 
       await this.timesheetsRepository.createTimesheetEntry({
         tenantId: currentUser.tenantId,
@@ -542,11 +947,15 @@ export class TimesheetsService {
       return;
     }
 
-    if (!currentUser.permissionKeys.includes('timesheets.read')) {
+    const canReadScoped =
+      currentUser.permissionKeys.includes('timesheets.read.team') ||
+      currentUser.permissionKeys.includes('timesheets.read.all');
+
+    if (!canReadScoped) {
       throw new ForbiddenException('You are not allowed to read timesheets.');
     }
 
-    if (currentUser.permissionKeys.includes('attendance.manage')) {
+    if (currentUser.permissionKeys.includes('timesheets.read.all')) {
       return;
     }
 
@@ -558,24 +967,176 @@ export class TimesheetsService {
     }
   }
 
-  private assertTimesheetEditable(timesheet: TimesheetWithRelations) {
+  private async buildTimesheetImportPreview(
+    currentUser: AuthenticatedUser,
+    dto: ImportTimesheetTemplateDto,
+    file: UploadedExcelFile,
+  ): Promise<TimesheetImportPreview> {
+    const { year, month } = resolveTargetMonth(dto.year, dto.month);
+    const { periodStart, periodEnd } = getMonthRange(year, month);
+    const settings = await this.getTimesheetSettings(currentUser.tenantId);
+    this.assertMonthlyTimesheetsEnabled(settings);
+
+    if (!settings.allowBulkImport) {
+      throw new BadRequestException('Bulk timesheet import is disabled by tenant settings.');
+    }
+
+    if ((dto.scope ?? 'mine') === 'mine' && !settings.allowEmployeeSelfImport) {
+      throw new BadRequestException(
+        'Employee self import is disabled by tenant settings.',
+      );
+    }
+
+    if (dto.scope === 'team' && !settings.allowManagerImportForTeam) {
+      throw new BadRequestException(
+        'Manager team import is disabled by tenant settings.',
+      );
+    }
+
+    const templateScope = await this.resolveTemplateScope(currentUser, dto);
+    const employees = await this.timesheetsRepository.findEmployeesForTemplate(
+      currentUser.tenantId,
+      {
+        employeeIds: templateScope.employeeIds,
+        businessUnitId: dto.businessUnitId,
+      },
+    );
+    const employeeByCode = new Map(
+      employees.map((employee) => [employee.employeeCode.toLowerCase(), employee]),
+    );
+    const employeeByEmail = new Map(
+      employees
+        .filter((employee) => employee.email)
+        .map((employee) => [employee.email!.toLowerCase(), employee]),
+    );
+    const holidays = await this.timesheetsRepository.findHolidaysForMonth(
+      currentUser.tenantId,
+      periodStart,
+      periodEnd,
+    );
+    const holidayMap = new Map(
+      holidays.map((holiday) => [toDateKey(holiday.date), holiday]),
+    );
+    const parsedRows = this.excelExportService.parseFirstWorksheet(file.buffer);
+    assertRequiredImportColumns(parsedRows);
+
+    const rows = parsedRows.map((row) =>
+      validateTimesheetImportRow({
+        employeeByCode,
+        employeeByEmail,
+        holidayMap,
+        month,
+        row,
+        settings,
+        year,
+      }),
+    );
+    const affectedEmployees = new Set(
+      rows
+        .map((row) => row.payload?.employeeCode)
+        .filter((value): value is string => Boolean(value)),
+    );
+
+    return {
+      fileName: file.originalname,
+      month,
+      rows,
+      settings,
+      summary: {
+        affectedEmployees: affectedEmployees.size,
+        errorRows: rows.filter((row) => row.severity === 'error').length,
+        totalRows: rows.length,
+        validRows: rows.filter((row) => row.severity === 'valid').length,
+        warningRows: rows.filter((row) => row.severity === 'warning').length,
+      },
+      year,
+    };
+  }
+
+  private async resolveTemplateScope(
+    currentUser: AuthenticatedUser,
+    query: ExportTimesheetTemplateDto,
+  ) {
+    const requestedScope = query.scope ?? 'mine';
+    const canReadAll = currentUser.permissionKeys.includes('timesheets.read.all');
+    const canReadTeam = currentUser.permissionKeys.includes('timesheets.read.team');
+
+    if (requestedScope === 'tenant') {
+      if (!canReadAll) {
+        throw new ForbiddenException(
+          'You are not allowed to export tenant timesheet templates.',
+        );
+      }
+
+      return { employeeIds: undefined as string[] | undefined };
+    }
+
+    if (requestedScope === 'team') {
+      if (!canReadTeam && !canReadAll) {
+        throw new ForbiddenException(
+          'You are not allowed to export team timesheet templates.',
+        );
+      }
+
+      return {
+        employeeIds: canReadAll
+          ? undefined
+          : await this.resolveDirectReportIds(currentUser),
+      };
+    }
+
+    const employee = await this.getCurrentEmployee(currentUser);
+    if (query.employeeId && query.employeeId !== employee.id && !canReadAll) {
+      throw new ForbiddenException(
+        'You are not allowed to export this employee timesheet template.',
+      );
+    }
+
+    return {
+      employeeIds: query.employeeId && canReadAll ? undefined : [employee.id],
+    };
+  }
+
+  private assertTimesheetEditable(
+    timesheet: TimesheetWithRelations,
+    settings: TimesheetSettings,
+  ) {
+    if (timesheet.status === TimesheetStatus.SUBMITTED) {
+      throw new ConflictException('Submitted timesheets cannot be edited.');
+    }
+
     if (
-      timesheet.status === TimesheetStatus.SUBMITTED ||
-      timesheet.status === TimesheetStatus.APPROVED
+      timesheet.status === TimesheetStatus.APPROVED &&
+      settings.lockTimesheetAfterApproval
     ) {
-      throw new ConflictException('Submitted or approved timesheets cannot be edited.');
+      throw new ConflictException('Approved timesheets are locked by tenant settings.');
+    }
+
+    if (
+      timesheet.status === TimesheetStatus.REJECTED &&
+      !settings.allowRejectedTimesheetResubmission
+    ) {
+      throw new ConflictException(
+        'Rejected timesheet resubmission is disabled by tenant settings.',
+      );
     }
   }
 
-  private async assertCanApprove(
+  private async assertCanReview(
     currentUser: AuthenticatedUser,
     timesheet: TimesheetWithRelations,
+    nextStatus: 'APPROVED' | 'REJECTED',
   ) {
-    if (!currentUser.permissionKeys.includes('timesheets.approve')) {
-      throw new ForbiddenException('You are not allowed to approve timesheets.');
+    const requiredPermission =
+      nextStatus === TimesheetStatus.APPROVED
+        ? 'timesheets.approve'
+        : 'timesheets.reject';
+
+    if (!currentUser.permissionKeys.includes(requiredPermission)) {
+      throw new ForbiddenException('You are not allowed to review timesheets.');
     }
 
-    if (currentUser.permissionKeys.includes('attendance.manage')) {
+    if (currentUser.permissionKeys.includes('timesheets.read.all')) {
       return;
     }
 
@@ -609,20 +1170,43 @@ export class TimesheetsService {
     return directReports.map((employee) => employee.id);
   }
 
-  private async getTimesheetSettings(tenantId: string): Promise<TimesheetSettings> {
-    const settings = await this.tenantSettingsResolverService.getTimesheetSettings(
-      tenantId,
-    );
+  private async getTimesheetSettings(
+    tenantId: string,
+    businessUnitId?: string | null,
+  ): Promise<TimesheetSettings> {
+    const settings =
+      await this.tenantSettingsResolverService.getTimesheetSettingsForBusinessUnit(
+        tenantId,
+        businessUnitId,
+      );
 
     return {
+      timesheetPeriodType: settings.timesheetPeriodType,
       weekendDays: settings.weekendDays,
       defaultWorkHours: settings.defaultWorkHours,
+      defaultHoursForOnWork: settings.defaultHoursForOnWork,
       allowWeekendWork: settings.allowWeekendWork,
       allowHolidayWork: settings.allowHolidayWork,
-      requireMONTHLYSubmission: settings.requireMONTHLYSubmission,
+      requireMonthlySubmission: settings.requireMonthlySubmission,
       autoFillWorkingDays: settings.autoFillWorkingDays,
+      allowBulkImport: settings.allowBulkImport,
+      allowEmployeeSelfImport: settings.allowEmployeeSelfImport,
+      allowManagerImportForTeam: settings.allowManagerImportForTeam,
+      requireAllDaysCompletedBeforeSubmit:
+        settings.requireAllDaysCompletedBeforeSubmit,
       requireSubmissionNote: settings.requireSubmissionNote,
+      lockTimesheetAfterApproval: settings.lockTimesheetAfterApproval,
+      allowRejectedTimesheetResubmission:
+        settings.allowRejectedTimesheetResubmission,
     };
+  }
+
+  private assertMonthlyTimesheetsEnabled(settings: TimesheetSettings) {
+    if (settings.timesheetPeriodType !== 'monthly') {
+      throw new BadRequestException(
+        'This tenant is configured for a non-monthly timesheet period. The current timesheet workflow only supports monthly periods.',
+      );
+    }
   }
 
   private resolveEntryTypeForUpdate(
@@ -712,7 +1296,14 @@ export class TimesheetsService {
       currentUser !== undefined &&
       currentUser.permissionKeys.includes('timesheets.approve') &&
       timesheet.status === TimesheetStatus.SUBMITTED &&
-      (currentUser.permissionKeys.includes('attendance.manage') ||
+      (currentUser.permissionKeys.includes('timesheets.read.all') ||
+        timesheet.employee.manager?.userId === currentUser.userId);
+
+    const canCurrentUserReject =
+      currentUser !== undefined &&
+      currentUser.permissionKeys.includes('timesheets.reject') &&
+      timesheet.status === TimesheetStatus.SUBMITTED &&
+      (currentUser.permissionKeys.includes('timesheets.read.all') ||
         timesheet.employee.manager?.userId === currentUser.userId);
 
     return {
@@ -742,6 +1333,25 @@ export class TimesheetsService {
         lastName: timesheet.employee.lastName,
         preferredName: timesheet.employee.preferredName,
         fullName: `${timesheet.employee.firstName} ${timesheet.employee.lastName}`,
+        department: timesheet.employee.department
+          ? {
+              id: timesheet.employee.department.id,
+              code: timesheet.employee.department.code,
+              name: timesheet.employee.department.name,
+            }
+          : null,
+        location: timesheet.employee.location
+          ? {
+              id: timesheet.employee.location.id,
+              name: timesheet.employee.location.name,
+            }
+          : null,
+        businessUnit: timesheet.employee.businessUnit ?? timesheet.employee.user?.businessUnit
+          ? {
+              id: (timesheet.employee.businessUnit ?? timesheet.employee.user?.businessUnit)!.id,
+              name: (timesheet.employee.businessUnit ?? timesheet.employee.user?.businessUnit)!.name,
+            }
+          : null,
         reportingManager: timesheet.employee.manager
           ? {
               id: timesheet.employee.manager.id,
@@ -775,13 +1385,482 @@ export class TimesheetsService {
       })),
       canCurrentUserSubmit,
       canCurrentUserApprove,
+      canCurrentUserReject,
       canCurrentUserEdit:
         currentUser !== undefined &&
         timesheet.employee.userId === currentUser.userId &&
+        currentUser.permissionKeys.includes('timesheets.write') &&
         timesheet.status !== TimesheetStatus.SUBMITTED &&
         timesheet.status !== TimesheetStatus.APPROVED,
     };
   }
+}
+
+const TIMESHEET_TEMPLATE_COLUMNS = [
+  { key: 'employeeCode', header: 'employeeCode', width: 18 },
+  { key: 'employeeName', header: 'employeeName', width: 28 },
+  { key: 'workEmail', header: 'workEmail', width: 32 },
+  { key: 'date', header: 'date', width: 14 },
+  { key: 'dayOfWeek', header: 'dayOfWeek', width: 16 },
+  { key: 'status', header: 'status/entryType', width: 18 },
+  { key: 'hoursWorked', header: 'hoursWorked', width: 14 },
+  { key: 'isWeekend', header: 'isWeekend', width: 12 },
+  { key: 'isHoliday', header: 'isHoliday', width: 12 },
+  { key: 'leaveType', header: 'leaveType', width: 22 },
+  { key: 'note', header: 'note', width: 36 },
+  { key: 'businessUnit', header: 'client/account/businessUnit', width: 28 },
+  { key: 'department', header: 'department', width: 24 },
+  { key: 'location', header: 'location', width: 24 },
+] as const;
+
+const REQUIRED_TIMESHEET_IMPORT_COLUMNS = [
+  'employeeCode',
+  'employeeName',
+  'workEmail',
+  'date',
+  'dayOfWeek',
+  'status/entryType',
+  'hoursWorked',
+  'isWeekend',
+  'isHoliday',
+  'leaveType',
+  'note',
+] as const;
+
+const TIMESHEET_IMPORT_MIME_TYPES = [
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-excel',
+  'application/octet-stream',
+];
+
+const TIMESHEET_TEMPLATE_VALID_VALUES = [
+  {
+    field: 'status/entryType',
+    value: 'ON_WORK',
+    description: 'Employee worked this day. Enter hoursWorked.',
+  },
+  {
+    field: 'status/entryType',
+    value: 'ON_LEAVE',
+    description: 'Employee was on approved or recorded leave. Keep hoursWorked as 0.',
+  },
+  {
+    field: 'status/entryType',
+    value: 'WEEKEND',
+    description: 'System or client-marked weekend row. Keep hoursWorked as 0 unless weekend work is allowed.',
+  },
+  {
+    field: 'status/entryType',
+    value: 'HOLIDAY',
+    description: 'System or client-marked holiday row. Keep hoursWorked as 0 unless holiday work is allowed.',
+  },
+  {
+    field: 'isWeekend/isHoliday',
+    value: 'Yes',
+    description: 'Use Yes for true values.',
+  },
+  {
+    field: 'isWeekend/isHoliday',
+    value: 'No',
+    description: 'Use No for false values.',
+  },
+];
+
+function buildTimesheetTemplateInstructions(year: number, month: number) {
+  return [
+    {
+      topic: 'Purpose',
+      details:
+        'Use the Timesheet sheet to fill or update monthly employee attendance rows for import.',
+    },
+    {
+      topic: 'Period',
+      details: `${monthName(month)} ${year}. Keep one row per employee per date.`,
+    },
+    {
+      topic: 'Stable mapping',
+      details:
+        'Do not rename columns. Import will map employeeCode and date, then read status/entryType, hoursWorked, leaveType, and note.',
+    },
+    {
+      topic: 'Valid statuses',
+      details:
+        'Allowed status/entryType values are ON_WORK, ON_LEAVE, WEEKEND, and HOLIDAY.',
+    },
+    {
+      topic: 'Client/account context',
+      details:
+        'The client/account/businessUnit, department, and location columns are exported for review context and should remain unchanged.',
+    },
+  ];
+}
+
+function buildTimesheetTemplateRows({
+  dates,
+  employees,
+  holidayMap,
+  leaveMap,
+  month,
+  settings,
+  timesheetByEmployeeId,
+  year,
+}: {
+  dates: Date[];
+  employees: TimesheetTemplateEmployee[];
+  holidayMap: Map<string, unknown>;
+  leaveMap: Map<string, { leaveType: { name: string } }>;
+  month: number;
+  settings: TimesheetSettings;
+  timesheetByEmployeeId: Map<string, TimesheetWithRelations>;
+  year: number;
+}) {
+  const rows: Array<Record<(typeof TIMESHEET_TEMPLATE_COLUMNS)[number]['key'], string | number>> = [];
+
+  for (const employee of employees) {
+    const timesheet = timesheetByEmployeeId.get(employee.id);
+    const entryByDate = new Map(
+      timesheet?.entries.map((entry) => [toDateKey(entry.date), entry]) ?? [],
+    );
+
+    for (const date of dates) {
+      const dateKey = toDateKey(date);
+      const entry = entryByDate.get(dateKey);
+      const dayOfWeek = getWorkWeekday(date);
+      const isHoliday = entry?.isHoliday ?? holidayMap.has(dateKey);
+      const isWeekend =
+        entry?.isWeekend ?? settings.weekendDays.includes(dayOfWeek);
+      const leave = entry?.leaveRequest ?? leaveMap.get(`${employee.id}:${dateKey}`);
+      const entryType =
+        entry?.entryType ??
+        (isHoliday
+          ? TimesheetEntryType.HOLIDAY
+          : isWeekend
+            ? TimesheetEntryType.WEEKEND
+            : leave
+              ? TimesheetEntryType.ON_LEAVE
+              : settings.autoFillWorkingDays
+                ? TimesheetEntryType.ON_WORK
+                : null);
+
+      rows.push({
+        employeeCode: employee.employeeCode,
+        employeeName: getEmployeeDisplayName(employee),
+        workEmail: employee.email ?? '',
+        date: `${year}-${String(month).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`,
+        dayOfWeek,
+        status: entryType ?? '',
+        hoursWorked:
+          entry?.hours !== undefined
+            ? Number(entry.hours)
+            : entryType === TimesheetEntryType.ON_WORK
+              ? settings.defaultHoursForOnWork
+              : 0,
+        isWeekend: isWeekend ? 'Yes' : 'No',
+        isHoliday: isHoliday ? 'Yes' : 'No',
+        leaveType: leave?.leaveType?.name ?? '',
+        note: entry?.note ?? entry?.description ?? '',
+        businessUnit: formatCodeAndName(
+          null,
+          employee.businessUnit?.name ?? employee.user?.businessUnit?.name,
+        ),
+        department: formatCodeAndName(
+          employee.department?.code,
+          employee.department?.name,
+        ),
+        location: employee.location
+          ? [employee.location.name, employee.location.city, employee.location.country]
+              .filter(Boolean)
+              .join(', ')
+          : '',
+      });
+    }
+  }
+
+  return rows;
+}
+
+function buildEmployeeLeaveMap(
+  leaves: Array<{
+    employeeId: string;
+    startDate: Date;
+    endDate: Date;
+    leaveType: { name: string };
+  }>,
+) {
+  const map = new Map<string, { leaveType: { name: string } }>();
+
+  for (const leave of leaves) {
+    for (const date of getDatesInRange(leave.startDate, leave.endDate)) {
+      map.set(`${leave.employeeId}:${toDateKey(date)}`, leave);
+    }
+  }
+
+  return map;
+}
+
+function getEmployeeDisplayName(employee: Pick<TimesheetTemplateEmployee, 'firstName' | 'lastName' | 'preferredName'>) {
+  return `${employee.preferredName || employee.firstName} ${employee.lastName}`.trim();
+}
+
+function formatCodeAndName(code?: string | null, name?: string | null) {
+  if (code && name) {
+    return `${code} - ${name}`;
+  }
+
+  return name ?? code ?? '';
+}
+
+function validateTimesheetImportFile(file: UploadedExcelFile | undefined) {
+  if (!file) {
+    throw new BadRequestException('Excel file is required for timesheet import.');
+  }
+
+  if (
+    !TIMESHEET_IMPORT_MIME_TYPES.includes(file.mimetype) &&
+    !file.originalname.toLowerCase().endsWith('.xlsx')
+  ) {
+    throw new BadRequestException('Timesheet import supports Excel .xlsx files only.');
+  }
+
+  return file;
+}
+
+function assertRequiredImportColumns(rows: ExcelParsedRow[]) {
+  if (rows.length === 0) {
+    throw new BadRequestException('Timesheet Excel file must include at least one data row.');
+  }
+
+  const firstRow = rows[0];
+  const columns = new Set(Object.keys(firstRow.values));
+  const missingColumns = REQUIRED_TIMESHEET_IMPORT_COLUMNS.filter(
+    (column) => !columns.has(column),
+  );
+
+  if (missingColumns.length > 0) {
+    throw new BadRequestException(
+      `Timesheet Excel file is missing required column(s): ${missingColumns.join(', ')}.`,
+    );
+  }
+}
+
+function validateTimesheetImportRow({
+  employeeByCode,
+  employeeByEmail,
+  holidayMap,
+  month,
+  row,
+  settings,
+  year,
+}: {
+  employeeByCode: Map<string, TimesheetTemplateEmployee>;
+  employeeByEmail: Map<string, TimesheetTemplateEmployee>;
+  holidayMap: Map<string, unknown>;
+  month: number;
+  row: ExcelParsedRow;
+  settings: TimesheetSettings;
+  year: number;
+}): TimesheetImportPreviewRow {
+  const employeeCode = getImportValue(row, 'employeeCode');
+  const workEmail = getImportValue(row, 'workEmail');
+  const employeeName = getImportValue(row, 'employeeName');
+  const dateValue = getImportValue(row, 'date');
+  const entryTypeValue = getImportValue(row, 'status/entryType').toUpperCase();
+  const hoursValue = getImportValue(row, 'hoursWorked');
+  const note = getImportValue(row, 'note');
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  const employeeFromCode = employeeCode
+    ? employeeByCode.get(employeeCode.toLowerCase())
+    : undefined;
+  const employeeFromEmail = workEmail
+    ? employeeByEmail.get(workEmail.toLowerCase())
+    : undefined;
+  const employee = employeeFromCode ?? employeeFromEmail ?? null;
+
+  if (!employeeCode && !workEmail) {
+    errors.push('employeeCode or workEmail is required.');
+  } else if (!employee) {
+    errors.push('No accessible tenant employee matches employeeCode/workEmail.');
+  } else if (
+    employeeFromCode &&
+    employeeFromEmail &&
+    employeeFromCode.id !== employeeFromEmail.id
+  ) {
+    errors.push('employeeCode and workEmail refer to different employees.');
+  }
+
+  const date = parseImportDate(dateValue);
+  if (!date) {
+    errors.push('date must be a valid date.');
+  } else if (date.getFullYear() !== year || date.getMonth() + 1 !== month) {
+    errors.push('date does not belong to the selected import month.');
+  }
+
+  const entryType = parseTimesheetEntryType(entryTypeValue);
+  if (!entryType) {
+    errors.push('status/entryType must be ON_WORK, ON_LEAVE, WEEKEND, or HOLIDAY.');
+  }
+
+  const hoursWorked = parseHoursWorked(hoursValue);
+  if (hoursWorked === null) {
+    errors.push('hoursWorked must be a valid number.');
+  } else if (hoursWorked > 24) {
+    errors.push('hoursWorked cannot exceed 24.');
+  }
+
+  let dayOfWeek: WorkWeekday | null = null;
+  let isWeekend = false;
+  let isHoliday = false;
+  if (date) {
+    dayOfWeek = getWorkWeekday(date);
+    isWeekend = settings.weekendDays.includes(dayOfWeek);
+    isHoliday = holidayMap.has(toDateKey(date));
+    const providedWeekend = parseYesNo(getImportValue(row, 'isWeekend'));
+    const providedHoliday = parseYesNo(getImportValue(row, 'isHoliday'));
+
+    if (providedWeekend !== null && providedWeekend !== isWeekend) {
+      warnings.push('isWeekend differs from tenant settings and will be recalculated.');
+    }
+
+    if (providedHoliday !== null && providedHoliday !== isHoliday) {
+      warnings.push('isHoliday differs from tenant holiday calendar and will be recalculated.');
+    }
+  }
+
+  if (entryType && hoursWorked !== null) {
+    if (entryType === TimesheetEntryType.ON_WORK) {
+      if (isWeekend && !settings.allowWeekendWork) {
+        errors.push('Weekend work is disabled by tenant settings.');
+      }
+
+      if (isHoliday && !settings.allowHolidayWork) {
+        errors.push('Holiday work is disabled by tenant settings.');
+      }
+    } else if (hoursWorked !== 0) {
+      errors.push('hoursWorked must be 0 unless status/entryType is ON_WORK.');
+    }
+
+    if ((isWeekend || isHoliday) && entryType === TimesheetEntryType.ON_LEAVE) {
+      errors.push('Weekend or holiday rows cannot be imported as ON_LEAVE.');
+    }
+
+    if (!isWeekend && entryType === TimesheetEntryType.WEEKEND) {
+      errors.push('WEEKEND can only be used for tenant weekend dates.');
+    }
+
+    if (!isHoliday && entryType === TimesheetEntryType.HOLIDAY) {
+      errors.push('HOLIDAY can only be used for tenant holiday dates.');
+    }
+  }
+
+  const severity: TimesheetImportSeverity =
+    errors.length > 0 ? 'error' : warnings.length > 0 ? 'warning' : 'valid';
+
+  return {
+    rowNumber: row.rowNumber,
+    employeeCode,
+    employeeName,
+    workEmail,
+    date: dateValue,
+    entryType: entryTypeValue,
+    errors,
+    hoursWorked: hoursValue,
+    payload:
+      severity === 'error' || !employee || !date || !entryType || !dayOfWeek || hoursWorked === null
+        ? null
+        : {
+            date: toDateKey(date),
+            dayOfWeek,
+            employeeCode: employee.employeeCode,
+            employeeId: employee.id,
+            businessUnitId: employee.businessUnitId ?? employee.user?.businessUnit?.id ?? null,
+            entryType,
+            hoursWorked:
+              entryType === TimesheetEntryType.ON_WORK ? hoursWorked : 0,
+            isHoliday,
+            isWeekend,
+            month,
+            note: note || null,
+            year,
+          },
+    severity,
+    warnings,
+  };
+}
+
+function getImportValue(row: ExcelParsedRow, column: string) {
+  return row.values[column]?.trim() ?? '';
+}
+
+function parseTimesheetEntryType(value: string) {
+  if (value in TimesheetEntryType) {
+    return value as TimesheetEntryType;
+  }
+
+  return null;
+}
+
+function parseHoursWorked(value: string) {
+  if (!value.trim()) {
+    return 0;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
+function parseImportDate(value: string) {
+  if (!value.trim()) {
+    return null;
+  }
+
+  const isoMatch = value.trim().match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (isoMatch) {
+    const date = new Date(
+      Number(isoMatch[1]),
+      Number(isoMatch[2]) - 1,
+      Number(isoMatch[3]),
+    );
+    date.setHours(0, 0, 0, 0);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+  parsed.setHours(0, 0, 0, 0);
+  return parsed;
+}
+
+function parseYesNo(value: string) {
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) {
+    return null;
+  }
+
+  if (['yes', 'true', '1'].includes(normalized)) {
+    return true;
+  }
+
+  if (['no', 'false', '0'].includes(normalized)) {
+    return false;
+  }
+
+  return null;
+}
+
+function summarizeImportErrors(rows: TimesheetImportPreviewRow[]) {
+  const rowErrors = rows.filter((row) => row.errors.length > 0);
+  if (rowErrors.length === 0) {
+    return null;
+  }
+
+  return rowErrors
+    .slice(0, 10)
+    .map((row) => `Row ${row.rowNumber}: ${row.errors.join('; ')}`)
+    .join('\n');
 }
 
 function resolveTargetMonth(year?: number, month?: number) {

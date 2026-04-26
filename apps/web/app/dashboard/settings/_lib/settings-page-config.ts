@@ -54,7 +54,7 @@ export const employeeSettingsSections: SettingsSectionConfig[] = [
         label: "Default employee status",
         type: "select",
         options: [
-          { label: "Active", value: "Active" },
+          { label: "Active", value: "ACTIVE" },
           { label: "Probation", value: "PROBATION" },
           { label: "Notice", value: "NOTICE" },
         ],
@@ -232,6 +232,17 @@ export const attendanceSettingsSections: SettingsSectionConfig[] = [
     fields: [
       {
         category: "timesheets",
+        key: "timesheetPeriodType",
+        label: "Timesheet period type",
+        type: "select",
+        options: [
+          { label: "Monthly", value: "monthly" },
+          { label: "Weekly", value: "weekly" },
+          { label: "Biweekly", value: "biweekly" },
+        ],
+      },
+      {
+        category: "timesheets",
         key: "weekendDays",
         label: "Weekend days",
         type: "multiselect",
@@ -247,14 +258,26 @@ export const attendanceSettingsSections: SettingsSectionConfig[] = [
       },
       {
         category: "timesheets",
-        key: "defaultWorkHours",
-        label: "Default timesheet entry hours",
+        key: "defaultHoursForOnWork",
+        label: "Default hours for On Work",
         type: "number",
       },
       {
         category: "timesheets",
-        key: "requireMONTHLYSubmission",
+        key: "requireMonthlySubmission",
         label: "Require monthly submission",
+        type: "checkbox",
+      },
+      {
+        category: "timesheets",
+        key: "requireAllDaysCompletedBeforeSubmit",
+        label: "Require all days completed before submit",
+        type: "checkbox",
+      },
+      {
+        category: "timesheets",
+        key: "requireSubmissionNote",
+        label: "Require submission note",
         type: "checkbox",
       },
       {
@@ -274,6 +297,59 @@ export const attendanceSettingsSections: SettingsSectionConfig[] = [
         key: "allowHolidayWork",
         label: "Allow holiday overrides to On Work",
         type: "checkbox",
+      },
+      {
+        category: "timesheets",
+        key: "lockTimesheetAfterApproval",
+        label: "Lock timesheets after approval",
+        type: "checkbox",
+      },
+      {
+        category: "timesheets",
+        key: "allowRejectedTimesheetResubmission",
+        label: "Allow rejected timesheet resubmission",
+        type: "checkbox",
+      },
+    ],
+  },
+  {
+    title: "Timesheet Import & Payroll Handoff",
+    description:
+      "Control import access, export template format, and whether approved timesheets are required before payroll.",
+    fields: [
+      {
+        category: "timesheets",
+        key: "allowBulkImport",
+        label: "Allow bulk timesheet import",
+        type: "checkbox",
+      },
+      {
+        category: "timesheets",
+        key: "allowEmployeeSelfImport",
+        label: "Allow employee self import",
+        type: "checkbox",
+      },
+      {
+        category: "timesheets",
+        key: "allowManagerImportForTeam",
+        label: "Allow manager import for team",
+        type: "checkbox",
+      },
+      {
+        category: "timesheets",
+        key: "requireApprovalBeforePayroll",
+        label: "Require approval before payroll",
+        type: "checkbox",
+      },
+      {
+        category: "timesheets",
+        key: "exportTemplateFormat",
+        label: "Export template format",
+        type: "select",
+        options: [
+          { label: "CSV", value: "CSV" },
+          { label: "Excel", value: "XLSX" },
+        ],
       },
     ],
   },
@@ -334,6 +410,71 @@ export const payrollSettingsSections: SettingsSectionConfig[] = [
           { label: "Semi-annual", value: "SEMI_ANNUAL" },
           { label: "Quarterly", value: "QUARTERLY" },
         ],
+      },
+      {
+        category: "payroll",
+        key: "defaultPayrollCycleDay",
+        label: "Default payroll cycle day",
+        type: "number",
+      },
+      {
+        category: "payroll",
+        key: "payrollExportFormat",
+        label: "Payroll export format",
+        type: "select",
+        options: [
+          { label: "CSV", value: "CSV" },
+          { label: "Excel", value: "XLSX" },
+          { label: "Bank file", value: "BANK_FILE" },
+        ],
+      },
+    ],
+  },
+  {
+    title: "Payroll Generation Rules",
+    description:
+      "Define where payroll records come from and which operational summaries are included in generated draft payroll.",
+    fields: [
+      {
+        category: "payroll",
+        key: "payrollGenerationSource",
+        label: "Payroll generation source",
+        type: "select",
+        options: [
+          { label: "Approved timesheets", value: "approved_timesheets" },
+          { label: "Manual", value: "manual" },
+          { label: "Mixed", value: "mixed" },
+        ],
+      },
+      {
+        category: "payroll",
+        key: "requireApprovedTimesheetsForPayroll",
+        label: "Require approved timesheets for payroll",
+        type: "checkbox",
+      },
+      {
+        category: "payroll",
+        key: "includeLeavesInPayrollSummary",
+        label: "Include leaves in payroll summary",
+        type: "checkbox",
+      },
+      {
+        category: "payroll",
+        key: "includeHolidaysInPayrollSummary",
+        label: "Include holidays in payroll summary",
+        type: "checkbox",
+      },
+      {
+        category: "payroll",
+        key: "includeWeekendWorkInPayrollSummary",
+        label: "Include weekend work in payroll summary",
+        type: "checkbox",
+      },
+      {
+        category: "payroll",
+        key: "allowDraftPayrollAdjustments",
+        label: "Allow draft payroll adjustments",
+        type: "checkbox",
       },
     ],
   },

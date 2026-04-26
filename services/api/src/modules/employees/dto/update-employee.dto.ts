@@ -3,6 +3,7 @@ import {
   EmployeeEmploymentStatus,
   EmployeeGender,
   EmployeeMaritalStatus,
+  EmployeeRecordType,
   EmployeeType,
   EmployeeWorkMode,
 } from '@prisma/client';
@@ -37,6 +38,10 @@ export class UpdateEmployeeDto {
   @MinLength(1)
   @MaxLength(40)
   employeeCode?: string;
+
+  @IsOptional()
+  @IsEnum(EmployeeRecordType)
+  recordType?: EmployeeRecordType;
 
   @IsOptional()
   @IsString()
@@ -251,6 +256,11 @@ export class UpdateEmployeeDto {
   @Transform(emptyStringToUndefined)
   @IsUUID()
   departmentId?: string;
+
+  @IsOptional()
+  @Transform(emptyStringToUndefined)
+  @IsUUID()
+  businessUnitId?: string;
 
   @IsOptional()
   @Transform(emptyStringToUndefined)

@@ -13,17 +13,17 @@ datasource db {
 }
 
 enum TenantStatus {
-  Onboarding
-  Active
-  Suspended
-  Churned
+  ONBOARDING
+  ACTIVE
+  SUSPENDED
+  CHURNED
 }
 
 enum SubscriptionStatus {
-  Trialing
-  Active
-  Past_Due
-  Cancelled
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELLED
 }
 
 enum BillingCycle {
@@ -40,10 +40,10 @@ enum DiscountType {
 enum CustomerAccountStatus {
   LEAD
   PROSPECT
-  Onboarding
-  Active
-  Suspended
-  Churned
+  ONBOARDING
+  ACTIVE
+  SUSPENDED
+  CHURNED
   ARCHIVED
 }
 
@@ -101,7 +101,7 @@ enum DocumentEntityType {
   LEAVE_REQUEST
   PAYROLL_RECORD
   CANDIDATE
-  Onboarding_RECORD
+  ONBOARDING_RECORD
   TENANT
   INVOICE
   POLICY
@@ -109,7 +109,7 @@ enum DocumentEntityType {
 }
 
 enum UserStatus {
-  Active
+  ACTIVE
   INVITED
   DISABLED
 }
@@ -122,10 +122,16 @@ enum UserInvitationStatus {
 }
 
 enum EmployeeEmploymentStatus {
-  Active
+  ACTIVE
   PROBATION
   NOTICE
   TERMINATED
+}
+
+enum EmployeeRecordType {
+  INTERNAL_EMPLOYEE
+  EXTERNAL_WORKER
+  CONTRACTOR
 }
 
 enum EmployeeType {
@@ -174,7 +180,7 @@ enum LeaveRequestStatus {
   PENDING
   APPROVED
   REJECTED
-  Cancelled
+  CANCELLED
 }
 
 enum LeaveApprovalStepStatus {
@@ -182,7 +188,7 @@ enum LeaveApprovalStepStatus {
   APPROVED
   REJECTED
   SKIPPED
-  Cancelled
+  CANCELLED
 }
 
 enum ApprovalActorType {
@@ -232,6 +238,13 @@ enum AttendanceImportBatchStatus {
   FAILED
 }
 
+enum TimesheetImportBatchStatus {
+  PREVIEWED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
 enum AttendanceIntegrationType {
   API_PUSH
   FILE_IMPORT
@@ -257,10 +270,10 @@ enum TimesheetEntryType {
 
 enum ProjectStatus {
   PLANNING
-  Active
+  ACTIVE
   ON_HOLD
   COMPLETED
-  Cancelled
+  CANCELLED
 }
 
 enum JobOpeningStatus {
@@ -269,7 +282,7 @@ enum JobOpeningStatus {
   ON_HOLD
   CLOSED
   FILLED
-  Cancelled
+  CANCELLED
 }
 
 enum RecruitmentStage {
@@ -330,14 +343,14 @@ enum OnboardingStatus {
   READY_FOR_CONVERSION
   BLOCKED
   COMPLETED
-  Cancelled
+  CANCELLED
 }
 
 enum OnboardingTaskStatus {
   PENDING
   IN_PROGRESS
   COMPLETED
-  Cancelled
+  CANCELLED
 }
 
 enum PayrollCycleStatus {
@@ -366,7 +379,7 @@ enum PayFrequency {
 }
 
 enum PayrollStatus {
-  Active
+  ACTIVE
   ON_HOLD
   STOPPED
 }
@@ -386,13 +399,41 @@ enum PaymentMode {
   OTHER
 }
 
+enum BusinessUnitType {
+  INTERNAL
+  EXTERNAL_ORGANIZATION
+  BRANCH
+  DEPARTMENT
+  COST_CENTER
+}
+
+enum ProcessingCycleType {
+  MONTHLY
+  WEEKLY
+  BIWEEKLY
+  SEMI_MONTHLY
+  CUSTOM
+}
+
+enum ProcessingCycleStatus {
+  OPEN
+  DATA_IMPORTED
+  VALIDATION_FAILED
+  SUBMITTED
+  APPROVED
+  PAYROLL_READY
+  PAYROLL_GENERATED
+  EXPORTED
+  LOCKED
+}
+
 model Tenant {
   id              String           @id @default(uuid())
   customerAccountId String
   ownerUserId     String?
   name            String
   slug            String           @unique
-  status          TenantStatus     @default(Active)
+  status          TenantStatus     @default(ACTIVE)
   subStatus       String?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
@@ -430,6 +471,8 @@ model Tenant {
   holidayCalendars HolidayCalendar[]
   timesheets       Timesheet[]
   timesheetEntries TimesheetEntry[]
+  timesheetImportBatches TimesheetImportBatch[]
+  processingCycles ProcessingCycle[]
   projects         Project[]
   projectAssignments ProjectAssignment[]
   jobOpenings      JobOpening[]
@@ -748,7 +791,7 @@ model Subscription {
   discountReason String?
   finalPrice  Decimal            @default(0) @db.Decimal(12, 2)
   currency    String             @default("USD")
-  status      SubscriptionStatus @default(Trialing)
+  status      SubscriptionStatus @default(TRIALING)
   startDate   DateTime
   endDate     DateTime?
   renewalDate DateTime?
@@ -775,7 +818,7 @@ model User {
   lastName      String
   email         String         @unique
   passwordHash  String
-  status        UserStatus     @default(Active)
+  status        UserStatus     @default(ACTIVE)
   isServiceAccount Boolean     @default(false)
   lastLoginAt   DateTime?
   createdAt     DateTime       @default(now())
@@ -791,6 +834,7 @@ model User {
   employee      Employee?
   leaveApprovalSteps LeaveApprovalStep[]
   approvedTimesheets Timesheet[] @relation("TimesheetApprover")
+  lockedProcessingCycles ProcessingCycle[] @relation("ProcessingCycleLocker")
   assignedOnboardingTasks OnboardingTask[] @relation("OnboardingTaskAssignee")
   uploadedDocuments  Document[] @relation("UploadedDocuments")
   auditLogs          AuditLog[] @relation("AuditLogActor")
@@ -832,6 +876,13 @@ model BusinessUnit {
   name                 String
   organizationId       String
   parentBusinessUnitId String?
+  type                 BusinessUnitType @default(INTERNAL)
+  settingsJson         Json?
+  payrollContactName   String?
+  payrollContactEmail  String?
+  payrollContactPhone  String?
+  approvalContactName  String?
+  approvalContactEmail String?
   createdAt            DateTime       @default(now())
   updatedAt            DateTime       @updatedAt
   tenant               Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -839,10 +890,16 @@ model BusinessUnit {
   parentBusinessUnit   BusinessUnit?  @relation("BusinessUnitHierarchy", fields: [parentBusinessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
   childBusinessUnits   BusinessUnit[] @relation("BusinessUnitHierarchy")
   users                User[]
+  employees            Employee[]
+  projects             Project[]
+  timesheets           Timesheet[]
+  payrollCycles        PayrollCycle[]
+  processingCycles     ProcessingCycle[]
 
   @@unique([id, tenantId])
   @@unique([tenantId, organizationId, name])
   @@index([tenantId])
+  @@index([tenantId, type])
   @@index([tenantId, organizationId])
   @@index([tenantId, parentBusinessUnitId])
 }
@@ -999,6 +1056,7 @@ model Employee {
   id                    String                     @id @default(uuid())
   tenantId              String
   employeeCode          String
+  recordType            EmployeeRecordType         @default(INTERNAL_EMPLOYEE)
   firstName             String
   middleName            String?
   lastName              String
@@ -1015,7 +1073,7 @@ model Employee {
   nationality           String?
   cnic                  String?
   bloodGroup            String?
-  employmentStatus      EmployeeEmploymentStatus  @default(Active)
+  employmentStatus      EmployeeEmploymentStatus  @default(ACTIVE)
   employeeType          EmployeeType?
   workMode              EmployeeWorkMode?
   contractType          EmployeeContractType?
@@ -1024,6 +1082,7 @@ model Employee {
   probationEndDate      DateTime?
   terminationDate       DateTime?
   departmentId          String?
+  businessUnitId        String?
   designationId         String?
   locationId            String?
   officialJoiningLocationId String?
@@ -1061,6 +1120,7 @@ model Employee {
   cityLookup            City?                      @relation(fields: [cityId], references: [id], onDelete: SetNull)
   emergencyContactRelationType RelationType?       @relation(fields: [emergencyContactRelationTypeId], references: [id], onDelete: SetNull)
   department            Department?                @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  businessUnit          BusinessUnit?              @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
   designation           Designation?               @relation(fields: [designationId], references: [id], onDelete: SetNull)
   location              Location?                  @relation(fields: [locationId], references: [id], onDelete: SetNull)
   officialJoiningLocation Location?                @relation("EmployeeOfficialJoiningLocation", fields: [officialJoiningLocationId], references: [id], onDelete: SetNull)
@@ -1090,6 +1150,8 @@ model Employee {
   @@unique([tenantId, personalEmail])
   @@unique([tenantId, cnic])
   @@index([tenantId])
+  @@index([tenantId, recordType])
+  @@index([tenantId, businessUnitId])
   @@index([tenantId, employmentStatus])
   @@index([tenantId, nationalityCountryId])
   @@index([tenantId, lastName, firstName])
@@ -1552,6 +1614,8 @@ model HolidayCalendar {
 model Timesheet {
     id             String          @id @default(uuid())
     tenantId       String
+    businessUnitId String?
+    processingCycleId String?
     employeeId     String
     year           Int
     month          Int
@@ -1571,16 +1635,44 @@ model Timesheet {
   createdById    String?
   updatedById    String?
   tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  businessUnit   BusinessUnit?   @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  processingCycle ProcessingCycle? @relation(fields: [processingCycleId], references: [id], onDelete: SetNull)
   employee       Employee        @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   approverUser   User?           @relation("TimesheetApprover", fields: [approverUserId], references: [id], onDelete: SetNull)
   entries        TimesheetEntry[]
+  importBatches  TimesheetImportBatch[]
 
     @@unique([tenantId, employeeId, year, month])
     @@index([tenantId])
+    @@index([tenantId, businessUnitId, status])
+    @@index([tenantId, processingCycleId])
     @@index([tenantId, employeeId, periodStart])
     @@index([tenantId, employeeId, year, month])
     @@index([tenantId, status, periodStart])
   }
+
+model TimesheetImportBatch {
+  id             String                     @id @default(uuid())
+  tenantId       String
+  fileName       String
+  status         TimesheetImportBatchStatus @default(PREVIEWED)
+  importedByUserId String?
+  importedAt     DateTime?
+  committedAt    DateTime?
+  totalRows      Int                        @default(0)
+  successCount   Int                        @default(0)
+  warningCount   Int                        @default(0)
+  errorCount     Int                        @default(0)
+  errorSummary   String?
+  previewJson    String?
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
+  tenant         Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  timesheets     Timesheet[]
+
+  @@index([tenantId])
+  @@index([tenantId, status, createdAt])
+}
 
 model TimesheetEntry {
     id          String    @id @default(uuid())
@@ -1617,6 +1709,7 @@ model TimesheetEntry {
 model Project {
   id                String              @id @default(uuid())
   tenantId          String
+  businessUnitId    String?
   name              String
   code              String?
   description       String?
@@ -1628,12 +1721,14 @@ model Project {
   createdById       String?
   updatedById       String?
   tenant            Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  businessUnit      BusinessUnit?       @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
   assignments       ProjectAssignment[]
   timesheetEntries  TimesheetEntry[]
 
   @@unique([tenantId, name])
   @@unique([tenantId, code])
   @@index([tenantId])
+  @@index([tenantId, businessUnitId])
   @@index([tenantId, status])
 }
 
@@ -2338,6 +2433,8 @@ model Payment {
 model PayrollCycle {
   id          String             @id @default(uuid())
   tenantId    String
+  businessUnitId String?
+  processingCycleId String?
   periodStart DateTime
   periodEnd   DateTime
   runDate     DateTime?
@@ -2347,12 +2444,44 @@ model PayrollCycle {
   createdById String?
   updatedById String?
   tenant      Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  businessUnit BusinessUnit?     @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  processingCycle ProcessingCycle? @relation(fields: [processingCycleId], references: [id], onDelete: SetNull)
   records     PayrollRecord[]
 
-  @@unique([tenantId, periodStart, periodEnd])
+  @@unique([tenantId, businessUnitId, periodStart, periodEnd])
   @@index([tenantId])
+  @@index([tenantId, businessUnitId])
+  @@index([tenantId, processingCycleId])
   @@index([tenantId, status])
   @@index([tenantId, periodStart, periodEnd])
+}
+
+model ProcessingCycle {
+  id              String                @id @default(uuid())
+  tenantId        String
+  businessUnitId  String?
+  name            String
+  startDate       DateTime
+  endDate         DateTime
+  cycleType       ProcessingCycleType   @default(MONTHLY)
+  status          ProcessingCycleStatus @default(OPEN)
+  lockedAt        DateTime?
+  lockedByUserId  String?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  createdById     String?
+  updatedById     String?
+  tenant          Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  businessUnit    BusinessUnit?         @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  lockedByUser    User?                 @relation("ProcessingCycleLocker", fields: [lockedByUserId], references: [id], onDelete: SetNull)
+  timesheets      Timesheet[]
+  payrollCycles   PayrollCycle[]
+
+  @@unique([tenantId, businessUnitId, startDate, endDate, cycleType])
+  @@index([tenantId])
+  @@index([tenantId, businessUnitId])
+  @@index([tenantId, status])
+  @@index([tenantId, startDate, endDate])
 }
 
 model PayrollRecord {
@@ -2365,6 +2494,9 @@ model PayrollRecord {
   net            Decimal             @db.Decimal(12, 2)
   status         PayrollRecordStatus @default(DRAFT)
   lineItems      Json?
+  sourceTimesheetIds Json?
+  timesheetSummary Json?
+  adjustments    Json?
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
   createdById    String?
@@ -2410,7 +2542,7 @@ model EmployeeCompensation {
   effectiveDate DateTime
   endDate       DateTime?
   currency      String       @default("USD")
-  payrollStatus PayrollStatus @default(Active)
+  payrollStatus PayrollStatus @default(ACTIVE)
   payrollGroup  String?
   paymentMode   PaymentMode?
   bankName      String?

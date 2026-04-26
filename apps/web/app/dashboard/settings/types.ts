@@ -160,13 +160,39 @@ export type TenantResolvedSettingsResponse = {
     allowedModes: string[];
   };
   timesheets: {
+    timesheetPeriodType: string;
     weekendDays: string[];
     defaultWorkHours: number;
+    defaultHoursForOnWork: number;
+    allowWeekendWork: boolean;
+    allowHolidayWork: boolean;
+    requireMonthlySubmission: boolean;
     requireMONTHLYSubmission: boolean;
+    requireAllDaysCompletedBeforeSubmit: boolean;
+    requireSubmissionNote: boolean;
+    allowBulkImport: boolean;
+    allowEmployeeSelfImport: boolean;
+    allowManagerImportForTeam: boolean;
+    requireApprovalBeforePayroll: boolean;
+    exportTemplateFormat: string;
+    lockTimesheetAfterApproval: boolean;
+    allowRejectedTimesheetResubmission: boolean;
   };
   payroll: {
     payFrequency: string;
+    payrollStatus: string;
+    defaultPayrollGroup: string;
+    defaultPaymentMode: string;
+    compensationReviewCycle: string;
     defaultCurrency: string;
+    payrollGenerationSource: string;
+    requireApprovedTimesheetsForPayroll: boolean;
+    includeLeavesInPayrollSummary: boolean;
+    includeHolidaysInPayrollSummary: boolean;
+    includeWeekendWorkInPayrollSummary: boolean;
+    defaultPayrollCycleDay: number;
+    allowDraftPayrollAdjustments: boolean;
+    payrollExportFormat: string;
   };
   recruitment: {
     candidateStages: string[];

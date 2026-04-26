@@ -6,7 +6,11 @@ import { attendanceSettingsSections } from "../_lib/settings-page-config";
 import { TenantSettingsResponse } from "../types";
 
 export default async function AttendanceSettingsPage() {
-  await requireSettingsPermissions(["settings.read", "attendance.read", "timesheets.read"]);
+  await requireSettingsPermissions([
+    "settings.read",
+    "attendance.read",
+    "timesheets.settings.read",
+  ]);
   const tenantSettings = await apiRequestJson<TenantSettingsResponse>(
     "/tenant-settings",
   );

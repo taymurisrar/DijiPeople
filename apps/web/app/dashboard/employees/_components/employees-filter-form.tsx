@@ -1,7 +1,7 @@
 import { EmployeeEmploymentStatus, EmployeeListItem } from "../types";
 
 const employeeStatuses: EmployeeEmploymentStatus[] = [
-  "Active",
+  "ACTIVE",
   "PROBATION",
   "NOTICE",
   "TERMINATED",

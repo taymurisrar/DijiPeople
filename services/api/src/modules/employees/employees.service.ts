@@ -1169,6 +1169,7 @@ export class EmployeesService {
     return {
       tenantId,
       employeeCode: dto.employeeCode.trim().toUpperCase(),
+      recordType: dto.recordType ?? 'INTERNAL_EMPLOYEE',
       firstName: dto.firstName.trim(),
       middleName: dto.middleName?.trim(),
       lastName: dto.lastName.trim(),
@@ -1215,6 +1216,7 @@ export class EmployeesService {
       emergencyContactAlternatePhone:
         dto.emergencyContactAlternatePhone?.trim(),
       departmentId: dto.departmentId?.trim(),
+      businessUnitId: dto.businessUnitId?.trim(),
       designationId: dto.designationId?.trim(),
       locationId: dto.locationId,
       officialJoiningLocationId: dto.officialJoiningLocationId,
@@ -1244,6 +1246,10 @@ export class EmployeesService {
 
     if (dto.employeeCode !== undefined) {
       data.employeeCode = dto.employeeCode.trim().toUpperCase();
+    }
+
+    if (dto.recordType !== undefined) {
+      data.recordType = dto.recordType;
     }
 
     if (dto.firstName !== undefined) {
@@ -1409,6 +1415,10 @@ export class EmployeesService {
 
     if (dto.departmentId !== undefined) {
       data.departmentId = dto.departmentId?.trim() ?? null;
+    }
+
+    if (dto.businessUnitId !== undefined) {
+      data.businessUnitId = dto.businessUnitId?.trim() ?? null;
     }
 
     if (dto.designationId !== undefined) {

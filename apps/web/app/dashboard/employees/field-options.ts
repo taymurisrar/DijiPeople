@@ -1,5 +1,5 @@
 export const EMPLOYMENT_STATUS_OPTIONS = [
-  { value: "Active", label: "Active" },
+  { value: "ACTIVE", label: "Active" },
   { value: "PROBATION", label: "Probation" },
   { value: "NOTICE", label: "Notice" },
   { value: "TERMINATED", label: "Terminated" },
@@ -54,7 +54,6 @@ export const GENDER_OPTIONS = [
   { value: "", label: "Select gender" },
   { value: "FEMALE", label: "Female" },
   { value: "MALE", label: "Male" },
-  { value: "NON_BINARY", label: "Non-binary" },
   { value: "PREFER_NOT_TO_SAY", label: "Prefer not to say" },
 ] as const;
 

@@ -1,11 +1,19 @@
 import { PayrollCycleStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
-import { IsEnum, IsOptional, Max, Min } from 'class-validator';
+import { IsEnum, IsOptional, IsUUID, Max, Min } from 'class-validator';
 
 export class PayrollCycleQueryDto {
   @IsOptional()
   @IsEnum(PayrollCycleStatus)
   status?: PayrollCycleStatus;
+
+  @IsOptional()
+  @IsUUID()
+  businessUnitId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  processingCycleId?: string;
 
   @IsOptional()
   @Type(() => Number)

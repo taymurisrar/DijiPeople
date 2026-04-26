@@ -177,8 +177,7 @@ export class AuthService {
         email: currentUser.email,
         firstName: currentUser.firstName,
         lastName: currentUser.lastName,
-        isTenantOwner:
-          tenant.ownerUserId === currentUser.userId,
+        isTenantOwner: tenant.ownerUserId === currentUser.userId,
         roleIds: currentUser.roleIds,
         roleKeys: currentUser.roleKeys,
         permissionKeys: currentUser.permissionKeys,

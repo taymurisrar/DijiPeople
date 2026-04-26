@@ -82,10 +82,10 @@ export function ProjectForm({ mode, project }: ProjectFormProps) {
           }
         >
           <option value="PLANNING">PLANNING</option>
-          <option value="Active">Active</option>
+          <option value="ACTIVE">ACTIVE</option>
           <option value="ON_HOLD">ON_HOLD</option>
           <option value="COMPLETED">COMPLETED</option>
-          <option value="Cancelled">Cancelled</option>
+          <option value="CANCELLED">CANCELLED</option>
         </select>
       </label>
       <label className="space-y-2 text-sm md:col-span-2">

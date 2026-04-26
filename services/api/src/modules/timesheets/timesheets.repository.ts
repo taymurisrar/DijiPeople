@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, TimesheetStatus } from '@prisma/client';
+import {
+  EmployeeEmploymentStatus,
+  Prisma,
+  TimesheetImportBatchStatus,
+  TimesheetStatus,
+} from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { TimesheetQueryDto } from './dto/timesheet-query.dto';
 
@@ -15,6 +20,39 @@ const timesheetInclude = {
       preferredName: true,
       userId: true,
       managerEmployeeId: true,
+      businessUnitId: true,
+      businessUnit: {
+        select: {
+          id: true,
+          name: true,
+          type: true,
+        },
+      },
+      departmentId: true,
+      locationId: true,
+      department: {
+        select: {
+          id: true,
+          name: true,
+          code: true,
+        },
+      },
+      location: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      user: {
+        select: {
+          businessUnit: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
       manager: {
         select: {
           id: true,
@@ -53,8 +91,55 @@ const timesheetInclude = {
   },
 } satisfies Prisma.TimesheetInclude;
 
+const timesheetTemplateEmployeeSelect = {
+  id: true,
+  employeeCode: true,
+  firstName: true,
+  lastName: true,
+  preferredName: true,
+      email: true,
+      recordType: true,
+      businessUnitId: true,
+      businessUnit: {
+        select: {
+          id: true,
+          name: true,
+          type: true,
+        },
+      },
+      department: {
+    select: {
+      id: true,
+      name: true,
+      code: true,
+    },
+  },
+  location: {
+    select: {
+      id: true,
+      name: true,
+      city: true,
+      country: true,
+    },
+  },
+  user: {
+    select: {
+      businessUnit: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  },
+} satisfies Prisma.EmployeeSelect;
+
 export type TimesheetWithRelations = Prisma.TimesheetGetPayload<{
   include: typeof timesheetInclude;
+}>;
+
+export type TimesheetTemplateEmployee = Prisma.EmployeeGetPayload<{
+  select: typeof timesheetTemplateEmployeeSelect;
 }>;
 
 @Injectable()
@@ -217,7 +302,7 @@ export class TimesheetsRepository {
       db.timesheet.findMany({
         where,
         include: timesheetInclude,
-        orderBy: [{ year: 'desc' }, { month: 'desc' }],
+        orderBy: buildTimesheetOrderBy(query),
         skip,
         take: query.pageSize,
       }),
@@ -257,7 +342,7 @@ export class TimesheetsRepository {
       db.timesheet.findMany({
         where,
         include: timesheetInclude,
-        orderBy: [{ year: 'desc' }, { month: 'desc' }, { createdAt: 'desc' }],
+        orderBy: buildTimesheetOrderBy(query),
         skip,
         take: query.pageSize,
       }),
@@ -265,6 +350,154 @@ export class TimesheetsRepository {
     ]);
 
     return { items, total };
+  }
+
+  findEmployeesForTemplate(
+    tenantId: string,
+    filters: {
+      employeeIds?: string[];
+      employeeId?: string;
+      businessUnitId?: string;
+      departmentId?: string;
+      locationId?: string;
+    },
+    db: PrismaDb = this.prisma,
+  ) {
+    const where: Prisma.EmployeeWhereInput = {
+      tenantId,
+      employmentStatus: EmployeeEmploymentStatus.ACTIVE,
+    };
+
+    if (filters.employeeIds) {
+      where.id = { in: filters.employeeIds };
+    }
+
+    if (filters.employeeId) {
+      where.id = filters.employeeId;
+    }
+
+    if (filters.departmentId) {
+      where.departmentId = filters.departmentId;
+    }
+
+    if (filters.locationId) {
+      where.locationId = filters.locationId;
+    }
+
+    if (filters.businessUnitId) {
+      where.OR = [
+        { businessUnitId: filters.businessUnitId },
+        { businessUnitId: null, user: { businessUnitId: filters.businessUnitId } },
+      ];
+    }
+
+    return db.employee.findMany({
+      where,
+      select: timesheetTemplateEmployeeSelect,
+      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+    });
+  }
+
+  findApprovedLeaveRequestsForEmployeesForMonth(
+    tenantId: string,
+    employeeIds: string[],
+    periodStart: Date,
+    periodEnd: Date,
+    db: PrismaDb = this.prisma,
+  ) {
+    if (employeeIds.length === 0) {
+      return [];
+    }
+
+    return db.leaveRequest.findMany({
+      where: {
+        tenantId,
+        employeeId: { in: employeeIds },
+        status: 'APPROVED',
+        startDate: { lte: periodEnd },
+        endDate: { gte: periodStart },
+      },
+      select: {
+        id: true,
+        employeeId: true,
+        startDate: true,
+        endDate: true,
+        leaveType: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  findTimesheetsForTemplate(
+    tenantId: string,
+    employeeIds: string[],
+    year: number,
+    month: number,
+    db: PrismaDb = this.prisma,
+  ) {
+    if (employeeIds.length === 0) {
+      return [];
+    }
+
+    return db.timesheet.findMany({
+      where: {
+        tenantId,
+        employeeId: { in: employeeIds },
+        year,
+        month,
+      },
+      include: timesheetInclude,
+    });
+  }
+
+  createImportBatch(
+    data: Prisma.TimesheetImportBatchUncheckedCreateInput,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.timesheetImportBatch.create({ data });
+  }
+
+  findImportBatchById(
+    tenantId: string,
+    id: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.timesheetImportBatch.findFirst({
+      where: { tenantId, id },
+    });
+  }
+
+  updateImportBatch(
+    tenantId: string,
+    id: string,
+    data: Prisma.TimesheetImportBatchUpdateInput,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.timesheetImportBatch.update({
+      where: { id, tenantId },
+      data,
+    });
+  }
+
+  markImportBatchProcessing(
+    tenantId: string,
+    id: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.timesheetImportBatch.updateMany({
+      where: {
+        tenantId,
+        id,
+        status: TimesheetImportBatchStatus.PREVIEWED,
+      },
+      data: {
+        status: TimesheetImportBatchStatus.PROCESSING,
+      },
+    });
   }
 }
 
@@ -290,5 +523,49 @@ function buildTimesheetWhere(
     where.month = query.month;
   }
 
+  const employeeWhere: Prisma.EmployeeWhereInput = {};
+
+  if (query.managerEmployeeId) {
+    employeeWhere.managerEmployeeId = query.managerEmployeeId;
+  }
+
+  if (query.departmentId) {
+    employeeWhere.departmentId = query.departmentId;
+  }
+
+  if (query.businessUnitId) {
+    employeeWhere.OR = [
+      { businessUnitId: query.businessUnitId },
+      { businessUnitId: null, user: { businessUnitId: query.businessUnitId } },
+    ];
+  }
+
+  if (Object.keys(employeeWhere).length > 0) {
+    where.employee = employeeWhere;
+  }
+
   return where;
+}
+
+function buildTimesheetOrderBy(query: TimesheetQueryDto): Prisma.TimesheetOrderByWithRelationInput[] {
+  const direction = query.sortDirection ?? 'desc';
+
+  switch (query.sortField) {
+    case 'employee':
+      return [
+        { employee: { lastName: direction } },
+        { employee: { firstName: direction } },
+      ];
+    case 'status':
+      return [{ status: direction }, { updatedAt: 'desc' }];
+    case 'updatedAt':
+      return [{ updatedAt: direction }];
+    case 'yearMonth':
+    default:
+      return [
+        { year: direction },
+        { month: direction },
+        { updatedAt: 'desc' },
+      ];
+  }
 }

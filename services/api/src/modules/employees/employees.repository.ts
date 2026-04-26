@@ -114,11 +114,18 @@ const hierarchyNodeSelect = {
   id: true,
   tenantId: true,
   employeeCode: true,
+  recordType: true,
   firstName: true,
   lastName: true,
   preferredName: true,
   employmentStatus: true,
+  businessUnitId: true,
   managerEmployeeId: true,
+  user: {
+    select: {
+      businessUnitId: true,
+    },
+  },
 } satisfies Prisma.EmployeeSelect;
 
 export type EmployeeWithRelations = Prisma.EmployeeGetPayload<{
@@ -133,7 +140,11 @@ export type EmployeeHierarchyNode = Prisma.EmployeeGetPayload<{
 export class EmployeesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findByTenant(tenantId: string, query: EmployeeQueryDto, db: PrismaDb = this.prisma) {
+  async findByTenant(
+    tenantId: string,
+    query: EmployeeQueryDto,
+    db: PrismaDb = this.prisma,
+  ) {
     const where = this.buildWhereClause(tenantId, query);
     const skip = (query.page - 1) * query.pageSize;
 
@@ -230,7 +241,10 @@ export class EmployeesRepository {
     });
   }
 
-  private buildWhereClause(tenantId: string, query: EmployeeQueryDto): Prisma.EmployeeWhereInput {
+  private buildWhereClause(
+    tenantId: string,
+    query: EmployeeQueryDto,
+  ): Prisma.EmployeeWhereInput {
     const where: Prisma.EmployeeWhereInput = {
       tenantId,
     };

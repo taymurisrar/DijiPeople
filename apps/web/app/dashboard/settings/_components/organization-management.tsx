@@ -319,6 +319,11 @@ type OrganizationNode = OrganizationRecord & {
   children: OrganizationNode[];
 };
 
+type OrganizationOption = {
+  id: string;
+  label: string;
+};
+
 function buildOrganizationTree(records: OrganizationRecord[]) {
   const nodeMap = new Map<string, OrganizationNode>(
     records.map((record) => [record.id, { ...record, children: [] }]),
@@ -342,7 +347,10 @@ function buildOrganizationTree(records: OrganizationRecord[]) {
   return sortTree(roots);
 }
 
-function toOrganizationOptions(nodes: OrganizationNode[], depth = 0) {
+function toOrganizationOptions(
+  nodes: OrganizationNode[],
+  depth = 0,
+): OrganizationOption[] {
   return nodes.flatMap((node) => [
     {
       id: node.id,
