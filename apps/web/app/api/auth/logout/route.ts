@@ -32,20 +32,26 @@ export async function GET(request: Request) {
 async function clearAuthCookies() {
   const cookieStore = await cookies();
   const useSecureCookies = process.env.NODE_ENV === "production";
-
-  cookieStore.set(ACCESS_TOKEN_COOKIE, "", {
+  const cookieNames = [ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE] as const;
+  const baseOptions = {
     httpOnly: true,
     secure: useSecureCookies,
-    sameSite: "lax",
+    sameSite: "lax" as const,
     path: "/",
     expires: new Date(0),
-  });
+  };
 
-  cookieStore.set(REFRESH_TOKEN_COOKIE, "", {
-    httpOnly: true,
-    secure: useSecureCookies,
-    sameSite: "lax",
-    path: "/",
-    expires: new Date(0),
-  });
+  for (const cookieName of cookieNames) {
+    cookieStore.set(cookieName, "", baseOptions);
+  }
+
+  // Clear potential domain-scoped localhost cookies left from previous auth flows.
+  if (!useSecureCookies) {
+    for (const cookieName of cookieNames) {
+      cookieStore.set(cookieName, "", {
+        ...baseOptions,
+        domain: "localhost",
+      });
+    }
+  }
 }

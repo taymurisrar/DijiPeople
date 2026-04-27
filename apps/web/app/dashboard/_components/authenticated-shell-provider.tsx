@@ -56,7 +56,6 @@ type PatchedWindow = Window & {
 };
 
 const SESSION_EXPIRED_REASON = "session-expired";
-const ACCESS_DENIED_REASON = "access-denied";
 
 export function AuthenticatedShellProvider({
   children,
@@ -313,7 +312,7 @@ async function resolveRedirectReason(
 
   const contentType = response.headers.get("content-type") ?? "";
   if (!contentType.toLowerCase().includes("application/json")) {
-    return ACCESS_DENIED_REASON;
+    return null;
   }
 
   try {
@@ -321,7 +320,7 @@ async function resolveRedirectReason(
     const data = (await cloned.json()) as unknown;
 
     if (!isRecord(data)) {
-      return ACCESS_DENIED_REASON;
+      return null;
     }
 
     const errorCode = readString(data.errorCode);
@@ -343,11 +342,9 @@ async function resolveRedirectReason(
       ].some((keyword) => value.includes(keyword)),
     );
 
-    return looksUnauthenticated
-      ? SESSION_EXPIRED_REASON
-      : ACCESS_DENIED_REASON;
+    return looksUnauthenticated ? SESSION_EXPIRED_REASON : null;
   } catch {
-    return ACCESS_DENIED_REASON;
+    return null;
   }
 }
 

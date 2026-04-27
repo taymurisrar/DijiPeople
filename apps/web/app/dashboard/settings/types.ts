@@ -319,7 +319,7 @@ export type AccessRoleRecord = {
 
 export type AccessUserOwnership = {
   isTenantOwner: boolean;
-  designation: "TENANT_OWNER" | "SUPER_ADMIN" | "TENANT_USER";
+  designation: "TENANT_OWNER" | "SYSTEM_ADMIN" | "TENANT_USER";
 };
 
 export type AccessUserRecord = {
@@ -329,6 +329,7 @@ export type AccessUserRecord = {
   firstName: string;
   lastName: string;
   status: string;
+  isServiceAccount: boolean;
   lastLoginAt?: string | null;
   roles: Array<{
     id: string;

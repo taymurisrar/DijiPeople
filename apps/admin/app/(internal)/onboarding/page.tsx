@@ -30,7 +30,7 @@ export default async function OnboardingPage({
     apiRequestJson<PaginatedResponse<CustomerOnboardingRecord>>(`/super-admin/customer-onboarding?${query.toString()}`),
     apiRequestJson<LifecycleOptions>("/super-admin/lifecycle-options"),
     apiRequestJson<OperatorOption[]>("/super-admin/operators"),
-    apiRequestJson<PaginatedResponse<CustomerRecord>>("/super-admin/customers?pageSize=200"),
+    apiRequestJson<PaginatedResponse<CustomerRecord>>("/super-admin/customers?pageSize=100"),
     apiRequestJson<PlanOption[]>("/super-admin/plans"),
   ]);
 

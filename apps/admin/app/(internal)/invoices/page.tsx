@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { InvoiceStatusForm } from "@/app/_components/invoice-status-form";
 import { TenantStatusBadge } from "@/app/_components/tenant-status-badge";
 import { apiRequestJson } from "@/lib/server-api";
@@ -50,8 +51,14 @@ export default async function InvoicesPage() {
                   {invoice.currency} {invoice.amount.toFixed(2)}
                 </h2>
                 <p className="mt-2 text-sm text-slate-600">
-                  {invoice.tenant.name} • {invoice.subscription.plan.name}
+                  {invoice.tenant.name} - {invoice.subscription.plan.name}
                 </p>
+                <Link
+                  className="mt-3 inline-flex text-sm font-medium text-slate-700 hover:text-slate-950"
+                  href={`/invoices/${invoice.id}`}
+                >
+                  View invoice detail
+                </Link>
               </div>
               <TenantStatusBadge value={invoice.status} />
             </div>

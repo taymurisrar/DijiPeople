@@ -117,12 +117,83 @@ export type CustomerRecord = {
       status: string;
     } | null;
   } | null;
+  tenants?: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    status: string;
+    subscription?: {
+      id: string;
+      plan: { id: string; key: string; name: string };
+      billingCycle: string;
+      finalPrice: number;
+      currency: string;
+      status: string;
+      renewalDate?: string | null;
+    } | null;
+  }>;
+  subscriptions?: Array<{
+    id: string;
+    status: string;
+    billingCycle: string;
+    finalPrice: number;
+    currency: string;
+    renewalDate?: string | null;
+    tenantId: string;
+    plan: { id: string; key: string; name: string };
+  }>;
+  invoices?: Array<{
+    id: string;
+    invoiceNumber: string;
+    amount: number;
+    currency: string;
+    status: string;
+    issueDate: string;
+    dueDate: string;
+    tenantId: string;
+  }>;
+  payments?: Array<{
+    id: string;
+    amount: number;
+    currency: string;
+    status: string;
+    paymentMethod: string;
+    paidAt?: string | null;
+    tenantId: string;
+    invoiceId?: string | null;
+  }>;
+  lifecycle?: {
+    currentStatus: string;
+    subStatus?: string | null;
+    activeOnboardingStatus?: string | null;
+    tenantCount: number;
+    activeTenantCount: number;
+    subscriptionStatusSummary: Record<string, number>;
+    paymentStatusSummary: Record<string, number>;
+    nextRenewalDate?: string | null;
+  };
+  onboardingPrerequisites?: {
+    checks: Array<{ key: string; label: string; passed: boolean }>;
+    missingItems: string[];
+    allPassed: boolean;
+  };
   onboardings?: Array<{
     id: string;
     status: string;
     subStatus?: string | null;
     tenantCreated: boolean;
   }>;
+};
+
+export type PlatformSettingsRecord = {
+  platformDefaults: Record<string, unknown>;
+  publicPlanVisibility: Record<string, unknown>;
+  billingDefaults: Record<string, unknown>;
+  invoiceDefaults: Record<string, unknown>;
+  emailProvider: Record<string, unknown>;
+  branding: Record<string, unknown>;
+  featureCatalog: Record<string, unknown>;
+  leadDefinitions: Record<string, unknown>;
 };
 
 export type CustomerOnboardingRecord = {
@@ -135,6 +206,10 @@ export type CustomerOnboardingRecord = {
   primaryOwnerFirstName: string;
   primaryOwnerLastName: string;
   primaryOwnerWorkEmail: string;
+  createServiceAccount?: boolean;
+  serviceAccountEmail?: string | null;
+  serviceAccountDisplayName?: string | null;
+  serviceAccountAssignSystemAdmin?: boolean;
   contractSigned: boolean;
   paymentConfirmed: boolean;
   configurationReady: boolean;

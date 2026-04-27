@@ -23,6 +23,7 @@ type DashboardSidebarProps = {
   isReportingManager: boolean;
   isSelfService: boolean;
   permissionKeys: string[];
+  roleKeys?: string[];
   tenantId: string;
   tenantName?: string;
 };
@@ -44,6 +45,7 @@ export function DashboardSidebar({
   isReportingManager,
   isSelfService,
   permissionKeys,
+  roleKeys,
   tenantId,
   tenantName,
 }: DashboardSidebarProps) {
@@ -54,6 +56,7 @@ export function DashboardSidebar({
     isReportingManager,
     isSelfService,
     permissionKeys,
+    roleKeys,
   });
 
   return (

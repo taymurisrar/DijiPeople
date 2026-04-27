@@ -30,6 +30,10 @@ export function OnboardingDetailManager({
     primaryOwnerFirstName: onboarding.primaryOwnerFirstName,
     primaryOwnerLastName: onboarding.primaryOwnerLastName,
     primaryOwnerWorkEmail: onboarding.primaryOwnerWorkEmail,
+    createServiceAccount: onboarding.createServiceAccount ?? Boolean(onboarding.serviceAccountEmail),
+    serviceAccountEmail: onboarding.serviceAccountEmail ?? "",
+    serviceAccountDisplayName: onboarding.serviceAccountDisplayName ?? "",
+    serviceAccountAssignSystemAdmin: onboarding.serviceAccountAssignSystemAdmin ?? true,
     contractSigned: onboarding.contractSigned,
     paymentConfirmed: onboarding.paymentConfirmed,
     configurationReady: onboarding.configurationReady,
@@ -70,6 +74,10 @@ export function OnboardingDetailManager({
             slug: onboarding.customer.companyName,
             planId: form.selectedPlanId || undefined,
             billingCycle: form.billingCycle || undefined,
+            createServiceAccount: form.createServiceAccount,
+            serviceAccountEmail: form.serviceAccountEmail || undefined,
+            serviceAccountDisplayName: form.serviceAccountDisplayName || undefined,
+            assignServiceAccountSystemAdminRole: form.serviceAccountAssignSystemAdmin,
           }),
         },
       );
@@ -95,6 +103,10 @@ export function OnboardingDetailManager({
           <Field label="Primary owner first name" value={form.primaryOwnerFirstName} onChange={(value) => setForm((current) => ({ ...current, primaryOwnerFirstName: value }))} />
           <Field label="Primary owner last name" value={form.primaryOwnerLastName} onChange={(value) => setForm((current) => ({ ...current, primaryOwnerLastName: value }))} />
           <Field label="Primary owner work email" type="email" value={form.primaryOwnerWorkEmail} onChange={(value) => setForm((current) => ({ ...current, primaryOwnerWorkEmail: value }))} />
+          <Toggle label="Create optional service account" checked={form.createServiceAccount} onChange={(value) => setForm((current) => ({ ...current, createServiceAccount: value }))} />
+          <Field label="Service account email" type="email" value={form.serviceAccountEmail} onChange={(value) => setForm((current) => ({ ...current, serviceAccountEmail: value }))} />
+          <Field label="Service account display name" value={form.serviceAccountDisplayName} onChange={(value) => setForm((current) => ({ ...current, serviceAccountDisplayName: value }))} />
+          <Toggle label="Assign System Admin role to service account" checked={form.serviceAccountAssignSystemAdmin} onChange={(value) => setForm((current) => ({ ...current, serviceAccountAssignSystemAdmin: value }))} />
         </div>
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
           <Toggle label="Contract signed" checked={form.contractSigned} onChange={(value) => setForm((current) => ({ ...current, contractSigned: value }))} />

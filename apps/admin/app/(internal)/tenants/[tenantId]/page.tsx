@@ -1,7 +1,9 @@
 import Link from "next/link";
-import { PermissionAssignmentPanel } from "@/app/_components/permission-assignment-panel";
+import { GenerateInvoiceButton } from "@/app/_components/generate-invoice-button";
 import { SubscriptionForm } from "@/app/_components/subscription-form";
+import { TenantCustomerAccountForm } from "@/app/_components/tenant-customer-account-form";
 import { TenantFeatureForm } from "@/app/_components/tenant-feature-form";
+import { TenantOwnerActions } from "@/app/_components/tenant-owner-actions";
 import { TenantStatusBadge } from "@/app/_components/tenant-status-badge";
 import { TenantStatusForm } from "@/app/_components/tenant-status-form";
 import { apiRequestJson } from "@/lib/server-api";
@@ -19,6 +21,35 @@ type TenantDetail = {
     status: string;
     contactEmail: string;
   } | null;
+  owner: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    status: string;
+    isServiceAccount: boolean;
+    lastLoginAt: string | null;
+    ownershipStatus: string;
+    roles: Array<{
+      id: string;
+      key: string;
+      name: string;
+    }>;
+  } | null;
+  serviceAccounts: Array<{
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    status: string;
+    isServiceAccount: boolean;
+    lastLoginAt: string | null;
+    roles: Array<{
+      id: string;
+      key: string;
+      name: string;
+    }>;
+  }>;
   counts: {
     users: number;
     employees: number;
@@ -68,46 +99,21 @@ type FeatureCatalogItem = {
   description: string;
 };
 
-type PermissionItem = {
+type CustomerOption = {
   id: string;
-  key: string;
-  name: string;
-  description?: string | null;
-};
-
-type TenantRole = {
-  id: string;
-  key: string;
-  name: string;
-  description?: string | null;
-  isSystem: boolean;
-  permissionIds: string[];
-};
-
-type TenantUser = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
+  companyName: string;
   status: string;
-  isServiceAccount?: boolean;
-  roles: Array<{
-    id: string;
-    key: string;
-    name: string;
-  }>;
-  directPermissionIds: string[];
 };
 
 type SearchParams = Promise<{
-  tab?: "overview" | "billing" | "access";
+  tab?: "overview" | "billing";
 }>;
 
 function formatDate(value: string | null | undefined) {
   if (!value) return "Not available";
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-  }).format(new Date(value));
+  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(
+    new Date(value),
+  );
 }
 
 function getEnabledFeatures(features: TenantDetail["enabledFeatures"]) {
@@ -129,13 +135,13 @@ export default async function TenantDetailPage({
   const resolvedSearchParams = await searchParams;
   const activeTab = resolvedSearchParams.tab ?? "overview";
 
-  const [tenant, plans, featureCatalog, permissions, roles, users] = await Promise.all([
+  const [tenant, plans, featureCatalog, customers] = await Promise.all([
     apiRequestJson<TenantDetail>(`/super-admin/tenants/${tenantId}`),
     apiRequestJson<PlanOption[]>("/super-admin/plans"),
     apiRequestJson<FeatureCatalogItem[]>("/super-admin/feature-catalog"),
-    apiRequestJson<PermissionItem[]>(`/super-admin/tenants/${tenantId}/permissions`),
-    apiRequestJson<TenantRole[]>(`/super-admin/tenants/${tenantId}/roles`),
-    apiRequestJson<TenantUser[]>(`/super-admin/tenants/${tenantId}/users`),
+    apiRequestJson<{ items: CustomerOption[] }>("/super-admin/customers?pageSize=100").then(
+      (response) => response.items,
+    ),
   ]);
 
   const enabledFeatures = getEnabledFeatures(tenant.enabledFeatures);
@@ -151,7 +157,7 @@ export default async function TenantDetailPage({
                 href="/tenants"
                 className="inline-flex text-sm font-medium text-slate-500 transition hover:text-slate-950"
               >
-                ← Back to tenants
+                Back to tenants
               </Link>
 
               <div className="space-y-2">
@@ -210,11 +216,6 @@ export default async function TenantDetailPage({
               label="Billing"
               isActive={activeTab === "billing"}
             />
-            <TabLink
-              href={`/tenants/${tenantId}?tab=access`}
-              label="Access"
-              isActive={activeTab === "access"}
-            />
           </nav>
         </div>
       </section>
@@ -227,8 +228,7 @@ export default async function TenantDetailPage({
                 <div className="space-y-2">
                   <h2 className="text-xl font-semibold text-slate-950">Feature access</h2>
                   <p className="max-w-2xl text-sm leading-6 text-slate-600">
-                    Manage which capabilities are available for this tenant without forcing
-                    the page to feel like one long settings wall.
+                    Manage tenant feature availability.
                   </p>
                 </div>
 
@@ -237,7 +237,7 @@ export default async function TenantDetailPage({
                     {enabledFeatures.length} feature{enabledFeatures.length === 1 ? "" : "s"} enabled
                   </p>
                   <p className="mt-1 text-slate-500">
-                    {tenant.enabledFeatures.length} total in catalog for this tenant
+                    {tenant.enabledFeatures.length} total in catalog
                   </p>
                 </div>
               </div>
@@ -252,11 +252,6 @@ export default async function TenantDetailPage({
                       {feature.key}
                     </span>
                   ))}
-                  {enabledFeatures.length > featurePreview.length ? (
-                    <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-500">
-                      +{enabledFeatures.length - featurePreview.length} more
-                    </span>
-                  ) : null}
                 </div>
               ) : (
                 <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm text-slate-600">
@@ -276,14 +271,7 @@ export default async function TenantDetailPage({
 
           <div className="space-y-6">
             <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h2 className="text-lg font-semibold text-slate-950">Tenant snapshot</h2>
-                  <p className="mt-1 text-sm text-slate-600">
-                    Fast read of plan, billing, and lifecycle state.
-                  </p>
-                </div>
-              </div>
+              <h2 className="text-lg font-semibold text-slate-950">Tenant snapshot</h2>
 
               <div className="mt-5 grid gap-4">
                 <InfoRow label="Tenant status" value={<TenantStatusBadge value={tenant.status} />} />
@@ -297,45 +285,43 @@ export default async function TenantDetailPage({
                     )
                   }
                 />
+                <InfoRow label="Plan" value={tenant.subscription?.plan.name ?? "Not assigned"} />
                 <InfoRow
-                  label="Plan"
-                  value={tenant.subscription?.plan.name ?? "Not assigned"}
-                />
-                <InfoRow
-                  label="Billing cycle"
+                  label="Tenant owner"
                   value={
-                    tenant.subscription
-                      ? toTitleCase(tenant.subscription.billingCycle)
+                    tenant.owner
+                      ? `${tenant.owner.firstName} ${tenant.owner.lastName} (${tenant.owner.email})`
                       : "Not assigned"
                   }
                 />
                 <InfoRow
-                  label="Renewal"
+                  label="Owner roles"
                   value={
-                    tenant.subscription?.renewalDate
-                      ? formatDate(tenant.subscription.renewalDate)
-                      : "Not scheduled"
+                    tenant.owner?.roles.length
+                      ? tenant.owner.roles.map((role) => role.name).join(", ")
+                      : "Not assigned"
                   }
+                />
+                <InfoRow
+                  label="Owner last login"
+                  value={formatDate(tenant.owner?.lastLoginAt)}
                 />
                 <InfoRow
                   label="Customer email"
                   value={tenant.customerAccount?.contactEmail ?? "Not available"}
                 />
               </div>
+
+              <div className="mt-5 border-t border-slate-200 pt-4">
+                <TenantOwnerActions tenantId={tenant.id} />
+              </div>
             </section>
 
             <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
               <h2 className="text-lg font-semibold text-slate-950">Quick actions</h2>
-              <p className="mt-1 text-sm text-slate-600">
-                High-impact actions kept visible without making the page noisy.
-              </p>
-
               <div className="mt-4 space-y-4">
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <p className="text-sm font-medium text-slate-900">Update subscription</p>
-                  <p className="mt-1 text-sm text-slate-600">
-                    Change plan, pricing, discount, or renewal setup.
-                  </p>
                   <div className="mt-4">
                     <SubscriptionForm
                       currentSubscription={tenant.subscription}
@@ -347,14 +333,48 @@ export default async function TenantDetailPage({
 
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <p className="text-sm font-medium text-slate-900">Change tenant status</p>
-                  <p className="mt-1 text-sm text-slate-600">
-                    Control onboarding, activation, suspension, or churn state.
-                  </p>
                   <div className="mt-4">
                     <TenantStatusForm tenantId={tenant.id} currentStatus={tenant.status} />
                   </div>
                 </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-sm font-medium text-slate-900">Customer account linkage</p>
+                  <div className="mt-4">
+                    <TenantCustomerAccountForm
+                      tenantId={tenant.id}
+                      customerAccountId={tenant.customerAccount?.id}
+                      options={customers}
+                    />
+                  </div>
+                </div>
               </div>
+            </section>
+
+            <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+              <h2 className="text-lg font-semibold text-slate-950">Service accounts</h2>
+              {tenant.serviceAccounts.length === 0 ? (
+                <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm text-slate-600">
+                  No service accounts were provisioned for this tenant.
+                </div>
+              ) : (
+                <div className="mt-4 space-y-3">
+                  {tenant.serviceAccounts.map((account) => (
+                    <div
+                      className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"
+                      key={account.id}
+                    >
+                      <p className="font-medium text-slate-900">
+                        {account.firstName} {account.lastName}
+                      </p>
+                      <p className="text-sm text-slate-600">{account.email}</p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Roles: {account.roles.map((role) => role.name).join(", ") || "None"}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </section>
           </div>
         </section>
@@ -363,80 +383,31 @@ export default async function TenantDetailPage({
       {activeTab === "billing" ? (
         <section className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
           <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-            <div className="space-y-2">
-              <h2 className="text-xl font-semibold text-slate-950">Subscription management</h2>
-              <p className="text-sm leading-6 text-slate-600">
-                Keep billing actions focused in one place instead of spreading them across the page.
-              </p>
-            </div>
-
+            <h2 className="text-xl font-semibold text-slate-950">Subscription management</h2>
             <div className="mt-6">
               <SubscriptionForm
                 currentSubscription={tenant.subscription}
                 plans={plans}
                 tenantId={tenant.id}
               />
+              {tenant.subscription ? (
+                <div className="mt-4">
+                  <GenerateInvoiceButton subscriptionId={tenant.subscription.id} />
+                </div>
+              ) : null}
             </div>
           </section>
 
           <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
             <h2 className="text-xl font-semibold text-slate-950">Subscription summary</h2>
-
             {tenant.subscription ? (
               <dl className="mt-6 grid gap-4 sm:grid-cols-2">
                 <SummaryGridItem label="Plan" value={tenant.subscription.plan.name} />
-                <SummaryGridItem
-                  label="Status"
-                  value={<TenantStatusBadge value={tenant.subscription.status} />}
-                />
-                <SummaryGridItem
-                  label="Billing cycle"
-                  value={toTitleCase(tenant.subscription.billingCycle)}
-                />
-                <SummaryGridItem
-                  label="Currency"
-                  value={tenant.subscription.currency}
-                />
-                <SummaryGridItem
-                  label="Base price"
-                  value={`${tenant.subscription.currency} ${tenant.subscription.basePrice.toFixed(2)}`}
-                />
-                <SummaryGridItem
-                  label="Final price"
-                  value={`${tenant.subscription.currency} ${tenant.subscription.finalPrice.toFixed(2)}`}
-                />
-                <SummaryGridItem
-                  label="Discount"
-                  value={
-                    tenant.subscription.discountType === "NONE"
-                      ? "No discount"
-                      : `${toTitleCase(tenant.subscription.discountType)} • ${tenant.subscription.discountValue}`
-                  }
-                />
-                <SummaryGridItem
-                  label="Auto renew"
-                  value={tenant.subscription.autoRenew ? "Enabled" : "Disabled"}
-                />
-                <SummaryGridItem
-                  label="Start date"
-                  value={formatDate(tenant.subscription.startDate)}
-                />
-                <SummaryGridItem
-                  label="End date"
-                  value={tenant.subscription.endDate ? formatDate(tenant.subscription.endDate) : "Open-ended"}
-                />
-                <SummaryGridItem
-                  label="Renewal date"
-                  value={
-                    tenant.subscription.renewalDate
-                      ? formatDate(tenant.subscription.renewalDate)
-                      : "Not scheduled"
-                  }
-                />
-                <SummaryGridItem
-                  label="Last updated"
-                  value={formatDate(tenant.subscription.updatedAt)}
-                />
+                <SummaryGridItem label="Status" value={<TenantStatusBadge value={tenant.subscription.status} />} />
+                <SummaryGridItem label="Billing cycle" value={toTitleCase(tenant.subscription.billingCycle)} />
+                <SummaryGridItem label="Currency" value={tenant.subscription.currency} />
+                <SummaryGridItem label="Base price" value={`${tenant.subscription.currency} ${tenant.subscription.basePrice.toFixed(2)}`} />
+                <SummaryGridItem label="Final price" value={`${tenant.subscription.currency} ${tenant.subscription.finalPrice.toFixed(2)}`} />
               </dl>
             ) : (
               <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm text-slate-600">
@@ -444,54 +415,6 @@ export default async function TenantDetailPage({
               </div>
             )}
           </section>
-        </section>
-      ) : null}
-
-      {activeTab === "access" ? (
-        <section className="space-y-6">
-          <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-            <div className="space-y-2">
-              <h2 className="text-xl font-semibold text-slate-950">Access control</h2>
-              <p className="text-sm leading-6 text-slate-600">
-                Advanced role and direct permission management lives here so the main tenant page
-                stays short and easier to scan.
-              </p>
-            </div>
-
-            <div className="mt-5 grid gap-4 sm:grid-cols-3">
-              <CompactStatCard label="Roles" value={roles.length} />
-              <CompactStatCard label="Users" value={users.length} />
-              <CompactStatCard label="Permissions" value={permissions.length} />
-            </div>
-          </section>
-
-          <PermissionAssignmentPanel
-            emptyMessage="No tenant roles were found for this tenant."
-            permissions={permissions}
-            subjects={roles.map((role) => ({
-              id: role.id,
-              label: `${role.name}${role.isSystem ? " (System Role)" : ""}`,
-              meta: `${role.key}${role.description ? ` • ${role.description}` : ""}`,
-              patchUrl: `/api/super-admin/tenants/${tenantId}/roles/${role.id}/permissions`,
-              permissionIds: role.permissionIds,
-            }))}
-            title="Role permission assignment"
-          />
-
-          <PermissionAssignmentPanel
-            emptyMessage="No tenant users were found for this tenant."
-            permissions={permissions}
-            subjects={users.map((user) => ({
-              id: user.id,
-              label: `${user.firstName} ${user.lastName}`,
-              meta: `${user.email} • ${user.status}${user.isServiceAccount ? " • service account" : ""} • Roles: ${
-                user.roles.length ? user.roles.map((role) => role.name).join(", ") : "None"
-              }`,
-              patchUrl: `/api/super-admin/tenants/${tenantId}/users/${user.id}/permissions`,
-              permissionIds: user.directPermissionIds,
-            }))}
-            title="Direct user permission assignment"
-          />
         </section>
       ) : null}
     </main>

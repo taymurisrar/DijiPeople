@@ -3,7 +3,8 @@ import { redirect } from "next/navigation";
 import {
   ACCESS_DENIED_ROUTE,
   ACCESS_TOKEN_COOKIE,
-  getWebLoginUrl,
+  getAdminLoginUrl,
+  
 } from "@/lib/auth-config";
 
 export type AdminSessionUser = {
@@ -48,16 +49,17 @@ export async function getSessionUser() {
   return decodeJwtPayload<AdminSessionUser>(accessToken);
 }
 
-export async function requireSuperAdminUser(nextPath = "/tenants") {
+export async function requireSystemAdminUser(nextPath = "/tenants") {
   const user = await getSessionUser();
 
   if (!user) {
-    redirect(getWebLoginUrl(nextPath));
+    redirect(getAdminLoginUrl(nextPath));
   }
 
-  if (!user.roleKeys?.includes("super-admin")) {
+  if (!user.roleKeys?.includes("system-admin")) {
     redirect(ACCESS_DENIED_ROUTE);
   }
 
   return user;
 }
+

@@ -1,25 +1,20 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import {
-  DEFAULT_AUTHENTICATED_ROUTE,
-  isProtectedRoute,
-  LOGIN_ROUTE,
   ACCESS_TOKEN_COOKIE,
+  LOGIN_ROUTE,
+  isProtectedRoute,
 } from "@/lib/auth-config";
 
 export function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const { pathname, search } = request.nextUrl;
   const accessToken = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value;
   const isAuthenticated = hasValidJwt(accessToken);
 
   if (isProtectedRoute(pathname) && !isAuthenticated) {
     const loginUrl = new URL(LOGIN_ROUTE, request.url);
-    loginUrl.searchParams.set("next", pathname);
+    loginUrl.searchParams.set("next", `${pathname}${search}`);
     return NextResponse.redirect(loginUrl);
-  }
-
-  if (pathname.startsWith(LOGIN_ROUTE) && isAuthenticated) {
-    return NextResponse.redirect(new URL(DEFAULT_AUTHENTICATED_ROUTE, request.url));
   }
 
   return NextResponse.next();
@@ -31,7 +26,7 @@ function hasValidJwt(token: string | undefined): boolean {
   }
 
   const payload = decodeJwtPayload(token);
-  if (!payload || typeof payload !== "object") {
+  if (!payload) {
     return false;
   }
 
@@ -48,7 +43,30 @@ function hasValidJwt(token: string | undefined): boolean {
     return false;
   }
 
+  if (!hasRequiredSessionClaims(payload)) {
+    return false;
+  }
+
   return true;
+}
+
+function hasRequiredSessionClaims(payload: Record<string, unknown>): boolean {
+  return (
+    typeof payload.sub === "string" &&
+    typeof payload.userId === "string" &&
+    typeof payload.tenantId === "string" &&
+    typeof payload.email === "string" &&
+    typeof payload.firstName === "string" &&
+    typeof payload.lastName === "string" &&
+    isStringArray(payload.roleIds) &&
+    isStringArray(payload.permissionKeys)
+  );
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return (
+    Array.isArray(value) && value.every((item) => typeof item === "string")
+  );
 }
 
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
@@ -61,7 +79,8 @@ function decodeJwtPayload(token: string): Record<string, unknown> | null {
     const normalized = parts[1].replace(/-/g, "+").replace(/_/g, "/");
     const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
     const decoded = atob(padded);
-    const parsed = JSON.parse(decoded) as unknown;
+    const parsed: unknown = JSON.parse(decoded);
+
     return typeof parsed === "object" && parsed !== null
       ? (parsed as Record<string, unknown>)
       : null;

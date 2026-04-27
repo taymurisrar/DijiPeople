@@ -37,7 +37,7 @@ export async function POST() {
     const rawBody = await response.text();
     const data = rawBody ? safeParseJson(rawBody) : null;
 
-    if (!response.ok || !isRefreshSuccessResponse(data)) {
+    if (!response.ok) {
       return NextResponse.json(
         {
           message:
@@ -48,15 +48,34 @@ export async function POST() {
       );
     }
 
+    const upstreamTokenPair = extractAuthTokensFromSetCookie(response);
+    const jsonTokenPair = isRefreshSuccessResponse(data)
+      ? {
+          accessToken: data.tokens.accessToken,
+          refreshToken: data.tokens.refreshToken,
+        }
+      : null;
+    const tokenPair = upstreamTokenPair ?? jsonTokenPair;
+
+    if (!tokenPair) {
+      return NextResponse.json(
+        {
+          message:
+            "Refresh response did not include usable auth cookies or token payload.",
+        },
+        { status: 502 },
+      );
+    }
+
     const useSecureCookies = process.env.NODE_ENV === "production";
-    cookieStore.set(ACCESS_TOKEN_COOKIE, data.tokens.accessToken, {
+    cookieStore.set(ACCESS_TOKEN_COOKIE, tokenPair.accessToken, {
       httpOnly: true,
       sameSite: "lax",
       secure: useSecureCookies,
       path: "/",
       maxAge: 60 * 15,
     });
-    cookieStore.set(REFRESH_TOKEN_COOKIE, data.tokens.refreshToken, {
+    cookieStore.set(REFRESH_TOKEN_COOKIE, tokenPair.refreshToken, {
       httpOnly: true,
       sameSite: "lax",
       secure: useSecureCookies,
@@ -118,3 +137,61 @@ function isRefreshSuccessResponse(data: JsonRecord | null): data is RefreshSucce
   );
 }
 
+function extractAuthTokensFromSetCookie(response: Response) {
+  const setCookieHeaders = readSetCookieHeaders(response.headers);
+  if (setCookieHeaders.length === 0) {
+    return null;
+  }
+
+  const accessToken = extractCookieValue(setCookieHeaders, ACCESS_TOKEN_COOKIE);
+  const refreshToken = extractCookieValue(setCookieHeaders, REFRESH_TOKEN_COOKIE);
+
+  if (!accessToken || !refreshToken) {
+    return null;
+  }
+
+  return {
+    accessToken,
+    refreshToken,
+  };
+}
+
+function readSetCookieHeaders(headers: Headers) {
+  const withGetSetCookie = headers as Headers & {
+    getSetCookie?: () => string[];
+  };
+
+  if (typeof withGetSetCookie.getSetCookie === "function") {
+    return withGetSetCookie.getSetCookie();
+  }
+
+  const combined = headers.get("set-cookie");
+  if (!combined) {
+    return [];
+  }
+
+  return splitSetCookieHeader(combined);
+}
+
+function splitSetCookieHeader(value: string) {
+  return value
+    .split(/,(?=\s*[^;,\s]+=)/g)
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+function extractCookieValue(setCookieHeaders: string[], cookieName: string) {
+  const prefix = `${cookieName}=`;
+
+  for (const header of setCookieHeaders) {
+    if (!header.startsWith(prefix)) {
+      continue;
+    }
+
+    const firstSegment = header.split(";")[0];
+    const rawValue = firstSegment.slice(prefix.length);
+    return rawValue || null;
+  }
+
+  return null;
+}

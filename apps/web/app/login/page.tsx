@@ -1,6 +1,4 @@
 import { CSSProperties, Suspense } from "react";
-import { redirect } from "next/navigation";
-import { getSessionUser } from "@/lib/auth";
 import { apiRequestJson } from "@/lib/server-api";
 import { FaviconSync } from "@/app/components/branding/favicon-sync";
 import { TenantLogo } from "@/app/components/branding/tenant-logo";
@@ -36,12 +34,6 @@ type PublicBrandingResponse = {
 };
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const user = await getSessionUser();
-
-  if (user) {
-    redirect("/dashboard");
-  }
-
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const tenantSlug =
     resolvedSearchParams?.tenantSlug || resolvedSearchParams?.tenant || "";
@@ -60,7 +52,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const secondaryColor = branding?.secondaryColor || "#0f172a";
   const accentColor = branding?.accentColor || "#14b8a6";
   const showBranding = branding?.showBrandingOnLoginPage !== false;
-  const loginBannerImageUrl = branding?.loginBannerImageUrl || "";
+  const loginBannerImageUrl = sanitizeLoginAssetUrl(branding?.loginBannerImageUrl) || "";
+  const logoUrl = sanitizeLoginAssetUrl(branding?.logoUrl);
+  const faviconUrl = sanitizeLoginAssetUrl(branding?.faviconUrl);
 
   return (
     <main
@@ -70,7 +64,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         "--accent-strong": secondaryColor,
       } as CSSProperties}
     >
-      <FaviconSync faviconUrl={branding?.faviconUrl ?? null} />
+      <FaviconSync faviconUrl={faviconUrl} />
       <div className="mx-auto flex min-h-[100svh] w-full max-w-7xl items-stretch px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8 xl:px-10">
         <div className="grid w-full overflow-hidden rounded-[24px] border border-border/70 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.08)] lg:min-h-[calc(100svh-4rem)] lg:grid-cols-[1fr_minmax(440px,0.95fr)] xl:rounded-[32px]">
           <section
@@ -90,7 +84,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               {showBranding ? (
                 <TenantLogo
                   className="h-14 w-auto max-w-[220px] rounded-xl bg-white/95 p-2"
-                  logoUrl={branding?.logoUrl ?? null}
+                  logoUrl={logoUrl}
                   name={brandLabel}
                   sizeClassName="h-14 w-auto max-w-[220px]"
                 />
@@ -155,4 +149,26 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       </div>
     </main>
   );
+}
+
+function sanitizeLoginAssetUrl(value?: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  // Login is unauthenticated. Protected document routes can trigger repeated retries.
+  if (
+    trimmed.startsWith("/api/documents/") ||
+    trimmed.startsWith("http://localhost:3001/api/documents/") ||
+    trimmed.startsWith("https://localhost:3001/api/documents/")
+  ) {
+    return null;
+  }
+
+  return trimmed;
 }
