@@ -84,25 +84,40 @@ export class SuperAdminService {
     leadId: string,
     dto: ConvertLeadToCustomerDto,
   ) {
-    return this.platformLifecycleService.convertLeadToCustomer(actor, leadId, dto);
+    return this.platformLifecycleService.convertLeadToCustomer(
+      actor,
+      leadId,
+      dto,
+    );
   }
 
   async getDashboardSummary() {
-    const [customerCount, tenantCount, activeSubscriptions, invoicesDue, payments] =
-      await Promise.all([
-        this.prisma.customerAccount.count(),
-        this.prisma.tenant.count(),
-        this.prisma.subscription.count({
-          where: { status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING] } },
-        }),
-        this.prisma.invoice.count({
-          where: { status: { in: [InvoiceStatus.ISSUED, InvoiceStatus.OVERDUE] } },
-        }),
-        this.prisma.payment.aggregate({
-          _sum: { amount: true },
-          where: { status: PaymentStatus.SUCCEEDED },
-        }),
-      ]);
+    const [
+      customerCount,
+      tenantCount,
+      activeSubscriptions,
+      invoicesDue,
+      payments,
+    ] = await Promise.all([
+      this.prisma.customerAccount.count(),
+      this.prisma.tenant.count(),
+      this.prisma.subscription.count({
+        where: {
+          status: {
+            in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
+          },
+        },
+      }),
+      this.prisma.invoice.count({
+        where: {
+          status: { in: [InvoiceStatus.ISSUED, InvoiceStatus.OVERDUE] },
+        },
+      }),
+      this.prisma.payment.aggregate({
+        _sum: { amount: true },
+        where: { status: PaymentStatus.SUCCEEDED },
+      }),
+    ]);
 
     return {
       customers: customerCount,
@@ -122,7 +137,9 @@ export class SuperAdminService {
   }
 
   getCustomerOnboardings(customerAccountId: string) {
-    return this.platformLifecycleService.getCustomerOnboardings(customerAccountId);
+    return this.platformLifecycleService.getCustomerOnboardings(
+      customerAccountId,
+    );
   }
 
   getCustomerTenants(customerAccountId: string) {
@@ -130,7 +147,9 @@ export class SuperAdminService {
   }
 
   getCustomerSubscriptions(customerAccountId: string) {
-    return this.platformLifecycleService.getCustomerSubscriptions(customerAccountId);
+    return this.platformLifecycleService.getCustomerSubscriptions(
+      customerAccountId,
+    );
   }
 
   getCustomerInvoices(customerAccountId: string) {
@@ -226,9 +245,8 @@ export class SuperAdminService {
   }
 
   async getTenantDetail(tenantId: string) {
-    const tenant = await this.tenantsRepository.findByIdWithSuperAdminSummary(
-      tenantId,
-    );
+    const tenant =
+      await this.tenantsRepository.findByIdWithSuperAdminSummary(tenantId);
 
     if (!tenant) {
       throw new NotFoundException('Tenant not found.');
@@ -272,9 +290,13 @@ export class SuperAdminService {
     if (
       tenant.customerAccountId !== dto.customerAccountId &&
       tenant.subscription &&
-      ([SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING, SubscriptionStatus.PAST_DUE] as SubscriptionStatus[]).includes(
-        tenant.subscription.status,
-      ) &&
+      (
+        [
+          SubscriptionStatus.ACTIVE,
+          SubscriptionStatus.TRIALING,
+          SubscriptionStatus.PAST_DUE,
+        ] as SubscriptionStatus[]
+      ).includes(tenant.subscription.status) &&
       dto.forceReassignWithActiveBilling !== true
     ) {
       throw new BadRequestException(
@@ -322,10 +344,7 @@ export class SuperAdminService {
     return this.mapTenantDetail(updatedTenant);
   }
 
-  async updatePrimaryOwner(
-    tenantId: string,
-    dto: UpdatePrimaryOwnerDto,
-  ) {
+  async updatePrimaryOwner(tenantId: string, dto: UpdatePrimaryOwnerDto) {
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: tenantId },
       include: {
@@ -334,7 +353,9 @@ export class SuperAdminService {
     });
 
     if (!tenant?.customerAccount) {
-      throw new NotFoundException('Customer account not found for this tenant.');
+      throw new NotFoundException(
+        'Customer account not found for this tenant.',
+      );
     }
     const customerAccountId = tenant.customerAccount.id;
 
@@ -483,7 +504,10 @@ export class SuperAdminService {
     });
   }
 
-  async resendTenantOwnerActivation(actor: AuthenticatedUser, tenantId: string) {
+  async resendTenantOwnerActivation(
+    actor: AuthenticatedUser,
+    tenantId: string,
+  ) {
     return this.resetTenantOwnerPassword(actor, tenantId);
   }
 
@@ -494,9 +518,8 @@ export class SuperAdminService {
       throw new NotFoundException('Tenant not found.');
     }
 
-    const features = await this.featureAccessService.getResolvedTenantFeatures(
-      tenantId,
-    );
+    const features =
+      await this.featureAccessService.getResolvedTenantFeatures(tenantId);
 
     return {
       tenantId,
@@ -602,7 +625,11 @@ export class SuperAdminService {
     return this.mapPlan(plan);
   }
 
-  async updatePlan(actor: AuthenticatedUser, planId: string, dto: UpdatePlanDto) {
+  async updatePlan(
+    actor: AuthenticatedUser,
+    planId: string,
+    dto: UpdatePlanDto,
+  ) {
     await this.ensureDefaultPlans();
     const existingPlan = await this.plansRepository.findById(planId);
 
@@ -618,7 +645,8 @@ export class SuperAdminService {
 
     if (dto.key) {
       const normalizedKey = normalizeTenantSlug(dto.key);
-      const planWithSameKey = await this.plansRepository.findByKey(normalizedKey);
+      const planWithSameKey =
+        await this.plansRepository.findByKey(normalizedKey);
 
       if (planWithSameKey && planWithSameKey.id !== existingPlan.id) {
         throw new ConflictException('Plan key is already in use.');
@@ -954,7 +982,10 @@ export class SuperAdminService {
         });
 
         const nextValue =
-          merge && existing && typeof existing.value === 'object' && existing.value !== null
+          merge &&
+          existing &&
+          typeof existing.value === 'object' &&
+          existing.value !== null
             ? { ...(existing.value as Record<string, unknown>), ...value }
             : value;
 
@@ -978,11 +1009,12 @@ export class SuperAdminService {
   }
 
   private async mapTenantSummary(
-    tenant: Awaited<ReturnType<TenantsRepository['findAllForSuperAdmin']>>[number],
+    tenant: Awaited<
+      ReturnType<TenantsRepository['findAllForSuperAdmin']>
+    >[number],
   ) {
-    const resolvedFeatures = await this.featureAccessService.getResolvedTenantFeatures(
-      tenant.id,
-    );
+    const resolvedFeatures =
+      await this.featureAccessService.getResolvedTenantFeatures(tenant.id);
 
     return {
       id: tenant.id,
@@ -1001,7 +1033,8 @@ export class SuperAdminService {
       owner: tenant.ownerUser
         ? {
             id: tenant.ownerUser.id,
-            fullName: `${tenant.ownerUser.firstName} ${tenant.ownerUser.lastName}`.trim(),
+            fullName:
+              `${tenant.ownerUser.firstName} ${tenant.ownerUser.lastName}`.trim(),
             email: tenant.ownerUser.email,
             status: tenant.ownerUser.status,
             isServiceAccount: tenant.ownerUser.isServiceAccount,
@@ -1027,9 +1060,8 @@ export class SuperAdminService {
       Awaited<ReturnType<TenantsRepository['findByIdWithSuperAdminSummary']>>
     >,
   ) {
-    const resolvedFeatures = await this.featureAccessService.getResolvedTenantFeatures(
-      tenant.id,
-    );
+    const resolvedFeatures =
+      await this.featureAccessService.getResolvedTenantFeatures(tenant.id);
 
     return {
       id: tenant.id,
@@ -1060,7 +1092,10 @@ export class SuperAdminService {
               key: item.role.key,
               name: item.role.name,
             })),
-            ownershipStatus: tenant.ownerUser.id === tenant.ownerUserId ? 'TENANT_OWNER' : 'TENANT_USER',
+            ownershipStatus:
+              tenant.ownerUser.id === tenant.ownerUserId
+                ? 'TENANT_OWNER'
+                : 'TENANT_USER',
           }
         : null,
       serviceAccounts: tenant.users.map((user) => ({
@@ -1094,26 +1129,24 @@ export class SuperAdminService {
     };
   }
 
-  private mapSubscription(
-    subscription: {
-      id: string;
-      plan: { id: string; key: string; name: string };
-      status: SubscriptionStatus;
-      billingCycle: BillingCycle;
-      basePrice: Prisma.Decimal | number;
-      discountType: DiscountType;
-      discountValue: Prisma.Decimal | number;
-      discountReason?: string | null;
-      finalPrice: Prisma.Decimal | number;
-      currency: string;
-      startDate: Date;
-      endDate: Date | null;
-      renewalDate: Date | null;
-      autoRenew: boolean;
-      stripeSubscriptionId?: string | null;
-      updatedAt?: Date;
-    },
-  ) {
+  private mapSubscription(subscription: {
+    id: string;
+    plan: { id: string; key: string; name: string };
+    status: SubscriptionStatus;
+    billingCycle: BillingCycle;
+    basePrice: Prisma.Decimal | number;
+    discountType: DiscountType;
+    discountValue: Prisma.Decimal | number;
+    discountReason?: string | null;
+    finalPrice: Prisma.Decimal | number;
+    currency: string;
+    startDate: Date;
+    endDate: Date | null;
+    renewalDate: Date | null;
+    autoRenew: boolean;
+    stripeSubscriptionId?: string | null;
+    updatedAt?: Date;
+  }) {
     return {
       id: subscription.id,
       plan: {
@@ -1138,49 +1171,47 @@ export class SuperAdminService {
     };
   }
 
-  private mapCustomerSummary(
-    customer: {
+  private mapCustomerSummary(customer: {
+    id: string;
+    companyName: string;
+    industry: string | null;
+    companySize: string | null;
+    contactEmail: string;
+    contactPhone: string | null;
+    country: string;
+    status: CustomerAccountStatus;
+    createdAt: Date;
+    updatedAt: Date;
+    primaryOwnerUser: {
       id: string;
-      companyName: string;
-      industry: string | null;
-      companySize: string | null;
-      contactEmail: string;
-      contactPhone: string | null;
-      country: string;
-      status: CustomerAccountStatus;
-      createdAt: Date;
-      updatedAt: Date;
-      primaryOwnerUser: {
+      firstName: string;
+      lastName: string;
+      email: string;
+    } | null;
+    tenant: {
+      id: string;
+      name: string;
+      slug: string;
+      status: TenantStatus;
+      subscription: {
         id: string;
-        firstName: string;
-        lastName: string;
-        email: string;
+        plan: { id: string; key: string; name: string };
+        status: SubscriptionStatus;
+        billingCycle: BillingCycle;
+        basePrice: Prisma.Decimal | number;
+        discountType: DiscountType;
+        discountValue: Prisma.Decimal | number;
+        discountReason?: string | null;
+        finalPrice: Prisma.Decimal | number;
+        currency: string;
+        startDate: Date;
+        endDate: Date | null;
+        renewalDate: Date | null;
+        autoRenew: boolean;
+        stripeSubscriptionId?: string | null;
       } | null;
-      tenant: {
-        id: string;
-        name: string;
-        slug: string;
-        status: TenantStatus;
-        subscription: {
-          id: string;
-          plan: { id: string; key: string; name: string };
-          status: SubscriptionStatus;
-          billingCycle: BillingCycle;
-          basePrice: Prisma.Decimal | number;
-          discountType: DiscountType;
-          discountValue: Prisma.Decimal | number;
-          discountReason?: string | null;
-          finalPrice: Prisma.Decimal | number;
-          currency: string;
-          startDate: Date;
-          endDate: Date | null;
-          renewalDate: Date | null;
-          autoRenew: boolean;
-          stripeSubscriptionId?: string | null;
-        } | null;
-      } | null;
-    },
-  ) {
+    } | null;
+  }) {
     return {
       id: customer.id,
       companyName: customer.companyName,
@@ -1213,39 +1244,37 @@ export class SuperAdminService {
     };
   }
 
-  private mapInvoice(
-    invoice: {
+  private mapInvoice(invoice: {
+    id: string;
+    invoiceNumber: string;
+    amount: Prisma.Decimal | number;
+    currency: string;
+    issueDate: Date;
+    dueDate: Date;
+    status: InvoiceStatus;
+    stripeInvoiceId: string | null;
+    tenant: {
       id: string;
-      invoiceNumber: string;
+      name: string;
+      slug: string;
+      customerAccount?: {
+        id: string;
+        companyName: string;
+      } | null;
+    };
+    subscription: {
+      id: string;
+      status: SubscriptionStatus;
+      plan: { id: string; key: string; name: string };
+    };
+    payments: Array<{
+      id: string;
       amount: Prisma.Decimal | number;
-      currency: string;
-      issueDate: Date;
-      dueDate: Date;
-      status: InvoiceStatus;
-      stripeInvoiceId: string | null;
-      tenant: {
-        id: string;
-        name: string;
-        slug: string;
-        customerAccount?: {
-          id: string;
-          companyName: string;
-        } | null;
-      };
-      subscription: {
-        id: string;
-        status: SubscriptionStatus;
-        plan: { id: string; key: string; name: string };
-      };
-      payments: Array<{
-        id: string;
-        amount: Prisma.Decimal | number;
-        status: PaymentStatus;
-        paymentMethod: string;
-        paidAt: Date | null;
-      }>;
-    },
-  ) {
+      status: PaymentStatus;
+      paymentMethod: string;
+      paidAt: Date | null;
+    }>;
+  }) {
     return {
       id: invoice.id,
       invoiceNumber: invoice.invoiceNumber,

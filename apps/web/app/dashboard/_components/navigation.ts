@@ -102,6 +102,13 @@ export const dashboardNavItems: DashboardNavItem[] = [
     requiredAnyPermissions: ["onboarding.read"],
   },
   {
+    href: "/dashboard/customization",
+    label: "Customization",
+    description: "Metadata setup for tables, columns, views, and forms.",
+    hiddenForSelfService: true,
+    requiredAnyPermissions: ["customization.read"],
+  },
+  {
     href: "/dashboard/settings",
     label: "Settings",
     description: "Tenant configuration, feature toggles, and shared master data.",

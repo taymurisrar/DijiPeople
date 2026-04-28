@@ -4,15 +4,14 @@ import {
   Get,
   Post,
   Query,
+  Req,
   Res,
   UseGuards,
 } from '@nestjs/common';
-import type { Response } from 'express';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import type { Request, Response } from 'express';
 import { Public } from '../../common/decorators/public.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
-import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { ActivateAccountDto } from './dto/activate-account.dto';
 import { InvitationStatusQueryDto } from './dto/invitation-status-query.dto';
 import { LoginDto } from './dto/login.dto';
@@ -38,11 +37,13 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.authService.login(dto);
-    this.authService.setAuthCookies(res, result.tokens);
+
+    this.authService.setAuthCookies(res, result.tokens, dto.rememberMe);
 
     return {
       tenant: result.tenant,
       user: result.user,
+      tokens: result.tokens,
     };
   }
 
@@ -50,14 +51,19 @@ export class AuthController {
   @Post('refresh')
   async refresh(
     @Body() dto: RefreshTokenDto,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const result = await this.authService.refresh(dto.refreshToken);
+    const result = await this.authService.refresh(
+      dto.refreshToken || req.cookies?.dp_refresh_token,
+    );
+
     this.authService.setAuthCookies(res, result.tokens);
 
     return {
       tenant: result.tenant,
       user: result.user,
+      tokens: result.tokens,
     };
   }
 
@@ -73,8 +79,16 @@ export class AuthController {
     return this.authService.activateAccount(dto.token, dto.password);
   }
 
+  @Public()
   @Get('me')
-  me(@CurrentUser() user: AuthenticatedUser) {
-    return this.authService.getProfile(user);
+  me(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    return this.authService.getProfileFromRequest(req, res);
+  }
+
+  @Public()
+  @Post('logout')
+  logout(@Res({ passthrough: true }) res: Response) {
+    this.authService.clearAuthCookies(res);
+    return { ok: true };
   }
 }

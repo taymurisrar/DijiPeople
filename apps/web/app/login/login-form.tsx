@@ -100,6 +100,7 @@ async function handleSubmit(event: FormEvent<HTMLFormElement>) {
       headers: {
         "Content-Type": "application/json",
       },
+      credentials: "include",
       body: JSON.stringify({
         email: form.email.trim().toLowerCase(),
         password: form.password,

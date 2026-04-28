@@ -8,13 +8,16 @@ import {
   AccessRoleRecord,
   AccessUserRecord,
   BusinessUnitRecord,
+  RoleMatrixCatalog,
 } from "../types";
+import { EffectiveAccessViewer, RoleTypeBadge } from "./rbac-components";
 
 type RoleAccessManagementProps = {
   initialPermissions: AccessPermissionRecord[];
   initialRoles: AccessRoleRecord[];
   initialUsers: AccessUserRecord[];
   initialBusinessUnits: BusinessUnitRecord[];
+  matrixCatalog?: RoleMatrixCatalog;
   mode?: "all" | "roles" | "users";
 };
 
@@ -30,6 +33,7 @@ export function RoleAccessManagement({
   initialRoles,
   initialUsers,
   initialBusinessUnits,
+  matrixCatalog: _matrixCatalog,
   mode = "all",
 }: RoleAccessManagementProps) {
   const [roles, setRoles] = useState(initialRoles);
@@ -386,9 +390,10 @@ export function RoleAccessManagement({
                       <span className="rounded-full bg-surface px-3 py-1 text-xs uppercase tracking-[0.16em] text-muted">
                         {role.key}
                       </span>
-                      {role.isSystem ? (
-                        <span className="rounded-full bg-accent-soft px-3 py-1 text-xs font-medium text-accent-strong">
-                          System
+                      <RoleTypeBadge role={role} />
+                      {role.isEditable === false ? (
+                        <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
+                          Locked
                         </span>
                       ) : null}
                     </div>
@@ -411,7 +416,7 @@ export function RoleAccessManagement({
                     <PermissionGate anyOf={["roles.update", "roles.assign-permissions"]}>
                       <button
                         className="rounded-2xl border border-border px-3 py-2 text-sm font-medium text-foreground transition hover:border-accent/30 hover:text-accent disabled:opacity-60"
-                        disabled={role.isSystem}
+                        disabled={role.isSystem || role.isEditable === false}
                         onClick={() => startEditRole(role)}
                         type="button"
                       >
@@ -740,21 +745,7 @@ export function RoleAccessManagement({
                       </section>
                     </div>
 
-                    <section className="rounded-2xl border border-border bg-surface px-4 py-4">
-                      <p className="text-sm font-medium text-foreground">
-                        Effective permission summary
-                      </p>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {user.effectivePermissionKeys.map((permissionKey) => (
-                          <span
-                            className="rounded-full bg-white px-3 py-1 text-xs text-muted"
-                            key={permissionKey}
-                          >
-                            {permissionKey}
-                          </span>
-                        ))}
-                      </div>
-                    </section>
+                    <EffectiveAccessViewer user={user} />
 
                     {userError[user.userId] ? (
                       <p className="rounded-2xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">

@@ -1,10 +1,20 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 import {
-  BASE_ROLE_DEFINITIONS,
-  BASE_ROLE_PERMISSION_KEYS,
+  Prisma,
+  RoleType,
+  SecurityAccessLevel,
+  SecurityPrivilege,
+} from '@prisma/client';
+import {
   FOUNDATION_PERMISSION_DEFINITIONS,
 } from '../../common/constants/permissions';
+import {
+  RBAC_PRIVILEGES,
+  SYSTEM_ROLE_DEFINITIONS,
+  SYSTEM_ROLE_MISC_PERMISSIONS,
+  SYSTEM_ROLE_PRIVILEGES,
+  matrixPrivilegeToPermissionKey,
+} from '../../common/constants/rbac-matrix';
 import { PrismaService } from '../../common/prisma/prisma.service';
 
 type PrismaDb = PrismaService | Prisma.TransactionClient;
@@ -31,12 +41,15 @@ export class PermissionBootstrapService {
     });
 
     await db.role.createMany({
-      data: BASE_ROLE_DEFINITIONS.map((role) => ({
+      data: SYSTEM_ROLE_DEFINITIONS.map((role) => ({
         tenantId,
         key: role.key,
         name: role.name,
         description: role.description,
-        isSystem: role.isSystem,
+        isSystem: true,
+        roleType: RoleType.SYSTEM,
+        isEditable: role.isEditable,
+        isCloneable: true,
         accessLevel: role.accessLevel,
         createdById: actorUserId,
         updatedById: actorUserId,
@@ -45,7 +58,7 @@ export class PermissionBootstrapService {
     });
 
     await Promise.all(
-      BASE_ROLE_DEFINITIONS.map((role) =>
+      SYSTEM_ROLE_DEFINITIONS.map((role) =>
         db.role.updateMany({
           where: {
             tenantId,
@@ -53,6 +66,10 @@ export class PermissionBootstrapService {
           },
           data: {
             accessLevel: role.accessLevel,
+            isSystem: true,
+            roleType: RoleType.SYSTEM,
+            isEditable: role.isEditable,
+            isCloneable: true,
             updatedById: actorUserId,
           },
         }),
@@ -74,7 +91,7 @@ export class PermissionBootstrapService {
         where: {
           tenantId,
           key: {
-            in: BASE_ROLE_DEFINITIONS.map((role) => role.key),
+            in: SYSTEM_ROLE_DEFINITIONS.map((role) => role.key),
           },
         },
       }),
@@ -85,12 +102,37 @@ export class PermissionBootstrapService {
     );
 
     const rolePermissionAssignments = roles.flatMap((role) => {
-      const permissionKeys =
-        BASE_ROLE_PERMISSION_KEYS[
-          role.key as keyof typeof BASE_ROLE_PERMISSION_KEYS
-        ] ?? [];
+      const roleMatrix =
+        SYSTEM_ROLE_PRIVILEGES[
+          role.key as keyof typeof SYSTEM_ROLE_PRIVILEGES
+        ] ?? {};
+      const permissionKeys = new Set<string>();
 
-      return permissionKeys.reduce<
+      for (const [matrixKey, accessLevel] of Object.entries(roleMatrix)) {
+        if (accessLevel === SecurityAccessLevel.NONE) {
+          continue;
+        }
+
+        const [entityKey, privilegeKey] = matrixKey.split(':');
+        if (!entityKey || !privilegeKey) {
+          continue;
+        }
+
+        permissionKeys.add(
+          matrixPrivilegeToPermissionKey(
+            entityKey,
+            privilegeKey as SecurityPrivilege,
+          ),
+        );
+      }
+
+      for (const permissionKey of SYSTEM_ROLE_MISC_PERMISSIONS[
+        role.key as keyof typeof SYSTEM_ROLE_MISC_PERMISSIONS
+      ] ?? []) {
+        permissionKeys.add(permissionKey);
+      }
+
+      return Array.from(permissionKeys).reduce<
         Array<{
           tenantId: string;
           roleId: string;
@@ -119,6 +161,54 @@ export class PermissionBootstrapService {
       data: rolePermissionAssignments,
       skipDuplicates: true,
     });
+
+    const rolePrivilegeAssignments = roles.flatMap((role) => {
+      const roleMatrix =
+        SYSTEM_ROLE_PRIVILEGES[
+          role.key as keyof typeof SYSTEM_ROLE_PRIVILEGES
+        ] ?? {};
+
+      return Object.entries(roleMatrix).flatMap(([matrixKey, accessLevel]) => {
+        const [entityKey, privilegeKey] = matrixKey.split(':');
+        if (!entityKey || !privilegeKey) {
+          return [];
+        }
+
+        return {
+          tenantId,
+          roleId: role.id,
+          entityKey,
+          privilege: privilegeKey as SecurityPrivilege,
+          accessLevel,
+          createdById: actorUserId,
+          updatedById: actorUserId,
+        };
+      });
+    });
+
+    await db.rolePrivilege.createMany({
+      data: rolePrivilegeAssignments,
+      skipDuplicates: true,
+    });
+
+    for (const role of roles) {
+      const miscPermissionKeys =
+        SYSTEM_ROLE_MISC_PERMISSIONS[
+          role.key as keyof typeof SYSTEM_ROLE_MISC_PERMISSIONS
+        ] ?? [];
+
+      await db.roleMiscPermission.createMany({
+        data: miscPermissionKeys.map((permissionKey) => ({
+          tenantId,
+          roleId: role.id,
+          permissionKey,
+          enabled: true,
+          createdById: actorUserId,
+          updatedById: actorUserId,
+        })),
+        skipDuplicates: true,
+      });
+    }
 
     return {
       permissions,

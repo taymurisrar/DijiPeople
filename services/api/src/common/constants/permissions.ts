@@ -8,6 +8,7 @@ export type PermissionDefinition = {
 
 export type BaseRoleKey =
   | 'system-admin'
+  | 'system-customizer'
   | 'hr'
   | 'recruiter'
   | 'manager'
@@ -37,7 +38,8 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
   {
     key: 'settings.update',
     name: 'Update settings',
-    description: 'Update tenant configuration values and enabled feature flags.',
+    description:
+      'Update tenant configuration values and enabled feature flags.',
   },
   {
     key: 'users.read',
@@ -103,7 +105,8 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
   {
     key: 'documents.upload',
     name: 'Upload documents',
-    description: 'Upload file-backed documents and create reusable entity links.',
+    description:
+      'Upload file-backed documents and create reusable entity links.',
   },
   {
     key: 'documents.update',
@@ -248,12 +251,14 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
   {
     key: 'departments.create',
     name: 'Create departments',
-    description: 'Create department master data records for the current tenant.',
+    description:
+      'Create department master data records for the current tenant.',
   },
   {
     key: 'departments.update',
     name: 'Update departments',
-    description: 'Update department master data records for the current tenant.',
+    description:
+      'Update department master data records for the current tenant.',
   },
   {
     key: 'designations.read',
@@ -402,12 +407,14 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
   {
     key: 'attendance.checkin',
     name: 'Check in',
-    description: 'Start a self-service attendance session for the current employee.',
+    description:
+      'Start a self-service attendance session for the current employee.',
   },
   {
     key: 'attendance.checkout',
     name: 'Check out',
-    description: 'Finish an active self-service attendance session for the current employee.',
+    description:
+      'Finish an active self-service attendance session for the current employee.',
   },
   {
     key: 'attendance.update',
@@ -433,7 +440,8 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
   {
     key: 'attendance.integration.manage',
     name: 'Manage attendance integrations',
-    description: 'Configure attendance machine, API, webhook, and import source settings.',
+    description:
+      'Configure attendance machine, API, webhook, and import source settings.',
   },
   {
     key: 'timesheets.read',
@@ -533,7 +541,8 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
   {
     key: 'onboarding.create',
     name: 'Create onboarding',
-    description: 'Create onboarding templates and start onboarding from hired candidates.',
+    description:
+      'Create onboarding templates and start onboarding from hired candidates.',
   },
   {
     key: 'onboarding.update',
@@ -553,7 +562,8 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
   {
     key: 'payroll.write',
     name: 'Write payroll',
-    description: 'Create and update payroll cycles, compensation, and draft data.',
+    description:
+      'Create and update payroll cycles, compensation, and draft data.',
   },
   {
     key: 'payroll.run',
@@ -585,7 +595,101 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     name: 'Update payroll settings',
     description: 'Update tenant payroll configuration.',
   },
+  {
+    key: 'customization.read',
+    name: 'Read customization',
+    description:
+      'Access tenant customization metadata for existing system modules.',
+  },
+  {
+    key: 'customization.publish',
+    name: 'Publish customization',
+    description:
+      'Publish tenant customization changes for existing system modules.',
+  },
+  {
+    key: 'customization.tables.read',
+    name: 'Read customization tables',
+    description: 'View customizable system table metadata.',
+  },
+  {
+    key: 'customization.tables.update',
+    name: 'Update customization tables',
+    description:
+      'Update tenant labels and metadata for existing system tables.',
+  },
+  {
+    key: 'customization.columns.read',
+    name: 'Read customization columns',
+    description: 'View system and tenant-defined column metadata.',
+  },
+  {
+    key: 'customization.columns.create',
+    name: 'Create customization columns',
+    description:
+      'Create tenant column metadata without creating database tables.',
+  },
+  {
+    key: 'customization.columns.update',
+    name: 'Update customization columns',
+    description: 'Update tenant column metadata and presentation behavior.',
+  },
+  {
+    key: 'customization.columns.delete',
+    name: 'Delete customization columns',
+    description: 'Delete tenant-created column metadata.',
+  },
+  {
+    key: 'customization.views.read',
+    name: 'Read customization views',
+    description: 'View module view metadata and view customization records.',
+  },
+  {
+    key: 'customization.views.create',
+    name: 'Create customization views',
+    description: 'Create tenant module views for existing system modules.',
+  },
+  {
+    key: 'customization.views.update',
+    name: 'Update customization views',
+    description: 'Update tenant module views for existing system modules.',
+  },
+  {
+    key: 'customization.views.delete',
+    name: 'Delete customization views',
+    description: 'Delete tenant-created module views.',
+  },
+  {
+    key: 'customization.forms.read',
+    name: 'Read customization forms',
+    description: 'View tenant form metadata for existing system modules.',
+  },
+  {
+    key: 'customization.forms.create',
+    name: 'Create customization forms',
+    description: 'Create tenant form metadata for existing system modules.',
+  },
+  {
+    key: 'customization.forms.update',
+    name: 'Update customization forms',
+    description: 'Update tenant form layouts and field presentation metadata.',
+  },
+  {
+    key: 'customization.forms.delete',
+    name: 'Delete customization forms',
+    description: 'Delete tenant-created form metadata.',
+  },
 ];
+
+export const CUSTOMIZATION_PERMISSION_KEYS =
+  FOUNDATION_PERMISSION_DEFINITIONS.map((permission) => permission.key).filter(
+    (permissionKey) => permissionKey.startsWith('customization.'),
+  );
+
+export const NON_CUSTOMIZATION_PERMISSION_KEYS =
+  FOUNDATION_PERMISSION_DEFINITIONS.map((permission) => permission.key).filter(
+    (permissionKey) => !permissionKey.startsWith('customization.'),
+  );
 
 export const BASE_ROLE_DEFINITIONS: Array<{
   key: BaseRoleKey;
@@ -594,47 +698,55 @@ export const BASE_ROLE_DEFINITIONS: Array<{
   isSystem: boolean;
   accessLevel: RoleAccessLevel;
 }> = [
-    {
-      key: 'system-admin',
-      name: 'System Admin',
-      description: 'Broad tenant-wide access across current and future modules.',
-      isSystem: true,
-      accessLevel: RoleAccessLevel.TENANT,
-    },
-    {
-      key: 'hr',
-      name: 'HR',
-      description: 'People operations role focused on workforce administration.',
-      isSystem: true,
-      accessLevel: RoleAccessLevel.ORGANIZATION,
-    },
-    {
-      key: 'recruiter',
-      name: 'Recruiter',
-      description: 'Hiring-focused role for openings and candidate pipelines.',
-      isSystem: true,
-      accessLevel: RoleAccessLevel.BUSINESS_UNIT,
-    },
-    {
-      key: 'manager',
-      name: 'Manager',
-      description: 'Team leadership role for approvals and employee visibility.',
-      isSystem: true,
-      accessLevel: RoleAccessLevel.PARENT_BU,
-    },
-    {
-      key: 'employee',
-      name: 'Employee',
-      description: 'Self-service role for individual workforce actions.',
-      isSystem: true,
-      accessLevel: RoleAccessLevel.USER,
-    },
-  ];
+  {
+    key: 'system-admin',
+    name: 'System Admin',
+    description:
+      'Broad tenant-wide access across operational modules. Customization requires System Customizer.',
+    isSystem: true,
+    accessLevel: RoleAccessLevel.TENANT,
+  },
+  {
+    key: 'system-customizer',
+    name: 'System Customizer',
+    description:
+      'Implementation role allowed to customize tenant metadata for existing system modules.',
+    isSystem: true,
+    accessLevel: RoleAccessLevel.TENANT,
+  },
+  {
+    key: 'hr',
+    name: 'HR',
+    description: 'People operations role focused on workforce administration.',
+    isSystem: true,
+    accessLevel: RoleAccessLevel.ORGANIZATION,
+  },
+  {
+    key: 'recruiter',
+    name: 'Recruiter',
+    description: 'Hiring-focused role for openings and candidate pipelines.',
+    isSystem: true,
+    accessLevel: RoleAccessLevel.BUSINESS_UNIT,
+  },
+  {
+    key: 'manager',
+    name: 'Manager',
+    description: 'Team leadership role for approvals and employee visibility.',
+    isSystem: true,
+    accessLevel: RoleAccessLevel.PARENT_BU,
+  },
+  {
+    key: 'employee',
+    name: 'Employee',
+    description: 'Self-service role for individual workforce actions.',
+    isSystem: true,
+    accessLevel: RoleAccessLevel.USER,
+  },
+];
 
 export const BASE_ROLE_PERMISSION_KEYS: Record<BaseRoleKey, string[]> = {
-  'system-admin': FOUNDATION_PERMISSION_DEFINITIONS.map(
-    (permission) => permission.key,
-  ),
+  'system-admin': NON_CUSTOMIZATION_PERMISSION_KEYS,
+  'system-customizer': CUSTOMIZATION_PERMISSION_KEYS,
   hr: [
     'dashboard.view',
     'tenant.read',

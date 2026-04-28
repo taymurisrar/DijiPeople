@@ -96,7 +96,7 @@ export default async function DashboardLayout({
       }}
     >
       <div
-        className="min-h-screen px-4 py-4 md:px-6 md:py-6"
+        className="min-h-screen py-4 md:py-6"
         data-theme={
           resolvedSettings?.branding.defaultThemeMode?.toLowerCase() ||
           resolvedSettings?.system.defaultThemeMode?.toLowerCase() ||
@@ -109,7 +109,7 @@ export default async function DashboardLayout({
           faviconUrl={brandingSettings.faviconUrl}
           title={brandingSettings.appTitle}
         />
-        <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+        <div className="mx-4 grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
           <DashboardSidebar
             enabledFeatureKeys={featureAvailability?.enabledKeys ?? null}
             isReportingManager={isReportingManager}

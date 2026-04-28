@@ -3,8 +3,9 @@ import { redirect } from "next/navigation";
 import {
   ACCESS_DENIED_ROUTE,
   ACCESS_TOKEN_COOKIE,
+  REFRESH_TOKEN_COOKIE,
   getAdminLoginUrl,
-  
+  getApiBaseUrl,
 } from "@/lib/auth-config";
 
 export type AdminSessionUser = {
@@ -20,33 +21,62 @@ export type AdminSessionUser = {
   permissionKeys: string[];
 };
 
-function decodeJwtPayload<T>(token: string): T | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) {
-      return null;
-    }
-
-    const payload = parts[1]
-      .replace(/-/g, "+")
-      .replace(/_/g, "/")
-      .padEnd(Math.ceil(parts[1].length / 4) * 4, "=");
-
-    return JSON.parse(Buffer.from(payload, "base64").toString("utf8")) as T;
-  } catch {
-    return null;
-  }
-}
+type AuthMeResponse = {
+  user: {
+    id?: string;
+    userId?: string;
+    tenantId: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    roleIds?: string[];
+    roleKeys?: string[];
+    permissionKeys?: string[];
+  };
+  tenant: { name: string };
+  roles?: Array<{ id: string; key: string }>;
+  permissions?: string[];
+};
 
 export async function getSessionUser() {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get(ACCESS_TOKEN_COOKIE)?.value;
+  const refreshToken = cookieStore.get(REFRESH_TOKEN_COOKIE)?.value;
 
-  if (!accessToken) {
+  if (!accessToken && !refreshToken) {
     return null;
   }
 
-  return decodeJwtPayload<AdminSessionUser>(accessToken);
+  const response = await fetch(`${getApiBaseUrl()}/auth/me`, {
+    headers: {
+      Cookie: [
+        accessToken ? `${ACCESS_TOKEN_COOKIE}=${encodeURIComponent(accessToken)}` : "",
+        refreshToken ? `${REFRESH_TOKEN_COOKIE}=${encodeURIComponent(refreshToken)}` : "",
+      ]
+        .filter(Boolean)
+        .join("; "),
+    },
+    cache: "no-store",
+  }).catch(() => null);
+
+  if (!response?.ok) return null;
+  const data = (await response.json().catch(() => null)) as AuthMeResponse | null;
+  if (!data?.user || !data.tenant) return null;
+  const userId = data.user.userId ?? data.user.id;
+  if (!userId) return null;
+
+  return {
+    sub: userId,
+    userId,
+    tenantId: data.user.tenantId,
+    tenantName: data.tenant.name,
+    email: data.user.email,
+    firstName: data.user.firstName,
+    lastName: data.user.lastName,
+    roleIds: data.user.roleIds ?? data.roles?.map((role) => role.id) ?? [],
+    roleKeys: data.user.roleKeys ?? data.roles?.map((role) => role.key) ?? [],
+    permissionKeys: data.user.permissionKeys ?? data.permissions ?? [],
+  } satisfies AdminSessionUser;
 }
 
 export async function requireSystemAdminUser(nextPath = "/tenants") {
@@ -62,4 +92,3 @@ export async function requireSystemAdminUser(nextPath = "/tenants") {
 
   return user;
 }
-

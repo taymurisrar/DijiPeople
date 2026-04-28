@@ -1,28 +1,16 @@
-export type BillingCycleValue =
-  | "MONTHLY"
-  | "ANNUAL"
-  | "Monthly"
-  | "Annual";
+export type BillingCycleValue = "MONTHLY" | "ANNUAL";
 
 export type SubscriptionStatusValue =
   | "TRIALING"
   | "ACTIVE"
   | "PAST_DUE"
-  | "CANCELLED"
-  | "Trialing"
-  | "Active"
-  | "Past_Due"
-  | "Cancelled";
+  | "CANCELLED";
 
 export type TenantStatusValue =
   | "ONBOARDING"
   | "ACTIVE"
   | "SUSPENDED"
-  | "CHURNED"
-  | "Onboarding"
-  | "Active"
-  | "Suspended"
-  | "Churned";
+  | "CHURNED";
 
 export function toCanonicalEnumValue(value: string): string {
   return value
@@ -32,6 +20,70 @@ export function toCanonicalEnumValue(value: string): string {
     .toUpperCase();
 }
 
+export function toBillingCycle(value: string): BillingCycleValue {
+  const normalized = toCanonicalEnumValue(value);
+
+  if (normalized === "MONTHLY" || normalized === "ANNUAL") {
+    return normalized;
+  }
+
+  throw new Error(`Invalid BillingCycleValue: ${value}`);
+}
+
+export function toSubscriptionStatus(
+  value: string,
+): SubscriptionStatusValue {
+  const normalized = toCanonicalEnumValue(value);
+
+  if (
+    normalized === "TRIALING" ||
+    normalized === "ACTIVE" ||
+    normalized === "PAST_DUE" ||
+    normalized === "CANCELLED"
+  ) {
+    return normalized;
+  }
+
+  throw new Error(`Invalid SubscriptionStatusValue: ${value}`);
+}
+
+export function toTenantStatus(value: string): TenantStatusValue {
+  const normalized = toCanonicalEnumValue(value);
+
+  if (
+    normalized === "ONBOARDING" ||
+    normalized === "ACTIVE" ||
+    normalized === "SUSPENDED" ||
+    normalized === "CHURNED"
+  ) {
+    return normalized;
+  }
+
+  throw new Error(`Invalid TenantStatusValue: ${value}`);
+}
+
+export const BillingCycleLabels: Record<BillingCycleValue, string> = {
+  MONTHLY: "Monthly",
+  ANNUAL: "Annual",
+};
+
+export const SubscriptionStatusLabels: Record<
+  SubscriptionStatusValue,
+  string
+> = {
+  TRIALING: "Trialing",
+  ACTIVE: "Active",
+  PAST_DUE: "Past Due",
+  CANCELLED: "Cancelled",
+};
+
+export const TenantStatusLabels: Record<TenantStatusValue, string> = {
+  ONBOARDING: "Onboarding",
+  ACTIVE: "Active",
+  SUSPENDED: "Suspended",
+  CHURNED: "Churned",
+};
+
 export type TenantSubscriptionSummary = {
   id: string;
   plan: {
@@ -39,8 +91,8 @@ export type TenantSubscriptionSummary = {
     key: string;
     name: string;
   };
-  status: SubscriptionStatusValue | string;
-  billingCycle: BillingCycleValue | string;
+  status: SubscriptionStatusValue;
+  billingCycle: BillingCycleValue;
   finalPrice: number;
   currency: string;
   startDate?: string;

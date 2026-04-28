@@ -243,13 +243,15 @@ export const TENANT_FEATURE_DEFINITIONS = [
   {
     key: 'employees',
     label: 'Employees',
-    description: 'Employee directory, profiles, lifecycle actions, and hierarchy.',
+    description:
+      'Employee directory, profiles, lifecycle actions, and hierarchy.',
     defaultEnabled: true,
   },
   {
     key: 'organization',
     label: 'Organization',
-    description: 'Departments, designations, locations, and shared org master data.',
+    description:
+      'Departments, designations, locations, and shared org master data.',
     defaultEnabled: true,
   },
   {
@@ -261,7 +263,8 @@ export const TENANT_FEATURE_DEFINITIONS = [
   {
     key: 'attendance',
     label: 'Attendance',
-    description: 'Check-ins, daily attendance entries, and attendance operations.',
+    description:
+      'Check-ins, daily attendance entries, and attendance operations.',
     defaultEnabled: true,
   },
   {
@@ -285,31 +288,36 @@ export const TENANT_FEATURE_DEFINITIONS = [
   {
     key: 'onboarding',
     label: 'Onboarding',
-    description: 'Template-driven onboarding plans, tasks, and progress tracking.',
+    description:
+      'Template-driven onboarding plans, tasks, and progress tracking.',
     defaultEnabled: true,
   },
   {
     key: 'documents',
     label: 'Documents',
-    description: 'Shared document metadata and cross-module document references.',
+    description:
+      'Shared document metadata and cross-module document references.',
     defaultEnabled: true,
   },
   {
     key: 'notifications',
     label: 'Notifications',
-    description: 'Internal notification delivery and future communication hooks.',
+    description:
+      'Internal notification delivery and future communication hooks.',
     defaultEnabled: true,
   },
   {
     key: 'branding',
     label: 'Branding',
-    description: 'Tenant-level brand identity values for future white-label settings.',
+    description:
+      'Tenant-level brand identity values for future white-label settings.',
     defaultEnabled: true,
   },
   {
     key: 'payroll',
     label: 'Payroll',
-    description: 'Payroll cycles, employee compensation, and draft payroll runs.',
+    description:
+      'Payroll cycles, employee compensation, and draft payroll runs.',
     defaultEnabled: true,
   },
 ] as const;

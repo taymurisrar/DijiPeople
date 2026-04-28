@@ -1,5 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { RoleAccessLevel } from '@prisma/client';
+import {
+  RoleAccessLevel,
+  SecurityAccessLevel,
+  SecurityPrivilege,
+} from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 
 export type BusinessUnitAccessContext = {
@@ -52,6 +56,15 @@ export class OrganizationAccessService {
               select: {
                 key: true,
                 accessLevel: true,
+                rolePrivileges: {
+                  where: {
+                    privilege: SecurityPrivilege.READ,
+                    accessLevel: { not: SecurityAccessLevel.NONE },
+                  },
+                  select: {
+                    accessLevel: true,
+                  },
+                },
               },
             },
           },
@@ -65,9 +78,14 @@ export class OrganizationAccessService {
 
     const roleKeys = user.userRoles.map((item) => item.role.key);
     const roleAccessLevels = user.userRoles.map((item) => item.role.accessLevel);
+    const rolePrivilegeAccessLevels = user.userRoles.flatMap((item) =>
+      item.role.rolePrivileges.map((privilege) =>
+        this.securityAccessLevelToRoleAccessLevel(privilege.accessLevel),
+      ),
+    );
     const effectiveAccessLevel = this.resolveEffectiveAccessLevel(
       roleKeys,
-      roleAccessLevels,
+      [...roleAccessLevels, ...rolePrivilegeAccessLevels],
     );
 
     const businessUnits = await this.prisma.businessUnit.findMany({
@@ -127,6 +145,23 @@ export class OrganizationAccessService {
       }
       return best;
     }, RoleAccessLevel.USER);
+  }
+
+  private securityAccessLevelToRoleAccessLevel(accessLevel: SecurityAccessLevel) {
+    switch (accessLevel) {
+      case SecurityAccessLevel.TENANT:
+        return RoleAccessLevel.TENANT;
+      case SecurityAccessLevel.ORGANIZATION:
+        return RoleAccessLevel.ORGANIZATION;
+      case SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNITS:
+        return RoleAccessLevel.PARENT_BU;
+      case SecurityAccessLevel.BUSINESS_UNIT:
+        return RoleAccessLevel.BUSINESS_UNIT;
+      case SecurityAccessLevel.USER:
+      case SecurityAccessLevel.NONE:
+      default:
+        return RoleAccessLevel.USER;
+    }
   }
 
   private resolveAccessibleBusinessUnitIds(

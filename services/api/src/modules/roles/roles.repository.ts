@@ -22,6 +22,8 @@ export class RolesRepository {
             permission: true,
           },
         },
+        rolePrivileges: true,
+        miscPermissions: true,
       },
       orderBy: [{ isSystem: 'desc' }, { name: 'asc' }],
     });
@@ -45,6 +47,8 @@ export class RolesRepository {
             permission: true,
           },
         },
+        rolePrivileges: true,
+        miscPermissions: true,
       },
     });
   }
@@ -54,6 +58,10 @@ export class RolesRepository {
       where: {
         tenantId,
         id: { in: roleIds },
+      },
+      include: {
+        rolePrivileges: true,
+        miscPermissions: true,
       },
     });
   }
@@ -111,6 +119,53 @@ export class RolesRepository {
           permissionId,
           createdById,
         })),
+      });
+    }
+
+    return this.findByIdAndTenant(tenantId, roleId, db);
+  }
+
+  async replaceMatrix(
+    tenantId: string,
+    roleId: string,
+    privileges: Array<{
+      entityKey: string;
+      privilege: Prisma.RolePrivilegeUncheckedCreateInput['privilege'];
+      accessLevel: Prisma.RolePrivilegeUncheckedCreateInput['accessLevel'];
+    }>,
+    miscPermissions: Array<{ permissionKey: string; enabled: boolean }>,
+    actorId: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    await db.rolePrivilege.deleteMany({ where: { tenantId, roleId } });
+    await db.roleMiscPermission.deleteMany({ where: { tenantId, roleId } });
+
+    if (privileges.length > 0) {
+      await db.rolePrivilege.createMany({
+        data: privileges.map((item) => ({
+          tenantId,
+          roleId,
+          entityKey: item.entityKey,
+          privilege: item.privilege,
+          accessLevel: item.accessLevel,
+          createdById: actorId,
+          updatedById: actorId,
+        })),
+        skipDuplicates: true,
+      });
+    }
+
+    if (miscPermissions.length > 0) {
+      await db.roleMiscPermission.createMany({
+        data: miscPermissions.map((item) => ({
+          tenantId,
+          roleId,
+          permissionKey: item.permissionKey,
+          enabled: item.enabled,
+          createdById: actorId,
+          updatedById: actorId,
+        })),
+        skipDuplicates: true,
       });
     }
 

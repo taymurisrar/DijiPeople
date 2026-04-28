@@ -20,11 +20,11 @@ export class FeatureAccessService {
     );
     const planFeatureMap = new Map(
       subscription?.status === SubscriptionStatus.ACTIVE ||
-      subscription?.status === SubscriptionStatus.TRIALING
-        ? subscription?.plan?.features.map((feature) => [
+        subscription?.status === SubscriptionStatus.TRIALING
+        ? (subscription?.plan?.features.map((feature) => [
             feature.featureKey,
             feature.isEnabled,
-          ]) ?? []
+          ]) ?? [])
         : [],
     );
 
@@ -54,15 +54,15 @@ export class FeatureAccessService {
             startDate: subscription.startDate,
             endDate: subscription.endDate,
             plan: {
-            id: subscription.plan.id,
-            key: subscription.plan.key,
-            name: subscription.plan.name,
-          },
-          billingCycle: subscription.billingCycle,
-          finalPrice: Number(subscription.finalPrice),
-          currency: subscription.currency,
-        }
-      : null,
+              id: subscription.plan.id,
+              key: subscription.plan.key,
+              name: subscription.plan.name,
+            },
+            billingCycle: subscription.billingCycle,
+            finalPrice: Number(subscription.finalPrice),
+            currency: subscription.currency,
+          }
+        : null,
       items,
       enabledKeys: items
         .filter((feature) => feature.isEnabled)

@@ -7,16 +7,18 @@ import {
   AccessRoleRecord,
   AccessUserRecord,
   BusinessUnitRecord,
+  RoleMatrixCatalog,
 } from "../../types";
 
 export default async function AccessUsersPage() {
   await requireSettingsPermissions(["users.read"]);
 
-  const [roles, permissions, users, businessUnits] = await Promise.all([
+  const [roles, permissions, users, businessUnits, matrixCatalog] = await Promise.all([
     apiRequestJson<AccessRoleRecord[]>("/roles"),
     apiRequestJson<AccessPermissionRecord[]>("/permissions"),
     apiRequestJson<AccessUserRecord[]>("/users"),
     apiRequestJson<BusinessUnitRecord[]>("/business-units"),
+    apiRequestJson<RoleMatrixCatalog>("/roles/matrix/catalog"),
   ]);
 
   return (
@@ -30,6 +32,7 @@ export default async function AccessUsersPage() {
         initialRoles={roles}
         initialUsers={users}
         initialBusinessUnits={businessUnits}
+        matrixCatalog={matrixCatalog}
         mode="users"
       />
     </SettingsShell>

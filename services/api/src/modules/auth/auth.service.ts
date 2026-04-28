@@ -5,9 +5,10 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { Prisma, User } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
+import { randomUUID } from 'node:crypto';
 import type { StringValue } from 'ms';
 import { FOUNDATION_PERMISSION_DEFINITIONS } from '../../common/constants/permissions';
 import {
@@ -17,10 +18,7 @@ import {
   getRefreshTokenTtl,
   parseDurationToMilliseconds,
 } from '../../common/config/auth.config';
-import {
-  AuthTokenPayload,
-  AuthenticatedUser,
-} from '../../common/interfaces/authenticated-request.interface';
+import { AuthTokenPayload } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { normalizeEmail } from '../../common/utils/email.util';
 import { TenantsService } from '../tenants/tenants.service';
@@ -29,6 +27,7 @@ import { PermissionBootstrapService } from '../permissions/permission-bootstrap.
 import { UserInvitationsService } from './user-invitations.service';
 import { LoginDto } from './dto/login.dto';
 import { SignupDto } from './dto/signup.dto';
+import { AuthAccessService } from './auth-access.service';
 
 const ACCESS_TOKEN_COOKIE = 'dp_access_token';
 const REFRESH_TOKEN_COOKIE = 'dp_refresh_token';
@@ -58,6 +57,8 @@ type UserWithAccess = Prisma.UserGetPayload<{
                 permission: true;
               };
             };
+            rolePrivileges: true;
+            miscPermissions: true;
           };
         };
       };
@@ -75,6 +76,7 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly permissionBootstrapService: PermissionBootstrapService,
     private readonly userInvitationsService: UserInvitationsService,
+    private readonly authAccessService: AuthAccessService,
   ) {}
 
   async signup(dto: SignupDto) {
@@ -97,6 +99,7 @@ export class AuthService {
     }
 
     await this.permissionBootstrapService.bootstrapTenantRbac(user.tenantId);
+
     const refreshedUser = await this.usersService.findByIdWithAccess(user.id);
 
     if (!refreshedUser) {
@@ -121,8 +124,13 @@ export class AuthService {
     return authResponse;
   }
 
-  async refresh(refreshToken: string) {
+  async refresh(refreshToken?: string) {
+    if (!refreshToken) {
+      throw new UnauthorizedException('Refresh token is invalid or expired.');
+    }
+
     const payload = await this.verifyRefreshToken(refreshToken);
+
     const user = await this.usersService.findByIdWithAccess(payload.sub);
 
     if (!user) {
@@ -130,11 +138,13 @@ export class AuthService {
     }
 
     const tenantStatus = String(user.tenant.status).toUpperCase();
+
     if (user.status !== 'ACTIVE' || tenantStatus !== 'ACTIVE') {
       throw new UnauthorizedException('This account is not active.');
     }
 
     await this.permissionBootstrapService.bootstrapTenantRbac(user.tenantId);
+
     const refreshedUser = await this.usersService.findByIdWithAccess(user.id);
 
     if (!refreshedUser) {
@@ -163,32 +173,44 @@ export class AuthService {
     return authResponse;
   }
 
-  async getProfile(currentUser: AuthenticatedUser) {
-    const tenant = await this.tenantsService.findById(currentUser.tenantId);
+  async getProfileFromRequest(req: Request, res: Response) {
+    const accessToken = this.extractTokenFromRequest(req, ACCESS_TOKEN_COOKIE);
+    const refreshToken = this.extractTokenFromRequest(req, REFRESH_TOKEN_COOKIE);
 
-    if (!tenant) {
-      throw new BadRequestException('Tenant context is no longer valid.');
+    if (accessToken) {
+      try {
+        const payload = await this.verifyAccessToken(accessToken);
+        const { response } = await this.authAccessService.loadAccessContext(
+          payload.sub,
+          payload.tenantId,
+        );
+        return response;
+      } catch {
+        // Fall through to refresh. Invalid refresh clears both cookies below.
+      }
     }
 
-    return {
-      user: {
-        userId: currentUser.userId,
-        tenantId: currentUser.tenantId,
-        email: currentUser.email,
-        firstName: currentUser.firstName,
-        lastName: currentUser.lastName,
-        isTenantOwner: tenant.ownerUserId === currentUser.userId,
-        roleIds: currentUser.roleIds,
-        roleKeys: currentUser.roleKeys,
-        permissionKeys: currentUser.permissionKeys,
-      },
-      tenant: {
-        id: tenant.id,
-        name: tenant.name,
-        slug: tenant.slug,
-        status: tenant.status,
-      },
-    };
+    if (!refreshToken) {
+      this.clearAuthCookies(res);
+      throw new UnauthorizedException(
+        'Your session expired. Please sign in again to continue.',
+      );
+    }
+
+    try {
+      const refreshed = await this.refresh(refreshToken);
+      this.setAuthCookies(res, refreshed.tokens);
+      const { response } = await this.authAccessService.loadAccessContext(
+        refreshed.user.userId,
+        refreshed.tenant.id,
+      );
+      return response;
+    } catch {
+      this.clearAuthCookies(res);
+      throw new UnauthorizedException(
+        'Your session expired. Please sign in again to continue.',
+      );
+    }
   }
 
   getInvitationStatus(token: string) {
@@ -260,6 +282,7 @@ export class AuthService {
 
   private async validateCredentials(dto: LoginDto) {
     const normalizedEmail = normalizeEmail(dto.email);
+
     const user = await this.usersService.findByEmailWithAccess(normalizedEmail);
 
     if (!user) {
@@ -280,13 +303,30 @@ export class AuthService {
 
   private async verifyRefreshToken(refreshToken: string) {
     try {
-      return await this.jwtService.verifyAsync<
-        AuthTokenPayload & { type: string }
-      >(refreshToken, {
+      const payload = await this.jwtService.verifyAsync<AuthTokenPayload>(refreshToken, {
         secret: getRefreshTokenSecret(this.configService),
       });
+      if (payload.type !== 'refresh') {
+        throw new Error('Invalid token type.');
+      }
+      return payload;
     } catch {
       throw new UnauthorizedException('Refresh token is invalid or expired.');
+    }
+  }
+
+  private async verifyAccessToken(accessToken: string) {
+    try {
+      const payload = await this.jwtService.verifyAsync<AuthTokenPayload>(
+        accessToken,
+        { secret: getAccessTokenSecret(this.configService) },
+      );
+      if (payload.type !== 'access') {
+        throw new Error('Invalid token type.');
+      }
+      return payload;
+    } catch {
+      throw new UnauthorizedException('Access token is invalid or expired.');
     }
   }
 
@@ -374,38 +414,16 @@ export class AuthService {
   }
 
   private buildAuthResponse(user: UserWithAccess, rememberMe = false) {
-    const permissionKeys = Array.from(
-      new Set([
-        ...user.userRoles.flatMap((userRole) =>
-          userRole.role.rolePermissions.map(
-            (rolePermission) => rolePermission.permission.key,
-          ),
-        ),
-        ...user.userPermissions.map(
-          (userPermission) => userPermission.permission.key,
-        ),
-      ]),
-    );
-
-    const roleIds = user.userRoles.map((userRole) => userRole.roleId);
-    const roleKeys = user.userRoles.map((userRole) => userRole.role.key);
-    const roles = user.userRoles.map((userRole) => ({
-      id: userRole.role.id,
-      key: userRole.role.key,
-      name: userRole.role.name,
-    }));
+    const sessionId = randomUUID();
+    const tokenVersion = 0;
 
     const accessPayload: AuthTokenPayload = {
       sub: user.id,
-      userId: user.id,
       tenantId: user.tenantId,
-      tenantName: user.tenant.name,
       email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      roleIds,
-      roleKeys,
-      permissionKeys,
+      sessionId,
+      tokenVersion,
+      type: 'access',
     };
 
     const accessTokenTtl = rememberMe
@@ -423,9 +441,12 @@ export class AuthService {
 
     const refreshToken = this.jwtService.sign(
       {
-        ...accessPayload,
+        sub: user.id,
+        tenantId: user.tenantId,
+        sessionId,
+        tokenVersion,
         type: 'refresh',
-      },
+      } satisfies AuthTokenPayload,
       {
         secret: getRefreshTokenSecret(this.configService),
         expiresIn: refreshTokenTtl as StringValue,
@@ -441,10 +462,6 @@ export class AuthService {
       },
       user: this.mapUserSummary(
         user,
-        roleIds,
-        roleKeys,
-        roles,
-        permissionKeys,
         user.tenant.ownerUserId === user.id,
       ),
       tokens: {
@@ -457,14 +474,46 @@ export class AuthService {
   }
 
   private mapUserSummary(
-    user: User,
-    roleIds: string[],
-    roleKeys: string[],
-    roles: Array<{ id: string; key: string; name: string }>,
-    permissionKeys: string[],
+    user: UserWithAccess,
     isTenantOwner = false,
   ) {
+    const roleIds = user.userRoles.map((userRole) => userRole.roleId);
+    const roleKeys = user.userRoles.map((userRole) => userRole.role.key);
+    const roles = user.userRoles.map((userRole) => ({
+      id: userRole.role.id,
+      key: userRole.role.key,
+      name: userRole.role.name,
+      type: userRole.role.isSystem ? 'SYSTEM' : 'CUSTOM',
+      isSystem: userRole.role.isSystem,
+    }));
+    const permissionKeys = Array.from(
+      new Set([
+        ...user.userRoles.flatMap((userRole) =>
+          userRole.role.rolePermissions.map(
+            (rolePermission) => rolePermission.permission.key,
+          ),
+        ),
+        ...user.userRoles.flatMap((userRole) =>
+          userRole.role.rolePrivileges
+            .filter((privilege) => privilege.accessLevel !== 'NONE')
+            .map(
+              (privilege) =>
+                `${privilege.entityKey}.${privilege.privilege.toLowerCase()}`,
+            ),
+        ),
+        ...user.userRoles.flatMap((userRole) =>
+          userRole.role.miscPermissions
+            .filter((permission) => permission.enabled)
+            .map((permission) => permission.permissionKey),
+        ),
+        ...user.userPermissions.map(
+          (userPermission) => userPermission.permission.key,
+        ),
+      ]),
+    );
+
     return {
+      id: user.id,
       userId: user.id,
       tenantId: user.tenantId,
       email: user.email,
@@ -475,9 +524,44 @@ export class AuthService {
       roleKeys,
       roles,
       permissionKeys,
+      rolePrivileges: user.userRoles.flatMap((userRole) =>
+        userRole.role.rolePrivileges.map((privilege) => ({
+          entityKey: privilege.entityKey,
+          privilege: privilege.privilege,
+          accessLevel: privilege.accessLevel,
+          roleId: userRole.role.id,
+        })),
+      ),
+      miscPermissions: user.userRoles.flatMap((userRole) =>
+        userRole.role.miscPermissions
+          .filter((permission) => permission.enabled)
+          .map((permission) => permission.permissionKey),
+      ),
       availablePermissionKeys: FOUNDATION_PERMISSION_DEFINITIONS.map(
         (permission) => permission.key,
       ),
     };
+  }
+
+  private extractTokenFromRequest(req: Request, cookieName: string) {
+    const cookies = req.cookies as Record<string, string> | undefined;
+    if (cookies?.[cookieName]) {
+      return cookies[cookieName];
+    }
+
+    const cookieHeader = req.headers.cookie;
+    if (!cookieHeader) {
+      return null;
+    }
+
+    const prefix = `${cookieName}=`;
+    for (const part of cookieHeader.split(';')) {
+      const trimmed = part.trim();
+      if (trimmed.startsWith(prefix)) {
+        return decodeURIComponent(trimmed.slice(prefix.length));
+      }
+    }
+
+    return null;
   }
 }

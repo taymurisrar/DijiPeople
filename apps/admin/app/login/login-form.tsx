@@ -57,6 +57,7 @@ export function AdminLoginForm() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify({
           email: normalizedEmail,
           password,

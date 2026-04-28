@@ -46,9 +46,7 @@ describe('TenantSettingsService', () => {
           ],
         },
       ),
-    ).rejects.toThrow(
-      new BadRequestException('Setting keys cannot be empty.'),
-    );
+    ).rejects.toThrow(new BadRequestException('Setting keys cannot be empty.'));
   });
 
   it('rejects enabling features that are not included in the current plan', async () => {

@@ -169,7 +169,9 @@ export class TenantSettingsService {
       currentUser.tenantId,
       typedUpdates,
     );
-    this.tenantSettingsResolverService.invalidateTenantCache(currentUser.tenantId);
+    this.tenantSettingsResolverService.invalidateTenantCache(
+      currentUser.tenantId,
+    );
 
     const afterSettings = await this.getTenantSettings(currentUser.tenantId);
 
@@ -240,9 +242,10 @@ export class TenantSettingsService {
       );
     }
 
-    const resolvedFeatures = await this.featureAccessService.getResolvedTenantFeatures(
-      currentUser.tenantId,
-    );
+    const resolvedFeatures =
+      await this.featureAccessService.getResolvedTenantFeatures(
+        currentUser.tenantId,
+      );
     const includedByPlan = new Set<string>(
       resolvedFeatures.items
         .filter((feature) => feature.isIncludedInPlan)
@@ -259,8 +262,13 @@ export class TenantSettingsService {
       );
     }
 
-    await this.tenantSettingsRepository.upsertFeatures(currentUser.tenantId, updates);
-    this.tenantSettingsResolverService.invalidateTenantCache(currentUser.tenantId);
+    await this.tenantSettingsRepository.upsertFeatures(
+      currentUser.tenantId,
+      updates,
+    );
+    this.tenantSettingsResolverService.invalidateTenantCache(
+      currentUser.tenantId,
+    );
 
     const afterFeatures = await this.getTenantFeatures(currentUser.tenantId);
 
@@ -279,7 +287,9 @@ export class TenantSettingsService {
 
   private assertValidCategory(category: string) {
     if (!TENANT_SETTING_CATEGORIES.includes(category as never)) {
-      throw new BadRequestException(`Unsupported settings category: ${category}.`);
+      throw new BadRequestException(
+        `Unsupported settings category: ${category}.`,
+      );
     }
   }
 }

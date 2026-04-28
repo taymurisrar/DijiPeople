@@ -22,12 +22,18 @@ type EmployeesTableProps = {
     pathname: string;
     searchParams: Record<string, string | undefined>;
   };
+  visibleColumnKeys?: string[];
+  initialSortColumnKey?: string;
+  initialSortDirection?: "asc" | "desc";
 };
 
 export function EmployeesTable({
   employees,
   formatting,
   pagination,
+  visibleColumnKeys,
+  initialSortColumnKey = "employee",
+  initialSortDirection = "asc",
 }: EmployeesTableProps) {
   const columns: DataTableColumn<EmployeeListItem>[] = [
     {
@@ -118,13 +124,37 @@ export function EmployeesTable({
     },
   ];
 
+  const visibleColumns = visibleColumnKeys?.length
+    ? columns.filter((column) =>
+        getEmployeeCustomizationColumnKeys(column.key).some((columnKey) =>
+          visibleColumnKeys.includes(columnKey),
+        ),
+      )
+    : columns;
+
   return (
     <DataTable
       rows={employees}
-      columns={columns}
+      columns={visibleColumns.length ? visibleColumns : columns}
       getRowKey={(employee) => employee.id}
-      initialSort={{ columnKey: "employee", direction: "asc" }}
+      initialSort={{
+        columnKey: initialSortColumnKey,
+        direction: initialSortDirection,
+      }}
       footer={<DataTablePagination {...pagination} />}
     />
   );
+}
+
+function getEmployeeCustomizationColumnKeys(tableColumnKey: string) {
+  const map: Record<string, string[]> = {
+    employee: ["firstName", "lastName", "preferredName", "email", "phone"],
+    code: ["employeeCode"],
+    status: ["employmentStatus"],
+    reportingManager: ["managerEmployeeId"],
+    hireDate: ["hireDate"],
+    contact: ["email", "phone", "personalEmail"],
+  };
+
+  return map[tableColumnKey] ?? [tableColumnKey];
 }

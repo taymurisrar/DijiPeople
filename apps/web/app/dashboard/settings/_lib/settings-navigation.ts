@@ -291,46 +291,60 @@ export const settingsNavGroups: readonly SettingsNavGroup[] = [
   },
 {
   key: "customizations",
-  label: "Customizations",
+  label: "Customization",
   summary:
-    "Manage tenant-specific views, branding, theme colors, labels, and configurable content across the platform.",
-  icon: "palette",
+    "Manage tenant-specific metadata for existing system tables, columns, views, and forms.",
+  icon: "sliders-horizontal",
   items: [
     {
-      href: "/dashboard/settings/views",
+      href: "/dashboard/settings/customization",
+      label: "Overview",
+      shortLabel: "Overview",
+      description:
+        "Review what can be customized and open table metadata workspaces.",
+      icon: "sliders-horizontal",
+      keywords: ["customization", "metadata", "tables", "columns", "forms"],
+      requiredAnyPermissions: ["customization.read"],
+    },
+    {
+      href: "/dashboard/settings/customization/tables",
+      label: "Tables",
+      shortLabel: "Tables",
+      description:
+        "Configure labels, icons, descriptions, and active state for existing system tables.",
+      icon: "table-2",
+      keywords: ["customization", "tables", "metadata"],
+      requiredAnyPermissions: ["customization.tables.read"],
+    },
+    {
+      href: "/dashboard/settings/customization/columns",
+      label: "Columns",
+      shortLabel: "Columns",
+      description:
+        "Configure tenant metadata for fields on existing system tables.",
+      icon: "columns-3",
+      keywords: ["customization", "columns", "fields"],
+      requiredAnyPermissions: ["customization.columns.read"],
+    },
+    {
+      href: "/dashboard/settings/customization/views",
       label: "Views",
       shortLabel: "Views",
       description:
-        "Create and manage system and custom views for modules like dashboard, employees, leave, attendance, recruitment, and more.",
+        "Manage saved table views, filters, sorting, and visibility scope.",
       icon: "layout-grid",
-      keywords: [
-        "views",
-        "custom views",
-        "system views",
-        "filters",
-        "columns",
-        "sorting",
-        "dashboard views",
-        "module views",
-      ],
-      requiredAnyPermissions: ["settings.read"],
+      keywords: ["customization", "views", "filters", "sorting"],
+      requiredAnyPermissions: ["customization.views.read"],
     },
     {
-      href: "/dashboard/settings/branding",
-      label: "Branding",
-      shortLabel: "Branding",
+      href: "/dashboard/settings/customization/forms",
+      label: "Forms",
+      shortLabel: "Forms",
       description:
-        "Configure tenant identity including logo, company visuals, platform name, favicon, and portal branding assets.",
-      icon: "badge-check",
-      keywords: [
-        "branding",
-        "logo",
-        "identity",
-        "portal name",
-        "favicon",
-        "company profile",
-      ],
-      requiredAnyPermissions: ["settings.read"],
+        "Manage form metadata for main, quick, create, and edit layouts.",
+      icon: "form-input",
+      keywords: ["customization", "forms", "layouts"],
+      requiredAnyPermissions: ["customization.forms.read"],
     },
     {
       href: "/dashboard/settings/theme",
@@ -466,9 +480,16 @@ export const settingsNavGroups: readonly SettingsNavGroup[] = [
 export function resolveVisibleSettingsGroups(permissionKeys: string[]) {
   return settingsNavGroups
     .map((group) => {
-      const visibleItems = group.items.filter((item) =>
-        canViewItem(permissionKeys, item.requiredAnyPermissions),
-      );
+      const visibleItems = group.items.filter((item) => {
+        if (
+          group.key === "customizations" &&
+          !item.href.startsWith("/dashboard/settings/customization")
+        ) {
+          return false;
+        }
+
+        return canViewItem(permissionKeys, item.requiredAnyPermissions);
+      });
 
       return {
         ...group,

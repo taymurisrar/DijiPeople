@@ -22,7 +22,8 @@ export const DEFAULT_PLAN_DEFINITIONS = [
   {
     key: 'growth',
     name: 'Growth',
-    description: 'Adds delivery and talent workflows for scaling organizations.',
+    description:
+      'Adds delivery and talent workflows for scaling organizations.',
     sortOrder: 20,
     monthlyBasePrice: 399,
     annualBasePrice: 3990,
@@ -44,12 +45,15 @@ export const DEFAULT_PLAN_DEFINITIONS = [
   {
     key: 'enterprise',
     name: 'Enterprise',
-    description: 'Full platform access with payroll and advanced operations modules.',
+    description:
+      'Full platform access with payroll and advanced operations modules.',
     sortOrder: 30,
     monthlyBasePrice: 899,
     annualBasePrice: 8990,
     currency: 'USD',
-    enabledFeatureKeys: TENANT_FEATURE_DEFINITIONS.map((feature) => feature.key),
+    enabledFeatureKeys: TENANT_FEATURE_DEFINITIONS.map(
+      (feature) => feature.key,
+    ),
   },
 ] as const;
 

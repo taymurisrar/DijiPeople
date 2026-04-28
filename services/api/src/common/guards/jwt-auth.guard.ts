@@ -7,9 +7,9 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Reflector } from '@nestjs/core';
-import { PrismaService } from '../prisma/prisma.service';
 import { getAccessTokenSecret } from '../config/auth.config';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
+import { AuthAccessService } from '../../modules/auth/auth-access.service';
 import {
   AuthenticatedRequest,
   AuthTokenPayload,
@@ -21,7 +21,7 @@ export class JwtAuthGuard implements CanActivate {
     private readonly reflector: Reflector,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-    private readonly prisma: PrismaService,
+    private readonly authAccessService: AuthAccessService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -35,7 +35,7 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
-    const token = this.extractTokenFromHeader(request);
+    const token = this.extractToken(request);
 
     if (!token) {
       throw new UnauthorizedException('Access token is required.');
@@ -49,47 +49,35 @@ export class JwtAuthGuard implements CanActivate {
         },
       );
 
-      const user = await this.prisma.user.findUnique({
-        where: { id: payload.sub },
-        include: {
-          tenant: {
-            select: {
-              status: true,
-            },
-          },
-        },
-      });
-
-      const tenantStatus = user?.tenant?.status
-        ? String(user.tenant.status).toUpperCase()
-        : null;
-
-      if (
-        !user ||
-        user.tenantId !== payload.tenantId ||
-        user.status !== 'ACTIVE' ||
-        !user.tenant ||
-        !['ACTIVE', 'ONBOARDING'].includes(tenantStatus ?? '')
-      ) {
-        throw new UnauthorizedException('This account is not active.');
+      if (payload.type !== 'access') {
+        throw new UnauthorizedException('Access token is invalid.');
       }
 
-      request.user = {
-        userId: payload.sub,
-        tenantId: payload.tenantId,
-        tenantName: payload.tenantName,
-        email: payload.email,
-        firstName: payload.firstName,
-        lastName: payload.lastName,
-        roleKeys: payload.roleKeys ?? [],
-        permissionKeys: payload.permissionKeys ?? [],
-        roleIds: payload.roleIds ?? [],
-      };
+      const { authUser } = await this.authAccessService.loadAccessContext(
+        payload.sub,
+        payload.tenantId,
+      );
+      if (authUser.email !== payload.email) {
+        throw new UnauthorizedException('Access token is invalid.');
+      }
+
+      request.user = authUser;
 
       return true;
     } catch {
       throw new UnauthorizedException('Access token is invalid or expired.');
     }
+  }
+
+  private extractToken(request: AuthenticatedRequest) {
+    const bearerToken = this.extractTokenFromHeader(request);
+
+    if (bearerToken) {
+      return bearerToken;
+    }
+
+    const cookies = request.cookies as Record<string, string> | undefined;
+    return cookies?.dp_access_token;
   }
 
   private extractTokenFromHeader(request: AuthenticatedRequest) {

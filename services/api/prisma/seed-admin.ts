@@ -1,9 +1,17 @@
 import { config as loadEnv } from 'dotenv';
 import { resolve } from 'node:path';
-import { PrismaClient, RoleAccessLevel, TenantStatus, UserStatus } from '@prisma/client';
+import {
+  PrismaClient,
+  RoleAccessLevel,
+  TenantStatus,
+  UserStatus,
+} from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { normalizeEmail } from '../src/common/utils/email.util';
-import { FOUNDATION_PERMISSION_DEFINITIONS } from '../src/common/constants/permissions';
+import {
+  CUSTOMIZATION_PERMISSION_KEYS,
+  FOUNDATION_PERMISSION_DEFINITIONS,
+} from '../src/common/constants/permissions';
 
 loadEnv({ path: resolve(__dirname, '../.env') });
 loadEnv();
@@ -21,15 +29,12 @@ function getBootstrapConfig() {
   const roleKey =
     process.env.BOOTSTRAP_ADMIN_ROLE_KEY?.trim().toLowerCase() ||
     'system-admin';
-  const firstName =
-    process.env.BOOTSTRAP_ADMIN_FIRST_NAME?.trim() || 'Taimur';
-  const lastName =
-    process.env.BOOTSTRAP_ADMIN_LAST_NAME?.trim() || 'Israr';
+  const firstName = process.env.BOOTSTRAP_ADMIN_FIRST_NAME?.trim() || 'Taimur';
+  const lastName = process.env.BOOTSTRAP_ADMIN_LAST_NAME?.trim() || 'Israr';
   const email = normalizeEmail(
     process.env.BOOTSTRAP_ADMIN_EMAIL || 'taimur@example.com',
   );
-  const plainPassword =
-    process.env.BOOTSTRAP_ADMIN_PASSWORD || 'Admin@12345';
+  const plainPassword = process.env.BOOTSTRAP_ADMIN_PASSWORD || 'Admin@12345';
 
   if (!process.env.DATABASE_URL?.trim()) {
     throw new Error(
@@ -64,6 +69,25 @@ async function main() {
     (permission) => permission.key,
   );
 
+  const customerAccount =
+    (await prisma.customerAccount.findFirst({
+      where: {
+        contactEmail: config.email,
+        companyName: config.tenantName,
+      },
+      select: { id: true },
+    })) ??
+    (await prisma.customerAccount.create({
+      data: {
+        companyName: config.tenantName,
+        legalCompanyName: config.tenantName,
+        contactEmail: config.email,
+        country: 'Qatar',
+        status: 'ACTIVE',
+      },
+      select: { id: true },
+    }));
+
   const tenant = await prisma.tenant.upsert({
     where: { slug: config.tenantSlug },
     update: {
@@ -74,6 +98,11 @@ async function main() {
       name: config.tenantName,
       slug: config.tenantSlug,
       status: TenantStatus.ACTIVE,
+      customerAccount: {
+        connect: {
+          id: customerAccount.id,
+        },
+      },
     },
     select: {
       id: true,
@@ -136,6 +165,49 @@ async function main() {
     data: permissions.map((permission) => ({
       tenantId: tenant.id,
       roleId: role.id,
+      permissionId: permission.id,
+    })),
+    skipDuplicates: true,
+  });
+
+  const systemCustomizerRole = await prisma.role.upsert({
+    where: {
+      tenantId_key: {
+        tenantId: tenant.id,
+        key: 'system-customizer',
+      },
+    },
+    update: {
+      name: 'System Customizer',
+      description:
+        'Implementation role allowed to customize tenant metadata for existing system modules.',
+      isSystem: true,
+      accessLevel: RoleAccessLevel.TENANT,
+    },
+    create: {
+      tenantId: tenant.id,
+      name: 'System Customizer',
+      key: 'system-customizer',
+      description:
+        'Implementation role allowed to customize tenant metadata for existing system modules.',
+      isSystem: true,
+      accessLevel: RoleAccessLevel.TENANT,
+    },
+    select: { id: true },
+  });
+
+  const customizationPermissions = await prisma.permission.findMany({
+    where: {
+      tenantId: tenant.id,
+      key: { in: CUSTOMIZATION_PERMISSION_KEYS },
+    },
+    select: { id: true },
+  });
+
+  await prisma.rolePermission.createMany({
+    data: customizationPermissions.map((permission) => ({
+      tenantId: tenant.id,
+      roleId: systemCustomizerRole.id,
       permissionId: permission.id,
     })),
     skipDuplicates: true,
@@ -224,6 +296,7 @@ async function main() {
     userId: user.id,
     email: user.email,
     permissionsAssignedToRole: permissions.length,
+    customizationPermissionsAssigned: customizationPermissions.length,
     usingDefaultPassword: config.usingDefaultPassword,
   };
 

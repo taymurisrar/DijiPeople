@@ -5,6 +5,7 @@ import {
   LOGIN_ROUTE,
   REFRESH_TOKEN_COOKIE,
 } from "@/lib/auth-config";
+import { getClearAuthCookieOptions } from "@/lib/auth-cookies";
 
 export async function POST() {
   await clearAuthCookies();
@@ -31,26 +32,10 @@ export async function GET(request: Request) {
 
 async function clearAuthCookies() {
   const cookieStore = await cookies();
-  const useSecureCookies = process.env.NODE_ENV === "production";
   const cookieNames = [ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE] as const;
-  const baseOptions = {
-    httpOnly: true,
-    secure: useSecureCookies,
-    sameSite: "lax" as const,
-    path: "/",
-    expires: new Date(0),
-  };
+  const baseOptions = getClearAuthCookieOptions();
 
   for (const cookieName of cookieNames) {
     cookieStore.set(cookieName, "", baseOptions);
-  }
-
-  if (!useSecureCookies) {
-    for (const cookieName of cookieNames) {
-      cookieStore.set(cookieName, "", {
-        ...baseOptions,
-        domain: "localhost",
-      });
-    }
   }
 }

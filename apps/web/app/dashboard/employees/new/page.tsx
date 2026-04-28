@@ -1,4 +1,5 @@
 import { apiRequestJson } from "@/lib/server-api";
+import { getDefaultForm } from "@/lib/customization-forms";
 import { getSessionUser } from "@/lib/auth";
 import { AccessDeniedState } from "../../_components/access-denied-state";
 import { getBusinessUnitAccessSummary, hasBusinessUnitScope } from "../../_lib/business-unit-access";
@@ -30,7 +31,7 @@ export default async function NewEmployeePage() {
       sessionUser.permissionKeys.includes("users.assign-roles") &&
       sessionUser.permissionKeys.includes("roles.read"),
   );
-  const [managers, roles, resolvedSettings] = await Promise.all([
+  const [managers, roles, resolvedSettings, runtimeForm] = await Promise.all([
     apiRequestJson<EmployeeListResponse>("/employees?pageSize=100"),
     canManageAccess
       ? apiRequestJson<EmployeeRoleOption[]>("/roles")
@@ -38,6 +39,7 @@ export default async function NewEmployeePage() {
     apiRequestJson<TenantResolvedSettingsResponse>("/tenant-settings/resolved").catch(
       () => null,
     ),
+    getDefaultForm("employees", "create"),
   ]);
 
   const initialValues: EmployeeFormValues = {
@@ -114,6 +116,7 @@ export default async function NewEmployeePage() {
         initialValues={initialValues}
         managerOptions={managers.items}
         roleOptions={roles}
+        runtimeFormLayout={runtimeForm?.layoutJson ?? null}
         settings={{
           autoGenerateEmployeeId:
             resolvedSettings?.employee.autoGenerateEmployeeId ?? false,

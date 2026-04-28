@@ -42,6 +42,18 @@ export const MANAGEMENT_PERMISSION_KEYS = [
   "payroll.finalize",
   "payroll.export",
   "payroll.settings.update",
+  "customization.read",
+  "customization.publish",
+  "customization.tables.update",
+  "customization.columns.create",
+  "customization.columns.update",
+  "customization.columns.delete",
+  "customization.views.create",
+  "customization.views.update",
+  "customization.views.delete",
+  "customization.forms.create",
+  "customization.forms.update",
+  "customization.forms.delete",
 ] as const;
 
 export function hasPermission(

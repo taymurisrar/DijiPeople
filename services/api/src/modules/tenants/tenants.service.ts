@@ -116,15 +116,20 @@ export class TenantsService {
         tx,
       );
 
+      const globalAdminRole = await this.rolesRepository.findByKeyAndTenant(
+        tenant.id,
+        'global-admin',
+        tx,
+      );
       const adminRole = await this.rolesRepository.findByKeyAndTenant(
         tenant.id,
         'system-admin',
         tx,
       );
 
-      if (!adminRole) {
+      if (!globalAdminRole || !adminRole) {
         throw new ConflictException(
-          'Default system admin role could not be provisioned.',
+          'Default tenant owner roles could not be provisioned.',
         );
       }
 
@@ -141,13 +146,22 @@ export class TenantsService {
         tx,
       );
 
-      await tx.userRole.create({
-        data: {
-          tenantId: tenant.id,
-          userId: adminUser.id,
-          roleId: adminRole.id,
-          createdById: adminUser.id,
-        },
+      await tx.userRole.createMany({
+        data: [
+          {
+            tenantId: tenant.id,
+            userId: adminUser.id,
+            roleId: globalAdminRole.id,
+            createdById: adminUser.id,
+          },
+          {
+            tenantId: tenant.id,
+            userId: adminUser.id,
+            roleId: adminRole.id,
+            createdById: adminUser.id,
+          },
+        ],
+        skipDuplicates: true,
       });
 
       await tx.tenant.update({

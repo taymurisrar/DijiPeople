@@ -5,6 +5,7 @@ import {
   REFRESH_TOKEN_COOKIE,
   getApiBaseUrl,
 } from "@/lib/auth-config";
+import { getClearAuthCookieOptions } from "@/lib/auth-cookies";
 
 export async function POST() {
   const cookieStore = await cookies();
@@ -33,19 +34,11 @@ export async function POST() {
 
   // 🔥 Clear cookies (important)
   cookieStore.set(ACCESS_TOKEN_COOKIE, "", {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 0,
+    ...getClearAuthCookieOptions(),
   });
 
   cookieStore.set(REFRESH_TOKEN_COOKIE, "", {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 0,
+    ...getClearAuthCookieOptions(),
   });
 
   return NextResponse.json(

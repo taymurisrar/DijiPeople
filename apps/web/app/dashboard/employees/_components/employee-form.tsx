@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { FormEvent, ReactNode, useEffect, useRef, useMemo, useState } from "react";
 import { TextField, SelectField, DateField, LookupField, NumberField} from "@/app/components/ui/form-control";
+import type { RuntimeFormLayout } from "@/lib/customization-forms";
 import {
   BLOOD_GROUP_OPTIONS,
   CONTRACT_TYPE_OPTIONS,
@@ -32,6 +33,7 @@ type EmployeeFormProps = {
     requireReportingManager?: boolean;
     requireWorkLocation?: boolean;
   };
+  runtimeFormLayout?: RuntimeFormLayout | null;
   mode: "create" | "edit";
 };
 
@@ -41,6 +43,7 @@ export function EmployeeForm({
   initialValues,
   managerOptions,
   roleOptions,
+  runtimeFormLayout,
   settings,
   mode,
 }: EmployeeFormProps) {
@@ -66,6 +69,10 @@ export function EmployeeForm({
   const availableManagerOptions = useMemo(
     () => managerOptions.filter((manager) => manager.id !== employeeId),
     [employeeId, managerOptions],
+  );
+  const runtimeForm = useMemo(
+    () => buildRuntimeFormState(runtimeFormLayout),
+    [runtimeFormLayout],
   );
 
   function updateField<Key extends keyof EmployeeFormValues>(
@@ -220,78 +227,112 @@ export function EmployeeForm({
 
   return (
     <form className="grid gap-6" onSubmit={handleSubmit}>
+      {runtimeForm.isCustomized ? (
+        <section className="rounded-[20px] border border-accent/20 bg-accent-soft px-5 py-4 text-sm text-accent">
+          This employee form is using the published customization layout. Fields
+          not present in the layout are hidden in this integrated runtime view;
+          backend validation still enforces required system rules.
+        </section>
+      ) : null}
+
+      {runtimeForm.showSection("Core Identity") ? (
       <FormSection
         description="Use work email only for authentication-facing identity. Personal email remains contact-only."
         title="Core Identity"
       >
+        {runtimeForm.showField("employeeCode") ? (
         <TextField
           label="Employee code"
           required
           value={form.employeeCode}
           onChange={(value) => updateField("employeeCode", value)}
         />
+        ) : null}
+        {runtimeForm.showField("firstName") ? (
         <TextField
           label="First name"
           required
           value={form.firstName}
           onChange={(value) => updateField("firstName", value)}
         />
+        ) : null}
+        {runtimeForm.showField("middleName") ? (
         <TextField
           label="Middle name"
           value={form.middleName}
           onChange={(value) => updateField("middleName", value)}
         />
+        ) : null}
+        {runtimeForm.showField("lastName") ? (
         <TextField
           label="Last name"
           required
           value={form.lastName}
           onChange={(value) => updateField("lastName", value)}
         />
+        ) : null}
+        {runtimeForm.showField("preferredName") ? (
         <TextField
           label="Preferred name"
           value={form.preferredName}
           onChange={(value) => updateField("preferredName", value)}
         />
+        ) : null}
+        {runtimeForm.showField("email") || runtimeForm.showField("workEmail") ? (
         <TextField
           label="Work Email"
           type="email"
           value={form.workEmail}
           onChange={(value) => updateField("workEmail", value)}
         />
+        ) : null}
+        {runtimeForm.showField("personalEmail") ? (
         <TextField
           label="Personal Email (Contact Only)"
           type="email"
           value={form.personalEmail}
           onChange={(value) => updateField("personalEmail", value)}
         />
+        ) : null}
+        {runtimeForm.showField("phone") ? (
         <TextField
           label="Phone"
           required
           value={form.phone}
           onChange={(value) => updateField("phone", value)}
         />
+        ) : null}
+        {runtimeForm.showField("alternatePhone") ? (
         <TextField
           label="Alternate phone"
           value={form.alternatePhone}
           onChange={(value) => updateField("alternatePhone", value)}
         />
+        ) : null}
+        {runtimeForm.showField("dateOfBirth") ? (
         <DateField
           label="Date of birth"
           value={form.dateOfBirth}
           onChange={(value) => updateField("dateOfBirth", value)}
         />
+        ) : null}
+        {runtimeForm.showField("gender") ? (
         <SelectField
           label="Gender"
           options={GENDER_OPTIONS}
           value={form.gender}
           onChange={(value) => updateField("gender", value)}
         />
+        ) : null}
+        {runtimeForm.showField("maritalStatus") ? (
         <SelectField
           label="Marital status"
           options={MARITAL_STATUS_OPTIONS}
           value={form.maritalStatus}
           onChange={(value) => updateField("maritalStatus", value)}
         />
+        ) : null}
+        {runtimeForm.showField("nationalityCountryId") || runtimeForm.showField("nationality") ? (
         <LookupField
           label="Nationality"
           options={countries}
@@ -303,19 +344,25 @@ export function EmployeeForm({
             updateField("nationality", selectedCountry?.name ?? "");
           }}
         />
+        ) : null}
+        {runtimeForm.showField("cnic") ? (
         <TextField
           label="CNIC"
           value={form.cnic}
           onChange={(value) => updateField("cnic", value)}
           variant="cnic"
         />
+        ) : null}
+        {runtimeForm.showField("bloodGroup") ? (
         <SelectField
           label="Blood group"
           options={BLOOD_GROUP_OPTIONS}
           value={form.bloodGroup}
           onChange={(value) => updateField("bloodGroup", value)}
         />
+        ) : null}
       </FormSection>
+      ) : null}
 
       {canManageAccess ? (
         <FormSection
@@ -344,6 +391,7 @@ export function EmployeeForm({
         </FormSection>
       ) : null}
 
+      {runtimeForm.showSection("Employment Info") ? (
       <FormSection
         description="These fields drive hierarchy, leave, attendance, payroll, and reporting behavior."
         title="Employment Info"
@@ -454,7 +502,9 @@ export function EmployeeForm({
           onChange={(value) => updateField("userId", value)}
         />
       </FormSection>
+      ) : null}
 
+      {runtimeForm.showSection("Address") ? (
       <FormSection
         description="Use lookup-backed geography fields so addresses stay consistent across the platform."
         title="Address"
@@ -517,7 +567,9 @@ export function EmployeeForm({
           onChange={(value) => updateField("postalCode", value)}
         />
       </FormSection>
+      ) : null}
 
+      {runtimeForm.showSection("Emergency Contact") ? (
       <FormSection
         description="These details support emergency outreach without making the relation free-form everywhere."
         title="Emergency Contact"
@@ -555,6 +607,7 @@ export function EmployeeForm({
           }
         />
       </FormSection>
+      ) : null}
 
       {error ? (
         <p className="rounded-2xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
@@ -700,4 +753,95 @@ function emptyToUndefined(value: string) {
 
 function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+function buildRuntimeFormState(layout?: RuntimeFormLayout | null) {
+  const fields =
+    layout?.tabs
+      ?.flatMap((tab) => tab.sections ?? [])
+      .flatMap((section) => section.fields ?? [])
+      .filter((field) => field.isVisible !== false)
+      .map((field) => field.columnKey) ?? [];
+  const visibleFields = new Set(fields.flatMap(expandEmployeeFieldAlias));
+  const isCustomized = visibleFields.size > 0;
+
+  return {
+    isCustomized,
+    showField(fieldKey: string) {
+      return !isCustomized || visibleFields.has(fieldKey);
+    },
+    showSection(sectionTitle: string) {
+      if (!isCustomized) return true;
+      return (sectionFieldMap[sectionTitle] ?? []).some((fieldKey) =>
+        visibleFields.has(fieldKey),
+      );
+    },
+  };
+}
+
+const sectionFieldMap: Record<string, string[]> = {
+  "Core Identity": [
+    "employeeCode",
+    "firstName",
+    "middleName",
+    "lastName",
+    "preferredName",
+    "email",
+    "workEmail",
+    "personalEmail",
+    "phone",
+    "alternatePhone",
+    "dateOfBirth",
+    "gender",
+    "maritalStatus",
+    "nationalityCountryId",
+    "nationality",
+    "cnic",
+    "bloodGroup",
+  ],
+  "Employment Info": [
+    "hireDate",
+    "confirmationDate",
+    "probationEndDate",
+    "terminationDate",
+    "employmentStatus",
+    "employeeType",
+    "workMode",
+    "contractType",
+    "departmentId",
+    "designationId",
+    "locationId",
+    "officialJoiningLocationId",
+    "managerEmployeeId",
+    "reportingManagerEmployeeId",
+    "noticePeriodDays",
+    "taxIdentifier",
+    "userId",
+  ],
+  Address: [
+    "addressLine1",
+    "addressLine2",
+    "countryId",
+    "stateProvinceId",
+    "cityId",
+    "postalCode",
+  ],
+  "Emergency Contact": [
+    "emergencyContactName",
+    "emergencyContactRelationTypeId",
+    "emergencyContactRelation",
+    "emergencyContactPhone",
+    "emergencyContactAlternatePhone",
+  ],
+};
+
+function expandEmployeeFieldAlias(fieldKey: string) {
+  const aliases: Record<string, string[]> = {
+    email: ["email", "workEmail"],
+    managerEmployeeId: ["managerEmployeeId", "reportingManagerEmployeeId"],
+    departmentId: ["departmentId"],
+    businessUnitId: ["businessUnitId"],
+  };
+
+  return aliases[fieldKey] ?? [fieldKey];
 }

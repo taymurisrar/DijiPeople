@@ -1,5 +1,6 @@
 import { apiRequestJson } from "@/lib/server-api";
 import { getSessionUser } from "@/lib/auth";
+import { getDefaultForm } from "@/lib/customization-forms";
 import { EmployeeForm } from "../../_components/employee-form";
 import {
   EmployeeFormValues,
@@ -26,7 +27,7 @@ export default async function EditEmployeePage({
       sessionUser.permissionKeys.includes("roles.read"),
   );
 
-  const [employee, managers, roles, resolvedSettings] = await Promise.all([
+  const [employee, managers, roles, resolvedSettings, runtimeForm] = await Promise.all([
     apiRequestJson<EmployeeProfile>(`/employees/${employeeId}`),
     apiRequestJson<EmployeeListResponse>("/employees?pageSize=100"),
     canManageAccess
@@ -35,6 +36,7 @@ export default async function EditEmployeePage({
     apiRequestJson<TenantResolvedSettingsResponse>("/tenant-settings/resolved").catch(
       () => null,
     ),
+    getDefaultForm("employees", "edit"),
   ]);
 
   const initialValues: EmployeeFormValues = {
@@ -118,6 +120,7 @@ export default async function EditEmployeePage({
         initialValues={initialValues}
         managerOptions={managers.items.filter((manager) => manager.id !== employee.id)}
         roleOptions={roles}
+        runtimeFormLayout={runtimeForm?.layoutJson ?? null}
         settings={{
           autoGenerateEmployeeId:
             resolvedSettings?.employee.autoGenerateEmployeeId ?? false,

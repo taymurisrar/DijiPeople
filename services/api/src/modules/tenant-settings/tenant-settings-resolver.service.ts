@@ -236,29 +236,53 @@ export class TenantSettingsResolverService {
       timezone: stringValue(category.timezone, 'UTC'),
       currency: stringValue(category.currency, 'USD'),
       dateFormat: stringValue(category.dateFormat, 'MM/dd/yyyy'),
-      weekStartsOn: Object.values(WorkWeekday).includes(weekStart as WorkWeekday)
+      weekStartsOn: Object.values(WorkWeekday).includes(
+        weekStart as WorkWeekday,
+      )
         ? (weekStart as WorkWeekday)
         : WorkWeekday.MONDAY,
     };
   }
 
-  async getEmployeeSettings(tenantId: string): Promise<EmployeeSettingsResolved> {
+  async getEmployeeSettings(
+    tenantId: string,
+  ): Promise<EmployeeSettingsResolved> {
     const source = await this.getSettingsMap(tenantId);
     const category = source.employees ?? {};
 
     return {
       employeeIdPrefix: stringValue(category.employeeIdPrefix, 'EMP'),
-      employeeIdSequenceLength: numberValue(category.employeeIdSequenceLength, 4, 1, 10),
-      autoGenerateEmployeeId: booleanValue(category.autoGenerateEmployeeId, true),
-      defaultEmploymentType: stringValue(category.defaultEmploymentType, 'FULL_TIME'),
+      employeeIdSequenceLength: numberValue(
+        category.employeeIdSequenceLength,
+        4,
+        1,
+        10,
+      ),
+      autoGenerateEmployeeId: booleanValue(
+        category.autoGenerateEmployeeId,
+        true,
+      ),
+      defaultEmploymentType: stringValue(
+        category.defaultEmploymentType,
+        'FULL_TIME',
+      ),
       defaultWorkMode: stringValue(category.defaultWorkMode, 'OFFICE'),
-      defaultEmployeeStatus: stringValue(category.defaultEmployeeStatus, 'Active'),
+      defaultEmployeeStatus: stringValue(
+        category.defaultEmployeeStatus,
+        'Active',
+      ),
       requirePersonalEmail: booleanValue(category.requirePersonalEmail, false),
-      requireEmergencyContact: booleanValue(category.requireEmergencyContact, true),
+      requireEmergencyContact: booleanValue(
+        category.requireEmergencyContact,
+        true,
+      ),
       requireJoiningDate: booleanValue(category.requireJoiningDate, true),
       requireDepartment: booleanValue(category.requireDepartment, false),
       requireDesignation: booleanValue(category.requireDesignation, false),
-      requireReportingManager: booleanValue(category.requireReportingManager, false),
+      requireReportingManager: booleanValue(
+        category.requireReportingManager,
+        false,
+      ),
       requireWorkLocation: booleanValue(category.requireWorkLocation, false),
       autoCreateDraftOnHire: booleanValue(category.autoCreateDraftOnHire, true),
       keepEmployeeAsDraftUntilOnboardingComplete: booleanValue(
@@ -270,9 +294,15 @@ export class TenantSettingsResolverService {
         true,
       ),
       maxReportingLevels: numberValue(category.maxReportingLevels, 5, 1, 20),
-      allowSkipLevelApprovals: booleanValue(category.allowSkipLevelApprovals, false),
+      allowSkipLevelApprovals: booleanValue(
+        category.allowSkipLevelApprovals,
+        false,
+      ),
       allowMatrixReporting: booleanValue(category.allowMatrixReporting, false),
-      allowEmployeeWithoutManager: booleanValue(category.allowEmployeeWithoutManager, true),
+      allowEmployeeWithoutManager: booleanValue(
+        category.allowEmployeeWithoutManager,
+        true,
+      ),
       preventDuplicateByPersonalEmail: booleanValue(
         category.preventDuplicateByPersonalEmail,
         true,
@@ -285,7 +315,10 @@ export class TenantSettingsResolverService {
         category.preventDuplicateByNationalId,
         false,
       ),
-      warnOnPossibleDuplicate: booleanValue(category.warnOnPossibleDuplicate, true),
+      warnOnPossibleDuplicate: booleanValue(
+        category.warnOnPossibleDuplicate,
+        true,
+      ),
       onboardingChecklistTemplate: stringValue(
         category.onboardingChecklistTemplate,
         'standard',
@@ -293,19 +326,33 @@ export class TenantSettingsResolverService {
     };
   }
 
-  async getAttendanceSettings(tenantId: string): Promise<AttendanceSettingsResolved> {
+  async getAttendanceSettings(
+    tenantId: string,
+  ): Promise<AttendanceSettingsResolved> {
     const source = await this.getSettingsMap(tenantId);
     const category = source.attendance ?? {};
-    const modes = csvValues(category.allowedModes).filter((value): value is AttendanceMode =>
-      Object.values(AttendanceMode).includes(value as AttendanceMode),
+    const modes = csvValues(category.allowedModes).filter(
+      (value): value is AttendanceMode =>
+        Object.values(AttendanceMode).includes(value as AttendanceMode),
     );
 
     return {
-      defaultGraceMinutes: numberValue(category.defaultGraceMinutes, 10, 0, 180),
-      allowManualAdjustments: booleanValue(category.allowManualAdjustments, true),
+      defaultGraceMinutes: numberValue(
+        category.defaultGraceMinutes,
+        10,
+        0,
+        180,
+      ),
+      allowManualAdjustments: booleanValue(
+        category.allowManualAdjustments,
+        true,
+      ),
       autoCheckOutEnabled: booleanValue(category.autoCheckOutEnabled, false),
       trackMissedCheckOut: booleanValue(category.trackMissedCheckOut, true),
-      allowedModes: modes.length > 0 ? modes : [AttendanceMode.OFFICE, AttendanceMode.REMOTE],
+      allowedModes:
+        modes.length > 0
+          ? modes
+          : [AttendanceMode.OFFICE, AttendanceMode.REMOTE],
       enforceOfficeLocationForOfficeMode: booleanValue(
         category.enforceOfficeLocationForOfficeMode,
         true,
@@ -314,11 +361,18 @@ export class TenantSettingsResolverService {
         category.requireRemoteLocationCapture,
         false,
       ),
-      standardWorkHoursPerDay: numberValue(category.standardWorkHoursPerDay, 8, 1, 24),
+      standardWorkHoursPerDay: numberValue(
+        category.standardWorkHoursPerDay,
+        8,
+        1,
+        24,
+      ),
     };
   }
 
-  async getTimesheetSettings(tenantId: string): Promise<TimesheetSettingsResolved> {
+  async getTimesheetSettings(
+    tenantId: string,
+  ): Promise<TimesheetSettingsResolved> {
     const source = await this.getSettingsMap(tenantId);
     return this.resolveTimesheetSettings(source.timesheets ?? {});
   }
@@ -348,8 +402,9 @@ export class TenantSettingsResolverService {
       ['monthly', 'weekly', 'biweekly'] as const,
       'monthly',
     );
-    const weekendDays = csvValues(category.weekendDays).filter((value): value is WorkWeekday =>
-      Object.values(WorkWeekday).includes(value as WorkWeekday),
+    const weekendDays = csvValues(category.weekendDays).filter(
+      (value): value is WorkWeekday =>
+        Object.values(WorkWeekday).includes(value as WorkWeekday),
     );
     const defaultWorkHours = numberValue(category.defaultWorkHours, 8, 1, 24);
     const requireMonthlySubmission = booleanValue(
@@ -359,7 +414,10 @@ export class TenantSettingsResolverService {
 
     return {
       timesheetPeriodType: periodType,
-      weekendDays: weekendDays.length > 0 ? weekendDays : [WorkWeekday.SATURDAY, WorkWeekday.SUNDAY],
+      weekendDays:
+        weekendDays.length > 0
+          ? weekendDays
+          : [WorkWeekday.SATURDAY, WorkWeekday.SUNDAY],
       defaultWorkHours,
       defaultHoursForOnWork: numberValue(
         category.defaultHoursForOnWork,
@@ -376,10 +434,19 @@ export class TenantSettingsResolverService {
         category.requireAllDaysCompletedBeforeSubmit,
         true,
       ),
-      requireSubmissionNote: booleanValue(category.requireSubmissionNote, false),
+      requireSubmissionNote: booleanValue(
+        category.requireSubmissionNote,
+        false,
+      ),
       allowBulkImport: booleanValue(category.allowBulkImport, true),
-      allowEmployeeSelfImport: booleanValue(category.allowEmployeeSelfImport, false),
-      allowManagerImportForTeam: booleanValue(category.allowManagerImportForTeam, true),
+      allowEmployeeSelfImport: booleanValue(
+        category.allowEmployeeSelfImport,
+        false,
+      ),
+      allowManagerImportForTeam: booleanValue(
+        category.allowManagerImportForTeam,
+        true,
+      ),
       requireApprovalBeforePayroll: booleanValue(
         category.requireApprovalBeforePayroll,
         true,
@@ -389,7 +456,10 @@ export class TenantSettingsResolverService {
         ['CSV', 'XLSX'] as const,
         'CSV',
       ),
-      lockTimesheetAfterApproval: booleanValue(category.lockTimesheetAfterApproval, true),
+      lockTimesheetAfterApproval: booleanValue(
+        category.lockTimesheetAfterApproval,
+        true,
+      ),
       allowRejectedTimesheetResubmission: booleanValue(
         category.allowRejectedTimesheetResubmission,
         true,
@@ -422,13 +492,18 @@ export class TenantSettingsResolverService {
   private resolvePayrollSettings(
     category: Record<string, unknown>,
   ): PayrollSettingsResolved {
-
     return {
       payFrequency: stringValue(category.payFrequency, 'MONTHLY'),
       payrollStatus: stringValue(category.payrollStatus, 'Active'),
       defaultPayrollGroup: stringValue(category.defaultPayrollGroup, 'main'),
-      defaultPaymentMode: stringValue(category.defaultPaymentMode, 'BANK_TRANSFER'),
-      compensationReviewCycle: stringValue(category.compensationReviewCycle, 'ANNUAL'),
+      defaultPaymentMode: stringValue(
+        category.defaultPaymentMode,
+        'BANK_TRANSFER',
+      ),
+      compensationReviewCycle: stringValue(
+        category.compensationReviewCycle,
+        'ANNUAL',
+      ),
       defaultCurrency: stringValue(category.defaultCurrency, 'USD'),
       payrollGenerationSource: enumStringValue(
         category.payrollGenerationSource,
@@ -451,7 +526,12 @@ export class TenantSettingsResolverService {
         category.includeWeekendWorkInPayrollSummary,
         true,
       ),
-      defaultPayrollCycleDay: numberValue(category.defaultPayrollCycleDay, 25, 1, 31),
+      defaultPayrollCycleDay: numberValue(
+        category.defaultPayrollCycleDay,
+        25,
+        1,
+        31,
+      ),
       allowDraftPayrollAdjustments: booleanValue(
         category.allowDraftPayrollAdjustments,
         true,
@@ -493,7 +573,9 @@ export class TenantSettingsResolverService {
     };
   }
 
-  async getDocumentSettings(tenantId: string): Promise<DocumentSettingsResolved> {
+  async getDocumentSettings(
+    tenantId: string,
+  ): Promise<DocumentSettingsResolved> {
     const source = await this.getSettingsMap(tenantId);
     const category = source.documents ?? {};
 
@@ -501,7 +583,10 @@ export class TenantSettingsResolverService {
       maxUploadSizeMb: numberValue(category.maxUploadSizeMb, 10, 1, 200),
       allowedExtensions: csvValues(category.allowedExtensions),
       archiveAfterMonths: numberValue(category.archiveAfterMonths, 24, 1, 1200),
-      requireDocumentCategories: booleanValue(category.requireDocumentCategories, true),
+      requireDocumentCategories: booleanValue(
+        category.requireDocumentCategories,
+        true,
+      ),
     };
   }
 
@@ -517,16 +602,32 @@ export class TenantSettingsResolverService {
       browserPushEnabled: booleanValue(category.browserPushEnabled, false),
       digestEnabled: booleanValue(category.digestEnabled, true),
       approvalDigestEnabled: booleanValue(category.approvalDigestEnabled, true),
-      onboardingReminderEnabled: booleanValue(category.onboardingReminderEnabled, true),
-      timesheetReminderEnabled: booleanValue(category.timesheetReminderEnabled, true),
-      leaveDecisionEmailEnabled: booleanValue(category.leaveDecisionEmailEnabled, true),
-      defaultReminderLeadDays: numberValue(category.defaultReminderLeadDays, 2, 0, 30),
+      onboardingReminderEnabled: booleanValue(
+        category.onboardingReminderEnabled,
+        true,
+      ),
+      timesheetReminderEnabled: booleanValue(
+        category.timesheetReminderEnabled,
+        true,
+      ),
+      leaveDecisionEmailEnabled: booleanValue(
+        category.leaveDecisionEmailEnabled,
+        true,
+      ),
+      defaultReminderLeadDays: numberValue(
+        category.defaultReminderLeadDays,
+        2,
+        0,
+        30,
+      ),
       quietHoursEnabled: booleanValue(category.quietHoursEnabled, false),
       quietHoursWindow: stringValue(category.quietHoursWindow, '22:00-07:00'),
     };
   }
 
-  async getBrandingSettings(tenantId: string): Promise<BrandingSettingsResolved> {
+  async getBrandingSettings(
+    tenantId: string,
+  ): Promise<BrandingSettingsResolved> {
     const source = await this.getSettingsMap(tenantId);
     const category = source.branding ?? {};
 
@@ -550,10 +651,22 @@ export class TenantSettingsResolverService {
       fontFamily: stringValue(category.fontFamily, 'INTER'),
       appBackgroundColor: stringValue(category.appBackgroundColor, '#f5f0e8'),
       appSurfaceColor: stringValue(category.appSurfaceColor, '#fffaf4'),
-      pageGradientStartColor: stringValue(category.pageGradientStartColor, '#fffcf7'),
-      pageGradientEndColor: stringValue(category.pageGradientEndColor, '#f5f0e8'),
-      cardGradientStartColor: stringValue(category.cardGradientStartColor, '#ffffff'),
-      cardGradientEndColor: stringValue(category.cardGradientEndColor, '#d6f4ee'),
+      pageGradientStartColor: stringValue(
+        category.pageGradientStartColor,
+        '#fffcf7',
+      ),
+      pageGradientEndColor: stringValue(
+        category.pageGradientEndColor,
+        '#f5f0e8',
+      ),
+      cardGradientStartColor: stringValue(
+        category.cardGradientStartColor,
+        '#ffffff',
+      ),
+      cardGradientEndColor: stringValue(
+        category.cardGradientEndColor,
+        '#d6f4ee',
+      ),
       welcomeTitle: stringValue(category.welcomeTitle, ''),
       welcomeSubtitle: stringValue(category.welcomeSubtitle, ''),
       footerText: stringValue(category.footerText, 'Powered by DijiPeople'),
@@ -564,7 +677,10 @@ export class TenantSettingsResolverService {
       supportEmail: stringValue(category.supportEmail, ''),
       supportPhone: stringValue(category.supportPhone, ''),
       websiteUrl: stringValue(category.websiteUrl, ''),
-      showBrandingOnLoginPage: booleanValue(category.showBrandingOnLoginPage, true),
+      showBrandingOnLoginPage: booleanValue(
+        category.showBrandingOnLoginPage,
+        true,
+      ),
       showBrandingInEmployeePortal: booleanValue(
         category.showBrandingInEmployeePortal,
         true,
@@ -583,12 +699,25 @@ export class TenantSettingsResolverService {
       locale: stringValue(category.locale, 'en-US'),
       uiDensity: stringValue(category.uiDensity, 'comfortable'),
       defaultThemeMode: stringValue(category.defaultThemeMode, 'light'),
-      defaultDashboardView: stringValue(category.defaultDashboardView, 'overview'),
-      defaultLandingModule: stringValue(category.defaultLandingModule, 'overview'),
-      defaultWeekStartDay: Object.values(WorkWeekday).includes(weekStart as WorkWeekday)
+      defaultDashboardView: stringValue(
+        category.defaultDashboardView,
+        'overview',
+      ),
+      defaultLandingModule: stringValue(
+        category.defaultLandingModule,
+        'overview',
+      ),
+      defaultWeekStartDay: Object.values(WorkWeekday).includes(
+        weekStart as WorkWeekday,
+      )
         ? (weekStart as WorkWeekday)
         : WorkWeekday.MONDAY,
-      defaultRecordsPerPage: numberValue(category.defaultRecordsPerPage, 25, 5, 200),
+      defaultRecordsPerPage: numberValue(
+        category.defaultRecordsPerPage,
+        25,
+        5,
+        200,
+      ),
       defaultTimezone: stringValue(category.defaultTimezone, 'UTC'),
       defaultCurrency: stringValue(category.defaultCurrency, 'USD'),
       defaultLanguage: stringValue(category.defaultLanguage, 'en'),
@@ -596,100 +725,113 @@ export class TenantSettingsResolverService {
     };
   }
 
-async getPublicBrandingByTenantSlug(
-  tenantSlug?: string | null,
-): Promise<PublicBrandingResolved> {
-  const fallbackBranding = DEFAULT_TENANT_SETTINGS.branding;
+  async getPublicBrandingByTenantSlug(
+    tenantSlug?: string | null,
+  ): Promise<PublicBrandingResolved> {
+    const fallbackBranding = DEFAULT_TENANT_SETTINGS.branding;
 
     const fallback: PublicBrandingResolved = {
-    tenantId: null,
-    tenantSlug: tenantSlug?.trim() || null,
-    tenantName: 'DijiPeople',
+      tenantId: null,
+      tenantSlug: tenantSlug?.trim() || null,
+      tenantName: 'DijiPeople',
       appTitle: stringValue(fallbackBranding.appTitle, 'DijiPeople'),
       brandName: stringValue(fallbackBranding.brandName, 'DijiPeople'),
-      shortBrandName: stringValue(fallbackBranding.shortBrandName, 'DijiPeople'),
+      shortBrandName: stringValue(
+        fallbackBranding.shortBrandName,
+        'DijiPeople',
+      ),
       logoUrl: stringValue(fallbackBranding.logoUrl, ''),
       faviconUrl: stringValue(fallbackBranding.faviconUrl, ''),
-      loginBannerImageUrl: stringValue(fallbackBranding.loginBannerImageUrl, ''),
+      loginBannerImageUrl: stringValue(
+        fallbackBranding.loginBannerImageUrl,
+        '',
+      ),
       squareLogoUrl: stringValue(fallbackBranding.squareLogoUrl, ''),
-    primaryColor: stringValue(fallbackBranding.primaryColor, '#0f766e'),
-    secondaryColor: stringValue(fallbackBranding.secondaryColor, '#0f172a'),
-    accentColor: stringValue(fallbackBranding.accentColor, '#14b8a6'),
-    fontFamily: stringValue(fallbackBranding.fontFamily, 'INTER'),
-    welcomeTitle: stringValue(
-      fallbackBranding.welcomeTitle,
-      'People operations, without the mess.',
-    ),
-    welcomeSubtitle: stringValue(
-      fallbackBranding.welcomeSubtitle,
-      'A clean HR workspace for admins, HR teams, managers, and employees.',
-    ),
-    footerText: stringValue(
-      fallbackBranding.footerText,
-      'Powered by DijiPeople',
-    ),
-    supportEmail: stringValue(fallbackBranding.supportEmail, ''),
-    portalTagline: stringValue(fallbackBranding.portalTagline, ''),
-    showBrandingOnLoginPage: booleanValue(
-      fallbackBranding.showBrandingOnLoginPage,
-      true,
-    ),
-  };
+      primaryColor: stringValue(fallbackBranding.primaryColor, '#0f766e'),
+      secondaryColor: stringValue(fallbackBranding.secondaryColor, '#0f172a'),
+      accentColor: stringValue(fallbackBranding.accentColor, '#14b8a6'),
+      fontFamily: stringValue(fallbackBranding.fontFamily, 'INTER'),
+      welcomeTitle: stringValue(
+        fallbackBranding.welcomeTitle,
+        'People operations, without the mess.',
+      ),
+      welcomeSubtitle: stringValue(
+        fallbackBranding.welcomeSubtitle,
+        'A clean HR workspace for admins, HR teams, managers, and employees.',
+      ),
+      footerText: stringValue(
+        fallbackBranding.footerText,
+        'Powered by DijiPeople',
+      ),
+      supportEmail: stringValue(fallbackBranding.supportEmail, ''),
+      portalTagline: stringValue(fallbackBranding.portalTagline, ''),
+      showBrandingOnLoginPage: booleanValue(
+        fallbackBranding.showBrandingOnLoginPage,
+        true,
+      ),
+    };
 
-  if (!tenantSlug?.trim()) {
-    return fallback;
-  }
+    if (!tenantSlug?.trim()) {
+      return fallback;
+    }
 
-  const tenant = await this.tenantSettingsRepository.findTenantBySlug(tenantSlug.trim());
-  if (!tenant) {
-    return fallback;
-  }
+    const tenant = await this.tenantSettingsRepository.findTenantBySlug(
+      tenantSlug.trim(),
+    );
+    if (!tenant) {
+      return fallback;
+    }
 
-  const source = await this.getSettingsMap(tenant.id);
-  const branding = source.branding ?? {};
+    const source = await this.getSettingsMap(tenant.id);
+    const branding = source.branding ?? {};
 
     return {
-    tenantId: tenant.id,
-    tenantSlug: tenant.slug,
-    tenantName: tenant.name,
+      tenantId: tenant.id,
+      tenantSlug: tenant.slug,
+      tenantName: tenant.name,
       appTitle: stringValue(branding.appTitle, 'DijiPeople'),
       brandName: stringValue(branding.brandName, tenant.name || 'DijiPeople'),
-    shortBrandName: stringValue(
-      branding.shortBrandName,
-      stringValue(branding.brandName, tenant.name || 'DijiPeople'),
-    ),
+      shortBrandName: stringValue(
+        branding.shortBrandName,
+        stringValue(branding.brandName, tenant.name || 'DijiPeople'),
+      ),
       logoUrl: stringValue(branding.logoUrl, ''),
       faviconUrl: stringValue(branding.faviconUrl, ''),
       loginBannerImageUrl: stringValue(branding.loginBannerImageUrl, ''),
       squareLogoUrl: stringValue(branding.squareLogoUrl, ''),
-    primaryColor: stringValue(branding.primaryColor, '#0f766e'),
-    secondaryColor: stringValue(branding.secondaryColor, '#0f172a'),
-    accentColor: stringValue(branding.accentColor, '#14b8a6'),
-    fontFamily: stringValue(branding.fontFamily, 'INTER'),
-    welcomeTitle: stringValue(
-      branding.welcomeTitle,
-      'People operations, without the mess.',
-    ),
-    welcomeSubtitle: stringValue(
-      branding.welcomeSubtitle,
-      'A clean HR workspace for admins, HR teams, managers, and employees.',
-    ),
-    footerText: stringValue(branding.footerText, 'Powered by DijiPeople'),
-    supportEmail: stringValue(branding.supportEmail, ''),
-    portalTagline: stringValue(branding.portalTagline, ''),
-    showBrandingOnLoginPage: booleanValue(
-      branding.showBrandingOnLoginPage,
-      true,
-    ),
-  };
-}
+      primaryColor: stringValue(branding.primaryColor, '#0f766e'),
+      secondaryColor: stringValue(branding.secondaryColor, '#0f172a'),
+      accentColor: stringValue(branding.accentColor, '#14b8a6'),
+      fontFamily: stringValue(branding.fontFamily, 'INTER'),
+      welcomeTitle: stringValue(
+        branding.welcomeTitle,
+        'People operations, without the mess.',
+      ),
+      welcomeSubtitle: stringValue(
+        branding.welcomeSubtitle,
+        'A clean HR workspace for admins, HR teams, managers, and employees.',
+      ),
+      footerText: stringValue(branding.footerText, 'Powered by DijiPeople'),
+      supportEmail: stringValue(branding.supportEmail, ''),
+      portalTagline: stringValue(branding.portalTagline, ''),
+      showBrandingOnLoginPage: booleanValue(
+        branding.showBrandingOnLoginPage,
+        true,
+      ),
+    };
+  }
 
   getAllowedKeysByCategory() {
     const allowed = new Map<TenantSettingCategory, Set<string>>();
-    const categories = Object.keys(DEFAULT_TENANT_SETTINGS) as TenantSettingCategory[];
+    const categories = Object.keys(
+      DEFAULT_TENANT_SETTINGS,
+    ) as TenantSettingCategory[];
 
     categories.forEach((category) => {
-      allowed.set(category, new Set(Object.keys(DEFAULT_TENANT_SETTINGS[category] ?? {})));
+      allowed.set(
+        category,
+        new Set(Object.keys(DEFAULT_TENANT_SETTINGS[category] ?? {})),
+      );
     });
 
     return allowed;
@@ -706,7 +848,8 @@ async getPublicBrandingByTenantSlug(
       return cached.value;
     }
 
-    const persistedSettings = await this.tenantSettingsRepository.findSettingsByTenant(tenantId);
+    const persistedSettings =
+      await this.tenantSettingsRepository.findSettingsByTenant(tenantId);
     const settings = structuredClone(DEFAULT_TENANT_SETTINGS) as SettingsMap;
 
     for (const item of persistedSettings) {
@@ -744,7 +887,11 @@ async getPublicBrandingByTenantSlug(
     });
 
     const settingsJson = businessUnit?.settingsJson;
-    if (!settingsJson || typeof settingsJson !== 'object' || Array.isArray(settingsJson)) {
+    if (
+      !settingsJson ||
+      typeof settingsJson !== 'object' ||
+      Array.isArray(settingsJson)
+    ) {
       return {};
     }
 

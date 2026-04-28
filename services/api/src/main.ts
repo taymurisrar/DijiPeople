@@ -1,6 +1,7 @@
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { getAllowedCorsOrigins } from '@repo/config';
+import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -10,6 +11,10 @@ async function bootstrap() {
   app.enableShutdownHooks();
   app.setGlobalPrefix('api');
 
+  // ✅ Enable cookie parsing (CRITICAL for auth to work)
+  app.use(cookieParser());
+
+  // ✅ CORS must allow credentials for cookies
   app.enableCors({
     origin: getAllowedCorsOrigins(process.env),
     credentials: true,

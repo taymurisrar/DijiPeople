@@ -222,6 +222,106 @@ function buildScopeWhere(
           },
         ],
       };
+    case 'EmployeeOnboarding':
+      return {
+        OR: [
+          { ownerUserId: { in: context.accessibleUserIds } },
+          { createdById: { in: context.accessibleUserIds } },
+          {
+            employee: {
+              user: {
+                is: {
+                  businessUnitId: buFilter,
+                },
+              },
+            },
+          },
+        ],
+      };
+    case 'OnboardingTask':
+      return {
+        OR: [
+          { assignedUserId: { in: context.accessibleUserIds } },
+          {
+            employeeOnboarding: {
+              OR: [
+                { ownerUserId: { in: context.accessibleUserIds } },
+                { createdById: { in: context.accessibleUserIds } },
+                {
+                  employee: {
+                    user: {
+                      is: {
+                        businessUnitId: buFilter,
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      };
+    case 'PayrollCycle':
+    case 'ProcessingCycle':
+      return {
+        OR: [
+          { businessUnitId: null },
+          { businessUnitId: buFilter },
+        ],
+      };
+    case 'PayrollRecord':
+    case 'EmployeeCompensation':
+      return {
+        employee: {
+          user: {
+            is: {
+              businessUnitId: buFilter,
+            },
+          },
+        },
+      };
+    case 'Document':
+      return {
+        OR: [
+          { uploadedByUserId: { in: context.accessibleUserIds } },
+          { createdById: { in: context.accessibleUserIds } },
+          {
+            links: {
+              some: {
+                employee: {
+                  user: {
+                    is: {
+                      businessUnitId: buFilter,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        ],
+      };
+    case 'DocumentReference':
+    case 'DocumentParsingJob':
+      return {
+        OR: [
+          { createdById: { in: context.accessibleUserIds } },
+          { updatedById: { in: context.accessibleUserIds } },
+          {
+            candidate: {
+              OR: [
+                { createdById: { in: context.accessibleUserIds } },
+                {
+                  applications: {
+                    some: {
+                      recruiterOwnerUserId: { in: context.accessibleUserIds },
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      };
     default:
       return null;
   }

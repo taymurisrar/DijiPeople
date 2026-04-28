@@ -4,7 +4,15 @@ import { getSessionUser } from "@/lib/auth";
 import { hasPermission, isSelfServiceUser } from "@/lib/permissions";
 import { apiRequestJson } from "@/lib/server-api";
 import { Button } from "@/app/components/ui/button";
+import { ModuleViewSelector } from "@/app/components/view-selector/module-view-selector";
 import { DEFAULT_BRANDING_VALUES } from "@/app/components/branding/branding-defaults";
+import {
+  getDefaultView,
+  getTableViews,
+  resolveFiltersAndSorting,
+  resolveVisibleColumns,
+  withFallbackViews,
+} from "@/lib/customization-views";
 import { AccessDeniedState } from "../_components/access-denied-state";
 import { getBusinessUnitAccessSummary, hasBusinessUnitScope } from "../_lib/business-unit-access";
 import { EmployeeListResponse } from "./types";
@@ -45,6 +53,7 @@ export default async function EmployeesPage({
   const reportingManagerEmployeeId = getSearchParam(
     params.reportingManagerEmployeeId,
   );
+  const selectedViewKey = getSearchParam(params.view);
   const page = getPositiveNumberParam(params.page, 1);
   const pageSize = getPositiveNumberParam(params.pageSize, 10);
 
@@ -61,13 +70,50 @@ export default async function EmployeesPage({
   query.set("page", String(page));
   query.set("pageSize", String(pageSize));
 
-  const [employees, managers, resolvedSettings] = await Promise.all([
+  const [employees, managers, resolvedSettings, publishedViews] = await Promise.all([
     apiRequestJson<EmployeeListResponse>(`/employees?${query.toString()}`),
     apiRequestJson<EmployeeListResponse>("/employees?page=1&pageSize=100"),
     apiRequestJson<TenantResolvedSettingsResponse>("/tenant-settings/resolved").catch(
       () => null,
     ),
+    getTableViews("employees"),
   ]);
+  const employeeViews = withFallbackViews("employees", publishedViews, [
+    {
+      id: "allEmployees",
+      viewKey: "allEmployees",
+      tableKey: "employees",
+      name: "All Employees",
+      type: "system",
+      isDefault: true,
+      columnsJson: {
+        columns: [
+          { columnKey: "firstName" },
+          { columnKey: "employeeCode" },
+          { columnKey: "employmentStatus" },
+          { columnKey: "managerEmployeeId" },
+          { columnKey: "hireDate" },
+          { columnKey: "email" },
+        ],
+      },
+      sortingJson: [{ columnKey: "firstName", direction: "asc" }],
+    },
+  ]);
+  const selectedView =
+    employeeViews.find((view) => view.viewKey === selectedViewKey) ??
+    employeeViews.find((view) => view.isDefault) ??
+    employeeViews[0] ??
+    null;
+  const visibleColumnKeys = resolveVisibleColumns("employees", selectedView, [
+    "firstName",
+    "employeeCode",
+    "employmentStatus",
+    "managerEmployeeId",
+    "hireDate",
+    "email",
+  ]);
+  const viewState = resolveFiltersAndSorting("employees", selectedView);
+  const initialSort = resolveEmployeeSort(viewState.sorting);
 
   const formatting = {
     dateFormat: resolvedSettings?.system.dateFormat || "MM/dd/yyyy",
@@ -108,6 +154,13 @@ export default async function EmployeesPage({
 
       <EmployeesFilterBar managerOptions={managers.items} />
 
+      <ModuleViewSelector
+        configureHref="/dashboard/settings/customization/tables/employees"
+        enabled
+        selectedViewId={selectedView?.viewKey ?? ""}
+        views={employeeViews}
+      />
+
       {employees.items.length === 0 ? (
         <section className="rounded-[24px] border border-dashed border-border bg-surface p-10 text-center shadow-sm">
           <p className="text-sm uppercase tracking-[0.18em] text-muted">
@@ -141,6 +194,8 @@ export default async function EmployeesPage({
         <EmployeesTable
           employees={employees.items}
           formatting={formatting}
+          initialSortColumnKey={initialSort.columnKey}
+          initialSortDirection={initialSort.direction}
           pagination={{
             page: employees.meta?.page ?? page,
             pageSize: employees.meta?.pageSize ?? pageSize,
@@ -152,10 +207,39 @@ export default async function EmployeesPage({
               reportingManagerEmployeeId,
             },
           }}
+          visibleColumnKeys={visibleColumnKeys}
         />
       )}
     </main>
   );
+}
+
+function resolveEmployeeSort(sorting: unknown) {
+  const firstSort = Array.isArray(sorting) ? sorting[0] : null;
+  const columnKey =
+    firstSort && typeof firstSort === "object"
+      ? (firstSort as { columnKey?: unknown }).columnKey
+      : null;
+  const direction =
+    firstSort && typeof firstSort === "object"
+      ? (firstSort as { direction?: unknown }).direction
+      : null;
+
+  const map: Record<string, string> = {
+    firstName: "employee",
+    lastName: "employee",
+    employeeCode: "code",
+    employmentStatus: "status",
+    managerEmployeeId: "reportingManager",
+    hireDate: "hireDate",
+    email: "contact",
+    phone: "contact",
+  };
+
+  return {
+    columnKey: typeof columnKey === "string" ? map[columnKey] ?? "employee" : "employee",
+    direction: direction === "desc" ? "desc" as const : "asc" as const,
+  };
 }
 
 function getSearchParam(value?: string | string[]) {

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { EmployeeEmploymentStatus, EmployeeListItem } from "../types";
 
 const employeeStatuses: EmployeeEmploymentStatus[] = [
@@ -87,12 +88,13 @@ export function EmployeesFilterForm({
         >
           Apply
         </button>
-        <a
-          className="rounded-2xl border border-border px-4 py-3 text-sm font-medium text-muted transition hover:border-accent/30 hover:text-foreground"
+
+        <Link
           href="/dashboard/employees"
+          className="rounded-2xl border border-border px-4 py-3 text-sm font-medium text-muted transition hover:border-accent/30 hover:text-foreground"
         >
           Reset
-        </a>
+        </Link>
       </div>
     </form>
   );

@@ -6,10 +6,10 @@ import type { TenantStatusValue } from "@/lib/domain";
 import { formatEnumLabel } from "@/lib/formatters";
 
 const TENANT_STATUS_OPTIONS: TenantStatusValue[] = [
-  "Onboarding",
-  "Active",
-  "Suspended",
-  "Churned",
+  "ONBOARDING",
+  "ACTIVE",
+  "SUSPENDED",
+  "CHURNED",
 ];
 
 type TenantStatusFormProps = {

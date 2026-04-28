@@ -392,6 +392,36 @@ enum RoleAccessLevel {
   TENANT
 }
 
+enum RoleType {
+  SYSTEM
+  CUSTOM
+}
+
+enum SecurityAccessLevel {
+  NONE
+  USER
+  BUSINESS_UNIT
+  PARENT_CHILD_BUSINESS_UNITS
+  ORGANIZATION
+  TENANT
+}
+
+enum SecurityPrivilege {
+  READ
+  CREATE
+  WRITE
+  DELETE
+  ASSIGN
+  SHARE
+  APPEND
+  IMPORT
+  EXPORT
+  APPROVE
+  REJECT
+  MANAGE
+  CONFIGURE
+}
+
 enum PaymentMode {
   BANK_TRANSFER
   CASH
@@ -445,6 +475,8 @@ model Tenant {
   userPermissions UserPermission[]
   userRoles       UserRole[]
   rolePermissions RolePermission[]
+  rolePrivileges  RolePrivilege[]
+  roleMiscPermissions RoleMiscPermission[]
   refreshTokens   RefreshToken[]
   userInvitations UserInvitation[]
   employees       Employee[]
@@ -499,6 +531,11 @@ model Tenant {
   documentLinks       DocumentLink[]
   tenantSettings      TenantSetting[]
   tenantFeatures      TenantFeature[]
+  customizationTables CustomizationTable[]
+  customizationColumns CustomizationColumn[]
+  customizationViews CustomizationView[]
+  customizationForms  CustomizationForm[]
+  customizationPublishSnapshots CustomizationPublishSnapshot[]
   subscription        Subscription?
   customerAccount     CustomerAccount @relation(fields: [customerAccountId], references: [id], onDelete: Restrict)
   customerOnboardings CustomerOnboarding[]
@@ -909,9 +946,12 @@ model Role {
   tenantId        String
   name            String
   key             String
+  roleType        RoleType         @default(CUSTOM)
   accessLevel     RoleAccessLevel  @default(USER)
   description     String?
   isSystem        Boolean          @default(false)
+  isEditable       Boolean          @default(true)
+  isCloneable      Boolean          @default(true)
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   createdById     String?
@@ -919,11 +959,14 @@ model Role {
   tenant          Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   userRoles       UserRole[]
   rolePermissions RolePermission[]
+  rolePrivileges  RolePrivilege[]
+  miscPermissions RoleMiscPermission[]
 
   @@unique([tenantId, key])
   @@unique([tenantId, name])
   @@index([tenantId])
   @@index([tenantId, isSystem])
+  @@index([tenantId, roleType])
 }
 
 model Permission {
@@ -1000,6 +1043,45 @@ model RolePermission {
   @@index([tenantId])
   @@index([roleId])
   @@index([permissionId])
+}
+
+model RolePrivilege {
+  id          String              @id @default(uuid())
+  tenantId    String
+  roleId      String
+  entityKey   String
+  privilege   SecurityPrivilege
+  accessLevel SecurityAccessLevel @default(NONE)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  createdById String?
+  updatedById String?
+  role        Role                @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  tenant      Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, entityKey, privilege])
+  @@index([tenantId])
+  @@index([tenantId, entityKey])
+  @@index([roleId])
+}
+
+model RoleMiscPermission {
+  id            String   @id @default(uuid())
+  tenantId      String
+  roleId        String
+  permissionKey String
+  enabled       Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  createdById   String?
+  updatedById   String?
+  role          Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionKey])
+  @@index([tenantId])
+  @@index([tenantId, permissionKey])
+  @@index([roleId])
 }
 
 model RefreshToken {
@@ -2596,6 +2678,36 @@ enum ModuleViewVisibilityScope {
   user
 }
 
+enum CustomizationFieldDataType {
+  text
+  textarea
+  number
+  decimal
+  date
+  datetime
+  boolean
+  select
+  multiselect
+  lookup
+  email
+  phone
+  url
+  currency
+}
+
+enum CustomizationFormType {
+  main
+  quick
+  create
+  edit
+}
+
+enum CustomizationPublishStatus {
+  draft
+  published
+  failed
+}
+
 model ModuleView {
   id              String                    @id @default(uuid())
   tenantId        String
@@ -2619,4 +2731,131 @@ model ModuleView {
   @@index([tenantId, moduleKey, isActive])
   @@index([tenantId, moduleKey, isDefault])
   @@unique([tenantId, moduleKey, slug])
+}
+
+model CustomizationTable {
+  id                String   @id @default(uuid())
+  tenantId          String
+  tableKey          String
+  systemName        String
+  displayName       String
+  pluralDisplayName String
+  description       String?
+  icon              String?
+  isCustomizable    Boolean  @default(true)
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  columns           CustomizationColumn[]
+  views             CustomizationView[]
+  forms             CustomizationForm[]
+
+  @@unique([tenantId, tableKey])
+  @@index([tenantId, isActive])
+  @@index([tenantId, isCustomizable])
+}
+
+model CustomizationColumn {
+  id                   String                 @id @default(uuid())
+  tenantId             String
+  tableId              String
+  columnKey            String
+  systemName           String
+  displayName          String
+  dataType             CustomizationFieldDataType
+  fieldType            CustomizationFieldDataType
+  isSystem             Boolean                @default(false)
+  isRequired           Boolean                @default(false)
+  isSearchable         Boolean                @default(false)
+  isSortable           Boolean                @default(false)
+  isVisible            Boolean                @default(true)
+  isReadOnly           Boolean                @default(false)
+  maxLength            Int?
+  minValue             Decimal?
+  maxValue             Decimal?
+  defaultValue         String?
+  lookupTargetTableKey String?
+  optionSetJson        Json?
+  validationJson       Json?
+  sortOrder            Int                    @default(0)
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+
+  tenant               Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  table                CustomizationTable     @relation(fields: [tableId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, tableId, columnKey])
+  @@index([tenantId, tableId])
+  @@index([tenantId, isSystem])
+  @@index([tenantId, tableId, sortOrder])
+}
+
+model CustomizationView {
+  id                String                    @id @default(uuid())
+  tenantId          String
+  tableId           String
+  viewKey           String
+  name              String
+  description       String?
+  type              ModuleViewType            @default(custom)
+  isDefault         Boolean                   @default(false)
+  isHidden          Boolean                   @default(false)
+  columnsJson       Json
+  filtersJson       Json?
+  sortingJson       Json?
+  visibilityScope   ModuleViewVisibilityScope @default(tenant)
+  createdByUserId   String?
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+
+  tenant            Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  table             CustomizationTable        @relation(fields: [tableId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, tableId, viewKey])
+  @@index([tenantId, tableId])
+  @@index([tenantId, tableId, isDefault])
+  @@index([tenantId, tableId, isHidden])
+}
+
+model CustomizationForm {
+  id              String             @id @default(uuid())
+  tenantId        String
+  tableId         String
+  formKey         String
+  name            String
+  description     String?
+  type            CustomizationFormType @default(main)
+  isDefault       Boolean            @default(false)
+  isActive        Boolean            @default(true)
+  layoutJson      Json
+  createdByUserId String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  tenant          Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  table           CustomizationTable @relation(fields: [tableId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, tableId, formKey])
+  @@index([tenantId, tableId])
+  @@index([tenantId, tableId, isActive])
+  @@index([tenantId, tableId, isDefault])
+}
+
+model CustomizationPublishSnapshot {
+  id                String                     @id @default(uuid())
+  tenantId          String
+  version           Int
+  status            CustomizationPublishStatus @default(draft)
+  publishedByUserId String?
+  publishedAt       DateTime?
+  snapshotJson      Json
+  createdAt         DateTime                   @default(now())
+
+  tenant            Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, version])
+  @@index([tenantId, status])
+  @@index([tenantId, createdAt])
 }

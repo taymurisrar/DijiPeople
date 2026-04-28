@@ -11,10 +11,12 @@ import { AttendanceModule } from './modules/attendance/attendance.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { DocumentsModule } from './modules/documents/documents.module';
+import { CustomizationModule } from './modules/customization/customization.module';
 import { EmployeesModule } from './modules/employees/employees.module';
 import { LeaveModule } from './modules/leave/leave.module';
 import { LeadsModule } from './modules/leads/leads.module';
 import { LookupsModule } from './modules/lookups/lookups.module';
+import { ModuleViewsModule } from './modules/views/module-views.module';
 import { OnboardingModule } from './modules/onboarding/onboarding.module';
 import { OrganizationModule } from './modules/organization/organization.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
@@ -39,11 +41,13 @@ import { SuperAdminModule } from './modules/super-admin/super-admin.module';
     AttendanceModule,
     AuditModule,
     AuthModule,
+    CustomizationModule,
     DocumentsModule,
     EmployeesModule,
     LeaveModule,
     LeadsModule,
     LookupsModule,
+    ModuleViewsModule,
     OnboardingModule,
     OrganizationModule,
     PayrollModule,

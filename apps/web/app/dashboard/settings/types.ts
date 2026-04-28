@@ -343,14 +343,66 @@ export type AccessRoleRecord = {
   key: string;
   description?: string | null;
   isSystem: boolean;
+  roleType?: "SYSTEM" | "CUSTOM";
+  isEditable?: boolean;
+  isCloneable?: boolean;
   createdAt: string;
   updatedAt: string;
   rolePermissions: Array<{
     permissionId?: string;
     permission: AccessPermissionRecord;
   }>;
+  rolePrivileges?: Array<{
+    id?: string;
+    entityKey: string;
+    privilege: SecurityPrivilege;
+    accessLevel: SecurityAccessLevel;
+  }>;
+  miscPermissions?: Array<{
+    id?: string;
+    permissionKey: string;
+    enabled: boolean;
+  }>;
   userRoles?: Array<{
     userId: string;
+  }>;
+};
+
+export type SecurityPrivilege =
+  | "READ"
+  | "CREATE"
+  | "WRITE"
+  | "DELETE"
+  | "ASSIGN"
+  | "SHARE"
+  | "APPEND"
+  | "IMPORT"
+  | "EXPORT"
+  | "APPROVE"
+  | "REJECT"
+  | "MANAGE"
+  | "CONFIGURE";
+
+export type SecurityAccessLevel =
+  | "NONE"
+  | "USER"
+  | "BUSINESS_UNIT"
+  | "PARENT_CHILD_BUSINESS_UNITS"
+  | "ORGANIZATION"
+  | "TENANT";
+
+export type RoleMatrixCatalog = {
+  entities: Array<{
+    key: string;
+    label: string;
+    category: string;
+  }>;
+  privileges: SecurityPrivilege[];
+  miscPermissions: Array<{
+    key: string;
+    label: string;
+    description: string;
+    category: string;
   }>;
 };
 

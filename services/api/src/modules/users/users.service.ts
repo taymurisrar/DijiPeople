@@ -132,6 +132,32 @@ export class UsersService {
       );
     }
 
+    const includesGlobalAdministrator = roles.some(
+      (role) => role.key === 'global-admin',
+    );
+
+    if (includesGlobalAdministrator && !ownership.isTargetOwner) {
+      throw new ForbiddenException(
+        'Global Administrator can only be assigned to the tenant owner.',
+      );
+    }
+
+    if (ownership.isTargetOwner) {
+      const globalAdministrator = await this.rolesRepository.findByKeyAndTenant(
+        tenantId,
+        'global-admin',
+      );
+
+      if (
+        globalAdministrator &&
+        !roleIds.includes(globalAdministrator.id)
+      ) {
+        throw new ForbiddenException(
+          'The tenant owner cannot be downgraded from Global Administrator.',
+        );
+      }
+    }
+
     const updatedUser = await this.usersRepository.replaceRoles(
       tenantId,
       userId,
@@ -241,6 +267,13 @@ export class UsersService {
         'Business unit was not found for this tenant.',
       );
     }
+
+    const ownership = await this.getTenantOwnershipContext(
+      tenantId,
+      actorId,
+      userId,
+    );
+    this.assertUserAccessChangeAllowed(ownership);
 
     const beforeSummary = this.mapUserSummary(user);
 
@@ -357,6 +390,19 @@ export class UsersService {
             userRole.role.rolePermissions.map(
               (rolePermission) => rolePermission.permission.key,
             ),
+          ),
+          ...user.userRoles.flatMap((userRole) =>
+            userRole.role.rolePrivileges
+              .filter((privilege) => privilege.accessLevel !== 'NONE')
+              .map(
+                (privilege) =>
+                  `${privilege.entityKey}.${privilege.privilege.toLowerCase()}`,
+              ),
+          ),
+          ...user.userRoles.flatMap((userRole) =>
+            userRole.role.miscPermissions
+              .filter((permission) => permission.enabled)
+              .map((permission) => permission.permissionKey),
           ),
           ...user.userPermissions.map(
             (userPermission) => userPermission.permission.key,
