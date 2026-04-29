@@ -1,10 +1,11 @@
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { getAllowedCorsOrigins } from '@repo/config';
+import { getAllowedCorsOrigins, validateDeploymentEnv } from '@repo/config';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
+  validateDeploymentEnv(process.env, { app: 'api' });
   const app = await NestFactory.create(AppModule);
   const logger = new Logger('Bootstrap');
 

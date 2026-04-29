@@ -353,7 +353,7 @@ export class LeaveService {
     );
 
     const leaveRequest = await this.prisma.$transaction(async (tx) => {
-      return this.leaveRepository.createLeaveRequest(
+      const created = await this.leaveRepository.createLeaveRequest(
         {
           tenantId: currentUser.tenantId,
           employeeId: employee.id,
@@ -374,6 +374,12 @@ export class LeaveService {
         approvalSteps,
         tx,
       );
+
+      if (created.status === LeaveRequestStatus.APPROVED) {
+        await this.recordApprovedLeaveConsumption(created, tx);
+      }
+
+      return created;
     });
 
     return this.mapLeaveRequest(leaveRequest, currentUser);
@@ -588,6 +594,13 @@ export class LeaveService {
           },
           tx,
         );
+
+        if (!hasMorePendingSteps) {
+          await this.recordApprovedLeaveConsumption(
+            { ...leaveRequest, status: LeaveRequestStatus.APPROVED },
+            tx,
+          );
+        }
       }
     });
 
@@ -628,6 +641,62 @@ export class LeaveService {
     }
 
     return leaveRequest;
+  }
+
+  private async recordApprovedLeaveConsumption(
+    leaveRequest: LeaveRequestWithRelations,
+    db: Prisma.TransactionClient,
+  ) {
+    if (leaveRequest.status !== LeaveRequestStatus.APPROVED) {
+      return;
+    }
+
+    const existingConsumption = await db.leaveConsumptionRecord.findFirst({
+      where: {
+        tenantId: leaveRequest.tenantId,
+        leaveRequestId: leaveRequest.id,
+      },
+      select: { id: true },
+    });
+
+    if (existingConsumption) {
+      return;
+    }
+
+    await db.leaveConsumptionRecord.create({
+      data: {
+        tenantId: leaveRequest.tenantId,
+        employeeId: leaveRequest.employeeId,
+        leaveRequestId: leaveRequest.id,
+        leaveTypeId: leaveRequest.leaveTypeId,
+        days: leaveRequest.totalDays,
+        isPaid: leaveRequest.leaveType.isPaid,
+      },
+    });
+
+    await db.leaveBalance.upsert({
+      where: {
+        tenantId_employeeId_leaveTypeId: {
+          tenantId: leaveRequest.tenantId,
+          employeeId: leaveRequest.employeeId,
+          leaveTypeId: leaveRequest.leaveTypeId,
+        },
+      },
+      create: {
+        tenantId: leaveRequest.tenantId,
+        employeeId: leaveRequest.employeeId,
+        leaveTypeId: leaveRequest.leaveTypeId,
+        totalAllocated: new Prisma.Decimal(0),
+        totalUsed: leaveRequest.totalDays,
+        totalRemaining: new Prisma.Decimal(0).minus(leaveRequest.totalDays),
+        lastUpdatedAt: new Date(),
+      },
+      update: {
+        totalUsed: { increment: leaveRequest.totalDays },
+        totalRemaining: { decrement: leaveRequest.totalDays },
+        lastUpdatedAt: new Date(),
+      },
+    });
   }
 
   private async buildApprovalSteps(

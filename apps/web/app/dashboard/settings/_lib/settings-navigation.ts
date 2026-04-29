@@ -252,6 +252,30 @@ export const settingsNavGroups: readonly SettingsNavGroup[] = [
         requiredAnyPermissions: ["settings.read", "payroll.settings.read"],
       },
       {
+        href: "/dashboard/settings/pay-components",
+        label: "Pay Components",
+        description:
+          "Manage reusable earning, allowance, reimbursement, deduction, tax, and adjustment components.",
+        icon: "list-tree",
+        keywords: ["pay components", "earnings", "allowances", "deductions"],
+        requiredAnyPermissions: [
+          PERMISSION_KEYS.PAY_COMPONENTS_READ,
+          PERMISSION_KEYS.PAY_COMPONENTS_MANAGE,
+        ],
+      },
+      {
+        href: "/dashboard/settings/claim-types",
+        label: "Claim Types",
+        description:
+          "Manage reimbursement claim categories, subtypes, and receipt requirements.",
+        icon: "receipt",
+        keywords: ["claims", "reimbursements", "receipts"],
+        requiredAnyPermissions: [
+          PERMISSION_KEYS.CLAIM_TYPES_READ,
+          PERMISSION_KEYS.CLAIM_TYPES_MANAGE,
+        ],
+      },
+      {
         href: "/dashboard/settings/policies",
         label: "Policies",
         description:

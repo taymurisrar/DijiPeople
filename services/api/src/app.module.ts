@@ -1,4 +1,9 @@
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import {
+  MiddlewareConsumer,
+  Module,
+  NestModule,
+  RequestMethod,
+} from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -12,6 +17,7 @@ import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { AgentModule } from './modules/agent/agent.module';
 import { CompensationModule } from './modules/compensation/compensation.module';
+import { ClaimsModule } from './modules/claims/claims.module';
 import { DocumentsModule } from './modules/documents/documents.module';
 import { CustomizationModule } from './modules/customization/customization.module';
 import { DataModule } from './modules/data/data.module';
@@ -26,6 +32,7 @@ import { OrganizationModule } from './modules/organization/organization.module';
 import { PayComponentsModule } from './modules/pay-components/pay-components.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
 import { PayrollModule } from './modules/payroll/payroll.module';
+import { PayslipsModule } from './modules/payslips/payslips.module';
 import { PoliciesModule } from './modules/policies/policies.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { RecruitmentModule } from './modules/recruitment/recruitment.module';
@@ -49,6 +56,7 @@ import { SuperAdminModule } from './modules/super-admin/super-admin.module';
     AgentModule,
     AuditModule,
     AuthModule,
+    ClaimsModule,
     CompensationModule,
     CustomizationModule,
     DataModule,
@@ -63,6 +71,7 @@ import { SuperAdminModule } from './modules/super-admin/super-admin.module';
     OrganizationModule,
     PayComponentsModule,
     PayrollModule,
+    PayslipsModule,
     PoliciesModule,
     ProjectsModule,
     RecruitmentModule,
@@ -81,6 +90,8 @@ import { SuperAdminModule } from './modules/super-admin/super-admin.module';
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(BusinessUnitAccessMiddleware).forRoutes('*');
+    consumer
+      .apply(BusinessUnitAccessMiddleware)
+      .forRoutes({ path: '*path', method: RequestMethod.ALL });
   }
 }

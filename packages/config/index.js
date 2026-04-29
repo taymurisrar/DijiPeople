@@ -55,9 +55,13 @@ function getAppStage(env = process.env) {
 }
 
 function isProductionLike(env = process.env) {
-  const stage = getAppStage(env);
+  const explicitStage = String(
+    env.APP_ENV || env.NEXT_PUBLIC_APP_ENV || env.DIJIPEOPLE_ENV || "",
+  )
+    .trim()
+    .toLowerCase();
   return (
-    stage === "production" ||
+    explicitStage === "production" ||
     env.VERCEL === "1" ||
     env.RENDER === "true"
   );
@@ -115,6 +119,62 @@ function getAllowedCorsOrigins(env = process.env) {
   ];
 }
 
+function requireEnv(env, key) {
+  const value = env[key];
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw new Error(`Missing required environment variable: ${key}`);
+  }
+  return value.trim();
+}
+
+function validateDeploymentEnv(env = process.env, options = {}) {
+  const app = options.app || "api";
+  const productionLike = isProductionLike(env);
+  const errors = [];
+
+  function required(key) {
+    try {
+      requireEnv(env, key);
+    } catch (error) {
+      errors.push(error.message);
+    }
+  }
+
+  if (app === "api") {
+    required("DATABASE_URL");
+    if (productionLike) {
+      required("JWT_ACCESS_SECRET");
+      required("JWT_REFRESH_SECRET");
+      required("API_ORIGIN");
+      required("CORS_ALLOWED_ORIGINS");
+    }
+  } else if (productionLike) {
+    required("NEXT_PUBLIC_API_BASE_URL");
+  }
+
+  if (productionLike) {
+    const accessSecret = env.JWT_ACCESS_SECRET;
+    const refreshSecret = env.JWT_REFRESH_SECRET;
+    if (accessSecret && accessSecret.length < 32) {
+      errors.push("JWT_ACCESS_SECRET must be at least 32 characters in production.");
+    }
+    if (refreshSecret && refreshSecret.length < 32) {
+      errors.push("JWT_REFRESH_SECRET must be at least 32 characters in production.");
+    }
+  }
+
+  if (errors.length > 0) {
+    throw new Error(`Deployment environment validation failed:\n- ${errors.join("\n- ")}`);
+  }
+
+  return {
+    app,
+    productionLike,
+    apiBaseUrl: getApiBaseUrl(env),
+    allowedCorsOrigins: getAllowedCorsOrigins(env),
+  };
+}
+
 function getLocalArchitecture(env = process.env) {
   return {
     landing: getAppOrigin("landing", env),
@@ -134,4 +194,6 @@ module.exports = {
   getLocalArchitecture,
   getAppStage,
   isProductionLike,
+  requireEnv,
+  validateDeploymentEnv,
 };

@@ -24,9 +24,11 @@ import { TerminateEmployeeButton } from "../_components/terminate-employee-butto
 import { Button } from "@/app/components/ui/button";
 import { AccessDeniedState } from "@/app/dashboard/_components/access-denied-state";
 import {
+  EmployeeCompensationHistoryRecord,
   EmployeeHierarchyResponse,
   EmployeeListResponse,
   EmployeeProfile,
+  PayComponentRecord,
 } from "../types";
 import { TenantResolvedSettingsResponse } from "../../settings/types";
 
@@ -54,7 +56,7 @@ const employeeTabs: readonly EmployeeTabConfig[] = [
   {
     key: "payroll",
     label: "Payroll / Compensation",
-    requiredAnyPermissions: [PERMISSION_KEYS.PAYROLL_READ],
+    requiredAnyPermissions: [PERMISSION_KEYS.COMPENSATION_READ],
   },
   { key: "previous-employment", label: "Previous Employment" },
   {
@@ -184,9 +186,18 @@ export default async function EmployeeDetailPage({
 
   let attendanceHistory: AttendanceHistoryResponse | null = null;
   let teamTimesheets: TeamTimesheetsResponse | null = null;
+  let activeCompensation: EmployeeCompensationHistoryRecord | null = null;
+  let compensationHistory: EmployeeCompensationHistoryRecord[] = [];
+  let payComponents: PayComponentRecord[] = [];
 
   try {
-    [attendanceHistory, teamTimesheets] = await Promise.all([
+    [
+      attendanceHistory,
+      teamTimesheets,
+      activeCompensation,
+      compensationHistory,
+      payComponents,
+    ] = await Promise.all([
       activeTab === "attendance" &&
       sessionUser.permissionKeys.includes(PERMISSION_KEYS.ATTENDANCE_READ)
         ? apiRequestJson<AttendanceHistoryResponse>(
@@ -197,6 +208,26 @@ export default async function EmployeeDetailPage({
       sessionUser.permissionKeys.includes(PERMISSION_KEYS.TIMESHEETS_READ)
         ? apiRequestJson<TeamTimesheetsResponse>("/timesheets/team?pageSize=50")
         : Promise.resolve(null),
+      activeTab === "payroll" &&
+      sessionUser.permissionKeys.includes(PERMISSION_KEYS.COMPENSATION_READ)
+        ? apiRequestJson<EmployeeCompensationHistoryRecord | null>(
+            `/employees/${employeeId}/active-compensation`,
+          )
+        : Promise.resolve(null),
+      activeTab === "payroll" &&
+      sessionUser.permissionKeys.includes(PERMISSION_KEYS.COMPENSATION_READ)
+        ? apiRequestJson<EmployeeCompensationHistoryRecord[]>(
+            `/employees/${employeeId}/compensation-history`,
+          )
+        : Promise.resolve([]),
+      activeTab === "payroll" &&
+      sessionUser.permissionKeys.includes(PERMISSION_KEYS.COMPENSATION_READ) &&
+      hasAnyPermission(sessionUser.permissionKeys, [
+        PERMISSION_KEYS.PAY_COMPONENTS_READ,
+        PERMISSION_KEYS.PAY_COMPONENTS_MANAGE,
+      ])
+        ? apiRequestJson<PayComponentRecord[]>("/pay-components?isActive=true")
+        : Promise.resolve([]),
     ]);
   } catch (error: unknown) {
     if (isUnauthorizedApiError(error)) {
@@ -236,6 +267,11 @@ export default async function EmployeeDetailPage({
   const canManageReporting = hasPermission(
     sessionUser.permissionKeys,
     PERMISSION_KEYS.EMPLOYEES_UPDATE,
+  );
+
+  const canManageCompensation = hasPermission(
+    sessionUser.permissionKeys,
+    PERMISSION_KEYS.COMPENSATION_MANAGE,
   );
 
   const disallowedManagerIds = new Set([
@@ -532,8 +568,11 @@ export default async function EmployeeDetailPage({
 
       {activeTab === "payroll" ? (
         <EmployeeCompensationCard
-          compensation={employee.currentCompensation}
+          activeCompensation={activeCompensation}
+          canManage={canManageCompensation}
+          compensationHistory={compensationHistory}
           employeeId={employee.id}
+          payComponents={payComponents}
         />
       ) : null}
 

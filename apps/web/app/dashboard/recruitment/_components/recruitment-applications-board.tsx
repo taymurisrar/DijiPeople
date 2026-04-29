@@ -61,6 +61,8 @@ type ApplicationItem = {
   };
 };
 
+type SortableListeners = ReturnType<typeof useSortable>["listeners"];
+
 type RecruitmentApplicationsBoardProps = {
   applications: ApplicationItem[];
 };
@@ -383,7 +385,7 @@ function ApplicationCard({
   application: ApplicationItem;
   attributes?: DraggableAttributes;
   dragging?: boolean;
-  listeners?: any;
+  listeners?: SortableListeners;
 }) {
   const appliedDate = new Date(application.appliedAt).toLocaleDateString();
 

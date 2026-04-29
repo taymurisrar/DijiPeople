@@ -78,10 +78,7 @@ function buildWhere(metadata: EntityMetadata, query: ValidatedEntityQuery) {
   return combineAnd(filters);
 }
 
-function mapFilter(
-  metadata: EntityMetadata,
-  filter: EntityFilterExpression,
-) {
+function mapFilter(metadata: EntityMetadata, filter: EntityFilterExpression) {
   const fieldMetadata = metadata.fields[filter.field];
   const prismaField = toPrismaField(fieldMetadata, filter.field);
 
@@ -204,7 +201,10 @@ function assertStringField(
   }
 }
 
-function toPrismaField(fieldMetadata: EntityFieldMetadata, publicField: string) {
+function toPrismaField(
+  fieldMetadata: EntityFieldMetadata,
+  publicField: string,
+) {
   return fieldMetadata.prismaField ?? publicField;
 }
 

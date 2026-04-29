@@ -1,6 +1,10 @@
 import Link from "next/link";
 
 const items = [
+  { href: "/dashboard/payroll/calendars", label: "Calendars" },
+  { href: "/dashboard/payroll/periods", label: "Periods" },
+  { href: "/dashboard/payroll/runs", label: "Runs" },
+  { href: "/dashboard/payroll/payslips", label: "Payslips" },
   { href: "/dashboard/payroll/cycles", label: "Payroll Cycles" },
   { href: "/dashboard/payroll/compensation", label: "Employee Compensation" },
 ];
@@ -29,4 +33,3 @@ export function PayrollNav({ currentPath }: { currentPath: string }) {
     </nav>
   );
 }
-

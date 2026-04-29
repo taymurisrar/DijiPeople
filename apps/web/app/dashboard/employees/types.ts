@@ -474,6 +474,67 @@ export type EmployeeCompensationRecord = {
   updatedAt: string;
 };
 
+export type PayComponentRecord = {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  componentType:
+    | "EARNING"
+    | "ALLOWANCE"
+    | "REIMBURSEMENT"
+    | "DEDUCTION"
+    | "TAX"
+    | "EMPLOYER_CONTRIBUTION"
+    | "ADJUSTMENT";
+  calculationMethod:
+    | "FIXED"
+    | "PERCENTAGE"
+    | "FORMULA"
+    | "MANUAL"
+    | "SYSTEM_CALCULATED";
+  isTaxable: boolean;
+  affectsGrossPay: boolean;
+  affectsNetPay: boolean;
+  isRecurring: boolean;
+  requiresApproval: boolean;
+  displayOnPayslip: boolean;
+  displayOrder: number;
+  isActive: boolean;
+};
+
+export type EmployeeCompensationHistoryRecord = {
+  id: string;
+  tenantId: string;
+  employeeId: string;
+  effectiveFrom: string;
+  effectiveTo?: string | null;
+  payFrequency: "MONTHLY" | "WEEKLY" | "BIWEEKLY" | "DAILY" | "HOURLY";
+  currencyCode: string;
+  baseAmount: string;
+  status: "DRAFT" | "ACTIVE" | "RETIRED";
+  notes?: string | null;
+  createdBy?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  components: EmployeeCompensationComponentRecord[];
+};
+
+export type EmployeeCompensationComponentRecord = {
+  id: string;
+  tenantId: string;
+  compensationHistoryId: string;
+  payComponentId: string;
+  amount?: string | null;
+  percentage?: string | null;
+  calculationMethodSnapshot: PayComponentRecord["calculationMethod"];
+  isRecurring: boolean;
+  displayOrder: number;
+  createdAt: string;
+  updatedAt: string;
+  payComponent: PayComponentRecord;
+};
+
 export type EmployeePreviousEmploymentRecord = {
   id: string;
   tenantId: string;

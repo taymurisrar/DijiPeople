@@ -58,10 +58,7 @@ export type EntityMetadata = {
   expands: Record<string, EntityExpandMetadata>;
 };
 
-export type EntityQueryParams = Record<
-  string,
-  string | string[] | undefined
->;
+export type EntityQueryParams = Record<string, string | string[] | undefined>;
 
 export type EntityFilterOperator =
   | 'eq'

@@ -32,3 +32,19 @@ export declare function getLocalArchitecture(env?: NodeJS.ProcessEnv): {
   admin: string;
   api: string;
 };
+
+export declare function getAppStage(env?: NodeJS.ProcessEnv): string;
+
+export declare function isProductionLike(env?: NodeJS.ProcessEnv): boolean;
+
+export declare function requireEnv(env: NodeJS.ProcessEnv, key: string): string;
+
+export declare function validateDeploymentEnv(
+  env?: NodeJS.ProcessEnv,
+  options?: { app?: "api" | "web" | "admin" | "landing" },
+): {
+  app: string;
+  productionLike: boolean;
+  apiBaseUrl: string;
+  allowedCorsOrigins: string[];
+};

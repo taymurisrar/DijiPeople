@@ -6,7 +6,8 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "nest build",
+    "build": "npm run prisma:generate && nest build",
+    "check-types": "tsc --noEmit -p tsconfig.build.json",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
@@ -24,7 +25,10 @@
     "prisma:migrate:status": "prisma migrate status",
     "prisma:studio": "prisma studio",
     "seed:admin": "ts-node prisma/seed-admin.ts",
-    "release": "npm run prisma:migrate:deploy && npm run seed:admin"
+    "seed:system": "ts-node prisma/seed-system.ts",
+    "seed:demo": "ts-node prisma/seed-demo.ts",
+    "seed:all": "npm run seed:system && npm run seed:admin && npm run seed:demo",
+    "release": "npm run prisma:migrate:deploy && npm run seed:system && npm run seed:admin"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

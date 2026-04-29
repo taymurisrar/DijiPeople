@@ -416,6 +416,112 @@ enum EmployeeCompensationHistoryStatus {
   RETIRED
 }
 
+enum PayrollCalendarFrequency {
+  MONTHLY
+  SEMI_MONTHLY
+  BIWEEKLY
+  WEEKLY
+}
+
+enum PayrollPeriodStatus {
+  OPEN
+  INPUT_CLOSED
+  PROCESSING
+  APPROVED
+  PAID
+  LOCKED
+}
+
+enum PayrollRunStatus {
+  DRAFT
+  CALCULATING
+  CALCULATED
+  REVIEWED
+  APPROVED
+  PAID
+  LOCKED
+  FAILED
+}
+
+enum PayrollRunEmployeeStatus {
+  PENDING
+  CALCULATED
+  EXCEPTION
+  REVIEWED
+  APPROVED
+  PAID
+  LOCKED
+}
+
+enum PayrollRunLineItemCategory {
+  EARNING
+  ALLOWANCE
+  REIMBURSEMENT
+  DEDUCTION
+  TAX
+  EMPLOYER_CONTRIBUTION
+  ADJUSTMENT
+}
+
+enum PayrollInputSnapshotSourceType {
+  COMPENSATION
+  ATTENDANCE
+  TIMESHEET
+  LEAVE
+  CLAIM
+  TADA
+  BONUS
+  COMMISSION
+  DEDUCTION
+  TAX
+  MANUAL
+  POLICY
+}
+
+enum PayrollExceptionSeverity {
+  INFO
+  WARNING
+  ERROR
+  BLOCKER
+}
+
+enum PayslipStatus {
+  DRAFT
+  GENERATED
+  PUBLISHED
+  VOID
+}
+
+enum PayslipEventType {
+  GENERATED
+  REGENERATED
+  PUBLISHED
+  VOIDED
+  VIEWED
+  DOWNLOADED
+}
+
+enum ClaimRequestStatus {
+  DRAFT
+  SUBMITTED
+  MANAGER_APPROVED
+  PAYROLL_APPROVED
+  REJECTED
+  INCLUDED_IN_PAYROLL
+  PAID
+  CANCELLED
+}
+
+enum ClaimApprovalStep {
+  MANAGER
+  PAYROLL
+}
+
+enum ClaimApprovalStatus {
+  APPROVED
+  REJECTED
+}
+
 enum RoleAccessLevel {
   USER
   BUSINESS_UNIT
@@ -579,6 +685,13 @@ model Tenant {
   policyAssignments PolicyAssignment[]
   policySnapshots   PolicySnapshot[]
   leaveRequests    LeaveRequest[]
+  leaveBalances    LeaveBalance[]
+  leaveConsumptionRecords LeaveConsumptionRecord[]
+  claimTypes       ClaimType[]
+  claimSubTypes    ClaimSubType[]
+  claimRequests    ClaimRequest[]
+  claimLineItems   ClaimLineItem[]
+  claimApprovals   ClaimApproval[]
   leaveApprovalSteps LeaveApprovalStep[]
   approvalMatrices ApprovalMatrix[]
   workSchedules    WorkSchedule[]
@@ -610,6 +723,16 @@ model Tenant {
   onboardingTasks      OnboardingTask[]
   payrollCycles        PayrollCycle[]
   payrollRecords       PayrollRecord[]
+  payrollCalendars     PayrollCalendar[]
+  payrollPeriods       PayrollPeriod[]
+  payrollRuns          PayrollRun[]
+  payrollRunEmployees  PayrollRunEmployee[]
+  payrollRunLineItems  PayrollRunLineItem[]
+  payrollInputSnapshots PayrollInputSnapshot[]
+  payrollExceptions    PayrollException[]
+  payslips             Payslip[]
+  payslipLineItems     PayslipLineItem[]
+  payslipEventLogs     PayslipEventLog[]
   salaryComponents     SalaryComponent[]
   payComponents        PayComponent[]
   employeeCompensations EmployeeCompensation[]
@@ -1034,6 +1157,7 @@ model BusinessUnit {
   teams                Team[]
   timesheets           Timesheet[]
   payrollCycles        PayrollCycle[]
+  payrollCalendars     PayrollCalendar[]
   processingCycles     ProcessingCycle[]
 
   @@unique([id, tenantId])
@@ -1393,6 +1517,10 @@ model Employee {
   educationRecords      EmployeeEducation[]
   historyRecords        EmployeeHistory[]
   leaveRequests         LeaveRequest[]
+  leaveBalances         LeaveBalance[]
+  leaveConsumptionRecords LeaveConsumptionRecord[]
+  claimRequests        ClaimRequest[]
+  claimLineItems       ClaimLineItem[]
   attendanceEntries     AttendanceEntry[]
   timesheets            Timesheet[]
   timesheetEntries      TimesheetEntry[]
@@ -1400,6 +1528,9 @@ model Employee {
   onboardings           EmployeeOnboarding[]
   documentLinks         DocumentLink[]
   payrollRecords        PayrollRecord[]
+  payrollRunEmployees   PayrollRunEmployee[]
+  payrollExceptions     PayrollException[]
+  payslips              Payslip[]
   compensations         EmployeeCompensation[]
   compensationHistories EmployeeCompensationHistory[]
   employeeDevices       EmployeeDevice[]
@@ -1643,6 +1774,8 @@ model LeaveType {
   updatedById      String?
   tenant           Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   leaveRequests    LeaveRequest[]
+  leaveBalances    LeaveBalance[]
+  leaveConsumptionRecords LeaveConsumptionRecord[]
   approvalMatrices ApprovalMatrix[]
 
   @@unique([tenantId, name])
@@ -1720,6 +1853,7 @@ model LeaveRequest {
   employee             Employee               @relation(fields: [employeeId], references: [id], onDelete: Cascade)
     leaveType            LeaveType              @relation(fields: [leaveTypeId], references: [id], onDelete: Restrict)
     approvalSteps        LeaveApprovalStep[]
+    consumptionRecords   LeaveConsumptionRecord[]
     documentLinks        DocumentLink[]
     timesheetEntries     TimesheetEntry[]
 
@@ -1727,6 +1861,43 @@ model LeaveRequest {
   @@index([tenantId, employeeId])
   @@index([tenantId, status])
   @@index([tenantId, startDate, endDate])
+}
+
+model LeaveBalance {
+  id             String    @id @default(uuid())
+  tenantId       String
+  employeeId     String
+  leaveTypeId    String
+  totalAllocated Decimal   @default(0) @db.Decimal(8, 2)
+  totalUsed      Decimal   @default(0) @db.Decimal(8, 2)
+  totalRemaining Decimal   @default(0) @db.Decimal(8, 2)
+  lastUpdatedAt  DateTime  @default(now())
+  tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee       Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  leaveType      LeaveType @relation(fields: [leaveTypeId], references: [id], onDelete: Restrict)
+
+  @@unique([tenantId, employeeId, leaveTypeId])
+  @@index([tenantId, employeeId])
+  @@index([tenantId, leaveTypeId])
+}
+
+model LeaveConsumptionRecord {
+  id             String       @id @default(uuid())
+  tenantId       String
+  employeeId     String
+  leaveRequestId String
+  leaveTypeId    String
+  days           Decimal      @db.Decimal(8, 2)
+  isPaid         Boolean
+  createdAt      DateTime     @default(now())
+  tenant         Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee       Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  leaveRequest   LeaveRequest @relation(fields: [leaveRequestId], references: [id], onDelete: Cascade)
+  leaveType      LeaveType    @relation(fields: [leaveTypeId], references: [id], onDelete: Restrict)
+
+  @@unique([tenantId, leaveRequestId])
+  @@index([tenantId, employeeId])
+  @@index([tenantId, leaveTypeId])
 }
 
 model LeaveApprovalStep {
@@ -2523,6 +2694,7 @@ model Document {
   uploadedByUser     User?             @relation("UploadedDocuments", fields: [uploadedByUserId], references: [id], onDelete: SetNull)
   profileImageForEmployee Employee?    @relation("EmployeeProfileImage")
   links              DocumentLink[]
+  receiptClaimLineItems ClaimLineItem[]
 
   @@index([tenantId])
   @@index([tenantId, documentTypeId])
@@ -2796,6 +2968,365 @@ model PayrollRecord {
   @@index([tenantId, status])
 }
 
+model PayrollCalendar {
+  id             String                   @id @default(uuid())
+  tenantId       String
+  businessUnitId String?
+  name           String
+  frequency      PayrollCalendarFrequency
+  timezone       String                   @default("UTC")
+  currencyCode   String
+  isDefault      Boolean                  @default(false)
+  isActive       Boolean                  @default(true)
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+  tenant         Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  businessUnit   BusinessUnit?            @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  periods        PayrollPeriod[]
+
+  @@unique([id, tenantId])
+  @@index([tenantId, businessUnitId])
+  @@index([tenantId, isActive])
+}
+
+model PayrollPeriod {
+  id                String              @id @default(uuid())
+  tenantId          String
+  payrollCalendarId String
+  name              String
+  periodStart       DateTime
+  periodEnd         DateTime
+  cutoffDate        DateTime?
+  paymentDate       DateTime?
+  status            PayrollPeriodStatus @default(OPEN)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  tenant            Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payrollCalendar   PayrollCalendar     @relation(fields: [payrollCalendarId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  runs              PayrollRun[]
+
+  @@unique([id, tenantId])
+  @@unique([payrollCalendarId, periodStart, periodEnd])
+  @@index([tenantId, payrollCalendarId, periodStart])
+}
+
+model PayrollRun {
+  id                             String                  @id @default(uuid())
+  tenantId                       String
+  payrollPeriodId                String
+  runNumber                      Int                     @default(1)
+  status                         PayrollRunStatus        @default(DRAFT)
+  calculationStartedAt           DateTime?
+  calculatedAt                   DateTime?
+  approvedAt                     DateTime?
+  paidAt                         DateTime?
+  lockedAt                       DateTime?
+  createdBy                      String?
+  approvedBy                     String?
+  lockedBy                       String?
+  checksum                       String?
+  inputChangedAfterCalculation   Boolean                 @default(false)
+  requiresRecalculation          Boolean                 @default(false)
+  correlationId                  String?
+  notes                          String?
+  createdAt                      DateTime                @default(now())
+  updatedAt                      DateTime                @updatedAt
+  tenant                         Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payrollPeriod                  PayrollPeriod           @relation(fields: [payrollPeriodId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  employees                      PayrollRunEmployee[]
+  exceptions                     PayrollException[]
+  payslips                       Payslip[]
+
+  @@unique([payrollPeriodId, runNumber])
+  @@index([tenantId, status])
+  @@index([tenantId, payrollPeriodId])
+}
+
+model PayrollRunEmployee {
+  id                       String                   @id @default(uuid())
+  tenantId                 String
+  payrollRunId             String
+  employeeId               String
+  status                   PayrollRunEmployeeStatus @default(PENDING)
+  currencyCode             String
+  grossEarnings            Decimal                  @default(0) @db.Decimal(12, 2)
+  totalDeductions          Decimal                  @default(0) @db.Decimal(12, 2)
+  totalTaxes               Decimal                  @default(0) @db.Decimal(12, 2)
+  totalReimbursements      Decimal                  @default(0) @db.Decimal(12, 2)
+  employerContributions    Decimal                  @default(0) @db.Decimal(12, 2)
+  netPay                   Decimal                  @default(0) @db.Decimal(12, 2)
+  calculationSummary       Json?
+  createdAt                DateTime                 @default(now())
+  updatedAt                DateTime                 @updatedAt
+  tenant                   Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payrollRun               PayrollRun               @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
+  employee                 Employee                 @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  lineItems                PayrollRunLineItem[]
+  inputSnapshots           PayrollInputSnapshot[]
+  payslip                  Payslip?
+  claimLineItems           ClaimLineItem[]
+
+  @@unique([payrollRunId, employeeId])
+  @@index([tenantId, employeeId])
+  @@index([tenantId, payrollRunId])
+}
+
+model PayrollRunLineItem {
+  id                   String                     @id @default(uuid())
+  tenantId             String
+  payrollRunEmployeeId String
+  payComponentId       String?
+  category             PayrollRunLineItemCategory
+  sourceType           String?
+  sourceId             String?
+  label                String
+  quantity             Decimal?                   @db.Decimal(12, 4)
+  rate                 Decimal?                   @db.Decimal(12, 4)
+  amount               Decimal                    @db.Decimal(12, 2)
+  currencyCode         String
+  isTaxable            Boolean                    @default(false)
+  affectsGrossPay      Boolean                    @default(true)
+  affectsNetPay        Boolean                    @default(true)
+  displayOnPayslip     Boolean                    @default(true)
+  displayOrder         Int                        @default(0)
+  createdAt            DateTime                   @default(now())
+  updatedAt            DateTime                   @updatedAt
+  tenant               Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payrollRunEmployee   PayrollRunEmployee         @relation(fields: [payrollRunEmployeeId], references: [id], onDelete: Cascade)
+  payComponent         PayComponent?              @relation(fields: [payComponentId], references: [id], onDelete: SetNull)
+  payslipLineItems     PayslipLineItem[]
+
+  @@index([tenantId, payrollRunEmployeeId])
+  @@index([tenantId, category])
+  @@index([tenantId, sourceType, sourceId])
+}
+
+model PayrollInputSnapshot {
+  id                   String                         @id @default(uuid())
+  tenantId             String
+  payrollRunEmployeeId String
+  sourceType           PayrollInputSnapshotSourceType
+  sourceId             String?
+  effectiveDate        DateTime?
+  snapshotData         Json
+  createdAt            DateTime                       @default(now())
+  tenant               Tenant                         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payrollRunEmployee   PayrollRunEmployee             @relation(fields: [payrollRunEmployeeId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, payrollRunEmployeeId])
+  @@index([tenantId, sourceType, sourceId])
+}
+
+model PayrollException {
+  id           String                   @id @default(uuid())
+  tenantId     String
+  payrollRunId String
+  employeeId   String?
+  severity     PayrollExceptionSeverity
+  errorType    String
+  message      String
+  details      Json?
+  isResolved   Boolean                  @default(false)
+  resolvedAt   DateTime?
+  resolvedBy   String?
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
+  tenant       Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payrollRun   PayrollRun               @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
+  employee     Employee?                @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, payrollRunId])
+  @@index([tenantId, employeeId])
+  @@index([tenantId, severity, isResolved])
+}
+
+model Payslip {
+  id                   String             @id @default(uuid())
+  tenantId             String
+  payrollRunId         String
+  payrollRunEmployeeId String             @unique
+  employeeId           String
+  payslipNumber        String
+  status               PayslipStatus      @default(DRAFT)
+  currencyCode         String
+  grossEarnings        Decimal            @default(0) @db.Decimal(12, 2)
+  totalDeductions      Decimal            @default(0) @db.Decimal(12, 2)
+  totalTaxes           Decimal            @default(0) @db.Decimal(12, 2)
+  totalReimbursements  Decimal            @default(0) @db.Decimal(12, 2)
+  employerContributions Decimal           @default(0) @db.Decimal(12, 2)
+  netPay               Decimal            @default(0) @db.Decimal(12, 2)
+  generatedAt          DateTime?
+  publishedAt          DateTime?
+  voidedAt             DateTime?
+  voidReason           String?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  tenant               Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payrollRun           PayrollRun         @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
+  payrollRunEmployee   PayrollRunEmployee @relation(fields: [payrollRunEmployeeId], references: [id], onDelete: Restrict)
+  employee             Employee           @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  lineItems            PayslipLineItem[]
+  eventLogs            PayslipEventLog[]
+
+  @@unique([tenantId, payslipNumber])
+  @@index([tenantId, employeeId])
+  @@index([tenantId, payrollRunId])
+  @@index([tenantId, status])
+}
+
+model PayslipLineItem {
+  id                   String                     @id @default(uuid())
+  tenantId             String
+  payslipId            String
+  payrollRunLineItemId String?
+  payComponentId       String?
+  category             PayrollRunLineItemCategory
+  label                String
+  quantity             Decimal?                   @db.Decimal(12, 4)
+  rate                 Decimal?                   @db.Decimal(12, 4)
+  amount               Decimal                    @db.Decimal(12, 2)
+  currencyCode         String
+  displayOrder         Int                        @default(0)
+  displayOnPayslip     Boolean                    @default(true)
+  createdAt            DateTime                   @default(now())
+  tenant               Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payslip              Payslip                    @relation(fields: [payslipId], references: [id], onDelete: Cascade)
+  payrollRunLineItem   PayrollRunLineItem?        @relation(fields: [payrollRunLineItemId], references: [id], onDelete: SetNull)
+  payComponent         PayComponent?              @relation(fields: [payComponentId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, payslipId])
+  @@index([tenantId, category])
+}
+
+model PayslipEventLog {
+  id          String           @id @default(uuid())
+  tenantId    String
+  payslipId   String
+  eventType   PayslipEventType
+  actorUserId String?
+  message     String?
+  metadata    Json?
+  createdAt   DateTime         @default(now())
+  tenant      Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payslip     Payslip          @relation(fields: [payslipId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, payslipId])
+  @@index([tenantId, eventType])
+}
+
+model ClaimType {
+  id          String         @id @default(uuid())
+  tenantId    String
+  code        String
+  name        String
+  description String?
+  isActive    Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  tenant      Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subTypes    ClaimSubType[]
+  lineItems   ClaimLineItem[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId, isActive])
+}
+
+model ClaimSubType {
+  id              String          @id @default(uuid())
+  tenantId        String
+  claimTypeId     String
+  code            String
+  name            String
+  description     String?
+  requiresReceipt Boolean         @default(false)
+  isActive        Boolean         @default(true)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  tenant          Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  claimType       ClaimType       @relation(fields: [claimTypeId], references: [id], onDelete: Cascade)
+  lineItems       ClaimLineItem[]
+
+  @@unique([claimTypeId, code])
+  @@index([tenantId, claimTypeId])
+  @@index([tenantId, isActive])
+}
+
+model ClaimRequest {
+  id                  String             @id @default(uuid())
+  tenantId            String
+  employeeId          String
+  submittedByUserId   String?
+  status              ClaimRequestStatus @default(DRAFT)
+  title               String
+  description         String?
+  submittedAmount     Decimal            @default(0) @db.Decimal(12, 2)
+  approvedAmount      Decimal            @default(0) @db.Decimal(12, 2)
+  currencyCode        String
+  submittedAt         DateTime?
+  managerApprovedAt   DateTime?
+  payrollApprovedAt   DateTime?
+  rejectedAt          DateTime?
+  includedInPayrollAt DateTime?
+  paidAt              DateTime?
+  rejectionReason     String?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  tenant              Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee            Employee           @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  lineItems           ClaimLineItem[]
+  approvals           ClaimApproval[]
+
+  @@index([tenantId, employeeId])
+  @@index([tenantId, status])
+}
+
+model ClaimLineItem {
+  id                   String              @id @default(uuid())
+  tenantId             String
+  claimRequestId       String
+  employeeId           String
+  claimTypeId          String
+  claimSubTypeId       String?
+  transactionDate      DateTime
+  vendor               String?
+  description          String?
+  amount               Decimal             @db.Decimal(12, 2)
+  approvedAmount       Decimal?            @db.Decimal(12, 2)
+  currencyCode         String
+  receiptDocumentId    String?
+  payrollRunEmployeeId String?
+  payrollIncludedAt    DateTime?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  tenant               Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  claimRequest         ClaimRequest        @relation(fields: [claimRequestId], references: [id], onDelete: Cascade)
+  employee             Employee            @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  claimType            ClaimType           @relation(fields: [claimTypeId], references: [id], onDelete: Restrict)
+  claimSubType         ClaimSubType?       @relation(fields: [claimSubTypeId], references: [id], onDelete: Restrict)
+  receiptDocument      Document?           @relation(fields: [receiptDocumentId], references: [id], onDelete: SetNull)
+  payrollRunEmployee   PayrollRunEmployee? @relation(fields: [payrollRunEmployeeId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, claimRequestId])
+  @@index([tenantId, claimTypeId])
+  @@index([tenantId, payrollRunEmployeeId])
+}
+
+model ClaimApproval {
+  id             String              @id @default(uuid())
+  tenantId       String
+  claimRequestId String
+  step           ClaimApprovalStep
+  status         ClaimApprovalStatus
+  actorUserId    String?
+  comments       String?
+  createdAt      DateTime            @default(now())
+  tenant         Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  claimRequest   ClaimRequest        @relation(fields: [claimRequestId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, claimRequestId])
+  @@index([tenantId, step])
+}
+
 model SalaryComponent {
   id            String              @id @default(uuid())
   tenantId      String
@@ -2837,6 +3368,8 @@ model PayComponent {
   updatedAt         DateTime                      @updatedAt
   tenant            Tenant                        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   compensationComponents EmployeeCompensationComponent[]
+  payrollRunLineItems PayrollRunLineItem[]
+  payslipLineItems PayslipLineItem[]
 
   @@unique([id, tenantId])
   @@unique([tenantId, code])

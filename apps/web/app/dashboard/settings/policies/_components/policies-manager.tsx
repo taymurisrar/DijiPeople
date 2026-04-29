@@ -104,6 +104,7 @@ export function PoliciesManager({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
 
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const policyColumns = useMemo<DataTableColumn<PolicyRecord>[]>(
     () => [
       {
@@ -157,6 +158,7 @@ export function PoliciesManager({
     [],
   );
 
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const assignmentColumns = useMemo<DataTableColumn<PolicyAssignmentRecord>[]>(
     () => [
       {

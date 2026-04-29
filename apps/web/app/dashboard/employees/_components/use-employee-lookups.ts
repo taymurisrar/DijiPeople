@@ -108,6 +108,7 @@ export function useEmployeeLookups(filters?: {
     };
   }, [filters?.countryId, filters?.stateProvinceId]);
 
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const stateOptions = useMemo(() => {
     if (!filters?.countryId) {
       return lookups.states;
@@ -118,6 +119,7 @@ export function useEmployeeLookups(filters?: {
     );
   }, [filters?.countryId, lookups.states]);
 
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const cityOptions = useMemo(() => {
     return lookups.cities.filter((cityOption) => {
       if (

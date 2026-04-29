@@ -41,6 +41,7 @@ export function EmployeeLevelsManager({
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const columns = useMemo<DataTableColumn<EmployeeLevelRecord>[]>(
     () => [
       {

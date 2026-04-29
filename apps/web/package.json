@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "node ../../scripts/next-with-port.mjs dev 3001",
     "build": "next build",
+    "check-types": "next typegen && tsc --noEmit",
     "release": "npm run build",
     "start": "node ../../scripts/next-with-port.mjs start 3001",
     "lint": "eslint"

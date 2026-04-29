@@ -60,7 +60,12 @@ export function EmployeeProfileImageCard({
   }, [employeeName]);
 
   useEffect(() => {
-    setAvatarVersion(profileImage?.id ?? profileImage?.createdAt ?? null);
+    const timeoutId = window.setTimeout(
+      () => setAvatarVersion(profileImage?.id ?? profileImage?.createdAt ?? null),
+      0,
+    );
+
+    return () => window.clearTimeout(timeoutId);
   }, [profileImage?.createdAt, profileImage?.id]);
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {

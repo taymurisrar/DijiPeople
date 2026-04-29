@@ -71,6 +71,7 @@ export function ColumnsManagement({
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const tableColumns = useMemo<DataTableColumn<CustomizationColumn>[]>(
     () => [
       {

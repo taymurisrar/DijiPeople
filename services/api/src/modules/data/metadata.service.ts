@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import {
   EntityFieldMetadata,
@@ -10,9 +14,7 @@ import { getEntityMetadata, listEntityMetadata } from './entity-registry';
 
 @Injectable()
 export class MetadataService {
-  constructor(
-    private readonly permissionResolver: EntityPermissionResolver,
-  ) {}
+  constructor(private readonly permissionResolver: EntityPermissionResolver) {}
 
   listEntities(user: AuthenticatedUser) {
     return {

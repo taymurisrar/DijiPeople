@@ -30,7 +30,9 @@ export function UserMenuDropdown({
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    setIsOpen(false);
+    const timeoutId = window.setTimeout(() => setIsOpen(false), 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [pathname]);
 
   useEffect(() => {

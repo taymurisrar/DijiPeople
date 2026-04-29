@@ -258,6 +258,7 @@ export class AuthService {
     rememberMe?: boolean,
   ) {
     const isProduction = this.isProduction();
+    const domain = this.getCookieDomain();
 
     const accessMaxAge = rememberMe
       ? parseDurationToMilliseconds(tokens.accessTokenExpiresIn)
@@ -272,6 +273,7 @@ export class AuthService {
       secure: isProduction,
       sameSite: isProduction ? 'none' : 'lax',
       path: '/',
+      domain,
       maxAge: accessMaxAge,
     });
 
@@ -280,18 +282,21 @@ export class AuthService {
       secure: isProduction,
       sameSite: isProduction ? 'none' : 'lax',
       path: '/',
+      domain,
       maxAge: refreshMaxAge,
     });
   }
 
   clearAuthCookies(res: Response) {
     const isProduction = this.isProduction();
+    const domain = this.getCookieDomain();
 
     res.clearCookie(ACCESS_TOKEN_COOKIE, {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? 'none' : 'lax',
       path: '/',
+      domain,
     });
 
     res.clearCookie(REFRESH_TOKEN_COOKIE, {
@@ -299,11 +304,16 @@ export class AuthService {
       secure: isProduction,
       sameSite: isProduction ? 'none' : 'lax',
       path: '/',
+      domain,
     });
   }
 
   private isProduction() {
     return this.configService.get<string>('NODE_ENV') === 'production';
+  }
+
+  private getCookieDomain() {
+    return this.configService.get<string>('AUTH_COOKIE_DOMAIN') || undefined;
   }
 
   private async validateCredentials(dto: LoginDto) {

@@ -25,9 +25,7 @@ export function validateEntityQuery(
     }
 
     if (!definition.filterable) {
-      throw new BadRequestException(
-        `Field is not filterable: ${filter.field}`,
-      );
+      throw new BadRequestException(`Field is not filterable: ${filter.field}`);
     }
   }
 
@@ -45,7 +43,9 @@ export function validateEntityQuery(
   for (const expand of query.expand) {
     const definition = metadata.expands[expand.relation];
     if (!definition) {
-      throw new BadRequestException(`Unknown expand relation: ${expand.relation}`);
+      throw new BadRequestException(
+        `Unknown expand relation: ${expand.relation}`,
+      );
     }
 
     if (definition.maxDepth < 1) {

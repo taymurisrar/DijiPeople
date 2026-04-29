@@ -118,7 +118,10 @@ function parseOrderBy(value: string | undefined): EntityOrderByMetadata[] {
       );
     }
 
-    return { field, direction: direction as EntityOrderByMetadata['direction'] };
+    return {
+      field,
+      direction: direction,
+    };
   });
 }
 
@@ -169,7 +172,8 @@ function parseFilterExpression(value: string): EntityFilterExpression {
   );
   if (functionMatch) {
     return {
-      operator: functionMatch[1].toLowerCase() as EntityFilterExpression['operator'],
+      operator:
+        functionMatch[1].toLowerCase() as EntityFilterExpression['operator'],
       field: functionMatch[2],
       value: unescapeODataString(functionMatch[3]),
     };
@@ -181,13 +185,12 @@ function parseFilterExpression(value: string): EntityFilterExpression {
   if (nullMatch) {
     return {
       field: nullMatch[1],
-      operator: nullMatch[2].toLowerCase() as EntityFilterExpression['operator'],
+      operator:
+        nullMatch[2].toLowerCase() as EntityFilterExpression['operator'],
     };
   }
 
-  const inMatch = value.match(
-    /^([A-Za-z][A-Za-z0-9_]*)\s+in\s+\((.*)\)$/i,
-  );
+  const inMatch = value.match(/^([A-Za-z][A-Za-z0-9_]*)\s+in\s+\((.*)\)$/i);
   if (inMatch) {
     const values = splitTopLevel(inMatch[2], ',').map(parseLiteral);
     if (values.length === 0) {
@@ -203,7 +206,8 @@ function parseFilterExpression(value: string): EntityFilterExpression {
   if (binaryMatch) {
     return {
       field: binaryMatch[1],
-      operator: binaryMatch[2].toLowerCase() as EntityFilterExpression['operator'],
+      operator:
+        binaryMatch[2].toLowerCase() as EntityFilterExpression['operator'],
       value: parseLiteral(binaryMatch[3]),
     };
   }

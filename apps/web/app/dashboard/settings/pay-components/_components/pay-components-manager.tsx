@@ -73,8 +73,10 @@ const emptyForm = {
 };
 
 export function PayComponentsManager({
+  canManage = true,
   components,
 }: {
+  canManage?: boolean;
   components: PayComponentRecord[];
 }) {
   const router = useRouter();
@@ -83,6 +85,7 @@ export function PayComponentsManager({
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const columns = useMemo<DataTableColumn<PayComponentRecord>[]>(
     () => [
       {
@@ -135,18 +138,21 @@ export function PayComponentsManager({
       {
         key: "actions",
         header: "Actions",
-        render: (component) => (
-          <button
-            className="text-sm font-medium text-accent transition hover:text-accent-strong"
-            onClick={() => startEdit(component)}
-            type="button"
-          >
-            Edit
-          </button>
-        ),
+        render: (component) =>
+          canManage ? (
+            <button
+              className="text-sm font-medium text-accent transition hover:text-accent-strong"
+              onClick={() => startEdit(component)}
+              type="button"
+            >
+              Edit
+            </button>
+          ) : (
+            <span className="text-sm text-muted">Read only</span>
+          ),
       },
     ],
-    [],
+    [canManage],
   );
 
   function startEdit(component: PayComponentRecord) {
@@ -217,150 +223,152 @@ export function PayComponentsManager({
 
   return (
     <div className="grid gap-6">
-      <form
-        className="grid gap-4 rounded-[24px] border border-border bg-surface p-6 shadow-sm"
-        onSubmit={handleSubmit}
-      >
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm uppercase tracking-[0.18em] text-muted">
-              {editing ? "Edit Component" : "Create Component"}
-            </p>
-            <h3 className="mt-2 text-2xl font-semibold text-foreground">
-              Payroll line item catalog
-            </h3>
+      {canManage ? (
+        <form
+          className="grid gap-4 rounded-[24px] border border-border bg-surface p-6 shadow-sm"
+          onSubmit={handleSubmit}
+        >
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm uppercase tracking-[0.18em] text-muted">
+                {editing ? "Edit Component" : "Create Component"}
+              </p>
+              <h3 className="mt-2 text-2xl font-semibold text-foreground">
+                Payroll line item catalog
+              </h3>
+            </div>
+            {editing ? (
+              <button
+                className="rounded-2xl border border-border px-4 py-2 text-sm font-medium text-muted"
+                onClick={resetForm}
+                type="button"
+              >
+                New component
+              </button>
+            ) : null}
           </div>
-          {editing ? (
-            <button
-              className="rounded-2xl border border-border px-4 py-2 text-sm font-medium text-muted"
-              onClick={resetForm}
-              type="button"
-            >
-              New component
-            </button>
-          ) : null}
-        </div>
 
-        <div className="grid gap-4 md:grid-cols-4">
-          <Field
-            label="Code"
-            required
-            value={form.code}
-            onChange={(code) => setForm((current) => ({ ...current, code }))}
-          />
-          <Field
-            label="Name"
-            required
-            value={form.name}
-            onChange={(name) => setForm((current) => ({ ...current, name }))}
-          />
-          <SelectField
-            label="Type"
-            value={form.componentType}
-            values={componentTypes}
-            onChange={(componentType) =>
-              setForm((current) => ({
-                ...current,
-                componentType: componentType as PayComponentType,
-              }))
-            }
-          />
-          <SelectField
-            label="Method"
-            value={form.calculationMethod}
-            values={calculationMethods}
-            onChange={(calculationMethod) =>
-              setForm((current) => ({
-                ...current,
-                calculationMethod: calculationMethod as CalculationMethod,
-              }))
-            }
-          />
-          <Field
-            label="Display order"
-            type="number"
-            value={form.displayOrder}
-            onChange={(displayOrder) =>
-              setForm((current) => ({ ...current, displayOrder }))
-            }
-          />
-          <div className="grid gap-3 md:col-span-3 md:grid-cols-3">
-            <CheckField
-              label="Taxable"
-              checked={form.isTaxable}
-              onChange={(isTaxable) =>
-                setForm((current) => ({ ...current, isTaxable }))
-              }
-            />
-            <CheckField
-              label="Affects gross pay"
-              checked={form.affectsGrossPay}
-              onChange={(affectsGrossPay) =>
-                setForm((current) => ({ ...current, affectsGrossPay }))
-              }
-            />
-            <CheckField
-              label="Affects net pay"
-              checked={form.affectsNetPay}
-              onChange={(affectsNetPay) =>
-                setForm((current) => ({ ...current, affectsNetPay }))
-              }
-            />
-            <CheckField
-              label="Recurring"
-              checked={form.isRecurring}
-              onChange={(isRecurring) =>
-                setForm((current) => ({ ...current, isRecurring }))
-              }
-            />
-            <CheckField
-              label="Requires approval"
-              checked={form.requiresApproval}
-              onChange={(requiresApproval) =>
-                setForm((current) => ({ ...current, requiresApproval }))
-              }
-            />
-            <CheckField
-              label="Display on payslip"
-              checked={form.displayOnPayslip}
-              onChange={(displayOnPayslip) =>
-                setForm((current) => ({ ...current, displayOnPayslip }))
-              }
-            />
-            <CheckField
-              label="Active"
-              checked={form.isActive}
-              onChange={(isActive) =>
-                setForm((current) => ({ ...current, isActive }))
-              }
-            />
-          </div>
-          <div className="md:col-span-4">
+          <div className="grid gap-4 md:grid-cols-4">
             <Field
-              label="Description"
-              value={form.description}
-              onChange={(description) =>
-                setForm((current) => ({ ...current, description }))
+              label="Code"
+              required
+              value={form.code}
+              onChange={(code) => setForm((current) => ({ ...current, code }))}
+            />
+            <Field
+              label="Name"
+              required
+              value={form.name}
+              onChange={(name) => setForm((current) => ({ ...current, name }))}
+            />
+            <SelectField
+              label="Type"
+              value={form.componentType}
+              values={componentTypes}
+              onChange={(componentType) =>
+                setForm((current) => ({
+                  ...current,
+                  componentType: componentType as PayComponentType,
+                }))
               }
             />
+            <SelectField
+              label="Method"
+              value={form.calculationMethod}
+              values={calculationMethods}
+              onChange={(calculationMethod) =>
+                setForm((current) => ({
+                  ...current,
+                  calculationMethod: calculationMethod as CalculationMethod,
+                }))
+              }
+            />
+            <Field
+              label="Display order"
+              type="number"
+              value={form.displayOrder}
+              onChange={(displayOrder) =>
+                setForm((current) => ({ ...current, displayOrder }))
+              }
+            />
+            <div className="grid gap-3 md:col-span-3 md:grid-cols-3">
+              <CheckField
+                label="Taxable"
+                checked={form.isTaxable}
+                onChange={(isTaxable) =>
+                  setForm((current) => ({ ...current, isTaxable }))
+                }
+              />
+              <CheckField
+                label="Affects gross pay"
+                checked={form.affectsGrossPay}
+                onChange={(affectsGrossPay) =>
+                  setForm((current) => ({ ...current, affectsGrossPay }))
+                }
+              />
+              <CheckField
+                label="Affects net pay"
+                checked={form.affectsNetPay}
+                onChange={(affectsNetPay) =>
+                  setForm((current) => ({ ...current, affectsNetPay }))
+                }
+              />
+              <CheckField
+                label="Recurring"
+                checked={form.isRecurring}
+                onChange={(isRecurring) =>
+                  setForm((current) => ({ ...current, isRecurring }))
+                }
+              />
+              <CheckField
+                label="Requires approval"
+                checked={form.requiresApproval}
+                onChange={(requiresApproval) =>
+                  setForm((current) => ({ ...current, requiresApproval }))
+                }
+              />
+              <CheckField
+                label="Display on payslip"
+                checked={form.displayOnPayslip}
+                onChange={(displayOnPayslip) =>
+                  setForm((current) => ({ ...current, displayOnPayslip }))
+                }
+              />
+              <CheckField
+                label="Active"
+                checked={form.isActive}
+                onChange={(isActive) =>
+                  setForm((current) => ({ ...current, isActive }))
+                }
+              />
+            </div>
+            <div className="md:col-span-4">
+              <Field
+                label="Description"
+                value={form.description}
+                onChange={(description) =>
+                  setForm((current) => ({ ...current, description }))
+                }
+              />
+            </div>
           </div>
-        </div>
 
-        {error ? <p className="text-sm text-danger">{error}</p> : null}
-        <div>
-          <button
-            className="rounded-2xl bg-accent px-5 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong"
-            disabled={isSubmitting}
-            type="submit"
-          >
-            {isSubmitting
-              ? "Saving..."
-              : editing
-                ? "Save component"
-                : "Create component"}
-          </button>
-        </div>
-      </form>
+          {error ? <p className="text-sm text-danger">{error}</p> : null}
+          <div>
+            <button
+              className="rounded-2xl bg-accent px-5 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong"
+              disabled={isSubmitting}
+              type="submit"
+            >
+              {isSubmitting
+                ? "Saving..."
+                : editing
+                  ? "Save component"
+                  : "Create component"}
+            </button>
+          </div>
+        </form>
+      ) : null}
 
       <DataTable
         columns={columns}

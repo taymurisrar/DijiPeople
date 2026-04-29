@@ -7,7 +7,9 @@ describe('mapEntityQueryToPrismaArgs', () => {
       ENTITY_REGISTRY.employees,
       {
         select: ['id', 'firstName', 'email'],
-        filters: [{ field: 'employmentStatus', operator: 'eq', value: 'ACTIVE' }],
+        filters: [
+          { field: 'employmentStatus', operator: 'eq', value: 'ACTIVE' },
+        ],
         orderBy: [{ field: 'firstName', direction: 'asc' }],
         expand: [{ relation: 'manager', select: ['id', 'firstName'] }],
         page: 2,
