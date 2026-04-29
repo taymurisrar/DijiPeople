@@ -186,24 +186,39 @@ export class PermissionBootstrapService {
       });
     });
 
-    await Promise.all(
-      rolePrivilegeAssignments.map((assignment) =>
-        db.rolePrivilege.upsert({
-          where: {
-            roleId_entityKey_privilege: {
+    const BATCH_SIZE = 5;
+
+    for (let i = 0; i < rolePrivilegeAssignments.length; i += BATCH_SIZE) {
+      const batch = rolePrivilegeAssignments.slice(i, i + BATCH_SIZE);
+
+      await Promise.all(
+        batch.map((assignment) =>
+          db.rolePrivilege.upsert({
+            where: {
+              roleId_entityKey_privilege: {
+                tenantId: assignment.tenantId,
+                roleId: assignment.roleId,
+                entityKey: assignment.entityKey,
+                privilege: assignment.privilege,
+              },
+            },
+            update: {
+              accessLevel: assignment.accessLevel,
+              updatedById: assignment.updatedById,
+            },
+            create: {
+              tenantId: assignment.tenantId,
               roleId: assignment.roleId,
               entityKey: assignment.entityKey,
               privilege: assignment.privilege,
+              accessLevel: assignment.accessLevel,
+              createdById: assignment.createdById,
+              updatedById: assignment.updatedById,
             },
-          },
-          create: assignment,
-          update: {
-            accessLevel: assignment.accessLevel,
-            updatedById: actorUserId,
-          },
-        }),
-      ),
-    );
+          }),
+        ),
+      );
+    }
 
     for (const role of roles) {
       const miscPermissionKeys =
