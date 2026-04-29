@@ -3,6 +3,18 @@
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
+DO $$ BEGIN
+    CREATE TYPE "ModuleViewType" AS ENUM ('system', 'custom');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    CREATE TYPE "ModuleViewVisibilityScope" AS ENUM ('tenant', 'role', 'user');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
 CREATE TYPE "CustomizationFieldDataType" AS ENUM (
   'text',
   'textarea',
