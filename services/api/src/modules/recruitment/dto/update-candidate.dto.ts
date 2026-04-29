@@ -1,4 +1,8 @@
-import { EmployeeGender, EmployeeWorkMode, RecruitmentStage } from '@prisma/client';
+import {
+  EmployeeGender,
+  EmployeeWorkMode,
+  RecruitmentStage,
+} from '@prisma/client';
 import { Transform, Type } from 'class-transformer';
 import {
   ArrayMaxSize,

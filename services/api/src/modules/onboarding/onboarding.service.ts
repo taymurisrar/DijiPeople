@@ -4,11 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import {
-  OnboardingStatus,
-  OnboardingTaskStatus,
-  Prisma,
-} from '@prisma/client';
+import { OnboardingStatus, OnboardingTaskStatus, Prisma } from '@prisma/client';
 import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { OrganizationRepository } from '../organization/organization.repository';
@@ -55,7 +51,10 @@ export class OnboardingService {
     currentUser: AuthenticatedUser,
     dto: CreateOnboardingTemplateDto,
   ) {
-    await this.validateTaskBlueprintUsers(currentUser.tenantId, dto.taskBlueprints);
+    await this.validateTaskBlueprintUsers(
+      currentUser.tenantId,
+      dto.taskBlueprints,
+    );
 
     try {
       if (dto.isDefault) {
@@ -171,7 +170,9 @@ export class OnboardingService {
     );
 
     if (!onboarding) {
-      throw new NotFoundException('Onboarding record was not found for this tenant.');
+      throw new NotFoundException(
+        'Onboarding record was not found for this tenant.',
+      );
     }
 
     return this.mapOnboarding(onboarding);
@@ -198,10 +199,11 @@ export class OnboardingService {
       );
     }
 
-    const existing = await this.onboardingRepository.findActiveOnboardingByCandidate(
-      currentUser.tenantId,
-      dto.candidateId,
-    );
+    const existing =
+      await this.onboardingRepository.findActiveOnboardingByCandidate(
+        currentUser.tenantId,
+        dto.candidateId,
+      );
 
     if (existing) {
       throw new ConflictException(
@@ -214,9 +216,9 @@ export class OnboardingService {
           currentUser.tenantId,
           dto.templateId,
         )
-      : (await this.onboardingRepository.findTemplates(currentUser.tenantId)).find(
-          (item) => item.isDefault && item.isActive,
-        ) ?? null;
+      : ((
+          await this.onboardingRepository.findTemplates(currentUser.tenantId)
+        ).find((item) => item.isDefault && item.isActive) ?? null);
 
     if (dto.templateId && !template) {
       throw new BadRequestException(
@@ -288,7 +290,7 @@ export class OnboardingService {
             dueDate:
               blueprint.dueOffsetDays !== undefined
                 ? addDays(startDate, blueprint.dueOffsetDays)
-                : dueDate ?? undefined,
+                : (dueDate ?? undefined),
             isRequired: true,
             sortOrder: index,
             createdById: currentUser.userId,
@@ -316,7 +318,9 @@ export class OnboardingService {
     );
 
     if (!onboarding) {
-      throw new NotFoundException('Onboarding record was not found for this tenant.');
+      throw new NotFoundException(
+        'Onboarding record was not found for this tenant.',
+      );
     }
 
     const task = await this.onboardingRepository.findTaskById(
@@ -326,7 +330,9 @@ export class OnboardingService {
     );
 
     if (!task) {
-      throw new NotFoundException('Onboarding task was not found for this record.');
+      throw new NotFoundException(
+        'Onboarding task was not found for this record.',
+      );
     }
 
     if (dto.assignedUserId) {
@@ -344,7 +350,7 @@ export class OnboardingService {
     const status = dto.status ?? task.status;
     const completedAt =
       status === OnboardingTaskStatus.COMPLETED
-        ? task.completedAt ?? new Date()
+        ? (task.completedAt ?? new Date())
         : dto.status && dto.status !== OnboardingTaskStatus.COMPLETED
           ? null
           : task.completedAt;
@@ -365,7 +371,9 @@ export class OnboardingService {
           ? { dueDate: dto.dueDate ? new Date(dto.dueDate) : null }
           : {}),
         ...(dto.status !== undefined ? { status: dto.status } : {}),
-        ...(dto.notes !== undefined ? { notes: dto.notes?.trim() ?? null } : {}),
+        ...(dto.notes !== undefined
+          ? { notes: dto.notes?.trim() ?? null }
+          : {}),
         completedAt,
         updatedById: currentUser.userId,
       },
@@ -377,10 +385,16 @@ export class OnboardingService {
     );
 
     if (!refreshed) {
-      throw new NotFoundException('Onboarding record was not found for this tenant.');
+      throw new NotFoundException(
+        'Onboarding record was not found for this tenant.',
+      );
     }
 
-    await this.syncOnboardingStatus(currentUser.tenantId, onboardingId, refreshed);
+    await this.syncOnboardingStatus(
+      currentUser.tenantId,
+      onboardingId,
+      refreshed,
+    );
 
     return this.findOnboardingById(currentUser.tenantId, onboardingId);
   }
@@ -395,11 +409,15 @@ export class OnboardingService {
     );
 
     if (!onboarding) {
-      throw new NotFoundException('Onboarding record was not found for this tenant.');
+      throw new NotFoundException(
+        'Onboarding record was not found for this tenant.',
+      );
     }
 
     if (onboarding.employeeId) {
-      throw new ConflictException('This onboarding record already has an employee.');
+      throw new ConflictException(
+        'This onboarding record already has an employee.',
+      );
     }
 
     if (!onboarding.candidate) {
@@ -409,7 +427,8 @@ export class OnboardingService {
     }
 
     const requiredIncompleteTasks = onboarding.tasks.filter(
-      (task) => task.isRequired && task.status !== OnboardingTaskStatus.COMPLETED,
+      (task) =>
+        task.isRequired && task.status !== OnboardingTaskStatus.COMPLETED,
     );
 
     if (requiredIncompleteTasks.length > 0) {
@@ -518,7 +537,10 @@ export class OnboardingService {
 
     return {
       employeeId: employee.id,
-      onboarding: await this.findOnboardingById(currentUser.tenantId, onboardingId),
+      onboarding: await this.findOnboardingById(
+        currentUser.tenantId,
+        onboardingId,
+      ),
     };
   }
 
@@ -649,7 +671,10 @@ export class OnboardingService {
         status = OnboardingStatus.READY_FOR_CONVERSION;
         completedAt = null;
         readyForConversionAt = onboarding.readyForConversionAt ?? new Date();
-      } else if (completedRequiredTasks.length > 0 || onboarding.tasks.length > 0) {
+      } else if (
+        completedRequiredTasks.length > 0 ||
+        onboarding.tasks.length > 0
+      ) {
         status = OnboardingStatus.IN_PROGRESS;
         completedAt = null;
         readyForConversionAt = null;
@@ -691,7 +716,9 @@ export class OnboardingService {
     }
 
     if (incompleteRequiredTasks.length > 0) {
-      blockers.push('Required onboarding checklist items are still incomplete.');
+      blockers.push(
+        'Required onboarding checklist items are still incomplete.',
+      );
     }
 
     if (!onboarding.targetDepartmentId) {
@@ -856,13 +883,15 @@ function buildDefaultChecklistBlueprints(
     },
     {
       title: 'Documents received',
-      description: 'Collect required identity, contract, and compliance documents.',
+      description:
+        'Collect required identity, contract, and compliance documents.',
       dueOffsetDays: 1,
       assignedUserId: ownerUserId,
     },
     {
       title: 'Compensation confirmed',
-      description: 'Verify the agreed salary, pay frequency, and benefits summary.',
+      description:
+        'Verify the agreed salary, pay frequency, and benefits summary.',
       dueOffsetDays: 1,
       assignedUserId: ownerUserId,
     },
@@ -892,13 +921,15 @@ function buildDefaultChecklistBlueprints(
     },
     {
       title: 'Work email created',
-      description: 'Prepare official work email or confirm provisioning approach.',
+      description:
+        'Prepare official work email or confirm provisioning approach.',
       dueOffsetDays: 3,
       assignedUserId: ownerUserId,
     },
     {
       title: 'System access prepared',
-      description: 'Provision login, permissions, and initial application access.',
+      description:
+        'Provision login, permissions, and initial application access.',
       dueOffsetDays: 3,
       assignedUserId: ownerUserId,
     },

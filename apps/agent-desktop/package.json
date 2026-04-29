@@ -1,0 +1,23 @@
+{
+  "name": "agent-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "main": "dist/main/main.js",
+  "scripts": {
+    "dev": "tsc -w",
+    "build": "tsc && node scripts/copy-renderer.mjs",
+    "start": "electron .",
+    "dist:win": "npm run build && electron-builder --win nsis",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "electron-is-dev": "^3.0.1",
+    "electron-updater": "^6.6.2",
+    "keytar": "^7.9.0"
+  },
+  "devDependencies": {
+    "electron": "39.2.6",
+    "electron-builder": "^26.0.12",
+    "typescript": "^5.9.2"
+  }
+}

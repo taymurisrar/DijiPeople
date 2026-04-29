@@ -26,4 +26,3 @@ export class PayrollCycleQueryDto {
   @Max(100)
   pageSize = 24;
 }
-

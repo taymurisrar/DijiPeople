@@ -9,11 +9,18 @@ type PrismaDb = PrismaService | Prisma.TransactionClient | PrismaClient;
 export class AuditRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  create(data: Prisma.AuditLogUncheckedCreateInput, db: PrismaDb = this.prisma) {
+  create(
+    data: Prisma.AuditLogUncheckedCreateInput,
+    db: PrismaDb = this.prisma,
+  ) {
     return db.auditLog.create({ data });
   }
 
-  async findByTenant(tenantId: string, query: AuditLogQueryDto, db: PrismaDb = this.prisma) {
+  async findByTenant(
+    tenantId: string,
+    query: AuditLogQueryDto,
+    db: PrismaDb = this.prisma,
+  ) {
     const where: Prisma.AuditLogWhereInput = {
       tenantId,
       ...(query.action ? { action: query.action.trim() } : {}),

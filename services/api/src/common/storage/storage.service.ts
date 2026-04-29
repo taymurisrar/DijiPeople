@@ -10,7 +10,9 @@ export class StorageService {
   constructor(private readonly configService: ConfigService) {}
 
   getMaxUploadBytes() {
-    return Number(this.configService.get('FILE_UPLOAD_MAX_BYTES') ?? 10_485_760);
+    return Number(
+      this.configService.get('FILE_UPLOAD_MAX_BYTES') ?? 10_485_760,
+    );
   }
 
   getStorageRoot() {
@@ -70,7 +72,10 @@ export class StorageService {
   }
 
   private resolveStoragePath(storageKey: string) {
-    const normalizedKey = normalize(storageKey).replace(/^(\.\.(\/|\\|$))+/, '');
+    const normalizedKey = normalize(storageKey).replace(
+      /^(\.\.(\/|\\|$))+/,
+      '',
+    );
     return join(this.getStorageRoot(), normalizedKey);
   }
 }

@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequireRoles } from '../../common/decorators/require-roles.decorator';
+import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -41,7 +42,7 @@ import { SuperAdminService } from './super-admin.service';
 import { ConvertLeadToCustomerDto } from '../leads/dto/admin-lead.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@RequireRoles('system-admin')
+@RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
 @Controller('super-admin')
 export class SuperAdminController {
   constructor(private readonly superAdminService: SuperAdminService) {}
@@ -224,7 +225,11 @@ export class SuperAdminController {
     @Param('tenantId', new ParseUUIDPipe()) tenantId: string,
     @Body() dto: UpdateTenantCustomerAccountDto,
   ) {
-    return this.superAdminService.updateTenantCustomerAccount(user, tenantId, dto);
+    return this.superAdminService.updateTenantCustomerAccount(
+      user,
+      tenantId,
+      dto,
+    );
   }
 
   @Patch('tenants/:tenantId/status')
@@ -318,7 +323,9 @@ export class SuperAdminController {
   }
 
   @Get('tenants/:tenantId/owner-summary')
-  getTenantOwnerSummary(@Param('tenantId', new ParseUUIDPipe()) tenantId: string) {
+  getTenantOwnerSummary(
+    @Param('tenantId', new ParseUUIDPipe()) tenantId: string,
+  ) {
     return this.superAdminService.getTenantOwnerSummary(tenantId);
   }
 
@@ -354,7 +361,10 @@ export class SuperAdminController {
   }
 
   @Post('plans')
-  createPlan(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreatePlanDto) {
+  createPlan(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreatePlanDto,
+  ) {
     return this.superAdminService.createPlan(user, dto);
   }
 
@@ -399,4 +409,3 @@ export class SuperAdminController {
     return this.superAdminService.updatePlatformSettings(user, dto);
   }
 }
-

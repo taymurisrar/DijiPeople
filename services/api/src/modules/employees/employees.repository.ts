@@ -76,6 +76,16 @@ const employeeInclude = {
       isActive: true,
     },
   },
+  employeeLevel: {
+    select: {
+      id: true,
+      code: true,
+      name: true,
+      rank: true,
+      description: true,
+      isActive: true,
+    },
+  },
   location: {
     select: {
       id: true,
@@ -143,9 +153,12 @@ export class EmployeesRepository {
   async findByTenant(
     tenantId: string,
     query: EmployeeQueryDto,
+    accessWhere: Prisma.EmployeeWhereInput = {},
     db: PrismaDb = this.prisma,
   ) {
-    const where = this.buildWhereClause(tenantId, query);
+    const where = {
+      AND: [this.buildWhereClause(tenantId, query), accessWhere],
+    } satisfies Prisma.EmployeeWhereInput;
     const skip = (query.page - 1) * query.pageSize;
 
     const [items, total] = await Promise.all([
@@ -165,12 +178,12 @@ export class EmployeesRepository {
   findByIdAndTenant(
     tenantId: string,
     employeeId: string,
+    accessWhere: Prisma.EmployeeWhereInput = {},
     db: PrismaDb = this.prisma,
   ) {
     return db.employee.findFirst({
       where: {
-        id: employeeId,
-        tenantId,
+        AND: [{ id: employeeId, tenantId }, accessWhere],
       },
       include: employeeInclude,
     });

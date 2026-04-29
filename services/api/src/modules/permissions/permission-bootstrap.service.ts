@@ -5,11 +5,8 @@ import {
   SecurityAccessLevel,
   SecurityPrivilege,
 } from '@prisma/client';
+import { FOUNDATION_PERMISSION_DEFINITIONS } from '../../common/constants/permissions';
 import {
-  FOUNDATION_PERMISSION_DEFINITIONS,
-} from '../../common/constants/permissions';
-import {
-  RBAC_PRIVILEGES,
   SYSTEM_ROLE_DEFINITIONS,
   SYSTEM_ROLE_MISC_PERMISSIONS,
   SYSTEM_ROLE_PRIVILEGES,
@@ -65,11 +62,14 @@ export class PermissionBootstrapService {
             key: role.key,
           },
           data: {
+            name: role.name,
+            description: role.description,
             accessLevel: role.accessLevel,
             isSystem: true,
             roleType: RoleType.SYSTEM,
             isEditable: role.isEditable,
             isCloneable: true,
+            isActive: true,
             updatedById: actorUserId,
           },
         }),
@@ -186,10 +186,24 @@ export class PermissionBootstrapService {
       });
     });
 
-    await db.rolePrivilege.createMany({
-      data: rolePrivilegeAssignments,
-      skipDuplicates: true,
-    });
+    await Promise.all(
+      rolePrivilegeAssignments.map((assignment) =>
+        db.rolePrivilege.upsert({
+          where: {
+            roleId_entityKey_privilege: {
+              roleId: assignment.roleId,
+              entityKey: assignment.entityKey,
+              privilege: assignment.privilege,
+            },
+          },
+          create: assignment,
+          update: {
+            accessLevel: assignment.accessLevel,
+            updatedById: actorUserId,
+          },
+        }),
+      ),
+    );
 
     for (const role of roles) {
       const miscPermissionKeys =
@@ -197,17 +211,30 @@ export class PermissionBootstrapService {
           role.key as keyof typeof SYSTEM_ROLE_MISC_PERMISSIONS
         ] ?? [];
 
-      await db.roleMiscPermission.createMany({
-        data: miscPermissionKeys.map((permissionKey) => ({
-          tenantId,
-          roleId: role.id,
-          permissionKey,
-          enabled: true,
-          createdById: actorUserId,
-          updatedById: actorUserId,
-        })),
-        skipDuplicates: true,
-      });
+      await Promise.all(
+        miscPermissionKeys.map((permissionKey) =>
+          db.roleMiscPermission.upsert({
+            where: {
+              roleId_permissionKey: {
+                roleId: role.id,
+                permissionKey,
+              },
+            },
+            create: {
+              tenantId,
+              roleId: role.id,
+              permissionKey,
+              enabled: true,
+              createdById: actorUserId,
+              updatedById: actorUserId,
+            },
+            update: {
+              enabled: true,
+              updatedById: actorUserId,
+            },
+          }),
+        ),
+      );
     }
 
     return {

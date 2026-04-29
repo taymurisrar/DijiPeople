@@ -97,17 +97,17 @@ const timesheetTemplateEmployeeSelect = {
   firstName: true,
   lastName: true,
   preferredName: true,
-      email: true,
-      recordType: true,
-      businessUnitId: true,
-      businessUnit: {
-        select: {
-          id: true,
-          name: true,
-          type: true,
-        },
-      },
-      department: {
+  email: true,
+  recordType: true,
+  businessUnitId: true,
+  businessUnit: {
+    select: {
+      id: true,
+      name: true,
+      type: true,
+    },
+  },
+  department: {
     select: {
       id: true,
       name: true,
@@ -159,11 +159,7 @@ export class TimesheetsRepository {
     });
   }
 
-  findTimesheetById(
-    tenantId: string,
-    id: string,
-    db: PrismaDb = this.prisma,
-  ) {
+  findTimesheetById(tenantId: string, id: string, db: PrismaDb = this.prisma) {
     return db.timesheet.findFirst({
       where: { tenantId, id },
       include: timesheetInclude,
@@ -387,7 +383,10 @@ export class TimesheetsRepository {
     if (filters.businessUnitId) {
       where.OR = [
         { businessUnitId: filters.businessUnitId },
-        { businessUnitId: null, user: { businessUnitId: filters.businessUnitId } },
+        {
+          businessUnitId: null,
+          user: { businessUnitId: filters.businessUnitId },
+        },
       ];
     }
 
@@ -547,7 +546,9 @@ function buildTimesheetWhere(
   return where;
 }
 
-function buildTimesheetOrderBy(query: TimesheetQueryDto): Prisma.TimesheetOrderByWithRelationInput[] {
+function buildTimesheetOrderBy(
+  query: TimesheetQueryDto,
+): Prisma.TimesheetOrderByWithRelationInput[] {
   const direction = query.sortDirection ?? 'desc';
 
   switch (query.sortField) {
@@ -562,10 +563,6 @@ function buildTimesheetOrderBy(query: TimesheetQueryDto): Prisma.TimesheetOrderB
       return [{ updatedAt: direction }];
     case 'yearMonth':
     default:
-      return [
-        { year: direction },
-        { month: direction },
-        { updatedAt: 'desc' },
-      ];
+      return [{ year: direction }, { month: direction }, { updatedAt: 'desc' }];
   }
 }

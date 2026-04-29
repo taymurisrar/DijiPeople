@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequireRoles } from '../../common/decorators/require-roles.decorator';
+import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -25,16 +26,13 @@ import {
 import { LeadsService } from './leads.service';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@RequireRoles('system-admin')
+@RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
 @Controller('super-admin/leads')
 export class AdminLeadsController {
   constructor(private readonly leadsService: LeadsService) {}
 
   @Get()
-  list(
-    @CurrentUser() user: AuthenticatedUser,
-    @Query() query: LeadQueryDto,
-  ) {
+  list(@CurrentUser() user: AuthenticatedUser, @Query() query: LeadQueryDto) {
     return this.leadsService.listLeads(user, query);
   }
 
@@ -79,4 +77,3 @@ export class AdminLeadsController {
     return this.leadsService.bulkAssignLeads(user, dto);
   }
 }
-

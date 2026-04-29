@@ -212,11 +212,7 @@ export class RecruitmentRepository {
     return { items, total };
   }
 
-  findJobOpeningById(
-    tenantId: string,
-    id: string,
-    db: PrismaDb = this.prisma,
-  ) {
+  findJobOpeningById(tenantId: string, id: string, db: PrismaDb = this.prisma) {
     return db.jobOpening.findFirst({
       where: { tenantId, id },
       include: jobOpeningInclude,
@@ -297,11 +293,7 @@ export class RecruitmentRepository {
     return { items, total };
   }
 
-  findCandidateById(
-    tenantId: string,
-    id: string,
-    db: PrismaDb = this.prisma,
-  ) {
+  findCandidateById(tenantId: string, id: string, db: PrismaDb = this.prisma) {
     return db.candidate.findFirst({
       where: { tenantId, id },
       include: candidateInclude,

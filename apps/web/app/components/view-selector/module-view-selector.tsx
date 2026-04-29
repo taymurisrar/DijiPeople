@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { ModuleViewOption, ModuleViewSelectorConfig } from "./types";
@@ -15,7 +16,6 @@ export function ModuleViewSelector({
   views,
   configureHref,
   paramName = "view",
-  title = "Views",
   className,
 }: ModuleViewSelectorProps) {
   const [open, setOpen] = useState(false);
@@ -54,24 +54,20 @@ export function ModuleViewSelector({
 
   return (
     <div className={className}>
-      <div className="flex flex-wrap items-center gap-3">
-        <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted">
-          {title}
-        </p>
+      <div className=" ml-3 mt-3 flex flex-wrap items-center gap-3">
 
         <div className="relative">
           <button
-            className="inline-flex min-w-[220px] items-center justify-between gap-3 rounded-2xl border border-border bg-white px-4 py-2.5 text-sm font-medium text-foreground shadow-sm transition hover:border-accent/30"
+            className="inline-flex min-w-[200px] items-center justify-between gap-2 px-2 py-1.5 text-md font-semibold text-black transition"
             onClick={() => setOpen((current) => !current)}
             type="button"
           >
-            <span className="text-xs truncate">{selectedView.name}</span>
-            <span
-              className={`text-xs text-muted transition ${open ? "rotate-180" : ""}`}
+            <span className="text-md text-medium truncate">{selectedView.name}</span>
+            <ChevronDown
+              className={`h-4 w-4 text-muted transition-transform duration-150 ${open ? "rotate-180" : ""
+                }`}
               aria-hidden="true"
-            >
-              ▼
-            </span>
+            />
           </button>
 
           {open ? (
@@ -140,11 +136,10 @@ function ViewGroup({
               key={view.id}
               type="button"
               onClick={() => onSelect(view.id)}
-              className={`rounded-xl px-3 py-2 text-left transition ${
-                active
+              className={`rounded-xl px-3 py-2 text-left transition ${active
                   ? "bg-accent/10 text-accent"
                   : "text-foreground hover:bg-muted/40"
-              }`}
+                }`}
             >
               <p className="text-sm font-medium">{view.name}</p>
             </button>

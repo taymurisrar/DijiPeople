@@ -1,17 +1,10 @@
 import { config as loadEnv } from 'dotenv';
 import { resolve } from 'node:path';
-import {
-  PrismaClient,
-  RoleAccessLevel,
-  TenantStatus,
-  UserStatus,
-} from '@prisma/client';
+import { PrismaClient, TenantStatus, UserStatus } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { normalizeEmail } from '../src/common/utils/email.util';
-import {
-  CUSTOMIZATION_PERMISSION_KEYS,
-  FOUNDATION_PERMISSION_DEFINITIONS,
-} from '../src/common/constants/permissions';
+import { ROLE_KEYS } from '../src/common/constants/rbac-matrix';
+import { PermissionBootstrapService } from '../src/modules/permissions/permission-bootstrap.service';
 
 loadEnv({ path: resolve(__dirname, '../.env') });
 loadEnv();
@@ -24,11 +17,6 @@ function getBootstrapConfig() {
   const tenantSlug =
     process.env.BOOTSTRAP_TENANT_SLUG?.trim().toLowerCase() ||
     'dijipeople-demo';
-  const roleName =
-    process.env.BOOTSTRAP_ADMIN_ROLE_NAME?.trim() || 'System Admin';
-  const roleKey =
-    process.env.BOOTSTRAP_ADMIN_ROLE_KEY?.trim().toLowerCase() ||
-    'system-admin';
   const firstName = process.env.BOOTSTRAP_ADMIN_FIRST_NAME?.trim() || 'Taimur';
   const lastName = process.env.BOOTSTRAP_ADMIN_LAST_NAME?.trim() || 'Israr';
   const email = normalizeEmail(
@@ -51,8 +39,6 @@ function getBootstrapConfig() {
   return {
     tenantName,
     tenantSlug,
-    roleName,
-    roleKey,
     firstName,
     lastName,
     email,
@@ -64,10 +50,6 @@ function getBootstrapConfig() {
 async function main() {
   const config = getBootstrapConfig();
   const passwordHash = await bcrypt.hash(config.plainPassword, 10);
-
-  const permissionKeys = FOUNDATION_PERMISSION_DEFINITIONS.map(
-    (permission) => permission.key,
-  );
 
   const customerAccount =
     (await prisma.customerAccount.findFirst({
@@ -111,107 +93,19 @@ async function main() {
     },
   });
 
-  const role = await prisma.role.upsert({
-    where: {
-      tenantId_key: {
-        tenantId: tenant.id,
-        key: config.roleKey,
-      },
-    },
-    update: {
-      name: config.roleName,
-      description: 'Bootstrap administrator role',
-      isSystem: true,
-      accessLevel: RoleAccessLevel.TENANT,
-    },
-    create: {
-      tenantId: tenant.id,
-      name: config.roleName,
-      key: config.roleKey,
-      description: 'Bootstrap administrator role',
-      isSystem: true,
-      accessLevel: RoleAccessLevel.TENANT,
-    },
-    select: {
-      id: true,
-      key: true,
-      name: true,
-    },
-  });
+  const permissionBootstrapService = new PermissionBootstrapService(
+    prisma as never,
+  );
+  const { permissions, roles } =
+    await permissionBootstrapService.bootstrapTenantRbac(tenant.id);
+  const role = roles.find((item) => item.key === ROLE_KEYS.SYSTEM_ADMIN);
+  const globalAdministratorRole = roles.find(
+    (item) => item.key === ROLE_KEYS.GLOBAL_ADMIN,
+  );
 
-  await prisma.permission.createMany({
-    data: FOUNDATION_PERMISSION_DEFINITIONS.map((permission) => ({
-      tenantId: tenant.id,
-      key: permission.key,
-      name: permission.name,
-      description: permission.description,
-    })),
-    skipDuplicates: true,
-  });
-
-  const permissions = await prisma.permission.findMany({
-    where: {
-      tenantId: tenant.id,
-      key: {
-        in: permissionKeys,
-      },
-    },
-    select: {
-      id: true,
-    },
-  });
-
-  await prisma.rolePermission.createMany({
-    data: permissions.map((permission) => ({
-      tenantId: tenant.id,
-      roleId: role.id,
-      permissionId: permission.id,
-    })),
-    skipDuplicates: true,
-  });
-
-  const systemCustomizerRole = await prisma.role.upsert({
-    where: {
-      tenantId_key: {
-        tenantId: tenant.id,
-        key: 'system-customizer',
-      },
-    },
-    update: {
-      name: 'System Customizer',
-      description:
-        'Implementation role allowed to customize tenant metadata for existing system modules.',
-      isSystem: true,
-      accessLevel: RoleAccessLevel.TENANT,
-    },
-    create: {
-      tenantId: tenant.id,
-      name: 'System Customizer',
-      key: 'system-customizer',
-      description:
-        'Implementation role allowed to customize tenant metadata for existing system modules.',
-      isSystem: true,
-      accessLevel: RoleAccessLevel.TENANT,
-    },
-    select: { id: true },
-  });
-
-  const customizationPermissions = await prisma.permission.findMany({
-    where: {
-      tenantId: tenant.id,
-      key: { in: CUSTOMIZATION_PERMISSION_KEYS },
-    },
-    select: { id: true },
-  });
-
-  await prisma.rolePermission.createMany({
-    data: customizationPermissions.map((permission) => ({
-      tenantId: tenant.id,
-      roleId: systemCustomizerRole.id,
-      permissionId: permission.id,
-    })),
-    skipDuplicates: true,
-  });
+  if (!role || !globalAdministratorRole) {
+    throw new Error('System administrator roles could not be bootstrapped.');
+  }
 
   const defaultOrganization =
     (await prisma.organization.findFirst({
@@ -284,6 +178,21 @@ async function main() {
     },
   });
 
+  await prisma.userRole.upsert({
+    where: {
+      userId_roleId: {
+        userId: user.id,
+        roleId: globalAdministratorRole.id,
+      },
+    },
+    update: {},
+    create: {
+      tenantId: tenant.id,
+      userId: user.id,
+      roleId: globalAdministratorRole.id,
+    },
+  });
+
   // Keep bootstrap tenant ownership explicit and consistent with the protected owner model.
   await prisma.tenant.update({
     where: { id: tenant.id },
@@ -296,7 +205,7 @@ async function main() {
     userId: user.id,
     email: user.email,
     permissionsAssignedToRole: permissions.length,
-    customizationPermissionsAssigned: customizationPermissions.length,
+    systemRolesBootstrapped: roles.length,
     usingDefaultPassword: config.usingDefaultPassword,
   };
 

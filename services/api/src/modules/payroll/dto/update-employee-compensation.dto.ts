@@ -40,4 +40,3 @@ export class UpdateEmployeeCompensationDto {
   @MaxLength(3)
   currency?: string;
 }
-

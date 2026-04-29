@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import { ListLeaveConfigDto } from './dto/list-leave-config.dto';
 import { LeaveRequestQueryDto } from './dto/leave-request-query.dto';
 
@@ -313,7 +314,7 @@ export class LeaveRepository {
           some: {
             role: {
               key: {
-                in: ['hr', 'admin', 'system-admin'],
+                in: ['admin', ROLE_KEYS.HR, ROLE_KEYS.SYSTEM_ADMIN],
               },
             },
           },
@@ -357,4 +358,3 @@ function buildSearchWhere(
 
   return where;
 }
-

@@ -19,11 +19,18 @@ export const LEAD_SUB_STATUS_OPTIONS: Record<LeadStatus, string[]> = {
   ],
   [LeadStatus.UNQUALIFIED]: ['Not a fit', 'Duplicate', 'No budget'],
   [LeadStatus.CONVERTED]: ['Converted to customer'],
-  [LeadStatus.CLOSED_LOST]: ['No budget', 'Lost to competitor', 'Follow-up later'],
+  [LeadStatus.CLOSED_LOST]: [
+    'No budget',
+    'Lost to competitor',
+    'Follow-up later',
+  ],
   [LeadStatus.ARCHIVED]: ['Archived'],
 };
 
-export const CUSTOMER_SUB_STATUS_OPTIONS: Record<CustomerAccountStatus, string[]> = {
+export const CUSTOMER_SUB_STATUS_OPTIONS: Record<
+  CustomerAccountStatus,
+  string[]
+> = {
   [CustomerAccountStatus.LEAD]: ['Imported'],
   [CustomerAccountStatus.PROSPECT]: [
     'Commercial review',
@@ -57,13 +64,19 @@ export const CUSTOMER_Onboarding_SUB_STATUS_OPTIONS: Record<
     'Waiting on admin user details',
     'Data migration pending',
   ],
-  [CustomerOnboardingStatus.PENDING_PAYMENT]: ['Invoice sent', 'Payment review'],
+  [CustomerOnboardingStatus.PENDING_PAYMENT]: [
+    'Invoice sent',
+    'Payment review',
+  ],
   [CustomerOnboardingStatus.READY_FOR_TENANT_CREATION]: [
     'Tenant setup pending',
     'Go-live ready',
   ],
   [CustomerOnboardingStatus.COMPLETED]: ['Tenant created', 'Live'],
-  [CustomerOnboardingStatus.BLOCKED]: ['Blocked by customer', 'Blocked internally'],
+  [CustomerOnboardingStatus.BLOCKED]: [
+    'Blocked by customer',
+    'Blocked internally',
+  ],
   [CustomerOnboardingStatus.CANCELED]: ['Canceled'],
 };
 

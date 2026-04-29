@@ -95,7 +95,7 @@ a:not([class]) {
   color: inherit;
 }
 
-button,
-input {
+button:not([class]),
+input:not([class]) {
   font: inherit;
 }

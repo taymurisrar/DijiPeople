@@ -131,7 +131,8 @@ export class LeadsService {
     const lead = await this.leadsRepository.create({
       contactFirstName: dto.contactFirstName.trim(),
       contactLastName: dto.contactLastName.trim(),
-      fullName: `${dto.contactFirstName.trim()} ${dto.contactLastName.trim()}`.trim(),
+      fullName:
+        `${dto.contactFirstName.trim()} ${dto.contactLastName.trim()}`.trim(),
       companyName: dto.companyName.trim(),
       workEmail: dto.workEmail,
       phoneNumber: dto.phoneNumber ?? null,
@@ -191,21 +192,29 @@ export class LeadsService {
       ...(dto.contactLastName !== undefined
         ? { contactLastName: dto.contactLastName.trim() }
         : {}),
-      ...(dto.contactFirstName !== undefined || dto.contactLastName !== undefined
+      ...(dto.contactFirstName !== undefined ||
+      dto.contactLastName !== undefined
         ? {
-            fullName: `${dto.contactFirstName ?? existing.contactFirstName ?? ''} ${
-              dto.contactLastName ?? existing.contactLastName ?? ''
-            }`.trim(),
+            fullName:
+              `${dto.contactFirstName ?? existing.contactFirstName ?? ''} ${
+                dto.contactLastName ?? existing.contactLastName ?? ''
+              }`.trim(),
           }
         : {}),
-      ...(dto.companyName !== undefined ? { companyName: dto.companyName.trim() } : {}),
+      ...(dto.companyName !== undefined
+        ? { companyName: dto.companyName.trim() }
+        : {}),
       ...(dto.workEmail !== undefined ? { workEmail: dto.workEmail } : {}),
-      ...(dto.phoneNumber !== undefined ? { phoneNumber: dto.phoneNumber ?? null } : {}),
+      ...(dto.phoneNumber !== undefined
+        ? { phoneNumber: dto.phoneNumber ?? null }
+        : {}),
       ...(dto.companyWebsite !== undefined
         ? { companyWebsite: dto.companyWebsite ?? null }
         : {}),
       ...(dto.industry !== undefined ? { industry: dto.industry.trim() } : {}),
-      ...(dto.companySize !== undefined ? { companySize: dto.companySize.trim() } : {}),
+      ...(dto.companySize !== undefined
+        ? { companySize: dto.companySize.trim() }
+        : {}),
       ...(dto.country !== undefined ? { country: dto.country ?? null } : {}),
       ...(dto.stateProvince !== undefined
         ? { stateProvince: dto.stateProvince ?? null }
@@ -236,9 +245,15 @@ export class LeadsService {
         ? { assignedToUserId: dto.assignedToUserId ?? null }
         : {}),
       ...(dto.status !== undefined ? { status: dto.status } : {}),
-      ...(dto.subStatus !== undefined ? { subStatus: dto.subStatus ?? null } : {}),
-      ...(dto.isQualified !== undefined ? { isQualified: dto.isQualified } : {}),
-      ...(nextStatus === LeadStatus.CONVERTED ? { convertedAt: new Date() } : {}),
+      ...(dto.subStatus !== undefined
+        ? { subStatus: dto.subStatus ?? null }
+        : {}),
+      ...(dto.isQualified !== undefined
+        ? { isQualified: dto.isQualified }
+        : {}),
+      ...(nextStatus === LeadStatus.CONVERTED
+        ? { convertedAt: new Date() }
+        : {}),
     });
 
     await this.auditService.log({

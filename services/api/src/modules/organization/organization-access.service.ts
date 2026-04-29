@@ -4,6 +4,7 @@ import {
   SecurityAccessLevel,
   SecurityPrivilege,
 } from '@prisma/client';
+import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import { PrismaService } from '../../common/prisma/prisma.service';
 
 export type BusinessUnitAccessContext = {
@@ -55,6 +56,7 @@ export class OrganizationAccessService {
             role: {
               select: {
                 key: true,
+                isActive: true,
                 accessLevel: true,
                 rolePrivileges: {
                   where: {
@@ -69,6 +71,34 @@ export class OrganizationAccessService {
             },
           },
         },
+        teamMemberships: {
+          include: {
+            team: {
+              include: {
+                teamRoles: {
+                  include: {
+                    role: {
+                      select: {
+                        key: true,
+                        isActive: true,
+                        accessLevel: true,
+                        rolePrivileges: {
+                          where: {
+                            privilege: SecurityPrivilege.READ,
+                            accessLevel: { not: SecurityAccessLevel.NONE },
+                          },
+                          select: {
+                            accessLevel: true,
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     });
 
@@ -76,17 +106,30 @@ export class OrganizationAccessService {
       throw new NotFoundException('User or user business unit was not found.');
     }
 
-    const roleKeys = user.userRoles.map((item) => item.role.key);
-    const roleAccessLevels = user.userRoles.map((item) => item.role.accessLevel);
-    const rolePrivilegeAccessLevels = user.userRoles.flatMap((item) =>
-      item.role.rolePrivileges.map((privilege) =>
+    const directRoles = user.userRoles
+      .map((item) => item.role)
+      .filter((role) => role.isActive !== false);
+    const teamRoles = (user.teamMemberships ?? []).flatMap((membership) =>
+      membership.team.teamRoles
+        .map((teamRole) => teamRole.role)
+        .filter((role) => role.isActive !== false),
+    );
+    const effectiveRoles = Array.from(
+      new Map(
+        [...directRoles, ...teamRoles].map((role) => [role.key, role]),
+      ).values(),
+    );
+    const roleKeys = effectiveRoles.map((role) => role.key);
+    const roleAccessLevels = effectiveRoles.map((role) => role.accessLevel);
+    const rolePrivilegeAccessLevels = effectiveRoles.flatMap((role) =>
+      (role.rolePrivileges ?? []).map((privilege) =>
         this.securityAccessLevelToRoleAccessLevel(privilege.accessLevel),
       ),
     );
-    const effectiveAccessLevel = this.resolveEffectiveAccessLevel(
-      roleKeys,
-      [...roleAccessLevels, ...rolePrivilegeAccessLevels],
-    );
+    const effectiveAccessLevel = this.resolveEffectiveAccessLevel(roleKeys, [
+      ...roleAccessLevels,
+      ...rolePrivilegeAccessLevels,
+    ]);
 
     const businessUnits = await this.prisma.businessUnit.findMany({
       where: { tenantId: user.tenantId },
@@ -131,7 +174,7 @@ export class OrganizationAccessService {
     roleKeys: string[],
     roleAccessLevels: RoleAccessLevel[],
   ) {
-    if (roleKeys.includes('system-admin')) {
+    if (roleKeys.includes(ROLE_KEYS.SYSTEM_ADMIN)) {
       return RoleAccessLevel.TENANT;
     }
 
@@ -147,16 +190,20 @@ export class OrganizationAccessService {
     }, RoleAccessLevel.USER);
   }
 
-  private securityAccessLevelToRoleAccessLevel(accessLevel: SecurityAccessLevel) {
+  private securityAccessLevelToRoleAccessLevel(
+    accessLevel: SecurityAccessLevel,
+  ) {
     switch (accessLevel) {
       case SecurityAccessLevel.TENANT:
         return RoleAccessLevel.TENANT;
       case SecurityAccessLevel.ORGANIZATION:
         return RoleAccessLevel.ORGANIZATION;
+      case SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT:
       case SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNITS:
         return RoleAccessLevel.PARENT_BU;
       case SecurityAccessLevel.BUSINESS_UNIT:
         return RoleAccessLevel.BUSINESS_UNIT;
+      case SecurityAccessLevel.SELF:
       case SecurityAccessLevel.USER:
       case SecurityAccessLevel.NONE:
       default:
@@ -182,7 +229,10 @@ export class OrganizationAccessService {
           .filter((item) => item.organizationId === userOrganizationId)
           .map((item) => item.id);
       case RoleAccessLevel.PARENT_BU:
-        return this.resolveBusinessUnitSubtreeIds(businessUnits, userBusinessUnitId);
+        return this.resolveBusinessUnitSubtreeIds(
+          businessUnits,
+          userBusinessUnitId,
+        );
       case RoleAccessLevel.BUSINESS_UNIT:
       case RoleAccessLevel.USER:
       default:
@@ -197,12 +247,15 @@ export class OrganizationAccessService {
     }>,
     rootBusinessUnitId: string,
   ) {
-    const childMap = businessUnits.reduce<Record<string, string[]>>((acc, item) => {
-      const parentKey = item.parentBusinessUnitId ?? 'root';
-      acc[parentKey] = acc[parentKey] ?? [];
-      acc[parentKey].push(item.id);
-      return acc;
-    }, {});
+    const childMap = businessUnits.reduce<Record<string, string[]>>(
+      (acc, item) => {
+        const parentKey = item.parentBusinessUnitId ?? 'root';
+        acc[parentKey] = acc[parentKey] ?? [];
+        acc[parentKey].push(item.id);
+        return acc;
+      },
+      {},
+    );
 
     const queue = [rootBusinessUnitId];
     const visited = new Set<string>();

@@ -24,7 +24,11 @@ export class LeadsRepository {
     return db.lead.findUnique({ where: { id } });
   }
 
-  update(id: string, data: Prisma.LeadUncheckedUpdateInput, db: PrismaDb = this.prisma) {
+  update(
+    id: string,
+    data: Prisma.LeadUncheckedUpdateInput,
+    db: PrismaDb = this.prisma,
+  ) {
     return db.lead.update({ where: { id }, data });
   }
 
@@ -90,7 +94,7 @@ export class LeadsRepository {
             : requestedSort === 'status'
               ? [{ status: requestedDirection }, { createdAt: 'desc' }]
               : [{ createdAt: 'desc' }];
-    const [items, total] = await Promise.all([
+    const [items, total] = (await Promise.all([
       db.lead.findMany({
         where,
         include: {
@@ -103,7 +107,7 @@ export class LeadsRepository {
         take: query.pageSize,
       }),
       db.lead.count({ where }),
-    ]) as [LeadListItem[], number];
+    ])) as [LeadListItem[], number];
 
     return { items, total };
   }

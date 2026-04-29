@@ -89,13 +89,18 @@ export class PayrollService {
     const cycle = await this.payrollRepository.findCycleById(tenantId, cycleId);
 
     if (!cycle) {
-      throw new NotFoundException('Payroll cycle was not found for this tenant.');
+      throw new NotFoundException(
+        'Payroll cycle was not found for this tenant.',
+      );
     }
 
     return this.mapCycle(cycle);
   }
 
-  async createCycle(currentUser: AuthenticatedUser, dto: CreatePayrollCycleDto) {
+  async createCycle(
+    currentUser: AuthenticatedUser,
+    dto: CreatePayrollCycleDto,
+  ) {
     validatePeriodRange(dto.periodStart, dto.periodEnd);
 
     try {
@@ -113,7 +118,10 @@ export class PayrollService {
 
       return this.mapCycle(cycle);
     } catch (error) {
-      handlePayrollWriteError(error, 'Payroll cycle already exists for this period.');
+      handlePayrollWriteError(
+        error,
+        'Payroll cycle already exists for this period.',
+      );
     }
   }
 
@@ -126,11 +134,15 @@ export class PayrollService {
     currentUser: AuthenticatedUser,
     dto: CreateEmployeeCompensationDto,
   ) {
-    await this.ensureEmployeeBelongsToTenant(currentUser.tenantId, dto.employeeId);
-    validateCompensationRange(dto.effectiveDate, dto.endDate);
-    const payrollSettings = await this.tenantSettingsResolverService.getPayrollSettings(
+    await this.ensureEmployeeBelongsToTenant(
       currentUser.tenantId,
+      dto.employeeId,
     );
+    validateCompensationRange(dto.effectiveDate, dto.endDate);
+    const payrollSettings =
+      await this.tenantSettingsResolverService.getPayrollSettings(
+        currentUser.tenantId,
+      );
 
     try {
       const compensation = await this.payrollRepository.createCompensation({
@@ -142,8 +154,7 @@ export class PayrollService {
         effectiveDate: new Date(dto.effectiveDate),
         endDate: dto.endDate ? new Date(dto.endDate) : undefined,
         currency:
-          dto.currency?.trim().toUpperCase() ??
-          payrollSettings.defaultCurrency,
+          dto.currency?.trim().toUpperCase() ?? payrollSettings.defaultCurrency,
         createdById: currentUser.userId,
         updatedById: currentUser.userId,
       });
@@ -174,7 +185,10 @@ export class PayrollService {
     }
 
     if (dto.employeeId) {
-      await this.ensureEmployeeBelongsToTenant(currentUser.tenantId, dto.employeeId);
+      await this.ensureEmployeeBelongsToTenant(
+        currentUser.tenantId,
+        dto.employeeId,
+      );
     }
 
     validateCompensationRange(
@@ -227,7 +241,9 @@ export class PayrollService {
     );
 
     if (!cycle) {
-      throw new NotFoundException('Payroll cycle was not found for this tenant.');
+      throw new NotFoundException(
+        'Payroll cycle was not found for this tenant.',
+      );
     }
 
     if (cycle.status === PayrollCycleStatus.FINALIZED) {
@@ -269,7 +285,9 @@ export class PayrollService {
             employeeId: employee.employee.id,
             payrollCycleId: cycle.id,
             gross: new Prisma.Decimal(employee.calculatedPayroll.gross),
-            deductions: new Prisma.Decimal(employee.calculatedPayroll.deductions),
+            deductions: new Prisma.Decimal(
+              employee.calculatedPayroll.deductions,
+            ),
             net: new Prisma.Decimal(employee.calculatedPayroll.net),
             status: PayrollRecordStatus.DRAFT,
             lineItems: employee.lineItems as Prisma.InputJsonValue,
@@ -307,7 +325,9 @@ export class PayrollService {
     const cycle = await this.payrollRepository.findCycleById(tenantId, cycleId);
 
     if (!cycle) {
-      throw new NotFoundException('Payroll cycle was not found for this tenant.');
+      throw new NotFoundException(
+        'Payroll cycle was not found for this tenant.',
+      );
     }
 
     return this.buildPayrollPreview(tenantId, cycle);
@@ -320,15 +340,21 @@ export class PayrollService {
     );
 
     if (!cycle) {
-      throw new NotFoundException('Payroll cycle was not found for this tenant.');
+      throw new NotFoundException(
+        'Payroll cycle was not found for this tenant.',
+      );
     }
 
     if (cycle.status === PayrollCycleStatus.FINALIZED) {
-      throw new BadRequestException('Finalized payroll cycles cannot be reviewed.');
+      throw new BadRequestException(
+        'Finalized payroll cycles cannot be reviewed.',
+      );
     }
 
     if (cycle.records.length === 0) {
-      throw new BadRequestException('Generate draft payroll records before review.');
+      throw new BadRequestException(
+        'Generate draft payroll records before review.',
+      );
     }
 
     await this.prisma.$transaction(async (tx) => {
@@ -362,7 +388,9 @@ export class PayrollService {
     );
 
     if (!cycle) {
-      throw new NotFoundException('Payroll cycle was not found for this tenant.');
+      throw new NotFoundException(
+        'Payroll cycle was not found for this tenant.',
+      );
     }
 
     if (cycle.status === PayrollCycleStatus.FINALIZED) {
@@ -370,7 +398,9 @@ export class PayrollService {
     }
 
     if (cycle.records.length === 0) {
-      throw new BadRequestException('Generate draft payroll before finalizing.');
+      throw new BadRequestException(
+        'Generate draft payroll before finalizing.',
+      );
     }
 
     const preview = await this.buildPayrollPreview(currentUser.tenantId, cycle);
@@ -417,7 +447,9 @@ export class PayrollService {
     const cycle = await this.payrollRepository.findCycleById(tenantId, cycleId);
 
     if (!cycle) {
-      throw new NotFoundException('Payroll cycle was not found for this tenant.');
+      throw new NotFoundException(
+        'Payroll cycle was not found for this tenant.',
+      );
     }
 
     const rows = [
@@ -439,7 +471,9 @@ export class PayrollService {
         'flags',
       ],
       ...cycle.records.map((record) => {
-        const summary = normalizeRecordTimesheetSummary(record.timesheetSummary);
+        const summary = normalizeRecordTimesheetSummary(
+          record.timesheetSummary,
+        );
         return [
           record.employee.employeeCode,
           `${record.employee.firstName} ${record.employee.lastName}`,
@@ -504,7 +538,8 @@ export class PayrollService {
 
     for (const employee of employees) {
       const compensation = employee.compensations[0] ?? null;
-      const timesheetSummary = timesheetSummaryByEmployee.get(employee.id) ?? null;
+      const timesheetSummary =
+        timesheetSummaryByEmployee.get(employee.id) ?? null;
       const employeeSummary = {
         employee: mapPreviewEmployee(employee),
         compensation: compensation
@@ -596,11 +631,15 @@ export class PayrollService {
     };
   }
 
-  private async ensureEmployeeBelongsToTenant(tenantId: string, employeeId: string) {
-    const employee = await this.employeesRepository.findHierarchyNodeByIdAndTenant(
-      tenantId,
-      employeeId,
-    );
+  private async ensureEmployeeBelongsToTenant(
+    tenantId: string,
+    employeeId: string,
+  ) {
+    const employee =
+      await this.employeesRepository.findHierarchyNodeByIdAndTenant(
+        tenantId,
+        employeeId,
+      );
 
     if (!employee) {
       throw new BadRequestException(
@@ -651,7 +690,9 @@ export class PayrollService {
           department: record.employee.department,
           designation: record.employee.designation,
           businessUnit:
-            record.employee.businessUnit ?? record.employee.user?.businessUnit ?? null,
+            record.employee.businessUnit ??
+            record.employee.user?.businessUnit ??
+            null,
         },
       })),
     };
@@ -692,7 +733,10 @@ function validatePeriodRange(periodStart: string, periodEnd: string) {
   }
 }
 
-function validateCompensationRange(effectiveDate: string, endDate?: string | null) {
+function validateCompensationRange(
+  effectiveDate: string,
+  endDate?: string | null,
+) {
   if (endDate && new Date(endDate) < new Date(effectiveDate)) {
     throw new BadRequestException(
       'Compensation end date cannot be earlier than effective date.',
@@ -746,22 +790,20 @@ function summarizePayrollTimesheets(
   const summaryByEmployee = new Map<string, PayrollTimesheetSummary>();
 
   for (const timesheet of timesheets) {
-    const summary =
-      summaryByEmployee.get(timesheet.employeeId) ??
-      {
-        timesheetIds: [],
-        sourceTimesheetIds: [],
-        totalWorkDays: 0,
-        totalLeaveDays: 0,
-        totalHolidayDays: 0,
-        totalWeekendDays: 0,
-        totalWeekendWorkDays: 0,
-        totalWeekendWorkHours: 0,
-        totalHours: 0,
-        notes: [],
-        flags: [],
-        projects: [],
-      };
+    const summary = summaryByEmployee.get(timesheet.employeeId) ?? {
+      timesheetIds: [],
+      sourceTimesheetIds: [],
+      totalWorkDays: 0,
+      totalLeaveDays: 0,
+      totalHolidayDays: 0,
+      totalWeekendDays: 0,
+      totalWeekendWorkDays: 0,
+      totalWeekendWorkHours: 0,
+      totalHours: 0,
+      notes: [],
+      flags: [],
+      projects: [],
+    };
 
     summary.timesheetIds.push(timesheet.id);
     summary.sourceTimesheetIds.push(timesheet.id);
@@ -793,7 +835,10 @@ function summarizePayrollTimesheets(
         summary.notes.push(entry.note.trim());
       }
 
-      if (entry.project && !summary.projects.some((project) => project.id === entry.project?.id)) {
+      if (
+        entry.project &&
+        !summary.projects.some((project) => project.id === entry.project?.id)
+      ) {
         summary.projects.push(entry.project);
       }
     }
@@ -860,7 +905,9 @@ function buildTimesheetPayrollLineItems(
 }
 
 function mapPreviewEmployee(
-  employee: Awaited<ReturnType<PayrollRepository['findEmployeesInPayrollScope']>>[number],
+  employee: Awaited<
+    ReturnType<PayrollRepository['findEmployeesInPayrollScope']>
+  >[number],
 ) {
   return {
     id: employee.id,

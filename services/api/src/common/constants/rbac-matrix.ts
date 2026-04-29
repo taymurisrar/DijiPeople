@@ -25,7 +25,93 @@ export type SystemRoleKey =
   | 'manager'
   | 'hr'
   | 'recruiter'
+  | 'payroll-manager'
   | 'employee';
+
+export const ROLE_KEYS = {
+  GLOBAL_ADMIN: 'global-admin',
+  SYSTEM_ADMIN: 'system-admin',
+  SYSTEM_CUSTOMIZER: 'system-customizer',
+  CEO: 'ceo',
+  MANAGER: 'manager',
+  HR: 'hr',
+  RECRUITER: 'recruiter',
+  PAYROLL_MANAGER: 'payroll-manager',
+  EMPLOYEE: 'employee',
+} as const satisfies Record<string, SystemRoleKey>;
+
+export const ENTITY_KEYS = {
+  EMPLOYEES: 'employees',
+  EMPLOYEE_LEVELS: 'employee-levels',
+  USERS: 'users',
+  ROLES: 'roles',
+  CANDIDATES: 'candidates',
+  JOBS: 'jobs',
+  ONBOARDING: 'onboarding',
+  ATTENDANCE: 'attendance',
+  AGENT: 'agent',
+  TIMESHEETS: 'timesheets',
+  LEAVE_REQUESTS: 'leave-requests',
+  PAYROLL: 'payroll',
+  PAY_COMPONENTS: 'pay-components',
+  COMPENSATION: 'compensation',
+  POLICIES: 'policies',
+  DOCUMENTS: 'documents',
+  PROJECTS: 'projects',
+  SETTINGS: 'settings',
+  REPORTS: 'reports',
+  CUSTOMIZATION: 'customization',
+  TEAMS: 'teams',
+  MODULE_VIEWS: 'module-views',
+  BRANDING: 'branding',
+  TENANT_ADMINISTRATION: 'tenant-administration',
+  CLIENT_ACCOUNTS: 'client-accounts',
+} as const;
+
+export const MISC_PERMISSION_KEYS = {
+  TENANT_SETTINGS_MANAGE: 'tenant.settings.manage',
+  BRANDING_MANAGE: 'branding.manage',
+  BILLING_VIEW: 'billing.view',
+  INTEGRATIONS_MANAGE: 'integrations.manage',
+  API_TOKENS_MANAGE: 'api-tokens.manage',
+  AUDIT_VIEW: 'audit.view',
+  SUPPORT_IMPERSONATE: 'support.impersonate',
+  REPORTS_EXPORT: 'reports.export',
+  CUSTOMIZATION_ACCESS: 'customization.access',
+  CUSTOMIZATION_PUBLISH: 'customization.publish',
+  NOTIFICATION_TEMPLATES_MANAGE: 'notification-templates.manage',
+  ORGANIZATION_MANAGE: 'organization.manage',
+  ROLES_MANAGE: 'roles.manage',
+  TEAM_MEMBERSHIP_MANAGE: 'teams.members.manage',
+} as const;
+
+export const ACCESS_SCOPE_KEYS = {
+  NONE: SecurityAccessLevel.NONE,
+  SELF: SecurityAccessLevel.SELF,
+  TEAM: SecurityAccessLevel.TEAM,
+  BUSINESS_UNIT: SecurityAccessLevel.BUSINESS_UNIT,
+  PARENT_CHILD_BUSINESS_UNIT: SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
+  ORGANIZATION: SecurityAccessLevel.ORGANIZATION,
+  TENANT: SecurityAccessLevel.TENANT,
+} as const;
+
+export const ACTION_KEYS = {
+  READ: SecurityPrivilege.READ,
+  CREATE: SecurityPrivilege.CREATE,
+  WRITE: SecurityPrivilege.WRITE,
+  DELETE: SecurityPrivilege.DELETE,
+  ASSIGN: SecurityPrivilege.ASSIGN,
+  SHARE: SecurityPrivilege.SHARE,
+  APPEND: SecurityPrivilege.APPEND,
+  APPEND_TO: SecurityPrivilege.APPEND_TO,
+  IMPORT: SecurityPrivilege.IMPORT,
+  EXPORT: SecurityPrivilege.EXPORT,
+  APPROVE: SecurityPrivilege.APPROVE,
+  REJECT: SecurityPrivilege.REJECT,
+  MANAGE: SecurityPrivilege.MANAGE,
+  CONFIGURE: SecurityPrivilege.CONFIGURE,
+  CUSTOMIZE: SecurityPrivilege.CUSTOMIZE,
+} as const;
 
 export const RBAC_PRIVILEGES = [
   SecurityPrivilege.READ,
@@ -35,107 +121,164 @@ export const RBAC_PRIVILEGES = [
   SecurityPrivilege.ASSIGN,
   SecurityPrivilege.SHARE,
   SecurityPrivilege.APPEND,
+  SecurityPrivilege.APPEND_TO,
   SecurityPrivilege.IMPORT,
   SecurityPrivilege.EXPORT,
   SecurityPrivilege.APPROVE,
   SecurityPrivilege.REJECT,
   SecurityPrivilege.MANAGE,
   SecurityPrivilege.CONFIGURE,
+  SecurityPrivilege.CUSTOMIZE,
 ] as const;
 
 export const RBAC_ENTITIES: RbacEntityDefinition[] = [
-  { key: 'employees', label: 'Employees', category: 'People' },
-  { key: 'candidates', label: 'Candidates', category: 'Recruitment' },
-  { key: 'jobs', label: 'Jobs', category: 'Recruitment' },
-  { key: 'onboarding', label: 'Onboarding', category: 'Recruitment' },
-  { key: 'attendance', label: 'Attendance', category: 'Workforce' },
-  { key: 'timesheets', label: 'Timesheets', category: 'Workforce' },
-  { key: 'leave-requests', label: 'Leave Requests', category: 'Workforce' },
-  { key: 'payroll', label: 'Payroll', category: 'Finance' },
-  { key: 'documents', label: 'Documents', category: 'Operations' },
-  { key: 'projects', label: 'Projects', category: 'Operations' },
-  { key: 'settings', label: 'Settings', category: 'Administration' },
-  { key: 'reports', label: 'Reports', category: 'Administration' },
-  { key: 'customization', label: 'Customization', category: 'Administration' },
+  { key: ENTITY_KEYS.EMPLOYEES, label: 'Employees', category: 'People' },
+  {
+    key: ENTITY_KEYS.EMPLOYEE_LEVELS,
+    label: 'Employee Levels',
+    category: 'People',
+  },
+  { key: ENTITY_KEYS.USERS, label: 'Users', category: 'Security' },
+  { key: ENTITY_KEYS.ROLES, label: 'Roles', category: 'Security' },
+  { key: ENTITY_KEYS.TEAMS, label: 'Teams', category: 'Security' },
+  { key: ENTITY_KEYS.CANDIDATES, label: 'Candidates', category: 'Recruitment' },
+  { key: ENTITY_KEYS.JOBS, label: 'Jobs', category: 'Recruitment' },
+  { key: ENTITY_KEYS.ONBOARDING, label: 'Onboarding', category: 'Recruitment' },
+  { key: ENTITY_KEYS.ATTENDANCE, label: 'Attendance', category: 'Workforce' },
+  {
+    key: ENTITY_KEYS.AGENT,
+    label: 'Desktop Agent',
+    category: 'Workforce',
+  },
+  { key: ENTITY_KEYS.TIMESHEETS, label: 'Timesheets', category: 'Workforce' },
+  {
+    key: ENTITY_KEYS.LEAVE_REQUESTS,
+    label: 'Leave Requests',
+    category: 'Workforce',
+  },
+  { key: ENTITY_KEYS.PAYROLL, label: 'Payroll', category: 'Finance' },
+  {
+    key: ENTITY_KEYS.PAY_COMPONENTS,
+    label: 'Pay Components',
+    category: 'Finance',
+  },
+  {
+    key: ENTITY_KEYS.COMPENSATION,
+    label: 'Compensation',
+    category: 'Finance',
+  },
+  { key: ENTITY_KEYS.POLICIES, label: 'Policies', category: 'Administration' },
+  { key: ENTITY_KEYS.DOCUMENTS, label: 'Documents', category: 'Operations' },
+  { key: ENTITY_KEYS.PROJECTS, label: 'Projects', category: 'Operations' },
+  { key: ENTITY_KEYS.SETTINGS, label: 'Settings', category: 'Administration' },
+  { key: ENTITY_KEYS.REPORTS, label: 'Reports', category: 'Administration' },
+  {
+    key: ENTITY_KEYS.CUSTOMIZATION,
+    label: 'Customization',
+    category: 'Administration',
+  },
+  {
+    key: ENTITY_KEYS.MODULE_VIEWS,
+    label: 'Module Views',
+    category: 'Administration',
+  },
+  { key: ENTITY_KEYS.BRANDING, label: 'Branding', category: 'Administration' },
+  {
+    key: ENTITY_KEYS.TENANT_ADMINISTRATION,
+    label: 'Tenant Administration',
+    category: 'Administration',
+  },
+  {
+    key: ENTITY_KEYS.CLIENT_ACCOUNTS,
+    label: 'Client Accounts',
+    category: 'Client Management',
+  },
 ];
 
 export const MISC_PERMISSION_DEFINITIONS: MiscPermissionDefinition[] = [
   {
-    key: 'tenant.settings.manage',
+    key: MISC_PERMISSION_KEYS.TENANT_SETTINGS_MANAGE,
     label: 'Manage tenant settings',
     description: 'Change tenant-level configuration.',
     category: 'Tenant Administration',
   },
   {
-    key: 'branding.manage',
+    key: MISC_PERMISSION_KEYS.BRANDING_MANAGE,
     label: 'Manage branding',
     description: 'Update visual identity, logos, and portal presentation.',
     category: 'Tenant Administration',
   },
   {
-    key: 'billing.view',
+    key: MISC_PERMISSION_KEYS.BILLING_VIEW,
     label: 'View billing',
     description: 'View subscription and billing status.',
     category: 'Tenant Administration',
   },
   {
-    key: 'integrations.manage',
+    key: MISC_PERMISSION_KEYS.INTEGRATIONS_MANAGE,
     label: 'Manage integrations',
     description: 'Configure external systems and connectors.',
     category: 'Tenant Administration',
   },
   {
-    key: 'api-tokens.manage',
+    key: MISC_PERMISSION_KEYS.API_TOKENS_MANAGE,
     label: 'Manage API tokens',
     description: 'Create and revoke tenant API credentials.',
     category: 'Security',
   },
   {
-    key: 'audit.view',
+    key: MISC_PERMISSION_KEYS.AUDIT_VIEW,
     label: 'View audit logs',
     description: 'Inspect security and change audit history.',
     category: 'Security',
   },
   {
-    key: 'support.impersonate',
+    key: MISC_PERMISSION_KEYS.SUPPORT_IMPERSONATE,
     label: 'Support impersonation',
     description: 'Use controlled support access where enabled.',
     category: 'Security',
   },
   {
-    key: 'reports.export',
+    key: MISC_PERMISSION_KEYS.REPORTS_EXPORT,
     label: 'Export reports',
     description: 'Export reporting data from allowed scopes.',
     category: 'Reporting',
   },
   {
-    key: 'customization.access',
+    key: MISC_PERMISSION_KEYS.CUSTOMIZATION_ACCESS,
     label: 'Access customization',
     description: 'Open customization tools and metadata workspaces.',
     category: 'Customization',
   },
   {
-    key: 'customization.publish',
+    key: MISC_PERMISSION_KEYS.CUSTOMIZATION_PUBLISH,
     label: 'Publish customization',
     description: 'Publish metadata changes to tenant users.',
     category: 'Customization',
   },
   {
-    key: 'notification-templates.manage',
+    key: MISC_PERMISSION_KEYS.NOTIFICATION_TEMPLATES_MANAGE,
     label: 'Manage notification templates',
     description: 'Create and update tenant notification templates.',
     category: 'Tenant Administration',
   },
   {
-    key: 'organization.manage',
+    key: MISC_PERMISSION_KEYS.ORGANIZATION_MANAGE,
     label: 'Manage organizations and business units',
     description: 'Maintain organization and business-unit hierarchy.',
     category: 'Organization',
   },
   {
-    key: 'roles.manage',
+    key: MISC_PERMISSION_KEYS.ROLES_MANAGE,
     label: 'Manage roles and permissions',
     description: 'Create roles, assign permissions, and manage user access.',
+    category: 'Security',
+  },
+  {
+    key: MISC_PERMISSION_KEYS.TEAM_MEMBERSHIP_MANAGE,
+    label: 'Manage team membership',
+    description:
+      'Create teams and maintain team members and team role assignments.',
     category: 'Security',
   },
 ];
@@ -148,14 +291,14 @@ export const SYSTEM_ROLE_DEFINITIONS: Array<{
   isEditable: boolean;
 }> = [
   {
-    key: 'global-admin',
+    key: ROLE_KEYS.GLOBAL_ADMIN,
     name: 'Global Administrator',
     description: 'Tenant owner role with full tenant security authority.',
     accessLevel: RoleAccessLevel.TENANT,
     isEditable: false,
   },
   {
-    key: 'system-admin',
+    key: ROLE_KEYS.SYSTEM_ADMIN,
     name: 'System Administrator',
     description:
       'Full tenant operational access without tenant-owner override rights.',
@@ -163,43 +306,51 @@ export const SYSTEM_ROLE_DEFINITIONS: Array<{
     isEditable: false,
   },
   {
-    key: 'system-customizer',
+    key: ROLE_KEYS.SYSTEM_CUSTOMIZER,
     name: 'System Customizer',
     description: 'Customization and metadata configuration access.',
     accessLevel: RoleAccessLevel.TENANT,
     isEditable: false,
   },
   {
-    key: 'ceo',
-    name: 'CEO',
-    description: 'Executive visibility across the tenant operating scope.',
+    key: ROLE_KEYS.CEO,
+    name: 'CEO / Executive Viewer',
+    description: 'Executive read visibility across the tenant operating scope.',
     accessLevel: RoleAccessLevel.TENANT,
     isEditable: false,
   },
   {
-    key: 'manager',
+    key: ROLE_KEYS.MANAGER,
     name: 'Manager',
     description: 'Team workflow and reporting-line access.',
     accessLevel: RoleAccessLevel.PARENT_BU,
     isEditable: false,
   },
   {
-    key: 'hr',
-    name: 'HR',
+    key: ROLE_KEYS.HR,
+    name: 'HR Manager',
     description: 'People operations and workforce administration.',
     accessLevel: RoleAccessLevel.ORGANIZATION,
     isEditable: false,
   },
   {
-    key: 'recruiter',
+    key: ROLE_KEYS.RECRUITER,
     name: 'Recruiter',
     description: 'Recruitment, candidate, jobs, and onboarding access.',
     accessLevel: RoleAccessLevel.BUSINESS_UNIT,
     isEditable: false,
   },
   {
-    key: 'employee',
-    name: 'Employee',
+    key: ROLE_KEYS.PAYROLL_MANAGER,
+    name: 'Finance / Payroll Manager',
+    description:
+      'Payroll and finance operations role for compensation and payroll cycles.',
+    accessLevel: RoleAccessLevel.ORGANIZATION,
+    isEditable: false,
+  },
+  {
+    key: ROLE_KEYS.EMPLOYEE,
+    name: 'Employee Self-Service',
     description: 'Employee self-service access.',
     accessLevel: RoleAccessLevel.USER,
     isEditable: false,
@@ -233,14 +384,15 @@ export const SYSTEM_ROLE_PRIVILEGES: Record<
   SystemRoleKey,
   Record<string, SecurityAccessLevel>
 > = {
-  'global-admin': FULL_MATRIX,
-  'system-admin': {
+  [ROLE_KEYS.GLOBAL_ADMIN]: FULL_MATRIX,
+  [ROLE_KEYS.SYSTEM_ADMIN]: {
     ...FULL_MATRIX,
     ...matrix(SecurityAccessLevel.TENANT, {
       'customization:CONFIGURE': SecurityAccessLevel.NONE,
+      'customization:CUSTOMIZE': SecurityAccessLevel.NONE,
     }),
   },
-  'system-customizer': matrix(SecurityAccessLevel.NONE, {
+  [ROLE_KEYS.SYSTEM_CUSTOMIZER]: matrix(SecurityAccessLevel.NONE, {
     'settings:READ': SecurityAccessLevel.TENANT,
     'settings:CONFIGURE': SecurityAccessLevel.TENANT,
     'customization:READ': SecurityAccessLevel.TENANT,
@@ -249,8 +401,10 @@ export const SYSTEM_ROLE_PRIVILEGES: Record<
     'customization:DELETE': SecurityAccessLevel.TENANT,
     'customization:MANAGE': SecurityAccessLevel.TENANT,
     'customization:CONFIGURE': SecurityAccessLevel.TENANT,
+    'customization:CUSTOMIZE': SecurityAccessLevel.TENANT,
+    'settings:CUSTOMIZE': SecurityAccessLevel.TENANT,
   }),
-  ceo: matrix(SecurityAccessLevel.NONE, {
+  [ROLE_KEYS.CEO]: matrix(SecurityAccessLevel.NONE, {
     'employees:READ': SecurityAccessLevel.TENANT,
     'attendance:READ': SecurityAccessLevel.TENANT,
     'timesheets:READ': SecurityAccessLevel.TENANT,
@@ -261,24 +415,29 @@ export const SYSTEM_ROLE_PRIVILEGES: Record<
     'reports:READ': SecurityAccessLevel.TENANT,
     'reports:EXPORT': SecurityAccessLevel.TENANT,
   }),
-  manager: matrix(SecurityAccessLevel.NONE, {
-    'employees:READ': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNITS,
-    'attendance:READ': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNITS,
-    'timesheets:READ': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNITS,
-    'timesheets:APPROVE': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNITS,
-    'timesheets:REJECT': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNITS,
-    'leave-requests:READ': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNITS,
-    'leave-requests:APPROVE': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNITS,
-    'leave-requests:REJECT': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNITS,
-    'projects:READ': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNITS,
+  [ROLE_KEYS.MANAGER]: matrix(SecurityAccessLevel.NONE, {
+    'employees:READ': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
+    'attendance:READ': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
+    'timesheets:READ': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
+    'timesheets:APPROVE': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
+    'timesheets:REJECT': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
+    'leave-requests:READ': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
+    'leave-requests:APPROVE': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
+    'leave-requests:REJECT': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
+    'projects:READ': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
   }),
-  hr: matrix(SecurityAccessLevel.NONE, {
+  [ROLE_KEYS.HR]: matrix(SecurityAccessLevel.NONE, {
     'employees:READ': SecurityAccessLevel.ORGANIZATION,
     'employees:CREATE': SecurityAccessLevel.ORGANIZATION,
     'employees:WRITE': SecurityAccessLevel.ORGANIZATION,
     'employees:DELETE': SecurityAccessLevel.ORGANIZATION,
+    'employee-levels:READ': SecurityAccessLevel.ORGANIZATION,
+    'employee-levels:MANAGE': SecurityAccessLevel.ORGANIZATION,
     'attendance:READ': SecurityAccessLevel.ORGANIZATION,
     'attendance:WRITE': SecurityAccessLevel.ORGANIZATION,
+    'agent:READ': SecurityAccessLevel.ORGANIZATION,
+    'agent:CONFIGURE': SecurityAccessLevel.ORGANIZATION,
+    'agent:MANAGE': SecurityAccessLevel.ORGANIZATION,
     'timesheets:READ': SecurityAccessLevel.ORGANIZATION,
     'leave-requests:READ': SecurityAccessLevel.ORGANIZATION,
     'leave-requests:APPROVE': SecurityAccessLevel.ORGANIZATION,
@@ -287,9 +446,11 @@ export const SYSTEM_ROLE_PRIVILEGES: Record<
     'documents:CREATE': SecurityAccessLevel.ORGANIZATION,
     'documents:WRITE': SecurityAccessLevel.ORGANIZATION,
     'settings:READ': SecurityAccessLevel.ORGANIZATION,
+    'policies:READ': SecurityAccessLevel.ORGANIZATION,
+    'policies:MANAGE': SecurityAccessLevel.ORGANIZATION,
     'reports:READ': SecurityAccessLevel.ORGANIZATION,
   }),
-  recruiter: matrix(SecurityAccessLevel.NONE, {
+  [ROLE_KEYS.RECRUITER]: matrix(SecurityAccessLevel.NONE, {
     'candidates:READ': SecurityAccessLevel.BUSINESS_UNIT,
     'candidates:CREATE': SecurityAccessLevel.BUSINESS_UNIT,
     'candidates:WRITE': SecurityAccessLevel.BUSINESS_UNIT,
@@ -302,48 +463,82 @@ export const SYSTEM_ROLE_PRIVILEGES: Record<
     'documents:READ': SecurityAccessLevel.BUSINESS_UNIT,
     'documents:CREATE': SecurityAccessLevel.BUSINESS_UNIT,
   }),
-  employee: matrix(SecurityAccessLevel.NONE, {
-    'employees:READ': SecurityAccessLevel.USER,
-    'employees:WRITE': SecurityAccessLevel.USER,
-    'attendance:READ': SecurityAccessLevel.USER,
-    'attendance:CREATE': SecurityAccessLevel.USER,
-    'timesheets:READ': SecurityAccessLevel.USER,
-    'timesheets:CREATE': SecurityAccessLevel.USER,
-    'timesheets:WRITE': SecurityAccessLevel.USER,
-    'leave-requests:READ': SecurityAccessLevel.USER,
-    'leave-requests:CREATE': SecurityAccessLevel.USER,
-    'documents:READ': SecurityAccessLevel.USER,
-    'documents:CREATE': SecurityAccessLevel.USER,
-    'projects:READ': SecurityAccessLevel.USER,
+  [ROLE_KEYS.PAYROLL_MANAGER]: matrix(SecurityAccessLevel.NONE, {
+    'employees:READ': SecurityAccessLevel.ORGANIZATION,
+    'timesheets:READ': SecurityAccessLevel.ORGANIZATION,
+    'timesheets:EXPORT': SecurityAccessLevel.ORGANIZATION,
+    'payroll:READ': SecurityAccessLevel.ORGANIZATION,
+    'payroll:CREATE': SecurityAccessLevel.ORGANIZATION,
+    'payroll:WRITE': SecurityAccessLevel.ORGANIZATION,
+    'payroll:IMPORT': SecurityAccessLevel.ORGANIZATION,
+    'payroll:EXPORT': SecurityAccessLevel.ORGANIZATION,
+    'payroll:APPROVE': SecurityAccessLevel.ORGANIZATION,
+    'payroll:MANAGE': SecurityAccessLevel.ORGANIZATION,
+    'pay-components:READ': SecurityAccessLevel.ORGANIZATION,
+    'pay-components:MANAGE': SecurityAccessLevel.ORGANIZATION,
+    'compensation:READ': SecurityAccessLevel.ORGANIZATION,
+    'compensation:MANAGE': SecurityAccessLevel.ORGANIZATION,
+    'policies:READ': SecurityAccessLevel.ORGANIZATION,
+    'policies:MANAGE': SecurityAccessLevel.ORGANIZATION,
+    'reports:READ': SecurityAccessLevel.ORGANIZATION,
+    'reports:EXPORT': SecurityAccessLevel.ORGANIZATION,
+  }),
+  [ROLE_KEYS.EMPLOYEE]: matrix(SecurityAccessLevel.NONE, {
+    'employees:READ': SecurityAccessLevel.SELF,
+    'employees:WRITE': SecurityAccessLevel.SELF,
+    'attendance:READ': SecurityAccessLevel.SELF,
+    'attendance:CREATE': SecurityAccessLevel.SELF,
+    'timesheets:READ': SecurityAccessLevel.SELF,
+    'timesheets:CREATE': SecurityAccessLevel.SELF,
+    'timesheets:WRITE': SecurityAccessLevel.SELF,
+    'leave-requests:READ': SecurityAccessLevel.SELF,
+    'leave-requests:CREATE': SecurityAccessLevel.SELF,
+    'documents:READ': SecurityAccessLevel.SELF,
+    'documents:CREATE': SecurityAccessLevel.SELF,
+    'projects:READ': SecurityAccessLevel.SELF,
   }),
 };
 
 export const SYSTEM_ROLE_MISC_PERMISSIONS: Record<SystemRoleKey, string[]> = {
-  'global-admin': MISC_PERMISSION_DEFINITIONS.map((permission) => permission.key),
-  'system-admin': MISC_PERMISSION_DEFINITIONS.map((permission) => permission.key).filter(
-    (key) => key !== 'support.impersonate',
+  [ROLE_KEYS.GLOBAL_ADMIN]: MISC_PERMISSION_DEFINITIONS.map(
+    (permission) => permission.key,
   ),
-  'system-customizer': ['customization.access', 'customization.publish'],
-  ceo: ['audit.view', 'reports.export', 'billing.view'],
-  manager: ['reports.export'],
-  hr: [
-    'tenant.settings.manage',
-    'audit.view',
-    'reports.export',
-    'organization.manage',
+  [ROLE_KEYS.SYSTEM_ADMIN]: MISC_PERMISSION_DEFINITIONS.map(
+    (permission) => permission.key,
+  ).filter((key) => key !== MISC_PERMISSION_KEYS.SUPPORT_IMPERSONATE),
+  [ROLE_KEYS.SYSTEM_CUSTOMIZER]: [
+    MISC_PERMISSION_KEYS.CUSTOMIZATION_ACCESS,
+    MISC_PERMISSION_KEYS.CUSTOMIZATION_PUBLISH,
   ],
-  recruiter: [],
-  employee: [],
+  [ROLE_KEYS.CEO]: [
+    MISC_PERMISSION_KEYS.AUDIT_VIEW,
+    MISC_PERMISSION_KEYS.REPORTS_EXPORT,
+    MISC_PERMISSION_KEYS.BILLING_VIEW,
+  ],
+  [ROLE_KEYS.MANAGER]: [MISC_PERMISSION_KEYS.REPORTS_EXPORT],
+  [ROLE_KEYS.HR]: [
+    MISC_PERMISSION_KEYS.TENANT_SETTINGS_MANAGE,
+    MISC_PERMISSION_KEYS.AUDIT_VIEW,
+    MISC_PERMISSION_KEYS.REPORTS_EXPORT,
+    MISC_PERMISSION_KEYS.ORGANIZATION_MANAGE,
+  ],
+  [ROLE_KEYS.PAYROLL_MANAGER]: [MISC_PERMISSION_KEYS.REPORTS_EXPORT],
+  [ROLE_KEYS.RECRUITER]: [],
+  [ROLE_KEYS.EMPLOYEE]: [],
 };
 
-export const SECURITY_ACCESS_LEVEL_WEIGHT: Record<SecurityAccessLevel, number> = {
-  NONE: 0,
-  USER: 1,
-  BUSINESS_UNIT: 2,
-  PARENT_CHILD_BUSINESS_UNITS: 3,
-  ORGANIZATION: 4,
-  TENANT: 5,
-};
+export const SECURITY_ACCESS_LEVEL_WEIGHT: Record<SecurityAccessLevel, number> =
+  {
+    NONE: 0,
+    SELF: 1,
+    USER: 1,
+    TEAM: 2,
+    BUSINESS_UNIT: 2,
+    PARENT_CHILD_BUSINESS_UNIT: 3,
+    PARENT_CHILD_BUSINESS_UNITS: 3,
+    ORGANIZATION: 4,
+    TENANT: 5,
+  };
 
 export function legacyRoleAccessLevelToSecurityAccessLevel(
   accessLevel: RoleAccessLevel,
@@ -359,7 +554,7 @@ export function legacyRoleAccessLevelToSecurityAccessLevel(
       return SecurityAccessLevel.BUSINESS_UNIT;
     case RoleAccessLevel.USER:
     default:
-      return SecurityAccessLevel.USER;
+      return SecurityAccessLevel.SELF;
   }
 }
 
@@ -377,6 +572,9 @@ export function matrixPrivilegeToPermissionKey(
     'attendance:import': 'attendance.import',
     'attendance:export': 'attendance.export',
     'attendance:manage': 'attendance.manage',
+    'agent:read': 'agent.settings.read',
+    'agent:configure': 'agent.settings.manage',
+    'agent:manage': 'agent.settings.manage',
     'timesheets:write': 'timesheets.write',
     'timesheets:approve': 'timesheets.approve',
     'timesheets:reject': 'timesheets.reject',
@@ -386,12 +584,60 @@ export function matrixPrivilegeToPermissionKey(
     'payroll:manage': 'payroll.run',
     'payroll:approve': 'payroll.review',
     'payroll:export': 'payroll.export',
+    'pay-components:create': 'pay-components.manage',
+    'pay-components:write': 'pay-components.manage',
+    'pay-components:delete': 'pay-components.manage',
+    'pay-components:manage': 'pay-components.manage',
+    'compensation:create': 'compensation.manage',
+    'compensation:write': 'compensation.manage',
+    'compensation:delete': 'compensation.manage',
+    'compensation:manage': 'compensation.manage',
+    'employee-levels:create': 'employee-levels.manage',
+    'employee-levels:write': 'employee-levels.manage',
+    'employee-levels:delete': 'employee-levels.manage',
+    'employee-levels:manage': 'employee-levels.manage',
+    'policies:create': 'policies.manage',
+    'policies:write': 'policies.manage',
+    'policies:delete': 'policies.manage',
+    'policies:manage': 'policies.manage',
     'documents:create': 'documents.upload',
     'documents:write': 'documents.update',
     'projects:assign': 'projects.assign',
     'settings:configure': 'settings.update',
     'customization:configure': 'customization.publish',
+    'customization:customize': 'customization.publish',
     'customization:manage': 'customization.publish',
+    'users:read': 'users.read',
+    'users:create': 'users.create',
+    'users:write': 'users.update',
+    'users:delete': 'users.delete',
+    'users:assign': 'users.assign-roles',
+    'users:manage': 'users.assign-roles',
+    'roles:read': 'roles.read',
+    'roles:create': 'roles.create',
+    'roles:write': 'roles.update',
+    'roles:delete': 'roles.update',
+    'roles:assign': 'roles.assign-permissions',
+    'roles:configure': 'roles.assign-permissions',
+    'roles:manage': 'roles.assign-permissions',
+    'teams:read': 'teams.read',
+    'teams:create': 'teams.create',
+    'teams:write': 'teams.update',
+    'teams:delete': 'teams.delete',
+    'teams:assign': 'teams.members.manage',
+    'teams:manage': 'teams.members.manage',
+    'module-views:read': 'customization.views.read',
+    'module-views:create': 'customization.views.create',
+    'module-views:write': 'customization.views.update',
+    'module-views:delete': 'customization.views.delete',
+    'module-views:customize': 'customization.views.update',
+    'branding:read': 'settings.read',
+    'branding:write': 'branding.manage',
+    'branding:configure': 'branding.manage',
+    'tenant-administration:read': 'settings.read',
+    'tenant-administration:write': 'settings.update',
+    'tenant-administration:configure': 'tenant.settings.manage',
+    'tenant-administration:manage': 'tenant.settings.manage',
     'reports:read': 'employees.read',
     'reports:export': 'reports.export',
     'jobs:read': 'recruitment.read',
@@ -402,5 +648,8 @@ export function matrixPrivilegeToPermissionKey(
     'candidates:write': 'recruitment.update',
   };
 
-  return explicit[`${entityKey}:${normalizedPrivilege}`] ?? `${entityKey}.${normalizedPrivilege}`;
+  return (
+    explicit[`${entityKey}:${normalizedPrivilege}`] ??
+    `${entityKey}.${normalizedPrivilege}`
+  );
 }

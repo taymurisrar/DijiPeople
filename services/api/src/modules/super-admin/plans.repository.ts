@@ -65,11 +65,7 @@ export class PlansRepository {
     });
   }
 
-  update(
-    id: string,
-    data: Prisma.PlanUpdateInput,
-    db: PrismaDb = this.prisma,
-  ) {
+  update(id: string, data: Prisma.PlanUpdateInput, db: PrismaDb = this.prisma) {
     return db.plan.update({
       where: { id },
       data,

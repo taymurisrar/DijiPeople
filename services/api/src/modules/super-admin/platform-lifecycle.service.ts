@@ -17,6 +17,7 @@ import {
   UserStatus,
 } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
+import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { normalizeEmail } from '../../common/utils/email.util';
@@ -75,7 +76,7 @@ export class PlatformLifecycleService {
         userRoles: {
           some: {
             role: {
-              key: 'system-admin',
+              key: ROLE_KEYS.SYSTEM_ADMIN,
             },
           },
         },
@@ -130,22 +131,29 @@ export class PlatformLifecycleService {
           companyName: dto.companyName?.trim() ?? lead.companyName,
           legalCompanyName: dto.legalCompanyName?.trim() || null,
           primaryContactFirstName:
-            dto.primaryContactFirstName?.trim() || lead.contactFirstName || null,
+            dto.primaryContactFirstName?.trim() ||
+            lead.contactFirstName ||
+            null,
           primaryContactLastName:
             dto.primaryContactLastName?.trim() || lead.contactLastName || null,
           primaryContactEmail:
             dto.primaryContactEmail?.trim().toLowerCase() || lead.workEmail,
-          primaryContactPhone: dto.primaryContactPhone?.trim() || lead.phoneNumber || null,
+          primaryContactPhone:
+            dto.primaryContactPhone?.trim() || lead.phoneNumber || null,
           contactEmail:
             dto.primaryContactEmail?.trim().toLowerCase() || lead.workEmail,
-          contactPhone: dto.primaryContactPhone?.trim() || lead.phoneNumber || null,
-          billingContactEmail: dto.billingContactEmail?.trim().toLowerCase() || null,
+          contactPhone:
+            dto.primaryContactPhone?.trim() || lead.phoneNumber || null,
+          billingContactEmail:
+            dto.billingContactEmail?.trim().toLowerCase() || null,
           financeContactName: dto.financeContactName?.trim() || null,
-          financeContactEmail: dto.financeContactEmail?.trim().toLowerCase() || null,
+          financeContactEmail:
+            dto.financeContactEmail?.trim().toLowerCase() || null,
           industry: dto.industry?.trim() ?? lead.industry,
           companySize: dto.companySize?.trim() ?? lead.companySize,
           country: dto.country?.trim() ?? lead.country ?? 'United States',
-          stateProvince: dto.stateProvince?.trim() || lead.stateProvince || null,
+          stateProvince:
+            dto.stateProvince?.trim() || lead.stateProvince || null,
           city: dto.city?.trim() || lead.city || null,
           addressLine1: dto.addressLine1?.trim() || null,
           addressLine2: dto.addressLine2?.trim() || null,
@@ -159,7 +167,8 @@ export class PlatformLifecycleService {
           leadId,
           status: dto.status ?? CustomerAccountStatus.PROSPECT,
           subStatus: dto.subStatus ?? 'Commercial review',
-          assignedToUserId: dto.assignedToUserId ?? lead.assignedToUserId ?? actor.userId,
+          assignedToUserId:
+            dto.assignedToUserId ?? lead.assignedToUserId ?? actor.userId,
           accountManagerUserId:
             dto.accountManagerUserId ?? lead.assignedToUserId ?? actor.userId,
         },
@@ -202,8 +211,18 @@ export class PlatformLifecycleService {
       ...(query.search?.trim()
         ? {
             OR: [
-              { companyName: { contains: query.search.trim(), mode: 'insensitive' as const } },
-              { contactEmail: { contains: query.search.trim(), mode: 'insensitive' as const } },
+              {
+                companyName: {
+                  contains: query.search.trim(),
+                  mode: 'insensitive' as const,
+                },
+              },
+              {
+                contactEmail: {
+                  contains: query.search.trim(),
+                  mode: 'insensitive' as const,
+                },
+              },
               {
                 primaryContactEmail: {
                   contains: query.search.trim(),
@@ -246,7 +265,12 @@ export class PlatformLifecycleService {
           onboardings: {
             orderBy: { createdAt: 'desc' },
             take: 1,
-            select: { id: true, status: true, subStatus: true, tenantCreated: true },
+            select: {
+              id: true,
+              status: true,
+              subStatus: true,
+              tenantCreated: true,
+            },
           },
         },
         orderBy: [{ updatedAt: 'desc' }, { companyName: 'asc' }],
@@ -293,7 +317,12 @@ export class PlatformLifecycleService {
         notes: {
           include: {
             createdByUser: {
-              select: { id: true, firstName: true, lastName: true, email: true },
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
             },
           },
           orderBy: { createdAt: 'desc' },
@@ -301,7 +330,12 @@ export class PlatformLifecycleService {
         onboardings: {
           include: {
             onboardingOwnerUser: {
-              select: { id: true, firstName: true, lastName: true, email: true },
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
             },
             selectedPlan: {
               select: { id: true, name: true, key: true },
@@ -336,8 +370,9 @@ export class PlatformLifecycleService {
     );
     const subscriptions = customer.tenants
       .map((tenant) => tenant.subscription)
-      .filter((subscription): subscription is NonNullable<typeof subscription> =>
-        Boolean(subscription),
+      .filter(
+        (subscription): subscription is NonNullable<typeof subscription> =>
+          Boolean(subscription),
       );
     const tenantIds = customer.tenants.map((tenant) => tenant.id);
     const [invoices, payments] = tenantIds.length
@@ -469,15 +504,23 @@ export class PlatformLifecycleService {
         select: { id: true },
       });
       if (existing) {
-        throw new ConflictException('This lead is already linked to a customer.');
+        throw new ConflictException(
+          'This lead is already linked to a customer.',
+        );
       }
     }
 
     const customer = await this.prisma.customerAccount.create({
       data: {
-        ...(this.mapCustomerDtoToData(dto, actor.userId) as Prisma.CustomerAccountUncheckedCreateInput),
-        contactEmail: (dto.contactEmail ?? dto.primaryContactEmail).trim().toLowerCase(),
-        contactPhone: dto.contactPhone?.trim() ?? dto.primaryContactPhone?.trim() ?? null,
+        ...(this.mapCustomerDtoToData(
+          dto,
+          actor.userId,
+        ) as Prisma.CustomerAccountUncheckedCreateInput),
+        contactEmail: (dto.contactEmail ?? dto.primaryContactEmail)
+          .trim()
+          .toLowerCase(),
+        contactPhone:
+          dto.contactPhone?.trim() ?? dto.primaryContactPhone?.trim() ?? null,
         country: dto.country.trim(),
         status: dto.status ?? CustomerAccountStatus.PROSPECT,
       },
@@ -505,7 +548,9 @@ export class PlatformLifecycleService {
         select: { id: true },
       });
       if (linked) {
-        throw new ConflictException('This lead is already linked to another customer.');
+        throw new ConflictException(
+          'This lead is already linked to another customer.',
+        );
       }
     }
 
@@ -557,7 +602,9 @@ export class PlatformLifecycleService {
     const activeOnboarding = await this.findActiveOnboarding(customerId);
 
     if (activeOnboarding) {
-      throw new ConflictException('Customer already has an active onboarding record.');
+      throw new ConflictException(
+        'Customer already has an active onboarding record.',
+      );
     }
 
     const prerequisites = this.getOnboardingPrerequisites(customer);
@@ -578,9 +625,12 @@ export class PlatformLifecycleService {
         customerId,
         leadId: customer.leadId,
         onboardingOwnerUserId:
-          dto?.onboardingOwnerUserId ?? customer.accountManagerUserId ?? actor.userId,
+          dto?.onboardingOwnerUserId ??
+          customer.accountManagerUserId ??
+          actor.userId,
         selectedPlanId: dto?.selectedPlanId ?? customer.selectedPlanId ?? null,
-        billingCycle: dto?.billingCycle ?? customer.preferredBillingCycle ?? null,
+        billingCycle:
+          dto?.billingCycle ?? customer.preferredBillingCycle ?? null,
         agreedPrice: dto?.agreedPrice ?? null,
         discountType: dto?.discountType ?? DiscountType.NONE,
         discountValue: dto?.discountValue ?? 0,
@@ -594,9 +644,13 @@ export class PlatformLifecycleService {
         primaryOwnerLastName:
           dto?.primaryOwnerLastName ?? customer.primaryContactLastName ?? '',
         primaryOwnerWorkEmail:
-          dto?.primaryOwnerWorkEmail ?? customer.primaryContactEmail ?? customer.contactEmail,
+          dto?.primaryOwnerWorkEmail ??
+          customer.primaryContactEmail ??
+          customer.contactEmail,
         primaryOwnerPhone:
-          dto?.primaryOwnerPhone ?? customer.primaryContactPhone ?? customer.contactPhone,
+          dto?.primaryOwnerPhone ??
+          customer.primaryContactPhone ??
+          customer.contactPhone,
         createServiceAccount:
           dto?.createServiceAccount ?? Boolean(dto?.serviceAccountEmail),
         serviceAccountDisplayName: dto?.serviceAccountDisplayName ?? null,
@@ -617,7 +671,10 @@ export class PlatformLifecycleService {
 
     await this.prisma.customerAccount.update({
       where: { id: customerId },
-      data: { status: CustomerAccountStatus.ONBOARDING, subStatus: 'Onboarding in progress' },
+      data: {
+        status: CustomerAccountStatus.ONBOARDING,
+        subStatus: 'Onboarding in progress',
+      },
     });
 
     return this.getCustomerOnboarding(onboarding.id);
@@ -659,7 +716,12 @@ export class PlatformLifecycleService {
         where,
         include: {
           customer: {
-            select: { id: true, companyName: true, status: true, subStatus: true },
+            select: {
+              id: true,
+              companyName: true,
+              status: true,
+              subStatus: true,
+            },
           },
           onboardingOwnerUser: {
             select: { id: true, firstName: true, lastName: true, email: true },
@@ -781,7 +843,9 @@ export class PlatformLifecycleService {
 
     await this.prisma.customerOnboarding.update({
       where: { id: onboardingId },
-      data: this.mapOnboardingDtoToData(dto) as Prisma.CustomerOnboardingUncheckedUpdateInput,
+      data: this.mapOnboardingDtoToData(
+        dto,
+      ) as Prisma.CustomerOnboardingUncheckedUpdateInput,
     });
 
     if (dto.status === CustomerOnboardingStatus.READY_FOR_TENANT_CREATION) {
@@ -807,7 +871,10 @@ export class PlatformLifecycleService {
 
   async bulkDeleteCustomerOnboardings(actor: AuthenticatedUser, ids: string[]) {
     const blockers = await this.prisma.customerOnboarding.findMany({
-      where: { id: { in: ids }, OR: [{ tenantCreated: true }, { tenantId: { not: null } }] },
+      where: {
+        id: { in: ids },
+        OR: [{ tenantCreated: true }, { tenantId: { not: null } }],
+      },
       select: { id: true },
     });
 
@@ -862,7 +929,9 @@ export class PlatformLifecycleService {
         };
       }
 
-      throw new ConflictException('A tenant has already been created for this onboarding.');
+      throw new ConflictException(
+        'A tenant has already been created for this onboarding.',
+      );
     }
 
     if (onboarding.customer.status !== CustomerAccountStatus.ACTIVE) {
@@ -879,9 +948,13 @@ export class PlatformLifecycleService {
     }
 
     const selectedPlanId =
-      dto.planId ?? onboarding.selectedPlanId ?? onboarding.customer.selectedPlanId;
+      dto.planId ??
+      onboarding.selectedPlanId ??
+      onboarding.customer.selectedPlanId;
     const billingCycle =
-      dto.billingCycle ?? onboarding.billingCycle ?? onboarding.customer.preferredBillingCycle;
+      dto.billingCycle ??
+      onboarding.billingCycle ??
+      onboarding.customer.preferredBillingCycle;
 
     if (!selectedPlanId || !billingCycle) {
       throw new BadRequestException(
@@ -889,7 +962,8 @@ export class PlatformLifecycleService {
       );
     }
 
-    const tenantName = dto.tenantName?.trim() || onboarding.customer.companyName;
+    const tenantName =
+      dto.tenantName?.trim() || onboarding.customer.companyName;
     const slug = normalizeTenantSlug(
       dto.slug ?? dto.tenantName ?? onboarding.customer.companyName,
     );
@@ -923,7 +997,9 @@ export class PlatformLifecycleService {
       (value): value is string => Boolean(value),
     );
     if (new Set(emails).size !== emails.length) {
-      throw new BadRequestException('Tenant owner and service account emails must be unique.');
+      throw new BadRequestException(
+        'Tenant owner and service account emails must be unique.',
+      );
     }
 
     const provisioning = await this.prisma.$transaction(async (tx) => {
@@ -945,13 +1021,16 @@ export class PlatformLifecycleService {
         actor.userId,
       );
 
-      const tenantSuperAdminRole = await this.rolesRepository.findByKeyAndTenant(
-        createdTenant.id,
-        'system-admin',
-        tx,
-      );
+      const tenantSuperAdminRole =
+        await this.rolesRepository.findByKeyAndTenant(
+          createdTenant.id,
+          ROLE_KEYS.SYSTEM_ADMIN,
+          tx,
+        );
       if (!tenantSuperAdminRole) {
-        throw new ConflictException('Tenant system admin role could not be provisioned.');
+        throw new ConflictException(
+          'Tenant system admin role could not be provisioned.',
+        );
       }
 
       const passwordHash = await bcrypt.hash(
@@ -1017,19 +1096,27 @@ export class PlatformLifecycleService {
         },
       });
 
-      const subscription = await this.billingService.createOrUpdateSubscription(tx, {
-        tenantId: createdTenant.id,
-        planId: selectedPlanId,
-        billingCycle,
-        status: SubscriptionStatus.ACTIVE,
-        discountType: onboarding.discountType,
-        discountValue: Number(onboarding.discountValue),
-        manualFinalPrice:
-          dto.manualFinalPrice ?? (onboarding.agreedPrice ? Number(onboarding.agreedPrice) : undefined),
-        actorUserId: actor.userId,
-      });
+      const subscription = await this.billingService.createOrUpdateSubscription(
+        tx,
+        {
+          tenantId: createdTenant.id,
+          planId: selectedPlanId,
+          billingCycle,
+          status: SubscriptionStatus.ACTIVE,
+          discountType: onboarding.discountType,
+          discountValue: Number(onboarding.discountValue),
+          manualFinalPrice:
+            dto.manualFinalPrice ??
+            (onboarding.agreedPrice
+              ? Number(onboarding.agreedPrice)
+              : undefined),
+          actorUserId: actor.userId,
+        },
+      );
 
-      const selectedFeatureOverrides = Array.isArray(onboarding.featureSelectionSummary)
+      const selectedFeatureOverrides = Array.isArray(
+        onboarding.featureSelectionSummary,
+      )
         ? onboarding.featureSelectionSummary
         : [];
 
@@ -1188,35 +1275,57 @@ export class PlatformLifecycleService {
     fallbackOwnerId?: string,
   ) {
     return {
-      ...(dto.companyName !== undefined ? { companyName: dto.companyName.trim() } : {}),
+      ...(dto.companyName !== undefined
+        ? { companyName: dto.companyName.trim() }
+        : {}),
       ...(dto.legalCompanyName !== undefined
         ? { legalCompanyName: dto.legalCompanyName?.trim() || null }
         : {}),
       ...(dto.primaryContactFirstName !== undefined
-        ? { primaryContactFirstName: dto.primaryContactFirstName?.trim() || null }
+        ? {
+            primaryContactFirstName:
+              dto.primaryContactFirstName?.trim() || null,
+          }
         : {}),
       ...(dto.primaryContactLastName !== undefined
         ? { primaryContactLastName: dto.primaryContactLastName?.trim() || null }
         : {}),
       ...(dto.primaryContactEmail !== undefined
-        ? { primaryContactEmail: dto.primaryContactEmail?.trim().toLowerCase() || null }
+        ? {
+            primaryContactEmail:
+              dto.primaryContactEmail?.trim().toLowerCase() || null,
+          }
         : {}),
       ...(dto.primaryContactPhone !== undefined
         ? { primaryContactPhone: dto.primaryContactPhone?.trim() || null }
         : {}),
-      ...(dto.contactEmail !== undefined ? { contactEmail: dto.contactEmail.trim().toLowerCase() } : {}),
-      ...(dto.contactPhone !== undefined ? { contactPhone: dto.contactPhone?.trim() || null } : {}),
+      ...(dto.contactEmail !== undefined
+        ? { contactEmail: dto.contactEmail.trim().toLowerCase() }
+        : {}),
+      ...(dto.contactPhone !== undefined
+        ? { contactPhone: dto.contactPhone?.trim() || null }
+        : {}),
       ...(dto.billingContactEmail !== undefined
-        ? { billingContactEmail: dto.billingContactEmail?.trim().toLowerCase() || null }
+        ? {
+            billingContactEmail:
+              dto.billingContactEmail?.trim().toLowerCase() || null,
+          }
         : {}),
       ...(dto.financeContactName !== undefined
         ? { financeContactName: dto.financeContactName?.trim() || null }
         : {}),
       ...(dto.financeContactEmail !== undefined
-        ? { financeContactEmail: dto.financeContactEmail?.trim().toLowerCase() || null }
+        ? {
+            financeContactEmail:
+              dto.financeContactEmail?.trim().toLowerCase() || null,
+          }
         : {}),
-      ...(dto.industry !== undefined ? { industry: dto.industry?.trim() || null } : {}),
-      ...(dto.companySize !== undefined ? { companySize: dto.companySize?.trim() || null } : {}),
+      ...(dto.industry !== undefined
+        ? { industry: dto.industry?.trim() || null }
+        : {}),
+      ...(dto.companySize !== undefined
+        ? { companySize: dto.companySize?.trim() || null }
+        : {}),
       ...(dto.country !== undefined ? { country: dto.country.trim() } : {}),
       ...(dto.stateProvince !== undefined
         ? { stateProvince: dto.stateProvince?.trim() || null }
@@ -1228,27 +1337,40 @@ export class PlatformLifecycleService {
       ...(dto.addressLine2 !== undefined
         ? { addressLine2: dto.addressLine2?.trim() || null }
         : {}),
-      ...(dto.website !== undefined ? { website: dto.website?.trim() || null } : {}),
+      ...(dto.website !== undefined
+        ? { website: dto.website?.trim() || null }
+        : {}),
       ...(dto.estimatedEmployeeCount !== undefined
         ? { estimatedEmployeeCount: dto.estimatedEmployeeCount ?? null }
         : {}),
       ...(dto.actualEmployeeCount !== undefined
         ? { actualEmployeeCount: dto.actualEmployeeCount ?? null }
         : {}),
-      ...(dto.selectedPlanId !== undefined ? { selectedPlanId: dto.selectedPlanId ?? null } : {}),
+      ...(dto.selectedPlanId !== undefined
+        ? { selectedPlanId: dto.selectedPlanId ?? null }
+        : {}),
       ...(dto.preferredBillingCycle !== undefined
         ? { preferredBillingCycle: dto.preferredBillingCycle ?? null }
         : {}),
-      ...(dto.customPricingFlag !== undefined ? { customPricingFlag: dto.customPricingFlag } : {}),
-      ...(dto.discountApproved !== undefined ? { discountApproved: dto.discountApproved } : {}),
+      ...(dto.customPricingFlag !== undefined
+        ? { customPricingFlag: dto.customPricingFlag }
+        : {}),
+      ...(dto.discountApproved !== undefined
+        ? { discountApproved: dto.discountApproved }
+        : {}),
       ...(dto.leadId !== undefined ? { leadId: dto.leadId ?? null } : {}),
       ...(dto.status !== undefined ? { status: dto.status } : {}),
-      ...(dto.subStatus !== undefined ? { subStatus: dto.subStatus ?? null } : {}),
+      ...(dto.subStatus !== undefined
+        ? { subStatus: dto.subStatus ?? null }
+        : {}),
       ...(dto.assignedToUserId !== undefined
         ? { assignedToUserId: dto.assignedToUserId ?? fallbackOwnerId ?? null }
         : {}),
       ...(dto.accountManagerUserId !== undefined
-        ? { accountManagerUserId: dto.accountManagerUserId ?? fallbackOwnerId ?? null }
+        ? {
+            accountManagerUserId:
+              dto.accountManagerUserId ?? fallbackOwnerId ?? null,
+          }
         : {}),
     };
   }
@@ -1258,11 +1380,21 @@ export class PlatformLifecycleService {
       ...(dto.onboardingOwnerUserId !== undefined
         ? { onboardingOwnerUserId: dto.onboardingOwnerUserId ?? null }
         : {}),
-      ...(dto.selectedPlanId !== undefined ? { selectedPlanId: dto.selectedPlanId ?? null } : {}),
-      ...(dto.billingCycle !== undefined ? { billingCycle: dto.billingCycle ?? null } : {}),
-      ...(dto.agreedPrice !== undefined ? { agreedPrice: dto.agreedPrice ?? null } : {}),
-      ...(dto.discountType !== undefined ? { discountType: dto.discountType } : {}),
-      ...(dto.discountValue !== undefined ? { discountValue: dto.discountValue } : {}),
+      ...(dto.selectedPlanId !== undefined
+        ? { selectedPlanId: dto.selectedPlanId ?? null }
+        : {}),
+      ...(dto.billingCycle !== undefined
+        ? { billingCycle: dto.billingCycle ?? null }
+        : {}),
+      ...(dto.agreedPrice !== undefined
+        ? { agreedPrice: dto.agreedPrice ?? null }
+        : {}),
+      ...(dto.discountType !== undefined
+        ? { discountType: dto.discountType }
+        : {}),
+      ...(dto.discountValue !== undefined
+        ? { discountValue: dto.discountValue }
+        : {}),
       ...(dto.featureSelectionSummary !== undefined
         ? { featureSelectionSummary: dto.featureSelectionSummary ?? undefined }
         : {}),
@@ -1273,37 +1405,62 @@ export class PlatformLifecycleService {
         ? { primaryOwnerLastName: dto.primaryOwnerLastName.trim() }
         : {}),
       ...(dto.primaryOwnerWorkEmail !== undefined
-        ? { primaryOwnerWorkEmail: dto.primaryOwnerWorkEmail.trim().toLowerCase() }
+        ? {
+            primaryOwnerWorkEmail: dto.primaryOwnerWorkEmail
+              .trim()
+              .toLowerCase(),
+          }
         : {}),
       ...(dto.primaryOwnerPhone !== undefined
         ? { primaryOwnerPhone: dto.primaryOwnerPhone?.trim() || null }
         : {}),
       ...(dto.serviceAccountEmail !== undefined
-        ? { serviceAccountEmail: dto.serviceAccountEmail?.trim().toLowerCase() || null }
+        ? {
+            serviceAccountEmail:
+              dto.serviceAccountEmail?.trim().toLowerCase() || null,
+          }
         : {}),
       ...(dto.createServiceAccount !== undefined
         ? { createServiceAccount: dto.createServiceAccount }
         : {}),
       ...(dto.serviceAccountDisplayName !== undefined
-        ? { serviceAccountDisplayName: dto.serviceAccountDisplayName?.trim() || null }
+        ? {
+            serviceAccountDisplayName:
+              dto.serviceAccountDisplayName?.trim() || null,
+          }
         : {}),
       ...(dto.serviceAccountAssignSystemAdmin !== undefined
-        ? { serviceAccountAssignSystemAdmin: dto.serviceAccountAssignSystemAdmin }
+        ? {
+            serviceAccountAssignSystemAdmin:
+              dto.serviceAccountAssignSystemAdmin,
+          }
         : {}),
-      ...(dto.contractSigned !== undefined ? { contractSigned: dto.contractSigned } : {}),
-      ...(dto.paymentConfirmed !== undefined ? { paymentConfirmed: dto.paymentConfirmed } : {}),
+      ...(dto.contractSigned !== undefined
+        ? { contractSigned: dto.contractSigned }
+        : {}),
+      ...(dto.paymentConfirmed !== undefined
+        ? { paymentConfirmed: dto.paymentConfirmed }
+        : {}),
       ...(dto.implementationKickoffDone !== undefined
         ? { implementationKickoffDone: dto.implementationKickoffDone }
         : {}),
-      ...(dto.dataReceived !== undefined ? { dataReceived: dto.dataReceived } : {}),
+      ...(dto.dataReceived !== undefined
+        ? { dataReceived: dto.dataReceived }
+        : {}),
       ...(dto.configurationReady !== undefined
         ? { configurationReady: dto.configurationReady }
         : {}),
-      ...(dto.trainingPlanned !== undefined ? { trainingPlanned: dto.trainingPlanned } : {}),
-      ...(dto.tenantCreated !== undefined ? { tenantCreated: dto.tenantCreated } : {}),
+      ...(dto.trainingPlanned !== undefined
+        ? { trainingPlanned: dto.trainingPlanned }
+        : {}),
+      ...(dto.tenantCreated !== undefined
+        ? { tenantCreated: dto.tenantCreated }
+        : {}),
       ...(dto.notes !== undefined ? { notes: dto.notes?.trim() || null } : {}),
       ...(dto.status !== undefined ? { status: dto.status } : {}),
-      ...(dto.subStatus !== undefined ? { subStatus: dto.subStatus ?? null } : {}),
+      ...(dto.subStatus !== undefined
+        ? { subStatus: dto.subStatus ?? null }
+        : {}),
     };
   }
 
@@ -1354,19 +1511,21 @@ export class PlatformLifecycleService {
       {
         key: 'customer-status',
         label: 'Customer status allows onboarding',
-        passed: ([
-          CustomerAccountStatus.PROSPECT,
-          CustomerAccountStatus.ONBOARDING,
-          CustomerAccountStatus.ACTIVE,
-        ] as CustomerAccountStatus[]).includes(customer.status),
+        passed: (
+          [
+            CustomerAccountStatus.PROSPECT,
+            CustomerAccountStatus.ONBOARDING,
+            CustomerAccountStatus.ACTIVE,
+          ] as CustomerAccountStatus[]
+        ).includes(customer.status),
       },
       {
         key: 'primary-contact',
         label: 'Primary contact details are complete',
         passed: Boolean(
           customer.primaryContactFirstName &&
-            customer.primaryContactLastName &&
-            customer.primaryContactEmail,
+          customer.primaryContactLastName &&
+          customer.primaryContactEmail,
         ),
       },
       {
@@ -1391,7 +1550,9 @@ export class PlatformLifecycleService {
       },
     ];
 
-    const missingItems = checks.filter((item) => !item.passed).map((item) => item.label);
+    const missingItems = checks
+      .filter((item) => !item.passed)
+      .map((item) => item.label);
 
     return {
       checks,
@@ -1418,31 +1579,43 @@ export class PlatformLifecycleService {
     customerStatus: CustomerAccountStatus,
   ) {
     const checks = [
-      { label: 'Customer is active', passed: customerStatus === CustomerAccountStatus.ACTIVE },
+      {
+        label: 'Customer is active',
+        passed: customerStatus === CustomerAccountStatus.ACTIVE,
+      },
       { label: 'Plan selected', passed: Boolean(onboarding.selectedPlanId) },
-      { label: 'Billing cycle selected', passed: Boolean(onboarding.billingCycle) },
+      {
+        label: 'Billing cycle selected',
+        passed: Boolean(onboarding.billingCycle),
+      },
       {
         label: 'Primary owner details complete',
         passed: Boolean(
           onboarding.primaryOwnerFirstName &&
-            onboarding.primaryOwnerLastName &&
-            onboarding.primaryOwnerWorkEmail,
+          onboarding.primaryOwnerLastName &&
+          onboarding.primaryOwnerWorkEmail,
         ),
       },
       {
         label: 'Service account details complete',
         passed:
-          !onboarding.createServiceAccount || Boolean(onboarding.serviceAccountEmail),
+          !onboarding.createServiceAccount ||
+          Boolean(onboarding.serviceAccountEmail),
       },
       { label: 'Contract signed', passed: onboarding.contractSigned },
       { label: 'Payment confirmed', passed: onboarding.paymentConfirmed },
       { label: 'Configuration ready', passed: onboarding.configurationReady },
       { label: 'Training planned', passed: onboarding.trainingPlanned },
-      { label: 'Tenant not already created', passed: !onboarding.tenantCreated },
+      {
+        label: 'Tenant not already created',
+        passed: !onboarding.tenantCreated,
+      },
     ];
 
     const passedCount = checks.filter((item) => item.passed).length;
-    const blockers = checks.filter((item) => !item.passed).map((item) => item.label);
+    const blockers = checks
+      .filter((item) => !item.passed)
+      .map((item) => item.label);
 
     return {
       checks,
@@ -1452,4 +1625,3 @@ export class PlatformLifecycleService {
     };
   }
 }
-

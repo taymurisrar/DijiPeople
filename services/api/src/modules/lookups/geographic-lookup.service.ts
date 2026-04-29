@@ -50,7 +50,12 @@ export class GeographicLookupService {
           ? {
               OR: [
                 { name: { contains: search.trim(), mode: 'insensitive' } },
-                { code: { contains: search.trim().toUpperCase(), mode: 'insensitive' } },
+                {
+                  code: {
+                    contains: search.trim().toUpperCase(),
+                    mode: 'insensitive',
+                  },
+                },
               ],
             }
           : {}),
@@ -74,7 +79,12 @@ export class GeographicLookupService {
           ? {
               OR: [
                 { name: { contains: search.trim(), mode: 'insensitive' } },
-                { code: { contains: search.trim().toUpperCase(), mode: 'insensitive' } },
+                {
+                  code: {
+                    contains: search.trim().toUpperCase(),
+                    mode: 'insensitive',
+                  },
+                },
               ],
             }
           : {}),
@@ -83,7 +93,11 @@ export class GeographicLookupService {
     });
   }
 
-  async listCities(countryId?: string, stateProvinceId?: string, search?: string) {
+  async listCities(
+    countryId?: string,
+    stateProvinceId?: string,
+    search?: string,
+  ) {
     if (countryId && stateProvinceId) {
       await this.syncCitiesForState(countryId, stateProvinceId);
     } else if (countryId) {
@@ -112,7 +126,11 @@ export class GeographicLookupService {
       select: { updatedAt: true },
     });
 
-    if (count > 0 && latest && Date.now() - latest.updatedAt.getTime() < ONE_DAY_MS) {
+    if (
+      count > 0 &&
+      latest &&
+      Date.now() - latest.updatedAt.getTime() < ONE_DAY_MS
+    ) {
       return;
     }
 
@@ -134,8 +152,13 @@ export class GeographicLookupService {
           officialName: record.name?.official?.trim() ?? null,
         }))
         .filter(
-          (record): record is { code: string; name: string; officialName: string | null } =>
-            Boolean(record.code && record.name),
+          (
+            record,
+          ): record is {
+            code: string;
+            name: string;
+            officialName: string | null;
+          } => Boolean(record.code && record.name),
         )
         .sort((left, right) => left.name.localeCompare(right.name));
 
@@ -181,7 +204,10 @@ export class GeographicLookupService {
       select: { updatedAt: true },
     });
 
-    if (latestState && Date.now() - latestState.updatedAt.getTime() < ONE_DAY_MS) {
+    if (
+      latestState &&
+      Date.now() - latestState.updatedAt.getTime() < ONE_DAY_MS
+    ) {
       return;
     }
 
@@ -205,7 +231,9 @@ export class GeographicLookupService {
       const states = payload.data?.states ?? [];
 
       for (const [index, state] of states.entries()) {
-        const code = (state.state_code?.trim() || slugify(state.name)).toUpperCase();
+        const code = (
+          state.state_code?.trim() || slugify(state.name)
+        ).toUpperCase();
         const name = state.name?.trim();
         if (!code || !name) {
           continue;
@@ -264,7 +292,10 @@ export class GeographicLookupService {
       select: { updatedAt: true },
     });
 
-    if (latestCity && Date.now() - latestCity.updatedAt.getTime() < ONE_DAY_MS) {
+    if (
+      latestCity &&
+      Date.now() - latestCity.updatedAt.getTime() < ONE_DAY_MS
+    ) {
       return;
     }
 

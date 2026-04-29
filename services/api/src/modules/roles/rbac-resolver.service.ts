@@ -1,10 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { SecurityAccessLevel, SecurityPrivilege } from '@prisma/client';
-import {
-  SECURITY_ACCESS_LEVEL_WEIGHT,
-} from '../../common/constants/rbac-matrix';
+import { SECURITY_ACCESS_LEVEL_WEIGHT } from '../../common/constants/rbac-matrix';
 import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import {
+  buildScopedAccessWhere,
+  canAccessRecord as canAccessSecuredRecord,
+  resolveEffectiveAccessLevel,
+} from '../../common/security/rbac-query-scope';
 
 type SecuredRecord = {
   tenantId: string;
@@ -19,6 +22,15 @@ export class RbacResolverService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getEffectivePrivileges(userId: string) {
+    const effective = await this.getEffectivePermissionsForUser(userId);
+
+    return {
+      privileges: effective.privileges,
+      miscPermissions: effective.miscPermissions,
+    };
+  }
+
+  async getEffectivePermissionsForUser(userId: string, tenantId?: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
@@ -27,8 +39,32 @@ export class RbacResolverService {
           include: {
             role: {
               include: {
+                rolePermissions: {
+                  include: { permission: true },
+                },
                 rolePrivileges: true,
                 miscPermissions: true,
+              },
+            },
+          },
+        },
+        teamMemberships: {
+          include: {
+            team: {
+              include: {
+                teamRoles: {
+                  include: {
+                    role: {
+                      include: {
+                        rolePermissions: {
+                          include: { permission: true },
+                        },
+                        rolePrivileges: true,
+                        miscPermissions: true,
+                      },
+                    },
+                  },
+                },
               },
             },
           },
@@ -38,6 +74,19 @@ export class RbacResolverService {
 
     if (!user) {
       return {
+        roleIds: [],
+        roleKeys: [],
+        permissionKeys: [],
+        privileges: [],
+        miscPermissions: [],
+      };
+    }
+
+    if (tenantId && user.tenantId !== tenantId) {
+      return {
+        roleIds: [],
+        roleKeys: [],
+        permissionKeys: [],
         privileges: [],
         miscPermissions: [],
       };
@@ -52,36 +101,99 @@ export class RbacResolverService {
       }
     >();
     const miscPermissions = new Set<string>();
+    const permissionKeys = new Set<string>();
 
-    for (const userRole of user.userRoles) {
-      for (const rolePrivilege of userRole.role.rolePrivileges) {
+    const directRoles = user.userRoles.map((userRole) => userRole.role);
+    const teamRoles = user.teamMemberships.flatMap((membership) =>
+      membership.team.isActive
+        ? membership.team.teamRoles.map((teamRole) => teamRole.role)
+        : [],
+    );
+    const effectiveRoles = Array.from(
+      new Map(
+        [...directRoles, ...teamRoles]
+          .filter((role) => role.isActive)
+          .map((role) => [role.id, role]),
+      ).values(),
+    );
+
+    for (const role of effectiveRoles) {
+      for (const rolePrivilege of role.rolePrivileges) {
         const key = `${rolePrivilege.entityKey}:${rolePrivilege.privilege}`;
         const current = effectiveByKey.get(key);
 
-        if (
-          !current ||
-          SECURITY_ACCESS_LEVEL_WEIGHT[rolePrivilege.accessLevel] >
-            SECURITY_ACCESS_LEVEL_WEIGHT[current.accessLevel]
-        ) {
+        if (!current) {
           effectiveByKey.set(key, {
             entityKey: rolePrivilege.entityKey,
             privilege: rolePrivilege.privilege,
             accessLevel: rolePrivilege.accessLevel,
           });
+          continue;
         }
+
+        effectiveByKey.set(key, {
+          entityKey: rolePrivilege.entityKey,
+          privilege: rolePrivilege.privilege,
+          accessLevel: this.resolveHighestScope([
+            current.accessLevel,
+            rolePrivilege.accessLevel,
+          ]),
+        });
       }
 
-      for (const permission of userRole.role.miscPermissions) {
+      for (const rolePermission of role.rolePermissions ?? []) {
+        permissionKeys.add(rolePermission.permission.key);
+      }
+
+      for (const permission of role.miscPermissions) {
         if (permission.enabled) {
           miscPermissions.add(permission.permissionKey);
+          permissionKeys.add(permission.permissionKey);
         }
       }
     }
 
     return {
+      roleIds: effectiveRoles.map((role) => role.id),
+      roleKeys: effectiveRoles.map((role) => role.key),
+      permissionKeys: Array.from(permissionKeys),
       privileges: Array.from(effectiveByKey.values()),
       miscPermissions: Array.from(miscPermissions),
     };
+  }
+
+  resolveHighestScope(
+    accessLevels: Array<SecurityAccessLevel | null | undefined>,
+  ) {
+    return accessLevels.reduce<SecurityAccessLevel>((best, accessLevel) => {
+      if (
+        accessLevel &&
+        SECURITY_ACCESS_LEVEL_WEIGHT[accessLevel] >
+          SECURITY_ACCESS_LEVEL_WEIGHT[best]
+      ) {
+        return accessLevel;
+      }
+
+      return best;
+    }, SecurityAccessLevel.NONE);
+  }
+
+  async canUserPerformAction(
+    userId: string,
+    tenantId: string,
+    entityKey: string,
+    privilege: SecurityPrivilege,
+  ) {
+    const effective = await this.getEffectivePermissionsForUser(
+      userId,
+      tenantId,
+    );
+    const accessLevel =
+      effective.privileges.find(
+        (item) => item.entityKey === entityKey && item.privilege === privilege,
+      )?.accessLevel ?? SecurityAccessLevel.NONE;
+
+    return accessLevel !== SecurityAccessLevel.NONE;
   }
 
   canAccessRecord(
@@ -90,38 +202,7 @@ export class RbacResolverService {
     privilege: SecurityPrivilege,
     record: SecuredRecord,
   ) {
-    if (user.tenantId !== record.tenantId) {
-      return false;
-    }
-
-    const accessLevel = this.resolveAccessLevel(user, entityKey, privilege);
-    if (accessLevel === SecurityAccessLevel.NONE) {
-      return false;
-    }
-
-    if (accessLevel === SecurityAccessLevel.TENANT) {
-      return true;
-    }
-
-    if (accessLevel === SecurityAccessLevel.USER) {
-      return (
-        record.ownerUserId === user.userId ||
-        record.createdById === user.userId
-      );
-    }
-
-    if (
-      accessLevel === SecurityAccessLevel.ORGANIZATION &&
-      record.organizationId &&
-      user.accessContext?.organizationId === record.organizationId
-    ) {
-      return true;
-    }
-
-    return Boolean(
-      record.businessUnitId &&
-        user.accessContext?.businessUnitId === record.businessUnitId,
-    );
+    return canAccessSecuredRecord(user, entityKey, privilege, record);
   }
 
   async getAccessibleBusinessUnitIds(
@@ -164,11 +245,14 @@ export class RbacResolverService {
           )
           .map((unit) => unit.id);
       case SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNITS:
+      case SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT:
         return this.resolveBusinessUnitSubtreeIds(
           businessUnits,
           user.businessUnit.id,
         );
       case SecurityAccessLevel.BUSINESS_UNIT:
+      case SecurityAccessLevel.TEAM:
+      case SecurityAccessLevel.SELF:
       case SecurityAccessLevel.USER:
       case SecurityAccessLevel.NONE:
       default:
@@ -181,34 +265,7 @@ export class RbacResolverService {
     entityKey: string,
     privilege: SecurityPrivilege,
   ): Record<string, unknown> {
-    const accessLevel = this.resolveAccessLevel(user, entityKey, privilege);
-
-    if (accessLevel === SecurityAccessLevel.NONE) {
-      return { id: '__no_access__' };
-    }
-
-    if (accessLevel === SecurityAccessLevel.TENANT) {
-      return { tenantId: user.tenantId };
-    }
-
-    if (accessLevel === SecurityAccessLevel.USER) {
-      return {
-        tenantId: user.tenantId,
-        OR: [{ ownerUserId: user.userId }, { createdById: user.userId }],
-      };
-    }
-
-    if (accessLevel === SecurityAccessLevel.ORGANIZATION) {
-      return {
-        tenantId: user.tenantId,
-        organizationId: user.accessContext?.organizationId,
-      };
-    }
-
-    return {
-      tenantId: user.tenantId,
-      businessUnitId: user.accessContext?.businessUnitId,
-    };
+    return buildScopedAccessWhere(user, entityKey, privilege);
   }
 
   private resolveAccessLevel(
@@ -216,25 +273,7 @@ export class RbacResolverService {
     entityKey: string,
     privilege: SecurityPrivilege,
   ) {
-    let best: SecurityAccessLevel = SecurityAccessLevel.NONE;
-
-    for (const rolePrivilege of user.rolePrivileges ?? []) {
-      if (
-        rolePrivilege.entityKey !== entityKey ||
-        rolePrivilege.privilege !== privilege
-      ) {
-        continue;
-      }
-
-      if (
-        SECURITY_ACCESS_LEVEL_WEIGHT[rolePrivilege.accessLevel] >
-        SECURITY_ACCESS_LEVEL_WEIGHT[best]
-      ) {
-        best = rolePrivilege.accessLevel;
-      }
-    }
-
-    return best;
+    return resolveEffectiveAccessLevel(user, entityKey, privilege);
   }
 
   private resolveBusinessUnitSubtreeIds(

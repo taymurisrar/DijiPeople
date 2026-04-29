@@ -6,10 +6,8 @@ import {
   formatDateTimeWithTenantSettings,
   formatDateWithTenantSettings,
 } from "@/lib/date-format";
-import {
-  hasAnyPermission,
-  hasPermission,
-} from "@/lib/permissions";
+import { hasAnyPermission, hasPermission } from "@/lib/permissions";
+import { PERMISSION_KEYS } from "@/lib/security-keys";
 import { EmployeeCompensationCard } from "../_components/employee-compensation-card";
 import { EmployeeAccessCard } from "../_components/employee-access-card";
 import { EmployeeDocumentsManager } from "../_components/employee-documents-manager";
@@ -34,17 +32,17 @@ import { TenantResolvedSettingsResponse } from "../../settings/types";
 
 type EmployeeTabConfig = {
   key:
-  | "overview"
-  | "personal"
-  | "employment"
-  | "payroll"
-  | "previous-employment"
-  | "leave"
-  | "attendance"
-  | "timesheets"
-  | "history"
-  | "documents"
-  | "education";
+    | "overview"
+    | "personal"
+    | "employment"
+    | "payroll"
+    | "previous-employment"
+    | "leave"
+    | "attendance"
+    | "timesheets"
+    | "history"
+    | "documents"
+    | "education";
   label: string;
   requiredAnyPermissions?: readonly string[];
 };
@@ -56,23 +54,26 @@ const employeeTabs: readonly EmployeeTabConfig[] = [
   {
     key: "payroll",
     label: "Payroll / Compensation",
-    requiredAnyPermissions: ["payroll.read"],
+    requiredAnyPermissions: [PERMISSION_KEYS.PAYROLL_READ],
   },
   { key: "previous-employment", label: "Previous Employment" },
   {
     key: "leave",
     label: "Leave History",
-    requiredAnyPermissions: ["leave-requests.read", "leaves.read"],
+    requiredAnyPermissions: [
+      PERMISSION_KEYS.LEAVE_REQUESTS_READ,
+      PERMISSION_KEYS.LEAVES_READ,
+    ],
   },
   {
     key: "attendance",
     label: "Attendance",
-    requiredAnyPermissions: ["attendance.read"],
+    requiredAnyPermissions: [PERMISSION_KEYS.ATTENDANCE_READ],
   },
   {
     key: "timesheets",
     label: "Timesheets",
-    requiredAnyPermissions: ["timesheets.read"],
+    requiredAnyPermissions: [PERMISSION_KEYS.TIMESHEETS_READ],
   },
   { key: "history", label: "Employee History" },
   { key: "documents", label: "Documents" },
@@ -122,7 +123,9 @@ export default async function EmployeeDetailPage({
 }: EmployeeDetailPageProps) {
   const { employeeId } = await params;
   const resolvedSearchParams = searchParams ? await searchParams : {};
-  const requestedTab = employeeTabs.some((tab) => tab.key === resolvedSearchParams.tab)
+  const requestedTab = employeeTabs.some(
+    (tab) => tab.key === resolvedSearchParams.tab,
+  )
     ? (resolvedSearchParams.tab as EmployeeTabConfig["key"])
     : "overview";
 
@@ -140,7 +143,7 @@ export default async function EmployeeDetailPage({
 
   const activeTab = visibleTabs.some((tab) => tab.key === requestedTab)
     ? requestedTab
-    : visibleTabs[0]?.key ?? "overview";
+    : (visibleTabs[0]?.key ?? "overview");
 
   let employee: EmployeeProfile;
   let hierarchy: EmployeeHierarchyResponse;
@@ -150,11 +153,13 @@ export default async function EmployeeDetailPage({
   try {
     [employee, hierarchy, managers, resolvedSettings] = await Promise.all([
       apiRequestJson<EmployeeProfile>(`/employees/${employeeId}`),
-      apiRequestJson<EmployeeHierarchyResponse>(`/employees/${employeeId}/hierarchy`),
-      apiRequestJson<EmployeeListResponse>("/employees?pageSize=100"),
-      apiRequestJson<TenantResolvedSettingsResponse>("/tenant-settings/resolved").catch(
-        () => null,
+      apiRequestJson<EmployeeHierarchyResponse>(
+        `/employees/${employeeId}/hierarchy`,
       ),
+      apiRequestJson<EmployeeListResponse>("/employees?pageSize=100"),
+      apiRequestJson<TenantResolvedSettingsResponse>(
+        "/tenant-settings/resolved",
+      ).catch(() => null),
     ]);
   } catch (error: unknown) {
     if (isUnauthorizedApiError(error)) {
@@ -182,12 +187,14 @@ export default async function EmployeeDetailPage({
 
   try {
     [attendanceHistory, teamTimesheets] = await Promise.all([
-      activeTab === "attendance" && sessionUser.permissionKeys.includes("attendance.read")
+      activeTab === "attendance" &&
+      sessionUser.permissionKeys.includes(PERMISSION_KEYS.ATTENDANCE_READ)
         ? apiRequestJson<AttendanceHistoryResponse>(
-          `/attendance/team?employeeId=${employeeId}&pageSize=20`,
-        )
+            `/attendance/team?employeeId=${employeeId}&pageSize=20`,
+          )
         : Promise.resolve(null),
-      activeTab === "timesheets" && sessionUser.permissionKeys.includes("timesheets.read")
+      activeTab === "timesheets" &&
+      sessionUser.permissionKeys.includes(PERMISSION_KEYS.TIMESHEETS_READ)
         ? apiRequestJson<TeamTimesheetsResponse>("/timesheets/team?pageSize=50")
         : Promise.resolve(null),
     ]);
@@ -200,26 +207,35 @@ export default async function EmployeeDetailPage({
   }
 
   const canManageAccess = Boolean(
-    hasPermission(sessionUser.permissionKeys, "employees.update") &&
-    hasPermission(sessionUser.permissionKeys, "users.create") &&
-    hasPermission(sessionUser.permissionKeys, "users.assign-roles"),
+    hasPermission(
+      sessionUser.permissionKeys,
+      PERMISSION_KEYS.EMPLOYEES_UPDATE,
+    ) &&
+    hasPermission(sessionUser.permissionKeys, PERMISSION_KEYS.USERS_CREATE) &&
+    hasPermission(
+      sessionUser.permissionKeys,
+      PERMISSION_KEYS.USERS_ASSIGN_ROLES,
+    ),
   );
 
-  const canEditEmployee = hasPermission(sessionUser.permissionKeys, "employees.update");
+  const canEditEmployee = hasPermission(
+    sessionUser.permissionKeys,
+    PERMISSION_KEYS.EMPLOYEES_UPDATE,
+  );
 
   const canTerminateEmployee = hasPermission(
     sessionUser.permissionKeys,
-    "employees.terminate",
+    PERMISSION_KEYS.EMPLOYEES_TERMINATE,
   );
 
   const canResetPassword = hasPermission(
     sessionUser.permissionKeys,
-    "employees.update",
+    PERMISSION_KEYS.EMPLOYEES_UPDATE,
   );
 
   const canManageReporting = hasPermission(
     sessionUser.permissionKeys,
-    "employees.update",
+    PERMISSION_KEYS.EMPLOYEES_UPDATE,
   );
 
   const disallowedManagerIds = new Set([
@@ -277,7 +293,8 @@ export default async function EmployeeDetailPage({
               <p>Phone: {employee.phone || "Not set"}</p>
               <p>
                 Reporting manager:{" "}
-                {employee.reportingManager?.fullName || "No reporting manager assigned"}
+                {employee.reportingManager?.fullName ||
+                  "No reporting manager assigned"}
               </p>
               <p>Hire date: {formatDateValue(employee.hireDate)}</p>
             </div>
@@ -314,10 +331,11 @@ export default async function EmployeeDetailPage({
           return (
             <Link
               key={tab.key}
-              className={`rounded-2xl px-4 py-2 text-sm font-medium transition ${isActive
-                ? "bg-accent text-white"
-                : "border border-border bg-surface text-foreground hover:border-accent/30 hover:text-accent"
-                }`}
+              className={`rounded-2xl px-4 py-2 text-sm font-medium transition ${
+                isActive
+                  ? "bg-accent text-white"
+                  : "border border-border bg-surface text-foreground hover:border-accent/30 hover:text-accent"
+              }`}
               href={`/dashboard/employees/${employee.id}?tab=${tab.key}`}
             >
               {tab.label}
@@ -351,12 +369,14 @@ export default async function EmployeeDetailPage({
                     Reporting Manager
                   </p>
                   <p className="mt-3 text-sm text-muted">
-                    Keep the primary reporting relationship accurate for approvals
-                    and direct-report visibility.
+                    Keep the primary reporting relationship accurate for
+                    approvals and direct-report visibility.
                   </p>
                   <div className="mt-5">
                     <ManagerAssignmentForm
-                      currentReportingManagerId={employee.reportingManagerEmployeeId}
+                      currentReportingManagerId={
+                        employee.reportingManagerEmployeeId
+                      }
                       employeeId={employee.id}
                       managerOptions={managerOptions}
                     />
@@ -401,17 +421,58 @@ export default async function EmployeeDetailPage({
               Employment Information
             </p>
             <dl className="mt-5 grid gap-4 md:grid-cols-2">
-              <DetailItem label="Employment status" value={employee.employmentStatus} />
-              <DetailItem label="Employee type" value={employee.employeeType || "Not set"} />
-              <DetailItem label="Work mode" value={employee.workMode || "Not set"} />
-              <DetailItem label="Contract type" value={employee.contractType || "Not set"} />
-              <DetailItem label="Hire date" value={formatDateValue(employee.hireDate)} />
-              <DetailItem label="Confirmation date" value={formatDateValue(employee.confirmationDate)} />
-              <DetailItem label="Probation end date" value={formatDateValue(employee.probationEndDate)} />
-              <DetailItem label="Termination date" value={formatDateValue(employee.terminationDate)} />
-              <DetailItem label="Department" value={employee.department?.name || "Not set"} />
-              <DetailItem label="Designation" value={employee.designation?.name || "Not set"} />
-              <DetailItem label="Location" value={employee.location?.name || "Not set"} />
+              <DetailItem
+                label="Employment status"
+                value={employee.employmentStatus}
+              />
+              <DetailItem
+                label="Employee type"
+                value={employee.employeeType || "Not set"}
+              />
+              <DetailItem
+                label="Work mode"
+                value={employee.workMode || "Not set"}
+              />
+              <DetailItem
+                label="Contract type"
+                value={employee.contractType || "Not set"}
+              />
+              <DetailItem
+                label="Hire date"
+                value={formatDateValue(employee.hireDate)}
+              />
+              <DetailItem
+                label="Confirmation date"
+                value={formatDateValue(employee.confirmationDate)}
+              />
+              <DetailItem
+                label="Probation end date"
+                value={formatDateValue(employee.probationEndDate)}
+              />
+              <DetailItem
+                label="Termination date"
+                value={formatDateValue(employee.terminationDate)}
+              />
+              <DetailItem
+                label="Department"
+                value={employee.department?.name || "Not set"}
+              />
+              <DetailItem
+                label="Designation"
+                value={employee.designation?.name || "Not set"}
+              />
+              <DetailItem
+                label="Employee level"
+                value={
+                  employee.employeeLevel
+                    ? `${employee.employeeLevel.name} (${employee.employeeLevel.code})`
+                    : "Not set"
+                }
+              />
+              <DetailItem
+                label="Location"
+                value={employee.location?.name || "Not set"}
+              />
               <DetailItem
                 label="Official joining location"
                 value={employee.officialJoiningLocation?.name || "Not set"}
@@ -419,7 +480,8 @@ export default async function EmployeeDetailPage({
               <DetailItem
                 label="Reporting manager"
                 value={
-                  employee.reportingManager?.fullName || "No reporting manager assigned"
+                  employee.reportingManager?.fullName ||
+                  "No reporting manager assigned"
                 }
               />
               <DetailItem
@@ -430,7 +492,10 @@ export default async function EmployeeDetailPage({
                     : "Not set"
                 }
               />
-              <DetailItem label="Tax identifier" value={employee.taxIdentifier || "Not set"} />
+              <DetailItem
+                label="Tax identifier"
+                value={employee.taxIdentifier || "Not set"}
+              />
             </dl>
           </article>
 
@@ -439,9 +504,23 @@ export default async function EmployeeDetailPage({
               Joining Stats
             </p>
             <div className="mt-5 grid gap-4">
-              <Metric label="Years since joining" value={employee.derivedStats.yearsSinceJoining} />
-              <Metric label="Days since joining" value={employee.derivedStats.daysSinceJoining} />
-              <Metric label="Age" value={employee.derivedStats.age ?? 0} helper={employee.derivedStats.age === null ? "Not available" : undefined} />
+              <Metric
+                label="Years since joining"
+                value={employee.derivedStats.yearsSinceJoining}
+              />
+              <Metric
+                label="Days since joining"
+                value={employee.derivedStats.daysSinceJoining}
+              />
+              <Metric
+                label="Age"
+                value={employee.derivedStats.age ?? 0}
+                helper={
+                  employee.derivedStats.age === null
+                    ? "Not available"
+                    : undefined
+                }
+              />
             </div>
           </article>
         </section>
@@ -468,12 +547,14 @@ export default async function EmployeeDetailPage({
       {activeTab === "attendance" ? (
         <SimpleListSection
           emptyMessage="No attendance records found for this employee."
-          items={
-            (attendanceHistory?.items ?? []).map((entry: AttendanceHistoryEntry) => ({
+          items={(attendanceHistory?.items ?? []).map(
+            (entry: AttendanceHistoryEntry) => ({
               id: entry.id,
               title: `${formatDateValue(entry.attendanceDate)} • ${entry.attendanceStatus}`,
               detail: [
-                entry.checkInAt ? `Check in: ${formatDateTimeValue(entry.checkInAt)}` : null,
+                entry.checkInAt
+                  ? `Check in: ${formatDateTimeValue(entry.checkInAt)}`
+                  : null,
                 entry.checkOutAt
                   ? `Check out: ${formatDateTimeValue(entry.checkOutAt)}`
                   : "Check out pending",
@@ -486,8 +567,8 @@ export default async function EmployeeDetailPage({
               ]
                 .filter((value): value is string => Boolean(value))
                 .join(" • "),
-            }))
-          }
+            }),
+          )}
           title="Attendance"
         />
       ) : null}
@@ -495,15 +576,16 @@ export default async function EmployeeDetailPage({
       {activeTab === "timesheets" ? (
         <SimpleListSection
           emptyMessage="No timesheets found for this employee."
-          items={
-            (teamTimesheets?.items ?? [])
-              .filter((timesheet: TeamTimesheet) => timesheet.employee?.id === employee.id)
-              .map((timesheet: TeamTimesheet) => ({
-                id: timesheet.id,
-                title: `${formatDateValue(timesheet.periodStart)} to ${formatDateValue(timesheet.periodEnd)}`,
-                detail: `${timesheet.status} • ${timesheet.totalHours} hours • ${timesheet.entries.length} entries`,
-              }))
-          }
+          items={(teamTimesheets?.items ?? [])
+            .filter(
+              (timesheet: TeamTimesheet) =>
+                timesheet.employee?.id === employee.id,
+            )
+            .map((timesheet: TeamTimesheet) => ({
+              id: timesheet.id,
+              title: `${formatDateValue(timesheet.periodStart)} to ${formatDateValue(timesheet.periodEnd)}`,
+              detail: `${timesheet.status} • ${timesheet.totalHours} hours • ${timesheet.entries.length} entries`,
+            }))}
           title="Timesheets"
         />
       ) : null}
@@ -561,20 +643,40 @@ function OverviewGrid({
   return (
     <section className="grid gap-6 lg:grid-cols-2">
       <article className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
-        <p className="text-sm uppercase tracking-[0.18em] text-muted">Overview</p>
+        <p className="text-sm uppercase tracking-[0.18em] text-muted">
+          Overview
+        </p>
         <dl className="mt-5 grid gap-4">
           <DetailItem label="Full name" value={employee.fullName} />
           <DetailItem label="Employee code" value={employee.employeeCode} />
-          <DetailItem label="Designation" value={employee.designation?.name || "Not set"} />
-          <DetailItem label="Department" value={employee.department?.name || "Not set"} />
+          <DetailItem
+            label="Designation"
+            value={employee.designation?.name || "Not set"}
+          />
+          <DetailItem
+            label="Employee level"
+            value={
+              employee.employeeLevel
+                ? `${employee.employeeLevel.name} (${employee.employeeLevel.code})`
+                : "Not set"
+            }
+          />
+          <DetailItem
+            label="Department"
+            value={employee.department?.name || "Not set"}
+          />
           <DetailItem
             label="Reporting manager"
             value={
-              employee.reportingManager?.fullName || "No reporting manager assigned"
+              employee.reportingManager?.fullName ||
+              "No reporting manager assigned"
             }
           />
           <DetailItem label="Hire date" value={formatDate(employee.hireDate)} />
-          <DetailItem label="Date of birth" value={formatDate(employee.dateOfBirth)} />
+          <DetailItem
+            label="Date of birth"
+            value={formatDate(employee.dateOfBirth)}
+          />
           <DetailItem
             label="Birthday"
             value={
@@ -589,18 +691,32 @@ function OverviewGrid({
       </article>
 
       <article className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
-        <p className="text-sm uppercase tracking-[0.18em] text-muted">Contact</p>
+        <p className="text-sm uppercase tracking-[0.18em] text-muted">
+          Contact
+        </p>
         <dl className="mt-5 grid gap-4">
-          <DetailItem label="Work email" value={employee.workEmail || "Not set"} />
+          <DetailItem
+            label="Work email"
+            value={employee.workEmail || "Not set"}
+          />
           <DetailItem
             label="Personal email"
             value={employee.personalEmail || "Not set"}
           />
           <DetailItem label="Phone" value={employee.phone || "Not set"} />
-          <DetailItem label="Alternate phone" value={employee.alternatePhone || "Not set"} />
-          <DetailItem label="Nationality" value={employee.nationality || "Not set"} />
+          <DetailItem
+            label="Alternate phone"
+            value={employee.alternatePhone || "Not set"}
+          />
+          <DetailItem
+            label="Nationality"
+            value={employee.nationality || "Not set"}
+          />
           <DetailItem label="CNIC" value={employee.cnic || "Not set"} />
-          <DetailItem label="Blood group" value={employee.bloodGroup || "Not set"} />
+          <DetailItem
+            label="Blood group"
+            value={employee.bloodGroup || "Not set"}
+          />
         </dl>
       </article>
     </section>
@@ -639,9 +755,15 @@ function LeaveHistorySection({
           <tbody className="divide-y divide-border bg-white/90">
             {employee.leaveHistory.map((record) => (
               <tr key={record.id}>
-                <td className="px-5 py-4 font-medium text-foreground">{record.leaveType.name}</td>
-                <td className="px-5 py-4 text-muted">{formatDate(record.startDate)}</td>
-                <td className="px-5 py-4 text-muted">{formatDate(record.endDate)}</td>
+                <td className="px-5 py-4 font-medium text-foreground">
+                  {record.leaveType.name}
+                </td>
+                <td className="px-5 py-4 text-muted">
+                  {formatDate(record.startDate)}
+                </td>
+                <td className="px-5 py-4 text-muted">
+                  {formatDate(record.endDate)}
+                </td>
                 <td className="px-5 py-4 text-muted">{record.totalDays}</td>
                 <td className="px-5 py-4 text-muted">{record.status}</td>
                 <td className="px-5 py-4 text-muted">

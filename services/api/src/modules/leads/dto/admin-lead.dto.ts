@@ -14,7 +14,11 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
-import { BillingCycle, CustomerAccountStatus, LeadStatus } from '@prisma/client';
+import {
+  BillingCycle,
+  CustomerAccountStatus,
+  LeadStatus,
+} from '@prisma/client';
 
 const phoneRegex = /^[+()\-.\s0-9]{7,40}$/;
 
@@ -394,7 +398,9 @@ export class ConvertLeadToCustomerDto {
   @IsOptional()
   @Transform(trimString)
   @IsString()
-  @Matches(phoneRegex, { message: 'primaryContactPhone must be a valid phone number.' })
+  @Matches(phoneRegex, {
+    message: 'primaryContactPhone must be a valid phone number.',
+  })
   @MaxLength(40)
   primaryContactPhone?: string;
 

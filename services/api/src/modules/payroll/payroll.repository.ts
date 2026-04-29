@@ -60,7 +60,10 @@ const payrollCycleInclude = {
   processingCycle: true,
   records: {
     include: payrollRecordInclude,
-    orderBy: [{ employee: { lastName: 'asc' } }, { employee: { firstName: 'asc' } }],
+    orderBy: [
+      { employee: { lastName: 'asc' } },
+      { employee: { firstName: 'asc' } },
+    ],
   },
   _count: {
     select: {
@@ -138,11 +141,7 @@ export class PayrollRepository {
     return { items, total };
   }
 
-  findCycleById(
-    tenantId: string,
-    cycleId: string,
-    db: PrismaDb = this.prisma,
-  ) {
+  findCycleById(tenantId: string, cycleId: string, db: PrismaDb = this.prisma) {
     return db.payrollCycle.findFirst({
       where: { tenantId, id: cycleId },
       include: payrollCycleInclude,
@@ -218,7 +217,10 @@ export class PayrollRepository {
     return db.employee.findMany({
       where: {
         tenantId,
-        OR: [{ terminationDate: null }, { terminationDate: { gte: periodStart } }],
+        OR: [
+          { terminationDate: null },
+          { terminationDate: { gte: periodStart } },
+        ],
         compensations: {
           some: {
             tenantId,
@@ -419,4 +421,3 @@ export class PayrollRepository {
     });
   }
 }
-

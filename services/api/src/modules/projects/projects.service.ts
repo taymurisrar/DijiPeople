@@ -11,7 +11,10 @@ import { AssignProjectEmployeeDto } from './dto/assign-project-employee.dto';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { ProjectQueryDto } from './dto/project-query.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
-import { ProjectWithRelations, ProjectsRepository } from './projects.repository';
+import {
+  ProjectWithRelations,
+  ProjectsRepository,
+} from './projects.repository';
 
 @Injectable()
 export class ProjectsService {
@@ -164,10 +167,11 @@ export class ProjectsService {
       throw new NotFoundException('Project was not found for this tenant.');
     }
 
-    const employee = await this.employeesRepository.findHierarchyNodeByIdAndTenant(
-      currentUser.tenantId,
-      dto.employeeId,
-    );
+    const employee =
+      await this.employeesRepository.findHierarchyNodeByIdAndTenant(
+        currentUser.tenantId,
+        dto.employeeId,
+      );
 
     if (!employee) {
       throw new BadRequestException(
@@ -182,12 +186,16 @@ export class ProjectsService {
     );
 
     if (existing) {
-      await this.projectsRepository.updateAssignment(currentUser.tenantId, existing.id, {
-        roleOnProject: dto.roleOnProject?.trim() ?? null,
-        allocationPercent: dto.allocationPercent ?? null,
-        billableFlag: dto.billableFlag ?? existing.billableFlag,
-        updatedById: currentUser.userId,
-      });
+      await this.projectsRepository.updateAssignment(
+        currentUser.tenantId,
+        existing.id,
+        {
+          roleOnProject: dto.roleOnProject?.trim() ?? null,
+          allocationPercent: dto.allocationPercent ?? null,
+          billableFlag: dto.billableFlag ?? existing.billableFlag,
+          updatedById: currentUser.userId,
+        },
+      );
     } else {
       await this.projectsRepository.createAssignment({
         tenantId: currentUser.tenantId,
@@ -237,7 +245,10 @@ export class ProjectsService {
   }
 }
 
-function validateProjectDates(startDate?: string | null, endDate?: string | null) {
+function validateProjectDates(
+  startDate?: string | null,
+  endDate?: string | null,
+) {
   if (startDate && endDate && new Date(endDate) < new Date(startDate)) {
     throw new BadRequestException(
       'Project end date cannot be earlier than start date.',

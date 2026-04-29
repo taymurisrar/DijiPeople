@@ -1,10 +1,5 @@
 import { RecruitmentStage } from '@prisma/client';
-import {
-  IsEnum,
-  IsOptional,
-  IsString,
-  MaxLength,
-} from 'class-validator';
+import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class MoveApplicationStageDto {
   @IsEnum(RecruitmentStage)

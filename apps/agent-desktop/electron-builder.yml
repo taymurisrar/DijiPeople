@@ -1,0 +1,29 @@
+appId: com.dijipeople.agent
+productName: DijiPeople Agent
+artifactName: DijiPeople-Agent-Setup-${version}.${ext}
+
+directories:
+  output: release
+
+files:
+  - dist/**/*
+  - package.json
+
+extraMetadata:
+  dijipeople:
+    apiBaseUrl: "http://localhost:4000/api"
+    updateUrl: "https://dijipeople.com/agent/updates"
+
+win:
+  target:
+    - nsis
+  signAndEditExecutable: false
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+
+publish:
+  provider: generic
+  url: "https://dijipeople.com/agent/updates"

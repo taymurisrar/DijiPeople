@@ -10,13 +10,41 @@ type UserCreateInput = Omit<
   businessUnitId?: string;
 };
 
+const roleAccessInclude = {
+  rolePermissions: {
+    include: {
+      permission: true,
+    },
+  },
+  rolePrivileges: true,
+  miscPermissions: true,
+} satisfies Prisma.RoleInclude;
+
+const teamMembershipAccessInclude = {
+  team: {
+    include: {
+      teamRoles: {
+        include: {
+          role: {
+            include: roleAccessInclude,
+          },
+        },
+      },
+    },
+  },
+} satisfies Prisma.TeamMemberInclude;
+
 @Injectable()
 export class UsersRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  findByTenant(tenantId: string, db: PrismaDb = this.prisma) {
+  findByTenant(
+    tenantId: string,
+    accessWhere: Prisma.UserWhereInput = {},
+    db: PrismaDb = this.prisma,
+  ) {
     return db.user.findMany({
-      where: { tenantId },
+      where: { AND: [{ tenantId }, accessWhere] },
       include: {
         tenant: {
           select: {
@@ -40,6 +68,22 @@ export class UsersRepository {
             },
           },
         },
+        employee: {
+          select: {
+            id: true,
+            employeeCode: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            businessUnitId: true,
+            department: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
         userPermissions: {
           include: {
             permission: true,
@@ -48,17 +92,12 @@ export class UsersRepository {
         userRoles: {
           include: {
             role: {
-              include: {
-                rolePermissions: {
-                  include: {
-                    permission: true,
-                  },
-                },
-                rolePrivileges: true,
-                miscPermissions: true,
-              },
+              include: roleAccessInclude,
             },
           },
+        },
+        teamMemberships: {
+          include: teamMembershipAccessInclude,
         },
       },
       orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
@@ -100,6 +139,22 @@ export class UsersRepository {
             },
           },
         },
+        employee: {
+          select: {
+            id: true,
+            employeeCode: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            businessUnitId: true,
+            department: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
         userPermissions: {
           include: {
             permission: true,
@@ -108,17 +163,12 @@ export class UsersRepository {
         userRoles: {
           include: {
             role: {
-              include: {
-                rolePermissions: {
-                  include: {
-                    permission: true,
-                  },
-                },
-                rolePrivileges: true,
-                miscPermissions: true,
-              },
+              include: roleAccessInclude,
             },
           },
+        },
+        teamMemberships: {
+          include: teamMembershipAccessInclude,
         },
       },
     });
@@ -160,6 +210,22 @@ export class UsersRepository {
             },
           },
         },
+        employee: {
+          select: {
+            id: true,
+            employeeCode: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            businessUnitId: true,
+            department: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
         userPermissions: {
           include: {
             permission: true,
@@ -168,17 +234,12 @@ export class UsersRepository {
         userRoles: {
           include: {
             role: {
-              include: {
-                rolePermissions: {
-                  include: {
-                    permission: true,
-                  },
-                },
-                rolePrivileges: true,
-                miscPermissions: true,
-              },
+              include: roleAccessInclude,
             },
           },
+        },
+        teamMemberships: {
+          include: teamMembershipAccessInclude,
         },
       },
     });
@@ -210,6 +271,22 @@ export class UsersRepository {
             },
           },
         },
+        employee: {
+          select: {
+            id: true,
+            employeeCode: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            businessUnitId: true,
+            department: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
         userPermissions: {
           include: {
             permission: true,
@@ -218,17 +295,12 @@ export class UsersRepository {
         userRoles: {
           include: {
             role: {
-              include: {
-                rolePermissions: {
-                  include: {
-                    permission: true,
-                  },
-                },
-                rolePrivileges: true,
-                miscPermissions: true,
-              },
+              include: roleAccessInclude,
             },
           },
+        },
+        teamMemberships: {
+          include: teamMembershipAccessInclude,
         },
       },
     });
@@ -338,6 +410,66 @@ export class UsersRepository {
       },
       select: {
         id: true,
+      },
+    });
+  }
+
+  findEmployeeForLinking(
+    tenantId: string,
+    employeeId: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.employee.findFirst({
+      where: {
+        id: employeeId,
+        tenantId,
+      },
+      select: {
+        id: true,
+        employeeCode: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        businessUnitId: true,
+        userId: true,
+      },
+    });
+  }
+
+  linkEmployee(
+    tenantId: string,
+    userId: string,
+    employeeId: string,
+    actorId: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.employee.updateMany({
+      where: {
+        id: employeeId,
+        tenantId,
+        OR: [{ userId: null }, { userId }],
+      },
+      data: {
+        userId,
+        updatedById: actorId,
+      },
+    });
+  }
+
+  unlinkEmployee(
+    tenantId: string,
+    userId: string,
+    actorId: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.employee.updateMany({
+      where: {
+        tenantId,
+        userId,
+      },
+      data: {
+        userId: null,
+        updatedById: actorId,
       },
     });
   }

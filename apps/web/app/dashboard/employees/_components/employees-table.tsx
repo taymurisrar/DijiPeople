@@ -25,6 +25,7 @@ type EmployeesTableProps = {
   visibleColumnKeys?: string[];
   initialSortColumnKey?: string;
   initialSortDirection?: "asc" | "desc";
+  useEntityDataApi?: boolean;
 };
 
 export function EmployeesTable({
@@ -34,10 +35,12 @@ export function EmployeesTable({
   visibleColumnKeys,
   initialSortColumnKey = "employee",
   initialSortDirection = "asc",
+  useEntityDataApi = false,
 }: EmployeesTableProps) {
   const columns: DataTableColumn<EmployeeListItem>[] = [
     {
       key: "employee",
+      entityField: "firstName",
       header: "Employee",
       sortable: true,
       sortAccessor: (employee) => employee.fullName,
@@ -68,6 +71,7 @@ export function EmployeesTable({
     },
     {
       key: "code",
+      entityField: "employeeCode",
       header: "Code",
       sortable: true,
       sortAccessor: (employee) => employee.employeeCode,
@@ -76,6 +80,7 @@ export function EmployeesTable({
     },
     {
       key: "status",
+      entityField: "employmentStatus",
       header: "Status",
       sortable: true,
       sortAccessor: (employee) => employee.employmentStatus,
@@ -85,6 +90,7 @@ export function EmployeesTable({
     },
     {
       key: "reportingManager",
+      entityField: "managerEmployeeId",
       header: "Reporting Manager",
       sortable: true,
       sortAccessor: (employee) =>
@@ -99,6 +105,7 @@ export function EmployeesTable({
     },
     {
       key: "hireDate",
+      entityField: "hireDate",
       header: "Hire Date",
       sortable: true,
       sortAccessor: (employee) =>
@@ -111,6 +118,7 @@ export function EmployeesTable({
     },
     {
       key: "contact",
+      entityField: "email",
       header: "Contact",
       sortable: true,
       sortAccessor: (employee) => employee.workEmail || employee.phone || "",
@@ -134,12 +142,19 @@ export function EmployeesTable({
 
   return (
     <DataTable
+      mode={useEntityDataApi ? "server" : "client"}
+      entityLogicalName={useEntityDataApi ? "employees" : undefined}
       rows={employees}
       columns={visibleColumns.length ? visibleColumns : columns}
       getRowKey={(employee) => employee.id}
       initialSort={{
         columnKey: initialSortColumnKey,
         direction: initialSortDirection,
+      }}
+      pagination={{
+        page: pagination.page,
+        pageSize: pagination.pageSize,
+        totalItems: pagination.totalItems,
       }}
       footer={<DataTablePagination {...pagination} />}
     />

@@ -37,4 +37,3 @@ export class CreateEmployeeCompensationDto {
   @MaxLength(3)
   currency?: string;
 }
-

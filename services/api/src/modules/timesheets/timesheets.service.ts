@@ -167,7 +167,10 @@ export class TimesheetsService {
     );
   }
 
-  async getTeamTimesheetById(currentUser: AuthenticatedUser, timesheetId: string) {
+  async getTeamTimesheetById(
+    currentUser: AuthenticatedUser,
+    timesheetId: string,
+  ) {
     const timesheet = await this.timesheetsRepository.findTimesheetById(
       currentUser.tenantId,
       timesheetId,
@@ -207,12 +210,13 @@ export class TimesheetsService {
     this.assertTimesheetEditable(timesheet, settings);
     const periodStart = toStartOfDay(timesheet.periodStart);
     const periodEnd = toStartOfDay(timesheet.periodEnd);
-    const approvedLeaves = await this.timesheetsRepository.findApprovedLeaveRequestsForMonth(
-      currentUser.tenantId,
-      timesheet.employeeId,
-      periodStart,
-      periodEnd,
-    );
+    const approvedLeaves =
+      await this.timesheetsRepository.findApprovedLeaveRequestsForMonth(
+        currentUser.tenantId,
+        timesheet.employeeId,
+        periodStart,
+        periodEnd,
+      );
     const holidayMap = new Map(
       (
         await this.timesheetsRepository.findHolidaysForMonth(
@@ -223,19 +227,25 @@ export class TimesheetsService {
       ).map((holiday) => [toDateKey(holiday.date), holiday]),
     );
     const leaveMap = buildLeaveMap(approvedLeaves);
-    const entryMap = new Map(timesheet.entries.map((entry) => [toDateKey(entry.date), entry]));
+    const entryMap = new Map(
+      timesheet.entries.map((entry) => [toDateKey(entry.date), entry]),
+    );
 
     for (const incoming of dto.entries) {
       const date = toStartOfDay(new Date(incoming.date));
       if (date < periodStart || date > periodEnd) {
-        throw new BadRequestException('Entries must stay within the selected month.');
+        throw new BadRequestException(
+          'Entries must stay within the selected month.',
+        );
       }
 
       const dateKey = toDateKey(date);
       const currentEntry = entryMap.get(dateKey);
 
       if (!currentEntry) {
-        throw new NotFoundException(`Timesheet day ${dateKey} was not generated.`);
+        throw new NotFoundException(
+          `Timesheet day ${dateKey} was not generated.`,
+        );
       }
 
       const dayOfWeek = getWorkWeekday(date);
@@ -253,7 +263,7 @@ export class TimesheetsService {
       );
       const resolvedLeaveRequestId =
         nextEntryType === TimesheetEntryType.ON_LEAVE
-          ? incoming.leaveRequestId ?? approvedLeave?.id ?? null
+          ? (incoming.leaveRequestId ?? approvedLeave?.id ?? null)
           : null;
 
       if (
@@ -272,18 +282,22 @@ export class TimesheetsService {
         settings.defaultHoursForOnWork,
       );
 
-      await this.timesheetsRepository.updateTimesheetEntry(currentUser.tenantId, currentEntry.id, {
-        dayOfWeek,
-        entryType: nextEntryType,
-        isWeekend,
-        isHoliday,
-        leaveRequestId: resolvedLeaveRequestId,
-        hours: new Prisma.Decimal(hours),
-        note: incoming.note?.trim() ?? null,
-        description: null,
-        projectId: null,
-        updatedById: currentUser.userId,
-      });
+      await this.timesheetsRepository.updateTimesheetEntry(
+        currentUser.tenantId,
+        currentEntry.id,
+        {
+          dayOfWeek,
+          entryType: nextEntryType,
+          isWeekend,
+          isHoliday,
+          leaveRequestId: resolvedLeaveRequestId,
+          hours: new Prisma.Decimal(hours),
+          note: incoming.note?.trim() ?? null,
+          description: null,
+          projectId: null,
+          updatedById: currentUser.userId,
+        },
+      );
     }
 
     const updated = await this.timesheetsRepository.findTimesheetById(
@@ -415,14 +429,26 @@ export class TimesheetsService {
 
     const summary = summarizeEntries(timesheet.entries);
     const rows = [
-      ['Employee', timesheet.employee.firstName + ' ' + timesheet.employee.lastName],
+      [
+        'Employee',
+        timesheet.employee.firstName + ' ' + timesheet.employee.lastName,
+      ],
       ['Employee Code', timesheet.employee.employeeCode],
       ['Month', `${monthName(timesheet.month)} ${timesheet.year}`],
       ['Status', timesheet.status],
       ['Submitted Note', timesheet.submittedNote ?? ''],
       ['Review Note', timesheet.reviewNote ?? ''],
       [],
-      ['Date', 'Day', 'Entry Type', 'Hours Worked', 'Weekend', 'Holiday', 'Leave', 'Note'],
+      [
+        'Date',
+        'Day',
+        'Entry Type',
+        'Hours Worked',
+        'Weekend',
+        'Holiday',
+        'Leave',
+        'Note',
+      ],
       ...timesheet.entries.map((entry) => [
         toDateKey(entry.date),
         entry.dayOfWeek,
@@ -597,11 +623,15 @@ export class TimesheetsService {
     }
 
     if (batch.importedByUserId !== currentUser.userId) {
-      throw new ForbiddenException('You can only commit your own import preview.');
+      throw new ForbiddenException(
+        'You can only commit your own import preview.',
+      );
     }
 
     if (batch.status !== TimesheetImportBatchStatus.PREVIEWED) {
-      throw new ConflictException('This timesheet import batch has already been processed.');
+      throw new ConflictException(
+        'This timesheet import batch has already been processed.',
+      );
     }
 
     if (!batch.previewJson) {
@@ -610,7 +640,9 @@ export class TimesheetsService {
 
     const preview = JSON.parse(batch.previewJson) as TimesheetImportPreview;
     if (preview.summary.errorRows > 0) {
-      throw new BadRequestException('Resolve blocking row errors before confirming import.');
+      throw new BadRequestException(
+        'Resolve blocking row errors before confirming import.',
+      );
     }
 
     await this.timesheetsRepository.markImportBatchProcessing(
@@ -773,10 +805,7 @@ export class TimesheetsService {
       throw new ConflictException('Only submitted timesheets can be reviewed.');
     }
 
-    if (
-      nextStatus === TimesheetStatus.REJECTED &&
-      !dto.reviewNote?.trim()
-    ) {
+    if (nextStatus === TimesheetStatus.REJECTED && !dto.reviewNote?.trim()) {
       throw new BadRequestException('Rejecting a timesheet requires a reason.');
     }
 
@@ -822,13 +851,15 @@ export class TimesheetsService {
     }
 
     const { periodStart, periodEnd } = getMonthRange(year, month);
-    const employee = await this.employeesRepository.findHierarchyNodeByIdAndTenant(
-      currentUser.tenantId,
-      employeeId,
-    );
+    const employee =
+      await this.employeesRepository.findHierarchyNodeByIdAndTenant(
+        currentUser.tenantId,
+        employeeId,
+      );
     const created = await this.timesheetsRepository.createTimesheet({
       tenantId: currentUser.tenantId,
-      businessUnitId: employee?.businessUnitId ?? employee?.user?.businessUnitId,
+      businessUnitId:
+        employee?.businessUnitId ?? employee?.user?.businessUnitId,
       employeeId,
       year,
       month,
@@ -869,7 +900,9 @@ export class TimesheetsService {
       ),
     );
 
-    const existingKeys = new Set(timesheet.entries.map((entry) => toDateKey(entry.date)));
+    const existingKeys = new Set(
+      timesheet.entries.map((entry) => toDateKey(entry.date)),
+    );
     const dates = getDatesInRange(timesheet.periodStart, timesheet.periodEnd);
     for (const date of dates) {
       const dateKey = toDateKey(date);
@@ -890,7 +923,10 @@ export class TimesheetsService {
             : settings.autoFillWorkingDays
               ? TimesheetEntryType.ON_WORK
               : null;
-      const hours = resolveDefaultHours(entryType, settings.defaultHoursForOnWork);
+      const hours = resolveDefaultHours(
+        entryType,
+        settings.defaultHoursForOnWork,
+      );
 
       await this.timesheetsRepository.createTimesheetEntry({
         tenantId: currentUser.tenantId,
@@ -978,7 +1014,9 @@ export class TimesheetsService {
     this.assertMonthlyTimesheetsEnabled(settings);
 
     if (!settings.allowBulkImport) {
-      throw new BadRequestException('Bulk timesheet import is disabled by tenant settings.');
+      throw new BadRequestException(
+        'Bulk timesheet import is disabled by tenant settings.',
+      );
     }
 
     if ((dto.scope ?? 'mine') === 'mine' && !settings.allowEmployeeSelfImport) {
@@ -1002,7 +1040,10 @@ export class TimesheetsService {
       },
     );
     const employeeByCode = new Map(
-      employees.map((employee) => [employee.employeeCode.toLowerCase(), employee]),
+      employees.map((employee) => [
+        employee.employeeCode.toLowerCase(),
+        employee,
+      ]),
     );
     const employeeByEmail = new Map(
       employees
@@ -1058,8 +1099,12 @@ export class TimesheetsService {
     query: ExportTimesheetTemplateDto,
   ) {
     const requestedScope = query.scope ?? 'mine';
-    const canReadAll = currentUser.permissionKeys.includes('timesheets.read.all');
-    const canReadTeam = currentUser.permissionKeys.includes('timesheets.read.team');
+    const canReadAll = currentUser.permissionKeys.includes(
+      'timesheets.read.all',
+    );
+    const canReadTeam = currentUser.permissionKeys.includes(
+      'timesheets.read.team',
+    );
 
     if (requestedScope === 'tenant') {
       if (!canReadAll) {
@@ -1109,7 +1154,9 @@ export class TimesheetsService {
       timesheet.status === TimesheetStatus.APPROVED &&
       settings.lockTimesheetAfterApproval
     ) {
-      throw new ConflictException('Approved timesheets are locked by tenant settings.');
+      throw new ConflictException(
+        'Approved timesheets are locked by tenant settings.',
+      );
     }
 
     if (
@@ -1281,7 +1328,10 @@ export class TimesheetsService {
     };
   }
 
-  private mapTimesheet(timesheet: TimesheetWithRelations, currentUser?: AuthenticatedUser) {
+  private mapTimesheet(
+    timesheet: TimesheetWithRelations,
+    currentUser?: AuthenticatedUser,
+  ) {
     const summary = summarizeEntries(timesheet.entries);
 
     const canCurrentUserSubmit =
@@ -1346,12 +1396,16 @@ export class TimesheetsService {
               name: timesheet.employee.location.name,
             }
           : null,
-        businessUnit: timesheet.employee.businessUnit ?? timesheet.employee.user?.businessUnit
-          ? {
-              id: (timesheet.employee.businessUnit ?? timesheet.employee.user?.businessUnit)!.id,
-              name: (timesheet.employee.businessUnit ?? timesheet.employee.user?.businessUnit)!.name,
-            }
-          : null,
+        businessUnit:
+          (timesheet.employee.businessUnit ??
+          timesheet.employee.user?.businessUnit)
+            ? {
+                id: (timesheet.employee.businessUnit ??
+                  timesheet.employee.user?.businessUnit)!.id,
+                name: (timesheet.employee.businessUnit ??
+                  timesheet.employee.user?.businessUnit)!.name,
+              }
+            : null,
         reportingManager: timesheet.employee.manager
           ? {
               id: timesheet.employee.manager.id,
@@ -1442,17 +1496,20 @@ const TIMESHEET_TEMPLATE_VALID_VALUES = [
   {
     field: 'status/entryType',
     value: 'ON_LEAVE',
-    description: 'Employee was on approved or recorded leave. Keep hoursWorked as 0.',
+    description:
+      'Employee was on approved or recorded leave. Keep hoursWorked as 0.',
   },
   {
     field: 'status/entryType',
     value: 'WEEKEND',
-    description: 'System or client-marked weekend row. Keep hoursWorked as 0 unless weekend work is allowed.',
+    description:
+      'System or client-marked weekend row. Keep hoursWorked as 0 unless weekend work is allowed.',
   },
   {
     field: 'status/entryType',
     value: 'HOLIDAY',
-    description: 'System or client-marked holiday row. Keep hoursWorked as 0 unless holiday work is allowed.',
+    description:
+      'System or client-marked holiday row. Keep hoursWorked as 0 unless holiday work is allowed.',
   },
   {
     field: 'isWeekend/isHoliday',
@@ -1514,7 +1571,9 @@ function buildTimesheetTemplateRows({
   timesheetByEmployeeId: Map<string, TimesheetWithRelations>;
   year: number;
 }) {
-  const rows: Array<Record<(typeof TIMESHEET_TEMPLATE_COLUMNS)[number]['key'], string | number>> = [];
+  const rows: Array<
+    Record<(typeof TIMESHEET_TEMPLATE_COLUMNS)[number]['key'], string | number>
+  > = [];
 
   for (const employee of employees) {
     const timesheet = timesheetByEmployeeId.get(employee.id);
@@ -1529,7 +1588,8 @@ function buildTimesheetTemplateRows({
       const isHoliday = entry?.isHoliday ?? holidayMap.has(dateKey);
       const isWeekend =
         entry?.isWeekend ?? settings.weekendDays.includes(dayOfWeek);
-      const leave = entry?.leaveRequest ?? leaveMap.get(`${employee.id}:${dateKey}`);
+      const leave =
+        entry?.leaveRequest ?? leaveMap.get(`${employee.id}:${dateKey}`);
       const entryType =
         entry?.entryType ??
         (isHoliday
@@ -1568,7 +1628,11 @@ function buildTimesheetTemplateRows({
           employee.department?.name,
         ),
         location: employee.location
-          ? [employee.location.name, employee.location.city, employee.location.country]
+          ? [
+              employee.location.name,
+              employee.location.city,
+              employee.location.country,
+            ]
               .filter(Boolean)
               .join(', ')
           : '',
@@ -1598,7 +1662,12 @@ function buildEmployeeLeaveMap(
   return map;
 }
 
-function getEmployeeDisplayName(employee: Pick<TimesheetTemplateEmployee, 'firstName' | 'lastName' | 'preferredName'>) {
+function getEmployeeDisplayName(
+  employee: Pick<
+    TimesheetTemplateEmployee,
+    'firstName' | 'lastName' | 'preferredName'
+  >,
+) {
   return `${employee.preferredName || employee.firstName} ${employee.lastName}`.trim();
 }
 
@@ -1612,14 +1681,18 @@ function formatCodeAndName(code?: string | null, name?: string | null) {
 
 function validateTimesheetImportFile(file: UploadedExcelFile | undefined) {
   if (!file) {
-    throw new BadRequestException('Excel file is required for timesheet import.');
+    throw new BadRequestException(
+      'Excel file is required for timesheet import.',
+    );
   }
 
   if (
     !TIMESHEET_IMPORT_MIME_TYPES.includes(file.mimetype) &&
     !file.originalname.toLowerCase().endsWith('.xlsx')
   ) {
-    throw new BadRequestException('Timesheet import supports Excel .xlsx files only.');
+    throw new BadRequestException(
+      'Timesheet import supports Excel .xlsx files only.',
+    );
   }
 
   return file;
@@ -1627,7 +1700,9 @@ function validateTimesheetImportFile(file: UploadedExcelFile | undefined) {
 
 function assertRequiredImportColumns(rows: ExcelParsedRow[]) {
   if (rows.length === 0) {
-    throw new BadRequestException('Timesheet Excel file must include at least one data row.');
+    throw new BadRequestException(
+      'Timesheet Excel file must include at least one data row.',
+    );
   }
 
   const firstRow = rows[0];
@@ -1681,7 +1756,9 @@ function validateTimesheetImportRow({
   if (!employeeCode && !workEmail) {
     errors.push('employeeCode or workEmail is required.');
   } else if (!employee) {
-    errors.push('No accessible tenant employee matches employeeCode/workEmail.');
+    errors.push(
+      'No accessible tenant employee matches employeeCode/workEmail.',
+    );
   } else if (
     employeeFromCode &&
     employeeFromEmail &&
@@ -1699,7 +1776,9 @@ function validateTimesheetImportRow({
 
   const entryType = parseTimesheetEntryType(entryTypeValue);
   if (!entryType) {
-    errors.push('status/entryType must be ON_WORK, ON_LEAVE, WEEKEND, or HOLIDAY.');
+    errors.push(
+      'status/entryType must be ON_WORK, ON_LEAVE, WEEKEND, or HOLIDAY.',
+    );
   }
 
   const hoursWorked = parseHoursWorked(hoursValue);
@@ -1720,11 +1799,15 @@ function validateTimesheetImportRow({
     const providedHoliday = parseYesNo(getImportValue(row, 'isHoliday'));
 
     if (providedWeekend !== null && providedWeekend !== isWeekend) {
-      warnings.push('isWeekend differs from tenant settings and will be recalculated.');
+      warnings.push(
+        'isWeekend differs from tenant settings and will be recalculated.',
+      );
     }
 
     if (providedHoliday !== null && providedHoliday !== isHoliday) {
-      warnings.push('isHoliday differs from tenant holiday calendar and will be recalculated.');
+      warnings.push(
+        'isHoliday differs from tenant holiday calendar and will be recalculated.',
+      );
     }
   }
 
@@ -1767,14 +1850,22 @@ function validateTimesheetImportRow({
     errors,
     hoursWorked: hoursValue,
     payload:
-      severity === 'error' || !employee || !date || !entryType || !dayOfWeek || hoursWorked === null
+      severity === 'error' ||
+      !employee ||
+      !date ||
+      !entryType ||
+      !dayOfWeek ||
+      hoursWorked === null
         ? null
         : {
             date: toDateKey(date),
             dayOfWeek,
             employeeCode: employee.employeeCode,
             employeeId: employee.id,
-            businessUnitId: employee.businessUnitId ?? employee.user?.businessUnit?.id ?? null,
+            businessUnitId:
+              employee.businessUnitId ??
+              employee.user?.businessUnit?.id ??
+              null,
             entryType,
             hoursWorked:
               entryType === TimesheetEntryType.ON_WORK ? hoursWorked : 0,
@@ -1949,7 +2040,9 @@ function resolveHoursWorked(
     const numericHours =
       rawHours !== undefined ? Number.parseFloat(rawHours) : defaultWorkHours;
     if (!Number.isFinite(numericHours) || numericHours < 0) {
-      throw new BadRequestException('Hours worked must be a valid non-negative number.');
+      throw new BadRequestException(
+        'Hours worked must be a valid non-negative number.',
+      );
     }
     return numericHours;
   }
@@ -2013,10 +2106,14 @@ function summarizeEntries(entries: TimesheetWithRelations['entries']) {
   }
 
   const weekendDates = new Set(
-    entries.filter((entry) => entry.isWeekend).map((entry) => toDateKey(entry.date)),
+    entries
+      .filter((entry) => entry.isWeekend)
+      .map((entry) => toDateKey(entry.date)),
   );
   const holidayDates = new Set(
-    entries.filter((entry) => entry.isHoliday).map((entry) => toDateKey(entry.date)),
+    entries
+      .filter((entry) => entry.isHoliday)
+      .map((entry) => toDateKey(entry.date)),
   );
   summary.totalWeekendDays = weekendDates.size;
   summary.totalHolidayDays = holidayDates.size;

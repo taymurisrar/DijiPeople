@@ -134,4 +134,3 @@ export class PayrollController {
     return this.payrollService.updateCompensation(user, compensationId, dto);
   }
 }
-

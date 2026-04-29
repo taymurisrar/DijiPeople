@@ -42,7 +42,9 @@ export type BusinessUnitNode = {
 
 @Injectable()
 export class OrganizationService {
-  constructor(private readonly organizationRepository: OrganizationRepository) {}
+  constructor(
+    private readonly organizationRepository: OrganizationRepository,
+  ) {}
 
   findOrganizations(tenantId: string) {
     return this.organizationRepository.findOrganizations(tenantId);
@@ -55,7 +57,9 @@ export class OrganizationService {
     );
 
     if (!organization) {
-      throw new NotFoundException('Organization was not found for this tenant.');
+      throw new NotFoundException(
+        'Organization was not found for this tenant.',
+      );
     }
 
     return organization;
@@ -110,7 +114,9 @@ export class OrganizationService {
       );
 
       if (result.count === 0) {
-        throw new NotFoundException('Organization was not found for this tenant.');
+        throw new NotFoundException(
+          'Organization was not found for this tenant.',
+        );
       }
 
       return this.findOrganizationById(currentUser.tenantId, id);
@@ -123,7 +129,10 @@ export class OrganizationService {
     await this.findOrganizationById(currentUser.tenantId, id);
 
     const [childCount, businessUnitCount] = await Promise.all([
-      this.organizationRepository.countOrganizationChildren(currentUser.tenantId, id),
+      this.organizationRepository.countOrganizationChildren(
+        currentUser.tenantId,
+        id,
+      ),
       this.organizationRepository.countOrganizationBusinessUnits(
         currentUser.tenantId,
         id,
@@ -142,7 +151,10 @@ export class OrganizationService {
       );
     }
 
-    await this.organizationRepository.deleteOrganization(currentUser.tenantId, id);
+    await this.organizationRepository.deleteOrganization(
+      currentUser.tenantId,
+      id,
+    );
     return { deleted: true, id };
   }
 
@@ -157,7 +169,9 @@ export class OrganizationService {
     );
 
     if (!businessUnit) {
-      throw new NotFoundException('Business unit was not found for this tenant.');
+      throw new NotFoundException(
+        'Business unit was not found for this tenant.',
+      );
     }
 
     return businessUnit;
@@ -265,7 +279,9 @@ export class OrganizationService {
       );
 
       if (result.count === 0) {
-        throw new NotFoundException('Business unit was not found for this tenant.');
+        throw new NotFoundException(
+          'Business unit was not found for this tenant.',
+        );
       }
 
       return this.findBusinessUnitById(currentUser.tenantId, id);
@@ -278,8 +294,14 @@ export class OrganizationService {
     await this.findBusinessUnitById(currentUser.tenantId, id);
 
     const [childCount, userCount] = await Promise.all([
-      this.organizationRepository.countBusinessUnitChildren(currentUser.tenantId, id),
-      this.organizationRepository.countBusinessUnitUsers(currentUser.tenantId, id),
+      this.organizationRepository.countBusinessUnitChildren(
+        currentUser.tenantId,
+        id,
+      ),
+      this.organizationRepository.countBusinessUnitUsers(
+        currentUser.tenantId,
+        id,
+      ),
     ]);
 
     if (childCount > 0) {
@@ -294,25 +316,31 @@ export class OrganizationService {
       );
     }
 
-    await this.organizationRepository.deleteBusinessUnit(currentUser.tenantId, id);
+    await this.organizationRepository.deleteBusinessUnit(
+      currentUser.tenantId,
+      id,
+    );
     return { deleted: true, id };
   }
 
   async getChildOrganizations(tenantId: string, orgId: string) {
     await this.findOrganizationById(tenantId, orgId);
-    const organizations = await this.organizationRepository.findOrganizations(tenantId);
+    const organizations =
+      await this.organizationRepository.findOrganizations(tenantId);
     return organizations.filter((item) => item.parentOrganizationId === orgId);
   }
 
   async getParentOrganizations(tenantId: string, orgId: string) {
     await this.findOrganizationById(tenantId, orgId);
-    const organizations = await this.organizationRepository.findOrganizations(tenantId);
+    const organizations =
+      await this.organizationRepository.findOrganizations(tenantId);
     return this.fetchParentOrganizationChainFromFlat(organizations, orgId);
   }
 
   async getChildBusinessUnits(tenantId: string, businessUnitId: string) {
     await this.findBusinessUnitById(tenantId, businessUnitId);
-    const businessUnits = await this.organizationRepository.findBusinessUnits(tenantId);
+    const businessUnits =
+      await this.organizationRepository.findBusinessUnits(tenantId);
     return businessUnits.filter(
       (item) => item.parentBusinessUnitId === businessUnitId,
     );
@@ -320,20 +348,26 @@ export class OrganizationService {
 
   async getParentBusinessUnits(tenantId: string, businessUnitId: string) {
     await this.findBusinessUnitById(tenantId, businessUnitId);
-    const businessUnits = await this.organizationRepository.findBusinessUnits(tenantId);
-    return this.fetchParentBusinessUnitChainFromFlat(businessUnits, businessUnitId);
+    const businessUnits =
+      await this.organizationRepository.findBusinessUnits(tenantId);
+    return this.fetchParentBusinessUnitChainFromFlat(
+      businessUnits,
+      businessUnitId,
+    );
   }
 
   async fetchOrganizationSubtree(tenantId: string, orgId: string) {
     await this.findOrganizationById(tenantId, orgId);
-    const organizations = await this.organizationRepository.findOrganizations(tenantId);
+    const organizations =
+      await this.organizationRepository.findOrganizations(tenantId);
     const tree = this.buildOrganizationTree(organizations);
     return this.findOrganizationNode(tree, orgId);
   }
 
   async fetchBusinessUnitSubtree(tenantId: string, businessUnitId: string) {
     await this.findBusinessUnitById(tenantId, businessUnitId);
-    const businessUnits = await this.organizationRepository.findBusinessUnits(tenantId);
+    const businessUnits =
+      await this.organizationRepository.findBusinessUnits(tenantId);
     const tree = this.buildBusinessUnitTree(businessUnits);
     return this.findBusinessUnitNode(tree, businessUnitId);
   }
@@ -378,7 +412,10 @@ export class OrganizationService {
     return department;
   }
 
-  async createDepartment(currentUser: AuthenticatedUser, dto: CreateDepartmentDto) {
+  async createDepartment(
+    currentUser: AuthenticatedUser,
+    dto: CreateDepartmentDto,
+  ) {
     try {
       return await this.organizationRepository.createDepartment({
         tenantId: currentUser.tenantId,
@@ -439,7 +476,10 @@ export class OrganizationService {
     return designation;
   }
 
-  async createDesignation(currentUser: AuthenticatedUser, dto: CreateDesignationDto) {
+  async createDesignation(
+    currentUser: AuthenticatedUser,
+    dto: CreateDesignationDto,
+  ) {
     try {
       return await this.organizationRepository.createDesignation({
         tenantId: currentUser.tenantId,
@@ -465,7 +505,9 @@ export class OrganizationService {
       id,
       {
         ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
-        ...(dto.level !== undefined ? { level: dto.level?.trim() ?? null } : {}),
+        ...(dto.level !== undefined
+          ? { level: dto.level?.trim() ?? null }
+          : {}),
         ...(dto.description !== undefined
           ? { description: dto.description?.trim() ?? null }
           : {}),
@@ -602,7 +644,8 @@ export class OrganizationService {
       return;
     }
 
-    const organizations = await this.organizationRepository.findOrganizations(tenantId);
+    const organizations =
+      await this.organizationRepository.findOrganizations(tenantId);
     const parentChain = this.fetchParentOrganizationChainFromFlat(
       organizations,
       parentOrganizationId,
@@ -649,7 +692,8 @@ export class OrganizationService {
       return;
     }
 
-    const businessUnits = await this.organizationRepository.findBusinessUnits(tenantId);
+    const businessUnits =
+      await this.organizationRepository.findBusinessUnits(tenantId);
     const parentChain = this.fetchParentBusinessUnitChainFromFlat(
       businessUnits,
       parentBusinessUnitId,
@@ -783,7 +827,10 @@ export class OrganizationService {
     return build(null);
   }
 
-  private findOrganizationNode(tree: OrganizationNode[], id: string): OrganizationNode | null {
+  private findOrganizationNode(
+    tree: OrganizationNode[],
+    id: string,
+  ): OrganizationNode | null {
     for (const node of tree) {
       if (node.id === id) {
         return node;
@@ -796,7 +843,10 @@ export class OrganizationService {
     return null;
   }
 
-  private findBusinessUnitNode(tree: BusinessUnitNode[], id: string): BusinessUnitNode | null {
+  private findBusinessUnitNode(
+    tree: BusinessUnitNode[],
+    id: string,
+  ): BusinessUnitNode | null {
     for (const node of tree) {
       if (node.id === id) {
         return node;

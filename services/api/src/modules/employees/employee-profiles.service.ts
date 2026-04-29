@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -8,10 +7,12 @@ import { getAppOrigin } from '@repo/config';
 import { extname } from 'path';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { Prisma } from '@prisma/client';
+import { Prisma, SecurityPrivilege } from '@prisma/client';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import { normalizeEmail } from '../../common/utils/email.util';
 import { getAccessTokenSecret } from '../../common/config/auth.config';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
+import { buildScopedAccessWhere } from '../../common/security/rbac-query-scope';
 import { MailerService } from '../../common/mailer/mailer.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { StorageService } from '../../common/storage/storage.service';
@@ -114,6 +115,7 @@ export class EmployeeProfilesService {
       terminationDate: employee.terminationDate,
       departmentId: employee.departmentId,
       designationId: employee.designationId,
+      employeeLevelId: employee.employeeLevelId,
       locationId: employee.locationId,
       officialJoiningLocationId: employee.officialJoiningLocationId,
       managerEmployeeId: employee.managerEmployeeId,
@@ -159,6 +161,7 @@ export class EmployeeProfilesService {
       user: employee.user ?? null,
       department: employee.department,
       designation: employee.designation,
+      employeeLevel: employee.employeeLevel,
       location: employee.location,
       officialJoiningLocation: employee.officialJoiningLocation,
       profileImage: employee.profileImageDocument
@@ -174,6 +177,7 @@ export class EmployeeProfilesService {
         fullName,
         employeeCode: employee.employeeCode,
         designation: employee.designation?.name ?? null,
+        employeeLevel: employee.employeeLevel?.name ?? null,
         department: employee.department?.name ?? null,
         managerName: employee.manager
           ? `${employee.manager.firstName} ${employee.manager.lastName}`
@@ -214,6 +218,7 @@ export class EmployeeProfilesService {
         terminationDate: employee.terminationDate,
         department: employee.department,
         designation: employee.designation,
+        employeeLevel: employee.employeeLevel,
         location: employee.location,
         officialJoiningLocation: employee.officialJoiningLocation,
         noticePeriodDays: employee.noticePeriodDays,
@@ -274,6 +279,15 @@ export class EmployeeProfilesService {
     const employee = await this.assertEmployeeExists(
       currentUser.tenantId,
       employeeId,
+      buildScopedAccessWhere<Prisma.EmployeeWhereInput>(
+        currentUser,
+        ENTITY_KEYS.EMPLOYEES,
+        SecurityPrivilege.READ,
+        {
+          organizationIdField: null,
+          userIdField: 'userId',
+        },
+      ),
     );
 
     if (
@@ -1300,10 +1314,15 @@ export class EmployeeProfilesService {
     return after;
   }
 
-  private async assertEmployeeExists(tenantId: string, employeeId: string) {
+  private async assertEmployeeExists(
+    tenantId: string,
+    employeeId: string,
+    accessWhere: Prisma.EmployeeWhereInput = {},
+  ) {
     const employee = await this.employeesRepository.findByIdAndTenant(
       tenantId,
       employeeId,
+      accessWhere,
     );
 
     if (!employee) {
@@ -1320,43 +1339,18 @@ export class EmployeeProfilesService {
     const employee = await this.assertEmployeeExists(
       currentUser.tenantId,
       employeeId,
+      buildScopedAccessWhere<Prisma.EmployeeWhereInput>(
+        currentUser,
+        ENTITY_KEYS.EMPLOYEES,
+        SecurityPrivilege.READ,
+        {
+          organizationIdField: null,
+          userIdField: 'userId',
+        },
+      ),
     );
-
-    if (
-      this.isSelfServiceUser(currentUser) &&
-      employee.userId !== currentUser.userId
-    ) {
-      throw new ForbiddenException(
-        'You can only access your own employee profile.',
-      );
-    }
-
-    if (
-      this.isManagerScopedUser(currentUser) &&
-      employee.userId !== currentUser.userId &&
-      employee.manager?.userId !== currentUser.userId
-    ) {
-      throw new ForbiddenException(
-        'Managers can only access profiles for their direct reports.',
-      );
-    }
 
     return employee;
-  }
-
-  private isSelfServiceUser(currentUser: AuthenticatedUser) {
-    return (
-      currentUser.roleKeys.includes('employee') &&
-      currentUser.roleKeys.every((roleKey) => roleKey === 'employee')
-    );
-  }
-
-  private isManagerScopedUser(currentUser: AuthenticatedUser) {
-    const elevatedRoleKeys = new Set(['admin', 'hr', 'system-admin']);
-    return (
-      currentUser.roleKeys.includes('manager') &&
-      currentUser.roleKeys.every((roleKey) => !elevatedRoleKeys.has(roleKey))
-    );
   }
 
   private validatePreviousEmploymentDates(
@@ -1487,4 +1481,3 @@ function calculateDaysUntilBirthday(today: Date, dateOfBirth: Date) {
   }
   return differenceInDays(nextBirthday, today);
 }
-

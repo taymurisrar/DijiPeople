@@ -15,6 +15,7 @@ import {
   UserStatus,
 } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
+import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { normalizeEmail } from '../../common/utils/email.util';
 import { normalizeTenantSlug } from '../../common/utils/slug.util';
@@ -119,7 +120,7 @@ export class PlatformOnboardingService {
 
       const systemAdminRole = await this.rolesRepository.findByKeyAndTenant(
         tenant.id,
-        'system-admin',
+        ROLE_KEYS.SYSTEM_ADMIN,
         tx,
       );
 
@@ -205,19 +206,22 @@ export class PlatformOnboardingService {
         skipDuplicates: true,
       });
 
-      const subscription = await this.billingService.createOrUpdateSubscription(tx, {
-        tenantId: tenant.id,
-        planId: dto.planId,
-        billingCycle: dto.billingCycle,
-        status: SubscriptionStatus.TRIALING,
-        startDate: new Date(),
-        discountType: dto.discountType,
-        discountValue: dto.discountValue,
-        discountReason: dto.discountReason,
-        manualFinalPrice: dto.manualFinalPrice,
-        autoRenew: dto.autoRenew,
-        actorUserId: actor.userId,
-      });
+      const subscription = await this.billingService.createOrUpdateSubscription(
+        tx,
+        {
+          tenantId: tenant.id,
+          planId: dto.planId,
+          billingCycle: dto.billingCycle,
+          status: SubscriptionStatus.TRIALING,
+          startDate: new Date(),
+          discountType: dto.discountType,
+          discountValue: dto.discountValue,
+          discountReason: dto.discountReason,
+          manualFinalPrice: dto.manualFinalPrice,
+          autoRenew: dto.autoRenew,
+          actorUserId: actor.userId,
+        },
+      );
 
       if (dto.featureOverrides?.length) {
         await Promise.all(
@@ -301,4 +305,3 @@ export class PlatformOnboardingService {
     };
   }
 }
-

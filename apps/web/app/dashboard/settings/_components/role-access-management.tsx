@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { PERMISSION_KEYS } from "@/lib/security-keys";
 import { PermissionGate } from "../../_components/permission-gate";
 import {
   AccessPermissionRecord,
@@ -33,7 +34,6 @@ export function RoleAccessManagement({
   initialRoles,
   initialUsers,
   initialBusinessUnits,
-  matrixCatalog: _matrixCatalog,
   mode = "all",
 }: RoleAccessManagementProps) {
   const [roles, setRoles] = useState(initialRoles);
@@ -138,7 +138,9 @@ export function RoleAccessManagement({
       setRoles((current) =>
         current.some((role) => role.id === data.id)
           ? current.map((role) => (role.id === data.id ? data : role))
-          : [...current, data].sort((left, right) => left.name.localeCompare(right.name)),
+          : [...current, data].sort((left, right) =>
+              left.name.localeCompare(right.name),
+            ),
       );
       setRoleMessage(roleEditor.id ? "Role updated." : "Role created.");
       setRoleEditor({
@@ -170,9 +172,10 @@ export function RoleAccessManagement({
       const response = await fetch(`/api/roles/${roleId}`, {
         method: "DELETE",
       });
-      const data = (await response.json().catch(() => null)) as
-        | { deleted?: boolean; message?: string }
-        | null;
+      const data = (await response.json().catch(() => null)) as {
+        deleted?: boolean;
+        message?: string;
+      } | null;
 
       if (!response.ok || !data?.deleted) {
         setRoleError(data?.message ?? "Unable to delete the role.");
@@ -194,7 +197,10 @@ export function RoleAccessManagement({
   }
 
   function getPendingPermissionIds(user: AccessUserRecord) {
-    return pendingUserPermissionIds[user.userId] ?? user.directPermissions.map((permission) => permission.id);
+    return (
+      pendingUserPermissionIds[user.userId] ??
+      user.directPermissions.map((permission) => permission.id)
+    );
   }
 
   function getPendingBusinessUnitId(user: AccessUserRecord) {
@@ -221,22 +227,22 @@ export function RoleAccessManagement({
 
       const [rolesResponse, permissionsResponse, businessUnitResponse] =
         await Promise.all([
-        fetch(`/api/users/${user.userId}/roles`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ roleIds }),
-        }),
-        fetch(`/api/users/${user.userId}/permissions`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ permissionIds }),
-        }),
-        fetch(`/api/users/${user.userId}/business-unit`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ businessUnitId }),
-        }),
-      ]);
+          fetch(`/api/users/${user.userId}/roles`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ roleIds }),
+          }),
+          fetch(`/api/users/${user.userId}/permissions`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ permissionIds }),
+          }),
+          fetch(`/api/users/${user.userId}/business-unit`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ businessUnitId }),
+          }),
+        ]);
 
       const rolesPayload = (await rolesResponse.json().catch(() => null)) as
         | AccessUserRecord
@@ -299,7 +305,8 @@ export function RoleAccessManagement({
     } catch {
       setUserError((current) => ({
         ...current,
-        [user.userId]: "User access update failed. Check that the API is running.",
+        [user.userId]:
+          "User access update failed. Check that the API is running.",
       }));
     } finally {
       setSavingUserId(null);
@@ -323,9 +330,10 @@ export function RoleAccessManagement({
       const response = await fetch(`/api/users/${user.userId}`, {
         method: "DELETE",
       });
-      const payload = (await response.json().catch(() => null)) as
-        | { deleted?: boolean; message?: string }
-        | null;
+      const payload = (await response.json().catch(() => null)) as {
+        deleted?: boolean;
+        message?: string;
+      } | null;
 
       if (!response.ok || !payload?.deleted) {
         setUserError((current) => ({
@@ -335,7 +343,9 @@ export function RoleAccessManagement({
         return;
       }
 
-      setUsers((current) => current.filter((entry) => entry.userId !== user.userId));
+      setUsers((current) =>
+        current.filter((entry) => entry.userId !== user.userId),
+      );
     } catch {
       setUserError((current) => ({
         ...current,
@@ -355,444 +365,497 @@ export function RoleAccessManagement({
       }
     >
       {mode !== "users" ? (
-      <section className="grid gap-6">
-        <article className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-sm uppercase tracking-[0.18em] text-muted">
-                Roles
-              </p>
-              <h3 className="mt-2 text-2xl font-semibold text-foreground">
-                Tenant roles and permission bundles
-              </h3>
-            </div>
-            <PermissionGate anyOf={["roles.create"]}>
-              <button
-                className="rounded-2xl border border-border px-4 py-3 text-sm font-medium text-foreground transition hover:border-accent/30 hover:text-accent"
-                onClick={startCreateRole}
-                type="button"
-              >
-                New role
-              </button>
-            </PermissionGate>
-          </div>
-
-          <div className="mt-5 grid gap-3">
-            {roles.map((role) => (
-              <div
-                key={role.id}
-                className="rounded-2xl border border-border bg-white/80 px-4 py-4"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-semibold text-foreground">{role.name}</p>
-                      <span className="rounded-full bg-surface px-3 py-1 text-xs uppercase tracking-[0.16em] text-muted">
-                        {role.key}
-                      </span>
-                      <RoleTypeBadge role={role} />
-                      {role.isEditable === false ? (
-                        <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
-                          Locked
-                        </span>
-                      ) : null}
-                    </div>
-                    <p className="mt-2 text-sm text-muted">
-                      {role.description || "No description added for this role yet."}
-                    </p>
-                    <p className="mt-2 text-xs text-muted">
-                      {role.rolePermissions.length} permissions •{" "}
-                      {role.userRoles?.length ?? 0} assigned users
-                    </p>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    <Link
-                      className="rounded-2xl border border-border px-3 py-2 text-sm font-medium text-foreground transition hover:border-accent/30 hover:text-accent"
-                      href={`/dashboard/settings/access/roles/${role.id}`}
-                    >
-                      View
-                    </Link>
-                    <PermissionGate anyOf={["roles.update", "roles.assign-permissions"]}>
-                      <button
-                        className="rounded-2xl border border-border px-3 py-2 text-sm font-medium text-foreground transition hover:border-accent/30 hover:text-accent disabled:opacity-60"
-                        disabled={role.isSystem || role.isEditable === false}
-                        onClick={() => startEditRole(role)}
-                        type="button"
-                      >
-                        Edit
-                      </button>
-                    </PermissionGate>
-                    <PermissionGate anyOf={["roles.update"]}>
-                      <button
-                        className="rounded-2xl border border-danger/20 px-3 py-2 text-sm font-medium text-danger transition hover:bg-danger/5 disabled:opacity-60"
-                        disabled={role.isSystem}
-                        onClick={() => handleDeleteRole(role.id)}
-                        type="button"
-                      >
-                        Delete
-                      </button>
-                    </PermissionGate>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </article>
-
-        <PermissionGate anyOf={["roles.create", "roles.update", "roles.assign-permissions"]}>
+        <section className="grid gap-6">
           <article className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
-            <div>
-              <p className="text-sm uppercase tracking-[0.18em] text-muted">
-                Role Editor
-              </p>
-              <h3 className="mt-2 text-2xl font-semibold text-foreground">
-                {roleEditor.id ? "Update custom role" : "Create a custom role"}
-              </h3>
-            </div>
-
-            <div className="mt-5 grid gap-4">
-              <label className="grid gap-2 text-sm">
-                <span className="font-medium text-foreground">Role name</span>
-                <input
-                  className="rounded-2xl border border-border bg-white px-4 py-3 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
-                  onChange={(event) =>
-                    setRoleEditor((current) => ({
-                      ...current,
-                      name: event.target.value,
-                    }))
-                  }
-                  placeholder="Operations coordinator"
-                  value={roleEditor.name}
-                />
-              </label>
-
-              <label className="grid gap-2 text-sm">
-                <span className="font-medium text-foreground">Description</span>
-                <textarea
-                  className="min-h-24 rounded-2xl border border-border bg-white px-4 py-3 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
-                  onChange={(event) =>
-                    setRoleEditor((current) => ({
-                      ...current,
-                      description: event.target.value,
-                    }))
-                  }
-                  placeholder="Explain what this role is meant to do."
-                  value={roleEditor.description}
-                />
-              </label>
-            </div>
-
-            <div className="mt-6 grid gap-4">
-              {permissionGroups.map((group) => (
-                <details
-                  className="rounded-2xl border border-border bg-white/80 px-4 py-4"
-                  key={group.key}
-                  open
-                >
-                  <summary className="cursor-pointer list-none font-medium text-foreground">
-                    {group.label}
-                    <span className="ml-2 text-sm text-muted">
-                      ({group.permissions.length})
-                    </span>
-                  </summary>
-                  <div className="mt-4 grid gap-3 md:grid-cols-2">
-                    {group.permissions.map((permission) => {
-                      const checked = roleEditor.permissionIds.includes(permission.id);
-                      return (
-                        <label
-                          className="flex items-start gap-3 rounded-2xl border border-border bg-surface px-3 py-3 text-sm"
-                          key={permission.id}
-                        >
-                          <input
-                            checked={checked}
-                            onChange={() =>
-                              setRoleEditor((current) => ({
-                                ...current,
-                                permissionIds: checked
-                                  ? current.permissionIds.filter((id) => id !== permission.id)
-                                  : [...current.permissionIds, permission.id],
-                              }))
-                            }
-                            type="checkbox"
-                          />
-                          <span>
-                            <span className="block font-medium text-foreground">
-                              {permission.name}
-                            </span>
-                            <span className="mt-1 block text-muted">
-                              {permission.description}
-                            </span>
-                          </span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </details>
-              ))}
-            </div>
-
-            {roleError ? (
-              <p className="mt-4 rounded-2xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
-                {roleError}
-              </p>
-            ) : null}
-            {roleMessage ? (
-              <p className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-                {roleMessage}
-              </p>
-            ) : null}
-
-            <div className="mt-5 flex flex-wrap gap-3">
-              <button
-                className="rounded-2xl bg-accent px-5 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:opacity-70"
-                disabled={savingRole}
-                onClick={handleSaveRole}
-                type="button"
-              >
-                {savingRole ? "Saving..." : roleEditor.id ? "Save role" : "Create role"}
-              </button>
-              <button
-                className="rounded-2xl border border-border px-5 py-3 text-sm font-medium text-foreground transition hover:border-accent/30 hover:text-accent"
-                onClick={startCreateRole}
-                type="button"
-              >
-                Clear
-              </button>
-            </div>
-          </article>
-        </PermissionGate>
-      </section>
-      ) : null}
-
-      {mode !== "roles" ? (
-      <section className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
-        <div>
-          <p className="text-sm uppercase tracking-[0.18em] text-muted">
-            User Access
-          </p>
-          <h3 className="mt-2 text-2xl font-semibold text-foreground">
-            Expand users to manage roles and direct access
-          </h3>
-          <p className="mt-2 text-sm text-muted">
-            Role-based access stays primary. Direct permissions are available for
-            targeted exceptions where needed.
-          </p>
-        </div>
-
-        <div className="mt-5 grid gap-3">
-          {users.map((user) => {
-            const expanded = expandedUserId === user.userId;
-            const pendingRoleIds = getPendingRoleIds(user);
-            const pendingPermissionIds = getPendingPermissionIds(user);
-            const ownerProtected = user.ownership.isTenantOwner;
-
-            return (
-              <article
-                className="rounded-2xl border border-border bg-white/80 px-4 py-4"
-                key={user.userId}
-              >
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm uppercase tracking-[0.18em] text-muted">
+                  Roles
+                </p>
+                <h3 className="mt-2 text-2xl font-semibold text-foreground">
+                  Tenant roles and permission bundles
+                </h3>
+              </div>
+              <PermissionGate anyOf={[PERMISSION_KEYS.ROLES_CREATE]}>
                 <button
-                  className="flex w-full items-start justify-between gap-4 text-left"
-                  onClick={() =>
-                    setExpandedUserId((current) =>
-                      current === user.userId ? null : user.userId,
-                    )
-                  }
+                  className="rounded-2xl border border-border px-4 py-3 text-sm font-medium text-foreground transition hover:border-accent/30 hover:text-accent"
+                  onClick={startCreateRole}
                   type="button"
                 >
-                  <div>
-                    <p className="font-semibold text-foreground">
-                      {user.firstName} {user.lastName}
-                    </p>
-                    <p className="mt-1 text-sm text-muted">{user.email}</p>
-                    <p className="mt-1 text-sm text-muted">
-                      BU: {user.businessUnit?.name ?? "Not assigned"} • Org:{" "}
-                      {user.businessUnit?.organizationName ?? "Not assigned"}
-                    </p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <span className="rounded-full bg-accent-soft px-3 py-1 text-xs font-semibold text-accent-strong">
-                        {formatOwnershipLabel(user.ownership.designation)}
-                      </span>
-                      {user.isServiceAccount ? (
-                        <span className="rounded-full bg-surface px-3 py-1 text-xs font-semibold text-muted">
-                          Service Account
-                        </span>
-                      ) : null}
-                      {user.roles.map((role) => (
-                        <span
-                          className="rounded-full bg-surface px-3 py-1 text-xs font-medium text-muted"
-                          key={role.id}
-                        >
+                  New role
+                </button>
+              </PermissionGate>
+            </div>
+
+            <div className="mt-5 grid gap-3">
+              {roles.map((role) => (
+                <div
+                  key={role.id}
+                  className="rounded-2xl border border-border bg-white/80 px-4 py-4"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-semibold text-foreground">
                           {role.name}
+                        </p>
+                        <span className="rounded-full bg-surface px-3 py-1 text-xs uppercase tracking-[0.16em] text-muted">
+                          {role.key}
                         </span>
-                      ))}
+                        <RoleTypeBadge role={role} />
+                        {role.isEditable === false ? (
+                          <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
+                            Locked
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="mt-2 text-sm text-muted">
+                        {role.description ||
+                          "No description added for this role yet."}
+                      </p>
+                      <p className="mt-2 text-xs text-muted">
+                        {role.rolePermissions.length} permissions •{" "}
+                        {role.userRoles?.length ?? 0} assigned users
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <Link
+                        className="rounded-2xl border border-border px-3 py-2 text-sm font-medium text-foreground transition hover:border-accent/30 hover:text-accent"
+                        href={`/dashboard/settings/access/roles/${role.id}`}
+                      >
+                        View
+                      </Link>
+                      <PermissionGate
+                        anyOf={[
+                          PERMISSION_KEYS.ROLES_UPDATE,
+                          PERMISSION_KEYS.ROLES_ASSIGN_PERMISSIONS,
+                        ]}
+                      >
+                        <button
+                          className="rounded-2xl border border-border px-3 py-2 text-sm font-medium text-foreground transition hover:border-accent/30 hover:text-accent disabled:opacity-60"
+                          disabled={role.isSystem || role.isEditable === false}
+                          onClick={() => startEditRole(role)}
+                          type="button"
+                        >
+                          Edit
+                        </button>
+                      </PermissionGate>
+                      <PermissionGate anyOf={[PERMISSION_KEYS.ROLES_UPDATE]}>
+                        <button
+                          className="rounded-2xl border border-danger/20 px-3 py-2 text-sm font-medium text-danger transition hover:bg-danger/5 disabled:opacity-60"
+                          disabled={role.isSystem}
+                          onClick={() => handleDeleteRole(role.id)}
+                          type="button"
+                        >
+                          Delete
+                        </button>
+                      </PermissionGate>
                     </div>
                   </div>
-                  <span className="rounded-full border border-border px-3 py-1 text-xs uppercase tracking-[0.16em] text-muted">
-                    {expanded ? "Collapse" : "Expand"}
+                </div>
+              ))}
+            </div>
+          </article>
+
+          <PermissionGate
+            anyOf={[
+              PERMISSION_KEYS.ROLES_CREATE,
+              PERMISSION_KEYS.ROLES_UPDATE,
+              PERMISSION_KEYS.ROLES_ASSIGN_PERMISSIONS,
+            ]}
+          >
+            <article className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
+              <div>
+                <p className="text-sm uppercase tracking-[0.18em] text-muted">
+                  Role Editor
+                </p>
+                <h3 className="mt-2 text-2xl font-semibold text-foreground">
+                  {roleEditor.id
+                    ? "Update custom role"
+                    : "Create a custom role"}
+                </h3>
+              </div>
+
+              <div className="mt-5 grid gap-4">
+                <label className="grid gap-2 text-sm">
+                  <span className="font-medium text-foreground">Role name</span>
+                  <input
+                    className="rounded-2xl border border-border bg-white px-4 py-3 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
+                    onChange={(event) =>
+                      setRoleEditor((current) => ({
+                        ...current,
+                        name: event.target.value,
+                      }))
+                    }
+                    placeholder="Operations coordinator"
+                    value={roleEditor.name}
+                  />
+                </label>
+
+                <label className="grid gap-2 text-sm">
+                  <span className="font-medium text-foreground">
+                    Description
                   </span>
-                </button>
+                  <textarea
+                    className="min-h-24 rounded-2xl border border-border bg-white px-4 py-3 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
+                    onChange={(event) =>
+                      setRoleEditor((current) => ({
+                        ...current,
+                        description: event.target.value,
+                      }))
+                    }
+                    placeholder="Explain what this role is meant to do."
+                    value={roleEditor.description}
+                  />
+                </label>
+              </div>
 
-                {expanded ? (
-                  <div className="mt-5 grid gap-5 border-t border-border pt-5">
-                    <section className="rounded-2xl border border-border bg-surface px-4 py-4">
-                      <h4 className="font-medium text-foreground">Business unit</h4>
-                      <p className="mt-1 text-sm text-muted">
-                        Every user must belong to exactly one business unit.
-                      </p>
-                      <select
-                        className="mt-3 w-full rounded-2xl border border-border bg-white px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
-                        disabled={ownerProtected}
-                        onChange={(event) =>
-                          setPendingUserBusinessUnitIds((current) => ({
-                            ...current,
-                            [user.userId]: event.target.value,
-                          }))
-                        }
-                        value={getPendingBusinessUnitId(user)}
-                      >
-                        <option value="">Select business unit</option>
-                        {businessUnitOptions.map((option) => (
-                          <option key={option.id} value={option.id}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    </section>
-
-                    <div className="grid gap-4 lg:grid-cols-2">
-                      <section className="grid gap-3">
-                        <h4 className="font-medium text-foreground">Assigned roles</h4>
-                        {roles.map((role) => (
+              <div className="mt-6 grid gap-4">
+                {permissionGroups.map((group) => (
+                  <details
+                    className="rounded-2xl border border-border bg-white/80 px-4 py-4"
+                    key={group.key}
+                    open
+                  >
+                    <summary className="cursor-pointer list-none font-medium text-foreground">
+                      {group.label}
+                      <span className="ml-2 text-sm text-muted">
+                        ({group.permissions.length})
+                      </span>
+                    </summary>
+                    <div className="mt-4 grid gap-3 md:grid-cols-2">
+                      {group.permissions.map((permission) => {
+                        const checked = roleEditor.permissionIds.includes(
+                          permission.id,
+                        );
+                        return (
                           <label
                             className="flex items-start gap-3 rounded-2xl border border-border bg-surface px-3 py-3 text-sm"
-                            key={role.id}
+                            key={permission.id}
                           >
-                              <input
-                                checked={pendingRoleIds.includes(role.id)}
-                                disabled={ownerProtected}
-                                onChange={() =>
-                                  setPendingUserRoleIds((current) => ({
-                                    ...current,
-                                  [user.userId]: pendingRoleIds.includes(role.id)
-                                    ? pendingRoleIds.filter((id) => id !== role.id)
-                                    : [...pendingRoleIds, role.id],
+                            <input
+                              checked={checked}
+                              onChange={() =>
+                                setRoleEditor((current) => ({
+                                  ...current,
+                                  permissionIds: checked
+                                    ? current.permissionIds.filter(
+                                        (id) => id !== permission.id,
+                                      )
+                                    : [...current.permissionIds, permission.id],
                                 }))
                               }
                               type="checkbox"
                             />
                             <span>
                               <span className="block font-medium text-foreground">
-                                {role.name}
+                                {permission.name}
                               </span>
                               <span className="mt-1 block text-muted">
-                                {role.description || role.key}
+                                {permission.description}
                               </span>
                             </span>
                           </label>
+                        );
+                      })}
+                    </div>
+                  </details>
+                ))}
+              </div>
+
+              {roleError ? (
+                <p className="mt-4 rounded-2xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
+                  {roleError}
+                </p>
+              ) : null}
+              {roleMessage ? (
+                <p className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                  {roleMessage}
+                </p>
+              ) : null}
+
+              <div className="mt-5 flex flex-wrap gap-3">
+                <button
+                  className="rounded-2xl bg-accent px-5 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:opacity-70"
+                  disabled={savingRole}
+                  onClick={handleSaveRole}
+                  type="button"
+                >
+                  {savingRole
+                    ? "Saving..."
+                    : roleEditor.id
+                      ? "Save role"
+                      : "Create role"}
+                </button>
+                <button
+                  className="rounded-2xl border border-border px-5 py-3 text-sm font-medium text-foreground transition hover:border-accent/30 hover:text-accent"
+                  onClick={startCreateRole}
+                  type="button"
+                >
+                  Clear
+                </button>
+              </div>
+            </article>
+          </PermissionGate>
+        </section>
+      ) : null}
+
+      {mode !== "roles" ? (
+        <section className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
+          <div>
+            <p className="text-sm uppercase tracking-[0.18em] text-muted">
+              User Access
+            </p>
+            <h3 className="mt-2 text-2xl font-semibold text-foreground">
+              Expand users to manage roles and direct access
+            </h3>
+            <p className="mt-2 text-sm text-muted">
+              Role-based access stays primary. Direct permissions are available
+              for targeted exceptions where needed.
+            </p>
+          </div>
+
+          <div className="mt-5 grid gap-3">
+            {users.map((user) => {
+              const expanded = expandedUserId === user.userId;
+              const pendingRoleIds = getPendingRoleIds(user);
+              const pendingPermissionIds = getPendingPermissionIds(user);
+              const ownerProtected = user.ownership.isTenantOwner;
+
+              return (
+                <article
+                  className="rounded-2xl border border-border bg-white/80 px-4 py-4"
+                  key={user.userId}
+                >
+                  <button
+                    className="flex w-full items-start justify-between gap-4 text-left"
+                    onClick={() =>
+                      setExpandedUserId((current) =>
+                        current === user.userId ? null : user.userId,
+                      )
+                    }
+                    type="button"
+                  >
+                    <div>
+                      <p className="font-semibold text-foreground">
+                        {user.firstName} {user.lastName}
+                      </p>
+                      <p className="mt-1 text-sm text-muted">{user.email}</p>
+                      <p className="mt-1 text-sm text-muted">
+                        BU: {user.businessUnit?.name ?? "Not assigned"} • Org:{" "}
+                        {user.businessUnit?.organizationName ?? "Not assigned"}
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <span className="rounded-full bg-accent-soft px-3 py-1 text-xs font-semibold text-accent-strong">
+                          {formatOwnershipLabel(user.ownership.designation)}
+                        </span>
+                        {user.isServiceAccount ? (
+                          <span className="rounded-full bg-surface px-3 py-1 text-xs font-semibold text-muted">
+                            Service Account
+                          </span>
+                        ) : null}
+                        {user.roles.map((role) => (
+                          <span
+                            className="rounded-full bg-surface px-3 py-1 text-xs font-medium text-muted"
+                            key={role.id}
+                          >
+                            {role.name}
+                          </span>
                         ))}
+                      </div>
+                    </div>
+                    <span className="rounded-full border border-border px-3 py-1 text-xs uppercase tracking-[0.16em] text-muted">
+                      {expanded ? "Collapse" : "Expand"}
+                    </span>
+                  </button>
+
+                  {expanded ? (
+                    <div className="mt-5 grid gap-5 border-t border-border pt-5">
+                      <section className="rounded-2xl border border-border bg-surface px-4 py-4">
+                        <h4 className="font-medium text-foreground">
+                          Business unit
+                        </h4>
+                        <p className="mt-1 text-sm text-muted">
+                          Every user must belong to exactly one business unit.
+                        </p>
+                        <select
+                          className="mt-3 w-full rounded-2xl border border-border bg-white px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
+                          disabled={ownerProtected}
+                          onChange={(event) =>
+                            setPendingUserBusinessUnitIds((current) => ({
+                              ...current,
+                              [user.userId]: event.target.value,
+                            }))
+                          }
+                          value={getPendingBusinessUnitId(user)}
+                        >
+                          <option value="">Select business unit</option>
+                          {businessUnitOptions.map((option) => (
+                            <option key={option.id} value={option.id}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
                       </section>
 
-                      <section className="grid gap-3">
-                        <h4 className="font-medium text-foreground">
-                          Direct permissions
-                        </h4>
-                        {permissionGroups.map((group) => (
-                          <details
-                            className="rounded-2xl border border-border bg-surface px-3 py-3"
-                            key={`${user.userId}-${group.key}`}
-                          >
-                            <summary className="cursor-pointer list-none text-sm font-medium text-foreground">
-                              {group.label}
-                            </summary>
-                            <div className="mt-3 grid gap-2">
-                              {group.permissions.map((permission) => (
-                                <label
-                                  className="flex items-start gap-3 rounded-2xl border border-border bg-white px-3 py-3 text-sm"
-                                  key={permission.id}
-                                >
+                      <div className="grid gap-4 lg:grid-cols-2">
+                        <section className="grid gap-3">
+                          <h4 className="font-medium text-foreground">
+                            Assigned roles
+                          </h4>
+                          {roles.map((role) => (
+                            <label
+                              className="flex items-start gap-3 rounded-2xl border border-border bg-surface px-3 py-3 text-sm"
+                              key={role.id}
+                            >
                               <input
-                                checked={pendingPermissionIds.includes(permission.id)}
+                                checked={pendingRoleIds.includes(role.id)}
                                 disabled={ownerProtected}
                                 onChange={() =>
-                                  setPendingUserPermissionIds((current) => ({
+                                  setPendingUserRoleIds((current) => ({
                                     ...current,
-                                        [user.userId]: pendingPermissionIds.includes(
-                                          permission.id,
+                                    [user.userId]: pendingRoleIds.includes(
+                                      role.id,
+                                    )
+                                      ? pendingRoleIds.filter(
+                                          (id) => id !== role.id,
                                         )
-                                          ? pendingPermissionIds.filter(
-                                            (id) => id !== permission.id,
-                                          )
-                                          : [...pendingPermissionIds, permission.id],
-                                      }))
-                                    }
-                                    type="checkbox"
-                                  />
-                                  <span>
-                                    <span className="block font-medium text-foreground">
-                                      {permission.name}
+                                      : [...pendingRoleIds, role.id],
+                                  }))
+                                }
+                                type="checkbox"
+                              />
+                              <span>
+                                <span className="block font-medium text-foreground">
+                                  {role.name}
+                                </span>
+                                <span className="mt-1 block text-muted">
+                                  {role.description || role.key}
+                                </span>
+                              </span>
+                            </label>
+                          ))}
+                        </section>
+
+                        <section className="grid gap-3">
+                          <h4 className="font-medium text-foreground">
+                            Direct permissions
+                          </h4>
+                          {permissionGroups.map((group) => (
+                            <details
+                              className="rounded-2xl border border-border bg-surface px-3 py-3"
+                              key={`${user.userId}-${group.key}`}
+                            >
+                              <summary className="cursor-pointer list-none text-sm font-medium text-foreground">
+                                {group.label}
+                              </summary>
+                              <div className="mt-3 grid gap-2">
+                                {group.permissions.map((permission) => (
+                                  <label
+                                    className="flex items-start gap-3 rounded-2xl border border-border bg-white px-3 py-3 text-sm"
+                                    key={permission.id}
+                                  >
+                                    <input
+                                      checked={pendingPermissionIds.includes(
+                                        permission.id,
+                                      )}
+                                      disabled={ownerProtected}
+                                      onChange={() =>
+                                        setPendingUserPermissionIds(
+                                          (current) => ({
+                                            ...current,
+                                            [user.userId]:
+                                              pendingPermissionIds.includes(
+                                                permission.id,
+                                              )
+                                                ? pendingPermissionIds.filter(
+                                                    (id) =>
+                                                      id !== permission.id,
+                                                  )
+                                                : [
+                                                    ...pendingPermissionIds,
+                                                    permission.id,
+                                                  ],
+                                          }),
+                                        )
+                                      }
+                                      type="checkbox"
+                                    />
+                                    <span>
+                                      <span className="block font-medium text-foreground">
+                                        {permission.name}
+                                      </span>
+                                      <span className="mt-1 block text-muted">
+                                        {permission.description}
+                                      </span>
                                     </span>
-                                    <span className="mt-1 block text-muted">
-                                      {permission.description}
-                                    </span>
-                                  </span>
-                                </label>
-                              ))}
-                            </div>
-                          </details>
-                        ))}
-                      </section>
-                    </div>
+                                  </label>
+                                ))}
+                              </div>
+                            </details>
+                          ))}
+                        </section>
+                      </div>
 
-                    <EffectiveAccessViewer user={user} />
+                      <EffectiveAccessViewer user={user} />
 
-                    {userError[user.userId] ? (
-                      <p className="rounded-2xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
-                        {userError[user.userId]}
-                      </p>
-                    ) : null}
-                    {userFeedback[user.userId] ? (
-                      <p className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-                        {userFeedback[user.userId]}
-                      </p>
-                    ) : null}
+                      {userError[user.userId] ? (
+                        <p className="rounded-2xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
+                          {userError[user.userId]}
+                        </p>
+                      ) : null}
+                      {userFeedback[user.userId] ? (
+                        <p className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                          {userFeedback[user.userId]}
+                        </p>
+                      ) : null}
 
-                    <div className="flex flex-wrap gap-3">
-                      <PermissionGate anyOf={["users.assign-roles", "users.update"]}>
-                        <button
-                          className="rounded-2xl bg-accent px-5 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:opacity-70"
-                          disabled={
-                            savingUserId === user.userId || deletingUserId === user.userId
-                            || ownerProtected
-                          }
-                          onClick={() => handleSaveUserAccess(user)}
-                          type="button"
+                      <div className="flex flex-wrap gap-3">
+                        <PermissionGate
+                          anyOf={[
+                            PERMISSION_KEYS.USERS_ASSIGN_ROLES,
+                            PERMISSION_KEYS.USERS_UPDATE,
+                          ]}
                         >
-                          {savingUserId === user.userId ? "Saving..." : "Save access"}
-                        </button>
-                      </PermissionGate>
-                      <PermissionGate anyOf={["users.delete"]}>
-                        <button
-                          className="rounded-2xl border border-danger/20 px-5 py-3 text-sm font-medium text-danger transition hover:bg-danger/5 disabled:opacity-60"
-                          disabled={
-                            deletingUserId === user.userId ||
-                            user.ownership.isTenantOwner
-                          }
-                          onClick={() => handleDeleteUser(user)}
-                          type="button"
-                        >
-                          {deletingUserId === user.userId ? "Deleting..." : "Delete user"}
-                        </button>
-                      </PermissionGate>
+                          <button
+                            className="rounded-2xl bg-accent px-5 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:opacity-70"
+                            disabled={
+                              savingUserId === user.userId ||
+                              deletingUserId === user.userId ||
+                              ownerProtected
+                            }
+                            onClick={() => handleSaveUserAccess(user)}
+                            type="button"
+                          >
+                            {savingUserId === user.userId
+                              ? "Saving..."
+                              : "Save access"}
+                          </button>
+                        </PermissionGate>
+                        <PermissionGate anyOf={[PERMISSION_KEYS.USERS_DELETE]}>
+                          <button
+                            className="rounded-2xl border border-danger/20 px-5 py-3 text-sm font-medium text-danger transition hover:bg-danger/5 disabled:opacity-60"
+                            disabled={
+                              deletingUserId === user.userId ||
+                              user.ownership.isTenantOwner
+                            }
+                            onClick={() => handleDeleteUser(user)}
+                            type="button"
+                          >
+                            {deletingUserId === user.userId
+                              ? "Deleting..."
+                              : "Delete user"}
+                          </button>
+                        </PermissionGate>
+                      </div>
                     </div>
-                  </div>
-                ) : null}
-              </article>
-            );
-          })}
-        </div>
-      </section>
+                  ) : null}
+                </article>
+              );
+            })}
+          </div>
+        </section>
       ) : null}
     </div>
   );
@@ -812,7 +875,9 @@ function groupPermissions(permissions: AccessPermissionRecord[]) {
     .map(([key, items]) => ({
       key,
       label: startCase(key),
-      permissions: [...items].sort((left, right) => left.key.localeCompare(right.key)),
+      permissions: [...items].sort((left, right) =>
+        left.key.localeCompare(right.key),
+      ),
     }))
     .sort((left, right) => left.label.localeCompare(right.label));
 }
@@ -833,7 +898,9 @@ function normalizeRoleKey(value: string) {
     .replace(/^-+|-+$/g, "");
 }
 
-function formatOwnershipLabel(value: AccessUserRecord["ownership"]["designation"]) {
+function formatOwnershipLabel(
+  value: AccessUserRecord["ownership"]["designation"],
+) {
   return value
     .toLowerCase()
     .split("_")
@@ -843,7 +910,10 @@ function formatOwnershipLabel(value: AccessUserRecord["ownership"]["designation"
 
 function buildBusinessUnitOptions(businessUnits: BusinessUnitRecord[]) {
   const byId = new Map(
-    businessUnits.map((unit) => [unit.id, { ...unit, children: [] as string[] }]),
+    businessUnits.map((unit) => [
+      unit.id,
+      { ...unit, children: [] as string[] },
+    ]),
   );
 
   for (const unit of businessUnits) {
@@ -854,7 +924,8 @@ function buildBusinessUnitOptions(businessUnits: BusinessUnitRecord[]) {
 
   const roots = businessUnits
     .filter(
-      (unit) => !unit.parentBusinessUnitId || !byId.has(unit.parentBusinessUnitId),
+      (unit) =>
+        !unit.parentBusinessUnitId || !byId.has(unit.parentBusinessUnitId),
     )
     .sort((a, b) => a.name.localeCompare(b.name));
 
@@ -877,9 +948,8 @@ function buildBusinessUnitOptions(businessUnits: BusinessUnitRecord[]) {
 
     const sortedChildren = [...unit.children]
       .map((id) => byId.get(id))
-      .filter(
-        (child): child is BusinessUnitRecord & { children: string[] } =>
-          Boolean(child),
+      .filter((child): child is BusinessUnitRecord & { children: string[] } =>
+        Boolean(child),
       )
       .sort((a, b) => a.name.localeCompare(b.name));
 

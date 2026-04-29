@@ -6,10 +6,14 @@ import {
   SubscriptionStatus,
 } from '@prisma/client';
 import { normalizeEmail } from '../../common/utils/email.util';
+import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import { normalizeTenantSlug } from '../../common/utils/slug.util';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { PermissionsService } from '../permissions/permissions.service';
-import { DEFAULT_PLAN_DEFINITIONS, DEFAULT_PLAN_KEY } from '../super-admin/plans.catalog';
+import {
+  DEFAULT_PLAN_DEFINITIONS,
+  DEFAULT_PLAN_KEY,
+} from '../super-admin/plans.catalog';
 import { PlansRepository } from '../super-admin/plans.repository';
 import { BillingService } from '../super-admin/billing.service';
 import { RolesRepository } from '../roles/roles.repository';
@@ -55,7 +59,10 @@ export class TenantsService {
     }
 
     return this.prisma.$transaction(async (tx) => {
-      let defaultPlan = await this.plansRepository.findByKey(DEFAULT_PLAN_KEY, tx);
+      let defaultPlan = await this.plansRepository.findByKey(
+        DEFAULT_PLAN_KEY,
+        tx,
+      );
 
       if (!defaultPlan) {
         const starterDefinition = DEFAULT_PLAN_DEFINITIONS.find(
@@ -77,10 +84,12 @@ export class TenantsService {
             sortOrder: starterDefinition.sortOrder,
             isActive: true,
             features: {
-              create: starterDefinition.enabledFeatureKeys.map((featureKey) => ({
-                featureKey,
-                isEnabled: true,
-              })),
+              create: starterDefinition.enabledFeatureKeys.map(
+                (featureKey) => ({
+                  featureKey,
+                  isEnabled: true,
+                }),
+              ),
             },
           },
           tx,
@@ -118,12 +127,12 @@ export class TenantsService {
 
       const globalAdminRole = await this.rolesRepository.findByKeyAndTenant(
         tenant.id,
-        'global-admin',
+        ROLE_KEYS.GLOBAL_ADMIN,
         tx,
       );
       const adminRole = await this.rolesRepository.findByKeyAndTenant(
         tenant.id,
-        'system-admin',
+        ROLE_KEYS.SYSTEM_ADMIN,
         tx,
       );
 

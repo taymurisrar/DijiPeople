@@ -1,7 +1,4 @@
-import {
-  BadRequestException,
-  ConflictException,
-} from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { AttendanceMode } from '@prisma/client';
 import { AttendanceService } from './attendance.service';
 
@@ -26,7 +23,11 @@ describe('AttendanceService', () => {
   const currentUser = {
     tenantId: 'tenant-1',
     userId: 'user-1',
-    permissionKeys: ['attendance.checkin', 'attendance.checkout', 'attendance.manage'],
+    permissionKeys: [
+      'attendance.checkin',
+      'attendance.checkout',
+      'attendance.manage',
+    ],
   } as never;
 
   beforeEach(() => {
@@ -139,13 +140,13 @@ describe('AttendanceService', () => {
       service.checkOut(currentUser, {
         note: 'Wrapping up for the day',
       }),
-    ).rejects.toThrow(
-      new BadRequestException('No active check-in was found.'),
-    );
+    ).rejects.toThrow(new BadRequestException('No active check-in was found.'));
   });
 
   it('rejects manual attendance creation for employees outside the tenant', async () => {
-    employeesRepository.findHierarchyNodeByIdAndTenant.mockResolvedValueOnce(null);
+    employeesRepository.findHierarchyNodeByIdAndTenant.mockResolvedValueOnce(
+      null,
+    );
 
     await expect(
       service.createManualEntry(currentUser, {

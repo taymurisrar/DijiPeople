@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { RequestContextService } from '../request-context/request-context.service';
 
@@ -23,71 +28,76 @@ export class PrismaService
       return;
     }
 
-    middlewareRegistrar.call(this, async (params: any, next: (params: any) => Promise<any>) => {
-      const context = this.requestContextService.getContext();
-      if (!context || context.effectiveAccessLevel === 'TENANT') {
-        return next(params);
-      }
+    middlewareRegistrar.call(
+      this,
+      async (params: any, next: (params: any) => Promise<any>) => {
+        const context = this.requestContextService.getContext();
+        if (!context || context.effectiveAccessLevel === 'TENANT') {
+          return next(params);
+        }
 
-      const model = params.model;
-      const action = params.action;
-      const isScopedAction = [
-        'findMany',
-        'findFirst',
-        'findUnique',
-        'count',
-        'updateMany',
-        'deleteMany',
-      ].includes(action);
+        const model = params.model;
+        const action = params.action;
+        const isScopedAction = [
+          'findMany',
+          'findFirst',
+          'findUnique',
+          'count',
+          'updateMany',
+          'deleteMany',
+        ].includes(action);
 
-      if (!model || !isScopedAction) {
-        return next(params);
-      }
+        if (!model || !isScopedAction) {
+          return next(params);
+        }
 
-      const scopeWhere = buildScopeWhere(model, context);
-      if (!scopeWhere) {
-        return next(params);
-      }
+        const scopeWhere = buildScopeWhere(model, context);
+        if (!scopeWhere) {
+          return next(params);
+        }
 
-      if (action === 'findUnique') {
-        params.action = 'findFirst';
-      }
+        if (action === 'findUnique') {
+          params.action = 'findFirst';
+        }
 
-      params.args = params.args ?? {};
-      const existingWhere = params.args.where ?? {};
-      params.args.where = mergeWhereWithScope(existingWhere, scopeWhere);
+        params.args = params.args ?? {};
+        const existingWhere = params.args.where ?? {};
+        params.args.where = mergeWhereWithScope(existingWhere, scopeWhere);
 
-      const result = await next(params);
+        const result = await next(params);
 
-      const hasIdFilter = hasExplicitIdFilter(params.args?.where);
-      const accessDeniedByScope =
-        hasIdFilter &&
-        ((params.action === 'findFirst' && result === null) ||
-          (params.action === 'count' && Number(result ?? 0) === 0) ||
-          ((params.action === 'updateMany' || params.action === 'deleteMany') &&
-            Number(result?.count ?? 0) === 0));
+        const hasIdFilter = hasExplicitIdFilter(params.args?.where);
+        const accessDeniedByScope =
+          hasIdFilter &&
+          ((params.action === 'findFirst' && result === null) ||
+            (params.action === 'count' && Number(result ?? 0) === 0) ||
+            ((params.action === 'updateMany' ||
+              params.action === 'deleteMany') &&
+              Number(result?.count ?? 0) === 0));
 
-      if (accessDeniedByScope) {
-        await this.auditLog
-          .create({
-            data: {
-              tenantId: context.tenantId,
-              actorUserId: context.userId,
-              action: 'BUSINESS_UNIT_ACCESS_DENIED',
-              entityType: model,
-              entityId: resolveEntityIdFromWhere(params.args?.where) ?? 'unknown',
-              afterSnapshot: {
-                prismaAction: params.action,
-                effectiveAccessLevel: context.effectiveAccessLevel,
-                requiresSelfScope: context.requiresSelfScope,
+        if (accessDeniedByScope) {
+          await this.auditLog
+            .create({
+              data: {
+                tenantId: context.tenantId,
+                actorUserId: context.userId,
+                action: 'BUSINESS_UNIT_ACCESS_DENIED',
+                entityType: model,
+                entityId:
+                  resolveEntityIdFromWhere(params.args?.where) ?? 'unknown',
+                afterSnapshot: {
+                  prismaAction: params.action,
+                  effectiveAccessLevel: context.effectiveAccessLevel,
+                  requiresSelfScope: context.requiresSelfScope,
+                },
               },
-            },
-          })
-          .catch(() => undefined);
-      }
+            })
+            .catch(() => undefined);
+        }
 
-      return result;
-    });
+        return result;
+      },
+    );
   }
 
   async onModuleInit() {
@@ -99,7 +109,10 @@ export class PrismaService
   }
 }
 
-function mergeWhereWithScope(existingWhere: Record<string, unknown>, scopeWhere: Record<string, unknown>) {
+function mergeWhereWithScope(
+  existingWhere: Record<string, unknown>,
+  scopeWhere: Record<string, unknown>,
+) {
   if (!existingWhere || Object.keys(existingWhere).length === 0) {
     return scopeWhere;
   }
@@ -264,10 +277,7 @@ function buildScopeWhere(
     case 'PayrollCycle':
     case 'ProcessingCycle':
       return {
-        OR: [
-          { businessUnitId: null },
-          { businessUnitId: buFilter },
-        ],
+        OR: [{ businessUnitId: null }, { businessUnitId: buFilter }],
       };
     case 'PayrollRecord':
     case 'EmployeeCompensation':
@@ -337,7 +347,10 @@ function hasExplicitIdFilter(where: unknown): boolean {
     return true;
   }
 
-  if (typeof whereRecord.entityId === 'string' && whereRecord.entityId.length > 0) {
+  if (
+    typeof whereRecord.entityId === 'string' &&
+    whereRecord.entityId.length > 0
+  ) {
     return true;
   }
 
@@ -358,7 +371,10 @@ function resolveEntityIdFromWhere(where: unknown): string | null {
     return whereRecord.id;
   }
 
-  if (typeof whereRecord.entityId === 'string' && whereRecord.entityId.length > 0) {
+  if (
+    typeof whereRecord.entityId === 'string' &&
+    whereRecord.entityId.length > 0
+  ) {
     return whereRecord.entityId;
   }
 

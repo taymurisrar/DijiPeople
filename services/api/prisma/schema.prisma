@@ -371,6 +371,24 @@ enum SalaryComponentType {
   DEDUCTION
 }
 
+enum PayComponentType {
+  EARNING
+  ALLOWANCE
+  REIMBURSEMENT
+  DEDUCTION
+  TAX
+  EMPLOYER_CONTRIBUTION
+  ADJUSTMENT
+}
+
+enum PayComponentCalculationMethod {
+  FIXED
+  PERCENTAGE
+  FORMULA
+  MANUAL
+  SYSTEM_CALCULATED
+}
+
 enum PayFrequency {
   MONTHLY
   SEMI_MONTHLY
@@ -378,10 +396,24 @@ enum PayFrequency {
   WEEKLY
 }
 
+enum CompensationPayFrequency {
+  MONTHLY
+  WEEKLY
+  BIWEEKLY
+  DAILY
+  HOURLY
+}
+
 enum PayrollStatus {
   ACTIVE
   ON_HOLD
   STOPPED
+}
+
+enum EmployeeCompensationHistoryStatus {
+  DRAFT
+  ACTIVE
+  RETIRED
 }
 
 enum RoleAccessLevel {
@@ -399,8 +431,11 @@ enum RoleType {
 
 enum SecurityAccessLevel {
   NONE
+  SELF
+  TEAM
   USER
   BUSINESS_UNIT
+  PARENT_CHILD_BUSINESS_UNIT
   PARENT_CHILD_BUSINESS_UNITS
   ORGANIZATION
   TENANT
@@ -414,12 +449,20 @@ enum SecurityPrivilege {
   ASSIGN
   SHARE
   APPEND
+  APPEND_TO
   IMPORT
   EXPORT
   APPROVE
   REJECT
   MANAGE
   CONFIGURE
+  CUSTOMIZE
+}
+
+enum TeamType {
+  OWNER
+  ACCESS
+  WORKFLOW
 }
 
 enum PaymentMode {
@@ -457,6 +500,42 @@ enum ProcessingCycleStatus {
   LOCKED
 }
 
+enum AgentActivityState {
+  ACTIVE
+  IDLE
+  AWAY
+}
+
+enum WorkSessionStatus {
+  ACTIVE
+  IDLE
+  AWAY
+  ENDED
+}
+
+enum PolicyType {
+  LEAVE
+  CLAIM
+  TADA
+  PAYROLL
+  TAX
+}
+
+enum PolicyStatus {
+  DRAFT
+  ACTIVE
+  RETIRED
+}
+
+enum PolicyAssignmentScopeType {
+  TENANT
+  ORGANIZATION
+  BUSINESS_UNIT
+  DEPARTMENT
+  EMPLOYEE_LEVEL
+  EMPLOYEE
+}
+
 model Tenant {
   id              String           @id @default(uuid())
   customerAccountId String
@@ -477,6 +556,9 @@ model Tenant {
   rolePermissions RolePermission[]
   rolePrivileges  RolePrivilege[]
   roleMiscPermissions RoleMiscPermission[]
+  teams           Team[]
+  teamMembers     TeamMember[]
+  teamRoles       TeamRole[]
   refreshTokens   RefreshToken[]
   userInvitations UserInvitation[]
   employees       Employee[]
@@ -490,8 +572,12 @@ model Tenant {
   locations       Location[]
   emergencyContacts EmergencyContact[]
   employeeDocumentReferences EmployeeDocumentReference[]
+  employeeLevels  EmployeeLevel[]
   leaveTypes       LeaveType[]
   leavePolicies    LeavePolicy[]
+  policies          Policy[]
+  policyAssignments PolicyAssignment[]
+  policySnapshots   PolicySnapshot[]
   leaveRequests    LeaveRequest[]
   leaveApprovalSteps LeaveApprovalStep[]
   approvalMatrices ApprovalMatrix[]
@@ -525,7 +611,16 @@ model Tenant {
   payrollCycles        PayrollCycle[]
   payrollRecords       PayrollRecord[]
   salaryComponents     SalaryComponent[]
+  payComponents        PayComponent[]
   employeeCompensations EmployeeCompensation[]
+  employeeCompensationHistories EmployeeCompensationHistory[]
+  employeeCompensationComponents EmployeeCompensationComponent[]
+  employeeDevices     EmployeeDevice[]
+  agentRefreshTokens  AgentRefreshToken[]
+  workSessions        WorkSession[]
+  activityEvents      ActivityEvent[]
+  dailyProductivitySummaries DailyProductivitySummary[]
+  agentTrackingSettings AgentTrackingSettings?
   auditLogs           AuditLog[]
   documents           Document[]
   documentLinks       DocumentLink[]
@@ -866,7 +961,13 @@ model User {
   businessUnit  BusinessUnit   @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
   userRoles     UserRole[]
   userPermissions UserPermission[]
+  teamMemberships TeamMember[]
   refreshTokens RefreshToken[]
+  agentRefreshTokens AgentRefreshToken[]
+  employeeDevices EmployeeDevice[]
+  workSessions   WorkSession[]
+  activityEvents ActivityEvent[]
+  dailyProductivitySummaries DailyProductivitySummary[]
   invitations   UserInvitation[]
   employee      Employee?
   leaveApprovalSteps LeaveApprovalStep[]
@@ -874,6 +975,7 @@ model User {
   lockedProcessingCycles ProcessingCycle[] @relation("ProcessingCycleLocker")
   assignedOnboardingTasks OnboardingTask[] @relation("OnboardingTaskAssignee")
   uploadedDocuments  Document[] @relation("UploadedDocuments")
+  ownedTeams         Team[] @relation("OwnedTeams")
   auditLogs          AuditLog[] @relation("AuditLogActor")
   assignedCustomerAccounts CustomerAccount[] @relation("AssignedCustomerAccounts")
   managedCustomerAccounts  CustomerAccount[] @relation("ManagedCustomerAccounts")
@@ -929,6 +1031,7 @@ model BusinessUnit {
   users                User[]
   employees            Employee[]
   projects             Project[]
+  teams                Team[]
   timesheets           Timesheet[]
   payrollCycles        PayrollCycle[]
   processingCycles     ProcessingCycle[]
@@ -961,12 +1064,15 @@ model Role {
   rolePermissions RolePermission[]
   rolePrivileges  RolePrivilege[]
   miscPermissions RoleMiscPermission[]
+  teamRoles        TeamRole[]
+  isActive         Boolean          @default(true)
 
   @@unique([tenantId, key])
   @@unique([tenantId, name])
   @@index([tenantId])
   @@index([tenantId, isSystem])
   @@index([tenantId, roleType])
+  @@index([tenantId, isActive])
 }
 
 model Permission {
@@ -1084,6 +1190,74 @@ model RoleMiscPermission {
   @@index([roleId])
 }
 
+model Team {
+  id              String       @id @default(uuid())
+  tenantId        String
+  name            String
+  key             String
+  description     String?
+  teamType        TeamType     @default(ACCESS)
+  businessUnitId  String?
+  ownerUserId     String?
+  isSystem        Boolean      @default(false)
+  isActive        Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  createdById     String?
+  updatedById     String?
+  tenant          Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  businessUnit    BusinessUnit? @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  ownerUser       User?        @relation("OwnedTeams", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  members         TeamMember[]
+  teamRoles       TeamRole[]
+
+  @@unique([tenantId, key])
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@index([tenantId, teamType])
+  @@index([tenantId, businessUnitId])
+  @@index([tenantId, isActive])
+}
+
+model TeamMember {
+  id          String   @id @default(uuid())
+  tenantId    String
+  teamId      String
+  userId      String
+  isOwner     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  updatedById String?
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([tenantId])
+  @@index([tenantId, teamId])
+  @@index([tenantId, userId])
+}
+
+model TeamRole {
+  id          String   @id @default(uuid())
+  tenantId    String
+  teamId      String
+  roleId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  updatedById String?
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  role        Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, roleId])
+  @@index([tenantId])
+  @@index([tenantId, teamId])
+  @@index([tenantId, roleId])
+}
+
 model RefreshToken {
   id             String       @id @default(uuid())
   tenantId       String
@@ -1166,6 +1340,7 @@ model Employee {
   departmentId          String?
   businessUnitId        String?
   designationId         String?
+  employeeLevelId       String?
   locationId            String?
   officialJoiningLocationId String?
   managerEmployeeId     String?
@@ -1204,6 +1379,7 @@ model Employee {
   department            Department?                @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   businessUnit          BusinessUnit?              @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
   designation           Designation?               @relation(fields: [designationId], references: [id], onDelete: SetNull)
+  employeeLevel         EmployeeLevel?             @relation(fields: [employeeLevelId, tenantId], references: [id, tenantId], onDelete: Restrict)
   location              Location?                  @relation(fields: [locationId], references: [id], onDelete: SetNull)
   officialJoiningLocation Location?                @relation("EmployeeOfficialJoiningLocation", fields: [officialJoiningLocationId], references: [id], onDelete: SetNull)
   manager               Employee?                  @relation("EmployeeManager", fields: [managerEmployeeId], references: [id], onDelete: SetNull)
@@ -1225,6 +1401,12 @@ model Employee {
   documentLinks         DocumentLink[]
   payrollRecords        PayrollRecord[]
   compensations         EmployeeCompensation[]
+  compensationHistories EmployeeCompensationHistory[]
+  employeeDevices       EmployeeDevice[]
+  agentRefreshTokens    AgentRefreshToken[]
+  workSessions          WorkSession[]
+  activityEvents        ActivityEvent[]
+  dailyProductivitySummaries DailyProductivitySummary[]
   previousEmployments   EmployeePreviousEmployment[]
 
   @@unique([tenantId, employeeCode])
@@ -1234,6 +1416,7 @@ model Employee {
   @@index([tenantId])
   @@index([tenantId, recordType])
   @@index([tenantId, businessUnitId])
+  @@index([tenantId, employeeLevelId])
   @@index([tenantId, employmentStatus])
   @@index([tenantId, nationalityCountryId])
   @@index([tenantId, lastName, firstName])
@@ -1243,6 +1426,25 @@ model Employee {
   @@index([tenantId, sourceCandidateId])
   @@index([tenantId, sourceApplicationId])
   @@index([tenantId, sourceJobOpeningId])
+}
+
+model EmployeeLevel {
+  id          String     @id @default(uuid())
+  tenantId    String
+  code        String
+  name        String
+  rank        Int
+  description String?
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  tenant      Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employees   Employee[]
+
+  @@unique([id, tenantId])
+  @@unique([tenantId, code])
+  @@index([tenantId, rank])
+  @@index([tenantId, isActive])
 }
 
 model EmployeeEducation {
@@ -2615,6 +2817,33 @@ model SalaryComponent {
   @@index([tenantId, type, isActive])
 }
 
+model PayComponent {
+  id                String                        @id @default(uuid())
+  tenantId          String
+  code              String
+  name              String
+  description       String?
+  componentType     PayComponentType
+  calculationMethod PayComponentCalculationMethod
+  isTaxable         Boolean                       @default(false)
+  affectsGrossPay   Boolean                       @default(true)
+  affectsNetPay     Boolean                       @default(true)
+  isRecurring       Boolean                       @default(false)
+  requiresApproval  Boolean                       @default(false)
+  displayOnPayslip  Boolean                       @default(true)
+  displayOrder      Int                           @default(0)
+  isActive          Boolean                       @default(true)
+  createdAt         DateTime                      @default(now())
+  updatedAt         DateTime                      @updatedAt
+  tenant            Tenant                        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  compensationComponents EmployeeCompensationComponent[]
+
+  @@unique([id, tenantId])
+  @@unique([tenantId, code])
+  @@index([tenantId, componentType])
+  @@index([tenantId, isActive])
+}
+
 model EmployeeCompensation {
   id            String       @id @default(uuid())
   tenantId      String
@@ -2647,6 +2876,51 @@ model EmployeeCompensation {
   @@index([tenantId, effectiveDate])
 }
 
+model EmployeeCompensationHistory {
+  id            String                            @id @default(uuid())
+  tenantId      String
+  employeeId    String
+  effectiveFrom DateTime
+  effectiveTo   DateTime?
+  payFrequency  CompensationPayFrequency
+  currencyCode  String
+  baseAmount    Decimal                           @db.Decimal(12, 2)
+  status        EmployeeCompensationHistoryStatus @default(DRAFT)
+  notes         String?
+  createdBy     String?
+  createdAt     DateTime                          @default(now())
+  updatedAt     DateTime                          @updatedAt
+  tenant        Tenant                            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee      Employee                          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  components    EmployeeCompensationComponent[]
+
+  @@unique([id, tenantId])
+  @@index([tenantId, employeeId, effectiveFrom])
+  @@index([tenantId, employeeId, status])
+  @@index([tenantId, status])
+}
+
+model EmployeeCompensationComponent {
+  id                        String                        @id @default(uuid())
+  tenantId                  String
+  compensationHistoryId     String
+  payComponentId            String
+  amount                    Decimal?                      @db.Decimal(12, 2)
+  percentage                Decimal?                      @db.Decimal(8, 4)
+  calculationMethodSnapshot PayComponentCalculationMethod
+  isRecurring               Boolean
+  displayOrder              Int                           @default(0)
+  createdAt                 DateTime                      @default(now())
+  updatedAt                 DateTime                      @updatedAt
+  tenant                    Tenant                        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  compensationHistory       EmployeeCompensationHistory   @relation(fields: [compensationHistoryId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  payComponent              PayComponent                  @relation(fields: [payComponentId, tenantId], references: [id, tenantId], onDelete: Restrict)
+
+  @@unique([compensationHistoryId, payComponentId])
+  @@index([tenantId, compensationHistoryId])
+  @@index([tenantId, payComponentId])
+}
+
 model AuditLog {
   id             String   @id @default(uuid())
   tenantId       String
@@ -2665,6 +2939,212 @@ model AuditLog {
   @@index([tenantId, action, createdAt])
   @@index([tenantId, entityType, createdAt])
   @@index([tenantId, actorUserId, createdAt])
+}
+
+model Policy {
+  id          String             @id @default(uuid())
+  tenantId    String
+  policyType  PolicyType
+  name        String
+  description String?
+  version     Int
+  status      PolicyStatus       @default(DRAFT)
+  effectiveFrom DateTime
+  effectiveTo   DateTime?
+  isActive    Boolean            @default(true)
+  createdBy   String?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  tenant      Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  assignments PolicyAssignment[]
+  snapshots   PolicySnapshot[]
+
+  @@unique([id, tenantId])
+  @@unique([tenantId, policyType, name, version])
+  @@index([tenantId, policyType, effectiveFrom])
+  @@index([tenantId, policyType, status, isActive])
+}
+
+model PolicyAssignment {
+  id        String                    @id @default(uuid())
+  tenantId  String
+  policyId  String
+  scopeType PolicyAssignmentScopeType
+  scopeId   String?
+  priority  Int                       @default(0)
+  isActive  Boolean                   @default(true)
+  createdAt DateTime                  @default(now())
+  updatedAt DateTime                  @updatedAt
+  tenant    Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  policy    Policy                    @relation(fields: [policyId, tenantId], references: [id, tenantId], onDelete: Cascade)
+
+  @@index([tenantId, scopeType, scopeId])
+  @@index([tenantId, policyId])
+  @@index([tenantId, isActive])
+}
+
+model PolicySnapshot {
+  id           String     @id @default(uuid())
+  tenantId     String
+  policyId     String
+  policyType   PolicyType
+  version      Int
+  snapshotData Json
+  createdAt    DateTime   @default(now())
+  tenant       Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  policy       Policy     @relation(fields: [policyId, tenantId], references: [id, tenantId], onDelete: Restrict)
+
+  @@index([tenantId, policyType, createdAt])
+  @@index([tenantId, policyId])
+}
+
+model EmployeeDevice {
+  id                String              @id @default(uuid())
+  tenantId          String
+  employeeId        String
+  userId            String
+  deviceFingerprint String
+  deviceName        String
+  os                String
+  platform          String
+  agentVersion      String
+  lastSeenAt        DateTime?
+  isActive          Boolean             @default(true)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  tenant            Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee          Employee            @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshTokens     AgentRefreshToken[]
+  workSessions      WorkSession[]
+  activityEvents    ActivityEvent[]
+
+  @@unique([tenantId, deviceFingerprint])
+  @@index([tenantId, employeeId])
+  @@index([tenantId, userId])
+  @@index([tenantId, isActive])
+}
+
+model AgentRefreshToken {
+  id          String          @id @default(uuid())
+  tenantId    String
+  userId      String
+  employeeId  String
+  deviceId    String
+  tokenHash   String
+  expiresAt   DateTime
+  revokedAt   DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  tenant      Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  employee    Employee        @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  device      EmployeeDevice  @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, userId])
+  @@index([tenantId, employeeId])
+  @@index([tenantId, deviceId])
+  @@index([expiresAt, revokedAt])
+}
+
+model WorkSession {
+  id                 String            @id @default(uuid())
+  tenantId           String
+  employeeId         String
+  userId             String
+  deviceId           String
+  startedAt          DateTime
+  endedAt            DateTime?
+  lastHeartbeatAt    DateTime?
+  status             WorkSessionStatus @default(ACTIVE)
+  totalActiveSeconds Int               @default(0)
+  totalIdleSeconds   Int               @default(0)
+  totalAwaySeconds   Int               @default(0)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  tenant             Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee           Employee          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device             EmployeeDevice    @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  activityEvents     ActivityEvent[]
+
+  @@index([tenantId, employeeId, startedAt])
+  @@index([tenantId, userId])
+  @@index([tenantId, deviceId])
+  @@index([tenantId, status])
+  @@index([tenantId, lastHeartbeatAt])
+}
+
+model ActivityEvent {
+  id           String             @id @default(uuid())
+  tenantId     String
+  employeeId   String
+  userId       String
+  sessionId    String
+  deviceId     String
+  state        AgentActivityState
+  idleSeconds  Int
+  activeApp    String?
+  windowTitle  String?
+  agentVersion String
+  occurredAt   DateTime
+  receivedAt   DateTime           @default(now())
+  createdAt    DateTime           @default(now())
+  tenant       Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee     Employee           @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session      WorkSession        @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  device       EmployeeDevice     @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, employeeId, occurredAt])
+  @@index([tenantId, sessionId, occurredAt])
+  @@index([tenantId, deviceId, occurredAt])
+}
+
+model DailyProductivitySummary {
+  id                 String   @id @default(uuid())
+  tenantId           String
+  employeeId         String
+  userId             String
+  date               DateTime
+  loggedInSeconds    Int      @default(0)
+  activeSeconds      Int      @default(0)
+  idleSeconds        Int      @default(0)
+  awaySeconds        Int      @default(0)
+  utilizationPercent Decimal  @default(0) @db.Decimal(5, 2)
+  lastCalculatedAt   DateTime
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  tenant             Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee           Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, employeeId, date])
+  @@index([tenantId, date])
+  @@index([tenantId, userId, date])
+}
+
+model AgentTrackingSettings {
+  id                       String   @id @default(uuid())
+  tenantId                 String   @unique
+  enabled                  Boolean  @default(true)
+  heartbeatIntervalSeconds Int      @default(60)
+  idleThresholdSeconds     Int      @default(120)
+  awayThresholdSeconds     Int      @default(600)
+  captureActiveApp         Boolean  @default(true)
+  captureWindowTitle       Boolean  @default(false)
+  offlineQueueEnabled      Boolean  @default(true)
+  heartbeatBatchSize       Int      @default(10)
+  minimumSupportedVersion  String   @default("1.0.0")
+  latestVersion            String   @default("1.0.0")
+  forceUpdate              Boolean  @default(false)
+  updateMessage            String?
+  autoUpdateEnabled        Boolean  @default(true)
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+  tenant                   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, enabled])
 }
 
 enum ModuleViewType {

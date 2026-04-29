@@ -33,7 +33,9 @@ export class RoleMiscPermissionItemDto {
 
 export class UpdateRoleMatrixDto {
   @IsArray()
-  @ArrayUnique((item: RolePrivilegeMatrixItemDto) => `${item.entityKey}:${item.privilege}`)
+  @ArrayUnique(
+    (item: RolePrivilegeMatrixItemDto) => `${item.entityKey}:${item.privilege}`,
+  )
   @ValidateNested({ each: true })
   @Type(() => RolePrivilegeMatrixItemDto)
   privileges!: RolePrivilegeMatrixItemDto[];

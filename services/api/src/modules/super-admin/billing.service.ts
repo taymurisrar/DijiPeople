@@ -83,8 +83,7 @@ export class BillingService {
   resolveRenewalDate(startDate: Date, billingCycle: BillingCycle) {
     const renewalDate = new Date(startDate);
     renewalDate.setMonth(
-      renewalDate.getMonth() +
-        (billingCycle === BillingCycle.ANNUAL ? 12 : 1),
+      renewalDate.getMonth() + (billingCycle === BillingCycle.ANNUAL ? 12 : 1),
     );
     return renewalDate;
   }
@@ -188,8 +187,7 @@ export class BillingService {
   ) {
     const issueDate = input.issueDate ?? new Date();
     const dueDate =
-      input.dueDate ??
-      new Date(issueDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+      input.dueDate ?? new Date(issueDate.getTime() + 7 * 24 * 60 * 60 * 1000);
     const datePart = issueDate.toISOString().slice(0, 10).replace(/-/g, '');
 
     for (let attempt = 0; attempt < 5; attempt += 1) {
@@ -333,8 +331,7 @@ export class BillingService {
       provider: 'stripe',
       scope: 'subscription',
       subscriptionId: input.subscriptionId,
-      message:
-        'Stripe subscription creation is prepared but not enabled yet.',
+      message: 'Stripe subscription creation is prepared but not enabled yet.',
     };
   }
 

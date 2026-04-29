@@ -66,7 +66,8 @@ describe('OrganizationAccessService', () => {
       businessUnitId: 'bu-a',
     });
 
-    const context = await service.resolveBusinessUnitAccessContext('actor-user');
+    const context =
+      await service.resolveBusinessUnitAccessContext('actor-user');
 
     expect(context.effectiveAccessLevel).toBe(RoleAccessLevel.USER);
     expect(context.accessibleBusinessUnitIds).toEqual(['bu-a']);
@@ -80,7 +81,8 @@ describe('OrganizationAccessService', () => {
       businessUnitId: 'bu-a',
     });
 
-    const context = await service.resolveBusinessUnitAccessContext('actor-user');
+    const context =
+      await service.resolveBusinessUnitAccessContext('actor-user');
 
     expect(context.effectiveAccessLevel).toBe(RoleAccessLevel.PARENT_BU);
     expect(context.accessibleBusinessUnitIds.sort()).toEqual(
@@ -96,7 +98,8 @@ describe('OrganizationAccessService', () => {
       businessUnitId: 'bu-a',
     });
 
-    const context = await service.resolveBusinessUnitAccessContext('actor-user');
+    const context =
+      await service.resolveBusinessUnitAccessContext('actor-user');
 
     expect(context.effectiveAccessLevel).toBe(RoleAccessLevel.TENANT);
     expect(context.accessibleBusinessUnitIds.sort()).toEqual(

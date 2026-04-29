@@ -1,5 +1,12 @@
 import { ProcessingCycleType } from '@prisma/client';
-import { IsDateString, IsEnum, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import {
+  IsDateString,
+  IsEnum,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+} from 'class-validator';
 
 export class CreatePayrollCycleDto {
   @IsDateString()
@@ -29,4 +36,3 @@ export class CreatePayrollCycleDto {
   @MaxLength(120)
   cycleName?: string;
 }
-

@@ -217,7 +217,11 @@ export class CustomizationController {
     @Param('tableKey') tableKey: string,
     @Param('viewKey') viewKey: string,
   ) {
-    return this.customizationService.setDefaultTableView(user, tableKey, viewKey);
+    return this.customizationService.setDefaultTableView(
+      user,
+      tableKey,
+      viewKey,
+    );
   }
 
   @Get('views')
@@ -250,10 +254,7 @@ export class CustomizationController {
 
   @Delete('views/:id')
   @Permissions('customization.views.delete')
-  deleteView(
-    @CurrentUser() user: AuthenticatedUser,
-    @Param('id') id: string,
-  ) {
+  deleteView(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
     return this.customizationService.deleteView(user, id);
   }
 

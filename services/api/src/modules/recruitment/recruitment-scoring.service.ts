@@ -98,9 +98,7 @@ type ScoreComponentKey = (typeof SCORE_COMPONENT_KEYS)[number];
 
 @Injectable()
 export class RecruitmentScoringService {
-  normalizeMatchCriteria(
-    rawCriteria: unknown,
-  ): JobOpeningMatchCriteria | null {
+  normalizeMatchCriteria(rawCriteria: unknown): JobOpeningMatchCriteria | null {
     if (!isPlainObject(rawCriteria)) {
       return null;
     }
@@ -135,13 +133,13 @@ export class RecruitmentScoringService {
     return (
       criteria.requiredSkills.length > 0 ||
       criteria.preferredSkills.length > 0 ||
-      criteria.minimumYearsExperience !== null &&
-        criteria.minimumYearsExperience !== undefined ||
+      (criteria.minimumYearsExperience !== null &&
+        criteria.minimumYearsExperience !== undefined) ||
       (criteria.educationLevels?.length ?? 0) > 0 ||
       (criteria.allowedWorkModes?.length ?? 0) > 0 ||
       (criteria.allowedLocations?.length ?? 0) > 0 ||
-      criteria.noticePeriodDays !== null &&
-        criteria.noticePeriodDays !== undefined
+      (criteria.noticePeriodDays !== null &&
+        criteria.noticePeriodDays !== undefined)
     );
   }
 
@@ -195,7 +193,9 @@ export class RecruitmentScoringService {
     const preferredSkills = normalizeStringList(criteria.preferredSkills);
     const requiredSkillsSet = new Set(requiredSkills.map(normalizeToken));
     const preferredSkillsSet = new Set(preferredSkills.map(normalizeToken));
-    const candidateSkillsSet = new Set(candidateSkills.map(normalizeSkillToken));
+    const candidateSkillsSet = new Set(
+      candidateSkills.map(normalizeSkillToken),
+    );
 
     let requiredSkillMatchCount = 0;
     const matchedRequiredSkills: string[] = [];
@@ -241,7 +241,10 @@ export class RecruitmentScoringService {
       };
     }
 
-    if (criteria.minimumYearsExperience !== null && criteria.minimumYearsExperience !== undefined) {
+    if (
+      criteria.minimumYearsExperience !== null &&
+      criteria.minimumYearsExperience !== undefined
+    ) {
       const candidateYears =
         candidate.totalYearsExperience === null ||
         candidate.totalYearsExperience === undefined
@@ -254,7 +257,11 @@ export class RecruitmentScoringService {
           ? 0
           : candidateYears >= minimumYears
             ? 100
-            : clampScore(Math.round((candidateYears / Math.max(minimumYears, 0.1)) * 100));
+            : clampScore(
+                Math.round(
+                  (candidateYears / Math.max(minimumYears, 0.1)) * 100,
+                ),
+              );
 
       componentScores.set('experienceFit', experienceScore);
       breakdown.experienceFit = {
@@ -268,7 +275,9 @@ export class RecruitmentScoringService {
       const candidateLevels = extractCandidateEducationLevels(
         candidate.educationRecords,
       );
-      const configuredLevels = normalizeStringList(criteria.educationLevels ?? []);
+      const configuredLevels = normalizeStringList(
+        criteria.educationLevels ?? [],
+      );
 
       const matchedEducationLevels = configuredLevels.filter((level) =>
         candidateLevels.has(normalizeToken(level)),
@@ -277,7 +286,9 @@ export class RecruitmentScoringService {
       const educationScore =
         configuredLevels.length > 0
           ? clampScore(
-              Math.round((matchedEducationLevels.length / configuredLevels.length) * 100),
+              Math.round(
+                (matchedEducationLevels.length / configuredLevels.length) * 100,
+              ),
             )
           : 0;
 
@@ -288,17 +299,25 @@ export class RecruitmentScoringService {
       };
     }
 
-    const allowedLocations = normalizeStringList(criteria.allowedLocations ?? []);
-    const allowedWorkModes = normalizeStringList(criteria.allowedWorkModes ?? []);
+    const allowedLocations = normalizeStringList(
+      criteria.allowedLocations ?? [],
+    );
+    const allowedWorkModes = normalizeStringList(
+      criteria.allowedWorkModes ?? [],
+    );
     const candidateLocation = [
       candidate.preferredLocation,
       candidate.currentCity,
       candidate.currentCountry,
     ]
-      .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+      .filter(
+        (value): value is string =>
+          typeof value === 'string' && value.trim().length > 0,
+      )
       .join(', ');
 
-    const locationConfigured = allowedLocations.length > 0 || allowedWorkModes.length > 0;
+    const locationConfigured =
+      allowedLocations.length > 0 || allowedWorkModes.length > 0;
     let locationMatchedValue: string | null = null;
     let locationScore = 100;
 
@@ -322,7 +341,9 @@ export class RecruitmentScoringService {
         const candidateMode = normalizeToken(candidate.preferredWorkMode ?? '');
         workModeMatchRatio =
           candidateMode.length > 0 &&
-          allowedWorkModes.some((mode) => normalizeToken(mode) === candidateMode)
+          allowedWorkModes.some(
+            (mode) => normalizeToken(mode) === candidateMode,
+          )
             ? 1
             : 0;
       }
@@ -333,7 +354,9 @@ export class RecruitmentScoringService {
 
       const rawLocationScore =
         locationSubCriteriaCount > 0
-          ? ((locationMatchRatio + workModeMatchRatio) / locationSubCriteriaCount) * 100
+          ? ((locationMatchRatio + workModeMatchRatio) /
+              locationSubCriteriaCount) *
+            100
           : 100;
 
       locationScore = clampScore(Math.round(rawLocationScore));
@@ -345,10 +368,14 @@ export class RecruitmentScoringService {
       };
     }
 
-    if (criteria.noticePeriodDays !== null && criteria.noticePeriodDays !== undefined) {
+    if (
+      criteria.noticePeriodDays !== null &&
+      criteria.noticePeriodDays !== undefined
+    ) {
       const allowedNotice = criteria.noticePeriodDays;
       const candidateNotice =
-        candidate.noticePeriodDays === null || candidate.noticePeriodDays === undefined
+        candidate.noticePeriodDays === null ||
+        candidate.noticePeriodDays === undefined
           ? null
           : Number(candidate.noticePeriodDays);
 
@@ -357,7 +384,9 @@ export class RecruitmentScoringService {
           ? 0
           : candidateNotice <= allowedNotice
             ? 100
-            : clampScore(Math.max(0, 100 - (candidateNotice - allowedNotice) * 3));
+            : clampScore(
+                Math.max(0, 100 - (candidateNotice - allowedNotice) * 3),
+              );
 
       componentScores.set('availabilityFit', availabilityScore);
       breakdown.availabilityFit = {
@@ -475,9 +504,13 @@ function normalizeWeights(value: unknown): NumericWeights | null {
   const availabilityFit = normalizeNumber(value.availabilityFit, 0);
 
   if (
-    [skillMatch, experienceFit, educationFit, locationFit, availabilityFit].some(
-      (weight) => weight < 0 || weight > 100,
-    )
+    [
+      skillMatch,
+      experienceFit,
+      educationFit,
+      locationFit,
+      availabilityFit,
+    ].some((weight) => weight < 0 || weight > 100)
   ) {
     return null;
   }
@@ -557,15 +590,15 @@ function normalizeSkillToken(value: string) {
     .replace(/[().]/g, '')
     .replace(/\s+/g, ' ');
   const aliases: Record<string, string> = {
-    'nextjs': 'next.js',
+    nextjs: 'next.js',
     'next js': 'next.js',
-    'nodejs': 'node.js',
+    nodejs: 'node.js',
     'node js': 'node.js',
-    'typescript': 'ts',
-    'javascript': 'js',
-    'reactjs': 'react',
+    typescript: 'ts',
+    javascript: 'js',
+    reactjs: 'react',
     'react js': 'react',
-    'postgres': 'postgresql',
+    postgres: 'postgresql',
   };
   return aliases[token] ?? token;
 }
@@ -584,7 +617,8 @@ function extractCandidateEducationLevels(
   const levels = new Set<string>();
 
   for (const record of educationRecords) {
-    const combined = `${record.degreeTitle ?? ''} ${record.fieldOfStudy ?? ''}`.toLowerCase();
+    const combined =
+      `${record.degreeTitle ?? ''} ${record.fieldOfStudy ?? ''}`.toLowerCase();
 
     if (!combined.trim()) {
       continue;
@@ -597,14 +631,14 @@ function extractCandidateEducationLevels(
       levels.add(normalizeToken('MPhil'));
     }
     if (
-      combined.includes("master") ||
+      combined.includes('master') ||
       combined.includes('msc') ||
       combined.includes('mba')
     ) {
       levels.add(normalizeToken("Master's"));
     }
     if (
-      combined.includes("bachelor") ||
+      combined.includes('bachelor') ||
       combined.includes('bsc') ||
       combined.includes('bs ')
     ) {

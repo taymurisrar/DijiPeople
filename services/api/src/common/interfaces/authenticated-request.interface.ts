@@ -28,6 +28,9 @@ export interface AuthenticatedUser {
     isTenantOwner: boolean;
     businessUnitId: string;
     organizationId: string;
+    teamIds: string[];
+    accessibleBusinessUnitIds: string[];
+    businessUnitSubtreeIds: string[];
     canAccessAllBusinessUnits: boolean;
   };
 }

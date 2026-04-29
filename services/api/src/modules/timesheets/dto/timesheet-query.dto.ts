@@ -1,6 +1,14 @@
 import { TimesheetStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
-import { IsEnum, IsIn, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
+import {
+  IsEnum,
+  IsIn,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Max,
+  Min,
+} from 'class-validator';
 
 export class TimesheetQueryDto {
   @IsOptional()

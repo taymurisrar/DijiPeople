@@ -10,8 +10,12 @@ import { StorageModule } from './common/storage/storage.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { AgentModule } from './modules/agent/agent.module';
+import { CompensationModule } from './modules/compensation/compensation.module';
 import { DocumentsModule } from './modules/documents/documents.module';
 import { CustomizationModule } from './modules/customization/customization.module';
+import { DataModule } from './modules/data/data.module';
+import { EmployeeLevelsModule } from './modules/employee-levels/employee-levels.module';
 import { EmployeesModule } from './modules/employees/employees.module';
 import { LeaveModule } from './modules/leave/leave.module';
 import { LeadsModule } from './modules/leads/leads.module';
@@ -19,8 +23,10 @@ import { LookupsModule } from './modules/lookups/lookups.module';
 import { ModuleViewsModule } from './modules/views/module-views.module';
 import { OnboardingModule } from './modules/onboarding/onboarding.module';
 import { OrganizationModule } from './modules/organization/organization.module';
+import { PayComponentsModule } from './modules/pay-components/pay-components.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
 import { PayrollModule } from './modules/payroll/payroll.module';
+import { PoliciesModule } from './modules/policies/policies.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { RecruitmentModule } from './modules/recruitment/recruitment.module';
 import { ReportsModule } from './modules/reports/reports.module';
@@ -28,6 +34,7 @@ import { RolesModule } from './modules/roles/roles.module';
 import { TenantsModule } from './modules/tenants/tenants.module';
 import { TimesheetsModule } from './modules/timesheets/timesheets.module';
 import { TenantSettingsModule } from './modules/tenant-settings/tenant-settings.module';
+import { TeamsModule } from './modules/teams/teams.module';
 import { UsersModule } from './modules/users/users.module';
 import { SuperAdminModule } from './modules/super-admin/super-admin.module';
 
@@ -39,10 +46,14 @@ import { SuperAdminModule } from './modules/super-admin/super-admin.module';
     RequestContextModule,
     StorageModule,
     AttendanceModule,
+    AgentModule,
     AuditModule,
     AuthModule,
+    CompensationModule,
     CustomizationModule,
+    DataModule,
     DocumentsModule,
+    EmployeeLevelsModule,
     EmployeesModule,
     LeaveModule,
     LeadsModule,
@@ -50,12 +61,15 @@ import { SuperAdminModule } from './modules/super-admin/super-admin.module';
     ModuleViewsModule,
     OnboardingModule,
     OrganizationModule,
+    PayComponentsModule,
     PayrollModule,
+    PoliciesModule,
     ProjectsModule,
     RecruitmentModule,
     ReportsModule,
     SuperAdminModule,
     TenantSettingsModule,
+    TeamsModule,
     TimesheetsModule,
     TenantsModule,
     UsersModule,

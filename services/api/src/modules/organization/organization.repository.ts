@@ -16,7 +16,11 @@ export class OrganizationRepository {
     });
   }
 
-  findOrganizationById(tenantId: string, id: string, db: PrismaDb = this.prisma) {
+  findOrganizationById(
+    tenantId: string,
+    id: string,
+    db: PrismaDb = this.prisma,
+  ) {
     return db.organization.findFirst({
       where: { tenantId, id },
     });
@@ -47,7 +51,11 @@ export class OrganizationRepository {
     });
   }
 
-  countOrganizationChildren(tenantId: string, id: string, db: PrismaDb = this.prisma) {
+  countOrganizationChildren(
+    tenantId: string,
+    id: string,
+    db: PrismaDb = this.prisma,
+  ) {
     return db.organization.count({
       where: { tenantId, parentOrganizationId: id },
     });
@@ -70,7 +78,11 @@ export class OrganizationRepository {
     });
   }
 
-  findBusinessUnitById(tenantId: string, id: string, db: PrismaDb = this.prisma) {
+  findBusinessUnitById(
+    tenantId: string,
+    id: string,
+    db: PrismaDb = this.prisma,
+  ) {
     return db.businessUnit.findFirst({
       where: { tenantId, id },
     });
@@ -101,21 +113,37 @@ export class OrganizationRepository {
     });
   }
 
-  countBusinessUnitChildren(tenantId: string, id: string, db: PrismaDb = this.prisma) {
+  countBusinessUnitChildren(
+    tenantId: string,
+    id: string,
+    db: PrismaDb = this.prisma,
+  ) {
     return db.businessUnit.count({
       where: { tenantId, parentBusinessUnitId: id },
     });
   }
 
-  countBusinessUnitUsers(tenantId: string, id: string, db: PrismaDb = this.prisma) {
+  countBusinessUnitUsers(
+    tenantId: string,
+    id: string,
+    db: PrismaDb = this.prisma,
+  ) {
     return db.user.count({
       where: { tenantId, businessUnitId: id },
     });
   }
 
-  findDepartments(tenantId: string, query: ListMasterDataDto, db: PrismaDb = this.prisma) {
+  findDepartments(
+    tenantId: string,
+    query: ListMasterDataDto,
+    db: PrismaDb = this.prisma,
+  ) {
     return db.department.findMany({
-      where: buildMasterDataWhere(tenantId, query, ['name', 'code', 'description']),
+      where: buildMasterDataWhere(tenantId, query, [
+        'name',
+        'code',
+        'description',
+      ]),
       orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
     });
   }
@@ -124,34 +152,66 @@ export class OrganizationRepository {
     return db.department.findFirst({ where: { tenantId, id } });
   }
 
-  createDepartment(data: Prisma.DepartmentUncheckedCreateInput, db: PrismaDb = this.prisma) {
+  createDepartment(
+    data: Prisma.DepartmentUncheckedCreateInput,
+    db: PrismaDb = this.prisma,
+  ) {
     return db.department.create({ data });
   }
 
-  updateDepartment(tenantId: string, id: string, data: Prisma.DepartmentUncheckedUpdateInput, db: PrismaDb = this.prisma) {
+  updateDepartment(
+    tenantId: string,
+    id: string,
+    data: Prisma.DepartmentUncheckedUpdateInput,
+    db: PrismaDb = this.prisma,
+  ) {
     return db.department.updateMany({ where: { tenantId, id }, data });
   }
 
-  findDesignations(tenantId: string, query: ListMasterDataDto, db: PrismaDb = this.prisma) {
+  findDesignations(
+    tenantId: string,
+    query: ListMasterDataDto,
+    db: PrismaDb = this.prisma,
+  ) {
     return db.designation.findMany({
-      where: buildMasterDataWhere(tenantId, query, ['name', 'level', 'description']),
+      where: buildMasterDataWhere(tenantId, query, [
+        'name',
+        'level',
+        'description',
+      ]),
       orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
     });
   }
 
-  findDesignationById(tenantId: string, id: string, db: PrismaDb = this.prisma) {
+  findDesignationById(
+    tenantId: string,
+    id: string,
+    db: PrismaDb = this.prisma,
+  ) {
     return db.designation.findFirst({ where: { tenantId, id } });
   }
 
-  createDesignation(data: Prisma.DesignationUncheckedCreateInput, db: PrismaDb = this.prisma) {
+  createDesignation(
+    data: Prisma.DesignationUncheckedCreateInput,
+    db: PrismaDb = this.prisma,
+  ) {
     return db.designation.create({ data });
   }
 
-  updateDesignation(tenantId: string, id: string, data: Prisma.DesignationUncheckedUpdateInput, db: PrismaDb = this.prisma) {
+  updateDesignation(
+    tenantId: string,
+    id: string,
+    data: Prisma.DesignationUncheckedUpdateInput,
+    db: PrismaDb = this.prisma,
+  ) {
     return db.designation.updateMany({ where: { tenantId, id }, data });
   }
 
-  findLocations(tenantId: string, query: ListMasterDataDto, db: PrismaDb = this.prisma) {
+  findLocations(
+    tenantId: string,
+    query: ListMasterDataDto,
+    db: PrismaDb = this.prisma,
+  ) {
     return db.location.findMany({
       where: buildMasterDataWhere(tenantId, query, [
         'name',
@@ -169,11 +229,19 @@ export class OrganizationRepository {
     return db.location.findFirst({ where: { tenantId, id } });
   }
 
-  createLocation(data: Prisma.LocationUncheckedCreateInput, db: PrismaDb = this.prisma) {
+  createLocation(
+    data: Prisma.LocationUncheckedCreateInput,
+    db: PrismaDb = this.prisma,
+  ) {
     return db.location.create({ data });
   }
 
-  updateLocation(tenantId: string, id: string, data: Prisma.LocationUncheckedUpdateInput, db: PrismaDb = this.prisma) {
+  updateLocation(
+    tenantId: string,
+    id: string,
+    data: Prisma.LocationUncheckedUpdateInput,
+    db: PrismaDb = this.prisma,
+  ) {
     return db.location.updateMany({ where: { tenantId, id }, data });
   }
 }

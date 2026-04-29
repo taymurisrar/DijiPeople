@@ -120,14 +120,18 @@ export class CreateCustomerDto {
   @IsOptional()
   @Transform(trimString)
   @IsString()
-  @Matches(phoneRegex, { message: 'primaryContactPhone must be a valid phone number.' })
+  @Matches(phoneRegex, {
+    message: 'primaryContactPhone must be a valid phone number.',
+  })
   @MaxLength(40)
   primaryContactPhone?: string;
 
   @IsOptional()
   @Transform(trimString)
   @IsString()
-  @Matches(phoneRegex, { message: 'contactPhone must be a valid phone number.' })
+  @Matches(phoneRegex, {
+    message: 'contactPhone must be a valid phone number.',
+  })
   @MaxLength(40)
   contactPhone?: string;
 
@@ -287,14 +291,18 @@ export class UpdateCustomerDto {
   @IsOptional()
   @Transform(trimString)
   @IsString()
-  @Matches(phoneRegex, { message: 'primaryContactPhone must be a valid phone number.' })
+  @Matches(phoneRegex, {
+    message: 'primaryContactPhone must be a valid phone number.',
+  })
   @MaxLength(40)
   primaryContactPhone?: string;
 
   @IsOptional()
   @Transform(trimString)
   @IsString()
-  @Matches(phoneRegex, { message: 'contactPhone must be a valid phone number.' })
+  @Matches(phoneRegex, {
+    message: 'contactPhone must be a valid phone number.',
+  })
   @MaxLength(40)
   contactPhone?: string;
 
@@ -517,7 +525,9 @@ export class CreateCustomerOnboardingRecordDto {
   @IsOptional()
   @Transform(trimString)
   @IsString()
-  @Matches(phoneRegex, { message: 'primaryOwnerPhone must be a valid phone number.' })
+  @Matches(phoneRegex, {
+    message: 'primaryOwnerPhone must be a valid phone number.',
+  })
   @MaxLength(40)
   primaryOwnerPhone?: string;
 
@@ -643,7 +653,9 @@ export class UpdateCustomerOnboardingDto {
   @IsOptional()
   @Transform(trimString)
   @IsString()
-  @Matches(phoneRegex, { message: 'primaryOwnerPhone must be a valid phone number.' })
+  @Matches(phoneRegex, {
+    message: 'primaryOwnerPhone must be a valid phone number.',
+  })
   @MaxLength(40)
   primaryOwnerPhone?: string;
 

@@ -1,9 +1,4 @@
-import {
-  IsNumber,
-  IsOptional,
-  IsString,
-  MaxLength,
-} from 'class-validator';
+import { IsNumber, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class CheckOutDto {
   @IsOptional()

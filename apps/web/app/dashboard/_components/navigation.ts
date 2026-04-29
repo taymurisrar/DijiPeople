@@ -1,3 +1,4 @@
+import { FEATURE_KEYS, PERMISSION_KEYS, ROLE_KEYS } from "@/lib/security-keys";
 import { BusinessUnitAccessSummary } from "../_lib/business-unit-access";
 
 export type DashboardNavItem = {
@@ -22,7 +23,7 @@ export const dashboardNavItems: DashboardNavItem[] = [
     href: "/dashboard/employees",
     label: "Employees",
     description: "Ready for employee records and org data.",
-    requiredFeatureKey: "employees",
+    requiredFeatureKey: FEATURE_KEYS.EMPLOYEES,
     requiresBusinessUnitScope: true,
     selfServiceHref: "/dashboard/profile",
     selfServiceLabel: "My Profile",
@@ -31,33 +32,36 @@ export const dashboardNavItems: DashboardNavItem[] = [
     href: "/dashboard/leave",
     label: "Leave",
     description: "Requests, approvals, and policy-driven workflows.",
-    requiredFeatureKey: "leave",
+    requiredFeatureKey: FEATURE_KEYS.LEAVE,
     requiresBusinessUnitScope: true,
-    requiredAnyPermissions: ["leave-requests.read", "leaves.read"],
+    requiredAnyPermissions: [
+      PERMISSION_KEYS.LEAVE_REQUESTS_READ,
+      PERMISSION_KEYS.LEAVES_READ,
+    ],
   },
   {
     href: "/dashboard/attendance",
     label: "Attendance",
     description: "Check-ins, daily entries, and team attendance visibility.",
-    requiredFeatureKey: "attendance",
+    requiredFeatureKey: FEATURE_KEYS.ATTENDANCE,
     requiresBusinessUnitScope: true,
-    requiredAnyPermissions: ["attendance.read"],
+    requiredAnyPermissions: [PERMISSION_KEYS.ATTENDANCE_READ],
   },
   {
     href: "/dashboard/timesheets",
     label: "Timesheets",
     description: "Weekly work logs and manager approval flow.",
-    requiredFeatureKey: "timesheets",
+    requiredFeatureKey: FEATURE_KEYS.TIMESHEETS,
     requiresBusinessUnitScope: true,
-    requiredAnyPermissions: ["timesheets.read"],
+    requiredAnyPermissions: [PERMISSION_KEYS.TIMESHEETS_READ],
   },
   {
     href: "/dashboard/projects",
     label: "Projects",
     description: "Project setup, staffing, and future utilization hooks.",
-    requiredFeatureKey: "projects",
+    requiredFeatureKey: FEATURE_KEYS.PROJECTS,
     requiresBusinessUnitScope: true,
-    requiredAnyPermissions: ["projects.read"],
+    requiredAnyPermissions: [PERMISSION_KEYS.PROJECTS_READ],
   },
   {
     href: "/dashboard/reports",
@@ -67,10 +71,10 @@ export const dashboardNavItems: DashboardNavItem[] = [
     hiddenForSelfService: true,
     requiresBusinessUnitScope: true,
     requiredAnyPermissions: [
-      "employees.read.all",
+      PERMISSION_KEYS.EMPLOYEES_READ_ALL,
       "reports.leave-requests.read",
       "reports.attendance.read",
-      "recruitment.read",
+      PERMISSION_KEYS.RECRUITMENT_READ,
     ],
   },
   {
@@ -79,41 +83,41 @@ export const dashboardNavItems: DashboardNavItem[] = [
     description:
       "Payroll cycles, compensation setup, and draft payroll records.",
     hiddenForSelfService: true,
-    requiredFeatureKey: "payroll",
+    requiredFeatureKey: FEATURE_KEYS.PAYROLL,
     requiresBusinessUnitScope: true,
-    requiredAnyPermissions: ["payroll.read"],
+    requiredAnyPermissions: [PERMISSION_KEYS.PAYROLL_READ],
   },
   {
     href: "/dashboard/recruitment",
     label: "Recruitment",
     description: "Job openings, candidates, and pipeline tracking.",
     hiddenForSelfService: true,
-    requiredFeatureKey: "recruitment",
+    requiredFeatureKey: FEATURE_KEYS.RECRUITMENT,
     requiresBusinessUnitScope: true,
-    requiredAnyPermissions: ["recruitment.read"],
+    requiredAnyPermissions: [PERMISSION_KEYS.RECRUITMENT_READ],
   },
   {
     href: "/dashboard/onboarding",
     label: "Onboarding",
     description: "Template-driven new hire checklists and task progress.",
     hiddenForSelfService: true,
-    requiredFeatureKey: "onboarding",
+    requiredFeatureKey: FEATURE_KEYS.ONBOARDING,
     requiresBusinessUnitScope: true,
-    requiredAnyPermissions: ["onboarding.read"],
+    requiredAnyPermissions: [PERMISSION_KEYS.ONBOARDING_READ],
   },
   {
     href: "/dashboard/customization",
     label: "Customization",
     description: "Metadata setup for tables, columns, views, and forms.",
     hiddenForSelfService: true,
-    requiredAnyPermissions: ["customization.read"],
+    requiredAnyPermissions: [PERMISSION_KEYS.CUSTOMIZATION_READ],
   },
   {
     href: "/dashboard/settings",
     label: "Settings",
     description: "Tenant configuration, feature toggles, and shared master data.",
     hiddenForSelfService: true,
-    requiredAnyPermissions: ["settings.read"],
+    requiredAnyPermissions: [PERMISSION_KEYS.SETTINGS_READ],
   },
 ];
 
@@ -150,9 +154,9 @@ export function resolveVisibleDashboardNavItems(
 
     if (isEmployeesItem) {
       const canReadEmployees =
-        input.permissionKeys.includes("employees.read") ||
-        input.permissionKeys.includes("employees.read.all") ||
-        (input.roleKeys ?? []).includes("system-admin");
+        input.permissionKeys.includes(PERMISSION_KEYS.EMPLOYEES_READ) ||
+        input.permissionKeys.includes(PERMISSION_KEYS.EMPLOYEES_READ_ALL) ||
+        (input.roleKeys ?? []).includes(ROLE_KEYS.SYSTEM_ADMIN);
 
       if (input.isSelfService && !input.isReportingManager) {
         return [

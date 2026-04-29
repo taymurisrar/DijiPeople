@@ -1,8 +1,12 @@
 import { apiRequestJson } from "@/lib/server-api";
 import { getDefaultForm } from "@/lib/customization-forms";
 import { getSessionUser } from "@/lib/auth";
+import { PERMISSION_KEYS } from "@/lib/security-keys";
 import { AccessDeniedState } from "../../_components/access-denied-state";
-import { getBusinessUnitAccessSummary, hasBusinessUnitScope } from "../../_lib/business-unit-access";
+import {
+  getBusinessUnitAccessSummary,
+  hasBusinessUnitScope,
+} from "../../_lib/business-unit-access";
 import { EmployeeForm } from "../_components/employee-form";
 import {
   EmployeeFormValues,
@@ -27,18 +31,18 @@ export default async function NewEmployeePage() {
 
   const sessionUser = await getSessionUser();
   const canManageAccess = Boolean(
-    sessionUser?.permissionKeys.includes("users.create") &&
-      sessionUser.permissionKeys.includes("users.assign-roles") &&
-      sessionUser.permissionKeys.includes("roles.read"),
+    sessionUser?.permissionKeys.includes(PERMISSION_KEYS.USERS_CREATE) &&
+    sessionUser.permissionKeys.includes(PERMISSION_KEYS.USERS_ASSIGN_ROLES) &&
+    sessionUser.permissionKeys.includes(PERMISSION_KEYS.ROLES_READ),
   );
   const [managers, roles, resolvedSettings, runtimeForm] = await Promise.all([
     apiRequestJson<EmployeeListResponse>("/employees?pageSize=100"),
     canManageAccess
       ? apiRequestJson<EmployeeRoleOption[]>("/roles")
       : Promise.resolve([]),
-    apiRequestJson<TenantResolvedSettingsResponse>("/tenant-settings/resolved").catch(
-      () => null,
-    ),
+    apiRequestJson<TenantResolvedSettingsResponse>(
+      "/tenant-settings/resolved",
+    ).catch(() => null),
     getDefaultForm("employees", "create"),
   ]);
 
@@ -63,7 +67,8 @@ export default async function NewEmployeePage() {
     cnic: "",
     bloodGroup: "",
     employmentStatus:
-      (resolvedSettings?.employee.defaultEmployeeStatus as EmployeeFormValues["employmentStatus"]) ||
+      (resolvedSettings?.employee
+        .defaultEmployeeStatus as EmployeeFormValues["employmentStatus"]) ||
       "ACTIVE",
     employeeType: resolvedSettings?.employee.defaultEmploymentType || "",
     workMode: resolvedSettings?.employee.defaultWorkMode || "",
@@ -74,6 +79,7 @@ export default async function NewEmployeePage() {
     terminationDate: "",
     departmentId: "",
     designationId: "",
+    employeeLevelId: "",
     locationId: "",
     officialJoiningLocationId: "",
     reportingManagerEmployeeId: "",
@@ -120,11 +126,14 @@ export default async function NewEmployeePage() {
         settings={{
           autoGenerateEmployeeId:
             resolvedSettings?.employee.autoGenerateEmployeeId ?? false,
-          requireDepartment: resolvedSettings?.employee.requireDepartment ?? false,
-          requireDesignation: resolvedSettings?.employee.requireDesignation ?? false,
+          requireDepartment:
+            resolvedSettings?.employee.requireDepartment ?? false,
+          requireDesignation:
+            resolvedSettings?.employee.requireDesignation ?? false,
           requireReportingManager:
             resolvedSettings?.employee.requireReportingManager ?? false,
-          requireWorkLocation: resolvedSettings?.employee.requireWorkLocation ?? false,
+          requireWorkLocation:
+            resolvedSettings?.employee.requireWorkLocation ?? false,
         }}
         mode="create"
       />

@@ -1,8 +1,21 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { FormEvent, ReactNode, useEffect, useRef, useMemo, useState } from "react";
-import { TextField, SelectField, DateField, LookupField, NumberField} from "@/app/components/ui/form-control";
+import {
+  FormEvent,
+  ReactNode,
+  useEffect,
+  useRef,
+  useMemo,
+  useState,
+} from "react";
+import {
+  TextField,
+  SelectField,
+  DateField,
+  LookupField,
+  NumberField,
+} from "@/app/components/ui/form-control";
 import type { RuntimeFormLayout } from "@/lib/customization-forms";
 import {
   BLOOD_GROUP_OPTIONS,
@@ -16,7 +29,7 @@ import {
 import {
   EmployeeFormValues,
   EmployeeListItem,
-  EmployeeRoleOption
+  EmployeeRoleOption,
 } from "../types";
 import { useEmployeeLookups } from "./use-employee-lookups";
 
@@ -59,6 +72,7 @@ export function EmployeeForm({
     relationTypes,
     departments,
     designations,
+    employeeLevels,
     locations,
     isLoading,
   } = useEmployeeLookups({
@@ -96,7 +110,10 @@ export function EmployeeForm({
     if (settings?.requireDesignation && !form.designationId.trim()) {
       return "Designation is required by tenant employee settings.";
     }
-    if (settings?.requireReportingManager && !form.reportingManagerEmployeeId.trim()) {
+    if (
+      settings?.requireReportingManager &&
+      !form.reportingManagerEmployeeId.trim()
+    ) {
       return "Reporting manager is required by tenant employee settings.";
     }
     if (settings?.requireWorkLocation && !form.locationId.trim()) {
@@ -108,7 +125,11 @@ export function EmployeeForm({
     if (form.personalEmail && !isValidEmail(form.personalEmail)) {
       return "Personal email must be a valid email address.";
     }
-    if (canManageAccess && form.provisionSystemAccess && !form.workEmail.trim()) {
+    if (
+      canManageAccess &&
+      form.provisionSystemAccess &&
+      !form.workEmail.trim()
+    ) {
       return "Work email is required when system access is enabled.";
     }
     if (
@@ -127,7 +148,10 @@ export function EmployeeForm({
     if (form.probationEndDate && form.probationEndDate < form.hireDate) {
       return "Probation end date cannot be before hire date.";
     }
-    if (form.dateOfBirth && form.dateOfBirth > new Date().toISOString().slice(0, 10)) {
+    if (
+      form.dateOfBirth &&
+      form.dateOfBirth > new Date().toISOString().slice(0, 10)
+    ) {
       return "Date of birth cannot be in the future.";
     }
     return null;
@@ -172,18 +196,29 @@ export function EmployeeForm({
       terminationDate: emptyToUndefined(form.terminationDate),
       departmentId: emptyToUndefined(form.departmentId),
       designationId: emptyToUndefined(form.designationId),
+      employeeLevelId: emptyToUndefined(form.employeeLevelId),
       locationId: emptyToUndefined(form.locationId),
-      officialJoiningLocationId: emptyToUndefined(form.officialJoiningLocationId),
-      reportingManagerEmployeeId: emptyToUndefined(form.reportingManagerEmployeeId),
+      officialJoiningLocationId: emptyToUndefined(
+        form.officialJoiningLocationId,
+      ),
+      reportingManagerEmployeeId: emptyToUndefined(
+        form.reportingManagerEmployeeId,
+      ),
       userId: emptyToUndefined(form.userId),
-      noticePeriodDays: form.noticePeriodDays == null ? undefined : form.noticePeriodDays,
+      noticePeriodDays:
+        form.noticePeriodDays == null ? undefined : form.noticePeriodDays,
       taxIdentifier: emptyToUndefined(form.taxIdentifier),
-      provisionSystemAccess: canManageAccess ? form.provisionSystemAccess : undefined,
-      sendInvitationNow: canManageAccess && form.provisionSystemAccess
-        ? form.sendInvitationNow
+      provisionSystemAccess: canManageAccess
+        ? form.provisionSystemAccess
         : undefined,
+      sendInvitationNow:
+        canManageAccess && form.provisionSystemAccess
+          ? form.sendInvitationNow
+          : undefined,
       initialRoleIds:
-        canManageAccess && form.provisionSystemAccess ? form.initialRoleIds : [],
+        canManageAccess && form.provisionSystemAccess
+          ? form.initialRoleIds
+          : [],
       addressLine1: emptyToUndefined(form.addressLine1),
       addressLine2: emptyToUndefined(form.addressLine2),
       countryId: emptyToUndefined(form.countryId),
@@ -191,7 +226,10 @@ export function EmployeeForm({
       cityId: emptyToUndefined(form.cityId),
       postalCode: emptyToUndefined(form.postalCode),
       emergencyContactName: emptyToUndefined(form.emergencyContactName),
-      emergencyContactRelation: form.emergencyContactRelation == null ? undefined : form.emergencyContactRelation,
+      emergencyContactRelation:
+        form.emergencyContactRelation == null
+          ? undefined
+          : form.emergencyContactRelation,
       emergencyContactRelationTypeId: emptyToUndefined(
         form.emergencyContactRelationTypeId,
       ),
@@ -210,9 +248,10 @@ export function EmployeeForm({
       },
     );
 
-    const data = (await response.json().catch(() => null)) as
-      | { message?: string; id?: string }
-      | null;
+    const data = (await response.json().catch(() => null)) as {
+      message?: string;
+      id?: string;
+    } | null;
 
     if (!response.ok) {
       setError(data?.message ?? `Unable to ${mode} employee.`);
@@ -236,132 +275,138 @@ export function EmployeeForm({
       ) : null}
 
       {runtimeForm.showSection("Core Identity") ? (
-      <FormSection
-        description="Use work email only for authentication-facing identity. Personal email remains contact-only."
-        title="Core Identity"
-      >
-        {runtimeForm.showField("employeeCode") ? (
-        <TextField
-          label="Employee code"
-          required
-          value={form.employeeCode}
-          onChange={(value) => updateField("employeeCode", value)}
-        />
-        ) : null}
-        {runtimeForm.showField("firstName") ? (
-        <TextField
-          label="First name"
-          required
-          value={form.firstName}
-          onChange={(value) => updateField("firstName", value)}
-        />
-        ) : null}
-        {runtimeForm.showField("middleName") ? (
-        <TextField
-          label="Middle name"
-          value={form.middleName}
-          onChange={(value) => updateField("middleName", value)}
-        />
-        ) : null}
-        {runtimeForm.showField("lastName") ? (
-        <TextField
-          label="Last name"
-          required
-          value={form.lastName}
-          onChange={(value) => updateField("lastName", value)}
-        />
-        ) : null}
-        {runtimeForm.showField("preferredName") ? (
-        <TextField
-          label="Preferred name"
-          value={form.preferredName}
-          onChange={(value) => updateField("preferredName", value)}
-        />
-        ) : null}
-        {runtimeForm.showField("email") || runtimeForm.showField("workEmail") ? (
-        <TextField
-          label="Work Email"
-          type="email"
-          value={form.workEmail}
-          onChange={(value) => updateField("workEmail", value)}
-        />
-        ) : null}
-        {runtimeForm.showField("personalEmail") ? (
-        <TextField
-          label="Personal Email (Contact Only)"
-          type="email"
-          value={form.personalEmail}
-          onChange={(value) => updateField("personalEmail", value)}
-        />
-        ) : null}
-        {runtimeForm.showField("phone") ? (
-        <TextField
-          label="Phone"
-          required
-          value={form.phone}
-          onChange={(value) => updateField("phone", value)}
-        />
-        ) : null}
-        {runtimeForm.showField("alternatePhone") ? (
-        <TextField
-          label="Alternate phone"
-          value={form.alternatePhone}
-          onChange={(value) => updateField("alternatePhone", value)}
-        />
-        ) : null}
-        {runtimeForm.showField("dateOfBirth") ? (
-        <DateField
-          label="Date of birth"
-          value={form.dateOfBirth}
-          onChange={(value) => updateField("dateOfBirth", value)}
-        />
-        ) : null}
-        {runtimeForm.showField("gender") ? (
-        <SelectField
-          label="Gender"
-          options={GENDER_OPTIONS}
-          value={form.gender}
-          onChange={(value) => updateField("gender", value)}
-        />
-        ) : null}
-        {runtimeForm.showField("maritalStatus") ? (
-        <SelectField
-          label="Marital status"
-          options={MARITAL_STATUS_OPTIONS}
-          value={form.maritalStatus}
-          onChange={(value) => updateField("maritalStatus", value)}
-        />
-        ) : null}
-        {runtimeForm.showField("nationalityCountryId") || runtimeForm.showField("nationality") ? (
-        <LookupField
-          label="Nationality"
-          options={countries}
-          placeholder={isLoading ? "Loading nationalities..." : "Select nationality"}
-          value={form.nationalityCountryId}
-          onChange={(value) => {
-            updateField("nationalityCountryId", value);
-            const selectedCountry = countries.find((country) => country.id === value);
-            updateField("nationality", selectedCountry?.name ?? "");
-          }}
-        />
-        ) : null}
-        {runtimeForm.showField("cnic") ? (
-        <TextField
-          label="CNIC"
-          value={form.cnic}
-          onChange={(value) => updateField("cnic", value)}
-          variant="cnic"
-        />
-        ) : null}
-        {runtimeForm.showField("bloodGroup") ? (
-        <SelectField
-          label="Blood group"
-          options={BLOOD_GROUP_OPTIONS}
-          value={form.bloodGroup}
-          onChange={(value) => updateField("bloodGroup", value)}
-        />
-        ) : null}
-      </FormSection>
+        <FormSection
+          description="Use work email only for authentication-facing identity. Personal email remains contact-only."
+          title="Core Identity"
+        >
+          {runtimeForm.showField("employeeCode") ? (
+            <TextField
+              label="Employee code"
+              required
+              value={form.employeeCode}
+              onChange={(value) => updateField("employeeCode", value)}
+            />
+          ) : null}
+          {runtimeForm.showField("firstName") ? (
+            <TextField
+              label="First name"
+              required
+              value={form.firstName}
+              onChange={(value) => updateField("firstName", value)}
+            />
+          ) : null}
+          {runtimeForm.showField("middleName") ? (
+            <TextField
+              label="Middle name"
+              value={form.middleName}
+              onChange={(value) => updateField("middleName", value)}
+            />
+          ) : null}
+          {runtimeForm.showField("lastName") ? (
+            <TextField
+              label="Last name"
+              required
+              value={form.lastName}
+              onChange={(value) => updateField("lastName", value)}
+            />
+          ) : null}
+          {runtimeForm.showField("preferredName") ? (
+            <TextField
+              label="Preferred name"
+              value={form.preferredName}
+              onChange={(value) => updateField("preferredName", value)}
+            />
+          ) : null}
+          {runtimeForm.showField("email") ||
+          runtimeForm.showField("workEmail") ? (
+            <TextField
+              label="Work Email"
+              type="email"
+              value={form.workEmail}
+              onChange={(value) => updateField("workEmail", value)}
+            />
+          ) : null}
+          {runtimeForm.showField("personalEmail") ? (
+            <TextField
+              label="Personal Email (Contact Only)"
+              type="email"
+              value={form.personalEmail}
+              onChange={(value) => updateField("personalEmail", value)}
+            />
+          ) : null}
+          {runtimeForm.showField("phone") ? (
+            <TextField
+              label="Phone"
+              required
+              value={form.phone}
+              onChange={(value) => updateField("phone", value)}
+            />
+          ) : null}
+          {runtimeForm.showField("alternatePhone") ? (
+            <TextField
+              label="Alternate phone"
+              value={form.alternatePhone}
+              onChange={(value) => updateField("alternatePhone", value)}
+            />
+          ) : null}
+          {runtimeForm.showField("dateOfBirth") ? (
+            <DateField
+              label="Date of birth"
+              value={form.dateOfBirth}
+              onChange={(value) => updateField("dateOfBirth", value)}
+            />
+          ) : null}
+          {runtimeForm.showField("gender") ? (
+            <SelectField
+              label="Gender"
+              options={GENDER_OPTIONS}
+              value={form.gender}
+              onChange={(value) => updateField("gender", value)}
+            />
+          ) : null}
+          {runtimeForm.showField("maritalStatus") ? (
+            <SelectField
+              label="Marital status"
+              options={MARITAL_STATUS_OPTIONS}
+              value={form.maritalStatus}
+              onChange={(value) => updateField("maritalStatus", value)}
+            />
+          ) : null}
+          {runtimeForm.showField("nationalityCountryId") ||
+          runtimeForm.showField("nationality") ? (
+            <LookupField
+              label="Nationality"
+              options={countries}
+              placeholder={
+                isLoading ? "Loading nationalities..." : "Select nationality"
+              }
+              value={form.nationalityCountryId}
+              onChange={(value) => {
+                updateField("nationalityCountryId", value);
+                const selectedCountry = countries.find(
+                  (country) => country.id === value,
+                );
+                updateField("nationality", selectedCountry?.name ?? "");
+              }}
+            />
+          ) : null}
+          {runtimeForm.showField("cnic") ? (
+            <TextField
+              label="CNIC"
+              value={form.cnic}
+              onChange={(value) => updateField("cnic", value)}
+              variant="cnic"
+            />
+          ) : null}
+          {runtimeForm.showField("bloodGroup") ? (
+            <SelectField
+              label="Blood group"
+              options={BLOOD_GROUP_OPTIONS}
+              value={form.bloodGroup}
+              onChange={(value) => updateField("bloodGroup", value)}
+            />
+          ) : null}
+        </FormSection>
       ) : null}
 
       {canManageAccess ? (
@@ -392,221 +437,245 @@ export function EmployeeForm({
       ) : null}
 
       {runtimeForm.showSection("Employment Info") ? (
-      <FormSection
-        description="These fields drive hierarchy, leave, attendance, payroll, and reporting behavior."
-        title="Employment Info"
-      >
-        <DateField
-          label="Hire date"
-          required
-          value={form.hireDate}
-          onChange={(value) => updateField("hireDate", value)}
-        />
-        <DateField
-          label="Confirmation date"
-          value={form.confirmationDate}
-          onChange={(value) => updateField("confirmationDate", value)}
-        />
-        <DateField
-          label="Probation end date"
-          value={form.probationEndDate}
-          onChange={(value) => updateField("probationEndDate", value)}
-        />
-        <DateField
-          label="Termination date"
-          value={form.terminationDate}
-          onChange={(value) => updateField("terminationDate", value)}
-        />
-        <SelectField
-          label="Employment status"
-          options={EMPLOYMENT_STATUS_OPTIONS}
-          value={form.employmentStatus}
-          onChange={(value) =>
-            updateField(
-              "employmentStatus",
-              value as EmployeeFormValues["employmentStatus"],
-            )
-          }
-        />
-        <SelectField
-          label="Employee type"
-          options={EMPLOYEE_TYPE_OPTIONS}
-          value={form.employeeType}
-          onChange={(value) => updateField("employeeType", value)}
-        />
-        <SelectField
-          label="Work mode"
-          options={WORK_MODE_OPTIONS}
-          value={form.workMode}
-          onChange={(value) => updateField("workMode", value)}
-        />
-        <SelectField
-          label="Contract type"
-          options={CONTRACT_TYPE_OPTIONS}
-          value={form.contractType}
-          onChange={(value) => updateField("contractType", value)}
-        />
-        <LookupField
-          label="Department"
-          options={departments}
-          placeholder={isLoading ? "Loading departments..." : "Select department"}
-          value={form.departmentId}
-          onChange={(value) => updateField("departmentId", value)}
-        />
-        <LookupField
-          label="Designation"
-          options={designations}
-          placeholder={isLoading ? "Loading designations..." : "Select designation"}
-          value={form.designationId}
-          onChange={(value) => updateField("designationId", value)}
-        />
-        <LookupField
-          label="Location"
-          options={locations}
-          placeholder={isLoading ? "Loading locations..." : "Select location"}
-          value={form.locationId}
-          onChange={(value) => updateField("locationId", value)}
-        />
-        <LookupField
-          label="Official joining location"
-          options={locations}
-          placeholder={isLoading ? "Loading locations..." : "Select joining location"}
-          value={form.officialJoiningLocationId}
-          onChange={(value) => updateField("officialJoiningLocationId", value)}
-        />
-        <LookupField
-          label="Reporting manager"
-          required
-          options={availableManagerOptions.map((manager) => ({
-            id: manager.id,
-            name: `${manager.fullName} (${manager.employeeCode})`,
-          }))}
-          placeholder="Search reporting manager"
-          value={form.reportingManagerEmployeeId}
-          onChange={(value) => updateField("reportingManagerEmployeeId", value)}
-        />
-        <NumberField
-          label="Notice period (days)"
-          value={form.noticePeriodDays}
-          onChange={(value) => updateField("noticePeriodDays", value)}
-        />
-        <TextField
-          label="Tax identifier"
-          value={form.taxIdentifier}
-          onChange={(value) => updateField("taxIdentifier", value)}
-        />
-        <TextField
-          label="Linked user ID"
-          hint="Optional for now. Use only when connecting an existing auth user."
-          value={form.userId}
-          onChange={(value) => updateField("userId", value)}
-        />
-      </FormSection>
+        <FormSection
+          description="These fields drive hierarchy, leave, attendance, payroll, and reporting behavior."
+          title="Employment Info"
+        >
+          <DateField
+            label="Hire date"
+            required
+            value={form.hireDate}
+            onChange={(value) => updateField("hireDate", value)}
+          />
+          <DateField
+            label="Confirmation date"
+            value={form.confirmationDate}
+            onChange={(value) => updateField("confirmationDate", value)}
+          />
+          <DateField
+            label="Probation end date"
+            value={form.probationEndDate}
+            onChange={(value) => updateField("probationEndDate", value)}
+          />
+          <DateField
+            label="Termination date"
+            value={form.terminationDate}
+            onChange={(value) => updateField("terminationDate", value)}
+          />
+          <SelectField
+            label="Employment status"
+            options={EMPLOYMENT_STATUS_OPTIONS}
+            value={form.employmentStatus}
+            onChange={(value) =>
+              updateField(
+                "employmentStatus",
+                value as EmployeeFormValues["employmentStatus"],
+              )
+            }
+          />
+          <SelectField
+            label="Employee type"
+            options={EMPLOYEE_TYPE_OPTIONS}
+            value={form.employeeType}
+            onChange={(value) => updateField("employeeType", value)}
+          />
+          <SelectField
+            label="Work mode"
+            options={WORK_MODE_OPTIONS}
+            value={form.workMode}
+            onChange={(value) => updateField("workMode", value)}
+          />
+          <SelectField
+            label="Contract type"
+            options={CONTRACT_TYPE_OPTIONS}
+            value={form.contractType}
+            onChange={(value) => updateField("contractType", value)}
+          />
+          <LookupField
+            label="Department"
+            options={departments}
+            placeholder={
+              isLoading ? "Loading departments..." : "Select department"
+            }
+            value={form.departmentId}
+            onChange={(value) => updateField("departmentId", value)}
+          />
+          <LookupField
+            label="Designation"
+            options={designations}
+            placeholder={
+              isLoading ? "Loading designations..." : "Select designation"
+            }
+            value={form.designationId}
+            onChange={(value) => updateField("designationId", value)}
+          />
+          <LookupField
+            label="Employee level"
+            options={employeeLevels.map((level) => ({
+              ...level,
+              name: level.code ? `${level.name} (${level.code})` : level.name,
+            }))}
+            placeholder={
+              isLoading ? "Loading employee levels..." : "Select employee level"
+            }
+            value={form.employeeLevelId}
+            onChange={(value) => updateField("employeeLevelId", value)}
+          />
+          <LookupField
+            label="Location"
+            options={locations}
+            placeholder={isLoading ? "Loading locations..." : "Select location"}
+            value={form.locationId}
+            onChange={(value) => updateField("locationId", value)}
+          />
+          <LookupField
+            label="Official joining location"
+            options={locations}
+            placeholder={
+              isLoading ? "Loading locations..." : "Select joining location"
+            }
+            value={form.officialJoiningLocationId}
+            onChange={(value) =>
+              updateField("officialJoiningLocationId", value)
+            }
+          />
+          <LookupField
+            label="Reporting manager"
+            required
+            options={availableManagerOptions.map((manager) => ({
+              id: manager.id,
+              name: `${manager.fullName} (${manager.employeeCode})`,
+            }))}
+            placeholder="Search reporting manager"
+            value={form.reportingManagerEmployeeId}
+            onChange={(value) =>
+              updateField("reportingManagerEmployeeId", value)
+            }
+          />
+          <NumberField
+            label="Notice period (days)"
+            value={form.noticePeriodDays}
+            onChange={(value) => updateField("noticePeriodDays", value)}
+          />
+          <TextField
+            label="Tax identifier"
+            value={form.taxIdentifier}
+            onChange={(value) => updateField("taxIdentifier", value)}
+          />
+          <TextField
+            label="Linked user ID"
+            hint="Optional for now. Use only when connecting an existing auth user."
+            value={form.userId}
+            onChange={(value) => updateField("userId", value)}
+          />
+        </FormSection>
       ) : null}
 
       {runtimeForm.showSection("Address") ? (
-      <FormSection
-        description="Use lookup-backed geography fields so addresses stay consistent across the platform."
-        title="Address"
-      >
-        <TextField
-          label="Address line 1"
-          value={form.addressLine1}
-          onChange={(value) => updateField("addressLine1", value)}
-        />
-        <TextField
-          label="Address line 2"
-          value={form.addressLine2}
-          onChange={(value) => updateField("addressLine2", value)}
-        />
-        <LookupField
-          label="Country"
-          options={countries}
-          placeholder={isLoading ? "Loading countries..." : "Select country"}
-          value={form.countryId}
-          onChange={(value) => {
-            updateField("countryId", value);
-            updateField("stateProvinceId", "");
-            updateField("cityId", "");
-          }}
-        />
-        <LookupField
-          disabled={!form.countryId}
-          label="State / Province"
-          options={states}
-          placeholder={
-            !form.countryId
-              ? "Select country first"
-              : isLoading
-                ? "Loading states..."
-                : "Select state / province"
-          }
-          value={form.stateProvinceId}
-          onChange={(value) => {
-            updateField("stateProvinceId", value);
-            updateField("cityId", "");
-          }}
-        />
-        <LookupField
-          disabled={!form.countryId}
-          label="City"
-          options={cities}
-          placeholder={
-            !form.countryId
-              ? "Select country first"
-              : isLoading
-                ? "Loading cities..."
-                : "Select city"
-          }
-          value={form.cityId}
-          onChange={(value) => updateField("cityId", value)}
-        />
-        <TextField
-          label="Postal code"
-          value={form.postalCode}
-          onChange={(value) => updateField("postalCode", value)}
-        />
-      </FormSection>
+        <FormSection
+          description="Use lookup-backed geography fields so addresses stay consistent across the platform."
+          title="Address"
+        >
+          <TextField
+            label="Address line 1"
+            value={form.addressLine1}
+            onChange={(value) => updateField("addressLine1", value)}
+          />
+          <TextField
+            label="Address line 2"
+            value={form.addressLine2}
+            onChange={(value) => updateField("addressLine2", value)}
+          />
+          <LookupField
+            label="Country"
+            options={countries}
+            placeholder={isLoading ? "Loading countries..." : "Select country"}
+            value={form.countryId}
+            onChange={(value) => {
+              updateField("countryId", value);
+              updateField("stateProvinceId", "");
+              updateField("cityId", "");
+            }}
+          />
+          <LookupField
+            disabled={!form.countryId}
+            label="State / Province"
+            options={states}
+            placeholder={
+              !form.countryId
+                ? "Select country first"
+                : isLoading
+                  ? "Loading states..."
+                  : "Select state / province"
+            }
+            value={form.stateProvinceId}
+            onChange={(value) => {
+              updateField("stateProvinceId", value);
+              updateField("cityId", "");
+            }}
+          />
+          <LookupField
+            disabled={!form.countryId}
+            label="City"
+            options={cities}
+            placeholder={
+              !form.countryId
+                ? "Select country first"
+                : isLoading
+                  ? "Loading cities..."
+                  : "Select city"
+            }
+            value={form.cityId}
+            onChange={(value) => updateField("cityId", value)}
+          />
+          <TextField
+            label="Postal code"
+            value={form.postalCode}
+            onChange={(value) => updateField("postalCode", value)}
+          />
+        </FormSection>
       ) : null}
 
       {runtimeForm.showSection("Emergency Contact") ? (
-      <FormSection
-        description="These details support emergency outreach without making the relation free-form everywhere."
-        title="Emergency Contact"
-      >
-        <TextField
-          label="Emergency contact name"
-          value={form.emergencyContactName}
-          onChange={(value) => updateField("emergencyContactName", value)}
-        />
-        <LookupField
-          label="Relation type"
-          options={relationTypes}
-          placeholder={
-            isLoading ? "Loading relation types..." : "Select relation type"
-          }
-          value={form.emergencyContactRelationTypeId}
-          onChange={(value) => updateField("emergencyContactRelationTypeId", value)}
-        />
-        <TextField
-          label="Relation label"
-          hint="Optional free text if you need a more specific label."
-          value={form.emergencyContactRelation}
-          onChange={(value) => updateField("emergencyContactRelation", value)}
-        />
-        <TextField
-          label="Emergency contact phone"
-          value={form.emergencyContactPhone}
-          onChange={(value) => updateField("emergencyContactPhone", value)}
-        />
-        <TextField
-          label="Emergency contact alternate phone"
-          value={form.emergencyContactAlternatePhone}
-          onChange={(value) =>
-            updateField("emergencyContactAlternatePhone", value)
-          }
-        />
-      </FormSection>
+        <FormSection
+          description="These details support emergency outreach without making the relation free-form everywhere."
+          title="Emergency Contact"
+        >
+          <TextField
+            label="Emergency contact name"
+            value={form.emergencyContactName}
+            onChange={(value) => updateField("emergencyContactName", value)}
+          />
+          <LookupField
+            label="Relation type"
+            options={relationTypes}
+            placeholder={
+              isLoading ? "Loading relation types..." : "Select relation type"
+            }
+            value={form.emergencyContactRelationTypeId}
+            onChange={(value) =>
+              updateField("emergencyContactRelationTypeId", value)
+            }
+          />
+          <TextField
+            label="Relation label"
+            hint="Optional free text if you need a more specific label."
+            value={form.emergencyContactRelation}
+            onChange={(value) => updateField("emergencyContactRelation", value)}
+          />
+          <TextField
+            label="Emergency contact phone"
+            value={form.emergencyContactPhone}
+            onChange={(value) => updateField("emergencyContactPhone", value)}
+          />
+          <TextField
+            label="Emergency contact alternate phone"
+            value={form.emergencyContactAlternatePhone}
+            onChange={(value) =>
+              updateField("emergencyContactAlternatePhone", value)
+            }
+          />
+        </FormSection>
       ) : null}
 
       {error ? (
@@ -713,7 +782,9 @@ function RoleChecklist({
                 <span className="block font-medium text-foreground">
                   {role.name}
                 </span>
-                <span className="mt-1 block text-xs text-muted">{role.key}</span>
+                <span className="mt-1 block text-xs text-muted">
+                  {role.key}
+                </span>
               </span>
             </label>
           );
@@ -810,6 +881,7 @@ const sectionFieldMap: Record<string, string[]> = {
     "contractType",
     "departmentId",
     "designationId",
+    "employeeLevelId",
     "locationId",
     "officialJoiningLocationId",
     "managerEmployeeId",
@@ -841,6 +913,7 @@ function expandEmployeeFieldAlias(fieldKey: string) {
     managerEmployeeId: ["managerEmployeeId", "reportingManagerEmployeeId"],
     departmentId: ["departmentId"],
     businessUnitId: ["businessUnitId"],
+    employeeLevelId: ["employeeLevelId"],
   };
 
   return aliases[fieldKey] ?? [fieldKey];

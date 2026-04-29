@@ -24,4 +24,3 @@ export class UpdateTenantFeaturesDto {
   @Type(() => TenantFeatureUpdateItemDto)
   updates!: TenantFeatureUpdateItemDto[];
 }
-

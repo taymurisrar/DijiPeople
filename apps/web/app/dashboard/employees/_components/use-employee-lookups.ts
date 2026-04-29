@@ -12,6 +12,7 @@ type EmployeeLookups = {
   relationTypes: LookupOption[];
   departments: LookupOption[];
   designations: LookupOption[];
+  employeeLevels: LookupOption[];
   locations: LookupOption[];
 };
 
@@ -24,6 +25,7 @@ const emptyLookups: EmployeeLookups = {
   relationTypes: [],
   departments: [],
   designations: [],
+  employeeLevels: [],
   locations: [],
 };
 
@@ -65,6 +67,7 @@ export function useEmployeeLookups(filters?: {
         fetch("/api/lookups/relation-types"),
         fetch("/api/departments"),
         fetch("/api/designations"),
+        fetch("/api/employee-levels?isActive=true"),
         fetch("/api/locations"),
       ] as const;
 
@@ -92,7 +95,8 @@ export function useEmployeeLookups(filters?: {
         relationTypes: normalizeLookupList(payloads[5]),
         departments: normalizeLookupList(payloads[6]),
         designations: normalizeLookupList(payloads[7]),
-        locations: normalizeLookupList(payloads[8]),
+        employeeLevels: normalizeLookupList(payloads[8]),
+        locations: normalizeLookupList(payloads[9]),
       });
       setIsLoading(false);
     }
@@ -165,7 +169,8 @@ function normalizeLookupList(payload: unknown): LookupOption[] {
         name,
         key: typeof record.key === "string" ? record.key : null,
         code: typeof record.code === "string" ? record.code : null,
-        countryId: typeof record.countryId === "string" ? record.countryId : null,
+        countryId:
+          typeof record.countryId === "string" ? record.countryId : null,
         stateProvinceId:
           typeof record.stateProvinceId === "string"
             ? record.stateProvinceId

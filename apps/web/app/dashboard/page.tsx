@@ -1,4 +1,5 @@
 import { getSessionUser } from "@/lib/auth";
+import { PERMISSION_KEYS, ROLE_KEYS } from "@/lib/security-keys";
 import { DEFAULT_BRANDING_VALUES } from "@/app/components/branding/branding-defaults";
 import { ApiRequestError, apiRequestJson } from "@/lib/server-api";
 import type {
@@ -32,7 +33,12 @@ export default async function DashboardPage({
   const employee = currentEmployeeContext.employee;
   const resolvedSettings = await getResolvedTenantSettings(user.permissionKeys);
 
-  const [leaveRequests, attendanceSummary, timesheetSummary] = await Promise.all([
+  const [
+    leaveRequests,
+    attendanceSummary,
+    timesheetSummary,
+    productivitySummary,
+  ] = await Promise.all([
     getMyLeaveRequests(user.permissionKeys),
     getAttendanceSummary(user.permissionKeys),
     getTimesheetSummary(
@@ -40,6 +46,7 @@ export default async function DashboardPage({
       resolvedSettings?.system.defaultWeekStartDay ?? "MONDAY",
       resolvedSettings?.system.defaultRecordsPerPage ?? 12,
     ),
+    getAgentProductivitySummary(),
   ]);
 
   const notifications = buildNotifications({
@@ -66,6 +73,7 @@ export default async function DashboardPage({
         employee={employee}
         leaveRequests={leaveRequests}
         notifications={notifications}
+        productivitySummary={productivitySummary}
         timesheets={timesheetSummary.items}
         tenantContext={{
           companyDisplayName:
@@ -92,6 +100,15 @@ export default async function DashboardPage({
   );
 }
 
+type AgentProductivitySummary = {
+  currentStatus: "ACTIVE" | "IDLE" | "AWAY" | "OFFLINE";
+  lastSeenAt: string | null;
+  todayActiveSeconds: number;
+  todayIdleSeconds: number;
+  todayAwaySeconds: number;
+  utilizationPercent: number;
+};
+
 function getDashboardViewSelectorConfig({
   selectedViewId,
 }: {
@@ -101,8 +118,7 @@ function getDashboardViewSelectorConfig({
   // keeping views visible for all users until role-based access is finalized
   const views = getAvailableDashboardViews();
 
-  const defaultView =
-    views.find((view) => view.isDefault) ??
+  const defaultView = views.find((view) => view.isDefault) ??
     views[0] ?? {
       id: "ess-overview",
       name: "My dashboard",
@@ -134,7 +150,8 @@ function getAvailableDashboardViews(): ModuleViewOption[] {
       id: "admin-workbench",
       name: "Admin workbench",
       type: "system",
-      description: "Admin-first view with alerts, actions, and employee context.",
+      description:
+        "Admin-first view with alerts, actions, and employee context.",
     },
     {
       id: "operations-focus",
@@ -200,7 +217,7 @@ function isSystemAdmin({
 
   return (
     normalizedRoleKeys.includes("system admin") ||
-    normalizedRoleKeys.includes("system-admin") ||
+    normalizedRoleKeys.includes(ROLE_KEYS.SYSTEM_ADMIN) ||
     normalizedRoleKeys.includes("system_administrator") ||
     normalizedRoleKeys.includes("administrator") ||
     permissionKeys.includes("settings.manage") ||
@@ -210,7 +227,7 @@ function isSystemAdmin({
 }
 
 async function getMyLeaveRequests(permissionKeys: string[]) {
-  if (!permissionKeys.includes("leave-requests.read")) {
+  if (!permissionKeys.includes(PERMISSION_KEYS.LEAVE_REQUESTS_READ)) {
     return [];
   }
 
@@ -226,7 +243,7 @@ async function getMyLeaveRequests(permissionKeys: string[]) {
 }
 
 async function getAttendanceSummary(permissionKeys: string[]) {
-  if (!permissionKeys.includes("attendance.read")) {
+  if (!permissionKeys.includes(PERMISSION_KEYS.ATTENDANCE_READ)) {
     return {
       available: false,
       todayEntry: null,
@@ -264,7 +281,7 @@ async function getTimesheetSummary(
   weekStartDay: string,
   defaultRecordsPerPage: number,
 ) {
-  if (!permissionKeys.includes("timesheets.read")) {
+  if (!permissionKeys.includes(PERMISSION_KEYS.TIMESHEETS_READ)) {
     return {
       items: [],
       currentWeekTimesheet: null,
@@ -281,8 +298,9 @@ async function getTimesheetSummary(
     return {
       items: response.items,
       currentWeekTimesheet:
-        response.items.find((item) => item.periodStart.slice(0, 10) === weekStart) ??
-        null,
+        response.items.find(
+          (item) => item.periodStart.slice(0, 10) === weekStart,
+        ) ?? null,
     };
   } catch (error) {
     if (
@@ -293,6 +311,23 @@ async function getTimesheetSummary(
         items: [],
         currentWeekTimesheet: null,
       };
+    }
+
+    throw error;
+  }
+}
+
+async function getAgentProductivitySummary(): Promise<AgentProductivitySummary | null> {
+  try {
+    return await apiRequestJson<AgentProductivitySummary>(
+      "/agent/me/productivity",
+    );
+  } catch (error) {
+    if (
+      error instanceof ApiRequestError &&
+      (error.status === 400 || error.status === 403 || error.status === 404)
+    ) {
+      return null;
     }
 
     throw error;
@@ -394,7 +429,7 @@ function getWeekStart(date: Date, weekStartDay: string) {
 type TimesheetRecordSummary = TimesheetListResponse["items"][number];
 
 async function getResolvedTenantSettings(permissionKeys: string[]) {
-  if (!permissionKeys.includes("settings.read")) {
+  if (!permissionKeys.includes(PERMISSION_KEYS.SETTINGS_READ)) {
     return null;
   }
 

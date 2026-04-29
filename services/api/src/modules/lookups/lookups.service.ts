@@ -23,7 +23,11 @@ export class LookupsService {
   }
 
   listCities(countryId?: string, stateProvinceId?: string, search?: string) {
-    return this.geographicLookupService.listCities(countryId, stateProvinceId, search);
+    return this.geographicLookupService.listCities(
+      countryId,
+      stateProvinceId,
+      search,
+    );
   }
 
   async listDocumentTypes(tenantId: string) {
@@ -96,7 +100,10 @@ export class LookupsService {
       }
     }
 
-    for (const [index, documentCategory] of DEFAULT_DOCUMENT_CATEGORIES.entries()) {
+    for (const [
+      index,
+      documentCategory,
+    ] of DEFAULT_DOCUMENT_CATEGORIES.entries()) {
       const existing = await this.prisma.documentCategory.findFirst({
         where: { tenantId: null, code: documentCategory.code },
         select: { id: true },

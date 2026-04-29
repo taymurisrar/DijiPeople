@@ -17,6 +17,7 @@ import {
   TenantFeatureSource,
   UserStatus,
 } from '@prisma/client';
+import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { normalizeTenantSlug } from '../../common/utils/slug.util';
 import { RolesRepository } from '../roles/roles.repository';
@@ -381,7 +382,7 @@ export class SuperAdminService {
 
     const systemAdminRole = await this.rolesRepository.findByKeyAndTenant(
       tenantId,
-      'system-admin',
+      ROLE_KEYS.SYSTEM_ADMIN,
     );
 
     if (!systemAdminRole) {

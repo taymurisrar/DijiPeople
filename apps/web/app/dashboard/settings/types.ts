@@ -346,6 +346,7 @@ export type AccessRoleRecord = {
   roleType?: "SYSTEM" | "CUSTOM";
   isEditable?: boolean;
   isCloneable?: boolean;
+  isActive?: boolean;
   createdAt: string;
   updatedAt: string;
   rolePermissions: Array<{
@@ -368,6 +369,54 @@ export type AccessRoleRecord = {
   }>;
 };
 
+export type AccessTeamRecord = {
+  id: string;
+  tenantId: string;
+  name: string;
+  key: string;
+  description?: string | null;
+  teamType: string;
+  businessUnitId?: string | null;
+  ownerUserId?: string | null;
+  isSystem: boolean;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  businessUnit?: {
+    id: string;
+    name: string;
+    organizationId: string;
+  } | null;
+  ownerUser?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  } | null;
+  members?: Array<{
+    id?: string;
+    userId: string;
+    user?: {
+      id: string;
+      firstName: string;
+      lastName: string;
+      email: string;
+    };
+  }>;
+  teamRoles?: Array<{
+    id?: string;
+    roleId?: string;
+    role: {
+      id: string;
+      key: string;
+      name: string;
+      roleType?: "SYSTEM" | "CUSTOM";
+      isSystem: boolean;
+      isActive: boolean;
+    };
+  }>;
+};
+
 export type SecurityPrivilege =
   | "READ"
   | "CREATE"
@@ -376,17 +425,22 @@ export type SecurityPrivilege =
   | "ASSIGN"
   | "SHARE"
   | "APPEND"
+  | "APPEND_TO"
   | "IMPORT"
   | "EXPORT"
   | "APPROVE"
   | "REJECT"
   | "MANAGE"
-  | "CONFIGURE";
+  | "CONFIGURE"
+  | "CUSTOMIZE";
 
 export type SecurityAccessLevel =
   | "NONE"
+  | "SELF"
+  | "TEAM"
   | "USER"
   | "BUSINESS_UNIT"
+  | "PARENT_CHILD_BUSINESS_UNIT"
   | "PARENT_CHILD_BUSINESS_UNITS"
   | "ORGANIZATION"
   | "TENANT";
@@ -427,10 +481,41 @@ export type AccessUserRecord = {
     organizationId: string;
     organizationName: string;
   } | null;
+  linkedEmployee?: {
+    id: string;
+    employeeCode: string;
+    fullName: string;
+    email?: string | null;
+    businessUnitId?: string | null;
+    departmentName?: string | null;
+  } | null;
   roles: Array<{
     id: string;
     key: string;
     name: string;
+  }>;
+  teamRoles?: Array<{
+    id: string;
+    key: string;
+    name: string;
+  }>;
+  effectiveRoles?: Array<{
+    id: string;
+    key: string;
+    name: string;
+  }>;
+  effectivePrivileges?: Array<{
+    entityKey: string;
+    privilege: string;
+    accessLevel: SecurityAccessLevel;
+    sourceRoleNames: string[];
+  }>;
+  teams?: Array<{
+    id: string;
+    name: string;
+    key: string;
+    teamType: string;
+    isActive: boolean;
   }>;
   directPermissions: AccessPermissionRecord[];
   effectivePermissionKeys: string[];

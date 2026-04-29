@@ -243,11 +243,9 @@ export class CustomizationService {
         systemName: row?.systemName ?? column.columnKey,
         displayName: row?.displayName ?? column.displayName,
         dataType:
-          row?.dataType ??
-          (column.dataType as CustomizationFieldDataType),
+          row?.dataType ?? (column.dataType as CustomizationFieldDataType),
         fieldType:
-          row?.fieldType ??
-          (column.dataType as CustomizationFieldDataType),
+          row?.fieldType ?? (column.dataType as CustomizationFieldDataType),
         isSystem: true,
         isRequired: row?.isRequired ?? column.isRequired ?? false,
         isSearchable: row?.isSearchable ?? column.isSearchable ?? false,
@@ -267,7 +265,9 @@ export class CustomizationService {
     const tenantColumns = rows.filter(
       (row) =>
         !row.isSystem &&
-        !definition.columns.some((column) => column.columnKey === row.columnKey),
+        !definition.columns.some(
+          (column) => column.columnKey === row.columnKey,
+        ),
     );
 
     return [...systemColumns, ...tenantColumns];
@@ -279,7 +279,9 @@ export class CustomizationService {
     dto: CreateCustomizationColumnDto,
   ) {
     const definition = this.getSystemTableOrThrow(tableKey);
-    if (definition.columns.some((column) => column.columnKey === dto.columnKey)) {
+    if (
+      definition.columns.some((column) => column.columnKey === dto.columnKey)
+    ) {
       throw new ConflictException('A system column already uses this key.');
     }
     this.validateLookupTarget(dto.lookupTargetTableKey);
@@ -327,7 +329,11 @@ export class CustomizationService {
         'Required system columns cannot be made optional.',
       );
     }
-    if (systemColumn && dto.fieldType && dto.fieldType !== systemColumn.dataType) {
+    if (
+      systemColumn &&
+      dto.fieldType &&
+      dto.fieldType !== systemColumn.dataType
+    ) {
       throw new BadRequestException(
         'System column field types cannot be changed.',
       );
@@ -350,7 +356,8 @@ export class CustomizationService {
             fieldType: systemColumn.dataType as CustomizationFieldDataType,
             isRequired: dto.isRequired ?? systemColumn.isRequired ?? false,
             isVisible: dto.isVisible ?? true,
-            isSearchable: dto.isSearchable ?? systemColumn.isSearchable ?? false,
+            isSearchable:
+              dto.isSearchable ?? systemColumn.isSearchable ?? false,
             isReadOnly: dto.isReadOnly ?? systemColumn.isReadOnly ?? true,
             isSortable: dto.isSortable ?? false,
             maxLength: dto.maxLength,
@@ -885,8 +892,9 @@ export class CustomizationService {
 
   async listViews(currentUser: AuthenticatedUser, moduleKey?: string) {
     const tableKeys = moduleKey
-      ? SYSTEM_CUSTOMIZATION_TABLES.filter((table) => table.moduleKey === moduleKey)
-          .map((table) => table.tableKey)
+      ? SYSTEM_CUSTOMIZATION_TABLES.filter(
+          (table) => table.moduleKey === moduleKey,
+        ).map((table) => table.tableKey)
       : SYSTEM_CUSTOMIZATION_TABLES.map((table) => table.tableKey);
 
     if (moduleKey && tableKeys.length === 0) {
@@ -918,7 +926,8 @@ export class CustomizationService {
     const viewKey = slugKey(dto.slug ?? dto.name);
     const configJson = dto.configJson ?? {};
     const columnsJson =
-      Array.isArray(configJson.columns) || typeof configJson.columns === 'object'
+      Array.isArray(configJson.columns) ||
+      typeof configJson.columns === 'object'
         ? configJson.columns
         : [];
     await this.validateViewMetadata(currentUser, definition.tableKey, {
@@ -973,7 +982,9 @@ export class CustomizationService {
     if (dto.configJson !== undefined) {
       await this.validateViewMetadata(currentUser, table.tableKey, {
         columnsJson:
-          configJson.columns !== undefined ? configJson.columns : existing.columnsJson,
+          configJson.columns !== undefined
+            ? configJson.columns
+            : existing.columnsJson,
         filtersJson:
           configJson.filters !== undefined
             ? configJson.filters
@@ -1090,7 +1101,11 @@ export class CustomizationService {
       }),
       this.prisma.customizationColumn.findMany({
         where: { tenantId },
-        orderBy: [{ tableId: 'asc' }, { sortOrder: 'asc' }, { columnKey: 'asc' }],
+        orderBy: [
+          { tableId: 'asc' },
+          { sortOrder: 'asc' },
+          { columnKey: 'asc' },
+        ],
       }),
       this.prisma.customizationView.findMany({
         where: { tenantId },
@@ -1173,7 +1188,8 @@ export class CustomizationService {
         errors.push({
           scope: 'view',
           tableKey: table.tableKey,
-          message: 'At least one visible default view is required before publishing.',
+          message:
+            'At least one visible default view is required before publishing.',
         });
       }
 
@@ -1232,7 +1248,8 @@ export class CustomizationService {
         errors.push({
           scope: 'form',
           tableKey: table.tableKey,
-          message: 'At least one active default form is required before publishing.',
+          message:
+            'At least one active default form is required before publishing.',
         });
       }
 
@@ -1260,7 +1277,9 @@ export class CustomizationService {
         );
 
         if (form.isDefault && form.isActive) {
-          const visibleFormFields = extractVisibleFormFieldRefs(form.layoutJson);
+          const visibleFormFields = extractVisibleFormFieldRefs(
+            form.layoutJson,
+          );
           const missingRequired = requiredColumnKeys.filter(
             (columnKey) => !visibleFormFields.has(columnKey),
           );
@@ -1374,7 +1393,9 @@ export class CustomizationService {
       dto.maxValue !== undefined &&
       Number(dto.minValue) > Number(dto.maxValue)
     ) {
-      throw new BadRequestException('Minimum value cannot exceed maximum value.');
+      throw new BadRequestException(
+        'Minimum value cannot exceed maximum value.',
+      );
     }
 
     if (dto.maxLength !== undefined && dto.maxLength < 1) {
@@ -1428,7 +1449,10 @@ export class CustomizationService {
       sortingJson?: unknown;
     },
   ) {
-    const validColumnKeys = await this.getValidColumnKeySet(currentUser, tableKey);
+    const validColumnKeys = await this.getValidColumnKeySet(
+      currentUser,
+      tableKey,
+    );
     this.assertReferencedColumnsExist(
       'View columns',
       extractColumnRefs(metadata.columnsJson, true),
@@ -1451,7 +1475,10 @@ export class CustomizationService {
     tableKey: string,
     layoutJson: unknown,
   ) {
-    const validColumnKeys = await this.getValidColumnKeySet(currentUser, tableKey);
+    const validColumnKeys = await this.getValidColumnKeySet(
+      currentUser,
+      tableKey,
+    );
     this.assertReferencedColumnsExist(
       'Form layout',
       extractColumnRefs(layoutJson, true),

@@ -14,7 +14,11 @@ export type CandidateIdentitySignals = {
 };
 
 export type CandidateIdentityResolution = {
-  resolution: 'existing_exact' | 'existing_probable' | 'ambiguous' | 'new_candidate';
+  resolution:
+    | 'existing_exact'
+    | 'existing_probable'
+    | 'ambiguous'
+    | 'new_candidate';
   candidateId?: string;
   score?: number;
   ambiguousCandidateIds?: string[];
@@ -37,8 +41,14 @@ export class CandidateIdentityResolutionService {
       fullName: normalizeName(signals.firstName, signals.lastName),
     };
 
-    const identityMatches = await this.lookupByIdentityTable(tenantId, normalizedSignals);
-    const fallbackMatches = await this.lookupByCandidateFields(tenantId, normalizedSignals);
+    const identityMatches = await this.lookupByIdentityTable(
+      tenantId,
+      normalizedSignals,
+    );
+    const fallbackMatches = await this.lookupByCandidateFields(
+      tenantId,
+      normalizedSignals,
+    );
     const allMatches = mergeScores(identityMatches, fallbackMatches);
 
     if (allMatches.length === 0) {
@@ -129,15 +139,33 @@ export class CandidateIdentityResolutionService {
       fullName: string | null;
     },
   ) {
-    const signalPairs: Array<{ type: CandidateIdentityType; value: string; weight: number }> = [];
-    if (signals.email) signalPairs.push({ type: 'EMAIL', value: signals.email, weight: 90 });
+    const signalPairs: Array<{
+      type: CandidateIdentityType;
+      value: string;
+      weight: number;
+    }> = [];
+    if (signals.email)
+      signalPairs.push({ type: 'EMAIL', value: signals.email, weight: 90 });
     if (signals.personalEmail)
-      signalPairs.push({ type: 'EMAIL', value: signals.personalEmail, weight: 70 });
-    if (signals.phone) signalPairs.push({ type: 'PHONE', value: signals.phone, weight: 85 });
+      signalPairs.push({
+        type: 'EMAIL',
+        value: signals.personalEmail,
+        weight: 70,
+      });
+    if (signals.phone)
+      signalPairs.push({ type: 'PHONE', value: signals.phone, weight: 85 });
     if (signals.alternatePhone)
-      signalPairs.push({ type: 'PHONE', value: signals.alternatePhone, weight: 65 });
+      signalPairs.push({
+        type: 'PHONE',
+        value: signals.alternatePhone,
+        weight: 65,
+      });
     if (signals.linkedInUrl)
-      signalPairs.push({ type: 'LINKEDIN', value: signals.linkedInUrl, weight: 80 });
+      signalPairs.push({
+        type: 'LINKEDIN',
+        value: signals.linkedInUrl,
+        weight: 80,
+      });
 
     if (signalPairs.length === 0) {
       return [] as Array<{ candidateId: string; score: number }>;
@@ -157,7 +185,8 @@ export class CandidateIdentityResolutionService {
     const scoreByCandidate = new Map<string, number>();
     for (const match of identities) {
       const signal = signalPairs.find(
-        (item) => item.type === match.type && item.value === match.normalizedValue,
+        (item) =>
+          item.type === match.type && item.value === match.normalizedValue,
       );
       if (!signal) {
         continue;
@@ -232,16 +261,24 @@ export class CandidateIdentityResolutionService {
 
     return candidates.map((candidate) => {
       let score = 0;
-      if (signals.email && [candidate.email, candidate.personalEmail].includes(signals.email)) {
+      if (
+        signals.email &&
+        [candidate.email, candidate.personalEmail].includes(signals.email)
+      ) {
         score += 80;
       }
       if (
         signals.personalEmail &&
-        [candidate.email, candidate.personalEmail].includes(signals.personalEmail)
+        [candidate.email, candidate.personalEmail].includes(
+          signals.personalEmail,
+        )
       ) {
         score += 55;
       }
-      if (signals.phone && containsNormalizedPhone(candidate.phone, signals.phone)) {
+      if (
+        signals.phone &&
+        containsNormalizedPhone(candidate.phone, signals.phone)
+      ) {
         score += 75;
       }
       if (
@@ -313,7 +350,9 @@ function normalizeLinkedIn(value?: string | null) {
 
 function normalizeName(first?: string | null, last?: string | null) {
   const fullName = [first, last]
-    .filter((value): value is string => Boolean(value && value.trim().length > 0))
+    .filter((value): value is string =>
+      Boolean(value && value.trim().length > 0),
+    )
     .join(' ')
     .trim()
     .toLowerCase()
@@ -340,7 +379,12 @@ function buildIdentityRows(signals: CandidateIdentitySignals) {
   }> = [];
 
   const email = normalizeEmailSignal(signals.email);
-  if (email) identities.push({ type: 'EMAIL', value: signals.email!.trim(), normalizedValue: email });
+  if (email)
+    identities.push({
+      type: 'EMAIL',
+      value: signals.email!.trim(),
+      normalizedValue: email,
+    });
 
   const personalEmail = normalizeEmailSignal(signals.personalEmail);
   if (personalEmail) {
@@ -352,7 +396,12 @@ function buildIdentityRows(signals: CandidateIdentitySignals) {
   }
 
   const phone = normalizePhone(signals.phone);
-  if (phone) identities.push({ type: 'PHONE', value: signals.phone!.trim(), normalizedValue: phone });
+  if (phone)
+    identities.push({
+      type: 'PHONE',
+      value: signals.phone!.trim(),
+      normalizedValue: phone,
+    });
 
   const alternatePhone = normalizePhone(signals.alternatePhone);
   if (alternatePhone) {
@@ -385,7 +434,10 @@ function mergeScores(
 ) {
   const scoreByCandidate = new Map<string, number>();
   for (const row of [...first, ...second]) {
-    scoreByCandidate.set(row.candidateId, (scoreByCandidate.get(row.candidateId) ?? 0) + row.score);
+    scoreByCandidate.set(
+      row.candidateId,
+      (scoreByCandidate.get(row.candidateId) ?? 0) + row.score,
+    );
   }
   return [...scoreByCandidate.entries()].map(([candidateId, score]) => ({
     candidateId,

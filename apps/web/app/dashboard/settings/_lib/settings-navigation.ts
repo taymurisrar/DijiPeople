@@ -1,4 +1,5 @@
 import { hasAnyPermission } from "@/lib/permissions";
+import { PERMISSION_KEYS } from "@/lib/security-keys";
 
 export type SettingsNavItem = {
   href: string;
@@ -31,8 +32,7 @@ export const settingsNavGroups: readonly SettingsNavGroup[] = [
   {
     key: "organization",
     label: "Organization",
-    summary:
-      "Core company structure, identity, and workforce master data.",
+    summary: "Core company structure, identity, and workforce master data.",
     icon: "building-2",
     items: [
       {
@@ -86,11 +86,22 @@ export const settingsNavGroups: readonly SettingsNavGroup[] = [
       {
         href: "/dashboard/settings/designations",
         label: "Designations",
-        description:
-          "Job titles, role levels, and designation master records.",
+        description: "Job titles, role levels, and designation master records.",
         icon: "badge-check",
         keywords: ["titles", "levels", "positions"],
         requiredAnyPermissions: ["designations.read"],
+      },
+      {
+        href: "/dashboard/settings/employee-levels",
+        label: "Employee Levels",
+        description:
+          "Normalized grades and levels used for policy assignment and payroll foundations.",
+        icon: "layers-3",
+        keywords: ["grades", "levels", "policy assignment"],
+        requiredAnyPermissions: [
+          PERMISSION_KEYS.EMPLOYEE_LEVELS_READ,
+          PERMISSION_KEYS.EMPLOYEE_LEVELS_MANAGE,
+        ],
       },
     ],
   },
@@ -109,7 +120,10 @@ export const settingsNavGroups: readonly SettingsNavGroup[] = [
           "Employee codes, onboarding defaults, work modes, and reporting rules.",
         icon: "user-cog",
         keywords: ["employees", "employee code", "onboarding defaults"],
-        requiredAnyPermissions: ["settings.read", "employees.read"],
+        requiredAnyPermissions: [
+          PERMISSION_KEYS.SETTINGS_READ,
+          PERMISSION_KEYS.EMPLOYEES_READ,
+        ],
       },
     ],
   },
@@ -127,13 +141,12 @@ export const settingsNavGroups: readonly SettingsNavGroup[] = [
           "Create and maintain tenant roles with grouped permissions.",
         icon: "shield",
         keywords: ["roles", "security roles"],
-        requiredAnyPermissions: ["roles.read"],
+        requiredAnyPermissions: [PERMISSION_KEYS.ROLES_READ],
       },
       {
         href: "/dashboard/settings/access/permissions",
         label: "Permissions",
-        description:
-          "Review the permission catalog by module and action.",
+        description: "Review the permission catalog by module and action.",
         icon: "key-round",
         keywords: ["permissions", "actions", "access matrix"],
         requiredAnyPermissions: ["permissions.read"],
@@ -146,7 +159,16 @@ export const settingsNavGroups: readonly SettingsNavGroup[] = [
           "Manage tenant users, ownership, role assignment, and effective access.",
         icon: "user-lock",
         keywords: ["users", "access", "ownership"],
-        requiredAnyPermissions: ["users.read"],
+        requiredAnyPermissions: [PERMISSION_KEYS.USERS_READ],
+      },
+      {
+        href: "/dashboard/settings/access/teams",
+        label: "Teams",
+        description:
+          "Manage access teams, team membership, and team role assignments.",
+        icon: "users",
+        keywords: ["teams", "groups", "team roles", "membership"],
+        requiredAnyPermissions: [PERMISSION_KEYS.TEAMS_READ],
       },
     ],
   },
@@ -193,9 +215,21 @@ export const settingsNavGroups: readonly SettingsNavGroup[] = [
         icon: "clock-3",
         keywords: ["attendance", "timesheets", "grace time", "schedule"],
         requiredAnyPermissions: [
-          "settings.read",
-          "attendance.read",
-          "timesheets.settings.read",
+          PERMISSION_KEYS.SETTINGS_READ,
+          PERMISSION_KEYS.ATTENDANCE_READ,
+          PERMISSION_KEYS.TIMESHEETS_SETTINGS_READ,
+        ],
+      },
+      {
+        href: "/dashboard/settings/desktop-agent",
+        label: "Desktop Agent",
+        description:
+          "Configure productivity tracking, heartbeat, idle, privacy, and update policies.",
+        icon: "monitor-up",
+        keywords: ["desktop agent", "productivity", "tracking", "heartbeat"],
+        requiredAnyPermissions: [
+          PERMISSION_KEYS.AGENT_SETTINGS_READ,
+          PERMISSION_KEYS.AGENT_SETTINGS_MANAGE,
         ],
       },
     ],
@@ -216,6 +250,18 @@ export const settingsNavGroups: readonly SettingsNavGroup[] = [
         icon: "banknote",
         keywords: ["salary", "payroll", "pay frequency"],
         requiredAnyPermissions: ["settings.read", "payroll.settings.read"],
+      },
+      {
+        href: "/dashboard/settings/policies",
+        label: "Policies",
+        description:
+          "Effective-dated policy definitions and scope assignments for future payroll engines.",
+        icon: "file-cog",
+        keywords: ["policies", "effective dates", "assignments"],
+        requiredAnyPermissions: [
+          PERMISSION_KEYS.POLICIES_READ,
+          PERMISSION_KEYS.POLICIES_MANAGE,
+        ],
       },
     ],
   },
@@ -281,166 +327,164 @@ export const settingsNavGroups: readonly SettingsNavGroup[] = [
         href: "/dashboard/settings/branding",
         label: "Logo & Theme",
         shortLabel: "Branding",
-        description:
-          "Logo, theme, and portal identity details for the tenant.",
+        description: "Logo, theme, and portal identity details for the tenant.",
         icon: "palette",
         keywords: ["branding", "logo", "theme"],
         requiredAnyPermissions: ["settings.read"],
       },
     ],
   },
-{
-  key: "customizations",
-  label: "Customization",
-  summary:
-    "Manage tenant-specific metadata for existing system tables, columns, views, and forms.",
-  icon: "sliders-horizontal",
-  items: [
-    {
-      href: "/dashboard/settings/customization",
-      label: "Overview",
-      shortLabel: "Overview",
-      description:
-        "Review what can be customized and open table metadata workspaces.",
-      icon: "sliders-horizontal",
-      keywords: ["customization", "metadata", "tables", "columns", "forms"],
-      requiredAnyPermissions: ["customization.read"],
-    },
-    {
-      href: "/dashboard/settings/customization/tables",
-      label: "Tables",
-      shortLabel: "Tables",
-      description:
-        "Configure labels, icons, descriptions, and active state for existing system tables.",
-      icon: "table-2",
-      keywords: ["customization", "tables", "metadata"],
-      requiredAnyPermissions: ["customization.tables.read"],
-    },
-    {
-      href: "/dashboard/settings/customization/columns",
-      label: "Columns",
-      shortLabel: "Columns",
-      description:
-        "Configure tenant metadata for fields on existing system tables.",
-      icon: "columns-3",
-      keywords: ["customization", "columns", "fields"],
-      requiredAnyPermissions: ["customization.columns.read"],
-    },
-    {
-      href: "/dashboard/settings/customization/views",
-      label: "Views",
-      shortLabel: "Views",
-      description:
-        "Manage saved table views, filters, sorting, and visibility scope.",
-      icon: "layout-grid",
-      keywords: ["customization", "views", "filters", "sorting"],
-      requiredAnyPermissions: ["customization.views.read"],
-    },
-    {
-      href: "/dashboard/settings/customization/forms",
-      label: "Forms",
-      shortLabel: "Forms",
-      description:
-        "Manage form metadata for main, quick, create, and edit layouts.",
-      icon: "form-input",
-      keywords: ["customization", "forms", "layouts"],
-      requiredAnyPermissions: ["customization.forms.read"],
-    },
-    {
-      href: "/dashboard/settings/theme",
-      label: "Theme & Colors",
-      shortLabel: "Theme",
-      description:
-        "Define primary, accent, surface, text, and status colors to match the tenant’s visual identity across the platform.",
-      icon: "palette",
-      keywords: [
-        "theme",
-        "colors",
-        "primary color",
-        "accent color",
-        "ui theme",
-        "dark mode",
-        "light mode",
-      ],
-      requiredAnyPermissions: ["settings.read"],
-    },
-    {
-      href: "/dashboard/settings/content",
-      label: "Content & Labels",
-      shortLabel: "Content",
-      description:
-        "Control tenant-specific wording, page copy, welcome content, empty states, help text, and configurable labels shown in the app.",
-      icon: "file-text",
-      keywords: [
-        "content",
-        "labels",
-        "copy",
-        "text",
-        "wording",
-        "empty states",
-        "help text",
-        "portal content",
-      ],
-      requiredAnyPermissions: ["settings.read"],
-    },
-    {
-      href: "/dashboard/settings/navigation",
-      label: "Navigation & Menu",
-      shortLabel: "Navigation",
-      description:
-        "Configure menu visibility, grouping, ordering, and tenant-specific navigation experience for different roles or modules.",
-      icon: "panel-left",
-      keywords: [
-        "navigation",
-        "menu",
-        "sidebar",
-        "menu order",
-        "role navigation",
-        "module visibility",
-      ],
-      requiredAnyPermissions: ["settings.read"],
-    },
-    {
-      href: "/dashboard/settings/dashboard",
-      label: "Dashboard Experience",
-      shortLabel: "Dashboard",
-      description:
-        "Configure dashboard widgets, default views, quick actions, banners, and role-based landing experience for users.",
-      icon: "monitor-smartphone",
-      keywords: [
-        "dashboard",
-        "widgets",
-        "landing page",
-        "default dashboard",
-        "quick actions",
-        "role-based dashboard",
-      ],
-      requiredAnyPermissions: ["settings.read"],
-    },
-    {
-      href: "/dashboard/settings/templates",
-      label: "Templates",
-      shortLabel: "Templates",
-      description:
-        "Manage reusable UI and content templates such as announcements, onboarding cards, banners, and tenant-specific page sections.",
-      icon: "copy",
-      keywords: [
-        "templates",
-        "cards",
-        "banners",
-        "announcements",
-        "reusable content",
-        "ui templates",
-      ],
-      requiredAnyPermissions: ["settings.read"],
-    },
-  ],
-},
+  {
+    key: "customizations",
+    label: "Customization",
+    summary:
+      "Manage tenant-specific metadata for existing system tables, columns, views, and forms.",
+    icon: "sliders-horizontal",
+    items: [
+      {
+        href: "/dashboard/settings/customization",
+        label: "Overview",
+        shortLabel: "Overview",
+        description:
+          "Review what can be customized and open table metadata workspaces.",
+        icon: "sliders-horizontal",
+        keywords: ["customization", "metadata", "tables", "columns", "forms"],
+        requiredAnyPermissions: ["customization.read"],
+      },
+      {
+        href: "/dashboard/settings/customization/tables",
+        label: "Tables",
+        shortLabel: "Tables",
+        description:
+          "Configure labels, icons, descriptions, and active state for existing system tables.",
+        icon: "table-2",
+        keywords: ["customization", "tables", "metadata"],
+        requiredAnyPermissions: ["customization.tables.read"],
+      },
+      {
+        href: "/dashboard/settings/customization/columns",
+        label: "Columns",
+        shortLabel: "Columns",
+        description:
+          "Configure tenant metadata for fields on existing system tables.",
+        icon: "columns-3",
+        keywords: ["customization", "columns", "fields"],
+        requiredAnyPermissions: ["customization.columns.read"],
+      },
+      {
+        href: "/dashboard/settings/customization/views",
+        label: "Views",
+        shortLabel: "Views",
+        description:
+          "Manage saved table views, filters, sorting, and visibility scope.",
+        icon: "layout-grid",
+        keywords: ["customization", "views", "filters", "sorting"],
+        requiredAnyPermissions: ["customization.views.read"],
+      },
+      {
+        href: "/dashboard/settings/customization/forms",
+        label: "Forms",
+        shortLabel: "Forms",
+        description:
+          "Manage form metadata for main, quick, create, and edit layouts.",
+        icon: "form-input",
+        keywords: ["customization", "forms", "layouts"],
+        requiredAnyPermissions: ["customization.forms.read"],
+      },
+      {
+        href: "/dashboard/settings/theme",
+        label: "Theme & Colors",
+        shortLabel: "Theme",
+        description:
+          "Define primary, accent, surface, text, and status colors to match the tenant’s visual identity across the platform.",
+        icon: "palette",
+        keywords: [
+          "theme",
+          "colors",
+          "primary color",
+          "accent color",
+          "ui theme",
+          "dark mode",
+          "light mode",
+        ],
+        requiredAnyPermissions: ["settings.read"],
+      },
+      {
+        href: "/dashboard/settings/content",
+        label: "Content & Labels",
+        shortLabel: "Content",
+        description:
+          "Control tenant-specific wording, page copy, welcome content, empty states, help text, and configurable labels shown in the app.",
+        icon: "file-text",
+        keywords: [
+          "content",
+          "labels",
+          "copy",
+          "text",
+          "wording",
+          "empty states",
+          "help text",
+          "portal content",
+        ],
+        requiredAnyPermissions: ["settings.read"],
+      },
+      {
+        href: "/dashboard/settings/navigation",
+        label: "Navigation & Menu",
+        shortLabel: "Navigation",
+        description:
+          "Configure menu visibility, grouping, ordering, and tenant-specific navigation experience for different roles or modules.",
+        icon: "panel-left",
+        keywords: [
+          "navigation",
+          "menu",
+          "sidebar",
+          "menu order",
+          "role navigation",
+          "module visibility",
+        ],
+        requiredAnyPermissions: ["settings.read"],
+      },
+      {
+        href: "/dashboard/settings/dashboard",
+        label: "Dashboard Experience",
+        shortLabel: "Dashboard",
+        description:
+          "Configure dashboard widgets, default views, quick actions, banners, and role-based landing experience for users.",
+        icon: "monitor-smartphone",
+        keywords: [
+          "dashboard",
+          "widgets",
+          "landing page",
+          "default dashboard",
+          "quick actions",
+          "role-based dashboard",
+        ],
+        requiredAnyPermissions: ["settings.read"],
+      },
+      {
+        href: "/dashboard/settings/templates",
+        label: "Templates",
+        shortLabel: "Templates",
+        description:
+          "Manage reusable UI and content templates such as announcements, onboarding cards, banners, and tenant-specific page sections.",
+        icon: "copy",
+        keywords: [
+          "templates",
+          "cards",
+          "banners",
+          "announcements",
+          "reusable content",
+          "ui templates",
+        ],
+        requiredAnyPermissions: ["settings.read"],
+      },
+    ],
+  },
   {
     key: "system",
     label: "System & Audit",
-    summary:
-      "Tenant-wide preferences, feature access, and change visibility.",
+    summary: "Tenant-wide preferences, feature access, and change visibility.",
     icon: "settings-2",
     items: [
       {

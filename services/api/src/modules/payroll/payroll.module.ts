@@ -11,7 +11,12 @@ import { PayrollService } from './payroll.service';
 @Module({
   imports: [JwtModule.register({}), EmployeesModule, TenantSettingsModule],
   controllers: [PayrollController],
-  providers: [PayrollRepository, PayrollService, JwtAuthGuard, PermissionsGuard],
+  providers: [
+    PayrollRepository,
+    PayrollService,
+    JwtAuthGuard,
+    PermissionsGuard,
+  ],
   exports: [PayrollRepository, PayrollService],
 })
 export class PayrollModule {}

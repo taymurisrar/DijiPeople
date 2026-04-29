@@ -1,4 +1,8 @@
-import { RecruitmentStage, EmployeeGender, EmployeeWorkMode } from '@prisma/client';
+import {
+  RecruitmentStage,
+  EmployeeGender,
+  EmployeeWorkMode,
+} from '@prisma/client';
 import { Transform, Type } from 'class-transformer';
 import {
   ArrayMaxSize,
@@ -349,7 +353,10 @@ export class CreateCandidateDto {
 
   @IsOptional()
   @Transform(emptyStringToUndefined)
-  @IsUrl({ require_tld: false }, { message: 'portfolioUrl must be a valid URL' })
+  @IsUrl(
+    { require_tld: false },
+    { message: 'portfolioUrl must be a valid URL' },
+  )
   @MaxLength(500)
   portfolioUrl?: string;
 
@@ -361,7 +368,10 @@ export class CreateCandidateDto {
 
   @IsOptional()
   @Transform(emptyStringToUndefined)
-  @IsUrl({ require_tld: false }, { message: 'otherProfileUrl must be a valid URL' })
+  @IsUrl(
+    { require_tld: false },
+    { message: 'otherProfileUrl must be a valid URL' },
+  )
   @MaxLength(500)
   otherProfileUrl?: string;
 

@@ -1,6 +1,7 @@
 import { apiRequestJson } from "@/lib/server-api";
 import { getSessionUser } from "@/lib/auth";
 import { getDefaultForm } from "@/lib/customization-forms";
+import { PERMISSION_KEYS } from "@/lib/security-keys";
 import { EmployeeForm } from "../../_components/employee-form";
 import {
   EmployeeFormValues,
@@ -22,22 +23,23 @@ export default async function EditEmployeePage({
   const { employeeId } = await params;
   const sessionUser = await getSessionUser();
   const canManageAccess = Boolean(
-    sessionUser?.permissionKeys.includes("users.create") &&
-      sessionUser.permissionKeys.includes("users.assign-roles") &&
-      sessionUser.permissionKeys.includes("roles.read"),
+    sessionUser?.permissionKeys.includes(PERMISSION_KEYS.USERS_CREATE) &&
+    sessionUser.permissionKeys.includes(PERMISSION_KEYS.USERS_ASSIGN_ROLES) &&
+    sessionUser.permissionKeys.includes(PERMISSION_KEYS.ROLES_READ),
   );
 
-  const [employee, managers, roles, resolvedSettings, runtimeForm] = await Promise.all([
-    apiRequestJson<EmployeeProfile>(`/employees/${employeeId}`),
-    apiRequestJson<EmployeeListResponse>("/employees?pageSize=100"),
-    canManageAccess
-      ? apiRequestJson<EmployeeRoleOption[]>("/roles")
-      : Promise.resolve([]),
-    apiRequestJson<TenantResolvedSettingsResponse>("/tenant-settings/resolved").catch(
-      () => null,
-    ),
-    getDefaultForm("employees", "edit"),
-  ]);
+  const [employee, managers, roles, resolvedSettings, runtimeForm] =
+    await Promise.all([
+      apiRequestJson<EmployeeProfile>(`/employees/${employeeId}`),
+      apiRequestJson<EmployeeListResponse>("/employees?pageSize=100"),
+      canManageAccess
+        ? apiRequestJson<EmployeeRoleOption[]>("/roles")
+        : Promise.resolve([]),
+      apiRequestJson<TenantResolvedSettingsResponse>(
+        "/tenant-settings/resolved",
+      ).catch(() => null),
+      getDefaultForm("employees", "edit"),
+    ]);
 
   const initialValues: EmployeeFormValues = {
     employeeCode: employee.employeeCode,
@@ -72,12 +74,14 @@ export default async function EditEmployeePage({
       : "",
     departmentId: employee.departmentId || "",
     designationId: employee.designationId || "",
+    employeeLevelId: employee.employeeLevelId || "",
     locationId: employee.locationId || "",
     officialJoiningLocationId: employee.officialJoiningLocationId || "",
     reportingManagerEmployeeId: employee.reportingManagerEmployeeId || "",
     userId: employee.userId || "",
     noticePeriodDays:
-      employee.noticePeriodDays !== null && employee.noticePeriodDays !== undefined
+      employee.noticePeriodDays !== null &&
+      employee.noticePeriodDays !== undefined
         ? employee.noticePeriodDays
         : null,
     taxIdentifier: employee.taxIdentifier || "",
@@ -109,8 +113,8 @@ export default async function EditEmployeePage({
           Update {employee.fullName}
         </h3>
         <p className="mt-2 max-w-3xl text-muted">
-          Keep the core employment record accurate so future HR modules can
-          rely on this data consistently.
+          Keep the core employment record accurate so future HR modules can rely
+          on this data consistently.
         </p>
       </section>
 
@@ -118,17 +122,22 @@ export default async function EditEmployeePage({
         canManageAccess={canManageAccess}
         employeeId={employee.id}
         initialValues={initialValues}
-        managerOptions={managers.items.filter((manager) => manager.id !== employee.id)}
+        managerOptions={managers.items.filter(
+          (manager) => manager.id !== employee.id,
+        )}
         roleOptions={roles}
         runtimeFormLayout={runtimeForm?.layoutJson ?? null}
         settings={{
           autoGenerateEmployeeId:
             resolvedSettings?.employee.autoGenerateEmployeeId ?? false,
-          requireDepartment: resolvedSettings?.employee.requireDepartment ?? false,
-          requireDesignation: resolvedSettings?.employee.requireDesignation ?? false,
+          requireDepartment:
+            resolvedSettings?.employee.requireDepartment ?? false,
+          requireDesignation:
+            resolvedSettings?.employee.requireDesignation ?? false,
           requireReportingManager:
             resolvedSettings?.employee.requireReportingManager ?? false,
-          requireWorkLocation: resolvedSettings?.employee.requireWorkLocation ?? false,
+          requireWorkLocation:
+            resolvedSettings?.employee.requireWorkLocation ?? false,
         }}
         mode="edit"
       />

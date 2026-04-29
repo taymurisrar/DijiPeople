@@ -127,11 +127,12 @@ export class CandidatesController {
     @Param('documentId', new ParseUUIDPipe()) documentId: string,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const { document, file, redirectUrl } = await this.recruitmentService.openCandidateDocumentForView(
-      user.tenantId,
-      candidateId,
-      documentId,
-    );
+    const { document, file, redirectUrl } =
+      await this.recruitmentService.openCandidateDocumentForView(
+        user.tenantId,
+        candidateId,
+        documentId,
+      );
 
     if (redirectUrl) {
       response.redirect(redirectUrl);

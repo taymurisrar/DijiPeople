@@ -20,6 +20,14 @@ type EssDashboardContentProps = {
     detail: string;
     href?: string;
   }>;
+  productivitySummary: {
+    currentStatus: "ACTIVE" | "IDLE" | "AWAY" | "OFFLINE";
+    lastSeenAt: string | null;
+    todayActiveSeconds: number;
+    todayIdleSeconds: number;
+    todayAwaySeconds: number;
+    utilizationPercent: number;
+  } | null;
   timesheets: TimesheetRecord[];
   tenantContext: {
     companyDisplayName: string;
@@ -44,13 +52,13 @@ export function EssDashboardContent({
   employee,
   leaveRequests,
   notifications,
+  productivitySummary,
   timesheets,
   tenantContext,
   user,
 }: EssDashboardContentProps) {
   const dashboardGreeting =
-    tenantContext.dashboardGreeting?.trim() ||
-    `Hello, ${user.firstName}`;
+    tenantContext.dashboardGreeting?.trim() || `Hello, ${user.firstName}`;
   const pendingLeaveCount = leaveRequests.filter(
     (request) => request.status === "PENDING",
   ).length;
@@ -64,7 +72,8 @@ export function EssDashboardContent({
     0,
   );
 
-  const todaysAttendanceValue = currentAttendanceEntry?.status ?? "Not checked in";
+  const todaysAttendanceValue =
+    currentAttendanceEntry?.status ?? "Not checked in";
   const todaysAttendanceDetail = attendanceAvailable
     ? currentAttendanceEntry?.checkIn
       ? `Checked in at ${formatTime(currentAttendanceEntry.checkIn)}`
@@ -103,7 +112,8 @@ export function EssDashboardContent({
                   {dashboardGreeting}
                 </h2>
                 <p className="mt-2 text-sm text-muted sm:text-base">
-                  Centralized view for day-to-day follow-up across employee self-service data.
+                  Centralized view for day-to-day follow-up across employee
+                  self-service data.
                 </p>
               </div>
 
@@ -146,7 +156,9 @@ export function EssDashboardContent({
                     <p className="text-sm font-semibold text-foreground">
                       {notification.title}
                     </p>
-                    <p className="mt-1 text-sm text-muted">{notification.detail}</p>
+                    <p className="mt-1 text-sm text-muted">
+                      {notification.detail}
+                    </p>
                     {notification.href ? (
                       <Link
                         href={notification.href}
@@ -165,7 +177,9 @@ export function EssDashboardContent({
         <EssQuickActions
           canCheckIn={attendanceAvailable && currentAttendanceEntry === null}
           canCheckOut={currentAttendanceEntry?.canCurrentUserCheckOut ?? false}
-          canRequestLeave={user.permissionKeys.includes("leave-requests.create")}
+          canRequestLeave={user.permissionKeys.includes(
+            "leave-requests.create",
+          )}
           canSubmitTimesheet={currentTimesheet?.canCurrentUserSubmit ?? false}
           canUpdateProfile={Boolean(employee)}
           timesheetPeriodStart={currentTimesheet?.periodStart ?? null}
@@ -196,6 +210,15 @@ export function EssDashboardContent({
                 : "Employee profile not linked yet"
             }
           />
+          <StatusCard
+            title="Desktop agent"
+            value={productivitySummary?.currentStatus ?? "Not connected"}
+            detail={
+              productivitySummary?.lastSeenAt
+                ? `Last seen ${formatDateTime(productivitySummary.lastSeenAt)}`
+                : "No desktop heartbeat recorded yet"
+            }
+          />
         </section>
 
         <section className="grid gap-4 xl:grid-cols-[1fr_0.9fr]">
@@ -216,7 +239,9 @@ export function EssDashboardContent({
                     key={item.id}
                     className="rounded-2xl border border-border bg-white px-4 py-4"
                   >
-                    <p className="text-sm font-semibold text-foreground">{item.title}</p>
+                    <p className="text-sm font-semibold text-foreground">
+                      {item.title}
+                    </p>
                     <p className="mt-1 text-sm text-muted">{item.detail}</p>
                     {item.href ? (
                       <Link
@@ -323,6 +348,11 @@ export function EssDashboardContent({
                 : "Employee profile not linked yet"
             }
           />
+          <StatusCard
+            title="Desktop agent"
+            value={productivitySummary?.currentStatus ?? "Not connected"}
+            detail={formatProductivityDetail(productivitySummary)}
+          />
         </section>
 
         <section className="grid gap-4 xl:grid-cols-[1fr_1fr]">
@@ -336,10 +366,18 @@ export function EssDashboardContent({
 
             <div className="mt-5">
               <EssQuickActions
-                canCheckIn={attendanceAvailable && currentAttendanceEntry === null}
-                canCheckOut={currentAttendanceEntry?.canCurrentUserCheckOut ?? false}
-                canRequestLeave={user.permissionKeys.includes("leave-requests.create")}
-                canSubmitTimesheet={currentTimesheet?.canCurrentUserSubmit ?? false}
+                canCheckIn={
+                  attendanceAvailable && currentAttendanceEntry === null
+                }
+                canCheckOut={
+                  currentAttendanceEntry?.canCurrentUserCheckOut ?? false
+                }
+                canRequestLeave={user.permissionKeys.includes(
+                  "leave-requests.create",
+                )}
+                canSubmitTimesheet={
+                  currentTimesheet?.canCurrentUserSubmit ?? false
+                }
                 canUpdateProfile={Boolean(employee)}
                 timesheetPeriodStart={currentTimesheet?.periodStart ?? null}
               />
@@ -363,7 +401,9 @@ export function EssDashboardContent({
                     key={item.id}
                     className="rounded-2xl border border-border bg-white px-4 py-4"
                   >
-                    <p className="text-sm font-semibold text-foreground">{item.title}</p>
+                    <p className="text-sm font-semibold text-foreground">
+                      {item.title}
+                    </p>
                     <p className="mt-1 text-sm text-muted">{item.detail}</p>
                     {item.href ? (
                       <Link
@@ -469,6 +509,11 @@ export function EssDashboardContent({
               : "Employee profile not linked yet"
           }
         />
+        <StatusCard
+          title="Desktop agent"
+          value={productivitySummary?.currentStatus ?? "Not connected"}
+          detail={formatProductivityDetail(productivitySummary)}
+        />
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[1fr_0.9fr]">
@@ -493,7 +538,9 @@ export function EssDashboardContent({
                   key={item.id}
                   className="rounded-2xl border border-border bg-white px-4 py-4"
                 >
-                  <p className="text-sm font-semibold text-foreground">{item.title}</p>
+                  <p className="text-sm font-semibold text-foreground">
+                    {item.title}
+                  </p>
                   <p className="mt-1 text-sm text-muted">{item.detail}</p>
                   {item.href ? (
                     <Link
@@ -721,4 +768,32 @@ function formatTime(value: string) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function formatDateTime(value: string) {
+  return new Date(value).toLocaleString([], {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
+function formatProductivityDetail(
+  summary: EssDashboardContentProps["productivitySummary"],
+) {
+  if (!summary) {
+    return "No desktop heartbeat recorded yet";
+  }
+
+  return `${formatDuration(summary.todayActiveSeconds)} active / ${formatDuration(summary.todayIdleSeconds)} idle / ${formatDuration(summary.todayAwaySeconds)} away`;
+}
+
+function formatDuration(seconds: number) {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+
+  return `${minutes}m`;
 }

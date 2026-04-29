@@ -41,9 +41,10 @@ export class BusinessUnitAccessMiddleware implements NestMiddleware {
         return this.requestContextService.runWithContext(null, () => next());
       }
 
-      const buAccess = await this.organizationAccessService.resolveBusinessUnitAccessContext(
-        userId,
-      );
+      const buAccess =
+        await this.organizationAccessService.resolveBusinessUnitAccessContext(
+          userId,
+        );
 
       req.buAccess = buAccess;
       return this.requestContextService.runWithContext(buAccess, () => next());

@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { AttendanceEntryStatus, EmployeeEmploymentStatus, LeaveRequestStatus, RecruitmentStage } from '@prisma/client';
+import {
+  AttendanceEntryStatus,
+  EmployeeEmploymentStatus,
+  LeaveRequestStatus,
+  RecruitmentStage,
+} from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 
 @Injectable()
@@ -52,7 +57,10 @@ export class ReportsService {
       departments.map((department) => [department.id, department]),
     );
     const statusMap = new Map(
-      employmentStatusCounts.map((item) => [item.employmentStatus, item._count._all]),
+      employmentStatusCounts.map((item) => [
+        item.employmentStatus,
+        item._count._all,
+      ]),
     );
 
     return {
@@ -66,7 +74,7 @@ export class ReportsService {
       departments: departmentCounts.map((item) => ({
         departmentId: item.departmentId,
         departmentName: item.departmentId
-          ? departmentMap.get(item.departmentId)?.name ?? 'Unknown department'
+          ? (departmentMap.get(item.departmentId)?.name ?? 'Unknown department')
           : 'Unassigned',
         count: item._count._all,
       })),
@@ -268,7 +276,10 @@ export class ReportsService {
       jobStatusCounts.map((item) => [item.status, item._count._all]),
     );
     const candidateMap = new Map(
-      candidateStageCounts.map((item) => [item.currentStatus, item._count._all]),
+      candidateStageCounts.map((item) => [
+        item.currentStatus,
+        item._count._all,
+      ]),
     );
 
     return {

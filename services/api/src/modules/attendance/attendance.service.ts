@@ -177,7 +177,8 @@ export class AttendanceService {
       {
         checkOut: now,
         checkOutNote: normalizeOptionalText(dto.note),
-        workSummary: normalizeOptionalText(dto.workSummary) ?? existing.workSummary,
+        workSummary:
+          normalizeOptionalText(dto.workSummary) ?? existing.workSummary,
         notes: mergeNotes(existing.notes, dto.note),
         remoteLatitude: dto.remoteLatitude ?? existing.remoteLatitude,
         remoteLongitude: dto.remoteLongitude ?? existing.remoteLongitude,
@@ -246,7 +247,8 @@ export class AttendanceService {
     currentUser: AuthenticatedUser,
     query: AttendanceQueryDto,
   ) {
-    const canManageAll = currentUser.permissionKeys.includes('attendance.manage');
+    const canManageAll =
+      currentUser.permissionKeys.includes('attendance.manage');
     const employeeIds = canManageAll
       ? await this.resolveAllTenantEmployeeIds(currentUser.tenantId, query)
       : await this.resolveDirectReportEmployeeIds(currentUser, query);
@@ -282,24 +284,35 @@ export class AttendanceService {
       { employeeId: employee.id },
     );
 
-    return buildSummaryResponse(items, query.view, query.date ?? currentDateKey(), {
-      scope: 'mine',
-    });
+    return buildSummaryResponse(
+      items,
+      query.view,
+      query.date ?? currentDateKey(),
+      {
+        scope: 'mine',
+      },
+    );
   }
 
   async getTeamAttendanceSummary(
     currentUser: AuthenticatedUser,
     query: AttendanceSummaryQueryDto,
   ) {
-    const canManageAll = currentUser.permissionKeys.includes('attendance.manage');
+    const canManageAll =
+      currentUser.permissionKeys.includes('attendance.manage');
     const employeeIds = canManageAll
       ? await this.resolveAllTenantEmployeeIds(currentUser.tenantId, {})
       : await this.resolveDirectReportEmployeeIds(currentUser, {});
 
     if (employeeIds.length === 0) {
-      return buildSummaryResponse([], query.view, query.date ?? currentDateKey(), {
-        scope: canManageAll ? 'tenant' : 'team',
-      });
+      return buildSummaryResponse(
+        [],
+        query.view,
+        query.date ?? currentDateKey(),
+        {
+          scope: canManageAll ? 'tenant' : 'team',
+        },
+      );
     }
 
     const rangeQuery = summaryQueryToAttendanceQuery(query);
@@ -309,9 +322,14 @@ export class AttendanceService {
       { employeeId: { in: employeeIds } },
     );
 
-    return buildSummaryResponse(items, query.view, query.date ?? currentDateKey(), {
-      scope: canManageAll ? 'tenant' : 'team',
-    });
+    return buildSummaryResponse(
+      items,
+      query.view,
+      query.date ?? currentDateKey(),
+      {
+        scope: canManageAll ? 'tenant' : 'team',
+      },
+    );
   }
 
   async createManualEntry(
@@ -325,10 +343,11 @@ export class AttendanceService {
       );
     }
 
-    const employee = await this.employeesRepository.findHierarchyNodeByIdAndTenant(
-      currentUser.tenantId,
-      dto.employeeId,
-    );
+    const employee =
+      await this.employeesRepository.findHierarchyNodeByIdAndTenant(
+        currentUser.tenantId,
+        dto.employeeId,
+      );
 
     if (!employee) {
       throw new BadRequestException(
@@ -337,11 +356,12 @@ export class AttendanceService {
     }
 
     const attendanceDate = toStartOfDay(new Date(dto.date));
-    const existing = await this.attendanceRepository.findAttendanceEntryByEmployeeAndDate(
-      currentUser.tenantId,
-      dto.employeeId,
-      attendanceDate,
-    );
+    const existing =
+      await this.attendanceRepository.findAttendanceEntryByEmployeeAndDate(
+        currentUser.tenantId,
+        dto.employeeId,
+        attendanceDate,
+      );
 
     if (existing) {
       throw new ConflictException(
@@ -398,7 +418,12 @@ export class AttendanceService {
       attendanceMode: dto.attendanceMode,
       status:
         dto.status ??
-        deriveManualStatus(checkIn, checkOut, lateCheckIn.isLate, dto.attendanceMode),
+        deriveManualStatus(
+          checkIn,
+          checkOut,
+          lateCheckIn.isLate,
+          dto.attendanceMode,
+        ),
       source: dto.source ?? AttendanceEntrySource.MANUAL,
       checkInNote: normalizeOptionalText(dto.checkInNote),
       checkOutNote: normalizeOptionalText(dto.checkOutNote),
@@ -455,10 +480,11 @@ export class AttendanceService {
     }
 
     const targetEmployeeId = dto.employeeId ?? existing.employeeId;
-    const employee = await this.employeesRepository.findHierarchyNodeByIdAndTenant(
-      currentUser.tenantId,
-      targetEmployeeId,
-    );
+    const employee =
+      await this.employeesRepository.findHierarchyNodeByIdAndTenant(
+        currentUser.tenantId,
+        targetEmployeeId,
+      );
 
     if (!employee) {
       throw new BadRequestException(
@@ -474,11 +500,12 @@ export class AttendanceService {
       targetEmployeeId !== existing.employeeId ||
       attendanceDate.getTime() !== existing.date.getTime()
     ) {
-      const duplicate = await this.attendanceRepository.findAttendanceEntryByEmployeeAndDate(
-        currentUser.tenantId,
-        targetEmployeeId,
-        attendanceDate,
-      );
+      const duplicate =
+        await this.attendanceRepository.findAttendanceEntryByEmployeeAndDate(
+          currentUser.tenantId,
+          targetEmployeeId,
+          attendanceDate,
+        );
 
       if (duplicate && duplicate.id !== existing.id) {
         throw new ConflictException(
@@ -502,12 +529,12 @@ export class AttendanceService {
     const checkIn = dto.checkInTime
       ? combineDateAndTime(attendanceDate, dto.checkInTime)
       : dto.checkInTime === undefined
-        ? existing.checkIn ?? undefined
+        ? (existing.checkIn ?? undefined)
         : undefined;
     const checkOut = dto.checkOutTime
       ? combineDateAndTime(attendanceDate, dto.checkOutTime)
       : dto.checkOutTime === undefined
-        ? existing.checkOut ?? undefined
+        ? (existing.checkOut ?? undefined)
         : undefined;
 
     if (checkOut && !checkIn) {
@@ -600,7 +627,8 @@ export class AttendanceService {
     currentUser: AuthenticatedUser,
     query: AttendanceQueryDto,
   ) {
-    const canManageAll = currentUser.permissionKeys.includes('attendance.manage');
+    const canManageAll =
+      currentUser.permissionKeys.includes('attendance.manage');
     const employeeIds = canManageAll
       ? await this.resolveAllTenantEmployeeIds(currentUser.tenantId, query)
       : await this.resolveDirectReportEmployeeIds(currentUser, query);
@@ -624,7 +652,9 @@ export class AttendanceService {
 
     return {
       fileName: buildExportFileName(query),
-      csv: buildAttendanceCsv(items.map((item) => this.mapAttendanceEntry(item))),
+      csv: buildAttendanceCsv(
+        items.map((item) => this.mapAttendanceEntry(item)),
+      ),
     };
   }
 
@@ -643,16 +673,22 @@ export class AttendanceService {
       importedAt: new Date(),
     });
 
-    const employees = await this.employeesRepository.findByTenant(currentUser.tenantId, {
-      page: 1,
-      pageSize: 1000,
-      search: undefined,
-      employmentStatus: undefined,
-      reportingManagerEmployeeId: undefined,
-    });
+    const employees = await this.employeesRepository.findByTenant(
+      currentUser.tenantId,
+      {
+        page: 1,
+        pageSize: 1000,
+        search: undefined,
+        employmentStatus: undefined,
+        reportingManagerEmployeeId: undefined,
+      },
+    );
 
     const employeeByCode = new Map(
-      employees.items.map((employee) => [employee.employeeCode.toLowerCase(), employee]),
+      employees.items.map((employee) => [
+        employee.employeeCode.toLowerCase(),
+        employee,
+      ]),
     );
     const employeeByEmail = new Map(
       employees.items
@@ -666,7 +702,13 @@ export class AttendanceService {
 
     for (const row of rows) {
       try {
-        await this.importRow(currentUser, batch.id, row, employeeByCode, employeeByEmail);
+        await this.importRow(
+          currentUser,
+          batch.id,
+          row,
+          employeeByCode,
+          employeeByEmail,
+        );
         successCount += 1;
       } catch (error) {
         rowErrors.push({
@@ -677,24 +719,28 @@ export class AttendanceService {
     }
 
     const failedCount = rowErrors.length;
-    await this.attendanceRepository.updateImportBatch(currentUser.tenantId, batch.id, {
-      status:
-        failedCount === 0
-          ? AttendanceImportBatchStatus.COMPLETED
-          : successCount > 0
-            ? AttendanceImportBatchStatus.PARTIAL
-            : AttendanceImportBatchStatus.FAILED,
-      totalRows: rows.length,
-      successCount,
-      failedCount,
-      errorSummary:
-        rowErrors.length > 0
-          ? rowErrors
-              .slice(0, 10)
-              .map((item) => `Row ${item.row}: ${item.message}`)
-              .join('\n')
-          : null,
-    });
+    await this.attendanceRepository.updateImportBatch(
+      currentUser.tenantId,
+      batch.id,
+      {
+        status:
+          failedCount === 0
+            ? AttendanceImportBatchStatus.COMPLETED
+            : successCount > 0
+              ? AttendanceImportBatchStatus.PARTIAL
+              : AttendanceImportBatchStatus.FAILED,
+        totalRows: rows.length,
+        successCount,
+        failedCount,
+        errorSummary:
+          rowErrors.length > 0
+            ? rowErrors
+                .slice(0, 10)
+                .map((item) => `Row ${item.row}: ${item.message}`)
+                .join('\n')
+            : null,
+      },
+    );
 
     await this.auditService.log({
       tenantId: currentUser.tenantId,
@@ -721,9 +767,10 @@ export class AttendanceService {
   }
 
   async listIntegrationConfigs(currentUser: AuthenticatedUser) {
-    const integrations = await this.attendanceRepository.listAttendanceIntegrations(
-      currentUser.tenantId,
-    );
+    const integrations =
+      await this.attendanceRepository.listAttendanceIntegrations(
+        currentUser.tenantId,
+      );
 
     return integrations.map((integration) => ({
       id: integration.id,
@@ -743,17 +790,18 @@ export class AttendanceService {
     currentUser: AuthenticatedUser,
     dto: CreateAttendanceIntegrationDto,
   ) {
-    const integration = await this.attendanceRepository.createAttendanceIntegration({
-      tenantId: currentUser.tenantId,
-      name: dto.name.trim(),
-      integrationType: dto.integrationType,
-      description: normalizeOptionalText(dto.description),
-      endpointUrl: normalizeOptionalText(dto.endpointUrl),
-      username: normalizeOptionalText(dto.username),
-      configJson: normalizeOptionalText(dto.configJson),
-      createdById: currentUser.userId,
-      updatedById: currentUser.userId,
-    });
+    const integration =
+      await this.attendanceRepository.createAttendanceIntegration({
+        tenantId: currentUser.tenantId,
+        name: dto.name.trim(),
+        integrationType: dto.integrationType,
+        description: normalizeOptionalText(dto.description),
+        endpointUrl: normalizeOptionalText(dto.endpointUrl),
+        username: normalizeOptionalText(dto.username),
+        configJson: normalizeOptionalText(dto.configJson),
+        createdById: currentUser.userId,
+        updatedById: currentUser.userId,
+      });
 
     await this.auditService.log({
       tenantId: currentUser.tenantId,
@@ -776,10 +824,11 @@ export class AttendanceService {
     integrationId: string,
     dto: UpdateAttendanceIntegrationDto,
   ) {
-    const existing = await this.attendanceRepository.findAttendanceIntegrationById(
-      currentUser.tenantId,
-      integrationId,
-    );
+    const existing =
+      await this.attendanceRepository.findAttendanceIntegrationById(
+        currentUser.tenantId,
+        integrationId,
+      );
 
     if (!existing) {
       throw new NotFoundException('Attendance integration could not be found.');
@@ -799,13 +848,16 @@ export class AttendanceService {
       },
     );
 
-    const updated = await this.attendanceRepository.findAttendanceIntegrationById(
-      currentUser.tenantId,
-      integrationId,
-    );
+    const updated =
+      await this.attendanceRepository.findAttendanceIntegrationById(
+        currentUser.tenantId,
+        integrationId,
+      );
 
     if (!updated) {
-      throw new NotFoundException('Attendance integration could not be reloaded.');
+      throw new NotFoundException(
+        'Attendance integration could not be reloaded.',
+      );
     }
 
     await this.auditService.log({
@@ -845,8 +897,10 @@ export class AttendanceService {
         tenantId: currentUser.tenantId,
         lateCheckInGraceMinutes: dto.lateCheckInGraceMinutes,
         lateCheckOutGraceMinutes: dto.lateCheckOutGraceMinutes,
-        requireOfficeLocationForOfficeMode: dto.requireOfficeLocationForOfficeMode,
-        requireRemoteLocationForRemoteMode: dto.requireRemoteLocationForRemoteMode,
+        requireOfficeLocationForOfficeMode:
+          dto.requireOfficeLocationForOfficeMode,
+        requireRemoteLocationForRemoteMode:
+          dto.requireRemoteLocationForRemoteMode,
         allowRemoteWithoutLocation: dto.allowRemoteWithoutLocation,
         createdById: currentUser.userId,
         updatedById: currentUser.userId,
@@ -854,8 +908,10 @@ export class AttendanceService {
       {
         lateCheckInGraceMinutes: dto.lateCheckInGraceMinutes,
         lateCheckOutGraceMinutes: dto.lateCheckOutGraceMinutes,
-        requireOfficeLocationForOfficeMode: dto.requireOfficeLocationForOfficeMode,
-        requireRemoteLocationForRemoteMode: dto.requireRemoteLocationForRemoteMode,
+        requireOfficeLocationForOfficeMode:
+          dto.requireOfficeLocationForOfficeMode,
+        requireRemoteLocationForRemoteMode:
+          dto.requireRemoteLocationForRemoteMode,
         allowRemoteWithoutLocation: dto.allowRemoteWithoutLocation,
         updatedById: currentUser.userId,
       },
@@ -885,7 +941,11 @@ export class AttendanceService {
     employeeByCode: Map<string, { id: string; employeeCode: string }>,
     employeeByEmail: Map<string, { id: string; workEmail?: string | null }>,
   ) {
-    const employee = resolveEmployeeFromImportRow(row, employeeByCode, employeeByEmail);
+    const employee = resolveEmployeeFromImportRow(
+      row,
+      employeeByCode,
+      employeeByEmail,
+    );
 
     if (!employee) {
       throw new BadRequestException(
@@ -903,11 +963,12 @@ export class AttendanceService {
       throw new BadRequestException('date must be a valid ISO date.');
     }
 
-    const existing = await this.attendanceRepository.findAttendanceEntryByEmployeeAndDate(
-      currentUser.tenantId,
-      employee.id,
-      attendanceDate,
-    );
+    const existing =
+      await this.attendanceRepository.findAttendanceEntryByEmployeeAndDate(
+        currentUser.tenantId,
+        employee.id,
+        attendanceDate,
+      );
 
     if (existing) {
       throw new ConflictException(
@@ -968,7 +1029,12 @@ export class AttendanceService {
       attendanceMode,
       status:
         parseAttendanceStatus(row.values.status) ??
-        deriveManualStatus(checkIn, checkOut, lateCheckIn.isLate, attendanceMode),
+        deriveManualStatus(
+          checkIn,
+          checkOut,
+          lateCheckIn.isLate,
+          attendanceMode,
+        ),
       source: AttendanceEntrySource.IMPORT,
       checkInNote: normalizeOptionalText(row.values.checkInNote),
       checkOutNote: normalizeOptionalText(row.values.checkOutNote),
@@ -1005,13 +1071,16 @@ export class AttendanceService {
   private async resolvePolicy(tenantId: string) {
     const attendanceSettings =
       await this.tenantSettingsResolverService.getAttendanceSettings(tenantId);
-    const policy = await this.attendanceRepository.findAttendancePolicy(tenantId);
+    const policy =
+      await this.attendanceRepository.findAttendancePolicy(tenantId);
 
     return {
       lateCheckInGraceMinutes:
-        policy?.lateCheckInGraceMinutes ?? attendanceSettings.defaultGraceMinutes,
+        policy?.lateCheckInGraceMinutes ??
+        attendanceSettings.defaultGraceMinutes,
       lateCheckOutGraceMinutes:
-        policy?.lateCheckOutGraceMinutes ?? attendanceSettings.defaultGraceMinutes,
+        policy?.lateCheckOutGraceMinutes ??
+        attendanceSettings.defaultGraceMinutes,
       requireOfficeLocationForOfficeMode:
         policy?.requireOfficeLocationForOfficeMode ??
         attendanceSettings.enforceOfficeLocationForOfficeMode,
@@ -1051,10 +1120,11 @@ export class AttendanceService {
         return null;
       }
 
-      const officeLocation = await this.attendanceRepository.findOfficeLocationById(
-        tenantId,
-        officeLocationId,
-      );
+      const officeLocation =
+        await this.attendanceRepository.findOfficeLocationById(
+          tenantId,
+          officeLocationId,
+        );
 
       if (!officeLocation) {
         throw new BadRequestException(
@@ -1084,10 +1154,11 @@ export class AttendanceService {
     query: Partial<AttendanceQueryDto>,
   ) {
     if (query.employeeId) {
-      const employee = await this.employeesRepository.findHierarchyNodeByIdAndTenant(
-        tenantId,
-        query.employeeId,
-      );
+      const employee =
+        await this.employeesRepository.findHierarchyNodeByIdAndTenant(
+          tenantId,
+          query.employeeId,
+        );
 
       if (!employee) {
         throw new BadRequestException(
@@ -1109,7 +1180,9 @@ export class AttendanceService {
     let items = employees.items;
 
     if (query.departmentId) {
-      items = items.filter((employee) => employee.departmentId === query.departmentId);
+      items = items.filter(
+        (employee) => employee.departmentId === query.departmentId,
+      );
     }
 
     return items.map((employee) => employee.id);
@@ -1126,7 +1199,9 @@ export class AttendanceService {
     );
 
     const filteredReports = query.departmentId
-      ? directReports.filter((employee) => employee.department?.id === query.departmentId)
+      ? directReports.filter(
+          (employee) => employee.department?.id === query.departmentId,
+        )
       : directReports;
     const directReportIds = filteredReports.map((employee) => employee.id);
 
@@ -1432,7 +1507,9 @@ function deriveManualStatus(
   return AttendanceEntryStatus.PRESENT;
 }
 
-function summaryQueryToAttendanceQuery(query: AttendanceSummaryQueryDto): AttendanceQueryDto {
+function summaryQueryToAttendanceQuery(
+  query: AttendanceSummaryQueryDto,
+): AttendanceQueryDto {
   const anchor = query.date ? new Date(query.date) : new Date();
   const { dateFrom, dateTo } = resolveSummaryRange(anchor, query.view);
 
@@ -1522,7 +1599,10 @@ function buildSummaryResponse(
       existing.missedCheckoutCount += 1;
     }
     if (item.checkIn && item.checkOut) {
-      existing.workedMinutes += differenceInMinutes(item.checkOut, item.checkIn);
+      existing.workedMinutes += differenceInMinutes(
+        item.checkOut,
+        item.checkIn,
+      );
     }
 
     buckets.set(key, existing);
@@ -1545,11 +1625,22 @@ function buildSummaryResponse(
     anchorDate,
     totals: {
       entries: items.length,
-      present: items.filter((item) => item.status === AttendanceEntryStatus.PRESENT).length,
-      late: items.filter((item) => item.status === AttendanceEntryStatus.LATE || item.isLateCheckIn).length,
-      remote: items.filter((item) => item.attendanceMode === AttendanceMode.REMOTE).length,
-      office: items.filter((item) => item.attendanceMode === AttendanceMode.OFFICE).length,
-      missedCheckout: items.filter((item) => item.status === AttendanceEntryStatus.MISSED_CHECK_OUT).length,
+      present: items.filter(
+        (item) => item.status === AttendanceEntryStatus.PRESENT,
+      ).length,
+      late: items.filter(
+        (item) =>
+          item.status === AttendanceEntryStatus.LATE || item.isLateCheckIn,
+      ).length,
+      remote: items.filter(
+        (item) => item.attendanceMode === AttendanceMode.REMOTE,
+      ).length,
+      office: items.filter(
+        (item) => item.attendanceMode === AttendanceMode.OFFICE,
+      ).length,
+      missedCheckout: items.filter(
+        (item) => item.status === AttendanceEntryStatus.MISSED_CHECK_OUT,
+      ).length,
       workedMinutes: totalWorkedMinutes,
       workedLabel: formatDurationMinutes(totalWorkedMinutes),
     },
@@ -1611,19 +1702,30 @@ function buildAttendanceCsv(items: Array<Record<string, unknown>>) {
   const lines = [header.join(',')];
 
   for (const item of items) {
-    const employee = item.employee as { fullName: string; employeeCode: string };
+    const employee = item.employee as {
+      fullName: string;
+      employeeCode: string;
+    };
     lines.push(
       [
         escapeCsv(employee.fullName),
         escapeCsv(employee.employeeCode),
         escapeCsv(String(item.attendanceDate ?? '').slice(0, 10)),
-        escapeCsv(item.checkInAt ? new Date(String(item.checkInAt)).toISOString() : ''),
-        escapeCsv(item.checkOutAt ? new Date(String(item.checkOutAt)).toISOString() : ''),
+        escapeCsv(
+          item.checkInAt ? new Date(String(item.checkInAt)).toISOString() : '',
+        ),
+        escapeCsv(
+          item.checkOutAt
+            ? new Date(String(item.checkOutAt)).toISOString()
+            : '',
+        ),
         escapeCsv(String(item.durationLabel ?? '')),
         escapeCsv(String(item.attendanceMode ?? '')),
         escapeCsv(String(item.status ?? '')),
         escapeCsv(String(item.source ?? '')),
-        escapeCsv(String((item.officeLocation as { name?: string } | null)?.name ?? '')),
+        escapeCsv(
+          String((item.officeLocation as { name?: string } | null)?.name ?? ''),
+        ),
         escapeCsv(String(item.remoteAddressText ?? '')),
       ].join(','),
     );
@@ -1662,14 +1764,18 @@ function isAttendanceCreateConflict(error: unknown) {
 
 function validateImportFile(file: UploadedFile | undefined) {
   if (!file) {
-    throw new BadRequestException('CSV file is required for attendance import.');
+    throw new BadRequestException(
+      'CSV file is required for attendance import.',
+    );
   }
 
   if (
     !ATTENDANCE_IMPORT_MIME_TYPES.includes(file.mimetype) &&
     !file.originalname.toLowerCase().endsWith('.csv')
   ) {
-    throw new BadRequestException('Attendance import currently supports CSV files only.');
+    throw new BadRequestException(
+      'Attendance import currently supports CSV files only.',
+    );
   }
 
   return file;
@@ -1687,7 +1793,9 @@ function parseCsv(content: string): ParsedCsvRow[] {
     .filter(Boolean);
 
   if (lines.length < 2) {
-    throw new BadRequestException('Attendance CSV must include a header row and at least one data row.');
+    throw new BadRequestException(
+      'Attendance CSV must include a header row and at least one data row.',
+    );
   }
 
   const headers = splitCsvLine(lines[0]).map((header) => header.trim());

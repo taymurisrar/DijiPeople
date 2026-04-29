@@ -1,5 +1,13 @@
 import { BusinessUnitType } from '@prisma/client';
-import { IsEmail, IsEnum, IsObject, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import {
+  IsEmail,
+  IsEnum,
+  IsObject,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+} from 'class-validator';
 
 export class UpdateBusinessUnitDto {
   @IsOptional()

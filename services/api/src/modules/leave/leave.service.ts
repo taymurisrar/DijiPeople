@@ -27,10 +27,7 @@ import { SubmitLeaveRequestDto } from './dto/submit-leave-request.dto';
 import { UpdateApprovalMatrixDto } from './dto/update-approval-matrix.dto';
 import { UpdateLeavePolicyDto } from './dto/update-leave-policy.dto';
 import { UpdateLeaveTypeDto } from './dto/update-leave-type.dto';
-import {
-  LeaveRepository,
-  LeaveRequestWithRelations,
-} from './leave.repository';
+import { LeaveRepository, LeaveRequestWithRelations } from './leave.repository';
 
 @Injectable()
 export class LeaveService {
@@ -47,7 +44,10 @@ export class LeaveService {
   }
 
   async findLeaveTypeById(tenantId: string, id: string) {
-    const leaveType = await this.leaveRepository.findLeaveTypeById(tenantId, id);
+    const leaveType = await this.leaveRepository.findLeaveTypeById(
+      tenantId,
+      id,
+    );
 
     if (!leaveType) {
       throw new NotFoundException('Leave type was not found for this tenant.');
@@ -90,7 +90,9 @@ export class LeaveService {
         ...(dto.code !== undefined
           ? { code: dto.code?.trim().toUpperCase() ?? null }
           : {}),
-        ...(dto.category !== undefined ? { category: dto.category.trim() } : {}),
+        ...(dto.category !== undefined
+          ? { category: dto.category.trim() }
+          : {}),
         ...(dto.isPaid !== undefined ? { isPaid: dto.isPaid } : {}),
         ...(dto.requiresApproval !== undefined
           ? { requiresApproval: dto.requiresApproval }
@@ -268,12 +270,19 @@ export class LeaveService {
     id: string,
     dto: UpdateApprovalMatrixDto,
   ) {
-    const existing = await this.findApprovalMatrixById(currentUser.tenantId, id);
+    const existing = await this.findApprovalMatrixById(
+      currentUser.tenantId,
+      id,
+    );
 
     await this.validateApprovalMatrixReferences(
       currentUser.tenantId,
-      dto.leaveTypeId === undefined ? existing.leaveTypeId ?? undefined : dto.leaveTypeId ?? undefined,
-      dto.leavePolicyId === undefined ? existing.leavePolicyId ?? undefined : dto.leavePolicyId ?? undefined,
+      dto.leaveTypeId === undefined
+        ? (existing.leaveTypeId ?? undefined)
+        : (dto.leaveTypeId ?? undefined),
+      dto.leavePolicyId === undefined
+        ? (existing.leavePolicyId ?? undefined)
+        : (dto.leavePolicyId ?? undefined),
     );
 
     const result = await this.leaveRepository.updateApprovalMatrix(
@@ -281,10 +290,16 @@ export class LeaveService {
       id,
       {
         ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
-        ...(dto.leaveTypeId !== undefined ? { leaveTypeId: dto.leaveTypeId } : {}),
-        ...(dto.leavePolicyId !== undefined ? { leavePolicyId: dto.leavePolicyId } : {}),
+        ...(dto.leaveTypeId !== undefined
+          ? { leaveTypeId: dto.leaveTypeId }
+          : {}),
+        ...(dto.leavePolicyId !== undefined
+          ? { leavePolicyId: dto.leavePolicyId }
+          : {}),
         ...(dto.sequence !== undefined ? { sequence: dto.sequence } : {}),
-        ...(dto.approverType !== undefined ? { approverType: dto.approverType } : {}),
+        ...(dto.approverType !== undefined
+          ? { approverType: dto.approverType }
+          : {}),
         ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
         updatedById: currentUser.userId,
       },
@@ -383,20 +398,25 @@ export class LeaveService {
       query,
     );
 
-    return requests.map((request) => this.mapLeaveRequest(request, currentUser));
+    return requests.map((request) =>
+      this.mapLeaveRequest(request, currentUser),
+    );
   }
 
   async listTeamLeaveRequests(
     currentUser: AuthenticatedUser,
     query: LeaveRequestQueryDto,
   ) {
-    const pendingRequests = await this.leaveRepository.findPendingLeaveRequestsForTeam(
-      currentUser.tenantId,
-    );
+    const pendingRequests =
+      await this.leaveRepository.findPendingLeaveRequestsForTeam(
+        currentUser.tenantId,
+      );
 
     return pendingRequests
       .filter((request) => this.canUserActOnRequest(request, currentUser))
-      .filter((request) => (query.status ? request.status === query.status : true))
+      .filter((request) =>
+        query.status ? request.status === query.status : true,
+      )
       .map((request) => this.mapLeaveRequest(request, currentUser));
   }
 
@@ -592,7 +612,10 @@ export class LeaveService {
     return this.mapLeaveRequest(updated, currentUser);
   }
 
-  private async findLeaveRequestOrThrow(tenantId: string, leaveRequestId: string) {
+  private async findLeaveRequestOrThrow(
+    tenantId: string,
+    leaveRequestId: string,
+  ) {
     const leaveRequest = await this.leaveRepository.findLeaveRequestById(
       tenantId,
       leaveRequestId,
@@ -620,10 +643,11 @@ export class LeaveService {
     leaveTypeId: string,
     actorUserId: string,
   ) {
-    const configuredMatrices = await this.leaveRepository.findApprovalMatricesForLeaveType(
-      tenantId,
-      leaveTypeId,
-    );
+    const configuredMatrices =
+      await this.leaveRepository.findApprovalMatricesForLeaveType(
+        tenantId,
+        leaveTypeId,
+      );
 
     const leaveTypeSpecific = configuredMatrices.filter(
       (matrix) => matrix.leaveTypeId === leaveTypeId,
@@ -697,10 +721,11 @@ export class LeaveService {
     }
 
     const millisecondsPerDay = 1000 * 60 * 60 * 24;
-    const totalDays = Math.floor(
-      (endDate.setHours(0, 0, 0, 0) - startDate.setHours(0, 0, 0, 0)) /
-        millisecondsPerDay,
-    ) + 1;
+    const totalDays =
+      Math.floor(
+        (endDate.setHours(0, 0, 0, 0) - startDate.setHours(0, 0, 0, 0)) /
+          millisecondsPerDay,
+      ) + 1;
 
     return {
       startDate: new Date(startDateRaw),

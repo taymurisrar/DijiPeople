@@ -44,7 +44,11 @@ export type ProjectWithRelations = Prisma.ProjectGetPayload<{
 export class ProjectsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findByTenant(tenantId: string, query: ProjectQueryDto, db: PrismaDb = this.prisma) {
+  async findByTenant(
+    tenantId: string,
+    query: ProjectQueryDto,
+    db: PrismaDb = this.prisma,
+  ) {
     const where: Prisma.ProjectWhereInput = { tenantId };
 
     if (query.status) {

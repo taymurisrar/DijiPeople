@@ -45,7 +45,10 @@ export class ExcelExportService {
         worksheet['!autofilter'] = {
           ref: XLSX.utils.encode_range({
             s: { r: 0, c: 0 },
-            e: { r: Math.max(sheet.rows.length, 1), c: sheet.columns.length - 1 },
+            e: {
+              r: Math.max(sheet.rows.length, 1),
+              c: sheet.columns.length - 1,
+            },
           }),
         };
       }
@@ -80,15 +83,14 @@ export class ExcelExportService {
     }
 
     const worksheet = workbook.Sheets[firstSheetName];
-    const matrix = XLSX.utils.sheet_to_json<Array<string | number | boolean | Date>>(
-      worksheet,
-      {
-        blankrows: false,
-        defval: '',
-        header: 1,
-        raw: false,
-      },
-    );
+    const matrix = XLSX.utils.sheet_to_json<
+      Array<string | number | boolean | Date>
+    >(worksheet, {
+      blankrows: false,
+      defval: '',
+      header: 1,
+      raw: false,
+    });
     const [rawHeaders, ...rows] = matrix;
     const headers = (rawHeaders ?? []).map((header) => String(header).trim());
 

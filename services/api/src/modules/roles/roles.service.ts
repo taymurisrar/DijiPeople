@@ -16,6 +16,9 @@ import {
   RBAC_ENTITIES,
   RBAC_PRIVILEGES,
   SECURITY_ACCESS_LEVEL_WEIGHT,
+  SYSTEM_ROLE_MISC_PERMISSIONS,
+  SYSTEM_ROLE_PRIVILEGES,
+  type SystemRoleKey,
   matrixPrivilegeToPermissionKey,
 } from '../../common/constants/rbac-matrix';
 import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -95,6 +98,7 @@ export class RolesService {
       isSystem: false,
       isEditable: true,
       isCloneable: true,
+      isActive: true,
       accessLevel: dto.accessLevel ?? RoleAccessLevel.USER,
       description: dto.description?.trim(),
       createdById: currentUser.userId,
@@ -325,6 +329,87 @@ export class RolesService {
     return updatedRole;
   }
 
+  async resetSystemRoleMatrix(currentUser: AuthenticatedUser, roleId: string) {
+    const role = await this.rolesRepository.findByIdAndTenant(
+      currentUser.tenantId,
+      roleId,
+    );
+
+    if (!role) {
+      throw new NotFoundException('Role was not found for this tenant.');
+    }
+
+    if (!role.isSystem) {
+      throw new BadRequestException(
+        'Only system roles can be reset to default permissions.',
+      );
+    }
+
+    const systemRoleKey = role.key as SystemRoleKey;
+    const defaultMatrix = SYSTEM_ROLE_PRIVILEGES[systemRoleKey];
+
+    if (!defaultMatrix) {
+      throw new BadRequestException(
+        'This system role does not have a default matrix definition.',
+      );
+    }
+
+    const privileges = Object.entries(defaultMatrix).map(
+      ([compoundKey, accessLevel]) => {
+        const [entityKey, privilege] = compoundKey.split(':');
+        return {
+          entityKey,
+          privilege: privilege as SecurityPrivilege,
+          accessLevel,
+        };
+      },
+    );
+    const miscPermissionKeys = new Set(
+      SYSTEM_ROLE_MISC_PERMISSIONS[systemRoleKey] ?? [],
+    );
+    const miscPermissions = MISC_PERMISSION_DEFINITIONS.map((permission) => ({
+      permissionKey: permission.key,
+      enabled: miscPermissionKeys.has(permission.key),
+    }));
+    const legacyPermissionKeys = this.resolveLegacyPermissionKeys({
+      privileges,
+      miscPermissions,
+    });
+    const permissions = await this.permissionsService.findByTenant(
+      currentUser.tenantId,
+    );
+    const legacyPermissionIds = permissions
+      .filter((permission) => legacyPermissionKeys.has(permission.key))
+      .map((permission) => permission.id);
+
+    await this.rolesRepository.replacePermissions(
+      currentUser.tenantId,
+      roleId,
+      legacyPermissionIds,
+      currentUser.userId,
+    );
+
+    const updatedRole = await this.rolesRepository.replaceMatrix(
+      currentUser.tenantId,
+      roleId,
+      privileges,
+      miscPermissions,
+      currentUser.userId,
+    );
+
+    await this.auditService.log({
+      tenantId: currentUser.tenantId,
+      actorUserId: currentUser.userId,
+      action: 'SYSTEM_ROLE_MATRIX_RESET',
+      entityType: 'Role',
+      entityId: roleId,
+      beforeSnapshot: this.mapRoleSummary(role),
+      afterSnapshot: this.mapRoleSummary(updatedRole),
+    });
+
+    return updatedRole;
+  }
+
   async clone(currentUser: AuthenticatedUser, roleId: string) {
     const sourceRole = await this.rolesRepository.findByIdAndTenant(
       currentUser.tenantId,
@@ -358,6 +443,7 @@ export class RolesService {
       isSystem: false,
       isEditable: true,
       isCloneable: true,
+      isActive: true,
       accessLevel: sourceRole.accessLevel,
       createdById: currentUser.userId,
       updatedById: currentUser.userId,
@@ -386,6 +472,38 @@ export class RolesService {
     );
   }
 
+  async deactivate(currentUser: AuthenticatedUser, roleId: string) {
+    const role = await this.rolesRepository.findByIdAndTenant(
+      currentUser.tenantId,
+      roleId,
+    );
+
+    if (!role) {
+      throw new NotFoundException('Role was not found for this tenant.');
+    }
+
+    if (role.isSystem) {
+      throw new ForbiddenException('System roles cannot be deactivated.');
+    }
+
+    const updatedRole = await this.rolesRepository.update(roleId, {
+      isActive: false,
+      updatedById: currentUser.userId,
+    });
+
+    await this.auditService.log({
+      tenantId: currentUser.tenantId,
+      actorUserId: currentUser.userId,
+      action: 'ROLE_DEACTIVATED',
+      entityType: 'Role',
+      entityId: roleId,
+      beforeSnapshot: this.mapRoleSummary(role),
+      afterSnapshot: updatedRole,
+    });
+
+    return this.rolesRepository.findByIdAndTenant(currentUser.tenantId, roleId);
+  }
+
   private mapRoleSummary(
     role:
       | Awaited<ReturnType<RolesRepository['findByIdAndTenant']>>
@@ -406,6 +524,7 @@ export class RolesService {
       roleType: role.roleType,
       isEditable: role.isEditable,
       isCloneable: role.isCloneable,
+      isActive: role.isActive,
       userCount: role.userRoles.length,
       permissionKeys: role.rolePermissions.map((item) => item.permission.key),
     };

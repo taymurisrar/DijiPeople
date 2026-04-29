@@ -63,6 +63,29 @@ type UserWithAccess = Prisma.UserGetPayload<{
         };
       };
     };
+    teamMemberships: {
+      include: {
+        team: {
+          include: {
+            teamRoles: {
+              include: {
+                role: {
+                  include: {
+                    rolePermissions: {
+                      include: {
+                        permission: true;
+                      };
+                    };
+                    rolePrivileges: true;
+                    miscPermissions: true;
+                  };
+                };
+              };
+            };
+          };
+        };
+      };
+    };
   };
 }>;
 
@@ -175,7 +198,10 @@ export class AuthService {
 
   async getProfileFromRequest(req: Request, res: Response) {
     const accessToken = this.extractTokenFromRequest(req, ACCESS_TOKEN_COOKIE);
-    const refreshToken = this.extractTokenFromRequest(req, REFRESH_TOKEN_COOKIE);
+    const refreshToken = this.extractTokenFromRequest(
+      req,
+      REFRESH_TOKEN_COOKIE,
+    );
 
     if (accessToken) {
       try {
@@ -303,9 +329,12 @@ export class AuthService {
 
   private async verifyRefreshToken(refreshToken: string) {
     try {
-      const payload = await this.jwtService.verifyAsync<AuthTokenPayload>(refreshToken, {
-        secret: getRefreshTokenSecret(this.configService),
-      });
+      const payload = await this.jwtService.verifyAsync<AuthTokenPayload>(
+        refreshToken,
+        {
+          secret: getRefreshTokenSecret(this.configService),
+        },
+      );
       if (payload.type !== 'refresh') {
         throw new Error('Invalid token type.');
       }
@@ -460,10 +489,7 @@ export class AuthService {
         slug: user.tenant.slug,
         status: user.tenant.status,
       },
-      user: this.mapUserSummary(
-        user,
-        user.tenant.ownerUserId === user.id,
-      ),
+      user: this.mapUserSummary(user, user.tenant.ownerUserId === user.id),
       tokens: {
         accessToken,
         refreshToken,
@@ -473,36 +499,46 @@ export class AuthService {
     };
   }
 
-  private mapUserSummary(
-    user: UserWithAccess,
-    isTenantOwner = false,
-  ) {
-    const roleIds = user.userRoles.map((userRole) => userRole.roleId);
-    const roleKeys = user.userRoles.map((userRole) => userRole.role.key);
-    const roles = user.userRoles.map((userRole) => ({
-      id: userRole.role.id,
-      key: userRole.role.key,
-      name: userRole.role.name,
-      type: userRole.role.isSystem ? 'SYSTEM' : 'CUSTOM',
-      isSystem: userRole.role.isSystem,
+  private mapUserSummary(user: UserWithAccess, isTenantOwner = false) {
+    const directRoles = user.userRoles
+      .map((userRole) => userRole.role)
+      .filter((role) => role.isActive);
+    const teamRoles = user.teamMemberships.flatMap((membership) =>
+      membership.team.teamRoles
+        .map((teamRole) => teamRole.role)
+        .filter((role) => role.isActive),
+    );
+    const effectiveRoles = Array.from(
+      new Map(
+        [...directRoles, ...teamRoles].map((role) => [role.id, role]),
+      ).values(),
+    );
+    const roleIds = effectiveRoles.map((role) => role.id);
+    const roleKeys = effectiveRoles.map((role) => role.key);
+    const roles = effectiveRoles.map((role) => ({
+      id: role.id,
+      key: role.key,
+      name: role.name,
+      type: role.isSystem ? 'SYSTEM' : 'CUSTOM',
+      isSystem: role.isSystem,
     }));
     const permissionKeys = Array.from(
       new Set([
-        ...user.userRoles.flatMap((userRole) =>
-          userRole.role.rolePermissions.map(
+        ...effectiveRoles.flatMap((role) =>
+          role.rolePermissions.map(
             (rolePermission) => rolePermission.permission.key,
           ),
         ),
-        ...user.userRoles.flatMap((userRole) =>
-          userRole.role.rolePrivileges
+        ...effectiveRoles.flatMap((role) =>
+          role.rolePrivileges
             .filter((privilege) => privilege.accessLevel !== 'NONE')
             .map(
               (privilege) =>
                 `${privilege.entityKey}.${privilege.privilege.toLowerCase()}`,
             ),
         ),
-        ...user.userRoles.flatMap((userRole) =>
-          userRole.role.miscPermissions
+        ...effectiveRoles.flatMap((role) =>
+          role.miscPermissions
             .filter((permission) => permission.enabled)
             .map((permission) => permission.permissionKey),
         ),
@@ -524,16 +560,16 @@ export class AuthService {
       roleKeys,
       roles,
       permissionKeys,
-      rolePrivileges: user.userRoles.flatMap((userRole) =>
-        userRole.role.rolePrivileges.map((privilege) => ({
+      rolePrivileges: effectiveRoles.flatMap((role) =>
+        role.rolePrivileges.map((privilege) => ({
           entityKey: privilege.entityKey,
           privilege: privilege.privilege,
           accessLevel: privilege.accessLevel,
-          roleId: userRole.role.id,
+          roleId: role.id,
         })),
       ),
-      miscPermissions: user.userRoles.flatMap((userRole) =>
-        userRole.role.miscPermissions
+      miscPermissions: effectiveRoles.flatMap((role) =>
+        role.miscPermissions
           .filter((permission) => permission.enabled)
           .map((permission) => permission.permissionKey),
       ),

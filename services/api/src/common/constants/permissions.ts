@@ -6,6 +6,59 @@ export type PermissionDefinition = {
   description: string;
 };
 
+export const PERMISSION_KEYS = {
+  DASHBOARD_VIEW: 'dashboard.view',
+  TENANT_READ: 'tenant.read',
+  TENANT_UPDATE: 'tenant.update',
+  SETTINGS_READ: 'settings.read',
+  SETTINGS_UPDATE: 'settings.update',
+  USERS_READ: 'users.read',
+  USERS_CREATE: 'users.create',
+  USERS_UPDATE: 'users.update',
+  USERS_DELETE: 'users.delete',
+  USERS_ASSIGN_ROLES: 'users.assign-roles',
+  ROLES_READ: 'roles.read',
+  ROLES_CREATE: 'roles.create',
+  ROLES_UPDATE: 'roles.update',
+  ROLES_ASSIGN_PERMISSIONS: 'roles.assign-permissions',
+  PERMISSIONS_READ: 'permissions.read',
+  AUDIT_READ: 'audit.read',
+  EMPLOYEES_READ: 'employees.read',
+  EMPLOYEES_CREATE: 'employees.create',
+  EMPLOYEES_UPDATE: 'employees.update',
+  EMPLOYEES_TERMINATE: 'employees.terminate',
+  EMPLOYEE_LEVELS_READ: 'employee-levels.read',
+  EMPLOYEE_LEVELS_MANAGE: 'employee-levels.manage',
+  LEAVE_REQUESTS_READ: 'leave-requests.read',
+  LEAVE_REQUESTS_CREATE: 'leave-requests.create',
+  LEAVE_REQUESTS_APPROVE: 'leave-requests.approve',
+  LEAVE_REQUESTS_REJECT: 'leave-requests.reject',
+  ATTENDANCE_READ: 'attendance.read',
+  ATTENDANCE_MANAGE: 'attendance.manage',
+  AGENT_SETTINGS_READ: 'agent.settings.read',
+  AGENT_SETTINGS_MANAGE: 'agent.settings.manage',
+  TIMESHEETS_READ: 'timesheets.read',
+  TIMESHEETS_READ_ALL: 'timesheets.read.all',
+  TIMESHEETS_READ_TEAM: 'timesheets.read.team',
+  PAYROLL_READ: 'payroll.read',
+  PAY_COMPONENTS_READ: 'pay-components.read',
+  PAY_COMPONENTS_MANAGE: 'pay-components.manage',
+  COMPENSATION_READ: 'compensation.read',
+  COMPENSATION_MANAGE: 'compensation.manage',
+  POLICIES_READ: 'policies.read',
+  POLICIES_MANAGE: 'policies.manage',
+  RECRUITMENT_READ: 'recruitment.read',
+  ONBOARDING_READ: 'onboarding.read',
+  DOCUMENTS_READ: 'documents.read',
+  CUSTOMIZATION_READ: 'customization.read',
+  CUSTOMIZATION_PUBLISH: 'customization.publish',
+  TEAMS_READ: 'teams.read',
+  TEAMS_CREATE: 'teams.create',
+  TEAMS_UPDATE: 'teams.update',
+  TEAMS_DELETE: 'teams.delete',
+  TEAMS_MEMBERS_MANAGE: 'teams.members.manage',
+} as const;
+
 export type BaseRoleKey =
   | 'system-admin'
   | 'system-customizer'
@@ -96,6 +149,31 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     name: 'Read audit logs',
     description:
       'View tenant audit logs for compliance, support, and change tracking.',
+  },
+  {
+    key: PERMISSION_KEYS.TEAMS_READ,
+    name: 'Read teams',
+    description: 'View security teams and group membership for this tenant.',
+  },
+  {
+    key: PERMISSION_KEYS.TEAMS_CREATE,
+    name: 'Create teams',
+    description: 'Create tenant security teams and access groups.',
+  },
+  {
+    key: PERMISSION_KEYS.TEAMS_UPDATE,
+    name: 'Update teams',
+    description: 'Update tenant security team metadata and active status.',
+  },
+  {
+    key: PERMISSION_KEYS.TEAMS_DELETE,
+    name: 'Delete teams',
+    description: 'Delete inactive or unused custom teams.',
+  },
+  {
+    key: PERMISSION_KEYS.TEAMS_MEMBERS_MANAGE,
+    name: 'Manage team members',
+    description: 'Add or remove users and role assignments on tenant teams.',
   },
   {
     key: 'documents.read',
@@ -242,6 +320,18 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     key: 'employees.terminate',
     name: 'Terminate employees',
     description: 'Terminate or deactivate employee records within the tenant.',
+  },
+  {
+    key: PERMISSION_KEYS.EMPLOYEE_LEVELS_READ,
+    name: 'Read employee levels',
+    description:
+      'View normalized employee level and grade master data for the tenant.',
+  },
+  {
+    key: PERMISSION_KEYS.EMPLOYEE_LEVELS_MANAGE,
+    name: 'Manage employee levels',
+    description:
+      'Create, update, and deactivate employee level and grade master data.',
   },
   {
     key: 'departments.read',
@@ -444,6 +534,17 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
       'Configure attendance machine, API, webhook, and import source settings.',
   },
   {
+    key: PERMISSION_KEYS.AGENT_SETTINGS_READ,
+    name: 'Read desktop agent settings',
+    description: 'View desktop agent productivity and tracking settings.',
+  },
+  {
+    key: PERMISSION_KEYS.AGENT_SETTINGS_MANAGE,
+    name: 'Manage desktop agent settings',
+    description:
+      'Configure desktop agent heartbeat, idle, privacy, and update policies.',
+  },
+  {
     key: 'timesheets.read',
     name: 'Read timesheets',
     description: 'View timesheet periods and time entries.',
@@ -594,6 +695,40 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     key: 'payroll.settings.update',
     name: 'Update payroll settings',
     description: 'Update tenant payroll configuration.',
+  },
+  {
+    key: PERMISSION_KEYS.PAY_COMPONENTS_READ,
+    name: 'Read pay components',
+    description:
+      'View the tenant pay component catalog used by compensation and payroll.',
+  },
+  {
+    key: PERMISSION_KEYS.PAY_COMPONENTS_MANAGE,
+    name: 'Manage pay components',
+    description: 'Create, update, and deactivate tenant pay components.',
+  },
+  {
+    key: PERMISSION_KEYS.COMPENSATION_READ,
+    name: 'Read compensation',
+    description: 'View employee compensation history and component details.',
+  },
+  {
+    key: PERMISSION_KEYS.COMPENSATION_MANAGE,
+    name: 'Manage compensation',
+    description:
+      'Create and update employee compensation history and salary components.',
+  },
+  {
+    key: PERMISSION_KEYS.POLICIES_READ,
+    name: 'Read policies',
+    description:
+      'View reusable effective-dated policies and assignment metadata.',
+  },
+  {
+    key: PERMISSION_KEYS.POLICIES_MANAGE,
+    name: 'Manage policies',
+    description:
+      'Create, update, retire, and assign reusable tenant policy definitions.',
   },
   {
     key: 'customization.read',
@@ -775,6 +910,8 @@ export const BASE_ROLE_PERMISSION_KEYS: Record<BaseRoleKey, string[]> = {
     'employees.education.update',
     'employees.education.delete',
     'employees.terminate',
+    'employee-levels.read',
+    'employee-levels.manage',
     'departments.read',
     'departments.create',
     'departments.update',
@@ -812,6 +949,8 @@ export const BASE_ROLE_PERMISSION_KEYS: Record<BaseRoleKey, string[]> = {
     'attendance.import',
     'attendance.export',
     'attendance.integration.manage',
+    'agent.settings.read',
+    'agent.settings.manage',
     'timesheets.read',
     'timesheets.read.all',
     'timesheets.read.team',
@@ -842,6 +981,12 @@ export const BASE_ROLE_PERMISSION_KEYS: Record<BaseRoleKey, string[]> = {
     'payroll.export',
     'payroll.settings.read',
     'payroll.settings.update',
+    'pay-components.read',
+    'pay-components.manage',
+    'compensation.read',
+    'compensation.manage',
+    'policies.read',
+    'policies.manage',
   ],
   recruiter: [
     'dashboard.view',
@@ -852,6 +997,7 @@ export const BASE_ROLE_PERMISSION_KEYS: Record<BaseRoleKey, string[]> = {
     'employees.documents.read',
     'employees.history.read',
     'employees.education.read',
+    'employee-levels.read',
     'departments.read',
     'designations.read',
     'locations.read',
@@ -866,6 +1012,7 @@ export const BASE_ROLE_PERMISSION_KEYS: Record<BaseRoleKey, string[]> = {
     'documents.read',
     'users.read',
     'employees.read',
+    'employee-levels.read',
     'departments.read',
     'designations.read',
     'locations.read',
@@ -893,6 +1040,8 @@ export const BASE_ROLE_PERMISSION_KEYS: Record<BaseRoleKey, string[]> = {
     'projects.read',
     'onboarding.read',
     'payroll.read',
+    'pay-components.read',
+    'compensation.read',
   ],
   employee: [
     'dashboard.view',

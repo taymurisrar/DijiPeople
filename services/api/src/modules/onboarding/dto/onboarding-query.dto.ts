@@ -1,6 +1,13 @@
 import { OnboardingStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
-import { IsEnum, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
+import {
+  IsEnum,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Max,
+  Min,
+} from 'class-validator';
 
 export class OnboardingQueryDto {
   @IsOptional()

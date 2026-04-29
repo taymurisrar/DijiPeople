@@ -135,6 +135,7 @@ export type EmployeeListItem = {
   terminationDate?: string | null;
   departmentId?: string | null;
   designationId?: string | null;
+  employeeLevelId?: string | null;
   locationId?: string | null;
   managerEmployeeId?: string | null;
   reportingManagerEmployeeId?: string | null;
@@ -182,6 +183,14 @@ export type EmployeeListItem = {
     id: string;
     name: string;
     level?: string | null;
+    isActive: boolean;
+  } | null;
+  employeeLevel: {
+    id: string;
+    code: string;
+    name: string;
+    rank: number;
+    description?: string | null;
     isActive: boolean;
   } | null;
   location: {
@@ -296,6 +305,7 @@ export type EmployeeFormValues = {
   terminationDate: string;
   departmentId: string;
   designationId: string;
+  employeeLevelId: string;
   locationId: string;
   officialJoiningLocationId: string;
   reportingManagerEmployeeId: string;
@@ -323,6 +333,7 @@ export type EmployeeProfile = EmployeeListItem & {
     fullName: string;
     employeeCode: string;
     designation: string | null;
+    employeeLevel: string | null;
     department: string | null;
     managerName: string | null;
     reportingManagerName?: string | null;
@@ -359,6 +370,7 @@ export type EmployeeProfile = EmployeeListItem & {
     terminationDate?: string | null;
     department: EmployeeListItem["department"];
     designation: EmployeeListItem["designation"];
+    employeeLevel: EmployeeListItem["employeeLevel"];
     location: EmployeeListItem["location"];
     officialJoiningLocation: EmployeeListItem["officialJoiningLocation"];
     noticePeriodDays?: number | null;

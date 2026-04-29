@@ -17,8 +17,12 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+import {
+  Permissions,
+  RequirePermission,
+} from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -58,6 +62,7 @@ export class EmployeesController {
 
   @Get()
   @Permissions('employees.read')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
   findAll(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: EmployeeQueryDto,
@@ -65,8 +70,19 @@ export class EmployeesController {
     return this.employeesService.findByTenant(user, query);
   }
 
+  @Get('linking-search')
+  @Permissions('employees.read')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
+  searchForLinking(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('q') query = '',
+  ) {
+    return this.employeesService.searchForUserLinking(user, query);
+  }
+
   @Get(':employeeId')
   @Permissions('employees.read')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
   findOne(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -100,6 +116,7 @@ export class EmployeesController {
 
   @Post()
   @Permissions('employees.create')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'create')
   create(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateEmployeeDto,
@@ -109,6 +126,7 @@ export class EmployeesController {
 
   @Patch(':employeeId')
   @Permissions('employees.update')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'write')
   update(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -119,6 +137,7 @@ export class EmployeesController {
 
   @Post(':employeeId/provision-access')
   @Permissions('employees.update')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'assign')
   provisionAccess(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -129,6 +148,7 @@ export class EmployeesController {
 
   @Post(':employeeId/resend-invite')
   @Permissions('employees.update')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'write')
   resendInvite(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -168,6 +188,7 @@ export class EmployeesController {
 
   @Patch(':employeeId/personal-info')
   @Permissions('employees.update')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'write')
   updatePersonalInfo(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -182,6 +203,7 @@ export class EmployeesController {
 
   @Patch(':employeeId/address')
   @Permissions('employees.update')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'write')
   updateAddress(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -192,6 +214,7 @@ export class EmployeesController {
 
   @Patch(':employeeId/emergency-contact')
   @Permissions('employees.update')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'write')
   updateEmergencyContact(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -234,6 +257,7 @@ export class EmployeesController {
 
   @Get(':employeeId/compensation')
   @Permissions('payroll.read')
+  @RequirePermission(ENTITY_KEYS.PAYROLL, 'read')
   getCompensation(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -246,6 +270,7 @@ export class EmployeesController {
 
   @Put(':employeeId/compensation')
   @Permissions('payroll.write')
+  @RequirePermission(ENTITY_KEYS.PAYROLL, 'write')
   upsertCompensation(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -485,6 +510,7 @@ export class EmployeesController {
 
   @Post(':employeeId/send-reset-password-link')
   @Permissions('employees.update')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'write')
   sendResetPasswordLink(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -494,6 +520,7 @@ export class EmployeesController {
 
   @Post(':employeeId/terminate')
   @Permissions('employees.terminate')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'delete')
   terminate(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,

@@ -15,7 +15,8 @@ export type BuAccessRequestContext = {
 
 @Injectable()
 export class RequestContextService {
-  private readonly storage = new AsyncLocalStorage<BuAccessRequestContext | null>();
+  private readonly storage =
+    new AsyncLocalStorage<BuAccessRequestContext | null>();
 
   runWithContext<T>(context: BuAccessRequestContext | null, callback: () => T) {
     return this.storage.run(context, callback);

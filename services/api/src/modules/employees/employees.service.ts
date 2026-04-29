@@ -5,11 +5,18 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { EmployeeEmploymentStatus, Prisma, UserStatus } from '@prisma/client';
+import {
+  EmployeeEmploymentStatus,
+  Prisma,
+  SecurityPrivilege,
+  UserStatus,
+} from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { ENTITY_KEYS, ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import { normalizeEmail } from '../../common/utils/email.util';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
+import { buildScopedAccessWhere } from '../../common/security/rbac-query-scope';
 import { UserInvitationsService } from '../auth/user-invitations.service';
 import { OrganizationRepository } from '../organization/organization.repository';
 import { PermissionsService } from '../permissions/permissions.service';
@@ -48,6 +55,16 @@ export class EmployeesService {
 
   async findByTenant(currentUser: AuthenticatedUser, query: EmployeeQueryDto) {
     const tenantId = currentUser.tenantId;
+
+    const employeeReadScope = buildScopedAccessWhere<Prisma.EmployeeWhereInput>(
+      currentUser,
+      ENTITY_KEYS.EMPLOYEES,
+      SecurityPrivilege.READ,
+      {
+        organizationIdField: null,
+        userIdField: 'userId',
+      },
+    );
 
     if (this.isSelfServiceUser(currentUser)) {
       const employee = await this.employeesRepository.findByUserIdAndTenant(
@@ -91,6 +108,7 @@ export class EmployeesService {
     const { items, total } = await this.employeesRepository.findByTenant(
       tenantId,
       effectiveQuery,
+      employeeReadScope,
     );
 
     return {
@@ -112,15 +130,19 @@ export class EmployeesService {
 
   private isSelfServiceUser(currentUser: AuthenticatedUser) {
     return (
-      currentUser.roleKeys.includes('employee') &&
-      currentUser.roleKeys.every((roleKey) => roleKey === 'employee')
+      currentUser.roleKeys.includes(ROLE_KEYS.EMPLOYEE) &&
+      currentUser.roleKeys.every((roleKey) => roleKey === ROLE_KEYS.EMPLOYEE)
     );
   }
 
   private isManagerScopedUser(currentUser: AuthenticatedUser) {
-    const elevatedRoleKeys = new Set(['admin', 'hr', 'system-admin']);
+    const elevatedRoleKeys = new Set([
+      'admin',
+      ROLE_KEYS.HR,
+      ROLE_KEYS.SYSTEM_ADMIN,
+    ]);
     return (
-      currentUser.roleKeys.includes('manager') &&
+      currentUser.roleKeys.includes(ROLE_KEYS.MANAGER) &&
       currentUser.roleKeys.every((roleKey) => !elevatedRoleKeys.has(roleKey))
     );
   }
@@ -136,6 +158,86 @@ export class EmployeesService {
     }
 
     return this.mapEmployee(employee);
+  }
+
+  async searchForUserLinking(currentUser: AuthenticatedUser, query: string) {
+    const search = query.trim();
+    const accessWhere = buildScopedAccessWhere<Prisma.EmployeeWhereInput>(
+      currentUser,
+      ENTITY_KEYS.EMPLOYEES,
+      SecurityPrivilege.READ,
+      {
+        organizationIdField: null,
+        userIdField: 'userId',
+      },
+    );
+
+    const employees = await this.prisma.employee.findMany({
+      where: {
+        AND: [
+          accessWhere,
+          search
+            ? {
+                OR: [
+                  { employeeCode: { contains: search, mode: 'insensitive' } },
+                  { firstName: { contains: search, mode: 'insensitive' } },
+                  { lastName: { contains: search, mode: 'insensitive' } },
+                  { email: { contains: search, mode: 'insensitive' } },
+                  {
+                    department: {
+                      name: { contains: search, mode: 'insensitive' },
+                    },
+                  },
+                ],
+              }
+            : {},
+        ],
+      },
+      include: {
+        department: { select: { id: true, name: true } },
+        businessUnit: {
+          select: {
+            id: true,
+            name: true,
+            organization: { select: { id: true, name: true } },
+          },
+        },
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+      take: 20,
+    });
+
+    return {
+      items: employees.map((employee) => ({
+        id: employee.id,
+        employeeCode: employee.employeeCode,
+        fullName: `${employee.firstName} ${employee.lastName}`,
+        email: employee.email,
+        departmentName: employee.department?.name ?? null,
+        businessUnit: employee.businessUnit
+          ? {
+              id: employee.businessUnit.id,
+              name: employee.businessUnit.name,
+              organizationName: employee.businessUnit.organization.name,
+            }
+          : null,
+        linkedUser: employee.user
+          ? {
+              id: employee.user.id,
+              fullName: `${employee.user.firstName} ${employee.user.lastName}`,
+              email: employee.user.email,
+            }
+          : null,
+      })),
+    };
   }
 
   async assignManager(
@@ -266,6 +368,7 @@ export class EmployeesService {
       dto.userId,
       dto.departmentId,
       dto.designationId,
+      dto.employeeLevelId,
       dto.locationId,
       dto.officialJoiningLocationId,
       dto.nationalityCountryId,
@@ -351,6 +454,7 @@ export class EmployeesService {
       dto.userId,
       dto.departmentId,
       dto.designationId,
+      dto.employeeLevelId,
       dto.locationId,
       dto.officialJoiningLocationId,
       dto.nationalityCountryId,
@@ -493,7 +597,9 @@ export class EmployeesService {
       `invite-${employee.id}-${Date.now()}`,
       12,
     );
-    const actor = await this.usersRepository.findByIdWithAccess(currentUser.userId);
+    const actor = await this.usersRepository.findByIdWithAccess(
+      currentUser.userId,
+    );
     const actorBusinessUnitId =
       actor && actor.tenantId === tenantId ? actor.businessUnitId : undefined;
 
@@ -742,6 +848,7 @@ export class EmployeesService {
     userId?: string,
     departmentId?: string,
     designationId?: string,
+    employeeLevelId?: string,
     locationId?: string,
     officialJoiningLocationId?: string,
     nationalityCountryId?: string,
@@ -806,6 +913,19 @@ export class EmployeesService {
       if (!designation) {
         throw new BadRequestException(
           'Selected designation does not belong to this tenant.',
+        );
+      }
+    }
+
+    if (employeeLevelId) {
+      const employeeLevel = await this.prisma.employeeLevel.findFirst({
+        where: { tenantId, id: employeeLevelId, isActive: true },
+        select: { id: true },
+      });
+
+      if (!employeeLevel) {
+        throw new BadRequestException(
+          'Selected employee level does not belong to this tenant or is inactive.',
         );
       }
     }
@@ -1218,6 +1338,7 @@ export class EmployeesService {
       departmentId: dto.departmentId?.trim(),
       businessUnitId: dto.businessUnitId?.trim(),
       designationId: dto.designationId?.trim(),
+      employeeLevelId: dto.employeeLevelId?.trim(),
       locationId: dto.locationId,
       officialJoiningLocationId: dto.officialJoiningLocationId,
       managerEmployeeId: dto.reportingManagerEmployeeId,
@@ -1425,6 +1546,10 @@ export class EmployeesService {
       data.designationId = dto.designationId?.trim() ?? null;
     }
 
+    if (dto.employeeLevelId !== undefined) {
+      data.employeeLevelId = dto.employeeLevelId?.trim() ?? null;
+    }
+
     if (dto.locationId !== undefined) {
       data.locationId = dto.locationId ?? null;
     }
@@ -1501,6 +1626,7 @@ export class EmployeesService {
       emergencyContactAlternatePhone: employee.emergencyContactAlternatePhone,
       departmentId: employee.departmentId,
       designationId: employee.designationId,
+      employeeLevelId: employee.employeeLevelId,
       locationId: employee.locationId,
       officialJoiningLocationId: employee.officialJoiningLocationId,
       managerEmployeeId: employee.managerEmployeeId,
@@ -1570,6 +1696,16 @@ export class EmployeesService {
             name: employee.designation.name,
             level: employee.designation.level,
             isActive: employee.designation.isActive,
+          }
+        : null,
+      employeeLevel: employee.employeeLevel
+        ? {
+            id: employee.employeeLevel.id,
+            code: employee.employeeLevel.code,
+            name: employee.employeeLevel.name,
+            rank: employee.employeeLevel.rank,
+            description: employee.employeeLevel.description,
+            isActive: employee.employeeLevel.isActive,
           }
         : null,
       location: employee.location
@@ -1768,4 +1904,3 @@ export class EmployeesService {
     }
   }
 }
-

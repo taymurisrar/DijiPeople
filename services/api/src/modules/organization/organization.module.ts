@@ -31,6 +31,10 @@ import { OrganizationService } from './organization.service';
     JwtAuthGuard,
     PermissionsGuard,
   ],
-  exports: [OrganizationRepository, OrganizationAccessService, OrganizationService],
+  exports: [
+    OrganizationRepository,
+    OrganizationAccessService,
+    OrganizationService,
+  ],
 })
 export class OrganizationModule {}

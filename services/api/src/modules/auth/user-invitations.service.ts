@@ -100,7 +100,10 @@ export class UserInvitationsService {
       throw new NotFoundException('Invitation was not found.');
     }
 
-    if (invitation.consumedAt || invitation.status === UserInvitationStatus.CONSUMED) {
+    if (
+      invitation.consumedAt ||
+      invitation.status === UserInvitationStatus.CONSUMED
+    ) {
       throw new BadRequestException('Invitation has already been used.');
     }
 
@@ -139,7 +142,10 @@ export class UserInvitationsService {
       throw new UnauthorizedException('Invitation is invalid.');
     }
 
-    if (invitation.consumedAt || invitation.status === UserInvitationStatus.CONSUMED) {
+    if (
+      invitation.consumedAt ||
+      invitation.status === UserInvitationStatus.CONSUMED
+    ) {
       throw new UnauthorizedException('Invitation has already been used.');
     }
 

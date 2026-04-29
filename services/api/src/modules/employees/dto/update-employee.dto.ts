@@ -270,6 +270,11 @@ export class UpdateEmployeeDto {
   @IsOptional()
   @Transform(emptyStringToUndefined)
   @IsUUID()
+  employeeLevelId?: string;
+
+  @IsOptional()
+  @Transform(emptyStringToUndefined)
+  @IsUUID()
   locationId?: string;
 
   @IsOptional()

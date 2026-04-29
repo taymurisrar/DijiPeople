@@ -1,4 +1,5 @@
 import { apiRequestJson } from "@/lib/server-api";
+import { PERMISSION_KEYS } from "@/lib/security-keys";
 import { requireSettingsPermissions } from "../../../_lib/require-settings-permission";
 import { RoleDetailClient } from "../../../_components/role-detail-client";
 import { SettingsShell } from "../../../_components/settings-shell";
@@ -13,11 +14,12 @@ type RoleDetailPageProps = {
 };
 
 export default async function RoleDetailPage({ params }: RoleDetailPageProps) {
-  await requireSettingsPermissions(["roles.read"]);
+  await requireSettingsPermissions([PERMISSION_KEYS.ROLES_READ]);
   const { roleId } = await params;
 
-  const [role, users, matrixCatalog] = await Promise.all([
+  const [role, roles, users, matrixCatalog] = await Promise.all([
     apiRequestJson<AccessRoleRecord>(`/roles/${roleId}`),
+    apiRequestJson<AccessRoleRecord[]>("/roles"),
     apiRequestJson<AccessUserRecord[]>("/users"),
     apiRequestJson<RoleMatrixCatalog>("/roles/matrix/catalog"),
   ]);
@@ -36,6 +38,7 @@ export default async function RoleDetailPage({ params }: RoleDetailPageProps) {
         assignedUsers={assignedUsers}
         initialRole={role}
         matrixCatalog={matrixCatalog}
+        roles={roles}
       />
     </SettingsShell>
   );

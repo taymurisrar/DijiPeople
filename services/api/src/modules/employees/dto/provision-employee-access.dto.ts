@@ -1,10 +1,5 @@
 import { Transform } from 'class-transformer';
-import {
-  IsArray,
-  IsBoolean,
-  IsOptional,
-  IsUUID,
-} from 'class-validator';
+import { IsArray, IsBoolean, IsOptional, IsUUID } from 'class-validator';
 
 function emptyArrayToUndefined({ value }: { value: unknown }) {
   if (!Array.isArray(value)) {

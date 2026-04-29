@@ -52,9 +52,10 @@ const onboardingInclude = {
   },
 } satisfies Prisma.EmployeeOnboardingInclude;
 
-export type EmployeeOnboardingWithRelations = Prisma.EmployeeOnboardingGetPayload<{
-  include: typeof onboardingInclude;
-}>;
+export type EmployeeOnboardingWithRelations =
+  Prisma.EmployeeOnboardingGetPayload<{
+    include: typeof onboardingInclude;
+  }>;
 
 @Injectable()
 export class OnboardingRepository {
@@ -133,11 +134,7 @@ export class OnboardingRepository {
     return { items, total };
   }
 
-  findOnboardingById(
-    tenantId: string,
-    id: string,
-    db: PrismaDb = this.prisma,
-  ) {
+  findOnboardingById(tenantId: string, id: string, db: PrismaDb = this.prisma) {
     return db.employeeOnboarding.findFirst({
       where: { tenantId, id },
       include: onboardingInclude,
@@ -154,7 +151,14 @@ export class OnboardingRepository {
         tenantId,
         candidateId,
         status: {
-          in: ['DRAFT', 'NOT_STARTED', 'IN_PROGRESS', 'AWAITING_CANDIDATE_INPUT', 'READY_FOR_CONVERSION', 'BLOCKED'],
+          in: [
+            'DRAFT',
+            'NOT_STARTED',
+            'IN_PROGRESS',
+            'AWAITING_CANDIDATE_INPUT',
+            'READY_FOR_CONVERSION',
+            'BLOCKED',
+          ],
         },
       },
       include: onboardingInclude,

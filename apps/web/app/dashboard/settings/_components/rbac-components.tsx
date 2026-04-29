@@ -12,8 +12,11 @@ import {
 
 const ACCESS_LEVELS: SecurityAccessLevel[] = [
   "NONE",
+  "SELF",
+  "TEAM",
   "USER",
   "BUSINESS_UNIT",
+  "PARENT_CHILD_BUSINESS_UNIT",
   "PARENT_CHILD_BUSINESS_UNITS",
   "ORGANIZATION",
   "TENANT",
@@ -21,8 +24,11 @@ const ACCESS_LEVELS: SecurityAccessLevel[] = [
 
 const ACCESS_LABELS: Record<SecurityAccessLevel, string> = {
   NONE: "None",
+  SELF: "Self",
+  TEAM: "Team",
   USER: "User",
   BUSINESS_UNIT: "Business Unit",
+  PARENT_CHILD_BUSINESS_UNIT: "Parent + Child BUs",
   PARENT_CHILD_BUSINESS_UNITS: "Parent + Child BUs",
   ORGANIZATION: "Organization",
   TENANT: "Tenant",
@@ -30,8 +36,11 @@ const ACCESS_LABELS: Record<SecurityAccessLevel, string> = {
 
 const ACCESS_STYLES: Record<SecurityAccessLevel, string> = {
   NONE: "bg-surface text-muted",
+  SELF: "bg-sky-50 text-sky-700",
+  TEAM: "bg-cyan-50 text-cyan-700",
   USER: "bg-sky-50 text-sky-700",
   BUSINESS_UNIT: "bg-indigo-50 text-indigo-700",
+  PARENT_CHILD_BUSINESS_UNIT: "bg-violet-50 text-violet-700",
   PARENT_CHILD_BUSINESS_UNITS: "bg-violet-50 text-violet-700",
   ORGANIZATION: "bg-amber-50 text-amber-800",
   TENANT: "bg-emerald-50 text-emerald-800",

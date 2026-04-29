@@ -7,8 +7,12 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+import {
+  Permissions,
+  RequirePermission,
+} from '../../common/decorators/permissions.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
@@ -24,12 +28,14 @@ export class TenantSettingsController {
 
   @Get()
   @Permissions('settings.read')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   getSettings(@CurrentUser() user: AuthenticatedUser) {
     return this.tenantSettingsService.getTenantSettings(user.tenantId);
   }
 
   @Get('resolved')
   @Permissions('settings.read')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   getResolvedSettings(@CurrentUser() user: AuthenticatedUser) {
     return this.tenantSettingsService.getResolvedSettings(user.tenantId);
   }
@@ -42,6 +48,7 @@ export class TenantSettingsController {
 
   @Patch()
   @Permissions('settings.update')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
   updateSettings(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: UpdateTenantSettingsDto,
@@ -51,6 +58,7 @@ export class TenantSettingsController {
 
   @Get('features')
   @Permissions('settings.read')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   getFeatures(@CurrentUser() user: AuthenticatedUser) {
     return this.tenantSettingsService.getTenantFeatures(user.tenantId);
   }
@@ -62,6 +70,7 @@ export class TenantSettingsController {
 
   @Patch('features')
   @Permissions('settings.update')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
   updateFeatures(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: UpdateTenantFeaturesDto,
@@ -71,6 +80,7 @@ export class TenantSettingsController {
 
   @Get(':category')
   @Permissions('settings.read')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   getSettingsByCategory(
     @CurrentUser() user: AuthenticatedUser,
     @Param('category') category: string,
@@ -83,6 +93,7 @@ export class TenantSettingsController {
 
   @Patch(':category')
   @Permissions('settings.update')
+  @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
   updateSettingsCategory(
     @CurrentUser() user: AuthenticatedUser,
     @Param('category') category: string,

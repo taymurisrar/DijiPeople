@@ -3,10 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import {
-  DocumentEntityType,
-  Prisma,
-} from '@prisma/client';
+import { DocumentEntityType, Prisma } from '@prisma/client';
 import { extname } from 'path';
 import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -92,7 +89,10 @@ export class DocumentsService {
   }
 
   async findById(tenantId: string, documentId: string) {
-    const document = await this.documentsRepository.findById(tenantId, documentId);
+    const document = await this.documentsRepository.findById(
+      tenantId,
+      documentId,
+    );
 
     if (!document || document.isArchived) {
       throw new NotFoundException('Document was not found for this tenant.');
@@ -106,13 +106,17 @@ export class DocumentsService {
     dto: UploadDocumentDto,
     file: UploadedFile | undefined,
   ) {
-    const documentSettings = await this.tenantSettingsResolverService.getDocumentSettings(
-      currentUser.tenantId,
-    );
+    const documentSettings =
+      await this.tenantSettingsResolverService.getDocumentSettings(
+        currentUser.tenantId,
+      );
     const validatedFile = this.validateUploadedFile(file, documentSettings);
     const [documentType, documentCategory] = await Promise.all([
       this.validateDocumentType(currentUser.tenantId, dto.documentTypeId),
-      this.validateDocumentCategory(currentUser.tenantId, dto.documentCategoryId),
+      this.validateDocumentCategory(
+        currentUser.tenantId,
+        dto.documentCategoryId,
+      ),
     ]);
 
     if (
@@ -239,19 +243,25 @@ export class DocumentsService {
       );
     }
 
-    await this.documentsRepository.updateDocument(currentUser.tenantId, documentId, {
-      ...(dto.documentTypeId !== undefined
-        ? { documentTypeId: dto.documentTypeId }
-        : {}),
-      ...(dto.documentCategoryId !== undefined
-        ? { documentCategoryId: dto.documentCategoryId }
-        : {}),
-      ...(dto.title !== undefined ? { title: dto.title?.trim() ?? null } : {}),
-      ...(dto.description !== undefined
-        ? { description: dto.description?.trim() ?? null }
-        : {}),
-      updatedById: currentUser.userId,
-    });
+    await this.documentsRepository.updateDocument(
+      currentUser.tenantId,
+      documentId,
+      {
+        ...(dto.documentTypeId !== undefined
+          ? { documentTypeId: dto.documentTypeId }
+          : {}),
+        ...(dto.documentCategoryId !== undefined
+          ? { documentCategoryId: dto.documentCategoryId }
+          : {}),
+        ...(dto.title !== undefined
+          ? { title: dto.title?.trim() ?? null }
+          : {}),
+        ...(dto.description !== undefined
+          ? { description: dto.description?.trim() ?? null }
+          : {}),
+        updatedById: currentUser.userId,
+      },
+    );
 
     const after = await this.documentsRepository.findById(
       currentUser.tenantId,
@@ -305,7 +315,10 @@ export class DocumentsService {
   }
 
   async openForView(tenantId: string, documentId: string) {
-    const document = await this.documentsRepository.findById(tenantId, documentId);
+    const document = await this.documentsRepository.findById(
+      tenantId,
+      documentId,
+    );
 
     if (!document || document.isArchived || !document.storageKey) {
       throw new NotFoundException('Document was not found for this tenant.');
@@ -392,7 +405,10 @@ export class DocumentsService {
     const allowedExtensions = new Set(
       documentSettings.allowedExtensions.map((value) => value.toLowerCase()),
     );
-    if (allowedExtensions.size > 0 && !allowedExtensions.has(extension.toLowerCase())) {
+    if (
+      allowedExtensions.size > 0 &&
+      !allowedExtensions.has(extension.toLowerCase())
+    ) {
       throw new BadRequestException(
         `Uploaded file extension .${extension} is not allowed for this tenant.`,
       );
@@ -610,7 +626,10 @@ function normalizeFileExtension(fileName: string) {
   return extension.length > 0 ? extension : null;
 }
 
-function buildEntityLinkFields(entityType: DocumentEntityType, entityId: string) {
+function buildEntityLinkFields(
+  entityType: DocumentEntityType,
+  entityId: string,
+) {
   switch (entityType) {
     case DocumentEntityType.EMPLOYEE:
       return { employeeId: entityId };
