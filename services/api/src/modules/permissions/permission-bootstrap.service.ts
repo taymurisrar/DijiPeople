@@ -196,7 +196,6 @@ export class PermissionBootstrapService {
           db.rolePrivilege.upsert({
             where: {
               roleId_entityKey_privilege: {
-                tenantId: assignment.tenantId,
                 roleId: assignment.roleId,
                 entityKey: assignment.entityKey,
                 privilege: assignment.privilege,
