@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowLeft, Plus, RefreshCw } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ModuleDetailLayout } from "@/app/_components/crm/module-detail-layout";
 import { OwnerSelector } from "@/app/_components/crm/owner-selector";
@@ -13,6 +13,78 @@ import type {
   OperatorOption,
   PlanOption,
 } from "@/app/_components/platform-lifecycle-types";
+
+type LeadFormState = {
+  contactFirstName: string;
+  contactLastName: string;
+  companyName: string;
+  workEmail: string;
+  phoneNumber: string;
+  industry: string;
+  companySize: string;
+  source: string;
+  interestedPlan: string;
+  assignedToUserId: string;
+  status: string;
+  subStatus: string;
+  notes: string;
+  requirementsSummary: string;
+};
+
+type SelectOption = {
+  value: string;
+  label: string;
+};
+
+const FALLBACK_LEAD_STATUS = "NEW";
+
+function toSelectOptions(options?: SelectOption[]) {
+  return Array.isArray(options) ? options : [];
+}
+
+function getLeadLifecycle(lifecycleOptions: LifecycleOptions) {
+  const lead = lifecycleOptions.lead;
+
+  const statuses =
+    Array.isArray(lead?.statuses) && lead.statuses.length > 0
+      ? lead.statuses
+      : [FALLBACK_LEAD_STATUS];
+
+  const sources = Array.isArray(lead?.sources) ? lead.sources : [];
+
+  const subStatuses =
+    lead?.subStatuses && typeof lead.subStatuses === "object"
+      ? lead.subStatuses
+      : {};
+
+  return {
+    statuses,
+    sources,
+    subStatuses,
+  };
+}
+
+function buildInitialForm(lifecycleOptions: LifecycleOptions): LeadFormState {
+  const leadLifecycle = getLeadLifecycle(lifecycleOptions);
+  const defaultStatus = leadLifecycle.statuses[0] ?? FALLBACK_LEAD_STATUS;
+
+  return {
+    contactFirstName: "",
+    contactLastName: "",
+    companyName: "",
+    workEmail: "",
+    phoneNumber: "",
+    industry: lifecycleOptions.industries?.[0]?.value ?? "",
+    companySize: lifecycleOptions.companySizes?.[0]?.value ?? "",
+    source: leadLifecycle.sources[0]?.value ?? "",
+    interestedPlan: "",
+    assignedToUserId: "",
+    status: defaultStatus,
+    subStatus: leadLifecycle.subStatuses[defaultStatus]?.[0] ?? "",
+    notes: "",
+    requirementsSummary: "",
+  };
+}
 
 export function LeadCreateManager({
   lifecycleOptions,
@@ -27,28 +99,32 @@ export function LeadCreateManager({
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
 
-  const [form, setForm] = useState({
-    contactFirstName: '',
-    contactLastName: '',
-    companyName: '',
-    workEmail: '',
-    phoneNumber: '',
-    industry: lifecycleOptions.industries[0]?.value ?? '',
-    companySize: lifecycleOptions.companySizes[0]?.value ?? '',
-    source: lifecycleOptions.lead.sources[0]?.value ?? '',
-    interestedPlan: '',
-    assignedToUserId: '',
-    status: lifecycleOptions.lead.statuses[0] ?? 'NEW',
-    subStatus:
-      lifecycleOptions.lead.subStatuses[
-      lifecycleOptions.lead.statuses[0] ?? 'NEW'
-      ]?.[0] ?? '',
-    notes: '',
-    requirementsSummary: '',
-  });
+  const leadLifecycle = useMemo(
+    () => getLeadLifecycle(lifecycleOptions),
+    [lifecycleOptions],
+  );
 
-  function updateForm<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
+  const initialForm = useMemo(
+    () => buildInitialForm(lifecycleOptions),
+    [lifecycleOptions],
+  );
+
+  const [form, setForm] = useState<LeadFormState>(initialForm);
+
+  function updateForm<K extends keyof LeadFormState>(
+    key: K,
+    value: LeadFormState[K],
+  ) {
     setForm((current) => ({ ...current, [key]: value }));
+    setMessage(null);
+  }
+
+  function updateStatus(value: string) {
+    setForm((current) => ({
+      ...current,
+      status: value,
+      subStatus: leadLifecycle.subStatuses[value]?.[0] ?? "",
+    }));
     setMessage(null);
   }
 
@@ -81,25 +157,7 @@ export function LeadCreateManager({
   }
 
   function handleReset() {
-    setForm({
-      contactFirstName: "",
-      contactLastName: "",
-      companyName: "",
-      workEmail: "",
-      phoneNumber: "",
-      industry: lifecycleOptions.industries[0]?.value ?? '',
-      companySize: lifecycleOptions.companySizes[0]?.value ?? '',
-      source: lifecycleOptions.lead.sources[0]?.value ?? '',
-      interestedPlan: "",
-      assignedToUserId: "",
-      status: lifecycleOptions.lead.statuses[0] ?? "NEW",
-      subStatus:
-        lifecycleOptions.lead.subStatuses[
-        lifecycleOptions.lead.statuses[0] ?? "NEW"
-        ]?.[0] ?? "",
-      notes: "",
-      requirementsSummary: "",
-    });
+    setForm(buildInitialForm(lifecycleOptions));
     setMessage(null);
   }
 
@@ -169,14 +227,8 @@ export function LeadCreateManager({
               <div className="min-w-48">
                 <StatusSelector
                   label="Status"
-                  onChange={(value) =>
-                    setForm((current) => ({
-                      ...current,
-                      status: value,
-                      subStatus: lifecycleOptions.lead.subStatuses[value]?.[0] ?? "",
-                    }))
-                  }
-                  options={lifecycleOptions.lead.statuses.map((value) => ({
+                  onChange={updateStatus}
+                  options={leadLifecycle.statuses.map((value) => ({
                     value,
                     label: value.replaceAll("_", " "),
                   }))}
@@ -190,7 +242,7 @@ export function LeadCreateManager({
                   onChange={(value) => updateForm("subStatus", value)}
                   options={[
                     { value: "", label: "None" },
-                    ...(lifecycleOptions.lead.subStatuses[form.status] ?? []).map(
+                    ...(leadLifecycle.subStatuses[form.status] ?? []).map(
                       (value) => ({
                         value,
                         label: value,
@@ -227,50 +279,56 @@ export function LeadCreateManager({
             onChange={(value) => updateForm("contactFirstName", value)}
             value={form.contactFirstName}
           />
+
           <Field
             label="Last name"
             onChange={(value) => updateForm("contactLastName", value)}
             value={form.contactLastName}
           />
+
           <Field
             label="Company"
             onChange={(value) => updateForm("companyName", value)}
             value={form.companyName}
           />
+
           <Field
             label="Work email"
             onChange={(value) => updateForm("workEmail", value)}
             type="email"
             value={form.workEmail}
           />
+
           <Field
             label="Phone"
             onChange={(value) => updateForm("phoneNumber", value)}
             value={form.phoneNumber}
           />
+
           <Select
             label="Industry"
-            onChange={(value) => updateForm('industry', value)}
-            options={lifecycleOptions.industries}
+            onChange={(value) => updateForm("industry", value)}
+            options={toSelectOptions(lifecycleOptions.industries)}
             value={form.industry}
           />
 
           <Select
             label="Company size"
-            onChange={(value) => updateForm('companySize', value)}
-            options={lifecycleOptions.companySizes}
+            onChange={(value) => updateForm("companySize", value)}
+            options={toSelectOptions(lifecycleOptions.companySizes)}
             value={form.companySize}
           />
 
           <Select
             label="Source"
             value={form.source}
-            onChange={(value) => updateForm('source', value)}
+            onChange={(value) => updateForm("source", value)}
             options={[
-              { value: '', label: 'Select source' },
-              ...lifecycleOptions.lead.sources,
+              { value: "", label: "Select source" },
+              ...leadLifecycle.sources,
             ]}
           />
+
           <Select
             label="Interested plan"
             onChange={(value) => updateForm("interestedPlan", value)}
@@ -291,6 +349,7 @@ export function LeadCreateManager({
             onChange={(value) => updateForm("requirementsSummary", value)}
             value={form.requirementsSummary}
           />
+
           <TextArea
             label="Internal notes"
             onChange={(value) => updateForm("notes", value)}
@@ -303,16 +362,14 @@ export function LeadCreateManager({
             {message ?? "Fill in the details and create the lead."}
           </div>
 
-          <div className="flex gap-3">
-            <button
-              className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
-              disabled={isPending}
-              onClick={handleCreate}
-              type="button"
-            >
-              {isPending ? "Creating..." : "Create lead"}
-            </button>
-          </div>
+          <button
+            className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
+            disabled={isPending}
+            onClick={handleCreate}
+            type="button"
+          >
+            {isPending ? "Creating..." : "Create lead"}
+          </button>
         </div>
       </section>
     </ModuleDetailLayout>
@@ -343,11 +400,6 @@ function Field({
   );
 }
 
-type SelectOption = {
-  value: string;
-  label: string;
-};
-
 type SelectProps = {
   label: string;
   value: string;
@@ -355,19 +407,14 @@ type SelectProps = {
   onChange: (value: string) => void;
 };
 
-export function Select({
-  label,
-  value,
-  options,
-  onChange,
-}: SelectProps) {
+export function Select({ label, value, options, onChange }: SelectProps) {
   return (
     <label className="block text-sm font-medium text-slate-700">
       {label}
       <select
         className="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(event) => onChange(event.target.value)}
       >
         {options.map((option) => (
           <option key={`${option.value}-${option.label}`} value={option.value}>
