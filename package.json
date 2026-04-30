@@ -21,6 +21,7 @@
     "seed:system": "npm --workspace api run seed:system",
     "seed:admin": "npm --workspace api run seed:admin",
     "seed:demo": "npm --workspace api run seed:demo",
+    "seed:payroll-flow": "npm --workspace api run seed:payroll-flow",
     "seed:all": "npm --workspace api run seed:all",
     "smoke:deployment": "node scripts/smoke-deployment.mjs"
   },

@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  BusinessTripStatus,
   ClaimRequestStatus,
   EmployeeEmploymentStatus,
   LeaveRequestStatus,
@@ -16,11 +17,16 @@ import {
   PayrollRunLineItemCategory,
   PayrollRunStatus,
   Prisma,
+  TimePayrollInputSourceType,
+  TimePayrollInputStatus,
+  TimeProrationBasis,
 } from '@prisma/client';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { CompensationResolverService } from '../compensation/compensation-resolver.service';
+import { TimePayrollPreparationService } from '../time-payroll/time-payroll-preparation.service';
+import { TaxCalculationService } from '../tax-rules/tax-calculation.service';
 import {
   CreatePayrollCalendarDto,
   CreatePayrollPeriodDto,
@@ -71,6 +77,8 @@ export class PayrollRunService {
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
     private readonly compensationResolver: CompensationResolverService,
+    private readonly timePayrollPreparation: TimePayrollPreparationService,
+    private readonly taxCalculationService: TaxCalculationService,
   ) {}
 
   async createCalendar(user: AuthenticatedUser, dto: CreatePayrollCalendarDto) {
@@ -457,10 +465,30 @@ export class PayrollRunService {
         tenantId: user.tenantId,
         employeeId: employee.id,
       });
+      const tadaInputs = await this.buildTadaPayrollInputs({
+        tenantId: user.tenantId,
+        employeeId: employee.id,
+      });
+      const preparedTimeInputs =
+        await this.timePayrollPreparation.prepareTimeInputsForPayroll({
+          tenantId: user.tenantId,
+          employeeId: employee.id,
+          payrollPeriodId: period.id,
+          actorUserId: user.userId,
+        });
+      const timeInputs = this.buildTimePayrollInputs({
+        prepared: preparedTimeInputs,
+        baseAmount: compensation.baseAmount,
+        currencyCode: compensation.currencyCode,
+        periodStart: period.periodStart,
+        periodEnd: period.periodEnd,
+      });
       const lineItems = [
         ...buildLineItems(compensation),
         ...leaveInputs.lineItems,
+        ...timeInputs.lineItems,
         ...claimInputs.lineItems,
+        ...tadaInputs.lineItems,
       ];
       const totals = calculateTotals(lineItems);
       const runEmployee = await this.prisma.payrollRunEmployee.create({
@@ -485,6 +513,14 @@ export class PayrollRunService {
             unpaidLeaveDeduction: leaveInputs.unpaidDeduction.toString(),
             approvedClaimLineCount: claimInputs.snapshots.length,
             claimReimbursementTotal: claimInputs.reimbursementTotal.toString(),
+            approvedTadaAllowanceCount: tadaInputs.snapshots.length,
+            tadaReimbursementTotal: tadaInputs.reimbursementTotal.toString(),
+            timeInputCount: timeInputs.snapshots.length,
+            regularHours: timeInputs.regularHours.toString(),
+            overtimeHours: timeInputs.overtimeHours.toString(),
+            noShowDays: timeInputs.noShowDays.toString(),
+            noShowDeduction: timeInputs.noShowDeduction.toString(),
+            overtimeEarnings: timeInputs.overtimeEarnings.toString(),
           },
         },
       });
@@ -526,6 +562,32 @@ export class PayrollRunService {
         });
       }
 
+      if (tadaInputs.snapshots.length) {
+        await this.prisma.payrollInputSnapshot.createMany({
+          data: tadaInputs.snapshots.map((snapshot) => ({
+            tenantId: user.tenantId,
+            payrollRunEmployeeId: runEmployee.id,
+            sourceType: PayrollInputSnapshotSourceType.TADA,
+            sourceId: snapshot.allowanceId,
+            effectiveDate: period.periodEnd,
+            snapshotData: snapshot as unknown as Prisma.InputJsonValue,
+          })),
+        });
+      }
+
+      if (timeInputs.snapshots.length) {
+        await this.prisma.payrollInputSnapshot.createMany({
+          data: timeInputs.snapshots.map((snapshot) => ({
+            tenantId: user.tenantId,
+            payrollRunEmployeeId: runEmployee.id,
+            sourceType: sourceSnapshotForTimeInput(snapshot.sourceType),
+            sourceId: snapshot.inputId,
+            effectiveDate: snapshot.workDate,
+            snapshotData: snapshot as unknown as Prisma.InputJsonValue,
+          })),
+        });
+      }
+
       await this.prisma.payrollRunLineItem.createMany({
         data: lineItems.map((item) => ({
           ...item,
@@ -549,6 +611,65 @@ export class PayrollRunService {
 
         await this.markIncludedClaims(user, claimInputs.claimRequestIds);
       }
+
+      if (tadaInputs.allowanceIds.length) {
+        await this.prisma.businessTripAllowance.updateMany({
+          where: {
+            tenantId: user.tenantId,
+            id: { in: tadaInputs.allowanceIds },
+            payrollRunEmployeeId: null,
+          },
+          data: {
+            payrollRunEmployeeId: runEmployee.id,
+            payrollIncludedAt: new Date(),
+          },
+        });
+
+        await this.markIncludedBusinessTrips(user, tadaInputs.businessTripIds);
+      }
+
+      if (timeInputs.inputIds.length) {
+        await this.prisma.timePayrollInput.updateMany({
+          where: {
+            tenantId: user.tenantId,
+            id: { in: timeInputs.inputIds },
+            payrollRunEmployeeId: null,
+          },
+          data: {
+            payrollRunEmployeeId: runEmployee.id,
+            status: TimePayrollInputStatus.INCLUDED_IN_PAYROLL,
+          },
+        });
+
+        await this.audit(
+          user,
+          'TIME_PAYROLL_INPUTS_INCLUDED_IN_PAYROLL',
+          'PayrollRunEmployee',
+          runEmployee.id,
+          null,
+          { timeInputCount: timeInputs.inputIds.length },
+        );
+      }
+
+      for (const warning of [...preparedTimeInputs.warnings, ...timeInputs.warnings]) {
+        await this.prisma.payrollException.create({
+          data: {
+            tenantId: user.tenantId,
+            payrollRunId: id,
+            employeeId: employee.id,
+            severity: warning.severity,
+            errorType: warning.errorType,
+            message: warning.message,
+          },
+        });
+      }
+
+      await this.taxCalculationService.calculateTaxesForPayrollRunEmployee({
+        tenantId: user.tenantId,
+        payrollRunEmployeeId: runEmployee.id,
+        effectiveDate: period.periodEnd,
+        actorUserId: user.userId,
+      });
     }
 
     const calculated = await this.prisma.payrollRun.update({
@@ -605,6 +726,15 @@ export class PayrollRunService {
     return mapRun(locked);
   }
 
+  async calculatePayrollRunTaxes(user: AuthenticatedUser, id: string) {
+    const run = await this.findRunOrThrow(user.tenantId, id);
+    await this.assertBusinessUnitAccess(
+      user,
+      run.payrollPeriod.payrollCalendar.businessUnitId,
+    );
+    return this.taxCalculationService.calculateTaxesForRun(user, id);
+  }
+
   private async clearRunDraftData(tenantId: string, payrollRunId: string) {
     const employees = await this.prisma.payrollRunEmployee.findMany({
       where: { tenantId, payrollRunId },
@@ -617,6 +747,21 @@ export class PayrollRunService {
       });
       await this.prisma.payrollRunLineItem.deleteMany({
         where: { tenantId, payrollRunEmployeeId: { in: employeeIds } },
+      });
+      await this.prisma.claimLineItem.updateMany({
+        where: { tenantId, payrollRunEmployeeId: { in: employeeIds } },
+        data: { payrollRunEmployeeId: null, payrollIncludedAt: null },
+      });
+      await this.prisma.businessTripAllowance.updateMany({
+        where: { tenantId, payrollRunEmployeeId: { in: employeeIds } },
+        data: { payrollRunEmployeeId: null, payrollIncludedAt: null },
+      });
+      await this.prisma.timePayrollInput.updateMany({
+        where: { tenantId, payrollRunEmployeeId: { in: employeeIds } },
+        data: {
+          payrollRunEmployeeId: null,
+          status: TimePayrollInputStatus.PREPARED,
+        },
       });
     }
     await this.prisma.payrollRunEmployee.deleteMany({
@@ -809,6 +954,227 @@ export class PayrollRunService {
     };
   }
 
+  private async buildTadaPayrollInputs(params: {
+    tenantId: string;
+    employeeId: string;
+  }) {
+    const trips = await this.prisma.businessTrip.findMany({
+      where: {
+        tenantId: params.tenantId,
+        employeeId: params.employeeId,
+        status: {
+          in: [BusinessTripStatus.APPROVED, BusinessTripStatus.COMPLETED],
+        },
+      },
+      include: {
+        allowances: {
+          where: { payrollRunEmployeeId: null },
+          include: { travelAllowanceRule: true },
+          orderBy: [{ createdAt: 'asc' }],
+        },
+      },
+      orderBy: [{ approvedAt: 'asc' }, { createdAt: 'asc' }],
+    });
+
+    const snapshots: TadaPayrollSnapshot[] = [];
+    const lineItems: PayrollLineItemDraft[] = [];
+    const allowanceIds: string[] = [];
+    const businessTripIds = new Set<string>();
+    let reimbursementTotal = new Prisma.Decimal(0);
+
+    for (const trip of trips) {
+      for (const allowance of trip.allowances) {
+        if (allowance.amount.lte(0)) continue;
+        const label = `${formatAllowanceType(allowance.allowanceType)} / ${trip.title}`;
+
+        snapshots.push({
+          businessTripId: trip.id,
+          allowanceId: allowance.id,
+          title: trip.title,
+          destinationCountry: trip.destinationCountry,
+          destinationCity: trip.destinationCity,
+          startDate: trip.startDate.toISOString(),
+          endDate: trip.endDate.toISOString(),
+          allowanceType: allowance.allowanceType,
+          calculationBasis: allowance.calculationBasis,
+          quantity: allowance.quantity.toString(),
+          rate: allowance.rate.toString(),
+          amount: allowance.amount.toString(),
+          currencyCode: allowance.currencyCode,
+        });
+        lineItems.push({
+          payComponentId: null,
+          category: PayrollRunLineItemCategory.REIMBURSEMENT,
+          sourceType: 'TADA',
+          sourceId: allowance.id,
+          label,
+          quantity: allowance.quantity,
+          rate: allowance.rate,
+          amount: allowance.amount,
+          currencyCode: allowance.currencyCode,
+          isTaxable: false,
+          affectsGrossPay: false,
+          affectsNetPay: true,
+          displayOnPayslip: true,
+          displayOrder: 720,
+        });
+        allowanceIds.push(allowance.id);
+        businessTripIds.add(trip.id);
+        reimbursementTotal = reimbursementTotal.plus(allowance.amount);
+      }
+    }
+
+    return {
+      snapshots,
+      lineItems,
+      allowanceIds,
+      businessTripIds: [...businessTripIds],
+      reimbursementTotal,
+    };
+  }
+
+  private buildTimePayrollInputs(params: {
+    prepared: Awaited<
+      ReturnType<TimePayrollPreparationService['prepareTimeInputsForPayroll']>
+    >;
+    baseAmount: Prisma.Decimal;
+    currencyCode: string;
+    periodStart: Date;
+    periodEnd: Date;
+  }) {
+    const policy = params.prepared.policy;
+    const overtimePolicy = params.prepared.overtimePolicy;
+    const snapshots: TimePayrollSnapshot[] = [];
+    const lineItems: PayrollLineItemDraft[] = [];
+    const inputIds: string[] = [];
+    const warnings: TimePayrollWarning[] = [];
+    let regularHours = new Prisma.Decimal(0);
+    let overtimeHours = new Prisma.Decimal(0);
+    let noShowDays = new Prisma.Decimal(0);
+    let noShowDeduction = new Prisma.Decimal(0);
+    let overtimeEarnings = new Prisma.Decimal(0);
+
+    if (!policy) {
+      return {
+        snapshots,
+        lineItems,
+        inputIds,
+        warnings,
+        regularHours,
+        overtimeHours,
+        noShowDays,
+        noShowDeduction,
+        overtimeEarnings,
+      };
+    }
+
+    const calendarDays = new Prisma.Decimal(
+      countInclusiveDays(params.periodStart, params.periodEnd),
+    );
+    const preparedWorkingDays = new Prisma.Decimal(
+      new Set(
+        params.prepared.inputs
+          .filter((input) => input.regularHours.gt(0))
+          .map((input) => input.workDate.toISOString().slice(0, 10)),
+      ).size,
+    );
+    const dailyRate = resolveDailyRate({
+      baseAmount: params.baseAmount,
+      calendarDays,
+      workingDays: preparedWorkingDays,
+      standardWorkingDaysPerMonth: policy.standardWorkingDaysPerMonth,
+      prorationBasis: policy.prorationBasis,
+      warnings,
+    });
+    const payableHours =
+      policy.standardWorkingDaysPerMonth?.gt(0)
+        ? policy.standardWorkingDaysPerMonth.mul(policy.standardHoursPerDay)
+        : calendarDays.mul(policy.standardHoursPerDay);
+    const hourlyRate = payableHours.gt(0)
+      ? params.baseAmount.div(payableHours)
+      : params.baseAmount.div(calendarDays.mul(policy.standardHoursPerDay));
+    const overtimeMultiplier = overtimePolicy?.rateMultiplier ?? new Prisma.Decimal(1);
+
+    for (const input of params.prepared.inputs) {
+      inputIds.push(input.id);
+      regularHours = regularHours.plus(input.regularHours);
+      overtimeHours = overtimeHours.plus(input.overtimeHours);
+      noShowDays = noShowDays.plus(input.absenceDays);
+      snapshots.push({
+        inputId: input.id,
+        sourceType: input.sourceType,
+        sourceId: input.sourceId,
+        workDate: input.workDate,
+        regularHours: input.regularHours.toString(),
+        overtimeHours: input.overtimeHours.toString(),
+        absenceDays: input.absenceDays.toString(),
+        metadata: input.metadata,
+      });
+
+      if (
+        input.sourceType === TimePayrollInputSourceType.NO_SHOW &&
+        policy.deductNoShow &&
+        input.absenceDays.gt(0)
+      ) {
+        const amount = dailyRate.mul(input.absenceDays);
+        noShowDeduction = noShowDeduction.plus(amount);
+        lineItems.push({
+          payComponentId: null,
+          category: PayrollRunLineItemCategory.DEDUCTION,
+          sourceType: 'NO_SHOW',
+          sourceId: input.id,
+          label: 'No-show / unpaid absence',
+          quantity: input.absenceDays,
+          rate: dailyRate,
+          amount,
+          currencyCode: params.currencyCode,
+          isTaxable: false,
+          affectsGrossPay: false,
+          affectsNetPay: true,
+          displayOnPayslip: true,
+          displayOrder: 910,
+        });
+      }
+
+      if (
+        input.sourceType === TimePayrollInputSourceType.OVERTIME &&
+        input.overtimeHours.gt(0)
+      ) {
+        const rate = hourlyRate.mul(overtimeMultiplier);
+        const amount = input.overtimeHours.mul(rate);
+        overtimeEarnings = overtimeEarnings.plus(amount);
+        lineItems.push({
+          payComponentId: null,
+          category: PayrollRunLineItemCategory.EARNING,
+          sourceType: 'OVERTIME',
+          sourceId: input.id,
+          label: 'Overtime',
+          quantity: input.overtimeHours,
+          rate,
+          amount,
+          currencyCode: params.currencyCode,
+          isTaxable: false,
+          affectsGrossPay: true,
+          affectsNetPay: true,
+          displayOnPayslip: true,
+          displayOrder: 650,
+        });
+      }
+    }
+
+    return {
+      snapshots,
+      lineItems,
+      inputIds,
+      warnings,
+      regularHours,
+      overtimeHours,
+      noShowDays,
+      noShowDeduction,
+      overtimeEarnings,
+    };
+  }
+
   private async markIncludedClaims(
     user: AuthenticatedUser,
     claimRequestIds: string[],
@@ -834,6 +1200,37 @@ export class PayrollRunService {
         'CLAIM_INCLUDED_IN_PAYROLL',
         'ClaimRequest',
         claimRequestId,
+        null,
+        updated,
+      );
+    }
+  }
+
+  private async markIncludedBusinessTrips(
+    user: AuthenticatedUser,
+    businessTripIds: string[],
+  ) {
+    for (const businessTripId of businessTripIds) {
+      const remaining = await this.prisma.businessTripAllowance.count({
+        where: {
+          tenantId: user.tenantId,
+          businessTripId,
+          payrollRunEmployeeId: null,
+        },
+      });
+      if (remaining > 0) continue;
+      const updated = await this.prisma.businessTrip.update({
+        where: { id: businessTripId },
+        data: {
+          status: BusinessTripStatus.INCLUDED_IN_PAYROLL,
+          includedInPayrollAt: new Date(),
+        },
+      });
+      await this.audit(
+        user,
+        'BUSINESS_TRIP_INCLUDED_IN_PAYROLL',
+        'BusinessTrip',
+        businessTripId,
         null,
         updated,
       );
@@ -1047,6 +1444,39 @@ type ClaimPayrollSnapshot = {
   receiptDocumentId: string | null;
 };
 
+type TadaPayrollSnapshot = {
+  businessTripId: string;
+  allowanceId: string;
+  title: string;
+  destinationCountry: string;
+  destinationCity: string;
+  startDate: string;
+  endDate: string;
+  allowanceType: string;
+  calculationBasis: string;
+  quantity: string;
+  rate: string;
+  amount: string;
+  currencyCode: string;
+};
+
+type TimePayrollSnapshot = {
+  inputId: string;
+  sourceType: TimePayrollInputSourceType;
+  sourceId: string | null;
+  workDate: Date;
+  regularHours: string;
+  overtimeHours: string;
+  absenceDays: string;
+  metadata: Prisma.JsonValue | null;
+};
+
+type TimePayrollWarning = {
+  severity: PayrollExceptionSeverity;
+  errorType: string;
+  message: string;
+};
+
 function buildLineItems(
   compensation: NonNullable<CompensationPayload>,
 ): PayrollLineItemDraft[] {
@@ -1092,6 +1522,54 @@ function buildLineItems(
     displayOnPayslip: component.payComponent.displayOnPayslip,
     displayOrder: component.displayOrder,
   }));
+}
+
+function formatAllowanceType(value: string) {
+  return value
+    .split('_')
+    .map((part) => part.charAt(0) + part.slice(1).toLowerCase())
+    .join(' ');
+}
+
+function sourceSnapshotForTimeInput(sourceType: TimePayrollInputSourceType) {
+  if (sourceType === TimePayrollInputSourceType.ATTENDANCE) {
+    return PayrollInputSnapshotSourceType.ATTENDANCE;
+  }
+  if (sourceType === TimePayrollInputSourceType.TIMESHEET) {
+    return PayrollInputSnapshotSourceType.TIMESHEET;
+  }
+  if (sourceType === TimePayrollInputSourceType.OVERTIME) {
+    return PayrollInputSnapshotSourceType.POLICY;
+  }
+  return PayrollInputSnapshotSourceType.MANUAL;
+}
+
+function resolveDailyRate(input: {
+  baseAmount: Prisma.Decimal;
+  calendarDays: Prisma.Decimal;
+  workingDays: Prisma.Decimal;
+  standardWorkingDaysPerMonth: Prisma.Decimal | null;
+  prorationBasis: TimeProrationBasis;
+  warnings: TimePayrollWarning[];
+}) {
+  if (input.prorationBasis === TimeProrationBasis.FIXED_30_DAYS) {
+    return input.baseAmount.div(30);
+  }
+  if (input.prorationBasis === TimeProrationBasis.WORKING_DAYS) {
+    if (input.standardWorkingDaysPerMonth?.gt(0)) {
+      return input.baseAmount.div(input.standardWorkingDaysPerMonth);
+    }
+    if (input.workingDays.gt(0)) {
+      return input.baseAmount.div(input.workingDays);
+    }
+    input.warnings.push({
+      severity: PayrollExceptionSeverity.WARNING,
+      errorType: 'WORKING_DAYS_UNAVAILABLE',
+      message:
+        'Working days were unavailable for time proration; calendar days were used.',
+    });
+  }
+  return input.baseAmount.div(input.calendarDays);
 }
 
 function calculateTotals(lineItems: PayrollLineItemDraft[]) {

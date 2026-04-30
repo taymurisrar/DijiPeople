@@ -148,6 +148,15 @@ export class PayrollRunController {
     return this.payrollRunService.lockPayrollRun(user, id);
   }
 
+  @Post('runs/:id/calculate-taxes')
+  @Permissions('payroll-tax.calculate')
+  calculatePayrollRunTaxes(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.payrollRunService.calculatePayrollRunTaxes(user, id);
+  }
+
   @Get('runs/:id/employees')
   @Permissions('payroll-runs.read')
   listRunEmployees(

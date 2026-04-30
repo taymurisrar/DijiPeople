@@ -276,6 +276,79 @@ export const settingsNavGroups: readonly SettingsNavGroup[] = [
         ],
       },
       {
+        href: "/dashboard/settings/travel-allowance-policies",
+        label: "Travel Allowance Policies",
+        shortLabel: "TA/DA Policies",
+        description:
+          "Manage employee-level and destination-based travel allowance rules.",
+        icon: "plane",
+        keywords: ["travel", "business trips", "tada", "allowance"],
+        requiredAnyPermissions: [
+          PERMISSION_KEYS.TADA_POLICIES_READ,
+          PERMISSION_KEYS.TADA_POLICIES_MANAGE,
+        ],
+      },
+      {
+        href: "/dashboard/settings/time-payroll-policies",
+        label: "Time Payroll Policies",
+        description:
+          "Configure attendance, timesheet, no-show, and payroll source behavior.",
+        icon: "calendar-clock",
+        keywords: ["attendance payroll", "timesheets payroll", "no-show"],
+        requiredAnyPermissions: [
+          PERMISSION_KEYS.TIME_PAYROLL_POLICIES_READ,
+          PERMISSION_KEYS.TIME_PAYROLL_POLICIES_MANAGE,
+        ],
+      },
+      {
+        href: "/dashboard/settings/overtime-policies",
+        label: "Overtime Policies",
+        description:
+          "Configure overtime thresholds and multipliers for payroll calculations.",
+        icon: "timer-reset",
+        keywords: ["overtime", "time payroll", "multipliers"],
+        requiredAnyPermissions: [
+          PERMISSION_KEYS.OVERTIME_POLICIES_READ,
+          PERMISSION_KEYS.OVERTIME_POLICIES_MANAGE,
+        ],
+      },
+      {
+        href: "/dashboard/settings/tax-rules",
+        label: "Tax Rules",
+        description:
+          "Configure effective-dated tax deductions and employer contribution rules.",
+        icon: "percent",
+        keywords: ["tax", "statutory", "deductions", "employer contributions"],
+        requiredAnyPermissions: [
+          PERMISSION_KEYS.TAX_RULES_READ,
+          PERMISSION_KEYS.TAX_RULES_MANAGE,
+        ],
+      },
+      {
+        href: "/dashboard/settings/payroll/gl-accounts",
+        label: "GL Accounts",
+        description:
+          "Maintain payroll accounting accounts used by journal generation.",
+        icon: "book-open",
+        keywords: ["gl", "accounts", "journal", "accounting"],
+        requiredAnyPermissions: [
+          PERMISSION_KEYS.PAYROLL_GL_READ,
+          PERMISSION_KEYS.PAYROLL_GL_MANAGE,
+        ],
+      },
+      {
+        href: "/dashboard/settings/payroll/posting-rules",
+        label: "Posting Rules",
+        description:
+          "Map payroll line item categories, pay components, and tax rules to debit and credit accounts.",
+        icon: "split",
+        keywords: ["posting", "journal", "accounting", "debit", "credit"],
+        requiredAnyPermissions: [
+          PERMISSION_KEYS.PAYROLL_GL_READ,
+          PERMISSION_KEYS.PAYROLL_GL_MANAGE,
+        ],
+      },
+      {
         href: "/dashboard/settings/policies",
         label: "Policies",
         description:

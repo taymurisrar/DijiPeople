@@ -16,6 +16,9 @@ import { AttendanceModule } from './modules/attendance/attendance.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { AgentModule } from './modules/agent/agent.module';
+import { BusinessTripsModule } from './modules/business-trips/business-trips.module';
+import { TimePayrollModule } from './modules/time-payroll/time-payroll.module';
+import { TaxRulesModule } from './modules/tax-rules/tax-rules.module';
 import { CompensationModule } from './modules/compensation/compensation.module';
 import { ClaimsModule } from './modules/claims/claims.module';
 import { DocumentsModule } from './modules/documents/documents.module';
@@ -56,6 +59,9 @@ import { SuperAdminModule } from './modules/super-admin/super-admin.module';
     AgentModule,
     AuditModule,
     AuthModule,
+    BusinessTripsModule,
+    TimePayrollModule,
+    TaxRulesModule,
     ClaimsModule,
     CompensationModule,
     CustomizationModule,

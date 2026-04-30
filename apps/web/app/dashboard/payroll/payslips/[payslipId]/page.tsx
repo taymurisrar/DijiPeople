@@ -56,15 +56,25 @@ export default async function PayrollPayslipDetailPage({ params }: PageProps) {
         </article>
         <LineSection
           lines={payslip.lineItems.filter((line) =>
-            ["EARNING", "ALLOWANCE", "REIMBURSEMENT"].includes(line.category),
+            ["EARNING", "ALLOWANCE"].includes(line.category),
           )}
-          title="Earnings, Allowances, and Reimbursements"
+          title="Earnings"
+        />
+        <LineSection
+          lines={payslip.lineItems.filter(
+            (line) => line.category === "REIMBURSEMENT",
+          )}
+          title="Reimbursements"
         />
         <LineSection
           lines={payslip.lineItems.filter((line) =>
-            ["DEDUCTION", "TAX"].includes(line.category),
+            line.category === "DEDUCTION",
           )}
-          title="Deductions and Taxes"
+          title="Deductions"
+        />
+        <LineSection
+          lines={payslip.lineItems.filter((line) => line.category === "TAX")}
+          title="Taxes"
         />
         <LineSection
           lines={payslip.lineItems.filter(

@@ -53,6 +53,44 @@ export type PayrollRunRecord = {
   exceptions?: PayrollExceptionRecord[];
 };
 
+export type PayrollJournalRecord = {
+  id: string;
+  payrollRunId: string;
+  status: "DRAFT" | "GENERATED" | "EXPORTED" | "VOIDED";
+  journalNumber?: string | null;
+  generatedAt?: string | null;
+  exportedAt?: string | null;
+  lines: PayrollJournalEntryLineRecord[];
+};
+
+export type PayrollJournalEntryLineRecord = {
+  id: string;
+  debitAmount: string;
+  creditAmount: string;
+  description?: string | null;
+  account: { code: string; name: string; accountType: string };
+  employee?: { employeeCode: string; firstName: string; lastName: string } | null;
+  payComponent?: { code: string; name: string } | null;
+  taxRule?: { code: string; name: string } | null;
+};
+
+export type TimePayrollInputRecord = {
+  id: string;
+  employeeId: string;
+  sourceType: "ATTENDANCE" | "TIMESHEET" | "NO_SHOW" | "OVERTIME";
+  sourceId?: string | null;
+  workDate: string;
+  regularHours: string;
+  overtimeHours: string;
+  absenceDays: string;
+  status: "PREPARED" | "INCLUDED_IN_PAYROLL" | "EXCLUDED";
+  employee?: {
+    employeeCode: string;
+    firstName: string;
+    lastName: string;
+  };
+};
+
 export type PayrollRunEmployeeRecord = {
   id: string;
   employeeId: string;

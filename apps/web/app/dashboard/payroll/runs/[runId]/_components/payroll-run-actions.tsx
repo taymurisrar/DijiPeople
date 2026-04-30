@@ -7,12 +7,24 @@ export function PayrollRunActions({
   canCalculate,
   canGeneratePayslips,
   canLock,
+  canPrepareTimeInputs,
+  canCalculateTaxes,
+  canGenerateJournal,
+  canExportJournal,
+  canMarkJournalExported,
+  journalStatus,
   runId,
   status,
 }: {
+  canCalculateTaxes: boolean;
   canCalculate: boolean;
+  canExportJournal: boolean;
   canGeneratePayslips: boolean;
+  canGenerateJournal: boolean;
   canLock: boolean;
+  canMarkJournalExported: boolean;
+  canPrepareTimeInputs: boolean;
+  journalStatus?: string | null;
   runId: string;
   status: string;
 }) {
@@ -54,6 +66,74 @@ export function PayrollRunActions({
     router.refresh();
   }
 
+  async function prepareTimeInputs() {
+    setBusy(true);
+    setError(null);
+    const response = await fetch(`/api/payroll/runs/${runId}/prepare-time-inputs`, {
+      method: "POST",
+    });
+    setBusy(false);
+    if (!response.ok) {
+      const data = (await response.json().catch(() => null)) as {
+        message?: string;
+      } | null;
+      setError(data?.message ?? "Unable to prepare time inputs.");
+      return;
+    }
+    router.refresh();
+  }
+
+  async function calculateTaxes() {
+    setBusy(true);
+    setError(null);
+    const response = await fetch(`/api/payroll/runs/${runId}/calculate-taxes`, {
+      method: "POST",
+    });
+    setBusy(false);
+    if (!response.ok) {
+      const data = (await response.json().catch(() => null)) as {
+        message?: string;
+      } | null;
+      setError(data?.message ?? "Unable to calculate taxes.");
+      return;
+    }
+    router.refresh();
+  }
+
+  async function generateJournal() {
+    setBusy(true);
+    setError(null);
+    const response = await fetch(`/api/payroll/runs/${runId}/journal/generate`, {
+      method: "POST",
+    });
+    setBusy(false);
+    if (!response.ok) {
+      const data = (await response.json().catch(() => null)) as {
+        message?: string;
+      } | null;
+      setError(data?.message ?? "Unable to generate payroll journal.");
+      return;
+    }
+    router.refresh();
+  }
+
+  async function markJournalExported() {
+    setBusy(true);
+    setError(null);
+    const response = await fetch(`/api/payroll/runs/${runId}/journal/mark-exported`, {
+      method: "POST",
+    });
+    setBusy(false);
+    if (!response.ok) {
+      const data = (await response.json().catch(() => null)) as {
+        message?: string;
+      } | null;
+      setError(data?.message ?? "Unable to mark journal exported.");
+      return;
+    }
+    router.refresh();
+  }
+
   return (
     <div className="grid gap-3">
       <div className="flex flex-wrap gap-3">
@@ -65,6 +145,26 @@ export function PayrollRunActions({
             type="button"
           >
             Calculate
+          </button>
+        ) : null}
+        {canPrepareTimeInputs && !["APPROVED", "PAID", "LOCKED"].includes(status) ? (
+          <button
+            className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-foreground"
+            disabled={busy}
+            onClick={prepareTimeInputs}
+            type="button"
+          >
+            Prepare Time Inputs
+          </button>
+        ) : null}
+        {canCalculateTaxes && ["DRAFT", "CALCULATED"].includes(status) ? (
+          <button
+            className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-foreground"
+            disabled={busy}
+            onClick={calculateTaxes}
+            type="button"
+          >
+            Calculate Taxes
           </button>
         ) : null}
         {canLock && ["CALCULATED", "REVIEWED"].includes(status) ? (
@@ -88,6 +188,36 @@ export function PayrollRunActions({
             type="button"
           >
             Generate Payslips
+          </button>
+        ) : null}
+        {canGenerateJournal &&
+        ["CALCULATED", "APPROVED", "PAID"].includes(status) &&
+        journalStatus !== "EXPORTED" ? (
+          <button
+            className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-foreground"
+            disabled={busy}
+            onClick={generateJournal}
+            type="button"
+          >
+            Generate Journal
+          </button>
+        ) : null}
+        {canExportJournal && ["GENERATED", "EXPORTED"].includes(journalStatus ?? "") ? (
+          <a
+            className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-foreground"
+            href={`/api/payroll/runs/${runId}/journal/export`}
+          >
+            Export CSV
+          </a>
+        ) : null}
+        {canMarkJournalExported && journalStatus === "GENERATED" ? (
+          <button
+            className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-foreground"
+            disabled={busy}
+            onClick={markJournalExported}
+            type="button"
+          >
+            Mark Exported
           </button>
         ) : null}
       </div>

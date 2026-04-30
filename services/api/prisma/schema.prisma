@@ -478,6 +478,66 @@ enum PayrollInputSnapshotSourceType {
   POLICY
 }
 
+enum TimePayrollMode {
+  ATTENDANCE_ONLY
+  TIMESHEET_ONLY
+  ATTENDANCE_TO_TIMESHEET
+  ATTENDANCE_AND_TIMESHEET_SEPARATE
+}
+
+enum TimeProrationBasis {
+  CALENDAR_DAYS
+  WORKING_DAYS
+  FIXED_30_DAYS
+}
+
+enum OvertimeCalculationPeriod {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+enum TimePayrollInputSourceType {
+  ATTENDANCE
+  TIMESHEET
+  NO_SHOW
+  OVERTIME
+}
+
+enum TimePayrollInputStatus {
+  PREPARED
+  INCLUDED_IN_PAYROLL
+  EXCLUDED
+}
+
+enum TaxCalculationMethod {
+  PERCENTAGE
+  FIXED
+  BRACKET
+}
+
+enum TaxType {
+  INCOME_TAX
+  SOCIAL_SECURITY
+  MEDICARE
+  OTHER
+}
+
+enum PayrollGlAccountType {
+  ASSET
+  LIABILITY
+  EXPENSE
+  EQUITY
+  REVENUE
+}
+
+enum PayrollJournalEntryStatus {
+  DRAFT
+  GENERATED
+  EXPORTED
+  VOIDED
+}
+
 enum PayrollExceptionSeverity {
   INFO
   WARNING
@@ -520,6 +580,36 @@ enum ClaimApprovalStep {
 enum ClaimApprovalStatus {
   APPROVED
   REJECTED
+}
+
+enum BusinessTripStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+  CANCELLED
+  COMPLETED
+  INCLUDED_IN_PAYROLL
+  PAID
+}
+
+enum BusinessTripApprovalStatus {
+  APPROVED
+  REJECTED
+}
+
+enum TravelAllowanceType {
+  DAILY_ALLOWANCE
+  MEAL_ALLOWANCE
+  TRANSPORT_ALLOWANCE
+  HOTEL_ALLOWANCE
+  INCIDENTAL_ALLOWANCE
+}
+
+enum TravelAllowanceCalculationBasis {
+  PER_DAY
+  PER_NIGHT
+  PER_TRIP
 }
 
 enum RoleAccessLevel {
@@ -692,6 +782,17 @@ model Tenant {
   claimRequests    ClaimRequest[]
   claimLineItems   ClaimLineItem[]
   claimApprovals   ClaimApproval[]
+  businessTrips    BusinessTrip[]
+  businessTripApprovals BusinessTripApproval[]
+  travelAllowancePolicies TravelAllowancePolicy[]
+  travelAllowanceRules TravelAllowanceRule[]
+  businessTripAllowances BusinessTripAllowance[]
+  timePayrollPolicies TimePayrollPolicy[]
+  overtimePolicies OvertimePolicy[]
+  timePayrollInputs TimePayrollInput[]
+  taxRules TaxRule[]
+  taxRuleBrackets TaxRuleBracket[]
+  taxRulePayComponents TaxRulePayComponent[]
   leaveApprovalSteps LeaveApprovalStep[]
   approvalMatrices ApprovalMatrix[]
   workSchedules    WorkSchedule[]
@@ -730,6 +831,10 @@ model Tenant {
   payrollRunLineItems  PayrollRunLineItem[]
   payrollInputSnapshots PayrollInputSnapshot[]
   payrollExceptions    PayrollException[]
+  payrollGlAccounts    PayrollGlAccount[]
+  payrollPostingRules  PayrollPostingRule[]
+  payrollJournalEntries PayrollJournalEntry[]
+  payrollJournalEntryLines PayrollJournalEntryLine[]
   payslips             Payslip[]
   payslipLineItems     PayslipLineItem[]
   payslipEventLogs     PayslipEventLog[]
@@ -1158,6 +1263,8 @@ model BusinessUnit {
   timesheets           Timesheet[]
   payrollCycles        PayrollCycle[]
   payrollCalendars     PayrollCalendar[]
+  timePayrollPolicies  TimePayrollPolicy[]
+  overtimePolicies     OvertimePolicy[]
   processingCycles     ProcessingCycle[]
 
   @@unique([id, tenantId])
@@ -1521,6 +1628,8 @@ model Employee {
   leaveConsumptionRecords LeaveConsumptionRecord[]
   claimRequests        ClaimRequest[]
   claimLineItems       ClaimLineItem[]
+  businessTrips        BusinessTrip[]
+  timePayrollInputs    TimePayrollInput[]
   attendanceEntries     AttendanceEntry[]
   timesheets            Timesheet[]
   timesheetEntries      TimesheetEntry[]
@@ -1530,6 +1639,7 @@ model Employee {
   payrollRecords        PayrollRecord[]
   payrollRunEmployees   PayrollRunEmployee[]
   payrollExceptions     PayrollException[]
+  payrollJournalEntryLines PayrollJournalEntryLine[]
   payslips              Payslip[]
   compensations         EmployeeCompensation[]
   compensationHistories EmployeeCompensationHistory[]
@@ -1571,6 +1681,10 @@ model EmployeeLevel {
   updatedAt   DateTime   @updatedAt
   tenant      Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   employees   Employee[]
+  travelAllowancePolicies TravelAllowancePolicy[]
+  timePayrollPolicies TimePayrollPolicy[]
+  overtimePolicies OvertimePolicy[]
+  taxRules TaxRule[]
 
   @@unique([id, tenantId])
   @@unique([tenantId, code])
@@ -3036,7 +3150,9 @@ model PayrollRun {
   employees                      PayrollRunEmployee[]
   exceptions                     PayrollException[]
   payslips                       Payslip[]
+  journalEntry                   PayrollJournalEntry?
 
+  @@unique([id, tenantId])
   @@unique([payrollPeriodId, runNumber])
   @@index([tenantId, status])
   @@index([tenantId, payrollPeriodId])
@@ -3065,6 +3181,8 @@ model PayrollRunEmployee {
   inputSnapshots           PayrollInputSnapshot[]
   payslip                  Payslip?
   claimLineItems           ClaimLineItem[]
+  businessTripAllowances   BusinessTripAllowance[]
+  timePayrollInputs        TimePayrollInput[]
 
   @@unique([payrollRunId, employeeId])
   @@index([tenantId, employeeId])
@@ -3095,6 +3213,7 @@ model PayrollRunLineItem {
   payrollRunEmployee   PayrollRunEmployee         @relation(fields: [payrollRunEmployeeId], references: [id], onDelete: Cascade)
   payComponent         PayComponent?              @relation(fields: [payComponentId], references: [id], onDelete: SetNull)
   payslipLineItems     PayslipLineItem[]
+  journalEntryLines    PayrollJournalEntryLine[]
 
   @@index([tenantId, payrollRunEmployeeId])
   @@index([tenantId, category])
@@ -3327,6 +3446,377 @@ model ClaimApproval {
   @@index([tenantId, step])
 }
 
+model PayrollGlAccount {
+  id                 String                    @id @default(uuid())
+  tenantId           String
+  code               String
+  name               String
+  description        String?
+  accountType        PayrollGlAccountType
+  isActive           Boolean                   @default(true)
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+  tenant             Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  debitPostingRules  PayrollPostingRule[]      @relation("PayrollPostingRuleDebitAccount")
+  creditPostingRules PayrollPostingRule[]      @relation("PayrollPostingRuleCreditAccount")
+  journalLines       PayrollJournalEntryLine[]
+
+  @@unique([id, tenantId])
+  @@unique([tenantId, code])
+  @@index([tenantId, accountType])
+  @@index([tenantId, isActive])
+}
+
+model PayrollPostingRule {
+  id              String                     @id @default(uuid())
+  tenantId        String
+  name            String
+  description     String?
+  sourceCategory  PayrollRunLineItemCategory
+  payComponentId  String?
+  taxRuleId       String?
+  debitAccountId  String?
+  creditAccountId String?
+  isActive        Boolean                    @default(true)
+  effectiveFrom   DateTime
+  effectiveTo     DateTime?
+  createdAt       DateTime                   @default(now())
+  updatedAt       DateTime                   @updatedAt
+  tenant          Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payComponent    PayComponent?              @relation(fields: [payComponentId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  taxRule         TaxRule?                   @relation(fields: [taxRuleId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  debitAccount    PayrollGlAccount?          @relation("PayrollPostingRuleDebitAccount", fields: [debitAccountId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  creditAccount   PayrollGlAccount?          @relation("PayrollPostingRuleCreditAccount", fields: [creditAccountId, tenantId], references: [id, tenantId], onDelete: Restrict)
+
+  @@unique([id, tenantId])
+  @@index([tenantId, sourceCategory])
+  @@index([tenantId, payComponentId])
+  @@index([tenantId, taxRuleId])
+  @@index([tenantId, isActive])
+}
+
+model PayrollJournalEntry {
+  id            String                    @id @default(uuid())
+  tenantId      String
+  payrollRunId  String
+  status        PayrollJournalEntryStatus @default(DRAFT)
+  journalNumber String?
+  generatedAt   DateTime?
+  exportedAt    DateTime?
+  voidedAt      DateTime?
+  createdAt     DateTime                  @default(now())
+  updatedAt     DateTime                  @updatedAt
+  tenant        Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payrollRun    PayrollRun                @relation(fields: [payrollRunId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  lines         PayrollJournalEntryLine[]
+
+  @@unique([id, tenantId])
+  @@unique([tenantId, payrollRunId])
+  @@unique([payrollRunId, tenantId])
+  @@index([tenantId, status])
+}
+
+model PayrollJournalEntryLine {
+  id                   String              @id @default(uuid())
+  tenantId             String
+  journalEntryId       String
+  payrollRunLineItemId String?
+  accountId            String
+  debitAmount          Decimal             @default(0) @db.Decimal(12, 2)
+  creditAmount         Decimal             @default(0) @db.Decimal(12, 2)
+  description          String?
+  employeeId           String?
+  payComponentId       String?
+  taxRuleId            String?
+  createdAt            DateTime            @default(now())
+  tenant               Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  journalEntry         PayrollJournalEntry @relation(fields: [journalEntryId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  payrollRunLineItem   PayrollRunLineItem? @relation(fields: [payrollRunLineItemId], references: [id], onDelete: SetNull)
+  account              PayrollGlAccount    @relation(fields: [accountId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  employee             Employee?           @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  payComponent         PayComponent?        @relation(fields: [payComponentId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  taxRule              TaxRule?            @relation(fields: [taxRuleId, tenantId], references: [id, tenantId], onDelete: Restrict)
+
+  @@index([tenantId, journalEntryId])
+  @@index([tenantId, accountId])
+  @@index([tenantId, employeeId])
+}
+
+model BusinessTrip {
+  id                  String             @id @default(uuid())
+  tenantId            String
+  employeeId          String
+  requestedByUserId   String?
+  title               String
+  purpose             String?
+  originCountry       String?
+  originCity          String?
+  destinationCountry  String
+  destinationCity     String
+  startDate           DateTime
+  endDate             DateTime
+  status              BusinessTripStatus @default(DRAFT)
+  currencyCode        String
+  estimatedAllowance  Decimal            @default(0) @db.Decimal(12, 2)
+  approvedAllowance   Decimal            @default(0) @db.Decimal(12, 2)
+  submittedAt         DateTime?
+  approvedAt          DateTime?
+  rejectedAt          DateTime?
+  rejectionReason     String?
+  includedInPayrollAt DateTime?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  tenant              Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee            Employee           @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  approvals           BusinessTripApproval[]
+  allowances          BusinessTripAllowance[]
+
+  @@index([tenantId, employeeId])
+  @@index([tenantId, status])
+  @@index([tenantId, startDate, endDate])
+}
+
+model BusinessTripApproval {
+  id             String                     @id @default(uuid())
+  tenantId       String
+  businessTripId String
+  status         BusinessTripApprovalStatus
+  actorUserId    String?
+  comments       String?
+  createdAt      DateTime                   @default(now())
+  tenant         Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  businessTrip   BusinessTrip               @relation(fields: [businessTripId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, businessTripId])
+}
+
+model TravelAllowancePolicy {
+  id              String     @id @default(uuid())
+  tenantId        String
+  code            String
+  name            String
+  description     String?
+  employeeLevelId String?
+  countryCode     String?
+  city            String?
+  currencyCode    String
+  isActive        Boolean    @default(true)
+  effectiveFrom   DateTime
+  effectiveTo     DateTime?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  tenant          Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employeeLevel   EmployeeLevel? @relation(fields: [employeeLevelId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  rules           TravelAllowanceRule[]
+
+  @@unique([tenantId, code])
+  @@unique([id, tenantId])
+  @@index([tenantId, employeeLevelId])
+  @@index([tenantId, countryCode, city])
+  @@index([tenantId, isActive])
+}
+
+model TravelAllowanceRule {
+  id               String                          @id @default(uuid())
+  tenantId         String
+  policyId         String
+  allowanceType    TravelAllowanceType
+  calculationBasis TravelAllowanceCalculationBasis
+  amount           Decimal                         @db.Decimal(12, 2)
+  currencyCode     String
+  isActive         Boolean                         @default(true)
+  createdAt        DateTime                        @default(now())
+  updatedAt        DateTime                        @updatedAt
+  tenant           Tenant                          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  policy           TravelAllowancePolicy           @relation(fields: [policyId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  allowances       BusinessTripAllowance[]
+
+  @@unique([id, tenantId])
+  @@index([tenantId, policyId])
+  @@index([tenantId, allowanceType])
+}
+
+model BusinessTripAllowance {
+  id                    String                          @id @default(uuid())
+  tenantId              String
+  businessTripId        String
+  travelAllowanceRuleId String?
+  allowanceType         TravelAllowanceType
+  calculationBasis      TravelAllowanceCalculationBasis
+  quantity              Decimal                         @db.Decimal(12, 4)
+  rate                  Decimal                         @db.Decimal(12, 4)
+  amount                Decimal                         @db.Decimal(12, 2)
+  currencyCode          String
+  payrollRunEmployeeId  String?
+  payrollIncludedAt     DateTime?
+  createdAt             DateTime                        @default(now())
+  updatedAt             DateTime                        @updatedAt
+  tenant                Tenant                          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  businessTrip          BusinessTrip                    @relation(fields: [businessTripId], references: [id], onDelete: Cascade)
+  travelAllowanceRule   TravelAllowanceRule?            @relation(fields: [travelAllowanceRuleId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  payrollRunEmployee    PayrollRunEmployee?             @relation(fields: [payrollRunEmployeeId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, businessTripId])
+  @@index([tenantId, payrollRunEmployeeId])
+}
+
+model TimePayrollPolicy {
+  id                         String            @id @default(uuid())
+  tenantId                   String
+  code                       String
+  name                       String
+  description                String?
+  employeeLevelId            String?
+  businessUnitId             String?
+  countryCode                String?
+  mode                       TimePayrollMode
+  useAttendanceForPayroll    Boolean           @default(true)
+  useTimesheetForPayroll     Boolean           @default(false)
+  requireAttendanceApproval  Boolean           @default(false)
+  requireTimesheetApproval   Boolean           @default(true)
+  detectNoShow               Boolean           @default(true)
+  deductNoShow               Boolean           @default(true)
+  overtimeEnabled            Boolean           @default(false)
+  standardHoursPerDay        Decimal           @default(8) @db.Decimal(6, 2)
+  standardWorkingDaysPerMonth Decimal?         @db.Decimal(6, 2)
+  prorationBasis             TimeProrationBasis
+  isActive                   Boolean           @default(true)
+  effectiveFrom              DateTime
+  effectiveTo                DateTime?
+  createdAt                  DateTime          @default(now())
+  updatedAt                  DateTime          @updatedAt
+  tenant                     Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employeeLevel              EmployeeLevel?    @relation(fields: [employeeLevelId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  businessUnit               BusinessUnit?     @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
+
+  @@unique([id, tenantId])
+  @@unique([tenantId, code])
+  @@index([tenantId, employeeLevelId])
+  @@index([tenantId, businessUnitId])
+  @@index([tenantId, isActive])
+}
+
+model OvertimePolicy {
+  id                String                    @id @default(uuid())
+  tenantId          String
+  code              String
+  name              String
+  description       String?
+  employeeLevelId   String?
+  businessUnitId    String?
+  calculationPeriod OvertimeCalculationPeriod
+  thresholdHours    Decimal                   @db.Decimal(8, 2)
+  rateMultiplier    Decimal                   @db.Decimal(8, 4)
+  requiresApproval  Boolean                   @default(true)
+  isActive          Boolean                   @default(true)
+  effectiveFrom     DateTime
+  effectiveTo       DateTime?
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+  tenant            Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employeeLevel     EmployeeLevel?            @relation(fields: [employeeLevelId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  businessUnit      BusinessUnit?             @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
+
+  @@unique([id, tenantId])
+  @@unique([tenantId, code])
+  @@index([tenantId, employeeLevelId])
+  @@index([tenantId, businessUnitId])
+  @@index([tenantId, isActive])
+}
+
+model TimePayrollInput {
+  id                   String                     @id @default(uuid())
+  tenantId             String
+  employeeId           String
+  payrollRunEmployeeId String?
+  sourceType           TimePayrollInputSourceType
+  sourceId             String?
+  workDate             DateTime
+  regularHours         Decimal                    @default(0) @db.Decimal(8, 2)
+  overtimeHours        Decimal                    @default(0) @db.Decimal(8, 2)
+  absenceDays          Decimal                    @default(0) @db.Decimal(6, 2)
+  status               TimePayrollInputStatus     @default(PREPARED)
+  metadata             Json?
+  createdAt            DateTime                   @default(now())
+  updatedAt            DateTime                   @updatedAt
+  tenant               Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee             Employee                   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  payrollRunEmployee   PayrollRunEmployee?        @relation(fields: [payrollRunEmployeeId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, employeeId, workDate])
+  @@index([tenantId, payrollRunEmployeeId])
+  @@index([tenantId, sourceType, sourceId])
+}
+
+model TaxRule {
+  id                   String               @id @default(uuid())
+  tenantId             String
+  code                 String
+  name                 String
+  description          String?
+  countryCode          String?
+  regionCode           String?
+  employeeLevelId      String?
+  calculationMethod    TaxCalculationMethod
+  taxType              TaxType
+  employeeRate         Decimal?             @db.Decimal(8, 4)
+  employerRate         Decimal?             @db.Decimal(8, 4)
+  fixedEmployeeAmount  Decimal?             @db.Decimal(12, 2)
+  fixedEmployerAmount  Decimal?             @db.Decimal(12, 2)
+  currencyCode         String?
+  isActive             Boolean              @default(true)
+  effectiveFrom        DateTime
+  effectiveTo          DateTime?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  tenant               Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employeeLevel        EmployeeLevel?       @relation(fields: [employeeLevelId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  brackets             TaxRuleBracket[]
+  payComponents        TaxRulePayComponent[]
+  payrollPostingRules  PayrollPostingRule[]
+  payrollJournalEntryLines PayrollJournalEntryLine[]
+
+  @@unique([id, tenantId])
+  @@unique([tenantId, code])
+  @@index([tenantId, countryCode, regionCode])
+  @@index([tenantId, employeeLevelId])
+  @@index([tenantId, isActive])
+}
+
+model TaxRuleBracket {
+  id                   String   @id @default(uuid())
+  tenantId             String
+  taxRuleId            String
+  minAmount            Decimal  @db.Decimal(12, 2)
+  maxAmount            Decimal? @db.Decimal(12, 2)
+  employeeRate         Decimal? @db.Decimal(8, 4)
+  employerRate         Decimal? @db.Decimal(8, 4)
+  fixedEmployeeAmount  Decimal? @db.Decimal(12, 2)
+  fixedEmployerAmount  Decimal? @db.Decimal(12, 2)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  tenant               Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  taxRule              TaxRule  @relation(fields: [taxRuleId, tenantId], references: [id, tenantId], onDelete: Cascade)
+
+  @@index([tenantId, taxRuleId])
+  @@index([taxRuleId, minAmount])
+}
+
+model TaxRulePayComponent {
+  id             String       @id @default(uuid())
+  tenantId       String
+  taxRuleId      String
+  payComponentId String
+  createdAt      DateTime     @default(now())
+  tenant         Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  taxRule        TaxRule      @relation(fields: [taxRuleId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  payComponent   PayComponent @relation(fields: [payComponentId, tenantId], references: [id, tenantId], onDelete: Cascade)
+
+  @@unique([taxRuleId, payComponentId])
+  @@index([tenantId, taxRuleId])
+  @@index([tenantId, payComponentId])
+}
+
 model SalaryComponent {
   id            String              @id @default(uuid())
   tenantId      String
@@ -3370,6 +3860,9 @@ model PayComponent {
   compensationComponents EmployeeCompensationComponent[]
   payrollRunLineItems PayrollRunLineItem[]
   payslipLineItems PayslipLineItem[]
+  taxRuleMappings TaxRulePayComponent[]
+  payrollPostingRules PayrollPostingRule[]
+  payrollJournalEntryLines PayrollJournalEntryLine[]
 
   @@unique([id, tenantId])
   @@unique([tenantId, code])
