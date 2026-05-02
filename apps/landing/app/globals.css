@@ -157,6 +157,7 @@ hr {
 }
 
 @layer base {
+
   h1,
   h2,
   h3,
@@ -180,11 +181,9 @@ hr {
   }
 
   .surface-card {
-    background: linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.96),
-      rgba(245, 248, 247, 0.94)
-    );
+    background: linear-gradient(180deg,
+        rgba(255, 255, 255, 0.96),
+        rgba(245, 248, 247, 0.94));
     border: 1px solid var(--border);
     box-shadow: var(--shadow-sm);
   }
@@ -217,12 +216,10 @@ hr {
     inset: 0;
     padding: 1px;
     border-radius: inherit;
-    background: linear-gradient(
-      135deg,
-      rgba(15, 118, 110, 0.18),
-      rgba(226, 161, 76, 0.12),
-      rgba(16, 33, 43, 0.08)
-    );
+    background: linear-gradient(135deg,
+        rgba(15, 118, 110, 0.18),
+        rgba(226, 161, 76, 0.12),
+        rgba(16, 33, 43, 0.08));
     -webkit-mask:
       linear-gradient(#fff 0 0) content-box,
       linear-gradient(#fff 0 0);
@@ -230,5 +227,152 @@ hr {
     mask-composite: exclude;
     pointer-events: none;
     z-index: -1;
+  }
+
+  .lead-phone-input {
+    display: flex;
+    min-height: 50px;
+    align-items: center;
+    gap: 0.45rem;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+  }
+
+  .lead-phone-input .PhoneInputCountry {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    padding-right: 0.6rem;
+    border-right: 1px solid var(--border);
+    color: var(--foreground);
+    flex-shrink: 0;
+  }
+
+  .lead-phone-country-picker {
+    position: relative;
+  }
+
+  .lead-phone-country-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    border: 0;
+    background: transparent;
+    color: var(--foreground);
+    padding: 0;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+  }
+
+  .lead-phone-country-trigger:focus-visible,
+  .lead-phone-country-option:focus-visible,
+  .lead-phone-input .PhoneInputInput:focus-visible {
+    outline: none;
+    box-shadow: none;
+  }
+
+  .lead-phone-country-trigger:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  .lead-phone-country-menu {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 0;
+    z-index: 40;
+    max-height: 240px;
+    overflow-y: auto;
+    min-width: 120px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 14px 32px rgba(16, 33, 43, 0.12);
+    padding: 4px;
+  }
+
+  .lead-phone-country-option {
+    width: 100%;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--foreground);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 7px 8px;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .lead-phone-country-option:hover,
+  .lead-phone-country-option:focus-visible,
+  .lead-phone-country-option--active {
+    background: var(--accent-soft);
+  }
+
+  .lead-phone-country-flag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 12px;
+    overflow: hidden;
+    border-radius: 2px;
+    box-shadow: 0 0 0 1px rgba(16, 33, 43, 0.08);
+  }
+
+  .lead-phone-country-flag svg {
+    display: block;
+    width: 18px;
+    height: 12px;
+  }
+
+  .lead-phone-country-code {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .lead-phone-input .PhoneInputInput {
+    min-width: 0;
+    flex: 1;
+    width: 100%;
+    border: 0;
+    background: transparent;
+    color: var(--foreground);
+    outline: none;
+    padding: 0;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+  }
+
+  .lead-phone-input .PhoneInputInput:focus,
+  .lead-phone-input .PhoneInputInput:focus-visible {
+    outline: none !important;
+    border: 0;
+    box-shadow: none !important;
+  }
+
+  .lead-phone-input .PhoneInputInput::placeholder {
+    color: var(--muted-soft);
+  }
+
+  .lead-phone-input--code-only .PhoneInputCountryIcon,
+  .lead-phone-input--code-only .PhoneInputCountryIconImg {
+    display: none !important;
+  }
+
+  .lead-phone-input--code-only .PhoneInputCountry {
+    gap: 0.2rem;
+  }
+
+  .lead-form-select option:checked,
+  .lead-form-select option:hover {
+    background: var(--accent);
+    color: #ffffff;
   }
 }

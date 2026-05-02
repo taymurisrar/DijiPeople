@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type ComponentType, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowRight,
   Check,
@@ -9,26 +9,48 @@ import {
   CheckCheck,
   Sparkles,
 } from "lucide-react";
+import * as FlagIcons from "country-flag-icons/react/3x2";
 import { plans } from "./content";
 
 type BillingCycle = "monthly" | "annual";
 type CurrencyCode = "USD" | "CAD" | "GBP" | "EUR" | "QAR";
 
+type CurrencyFlagCode = "US" | "CA" | "GB" | "EU" | "QA";
+
 type CurrencyOption = {
   code: CurrencyCode;
   label: string;
   symbol: string;
-  flag: string;
+  flagCountry: CurrencyFlagCode;
   monthlyRate: number;
 };
 
 const currencies: CurrencyOption[] = [
-  { code: "USD", label: "US Dollar", symbol: "$", flag: "🇺🇸", monthlyRate: 1 },
-  { code: "CAD", label: "Canadian Dollar", symbol: "CA$", flag: "🇨🇦", monthlyRate: 1.35 },
-  { code: "GBP", label: "British Pound", symbol: "£", flag: "🇬🇧", monthlyRate: 0.79 },
-  { code: "EUR", label: "Euro", symbol: "€", flag: "🇪🇺", monthlyRate: 0.92 },
-  { code: "QAR", label: "Qatari Riyal", symbol: "QAR ", flag: "🇶🇦", monthlyRate: 3.64 },
+  { code: "USD", label: "US Dollar", symbol: "$", flagCountry: "US", monthlyRate: 1 },
+  { code: "CAD", label: "Canadian Dollar", symbol: "CA$", flagCountry: "CA", monthlyRate: 1.35 },
+  { code: "GBP", label: "British Pound", symbol: "£", flagCountry: "GB", monthlyRate: 0.79 },
+  { code: "EUR", label: "Euro", symbol: "€", flagCountry: "EU", monthlyRate: 0.92 },
+  { code: "QAR", label: "Qatari Riyal", symbol: "QAR ", flagCountry: "QA", monthlyRate: 3.64 },
 ];
+
+function CurrencyFlagIcon({ country }: { country: CurrencyFlagCode }) {
+  const FlagComponent = (
+    FlagIcons as Record<string, ComponentType<{ title?: string; className?: string }>>
+  )[country];
+
+  if (!FlagComponent) {
+    return null;
+  }
+
+  return (
+    <span
+      aria-hidden
+      className="inline-flex h-4 w-6 shrink-0 overflow-hidden rounded-[2px] shadow-[0_0_0_1px_rgba(16,33,43,0.08)]"
+    >
+      <FlagComponent className="h-full w-full object-cover" title={country} />
+    </span>
+  );
+}
 
 const baseMONTHLYPrices = {
   Starter: 200,
@@ -139,22 +161,22 @@ export function PlansSection() {
           </p>
         </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="grid gap-3 sm:grid-cols-2 sm:items-stretch lg:max-w-xl">
           <BillingToggle billing={billing} onChange={setBilling} />
 
-          <div className="relative" ref={currencyRef}>
+          <div className="relative min-w-0" ref={currencyRef}>
             <button
               type="button"
               onClick={() => setIsCurrencyOpen((current) => !current)}
-              className="inline-flex min-w-[220px] items-center justify-between gap-3 rounded-2xl border border-border bg-white px-4 py-3 text-sm text-foreground shadow-sm transition hover:border-accent/20"
+              className="flex h-11 w-full items-center justify-between gap-2 rounded-2xl border border-border bg-white px-3 text-foreground shadow-sm transition hover:border-accent/20"
             >
-              <span className="flex min-w-0 items-center gap-3">
-                <span className="text-base leading-none">
-                  {selectedCurrency.flag}
-                </span>
+              <span className="flex min-w-0 items-center gap-2">
+                <CurrencyFlagIcon country={selectedCurrency.flagCountry} />
                 <span className="min-w-0 text-left">
-                  <span className="block font-semibold">{selectedCurrency.code}</span>
-                  <span className="block truncate text-xs text-muted">
+                  <span className="block text-xs font-semibold leading-tight">
+                    {selectedCurrency.code}
+                  </span>
+                  <span className="block truncate text-[10px] leading-tight text-muted">
                     {selectedCurrency.label}
                   </span>
                 </span>
@@ -162,14 +184,14 @@ export function PlansSection() {
 
               <ChevronDown
                 className={[
-                  "h-4 w-4 shrink-0 text-muted transition",
+                  "h-3.5 w-3.5 shrink-0 text-muted transition",
                   isCurrencyOpen ? "rotate-180" : "",
                 ].join(" ")}
               />
             </button>
 
             {isCurrencyOpen ? (
-              <div className="absolute right-0 top-[calc(100%+10px)] z-20 w-[260px] overflow-hidden rounded-2xl border border-border bg-white p-2 shadow-[0_18px_50px_rgba(16,33,43,0.12)]">
+              <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-20 overflow-hidden rounded-2xl border border-border bg-white p-1.5 shadow-[0_18px_50px_rgba(16,33,43,0.12)]">
                 {currencies.map((currency) => {
                   const selected = currency.code === currencyCode;
 
@@ -182,26 +204,26 @@ export function PlansSection() {
                         setIsCurrencyOpen(false);
                       }}
                       className={[
-                        "flex w-full items-center justify-between gap-3 rounded-xl px-3 py-3 text-left transition",
+                        "flex w-full items-center justify-between gap-2 rounded-xl px-2.5 py-2 text-left transition",
                         selected
                           ? "bg-accent-soft/70"
                           : "hover:bg-surface-muted",
                       ].join(" ")}
                     >
-                      <span className="flex min-w-0 items-center gap-3">
-                        <span className="text-base leading-none">{currency.flag}</span>
+                      <span className="flex min-w-0 items-center gap-2">
+                        <CurrencyFlagIcon country={currency.flagCountry} />
                         <span className="min-w-0">
-                          <span className="block font-semibold text-foreground">
+                          <span className="block text-xs font-semibold text-foreground">
                             {currency.code}
                           </span>
-                          <span className="block truncate text-xs text-muted">
+                          <span className="block truncate text-[10px] text-muted">
                             {currency.label}
                           </span>
                         </span>
                       </span>
 
                       {selected ? (
-                        <CheckCheck className="h-4 w-4 shrink-0 text-accent" />
+                        <CheckCheck className="h-3.5 w-3.5 shrink-0 text-accent" />
                       ) : null}
                     </button>
                   );
@@ -305,16 +327,19 @@ function BillingToggle({
   billing: BillingCycle;
   onChange: (value: BillingCycle) => void;
 }) {
+  const tabClass =
+    "flex h-full min-h-0 flex-1 items-center justify-center rounded-md px-2 text-[10px] font-semibold uppercase tracking-[0.12em] transition";
+
   return (
-    <div className="inline-flex items-center rounded-2xl border border-border bg-surface-muted p-1 shadow-sm">
+    <div className="flex h-11 w-full items-stretch gap-0.5 rounded-2xl border border-border bg-surface-muted p-1 shadow-sm">
       <button
         type="button"
         onClick={() => onChange("monthly")}
         className={[
-          "rounded-xl px-4 py-2.5 text-sm font-semibold transition",
+          tabClass,
           billing === "monthly"
             ? "bg-white text-foreground shadow-sm"
-            : "text-muted hover:text-foreground",
+            : "text-muted hover:text-foreground border-border",
         ].join(" ")}
       >
         MONTHLY
@@ -324,16 +349,16 @@ function BillingToggle({
         type="button"
         onClick={() => onChange("annual")}
         className={[
-          "relative rounded-xl px-4 py-2.5 text-sm font-semibold transition",
+          tabClass,
           billing === "annual"
             ? "bg-white text-foreground shadow-sm"
             : "text-muted hover:text-foreground",
         ].join(" ")}
       >
-        <span>ANNUAL</span>
+        ANNUAL
       </button>
 
-      <span className="ml-1 rounded-full bg-accent-soft px-2.5 py-1 text-[11px] font-semibold text-accent">
+      <span className="ml-0.5 inline-flex shrink-0 items-center self-center rounded-full bg-accent-soft px-2 py-0.5 text-[12px] font-semibold tabular-nums text-accent">
         Save 18%
       </span>
     </div>
