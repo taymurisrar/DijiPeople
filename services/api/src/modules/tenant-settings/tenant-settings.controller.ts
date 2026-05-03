@@ -6,6 +6,7 @@ import {
   Patch,
   Query,
   UseGuards,
+  BadRequestException,
 } from '@nestjs/common';
 import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -21,88 +22,106 @@ import { UpdateTenantFeaturesDto } from './dto/update-tenant-features.dto';
 import { UpdateTenantSettingsDto } from './dto/update-tenant-settings.dto';
 import { TenantSettingsService } from './tenant-settings.service';
 
+const SETTINGS_READ_PERMISSION = 'settings.read';
+const SETTINGS_UPDATE_PERMISSION = 'settings.update';
+
 @Controller('tenant-settings')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class TenantSettingsController {
-  constructor(private readonly tenantSettingsService: TenantSettingsService) {}
+  constructor(private readonly service: TenantSettingsService) {}
 
   @Get()
-  @Permissions('settings.read')
+  @Permissions(SETTINGS_READ_PERMISSION)
   @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
-  getSettings(@CurrentUser() user: AuthenticatedUser) {
-    return this.tenantSettingsService.getTenantSettings(user.tenantId);
+  async getSettings(@CurrentUser() user: AuthenticatedUser) {
+    return this.service.getTenantSettings(user.tenantId);
   }
 
   @Get('resolved')
-  @Permissions('settings.read')
+  @Permissions(SETTINGS_READ_PERMISSION)
   @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
-  getResolvedSettings(@CurrentUser() user: AuthenticatedUser) {
-    return this.tenantSettingsService.getResolvedSettings(user.tenantId);
+  async getResolvedSettings(@CurrentUser() user: AuthenticatedUser) {
+    return this.service.getResolvedSettings(user.tenantId);
   }
 
   @Public()
   @Get('public-branding')
-  getPublicBranding(@Query('tenantSlug') tenantSlug?: string) {
-    return this.tenantSettingsService.getPublicBranding(tenantSlug);
+  async getPublicBranding(@Query('tenantSlug') tenantSlug?: string) {
+    if (!tenantSlug) {
+      throw new BadRequestException('tenantSlug is required');
+    }
+
+    return this.service.getPublicBranding(tenantSlug);
   }
 
   @Patch()
-  @Permissions('settings.update')
+  @Permissions(SETTINGS_UPDATE_PERMISSION)
   @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
-  updateSettings(
+  async updateSettings(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: UpdateTenantSettingsDto,
   ) {
-    return this.tenantSettingsService.updateTenantSettings(user, dto);
+    if (!dto?.updates?.length) {
+      throw new BadRequestException('No updates provided');
+    }
+
+    return this.service.updateTenantSettings(user, dto);
   }
 
   @Get('features')
-  @Permissions('settings.read')
+  @Permissions(SETTINGS_READ_PERMISSION)
   @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
-  getFeatures(@CurrentUser() user: AuthenticatedUser) {
-    return this.tenantSettingsService.getTenantFeatures(user.tenantId);
+  async getFeatures(@CurrentUser() user: AuthenticatedUser) {
+    return this.service.getTenantFeatures(user.tenantId);
   }
 
   @Get('features/availability')
-  getFeatureAvailability(@CurrentUser() user: AuthenticatedUser) {
-    return this.tenantSettingsService.getTenantFeatures(user.tenantId);
+  async getFeatureAvailability(@CurrentUser() user: AuthenticatedUser) {
+    return this.service.getTenantFeatures(user.tenantId);
   }
 
   @Patch('features')
-  @Permissions('settings.update')
+  @Permissions(SETTINGS_UPDATE_PERMISSION)
   @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
-  updateFeatures(
+  async updateFeatures(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: UpdateTenantFeaturesDto,
   ) {
-    return this.tenantSettingsService.updateTenantFeatures(user, dto);
+    return this.service.updateTenantFeatures(user, dto);
   }
 
   @Get(':category')
-  @Permissions('settings.read')
+  @Permissions(SETTINGS_READ_PERMISSION)
   @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
-  getSettingsByCategory(
+  async getSettingsByCategory(
     @CurrentUser() user: AuthenticatedUser,
     @Param('category') category: string,
   ) {
-    return this.tenantSettingsService.getTenantSettingsCategory(
-      user.tenantId,
-      category,
-    );
+    validateCategory(category);
+
+    return this.service.getTenantSettingsCategory(user.tenantId, category);
   }
 
   @Patch(':category')
-  @Permissions('settings.update')
+  @Permissions(SETTINGS_UPDATE_PERMISSION)
   @RequirePermission(ENTITY_KEYS.SETTINGS, 'configure')
-  updateSettingsCategory(
+  async updateSettingsCategory(
     @CurrentUser() user: AuthenticatedUser,
     @Param('category') category: string,
     @Body() dto: UpdateTenantSettingsDto,
   ) {
-    return this.tenantSettingsService.updateTenantSettingsCategory(
-      user,
-      category,
-      dto,
-    );
+    validateCategory(category);
+
+    if (!dto?.updates?.length) {
+      throw new BadRequestException('No updates provided');
+    }
+
+    return this.service.updateTenantSettingsCategory(user, category, dto);
+  }
+}
+
+function validateCategory(category: string) {
+  if (!category || typeof category !== 'string') {
+    throw new BadRequestException('Invalid category');
   }
 }

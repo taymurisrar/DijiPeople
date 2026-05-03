@@ -204,7 +204,6 @@ export class UsersService {
       actorId,
       userId,
     );
-    this.assertUserAccessChangeAllowed(ownership);
 
     const beforeSummary = this.mapUserSummary(user);
 
@@ -224,6 +223,7 @@ export class UsersService {
     const actorEffectiveRoleKeys = actor
       ? this.resolveEffectiveRoles(actor).map((role) => role.key)
       : [];
+
     const canAssignPrivilegedRoles =
       ownership.isActorOwner ||
       actorEffectiveRoleKeys.includes(ROLE_KEYS.SYSTEM_ADMIN);
@@ -372,7 +372,16 @@ export class UsersService {
       actorId,
       userId,
     );
-    this.assertUserAccessChangeAllowed(ownership);
+
+    if (ownership.isTargetOwner && user.businessUnitId !== businessUnitId) {
+      throw new ForbiddenException(
+        'The tenant owner business unit cannot be modified.',
+      );
+    }
+
+    if (user.businessUnitId === businessUnitId) {
+      return this.mapUserSummary(user);
+    }
 
     const beforeSummary = this.mapUserSummary(user);
 

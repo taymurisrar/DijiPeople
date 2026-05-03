@@ -36,7 +36,7 @@ export const DEFAULT_TENANT_SETTINGS: TenantSettingDefaults = {
     employeeIdPrefix: 'EMP',
     employeeIdSequenceLength: 4,
     autoGenerateEmployeeId: true,
-    defaultEmployeeStatus: 'Active',
+    defaultEmployeeStatus: 'ACTIVE',
     requirePersonalEmail: false,
     requireEmergencyContact: true,
     requireJoiningDate: true,
@@ -106,7 +106,7 @@ export const DEFAULT_TENANT_SETTINGS: TenantSettingDefaults = {
   },
   payroll: {
     payFrequency: 'MONTHLY',
-    payrollStatus: 'Active',
+    payrollStatus: 'ACTIVE',
     defaultPayrollGroup: 'main',
     defaultPaymentMode: 'BANK_TRANSFER',
     compensationReviewCycle: 'ANNUAL',

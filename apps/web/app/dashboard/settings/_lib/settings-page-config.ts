@@ -1,4 +1,16 @@
 import type { SettingsSectionConfig } from "@/app/components/settings";
+import { PERMISSION_KEYS } from "@/lib/security-keys";
+
+export type SettingsPageConfig = {
+  key: string;
+  title: string;
+  description: string;
+  eyebrow: string;
+  sections: SettingsSectionConfig[];
+  requiredAnyPermissions?: readonly string[];
+};
+
+const SETTINGS_READ = PERMISSION_KEYS.SETTINGS_READ ?? "settings.read";
 
 export const employeeSettingsSections: SettingsSectionConfig[] = [
   {
@@ -367,7 +379,7 @@ export const payrollSettingsSections: SettingsSectionConfig[] = [
         label: "Pay frequency",
         type: "select",
         options: [
-          { label: "MONTHLY", value: "MONTHLY" },
+          { label: "Monthly", value: "MONTHLY" },
           { label: "Bi-weekly", value: "BI_WEEKLY" },
           { label: "Weekly", value: "WEEKLY" },
         ],
@@ -378,7 +390,7 @@ export const payrollSettingsSections: SettingsSectionConfig[] = [
         label: "Payroll status",
         type: "select",
         options: [
-          { label: "Active", value: "Active" },
+          { label: "Active", value: "ACTIVE" },
           { label: "Review", value: "REVIEW" },
           { label: "Paused", value: "PAUSED" },
         ],
@@ -406,7 +418,7 @@ export const payrollSettingsSections: SettingsSectionConfig[] = [
         label: "Compensation review cycle",
         type: "select",
         options: [
-          { label: "ANNUAL", value: "ANNUAL" },
+          { label: "Annual", value: "ANNUAL" },
           { label: "Semi-annual", value: "SEMI_ANNUAL" },
           { label: "Quarterly", value: "QUARTERLY" },
         ],
@@ -441,9 +453,9 @@ export const payrollSettingsSections: SettingsSectionConfig[] = [
         label: "Payroll generation source",
         type: "select",
         options: [
-          { label: "Approved timesheets", value: "approved_timesheets" },
-          { label: "Manual", value: "manual" },
-          { label: "Mixed", value: "mixed" },
+          { label: "Approved timesheets", value: "APPROVED_TIMESHEETS" },
+          { label: "Manual", value: "MANUAL" },
+          { label: "Mixed", value: "MIXED" },
         ],
       },
       {
@@ -752,7 +764,7 @@ export const notificationSettingsSections: SettingsSectionConfig[] = [
         options: [
           { label: "Daily", value: "DAILY" },
           { label: "Weekly", value: "WEEKLY" },
-          { label: "MONTHLY", value: "MONTHLY" },
+          { label: "Monthly", value: "MONTHLY" },
         ],
       },
       {
@@ -931,8 +943,7 @@ export const brandingSettingsSections: SettingsSectionConfig[] = [
         category: "branding",
         key: "primaryColor",
         label: "Primary brand color",
-        description:
-          "Main accent color used across key interactive elements.",
+        description: "Main accent color used across key interactive elements.",
         type: "color",
       },
       {
@@ -979,32 +990,28 @@ export const brandingSettingsSections: SettingsSectionConfig[] = [
         category: "branding",
         key: "pageGradientStartColor",
         label: "Page gradient start",
-        description:
-          "Starting color for page-level gradient backgrounds.",
+        description: "Starting color for page-level gradient backgrounds.",
         type: "color",
       },
       {
         category: "branding",
         key: "pageGradientEndColor",
         label: "Page gradient end",
-        description:
-          "Ending color for page-level gradient backgrounds.",
+        description: "Ending color for page-level gradient backgrounds.",
         type: "color",
       },
       {
         category: "branding",
         key: "cardGradientStartColor",
         label: "Card gradient start",
-        description:
-          "Starting color for highlighted cards and hero sections.",
+        description: "Starting color for highlighted cards and hero sections.",
         type: "color",
       },
       {
         category: "branding",
         key: "cardGradientEndColor",
         label: "Card gradient end",
-        description:
-          "Ending color for highlighted cards and hero sections.",
+        description: "Ending color for highlighted cards and hero sections.",
         type: "color",
       },
     ],
@@ -1062,8 +1069,7 @@ export const brandingSettingsSections: SettingsSectionConfig[] = [
         category: "branding",
         key: "supportEmail",
         label: "Support email",
-        description:
-          "Primary support contact shown across the tenant workspace.",
+        description: "Primary support contact shown across the tenant workspace.",
         type: "text",
       },
       {
@@ -1099,8 +1105,7 @@ export const brandingSettingsSections: SettingsSectionConfig[] = [
         category: "branding",
         key: "helpCenterUrl",
         label: "Help center URL",
-        description:
-          "Support portal or help center link for tenant users.",
+        description: "Support portal or help center link for tenant users.",
         type: "text",
       },
       {
@@ -1265,8 +1270,7 @@ export const systemSettingsSections: SettingsSectionConfig[] = [
         category: "system",
         key: "defaultRecordsPerPage",
         label: "Default records per page",
-        description:
-          "Default page size for data tables across the workspace.",
+        description: "Default page size for data tables across the workspace.",
         type: "select",
         options: [
           { label: "10", value: "10" },
@@ -1378,3 +1382,99 @@ export const systemSettingsSections: SettingsSectionConfig[] = [
     ],
   },
 ];
+
+export const settingsPageConfig = {
+  employees: {
+    key: "employees",
+    title: "Employee Settings",
+    description:
+      "Control employee defaults, profile requirements, reporting structure, and duplicate prevention.",
+    eyebrow: "People Configuration",
+    sections: employeeSettingsSections,
+    requiredAnyPermissions: [
+      PERMISSION_KEYS.SETTINGS_READ,
+      PERMISSION_KEYS.EMPLOYEES_READ,
+    ],
+  },
+  attendance: {
+    key: "attendance",
+    title: "Attendance & Timesheets",
+    description:
+      "Configure attendance rules, timesheet behavior, import handling, and payroll linkage.",
+    eyebrow: "People Configuration",
+    sections: attendanceSettingsSections,
+    requiredAnyPermissions: [
+      PERMISSION_KEYS.SETTINGS_READ,
+      PERMISSION_KEYS.ATTENDANCE_READ,
+      PERMISSION_KEYS.TIMESHEETS_SETTINGS_READ,
+    ],
+  },
+  payroll: {
+    key: "payroll",
+    title: "Payroll Settings",
+    description:
+      "Define payroll defaults, compensation rules, generation logic, and payroll behavior.",
+    eyebrow: "Payroll & Finance",
+    sections: payrollSettingsSections,
+    requiredAnyPermissions: [SETTINGS_READ, "payroll.settings.read"],
+  },
+  recruitment: {
+    key: "recruitment",
+    title: "Recruitment & Onboarding",
+    description:
+      "Configure hiring pipeline, onboarding workflow, and candidate-to-employee conversion.",
+    eyebrow: "Apps & Modules",
+    sections: recruitmentSettingsSections,
+    requiredAnyPermissions: [SETTINGS_READ, "recruitment.read", "onboarding.read"],
+  },
+  documents: {
+    key: "documents",
+    title: "Document Rules",
+    description:
+      "Define storage rules, validation, and governance for documents across modules.",
+    eyebrow: "People Configuration",
+    sections: documentSettingsSections,
+    requiredAnyPermissions: [SETTINGS_READ, "documents.read"],
+  },
+  notifications: {
+    key: "notifications",
+    title: "Notifications",
+    description:
+      "Control communication channels, alerts, digests, reminders, and notification behavior.",
+    eyebrow: "People Configuration",
+    sections: notificationSettingsSections,
+    requiredAnyPermissions: [SETTINGS_READ],
+  },
+  branding: {
+    key: "branding",
+    title: "Branding",
+    description:
+      "Manage brand identity, visual assets, colors, messaging, support details, and email branding.",
+    eyebrow: "Appearance & Experience",
+    sections: brandingSettingsSections,
+    requiredAnyPermissions: [SETTINGS_READ],
+  },
+  system: {
+    key: "system",
+    title: "System Preferences",
+    description:
+      "Configure regional settings, display preferences, workspace defaults, and tenant-wide operational behavior.",
+    eyebrow: "Appearance & Experience",
+    sections: systemSettingsSections,
+    requiredAnyPermissions: [SETTINGS_READ],
+  },
+} satisfies Record<string, SettingsPageConfig>;
+
+export type SettingsPageKey = keyof typeof settingsPageConfig;
+
+export function getSettingsPageConfig(key: string) {
+  return settingsPageConfig[key as SettingsPageKey] ?? null;
+}
+
+export function getAllSettingsPageConfigs() {
+  return Object.values(settingsPageConfig);
+}
+
+export function getSettingsPageSections(key: string) {
+  return getSettingsPageConfig(key)?.sections ?? [];
+}

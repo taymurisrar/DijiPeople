@@ -75,6 +75,7 @@ export const ENTITY_KEYS = {
   SETTINGS: 'settings',
   REPORTS: 'reports',
   CUSTOMIZATION: 'customization',
+  HIERARCHY: 'hierarchy',
   TEAMS: 'teams',
   MODULE_VIEWS: 'module-views',
   BRANDING: 'branding',
@@ -147,6 +148,7 @@ export const RBAC_PRIVILEGES = [
 
 export const RBAC_ENTITIES: RbacEntityDefinition[] = [
   { key: ENTITY_KEYS.EMPLOYEES, label: 'Employees', category: 'People' },
+  { key: ENTITY_KEYS.HIERARCHY, label: 'Hierarchy', category: 'People' },
   {
     key: ENTITY_KEYS.EMPLOYEE_LEVELS,
     label: 'Employee Levels',
@@ -719,6 +721,9 @@ export function matrixPrivilegeToPermissionKey(
   const normalizedPrivilege = privilege.toLowerCase();
 
   const explicit: Record<string, string> = {
+    'hierarchy:read': 'hierarchy.read',
+    'hierarchy:write': 'hierarchy.update',
+    'hierarchy:manage': 'hierarchy.update',
     'leave-requests:read': 'leave-requests.read',
     'leave-requests:create': 'leave-requests.create',
     'leave-requests:approve': 'leave-requests.approve',
@@ -814,6 +819,10 @@ export function matrixPrivilegeToPermissionKey(
     'compensation:write': 'compensation.manage',
     'compensation:delete': 'compensation.manage',
     'compensation:manage': 'compensation.manage',
+    'employees:read': 'employees.read',
+    'employees:create': 'employees.create',
+    'employees:write': 'employees.update',
+    'employees:delete': 'employees.terminate',
     'employee-levels:create': 'employee-levels.manage',
     'employee-levels:write': 'employee-levels.manage',
     'employee-levels:delete': 'employee-levels.manage',

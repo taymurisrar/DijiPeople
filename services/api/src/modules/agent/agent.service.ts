@@ -10,6 +10,7 @@ import { JwtService } from '@nestjs/jwt';
 import {
   AgentActivityState,
   Prisma,
+  SecurityPrivilege,
   UserStatus,
   WorkSessionStatus,
 } from '@prisma/client';
@@ -18,13 +19,15 @@ import { randomUUID } from 'crypto';
 import type { StringValue } from 'ms';
 import {
   getAccessTokenSecret,
-  getAccessTokenTtl,
+  getAgentAccessTokenTtl,
   getRefreshTokenSecret,
-  getRefreshTokenTtl,
+  getAgentRefreshTokenTtl,
   parseDurationToMilliseconds,
 } from '../../common/config/auth.config';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { buildScopedAccessWhere } from '../../common/security/rbac-query-scope';
 import { AgentDeviceDto } from './dto/agent-device.dto';
 import {
   AgentLoginDto,
@@ -42,6 +45,7 @@ import { UpdateAgentSettingsDto } from './dto/update-agent-settings.dto';
 type AgentTokenPayload = {
   sub: string;
   tenantId: string;
+  email: string;
   deviceId: string;
   sessionId: string;
   type: 'access' | 'agent-refresh';
@@ -79,9 +83,38 @@ export class AgentService {
         employee: true,
       },
     });
+    console.log('[Agent Login Debug]', {
+      email: dto.email,
+      normalizedEmail: dto.email.trim().toLowerCase(),
+      userFound: Boolean(user),
+      userId: user?.id,
+      userEmail: user?.email,
+      userStatus: user?.status,
+      tenantId: user?.tenantId,
+      tenantStatus: user?.tenant?.status,
+      employeeId: user?.employee?.id,
+      hasPasswordHash: Boolean(user?.passwordHash),
+    });
+    if (!user) {
+      throw new UnauthorizedException(
+        'Agent login failed: user was not found.',
+      );
+    }
 
-    if (!user || !(await bcrypt.compare(dto.password, user.passwordHash))) {
-      throw new UnauthorizedException('Invalid email or password.');
+    const passwordMatches = await bcrypt.compare(
+      dto.password,
+      user.passwordHash,
+    );
+
+    console.log('[Agent Login Password Debug]', {
+      userId: user.id,
+      passwordMatches,
+    });
+
+    if (!passwordMatches) {
+      throw new UnauthorizedException(
+        'Agent login failed: password does not match.',
+      );
     }
 
     if (
@@ -109,6 +142,7 @@ export class AgentService {
       userId: user.id,
       tenantId: user.tenantId,
       employeeId: user.employee.id,
+      email: user.email,
       deviceId: device.id,
     });
 
@@ -184,6 +218,7 @@ export class AgentService {
       userId: user.id,
       tenantId: user.tenantId,
       employeeId: user.employee.id,
+      email: user.email,
       deviceId: device.id,
     });
 
@@ -203,6 +238,135 @@ export class AgentService {
       },
       device,
       tokens,
+    };
+  }
+  async employeeAgentSummary(
+    currentUser: AuthenticatedUser,
+    employeeId: string,
+  ) {
+    const employee = await this.prisma.employee.findFirst({
+      where: {
+        AND: [
+          { tenantId: currentUser.tenantId, id: employeeId },
+          buildScopedAccessWhere<Prisma.EmployeeWhereInput>(
+            currentUser,
+            ENTITY_KEYS.EMPLOYEES,
+            SecurityPrivilege.READ,
+            {
+              organizationIdField: null,
+              userIdField: 'userId',
+            },
+          ),
+        ],
+      },
+      select: {
+        id: true,
+        userId: true,
+        firstName: true,
+        lastName: true,
+      },
+    });
+
+    if (!employee) {
+      throw new NotFoundException('Employee was not found.');
+    }
+
+    const today = startOfUtcDay(new Date());
+
+    const [devices, latestSession, todaySummary, recentEvents] =
+      await Promise.all([
+        this.prisma.employeeDevice.findMany({
+          where: {
+            tenantId: currentUser.tenantId,
+            employeeId,
+          },
+          orderBy: [{ isActive: 'desc' }, { lastSeenAt: 'desc' }],
+          take: 10,
+          select: {
+            id: true,
+            deviceName: true,
+            os: true,
+            platform: true,
+            agentVersion: true,
+            lastSeenAt: true,
+            isActive: true,
+          },
+        }),
+
+        this.prisma.workSession.findFirst({
+          where: {
+            tenantId: currentUser.tenantId,
+            employeeId,
+          },
+          orderBy: [{ lastHeartbeatAt: 'desc' }, { startedAt: 'desc' }],
+          select: {
+            id: true,
+            status: true,
+            startedAt: true,
+            endedAt: true,
+            lastHeartbeatAt: true,
+            totalActiveSeconds: true,
+            totalIdleSeconds: true,
+            totalAwaySeconds: true,
+          },
+        }),
+
+        this.prisma.dailyProductivitySummary.findUnique({
+          where: {
+            tenantId_employeeId_date: {
+              tenantId: currentUser.tenantId,
+              employeeId,
+              date: today,
+            },
+          },
+          select: {
+            loggedInSeconds: true,
+            activeSeconds: true,
+            idleSeconds: true,
+            awaySeconds: true,
+            utilizationPercent: true,
+          },
+        }),
+
+        this.prisma.activityEvent.findMany({
+          where: {
+            tenantId: currentUser.tenantId,
+            employeeId,
+          },
+          orderBy: {
+            occurredAt: 'desc',
+          },
+          take: 25,
+          select: {
+            id: true,
+            state: true,
+            idleSeconds: true,
+            activeApp: true,
+            windowTitle: true,
+            activeAppPath: true,
+            browserTabTitle: true,
+            activeProcessId: true,
+            agentVersion: true,
+            occurredAt: true,
+          },
+        }),
+      ]);
+
+    return {
+      employee: {
+        id: employee.id,
+        userId: employee.userId,
+        fullName: `${employee.firstName} ${employee.lastName}`.trim(),
+      },
+      devices,
+      latestSession,
+      todaySummary: todaySummary
+        ? {
+            ...todaySummary,
+            utilizationPercent: todaySummary.utilizationPercent.toNumber(),
+          }
+        : null,
+      recentEvents,
     };
   }
 
@@ -449,10 +613,25 @@ export class AgentService {
         deviceId: device.id,
         state: event.state,
         idleSeconds: event.idleSeconds,
+
         activeApp: settings.captureActiveApp ? (event.activeApp ?? null) : null,
+
         windowTitle: settings.captureWindowTitle
           ? (event.windowTitle ?? null)
           : null,
+
+        activeAppPath: settings.captureActiveApp
+          ? (event.activeAppPath ?? null)
+          : null,
+
+        browserTabTitle: settings.captureWindowTitle
+          ? (event.browserTabTitle ?? null)
+          : null,
+
+        activeProcessId: settings.captureActiveApp
+          ? (event.activeProcessId ?? null)
+          : null,
+
         agentVersion: event.agentVersion ?? device.agentVersion,
         occurredAt,
       },
@@ -637,15 +816,17 @@ export class AgentService {
     userId: string;
     tenantId: string;
     employeeId: string;
+    email: string;
     deviceId: string;
   }) {
     const sessionId = randomUUID();
-    const accessTokenTtl = getAccessTokenTtl(this.configService);
-    const refreshTokenTtl = getRefreshTokenTtl(this.configService);
+    const accessTokenTtl = getAgentAccessTokenTtl(this.configService);
+    const refreshTokenTtl = getAgentRefreshTokenTtl(this.configService);
     const accessToken = this.jwtService.sign(
       {
         sub: input.userId,
         tenantId: input.tenantId,
+        email: input.email,
         deviceId: input.deviceId,
         sessionId,
         type: 'access',
@@ -655,10 +836,12 @@ export class AgentService {
         expiresIn: accessTokenTtl as StringValue,
       },
     );
+
     const refreshToken = this.jwtService.sign(
       {
         sub: input.userId,
         tenantId: input.tenantId,
+        email: input.email,
         deviceId: input.deviceId,
         sessionId,
         type: 'agent-refresh',
@@ -774,6 +957,11 @@ function normalizeHeartbeatEvents(dto: HeartbeatDto): HeartbeatEventDto[] {
       idleSeconds: dto.idleSeconds ?? 0,
       activeApp: dto.activeApp,
       windowTitle: dto.windowTitle,
+
+      activeAppPath: dto.activeAppPath,
+      browserTabTitle: dto.browserTabTitle,
+      activeProcessId: dto.activeProcessId,
+
       agentVersion: dto.agentVersion,
       occurredAt: dto.occurredAt,
     },

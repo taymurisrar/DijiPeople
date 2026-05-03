@@ -4,13 +4,18 @@
   "private": true,
   "main": "dist/main/main.js",
   "scripts": {
-    "dev": "tsc -w",
-    "build": "tsc && node scripts/copy-renderer.mjs",
+    "dev": "npm run build:renderer && tsc -w",
+    "build": "npm run clean && npm run build:main && npm run build:renderer && npm run copy:renderer",
+    "build:main": "tsc -p tsconfig.json",
+    "build:renderer": "tsc src/renderer/login.ts --target ES2020 --module ES2020 --moduleResolution bundler --outDir src/renderer --skipLibCheck",
+    "copy:renderer": "node scripts/copy-renderer.mjs",
+    "clean": "node -e \"const fs=require('fs'); fs.rmSync('dist',{recursive:true,force:true}); fs.rmSync('src/renderer/login.js',{force:true});\"",
     "start": "electron .",
     "dist:win": "npm run build && electron-builder --win nsis",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
+    "active-win": "^8.2.1",
     "electron-is-dev": "^3.0.1",
     "electron-updater": "^6.6.2",
     "keytar": "^7.9.0"

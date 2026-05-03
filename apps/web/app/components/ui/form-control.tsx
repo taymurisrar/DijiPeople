@@ -35,11 +35,32 @@ function FieldShell({
 }: BaseFieldProps & { children: React.ReactNode }) {
   return (
     <label className={["block space-y-2 text-sm", className].filter(Boolean).join(" ")}>
-      <span className="flex items-center gap-1 font-medium text-foreground">
-        {label}
-        {required ? <span className="text-danger">*</span> : null}
+      <span className="flex items-center gap-1.5 font-medium text-foreground">
+        <span>
+          {label}
+          {required ? <span className="ml-1 text-danger">*</span> : null}
+        </span>
+
+        {hint ? (
+          <span className="group relative inline-flex">
+            <button
+              type="button"
+              tabIndex={0}
+              aria-label={`${label} help`}
+              className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-border bg-slate-50 text-[10px] font-semibold leading-none text-muted transition hover:border-accent hover:bg-accent/5 hover:text-accent focus:border-accent focus:bg-accent/5 focus:text-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+              onClick={(event) => event.preventDefault()}
+            >
+              i
+            </button>
+
+            <span className="pointer-events-none absolute left-1/2 top-6 z-40 hidden w-72 -translate-x-1/2 rounded-xl border border-border bg-slate-950 px-3 py-2 text-xs font-normal leading-5 text-white shadow-xl group-hover:block group-focus-within:block">
+              {hint}
+              <span className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-slate-950" />
+            </span>
+          </span>
+        ) : null}
       </span>
-      {hint ? <p className="text-xs leading-5 text-muted">{hint}</p> : null}
+
       {children}
     </label>
   );

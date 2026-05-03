@@ -2,13 +2,19 @@ import {
   Body,
   Controller,
   Get,
+  Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+import {
+  Permissions,
+  RequirePermission,
+} from '../../common/decorators/permissions.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
@@ -58,6 +64,16 @@ export class AgentController {
   @Get('me/productivity')
   myProductivity(@CurrentUser() user: AuthenticatedUser) {
     return this.agentService.myProductivity(user);
+  }
+
+  @Get('employees/:employeeId/summary')
+  @Permissions('employees.read', 'attendance.read')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
+  employeeSummary(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
+  ) {
+    return this.agentService.employeeAgentSummary(user, employeeId);
   }
 
   @Get('config')

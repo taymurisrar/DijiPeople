@@ -269,7 +269,7 @@ export class TenantSettingsResolverService {
       defaultWorkMode: stringValue(category.defaultWorkMode, 'OFFICE'),
       defaultEmployeeStatus: stringValue(
         category.defaultEmployeeStatus,
-        'Active',
+        'ACTIVE',
       ),
       requirePersonalEmail: booleanValue(category.requirePersonalEmail, false),
       requireEmergencyContact: booleanValue(
@@ -494,7 +494,7 @@ export class TenantSettingsResolverService {
   ): PayrollSettingsResolved {
     return {
       payFrequency: stringValue(category.payFrequency, 'MONTHLY'),
-      payrollStatus: stringValue(category.payrollStatus, 'Active'),
+      payrollStatus: stringValue(category.payrollStatus, 'ACTIVE'),
       defaultPayrollGroup: stringValue(category.defaultPayrollGroup, 'main'),
       defaultPaymentMode: stringValue(
         category.defaultPaymentMode,

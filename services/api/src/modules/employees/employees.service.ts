@@ -28,6 +28,7 @@ import { EmployeeQueryDto } from './dto/employee-query.dto';
 import { ProvisionEmployeeAccessDto } from './dto/provision-employee-access.dto';
 import { TerminateEmployeeDto } from './dto/terminate-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
+import { DuplicateRuleEngine } from '../../common/validation/duplicate-rule-engine';
 import {
   EmployeeHierarchyNode,
   EmployeesRepository,
@@ -38,6 +39,11 @@ import {
   EmployeeSettingsResolved,
   TenantSettingsResolverService,
 } from '../tenant-settings/tenant-settings-resolver.service';
+import { TenantSettingsService } from '../tenant-settings/tenant-settings.service';
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 @Injectable()
 export class EmployeesService {
@@ -51,6 +57,8 @@ export class EmployeesService {
     private readonly userInvitationsService: UserInvitationsService,
     private readonly tenantSettingsResolverService: TenantSettingsResolverService,
     private readonly auditService: AuditService,
+    private readonly duplicateRuleEngine: DuplicateRuleEngine,
+    private readonly tenantSettingsService: TenantSettingsService,
   ) {}
 
   async findByTenant(currentUser: AuthenticatedUser, query: EmployeeQueryDto) {
@@ -334,6 +342,171 @@ export class EmployeesService {
 
     return this.getDirectReports(currentUser.tenantId, employee.id);
   }
+  private async resolveEmployeeCodeForCreate(
+    tenantId: string,
+    dto: CreateEmployeeDto,
+    settings: EmployeeSettingsResolved,
+    tx: Prisma.TransactionClient,
+  ) {
+    if (!settings.autoGenerateEmployeeId) {
+      const manualEmployeeCode = dto.employeeCode?.trim();
+
+      if (!manualEmployeeCode) {
+        throw new BadRequestException('Employee code is required.');
+      }
+
+      return manualEmployeeCode.toUpperCase();
+    }
+
+    return this.generateNextEmployeeCode(
+      tenantId,
+      settings.employeeIdPrefix,
+      settings.employeeIdSequenceLength,
+      tx,
+    );
+  }
+
+  private async generateNextEmployeeCode(
+    tenantId: string,
+    prefix: string | null | undefined,
+    sequenceLength: number | null | undefined,
+    tx: Prisma.TransactionClient,
+  ) {
+    const normalizedPrefix = this.normalizeEmployeeCodePrefix(prefix);
+    const normalizedSequenceLength =
+      this.normalizeEmployeeCodeSequenceLength(sequenceLength);
+
+    const startsWith = `${normalizedPrefix}-`;
+
+    const latestEmployee = await tx.employee.findFirst({
+      where: {
+        tenantId,
+        employeeCode: {
+          startsWith,
+          mode: 'insensitive',
+        },
+      },
+      orderBy: {
+        employeeCode: 'desc',
+      },
+      select: {
+        employeeCode: true,
+      },
+    });
+
+    const latestSequence = latestEmployee?.employeeCode
+      ? this.extractEmployeeCodeSequence(
+          latestEmployee.employeeCode,
+          normalizedPrefix,
+        )
+      : 0;
+
+    const nextSequence = latestSequence + 1;
+
+    return `${normalizedPrefix}-${String(nextSequence).padStart(
+      normalizedSequenceLength,
+      '0',
+    )}`;
+  }
+
+  private normalizeEmployeeCodePrefix(prefix: string | null | undefined) {
+    const normalizedPrefix = (prefix || 'EMP')
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, '');
+
+    if (!normalizedPrefix) {
+      return 'EMP';
+    }
+
+    return normalizedPrefix.slice(0, 12);
+  }
+
+  private normalizeEmployeeCodeSequenceLength(
+    sequenceLength: number | null | undefined,
+  ) {
+    if (!Number.isFinite(sequenceLength) || !sequenceLength) {
+      return 5;
+    }
+
+    return Math.min(Math.max(Math.trunc(sequenceLength), 3), 10);
+  }
+
+  private isUniqueEmployeeCodeConflict(error: unknown) {
+    if (!(error instanceof Prisma.PrismaClientKnownRequestError)) {
+      return false;
+    }
+
+    if (error.code !== 'P2002') {
+      return false;
+    }
+
+    const target = Array.isArray(error.meta?.target)
+      ? error.meta.target.join(',')
+      : '';
+
+    return target.includes('employeeCode');
+  }
+
+  private extractEmployeeCodeSequence(employeeCode: string, prefix: string) {
+    const pattern = new RegExp(`^${escapeRegExp(prefix)}-(\\d+)$`, 'i');
+    const match = employeeCode.match(pattern);
+
+    if (!match?.[1]) {
+      return 0;
+    }
+
+    const sequence = Number(match[1]);
+
+    return Number.isFinite(sequence) ? sequence : 0;
+  }
+
+  async checkDuplicates(user: AuthenticatedUser, dto: CreateEmployeeDto) {
+    const settings = await this.tenantSettingsService.getResolvedSettings(
+      user.tenantId,
+    );
+
+    const employeeSettings = settings.employee;
+
+    const conflicts = await this.duplicateRuleEngine.checkEmployeeDuplicates({
+      tenantId: user.tenantId,
+      payload: dto,
+      rules: [
+        {
+          key: 'personalEmail',
+          label: 'Personal email',
+          enabled: employeeSettings.preventDuplicateByPersonalEmail,
+          severity: 'BLOCK',
+          value: (payload) => payload.personalEmail?.toLowerCase(),
+          buildWhere: (value) => ({
+            personalEmail: value,
+          }),
+        },
+        {
+          key: 'phone',
+          label: 'Phone number',
+          enabled: employeeSettings.preventDuplicateByPhoneNumber,
+          severity: employeeSettings.warnOnPossibleDuplicate ? 'WARN' : 'BLOCK',
+          value: (payload) => payload.phone,
+          buildWhere: (value) => ({
+            phone: value,
+          }),
+        },
+        {
+          key: 'nationalId',
+          label: 'National identity value',
+          enabled: employeeSettings.preventDuplicateByNationalId,
+          severity: 'BLOCK',
+          value: (payload) => payload.cnic,
+          buildWhere: (value) => ({
+            cnic: value,
+          }),
+        },
+      ],
+    });
+
+    return { conflicts };
+  }
 
   async create(currentUser: AuthenticatedUser, dto: CreateEmployeeDto) {
     const tenantId = currentUser.tenantId;
@@ -362,6 +535,7 @@ export class EmployeesService {
         );
       }
     }
+
     const referenceContext = await this.validateReferences(
       tenantId,
       dto.reportingManagerEmployeeId,
@@ -378,31 +552,74 @@ export class EmployeesService {
       dto.emergencyContactRelationTypeId,
       dto.workEmail,
     );
+
     this.validateDateRules(dto);
 
-    try {
-      const employee = await this.employeesRepository.create(
-        this.buildCreateData(
-          tenantId,
-          createDto,
-          currentUser.userId,
-          referenceContext.linkedUserEmail,
-          referenceContext,
-        ),
-      );
+    const maxAttempts = employeeSettings.autoGenerateEmployeeId ? 5 : 1;
+    let createdEmployeeId: string | null = null;
 
-      if (dto.provisionSystemAccess) {
-        await this.provisionEmployeeUserAccess(currentUser, employee.id, {
-          provisionSystemAccess: true,
-          sendInvitationNow: dto.sendInvitationNow,
-          initialRoleIds: dto.initialRoleIds,
-        });
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        const employee = await this.prisma.$transaction(
+          async (tx) => {
+            const employeeCode = await this.resolveEmployeeCodeForCreate(
+              tenantId,
+              createDto,
+              employeeSettings,
+              tx,
+            );
+
+            return tx.employee.create({
+              data: this.buildCreateData(
+                tenantId,
+                {
+                  ...createDto,
+                  employeeCode,
+                },
+                currentUser.userId,
+                referenceContext.linkedUserEmail,
+                referenceContext,
+              ),
+              select: {
+                id: true,
+              },
+            });
+          },
+          {
+            isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+          },
+        );
+
+        createdEmployeeId = employee.id;
+        break;
+      } catch (error) {
+        if (
+          employeeSettings.autoGenerateEmployeeId &&
+          this.isUniqueEmployeeCodeConflict(error) &&
+          attempt < maxAttempts
+        ) {
+          continue;
+        }
+
+        this.handleWriteError(error);
       }
-
-      return this.findById(tenantId, employee.id);
-    } catch (error) {
-      this.handleWriteError(error);
     }
+
+    if (!createdEmployeeId) {
+      throw new ConflictException(
+        'Unable to generate a unique employee code. Please try again.',
+      );
+    }
+
+    if (dto.provisionSystemAccess) {
+      await this.provisionEmployeeUserAccess(currentUser, createdEmployeeId, {
+        provisionSystemAccess: true,
+        sendInvitationNow: dto.sendInvitationNow,
+        initialRoleIds: dto.initialRoleIds,
+      });
+    }
+
+    return this.findById(tenantId, createdEmployeeId);
   }
 
   async update(
@@ -1225,53 +1442,43 @@ export class EmployeesService {
     settings: EmployeeSettingsResolved,
     excludeEmployeeId?: string,
   ) {
-    if (settings.preventDuplicateByPersonalEmail && dto.personalEmail?.trim()) {
-      const existing = await this.prisma.employee.findFirst({
-        where: {
-          tenantId,
-          personalEmail: dto.personalEmail.trim().toLowerCase(),
-          ...(excludeEmployeeId ? { id: { not: excludeEmployeeId } } : {}),
+    await this.duplicateRuleEngine.checkEmployeeDuplicates({
+      tenantId,
+      payload: dto,
+      excludeEmployeeId,
+      rules: [
+        {
+          key: 'personalEmail',
+          label: 'Personal email',
+          enabled: settings.preventDuplicateByPersonalEmail,
+          severity: 'BLOCK',
+          value: (payload) => payload.personalEmail?.toLowerCase(),
+          buildWhere: (value) => ({
+            personalEmail: value,
+          }),
         },
-        select: { id: true },
-      });
-      if (existing) {
-        throw new ConflictException(
-          'Another employee already uses the same personal email.',
-        );
-      }
-    }
-
-    if (settings.preventDuplicateByPhoneNumber && dto.phone?.trim()) {
-      const existing = await this.prisma.employee.findFirst({
-        where: {
-          tenantId,
-          phone: dto.phone.trim(),
-          ...(excludeEmployeeId ? { id: { not: excludeEmployeeId } } : {}),
+        {
+          key: 'phone',
+          label: 'Phone number',
+          enabled: settings.preventDuplicateByPhoneNumber,
+          severity: settings.warnOnPossibleDuplicate ? 'WARN' : 'BLOCK',
+          value: (payload) => payload.phone,
+          buildWhere: (value) => ({
+            phone: value,
+          }),
         },
-        select: { id: true },
-      });
-      if (existing) {
-        throw new ConflictException(
-          'Another employee already uses the same phone number.',
-        );
-      }
-    }
-
-    if (settings.preventDuplicateByNationalId && dto.cnic?.trim()) {
-      const existing = await this.prisma.employee.findFirst({
-        where: {
-          tenantId,
-          cnic: dto.cnic.trim(),
-          ...(excludeEmployeeId ? { id: { not: excludeEmployeeId } } : {}),
+        {
+          key: 'nationalId',
+          label: 'National identity value',
+          enabled: settings.preventDuplicateByNationalId,
+          severity: 'BLOCK',
+          value: (payload) => payload.cnic,
+          buildWhere: (value) => ({
+            cnic: value,
+          }),
         },
-        select: { id: true },
-      });
-      if (existing) {
-        throw new ConflictException(
-          'Another employee already uses the same national identity value.',
-        );
-      }
-    }
+      ],
+    });
   }
 
   private buildCreateData(
@@ -1286,9 +1493,15 @@ export class EmployeesService {
       cityName?: string;
     },
   ): Prisma.EmployeeUncheckedCreateInput {
+    const employeeCode = dto.employeeCode?.trim();
+
+    if (!employeeCode) {
+      throw new BadRequestException('Employee code is required.');
+    }
+
     return {
       tenantId,
-      employeeCode: dto.employeeCode.trim().toUpperCase(),
+      employeeCode: employeeCode.toUpperCase(),
       recordType: dto.recordType ?? 'INTERNAL_EMPLOYEE',
       firstName: dto.firstName.trim(),
       middleName: dto.middleName?.trim(),

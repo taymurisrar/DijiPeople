@@ -4,6 +4,23 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 
 type PrismaDb = PrismaService | Prisma.TransactionClient;
 
+export type TenantSettingJsonInput =
+  | Prisma.InputJsonValue
+  | Prisma.JsonNullValueInput;
+
+export type TenantSettingUpsertInput = {
+  category: string;
+  key: string;
+  value: TenantSettingJsonInput;
+  actorUserId: string;
+};
+
+export type TenantFeatureUpsertInput = {
+  key: string;
+  isEnabled: boolean;
+  actorUserId: string;
+};
+
 @Injectable()
 export class TenantSettingsRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -59,15 +76,9 @@ export class TenantSettingsRepository {
     });
   }
 
-  async upsertSettings(
-    tenantId: string,
-    updates: Array<{
-      category: string;
-      key: string;
-      value: Prisma.InputJsonValue;
-      actorUserId: string;
-    }>,
-  ) {
+  async upsertSettings(tenantId: string, updates: TenantSettingUpsertInput[]) {
+    if (updates.length === 0) return;
+
     await this.prisma.$transaction(async (tx) => {
       for (const update of updates) {
         await tx.tenantSetting.upsert({
@@ -95,14 +106,9 @@ export class TenantSettingsRepository {
     });
   }
 
-  async upsertFeatures(
-    tenantId: string,
-    updates: Array<{
-      key: string;
-      isEnabled: boolean;
-      actorUserId: string;
-    }>,
-  ) {
+  async upsertFeatures(tenantId: string, updates: TenantFeatureUpsertInput[]) {
+    if (updates.length === 0) return;
+
     await this.prisma.$transaction(async (tx) => {
       for (const update of updates) {
         await tx.tenantFeature.upsert({

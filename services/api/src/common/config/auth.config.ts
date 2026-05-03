@@ -5,6 +5,8 @@ export const AUTH_CONFIG_DEFAULTS = {
   refreshSecret: 'dijipeople-refresh-secret-dev',
   accessTtl: '15m',
   refreshTtl: '7d',
+  agentAccessTtl: '15m',
+  agentRefreshTtl: '7d',
 } as const;
 
 export function getAccessTokenSecret(configService: ConfigService) {
@@ -32,6 +34,20 @@ export function getRefreshTokenTtl(configService: ConfigService) {
   return (
     configService.get<string>('JWT_REFRESH_TTL') ??
     AUTH_CONFIG_DEFAULTS.refreshTtl
+  );
+}
+
+export function getAgentAccessTokenTtl(configService: ConfigService) {
+  return (
+    configService.get<string>('AGENT_ACCESS_TOKEN_TTL') ??
+    AUTH_CONFIG_DEFAULTS.agentAccessTtl
+  );
+}
+
+export function getAgentRefreshTokenTtl(configService: ConfigService) {
+  return (
+    configService.get<string>('AGENT_REFRESH_TOKEN_TTL') ??
+    AUTH_CONFIG_DEFAULTS.agentRefreshTtl
   );
 }
 

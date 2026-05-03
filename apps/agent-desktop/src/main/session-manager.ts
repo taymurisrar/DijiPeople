@@ -4,7 +4,19 @@ import { ActivityTracker } from "./activity-tracker";
 import { ConfigManager } from "./config-manager";
 import { OfflineQueue } from "./offline-queue";
 import { SecureStore } from "./secure-store";
-import type { AgentState, ConnectionState, LoginResult } from "./types";
+import type {
+  AgentState,
+  ConnectionState,
+  HeartbeatEvent,
+  LoginResult,
+} from "./types";
+
+type SessionManagerEvent =
+  | "login-required"
+  | "authenticated"
+  | "changed"
+  | "update-required"
+  | "session-error";
 
 export class SessionManager extends EventEmitter {
   user: LoginResult["user"] | null = null;
@@ -13,8 +25,12 @@ export class SessionManager extends EventEmitter {
   status: AgentState = "AWAY";
   connectionStatus: ConnectionState = "OFFLINE";
   lastHeartbeatSync: Date | null = null;
+
   private heartbeatTimer: NodeJS.Timeout | null = null;
   private configTimer: NodeJS.Timeout | null = null;
+  private isLoggingOut = false;
+  private isApplyingSession = false;
+  private isSyncingHeartbeat = false;
 
   constructor(
     private readonly apiClient: ApiClient,
@@ -26,137 +42,363 @@ export class SessionManager extends EventEmitter {
     super();
   }
 
-  async restore() {
+  override emit(eventName: SessionManagerEvent, ...args: unknown[]): boolean {
+    return super.emit(eventName, ...args);
+  }
+
+  async restore(): Promise<boolean> {
     const refreshToken = await this.secureStore.getRefreshToken();
-    if (!refreshToken) return false;
+
+    if (!refreshToken) {
+      this.resetSessionState();
+      return false;
+    }
 
     try {
       const result = await this.apiClient.refresh(refreshToken);
+
       await this.applyLoginResult(result);
       await this.secureStore.setRefreshToken(result.tokens.refreshToken);
+
       return true;
-    } catch {
-      await this.secureStore.clearRefreshToken();
+    } catch (error) {
+      await this.safeClearRefreshToken();
+
+      this.resetSessionState();
+      this.emit("session-error", this.normalizeSessionError(error));
       this.emit("login-required");
+
       return false;
     }
   }
 
-  async login(email: string, password: string) {
-    const result = await this.apiClient.login(email, password);
-    await this.applyLoginResult(result);
-    await this.secureStore.setRefreshToken(result.tokens.refreshToken);
-  }
-
-  async logout(showLogin = true) {
-    const refreshToken = await this.secureStore.getRefreshToken();
-    if (this.sessionId && this.deviceId) {
-      await this.apiClient
-        .endSession(this.sessionId, this.deviceId)
-        .catch(() => undefined);
+  async login(email: string, password: string): Promise<void> {
+    if (this.isApplyingSession) {
+      throw new Error("A sign-in request is already in progress.");
     }
-    if (refreshToken) {
-      await this.apiClient.logout(refreshToken).catch(() => undefined);
-    }
-    await this.secureStore.clearRefreshToken();
-    this.stopTimers();
-    this.user = null;
-    this.deviceId = null;
-    this.sessionId = null;
-    if (showLogin) {
-      this.emit("login-required");
-    }
-    this.emit("changed");
-  }
-
-  async syncHeartbeat() {
-    if (!this.sessionId || !this.deviceId) return;
-    const event = this.activityTracker.buildHeartbeat({
-      config: this.configManager.current,
-      sessionId: this.sessionId,
-      deviceId: this.deviceId,
-      agentVersion: this.apiClient.deviceInfo.agentVersion,
-    });
-    this.status = event.state;
-    let queued: ReturnType<typeof this.activityTracker.buildHeartbeat>[] = [];
 
     try {
-      queued = await this.offlineQueue.drain(
-        this.configManager.current.api.heartbeatBatchSize,
-      );
-      const events = [...queued, event];
-      await this.apiClient.heartbeat(events);
-      this.connectionStatus = "ONLINE";
-      this.lastHeartbeatSync = new Date();
-    } catch {
-      this.connectionStatus = "OFFLINE";
-      if (this.configManager.current.api.offlineQueueEnabled) {
-        await this.offlineQueue.prepend([...queued, event]);
-      }
-    }
+      const result = await this.apiClient.login(email, password);
 
-    this.emit("changed");
+      await this.applyLoginResult(result);
+      await this.secureStore.setRefreshToken(result.tokens.refreshToken);
+    } catch (error) {
+      this.resetSessionState();
+      throw error;
+    }
   }
 
-  private async applyLoginResult(result: LoginResult) {
-    this.apiClient.setAccessToken(result.tokens.accessToken);
-    this.user = result.user;
-    this.deviceId = result.device.id;
-    await this.configManager.refresh().catch(() => undefined);
-    const registered = await this.apiClient.registerDevice();
-    this.deviceId = registered.id;
-    if (
-      isVersionBlocked(
-        this.apiClient.deviceInfo.agentVersion,
-        this.configManager.current,
-      )
-    ) {
-      this.stopTimers();
-      this.connectionStatus = "ONLINE";
-      this.emit(
-        "update-required",
-        this.configManager.current.agentVersionPolicy,
-      );
-      this.emit("authenticated");
+  async logout(showLogin = true): Promise<void> {
+    if (this.isLoggingOut) return;
+
+    this.isLoggingOut = true;
+
+    try {
+      const refreshToken = await this.secureStore.getRefreshToken();
+
+      if (this.sessionId && this.deviceId) {
+        await this.apiClient
+          .endSession(this.sessionId, this.deviceId)
+          .catch(() => undefined);
+      }
+
+      if (refreshToken) {
+        await this.apiClient.logout(refreshToken).catch(() => undefined);
+      }
+
+      await this.safeClearRefreshToken();
+      await this.offlineQueue.clear().catch(() => undefined);
+
+      this.resetSessionState();
+
+      if (showLogin) {
+        this.emit("login-required");
+      }
+
       this.emit("changed");
+    } finally {
+      this.isLoggingOut = false;
+    }
+  }
+
+  async syncHeartbeat(): Promise<void> {
+    if (!this.sessionId || !this.deviceId) {
+      console.warn("[Agent Heartbeat] skipped - missing session/device", {
+        sessionId: this.sessionId,
+        deviceId: this.deviceId,
+      });
       return;
     }
-    const session = await this.apiClient.startSession(this.deviceId);
-    this.sessionId = session.id;
-    this.connectionStatus = "ONLINE";
-    this.startTimers();
-    this.emit("authenticated");
-    this.emit("changed");
+
+    if (this.isSyncingHeartbeat) {
+      console.warn("[Agent Heartbeat] skipped - already in progress");
+      return;
+    }
+
+    this.isSyncingHeartbeat = true;
+
+    let event: HeartbeatEvent | null = null;
+    let requeueEvents: HeartbeatEvent[] = [];
+
+    try {
+      console.log("[Agent Heartbeat] building event", {
+        sessionId: this.sessionId,
+        deviceId: this.deviceId,
+      });
+
+      event = await this.activityTracker.buildHeartbeat({
+        config: this.configManager.current,
+        sessionId: this.sessionId,
+        deviceId: this.deviceId,
+        agentVersion: this.apiClient.deviceInfo.agentVersion,
+      });
+
+      console.log("[Agent Heartbeat] event built", {
+        state: event.state,
+        idleSeconds: event.idleSeconds,
+        activeApp: event.activeApp,
+        browserTabTitle: event.browserTabTitle,
+      });
+
+      this.status = event.state;
+
+      const queued = await this.offlineQueue.drain(
+        this.configManager.current.api.heartbeatBatchSize,
+      );
+
+      const validQueued = queued.filter(
+        (queuedEvent) =>
+          queuedEvent.sessionId === this.sessionId &&
+          queuedEvent.deviceId === this.deviceId,
+      );
+
+      const droppedQueued = queued.length - validQueued.length;
+
+      if (droppedQueued > 0) {
+        console.warn("[Agent Heartbeat] dropped stale queued events", {
+          dropped: droppedQueued,
+          drained: queued.length,
+          currentSessionId: this.sessionId,
+          currentDeviceId: this.deviceId,
+        });
+      }
+
+      requeueEvents = [...validQueued, event];
+
+      console.log("[Agent Heartbeat] sending batch", {
+        queued: validQueued.length,
+        dropped: droppedQueued,
+        totalEvents: requeueEvents.length,
+      });
+
+      const response = await this.apiClient.heartbeat(requeueEvents);
+
+      console.log("[Agent Heartbeat] success", {
+        accepted: response.accepted,
+      });
+
+      this.connectionStatus = "ONLINE";
+      this.lastHeartbeatSync = new Date();
+      requeueEvents = [];
+    } catch (error) {
+      console.error("[Agent Heartbeat] FAILED", {
+        error: error instanceof Error ? error.message : error,
+        sessionId: this.sessionId,
+        deviceId: this.deviceId,
+      });
+
+      this.connectionStatus = "OFFLINE";
+
+      if (
+        requeueEvents.length > 0 &&
+        this.configManager.current.api.offlineQueueEnabled
+      ) {
+        await this.offlineQueue.prepend(requeueEvents).catch(() => {
+          console.error("[Agent Heartbeat] failed to persist offline queue");
+
+          this.emit(
+            "session-error",
+            "Unable to save offline heartbeat events.",
+          );
+        });
+      }
+
+      this.emit("session-error", this.normalizeSessionError(error));
+    } finally {
+      this.isSyncingHeartbeat = false;
+
+      console.log("[Agent Heartbeat] finished", {
+        connectionStatus: this.connectionStatus,
+        lastHeartbeatSync: this.lastHeartbeatSync,
+      });
+
+      this.emit("changed");
+    }
   }
 
-  private startTimers() {
+  private async applyLoginResult(result: LoginResult): Promise<void> {
+    this.isApplyingSession = true;
+
+    try {
+      console.log("[Agent Session] applying login result");
+
+      this.stopTimers();
+
+      this.apiClient.setAccessToken(result.tokens.accessToken);
+
+      this.user = result.user;
+      this.deviceId = result.device.id;
+      this.sessionId = null;
+      this.status = "AWAY";
+      this.connectionStatus = "ONLINE";
+      this.lastHeartbeatSync = null;
+
+      this.emit("changed");
+
+      console.log("[Agent Session] refreshing config");
+
+      await this.configManager.refresh().catch((error) => {
+        console.error("[Agent Session] config refresh failed", error);
+      });
+
+      console.log("[Agent Session] config loaded", {
+        trackingEnabled: this.configManager.current.tracking.enabled,
+        heartbeatIntervalSeconds:
+          this.configManager.current.tracking.heartbeatIntervalSeconds,
+        captureActiveApp: this.configManager.current.tracking.captureActiveApp,
+        captureWindowTitle:
+          this.configManager.current.tracking.captureWindowTitle,
+      });
+
+      console.log("[Agent Session] registering device");
+
+      const registered = await this.apiClient.registerDevice();
+
+      console.log("[Agent Session] device registered", {
+        deviceId: registered.id,
+      });
+
+      this.deviceId = registered.id;
+
+      if (
+        isVersionBlocked(
+          this.apiClient.deviceInfo.agentVersion,
+          this.configManager.current,
+        )
+      ) {
+        console.warn("[Agent Session] agent version is blocked", {
+          currentVersion: this.apiClient.deviceInfo.agentVersion,
+          policy: this.configManager.current.agentVersionPolicy,
+        });
+
+        this.connectionStatus = "ONLINE";
+
+        this.emit(
+          "update-required",
+          this.configManager.current.agentVersionPolicy,
+        );
+        this.emit("authenticated");
+        this.emit("changed");
+
+        return;
+      }
+
+      console.log("[Agent Session] starting work session", {
+        deviceId: this.deviceId,
+      });
+
+      const session = await this.apiClient.startSession(this.deviceId);
+
+      console.log("[Agent Session] work session started", {
+        sessionId: session.id,
+      });
+
+      this.sessionId = session.id;
+      this.connectionStatus = "ONLINE";
+      this.status = "ACTIVE";
+
+      await this.offlineQueue.clear().catch(() => undefined);
+
+      this.emit("authenticated");
+      this.emit("changed");
+
+      this.startTimers();
+    } catch (error) {
+      console.error("[Agent Session] apply login result failed", error);
+
+      this.resetSessionState();
+      throw error;
+    } finally {
+      this.isApplyingSession = false;
+    }
+  }
+
+  private startTimers(): void {
     this.stopTimers();
+
     const heartbeatMs =
       this.configManager.current.tracking.heartbeatIntervalSeconds * 1000;
+
+    if (!Number.isFinite(heartbeatMs) || heartbeatMs <= 0) {
+      this.emit(
+        "session-error",
+        "Invalid heartbeat interval configuration received from server.",
+      );
+      return;
+    }
+
     this.heartbeatTimer = setInterval(() => {
       void this.syncHeartbeat();
     }, heartbeatMs);
+
     this.configTimer = setInterval(
       () => {
         void this.configManager.refresh().finally(() => this.emit("changed"));
       },
       15 * 60 * 1000,
     );
+
     void this.syncHeartbeat();
   }
 
-  private stopTimers() {
-    if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);
-    if (this.configTimer) clearInterval(this.configTimer);
+  private stopTimers(): void {
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+    }
+
+    if (this.configTimer) {
+      clearInterval(this.configTimer);
+    }
+
     this.heartbeatTimer = null;
     this.configTimer = null;
+  }
+
+  private resetSessionState(): void {
+    this.stopTimers();
+
+    this.user = null;
+    this.deviceId = null;
+    this.sessionId = null;
+    this.status = "AWAY";
+    this.connectionStatus = "OFFLINE";
+    this.lastHeartbeatSync = null;
+    this.isSyncingHeartbeat = false;
+  }
+
+  private async safeClearRefreshToken(): Promise<void> {
+    await this.secureStore.clearRefreshToken().catch(() => undefined);
+  }
+
+  private normalizeSessionError(error: unknown): string {
+    return error instanceof Error ? error.message : "Unexpected session error.";
   }
 }
 
 function isVersionBlocked(
   currentVersion: string,
   config: ConfigManager["current"],
-) {
+): boolean {
   return (
     config.agentVersionPolicy.forceUpdate ||
     compareVersions(
@@ -166,14 +408,17 @@ function isVersionBlocked(
   );
 }
 
-function compareVersions(a: string, b: string) {
+function compareVersions(a: string, b: string): number {
   const left = a.split(".").map((part) => Number.parseInt(part, 10) || 0);
   const right = b.split(".").map((part) => Number.parseInt(part, 10) || 0);
   const length = Math.max(left.length, right.length);
 
   for (let index = 0; index < length; index += 1) {
     const diff = (left[index] ?? 0) - (right[index] ?? 0);
-    if (diff !== 0) return diff;
+
+    if (diff !== 0) {
+      return diff;
+    }
   }
 
   return 0;

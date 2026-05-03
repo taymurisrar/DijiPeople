@@ -33,10 +33,11 @@ function emptyStringToUndefined({ value }: { value: unknown }) {
 }
 
 export class CreateEmployeeDto {
+  @IsOptional()
+  @Transform(emptyStringToUndefined)
   @IsString()
-  @MinLength(1)
   @MaxLength(40)
-  employeeCode!: string;
+  employeeCode?: string;
 
   @IsOptional()
   @IsEnum(EmployeeRecordType)

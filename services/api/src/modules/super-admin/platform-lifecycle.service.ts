@@ -951,6 +951,7 @@ export class PlatformLifecycleService {
       dto.planId ??
       onboarding.selectedPlanId ??
       onboarding.customer.selectedPlanId;
+
     const billingCycle =
       dto.billingCycle ??
       onboarding.billingCycle ??
@@ -964,13 +965,16 @@ export class PlatformLifecycleService {
 
     const tenantName =
       dto.tenantName?.trim() || onboarding.customer.companyName;
+
     const slug = normalizeTenantSlug(
       dto.slug ?? dto.tenantName ?? onboarding.customer.companyName,
     );
+
     const existingTenant = await this.prisma.tenant.findUnique({
       where: { slug },
       select: { id: true },
     });
+
     if (existingTenant) {
       throw new ConflictException('Tenant slug is already in use.');
     }
@@ -979,8 +983,10 @@ export class PlatformLifecycleService {
       dto.createServiceAccount ??
       onboarding.createServiceAccount ??
       Boolean(dto.serviceAccountEmail ?? onboarding.serviceAccountEmail);
+
     const resolvedServiceAccountEmail =
       dto.serviceAccountEmail ?? onboarding.serviceAccountEmail ?? null;
+
     const assignServiceAccountSystemAdminRole =
       dto.assignServiceAccountSystemAdminRole ??
       onboarding.serviceAccountAssignSystemAdmin ??
@@ -996,37 +1002,39 @@ export class PlatformLifecycleService {
     const emails = [primaryOwnerEmail, serviceAccountEmail].filter(
       (value): value is string => Boolean(value),
     );
+
     if (new Set(emails).size !== emails.length) {
       throw new BadRequestException(
         'Tenant owner and service account emails must be unique.',
       );
     }
 
+    const createdTenant = await this.prisma.tenant.create({
+      data: {
+        customerAccountId: onboarding.customerId,
+        name: tenantName,
+        slug,
+        status: TenantStatus.ONBOARDING,
+        subStatus: 'Provisioning',
+        createdById: actor.userId,
+        updatedById: actor.userId,
+      },
+    });
+
+    await this.permissionsService.bootstrapTenantDefaults(
+      createdTenant.id,
+      this.prisma,
+      actor.userId,
+    );
+
     const provisioning = await this.prisma.$transaction(async (tx) => {
-      const createdTenant = await tx.tenant.create({
-        data: {
-          customerAccountId: onboarding.customerId,
-          name: tenantName,
-          slug,
-          status: TenantStatus.ONBOARDING,
-          subStatus: 'Provisioning',
-          createdById: actor.userId,
-          updatedById: actor.userId,
-        },
-      });
-
-      await this.permissionsService.bootstrapTenantDefaults(
-        createdTenant.id,
-        tx,
-        actor.userId,
-      );
-
       const tenantSuperAdminRole =
         await this.rolesRepository.findByKeyAndTenant(
           createdTenant.id,
           ROLE_KEYS.SYSTEM_ADMIN,
           tx,
         );
+
       if (!tenantSuperAdminRole) {
         throw new ConflictException(
           'Tenant system admin role could not be provisioned.',
@@ -1074,6 +1082,7 @@ export class PlatformLifecycleService {
         : null;
 
       const roleAssignments = [primaryOwnerUser.id];
+
       if (serviceAccountUser && assignServiceAccountSystemAdminRole) {
         roleAssignments.push(serviceAccountUser.id);
       }
@@ -1224,7 +1233,7 @@ export class PlatformLifecycleService {
     await this.auditService.log({
       tenantId: actor.tenantId,
       actorUserId: actor.userId,
-      action: 'PLATFORM_TENANT_CREATED_FROM_Onboarding',
+      action: 'PLATFORM_TENANT_CREATED_FROM_ONBOARDING',
       entityType: 'CustomerOnboarding',
       entityId: onboardingId,
       afterSnapshot: { tenantId: provisioning.tenant.id },

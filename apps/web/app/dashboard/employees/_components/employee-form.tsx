@@ -1,20 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { FormEvent, ReactNode, useMemo, useState } from "react";
 import {
-  FormEvent,
-  ReactNode,
-  useEffect,
-  useRef,
-  useMemo,
-  useState,
-} from "react";
-import {
-  TextField,
-  SelectField,
   DateField,
   LookupField,
   NumberField,
+  SelectField,
+  TextField,
 } from "@/app/components/ui/form-control";
 import type { RuntimeFormLayout } from "@/lib/customization-forms";
 import {
@@ -40,6 +33,8 @@ type EmployeeFormProps = {
   managerOptions: EmployeeListItem[];
   roleOptions: EmployeeRoleOption[];
   settings?: {
+    employeeIdPrefix?: string;
+    employeeIdSequenceLength?: number;
     autoGenerateEmployeeId?: boolean;
     requireDepartment?: boolean;
     requireDesignation?: boolean;
@@ -48,6 +43,18 @@ type EmployeeFormProps = {
   };
   runtimeFormLayout?: RuntimeFormLayout | null;
   mode: "create" | "edit";
+};
+
+type DuplicateConflict = {
+  ruleKey: string;
+  label: string;
+  severity: "BLOCK" | "WARN";
+  value: string;
+  existingRecordId?: string;
+};
+
+type DuplicateCheckResponse = {
+  conflicts: DuplicateConflict[];
 };
 
 export function EmployeeForm({
@@ -61,9 +68,30 @@ export function EmployeeForm({
   mode,
 }: EmployeeFormProps) {
   const router = useRouter();
+
   const [form, setForm] = useState<EmployeeFormValues>(initialValues);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [duplicateConflicts, setDuplicateConflicts] = useState<
+    DuplicateConflict[]
+  >([]);
+  const [hasConfirmedDuplicateWarning, setHasConfirmedDuplicateWarning] =
+    useState(false);
+
+  const autoGenerateEmployeeId =
+    mode === "create" && settings?.autoGenerateEmployeeId === true;
+
+  const employeeCodePrefix = settings?.employeeIdPrefix?.trim() || "EMP";
+  const employeeCodeSequenceLength =
+    settings?.employeeIdSequenceLength && settings.employeeIdSequenceLength > 0
+      ? settings.employeeIdSequenceLength
+      : 5;
+
+  const employeeCodePreview = `${employeeCodePrefix}-AUTO`;
+  const employeeCodeExample = `${employeeCodePrefix}-${"1".padStart(
+    employeeCodeSequenceLength,
+    "0",
+  )}`;
 
   const {
     countries,
@@ -84,6 +112,7 @@ export function EmployeeForm({
     () => managerOptions.filter((manager) => manager.id !== employeeId),
     [employeeId, managerOptions],
   );
+
   const runtimeForm = useMemo(
     () => buildRuntimeFormState(runtimeFormLayout),
     [runtimeFormLayout],
@@ -94,37 +123,51 @@ export function EmployeeForm({
     value: EmployeeFormValues[Key],
   ) {
     setForm((current) => ({ ...current, [key]: value }));
+
+    if (["personalEmail", "phone", "cnic", "workEmail"].includes(String(key))) {
+      setDuplicateConflicts([]);
+      setHasConfirmedDuplicateWarning(false);
+      setError(null);
+    }
   }
 
   function validateForm() {
-    if (!settings?.autoGenerateEmployeeId && !form.employeeCode.trim()) {
+    if (!autoGenerateEmployeeId && !form.employeeCode.trim()) {
       return "Employee code is required.";
     }
+
     if (!form.firstName.trim()) return "First name is required.";
     if (!form.lastName.trim()) return "Last name is required.";
     if (!form.phone.trim()) return "Phone is required.";
     if (!form.hireDate) return "Hire date is required.";
+
     if (settings?.requireDepartment && !form.departmentId.trim()) {
       return "Department is required by tenant employee settings.";
     }
+
     if (settings?.requireDesignation && !form.designationId.trim()) {
       return "Designation is required by tenant employee settings.";
     }
+
     if (
       settings?.requireReportingManager &&
       !form.reportingManagerEmployeeId.trim()
     ) {
       return "Reporting manager is required by tenant employee settings.";
     }
+
     if (settings?.requireWorkLocation && !form.locationId.trim()) {
       return "Work location is required by tenant employee settings.";
     }
+
     if (form.workEmail && !isValidEmail(form.workEmail)) {
       return "Work email must be a valid email address.";
     }
+
     if (form.personalEmail && !isValidEmail(form.personalEmail)) {
       return "Personal email must be a valid email address.";
     }
+
     if (
       canManageAccess &&
       form.provisionSystemAccess &&
@@ -132,6 +175,7 @@ export function EmployeeForm({
     ) {
       return "Work email is required when system access is enabled.";
     }
+
     if (
       canManageAccess &&
       form.provisionSystemAccess &&
@@ -139,38 +183,32 @@ export function EmployeeForm({
     ) {
       return "Select at least one initial role when system access is enabled.";
     }
+
     if (form.terminationDate && form.terminationDate < form.hireDate) {
       return "Termination date cannot be before hire date.";
     }
+
     if (form.confirmationDate && form.confirmationDate < form.hireDate) {
       return "Confirmation date cannot be before hire date.";
     }
+
     if (form.probationEndDate && form.probationEndDate < form.hireDate) {
       return "Probation end date cannot be before hire date.";
     }
+
     if (
       form.dateOfBirth &&
       form.dateOfBirth > new Date().toISOString().slice(0, 10)
     ) {
       return "Date of birth cannot be in the future.";
     }
+
     return null;
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError(null);
-
-    const validationError = validateForm();
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    const payload = {
-      employeeCode: form.employeeCode,
+  function buildPayload() {
+    return {
+      employeeCode: autoGenerateEmployeeId ? undefined : form.employeeCode,
       firstName: form.firstName,
       middleName: emptyToUndefined(form.middleName),
       lastName: form.lastName,
@@ -238,7 +276,34 @@ export function EmployeeForm({
         form.emergencyContactAlternatePhone,
       ),
     };
+  }
 
+  async function checkDuplicates(payload: Record<string, unknown>) {
+    if (mode !== "create") return [];
+
+    const response = await fetch("/api/employees/duplicate-check", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const data = (await response.json().catch(() => null)) as
+      | DuplicateCheckResponse
+      | { message?: string }
+      | null;
+
+    if (!response.ok) {
+      throw new Error(
+        data && "message" in data && data.message
+          ? data.message
+          : "Unable to check duplicate employee records.",
+      );
+    }
+
+    return data && "conflicts" in data ? data.conflicts ?? [] : [];
+  }
+
+  async function submitEmployee(payload: Record<string, unknown>) {
     const response = await fetch(
       mode === "create" ? "/api/employees" : `/api/employees/${employeeId}`,
       {
@@ -254,14 +319,72 @@ export function EmployeeForm({
     } | null;
 
     if (!response.ok) {
-      setError(data?.message ?? `Unable to ${mode} employee.`);
-      setIsSubmitting(false);
-      return;
+      throw new Error(data?.message ?? `Unable to ${mode} employee.`);
     }
 
     const nextEmployeeId = employeeId ?? data?.id;
+
+    if (!nextEmployeeId) {
+      throw new Error("Employee was saved but no employee id was returned.");
+    }
+
     router.push(`/dashboard/employees/${nextEmployeeId}`);
     router.refresh();
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+
+    const validationError = validateForm();
+
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    const payload = buildPayload();
+
+    try {
+      if (!hasConfirmedDuplicateWarning) {
+        const conflicts = await checkDuplicates(payload);
+
+        const blockingConflicts = conflicts.filter(
+          (conflict) => conflict.severity === "BLOCK",
+        );
+
+        const warningConflicts = conflicts.filter(
+          (conflict) => conflict.severity === "WARN",
+        );
+
+        if (blockingConflicts.length > 0) {
+          setDuplicateConflicts(blockingConflicts);
+          setError(
+            "Duplicate employee record found. Please resolve the highlighted conflict before creating this employee.",
+          );
+          setIsSubmitting(false);
+          return;
+        }
+
+        if (warningConflicts.length > 0) {
+          setDuplicateConflicts(warningConflicts);
+          setError(null);
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      await submitEmployee(payload);
+    } catch (submitError) {
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : `Unable to ${mode} employee.`,
+      );
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -274,19 +397,40 @@ export function EmployeeForm({
         </section>
       ) : null}
 
+      {autoGenerateEmployeeId ? (
+        <section className="rounded-[20px] border border-border bg-white px-5 py-4 text-sm text-muted">
+          Employee code is controlled by tenant settings and will be generated
+          automatically on save. Current format preview:{" "}
+          <span className="font-semibold text-foreground">
+            {employeeCodeExample}
+          </span>
+        </section>
+      ) : null}
+
       {runtimeForm.showSection("Core Identity") ? (
         <FormSection
           description="Use work email only for authentication-facing identity. Personal email remains contact-only."
           title="Core Identity"
         >
           {runtimeForm.showField("employeeCode") ? (
-            <TextField
-              label="Employee code"
-              required
-              value={form.employeeCode}
-              onChange={(value) => updateField("employeeCode", value)}
-            />
+            autoGenerateEmployeeId ? (
+              <TextField
+                disabled
+                hint={`Will be generated by the system on save, for example ${employeeCodeExample}.`}
+                label="Employee code"
+                value={employeeCodePreview}
+                onChange={() => undefined}
+              />
+            ) : (
+              <TextField
+                label="Employee code"
+                required
+                value={form.employeeCode}
+                onChange={(value) => updateField("employeeCode", value)}
+              />
+            )
           ) : null}
+
           {runtimeForm.showField("firstName") ? (
             <TextField
               label="First name"
@@ -295,6 +439,7 @@ export function EmployeeForm({
               onChange={(value) => updateField("firstName", value)}
             />
           ) : null}
+
           {runtimeForm.showField("middleName") ? (
             <TextField
               label="Middle name"
@@ -302,6 +447,7 @@ export function EmployeeForm({
               onChange={(value) => updateField("middleName", value)}
             />
           ) : null}
+
           {runtimeForm.showField("lastName") ? (
             <TextField
               label="Last name"
@@ -310,6 +456,7 @@ export function EmployeeForm({
               onChange={(value) => updateField("lastName", value)}
             />
           ) : null}
+
           {runtimeForm.showField("preferredName") ? (
             <TextField
               label="Preferred name"
@@ -317,8 +464,9 @@ export function EmployeeForm({
               onChange={(value) => updateField("preferredName", value)}
             />
           ) : null}
+
           {runtimeForm.showField("email") ||
-          runtimeForm.showField("workEmail") ? (
+            runtimeForm.showField("workEmail") ? (
             <TextField
               label="Work Email"
               type="email"
@@ -326,6 +474,7 @@ export function EmployeeForm({
               onChange={(value) => updateField("workEmail", value)}
             />
           ) : null}
+
           {runtimeForm.showField("personalEmail") ? (
             <TextField
               label="Personal Email (Contact Only)"
@@ -334,6 +483,7 @@ export function EmployeeForm({
               onChange={(value) => updateField("personalEmail", value)}
             />
           ) : null}
+
           {runtimeForm.showField("phone") ? (
             <TextField
               label="Phone"
@@ -342,6 +492,7 @@ export function EmployeeForm({
               onChange={(value) => updateField("phone", value)}
             />
           ) : null}
+
           {runtimeForm.showField("alternatePhone") ? (
             <TextField
               label="Alternate phone"
@@ -349,6 +500,7 @@ export function EmployeeForm({
               onChange={(value) => updateField("alternatePhone", value)}
             />
           ) : null}
+
           {runtimeForm.showField("dateOfBirth") ? (
             <DateField
               label="Date of birth"
@@ -356,6 +508,7 @@ export function EmployeeForm({
               onChange={(value) => updateField("dateOfBirth", value)}
             />
           ) : null}
+
           {runtimeForm.showField("gender") ? (
             <SelectField
               label="Gender"
@@ -364,6 +517,7 @@ export function EmployeeForm({
               onChange={(value) => updateField("gender", value)}
             />
           ) : null}
+
           {runtimeForm.showField("maritalStatus") ? (
             <SelectField
               label="Marital status"
@@ -372,8 +526,9 @@ export function EmployeeForm({
               onChange={(value) => updateField("maritalStatus", value)}
             />
           ) : null}
+
           {runtimeForm.showField("nationalityCountryId") ||
-          runtimeForm.showField("nationality") ? (
+            runtimeForm.showField("nationality") ? (
             <LookupField
               label="Nationality"
               options={countries}
@@ -390,6 +545,7 @@ export function EmployeeForm({
               }}
             />
           ) : null}
+
           {runtimeForm.showField("cnic") ? (
             <TextField
               label="CNIC"
@@ -398,6 +554,7 @@ export function EmployeeForm({
               variant="cnic"
             />
           ) : null}
+
           {runtimeForm.showField("bloodGroup") ? (
             <SelectField
               label="Blood group"
@@ -420,6 +577,7 @@ export function EmployeeForm({
             onChange={(value) => updateField("provisionSystemAccess", value)}
             value={form.provisionSystemAccess}
           />
+
           <ToggleField
             description="Send the activation link immediately after saving."
             disabled={!form.provisionSystemAccess}
@@ -427,6 +585,7 @@ export function EmployeeForm({
             onChange={(value) => updateField("sendInvitationNow", value)}
             value={form.sendInvitationNow}
           />
+
           <RoleChecklist
             disabled={!form.provisionSystemAccess}
             onChange={(roleIds) => updateField("initialRoleIds", roleIds)}
@@ -447,22 +606,27 @@ export function EmployeeForm({
             value={form.hireDate}
             onChange={(value) => updateField("hireDate", value)}
           />
+
           <DateField
             label="Confirmation date"
             value={form.confirmationDate}
             onChange={(value) => updateField("confirmationDate", value)}
           />
+
           <DateField
             label="Probation end date"
             value={form.probationEndDate}
             onChange={(value) => updateField("probationEndDate", value)}
           />
+
           <DateField
             label="Termination date"
             value={form.terminationDate}
             onChange={(value) => updateField("terminationDate", value)}
           />
+
           <SelectField
+            hint="Default value is controlled by tenant employee settings."
             label="Employment status"
             options={EMPLOYMENT_STATUS_OPTIONS}
             value={form.employmentStatus}
@@ -473,26 +637,38 @@ export function EmployeeForm({
               )
             }
           />
+
           <SelectField
+            hint="Default value is controlled by tenant employee settings."
             label="Employee type"
             options={EMPLOYEE_TYPE_OPTIONS}
             value={form.employeeType}
             onChange={(value) => updateField("employeeType", value)}
           />
+
           <SelectField
+            hint="Default value is controlled by tenant employee settings."
             label="Work mode"
             options={WORK_MODE_OPTIONS}
             value={form.workMode}
             onChange={(value) => updateField("workMode", value)}
           />
+
           <SelectField
             label="Contract type"
             options={CONTRACT_TYPE_OPTIONS}
             value={form.contractType}
             onChange={(value) => updateField("contractType", value)}
           />
+
           <LookupField
+            hint={
+              settings?.requireDepartment
+                ? "Required by tenant employee settings."
+                : undefined
+            }
             label="Department"
+            required={settings?.requireDepartment}
             options={departments}
             placeholder={
               isLoading ? "Loading departments..." : "Select department"
@@ -500,8 +676,15 @@ export function EmployeeForm({
             value={form.departmentId}
             onChange={(value) => updateField("departmentId", value)}
           />
+
           <LookupField
+            hint={
+              settings?.requireDesignation
+                ? "Required by tenant employee settings."
+                : undefined
+            }
             label="Designation"
+            required={settings?.requireDesignation}
             options={designations}
             placeholder={
               isLoading ? "Loading designations..." : "Select designation"
@@ -509,6 +692,7 @@ export function EmployeeForm({
             value={form.designationId}
             onChange={(value) => updateField("designationId", value)}
           />
+
           <LookupField
             label="Employee level"
             options={employeeLevels.map((level) => ({
@@ -521,13 +705,21 @@ export function EmployeeForm({
             value={form.employeeLevelId}
             onChange={(value) => updateField("employeeLevelId", value)}
           />
+
           <LookupField
+            hint={
+              settings?.requireWorkLocation
+                ? "Required by tenant employee settings."
+                : undefined
+            }
             label="Location"
+            required={settings?.requireWorkLocation}
             options={locations}
             placeholder={isLoading ? "Loading locations..." : "Select location"}
             value={form.locationId}
             onChange={(value) => updateField("locationId", value)}
           />
+
           <LookupField
             label="Official joining location"
             options={locations}
@@ -539,9 +731,15 @@ export function EmployeeForm({
               updateField("officialJoiningLocationId", value)
             }
           />
+
           <LookupField
+            hint={
+              settings?.requireReportingManager
+                ? "Required by tenant employee settings."
+                : undefined
+            }
             label="Reporting manager"
-            required
+            required={settings?.requireReportingManager}
             options={availableManagerOptions.map((manager) => ({
               id: manager.id,
               name: `${manager.fullName} (${manager.employeeCode})`,
@@ -552,16 +750,19 @@ export function EmployeeForm({
               updateField("reportingManagerEmployeeId", value)
             }
           />
+
           <NumberField
             label="Notice period (days)"
             value={form.noticePeriodDays}
             onChange={(value) => updateField("noticePeriodDays", value)}
           />
+
           <TextField
             label="Tax identifier"
             value={form.taxIdentifier}
             onChange={(value) => updateField("taxIdentifier", value)}
           />
+
           <TextField
             label="Linked user ID"
             hint="Optional for now. Use only when connecting an existing auth user."
@@ -581,11 +782,13 @@ export function EmployeeForm({
             value={form.addressLine1}
             onChange={(value) => updateField("addressLine1", value)}
           />
+
           <TextField
             label="Address line 2"
             value={form.addressLine2}
             onChange={(value) => updateField("addressLine2", value)}
           />
+
           <LookupField
             label="Country"
             options={countries}
@@ -597,6 +800,7 @@ export function EmployeeForm({
               updateField("cityId", "");
             }}
           />
+
           <LookupField
             disabled={!form.countryId}
             label="State / Province"
@@ -614,6 +818,7 @@ export function EmployeeForm({
               updateField("cityId", "");
             }}
           />
+
           <LookupField
             disabled={!form.countryId}
             label="City"
@@ -628,6 +833,7 @@ export function EmployeeForm({
             value={form.cityId}
             onChange={(value) => updateField("cityId", value)}
           />
+
           <TextField
             label="Postal code"
             value={form.postalCode}
@@ -646,6 +852,7 @@ export function EmployeeForm({
             value={form.emergencyContactName}
             onChange={(value) => updateField("emergencyContactName", value)}
           />
+
           <LookupField
             label="Relation type"
             options={relationTypes}
@@ -657,17 +864,20 @@ export function EmployeeForm({
               updateField("emergencyContactRelationTypeId", value)
             }
           />
+
           <TextField
             label="Relation label"
             hint="Optional free text if you need a more specific label."
             value={form.emergencyContactRelation}
             onChange={(value) => updateField("emergencyContactRelation", value)}
           />
+
           <TextField
             label="Emergency contact phone"
             value={form.emergencyContactPhone}
             onChange={(value) => updateField("emergencyContactPhone", value)}
           />
+
           <TextField
             label="Emergency contact alternate phone"
             value={form.emergencyContactAlternatePhone}
@@ -676,6 +886,16 @@ export function EmployeeForm({
             }
           />
         </FormSection>
+      ) : null}
+
+      {duplicateConflicts.length > 0 ? (
+        <DuplicateConflictPanel
+          conflicts={duplicateConflicts}
+          onContinue={() => {
+            setHasConfirmedDuplicateWarning(true);
+            setDuplicateConflicts([]);
+          }}
+        />
       ) : null}
 
       {error ? (
@@ -694,10 +914,13 @@ export function EmployeeForm({
             ? mode === "create"
               ? "Creating..."
               : "Saving..."
-            : mode === "create"
-              ? "Create employee"
-              : "Save changes"}
+            : hasConfirmedDuplicateWarning && mode === "create"
+              ? "Create anyway"
+              : mode === "create"
+                ? "Create employee"
+                : "Save changes"}
         </button>
+
         <button
           className="rounded-2xl border border-border px-5 py-3 text-sm font-medium text-muted transition hover:border-accent/30 hover:text-foreground"
           onClick={() => router.back()}
@@ -707,6 +930,60 @@ export function EmployeeForm({
         </button>
       </div>
     </form>
+  );
+}
+
+function DuplicateConflictPanel({
+  conflicts,
+  onContinue,
+}: {
+  conflicts: DuplicateConflict[];
+  onContinue: () => void;
+}) {
+  const hasBlockingConflict = conflicts.some(
+    (conflict) => conflict.severity === "BLOCK",
+  );
+
+  return (
+    <section className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900">
+      <h4 className="font-semibold">
+        {hasBlockingConflict
+          ? "Duplicate employee detected"
+          : "Possible duplicate employee found"}
+      </h4>
+
+      <p className="mt-1 text-amber-800">
+        {hasBlockingConflict
+          ? "This record cannot be created until the duplicate conflict is resolved."
+          : "Review the possible duplicate before continuing."}
+      </p>
+
+      <div className="mt-3 grid gap-2">
+        {conflicts.map((conflict) => (
+          <div
+            className="rounded-xl border border-amber-200 bg-white/70 px-3 py-2"
+            key={`${conflict.ruleKey}-${conflict.value}`}
+          >
+            <span className="font-medium">{conflict.label}</span>
+            <span className="mx-2 text-amber-600">→</span>
+            <span>{conflict.value}</span>
+            <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold">
+              {conflict.severity}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {!hasBlockingConflict ? (
+        <button
+          className="mt-4 rounded-xl bg-amber-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-amber-950"
+          onClick={onContinue}
+          type="button"
+        >
+          Continue anyway
+        </button>
+      ) : null}
+    </section>
   );
 }
 
@@ -730,6 +1007,7 @@ function ToggleField({
           <span className="block font-medium text-foreground">{label}</span>
           <span className="mt-1 block text-xs text-muted">{description}</span>
         </span>
+
         <input
           checked={value}
           className="mt-1 h-4 w-4 rounded border-border text-accent focus:ring-accent/30"
@@ -756,9 +1034,11 @@ function RoleChecklist({
   return (
     <div className="space-y-2 text-sm md:col-span-2">
       <span className="font-medium text-foreground">Initial roles</span>
+
       <div className="grid gap-3 sm:grid-cols-2">
         {roles.map((role) => {
           const checked = selectedRoleIds.includes(role.id);
+
           return (
             <label
               key={role.id}
@@ -778,6 +1058,7 @@ function RoleChecklist({
                 }}
                 type="checkbox"
               />
+
               <span className="block">
                 <span className="block font-medium text-foreground">
                   {role.name}
@@ -790,6 +1071,7 @@ function RoleChecklist({
           );
         })}
       </div>
+
       <p className="text-xs text-muted">
         Work email is the only email used for login and invitations.
       </p>
@@ -812,6 +1094,7 @@ function FormSection({
         <h4 className="text-lg font-semibold text-foreground">{title}</h4>
         <p className="mt-2 text-sm text-muted">{description}</p>
       </div>
+
       <div className="grid gap-4 md:grid-cols-2">{children}</div>
     </section>
   );
@@ -833,6 +1116,7 @@ function buildRuntimeFormState(layout?: RuntimeFormLayout | null) {
       .flatMap((section) => section.fields ?? [])
       .filter((field) => field.isVisible !== false)
       .map((field) => field.columnKey) ?? [];
+
   const visibleFields = new Set(fields.flatMap(expandEmployeeFieldAlias));
   const isCustomized = visibleFields.size > 0;
 
@@ -843,6 +1127,7 @@ function buildRuntimeFormState(layout?: RuntimeFormLayout | null) {
     },
     showSection(sectionTitle: string) {
       if (!isCustomized) return true;
+
       return (sectionFieldMap[sectionTitle] ?? []).some((fieldKey) =>
         visibleFields.has(fieldKey),
       );

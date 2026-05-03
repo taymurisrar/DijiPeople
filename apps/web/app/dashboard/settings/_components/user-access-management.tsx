@@ -59,6 +59,13 @@ type ConfirmState =
   | { type: "unlink-employee"; user: AccessUserRecord }
   | null;
 
+const PROTECTED_OWNER_ROLE_KEYS = new Set([
+  "system-administrator",
+  "system-admin",
+  "tenant-owner",
+  "owner",
+]);
+
 export function UserAccessManagement({
   initialUsers,
   roles,
@@ -94,6 +101,7 @@ export function UserAccessManagement({
 
   const filteredUsers = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
+
     if (!normalizedQuery) {
       return users;
     }
@@ -137,6 +145,16 @@ export function UserAccessManagement({
     return pendingBusinessUnitIds[user.userId] ?? user.businessUnitId ?? "";
   }
 
+  function isProtectedOwnerCoreRole(
+    user: AccessUserRecord,
+    role: AccessRoleRecord,
+  ) {
+    return (
+      user.ownership.isTenantOwner &&
+      PROTECTED_OWNER_ROLE_KEYS.has(role.key.toLowerCase())
+    );
+  }
+
   async function saveUserAccess(user: AccessUserRecord) {
     setSavingAccess(true);
     setError("");
@@ -168,6 +186,7 @@ export function UserAccessManagement({
         | AccessUserRecord
         | { message?: string }
         | null;
+
       const buPayload = (await buResponse.json().catch(() => null)) as
         | AccessUserRecord
         | { message?: string }
@@ -207,6 +226,7 @@ export function UserAccessManagement({
       const response = await fetch(
         `/api/employees/linking-search?q=${encodeURIComponent(employeeQuery)}`,
       );
+
       const payload = (await response.json().catch(() => null)) as
         | EmployeeSearchResponse
         | { message?: string }
@@ -236,11 +256,15 @@ export function UserAccessManagement({
     setMessage("");
 
     try {
-      const response = await fetch(`/api/users/${linkingUser.userId}/link-employee`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ employeeId: selectedEmployeeId }),
-      });
+      const response = await fetch(
+        `/api/users/${linkingUser.userId}/link-employee`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ employeeId: selectedEmployeeId }),
+        },
+      );
+
       const payload = (await response.json().catch(() => null)) as
         | AccessUserRecord
         | { message?: string }
@@ -278,6 +302,7 @@ export function UserAccessManagement({
           `/api/users/${confirmState.user.userId}/link-employee`,
           { method: "DELETE" },
         );
+
         const payload = (await response.json().catch(() => null)) as
           | AccessUserRecord
           | { message?: string }
@@ -296,6 +321,7 @@ export function UserAccessManagement({
         const response = await fetch(`/api/users/${confirmState.user.userId}`, {
           method: "DELETE",
         });
+
         const payload = (await response.json().catch(() => null)) as
           | { deleted?: boolean; message?: string }
           | null;
@@ -341,6 +367,7 @@ export function UserAccessManagement({
             placeholder="Search name, email, employee, BU, role"
             value={query}
           />
+
           <Link
             className="rounded-2xl bg-accent px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-accent-strong"
             href="/dashboard/settings/access/users/new"
@@ -373,23 +400,31 @@ export function UserAccessManagement({
                       <p className="font-semibold text-foreground">
                         {user.firstName} {user.lastName}
                       </p>
+
                       <UserStatusBadge status={user.status} />
+
                       {user.ownership.isTenantOwner ? (
                         <StatusPill>Tenant Owner</StatusPill>
                       ) : null}
                     </div>
+
                     <p className="mt-1 text-sm text-muted">{user.email}</p>
+
                     <p className="mt-2 text-sm text-muted">
                       {user.linkedEmployee
                         ? `${user.linkedEmployee.fullName} (${user.linkedEmployee.employeeCode})`
                         : "No linked employee"}
                     </p>
                   </div>
+
                   <div className="grid gap-2 text-sm text-muted lg:text-right">
                     <span>{user.businessUnit?.name ?? "No business unit"}</span>
-                    <span>{formatDateTime(user.lastLoginAt) || "Never logged in"}</span>
+                    <span>
+                      {formatDateTime(user.lastLoginAt) || "Never logged in"}
+                    </span>
                   </div>
                 </div>
+
                 <div className="mt-3 flex flex-wrap gap-2">
                   {user.roles.slice(0, 4).map((role) => (
                     <span
@@ -399,6 +434,7 @@ export function UserAccessManagement({
                       {role.name}
                     </span>
                   ))}
+
                   {user.roles.length > 4 ? (
                     <span className="rounded-full bg-surface px-3 py-1 text-xs font-medium text-muted">
                       +{user.roles.length - 4} more
@@ -422,17 +458,22 @@ export function UserAccessManagement({
                 <h3 className="text-2xl font-semibold text-foreground">
                   {selectedUser.firstName} {selectedUser.lastName}
                 </h3>
+
                 <p className="mt-1 text-sm text-muted">{selectedUser.email}</p>
+
                 <div className="mt-3 flex flex-wrap gap-2">
                   <UserStatusBadge status={selectedUser.status} />
+
                   <StatusPill tone="muted">
                     {formatOwnershipLabel(selectedUser.ownership.designation)}
                   </StatusPill>
+
                   {selectedUser.isServiceAccount ? (
                     <StatusPill tone="muted">Service Account</StatusPill>
                   ) : null}
                 </div>
               </div>
+
               <div className="flex flex-wrap gap-2">
                 <button
                   className="rounded-2xl border border-border px-4 py-2.5 text-sm font-medium text-foreground transition hover:border-accent/30 hover:text-accent"
@@ -446,6 +487,7 @@ export function UserAccessManagement({
                 >
                   {selectedUser.linkedEmployee ? "Change link" : "Link employee"}
                 </button>
+
                 {selectedUser.linkedEmployee ? (
                   <button
                     className="rounded-2xl border border-danger/20 px-4 py-2.5 text-sm font-medium text-danger transition hover:bg-danger/5"
@@ -472,6 +514,7 @@ export function UserAccessManagement({
             <div className="grid gap-5">
               <label className="grid gap-2 text-sm">
                 <span className="font-medium text-foreground">Business unit</span>
+
                 <select
                   className="rounded-2xl border border-border bg-white px-4 py-3 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:opacity-60"
                   disabled={selectedUser.ownership.isTenantOwner}
@@ -484,6 +527,7 @@ export function UserAccessManagement({
                   value={getPendingBusinessUnitId(selectedUser)}
                 >
                   <option value="">Select business unit</option>
+
                   {businessUnitOptions.map((option) => (
                     <option key={option.id} value={option.id}>
                       {option.label}
@@ -495,6 +539,7 @@ export function UserAccessManagement({
               <div className="grid gap-3">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <h4 className="font-medium text-foreground">Assigned roles</h4>
+
                   <input
                     className="min-h-10 rounded-2xl border border-border bg-white px-4 py-2 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
                     onChange={(event) => setRoleQuery(event.target.value)}
@@ -502,6 +547,7 @@ export function UserAccessManagement({
                     value={roleQuery}
                   />
                 </div>
+
                 <div className="grid gap-3 md:grid-cols-2">
                   {roles
                     .filter((role) =>
@@ -515,18 +561,26 @@ export function UserAccessManagement({
                       const assigned = getPendingRoleIds(selectedUser).includes(
                         role.id,
                       );
+
+                      const protectedOwnerCoreRole =
+                        isProtectedOwnerCoreRole(selectedUser, role) && assigned;
+
                       return (
                         <label
                           className={`flex items-start gap-3 rounded-2xl border px-3 py-3 text-sm ${
                             assigned
                               ? "border-accent bg-accent-soft/40"
                               : "border-border bg-white"
+                          } ${
+                            protectedOwnerCoreRole
+                              ? "cursor-not-allowed opacity-80"
+                              : "cursor-pointer"
                           }`}
                           key={role.id}
                         >
                           <input
                             checked={assigned}
-                            disabled={selectedUser.ownership.isTenantOwner}
+                            disabled={protectedOwnerCoreRole}
                             onChange={() =>
                               setPendingRoleIds((current) => ({
                                 ...current,
@@ -539,11 +593,17 @@ export function UserAccessManagement({
                             }
                             type="checkbox"
                           />
+
                           <span>
                             <span className="flex flex-wrap items-center gap-2 font-medium text-foreground">
                               {role.name}
                               <RoleTypeBadge role={role} />
+
+                              {protectedOwnerCoreRole ? (
+                                <StatusPill tone="muted">Protected</StatusPill>
+                              ) : null}
                             </span>
+
                             <span className="mt-1 block text-muted">
                               {role.description || startCase(role.key)}
                             </span>
@@ -556,8 +616,9 @@ export function UserAccessManagement({
 
               {selectedUser.ownership.isTenantOwner ? (
                 <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                  Tenant Owner access is protected. Role and employee-link changes
-                  are blocked by the backend.
+                  Tenant Owner core access is protected. You can assign
+                  additional roles to this user, but the core owner/admin role
+                  cannot be removed.
                 </p>
               ) : null}
 
@@ -566,6 +627,7 @@ export function UserAccessManagement({
                   {error}
                 </p>
               ) : null}
+
               {message ? (
                 <p className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
                   {message}
@@ -575,14 +637,13 @@ export function UserAccessManagement({
               <div className="flex flex-wrap gap-3">
                 <button
                   className="rounded-2xl bg-accent px-5 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:opacity-70"
-                  disabled={
-                    savingAccess || selectedUser.ownership.isTenantOwner
-                  }
+                  disabled={savingAccess}
                   onClick={() => saveUserAccess(selectedUser)}
                   type="button"
                 >
                   {savingAccess ? "Saving..." : "Save access"}
                 </button>
+
                 <button
                   className="rounded-2xl border border-danger/20 px-5 py-3 text-sm font-medium text-danger transition hover:bg-danger/5 disabled:opacity-60"
                   disabled={selectedUser.ownership.isTenantOwner}
@@ -606,17 +667,20 @@ export function UserAccessManagement({
                 <p className="text-sm font-medium text-foreground">
                   Linked employee
                 </p>
+
                 {selectedUser.linkedEmployee ? (
                   <div className="mt-3">
                     <p className="font-semibold text-foreground">
                       {selectedUser.linkedEmployee.fullName}
                     </p>
+
                     <p className="mt-1 text-sm text-muted">
                       {selectedUser.linkedEmployee.employeeCode}
                       {selectedUser.linkedEmployee.departmentName
                         ? ` • ${selectedUser.linkedEmployee.departmentName}`
                         : ""}
                     </p>
+
                     <Link
                       className="mt-3 inline-flex text-sm font-medium text-accent"
                       href={`/dashboard/employees/${selectedUser.linkedEmployee.id}`}
@@ -633,6 +697,7 @@ export function UserAccessManagement({
 
               <div className="rounded-2xl border border-border bg-white px-4 py-4">
                 <p className="text-sm font-medium text-foreground">Teams</p>
+
                 <div className="mt-3 grid gap-2">
                   {selectedTeamMemberships.length === 0 ? (
                     <p className="text-sm text-muted">No team memberships.</p>
@@ -643,6 +708,7 @@ export function UserAccessManagement({
                         key={team.id}
                       >
                         <p className="font-medium text-foreground">{team.name}</p>
+
                         <p className="mt-1 text-xs uppercase tracking-[0.14em] text-muted">
                           {startCase(team.teamType)}
                         </p>
@@ -665,24 +731,29 @@ export function UserAccessManagement({
                   or team membership with roles.
                 </p>
               ) : null}
+
               <DiagnosticGroup
                 label="Direct roles"
                 values={selectedUser.roles.map((role) => role.name)}
               />
+
               <DiagnosticGroup
                 label="Team roles"
                 values={(selectedUser.teamRoles ?? []).map((role) => role.name)}
               />
+
               <DiagnosticGroup
                 label="Effective roles"
                 values={(selectedUser.effectiveRoles ?? selectedUser.roles).map(
                   (role) => role.name,
                 )}
               />
+
               <DiagnosticGroup
                 label="Effective permissions"
                 values={selectedUser.effectivePermissionKeys.map(startCase)}
               />
+
               <EffectiveScopeSummary
                 privileges={selectedUser.effectivePrivileges ?? []}
               />
@@ -749,6 +820,7 @@ function EffectiveScopeSummary({
       <p className="text-sm font-medium text-foreground">
         Highest scope by module/action
       </p>
+
       {topPrivileges.length === 0 ? (
         <p className="mt-2 text-sm text-muted">No scoped privileges.</p>
       ) : (
@@ -759,8 +831,10 @@ function EffectiveScopeSummary({
               key={`${privilege.entityKey}:${privilege.privilege}`}
             >
               <p className="font-medium text-foreground">
-                {startCase(privilege.entityKey)} / {startCase(privilege.privilege)}
+                {startCase(privilege.entityKey)} /{" "}
+                {startCase(privilege.privilege)}
               </p>
+
               <p className="mt-1 text-muted">
                 {formatAccessScope(privilege.accessLevel)}
               </p>
@@ -768,6 +842,7 @@ function EffectiveScopeSummary({
           ))}
         </div>
       )}
+
       {privileges.length > topPrivileges.length ? (
         <p className="mt-2 text-xs text-muted">
           +{privileges.length - topPrivileges.length} more scoped privileges
@@ -818,13 +893,16 @@ function EmployeeLinkDialog({
             <p className="text-sm uppercase tracking-[0.18em] text-muted">
               Employee Link
             </p>
+
             <h3 className="mt-2 text-2xl font-semibold text-foreground">
               Link employee to {user.firstName} {user.lastName}
             </h3>
+
             <p className="mt-2 text-sm text-muted">
               Search by employee name, code, department, or work email.
             </p>
           </div>
+
           <button
             className="rounded-2xl border border-border px-4 py-2 text-sm font-medium text-foreground"
             onClick={onClose}
@@ -841,6 +919,7 @@ function EmployeeLinkDialog({
             placeholder="Search employees"
             value={employeeQuery}
           />
+
           <button
             className="rounded-2xl bg-accent px-5 py-3 text-sm font-semibold text-white disabled:opacity-70"
             disabled={isLoading}
@@ -860,6 +939,7 @@ function EmployeeLinkDialog({
             employeeResults.map((employee) => {
               const blocked =
                 employee.linkedUser && employee.linkedUser.id !== user.userId;
+
               return (
                 <label
                   className={`grid gap-2 rounded-2xl border px-4 py-4 ${
@@ -876,21 +956,25 @@ function EmployeeLinkDialog({
                       onChange={() => onSelectEmployee(employee.id)}
                       type="radio"
                     />
+
                     <span>
                       <span className="block font-semibold text-foreground">
                         {employee.fullName}
                       </span>
+
                       <span className="mt-1 block text-sm text-muted">
                         {employee.employeeCode}
                         {employee.departmentName
                           ? ` • ${employee.departmentName}`
                           : ""}
                       </span>
+
                       <span className="mt-1 block text-sm text-muted">
                         {employee.businessUnit
                           ? `${employee.businessUnit.name} (${employee.businessUnit.organizationName})`
                           : "No business unit"}
                       </span>
+
                       {blocked ? (
                         <span className="mt-2 block text-sm font-medium text-danger">
                           Already linked to {employee.linkedUser?.fullName}
@@ -922,6 +1006,7 @@ function EmployeeLinkDialog({
           >
             Cancel
           </button>
+
           <button
             className="rounded-2xl bg-accent px-5 py-3 text-sm font-semibold text-white disabled:opacity-70"
             disabled={isLoading || !selectedEmployeeId}
@@ -940,6 +1025,7 @@ function DiagnosticGroup({ label, values }: { label: string; values: string[] })
   return (
     <div>
       <p className="text-sm font-medium text-foreground">{label}</p>
+
       <div className="mt-2 flex flex-wrap gap-2">
         {values.length === 0 ? (
           <span className="text-sm text-muted">None</span>
@@ -953,6 +1039,7 @@ function DiagnosticGroup({ label, values }: { label: string; values: string[] })
             </span>
           ))
         )}
+
         {values.length > 28 ? (
           <span className="rounded-full bg-white px-3 py-1 text-xs text-muted">
             +{values.length - 28} more
@@ -965,6 +1052,7 @@ function DiagnosticGroup({ label, values }: { label: string; values: string[] })
 
 function UserStatusBadge({ status }: { status: string }) {
   const normalized = status.toLowerCase();
+
   return (
     <StatusPill tone={normalized === "active" ? "good" : "muted"}>
       {startCase(status)}
@@ -1003,7 +1091,9 @@ function formatDateTime(value?: string | null) {
   }).format(new Date(value));
 }
 
-function formatOwnershipLabel(value: AccessUserRecord["ownership"]["designation"]) {
+function formatOwnershipLabel(
+  value: AccessUserRecord["ownership"]["designation"],
+) {
   return startCase(value);
 }
 

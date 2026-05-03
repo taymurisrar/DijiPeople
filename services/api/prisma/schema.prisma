@@ -4111,6 +4111,9 @@ model ActivityEvent {
   state        AgentActivityState
   idleSeconds  Int
   activeApp    String?
+  activeAppPath    String?
+  browserTabTitle  String?
+  activeProcessId  Int?
   windowTitle  String?
   agentVersion String
   occurredAt   DateTime

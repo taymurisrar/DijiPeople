@@ -1,125 +1,265 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta
-      http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'unsafe-inline'"
-    />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>DijiPeople Agent</title>
-    <style>
-      * {
-        box-sizing: border-box;
-      }
 
-      body {
-        margin: 0;
-        min-height: 100vh;
-        display: grid;
-        place-items: center;
-        background: #f7f8fb;
-        color: #172033;
-        font-family:
-          Inter,
-          ui-sans-serif,
-          system-ui,
-          -apple-system,
-          BlinkMacSystemFont,
-          "Segoe UI",
-          sans-serif;
-      }
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self';" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DijiPeople Agent</title>
 
-      main {
-        width: min(340px, calc(100vw - 48px));
-      }
+  <style>
+    * {
+      box-sizing: border-box;
+    }
 
-      h1 {
-        margin: 0 0 6px;
-        font-size: 24px;
-        font-weight: 700;
-      }
+    :root {
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --text: #111827;
+      --muted: #667085;
+      --border: #d0d5dd;
+      --primary: #1769e0;
+      --primary-hover: #145ac0;
+      --danger: #b42318;
+      --danger-bg: #fef3f2;
+      --danger-border: #fecdca;
+      --shadow: 0 24px 60px rgba(16, 24, 40, 0.12);
+    }
 
-      p {
-        margin: 0 0 24px;
-        color: #667085;
-        font-size: 14px;
-        line-height: 1.45;
-      }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at top left, rgba(23, 105, 224, 0.12), transparent 36%),
+        var(--bg);
+      color: var(--text);
+      font-family:
+        Inter,
+        ui-sans-serif,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+    }
 
-      label {
-        display: block;
-        margin-bottom: 14px;
-        color: #344054;
-        font-size: 13px;
-        font-weight: 600;
-      }
+    main {
+      width: min(420px, calc(100vw - 40px));
+    }
 
-      input {
-        width: 100%;
-        margin-top: 6px;
-        border: 1px solid #d0d5dd;
-        border-radius: 8px;
-        padding: 11px 12px;
-        background: #ffffff;
-        color: #172033;
-        font-size: 14px;
-      }
+    .card {
+      border: 1px solid rgba(208, 213, 221, 0.85);
+      border-radius: 18px;
+      background: var(--card);
+      box-shadow: var(--shadow);
+      padding: 28px;
+    }
 
-      button {
-        width: 100%;
-        border: 0;
-        border-radius: 8px;
-        padding: 12px 14px;
-        background: #1769e0;
-        color: white;
-        font-size: 14px;
-        font-weight: 700;
-        cursor: pointer;
-      }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
 
-      button:disabled {
-        cursor: wait;
-        opacity: 0.72;
-      }
+    .logo {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      background: var(--primary);
+      color: white;
+      font-weight: 800;
+    }
 
-      .error {
-        min-height: 20px;
-        margin: 12px 0 0;
-        color: #b42318;
-        font-size: 13px;
-      }
-    </style>
-  </head>
-  <body>
-    <main>
-      <h1>DijiPeople Agent</h1>
-      <p>Sign in once to start your work session on this device.</p>
-      <form id="login-form">
-        <label>
-          Email
-          <input
-            id="email"
-            name="email"
-            type="email"
-            autocomplete="email"
-            required
-          />
-        </label>
-        <label>
-          Password
-          <input
-            id="password"
-            name="password"
-            type="password"
-            autocomplete="current-password"
-            required
-          />
-        </label>
-        <button id="submit" type="submit">Sign in</button>
-        <div id="error" class="error" aria-live="polite"></div>
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 750;
+    }
+
+    .subtitle {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .alert {
+      display: none;
+      margin-bottom: 18px;
+      border-radius: 12px;
+      border: 1px solid var(--danger-border);
+      background: var(--danger-bg);
+      color: var(--danger);
+      padding: 11px 12px;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .alert.visible {
+      display: block;
+    }
+
+    .field {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 7px;
+      color: #344054;
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    .input-wrap {
+      position: relative;
+    }
+
+    input {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 11px 12px;
+      background: #ffffff;
+      color: var(--text);
+      font-size: 14px;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(23, 105, 224, 0.12);
+    }
+
+    input[aria-invalid="true"] {
+      border-color: var(--danger);
+    }
+
+    .password-input {
+      padding-right: 78px;
+    }
+
+    .toggle-password {
+      position: absolute;
+      top: 50%;
+      right: 8px;
+      width: auto;
+      transform: translateY(-50%);
+      border: 0;
+      border-radius: 8px;
+      padding: 7px 8px;
+      background: transparent;
+      color: var(--primary);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .field-error {
+      min-height: 18px;
+      margin-top: 5px;
+      color: var(--danger);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .submit {
+      width: 100%;
+      border: 0;
+      border-radius: 10px;
+      padding: 12px 14px;
+      background: var(--primary);
+      color: white;
+      font-size: 14px;
+      font-weight: 750;
+      cursor: pointer;
+    }
+
+    .submit:hover:not(:disabled) {
+      background: var(--primary-hover);
+    }
+
+    .submit:disabled {
+      cursor: wait;
+      opacity: 0.72;
+    }
+
+    .status {
+      margin-top: 14px;
+      min-height: 18px;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .footer-note {
+      margin: 16px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+  <main>
+    <section class="card" aria-labelledby="page-title">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">DP</div>
+        <div>
+          <h1 id="page-title">DijiPeople Agent</h1>
+          <p class="subtitle">Sign in to start your secure work session.</p>
+        </div>
+      </div>
+
+      <div id="error-banner" class="alert" role="alert" aria-live="assertive"></div>
+
+      <form id="login-form" novalidate action="#">
+        <div class="field">
+          <label for="email">Work email</label>
+          <input id="email" name="email" type="email" autocomplete="email" inputmode="email" spellcheck="false"
+            maxlength="254" aria-describedby="email-error" required />
+          <div id="email-error" class="field-error" aria-live="polite"></div>
+        </div>
+
+        <div class="field">
+          <label for="password">Password</label>
+          <div class="input-wrap">
+            <input id="password" class="password-input" name="password" type="password" autocomplete="current-password"
+              maxlength="256" aria-describedby="password-error" required />
+            <button id="toggle-password" class="toggle-password" type="button" aria-label="Show password">
+              Show
+            </button>
+          </div>
+          <div id="password-error" class="field-error" aria-live="polite"></div>
+        </div>
+
+        <button id="submit" class="submit" type="submit">Sign in</button>
+
+        <div id="status" class="status" aria-live="polite"></div>
+
+        <p class="footer-note">
+          This device will be registered with your organization after successful sign-in.
+        </p>
       </form>
-    </main>
-    <script src="./login.js"></script>
-  </body>
+    </section>
+  </main>
+
+  <script>
+    window.addEventListener("submit", function (event) {
+      if (event.target && event.target.id === "login-form") {
+        event.preventDefault();
+      }
+    });
+  </script>
+  <script defer src="./login.js"></script>
+</body>
+
 </html>

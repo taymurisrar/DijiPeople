@@ -1,19 +1,19 @@
-import { apiRequestJson } from "@/lib/server-api";
-import { getDefaultForm } from "@/lib/customization-forms";
 import { getSessionUser } from "@/lib/auth";
+import { getDefaultForm } from "@/lib/customization-forms";
+import { apiRequestJson } from "@/lib/server-api";
 import { PERMISSION_KEYS } from "@/lib/security-keys";
 import { AccessDeniedState } from "../../_components/access-denied-state";
 import {
   getBusinessUnitAccessSummary,
   hasBusinessUnitScope,
 } from "../../_lib/business-unit-access";
+import { TenantResolvedSettingsResponse } from "../../settings/types";
 import { EmployeeForm } from "../_components/employee-form";
 import {
   EmployeeFormValues,
   EmployeeListResponse,
   EmployeeRoleOption,
 } from "../types";
-import { TenantResolvedSettingsResponse } from "../../settings/types";
 
 export default async function NewEmployeePage() {
   const businessUnitAccess = await getBusinessUnitAccessSummary();
@@ -30,11 +30,14 @@ export default async function NewEmployeePage() {
   }
 
   const sessionUser = await getSessionUser();
-  const canManageAccess = Boolean(
-    sessionUser?.permissionKeys.includes(PERMISSION_KEYS.USERS_CREATE) &&
-    sessionUser.permissionKeys.includes(PERMISSION_KEYS.USERS_ASSIGN_ROLES) &&
-    sessionUser.permissionKeys.includes(PERMISSION_KEYS.ROLES_READ),
-  );
+
+  const permissionKeys = sessionUser?.permissionKeys ?? [];
+
+  const canManageAccess =
+    permissionKeys.includes(PERMISSION_KEYS.USERS_CREATE) &&
+    permissionKeys.includes(PERMISSION_KEYS.USERS_ASSIGN_ROLES) &&
+    permissionKeys.includes(PERMISSION_KEYS.ROLES_READ);
+
   const [managers, roles, resolvedSettings, runtimeForm] = await Promise.all([
     apiRequestJson<EmployeeListResponse>("/employees?pageSize=100"),
     canManageAccess
@@ -46,11 +49,12 @@ export default async function NewEmployeePage() {
     getDefaultForm("employees", "create"),
   ]);
 
+  const employeeSettings = resolvedSettings?.employee;
+  const autoGenerateEmployeeId =
+    employeeSettings?.autoGenerateEmployeeId === true;
+
   const initialValues: EmployeeFormValues = {
-    employeeCode:
-      resolvedSettings?.employee.autoGenerateEmployeeId === true
-        ? `${resolvedSettings.employee.employeeIdPrefix || "EMP"}-AUTO`
-        : "",
+    employeeCode: "",
     firstName: "",
     middleName: "",
     lastName: "",
@@ -67,11 +71,10 @@ export default async function NewEmployeePage() {
     cnic: "",
     bloodGroup: "",
     employmentStatus:
-      (resolvedSettings?.employee
-        .defaultEmployeeStatus as EmployeeFormValues["employmentStatus"]) ||
+      (employeeSettings?.defaultEmployeeStatus as EmployeeFormValues["employmentStatus"]) ||
       "ACTIVE",
-    employeeType: resolvedSettings?.employee.defaultEmploymentType || "",
-    workMode: resolvedSettings?.employee.defaultWorkMode || "",
+    employeeType: employeeSettings?.defaultEmploymentType || "",
+    workMode: employeeSettings?.defaultWorkMode || "",
     contractType: "",
     hireDate: new Date().toISOString().slice(0, 10),
     confirmationDate: "",
@@ -108,12 +111,15 @@ export default async function NewEmployeePage() {
         <p className="text-sm uppercase tracking-[0.18em] text-muted">
           Create Employee
         </p>
+
         <h3 className="mt-3 text-3xl font-semibold text-foreground">
           Add a new employee record
         </h3>
+
         <p className="mt-2 max-w-3xl text-muted">
-          Capture the core employment profile first. Future modules can attach
-          hierarchy, leave, attendance, and payroll configuration later.
+          Capture the core employment profile first. Employee code behavior,
+          required fields, reporting rules, and profile defaults are driven by
+          tenant settings.
         </p>
       </section>
 
@@ -121,21 +127,20 @@ export default async function NewEmployeePage() {
         canManageAccess={canManageAccess}
         initialValues={initialValues}
         managerOptions={managers.items}
+        mode="create"
         roleOptions={roles}
         runtimeFormLayout={runtimeForm?.layoutJson ?? null}
         settings={{
-          autoGenerateEmployeeId:
-            resolvedSettings?.employee.autoGenerateEmployeeId ?? false,
-          requireDepartment:
-            resolvedSettings?.employee.requireDepartment ?? false,
-          requireDesignation:
-            resolvedSettings?.employee.requireDesignation ?? false,
+          autoGenerateEmployeeId,
+          employeeIdPrefix: employeeSettings?.employeeIdPrefix || "EMP",
+          employeeIdSequenceLength:
+            employeeSettings?.employeeIdSequenceLength ?? 5,
+          requireDepartment: employeeSettings?.requireDepartment ?? false,
+          requireDesignation: employeeSettings?.requireDesignation ?? false,
           requireReportingManager:
-            resolvedSettings?.employee.requireReportingManager ?? false,
-          requireWorkLocation:
-            resolvedSettings?.employee.requireWorkLocation ?? false,
+            employeeSettings?.requireReportingManager ?? false,
+          requireWorkLocation: employeeSettings?.requireWorkLocation ?? false,
         }}
-        mode="create"
       />
     </main>
   );

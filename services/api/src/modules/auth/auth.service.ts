@@ -89,11 +89,6 @@ type UserWithAccess = Prisma.UserGetPayload<{
   };
 }>;
 
-type AccountAccessContext = {
-  userStatus: string;
-  tenantStatus: string;
-};
-
 @Injectable()
 export class AuthService {
   constructor(
@@ -120,30 +115,19 @@ export class AuthService {
 
   async login(dto: LoginDto) {
     const user = await this.validateCredentials(dto);
+    const tenantStatus = String(user.tenant.status).toUpperCase();
 
-    this.assertAccountCanAuthenticate({
-      userStatus: user.status,
-      tenantStatus: user.tenant.status,
-    });
+    if (user.status !== 'ACTIVE' || tenantStatus !== 'ACTIVE') {
+      throw new UnauthorizedException('This account is not active.');
+    }
 
     await this.permissionBootstrapService.bootstrapTenantRbac(user.tenantId);
 
     const refreshedUser = await this.usersService.findByIdWithAccess(user.id);
 
     if (!refreshedUser) {
-      throw new UnauthorizedException({
-        code: 'AUTH_ACCOUNT_NOT_FOUND',
-        message: 'Unable to load this account.',
-        title: 'Account unavailable',
-        description:
-          'Your account exists, but the system could not load your access profile. Please contact your administrator.',
-      });
+      throw new UnauthorizedException('Unable to load this account.');
     }
-
-    this.assertAccountCanAuthenticate({
-      userStatus: refreshedUser.status,
-      tenantStatus: refreshedUser.tenant.status,
-    });
 
     const authResponse = this.buildAuthResponse(
       refreshedUser,
@@ -165,12 +149,7 @@ export class AuthService {
 
   async refresh(refreshToken?: string) {
     if (!refreshToken) {
-      throw new UnauthorizedException({
-        code: 'AUTH_REFRESH_TOKEN_MISSING',
-        message: 'Refresh token is invalid or expired.',
-        title: 'Session expired',
-        description: 'Please sign in again to continue.',
-      });
+      throw new UnauthorizedException('Refresh token is invalid or expired.');
     }
 
     const payload = await this.verifyRefreshToken(refreshToken);
@@ -178,38 +157,22 @@ export class AuthService {
     const user = await this.usersService.findByIdWithAccess(payload.sub);
 
     if (!user) {
-      throw new UnauthorizedException({
-        code: 'AUTH_ACCOUNT_NOT_FOUND',
-        message: 'Unable to refresh this session.',
-        title: 'Session unavailable',
-        description:
-          'Your account could not be loaded while refreshing the session. Please sign in again.',
-      });
+      throw new UnauthorizedException('Unable to refresh this session.');
     }
 
-    this.assertAccountCanAuthenticate({
-      userStatus: user.status,
-      tenantStatus: user.tenant.status,
-    });
+    const tenantStatus = String(user.tenant.status).toUpperCase();
+
+    if (user.status !== 'ACTIVE' || tenantStatus !== 'ACTIVE') {
+      throw new UnauthorizedException('This account is not active.');
+    }
 
     await this.permissionBootstrapService.bootstrapTenantRbac(user.tenantId);
 
     const refreshedUser = await this.usersService.findByIdWithAccess(user.id);
 
     if (!refreshedUser) {
-      throw new UnauthorizedException({
-        code: 'AUTH_ACCOUNT_NOT_FOUND',
-        message: 'Unable to refresh this session.',
-        title: 'Session unavailable',
-        description:
-          'Your account could not be loaded while refreshing the session. Please sign in again.',
-      });
+      throw new UnauthorizedException('Unable to refresh this session.');
     }
-
-    this.assertAccountCanAuthenticate({
-      userStatus: refreshedUser.status,
-      tenantStatus: refreshedUser.tenant.status,
-    });
 
     const refreshTokenMatches = await this.hasActiveRefreshToken(
       refreshedUser.id,
@@ -217,13 +180,7 @@ export class AuthService {
     );
 
     if (!refreshTokenMatches) {
-      throw new UnauthorizedException({
-        code: 'AUTH_REFRESH_TOKEN_REVOKED',
-        message: 'Refresh token is invalid.',
-        title: 'Session expired',
-        description:
-          'This session is no longer valid. Please sign in again to continue.',
-      });
+      throw new UnauthorizedException('Refresh token is invalid.');
     }
 
     const authResponse = this.buildAuthResponse(refreshedUser);
@@ -261,12 +218,9 @@ export class AuthService {
 
     if (!refreshToken) {
       this.clearAuthCookies(res);
-      throw new UnauthorizedException({
-        code: 'AUTH_SESSION_EXPIRED',
-        message: 'Your session expired. Please sign in again to continue.',
-        title: 'Session expired',
-        description: 'Please sign in again to continue.',
-      });
+      throw new UnauthorizedException(
+        'Your session expired. Please sign in again to continue.',
+      );
     }
 
     try {
@@ -279,12 +233,9 @@ export class AuthService {
       return response;
     } catch {
       this.clearAuthCookies(res);
-      throw new UnauthorizedException({
-        code: 'AUTH_SESSION_EXPIRED',
-        message: 'Your session expired. Please sign in again to continue.',
-        title: 'Session expired',
-        description: 'Please sign in again to continue.',
-      });
+      throw new UnauthorizedException(
+        'Your session expired. Please sign in again to continue.',
+      );
     }
   }
 
@@ -357,41 +308,6 @@ export class AuthService {
     });
   }
 
-  private assertAccountCanAuthenticate(context: AccountAccessContext) {
-    const userStatus = this.normalizeStatus(context.userStatus);
-    const tenantStatus = this.normalizeStatus(context.tenantStatus);
-
-    if (userStatus !== 'ACTIVE') {
-      throw new UnauthorizedException({
-        code: 'AUTH_USER_INACTIVE',
-        message: 'Your account is not active.',
-        title: 'Account inactive',
-        description:
-          'Your user account is currently inactive. Please contact your administrator to restore access.',
-        reason: 'USER_STATUS_NOT_ACTIVE',
-        userStatus,
-      });
-    }
-
-    if (tenantStatus !== 'ACTIVE') {
-      throw new UnauthorizedException({
-        code: 'AUTH_TENANT_INACTIVE',
-        message: 'Your organization is not active.',
-        title: 'Organization inactive',
-        description:
-          'Your organization account is currently inactive. Please contact your administrator or support team.',
-        reason: 'TENANT_STATUS_NOT_ACTIVE',
-        tenantStatus,
-      });
-    }
-  }
-
-  private normalizeStatus(status: unknown) {
-    return String(status ?? '')
-      .trim()
-      .toUpperCase();
-  }
-
   private isProduction() {
     return this.configService.get<string>('NODE_ENV') === 'production';
   }
@@ -406,13 +322,7 @@ export class AuthService {
     const user = await this.usersService.findByEmailWithAccess(normalizedEmail);
 
     if (!user) {
-      throw new UnauthorizedException({
-        code: 'AUTH_INVALID_CREDENTIALS',
-        message: 'Invalid credentials.',
-        title: 'Invalid email or password',
-        description:
-          'The email or password you entered is incorrect. Please check your credentials and try again.',
-      });
+      throw new UnauthorizedException('Invalid credentials.');
     }
 
     const isPasswordValid = await bcrypt.compare(
@@ -421,13 +331,7 @@ export class AuthService {
     );
 
     if (!isPasswordValid) {
-      throw new UnauthorizedException({
-        code: 'AUTH_INVALID_CREDENTIALS',
-        message: 'Invalid credentials.',
-        title: 'Invalid email or password',
-        description:
-          'The email or password you entered is incorrect. Please check your credentials and try again.',
-      });
+      throw new UnauthorizedException('Invalid credentials.');
     }
 
     return user;
@@ -441,19 +345,12 @@ export class AuthService {
           secret: getRefreshTokenSecret(this.configService),
         },
       );
-
       if (payload.type !== 'refresh') {
         throw new Error('Invalid token type.');
       }
-
       return payload;
     } catch {
-      throw new UnauthorizedException({
-        code: 'AUTH_REFRESH_TOKEN_INVALID',
-        message: 'Refresh token is invalid or expired.',
-        title: 'Session expired',
-        description: 'Please sign in again to continue.',
-      });
+      throw new UnauthorizedException('Refresh token is invalid or expired.');
     }
   }
 
@@ -463,19 +360,12 @@ export class AuthService {
         accessToken,
         { secret: getAccessTokenSecret(this.configService) },
       );
-
       if (payload.type !== 'access') {
         throw new Error('Invalid token type.');
       }
-
       return payload;
     } catch {
-      throw new UnauthorizedException({
-        code: 'AUTH_ACCESS_TOKEN_INVALID',
-        message: 'Access token is invalid or expired.',
-        title: 'Session expired',
-        description: 'Please sign in again to continue.',
-      });
+      throw new UnauthorizedException('Access token is invalid or expired.');
     }
   }
 
@@ -623,22 +513,18 @@ export class AuthService {
     const directRoles = user.userRoles
       .map((userRole) => userRole.role)
       .filter((role) => role.isActive);
-
     const teamRoles = user.teamMemberships.flatMap((membership) =>
       membership.team.teamRoles
         .map((teamRole) => teamRole.role)
         .filter((role) => role.isActive),
     );
-
     const effectiveRoles = Array.from(
       new Map(
         [...directRoles, ...teamRoles].map((role) => [role.id, role]),
       ).values(),
     );
-
     const roleIds = effectiveRoles.map((role) => role.id);
     const roleKeys = effectiveRoles.map((role) => role.key);
-
     const roles = effectiveRoles.map((role) => ({
       id: role.id,
       key: role.key,
@@ -646,7 +532,6 @@ export class AuthService {
       type: role.isSystem ? 'SYSTEM' : 'CUSTOM',
       isSystem: role.isSystem,
     }));
-
     const permissionKeys = Array.from(
       new Set([
         ...effectiveRoles.flatMap((role) =>
@@ -706,22 +591,18 @@ export class AuthService {
 
   private extractTokenFromRequest(req: Request, cookieName: string) {
     const cookies = req.cookies as Record<string, string> | undefined;
-
     if (cookies?.[cookieName]) {
       return cookies[cookieName];
     }
 
     const cookieHeader = req.headers.cookie;
-
     if (!cookieHeader) {
       return null;
     }
 
     const prefix = `${cookieName}=`;
-
     for (const part of cookieHeader.split(';')) {
       const trimmed = part.trim();
-
       if (trimmed.startsWith(prefix)) {
         return decodeURIComponent(trimmed.slice(prefix.length));
       }

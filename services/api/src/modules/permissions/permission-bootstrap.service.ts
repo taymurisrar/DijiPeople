@@ -54,48 +54,45 @@ export class PermissionBootstrapService {
       skipDuplicates: true,
     });
 
-    await Promise.all(
-      SYSTEM_ROLE_DEFINITIONS.map((role) =>
-        db.role.updateMany({
-          where: {
-            tenantId,
-            key: role.key,
-          },
-          data: {
-            name: role.name,
-            description: role.description,
-            accessLevel: role.accessLevel,
-            isSystem: true,
-            roleType: RoleType.SYSTEM,
-            isEditable: role.isEditable,
-            isCloneable: true,
-            isActive: true,
-            updatedById: actorUserId,
-          },
-        }),
-      ),
-    );
+    for (const role of SYSTEM_ROLE_DEFINITIONS) {
+      await db.role.updateMany({
+        where: {
+          tenantId,
+          key: role.key,
+        },
+        data: {
+          name: role.name,
+          description: role.description,
+          accessLevel: role.accessLevel,
+          isSystem: true,
+          roleType: RoleType.SYSTEM,
+          isEditable: role.isEditable,
+          isCloneable: true,
+          isActive: true,
+          updatedById: actorUserId,
+        },
+      });
+    }
 
-    const [permissions, roles] = await Promise.all([
-      db.permission.findMany({
-        where: {
-          tenantId,
-          key: {
-            in: FOUNDATION_PERMISSION_DEFINITIONS.map(
-              (permission) => permission.key,
-            ),
-          },
+    const permissions = await db.permission.findMany({
+      where: {
+        tenantId,
+        key: {
+          in: FOUNDATION_PERMISSION_DEFINITIONS.map(
+            (permission) => permission.key,
+          ),
         },
-      }),
-      db.role.findMany({
-        where: {
-          tenantId,
-          key: {
-            in: SYSTEM_ROLE_DEFINITIONS.map((role) => role.key),
-          },
+      },
+    });
+
+    const roles = await db.role.findMany({
+      where: {
+        tenantId,
+        key: {
+          in: SYSTEM_ROLE_DEFINITIONS.map((role) => role.key),
         },
-      }),
-    ]);
+      },
+    });
 
     const permissionByKey = new Map(
       permissions.map((permission) => [permission.key, permission]),
@@ -106,6 +103,7 @@ export class PermissionBootstrapService {
         SYSTEM_ROLE_PRIVILEGES[
           role.key as keyof typeof SYSTEM_ROLE_PRIVILEGES
         ] ?? {};
+
       const permissionKeys = new Set<string>();
 
       for (const [matrixKey, accessLevel] of Object.entries(roleMatrix)) {
@@ -114,6 +112,7 @@ export class PermissionBootstrapService {
         }
 
         const [entityKey, privilegeKey] = matrixKey.split(':');
+
         if (!entityKey || !privilegeKey) {
           continue;
         }
@@ -157,10 +156,12 @@ export class PermissionBootstrapService {
       }, []);
     });
 
-    await db.rolePermission.createMany({
-      data: rolePermissionAssignments,
-      skipDuplicates: true,
-    });
+    if (rolePermissionAssignments.length > 0) {
+      await db.rolePermission.createMany({
+        data: rolePermissionAssignments,
+        skipDuplicates: true,
+      });
+    }
 
     const rolePrivilegeAssignments = roles.flatMap((role) => {
       const roleMatrix =
@@ -170,6 +171,7 @@ export class PermissionBootstrapService {
 
       return Object.entries(roleMatrix).flatMap(([matrixKey, accessLevel]) => {
         const [entityKey, privilegeKey] = matrixKey.split(':');
+
         if (!entityKey || !privilegeKey) {
           return [];
         }
@@ -186,37 +188,29 @@ export class PermissionBootstrapService {
       });
     });
 
-    const BATCH_SIZE = 5;
-
-    for (let i = 0; i < rolePrivilegeAssignments.length; i += BATCH_SIZE) {
-      const batch = rolePrivilegeAssignments.slice(i, i + BATCH_SIZE);
-
-      await Promise.all(
-        batch.map((assignment) =>
-          db.rolePrivilege.upsert({
-            where: {
-              roleId_entityKey_privilege: {
-                roleId: assignment.roleId,
-                entityKey: assignment.entityKey,
-                privilege: assignment.privilege,
-              },
-            },
-            update: {
-              accessLevel: assignment.accessLevel,
-              updatedById: assignment.updatedById,
-            },
-            create: {
-              tenantId: assignment.tenantId,
-              roleId: assignment.roleId,
-              entityKey: assignment.entityKey,
-              privilege: assignment.privilege,
-              accessLevel: assignment.accessLevel,
-              createdById: assignment.createdById,
-              updatedById: assignment.updatedById,
-            },
-          }),
-        ),
-      );
+    for (const assignment of rolePrivilegeAssignments) {
+      await db.rolePrivilege.upsert({
+        where: {
+          roleId_entityKey_privilege: {
+            roleId: assignment.roleId,
+            entityKey: assignment.entityKey,
+            privilege: assignment.privilege,
+          },
+        },
+        update: {
+          accessLevel: assignment.accessLevel,
+          updatedById: assignment.updatedById,
+        },
+        create: {
+          tenantId: assignment.tenantId,
+          roleId: assignment.roleId,
+          entityKey: assignment.entityKey,
+          privilege: assignment.privilege,
+          accessLevel: assignment.accessLevel,
+          createdById: assignment.createdById,
+          updatedById: assignment.updatedById,
+        },
+      });
     }
 
     for (const role of roles) {
@@ -225,30 +219,28 @@ export class PermissionBootstrapService {
           role.key as keyof typeof SYSTEM_ROLE_MISC_PERMISSIONS
         ] ?? [];
 
-      await Promise.all(
-        miscPermissionKeys.map((permissionKey) =>
-          db.roleMiscPermission.upsert({
-            where: {
-              roleId_permissionKey: {
-                roleId: role.id,
-                permissionKey,
-              },
-            },
-            create: {
-              tenantId,
+      for (const permissionKey of miscPermissionKeys) {
+        await db.roleMiscPermission.upsert({
+          where: {
+            roleId_permissionKey: {
               roleId: role.id,
               permissionKey,
-              enabled: true,
-              createdById: actorUserId,
-              updatedById: actorUserId,
             },
-            update: {
-              enabled: true,
-              updatedById: actorUserId,
-            },
-          }),
-        ),
-      );
+          },
+          create: {
+            tenantId,
+            roleId: role.id,
+            permissionKey,
+            enabled: true,
+            createdById: actorUserId,
+            updatedById: actorUserId,
+          },
+          update: {
+            enabled: true,
+            updatedById: actorUserId,
+          },
+        });
+      }
     }
 
     return {

@@ -63,8 +63,24 @@ export class HeartbeatEventDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(500)
+  activeAppPath?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  browserTabTitle?: string | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  activeProcessId?: number | null;
+
+  @IsOptional()
+  @IsString()
   @MaxLength(40)
-  agentVersion?: string;
+  agentVersion?: string | null;
 
   @IsDateString()
   occurredAt!: string;
@@ -102,8 +118,24 @@ export class HeartbeatDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(500)
+  activeAppPath?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  browserTabTitle?: string | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  activeProcessId?: number | null;
+
+  @IsOptional()
+  @IsString()
   @MaxLength(40)
-  agentVersion?: string;
+  agentVersion?: string | null;
 
   @IsOptional()
   @IsDateString()

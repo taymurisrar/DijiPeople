@@ -6,6 +6,7 @@ import {
   formatDateTimeWithTenantSettings,
   formatDateWithTenantSettings,
 } from "@/lib/date-format";
+import { EmployeeAgentSection } from "../_components/employee-agent-section";
 import { hasAnyPermission, hasPermission } from "@/lib/permissions";
 import { PERMISSION_KEYS } from "@/lib/security-keys";
 import { EmployeeCompensationCard } from "../_components/employee-compensation-card";
@@ -44,7 +45,8 @@ type EmployeeTabConfig = {
     | "timesheets"
     | "history"
     | "documents"
-    | "education";
+    | "education"
+    | "agent";
   label: string;
   requiredAnyPermissions?: readonly string[];
 };
@@ -80,6 +82,11 @@ const employeeTabs: readonly EmployeeTabConfig[] = [
   { key: "history", label: "Employee History" },
   { key: "documents", label: "Documents" },
   { key: "education", label: "Education" },
+  {
+  key: "agent",
+  label: "Agent",
+  requiredAnyPermissions: [PERMISSION_KEYS.ATTENDANCE_READ],
+},
 ] as const;
 
 type EmployeeDetailPageProps = {
@@ -101,6 +108,53 @@ type AttendanceHistoryEntry = {
 
 type AttendanceHistoryResponse = {
   items: AttendanceHistoryEntry[];
+};
+
+type EmployeeAgentSummaryResponse = {
+  devices: Array<{
+    id: string;
+    deviceName: string;
+    os: string;
+    platform: string;
+    agentVersion: string;
+    lastSeenAt: string | null;
+    isActive: boolean;
+  }>;
+
+  latestSession: {
+    id: string;
+    status: string;
+    startedAt: string;
+    endedAt: string | null;
+    lastHeartbeatAt: string | null;
+    totalActiveSeconds: number;
+    totalIdleSeconds: number;
+    totalAwaySeconds: number;
+  } | null;
+
+  todaySummary: {
+    loggedInSeconds: number;
+    activeSeconds: number;
+    idleSeconds: number;
+    awaySeconds: number;
+    utilizationPercent: number;
+  } | null;
+
+  recentEvents: Array<{
+    id: string;
+    state: string;
+    idleSeconds: number;
+
+    activeApp: string | null;
+    windowTitle: string | null;
+
+    activeAppPath: string | null;
+    browserTabTitle: string | null;
+    activeProcessId: number | null;
+
+    agentVersion: string | null;
+    occurredAt: string;
+  }>;
 };
 
 type TeamTimesheet = {
@@ -173,10 +227,14 @@ export default async function EmployeeDetailPage({
     ) {
       return (
         <main className="dp-theme-scope dp-employees-scope grid gap-6">
-          <AccessDeniedState
-            description="This employee record is outside your accessible business-unit scope."
-            title="You cannot view this employee record."
-          />
+<AccessDeniedState
+  description={
+    error instanceof ApiRequestError
+      ? `${error.status}: ${error.message}`
+      : "This employee record is outside your accessible business-unit scope."
+  }
+  title="You cannot view this employee record."
+/>
         </main>
       );
     }
@@ -189,6 +247,7 @@ export default async function EmployeeDetailPage({
   let activeCompensation: EmployeeCompensationHistoryRecord | null = null;
   let compensationHistory: EmployeeCompensationHistoryRecord[] = [];
   let payComponents: PayComponentRecord[] = [];
+  let agentSummary: EmployeeAgentSummaryResponse | null = null;
 
   try {
     [
@@ -197,6 +256,7 @@ export default async function EmployeeDetailPage({
       activeCompensation,
       compensationHistory,
       payComponents,
+      agentSummary,
     ] = await Promise.all([
       activeTab === "attendance" &&
       sessionUser.permissionKeys.includes(PERMISSION_KEYS.ATTENDANCE_READ)
@@ -228,6 +288,12 @@ export default async function EmployeeDetailPage({
       ])
         ? apiRequestJson<PayComponentRecord[]>("/pay-components?isActive=true")
         : Promise.resolve([]),
+        activeTab === "agent" &&
+sessionUser.permissionKeys.includes(PERMISSION_KEYS.ATTENDANCE_READ)
+  ? apiRequestJson<EmployeeAgentSummaryResponse>(
+      `/agent/employees/${employeeId}/summary`,
+    )
+  : Promise.resolve(null),
     ]);
   } catch (error: unknown) {
     if (isUnauthorizedApiError(error)) {
@@ -628,7 +694,12 @@ export default async function EmployeeDetailPage({
           title="Timesheets"
         />
       ) : null}
-
+{activeTab === "agent" ? (
+<EmployeeAgentSection
+  agentSummary={agentSummary}
+  formattingOptions={formattingOptions}
+/>
+) : null}
       {activeTab === "history" ? (
         <EmployeeHistoryManager
           employeeId={employee.id}

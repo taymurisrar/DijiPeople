@@ -60,6 +60,16 @@ export class EmployeesController {
     private readonly employeeProfilesService: EmployeeProfilesService,
   ) {}
 
+  @Post('duplicate-check')
+  @Permissions('employees.create')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'create')
+  checkDuplicates(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreateEmployeeDto,
+  ) {
+    return this.employeesService.checkDuplicates(user, dto);
+  }
+
   @Get()
   @Permissions('employees.read')
   @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')

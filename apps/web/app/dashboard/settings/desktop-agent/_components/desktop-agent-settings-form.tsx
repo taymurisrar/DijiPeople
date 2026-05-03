@@ -4,6 +4,11 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 
 export type AgentSettingsRecord = {
+  id?: string;
+  tenantId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+
   enabled: boolean;
   heartbeatIntervalSeconds: number;
   idleThresholdSeconds: number;
@@ -33,38 +38,58 @@ export function DesktopAgentSettingsForm({
   const [message, setMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError(null);
-    setMessage(null);
+async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  event.preventDefault();
+  setError(null);
+  setMessage(null);
 
-    if (form.awayThresholdSeconds <= form.idleThresholdSeconds) {
-      setError("Away threshold must be greater than idle threshold.");
-      return;
-    }
-
-    setIsSaving(true);
-    const response = await fetch("/api/agent/settings", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...form,
-        updateMessage: form.updateMessage || null,
-      }),
-    });
-    const data = (await response.json().catch(() => null)) as {
-      message?: string;
-    } | null;
-    setIsSaving(false);
-
-    if (!response.ok) {
-      setError(data?.message ?? "Unable to update desktop agent settings.");
-      return;
-    }
-
-    setMessage("Desktop agent settings saved.");
-    router.refresh();
+  if (form.awayThresholdSeconds <= form.idleThresholdSeconds) {
+    setError("Away threshold must be greater than idle threshold.");
+    return;
   }
+
+  const payload = {
+    enabled: form.enabled,
+    heartbeatIntervalSeconds: form.heartbeatIntervalSeconds,
+    idleThresholdSeconds: form.idleThresholdSeconds,
+    awayThresholdSeconds: form.awayThresholdSeconds,
+    captureActiveApp: form.captureActiveApp,
+    captureWindowTitle: form.captureWindowTitle,
+    offlineQueueEnabled: form.offlineQueueEnabled,
+    heartbeatBatchSize: form.heartbeatBatchSize,
+    minimumSupportedVersion: form.minimumSupportedVersion,
+    latestVersion: form.latestVersion,
+    forceUpdate: form.forceUpdate,
+    updateMessage: form.updateMessage || null,
+    autoUpdateEnabled: form.autoUpdateEnabled,
+  };
+
+  setIsSaving(true);
+
+  const response = await fetch("/api/agent/settings", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  const data = (await response.json().catch(() => null)) as {
+    message?: string | string[];
+  } | null;
+
+  setIsSaving(false);
+
+  if (!response.ok) {
+    const errorMessage = Array.isArray(data?.message)
+      ? data.message.join(", ")
+      : data?.message;
+
+    setError(errorMessage ?? "Unable to update desktop agent settings.");
+    return;
+  }
+
+  setMessage("Desktop agent settings saved.");
+  router.refresh();
+}
 
   return (
     <form className="grid gap-6" onSubmit={handleSubmit}>
@@ -117,14 +142,14 @@ export function DesktopAgentSettingsForm({
         />
         <CheckField
           checked={form.captureActiveApp}
-          label="Capture active app name"
+          label="Capture active app, app path, and process ID"
           onChange={(captureActiveApp) =>
             setForm((current) => ({ ...current, captureActiveApp }))
           }
         />
         <CheckField
           checked={form.captureWindowTitle}
-          label="Capture active window title"
+          label="Capture window title and browser tab title"
           onChange={(captureWindowTitle) =>
             setForm((current) => ({ ...current, captureWindowTitle }))
           }
