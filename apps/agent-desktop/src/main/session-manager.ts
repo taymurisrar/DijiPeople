@@ -31,6 +31,7 @@ export class SessionManager extends EventEmitter {
   private isLoggingOut = false;
   private isApplyingSession = false;
   private isSyncingHeartbeat = false;
+  private isRefreshingToken = false;
 
   constructor(
     private readonly apiClient: ApiClient,
@@ -137,7 +138,6 @@ export class SessionManager extends EventEmitter {
 
     this.isSyncingHeartbeat = true;
 
-    let event: HeartbeatEvent | null = null;
     let requeueEvents: HeartbeatEvent[] = [];
 
     try {
@@ -146,7 +146,7 @@ export class SessionManager extends EventEmitter {
         deviceId: this.deviceId,
       });
 
-      event = await this.activityTracker.buildHeartbeat({
+      const event = await this.activityTracker.buildHeartbeat({
         config: this.configManager.current,
         sessionId: this.sessionId,
         deviceId: this.deviceId,
@@ -185,27 +185,35 @@ export class SessionManager extends EventEmitter {
 
       requeueEvents = [...validQueued, event];
 
-      console.log("[Agent Heartbeat] sending batch", {
-        queued: validQueued.length,
-        dropped: droppedQueued,
-        totalEvents: requeueEvents.length,
-      });
+      await this.sendHeartbeatBatch(requeueEvents, "normal");
 
-      const response = await this.apiClient.heartbeat(requeueEvents);
-
-      console.log("[Agent Heartbeat] success", {
-        accepted: response.accepted,
-      });
-
-      this.connectionStatus = "ONLINE";
-      this.lastHeartbeatSync = new Date();
       requeueEvents = [];
     } catch (error) {
+      const errorMessage = this.normalizeSessionError(error);
+
       console.error("[Agent Heartbeat] FAILED", {
-        error: error instanceof Error ? error.message : error,
+        error: errorMessage,
         sessionId: this.sessionId,
         deviceId: this.deviceId,
       });
+
+      if (isAuthExpiredError(errorMessage)) {
+        console.warn("[Agent Heartbeat] access token expired → refreshing");
+
+        const refreshed = await this.refreshAccessToken();
+
+        if (refreshed && requeueEvents.length > 0) {
+          try {
+            await this.sendHeartbeatBatch(requeueEvents, "after-refresh");
+            requeueEvents = [];
+            return;
+          } catch (retryError) {
+            console.error("[Agent Heartbeat] retry failed after refresh", {
+              error: this.normalizeSessionError(retryError),
+            });
+          }
+        }
+      }
 
       this.connectionStatus = "OFFLINE";
 
@@ -223,7 +231,7 @@ export class SessionManager extends EventEmitter {
         });
       }
 
-      this.emit("session-error", this.normalizeSessionError(error));
+      this.emit("session-error", errorMessage);
     } finally {
       this.isSyncingHeartbeat = false;
 
@@ -233,6 +241,66 @@ export class SessionManager extends EventEmitter {
       });
 
       this.emit("changed");
+    }
+  }
+
+  private async sendHeartbeatBatch(
+    events: HeartbeatEvent[],
+    mode: "normal" | "after-refresh",
+  ): Promise<void> {
+    console.log("[Agent Heartbeat] sending batch", {
+      mode,
+      totalEvents: events.length,
+    });
+
+    const response = await this.apiClient.heartbeat(events);
+
+    console.log("[Agent Heartbeat] success", {
+      mode,
+      accepted: response.accepted,
+    });
+
+    this.connectionStatus = "ONLINE";
+    this.lastHeartbeatSync = new Date();
+  }
+
+  private async refreshAccessToken(): Promise<boolean> {
+    if (this.isRefreshingToken) {
+      return false;
+    }
+
+    this.isRefreshingToken = true;
+
+    try {
+      const refreshToken = await this.secureStore.getRefreshToken();
+
+      if (!refreshToken) {
+        this.resetSessionState();
+        this.emit("login-required");
+        return false;
+      }
+
+      const result = await this.apiClient.refresh(refreshToken);
+
+      this.apiClient.setAccessToken(result.tokens.accessToken);
+      this.user = result.user;
+      this.deviceId = result.device.id;
+
+      await this.secureStore.setRefreshToken(result.tokens.refreshToken);
+
+      console.log("[Agent Session] access token refreshed");
+
+      return true;
+    } catch (error) {
+      console.error("[Agent Session] token refresh failed", error);
+
+      await this.safeClearRefreshToken();
+      this.resetSessionState();
+      this.emit("login-required");
+
+      return false;
+    } finally {
+      this.isRefreshingToken = false;
     }
   }
 
@@ -351,14 +419,29 @@ export class SessionManager extends EventEmitter {
       void this.syncHeartbeat();
     }, heartbeatMs);
 
-    this.configTimer = setInterval(
-      () => {
-        void this.configManager.refresh().finally(() => this.emit("changed"));
-      },
-      15 * 60 * 1000,
-    );
+    this.configTimer = setInterval(() => {
+      void this.refreshConfigWithAuthRecovery();
+    }, 15 * 60 * 1000);
 
     void this.syncHeartbeat();
+  }
+
+  private async refreshConfigWithAuthRecovery(): Promise<void> {
+    try {
+      await this.configManager.refresh();
+    } catch (error) {
+      const message = this.normalizeSessionError(error);
+
+      if (isAuthExpiredError(message)) {
+        const refreshed = await this.refreshAccessToken();
+
+        if (refreshed) {
+          await this.configManager.refresh().catch(() => undefined);
+        }
+      }
+    } finally {
+      this.emit("changed");
+    }
   }
 
   private stopTimers(): void {
@@ -422,4 +505,16 @@ function compareVersions(a: string, b: string): number {
   }
 
   return 0;
+}
+
+function isAuthExpiredError(message: string): boolean {
+  const normalized = message.toLowerCase();
+
+  return (
+    normalized.includes("access token is invalid or expired") ||
+    normalized.includes("access token is invalid") ||
+    normalized.includes("access token is required") ||
+    normalized.includes("unauthorized") ||
+    normalized.includes("401")
+  );
 }
