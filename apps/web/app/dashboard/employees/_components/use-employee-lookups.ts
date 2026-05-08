@@ -152,6 +152,7 @@ function normalizeLookupList(payload: unknown): LookupOption[] {
 
   if (Array.isArray(payload)) {
     const normalizedItems: LookupOption[] = [];
+    const seen = new Set<string>();
 
     for (const item of payload) {
       if (!item || typeof item !== "object") {
@@ -166,17 +167,40 @@ function normalizeLookupList(payload: unknown): LookupOption[] {
         continue;
       }
 
+      const key = typeof record.key === "string" ? record.key : null;
+      const code = typeof record.code === "string" ? record.code : null;
+      const countryId =
+        typeof record.countryId === "string" ? record.countryId : null;
+      const stateProvinceId =
+        typeof record.stateProvinceId === "string"
+          ? record.stateProvinceId
+          : null;
+      const dedupeKey = [
+        countryId,
+        stateProvinceId,
+        key?.trim().toLowerCase(),
+        code?.trim().toLowerCase(),
+        name.trim().toLowerCase(),
+      ]
+        .filter(Boolean)
+        .join(":");
+
+      if (seen.has(id) || (dedupeKey && seen.has(dedupeKey))) {
+        continue;
+      }
+
+      seen.add(id);
+      if (dedupeKey) {
+        seen.add(dedupeKey);
+      }
+
       normalizedItems.push({
         id,
         name,
-        key: typeof record.key === "string" ? record.key : null,
-        code: typeof record.code === "string" ? record.code : null,
-        countryId:
-          typeof record.countryId === "string" ? record.countryId : null,
-        stateProvinceId:
-          typeof record.stateProvinceId === "string"
-            ? record.stateProvinceId
-            : null,
+        key,
+        code,
+        countryId,
+        stateProvinceId,
       });
     }
 

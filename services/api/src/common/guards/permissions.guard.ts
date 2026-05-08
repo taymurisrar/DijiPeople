@@ -12,7 +12,10 @@ import {
   RequiredRbacPermission,
 } from '../decorators/require-permissions.decorator';
 import { AuthenticatedRequest } from '../interfaces/authenticated-request.interface';
-import { SECURITY_ACCESS_LEVEL_WEIGHT } from '../constants/rbac-matrix';
+import {
+  ROLE_KEYS,
+  SECURITY_ACCESS_LEVEL_WEIGHT,
+} from '../constants/rbac-matrix';
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
@@ -42,6 +45,10 @@ export class PermissionsGuard implements CanActivate {
 
     if (!user?.tenantId) {
       throw new ForbiddenException('Tenant access context is required.');
+    }
+
+    if (user.roleKeys?.includes(ROLE_KEYS.GLOBAL_ADMIN)) {
+      return true;
     }
 
     const userPermissions = new Set(request.user?.permissionKeys ?? []);

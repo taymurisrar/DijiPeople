@@ -11,6 +11,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { CreateLeavePolicyRuleDto } from './dto/create-leave-policy-rule.dto';
+import { UpdateLeavePolicyRuleDto } from './dto/update-leave-policy-rule.dto';
 import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
@@ -18,6 +20,7 @@ import { EmployeesRepository } from '../employees/employees.repository';
 import { UsersRepository } from '../users/users.repository';
 import { CancelLeaveRequestDto } from './dto/cancel-leave-request.dto';
 import { CreateApprovalMatrixDto } from './dto/create-approval-matrix.dto';
+import { CreateLeavePolicyAssignmentDto } from './dto/create-leave-policy-assignment.dto';
 import { CreateLeavePolicyDto } from './dto/create-leave-policy.dto';
 import { CreateLeaveTypeDto } from './dto/create-leave-type.dto';
 import { LeaveRequestActionDto } from './dto/leave-request-action.dto';
@@ -25,9 +28,35 @@ import { LeaveRequestQueryDto } from './dto/leave-request-query.dto';
 import { ListLeaveConfigDto } from './dto/list-leave-config.dto';
 import { SubmitLeaveRequestDto } from './dto/submit-leave-request.dto';
 import { UpdateApprovalMatrixDto } from './dto/update-approval-matrix.dto';
+import { UpdateLeavePolicyAssignmentDto } from './dto/update-leave-policy-assignment.dto';
 import { UpdateLeavePolicyDto } from './dto/update-leave-policy.dto';
 import { UpdateLeaveTypeDto } from './dto/update-leave-type.dto';
 import { LeaveRepository, LeaveRequestWithRelations } from './leave.repository';
+import { ApprovalResolverService } from './approval-resolver.service';
+
+const ApprovalModes = {
+  ANY_ONE: 'ANY_ONE',
+  ALL: 'ALL',
+} as const;
+
+const ApprovalModules = {
+  LEAVE_REQUEST: 'LEAVE_REQUEST',
+} as const;
+
+const ApprovalScopes = {
+  TENANT: 'TENANT',
+  ORGANIZATION: 'ORGANIZATION',
+  BUSINESS_UNIT: 'BUSINESS_UNIT',
+  DEPARTMENT: 'DEPARTMENT',
+  EMPLOYEE_LEVEL: 'EMPLOYEE_LEVEL',
+  EMPLOYEE: 'EMPLOYEE',
+} as const;
+
+const ApprovalActors = {
+  LINE_MANAGER: 'LINE_MANAGER',
+  ROLE: 'ROLE',
+  USER: 'USER',
+} as const;
 
 @Injectable()
 export class LeaveService {
@@ -37,6 +66,7 @@ export class LeaveService {
     private readonly employeesRepository: EmployeesRepository,
     private readonly usersRepository: UsersRepository,
     private readonly auditService: AuditService,
+    private readonly approvalResolver: ApprovalResolverService,
   ) {}
 
   findLeaveTypes(tenantId: string, query: ListLeaveConfigDto) {
@@ -132,23 +162,10 @@ export class LeaveService {
     currentUser: AuthenticatedUser,
     dto: CreateLeavePolicyDto,
   ) {
-    this.validatePolicyRules(dto.carryForwardAllowed, dto.carryForwardLimit);
-
     try {
       return await this.leaveRepository.createLeavePolicy({
         tenantId: currentUser.tenantId,
         name: dto.name.trim(),
-        accrualType: dto.accrualType,
-        annualEntitlement: new Prisma.Decimal(dto.annualEntitlement),
-        carryForwardAllowed: dto.carryForwardAllowed ?? false,
-        carryForwardLimit:
-          dto.carryForwardLimit !== undefined
-            ? new Prisma.Decimal(dto.carryForwardLimit)
-            : undefined,
-        negativeBalanceAllowed: dto.negativeBalanceAllowed ?? false,
-        genderRestriction: dto.genderRestriction,
-        probationRestriction: dto.probationRestriction,
-        requiresDocumentAfterDays: dto.requiresDocumentAfterDays,
         isActive: dto.isActive ?? true,
         createdById: currentUser.userId,
         updatedById: currentUser.userId,
@@ -163,52 +180,13 @@ export class LeaveService {
     id: string,
     dto: UpdateLeavePolicyDto,
   ) {
-    const existing = await this.findLeavePolicyById(currentUser.tenantId, id);
-    const carryForwardAllowed =
-      dto.carryForwardAllowed ?? existing.carryForwardAllowed;
-    const carryForwardLimit =
-      dto.carryForwardLimit !== undefined
-        ? dto.carryForwardLimit
-        : existing.carryForwardLimit
-          ? Number(existing.carryForwardLimit)
-          : undefined;
-
-    this.validatePolicyRules(carryForwardAllowed, carryForwardLimit);
+    await this.findLeavePolicyById(currentUser.tenantId, id);
 
     const result = await this.leaveRepository.updateLeavePolicy(
       currentUser.tenantId,
       id,
       {
         ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
-        ...(dto.accrualType !== undefined
-          ? { accrualType: dto.accrualType }
-          : {}),
-        ...(dto.annualEntitlement !== undefined
-          ? { annualEntitlement: new Prisma.Decimal(dto.annualEntitlement) }
-          : {}),
-        ...(dto.carryForwardAllowed !== undefined
-          ? { carryForwardAllowed: dto.carryForwardAllowed }
-          : {}),
-        ...(dto.carryForwardLimit !== undefined
-          ? {
-              carryForwardLimit:
-                dto.carryForwardLimit === null
-                  ? null
-                  : new Prisma.Decimal(dto.carryForwardLimit),
-            }
-          : {}),
-        ...(dto.negativeBalanceAllowed !== undefined
-          ? { negativeBalanceAllowed: dto.negativeBalanceAllowed }
-          : {}),
-        ...(dto.genderRestriction !== undefined
-          ? { genderRestriction: dto.genderRestriction ?? null }
-          : {}),
-        ...(dto.probationRestriction !== undefined
-          ? { probationRestriction: dto.probationRestriction }
-          : {}),
-        ...(dto.requiresDocumentAfterDays !== undefined
-          ? { requiresDocumentAfterDays: dto.requiresDocumentAfterDays }
-          : {}),
         ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
         updatedById: currentUser.userId,
       },
@@ -246,19 +224,52 @@ export class LeaveService {
     currentUser: AuthenticatedUser,
     dto: CreateApprovalMatrixDto,
   ) {
+    const moduleKey = dto.moduleKey ?? ApprovalModules.LEAVE_REQUEST;
+    this.validateApprovalMatrixConfiguration(dto);
     await this.validateApprovalMatrixReferences(
       currentUser.tenantId,
       dto.leaveTypeId,
       dto.leavePolicyId,
+      dto.approverRoleId,
+      dto.approverUserId,
     );
+
+    await this.ensureApprovalMatrixIsUnique(currentUser.tenantId, {
+      moduleKey,
+      leaveTypeId:
+        moduleKey === ApprovalModules.LEAVE_REQUEST
+          ? (dto.leaveTypeId ?? null)
+          : null,
+      leavePolicyId:
+        moduleKey === ApprovalModules.LEAVE_REQUEST
+          ? (dto.leavePolicyId ?? null)
+          : null,
+      scopeType: dto.scopeType ?? null,
+      scopeId: dto.scopeId ?? null,
+      sequence: dto.sequence,
+      approverType: dto.approverType,
+      approverRoleId: dto.approverRoleId ?? null,
+      approverUserId: dto.approverUserId ?? null,
+      isActive: dto.isActive ?? true,
+    });
 
     return this.leaveRepository.createApprovalMatrix({
       tenantId: currentUser.tenantId,
+      moduleKey,
       name: dto.name.trim(),
-      leaveTypeId: dto.leaveTypeId,
-      leavePolicyId: dto.leavePolicyId,
+      leaveTypeId:
+        moduleKey === ApprovalModules.LEAVE_REQUEST ? dto.leaveTypeId : null,
+      leavePolicyId:
+        moduleKey === ApprovalModules.LEAVE_REQUEST ? dto.leavePolicyId : null,
       sequence: dto.sequence,
       approverType: dto.approverType,
+      approverRoleId:
+        dto.approverType === ApprovalActors.ROLE ? dto.approverRoleId : null,
+      approverUserId:
+        dto.approverType === ApprovalActors.USER ? dto.approverUserId : null,
+      approvalMode: dto.approvalMode ?? ApprovalModes.ANY_ONE,
+      scopeType: dto.scopeType,
+      scopeId: dto.scopeType === ApprovalScopes.TENANT ? null : dto.scopeId,
       isActive: dto.isActive ?? true,
       createdById: currentUser.userId,
       updatedById: currentUser.userId,
@@ -274,32 +285,103 @@ export class LeaveService {
       currentUser.tenantId,
       id,
     );
+    const nextModuleKey = dto.moduleKey ?? existing.moduleKey;
+    const nextApproverType = dto.approverType ?? existing.approverType;
+    const rawNextApproverRoleId =
+      dto.approverRoleId === undefined
+        ? existing.approverRoleId
+        : dto.approverRoleId;
+    const rawNextApproverUserId =
+      dto.approverUserId === undefined
+        ? existing.approverUserId
+        : dto.approverUserId;
+    const nextApproverRoleId =
+      nextApproverType === ApprovalActors.ROLE ? rawNextApproverRoleId : null;
+    const nextApproverUserId =
+      nextApproverType === ApprovalActors.USER ? rawNextApproverUserId : null;
+    const nextScopeType =
+      dto.scopeType === undefined ? existing.scopeType : dto.scopeType;
+    const nextScopeId =
+      dto.scopeId === undefined ? existing.scopeId : dto.scopeId;
+    const nextLeaveTypeId =
+      nextModuleKey === ApprovalModules.LEAVE_REQUEST
+        ? dto.leaveTypeId === undefined
+          ? existing.leaveTypeId
+          : dto.leaveTypeId
+        : null;
+    const nextLeavePolicyId =
+      nextModuleKey === ApprovalModules.LEAVE_REQUEST
+        ? dto.leavePolicyId === undefined
+          ? existing.leavePolicyId
+          : dto.leavePolicyId
+        : null;
+
+    this.validateApprovalMatrixConfiguration({
+      moduleKey: nextModuleKey,
+      name: dto.name ?? existing.name,
+      leaveTypeId: nextLeaveTypeId ?? undefined,
+      leavePolicyId: nextLeavePolicyId ?? undefined,
+      sequence: dto.sequence ?? existing.sequence,
+      approverType: nextApproverType as CreateApprovalMatrixDto['approverType'],
+      approverRoleId: nextApproverRoleId ?? undefined,
+      approverUserId: nextApproverUserId ?? undefined,
+      approvalMode: dto.approvalMode ?? existing.approvalMode,
+      scopeType: nextScopeType ?? undefined,
+      scopeId: nextScopeId ?? undefined,
+      isActive: dto.isActive ?? existing.isActive,
+    });
 
     await this.validateApprovalMatrixReferences(
       currentUser.tenantId,
-      dto.leaveTypeId === undefined
-        ? (existing.leaveTypeId ?? undefined)
-        : (dto.leaveTypeId ?? undefined),
-      dto.leavePolicyId === undefined
-        ? (existing.leavePolicyId ?? undefined)
-        : (dto.leavePolicyId ?? undefined),
+      nextLeaveTypeId ?? undefined,
+      nextLeavePolicyId ?? undefined,
+      nextApproverRoleId ?? undefined,
+      nextApproverUserId ?? undefined,
+    );
+
+    const nextSequence = dto.sequence ?? existing.sequence;
+    const nextIsActive = dto.isActive ?? existing.isActive;
+
+    await this.ensureApprovalMatrixIsUnique(
+      currentUser.tenantId,
+      {
+        moduleKey: nextModuleKey,
+        leaveTypeId: nextLeaveTypeId,
+        leavePolicyId: nextLeavePolicyId,
+        scopeType: nextScopeType,
+        scopeId: nextScopeType === ApprovalScopes.TENANT ? null : nextScopeId,
+        sequence: nextSequence,
+        approverType: nextApproverType,
+        approverRoleId: nextApproverRoleId,
+        approverUserId: nextApproverUserId,
+        isActive: nextIsActive,
+      },
+      id,
     );
 
     const result = await this.leaveRepository.updateApprovalMatrix(
       currentUser.tenantId,
       id,
       {
+        ...(dto.moduleKey !== undefined ? { moduleKey: dto.moduleKey } : {}),
         ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
-        ...(dto.leaveTypeId !== undefined
-          ? { leaveTypeId: dto.leaveTypeId }
-          : {}),
-        ...(dto.leavePolicyId !== undefined
-          ? { leavePolicyId: dto.leavePolicyId }
-          : {}),
+        leaveTypeId: nextLeaveTypeId,
+        leavePolicyId: nextLeavePolicyId,
         ...(dto.sequence !== undefined ? { sequence: dto.sequence } : {}),
         ...(dto.approverType !== undefined
           ? { approverType: dto.approverType }
           : {}),
+        ...(dto.approverRoleId !== undefined
+          ? { approverRoleId: dto.approverRoleId }
+          : {}),
+        ...(dto.approverUserId !== undefined
+          ? { approverUserId: dto.approverUserId }
+          : {}),
+        ...(dto.approvalMode !== undefined
+          ? { approvalMode: dto.approvalMode }
+          : {}),
+        ...(dto.scopeType !== undefined ? { scopeType: dto.scopeType } : {}),
+        scopeId: nextScopeType === ApprovalScopes.TENANT ? null : nextScopeId,
         ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
         updatedById: currentUser.userId,
       },
@@ -312,6 +394,24 @@ export class LeaveService {
     }
 
     return this.findApprovalMatrixById(currentUser.tenantId, id);
+  }
+
+  async deleteApprovalMatrix(currentUser: AuthenticatedUser, id: string) {
+    await this.findApprovalMatrixById(currentUser.tenantId, id);
+
+    const result = await this.leaveRepository.deactivateApprovalMatrix(
+      currentUser.tenantId,
+      id,
+      currentUser.userId,
+    );
+
+    if (result.count === 0) {
+      throw new NotFoundException(
+        'Approval matrix entry was not found for this tenant.',
+      );
+    }
+
+    return { ok: true };
   }
 
   async submitLeaveRequest(
@@ -340,6 +440,27 @@ export class LeaveService {
       );
     }
 
+    const leavePolicy = await this.resolveApplicableLeavePolicy(
+      currentUser.tenantId,
+      employee,
+      new Date(),
+    );
+
+    if (leavePolicy) {
+      const leavePolicyRule =
+        await this.leaveRepository.findLeavePolicyRuleByPolicyAndLeaveType(
+          currentUser.tenantId,
+          leavePolicy.id,
+          leaveType.id,
+        );
+
+      if (!leavePolicyRule || !leavePolicyRule.isActive) {
+        throw new BadRequestException(
+          'The assigned leave policy does not have an active rule for this leave type.',
+        );
+      }
+    }
+
     const { startDate, endDate, totalDays } = this.validateAndCalculateRange(
       dto.startDate,
       dto.endDate,
@@ -348,6 +469,7 @@ export class LeaveService {
     const approvalSteps = await this.buildApprovalSteps(
       currentUser.tenantId,
       employee,
+      leavePolicy?.id ?? null,
       leaveType.id,
       currentUser.userId,
     );
@@ -516,6 +638,366 @@ export class LeaveService {
     return this.mapLeaveRequest(updated, currentUser);
   }
 
+  async listLeavePolicyRules(currentUser: AuthenticatedUser, policyId: string) {
+    await this.ensureLeavePolicyExists(currentUser.tenantId, policyId);
+
+    return this.leaveRepository.listLeavePolicyRules(
+      currentUser.tenantId,
+      policyId,
+    );
+  }
+
+  async createLeavePolicyRule(
+    currentUser: AuthenticatedUser,
+    policyId: string,
+    dto: CreateLeavePolicyRuleDto,
+  ) {
+    await this.ensureLeavePolicyExists(currentUser.tenantId, policyId);
+    await this.ensureLeaveTypeExists(currentUser.tenantId, dto.leaveTypeId);
+
+    this.validateLeavePolicyRule(dto);
+
+    const existingRule =
+      await this.leaveRepository.findLeavePolicyRuleByPolicyAndLeaveType(
+        currentUser.tenantId,
+        policyId,
+        dto.leaveTypeId,
+      );
+
+    if (existingRule) {
+      throw new ConflictException(
+        'A rule for this leave type already exists in this policy.',
+      );
+    }
+
+    return this.leaveRepository.createLeavePolicyRule(
+      currentUser.tenantId,
+      policyId,
+      {
+        leaveTypeId: dto.leaveTypeId,
+        entitlementDays:
+          dto.entitlementDays !== undefined
+            ? new Prisma.Decimal(dto.entitlementDays)
+            : undefined,
+        accrualType: dto.accrualType,
+        accrualFrequency: dto.accrualFrequency,
+        carryForwardAllowed: dto.carryForwardAllowed ?? false,
+        carryForwardLimit:
+          dto.carryForwardLimit !== undefined
+            ? new Prisma.Decimal(dto.carryForwardLimit)
+            : undefined,
+        negativeBalanceAllowed: dto.negativeBalanceAllowed ?? false,
+        requiresDocumentAfterDays: dto.requiresDocumentAfterDays,
+        probationRestriction: dto.probationRestriction ?? false,
+        genderRestriction: dto.genderRestriction,
+        minServiceMonths: dto.minServiceMonths,
+        maxConsecutiveDays:
+          dto.maxConsecutiveDays !== undefined
+            ? new Prisma.Decimal(dto.maxConsecutiveDays)
+            : undefined,
+        approvalRequired: dto.approvalRequired ?? true,
+        isPaid: dto.isPaid ?? true,
+        isActive: dto.isActive ?? true,
+        createdById: currentUser.userId,
+        updatedById: currentUser.userId,
+      },
+    );
+  }
+
+  async updateLeavePolicyRule(
+    currentUser: AuthenticatedUser,
+    policyId: string,
+    ruleId: string,
+    dto: UpdateLeavePolicyRuleDto,
+  ) {
+    await this.ensureLeavePolicyExists(currentUser.tenantId, policyId);
+
+    const existingRule = await this.leaveRepository.findLeavePolicyRuleById(
+      currentUser.tenantId,
+      policyId,
+      ruleId,
+    );
+
+    if (!existingRule) {
+      throw new NotFoundException('Leave policy rule not found.');
+    }
+
+    if (dto.leaveTypeId && dto.leaveTypeId !== existingRule.leaveTypeId) {
+      await this.ensureLeaveTypeExists(currentUser.tenantId, dto.leaveTypeId);
+
+      const duplicateRule =
+        await this.leaveRepository.findLeavePolicyRuleByPolicyAndLeaveType(
+          currentUser.tenantId,
+          policyId,
+          dto.leaveTypeId,
+        );
+
+      if (duplicateRule && duplicateRule.id !== ruleId) {
+        throw new ConflictException(
+          'A rule for this leave type already exists in this policy.',
+        );
+      }
+    }
+
+    this.validateLeavePolicyRule({
+      entitlementDays:
+        dto.entitlementDays !== undefined
+          ? dto.entitlementDays
+          : existingRule.entitlementDays
+            ? Number(existingRule.entitlementDays)
+            : undefined,
+      accrualType: dto.accrualType ?? existingRule.accrualType,
+      carryForwardAllowed:
+        dto.carryForwardAllowed ?? existingRule.carryForwardAllowed,
+      carryForwardLimit:
+        dto.carryForwardLimit !== undefined
+          ? dto.carryForwardLimit
+          : existingRule.carryForwardLimit
+            ? Number(existingRule.carryForwardLimit)
+            : undefined,
+      requiresDocumentAfterDays:
+        dto.requiresDocumentAfterDays !== undefined
+          ? dto.requiresDocumentAfterDays
+          : (existingRule.requiresDocumentAfterDays ?? undefined),
+      minServiceMonths:
+        dto.minServiceMonths !== undefined
+          ? dto.minServiceMonths
+          : (existingRule.minServiceMonths ?? undefined),
+      maxConsecutiveDays:
+        dto.maxConsecutiveDays !== undefined
+          ? dto.maxConsecutiveDays
+          : existingRule.maxConsecutiveDays
+            ? Number(existingRule.maxConsecutiveDays)
+            : undefined,
+    });
+
+    return this.leaveRepository.updateLeavePolicyRule(
+      currentUser.tenantId,
+      policyId,
+      ruleId,
+      {
+        ...(dto.leaveTypeId !== undefined
+          ? { leaveTypeId: dto.leaveTypeId }
+          : {}),
+        ...(dto.entitlementDays !== undefined
+          ? { entitlementDays: new Prisma.Decimal(dto.entitlementDays) }
+          : {}),
+        ...(dto.accrualType !== undefined
+          ? { accrualType: dto.accrualType }
+          : {}),
+        ...(dto.accrualFrequency !== undefined
+          ? { accrualFrequency: dto.accrualFrequency }
+          : {}),
+        ...(dto.carryForwardAllowed !== undefined
+          ? { carryForwardAllowed: dto.carryForwardAllowed }
+          : {}),
+        ...(dto.carryForwardLimit !== undefined
+          ? {
+              carryForwardLimit:
+                dto.carryForwardLimit === null
+                  ? null
+                  : new Prisma.Decimal(dto.carryForwardLimit),
+            }
+          : {}),
+        ...(dto.negativeBalanceAllowed !== undefined
+          ? { negativeBalanceAllowed: dto.negativeBalanceAllowed }
+          : {}),
+        ...(dto.requiresDocumentAfterDays !== undefined
+          ? { requiresDocumentAfterDays: dto.requiresDocumentAfterDays }
+          : {}),
+        ...(dto.probationRestriction !== undefined
+          ? { probationRestriction: dto.probationRestriction }
+          : {}),
+        ...(dto.genderRestriction !== undefined
+          ? { genderRestriction: dto.genderRestriction }
+          : {}),
+        ...(dto.minServiceMonths !== undefined
+          ? { minServiceMonths: dto.minServiceMonths }
+          : {}),
+        ...(dto.maxConsecutiveDays !== undefined
+          ? {
+              maxConsecutiveDays:
+                dto.maxConsecutiveDays === null
+                  ? null
+                  : new Prisma.Decimal(dto.maxConsecutiveDays),
+            }
+          : {}),
+        ...(dto.approvalRequired !== undefined
+          ? { approvalRequired: dto.approvalRequired }
+          : {}),
+        ...(dto.isPaid !== undefined ? { isPaid: dto.isPaid } : {}),
+        ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
+        updatedById: currentUser.userId,
+      },
+    );
+  }
+  async deleteLeavePolicyRule(
+    currentUser: AuthenticatedUser,
+    policyId: string,
+    ruleId: string,
+  ) {
+    await this.ensureLeavePolicyExists(currentUser.tenantId, policyId);
+
+    const existingRule = await this.leaveRepository.findLeavePolicyRuleById(
+      currentUser.tenantId,
+      policyId,
+      ruleId,
+    );
+
+    if (!existingRule) {
+      throw new NotFoundException('Leave policy rule not found.');
+    }
+
+    await this.leaveRepository.deleteLeavePolicyRule(
+      currentUser.tenantId,
+      policyId,
+      ruleId,
+    );
+
+    return { ok: true };
+  }
+
+  listLeavePolicyAssignments(currentUser: AuthenticatedUser) {
+    return this.leaveRepository.listLeavePolicyAssignments(
+      currentUser.tenantId,
+    );
+  }
+
+  async createLeavePolicyAssignment(
+    currentUser: AuthenticatedUser,
+    dto: CreateLeavePolicyAssignmentDto,
+  ) {
+    await this.ensureLeavePolicyExists(currentUser.tenantId, dto.leavePolicyId);
+    this.validateLeavePolicyAssignment(dto);
+
+    return this.leaveRepository.createLeavePolicyAssignment({
+      tenantId: currentUser.tenantId,
+      leavePolicyId: dto.leavePolicyId,
+      scopeType: dto.scopeType,
+      scopeId: dto.scopeType === ApprovalScopes.TENANT ? null : dto.scopeId,
+      effectiveFrom: new Date(dto.effectiveFrom),
+      effectiveTo: dto.effectiveTo ? new Date(dto.effectiveTo) : null,
+      priority: dto.priority ?? 0,
+      isActive: dto.isActive ?? true,
+      createdById: currentUser.userId,
+      updatedById: currentUser.userId,
+    });
+  }
+
+  async updateLeavePolicyAssignment(
+    currentUser: AuthenticatedUser,
+    assignmentId: string,
+    dto: UpdateLeavePolicyAssignmentDto,
+  ) {
+    const existing = await this.leaveRepository.findLeavePolicyAssignmentById(
+      currentUser.tenantId,
+      assignmentId,
+    );
+
+    if (!existing) {
+      throw new NotFoundException('Leave policy assignment not found.');
+    }
+
+    const next = {
+      leavePolicyId: dto.leavePolicyId ?? existing.leavePolicyId,
+      scopeType: dto.scopeType ?? existing.scopeType,
+      scopeId: dto.scopeId === undefined ? existing.scopeId : dto.scopeId,
+      effectiveFrom: dto.effectiveFrom ?? existing.effectiveFrom.toISOString(),
+      effectiveTo:
+        dto.effectiveTo === undefined
+          ? (existing.effectiveTo?.toISOString() ?? undefined)
+          : dto.effectiveTo,
+      priority: dto.priority ?? existing.priority,
+      isActive: dto.isActive ?? existing.isActive,
+    };
+
+    await this.ensureLeavePolicyExists(
+      currentUser.tenantId,
+      next.leavePolicyId,
+    );
+    this.validateLeavePolicyAssignment(next);
+
+    const result = await this.leaveRepository.updateLeavePolicyAssignment(
+      currentUser.tenantId,
+      assignmentId,
+      {
+        ...(dto.leavePolicyId !== undefined
+          ? { leavePolicyId: dto.leavePolicyId }
+          : {}),
+        ...(dto.scopeType !== undefined ? { scopeType: dto.scopeType } : {}),
+        ...(dto.scopeId !== undefined
+          ? {
+              scopeId:
+                next.scopeType === ApprovalScopes.TENANT ? null : dto.scopeId,
+            }
+          : next.scopeType === ApprovalScopes.TENANT
+            ? { scopeId: null }
+            : {}),
+        ...(dto.effectiveFrom !== undefined
+          ? { effectiveFrom: new Date(dto.effectiveFrom) }
+          : {}),
+        ...(dto.effectiveTo !== undefined
+          ? { effectiveTo: dto.effectiveTo ? new Date(dto.effectiveTo) : null }
+          : {}),
+        ...(dto.priority !== undefined ? { priority: dto.priority } : {}),
+        ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
+        updatedById: currentUser.userId,
+      },
+    );
+
+    if (result.count === 0) {
+      throw new NotFoundException('Leave policy assignment not found.');
+    }
+
+    return this.leaveRepository.findLeavePolicyAssignmentById(
+      currentUser.tenantId,
+      assignmentId,
+    );
+  }
+
+  async deleteLeavePolicyAssignment(
+    currentUser: AuthenticatedUser,
+    assignmentId: string,
+  ) {
+    const result = await this.leaveRepository.updateLeavePolicyAssignment(
+      currentUser.tenantId,
+      assignmentId,
+      { isActive: false, updatedById: currentUser.userId },
+    );
+
+    if (result.count === 0) {
+      throw new NotFoundException('Leave policy assignment not found.');
+    }
+
+    return { ok: true };
+  }
+
+  private async ensureLeavePolicyExists(tenantId: string, policyId: string) {
+    const leavePolicy = await this.leaveRepository.findLeavePolicyById(
+      tenantId,
+      policyId,
+    );
+
+    if (!leavePolicy) {
+      throw new NotFoundException('Leave policy not found.');
+    }
+
+    return leavePolicy;
+  }
+
+  private async ensureLeaveTypeExists(tenantId: string, leaveTypeId: string) {
+    const leaveType = await this.leaveRepository.findLeaveTypeById(
+      tenantId,
+      leaveTypeId,
+    );
+
+    if (!leaveType) {
+      throw new NotFoundException('Leave type not found.');
+    }
+
+    return leaveType;
+  }
+
   private async processLeaveRequestDecision(
     currentUser: AuthenticatedUser,
     leaveRequestId: string,
@@ -533,19 +1015,19 @@ export class LeaveService {
       );
     }
 
-    const pendingStep = leaveRequest.approvalSteps.find(
+    const nextStepOrder = leaveRequest.approvalSteps.find(
       (step) => step.status === LeaveApprovalStepStatus.PENDING,
+    )?.stepOrder;
+    const pendingStep = leaveRequest.approvalSteps.find(
+      (step) =>
+        step.status === LeaveApprovalStepStatus.PENDING &&
+        step.stepOrder === nextStepOrder &&
+        this.canUserActOnStep(leaveRequest, step, currentUser),
     );
 
     if (!pendingStep) {
       throw new ConflictException(
         'This leave request has no pending approval step.',
-      );
-    }
-
-    if (!this.canUserActOnStep(leaveRequest, pendingStep, currentUser)) {
-      throw new ForbiddenException(
-        'You are not allowed to act on this approval step.',
       );
     }
 
@@ -566,6 +1048,26 @@ export class LeaveService {
         tx,
       );
 
+      if (
+        action === 'approve' &&
+        pendingStep.approvalMode === ApprovalModes.ANY_ONE &&
+        pendingStep.approvalGroupKey
+      ) {
+        await tx.leaveApprovalStep.updateMany({
+          where: {
+            tenantId: currentUser.tenantId,
+            leaveRequestId,
+            approvalGroupKey: pendingStep.approvalGroupKey,
+            status: LeaveApprovalStepStatus.PENDING,
+            id: { not: pendingStep.id },
+          },
+          data: {
+            status: LeaveApprovalStepStatus.SKIPPED,
+            updatedById: currentUser.userId,
+          },
+        });
+      }
+
       if (action === 'reject') {
         await this.leaveRepository.updateLeaveRequest(
           currentUser.tenantId,
@@ -577,11 +1079,14 @@ export class LeaveService {
           tx,
         );
       } else {
-        const hasMorePendingSteps = leaveRequest.approvalSteps.some(
-          (step) =>
-            step.status === LeaveApprovalStepStatus.PENDING &&
-            step.id !== pendingStep.id,
-        );
+        const hasMorePendingSteps =
+          (await tx.leaveApprovalStep.count({
+            where: {
+              tenantId: currentUser.tenantId,
+              leaveRequestId,
+              status: LeaveApprovalStepStatus.PENDING,
+            },
+          })) > 0;
 
         await this.leaveRepository.updateLeaveRequest(
           currentUser.tenantId,
@@ -703,76 +1208,125 @@ export class LeaveService {
     tenantId: string,
     employee: {
       id: string;
+      departmentId?: string | null;
+      businessUnitId?: string | null;
+      employeeLevelId?: string | null;
       managerEmployeeId: string | null;
       manager: {
         id: string;
         userId: string | null;
       } | null;
     },
+    leavePolicyId: string | null,
     leaveTypeId: string,
     actorUserId: string,
   ) {
-    const configuredMatrices =
-      await this.leaveRepository.findApprovalMatricesForLeaveType(
-        tenantId,
-        leaveTypeId,
-      );
+    const route = await this.approvalResolver.resolveApprovalRoute({
+      tenantId,
+      moduleKey: ApprovalModules.LEAVE_REQUEST,
+      requesterEmployee: employee,
+      leavePolicyId,
+      leaveTypeId,
+      scopeContext: {
+        employeeId: employee.id,
+        businessUnitId: employee.businessUnitId,
+        departmentId: employee.departmentId,
+        employeeLevelId: employee.employeeLevelId,
+      },
+    });
+    const approvalSteps: Array<Record<string, unknown>> = [];
 
-    const leaveTypeSpecific = configuredMatrices.filter(
-      (matrix) => matrix.leaveTypeId === leaveTypeId,
-    );
-
-    const matricesToUse =
-      leaveTypeSpecific.length > 0
-        ? leaveTypeSpecific
-        : configuredMatrices.filter((matrix) => matrix.leaveTypeId === null);
-
-    const stepsSource =
-      matricesToUse.length > 0
-        ? matricesToUse
-        : [
-            {
-              sequence: 1,
-              approverType: employee.managerEmployeeId
-                ? ApprovalActorType.MANAGER
-                : ApprovalActorType.HR,
-            },
-            ...(employee.managerEmployeeId
-              ? [{ sequence: 2, approverType: ApprovalActorType.HR }]
-              : []),
-          ];
-
-    const approvalSteps: Prisma.LeaveApprovalStepUncheckedCreateWithoutLeaveRequestInput[] =
-      [];
-
-    for (const [index, step] of stepsSource.entries()) {
-      if (step.approverType === ApprovalActorType.MANAGER) {
-        if (!employee.manager || !employee.manager.userId) {
-          continue;
-        }
-
+    for (const step of route) {
+      for (const candidateUserId of step.candidateUserIds) {
         approvalSteps.push({
           tenantId,
-          stepOrder: step.sequence ?? index + 1,
-          approverType: ApprovalActorType.MANAGER,
-          approverUserId: employee.manager.userId,
+          stepOrder: step.sequence,
+          approverType: step.approverType,
+          resolvedApproverType: step.approverType,
+          approverUserId: candidateUserId,
+          approverRoleId: step.approverRoleId,
+          approvalMode: step.approvalMode,
+          approvalGroupKey: step.approvalGroupKey,
           createdById: actorUserId,
           updatedById: actorUserId,
         });
-        continue;
       }
-
-      approvalSteps.push({
-        tenantId,
-        stepOrder: step.sequence ?? index + 1,
-        approverType: ApprovalActorType.HR,
-        approverUserId: null,
-        createdById: actorUserId,
-        updatedById: actorUserId,
-      });
     }
 
-    return approvalSteps.sort((a, b) => a.stepOrder - b.stepOrder);
+    return approvalSteps.sort(
+      (a, b) => Number(a.stepOrder) - Number(b.stepOrder),
+    );
+  }
+
+  private async resolveApplicableLeavePolicy(
+    tenantId: string,
+    employee: {
+      id: string;
+      departmentId?: string | null;
+      businessUnitId?: string | null;
+      employeeLevelId?: string | null;
+    },
+    at: Date,
+  ) {
+    const assignments =
+      await this.leaveRepository.findActiveLeavePolicyAssignments(tenantId, at);
+    const businessUnit = employee.businessUnitId
+      ? await (this.prisma as any).businessUnit.findFirst({
+          where: { id: employee.businessUnitId, tenantId },
+          select: { organizationId: true },
+        })
+      : null;
+
+    const specificity = [
+      { scopeType: ApprovalScopes.EMPLOYEE, scopeId: employee.id, rank: 6 },
+      {
+        scopeType: ApprovalScopes.EMPLOYEE_LEVEL,
+        scopeId: employee.employeeLevelId,
+        rank: 5,
+      },
+      {
+        scopeType: ApprovalScopes.DEPARTMENT,
+        scopeId: employee.departmentId,
+        rank: 4,
+      },
+      {
+        scopeType: ApprovalScopes.BUSINESS_UNIT,
+        scopeId: employee.businessUnitId,
+        rank: 3,
+      },
+      {
+        scopeType: ApprovalScopes.ORGANIZATION,
+        scopeId: businessUnit?.organizationId,
+        rank: 2,
+      },
+      { scopeType: ApprovalScopes.TENANT, scopeId: null, rank: 1 },
+    ];
+
+    const matches = assignments
+      .map((assignment) => {
+        const matchedScope = specificity.find(
+          (scope) =>
+            assignment.scopeType === scope.scopeType &&
+            (scope.scopeType === ApprovalScopes.TENANT ||
+              assignment.scopeId === scope.scopeId),
+        );
+
+        return matchedScope ? { assignment, rank: matchedScope.rank } : null;
+      })
+      .filter(Boolean)
+      .sort((left, right) => {
+        if (left.rank !== right.rank) return right.rank - left.rank;
+        if (left.assignment.priority !== right.assignment.priority) {
+          return right.assignment.priority - left.assignment.priority;
+        }
+
+        return (
+          right.assignment.effectiveFrom.getTime() -
+          left.assignment.effectiveFrom.getTime()
+        );
+      });
+
+    return matches[0]?.assignment.leavePolicy ?? null;
   }
 
   private validateAndCalculateRange(startDateRaw: string, endDateRaw: string) {
@@ -807,9 +1361,21 @@ export class LeaveService {
     leaveRequest: LeaveRequestWithRelations,
     currentUser: AuthenticatedUser,
   ) {
-    const pendingStep = leaveRequest.approvalSteps.find(
+    const nextStepOrder = leaveRequest.approvalSteps.find(
       (step) => step.status === LeaveApprovalStepStatus.PENDING,
-    );
+    )?.stepOrder;
+    const pendingStep =
+      leaveRequest.approvalSteps.find(
+        (step) =>
+          step.status === LeaveApprovalStepStatus.PENDING &&
+          step.stepOrder === nextStepOrder &&
+          this.canUserActOnStep(leaveRequest, step, currentUser),
+      ) ??
+      leaveRequest.approvalSteps.find(
+        (step) =>
+          step.status === LeaveApprovalStepStatus.PENDING &&
+          step.stepOrder === nextStepOrder,
+      );
 
     if (!pendingStep) {
       return false;
@@ -823,20 +1389,19 @@ export class LeaveService {
     pendingStep: LeaveRequestWithRelations['approvalSteps'][number],
     currentUser: AuthenticatedUser,
   ) {
-    if (pendingStep.approverType === ApprovalActorType.MANAGER) {
+    if (pendingStep.approverUserId) {
       return pendingStep.approverUserId === currentUser.userId;
     }
 
-    return (
-      pendingStep.approverType === ApprovalActorType.HR &&
-      currentUser.permissionKeys.includes('leave-requests.approve')
-    );
+    return false;
   }
 
   private async validateApprovalMatrixReferences(
     tenantId: string,
     leaveTypeId?: string,
     leavePolicyId?: string,
+    approverRoleId?: string,
+    approverUserId?: string,
   ) {
     if (leaveTypeId) {
       const leaveType = await this.leaveRepository.findLeaveTypeById(
@@ -863,15 +1428,169 @@ export class LeaveService {
         );
       }
     }
+
+    if (approverRoleId) {
+      const role = await this.leaveRepository.findRoleById(
+        tenantId,
+        approverRoleId,
+      );
+
+      if (!role) {
+        throw new BadRequestException(
+          'Selected approver role does not belong to this tenant.',
+        );
+      }
+    }
+
+    if (approverUserId) {
+      const user = await this.leaveRepository.findUserById(
+        tenantId,
+        approverUserId,
+      );
+
+      if (!user) {
+        throw new BadRequestException(
+          'Selected approver user does not belong to this tenant.',
+        );
+      }
+    }
   }
 
-  private validatePolicyRules(
-    carryForwardAllowed?: boolean,
-    carryForwardLimit?: number,
+  private validateApprovalMatrixConfiguration(
+    dto: Partial<CreateApprovalMatrixDto>,
   ) {
-    if (!carryForwardAllowed && carryForwardLimit !== undefined) {
+    if (dto.moduleKey && dto.moduleKey !== ApprovalModules.LEAVE_REQUEST) {
+      dto.leaveTypeId = undefined;
+      dto.leavePolicyId = undefined;
+    }
+
+    if (dto.approverType === ApprovalActors.ROLE && !dto.approverRoleId) {
+      throw new BadRequestException('Role approver requires a selected role.');
+    }
+
+    if (dto.approverType === ApprovalActors.USER && !dto.approverUserId) {
+      throw new BadRequestException('User approver requires a selected user.');
+    }
+
+    if (dto.scopeType && dto.scopeType !== ApprovalScopes.TENANT) {
+      if (!dto.scopeId?.trim()) {
+        throw new BadRequestException(
+          'Scope ID is required for this approval scope.',
+        );
+      }
+    }
+  }
+
+  private async ensureApprovalMatrixIsUnique(
+    tenantId: string,
+    data: {
+      leaveTypeId?: string | null;
+      leavePolicyId?: string | null;
+      moduleKey: string;
+      scopeType?: string | null;
+      scopeId?: string | null;
+      sequence: number;
+      approverType: ApprovalActorType;
+      approverRoleId?: string | null;
+      approverUserId?: string | null;
+      isActive: boolean;
+    },
+    excludeId?: string,
+  ) {
+    if (!data.isActive) {
+      return;
+    }
+
+    const duplicate = await this.leaveRepository.findConflictingApprovalMatrix(
+      tenantId,
+      {
+        ...data,
+        excludeId,
+      },
+    );
+
+    if (duplicate) {
+      throw new ConflictException(
+        'An approval matrix row already exists for this scope, sequence, and approver.',
+      );
+    }
+  }
+
+  private validateLeavePolicyAssignment(
+    dto: Pick<
+      CreateLeavePolicyAssignmentDto,
+      'scopeType' | 'scopeId' | 'effectiveFrom' | 'effectiveTo'
+    >,
+  ) {
+    if (dto.scopeType !== ApprovalScopes.TENANT && !dto.scopeId?.trim()) {
+      throw new BadRequestException('Scope ID is required for this scope.');
+    }
+
+    const effectiveFrom = new Date(dto.effectiveFrom);
+    const effectiveTo = dto.effectiveTo ? new Date(dto.effectiveTo) : null;
+
+    if (Number.isNaN(effectiveFrom.getTime())) {
+      throw new BadRequestException('Effective from date must be valid.');
+    }
+
+    if (effectiveTo && Number.isNaN(effectiveTo.getTime())) {
+      throw new BadRequestException('Effective to date must be valid.');
+    }
+
+    if (effectiveTo && effectiveTo < effectiveFrom) {
+      throw new BadRequestException(
+        'Effective to date cannot be before effective from date.',
+      );
+    }
+  }
+
+  private validateLeavePolicyRule(dto: Partial<CreateLeavePolicyRuleDto>) {
+    if (!dto.accrualType?.trim()) {
+      throw new BadRequestException('Accrual type is required.');
+    }
+
+    if (dto.entitlementDays !== undefined && Number(dto.entitlementDays) < 0) {
+      throw new BadRequestException('Entitlement days cannot be negative.');
+    }
+
+    if (
+      !dto.carryForwardAllowed &&
+      dto.carryForwardLimit !== undefined &&
+      Number(dto.carryForwardLimit) > 0
+    ) {
       throw new ConflictException(
         'Carry forward limit can only be set when carry forward is allowed.',
+      );
+    }
+
+    if (
+      dto.carryForwardLimit !== undefined &&
+      Number(dto.carryForwardLimit) < 0
+    ) {
+      throw new BadRequestException('Carry forward limit cannot be negative.');
+    }
+
+    if (
+      dto.requiresDocumentAfterDays !== undefined &&
+      dto.requiresDocumentAfterDays < 0
+    ) {
+      throw new BadRequestException(
+        'Document requirement days cannot be negative.',
+      );
+    }
+
+    if (dto.minServiceMonths !== undefined && dto.minServiceMonths < 0) {
+      throw new BadRequestException(
+        'Minimum service months cannot be negative.',
+      );
+    }
+
+    if (
+      dto.maxConsecutiveDays !== undefined &&
+      Number(dto.maxConsecutiveDays) < 0
+    ) {
+      throw new BadRequestException(
+        'Maximum consecutive days cannot be negative.',
       );
     }
   }
@@ -930,6 +1649,10 @@ export class LeaveService {
         stepOrder: step.stepOrder,
         approverType: step.approverType,
         approverUserId: step.approverUserId,
+        approverRoleId: step.approverRoleId,
+        approvalMode: step.approvalMode,
+        approvalGroupKey: step.approvalGroupKey,
+        resolvedApproverType: step.resolvedApproverType,
         status: step.status,
         actedAt: step.actedAt,
         comments: step.comments,
@@ -943,16 +1666,12 @@ export class LeaveService {
             approverUserId: pendingStep.approverUserId,
           }
         : null,
-      canCurrentUserApprove:
-        pendingStep?.approverType === ApprovalActorType.MANAGER
-          ? pendingStep.approverUserId === currentUser.userId
-          : pendingStep?.approverType === ApprovalActorType.HR &&
-            currentUser.permissionKeys.includes('leave-requests.approve'),
-      canCurrentUserReject:
-        pendingStep?.approverType === ApprovalActorType.MANAGER
-          ? pendingStep.approverUserId === currentUser.userId
-          : pendingStep?.approverType === ApprovalActorType.HR &&
-            currentUser.permissionKeys.includes('leave-requests.reject'),
+      canCurrentUserApprove: pendingStep
+        ? this.canUserActOnStep(leaveRequest, pendingStep, currentUser)
+        : false,
+      canCurrentUserReject: pendingStep
+        ? this.canUserActOnStep(leaveRequest, pendingStep, currentUser)
+        : false,
       canCurrentUserCancel:
         leaveRequest.employee.userId === currentUser.userId &&
         leaveRequest.status === LeaveRequestStatus.PENDING,

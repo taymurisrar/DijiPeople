@@ -154,7 +154,7 @@ async function handleSubmit(event: FormEvent<HTMLFormElement>) {
   return (
     <form className="space-y-5" noValidate onSubmit={handleSubmit}>
       {authNotice ? (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">
           {authNotice}
         </div>
       ) : null}

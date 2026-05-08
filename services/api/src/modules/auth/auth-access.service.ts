@@ -118,8 +118,14 @@ export class AuthAccessService {
     }));
     const roleIds = roles.map((role) => role.id);
     const roleKeys = roles.map((role) => role.key);
+    const isGlobalAdministrator = roleKeys.includes(ROLE_KEYS.GLOBAL_ADMIN);
     const permissionKeys = Array.from(
       new Set([
+        ...(isGlobalAdministrator
+          ? FOUNDATION_PERMISSION_DEFINITIONS.map(
+              (permission) => permission.key,
+            )
+          : []),
         ...user.userRoles.flatMap((userRole) =>
           userRole.role.rolePermissions.map(
             (rolePermission) => rolePermission.permission.key,

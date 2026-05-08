@@ -70,7 +70,19 @@ export const PERMISSION_KEYS = {
   LEAVE_REQUESTS_REJECT: "leave-requests.reject",
   LEAVES_READ: "leaves.read",
   LEAVE_TYPES_READ: "leave-types.read",
+  LEAVE_TYPES_CREATE: "leave-types.create",
+  LEAVE_TYPES_UPDATE: "leave-types.update",
   LEAVE_POLICIES_READ: "leave-policies.read",
+  LEAVE_POLICIES_CREATE: "leave-policies.create",
+  LEAVE_POLICIES_UPDATE: "leave-policies.update",
+  LEAVE_POLICY_ASSIGNMENTS_READ: "leave-policy-assignments.read",
+  LEAVE_POLICY_ASSIGNMENTS_CREATE: "leave-policy-assignments.create",
+  LEAVE_POLICY_ASSIGNMENTS_UPDATE: "leave-policy-assignments.update",
+  LEAVE_POLICY_ASSIGNMENTS_DELETE: "leave-policy-assignments.delete",
+  APPROVAL_MATRICES_READ: "approval-matrices.read",
+  APPROVAL_MATRICES_CREATE: "approval-matrices.create",
+  APPROVAL_MATRICES_UPDATE: "approval-matrices.update",
+  APPROVAL_MATRICES_DELETE: "approval-matrices.delete",
 
   ATTENDANCE_READ: "attendance.read",
   ATTENDANCE_MANAGE: "attendance.manage",
@@ -200,6 +212,9 @@ export const PERMISSION_KEYS = {
   CUSTOMIZATION_VIEWS_DELETE: "customization.views.delete",
   CUSTOMIZATION_FORMS_READ: "customization.forms.read",
   CUSTOMIZATION_PUBLISH: "customization.publish",
+
+  BUSINESS_UNITS_READ: "business-units.read",
+
 } as const;
 
 export const FEATURE_KEYS = {

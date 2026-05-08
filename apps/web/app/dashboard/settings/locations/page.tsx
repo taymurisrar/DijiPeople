@@ -19,7 +19,7 @@ export default async function LocationsPage() {
               Location Catalog
             </p>
             <h3 className="mt-2 text-2xl font-semibold text-foreground">
-              Offices, clinics, and work sites
+              Work sites
             </h3>
           </div>
           <Link

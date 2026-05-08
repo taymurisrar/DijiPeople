@@ -169,9 +169,15 @@ export class LeaveRepository {
         leavePolicy: {
           select: { id: true, name: true },
         },
+        approverRole: {
+          select: { id: true, name: true, key: true },
+        },
+        approverUser: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
       },
-      orderBy: [{ sequence: 'asc' }, { name: 'asc' }],
-    });
+      orderBy: [{ moduleKey: 'asc' }, { sequence: 'asc' }, { name: 'asc' }],
+    } as Prisma.ApprovalMatrixFindManyArgs);
   }
 
   findApprovalMatrixById(
@@ -188,47 +194,138 @@ export class LeaveRepository {
         leavePolicy: {
           select: { id: true, name: true },
         },
+        approverRole: {
+          select: { id: true, name: true, key: true },
+        },
+        approverUser: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
       },
-    });
+    } as Prisma.ApprovalMatrixFindFirstArgs);
   }
 
-  findApprovalMatricesForLeaveType(
+  findConflictingApprovalMatrix(
     tenantId: string,
-    leaveTypeId: string,
+    data: {
+      leaveTypeId?: string | null;
+      leavePolicyId?: string | null;
+      moduleKey: string;
+      scopeType?: string | null;
+      scopeId?: string | null;
+      sequence: number;
+      approverType: Prisma.ApprovalMatrixWhereInput['approverType'];
+      approverRoleId?: string | null;
+      approverUserId?: string | null;
+      excludeId?: string;
+    },
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.approvalMatrix.findFirst({
+      where: {
+        tenantId,
+        isActive: true,
+        moduleKey: data.moduleKey,
+        leaveTypeId: data.leaveTypeId ?? null,
+        leavePolicyId: data.leavePolicyId ?? null,
+        scopeType: data.scopeType ?? null,
+        scopeId: data.scopeId ?? null,
+        sequence: data.sequence,
+        approverType: data.approverType,
+        approverRoleId: data.approverRoleId ?? null,
+        approverUserId: data.approverUserId ?? null,
+        ...(data.excludeId ? { id: { not: data.excludeId } } : {}),
+      },
+    } as Prisma.ApprovalMatrixFindFirstArgs);
+  }
+
+  findApprovalMatricesForResolver(
+    tenantId: string,
+    moduleKey: string,
     db: PrismaDb = this.prisma,
   ) {
     return db.approvalMatrix.findMany({
       where: {
         tenantId,
         isActive: true,
-        OR: [{ leaveTypeId }, { leaveTypeId: null }],
+        moduleKey,
+      },
+      include: {
+        approverRole: {
+          select: { id: true, name: true, key: true },
+        },
+        approverUser: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
       },
       orderBy: [{ sequence: 'asc' }, { createdAt: 'asc' }],
-    });
+    } as Prisma.ApprovalMatrixFindManyArgs);
   }
 
   createApprovalMatrix(
-    data: Prisma.ApprovalMatrixUncheckedCreateInput,
+    data: Record<string, unknown>,
     db: PrismaDb = this.prisma,
   ) {
-    return db.approvalMatrix.create({ data });
+    return (db.approvalMatrix as any).create({ data });
   }
 
   updateApprovalMatrix(
     tenantId: string,
     id: string,
-    data: Prisma.ApprovalMatrixUncheckedUpdateInput,
+    data: Record<string, unknown>,
     db: PrismaDb = this.prisma,
   ) {
-    return db.approvalMatrix.updateMany({ where: { tenantId, id }, data });
+    return (db.approvalMatrix as any).updateMany({
+      where: { tenantId, id },
+      data,
+    });
+  }
+
+  deactivateApprovalMatrix(
+    tenantId: string,
+    id: string,
+    updatedById: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.approvalMatrix.updateMany({
+      where: { tenantId, id },
+      data: { isActive: false, updatedById },
+    });
+  }
+
+  findRoleById(tenantId: string, id: string, db: PrismaDb = this.prisma) {
+    return db.role.findFirst({ where: { tenantId, id, isActive: true } });
+  }
+
+  findUserById(tenantId: string, id: string, db: PrismaDb = this.prisma) {
+    return db.user.findFirst({ where: { tenantId, id, status: 'ACTIVE' } });
+  }
+
+  findActiveUsersByRoleId(
+    tenantId: string,
+    roleId: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.user.findMany({
+      where: {
+        tenantId,
+        status: 'ACTIVE',
+        userRoles: { some: { roleId } },
+      },
+      select: { id: true, email: true, firstName: true, lastName: true },
+      orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+    });
+  }
+
+  findRoleByKey(tenantId: string, key: string, db: PrismaDb = this.prisma) {
+    return db.role.findFirst({ where: { tenantId, key, isActive: true } });
   }
 
   createLeaveRequest(
     data: Prisma.LeaveRequestUncheckedCreateInput,
-    approvalSteps: Prisma.LeaveApprovalStepUncheckedCreateWithoutLeaveRequestInput[],
+    approvalSteps: Array<Record<string, unknown>>,
     db: PrismaDb = this.prisma,
   ) {
-    return db.leaveRequest.create({
+    return (db.leaveRequest as any).create({
       data: {
         ...data,
         approvalSteps: {
@@ -327,6 +424,160 @@ export class LeaveRepository {
         lastName: true,
       },
       orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+    });
+  }
+
+  listLeavePolicyRules(tenantId: string, leavePolicyId: string) {
+    return this.prisma.leavePolicyRule.findMany({
+      where: {
+        tenantId,
+        leavePolicyId,
+      },
+      include: {
+        leaveType: true,
+      },
+      orderBy: [
+        {
+          isActive: 'desc',
+        },
+        {
+          createdAt: 'desc',
+        },
+      ],
+    });
+  }
+
+  findLeavePolicyRuleById(
+    tenantId: string,
+    leavePolicyId: string,
+    ruleId: string,
+  ) {
+    return this.prisma.leavePolicyRule.findFirst({
+      where: {
+        id: ruleId,
+        tenantId,
+        leavePolicyId,
+      },
+      include: {
+        leaveType: true,
+      },
+    });
+  }
+
+  findLeavePolicyRuleByPolicyAndLeaveType(
+    tenantId: string,
+    leavePolicyId: string,
+    leaveTypeId: string,
+  ) {
+    return this.prisma.leavePolicyRule.findUnique({
+      where: {
+        tenantId_leavePolicyId_leaveTypeId: {
+          tenantId,
+          leavePolicyId,
+          leaveTypeId,
+        },
+      },
+    });
+  }
+
+  createLeavePolicyRule(
+    tenantId: string,
+    policyId: string,
+    data: Omit<
+      Prisma.LeavePolicyRuleUncheckedCreateInput,
+      'tenantId' | 'leavePolicyId'
+    >,
+  ) {
+    return this.prisma.leavePolicyRule.create({
+      data: {
+        ...data,
+        tenantId,
+        leavePolicyId: policyId,
+      },
+      include: {
+        leaveType: true,
+      },
+    });
+  }
+
+  updateLeavePolicyRule(
+    tenantId: string,
+    policyId: string,
+    ruleId: string,
+    data: Prisma.LeavePolicyRuleUncheckedUpdateInput,
+  ) {
+    return this.prisma.leavePolicyRule.update({
+      where: {
+        id: ruleId,
+      },
+      data,
+      include: {
+        leaveType: true,
+      },
+    });
+  }
+
+  deleteLeavePolicyRule(
+    tenantId: string,
+    leavePolicyId: string,
+    ruleId: string,
+  ) {
+    return this.prisma.leavePolicyRule.deleteMany({
+      where: {
+        id: ruleId,
+        tenantId,
+        leavePolicyId,
+      },
+    });
+  }
+
+  listLeavePolicyAssignments(tenantId: string) {
+    return (this.prisma as any).leavePolicyAssignment.findMany({
+      where: { tenantId },
+      include: { leavePolicy: true },
+      orderBy: [
+        { isActive: 'desc' },
+        { scopeType: 'asc' },
+        { priority: 'desc' },
+        { effectiveFrom: 'desc' },
+      ],
+    });
+  }
+
+  findLeavePolicyAssignmentById(tenantId: string, id: string) {
+    return (this.prisma as any).leavePolicyAssignment.findFirst({
+      where: { tenantId, id },
+      include: { leavePolicy: true },
+    });
+  }
+
+  createLeavePolicyAssignment(data: Record<string, unknown>) {
+    return (this.prisma as any).leavePolicyAssignment.create({
+      data,
+      include: { leavePolicy: true },
+    });
+  }
+
+  updateLeavePolicyAssignment(
+    tenantId: string,
+    id: string,
+    data: Record<string, unknown>,
+  ) {
+    return (this.prisma as any).leavePolicyAssignment.updateMany({
+      where: { tenantId, id },
+      data,
+    });
+  }
+
+  findActiveLeavePolicyAssignments(tenantId: string, at: Date) {
+    return (this.prisma as any).leavePolicyAssignment.findMany({
+      where: {
+        tenantId,
+        isActive: true,
+        effectiveFrom: { lte: at },
+        OR: [{ effectiveTo: null }, { effectiveTo: { gte: at } }],
+      },
+      include: { leavePolicy: true },
     });
   }
 }

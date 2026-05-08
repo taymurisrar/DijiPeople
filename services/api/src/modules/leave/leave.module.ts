@@ -5,6 +5,7 @@ import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { AuditModule } from '../audit/audit.module';
 import { EmployeesModule } from '../employees/employees.module';
 import { UsersModule } from '../users/users.module';
+import { ApprovalResolverService } from './approval-resolver.service';
 import { ApprovalMatricesController } from './approval-matrices.controller';
 import { LeavePoliciesController } from './leave-policies.controller';
 import { LeaveRequestsController } from './leave-requests.controller';
@@ -20,7 +21,13 @@ import { LeaveService } from './leave.service';
     ApprovalMatricesController,
     LeaveRequestsController,
   ],
-  providers: [LeaveRepository, LeaveService, JwtAuthGuard, PermissionsGuard],
-  exports: [LeaveRepository, LeaveService],
+  providers: [
+    LeaveRepository,
+    LeaveService,
+    ApprovalResolverService,
+    JwtAuthGuard,
+    PermissionsGuard,
+  ],
+  exports: [LeaveRepository, LeaveService, ApprovalResolverService],
 })
 export class LeaveModule {}

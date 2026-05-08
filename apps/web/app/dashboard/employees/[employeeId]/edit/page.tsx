@@ -1,3 +1,4 @@
+import { unstable_noStore as noStore } from "next/cache";
 import { apiRequestJson } from "@/lib/server-api";
 import { getSessionUser } from "@/lib/auth";
 import { getDefaultForm } from "@/lib/customization-forms";
@@ -17,16 +18,31 @@ type EditEmployeePageProps = {
   }>;
 };
 
+function toText(value: string | null | undefined) {
+  return value ?? "";
+}
+
+function toDateInput(value: string | Date | null | undefined) {
+  if (!value) return "";
+  return typeof value === "string"
+    ? value.slice(0, 10)
+    : value.toISOString().slice(0, 10);
+}
+
 export default async function EditEmployeePage({
   params,
 }: EditEmployeePageProps) {
+  noStore();
+
   const { employeeId } = await params;
   const sessionUser = await getSessionUser();
-  const canManageAccess = Boolean(
-    sessionUser?.permissionKeys.includes(PERMISSION_KEYS.USERS_CREATE) &&
-    sessionUser.permissionKeys.includes(PERMISSION_KEYS.USERS_ASSIGN_ROLES) &&
-    sessionUser.permissionKeys.includes(PERMISSION_KEYS.ROLES_READ),
-  );
+
+  const permissionKeys = sessionUser?.permissionKeys ?? [];
+
+  const canManageAccess =
+    permissionKeys.includes(PERMISSION_KEYS.USERS_CREATE) &&
+    permissionKeys.includes(PERMISSION_KEYS.USERS_ASSIGN_ROLES) &&
+    permissionKeys.includes(PERMISSION_KEYS.ROLES_READ);
 
   const [employee, managers, roles, resolvedSettings, runtimeForm] =
     await Promise.all([
@@ -44,63 +60,61 @@ export default async function EditEmployeePage({
   const initialValues: EmployeeFormValues = {
     employeeCode: employee.employeeCode,
     firstName: employee.firstName,
-    middleName: employee.middleName || "",
+    middleName: toText(employee.middleName),
     lastName: employee.lastName,
-    preferredName: employee.preferredName || "",
-    workEmail: employee.workEmail || "",
-    personalEmail: employee.personalEmail || "",
+    preferredName: toText(employee.preferredName),
+    workEmail: toText(employee.workEmail),
+    personalEmail: toText(employee.personalEmail),
     phone: employee.phone,
-    alternatePhone: employee.alternatePhone || "",
-    dateOfBirth: employee.dateOfBirth ? employee.dateOfBirth.slice(0, 10) : "",
-    gender: employee.gender || "",
-    maritalStatus: employee.maritalStatus || "",
-    nationalityCountryId: employee.nationalityCountryId || "",
-    nationality: employee.nationality || "",
-    cnic: employee.cnic || "",
-    bloodGroup: employee.bloodGroup || "",
+    alternatePhone: toText(employee.alternatePhone),
+    dateOfBirth: toDateInput(employee.dateOfBirth),
+    gender: toText(employee.gender),
+    maritalStatus: toText(employee.maritalStatus),
+    nationalityCountryId: toText(employee.nationalityCountryId),
+    nationality: toText(employee.nationality),
+    cnic: toText(employee.cnic),
+    bloodGroup: toText(employee.bloodGroup),
     employmentStatus: employee.employmentStatus,
-    employeeType: employee.employeeType || "",
-    workMode: employee.workMode || "",
-    contractType: employee.contractType || "",
-    hireDate: employee.hireDate.slice(0, 10),
-    confirmationDate: employee.confirmationDate
-      ? employee.confirmationDate.slice(0, 10)
-      : "",
-    probationEndDate: employee.probationEndDate
-      ? employee.probationEndDate.slice(0, 10)
-      : "",
-    terminationDate: employee.terminationDate
-      ? employee.terminationDate.slice(0, 10)
-      : "",
-    departmentId: employee.departmentId || "",
-    designationId: employee.designationId || "",
-    employeeLevelId: employee.employeeLevelId || "",
-    locationId: employee.locationId || "",
-    officialJoiningLocationId: employee.officialJoiningLocationId || "",
-    reportingManagerEmployeeId: employee.reportingManagerEmployeeId || "",
-    userId: employee.userId || "",
+    employeeType: toText(employee.employeeType),
+    workMode: toText(employee.workMode),
+    contractType: toText(employee.contractType),
+    hireDate: toDateInput(employee.hireDate),
+    confirmationDate: toDateInput(employee.confirmationDate),
+    probationEndDate: toDateInput(employee.probationEndDate),
+    terminationDate: toDateInput(employee.terminationDate),
+    departmentId: toText(employee.departmentId),
+    designationId: toText(employee.designationId),
+    employeeLevelId: toText(employee.employeeLevelId),
+    locationId: toText(employee.locationId),
+    officialJoiningLocationId: toText(employee.officialJoiningLocationId),
+    reportingManagerEmployeeId: toText(employee.reportingManagerEmployeeId),
+    userId: toText(employee.userId),
     noticePeriodDays:
       employee.noticePeriodDays !== null &&
       employee.noticePeriodDays !== undefined
         ? employee.noticePeriodDays
         : null,
-    taxIdentifier: employee.taxIdentifier || "",
+    taxIdentifier: toText(employee.taxIdentifier),
     provisionSystemAccess: Boolean(employee.user),
     sendInvitationNow: employee.user?.status !== "Active",
     initialRoleIds: employee.user?.roles.map((role) => role.id) ?? [],
-    addressLine1: employee.addressLine1 || "",
-    addressLine2: employee.addressLine2 || "",
-    countryId: employee.countryId || "",
-    stateProvinceId: employee.stateProvinceId || "",
-    cityId: employee.cityId || "",
-    postalCode: employee.postalCode || "",
-    emergencyContactName: employee.emergencyContactName || "",
-    emergencyContactRelation: employee.emergencyContactRelation || "",
-    emergencyContactRelationTypeId:
-      employee.emergencyContactRelationTypeId || "",
-    emergencyContactPhone: employee.emergencyContactPhone || "",
-    emergencyContactAlternatePhone:
-      employee.emergencyContactAlternatePhone || "",
+
+    addressLine1: toText(employee.addressLine1),
+    addressLine2: toText(employee.addressLine2),
+    countryId: toText(employee.countryId),
+    stateProvinceId: toText(employee.stateProvinceId),
+    cityId: toText(employee.cityId),
+    postalCode: toText(employee.postalCode),
+
+    emergencyContactName: toText(employee.emergencyContactName),
+    emergencyContactRelation: toText(employee.emergencyContactRelation),
+    emergencyContactRelationTypeId: toText(
+      employee.emergencyContactRelationTypeId,
+    ),
+    emergencyContactPhone: toText(employee.emergencyContactPhone),
+    emergencyContactAlternatePhone: toText(
+      employee.emergencyContactAlternatePhone,
+    ),
   };
 
   return (
@@ -109,9 +123,11 @@ export default async function EditEmployeePage({
         <p className="text-sm uppercase tracking-[0.18em] text-muted">
           Edit Employee
         </p>
+
         <h3 className="mt-3 text-3xl font-semibold text-foreground">
           Update {employee.fullName}
         </h3>
+
         <p className="mt-2 max-w-3xl text-muted">
           Keep the core employment record accurate so future HR modules can rely
           on this data consistently.

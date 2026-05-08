@@ -1,9 +1,10 @@
-import { getSessionUser } from "@/lib/auth";
-import { hasPermission } from "@/lib/permissions";
 import { PERMISSION_KEYS } from "@/lib/security-keys";
 import { apiRequestJson } from "@/lib/server-api";
-import { AccessDeniedState } from "../../_components/access-denied-state";
 import { SettingsShell } from "../_components/settings-shell";
+import {
+  hasSettingsPermission,
+  requireSettingsPermissions,
+} from "../_lib/require-settings-permission";
 import {
   EmployeeLevelOption,
   PayComponentOption,
@@ -12,10 +13,9 @@ import {
 } from "./_components/tax-rules-manager";
 
 export default async function TaxRulesSettingsPage() {
-  const user = await getSessionUser();
-  if (!user || !hasPermission(user.permissionKeys, PERMISSION_KEYS.TAX_RULES_READ)) {
-    return <AccessDeniedState title="Access denied" description="You do not have access to tax rules." />;
-  }
+  const user = await requireSettingsPermissions([
+    PERMISSION_KEYS.TAX_RULES_READ,
+  ]);
 
   const [rules, payComponents, employeeLevels] = await Promise.all([
     apiRequestJson<TaxRuleRecord[]>("/tax-rules"),
@@ -30,7 +30,10 @@ export default async function TaxRulesSettingsPage() {
       title="Tax Rules"
     >
       <TaxRulesManager
-        canManage={hasPermission(user.permissionKeys, PERMISSION_KEYS.TAX_RULES_MANAGE)}
+        canManage={hasSettingsPermission(
+          user,
+          PERMISSION_KEYS.TAX_RULES_MANAGE,
+        )}
         employeeLevels={employeeLevels.filter((level) => level.isActive)}
         initialRules={rules}
         payComponents={payComponents.filter((component) => component.isActive)}

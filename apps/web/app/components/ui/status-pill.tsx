@@ -4,7 +4,7 @@ export function StatusPill({
   tone = "neutral",
   children,
 }: {
-  tone?: "good" | "muted" | "neutral" | "danger";
+  tone?: "good" | "muted" | "neutral" | "danger" | "warning" | "info";
   children: ReactNode;
 }) {
   const className =
@@ -12,13 +12,17 @@ export function StatusPill({
       ? "border-emerald-200 bg-emerald-50 text-emerald-700"
       : tone === "danger"
         ? "border-red-200 bg-red-50 text-red-700"
-        : tone === "muted"
-          ? "border-slate-200 bg-slate-50 text-slate-600"
-          : "border-accent/20 bg-accent-soft text-accent";
+        : tone === "warning"
+          ? "border-amber-200 bg-amber-50 text-amber-700"
+          : tone === "info"
+            ? "border-sky-200 bg-sky-50 text-sky-700"
+            : tone === "muted"
+              ? "border-slate-200 bg-slate-50 text-slate-600"
+              : "border-accent/20 bg-accent-soft text-accent";
 
   return (
     <span
-      className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${className}`}
+      className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${className}`}
     >
       {children}
     </span>

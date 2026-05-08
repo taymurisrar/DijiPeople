@@ -67,15 +67,15 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   return (
     <main
-      className="min-h-[100svh] bg-[linear-gradient(180deg,#f8fafc_0%,#eef4f7_100%)]"
+      className="h-[100svh] overflow-hidden bg-[linear-gradient(180deg,#f8fafc_0%,#eef4f7_100%)]"
       style={{
         "--accent": accentColor,
         "--accent-strong": secondaryColor,
       } as CSSProperties}
     >
       <BrandingHeadEffects faviconUrl={faviconUrl} title={pageTitle} />
-      <div className="mx-auto flex min-h-[100svh] w-full max-w-7xl items-stretch px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8 xl:px-10">
-        <div className="grid w-full overflow-hidden rounded-[24px] border border-border/70 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.08)] lg:min-h-[calc(100svh-4rem)] lg:grid-cols-[1fr_minmax(440px,0.95fr)] xl:rounded-[32px]">
+      <div className="mx-auto flex w-full max-w-7xl items-stretch px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8 xl:px-10">
+        <div className="grid h-full w-full overflow-hidden rounded-[24px] border border-border/70 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.08)] lg:min-h-[calc(100svh-4rem)] lg:grid-cols-[1fr_minmax(440px,0.95fr)] xl:rounded-[32px]">
           <section
             className="border-b border-border/60 px-5 py-5 text-white sm:px-6 sm:py-6 lg:flex lg:flex-col lg:justify-between lg:border-b-0 lg:border-r lg:px-8 lg:py-8 xl:px-10 xl:py-10"
             style={{
@@ -121,35 +121,30 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             </div>
           </section>
 
-          <section className="flex min-h-full items-center bg-white px-4 py-6 sm:px-6 sm:py-8 md:px-8 lg:px-10 lg:py-10 xl:px-14 xl:py-12">
+          <section className="flex min-h-full items-center bg-white px-2 py-4 sm:px-4 sm:py-6 md:px-6 lg:px-8 lg:py-8 xl:px-10 xl:py-10">
             <div className="mx-auto flex w-full max-w-md flex-col justify-center">
-              <div className="mb-6 space-y-4 sm:mb-8">
+              <div className="mb-4 space-y-4 sm:mb-6">
                 <div className="inline-flex w-fit rounded-full border border-border bg-surface px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-muted lg:hidden">
                   {brandLabel}
                 </div>
 
                 <div className="space-y-2">
-                  <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted sm:text-sm">
-                    Secure Sign In
-                  </p>
                   <h2 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
                     Welcome back
                   </h2>
-                  <p className="text-sm leading-6 text-muted sm:text-base">
+                  <p className="text-xs leading-6 text-muted sm:text-sm">
                     Sign in with your work email and password to access your HR workspace.
                   </p>
                 </div>
               </div>
 
-              <div className="rounded-[24px] border border-border bg-surface/60 p-4 shadow-sm sm:p-5 lg:p-6">
+              <div className="rounded-[24px] border border-border bg-surface/60 p-2 shadow-sm sm:p-4 lg:p-5">
                 <Suspense fallback={null}>
                   <LoginForm />
                 </Suspense>
               </div>
 
-              <div className="mt-5 text-center text-xs leading-5 text-muted sm:mt-6">
-                Use the email account assigned by your organization. If you were invited
-                recently, activate your account first from the invitation email.
+              <div className="mt-3 text-center text-[10px] leading-5 text-muted sm:mt-6">
                 {branding?.supportEmail ? ` Need help? ${branding.supportEmail}` : ""}
                 {footerText ? ` ${footerText}` : ""}
               </div>

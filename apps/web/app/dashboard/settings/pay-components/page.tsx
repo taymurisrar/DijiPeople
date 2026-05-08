@@ -1,8 +1,10 @@
 import { apiRequestJson } from "@/lib/server-api";
-import { hasPermission } from "@/lib/permissions";
 import { PERMISSION_KEYS } from "@/lib/security-keys";
 import { SettingsShell } from "../_components/settings-shell";
-import { requireSettingsPermissions } from "../_lib/require-settings-permission";
+import {
+  hasSettingsPermission,
+  requireSettingsPermissions,
+} from "../_lib/require-settings-permission";
 import {
   PayComponentRecord,
   PayComponentsManager,
@@ -15,8 +17,8 @@ export default async function PayComponentsPage() {
   ]);
   const components =
     await apiRequestJson<PayComponentRecord[]>("/pay-components");
-  const canManage = hasPermission(
-    user.permissionKeys,
+  const canManage = hasSettingsPermission(
+    user,
     PERMISSION_KEYS.PAY_COMPONENTS_MANAGE,
   );
 

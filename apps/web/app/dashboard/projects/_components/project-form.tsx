@@ -2,23 +2,45 @@
 
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { generateUniqueNumberCode, sanitizeNumericCode } from "@/lib/common";
 import { ProjectRecord, ProjectStatus } from "../types";
+import {
+  DateField,
+  SelectField,
+  TextAreaField,
+  TextField,
+} from "@/app/components/ui/form-control";
+
+const PROJECT_CODE_DIGITS = 3;
+const PROJECT_CODE_MAX_DIGITS = 3;
 
 type ProjectFormProps = {
   mode: "create" | "edit";
   project?: ProjectRecord;
+  existingProjectCodes?: string[];
 };
 
-export function ProjectForm({ mode, project }: ProjectFormProps) {
+export function ProjectForm({
+  mode,
+  project,
+  existingProjectCodes = [],
+}: ProjectFormProps) {
   const router = useRouter();
+
   const [form, setForm] = useState({
     name: project?.name ?? "",
-    code: project?.code ?? "",
+    code:
+      project?.code ??
+      generateUniqueNumberCode({
+        digits: PROJECT_CODE_DIGITS,
+        existingValues: existingProjectCodes,
+      }),
     description: project?.description ?? "",
     startDate: project?.startDate?.slice(0, 10) ?? "",
     endDate: project?.endDate?.slice(0, 10) ?? "",
     status: project?.status ?? "PLANNING",
   });
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,8 +48,15 @@ export function ProjectForm({ mode, project }: ProjectFormProps) {
     event.preventDefault();
     setError(null);
 
+    const code = sanitizeNumericCode(form.code, PROJECT_CODE_MAX_DIGITS);
+
     if (!form.name.trim()) {
       setError("Project name is required.");
+      return;
+    }
+
+    if (!code) {
+      setError("Project code is required.");
       return;
     }
 
@@ -41,8 +70,8 @@ export function ProjectForm({ mode, project }: ProjectFormProps) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          name: form.name,
-          code: form.code || undefined,
+          name: form.name.trim(),
+          code,
           description: form.description || undefined,
           startDate: form.startDate || undefined,
           endDate: form.endDate || undefined,
@@ -64,76 +93,108 @@ export function ProjectForm({ mode, project }: ProjectFormProps) {
   }
 
   return (
-    <form className="grid gap-4 rounded-[24px] border border-border bg-surface p-6 shadow-sm md:grid-cols-2" onSubmit={handleSubmit}>
-      <Field label="Project name" value={form.name} onChange={(value) => setForm((current) => ({ ...current, name: value }))} />
-      <Field label="Code" value={form.code} onChange={(value) => setForm((current) => ({ ...current, code: value }))} />
-      <Field label="Start date" type="date" value={form.startDate} onChange={(value) => setForm((current) => ({ ...current, startDate: value }))} />
-      <Field label="End date" type="date" value={form.endDate} onChange={(value) => setForm((current) => ({ ...current, endDate: value }))} />
-      <label className="space-y-2 text-sm">
-        <span className="font-medium text-foreground">Status</span>
-        <select
-          className="w-full rounded-2xl border border-border bg-white px-4 py-3 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
-          value={form.status}
-          onChange={(event) =>
-            setForm((current) => ({
-              ...current,
-              status: event.target.value as ProjectStatus,
-            }))
-          }
-        >
-          <option value="PLANNING">PLANNING</option>
-          <option value="ACTIVE">ACTIVE</option>
-          <option value="ON_HOLD">ON_HOLD</option>
-          <option value="COMPLETED">COMPLETED</option>
-          <option value="CANCELLED">CANCELLED</option>
-        </select>
-      </label>
-      <label className="space-y-2 text-sm md:col-span-2">
-        <span className="font-medium text-foreground">Description</span>
-        <textarea
-          className="min-h-28 w-full rounded-2xl border border-border bg-white px-4 py-3 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
-          value={form.description}
-          onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
-        />
-      </label>
+    <form
+      className="grid gap-4 rounded-[24px] border border-border bg-surface p-6 shadow-sm md:grid-cols-2"
+      onSubmit={handleSubmit}
+    >
+      <TextField
+        label="Project name"
+        required
+        value={form.name}
+        onChange={(value) =>
+          setForm((current) => ({
+            ...current,
+            name: value,
+          }))
+        }
+      />
+
+      <TextField
+        label="Code"
+        required
+        hint="Auto generated. You can manually override it."
+        value={form.code}
+        maxLength={PROJECT_CODE_MAX_DIGITS}
+        onChange={(value) =>
+          setForm((current) => ({
+            ...current,
+            code: sanitizeNumericCode(value, PROJECT_CODE_MAX_DIGITS),
+          }))
+        }
+      />
+
+      <DateField
+        label="Start date"
+        value={form.startDate}
+        onChange={(value) =>
+          setForm((current) => ({
+            ...current,
+            startDate: value,
+          }))
+        }
+      />
+
+      <DateField
+        label="End date"
+        value={form.endDate}
+        onChange={(value) =>
+          setForm((current) => ({
+            ...current,
+            endDate: value,
+          }))
+        }
+      />
+
+      <SelectField
+        label="Status"
+        required
+        value={form.status}
+        onChange={(value) =>
+          setForm((current) => ({
+            ...current,
+            status: value as ProjectStatus,
+          }))
+        }
+        options={[
+          { value: "PLANNING", label: "Planning" },
+          { value: "ACTIVE", label: "Active" },
+          { value: "ON_HOLD", label: "On Hold" },
+          { value: "COMPLETED", label: "Completed" },
+          { value: "CANCELLED", label: "Cancelled" },
+        ]}
+      />
+
+      <TextAreaField
+        className="md:col-span-2"
+        label="Description"
+        value={form.description}
+        onChange={(value) =>
+          setForm((current) => ({
+            ...current,
+            description: value,
+          }))
+        }
+      />
+
       {error ? (
         <p className="rounded-2xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger md:col-span-2">
           {error}
         </p>
       ) : null}
+
       <div className="md:col-span-2">
         <button
           className="rounded-2xl bg-accent px-5 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:opacity-70"
           disabled={isSubmitting}
           type="submit"
         >
-          {isSubmitting ? "Saving..." : mode === "create" ? "Create project" : "Save project"}
+          {isSubmitting
+            ? "Saving..."
+            : mode === "create"
+              ? "Create project"
+              : "Save project"}
         </button>
       </div>
     </form>
-  );
-}
-
-function Field({
-  label,
-  onChange,
-  type = "text",
-  value,
-}: {
-  label: string;
-  onChange: (value: string) => void;
-  type?: string;
-  value: string;
-}) {
-  return (
-    <label className="space-y-2 text-sm">
-      <span className="font-medium text-foreground">{label}</span>
-      <input
-        className="w-full rounded-2xl border border-border bg-white px-4 py-3 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
-        type={type}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-      />
-    </label>
   );
 }

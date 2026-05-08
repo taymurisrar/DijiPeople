@@ -194,27 +194,27 @@ const organizationSections: SettingsSectionConfig[] = [
       },
     ],
   },
-  {
-    title: "Operational Defaults",
-    description:
-      "Set default organization-level behavior that downstream modules can inherit without hardcoding values.",
-    fields: [
-      {
-        category: "employees",
-        key: "employeeIdPrefix",
-        label: "Employee code prefix",
-        description: "Default employee identifier prefix used when employee IDs are generated.",
-        type: "text",
-      },
-      {
-        category: "employees",
-        key: "autoGenerateEmployeeId",
-        label: "Auto-generate employee code",
-        description: "Generate employee codes automatically using tenant employee settings.",
-        type: "checkbox",
-      },
-    ],
-  },
+  // {
+  //   title: "Operational Defaults",
+  //   description:
+  //     "Set default organization-level behavior that downstream modules can inherit without hardcoding values.",
+  //   fields: [
+  //     {
+  //       category: "employees",
+  //       key: "employeeIdPrefix",
+  //       label: "Employee code prefix",
+  //       description: "Default employee identifier prefix used when employee IDs are generated.",
+  //       type: "text",
+  //     },
+  //     {
+  //       category: "employees",
+  //       key: "autoGenerateEmployeeId",
+  //       label: "Auto-generate employee code",
+  //       description: "Generate employee codes automatically using tenant employee settings.",
+  //       type: "checkbox",
+  //     },
+  //   ],
+  // },
 ];
 
 export default async function TenantSettingsPage() {

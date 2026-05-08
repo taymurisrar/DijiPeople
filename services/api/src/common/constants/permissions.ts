@@ -33,6 +33,20 @@ export const PERMISSION_KEYS = {
   LEAVE_REQUESTS_CREATE: 'leave-requests.create',
   LEAVE_REQUESTS_APPROVE: 'leave-requests.approve',
   LEAVE_REQUESTS_REJECT: 'leave-requests.reject',
+  LEAVE_TYPES_READ: 'leave-types.read',
+  LEAVE_TYPES_CREATE: 'leave-types.create',
+  LEAVE_TYPES_UPDATE: 'leave-types.update',
+  LEAVE_POLICIES_READ: 'leave-policies.read',
+  LEAVE_POLICIES_CREATE: 'leave-policies.create',
+  LEAVE_POLICIES_UPDATE: 'leave-policies.update',
+  LEAVE_POLICY_ASSIGNMENTS_READ: 'leave-policy-assignments.read',
+  LEAVE_POLICY_ASSIGNMENTS_CREATE: 'leave-policy-assignments.create',
+  LEAVE_POLICY_ASSIGNMENTS_UPDATE: 'leave-policy-assignments.update',
+  LEAVE_POLICY_ASSIGNMENTS_DELETE: 'leave-policy-assignments.delete',
+  APPROVAL_MATRICES_READ: 'approval-matrices.read',
+  APPROVAL_MATRICES_CREATE: 'approval-matrices.create',
+  APPROVAL_MATRICES_UPDATE: 'approval-matrices.update',
+  APPROVAL_MATRICES_DELETE: 'approval-matrices.delete',
   ATTENDANCE_READ: 'attendance.read',
   ATTENDANCE_MANAGE: 'attendance.manage',
   AGENT_SETTINGS_READ: 'agent.settings.read',
@@ -103,6 +117,7 @@ export const PERMISSION_KEYS = {
   TEAMS_UPDATE: 'teams.update',
   TEAMS_DELETE: 'teams.delete',
   TEAMS_MEMBERS_MANAGE: 'teams.members.manage',
+  BUSINESS_UNITS_READ: 'business-units.read',
 } as const;
 
 export type BaseRoleKey =
@@ -469,6 +484,49 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     key: 'leave-policies.update',
     name: 'Update leave policies',
     description: 'Update leave policies for the current tenant.',
+  },
+  {
+    key: PERMISSION_KEYS.LEAVE_POLICY_ASSIGNMENTS_READ,
+    name: 'Read leave policy assignments',
+    description:
+      'View effective-dated leave policy assignment rules for the tenant.',
+  },
+  {
+    key: PERMISSION_KEYS.LEAVE_POLICY_ASSIGNMENTS_CREATE,
+    name: 'Create leave policy assignments',
+    description:
+      'Assign leave policies to tenant, organization, workforce, or employee scopes.',
+  },
+  {
+    key: PERMISSION_KEYS.LEAVE_POLICY_ASSIGNMENTS_UPDATE,
+    name: 'Update leave policy assignments',
+    description: 'Update leave policy assignment scopes and effective dates.',
+  },
+  {
+    key: PERMISSION_KEYS.LEAVE_POLICY_ASSIGNMENTS_DELETE,
+    name: 'Delete leave policy assignments',
+    description:
+      'Deactivate leave policy assignments that should no longer apply.',
+  },
+  {
+    key: 'approval-matrices.read',
+    name: 'Read approval matrices',
+    description: 'View tenant leave approval routing configuration.',
+  },
+  {
+    key: 'approval-matrices.create',
+    name: 'Create approval matrices',
+    description: 'Create tenant leave approval routing steps.',
+  },
+  {
+    key: 'approval-matrices.update',
+    name: 'Update approval matrices',
+    description: 'Update tenant leave approval routing steps.',
+  },
+  {
+    key: 'approval-matrices.delete',
+    name: 'Delete approval matrices',
+    description: 'Deactivate tenant leave approval routing steps.',
   },
   {
     key: 'leave-requests.read',
@@ -862,7 +920,8 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
   {
     key: PERMISSION_KEYS.BUSINESS_TRIPS_READ_ALL,
     name: 'Read all business trips',
-    description: 'View employee business trip requests across the accessible tenant scope.',
+    description:
+      'View employee business trip requests across the accessible tenant scope.',
   },
   {
     key: PERMISSION_KEYS.BUSINESS_TRIPS_READ_OWN,
@@ -877,7 +936,8 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
   {
     key: PERMISSION_KEYS.BUSINESS_TRIPS_UPDATE,
     name: 'Update business trips',
-    description: 'Update draft business trip requests and allowance calculations.',
+    description:
+      'Update draft business trip requests and allowance calculations.',
   },
   {
     key: PERMISSION_KEYS.BUSINESS_TRIPS_APPROVE,
@@ -902,7 +962,8 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
   {
     key: PERMISSION_KEYS.TADA_POLICIES_MANAGE,
     name: 'Manage TA/DA policies',
-    description: 'Create, update, and deactivate travel allowance policies and rules.',
+    description:
+      'Create, update, and deactivate travel allowance policies and rules.',
   },
   {
     key: PERMISSION_KEYS.TIME_PAYROLL_POLICIES_READ,
@@ -912,7 +973,8 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
   {
     key: PERMISSION_KEYS.TIME_PAYROLL_POLICIES_MANAGE,
     name: 'Manage time payroll policies',
-    description: 'Create, update, and deactivate attendance and timesheet payroll policies.',
+    description:
+      'Create, update, and deactivate attendance and timesheet payroll policies.',
   },
   {
     key: PERMISSION_KEYS.OVERTIME_POLICIES_READ,
@@ -927,7 +989,8 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
   {
     key: PERMISSION_KEYS.PAYROLL_TIME_INPUTS_READ,
     name: 'Read payroll time inputs',
-    description: 'View prepared attendance, timesheet, no-show, and overtime payroll inputs.',
+    description:
+      'View prepared attendance, timesheet, no-show, and overtime payroll inputs.',
   },
   {
     key: PERMISSION_KEYS.PAYROLL_TIME_INPUTS_PREPARE,
@@ -937,7 +1000,8 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
   {
     key: PERMISSION_KEYS.TAX_RULES_READ,
     name: 'Read tax rules',
-    description: 'View configurable tax rules, brackets, and taxable pay component mappings.',
+    description:
+      'View configurable tax rules, brackets, and taxable pay component mappings.',
   },
   {
     key: PERMISSION_KEYS.TAX_RULES_MANAGE,
@@ -947,17 +1011,20 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
   {
     key: PERMISSION_KEYS.PAYROLL_TAX_CALCULATE,
     name: 'Calculate payroll tax',
-    description: 'Calculate configurable payroll tax deductions and employer contributions.',
+    description:
+      'Calculate configurable payroll tax deductions and employer contributions.',
   },
   {
     key: PERMISSION_KEYS.PAYROLL_GL_READ,
     name: 'Read payroll GL',
-    description: 'View payroll GL accounts, posting rules, and journal configuration.',
+    description:
+      'View payroll GL accounts, posting rules, and journal configuration.',
   },
   {
     key: PERMISSION_KEYS.PAYROLL_GL_MANAGE,
     name: 'Manage payroll GL',
-    description: 'Create, update, and deactivate payroll GL accounts and posting rules.',
+    description:
+      'Create, update, and deactivate payroll GL accounts and posting rules.',
   },
   {
     key: PERMISSION_KEYS.PAYROLL_JOURNAL_READ,
@@ -967,12 +1034,14 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
   {
     key: PERMISSION_KEYS.PAYROLL_JOURNAL_GENERATE,
     name: 'Generate payroll journals',
-    description: 'Generate or regenerate payroll journal entries from payroll run line items.',
+    description:
+      'Generate or regenerate payroll journal entries from payroll run line items.',
   },
   {
     key: PERMISSION_KEYS.PAYROLL_JOURNAL_EXPORT,
     name: 'Export payroll journals',
-    description: 'Export payroll journal entries to CSV and mark journals exported.',
+    description:
+      'Export payroll journal entries to CSV and mark journals exported.',
   },
   {
     key: PERMISSION_KEYS.PAY_COMPONENTS_READ,
@@ -1207,6 +1276,14 @@ export const BASE_ROLE_PERMISSION_KEYS: Record<BaseRoleKey, string[]> = {
     'leave-policies.read',
     'leave-policies.create',
     'leave-policies.update',
+    'leave-policy-assignments.read',
+    'leave-policy-assignments.create',
+    'leave-policy-assignments.update',
+    'leave-policy-assignments.delete',
+    'approval-matrices.read',
+    'approval-matrices.create',
+    'approval-matrices.update',
+    'approval-matrices.delete',
     'leave-requests.read',
     'leave-requests.create',
     'leave-requests.approve',
@@ -1344,6 +1421,11 @@ export const BASE_ROLE_PERMISSION_KEYS: Record<BaseRoleKey, string[]> = {
     'leave-policies.read',
     'leave-policies.create',
     'leave-policies.update',
+    'leave-policy-assignments.read',
+    'approval-matrices.read',
+    'approval-matrices.create',
+    'approval-matrices.update',
+    'approval-matrices.delete',
     'leave-requests.read',
     'leave-requests.approve',
     'leave-requests.reject',

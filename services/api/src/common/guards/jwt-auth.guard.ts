@@ -2,10 +2,11 @@ import {
   CanActivate,
   ExecutionContext,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
+import { JwtService, TokenExpiredError, JsonWebTokenError } from '@nestjs/jwt';
 import { Reflector } from '@nestjs/core';
 import { getAccessTokenSecret } from '../config/auth.config';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
@@ -17,6 +18,8 @@ import {
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
+  private readonly logger = new Logger(JwtAuthGuard.name);
+
   constructor(
     private readonly reflector: Reflector,
     private readonly jwtService: JwtService,
@@ -38,6 +41,10 @@ export class JwtAuthGuard implements CanActivate {
     const token = this.extractToken(request);
 
     if (!token) {
+      this.logger.warn(
+        `Unauthorized request: access token missing. Path=${request.url}, Method=${request.method}`,
+      );
+
       throw new UnauthorizedException('Access token is required.');
     }
 
@@ -50,6 +57,10 @@ export class JwtAuthGuard implements CanActivate {
       );
 
       if (payload.type !== 'access') {
+        this.logger.warn(
+          `Invalid token type. Expected=access, Received=${payload.type}, UserId=${payload.sub}, TenantId=${payload.tenantId}`,
+        );
+
         throw new UnauthorizedException('Access token is invalid.');
       }
 
@@ -57,15 +68,53 @@ export class JwtAuthGuard implements CanActivate {
         payload.sub,
         payload.tenantId,
       );
+
+      if (!authUser) {
+        this.logger.warn(
+          `Access context not found. UserId=${payload.sub}, TenantId=${payload.tenantId}`,
+        );
+
+        throw new UnauthorizedException('Access token is invalid.');
+      }
+
       if (authUser.email !== payload.email) {
+        this.logger.warn(
+          `Token email mismatch. TokenEmail=${payload.email}, CurrentEmail=${authUser.email}, UserId=${payload.sub}, TenantId=${payload.tenantId}`,
+        );
+
         throw new UnauthorizedException('Access token is invalid.');
       }
 
       request.user = authUser;
 
       return true;
-    } catch {
-      throw new UnauthorizedException('Access token is invalid or expired.');
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+
+      if (error instanceof TokenExpiredError) {
+        this.logger.warn(
+          `Access token expired. Path=${request.url}, Method=${request.method}`,
+        );
+
+        throw new UnauthorizedException('Access token has expired.');
+      }
+
+      if (error instanceof JsonWebTokenError) {
+        this.logger.warn(
+          `Invalid JWT. Reason=${error.message}, Path=${request.url}, Method=${request.method}`,
+        );
+
+        throw new UnauthorizedException('Access token is invalid.');
+      }
+
+      this.logger.error(
+        `Unexpected auth guard error. Path=${request.url}, Method=${request.method}`,
+        error instanceof Error ? error.stack : String(error),
+      );
+
+      throw new UnauthorizedException('Access token could not be verified.');
     }
   }
 

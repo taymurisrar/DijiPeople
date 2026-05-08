@@ -131,6 +131,20 @@ export function EmployeeForm({
     }
   }
 
+  function updateFields(values: Partial<EmployeeFormValues>) {
+    setForm((current) => ({ ...current, ...values }));
+
+    if (
+      Object.keys(values).some((key) =>
+        ["personalEmail", "phone", "cnic", "workEmail"].includes(key),
+      )
+    ) {
+      setDuplicateConflicts([]);
+      setHasConfirmedDuplicateWarning(false);
+      setError(null);
+    }
+  }
+
   function validateForm() {
     if (!autoGenerateEmployeeId && !form.employeeCode.trim()) {
       return "Employee code is required.";
@@ -207,45 +221,39 @@ export function EmployeeForm({
   }
 
   function buildPayload() {
-    return {
-      employeeCode: autoGenerateEmployeeId ? undefined : form.employeeCode,
+    const payload: Record<string, unknown> = {
       firstName: form.firstName,
-      middleName: emptyToUndefined(form.middleName),
+      middleName: emptyToNull(form.middleName),
       lastName: form.lastName,
-      preferredName: emptyToUndefined(form.preferredName),
-      workEmail: emptyToUndefined(form.workEmail),
-      personalEmail: emptyToUndefined(form.personalEmail),
+      preferredName: emptyToNull(form.preferredName),
+      workEmail: emptyToNull(form.workEmail),
+      personalEmail: emptyToNull(form.personalEmail),
       phone: form.phone,
-      alternatePhone: emptyToUndefined(form.alternatePhone),
-      dateOfBirth: emptyToUndefined(form.dateOfBirth),
-      gender: emptyToUndefined(form.gender),
-      maritalStatus: emptyToUndefined(form.maritalStatus),
-      nationalityCountryId: emptyToUndefined(form.nationalityCountryId),
-      nationality: emptyToUndefined(form.nationality),
-      cnic: emptyToUndefined(form.cnic),
-      bloodGroup: emptyToUndefined(form.bloodGroup),
+      alternatePhone: emptyToNull(form.alternatePhone),
+      dateOfBirth: emptyToNull(form.dateOfBirth),
+      gender: emptyToNull(form.gender),
+      maritalStatus: emptyToNull(form.maritalStatus),
+      nationalityCountryId: emptyToNull(form.nationalityCountryId),
+      nationality: emptyToNull(form.nationality),
+      cnic: emptyToNull(form.cnic),
+      bloodGroup: emptyToNull(form.bloodGroup),
       employmentStatus: form.employmentStatus,
-      employeeType: emptyToUndefined(form.employeeType),
-      workMode: emptyToUndefined(form.workMode),
-      contractType: emptyToUndefined(form.contractType),
+      employeeType: emptyToNull(form.employeeType),
+      workMode: emptyToNull(form.workMode),
+      contractType: emptyToNull(form.contractType),
       hireDate: form.hireDate,
-      confirmationDate: emptyToUndefined(form.confirmationDate),
-      probationEndDate: emptyToUndefined(form.probationEndDate),
-      terminationDate: emptyToUndefined(form.terminationDate),
-      departmentId: emptyToUndefined(form.departmentId),
-      designationId: emptyToUndefined(form.designationId),
-      employeeLevelId: emptyToUndefined(form.employeeLevelId),
-      locationId: emptyToUndefined(form.locationId),
-      officialJoiningLocationId: emptyToUndefined(
-        form.officialJoiningLocationId,
-      ),
-      reportingManagerEmployeeId: emptyToUndefined(
-        form.reportingManagerEmployeeId,
-      ),
-      userId: emptyToUndefined(form.userId),
-      noticePeriodDays:
-        form.noticePeriodDays == null ? undefined : form.noticePeriodDays,
-      taxIdentifier: emptyToUndefined(form.taxIdentifier),
+      confirmationDate: emptyToNull(form.confirmationDate),
+      probationEndDate: emptyToNull(form.probationEndDate),
+      terminationDate: emptyToNull(form.terminationDate),
+      departmentId: emptyToNull(form.departmentId),
+      designationId: emptyToNull(form.designationId),
+      employeeLevelId: emptyToNull(form.employeeLevelId),
+      locationId: emptyToNull(form.locationId),
+      officialJoiningLocationId: emptyToNull(form.officialJoiningLocationId),
+      reportingManagerEmployeeId: emptyToNull(form.reportingManagerEmployeeId),
+      userId: emptyToNull(form.userId),
+      noticePeriodDays: numberToNull(form.noticePeriodDays),
+      taxIdentifier: emptyToNull(form.taxIdentifier),
       provisionSystemAccess: canManageAccess
         ? form.provisionSystemAccess
         : undefined,
@@ -257,25 +265,34 @@ export function EmployeeForm({
         canManageAccess && form.provisionSystemAccess
           ? form.initialRoleIds
           : [],
-      addressLine1: emptyToUndefined(form.addressLine1),
-      addressLine2: emptyToUndefined(form.addressLine2),
-      countryId: emptyToUndefined(form.countryId),
-      stateProvinceId: emptyToUndefined(form.stateProvinceId),
-      cityId: emptyToUndefined(form.cityId),
-      postalCode: emptyToUndefined(form.postalCode),
-      emergencyContactName: emptyToUndefined(form.emergencyContactName),
-      emergencyContactRelation:
-        form.emergencyContactRelation == null
-          ? undefined
-          : form.emergencyContactRelation,
-      emergencyContactRelationTypeId: emptyToUndefined(
+      addressLine1: emptyToNull(form.addressLine1),
+      addressLine2: emptyToNull(form.addressLine2),
+      countryId: emptyToNull(form.countryId),
+      stateProvinceId: emptyToNull(form.stateProvinceId),
+      cityId: emptyToNull(form.cityId),
+      postalCode: emptyToNull(form.postalCode),
+      emergencyContactName: emptyToNull(form.emergencyContactName),
+      emergencyContactRelation: emptyToNull(form.emergencyContactRelation),
+      emergencyContactRelationTypeId: emptyToNull(
         form.emergencyContactRelationTypeId,
       ),
-      emergencyContactPhone: emptyToUndefined(form.emergencyContactPhone),
-      emergencyContactAlternatePhone: emptyToUndefined(
+      emergencyContactPhone: emptyToNull(form.emergencyContactPhone),
+      emergencyContactAlternatePhone: emptyToNull(
         form.emergencyContactAlternatePhone,
       ),
     };
+
+    if (!autoGenerateEmployeeId) {
+      payload.employeeCode = form.employeeCode;
+    }
+
+    if (!canManageAccess) {
+      delete payload.provisionSystemAccess;
+      delete payload.sendInvitationNow;
+      delete payload.initialRoleIds;
+    }
+
+    return payload;
   }
 
   async function checkDuplicates(payload: Record<string, unknown>) {
@@ -300,7 +317,7 @@ export function EmployeeForm({
       );
     }
 
-    return data && "conflicts" in data ? data.conflicts ?? [] : [];
+    return data && "conflicts" in data ? (data.conflicts ?? []) : [];
   }
 
   async function submitEmployee(payload: Record<string, unknown>) {
@@ -466,7 +483,7 @@ export function EmployeeForm({
           ) : null}
 
           {runtimeForm.showField("email") ||
-            runtimeForm.showField("workEmail") ? (
+          runtimeForm.showField("workEmail") ? (
             <TextField
               label="Work Email"
               type="email"
@@ -528,7 +545,7 @@ export function EmployeeForm({
           ) : null}
 
           {runtimeForm.showField("nationalityCountryId") ||
-            runtimeForm.showField("nationality") ? (
+          runtimeForm.showField("nationality") ? (
             <LookupField
               label="Nationality"
               options={countries}
@@ -795,9 +812,12 @@ export function EmployeeForm({
             placeholder={isLoading ? "Loading countries..." : "Select country"}
             value={form.countryId}
             onChange={(value) => {
-              updateField("countryId", value);
-              updateField("stateProvinceId", "");
-              updateField("cityId", "");
+              updateFields({
+                countryId: value,
+                stateProvinceId:
+                  form.countryId === value ? form.stateProvinceId : "",
+                cityId: form.countryId === value ? form.cityId : "",
+              });
             }}
           />
 
@@ -814,8 +834,10 @@ export function EmployeeForm({
             }
             value={form.stateProvinceId}
             onChange={(value) => {
-              updateField("stateProvinceId", value);
-              updateField("cityId", "");
+              updateFields({
+                stateProvinceId: value,
+                cityId: form.stateProvinceId === value ? form.cityId : "",
+              });
             }}
           />
 
@@ -1100,9 +1122,13 @@ function FormSection({
   );
 }
 
-function emptyToUndefined(value: string) {
+function emptyToNull(value: string) {
   const trimmed = value.trim();
-  return trimmed ? trimmed : undefined;
+  return trimmed ? trimmed : null;
+}
+
+function numberToNull(value: number | null | undefined) {
+  return value == null ? null : value;
 }
 
 function isValidEmail(value: string) {

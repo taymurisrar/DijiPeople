@@ -45,6 +45,14 @@ function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+function getUpdateDtoValue<Dto extends object, Key extends keyof Dto, Fallback>(
+  dto: Dto,
+  key: Key,
+  fallback: Fallback,
+) {
+  return Object.prototype.hasOwnProperty.call(dto, key) ? dto[key] : fallback;
+}
+
 @Injectable()
 export class EmployeesService {
   constructor(
@@ -648,8 +656,12 @@ export class EmployeesService {
         firstName: dto.firstName ?? employee.firstName,
         lastName: dto.lastName ?? employee.lastName,
         phone: dto.phone ?? employee.phone,
-        personalEmail: dto.personalEmail ?? employee.personalEmail ?? undefined,
-        cnic: dto.cnic ?? employee.cnic ?? undefined,
+        personalEmail: getUpdateDtoValue(
+          dto,
+          'personalEmail',
+          employee.personalEmail ?? undefined,
+        ),
+        cnic: getUpdateDtoValue(dto, 'cnic', employee.cnic ?? undefined),
       } as CreateEmployeeDto,
       employeeSettings,
       employeeId,
@@ -1389,14 +1401,36 @@ export class EmployeesService {
     employee: EmployeeWithRelations,
     settings: EmployeeSettingsResolved,
   ) {
-    const nextPersonalEmail = dto.personalEmail ?? employee.personalEmail;
-    const nextEmergencyContactName =
-      dto.emergencyContactName ?? employee.emergencyContactName;
-    const nextDepartmentId = dto.departmentId ?? employee.departmentId;
-    const nextDesignationId = dto.designationId ?? employee.designationId;
-    const nextManagerId =
-      dto.reportingManagerEmployeeId ?? employee.managerEmployeeId;
-    const nextLocationId = dto.locationId ?? employee.locationId;
+    const nextPersonalEmail = getUpdateDtoValue(
+      dto,
+      'personalEmail',
+      employee.personalEmail,
+    );
+    const nextEmergencyContactName = getUpdateDtoValue(
+      dto,
+      'emergencyContactName',
+      employee.emergencyContactName,
+    );
+    const nextDepartmentId = getUpdateDtoValue(
+      dto,
+      'departmentId',
+      employee.departmentId,
+    );
+    const nextDesignationId = getUpdateDtoValue(
+      dto,
+      'designationId',
+      employee.designationId,
+    );
+    const nextManagerId = getUpdateDtoValue(
+      dto,
+      'reportingManagerEmployeeId',
+      employee.managerEmployeeId,
+    );
+    const nextLocationId = getUpdateDtoValue(
+      dto,
+      'locationId',
+      employee.locationId,
+    );
     const nextStatus = dto.employmentStatus ?? employee.employmentStatus;
 
     if (settings.requirePersonalEmail && !nextPersonalEmail?.trim()) {
@@ -1696,14 +1730,21 @@ export class EmployeesService {
 
     if (dto.countryId !== undefined) {
       data.countryId = dto.countryId ?? null;
+      data.country = dto.countryId
+        ? (referenceLabels?.countryName ?? null)
+        : null;
     }
 
     if (dto.stateProvinceId !== undefined) {
       data.stateProvinceId = dto.stateProvinceId ?? null;
+      data.stateProvince = dto.stateProvinceId
+        ? (referenceLabels?.stateProvinceName ?? null)
+        : null;
     }
 
     if (dto.cityId !== undefined) {
       data.cityId = dto.cityId ?? null;
+      data.city = dto.cityId ? (referenceLabels?.cityName ?? null) : null;
     }
 
     if (dto.city !== undefined) {

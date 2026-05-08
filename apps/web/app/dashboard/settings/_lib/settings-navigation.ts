@@ -45,6 +45,8 @@ const NAV_PERMISSION_KEYS = {
 
   LEAVE_TYPES_READ: "leave-types.read",
   LEAVE_POLICIES_READ: "leave-policies.read",
+  LEAVE_POLICY_ASSIGNMENTS_READ: "leave-policy-assignments.read",
+  APPROVAL_MATRICES_READ: "approval-matrices.read",
 
   PAYROLL_SETTINGS_READ: "payroll.settings.read",
 
@@ -317,7 +319,7 @@ export const settingsNavGroups = [
         href: "/dashboard/settings/leave-types",
         label: "Leave Types",
         description:
-          "Manage annual, sick, unpaid, compensatory, and custom leave categories.",
+          "Define reusable annual, sick, unpaid, compensatory, and custom leave categories.",
         icon: "calendar-days",
         badge: "Core",
         keywords: ["leave types", "absence", "annual leave", "sick leave"],
@@ -332,12 +334,13 @@ export const settingsNavGroups = [
         href: "/dashboard/settings/leave-policies",
         label: "Leave Policies",
         description:
-          "Configure accruals, eligibility, carry forward, encashment, and document rules.",
+          "Package leave type rules into assignable policy containers.",
         icon: "file-check",
         badge: "Core",
         keywords: ["leave policies", "accrual", "carry forward", "eligibility"],
         requiredAnyPermissions: [
           NAV_PERMISSION_KEYS.LEAVE_POLICIES_READ,
+          NAV_PERMISSION_KEYS.LEAVE_POLICY_ASSIGNMENTS_READ,
           PERMISSION_KEYS.LEAVE_REQUESTS_READ,
           NAV_PERMISSION_KEYS.SETTINGS_READ,
         ],
@@ -348,10 +351,11 @@ export const settingsNavGroups = [
         label: "Approval Matrices",
         shortLabel: "Approvals",
         description:
-          "Define approval routing for leave, claims, payroll, HR, and manager workflows.",
+          "Route approvals across leave, timesheets, claims, trips, resources, and payroll.",
         icon: "workflow",
         keywords: ["approval", "matrix", "workflow", "routing"],
         requiredAnyPermissions: [
+          NAV_PERMISSION_KEYS.APPROVAL_MATRICES_READ,
           NAV_PERMISSION_KEYS.LEAVE_POLICIES_READ,
           PERMISSION_KEYS.LEAVE_REQUESTS_READ,
           NAV_PERMISSION_KEYS.SETTINGS_READ,

@@ -54,12 +54,46 @@ export class LookupsService {
 
   async listRelationTypes(tenantId: string) {
     await this.ensureTenantLookupDefaults(tenantId);
-    return this.prisma.relationType.findMany({
+    const relationTypes = await this.prisma.relationType.findMany({
       where: {
         isActive: true,
         OR: [{ tenantId }, { tenantId: null }],
       },
-      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      orderBy: [{ tenantId: 'asc' }, { sortOrder: 'asc' }, { name: 'asc' }],
+    });
+
+    const deduped = new Map<string, (typeof relationTypes)[number]>();
+
+    for (const relationType of relationTypes) {
+      const dedupeKeys = [relationType.key, relationType.name]
+        .filter(Boolean)
+        .map((value) => value.trim().toLowerCase());
+      const existing = dedupeKeys
+        .map((dedupeKey) => deduped.get(dedupeKey))
+        .find(Boolean);
+      const preferred =
+        !existing || (!existing.tenantId && relationType.tenantId)
+          ? relationType
+          : existing;
+
+      for (const dedupeKey of dedupeKeys) {
+        deduped.set(dedupeKey, preferred);
+      }
+    }
+
+    return [
+      ...new Map(
+        [...deduped.values()].map((relationType) => [
+          relationType.id,
+          relationType,
+        ]),
+      ).values(),
+    ].sort((left, right) => {
+      if (left.sortOrder !== right.sortOrder) {
+        return left.sortOrder - right.sortOrder;
+      }
+
+      return left.name.localeCompare(right.name);
     });
   }
 

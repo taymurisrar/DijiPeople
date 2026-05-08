@@ -297,7 +297,7 @@ function SettingsNavItemContent({
       </span>
 
       <span className="min-w-0 flex-1">
-        <span className="flex items-center gap-2">
+        <span className="flex flex-wrap items-center gap-2">
           <span className="truncate text-sm font-medium">{label}</span>
           {badge ? <SettingsBadgePill badge={badge} /> : null}
         </span>

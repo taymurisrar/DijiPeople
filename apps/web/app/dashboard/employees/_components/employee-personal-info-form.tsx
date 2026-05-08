@@ -71,7 +71,8 @@ export function EmployeePersonalInfoForm({
     cityId: employee.cityId || "",
     postalCode: employee.postalCode || "",
     emergencyContactName: employee.emergencyContactName || "",
-    emergencyContactRelationTypeId: employee.emergencyContactRelationTypeId || "",
+    emergencyContactRelationTypeId:
+      employee.emergencyContactRelationTypeId || "",
     emergencyContactRelation: employee.emergencyContactRelation || "",
     emergencyContactPhone: employee.emergencyContactPhone || "",
     emergencyContactAlternatePhone:
@@ -91,6 +92,10 @@ export function EmployeePersonalInfoForm({
 
   function setValue(key: keyof PersonalState, value: string) {
     setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  function setValues(values: Partial<PersonalState>) {
+    setForm((current) => ({ ...current, ...values }));
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -159,9 +164,9 @@ export function EmployeePersonalInfoForm({
 
     const failed = responses.find((response) => !response.ok);
     if (failed) {
-      const data = (await failed.json().catch(() => null)) as
-        | { message?: string }
-        | null;
+      const data = (await failed.json().catch(() => null)) as {
+        message?: string;
+      } | null;
       setError(data?.message ?? "Unable to update employee information.");
       setIsSubmitting(false);
       return;
@@ -213,7 +218,10 @@ export function EmployeePersonalInfoForm({
             onChange={(value) => setValue("workEmail", value)}
           />
         ) : (
-          <ReadOnlyField label="Work Email" value={form.workEmail || "Not set"} />
+          <ReadOnlyField
+            label="Work Email"
+            value={form.workEmail || "Not set"}
+          />
         )}
 
         <TextField
@@ -275,9 +283,13 @@ export function EmployeePersonalInfoForm({
             }
             value={form.nationalityCountryId}
             onChange={(value) => {
-              setValue("nationalityCountryId", value);
-              const selectedCountry = countries.find((country) => country.id === value);
-              setValue("nationality", selectedCountry?.name ?? "");
+              const selectedCountry = countries.find(
+                (country) => country.id === value,
+              );
+              setValues({
+                nationalityCountryId: value,
+                nationality: selectedCountry?.name ?? "",
+              });
             }}
           />
         ) : (
@@ -325,9 +337,12 @@ export function EmployeePersonalInfoForm({
           placeholder={isLoading ? "Loading countries..." : "Select country"}
           value={form.countryId}
           onChange={(value) => {
-            setValue("countryId", value);
-            setValue("stateProvinceId", "");
-            setValue("cityId", "");
+            setValues({
+              countryId: value,
+              stateProvinceId:
+                form.countryId === value ? form.stateProvinceId : "",
+              cityId: form.countryId === value ? form.cityId : "",
+            });
           }}
         />
         <LookupField
@@ -343,8 +358,10 @@ export function EmployeePersonalInfoForm({
           }
           value={form.stateProvinceId}
           onChange={(value) => {
-            setValue("stateProvinceId", value);
-            setValue("cityId", "");
+            setValues({
+              stateProvinceId: value,
+              cityId: form.stateProvinceId === value ? form.cityId : "",
+            });
           }}
         />
         <LookupField
@@ -384,7 +401,9 @@ export function EmployeePersonalInfoForm({
             isLoading ? "Loading relation types..." : "Select relation type"
           }
           value={form.emergencyContactRelationTypeId}
-          onChange={(value) => setValue("emergencyContactRelationTypeId", value)}
+          onChange={(value) =>
+            setValue("emergencyContactRelationTypeId", value)
+          }
         />
         <TextField
           label="Relation label"
@@ -399,7 +418,9 @@ export function EmployeePersonalInfoForm({
         <TextField
           label="Alternate phone"
           value={form.emergencyContactAlternatePhone}
-          onChange={(value) => setValue("emergencyContactAlternatePhone", value)}
+          onChange={(value) =>
+            setValue("emergencyContactAlternatePhone", value)
+          }
         />
       </FormSection>
 
@@ -416,16 +437,16 @@ export function EmployeePersonalInfoForm({
       ) : null}
 
       <div>
-<Button
-  variant="primary"
-  size="lg"
-  loading={isSubmitting}
-  loadingText="Saving..."
-  disabled={isSubmitting}
-  type="submit"
->
-  {isSelfService ? "Save my profile" : "Save personal info"}
-</Button>
+        <Button
+          variant="primary"
+          size="lg"
+          loading={isSubmitting}
+          loadingText="Saving..."
+          disabled={isSubmitting}
+          type="submit"
+        >
+          {isSelfService ? "Save my profile" : "Save personal info"}
+        </Button>
       </div>
     </form>
   );
@@ -480,13 +501,7 @@ function TextField({
   );
 }
 
-function ReadOnlyField({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
+function ReadOnlyField({ label, value }: { label: string; value: string }) {
   return (
     <label className="space-y-2 text-sm">
       <span className="font-medium text-foreground">{label}</span>

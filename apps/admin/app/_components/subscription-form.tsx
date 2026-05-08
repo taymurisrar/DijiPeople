@@ -70,7 +70,7 @@ export function SubscriptionForm({
   );
   const [startDate, setStartDate] = useState(
     currentSubscription?.startDate?.slice(0, 10) ??
-      new Date().toISOString().slice(0, 10),
+    new Date().toISOString().slice(0, 10),
   );
   const [endDate, setEndDate] = useState(
     currentSubscription?.endDate?.slice(0, 10) ?? "",
@@ -203,7 +203,7 @@ export function SubscriptionForm({
             onChange={(event) => setStatus(event.target.value as typeof status)}
             className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-900"
           >
-            {(["Trialing", "Active", "Past_Due", "Cancelled"] as const).map((option) => (
+            {(["TRIALING", "ACTIVE", "PAST_DUE", "CANCELLED"] as const).map((option) => (
               <option key={option} value={option}>
                 {formatEnumLabel(option)}
               </option>

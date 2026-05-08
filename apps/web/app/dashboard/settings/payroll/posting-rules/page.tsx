@@ -1,7 +1,10 @@
 import { apiRequestJson } from "@/lib/server-api";
 import { PERMISSION_KEYS } from "@/lib/security-keys";
 import { SettingsShell } from "../../_components/settings-shell";
-import { requireSettingsPermissions } from "../../_lib/require-settings-permission";
+import {
+  hasSettingsPermission,
+  requireSettingsPermissions,
+} from "../../_lib/require-settings-permission";
 import {
   GlAccountOption,
   PayComponentOption,
@@ -21,7 +24,10 @@ export default async function PayrollPostingRulesPage() {
     apiRequestJson<PayComponentOption[]>("/pay-components"),
     apiRequestJson<TaxRuleOption[]>("/tax-rules"),
   ]);
-  const canManage = user.permissionKeys.includes(PERMISSION_KEYS.PAYROLL_GL_MANAGE);
+  const canManage = hasSettingsPermission(
+    user,
+    PERMISSION_KEYS.PAYROLL_GL_MANAGE,
+  );
 
   return (
     <SettingsShell

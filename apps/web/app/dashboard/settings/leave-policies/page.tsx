@@ -1,17 +1,14 @@
 import Link from "next/link";
+import { StatusPill } from "@/app/components/ui/status-pill";
+import { PERMISSION_KEYS } from "@/lib/security-keys";
 import { apiRequestJson } from "@/lib/server-api";
 import { SettingsShell } from "../_components/settings-shell";
+import { requireSettingsPermissions } from "../_lib/require-settings-permission";
 import { LeavePolicyRecord } from "../types";
 
-function formatLabel(value: string) {
-  return value
-    .toLowerCase()
-    .split("_")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
-
 export default async function LeavePoliciesPage() {
+  await requireSettingsPermissions([PERMISSION_KEYS.LEAVE_POLICIES_READ]);
+
   const leavePolicies = await apiRequestJson<LeavePolicyRecord[]>(
     "/leave-policies",
   );
@@ -29,7 +26,7 @@ export default async function LeavePoliciesPage() {
               Leave Policy Catalog
             </p>
             <h3 className="mt-2 text-2xl font-semibold text-foreground">
-              Entitlement and accrual rules
+              Assignable policy containers
             </h3>
           </div>
           <Link
@@ -55,9 +52,8 @@ export default async function LeavePoliciesPage() {
             <thead>
               <tr className="text-left text-sm text-muted">
                 <th className="px-4">Name</th>
-                <th className="px-4">Accrual</th>
-                <th className="px-4">Entitlement</th>
-                <th className="px-4">Carry Forward</th>
+                <th className="px-4">Status</th>
+                <th className="px-4">Updated</th>
                 <th className="px-4">Action</th>
               </tr>
             </thead>
@@ -70,19 +66,18 @@ export default async function LeavePoliciesPage() {
                   <td className="rounded-l-2xl px-4 py-4">
                     <p className="font-medium text-foreground">{policy.name}</p>
                     <p className="mt-1 text-sm text-muted">
-                      {policy.isActive ? "Active" : "Inactive"}
+                      Configure entitlement rules from the edit page.
                     </p>
                   </td>
                   <td className="px-4 py-4 text-sm text-foreground">
-                    {formatLabel(policy.accrualType)}
+                    <StatusPill tone={policy.isActive ? "good" : "danger"}>
+                      {policy.isActive ? "Active" : "Inactive"}
+                    </StatusPill>
                   </td>
                   <td className="px-4 py-4 text-sm text-foreground">
-                    {policy.annualEntitlement} days
-                  </td>
-                  <td className="px-4 py-4 text-sm text-foreground">
-                    {policy.carryForwardAllowed
-                      ? `${policy.carryForwardLimit || "No cap"}`
-                      : "Not allowed"}
+                    {new Intl.DateTimeFormat("en", {
+                      dateStyle: "medium",
+                    }).format(new Date(policy.updatedAt))}
                   </td>
                   <td className="rounded-r-2xl px-4 py-4">
                     <Link

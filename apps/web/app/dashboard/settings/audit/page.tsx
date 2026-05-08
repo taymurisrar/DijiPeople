@@ -1,10 +1,8 @@
-import { getSessionUser } from "@/lib/auth";
-import { hasPermission } from "@/lib/permissions";
 import { apiRequestJson } from "@/lib/server-api";
-import { redirect } from "next/navigation";
 import { AuditLogFilters } from "../_components/audit-log-filters";
 import { AuditLogTable } from "../_components/audit-log-table";
 import { SettingsShell } from "../_components/settings-shell";
+import { requireSettingsPermissions } from "../_lib/require-settings-permission";
 import { AuditLogsResponse } from "../types";
 
 type AuditPageSearchParams = {
@@ -35,11 +33,7 @@ export default async function AuditLogsPage({
 }: {
   searchParams: Promise<AuditPageSearchParams>;
 }) {
-  const user = await getSessionUser();
-
-  if (!user || !hasPermission(user.permissionKeys, "audit.read")) {
-    redirect("/dashboard/settings/tenant");
-  }
+  await requireSettingsPermissions(["audit.read"]);
 
   const resolvedSearchParams = await searchParams;
   const query = new URLSearchParams();

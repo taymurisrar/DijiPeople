@@ -123,12 +123,16 @@ export class EmployeeProfilesService {
       userId: employee.userId,
       addressLine1: employee.addressLine1,
       addressLine2: employee.addressLine2,
+      countryId: employee.countryId,
+      stateProvinceId: employee.stateProvinceId,
+      cityId: employee.cityId,
       city: employee.cityLookup?.name ?? employee.city,
       stateProvince:
         employee.stateProvinceLookup?.name ?? employee.stateProvince,
       country: employee.countryLookup?.name ?? employee.country,
       postalCode: employee.postalCode,
       emergencyContactName: employee.emergencyContactName,
+      emergencyContactRelationTypeId: employee.emergencyContactRelationTypeId,
       emergencyContactRelation: employee.emergencyContactRelation,
       emergencyContactPhone: employee.emergencyContactPhone,
       emergencyContactAlternatePhone: employee.emergencyContactAlternatePhone,
@@ -383,13 +387,22 @@ export class EmployeeProfilesService {
     employeeId: string,
     dto: UpdateAddressDto,
   ) {
+    const employee = await this.assertEmployeeAccess(currentUser, employeeId);
+    const nextCountryId =
+      dto.countryId !== undefined ? dto.countryId : employee.countryId;
+    const nextStateProvinceId =
+      dto.stateProvinceId !== undefined
+        ? dto.stateProvinceId
+        : employee.stateProvinceId;
+    const nextCityId = dto.cityId !== undefined ? dto.cityId : employee.cityId;
+
     let countryName: string | null | undefined;
     let stateProvinceName: string | null | undefined;
     let cityName: string | null | undefined;
 
-    if (dto.countryId) {
+    if (nextCountryId) {
       const country = await this.prisma.country.findFirst({
-        where: { id: dto.countryId, isActive: true },
+        where: { id: nextCountryId, isActive: true },
         select: { id: true, name: true },
       });
 
@@ -400,12 +413,12 @@ export class EmployeeProfilesService {
       countryName = country.name;
     }
 
-    if (dto.stateProvinceId) {
+    if (nextStateProvinceId) {
       const stateProvince = await this.prisma.stateProvince.findFirst({
         where: {
-          id: dto.stateProvinceId,
+          id: nextStateProvinceId,
           isActive: true,
-          ...(dto.countryId ? { countryId: dto.countryId } : {}),
+          ...(nextCountryId ? { countryId: nextCountryId } : {}),
         },
         select: { id: true, name: true },
       });
@@ -419,14 +432,14 @@ export class EmployeeProfilesService {
       stateProvinceName = stateProvince.name;
     }
 
-    if (dto.cityId) {
+    if (nextCityId) {
       const city = await this.prisma.city.findFirst({
         where: {
-          id: dto.cityId,
+          id: nextCityId,
           isActive: true,
-          ...(dto.countryId ? { countryId: dto.countryId } : {}),
-          ...(dto.stateProvinceId
-            ? { stateProvinceId: dto.stateProvinceId }
+          ...(nextCountryId ? { countryId: nextCountryId } : {}),
+          ...(nextStateProvinceId
+            ? { stateProvinceId: nextStateProvinceId }
             : {}),
         },
         select: { id: true, name: true },

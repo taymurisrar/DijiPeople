@@ -96,7 +96,12 @@ export const MISC_PERMISSION_KEYS = {
   CUSTOMIZATION_PUBLISH: 'customization.publish',
   NOTIFICATION_TEMPLATES_MANAGE: 'notification-templates.manage',
   ORGANIZATION_MANAGE: 'organization.manage',
+
+  USERS_READ: 'users.read',
+  BUSINESS_UNITS_READ: 'business-units.read',
+
   ROLES_MANAGE: 'roles.manage',
+  ROLES_READ: 'roles.read',
   TEAM_MEMBERSHIP_MANAGE: 'teams.members.manage',
 } as const;
 
@@ -359,6 +364,25 @@ export const MISC_PERMISSION_DEFINITIONS: MiscPermissionDefinition[] = [
     label: 'Manage roles and permissions',
     description: 'Create roles, assign permissions, and manage user access.',
     category: 'Security',
+  },
+  {
+    key: MISC_PERMISSION_KEYS.ROLES_READ,
+    label: 'View roles and permissions',
+    description: 'View roles, assign permissions, and manage user access.',
+    category: 'Security',
+  },
+  {
+    key: MISC_PERMISSION_KEYS.USERS_READ,
+    label: 'View users',
+    description: 'View tenant users for access management and assignment.',
+    category: 'Security',
+  },
+  {
+    key: MISC_PERMISSION_KEYS.BUSINESS_UNITS_READ,
+    label: 'View business units',
+    description:
+      'View organization and business-unit hierarchy for access scoping.',
+    category: 'Organization',
   },
   {
     key: MISC_PERMISSION_KEYS.TEAM_MEMBERSHIP_MANAGE,

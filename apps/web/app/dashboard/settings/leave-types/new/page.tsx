@@ -1,16 +1,23 @@
+import { generateUniqueNumberCode } from "@/lib/common";
+import { PERMISSION_KEYS } from "@/lib/security-keys";
 import { LeaveTypesForm } from "../../_components/leave-types-form";
 import { SettingsShell } from "../../_components/settings-shell";
+import { requireSettingsPermissions } from "../../_lib/require-settings-permission";
 
-const initialValues = {
-  name: "",
-  code: "",
-  category: "",
-  isPaid: true,
-  requiresApproval: true,
-  isActive: true,
-};
+export default async function NewLeaveTypePage() {
+  await requireSettingsPermissions([PERMISSION_KEYS.LEAVE_TYPES_CREATE]);
 
-export default function NewLeaveTypePage() {
+  const initialValues = {
+    name: "",
+    code: generateUniqueNumberCode({
+      digits: 3,
+    }),
+    category: "GENERAL",
+    isPaid: true,
+    requiresApproval: true,
+    isActive: true,
+  };
+
   return (
     <SettingsShell
       description="Create reusable leave categories that stay business-friendly and tenant-specific."

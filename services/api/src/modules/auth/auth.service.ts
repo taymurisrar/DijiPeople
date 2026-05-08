@@ -11,6 +11,7 @@ import type { Request, Response } from 'express';
 import { randomUUID } from 'node:crypto';
 import type { StringValue } from 'ms';
 import { FOUNDATION_PERMISSION_DEFINITIONS } from '../../common/constants/permissions';
+import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import {
   getAccessTokenSecret,
   getAccessTokenTtl,
@@ -525,6 +526,7 @@ export class AuthService {
     );
     const roleIds = effectiveRoles.map((role) => role.id);
     const roleKeys = effectiveRoles.map((role) => role.key);
+    const isGlobalAdministrator = roleKeys.includes(ROLE_KEYS.GLOBAL_ADMIN);
     const roles = effectiveRoles.map((role) => ({
       id: role.id,
       key: role.key,
@@ -534,6 +536,11 @@ export class AuthService {
     }));
     const permissionKeys = Array.from(
       new Set([
+        ...(isGlobalAdministrator
+          ? FOUNDATION_PERMISSION_DEFINITIONS.map(
+              (permission) => permission.key,
+            )
+          : []),
         ...effectiveRoles.flatMap((role) =>
           role.rolePermissions.map(
             (rolePermission) => rolePermission.permission.key,

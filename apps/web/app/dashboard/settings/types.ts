@@ -53,20 +53,14 @@ export type LeaveTypeRecord = {
 export type LeaveAccrualType =
   | "FIXED_ANNUAL"
   | "MONTHLY_ACCRUAL"
+  | "PER_PAY_PERIOD"
+  | "PER_WORKED_HOUR"
   | "NONE";
 
 export type LeavePolicyRecord = {
   id: string;
   tenantId: string;
   name: string;
-  accrualType: LeaveAccrualType;
-  annualEntitlement: string;
-  carryForwardAllowed: boolean;
-  carryForwardLimit?: string | null;
-  negativeBalanceAllowed: boolean;
-  genderRestriction?: string | null;
-  probationRestriction?: boolean | null;
-  requiresDocumentAfterDays?: number | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -86,9 +80,17 @@ export type HolidayCalendarRecord = {
 export type ApprovalMatrixRecord = {
   id: string;
   tenantId: string;
+  moduleKey: string;
   name: string;
+  leaveTypeId?: string | null;
+  leavePolicyId?: string | null;
   sequence: number;
   approverType: string;
+  approverRoleId?: string | null;
+  approverUserId?: string | null;
+  approvalMode: string;
+  scopeType?: string | null;
+  scopeId?: string | null;
   isActive: boolean;
   leaveType?: {
     id: string;
@@ -99,6 +101,34 @@ export type ApprovalMatrixRecord = {
     id: string;
     name: string;
   } | null;
+  approverRole?: RoleRecord | null;
+  approverUser?: UserOptionRecord | null;
+};
+
+export type RoleRecord = {
+  id: string;
+  name: string;
+  key: string;
+};
+
+export type UserOptionRecord = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+};
+
+export type LeavePolicyAssignmentRecord = {
+  id: string;
+  tenantId: string;
+  leavePolicyId: string;
+  scopeType: string;
+  scopeId?: string | null;
+  effectiveFrom: string;
+  effectiveTo?: string | null;
+  priority: number;
+  isActive: boolean;
+  leavePolicy?: LeavePolicyRecord;
 };
 
 export type TenantSettingsCategory =
@@ -551,4 +581,26 @@ export type BusinessUnitRecord = {
     id: string;
     name: string;
   };
+};
+
+export type LeavePolicyRuleRecord = {
+  id: string;
+  tenantId: string;
+  leavePolicyId: string;
+  leaveTypeId: string;
+  entitlementDays: string | number | null;
+  accrualType: string;
+  accrualFrequency: string | null;
+  carryForwardAllowed: boolean;
+  carryForwardLimit: string | number | null;
+  negativeBalanceAllowed: boolean;
+  requiresDocumentAfterDays: number | null;
+  probationRestriction: boolean;
+  genderRestriction: string | null;
+  minServiceMonths: number | null;
+  maxConsecutiveDays: string | number | null;
+  approvalRequired: boolean;
+  isPaid: boolean;
+  isActive: boolean;
+  leaveType?: LeaveTypeRecord;
 };

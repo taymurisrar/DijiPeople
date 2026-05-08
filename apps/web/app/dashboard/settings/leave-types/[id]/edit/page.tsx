@@ -1,6 +1,8 @@
+import { PERMISSION_KEYS } from "@/lib/security-keys";
 import { apiRequestJson } from "@/lib/server-api";
 import { LeaveTypesForm } from "../../../_components/leave-types-form";
 import { SettingsShell } from "../../../_components/settings-shell";
+import { requireSettingsPermissions } from "../../../_lib/require-settings-permission";
 import { LeaveTypeRecord } from "../../../types";
 
 type EditLeaveTypePageProps = {
@@ -10,6 +12,8 @@ type EditLeaveTypePageProps = {
 export default async function EditLeaveTypePage({
   params,
 }: EditLeaveTypePageProps) {
+  await requireSettingsPermissions([PERMISSION_KEYS.LEAVE_TYPES_UPDATE]);
+
   const { id } = await params;
   const leaveType = await apiRequestJson<LeaveTypeRecord>(`/leave-types/${id}`);
 

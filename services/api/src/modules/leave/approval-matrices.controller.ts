@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseUUIDPipe,
@@ -25,7 +26,7 @@ export class ApprovalMatricesController {
   constructor(private readonly leaveService: LeaveService) {}
 
   @Get()
-  @Permissions('leave-policies.read')
+  @Permissions('approval-matrices.read')
   findAll(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: ListLeaveConfigDto,
@@ -34,7 +35,7 @@ export class ApprovalMatricesController {
   }
 
   @Get(':id')
-  @Permissions('leave-policies.read')
+  @Permissions('approval-matrices.read')
   findOne(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -43,7 +44,7 @@ export class ApprovalMatricesController {
   }
 
   @Post()
-  @Permissions('leave-policies.create')
+  @Permissions('approval-matrices.create')
   create(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateApprovalMatrixDto,
@@ -52,12 +53,21 @@ export class ApprovalMatricesController {
   }
 
   @Patch(':id')
-  @Permissions('leave-policies.update')
+  @Permissions('approval-matrices.update')
   update(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: UpdateApprovalMatrixDto,
   ) {
     return this.leaveService.updateApprovalMatrix(user, id, dto);
+  }
+
+  @Delete(':id')
+  @Permissions('approval-matrices.delete')
+  delete(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.leaveService.deleteApprovalMatrix(user, id);
   }
 }
