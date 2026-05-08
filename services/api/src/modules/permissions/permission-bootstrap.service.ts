@@ -25,6 +25,10 @@ export class PermissionBootstrapService {
     db: PrismaDb = this.prisma,
     actorUserId?: string,
   ) {
+    if (await this.hasCompleteTenantRbac(tenantId, db)) {
+      return this.getBootstrapSnapshot(tenantId, db);
+    }
+
     await db.permission.createMany({
       data: FOUNDATION_PERMISSION_DEFINITIONS.map((permission) => ({
         tenantId,
@@ -248,4 +252,130 @@ export class PermissionBootstrapService {
       roles,
     };
   }
+
+  private async hasCompleteTenantRbac(tenantId: string, db: PrismaDb) {
+    const expected = getExpectedBaselineCounts();
+    const [
+      permissionCount,
+      roleCount,
+      rolePermissionCount,
+      rolePrivilegeCount,
+      roleMiscPermissionCount,
+    ] = await Promise.all([
+      db.permission.count({ where: { tenantId } }),
+      db.role.count({ where: { tenantId, isSystem: true } }),
+      db.rolePermission.count({ where: { tenantId } }),
+      db.rolePrivilege.count({ where: { tenantId } }),
+      db.roleMiscPermission.count({ where: { tenantId } }),
+    ]);
+
+    return (
+      permissionCount >= expected.permissions &&
+      roleCount >= expected.roles &&
+      rolePermissionCount >= expected.rolePermissions &&
+      rolePrivilegeCount >= expected.rolePrivileges &&
+      roleMiscPermissionCount >= expected.roleMiscPermissions
+    );
+  }
+
+  private async getBootstrapSnapshot(tenantId: string, db: PrismaDb) {
+    const [permissions, roles] = await Promise.all([
+      db.permission.findMany({
+        where: {
+          tenantId,
+          key: {
+            in: FOUNDATION_PERMISSION_DEFINITIONS.map(
+              (permission) => permission.key,
+            ),
+          },
+        },
+      }),
+      db.role.findMany({
+        where: {
+          tenantId,
+          key: {
+            in: SYSTEM_ROLE_DEFINITIONS.map((role) => role.key),
+          },
+        },
+      }),
+    ]);
+
+    return {
+      permissions,
+      roles,
+    };
+  }
+}
+
+function getExpectedBaselineCounts() {
+  const foundationPermissionKeys = new Set(
+    FOUNDATION_PERMISSION_DEFINITIONS.map((permission) => permission.key),
+  );
+
+  const rolePermissions = SYSTEM_ROLE_DEFINITIONS.reduce((total, role) => {
+    const roleMatrix =
+      SYSTEM_ROLE_PRIVILEGES[
+        role.key as keyof typeof SYSTEM_ROLE_PRIVILEGES
+      ] ?? {};
+
+    const permissionKeys = new Set<string>();
+
+    for (const [matrixKey, accessLevel] of Object.entries(roleMatrix)) {
+      if (accessLevel === SecurityAccessLevel.NONE) {
+        continue;
+      }
+
+      const [entityKey, privilegeKey] = matrixKey.split(':');
+
+      if (!entityKey || !privilegeKey) {
+        continue;
+      }
+
+      permissionKeys.add(
+        matrixPrivilegeToPermissionKey(
+          entityKey,
+          privilegeKey as SecurityPrivilege,
+        ),
+      );
+    }
+
+    for (const permissionKey of SYSTEM_ROLE_MISC_PERMISSIONS[
+      role.key as keyof typeof SYSTEM_ROLE_MISC_PERMISSIONS
+    ] ?? []) {
+      permissionKeys.add(permissionKey);
+    }
+
+    return (
+      total +
+      Array.from(permissionKeys).filter((permissionKey) =>
+        foundationPermissionKeys.has(permissionKey),
+      ).length
+    );
+  }, 0);
+
+  const rolePrivileges = SYSTEM_ROLE_DEFINITIONS.reduce((total, role) => {
+    const roleMatrix =
+      SYSTEM_ROLE_PRIVILEGES[
+        role.key as keyof typeof SYSTEM_ROLE_PRIVILEGES
+      ] ?? {};
+
+    return total + Object.keys(roleMatrix).length;
+  }, 0);
+
+  const roleMiscPermissions = SYSTEM_ROLE_DEFINITIONS.reduce((total, role) => {
+    return (
+      total +
+      (SYSTEM_ROLE_MISC_PERMISSIONS[
+        role.key as keyof typeof SYSTEM_ROLE_MISC_PERMISSIONS
+      ]?.length ?? 0)
+    );
+  }, 0);
+
+  return {
+    permissions: FOUNDATION_PERMISSION_DEFINITIONS.length,
+    roles: SYSTEM_ROLE_DEFINITIONS.length,
+    rolePermissions,
+    rolePrivileges,
+    roleMiscPermissions,
+  };
 }

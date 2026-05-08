@@ -246,9 +246,11 @@ function buildRequestCookieHeader(
 function getApiBaseUrl() {
   const value =
     process.env.API_INTERNAL_URL ??
+    process.env.NEXT_PUBLIC_API_BASE_URL ??
     process.env.NEXT_PUBLIC_API_URL ??
+    process.env.API_BASE_URL ??
     process.env.API_URL ??
-    "http://localhost:4000";
+    "http://localhost:4000/api";
 
   return value.replace(/\/+$/, "");
 }
