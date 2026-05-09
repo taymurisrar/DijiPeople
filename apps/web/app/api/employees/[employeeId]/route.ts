@@ -37,3 +37,12 @@ export async function PATCH(request: Request, context: RouteContext) {
     );
   }
 }
+
+export async function DELETE(_request: Request, context: RouteContext) {
+  const { employeeId } = await context.params;
+  const response = await apiRequest(`/employees/${employeeId}`, {
+    method: "DELETE",
+  });
+
+  return proxyApiJsonResponse(response);
+}

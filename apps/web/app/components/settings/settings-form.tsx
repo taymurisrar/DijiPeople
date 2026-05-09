@@ -8,6 +8,7 @@ import {
 } from "@/app/components/ui/form-control";
 import { BrandingLogoUploadField } from "./branding-logo-upload-field";
 import { ColorPickerField } from "./color-picker-field";
+import { SideToast } from "@/app/components/notifications";
 import {
   SettingsMap,
   SettingsSectionConfig,
@@ -55,11 +56,13 @@ export function SettingsForm({
   const router = useRouter();
 const LOOKUP_ENDPOINTS: Record<string, string> = {
   countries: "/api/lookups/countries",
+  currencies: "/api/configuration/currencies",
   states: "/api/lookups/states",
   cities: "/api/lookups/cities",
   documentCategories: "/api/lookups/document-categories",
   documentTypes: "/api/lookups/document-types",
   relationTypes: "/api/lookups/relation-types",
+  timezones: "/api/configuration/timezones",
 };
   const [settings, setSettings] = useState<SettingsState>(
     () => (initialSettings ?? {}) as SettingsState,
@@ -262,7 +265,7 @@ const response = await fetch(endpoint, {
           </div>
 
           {section.fields.map((field) => (
-            <SettingsField
+          <SettingsField
               field={field}
               key={`${field.category}-${field.key}`}
               lookupError={
@@ -322,6 +325,26 @@ const response = await fetch(endpoint, {
           {isSubmitting ? "Saving..." : saveLabel}
         </button>
       </div>
+
+      {error ? (
+        <SideToast
+          isOpen
+          title="Settings save failed"
+          description={error}
+          variant="error"
+          onClose={() => setError(null)}
+        />
+      ) : null}
+
+      {successMessage ? (
+        <SideToast
+          isOpen
+          title="Settings saved"
+          description={successMessage}
+          variant="success"
+          onClose={() => setSuccessMessage(null)}
+        />
+      ) : null}
     </form>
   );
 }
@@ -344,6 +367,7 @@ function SettingsField({
       {field.description}
     </span>
   ) : null;
+  const disabled = field.disabled || field.readOnly;
 
   if (field.type === "checkbox") {
     return (
@@ -352,6 +376,7 @@ function SettingsField({
           checked={Boolean(value)}
           className="mt-1 h-4 w-4 rounded border-border"
           onChange={(event) => onChange(event.target.checked)}
+          disabled={disabled}
           type="checkbox"
         />
 
@@ -376,6 +401,7 @@ function SettingsField({
             const rawValue = event.target.value;
             onChange(rawValue === "" ? null : Number(rawValue));
           }}
+          disabled={disabled}
           placeholder={field.placeholder}
           type="number"
           value={typeof value === "number" ? String(value) : ""}
@@ -394,6 +420,7 @@ function SettingsField({
         <select
           className="w-full rounded-2xl border border-border bg-white px-4 py-3 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
           onChange={(event) => onChange(event.target.value || null)}
+          disabled={disabled}
           value={typeof value === "string" ? value : ""}
         >
           <option value="">Select {field.label}</option>
@@ -438,6 +465,7 @@ function SettingsField({
 
                     onChange(Array.from(next));
                   }}
+                  disabled={disabled}
                   type="checkbox"
                 />
 
@@ -466,6 +494,7 @@ function SettingsField({
         options={lookupOptions}
         placeholder={field.placeholder ?? `Search ${field.label}`}
         value={typeof value === "string" ? value : ""}
+        disabled={disabled}
       />
     );
   }
@@ -477,6 +506,7 @@ function SettingsField({
         label={field.label}
         onChange={(nextValue) => onChange(nextValue || null)}
         value={typeof value === "string" ? value : ""}
+        disabled={disabled}
       />
     );
   }
@@ -489,6 +519,7 @@ function SettingsField({
         onChange={(nextValue) => onChange(nextValue || null)}
         settingKey={field.key}
         value={typeof value === "string" ? value : ""}
+        disabled={disabled}
       />
     );
   }
@@ -501,6 +532,7 @@ function SettingsField({
         <textarea
           className="min-h-28 w-full rounded-2xl border border-border bg-white px-4 py-3 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
           onChange={(event) => onChange(event.target.value)}
+          disabled={disabled}
           placeholder={field.placeholder}
           value={typeof value === "string" ? value : ""}
         />
@@ -517,6 +549,7 @@ function SettingsField({
       <input
         className="w-full rounded-2xl border border-border bg-white px-4 py-3 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
         onChange={(event) => onChange(event.target.value)}
+        disabled={disabled}
         placeholder={field.placeholder}
         value={typeof value === "string" ? value : ""}
       />

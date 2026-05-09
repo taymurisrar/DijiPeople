@@ -8,9 +8,15 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService, TokenExpiredError, JsonWebTokenError } from '@nestjs/jwt';
 import { Reflector } from '@nestjs/core';
-import { getAccessTokenSecret } from '../config/auth.config';
+import {
+  getAccessTokenSecret,
+  getAuthCookieNames,
+  getSessionIdleTimeoutMs,
+  isSlidingSessionEnabled,
+} from '../config/auth.config';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { AuthAccessService } from '../../modules/auth/auth-access.service';
+import { PrismaService } from '../prisma/prisma.service';
 import {
   AuthenticatedRequest,
   AuthTokenPayload,
@@ -25,6 +31,7 @@ export class JwtAuthGuard implements CanActivate {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly authAccessService: AuthAccessService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -45,7 +52,10 @@ export class JwtAuthGuard implements CanActivate {
         `Unauthorized request: access token missing. Path=${request.url}, Method=${request.method}`,
       );
 
-      throw new UnauthorizedException('Access token is required.');
+      throw new UnauthorizedException({
+        code: 'AUTH_REQUIRED',
+        message: 'Access token is required.',
+      });
     }
 
     try {
@@ -61,8 +71,13 @@ export class JwtAuthGuard implements CanActivate {
           `Invalid token type. Expected=access, Received=${payload.type}, UserId=${payload.sub}, TenantId=${payload.tenantId}`,
         );
 
-        throw new UnauthorizedException('Access token is invalid.');
+        throw new UnauthorizedException({
+          code: 'INVALID_TOKEN',
+          message: 'Access token is invalid.',
+        });
       }
+
+      await this.assertSessionIsActive(payload);
 
       const { authUser } = await this.authAccessService.loadAccessContext(
         payload.sub,
@@ -74,7 +89,10 @@ export class JwtAuthGuard implements CanActivate {
           `Access context not found. UserId=${payload.sub}, TenantId=${payload.tenantId}`,
         );
 
-        throw new UnauthorizedException('Access token is invalid.');
+        throw new UnauthorizedException({
+          code: 'INVALID_TOKEN',
+          message: 'Access token is invalid.',
+        });
       }
 
       if (authUser.email !== payload.email) {
@@ -82,7 +100,10 @@ export class JwtAuthGuard implements CanActivate {
           `Token email mismatch. TokenEmail=${payload.email}, CurrentEmail=${authUser.email}, UserId=${payload.sub}, TenantId=${payload.tenantId}`,
         );
 
-        throw new UnauthorizedException('Access token is invalid.');
+        throw new UnauthorizedException({
+          code: 'INVALID_TOKEN',
+          message: 'Access token is invalid.',
+        });
       }
 
       request.user = authUser;
@@ -98,7 +119,10 @@ export class JwtAuthGuard implements CanActivate {
           `Access token expired. Path=${request.url}, Method=${request.method}`,
         );
 
-        throw new UnauthorizedException('Access token has expired.');
+        throw new UnauthorizedException({
+          code: 'ACCESS_TOKEN_EXPIRED',
+          message: 'Access token has expired.',
+        });
       }
 
       if (error instanceof JsonWebTokenError) {
@@ -106,7 +130,10 @@ export class JwtAuthGuard implements CanActivate {
           `Invalid JWT. Reason=${error.message}, Path=${request.url}, Method=${request.method}`,
         );
 
-        throw new UnauthorizedException('Access token is invalid.');
+        throw new UnauthorizedException({
+          code: 'INVALID_TOKEN',
+          message: 'Access token is invalid.',
+        });
       }
 
       this.logger.error(
@@ -114,7 +141,10 @@ export class JwtAuthGuard implements CanActivate {
         error instanceof Error ? error.stack : String(error),
       );
 
-      throw new UnauthorizedException('Access token could not be verified.');
+      throw new UnauthorizedException({
+        code: 'INVALID_TOKEN',
+        message: 'Access token could not be verified.',
+      });
     }
   }
 
@@ -126,11 +156,62 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     const cookies = request.cookies as Record<string, string> | undefined;
-    return cookies?.dp_access_token;
+    return cookies?.[getAuthCookieNames(this.configService).access];
   }
 
   private extractTokenFromHeader(request: AuthenticatedRequest) {
     const [type, token] = request.headers.authorization?.split(' ') ?? [];
     return type === 'Bearer' ? token : undefined;
+  }
+
+  private async assertSessionIsActive(payload: AuthTokenPayload) {
+    if (payload.type !== 'access') {
+      return;
+    }
+
+    const tokenRecord = await this.prisma.refreshToken.findFirst({
+      where: {
+        sessionId: payload.sessionId,
+        userId: payload.sub,
+        tenantId: payload.tenantId,
+        revokedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        absoluteExpiresAt: true,
+        lastActivityAt: true,
+      },
+    });
+
+    if (!tokenRecord) {
+      throw new UnauthorizedException({
+        code: 'SESSION_REVOKED',
+        message: 'Session is no longer active.',
+      });
+    }
+
+    const now = Date.now();
+    if (
+      tokenRecord.absoluteExpiresAt &&
+      tokenRecord.absoluteExpiresAt.getTime() <= now
+    ) {
+      throw new UnauthorizedException({
+        code: 'SESSION_EXPIRED',
+        message: 'Session has expired.',
+      });
+    }
+
+    if (
+      isSlidingSessionEnabled(this.configService) &&
+      tokenRecord.lastActivityAt &&
+      now - tokenRecord.lastActivityAt.getTime() >
+        getSessionIdleTimeoutMs(this.configService)
+    ) {
+      throw new UnauthorizedException({
+        code: 'SESSION_EXPIRED',
+        message: 'Session expired due to inactivity.',
+      });
+    }
   }
 }

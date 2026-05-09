@@ -4,6 +4,7 @@ import { useMemo } from "react";
 
 type ColorPickerFieldProps = {
   description?: string;
+  disabled?: boolean;
   label: string;
   onChange: (value: string) => void;
   value: string;
@@ -13,6 +14,7 @@ const HEX_COLOR_PATTERN = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 
 export function ColorPickerField({
   description,
+  disabled = false,
   label,
   onChange,
   value,
@@ -30,6 +32,7 @@ export function ColorPickerField({
       <div className="flex items-center gap-3 rounded-2xl border border-border bg-white px-3 py-2">
         <input
           className="h-10 w-14 rounded-lg border border-border bg-white p-0"
+          disabled={disabled}
           onChange={(event) => onChange(event.target.value)}
           type="color"
           value={normalizedColor}
@@ -41,6 +44,7 @@ export function ColorPickerField({
               : "border-amber-300 bg-amber-50 text-amber-900 focus:border-amber-400 focus:ring-2 focus:ring-amber-200"
           }`}
           onChange={(event) => onChange(event.target.value)}
+          disabled={disabled}
           placeholder="#0f766e"
           value={value}
         />

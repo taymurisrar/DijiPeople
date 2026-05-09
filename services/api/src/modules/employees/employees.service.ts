@@ -40,6 +40,12 @@ import {
   TenantSettingsResolverService,
 } from '../tenant-settings/tenant-settings-resolver.service';
 import { TenantSettingsService } from '../tenant-settings/tenant-settings.service';
+import { BulkDeleteEmployeesDto } from './dto/bulk-delete-employees.dto';
+
+type CsvFile = {
+  filename: string;
+  buffer: Buffer;
+};
 
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -51,6 +57,45 @@ function getUpdateDtoValue<Dto extends object, Key extends keyof Dto, Fallback>(
   fallback: Fallback,
 ) {
   return Object.prototype.hasOwnProperty.call(dto, key) ? dto[key] : fallback;
+}
+
+function formatDateForFilename(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function sanitizeFilename(value: string) {
+  return value.replace(/[^a-zA-Z0-9_-]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
+function toCsv(rows: Array<Record<string, unknown>>) {
+  if (rows.length === 0) {
+    return '';
+  }
+
+  const headers = Object.keys(rows[0]);
+  const lines = [
+    headers.join(','),
+    ...rows.map((row) =>
+      headers.map((header) => csvCell(row[header])).join(','),
+    ),
+  ];
+
+  return `${lines.join('\n')}\n`;
+}
+
+function csvCell(value: unknown) {
+  const text =
+    value === null || value === undefined
+      ? ''
+      : value instanceof Date
+        ? value.toISOString()
+        : typeof value === 'string'
+          ? value
+          : typeof value === 'number' || typeof value === 'boolean'
+            ? String(value)
+            : JSON.stringify(value);
+
+  return `"${text.replace(/"/g, '""')}"`;
 }
 
 @Injectable()
@@ -745,6 +790,340 @@ export class EmployeesService {
     dto: ProvisionEmployeeAccessDto,
   ) {
     return this.provisionEmployeeUserAccess(currentUser, employeeId, dto);
+  }
+
+  async bulkDelete(
+    currentUser: AuthenticatedUser,
+    dto: BulkDeleteEmployeesDto,
+  ) {
+    const ids = [...new Set(dto.ids)];
+
+    if (ids.length === 0) {
+      return {
+        success: false,
+        deletedCount: 0,
+        message: 'No employee records were selected.',
+      };
+    }
+
+    const employees = await this.prisma.employee.findMany({
+      where: {
+        tenantId: currentUser.tenantId,
+        id: {
+          in: ids,
+        },
+        isDeleted: false,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        employeeCode: true,
+        firstName: true,
+        lastName: true,
+        employmentStatus: true,
+        ownerUserId: true,
+      },
+    });
+
+    if (employees.length === 0) {
+      return {
+        success: false,
+        deletedCount: 0,
+        message: 'No matching employee records were found.',
+      };
+    }
+
+    const employeeIds = employees.map((employee) => employee.id);
+    const deletedAt = new Date();
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.employee.updateMany({
+        where: {
+          tenantId: currentUser.tenantId,
+          id: {
+            in: employeeIds,
+          },
+        },
+        data: {
+          deletedAt,
+          deletedById: currentUser.userId,
+          isDeleted: true,
+          updatedAt: deletedAt,
+        },
+      });
+
+      for (const employee of employees) {
+        await tx.auditLog.create({
+          data: {
+            tenantId: currentUser.tenantId,
+            actorUserId: currentUser.userId,
+            entityType: 'Employee',
+            entityId: employee.id,
+            action: 'EMPLOYEE_ARCHIVED',
+            beforeSnapshot: {
+              employeeCode: employee.employeeCode,
+              employeeName: `${employee.firstName} ${employee.lastName}`.trim(),
+              previousEmploymentStatus: employee.employmentStatus,
+              ownerUserId: employee.ownerUserId,
+            },
+            afterSnapshot: {
+              deletedAt: deletedAt.toISOString(),
+              deletedById: currentUser.userId,
+              isDeleted: true,
+            },
+          },
+        });
+      }
+    });
+
+    return {
+      success: true,
+      deletedCount: employeeIds.length,
+      deletedIds: employeeIds,
+      message: `${employeeIds.length} employee record${
+        employeeIds.length === 1 ? '' : 's'
+      } deleted successfully.`,
+    };
+  }
+
+  async assignOwner(
+    currentUser: AuthenticatedUser,
+    employeeIds: string[],
+    ownerUserId: string,
+  ) {
+    const ids = [...new Set(employeeIds)];
+
+    if (ids.length === 0) {
+      throw new BadRequestException('Select at least one employee.');
+    }
+
+    const owner = await this.prisma.user.findFirst({
+      where: {
+        id: ownerUserId,
+        tenantId: currentUser.tenantId,
+        status: UserStatus.ACTIVE,
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+      },
+    });
+
+    if (!owner) {
+      throw new BadRequestException(
+        'Owner user was not found for this tenant.',
+      );
+    }
+
+    const employees = await this.prisma.employee.findMany({
+      where: {
+        tenantId: currentUser.tenantId,
+        id: { in: ids },
+        isDeleted: false,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        employeeCode: true,
+        firstName: true,
+        lastName: true,
+        ownerUserId: true,
+      },
+    });
+
+    if (employees.length !== ids.length) {
+      throw new NotFoundException(
+        'One or more employee records were not found for this tenant.',
+      );
+    }
+
+    const assignedAt = new Date();
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.employee.updateMany({
+        where: {
+          tenantId: currentUser.tenantId,
+          id: { in: ids },
+          isDeleted: false,
+          deletedAt: null,
+        },
+        data: {
+          ownerUserId: owner.id,
+          updatedById: currentUser.userId,
+          updatedAt: assignedAt,
+        },
+      });
+
+      for (const employee of employees) {
+        await tx.auditLog.create({
+          data: {
+            tenantId: currentUser.tenantId,
+            actorUserId: currentUser.userId,
+            action: 'EMPLOYEE_OWNER_ASSIGNED',
+            entityType: 'Employee',
+            entityId: employee.id,
+            beforeSnapshot: {
+              ownerUserId: employee.ownerUserId,
+            },
+            afterSnapshot: {
+              ownerUserId: owner.id,
+              ownerName: `${owner.firstName} ${owner.lastName}`.trim(),
+              ownerEmail: owner.email,
+            },
+          },
+        });
+      }
+    });
+
+    return {
+      success: true,
+      assignedCount: ids.length,
+      employeeIds: ids,
+      owner: {
+        id: owner.id,
+        fullName: `${owner.firstName} ${owner.lastName}`.trim(),
+        email: owner.email,
+      },
+    };
+  }
+
+  async getOwnerOptions(currentUser: AuthenticatedUser) {
+    const users = await this.prisma.user.findMany({
+      where: {
+        tenantId: currentUser.tenantId,
+        status: UserStatus.ACTIVE,
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+      },
+      orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+      take: 200,
+    });
+
+    return {
+      items: users.map((user) => ({
+        id: user.id,
+        name: `${user.firstName} ${user.lastName}`.trim(),
+        email: user.email,
+      })),
+    };
+  }
+
+  async exportEmployees(
+    currentUser: AuthenticatedUser,
+    query: EmployeeQueryDto,
+  ): Promise<CsvFile> {
+    const response = await this.findByTenant(currentUser, {
+      ...query,
+      page: 1,
+      pageSize: 10000,
+    });
+
+    const rows = response.items.map((employee) => ({
+      employeeCode: employee.employeeCode,
+      fullName: employee.fullName,
+      workEmail: employee.workEmail ?? '',
+      phone: employee.phone,
+      employmentStatus: employee.employmentStatus,
+      department: employee.department?.name ?? '',
+      designation: employee.designation?.name ?? '',
+      reportingManager: employee.reportingManager
+        ? `${employee.reportingManager.firstName} ${employee.reportingManager.lastName}`.trim()
+        : '',
+      ownerName: employee.ownerUser?.fullName ?? '',
+      ownerEmail: employee.ownerUser?.email ?? '',
+      hireDate: employee.hireDate
+        ? new Date(employee.hireDate).toISOString().slice(0, 10)
+        : '',
+    }));
+
+    return {
+      filename: `employees-export-${formatDateForFilename(new Date())}.csv`,
+      buffer: Buffer.from(toCsv(rows), 'utf8'),
+    };
+  }
+
+  exportEmployeeTemplate(): CsvFile {
+    const columns = [
+      'employeeCode',
+      'firstName',
+      'middleName',
+      'lastName',
+      'preferredName',
+      'workEmail',
+      'personalEmail',
+      'phone',
+      'hireDate',
+      'employmentStatus',
+      'employeeType',
+      'workMode',
+      'contractType',
+      'department',
+      'designation',
+      'reportingManagerEmployeeCode',
+      'ownerEmail',
+    ];
+
+    return {
+      filename: 'employees-import-template.csv',
+      buffer: Buffer.from(`${columns.join(',')}\n`, 'utf8'),
+    };
+  }
+
+  async exportEmployeeProfile(
+    currentUser: AuthenticatedUser,
+    employeeId: string,
+  ): Promise<CsvFile> {
+    const employee = await this.findById(currentUser.tenantId, employeeId);
+    const rows = [
+      {
+        section: 'Profile',
+        field: 'Employee code',
+        value: employee.employeeCode,
+      },
+      { section: 'Profile', field: 'Full name', value: employee.fullName },
+      {
+        section: 'Profile',
+        field: 'Work email',
+        value: employee.workEmail ?? '',
+      },
+      { section: 'Profile', field: 'Phone', value: employee.phone },
+      {
+        section: 'Employment',
+        field: 'Status',
+        value: employee.employmentStatus,
+      },
+      {
+        section: 'Employment',
+        field: 'Department',
+        value: employee.department?.name ?? '',
+      },
+      {
+        section: 'Employment',
+        field: 'Designation',
+        value: employee.designation?.name ?? '',
+      },
+      {
+        section: 'Ownership',
+        field: 'Owner name',
+        value: employee.ownerUser?.fullName ?? '',
+      },
+      {
+        section: 'Ownership',
+        field: 'Owner email',
+        value: employee.ownerUser?.email ?? '',
+      },
+    ];
+
+    return {
+      filename: `employee-${sanitizeFilename(employee.employeeCode || employee.id)}-export-${formatDateForFilename(new Date())}.csv`,
+      buffer: Buffer.from(toCsv(rows), 'utf8'),
+    };
   }
 
   async resendInvitation(currentUser: AuthenticatedUser, employeeId: string) {
@@ -1592,6 +1971,7 @@ export class EmployeesService {
       userId: dto.userId,
       noticePeriodDays: dto.noticePeriodDays,
       taxIdentifier: dto.taxIdentifier?.trim(),
+      ownerUserId: actorId,
       createdById: actorId,
       updatedById: actorId,
     };
@@ -1886,6 +2266,7 @@ export class EmployeesService {
       managerEmployeeId: employee.managerEmployeeId,
       reportingManagerEmployeeId: employee.managerEmployeeId,
       userId: employee.userId,
+      ownerUserId: employee.ownerUserId,
       noticePeriodDays: employee.noticePeriodDays,
       taxIdentifier: employee.taxIdentifier,
       isDraftProfile: employee.isDraftProfile,
@@ -1926,6 +2307,16 @@ export class EmployeesService {
               key: userRole.role.key,
               name: userRole.role.name,
             })),
+          }
+        : null,
+      ownerUser: employee.ownerUser
+        ? {
+            id: employee.ownerUser.id,
+            email: employee.ownerUser.email,
+            firstName: employee.ownerUser.firstName,
+            lastName: employee.ownerUser.lastName,
+            fullName:
+              `${employee.ownerUser.firstName} ${employee.ownerUser.lastName}`.trim(),
           }
         : null,
       profileImage: employee.profileImageDocument

@@ -1,15 +1,21 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { DataTable } from "@/app/components/data-table/data-table";
 import { DataTablePagination } from "@/app/components/data-table/data-table-pagination";
-import { DataTableColumn } from "@/app/components/data-table/types";
+import {
+  DataTableColumn,
+  DataTableFilterState,
+} from "@/app/components/data-table/types";
 import { formatDateWithTenantSettings } from "@/lib/date-format";
 import { EmployeeListItem } from "../types";
 import { EmployeeStatusBadge } from "./employee-status-badge";
 
 type EmployeesTableProps = {
   employees: EmployeeListItem[];
+  canDeleteEmployee?: boolean;
+  canAssignEmployee?: boolean;
   formatting: {
     dateFormat: string;
     locale: string;
@@ -25,25 +31,57 @@ type EmployeesTableProps = {
   visibleColumnKeys?: string[];
   initialSortColumnKey?: string;
   initialSortDirection?: "asc" | "desc";
+  initialFilters?: DataTableFilterState[];
   useEntityDataApi?: boolean;
 };
 
 export function EmployeesTable({
   employees,
+  canDeleteEmployee = false,
+  canAssignEmployee = false,
   formatting,
   pagination,
   visibleColumnKeys,
   initialSortColumnKey = "employee",
   initialSortDirection = "asc",
+  initialFilters = [],
   useEntityDataApi = false,
 }: EmployeesTableProps) {
+  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent("employees:selected-ids-changed", {
+        detail: {
+          ids: selectedEmployeeIds,
+          count: selectedEmployeeIds.length,
+        },
+      }),
+    );
+  }, [selectedEmployeeIds]);
+
+  useEffect(() => {
+    function clearSelection() {
+      setSelectedEmployeeIds([]);
+    }
+
+    window.addEventListener("employees:clear-selection", clearSelection);
+    return () =>
+      window.removeEventListener("employees:clear-selection", clearSelection);
+  }, []);
+
+
   const columns: DataTableColumn<EmployeeListItem>[] = [
     {
       key: "employee",
       entityField: "firstName",
       header: "Employee",
       sortable: true,
+      filterable: true,
+      filterType: "text",
+      filterParamKey: "name",
       sortAccessor: (employee) => employee.fullName,
+      filterAccessor: (employee) => employee.fullName,
       render: (employee) => (
         <div>
           <Link
@@ -74,7 +112,11 @@ export function EmployeesTable({
       entityField: "employeeCode",
       header: "Code",
       sortable: true,
+      filterable: true,
+      filterType: "text",
+      filterParamKey: "code",
       sortAccessor: (employee) => employee.employeeCode,
+      filterAccessor: (employee) => employee.employeeCode,
       cellClassName: "text-foreground",
       render: (employee) => employee.employeeCode || "-",
     },
@@ -83,7 +125,18 @@ export function EmployeesTable({
       entityField: "employmentStatus",
       header: "Status",
       sortable: true,
+      filterable: true,
+      filterType: "multiSelect",
+      filterParamKey: "status",
+      filterOptions: [
+        { label: "Active", value: "ACTIVE" },
+        { label: "Inactive", value: "INACTIVE" },
+        { label: "Probation", value: "PROBATION" },
+        { label: "Notice", value: "NOTICE" },
+        { label: "Terminated", value: "TERMINATED" },
+      ],
       sortAccessor: (employee) => employee.employmentStatus,
+      filterAccessor: (employee) => employee.employmentStatus,
       render: (employee) => (
         <EmployeeStatusBadge status={employee.employmentStatus} />
       ),
@@ -93,7 +146,14 @@ export function EmployeesTable({
       entityField: "managerEmployeeId",
       header: "Reporting Manager",
       sortable: true,
+      filterable: true,
+      filterType: "text",
+      filterParamKey: "reportingManager",
       sortAccessor: (employee) =>
+        employee.reportingManager
+          ? `${employee.reportingManager.firstName} ${employee.reportingManager.lastName}`
+          : "",
+      filterAccessor: (employee) =>
         employee.reportingManager
           ? `${employee.reportingManager.firstName} ${employee.reportingManager.lastName}`
           : "",
@@ -108,8 +168,12 @@ export function EmployeesTable({
       entityField: "hireDate",
       header: "Hire Date",
       sortable: true,
+      filterable: true,
+      filterType: "date",
+      filterParamKey: "hireDate",
       sortAccessor: (employee) =>
         employee.hireDate ? new Date(employee.hireDate).getTime() : 0,
+      filterAccessor: (employee) => employee.hireDate ?? "",
       cellClassName: "text-muted",
       render: (employee) =>
         employee.hireDate
@@ -121,7 +185,11 @@ export function EmployeesTable({
       entityField: "email",
       header: "Contact",
       sortable: true,
+      filterable: true,
+      filterType: "text",
+      filterParamKey: "contact",
       sortAccessor: (employee) => employee.workEmail || employee.phone || "",
+      filterAccessor: (employee) => `${employee.workEmail ?? ""} ${employee.phone ?? ""}`,
       cellClassName: "text-muted",
       render: (employee) => (
         <div>
@@ -141,23 +209,29 @@ export function EmployeesTable({
     : columns;
 
   return (
-    <DataTable
-      mode={useEntityDataApi ? "server" : "client"}
-      entityLogicalName={useEntityDataApi ? "employees" : undefined}
-      rows={employees}
-      columns={visibleColumns.length ? visibleColumns : columns}
-      getRowKey={(employee) => employee.id}
-      initialSort={{
-        columnKey: initialSortColumnKey,
-        direction: initialSortDirection,
-      }}
-      pagination={{
-        page: pagination.page,
-        pageSize: pagination.pageSize,
-        totalItems: pagination.totalItems,
-      }}
-      footer={<DataTablePagination {...pagination} />}
-    />
+    <section className="grid gap-6">
+      <DataTable
+        mode={useEntityDataApi ? "server" : "client"}
+        entityLogicalName={useEntityDataApi ? "employees" : undefined}
+        rows={employees}
+        columns={visibleColumns.length ? visibleColumns : columns}
+        getRowKey={(employee) => employee.id}
+        initialSort={{
+          columnKey: initialSortColumnKey,
+          direction: initialSortDirection,
+        }}
+        initialFilters={initialFilters}
+        pagination={{
+          page: pagination.page,
+          pageSize: pagination.pageSize,
+          totalItems: pagination.totalItems,
+        }}
+        footer={<DataTablePagination {...pagination} />}
+        enableSelection={canDeleteEmployee || canAssignEmployee}
+        selectedRowKeys={selectedEmployeeIds}
+        onSelectedRowKeysChange={setSelectedEmployeeIds}
+      />
+    </section>
   );
 }
 

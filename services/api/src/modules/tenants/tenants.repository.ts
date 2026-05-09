@@ -167,6 +167,41 @@ export class TenantsRepository {
     });
   }
 
+  findBySlugExcludingId(
+    slug: string,
+    tenantId: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.tenant.findFirst({
+      where: {
+        slug,
+        id: { not: tenantId },
+      },
+      select: { id: true },
+    });
+  }
+
+  updateSlug(
+    tenantId: string,
+    slug: string,
+    actorUserId: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.tenant.update({
+      where: { id: tenantId },
+      data: {
+        slug,
+        updatedById: actorUserId,
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        updatedAt: true,
+      },
+    });
+  }
+
   updateStatus(
     id: string,
     status: TenantStatus,

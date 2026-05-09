@@ -9,6 +9,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { MailerModule } from './common/mailer/mailer.module';
 import { BusinessUnitAccessMiddleware } from './common/middleware/business-unit-access.middleware';
+import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { RequestContextModule } from './common/request-context/request-context.module';
 import { StorageModule } from './common/storage/storage.module';
@@ -24,6 +25,7 @@ import { ClaimsModule } from './modules/claims/claims.module';
 import { DocumentsModule } from './modules/documents/documents.module';
 import { CustomizationModule } from './modules/customization/customization.module';
 import { DataModule } from './modules/data/data.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { EmployeeLevelsModule } from './modules/employee-levels/employee-levels.module';
 import { EmployeesModule } from './modules/employees/employees.module';
 import { LeaveModule } from './modules/leave/leave.module';
@@ -66,6 +68,7 @@ import { SuperAdminModule } from './modules/super-admin/super-admin.module';
     CompensationModule,
     CustomizationModule,
     DataModule,
+    DashboardModule,
     DocumentsModule,
     EmployeeLevelsModule,
     EmployeesModule,
@@ -92,10 +95,14 @@ import { SuperAdminModule } from './modules/super-admin/super-admin.module';
     PermissionsModule,
   ],
   controllers: [AppController],
-  providers: [AppService, BusinessUnitAccessMiddleware],
+  providers: [AppService, BusinessUnitAccessMiddleware, RequestIdMiddleware],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(RequestIdMiddleware)
+      .forRoutes({ path: '*path', method: RequestMethod.ALL });
+
     consumer
       .apply(BusinessUnitAccessMiddleware)
       .forRoutes({ path: '*path', method: RequestMethod.ALL });

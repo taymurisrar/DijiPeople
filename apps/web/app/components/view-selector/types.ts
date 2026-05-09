@@ -6,6 +6,8 @@ export type ModuleViewOption = {
   type: ModuleViewType;
   description?: string;
   isDefault?: boolean;
+  badgeCount?: number;
+  icon?: string;
 };
 
 export type ModuleViewSelectorConfig = {

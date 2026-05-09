@@ -47,10 +47,6 @@ export class TenantSettingsController {
   @Public()
   @Get('public-branding')
   async getPublicBranding(@Query('tenantSlug') tenantSlug?: string) {
-    if (!tenantSlug) {
-      throw new BadRequestException('tenantSlug is required');
-    }
-
     return this.service.getPublicBranding(tenantSlug);
   }
 

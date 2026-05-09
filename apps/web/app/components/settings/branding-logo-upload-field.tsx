@@ -4,6 +4,7 @@ import { ChangeEvent, useMemo, useState } from "react";
 
 type BrandingLogoUploadFieldProps = {
   description?: string;
+  disabled?: boolean;
   label: string;
   onChange: (value: string) => void;
   settingKey: string;
@@ -52,6 +53,7 @@ const DIMENSION_RULES: Record<
 
 export function BrandingLogoUploadField({
   description,
+  disabled = false,
   label,
   onChange,
   settingKey,
@@ -66,7 +68,7 @@ export function BrandingLogoUploadField({
     const file = event.target.files?.[0];
     event.target.value = "";
 
-    if (!file) {
+    if (disabled || !file) {
       return;
     }
 
@@ -151,7 +153,7 @@ export function BrandingLogoUploadField({
             <input
               accept=".png,.jpg,.jpeg,.webp,.svg,image/png,image/jpeg,image/webp,image/svg+xml"
               className="hidden"
-              disabled={isUploading}
+              disabled={disabled || isUploading}
               onChange={handleFileSelect}
               type="file"
             />

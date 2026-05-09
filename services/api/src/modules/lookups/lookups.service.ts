@@ -30,6 +30,49 @@ export class LookupsService {
     );
   }
 
+  listTimezones() {
+    const ids = [
+      'UTC',
+      'Asia/Qatar',
+      'Asia/Riyadh',
+      'Asia/Dubai',
+      'Asia/Karachi',
+      'Asia/Kolkata',
+      'Europe/London',
+      'Europe/Berlin',
+      'America/New_York',
+      'America/Chicago',
+      'America/Los_Angeles',
+    ];
+
+    return {
+      items: ids.map((id) => ({ id, value: id, name: id, label: id })),
+    };
+  }
+
+  listCurrencies() {
+    const currencies = [
+      { code: 'USD', name: 'US Dollar', symbol: '$', decimals: 2 },
+      { code: 'QAR', name: 'Qatari Riyal', symbol: 'QR', decimals: 2 },
+      { code: 'SAR', name: 'Saudi Riyal', symbol: 'SR', decimals: 2 },
+      { code: 'AED', name: 'UAE Dirham', symbol: 'AED', decimals: 2 },
+      { code: 'PKR', name: 'Pakistani Rupee', symbol: 'Rs', decimals: 2 },
+      { code: 'INR', name: 'Indian Rupee', symbol: 'Rs', decimals: 2 },
+      { code: 'GBP', name: 'Pound Sterling', symbol: 'GBP', decimals: 2 },
+      { code: 'EUR', name: 'Euro', symbol: 'EUR', decimals: 2 },
+    ];
+
+    return {
+      items: currencies.map((currency) => ({
+        ...currency,
+        id: currency.code,
+        value: currency.code,
+        name: `${currency.code} - ${currency.name}`,
+        label: `${currency.code} - ${currency.name}`,
+      })),
+    };
+  }
+
   async listDocumentTypes(tenantId: string) {
     await this.ensureTenantLookupDefaults(tenantId);
     return this.prisma.documentType.findMany({

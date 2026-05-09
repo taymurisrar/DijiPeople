@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Prisma } from '@prisma/client';
@@ -15,9 +11,15 @@ import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import {
   getAccessTokenSecret,
   getAccessTokenTtl,
+  getAuthCookieNames,
   getRefreshTokenSecret,
   getRefreshTokenTtl,
+  getSessionAbsoluteTimeoutMs,
+  getSessionActivityThrottleMs,
+  getSessionIdleTimeoutMs,
+  isSlidingSessionEnabled,
   parseDurationToMilliseconds,
+  buildAuthCookieOptions,
 } from '../../common/config/auth.config';
 import { AuthTokenPayload } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -29,9 +31,6 @@ import { UserInvitationsService } from './user-invitations.service';
 import { LoginDto } from './dto/login.dto';
 import { SignupDto } from './dto/signup.dto';
 import { AuthAccessService } from './auth-access.service';
-
-const ACCESS_TOKEN_COOKIE = 'dp_access_token';
-const REFRESH_TOKEN_COOKIE = 'dp_refresh_token';
 
 type UserWithAccess = Prisma.UserGetPayload<{
   include: {
@@ -114,7 +113,7 @@ export class AuthService {
     });
   }
 
-  async login(dto: LoginDto) {
+  async login(dto: LoginDto, req?: Request) {
     const user = await this.validateCredentials(dto);
     const tenantStatus = String(user.tenant.status).toUpperCase();
 
@@ -139,8 +138,10 @@ export class AuthService {
       this.persistRefreshToken(
         refreshedUser.id,
         refreshedUser.tenantId,
+        authResponse.tokens.sessionId,
         authResponse.tokens.refreshToken,
         authResponse.tokens.refreshTokenExpiresIn,
+        req,
       ),
       this.usersService.markLastLogin(refreshedUser.id),
     ]);
@@ -150,7 +151,10 @@ export class AuthService {
 
   async refresh(refreshToken?: string) {
     if (!refreshToken) {
-      throw new UnauthorizedException('Refresh token is invalid or expired.');
+      throw this.authUnauthorized(
+        'REFRESH_TOKEN_EXPIRED',
+        'Refresh token is invalid or expired.',
+      );
     }
 
     const payload = await this.verifyRefreshToken(refreshToken);
@@ -158,13 +162,19 @@ export class AuthService {
     const user = await this.usersService.findByIdWithAccess(payload.sub);
 
     if (!user) {
-      throw new UnauthorizedException('Unable to refresh this session.');
+      throw this.authUnauthorized(
+        'SESSION_EXPIRED',
+        'Unable to refresh this session.',
+      );
     }
 
     const tenantStatus = String(user.tenant.status).toUpperCase();
 
     if (user.status !== 'ACTIVE' || tenantStatus !== 'ACTIVE') {
-      throw new UnauthorizedException('This account is not active.');
+      throw this.authUnauthorized(
+        'SESSION_REVOKED',
+        'This account is not active.',
+      );
     }
 
     await this.permissionBootstrapService.bootstrapTenantRbac(user.tenantId);
@@ -172,7 +182,10 @@ export class AuthService {
     const refreshedUser = await this.usersService.findByIdWithAccess(user.id);
 
     if (!refreshedUser) {
-      throw new UnauthorizedException('Unable to refresh this session.');
+      throw this.authUnauthorized(
+        'SESSION_EXPIRED',
+        'Unable to refresh this session.',
+      );
     }
 
     const refreshTokenMatches = await this.hasActiveRefreshToken(
@@ -181,7 +194,10 @@ export class AuthService {
     );
 
     if (!refreshTokenMatches) {
-      throw new UnauthorizedException('Refresh token is invalid.');
+      throw this.authUnauthorized(
+        'SESSION_REVOKED',
+        'Refresh token is invalid.',
+      );
     }
 
     const authResponse = this.buildAuthResponse(refreshedUser);
@@ -189,6 +205,7 @@ export class AuthService {
     await this.rotateRefreshToken(
       refreshedUser.id,
       refreshedUser.tenantId,
+      payload.sessionId,
       refreshToken,
       authResponse.tokens.refreshToken,
       authResponse.tokens.refreshTokenExpiresIn,
@@ -197,12 +214,35 @@ export class AuthService {
     return authResponse;
   }
 
+  async recordActivity(currentUser: { userId: string; tenantId: string }) {
+    if (!isSlidingSessionEnabled(this.configService)) {
+      return { ok: true, sliding: false };
+    }
+
+    const throttleMs = getSessionActivityThrottleMs(this.configService);
+    const threshold = new Date(Date.now() - throttleMs);
+
+    await this.prisma.refreshToken.updateMany({
+      where: {
+        userId: currentUser.userId,
+        tenantId: currentUser.tenantId,
+        revokedAt: null,
+        expiresAt: { gt: new Date() },
+        OR: [{ lastActivityAt: null }, { lastActivityAt: { lt: threshold } }],
+      },
+      data: {
+        lastActivityAt: new Date(),
+        lastUsedAt: new Date(),
+      },
+    });
+
+    return { ok: true, sliding: true };
+  }
+
   async getProfileFromRequest(req: Request, res: Response) {
-    const accessToken = this.extractTokenFromRequest(req, ACCESS_TOKEN_COOKIE);
-    const refreshToken = this.extractTokenFromRequest(
-      req,
-      REFRESH_TOKEN_COOKIE,
-    );
+    const cookieNames = getAuthCookieNames(this.configService);
+    const accessToken = this.extractTokenFromRequest(req, cookieNames.access);
+    const refreshToken = this.extractTokenFromRequest(req, cookieNames.refresh);
 
     if (accessToken) {
       try {
@@ -219,7 +259,8 @@ export class AuthService {
 
     if (!refreshToken) {
       this.clearAuthCookies(res);
-      throw new UnauthorizedException(
+      throw this.authUnauthorized(
+        'SESSION_EXPIRED',
         'Your session expired. Please sign in again to continue.',
       );
     }
@@ -234,7 +275,8 @@ export class AuthService {
       return response;
     } catch {
       this.clearAuthCookies(res);
-      throw new UnauthorizedException(
+      throw this.authUnauthorized(
+        'SESSION_EXPIRED',
         'Your session expired. Please sign in again to continue.',
       );
     }
@@ -253,14 +295,12 @@ export class AuthService {
     tokens: {
       accessToken: string;
       refreshToken: string;
+      sessionId: string;
       accessTokenExpiresIn: string;
       refreshTokenExpiresIn: string;
     },
     rememberMe?: boolean,
   ) {
-    const isProduction = this.isProduction();
-    const domain = this.getCookieDomain();
-
     const accessMaxAge = rememberMe
       ? parseDurationToMilliseconds(tokens.accessTokenExpiresIn)
       : undefined;
@@ -269,61 +309,85 @@ export class AuthService {
       ? parseDurationToMilliseconds(tokens.refreshTokenExpiresIn)
       : undefined;
 
-    res.cookie(ACCESS_TOKEN_COOKIE, tokens.accessToken, {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? 'none' : 'lax',
-      path: '/',
-      domain,
-      maxAge: accessMaxAge,
-    });
+    const cookieNames = getAuthCookieNames(this.configService);
 
-    res.cookie(REFRESH_TOKEN_COOKIE, tokens.refreshToken, {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? 'none' : 'lax',
-      path: '/',
-      domain,
-      maxAge: refreshMaxAge,
-    });
+    res.cookie(
+      cookieNames.access,
+      tokens.accessToken,
+      buildAuthCookieOptions(this.configService, accessMaxAge),
+    );
+
+    res.cookie(
+      cookieNames.refresh,
+      tokens.refreshToken,
+      buildAuthCookieOptions(this.configService, refreshMaxAge),
+    );
+
+    res.cookie(
+      cookieNames.session,
+      tokens.sessionId,
+      buildAuthCookieOptions(
+        this.configService,
+        getSessionAbsoluteTimeoutMs(this.configService),
+      ),
+    );
   }
 
   clearAuthCookies(res: Response) {
-    const isProduction = this.isProduction();
-    const domain = this.getCookieDomain();
+    const cookieNames = getAuthCookieNames(this.configService);
+    const options = buildAuthCookieOptions(this.configService, 0);
 
-    res.clearCookie(ACCESS_TOKEN_COOKIE, {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? 'none' : 'lax',
-      path: '/',
-      domain,
-    });
-
-    res.clearCookie(REFRESH_TOKEN_COOKIE, {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? 'none' : 'lax',
-      path: '/',
-      domain,
-    });
+    res.clearCookie(cookieNames.access, options);
+    res.clearCookie(cookieNames.refresh, options);
+    res.clearCookie(cookieNames.session, options);
   }
 
-  private isProduction() {
-    return this.configService.get<string>('NODE_ENV') === 'production';
-  }
+  async logout(req: Request, res: Response) {
+    const cookieNames = getAuthCookieNames(this.configService);
+    const refreshToken = this.extractTokenFromRequest(req, cookieNames.refresh);
 
-  private getCookieDomain() {
-    return this.configService.get<string>('AUTH_COOKIE_DOMAIN') || undefined;
+    if (refreshToken) {
+      const activeTokens = await this.prisma.refreshToken.findMany({
+        where: { revokedAt: null },
+        select: { id: true, tokenHash: true },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+      });
+
+      for (const tokenRecord of activeTokens) {
+        const matches = await bcrypt.compare(
+          refreshToken,
+          tokenRecord.tokenHash,
+        );
+        if (matches) {
+          await this.prisma.refreshToken.update({
+            where: { id: tokenRecord.id },
+            data: { revokedAt: new Date(), lastUsedAt: new Date() },
+          });
+          break;
+        }
+      }
+    }
+
+    this.clearAuthCookies(res);
   }
 
   private async validateCredentials(dto: LoginDto) {
     const normalizedEmail = normalizeEmail(dto.email);
+    const tenantSlug = dto.tenantSlug?.trim();
 
-    const user = await this.usersService.findByEmailWithAccess(normalizedEmail);
+    const user = tenantSlug
+      ? await this.usersService.findByTenantSlugAndEmail(
+          tenantSlug,
+          normalizedEmail,
+        )
+      : await this.usersService.findByEmailWithAccess(normalizedEmail);
 
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials.');
+      throw this.authUnauthorized(
+        'INVALID_CREDENTIALS',
+        'Invalid credentials.',
+      );
     }
 
     const isPasswordValid = await bcrypt.compare(
@@ -332,7 +396,10 @@ export class AuthService {
     );
 
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid credentials.');
+      throw this.authUnauthorized(
+        'INVALID_CREDENTIALS',
+        'Invalid credentials.',
+      );
     }
 
     return user;
@@ -351,7 +418,10 @@ export class AuthService {
       }
       return payload;
     } catch {
-      throw new UnauthorizedException('Refresh token is invalid or expired.');
+      throw this.authUnauthorized(
+        'REFRESH_TOKEN_EXPIRED',
+        'Refresh token is invalid or expired.',
+      );
     }
   }
 
@@ -366,26 +436,37 @@ export class AuthService {
       }
       return payload;
     } catch {
-      throw new UnauthorizedException('Access token is invalid or expired.');
+      throw this.authUnauthorized(
+        'ACCESS_TOKEN_EXPIRED',
+        'Access token is invalid or expired.',
+      );
     }
   }
 
   private async persistRefreshToken(
     userId: string,
     tenantId: string,
+    sessionId: string,
     refreshToken: string,
     refreshTokenTtl: string,
+    req?: Request,
   ) {
     const tokenHash = await bcrypt.hash(refreshToken, 10);
+    const now = Date.now();
 
     await this.prisma.refreshToken.create({
       data: {
         tenantId,
         userId,
+        sessionId,
         tokenHash,
-        expiresAt: new Date(
-          Date.now() + parseDurationToMilliseconds(refreshTokenTtl),
+        expiresAt: new Date(now + parseDurationToMilliseconds(refreshTokenTtl)),
+        absoluteExpiresAt: new Date(
+          now + getSessionAbsoluteTimeoutMs(this.configService),
         ),
+        lastActivityAt: new Date(now),
+        userAgent: req?.headers['user-agent']?.slice(0, 500),
+        ipAddress: req?.ip,
       },
     });
   }
@@ -395,6 +476,7 @@ export class AuthService {
       where: {
         userId,
         revokedAt: null,
+        expiresAt: { gt: new Date() },
       },
       orderBy: {
         createdAt: 'desc',
@@ -405,6 +487,7 @@ export class AuthService {
       const matches = await bcrypt.compare(refreshToken, tokenRecord.tokenHash);
 
       if (matches) {
+        this.assertSessionNotExpired(tokenRecord);
         return true;
       }
     }
@@ -415,6 +498,7 @@ export class AuthService {
   private async rotateRefreshToken(
     userId: string,
     tenantId: string,
+    sessionId: string,
     previousRefreshToken: string,
     nextRefreshToken: string,
     nextRefreshTokenTtl: string,
@@ -448,6 +532,7 @@ export class AuthService {
     await this.persistRefreshToken(
       userId,
       tenantId,
+      sessionId,
       nextRefreshToken,
       nextRefreshTokenTtl,
     );
@@ -504,6 +589,7 @@ export class AuthService {
       tokens: {
         accessToken,
         refreshToken,
+        sessionId,
         accessTokenExpiresIn: accessTokenTtl,
         refreshTokenExpiresIn: refreshTokenTtl,
       },
@@ -616,5 +702,37 @@ export class AuthService {
     }
 
     return null;
+  }
+
+  private assertSessionNotExpired(tokenRecord: {
+    absoluteExpiresAt: Date | null;
+    lastActivityAt: Date | null;
+  }) {
+    const now = Date.now();
+    if (
+      tokenRecord.absoluteExpiresAt &&
+      tokenRecord.absoluteExpiresAt.getTime() <= now
+    ) {
+      throw this.authUnauthorized('SESSION_EXPIRED', 'Session has expired.');
+    }
+
+    if (!isSlidingSessionEnabled(this.configService)) {
+      return;
+    }
+
+    const lastActivityAt = tokenRecord.lastActivityAt?.getTime();
+    if (
+      lastActivityAt &&
+      now - lastActivityAt > getSessionIdleTimeoutMs(this.configService)
+    ) {
+      throw this.authUnauthorized(
+        'SESSION_EXPIRED',
+        'Session expired due to inactivity.',
+      );
+    }
+  }
+
+  private authUnauthorized(code: string, message: string) {
+    return new UnauthorizedException({ code, message });
   }
 }

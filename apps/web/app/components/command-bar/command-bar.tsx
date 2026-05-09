@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
+import type { RefObject } from "react";
 import {
   CommandBarAction,
   CommandBarActionContext,
@@ -23,6 +24,7 @@ const COMMAND_GAP = 4;
 export function CommandBar({
   variant = "form",
   selectedCount = 0,
+  selectedIds = [],
   isDirty = false,
   isReadOnly = false,
   items,
@@ -34,6 +36,7 @@ export function CommandBar({
 
   const context: CommandBarActionContext = {
     selectedCount,
+    selectedIds,
     isDirty,
     isReadOnly,
   };
@@ -116,7 +119,7 @@ export function CommandBar({
   return (
     <div className={className ?? "sticky top-0 z-20 rounded-lg bg-white"}>
       <div ref={containerRef} className="relative px-4 py-2">
-        <div className="flex min-w-0 items-center gap-1 overflow-hidden">
+        <div className="flex min-w-0 items-center gap-1 overflow-visible">
           {primaryItems.map((item) => (
             <Fragment key={item.key}>
               {isCommandGroup(item) ? (
@@ -189,14 +192,6 @@ function CommandButton({
   async function handleClick() {
     if (disabled) return;
 
-    if (action.confirm) {
-      const confirmed = window.confirm(
-        `${action.confirm.title}\n\n${action.confirm.message}`,
-      );
-
-      if (!confirmed) return;
-    }
-
     await action.onClick?.(context);
   }
 
@@ -249,12 +244,17 @@ function CommandGroup({
   context: CommandBarActionContext;
 }) {
   const [open, setOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
   const Icon = group.icon ?? MoreHorizontal;
 
+  useMenuDismiss(open, wrapperRef, () => setOpen(false));
+
   return (
-    <div className="relative shrink-0">
+    <div ref={wrapperRef} className="relative shrink-0">
       <button
         type="button"
+        aria-expanded={open}
+        aria-haspopup="menu"
         onClick={() => setOpen((current) => !current)}
         className="inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-xs font-normal text-black transition hover:bg-gray-100"
       >
@@ -287,11 +287,16 @@ function OverflowCommandGroup({
   context: CommandBarActionContext;
 }) {
   const [open, setOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+
+  useMenuDismiss(open, wrapperRef, () => setOpen(false));
 
   return (
-    <div className="relative shrink-0">
+    <div ref={wrapperRef} className="relative shrink-0">
       <button
         type="button"
+        aria-expanded={open}
+        aria-haspopup="menu"
         aria-label="More commands"
         title="More commands"
         onClick={() => setOpen((current) => !current)}
@@ -344,6 +349,7 @@ function DropdownPanel({
 }) {
   return (
     <div
+      role="menu"
       className={`absolute z-30 mt-2 w-64 overflow-hidden rounded-2xl border border-border bg-white shadow-xl ${
         align === "right" ? "right-0" : "left-0"
       }`}
@@ -373,14 +379,6 @@ function DropdownAction({
   async function handleClick() {
     if (disabled) return;
 
-    if (action.confirm) {
-      const confirmed = window.confirm(
-        `${action.confirm.title}\n\n${action.confirm.message}`,
-      );
-
-      if (!confirmed) return;
-    }
-
     await action.onClick?.(context);
     close();
   }
@@ -405,6 +403,7 @@ function DropdownAction({
       type="button"
       disabled={disabled}
       onClick={handleClick}
+      role="menuitem"
       className={getDropdownClassName(action.danger, disabled)}
     >
       {Icon ? <Icon className="h-4 w-4" /> : null}
@@ -430,6 +429,36 @@ function MeasureButton({ action }: { action: CommandBarAction }) {
       {!isBackButton ? <span>{action.label}</span> : null}
     </div>
   );
+}
+
+function useMenuDismiss(
+  open: boolean,
+  wrapperRef: RefObject<HTMLElement | null>,
+  close: () => void,
+) {
+  useEffect(() => {
+    if (!open) return;
+
+    function handlePointerDown(event: MouseEvent) {
+      if (!wrapperRef.current?.contains(event.target as Node)) {
+        close();
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        close();
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [close, open, wrapperRef]);
 }
 
 function MeasureGroupButton({

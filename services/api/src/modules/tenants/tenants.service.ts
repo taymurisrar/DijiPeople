@@ -1,4 +1,9 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import {
   BillingCycle,
@@ -7,6 +12,7 @@ import {
 } from '@prisma/client';
 import { normalizeEmail } from '../../common/utils/email.util';
 import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
+import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { normalizeTenantSlug } from '../../common/utils/slug.util';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { PermissionsService } from '../permissions/permissions.service';
@@ -20,6 +26,34 @@ import { RolesRepository } from '../roles/roles.repository';
 import { UsersRepository } from '../users/users.repository';
 import { TenantsRepository } from './tenants.repository';
 import { TenantSignupDto } from './dto/tenant-signup.dto';
+import { UpdateTenantSlugDto } from './dto/update-tenant-slug.dto';
+
+const RESERVED_TENANT_SLUGS = new Set([
+  'admin',
+  'api',
+  'app',
+  'auth',
+  'dashboard',
+  'login',
+  'logout',
+  'settings',
+  'signup',
+  'www',
+  'dijipeople',
+  'tenant',
+  'tenants',
+  'system',
+  'platform',
+  'portal',
+  'support',
+  'help',
+  'docs',
+  'billing',
+  'account',
+  'accounts',
+  'root',
+  'superadmin',
+]);
 
 @Injectable()
 export class TenantsService {
@@ -39,6 +73,44 @@ export class TenantsService {
 
   findBySlug(slug: string) {
     return this.tenantsRepository.findBySlug(slug);
+  }
+
+  async updateCurrentSlug(
+    currentUser: AuthenticatedUser,
+    dto: UpdateTenantSlugDto,
+  ) {
+    if (!currentUser.roleKeys.includes(ROLE_KEYS.SYSTEM_CUSTOMIZER)) {
+      throw new ForbiddenException(
+        'Only System Customizer can edit the tenant slug.',
+      );
+    }
+
+    const slug = normalizeTenantSlug(dto.slug);
+
+    if (slug.includes('--')) {
+      throw new BadRequestException(
+        'Tenant slug cannot contain consecutive hyphens.',
+      );
+    }
+
+    if (RESERVED_TENANT_SLUGS.has(slug)) {
+      throw new BadRequestException('This tenant slug is reserved.');
+    }
+
+    const existing = await this.tenantsRepository.findBySlugExcludingId(
+      slug,
+      currentUser.tenantId,
+    );
+
+    if (existing) {
+      throw new ConflictException('Tenant slug is already in use.');
+    }
+
+    return this.tenantsRepository.updateSlug(
+      currentUser.tenantId,
+      slug,
+      currentUser.userId,
+    );
   }
 
   async signup(dto: TenantSignupDto) {

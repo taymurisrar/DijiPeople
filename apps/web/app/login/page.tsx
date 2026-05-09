@@ -1,5 +1,7 @@
 import { CSSProperties, Suspense } from "react";
+import { headers } from "next/headers";
 import { apiRequestJson } from "@/lib/server-api";
+import { resolveTenantSlugFromRequest } from "@/lib/tenant-resolution";
 import { BrandingHeadEffects } from "@/app/components/branding/branding-head-effects";
 import { DEFAULT_BRANDING_VALUES } from "@/app/components/branding/branding-defaults";
 import { TenantLogo } from "@/app/components/branding/tenant-logo";
@@ -38,11 +40,15 @@ type PublicBrandingResponse = {
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
-  const tenantSlug =
-    resolvedSearchParams?.tenantSlug || resolvedSearchParams?.tenant || "";
+  const requestHeaders = await headers();
+  const tenantSlug = resolveTenantSlugFromRequest({
+    host: requestHeaders.get("host"),
+    queryTenant:
+      resolvedSearchParams?.tenantSlug || resolvedSearchParams?.tenant || "",
+  });
   const query = tenantSlug ? `?tenantSlug=${encodeURIComponent(tenantSlug)}` : "";
   const branding = await apiRequestJson<PublicBrandingResponse>(
-    `/tenant-settings/public-branding${query}`,
+    `/tenant-branding/resolved${query}`,
     { includeAuth: false },
   ).catch(() => null);
 
@@ -140,7 +146,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
               <div className="rounded-[24px] border border-border bg-surface/60 p-2 shadow-sm sm:p-4 lg:p-5">
                 <Suspense fallback={null}>
-                  <LoginForm />
+                  <LoginForm tenantSlug={tenantSlug} />
                 </Suspense>
               </div>
 

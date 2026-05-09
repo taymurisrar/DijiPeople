@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE } from "@/lib/auth-config";
+import {
+  ACCESS_TOKEN_COOKIE,
+  REFRESH_TOKEN_COOKIE,
+  SESSION_COOKIE,
+} from "@/lib/auth-config";
 import {
   ACCESS_TOKEN_MAX_AGE_SECONDS,
   getAuthCookieOptions,
@@ -12,6 +16,7 @@ type JsonRecord = Record<string, unknown>;
 type TokenPair = {
   accessToken: string;
   refreshToken: string;
+  sessionId?: string;
 };
 
 type LoginSuccessResponse = JsonRecord & {
@@ -76,6 +81,13 @@ export async function POST(request: Request) {
       data.tokens.refreshToken,
       getAuthCookieOptions(REFRESH_TOKEN_MAX_AGE_SECONDS),
     );
+    if (data.tokens.sessionId) {
+      nextResponse.cookies.set(
+        SESSION_COOKIE,
+        data.tokens.sessionId,
+        getAuthCookieOptions(REFRESH_TOKEN_MAX_AGE_SECONDS),
+      );
+    }
 
     return nextResponse;
   } catch (error: unknown) {
@@ -105,6 +117,15 @@ function safeParseJson(value: string): JsonRecord | null {
 
 function extractErrorMessage(data: JsonRecord | null): string | null {
   if (!data) return null;
+
+  if (
+    data.error &&
+    typeof data.error === "object" &&
+    !Array.isArray(data.error) &&
+    typeof (data.error as { message?: unknown }).message === "string"
+  ) {
+    return (data.error as { message: string }).message;
+  }
 
   if (typeof data.message === "string") {
     return data.message;

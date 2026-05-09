@@ -40,6 +40,18 @@ function getAccessorValue<T>(row: T, column?: DataTableColumn<T>) {
   return normalizeValue(accessor(row) as ComparableValue);
 }
 
+function toComparableNumber(value: string) {
+  const numericValue = Number(value);
+
+  if (Number.isFinite(numericValue)) {
+    return numericValue;
+  }
+
+  const dateValue = new Date(value).getTime();
+
+  return Number.isFinite(dateValue) ? dateValue : Number.NaN;
+}
+
 export function sortRows<T>(
   rows: T[],
   columns: DataTableColumn<T>[],
@@ -94,14 +106,35 @@ export function filterRows<T>(
         return true;
       }
 
-      const rawValue = String(getAccessorValue(row, column)).trim().toLowerCase();
+      const rawValue = String(getAccessorValue(row, column))
+        .trim()
+        .toLowerCase();
       const filterValue = filter.value.trim().toLowerCase();
+      const rawComparable = toComparableNumber(rawValue);
+      const filterComparable = toComparableNumber(filter.value);
+      const filterComparableTo = toComparableNumber(filter.valueTo ?? "");
 
       switch (filter.operator) {
         case "contains":
+          if (column.filterType === "multiSelect") {
+            return filterValue
+              .split(",")
+              .map((value) => value.trim().toLowerCase())
+              .filter(Boolean)
+              .includes(rawValue);
+          }
+
           return rawValue.includes(filterValue);
 
         case "equals":
+          if (column.filterType === "multiSelect") {
+            return filterValue
+              .split(",")
+              .map((value) => value.trim().toLowerCase())
+              .filter(Boolean)
+              .includes(rawValue);
+          }
+
           return rawValue === filterValue;
 
         case "startsWith":
@@ -115,6 +148,31 @@ export function filterRows<T>(
 
         case "isNotEmpty":
           return rawValue.length > 0;
+
+        case "before":
+        case "lessThan":
+          return (
+            Number.isFinite(rawComparable) &&
+            Number.isFinite(filterComparable) &&
+            rawComparable < filterComparable
+          );
+
+        case "after":
+        case "greaterThan":
+          return (
+            Number.isFinite(rawComparable) &&
+            Number.isFinite(filterComparable) &&
+            rawComparable > filterComparable
+          );
+
+        case "between":
+          return (
+            Number.isFinite(rawComparable) &&
+            Number.isFinite(filterComparable) &&
+            Number.isFinite(filterComparableTo) &&
+            rawComparable >= filterComparable &&
+            rawComparable <= filterComparableTo
+          );
 
         default:
           return true;

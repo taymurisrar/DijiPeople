@@ -22,6 +22,7 @@ import { EmployeeStatusBadge } from "../_components/employee-status-badge";
 import { ManagerAssignmentForm } from "../_components/manager-assignment-form";
 import { ReportingStructureSection } from "../_components/reporting-structure-section";
 import { TerminateEmployeeButton } from "../_components/terminate-employee-button";
+import { EmployeesCommandBar } from "../_components/employees-command-bar";
 import { Button } from "@/app/components/ui/button";
 import { AccessDeniedState } from "@/app/dashboard/_components/access-denied-state";
 import {
@@ -319,6 +320,22 @@ sessionUser.permissionKeys.includes(PERMISSION_KEYS.ATTENDANCE_READ)
     sessionUser.permissionKeys,
     PERMISSION_KEYS.EMPLOYEES_UPDATE,
   );
+  const canCreateEmployee = hasPermission(
+    sessionUser.permissionKeys,
+    PERMISSION_KEYS.EMPLOYEES_CREATE,
+  );
+  const canDeleteEmployee = hasPermission(
+    sessionUser.permissionKeys,
+    "employees.delete",
+  );
+  const canAssignEmployee = hasPermission(
+    sessionUser.permissionKeys,
+    "employees.assign",
+  );
+  const canExportEmployee = hasPermission(
+    sessionUser.permissionKeys,
+    "employees.export",
+  );
 
   const canTerminateEmployee = hasPermission(
     sessionUser.permissionKeys,
@@ -364,6 +381,18 @@ sessionUser.permissionKeys.includes(PERMISSION_KEYS.ATTENDANCE_READ)
 
   return (
     <main className="dp-theme-scope dp-employees-scope grid gap-6">
+      <EmployeesCommandBar
+        canCreateEmployee={canCreateEmployee}
+        canDeleteEmployee={canDeleteEmployee}
+        canAssignEmployee={canAssignEmployee}
+        canExportEmployee={canExportEmployee}
+        canShareEmployee={false}
+        canImportEmployee={false}
+        context="detail"
+        employeeCode={employee.employeeCode}
+        employeeId={employee.id}
+      />
+
       <section className="rounded-[28px] border border-border bg-[linear-gradient(135deg,rgba(255,255,255,0.95),rgba(233,246,255,0.9))] p-8 shadow-lg">
         <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
           <div className="grid gap-4">

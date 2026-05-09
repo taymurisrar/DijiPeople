@@ -26,12 +26,18 @@ type CommonButtonProps = {
 };
 
 type NativeButtonProps = CommonButtonProps &
-  Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "disabled" | "children"> & {
+  Omit<
+    React.ButtonHTMLAttributes<HTMLButtonElement>,
+    "disabled" | "children"
+  > & {
     href?: never;
   };
 
 type AnchorButtonProps = CommonButtonProps &
-  Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, "children" | "href"> &
+  Omit<
+    React.AnchorHTMLAttributes<HTMLAnchorElement>,
+    "children" | "href"
+  > &
   Pick<LinkProps, "href"> & {
     href: LinkProps["href"];
   };
@@ -45,16 +51,22 @@ function cn(...classes: Array<string | false | null | undefined>) {
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
     "bg-accent text-white hover:bg-accent-strong disabled:opacity-70 disabled:cursor-not-allowed",
+
   secondary:
     "border border-border text-foreground hover:border-accent/30 hover:text-accent disabled:opacity-70 disabled:cursor-not-allowed",
+
   ghost:
     "text-foreground hover:bg-accent-soft/30 disabled:opacity-70 disabled:cursor-not-allowed",
+
   danger:
     "border border-danger/20 text-danger hover:bg-danger/5 disabled:opacity-70 disabled:cursor-not-allowed",
+
   "danger-soft":
     "border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 disabled:opacity-70 disabled:cursor-not-allowed",
+
   pill:
     "rounded-full border border-border bg-white/80 text-foreground hover:border-accent/30 hover:bg-white disabled:opacity-70 disabled:cursor-not-allowed",
+
   card:
     "rounded-[22px] border border-border bg-white/90 text-left hover:border-accent/30 hover:bg-accent-soft/20 disabled:opacity-70 disabled:cursor-not-allowed",
 };
@@ -89,31 +101,55 @@ export const Button = React.forwardRef<
     ...rest
   } = props;
 
+  const isDisabled = disabled || loading;
+
   const content = (
     <>
-      {leftIcon ? <span className="shrink-0">{leftIcon}</span> : null}
-      <span>{loading ? (loadingText ?? children) : children}</span>
-      {rightIcon ? <span className="shrink-0">{rightIcon}</span> : null}
+      {leftIcon ? (
+        <span className="shrink-0">{leftIcon}</span>
+      ) : null}
+
+      <span>
+        {loading ? (loadingText ?? children) : children}
+      </span>
+
+      {rightIcon ? (
+        <span className="shrink-0">{rightIcon}</span>
+      ) : null}
     </>
   );
 
   const classes = cn(
     baseClasses,
     variantClasses[variant],
-    variant === "card" ? cardSizeClass : variant === "pill" ? pillSizeClass : sizeClasses[size],
+
+    variant === "card"
+      ? cardSizeClass
+      : variant === "pill"
+        ? pillSizeClass
+        : sizeClasses[size],
+
     fullWidth && "w-full",
+
     variant === "card" && "justify-start",
+
     className,
   );
 
+  // Link button
   if ("href" in props && props.href) {
-    const { href, ...linkRest } = rest as Omit<AnchorButtonProps, keyof CommonButtonProps>;
-    const isDisabled = disabled || loading;
+    const linkRest = rest as Omit<
+      AnchorButtonProps,
+      keyof CommonButtonProps | "href"
+    >;
 
     if (isDisabled) {
       return (
         <span
-          className={cn(classes, "pointer-events-none inline-flex")}
+          className={cn(
+            classes,
+            "pointer-events-none inline-flex opacity-70",
+          )}
           aria-disabled="true"
         >
           {content}
@@ -124,7 +160,7 @@ export const Button = React.forwardRef<
     return (
       <Link
         ref={ref as React.Ref<HTMLAnchorElement>}
-        href={href}
+        href={props.href}
         className={classes}
         {...linkRest}
       >
@@ -133,16 +169,23 @@ export const Button = React.forwardRef<
     );
   }
 
-  const buttonRest = rest as Omit<NativeButtonProps, keyof CommonButtonProps>;
+  // Native button
+  const buttonRest = rest as Omit<
+    NativeButtonProps,
+    keyof CommonButtonProps
+  >;
 
   return (
     <button
       ref={ref as React.Ref<HTMLButtonElement>}
       className={classes}
-      disabled={disabled || loading}
+      disabled={isDisabled}
+      type={buttonRest.type ?? "button"}
       {...buttonRest}
     >
       {content}
     </button>
   );
 });
+
+Button.displayName = "Button";

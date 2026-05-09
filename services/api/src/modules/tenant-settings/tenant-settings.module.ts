@@ -5,13 +5,14 @@ import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { AuditModule } from '../audit/audit.module';
 import { FeatureAccessService } from './feature-access.service';
 import { TenantSettingsController } from './tenant-settings.controller';
+import { TenantBrandingController } from './tenant-branding.controller';
 import { TenantSettingsResolverService } from './tenant-settings-resolver.service';
 import { TenantSettingsRepository } from './tenant-settings.repository';
 import { TenantSettingsService } from './tenant-settings.service';
 
 @Module({
   imports: [JwtModule.register({}), AuditModule],
-  controllers: [TenantSettingsController],
+  controllers: [TenantSettingsController, TenantBrandingController],
   providers: [
     TenantSettingsRepository,
     TenantSettingsService,

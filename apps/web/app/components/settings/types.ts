@@ -29,6 +29,8 @@ export type SettingsFieldConfig = {
   options?: { label: string; value: string }[];
   lookupKey?: string;
   placeholder?: string;
+  disabled?: boolean;
+  readOnly?: boolean;
 };
 
 export type SettingsSectionConfig = {

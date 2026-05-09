@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import {
   ACCESS_TOKEN_COOKIE,
   REFRESH_TOKEN_COOKIE,
+  SESSION_COOKIE,
 } from "@/lib/auth-config";
 import {
   ACCESS_TOKEN_MAX_AGE_SECONDS,
@@ -28,8 +29,12 @@ export async function GET() {
       method: "GET",
       headers: {
         Cookie: [
-          accessToken ? `${ACCESS_TOKEN_COOKIE}=${encodeURIComponent(accessToken)}` : "",
-          refreshToken ? `${REFRESH_TOKEN_COOKIE}=${encodeURIComponent(refreshToken)}` : "",
+          accessToken
+            ? `${ACCESS_TOKEN_COOKIE}=${encodeURIComponent(accessToken)}`
+            : "",
+          refreshToken
+            ? `${REFRESH_TOKEN_COOKIE}=${encodeURIComponent(refreshToken)}`
+            : "",
         ]
           .filter(Boolean)
           .join("; "),
@@ -81,6 +86,7 @@ function clearSessionResponse(status: number) {
   );
   response.cookies.set(ACCESS_TOKEN_COOKIE, "", getClearAuthCookieOptions());
   response.cookies.set(REFRESH_TOKEN_COOKIE, "", getClearAuthCookieOptions());
+  response.cookies.set(SESSION_COOKIE, "", getClearAuthCookieOptions());
   return response;
 }
 

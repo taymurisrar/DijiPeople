@@ -76,6 +76,40 @@ export class TenantSettingsRepository {
     });
   }
 
+  findTenantBySlugExcludingId(
+    slug: string,
+    tenantId: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.tenant.findFirst({
+      where: {
+        slug,
+        id: { not: tenantId },
+      },
+      select: { id: true },
+    });
+  }
+
+  updateTenantProfile(
+    tenantId: string,
+    data: { name?: string; slug?: string; updatedById: string },
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.tenant.update({
+      where: { id: tenantId },
+      data: {
+        ...(data.name !== undefined ? { name: data.name } : {}),
+        ...(data.slug !== undefined ? { slug: data.slug } : {}),
+        updatedById: data.updatedById,
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+      },
+    });
+  }
+
   async upsertSettings(tenantId: string, updates: TenantSettingUpsertInput[]) {
     if (updates.length === 0) return;
 

@@ -16,7 +16,19 @@ export type DataTableFilterOperator =
   | "startsWith"
   | "endsWith"
   | "isEmpty"
-  | "isNotEmpty";
+  | "isNotEmpty"
+  | "before"
+  | "after"
+  | "between"
+  | "greaterThan"
+  | "lessThan";
+
+export type DataTableFilterType =
+  | "text"
+  | "select"
+  | "multiSelect"
+  | "date"
+  | "number";
 
 export type DataTableColumn<T> = {
   key: string;
@@ -29,6 +41,9 @@ export type DataTableColumn<T> = {
 
   sortable?: boolean;
   filterable?: boolean;
+  filterType?: DataTableFilterType;
+  filterOptions?: DataTableFilterOption[];
+  filterParamKey?: string;
   searchable?: boolean;
 
   sortAccessor?: (row: T) => DataTableComparableValue;
@@ -109,6 +124,7 @@ export type DataTableFilterState = {
   columnKey: string;
   operator: DataTableFilterOperator;
   value: string;
+  valueTo?: string;
 };
 
 export type DataTableSortState = {

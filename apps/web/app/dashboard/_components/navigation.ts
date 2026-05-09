@@ -126,7 +126,20 @@ type ResolveVisibleDashboardNavItemsInput = {
 export function resolveVisibleDashboardNavItems(
   input: ResolveVisibleDashboardNavItemsInput,
 ) {
+  const privilegedRoleKeys = new Set<string>([
+    ROLE_KEYS.GLOBAL_ADMIN,
+    ROLE_KEYS.SYSTEM_ADMIN,
+    ROLE_KEYS.SYSTEM_CUSTOMIZER,
+  ]);
+  const hasPrivilegedSidebar =
+    !input.isSelfService &&
+    (input.roleKeys ?? []).some((roleKey) => privilegedRoleKeys.has(roleKey));
+
   return dashboardNavItems.flatMap((item) => {
+    if (hasPrivilegedSidebar) {
+      return [item];
+    }
+
     if (
       item.requiresBusinessUnitScope &&
       (input.businessUnitAccess?.accessibleBusinessUnitIds.length ?? 0) === 0

@@ -123,6 +123,7 @@ enum UserInvitationStatus {
 
 enum EmployeeEmploymentStatus {
   ACTIVE
+  INACTIVE
   PROBATION
   NOTICE
   TERMINATED
@@ -1230,6 +1231,7 @@ model User {
   dailyProductivitySummaries DailyProductivitySummary[]
   invitations                UserInvitation[]
   employee                   Employee?
+  ownedEmployees             Employee[]                 @relation("OwnedEmployees")
   leaveApprovalSteps         LeaveApprovalStep[]
   approvalMatricesAsApprover ApprovalMatrix[]           @relation("ApprovalMatrixApproverUser")
   approvedTimesheets         Timesheet[]                @relation("TimesheetApprover")
@@ -1525,23 +1527,27 @@ model TeamRole {
 }
 
 model RefreshToken {
-  id          String    @id @default(uuid())
-  tenantId    String
-  userId      String
-  tokenHash   String    @unique
-  expiresAt   DateTime
-  revokedAt   DateTime?
-  lastUsedAt  DateTime?
-  userAgent   String?
-  ipAddress   String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  createdById String?
-  updatedById String?
-  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String    @id @default(uuid())
+  tenantId          String
+  userId            String
+  sessionId         String?
+  tokenHash         String    @unique
+  expiresAt         DateTime
+  absoluteExpiresAt DateTime?
+  lastActivityAt    DateTime?
+  revokedAt         DateTime?
+  lastUsedAt        DateTime?
+  userAgent         String?
+  ipAddress         String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  createdById       String?
+  updatedById       String?
+  tenant            Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
+  @@index([sessionId])
   @@index([userId])
   @@index([userId, revokedAt])
   @@index([tenantId, expiresAt])
@@ -1631,12 +1637,14 @@ model Employee {
   sourceCandidateId              String?
   sourceApplicationId            String?                       @unique
   sourceJobOpeningId             String?
+  ownerUserId                    String?
   createdAt                      DateTime                      @default(now())
   updatedAt                      DateTime                      @updatedAt
   createdById                    String?
   updatedById                    String?
   tenant                         Tenant                        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   user                           User?                         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  ownerUser                      User?                         @relation("OwnedEmployees", fields: [ownerUserId], references: [id], onDelete: SetNull)
   profileImageDocument           Document?                     @relation("EmployeeProfileImage", fields: [profileImageDocumentId], references: [id], onDelete: SetNull)
   countryLookup                  Country?                      @relation(fields: [countryId], references: [id], onDelete: SetNull)
   stateProvinceLookup            StateProvince?                @relation(fields: [stateProvinceId], references: [id], onDelete: SetNull)
@@ -1682,6 +1690,9 @@ model Employee {
   agentRefreshTokens             AgentRefreshToken[]
   workSessions                   WorkSession[]
   activityEvents                 ActivityEvent[]
+  deletedAt                      DateTime?
+  deletedById                    String?
+  isDeleted                      Boolean                       @default(false)
   dailyProductivitySummaries     DailyProductivitySummary[]
   previousEmployments            EmployeePreviousEmployment[]
 
@@ -1690,6 +1701,7 @@ model Employee {
   @@unique([tenantId, personalEmail])
   @@unique([tenantId, cnic])
   @@index([tenantId])
+  @@index([ownerUserId])
   @@index([tenantId, recordType])
   @@index([tenantId, businessUnitId])
   @@index([tenantId, employeeLevelId])

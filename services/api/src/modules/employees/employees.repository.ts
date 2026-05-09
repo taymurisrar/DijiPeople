@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { EmployeeEmploymentStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { EmployeeQueryDto } from './dto/employee-query.dto';
 
@@ -30,6 +30,14 @@ const employeeInclude = {
           },
         },
       },
+    },
+  },
+  ownerUser: {
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
     },
   },
   profileImageDocument: {
@@ -165,7 +173,7 @@ export class EmployeesRepository {
       db.employee.findMany({
         where,
         include: employeeInclude,
-        orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+        orderBy: this.buildOrderBy(query),
         skip,
         take: query.pageSize,
       }),
@@ -183,7 +191,10 @@ export class EmployeesRepository {
   ) {
     return db.employee.findFirst({
       where: {
-        AND: [{ id: employeeId, tenantId }, accessWhere],
+        AND: [
+          { id: employeeId, tenantId, isDeleted: false, deletedAt: null },
+          accessWhere,
+        ],
       },
       include: employeeInclude,
     });
@@ -198,6 +209,8 @@ export class EmployeesRepository {
       where: {
         tenantId,
         userId,
+        isDeleted: false,
+        deletedAt: null,
       },
       include: employeeInclude,
     });
@@ -220,6 +233,8 @@ export class EmployeesRepository {
       where: {
         id: employeeId,
         tenantId,
+        isDeleted: false,
+        deletedAt: null,
       },
       data,
     });
@@ -234,6 +249,8 @@ export class EmployeesRepository {
       where: {
         id: employeeId,
         tenantId,
+        isDeleted: false,
+        deletedAt: null,
       },
       select: hierarchyNodeSelect,
     });
@@ -248,6 +265,8 @@ export class EmployeesRepository {
       where: {
         tenantId,
         managerEmployeeId,
+        isDeleted: false,
+        deletedAt: null,
       },
       include: employeeInclude,
       orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
@@ -260,6 +279,8 @@ export class EmployeesRepository {
   ): Prisma.EmployeeWhereInput {
     const where: Prisma.EmployeeWhereInput = {
       tenantId,
+      isDeleted: false,
+      deletedAt: null,
     };
 
     if (query.search) {
@@ -281,6 +302,200 @@ export class EmployeesRepository {
       where.managerEmployeeId = query.reportingManagerEmployeeId;
     }
 
+    const columnFilters: Prisma.EmployeeWhereInput[] = [];
+
+    if (query.nameFilter) {
+      const nameFilter = this.buildNameFilter(
+        query.nameFilter,
+        query.nameFilterOperator,
+      );
+
+      if (nameFilter) {
+        columnFilters.push(nameFilter);
+      }
+    }
+
+    if (query.codeFilter) {
+      columnFilters.push({
+        employeeCode: this.buildStringFilter(
+          query.codeFilter,
+          query.codeFilterOperator,
+        ),
+      });
+    }
+
+    if (query.statusFilter) {
+      const statuses = query.statusFilter
+        .split(',')
+        .map((status) => status.trim())
+        .filter((status): status is EmployeeEmploymentStatus =>
+          Object.values(EmployeeEmploymentStatus).includes(
+            status as EmployeeEmploymentStatus,
+          ),
+        );
+
+      if (statuses.length === 1) {
+        columnFilters.push({ employmentStatus: statuses[0] });
+      } else if (statuses.length > 1) {
+        columnFilters.push({ employmentStatus: { in: statuses } });
+      }
+    }
+
+    if (query.reportingManagerFilter) {
+      const managerFilter = this.buildStringFilter(
+        query.reportingManagerFilter,
+        query.reportingManagerFilterOperator,
+      );
+
+      columnFilters.push({
+        manager: {
+          OR: [
+            { firstName: managerFilter },
+            { lastName: managerFilter },
+            { preferredName: managerFilter },
+            { employeeCode: managerFilter },
+            { email: managerFilter },
+          ],
+        },
+      });
+    }
+
+    if (query.hireDateFilter) {
+      const hireDateFilter = this.buildDateFilter(
+        query.hireDateFilter,
+        query.hireDateFilterOperator,
+        query.hireDateFilterTo,
+      );
+
+      if (hireDateFilter) {
+        columnFilters.push({ hireDate: hireDateFilter });
+      }
+    }
+
+    if (query.contactFilter) {
+      const contactFilter = this.buildStringFilter(
+        query.contactFilter,
+        query.contactFilterOperator,
+      );
+
+      columnFilters.push({
+        OR: [{ email: contactFilter }, { phone: contactFilter }],
+      });
+    }
+
+    if (columnFilters.length) {
+      where.AND = [...(Array.isArray(where.AND) ? where.AND : []), ...columnFilters];
+    }
+
     return where;
+  }
+
+  private buildStringFilter(
+    value: string,
+    operator: EmployeeQueryDto['codeFilterOperator'] = 'contains',
+  ): Prisma.StringFilter<'Employee'> {
+    const trimmed = value.trim();
+
+    if (operator === 'equals') {
+      return { equals: trimmed, mode: 'insensitive' };
+    }
+
+    if (operator === 'startsWith') {
+      return { startsWith: trimmed, mode: 'insensitive' };
+    }
+
+    return { contains: trimmed, mode: 'insensitive' };
+  }
+
+  private buildNameFilter(
+    value: string,
+    operator: EmployeeQueryDto['nameFilterOperator'] = 'contains',
+  ): Prisma.EmployeeWhereInput {
+    const filter = this.buildStringFilter(value, operator);
+
+    return {
+      OR: [
+        { firstName: filter },
+        { lastName: filter },
+        { preferredName: filter },
+        { email: filter },
+        { employeeCode: filter },
+      ],
+    };
+  }
+
+  private buildDateFilter(
+    value: string,
+    operator: EmployeeQueryDto['hireDateFilterOperator'] = 'equals',
+    valueTo?: string,
+  ): Prisma.DateTimeFilter<'Employee'> {
+    const date = this.parseDate(value);
+
+    if (!date) {
+      return {};
+    }
+
+    if (operator === 'before') {
+      return { lt: date.start };
+    }
+
+    if (operator === 'after') {
+      return { gt: date.end };
+    }
+
+    if (operator === 'between' && valueTo) {
+      const endDate = this.parseDate(valueTo);
+
+      return endDate ? { gte: date.start, lte: endDate.end } : {};
+    }
+
+    return { gte: date.start, lte: date.end };
+  }
+
+  private parseDate(value: string) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      return null;
+    }
+
+    const start = new Date(`${value}T00:00:00.000Z`);
+    const end = new Date(`${value}T23:59:59.999Z`);
+
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      return null;
+    }
+
+    return { start, end };
+  }
+
+  private buildOrderBy(query: EmployeeQueryDto): Prisma.EmployeeOrderByWithRelationInput[] {
+    const fallback: Prisma.EmployeeOrderByWithRelationInput[] = [
+      { lastName: 'asc' },
+      { firstName: 'asc' },
+    ];
+
+    const match = query.orderBy?.match(/^([A-Za-z][A-Za-z0-9_]*)\s+(asc|desc)$/);
+
+    if (!match) {
+      return fallback;
+    }
+
+    const direction = match[2] as Prisma.SortOrder;
+
+    switch (match[1]) {
+      case 'firstName':
+        return [{ firstName: direction }, { lastName: direction }];
+      case 'employeeCode':
+        return [{ employeeCode: direction }];
+      case 'employmentStatus':
+        return [{ employmentStatus: direction }];
+      case 'managerEmployeeId':
+        return [{ manager: { firstName: direction } }, { manager: { lastName: direction } }];
+      case 'hireDate':
+        return [{ hireDate: direction }];
+      case 'email':
+        return [{ email: direction }];
+      default:
+        return fallback;
+    }
   }
 }

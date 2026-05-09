@@ -1,5 +1,9 @@
-export const ACCESS_TOKEN_COOKIE = "dp_access_token";
-export const REFRESH_TOKEN_COOKIE = "dp_refresh_token";
+export const ACCESS_TOKEN_COOKIE =
+  process.env.AUTH_COOKIE_ACCESS_NAME ?? "dp_access_token";
+export const REFRESH_TOKEN_COOKIE =
+  process.env.AUTH_COOKIE_REFRESH_NAME ?? "dp_refresh_token";
+export const SESSION_COOKIE =
+  process.env.AUTH_COOKIE_SESSION_NAME ?? "dp_session_id";
 export const DASHBOARD_ROUTE = "/dashboard";
 export const LOGIN_ROUTE = "/login";
 export const DEFAULT_AUTHENTICATED_ROUTE = "/dashboard";

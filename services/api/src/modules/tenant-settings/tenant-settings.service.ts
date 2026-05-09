@@ -18,6 +18,7 @@ type SettingsMap = Record<string, Record<string, Prisma.JsonValue>>;
 
 type SettingsResponse = {
   settings: SettingsMap;
+  tenant?: { id: string; name: string; slug: string } | null;
   categories: string[];
 };
 
@@ -58,7 +59,6 @@ const BRANDING_FONT_VALUES = new Set<string>([
 ]);
 
 const HEX_COLOR_PATTERN = /^#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})$/;
-
 @Injectable()
 export class TenantSettingsService {
   constructor(
@@ -69,8 +69,10 @@ export class TenantSettingsService {
   ) {}
 
   async getTenantSettings(tenantId: string): Promise<SettingsResponse> {
-    const persistedSettings =
-      await this.tenantSettingsRepository.findSettingsByTenant(tenantId);
+    const [tenant, persistedSettings] = await Promise.all([
+      this.tenantSettingsRepository.findTenantById(tenantId),
+      this.tenantSettingsRepository.findSettingsByTenant(tenantId),
+    ]);
 
     const settings = structuredClone(DEFAULT_TENANT_SETTINGS) as SettingsMap;
 
@@ -82,8 +84,17 @@ export class TenantSettingsService {
       settings[item.category][item.key] = item.value;
     }
 
+    if (tenant) {
+      settings.organization.tenantDisplayName = tenant.name;
+      settings.organization.tenantSlug = tenant.slug;
+      settings.organization.companyDisplayName =
+        settings.organization.companyDisplayName || tenant.name;
+      settings.branding.brandName = settings.branding.brandName || tenant.name;
+    }
+
     return {
       settings,
+      tenant,
       categories: [...TENANT_SETTING_CATEGORIES],
     };
   }
@@ -162,6 +173,10 @@ export class TenantSettingsService {
       dto,
       allowedKeysByCategory,
     );
+    const tenantProfileChanged = await this.applyTenantProfileUpdates(
+      currentUser,
+      normalizedUpdates,
+    );
 
     const changedUpdates = normalizedUpdates.filter((update) => {
       const currentValue =
@@ -170,14 +185,16 @@ export class TenantSettingsService {
       return !areJsonValuesEqual(currentValue, update.value);
     });
 
-    if (changedUpdates.length === 0) {
+    if (changedUpdates.length === 0 && !tenantProfileChanged) {
       return beforeSettings;
     }
 
-    await this.tenantSettingsRepository.upsertSettings(
-      currentUser.tenantId,
-      changedUpdates,
-    );
+    if (changedUpdates.length > 0) {
+      await this.tenantSettingsRepository.upsertSettings(
+        currentUser.tenantId,
+        changedUpdates,
+      );
+    }
 
     this.tenantSettingsResolverService.invalidateTenantCache(
       currentUser.tenantId,
@@ -378,6 +395,44 @@ export class TenantSettingsService {
     }
 
     return normalizedCategory;
+  }
+
+  private async applyTenantProfileUpdates(
+    currentUser: AuthenticatedUser,
+    updates: NormalizedSettingUpdate[],
+  ) {
+    const displayNameUpdate = updates.find(
+      (update) =>
+        update.category === 'organization' &&
+        update.key === 'tenantDisplayName',
+    );
+
+    const data: { name?: string; updatedById: string } = {
+      updatedById: currentUser.userId,
+    };
+
+    if (displayNameUpdate) {
+      const name = String(displayNameUpdate.value ?? '').trim();
+
+      if (name.length < 2) {
+        throw new BadRequestException(
+          'Tenant display name must be at least 2 characters.',
+        );
+      }
+
+      data.name = name;
+    }
+
+    if (data.name === undefined) {
+      return false;
+    }
+
+    await this.tenantSettingsRepository.updateTenantProfile(
+      currentUser.tenantId,
+      data,
+    );
+
+    return true;
   }
 }
 

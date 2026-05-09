@@ -18,11 +18,18 @@ import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { SignupDto } from './dto/signup.dto';
 import { AuthService } from './auth.service';
+import { getAuthCookieNames } from '../../common/config/auth.config';
+import { ConfigService } from '@nestjs/config';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 
 @Controller('auth')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Public()
   @Post('signup')
@@ -34,9 +41,10 @@ export class AuthController {
   @Post('login')
   async login(
     @Body() dto: LoginDto,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const result = await this.authService.login(dto);
+    const result = await this.authService.login(dto, req);
 
     this.authService.setAuthCookies(res, result.tokens, dto.rememberMe);
 
@@ -55,7 +63,10 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.authService.refresh(
-      dto.refreshToken || req.cookies?.dp_refresh_token,
+      dto.refreshToken ||
+        (req.cookies as Record<string, string> | undefined)?.[
+          getAuthCookieNames(this.configService).refresh
+        ],
     );
 
     this.authService.setAuthCookies(res, result.tokens);
@@ -85,10 +96,15 @@ export class AuthController {
     return this.authService.getProfileFromRequest(req, res);
   }
 
+  @Post('activity')
+  activity(@CurrentUser() user: AuthenticatedUser) {
+    return this.authService.recordActivity(user);
+  }
+
   @Public()
   @Post('logout')
-  logout(@Res({ passthrough: true }) res: Response) {
-    this.authService.clearAuthCookies(res);
+  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    await this.authService.logout(req, res);
     return { ok: true };
   }
 }

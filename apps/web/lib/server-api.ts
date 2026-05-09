@@ -18,12 +18,7 @@ type ApiRequestOptions = RequestInit & {
   includeAuth?: boolean;
 };
 
-type ParsedResponseBody =
-  | JsonObject
-  | JsonValue[]
-  | string
-  | null
-  | undefined;
+type ParsedResponseBody = JsonObject | JsonValue[] | string | null | undefined;
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const JSON_CONTENT_TYPES = [
@@ -41,6 +36,7 @@ export class ApiRequestError extends Error {
   responseHeaders?: Record<string, string>;
   isNetworkError?: boolean;
   isTimeout?: boolean;
+  traceId?: string;
 
   constructor(params: {
     status: number;
@@ -52,6 +48,7 @@ export class ApiRequestError extends Error {
     responseHeaders?: Record<string, string>;
     isNetworkError?: boolean;
     isTimeout?: boolean;
+    traceId?: string;
   }) {
     super(params.message);
     this.name = "ApiRequestError";
@@ -63,6 +60,7 @@ export class ApiRequestError extends Error {
     this.responseHeaders = params.responseHeaders;
     this.isNetworkError = params.isNetworkError;
     this.isTimeout = params.isTimeout;
+    this.traceId = params.traceId;
   }
 }
 
@@ -84,6 +82,9 @@ export async function apiRequest(
 
   if (includeAuth && accessToken && !headers.has("Authorization")) {
     headers.set("Authorization", `Bearer ${accessToken}`);
+  }
+  if (!headers.has("X-Request-Id")) {
+    headers.set("X-Request-Id", createRequestId());
   }
 
   applyContentTypeHeader(headers, init.body);
@@ -114,6 +115,7 @@ export async function apiRequest(
         message: `Request timed out after ${timeoutMs}ms.`,
         url,
         method,
+        traceId: undefined,
         isTimeout: true,
         isNetworkError: true,
       });
@@ -125,6 +127,7 @@ export async function apiRequest(
       message: extractFetchErrorMessage(error, url, method),
       url,
       method,
+      traceId: undefined,
       isNetworkError: true,
     });
   } finally {
@@ -169,7 +172,9 @@ export async function proxyApiJsonResponse(
   }
 
   if (isJsonLike(data)) {
-    return NextResponse.json(data, { status: response.status });
+    const nextResponse = NextResponse.json(data, { status: response.status });
+    copyHeaderIfPresent(response.headers, nextResponse.headers, "x-request-id");
+    return nextResponse;
   }
 
   return NextResponse.json(
@@ -226,9 +231,9 @@ function buildApiRequestError(
   path: string,
   method?: string,
 ): ApiRequestError {
-const message =
-  extractErrorMessage(data) ??
-  (response.statusText || `Request failed with status ${response.status}.`);
+  const message =
+    extractErrorMessage(data) ??
+    (response.statusText || `Request failed with status ${response.status}.`);
 
   const errorCode =
     extractErrorCode(data) ??
@@ -248,6 +253,12 @@ const message =
                   ? "SERVER_ERROR"
                   : "REQUEST_FAILED");
 
+  const traceId =
+    extractTraceId(data) ??
+    response.headers.get("x-request-id") ??
+    response.headers.get("X-Request-Id") ??
+    undefined;
+
   return new ApiRequestError({
     status: response.status,
     message,
@@ -256,6 +267,7 @@ const message =
     url: path,
     method: method?.toUpperCase() ?? "GET",
     responseHeaders: headersToObject(response.headers),
+    traceId,
   });
 }
 
@@ -319,6 +331,7 @@ function extractErrorMessage(data: ParsedResponseBody): string | null {
   }
 
   const directMessageCandidates = [
+    isJsonObject(data.error) ? data.error.message : undefined,
     data.message,
     data.error,
     data.title,
@@ -332,18 +345,18 @@ function extractErrorMessage(data: ParsedResponseBody): string | null {
     }
   }
 
-if (Array.isArray(data.message)) {
-  const messageArray = data.message as unknown[];
+  if (Array.isArray(data.message)) {
+    const messageArray = data.message as unknown[];
 
-  const messages = messageArray.filter(
-    (item): item is string =>
-      typeof item === "string" && item.trim().length > 0,
-  );
+    const messages = messageArray.filter(
+      (item): item is string =>
+        typeof item === "string" && item.trim().length > 0,
+    );
 
-  if (messages.length) {
-    return messages.join(", ");
+    if (messages.length) {
+      return messages.join(", ");
+    }
   }
-}
 
   if (isJsonObject(data.errors)) {
     const nestedMessages = flattenValidationErrors(data.errors);
@@ -360,7 +373,32 @@ function extractErrorCode(data: ParsedResponseBody): string | undefined {
     return undefined;
   }
 
-  const candidates = [data.code, data.errorCode, data.error_code];
+  const candidates = [
+    isJsonObject(data.error) ? data.error.code : undefined,
+    data.code,
+    data.errorCode,
+    data.error_code,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" && candidate.trim()) {
+      return candidate.trim();
+    }
+  }
+
+  return undefined;
+}
+
+function extractTraceId(data: ParsedResponseBody): string | undefined {
+  if (!data || typeof data === "string" || Array.isArray(data)) {
+    return undefined;
+  }
+
+  const candidates = [
+    isJsonObject(data.error) ? data.error.traceId : undefined,
+    data.traceId,
+    data.requestId,
+  ];
 
   for (const candidate of candidates) {
     if (typeof candidate === "string" && candidate.trim()) {
@@ -393,7 +431,10 @@ function flattenValidationErrors(
 
     if (Array.isArray(fieldValue)) {
       const messages = fieldValue
-        .filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+        .filter(
+          (item): item is string =>
+            typeof item === "string" && item.trim().length > 0,
+        )
         .map((message) => `${field}: ${message.trim()}`);
 
       if (messages.length) {
@@ -444,7 +485,10 @@ function buildRequestUrl(baseUrl: string, path: string): string {
   return path.startsWith("/") ? `${baseUrl}${path}` : `${baseUrl}/${path}`;
 }
 
-function applyContentTypeHeader(headers: Headers, body: BodyInit | null | undefined) {
+function applyContentTypeHeader(
+  headers: Headers,
+  body: BodyInit | null | undefined,
+) {
   if (!body || headers.has("Content-Type")) {
     return;
   }
@@ -465,8 +509,14 @@ function applyContentTypeHeader(headers: Headers, body: BodyInit | null | undefi
     return;
   }
 
-  if (typeof URLSearchParams !== "undefined" && body instanceof URLSearchParams) {
-    headers.set("Content-Type", "application/x-www-form-urlencoded;charset=UTF-8");
+  if (
+    typeof URLSearchParams !== "undefined" &&
+    body instanceof URLSearchParams
+  ) {
+    headers.set(
+      "Content-Type",
+      "application/x-www-form-urlencoded;charset=UTF-8",
+    );
     return;
   }
 
@@ -517,7 +567,9 @@ function isJsonObject(value: unknown): value is JsonObject {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-function isJsonLike(value: ParsedResponseBody): value is JsonObject | JsonValue[] {
+function isJsonLike(
+  value: ParsedResponseBody,
+): value is JsonObject | JsonValue[] {
   return Boolean(value) && (Array.isArray(value) || isJsonObject(value));
 }
 
@@ -567,4 +619,12 @@ function mergeAbortSignals(
   internalSignal.addEventListener("abort", abort, { once: true });
 
   return controller.signal;
+}
+
+function createRequestId() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return `web_${crypto.randomUUID()}`;
+  }
+
+  return `web_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 }

@@ -21,7 +21,7 @@ type LoginResponse = {
   message?: string;
 };
 
-export function LoginForm() {
+export function LoginForm({ tenantSlug = "" }: { tenantSlug?: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -80,76 +80,76 @@ export function LoginForm() {
     }
   }
 
-async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-  event.preventDefault();
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
 
-  setError(null);
+    setError(null);
 
-  const validationErrors = validateForm(form);
-  setFieldErrors(validationErrors);
+    const validationErrors = validateForm(form);
+    setFieldErrors(validationErrors);
 
-  if (Object.keys(validationErrors).length > 0) {
-    return;
-  }
+    if (Object.keys(validationErrors).length > 0) {
+      return;
+    }
 
-  setIsSubmitting(true);
+    setIsSubmitting(true);
 
-  try {
-    const response = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include",
-      body: JSON.stringify({
-        email: form.email.trim().toLowerCase(),
-        password: form.password,
-        rememberMe: form.rememberMe,
-      }),
-    });
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          email: form.email.trim().toLowerCase(),
+          password: form.password,
+          rememberMe: form.rememberMe,
+          tenantSlug: tenantSlug || undefined,
+        }),
+      });
 
-    const data = (await response.json()) as LoginResponse;
+      const data = (await response.json()) as LoginResponse;
 
-    if (!response.ok) {
+      if (!response.ok) {
+        setError(
+          data.message ??
+            "We could not sign you in. Check your credentials and try again.",
+        );
+        return;
+      }
+
+      const nextPath = searchParams.get("next") || DEFAULT_AUTHENTICATED_ROUTE;
+      const nextUrl = resolveNextUrl(nextPath);
+
+      if (!nextUrl) {
+        router.push(DEFAULT_AUTHENTICATED_ROUTE);
+        return;
+      }
+
+      const currentOrigin = window.location.origin;
+      const nextPathnameWithQuery = `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`;
+      const isLoginRoute =
+        nextUrl.pathname === "/login" || nextUrl.pathname.startsWith("/login/");
+
+      if (nextUrl.origin === currentOrigin) {
+        router.push(
+          isLoginRoute
+            ? DEFAULT_AUTHENTICATED_ROUTE
+            : nextPathnameWithQuery || DEFAULT_AUTHENTICATED_ROUTE,
+        );
+        return;
+      }
+
+      window.location.assign(nextUrl.toString());
+    } catch {
       setError(
-        data.message ??
-          "We could not sign you in. Check your credentials and try again.",
+        "The login request failed. Check that the web app and API are running.",
       );
-      return;
+    } finally {
+      setIsSubmitting(false);
     }
-
-    const nextPath =
-      searchParams.get("next") || DEFAULT_AUTHENTICATED_ROUTE;
-    const nextUrl = resolveNextUrl(nextPath);
-
-    if (!nextUrl) {
-      router.push(DEFAULT_AUTHENTICATED_ROUTE);
-      return;
-    }
-
-    const currentOrigin = window.location.origin;
-    const nextPathnameWithQuery = `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`;
-    const isLoginRoute =
-      nextUrl.pathname === "/login" || nextUrl.pathname.startsWith("/login/");
-
-    if (nextUrl.origin === currentOrigin) {
-      router.push(
-        isLoginRoute
-          ? DEFAULT_AUTHENTICATED_ROUTE
-          : nextPathnameWithQuery || DEFAULT_AUTHENTICATED_ROUTE,
-      );
-      return;
-    }
-
-    window.location.assign(nextUrl.toString());
-  } catch {
-    setError(
-      "The login request failed. Check that the web app and API are running.",
-    );
-  } finally {
-    setIsSubmitting(false);
   }
-}
 
   return (
     <form className="space-y-5" noValidate onSubmit={handleSubmit}>
@@ -190,12 +190,10 @@ async function handleSubmit(event: FormEvent<HTMLFormElement>) {
 
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-3">
-          <span className="text-sm font-medium text-foreground">
-            Password
+          <span className="text-sm font-medium text-foreground">Password</span>
+          <span className="text-sm font-medium text-muted">
+            Forgot password?
           </span>
-<span className="text-sm font-medium text-muted">
-  Forgot password?
-</span>
         </div>
 
         <div className="relative">
@@ -266,10 +264,10 @@ function resolveNextUrl(rawNext: string) {
 
 function getAuthNotice(reason: string | null) {
   if (reason === "session-expired") {
-    return "Your session expired. Please sign in again to continue.";
+    return "Your session has expired. Please sign in again.";
   }
 
-  if (reason === "signed-out") {
+  if (reason === "signed-out" || reason === "logged-out") {
     return "You have been signed out successfully.";
   }
 

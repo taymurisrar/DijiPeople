@@ -44,7 +44,10 @@ export class PermissionsGuard implements CanActivate {
     const user = request.user;
 
     if (!user?.tenantId) {
-      throw new ForbiddenException('Tenant access context is required.');
+      throw new ForbiddenException({
+        code: 'ACCESS_DENIED',
+        message: 'Tenant access context is required.',
+      });
     }
 
     if (user.roleKeys?.includes(ROLE_KEYS.GLOBAL_ADMIN)) {
@@ -82,9 +85,10 @@ export class PermissionsGuard implements CanActivate {
       });
 
     if (!hasAllPermissions || !hasRbacPermission) {
-      throw new ForbiddenException(
-        'You do not have permission to perform this action.',
-      );
+      throw new ForbiddenException({
+        code: 'ACCESS_DENIED',
+        message: 'You do not have permission to perform this action.',
+      });
     }
 
     return true;

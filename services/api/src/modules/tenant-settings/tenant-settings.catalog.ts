@@ -22,6 +22,7 @@ export type TenantSettingDefaults = Record<
 
 export const DEFAULT_TENANT_SETTINGS: TenantSettingDefaults = {
   organization: {
+    tenantDisplayName: '',
     companyDisplayName: '',
     legalBusinessName: '',
     industry: '',

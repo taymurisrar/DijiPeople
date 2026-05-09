@@ -1,12 +1,13 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { hasPermission, isSelfServiceUser } from "@/lib/permissions";
 import { apiRequestJson } from "@/lib/server-api";
 import { buildEntityDataUrl } from "@/app/components/entity-data/entity-query-builder";
-import { EntityDataResponse } from "@/app/components/entity-data/entity-query-types";
+import {
+  EntityDataResponse,
+  EntityFilter,
+} from "@/app/components/entity-data/entity-query-types";
 import { ModuleViewSelector } from "@/app/components/view-selector/module-view-selector";
-import { DEFAULT_BRANDING_VALUES } from "@/app/components/branding/branding-defaults";
 import {
   getTableViews,
   resolveFiltersAndSorting,
@@ -21,8 +22,8 @@ import {
 import { EmployeeListResponse } from "./types";
 import { TenantResolvedSettingsResponse } from "../settings/types";
 import { EmployeesTable } from "./_components/employees-table";
-import { EmployeesFilterBar } from "./_components/employees-filter-bar";
 import { EmployeesCommandBar } from "./_components/employees-command-bar";
+import { DataTableFilterState } from "@/app/components/data-table/types";
 
 type EmployeesPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -85,6 +86,7 @@ export default async function EmployeesPage({
   const page = getPositiveNumberParam(params.page, 1);
   const pageSize = getPositiveNumberParam(params.pageSize, 10);
   const orderBy = getSearchParam(params.orderBy);
+  const columnFilters = resolveEmployeeColumnFilters(params);
   const useEntityDataApi = process.env.USE_ENTITY_DATA_API === "true";
 
   const query = new URLSearchParams();
@@ -101,27 +103,34 @@ export default async function EmployeesPage({
     query.set("reportingManagerEmployeeId", reportingManagerEmployeeId);
   }
 
+  for (const filter of columnFilters.queryParams) {
+    query.set(filter.key, filter.value);
+  }
+
+  if (orderBy) {
+    query.set("orderBy", orderBy);
+  }
+
   query.set("page", String(page));
   query.set("pageSize", String(pageSize));
 
-  const [employees, managers, resolvedSettings, publishedViews] =
-    await Promise.all([
-      useEntityDataApi
-        ? fetchEmployeesFromEntityData({
-            search,
-            employmentStatus,
-            reportingManagerEmployeeId,
-            orderBy,
-            page,
-            pageSize,
-          })
-        : apiRequestJson<EmployeeListResponse>(`/employees?${query.toString()}`),
-      apiRequestJson<EmployeeListResponse>("/employees?page=1&pageSize=100"),
-      apiRequestJson<TenantResolvedSettingsResponse>(
-        "/tenant-settings/resolved",
-      ).catch(() => null),
-      getTableViews("employees"),
-    ]);
+  const [employees, resolvedSettings, publishedViews] = await Promise.all([
+    useEntityDataApi
+      ? fetchEmployeesFromEntityData({
+        search,
+        employmentStatus,
+        reportingManagerEmployeeId,
+        orderBy,
+        columnFilters: columnFilters.tableFilters,
+        page,
+        pageSize,
+      })
+      : apiRequestJson<EmployeeListResponse>(`/employees?${query.toString()}`),
+    apiRequestJson<TenantResolvedSettingsResponse>(
+      "/tenant-settings/resolved",
+    ).catch(() => null),
+    getTableViews("employees"),
+  ]);
 
   const employeeViews = withFallbackViews("employees", publishedViews, [
     {
@@ -190,61 +199,30 @@ export default async function EmployeesPage({
         canExportEmployee={canExportEmployee}
       />
 
-      {employees.items.length === 0 ? (
-        <section className="rounded-[24px] border border-dashed border-border bg-surface p-10 text-center shadow-sm">
-          <p className="text-sm uppercase tracking-[0.18em] text-muted">
-            No employees found
-          </p>
-
-          <h4 className="mt-3 text-2xl font-semibold text-foreground">
-            Your employee directory is empty for this filter set.
-          </h4>
-
-          <p className="mt-3 text-muted">
-            Start by creating the first employee record, or widen your filters
-            to see more results.
-          </p>
-
-          <div className="mt-6 flex justify-center gap-3">
-            {canCreateEmployee ? (
-              <Link
-                className="rounded-2xl bg-accent px-5 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong"
-                href="/dashboard/employees/new"
-              >
-                Create employee
-              </Link>
-            ) : null}
-
-            <Link
-              className="rounded-2xl border border-border px-5 py-3 text-sm font-medium text-muted transition hover:border-accent/30 hover:text-foreground"
-              href="/dashboard/employees"
-            >
-              Reset filters
-            </Link>
-          </div>
-        </section>
-      ) : (
-        <EmployeesTable
-          employees={employees.items}
-          formatting={formatting}
-          initialSortColumnKey={initialSort.columnKey}
-          initialSortDirection={initialSort.direction}
-          pagination={{
-            page: employees.meta?.page ?? page,
-            pageSize: employees.meta?.pageSize ?? pageSize,
-            totalItems: employees.meta?.total ?? employees.items.length,
-            pathname: "/dashboard/employees",
-            searchParams: {
-              search,
-              employmentStatus,
-              reportingManagerEmployeeId,
-              orderBy,
-            },
-          }}
-          useEntityDataApi={useEntityDataApi}
-          visibleColumnKeys={visibleColumnKeys}
-        />
-      )}
+      <EmployeesTable
+        employees={employees.items}
+        canDeleteEmployee={canDeleteEmployee}
+        canAssignEmployee={canAssignEmployee}
+        formatting={formatting}
+        initialSortColumnKey={initialSort.columnKey}
+        initialSortDirection={initialSort.direction}
+        pagination={{
+          page: employees.meta?.page ?? page,
+          pageSize: employees.meta?.pageSize ?? pageSize,
+          totalItems: employees.meta?.total ?? employees.items.length,
+          pathname: "/dashboard/employees",
+          searchParams: {
+            search,
+            employmentStatus,
+            reportingManagerEmployeeId,
+            orderBy,
+            ...columnFilters.searchParams,
+          },
+        }}
+        initialFilters={columnFilters.tableFilters}
+        useEntityDataApi={useEntityDataApi}
+        visibleColumnKeys={visibleColumnKeys}
+      />
     </main>
   );
 }
@@ -273,6 +251,7 @@ async function fetchEmployeesFromEntityData(input: {
   employmentStatus: string;
   reportingManagerEmployeeId: string;
   orderBy: string;
+  columnFilters: DataTableFilterState[];
   page: number;
   pageSize: number;
 }): Promise<EmployeeListResponse> {
@@ -292,22 +271,23 @@ async function fetchEmployeesFromEntityData(input: {
     filter: [
       ...(input.employmentStatus
         ? [
-            {
-              field: "employmentStatus",
-              operator: "eq" as const,
-              value: input.employmentStatus,
-            },
-          ]
+          {
+            field: "employmentStatus",
+            operator: "eq" as const,
+            value: input.employmentStatus,
+          },
+        ]
         : []),
       ...(input.reportingManagerEmployeeId
         ? [
-            {
-              field: "managerEmployeeId",
-              operator: "eq" as const,
-              value: input.reportingManagerEmployeeId,
-            },
-          ]
+          {
+            field: "managerEmployeeId",
+            operator: "eq" as const,
+            value: input.reportingManagerEmployeeId,
+          },
+        ]
         : []),
+      ...mapEmployeeEntityFilters(input.columnFilters),
     ],
     orderBy: resolveEntityOrderBy(input.orderBy),
     expand: [
@@ -357,15 +337,16 @@ function mapEntityEmployee(employee: EmployeeEntityRecord) {
   const fullName = [employee.firstName, employee.lastName]
     .filter(Boolean)
     .join(" ");
+
   const manager = employee.manager
     ? {
-        ...employee.manager,
-        preferredName: null,
-        fullName: [employee.manager.firstName, employee.manager.lastName]
-          .filter(Boolean)
-          .join(" "),
-        employmentStatus: "ACTIVE" as const,
-      }
+      ...employee.manager,
+      preferredName: null,
+      fullName: [employee.manager.firstName, employee.manager.lastName]
+        .filter(Boolean)
+        .join(" "),
+      employmentStatus: "ACTIVE" as const,
+    }
     : null;
 
   return {
@@ -389,6 +370,8 @@ function mapEntityEmployee(employee: EmployeeEntityRecord) {
     manager,
     reportingManager: manager,
     user: null,
+    ownerUserId: null,
+    ownerUser: null,
     department: null,
     designation: null,
     location: null,
@@ -456,4 +439,118 @@ function getPositiveNumberParam(
   }
 
   return Math.floor(parsed);
+}
+
+function mapEmployeeEntityFilters(
+  filters: DataTableFilterState[],
+): EntityFilter[] {
+  const entityFilters: EntityFilter[] = [];
+
+  for (const filter of filters) {
+    if (!filter.value) continue;
+
+    if (filter.columnKey === "code") {
+      entityFilters.push({
+        field: "employeeCode",
+        operator: "contains",
+        value: filter.value,
+      });
+      continue;
+    }
+
+    if (filter.columnKey === "status") {
+      const values = filter.value.split(",").filter(Boolean);
+
+      entityFilters.push(
+        values.length > 1
+          ? {
+              field: "employmentStatus",
+              operator: "in",
+              value: values,
+            }
+          : {
+              field: "employmentStatus",
+              operator: "eq",
+              value: values[0] ?? filter.value,
+            },
+      );
+      continue;
+    }
+
+    if (filter.columnKey === "hireDate") {
+      const operatorMap: Record<string, EntityFilter["operator"]> = {
+        before: "lt",
+        after: "gt",
+        equals: "eq",
+      };
+
+      entityFilters.push({
+        field: "hireDate",
+        operator: operatorMap[filter.operator] ?? "eq",
+        value: filter.value,
+      });
+      continue;
+    }
+
+    if (filter.columnKey === "contact") {
+      entityFilters.push({
+        field: "email",
+        operator: "contains",
+        value: filter.value,
+      });
+    }
+  }
+
+  return entityFilters;
+}
+
+function resolveEmployeeColumnFilters(
+  params: Record<string, string | string[] | undefined>,
+) {
+  const specs = [
+    { columnKey: "employee", paramKey: "name", defaultOperator: "contains" },
+    { columnKey: "code", paramKey: "code", defaultOperator: "contains" },
+    { columnKey: "status", paramKey: "status", defaultOperator: "equals" },
+    {
+      columnKey: "reportingManager",
+      paramKey: "reportingManager",
+      defaultOperator: "contains",
+    },
+    { columnKey: "hireDate", paramKey: "hireDate", defaultOperator: "equals" },
+    { columnKey: "contact", paramKey: "contact", defaultOperator: "contains" },
+  ];
+  const tableFilters: DataTableFilterState[] = [];
+  const queryParams: Array<{ key: string; value: string }> = [];
+  const searchParams: Record<string, string> = {};
+
+  for (const spec of specs) {
+    const value = getSearchParam(params[`${spec.paramKey}Filter`]);
+    const operator =
+      getSearchParam(params[`${spec.paramKey}FilterOperator`]) ||
+      spec.defaultOperator;
+    const valueTo = getSearchParam(params[`${spec.paramKey}FilterTo`]);
+
+    if (!value) continue;
+
+    tableFilters.push({
+      columnKey: spec.columnKey,
+      operator: operator as DataTableFilterState["operator"],
+      value,
+      valueTo: valueTo || undefined,
+    });
+
+    queryParams.push(
+      { key: `${spec.paramKey}Filter`, value },
+      { key: `${spec.paramKey}FilterOperator`, value: operator },
+    );
+    searchParams[`${spec.paramKey}Filter`] = value;
+    searchParams[`${spec.paramKey}FilterOperator`] = operator;
+
+    if (valueTo) {
+      queryParams.push({ key: `${spec.paramKey}FilterTo`, value: valueTo });
+      searchParams[`${spec.paramKey}FilterTo`] = valueTo;
+    }
+  }
+
+  return { tableFilters, queryParams, searchParams };
 }

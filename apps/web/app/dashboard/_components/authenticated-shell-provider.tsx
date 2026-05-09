@@ -43,8 +43,9 @@ type CurrentUserAccess = {
   requiresSelfScope: boolean;
 };
 
-const AuthenticatedShellContext =
-  createContext<AuthenticatedShellUser | null>(null);
+const AuthenticatedShellContext = createContext<AuthenticatedShellUser | null>(
+  null,
+);
 
 type AuthenticatedShellProviderProps = PropsWithChildren<{
   inactivityTimeoutMinutes?: number;
@@ -58,16 +59,29 @@ type PatchedWindow = Window & {
   __dpAuthRedirectReason?: string | null;
   __dpFetchPatchConsumers?: number;
   __dpRefreshInFlight?: Promise<boolean> | null;
+  __dpLastActivitySyncAt?: number;
 };
 
 const SESSION_EXPIRED_REASON = "session-expired";
+const SESSION_WARNING_SECONDS = getPublicNumber(
+  process.env.NEXT_PUBLIC_SESSION_WARNING_SECONDS,
+  120,
+);
+const SESSION_ACTIVITY_THROTTLE_MS =
+  getPublicNumber(
+    process.env.NEXT_PUBLIC_SESSION_ACTIVITY_THROTTLE_SECONDS,
+    60,
+  ) * 1000;
+const SESSION_WARNING_ENABLED =
+  process.env.NEXT_PUBLIC_ENABLE_SESSION_WARNING_MODAL !== "false";
 
 export function AuthenticatedShellProvider({
   children,
   inactivityTimeoutMinutes = 15,
   user,
 }: AuthenticatedShellProviderProps) {
-  const [showSessionExpiredDialog, setShowSessionExpiredDialog] = useState(false);
+  const [showSessionExpiredDialog, setShowSessionExpiredDialog] =
+    useState(false);
   const idleTimerRef = useRef<number | null>(null);
   const isDialogOpenRef = useRef(false);
 
@@ -142,7 +156,11 @@ export function AuthenticatedShellProvider({
       return;
     }
 
-    const timeoutMs = Math.max(15, inactivityTimeoutMinutes) * 60_000;
+    const timeoutMs = Math.max(1, inactivityTimeoutMinutes) * 60_000;
+    const warningMs = Math.max(
+      0,
+      timeoutMs - Math.max(0, SESSION_WARNING_SECONDS) * 1000,
+    );
 
     const clearIdleTimer = () => {
       if (idleTimerRef.current !== null) {
@@ -153,10 +171,18 @@ export function AuthenticatedShellProvider({
 
     const scheduleIdleTimeout = () => {
       clearIdleTimer();
-      idleTimerRef.current = window.setTimeout(() => {
-        isDialogOpenRef.current = true;
-        setShowSessionExpiredDialog(true);
-      }, timeoutMs);
+      idleTimerRef.current = window.setTimeout(
+        () => {
+          if (SESSION_WARNING_ENABLED && warningMs > 0) {
+            isDialogOpenRef.current = true;
+            setShowSessionExpiredDialog(true);
+            return;
+          }
+
+          redirectToSessionExpired();
+        },
+        SESSION_WARNING_ENABLED ? warningMs : timeoutMs,
+      );
     };
 
     const handleActivity = () => {
@@ -164,6 +190,7 @@ export function AuthenticatedShellProvider({
         return;
       }
       scheduleIdleTimeout();
+      void syncSessionActivity();
     };
 
     scheduleIdleTimeout();
@@ -171,9 +198,8 @@ export function AuthenticatedShellProvider({
     const events: Array<keyof WindowEventMap> = [
       "click",
       "keydown",
-      "mousemove",
-      "scroll",
-      "touchstart",
+      "submit",
+      "focus",
     ];
 
     events.forEach((eventName) => {
@@ -229,6 +255,40 @@ export function AuthenticatedShellProvider({
   );
 }
 
+async function syncSessionActivity() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const globalWindow = window as PatchedWindow;
+  const now = Date.now();
+  if (
+    globalWindow.__dpLastActivitySyncAt &&
+    now - globalWindow.__dpLastActivitySyncAt < SESSION_ACTIVITY_THROTTLE_MS
+  ) {
+    return;
+  }
+
+  globalWindow.__dpLastActivitySyncAt = now;
+
+  await fetch("/api/auth/activity", {
+    method: "POST",
+    credentials: "include",
+  }).catch(() => undefined);
+}
+
+function redirectToSessionExpired() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.location.assign(
+    `/api/auth/logout?reason=${encodeURIComponent(
+      SESSION_EXPIRED_REASON,
+    )}&next=${encodeURIComponent(buildNextPath())}`,
+  );
+}
+
 export function useCurrentUserAccess(): CurrentUserAccess {
   const user = useContext(AuthenticatedShellContext);
 
@@ -247,9 +307,11 @@ export function useCurrentUserAccess(): CurrentUserAccess {
       user,
       hasPermissions: permissionKeys,
       businessUnitAccess: user.businessUnitAccess ?? null,
-      hasBusinessUnitScope: (user.businessUnitAccess?.accessibleBusinessUnitIds.length ?? 0) > 0,
+      hasBusinessUnitScope:
+        (user.businessUnitAccess?.accessibleBusinessUnitIds.length ?? 0) > 0,
       requiresSelfScope: Boolean(user.businessUnitAccess?.requiresSelfScope),
-      can: (permissionKey: string) => hasPermission(permissionKeys, permissionKey),
+      can: (permissionKey: string) =>
+        hasPermission(permissionKeys, permissionKey),
       cannot: (permissionKey: string) =>
         !hasPermission(permissionKeys, permissionKey),
       canAny: (permissionKeysToCheck: readonly string[]) =>
@@ -264,11 +326,8 @@ export function useCurrentUserAccess(): CurrentUserAccess {
 }
 
 export function useBusinessUnitAccess() {
-  const {
-    businessUnitAccess,
-    hasBusinessUnitScope,
-    requiresSelfScope,
-  } = useCurrentUserAccess();
+  const { businessUnitAccess, hasBusinessUnitScope, requiresSelfScope } =
+    useCurrentUserAccess();
 
   return {
     businessUnitAccess,
@@ -349,8 +408,9 @@ async function resolveRedirectReason(
       return null;
     }
 
+    const nestedError = isRecord(data.error) ? data.error : null;
     const errorCode = readString(data.errorCode);
-    const code = readString(data.code);
+    const code = readString(data.code) ?? readString(nestedError?.code);
     const message = readString(data.message);
 
     const normalizedValues = [errorCode, code, message]
@@ -362,8 +422,12 @@ async function resolveRedirectReason(
         "unauthorized",
         "unauthenticated",
         "invalid_token",
+        "invalid token",
         "token_expired",
+        "access_token_expired",
+        "refresh_token_expired",
         "session_expired",
+        "session_revoked",
         "jwt_expired",
       ].some((keyword) => value.includes(keyword)),
     );
@@ -460,4 +524,13 @@ function readString(value: unknown) {
   return typeof value === "string" && value.trim().length > 0
     ? value.trim()
     : null;
+}
+
+function getPublicNumber(value: string | undefined, fallback: number) {
+  if (!value) {
+    return fallback;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
 }

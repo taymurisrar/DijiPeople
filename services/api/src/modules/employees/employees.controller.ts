@@ -27,6 +27,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { AssignManagerDto } from './dto/assign-manager.dto';
+import { AssignOwnerDto, BulkAssignOwnerDto } from './dto/assign-owner.dto';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { EmployeeQueryDto } from './dto/employee-query.dto';
 import { CreateEmployeeEducationDto } from './dto/create-employee-education.dto';
@@ -44,6 +45,7 @@ import { UpsertEmployeeCompensationDto } from './dto/upsert-employee-compensatio
 import { EmployeeProfilesService } from './employee-profiles.service';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { EmployeesService } from './employees.service';
+import { BulkDeleteEmployeesDto } from './dto/bulk-delete-employees.dto';
 
 type UploadedFile = {
   buffer: Buffer;
@@ -80,6 +82,67 @@ export class EmployeesController {
     return this.employeesService.findByTenant(user, query);
   }
 
+  @Delete('bulk-delete')
+  @Permissions('employees.delete')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'delete')
+  bulkDelete(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: BulkDeleteEmployeesDto,
+  ) {
+    return this.employeesService.bulkDelete(user, dto);
+  }
+
+  @Patch('assign-owner')
+  @Permissions('employees.assign')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'assign')
+  assignOwnerBulk(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: BulkAssignOwnerDto,
+  ) {
+    return this.employeesService.assignOwner(
+      user,
+      dto.employeeIds,
+      dto.ownerUserId,
+    );
+  }
+
+  @Get('owner-options')
+  @Permissions('employees.assign')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'assign')
+  ownerOptions(@CurrentUser() user: AuthenticatedUser) {
+    return this.employeesService.getOwnerOptions(user);
+  }
+
+  @Get('export')
+  @Permissions('employees.export')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
+  async exportEmployees(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: EmployeeQueryDto,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const file = await this.employeesService.exportEmployees(user, query);
+    response.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    response.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${file.filename}"`,
+    );
+    return new StreamableFile(file.buffer);
+  }
+
+  @Get('export-template')
+  @Permissions('employees.export')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
+  exportTemplate(@Res({ passthrough: true }) response: Response) {
+    const file = this.employeesService.exportEmployeeTemplate();
+    response.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    response.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${file.filename}"`,
+    );
+    return new StreamableFile(file.buffer);
+  }
+
   @Get('linking-search')
   @Permissions('employees.read')
   @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
@@ -98,6 +161,51 @@ export class EmployeesController {
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
   ) {
     return this.employeeProfilesService.getProfile(user, employeeId);
+  }
+
+  @Get(':employeeId/export')
+  @Permissions('employees.export')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
+  async exportOne(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const file = await this.employeesService.exportEmployeeProfile(
+      user,
+      employeeId,
+    );
+    response.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    response.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${file.filename}"`,
+    );
+    return new StreamableFile(file.buffer);
+  }
+
+  @Patch(':employeeId/assign-owner')
+  @Permissions('employees.assign')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'assign')
+  assignOwner(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
+    @Body() dto: AssignOwnerDto,
+  ) {
+    return this.employeesService.assignOwner(
+      user,
+      [employeeId],
+      dto.ownerUserId,
+    );
+  }
+
+  @Delete(':employeeId')
+  @Permissions('employees.delete')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'delete')
+  deleteOne(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
+  ) {
+    return this.employeesService.bulkDelete(user, { ids: [employeeId] });
   }
 
   @Get(':employeeId/hierarchy')

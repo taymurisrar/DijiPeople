@@ -1,5 +1,6 @@
 export type EmployeeEmploymentStatus =
   | "ACTIVE"
+  | "INACTIVE"
   | "PROBATION"
   | "NOTICE"
   | "TERMINATED";
@@ -141,6 +142,7 @@ export type EmployeeListItem = {
   reportingManagerEmployeeId?: string | null;
   officialJoiningLocationId?: string | null;
   userId?: string | null;
+  ownerUserId?: string | null;
   addressLine1?: string | null;
   addressLine2?: string | null;
   city?: string | null;
@@ -172,6 +174,13 @@ export type EmployeeListItem = {
     lastName: string;
     status: string;
     roles: EmployeeRoleOption[];
+  } | null;
+  ownerUser: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    fullName: string;
   } | null;
   department: {
     id: string;
