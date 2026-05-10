@@ -184,31 +184,46 @@ export default function SettingsPage() {
     <main className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
         <section className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-100 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 px-6 py-7 text-white sm:px-8">
-            <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-              <div className="max-w-3xl">
-                <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-medium text-white/80">
-                  <Settings2 className="h-3.5 w-3.5" />
-                  Enterprise Administration
-                </div>
+<section className="rounded-[28px] border border-border bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(232,248,242,0.92))] p-8 shadow-lg">
+  <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+    <div className="max-w-3xl space-y-3">
+      <div className="inline-flex items-center gap-2 rounded-full border border-border bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted shadow-sm">
+        <Settings2 className="h-3.5 w-3.5" />
+        Enterprise Administration
+      </div>
 
-                <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-                  Settings
-                </h1>
+      <h1 className="font-serif text-4xl text-foreground">
+        Settings
+      </h1>
 
-                <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">
-                  Configure organization structure, security, people rules,
-                  payroll, customization, apps, appearance, and audit controls
-                  from one governed workspace.
-                </p>
-              </div>
+      <p className="max-w-2xl text-sm leading-6 text-muted sm:text-base">
+        Configure organization structure, security, people rules,
+        payroll, customization, apps, appearance, and audit controls
+        from one governed workspace.
+      </p>
+    </div>
 
-              <div className="grid grid-cols-2 gap-3 sm:flex">
-                <MetricCard label="Groups" value={visibleGroups.length} />
-                <MetricCard label="Settings" value={totalItems} />
-              </div>
-            </div>
-          </div>
+    <div className="flex flex-wrap gap-3">
+      <div className="rounded-2xl border border-border bg-white/85 px-5 py-4 text-right shadow-sm">
+        <p className="text-2xl font-semibold text-foreground">
+          {visibleGroups.length}
+        </p>
+        <p className="text-xs font-medium text-muted">
+          Groups
+        </p>
+      </div>
+
+      <div className="rounded-2xl border border-border bg-white/85 px-5 py-4 text-right shadow-sm">
+        <p className="text-2xl font-semibold text-foreground">
+          {totalItems}
+        </p>
+        <p className="text-xs font-medium text-muted">
+          Settings
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
 
           <div className="flex flex-col gap-4 px-6 py-5 sm:px-8 lg:flex-row lg:items-center lg:justify-between">
             <div className="relative w-full lg:max-w-xl">
@@ -287,9 +302,9 @@ function SettingsGroupBlock({
     <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
       <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div className="flex gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-white shadow-sm">
-            <SettingsIcon icon={group.icon} className="h-5 w-5" />
-          </div>
+<div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[color-mix(in_oklab,var(--dp-accent)_9%,white)] text-muted-foreground shadow-sm transition group-hover:bg-white group-hover:text-foreground">
+  <SettingsIcon icon={group.icon} className="h-5 w-5" />
+</div>
 
           <div>
             <h2 className="text-lg font-semibold text-slate-950">
