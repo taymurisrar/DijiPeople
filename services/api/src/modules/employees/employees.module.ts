@@ -6,6 +6,7 @@ import { DuplicateRuleEngine } from '../../common/validation/duplicate-rule-engi
 import { AuditModule } from '../audit/audit.module';
 import { AuthModule } from '../auth/auth.module';
 import { DocumentsModule } from '../documents/documents.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { OrganizationModule } from '../organization/organization.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { RolesRepository } from '../roles/roles.repository';
@@ -26,6 +27,7 @@ import { EmployeesService } from './employees.service';
     DocumentsModule,
     PermissionsModule,
     TenantSettingsModule,
+    NotificationsModule,
   ],
   controllers: [EmployeesController],
   providers: [

@@ -110,6 +110,13 @@ export const PERMISSION_KEYS = {
   RECRUITMENT_READ: 'recruitment.read',
   ONBOARDING_READ: 'onboarding.read',
   DOCUMENTS_READ: 'documents.read',
+  NOTIFICATIONS_READ: 'notifications.read',
+  NOTIFICATIONS_MANAGE: 'notifications.manage',
+  NOTIFICATION_TEMPLATES_READ: 'notification.templates.read',
+  NOTIFICATION_TEMPLATES_MANAGE: 'notification.templates.manage',
+  NOTIFICATION_PROVIDERS_READ: 'notification.providers.read',
+  NOTIFICATION_PROVIDERS_MANAGE: 'notification.providers.manage',
+  NOTIFICATION_LOGS_READ: 'notification.logs.read',
   CUSTOMIZATION_READ: 'customization.read',
   CUSTOMIZATION_PUBLISH: 'customization.publish',
   TEAMS_READ: 'teams.read',
@@ -210,6 +217,48 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     name: 'Read audit logs',
     description:
       'View tenant audit logs for compliance, support, and change tracking.',
+  },
+  {
+    key: PERMISSION_KEYS.NOTIFICATIONS_READ,
+    name: 'Read notifications',
+    description:
+      'View notification event definitions and tenant notification configuration.',
+  },
+  {
+    key: PERMISSION_KEYS.NOTIFICATIONS_MANAGE,
+    name: 'Manage notifications',
+    description:
+      'Manage tenant notification event preferences and channel defaults.',
+  },
+  {
+    key: PERMISSION_KEYS.NOTIFICATION_TEMPLATES_READ,
+    name: 'Read notification templates',
+    description:
+      'View system and tenant email templates used by notification events.',
+  },
+  {
+    key: PERMISSION_KEYS.NOTIFICATION_TEMPLATES_MANAGE,
+    name: 'Manage notification templates',
+    description:
+      'Create, update, version, and archive tenant notification email templates.',
+  },
+  {
+    key: PERMISSION_KEYS.NOTIFICATION_PROVIDERS_READ,
+    name: 'Read notification providers',
+    description:
+      'View tenant email provider settings and sender configuration metadata.',
+  },
+  {
+    key: PERMISSION_KEYS.NOTIFICATION_PROVIDERS_MANAGE,
+    name: 'Manage notification providers',
+    description:
+      'Create and update tenant email provider settings and sender configuration.',
+  },
+  {
+    key: PERMISSION_KEYS.NOTIFICATION_LOGS_READ,
+    name: 'Read notification logs',
+    description:
+      'View tenant email delivery logs and notification delivery outcomes.',
   },
   {
     key: PERMISSION_KEYS.TEAMS_READ,

@@ -32,6 +32,7 @@ import { LeaveModule } from './modules/leave/leave.module';
 import { LeadsModule } from './modules/leads/leads.module';
 import { LookupsModule } from './modules/lookups/lookups.module';
 import { ModuleViewsModule } from './modules/views/module-views.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 import { OnboardingModule } from './modules/onboarding/onboarding.module';
 import { OrganizationModule } from './modules/organization/organization.module';
 import { PayComponentsModule } from './modules/pay-components/pay-components.module';
@@ -76,6 +77,7 @@ import { SuperAdminModule } from './modules/super-admin/super-admin.module';
     LeadsModule,
     LookupsModule,
     ModuleViewsModule,
+    NotificationsModule,
     OnboardingModule,
     OrganizationModule,
     PayComponentsModule,

@@ -9,10 +9,11 @@ import { ConfigService } from '@nestjs/config';
 import { Prisma, UserInvitationStatus, UserStatus } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { createHash, randomBytes } from 'crypto';
-import { MailerService } from '../../common/mailer/mailer.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { normalizeEmail } from '../../common/utils/email.util';
 import { AuditService } from '../audit/audit.service';
+import { EmailService } from '../notifications/email/email.service';
+import { TenantSettingsResolverService } from '../tenant-settings/tenant-settings-resolver.service';
 import { UsersRepository } from '../users/users.repository';
 
 type PrismaDb = PrismaService | Prisma.TransactionClient;
@@ -22,7 +23,8 @@ export class UserInvitationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
-    private readonly mailerService: MailerService,
+    private readonly emailService: EmailService,
+    private readonly tenantSettingsResolver: TenantSettingsResolverService,
     private readonly usersRepository: UsersRepository,
     private readonly auditService: AuditService,
   ) {}
@@ -60,14 +62,20 @@ export class UserInvitationsService {
 
     const activationLink = this.buildActivationLink(rawToken);
     let deliveryMode: 'log' | 'disabled' | 'sent' = 'disabled';
+    let deliveryStatus: string | null = null;
 
     if (input.sendNow !== false) {
-      const delivery = await this.mailerService.sendAccountActivationLink({
-        to: email,
+      const delivery = await this.sendAccountActivationEmail({
+        tenantId: input.tenantId,
+        userId: input.userId,
+        invitationId: invitation.id,
+        email,
         fullName: input.fullName,
         activationLink,
+        expiresAt,
       });
-      deliveryMode = delivery.deliveryMode as 'log' | 'sent';
+      deliveryStatus = delivery.status;
+      deliveryMode = delivery.sent ? 'sent' : 'disabled';
     }
 
     await this.auditService.log({
@@ -82,12 +90,14 @@ export class UserInvitationsService {
         email,
         expiresAt,
         deliveryMode,
+        deliveryStatus,
       },
     });
 
     return {
       invitationId: invitation.id,
       deliveryMode,
+      deliveryStatus,
       expiresAt: invitation.expiresAt,
       activationLink: this.shouldExposeDevLink() ? activationLink : undefined,
     };
@@ -287,5 +297,50 @@ export class UserInvitationsService {
       this.configService.get('NODE_ENV') !== 'production' &&
       this.configService.get('EXPOSE_DEV_AUTH_LINKS') === 'true'
     );
+  }
+
+  private async sendAccountActivationEmail(input: {
+    tenantId: string;
+    userId: string;
+    invitationId: string;
+    email: string;
+    fullName: string;
+    activationLink: string;
+    expiresAt: Date;
+  }) {
+    const [tenant, branding] = await Promise.all([
+      this.prisma.tenant.findUnique({
+        where: { id: input.tenantId },
+        select: { name: true },
+      }),
+      this.tenantSettingsResolver.getBrandingSettings(input.tenantId),
+    ]);
+
+    return this.emailService.sendTemplateEmail({
+      tenantId: input.tenantId,
+      eventCode: 'AUTH_ACCOUNT_ACTIVATION',
+      templateKey: 'AUTH_ACCOUNT_ACTIVATION',
+      recipient: input.email,
+      variables: {
+        tenantName: tenant?.name ?? branding.brandName ?? 'DijiPeople',
+        appName: branding.appTitle || 'DijiPeople',
+        recipientName: input.fullName,
+        activationUrl: input.activationLink,
+        expiresAt: input.expiresAt.toISOString(),
+        supportEmail:
+          branding.supportEmail ||
+          this.configService.get<string>('SUPPORT_EMAIL') ||
+          'support@dijipeople.com',
+        primaryColor: branding.primaryColor || '#0f766e',
+        logoUrl:
+          branding.logoUrl || `${getAppOrigin('web', process.env)}/favicon.ico`,
+      },
+      metadata: {
+        userId: input.userId,
+        invitationId: input.invitationId,
+        source: 'user-invitation',
+      },
+      requestedByUserId: input.userId,
+    });
   }
 }

@@ -94,7 +94,7 @@ export const MISC_PERMISSION_KEYS = {
   REPORTS_EXPORT: 'reports.export',
   CUSTOMIZATION_ACCESS: 'customization.access',
   CUSTOMIZATION_PUBLISH: 'customization.publish',
-  NOTIFICATION_TEMPLATES_MANAGE: 'notification-templates.manage',
+  NOTIFICATION_TEMPLATES_MANAGE: 'notification.templates.manage',
   ORGANIZATION_MANAGE: 'organization.manage',
 
   USERS_READ: 'users.read',

@@ -1,26 +1,42 @@
 import { apiRequestJson } from "@/lib/server-api";
-import { ConfigSettingsForm } from "../_components/config-settings-form";
+import type {
+  NotificationEvent,
+  NotificationPreferenceItem,
+} from "@/lib/notifications-api";
 import { SettingsShell } from "../_components/settings-shell";
-import { requireSettingsPermissions } from "../_lib/require-settings-permission";
-import { notificationSettingsSections } from "../_lib/settings-page-config";
-import { TenantSettingsResponse } from "../types";
+import {
+  hasAnySettingsPermission,
+  requireSettingsPermissions,
+} from "../_lib/require-settings-permission";
+import { NotificationPreferencesManager } from "./_components/notification-preferences-manager";
+import type { TenantSettingsResponse } from "../types";
 
 export default async function NotificationSettingsPage() {
-  await requireSettingsPermissions(["settings.read"]);
-  const tenantSettings = await apiRequestJson<TenantSettingsResponse>(
-    "/tenant-settings",
-  );
+  const user = await requireSettingsPermissions(["notifications.read"]);
+  const [events, preferences, tenantSettings] = await Promise.all([
+    apiRequestJson<NotificationEvent[]>("/notifications/events"),
+    apiRequestJson<{
+      items: NotificationPreferenceItem[];
+      sourceOfTruth?: string;
+    }>("/notifications/preferences"),
+    apiRequestJson<TenantSettingsResponse>("/tenant-settings").catch(
+      () => ({}) as TenantSettingsResponse,
+    ),
+  ]);
+  const canManage = hasAnySettingsPermission(user, ["notifications.manage"]);
 
   return (
     <SettingsShell
-      description="Control in-app and email notification behavior for operational workflows without scattering communication logic across modules."
+      description="Manage tenant-wide notification event preferences and channel enablement across template-backed communication workflows."
       eyebrow="Notifications"
       title="Notification Settings"
     >
-      <ConfigSettingsForm
-        initialSettings={tenantSettings}
-        saveLabel="Save notification settings"
-        sections={notificationSettingsSections}
+      <NotificationPreferencesManager
+        canManage={canManage}
+        events={events}
+        globalSettings={tenantSettings.notifications ?? {}}
+        preferences={preferences.items}
+        sourceOfTruth={preferences.sourceOfTruth}
       />
     </SettingsShell>
   );

@@ -121,6 +121,54 @@ enum UserInvitationStatus {
   EXPIRED
 }
 
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  SMS
+  PUSH
+}
+
+enum NotificationEventCategory {
+  AUTH
+  APPROVAL
+  LEAVE
+  TIMESHEET
+  PAYROLL
+  EMPLOYEE
+  ONBOARDING
+  DOCUMENT
+  SYSTEM
+}
+
+enum EmailTemplateStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum EmailProviderType {
+  CONSOLE
+  DEV
+  SMTP
+  SES
+  SENDGRID
+  MAILGUN
+  POSTMARK
+  CUSTOM
+}
+
+enum EmailDeliveryStatus {
+  REQUESTED
+  PENDING
+  PROCESSING
+  QUEUED
+  SENT
+  DELIVERED
+  FAILED
+  SKIPPED
+  DRY_RUN
+}
+
 enum EmployeeEmploymentStatus {
   ACTIVE
   INACTIVE
@@ -887,6 +935,10 @@ model Tenant {
   documentLinks                  DocumentLink[]
   tenantSettings                 TenantSetting[]
   tenantFeatures                 TenantFeature[]
+  emailTemplates                 EmailTemplate[]
+  emailProviderSettings          EmailProviderSetting[]
+  emailDeliveryLogs              EmailDeliveryLog[]
+  notificationPreferences        NotificationPreference[]
   customizationTables            CustomizationTable[]
   customizationColumns           CustomizationColumn[]
   customizationViews             CustomizationView[]
@@ -1230,6 +1282,7 @@ model User {
   activityEvents             ActivityEvent[]
   dailyProductivitySummaries DailyProductivitySummary[]
   invitations                UserInvitation[]
+  notificationPreferences    NotificationPreference[]
   employee                   Employee?
   ownedEmployees             Employee[]                 @relation("OwnedEmployees")
   leaveApprovalSteps         LeaveApprovalStep[]
@@ -3053,6 +3106,137 @@ model TenantFeature {
   @@unique([tenantId, key])
   @@index([tenantId])
   @@index([tenantId, isEnabled])
+}
+
+model NotificationEvent {
+  id                 String                    @id @default(uuid())
+  code               String                    @unique
+  name               String
+  description        String?
+  category           NotificationEventCategory
+  enabledByDefault   Boolean                   @default(true)
+  supportedChannels  NotificationChannel[]
+  systemDefined      Boolean                   @default(true)
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+  emailTemplates     EmailTemplate[]
+  emailDeliveryLogs  EmailDeliveryLog[]
+  preferences        NotificationPreference[]
+
+  @@index([category])
+  @@index([systemDefined])
+  @@index([enabledByDefault])
+}
+
+model EmailTemplate {
+  id                 String              @id @default(uuid())
+  tenantId           String?
+  scopeKey           String
+  eventCode          String
+  templateKey        String
+  name               String
+  description        String?
+  subjectTemplate    String
+  htmlTemplate       String
+  textTemplate       String?
+  availableVariables Json
+  status             EmailTemplateStatus @default(DRAFT)
+  version            Int                 @default(1)
+  isSystem           Boolean             @default(false)
+  createdBy          String?
+  updatedBy          String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  tenant             Tenant?             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  event              NotificationEvent   @relation(fields: [eventCode], references: [code], onDelete: Restrict)
+  deliveryLogs       EmailDeliveryLog[]
+
+  @@unique([scopeKey, templateKey])
+  @@index([tenantId])
+  @@index([eventCode])
+  @@index([scopeKey, eventCode, version])
+  @@index([status])
+  @@index([isSystem])
+  @@index([tenantId, eventCode, status])
+}
+
+model EmailProviderSetting {
+  id            String            @id @default(uuid())
+  tenantId      String
+  providerType  EmailProviderType
+  providerName  String
+  enabled       Boolean           @default(false)
+  isDefault     Boolean           @default(false)
+  fromEmail     String
+  fromName      String
+  replyToEmail  String?
+  configuration Json
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  tenant        Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, providerName])
+  @@index([tenantId])
+  @@index([tenantId, providerType])
+  @@index([tenantId, enabled])
+  @@index([tenantId, isDefault])
+}
+
+model EmailDeliveryLog {
+  id                String               @id @default(uuid())
+  tenantId          String
+  eventCode         String
+  templateId        String?
+  providerType      EmailProviderType?
+  recipient         String
+  cc                String?
+  bcc               String?
+  subject           String
+  channel           NotificationChannel  @default(EMAIL)
+  status            EmailDeliveryStatus  @default(REQUESTED)
+  providerMessageId String?
+  errorMessage      String?
+  metadata          Json?
+  requestedAt       DateTime             @default(now())
+  processedAt       DateTime?
+  deliveredAt       DateTime?
+  failedAt          DateTime?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  tenant            Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  event             NotificationEvent    @relation(fields: [eventCode], references: [code], onDelete: Restrict)
+  template          EmailTemplate?       @relation(fields: [templateId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([tenantId, eventCode])
+  @@index([tenantId, status])
+  @@index([tenantId, recipient])
+  @@index([tenantId, requestedAt])
+  @@index([templateId])
+  @@index([providerMessageId])
+}
+
+model NotificationPreference {
+  id          String              @id @default(uuid())
+  tenantId    String
+  userId      String?
+  scopeKey    String
+  eventCode   String
+  channel     NotificationChannel
+  enabled     Boolean             @default(true)
+  metadata    Json?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  tenant      Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user        User?               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event       NotificationEvent   @relation(fields: [eventCode], references: [code], onDelete: Cascade)
+
+  @@unique([scopeKey, eventCode, channel])
+  @@index([tenantId])
+  @@index([tenantId, userId])
+  @@index([tenantId, eventCode])
+  @@index([tenantId, channel])
+  @@index([enabled])
 }
 
 model PlatformSetting {

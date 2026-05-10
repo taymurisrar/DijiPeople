@@ -60,6 +60,14 @@ const NAV_PERMISSION_KEYS = {
   ONBOARDING_READ: "onboarding.read",
 
   AUDIT_READ: "audit.read",
+
+  NOTIFICATIONS_READ: "notifications.read",
+  NOTIFICATIONS_MANAGE: "notifications.manage",
+  NOTIFICATION_TEMPLATES_READ: "notification.templates.read",
+  NOTIFICATION_TEMPLATES_MANAGE: "notification.templates.manage",
+  NOTIFICATION_PROVIDERS_READ: "notification.providers.read",
+  NOTIFICATION_PROVIDERS_MANAGE: "notification.providers.manage",
+  NOTIFICATION_LOGS_READ: "notification.logs.read",
 } as const;
 
 function canViewItem(
@@ -303,7 +311,48 @@ export const settingsNavGroups = [
           "Configure notification channels, templates, alert rules, and communication defaults.",
         icon: "bell",
         keywords: ["notifications", "alerts", "email", "templates"],
-        requiredAnyPermissions: [NAV_PERMISSION_KEYS.SETTINGS_READ],
+        requiredAnyPermissions: [
+          NAV_PERMISSION_KEYS.NOTIFICATIONS_READ,
+          NAV_PERMISSION_KEYS.NOTIFICATIONS_MANAGE,
+          NAV_PERMISSION_KEYS.SETTINGS_READ,
+        ],
+      },
+      {
+        key: "notification-email-templates",
+        href: "/dashboard/settings/notifications/templates",
+        label: "Email Templates",
+        description:
+          "Manage template-driven notification emails, previews, and test sends.",
+        icon: "mail",
+        keywords: ["email templates", "notifications", "preview", "test send"],
+        requiredAnyPermissions: [
+          NAV_PERMISSION_KEYS.NOTIFICATION_TEMPLATES_READ,
+          NAV_PERMISSION_KEYS.NOTIFICATION_TEMPLATES_MANAGE,
+        ],
+      },
+      {
+        key: "notification-email-providers",
+        href: "/dashboard/settings/notifications/providers",
+        label: "Email Providers",
+        description:
+          "Configure tenant sender identities and provider settings for template email delivery.",
+        icon: "server-cog",
+        keywords: ["email providers", "smtp", "sender", "delivery"],
+        requiredAnyPermissions: [
+          NAV_PERMISSION_KEYS.NOTIFICATION_PROVIDERS_READ,
+          NAV_PERMISSION_KEYS.NOTIFICATION_PROVIDERS_MANAGE,
+        ],
+      },
+      {
+        key: "notification-email-logs",
+        href: "/dashboard/settings/notifications/logs",
+        label: "Email Delivery Logs",
+        shortLabel: "Email Logs",
+        description:
+          "Review email delivery attempts, statuses, provider IDs, and failure diagnostics.",
+        icon: "list-checks",
+        keywords: ["email logs", "delivery logs", "notifications", "status"],
+        requiredAnyPermissions: [NAV_PERMISSION_KEYS.NOTIFICATION_LOGS_READ],
       },
     ],
   },

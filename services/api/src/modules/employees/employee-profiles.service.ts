@@ -13,11 +13,12 @@ import { normalizeEmail } from '../../common/utils/email.util';
 import { getAccessTokenSecret } from '../../common/config/auth.config';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { buildScopedAccessWhere } from '../../common/security/rbac-query-scope';
-import { MailerService } from '../../common/mailer/mailer.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { StorageService } from '../../common/storage/storage.service';
 import { AuditService } from '../audit/audit.service';
 import { DocumentsRepository } from '../documents/documents.repository';
+import { EmailService } from '../notifications/email/email.service';
+import { TenantSettingsResolverService } from '../tenant-settings/tenant-settings-resolver.service';
 import { EmployeesRepository } from './employees.repository';
 import { CreateEmployeePreviousEmploymentDto } from './dto/create-employee-previous-employment.dto';
 import { CreateEmployeeEducationDto } from './dto/create-employee-education.dto';
@@ -54,7 +55,8 @@ export class EmployeeProfilesService {
     private readonly documentsRepository: DocumentsRepository,
     private readonly storageService: StorageService,
     private readonly auditService: AuditService,
-    private readonly mailerService: MailerService,
+    private readonly emailService: EmailService,
+    private readonly tenantSettingsResolver: TenantSettingsResolverService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
   ) {}
@@ -1278,10 +1280,15 @@ export class EmployeeProfilesService {
       this.configService.get<string>('PASSWORD_RESET_LINK_BASE_URL') ??
       `${getAppOrigin('web', process.env)}/reset-password`;
     const resetLink = `${baseUrl}?token=${encodeURIComponent(resetToken)}`;
-    const delivery = await this.mailerService.sendPasswordResetLink({
-      to: recipientEmail,
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const delivery = await this.sendPasswordResetEmail({
+      tenantId: currentUser.tenantId,
+      userId: employee.user.id,
+      employeeId: employee.id,
+      recipientEmail,
       fullName: `${employee.firstName} ${employee.lastName}`,
       resetLink,
+      expiresAt,
     });
 
     await this.auditService.log({
@@ -1290,10 +1297,65 @@ export class EmployeeProfilesService {
       action: 'EMPLOYEE_PASSWORD_RESET_LINK_SENT',
       entityType: 'User',
       entityId: employee.user.id,
-      afterSnapshot: { recipientEmail, deliveryMode: delivery.deliveryMode },
+      afterSnapshot: {
+        recipientEmail,
+        deliveryMode: delivery.sent ? 'sent' : 'disabled',
+        deliveryStatus: delivery.status,
+        deliveryLogId: delivery.deliveryLogId,
+      },
     });
 
-    return { sent: true, deliveryMode: delivery.deliveryMode, recipientEmail };
+    return {
+      sent: delivery.sent,
+      deliveryMode: delivery.sent ? 'sent' : 'disabled',
+      deliveryStatus: delivery.status,
+      recipientEmail,
+    };
+  }
+
+  private async sendPasswordResetEmail(input: {
+    tenantId: string;
+    userId: string;
+    employeeId: string;
+    recipientEmail: string;
+    fullName: string;
+    resetLink: string;
+    expiresAt: Date;
+  }) {
+    const [tenant, branding] = await Promise.all([
+      this.prisma.tenant.findUnique({
+        where: { id: input.tenantId },
+        select: { name: true },
+      }),
+      this.tenantSettingsResolver.getBrandingSettings(input.tenantId),
+    ]);
+
+    return this.emailService.sendTemplateEmail({
+      tenantId: input.tenantId,
+      eventCode: 'AUTH_PASSWORD_RESET',
+      templateKey: 'AUTH_PASSWORD_RESET',
+      recipient: input.recipientEmail,
+      variables: {
+        tenantName: tenant?.name ?? branding.brandName ?? 'DijiPeople',
+        appName: branding.appTitle || 'DijiPeople',
+        recipientName: input.fullName,
+        resetUrl: input.resetLink,
+        expiresAt: input.expiresAt.toISOString(),
+        supportEmail:
+          branding.supportEmail ||
+          this.configService.get<string>('SUPPORT_EMAIL') ||
+          'support@dijipeople.com',
+        primaryColor: branding.primaryColor || '#0f766e',
+        logoUrl:
+          branding.logoUrl || `${getAppOrigin('web', process.env)}/favicon.ico`,
+      },
+      metadata: {
+        userId: input.userId,
+        employeeId: input.employeeId,
+        source: 'employee-password-reset',
+      },
+      requestedByUserId: input.userId,
+    });
   }
 
   private async updateEmployeeSection(

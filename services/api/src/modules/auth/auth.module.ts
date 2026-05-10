@@ -11,7 +11,9 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { MailerModule } from '../../common/mailer/mailer.module';
 import { AuditModule } from '../audit/audit.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { PermissionsModule } from '../permissions/permissions.module';
+import { TenantSettingsModule } from '../tenant-settings/tenant-settings.module';
 import { TenantsModule } from '../tenants/tenants.module';
 import { UsersModule } from '../users/users.module';
 import { AuthController } from './auth.controller';
@@ -38,6 +40,8 @@ import { UserInvitationsService } from './user-invitations.service';
     PermissionsModule,
     MailerModule,
     AuditModule,
+    TenantSettingsModule,
+    NotificationsModule,
   ],
   controllers: [AuthController],
   providers: [
