@@ -18,19 +18,26 @@ import {
   CreateEmailProviderDto,
   CreateEmailTemplateDto,
   EmailDeliveryLogQueryDto,
+  InAppNotificationQueryDto,
   PreviewEmailTemplateDto,
   TestSendEmailTemplateDto,
   UpdateEmailProviderDto,
   UpdateEmailTemplateDto,
   UpdateNotificationPreferencesDto,
 } from './dto';
+import { InAppNotificationsService } from './in-app-notifications.service';
+import { NotificationDiagnosticsService } from './notification-diagnostics.service';
 import { NOTIFICATION_PERMISSION_KEYS } from './notifications.constants';
 import { NotificationsService } from './notifications.service';
 
 @Controller('notifications')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class NotificationsController {
-  constructor(private readonly notificationsService: NotificationsService) {}
+  constructor(
+    private readonly notificationsService: NotificationsService,
+    private readonly inAppNotificationsService: InAppNotificationsService,
+    private readonly diagnosticsService: NotificationDiagnosticsService,
+  ) {}
 
   @Get('events')
   @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATIONS_READ)
@@ -218,5 +225,44 @@ export class NotificationsController {
     @Param('id') deliveryLogId: string,
   ) {
     return this.notificationsService.getDeliveryLog(user, deliveryLogId);
+  }
+
+  @Get('in-app')
+  @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATIONS_READ)
+  listInAppNotifications(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: InAppNotificationQueryDto,
+  ) {
+    return this.inAppNotificationsService.listForUser(user, query);
+  }
+
+  @Get('in-app/unread-count')
+  @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATIONS_READ)
+  getInAppUnreadCount(@CurrentUser() user: AuthenticatedUser) {
+    return this.inAppNotificationsService.getUnreadCount(user);
+  }
+
+  @Post('in-app/:id/read')
+  @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATIONS_READ)
+  markInAppNotificationRead(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') recipientId: string,
+  ) {
+    return this.inAppNotificationsService.markRead(user, recipientId);
+  }
+
+  @Post('in-app/:id/archive')
+  @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATIONS_READ)
+  archiveInAppNotification(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') recipientId: string,
+  ) {
+    return this.inAppNotificationsService.archive(user, recipientId);
+  }
+
+  @Get('diagnostics')
+  @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATION_DIAGNOSTICS_READ)
+  getDiagnostics(@CurrentUser() user: AuthenticatedUser) {
+    return this.diagnosticsService.getTenantDiagnostics(user.tenantId);
   }
 }

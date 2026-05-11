@@ -2,12 +2,18 @@ import type { ResponseCookie } from "next/dist/compiled/@edge-runtime/cookies";
 
 export const ACCESS_TOKEN_MAX_AGE_SECONDS = Math.floor(
   parseDurationToMilliseconds(
-    process.env.JWT_ACCESS_TOKEN_TTL ?? process.env.JWT_ACCESS_TTL ?? "15m",
+    process.env.AUTH_ACCESS_TOKEN_TTL_SECONDS ??
+      process.env.JWT_ACCESS_TOKEN_TTL ??
+      process.env.JWT_ACCESS_TTL ??
+      "15m",
   ) / 1000,
 );
 export const REFRESH_TOKEN_MAX_AGE_SECONDS = Math.floor(
   parseDurationToMilliseconds(
-    process.env.JWT_REFRESH_TOKEN_TTL ?? process.env.JWT_REFRESH_TTL ?? "7d",
+    process.env.AUTH_REFRESH_TOKEN_TTL_SECONDS ??
+      process.env.JWT_REFRESH_TOKEN_TTL ??
+      process.env.JWT_REFRESH_TTL ??
+      "1h",
   ) / 1000,
 );
 

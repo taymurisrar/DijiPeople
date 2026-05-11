@@ -1,7 +1,15 @@
 import { getApiBaseUrl as getSharedApiBaseUrl, getAppOrigin } from "@repo/config";
 
-export const ACCESS_TOKEN_COOKIE = "dp_access_token";
-export const REFRESH_TOKEN_COOKIE = "dp_refresh_token";
+export const AUTH_APP_CLIENT_ID = "admin";
+const AUTH_COOKIE_PREFIX = process.env.AUTH_ADMIN_COOKIE_PREFIX ?? "dp_admin";
+export const ACCESS_TOKEN_COOKIE =
+  process.env.AUTH_ADMIN_COOKIE_ACCESS_NAME ??
+  `${AUTH_COOKIE_PREFIX}_access_token`;
+export const REFRESH_TOKEN_COOKIE =
+  process.env.AUTH_ADMIN_COOKIE_REFRESH_NAME ??
+  `${AUTH_COOKIE_PREFIX}_refresh_token`;
+export const SESSION_COOKIE =
+  process.env.AUTH_ADMIN_COOKIE_SESSION_NAME ?? `${AUTH_COOKIE_PREFIX}_session_id`;
 export const LOGIN_ROUTE = "/login";
 export const DEFAULT_ADMIN_ROUTE = "/tenants";
 export const ACCESS_DENIED_ROUTE = "/access-denied";

@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import {
   ACCESS_TOKEN_COOKIE,
+  AUTH_APP_CLIENT_ID,
   REFRESH_TOKEN_COOKIE,
   SESSION_COOKIE,
 } from "@/lib/auth-config";
@@ -28,6 +29,7 @@ export async function GET() {
     const response = await fetch(`${apiBaseUrl}/auth/me`, {
       method: "GET",
       headers: {
+        "X-DijiPeople-App": AUTH_APP_CLIENT_ID,
         Cookie: [
           accessToken
             ? `${ACCESS_TOKEN_COOKIE}=${encodeURIComponent(accessToken)}`

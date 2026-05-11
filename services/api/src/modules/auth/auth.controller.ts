@@ -18,7 +18,10 @@ import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { SignupDto } from './dto/signup.dto';
 import { AuthService } from './auth.service';
-import { getAuthCookieNames } from '../../common/config/auth.config';
+import {
+  getAuthClientIdFromHeaders,
+  getAuthCookieNames,
+} from '../../common/config/auth.config';
 import { ConfigService } from '@nestjs/config';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -45,8 +48,9 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.authService.login(dto, req);
+    const clientId = getAuthClientIdFromHeaders(req.headers);
 
-    this.authService.setAuthCookies(res, result.tokens, dto.rememberMe);
+    this.authService.setAuthCookies(res, result.tokens, dto.rememberMe, clientId);
 
     return {
       tenant: result.tenant,
@@ -62,14 +66,17 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
+    const clientId = getAuthClientIdFromHeaders(req.headers);
     const result = await this.authService.refresh(
       dto.refreshToken ||
         (req.cookies as Record<string, string> | undefined)?.[
-          getAuthCookieNames(this.configService).refresh
+          getAuthCookieNames(this.configService, clientId).refresh
         ],
+      req,
+      clientId,
     );
 
-    this.authService.setAuthCookies(res, result.tokens);
+    this.authService.setAuthCookies(res, result.tokens, false, clientId);
 
     return {
       tenant: result.tenant,

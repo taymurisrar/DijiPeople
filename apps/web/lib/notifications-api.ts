@@ -87,6 +87,30 @@ export type EmailDeliveryLog = {
   metadata: unknown;
 };
 
+export type InAppNotification = {
+  id: string;
+  eventCode: string;
+  type: string;
+  category: string;
+  title: string;
+  body: string | null;
+  targetUrl: string | null;
+  payload: unknown;
+  metadata: unknown;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type InAppNotificationItem = {
+  id: string;
+  notificationId: string;
+  readAt: string | null;
+  archivedAt: string | null;
+  deliveredAt: string | null;
+  createdAt: string;
+  notification: InAppNotification;
+};
+
 export type RenderedTemplate = {
   renderedSubject: string;
   renderedHtml: string;
@@ -224,3 +248,44 @@ export const getEmailDeliveryLogs = (query = "") =>
   }>(`/email-delivery-logs${query ? `?${query}` : ""}`);
 export const getEmailDeliveryLog = (id: string) =>
   requestJson<EmailDeliveryLog>(`/email-delivery-logs/${id}`);
+
+export const getInAppNotifications = (query = "") =>
+  requestJson<{ items: InAppNotificationItem[] }>(
+    `/in-app${query ? `?${query}` : ""}`,
+  );
+export const getUnreadNotificationCount = () =>
+  requestJson<{ unreadCount: number }>("/in-app/unread-count");
+export const markInAppNotificationRead = (id: string) =>
+  requestJson<{ read: boolean }>(`/in-app/${id}/read`, {
+    method: "POST",
+    body: "{}",
+  });
+export const archiveInAppNotification = (id: string) =>
+  requestJson<{ archived: boolean }>(`/in-app/${id}/archive`, {
+    method: "POST",
+    body: "{}",
+  });
+export const getNotificationDiagnostics = () =>
+  requestJson<{
+    delivery: {
+      failedCount24h: number;
+      retryBacklog: number;
+      skippedCount24h: number;
+      lastExecutionAt: string | null;
+      lastExecutionStatus: EmailDeliveryStatus | null;
+    };
+    provider: {
+      configured: boolean;
+      providerType: EmailProviderType | null;
+      source: string | null;
+      providerSettingId: string | null;
+    };
+    queue: {
+      enabled: boolean;
+      adapter: string;
+      redisConfigured: boolean;
+      redisHost: string | null;
+      redisPort: string | null;
+      note: string;
+    };
+  }>("/diagnostics");

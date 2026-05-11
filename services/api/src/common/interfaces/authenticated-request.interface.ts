@@ -8,6 +8,8 @@ import {
 export interface AuthenticatedUser {
   userId: string;
   tenantId: string;
+  sessionId?: string;
+  appClientId?: string;
   email: string;
   firstName?: string;
   lastName?: string;
@@ -35,22 +37,18 @@ export interface AuthenticatedUser {
   };
 }
 
-export type AuthTokenPayload =
-  | {
-      sub: string;
-      tenantId: string;
-      email: string;
-      sessionId: string;
-      tokenVersion: number;
-      type: 'access';
-    }
-  | {
-      sub: string;
-      tenantId: string;
-      sessionId: string;
-      tokenVersion: number;
-      type: 'refresh';
-    };
+export type AuthTokenPayload = {
+  sub: string;
+  tenantId: string;
+  email?: string;
+  sessionId: string;
+  tokenVersion: number;
+  type?: 'access' | 'refresh' | 'agent-refresh';
+  tokenUse?: 'access' | 'refresh';
+  appClientId?: string;
+  aud?: string;
+  deviceId?: string;
+};
 
 export interface AuthenticatedRequest extends Request {
   user: AuthenticatedUser;

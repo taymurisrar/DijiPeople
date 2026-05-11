@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { ACCESS_TOKEN_COOKIE } from "@/lib/auth-config";
+import { ACCESS_TOKEN_COOKIE, AUTH_APP_CLIENT_ID } from "@/lib/auth-config";
 import { getApiBaseUrl } from "@/lib/auth";
 
 type JsonPrimitive = string | number | boolean | null;
@@ -82,6 +82,9 @@ export async function apiRequest(
 
   if (includeAuth && accessToken && !headers.has("Authorization")) {
     headers.set("Authorization", `Bearer ${accessToken}`);
+  }
+  if (!headers.has("X-DijiPeople-App")) {
+    headers.set("X-DijiPeople-App", AUTH_APP_CLIENT_ID);
   }
   if (!headers.has("X-Request-Id")) {
     headers.set("X-Request-Id", createRequestId());

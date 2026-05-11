@@ -10,7 +10,6 @@ import {
   Search,
 } from "lucide-react";
 import {
-  ReactNode,
   useEffect,
   useMemo,
   useRef,
@@ -22,37 +21,10 @@ import {
   DataTableFilterOperator,
   DataTableFilterState,
   DataTableSortState,
+  DataTableProps,
 } from "./types";
+
 import { filterRows, searchRows, sortRows } from "./utils";
-
-type DataTableProps<T> = {
-  rows: T[];
-  columns: DataTableColumn<T>[];
-  getRowKey: (row: T) => string;
-  mode?: "client" | "server";
-  entityLogicalName?: string;
-  pagination?: {
-    page: number;
-    pageSize: number;
-    total?: number;
-    totalItems?: number;
-    totalPages?: number;
-  };
-  emptyState?: ReactNode;
-  initialSort?: DataTableSortState | null;
-  initialFilters?: DataTableFilterState[];
-  enableSearch?: boolean;
-  searchPlaceholder?: string;
-  className?: string;
-  tableClassName?: string;
-  bodyClassName?: string;
-  rowClassName?: string;
-  footer?: ReactNode;
-
-  enableSelection?: boolean;
-  selectedRowKeys?: string[];
-  onSelectedRowKeysChange?: (keys: string[]) => void;
-};
 
 const EMPTY_FILTERS: DataTableFilterState[] = [];
 
@@ -487,21 +459,31 @@ function ColumnFilterButton<T>({
 }) {
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const [open, setOpen] = useState(false);
+
+  const filterType = column.filterType ?? "text";
+  const isActive = Boolean(filter);
+
   const [operator, setOperator] = useState<DataTableFilterOperator>(
     filter?.operator ?? getDefaultOperator(column),
   );
   const [value, setValue] = useState(filter?.value ?? "");
   const [valueTo, setValueTo] = useState(filter?.valueTo ?? "");
-  const filterType = column.filterType ?? "text";
-  const isActive = Boolean(filter);
 
-  useEffect(() => {
-    if (!open) return;
-
+  function openFilterMenu() {
     setOperator(filter?.operator ?? getDefaultOperator(column));
     setValue(filter?.value ?? "");
     setValueTo(filter?.valueTo ?? "");
-  }, [column, filter, open]);
+    setOpen(true);
+  }
+
+  function toggleFilterMenu() {
+    if (open) {
+      setOpen(false);
+      return;
+    }
+
+    openFilterMenu();
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -531,10 +513,7 @@ function ColumnFilterButton<T>({
     const normalizedValue = value.trim();
     const normalizedValueTo = valueTo.trim();
 
-    if (
-      !["isEmpty", "isNotEmpty"].includes(operator) &&
-      !normalizedValue
-    ) {
+    if (!["isEmpty", "isNotEmpty"].includes(operator) && !normalizedValue) {
       onApply(null);
       setOpen(false);
       return;
@@ -546,10 +525,12 @@ function ColumnFilterButton<T>({
       value: normalizedValue,
       valueTo: operator === "between" ? normalizedValueTo : undefined,
     });
+
     setOpen(false);
   }
 
   function clearFilter() {
+    setOperator(getDefaultOperator(column));
     setValue("");
     setValueTo("");
     onApply(null);
@@ -563,7 +544,7 @@ function ColumnFilterButton<T>({
         aria-label={`Filter ${column.header}`}
         aria-haspopup="menu"
         aria-expanded={open}
-        onClick={() => setOpen((current) => !current)}
+        onClick={toggleFilterMenu}
         className={`inline-flex h-7 w-7 items-center justify-center rounded-md transition hover:bg-white hover:text-foreground ${
           isActive ? "bg-white text-foreground ring-1 ring-border" : ""
         }`}
@@ -618,7 +599,13 @@ function ColumnFilterButton<T>({
               />
             ) : (
               <FilterTextInput
-                type={filterType === "date" ? "date" : filterType === "number" ? "number" : "text"}
+                type={
+                  filterType === "date"
+                    ? "date"
+                    : filterType === "number"
+                      ? "number"
+                      : "text"
+                }
                 value={value}
                 onChange={setValue}
               />
@@ -627,7 +614,13 @@ function ColumnFilterButton<T>({
             {operator === "between" ? (
               <FilterTextInput
                 label="To"
-                type={filterType === "date" ? "date" : filterType === "number" ? "number" : "text"}
+                type={
+                  filterType === "date"
+                    ? "date"
+                    : filterType === "number"
+                      ? "number"
+                      : "text"
+                }
                 value={valueTo}
                 onChange={setValueTo}
               />
@@ -657,7 +650,6 @@ function ColumnFilterButton<T>({
     </div>
   );
 }
-
 function FilterTextInput({
   label = "Value",
   type,

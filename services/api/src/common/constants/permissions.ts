@@ -117,6 +117,7 @@ export const PERMISSION_KEYS = {
   NOTIFICATION_PROVIDERS_READ: 'notification.providers.read',
   NOTIFICATION_PROVIDERS_MANAGE: 'notification.providers.manage',
   NOTIFICATION_LOGS_READ: 'notification.logs.read',
+  NOTIFICATION_DIAGNOSTICS_READ: 'notification.diagnostics.read',
   CUSTOMIZATION_READ: 'customization.read',
   CUSTOMIZATION_PUBLISH: 'customization.publish',
   TEAMS_READ: 'teams.read',
@@ -259,6 +260,12 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     name: 'Read notification logs',
     description:
       'View tenant email delivery logs and notification delivery outcomes.',
+  },
+  {
+    key: PERMISSION_KEYS.NOTIFICATION_DIAGNOSTICS_READ,
+    name: 'Read notification diagnostics',
+    description:
+      'View provider, queue, retry, and notification execution diagnostics.',
   },
   {
     key: PERMISSION_KEYS.TEAMS_READ,

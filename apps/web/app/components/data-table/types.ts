@@ -131,3 +131,32 @@ export type DataTableSortState = {
   columnKey: string;
   direction: SortDirection;
 };
+
+export type DataTableProps<T> = {
+  rows: T[];
+  columns: DataTableColumn<T>[];
+  getRowKey: (row: T) => string;
+  mode?: "client" | "server";
+  entityLogicalName?: string;
+  pagination?: {
+    page: number;
+    pageSize: number;
+    total?: number;
+    totalItems?: number;
+    totalPages?: number;
+  };
+  emptyState?: ReactNode;
+  initialSort?: DataTableSortState | null;
+  initialFilters?: DataTableFilterState[];
+  enableSearch?: boolean;
+  searchPlaceholder?: string;
+  className?: string;
+  tableClassName?: string;
+  bodyClassName?: string;
+  rowClassName?: string;
+  footer?: ReactNode;
+
+  enableSelection?: boolean;
+  selectedRowKeys?: string[];
+  onSelectedRowKeysChange?: (keys: string[]) => void;
+};

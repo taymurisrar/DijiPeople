@@ -19,9 +19,12 @@ import { randomUUID } from 'crypto';
 import type { StringValue } from 'ms';
 import {
   getAccessTokenSecret,
+  getAgentSessionAbsoluteTimeoutMs,
+  getAgentSessionIdleTimeoutMs,
   getAgentAccessTokenTtl,
   getRefreshTokenSecret,
   getAgentRefreshTokenTtl,
+  AUTH_CLIENT_IDS,
   parseDurationToMilliseconds,
 } from '../../common/config/auth.config';
 import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
@@ -48,7 +51,10 @@ type AgentTokenPayload = {
   email: string;
   deviceId: string;
   sessionId: string;
-  type: 'access' | 'agent-refresh';
+  type?: 'access' | 'agent-refresh';
+  tokenUse: 'access' | 'refresh';
+  appClientId: 'agent-desktop';
+  aud: 'agent-desktop';
 };
 
 const DEFAULT_AGENT_SETTINGS = {
@@ -203,7 +209,7 @@ export class AgentService {
 
     await this.prisma.agentRefreshToken.update({
       where: { id: tokenRecord.id },
-      data: { revokedAt: new Date() },
+      data: { revokedAt: new Date(), lastUsedAt: new Date() },
     });
 
     await this.prisma.employeeDevice.update({
@@ -220,6 +226,8 @@ export class AgentService {
       employeeId: user.employee.id,
       email: user.email,
       deviceId: device.id,
+      sessionId: payload.sessionId,
+      absoluteExpiresAt: tokenRecord.absoluteExpiresAt,
     });
 
     return {
@@ -818,10 +826,13 @@ export class AgentService {
     employeeId: string;
     email: string;
     deviceId: string;
+    sessionId?: string;
+    absoluteExpiresAt?: Date | null;
   }) {
-    const sessionId = randomUUID();
+    const sessionId = input.sessionId ?? randomUUID();
     const accessTokenTtl = getAgentAccessTokenTtl(this.configService);
     const refreshTokenTtl = getAgentRefreshTokenTtl(this.configService);
+    const now = Date.now();
     const accessToken = this.jwtService.sign(
       {
         sub: input.userId,
@@ -830,6 +841,9 @@ export class AgentService {
         deviceId: input.deviceId,
         sessionId,
         type: 'access',
+        tokenUse: 'access',
+        appClientId: AUTH_CLIENT_IDS.AGENT_DESKTOP,
+        aud: AUTH_CLIENT_IDS.AGENT_DESKTOP,
       } satisfies AgentTokenPayload,
       {
         secret: getAccessTokenSecret(this.configService),
@@ -845,6 +859,9 @@ export class AgentService {
         deviceId: input.deviceId,
         sessionId,
         type: 'agent-refresh',
+        tokenUse: 'refresh',
+        appClientId: AUTH_CLIENT_IDS.AGENT_DESKTOP,
+        aud: AUTH_CLIENT_IDS.AGENT_DESKTOP,
       } satisfies AgentTokenPayload,
       {
         secret: getRefreshTokenSecret(this.configService),
@@ -858,16 +875,22 @@ export class AgentService {
         userId: input.userId,
         employeeId: input.employeeId,
         deviceId: input.deviceId,
+        sessionId,
         tokenHash: await bcrypt.hash(refreshToken, 10),
         expiresAt: new Date(
-          Date.now() + parseDurationToMilliseconds(refreshTokenTtl),
+          now + parseDurationToMilliseconds(refreshTokenTtl),
         ),
+        absoluteExpiresAt:
+          input.absoluteExpiresAt ??
+          new Date(now + getAgentSessionAbsoluteTimeoutMs(this.configService)),
+        lastActivityAt: new Date(now),
       },
     });
 
     return {
       accessToken,
       refreshToken,
+      sessionId,
       accessTokenExpiresIn: accessTokenTtl,
       refreshTokenExpiresIn: refreshTokenTtl,
     };
@@ -879,7 +902,11 @@ export class AgentService {
       { secret: getRefreshTokenSecret(this.configService) },
     );
 
-    if (payload.type !== 'agent-refresh') {
+    if (
+      payload.tokenUse !== 'refresh' ||
+      payload.appClientId !== AUTH_CLIENT_IDS.AGENT_DESKTOP ||
+      payload.aud !== AUTH_CLIENT_IDS.AGENT_DESKTOP
+    ) {
       throw new UnauthorizedException('Refresh token is invalid.');
     }
 
@@ -903,6 +930,7 @@ export class AgentService {
 
     for (const record of records) {
       if (await bcrypt.compare(refreshToken, record.tokenHash)) {
+        this.assertAgentRefreshSessionActive(record);
         return record;
       }
     }
@@ -935,6 +963,30 @@ export class AgentService {
       create: { tenantId, ...DEFAULT_AGENT_SETTINGS },
       update: {},
     });
+  }
+
+  private assertAgentRefreshSessionActive(tokenRecord: {
+    absoluteExpiresAt: Date | null;
+    lastActivityAt: Date | null;
+  }) {
+    const now = Date.now();
+
+    if (
+      tokenRecord.absoluteExpiresAt &&
+      tokenRecord.absoluteExpiresAt.getTime() <= now
+    ) {
+      throw new UnauthorizedException('Agent session has expired.');
+    }
+
+    if (
+      tokenRecord.lastActivityAt &&
+      now - tokenRecord.lastActivityAt.getTime() >
+        getAgentSessionIdleTimeoutMs(this.configService)
+    ) {
+      throw new UnauthorizedException(
+        'Agent session expired due to inactivity.',
+      );
+    }
   }
 }
 

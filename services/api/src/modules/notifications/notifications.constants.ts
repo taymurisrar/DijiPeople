@@ -11,6 +11,7 @@ export const NOTIFICATION_PERMISSION_KEYS = {
   NOTIFICATION_PROVIDERS_READ: 'notification.providers.read',
   NOTIFICATION_PROVIDERS_MANAGE: 'notification.providers.manage',
   NOTIFICATION_LOGS_READ: 'notification.logs.read',
+  NOTIFICATION_DIAGNOSTICS_READ: 'notification.diagnostics.read',
 } as const;
 
 export function buildTenantNotificationScopeKey(tenantId: string) {

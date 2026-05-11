@@ -10,9 +10,12 @@ import { JwtService, TokenExpiredError, JsonWebTokenError } from '@nestjs/jwt';
 import { Reflector } from '@nestjs/core';
 import {
   getAccessTokenSecret,
+  getAuthClientIdFromHeaders,
+  getClientIdleTimeoutMs,
   getAuthCookieNames,
-  getSessionIdleTimeoutMs,
   isSlidingSessionEnabled,
+  normalizeAuthClientId,
+  type AuthClientId,
 } from '../config/auth.config';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { AuthAccessService } from '../../modules/auth/auth-access.service';
@@ -45,7 +48,8 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
-    const token = this.extractToken(request);
+    const clientId = getAuthClientIdFromHeaders(request.headers);
+    const token = this.extractToken(request, clientId);
 
     if (!token) {
       this.logger.warn(
@@ -66,7 +70,7 @@ export class JwtAuthGuard implements CanActivate {
         },
       );
 
-      if (payload.type !== 'access') {
+      if (payload.tokenUse !== 'access' && payload.type !== 'access') {
         this.logger.warn(
           `Invalid token type. Expected=access, Received=${payload.type}, UserId=${payload.sub}, TenantId=${payload.tenantId}`,
         );
@@ -77,7 +81,17 @@ export class JwtAuthGuard implements CanActivate {
         });
       }
 
-      await this.assertSessionIsActive(payload);
+      if (
+        normalizeAuthClientId(payload.appClientId) !== clientId ||
+        normalizeAuthClientId(String(payload.aud ?? '')) !== clientId
+      ) {
+        throw new UnauthorizedException({
+          code: 'INVALID_TOKEN',
+          message: 'Access token is not valid for this application.',
+        });
+      }
+
+      await this.assertSessionIsActive(payload, clientId);
 
       const { authUser } = await this.authAccessService.loadAccessContext(
         payload.sub,
@@ -107,6 +121,8 @@ export class JwtAuthGuard implements CanActivate {
       }
 
       request.user = authUser;
+      request.user.sessionId = payload.sessionId;
+      request.user.appClientId = payload.appClientId;
 
       return true;
     } catch (error) {
@@ -148,7 +164,7 @@ export class JwtAuthGuard implements CanActivate {
     }
   }
 
-  private extractToken(request: AuthenticatedRequest) {
+  private extractToken(request: AuthenticatedRequest, clientId: AuthClientId) {
     const bearerToken = this.extractTokenFromHeader(request);
 
     if (bearerToken) {
@@ -156,7 +172,7 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     const cookies = request.cookies as Record<string, string> | undefined;
-    return cookies?.[getAuthCookieNames(this.configService).access];
+    return cookies?.[getAuthCookieNames(this.configService, clientId).access];
   }
 
   private extractTokenFromHeader(request: AuthenticatedRequest) {
@@ -164,8 +180,16 @@ export class JwtAuthGuard implements CanActivate {
     return type === 'Bearer' ? token : undefined;
   }
 
-  private async assertSessionIsActive(payload: AuthTokenPayload) {
-    if (payload.type !== 'access') {
+  private async assertSessionIsActive(
+    payload: AuthTokenPayload,
+    clientId: AuthClientId,
+  ) {
+    if (payload.tokenUse !== 'access' && payload.type !== 'access') {
+      return;
+    }
+
+    if (clientId === 'agent-desktop') {
+      await this.assertAgentSessionIsActive(payload);
       return;
     }
 
@@ -174,6 +198,7 @@ export class JwtAuthGuard implements CanActivate {
         sessionId: payload.sessionId,
         userId: payload.sub,
         tenantId: payload.tenantId,
+        appClientId: clientId,
         revokedAt: null,
         expiresAt: { gt: new Date() },
       },
@@ -206,7 +231,55 @@ export class JwtAuthGuard implements CanActivate {
       isSlidingSessionEnabled(this.configService) &&
       tokenRecord.lastActivityAt &&
       now - tokenRecord.lastActivityAt.getTime() >
-        getSessionIdleTimeoutMs(this.configService)
+        getClientIdleTimeoutMs(this.configService, clientId)
+    ) {
+      throw new UnauthorizedException({
+        code: 'SESSION_EXPIRED',
+        message: 'Session expired due to inactivity.',
+      });
+    }
+  }
+
+  private async assertAgentSessionIsActive(payload: AuthTokenPayload) {
+    const tokenRecord = await this.prisma.agentRefreshToken.findFirst({
+      where: {
+        sessionId: payload.sessionId,
+        userId: payload.sub,
+        tenantId: payload.tenantId,
+        ...(payload.deviceId ? { deviceId: payload.deviceId } : {}),
+        revokedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        absoluteExpiresAt: true,
+        lastActivityAt: true,
+      },
+    });
+
+    if (!tokenRecord) {
+      throw new UnauthorizedException({
+        code: 'SESSION_REVOKED',
+        message: 'Session is no longer active.',
+      });
+    }
+
+    const now = Date.now();
+    if (
+      tokenRecord.absoluteExpiresAt &&
+      tokenRecord.absoluteExpiresAt.getTime() <= now
+    ) {
+      throw new UnauthorizedException({
+        code: 'SESSION_EXPIRED',
+        message: 'Session has expired.',
+      });
+    }
+
+    if (
+      isSlidingSessionEnabled(this.configService) &&
+      tokenRecord.lastActivityAt &&
+      now - tokenRecord.lastActivityAt.getTime() >
+        getClientIdleTimeoutMs(this.configService, 'agent-desktop')
     ) {
       throw new UnauthorizedException({
         code: 'SESSION_EXPIRED',

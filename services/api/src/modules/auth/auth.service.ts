@@ -10,16 +10,21 @@ import { FOUNDATION_PERMISSION_DEFINITIONS } from '../../common/constants/permis
 import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import {
   getAccessTokenSecret,
-  getAccessTokenTtl,
+  getAuthClientIdFromHeaders,
   getAuthCookieNames,
+  getClientAbsoluteTimeoutMs,
+  getClientAccessTokenTtl,
+  getClientIdleTimeoutMs,
+  getClientRefreshTokenTtl,
   getRefreshTokenSecret,
-  getRefreshTokenTtl,
   getSessionAbsoluteTimeoutMs,
   getSessionActivityThrottleMs,
-  getSessionIdleTimeoutMs,
+  isRefreshRotationEnabled,
   isSlidingSessionEnabled,
+  normalizeAuthClientId,
   parseDurationToMilliseconds,
   buildAuthCookieOptions,
+  type AuthClientId,
 } from '../../common/config/auth.config';
 import { AuthTokenPayload } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -114,6 +119,7 @@ export class AuthService {
   }
 
   async login(dto: LoginDto, req?: Request) {
+    const clientId = this.getClientId(req);
     const user = await this.validateCredentials(dto);
     const tenantStatus = String(user.tenant.status).toUpperCase();
 
@@ -132,6 +138,7 @@ export class AuthService {
     const authResponse = this.buildAuthResponse(
       refreshedUser,
       dto.rememberMe ?? false,
+      { clientId },
     );
 
     await Promise.all([
@@ -139,6 +146,7 @@ export class AuthService {
         refreshedUser.id,
         refreshedUser.tenantId,
         authResponse.tokens.sessionId,
+        clientId,
         authResponse.tokens.refreshToken,
         authResponse.tokens.refreshTokenExpiresIn,
         req,
@@ -149,7 +157,7 @@ export class AuthService {
     return authResponse;
   }
 
-  async refresh(refreshToken?: string) {
+  async refresh(refreshToken?: string, req?: Request, requestedClientId?: string) {
     if (!refreshToken) {
       throw this.authUnauthorized(
         'REFRESH_TOKEN_EXPIRED',
@@ -158,6 +166,19 @@ export class AuthService {
     }
 
     const payload = await this.verifyRefreshToken(refreshToken);
+    const clientId = normalizeAuthClientId(
+      requestedClientId ?? this.getClientId(req),
+    );
+
+    if (
+      normalizeAuthClientId(payload.appClientId) !== clientId ||
+      normalizeAuthClientId(String(payload.aud ?? '')) !== clientId
+    ) {
+      throw this.authUnauthorized(
+        'INVALID_TOKEN',
+        'Refresh token is not valid for this application.',
+      );
+    }
 
     const user = await this.usersService.findByIdWithAccess(payload.sub);
 
@@ -190,6 +211,9 @@ export class AuthService {
 
     const refreshTokenMatches = await this.hasActiveRefreshToken(
       refreshedUser.id,
+      refreshedUser.tenantId,
+      payload.sessionId,
+      clientId,
       refreshToken,
     );
 
@@ -200,21 +224,42 @@ export class AuthService {
       );
     }
 
-    const authResponse = this.buildAuthResponse(refreshedUser);
+    const rotateRefresh = isRefreshRotationEnabled(this.configService);
+    const authResponse = this.buildAuthResponse(refreshedUser, false, {
+      clientId,
+      sessionId: payload.sessionId,
+      refreshTokenOverride: rotateRefresh ? undefined : refreshToken,
+    });
 
-    await this.rotateRefreshToken(
-      refreshedUser.id,
-      refreshedUser.tenantId,
-      payload.sessionId,
-      refreshToken,
-      authResponse.tokens.refreshToken,
-      authResponse.tokens.refreshTokenExpiresIn,
-    );
+    if (rotateRefresh) {
+      await this.rotateRefreshToken(
+        refreshedUser.id,
+        refreshedUser.tenantId,
+        payload.sessionId,
+        clientId,
+        refreshToken,
+        authResponse.tokens.refreshToken,
+        authResponse.tokens.refreshTokenExpiresIn,
+        req,
+      );
+    } else {
+      await this.touchRefreshSession(
+        refreshedUser.id,
+        refreshedUser.tenantId,
+        payload.sessionId,
+        clientId,
+      );
+    }
 
     return authResponse;
   }
 
-  async recordActivity(currentUser: { userId: string; tenantId: string }) {
+  async recordActivity(currentUser: {
+    userId: string;
+    tenantId: string;
+    sessionId?: string;
+    appClientId?: string;
+  }) {
     if (!isSlidingSessionEnabled(this.configService)) {
       return { ok: true, sliding: false };
     }
@@ -226,6 +271,10 @@ export class AuthService {
       where: {
         userId: currentUser.userId,
         tenantId: currentUser.tenantId,
+        ...(currentUser.sessionId ? { sessionId: currentUser.sessionId } : {}),
+        ...(currentUser.appClientId
+          ? { appClientId: currentUser.appClientId }
+          : {}),
         revokedAt: null,
         expiresAt: { gt: new Date() },
         OR: [{ lastActivityAt: null }, { lastActivityAt: { lt: threshold } }],
@@ -240,13 +289,14 @@ export class AuthService {
   }
 
   async getProfileFromRequest(req: Request, res: Response) {
-    const cookieNames = getAuthCookieNames(this.configService);
+    const clientId = this.getClientId(req);
+    const cookieNames = getAuthCookieNames(this.configService, clientId);
     const accessToken = this.extractTokenFromRequest(req, cookieNames.access);
     const refreshToken = this.extractTokenFromRequest(req, cookieNames.refresh);
 
     if (accessToken) {
       try {
-        const payload = await this.verifyAccessToken(accessToken);
+        const payload = await this.verifyAccessToken(accessToken, clientId);
         const { response } = await this.authAccessService.loadAccessContext(
           payload.sub,
           payload.tenantId,
@@ -258,7 +308,7 @@ export class AuthService {
     }
 
     if (!refreshToken) {
-      this.clearAuthCookies(res);
+      this.clearAuthCookies(res, clientId);
       throw this.authUnauthorized(
         'SESSION_EXPIRED',
         'Your session expired. Please sign in again to continue.',
@@ -266,15 +316,15 @@ export class AuthService {
     }
 
     try {
-      const refreshed = await this.refresh(refreshToken);
-      this.setAuthCookies(res, refreshed.tokens);
+      const refreshed = await this.refresh(refreshToken, req, clientId);
+      this.setAuthCookies(res, refreshed.tokens, false, clientId);
       const { response } = await this.authAccessService.loadAccessContext(
         refreshed.user.userId,
         refreshed.tenant.id,
       );
       return response;
     } catch {
-      this.clearAuthCookies(res);
+      this.clearAuthCookies(res, clientId);
       throw this.authUnauthorized(
         'SESSION_EXPIRED',
         'Your session expired. Please sign in again to continue.',
@@ -300,6 +350,7 @@ export class AuthService {
       refreshTokenExpiresIn: string;
     },
     rememberMe?: boolean,
+    clientId: AuthClientId = 'web',
   ) {
     const accessMaxAge = rememberMe
       ? parseDurationToMilliseconds(tokens.accessTokenExpiresIn)
@@ -309,7 +360,7 @@ export class AuthService {
       ? parseDurationToMilliseconds(tokens.refreshTokenExpiresIn)
       : undefined;
 
-    const cookieNames = getAuthCookieNames(this.configService);
+    const cookieNames = getAuthCookieNames(this.configService, clientId);
 
     res.cookie(
       cookieNames.access,
@@ -333,8 +384,8 @@ export class AuthService {
     );
   }
 
-  clearAuthCookies(res: Response) {
-    const cookieNames = getAuthCookieNames(this.configService);
+  clearAuthCookies(res: Response, clientId: AuthClientId = 'web') {
+    const cookieNames = getAuthCookieNames(this.configService, clientId);
     const options = buildAuthCookieOptions(this.configService, 0);
 
     res.clearCookie(cookieNames.access, options);
@@ -343,12 +394,13 @@ export class AuthService {
   }
 
   async logout(req: Request, res: Response) {
-    const cookieNames = getAuthCookieNames(this.configService);
+    const clientId = this.getClientId(req);
+    const cookieNames = getAuthCookieNames(this.configService, clientId);
     const refreshToken = this.extractTokenFromRequest(req, cookieNames.refresh);
 
     if (refreshToken) {
       const activeTokens = await this.prisma.refreshToken.findMany({
-        where: { revokedAt: null },
+        where: { revokedAt: null, appClientId: clientId },
         select: { id: true, tokenHash: true },
         orderBy: { createdAt: 'desc' },
         take: 20,
@@ -369,7 +421,7 @@ export class AuthService {
       }
     }
 
-    this.clearAuthCookies(res);
+    this.clearAuthCookies(res, clientId);
   }
 
   private async validateCredentials(dto: LoginDto) {
@@ -413,7 +465,7 @@ export class AuthService {
           secret: getRefreshTokenSecret(this.configService),
         },
       );
-      if (payload.type !== 'refresh') {
+      if (payload.tokenUse !== 'refresh' && payload.type !== 'refresh') {
         throw new Error('Invalid token type.');
       }
       return payload;
@@ -425,14 +477,23 @@ export class AuthService {
     }
   }
 
-  private async verifyAccessToken(accessToken: string) {
+  private async verifyAccessToken(
+    accessToken: string,
+    clientId: AuthClientId,
+  ) {
     try {
       const payload = await this.jwtService.verifyAsync<AuthTokenPayload>(
         accessToken,
         { secret: getAccessTokenSecret(this.configService) },
       );
-      if (payload.type !== 'access') {
+      if (payload.tokenUse !== 'access' && payload.type !== 'access') {
         throw new Error('Invalid token type.');
+      }
+      if (
+        normalizeAuthClientId(payload.appClientId) !== clientId ||
+        normalizeAuthClientId(String(payload.aud ?? '')) !== clientId
+      ) {
+        throw new Error('Invalid token audience.');
       }
       return payload;
     } catch {
@@ -447,9 +508,11 @@ export class AuthService {
     userId: string,
     tenantId: string,
     sessionId: string,
+    clientId: AuthClientId,
     refreshToken: string,
     refreshTokenTtl: string,
     req?: Request,
+    absoluteExpiresAt?: Date | null,
   ) {
     const tokenHash = await bcrypt.hash(refreshToken, 10);
     const now = Date.now();
@@ -459,11 +522,13 @@ export class AuthService {
         tenantId,
         userId,
         sessionId,
+        appClientId: clientId,
+        tokenFamilyId: sessionId,
         tokenHash,
         expiresAt: new Date(now + parseDurationToMilliseconds(refreshTokenTtl)),
-        absoluteExpiresAt: new Date(
-          now + getSessionAbsoluteTimeoutMs(this.configService),
-        ),
+        absoluteExpiresAt:
+          absoluteExpiresAt ??
+          new Date(now + getClientAbsoluteTimeoutMs(this.configService, clientId)),
         lastActivityAt: new Date(now),
         userAgent: req?.headers['user-agent']?.slice(0, 500),
         ipAddress: req?.ip,
@@ -471,10 +536,19 @@ export class AuthService {
     });
   }
 
-  private async hasActiveRefreshToken(userId: string, refreshToken: string) {
+  private async hasActiveRefreshToken(
+    userId: string,
+    tenantId: string,
+    sessionId: string,
+    clientId: AuthClientId,
+    refreshToken: string,
+  ) {
     const activeTokens = await this.prisma.refreshToken.findMany({
       where: {
         userId,
+        tenantId,
+        sessionId,
+        appClientId: clientId,
         revokedAt: null,
         expiresAt: { gt: new Date() },
       },
@@ -487,7 +561,7 @@ export class AuthService {
       const matches = await bcrypt.compare(refreshToken, tokenRecord.tokenHash);
 
       if (matches) {
-        this.assertSessionNotExpired(tokenRecord);
+        this.assertSessionNotExpired(tokenRecord, clientId);
         return true;
       }
     }
@@ -499,16 +573,23 @@ export class AuthService {
     userId: string,
     tenantId: string,
     sessionId: string,
+    clientId: AuthClientId,
     previousRefreshToken: string,
     nextRefreshToken: string,
     nextRefreshTokenTtl: string,
+    req?: Request,
   ) {
     const activeTokens = await this.prisma.refreshToken.findMany({
       where: {
         userId,
+        tenantId,
+        sessionId,
+        appClientId: clientId,
         revokedAt: null,
       },
     });
+
+    let absoluteExpiresAt: Date | null = null;
 
     for (const tokenRecord of activeTokens) {
       const matches = await bcrypt.compare(
@@ -517,6 +598,7 @@ export class AuthService {
       );
 
       if (matches) {
+        absoluteExpiresAt = tokenRecord.absoluteExpiresAt;
         await this.prisma.refreshToken.update({
           where: {
             id: tokenRecord.id,
@@ -533,13 +615,46 @@ export class AuthService {
       userId,
       tenantId,
       sessionId,
+      clientId,
       nextRefreshToken,
       nextRefreshTokenTtl,
+      req,
+      absoluteExpiresAt,
     );
   }
 
-  private buildAuthResponse(user: UserWithAccess, rememberMe = false) {
-    const sessionId = randomUUID();
+  private async touchRefreshSession(
+    userId: string,
+    tenantId: string,
+    sessionId: string,
+    clientId: AuthClientId,
+  ) {
+    await this.prisma.refreshToken.updateMany({
+      where: {
+        userId,
+        tenantId,
+        sessionId,
+        appClientId: clientId,
+        revokedAt: null,
+      },
+      data: {
+        lastActivityAt: new Date(),
+        lastUsedAt: new Date(),
+      },
+    });
+  }
+
+  private buildAuthResponse(
+    user: UserWithAccess,
+    rememberMe = false,
+    options: {
+      clientId?: AuthClientId;
+      sessionId?: string;
+      refreshTokenOverride?: string;
+    } = {},
+  ) {
+    const clientId = options.clientId ?? 'web';
+    const sessionId = options.sessionId ?? randomUUID();
     const tokenVersion = 0;
 
     const accessPayload: AuthTokenPayload = {
@@ -549,28 +664,34 @@ export class AuthService {
       sessionId,
       tokenVersion,
       type: 'access',
+      tokenUse: 'access',
+      appClientId: clientId,
+      aud: clientId,
     };
 
     const accessTokenTtl = rememberMe
       ? this.configService.get<string>('JWT_ACCESS_TTL_REMEMBER_ME') || '30m'
-      : getAccessTokenTtl(this.configService);
+      : getClientAccessTokenTtl(this.configService, clientId);
 
     const refreshTokenTtl = rememberMe
       ? this.configService.get<string>('JWT_REFRESH_TTL_REMEMBER_ME') || '30d'
-      : getRefreshTokenTtl(this.configService);
+      : getClientRefreshTokenTtl(this.configService, clientId);
 
     const accessToken = this.jwtService.sign(accessPayload, {
       secret: getAccessTokenSecret(this.configService),
       expiresIn: accessTokenTtl as StringValue,
     });
 
-    const refreshToken = this.jwtService.sign(
+    const refreshToken = options.refreshTokenOverride ?? this.jwtService.sign(
       {
         sub: user.id,
         tenantId: user.tenantId,
         sessionId,
         tokenVersion,
         type: 'refresh',
+        tokenUse: 'refresh',
+        appClientId: clientId,
+        aud: clientId,
       } satisfies AuthTokenPayload,
       {
         secret: getRefreshTokenSecret(this.configService),
@@ -707,7 +828,7 @@ export class AuthService {
   private assertSessionNotExpired(tokenRecord: {
     absoluteExpiresAt: Date | null;
     lastActivityAt: Date | null;
-  }) {
+  }, clientId: AuthClientId) {
     const now = Date.now();
     if (
       tokenRecord.absoluteExpiresAt &&
@@ -723,7 +844,7 @@ export class AuthService {
     const lastActivityAt = tokenRecord.lastActivityAt?.getTime();
     if (
       lastActivityAt &&
-      now - lastActivityAt > getSessionIdleTimeoutMs(this.configService)
+      now - lastActivityAt > getClientIdleTimeoutMs(this.configService, clientId)
     ) {
       throw this.authUnauthorized(
         'SESSION_EXPIRED',
@@ -734,5 +855,11 @@ export class AuthService {
 
   private authUnauthorized(code: string, message: string) {
     return new UnauthorizedException({ code, message });
+  }
+
+  private getClientId(req?: Request): AuthClientId {
+    return req
+      ? getAuthClientIdFromHeaders(req.headers)
+      : normalizeAuthClientId(undefined);
   }
 }

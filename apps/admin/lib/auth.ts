@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import {
   ACCESS_DENIED_ROUTE,
   ACCESS_TOKEN_COOKIE,
+  AUTH_APP_CLIENT_ID,
   REFRESH_TOKEN_COOKIE,
   getAdminLoginUrl,
   getApiBaseUrl,
@@ -49,6 +50,7 @@ export async function getSessionUser() {
 
   const response = await fetch(`${getApiBaseUrl()}/auth/me`, {
     headers: {
+      "X-DijiPeople-App": AUTH_APP_CLIENT_ID,
       Cookie: [
         accessToken ? `${ACCESS_TOKEN_COOKIE}=${encodeURIComponent(accessToken)}` : "",
         refreshToken ? `${REFRESH_TOKEN_COOKIE}=${encodeURIComponent(refreshToken)}` : "",

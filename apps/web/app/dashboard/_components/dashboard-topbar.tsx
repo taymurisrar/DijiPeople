@@ -1,5 +1,6 @@
 import { UserMenuDropdown } from "./user-menu-dropdown";
 import { TenantLogo } from "@/app/components/branding/tenant-logo";
+import { NotificationBell } from "./notification-bell";
 
 type DashboardTopbarProps = {
   avatarCacheKey?: string | null;
@@ -12,6 +13,7 @@ type DashboardTopbarProps = {
   tenantName?: string;
   tenantLogoUrl?: string | null;
   roleLabel: string;
+  canReadNotifications?: boolean;
   pageTitle?: string;
   pageDescription?: string;
 };
@@ -26,6 +28,7 @@ export function DashboardTopbar({
   tenantName,
   tenantLogoUrl,
   roleLabel,
+  canReadNotifications = false,
   pageTitle = "Dashboard",
   pageDescription = "Manage your workspace from one place.",
 }: DashboardTopbarProps) {
@@ -51,15 +54,18 @@ export function DashboardTopbar({
           </p>
         </div>
 
-        <UserMenuDropdown
-          avatarCacheKey={avatarCacheKey}
-          avatarSrc={avatarSrc}
-          email={email}
-          firstName={firstName}
-          lastName={lastName}
-          profileHref={profileHref}
-          roleLabel={roleLabel}
-        />
+        <div className="flex items-center gap-2">
+          {canReadNotifications ? <NotificationBell /> : null}
+          <UserMenuDropdown
+            avatarCacheKey={avatarCacheKey}
+            avatarSrc={avatarSrc}
+            email={email}
+            firstName={firstName}
+            lastName={lastName}
+            profileHref={profileHref}
+            roleLabel={roleLabel}
+          />
+        </div>
       </div>
     </header>
   );

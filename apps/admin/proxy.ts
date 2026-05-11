@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import {
   ACCESS_TOKEN_COOKIE,
   REFRESH_TOKEN_COOKIE,
+  SESSION_COOKIE,
   DEFAULT_ADMIN_ROUTE,
   LOGIN_ROUTE,
   isAdminAuthRoute,
@@ -93,6 +94,14 @@ function validateJwt(token: string | undefined): JwtValidationResult {
       return { valid: false, reason: "missing-exp" };
     }
 
+    if (
+      payload.aud !== "admin" ||
+      payload.appClientId !== "admin" ||
+      (payload.tokenUse !== "access" && payload.type !== "access")
+    ) {
+      return { valid: false, reason: "invalid-payload" };
+    }
+
     const nowSeconds = Math.floor(Date.now() / 1000);
 
     if (exp <= nowSeconds + CLOCK_SKEW_SECONDS) {
@@ -163,6 +172,11 @@ function clearAuthCookies(response: NextResponse): void {
   });
 
   response.cookies.set(REFRESH_TOKEN_COOKIE, "", {
+    path: "/",
+    maxAge: 0,
+  });
+
+  response.cookies.set(SESSION_COOKIE, "", {
     path: "/",
     maxAge: 0,
   });

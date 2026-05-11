@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   ACCESS_TOKEN_COOKIE,
+  AUTH_APP_CLIENT_ID,
   REFRESH_TOKEN_COOKIE,
   SESSION_COOKIE,
 } from "@/lib/auth-config";
@@ -34,6 +35,7 @@ export async function POST(request: Request) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "X-DijiPeople-App": AUTH_APP_CLIENT_ID,
       },
       body: JSON.stringify(body),
       cache: "no-store",

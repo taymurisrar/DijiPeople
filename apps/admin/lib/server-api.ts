@@ -1,6 +1,10 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { ACCESS_TOKEN_COOKIE, getApiBaseUrl } from "@/lib/auth-config";
+import {
+  ACCESS_TOKEN_COOKIE,
+  AUTH_APP_CLIENT_ID,
+  getApiBaseUrl,
+} from "@/lib/auth-config";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -21,6 +25,7 @@ export async function apiRequest(path: string, init?: RequestInit) {
   if (accessToken) {
     headers.set("Authorization", `Bearer ${accessToken}`);
   }
+  headers.set("X-DijiPeople-App", AUTH_APP_CLIENT_ID);
 
   if (init?.body && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");

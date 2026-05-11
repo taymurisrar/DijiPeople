@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import {
   ACCESS_TOKEN_COOKIE,
+  AUTH_APP_CLIENT_ID,
   LOGIN_ROUTE,
   REFRESH_TOKEN_COOKIE,
   SESSION_COOKIE,
@@ -58,6 +59,7 @@ async function revokeApiSession() {
   await fetch(`${getApiBaseUrl()}/auth/logout`, {
     method: "POST",
     headers: {
+      "X-DijiPeople-App": AUTH_APP_CLIENT_ID,
       Cookie: cookieHeader,
     },
     cache: "no-store",

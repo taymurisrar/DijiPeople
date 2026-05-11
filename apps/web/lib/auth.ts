@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getApiBaseUrl as getSharedApiBaseUrl } from "@repo/config";
 import {
   ACCESS_TOKEN_COOKIE,
+  AUTH_APP_CLIENT_ID,
   LOGIN_ROUTE,
   REFRESH_TOKEN_COOKIE,
 } from "@/lib/auth-config";
@@ -113,6 +114,7 @@ async function getSessionFromApi(): Promise<SessionUser | null> {
 
   const response = await fetch(`${getApiBaseUrl()}/auth/me`, {
     headers: {
+      "X-DijiPeople-App": AUTH_APP_CLIENT_ID,
       Cookie: [
         accessToken ? `${ACCESS_TOKEN_COOKIE}=${encodeURIComponent(accessToken)}` : "",
         refreshToken ? `${REFRESH_TOKEN_COOKIE}=${encodeURIComponent(refreshToken)}` : "",

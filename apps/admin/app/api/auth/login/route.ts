@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import {
   ACCESS_TOKEN_COOKIE,
+  AUTH_APP_CLIENT_ID,
   REFRESH_TOKEN_COOKIE,
+  SESSION_COOKIE,
   getApiBaseUrl,
 } from "@/lib/auth-config";
 import {
@@ -15,6 +17,7 @@ type JsonRecord = Record<string, unknown>;
 type TokenPair = {
   accessToken: string;
   refreshToken: string;
+  sessionId?: string;
 };
 
 type LoginSuccessResponse = JsonRecord & {
@@ -42,6 +45,7 @@ export async function POST(request: Request) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "X-DijiPeople-App": AUTH_APP_CLIENT_ID,
       },
       body: JSON.stringify(body),
       cache: "no-store",
@@ -89,6 +93,13 @@ export async function POST(request: Request) {
       data.tokens.refreshToken,
       getAuthCookieOptions(REFRESH_TOKEN_MAX_AGE_SECONDS),
     );
+    if (data.tokens.sessionId) {
+      nextResponse.cookies.set(
+        SESSION_COOKIE,
+        data.tokens.sessionId,
+        getAuthCookieOptions(REFRESH_TOKEN_MAX_AGE_SECONDS),
+      );
+    }
 
     return nextResponse;
   } catch (error) {

@@ -1,4 +1,3 @@
-import { DashboardRefreshButton } from "./dashboard-refresh-button";
 import { DashboardSectionRenderer } from "./dashboard-section-renderer";
 import type { DashboardSummary } from "./types";
 

@@ -1,9 +1,13 @@
+export const AUTH_APP_CLIENT_ID = "web";
+const AUTH_COOKIE_PREFIX = process.env.AUTH_WEB_COOKIE_PREFIX ?? "dp_web";
 export const ACCESS_TOKEN_COOKIE =
-  process.env.AUTH_COOKIE_ACCESS_NAME ?? "dp_access_token";
+  process.env.AUTH_WEB_COOKIE_ACCESS_NAME ??
+  `${AUTH_COOKIE_PREFIX}_access_token`;
 export const REFRESH_TOKEN_COOKIE =
-  process.env.AUTH_COOKIE_REFRESH_NAME ?? "dp_refresh_token";
+  process.env.AUTH_WEB_COOKIE_REFRESH_NAME ??
+  `${AUTH_COOKIE_PREFIX}_refresh_token`;
 export const SESSION_COOKIE =
-  process.env.AUTH_COOKIE_SESSION_NAME ?? "dp_session_id";
+  process.env.AUTH_WEB_COOKIE_SESSION_NAME ?? `${AUTH_COOKIE_PREFIX}_session_id`;
 export const DASHBOARD_ROUTE = "/dashboard";
 export const LOGIN_ROUTE = "/login";
 export const DEFAULT_AUTHENTICATED_ROUTE = "/dashboard";

@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import {
   ACCESS_TOKEN_COOKIE,
+  AUTH_APP_CLIENT_ID,
   LOGIN_ROUTE,
   REFRESH_TOKEN_COOKIE,
+  SESSION_COOKIE,
   isProtectedRoute,
 } from "@/lib/auth-config";
 
@@ -99,6 +101,7 @@ async function refreshSessionTokens(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "X-DijiPeople-App": AUTH_APP_CLIENT_ID,
       },
       body: JSON.stringify({ refreshToken }),
       cache: "no-store",
@@ -173,9 +176,21 @@ function continueWithRefreshedTokens(
     sameSite: isProduction() ? "none" : "lax",
     secure: isProduction(),
     path: "/",
-    maxAge: 7 * 24 * 60 * 60,
+    maxAge: getRefreshMaxAgeSeconds(),
     ...getCookieDomainOption(),
   });
+
+  const sessionId = readJwtSessionId(tokens.accessToken);
+  if (sessionId) {
+    response.cookies.set(SESSION_COOKIE, sessionId, {
+      httpOnly: true,
+      sameSite: isProduction() ? "none" : "lax",
+      secure: isProduction(),
+      path: "/",
+      maxAge: getRefreshMaxAgeSeconds(),
+      ...getCookieDomainOption(),
+    });
+  }
 
   return response;
 }
@@ -199,9 +214,50 @@ function readJwtExpiresAt(token: string) {
   }
 
   try {
-    const decoded = JSON.parse(base64UrlDecode(payload)) as { exp?: unknown };
+    const decoded = JSON.parse(base64UrlDecode(payload)) as {
+      exp?: unknown;
+      aud?: unknown;
+      appClientId?: unknown;
+      tokenUse?: unknown;
+      type?: unknown;
+    };
+
+    if (
+      decoded.aud !== AUTH_APP_CLIENT_ID ||
+      decoded.appClientId !== AUTH_APP_CLIENT_ID ||
+      (decoded.tokenUse !== "access" && decoded.type !== "access")
+    ) {
+      return null;
+    }
 
     return typeof decoded.exp === "number" ? decoded.exp : null;
+  } catch {
+    return null;
+  }
+}
+
+function readJwtSessionId(token: string) {
+  const [, payload] = token.split(".");
+
+  if (!payload) {
+    return null;
+  }
+
+  try {
+    const decoded = JSON.parse(base64UrlDecode(payload)) as {
+      sessionId?: unknown;
+      aud?: unknown;
+      appClientId?: unknown;
+    };
+
+    if (
+      decoded.aud !== AUTH_APP_CLIENT_ID ||
+      decoded.appClientId !== AUTH_APP_CLIENT_ID
+    ) {
+      return null;
+    }
+
+    return typeof decoded.sessionId === "string" ? decoded.sessionId : null;
   } catch {
     return null;
   }
@@ -263,4 +319,29 @@ function getCookieDomainOption() {
 
 function isProduction() {
   return process.env.NODE_ENV === "production";
+}
+
+function getRefreshMaxAgeSeconds() {
+  return Math.floor(
+    parseDurationToMilliseconds(
+      process.env.AUTH_REFRESH_TOKEN_TTL_SECONDS ??
+        process.env.JWT_REFRESH_TOKEN_TTL ??
+        "1h",
+    ) / 1000,
+  );
+}
+
+function parseDurationToMilliseconds(value: string) {
+  const match = value.trim().match(/^(\d+)(ms|s|m|h|d)?$/i);
+  if (!match) return 3_600_000;
+  const amount = Number.parseInt(match[1] ?? "1", 10);
+  const unit = (match[2] ?? "s").toLowerCase();
+  const multipliers: Record<string, number> = {
+    ms: 1,
+    s: 1000,
+    m: 60_000,
+    h: 3_600_000,
+    d: 86_400_000,
+  };
+  return amount * multipliers[unit];
 }

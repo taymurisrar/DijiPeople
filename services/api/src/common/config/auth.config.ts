@@ -1,16 +1,27 @@
 import { ConfigService } from '@nestjs/config';
 import type { CookieOptions } from 'express';
 
+export const AUTH_CLIENT_IDS = {
+  WEB: 'web',
+  ADMIN: 'admin',
+  AGENT_DESKTOP: 'agent-desktop',
+} as const;
+
+export type AuthClientId =
+  (typeof AUTH_CLIENT_IDS)[keyof typeof AUTH_CLIENT_IDS];
+
 export const AUTH_CONFIG_DEFAULTS = {
   accessSecret: 'dijipeople-access-secret-dev',
   refreshSecret: 'dijipeople-refresh-secret-dev',
   accessTtl: '15m',
-  refreshTtl: '7d',
-  idleTimeout: '30m',
+  refreshTtl: '1h',
+  idleTimeout: '1h',
   absoluteTimeout: '8h',
   activityThrottle: '60s',
   agentAccessTtl: '15m',
-  agentRefreshTtl: '7d',
+  agentRefreshTtl: '8h',
+  agentIdleTimeout: '8h',
+  agentAbsoluteTimeout: '30d',
 } as const;
 
 const PRODUCTION_ENVIRONMENTS = new Set(['production', 'staging']);
@@ -33,6 +44,7 @@ export function getRefreshTokenSecret(configService: ConfigService) {
 
 export function getAccessTokenTtl(configService: ConfigService) {
   return (
+    configService.get<string>('AUTH_ACCESS_TOKEN_TTL_SECONDS') ??
     configService.get<string>('JWT_ACCESS_TOKEN_TTL') ??
     configService.get<string>('JWT_ACCESS_TTL') ??
     AUTH_CONFIG_DEFAULTS.accessTtl
@@ -41,6 +53,7 @@ export function getAccessTokenTtl(configService: ConfigService) {
 
 export function getRefreshTokenTtl(configService: ConfigService) {
   return (
+    configService.get<string>('AUTH_REFRESH_TOKEN_TTL_SECONDS') ??
     configService.get<string>('JWT_REFRESH_TOKEN_TTL') ??
     configService.get<string>('JWT_REFRESH_TTL') ??
     AUTH_CONFIG_DEFAULTS.refreshTtl
@@ -50,24 +63,132 @@ export function getRefreshTokenTtl(configService: ConfigService) {
 export function getSessionIdleTimeoutMs(configService: ConfigService) {
   return getDurationConfigMs(
     configService,
-    'SESSION_IDLE_TIMEOUT_SECONDS',
-    AUTH_CONFIG_DEFAULTS.idleTimeout,
+    'AUTH_IDLE_SESSION_TIMEOUT_SECONDS',
+    configService.get<string>('SESSION_IDLE_TIMEOUT_SECONDS') ??
+      AUTH_CONFIG_DEFAULTS.idleTimeout,
   );
 }
 
 export function getSessionAbsoluteTimeoutMs(configService: ConfigService) {
   return getDurationConfigMs(
     configService,
-    'SESSION_ABSOLUTE_TIMEOUT_SECONDS',
-    AUTH_CONFIG_DEFAULTS.absoluteTimeout,
+    'AUTH_ABSOLUTE_SESSION_TIMEOUT_SECONDS',
+    configService.get<string>('SESSION_ABSOLUTE_TIMEOUT_SECONDS') ??
+      AUTH_CONFIG_DEFAULTS.absoluteTimeout,
   );
 }
 
 export function getSessionActivityThrottleMs(configService: ConfigService) {
   return getDurationConfigMs(
     configService,
-    'SESSION_ACTIVITY_THROTTLE_SECONDS',
-    AUTH_CONFIG_DEFAULTS.activityThrottle,
+    'AUTH_SESSION_ACTIVITY_THROTTLE_SECONDS',
+    configService.get<string>('SESSION_ACTIVITY_THROTTLE_SECONDS') ??
+      AUTH_CONFIG_DEFAULTS.activityThrottle,
+  );
+}
+
+export function getAgentAccessTokenTtl(configService: ConfigService) {
+  return (
+    configService.get<string>('AUTH_AGENT_ACCESS_TOKEN_TTL_SECONDS') ??
+    configService.get<string>('AGENT_ACCESS_TOKEN_TTL') ??
+    AUTH_CONFIG_DEFAULTS.agentAccessTtl
+  );
+}
+
+export function getAgentRefreshTokenTtl(configService: ConfigService) {
+  return (
+    configService.get<string>('AUTH_AGENT_REFRESH_TOKEN_TTL_SECONDS') ??
+    configService.get<string>('AGENT_REFRESH_TOKEN_TTL') ??
+    AUTH_CONFIG_DEFAULTS.agentRefreshTtl
+  );
+}
+
+export function getAgentSessionIdleTimeoutMs(configService: ConfigService) {
+  return getDurationConfigMs(
+    configService,
+    'AUTH_AGENT_IDLE_SESSION_TIMEOUT_SECONDS',
+    configService.get<string>('AGENT_IDLE_SESSION_TIMEOUT_SECONDS') ??
+      AUTH_CONFIG_DEFAULTS.agentIdleTimeout,
+  );
+}
+
+export function getAgentSessionAbsoluteTimeoutMs(configService: ConfigService) {
+  return getDurationConfigMs(
+    configService,
+    'AUTH_AGENT_ABSOLUTE_SESSION_TIMEOUT_SECONDS',
+    configService.get<string>('AGENT_ABSOLUTE_SESSION_TIMEOUT_SECONDS') ??
+      AUTH_CONFIG_DEFAULTS.agentAbsoluteTimeout,
+  );
+}
+
+export function getClientAccessTokenTtl(
+  configService: ConfigService,
+  clientId: AuthClientId,
+) {
+  if (clientId === AUTH_CLIENT_IDS.AGENT_DESKTOP) {
+    return getAgentAccessTokenTtl(configService);
+  }
+
+  return (
+    configService.get<string>(
+      `${getClientEnvPrefix(clientId)}_ACCESS_TOKEN_TTL_SECONDS`,
+    ) ?? getAccessTokenTtl(configService)
+  );
+}
+
+export function getClientRefreshTokenTtl(
+  configService: ConfigService,
+  clientId: AuthClientId,
+) {
+  if (clientId === AUTH_CLIENT_IDS.AGENT_DESKTOP) {
+    return getAgentRefreshTokenTtl(configService);
+  }
+
+  return (
+    configService.get<string>(
+      `${getClientEnvPrefix(clientId)}_REFRESH_TOKEN_TTL_SECONDS`,
+    ) ?? getRefreshTokenTtl(configService)
+  );
+}
+
+export function getClientIdleTimeoutMs(
+  configService: ConfigService,
+  clientId: AuthClientId,
+) {
+  if (clientId === AUTH_CLIENT_IDS.AGENT_DESKTOP) {
+    return getAgentSessionIdleTimeoutMs(configService);
+  }
+
+  return getDurationConfigMs(
+    configService,
+    `${getClientEnvPrefix(clientId)}_IDLE_SESSION_TIMEOUT_SECONDS`,
+    configService.get<string>('AUTH_IDLE_SESSION_TIMEOUT_SECONDS') ??
+      configService.get<string>('SESSION_IDLE_TIMEOUT_SECONDS') ??
+      AUTH_CONFIG_DEFAULTS.idleTimeout,
+  );
+}
+
+export function getClientAbsoluteTimeoutMs(
+  configService: ConfigService,
+  clientId: AuthClientId,
+) {
+  if (clientId === AUTH_CLIENT_IDS.AGENT_DESKTOP) {
+    return getAgentSessionAbsoluteTimeoutMs(configService);
+  }
+
+  return getDurationConfigMs(
+    configService,
+    `${getClientEnvPrefix(clientId)}_ABSOLUTE_SESSION_TIMEOUT_SECONDS`,
+    configService.get<string>('AUTH_ABSOLUTE_SESSION_TIMEOUT_SECONDS') ??
+      configService.get<string>('SESSION_ABSOLUTE_TIMEOUT_SECONDS') ??
+      AUTH_CONFIG_DEFAULTS.absoluteTimeout,
+  );
+}
+
+export function isRefreshRotationEnabled(configService: ConfigService) {
+  return parseBooleanConfig(
+    configService.get<string>('AUTH_REFRESH_ROTATION_ENABLED'),
+    true,
   );
 }
 
@@ -75,15 +196,50 @@ export function isSlidingSessionEnabled(configService: ConfigService) {
   return configService.get<string>('SESSION_SLIDING_ENABLED') !== 'false';
 }
 
-export function getAuthCookieNames(configService: ConfigService) {
+export function normalizeAuthClientId(
+  value: string | null | undefined,
+  fallback: AuthClientId = AUTH_CLIENT_IDS.WEB,
+): AuthClientId {
+  const normalized = value?.trim().toLowerCase();
+  if (
+    normalized === AUTH_CLIENT_IDS.WEB ||
+    normalized === AUTH_CLIENT_IDS.ADMIN ||
+    normalized === AUTH_CLIENT_IDS.AGENT_DESKTOP
+  ) {
+    return normalized;
+  }
+
+  return fallback;
+}
+
+export function getAuthClientIdFromHeaders(headers: {
+  [key: string]: string | string[] | undefined;
+}): AuthClientId {
+  const raw =
+    readHeader(headers, 'x-dijipeople-app') ??
+    readHeader(headers, 'x-dijipeople-client') ??
+    readHeader(headers, 'x-client-id');
+
+  return normalizeAuthClientId(raw);
+}
+
+export function getAuthCookieNames(
+  configService: ConfigService,
+  clientId: AuthClientId = AUTH_CLIENT_IDS.WEB,
+) {
+  const envPrefix = getClientEnvPrefix(clientId);
+  const cookiePrefix = getCookiePrefix(configService, clientId);
+
   return {
     access:
-      configService.get<string>('AUTH_COOKIE_ACCESS_NAME') ?? 'dp_access_token',
+      configService.get<string>(`${envPrefix}_COOKIE_ACCESS_NAME`) ??
+      `${cookiePrefix}_access_token`,
     refresh:
-      configService.get<string>('AUTH_COOKIE_REFRESH_NAME') ??
-      'dp_refresh_token',
+      configService.get<string>(`${envPrefix}_COOKIE_REFRESH_NAME`) ??
+      `${cookiePrefix}_refresh_token`,
     session:
-      configService.get<string>('AUTH_COOKIE_SESSION_NAME') ?? 'dp_session_id',
+      configService.get<string>(`${envPrefix}_COOKIE_SESSION_NAME`) ??
+      `${cookiePrefix}_session_id`,
   };
 }
 
@@ -128,11 +284,12 @@ export function assertAuthEnvironment(configService: ConfigService) {
   const requiredInProduction = [
     'JWT_ACCESS_SECRET',
     'JWT_REFRESH_SECRET',
-    'JWT_ACCESS_TOKEN_TTL',
-    'JWT_REFRESH_TOKEN_TTL',
-    'SESSION_IDLE_TIMEOUT_SECONDS',
-    'SESSION_ABSOLUTE_TIMEOUT_SECONDS',
-    'SESSION_ACTIVITY_THROTTLE_SECONDS',
+    'AUTH_ACCESS_TOKEN_TTL_SECONDS',
+    'AUTH_REFRESH_TOKEN_TTL_SECONDS',
+    'AUTH_IDLE_SESSION_TIMEOUT_SECONDS',
+    'AUTH_ABSOLUTE_SESSION_TIMEOUT_SECONDS',
+    'AUTH_SESSION_ACTIVITY_THROTTLE_SECONDS',
+    'AUTH_REFRESH_ROTATION_ENABLED',
   ];
   const missing = requiredInProduction.filter((key) => {
     const value = configService.get<string>(key);
@@ -148,28 +305,14 @@ export function assertAuthEnvironment(configService: ConfigService) {
   [
     getAccessTokenTtl(configService),
     getRefreshTokenTtl(configService),
-    String(configService.get<string>('SESSION_IDLE_TIMEOUT_SECONDS') ?? '30m'),
-    String(
-      configService.get<string>('SESSION_ABSOLUTE_TIMEOUT_SECONDS') ?? '8h',
-    ),
-    String(
-      configService.get<string>('SESSION_ACTIVITY_THROTTLE_SECONDS') ?? '60s',
-    ),
+    getAgentAccessTokenTtl(configService),
+    getAgentRefreshTokenTtl(configService),
+    String(configService.get<string>('AUTH_IDLE_SESSION_TIMEOUT_SECONDS') ?? '1h'),
+    String(configService.get<string>('AUTH_ABSOLUTE_SESSION_TIMEOUT_SECONDS') ?? '8h'),
+    String(configService.get<string>('AUTH_SESSION_ACTIVITY_THROTTLE_SECONDS') ?? '60s'),
+    String(configService.get<string>('AUTH_AGENT_IDLE_SESSION_TIMEOUT_SECONDS') ?? '8h'),
+    String(configService.get<string>('AUTH_AGENT_ABSOLUTE_SESSION_TIMEOUT_SECONDS') ?? '30d'),
   ].forEach((duration) => parseDurationToMilliseconds(duration));
-}
-
-export function getAgentAccessTokenTtl(configService: ConfigService) {
-  return (
-    configService.get<string>('AGENT_ACCESS_TOKEN_TTL') ??
-    AUTH_CONFIG_DEFAULTS.agentAccessTtl
-  );
-}
-
-export function getAgentRefreshTokenTtl(configService: ConfigService) {
-  return (
-    configService.get<string>('AGENT_REFRESH_TOKEN_TTL') ??
-    AUTH_CONFIG_DEFAULTS.agentRefreshTtl
-  );
 }
 
 export function parseDurationToMilliseconds(value: string) {
@@ -193,6 +336,33 @@ export function parseDurationToMilliseconds(value: string) {
   };
 
   return amount * multiplierByUnit[unit];
+}
+
+function getClientEnvPrefix(clientId: AuthClientId) {
+  if (clientId === AUTH_CLIENT_IDS.ADMIN) return 'AUTH_ADMIN';
+  if (clientId === AUTH_CLIENT_IDS.AGENT_DESKTOP) return 'AUTH_AGENT';
+  return 'AUTH_WEB';
+}
+
+function getCookiePrefix(configService: ConfigService, clientId: AuthClientId) {
+  if (clientId === AUTH_CLIENT_IDS.ADMIN) {
+    return configService.get<string>('AUTH_ADMIN_COOKIE_PREFIX') ?? 'dp_admin';
+  }
+
+  if (clientId === AUTH_CLIENT_IDS.AGENT_DESKTOP) {
+    return configService.get<string>('AUTH_AGENT_COOKIE_PREFIX') ?? 'dp_agent';
+  }
+
+  return configService.get<string>('AUTH_WEB_COOKIE_PREFIX') ?? 'dp_web';
+}
+
+function readHeader(
+  headers: { [key: string]: string | string[] | undefined },
+  key: string,
+) {
+  const value = headers[key] ?? headers[key.toLowerCase()];
+  if (Array.isArray(value)) return value[0];
+  return value;
 }
 
 function getDurationConfigMs(

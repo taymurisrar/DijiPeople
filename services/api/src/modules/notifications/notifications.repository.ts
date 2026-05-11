@@ -4,6 +4,7 @@ import {
   EmailProviderType,
   EmailTemplateStatus,
   NotificationChannel,
+  NotificationType,
   Prisma,
 } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -21,6 +22,7 @@ import type {
   EmailProviderLookupInput,
   EmailTemplateLookupInput,
   NotificationPreferenceLookupInput,
+  InAppNotificationCreateInput,
 } from './interfaces/notification-contracts.interface';
 import type { EmailDeliveryLogQueryDto } from './dto/email-delivery-log-query.dto';
 
@@ -422,6 +424,11 @@ export class NotificationsRepository {
           input.metadata === undefined || input.metadata === null
             ? Prisma.JsonNull
             : (input.metadata as Prisma.InputJsonValue),
+        retryCount: input.retryCount ?? 0,
+        maxRetryCount: input.maxRetryCount ?? 3,
+        nextRetryAt: input.nextRetryAt ?? null,
+        lastRetryAt: input.lastRetryAt ?? null,
+        retryable: input.retryable ?? false,
         requestedAt: input.requestedAt ?? new Date(),
       },
     });
@@ -502,6 +509,185 @@ export class NotificationsRepository {
   ) {
     return db.emailDeliveryLog.findFirst({
       where: { id: deliveryLogId, tenantId },
+    });
+  }
+
+  countRecentDeliveryLogs(
+    input: {
+      tenantId: string;
+      eventCode: string;
+      recipient: string;
+      since: Date;
+    },
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.emailDeliveryLog.count({
+      where: {
+        tenantId: input.tenantId,
+        eventCode: input.eventCode,
+        recipient: input.recipient,
+        requestedAt: { gte: input.since },
+        status: { not: EmailDeliveryStatus.SKIPPED },
+      },
+    });
+  }
+
+  listRetryableDeliveryLogs(
+    tenantId: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.emailDeliveryLog.findMany({
+      where: {
+        tenantId,
+        retryable: true,
+        status: EmailDeliveryStatus.FAILED,
+        OR: [{ nextRetryAt: null }, { nextRetryAt: { lte: new Date() } }],
+      },
+      orderBy: [{ nextRetryAt: 'asc' }, { failedAt: 'asc' }],
+      take: 100,
+    });
+  }
+
+  async getDiagnostics(tenantId: string, db: PrismaDb = this.prisma) {
+    const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const [failedCount, retryBacklog, skippedCount, lastExecution] =
+      await Promise.all([
+        db.emailDeliveryLog.count({
+          where: {
+            tenantId,
+            status: EmailDeliveryStatus.FAILED,
+            requestedAt: { gte: since24h },
+          },
+        }),
+        db.emailDeliveryLog.count({
+          where: {
+            tenantId,
+            retryable: true,
+            status: EmailDeliveryStatus.FAILED,
+          },
+        }),
+        db.emailDeliveryLog.count({
+          where: {
+            tenantId,
+            status: EmailDeliveryStatus.SKIPPED,
+            requestedAt: { gte: since24h },
+          },
+        }),
+        db.emailDeliveryLog.findFirst({
+          where: { tenantId },
+          orderBy: { requestedAt: 'desc' },
+        }),
+      ]);
+
+    return {
+      failedCount24h: failedCount,
+      retryBacklog,
+      skippedCount24h: skippedCount,
+      lastExecutionAt: lastExecution?.requestedAt ?? null,
+      lastExecutionStatus: lastExecution?.status ?? null,
+    };
+  }
+
+  createInAppNotification(
+    input: InAppNotificationCreateInput,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.notification.create({
+      data: {
+        tenantId: input.tenantId,
+        eventCode: input.eventCode,
+        type: input.type ?? NotificationType.INFO,
+        category: input.category,
+        title: input.title,
+        body: input.body ?? null,
+        targetUrl: input.targetUrl ?? null,
+        payload:
+          input.payload === undefined || input.payload === null
+            ? Prisma.JsonNull
+            : (input.payload as Prisma.InputJsonValue),
+        metadata:
+          input.metadata === undefined || input.metadata === null
+            ? Prisma.JsonNull
+            : (input.metadata as Prisma.InputJsonValue),
+        createdById: input.createdById ?? null,
+        recipients: {
+          createMany: {
+            data: [...new Set(input.recipientUserIds)].map((userId) => ({
+              tenantId: input.tenantId,
+              userId,
+              deliveredAt: new Date(),
+            })),
+            skipDuplicates: true,
+          },
+        },
+      },
+      include: { recipients: true },
+    });
+  }
+
+  listInAppNotifications(
+    input: {
+      tenantId: string;
+      userId: string;
+      includeArchived?: boolean;
+      unreadOnly?: boolean;
+      page?: number;
+      pageSize?: number;
+    },
+    db: PrismaDb = this.prisma,
+  ) {
+    const page = Math.max(1, Number(input.page ?? 1));
+    const pageSize = Math.min(100, Math.max(1, Number(input.pageSize ?? 25)));
+    return db.notificationRecipient.findMany({
+      where: {
+        tenantId: input.tenantId,
+        userId: input.userId,
+        ...(input.includeArchived ? {} : { archivedAt: null }),
+        ...(input.unreadOnly ? { readAt: null } : {}),
+      },
+      include: { notification: true },
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    });
+  }
+
+  countUnreadInAppNotifications(
+    tenantId: string,
+    userId: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.notificationRecipient.count({
+      where: {
+        tenantId,
+        userId,
+        readAt: null,
+        archivedAt: null,
+      },
+    });
+  }
+
+  markInAppNotificationRead(
+    tenantId: string,
+    userId: string,
+    recipientId: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.notificationRecipient.updateMany({
+      where: { id: recipientId, tenantId, userId },
+      data: { readAt: new Date() },
+    });
+  }
+
+  archiveInAppNotification(
+    tenantId: string,
+    userId: string,
+    recipientId: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.notificationRecipient.updateMany({
+      where: { id: recipientId, tenantId, userId },
+      data: { archivedAt: new Date() },
     });
   }
 

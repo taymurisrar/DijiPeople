@@ -186,6 +186,7 @@ export class ApiClient {
     const headers: Record<string, string> = {
       Accept: "application/json",
       "Content-Type": "application/json",
+      "X-DijiPeople-App": "agent-desktop",
       "X-DijiPeople-Agent-Version": this.deviceInfo.agentVersion,
       "X-DijiPeople-Agent-Platform": this.deviceInfo.platform,
     };

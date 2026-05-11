@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import {
   ACCESS_TOKEN_COOKIE,
+  AUTH_APP_CLIENT_ID,
   DASHBOARD_ROUTE,
   LOGIN_ROUTE,
   REFRESH_TOKEN_COOKIE,
@@ -20,6 +21,7 @@ export default async function Home(): Promise<never> {
   try {
     const response = await fetch(`${getApiBaseUrl()}/auth/me`, {
       headers: {
+        "X-DijiPeople-App": AUTH_APP_CLIENT_ID,
         Cookie: [
           accessToken ? `${ACCESS_TOKEN_COOKIE}=${encodeURIComponent(accessToken)}` : "",
           refreshToken ? `${REFRESH_TOKEN_COOKIE}=${encodeURIComponent(refreshToken)}` : "",

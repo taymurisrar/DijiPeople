@@ -2,7 +2,9 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import {
   ACCESS_TOKEN_COOKIE,
+  AUTH_APP_CLIENT_ID,
   REFRESH_TOKEN_COOKIE,
+  SESSION_COOKIE,
   getApiBaseUrl,
 } from "@/lib/auth-config";
 import { getClearAuthCookieOptions } from "@/lib/auth-cookies";
@@ -22,7 +24,9 @@ export async function POST() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "X-DijiPeople-App": AUTH_APP_CLIENT_ID,
           Authorization: accessToken ? `Bearer ${accessToken}` : "",
+          Cookie: `${REFRESH_TOKEN_COOKIE}=${encodeURIComponent(refreshToken)}`,
         },
         body: JSON.stringify({ refreshToken }),
         cache: "no-store",
@@ -38,6 +42,9 @@ export async function POST() {
   });
 
   cookieStore.set(REFRESH_TOKEN_COOKIE, "", {
+    ...getClearAuthCookieOptions(),
+  });
+  cookieStore.set(SESSION_COOKIE, "", {
     ...getClearAuthCookieOptions(),
   });
 

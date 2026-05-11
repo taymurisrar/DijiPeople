@@ -11,6 +11,7 @@ import { apiRequestJson } from "@/lib/server-api";
 import { BrandingHeadEffects } from "@/app/components/branding/branding-head-effects";
 import { TenantFontSync } from "@/app/components/branding/tenant-font-sync";
 import { isSelfServiceUser } from "@/lib/permissions";
+import { PERMISSION_KEYS } from "@/lib/security-keys";
 import {
   TenantFeaturesResponse,
   TenantResolvedSettingsResponse,
@@ -128,6 +129,9 @@ export default async function DashboardLayout({
             <DashboardTopbar
               avatarCacheKey={avatarCacheKey}
               avatarSrc={avatarSrc}
+              canReadNotifications={user.permissionKeys.includes(
+                PERMISSION_KEYS.NOTIFICATIONS_READ,
+              )}
               email={user.email}
               firstName={user.firstName}
               lastName={user.lastName}
