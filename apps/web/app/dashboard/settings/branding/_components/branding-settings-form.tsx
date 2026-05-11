@@ -50,7 +50,7 @@ const ALLOWED_FAVICON_TYPES = new Set([
 const MAX_LOGO_SIZE_BYTES = 3 * 1024 * 1024;
 const MAX_FAVICON_SIZE_BYTES = 1 * 1024 * 1024;
 
-const COLOR_FIELD_LABELS: Record<BrandingColorKey, string> = {
+const COLOR_FIELD_LABELS: Partial<Record<BrandingColorKey, string>> = {
   primaryColor: "Primary color",
   secondaryColor: "Secondary color",
   accentColor: "Accent color",
@@ -59,7 +59,7 @@ const COLOR_FIELD_LABELS: Record<BrandingColorKey, string> = {
   textColor: "Text color",
 };
 
-const COLOR_FIELD_DESCRIPTIONS: Record<BrandingColorKey, string> = {
+const COLOR_FIELD_DESCRIPTIONS: Partial<Record<BrandingColorKey, string>> = {
   primaryColor: "Main action and navigation emphasis color.",
   secondaryColor: "Supporting color for highlights and subtle emphasis.",
   accentColor: "Accent used for links, helper badges, and UI cues.",
@@ -68,7 +68,7 @@ const COLOR_FIELD_DESCRIPTIONS: Record<BrandingColorKey, string> = {
   textColor: "Primary text color for headings and body text.",
 };
 
-const TEXT_FIELD_LABELS: Record<BrandingTextKey, string> = {
+const TEXT_FIELD_LABELS: Partial<Record<BrandingTextKey, string>> = {
   appTitle: "App/page title",
   brandName: "Company/display name",
   shortBrandName: "Short display name",
@@ -432,10 +432,10 @@ export function BrandingSettingsForm({ initialValues }: BrandingSettingsFormProp
         <div className="mt-5 grid gap-4 md:grid-cols-2">
           {BRANDING_TEXT_KEYS.map((key) => (
             <label className="grid gap-2 text-sm" key={key}>
-              <span className="font-medium text-foreground">{TEXT_FIELD_LABELS[key]}</span>
+              <span className="font-medium text-foreground">{TEXT_FIELD_LABELS[key] ?? key}</span>
               {key === "welcomeSubtitle" ||
-              key === "portalTagline" ||
-              key === "employeePortalMessage" ? (
+                key === "portalTagline" ||
+                key === "employeePortalMessage" ? (
                 <textarea
                   className="min-h-24 w-full rounded-2xl border border-border bg-white px-4 py-3 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
                   onChange={(event) => handleTextChange(key, event.target.value)}
@@ -463,8 +463,8 @@ export function BrandingSettingsForm({ initialValues }: BrandingSettingsFormProp
           {BRANDING_COLOR_KEYS.map((key) => (
             <ColorPickerField
               key={key}
-              description={COLOR_FIELD_DESCRIPTIONS[key]}
-              label={COLOR_FIELD_LABELS[key]}
+              description={COLOR_FIELD_DESCRIPTIONS[key] ?? "Branding color token."}
+              label={COLOR_FIELD_LABELS[key] ?? key}
               onChange={(nextValue) => handleColorChange(key, nextValue)}
               value={draftBranding[key]}
             />
