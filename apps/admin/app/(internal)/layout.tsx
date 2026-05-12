@@ -1,4 +1,5 @@
 import { AdminShell } from "@/app/_components/admin-shell";
+import { ErrorProvider } from "@/components/errors/error-provider";
 import { requireSystemAdminUser } from "@/lib/auth";
 
 export default async function InternalLayout({
@@ -9,14 +10,16 @@ export default async function InternalLayout({
   const user = await requireSystemAdminUser("/tenants");
 
   return (
-    <AdminShell
-      user={{
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-      }}
-    >
-      {children}
-    </AdminShell>
+    <ErrorProvider user={{ roleKeys: user.roleKeys }}>
+      <AdminShell
+        user={{
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+        }}
+      >
+        {children}
+      </AdminShell>
+    </ErrorProvider>
   );
 }

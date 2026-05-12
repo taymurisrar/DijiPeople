@@ -1,6 +1,7 @@
 import { app } from "electron";
 import os from "node:os";
 import crypto from "node:crypto";
+import { agentEnv } from "../config/env";
 import type { AgentConfig, HeartbeatEvent, LoginResult } from "./types";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -297,31 +298,8 @@ export class ApiClient {
   }
 }
 
-function normalizeBaseUrl(value: string): string {
-  return value.trim().replace(/\/+$/, "");
-}
-
 function resolveBaseUrl(): string {
-  const configured =
-    process.env.DIJIPEOPLE_API_BASE_URL ??
-    process.env.API_BASE_URL ??
-    "http://localhost:4000/api";
-
-  const normalized = normalizeBaseUrl(configured);
-
-  try {
-    const url = new URL(normalized);
-
-    if (!["http:", "https:"].includes(url.protocol)) {
-      throw new Error("Invalid protocol.");
-    }
-
-    return normalized;
-  } catch {
-    throw new Error(
-      "Invalid API base URL. Set DIJIPEOPLE_API_BASE_URL or API_BASE_URL correctly.",
-    );
-  }
+  return agentEnv.apiBaseUrl;
 }
 
 function sanitizeDeviceName(value: string): string {

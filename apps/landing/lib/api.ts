@@ -1,5 +1,5 @@
-import { getApiBaseUrl as getSharedApiBaseUrl } from "@repo/config";
+import { landingEnv } from "./env";
 
 export function getApiBaseUrl() {
-  return getSharedApiBaseUrl(process.env);
+  return landingEnv.apiBaseUrl;
 }

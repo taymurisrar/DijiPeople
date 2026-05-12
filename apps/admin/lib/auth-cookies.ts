@@ -2,15 +2,19 @@ import type { ResponseCookie } from "next/dist/compiled/@edge-runtime/cookies";
 
 export const ACCESS_TOKEN_MAX_AGE_SECONDS = Math.floor(
   parseDurationToMilliseconds(
-    process.env.AUTH_ACCESS_TOKEN_TTL_SECONDS ??
+    process.env.AUTH_ADMIN_ACCESS_TOKEN_TTL_SECONDS ??
+      process.env.AUTH_ACCESS_TOKEN_TTL_SECONDS ??
       process.env.JWT_ACCESS_TOKEN_TTL ??
+      process.env.JWT_ACCESS_TTL ??
       "15m",
   ) / 1000,
 );
 export const REFRESH_TOKEN_MAX_AGE_SECONDS = Math.floor(
   parseDurationToMilliseconds(
-    process.env.AUTH_REFRESH_TOKEN_TTL_SECONDS ??
+    process.env.AUTH_ADMIN_REFRESH_TOKEN_TTL_SECONDS ??
+      process.env.AUTH_REFRESH_TOKEN_TTL_SECONDS ??
       process.env.JWT_REFRESH_TOKEN_TTL ??
+      process.env.JWT_REFRESH_TTL ??
       "1h",
   ) / 1000,
 );
@@ -19,13 +23,25 @@ export function getAuthCookieOptions(
   maxAge: number,
 ): Pick<ResponseCookie, "httpOnly" | "sameSite" | "secure" | "path" | "maxAge" | "domain"> {
   const isProduction = process.env.NODE_ENV === "production";
-  const domain = isProduction ? process.env.AUTH_COOKIE_DOMAIN : undefined;
+  const domain =
+    process.env.ADMIN_COOKIE_DOMAIN ||
+    process.env.AUTH_COOKIE_DOMAIN ||
+    process.env.COOKIE_DOMAIN ||
+    undefined;
+  const sameSite =
+    normalizeSameSite(
+      process.env.AUTH_COOKIE_SAME_SITE ?? process.env.COOKIE_SAME_SITE,
+    ) ?? (isProduction ? "none" : "lax");
+  const secure = parseBoolean(
+    process.env.AUTH_COOKIE_SECURE ?? process.env.COOKIE_SECURE,
+    isProduction,
+  );
 
   return {
     httpOnly: true,
-    sameSite: isProduction ? "none" : "lax",
-    secure: isProduction,
-    path: "/",
+    sameSite,
+    secure,
+    path: process.env.AUTH_COOKIE_PATH || "/",
     maxAge,
     ...(domain ? { domain } : {}),
   };
@@ -57,4 +73,29 @@ export function getClearAuthCookieOptions(): Pick<
   "httpOnly" | "sameSite" | "secure" | "path" | "maxAge" | "domain"
 > {
   return getAuthCookieOptions(0);
+}
+
+function parseBoolean(value: string | undefined, fallback: boolean) {
+  if (!value) {
+    return fallback;
+  }
+
+  return ["1", "true", "yes", "on"].includes(value.toLowerCase());
+}
+
+function normalizeSameSite(value: string | undefined) {
+  if (!value) {
+    return null;
+  }
+
+  const normalized = value.toLowerCase();
+  if (
+    normalized === "strict" ||
+    normalized === "lax" ||
+    normalized === "none"
+  ) {
+    return normalized;
+  }
+
+  return null;
 }

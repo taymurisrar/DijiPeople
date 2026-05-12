@@ -17,6 +17,7 @@ import { ENTITY_KEYS, ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import { normalizeEmail } from '../../common/utils/email.util';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { buildScopedAccessWhere } from '../../common/security/rbac-query-scope';
+import { ELEVATED_TENANT_ROLE_KEYS } from '../../common/security/elevated-tenant-roles';
 import { UserInvitationsService } from '../auth/user-invitations.service';
 import { OrganizationRepository } from '../organization/organization.repository';
 import { PermissionsService } from '../permissions/permissions.service';
@@ -200,7 +201,7 @@ export class EmployeesService {
     const elevatedRoleKeys = new Set([
       'admin',
       ROLE_KEYS.HR,
-      ROLE_KEYS.SYSTEM_ADMIN,
+      ...ELEVATED_TENANT_ROLE_KEYS,
     ]);
     return (
       currentUser.roleKeys.includes(ROLE_KEYS.MANAGER) &&

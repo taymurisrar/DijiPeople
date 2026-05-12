@@ -3,6 +3,7 @@ import { FOUNDATION_PERMISSION_DEFINITIONS } from '../../common/constants/permis
 import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { hasElevatedTenantRole } from '../../common/security/elevated-tenant-roles';
 
 @Injectable()
 export class AuthAccessService {
@@ -118,10 +119,13 @@ export class AuthAccessService {
     }));
     const roleIds = roles.map((role) => role.id);
     const roleKeys = roles.map((role) => role.key);
-    const isGlobalAdministrator = roleKeys.includes(ROLE_KEYS.GLOBAL_ADMIN);
+    const isTenantOwner = user.tenant.ownerUserId === user.id;
+    const isSystemAdministrator = roleKeys.includes(ROLE_KEYS.SYSTEM_ADMIN);
+    const isSystemCustomizer = roleKeys.includes(ROLE_KEYS.SYSTEM_CUSTOMIZER);
+    const hasTenantWideOperationalAccess = hasElevatedTenantRole({ roleKeys });
     const permissionKeys = Array.from(
       new Set([
-        ...(isGlobalAdministrator
+        ...(hasTenantWideOperationalAccess || isTenantOwner
           ? FOUNDATION_PERMISSION_DEFINITIONS.map(
               (permission) => permission.key,
             )
@@ -154,9 +158,6 @@ export class AuthAccessService {
         ),
       ]),
     );
-    const isTenantOwner = user.tenant.ownerUserId === user.id;
-    const isSystemAdministrator = roleKeys.includes(ROLE_KEYS.SYSTEM_ADMIN);
-    const isSystemCustomizer = roleKeys.includes(ROLE_KEYS.SYSTEM_CUSTOMIZER);
     const teamIds = user.teamMemberships.map((membership) => membership.teamId);
     const rolePrivileges = effectiveRoles.flatMap((role) =>
       role.rolePrivileges.map((privilege) => ({
@@ -174,9 +175,14 @@ export class AuthAccessService {
     const businessUnitAccess = await this.resolveBusinessUnitAccess(
       user.tenantId,
       user.businessUnitId,
-      user.businessUnit.organizationId,
-      isTenantOwner || isSystemAdministrator,
+      user.businessUnit?.organizationId ?? null,
+      isTenantOwner || hasTenantWideOperationalAccess,
     );
+    const defaultBusinessUnitId =
+      user.businessUnitId ?? businessUnitAccess.accessibleBusinessUnitIds[0];
+    const defaultOrganizationId =
+      user.businessUnit?.organizationId ??
+      businessUnitAccess.defaultOrganizationId;
 
     const authUser: AuthenticatedUser = {
       userId: user.id,
@@ -194,12 +200,13 @@ export class AuthAccessService {
         isSystemAdministrator,
         isSystemCustomizer,
         isTenantOwner,
-        businessUnitId: user.businessUnitId,
-        organizationId: user.businessUnit.organizationId,
+        businessUnitId: defaultBusinessUnitId,
+        organizationId: defaultOrganizationId,
         teamIds,
         accessibleBusinessUnitIds: businessUnitAccess.accessibleBusinessUnitIds,
         businessUnitSubtreeIds: businessUnitAccess.businessUnitSubtreeIds,
-        canAccessAllBusinessUnits: isTenantOwner || isSystemAdministrator,
+        canAccessAllBusinessUnits:
+          isTenantOwner || hasTenantWideOperationalAccess,
       },
     };
 
@@ -256,8 +263,8 @@ export class AuthAccessService {
 
   private async resolveBusinessUnitAccess(
     tenantId: string,
-    userBusinessUnitId: string,
-    userOrganizationId: string,
+    userBusinessUnitId: string | null,
+    userOrganizationId: string | null,
     canAccessAllBusinessUnits: boolean,
   ) {
     const businessUnits = await this.prisma.businessUnit.findMany({
@@ -277,22 +284,35 @@ export class AuthAccessService {
               businessUnit.organizationId === userOrganizationId,
           )
     ).map((businessUnit) => businessUnit.id);
+    const defaultBusinessUnitId =
+      userBusinessUnitId ??
+      accessibleBusinessUnitIds[0] ??
+      businessUnits[0]?.id;
 
     return {
       accessibleBusinessUnitIds:
         accessibleBusinessUnitIds.length > 0
           ? accessibleBusinessUnitIds
-          : [userBusinessUnitId],
+          : defaultBusinessUnitId
+            ? [defaultBusinessUnitId]
+            : [],
       businessUnitSubtreeIds: this.resolveBusinessUnitSubtreeIds(
         businessUnits,
-        userBusinessUnitId,
+        defaultBusinessUnitId,
       ),
+      defaultOrganizationId:
+        userOrganizationId ??
+        businessUnits.find(
+          (businessUnit) => businessUnit.id === defaultBusinessUnitId,
+        )?.organizationId ??
+        businessUnits[0]?.organizationId ??
+        '',
     };
   }
 
   private resolveBusinessUnitSubtreeIds(
     businessUnits: Array<{ id: string; parentBusinessUnitId: string | null }>,
-    rootBusinessUnitId: string,
+    rootBusinessUnitId: string | null | undefined,
   ) {
     const childMap = businessUnits.reduce<Record<string, string[]>>(
       (acc, businessUnit) => {
@@ -303,7 +323,7 @@ export class AuthAccessService {
       },
       {},
     );
-    const queue = [rootBusinessUnitId];
+    const queue = rootBusinessUnitId ? [rootBusinessUnitId] : [];
     const visited = new Set<string>();
 
     while (queue.length > 0) {

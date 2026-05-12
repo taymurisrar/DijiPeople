@@ -1,6 +1,7 @@
 import { SecurityAccessLevel, SecurityPrivilege } from '@prisma/client';
 import { SECURITY_ACCESS_LEVEL_WEIGHT } from '../constants/rbac-matrix';
 import type { AuthenticatedUser } from '../interfaces/authenticated-request.interface';
+import { hasElevatedTenantRole } from './elevated-tenant-roles';
 
 type ScopedWhereOptions = {
   tenantIdField?: string;
@@ -27,6 +28,10 @@ export function resolveEffectiveAccessLevel(
   entityKey: string,
   privilege: SecurityPrivilege,
 ) {
+  if (hasElevatedTenantRole(user)) {
+    return SecurityAccessLevel.TENANT;
+  }
+
   return (user.rolePrivileges ?? [])
     .filter(
       (rolePrivilege) =>
@@ -163,6 +168,10 @@ export function canAccessRecord(
 ) {
   if (user.tenantId !== record.tenantId) {
     return false;
+  }
+
+  if (hasElevatedTenantRole(user)) {
+    return true;
   }
 
   const accessLevel = resolveEffectiveAccessLevel(user, entityKey, privilege);

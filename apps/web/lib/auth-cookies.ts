@@ -24,9 +24,18 @@ export function getAuthCookieOptions(
   "httpOnly" | "sameSite" | "secure" | "path" | "maxAge" | "domain"
 > {
   const isProduction = process.env.NODE_ENV === "production";
-  const domain = process.env.AUTH_COOKIE_DOMAIN || undefined;
-  const sameSite = normalizeSameSite(process.env.AUTH_COOKIE_SAME_SITE);
-  const secure = parseBoolean(process.env.AUTH_COOKIE_SECURE, isProduction);
+  const domain =
+    process.env.WEB_COOKIE_DOMAIN ||
+    process.env.AUTH_COOKIE_DOMAIN ||
+    process.env.COOKIE_DOMAIN ||
+    undefined;
+  const sameSite = normalizeSameSite(
+    process.env.AUTH_COOKIE_SAME_SITE ?? process.env.COOKIE_SAME_SITE,
+  );
+  const secure = parseBoolean(
+    process.env.AUTH_COOKIE_SECURE ?? process.env.COOKIE_SECURE,
+    isProduction,
+  );
   const httpOnly = parseBoolean(process.env.AUTH_COOKIE_HTTP_ONLY, true);
 
   return {

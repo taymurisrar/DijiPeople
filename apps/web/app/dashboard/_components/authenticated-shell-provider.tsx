@@ -15,6 +15,7 @@ import {
   isSelfServiceUser,
 } from "@/lib/permissions";
 import { SessionExpiredDialog } from "@/app/components/feedback/session-expired-dialog";
+import { apiErrorEventName, normalizeApiError } from "@/lib/api-error";
 import { BusinessUnitAccessSummary } from "../_lib/business-unit-access";
 
 type AuthenticatedShellUser = {
@@ -24,6 +25,7 @@ type AuthenticatedShellUser = {
   permissionKeys: string[];
   profileHref: string;
   roleLabel: string;
+  roleKeys?: string[];
   tenantId: string;
   businessUnitAccess?: BusinessUnitAccessSummary | null;
   avatarSrc?: string | null;
@@ -226,6 +228,9 @@ export function AuthenticatedShellProvider({
         : [],
       profileHref: user.profileHref,
       roleLabel: user.roleLabel,
+      roleKeys: Array.isArray(user.roleKeys)
+        ? [...new Set(user.roleKeys.filter(Boolean))]
+        : [],
       tenantId: user.tenantId,
       businessUnitAccess: user.businessUnitAccess ?? null,
       avatarSrc: user.avatarSrc ?? null,
@@ -362,6 +367,10 @@ async function handleAuthFailureResponse(
     }
   }
 
+  if (!response.ok) {
+    await dispatchApiError(response);
+  }
+
   if (globalWindow.__dpAuthRedirectInFlight) {
     return response;
   }
@@ -369,6 +378,10 @@ async function handleAuthFailureResponse(
   const reason = await resolveRedirectReason(response);
 
   if (!reason) {
+    return response;
+  }
+
+  if (reason === SESSION_EXPIRED_REASON) {
     return response;
   }
 
@@ -382,6 +395,23 @@ async function handleAuthFailureResponse(
 
   window.location.assign(logoutUrl);
   return response;
+}
+
+async function dispatchApiError(response: Response) {
+  try {
+    const data = await response.clone().json();
+    window.dispatchEvent(
+      new CustomEvent(apiErrorEventName(), {
+        detail: { error: normalizeApiError(data, response.status) },
+      }),
+    );
+  } catch {
+    window.dispatchEvent(
+      new CustomEvent(apiErrorEventName(), {
+        detail: { error: normalizeApiError({ statusCode: response.status }, response.status) },
+      }),
+    );
+  }
 }
 
 async function resolveRedirectReason(

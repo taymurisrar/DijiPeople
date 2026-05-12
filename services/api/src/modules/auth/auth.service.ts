@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Prisma } from '@prisma/client';
@@ -9,14 +9,14 @@ import type { StringValue } from 'ms';
 import { FOUNDATION_PERMISSION_DEFINITIONS } from '../../common/constants/permissions';
 import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import {
-  getAccessTokenSecret,
   getAuthClientIdFromHeaders,
   getAuthCookieNames,
   getClientAbsoluteTimeoutMs,
+  getClientAccessTokenSecret,
   getClientAccessTokenTtl,
   getClientIdleTimeoutMs,
+  getClientRefreshTokenSecret,
   getClientRefreshTokenTtl,
-  getRefreshTokenSecret,
   getSessionAbsoluteTimeoutMs,
   getSessionActivityThrottleMs,
   isRefreshRotationEnabled,
@@ -96,6 +96,8 @@ type UserWithAccess = Prisma.UserGetPayload<{
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
@@ -157,7 +159,11 @@ export class AuthService {
     return authResponse;
   }
 
-  async refresh(refreshToken?: string, req?: Request, requestedClientId?: string) {
+  async refresh(
+    refreshToken?: string,
+    req?: Request,
+    requestedClientId?: string,
+  ) {
     if (!refreshToken) {
       throw this.authUnauthorized(
         'REFRESH_TOKEN_EXPIRED',
@@ -165,10 +171,10 @@ export class AuthService {
       );
     }
 
-    const payload = await this.verifyRefreshToken(refreshToken);
     const clientId = normalizeAuthClientId(
       requestedClientId ?? this.getClientId(req),
     );
+    const payload = await this.verifyRefreshToken(refreshToken, clientId);
 
     if (
       normalizeAuthClientId(payload.appClientId) !== clientId ||
@@ -365,13 +371,13 @@ export class AuthService {
     res.cookie(
       cookieNames.access,
       tokens.accessToken,
-      buildAuthCookieOptions(this.configService, accessMaxAge),
+      buildAuthCookieOptions(this.configService, accessMaxAge, clientId),
     );
 
     res.cookie(
       cookieNames.refresh,
       tokens.refreshToken,
-      buildAuthCookieOptions(this.configService, refreshMaxAge),
+      buildAuthCookieOptions(this.configService, refreshMaxAge, clientId),
     );
 
     res.cookie(
@@ -380,13 +386,14 @@ export class AuthService {
       buildAuthCookieOptions(
         this.configService,
         getSessionAbsoluteTimeoutMs(this.configService),
+        clientId,
       ),
     );
   }
 
   clearAuthCookies(res: Response, clientId: AuthClientId = 'web') {
     const cookieNames = getAuthCookieNames(this.configService, clientId);
-    const options = buildAuthCookieOptions(this.configService, 0);
+    const options = buildAuthCookieOptions(this.configService, 0, clientId);
 
     res.clearCookie(cookieNames.access, options);
     res.clearCookie(cookieNames.refresh, options);
@@ -436,6 +443,14 @@ export class AuthService {
       : await this.usersService.findByEmailWithAccess(normalizedEmail);
 
     if (!user) {
+      this.logger.warn(
+        JSON.stringify({
+          event: 'auth.login.failed',
+          reason: 'USER_NOT_FOUND',
+          identifier: normalizedEmail,
+          tenantSlug: tenantSlug ?? null,
+        }),
+      );
       throw this.authUnauthorized(
         'INVALID_CREDENTIALS',
         'Invalid credentials.',
@@ -448,6 +463,16 @@ export class AuthService {
     );
 
     if (!isPasswordValid) {
+      this.logger.warn(
+        JSON.stringify({
+          event: 'auth.login.failed',
+          reason: 'PASSWORD_MISMATCH',
+          identifier: normalizedEmail,
+          tenantSlug: tenantSlug ?? null,
+          userId: user.id,
+          tenantId: user.tenantId,
+        }),
+      );
       throw this.authUnauthorized(
         'INVALID_CREDENTIALS',
         'Invalid credentials.',
@@ -457,12 +482,15 @@ export class AuthService {
     return user;
   }
 
-  private async verifyRefreshToken(refreshToken: string) {
+  private async verifyRefreshToken(
+    refreshToken: string,
+    clientId: AuthClientId,
+  ) {
     try {
       const payload = await this.jwtService.verifyAsync<AuthTokenPayload>(
         refreshToken,
         {
-          secret: getRefreshTokenSecret(this.configService),
+          secret: getClientRefreshTokenSecret(this.configService, clientId),
         },
       );
       if (payload.tokenUse !== 'refresh' && payload.type !== 'refresh') {
@@ -477,14 +505,11 @@ export class AuthService {
     }
   }
 
-  private async verifyAccessToken(
-    accessToken: string,
-    clientId: AuthClientId,
-  ) {
+  private async verifyAccessToken(accessToken: string, clientId: AuthClientId) {
     try {
       const payload = await this.jwtService.verifyAsync<AuthTokenPayload>(
         accessToken,
-        { secret: getAccessTokenSecret(this.configService) },
+        { secret: getClientAccessTokenSecret(this.configService, clientId) },
       );
       if (payload.tokenUse !== 'access' && payload.type !== 'access') {
         throw new Error('Invalid token type.');
@@ -528,7 +553,9 @@ export class AuthService {
         expiresAt: new Date(now + parseDurationToMilliseconds(refreshTokenTtl)),
         absoluteExpiresAt:
           absoluteExpiresAt ??
-          new Date(now + getClientAbsoluteTimeoutMs(this.configService, clientId)),
+          new Date(
+            now + getClientAbsoluteTimeoutMs(this.configService, clientId),
+          ),
         lastActivityAt: new Date(now),
         userAgent: req?.headers['user-agent']?.slice(0, 500),
         ipAddress: req?.ip,
@@ -678,26 +705,28 @@ export class AuthService {
       : getClientRefreshTokenTtl(this.configService, clientId);
 
     const accessToken = this.jwtService.sign(accessPayload, {
-      secret: getAccessTokenSecret(this.configService),
+      secret: getClientAccessTokenSecret(this.configService, clientId),
       expiresIn: accessTokenTtl as StringValue,
     });
 
-    const refreshToken = options.refreshTokenOverride ?? this.jwtService.sign(
-      {
-        sub: user.id,
-        tenantId: user.tenantId,
-        sessionId,
-        tokenVersion,
-        type: 'refresh',
-        tokenUse: 'refresh',
-        appClientId: clientId,
-        aud: clientId,
-      } satisfies AuthTokenPayload,
-      {
-        secret: getRefreshTokenSecret(this.configService),
-        expiresIn: refreshTokenTtl as StringValue,
-      },
-    );
+    const refreshToken =
+      options.refreshTokenOverride ??
+      this.jwtService.sign(
+        {
+          sub: user.id,
+          tenantId: user.tenantId,
+          sessionId,
+          tokenVersion,
+          type: 'refresh',
+          tokenUse: 'refresh',
+          appClientId: clientId,
+          aud: clientId,
+        } satisfies AuthTokenPayload,
+        {
+          secret: getClientRefreshTokenSecret(this.configService, clientId),
+          expiresIn: refreshTokenTtl as StringValue,
+        },
+      );
 
     return {
       tenant: {
@@ -825,10 +854,13 @@ export class AuthService {
     return null;
   }
 
-  private assertSessionNotExpired(tokenRecord: {
-    absoluteExpiresAt: Date | null;
-    lastActivityAt: Date | null;
-  }, clientId: AuthClientId) {
+  private assertSessionNotExpired(
+    tokenRecord: {
+      absoluteExpiresAt: Date | null;
+      lastActivityAt: Date | null;
+    },
+    clientId: AuthClientId,
+  ) {
     const now = Date.now();
     if (
       tokenRecord.absoluteExpiresAt &&
@@ -844,7 +876,8 @@ export class AuthService {
     const lastActivityAt = tokenRecord.lastActivityAt?.getTime();
     if (
       lastActivityAt &&
-      now - lastActivityAt > getClientIdleTimeoutMs(this.configService, clientId)
+      now - lastActivityAt >
+        getClientIdleTimeoutMs(this.configService, clientId)
     ) {
       throw this.authUnauthorized(
         'SESSION_EXPIRED',

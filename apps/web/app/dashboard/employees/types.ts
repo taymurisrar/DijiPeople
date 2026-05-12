@@ -12,6 +12,25 @@ export type EmployeeType =
   | "INTERN"
   | "CONSULTANT";
 
+export type EmployeeEntityRecord = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email?: string | null;
+  phone?: string | null;
+  employeeCode: string;
+  employmentStatus: EmployeeListResponse["items"][number]["employmentStatus"];
+  hireDate?: string | null;
+  managerEmployeeId?: string | null;
+  manager?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    employeeCode: string;
+    email?: string | null;
+  } | null;
+};
+
 export type EmployeeWorkMode = "OFFICE" | "REMOTE" | "HYBRID";
 
 export type EmployeeContractType =
@@ -489,19 +508,19 @@ export type PayComponentRecord = {
   name: string;
   description: string | null;
   componentType:
-    | "EARNING"
-    | "ALLOWANCE"
-    | "REIMBURSEMENT"
-    | "DEDUCTION"
-    | "TAX"
-    | "EMPLOYER_CONTRIBUTION"
-    | "ADJUSTMENT";
+  | "EARNING"
+  | "ALLOWANCE"
+  | "REIMBURSEMENT"
+  | "DEDUCTION"
+  | "TAX"
+  | "EMPLOYER_CONTRIBUTION"
+  | "ADJUSTMENT";
   calculationMethod:
-    | "FIXED"
-    | "PERCENTAGE"
-    | "FORMULA"
-    | "MANUAL"
-    | "SYSTEM_CALCULATED";
+  | "FIXED"
+  | "PERCENTAGE"
+  | "FORMULA"
+  | "MANUAL"
+  | "SYSTEM_CALCULATED";
   isTaxable: boolean;
   affectsGrossPay: boolean;
   affectsNetPay: boolean;

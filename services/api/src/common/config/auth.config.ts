@@ -42,9 +42,38 @@ export function getRefreshTokenSecret(configService: ConfigService) {
   );
 }
 
+export function getClientAccessTokenSecret(
+  configService: ConfigService,
+  clientId: AuthClientId,
+) {
+  const key = `${getPublicClientEnvPrefix(clientId)}_JWT_ACCESS_SECRET`;
+  const value = configService.get<string>(key);
+
+  if (value?.trim()) {
+    return value.trim();
+  }
+
+  return getAccessTokenSecret(configService);
+}
+
+export function getClientRefreshTokenSecret(
+  configService: ConfigService,
+  clientId: AuthClientId,
+) {
+  const key = `${getPublicClientEnvPrefix(clientId)}_JWT_REFRESH_SECRET`;
+  const value = configService.get<string>(key);
+
+  if (value?.trim()) {
+    return value.trim();
+  }
+
+  return getRefreshTokenSecret(configService);
+}
+
 export function getAccessTokenTtl(configService: ConfigService) {
   return (
     configService.get<string>('AUTH_ACCESS_TOKEN_TTL_SECONDS') ??
+    configService.get<string>('AUTH_ACCESS_TOKEN_TTL') ??
     configService.get<string>('JWT_ACCESS_TOKEN_TTL') ??
     configService.get<string>('JWT_ACCESS_TTL') ??
     AUTH_CONFIG_DEFAULTS.accessTtl
@@ -54,6 +83,7 @@ export function getAccessTokenTtl(configService: ConfigService) {
 export function getRefreshTokenTtl(configService: ConfigService) {
   return (
     configService.get<string>('AUTH_REFRESH_TOKEN_TTL_SECONDS') ??
+    configService.get<string>('AUTH_REFRESH_TOKEN_TTL') ??
     configService.get<string>('JWT_REFRESH_TOKEN_TTL') ??
     configService.get<string>('JWT_REFRESH_TTL') ??
     AUTH_CONFIG_DEFAULTS.refreshTtl
@@ -132,7 +162,9 @@ export function getClientAccessTokenTtl(
   return (
     configService.get<string>(
       `${getClientEnvPrefix(clientId)}_ACCESS_TOKEN_TTL_SECONDS`,
-    ) ?? getAccessTokenTtl(configService)
+    ) ??
+    configService.get<string>(`${getPublicClientEnvPrefix(clientId)}_JWT_ACCESS_TTL`) ??
+    getAccessTokenTtl(configService)
   );
 }
 
@@ -147,7 +179,9 @@ export function getClientRefreshTokenTtl(
   return (
     configService.get<string>(
       `${getClientEnvPrefix(clientId)}_REFRESH_TOKEN_TTL_SECONDS`,
-    ) ?? getRefreshTokenTtl(configService)
+    ) ??
+    configService.get<string>(`${getPublicClientEnvPrefix(clientId)}_JWT_REFRESH_TTL`) ??
+    getRefreshTokenTtl(configService)
   );
 }
 
@@ -228,14 +262,23 @@ export function getAuthCookieNames(
   clientId: AuthClientId = AUTH_CLIENT_IDS.WEB,
 ) {
   const envPrefix = getClientEnvPrefix(clientId);
+  const publicEnvPrefix = getPublicClientEnvPrefix(clientId);
   const cookiePrefix = getCookiePrefix(configService, clientId);
 
   return {
     access:
       configService.get<string>(`${envPrefix}_COOKIE_ACCESS_NAME`) ??
+      configService.get<string>(`${publicEnvPrefix}_ACCESS_TOKEN_COOKIE`) ??
+      (clientId === AUTH_CLIENT_IDS.WEB
+        ? configService.get<string>('ACCESS_TOKEN_COOKIE')
+        : undefined) ??
       `${cookiePrefix}_access_token`,
     refresh:
       configService.get<string>(`${envPrefix}_COOKIE_REFRESH_NAME`) ??
+      configService.get<string>(`${publicEnvPrefix}_REFRESH_TOKEN_COOKIE`) ??
+      (clientId === AUTH_CLIENT_IDS.WEB
+        ? configService.get<string>('REFRESH_TOKEN_COOKIE')
+        : undefined) ??
       `${cookiePrefix}_refresh_token`,
     session:
       configService.get<string>(`${envPrefix}_COOKIE_SESSION_NAME`) ??
@@ -246,9 +289,11 @@ export function getAuthCookieNames(
 export function buildAuthCookieOptions(
   configService: ConfigService,
   maxAgeMs?: number,
+  clientId?: AuthClientId,
 ): CookieOptions {
   const secure = parseBooleanConfig(
-    configService.get<string>('AUTH_COOKIE_SECURE'),
+    configService.get<string>('AUTH_COOKIE_SECURE') ??
+      configService.get<string>('COOKIE_SECURE'),
     isProductionLike(configService),
   );
   const httpOnly = parseBooleanConfig(
@@ -256,9 +301,20 @@ export function buildAuthCookieOptions(
     true,
   );
   const sameSite =
-    normalizeSameSite(configService.get<string>('AUTH_COOKIE_SAME_SITE')) ??
+    normalizeSameSite(
+      configService.get<string>('AUTH_COOKIE_SAME_SITE') ??
+        configService.get<string>('COOKIE_SAME_SITE'),
+    ) ??
     (secure ? 'none' : 'lax');
-  const domain = configService.get<string>('AUTH_COOKIE_DOMAIN') || undefined;
+  const domain =
+    (clientId
+      ? configService.get<string>(
+          `${getPublicClientEnvPrefix(clientId)}_COOKIE_DOMAIN`,
+        )
+      : undefined) ||
+    configService.get<string>('AUTH_COOKIE_DOMAIN') ||
+    configService.get<string>('COOKIE_DOMAIN') ||
+    undefined;
   const path = configService.get<string>('AUTH_COOKIE_PATH') || '/';
   const configuredMaxAge = configService.get<string>(
     'AUTH_COOKIE_MAX_AGE_SECONDS',
@@ -342,6 +398,12 @@ function getClientEnvPrefix(clientId: AuthClientId) {
   if (clientId === AUTH_CLIENT_IDS.ADMIN) return 'AUTH_ADMIN';
   if (clientId === AUTH_CLIENT_IDS.AGENT_DESKTOP) return 'AUTH_AGENT';
   return 'AUTH_WEB';
+}
+
+function getPublicClientEnvPrefix(clientId: AuthClientId) {
+  if (clientId === AUTH_CLIENT_IDS.ADMIN) return 'ADMIN';
+  if (clientId === AUTH_CLIENT_IDS.AGENT_DESKTOP) return 'AGENT';
+  return 'WEB';
 }
 
 function getCookiePrefix(configService: ConfigService, clientId: AuthClientId) {

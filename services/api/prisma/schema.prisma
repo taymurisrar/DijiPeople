@@ -4337,6 +4337,37 @@ model AuditLog {
   @@index([tenantId, actorUserId, createdAt])
 }
 
+model ErrorLog {
+  id             String   @id @default(cuid())
+  traceId        String   @unique
+  errorCode      String
+  statusCode     Int
+  severity       String
+  message        String
+  description    String
+  stack          String?
+  cause          Json?
+  details        Json?
+  method         String?
+  path           String?
+  params         Json?
+  query          Json?
+  requestBody    Json?
+  userAgent      String?
+  ipAddress      String?
+  userId         String?
+  tenantId       String?
+  organizationId String?
+  businessUnitId String?
+  createdAt      DateTime @default(now())
+
+  @@index([traceId])
+  @@index([tenantId, createdAt])
+  @@index([errorCode, createdAt])
+  @@index([severity, createdAt])
+  @@index([createdAt])
+}
+
 model Policy {
   id            String             @id @default(uuid())
   tenantId      String

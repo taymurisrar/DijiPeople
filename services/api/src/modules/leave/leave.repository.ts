@@ -364,6 +364,21 @@ export class LeaveRepository {
     });
   }
 
+  findLeaveRequestsByTenant(
+    tenantId: string,
+    query: LeaveRequestQueryDto,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.leaveRequest.findMany({
+      where: {
+        tenantId,
+        ...(query.status ? { status: query.status } : {}),
+      },
+      include: leaveRequestInclude,
+      orderBy: [{ createdAt: 'desc' }],
+    });
+  }
+
   findPendingLeaveRequestsForTeam(
     tenantId: string,
     db: PrismaDb = this.prisma,

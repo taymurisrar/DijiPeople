@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { ACCESS_TOKEN_COOKIE, AUTH_APP_CLIENT_ID } from "@/lib/auth-config";
 import { getApiBaseUrl } from "@/lib/auth";
+import { normalizeApiError } from "@/lib/api-error";
 
 type JsonPrimitive = string | number | boolean | null;
 
@@ -37,6 +38,9 @@ export class ApiRequestError extends Error {
   isNetworkError?: boolean;
   isTimeout?: boolean;
   traceId?: string;
+  errorCode?: string;
+  description?: string;
+  details?: unknown;
 
   constructor(params: {
     status: number;
@@ -49,6 +53,8 @@ export class ApiRequestError extends Error {
     isNetworkError?: boolean;
     isTimeout?: boolean;
     traceId?: string;
+    description?: string;
+    details?: unknown;
   }) {
     super(params.message);
     this.name = "ApiRequestError";
@@ -61,6 +67,9 @@ export class ApiRequestError extends Error {
     this.isNetworkError = params.isNetworkError;
     this.isTimeout = params.isTimeout;
     this.traceId = params.traceId;
+    this.errorCode = params.code;
+    this.description = params.description;
+    this.details = params.details;
   }
 }
 
@@ -87,7 +96,9 @@ export async function apiRequest(
     headers.set("X-DijiPeople-App", AUTH_APP_CLIENT_ID);
   }
   if (!headers.has("X-Request-Id")) {
-    headers.set("X-Request-Id", createRequestId());
+    const requestId = createRequestId();
+    headers.set("X-Request-Id", requestId);
+    headers.set("X-Trace-Id", requestId);
   }
 
   applyContentTypeHeader(headers, init.body);
@@ -234,30 +245,13 @@ function buildApiRequestError(
   path: string,
   method?: string,
 ): ApiRequestError {
-  const message =
-    extractErrorMessage(data) ??
-    (response.statusText || `Request failed with status ${response.status}.`);
-
-  const errorCode =
-    extractErrorCode(data) ??
-    (response.status === 400
-      ? "BAD_REQUEST"
-      : response.status === 401
-        ? "UNAUTHORIZED"
-        : response.status === 403
-          ? "FORBIDDEN"
-          : response.status === 404
-            ? "NOT_FOUND"
-            : response.status === 409
-              ? "CONFLICT"
-              : response.status === 422
-                ? "VALIDATION_ERROR"
-                : response.status >= 500
-                  ? "SERVER_ERROR"
-                  : "REQUEST_FAILED");
+  const standardError = normalizeApiError(data, response.status);
+  const message = standardError.message;
+  const errorCode = standardError.errorCode;
 
   const traceId =
-    extractTraceId(data) ??
+    standardError.traceId ??
+    response.headers.get("x-trace-id") ??
     response.headers.get("x-request-id") ??
     response.headers.get("X-Request-Id") ??
     undefined;
@@ -271,6 +265,8 @@ function buildApiRequestError(
     method: method?.toUpperCase() ?? "GET",
     responseHeaders: headersToObject(response.headers),
     traceId,
+    description: standardError.description,
+    details: standardError.details,
   });
 }
 

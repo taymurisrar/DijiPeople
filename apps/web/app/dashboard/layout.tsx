@@ -21,6 +21,7 @@ import { getBusinessUnitAccessSummary } from "./_lib/business-unit-access";
 import { AuthenticatedShellProvider } from "./_components/authenticated-shell-provider";
 import { DashboardSidebar } from "./_components/dashboard-sidebar";
 import { DashboardTopbar } from "./_components/dashboard-topbar";
+import { ErrorProvider } from "@/components/errors/error-provider";
 
 export default async function DashboardLayout({
   children,
@@ -92,6 +93,7 @@ export default async function DashboardLayout({
         permissionKeys: user.permissionKeys,
         profileHref: "/dashboard/profile",
         roleLabel,
+        roleKeys: user.roleKeys,
         tenantId: user.tenantId,
         businessUnitAccess,
       }}
@@ -145,7 +147,9 @@ export default async function DashboardLayout({
                 null
               }
             />
-            {children}
+            <ErrorProvider user={{ roleKeys: user.roleKeys }}>
+              {children}
+            </ErrorProvider>
           </div>
         </div>
       </div>

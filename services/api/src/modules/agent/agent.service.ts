@@ -18,11 +18,11 @@ import bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
 import type { StringValue } from 'ms';
 import {
-  getAccessTokenSecret,
+  getClientAccessTokenSecret,
   getAgentSessionAbsoluteTimeoutMs,
   getAgentSessionIdleTimeoutMs,
   getAgentAccessTokenTtl,
-  getRefreshTokenSecret,
+  getClientRefreshTokenSecret,
   getAgentRefreshTokenTtl,
   AUTH_CLIENT_IDS,
   parseDurationToMilliseconds,
@@ -846,7 +846,10 @@ export class AgentService {
         aud: AUTH_CLIENT_IDS.AGENT_DESKTOP,
       } satisfies AgentTokenPayload,
       {
-        secret: getAccessTokenSecret(this.configService),
+        secret: getClientAccessTokenSecret(
+          this.configService,
+          AUTH_CLIENT_IDS.AGENT_DESKTOP,
+        ),
         expiresIn: accessTokenTtl as StringValue,
       },
     );
@@ -864,7 +867,10 @@ export class AgentService {
         aud: AUTH_CLIENT_IDS.AGENT_DESKTOP,
       } satisfies AgentTokenPayload,
       {
-        secret: getRefreshTokenSecret(this.configService),
+        secret: getClientRefreshTokenSecret(
+          this.configService,
+          AUTH_CLIENT_IDS.AGENT_DESKTOP,
+        ),
         expiresIn: refreshTokenTtl as StringValue,
       },
     );
@@ -899,7 +905,12 @@ export class AgentService {
   private async verifyAgentRefreshToken(refreshToken: string) {
     const payload = await this.jwtService.verifyAsync<AgentTokenPayload>(
       refreshToken,
-      { secret: getRefreshTokenSecret(this.configService) },
+      {
+        secret: getClientRefreshTokenSecret(
+          this.configService,
+          AUTH_CLIENT_IDS.AGENT_DESKTOP,
+        ),
+      },
     );
 
     if (

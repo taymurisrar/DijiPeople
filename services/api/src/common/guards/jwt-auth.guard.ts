@@ -9,8 +9,8 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService, TokenExpiredError, JsonWebTokenError } from '@nestjs/jwt';
 import { Reflector } from '@nestjs/core';
 import {
-  getAccessTokenSecret,
   getAuthClientIdFromHeaders,
+  getClientAccessTokenSecret,
   getClientIdleTimeoutMs,
   getAuthCookieNames,
   isSlidingSessionEnabled,
@@ -66,7 +66,7 @@ export class JwtAuthGuard implements CanActivate {
       const payload = await this.jwtService.verifyAsync<AuthTokenPayload>(
         token,
         {
-          secret: getAccessTokenSecret(this.configService),
+          secret: getClientAccessTokenSecret(this.configService, clientId),
         },
       );
 

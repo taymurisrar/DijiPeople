@@ -15,6 +15,7 @@ import { CreateLeavePolicyRuleDto } from './dto/create-leave-policy-rule.dto';
 import { UpdateLeavePolicyRuleDto } from './dto/update-leave-policy-rule.dto';
 import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { hasElevatedTenantRole } from '../../common/security/elevated-tenant-roles';
 import { AuditService } from '../audit/audit.service';
 import { EmployeesRepository } from '../employees/employees.repository';
 import { UsersRepository } from '../users/users.repository';
@@ -535,6 +536,18 @@ export class LeaveService {
     currentUser: AuthenticatedUser,
     query: LeaveRequestQueryDto,
   ) {
+    if (this.canManageTenantLeaveRequests(currentUser)) {
+      const tenantRequests =
+        await this.leaveRepository.findLeaveRequestsByTenant(
+          currentUser.tenantId,
+          query,
+        );
+
+      return tenantRequests.map((request) =>
+        this.mapLeaveRequest(request, currentUser),
+      );
+    }
+
     const pendingRequests =
       await this.leaveRepository.findPendingLeaveRequestsForTeam(
         currentUser.tenantId,
@@ -589,7 +602,10 @@ export class LeaveService {
       currentUser.userId,
     );
 
-    if (!employee || leaveRequest.employeeId !== employee.id) {
+    if (
+      !this.canManageTenantLeaveRequests(currentUser) &&
+      (!employee || leaveRequest.employeeId !== employee.id)
+    ) {
       throw new ForbiddenException(
         'You can only cancel your own leave requests.',
       );
@@ -1389,11 +1405,23 @@ export class LeaveService {
     pendingStep: LeaveRequestWithRelations['approvalSteps'][number],
     currentUser: AuthenticatedUser,
   ) {
+    if (this.canManageTenantLeaveRequests(currentUser)) {
+      return true;
+    }
+
     if (pendingStep.approverUserId) {
       return pendingStep.approverUserId === currentUser.userId;
     }
 
     return false;
+  }
+
+  private canManageTenantLeaveRequests(currentUser: AuthenticatedUser) {
+    return (
+      hasElevatedTenantRole(currentUser) ||
+      currentUser.permissionKeys.includes('leave-requests.approve') ||
+      currentUser.permissionKeys.includes('leave-requests.reject')
+    );
   }
 
   private async validateApprovalMatrixReferences(

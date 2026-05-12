@@ -2,9 +2,13 @@ export const AUTH_APP_CLIENT_ID = "web";
 const AUTH_COOKIE_PREFIX = process.env.AUTH_WEB_COOKIE_PREFIX ?? "dp_web";
 export const ACCESS_TOKEN_COOKIE =
   process.env.AUTH_WEB_COOKIE_ACCESS_NAME ??
+  process.env.WEB_ACCESS_TOKEN_COOKIE ??
+  process.env.ACCESS_TOKEN_COOKIE ??
   `${AUTH_COOKIE_PREFIX}_access_token`;
 export const REFRESH_TOKEN_COOKIE =
   process.env.AUTH_WEB_COOKIE_REFRESH_NAME ??
+  process.env.WEB_REFRESH_TOKEN_COOKIE ??
+  process.env.REFRESH_TOKEN_COOKIE ??
   `${AUTH_COOKIE_PREFIX}_refresh_token`;
 export const SESSION_COOKIE =
   process.env.AUTH_WEB_COOKIE_SESSION_NAME ?? `${AUTH_COOKIE_PREFIX}_session_id`;

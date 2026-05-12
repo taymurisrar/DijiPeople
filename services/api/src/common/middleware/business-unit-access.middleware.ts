@@ -2,7 +2,11 @@ import { Injectable, NestMiddleware } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { NextFunction, Response } from 'express';
 import * as jwt from 'jsonwebtoken';
-import { getAccessTokenSecret } from '../config/auth.config';
+import {
+  getAuthClientIdFromHeaders,
+  getAuthCookieNames,
+  getClientAccessTokenSecret,
+} from '../config/auth.config';
 import { AuthenticatedRequest } from '../interfaces/authenticated-request.interface';
 import { RequestContextService } from '../request-context/request-context.service';
 import { OrganizationAccessService } from '../../modules/organization/organization-access.service';
@@ -32,7 +36,10 @@ export class BusinessUnitAccessMiddleware implements NestMiddleware {
     try {
       const decoded = jwt.verify(
         token,
-        getAccessTokenSecret(this.configService),
+        getClientAccessTokenSecret(
+          this.configService,
+          getAuthClientIdFromHeaders(req.headers),
+        ),
       ) as AccessTokenPayload;
       const userId = decoded.userId ?? decoded.sub;
 
@@ -65,10 +72,15 @@ export class BusinessUnitAccessMiddleware implements NestMiddleware {
       return null;
     }
 
+    const cookieNames = getAuthCookieNames(
+      this.configService,
+      getAuthClientIdFromHeaders(req.headers),
+    );
     const parts = cookieHeader.split(';').map((part) => part.trim());
     for (const part of parts) {
-      if (part.startsWith('dp_access_token=')) {
-        return decodeURIComponent(part.slice('dp_access_token='.length));
+      const prefix = `${cookieNames.access}=`;
+      if (part.startsWith(prefix)) {
+        return decodeURIComponent(part.slice(prefix.length));
       }
     }
 

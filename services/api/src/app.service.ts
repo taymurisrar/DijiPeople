@@ -1,12 +1,9 @@
 import { Injectable } from '@nestjs/common';
+import { getRuntimeHealthPayload } from './config/env.validation';
 
 @Injectable()
 export class AppService {
   getHealth() {
-    return {
-      service: 'dijipeople-api',
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-    };
+    return getRuntimeHealthPayload(process.env);
   }
 }

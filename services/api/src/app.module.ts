@@ -9,6 +9,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { MailerModule } from './common/mailer/mailer.module';
 import { BusinessUnitAccessMiddleware } from './common/middleware/business-unit-access.middleware';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { RequestContextModule } from './common/request-context/request-context.module';
@@ -50,6 +51,7 @@ import { TenantSettingsModule } from './modules/tenant-settings/tenant-settings.
 import { TeamsModule } from './modules/teams/teams.module';
 import { UsersModule } from './modules/users/users.module';
 import { SuperAdminModule } from './modules/super-admin/super-admin.module';
+import { ErrorLogsModule } from './modules/error-logs/error-logs.module';
 
 @Module({
   imports: [
@@ -88,6 +90,7 @@ import { SuperAdminModule } from './modules/super-admin/super-admin.module';
     RecruitmentModule,
     ReportsModule,
     SuperAdminModule,
+    ErrorLogsModule,
     TenantSettingsModule,
     TeamsModule,
     TimesheetsModule,
@@ -97,7 +100,12 @@ import { SuperAdminModule } from './modules/super-admin/super-admin.module';
     PermissionsModule,
   ],
   controllers: [AppController],
-  providers: [AppService, BusinessUnitAccessMiddleware, RequestIdMiddleware],
+  providers: [
+    AppService,
+    BusinessUnitAccessMiddleware,
+    RequestIdMiddleware,
+    HttpExceptionFilter,
+  ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

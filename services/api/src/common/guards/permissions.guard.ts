@@ -12,10 +12,8 @@ import {
   RequiredRbacPermission,
 } from '../decorators/require-permissions.decorator';
 import { AuthenticatedRequest } from '../interfaces/authenticated-request.interface';
-import {
-  ROLE_KEYS,
-  SECURITY_ACCESS_LEVEL_WEIGHT,
-} from '../constants/rbac-matrix';
+import { SECURITY_ACCESS_LEVEL_WEIGHT } from '../constants/rbac-matrix';
+import { hasElevatedTenantRole } from '../security/elevated-tenant-roles';
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
@@ -50,7 +48,7 @@ export class PermissionsGuard implements CanActivate {
       });
     }
 
-    if (user.roleKeys?.includes(ROLE_KEYS.GLOBAL_ADMIN)) {
+    if (hasElevatedTenantRole(user)) {
       return true;
     }
 

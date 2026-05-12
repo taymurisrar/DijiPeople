@@ -4,8 +4,8 @@ import {
   SecurityAccessLevel,
   SecurityPrivilege,
 } from '@prisma/client';
-import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { hasElevatedTenantRole } from '../../common/security/elevated-tenant-roles';
 
 export type BusinessUnitAccessContext = {
   userId: string;
@@ -102,8 +102,8 @@ export class OrganizationAccessService {
       },
     });
 
-    if (!user || !user.businessUnit) {
-      throw new NotFoundException('User or user business unit was not found.');
+    if (!user) {
+      throw new NotFoundException('User was not found.');
     }
 
     const directRoles = user.userRoles
@@ -141,10 +141,16 @@ export class OrganizationAccessService {
       orderBy: [{ createdAt: 'asc' }, { name: 'asc' }],
     });
 
+    const defaultBusinessUnit = user.businessUnit ?? businessUnits[0] ?? null;
+
+    if (!defaultBusinessUnit) {
+      throw new NotFoundException('No business units are configured.');
+    }
+
     const accessibleBusinessUnitIds = this.resolveAccessibleBusinessUnitIds(
       businessUnits,
-      user.businessUnit.id,
-      user.businessUnit.organizationId,
+      defaultBusinessUnit.id,
+      defaultBusinessUnit.organizationId,
       effectiveAccessLevel,
     );
 
@@ -159,8 +165,8 @@ export class OrganizationAccessService {
     return {
       userId: user.id,
       tenantId: user.tenantId,
-      businessUnitId: user.businessUnit.id,
-      organizationId: user.businessUnit.organizationId,
+      businessUnitId: defaultBusinessUnit.id,
+      organizationId: defaultBusinessUnit.organizationId,
       roleKeys,
       roleAccessLevels,
       effectiveAccessLevel,
@@ -174,7 +180,7 @@ export class OrganizationAccessService {
     roleKeys: string[],
     roleAccessLevels: RoleAccessLevel[],
   ) {
-    if (roleKeys.includes(ROLE_KEYS.SYSTEM_ADMIN)) {
+    if (hasElevatedTenantRole({ roleKeys })) {
       return RoleAccessLevel.TENANT;
     }
 

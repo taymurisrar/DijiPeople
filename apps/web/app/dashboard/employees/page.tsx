@@ -19,7 +19,7 @@ import {
   getBusinessUnitAccessSummary,
   hasBusinessUnitScope,
 } from "../_lib/business-unit-access";
-import { EmployeeListResponse } from "./types";
+import { EmployeeEntityRecord, EmployeeListResponse } from "./types";
 import { TenantResolvedSettingsResponse } from "../settings/types";
 import { EmployeesTable } from "./_components/employees-table";
 import { EmployeesCommandBar } from "./_components/employees-command-bar";
@@ -227,24 +227,7 @@ export default async function EmployeesPage({
   );
 }
 
-type EmployeeEntityRecord = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email?: string | null;
-  phone?: string | null;
-  employeeCode: string;
-  employmentStatus: EmployeeListResponse["items"][number]["employmentStatus"];
-  hireDate?: string | null;
-  managerEmployeeId?: string | null;
-  manager?: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    employeeCode: string;
-    email?: string | null;
-  } | null;
-};
+
 
 async function fetchEmployeesFromEntityData(input: {
   search: string;

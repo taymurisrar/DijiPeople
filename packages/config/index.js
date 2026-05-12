@@ -8,10 +8,10 @@ const DEFAULT_LOCAL_PORTS = Object.freeze({
 });
 
 const PRODUCTION_APP_URLS = Object.freeze({
-  landing: "https://dijipeople.com",
-  web: "https://app.dijipeople.com",
-  admin: "https://admin.dijipeople.com",
-  api: "https://api.dijipeople.com",
+  landing: "https://diji-people-landing.vercel.app",
+  web: "https://diji-people-web.vercel.app",
+  admin: "https://diji-people-admin.vercel.app",
+  api: "https://dijipeople.onrender.com",
 });
 
 const APP_PORT_ENV_KEYS = Object.freeze({
@@ -22,9 +22,24 @@ const APP_PORT_ENV_KEYS = Object.freeze({
 });
 
 const APP_URL_ENV_KEYS = Object.freeze({
-  landing: ["NEXT_PUBLIC_LANDING_URL", "LANDING_APP_URL", "LANDING_URL"],
-  web: ["NEXT_PUBLIC_WEB_URL", "WEB_APP_URL", "WEB_URL"],
-  admin: ["NEXT_PUBLIC_ADMIN_URL", "ADMIN_APP_URL", "ADMIN_URL"],
+  landing: [
+    "NEXT_PUBLIC_LANDING_APP_URL",
+    "NEXT_PUBLIC_LANDING_URL",
+    "LANDING_APP_URL",
+    "LANDING_URL",
+  ],
+  web: [
+    "NEXT_PUBLIC_WEB_APP_URL",
+    "NEXT_PUBLIC_WEB_URL",
+    "WEB_APP_URL",
+    "WEB_URL",
+  ],
+  admin: [
+    "NEXT_PUBLIC_ADMIN_APP_URL",
+    "NEXT_PUBLIC_ADMIN_URL",
+    "ADMIN_APP_URL",
+    "ADMIN_URL",
+  ],
 });
 
 function parsePort(value, fallback) {
@@ -92,14 +107,15 @@ function getAppOrigin(app, env = process.env) {
 }
 
 function getApiBaseUrl(env = process.env) {
-  return (
+  const value =
     firstDefined(env, [
       "NEXT_PUBLIC_API_BASE_URL",
       "NEXT_PUBLIC_API_URL",
       "API_BASE_URL",
       "API_URL",
-    ]) ?? `${getAppOrigin("api", env)}/api`
-  );
+    ]) ?? `${getAppOrigin("api", env)}/api`;
+
+  return normalizeApiBaseUrl(value);
 }
 
 function getAllowedCorsOrigins(env = process.env) {
@@ -117,6 +133,12 @@ function getAllowedCorsOrigins(env = process.env) {
     getAppOrigin("web", env),
     getAppOrigin("admin", env),
   ];
+}
+
+function normalizeApiBaseUrl(value) {
+  const trimmed = String(value || "").trim().replace(/\/+$/, "");
+  if (!trimmed) return trimmed;
+  return trimmed.endsWith("/api") ? trimmed : `${trimmed}/api`;
 }
 
 function requireEnv(env, key) {

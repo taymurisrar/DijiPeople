@@ -15,6 +15,7 @@ import {
 } from '@nestjs/common';
 import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { AuditService } from '../audit/audit.service';
+import { hasElevatedTenantRole } from '../../common/security/elevated-tenant-roles';
 import { EmployeesRepository } from '../employees/employees.repository';
 import { TenantSettingsResolverService } from '../tenant-settings/tenant-settings-resolver.service';
 import {
@@ -247,8 +248,7 @@ export class AttendanceService {
     currentUser: AuthenticatedUser,
     query: AttendanceQueryDto,
   ) {
-    const canManageAll =
-      currentUser.permissionKeys.includes('attendance.manage');
+    const canManageAll = this.canManageTenantAttendance(currentUser);
     const employeeIds = canManageAll
       ? await this.resolveAllTenantEmployeeIds(currentUser.tenantId, query)
       : await this.resolveDirectReportEmployeeIds(currentUser, query);
@@ -298,8 +298,7 @@ export class AttendanceService {
     currentUser: AuthenticatedUser,
     query: AttendanceSummaryQueryDto,
   ) {
-    const canManageAll =
-      currentUser.permissionKeys.includes('attendance.manage');
+    const canManageAll = this.canManageTenantAttendance(currentUser);
     const employeeIds = canManageAll
       ? await this.resolveAllTenantEmployeeIds(currentUser.tenantId, {})
       : await this.resolveDirectReportEmployeeIds(currentUser, {});
@@ -627,8 +626,7 @@ export class AttendanceService {
     currentUser: AuthenticatedUser,
     query: AttendanceQueryDto,
   ) {
-    const canManageAll =
-      currentUser.permissionKeys.includes('attendance.manage');
+    const canManageAll = this.canManageTenantAttendance(currentUser);
     const employeeIds = canManageAll
       ? await this.resolveAllTenantEmployeeIds(currentUser.tenantId, query)
       : await this.resolveDirectReportEmployeeIds(currentUser, query);
@@ -1068,6 +1066,13 @@ export class AttendanceService {
     return employee;
   }
 
+  private canManageTenantAttendance(currentUser: AuthenticatedUser) {
+    return (
+      hasElevatedTenantRole(currentUser) ||
+      currentUser.permissionKeys.includes('attendance.manage')
+    );
+  }
+
   private async resolvePolicy(tenantId: string) {
     const attendanceSettings =
       await this.tenantSettingsResolverService.getAttendanceSettings(tenantId);
@@ -1327,8 +1332,9 @@ export class AttendanceService {
       officeLocation: entry.officeLocation,
       workSchedule: entry.workSchedule,
       importedBatch: entry.importedBatch,
-      canCurrentUserEdit:
-        currentUser?.permissionKeys.includes('attendance.manage') ?? false,
+      canCurrentUserEdit: currentUser
+        ? this.canManageTenantAttendance(currentUser)
+        : false,
       canCurrentUserCheckOut,
       checkOutBlockedReason: canCurrentUserCheckOut
         ? null

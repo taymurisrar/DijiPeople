@@ -17,6 +17,8 @@ node_modules/
 # App-specific envs
 **/.env
 **/.env.local
+!**/.env.example
+!**/.env.*.example
 
 # =========================================================
 # Testing / Coverage
