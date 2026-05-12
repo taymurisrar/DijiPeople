@@ -110,3 +110,6 @@ prisma/dev.db-journal
 # =========================================================
 *.swp
 *.swo
+apps/admin/.env.production.example
+apps/web/.env.production.example
+services/api/.env.production.example

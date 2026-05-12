@@ -49,7 +49,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
     const context = host.switchToHttp();
     const response = context.getResponse<Response>();
-    const request = context.getRequest<RequestWithId & { user?: AuthenticatedUser }>();
+    const request = context.getRequest<
+      RequestWithId & { user?: AuthenticatedUser }
+    >();
     const config = getErrorFrameworkConfig(this.configService);
     const traceId = this.resolveTraceId(request, response, config.traceHeader);
     const normalized = this.normalizeException(exception);
@@ -73,7 +75,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
       },
     };
 
-    if (config.verboseResponse && this.canExposeStack(request.user, config.exposeStackToSystemCustomizer)) {
+    if (
+      config.verboseResponse &&
+      this.canExposeStack(request.user, config.exposeStackToSystemCustomizer)
+    ) {
       contract.stack = normalized.stack;
     }
 
@@ -153,8 +158,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
       const errorCode = this.mapLegacyCode(rawCode, statusCode);
       const catalog = getErrorCatalogEntry(errorCode);
       const rawMessage = payload.message;
-      const message = readMessage(rawMessage) ?? readString(payload.error) ?? catalog.message;
-      const description = readString(payload.description) ?? catalog.description;
+      const message =
+        readMessage(rawMessage) ?? readString(payload.error) ?? catalog.message;
+      const description =
+        readString(payload.description) ?? catalog.description;
 
       return {
         errorCode,
@@ -167,9 +174,15 @@ export class HttpExceptionFilter implements ExceptionFilter {
       };
     }
 
-    const message = exception instanceof Error ? exception.message : String(exception);
-    const networkError = /timeout|timed out|econnrefused|enotfound|network|connection/i.test(message);
-    const errorCode: ErrorCode = networkError ? 'NETWORK_ERROR' : 'SYSTEM_UNEXPECTED_ERROR';
+    const message =
+      exception instanceof Error ? exception.message : String(exception);
+    const networkError =
+      /timeout|timed out|econnrefused|enotfound|network|connection/i.test(
+        message,
+      );
+    const errorCode: ErrorCode = networkError
+      ? 'NETWORK_ERROR'
+      : 'SYSTEM_UNEXPECTED_ERROR';
     const catalog = getErrorCatalogEntry(errorCode);
 
     return {
@@ -190,15 +203,19 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     if (exception instanceof Prisma.PrismaClientKnownRequestError) {
       if (exception.code === 'P2002') errorCode = 'DATABASE_DUPLICATE_RECORD';
-      else if (exception.code === 'P2025') errorCode = 'DATABASE_RECORD_NOT_FOUND';
-      else if (exception.code === 'P2003') errorCode = 'DATABASE_CONSTRAINT_FAILED';
+      else if (exception.code === 'P2025')
+        errorCode = 'DATABASE_RECORD_NOT_FOUND';
+      else if (exception.code === 'P2003')
+        errorCode = 'DATABASE_CONSTRAINT_FAILED';
       else errorCode = 'PRISMA_KNOWN_REQUEST_ERROR';
     } else if (exception instanceof Prisma.PrismaClientValidationError) {
       errorCode = 'PRISMA_VALIDATION_ERROR';
     } else if (exception instanceof Prisma.PrismaClientInitializationError) {
       errorCode = 'PRISMA_CONNECTION_ERROR';
     } else if (/pool|connection|connect|database/i.test(message)) {
-      errorCode = /timeout|timed out/i.test(message) ? 'DATABASE_TIMEOUT' : 'DATABASE_CONNECTION_FAILED';
+      errorCode = /timeout|timed out/i.test(message)
+        ? 'DATABASE_TIMEOUT'
+        : 'DATABASE_CONNECTION_FAILED';
     }
 
     if (!errorCode) return null;
@@ -211,7 +228,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
       description: catalog.description,
       details:
         exception instanceof Prisma.PrismaClientKnownRequestError
-          ? sanitizeForErrorLog({ prismaCode: exception.code, meta: exception.meta })
+          ? sanitizeForErrorLog({
+              prismaCode: exception.code,
+              meta: exception.meta,
+            })
           : {},
       severity: catalog.severity,
       cause: sanitizeCause(exception),
@@ -226,7 +246,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
     if (normalized === 'AUTH_REQUIRED') return 'AUTH_TOKEN_MISSING';
     if (normalized === 'INVALID_TOKEN') return 'AUTH_TOKEN_INVALID';
     if (normalized === 'ACCESS_TOKEN_EXPIRED') return 'SESSION_EXPIRED';
-    if (normalized === 'VALIDATION_ERROR' || normalized === 'BAD_REQUEST') return 'VALIDATION_FAILED';
+    if (normalized === 'VALIDATION_ERROR' || normalized === 'BAD_REQUEST')
+      return 'VALIDATION_FAILED';
     if (normalized === 'FORBIDDEN') return 'ACCESS_DENIED';
     if (normalized === 'UNAUTHORIZED') return 'AUTH_UNAUTHORIZED';
     if (normalized === 'NOT_FOUND') return 'DATABASE_RECORD_NOT_FOUND';
@@ -240,7 +261,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
     return 'SYSTEM_UNEXPECTED_ERROR';
   }
 
-  private extractValidationDetails(rawMessage: unknown, payload: Record<string, unknown>) {
+  private extractValidationDetails(
+    rawMessage: unknown,
+    payload: Record<string, unknown>,
+  ) {
     if (Array.isArray(rawMessage)) {
       return {
         fields: rawMessage
@@ -255,10 +279,20 @@ export class HttpExceptionFilter implements ExceptionFilter {
     return sanitizeForErrorLog(payload.details ?? payload.errors ?? {});
   }
 
-  private resolveTraceId(request: RequestWithId, response: Response, traceHeader: string) {
+  private resolveTraceId(
+    request: RequestWithId,
+    response: Response,
+    traceHeader: string,
+  ) {
     const incoming = request.header(traceHeader);
-    const existing = incoming ?? request.requestId ?? response.getHeader('X-Request-Id')?.toString();
-    const traceId = existing && existing.trim() ? existing.trim().slice(0, 128) : `req_${randomUUID()}`;
+    const existing =
+      incoming ??
+      request.requestId ??
+      response.getHeader('X-Request-Id')?.toString();
+    const traceId =
+      existing && existing.trim()
+        ? existing.trim().slice(0, 128)
+        : `req_${randomUUID()}`;
     request.requestId = traceId;
     response.setHeader('X-Trace-Id', traceId);
     response.setHeader('X-Request-Id', traceId);
@@ -271,8 +305,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
   ) {
     return Boolean(
       exposeStackToSystemCustomizer &&
-        (user?.accessContext?.isSystemCustomizer ||
-          user?.roleKeys?.includes('system-customizer')),
+      (user?.accessContext?.isSystemCustomizer ||
+        user?.roleKeys?.includes('system-customizer')),
     );
   }
 }
@@ -291,7 +325,10 @@ function readString(value: unknown) {
 
 function readMessage(value: unknown) {
   if (Array.isArray(value)) {
-    const messages = value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
+    const messages = value.filter(
+      (item): item is string =>
+        typeof item === 'string' && item.trim().length > 0,
+    );
     return messages.length ? messages.join(', ') : null;
   }
   return readString(value);

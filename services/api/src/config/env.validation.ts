@@ -1,5 +1,9 @@
 import type { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
-import { getAllowedCorsOrigins, getApiBaseUrl, getAppOrigin } from '@repo/config';
+import {
+  getAllowedCorsOrigins,
+  getApiBaseUrl,
+  getAppOrigin,
+} from '@repo/config';
 
 const PRODUCTION_REQUIRED_ENV = [
   'NODE_ENV',
@@ -67,21 +71,36 @@ export function validateApiEnvironment(env: NodeJS.ProcessEnv) {
   const corsOrigins = getAllowedCorsOrigins(env);
   if (parseBoolean(env.CORS_ALLOW_CREDENTIALS, true)) {
     if (corsOrigins.includes('*')) {
-      errors.push('CORS_ALLOWED_ORIGINS cannot include * when credentials are enabled.');
+      errors.push(
+        'CORS_ALLOWED_ORIGINS cannot include * when credentials are enabled.',
+      );
     }
     if (corsOrigins.some((origin) => origin.includes('/api'))) {
-      errors.push('CORS_ALLOWED_ORIGINS must contain origins only, not /api paths.');
+      errors.push(
+        'CORS_ALLOWED_ORIGINS must contain origins only, not /api paths.',
+      );
     }
   }
 
-  const sameSite = (env.COOKIE_SAME_SITE || env.AUTH_COOKIE_SAME_SITE || '').toLowerCase();
-  const secure = parseBoolean(env.COOKIE_SECURE ?? env.AUTH_COOKIE_SECURE, production);
+  const sameSite = (
+    env.COOKIE_SAME_SITE ||
+    env.AUTH_COOKIE_SAME_SITE ||
+    ''
+  ).toLowerCase();
+  const secure = parseBoolean(
+    env.COOKIE_SECURE ?? env.AUTH_COOKIE_SECURE,
+    production,
+  );
   if (production && sameSite === 'none' && !secure) {
-    errors.push('COOKIE_SECURE must be true when COOKIE_SAME_SITE=none in production.');
+    errors.push(
+      'COOKIE_SECURE must be true when COOKIE_SAME_SITE=none in production.',
+    );
   }
 
   if (errors.length > 0) {
-    throw new Error(`API environment validation failed:\n- ${errors.join('\n- ')}`);
+    throw new Error(
+      `API environment validation failed:\n- ${errors.join('\n- ')}`,
+    );
   }
 
   return {
@@ -113,8 +132,7 @@ export function buildCorsOptions(env: NodeJS.ProcessEnv): CorsOptions {
     },
     credentials: allowCredentials,
     methods:
-      env.CORS_ALLOWED_METHODS ||
-      'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+      env.CORS_ALLOWED_METHODS || 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     allowedHeaders:
       env.CORS_ALLOWED_HEADERS ||
       'Authorization,Content-Type,X-DijiPeople-App,X-DijiPeople-Client,X-Client-Id,X-Tenant-Slug,X-Requested-With,X-Trace-Id,X-Request-Id',

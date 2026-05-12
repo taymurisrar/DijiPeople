@@ -163,7 +163,9 @@ export function getClientAccessTokenTtl(
     configService.get<string>(
       `${getClientEnvPrefix(clientId)}_ACCESS_TOKEN_TTL_SECONDS`,
     ) ??
-    configService.get<string>(`${getPublicClientEnvPrefix(clientId)}_JWT_ACCESS_TTL`) ??
+    configService.get<string>(
+      `${getPublicClientEnvPrefix(clientId)}_JWT_ACCESS_TTL`,
+    ) ??
     getAccessTokenTtl(configService)
   );
 }
@@ -180,7 +182,9 @@ export function getClientRefreshTokenTtl(
     configService.get<string>(
       `${getClientEnvPrefix(clientId)}_REFRESH_TOKEN_TTL_SECONDS`,
     ) ??
-    configService.get<string>(`${getPublicClientEnvPrefix(clientId)}_JWT_REFRESH_TTL`) ??
+    configService.get<string>(
+      `${getPublicClientEnvPrefix(clientId)}_JWT_REFRESH_TTL`,
+    ) ??
     getRefreshTokenTtl(configService)
   );
 }
@@ -304,8 +308,7 @@ export function buildAuthCookieOptions(
     normalizeSameSite(
       configService.get<string>('AUTH_COOKIE_SAME_SITE') ??
         configService.get<string>('COOKIE_SAME_SITE'),
-    ) ??
-    (secure ? 'none' : 'lax');
+    ) ?? (secure ? 'none' : 'lax');
   const domain =
     (clientId
       ? configService.get<string>(
@@ -363,11 +366,26 @@ export function assertAuthEnvironment(configService: ConfigService) {
     getRefreshTokenTtl(configService),
     getAgentAccessTokenTtl(configService),
     getAgentRefreshTokenTtl(configService),
-    String(configService.get<string>('AUTH_IDLE_SESSION_TIMEOUT_SECONDS') ?? '1h'),
-    String(configService.get<string>('AUTH_ABSOLUTE_SESSION_TIMEOUT_SECONDS') ?? '8h'),
-    String(configService.get<string>('AUTH_SESSION_ACTIVITY_THROTTLE_SECONDS') ?? '60s'),
-    String(configService.get<string>('AUTH_AGENT_IDLE_SESSION_TIMEOUT_SECONDS') ?? '8h'),
-    String(configService.get<string>('AUTH_AGENT_ABSOLUTE_SESSION_TIMEOUT_SECONDS') ?? '30d'),
+    String(
+      configService.get<string>('AUTH_IDLE_SESSION_TIMEOUT_SECONDS') ?? '1h',
+    ),
+    String(
+      configService.get<string>('AUTH_ABSOLUTE_SESSION_TIMEOUT_SECONDS') ??
+        '8h',
+    ),
+    String(
+      configService.get<string>('AUTH_SESSION_ACTIVITY_THROTTLE_SECONDS') ??
+        '60s',
+    ),
+    String(
+      configService.get<string>('AUTH_AGENT_IDLE_SESSION_TIMEOUT_SECONDS') ??
+        '8h',
+    ),
+    String(
+      configService.get<string>(
+        'AUTH_AGENT_ABSOLUTE_SESSION_TIMEOUT_SECONDS',
+      ) ?? '30d',
+    ),
   ].forEach((duration) => parseDurationToMilliseconds(duration));
 }
 
