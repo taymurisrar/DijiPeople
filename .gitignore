@@ -113,3 +113,10 @@ prisma/dev.db-journal
 apps/admin/.env.production.example
 apps/web/.env.production.example
 services/api/.env.production.example
+apps/admin/.env.production.example
+apps/admin/.env.local.example
+apps/admin/.env.example
+apps/admin/.env.example
+services/api/.env.example
+services/api/.env.production.example
+services/api/.env.development.example

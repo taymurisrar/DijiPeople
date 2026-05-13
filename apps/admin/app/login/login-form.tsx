@@ -2,12 +2,20 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import {
+  DEFAULT_ADMIN_ROUTE,
+  sanitizeAdminNextPath,
+} from "@/lib/auth-config";
 
 type LoginResponse = {
   message?: string;
+  cookies?: {
+    accessToken: boolean;
+    refreshToken: boolean;
+    session: boolean;
+  };
 };
 
-const DEFAULT_ADMIN_ROUTE = "/";
 const SESSION_EXPIRED_REASON = "session-expired";
 
 export function AdminLoginForm() {
@@ -23,13 +31,7 @@ export function AdminLoginForm() {
   const sessionExpired = searchParams.get("reason") === SESSION_EXPIRED_REASON;
 
   const nextPath = useMemo(() => {
-    const next = searchParams.get("next");
-
-    if (!next || !next.startsWith("/") || next.startsWith("//")) {
-      return DEFAULT_ADMIN_ROUTE;
-    }
-
-    return next;
+    return sanitizeAdminNextPath(searchParams.get("next"));
   }, [searchParams]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -72,6 +74,17 @@ export function AdminLoginForm() {
         setError(
           data?.message ??
             "We could not sign you in. Check your credentials and try again.",
+        );
+        return;
+      }
+
+      if (
+        !data?.cookies?.accessToken ||
+        !data.cookies.refreshToken ||
+        !data.cookies.session
+      ) {
+        setError(
+          "Sign-in succeeded, but the admin auth cookies were not set. Check the production cookie configuration.",
         );
         return;
       }

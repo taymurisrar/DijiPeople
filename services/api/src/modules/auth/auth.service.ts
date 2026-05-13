@@ -358,37 +358,44 @@ export class AuthService {
     rememberMe?: boolean,
     clientId: AuthClientId = 'web',
   ) {
-    const accessMaxAge = rememberMe
-      ? parseDurationToMilliseconds(tokens.accessTokenExpiresIn)
-      : undefined;
-
-    const refreshMaxAge = rememberMe
-      ? parseDurationToMilliseconds(tokens.refreshTokenExpiresIn)
-      : undefined;
+    const accessMaxAge = parseDurationToMilliseconds(
+      tokens.accessTokenExpiresIn,
+    );
+    const refreshMaxAge = parseDurationToMilliseconds(
+      tokens.refreshTokenExpiresIn,
+    );
 
     const cookieNames = getAuthCookieNames(this.configService, clientId);
-
-    res.cookie(
-      cookieNames.access,
-      tokens.accessToken,
-      buildAuthCookieOptions(this.configService, accessMaxAge, clientId),
+    const accessCookieOptions = buildAuthCookieOptions(
+      this.configService,
+      accessMaxAge,
+      clientId,
+    );
+    const refreshCookieOptions = buildAuthCookieOptions(
+      this.configService,
+      refreshMaxAge,
+      clientId,
+    );
+    const sessionCookieOptions = buildAuthCookieOptions(
+      this.configService,
+      getSessionAbsoluteTimeoutMs(this.configService),
+      clientId,
     );
 
-    res.cookie(
-      cookieNames.refresh,
-      tokens.refreshToken,
-      buildAuthCookieOptions(this.configService, refreshMaxAge, clientId),
-    );
+    res.cookie(cookieNames.access, tokens.accessToken, accessCookieOptions);
 
-    res.cookie(
-      cookieNames.session,
-      tokens.sessionId,
-      buildAuthCookieOptions(
-        this.configService,
-        getSessionAbsoluteTimeoutMs(this.configService),
-        clientId,
-      ),
-    );
+    res.cookie(cookieNames.refresh, tokens.refreshToken, refreshCookieOptions);
+
+    res.cookie(cookieNames.session, tokens.sessionId, sessionCookieOptions);
+
+    this.logger.log({
+      event: 'auth.cookies.set',
+      clientId,
+      cookies: cookieNames,
+      access: toCookieLog(accessCookieOptions),
+      refresh: toCookieLog(refreshCookieOptions),
+      session: toCookieLog(sessionCookieOptions),
+    });
   }
 
   clearAuthCookies(res: Response, clientId: AuthClientId = 'web') {
@@ -897,4 +904,22 @@ export class AuthService {
       ? getAuthClientIdFromHeaders(req.headers)
       : normalizeAuthClientId(undefined);
   }
+}
+
+function toCookieLog(options: {
+  maxAge?: number;
+  sameSite?: boolean | 'lax' | 'strict' | 'none';
+  secure?: boolean;
+  httpOnly?: boolean;
+  path?: string;
+  domain?: string;
+}) {
+  return {
+    maxAge: options.maxAge,
+    sameSite: options.sameSite,
+    secure: options.secure,
+    httpOnly: options.httpOnly,
+    path: options.path,
+    domainPresent: Boolean(options.domain),
+  };
 }

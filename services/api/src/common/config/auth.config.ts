@@ -74,6 +74,7 @@ export function getAccessTokenTtl(configService: ConfigService) {
   return (
     configService.get<string>('AUTH_ACCESS_TOKEN_TTL_SECONDS') ??
     configService.get<string>('AUTH_ACCESS_TOKEN_TTL') ??
+    configService.get<string>('JWT_ACCESS_TOKEN_TTL_SECONDS') ??
     configService.get<string>('JWT_ACCESS_TOKEN_TTL') ??
     configService.get<string>('JWT_ACCESS_TTL') ??
     AUTH_CONFIG_DEFAULTS.accessTtl
@@ -84,6 +85,7 @@ export function getRefreshTokenTtl(configService: ConfigService) {
   return (
     configService.get<string>('AUTH_REFRESH_TOKEN_TTL_SECONDS') ??
     configService.get<string>('AUTH_REFRESH_TOKEN_TTL') ??
+    configService.get<string>('JWT_REFRESH_TOKEN_TTL_SECONDS') ??
     configService.get<string>('JWT_REFRESH_TOKEN_TTL') ??
     configService.get<string>('JWT_REFRESH_TTL') ??
     AUTH_CONFIG_DEFAULTS.refreshTtl
@@ -286,6 +288,7 @@ export function getAuthCookieNames(
       `${cookiePrefix}_refresh_token`,
     session:
       configService.get<string>(`${envPrefix}_COOKIE_SESSION_NAME`) ??
+      configService.get<string>(`${publicEnvPrefix}_SESSION_COOKIE`) ??
       `${cookiePrefix}_session_id`,
   };
 }
@@ -308,7 +311,7 @@ export function buildAuthCookieOptions(
     normalizeSameSite(
       configService.get<string>('AUTH_COOKIE_SAME_SITE') ??
         configService.get<string>('COOKIE_SAME_SITE'),
-    ) ?? (secure ? 'none' : 'lax');
+    ) ?? 'lax';
   const domain =
     (clientId
       ? configService.get<string>(
@@ -329,6 +332,16 @@ export function buildAuthCookieOptions(
         ? parseDurationToMilliseconds(configuredMaxAge)
         : undefined;
 
+  if (isProductionLike(configService) && sameSite === 'none' && !secure) {
+    throw new Error('AUTH_COOKIE_SECURE must be true when SameSite=None.');
+  }
+
+  if (isProductionLike(configService) && isInvalidProductionCookieDomain(domain)) {
+    throw new Error(
+      'Auth cookie domain must be unset on Vercel unless a real custom parent domain is configured.',
+    );
+  }
+
   return {
     httpOnly,
     secure,
@@ -343,6 +356,19 @@ export function assertAuthEnvironment(configService: ConfigService) {
   const requiredInProduction = [
     'JWT_ACCESS_SECRET',
     'JWT_REFRESH_SECRET',
+    'ADMIN_APP_URL',
+    'ADMIN_ACCESS_TOKEN_COOKIE',
+    'ADMIN_REFRESH_TOKEN_COOKIE',
+    'ADMIN_SESSION_COOKIE',
+    'AUTH_COOKIE_SECURE',
+    'AUTH_COOKIE_HTTP_ONLY',
+    'AUTH_COOKIE_SAME_SITE',
+    'AUTH_COOKIE_PATH',
+    'JWT_ACCESS_TOKEN_TTL_SECONDS',
+    'JWT_REFRESH_TOKEN_TTL_SECONDS',
+    'SESSION_IDLE_TIMEOUT_SECONDS',
+    'SESSION_ABSOLUTE_TIMEOUT_SECONDS',
+    'SESSION_REFRESH_THRESHOLD_SECONDS',
     'AUTH_ACCESS_TOKEN_TTL_SECONDS',
     'AUTH_REFRESH_TOKEN_TTL_SECONDS',
     'AUTH_IDLE_SESSION_TIMEOUT_SECONDS',
@@ -387,6 +413,30 @@ export function assertAuthEnvironment(configService: ConfigService) {
       ) ?? '30d',
     ),
   ].forEach((duration) => parseDurationToMilliseconds(duration));
+
+  if (isProductionLike(configService)) {
+    const cookieOptions = buildAuthCookieOptions(
+      configService,
+      undefined,
+      AUTH_CLIENT_IDS.ADMIN,
+    );
+
+    if (!cookieOptions.secure) {
+      throw new Error('AUTH_COOKIE_SECURE must be true in production.');
+    }
+
+    if (!cookieOptions.httpOnly) {
+      throw new Error('AUTH_COOKIE_HTTP_ONLY must be true in production.');
+    }
+
+    if (cookieOptions.sameSite !== 'lax') {
+      throw new Error('AUTH_COOKIE_SAME_SITE must be lax for admin production.');
+    }
+
+    if (cookieOptions.path !== '/') {
+      throw new Error('AUTH_COOKIE_PATH must be / for admin production.');
+    }
+  }
 }
 
 export function parseDurationToMilliseconds(value: string) {
@@ -504,4 +554,10 @@ function normalizeSameSite(value: string | undefined) {
   }
 
   return null;
+}
+
+function isInvalidProductionCookieDomain(domain: string | undefined) {
+  if (!domain) return false;
+  const normalized = domain.toLowerCase();
+  return normalized.includes('localhost') || normalized.endsWith('.vercel.app');
 }

@@ -8,6 +8,7 @@ import {
 } from "@/lib/auth-config";
 import {
   ACCESS_TOKEN_MAX_AGE_SECONDS,
+  getAuthCookieDiagnostics,
   getAuthCookieOptions,
   REFRESH_TOKEN_MAX_AGE_SECONDS,
 } from "@/lib/auth-cookies";
@@ -80,26 +81,59 @@ export async function POST(request: Request) {
       ok: true,
       user: data.user,
       tenant: data.tenant,
+      cookies: {
+        accessToken: true,
+        refreshToken: true,
+        session: Boolean(data.tokens.sessionId),
+      },
     });
 
-    nextResponse.cookies.set(
-      ACCESS_TOKEN_COOKIE,
-      data.tokens.accessToken,
-      getAuthCookieOptions(ACCESS_TOKEN_MAX_AGE_SECONDS),
-    );
+    let accessCookieOptions: ReturnType<typeof getAuthCookieOptions>;
+    let refreshCookieOptions: ReturnType<typeof getAuthCookieOptions>;
+
+    try {
+      accessCookieOptions = getAuthCookieOptions(
+        ACCESS_TOKEN_MAX_AGE_SECONDS,
+      );
+      refreshCookieOptions = getAuthCookieOptions(
+        REFRESH_TOKEN_MAX_AGE_SECONDS,
+      );
+    } catch (error) {
+      return NextResponse.json(
+        {
+          message:
+            error instanceof Error
+              ? `Admin auth cookie configuration error: ${error.message}`
+              : "Admin auth cookie configuration error.",
+        },
+        { status: 500 },
+      );
+    }
+
+    nextResponse.cookies.set(ACCESS_TOKEN_COOKIE, data.tokens.accessToken, accessCookieOptions);
 
     nextResponse.cookies.set(
       REFRESH_TOKEN_COOKIE,
       data.tokens.refreshToken,
-      getAuthCookieOptions(REFRESH_TOKEN_MAX_AGE_SECONDS),
+      refreshCookieOptions,
     );
     if (data.tokens.sessionId) {
       nextResponse.cookies.set(
         SESSION_COOKIE,
         data.tokens.sessionId,
-        getAuthCookieOptions(REFRESH_TOKEN_MAX_AGE_SECONDS),
+        refreshCookieOptions,
       );
     }
+
+    console.info("[admin-auth-login-cookies]", {
+      cookies: {
+        access: ACCESS_TOKEN_COOKIE,
+        refresh: REFRESH_TOKEN_COOKIE,
+        session: SESSION_COOKIE,
+      },
+      access: getAuthCookieDiagnostics(ACCESS_TOKEN_MAX_AGE_SECONDS),
+      refresh: getAuthCookieDiagnostics(REFRESH_TOKEN_MAX_AGE_SECONDS),
+    });
 
     return nextResponse;
   } catch (error) {

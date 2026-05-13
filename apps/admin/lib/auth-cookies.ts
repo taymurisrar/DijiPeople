@@ -4,18 +4,20 @@ export const ACCESS_TOKEN_MAX_AGE_SECONDS = Math.floor(
   parseDurationToMilliseconds(
     process.env.AUTH_ADMIN_ACCESS_TOKEN_TTL_SECONDS ??
       process.env.AUTH_ACCESS_TOKEN_TTL_SECONDS ??
+      process.env.JWT_ACCESS_TOKEN_TTL_SECONDS ??
       process.env.JWT_ACCESS_TOKEN_TTL ??
       process.env.JWT_ACCESS_TTL ??
-      "15m",
+      "30m",
   ) / 1000,
 );
 export const REFRESH_TOKEN_MAX_AGE_SECONDS = Math.floor(
   parseDurationToMilliseconds(
     process.env.AUTH_ADMIN_REFRESH_TOKEN_TTL_SECONDS ??
       process.env.AUTH_REFRESH_TOKEN_TTL_SECONDS ??
+      process.env.JWT_REFRESH_TOKEN_TTL_SECONDS ??
       process.env.JWT_REFRESH_TOKEN_TTL ??
       process.env.JWT_REFRESH_TTL ??
-      "1h",
+      "30d",
   ) / 1000,
 );
 
@@ -31,11 +33,21 @@ export function getAuthCookieOptions(
   const sameSite =
     normalizeSameSite(
       process.env.AUTH_COOKIE_SAME_SITE ?? process.env.COOKIE_SAME_SITE,
-    ) ?? (isProduction ? "none" : "lax");
+    ) ?? "lax";
   const secure = parseBoolean(
     process.env.AUTH_COOKIE_SECURE ?? process.env.COOKIE_SECURE,
     isProduction,
   );
+
+  if (isProduction && sameSite === "none" && !secure) {
+    throw new Error("AUTH_COOKIE_SECURE must be true when SameSite=None.");
+  }
+
+  if (isProduction && isInvalidProductionCookieDomain(domain)) {
+    throw new Error(
+      "Admin auth cookie domain must be unset on Vercel unless a real custom parent domain is configured.",
+    );
+  }
 
   return {
     httpOnly: true,
@@ -44,6 +56,17 @@ export function getAuthCookieOptions(
     path: process.env.AUTH_COOKIE_PATH || "/",
     maxAge,
     ...(domain ? { domain } : {}),
+  };
+}
+
+export function getAuthCookieDiagnostics(maxAge: number) {
+  const options = getAuthCookieOptions(maxAge);
+  return {
+    maxAge: options.maxAge,
+    sameSite: options.sameSite,
+    secure: options.secure,
+    path: options.path,
+    domainPresent: Boolean(options.domain),
   };
 }
 
@@ -66,6 +89,12 @@ function parseDurationToMilliseconds(value: string) {
   };
 
   return amount * multipliers[unit];
+}
+
+function isInvalidProductionCookieDomain(domain: string | undefined) {
+  if (!domain) return false;
+  const normalized = domain.toLowerCase();
+  return normalized.includes("localhost") || normalized.endsWith(".vercel.app");
 }
 
 export function getClearAuthCookieOptions(): Pick<

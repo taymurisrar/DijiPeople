@@ -8,6 +8,7 @@ import {
   LOGIN_ROUTE,
   isAdminAuthRoute,
   isProtectedAdminRoute,
+  sanitizeAdminNextPath,
 } from "@/lib/auth-config";
 
 type JwtValidationResult =
@@ -25,35 +26,63 @@ type JwtValidationResult =
     };
 
 const CLOCK_SKEW_SECONDS = 5;
+type JwtInvalidReason = Exclude<JwtValidationResult, { valid: true }>["reason"];
 
 export function proxy(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+
   try {
-    const { pathname, search } = request.nextUrl;
+    const { search } = request.nextUrl;
 
     const accessToken = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value;
+    const refreshToken = request.cookies.get(REFRESH_TOKEN_COOKIE)?.value;
     const validation = validateJwt(accessToken);
     const isAuthenticated = validation.valid;
+    const isProtectedRoute = isProtectedAdminRoute(pathname);
+    const isAuthRoute = isAdminAuthRoute(pathname);
 
-    if (isProtectedAdminRoute(pathname) && !isAuthenticated) {
+    if (isProtectedRoute && !isAuthenticated) {
       const loginUrl = new URL(LOGIN_ROUTE, request.url);
+      const nextPath = sanitizeAdminNextPath(`${pathname}${search}`);
 
-      loginUrl.searchParams.set("next", `${pathname}${search}`);
+      loginUrl.searchParams.set("next", nextPath);
 
       if (validation.reason === "expired") {
         loginUrl.searchParams.set("reason", "session-expired");
       }
 
       const response = NextResponse.redirect(loginUrl);
-      clearAuthCookies(response);
+      if (validation.reason !== "missing") {
+        clearAuthCookies(response);
+      }
+      logAuthRedirect({
+        pathname,
+        isProtectedRoute,
+        isAuthRoute,
+        reason: validation.reason,
+        hasAccessToken: Boolean(accessToken),
+        hasRefreshToken: Boolean(refreshToken),
+        redirectTarget: `${loginUrl.pathname}${loginUrl.search}`,
+      });
 
       return response;
     }
 
-    if (isAdminAuthRoute(pathname) && isAuthenticated) {
-      return NextResponse.redirect(new URL(DEFAULT_ADMIN_ROUTE, request.url));
+    if (isAuthRoute && isAuthenticated) {
+      const redirectUrl = new URL(DEFAULT_ADMIN_ROUTE, request.url);
+      logAuthRedirect({
+        pathname,
+        isProtectedRoute,
+        isAuthRoute,
+        reason: "authenticated-login",
+        hasAccessToken: Boolean(accessToken),
+        hasRefreshToken: Boolean(refreshToken),
+        redirectTarget: redirectUrl.pathname,
+      });
+      return NextResponse.redirect(redirectUrl);
     }
 
-    if (isAdminAuthRoute(pathname) && !isAuthenticated) {
+    if (isAuthRoute && !isAuthenticated) {
       const response = NextResponse.next();
 
       if (validation.reason === "expired") {
@@ -65,6 +94,23 @@ export function proxy(request: NextRequest) {
 
     return NextResponse.next();
   } catch {
+    if (isAdminAuthRoute(pathname)) {
+      const response = NextResponse.next();
+      clearAuthCookies(response);
+      logAuthRedirect({
+        pathname,
+        isProtectedRoute: false,
+        isAuthRoute: true,
+        reason: "exception",
+        hasAccessToken: Boolean(request.cookies.get(ACCESS_TOKEN_COOKIE)?.value),
+        hasRefreshToken: Boolean(
+          request.cookies.get(REFRESH_TOKEN_COOKIE)?.value,
+        ),
+        redirectTarget: "render-login",
+      });
+      return response;
+    }
+
     const loginUrl = new URL(LOGIN_ROUTE, request.url);
     loginUrl.searchParams.set("reason", "session-expired");
 
@@ -182,6 +228,20 @@ function clearAuthCookies(response: NextResponse): void {
   });
 }
 
+type AuthRedirectLog = {
+  pathname: string;
+  isProtectedRoute: boolean;
+  isAuthRoute: boolean;
+  reason: JwtInvalidReason | "authenticated-login" | "exception";
+  hasAccessToken: boolean;
+  hasRefreshToken: boolean;
+  redirectTarget: string;
+};
+
+function logAuthRedirect(details: AuthRedirectLog) {
+  console.info("[admin-auth-proxy]", details);
+}
+
 export const config = {
   matcher: [
     "/tenants/:path*",
@@ -192,6 +252,8 @@ export const config = {
     "/billing/:path*",
     "/plans/:path*",
     "/onboarding/:path*",
+    "/leads/:path*",
+    "/payments/:path*",
     "/login",
   ],
 };
