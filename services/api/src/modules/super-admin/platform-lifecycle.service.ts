@@ -21,7 +21,7 @@ import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { normalizeEmail } from '../../common/utils/email.util';
-import { normalizeTenantSlug } from '../../common/utils/slug.util';
+import { assertValidTenantSlug } from '../../common/utils/slug.util';
 import { AuditService } from '../audit/audit.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { RolesRepository } from '../roles/roles.repository';
@@ -966,9 +966,7 @@ export class PlatformLifecycleService {
     const tenantName =
       dto.tenantName?.trim() || onboarding.customer.companyName;
 
-    const slug = normalizeTenantSlug(
-      dto.slug ?? dto.tenantName ?? onboarding.customer.companyName,
-    );
+    const slug = assertValidTenantSlug(dto.slug);
 
     const existingTenant = await this.prisma.tenant.findUnique({
       where: { slug },
@@ -1236,7 +1234,12 @@ export class PlatformLifecycleService {
       action: 'PLATFORM_TENANT_CREATED_FROM_ONBOARDING',
       entityType: 'CustomerOnboarding',
       entityId: onboardingId,
-      afterSnapshot: { tenantId: provisioning.tenant.id },
+      afterSnapshot: {
+        tenantId: provisioning.tenant.id,
+        newSlug: provisioning.tenant.slug,
+        changedBy: actor.userId,
+        changedAt: new Date().toISOString(),
+      },
     });
 
     return {

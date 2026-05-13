@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -13,9 +12,11 @@ import {
 import { normalizeEmail } from '../../common/utils/email.util';
 import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
-import { normalizeTenantSlug } from '../../common/utils/slug.util';
+import { assertValidTenantSlug } from '../../common/utils/slug.util';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { AuditService } from '../audit/audit.service';
 import { PermissionsService } from '../permissions/permissions.service';
+import { TenantSettingsResolverService } from '../tenant-settings/tenant-settings-resolver.service';
 import {
   DEFAULT_PLAN_DEFINITIONS,
   DEFAULT_PLAN_KEY,
@@ -28,33 +29,6 @@ import { TenantsRepository } from './tenants.repository';
 import { TenantSignupDto } from './dto/tenant-signup.dto';
 import { UpdateTenantSlugDto } from './dto/update-tenant-slug.dto';
 
-const RESERVED_TENANT_SLUGS = new Set([
-  'admin',
-  'api',
-  'app',
-  'auth',
-  'dashboard',
-  'login',
-  'logout',
-  'settings',
-  'signup',
-  'www',
-  'dijipeople',
-  'tenant',
-  'tenants',
-  'system',
-  'platform',
-  'portal',
-  'support',
-  'help',
-  'docs',
-  'billing',
-  'account',
-  'accounts',
-  'root',
-  'superadmin',
-]);
-
 @Injectable()
 export class TenantsService {
   constructor(
@@ -65,6 +39,8 @@ export class TenantsService {
     private readonly permissionsService: PermissionsService,
     private readonly plansRepository: PlansRepository,
     private readonly billingService: BillingService,
+    private readonly auditService: AuditService,
+    private readonly tenantSettingsResolverService: TenantSettingsResolverService,
   ) {}
 
   findById(id: string) {
@@ -73,6 +49,14 @@ export class TenantsService {
 
   findBySlug(slug: string) {
     return this.tenantsRepository.findBySlug(slug);
+  }
+
+  async getCurrentSlug(currentUser: AuthenticatedUser) {
+    const tenant = await this.tenantsRepository.findById(currentUser.tenantId);
+    return {
+      id: currentUser.tenantId,
+      slug: tenant?.slug ?? null,
+    };
   }
 
   async updateCurrentSlug(
@@ -85,17 +69,10 @@ export class TenantsService {
       );
     }
 
-    const slug = normalizeTenantSlug(dto.slug);
-
-    if (slug.includes('--')) {
-      throw new BadRequestException(
-        'Tenant slug cannot contain consecutive hyphens.',
-      );
-    }
-
-    if (RESERVED_TENANT_SLUGS.has(slug)) {
-      throw new BadRequestException('This tenant slug is reserved.');
-    }
+    const beforeTenant = await this.tenantsRepository.findById(
+      currentUser.tenantId,
+    );
+    const slug = assertValidTenantSlug(dto.slug);
 
     const existing = await this.tenantsRepository.findBySlugExcludingId(
       slug,
@@ -106,15 +83,41 @@ export class TenantsService {
       throw new ConflictException('Tenant slug is already in use.');
     }
 
-    return this.tenantsRepository.updateSlug(
+    const updated = await this.tenantsRepository.updateSlug(
       currentUser.tenantId,
       slug,
       currentUser.userId,
     );
+
+    this.tenantSettingsResolverService.invalidateTenantCache(
+      currentUser.tenantId,
+    );
+
+    await this.auditService.log({
+      tenantId: currentUser.tenantId,
+      actorUserId: currentUser.userId,
+      action: 'TENANT_SLUG_UPDATED',
+      entityType: 'Tenant',
+      entityId: currentUser.tenantId,
+      beforeSnapshot: {
+        oldSlug: beforeTenant?.slug ?? null,
+        tenantId: currentUser.tenantId,
+        sourceApp: 'web',
+      },
+      afterSnapshot: {
+        newSlug: updated.slug,
+        tenantId: currentUser.tenantId,
+        changedBy: currentUser.userId,
+        changedAt: updated.updatedAt,
+        sourceApp: 'web',
+      },
+    });
+
+    return updated;
   }
 
   async signup(dto: TenantSignupDto) {
-    const normalizedSlug = normalizeTenantSlug(dto.slug);
+    const normalizedSlug = assertValidTenantSlug(dto.slug);
     const normalizedEmail = normalizeEmail(dto.adminEmail);
 
     const [existingTenant, existingUser] = await Promise.all([

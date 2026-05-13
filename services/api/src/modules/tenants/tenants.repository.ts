@@ -109,6 +109,8 @@ export class TenantsRepository {
           select: {
             users: true,
             employees: true,
+            organizations: true,
+            businessUnits: true,
           },
         },
       },
@@ -155,6 +157,8 @@ export class TenantsRepository {
           select: {
             users: true,
             employees: true,
+            organizations: true,
+            businessUnits: true,
           },
         },
       },
@@ -275,6 +279,8 @@ export class TenantsRepository {
           select: {
             users: true,
             employees: true,
+            organizations: true,
+            businessUnits: true,
           },
         },
       },

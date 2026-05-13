@@ -2,7 +2,8 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { SideToast } from "@/app/components/notifications";
+import { ConfirmationDialog, SideToast } from "@/app/components/notifications";
+import { buildTenantLoginUrl } from "@/lib/tenant-url";
 
 type TenantSlugFormProps = {
   canEdit: boolean;
@@ -19,6 +20,7 @@ export function TenantSlugForm({ canEdit, initialSlug }: TenantSlugFormProps) {
   const [slug, setSlug] = useState(initialSlug);
   const [savedSlug, setSavedSlug] = useState(initialSlug);
   const [isSaving, setIsSaving] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [fieldError, setFieldError] = useState<string | null>(null);
   const [toast, setToast] = useState<{
     title: string;
@@ -27,6 +29,8 @@ export function TenantSlugForm({ canEdit, initialSlug }: TenantSlugFormProps) {
   } | null>(null);
   const isDirty = slug.trim() !== savedSlug;
   const normalizedSlug = slug.trim().toLowerCase();
+  const loginUrl = buildTenantLoginUrl(savedSlug || normalizedSlug);
+  const nextLoginUrl = buildTenantLoginUrl(normalizedSlug);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -42,7 +46,12 @@ export function TenantSlugForm({ canEdit, initialSlug }: TenantSlugFormProps) {
     }
 
     setFieldError(null);
+    setConfirmOpen(true);
+  }
+
+  async function saveSlug() {
     setIsSaving(true);
+    setConfirmOpen(false);
 
     try {
       const response = await fetch("/api/tenants/current/slug", {
@@ -73,7 +82,7 @@ export function TenantSlugForm({ canEdit, initialSlug }: TenantSlugFormProps) {
       setSavedSlug(nextSlug);
       setToast({
         title: "Tenant slug saved",
-        description: "The tenant login slug was updated.",
+        description: `New login URL: ${buildTenantLoginUrl(nextSlug)}`,
         variant: "success",
       });
       router.refresh();
@@ -114,6 +123,22 @@ export function TenantSlugForm({ canEdit, initialSlug }: TenantSlugFormProps) {
             ? "Used for tenant-specific URLs and tenant identity. Changing it may affect tenant access links."
             : "Only System Customizer can edit this value."}
         </span>
+        <div className="flex flex-col gap-2 rounded-2xl border border-border bg-white/70 px-3 py-3 text-xs text-muted sm:flex-row sm:items-center sm:justify-between">
+          <span className="break-all">Login URL: {loginUrl}</span>
+          <button
+            className="rounded-xl border border-border px-3 py-2 font-semibold text-foreground transition hover:border-accent/30 hover:text-accent"
+            onClick={async () => {
+              await navigator.clipboard.writeText(loginUrl);
+              setToast({
+                title: "Login URL copied",
+                variant: "success",
+              });
+            }}
+            type="button"
+          >
+            Copy
+          </button>
+        </div>
         {fieldError ? (
           <span id="tenant-slug-error" className="text-xs text-danger">
             {fieldError}
@@ -147,6 +172,18 @@ export function TenantSlugForm({ canEdit, initialSlug }: TenantSlugFormProps) {
           onClose={() => setToast(null)}
         />
       ) : null}
+
+      <ConfirmationDialog
+        cancelLabel="Cancel"
+        confirmLabel="Update slug"
+        description={`This changes the tenant login URL from ${loginUrl} to ${nextLoginUrl}. Active sessions remain valid, but shared login links must use the new slug.`}
+        isLoading={isSaving}
+        isOpen={confirmOpen}
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={saveSlug}
+        title="Change tenant slug?"
+        variant="warning"
+      />
     </form>
   );
 }

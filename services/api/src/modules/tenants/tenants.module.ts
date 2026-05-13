@@ -3,6 +3,8 @@ import { JwtModule } from '@nestjs/jwt';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { PermissionsModule } from '../permissions/permissions.module';
+import { AuditModule } from '../audit/audit.module';
+import { TenantSettingsModule } from '../tenant-settings/tenant-settings.module';
 import { BillingService } from '../super-admin/billing.service';
 import { PlansRepository } from '../super-admin/plans.repository';
 import { RolesRepository } from '../roles/roles.repository';
@@ -12,7 +14,12 @@ import { TenantsRepository } from './tenants.repository';
 import { TenantsService } from './tenants.service';
 
 @Module({
-  imports: [JwtModule.register({}), PermissionsModule],
+  imports: [
+    JwtModule.register({}),
+    PermissionsModule,
+    AuditModule,
+    TenantSettingsModule,
+  ],
   controllers: [TenantsController],
   providers: [
     TenantsRepository,

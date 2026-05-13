@@ -968,6 +968,7 @@ model Tenant {
   ownerUser                      User?                           @relation("TenantOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
 
   @@index([status])
+  @@index([slug])
   @@index([customerAccountId])
   @@index([ownerUserId])
 }

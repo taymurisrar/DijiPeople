@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -19,11 +20,16 @@ import {
 } from '@prisma/client';
 import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
-import { normalizeTenantSlug } from '../../common/utils/slug.util';
+import {
+  assertValidTenantSlug,
+  normalizeTenantSlug,
+} from '../../common/utils/slug.util';
 import { RolesRepository } from '../roles/roles.repository';
 import { FeatureAccessService } from '../tenant-settings/feature-access.service';
+import { TenantSettingsResolverService } from '../tenant-settings/tenant-settings-resolver.service';
 import { TENANT_FEATURE_DEFINITIONS } from '../tenant-settings/tenant-settings.catalog';
 import { TenantsRepository } from '../tenants/tenants.repository';
+import { AuditService } from '../audit/audit.service';
 import { BillingService } from './billing.service';
 import {
   BulkDeleteCustomerOnboardingsDto,
@@ -47,6 +53,7 @@ import { UpdateTenantCustomerAccountDto } from './dto/update-tenant-customer-acc
 import { UpdateTenantFeaturesDto } from './dto/update-tenant-features.dto';
 import { UpdateTenantStatusDto } from './dto/update-tenant-status.dto';
 import { UpdateTenantSubscriptionDto } from './dto/update-tenant-subscription.dto';
+import { UpdateTenantDto } from './dto/update-tenant.dto';
 import { CreateInvoiceFromSubscriptionDto } from './dto/create-invoice-from-subscription.dto';
 import { PlansRepository } from './plans.repository';
 import { DEFAULT_PLAN_DEFINITIONS } from './plans.catalog';
@@ -64,12 +71,14 @@ export class SuperAdminService {
     private readonly tenantsRepository: TenantsRepository,
     private readonly plansRepository: PlansRepository,
     private readonly featureAccessService: FeatureAccessService,
+    private readonly tenantSettingsResolverService: TenantSettingsResolverService,
     private readonly rolesRepository: RolesRepository,
     private readonly billingService: BillingService,
     private readonly paymentsService: PaymentsService,
     private readonly platformOnboardingService: PlatformOnboardingService,
     private readonly platformLifecycleService: PlatformLifecycleService,
     private readonly userInvitationsService: UserInvitationsService,
+    private readonly auditService: AuditService,
   ) {}
 
   getLifecycleOptions() {
@@ -245,6 +254,21 @@ export class SuperAdminService {
     );
   }
 
+  async checkTenantSlugAvailability(slug: string, excludeTenantId?: string) {
+    const normalizedSlug = assertValidTenantSlug(slug);
+    const existing = excludeTenantId
+      ? await this.tenantsRepository.findBySlugExcludingId(
+          normalizedSlug,
+          excludeTenantId,
+        )
+      : await this.tenantsRepository.findBySlug(normalizedSlug);
+
+    return {
+      slug: normalizedSlug,
+      available: !existing,
+    };
+  }
+
   async getTenantDetail(tenantId: string) {
     const tenant =
       await this.tenantsRepository.findByIdWithSuperAdminSummary(tenantId);
@@ -343,6 +367,102 @@ export class SuperAdminService {
     }
 
     return this.mapTenantDetail(updatedTenant);
+  }
+
+  async updateTenant(
+    actor: AuthenticatedUser,
+    tenantId: string,
+    dto: UpdateTenantDto,
+  ) {
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      include: { customerAccount: true },
+    });
+
+    if (!tenant) {
+      throw new NotFoundException('Tenant not found.');
+    }
+
+    const isSystemAdmin = actor.roleKeys.includes(ROLE_KEYS.SYSTEM_ADMIN);
+    const isSystemCustomizer = actor.roleKeys.includes(
+      ROLE_KEYS.SYSTEM_CUSTOMIZER,
+    );
+    const updatesNonSlugField =
+      dto.name !== undefined ||
+      dto.legalName !== undefined ||
+      dto.status !== undefined;
+
+    const normalizedSlug =
+      dto.slug !== undefined ? assertValidTenantSlug(dto.slug) : undefined;
+    const slugChanged =
+      normalizedSlug !== undefined && normalizedSlug !== tenant.slug;
+
+    if (slugChanged && !isSystemCustomizer) {
+      throw new ForbiddenException(
+        'Only System Customizer can edit the tenant slug.',
+      );
+    }
+
+    if (updatesNonSlugField && !isSystemAdmin) {
+      throw new ForbiddenException(
+        'Only System Admin can edit tenant profile fields.',
+      );
+    }
+
+    if (slugChanged) {
+      const existing = await this.tenantsRepository.findBySlugExcludingId(
+        normalizedSlug,
+        tenantId,
+      );
+
+      if (existing) {
+        throw new ConflictException('Tenant slug is already in use.');
+      }
+    }
+
+    const updatedTenant = await this.prisma.$transaction(async (tx) => {
+      if (dto.legalName !== undefined && tenant.customerAccountId) {
+        await tx.customerAccount.update({
+          where: { id: tenant.customerAccountId },
+          data: { legalCompanyName: dto.legalName?.trim() || null },
+        });
+      }
+
+      return tx.tenant.update({
+        where: { id: tenantId },
+        data: {
+          ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
+          ...(normalizedSlug !== undefined ? { slug: normalizedSlug } : {}),
+          ...(dto.status !== undefined ? { status: dto.status } : {}),
+          updatedById: actor.userId,
+        },
+      });
+    });
+
+    if (slugChanged) {
+      this.tenantSettingsResolverService.invalidateTenantCache(tenantId);
+      await this.auditService.log({
+        tenantId: actor.tenantId,
+        actorUserId: actor.userId,
+        action: 'TENANT_SLUG_UPDATED',
+        entityType: 'Tenant',
+        entityId: tenantId,
+        beforeSnapshot: {
+          oldSlug: tenant.slug,
+          tenantId,
+          sourceApp: 'admin',
+        },
+        afterSnapshot: {
+          newSlug: updatedTenant.slug,
+          tenantId,
+          changedBy: actor.userId,
+          changedAt: updatedTenant.updatedAt,
+          sourceApp: 'admin',
+        },
+      });
+    }
+
+    return this.getTenantDetail(tenantId);
   }
 
   async updatePrimaryOwner(tenantId: string, dto: UpdatePrimaryOwnerDto) {
@@ -1075,8 +1195,15 @@ export class SuperAdminService {
         ? {
             id: tenant.customerAccount.id,
             companyName: tenant.customerAccount.companyName,
+            legalCompanyName: tenant.customerAccount.legalCompanyName,
             status: tenant.customerAccount.status,
             contactEmail: tenant.customerAccount.contactEmail,
+            primaryContactName: [
+              tenant.customerAccount.primaryContactFirstName,
+              tenant.customerAccount.primaryContactLastName,
+            ]
+              .filter(Boolean)
+              .join(' '),
           }
         : null,
       owner: tenant.ownerUser
@@ -1116,7 +1243,13 @@ export class SuperAdminService {
       counts: {
         users: tenant._count.users,
         employees: tenant._count.employees,
+        organizations: tenant._count.organizations,
+        businessUnits: tenant._count.businessUnits,
       },
+      code: buildTenantCode(tenant.slug, tenant.id),
+      primaryDomain: null,
+      customDomain: null,
+      brandingStatus: await this.getTenantBrandingStatus(tenant.id),
       enabledFeatures: resolvedFeatures.items.map((feature) => ({
         id: feature.key,
         key: feature.key,
@@ -1128,6 +1261,32 @@ export class SuperAdminService {
         ? this.mapSubscription(tenant.subscription)
         : null,
     };
+  }
+
+  private async getTenantBrandingStatus(tenantId: string) {
+    const brandingSettings = await this.prisma.tenantSetting.findMany({
+      where: { tenantId, category: 'branding' },
+      select: { key: true, value: true },
+    });
+
+    if (brandingSettings.length === 0) {
+      return 'Default branding';
+    }
+
+    const configuredKeys = brandingSettings
+      .filter((setting) => {
+        if (typeof setting.value === 'string') {
+          return setting.value.trim().length > 0;
+        }
+        return setting.value !== null && setting.value !== undefined;
+      })
+      .map((setting) => setting.key);
+
+    return configuredKeys.length > 0
+      ? `${configuredKeys.length} branding setting${
+          configuredKeys.length === 1 ? '' : 's'
+        } configured`
+      : 'Default branding';
   }
 
   private mapSubscription(subscription: {
@@ -1406,4 +1565,13 @@ export class SuperAdminService {
         return CustomerAccountStatus.ONBOARDING;
     }
   }
+}
+
+function buildTenantCode(slug: string, id: string) {
+  const readable = slug
+    .split('-')
+    .map((part) => part.slice(0, 3).toUpperCase())
+    .join('')
+    .slice(0, 12);
+  return `${readable || 'TEN'}-${id.replace(/-/g, '').slice(0, 6).toUpperCase()}`;
 }

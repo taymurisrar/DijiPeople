@@ -86,7 +86,6 @@ export class TenantSettingsService {
 
     if (tenant) {
       settings.organization.tenantDisplayName = tenant.name;
-      settings.organization.tenantSlug = tenant.slug;
       settings.organization.companyDisplayName =
         settings.organization.companyDisplayName || tenant.name;
       settings.branding.brandName = settings.branding.brandName || tenant.name;

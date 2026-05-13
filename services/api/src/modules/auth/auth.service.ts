@@ -433,7 +433,9 @@ export class AuthService {
 
   private async validateCredentials(dto: LoginDto) {
     const normalizedEmail = normalizeEmail(dto.email);
-    const tenantSlug = dto.tenantSlug?.trim();
+    const tenantSlug =
+      dto.tenantSlug?.trim() ||
+      this.configService.get<string>('API_DEFAULT_TENANT_SLUG')?.trim();
 
     const user = tenantSlug
       ? await this.usersService.findByTenantSlugAndEmail(

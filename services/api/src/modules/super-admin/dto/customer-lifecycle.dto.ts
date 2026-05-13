@@ -2,7 +2,6 @@ import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
-  IsDateString,
   IsEmail,
   IsEnum,
   IsInt,
@@ -737,11 +736,14 @@ export class CreateTenantFromOnboardingDto {
   @MaxLength(160)
   tenantName?: string;
 
-  @IsOptional()
   @Transform(trimString)
   @IsString()
-  @MaxLength(120)
-  slug?: string;
+  @MaxLength(63)
+  @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, {
+    message:
+      'slug must use lowercase letters, numbers, and single hyphens, and cannot start or end with a hyphen.',
+  })
+  slug!: string;
 
   @IsOptional()
   @IsUUID()

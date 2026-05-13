@@ -29,7 +29,7 @@ export function resolveTenantSlugFromRequest(input: {
     return normalizeTenantSlug(firstLabel);
   }
 
-  return "";
+  return normalizeTenantSlug(process.env.NEXT_PUBLIC_DEFAULT_TENANT_SLUG);
 }
 
 export function normalizeTenantSlug(value?: string | null) {

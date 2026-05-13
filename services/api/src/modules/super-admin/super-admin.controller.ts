@@ -38,6 +38,7 @@ import { UpdateTenantCustomerAccountDto } from './dto/update-tenant-customer-acc
 import { UpdateTenantFeaturesDto } from './dto/update-tenant-features.dto';
 import { UpdateTenantSubscriptionDto } from './dto/update-tenant-subscription.dto';
 import { UpdateTenantStatusDto } from './dto/update-tenant-status.dto';
+import { UpdateTenantDto } from './dto/update-tenant.dto';
 import { SuperAdminService } from './super-admin.service';
 import { ConvertLeadToCustomerDto } from '../leads/dto/admin-lead.dto';
 
@@ -214,9 +215,30 @@ export class SuperAdminController {
     return this.superAdminService.listTenants();
   }
 
+  @Get('tenant-slug/availability')
+  checkTenantSlugAvailability(
+    @Query('slug') slug: string,
+    @Query('excludeTenantId') excludeTenantId?: string,
+  ) {
+    return this.superAdminService.checkTenantSlugAvailability(
+      slug,
+      excludeTenantId,
+    );
+  }
+
   @Get('tenants/:tenantId')
   getTenantDetail(@Param('tenantId', new ParseUUIDPipe()) tenantId: string) {
     return this.superAdminService.getTenantDetail(tenantId);
+  }
+
+  @Patch('tenants/:tenantId')
+  @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN, ROLE_KEYS.SYSTEM_CUSTOMIZER)
+  updateTenant(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('tenantId', new ParseUUIDPipe()) tenantId: string,
+    @Body() dto: UpdateTenantDto,
+  ) {
+    return this.superAdminService.updateTenant(user, tenantId, dto);
   }
 
   @Patch('tenants/:tenantId/customer-account')

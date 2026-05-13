@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -22,6 +22,7 @@ import type {
   OperatorOption,
   PlanOption,
 } from "./platform-lifecycle-types";
+import { buildTenantLoginUrl } from "@/lib/tenant-url";
 
 export function OnboardingDetailManager({
   onboarding,
@@ -59,6 +60,9 @@ export function OnboardingDetailManager({
       serviceAccountDisplayName: onboarding.serviceAccountDisplayName ?? "",
       serviceAccountAssignSystemAdmin:
         onboarding.serviceAccountAssignSystemAdmin ?? true,
+      tenantSlug:
+        onboarding.tenant?.slug ??
+        suggestTenantSlug(onboarding.customer.companyName),
       contractSigned: onboarding.contractSigned,
       paymentConfirmed: onboarding.paymentConfirmed,
       configurationReady: onboarding.configurationReady,
@@ -71,6 +75,9 @@ export function OnboardingDetailManager({
   );
 
   const [form, setForm] = useState(initialForm);
+  const [slugAvailability, setSlugAvailability] = useState<
+    "idle" | "checking" | "available" | "unavailable"
+  >("idle");
 
   const updateForm = <K extends keyof typeof form>(
     key: K,
@@ -92,6 +99,32 @@ export function OnboardingDetailManager({
   const entityLogicalName = "onboarding";
   const formDisplayName = "Default";
   const companyName = onboarding.customer.companyName;
+  const slugValidationError = validateTenantSlug(form.tenantSlug);
+  const loginUrl = buildTenantLoginUrl(form.tenantSlug);
+  const effectiveSlugAvailability =
+    slugValidationError || onboarding.tenant ? "idle" : slugAvailability;
+
+  useEffect(() => {
+    const slug = form.tenantSlug.trim().toLowerCase();
+    if (slugValidationError || onboarding.tenant) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(async () => {
+      const response = await fetch(
+        `/api/super-admin/tenant-slug/availability?slug=${encodeURIComponent(slug)}`,
+      );
+      const payload = (await response.json().catch(() => null)) as {
+        available?: boolean;
+      } | null;
+
+      setSlugAvailability(
+        response.ok && payload?.available ? "available" : "unavailable",
+      );
+    }, 350);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [form.tenantSlug, onboarding.tenant, slugValidationError]);
 
   function handleSave() {
     setMessage(null);
@@ -131,6 +164,15 @@ export function OnboardingDetailManager({
 
   function handleCreateTenant() {
     setMessage(null);
+    if (slugValidationError) {
+      setMessage(slugValidationError);
+      return;
+    }
+
+    if (slugAvailability === "unavailable") {
+      setMessage("Tenant slug is already in use.");
+      return;
+    }
 
     startTransition(async () => {
       const response = await fetch(
@@ -140,7 +182,7 @@ export function OnboardingDetailManager({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             tenantName: onboarding.customer.companyName,
-            slug: onboarding.customer.companyName,
+            slug: form.tenantSlug.trim().toLowerCase(),
             planId: form.selectedPlanId || undefined,
             billingCycle: form.billingCycle || undefined,
             createServiceAccount: form.createServiceAccount,
@@ -160,6 +202,9 @@ export function OnboardingDetailManager({
         return;
       }
 
+      setMessage(
+        `Tenant created. Login URL: ${buildTenantLoginUrl(form.tenantSlug)}`,
+      );
       router.push(`/tenants/${payload.tenantId}`);
     });
   }
@@ -369,6 +414,33 @@ export function OnboardingDetailManager({
         <div className="grid gap-4 lg:grid-cols-2">
           <Field label="Customer" value={companyName} readOnly />
 
+          <Field
+            help="Auto-generated from the tenant slug at tenant creation."
+            label="Tenant code"
+            value={buildTenantCodePreview(form.tenantSlug)}
+            readOnly
+          />
+
+          <Field
+            help={
+              slugValidationError ??
+              (effectiveSlugAvailability === "checking"
+                ? "Checking availability..."
+                : effectiveSlugAvailability === "available"
+                  ? `Available. Login URL: ${loginUrl}`
+                  : effectiveSlugAvailability === "unavailable"
+                    ? "This slug is already in use."
+                    : "Required for tenant login URL.")
+            }
+            label="Tenant slug"
+            onChange={(value) => {
+              updateForm("tenantSlug", value.trim().toLowerCase());
+              setSlugAvailability("checking");
+            }}
+            readOnly={Boolean(onboarding.tenant)}
+            value={form.tenantSlug}
+          />
+
           <Select
             label="Plan"
             onChange={(value) => updateForm("selectedPlanId", value)}
@@ -420,9 +492,7 @@ export function OnboardingDetailManager({
 
           <Field
             label="Service account display name"
-            onChange={(value) =>
-              updateForm("serviceAccountDisplayName", value)
-            }
+            onChange={(value) => updateForm("serviceAccountDisplayName", value)}
             value={form.serviceAccountDisplayName}
           />
         </div>
@@ -489,7 +559,10 @@ export function OnboardingDetailManager({
               disabled={
                 !onboarding.readiness.isReadyForTenantCreation ||
                 isPending ||
-                Boolean(onboarding.tenant)
+                Boolean(onboarding.tenant) ||
+                Boolean(slugValidationError) ||
+                effectiveSlugAvailability === "unavailable" ||
+                effectiveSlugAvailability === "checking"
               }
               onClick={handleCreateTenant}
               type="button"
@@ -544,12 +617,14 @@ function Field({
   onChange,
   type = "text",
   readOnly = false,
+  help,
 }: {
   label: string;
   value: string;
   onChange?: (value: string) => void;
   type?: string;
   readOnly?: boolean;
+  help?: string;
 }) {
   return (
     <label className="block text-sm font-medium text-slate-700">
@@ -562,6 +637,9 @@ function Field({
         type={type}
         value={value}
       />
+      {help ? (
+        <span className="mt-1 block text-xs text-slate-500">{help}</span>
+      ) : null}
     </label>
   );
 }
@@ -636,3 +714,68 @@ function Toggle({
     </label>
   );
 }
+
+function suggestTenantSlug(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-{2,}/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 63)
+    .replace(/-+$/g, "");
+}
+
+function validateTenantSlug(slug: string) {
+  const normalized = slug.trim().toLowerCase();
+
+  if (normalized.length < 3)
+    return "Tenant slug is required and must be at least 3 characters.";
+  if (normalized.length > 63)
+    return "Tenant slug must be 63 characters or fewer.";
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(normalized)) {
+    return "Use lowercase letters, numbers, and single hyphens only. Slug cannot start or end with a hyphen.";
+  }
+
+  if (RESERVED_SLUGS.has(normalized)) return "This tenant slug is reserved.";
+  return null;
+}
+
+function buildTenantCodePreview(slug: string) {
+  const readable = slug
+    .trim()
+    .toLowerCase()
+    .split("-")
+    .map((part) => part.slice(0, 3).toUpperCase())
+    .join("")
+    .slice(0, 12);
+
+  return readable || "Generated after slug entry";
+}
+
+const RESERVED_SLUGS = new Set([
+  "admin",
+  "api",
+  "app",
+  "auth",
+  "dashboard",
+  "login",
+  "logout",
+  "settings",
+  "signup",
+  "www",
+  "dijipeople",
+  "tenant",
+  "tenants",
+  "system",
+  "platform",
+  "portal",
+  "support",
+  "help",
+  "docs",
+  "billing",
+  "account",
+  "accounts",
+  "root",
+  "superadmin",
+]);

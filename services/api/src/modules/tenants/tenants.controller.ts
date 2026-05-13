@@ -26,6 +26,12 @@ export class TenantsController {
     return this.tenantsService.findById(user.tenantId);
   }
 
+  @Get('current/slug')
+  @Permissions('tenant.read')
+  getCurrentSlug(@CurrentUser() user: AuthenticatedUser) {
+    return this.tenantsService.getCurrentSlug(user);
+  }
+
   @Patch('current/slug')
   updateCurrentSlug(
     @CurrentUser() user: AuthenticatedUser,

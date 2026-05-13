@@ -1,27 +1,37 @@
 import Link from "next/link";
 import { GenerateInvoiceButton } from "@/app/_components/generate-invoice-button";
 import { SubscriptionForm } from "@/app/_components/subscription-form";
+import { TenantAccessActions } from "@/app/_components/tenant-access-actions";
 import { TenantCustomerAccountForm } from "@/app/_components/tenant-customer-account-form";
+import { TenantDetailEditForm } from "@/app/_components/tenant-detail-edit-form";
 import { TenantFeatureForm } from "@/app/_components/tenant-feature-form";
 import { TenantOwnerActions } from "@/app/_components/tenant-owner-actions";
 import { TenantStatusBadge } from "@/app/_components/tenant-status-badge";
 import { TenantStatusForm } from "@/app/_components/tenant-status-form";
+import { getSessionUser } from "@/lib/auth";
+import { buildTenantLoginUrl } from "@/lib/tenant-url";
 import type { BillingCycleValue, SubscriptionStatusValue, TenantStatusValue } from "@/lib/domain";
 import { formatBillingCycle, formatCurrency, formatDate } from "@/lib/formatters";
 import { apiRequestJson } from "@/lib/server-api";
 
 type TenantDetail = {
   id: string;
+  code: string;
   name: string;
   slug: string;
   status: TenantStatusValue | string;
+  primaryDomain: string | null;
+  customDomain: string | null;
+  brandingStatus: string;
   createdAt: string;
   updatedAt: string;
   customerAccount: {
     id: string;
     companyName: string;
+    legalCompanyName: string | null;
     status: string;
     contactEmail: string;
+    primaryContactName: string;
   } | null;
   owner: {
     id: string;
@@ -55,6 +65,8 @@ type TenantDetail = {
   counts: {
     users: number;
     employees: number;
+    organizations: number;
+    businessUnits: number;
   };
   enabledFeatures: Array<{
     id: string;
@@ -108,7 +120,8 @@ type CustomerOption = {
 };
 
 type SearchParams = Promise<{
-  tab?: "overview" | "billing";
+  tab?: "overview" | "tenant-info" | "billing";
+  edit?: string;
 }>;
 
 function getEnabledFeatures(features: TenantDetail["enabledFeatures"]) {
@@ -129,6 +142,7 @@ export default async function TenantDetailPage({
   const { tenantId } = await params;
   const resolvedSearchParams = await searchParams;
   const activeTab = resolvedSearchParams.tab ?? "overview";
+  const isEditing = resolvedSearchParams.edit === "1";
 
   const [tenant, plans, featureCatalog, customers] = await Promise.all([
     apiRequestJson<TenantDetail>(`/super-admin/tenants/${tenantId}`),
@@ -141,6 +155,10 @@ export default async function TenantDetailPage({
 
   const enabledFeatures = getEnabledFeatures(tenant.enabledFeatures);
   const featurePreview = enabledFeatures.slice(0, 6);
+  const tenantLoginUrl = buildTenantLoginUrl(tenant.slug);
+  const sessionUser = await getSessionUser();
+  const canEditSlug =
+    sessionUser?.roleKeys?.includes("system-customizer") ?? false;
 
   return (
     <main className="space-y-6">
@@ -153,6 +171,12 @@ export default async function TenantDetailPage({
                 className="inline-flex text-sm font-medium text-slate-500 transition hover:text-slate-950"
               >
                 Back to tenants
+              </Link>
+              <Link
+                className="ml-3 inline-flex rounded-full border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                href={`/tenants/${tenantId}?tab=tenant-info&edit=${isEditing ? "0" : "1"}`}
+              >
+                {isEditing ? "View" : "Edit"}
               </Link>
 
               <div className="space-y-2">
@@ -205,6 +229,11 @@ export default async function TenantDetailPage({
               href={`/tenants/${tenantId}?tab=overview`}
               label="Overview"
               isActive={activeTab === "overview"}
+            />
+            <TabLink
+              href={`/tenants/${tenantId}?tab=tenant-info`}
+              label="Tenant Info"
+              isActive={activeTab === "tenant-info"}
             />
             <TabLink
               href={`/tenants/${tenantId}?tab=billing`}
@@ -370,6 +399,91 @@ export default async function TenantDetailPage({
                   ))}
                 </div>
               )}
+            </section>
+          </div>
+        </section>
+      ) : null}
+
+      {activeTab === "tenant-info" ? (
+        <section className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
+          <div className="space-y-6">
+            {isEditing ? (
+              <TenantDetailEditForm
+                canEditSlug={canEditSlug}
+                tenant={tenant}
+              />
+            ) : null}
+
+            <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+              <div className="flex flex-col gap-2 border-b border-slate-200 pb-5">
+                <h2 className="text-xl font-semibold text-slate-950">Tenant details</h2>
+                <p className="text-sm leading-6 text-slate-600">
+                  Slug-based URLs are used by apps/web only. The admin portal remains tenant-record based.
+                </p>
+              </div>
+
+              <dl className="mt-6 grid gap-4 md:grid-cols-2">
+                <SummaryGridItem label="Tenant ID" value={tenant.id} />
+                <SummaryGridItem label="Tenant code" value={tenant.code} />
+                <SummaryGridItem label="Tenant name" value={tenant.name} />
+                <SummaryGridItem
+                  label="Legal name"
+                  value={tenant.customerAccount?.legalCompanyName ?? "Not available"}
+                />
+                <SummaryGridItem label="Tenant slug" value={tenant.slug} />
+                <SummaryGridItem label="Tenant status" value={<TenantStatusBadge value={tenant.status} />} />
+                <SummaryGridItem label="Primary domain" value={tenant.primaryDomain ?? "Not configured"} />
+                <SummaryGridItem label="Custom domain" value={tenant.customDomain ?? "Not configured"} />
+                <SummaryGridItem label="Created date" value={formatDate(tenant.createdAt)} />
+                <SummaryGridItem label="Updated date" value={formatDate(tenant.updatedAt)} />
+                <SummaryGridItem label="Branding status" value={tenant.brandingStatus} />
+                <SummaryGridItem
+                  label="Primary contact/admin"
+                  value={
+                    tenant.owner
+                      ? `${tenant.owner.firstName} ${tenant.owner.lastName} (${tenant.owner.email})`
+                      : tenant.customerAccount?.primaryContactName || "Not assigned"
+                  }
+                />
+                <SummaryGridItem
+                  label="Organization summary"
+                  value={`${tenant.counts.organizations} organizations, ${tenant.counts.businessUnits} business units`}
+                />
+              </dl>
+            </section>
+          </div>
+
+          <div className="space-y-6">
+            <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+              <h2 className="text-lg font-semibold text-slate-950">Tenant access</h2>
+              <div className="mt-4">
+                <TenantAccessActions loginUrl={tenantLoginUrl} slug={tenant.slug} />
+              </div>
+            </section>
+
+            <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+              <h2 className="text-lg font-semibold text-slate-950">Customer link</h2>
+              <div className="mt-5 grid gap-4">
+                <InfoRow
+                  label="Customer"
+                  value={
+                    tenant.customerAccount ? (
+                      <Link
+                        className="transition hover:text-slate-700"
+                        href={`/customers/${tenant.customerAccount.id}`}
+                      >
+                        {tenant.customerAccount.companyName}
+                      </Link>
+                    ) : (
+                      "Not linked"
+                    )
+                  }
+                />
+                <InfoRow
+                  label="Customer email"
+                  value={tenant.customerAccount?.contactEmail ?? "Not available"}
+                />
+              </div>
             </section>
           </div>
         </section>

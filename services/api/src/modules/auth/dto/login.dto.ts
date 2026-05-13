@@ -24,9 +24,11 @@ export class LoginDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(80)
-  @Matches(/^[a-z0-9-]+$/, {
-    message: 'tenantSlug must use lowercase letters, numbers, and hyphens only.',
+  @MinLength(3)
+  @MaxLength(63)
+  @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, {
+    message:
+      'tenantSlug must use lowercase letters, numbers, and single hyphens only.',
   })
   tenantSlug?: string;
 }

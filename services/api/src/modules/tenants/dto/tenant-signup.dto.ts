@@ -12,10 +12,11 @@ export class TenantSignupDto {
   companyName!: string;
 
   @IsString()
+  @MinLength(3)
+  @MaxLength(63)
   @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, {
     message: 'slug must use lowercase letters, numbers, and hyphens only.',
   })
-  @MaxLength(64)
   slug!: string;
 
   @IsString()

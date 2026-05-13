@@ -150,9 +150,24 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 </Suspense>
               </div>
 
-              <div className="mt-3 text-center text-[10px] leading-5 text-muted sm:mt-6">
-                {branding?.supportEmail ? ` Need help? ${branding.supportEmail}` : ""}
-                {footerText ? ` ${footerText}` : ""}
+              <div className="mt-3 space-y-2 text-center sm:mt-6">
+                {branding?.supportEmail ? (
+                  <div className="text-[10px] leading-5 text-muted">
+                    Need help?{" "}
+                    <a
+                      href={`mailto:${branding.supportEmail}`}
+                      className="font-medium text-primary underline-offset-2 hover:underline"
+                    >
+                      {branding.supportEmail}
+                    </a>
+                  </div>
+                ) : null}
+
+                {footerText ? (
+                  <div className="border-t border-border/60 pt-2 text-[10px] leading-5 text-muted">
+                    {footerText}
+                  </div>
+                ) : null}
               </div>
             </div>
           </section>

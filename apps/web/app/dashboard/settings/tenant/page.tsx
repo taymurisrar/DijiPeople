@@ -249,9 +249,11 @@ export default async function TenantSettingsPage() {
   const user = await getSessionUser();
   const canEditTenantSlug =
     user?.roleKeys.includes(ROLE_KEYS.SYSTEM_CUSTOMIZER) ?? false;
-  const tenantSettings =
-    await apiRequestJson<TenantSettingsResponse>("/tenant-settings");
-  const tenantSlug = getTenantSlug(tenantSettings);
+  const [tenantSettings, tenantSlugResponse] = await Promise.all([
+    apiRequestJson<TenantSettingsResponse>("/tenant-settings"),
+    apiRequestJson<{ slug?: string | null }>("/tenants/current/slug"),
+  ]);
+  const tenantSlug = tenantSlugResponse.slug ?? "";
 
   return (
     <SettingsShell
@@ -267,20 +269,5 @@ export default async function TenantSettingsPage() {
         sections={buildOrganizationSections()}
       />
     </SettingsShell>
-  );
-}
-
-function getTenantSlug(settings: TenantSettingsResponse) {
-  const wrapped = settings as TenantSettingsResponse & {
-    tenant?: { slug?: string | null };
-    settings?: TenantSettingsResponse;
-  };
-
-  return (
-    wrapped.tenant?.slug ??
-    (typeof wrapped.settings?.organization?.tenantSlug === "string"
-      ? wrapped.settings.organization.tenantSlug
-      : "") ??
-    ""
   );
 }
