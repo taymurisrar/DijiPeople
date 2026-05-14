@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { formatDate } from "@/lib/formatting-context";
+import { useResolvedSettings } from "../resolved-settings-provider";
 import { GenericDocumentRecord } from "./types";
 
 type DocumentListProps = {
@@ -17,6 +19,7 @@ export function DocumentList({
 }: DocumentListProps) {
   const router = useRouter();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const resolvedSettings = useResolvedSettings();
 
   async function handleDelete(documentId: string) {
     setDeletingId(documentId);
@@ -74,7 +77,7 @@ export function DocumentList({
                   {document.documentCategory?.name || "Not categorized"}
                 </td>
                 <td className="px-5 py-4 align-top text-muted">
-                  <p>{new Date(document.createdAt).toLocaleDateString()}</p>
+                  <p>{formatDate(document.createdAt, resolvedSettings)}</p>
                   <p className="mt-1 text-xs text-muted">
                     {document.uploadedByUser?.fullName || "System"}
                   </p>

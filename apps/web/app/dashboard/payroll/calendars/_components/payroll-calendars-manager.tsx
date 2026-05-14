@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useResolvedSettings } from "../../../_components/resolved-settings-provider";
 import { PayrollCalendarRecord } from "../../payroll-run-types";
 
 const frequencies = ["MONTHLY", "SEMI_MONTHLY", "BIWEEKLY", "WEEKLY"] as const;
@@ -14,12 +15,13 @@ export function PayrollCalendarsManager({
   canManage: boolean;
 }) {
   const router = useRouter();
+  const resolvedSettings = useResolvedSettings();
   const [editing, setEditing] = useState<PayrollCalendarRecord | null>(null);
   const [form, setForm] = useState({
     name: "",
     frequency: "MONTHLY",
-    timezone: "UTC",
-    currencyCode: "USD",
+    timezone: resolvedSettings.timezone,
+    currencyCode: resolvedSettings.currency,
     isDefault: false,
     isActive: true,
   });
@@ -61,8 +63,8 @@ export function PayrollCalendarsManager({
     setForm({
       name: "",
       frequency: "MONTHLY",
-      timezone: "UTC",
-      currencyCode: "USD",
+      timezone: resolvedSettings.timezone,
+      currencyCode: resolvedSettings.currency,
       isDefault: false,
       isActive: true,
     });

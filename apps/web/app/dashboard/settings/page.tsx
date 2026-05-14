@@ -57,6 +57,7 @@ import {
   Workflow,
 } from "lucide-react";
 import { useCurrentUserAccess } from "../_components/authenticated-shell-provider";
+import { AccessDeniedState } from "../_components/access-denied-state";
 import {
   canViewSettingsItem,
   resolveVisibleSettingsGroups,
@@ -120,11 +121,36 @@ const iconMap = {
 export default function SettingsPage() {
   const { user } = useCurrentUserAccess();
   const [query, setQuery] = useState("");
+  const canUseGlobalSettings = useMemo(() => {
+    const roleKeys = new Set(user?.roleKeys ?? []);
+    return [
+      "global-admin",
+      "system-admin",
+      "system-customizer",
+      "hr",
+      "payroll-manager",
+    ].some((roleKey) => roleKeys.has(roleKey));
+  }, [user?.roleKeys]);
 
   const permissionKeys = useMemo(() => {
     return user?.permissionKeys ?? [];
   }, [user?.permissionKeys]);
   const normalizedQuery = query.trim().toLowerCase();
+
+  if (!canUseGlobalSettings) {
+    return (
+      <main className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mx-auto w-full max-w-5xl">
+          <AccessDeniedState
+            title="Settings are reserved for administrators."
+            description="Employees can manage their personal display preferences from My Preferences."
+            actionHref="/dashboard/my-preferences"
+            actionLabel="Open My Preferences"
+          />
+        </div>
+      </main>
+    );
+  }
 
   const visibleGroups = useMemo(
     () =>

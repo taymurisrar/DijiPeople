@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatDate } from "@/lib/formatting-context";
 import { apiRequestJson } from "@/lib/server-api";
 import { SettingsShell } from "../_components/settings-shell";
 import { DesignationRecord } from "../types";
@@ -72,7 +73,7 @@ export default async function DesignationsPage() {
                     {designation.isActive ? "Active" : "Inactive"}
                   </td>
                   <td className="px-4 py-4 text-sm text-muted">
-                    {new Date(designation.updatedAt).toLocaleDateString()}
+                    {formatDate(designation.updatedAt)}
                   </td>
                   <td className="rounded-r-2xl px-4 py-4">
                     <Link

@@ -64,6 +64,14 @@ export const dashboardNavItems: DashboardNavItem[] = [
     requiredAnyPermissions: [PERMISSION_KEYS.PROJECTS_READ],
   },
   {
+    href: "/dashboard/customers",
+    label: "Customers",
+    description: "Client accounts and related delivery projects.",
+    requiredFeatureKey: FEATURE_KEYS.PROJECTS,
+    requiresBusinessUnitScope: true,
+    requiredAnyPermissions: [PERMISSION_KEYS.CUSTOMERS_READ],
+  },
+  {
     href: "/dashboard/reports",
     label: "Reports",
     description:
@@ -111,6 +119,12 @@ export const dashboardNavItems: DashboardNavItem[] = [
     description: "Tenant configuration, feature toggles, and shared master data.",
     hiddenForSelfService: true,
     requiredAnyPermissions: [PERMISSION_KEYS.SETTINGS_READ],
+  },
+  {
+    href: "/dashboard/my-preferences",
+    label: "My Preferences",
+    description: "Personal timezone, locale, and display preferences.",
+    requiredAnyPermissions: [PERMISSION_KEYS.DASHBOARD_VIEW],
   },
 ];
 

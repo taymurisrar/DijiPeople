@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { apiRequestJson } from "@/lib/server-api";
+import { formatDate, formatMoney, formatWorkHours } from "@/lib/formatting-context";
 import { EmployeeListResponse } from "../../employees/types";
 import { ProjectAssignmentForm } from "../_components/project-assignment-form";
 import { ProjectStatusBadge } from "../_components/project-status-badge";
@@ -41,8 +42,18 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
 
       <section className="grid gap-4 md:grid-cols-3">
         <InfoTile label="Code" value={project.code || "No code"} />
-        <InfoTile label="Start date" value={project.startDate ? new Date(project.startDate).toLocaleDateString() : "Not set"} />
-        <InfoTile label="End date" value={project.endDate ? new Date(project.endDate).toLocaleDateString() : "Not set"} />
+        <InfoTile label="Start date" value={project.startDate ? formatDate(project.startDate, { timezone: project.timezone }) : "Not set"} />
+        <InfoTile label="End date" value={project.endDate ? formatDate(project.endDate, { timezone: project.timezone }) : "Not set"} />
+        <InfoTile label="Health" value={`${project.projectHealth ?? "UNKNOWN"} / ${project.riskLevel ?? "MEDIUM"}`} />
+        <InfoTile label="Budget" value={project.budgetAmount ? formatMoney(project.budgetAmount, project.budgetCurrencyCode ?? project.currencyCode) : "Not set"} />
+        <InfoTile label="Actual hours" value={formatWorkHours(project.actualHours ?? 0)} />
+        <InfoTile label="Approval" value={project.requireApproval ? project.approvalMode ?? "Required" : "Not required"} />
+      </section>
+
+      <section className="grid gap-3 rounded-[24px] border border-border bg-surface p-6 shadow-sm md:grid-cols-3">
+        <InfoTile label="Delivery" value={project.deliveryStatus ?? "NOT_STARTED"} />
+        <InfoTile label="Billing" value={project.billingStatus ?? "NOT_STARTED"} />
+        <InfoTile label="Timesheets" value={project.allowTimesheets ? "Allowed" : "Disabled"} />
       </section>
 
       <section className="grid gap-4">
@@ -78,6 +89,11 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
                   <td className="px-5 py-4 text-muted">{assignment.roleOnProject || "Not set"}</td>
                   <td className="px-5 py-4 text-muted">
                     {assignment.allocationPercent ? `${assignment.allocationPercent}%` : "Not set"}
+                    {assignment.utilizationWarning ? (
+                      <p className="mt-1 text-xs font-medium text-amber-700">
+                        {assignment.utilizationWarning}
+                      </p>
+                    ) : null}
                   </td>
                   <td className="px-5 py-4 text-muted">
                     {assignment.billableFlag ? "Billable" : "Non-billable"}

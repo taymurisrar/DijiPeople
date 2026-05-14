@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { apiRequestJson } from "@/lib/server-api";
+import { formatDate } from "@/lib/formatting-context";
 import { AccessDeniedState } from "../_components/access-denied-state";
 import { getBusinessUnitAccessSummary, hasBusinessUnitScope } from "../_lib/business-unit-access";
 import { ProjectListResponse } from "./types";
@@ -64,6 +65,7 @@ export default async function ProjectsPage() {
                   <th className="px-5 py-4 font-medium">Project</th>
                   <th className="px-5 py-4 font-medium">Status</th>
                   <th className="px-5 py-4 font-medium">Dates</th>
+                  <th className="px-5 py-4 font-medium">Client / Context</th>
                   <th className="px-5 py-4 font-medium">Assigned</th>
                 </tr>
               </thead>
@@ -80,8 +82,12 @@ export default async function ProjectsPage() {
                       <ProjectStatusBadge status={project.status} />
                     </td>
                     <td className="px-5 py-4 text-muted">
-                      <p>{project.startDate ? new Date(project.startDate).toLocaleDateString() : "No start date"}</p>
-                      <p>{project.endDate ? new Date(project.endDate).toLocaleDateString() : "No end date"}</p>
+                      <p>{project.startDate ? formatDate(project.startDate, { timezone: project.timezone }) : "No start date"}</p>
+                      <p>{project.endDate ? formatDate(project.endDate, { timezone: project.timezone }) : "No end date"}</p>
+                    </td>
+                    <td className="px-5 py-4 text-muted">
+                      <p>{project.customer?.name ?? "No customer"}</p>
+                      <p>{project.timezone ?? "Tenant timezone"} · {project.currencyCode ?? "Tenant currency"}</p>
                     </td>
                     <td className="px-5 py-4 text-muted">
                       {project.assignedEmployees.length} employee(s)

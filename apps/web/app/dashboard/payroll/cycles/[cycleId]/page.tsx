@@ -1,5 +1,6 @@
 import { apiRequestJson } from "@/lib/server-api";
 import { TenantResolvedSettingsResponse } from "@/app/dashboard/settings/types";
+import { formatDate } from "@/lib/formatting-context";
 import { PayrollCycleActions } from "../../_components/payroll-cycle-actions";
 import { PayrollLayoutShell } from "../../_components/payroll-layout-shell";
 import { PayrollCycleStatusBadge } from "../../_components/payroll-cycle-status-badge";
@@ -29,11 +30,11 @@ export default async function PayrollCycleDetailPage({
             Cycle window
           </p>
           <h3 className="text-2xl font-semibold text-foreground">
-            {new Date(cycle.periodStart).toLocaleDateString()} - {new Date(cycle.periodEnd).toLocaleDateString()}
+            {formatDate(cycle.periodStart)} - {formatDate(cycle.periodEnd)}
           </h3>
           <div className="flex flex-wrap gap-3 text-sm text-muted">
             <PayrollCycleStatusBadge status={cycle.status} />
-            <span>Run date: {cycle.runDate ? new Date(cycle.runDate).toLocaleDateString() : "Not generated yet"}</span>
+            <span>Run date: {cycle.runDate ? formatDate(cycle.runDate) : "Not generated yet"}</span>
             <span>Draft records: {cycle.counts.records}</span>
             <span>Business unit: {cycle.businessUnit?.name ?? "Tenant-wide"}</span>
             <span>Source: {resolvedSettings.payroll.payrollGenerationSource.replaceAll("_", " ")}</span>

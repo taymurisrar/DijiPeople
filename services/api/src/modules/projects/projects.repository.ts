@@ -6,8 +6,31 @@ import { ProjectQueryDto } from './dto/project-query.dto';
 type PrismaDb = PrismaService | Prisma.TransactionClient;
 
 const projectInclude = {
+  customer: {
+    select: {
+      id: true,
+      name: true,
+      code: true,
+      industry: true,
+      status: true,
+    },
+  },
+  businessUnit: {
+    select: {
+      id: true,
+      name: true,
+      organizationId: true,
+    },
+  },
   assignments: {
     include: {
+      projectRole: {
+        select: {
+          id: true,
+          name: true,
+          code: true,
+        },
+      },
       employee: {
         select: {
           id: true,
@@ -96,9 +119,11 @@ export class ProjectsRepository {
         status: {
           in: ['PLANNING', 'ACTIVE', 'ON_HOLD'],
         },
+        allowTimesheets: true,
         assignments: {
           some: {
             employeeId,
+            status: 'ACTIVE',
           },
         },
       },
@@ -107,6 +132,8 @@ export class ProjectsRepository {
         name: true,
         code: true,
         status: true,
+        timezone: true,
+        currencyCode: true,
       },
       orderBy: [{ name: 'asc' }],
     });
@@ -158,6 +185,86 @@ export class ProjectsRepository {
     return db.projectAssignment.updateMany({
       where: { tenantId, id },
       data,
+    });
+  }
+
+  findActiveAssignmentsForEmployee(
+    tenantId: string,
+    employeeId: string,
+    input: {
+      projectIdToExclude?: string | null;
+      startDate?: Date | null;
+      endDate?: Date | null;
+    },
+    db: PrismaDb = this.prisma,
+  ) {
+    const startDate = input.startDate ?? new Date('0001-01-01T00:00:00.000Z');
+    const endDate = input.endDate ?? new Date('9999-12-31T00:00:00.000Z');
+
+    return db.projectAssignment.findMany({
+      where: {
+        tenantId,
+        employeeId,
+        status: 'ACTIVE',
+        allocationType: 'PERCENTAGE',
+        ...(input.projectIdToExclude
+          ? { projectId: { not: input.projectIdToExclude } }
+          : {}),
+        OR: [
+          {
+            startDate: { lte: endDate },
+            OR: [{ endDate: null }, { endDate: { gte: startDate } }],
+          },
+          {
+            startDate: null,
+            OR: [{ endDate: null }, { endDate: { gte: startDate } }],
+          },
+        ],
+      },
+      select: {
+        id: true,
+        projectId: true,
+        allocationPercent: true,
+        startDate: true,
+        endDate: true,
+      },
+    });
+  }
+
+  findTimesheetEntriesForProject(
+    tenantId: string,
+    projectId: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.timesheetEntry.findMany({
+      where: { tenantId, projectId },
+      select: {
+        id: true,
+        date: true,
+        hours: true,
+        billableFlag: true,
+        activityCode: true,
+        note: true,
+        timezone: true,
+        currencyCode: true,
+        timesheet: {
+          select: {
+            id: true,
+            status: true,
+            submittedAt: true,
+            approvedAt: true,
+          },
+        },
+        employee: {
+          select: {
+            id: true,
+            employeeCode: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+      orderBy: [{ date: 'desc' }],
     });
   }
 }

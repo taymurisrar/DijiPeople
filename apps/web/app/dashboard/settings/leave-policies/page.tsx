@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { StatusPill } from "@/app/components/ui/status-pill";
 import { PERMISSION_KEYS } from "@/lib/security-keys";
+import { formatDate } from "@/lib/formatting-context";
 import { apiRequestJson } from "@/lib/server-api";
 import { SettingsShell } from "../_components/settings-shell";
 import { requireSettingsPermissions } from "../_lib/require-settings-permission";
@@ -75,9 +76,7 @@ export default async function LeavePoliciesPage() {
                     </StatusPill>
                   </td>
                   <td className="px-4 py-4 text-sm text-foreground">
-                    {new Intl.DateTimeFormat("en", {
-                      dateStyle: "medium",
-                    }).format(new Date(policy.updatedAt))}
+                    {formatDate(policy.updatedAt)}
                   </td>
                   <td className="rounded-r-2xl px-4 py-4">
                     <Link

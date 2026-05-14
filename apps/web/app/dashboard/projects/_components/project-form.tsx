@@ -156,10 +156,12 @@ export function ProjectForm({
           }))
         }
         options={[
+          { value: "DRAFT", label: "Draft" },
           { value: "PLANNING", label: "Planning" },
           { value: "ACTIVE", label: "Active" },
           { value: "ON_HOLD", label: "On Hold" },
           { value: "COMPLETED", label: "Completed" },
+          { value: "CLOSED", label: "Closed" },
           { value: "CANCELLED", label: "Cancelled" },
         ]}
       />

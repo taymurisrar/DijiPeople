@@ -8,6 +8,7 @@ import {
   DataTableFilterState,
 } from "@/app/components/data-table/types";
 import { formatDateWithTenantSettings } from "@/lib/date-format";
+import { formatTime as formatResolvedTime } from "@/lib/formatting-context";
 import { AttendanceEntryRecord } from "../types";
 import { AttendanceStatusBadge } from "./attendance-status-badge";
 
@@ -136,7 +137,11 @@ export function AttendanceTable({
       cellClassName: "text-muted",
       render: (entry) => (
         <div>
-          <p>{entry.checkInAt ? formatTime(entry.checkInAt) : "Not recorded"}</p>
+          <p>
+            {entry.checkInAt
+              ? formatResolvedTime(entry.checkInAt, formatting)
+              : "Not recorded"}
+          </p>
           {entry.isLateCheckIn && entry.lateCheckInMinutes ? (
             <p className="mt-1 text-xs text-danger">
               Late by {entry.lateCheckInMinutes} min
@@ -156,7 +161,11 @@ export function AttendanceTable({
       cellClassName: "text-muted",
       render: (entry) => (
         <div>
-          <p>{entry.checkOutAt ? formatTime(entry.checkOutAt) : "Pending"}</p>
+          <p>
+            {entry.checkOutAt
+              ? formatResolvedTime(entry.checkOutAt, formatting)
+              : "Pending"}
+          </p>
           {entry.isLateCheckOut && entry.lateCheckOutMinutes ? (
             <p className="mt-1 text-xs text-warning">
               Beyond grace by {entry.lateCheckOutMinutes} min
@@ -301,13 +310,6 @@ function getAttendanceCustomizationColumnKeys(tableColumnKey: string) {
   };
 
   return map[tableColumnKey] ?? [tableColumnKey];
-}
-
-function formatTime(value: string) {
-  return new Date(value).toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
 
 function formatAttendanceMode(value: string) {

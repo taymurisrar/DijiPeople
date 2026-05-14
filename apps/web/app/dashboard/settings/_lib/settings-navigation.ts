@@ -164,6 +164,73 @@ export const settingsNavGroups = [
     ],
   },
   {
+    key: "regional-operations",
+    label: "Regional Operations",
+    summary:
+      "Localization, currencies, work calendars, holiday calendars, and payroll regions.",
+    icon: "globe-2",
+    items: [
+      {
+        key: "localization",
+        href: "/dashboard/settings/localization",
+        label: "Localization",
+        description:
+          "Review locale, date, time, number, timezone, and first-day-of-week behavior.",
+        icon: "globe-2",
+        badge: "Core",
+        keywords: ["locale", "timezone", "date format", "number format"],
+        requiredAnyPermissions: [NAV_PERMISSION_KEYS.SETTINGS_READ],
+      },
+      {
+        key: "currency",
+        href: "/dashboard/settings/currency",
+        label: "Currency",
+        description:
+          "Configure transactional and reporting currencies with effective dates.",
+        icon: "wallet",
+        badge: "Core",
+        keywords: ["currency", "exchange rates", "reporting currency"],
+        requiredAnyPermissions: [NAV_PERMISSION_KEYS.SETTINGS_READ],
+      },
+      {
+        key: "work-calendars",
+        href: "/dashboard/settings/work-calendars",
+        label: "Work Calendars",
+        description:
+          "Configure work schedules, working days, hours, flexible schedules, and shift foundations.",
+        icon: "calendar-clock",
+        badge: "Core",
+        keywords: ["work schedule", "calendar", "shift", "working days"],
+        requiredAnyPermissions: [NAV_PERMISSION_KEYS.SETTINGS_READ],
+      },
+      {
+        key: "holiday-calendars",
+        href: "/dashboard/settings/holiday-calendars",
+        label: "Holiday Calendars",
+        description:
+          "Create reusable holiday calendars with assignments, yearly dates, and recurring holidays.",
+        icon: "calendar-days",
+        badge: "Core",
+        keywords: ["holiday", "calendar", "public holiday", "regional"],
+        requiredAnyPermissions: [NAV_PERMISSION_KEYS.SETTINGS_READ],
+      },
+      {
+        key: "payroll-regions",
+        href: "/dashboard/settings/payroll/regions",
+        label: "Payroll Regions",
+        description:
+          "Bind payroll cycles, currencies, tax regions, weekends, holidays, and schedules.",
+        icon: "banknote",
+        badge: "Core",
+        keywords: ["payroll region", "pay cycle", "tax region"],
+        requiredAnyPermissions: [
+          NAV_PERMISSION_KEYS.SETTINGS_READ,
+          NAV_PERMISSION_KEYS.PAYROLL_SETTINGS_READ,
+        ],
+      },
+    ],
+  },
+  {
     key: "security",
     label: "Security & Access",
     summary:
@@ -719,70 +786,6 @@ export const settingsNavGroups = [
         keywords: ["system", "preferences", "date format", "locale"],
         requiredAnyPermissions: [NAV_PERMISSION_KEYS.SETTINGS_READ],
       },
-      {
-        key: "theme",
-        href: "/dashboard/settings/theme",
-        label: "Theme & Colors",
-        shortLabel: "Theme",
-        description:
-          "Configure primary, accent, surface, text, status colors, and light or dark mode defaults.",
-        icon: "paintbrush",
-        badge: "Preview",
-        keywords: ["theme", "colors", "primary color", "dark mode"],
-        requiredAnyPermissions: [NAV_PERMISSION_KEYS.SETTINGS_READ],
-        disabled: true,
-      },
-      {
-        key: "content",
-        href: "/dashboard/settings/content",
-        label: "Content & Labels",
-        shortLabel: "Content",
-        description:
-          "Configure tenant wording, page copy, empty states, labels, and help text.",
-        icon: "file-text",
-        badge: "Preview",
-        keywords: ["content", "labels", "copy", "help text"],
-        requiredAnyPermissions: [NAV_PERMISSION_KEYS.SETTINGS_READ],
-        disabled: true,
-      },
-      {
-        key: "navigation",
-        href: "/dashboard/settings/navigation",
-        label: "Navigation & Menu",
-        shortLabel: "Navigation",
-        description:
-          "Configure menu visibility, ordering, grouping, and role-based navigation behavior.",
-        icon: "panel-left",
-        badge: "Preview",
-        keywords: ["navigation", "menu", "sidebar", "module visibility"],
-        requiredAnyPermissions: [NAV_PERMISSION_KEYS.SETTINGS_READ],
-        disabled: true,
-      },
-      {
-        key: "dashboard",
-        href: "/dashboard/settings/dashboard",
-        label: "Dashboard Experience",
-        shortLabel: "Dashboard",
-        description:
-          "Configure widgets, quick actions, banners, and role-based landing experiences.",
-        icon: "monitor-smartphone",
-        badge: "Preview",
-        keywords: ["dashboard", "widgets", "quick actions", "landing page"],
-        requiredAnyPermissions: [NAV_PERMISSION_KEYS.SETTINGS_READ],
-        disabled: true,
-      },
-      {
-        key: "templates",
-        href: "/dashboard/settings/templates",
-        label: "Templates",
-        description:
-          "Manage reusable templates for announcements, banners, onboarding cards, and page sections.",
-        icon: "copy",
-        badge: "Preview",
-        keywords: ["templates", "banners", "announcements", "cards"],
-        requiredAnyPermissions: [NAV_PERMISSION_KEYS.SETTINGS_READ],
-        disabled: true,
-      },
     ],
   },
   {
@@ -828,6 +831,7 @@ export function resolveVisibleSettingsGroups(
   return settingsNavGroups
     .map((group) => {
       const items = group.items.filter((item) => {
+        if ("disabled" in item && item.disabled) return false;
         if (options?.includeRestricted) return true;
 
         return canViewItem(permissionKeys, item.requiredAnyPermissions);

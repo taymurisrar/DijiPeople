@@ -1,25 +1,30 @@
+import {
+  formatDate,
+  formatDateTime,
+  formatTime,
+  type ResolvedFormattingContext,
+} from "@/lib/formatting-context";
 import type { ProductivitySummary } from "./types";
 
-export function formatDashboardDate(value?: string | null) {
-  if (!value) {
-    return "Not set";
-  }
-
-  return new Date(value).toLocaleDateString();
+export function formatDashboardDate(
+  value?: string | null,
+  context?: ResolvedFormattingContext | null,
+) {
+  return formatDate(value, context) || "Not set";
 }
 
-export function formatDashboardTime(value: string) {
-  return new Date(value).toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+export function formatDashboardTime(
+  value: string,
+  context?: ResolvedFormattingContext | null,
+) {
+  return formatTime(value, context);
 }
 
-export function formatDashboardDateTime(value: string) {
-  return new Date(value).toLocaleString([], {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
+export function formatDashboardDateTime(
+  value: string,
+  context?: ResolvedFormattingContext | null,
+) {
+  return formatDateTime(value, context);
 }
 
 export function formatProductivityDetail(summary: ProductivitySummary) {

@@ -4,6 +4,8 @@ import { useMemo, useState, useTransition } from "react";
 import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { SideToast } from "@/app/components/notifications";
+import { formatDateTime } from "@/lib/formatting-context";
+import { useResolvedSettings } from "../../_components/resolved-settings-provider";
 import type {
   AttendanceEntryRecord,
   AttendanceLocationOption,
@@ -24,6 +26,7 @@ export function AttendanceNewClient({
   todayEntry,
 }: AttendanceNewClientProps) {
   const router = useRouter();
+  const resolvedSettings = useResolvedSettings();
   const [isPending, startTransition] = useTransition();
   const [mode, setMode] = useState<AttendanceMode>("OFFICE");
   const [officeLocationId, setOfficeLocationId] = useState(locations[0]?.id ?? "");
@@ -206,16 +209,18 @@ export function AttendanceNewClient({
           </InfoTile>
           <InfoTile label="Check in">
             {activeEntry?.checkInAt ?? todayEntry?.checkInAt
-              ? new Date(
+              ? formatDateTime(
                   activeEntry?.checkInAt ?? todayEntry?.checkInAt ?? "",
-                ).toLocaleString()
+                  resolvedSettings,
+                )
               : "Pending"}
           </InfoTile>
           <InfoTile label="Check out">
             {activeEntry?.checkOutAt ?? todayEntry?.checkOutAt
-              ? new Date(
+              ? formatDateTime(
                   activeEntry?.checkOutAt ?? todayEntry?.checkOutAt ?? "",
-                ).toLocaleString()
+                  resolvedSettings,
+                )
               : "Pending"}
           </InfoTile>
         </div>

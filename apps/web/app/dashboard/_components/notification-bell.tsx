@@ -10,6 +10,7 @@ import {
   markInAppNotificationRead,
   type InAppNotificationItem,
 } from "@/lib/notifications-api";
+import { formatDateTime } from "@/lib/formatting-context";
 
 export function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
@@ -204,11 +205,5 @@ export function NotificationBell() {
 }
 
 function formatRelativeDate(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
+  return formatDateTime(value);
 }

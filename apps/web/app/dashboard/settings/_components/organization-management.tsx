@@ -3,6 +3,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import { ConfirmDialog } from "@/app/components/feedback/confirm-dialog";
 import { Button } from "@/app/components/ui/button";
+import { formatDate } from "@/lib/formatting-context";
 import { OrganizationRecord } from "../types";
 
 type OrganizationManagementProps = {
@@ -303,7 +304,7 @@ export function OrganizationManagement({
                     ) ?? "Root"}
                   </td>
                   <td className="rounded-r-2xl border border-border bg-white px-3 py-3 text-sm text-muted">
-                    {new Date(organization.updatedAt).toLocaleDateString()}
+                    {formatDate(organization.updatedAt)}
                   </td>
                 </tr>
               ))}

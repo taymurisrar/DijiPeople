@@ -8,19 +8,31 @@ export class AuditService {
 
   async log(input: {
     tenantId: string;
+    organizationId?: string | null;
+    businessUnitId?: string | null;
     actorUserId?: string | null;
     action: string;
     entityType: string;
     entityId: string;
+    requestId?: string | null;
+    traceId?: string | null;
+    sourceModule?: string | null;
+    scope?: unknown;
     beforeSnapshot?: unknown;
     afterSnapshot?: unknown;
   }) {
     return this.auditRepository.create({
       tenantId: input.tenantId,
+      organizationId: input.organizationId ?? null,
+      businessUnitId: input.businessUnitId ?? null,
       actorUserId: input.actorUserId ?? null,
       action: input.action,
       entityType: input.entityType,
       entityId: input.entityId,
+      requestId: input.requestId ?? null,
+      traceId: input.traceId ?? null,
+      sourceModule: input.sourceModule ?? null,
+      scope: normalizeSnapshot(input.scope),
       beforeSnapshot: normalizeSnapshot(input.beforeSnapshot),
       afterSnapshot: normalizeSnapshot(input.afterSnapshot),
     });

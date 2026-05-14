@@ -81,8 +81,20 @@ export function TimesheetMonthsTable({
 }
 
 function monthLabel(month: number, year: number) {
-  return new Date(year, month - 1, 1).toLocaleDateString("en-US", {
-    month: "long",
-    year: "numeric",
-  });
+  return `${MONTH_LABELS[month - 1] ?? `Month ${month}`} ${year}`;
 }
+
+const MONTH_LABELS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+] as const;

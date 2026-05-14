@@ -117,6 +117,12 @@ export const PERMISSION_KEYS = {
   PROJECTS_CREATE: "projects.create",
   PROJECTS_UPDATE: "projects.update",
   PROJECTS_ASSIGN: "projects.assign",
+  CUSTOMERS_READ: "customers.read",
+  CUSTOMERS_CREATE: "customers.create",
+  CUSTOMERS_WRITE: "customers.write",
+  CUSTOMERS_DELETE: "customers.delete",
+  CUSTOMERS_ASSIGN: "customers.assign",
+  CUSTOMERS_SHARE: "customers.share",
 
   RECRUITMENT_READ: "recruitment.read",
   RECRUITMENT_CREATE: "recruitment.create",

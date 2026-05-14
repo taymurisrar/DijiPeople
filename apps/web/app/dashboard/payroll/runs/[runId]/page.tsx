@@ -2,6 +2,7 @@ import { apiRequestJson } from "@/lib/server-api";
 import { hasPermission } from "@/lib/permissions";
 import { getSessionUser } from "@/lib/auth";
 import { PERMISSION_KEYS } from "@/lib/security-keys";
+import { formatDate, formatMoney } from "@/lib/formatting-context";
 import { AccessDeniedState } from "../../../_components/access-denied-state";
 import { PayrollLayoutShell } from "../../_components/payroll-layout-shell";
 import {
@@ -269,7 +270,7 @@ export default async function PayrollRunDetailPage({ params }: PageProps) {
                         {input.sourceType}
                       </p>
                       <p className="text-muted">
-                        {new Date(input.workDate).toLocaleDateString()}
+                        {formatDate(input.workDate)}
                       </p>
                     </div>
                     <p className="mt-1 text-muted">
@@ -336,7 +337,7 @@ export default async function PayrollRunDetailPage({ params }: PageProps) {
                         {line.sourceId ? line.sourceId.slice(0, 8) : ""}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        {line.currencyCode} {line.amount}
+                        {formatMoney(line.amount, line.currencyCode)}
                       </td>
                     </tr>
                   ))
@@ -373,7 +374,7 @@ export default async function PayrollRunDetailPage({ params }: PageProps) {
                   </div>
                   <div className="text-right">
                     <p className="font-semibold">
-                      {employee.currencyCode} {employee.netPay}
+                      {formatMoney(employee.netPay, employee.currencyCode)}
                     </p>
                     {payslipByEmployeeRun.get(employee.id) ? (
                       <a
@@ -389,8 +390,8 @@ export default async function PayrollRunDetailPage({ params }: PageProps) {
                   <div className="mt-3 grid gap-2 text-sm text-muted">
                     {employee.lineItems.map((line) => (
                       <p key={line.id}>
-                        {line.category}: {line.label} / {line.currencyCode}{" "}
-                        {line.amount}
+                        {line.category}: {line.label} /{" "}
+                        {formatMoney(line.amount, line.currencyCode)}
                       </p>
                     ))}
                   </div>

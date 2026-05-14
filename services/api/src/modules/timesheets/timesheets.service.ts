@@ -19,6 +19,8 @@ import {
 import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { EmployeesRepository } from '../employees/employees.repository';
+import { AuditService } from '../audit/audit.service';
+import { EnterpriseConfigurationService } from '../tenant-settings/enterprise-configuration.service';
 import { TenantSettingsResolverService } from '../tenant-settings/tenant-settings-resolver.service';
 import { ExportTimesheetTemplateDto } from './dto/export-timesheet-template.dto';
 import { GetMONTHLYTimesheetDto } from './dto/get-monthly-timesheet.dto';
@@ -107,14 +109,21 @@ type TimesheetSettings = {
   allowRejectedTimesheetResubmission: boolean;
 };
 
+type WorkScheduleDayResolution = {
+  expectedHours: Prisma.Decimal | null;
+  isWorkingDay: boolean;
+};
+
 @Injectable()
 export class TimesheetsService {
   constructor(
     private readonly timesheetsRepository: TimesheetsRepository,
     private readonly employeesRepository: EmployeesRepository,
     private readonly tenantSettingsResolverService: TenantSettingsResolverService,
+    private readonly enterpriseConfigurationService: EnterpriseConfigurationService,
     private readonly excelExportService: ExcelExportService,
     private readonly prisma: PrismaService,
+    private readonly auditService: AuditService,
   ) {}
 
   async getMyMONTHLYTimesheet(
@@ -219,16 +228,58 @@ export class TimesheetsService {
       );
     const holidayMap = new Map(
       (
-        await this.timesheetsRepository.findHolidaysForMonth(
-          currentUser.tenantId,
+        await this.enterpriseConfigurationService.findResolvedHolidaysForRange({
+          tenantId: currentUser.tenantId,
+          businessUnitId: timesheet.businessUnitId,
           periodStart,
           periodEnd,
-        )
+        })
       ).map((holiday) => [toDateKey(holiday.date), holiday]),
     );
+    const workScheduleDays = await this.resolveWorkScheduleDays({
+      tenantId: currentUser.tenantId,
+      businessUnitId: timesheet.businessUnitId,
+      effectiveDate: periodStart,
+    });
     const leaveMap = buildLeaveMap(approvedLeaves);
     const entryMap = new Map(
       timesheet.entries.map((entry) => [toDateKey(entry.date), entry]),
+    );
+    const requestedProjectIds = Array.from(
+      new Set(
+        dto.entries
+          .map((entry) => entry.projectId?.trim())
+          .filter((projectId): projectId is string => Boolean(projectId)),
+      ),
+    );
+    const projectAssignments =
+      requestedProjectIds.length > 0
+        ? await this.prisma.projectAssignment.findMany({
+            where: {
+              tenantId: currentUser.tenantId,
+              employeeId: timesheet.employeeId,
+              projectId: { in: requestedProjectIds },
+              status: 'ACTIVE',
+              project: {
+                status: 'ACTIVE',
+                allowTimesheets: true,
+              },
+            },
+            include: {
+              project: {
+                select: {
+                  id: true,
+                  timezone: true,
+                  currencyCode: true,
+                  startDate: true,
+                  endDate: true,
+                },
+              },
+            },
+          })
+        : [];
+    const assignmentByProjectId = new Map(
+      projectAssignments.map((assignment) => [assignment.projectId, assignment]),
     );
 
     for (const incoming of dto.entries) {
@@ -249,7 +300,10 @@ export class TimesheetsService {
       }
 
       const dayOfWeek = getWorkWeekday(date);
-      const isWeekend = settings.weekendDays.includes(dayOfWeek);
+      const scheduleDay = workScheduleDays.get(dayOfWeek);
+      const isWeekend = scheduleDay
+        ? !scheduleDay.isWorkingDay
+        : settings.weekendDays.includes(dayOfWeek);
       const holiday = holidayMap.get(dateKey) ?? null;
       const isHoliday = Boolean(holiday);
       const approvedLeave = leaveMap.get(dateKey) ?? null;
@@ -279,8 +333,24 @@ export class TimesheetsService {
       const hours = resolveHoursWorked(
         nextEntryType,
         incoming.hoursWorked,
-        settings.defaultHoursForOnWork,
+        scheduleDay?.expectedHours
+          ? Number(scheduleDay.expectedHours)
+          : settings.defaultHoursForOnWork,
       );
+      const projectId = incoming.projectId?.trim() || null;
+      const projectAssignment = projectId
+        ? assignmentByProjectId.get(projectId)
+        : null;
+
+      if (projectId && !projectAssignment) {
+        throw new BadRequestException(
+          `Project ${projectId} is not available for timesheet entry ${dateKey}.`,
+        );
+      }
+
+      if (projectAssignment) {
+        assertProjectAssignmentCoversDate(projectAssignment, date, dateKey);
+      }
 
       await this.timesheetsRepository.updateTimesheetEntry(
         currentUser.tenantId,
@@ -294,7 +364,14 @@ export class TimesheetsService {
           hours: new Prisma.Decimal(hours),
           note: incoming.note?.trim() ?? null,
           description: null,
-          projectId: null,
+          projectId,
+          activityCode: incoming.activityCode?.trim() || null,
+          billableFlag: projectAssignment?.billableFlag ?? false,
+          timezone: projectAssignment?.project.timezone ?? null,
+          currencyCode:
+            projectAssignment?.currencyCode ??
+            projectAssignment?.project.currencyCode ??
+            null,
           updatedById: currentUser.userId,
         },
       );
@@ -385,6 +462,13 @@ export class TimesheetsService {
     if (!updated) {
       throw new NotFoundException('Timesheet could not be updated.');
     }
+
+    await this.auditTimesheet(
+      currentUser,
+      'timesheet.submit',
+      timesheet,
+      updated,
+    );
 
     return this.mapTimesheet(updated, currentUser);
   }
@@ -505,11 +589,12 @@ export class TimesheetsService {
         year,
         month,
       ),
-      this.timesheetsRepository.findHolidaysForMonth(
-        currentUser.tenantId,
+      this.enterpriseConfigurationService.findResolvedHolidaysForRange({
+        tenantId: currentUser.tenantId,
+        businessUnitId: query.businessUnitId,
         periodStart,
         periodEnd,
-      ),
+      }),
       this.timesheetsRepository.findApprovedLeaveRequestsForEmployeesForMonth(
         currentUser.tenantId,
         employeeIds,
@@ -810,12 +895,21 @@ export class TimesheetsService {
     }
 
     await this.assertCanReview(currentUser, timesheet, nextStatus);
+    const settings = await this.getTimesheetSettings(
+      currentUser.tenantId,
+      timesheet.businessUnitId,
+    );
+    const finalStatus =
+      nextStatus === TimesheetStatus.APPROVED &&
+      settings.lockTimesheetAfterApproval
+        ? TimesheetStatus.LOCKED
+        : nextStatus;
 
     const updated = await this.timesheetsRepository.updateTimesheet(
       currentUser.tenantId,
       timesheet.id,
       {
-        status: nextStatus,
+        status: finalStatus,
         approverUserId: currentUser.userId,
         reviewedAt: new Date(),
         approvedAt: nextStatus === TimesheetStatus.APPROVED ? new Date() : null,
@@ -829,6 +923,17 @@ export class TimesheetsService {
     if (!updated) {
       throw new NotFoundException('Timesheet could not be reviewed.');
     }
+
+    await this.auditTimesheet(
+      currentUser,
+      finalStatus === TimesheetStatus.LOCKED
+        ? 'timesheet.approve-and-lock'
+        : nextStatus === TimesheetStatus.APPROVED
+          ? 'timesheet.approve'
+          : 'timesheet.reject',
+      timesheet,
+      updated,
+    );
 
     return this.mapTimesheet(updated, currentUser);
   }
@@ -884,13 +989,19 @@ export class TimesheetsService {
     this.assertMonthlyTimesheetsEnabled(settings);
     const holidayMap = new Map(
       (
-        await this.timesheetsRepository.findHolidaysForMonth(
-          currentUser.tenantId,
-          timesheet.periodStart,
-          timesheet.periodEnd,
-        )
+        await this.enterpriseConfigurationService.findResolvedHolidaysForRange({
+          tenantId: currentUser.tenantId,
+          businessUnitId: timesheet.businessUnitId,
+          periodStart: timesheet.periodStart,
+          periodEnd: timesheet.periodEnd,
+        })
       ).map((holiday) => [toDateKey(holiday.date), holiday]),
     );
+    const workScheduleDays = await this.resolveWorkScheduleDays({
+      tenantId: currentUser.tenantId,
+      businessUnitId: timesheet.businessUnitId,
+      effectiveDate: timesheet.periodStart,
+    });
     const leaveMap = buildLeaveMap(
       await this.timesheetsRepository.findApprovedLeaveRequestsForMonth(
         currentUser.tenantId,
@@ -911,7 +1022,10 @@ export class TimesheetsService {
       }
 
       const dayOfWeek = getWorkWeekday(date);
-      const isWeekend = settings.weekendDays.includes(dayOfWeek);
+      const scheduleDay = workScheduleDays.get(dayOfWeek);
+      const isWeekend = scheduleDay
+        ? !scheduleDay.isWorkingDay
+        : settings.weekendDays.includes(dayOfWeek);
       const holiday = holidayMap.get(dateKey);
       const leave = leaveMap.get(dateKey);
       const entryType = leave
@@ -925,7 +1039,9 @@ export class TimesheetsService {
               : null;
       const hours = resolveDefaultHours(
         entryType,
-        settings.defaultHoursForOnWork,
+        scheduleDay?.expectedHours
+          ? Number(scheduleDay.expectedHours)
+          : settings.defaultHoursForOnWork,
       );
 
       await this.timesheetsRepository.createTimesheetEntry({
@@ -1050,11 +1166,12 @@ export class TimesheetsService {
         .filter((employee) => employee.email)
         .map((employee) => [employee.email!.toLowerCase(), employee]),
     );
-    const holidays = await this.timesheetsRepository.findHolidaysForMonth(
-      currentUser.tenantId,
+    const holidays = await this.enterpriseConfigurationService.findResolvedHolidaysForRange({
+      tenantId: currentUser.tenantId,
+      businessUnitId: dto.businessUnitId,
       periodStart,
       periodEnd,
-    );
+    });
     const holidayMap = new Map(
       holidays.map((holiday) => [toDateKey(holiday.date), holiday]),
     );
@@ -1148,6 +1265,10 @@ export class TimesheetsService {
   ) {
     if (timesheet.status === TimesheetStatus.SUBMITTED) {
       throw new ConflictException('Submitted timesheets cannot be edited.');
+    }
+
+    if (timesheet.status === TimesheetStatus.LOCKED) {
+      throw new ConflictException('Locked timesheets cannot be edited.');
     }
 
     if (
@@ -1340,6 +1461,7 @@ export class TimesheetsService {
       currentUser.permissionKeys.includes('timesheets.submit') &&
       timesheet.status !== TimesheetStatus.SUBMITTED &&
       timesheet.status !== TimesheetStatus.APPROVED &&
+      timesheet.status !== TimesheetStatus.LOCKED &&
       summary.incompleteDays.length === 0;
 
     const canCurrentUserApprove =
@@ -1426,6 +1548,11 @@ export class TimesheetsService {
         isHoliday: entry.isHoliday,
         hoursWorked: Number(entry.hours),
         note: entry.note ?? entry.description,
+        projectId: entry.projectId,
+        activityCode: entry.activityCode,
+        billableFlag: entry.billableFlag,
+        timezone: entry.timezone,
+        currencyCode: entry.currencyCode,
         leaveRequestId: entry.leaveRequestId,
         leaveRequest: entry.leaveRequest
           ? {
@@ -1445,8 +1572,66 @@ export class TimesheetsService {
         timesheet.employee.userId === currentUser.userId &&
         currentUser.permissionKeys.includes('timesheets.write') &&
         timesheet.status !== TimesheetStatus.SUBMITTED &&
-        timesheet.status !== TimesheetStatus.APPROVED,
+        timesheet.status !== TimesheetStatus.APPROVED &&
+        timesheet.status !== TimesheetStatus.LOCKED,
     };
+  }
+
+  private async resolveWorkScheduleDays(input: {
+    tenantId: string;
+    businessUnitId?: string | null;
+    effectiveDate?: Date | null;
+  }) {
+    const workScheduleId =
+      await this.enterpriseConfigurationService.resolveWorkScheduleId(input);
+
+    if (!workScheduleId) {
+      return new Map<WorkWeekday, WorkScheduleDayResolution>();
+    }
+
+    const workSchedule = await this.prisma.workSchedule.findFirst({
+      where: {
+        id: workScheduleId,
+        tenantId: input.tenantId,
+        isActive: true,
+        status: 'ACTIVE',
+      },
+      include: { days: true },
+    });
+
+    return new Map<WorkWeekday, WorkScheduleDayResolution>(
+      (workSchedule?.days ?? []).map((day) => [
+        day.dayOfWeek,
+        {
+          expectedHours: day.expectedHours,
+          isWorkingDay: day.isWorkingDay,
+        },
+      ]),
+    );
+  }
+
+  private auditTimesheet(
+    currentUser: AuthenticatedUser,
+    action: string,
+    beforeSnapshot: TimesheetWithRelations,
+    afterSnapshot: TimesheetWithRelations,
+  ) {
+    return this.auditService.log({
+      tenantId: currentUser.tenantId,
+      businessUnitId: beforeSnapshot.businessUnitId,
+      actorUserId: currentUser.userId,
+      action,
+      entityType: 'Timesheet',
+      entityId: beforeSnapshot.id,
+      sourceModule: 'timesheets',
+      scope: {
+        employeeId: beforeSnapshot.employeeId,
+        year: beforeSnapshot.year,
+        month: beforeSnapshot.month,
+      },
+      beforeSnapshot: summarizeTimesheetAudit(beforeSnapshot),
+      afterSnapshot: summarizeTimesheetAudit(afterSnapshot),
+    });
   }
 }
 
@@ -2069,6 +2254,39 @@ function validateTimesheetForSubmission(
   };
 }
 
+function assertProjectAssignmentCoversDate(
+  assignment: {
+    startDate: Date | null;
+    endDate: Date | null;
+    project: { startDate: Date | null; endDate: Date | null };
+  },
+  date: Date,
+  dateKey: string,
+) {
+  const assignmentStart = assignment.startDate
+    ? toStartOfDay(assignment.startDate)
+    : assignment.project.startDate
+      ? toStartOfDay(assignment.project.startDate)
+      : null;
+  const assignmentEnd = assignment.endDate
+    ? toStartOfDay(assignment.endDate)
+    : assignment.project.endDate
+      ? toStartOfDay(assignment.project.endDate)
+      : null;
+
+  if (assignmentStart && date < assignmentStart) {
+    throw new BadRequestException(
+      `Project assignment is not active for ${dateKey}.`,
+    );
+  }
+
+  if (assignmentEnd && date > assignmentEnd) {
+    throw new BadRequestException(
+      `Project assignment is not active for ${dateKey}.`,
+    );
+  }
+}
+
 function summarizeEntries(entries: TimesheetWithRelations['entries']) {
   const summary = {
     totalWorkDays: 0,
@@ -2121,10 +2339,46 @@ function summarizeEntries(entries: TimesheetWithRelations['entries']) {
   return summary;
 }
 
+function summarizeTimesheetAudit(timesheet: TimesheetWithRelations) {
+  const summary = summarizeEntries(timesheet.entries);
+
+  return {
+    id: timesheet.id,
+    employeeId: timesheet.employeeId,
+    businessUnitId: timesheet.businessUnitId,
+    year: timesheet.year,
+    month: timesheet.month,
+    periodStart: timesheet.periodStart,
+    periodEnd: timesheet.periodEnd,
+    status: timesheet.status,
+    submittedAt: timesheet.submittedAt,
+    approvedAt: timesheet.approvedAt,
+    rejectedAt: timesheet.rejectedAt,
+    reviewedAt: timesheet.reviewedAt,
+    approverUserId: timesheet.approverUserId,
+    submittedNote: timesheet.submittedNote,
+    reviewNote: timesheet.reviewNote ?? timesheet.comments,
+    totalHours: summary.totalHours,
+    incompleteDays: summary.incompleteDays,
+    entryCount: timesheet.entries.length,
+  };
+}
+
 function monthName(month: number) {
-  return new Date(2000, month - 1, 1).toLocaleString('en-US', {
-    month: 'long',
-  });
+  return [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ][month - 1] ?? `Month ${month}`;
 }
 
 function toCsvLine(values: Array<string>) {

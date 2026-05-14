@@ -7,6 +7,7 @@ import {
   IsEnum,
   IsOptional,
   IsString,
+  IsUUID,
   Matches,
   MaxLength,
   ValidateNested,
@@ -32,6 +33,15 @@ class TimesheetDailyEntryDto {
   @IsOptional()
   @IsString()
   leaveRequestId?: string | null;
+
+  @IsOptional()
+  @IsUUID()
+  projectId?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  activityCode?: string | null;
 }
 
 export class UpsertTimesheetEntriesDto {

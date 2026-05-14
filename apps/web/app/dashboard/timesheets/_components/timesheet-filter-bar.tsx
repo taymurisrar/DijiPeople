@@ -196,7 +196,20 @@ export function TimesheetFilterBar({
 }
 
 function monthLabel(month: number) {
-  return new Date(2026, month - 1, 1).toLocaleDateString("en-US", {
-    month: "long",
-  });
+  return MONTH_LABELS[month - 1] ?? `Month ${month}`;
 }
+
+const MONTH_LABELS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+] as const;

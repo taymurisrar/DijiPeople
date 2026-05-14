@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatDate } from "@/lib/formatting-context";
 import { LeaveRequestRecord } from "../types";
 import { LeaveRequestActionButtons } from "./leave-request-action-buttons";
 import { LeaveRequestStatusBadge } from "./leave-request-status-badge";
@@ -76,8 +77,8 @@ export function LeaveRequestsTable({
                 </td>
                 <td className="px-5 py-4 align-top text-muted">
                   <p>
-                    {new Date(request.startDate).toLocaleDateString()} to{" "}
-                    {new Date(request.endDate).toLocaleDateString()}
+                    {formatDate(request.startDate)} to{" "}
+                    {formatDate(request.endDate)}
                   </p>
                   <p className="mt-1">{request.totalDays} day(s)</p>
                 </td>

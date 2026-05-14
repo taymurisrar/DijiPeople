@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import { formatDate } from "@/lib/formatting-context";
 import {
   PayrollCalendarRecord,
   PayrollPeriodRecord,
@@ -239,7 +240,4 @@ function Select({
       </select>
     </label>
   );
-}
-function formatDate(value: string) {
-  return new Date(value).toLocaleDateString();
 }

@@ -3,6 +3,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { ExcelExportService } from '../../common/excel/excel-export.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
+import { AuditModule } from '../audit/audit.module';
 import { EmployeesModule } from '../employees/employees.module';
 import { TenantSettingsModule } from '../tenant-settings/tenant-settings.module';
 import { TimesheetsController } from './timesheets.controller';
@@ -10,7 +11,7 @@ import { TimesheetsRepository } from './timesheets.repository';
 import { TimesheetsService } from './timesheets.service';
 
 @Module({
-  imports: [JwtModule.register({}), EmployeesModule, TenantSettingsModule],
+  imports: [JwtModule.register({}), AuditModule, EmployeesModule, TenantSettingsModule],
   controllers: [TimesheetsController],
   providers: [
     TimesheetsRepository,

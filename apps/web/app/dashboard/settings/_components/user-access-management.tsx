@@ -6,6 +6,7 @@ import { ConfirmDialog } from "@/app/components/feedback/confirm-dialog";
 import { EmptyState } from "@/app/components/ui/empty-state";
 import { SectionCard } from "@/app/components/ui/section-card";
 import { StatusPill } from "@/app/components/ui/status-pill";
+import { formatDateTime as formatResolvedDateTime } from "@/lib/formatting-context";
 import {
   AccessRoleRecord,
   AccessUserRecord,
@@ -1085,10 +1086,7 @@ function formatDateTime(value?: string | null) {
     return "";
   }
 
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
+  return formatResolvedDateTime(value);
 }
 
 function formatOwnershipLabel(

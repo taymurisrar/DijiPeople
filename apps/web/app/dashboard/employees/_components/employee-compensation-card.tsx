@@ -2,6 +2,8 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { formatDate, formatMoney } from "@/lib/formatting-context";
+import { useResolvedSettings } from "../../_components/resolved-settings-provider";
 import {
   EmployeeCompensationHistoryRecord,
   PayComponentRecord,
@@ -35,16 +37,18 @@ type ComponentFormState = {
   displayOrder: string;
 };
 
-const emptyHistoryForm: HistoryFormState = {
-  id: null,
-  effectiveFrom: "",
-  effectiveTo: "",
-  payFrequency: "MONTHLY",
-  currencyCode: "USD",
-  baseAmount: "",
-  status: "DRAFT",
-  notes: "",
-};
+function createEmptyHistoryForm(currencyCode: string): HistoryFormState {
+  return {
+    id: null,
+    effectiveFrom: "",
+    effectiveTo: "",
+    payFrequency: "MONTHLY",
+    currencyCode,
+    baseAmount: "",
+    status: "DRAFT",
+    notes: "",
+  };
+}
 
 const payFrequencies: EmployeeCompensationHistoryRecord["payFrequency"][] = [
   "MONTHLY",
@@ -68,8 +72,11 @@ export function EmployeeCompensationCard({
   payComponents,
 }: EmployeeCompensationCardProps) {
   const router = useRouter();
+  const resolvedSettings = useResolvedSettings();
   const [historyForm, setHistoryForm] =
-    useState<HistoryFormState>(emptyHistoryForm);
+    useState<HistoryFormState>(() =>
+      createEmptyHistoryForm(resolvedSettings.currency),
+    );
   const [componentForm, setComponentForm] = useState<ComponentFormState>({
     historyId: compensationHistory[0]?.id ?? "",
     payComponentId: payComponents[0]?.id ?? "",
@@ -107,7 +114,7 @@ export function EmployeeCompensationCard({
   }
 
   function resetHistoryForm() {
-    setHistoryForm(emptyHistoryForm);
+    setHistoryForm(createEmptyHistoryForm(resolvedSettings.currency));
     setError(null);
     setMessage(null);
   }
@@ -489,7 +496,7 @@ export function EmployeeCompensationCard({
                     {record.status}
                   </p>
                   <h3 className="mt-2 text-xl font-semibold text-foreground">
-                    {record.currencyCode} {record.baseAmount} /{" "}
+                    {formatMoney(record.baseAmount, record.currencyCode)} /{" "}
                     {record.payFrequency}
                   </h3>
                   <p className="mt-2 text-sm text-muted">
@@ -639,6 +646,3 @@ function SelectField({
   );
 }
 
-function formatDate(value: string) {
-  return new Date(value).toLocaleDateString();
-}

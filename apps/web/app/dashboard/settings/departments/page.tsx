@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatDate } from "@/lib/formatting-context";
 import { apiRequestJson } from "@/lib/server-api";
 import { SettingsShell } from "../_components/settings-shell";
 import { DepartmentRecord } from "../types";
@@ -69,7 +70,7 @@ export default async function DepartmentsPage() {
                     {department.isActive ? "Active" : "Inactive"}
                   </td>
                   <td className="px-4 py-4 text-sm text-muted">
-                    {new Date(department.updatedAt).toLocaleDateString()}
+                    {formatDate(department.updatedAt)}
                   </td>
                   <td className="rounded-r-2xl px-4 py-4">
                     <Link

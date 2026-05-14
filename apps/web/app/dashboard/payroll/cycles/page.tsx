@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatDate } from "@/lib/formatting-context";
 import { apiRequestJson } from "@/lib/server-api";
 import { AccessDeniedState } from "../../_components/access-denied-state";
 import { getBusinessUnitAccessSummary, hasBusinessUnitScope } from "../../_lib/business-unit-access";
@@ -72,7 +73,7 @@ export default async function PayrollCyclesPage() {
                 {cycles.items.map((cycle) => (
                   <tr key={cycle.id} className="hover:bg-accent-soft/30">
                     <td className="px-5 py-4 font-medium text-foreground">
-                      <p>{new Date(cycle.periodStart).toLocaleDateString()} - {new Date(cycle.periodEnd).toLocaleDateString()}</p>
+                      <p>{formatDate(cycle.periodStart)} - {formatDate(cycle.periodEnd)}</p>
                     </td>
                     <td className="px-5 py-4 text-muted">
                       {cycle.businessUnit?.name ?? "Tenant-wide"}
@@ -81,7 +82,7 @@ export default async function PayrollCyclesPage() {
                       <PayrollCycleStatusBadge status={cycle.status} />
                     </td>
                     <td className="px-5 py-4 text-muted">
-                      {cycle.runDate ? new Date(cycle.runDate).toLocaleDateString() : "Not scheduled"}
+                      {cycle.runDate ? formatDate(cycle.runDate) : "Not scheduled"}
                     </td>
                     <td className="px-5 py-4 text-muted">
                       {cycle.counts.records}

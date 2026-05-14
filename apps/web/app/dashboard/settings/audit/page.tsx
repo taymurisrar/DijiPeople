@@ -1,4 +1,5 @@
 import { apiRequestJson } from "@/lib/server-api";
+import { formatNumber } from "@/lib/formatting-context";
 import { AuditLogFilters } from "../_components/audit-log-filters";
 import { AuditLogTable } from "../_components/audit-log-table";
 import { SettingsShell } from "../_components/settings-shell";
@@ -13,10 +14,6 @@ type AuditPageSearchParams = {
   page?: string;
   toDate?: string;
 };
-
-function formatNumber(value: number) {
-  return new Intl.NumberFormat("en").format(value);
-}
 
 function countActiveFilters(searchParams: AuditPageSearchParams) {
   return [

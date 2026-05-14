@@ -8,6 +8,7 @@ import { EmptyState } from "@/app/components/ui/empty-state";
 import { SectionCard } from "@/app/components/ui/section-card";
 import { StatusPill } from "@/app/components/ui/status-pill";
 import { PermissionGate } from "@/app/dashboard/_components/permission-gate";
+import { formatDateTime } from "@/lib/formatting-context";
 import type {
   CustomizationPublishHistoryItem,
   CustomizationPublishValidationError,
@@ -209,13 +210,6 @@ function groupValidationErrors(errors: CustomizationPublishValidationError[]) {
       errors: items,
     };
   });
-}
-
-function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
 }
 
 function capitalize(value: string) {

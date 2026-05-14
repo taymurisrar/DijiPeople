@@ -461,7 +461,20 @@ function Metric({ label, value }: { label: string; value: number }) {
 }
 
 function monthLabel(month: number) {
-  return new Date(2026, month - 1, 1).toLocaleDateString("en-US", {
-    month: "short",
-  });
+  return MONTH_LABELS[month - 1] ?? `M${month}`;
 }
+
+const MONTH_LABELS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+] as const;

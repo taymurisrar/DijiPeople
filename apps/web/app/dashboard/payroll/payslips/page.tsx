@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatMoney } from "@/lib/formatting-context";
 import { apiRequestJson } from "@/lib/server-api";
 import { hasPermission } from "@/lib/permissions";
 import { getSessionUser } from "@/lib/auth";
@@ -50,7 +51,7 @@ export default async function PayrollPayslipsPage() {
                   <div className="text-right">
                     <p className="text-sm text-muted">{payslip.status}</p>
                     <p className="font-semibold text-foreground">
-                      {payslip.currencyCode} {payslip.netPay}
+                      {formatMoney(payslip.netPay, payslip.currencyCode)}
                     </p>
                   </div>
                 </div>

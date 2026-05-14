@@ -267,22 +267,54 @@ export class TimesheetsRepository {
     });
   }
 
-  findHolidaysForMonth(
+  async findHolidaysForMonth(
     tenantId: string,
     periodStart: Date,
     periodEnd: Date,
     db: PrismaDb = this.prisma,
   ) {
-    return db.holidayCalendar.findMany({
-      where: {
-        tenantId,
-        date: {
-          gte: periodStart,
-          lte: periodEnd,
+    const [holidays, legacyCalendarRows] = await Promise.all([
+      db.holiday.findMany({
+        where: {
+          tenantId,
+          status: 'ACTIVE',
+          holidayDate: {
+            gte: periodStart,
+            lte: periodEnd,
+          },
         },
-      },
-      orderBy: { date: 'asc' },
-    });
+        orderBy: { holidayDate: 'asc' },
+      }),
+      db.holidayCalendar.findMany({
+        where: {
+          tenantId,
+          date: {
+            gte: periodStart,
+            lte: periodEnd,
+          },
+        },
+        orderBy: { date: 'asc' },
+      }),
+    ]);
+
+    return [
+      ...holidays.map((holiday) => ({
+        id: holiday.id,
+        name: holiday.name,
+        date: holiday.holidayDate,
+        description: holiday.description,
+        isOptional: holiday.type === 'OPTIONAL',
+      })),
+      ...legacyCalendarRows
+        .filter((holiday) => holiday.date)
+        .map((holiday) => ({
+          id: holiday.id,
+          name: holiday.name,
+          date: holiday.date!,
+          description: holiday.description,
+          isOptional: holiday.isOptional,
+        })),
+    ];
   }
 
   async findTimesheetsByEmployee(

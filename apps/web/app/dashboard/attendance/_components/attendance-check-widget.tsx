@@ -8,6 +8,8 @@ import type {
   AttendanceMode,
 } from "../types";
 import { Button } from "@/app/components/ui/button";
+import { formatDateTime } from "@/lib/formatting-context";
+import { useResolvedSettings } from "../../_components/resolved-settings-provider";
 import { AttendanceStatusBadge } from "./attendance-status-badge";
 
 type AttendanceCheckWidgetProps = {
@@ -38,6 +40,7 @@ export function AttendanceCheckWidget({
     longitude?: number;
     addressText?: string;
   }>({});
+  const resolvedSettings = useResolvedSettings();
 
   const openEntry = activeEntry;
   const latestEntry = activeEntry ?? todayEntry;
@@ -250,14 +253,16 @@ export function AttendanceCheckWidget({
           <InfoTile
             label="Check in"
             value={
-              openEntry.checkInAt ? formatDateTime(openEntry.checkInAt) : "Not recorded"
+              openEntry.checkInAt
+                ? formatDateTime(openEntry.checkInAt, resolvedSettings)
+                : "Not recorded"
             }
           />
           <InfoTile
             label="Check out"
             value={
               openEntry.checkOutAt
-                ? formatDateTime(openEntry.checkOutAt)
+                ? formatDateTime(openEntry.checkOutAt, resolvedSettings)
                 : "Pending"
             }
           />
@@ -370,7 +375,7 @@ export function AttendanceCheckWidget({
             label="Last check in"
             value={
               todayEntry.checkInAt
-                ? formatDateTime(todayEntry.checkInAt)
+                ? formatDateTime(todayEntry.checkInAt, resolvedSettings)
                 : "Not recorded"
             }
           />
@@ -378,7 +383,7 @@ export function AttendanceCheckWidget({
             label="Last check out"
             value={
               todayEntry.checkOutAt
-                ? formatDateTime(todayEntry.checkOutAt)
+                ? formatDateTime(todayEntry.checkOutAt, resolvedSettings)
                 : "Pending"
             }
           />
@@ -451,15 +456,6 @@ function InfoTile({
       <div className="mt-2 text-sm font-medium text-foreground">{value}</div>
     </article>
   );
-}
-
-function formatDateTime(value: string) {
-  return new Date(value).toLocaleString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-    month: "short",
-    day: "numeric",
-  });
 }
 
 function formatAttendanceMode(value: AttendanceMode) {

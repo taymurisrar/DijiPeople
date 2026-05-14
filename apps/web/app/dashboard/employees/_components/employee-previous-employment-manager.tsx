@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { formatDate } from "@/lib/formatting-context";
 import { EmployeePreviousEmploymentRecord } from "../types";
 
 type DraftState = {
@@ -320,7 +321,7 @@ function emptyToUndefined(value: string) {
 }
 
 function formatDateRange(startDate?: string | null, endDate?: string | null) {
-  const start = startDate ? new Date(startDate).toLocaleDateString() : "Start n/a";
-  const end = endDate ? new Date(endDate).toLocaleDateString() : "Present";
+  const start = startDate ? formatDate(startDate) : "Start n/a";
+  const end = endDate ? formatDate(endDate) : "Present";
   return `${start} to ${end}`;
 }

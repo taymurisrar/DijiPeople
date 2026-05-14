@@ -1,6 +1,12 @@
 "use client";
 
 import { TimesheetDayRecord, TimesheetEntryType } from "../types";
+import {
+  formatDate as formatResolvedDate,
+  type ResolvedFormattingContext,
+  formatWorkHours,
+} from "@/lib/formatting-context";
+import { useResolvedSettings } from "../../_components/resolved-settings-provider";
 
 type EditableRow = TimesheetDayRecord & {
   uiEntryType: TimesheetEntryType | null;
@@ -28,6 +34,7 @@ export function TimesheetMONTHLYGrid({
   rows: EditableRow[];
 }) {
   const invalidSet = new Set(invalidDates);
+  const resolvedSettings = useResolvedSettings();
 
   return (
     <div className="overflow-hidden rounded-[24px] border border-border bg-surface shadow-sm">
@@ -62,7 +69,7 @@ export function TimesheetMONTHLYGrid({
                   }
                 >
                   <td className="px-4 py-3 text-foreground">
-                    {formatDate(row.date)}
+                    {formatResolvedDate(row.date, resolvedSettings)}
                   </td>
                   <td className="px-4 py-3 text-muted">{shortDay(row.dayOfWeek)}</td>
                   <td className="px-4 py-3">
@@ -116,7 +123,10 @@ export function TimesheetMONTHLYGrid({
                       />
                     ) : (
                       <span className="font-medium text-foreground">
-                        {formatHours(Number(row.uiHoursWorked || row.hoursWorked || 0))}
+                        {formatHours(
+                          Number(row.uiHoursWorked || row.hoursWorked || 0),
+                          resolvedSettings,
+                        )}
                       </span>
                     )}
                   </td>
@@ -198,11 +208,10 @@ function shortDay(dayOfWeek: string) {
   return dayOfWeek.slice(0, 3);
 }
 
-function formatDate(value: string) {
-  return new Date(value).toLocaleDateString();
-}
-
-function formatHours(hours: number) {
+function formatHours(
+  hours: number,
+  context?: ResolvedFormattingContext | null,
+) {
   if (!Number.isFinite(hours) || hours <= 0) return "0";
-  return Number.isInteger(hours) ? String(hours) : hours.toFixed(2);
+  return formatWorkHours(hours, context);
 }

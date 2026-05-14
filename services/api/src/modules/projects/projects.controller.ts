@@ -77,4 +77,23 @@ export class ProjectsController {
   ) {
     return this.projectsService.assignEmployee(user, projectId, dto);
   }
+
+  @Post(':projectId/resources')
+  @Permissions('projects.assign')
+  assignResource(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('projectId', new ParseUUIDPipe()) projectId: string,
+    @Body() dto: AssignProjectEmployeeDto,
+  ) {
+    return this.projectsService.assignEmployee(user, projectId, dto);
+  }
+
+  @Get(':projectId/timesheets')
+  @Permissions('projects.read')
+  findProjectTimesheets(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('projectId', new ParseUUIDPipe()) projectId: string,
+  ) {
+    return this.projectsService.findProjectTimesheets(user.tenantId, projectId);
+  }
 }

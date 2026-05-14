@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ConfirmDialog } from "@/app/components/feedback/confirm-dialog";
 import { DataTable } from "@/app/components/data-table/data-table";
 import { DataTableColumn } from "@/app/components/data-table/types";
+import { formatDate } from "@/lib/formatting-context";
 
 type SourceCategory =
   | "EARNING"
@@ -78,7 +79,7 @@ export function PostingRulesManager({
       { key: "specificity", header: "Specificity", searchable: true, render: (rule) => rule.payComponent ? `Component: ${rule.payComponent.code}` : rule.taxRule ? `Tax: ${rule.taxRule.code}` : "Category default" },
       { key: "debit", header: "Debit", render: (rule) => rule.debitAccount ? `${rule.debitAccount.code} / ${rule.debitAccount.name}` : "Missing" },
       { key: "credit", header: "Credit", render: (rule) => rule.creditAccount ? `${rule.creditAccount.code} / ${rule.creditAccount.name}` : "Missing" },
-      { key: "effectiveFrom", header: "Effective", sortable: true, sortAccessor: (rule) => new Date(rule.effectiveFrom), render: (rule) => `${new Date(rule.effectiveFrom).toLocaleDateString()}${rule.effectiveTo ? ` - ${new Date(rule.effectiveTo).toLocaleDateString()}` : ""}` },
+      { key: "effectiveFrom", header: "Effective", sortable: true, sortAccessor: (rule) => new Date(rule.effectiveFrom), render: (rule) => `${formatDate(rule.effectiveFrom)}${rule.effectiveTo ? ` - ${formatDate(rule.effectiveTo)}` : ""}` },
       { key: "status", header: "Status", render: (rule) => (rule.isActive ? "Active" : "Inactive") },
       {
         key: "actions",

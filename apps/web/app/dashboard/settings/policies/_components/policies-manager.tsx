@@ -12,6 +12,7 @@ import {
 } from "@/app/components/ui/form-control";
 import { StatusPill } from "@/app/components/ui/status-pill";
 import { formatEnumLabel } from "@/lib/common";
+import { formatDate } from "@/lib/formatting-context";
 
 type PolicyType = "LEAVE" | "CLAIM" | "TADA" | "PAYROLL" | "TAX";
 type PolicyStatus = "DRAFT" | "ACTIVE" | "RETIRED";
@@ -622,6 +623,3 @@ function getPolicyStatusTone(
   return "muted";
 }
 
-function formatDate(value: string) {
-  return new Date(value).toLocaleDateString();
-}

@@ -2,6 +2,7 @@
 
 import { ReactNode } from "react";
 import { StatusPill } from "@/app/components/ui/status-pill";
+import { formatDateTime as formatResolvedDateTime } from "@/lib/formatting-context";
 
 export function SettingsPanel({
   children,
@@ -78,12 +79,7 @@ export function StatusBadge({ status }: { status: string }) {
 
 export function formatDateTime(value: string | null | undefined) {
   if (!value) return "Not set";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
+  return formatResolvedDateTime(value) || value;
 }
 
 export function parseJsonObject(value: string, fallbackMessage: string) {

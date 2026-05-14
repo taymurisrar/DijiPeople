@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { formatDate as formatResolvedDate } from "@/lib/formatting-context";
 import { EmployeeEducationRecord } from "../types";
 
 type EducationFormState = {
@@ -195,5 +196,5 @@ function Field({
 }
 
 function formatDate(value?: string | null) {
-  return value ? new Date(value).toLocaleDateString() : "Not set";
+  return value ? formatResolvedDate(value) : "Not set";
 }

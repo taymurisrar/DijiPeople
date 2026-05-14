@@ -6,6 +6,7 @@ import { ROLE_KEYS } from "@/lib/security-keys";
 const SETTINGS_ADMIN_ROLES = new Set<string>([
   ROLE_KEYS.GLOBAL_ADMIN,
   ROLE_KEYS.SYSTEM_ADMIN,
+  ROLE_KEYS.SYSTEM_CUSTOMIZER,
 ]);
 
 export function hasSettingsAdministratorRole(user: SessionUser | null) {

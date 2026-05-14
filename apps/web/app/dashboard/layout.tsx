@@ -22,6 +22,7 @@ import { AuthenticatedShellProvider } from "./_components/authenticated-shell-pr
 import { DashboardSidebar } from "./_components/dashboard-sidebar";
 import { DashboardTopbar } from "./_components/dashboard-topbar";
 import { ErrorProvider } from "@/components/errors/error-provider";
+import { ResolvedSettingsProvider } from "./_components/resolved-settings-provider";
 
 export default async function DashboardLayout({
   children,
@@ -147,9 +148,11 @@ export default async function DashboardLayout({
                 null
               }
             />
-            <ErrorProvider user={{ roleKeys: user.roleKeys }}>
-              {children}
-            </ErrorProvider>
+            <ResolvedSettingsProvider initialResolvedSettings={resolvedSettings}>
+              <ErrorProvider user={{ roleKeys: user.roleKeys }}>
+                {children}
+              </ErrorProvider>
+            </ResolvedSettingsProvider>
           </div>
         </div>
       </div>

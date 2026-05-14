@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { EmployeeListItem } from "@/app/dashboard/employees/types";
+import { formatMoney } from "@/lib/formatting-context";
 import { PermissionGate } from "../../_components/permission-gate";
 import { EmployeeCompensationRecord, PayFrequency } from "../types";
 
@@ -121,7 +122,7 @@ export function EmployeeCompensationForm({
           <option value="">Create a new compensation profile</option>
           {compensations.map((compensation) => (
             <option key={compensation.id} value={compensation.id}>
-              {compensation.employee.fullName} · {compensation.currency} {compensation.basicSalary}
+              {compensation.employee.fullName} - {formatMoney(compensation.basicSalary, compensation.currency)}
             </option>
           ))}
         </select>

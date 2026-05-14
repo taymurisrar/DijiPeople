@@ -1,4 +1,5 @@
 import { PERMISSION_KEYS } from "@/lib/security-keys";
+import { formatMoney } from "@/lib/formatting-context";
 import { apiRequestJson } from "@/lib/server-api";
 import { TravelAllowancePolicyRecord } from "../../business-trips/business-trip-types";
 import { requireSettingsPermissions } from "../_lib/require-settings-permission";
@@ -55,7 +56,7 @@ export default async function TravelAllowancePoliciesSettingsPage() {
                     >
                       {rule.allowanceType.replaceAll("_", " ")} /{" "}
                       {rule.calculationBasis.replaceAll("_", " ")} /{" "}
-                      {rule.currencyCode} {rule.amount}
+                      {formatMoney(rule.amount, rule.currencyCode)}
                     </div>
                   ))}
                 </div>

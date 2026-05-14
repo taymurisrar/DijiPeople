@@ -1,11 +1,18 @@
+import {
+  formatDate,
+  formatTime,
+  type ResolvedFormattingContext,
+} from "@/lib/formatting-context";
 import { AttendanceEntryRecord } from "../types";
 import { AttendanceStatusBadge } from "./attendance-status-badge";
 
 export function AttendanceEntriesTable({
   entries,
+  formattingContext,
   showEmployee = false,
 }: {
   entries: AttendanceEntryRecord[];
+  formattingContext?: ResolvedFormattingContext | null;
   showEmployee?: boolean;
 }) {
   if (entries.length === 0) {
@@ -59,13 +66,15 @@ export function AttendanceEntriesTable({
                   </td>
                 ) : null}
                 <td className="px-5 py-4 align-top text-muted">
-                  {new Date(entry.attendanceDate).toLocaleDateString()}
+                  {formatDate(entry.attendanceDate, formattingContext)}
                 </td>
                 <td className="px-5 py-4 align-top text-muted">
                   {formatAttendanceMode(entry.attendanceMode)}
                 </td>
                 <td className="px-5 py-4 align-top text-muted">
-                  {entry.checkInAt ? formatTime(entry.checkInAt) : "Not recorded"}
+                  {entry.checkInAt
+                    ? formatTime(entry.checkInAt, formattingContext)
+                    : "Not recorded"}
                   {entry.isLateCheckIn && entry.lateCheckInMinutes ? (
                     <p className="mt-1 text-xs text-danger">
                       Late by {entry.lateCheckInMinutes} min
@@ -73,7 +82,9 @@ export function AttendanceEntriesTable({
                   ) : null}
                 </td>
                 <td className="px-5 py-4 align-top text-muted">
-                  {entry.checkOutAt ? formatTime(entry.checkOutAt) : "Pending"}
+                  {entry.checkOutAt
+                    ? formatTime(entry.checkOutAt, formattingContext)
+                    : "Pending"}
                   {entry.isLateCheckOut && entry.lateCheckOutMinutes ? (
                     <p className="mt-1 text-xs text-warning">
                       Beyond grace by {entry.lateCheckOutMinutes} min
@@ -108,13 +119,6 @@ export function AttendanceEntriesTable({
       </div>
     </div>
   );
-}
-
-function formatTime(value: string) {
-  return new Date(value).toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
 
 function formatAttendanceMode(value: string) {

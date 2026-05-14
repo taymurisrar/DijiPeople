@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { formatDate } from "@/lib/formatting-context";
 import { EmployeeHistoryRecord } from "../types";
 
 export function EmployeeHistoryManager({
@@ -141,8 +142,4 @@ function Field({
       />
     </label>
   );
-}
-
-function formatDate(value: string) {
-  return new Date(value).toLocaleDateString();
 }

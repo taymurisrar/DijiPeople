@@ -1,3 +1,4 @@
+import { formatDateTime as formatResolvedDateTime } from "@/lib/formatting-context";
 import { AuditLogRecord } from "../types";
 
 type AuditLogTableProps = {
@@ -296,16 +297,7 @@ function formatSnapshotValue(value: unknown): string {
 }
 
 function formatDateTime(value: string) {
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "Invalid date";
-  }
-
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
+  return formatResolvedDateTime(value) || "Invalid date";
 }
 
 function formatAction(value: string) {

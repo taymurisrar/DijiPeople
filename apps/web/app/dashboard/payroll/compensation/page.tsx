@@ -1,6 +1,7 @@
 import { apiRequestJson } from "@/lib/server-api";
 import { TenantResolvedSettingsResponse } from "@/app/dashboard/settings/types";
 import { EmployeeListResponse } from "@/app/dashboard/employees/types";
+import { formatDate, formatMoney } from "@/lib/formatting-context";
 import { AccessDeniedState } from "../../_components/access-denied-state";
 import { getBusinessUnitAccessSummary, hasBusinessUnitScope } from "../../_lib/business-unit-access";
 import { PayrollLayoutShell } from "../_components/payroll-layout-shell";
@@ -72,16 +73,16 @@ export default async function EmployeeCompensationPage() {
                       <p className="mt-1 text-muted">{compensation.employee.employeeCode}</p>
                     </td>
                     <td className="px-5 py-4 text-foreground">
-                      {compensation.currency} {compensation.basicSalary}
+                      {formatMoney(compensation.basicSalary, compensation.currency)}
                     </td>
                     <td className="px-5 py-4 text-muted">
                       {compensation.payFrequency.replaceAll("_", " ")}
                     </td>
                     <td className="px-5 py-4 text-muted">
-                      {new Date(compensation.effectiveDate).toLocaleDateString()}
+                      {formatDate(compensation.effectiveDate)}
                     </td>
                     <td className="px-5 py-4 text-muted">
-                      {compensation.endDate ? new Date(compensation.endDate).toLocaleDateString() : "Open-ended"}
+                      {compensation.endDate ? formatDate(compensation.endDate) : "Open-ended"}
                     </td>
                   </tr>
                 ))}

@@ -28,6 +28,7 @@ async function main() {
 
   for (const tenant of tenants) {
     await permissionBootstrapService.bootstrapTenantRbac(tenant.id);
+    await bootstrapProjectRoles(tenant.id);
   }
 
   console.log(
@@ -43,6 +44,40 @@ async function main() {
       2,
     ),
   );
+}
+
+async function bootstrapProjectRoles(tenantId: string) {
+  const roles = [
+    'Developer',
+    'QA',
+    'BA',
+    'PM',
+    'Consultant',
+    'Designer',
+    'Support Engineer',
+  ];
+
+  for (const [index, name] of roles.entries()) {
+    await prisma.projectRole.upsert({
+      where: {
+        tenantId_code: {
+          tenantId,
+          code: name.toUpperCase().replace(/[^A-Z0-9]+/g, '_'),
+        },
+      },
+      create: {
+        tenantId,
+        name,
+        code: name.toUpperCase().replace(/[^A-Z0-9]+/g, '_'),
+        sortOrder: index + 1,
+      },
+      update: {
+        name,
+        sortOrder: index + 1,
+        isActive: true,
+      },
+    });
+  }
 }
 
 main()

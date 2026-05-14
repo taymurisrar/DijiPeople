@@ -1,4 +1,5 @@
 import { apiRequestJson } from "@/lib/server-api";
+import { formatMoney } from "@/lib/formatting-context";
 import { hasPermission } from "@/lib/permissions";
 import { getSessionUser } from "@/lib/auth";
 import { PERMISSION_KEYS } from "@/lib/security-keys";
@@ -35,10 +36,10 @@ export default async function PayrollPayslipDetailPage({ params }: PageProps) {
         <article className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div className="grid gap-3 md:grid-cols-4">
-              <Summary label="Gross" value={`${payslip.currencyCode} ${payslip.grossEarnings}`} />
-              <Summary label="Deductions" value={`${payslip.currencyCode} ${payslip.totalDeductions}`} />
-              <Summary label="Reimbursements" value={`${payslip.currencyCode} ${payslip.totalReimbursements}`} />
-              <Summary label="Net Pay" value={`${payslip.currencyCode} ${payslip.netPay}`} />
+              <Summary label="Gross" value={formatMoney(payslip.grossEarnings, payslip.currencyCode)} />
+              <Summary label="Deductions" value={formatMoney(payslip.totalDeductions, payslip.currencyCode)} />
+              <Summary label="Reimbursements" value={formatMoney(payslip.totalReimbursements, payslip.currencyCode)} />
+              <Summary label="Net Pay" value={formatMoney(payslip.netPay, payslip.currencyCode)} />
             </div>
             <PayslipActions
               canPublish={hasPermission(
@@ -115,7 +116,7 @@ function LineSection({
             >
               <span className="font-medium text-foreground">{line.label}</span>
               <span>
-                {line.currencyCode} {line.amount}
+                {formatMoney(line.amount, line.currencyCode)}
               </span>
             </div>
           ))

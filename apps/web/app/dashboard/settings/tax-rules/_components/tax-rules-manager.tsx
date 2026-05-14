@@ -4,6 +4,7 @@ import { ReactNode, useMemo, useState } from "react";
 import { ConfirmDialog } from "@/app/components/feedback/confirm-dialog";
 import { DataTable } from "@/app/components/data-table/data-table";
 import { DataTableColumn } from "@/app/components/data-table/types";
+import { formatDate, formatMoney } from "@/lib/formatting-context";
 
 export type EmployeeLevelOption = {
   id: string;
@@ -802,12 +803,8 @@ function toOptionalNumber(value: string) {
 
 function formatRuleAmount(rule: TaxRuleRecord, side: "employee" | "employer") {
   if (rule.calculationMethod === "PERCENTAGE") return `${side === "employee" ? rule.employeeRate ?? "0" : rule.employerRate ?? "0"}%`;
-  if (rule.calculationMethod === "FIXED") return `${rule.currencyCode ?? ""} ${side === "employee" ? rule.fixedEmployeeAmount ?? "0" : rule.fixedEmployerAmount ?? "0"}`.trim();
+  if (rule.calculationMethod === "FIXED") return formatMoney(side === "employee" ? rule.fixedEmployeeAmount ?? "0" : rule.fixedEmployerAmount ?? "0", rule.currencyCode ?? undefined);
   return `${rule.brackets.length} brackets`;
-}
-
-function formatDate(value: string) {
-  return new Date(value).toLocaleDateString();
 }
 
 function toDateInput(value: string) {

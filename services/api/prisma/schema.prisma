@@ -347,6 +347,7 @@ enum TimesheetStatus {
   SUBMITTED
   APPROVED
   REJECTED
+  LOCKED
 }
 
 enum TimesheetEntryType {
@@ -354,14 +355,136 @@ enum TimesheetEntryType {
   ON_LEAVE
   WEEKEND
   HOLIDAY
+  INTERNAL
 }
 
 enum ProjectStatus {
+  DRAFT
   PLANNING
   ACTIVE
   ON_HOLD
   COMPLETED
+  CLOSED
   CANCELLED
+}
+
+enum ProjectBillingType {
+  NON_BILLABLE
+  FIXED_PRICE
+  TIME_AND_MATERIAL
+  RETAINER
+}
+
+enum ProjectAllocationType {
+  PERCENTAGE
+  HOURS
+}
+
+enum ProjectResourceStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum CustomerStatus {
+  ACTIVE
+  INACTIVE
+  PROSPECT
+  ARCHIVED
+}
+
+enum ConfigurationStatus {
+  DRAFT
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum HolidayType {
+  PUBLIC
+  COMPANY
+  OPTIONAL
+  RELIGIOUS
+  REGIONAL
+}
+
+enum HalfDayPeriod {
+  MORNING
+  AFTERNOON
+}
+
+enum WorkWeekModel {
+  FIVE_DAY
+  FIVE_AND_HALF_DAY
+  SIX_DAY
+  ROTATING
+  FLEXIBLE
+  SHIFT_BASED
+}
+
+enum PayCycle {
+  WEEKLY
+  BI_WEEKLY
+  SEMI_MONTHLY
+  MONTHLY
+}
+
+enum WeekendPolicy {
+  FRIDAY_SATURDAY
+  SATURDAY_SUNDAY
+  SUNDAY_ONLY
+  CUSTOM
+}
+
+enum ExchangeRateSource {
+  MANUAL
+  IMPORT
+  API
+  SYSTEM
+}
+
+enum ProjectHealth {
+  GREEN
+  AMBER
+  RED
+  UNKNOWN
+}
+
+enum ProjectRiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ProjectPriority {
+  LOW
+  NORMAL
+  HIGH
+  CRITICAL
+}
+
+enum ProjectDeliveryStatus {
+  NOT_STARTED
+  ON_TRACK
+  AT_RISK
+  DELAYED
+  DELIVERED
+}
+
+enum ProjectBillingStatus {
+  NOT_BILLABLE
+  NOT_STARTED
+  IN_PROGRESS
+  READY_TO_BILL
+  BILLED
+  ON_HOLD
+}
+
+enum ProjectApprovalMode {
+  MANAGER
+  PROJECT_MANAGER
+  BOTH
+  NONE
 }
 
 enum JobOpeningStatus {
@@ -886,16 +1009,22 @@ model Tenant {
   approvalMatrices               ApprovalMatrix[]
   leavePolicyAssignments         LeavePolicyAssignment[]
   workSchedules                  WorkSchedule[]
+  workScheduleDays               WorkScheduleDay[]
+  shiftTemplates                 ShiftTemplate[]
   attendanceEntries              AttendanceEntry[]
   attendancePolicy               AttendancePolicy?
   attendanceImportBatches        AttendanceImportBatch[]
   attendanceIntegrationConfigs   AttendanceIntegrationConfig[]
   holidayCalendars               HolidayCalendar[]
+  holidays                       Holiday[]
+  holidayCalendarAssignments     HolidayCalendarAssignment[]
   timesheets                     Timesheet[]
   timesheetEntries               TimesheetEntry[]
   timesheetImportBatches         TimesheetImportBatch[]
   processingCycles               ProcessingCycle[]
+  customers                      Customer[]
   projects                       Project[]
+  projectRoles                   ProjectRole[]
   projectAssignments             ProjectAssignment[]
   jobOpenings                    JobOpening[]
   candidates                     Candidate[]
@@ -915,6 +1044,9 @@ model Tenant {
   payrollCycles                  PayrollCycle[]
   payrollRecords                 PayrollRecord[]
   payrollCalendars               PayrollCalendar[]
+  payrollRegions                 PayrollRegion[]
+  currencyConfigurations         CurrencyConfiguration[]
+  exchangeRateSnapshots          ExchangeRateSnapshot[]
   payrollPeriods                 PayrollPeriod[]
   payrollRuns                    PayrollRun[]
   payrollRunEmployees            PayrollRunEmployee[]
@@ -1277,6 +1409,7 @@ model User {
   passwordHash               String
   status                     UserStatus                 @default(ACTIVE)
   isServiceAccount           Boolean                    @default(false)
+  preferencesJson            Json?
   lastLoginAt                DateTime?
   createdAt                  DateTime                   @default(now())
   updatedAt                  DateTime                   @updatedAt
@@ -1331,6 +1464,12 @@ model Organization {
   parentOrganization   Organization?  @relation("OrganizationHierarchy", fields: [parentOrganizationId, tenantId], references: [id, tenantId], onDelete: Restrict)
   childOrganizations   Organization[] @relation("OrganizationHierarchy")
   businessUnits        BusinessUnit[]
+  projects             Project[]
+  holidayCalendars     HolidayCalendar[]
+  holidayCalendarAssignments HolidayCalendarAssignment[]
+  workSchedules        WorkSchedule[]
+  payrollRegions       PayrollRegion[]
+  currencyConfigurations CurrencyConfiguration[]
 
   @@unique([id, tenantId])
   @@unique([tenantId, name])
@@ -1364,6 +1503,11 @@ model BusinessUnit {
   timesheets           Timesheet[]
   payrollCycles        PayrollCycle[]
   payrollCalendars     PayrollCalendar[]
+  holidayCalendars     HolidayCalendar[]
+  holidayCalendarAssignments HolidayCalendarAssignment[]
+  workSchedules        WorkSchedule[]
+  payrollRegions       PayrollRegion[]
+  currencyConfigurations CurrencyConfiguration[]
   timePayrollPolicies  TimePayrollPolicy[]
   overtimePolicies     OvertimePolicy[]
   processingCycles     ProcessingCycle[]
@@ -1748,6 +1892,7 @@ model Employee {
   timesheets                     Timesheet[]
   timesheetEntries               TimesheetEntry[]
   projectAssignments             ProjectAssignment[]
+  projectResourceApprovals       ProjectAssignment[]             @relation("ProjectResourceApprovalManager")
   onboardings                    EmployeeOnboarding[]
   documentLinks                  DocumentLink[]
   payrollRecords                 PayrollRecord[]
@@ -2226,26 +2371,99 @@ model LeaveApprovalStep {
 }
 
 model WorkSchedule {
-  id                String            @id @default(uuid())
-  tenantId          String
-  name              String
-  weeklyWorkDays    WorkWeekday[]
-  standardStartTime String
-  standardEndTime   String
-  graceMinutes      Int?
-  isDefault         Boolean           @default(false)
-  isActive          Boolean           @default(true)
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
-  createdById       String?
-  updatedById       String?
-  tenant            Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  attendanceEntries AttendanceEntry[]
+  id                   String             @id @default(uuid())
+  tenantId             String
+  organizationId       String?
+  businessUnitId       String?
+  projectId            String?
+  name                 String
+  code                 String?
+  description          String?
+  timezone             String             @default("UTC")
+  workWeekModel        WorkWeekModel      @default(FIVE_DAY)
+  weeklyWorkDays       WorkWeekday[]
+  standardStartTime    String
+  standardEndTime      String
+  minHoursPerDay       Decimal?           @db.Decimal(6, 2)
+  standardHoursPerWeek Decimal?           @db.Decimal(6, 2)
+  flexibleHours        Boolean            @default(false)
+  shiftBased           Boolean            @default(false)
+  graceMinutes         Int?
+  isDefault            Boolean            @default(false)
+  isActive             Boolean            @default(true)
+  status               ConfigurationStatus @default(ACTIVE)
+  effectiveStartDate   DateTime?
+  effectiveEndDate     DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  createdById          String?
+  updatedById          String?
+  tenant               Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  organization         Organization?       @relation(fields: [organizationId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  businessUnit         BusinessUnit?       @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  scopedProject        Project?            @relation("ScopedProjectWorkSchedules", fields: [projectId], references: [id], onDelete: SetNull)
+  days                 WorkScheduleDay[]
+  shiftTemplates       ShiftTemplate[]
+  attendanceEntries    AttendanceEntry[]
+  configuredProjects   Project[]           @relation("ProjectWorkSchedule")
+  payrollRegions       PayrollRegion[]
 
+  @@unique([tenantId, code])
   @@unique([tenantId, name])
   @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, businessUnitId])
+  @@index([tenantId, projectId])
+  @@index([tenantId, status])
   @@index([tenantId, isActive])
   @@index([tenantId, isDefault, isActive])
+}
+
+model WorkScheduleDay {
+  id             String       @id @default(uuid())
+  tenantId       String
+  workScheduleId String
+  dayOfWeek      WorkWeekday
+  isWorkingDay   Boolean      @default(true)
+  startTime      String?
+  endTime        String?
+  breakMinutes   Int          @default(0)
+  expectedHours  Decimal?     @db.Decimal(6, 2)
+  rotationWeek   Int?
+  sortOrder      Int          @default(0)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  tenant         Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  workSchedule   WorkSchedule @relation(fields: [workScheduleId], references: [id], onDelete: Cascade)
+
+  @@unique([workScheduleId, dayOfWeek, rotationWeek])
+  @@index([tenantId, workScheduleId])
+  @@index([tenantId, dayOfWeek])
+}
+
+model ShiftTemplate {
+  id             String              @id @default(uuid())
+  tenantId       String
+  workScheduleId String?
+  name           String
+  code           String
+  description    String?
+  timezone       String              @default("UTC")
+  startTime      String
+  endTime        String
+  breakMinutes   Int                 @default(0)
+  expectedHours  Decimal             @db.Decimal(6, 2)
+  status         ConfigurationStatus @default(ACTIVE)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  createdById    String?
+  updatedById    String?
+  tenant         Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  workSchedule   WorkSchedule?       @relation(fields: [workScheduleId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, code])
+  @@index([tenantId, workScheduleId])
+  @@index([tenantId, status])
 }
 
 model AttendanceEntry {
@@ -2350,21 +2568,100 @@ model AttendanceIntegrationConfig {
 }
 
 model HolidayCalendar {
-  id          String   @id @default(uuid())
-  tenantId    String
-  name        String
-  date        DateTime
-  description String?
-  isOptional  Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  createdById String?
-  updatedById String?
-  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id                 String                      @id @default(uuid())
+  tenantId           String
+  organizationId     String?
+  businessUnitId     String?
+  projectId          String?
+  name               String
+  code               String?
+  description        String?
+  timezone           String                      @default("UTC")
+  countryCode        String?
+  regionCode         String?
+  isDefault          Boolean                     @default(false)
+  status             ConfigurationStatus         @default(ACTIVE)
+  effectiveStartDate DateTime?
+  effectiveEndDate   DateTime?
+  date               DateTime?                   @map("date")
+  isOptional         Boolean                     @default(false)
+  createdAt          DateTime                    @default(now())
+  updatedAt          DateTime                    @updatedAt
+  createdById        String?
+  updatedById        String?
+  tenant             Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  organization       Organization?               @relation(fields: [organizationId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  businessUnit       BusinessUnit?               @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  scopedProject      Project?                    @relation("ScopedProjectHolidayCalendars", fields: [projectId], references: [id], onDelete: SetNull)
+  holidays           Holiday[]
+  assignments        HolidayCalendarAssignment[]
+  configuredProjects Project[]                   @relation("ProjectHolidayCalendar")
+  payrollRegions     PayrollRegion[]
 
-  @@unique([tenantId, name, date])
+  @@unique([tenantId, code])
+  @@unique([tenantId, name])
   @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, businessUnitId])
+  @@index([tenantId, projectId])
+  @@index([tenantId, status])
+  @@index([tenantId, isDefault, status])
   @@index([tenantId, date])
+}
+
+model Holiday {
+  id                String              @id @default(uuid())
+  tenantId          String
+  holidayCalendarId String
+  name              String
+  description       String?
+  holidayDate       DateTime
+  type              HolidayType         @default(PUBLIC)
+  isRecurring       Boolean             @default(false)
+  recurrenceRule    String?
+  isHalfDay         Boolean             @default(false)
+  halfDayPeriod     HalfDayPeriod?
+  appliesToAll      Boolean             @default(true)
+  status            ConfigurationStatus @default(ACTIVE)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  createdById       String?
+  updatedById       String?
+  tenant            Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  holidayCalendar   HolidayCalendar     @relation(fields: [holidayCalendarId], references: [id], onDelete: Cascade)
+
+  @@unique([holidayCalendarId, holidayDate, name])
+  @@index([tenantId, holidayDate])
+  @@index([tenantId, holidayCalendarId])
+  @@index([tenantId, status])
+}
+
+model HolidayCalendarAssignment {
+  id                String              @id @default(uuid())
+  tenantId          String
+  holidayCalendarId String
+  organizationId    String?
+  businessUnitId    String?
+  projectId         String?
+  isDefault         Boolean             @default(false)
+  status            ConfigurationStatus @default(ACTIVE)
+  effectiveStartDate DateTime?
+  effectiveEndDate   DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  createdById       String?
+  updatedById       String?
+  tenant            Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  holidayCalendar   HolidayCalendar     @relation(fields: [holidayCalendarId], references: [id], onDelete: Cascade)
+  organization      Organization?       @relation(fields: [organizationId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  businessUnit      BusinessUnit?       @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  project           Project?            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, holidayCalendarId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, businessUnitId])
+  @@index([tenantId, projectId])
+  @@index([tenantId, status])
 }
 
 model Timesheet {
@@ -2445,6 +2742,10 @@ model TimesheetEntry {
   note           String?
   description    String?
   projectId      String?
+  activityCode   String?
+  billableFlag   Boolean             @default(false)
+  timezone       String?
+  currencyCode   String?
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
   createdById    String?
@@ -2460,31 +2761,115 @@ model TimesheetEntry {
   @@index([tenantId, employeeId, date])
   @@index([tenantId, timesheetId])
   @@index([tenantId, timesheetId, date])
+  @@index([tenantId, projectId, date])
+}
+
+model Customer {
+  id             String         @id @default(uuid())
+  tenantId       String
+  name           String
+  code           String
+  industry       String?
+  contactName    String?
+  contactEmail   String?
+  contactPhone   String?
+  billingEmail   String?
+  websiteUrl     String?
+  address        String?
+  status         CustomerStatus @default(ACTIVE)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  createdById    String?
+  updatedById    String?
+  tenant         Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  projects       Project[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([tenantId, status])
+}
+
+model ProjectRole {
+  id          String   @id @default(uuid())
+  tenantId    String
+  name        String
+  code        String
+  description String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  updatedById String?
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resources   ProjectAssignment[]
+
+  @@unique([tenantId, code])
+  @@unique([tenantId, name])
+  @@index([tenantId, isActive])
 }
 
 model Project {
-  id               String              @id @default(uuid())
-  tenantId         String
-  businessUnitId   String?
-  name             String
-  code             String?
-  description      String?
-  startDate        DateTime?
-  endDate          DateTime?
-  status           ProjectStatus       @default(PLANNING)
-  createdAt        DateTime            @default(now())
-  updatedAt        DateTime            @updatedAt
-  createdById      String?
-  updatedById      String?
-  tenant           Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  businessUnit     BusinessUnit?       @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
-  assignments      ProjectAssignment[]
-  timesheetEntries TimesheetEntry[]
+  id                        String                @id @default(uuid())
+  tenantId                  String
+  organizationId            String?
+  businessUnitId            String?
+  customerId                String?
+  projectManagerEmployeeId String?
+  deliveryManagerEmployeeId String?
+  name                      String
+  code                      String?
+  description               String?
+  timezone                  String?
+  currencyCode              String?
+  holidayCalendarId         String?
+  workScheduleId            String?
+  billingType               ProjectBillingType    @default(NON_BILLABLE)
+  budgetHours               Decimal?              @db.Decimal(10, 2)
+  budgetAmount              Decimal?              @db.Decimal(14, 2)
+  budgetCurrencyCode        String?
+  consumedAmount            Decimal?              @db.Decimal(14, 2)
+  burnRate                  Decimal?              @db.Decimal(14, 2)
+  plannedHours              Decimal?              @db.Decimal(10, 2)
+  actualHours               Decimal?              @db.Decimal(10, 2)
+  remainingHours            Decimal?              @db.Decimal(10, 2)
+  projectHealth             ProjectHealth         @default(UNKNOWN)
+  riskLevel                 ProjectRiskLevel      @default(MEDIUM)
+  priority                  ProjectPriority       @default(NORMAL)
+  deliveryStatus            ProjectDeliveryStatus @default(NOT_STARTED)
+  billingStatus             ProjectBillingStatus  @default(NOT_STARTED)
+  allowTimesheets           Boolean               @default(true)
+  requireApproval           Boolean               @default(false)
+  approvalMode              ProjectApprovalMode   @default(MANAGER)
+  startDate                 DateTime?
+  endDate                   DateTime?
+  status                    ProjectStatus         @default(PLANNING)
+  createdAt                 DateTime              @default(now())
+  updatedAt                 DateTime              @updatedAt
+  createdById               String?
+  updatedById               String?
+  tenant                    Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  organization              Organization?         @relation(fields: [organizationId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  businessUnit              BusinessUnit?         @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  customer                  Customer?             @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  holidayCalendar           HolidayCalendar?      @relation("ProjectHolidayCalendar", fields: [holidayCalendarId], references: [id], onDelete: SetNull)
+  workSchedule              WorkSchedule?         @relation("ProjectWorkSchedule", fields: [workScheduleId], references: [id], onDelete: SetNull)
+  scopedHolidayCalendars    HolidayCalendar[]     @relation("ScopedProjectHolidayCalendars")
+  scopedWorkSchedules       WorkSchedule[]        @relation("ScopedProjectWorkSchedules")
+  holidayAssignments        HolidayCalendarAssignment[]
+  assignments               ProjectAssignment[]
+  timesheetEntries          TimesheetEntry[]
 
-  @@unique([tenantId, name])
   @@unique([tenantId, code])
+  @@unique([tenantId, customerId, code])
   @@index([tenantId])
+  @@index([tenantId, organizationId])
   @@index([tenantId, businessUnitId])
+  @@index([tenantId, customerId])
+  @@index([tenantId, timezone])
+  @@index([tenantId, currencyCode])
+  @@index([tenantId, holidayCalendarId])
+  @@index([tenantId, workScheduleId])
   @@index([tenantId, status])
 }
 
@@ -2493,9 +2878,19 @@ model ProjectAssignment {
   tenantId          String
   projectId         String
   employeeId        String
+  projectRoleId     String?
   roleOnProject     String?
   allocationPercent Int?
+  allocationHours   Decimal? @db.Decimal(8, 2)
+  allocationType    ProjectAllocationType @default(PERCENTAGE)
   billableFlag      Boolean  @default(false)
+  costRateAmount    Decimal? @db.Decimal(14, 2)
+  billingRateAmount Decimal? @db.Decimal(14, 2)
+  currencyCode      String?
+  approvalManagerEmployeeId String?
+  startDate         DateTime?
+  endDate           DateTime?
+  status            ProjectResourceStatus @default(ACTIVE)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   createdById       String?
@@ -2503,11 +2898,15 @@ model ProjectAssignment {
   tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   project           Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   employee          Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  projectRole       ProjectRole? @relation(fields: [projectRoleId], references: [id], onDelete: SetNull)
+  approvalManager   Employee? @relation("ProjectResourceApprovalManager", fields: [approvalManagerEmployeeId], references: [id], onDelete: SetNull)
 
   @@unique([projectId, employeeId])
   @@index([tenantId])
   @@index([tenantId, projectId])
   @@index([tenantId, employeeId])
+  @@index([tenantId, status])
+  @@index([tenantId, startDate, endDate])
 }
 
 model JobOpening {
@@ -3474,6 +3873,86 @@ model PayrollCalendar {
   @@index([tenantId, isActive])
 }
 
+model PayrollRegion {
+  id                String              @id @default(uuid())
+  tenantId          String
+  organizationId    String?
+  businessUnitId    String?
+  name              String
+  code              String
+  currencyCode      String
+  reportingCurrencyCode String?
+  timezone          String              @default("UTC")
+  payCycle          PayCycle            @default(MONTHLY)
+  taxRegion         String?
+  overtimeRulesJson Json?
+  weekendPolicy     WeekendPolicy       @default(SATURDAY_SUNDAY)
+  weekendDays       WorkWeekday[]
+  holidayCalendarId String?
+  workScheduleId    String?
+  isDefault         Boolean             @default(false)
+  status            ConfigurationStatus @default(ACTIVE)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  createdById       String?
+  updatedById       String?
+  tenant            Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  organization      Organization?       @relation(fields: [organizationId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  businessUnit      BusinessUnit?       @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  holidayCalendar   HolidayCalendar?    @relation(fields: [holidayCalendarId], references: [id], onDelete: SetNull)
+  workSchedule      WorkSchedule?       @relation(fields: [workScheduleId], references: [id], onDelete: SetNull)
+
+  @@unique([tenantId, code])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, businessUnitId])
+  @@index([tenantId, status])
+  @@index([tenantId, isDefault])
+}
+
+model CurrencyConfiguration {
+  id                    String              @id @default(uuid())
+  tenantId              String
+  organizationId        String?
+  businessUnitId        String?
+  transactionalCurrency String
+  reportingCurrency     String
+  effectiveStartDate    DateTime
+  effectiveEndDate      DateTime?
+  status                ConfigurationStatus @default(ACTIVE)
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  createdById           String?
+  updatedById           String?
+  tenant                Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  organization          Organization?       @relation(fields: [organizationId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  businessUnit          BusinessUnit?       @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
+
+  @@index([tenantId, organizationId])
+  @@index([tenantId, businessUnitId])
+  @@index([tenantId, status])
+  @@index([tenantId, effectiveStartDate, effectiveEndDate])
+}
+
+model ExchangeRateSnapshot {
+  id            String             @id @default(uuid())
+  tenantId      String
+  fromCurrency  String
+  toCurrency    String
+  rate          Decimal            @db.Decimal(18, 8)
+  effectiveDate DateTime
+  source        ExchangeRateSource @default(MANUAL)
+  isManual      Boolean            @default(true)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  createdById   String?
+  updatedById   String?
+  tenant        Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, fromCurrency, toCurrency, effectiveDate])
+  @@index([tenantId, fromCurrency, toCurrency, effectiveDate])
+  @@index([tenantId, source])
+}
+
 model PayrollPeriod {
   id                String              @id @default(uuid())
   tenantId          String
@@ -4321,10 +4800,16 @@ model EmployeeCompensationComponent {
 model AuditLog {
   id             String   @id @default(uuid())
   tenantId       String
+  organizationId String?
+  businessUnitId String?
   actorUserId    String?
   action         String
   entityType     String
   entityId       String
+  requestId      String?
+  traceId        String?
+  sourceModule   String?
+  scope          Json?
   beforeSnapshot Json?
   afterSnapshot  Json?
   createdAt      DateTime @default(now())
@@ -4336,6 +4821,8 @@ model AuditLog {
   @@index([tenantId, action, createdAt])
   @@index([tenantId, entityType, createdAt])
   @@index([tenantId, actorUserId, createdAt])
+  @@index([tenantId, requestId])
+  @@index([tenantId, sourceModule, createdAt])
 }
 
 model ErrorLog {
