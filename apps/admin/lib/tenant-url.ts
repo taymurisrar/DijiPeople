@@ -25,7 +25,7 @@ export function buildTenantPortalUrl(
     ? new URL(`${protocol}://${normalizedSlug}.${rootDomain}${normalizePath(path)}`)
     : new URL(
         normalizePath(path),
-        process.env.NEXT_PUBLIC_WEB_APP_ORIGIN || "http://localhost:3001",
+        process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001",
       );
 
   if (!isProduction) {
