@@ -4,7 +4,10 @@ export function buildTenantLoginUrl(slug: string) {
   return buildTenantPortalUrl(slug, "/login");
 }
 
-export function buildTenantActivationUrl(slug: string, token?: string | null) {
+export function buildTenantActivationUrl(
+  slug: string,
+  token?: string | null,
+) {
   return buildTenantPortalUrl(slug, "/activate", {
     token,
   });
@@ -16,17 +19,32 @@ export function buildTenantPortalUrl(
   query?: Record<string, QueryValue>,
 ) {
   const normalizedSlug = slug.trim().toLowerCase();
-  const appEnv = process.env.NEXT_PUBLIC_APP_ENV;
-  const rootDomain = stripProtocol(process.env.NEXT_PUBLIC_WEB_ROOT_DOMAIN ?? "");
-  const protocol =
-    process.env.NEXT_PUBLIC_WEB_PROTOCOL?.replace(/:$/, "") || "https";
-  const isProduction = appEnv === "production" && rootDomain.length > 0;
+
+  const appEnv =
+    process.env.NEXT_PUBLIC_APP_ENV ??
+    process.env.NODE_ENV ??
+    "development";
+
+  const appUrl =
+    process.env.NEXT_PUBLIC_WEB_URL ??
+    process.env.NEXT_PUBLIC_APP_URL ??
+    "http://localhost:3001";
+
+  const parsedUrl = new URL(appUrl);
+
+  const protocol = parsedUrl.protocol.replace(":", "");
+  const hostname = parsedUrl.hostname;
+
+  const isProduction =
+    appEnv === "production" &&
+    !hostname.includes("localhost") &&
+    !hostname.includes("127.0.0.1");
+
   const url = isProduction
-    ? new URL(`${protocol}://${normalizedSlug}.${rootDomain}${normalizePath(path)}`)
-    : new URL(
-        normalizePath(path),
-        process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001",
-      );
+    ? new URL(
+        `${protocol}://${normalizedSlug}.${stripWww(hostname)}${normalizePath(path)}`,
+      )
+    : new URL(normalizePath(path), appUrl);
 
   if (!isProduction) {
     url.searchParams.set("tenant", normalizedSlug);
@@ -45,6 +63,6 @@ function normalizePath(path: string) {
   return path.startsWith("/") ? path : `/${path}`;
 }
 
-function stripProtocol(value: string) {
-  return value.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "");
+function stripWww(value: string) {
+  return value.replace(/^www\./, "");
 }

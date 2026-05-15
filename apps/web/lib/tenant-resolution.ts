@@ -52,8 +52,10 @@ export function getTenantHintFromRequest(input: {
   cookieTenant?: string | null;
 }): TenantHint {
   const queryTenant = input.queryTenant?.trim() ?? "";
+
   if (queryTenant) {
     const type = looksLikeTenantCode(queryTenant) ? "tenantCode" : "slug";
+
     return {
       type,
       value:
@@ -65,11 +67,13 @@ export function getTenantHintFromRequest(input: {
   }
 
   const hostHint = getTenantHintFromHost(input.host);
+
   if (hostHint.type !== "generic") {
     return hostHint;
   }
 
   const cookieTenant = normalizeTenantSlug(input.cookieTenant);
+
   if (cookieTenant) {
     return {
       type: "slug",
@@ -78,26 +82,50 @@ export function getTenantHintFromRequest(input: {
     };
   }
 
-  return { type: "generic", value: null, source: "fallback" };
+  return {
+    type: "generic",
+    value: null,
+    source: "fallback",
+  };
 }
 
 export function getTenantHintFromHost(host?: string | null): TenantHint {
   const normalizedHost = normalizeHost(host);
-  if (!normalizedHost || normalizedHost.startsWith("localhost")) {
-    return { type: "generic", value: null, source: "fallback" };
+
+  if (
+    !normalizedHost ||
+    normalizedHost === "localhost" ||
+    normalizedHost === "127.0.0.1"
+  ) {
+    return {
+      type: "generic",
+      value: null,
+      source: "fallback",
+    };
   }
 
-  const rootDomain = normalizeHost(process.env.NEXT_PUBLIC_WEB_ROOT_DOMAIN);
-  const commonLoginHost = normalizeHost(
-    process.env.NEXT_PUBLIC_COMMON_LOGIN_HOST,
+  const appHost = normalizeHost(process.env.NEXT_PUBLIC_APP_URL);
+  const adminHost = normalizeHost(process.env.NEXT_PUBLIC_ADMIN_URL);
+  const landingHost = normalizeHost(process.env.NEXT_PUBLIC_LANDING_URL);
+  const apiHost = getHostFromApiBaseUrl(process.env.NEXT_PUBLIC_API_BASE_URL);
+
+  const knownGenericHosts = new Set(
+    [appHost, adminHost, landingHost, apiHost].filter(Boolean),
   );
 
-  if (commonLoginHost && normalizedHost === commonLoginHost) {
-    return { type: "generic", value: null, source: "fallback" };
+  if (knownGenericHosts.has(normalizedHost)) {
+    return {
+      type: "generic",
+      value: null,
+      source: "fallback",
+    };
   }
+
+  const rootDomain = getRootDomainFromAppUrl(process.env.NEXT_PUBLIC_APP_URL);
 
   if (rootDomain && normalizedHost.endsWith(`.${rootDomain}`)) {
     const subdomain = normalizedHost.slice(0, -`.${rootDomain}`.length);
+
     if (
       subdomain &&
       !subdomain.includes(".") &&
@@ -110,7 +138,11 @@ export function getTenantHintFromHost(host?: string | null): TenantHint {
       };
     }
 
-    return { type: "generic", value: null, source: "fallback" };
+    return {
+      type: "generic",
+      value: null,
+      source: "fallback",
+    };
   }
 
   return {
@@ -123,6 +155,7 @@ export function getTenantHintFromHost(host?: string | null): TenantHint {
 export function resolveTenantSlugFromRequest(input: {
   host?: string | null;
   queryTenant?: string | null;
+  cookieTenant?: string | null;
 }) {
   const hint = getTenantHintFromRequest(input);
   return hint.type === "slug" ? hint.value ?? "" : "";
@@ -150,4 +183,33 @@ export function normalizeTenantSlug(value?: string | null) {
 
 function looksLikeTenantCode(value: string) {
   return /^TEN-\d{6,}$/i.test(value.trim());
+}
+
+function getHostFromApiBaseUrl(value?: string | null) {
+  try {
+    return normalizeHost(new URL(value ?? "").host);
+  } catch {
+    return "";
+  }
+}
+
+function getRootDomainFromAppUrl(value?: string | null) {
+  const host = normalizeHost(value);
+
+  if (
+    !host ||
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    host.endsWith(".localhost")
+  ) {
+    return "";
+  }
+
+  const parts = host.split(".");
+
+  if (parts.length <= 2) {
+    return host;
+  }
+
+  return parts.slice(-2).join(".");
 }
