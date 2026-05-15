@@ -121,12 +121,18 @@ export function EmailTemplateEditor({
         sampleVariables,
         "Test variables must be a JSON object.",
       );
-      await testSendEmailTemplate(template.id, {
+      const result = await testSendEmailTemplate(template.id, {
         recipient,
         variables: variablesPayload,
         dryRun,
       });
-      setMessage(dryRun ? "Dry run completed and logged." : "Test email sent.");
+      setMessage(
+        dryRun
+          ? "Dry run completed and logged."
+          : result.providerType === "CONSOLE"
+            ? "Console test succeeded. Check server logs for the rendered email."
+            : "Test email sent.",
+      );
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to test template.");

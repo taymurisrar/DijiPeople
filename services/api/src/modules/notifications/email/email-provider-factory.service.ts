@@ -30,9 +30,20 @@ export class EmailProviderFactory {
   ) {}
 
   async resolveProvider(tenantId: string): Promise<ResolvedEmailProvider | null> {
-    const tenantProvider = await this.repository.findDefaultProvider({
-      tenantId,
-    });
+    const enabledTenantProviders =
+      await this.repository.listEnabledProviders(tenantId);
+    const tenantProvider =
+      enabledTenantProviders.find((provider) => provider.isDefault) ??
+      enabledTenantProviders.find(
+        (provider) =>
+          provider.providerType !== EmailProviderType.CONSOLE &&
+          provider.providerType !== EmailProviderType.DEV,
+      ) ??
+      enabledTenantProviders.find(
+        (provider) =>
+          provider.providerType === EmailProviderType.CONSOLE ||
+          provider.providerType === EmailProviderType.DEV,
+      );
 
     if (tenantProvider) {
       return this.fromTenantProvider(tenantProvider);

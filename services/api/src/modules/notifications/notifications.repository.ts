@@ -304,6 +304,16 @@ export class NotificationsRepository {
     });
   }
 
+  listEnabledProviders(tenantId: string, db: PrismaDb = this.prisma) {
+    return db.emailProviderSetting.findMany({
+      where: {
+        tenantId,
+        enabled: true,
+      },
+      orderBy: [{ isDefault: 'desc' }, { updatedAt: 'desc' }],
+    });
+  }
+
   listProviderSettings(tenantId: string, db: PrismaDb = this.prisma) {
     return db.emailProviderSetting.findMany({
       where: { tenantId },

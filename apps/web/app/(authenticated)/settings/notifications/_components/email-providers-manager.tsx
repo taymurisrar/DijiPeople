@@ -97,10 +97,13 @@ export function EmailProvidersManager({
     }
     setBusy("save");
     try {
-      const configuration = parseJsonObject(
-        form.configuration,
-        "Configuration must be a JSON object.",
-      );
+      const configuration =
+        form.providerType === "CONSOLE"
+          ? {}
+          : parseJsonObject(
+              form.configuration,
+              "Configuration must be a JSON object.",
+            );
       const body = {
         providerType: form.providerType,
         providerName: form.providerName,
@@ -162,6 +165,11 @@ export function EmailProvidersManager({
         description="Configuration JSON is sent to the backend as-is. Masked secrets remain protected by backend merge rules."
       >
         <form className="grid gap-4" onSubmit={save}>
+          {form.providerType === "CONSOLE" ? (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              Console provider does not send real emails. Rendered emails are written to server logs. Use only for development, staging, or temporary production bootstrap.
+            </div>
+          ) : null}
           <div className="grid gap-4 md:grid-cols-2">
             <Field label="Provider type" required>
               <select
@@ -269,19 +277,21 @@ export function EmailProvidersManager({
               </label>
             </div>
           </div>
-          <Field label="Configuration JSON" required>
-            <textarea
-              className={`${codeInputClassName} min-h-[180px]`}
-              disabled={!canManage}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  configuration: event.target.value,
-                }))
-              }
-              value={form.configuration}
-            />
-          </Field>
+          {form.providerType !== "CONSOLE" ? (
+            <Field label="Configuration JSON" required>
+              <textarea
+                className={`${codeInputClassName} min-h-[180px]`}
+                disabled={!canManage}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    configuration: event.target.value,
+                  }))
+                }
+                value={form.configuration}
+              />
+            </Field>
+          ) : null}
           <div className="flex flex-wrap gap-3">
             <Button disabled={!canManage} loading={busy === "save"} type="submit">
               Save Provider

@@ -1336,10 +1336,14 @@ export class EmployeeProfilesService {
       templateKey: 'AUTH_PASSWORD_RESET',
       recipient: input.recipientEmail,
       variables: {
+        firstName: input.fullName.trim().split(/\s+/)[0] || '',
+        name: input.fullName,
+        email: input.recipientEmail,
         tenantName: tenant?.name ?? branding.brandName ?? 'DijiPeople',
         appName: branding.appTitle || 'DijiPeople',
         recipientName: input.fullName,
         resetUrl: input.resetLink,
+        expiresIn: '24 hours',
         expiresAt: input.expiresAt.toISOString(),
         supportEmail:
           branding.supportEmail ||

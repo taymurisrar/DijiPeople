@@ -26,6 +26,7 @@
     "prisma:studio": "prisma studio",
     "seed:admin": "ts-node prisma/seed-admin.ts",
     "seed:system": "ts-node prisma/seed-system.ts",
+    "seed:config": "ts-node prisma/seed-config.ts",
     "seed:demo": "ts-node prisma/seed-demo.ts",
     "seed:payroll-flow": "ts-node prisma/seed-payroll-flow.ts",
     "seed:all": "npm --workspace api run seed:system && npm --workspace api run seed:admin && npm --workspace api run seed:demo && npm --workspace api run seed:payroll-flow",

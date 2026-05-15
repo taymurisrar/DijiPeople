@@ -87,6 +87,17 @@ export type EmailDeliveryLog = {
   metadata: unknown;
 };
 
+export type SendTemplateEmailResult = {
+  sent: boolean;
+  dryRun: boolean;
+  skipped: boolean;
+  status: EmailDeliveryStatus;
+  providerType: EmailProviderType | null;
+  providerMessageId?: string | null;
+  deliveryLogId: string;
+  rendered: RenderedTemplate;
+};
+
 export type InAppNotification = {
   id: string;
   eventCode: string;
@@ -205,7 +216,7 @@ export const previewEmailTemplate = (
     body: JSON.stringify({ variables }),
   });
 export const testSendEmailTemplate = (id: string, body: unknown) =>
-  requestJson(`/email-templates/${id}/test-send`, {
+  requestJson<SendTemplateEmailResult>(`/email-templates/${id}/test-send`, {
     method: "POST",
     body: JSON.stringify(body),
   });

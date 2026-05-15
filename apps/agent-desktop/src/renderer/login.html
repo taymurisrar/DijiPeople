@@ -3,9 +3,12 @@
 
 <head>
   <meta charset="UTF-8" />
+
   <meta http-equiv="Content-Security-Policy"
     content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self';" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <title>DijiPeople Agent</title>
 
   <style>
@@ -14,28 +17,38 @@
     }
 
     :root {
-      --bg: #f5f7fb;
-      --card: #ffffff;
-      --text: #111827;
-      --muted: #667085;
-      --border: #d0d5dd;
-      --primary: #1769e0;
-      --primary-hover: #145ac0;
-      --danger: #b42318;
-      --danger-bg: #fef3f2;
-      --danger-border: #fecdca;
-      --shadow: 0 24px 60px rgba(16, 24, 40, 0.12);
+      --bg: #081120;
+      --card: rgba(15, 23, 42, 0.88);
+      --card-border: rgba(255, 255, 255, 0.08);
+
+      --text: #f8fafc;
+      --muted: #94a3b8;
+
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+
+      --success: #22c55e;
+      --danger: #ef4444;
+
+      --shadow:
+        0 10px 40px rgba(0, 0, 0, 0.35),
+        0 0 80px rgba(37, 99, 235, 0.12);
+
+      --input-bg: rgba(255, 255, 255, 0.04);
+      --input-border: rgba(255, 255, 255, 0.08);
+
+      --radius: 24px;
     }
 
     body {
       margin: 0;
       min-height: 100vh;
-      display: grid;
-      place-items: center;
-      background:
-        radial-gradient(circle at top left, rgba(23, 105, 224, 0.12), transparent 36%),
-        var(--bg);
-      color: var(--text);
+      overflow: hidden;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
       font-family:
         Inter,
         ui-sans-serif,
@@ -44,61 +57,157 @@
         BlinkMacSystemFont,
         "Segoe UI",
         sans-serif;
+
+      color: var(--text);
+
+      background:
+        radial-gradient(circle at top left,
+          rgba(37, 99, 235, 0.30),
+          transparent 28%),
+
+        radial-gradient(circle at bottom right,
+          rgba(14, 165, 233, 0.20),
+          transparent 32%),
+
+        linear-gradient(135deg,
+          #020617 0%,
+          #081120 40%,
+          #0f172a 100%);
+    }
+
+    .bg-grid {
+      position: fixed;
+      inset: 0;
+      opacity: 0.05;
+
+      background-image:
+        linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px);
+
+      background-size: 36px 36px;
     }
 
     main {
-      width: min(420px, calc(100vw - 40px));
+      position: relative;
+      z-index: 2;
+
+      width: min(460px, calc(100vw - 40px));
     }
 
     .card {
-      border: 1px solid rgba(208, 213, 221, 0.85);
-      border-radius: 18px;
+      position: relative;
+
+      border-radius: var(--radius);
+
       background: var(--card);
+
+      border: 1px solid var(--card-border);
+
+      backdrop-filter: blur(18px);
+
       box-shadow: var(--shadow);
-      padding: 28px;
+
+      padding: 34px;
+    }
+
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      margin-bottom: 28px;
+    }
+
+    .agent-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      padding: 8px 12px;
+
+      border-radius: 999px;
+
+      background: rgba(34, 197, 94, 0.12);
+
+      border: 1px solid rgba(34, 197, 94, 0.20);
+
+      font-size: 12px;
+      color: #bbf7d0;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--success);
+
+      box-shadow: 0 0 14px var(--success);
     }
 
     .brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 24px;
+      text-align: center;
+      margin-bottom: 30px;
     }
 
     .logo {
-      width: 42px;
-      height: 42px;
-      border-radius: 12px;
-      display: grid;
-      place-items: center;
-      background: var(--primary);
-      color: white;
+      width: 72px;
+      height: 72px;
+
+      margin: 0 auto 18px;
+
+      border-radius: 22px;
+
+      background:
+        linear-gradient(135deg,
+          #2563eb 0%,
+          #1d4ed8 40%,
+          #0ea5e9 100%);
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      font-size: 26px;
       font-weight: 800;
+
+      box-shadow:
+        0 12px 30px rgba(37, 99, 235, 0.35),
+        inset 0 1px 1px rgba(255,255,255,0.15);
     }
 
     h1 {
       margin: 0;
-      font-size: 22px;
-      font-weight: 750;
+      font-size: 30px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
     }
 
     .subtitle {
-      margin: 4px 0 0;
+      margin-top: 10px;
+
       color: var(--muted);
-      font-size: 13px;
-      line-height: 1.45;
+
+      line-height: 1.6;
+      font-size: 14px;
     }
 
     .alert {
       display: none;
+
       margin-bottom: 18px;
-      border-radius: 12px;
-      border: 1px solid var(--danger-border);
-      background: var(--danger-bg);
-      color: var(--danger);
-      padding: 11px 12px;
+
+      padding: 14px;
+
+      border-radius: 14px;
+
+      background: rgba(239, 68, 68, 0.10);
+
+      border: 1px solid rgba(239, 68, 68, 0.18);
+
+      color: #fecaca;
+
       font-size: 13px;
-      line-height: 1.45;
+      line-height: 1.5;
     }
 
     .alert.visible {
@@ -106,15 +215,18 @@
     }
 
     .field {
-      margin-bottom: 16px;
+      margin-bottom: 18px;
     }
 
     label {
       display: block;
-      margin-bottom: 7px;
-      color: #344054;
+
+      margin-bottom: 8px;
+
       font-size: 13px;
-      font-weight: 650;
+      font-weight: 600;
+
+      color: #cbd5e1;
     }
 
     .input-wrap {
@@ -123,131 +235,252 @@
 
     input {
       width: 100%;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 11px 12px;
-      background: #ffffff;
-      color: var(--text);
+
+      padding: 14px 16px;
+
+      border-radius: 14px;
+
+      border: 1px solid var(--input-border);
+
+      background: var(--input-bg);
+
+      color: white;
+
       font-size: 14px;
+
       outline: none;
+
+      transition: all 160ms ease;
+    }
+
+    input::placeholder {
+      color: #64748b;
     }
 
     input:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 4px rgba(23, 105, 224, 0.12);
-    }
+      border-color: rgba(37, 99, 235, 0.65);
 
-    input[aria-invalid="true"] {
-      border-color: var(--danger);
+      background: rgba(255,255,255,0.06);
+
+      box-shadow:
+        0 0 0 4px rgba(37, 99, 235, 0.12);
     }
 
     .password-input {
-      padding-right: 78px;
+      padding-right: 84px;
     }
 
     .toggle-password {
       position: absolute;
+
       top: 50%;
-      right: 8px;
-      width: auto;
+      right: 10px;
+
       transform: translateY(-50%);
+
       border: 0;
-      border-radius: 8px;
-      padding: 7px 8px;
+
       background: transparent;
-      color: var(--primary);
-      font-size: 12px;
-      font-weight: 700;
+
+      color: #60a5fa;
+
       cursor: pointer;
+
+      font-weight: 700;
+      font-size: 12px;
     }
 
     .field-error {
       min-height: 18px;
-      margin-top: 5px;
-      color: var(--danger);
+
+      margin-top: 6px;
+
       font-size: 12px;
-      line-height: 1.4;
+
+      color: #fca5a5;
     }
 
     .submit {
       width: 100%;
+
       border: 0;
-      border-radius: 10px;
-      padding: 12px 14px;
-      background: var(--primary);
+
+      padding: 15px 18px;
+
+      border-radius: 14px;
+
+      background:
+        linear-gradient(135deg,
+          #2563eb 0%,
+          #1d4ed8 100%);
+
       color: white;
+
       font-size: 14px;
       font-weight: 750;
+
       cursor: pointer;
+
+      transition: all 180ms ease;
+
+      box-shadow:
+        0 12px 30px rgba(37, 99, 235, 0.35);
     }
 
     .submit:hover:not(:disabled) {
-      background: var(--primary-hover);
+      transform: translateY(-1px);
+
+      box-shadow:
+        0 18px 38px rgba(37, 99, 235, 0.45);
     }
 
     .submit:disabled {
+      opacity: 0.7;
       cursor: wait;
-      opacity: 0.72;
     }
 
     .status {
       margin-top: 14px;
+
       min-height: 18px;
-      color: var(--muted);
-      font-size: 12px;
+
       text-align: center;
+
+      font-size: 12px;
+
+      color: var(--muted);
     }
 
-    .footer-note {
-      margin: 16px 0 0;
+    .trust-box {
+      margin-top: 24px;
+
+      border-radius: 16px;
+
+      padding: 16px;
+
+      background: rgba(255,255,255,0.03);
+
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .trust-title {
+      margin-bottom: 8px;
+
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .trust-text {
       color: var(--muted);
+
       font-size: 12px;
-      line-height: 1.45;
+      line-height: 1.6;
+    }
+
+    .footer {
+      margin-top: 22px;
+
       text-align: center;
+
+      color: #64748b;
+
+      font-size: 11px;
+    }
+
+    .footer strong {
+      color: #cbd5e1;
     }
   </style>
 </head>
 
 <body>
+
+  <div class="bg-grid"></div>
+
   <main>
-    <section class="card" aria-labelledby="page-title">
-      <div class="brand">
-        <div class="logo" aria-hidden="true">DP</div>
-        <div>
-          <h1 id="page-title">DijiPeople Agent</h1>
-          <p class="subtitle">Sign in to start your secure work session.</p>
+    <section class="card">
+
+      <div class="top-bar">
+        <div class="agent-status">
+          <div class="status-dot"></div>
+          Secure Agent
         </div>
       </div>
 
-      <div id="error-banner" class="alert" role="alert" aria-live="assertive"></div>
+      <div class="brand">
+        <div class="logo">DP</div>
+
+        <h1>DijiPeople Agent</h1>
+
+        <div class="subtitle">
+          Secure workforce tracking and productivity synchronization for enterprise teams.
+        </div>
+      </div>
+
+      <div id="error-banner" class="alert"></div>
 
       <form id="login-form" novalidate action="#">
+
         <div class="field">
-          <label for="email">Work email</label>
-          <input id="email" name="email" type="email" autocomplete="email" inputmode="email" spellcheck="false"
-            maxlength="254" aria-describedby="email-error" required />
-          <div id="email-error" class="field-error" aria-live="polite"></div>
+          <label for="email">Work Email</label>
+
+          <input
+            id="email"
+            name="email"
+            type="email"
+            autocomplete="email"
+            placeholder="john@company.com"
+            required
+          />
+
+          <div id="email-error" class="field-error"></div>
         </div>
 
         <div class="field">
           <label for="password">Password</label>
+
           <div class="input-wrap">
-            <input id="password" class="password-input" name="password" type="password" autocomplete="current-password"
-              maxlength="256" aria-describedby="password-error" required />
-            <button id="toggle-password" class="toggle-password" type="button" aria-label="Show password">
+            <input
+              id="password"
+              class="password-input"
+              name="password"
+              type="password"
+              autocomplete="current-password"
+              placeholder="Enter your password"
+              required
+            />
+
+            <button
+              id="toggle-password"
+              class="toggle-password"
+              type="button">
               Show
             </button>
           </div>
-          <div id="password-error" class="field-error" aria-live="polite"></div>
+
+          <div id="password-error" class="field-error"></div>
         </div>
 
-        <button id="submit" class="submit" type="submit">Sign in</button>
+        <button id="submit" class="submit" type="submit">
+          Sign in to Agent
+        </button>
 
-        <div id="status" class="status" aria-live="polite"></div>
+        <div id="status" class="status"></div>
 
-        <p class="footer-note">
-          This device will be registered with your organization after successful sign-in.
-        </p>
+        <div class="trust-box">
+          <div class="trust-title">
+            Trusted Enterprise Device
+          </div>
+
+          <div class="trust-text">
+            This workstation will securely register with your organization and synchronize attendance, activity, and session telemetry.
+          </div>
+        </div>
+
+        <div class="footer">
+          Powered by <strong>DijiPeople</strong>
+        </div>
+
       </form>
     </section>
   </main>
@@ -259,7 +492,9 @@
       }
     });
   </script>
+
   <script defer src="./login.js"></script>
+
 </body>
 
 </html>

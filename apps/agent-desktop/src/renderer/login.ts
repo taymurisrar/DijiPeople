@@ -14,11 +14,11 @@ type LoginErrorCode =
 type LoginResult =
   | { ok: true }
   | {
-      ok: false;
-      code: LoginErrorCode;
-      message: string;
-      fieldErrors?: Partial<Record<keyof LoginPayload, string>>;
-    };
+    ok: false;
+    code: LoginErrorCode;
+    message: string;
+    fieldErrors?: Partial<Record<keyof LoginPayload, string>>;
+  };
 
 type LoginFailure = Extract<LoginResult, { ok: false }>;
 
@@ -32,13 +32,28 @@ const dijiWindow = window as Window & {
 };
 
 const form = document.querySelector<HTMLFormElement>("#login-form");
-const emailInput = document.querySelector<HTMLInputElement>("#email");
-const passwordInput = document.querySelector<HTMLInputElement>("#password");
-const submitButton = document.querySelector<HTMLButtonElement>("#submit");
-const errorBanner = document.querySelector<HTMLDivElement>("#error-banner");
-const emailError = document.querySelector<HTMLDivElement>("#email-error");
-const passwordError = document.querySelector<HTMLDivElement>("#password-error");
-const statusText = document.querySelector<HTMLDivElement>("#status");
+
+const emailInput =
+  document.querySelector<HTMLInputElement>("#email");
+
+const passwordInput =
+  document.querySelector<HTMLInputElement>("#password");
+
+const submitButton =
+  document.querySelector<HTMLButtonElement>("#submit");
+
+const errorBanner =
+  document.querySelector<HTMLDivElement>("#error-banner");
+
+const emailError =
+  document.querySelector<HTMLDivElement>("#email-error");
+
+const passwordError =
+  document.querySelector<HTMLDivElement>("#password-error");
+
+const statusText =
+  document.querySelector<HTMLDivElement>("#status");
+
 const togglePasswordButton =
   document.querySelector<HTMLButtonElement>("#toggle-password");
 
@@ -47,18 +62,55 @@ let isSubmitting = false;
 initialize();
 
 function initialize(): void {
-  console.log("[DijiPeople Agent] login.js loaded");
+  console.log("[DijiPeople Agent] renderer initialized");
 
-  if (!form || !emailInput || !passwordInput || !submitButton) {
-    showFatalError("Login form failed to initialize. Please restart the agent.");
+  if (
+    !form ||
+    !emailInput ||
+    !passwordInput ||
+    !submitButton
+  ) {
+    showFatalError(
+      "Login UI failed to initialize. Restart the agent.",
+    );
+
     return;
   }
 
-  console.log("[DijiPeople Agent] bridge:", dijiWindow.dijiAgent);
+  hydrateRememberedEmail();
 
   form.addEventListener("submit", handleSubmit);
 
-  togglePasswordButton?.addEventListener("click", togglePasswordVisibility);
+  togglePasswordButton?.addEventListener(
+    "click",
+    togglePasswordVisibility,
+  );
+
+  passwordInput.addEventListener(
+    "keyup",
+    handleCapsLockDetection,
+  );
+
+  emailInput.addEventListener(
+    "keydown",
+    clearTransientState,
+  );
+
+  passwordInput.addEventListener(
+    "keydown",
+    clearTransientState,
+  );
+
+  window.addEventListener("online", () => {
+    setStatus("Connection restored.", "success");
+  });
+
+  window.addEventListener("offline", () => {
+    setStatus(
+      "You are offline. Internet connection is required.",
+      "error",
+    );
+  });
 
   dijiWindow.dijiAgent?.onLoginError?.((result) => {
     if (isLoginFailure(result)) {
@@ -67,9 +119,18 @@ function initialize(): void {
   });
 
   emailInput.focus();
+
+  setStatus(
+    navigator.onLine
+      ? "Ready to authenticate."
+      : "Offline mode detected.",
+    navigator.onLine ? "info" : "error",
+  );
 }
 
-async function handleSubmit(event: SubmitEvent): Promise<void> {
+async function handleSubmit(
+  event: SubmitEvent,
+): Promise<void> {
   event.preventDefault();
 
   if (isSubmitting) return;
@@ -94,15 +155,31 @@ async function handleSubmit(event: SubmitEvent): Promise<void> {
       ok: false,
       code: "UNKNOWN_ERROR",
       message:
-        "Desktop agent bridge is unavailable. Please restart the application.",
+        "Desktop bridge unavailable. Restart the application.",
     });
+
     return;
   }
 
   setSubmitting(true);
 
   try {
-    const result = await dijiWindow.dijiAgent.login(payload);
+    setStatus(
+      "Connecting to DijiPeople cloud...",
+      "info",
+    );
+
+    await wait(500);
+
+    setStatus(
+      "Verifying credentials...",
+      "info",
+    );
+
+    await wait(400);
+
+    const result =
+      await dijiWindow.dijiAgent.login(payload);
 
     if (isLoginFailure(result)) {
       renderFailure(result);
@@ -110,9 +187,22 @@ async function handleSubmit(event: SubmitEvent): Promise<void> {
       return;
     }
 
-    setStatus("Signed in successfully. Starting your session...");
+    rememberEmail(payload.email);
+
+    setStatus(
+      "Authentication successful. Starting secure session...",
+      "success",
+    );
+
+    if (submitButton) {
+      submitButton.textContent =
+        "Launching Workspace...";
+    }
   } catch (error) {
-    console.error("[DijiPeople Agent] Login failed:", error);
+    console.error(
+      "[DijiPeople Agent] Login failed:",
+      error,
+    );
 
     renderFailure({
       ok: false,
@@ -120,31 +210,38 @@ async function handleSubmit(event: SubmitEvent): Promise<void> {
       message:
         error instanceof Error
           ? error.message
-          : "Unable to sign in. Please try again.",
+          : "Unable to sign in.",
     });
   } finally {
     setSubmitting(false);
   }
 }
 
-function validatePayload(payload: LoginPayload): LoginResult {
-  const fieldErrors: Partial<Record<keyof LoginPayload, string>> = {};
+function validatePayload(
+  payload: LoginPayload,
+): LoginResult {
+  const fieldErrors:
+    Partial<Record<keyof LoginPayload, string>> = {};
 
   if (!payload.email) {
-    fieldErrors.email = "Work email is required.";
+    fieldErrors.email =
+      "Work email is required.";
   } else if (!isValidEmail(payload.email)) {
-    fieldErrors.email = "Enter a valid work email address.";
+    fieldErrors.email =
+      "Enter a valid email address.";
   }
 
   if (!payload.password) {
-    fieldErrors.password = "Password is required.";
+    fieldErrors.password =
+      "Password is required.";
   }
 
   if (Object.keys(fieldErrors).length > 0) {
     return {
       ok: false,
       code: "VALIDATION_ERROR",
-      message: "Please fix the highlighted fields.",
+      message:
+        "Please review the highlighted fields.",
       fieldErrors,
     };
   }
@@ -152,22 +249,43 @@ function validatePayload(payload: LoginPayload): LoginResult {
   return { ok: true };
 }
 
-function renderFailure(result: LoginFailure): void {
-  setStatus("");
+function renderFailure(
+  result: LoginFailure,
+): void {
+  setStatus("", "info");
 
   if (errorBanner) {
-    errorBanner.textContent = result.message || "Unable to sign in.";
+    errorBanner.textContent =
+      result.message || "Unable to sign in.";
+
     errorBanner.classList.add("visible");
   }
 
-  const fieldErrors = result.fieldErrors ?? {};
+  const fieldErrors =
+    result.fieldErrors ?? {};
 
-  if (fieldErrors.email && emailInput && emailError) {
-    setFieldError(emailInput, emailError, fieldErrors.email);
+  if (
+    fieldErrors.email &&
+    emailInput &&
+    emailError
+  ) {
+    setFieldError(
+      emailInput,
+      emailError,
+      fieldErrors.email,
+    );
   }
 
-  if (fieldErrors.password && passwordInput && passwordError) {
-    setFieldError(passwordInput, passwordError, fieldErrors.password);
+  if (
+    fieldErrors.password &&
+    passwordInput &&
+    passwordError
+  ) {
+    setFieldError(
+      passwordInput,
+      passwordError,
+      fieldErrors.password,
+    );
   }
 
   if (
@@ -179,8 +297,31 @@ function renderFailure(result: LoginFailure): void {
     setFieldError(
       passwordInput,
       passwordError,
-      "Check your password and try again.",
+      "Incorrect password.",
     );
+  }
+
+  setStatus(
+    mapErrorCodeToStatus(result.code),
+    "error",
+  );
+}
+
+function mapErrorCodeToStatus(
+  code: LoginErrorCode,
+): string {
+  switch (code) {
+    case "NETWORK_ERROR":
+      return "Unable to connect to server.";
+
+    case "ACCOUNT_INACTIVE":
+      return "Your account is inactive.";
+
+    case "INVALID_CREDENTIALS":
+      return "Authentication failed.";
+
+    default:
+      return "Sign-in failed.";
   }
 }
 
@@ -189,85 +330,228 @@ function setFieldError(
   element: HTMLDivElement,
   message: string,
 ): void {
-  input.setAttribute("aria-invalid", "true");
+  input.setAttribute(
+    "aria-invalid",
+    "true",
+  );
+
   element.textContent = message;
 }
 
 function clearErrors(): void {
   if (errorBanner) {
     errorBanner.textContent = "";
-    errorBanner.classList.remove("visible");
+
+    errorBanner.classList.remove(
+      "visible",
+    );
   }
 
-  if (emailError) emailError.textContent = "";
-  if (passwordError) passwordError.textContent = "";
+  if (emailError) {
+    emailError.textContent = "";
+  }
 
-  emailInput?.removeAttribute("aria-invalid");
-  passwordInput?.removeAttribute("aria-invalid");
+  if (passwordError) {
+    passwordError.textContent = "";
+  }
 
-  setStatus("");
+  emailInput?.removeAttribute(
+    "aria-invalid",
+  );
+
+  passwordInput?.removeAttribute(
+    "aria-invalid",
+  );
 }
 
-function focusFirstInvalidField(result: LoginFailure): void {
-  const fieldErrors = result.fieldErrors ?? {};
+function focusFirstInvalidField(
+  result: LoginFailure,
+): void {
+  const fieldErrors =
+    result.fieldErrors ?? {};
 
   if (fieldErrors.email) {
     emailInput?.focus();
     return;
   }
 
-  if (fieldErrors.password || result.code === "INVALID_CREDENTIALS") {
+  if (
+    fieldErrors.password ||
+    result.code ===
+    "INVALID_CREDENTIALS"
+  ) {
     passwordInput?.focus();
   }
 }
 
-function setSubmitting(value: boolean): void {
+function setSubmitting(
+  value: boolean,
+): void {
   isSubmitting = value;
 
   if (submitButton) {
     submitButton.disabled = value;
-    submitButton.textContent = value ? "Signing in..." : "Sign in";
+
+    submitButton.textContent = value
+      ? "Signing in..."
+      : "Sign in to Agent";
   }
 
-  if (emailInput) emailInput.disabled = value;
-  if (passwordInput) passwordInput.disabled = value;
-  if (togglePasswordButton) togglePasswordButton.disabled = value;
+  if (emailInput) {
+    emailInput.disabled = value;
+  }
 
-  setStatus(value ? "Verifying your credentials..." : "");
+  if (passwordInput) {
+    passwordInput.disabled = value;
+  }
+
+  if (togglePasswordButton) {
+    togglePasswordButton.disabled = value;
+  }
 }
 
-function setStatus(message: string): void {
-  if (statusText) {
-    statusText.textContent = message;
+function setStatus(
+  message: string,
+  type: "info" | "success" | "error",
+): void {
+  if (!statusText) return;
+
+  statusText.textContent = message;
+
+  switch (type) {
+    case "success":
+      statusText.style.color =
+        "#4ade80";
+      break;
+
+    case "error":
+      statusText.style.color =
+        "#f87171";
+      break;
+
+    default:
+      statusText.style.color =
+        "#94a3b8";
   }
 }
 
 function togglePasswordVisibility(): void {
-  if (!passwordInput || !togglePasswordButton) return;
+  if (
+    !passwordInput ||
+    !togglePasswordButton
+  ) {
+    return;
+  }
 
-  const isHidden = passwordInput.type === "password";
+  const hidden =
+    passwordInput.type ===
+    "password";
 
-  passwordInput.type = isHidden ? "text" : "password";
-  togglePasswordButton.textContent = isHidden ? "Hide" : "Show";
+  passwordInput.type = hidden
+    ? "text"
+    : "password";
+
+  togglePasswordButton.textContent =
+    hidden ? "Hide" : "Show";
+
   togglePasswordButton.setAttribute(
     "aria-label",
-    isHidden ? "Hide password" : "Show password",
+    hidden
+      ? "Hide password"
+      : "Show password",
   );
 }
 
-function showFatalError(message: string): void {
-  if (errorBanner) {
-    errorBanner.textContent = message;
-    errorBanner.classList.add("visible");
-  } else {
-    console.error(message);
+function handleCapsLockDetection(
+  event: KeyboardEvent,
+): void {
+  if (!passwordError) return;
+
+  const capsLockOn =
+    event.getModifierState &&
+    event.getModifierState("CapsLock");
+
+  passwordError.textContent =
+    capsLockOn
+      ? "Caps Lock is ON."
+      : "";
+}
+
+function clearTransientState(): void {
+  if (
+    errorBanner?.classList.contains(
+      "visible",
+    )
+  ) {
+    errorBanner.classList.remove(
+      "visible",
+    );
   }
 }
 
-function isLoginFailure(result: LoginResult): result is LoginFailure {
+function showFatalError(
+  message: string,
+): void {
+  if (errorBanner) {
+    errorBanner.textContent = message;
+
+    errorBanner.classList.add(
+      "visible",
+    );
+  }
+
+  console.error(message);
+}
+
+function rememberEmail(
+  email: string,
+): void {
+  try {
+    localStorage.setItem(
+      "diji-agent-email",
+      email,
+    );
+  } catch {
+    //
+  }
+}
+
+function hydrateRememberedEmail(): void {
+  try {
+    const remembered =
+      localStorage.getItem(
+        "diji-agent-email",
+      );
+
+    if (
+      remembered &&
+      emailInput
+    ) {
+      emailInput.value = remembered;
+    }
+  } catch {
+    //
+  }
+}
+
+function wait(
+  ms: number,
+): Promise<void> {
+  return new Promise((resolve) =>
+    setTimeout(resolve, ms),
+  );
+}
+
+function isLoginFailure(
+  result: LoginResult,
+): result is LoginFailure {
   return result.ok === false;
 }
 
-function isValidEmail(value: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+function isValidEmail(
+  value: string,
+): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+    value,
+  );
 }

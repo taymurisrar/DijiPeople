@@ -76,7 +76,9 @@ export class EmailExecutionService {
     });
   }
 
-  async execute(input: SendTemplateEmailInput): Promise<SendTemplateEmailResult> {
+  async execute(
+    input: SendTemplateEmailInput,
+  ): Promise<SendTemplateEmailResult> {
     const startedAt = performance.now();
     const templateResolutionStartedAt = performance.now();
     const template = input.templateId
@@ -140,7 +142,15 @@ export class EmailExecutionService {
         requestedAt: new Date(),
       });
 
-      return this.result(false, false, true, EmailDeliveryStatus.SKIPPED, null, log.id, rendered);
+      return this.result(
+        false,
+        false,
+        true,
+        EmailDeliveryStatus.SKIPPED,
+        null,
+        log.id,
+        rendered,
+      );
     }
 
     const rateLimit = await this.checkAuthNotificationCooldown(input);
@@ -165,7 +175,15 @@ export class EmailExecutionService {
         },
       });
 
-      return this.result(false, false, true, EmailDeliveryStatus.SKIPPED, null, log.id, rendered);
+      return this.result(
+        false,
+        false,
+        true,
+        EmailDeliveryStatus.SKIPPED,
+        null,
+        log.id,
+        rendered,
+      );
     }
 
     const providerResolutionStartedAt = performance.now();
@@ -198,7 +216,15 @@ export class EmailExecutionService {
         },
       });
 
-      return this.result(false, false, false, EmailDeliveryStatus.FAILED, null, failedLog.id, rendered);
+      return this.result(
+        false,
+        false,
+        false,
+        EmailDeliveryStatus.FAILED,
+        null,
+        failedLog.id,
+        rendered,
+      );
     }
 
     const initialStatus = input.dryRun

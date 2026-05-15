@@ -337,10 +337,16 @@ export class UserInvitationsService {
       templateKey: 'AUTH_ACCOUNT_ACTIVATION',
       recipient: input.email,
       variables: {
+        firstName: input.fullName.trim().split(/\s+/)[0] || '',
+        name: input.fullName,
+        email: input.email,
         tenantName: tenant?.name ?? branding.brandName ?? 'DijiPeople',
         appName: branding.appTitle || 'DijiPeople',
         recipientName: input.fullName,
         activationUrl: input.activationLink,
+        expiresIn: `${Math.round(
+          this.getInvitationTtlMilliseconds() / (60 * 60 * 1000),
+        )} hours`,
         expiresAt: input.expiresAt.toISOString(),
         supportEmail:
           branding.supportEmail ||
