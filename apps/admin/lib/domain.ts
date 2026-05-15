@@ -7,9 +7,12 @@ export type SubscriptionStatusValue =
   | "CANCELLED";
 
 export type TenantStatusValue =
+  | "PENDING_SETUP"
   | "ONBOARDING"
   | "ACTIVE"
+  | "INACTIVE"
   | "SUSPENDED"
+  | "ARCHIVED"
   | "CHURNED";
 
 export function toCanonicalEnumValue(value: string): string {
@@ -52,8 +55,11 @@ export function toTenantStatus(value: string): TenantStatusValue {
 
   if (
     normalized === "ONBOARDING" ||
+    normalized === "PENDING_SETUP" ||
     normalized === "ACTIVE" ||
+    normalized === "INACTIVE" ||
     normalized === "SUSPENDED" ||
+    normalized === "ARCHIVED" ||
     normalized === "CHURNED"
   ) {
     return normalized;
@@ -78,9 +84,12 @@ export const SubscriptionStatusLabels: Record<
 };
 
 export const TenantStatusLabels: Record<TenantStatusValue, string> = {
+  PENDING_SETUP: "Pending setup",
   ONBOARDING: "Onboarding",
   ACTIVE: "Active",
+  INACTIVE: "Inactive",
   SUSPENDED: "Suspended",
+  ARCHIVED: "Archived",
   CHURNED: "Churned",
 };
 

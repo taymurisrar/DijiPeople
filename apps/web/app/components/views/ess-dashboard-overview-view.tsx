@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { EssQuickActions } from "@/app/dashboard/_components/ess-quick-actions";
+import { EssQuickActions } from "@/app/(authenticated)/_components/ess-quick-actions";
 import {
   CompactInfo,
   DashboardEmptyState,
@@ -57,7 +57,7 @@ export function EssDashboardOverviewView({
             </div>
 
             <Link
-              href="/dashboard/profile"
+              href="/me"
               className="inline-flex h-fit rounded-2xl border border-border bg-white px-4 py-2.5 text-sm font-medium text-foreground transition hover:border-accent/30 hover:text-accent"
             >
               My profile
@@ -158,7 +158,7 @@ export function EssDashboardOverviewView({
             </div>
 
             <Link
-              href="/dashboard/profile"
+              href="/me"
               className="text-sm font-medium text-accent transition hover:text-accent-strong"
             >
               View

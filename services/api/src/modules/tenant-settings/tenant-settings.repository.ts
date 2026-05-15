@@ -140,6 +140,25 @@ export class TenantSettingsRepository {
     });
   }
 
+  upsertTenantBranding(
+    tenantId: string,
+    data: Record<string, string | null>,
+    db: PrismaDb = this.prisma,
+  ) {
+    const createData = { ...data };
+    if (!createData.primaryColor) createData.primaryColor = '#0f766e';
+    if (!createData.secondaryColor) createData.secondaryColor = '#115e59';
+
+    return db.tenantBranding.upsert({
+      where: { tenantId },
+      create: {
+        tenantId,
+        ...createData,
+      },
+      update: data,
+    });
+  }
+
   async upsertFeatures(tenantId: string, updates: TenantFeatureUpsertInput[]) {
     if (updates.length === 0) return;
 

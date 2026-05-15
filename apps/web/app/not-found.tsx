@@ -9,7 +9,7 @@ export default function NotFound() {
         <p className="mt-2 text-sm text-slate-600">
           The page or record may have been moved, deleted, or is outside your current access scope.
         </p>
-        <Link className="mt-5 inline-flex rounded-md bg-slate-950 px-4 py-2 text-sm font-semibold text-white" href="/dashboard">
+        <Link className="mt-5 inline-flex rounded-md bg-slate-950 px-4 py-2 text-sm font-semibold text-white" href="/">
           Go to dashboard
         </Link>
       </section>

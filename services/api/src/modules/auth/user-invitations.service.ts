@@ -10,6 +10,7 @@ import { Prisma, UserInvitationStatus, UserStatus } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { buildTenantActivationUrl } from '../../common/config/tenant-url.config';
 import { normalizeEmail } from '../../common/utils/email.util';
 import { AuditService } from '../audit/audit.service';
 import { EmailService } from '../notifications/email/email.service';
@@ -60,7 +61,14 @@ export class UserInvitationsService {
       },
     });
 
-    const activationLink = this.buildActivationLink(rawToken);
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: input.tenantId },
+      select: { slug: true },
+    });
+    const activationLink = this.buildActivationLink(
+      rawToken,
+      tenant?.slug ?? '',
+    );
     let deliveryMode: 'log' | 'disabled' | 'sent' = 'disabled';
     let deliveryStatus: string | null = null;
 
@@ -284,7 +292,14 @@ export class UserInvitationsService {
     return safeHours * 60 * 60 * 1000;
   }
 
-  private buildActivationLink(rawToken: string) {
+  private buildActivationLink(rawToken: string, tenantSlug: string) {
+    if (tenantSlug.trim()) {
+      return buildTenantActivationUrl(this.configService, {
+        slug: tenantSlug,
+        token: rawToken,
+      });
+    }
+
     const baseUrl =
       this.configService.get<string>('ACCOUNT_ACTIVATION_LINK_BASE_URL') ??
       `${getAppOrigin('web', process.env)}/activate-account`;

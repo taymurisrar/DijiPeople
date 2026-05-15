@@ -31,4 +31,24 @@ export class LoginDto {
       'tenantSlug must use lowercase letters, numbers, and single hyphens only.',
   })
   tenantSlug?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  tenantCode?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  tenantId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  domain?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  host?: string;
 }

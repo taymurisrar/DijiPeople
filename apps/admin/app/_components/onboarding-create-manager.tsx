@@ -14,6 +14,8 @@ import type {
   OperatorOption,
   PlanOption,
 } from "@/app/_components/platform-lifecycle-types";
+import { buildTenantLoginUrl } from "@/lib/tenant-url";
+import { suggestTenantSlug, validateTenantSlug } from "@/lib/tenant-slug";
 
 export function OnboardingCreateManager({
   lifecycleOptions,
@@ -37,6 +39,7 @@ export function OnboardingCreateManager({
 
   const [form, setForm] = useState({
     customerId: firstCustomer?.id ?? "",
+    plannedTenantSlug: suggestTenantSlug(firstCustomer?.companyName ?? ""),
     onboardingOwnerUserId: "",
     selectedPlanId: firstCustomer?.selectedPlan?.id ?? plans[0]?.id ?? "",
     billingCycle: "MONTHLY",
@@ -71,6 +74,7 @@ export function OnboardingCreateManager({
     setForm((current) => ({
       ...current,
       customerId,
+      plannedTenantSlug: suggestTenantSlug(customer?.companyName ?? ""),
       selectedPlanId:
         customer?.selectedPlan?.id ?? current.selectedPlanId ?? "",
       primaryOwnerFirstName: customer?.primaryContactFirstName ?? "",
@@ -87,6 +91,12 @@ export function OnboardingCreateManager({
 
     if (!form.customerId) {
       setMessage("Please select a customer before creating onboarding.");
+      return;
+    }
+
+    const slugError = validateTenantSlug(form.plannedTenantSlug);
+    if (slugError) {
+      setMessage(slugError);
       return;
     }
 
@@ -120,6 +130,7 @@ export function OnboardingCreateManager({
 
     setForm({
       customerId: customer?.id ?? "",
+      plannedTenantSlug: suggestTenantSlug(customer?.companyName ?? ""),
       onboardingOwnerUserId: "",
       selectedPlanId: customer?.selectedPlan?.id ?? plans[0]?.id ?? "",
       billingCycle: "MONTHLY",
@@ -260,6 +271,15 @@ export function OnboardingCreateManager({
             ]}
           />
 
+          <Field
+            help={`Required for apps/web tenant access. Login URL will be ${buildTenantLoginUrl(form.plannedTenantSlug || "tenant-slug")}`}
+            label="Tenant slug"
+            value={form.plannedTenantSlug}
+            onChange={(value) =>
+              updateForm("plannedTenantSlug", value.trim().toLowerCase())
+            }
+          />
+
           <Select
             label="Plan"
             value={form.selectedPlanId}
@@ -341,11 +361,13 @@ function Field({
   value,
   onChange,
   type = "text",
+  help,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   type?: string;
+  help?: string;
 }) {
   return (
     <label className="block text-sm font-medium text-slate-700">
@@ -356,6 +378,7 @@ function Field({
         type={type}
         value={value}
       />
+      {help ? <span className="mt-1 block text-xs text-slate-500">{help}</span> : null}
     </label>
   );
 }

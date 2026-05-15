@@ -9,8 +9,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 var __generator = (this && this.__generator) || function (thisArg, body) {
-    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g = Object.create((typeof Iterator === "function" ? Iterator : Object).prototype);
-    return g.next = verb(0), g["throw"] = verb(1), g["return"] = verb(2), typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    var _ = { label: 0, sent: function () { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g = Object.create((typeof Iterator === "function" ? Iterator : Object).prototype);
+    return g.next = verb(0), g["throw"] = verb(1), g["return"] = verb(2), typeof Symbol === "function" && (g[Symbol.iterator] = function () { return this; }), g;
     function verb(n) { return function (v) { return step([n, v]); }; }
     function step(op) {
         if (f) throw new TypeError("Generator is already executing.");
@@ -85,129 +85,131 @@ function main() {
                     return [4 /*yield*/, bcrypt.hash(config.plainPassword, 10)];
                 case 1:
                     passwordHash = _a.sent();
-                    return [4 /*yield*/, prisma.$transaction(function (tx) { return __awaiter(_this, void 0, void 0, function () {
+                    return [4 /*yield*/, prisma.$transaction(function (tx) {
+                        return __awaiter(_this, void 0, void 0, function () {
                             var existingTenant, tenant, existingRole, role, existingUser, user, existingUserRole;
                             return __generator(this, function (_a) {
                                 switch (_a.label) {
                                     case 0: return [4 /*yield*/, tx.tenant.findUnique({
-                                            where: { slug: config.tenantSlug },
-                                            select: { id: true },
-                                        })];
+                                        where: { slug: config.tenantSlug },
+                                        select: { id: true },
+                                    })];
                                     case 1:
                                         existingTenant = _a.sent();
                                         return [4 /*yield*/, tx.tenant.upsert({
-                                                where: { slug: config.tenantSlug },
-                                                update: {
-                                                    name: config.tenantName,
-                                                    status: client_1.TenantStatus.Active,
-                                                },
-                                                create: {
-                                                    name: config.tenantName,
-                                                    slug: config.tenantSlug,
-                                                    status: client_1.TenantStatus.Active,
-                                                },
-                                            })];
+                                            where: { slug: config.tenantSlug },
+                                            update: {
+                                                name: config.tenantName,
+                                                status: client_1.TenantStatus.Active,
+                                            },
+                                            create: {
+                                                name: config.tenantName,
+                                                slug: config.tenantSlug,
+                                                status: client_1.TenantStatus.Active,
+                                            },
+                                        })];
                                     case 2:
                                         tenant = _a.sent();
                                         return [4 /*yield*/, tx.role.findUnique({
-                                                where: {
-                                                    tenantId_key: {
-                                                        tenantId: tenant.id,
-                                                        key: config.roleKey,
-                                                    },
+                                            where: {
+                                                tenantId_key: {
+                                                    tenantId: tenant.id,
+                                                    key: config.roleKey,
                                                 },
-                                                select: { id: true },
-                                            })];
+                                            },
+                                            select: { id: true },
+                                        })];
                                     case 3:
                                         existingRole = _a.sent();
                                         return [4 /*yield*/, tx.role.upsert({
-                                                where: {
-                                                    tenantId_key: {
-                                                        tenantId: tenant.id,
-                                                        key: config.roleKey,
-                                                    },
-                                                },
-                                                update: {
-                                                    name: config.roleName,
-                                                    description: 'Bootstrap administrator role',
-                                                    isSystem: true,
-                                                },
-                                                create: {
+                                            where: {
+                                                tenantId_key: {
                                                     tenantId: tenant.id,
-                                                    name: config.roleName,
                                                     key: config.roleKey,
-                                                    description: 'Bootstrap administrator role',
-                                                    isSystem: true,
                                                 },
-                                            })];
+                                            },
+                                            update: {
+                                                name: config.roleName,
+                                                description: 'Bootstrap administrator role',
+                                                isSystem: true,
+                                            },
+                                            create: {
+                                                tenantId: tenant.id,
+                                                name: config.roleName,
+                                                key: config.roleKey,
+                                                description: 'Bootstrap administrator role',
+                                                isSystem: true,
+                                            },
+                                        })];
                                     case 4:
                                         role = _a.sent();
                                         return [4 /*yield*/, tx.user.findUnique({
-                                                where: { email: config.email },
-                                                select: { id: true },
-                                            })];
+                                            where: { email: config.email },
+                                            select: { id: true },
+                                        })];
                                     case 5:
                                         existingUser = _a.sent();
                                         return [4 /*yield*/, tx.user.upsert({
-                                                where: { email: config.email },
-                                                update: {
-                                                    tenantId: tenant.id,
-                                                    firstName: config.firstName,
-                                                    lastName: config.lastName,
-                                                    passwordHash: passwordHash,
-                                                    status: client_1.UserStatus.Active,
-                                                    isServiceAccount: false,
-                                                },
-                                                create: {
-                                                    tenantId: tenant.id,
-                                                    firstName: config.firstName,
-                                                    lastName: config.lastName,
-                                                    email: config.email,
-                                                    passwordHash: passwordHash,
-                                                    status: client_1.UserStatus.Active,
-                                                    isServiceAccount: false,
-                                                },
-                                            })];
+                                            where: { email: config.email },
+                                            update: {
+                                                tenantId: tenant.id,
+                                                firstName: config.firstName,
+                                                lastName: config.lastName,
+                                                passwordHash: passwordHash,
+                                                status: client_1.UserStatus.Active,
+                                                isServiceAccount: false,
+                                            },
+                                            create: {
+                                                tenantId: tenant.id,
+                                                firstName: config.firstName,
+                                                lastName: config.lastName,
+                                                email: config.email,
+                                                passwordHash: passwordHash,
+                                                status: client_1.UserStatus.Active,
+                                                isServiceAccount: false,
+                                            },
+                                        })];
                                     case 6:
                                         user = _a.sent();
                                         return [4 /*yield*/, tx.userRole.findUnique({
-                                                where: {
-                                                    userId_roleId: {
-                                                        userId: user.id,
-                                                        roleId: role.id,
-                                                    },
+                                            where: {
+                                                userId_roleId: {
+                                                    userId: user.id,
+                                                    roleId: role.id,
                                                 },
-                                                select: { id: true },
-                                            })];
+                                            },
+                                            select: { id: true },
+                                        })];
                                     case 7:
                                         existingUserRole = _a.sent();
                                         if (!!existingUserRole) return [3 /*break*/, 9];
                                         return [4 /*yield*/, tx.userRole.create({
-                                                data: {
-                                                    tenantId: tenant.id,
-                                                    userId: user.id,
-                                                    roleId: role.id,
-                                                },
-                                            })];
+                                            data: {
+                                                tenantId: tenant.id,
+                                                userId: user.id,
+                                                roleId: role.id,
+                                            },
+                                        })];
                                     case 8:
                                         _a.sent();
                                         _a.label = 9;
                                     case 9: return [2 /*return*/, {
-                                            tenantId: tenant.id,
-                                            roleId: role.id,
-                                            userId: user.id,
-                                            email: config.email,
-                                            actions: {
-                                                tenant: existingTenant ? 'updated' : 'created',
-                                                role: existingRole ? 'updated' : 'created',
-                                                user: existingUser ? 'updated' : 'created',
-                                                userRole: existingUserRole ? 'reused' : 'created',
-                                            },
-                                            usingDefaultPassword: config.usingDefaultPassword,
-                                        }];
+                                        tenantId: tenant.id,
+                                        roleId: role.id,
+                                        userId: user.id,
+                                        email: config.email,
+                                        actions: {
+                                            tenant: existingTenant ? 'updated' : 'created',
+                                            role: existingRole ? 'updated' : 'created',
+                                            user: existingUser ? 'updated' : 'created',
+                                            userRole: existingUserRole ? 'reused' : 'created',
+                                        },
+                                        usingDefaultPassword: config.usingDefaultPassword,
+                                    }];
                                 }
                             });
-                        }); })];
+                        });
+                    })];
                 case 2:
                     result = _a.sent();
                     console.log('Bootstrap admin seed completed successfully.');
@@ -222,25 +224,27 @@ function main() {
 }
 main()
     .catch(function (error) {
-    if (error instanceof Error) {
-        console.error("Bootstrap admin seed failed: ".concat(error.message));
-        if (error.stack) {
-            console.error(error.stack);
+        if (error instanceof Error) {
+            console.error("Bootstrap admin seed failed: ".concat(error.message));
+            if (error.stack) {
+                console.error(error.stack);
+            }
         }
-    }
-    else {
-        console.error('Bootstrap admin seed failed with an unknown error.');
-        console.error(error);
-    }
-    process.exit(1);
-})
-    .finally(function () { return __awaiter(void 0, void 0, void 0, function () {
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0: return [4 /*yield*/, prisma.$disconnect()];
-            case 1:
-                _a.sent();
-                return [2 /*return*/];
+        else {
+            console.error('Bootstrap admin seed failed with an unknown error.');
+            console.error(error);
         }
+        process.exit(1);
+    })
+    .finally(function () {
+        return __awaiter(void 0, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, prisma.$disconnect()];
+                    case 1:
+                        _a.sent();
+                        return [2 /*return*/];
+                }
+            });
+        });
     });
-}); });

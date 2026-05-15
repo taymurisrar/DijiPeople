@@ -16,6 +16,7 @@ import { PermissionsModule } from '../permissions/permissions.module';
 import { TenantSettingsModule } from '../tenant-settings/tenant-settings.module';
 import { TenantsModule } from '../tenants/tenants.module';
 import { UsersModule } from '../users/users.module';
+import { AdminAuthController } from './admin-auth.controller';
 import { AuthController } from './auth.controller';
 import { AuthAccessService } from './auth-access.service';
 import { AuthService } from './auth.service';
@@ -43,7 +44,7 @@ import { UserInvitationsService } from './user-invitations.service';
     TenantSettingsModule,
     NotificationsModule,
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, AdminAuthController],
   providers: [
     AuthService,
     AuthAccessService,

@@ -12,11 +12,36 @@ export const REFRESH_TOKEN_COOKIE =
   `${AUTH_COOKIE_PREFIX}_refresh_token`;
 export const SESSION_COOKIE =
   process.env.AUTH_WEB_COOKIE_SESSION_NAME ?? `${AUTH_COOKIE_PREFIX}_session_id`;
-export const DASHBOARD_ROUTE = "/dashboard";
+export const DASHBOARD_ROUTE = "/";
 export const LOGIN_ROUTE = "/login";
-export const DEFAULT_AUTHENTICATED_ROUTE = "/dashboard";
+export const DEFAULT_AUTHENTICATED_ROUTE = "/";
 
-export const PROTECTED_ROUTE_PREFIXES = ["/dashboard"] as const;
+export const PROTECTED_ROUTE_PREFIXES = [
+  "/",
+  "/me",
+  "/settings",
+  "/employees",
+  "/attendance",
+  "/leaves",
+  "/projects",
+  "/payroll",
+  "/timesheets",
+  "/users",
+  "/customers",
+  "/reports",
+  "/recruitment",
+  "/onboarding",
+  "/claims",
+  "/business-trips",
+  "/customization",
+] as const;
+export const PUBLIC_ROUTE_PREFIXES = [
+  "/login",
+  "/activate",
+  "/activate-account",
+  "/api",
+  "/_next",
+] as const;
 export const AUTH_ROUTES = ["/login"] as const;
 
 function normalizePath(pathname: string): string {
@@ -40,6 +65,12 @@ function matchesPrefix(pathname: string, prefixes: readonly string[]): boolean {
 
 export function isProtectedRoute(pathname: string): boolean {
   const normalized = normalizePath(pathname);
+  if (
+    matchesPrefix(normalized, PUBLIC_ROUTE_PREFIXES) ||
+    PUBLIC_FILE_PATTERN.test(normalized)
+  ) {
+    return false;
+  }
   return matchesPrefix(normalized, PROTECTED_ROUTE_PREFIXES);
 }
 
@@ -55,3 +86,5 @@ export function shouldRedirectAuthenticatedUser(pathname: string): boolean {
 export function shouldRedirectUnauthenticatedUser(pathname: string): boolean {
   return isProtectedRoute(pathname);
 }
+
+const PUBLIC_FILE_PATTERN = /\.(?:ico|png|jpg|jpeg|gif|svg|webp|css|js|map|txt|xml|json)$/i;

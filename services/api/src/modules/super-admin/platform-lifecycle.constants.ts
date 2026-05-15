@@ -117,12 +117,33 @@ export function isValidSubStatus(
 
   return Array.isArray(options) && options.includes(subStatus);
 }
+export const LEAD_SOURCE_OPTIONS = [
+  'DijiPeople Website',
+  'Manual Entry',
+  'Sales Outreach',
+  'Referral',
+  'LinkedIn',
+  'Upwork',
+  'Email Inquiry',
+  'WhatsApp Inquiry',
+  'Demo Request',
+  'Partner Referral',
+  'Existing Customer',
+  'Event / Exhibition',
+  'Support Conversion',
+  'Marketing Campaign',
+  'Other',
+] as const;
 
 export function getLifecycleOptions() {
   return {
     lead: {
       statuses: Object.values(LeadStatus),
       subStatuses: LEAD_SUB_STATUS_OPTIONS,
+      sources: [...LEAD_SOURCE_OPTIONS].map((source) => ({
+        value: source,
+        label: source,
+      })),
     },
     customer: {
       statuses: Object.values(CustomerAccountStatus),

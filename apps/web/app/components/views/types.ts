@@ -1,8 +1,8 @@
 import type { ModuleViewSelectorConfig } from "@/app/components/view-selector/types";
-import type { EmployeeListItem } from "@/app/dashboard/employees/types";
-import type { AttendanceEntryRecord } from "@/app/dashboard/attendance/types";
-import type { LeaveRequestRecord } from "@/app/dashboard/leave/types";
-import type { TimesheetRecord } from "@/app/dashboard/timesheets/types";
+import type { EmployeeListItem } from "@/app/(authenticated)/employees/types";
+import type { AttendanceEntryRecord } from "@/app/(authenticated)/attendance/types";
+import type { LeaveRequestRecord } from "@/app/(authenticated)/leaves/types";
+import type { TimesheetRecord } from "@/app/(authenticated)/timesheets/types";
 
 export type DashboardNotification = {
   id: string;

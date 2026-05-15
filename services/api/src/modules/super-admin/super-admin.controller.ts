@@ -39,6 +39,7 @@ import { UpdateTenantFeaturesDto } from './dto/update-tenant-features.dto';
 import { UpdateTenantSubscriptionDto } from './dto/update-tenant-subscription.dto';
 import { UpdateTenantStatusDto } from './dto/update-tenant-status.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
+import { UpdateTenantSlugDto } from '../tenants/dto/update-tenant-slug.dto';
 import { SuperAdminService } from './super-admin.service';
 import { ConvertLeadToCustomerDto } from '../leads/dto/admin-lead.dto';
 
@@ -239,6 +240,16 @@ export class SuperAdminController {
     @Body() dto: UpdateTenantDto,
   ) {
     return this.superAdminService.updateTenant(user, tenantId, dto);
+  }
+
+  @Patch('tenants/:tenantId/slug')
+  @RequireRoles(ROLE_KEYS.SYSTEM_CUSTOMIZER)
+  updateTenantSlug(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('tenantId', new ParseUUIDPipe()) tenantId: string,
+    @Body() dto: UpdateTenantSlugDto,
+  ) {
+    return this.superAdminService.updateTenantSlug(user, tenantId, dto);
   }
 
   @Patch('tenants/:tenantId/customer-account')

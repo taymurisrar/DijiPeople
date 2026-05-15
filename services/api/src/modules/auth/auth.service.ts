@@ -1,4 +1,9 @@
-import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Prisma } from '@prisma/client';
@@ -30,12 +35,14 @@ import { AuthTokenPayload } from '../../common/interfaces/authenticated-request.
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { normalizeEmail } from '../../common/utils/email.util';
 import { TenantsService } from '../tenants/tenants.service';
+import { PublicTenantsService } from '../tenants/public-tenants.service';
 import { UsersService } from '../users/users.service';
 import { PermissionBootstrapService } from '../permissions/permission-bootstrap.service';
 import { UserInvitationsService } from './user-invitations.service';
 import { LoginDto } from './dto/login.dto';
 import { SignupDto } from './dto/signup.dto';
 import { AuthAccessService } from './auth-access.service';
+import { AdminLoginDto } from './dto/admin-login.dto';
 
 type UserWithAccess = Prisma.UserGetPayload<{
   include: {
@@ -94,6 +101,12 @@ type UserWithAccess = Prisma.UserGetPayload<{
   };
 }>;
 
+const ADMIN_AUTH_ROLE_KEYS = new Set<string>([
+  ROLE_KEYS.GLOBAL_ADMIN,
+  ROLE_KEYS.SYSTEM_ADMIN,
+  ROLE_KEYS.SYSTEM_CUSTOMIZER,
+]);
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -103,6 +116,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly tenantsService: TenantsService,
+    private readonly publicTenantsService: PublicTenantsService,
     private readonly usersService: UsersService,
     private readonly permissionBootstrapService: PermissionBootstrapService,
     private readonly userInvitationsService: UserInvitationsService,
@@ -135,6 +149,51 @@ export class AuthService {
 
     if (!refreshedUser) {
       throw new UnauthorizedException('Unable to load this account.');
+    }
+
+    const authResponse = this.buildAuthResponse(
+      refreshedUser,
+      dto.rememberMe ?? false,
+      { clientId },
+    );
+
+    await Promise.all([
+      this.persistRefreshToken(
+        refreshedUser.id,
+        refreshedUser.tenantId,
+        authResponse.tokens.sessionId,
+        clientId,
+        authResponse.tokens.refreshToken,
+        authResponse.tokens.refreshTokenExpiresIn,
+        req,
+      ),
+      this.usersService.markLastLogin(refreshedUser.id),
+    ]);
+
+    return authResponse;
+  }
+
+  async adminLogin(dto: AdminLoginDto, req?: Request) {
+    const clientId: AuthClientId = 'admin';
+    const user = await this.validateAdminCredentials(dto);
+    const tenantStatus = String(user.tenant.status).toUpperCase();
+
+    if (user.status !== 'ACTIVE' || tenantStatus !== 'ACTIVE') {
+      throw this.authUnauthorized(
+        'ADMIN_AUTH_ACCOUNT_INACTIVE',
+        'This admin account is not active.',
+      );
+    }
+
+    await this.permissionBootstrapService.bootstrapTenantRbac(user.tenantId);
+
+    const refreshedUser = await this.usersService.findByIdWithAccess(user.id);
+
+    if (!refreshedUser || !this.hasAdminAuthRole(refreshedUser)) {
+      throw this.authUnauthorized(
+        'ADMIN_AUTH_FORBIDDEN',
+        'This account is not authorized for the admin portal.',
+      );
     }
 
     const authResponse = this.buildAuthResponse(
@@ -440,16 +499,11 @@ export class AuthService {
 
   private async validateCredentials(dto: LoginDto) {
     const normalizedEmail = normalizeEmail(dto.email);
-    const tenantSlug =
-      dto.tenantSlug?.trim() ||
-      this.configService.get<string>('API_DEFAULT_TENANT_SLUG')?.trim();
-
-    const user = tenantSlug
-      ? await this.usersService.findByTenantSlugAndEmail(
-          tenantSlug,
-          normalizedEmail,
-        )
-      : await this.usersService.findByEmailWithAccess(normalizedEmail);
+    const tenantContext = await this.resolveLoginTenant(dto);
+    const user = await this.usersService.findByTenantIdAndEmail(
+      tenantContext.id,
+      normalizedEmail,
+    );
 
     if (!user) {
       this.logger.warn(
@@ -457,11 +511,12 @@ export class AuthService {
           event: 'auth.login.failed',
           reason: 'USER_NOT_FOUND',
           identifier: normalizedEmail,
-          tenantSlug: tenantSlug ?? null,
+          tenantId: tenantContext.id,
+          tenantSlug: tenantContext.slug,
         }),
       );
       throw this.authUnauthorized(
-        'INVALID_CREDENTIALS',
+        'AUTH_INVALID_CREDENTIALS',
         'Invalid credentials.',
       );
     }
@@ -477,18 +532,150 @@ export class AuthService {
           event: 'auth.login.failed',
           reason: 'PASSWORD_MISMATCH',
           identifier: normalizedEmail,
-          tenantSlug: tenantSlug ?? null,
+          tenantSlug: tenantContext.slug,
           userId: user.id,
           tenantId: user.tenantId,
         }),
       );
       throw this.authUnauthorized(
-        'INVALID_CREDENTIALS',
+        'AUTH_INVALID_CREDENTIALS',
         'Invalid credentials.',
       );
     }
 
     return user;
+  }
+
+  private async validateAdminCredentials(dto: AdminLoginDto) {
+    const normalizedEmail = normalizeEmail(dto.email);
+    const users = await this.usersService.findManyByEmailWithAccess(
+      normalizedEmail,
+    );
+    const adminCandidates = users.filter((user) => this.hasAdminAuthRole(user));
+
+    for (const user of adminCandidates) {
+      const isPasswordValid = await bcrypt.compare(
+        dto.password,
+        user.passwordHash,
+      );
+
+      if (!isPasswordValid) {
+        continue;
+      }
+
+      return user;
+    }
+
+    this.logger.warn(
+      JSON.stringify({
+        event: 'admin.auth.login.failed',
+        reason: adminCandidates.length > 0 ? 'PASSWORD_MISMATCH' : 'NO_ADMIN_USER',
+        identifier: normalizedEmail,
+      }),
+    );
+    throw this.authUnauthorized(
+      'ADMIN_AUTH_INVALID_CREDENTIALS',
+      'Invalid admin credentials.',
+    );
+  }
+
+  private hasAdminAuthRole(user: UserWithAccess) {
+    return this.getEffectiveRoleKeys(user).some((roleKey) =>
+      ADMIN_AUTH_ROLE_KEYS.has(roleKey),
+    );
+  }
+
+  private getEffectiveRoleKeys(user: UserWithAccess) {
+    const directRoles = user.userRoles
+      .map((userRole) => userRole.role)
+      .filter((role) => role.isActive);
+    const teamRoles = user.teamMemberships.flatMap((membership) =>
+      membership.team.teamRoles
+        .map((teamRole) => teamRole.role)
+        .filter((role) => role.isActive),
+    );
+
+    return Array.from(
+      new Set([...directRoles, ...teamRoles].map((role) => role.key)),
+    );
+  }
+
+  private async resolveLoginTenant(dto: LoginDto) {
+    if (dto.tenantId?.trim()) {
+      const tenant = await this.prisma.tenant.findUnique({
+        where: { id: dto.tenantId.trim() },
+        select: {
+          id: true,
+          slug: true,
+          status: true,
+        },
+      });
+
+      if (!tenant) {
+        throw this.authUnauthorized(
+          'AUTH_TENANT_NOT_FOUND',
+          'Tenant was not found.',
+        );
+      }
+
+      this.assertLoginTenantIsActive(tenant);
+      return tenant;
+    }
+
+    if (
+      !dto.tenantSlug?.trim() &&
+      !dto.tenantCode?.trim() &&
+      !dto.domain?.trim() &&
+      !dto.host?.trim()
+    ) {
+      throw this.authUnauthorized(
+        'AUTH_TENANT_REQUIRED',
+        'Company or tenant context is required to sign in.',
+      );
+    }
+
+    try {
+      const resolved = await this.publicTenantsService.resolve({
+        slug: dto.tenantSlug,
+        tenantCode: dto.tenantCode,
+        domain: dto.domain,
+        host: dto.host,
+      });
+
+      return {
+        id: resolved.tenant.id,
+        slug: resolved.tenant.slug,
+        tenantCode: resolved.tenant.tenantCode,
+        status: resolved.tenant.status,
+      };
+    } catch (error) {
+      if (error instanceof ForbiddenException) {
+        throw this.authUnauthorized(
+          'AUTH_TENANT_INACTIVE',
+          'This tenant is not active.',
+        );
+      }
+
+      throw this.authUnauthorized(
+        'AUTH_TENANT_NOT_FOUND',
+        'Tenant was not found.',
+      );
+    }
+  }
+
+  private assertLoginTenantIsActive(tenant: {
+    status: string;
+    slug?: string | null;
+    tenantCode?: string | null;
+  }) {
+    if (String(tenant.status).toUpperCase() === 'ACTIVE') {
+      return;
+    }
+
+    throw this.authUnauthorized(
+      'AUTH_TENANT_INACTIVE',
+      'This tenant is not active.',
+    );
   }
 
   private async verifyRefreshToken(

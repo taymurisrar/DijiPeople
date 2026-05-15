@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import {
   BillingCycle,
@@ -14,6 +15,8 @@ import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { assertValidTenantSlug } from '../../common/utils/slug.util';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { generateTenantCode } from '../../common/utils/tenant-code.util';
+import { buildTenantLoginUrl } from '../../common/config/tenant-url.config';
 import { AuditService } from '../audit/audit.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { TenantSettingsResolverService } from '../tenant-settings/tenant-settings-resolver.service';
@@ -41,6 +44,7 @@ export class TenantsService {
     private readonly billingService: BillingService,
     private readonly auditService: AuditService,
     private readonly tenantSettingsResolverService: TenantSettingsResolverService,
+    private readonly configService: ConfigService,
   ) {}
 
   findById(id: string) {
@@ -120,17 +124,12 @@ export class TenantsService {
     const normalizedSlug = assertValidTenantSlug(dto.slug);
     const normalizedEmail = normalizeEmail(dto.adminEmail);
 
-    const [existingTenant, existingUser] = await Promise.all([
-      this.tenantsRepository.findBySlug(normalizedSlug),
-      this.usersRepository.findByEmail(normalizedEmail),
-    ]);
+    const existingTenant = await this.tenantsRepository.findBySlug(
+      normalizedSlug,
+    );
 
     if (existingTenant) {
       throw new ConflictException('Tenant slug is already in use.');
-    }
-
-    if (existingUser) {
-      throw new ConflictException('Email is already in use.');
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -181,8 +180,13 @@ export class TenantsService {
               status: CustomerAccountStatus.ACTIVE,
             },
           },
+          tenantCode: await generateTenantCode(tx),
           name: dto.companyName.trim(),
+          displayName: dto.companyName.trim(),
           slug: normalizedSlug,
+          tenantBranding: {
+            create: buildDefaultTenantBranding(dto.companyName.trim()),
+          },
         },
         tx,
       );
@@ -259,10 +263,17 @@ export class TenantsService {
       return {
         tenant: {
           id: tenant.id,
+          tenantCode: tenant.tenantCode,
           name: tenant.name,
+          displayName: tenant.displayName ?? tenant.name,
           slug: tenant.slug,
           status: tenant.status,
           createdAt: tenant.createdAt,
+        },
+        urls: {
+          loginUrl: buildTenantLoginUrl(this.configService, {
+            slug: tenant.slug,
+          }),
         },
         adminUser: {
           id: adminUser.id,
@@ -285,4 +296,27 @@ export class TenantsService {
       };
     });
   }
+}
+
+function buildDefaultTenantBranding(companyName: string) {
+  const brandName = companyName.trim() || 'DijiPeople';
+
+  return {
+    appTitle: 'DijiPeople',
+    brandName,
+    shortBrandName: brandName.split(/\s+/)[0] || brandName,
+    portalTagline: 'People operations made simple',
+    loginTitle: `Welcome to ${brandName} HR Portal`,
+    loginSubtitle:
+      'Sign in to manage HR, timesheets, payroll, and self-service.',
+    loginFooterText: 'Powered by DijiPeople',
+    primaryColor: '#0f766e',
+    secondaryColor: '#115e59',
+    accentColor: '#14b8a6',
+    backgroundColor: '#f8fafc',
+    surfaceColor: '#ffffff',
+    textColor: '#0f172a',
+    mutedTextColor: '#64748b',
+    fontFamily: 'Inter',
+  };
 }

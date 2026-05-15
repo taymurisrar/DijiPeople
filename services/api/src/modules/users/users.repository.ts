@@ -174,6 +174,74 @@ export class UsersRepository {
     });
   }
 
+  findByTenantIdAndEmail(
+    tenantId: string,
+    email: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.user.findFirst({
+      where: {
+        tenantId,
+        email: email.trim().toLowerCase(),
+      },
+      include: {
+        tenant: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            status: true,
+            ownerUserId: true,
+          },
+        },
+        businessUnit: {
+          select: {
+            id: true,
+            name: true,
+            organizationId: true,
+            organization: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+        employee: {
+          select: {
+            id: true,
+            employeeCode: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            businessUnitId: true,
+            department: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+        userPermissions: {
+          include: {
+            permission: true,
+          },
+        },
+        userRoles: {
+          include: {
+            role: {
+              include: roleAccessInclude,
+            },
+          },
+        },
+        teamMemberships: {
+          include: teamMembershipAccessInclude,
+        },
+      },
+    });
+  }
+
   findByEmail(email: string, db: PrismaDb = this.prisma) {
     return db.user.findFirst({
       where: {
@@ -242,6 +310,70 @@ export class UsersRepository {
           include: teamMembershipAccessInclude,
         },
       },
+    });
+  }
+
+  findManyByEmailWithAccess(email: string, db: PrismaDb = this.prisma) {
+    return db.user.findMany({
+      where: {
+        email: email.trim().toLowerCase(),
+      },
+      include: {
+        tenant: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            status: true,
+            ownerUserId: true,
+          },
+        },
+        businessUnit: {
+          select: {
+            id: true,
+            name: true,
+            organizationId: true,
+            organization: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+        employee: {
+          select: {
+            id: true,
+            employeeCode: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            businessUnitId: true,
+            department: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+        userPermissions: {
+          include: {
+            permission: true,
+          },
+        },
+        userRoles: {
+          include: {
+            role: {
+              include: roleAccessInclude,
+            },
+          },
+        },
+        teamMemberships: {
+          include: teamMembershipAccessInclude,
+        },
+      },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
     });
   }
 

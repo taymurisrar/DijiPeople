@@ -384,11 +384,15 @@ export function LeadDetailManager({
             options={lifecycleOptions.companySizes}
             value={form.companySize}
           />
-          <Field
-            label="Source"
-            onChange={(value) => updateForm("source", value)}
-            value={form.source}
-          />
+<Select
+  label="Source"
+  onChange={(value) => updateForm("source", value)}
+  options={[
+    { value: "", label: "Select source" },
+    ...lifecycleOptions.lead.sources,
+  ]}
+  value={form.source}
+/>
           <Select
             label="Interested plan"
             onChange={(value) => updateForm("interestedPlan", value)}

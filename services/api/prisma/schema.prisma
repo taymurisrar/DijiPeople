@@ -14,9 +14,23 @@ datasource db {
 
 enum TenantStatus {
   ONBOARDING
+  PENDING_SETUP
   ACTIVE
+  INACTIVE
   SUSPENDED
+  ARCHIVED
   CHURNED
+}
+
+enum TenantDomainType {
+  SYSTEM_SUBDOMAIN
+  CUSTOM_DOMAIN
+}
+
+enum TenantDomainVerificationStatus {
+  PENDING
+  VERIFIED
+  FAILED
 }
 
 enum SubscriptionStatus {
@@ -947,7 +961,10 @@ model Tenant {
   id                             String                          @id @default(uuid())
   customerAccountId              String
   ownerUserId                    String?
+  tenantCode                     String?                         @unique
   name                           String
+  displayName                    String?
+  legalName                      String?
   slug                           String                          @unique
   status                         TenantStatus                    @default(ACTIVE)
   subStatus                      String?
@@ -1075,6 +1092,8 @@ model Tenant {
   documents                      Document[]
   documentLinks                  DocumentLink[]
   tenantSettings                 TenantSetting[]
+  tenantBranding                 TenantBranding?
+  tenantDomains                  TenantDomain[]
   tenantFeatures                 TenantFeature[]
   emailTemplates                 EmailTemplate[]
   emailProviderSettings          EmailProviderSetting[]
@@ -1101,8 +1120,59 @@ model Tenant {
 
   @@index([status])
   @@index([slug])
+  @@index([tenantCode])
   @@index([customerAccountId])
   @@index([ownerUserId])
+}
+
+model TenantBranding {
+  id               String   @id @default(uuid())
+  tenantId         String   @unique
+  logoUrl          String?
+  faviconUrl       String?
+  loginImageUrl    String?
+  primaryColor     String   @default("#0f766e")
+  secondaryColor   String   @default("#115e59")
+  accentColor      String?
+  backgroundColor  String?
+  surfaceColor     String?
+  textColor        String?
+  mutedTextColor   String?
+  fontFamily       String?
+  appTitle         String?
+  brandName        String?
+  shortBrandName   String?
+  portalTagline    String?
+  loginTitle       String?
+  loginSubtitle    String?
+  loginFooterText  String?
+  supportEmail     String?
+  supportPhone     String?
+  privacyPolicyUrl String?
+  termsOfUseUrl    String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+model TenantDomain {
+  id                 String                         @id @default(uuid())
+  tenantId           String
+  domain             String                         @unique
+  type               TenantDomainType               @default(SYSTEM_SUBDOMAIN)
+  isPrimary          Boolean                        @default(false)
+  verificationStatus TenantDomainVerificationStatus @default(PENDING)
+  verifiedAt         DateTime?
+  sslStatus          String?
+  createdAt          DateTime                       @default(now())
+  updatedAt          DateTime                       @updatedAt
+  tenant             Tenant                         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, type, isPrimary])
+  @@index([verificationStatus])
 }
 
 model CustomerAccount {
@@ -1235,6 +1305,7 @@ model CustomerOnboarding {
   tenantId                        String?                  @unique
   onboardingOwnerUserId           String?
   selectedPlanId                  String?
+  plannedTenantSlug               String?
   billingCycle                    BillingCycle?
   agreedPrice                     Decimal?                 @db.Decimal(12, 2)
   discountType                    DiscountType             @default(NONE)
@@ -1272,6 +1343,7 @@ model CustomerOnboarding {
   @@index([subStatus])
   @@index([onboardingOwnerUserId])
   @@index([selectedPlanId])
+  @@index([plannedTenantSlug])
 }
 
 model Country {
@@ -1405,7 +1477,7 @@ model User {
   businessUnitId             String
   firstName                  String
   lastName                   String
-  email                      String                     @unique
+  email                      String
   passwordHash               String
   status                     UserStatus                 @default(ACTIVE)
   isServiceAccount           Boolean                    @default(false)
@@ -1451,6 +1523,7 @@ model User {
   @@index([businessUnitId])
   @@index([tenantId, status])
   @@index([tenantId, lastName, firstName])
+  @@unique([tenantId, email])
 }
 
 model Organization {

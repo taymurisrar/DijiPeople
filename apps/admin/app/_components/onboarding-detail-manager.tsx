@@ -23,6 +23,7 @@ import type {
   PlanOption,
 } from "./platform-lifecycle-types";
 import { buildTenantLoginUrl } from "@/lib/tenant-url";
+import { suggestTenantSlug, validateTenantSlug } from "@/lib/tenant-slug";
 
 export function OnboardingDetailManager({
   onboarding,
@@ -62,6 +63,7 @@ export function OnboardingDetailManager({
         onboarding.serviceAccountAssignSystemAdmin ?? true,
       tenantSlug:
         onboarding.tenant?.slug ??
+        onboarding.plannedTenantSlug ??
         suggestTenantSlug(onboarding.customer.companyName),
       contractSigned: onboarding.contractSigned,
       paymentConfirmed: onboarding.paymentConfirmed,
@@ -138,6 +140,8 @@ export function OnboardingDetailManager({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             ...form,
+            plannedTenantSlug: form.tenantSlug.trim().toLowerCase(),
+            tenantSlug: undefined,
             onboardingOwnerUserId: form.onboardingOwnerUserId || undefined,
             selectedPlanId: form.selectedPlanId || undefined,
             subStatus: form.subStatus || undefined,
@@ -430,7 +434,7 @@ export function OnboardingDetailManager({
                   ? `Available. Login URL: ${loginUrl}`
                   : effectiveSlugAvailability === "unavailable"
                     ? "This slug is already in use."
-                    : "Required for tenant login URL.")
+                    : "Required for apps/web tenant access. This is not used for apps/admin routing.")
             }
             label="Tenant slug"
             onChange={(value) => {
@@ -715,32 +719,6 @@ function Toggle({
   );
 }
 
-function suggestTenantSlug(value: string) {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/-{2,}/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 63)
-    .replace(/-+$/g, "");
-}
-
-function validateTenantSlug(slug: string) {
-  const normalized = slug.trim().toLowerCase();
-
-  if (normalized.length < 3)
-    return "Tenant slug is required and must be at least 3 characters.";
-  if (normalized.length > 63)
-    return "Tenant slug must be 63 characters or fewer.";
-  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(normalized)) {
-    return "Use lowercase letters, numbers, and single hyphens only. Slug cannot start or end with a hyphen.";
-  }
-
-  if (RESERVED_SLUGS.has(normalized)) return "This tenant slug is reserved.";
-  return null;
-}
-
 function buildTenantCodePreview(slug: string) {
   const readable = slug
     .trim()
@@ -752,30 +730,3 @@ function buildTenantCodePreview(slug: string) {
 
   return readable || "Generated after slug entry";
 }
-
-const RESERVED_SLUGS = new Set([
-  "admin",
-  "api",
-  "app",
-  "auth",
-  "dashboard",
-  "login",
-  "logout",
-  "settings",
-  "signup",
-  "www",
-  "dijipeople",
-  "tenant",
-  "tenants",
-  "system",
-  "platform",
-  "portal",
-  "support",
-  "help",
-  "docs",
-  "billing",
-  "account",
-  "accounts",
-  "root",
-  "superadmin",
-]);

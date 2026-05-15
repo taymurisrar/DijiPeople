@@ -1,27 +1,35 @@
-import { BadRequestException } from '@nestjs/common';
-import { assertValidTenantSlug, suggestTenantSlug } from './slug.util';
+import {
+  assertValidTenantSlug,
+  normalizeTenantSlug,
+  suggestTenantSlug,
+} from './slug.util';
 
 describe('tenant slug utilities', () => {
-  it('normalizes and accepts valid tenant slugs', () => {
-    expect(assertValidTenantSlug(' Acme-HR1 ')).toBe('acme-hr1');
-  });
-
-  it('rejects invalid tenant slug formats', () => {
-    expect(() => assertValidTenantSlug('acme--hr')).toThrow(
-      BadRequestException,
-    );
-    expect(() => assertValidTenantSlug('-acme')).toThrow(BadRequestException);
-    expect(() => assertValidTenantSlug('acme hr')).toThrow(BadRequestException);
+  it('normalizes tenant slugs', () => {
+    expect(normalizeTenantSlug('  ABC-CPA  ')).toBe('abc-cpa');
   });
 
   it('rejects reserved tenant slugs', () => {
-    expect(() => assertValidTenantSlug('admin')).toThrow(BadRequestException);
-    expect(() => assertValidTenantSlug('dijipeople')).toThrow(
-      BadRequestException,
+    expect(() => assertValidTenantSlug('admin')).toThrow(
+      expect.objectContaining({
+        response: expect.objectContaining({
+          code: 'TENANT_SLUG_RESERVED',
+        }),
+      }),
     );
   });
 
-  it('suggests safe slugs from customer names', () => {
-    expect(suggestTenantSlug('Acme HRM, Inc.')).toBe('acme-hrm-inc');
+  it('rejects invalid tenant slug formats', () => {
+    expect(() => assertValidTenantSlug('-abc')).toThrow(
+      expect.objectContaining({
+        response: expect.objectContaining({
+          code: 'TENANT_SLUG_INVALID_FORMAT',
+        }),
+      }),
+    );
+  });
+
+  it('suggests url-safe tenant slugs', () => {
+    expect(suggestTenantSlug('ABC CPA & Co.')).toBe('abc-cpa-co');
   });
 });

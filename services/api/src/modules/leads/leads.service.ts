@@ -42,7 +42,7 @@ export class LeadsService {
       requirementsSummary: dto.message ?? null,
       message: dto.message ?? null,
       interestedPlan: dto.interestedPlan ?? null,
-      source: 'landing_page',
+      source: 'DijiPeople Website',
       status: LeadStatus.NEW,
       subStatus: 'Demo requested',
     });
@@ -142,7 +142,7 @@ export class LeadsService {
       country: dto.country ?? null,
       stateProvince: dto.stateProvince ?? null,
       city: dto.city ?? null,
-      source: dto.source ?? 'manual_admin',
+      source: dto.source ?? 'Manual Entry',
       interestedPlan: dto.interestedPlan ?? null,
       estimatedEmployeeCount: dto.estimatedEmployeeCount ?? null,
       expectedGoLiveDate: dto.expectedGoLiveDate

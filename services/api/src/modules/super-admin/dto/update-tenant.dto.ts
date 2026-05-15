@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer';
-import { IsEnum, IsOptional, IsString, Matches, MaxLength } from 'class-validator';
+import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
 import { TenantStatus } from '@prisma/client';
 
 function trimString({ value }: { value: unknown }) {
@@ -22,16 +22,6 @@ export class UpdateTenantDto {
   @IsString()
   @MaxLength(160)
   legalName?: string;
-
-  @IsOptional()
-  @Transform(trimString)
-  @IsString()
-  @MaxLength(63)
-  @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, {
-    message:
-      'slug must use lowercase letters, numbers, and single hyphens, and cannot start or end with a hyphen.',
-  })
-  slug?: string;
 
   @IsOptional()
   @IsEnum(TenantStatus)

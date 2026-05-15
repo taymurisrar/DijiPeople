@@ -3,11 +3,15 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import type { TenantStatusValue } from "@/lib/domain";
+import { validateTenantSlug } from "@/lib/tenant-slug";
 
 const TENANT_STATUS_OPTIONS: TenantStatusValue[] = [
+  "PENDING_SETUP",
   "ONBOARDING",
   "ACTIVE",
+  "INACTIVE",
   "SUSPENDED",
+  "ARCHIVED",
   "CHURNED",
 ];
 
@@ -44,7 +48,9 @@ export function TenantDetailEditForm({
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const normalizedSlug = form.slug.trim().toLowerCase();
-    const validationError = validateSlug(normalizedSlug);
+    const slugChanged = normalizedSlug !== tenant.slug;
+    const validationError =
+      canEditSlug && slugChanged ? validateTenantSlug(normalizedSlug) : null;
 
     if (validationError) {
       setMessage(validationError);
@@ -52,23 +58,41 @@ export function TenantDetailEditForm({
     }
 
     startTransition(async () => {
-      const response = await fetch(`/api/super-admin/tenants/${tenant.id}`, {
+      const profileResponse = await fetch(`/api/super-admin/tenants/${tenant.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: form.name.trim(),
           legalName: form.legalName.trim() || null,
-          slug: normalizedSlug,
           status: form.status,
         }),
       });
-      const payload = (await response.json().catch(() => null)) as
+      const profilePayload = (await profileResponse.json().catch(() => null)) as
         | { message?: string }
         | null;
 
-      if (!response.ok) {
-        setMessage(payload?.message ?? "Unable to update tenant.");
+      if (!profileResponse.ok) {
+        setMessage(profilePayload?.message ?? "Unable to update tenant.");
         return;
+      }
+
+      if (canEditSlug && slugChanged) {
+        const slugResponse = await fetch(
+          `/api/super-admin/tenants/${tenant.id}/slug`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ slug: normalizedSlug }),
+          },
+        );
+        const slugPayload = (await slugResponse.json().catch(() => null)) as
+          | { message?: string }
+          | null;
+
+        if (!slugResponse.ok) {
+          setMessage(slugPayload?.message ?? "Unable to update tenant slug.");
+          return;
+        }
       }
 
       setMessage("Tenant details updated.");
@@ -170,13 +194,4 @@ function TextField({
       ) : null}
     </label>
   );
-}
-
-function validateSlug(slug: string) {
-  if (slug.length < 3) return "Tenant slug must be at least 3 characters.";
-  if (slug.length > 63) return "Tenant slug must be 63 characters or fewer.";
-  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
-    return "Tenant slug must use lowercase letters, numbers, and single hyphens only.";
-  }
-  return null;
 }

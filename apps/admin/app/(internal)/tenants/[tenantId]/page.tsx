@@ -17,7 +17,9 @@ import { apiRequestJson } from "@/lib/server-api";
 type TenantDetail = {
   id: string;
   code: string;
+  tenantCode?: string | null;
   name: string;
+  displayName?: string | null;
   slug: string;
   status: TenantStatusValue | string;
   primaryDomain: string | null;
@@ -176,7 +178,7 @@ export default async function TenantDetailPage({
                 className="ml-3 inline-flex rounded-full border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
                 href={`/tenants/${tenantId}?tab=tenant-info&edit=${isEditing ? "0" : "1"}`}
               >
-                {isEditing ? "View" : "Edit"}
+                {isEditing ? "View record" : "Edit record"}
               </Link>
 
               <div className="space-y-2">
@@ -232,7 +234,7 @@ export default async function TenantDetailPage({
             />
             <TabLink
               href={`/tenants/${tenantId}?tab=tenant-info`}
-              label="Tenant Info"
+              label="Access & Info"
               isActive={activeTab === "tenant-info"}
             />
             <TabLink
@@ -457,7 +459,14 @@ export default async function TenantDetailPage({
             <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
               <h2 className="text-lg font-semibold text-slate-950">Tenant access</h2>
               <div className="mt-4">
-                <TenantAccessActions loginUrl={tenantLoginUrl} slug={tenant.slug} />
+                <TenantAccessActions
+                  loginUrl={tenantLoginUrl}
+                  primaryDomain={tenant.primaryDomain}
+                  slug={tenant.slug}
+                  status={String(tenant.status)}
+                  tenantCode={tenant.tenantCode ?? tenant.code}
+                  tenantName={tenant.displayName ?? tenant.name}
+                />
               </div>
             </section>
 

@@ -22,6 +22,7 @@ import type { AuthenticatedUser } from '../../common/interfaces/authenticated-re
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { normalizeEmail } from '../../common/utils/email.util';
 import { assertValidTenantSlug } from '../../common/utils/slug.util';
+import { generateTenantCode } from '../../common/utils/tenant-code.util';
 import { AuditService } from '../audit/audit.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { RolesRepository } from '../roles/roles.repository';
@@ -620,10 +621,24 @@ export class PlatformLifecycleService {
       );
     }
 
+    const plannedTenantSlug = assertValidTenantSlug(
+      dto?.plannedTenantSlug ?? '',
+    );
+
+    const existingTenant = await this.prisma.tenant.findUnique({
+      where: { slug: plannedTenantSlug },
+      select: { id: true },
+    });
+
+    if (existingTenant) {
+      throw new ConflictException('Tenant slug is already in use.');
+    }
+
     const onboarding = await this.prisma.customerOnboarding.create({
       data: {
         customerId,
         leadId: customer.leadId,
+        plannedTenantSlug,
         onboardingOwnerUserId:
           dto?.onboardingOwnerUserId ??
           customer.accountManagerUserId ??
@@ -966,7 +981,9 @@ export class PlatformLifecycleService {
     const tenantName =
       dto.tenantName?.trim() || onboarding.customer.companyName;
 
-    const slug = assertValidTenantSlug(dto.slug);
+    const slug = assertValidTenantSlug(
+      dto.slug ?? onboarding.plannedTenantSlug ?? '',
+    );
 
     const existingTenant = await this.prisma.tenant.findUnique({
       where: { slug },
@@ -1010,12 +1027,17 @@ export class PlatformLifecycleService {
     const createdTenant = await this.prisma.tenant.create({
       data: {
         customerAccountId: onboarding.customerId,
+        tenantCode: await generateTenantCode(this.prisma),
         name: tenantName,
+        displayName: tenantName,
         slug,
         status: TenantStatus.ONBOARDING,
         subStatus: 'Provisioning',
         createdById: actor.userId,
         updatedById: actor.userId,
+        tenantBranding: {
+          create: buildDefaultTenantBranding(tenantName, primaryOwnerEmail),
+        },
       },
     });
 
@@ -1395,6 +1417,9 @@ export class PlatformLifecycleService {
       ...(dto.selectedPlanId !== undefined
         ? { selectedPlanId: dto.selectedPlanId ?? null }
         : {}),
+      ...(dto.plannedTenantSlug !== undefined
+        ? { plannedTenantSlug: assertValidTenantSlug(dto.plannedTenantSlug) }
+        : {}),
       ...(dto.billingCycle !== undefined
         ? { billingCycle: dto.billingCycle ?? null }
         : {}),
@@ -1636,4 +1661,31 @@ export class PlatformLifecycleService {
       isReadyForTenantCreation: blockers.length === 0,
     };
   }
+}
+
+function buildDefaultTenantBranding(
+  companyName: string,
+  supportEmail?: string,
+) {
+  const brandName = companyName.trim() || 'DijiPeople';
+
+  return {
+    appTitle: 'DijiPeople',
+    brandName,
+    shortBrandName: brandName.split(/\s+/)[0] || brandName,
+    portalTagline: 'People operations made simple',
+    loginTitle: `Welcome to ${brandName} HR Portal`,
+    loginSubtitle:
+      'Sign in to manage HR, timesheets, payroll, and self-service.',
+    loginFooterText: 'Powered by DijiPeople',
+    supportEmail: supportEmail || null,
+    primaryColor: '#0f766e',
+    secondaryColor: '#115e59',
+    accentColor: '#14b8a6',
+    backgroundColor: '#f8fafc',
+    surfaceColor: '#ffffff',
+    textColor: '#0f172a',
+    mutedTextColor: '#64748b',
+    fontFamily: 'Inter',
+  };
 }

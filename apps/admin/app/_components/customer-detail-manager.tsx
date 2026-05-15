@@ -13,10 +13,12 @@ import {
   Share2,
 } from "lucide-react";
 import { ModuleDetailLayout } from "@/app/_components/crm/module-detail-layout";
+import { FormControl } from "@/app/_components/ui/form-control";
 import { OwnerSelector } from "@/app/_components/crm/owner-selector";
 import { RecordRibbonBar } from "@/app/_components/crm/record-ribbon-bar";
 import { StatusSelector } from "@/app/_components/crm/status-selector";
 import { SubStatusSelector } from "@/app/_components/crm/sub-status-selector";
+import { suggestTenantSlug } from "@/lib/tenant-slug";
 import type {
   CustomerRecord,
   LifecycleOptions,
@@ -148,13 +150,23 @@ export function CustomerDetailManager({
 
     const primaryContactEmail = nonEmpty(form.primaryContactEmail);
     const selectedPlanId = nonEmpty(form.selectedPlanId);
+    const preferredBillingCycle = nonEmpty(form.preferredBillingCycle);
 
     if (primaryContactEmail && !isValidEmail(primaryContactEmail)) {
       setMessage("Primary contact email must be a valid email address.");
       return;
     }
+    if (!preferredBillingCycle) {
+      setMessage("Billing cycle is required.");
+      return;
+    }
 
-    if (selectedPlanId && !isValidUuid(selectedPlanId)) {
+    if (!selectedPlanId) {
+      setMessage("Selected plan is required.");
+      return;
+    }
+
+    if (!isValidUuid(selectedPlanId)) {
       setMessage("Selected plan must be a valid UUID.");
       return;
     }
@@ -222,6 +234,7 @@ export function CustomerDetailManager({
             primaryOwnerWorkEmail,
             primaryOwnerPhone: nonEmpty(form.primaryContactPhone),
             billingCycle: form.preferredBillingCycle || "MONTHLY",
+            plannedTenantSlug: suggestTenantSlug(form.companyName),
             status: "NOT_STARTED",
             subStatus: "Awaiting kickoff",
           }),
@@ -274,9 +287,8 @@ export function CustomerDetailManager({
 
   return (
     <ModuleDetailLayout
-      description={`${form.primaryContactEmail || "No primary email"} • ${
-        form.country || "No country"
-      } • ${form.status.replaceAll("_", " ")}`}
+      description={`${form.primaryContactEmail || "No primary email"} • ${form.country || "No country"
+        } • ${form.status.replaceAll("_", " ")}`}
       title={form.companyName || "Unnamed customer"}
       ribbon={
         <div className="flex flex-col gap-3">
@@ -446,11 +458,10 @@ export function CustomerDetailManager({
         <div className="flex flex-wrap gap-2">
           {tabs.map((tab) => (
             <button
-              className={`rounded-full px-4 py-2 text-sm font-medium ${
-                activeTab === tab.key
-                  ? "bg-slate-950 text-white"
-                  : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
-              }`}
+              className={`rounded-full px-4 py-2 text-sm font-medium ${activeTab === tab.key
+                ? "bg-slate-950 text-white"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
+                }`}
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               type="button"
@@ -463,83 +474,122 @@ export function CustomerDetailManager({
         {activeTab === "overview" ? (
           <>
             <div className="mt-6 grid gap-4 lg:grid-cols-2">
-              <Field
+              <FormControl
                 label="Company"
-                onChange={(value) => updateForm("companyName", value)}
+                onChange={(value) => updateForm("companyName", String(value))}
+                required
+                type="text"
                 value={form.companyName}
               />
 
-              <Field
+              <FormControl
+                helpText="Primary contact first name for onboarding and communication."
                 label="Primary first name"
                 onChange={(value) =>
-                  updateForm("primaryContactFirstName", value)
+                  updateForm("primaryContactFirstName", String(value))
                 }
+                type="text"
                 value={form.primaryContactFirstName}
               />
 
-              <Field
+              <FormControl
                 label="Primary last name"
                 onChange={(value) =>
-                  updateForm("primaryContactLastName", value)
+                  updateForm("primaryContactLastName", String(value))
                 }
+                type="text"
                 value={form.primaryContactLastName}
               />
 
-              <Field
+              <FormControl
+                error={
+                  form.primaryContactEmail &&
+                    !isValidEmail(form.primaryContactEmail)
+                    ? "Invalid email"
+                    : undefined
+                }
+                helpText="This email will be used for onboarding and tenant owner communication."
                 label="Primary email"
-                onChange={(value) => updateForm("primaryContactEmail", value)}
+                onChange={(value) =>
+                  updateForm("primaryContactEmail", String(value))
+                }
+                required
                 type="email"
                 value={form.primaryContactEmail}
               />
 
-              <Field
+              <FormControl
                 label="Primary phone"
-                onChange={(value) => updateForm("primaryContactPhone", value)}
+                onChange={(value) =>
+                  updateForm("primaryContactPhone", String(value))
+                }
+                type="tel"
                 value={form.primaryContactPhone}
               />
 
-              <Select
+              <FormControl
+                helpText="Customer industry classification."
                 label="Industry"
-                onChange={(value) => updateForm("industry", value)}
+                onChange={(value) => updateForm("industry", String(value))}
                 options={[
                   { value: "", label: "Not specified" },
                   ...lifecycleOptions.industries,
                 ]}
+                type="select"
                 value={form.industry}
               />
 
-              <Select
+              <FormControl
                 label="Company size"
-                onChange={(value) => updateForm("companySize", value)}
+                onChange={(value) => updateForm("companySize", String(value))}
                 options={[
                   { value: "", label: "Not specified" },
                   ...lifecycleOptions.companySizes,
                 ]}
+                type="select"
                 value={form.companySize}
               />
 
-              <Field
+              <FormControl
                 label="Country"
-                onChange={(value) => updateForm("country", value)}
+                onChange={(value) => updateForm("country", String(value))}
+                type="text"
                 value={form.country}
               />
 
-              <Select
+              <FormControl
+                error={
+                  !form.preferredBillingCycle
+                    ? "Billing cycle required"
+                    : undefined
+                }
+                helpText="Controls invoice generation and subscription renewals."
                 label="Preferred billing cycle"
                 onChange={(value) =>
-                  updateForm("preferredBillingCycle", value)
+                  updateForm("preferredBillingCycle", String(value))
                 }
                 options={[
                   { value: "", label: "Not specified" },
                   { value: "MONTHLY", label: "MONTHLY" },
                   { value: "ANNUAL", label: "ANNUAL" },
                 ]}
+                required
+                type="select"
                 value={form.preferredBillingCycle}
               />
 
-              <Select
+              <FormControl
+                error={
+                  form.selectedPlanId &&
+                    !isValidUuid(form.selectedPlanId)
+                    ? "Invalid plan"
+                    : undefined
+                }
+                helpText="Subscription plan assigned to this customer."
                 label="Selected plan"
-                onChange={(value) => updateForm("selectedPlanId", value)}
+                onChange={(value) =>
+                  updateForm("selectedPlanId", String(value))
+                }
                 options={[
                   { value: "", label: "Not selected" },
                   ...plans.map((plan) => ({
@@ -547,6 +597,8 @@ export function CustomerDetailManager({
                     label: plan.name,
                   })),
                 ]}
+                required
+                type="select"
                 value={form.selectedPlanId}
               />
             </div>
@@ -583,8 +635,8 @@ export function CustomerDetailManager({
                 label="Tenant count"
                 value={String(
                   customer.lifecycle?.tenantCount ??
-                    customer.tenants?.length ??
-                    0,
+                  customer.tenants?.length ??
+                  0,
                 )}
               />
               <Info
@@ -736,59 +788,6 @@ function FooterActions({
         {isPending ? "Saving..." : "Save customer"}
       </button>
     </div>
-  );
-}
-
-function Field({
-  label,
-  value,
-  onChange,
-  type = "text",
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  type?: string;
-}) {
-  return (
-    <label className="block text-sm font-medium text-slate-700">
-      {label}
-      <input
-        className="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
-        onChange={(event) => onChange(event.target.value)}
-        type={type}
-        value={value}
-      />
-    </label>
-  );
-}
-
-function Select({
-  label,
-  value,
-  onChange,
-  options,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: Array<{ value: string; label: string }>;
-}) {
-  return (
-    <label className="block text-sm font-medium text-slate-700">
-      {label}
-      <select
-        className="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
-        onChange={(event) => onChange(event.target.value)}
-        value={value}
-      >
-        {options.map((option) => (
-          <option key={option.value || option.label} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </label>
   );
 }
 

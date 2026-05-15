@@ -483,6 +483,15 @@ export class CreateCustomerOnboardingRecordDto {
   @IsUUID()
   selectedPlanId?: string;
 
+  @Transform(trimString)
+  @IsString()
+  @MaxLength(63)
+  @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, {
+    message:
+      'plannedTenantSlug must use lowercase letters, numbers, and single hyphens, and cannot start or end with a hyphen.',
+  })
+  plannedTenantSlug!: string;
+
   @IsOptional()
   @IsEnum(BillingCycle)
   billingCycle?: BillingCycle;
@@ -607,6 +616,16 @@ export class UpdateCustomerOnboardingDto {
   @IsOptional()
   @IsUUID()
   selectedPlanId?: string;
+
+  @IsOptional()
+  @Transform(trimString)
+  @IsString()
+  @MaxLength(63)
+  @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, {
+    message:
+      'plannedTenantSlug must use lowercase letters, numbers, and single hyphens, and cannot start or end with a hyphen.',
+  })
+  plannedTenantSlug?: string;
 
   @IsOptional()
   @IsEnum(BillingCycle)
@@ -736,6 +755,7 @@ export class CreateTenantFromOnboardingDto {
   @MaxLength(160)
   tenantName?: string;
 
+  @IsOptional()
   @Transform(trimString)
   @IsString()
   @MaxLength(63)
@@ -743,7 +763,7 @@ export class CreateTenantFromOnboardingDto {
     message:
       'slug must use lowercase letters, numbers, and single hyphens, and cannot start or end with a hyphen.',
   })
-  slug!: string;
+  slug?: string;
 
   @IsOptional()
   @IsUUID()

@@ -113,7 +113,8 @@ export function validateApiEnvironment(env: NodeJS.ProcessEnv) {
 }
 
 export function buildCorsOptions(env: NodeJS.ProcessEnv): CorsOptions {
-  const allowedOrigins = new Set(getAllowedCorsOrigins(env));
+  const configuredOrigins = getAllowedCorsOrigins(env);
+  const allowedOrigins = new Set(configuredOrigins);
   const allowCredentials = parseBoolean(env.CORS_ALLOW_CREDENTIALS, true);
 
   return {
@@ -128,6 +129,11 @@ export function buildCorsOptions(env: NodeJS.ProcessEnv): CorsOptions {
         return;
       }
 
+      if (matchesWildcardOrigin(origin, configuredOrigins)) {
+        callback(null, true);
+        return;
+      }
+
       callback(new Error(`Origin ${origin} is not allowed by CORS.`), false);
     },
     credentials: allowCredentials,
@@ -137,6 +143,27 @@ export function buildCorsOptions(env: NodeJS.ProcessEnv): CorsOptions {
       env.CORS_ALLOWED_HEADERS ||
       'Authorization,Content-Type,X-DijiPeople-App,X-DijiPeople-Client,X-Client-Id,X-Tenant-Slug,X-Requested-With,X-Trace-Id,X-Request-Id',
   };
+}
+
+function matchesWildcardOrigin(origin: string, configuredOrigins: string[]) {
+  return configuredOrigins.some((allowedOrigin) => {
+    if (!allowedOrigin.includes('*.')) {
+      return false;
+    }
+
+    try {
+      const originUrl = new URL(origin);
+      const allowedUrl = new URL(allowedOrigin.replace('*.', 'wildcard.'));
+      const suffix = allowedUrl.hostname.replace(/^wildcard\./, '.');
+
+      return (
+        originUrl.protocol === allowedUrl.protocol &&
+        originUrl.hostname.endsWith(suffix)
+      );
+    } catch {
+      return false;
+    }
+  });
 }
 
 export function getRuntimeHealthPayload(env: NodeJS.ProcessEnv) {

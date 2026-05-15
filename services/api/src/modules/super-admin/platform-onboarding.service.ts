@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   BillingCycle,
   CustomerAccountStatus,
@@ -18,7 +19,12 @@ import * as bcrypt from 'bcryptjs';
 import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { normalizeEmail } from '../../common/utils/email.util';
-import { normalizeTenantSlug } from '../../common/utils/slug.util';
+import {
+  assertValidTenantSlug,
+  suggestTenantSlug,
+} from '../../common/utils/slug.util';
+import { generateTenantCode } from '../../common/utils/tenant-code.util';
+import { buildTenantLoginUrl } from '../../common/config/tenant-url.config';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { UserInvitationsService } from '../auth/user-invitations.service';
 import { PermissionsService } from '../permissions/permissions.service';
@@ -36,13 +42,16 @@ export class PlatformOnboardingService {
     private readonly permissionsService: PermissionsService,
     private readonly billingService: BillingService,
     private readonly userInvitationsService: UserInvitationsService,
+    private readonly configService: ConfigService,
   ) {}
 
   async onboardCustomer(
     actor: AuthenticatedUser,
     dto: CreateCustomerOnboardingDto,
   ) {
-    const normalizedSlug = normalizeTenantSlug(dto.slug);
+    const normalizedSlug = await this.generateAvailableSlug(
+      dto.slug || dto.companyName,
+    );
     const emails = [
       normalizeEmail(dto.contactEmail),
       normalizeEmail(dto.primaryOwner.workEmail),
@@ -55,33 +64,10 @@ export class PlatformOnboardingService {
       );
     }
 
-    const [existingTenant, existingEmails, plan] = await Promise.all([
-      this.prisma.tenant.findUnique({ where: { slug: normalizedSlug } }),
-      this.prisma.user.findMany({
-        where: {
-          email: {
-            in: emails,
-          },
-        },
-        select: { id: true, email: true },
-      }),
-      this.prisma.plan.findUnique({
-        where: { id: dto.planId },
-        include: { features: true },
-      }),
-    ]);
-
-    if (existingTenant) {
-      throw new ConflictException('Tenant slug is already in use.');
-    }
-
-    if (existingEmails.length > 0) {
-      throw new ConflictException(
-        `The following work emails are already in use: ${existingEmails
-          .map((item) => item.email)
-          .join(', ')}.`,
-      );
-    }
+    const plan = await this.prisma.plan.findUnique({
+      where: { id: dto.planId },
+      include: { features: true },
+    });
 
     if (!plan) {
       throw new NotFoundException('Plan not found.');
@@ -104,11 +90,19 @@ export class PlatformOnboardingService {
       const tenant = await tx.tenant.create({
         data: {
           customerAccountId: customerAccount.id,
+          tenantCode: await generateTenantCode(tx),
           name: dto.companyName.trim(),
+          displayName: dto.companyName.trim(),
           slug: normalizedSlug,
           status: TenantStatus.ONBOARDING,
           createdById: actor.userId,
           updatedById: actor.userId,
+          tenantBranding: {
+            create: buildDefaultTenantBranding(
+              dto.companyName.trim(),
+              normalizeEmail(dto.contactEmail),
+            ),
+          },
         },
       });
 
@@ -284,10 +278,17 @@ export class PlatformOnboardingService {
         customerAccountId: customerAccount.id,
         invitedUsers,
         tenantId: tenant.id,
+        tenant: {
+          id: tenant.id,
+          tenantCode: tenant.tenantCode,
+          slug: tenant.slug,
+          displayName: tenant.displayName ?? tenant.name,
+          status: tenant.status,
+        },
       };
     });
 
-    await Promise.all(
+    const invitations = await Promise.all(
       onboardingResult.invitedUsers.map((user) =>
         this.userInvitationsService.issueInvitation({
           tenantId: onboardingResult.tenantId,
@@ -302,6 +303,52 @@ export class PlatformOnboardingService {
     return {
       customerAccountId: onboardingResult.customerAccountId,
       tenantId: onboardingResult.tenantId,
+      tenant: onboardingResult.tenant,
+      urls: {
+        loginUrl: buildTenantLoginUrl(this.configService, {
+          slug: onboardingResult.tenant.slug,
+        }),
+        activationUrl: invitations[0]?.activationLink ?? null,
+      },
     };
   }
+
+  private async generateAvailableSlug(value: string) {
+    const baseSlug = assertValidTenantSlug(suggestTenantSlug(value) || value);
+    let candidate = baseSlug;
+    let attempt = 0;
+
+    while (await this.prisma.tenant.findUnique({ where: { slug: candidate } })) {
+      attempt += 1;
+      candidate = assertValidTenantSlug(
+        `${baseSlug.slice(0, Math.max(3, 63 - String(attempt).length - 1))}-${attempt}`,
+      );
+    }
+
+    return candidate;
+  }
+}
+
+function buildDefaultTenantBranding(companyName: string, supportEmail?: string) {
+  const brandName = companyName.trim() || 'DijiPeople';
+
+  return {
+    appTitle: 'DijiPeople',
+    brandName,
+    shortBrandName: brandName.split(/\s+/)[0] || brandName,
+    portalTagline: 'People operations made simple',
+    loginTitle: `Welcome to ${brandName} HR Portal`,
+    loginSubtitle:
+      'Sign in to manage HR, timesheets, payroll, and self-service.',
+    loginFooterText: 'Powered by DijiPeople',
+    supportEmail: supportEmail || null,
+    primaryColor: '#0f766e',
+    secondaryColor: '#115e59',
+    accentColor: '#14b8a6',
+    backgroundColor: '#f8fafc',
+    surfaceColor: '#ffffff',
+    textColor: '#0f172a',
+    mutedTextColor: '#64748b',
+    fontFamily: 'Inter',
+  };
 }

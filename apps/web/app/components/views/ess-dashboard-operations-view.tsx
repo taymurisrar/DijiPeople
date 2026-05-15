@@ -1,4 +1,4 @@
-import { EssQuickActions } from "@/app/dashboard/_components/ess-quick-actions";
+import { EssQuickActions } from "@/app/(authenticated)/_components/ess-quick-actions";
 import {
   DashboardPriorityList,
   ModuleViewSelectorBlock,

@@ -10,6 +10,9 @@ import { PlansRepository } from '../super-admin/plans.repository';
 import { RolesRepository } from '../roles/roles.repository';
 import { UsersRepository } from '../users/users.repository';
 import { TenantsController } from './tenants.controller';
+import { PublicTenantsController } from './public-tenants.controller';
+import { PublicTenantCacheService } from './public-tenant-cache.service';
+import { PublicTenantsService } from './public-tenants.service';
 import { TenantsRepository } from './tenants.repository';
 import { TenantsService } from './tenants.service';
 
@@ -20,8 +23,10 @@ import { TenantsService } from './tenants.service';
     AuditModule,
     TenantSettingsModule,
   ],
-  controllers: [TenantsController],
+  controllers: [TenantsController, PublicTenantsController],
   providers: [
+    PublicTenantCacheService,
+    PublicTenantsService,
     TenantsRepository,
     TenantsService,
     UsersRepository,
@@ -31,6 +36,6 @@ import { TenantsService } from './tenants.service';
     JwtAuthGuard,
     PermissionsGuard,
   ],
-  exports: [TenantsRepository, TenantsService],
+  exports: [PublicTenantsService, TenantsRepository, TenantsService],
 })
 export class TenantsModule {}

@@ -105,7 +105,7 @@ function buildPriorityItems({
       id: "priority:attendance-checkin",
       title: "You have not checked in yet",
       detail: "Record your attendance for today.",
-      href: "/dashboard/attendance",
+      href: "/attendance",
     });
   }
 
@@ -114,7 +114,7 @@ function buildPriorityItems({
       id: "priority:timesheet-submit",
       title: "Timesheet ready to submit",
       detail: "Review and submit your current timesheet.",
-      href: "/dashboard/timesheets",
+      href: "/timesheets",
     });
   }
 
@@ -123,7 +123,7 @@ function buildPriorityItems({
       id: "priority:leave-pending",
       title: "Leave request pending",
       detail: `${pendingLeaveCount} request(s) still in progress.`,
-      href: "/dashboard/leave",
+      href: "/leaves",
     });
   }
 

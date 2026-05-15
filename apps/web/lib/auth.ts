@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getApiBaseUrl as getSharedApiBaseUrl } from "@repo/config";
 import {
@@ -7,6 +8,9 @@ import {
   LOGIN_ROUTE,
   REFRESH_TOKEN_COOKIE,
 } from "@/lib/auth-config";
+import { sanitizeLocalNextPath } from "@/lib/routes";
+import { getTenantHintFromRequest } from "@/lib/tenant-resolution";
+import { buildTenantLoginUrl } from "@/lib/tenant-url";
 
 export type SessionUser = {
   sub: string;
@@ -57,12 +61,12 @@ export function getApiBaseUrl(): string {
 }
 
 export async function requireSessionUser(
-  nextPath = "/dashboard",
+  nextPath = "",
 ): Promise<SessionUser> {
   const sessionUser = await getSessionUser();
 
   if (!sessionUser) {
-    redirect(buildLoginUrl(nextPath));
+    redirect(await buildLoginUrl(nextPath));
   }
 
   return sessionUser;
@@ -75,7 +79,7 @@ export async function hasSession(): Promise<boolean> {
 
 export async function requirePermission(
   permissionKey: string,
-  nextPath = "/dashboard",
+  nextPath = "",
 ): Promise<SessionUser> {
   const sessionUser = await requireSessionUser(nextPath);
 
@@ -88,7 +92,7 @@ export async function requirePermission(
 
 export async function requireAnyPermission(
   permissionKeys: string[],
-  nextPath = "/dashboard",
+  nextPath = "",
 ): Promise<SessionUser> {
   const sessionUser = await requireSessionUser(nextPath);
 
@@ -164,10 +168,21 @@ async function getSessionFromApi(): Promise<SessionUser | null> {
   };
 }
 
-function buildLoginUrl(nextPath: string): string {
-  const params = new URLSearchParams({
-    next: nextPath,
-  });
+async function buildLoginUrl(nextPath: string): Promise<string> {
+  const requestHeaders = await headers();
+  const safeNext = sanitizeLocalNextPath(nextPath);
+  const host = requestHeaders.get("host");
+  const tenantHint = getTenantHintFromRequest({ host });
+  const fallbackSlug = process.env.NEXT_PUBLIC_DEFAULT_TENANT_SLUG?.trim();
+  const slug =
+    tenantHint.type === "slug" && tenantHint.value
+      ? tenantHint.value
+      : fallbackSlug;
 
+  if (slug) {
+    return buildTenantLoginUrl(slug, { next: safeNext });
+  }
+
+  const params = new URLSearchParams({ next: safeNext });
   return `${LOGIN_ROUTE}?${params.toString()}`;
 }

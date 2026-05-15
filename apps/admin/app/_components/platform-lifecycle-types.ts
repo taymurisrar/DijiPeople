@@ -204,6 +204,7 @@ export type CustomerOnboardingRecord = {
   subStatus?: string | null;
   onboardingOwnerUserId?: string | null;
   selectedPlanId?: string | null;
+  plannedTenantSlug?: string | null;
   billingCycle?: BillingCycleValue | string | null;
   primaryOwnerFirstName: string;
   primaryOwnerLastName: string;

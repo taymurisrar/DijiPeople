@@ -35,6 +35,8 @@ const ALLOWED_DOCUMENT_MIME_TYPES = new Set([
   'image/png',
   'image/webp',
   'image/svg+xml',
+  'image/x-icon',
+  'image/vnd.microsoft.icon',
 ]);
 
 @Injectable()

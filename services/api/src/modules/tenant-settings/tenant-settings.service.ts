@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { AuditService } from '../audit/audit.service';
+import { PublicTenantCacheService } from '../tenants/public-tenant-cache.service';
 import { UpdateTenantFeaturesDto } from './dto/update-tenant-features.dto';
 import { UpdateTenantSettingsDto } from './dto/update-tenant-settings.dto';
 import type { TenantSettingJsonInput } from './tenant-settings.repository';
@@ -38,6 +39,16 @@ const BRANDING_COLOR_KEYS = new Set<string>([
   'backgroundColor',
   'surfaceColor',
   'textColor',
+  'mutedTextColor',
+  'borderColor',
+  'sidebarBackgroundColor',
+  'sidebarTextColor',
+  'sidebarActiveBackgroundColor',
+  'sidebarActiveTextColor',
+  'successColor',
+  'warningColor',
+  'dangerColor',
+  'infoColor',
   'appBackgroundColor',
   'appSurfaceColor',
   'emailBrandColor',
@@ -66,6 +77,7 @@ export class TenantSettingsService {
     private readonly tenantSettingsResolverService: TenantSettingsResolverService,
     private readonly featureAccessService: FeatureAccessService,
     private readonly auditService: AuditService,
+    private readonly publicTenantCacheService: PublicTenantCacheService,
   ) {}
 
   async getTenantSettings(tenantId: string): Promise<SettingsResponse> {
@@ -193,10 +205,16 @@ export class TenantSettingsService {
         currentUser.tenantId,
         changedUpdates,
       );
+      await this.syncTenantBrandingModel(currentUser.tenantId, changedUpdates);
     }
 
     this.tenantSettingsResolverService.invalidateTenantCache(
       currentUser.tenantId,
+    );
+    this.invalidatePublicTenantCacheIfNeeded(
+      currentUser.tenantId,
+      tenantProfileChanged,
+      changedUpdates,
     );
 
     const afterSettings = await this.getTenantSettings(currentUser.tenantId);
@@ -433,6 +451,88 @@ export class TenantSettingsService {
 
     return true;
   }
+
+  private async syncTenantBrandingModel(
+    tenantId: string,
+    updates: NormalizedSettingUpdate[],
+  ) {
+    const brandingUpdates = updates.filter(
+      (update) => update.category === 'branding',
+    );
+
+    if (brandingUpdates.length === 0) {
+      return;
+    }
+
+    const data = brandingUpdates.reduce<Record<string, string | null>>(
+      (accumulator, update) => {
+        const field = mapBrandingSettingKey(update.key);
+        if (!field) {
+          return accumulator;
+        }
+
+        accumulator[field] =
+          update.value === null || update.value === Prisma.JsonNull
+            ? null
+            : String(update.value);
+        return accumulator;
+      },
+      {},
+    );
+
+    if (Object.keys(data).length === 0) {
+      return;
+    }
+
+    await this.tenantSettingsRepository.upsertTenantBranding(tenantId, data);
+  }
+
+  private invalidatePublicTenantCacheIfNeeded(
+    tenantId: string,
+    tenantProfileChanged: boolean,
+    updates: NormalizedSettingUpdate[],
+  ) {
+    const brandingChanged = updates.some(
+      (update) => update.category === 'branding',
+    );
+
+    if (!tenantProfileChanged && !brandingChanged) {
+      return;
+    }
+
+    this.publicTenantCacheService.deleteByPrefix('tenant:resolve:');
+    this.publicTenantCacheService.delete(`tenant:branding:${tenantId}`);
+  }
+}
+
+function mapBrandingSettingKey(key: string) {
+  const map: Record<string, string> = {
+    logoUrl: 'logoUrl',
+    faviconUrl: 'faviconUrl',
+    loginBannerImageUrl: 'loginImageUrl',
+    loginHeroImageUrl: 'loginImageUrl',
+    primaryColor: 'primaryColor',
+    secondaryColor: 'secondaryColor',
+    accentColor: 'accentColor',
+    backgroundColor: 'backgroundColor',
+    surfaceColor: 'surfaceColor',
+    textColor: 'textColor',
+    mutedTextColor: 'mutedTextColor',
+    fontFamily: 'fontFamily',
+    appTitle: 'appTitle',
+    brandName: 'brandName',
+    shortBrandName: 'shortBrandName',
+    portalTagline: 'portalTagline',
+    welcomeTitle: 'loginTitle',
+    welcomeSubtitle: 'loginSubtitle',
+    footerText: 'loginFooterText',
+    supportEmail: 'supportEmail',
+    supportPhone: 'supportPhone',
+    privacyPolicyUrl: 'privacyPolicyUrl',
+    termsOfUseUrl: 'termsOfUseUrl',
+  };
+
+  return map[key] ?? null;
 }
 
 function normalizeSettingValue(

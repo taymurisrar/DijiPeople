@@ -136,32 +136,42 @@ async function main() {
       select: { id: true },
     }));
 
-  const user = await prisma.user.upsert({
-    where: { email: config.email },
-    update: {
-      tenantId: tenant.id,
-      businessUnitId: defaultBusinessUnit.id,
-      firstName: config.firstName,
-      lastName: config.lastName,
-      passwordHash,
-      status: UserStatus.ACTIVE,
-      isServiceAccount: false,
-    },
-    create: {
-      tenantId: tenant.id,
-      businessUnitId: defaultBusinessUnit.id,
-      firstName: config.firstName,
-      lastName: config.lastName,
-      email: config.email,
-      passwordHash,
-      status: UserStatus.ACTIVE,
-      isServiceAccount: false,
-    },
-    select: {
-      id: true,
-      email: true,
-    },
+  const existingUser = await prisma.user.findFirst({
+    where: { tenantId: tenant.id, email: config.email },
+    select: { id: true },
   });
+  const user = existingUser
+    ? await prisma.user.update({
+        where: { id: existingUser.id },
+        data: {
+          businessUnitId: defaultBusinessUnit.id,
+          firstName: config.firstName,
+          lastName: config.lastName,
+          passwordHash,
+          status: UserStatus.ACTIVE,
+          isServiceAccount: false,
+        },
+        select: {
+          id: true,
+          email: true,
+        },
+      })
+    : await prisma.user.create({
+        data: {
+          tenantId: tenant.id,
+          businessUnitId: defaultBusinessUnit.id,
+          firstName: config.firstName,
+          lastName: config.lastName,
+          email: config.email,
+          passwordHash,
+          status: UserStatus.ACTIVE,
+          isServiceAccount: false,
+        },
+        select: {
+          id: true,
+          email: true,
+        },
+      });
 
   await prisma.userRole.upsert({
     where: {

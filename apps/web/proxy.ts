@@ -8,6 +8,9 @@ import {
   SESSION_COOKIE,
   isProtectedRoute,
 } from "@/lib/auth-config";
+import { sanitizeLocalNextPath, toCanonicalPath } from "@/lib/routes";
+import { getTenantHintFromRequest } from "@/lib/tenant-resolution";
+import { buildTenantLoginUrl } from "@/lib/tenant-url";
 
 const ACCESS_TOKEN_REFRESH_BUFFER_SECONDS = 5 * 60;
 
@@ -36,8 +39,9 @@ export async function proxy(request: NextRequest) {
   const hasSessionCookie = Boolean(accessToken) || Boolean(refreshToken);
 
   if (isProtectedRoute(pathname) && !hasSessionCookie) {
-    const loginUrl = new URL(LOGIN_ROUTE, request.url);
-    loginUrl.searchParams.set("next", `${pathname}${search}`);
+    const loginUrl = buildTenantAwareLoginUrl(request, {
+      next: `${pathname}${search}`,
+    });
     return NextResponse.redirect(loginUrl);
   }
 
@@ -59,14 +63,14 @@ export async function proxy(request: NextRequest) {
   }
 
   if (pathname === LOGIN_ROUTE && hasSessionCookie) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/login"],
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml).*)"],
 };
 
 function shouldRefreshForRequest(request: NextRequest) {
@@ -200,10 +204,34 @@ function redirectToLogout(request: NextRequest) {
   logoutUrl.searchParams.set("reason", "session-expired");
   logoutUrl.searchParams.set(
     "next",
-    `${request.nextUrl.pathname}${request.nextUrl.search}`,
+    `${toCanonicalPath(request.nextUrl.pathname)}${request.nextUrl.search}`,
   );
 
   return NextResponse.redirect(logoutUrl);
+}
+
+function buildTenantAwareLoginUrl(
+  request: NextRequest,
+  options: { next?: string | null } = {},
+) {
+  const tenantHint = getTenantHintFromRequest({
+    host: request.headers.get("host"),
+    queryTenant: request.nextUrl.searchParams.get("tenant"),
+  });
+  const safeNext = sanitizeLocalNextPath(options.next);
+
+  if (tenantHint.type === "slug" && tenantHint.value) {
+    return new URL(buildTenantLoginUrl(tenantHint.value, { next: safeNext }));
+  }
+
+  const fallbackSlug = process.env.NEXT_PUBLIC_DEFAULT_TENANT_SLUG?.trim();
+  if (fallbackSlug) {
+    return new URL(buildTenantLoginUrl(fallbackSlug, { next: safeNext }));
+  }
+
+  const loginUrl = new URL(LOGIN_ROUTE, request.url);
+  loginUrl.searchParams.set("next", safeNext);
+  return loginUrl;
 }
 
 function readJwtExpiresAt(token: string) {

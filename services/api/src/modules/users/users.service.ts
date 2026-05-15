@@ -54,8 +54,16 @@ export class UsersService {
     return this.usersRepository.findByTenantSlugAndEmail(tenantSlug, email);
   }
 
+  findByTenantIdAndEmail(tenantId: string, email: string) {
+    return this.usersRepository.findByTenantIdAndEmail(tenantId, email);
+  }
+
   findByEmailWithAccess(email: string) {
     return this.usersRepository.findByEmailWithAccess(email);
+  }
+
+  findManyByEmailWithAccess(email: string) {
+    return this.usersRepository.findManyByEmailWithAccess(email);
   }
 
   findByIdWithAccess(id: string) {
@@ -76,8 +84,10 @@ export class UsersService {
 
   async create(tenantId: string, dto: CreateUserDto, actorId: string) {
     const normalizedEmail = normalizeEmail(dto.email);
-    const existingUser =
-      await this.usersRepository.findByEmail(normalizedEmail);
+    const existingUser = await this.usersRepository.findByTenantIdAndEmail(
+      tenantId,
+      normalizedEmail,
+    );
 
     if (existingUser) {
       throw new ConflictException('Email is already in use.');

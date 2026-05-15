@@ -64,7 +64,7 @@ export function ErrorModal({ error, user, onClose }: ErrorModalProps) {
             </button>
           ) : null}
           {action.secondary === "dashboard" ? (
-            <a className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50" href="/dashboard">
+            <a className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50" href="/">
               Go to dashboard
             </a>
           ) : null}
@@ -104,7 +104,7 @@ function PrimaryAction({
     return <button className={className} onClick={() => history.back()} type="button">Go back</button>;
   }
   if (action === "dashboard") {
-    return <a className={className} href="/dashboard">Go to dashboard</a>;
+    return <a className={className} href="/">Go to dashboard</a>;
   }
   if (action === "retry" && error.retry) {
     return <button className={className} onClick={error.retry} type="button">Try again</button>;

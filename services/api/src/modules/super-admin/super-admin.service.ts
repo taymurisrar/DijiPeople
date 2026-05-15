@@ -54,6 +54,7 @@ import { UpdateTenantFeaturesDto } from './dto/update-tenant-features.dto';
 import { UpdateTenantStatusDto } from './dto/update-tenant-status.dto';
 import { UpdateTenantSubscriptionDto } from './dto/update-tenant-subscription.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
+import { UpdateTenantSlugDto } from '../tenants/dto/update-tenant-slug.dto';
 import { CreateInvoiceFromSubscriptionDto } from './dto/create-invoice-from-subscription.dto';
 import { PlansRepository } from './plans.repository';
 import { DEFAULT_PLAN_DEFINITIONS } from './plans.catalog';
@@ -384,24 +385,10 @@ export class SuperAdminService {
     }
 
     const isSystemAdmin = actor.roleKeys.includes(ROLE_KEYS.SYSTEM_ADMIN);
-    const isSystemCustomizer = actor.roleKeys.includes(
-      ROLE_KEYS.SYSTEM_CUSTOMIZER,
-    );
     const updatesNonSlugField =
       dto.name !== undefined ||
       dto.legalName !== undefined ||
       dto.status !== undefined;
-
-    const normalizedSlug =
-      dto.slug !== undefined ? assertValidTenantSlug(dto.slug) : undefined;
-    const slugChanged =
-      normalizedSlug !== undefined && normalizedSlug !== tenant.slug;
-
-    if (slugChanged && !isSystemCustomizer) {
-      throw new ForbiddenException(
-        'Only System Customizer can edit the tenant slug.',
-      );
-    }
 
     if (updatesNonSlugField && !isSystemAdmin) {
       throw new ForbiddenException(
@@ -409,18 +396,7 @@ export class SuperAdminService {
       );
     }
 
-    if (slugChanged) {
-      const existing = await this.tenantsRepository.findBySlugExcludingId(
-        normalizedSlug,
-        tenantId,
-      );
-
-      if (existing) {
-        throw new ConflictException('Tenant slug is already in use.');
-      }
-    }
-
-    const updatedTenant = await this.prisma.$transaction(async (tx) => {
+    await this.prisma.$transaction(async (tx) => {
       if (dto.legalName !== undefined && tenant.customerAccountId) {
         await tx.customerAccount.update({
           where: { id: tenant.customerAccountId },
@@ -431,36 +407,89 @@ export class SuperAdminService {
       return tx.tenant.update({
         where: { id: tenantId },
         data: {
-          ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
-          ...(normalizedSlug !== undefined ? { slug: normalizedSlug } : {}),
+          ...(dto.name !== undefined
+            ? { name: dto.name.trim(), displayName: dto.name.trim() }
+            : {}),
+          ...(dto.legalName !== undefined
+            ? { legalName: dto.legalName?.trim() || null }
+            : {}),
           ...(dto.status !== undefined ? { status: dto.status } : {}),
           updatedById: actor.userId,
         },
       });
     });
 
-    if (slugChanged) {
-      this.tenantSettingsResolverService.invalidateTenantCache(tenantId);
-      await this.auditService.log({
-        tenantId: actor.tenantId,
-        actorUserId: actor.userId,
-        action: 'TENANT_SLUG_UPDATED',
-        entityType: 'Tenant',
-        entityId: tenantId,
-        beforeSnapshot: {
-          oldSlug: tenant.slug,
-          tenantId,
-          sourceApp: 'admin',
-        },
-        afterSnapshot: {
-          newSlug: updatedTenant.slug,
-          tenantId,
-          changedBy: actor.userId,
-          changedAt: updatedTenant.updatedAt,
-          sourceApp: 'admin',
-        },
-      });
+    return this.getTenantDetail(tenantId);
+  }
+
+  async updateTenantSlug(
+    actor: AuthenticatedUser,
+    tenantId: string,
+    dto: UpdateTenantSlugDto,
+  ) {
+    if (!actor.roleKeys.includes(ROLE_KEYS.SYSTEM_CUSTOMIZER)) {
+      throw new ForbiddenException(
+        'Only System Customizer can edit the tenant slug.',
+      );
     }
+
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { id: true, slug: true },
+    });
+
+    if (!tenant) {
+      throw new NotFoundException('Tenant not found.');
+    }
+
+    const normalizedSlug = assertValidTenantSlug(dto.slug);
+
+    if (normalizedSlug === tenant.slug) {
+      return this.getTenantDetail(tenantId);
+    }
+
+    const existing = await this.tenantsRepository.findBySlugExcludingId(
+      normalizedSlug,
+      tenantId,
+    );
+
+    if (existing) {
+      throw new ConflictException('Tenant slug is already in use.');
+    }
+
+    const updatedTenant = await this.prisma.tenant.update({
+      where: { id: tenantId },
+      data: {
+        slug: normalizedSlug,
+        updatedById: actor.userId,
+      },
+      select: {
+        slug: true,
+        updatedAt: true,
+      },
+    });
+
+    this.tenantSettingsResolverService.invalidateTenantCache(tenantId);
+
+    await this.auditService.log({
+      tenantId: actor.tenantId,
+      actorUserId: actor.userId,
+      action: 'TENANT_SLUG_UPDATED',
+      entityType: 'Tenant',
+      entityId: tenantId,
+      beforeSnapshot: {
+        oldSlug: tenant.slug,
+        tenantId,
+        sourceApp: 'admin',
+      },
+      afterSnapshot: {
+        newSlug: updatedTenant.slug,
+        tenantId,
+        changedBy: actor.userId,
+        changedAt: updatedTenant.updatedAt,
+        sourceApp: 'admin',
+      },
+    });
 
     return this.getTenantDetail(tenantId);
   }
@@ -1139,7 +1168,9 @@ export class SuperAdminService {
 
     return {
       id: tenant.id,
+      tenantCode: tenant.tenantCode,
       name: tenant.name,
+      displayName: tenant.displayName ?? tenant.name,
       slug: tenant.slug,
       status: tenant.status,
       createdAt: tenant.createdAt,
@@ -1186,7 +1217,9 @@ export class SuperAdminService {
 
     return {
       id: tenant.id,
+      tenantCode: tenant.tenantCode,
       name: tenant.name,
+      displayName: tenant.displayName ?? tenant.name,
       slug: tenant.slug,
       status: tenant.status,
       createdAt: tenant.createdAt,
@@ -1246,10 +1279,14 @@ export class SuperAdminService {
         organizations: tenant._count.organizations,
         businessUnits: tenant._count.businessUnits,
       },
-      code: buildTenantCode(tenant.slug, tenant.id),
-      primaryDomain: null,
-      customDomain: null,
-      brandingStatus: await this.getTenantBrandingStatus(tenant.id),
+      code: tenant.tenantCode ?? buildTenantCode(tenant.slug, tenant.id),
+      primaryDomain:
+        tenant.tenantDomains.find((domain) => domain.isPrimary)?.domain ??
+        null,
+      customDomain:
+        tenant.tenantDomains.find((domain) => domain.type === 'CUSTOM_DOMAIN')
+          ?.domain ?? null,
+      brandingStatus: this.getTenantBrandingStatus(tenant),
       enabledFeatures: resolvedFeatures.items.map((feature) => ({
         id: feature.key,
         key: feature.key,
@@ -1263,24 +1300,25 @@ export class SuperAdminService {
     };
   }
 
-  private async getTenantBrandingStatus(tenantId: string) {
-    const brandingSettings = await this.prisma.tenantSetting.findMany({
-      where: { tenantId, category: 'branding' },
-      select: { key: true, value: true },
-    });
+  private getTenantBrandingStatus(tenant: {
+    tenantBranding?: Record<string, unknown> | null;
+  }) {
+    const brandingSettings = Object.entries(tenant.tenantBranding ?? {}).filter(
+      ([key]) => !['id', 'tenantId', 'createdAt', 'updatedAt'].includes(key),
+    );
 
     if (brandingSettings.length === 0) {
       return 'Default branding';
     }
 
     const configuredKeys = brandingSettings
-      .filter((setting) => {
-        if (typeof setting.value === 'string') {
-          return setting.value.trim().length > 0;
+      .filter(([, value]) => {
+        if (typeof value === 'string') {
+          return value.trim().length > 0;
         }
-        return setting.value !== null && setting.value !== undefined;
+        return value !== null && value !== undefined;
       })
-      .map((setting) => setting.key);
+      .map(([key]) => key);
 
     return configuredKeys.length > 0
       ? `${configuredKeys.length} branding setting${
@@ -1557,10 +1595,13 @@ export class SuperAdminService {
     switch (status) {
       case TenantStatus.ACTIVE:
         return CustomerAccountStatus.ACTIVE;
+      case TenantStatus.INACTIVE:
       case TenantStatus.SUSPENDED:
         return CustomerAccountStatus.SUSPENDED;
+      case TenantStatus.ARCHIVED:
       case TenantStatus.CHURNED:
         return CustomerAccountStatus.CHURNED;
+      case TenantStatus.PENDING_SETUP:
       default:
         return CustomerAccountStatus.ONBOARDING;
     }

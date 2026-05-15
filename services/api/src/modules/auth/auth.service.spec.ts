@@ -9,6 +9,7 @@ describe('AuthService', () => {
   let configService: { get: jest.Mock };
   let usersService: {
     findByIdWithAccess: jest.Mock;
+    findManyByEmailWithAccess: jest.Mock;
     markLastLogin: jest.Mock;
   };
   let permissionBootstrapService: {
@@ -31,6 +32,7 @@ describe('AuthService', () => {
 
     usersService = {
       findByIdWithAccess: jest.fn(),
+      findManyByEmailWithAccess: jest.fn(),
       markLastLogin: jest.fn(),
     };
 
@@ -49,8 +51,10 @@ describe('AuthService', () => {
       jwtService,
       configService as unknown as ConfigService,
       {} as never,
+      {} as never,
       usersService as never,
       permissionBootstrapService as never,
+      {} as never,
       {} as never,
     );
   });

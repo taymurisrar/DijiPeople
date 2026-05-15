@@ -19,6 +19,8 @@ export class TenantsRepository {
       where: { id },
       include: {
         customerAccount: true,
+        tenantBranding: true,
+        tenantDomains: true,
         ownerUser: {
           select: {
             id: true,
@@ -50,6 +52,8 @@ export class TenantsRepository {
       where: { id },
       include: {
         customerAccount: true,
+        tenantBranding: true,
+        tenantDomains: true,
         ownerUser: {
           select: {
             id: true,
@@ -122,6 +126,8 @@ export class TenantsRepository {
       orderBy: { createdAt: 'desc' },
       include: {
         customerAccount: true,
+        tenantBranding: true,
+        tenantDomains: true,
         ownerUser: {
           select: {
             id: true,
@@ -220,6 +226,8 @@ export class TenantsRepository {
       },
       include: {
         customerAccount: true,
+        tenantBranding: true,
+        tenantDomains: true,
         ownerUser: {
           select: {
             id: true,
