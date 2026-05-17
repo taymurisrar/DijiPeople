@@ -52,21 +52,29 @@ export function buildTenantPortalUrl(
     'development';
 
   const appUrl =
-    configService.get<string>('NEXT_PUBLIC_APP_URL') ?? 'http://localhost:3001';
+    configService.get<string>('APP_BASE_URL') ??
+    configService.get<string>('NEXT_PUBLIC_APP_BASE_URL') ??
+    configService.get<string>('WEB_APP_URL') ??
+    configService.get<string>('NEXT_PUBLIC_APP_URL') ??
+    'http://localhost:3001';
 
-  const protocol = new URL(appUrl).protocol.replace(':', '');
-  const hostname = new URL(appUrl).hostname;
+  const parsedAppUrl = new URL(appUrl);
+  const hostname = parsedAppUrl.hostname;
+  const tenantRootDomain = normalizeHost(
+    configService.get<string>('WEB_APP_PROD_ROOT_DOMAIN') ??
+      configService.get<string>('NEXT_PUBLIC_WEB_ROOT_DOMAIN') ??
+      '',
+  );
 
-  const isProduction =
-    appEnv === 'production' &&
-    !hostname.includes('localhost') &&
-    !hostname.includes('127.0.0.1');
+  const isLocalHost =
+    hostname === 'localhost' || hostname === '127.0.0.1';
 
-  const url = isProduction
-    ? new URL(`${protocol}://${slug}.${stripWww(hostname)}${path}`)
-    : new URL(path, appUrl);
+  const url =
+    appEnv === 'production' && !isLocalHost && tenantRootDomain
+      ? new URL(`${parsedAppUrl.protocol}//${slug}.${tenantRootDomain}${path}`)
+      : new URL(path, appUrl);
 
-  if (!isProduction) {
+  if (isLocalHost) {
     url.searchParams.set('tenant', slug);
   }
 
@@ -87,6 +95,12 @@ function normalizePath(path: string) {
   return path.startsWith('/') ? path : `/${path}`;
 }
 
-function stripWww(value: string) {
-  return value.replace(/^www\./, '');
+function normalizeHost(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .replace(/\/.*$/, '')
+    .replace(/:\d+$/, '')
+    .replace(/\.$/, '');
 }

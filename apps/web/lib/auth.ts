@@ -173,14 +173,8 @@ async function buildLoginUrl(nextPath: string): Promise<string> {
   const safeNext = sanitizeLocalNextPath(nextPath);
   const host = requestHeaders.get("host");
   const tenantHint = getTenantHintFromRequest({ host });
-  const fallbackSlug = process.env.NEXT_PUBLIC_DEFAULT_TENANT_SLUG?.trim();
-  const slug =
-    tenantHint.type === "slug" && tenantHint.value
-      ? tenantHint.value
-      : fallbackSlug;
-
-  if (slug) {
-    return buildTenantLoginUrl(slug, { next: safeNext });
+  if (tenantHint.type === "slug" && tenantHint.value) {
+    return buildTenantLoginUrl(tenantHint.value, { next: safeNext });
   }
 
   const params = new URLSearchParams({ next: safeNext });

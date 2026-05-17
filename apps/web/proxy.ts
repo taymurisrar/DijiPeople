@@ -224,11 +224,6 @@ function buildTenantAwareLoginUrl(
     return new URL(buildTenantLoginUrl(tenantHint.value, { next: safeNext }));
   }
 
-  const fallbackSlug = process.env.NEXT_PUBLIC_DEFAULT_TENANT_SLUG?.trim();
-  if (fallbackSlug) {
-    return new URL(buildTenantLoginUrl(fallbackSlug, { next: safeNext }));
-  }
-
   const loginUrl = new URL(LOGIN_ROUTE, request.url);
   loginUrl.searchParams.set("next", safeNext);
   return loginUrl;

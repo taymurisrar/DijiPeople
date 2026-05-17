@@ -43,11 +43,13 @@ export class DuplicateRuleEngine {
 
       const existing = await this.prisma.employee.findFirst({
         where: {
-          tenantId: params.tenantId,
-          ...(params.excludeEmployeeId
-            ? { id: { not: params.excludeEmployeeId } }
-            : {}),
-          ...rule.buildWhere(value),
+          AND: [
+            { tenantId: params.tenantId },
+            rule.buildWhere(value),
+            ...(params.excludeEmployeeId
+              ? [{ id: { not: params.excludeEmployeeId } }]
+              : []),
+          ],
         },
         select: { id: true },
       });

@@ -68,6 +68,14 @@ function sanitizeFilename(value: string) {
   return value.replace(/[^a-zA-Z0-9_-]+/g, '-').replace(/^-+|-+$/g, '');
 }
 
+function normalizeComparableEmail(value?: string | null) {
+  return value?.trim().toLowerCase() || undefined;
+}
+
+function normalizeComparableValue(value?: string | null) {
+  return value?.trim() || undefined;
+}
+
 function toCsv(rows: Array<Record<string, unknown>>) {
   if (rows.length === 0) {
     return '';
@@ -531,7 +539,7 @@ export class EmployeesService {
           label: 'Personal email',
           enabled: employeeSettings.preventDuplicateByPersonalEmail,
           severity: 'BLOCK',
-          value: (payload) => payload.personalEmail?.toLowerCase(),
+          value: (payload) => normalizeComparableEmail(payload.personalEmail),
           buildWhere: (value) => ({
             personalEmail: value,
           }),
@@ -541,7 +549,7 @@ export class EmployeesService {
           label: 'Phone number',
           enabled: employeeSettings.preventDuplicateByPhoneNumber,
           severity: employeeSettings.warnOnPossibleDuplicate ? 'WARN' : 'BLOCK',
-          value: (payload) => payload.phone,
+          value: (payload) => normalizeComparableValue(payload.phone),
           buildWhere: (value) => ({
             phone: value,
           }),
@@ -551,7 +559,7 @@ export class EmployeesService {
           label: 'National identity value',
           enabled: employeeSettings.preventDuplicateByNationalId,
           severity: 'BLOCK',
-          value: (payload) => payload.cnic,
+          value: (payload) => normalizeComparableValue(payload.cnic),
           buildWhere: (value) => ({
             cnic: value,
           }),
@@ -1218,18 +1226,13 @@ export class EmployeesService {
         : null;
 
       if (!user) {
-        const existingUser = await this.usersRepository.findByEmailWithAccess(
+        const existingUser = await this.usersRepository.findByTenantIdAndEmail(
+          tenantId,
           workEmail,
           tx,
         );
 
         if (existingUser) {
-          if (existingUser.tenantId !== tenantId) {
-            throw new ConflictException(
-              'This work email is already associated with another tenant user.',
-            );
-          }
-
           const linkedEmployee =
             await this.employeesRepository.findByUserIdAndTenant(
               tenantId,
@@ -1866,7 +1869,7 @@ export class EmployeesService {
           label: 'Personal email',
           enabled: settings.preventDuplicateByPersonalEmail,
           severity: 'BLOCK',
-          value: (payload) => payload.personalEmail?.toLowerCase(),
+          value: (payload) => normalizeComparableEmail(payload.personalEmail),
           buildWhere: (value) => ({
             personalEmail: value,
           }),
@@ -1876,7 +1879,7 @@ export class EmployeesService {
           label: 'Phone number',
           enabled: settings.preventDuplicateByPhoneNumber,
           severity: settings.warnOnPossibleDuplicate ? 'WARN' : 'BLOCK',
-          value: (payload) => payload.phone,
+          value: (payload) => normalizeComparableValue(payload.phone),
           buildWhere: (value) => ({
             phone: value,
           }),
@@ -1886,7 +1889,7 @@ export class EmployeesService {
           label: 'National identity value',
           enabled: settings.preventDuplicateByNationalId,
           severity: 'BLOCK',
-          value: (payload) => payload.cnic,
+          value: (payload) => normalizeComparableValue(payload.cnic),
           buildWhere: (value) => ({
             cnic: value,
           }),

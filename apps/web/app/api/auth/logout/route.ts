@@ -57,11 +57,7 @@ async function resolveLogoutTenantSlug(request: Request) {
     queryTenant: requestUrl.searchParams.get("tenant"),
   });
 
-  if (hint.type === "slug" && hint.value) {
-    return hint.value;
-  }
-
-  return process.env.NEXT_PUBLIC_DEFAULT_TENANT_SLUG?.trim() || "";
+  return hint.type === "slug" && hint.value ? hint.value : "";
 }
 
 function buildLogoutLoginUrl(

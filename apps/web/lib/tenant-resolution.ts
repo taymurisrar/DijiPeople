@@ -51,18 +51,13 @@ export function getTenantHintFromRequest(input: {
   queryTenant?: string | null;
   cookieTenant?: string | null;
 }): TenantHint {
-  const queryTenant = input.queryTenant?.trim() ?? "";
+  const cookieTenant = normalizeTenantSlug(input.cookieTenant);
 
-  if (queryTenant) {
-    const type = looksLikeTenantCode(queryTenant) ? "tenantCode" : "slug";
-
+  if (cookieTenant) {
     return {
-      type,
-      value:
-        type === "tenantCode"
-          ? queryTenant.toUpperCase()
-          : normalizeTenantSlug(queryTenant),
-      source: "query",
+      type: "slug",
+      value: cookieTenant,
+      source: "cookie",
     };
   }
 
@@ -72,14 +67,32 @@ export function getTenantHintFromRequest(input: {
     return hostHint;
   }
 
-  const cookieTenant = normalizeTenantSlug(input.cookieTenant);
+  const fallbackSlug = getDefaultTenantSlug();
 
-  if (cookieTenant) {
+  if (fallbackSlug) {
     return {
       type: "slug",
-      value: cookieTenant,
-      source: "cookie",
+      value: fallbackSlug,
+      source: "fallback",
     };
+  }
+
+  const queryTenant = input.queryTenant?.trim() ?? "";
+
+  if (queryTenant) {
+    const type = looksLikeTenantCode(queryTenant) ? "tenantCode" : "slug";
+    const value =
+      type === "tenantCode"
+        ? queryTenant.toUpperCase()
+        : normalizeTenantSlug(queryTenant);
+
+    if (value) {
+      return {
+        type,
+        value,
+        source: "query",
+      };
+    }
   }
 
   return {
@@ -104,16 +117,7 @@ export function getTenantHintFromHost(host?: string | null): TenantHint {
     };
   }
 
-  const appHost = normalizeHost(process.env.NEXT_PUBLIC_APP_URL);
-  const adminHost = normalizeHost(process.env.NEXT_PUBLIC_ADMIN_URL);
-  const landingHost = normalizeHost(process.env.NEXT_PUBLIC_LANDING_URL);
-  const apiHost = getHostFromApiBaseUrl(process.env.NEXT_PUBLIC_API_BASE_URL);
-
-  const knownGenericHosts = new Set(
-    [appHost, adminHost, landingHost, apiHost].filter(Boolean),
-  );
-
-  if (knownGenericHosts.has(normalizedHost)) {
+  if (getKnownGenericHosts().has(normalizedHost)) {
     return {
       type: "generic",
       value: null,
@@ -121,7 +125,7 @@ export function getTenantHintFromHost(host?: string | null): TenantHint {
     };
   }
 
-  const rootDomain = getRootDomainFromAppUrl(process.env.NEXT_PUBLIC_APP_URL);
+  const rootDomain = getTenantRootDomain();
 
   if (rootDomain && normalizedHost.endsWith(`.${rootDomain}`)) {
     const subdomain = normalizedHost.slice(0, -`.${rootDomain}`.length);
@@ -150,6 +154,36 @@ export function getTenantHintFromHost(host?: string | null): TenantHint {
     value: normalizedHost,
     source: "host",
   };
+}
+
+export function getDefaultTenantSlug() {
+  return normalizeTenantSlug(
+    process.env.NEXT_PUBLIC_DEFAULT_TENANT_SLUG ??
+      process.env.DEFAULT_TENANT_SLUG,
+  );
+}
+
+export function getAppBaseUrl() {
+  return (
+    process.env.NEXT_PUBLIC_APP_BASE_URL ??
+    process.env.APP_BASE_URL ??
+    process.env.NEXT_PUBLIC_APP_ORIGIN ??
+    process.env.NEXT_PUBLIC_WEB_APP_URL ??
+    process.env.NEXT_PUBLIC_APP_URL ??
+    process.env.WEB_APP_URL ??
+    "http://localhost:3001"
+  );
+}
+
+export function getTenantRootDomain() {
+  return normalizeHost(
+    process.env.NEXT_PUBLIC_WEB_ROOT_DOMAIN ??
+      process.env.WEB_APP_PROD_ROOT_DOMAIN,
+  );
+}
+
+export function supportsTenantSubdomains() {
+  return Boolean(getTenantRootDomain());
 }
 
 export function resolveTenantSlugFromRequest(input: {
@@ -193,23 +227,15 @@ function getHostFromApiBaseUrl(value?: string | null) {
   }
 }
 
-function getRootDomainFromAppUrl(value?: string | null) {
-  const host = normalizeHost(value);
+function getKnownGenericHosts() {
+  const appHost = normalizeHost(getAppBaseUrl());
+  const adminHost = normalizeHost(
+    process.env.NEXT_PUBLIC_ADMIN_URL ?? process.env.NEXT_PUBLIC_ADMIN_APP_URL,
+  );
+  const landingHost = normalizeHost(
+    process.env.NEXT_PUBLIC_LANDING_URL ?? process.env.NEXT_PUBLIC_LANDING_APP_URL,
+  );
+  const apiHost = getHostFromApiBaseUrl(process.env.NEXT_PUBLIC_API_BASE_URL);
 
-  if (
-    !host ||
-    host === "localhost" ||
-    host === "127.0.0.1" ||
-    host.endsWith(".localhost")
-  ) {
-    return "";
-  }
-
-  const parts = host.split(".");
-
-  if (parts.length <= 2) {
-    return host;
-  }
-
-  return parts.slice(-2).join(".");
+  return new Set([appHost, adminHost, landingHost, apiHost].filter(Boolean));
 }

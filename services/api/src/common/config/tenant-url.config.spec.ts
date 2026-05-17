@@ -31,10 +31,24 @@ describe('tenant URL config', () => {
         config({
           APP_ENV: 'production',
           WEB_APP_URL: 'https://dijipeople.com',
+          WEB_APP_PROD_ROOT_DOMAIN: 'dijipeople.com',
         }),
         { slug: 'abc-cpa' },
       ),
     ).toBe('https://abc-cpa.dijipeople.com/login');
+  });
+
+
+  it('keeps production single-host login URLs on the configured app host', () => {
+    expect(
+      buildTenantLoginUrl(
+        config({
+          APP_ENV: 'production',
+          WEB_APP_URL: 'https://diji-people-web.vercel.app',
+        }),
+        { slug: 'diji-people-web' },
+      ),
+    ).toBe('https://diji-people-web.vercel.app/login');
   });
 
   it('builds tenant-aware activation URLs', () => {

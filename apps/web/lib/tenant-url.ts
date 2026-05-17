@@ -1,3 +1,10 @@
+import {
+  getAppBaseUrl,
+  getTenantRootDomain,
+  normalizeTenantSlug,
+  supportsTenantSubdomains,
+} from "@/lib/tenant-resolution";
+
 type QueryValue = string | number | boolean | null | undefined;
 
 export function buildTenantLoginUrl(
@@ -18,32 +25,19 @@ export function buildTenantPortalUrl(
   path = "/login",
   query?: Record<string, QueryValue>,
 ) {
-  const normalizedSlug = slug.trim().toLowerCase();
-
-  const appEnv =
-    process.env.NEXT_PUBLIC_APP_ENV ??
-    process.env.NODE_ENV ??
-    "development";
-
-  const appUrl =
-    process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3001";
-
+  const normalizedSlug = normalizeTenantSlug(slug);
+  const appUrl = getAppBaseUrl();
   const parsedAppUrl = new URL(appUrl);
   const hostname = parsedAppUrl.hostname;
-  const protocol = parsedAppUrl.protocol.replace(":", "");
+  const isLocalHost = hostname === "localhost" || hostname === "127.0.0.1";
+  const tenantRootDomain = getTenantRootDomain();
 
-  const isProduction =
-    appEnv === "production" &&
-    hostname !== "localhost" &&
-    hostname !== "127.0.0.1";
+  const url =
+    !isLocalHost && supportsTenantSubdomains() && tenantRootDomain
+      ? new URL(`${parsedAppUrl.protocol}//${normalizedSlug}.${tenantRootDomain}${normalizePath(path)}`)
+      : new URL(normalizePath(path), appUrl);
 
-  const url = isProduction
-    ? new URL(
-        `${protocol}://${normalizedSlug}.${stripWww(hostname)}${normalizePath(path)}`,
-      )
-    : new URL(normalizePath(path), appUrl);
-
-  if (!isProduction) {
+  if (isLocalHost && normalizedSlug) {
     url.searchParams.set("tenant", normalizedSlug);
   }
 
@@ -58,8 +52,4 @@ export function buildTenantPortalUrl(
 
 function normalizePath(path: string) {
   return path.startsWith("/") ? path : `/${path}`;
-}
-
-function stripWww(value: string) {
-  return value.replace(/^www\./, "");
 }
