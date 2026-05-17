@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { useToastNotice } from "@/app/_components/ui/toast-provider";
 
 type InvoiceStatusFormProps = {
   invoiceId: string;
@@ -13,6 +14,7 @@ export function InvoiceStatusForm({
   currentStatus,
 }: InvoiceStatusFormProps) {
   const router = useRouter();
+  const { showToast } = useToastNotice();
   const [status, setStatus] = useState(currentStatus);
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -40,6 +42,7 @@ export function InvoiceStatusForm({
       }
 
       setMessage("Invoice status updated.");
+      showToast({ title: "Invoice status updated", tone: "success" });
       router.refresh();
     });
   }

@@ -4,6 +4,7 @@ import { ActivityTracker } from "./activity-tracker";
 import { ConfigManager } from "./config-manager";
 import { OfflineQueue } from "./offline-queue";
 import { SecureStore } from "./secure-store";
+import { agentEnv } from "../config/env";
 import type {
   AgentState,
   ConnectionState,
@@ -18,6 +19,12 @@ type SessionManagerEvent =
   | "update-required"
   | "session-error";
 
+const DEFAULT_CONFIG_REFRESH_INTERVAL_SECONDS = 15 * 60;
+const MIN_CONFIG_REFRESH_INTERVAL_SECONDS = 60;
+const MAX_CONFIG_REFRESH_INTERVAL_SECONDS = 24 * 60 * 60;
+const HEARTBEAT_JITTER_MAX_MS = 10_000;
+const CONFIG_REFRESH_JITTER_MAX_MS = 60_000;
+
 export class SessionManager extends EventEmitter {
   user: LoginResult["user"] | null = null;
   deviceId: string | null = null;
@@ -28,10 +35,13 @@ export class SessionManager extends EventEmitter {
 
   private heartbeatTimer: NodeJS.Timeout | null = null;
   private configTimer: NodeJS.Timeout | null = null;
+  private sessionExpiryTimer: NodeJS.Timeout | null = null;
   private isLoggingOut = false;
   private isApplyingSession = false;
   private isSyncingHeartbeat = false;
   private isRefreshingToken = false;
+  private sessionStartedAt: Date | null = null;
+  private lastActivityAt: Date | null = null;
 
   constructor(
     private readonly apiClient: ApiClient,
@@ -131,6 +141,19 @@ export class SessionManager extends EventEmitter {
       return;
     }
 
+    if (this.isSessionExpiredByEnvPolicy()) {
+      await this.logout(true);
+      this.emit(
+        "session-error",
+        "Session expired based on configured agent session policy.",
+      );
+      return;
+    }
+
+    if (this.shouldRefreshTokenByEnvPolicy()) {
+      await this.refreshAccessToken();
+    }
+
     if (this.isSyncingHeartbeat) {
       console.warn("[Agent Heartbeat] skipped - already in progress");
       return;
@@ -161,6 +184,7 @@ export class SessionManager extends EventEmitter {
       });
 
       this.status = event.state;
+      this.lastActivityAt = new Date();
 
       const queued = await this.offlineQueue.drain(
         this.configManager.current.api.heartbeatBatchSize,
@@ -219,7 +243,8 @@ export class SessionManager extends EventEmitter {
 
       if (
         requeueEvents.length > 0 &&
-        this.configManager.current.api.offlineQueueEnabled
+        this.configManager.current.api.offlineQueueEnabled &&
+        agentEnv.offlineQueueEnabled
       ) {
         await this.offlineQueue.prepend(requeueEvents).catch(() => {
           console.error("[Agent Heartbeat] failed to persist offline queue");
@@ -320,6 +345,8 @@ export class SessionManager extends EventEmitter {
       this.status = "AWAY";
       this.connectionStatus = "ONLINE";
       this.lastHeartbeatSync = null;
+      this.sessionStartedAt = new Date();
+      this.lastActivityAt = new Date();
 
       this.emit("changed");
 
@@ -404,26 +431,60 @@ export class SessionManager extends EventEmitter {
   private startTimers(): void {
     this.stopTimers();
 
-    const heartbeatMs =
-      this.configManager.current.tracking.heartbeatIntervalSeconds * 1000;
+    const heartbeatMs = this.resolveHeartbeatIntervalMs();
 
     if (!Number.isFinite(heartbeatMs) || heartbeatMs <= 0) {
       this.emit(
         "session-error",
-        "Invalid heartbeat interval configuration received from server.",
+        "Invalid heartbeat interval configuration received from server or environment.",
       );
       return;
     }
 
+    const heartbeatIntervalWithJitter =
+      heartbeatMs + Math.floor(Math.random() * HEARTBEAT_JITTER_MAX_MS);
+
     this.heartbeatTimer = setInterval(() => {
       void this.syncHeartbeat();
-    }, heartbeatMs);
+    }, heartbeatIntervalWithJitter);
+
+    const configRefreshMs = this.resolveConfigRefreshIntervalMs();
+    const configRefreshIntervalWithJitter =
+      configRefreshMs + Math.floor(Math.random() * CONFIG_REFRESH_JITTER_MAX_MS);
 
     this.configTimer = setInterval(() => {
       void this.refreshConfigWithAuthRecovery();
-    }, 15 * 60 * 1000);
+    }, configRefreshIntervalWithJitter);
+
+    this.sessionExpiryTimer = setInterval(() => {
+      void this.enforceSessionPolicy();
+    }, 60 * 1000);
 
     void this.syncHeartbeat();
+  }
+
+  private resolveHeartbeatIntervalMs(): number {
+    const intervalSeconds =
+      this.configManager.current.tracking.heartbeatIntervalSeconds ||
+      agentEnv.heartbeatIntervalSeconds;
+
+    return intervalSeconds * 1000;
+  }
+
+  private resolveConfigRefreshIntervalMs(): number {
+    const envValue = Number(process.env.AGENT_CONFIG_REFRESH_INTERVAL_SECONDS);
+
+    const intervalSeconds =
+      Number.isFinite(envValue) && envValue > 0
+        ? envValue
+        : DEFAULT_CONFIG_REFRESH_INTERVAL_SECONDS;
+
+    const normalizedSeconds = Math.min(
+      Math.max(Math.floor(intervalSeconds), MIN_CONFIG_REFRESH_INTERVAL_SECONDS),
+      MAX_CONFIG_REFRESH_INTERVAL_SECONDS,
+    );
+
+    return normalizedSeconds * 1000;
   }
 
   private async refreshConfigWithAuthRecovery(): Promise<void> {
@@ -444,6 +505,66 @@ export class SessionManager extends EventEmitter {
     }
   }
 
+  private async enforceSessionPolicy(): Promise<void> {
+    if (!this.sessionId || !this.deviceId) {
+      return;
+    }
+
+    if (this.isSessionExpiredByEnvPolicy()) {
+      await this.logout(true);
+
+      this.emit(
+        "session-error",
+        "Session expired based on configured agent session policy.",
+      );
+    }
+  }
+
+  private isSessionExpiredByEnvPolicy(): boolean {
+    const now = Date.now();
+
+    if (
+      this.sessionStartedAt &&
+      agentEnv.sessionAbsoluteTimeoutSeconds > 0
+    ) {
+      const absoluteAgeSeconds =
+        (now - this.sessionStartedAt.getTime()) / 1000;
+
+      if (absoluteAgeSeconds >= agentEnv.sessionAbsoluteTimeoutSeconds) {
+        return true;
+      }
+    }
+
+    if (
+      this.lastActivityAt &&
+      agentEnv.sessionIdleTimeoutSeconds > 0
+    ) {
+      const idleAgeSeconds =
+        (now - this.lastActivityAt.getTime()) / 1000;
+
+      if (idleAgeSeconds >= agentEnv.sessionIdleTimeoutSeconds) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private shouldRefreshTokenByEnvPolicy(): boolean {
+    if (!this.lastHeartbeatSync) {
+      return false;
+    }
+
+    if (agentEnv.sessionRefreshThresholdSeconds <= 0) {
+      return false;
+    }
+
+    const secondsSinceLastSync =
+      (Date.now() - this.lastHeartbeatSync.getTime()) / 1000;
+
+    return secondsSinceLastSync >= agentEnv.sessionRefreshThresholdSeconds;
+  }
+
   private stopTimers(): void {
     if (this.heartbeatTimer) {
       clearInterval(this.heartbeatTimer);
@@ -453,8 +574,13 @@ export class SessionManager extends EventEmitter {
       clearInterval(this.configTimer);
     }
 
+    if (this.sessionExpiryTimer) {
+      clearInterval(this.sessionExpiryTimer);
+    }
+
     this.heartbeatTimer = null;
     this.configTimer = null;
+    this.sessionExpiryTimer = null;
   }
 
   private resetSessionState(): void {
@@ -466,6 +592,8 @@ export class SessionManager extends EventEmitter {
     this.status = "AWAY";
     this.connectionStatus = "OFFLINE";
     this.lastHeartbeatSync = null;
+    this.sessionStartedAt = null;
+    this.lastActivityAt = null;
     this.isSyncingHeartbeat = false;
   }
 

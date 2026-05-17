@@ -1,4 +1,5 @@
 import { AdminShell } from "@/app/_components/admin-shell";
+import { ToastProvider } from "@/app/_components/ui/toast-provider";
 import { ErrorProvider } from "@/components/errors/error-provider";
 import { requireSystemAdminUser } from "@/lib/auth";
 
@@ -11,15 +12,17 @@ export default async function InternalLayout({
 
   return (
     <ErrorProvider user={{ roleKeys: user.roleKeys }}>
-      <AdminShell
-        user={{
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email,
-        }}
-      >
-        {children}
-      </AdminShell>
+      <ToastProvider>
+        <AdminShell
+          user={{
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+          }}
+        >
+          {children}
+        </AdminShell>
+      </ToastProvider>
     </ErrorProvider>
   );
 }

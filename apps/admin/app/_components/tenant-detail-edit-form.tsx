@@ -158,6 +158,13 @@ export function TenantDetailEditForm({
       >
         {isPending ? "Saving..." : "Save tenant"}
       </button>
+      <button
+        className="ml-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700"
+        onClick={() => router.push(`/tenants/${tenant.id}?tab=settings`)}
+        type="button"
+      >
+        Cancel
+      </button>
     </form>
   );
 }

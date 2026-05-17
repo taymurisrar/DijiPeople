@@ -73,17 +73,23 @@ export class UserInvitationsService {
     let deliveryStatus: string | null = null;
 
     if (input.sendNow !== false) {
-      const delivery = await this.sendAccountActivationEmail({
-        tenantId: input.tenantId,
-        userId: input.userId,
-        invitationId: invitation.id,
-        email,
-        fullName: input.fullName,
-        activationLink,
-        expiresAt,
-      });
-      deliveryStatus = delivery.status;
-      deliveryMode = delivery.sent ? 'sent' : 'disabled';
+      try {
+        const delivery = await this.sendAccountActivationEmail({
+          tenantId: input.tenantId,
+          userId: input.userId,
+          invitationId: invitation.id,
+          email,
+          fullName: input.fullName,
+          activationLink,
+          expiresAt,
+        });
+        deliveryStatus = delivery.status;
+        deliveryMode = delivery.sent ? 'sent' : 'disabled';
+      } catch (error) {
+        deliveryStatus =
+          error instanceof Error ? error.message : 'Activation delivery unavailable.';
+        deliveryMode = 'disabled';
+      }
     }
 
     await this.auditService.log({

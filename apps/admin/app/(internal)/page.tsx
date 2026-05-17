@@ -14,6 +14,7 @@ import {
   UsersRound,
 } from "lucide-react";
 import { apiRequestJson } from "@/lib/server-api";
+import { ApiRequestError } from "@/lib/server-api";
 
 type DashboardSummary = {
   customers: number;
@@ -33,9 +34,29 @@ const currencyFormatter = new Intl.NumberFormat("en-US", {
 const numberFormatter = new Intl.NumberFormat("en-US");
 
 export default async function AdminDashboardPage() {
-  const summary = await apiRequestJson<DashboardSummary>(
-    "/super-admin/dashboard-summary",
-  );
+  let summary: DashboardSummary;
+  try {
+    summary = await apiRequestJson<DashboardSummary>(
+      "/super-admin/dashboard-summary",
+    );
+  } catch (error) {
+    const reference =
+      error instanceof ApiRequestError && error.traceId ? ` Reference: ${error.traceId}.` : "";
+    return (
+      <main className="rounded-[30px] border border-rose-200 bg-white p-8 shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-rose-600">
+          Dashboard unavailable
+        </p>
+        <h1 className="mt-3 text-2xl font-semibold text-slate-950">
+          We could not load the dashboard right now.
+        </h1>
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
+          {error instanceof Error ? error.message : "The dashboard request failed."}
+          {reference}
+        </p>
+      </main>
+    );
+  }
 
   const cards = [
     {

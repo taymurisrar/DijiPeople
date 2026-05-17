@@ -13,11 +13,13 @@ import { SortControl } from "@/app/_components/crm/sort-control";
 import { StatusSelector } from "@/app/_components/crm/status-selector";
 import { SubStatusSelector } from "@/app/_components/crm/sub-status-selector";
 import { DataTable } from "@/app/_components/crm/data-table";
+import { TenantStatusBadge } from "@/app/_components/tenant-status-badge";
 import {
   DataTableHeaderMenu,
   DataTableHeaderMenuActions,
   DataTableHeaderMenuSection,
 } from "@/app/_components/crm/data-table-header-menu";
+import { buildNextQuery } from "@/app/_components/crm/query-params";
 import type {
   LeadRecord,
   LifecycleOptions,
@@ -84,19 +86,11 @@ export function LeadListManager({
   }, [lifecycleOptions.lead.subStatuses]);
 
   function updateFilter(name: string, value: string) {
-    const search = new URLSearchParams(window.location.search);
+    router.push(buildNextQuery("/leads", { [name]: value }));
+  }
 
-    if (value) {
-      search.set(name, value);
-    } else {
-      search.delete(name);
-    }
-
-    if (name !== "page") {
-      search.delete("page");
-    }
-
-    router.push(`/leads${search.toString() ? `?${search.toString()}` : ""}`);
+  function clearAllFilters() {
+    router.push("/leads");
   }
 
   function updateSort(field: string, direction: string) {
@@ -363,9 +357,7 @@ export function LeadListManager({
       ),
       render: (lead) => (
         <>
-          <div className="font-medium text-slate-900">
-            {lead.status.replaceAll("_", " ")}
-          </div>
+          <TenantStatusBadge value={lead.status} />
           <div className="mt-1 text-slate-500">{lead.subStatus ?? "No sub-status"}</div>
         </>
       ),
@@ -545,6 +537,13 @@ export function LeadListManager({
               type="button"
             >
               Clear selection
+            </button>
+            <button
+              className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700"
+              onClick={clearAllFilters}
+              type="button"
+            >
+              Clear filters
             </button>
           </div>
         </div>

@@ -112,6 +112,12 @@ export class PlatformLifecycleService {
       throw new ConflictException('Lead has already been converted.');
     }
 
+    if (!lead.companyName || !lead.workEmail || !lead.industry || !lead.companySize) {
+      throw new BadRequestException(
+        'Lead conversion requires company name, work email, industry, and company size.',
+      );
+    }
+
     const existingCustomer = await this.prisma.customerAccount.findFirst({
       where: { leadId },
       select: { id: true },
@@ -697,7 +703,16 @@ export class PlatformLifecycleService {
 
   async listCustomerOnboardings(query: CustomerOnboardingQueryDto) {
     const where = {
-      ...(query.status ? { status: query.status } : {}),
+      ...(query.status
+        ? { status: query.status }
+        : {
+            status: {
+              notIn: [
+                CustomerOnboardingStatus.COMPLETED,
+                CustomerOnboardingStatus.CANCELED,
+              ],
+            },
+          }),
       ...(query.subStatus ? { subStatus: query.subStatus } : {}),
       ...(query.customerId ? { customerId: query.customerId } : {}),
       ...(query.onboardingOwnerUserId
@@ -845,6 +860,16 @@ export class PlatformLifecycleService {
       throw new NotFoundException('Onboarding record not found.');
     }
 
+    if (
+      existing.tenantId ||
+      existing.tenantCreated ||
+      existing.status === CustomerOnboardingStatus.COMPLETED
+    ) {
+      throw new BadRequestException(
+        'Completed onboarding records are read-only and cannot be edited.',
+      );
+    }
+
     const nextStatus = dto.status ?? existing.status;
     const nextSubStatus =
       dto.subStatus === undefined ? existing.subStatus : dto.subStatus;
@@ -856,14 +881,37 @@ export class PlatformLifecycleService {
       );
     }
 
+    const readiness = this.getReadiness(
+      {
+        ...existing,
+        ...dto,
+      },
+      existing.customer.status,
+    );
+
+    const shouldAutoMarkReady =
+      readiness.isReadyForTenantCreation &&
+      nextStatus !== CustomerOnboardingStatus.READY_FOR_TENANT_CREATION;
+
     await this.prisma.customerOnboarding.update({
       where: { id: onboardingId },
-      data: this.mapOnboardingDtoToData(
-        dto,
-      ) as Prisma.CustomerOnboardingUncheckedUpdateInput,
+      data: {
+        ...(this.mapOnboardingDtoToData(
+          dto,
+        ) as Prisma.CustomerOnboardingUncheckedUpdateInput),
+        ...(shouldAutoMarkReady
+          ? {
+              status: CustomerOnboardingStatus.READY_FOR_TENANT_CREATION,
+              subStatus: 'Go-live ready',
+            }
+          : {}),
+      },
     });
 
-    if (dto.status === CustomerOnboardingStatus.READY_FOR_TENANT_CREATION) {
+    if (
+      dto.status === CustomerOnboardingStatus.READY_FOR_TENANT_CREATION ||
+      shouldAutoMarkReady
+    ) {
       await this.prisma.customerAccount.update({
         where: { id: existing.customerId },
         data: {

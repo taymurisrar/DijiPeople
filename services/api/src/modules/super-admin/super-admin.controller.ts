@@ -44,12 +44,13 @@ import { SuperAdminService } from './super-admin.service';
 import { ConvertLeadToCustomerDto } from '../leads/dto/admin-lead.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
+@RequireRoles(ROLE_KEYS.SYSTEM_ADMIN, ROLE_KEYS.SYSTEM_CUSTOMIZER)
 @Controller('super-admin')
 export class SuperAdminController {
   constructor(private readonly superAdminService: SuperAdminService) {}
 
   @Get('dashboard-summary')
+  @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
   getDashboardSummary() {
     return this.superAdminService.getDashboardSummary();
   }
@@ -266,6 +267,7 @@ export class SuperAdminController {
   }
 
   @Patch('tenants/:tenantId/status')
+  @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
   updateTenantStatus(
     @CurrentUser() user: AuthenticatedUser,
     @Param('tenantId', new ParseUUIDPipe()) tenantId: string,
@@ -275,6 +277,7 @@ export class SuperAdminController {
   }
 
   @Patch('tenants/:tenantId/subscription')
+  @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
   updateTenantSubscription(
     @CurrentUser() user: AuthenticatedUser,
     @Param('tenantId', new ParseUUIDPipe()) tenantId: string,
@@ -284,21 +287,25 @@ export class SuperAdminController {
   }
 
   @Get('subscriptions')
+  @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
   listSubscriptions() {
     return this.superAdminService.listSubscriptions();
   }
 
   @Get('invoices')
+  @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
   listInvoices() {
     return this.superAdminService.listInvoices();
   }
 
   @Get('invoices/:invoiceId')
+  @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
   getInvoiceDetail(@Param('invoiceId', new ParseUUIDPipe()) invoiceId: string) {
     return this.superAdminService.getInvoiceDetail(invoiceId);
   }
 
   @Patch('invoices/:invoiceId/status')
+  @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
   updateInvoiceStatus(
     @CurrentUser() user: AuthenticatedUser,
     @Param('invoiceId', new ParseUUIDPipe()) invoiceId: string,
@@ -308,6 +315,7 @@ export class SuperAdminController {
   }
 
   @Post('subscriptions/:subscriptionId/invoices')
+  @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
   createInvoiceFromSubscription(
     @CurrentUser() user: AuthenticatedUser,
     @Param('subscriptionId', new ParseUUIDPipe()) subscriptionId: string,

@@ -2,10 +2,7 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  DEFAULT_ADMIN_ROUTE,
-  sanitizeAdminNextPath,
-} from "@/lib/auth-config";
+import { sanitizeAdminNextPath } from "@/lib/auth-config";
 
 type LoginResponse = {
   message?: string;

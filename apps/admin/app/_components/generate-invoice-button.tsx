@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { useToastNotice } from "@/app/_components/ui/toast-provider";
 
 type Props = {
   subscriptionId: string;
@@ -9,6 +10,7 @@ type Props = {
 
 export function GenerateInvoiceButton({ subscriptionId }: Props) {
   const router = useRouter();
+  const { showToast } = useToastNotice();
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -32,6 +34,7 @@ export function GenerateInvoiceButton({ subscriptionId }: Props) {
         return;
       }
       setMessage(`Invoice ${body?.invoiceNumber ?? "generated"} created.`);
+      showToast({ title: "Invoice generated", tone: "success" });
       router.refresh();
     });
   }

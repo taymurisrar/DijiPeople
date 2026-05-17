@@ -1,936 +1,165 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import {
-  ArrowLeft,
-  Plus,
-  Pencil,
-  Save,
-  RefreshCw,
-  Trash2,
-  Share2,
-} from "lucide-react";
-import { ModuleDetailLayout } from "@/app/_components/crm/module-detail-layout";
-import { FormControl } from "@/app/_components/ui/form-control";
-import { OwnerSelector } from "@/app/_components/crm/owner-selector";
+import { ArrowLeft, Building2, ClipboardList, Pencil, RefreshCw, Save, Share2 } from "lucide-react";
 import { RecordRibbonBar } from "@/app/_components/crm/record-ribbon-bar";
-import { StatusSelector } from "@/app/_components/crm/status-selector";
-import { SubStatusSelector } from "@/app/_components/crm/sub-status-selector";
+import { FormControl } from "@/app/_components/ui/form-control";
+import { CommandBar, DetailHeader, DetailPageShell, FormSection, ReadOnlyField, StatusPipeline, SummaryCard, SummaryCards } from "@/app/_components/ui/detail-page";
+import { LifecycleTabs } from "@/app/_components/ui/lifecycle-tabs";
+import { TenantStatusBadge } from "@/app/_components/tenant-status-badge";
+import { useToastNotice } from "@/app/_components/ui/toast-provider";
+import { getLifecycleLabel, isCustomerReadOnly } from "@/lib/lifecycle";
 import { suggestTenantSlug } from "@/lib/tenant-slug";
-import type {
-  CustomerRecord,
-  LifecycleOptions,
-  OperatorOption,
-  PlanOption,
-} from "./platform-lifecycle-types";
+import type { CustomerRecord, LifecycleOptions, OperatorOption, PlanOption } from "./platform-lifecycle-types";
 
-type TabKey =
-  | "overview"
-  | "lifecycle"
-  | "onboarding"
-  | "tenants"
-  | "subscriptions"
-  | "payments"
-  | "invoices"
-  | "notes";
-
+type TabKey = "overview" | "contacts" | "onboarding" | "subscription" | "invoices" | "activity";
 const tabs: Array<{ key: TabKey; label: string }> = [
   { key: "overview", label: "Overview" },
-  { key: "lifecycle", label: "Lifecycle" },
+  { key: "contacts", label: "Contacts" },
   { key: "onboarding", label: "Onboarding" },
-  { key: "tenants", label: "Tenants" },
-  { key: "subscriptions", label: "Subscriptions" },
-  { key: "payments", label: "Payments" },
+  { key: "subscription", label: "Subscription" },
   { key: "invoices", label: "Invoices" },
-  { key: "notes", label: "Notes / Activity" },
+  { key: "activity", label: "Activity / Audit Log" },
 ];
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function nonEmpty(value: string) {
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : undefined;
-}
-
-function isValidEmail(value: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-}
-
-function isValidUuid(value: string) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-    value,
-  );
-}
-
-export function CustomerDetailManager({
-  customer,
-  lifecycleOptions,
-  operators,
-  plans,
-}: {
-  customer: CustomerRecord & {
-    primaryContactFirstName?: string | null;
-    primaryContactLastName?: string | null;
-    primaryContactEmail?: string | null;
-    primaryContactPhone?: string | null;
-    notes?: Array<{ id: string; note: string; createdAt: string }>;
-    onboardings?: Array<{
-      id: string;
-      status: string;
-      subStatus?: string | null;
-      tenantCreated: boolean;
-    }>;
-  };
-  lifecycleOptions: LifecycleOptions;
-  operators: OperatorOption[];
-  plans: PlanOption[];
-}) {
+export function CustomerDetailManager({ customer, lifecycleOptions, plans }: { customer: CustomerRecord & { notes?: Array<{ id: string; note: string; createdAt: string }> }; lifecycleOptions: LifecycleOptions; operators: OperatorOption[]; plans: PlanOption[]; }) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-  const [message, setMessage] = useState<string | null>(null);
+  const { showToast } = useToastNotice();
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
   const [isEditing, setIsEditing] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const [message, setMessage] = useState<string | null>(null);
   const [lastSaveSucceeded, setLastSaveSucceeded] = useState(false);
 
-  const initialForm = useMemo(
-    () => ({
-      companyName: customer.companyName ?? "",
-      primaryContactFirstName: customer.primaryContactFirstName ?? "",
-      primaryContactLastName: customer.primaryContactLastName ?? "",
-      primaryContactEmail: customer.primaryContactEmail ?? "",
-      primaryContactPhone: customer.primaryContactPhone ?? "",
-      industry: customer.industry ?? "",
-      companySize: customer.companySize ?? "",
-      country: customer.country ?? "",
-      preferredBillingCycle: customer.preferredBillingCycle ?? "",
-      status: customer.status,
-      subStatus: customer.subStatus ?? "",
-      selectedPlanId: customer.selectedPlan?.id ?? "",
-      accountManagerUserId: customer.accountManagerUser?.id ?? "",
-    }),
-    [customer],
-  );
-
+  const initialForm = useMemo(() => ({
+    companyName: customer.companyName ?? "",
+    primaryContactFirstName: customer.primaryContactFirstName ?? "",
+    primaryContactLastName: customer.primaryContactLastName ?? "",
+    primaryContactEmail: customer.primaryContactEmail ?? "",
+    primaryContactPhone: customer.primaryContactPhone ?? "",
+    industry: customer.industry ?? "",
+    companySize: customer.companySize ?? "",
+    country: customer.country ?? "",
+    preferredBillingCycle: customer.preferredBillingCycle ?? "",
+    selectedPlanId: customer.selectedPlan?.id ?? "",
+    accountManagerUserId: customer.accountManagerUser?.id ?? "",
+  }), [customer]);
   const [form, setForm] = useState(initialForm);
+  const linkedOnboarding = customer.onboardings?.[0];
+  const linkedTenant = customer.tenants?.[0] ?? customer.tenant;
+  const readOnly = isCustomerReadOnly(customer.status, customer.lifecycle?.tenantCount ?? customer.tenants?.length ?? 0);
+  const isDirty = JSON.stringify(form) !== JSON.stringify(initialForm);
+  const canStartOnboarding = Boolean(customer.onboardingPrerequisites?.allPassed && !linkedOnboarding);
+  const fullName = [form.primaryContactFirstName, form.primaryContactLastName].filter(Boolean).join(" ").trim();
 
-  const updateForm = <K extends keyof typeof form>(
-    key: K,
-    value: (typeof form)[K],
-  ) => {
+  function updateForm<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((current) => ({ ...current, [key]: value }));
     setLastSaveSucceeded(false);
     setMessage(null);
-  };
-
-  const fullName = [
-    form.primaryContactFirstName,
-    form.primaryContactLastName,
-  ]
-    .filter((value) => value?.trim())
-    .join(" ")
-    .trim();
-
-  const isDirty = JSON.stringify(form) !== JSON.stringify(initialForm);
-
-  const saveStateLabel = isDirty
-    ? "Unsaved changes"
-    : lastSaveSucceeded
-      ? "Saved"
-      : "";
-
-  const entityLogicalName = "customer";
-  const formDisplayName = "Default";
-
-  const prerequisites = customer.onboardingPrerequisites;
-  const canStartOnboarding = Boolean(prerequisites?.allPassed);
-
-  function handleSave() {
+  }
+  function cancelEdit() {
+    setForm(initialForm);
+    setIsEditing(false);
     setMessage(null);
-    setLastSaveSucceeded(false);
-
-    const primaryContactEmail = nonEmpty(form.primaryContactEmail);
-    const selectedPlanId = nonEmpty(form.selectedPlanId);
-    const preferredBillingCycle = nonEmpty(form.preferredBillingCycle);
-
-    if (primaryContactEmail && !isValidEmail(primaryContactEmail)) {
-      setMessage("Primary contact email must be a valid email address.");
-      return;
-    }
-    if (!preferredBillingCycle) {
-      setMessage("Billing cycle is required.");
-      return;
-    }
-
-    if (!selectedPlanId) {
-      setMessage("Selected plan is required.");
-      return;
-    }
-
-    if (!isValidUuid(selectedPlanId)) {
-      setMessage("Selected plan must be a valid UUID.");
-      return;
-    }
-
+  }
+  function validateForm() {
+    if (!form.companyName.trim()) return "Company name is required.";
+    if (!form.primaryContactFirstName.trim() || !form.primaryContactLastName.trim()) return "Primary contact first and last name are required.";
+    if (!emailPattern.test(form.primaryContactEmail)) return "Primary contact email must be valid.";
+    if (form.primaryContactPhone && /[A-Za-z]/.test(form.primaryContactPhone)) return "Primary contact phone must contain digits only.";
+    if (!form.selectedPlanId) return "Selected plan is required.";
+    if (!form.preferredBillingCycle) return "Billing cycle is required.";
+    return null;
+  }
+  function handleSave() {
+    if (!isEditing || readOnly || !isDirty) return;
+    const error = validateForm();
+    if (error) return setMessage(error);
     startTransition(async () => {
-      const response = await fetch(`/api/super-admin/customers/${customer.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          companyName: nonEmpty(form.companyName),
-          primaryContactFirstName: nonEmpty(form.primaryContactFirstName),
-          primaryContactLastName: nonEmpty(form.primaryContactLastName),
-          primaryContactEmail: primaryContactEmail?.toLowerCase(),
-          primaryContactPhone: nonEmpty(form.primaryContactPhone),
-          industry: nonEmpty(form.industry),
-          companySize: nonEmpty(form.companySize),
-          country: nonEmpty(form.country),
-          preferredBillingCycle: nonEmpty(form.preferredBillingCycle),
-          status: nonEmpty(form.status),
-          subStatus: nonEmpty(form.subStatus),
-          selectedPlanId,
-          accountManagerUserId: nonEmpty(form.accountManagerUserId),
-        }),
-      });
-
+      const response = await fetch(`/api/super-admin/customers/${customer.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...form, primaryContactPhone: form.primaryContactPhone || undefined, industry: form.industry || undefined, companySize: form.companySize || undefined, accountManagerUserId: form.accountManagerUserId || undefined }) });
       const payload = await response.json().catch(() => null);
-
-      if (!response.ok) {
-        setMessage(payload?.message ?? "Unable to update customer.");
-        return;
-      }
-
-      setMessage("Customer updated.");
+      if (!response.ok) return setMessage(payload?.message ?? "Unable to update customer.");
       setLastSaveSucceeded(true);
+      setIsEditing(false);
+      setMessage("Customer updated.");
+      showToast({ title: "Customer updated", tone: "success" });
       router.refresh();
     });
   }
-
   function handleStartOnboarding() {
-    setMessage(null);
-
-    const primaryOwnerWorkEmail = nonEmpty(form.primaryContactEmail);
-    const selectedPlanId = nonEmpty(form.selectedPlanId);
-
-    if (!primaryOwnerWorkEmail || !isValidEmail(primaryOwnerWorkEmail)) {
-      setMessage("Primary contact email must be valid before onboarding.");
-      return;
-    }
-
-    if (selectedPlanId && !isValidUuid(selectedPlanId)) {
-      setMessage("Selected plan must be a valid UUID.");
-      return;
-    }
-
+    if (!canStartOnboarding) return;
+    const error = validateForm();
+    if (error) return setMessage(error);
     startTransition(async () => {
-      const response = await fetch(
-        `/api/super-admin/customers/${customer.id}/start-onboarding`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            selectedPlanId,
-            primaryOwnerFirstName: nonEmpty(form.primaryContactFirstName),
-            primaryOwnerLastName: nonEmpty(form.primaryContactLastName),
-            primaryOwnerWorkEmail,
-            primaryOwnerPhone: nonEmpty(form.primaryContactPhone),
-            billingCycle: form.preferredBillingCycle || "MONTHLY",
-            plannedTenantSlug: suggestTenantSlug(form.companyName),
-            status: "NOT_STARTED",
-            subStatus: "Awaiting kickoff",
-          }),
-        },
-      );
-
+      const response = await fetch(`/api/super-admin/customers/${customer.id}/start-onboarding`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ selectedPlanId: form.selectedPlanId, primaryOwnerFirstName: form.primaryContactFirstName, primaryOwnerLastName: form.primaryContactLastName, primaryOwnerWorkEmail: form.primaryContactEmail, primaryOwnerPhone: form.primaryContactPhone || undefined, billingCycle: form.preferredBillingCycle, plannedTenantSlug: suggestTenantSlug(form.companyName), status: "NOT_STARTED", subStatus: "Awaiting kickoff" }) });
       const payload = await response.json().catch(() => null);
-
-      if (!response.ok) {
-        setMessage(payload?.message ?? "Unable to start onboarding.");
-        return;
-      }
-
+      if (!response.ok) return setMessage(payload?.message ?? "Unable to start onboarding.");
+      showToast({ title: "Onboarding started", tone: "success" });
       router.push(`/onboarding/${payload.id}`);
     });
   }
-
-  function handleDelete() {
-    const confirmed = window.confirm("Delete this customer?");
-    if (!confirmed) return;
-
-    setMessage(null);
-
-    startTransition(async () => {
-      const response = await fetch("/api/super-admin/customers", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids: [customer.id] }),
-      });
-
-      const payload = await response.json().catch(() => null);
-
-      if (!response.ok) {
-        setMessage(payload?.message ?? "Unable to delete customer.");
-        return;
-      }
-
-      router.push("/customers");
-    });
-  }
-
   async function handleShare() {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      setMessage("Record link copied.");
-    } catch {
-      setMessage("Unable to copy record link.");
-    }
+    try { await navigator.clipboard.writeText(window.location.href); setMessage("Customer link copied."); showToast({ title: "Customer link copied", tone: "success" }); } catch { setMessage("Unable to copy customer link."); }
   }
 
-  return (
-    <ModuleDetailLayout
-      description={`${form.primaryContactEmail || "No primary email"} • ${form.country || "No country"
-        } • ${form.status.replaceAll("_", " ")}`}
-      title={form.companyName || "Unnamed customer"}
-      ribbon={
-        <div className="flex flex-col gap-3">
-          <RecordRibbonBar
-            left={
-              <>
-                <button
-                  aria-label="Back"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-slate-700 transition hover:bg-slate-100"
-                  onClick={() => router.push("/customers")}
-                  title="Back"
-                  type="button"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                </button>
-
-                <button
-                  className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
-                  onClick={() => router.push("/customers/new")}
-                  type="button"
-                >
-                  <Plus className="h-4 w-4" />
-                  <span>New</span>
-                </button>
-
-                <button
-                  className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
-                  onClick={() => setIsEditing((current) => !current)}
-                  type="button"
-                >
-                  <Pencil className="h-4 w-4" />
-                  <span>{isEditing ? "View" : "Edit"}</span>
-                </button>
-
-                <button
-                  className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-60"
-                  disabled={isPending}
-                  onClick={handleSave}
-                  type="button"
-                >
-                  <Save className="h-4 w-4" />
-                  <span>Save</span>
-                </button>
-
-                <button
-                  className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
-                  onClick={() => router.refresh()}
-                  type="button"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  <span>Refresh</span>
-                </button>
-
-                <button
-                  className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-60"
-                  disabled={isPending || Boolean(customer.tenant)}
-                  onClick={handleDelete}
-                  type="button"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  <span>Delete</span>
-                </button>
-
-                <button
-                  className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
-                  onClick={handleShare}
-                  type="button"
-                >
-                  <Share2 className="h-4 w-4" />
-                  <span>Share</span>
-                </button>
-              </>
-            }
-            right={<></>}
-          />
-
-          <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-xl font-semibold text-slate-900">
-                  {fullName || form.companyName || "Unnamed customer"}
-                </h2>
-
-                {saveStateLabel ? (
-                  <>
-                    <span className="text-slate-300">-</span>
-                    <span
-                      className={
-                        saveStateLabel === "Unsaved changes"
-                          ? "text-sm font-medium text-amber-600"
-                          : "text-sm font-medium text-emerald-600"
-                      }
-                    >
-                      {saveStateLabel}
-                    </span>
-                  </>
-                ) : null}
-              </div>
-
-              <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-500">
-                <span className="capitalize tracking-wide">
-                  {entityLogicalName}
-                </span>
-                <span className="text-slate-300">-</span>
-                <span>{formDisplayName}</span>
-              </div>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2 lg:min-w-[220px] lg:grid-cols-3">
-              <div className="min-w-8">
-                <StatusSelector
-                  label="Status"
-                  onChange={(value) => {
-                    updateForm("status", value);
-                    updateForm(
-                      "subStatus",
-                      lifecycleOptions.customer.subStatuses[value]?.[0] ?? "",
-                    );
-                  }}
-                  options={lifecycleOptions.customer.statuses.map((value) => ({
-                    value,
-                    label: value.replaceAll("_", " "),
-                  }))}
-                  value={form.status}
-                />
-              </div>
-
-              <div className="min-w-16">
-                <SubStatusSelector
-                  label="Sub-status"
-                  onChange={(value) => updateForm("subStatus", value)}
-                  options={[
-                    { value: "", label: "None" },
-                    ...(lifecycleOptions.customer.subStatuses[
-                      form.status
-                    ] ?? []).map((value) => ({
-                      value,
-                      label: value,
-                    })),
-                  ]}
-                  value={form.subStatus}
-                />
-              </div>
-
-              <div className="min-w-36">
-                <OwnerSelector
-                  label="Account manager"
-                  onChange={(value) =>
-                    updateForm("accountManagerUserId", value)
-                  }
-                  options={[
-                    { value: "", label: "Unassigned" },
-                    ...operators.map((operator) => ({
-                      value: operator.id,
-                      label: operator.fullName,
-                    })),
-                  ]}
-                  value={form.accountManagerUserId}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      }
-    >
-      <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-wrap gap-2">
-          {tabs.map((tab) => (
-            <button
-              className={`rounded-full px-4 py-2 text-sm font-medium ${activeTab === tab.key
-                ? "bg-slate-950 text-white"
-                : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
-                }`}
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              type="button"
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {activeTab === "overview" ? (
-          <>
-            <div className="mt-6 grid gap-4 lg:grid-cols-2">
-              <FormControl
-                label="Company"
-                onChange={(value) => updateForm("companyName", String(value))}
-                required
-                type="text"
-                value={form.companyName}
-              />
-
-              <FormControl
-                helpText="Primary contact first name for onboarding and communication."
-                label="Primary first name"
-                onChange={(value) =>
-                  updateForm("primaryContactFirstName", String(value))
-                }
-                type="text"
-                value={form.primaryContactFirstName}
-              />
-
-              <FormControl
-                label="Primary last name"
-                onChange={(value) =>
-                  updateForm("primaryContactLastName", String(value))
-                }
-                type="text"
-                value={form.primaryContactLastName}
-              />
-
-              <FormControl
-                error={
-                  form.primaryContactEmail &&
-                    !isValidEmail(form.primaryContactEmail)
-                    ? "Invalid email"
-                    : undefined
-                }
-                helpText="This email will be used for onboarding and tenant owner communication."
-                label="Primary email"
-                onChange={(value) =>
-                  updateForm("primaryContactEmail", String(value))
-                }
-                required
-                type="email"
-                value={form.primaryContactEmail}
-              />
-
-              <FormControl
-                label="Primary phone"
-                onChange={(value) =>
-                  updateForm("primaryContactPhone", String(value))
-                }
-                type="tel"
-                value={form.primaryContactPhone}
-              />
-
-              <FormControl
-                helpText="Customer industry classification."
-                label="Industry"
-                onChange={(value) => updateForm("industry", String(value))}
-                options={[
-                  { value: "", label: "Not specified" },
-                  ...lifecycleOptions.industries,
-                ]}
-                type="select"
-                value={form.industry}
-              />
-
-              <FormControl
-                label="Company size"
-                onChange={(value) => updateForm("companySize", String(value))}
-                options={[
-                  { value: "", label: "Not specified" },
-                  ...lifecycleOptions.companySizes,
-                ]}
-                type="select"
-                value={form.companySize}
-              />
-
-              <FormControl
-                label="Country"
-                onChange={(value) => updateForm("country", String(value))}
-                type="text"
-                value={form.country}
-              />
-
-              <FormControl
-                error={
-                  !form.preferredBillingCycle
-                    ? "Billing cycle required"
-                    : undefined
-                }
-                helpText="Controls invoice generation and subscription renewals."
-                label="Preferred billing cycle"
-                onChange={(value) =>
-                  updateForm("preferredBillingCycle", String(value))
-                }
-                options={[
-                  { value: "", label: "Not specified" },
-                  { value: "MONTHLY", label: "MONTHLY" },
-                  { value: "ANNUAL", label: "ANNUAL" },
-                ]}
-                required
-                type="select"
-                value={form.preferredBillingCycle}
-              />
-
-              <FormControl
-                error={
-                  form.selectedPlanId &&
-                    !isValidUuid(form.selectedPlanId)
-                    ? "Invalid plan"
-                    : undefined
-                }
-                helpText="Subscription plan assigned to this customer."
-                label="Selected plan"
-                onChange={(value) =>
-                  updateForm("selectedPlanId", String(value))
-                }
-                options={[
-                  { value: "", label: "Not selected" },
-                  ...plans.map((plan) => ({
-                    value: plan.id,
-                    label: plan.name,
-                  })),
-                ]}
-                required
-                type="select"
-                value={form.selectedPlanId}
-              />
-            </div>
-
-            <FooterActions
-              message={
-                message ?? "Save profile updates before lifecycle actions."
-              }
-              isPending={isPending}
-              onSave={handleSave}
-            />
-          </>
-        ) : null}
-
-        {activeTab === "lifecycle" ? (
-          <div className="mt-6">
-            <div className="grid gap-4 md:grid-cols-2">
-              <Info
-                label="Status"
-                value={
-                  customer.lifecycle?.currentStatus?.replaceAll("_", " ") ??
-                  customer.status.replaceAll("_", " ")
-                }
-              />
-              <Info
-                label="Sub-status"
-                value={customer.lifecycle?.subStatus ?? customer.subStatus ?? "None"}
-              />
-              <Info
-                label="Active onboarding"
-                value={customer.lifecycle?.activeOnboardingStatus ?? "None"}
-              />
-              <Info
-                label="Tenant count"
-                value={String(
-                  customer.lifecycle?.tenantCount ??
-                  customer.tenants?.length ??
-                  0,
-                )}
-              />
-              <Info
-                label="Active tenants"
-                value={String(customer.lifecycle?.activeTenantCount ?? 0)}
-              />
-              <Info
-                label="Next renewal"
-                value={formatDate(customer.lifecycle?.nextRenewalDate)}
-              />
-            </div>
-
-            <div className="mt-6">
-              <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">
-                Onboarding prerequisites
-              </h3>
-
-              <div className="mt-3 space-y-2">
-                {(prerequisites?.checks ?? []).map((check) => (
-                  <div
-                    className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"
-                    key={check.key}
-                  >
-                    <span className="text-sm text-slate-700">
-                      {check.label}
-                    </span>
-                    <span
-                      className={
-                        check.passed
-                          ? "text-sm font-semibold text-emerald-700"
-                          : "text-sm font-semibold text-amber-700"
-                      }
-                    >
-                      {check.passed ? "Ready" : "Missing"}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-              <div className="text-sm text-slate-600">
-                {message ??
-                  (canStartOnboarding
-                    ? "Customer is ready for onboarding."
-                    : "Complete prerequisites before starting onboarding.")}
-              </div>
-
-              <button
-                className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
-                disabled={isPending || !canStartOnboarding}
-                onClick={handleStartOnboarding}
-                type="button"
-              >
-                Start onboarding
-              </button>
-            </div>
-          </div>
-        ) : null}
-
-        {activeTab === "onboarding" ? (
-          <RelatedOnboarding onboardings={customer.onboardings ?? []} />
-        ) : null}
-
-        {activeTab === "tenants" ? (
-          <SimpleTable
-            columns={["Name", "Slug", "Status"]}
-            emptyText="No tenants linked to this customer."
-            rows={(customer.tenants ?? []).map((tenant) => [
-              tenant.name,
-              tenant.slug,
-              tenant.status,
-            ])}
-            title="Tenants"
-          />
-        ) : null}
-
-        {activeTab === "subscriptions" ? (
-          <SimpleTable
-            columns={["Plan", "Status", "Billing", "Price"]}
-            emptyText="No subscriptions found for this customer."
-            rows={(customer.subscriptions ?? []).map((subscription) => [
-              subscription.plan.name,
-              subscription.status,
-              subscription.billingCycle,
-              `${subscription.currency} ${Number(
-                subscription.finalPrice,
-              ).toFixed(2)}`,
-            ])}
-            title="Subscriptions"
-          />
-        ) : null}
-
-        {activeTab === "payments" ? (
-          <SimpleTable
-            columns={["Amount", "Status", "Method", "Paid at"]}
-            emptyText="No payments found for this customer."
-            rows={(customer.payments ?? []).map((payment) => [
-              `${payment.currency} ${Number(payment.amount).toFixed(2)}`,
-              payment.status,
-              payment.paymentMethod,
-              formatDate(payment.paidAt),
-            ])}
-            title="Payments"
-          />
-        ) : null}
-
-        {activeTab === "invoices" ? (
-          <SimpleTable
-            columns={["Invoice #", "Amount", "Status", "Due date"]}
-            emptyText="No invoices found for this customer."
-            rows={(customer.invoices ?? []).map((invoice) => [
-              invoice.invoiceNumber,
-              `${invoice.currency} ${Number(invoice.amount).toFixed(2)}`,
-              invoice.status,
-              formatDate(invoice.dueDate),
-            ])}
-            title="Invoices"
-          />
-        ) : null}
-
-        {activeTab === "notes" ? (
-          <RelatedNotes notes={customer.notes ?? []} />
-        ) : null}
-      </section>
-    </ModuleDetailLayout>
-  );
+  return <DetailPageShell>
+    <DetailHeader eyebrow="Customer" title={<span className="inline-flex flex-wrap items-center gap-3">{customer.companyName}<TenantStatusBadge value={customer.status} /></span>} description={`${form.primaryContactEmail || "No primary email"} ? ${getLifecycleLabel(customer.status)}`} />
+    <CommandBar>
+    <RecordRibbonBar left={<>
+      <IconButton label="Back" onClick={() => router.push("/customers")}><ArrowLeft className="h-4 w-4" /></IconButton>
+      <ActionButton disabled={readOnly} onClick={() => setIsEditing(true)}><Pencil className="h-4 w-4" />Edit</ActionButton>
+      <ActionButton disabled={isPending || !isEditing || !isDirty || readOnly} onClick={handleSave}><Save className="h-4 w-4" />Save</ActionButton>
+      <ActionButton disabled={!isEditing} onClick={cancelEdit}>Cancel</ActionButton>
+      <ActionButton onClick={() => router.refresh()}><RefreshCw className="h-4 w-4" />Refresh</ActionButton>
+      <ActionButton onClick={handleShare}><Share2 className="h-4 w-4" />Share</ActionButton>
+      {linkedOnboarding ? <LinkButton href={`/onboarding/${linkedOnboarding.id}`}><ClipboardList className="h-4 w-4" />View onboarding</LinkButton> : <ActionButton disabled={!canStartOnboarding || isPending} onClick={handleStartOnboarding}><ClipboardList className="h-4 w-4" />Start onboarding</ActionButton>}
+      {linkedTenant ? <LinkButton href={`/tenants/${linkedTenant.id}`}><Building2 className="h-4 w-4" />View tenant</LinkButton> : null}
+    </>} right={<span className={isDirty ? "text-sm font-medium text-amber-600" : "text-sm font-medium text-emerald-600"}>{isDirty ? "Unsaved changes" : lastSaveSucceeded ? "Saved" : ""}</span>} />
+    </CommandBar>
+    <StatusPipeline current={customer.status} steps={["PROSPECT", "ONBOARDING", "ACTIVE", "ARCHIVED"]} />
+    <SummaryCards>
+      <SummaryCard label="Primary contact" value={fullName || "Not set"} />
+      <SummaryCard label="Account manager" value={customer.accountManagerUser ? `${customer.accountManagerUser.firstName} ${customer.accountManagerUser.lastName}` : "Unassigned"} />
+      <SummaryCard label="Onboarding" value={linkedOnboarding ? getLifecycleLabel(linkedOnboarding.status) : "Not started"} />
+      <SummaryCard label="Tenant" value={linkedTenant?.name ?? "Not created"} hint={readOnly ? "Restricted editing" : "Active customer"} />
+    </SummaryCards>
+    <FormSection title="Customer lifecycle" description={readOnly ? "Customers linked to live tenant lifecycle records are protected from unsafe edits." : "Use lifecycle actions rather than manually forcing statuses."}>
+      <LifecycleTabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
+      {message ? <p className="mt-4 text-sm text-slate-600">{message}</p> : null}
+      {activeTab === "overview" ? <CustomerOverview isEditing={isEditing && !readOnly} form={form} updateForm={updateForm} lifecycleOptions={lifecycleOptions} plans={plans} /> : null}
+      {activeTab === "contacts" ? <div className="mt-6 grid gap-4 md:grid-cols-2"><ReadOnlyField label="Primary contact" value={fullName} /><ReadOnlyField label="Email" value={form.primaryContactEmail} /><ReadOnlyField label="Phone" value={form.primaryContactPhone} /><ReadOnlyField label="Country" value={form.country} /></div> : null}
+      {activeTab === "onboarding" ? <RelatedOnboarding onboardings={customer.onboardings ?? []} /> : null}
+      {activeTab === "subscription" ? <SimpleTable title="Subscriptions" columns={["Plan", "Status", "Billing", "Price"]} rows={(customer.subscriptions ?? []).map((s) => [s.plan.name, s.status, s.billingCycle, `${s.currency} ${Number(s.finalPrice).toFixed(2)}`])} emptyText="No subscriptions found." /> : null}
+      {activeTab === "invoices" ? <SimpleTable title="Invoices" columns={["Invoice #", "Amount", "Status", "Due date"]} rows={(customer.invoices ?? []).map((i) => [i.invoiceNumber, `${i.currency} ${Number(i.amount).toFixed(2)}`, i.status, formatDate(i.dueDate)])} emptyText="No invoices found." /> : null}
+      {activeTab === "activity" ? <RelatedNotes notes={customer.notes ?? []} /> : null}
+    </FormSection>
+  </DetailPageShell>;
 }
 
-function FooterActions({
-  message,
-  isPending,
-  onSave,
-}: {
-  message: string;
-  isPending: boolean;
-  onSave: () => void;
-}) {
-  return (
-    <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-      <div className="text-sm text-slate-600">{message}</div>
-
-      <button
-        className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
-        disabled={isPending}
-        onClick={onSave}
-        type="button"
-      >
-        {isPending ? "Saving..." : "Save customer"}
-      </button>
-    </div>
-  );
+function CustomerOverview({ isEditing, form, updateForm, lifecycleOptions, plans }: { isEditing: boolean; form: any; updateForm: any; lifecycleOptions: LifecycleOptions; plans: PlanOption[] }) {
+  if (!isEditing) return <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3"><ReadOnlyField label="Company" value={form.companyName} /><ReadOnlyField label="Industry" value={form.industry} /><ReadOnlyField label="Company size" value={form.companySize} /><ReadOnlyField label="Country" value={form.country} /><ReadOnlyField label="Billing cycle" value={form.preferredBillingCycle} /><ReadOnlyField label="Plan" value={plans.find((p) => p.id === form.selectedPlanId)?.name ?? "Not selected"} /></div>;
+  return <div className="mt-6 grid gap-4 lg:grid-cols-2">
+    <FormControl label="Company" required type="text" value={form.companyName} onChange={(v) => updateForm("companyName", String(v))} />
+    <FormControl label="Primary first name" required type="text" value={form.primaryContactFirstName} onChange={(v) => updateForm("primaryContactFirstName", String(v))} />
+    <FormControl label="Primary last name" required type="text" value={form.primaryContactLastName} onChange={(v) => updateForm("primaryContactLastName", String(v))} />
+    <FormControl label="Primary email" required type="email" value={form.primaryContactEmail} onChange={(v) => updateForm("primaryContactEmail", String(v))} />
+    <FormControl label="Primary phone" type="tel" value={form.primaryContactPhone} onChange={(v) => updateForm("primaryContactPhone", String(v).replace(/[^+()\-.\s0-9]/g, ""))} />
+    <FormControl label="Industry" type="select" value={form.industry} onChange={(v) => updateForm("industry", String(v))} options={[{ value: "", label: "Not specified" }, ...lifecycleOptions.industries]} />
+    <FormControl label="Company size" type="select" value={form.companySize} onChange={(v) => updateForm("companySize", String(v))} options={[{ value: "", label: "Not specified" }, ...lifecycleOptions.companySizes]} />
+    <FormControl label="Country" type="text" value={form.country} onChange={(v) => updateForm("country", String(v))} />
+    <FormControl label="Billing cycle" required type="select" value={form.preferredBillingCycle} onChange={(v) => updateForm("preferredBillingCycle", String(v))} options={[{ value: "", label: "Not specified" }, { value: "MONTHLY", label: "Monthly" }, { value: "ANNUAL", label: "Annual" }]} />
+    <FormControl label="Selected plan" required type="select" value={form.selectedPlanId} onChange={(v) => updateForm("selectedPlanId", String(v))} options={[{ value: "", label: "Not selected" }, ...plans.map((p) => ({ value: p.id, label: p.name }))]} />
+  </div>;
 }
-
-function Info({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-      <div className="text-xs uppercase tracking-[0.18em] text-slate-500">
-        {label}
-      </div>
-      <div className="mt-2 font-medium text-slate-950">{value}</div>
-    </div>
-  );
-}
-
-function formatDate(value?: string | null) {
-  if (!value) return "Not available";
-
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-  }).format(new Date(value));
-}
-
-function EmptyState({ text }: { text: string }) {
-  return (
-    <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm text-slate-600">
-      {text}
-    </div>
-  );
-}
-
-function RelatedOnboarding({
-  onboardings,
-}: {
-  onboardings: Array<{
-    id: string;
-    status: string;
-    subStatus?: string | null;
-    tenantCreated: boolean;
-  }>;
-}) {
-  if (onboardings.length === 0) {
-    return <EmptyState text="No onboarding records yet." />;
-  }
-
-  return (
-    <div className="mt-6 space-y-3">
-      {onboardings.map((item) => (
-        <Link
-          key={item.id}
-          href={`/onboarding/${item.id}`}
-          className="block rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 hover:border-slate-300"
-        >
-          <div className="font-medium text-slate-950">
-            {item.status.replaceAll("_", " ")}
-          </div>
-          <div className="mt-1 text-sm text-slate-600">
-            {item.subStatus ?? "No sub-status"}
-          </div>
-          <div className="mt-1 text-xs text-slate-500">
-            {item.tenantCreated ? "Tenant created" : "Tenant not created"}
-          </div>
-        </Link>
-      ))}
-    </div>
-  );
-}
-
-function RelatedNotes({
-  notes,
-}: {
-  notes: Array<{ id: string; note: string; createdAt: string }>;
-}) {
-  if (notes.length === 0) {
-    return <EmptyState text="No notes recorded for this customer." />;
-  }
-
-  return (
-    <div className="mt-6 space-y-3">
-      {notes.map((note) => (
-        <article
-          className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"
-          key={note.id}
-        >
-          <p className="text-sm text-slate-800">{note.note}</p>
-          <p className="mt-2 text-xs text-slate-500">
-            {formatDate(note.createdAt)}
-          </p>
-        </article>
-      ))}
-    </div>
-  );
-}
-
-function SimpleTable({
-  title,
-  columns,
-  rows,
-  emptyText,
-}: {
-  title: string;
-  columns: string[];
-  rows: string[][];
-  emptyText: string;
-}) {
-  if (rows.length === 0) {
-    return <EmptyState text={emptyText} />;
-  }
-
-  return (
-    <div className="mt-6">
-      <h2 className="text-xl font-semibold text-slate-950">{title}</h2>
-
-      <div className="mt-4 overflow-x-auto">
-        <table className="min-w-full border-collapse text-sm">
-          <thead>
-            <tr>
-              {columns.map((column) => (
-                <th
-                  className="border-b border-slate-200 px-3 py-2 text-left font-semibold text-slate-700"
-                  key={column}
-                >
-                  {column}
-                </th>
-              ))}
-            </tr>
-          </thead>
-
-          <tbody>
-            {rows.map((row, index) => (
-              <tr key={`${title}-${index}`}>
-                {row.map((cell, cellIndex) => (
-                  <td
-                    className="border-b border-slate-100 px-3 py-3 text-slate-700"
-                    key={`${title}-${index}-${cellIndex}`}
-                  >
-                    {cell}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
+function IconButton({ label, onClick, children }: any) { return <button aria-label={label} className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-slate-700 transition hover:bg-slate-100" onClick={onClick} type="button">{children}</button>; }
+function ActionButton({ children, onClick, disabled = false }: any) { return <button className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-60" disabled={disabled} onClick={onClick} type="button">{children}</button>; }
+function LinkButton({ href, children }: any) { return <Link className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100" href={href}>{children}</Link>; }
+function formatDate(value?: string | null) { return value ? new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(new Date(value)) : "Not available"; }
+function RelatedOnboarding({ onboardings }: { onboardings: NonNullable<CustomerRecord["onboardings"]> }) { return onboardings.length ? <div className="mt-6 space-y-3">{onboardings.map((o) => <Link key={o.id} href={`/onboarding/${o.id}`} className="block rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"><div className="font-medium">{getLifecycleLabel(o.status)}</div><div className="mt-1 text-sm text-slate-600">{o.subStatus ?? "No sub-status"}</div></Link>)}</div> : <EmptyState text="No onboarding records yet." />; }
+function RelatedNotes({ notes }: { notes: Array<{ id: string; note: string; createdAt: string }> }) { return notes.length ? <div className="mt-6 space-y-3">{notes.map((n) => <article key={n.id} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"><p className="text-sm">{n.note}</p><p className="mt-2 text-xs text-slate-500">{formatDate(n.createdAt)}</p></article>)}</div> : <EmptyState text="No activity recorded yet." />; }
+function EmptyState({ text }: { text: string }) { return <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm text-slate-600">{text}</div>; }
+function SimpleTable({ title, columns, rows, emptyText }: { title: string; columns: string[]; rows: string[][]; emptyText: string }) { if (!rows.length) return <EmptyState text={emptyText} />; return <div className="mt-6"><h3 className="text-lg font-semibold text-slate-950">{title}</h3><div className="mt-4 overflow-x-auto"><table className="min-w-full text-sm"><thead><tr>{columns.map((c) => <th key={c} className="border-b px-3 py-2 text-left">{c}</th>)}</tr></thead><tbody>{rows.map((r, i) => <tr key={i}>{r.map((cell, j) => <td key={j} className="border-b px-3 py-3">{cell}</td>)}</tr>)}</tbody></table></div></div>; }

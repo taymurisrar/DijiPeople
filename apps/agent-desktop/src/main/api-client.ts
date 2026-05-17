@@ -40,6 +40,8 @@ export class ApiClient {
   constructor() {
     this.baseUrl = resolveBaseUrl();
 
+    console.log("[Agent API] Base URL:", this.baseUrl);
+
     this.deviceInfo = {
       deviceFingerprint: createDeviceFingerprint(),
       deviceName: sanitizeDeviceName(os.hostname()),
@@ -47,6 +49,13 @@ export class ApiClient {
       platform: process.platform,
       agentVersion: app.getVersion(),
     };
+
+    console.log("[Agent API] Device info:", {
+      deviceName: this.deviceInfo.deviceName,
+      os: this.deviceInfo.os,
+      platform: this.deviceInfo.platform,
+      agentVersion: this.deviceInfo.agentVersion,
+    });
   }
 
   setAccessToken(token: string | null): void {
@@ -177,6 +186,13 @@ export class ApiClient {
     options: RequestOptions = {},
   ): Promise<T> {
     const url = this.buildUrl(path);
+    const method = options.method ?? "GET";
+
+    console.log("[Agent API] Request:", {
+      method,
+      url,
+      auth: options.auth !== false,
+    });
 
     const controller = new AbortController();
     const timeout = setTimeout(
@@ -203,11 +219,18 @@ export class ApiClient {
 
     try {
       const response = await fetch(url, {
-        method: options.method ?? "GET",
+        method,
         headers,
         body:
           options.body === undefined ? undefined : JSON.stringify(options.body),
         signal: controller.signal,
+      });
+
+      console.log("[Agent API] Response:", {
+        method,
+        url,
+        status: response.status,
+        ok: response.ok,
       });
 
       const data = await this.parseResponse(response);
@@ -218,8 +241,23 @@ export class ApiClient {
 
       return data as T;
     } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unknown network error.";
+
+      console.error("[Agent API] Request failed:", {
+        method,
+        url,
+        message,
+      });
+
       if (error instanceof Error && error.name === "AbortError") {
         throw new Error("Request timed out. Please try again.");
+      }
+
+      if (message.toLowerCase().includes("fetch failed")) {
+        throw new Error(
+          `Unable to reach the DijiPeople server. Server URL: ${this.baseUrl}`,
+        );
       }
 
       throw error;

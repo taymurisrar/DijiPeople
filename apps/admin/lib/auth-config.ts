@@ -34,6 +34,7 @@ export function isProtectedAdminRoute(pathname: string): boolean {
   const normalized = normalizePath(pathname);
 
   return (
+    normalized === "/" ||
     normalized === "/tenants" ||
     normalized.startsWith("/tenants/") ||
     normalized === "/customers" ||

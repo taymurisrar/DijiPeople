@@ -18,7 +18,7 @@ describe('tenant URL config', () => {
       buildTenantLoginUrl(
         config({
           APP_ENV: 'development',
-          WEB_APP_DEV_ORIGIN: 'http://localhost:3001',
+          WEB_APP_URL: 'http://localhost:3001',
         }),
         { slug: 'abc-cpa' },
       ),
@@ -30,8 +30,7 @@ describe('tenant URL config', () => {
       buildTenantLoginUrl(
         config({
           APP_ENV: 'production',
-          WEB_APP_PROD_ROOT_DOMAIN: 'dijipeople.com',
-          WEB_APP_PROD_PROTOCOL: 'https',
+          WEB_APP_URL: 'https://dijipeople.com',
         }),
         { slug: 'abc-cpa' },
       ),
@@ -43,7 +42,8 @@ describe('tenant URL config', () => {
       buildTenantActivationUrl(
         config({
           APP_ENV: 'development',
-          WEB_APP_DEV_ORIGIN: 'http://localhost:3001',
+          ACCOUNT_ACTIVATION_LINK_BASE_URL: 'http://localhost:3001',
+          WEB_APP_URL: 'http://localhost:3001',
         }),
         { slug: 'abc-cpa', token: 'token-1' },
       ),

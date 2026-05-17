@@ -2,31 +2,29 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Building2, ClipboardList, CreditCard, FileText, LayoutDashboard, Settings2, UsersRound, UserRoundSearch } from "lucide-react";
 
 const navSections = [
   {
     title: "Workspace",
     items: [
-      { href: "/", label: "Dashboard", icon: "DB" },
-      { href: "/onboarding", label: "Onboarding", icon: "ON" },
-      { href: "/leads", label: "Leads", icon: "LD" },
-      { href: "/customers", label: "Customers", icon: "CU" },
-      { href: "/tenants", label: "Tenants", icon: "TE" },
+      { href: "/", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/leads", label: "Leads", icon: UserRoundSearch },
+      { href: "/customers", label: "Customers", icon: UsersRound },
+      { href: "/onboarding", label: "Onboarding", icon: ClipboardList },
+      { href: "/tenants", label: "Tenants", icon: Building2 },
     ],
   },
   {
     title: "Revenue",
     items: [
-      { href: "/subscriptions", label: "Subscriptions", icon: "SU" },
-      { href: "/billing", label: "Billing", icon: "BI" },
-      { href: "/payments", label: "Payments", icon: "PA" },
-      { href: "/invoices", label: "Invoices", icon: "IN" },
-      { href: "/plans", label: "Plans", icon: "PL" },
+      { href: "/payments", label: "Payments", icon: CreditCard },
+      { href: "/invoices", label: "Invoices", icon: FileText },
     ],
   },
   {
     title: "System",
-    items: [{ href: "/settings", label: "Settings", icon: "SE" }],
+    items: [{ href: "/settings", label: "Settings", icon: Settings2 }],
   },
 ];
 
@@ -58,7 +56,7 @@ export function AdminSidebar({
 
       <aside
         className={[
-          "fixed inset-y-3 left-3 z-40 flex flex-col rounded-[28px] border border-slate-200 bg-white shadow-xl transition-all duration-200 lg:static lg:inset-auto lg:z-auto lg:shadow-sm",
+          "fixed inset-y-3 left-3 z-40 flex max-w-[calc(100vw-1.5rem)] flex-col rounded-[28px] border border-slate-200 bg-white shadow-xl transition-all duration-200 lg:sticky lg:top-4 lg:inset-auto lg:z-auto lg:h-[calc(100vh-2rem)] lg:shadow-sm",
           collapsed ? "w-24" : "w-72",
           isOpen ? "translate-x-0" : "-translate-x-[120%] lg:translate-x-0",
         ].join(" ")}
@@ -93,6 +91,7 @@ export function AdminSidebar({
               ) : null}
               <div className="space-y-1">
                 {section.items.map((item) => {
+                  const Icon = item.icon;
                   const isActive =
                     pathname === item.href ||
                     (item.href !== "/" && pathname.startsWith(`${item.href}/`));
@@ -118,7 +117,7 @@ export function AdminSidebar({
                             : "border-slate-200 bg-slate-50 text-slate-600",
                         ].join(" ")}
                       >
-                        {item.icon}
+                        <Icon className="h-4 w-4" />
                       </span>
                       {!collapsed ? <span>{item.label}</span> : null}
                     </Link>

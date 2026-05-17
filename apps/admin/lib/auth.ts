@@ -88,7 +88,10 @@ export async function requireSystemAdminUser(nextPath = "/tenants") {
     redirect(getAdminLoginUrl(nextPath));
   }
 
-  if (!user.roleKeys?.includes("system-admin")) {
+  if (
+    !user.roleKeys?.includes("system-admin") &&
+    !user.roleKeys?.includes("system-customizer")
+  ) {
     redirect(ACCESS_DENIED_ROUTE);
   }
 

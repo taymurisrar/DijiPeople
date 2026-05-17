@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { useToastNotice } from "@/app/_components/ui/toast-provider";
+import { SUPPORTED_CURRENCIES } from "@/lib/form-options";
 
 type PaymentFormProps = {
   tenants: Array<{
@@ -20,6 +22,7 @@ type PaymentFormProps = {
 
 export function PaymentForm({ tenants }: PaymentFormProps) {
   const router = useRouter();
+  const { showToast } = useToastNotice();
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
   const [tenantId, setTenantId] = useState(tenants[0]?.id ?? "");
@@ -72,6 +75,7 @@ export function PaymentForm({ tenants }: PaymentFormProps) {
       }
 
       setMessage("Payment recorded.");
+      showToast({ title: "Payment recorded", tone: "success" });
       setAmount("");
       router.refresh();
     });
@@ -152,12 +156,17 @@ export function PaymentForm({ tenants }: PaymentFormProps) {
 
         <label className="block text-sm font-medium text-slate-700">
           Currency
-          <input
-            maxLength={3}
+          <select
             value={currency}
-            onChange={(event) => setCurrency(event.target.value.toUpperCase())}
-            className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm uppercase"
-          />
+            onChange={(event) => setCurrency(event.target.value)}
+            className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm"
+          >
+            {SUPPORTED_CURRENCIES.map((value) => (
+              <option key={value} value={value}>
+                {value}
+              </option>
+            ))}
+          </select>
         </label>
 
         <label className="block text-sm font-medium text-slate-700">

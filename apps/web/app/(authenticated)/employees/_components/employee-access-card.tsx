@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { type ReactNode, useState, useTransition } from "react";
 import { EmployeeListItem } from "../types";
 
 type EmployeeAccessCardProps = {
@@ -15,7 +15,7 @@ export function EmployeeAccessCard({
 }: EmployeeAccessCardProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [message, setMessage] = useState<string | null>(null);
+  const [message, setMessage] = useState<ReactNode | null>(null);
 
   const accessStatus = !employee.user
     ? "No access"
@@ -41,7 +41,8 @@ export function EmployeeAccessCard({
               ? JSON.stringify({
                   provisionSystemAccess: true,
                   sendInvitationNow: true,
-                  initialRoleIds: employee.user?.roles.map((role) => role.id) ?? [],
+                  initialRoleIds:
+                    employee.user?.roles.map((role) => role.id) ?? [],
                 })
               : undefined,
         },
@@ -65,11 +66,25 @@ export function EmployeeAccessCard({
       }
 
       const devLink = payload?.access?.invitation?.activationLink;
+
       setMessage(
-        devLink
-          ? `Invitation created. Dev activation link: ${devLink}`
-          : "Invitation created successfully.",
+        devLink ? (
+          <span>
+            Invitation created.{" "}
+            <a
+              href={devLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-primary underline underline-offset-4"
+            >
+              Open link
+            </a>
+          </span>
+        ) : (
+          "Invitation created successfully."
+        ),
       );
+
       router.refresh();
     });
   }
@@ -79,15 +94,26 @@ export function EmployeeAccessCard({
       <p className="text-sm uppercase tracking-[0.18em] text-muted">
         System Access
       </p>
+
       <div className="mt-4 grid gap-3 text-sm text-muted">
-        <p>Status: <span className="font-medium text-foreground">{accessStatus}</span></p>
-        <p>Work email: <span className="font-medium text-foreground">{employee.workEmail || "Not set"}</span></p>
+        <p>
+          Status:{" "}
+          <span className="font-medium text-foreground">{accessStatus}</span>
+        </p>
+
+        <p>
+          Work email:{" "}
+          <span className="font-medium text-foreground">
+            {employee.workEmail || "Not set"}
+          </span>
+        </p>
+
         <p>
           Roles:{" "}
           <span className="font-medium text-foreground">
             {employee.user?.roles?.length
-            ? employee.user.roles.map((role) => role.name).join(", ")
-            : "No linked roles"}
+              ? employee.user.roles.map((role) => role.name).join(", ")
+              : "No linked roles"}
           </span>
         </p>
       </div>

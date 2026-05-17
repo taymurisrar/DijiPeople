@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import {
   ACCESS_TOKEN_COOKIE,
   AUTH_APP_CLIENT_ID,
+  REFRESH_TOKEN_COOKIE,
   getApiBaseUrl,
 } from "@/lib/auth-config";
 
@@ -26,6 +27,7 @@ export class ApiRequestError extends Error {
 export async function apiRequest(path: string, init?: RequestInit) {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get(ACCESS_TOKEN_COOKIE)?.value;
+  const refreshToken = cookieStore.get(REFRESH_TOKEN_COOKIE)?.value;
   const headers = new Headers(init?.headers);
 
   if (accessToken) {
@@ -42,9 +44,27 @@ export async function apiRequest(path: string, init?: RequestInit) {
     headers.set("Content-Type", "application/json");
   }
 
-  return fetch(`${getApiBaseUrl()}${path}`, {
+  const response = await fetch(`${getApiBaseUrl()}${path}`, {
     ...init,
     headers,
+    cache: "no-store",
+  });
+
+  if (response.status !== 401 || !refreshToken || path === "/auth/refresh") {
+    return response;
+  }
+
+  const refreshedAccessToken = await refreshAccessToken(refreshToken);
+  if (!refreshedAccessToken) {
+    return response;
+  }
+
+  const retryHeaders = new Headers(headers);
+  retryHeaders.set("Authorization", `Bearer ${refreshedAccessToken}`);
+
+  return fetch(`${getApiBaseUrl()}${path}`, {
+    ...init,
+    headers: retryHeaders,
     cache: "no-store",
   });
 }
@@ -168,4 +188,26 @@ function createRequestId() {
     return `admin_${crypto.randomUUID()}`;
   }
   return `admin_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+}
+
+async function refreshAccessToken(refreshToken: string) {
+  const response = await fetch(`${getApiBaseUrl()}/auth/refresh`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-DijiPeople-App": AUTH_APP_CLIENT_ID,
+    },
+    body: JSON.stringify({ refreshToken }),
+    cache: "no-store",
+  }).catch(() => null);
+
+  if (!response?.ok) return null;
+
+  const data = (await response.json().catch(() => null)) as
+    | { tokens?: { accessToken?: unknown } }
+    | null;
+
+  return typeof data?.tokens?.accessToken === "string"
+    ? data.tokens.accessToken
+    : null;
 }

@@ -19,6 +19,15 @@ const statusStyles: Record<string, string> = {
   SUCCEEDED: "border-emerald-200 bg-emerald-50 text-emerald-700",
   FAILED: "border-rose-200 bg-rose-50 text-rose-700",
   REFUNDED: "border-violet-200 bg-violet-50 text-violet-700",
+  NEW: "border-sky-200 bg-sky-50 text-sky-700",
+  QUALIFIED: "border-indigo-200 bg-indigo-50 text-indigo-700",
+  CONVERTED: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  CONVERTED_TO_CUSTOMER: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  ARCHIVED: "border-slate-200 bg-slate-100 text-slate-700",
+  NOT_STARTED: "border-slate-200 bg-slate-100 text-slate-700",
+  IN_PROGRESS: "border-blue-200 bg-blue-50 text-blue-700",
+  READY_FOR_TENANT_CREATION: "border-indigo-200 bg-indigo-50 text-indigo-700",
+  COMPLETED: "border-emerald-200 bg-emerald-50 text-emerald-700",
 };
 
 type StatusBadgeProps = {

@@ -13,11 +13,13 @@ import { SortControl } from "@/app/_components/crm/sort-control";
 import { StatusSelector } from "@/app/_components/crm/status-selector";
 import { SubStatusSelector } from "@/app/_components/crm/sub-status-selector";
 import { DataTable } from "@/app/_components/crm/data-table";
+import { TenantStatusBadge } from "@/app/_components/tenant-status-badge";
 import {
   DataTableHeaderMenu,
   DataTableHeaderMenuActions,
   DataTableHeaderMenuSection,
 } from "@/app/_components/crm/data-table-header-menu";
+import { buildNextQuery } from "@/app/_components/crm/query-params";
 import type {
   CustomerOnboardingRecord,
   LifecycleOptions,
@@ -89,21 +91,11 @@ export function OnboardingListManager({
   }, [onboardingLifecycle.subStatuses]);
 
   function updateFilter(name: string, value: string) {
-    const search = new URLSearchParams(window.location.search);
+    router.push(buildNextQuery("/onboarding", { [name]: value }));
+  }
 
-    if (value) {
-      search.set(name, value);
-    } else {
-      search.delete(name);
-    }
-
-    if (name !== "page") {
-      search.delete("page");
-    }
-
-    router.push(
-      `/onboarding${search.toString() ? `?${search.toString()}` : ""}`,
-    );
+  function clearAllFilters() {
+    router.push("/onboarding");
   }
 
   function updateSort(field: string, direction: string) {
@@ -393,9 +385,7 @@ export function OnboardingListManager({
       ),
       render: (item) => (
         <>
-          <div className="font-medium text-slate-900">
-            {item.status.replaceAll("_", " ")}
-          </div>
+          <TenantStatusBadge value={item.status} />
           <div className="mt-1 text-slate-500">
             {item.subStatus ?? "No sub-status"}
           </div>
@@ -617,6 +607,13 @@ export function OnboardingListManager({
               type="button"
             >
               Clear selection
+            </button>
+            <button
+              className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700"
+              onClick={clearAllFilters}
+              type="button"
+            >
+              Clear filters
             </button>
           </div>
         </div>

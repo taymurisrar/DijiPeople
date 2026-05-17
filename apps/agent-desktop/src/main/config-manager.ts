@@ -1,39 +1,45 @@
 import type { AgentConfig } from "./types";
 import { ApiClient } from "./api-client";
+import { agentEnv } from "../config/env";
 
 const MIN_HEARTBEAT_SECONDS = 10;
 const MAX_HEARTBEAT_SECONDS = 3600;
+const MAX_HEARTBEAT_BATCH_SIZE = 1000;
 
 export const DEFAULT_CONFIG: AgentConfig = {
   agentVersionPolicy: {
-    minimumSupportedVersion: "1.0.0",
-    latestVersion: "1.0.0",
+    minimumSupportedVersion: agentEnv.appVersion,
+    latestVersion: agentEnv.appVersion,
     forceUpdate: false,
     updateMessage: null,
   },
+
   tracking: {
     enabled: true,
-    heartbeatIntervalSeconds: 60,
-    idleThresholdSeconds: 120,
-    awayThresholdSeconds: 600,
-    captureActiveApp: true,
-    captureWindowTitle: false,
+    heartbeatIntervalSeconds: agentEnv.heartbeatIntervalSeconds,
+    idleThresholdSeconds: agentEnv.sessionIdleTimeoutSeconds,
+    awayThresholdSeconds: agentEnv.sessionIdleTimeoutSeconds,
+    captureActiveApp: agentEnv.activeAppTrackingEnabled,
+    captureWindowTitle: agentEnv.windowTitleTrackingEnabled,
   },
+
   privacy: {
     allowScreenshots: false,
     allowClipboardTracking: false,
     allowKeylogging: false,
   },
+
   api: {
-    heartbeatBatchSize: 10,
-    offlineQueueEnabled: true,
+    heartbeatBatchSize: agentEnv.heartbeatBatchSize,
+    offlineQueueEnabled: agentEnv.offlineQueueEnabled,
   },
+
   features: {
-    activeAppTracking: true,
-    windowTitleTracking: false,
-    offlineQueue: true,
-    autoUpdate: true,
-    trayStatus: true,
+    activeAppTracking: agentEnv.activeAppTrackingEnabled,
+    windowTitleTracking: agentEnv.windowTitleTrackingEnabled,
+    offlineQueue: agentEnv.offlineQueueEnabled,
+    autoUpdate: agentEnv.autoUpdateEnabled,
+    trayStatus: agentEnv.trayStatusEnabled,
   },
 };
 
@@ -54,7 +60,6 @@ export class ConfigManager {
 
     try {
       const remote = await this.apiClient.getConfig();
-
       const validated = this.validateAndNormalize(remote);
 
       this.current = validated;
@@ -62,7 +67,6 @@ export class ConfigManager {
 
       return this.current;
     } catch (error) {
-      // fallback strategy
       this.handleConfigError(error);
       return this.current;
     } finally {
@@ -70,11 +74,12 @@ export class ConfigManager {
     }
   }
 
-  // -------------------------
-  // Validation Layer
-  // -------------------------
+  private validateAndNormalize(config: Partial<AgentConfig>): AgentConfig {
+    const idleThresholdSeconds = this.normalizeThreshold(
+      config.tracking?.idleThresholdSeconds,
+      DEFAULT_CONFIG.tracking.idleThresholdSeconds,
+    );
 
-  private validateAndNormalize(config: AgentConfig): AgentConfig {
     return {
       agentVersionPolicy: {
         minimumSupportedVersion:
@@ -85,14 +90,19 @@ export class ConfigManager {
           config.agentVersionPolicy?.latestVersion ||
           DEFAULT_CONFIG.agentVersionPolicy.latestVersion,
 
-        forceUpdate: Boolean(config.agentVersionPolicy?.forceUpdate),
+        forceUpdate:
+          config.agentVersionPolicy?.forceUpdate ??
+          DEFAULT_CONFIG.agentVersionPolicy.forceUpdate,
 
         updateMessage:
-          config.agentVersionPolicy?.updateMessage ?? null,
+          config.agentVersionPolicy?.updateMessage ??
+          DEFAULT_CONFIG.agentVersionPolicy.updateMessage,
       },
 
       tracking: {
-        enabled: Boolean(config.tracking?.enabled),
+        enabled:
+          config.tracking?.enabled ??
+          DEFAULT_CONFIG.tracking.enabled,
 
         heartbeatIntervalSeconds: this.clampNumber(
           config.tracking?.heartbeatIntervalSeconds,
@@ -101,22 +111,23 @@ export class ConfigManager {
           DEFAULT_CONFIG.tracking.heartbeatIntervalSeconds,
         ),
 
-        idleThresholdSeconds: this.normalizeThreshold(
-          config.tracking?.idleThresholdSeconds,
-          DEFAULT_CONFIG.tracking.idleThresholdSeconds,
-        ),
+        idleThresholdSeconds,
 
         awayThresholdSeconds: this.normalizeAwayThreshold(
           config.tracking?.awayThresholdSeconds,
-          config.tracking?.idleThresholdSeconds,
+          idleThresholdSeconds,
         ),
 
-        captureActiveApp: Boolean(config.tracking?.captureActiveApp),
-        captureWindowTitle: Boolean(config.tracking?.captureWindowTitle),
+        captureActiveApp:
+          config.tracking?.captureActiveApp ??
+          DEFAULT_CONFIG.tracking.captureActiveApp,
+
+        captureWindowTitle:
+          config.tracking?.captureWindowTitle ??
+          DEFAULT_CONFIG.tracking.captureWindowTitle,
       },
 
       privacy: {
-        // force locked values (DO NOT TRUST SERVER HERE)
         allowScreenshots: false,
         allowClipboardTracking: false,
         allowKeylogging: false,
@@ -126,19 +137,35 @@ export class ConfigManager {
         heartbeatBatchSize: this.clampNumber(
           config.api?.heartbeatBatchSize,
           1,
-          100,
+          MAX_HEARTBEAT_BATCH_SIZE,
           DEFAULT_CONFIG.api.heartbeatBatchSize,
         ),
 
-        offlineQueueEnabled: Boolean(config.api?.offlineQueueEnabled),
+        offlineQueueEnabled:
+          config.api?.offlineQueueEnabled ??
+          DEFAULT_CONFIG.api.offlineQueueEnabled,
       },
 
       features: {
-        activeAppTracking: Boolean(config.features?.activeAppTracking),
-        windowTitleTracking: Boolean(config.features?.windowTitleTracking),
-        offlineQueue: Boolean(config.features?.offlineQueue),
-        autoUpdate: Boolean(config.features?.autoUpdate),
-        trayStatus: Boolean(config.features?.trayStatus),
+        activeAppTracking:
+          config.features?.activeAppTracking ??
+          DEFAULT_CONFIG.features.activeAppTracking,
+
+        windowTitleTracking:
+          config.features?.windowTitleTracking ??
+          DEFAULT_CONFIG.features.windowTitleTracking,
+
+        offlineQueue:
+          config.features?.offlineQueue ??
+          DEFAULT_CONFIG.features.offlineQueue,
+
+        autoUpdate:
+          config.features?.autoUpdate ??
+          DEFAULT_CONFIG.features.autoUpdate,
+
+        trayStatus:
+          config.features?.trayStatus ??
+          DEFAULT_CONFIG.features.trayStatus,
       },
     };
   }
@@ -169,34 +196,20 @@ export class ConfigManager {
 
   private normalizeAwayThreshold(
     away: number | undefined,
-    idle: number | undefined,
+    idle: number,
   ): number {
-    const safeIdle = this.normalizeThreshold(
-      idle,
-      DEFAULT_CONFIG.tracking.idleThresholdSeconds,
-    );
-
     const safeAway = this.normalizeThreshold(
       away,
       DEFAULT_CONFIG.tracking.awayThresholdSeconds,
     );
 
-    return Math.max(safeAway, safeIdle);
+    return Math.max(safeAway, idle);
   }
 
-  // -------------------------
-  // Error Handling
-  // -------------------------
-
   private handleConfigError(error: unknown): void {
-    // Do NOT crash agent
-    // Do NOT wipe config
-    // Keep last known good config
-
     const message =
       error instanceof Error ? error.message : "Unknown config error";
 
-    // You can later hook this into logging / telemetry
     console.warn("[ConfigManager] Failed to refresh config:", message);
   }
 }

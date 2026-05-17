@@ -4,6 +4,8 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { BillingCycleValue, SubscriptionStatusValue } from "@/lib/domain";
 import { formatBillingCycle, formatCurrency, formatEnumLabel } from "@/lib/formatters";
+import { SUPPORTED_CURRENCIES } from "@/lib/form-options";
+import { useToastNotice } from "@/app/_components/ui/toast-provider";
 
 type SubscriptionPlanOption = {
   id: string;
@@ -41,6 +43,7 @@ export function SubscriptionForm({
   currentSubscription,
 }: SubscriptionFormProps) {
   const router = useRouter();
+  const { showToast } = useToastNotice();
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
   const [planId, setPlanId] = useState(
@@ -158,6 +161,7 @@ export function SubscriptionForm({
       }
 
       setMessage("Subscription updated.");
+      showToast({ title: "Subscription updated", tone: "success" });
       router.refresh();
     });
   }
@@ -181,6 +185,7 @@ export function SubscriptionForm({
             value={planId}
             onChange={(event) => {
               setPlanId(event.target.value);
+              setManualFinalPrice("");
               const plan = plans.find((item) => item.id === event.target.value);
               if (plan?.currency) {
                 setCurrency(plan.currency);
@@ -218,7 +223,10 @@ export function SubscriptionForm({
           <select
             value={billingCycle}
             onChange={(event) =>
-              setBillingCycle(event.target.value as typeof billingCycle)
+              {
+                setBillingCycle(event.target.value as typeof billingCycle);
+                setManualFinalPrice("");
+              }
             }
             className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-900"
           >
@@ -232,12 +240,17 @@ export function SubscriptionForm({
 
         <label className="block text-sm font-medium text-slate-700">
           Currency
-          <input
-            maxLength={3}
+          <select
             value={currency}
-            onChange={(event) => setCurrency(event.target.value.toUpperCase())}
+            onChange={(event) => setCurrency(event.target.value)}
             className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm uppercase outline-none transition focus:border-slate-900"
-          />
+          >
+            {SUPPORTED_CURRENCIES.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
         </label>
       </div>
 

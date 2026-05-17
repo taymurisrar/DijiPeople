@@ -13,6 +13,14 @@ import { buildTenantLoginUrl } from "@/lib/tenant-url";
 import type { BillingCycleValue, SubscriptionStatusValue, TenantStatusValue } from "@/lib/domain";
 import { formatBillingCycle, formatCurrency, formatDate } from "@/lib/formatters";
 import { apiRequestJson } from "@/lib/server-api";
+import { isPlatformSuperAdmin } from "@/lib/platform-rbac";
+import {
+  DetailHeader,
+  DetailPageShell,
+  StatusPipeline,
+  SummaryCard,
+  SummaryCards,
+} from "@/app/_components/ui/detail-page";
 
 type TenantDetail = {
   id: string;
@@ -122,7 +130,14 @@ type CustomerOption = {
 };
 
 type SearchParams = Promise<{
-  tab?: "overview" | "tenant-info" | "billing";
+  tab?:
+    | "overview"
+    | "branding"
+    | "users"
+    | "subscription"
+    | "invoices"
+    | "settings"
+    | "audit";
   edit?: string;
 }>;
 
@@ -161,90 +176,70 @@ export default async function TenantDetailPage({
   const sessionUser = await getSessionUser();
   const canEditSlug =
     sessionUser?.roleKeys?.includes("system-customizer") ?? false;
+  const canSeeFinancials = isPlatformSuperAdmin(sessionUser?.roleKeys);
 
   return (
-    <main className="space-y-6">
-      <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-        <div className="flex flex-col gap-5">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="min-w-0 space-y-3">
-              <Link
-                href="/tenants"
-                className="inline-flex text-sm font-medium text-slate-500 transition hover:text-slate-950"
-              >
-                Back to tenants
+    <DetailPageShell>
+      <DetailHeader
+        eyebrow="Tenant"
+        title={
+          <span className="inline-flex items-center gap-3">
+            {tenant.name}
+            <TenantStatusBadge value={tenant.status} />
+          </span>
+        }
+        description={
+          <>
+            {tenant.slug} •{" "}
+            {tenant.customerAccount ? (
+              <Link href={`/customers/${tenant.customerAccount.id}`}>
+                {tenant.customerAccount.companyName}
               </Link>
-              <Link
-                className="ml-3 inline-flex rounded-full border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
-                href={`/tenants/${tenantId}?tab=tenant-info&edit=${isEditing ? "0" : "1"}`}
-              >
-                {isEditing ? "View record" : "Edit record"}
-              </Link>
-
-              <div className="space-y-2">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                  <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
-                    {tenant.name}
-                  </h1>
-                  <div className="shrink-0">
-                    <TenantStatusBadge value={tenant.status} />
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-600">
-                  <span>
-                    Slug: <span className="font-medium text-slate-900">{tenant.slug}</span>
-                  </span>
-                  {tenant.customerAccount ? (
-                    <span>
-                      Customer:{" "}
-                      <Link
-                        href={`/customers/${tenant.customerAccount.id}`}
-                        className="font-medium text-slate-900 transition hover:text-slate-700"
-                      >
-                        {tenant.customerAccount.companyName}
-                      </Link>
-                    </span>
-                  ) : (
-                    <span>No linked customer</span>
-                  )}
-                  <span>Created: {formatDate(tenant.createdAt)}</span>
-                  <span>Updated: {formatDate(tenant.updatedAt)}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:min-w-[460px]">
-              <CompactStatCard label="Users" value={tenant.counts.users} />
-              <CompactStatCard label="Employees" value={tenant.counts.employees} />
-              <CompactStatCard label="Enabled features" value={enabledFeatures.length} />
-              <CompactStatCard
-                label="Plan"
-                value={tenant.subscription?.plan.name ?? "Not set"}
-                valueClassName="text-base sm:text-lg"
-              />
-            </div>
+            ) : (
+              "No linked customer"
+            )}
+          </>
+        }
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Link className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold" href="/tenants">
+              Back
+            </Link>
+            <Link
+              className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold"
+              href={`/tenants/${tenantId}?tab=settings&edit=${isEditing ? "0" : "1"}`}
+            >
+              {isEditing ? "View" : "Edit"}
+            </Link>
           </div>
+        }
+      />
 
-          <nav className="flex flex-wrap gap-2 border-t border-slate-200 pt-4">
-            <TabLink
-              href={`/tenants/${tenantId}?tab=overview`}
-              label="Overview"
-              isActive={activeTab === "overview"}
-            />
-            <TabLink
-              href={`/tenants/${tenantId}?tab=tenant-info`}
-              label="Access & Info"
-              isActive={activeTab === "tenant-info"}
-            />
-            <TabLink
-              href={`/tenants/${tenantId}?tab=billing`}
-              label="Billing"
-              isActive={activeTab === "billing"}
-            />
-          </nav>
-        </div>
-      </section>
+      <StatusPipeline
+        current={String(tenant.status)}
+        steps={["ONBOARDING", "ACTIVE", "SUSPENDED", "ARCHIVED"]}
+      />
+
+      <SummaryCards>
+        <SummaryCard label="Users" value={tenant.counts.users} />
+        <SummaryCard label="Employees" value={tenant.counts.employees} />
+        <SummaryCard label="Enabled features" value={enabledFeatures.length} />
+        <SummaryCard label="Plan" value={tenant.subscription?.plan.name ?? "Not set"} />
+      </SummaryCards>
+
+      <nav className="flex flex-wrap gap-2">
+        <TabLink href={`/tenants/${tenantId}?tab=overview`} label="Overview" isActive={activeTab === "overview"} />
+        <TabLink href={`/tenants/${tenantId}?tab=branding`} label="Branding" isActive={activeTab === "branding"} />
+        <TabLink href={`/tenants/${tenantId}?tab=users`} label="Users & Access" isActive={activeTab === "users"} />
+        {canSeeFinancials ? (
+          <TabLink href={`/tenants/${tenantId}?tab=subscription`} label="Subscription & Billing" isActive={activeTab === "subscription"} />
+        ) : null}
+        {canSeeFinancials ? (
+          <TabLink href={`/tenants/${tenantId}?tab=invoices`} label="Invoices" isActive={activeTab === "invoices"} />
+        ) : null}
+        <TabLink href={`/tenants/${tenantId}?tab=settings`} label="Settings" isActive={activeTab === "settings"} />
+        <TabLink href={`/tenants/${tenantId}?tab=audit`} label="Audit Log" isActive={activeTab === "audit"} />
+      </nav>
 
       {activeTab === "overview" ? (
         <section className="grid gap-6 xl:grid-cols-[minmax(0,1.55fr)_360px]">
@@ -301,17 +296,21 @@ export default async function TenantDetailPage({
 
               <div className="mt-5 grid gap-4">
                 <InfoRow label="Tenant status" value={<TenantStatusBadge value={tenant.status} />} />
-                <InfoRow
-                  label="Subscription status"
-                  value={
-                    tenant.subscription ? (
-                      <TenantStatusBadge value={tenant.subscription.status} />
-                    ) : (
-                      "No subscription"
-                    )
-                  }
-                />
-                <InfoRow label="Plan" value={tenant.subscription?.plan.name ?? "Not assigned"} />
+                {canSeeFinancials ? (
+                  <InfoRow
+                    label="Subscription status"
+                    value={
+                      tenant.subscription ? (
+                        <TenantStatusBadge value={tenant.subscription.status} />
+                      ) : (
+                        "No subscription"
+                      )
+                    }
+                  />
+                ) : null}
+                {canSeeFinancials ? (
+                  <InfoRow label="Plan" value={tenant.subscription?.plan.name ?? "Not assigned"} />
+                ) : null}
                 <InfoRow
                   label="Tenant owner"
                   value={
@@ -346,23 +345,27 @@ export default async function TenantDetailPage({
             <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
               <h2 className="text-lg font-semibold text-slate-950">Quick actions</h2>
               <div className="mt-4 space-y-4">
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-sm font-medium text-slate-900">Update subscription</p>
-                  <div className="mt-4">
-                    <SubscriptionForm
-                      currentSubscription={tenant.subscription}
-                      plans={plans}
-                      tenantId={tenant.id}
-                    />
+                {canSeeFinancials ? (
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <p className="text-sm font-medium text-slate-900">Update subscription</p>
+                    <div className="mt-4">
+                      <SubscriptionForm
+                        currentSubscription={tenant.subscription}
+                        plans={plans}
+                        tenantId={tenant.id}
+                      />
+                    </div>
                   </div>
-                </div>
+                ) : null}
 
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-sm font-medium text-slate-900">Change tenant status</p>
-                  <div className="mt-4">
-                    <TenantStatusForm tenantId={tenant.id} currentStatus={tenant.status} />
+                {canSeeFinancials ? (
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <p className="text-sm font-medium text-slate-900">Change tenant status</p>
+                    <div className="mt-4">
+                      <TenantStatusForm tenantId={tenant.id} currentStatus={tenant.status} />
+                    </div>
                   </div>
-                </div>
+                ) : null}
 
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <p className="text-sm font-medium text-slate-900">Customer account linkage</p>
@@ -406,7 +409,7 @@ export default async function TenantDetailPage({
         </section>
       ) : null}
 
-      {activeTab === "tenant-info" ? (
+      {activeTab === "settings" ? (
         <section className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
           <div className="space-y-6">
             {isEditing ? (
@@ -498,7 +501,7 @@ export default async function TenantDetailPage({
         </section>
       ) : null}
 
-      {activeTab === "billing" ? (
+      {activeTab === "subscription" && canSeeFinancials ? (
         <section className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
           <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
             <h2 className="text-xl font-semibold text-slate-950">Subscription management</h2>
@@ -535,26 +538,43 @@ export default async function TenantDetailPage({
           </section>
         </section>
       ) : null}
-    </main>
-  );
-}
+      {activeTab === "branding" ? (
+        <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-semibold text-slate-950">Branding</h2>
+          <p className="mt-2 text-sm text-slate-600">Branding status: {tenant.brandingStatus}</p>
+        </section>
+      ) : null}
 
-function CompactStatCard({
-  label,
-  value,
-  valueClassName,
-}: {
-  label: string;
-  value: number | string;
-  valueClassName?: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-      <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">{label}</p>
-      <p className={cx("mt-2 truncate text-2xl font-semibold text-slate-950", valueClassName)}>
-        {value}
-      </p>
-    </div>
+      {activeTab === "users" ? (
+        <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-semibold text-slate-950">Users & Access</h2>
+          <div className="mt-4">
+            <TenantAccessActions
+              loginUrl={tenantLoginUrl}
+              primaryDomain={tenant.primaryDomain}
+              slug={tenant.slug}
+              status={String(tenant.status)}
+              tenantCode={tenant.tenantCode ?? tenant.code}
+              tenantName={tenant.displayName ?? tenant.name}
+            />
+          </div>
+        </section>
+      ) : null}
+
+      {activeTab === "invoices" && canSeeFinancials ? (
+        <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-semibold text-slate-950">Invoices</h2>
+          <p className="mt-2 text-sm text-slate-600">Invoice records remain available from the shared invoice module.</p>
+        </section>
+      ) : null}
+
+      {activeTab === "audit" ? (
+        <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-semibold text-slate-950">Audit Log</h2>
+          <p className="mt-2 text-sm text-slate-600">Audit timeline placeholder ready for centralized log rendering.</p>
+        </section>
+      ) : null}
+    </DetailPageShell>
   );
 }
 

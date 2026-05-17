@@ -180,6 +180,16 @@ export class LeadsService {
       throw new NotFoundException('Lead not found.');
     }
 
+    const terminalLeadStatuses: LeadStatus[] = [
+      LeadStatus.CONVERTED,
+      LeadStatus.ARCHIVED,
+    ];
+    if (terminalLeadStatuses.includes(existing.status)) {
+      throw new BadRequestException(
+        'Completed leads are read-only and cannot be edited.',
+      );
+    }
+
     const nextStatus = dto.status ?? existing.status;
     const nextSubStatus =
       dto.subStatus === undefined ? existing.subStatus : dto.subStatus;
