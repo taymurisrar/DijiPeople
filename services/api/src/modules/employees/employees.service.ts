@@ -17,7 +17,10 @@ import { ENTITY_KEYS, ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import { normalizeEmail } from '../../common/utils/email.util';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { buildScopedAccessWhere } from '../../common/security/rbac-query-scope';
-import { ELEVATED_TENANT_ROLE_KEYS } from '../../common/security/elevated-tenant-roles';
+import {
+  canEditEmployeeCoreProfile,
+  ELEVATED_TENANT_ROLE_KEYS,
+} from '../../common/security/elevated-tenant-roles';
 import { UserInvitationsService } from '../auth/user-invitations.service';
 import { OrganizationRepository } from '../organization/organization.repository';
 import { PermissionsService } from '../permissions/permissions.service';
@@ -36,6 +39,7 @@ import {
   EmployeeWithRelations,
 } from './employees.repository';
 import { AuditService } from '../audit/audit.service';
+import { EmployeeAccessService } from './employee-access.service';
 import {
   EmployeeSettingsResolved,
   TenantSettingsResolverService,
@@ -121,6 +125,7 @@ export class EmployeesService {
     private readonly auditService: AuditService,
     private readonly duplicateRuleEngine: DuplicateRuleEngine,
     private readonly tenantSettingsService: TenantSettingsService,
+    private readonly employeeAccessService: EmployeeAccessService,
   ) {}
 
   async findByTenant(currentUser: AuthenticatedUser, query: EmployeeQueryDto) {
@@ -137,18 +142,27 @@ export class EmployeesService {
     );
 
     if (this.isSelfServiceUser(currentUser)) {
-      const employee = await this.employeesRepository.findByUserIdAndTenant(
-        tenantId,
-        currentUser.userId,
-      );
-      const items = employee ? [this.mapEmployee(employee)] : [];
+      const { employee, isReportingManager } =
+        await this.employeeAccessService.getCurrentEmployeeContext(currentUser);
+      const directReports =
+        employee && isReportingManager
+          ? await this.employeesRepository.findByTenant(
+              tenantId,
+              {
+                ...query,
+                reportingManagerEmployeeId: employee.id,
+              },
+              { managerEmployeeId: employee.id },
+            )
+          : { items: employee ? [employee] : [], total: employee ? 1 : 0 };
+      const items = directReports.items.map((item) => this.mapEmployee(item));
 
       return {
         items,
         meta: {
           page: 1,
           pageSize: query.pageSize,
-          total: items.length,
+          total: directReports.total,
           totalPages: 1,
         },
         filters: {
@@ -228,6 +242,16 @@ export class EmployeesService {
     }
 
     return this.mapEmployee(employee);
+  }
+
+  async getCurrentEmployeeContext(currentUser: AuthenticatedUser) {
+    const { employee, isReportingManager } =
+      await this.employeeAccessService.getCurrentEmployeeContext(currentUser);
+
+    return {
+      employee: employee ? this.mapEmployee(employee) : null,
+      isReportingManager,
+    };
   }
 
   async searchForUserLinking(currentUser: AuthenticatedUser, query: string) {
@@ -403,6 +427,56 @@ export class EmployeesService {
     }
 
     return this.getDirectReports(currentUser.tenantId, employee.id);
+  }
+
+  async getReportingStructure(tenantId: string, employeeId: string) {
+    const employees = await this.prisma.employee.findMany({
+      where: { tenantId, isDeleted: false, deletedAt: null },
+      select: reportingNodeSelect,
+      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+    });
+    const current = employees.find((employee) => employee.id === employeeId);
+    if (!current) {
+      throw new NotFoundException('Employee was not found for this tenant.');
+    }
+
+    const byId = new Map(employees.map((employee) => [employee.id, employee]));
+    const reportingLine: ReturnType<typeof mapReportingNode>[] = [];
+    let managerId = current.managerEmployeeId;
+    while (managerId) {
+      const manager = byId.get(managerId);
+      if (!manager) break;
+      reportingLine.unshift(mapReportingNode(manager));
+      managerId = manager.managerEmployeeId;
+    }
+
+    const directReports = employees
+      .filter((employee) => employee.managerEmployeeId === current.id)
+      .map(mapReportingNode);
+
+    const childrenByManagerId = new Map<string | null, typeof employees>();
+    for (const employee of employees) {
+      const key =
+        employee.managerEmployeeId && byId.has(employee.managerEmployeeId)
+          ? employee.managerEmployeeId
+          : null;
+      childrenByManagerId.set(key, [
+        ...(childrenByManagerId.get(key) ?? []),
+        employee,
+      ]);
+    }
+
+    const buildTree = (employee: (typeof employees)[number]): ReportingTreeNode => ({
+      ...mapReportingNode(employee),
+      children: (childrenByManagerId.get(employee.id) ?? []).map(buildTree),
+    });
+
+    return {
+      currentEmployee: mapReportingNode(current),
+      reportingLine,
+      directReports,
+      fullTree: (childrenByManagerId.get(null) ?? []).map(buildTree),
+    };
   }
   private async resolveEmployeeCodeForCreate(
     tenantId: string,
@@ -689,6 +763,13 @@ export class EmployeesService {
     employeeId: string,
     dto: UpdateEmployeeDto,
   ) {
+    if (!canEditEmployeeCoreProfile(currentUser)) {
+      throw new ForbiddenException({
+        code: 'ACCESS_DENIED',
+        message: 'You do not have permission to edit this employee record.',
+      });
+    }
+
     const tenantId = currentUser.tenantId;
     const employeeSettings =
       await this.tenantSettingsResolverService.getEmployeeSettings(tenantId);
@@ -2552,4 +2633,43 @@ export class EmployeesService {
       }
     }
   }
+}
+
+const reportingNodeSelect = {
+  id: true,
+  firstName: true,
+  lastName: true,
+  preferredName: true,
+  managerEmployeeId: true,
+  designation: { select: { name: true } },
+  department: { select: { name: true } },
+  profileImageDocumentId: true,
+} satisfies Prisma.EmployeeSelect;
+
+type ReportingTreeNode = ReturnType<typeof mapReportingNode> & {
+  children: ReportingTreeNode[];
+};
+
+function mapReportingNode(employee: {
+  id: string;
+  firstName: string;
+  lastName: string;
+  preferredName: string | null;
+  managerEmployeeId: string | null;
+  designation: { name: string } | null;
+  department: { name: string } | null;
+  profileImageDocumentId: string | null;
+}) {
+  return {
+    employeeId: employee.id,
+    displayName:
+      employee.preferredName ||
+      `${employee.firstName} ${employee.lastName}`.trim(),
+    jobTitle: employee.designation?.name ?? null,
+    department: employee.department?.name ?? null,
+    profilePhotoUrl: employee.profileImageDocumentId
+      ? `/api/employees/${employee.id}/profile-image`
+      : null,
+    managerId: employee.managerEmployeeId,
+  };
 }

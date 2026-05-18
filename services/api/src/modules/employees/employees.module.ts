@@ -16,6 +16,7 @@ import { EmployeeProfilesService } from './employee-profiles.service';
 import { EmployeesController } from './employees.controller';
 import { EmployeesRepository } from './employees.repository';
 import { EmployeesService } from './employees.service';
+import { EmployeeAccessService } from './employee-access.service';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { EmployeesService } from './employees.service';
   controllers: [EmployeesController],
   providers: [
     EmployeesRepository,
+    EmployeeAccessService,
     EmployeesService,
     EmployeeProfilesService,
     RolesRepository,
@@ -39,6 +41,11 @@ import { EmployeesService } from './employees.service';
     JwtAuthGuard,
     PermissionsGuard,
   ],
-  exports: [EmployeesRepository, EmployeesService, EmployeeProfilesService],
+  exports: [
+    EmployeesRepository,
+    EmployeesService,
+    EmployeeProfilesService,
+    EmployeeAccessService,
+  ],
 })
 export class EmployeesModule {}

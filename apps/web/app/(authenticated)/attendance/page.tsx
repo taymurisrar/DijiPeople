@@ -23,6 +23,7 @@ import {
   AttendanceSummaryResponse,
   AttendanceView,
 } from "./types";
+import { getCurrentEmployee } from "../_lib/current-employee";
 
 type AttendancePageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -50,10 +51,14 @@ export default async function AttendancePage({
   const today = formatLocalDate(new Date());
 
   const sessionUser = await getSessionUser();
+  const currentEmployeeContext = sessionUser
+    ? await getCurrentEmployee(sessionUser)
+    : { employee: null, isReportingManager: false };
   const isElevated = hasElevatedTenantRole(sessionUser?.roleKeys);
   const canViewTeamAttendance =
     isElevated ||
-    hasPermission(sessionUser?.permissionKeys, PERMISSION_KEYS.ATTENDANCE_MANAGE);
+    hasPermission(sessionUser?.permissionKeys, PERMISSION_KEYS.ATTENDANCE_MANAGE) ||
+    currentEmployeeContext.isReportingManager;
   const effectiveSelectedViewKey =
     selectedViewKey || (canViewTeamAttendance ? "allAttendance" : "myAttendance");
   const queryString = buildAttendanceQueryString(

@@ -7,6 +7,11 @@ export const ELEVATED_TENANT_ROLE_KEYS = new Set<string>([
   ROLE_KEYS.SYSTEM_CUSTOMIZER,
 ]);
 
+export const CORE_EMPLOYEE_PROFILE_EDITOR_ROLE_KEYS = new Set<string>([
+  ROLE_KEYS.GLOBAL_ADMIN,
+  ROLE_KEYS.SYSTEM_ADMIN,
+]);
+
 /**
  * Tenant-wide operational roles are not employee-persona roles.
  * They may administer tenant-scoped HR data without a linked Employee record,
@@ -17,5 +22,13 @@ export function hasElevatedTenantRole(
 ) {
   return (user?.roleKeys ?? []).some((roleKey) =>
     ELEVATED_TENANT_ROLE_KEYS.has(roleKey),
+  );
+}
+
+export function canEditEmployeeCoreProfile(
+  user: Pick<AuthenticatedUser, 'roleKeys'> | null | undefined,
+) {
+  return (user?.roleKeys ?? []).some((roleKey) =>
+    CORE_EMPLOYEE_PROFILE_EDITOR_ROLE_KEYS.has(roleKey),
   );
 }

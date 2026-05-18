@@ -16,6 +16,9 @@ export function ErrorModal({ error, user, onClose }: ErrorModalProps) {
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const action = useMemo(() => resolveAction(error), [error]);
   const mayDownload = canDownloadErrorLog(user);
+  const shouldShowDescription =
+    error.description.trim().toLowerCase() !==
+    error.message.trim().toLowerCase();
 
   useEffect(() => {
     closeButtonRef.current?.focus();
@@ -39,7 +42,11 @@ export function ErrorModal({ error, user, onClose }: ErrorModalProps) {
           <h2 id="global-error-title" className="mt-2 text-xl font-semibold text-slate-950">
             {error.message}
           </h2>
-          <p className="mt-2 text-sm leading-6 text-slate-600">{error.description}</p>
+          {shouldShowDescription ? (
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              {error.description}
+            </p>
+          ) : null}
         </div>
 
         <div className="grid gap-4 px-6 py-5 text-sm">

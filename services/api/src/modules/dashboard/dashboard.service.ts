@@ -179,16 +179,17 @@ export class DashboardService {
       : 0;
 
     const canSeeAllViews = this.hasPrivilegedRole(currentUser);
-    const canSeeAdmin = this.canViewAdminDashboard(currentUser);
-    const canSeeHr = this.canViewHrDashboard(currentUser);
-    const canSeeManager = this.canViewManagerDashboard(
+    const canSeeAdmin = this.canAccessDashboardView(currentUser, 'admin');
+    const canSeeHr = this.canAccessDashboardView(currentUser, 'hr');
+    const canSeeManager = this.canAccessDashboardView(
       currentUser,
+      'manager',
       directReportsCount,
     );
     const canSeeEmployee =
       canSeeAllViews ||
       Boolean(currentEmployee) ||
-      this.canViewEmployeeDashboard(currentUser);
+      this.canAccessDashboardView(currentUser, 'employee');
 
     const views = (
       await Promise.all([
@@ -1909,10 +1910,26 @@ export class DashboardService {
       currentUser.roleKeys.includes(ROLE_KEYS.HR) ||
       this.hasAnyPermission(currentUser, [
         'employees.read.all',
-        'employees.read',
         'leave-requests.approve',
       ])
     );
+  }
+
+  private canAccessDashboardView(
+    currentUser: AuthenticatedUser,
+    view: DashboardView['key'],
+    directReportsCount = 0,
+  ) {
+    switch (view) {
+      case 'admin':
+        return this.canViewAdminDashboard(currentUser);
+      case 'hr':
+        return this.canViewHrDashboard(currentUser);
+      case 'manager':
+        return this.canViewManagerDashboard(currentUser, directReportsCount);
+      case 'employee':
+        return this.canViewEmployeeDashboard(currentUser);
+    }
   }
 
   private canViewManagerDashboard(

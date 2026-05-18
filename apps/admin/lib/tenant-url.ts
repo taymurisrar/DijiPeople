@@ -20,33 +20,23 @@ export function buildTenantPortalUrl(
 ) {
   const normalizedSlug = slug.trim().toLowerCase();
 
-  const appEnv =
-    process.env.NEXT_PUBLIC_APP_ENV ??
-    process.env.NODE_ENV ??
-    "development";
-
-  const appUrl =
-    process.env.NEXT_PUBLIC_WEB_URL ??
-    process.env.NEXT_PUBLIC_APP_URL ??
-    "http://localhost:3001";
+  const appUrl = resolveTenantAppBaseUrl();
 
   const parsedUrl = new URL(appUrl);
 
   const protocol = parsedUrl.protocol.replace(":", "");
   const hostname = parsedUrl.hostname;
 
-  const isProduction =
-    appEnv === "production" &&
-    !hostname.includes("localhost") &&
-    !hostname.includes("127.0.0.1");
+  const tenantRootDomain = process.env.NEXT_PUBLIC_TENANT_ROOT_DOMAIN?.trim();
+  const isSubdomainMode = Boolean(tenantRootDomain);
 
-  const url = isProduction
+  const url = isSubdomainMode
     ? new URL(
-        `${protocol}://${normalizedSlug}.${stripWww(hostname)}${normalizePath(path)}`,
+        `${protocol}://${normalizedSlug}.${stripWww(tenantRootDomain as string)}${normalizePath(path)}`,
       )
     : new URL(normalizePath(path), appUrl);
 
-  if (!isProduction) {
+  if (!isSubdomainMode && isLocalHost(hostname)) {
     url.searchParams.set("tenant", normalizedSlug);
   }
 
@@ -59,10 +49,24 @@ export function buildTenantPortalUrl(
   return url.toString();
 }
 
+export function resolveTenantAppBaseUrl() {
+  return (
+    process.env.NEXT_PUBLIC_WEB_APP_URL ??
+    process.env.NEXT_PUBLIC_APP_BASE_URL ??
+    process.env.NEXT_PUBLIC_WEB_URL ??
+    process.env.NEXT_PUBLIC_APP_URL ??
+    "http://localhost:3001"
+  );
+}
+
 function normalizePath(path: string) {
   return path.startsWith("/") ? path : `/${path}`;
 }
 
 function stripWww(value: string) {
   return value.replace(/^www\./, "");
+}
+
+function isLocalHost(hostname: string) {
+  return hostname === "localhost" || hostname === "127.0.0.1";
 }

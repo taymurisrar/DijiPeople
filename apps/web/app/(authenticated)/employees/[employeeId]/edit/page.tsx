@@ -11,6 +11,8 @@ import {
   EmployeeRoleOption,
 } from "../../types";
 import { TenantResolvedSettingsResponse } from "../../../settings/types";
+import { AccessDeniedState } from "@/app/(authenticated)/_components/access-denied-state";
+import { canEditEmployeeCoreProfile } from "@/lib/employee-profile-access";
 
 type EditEmployeePageProps = {
   params: Promise<{
@@ -36,6 +38,16 @@ export default async function EditEmployeePage({
 
   const { employeeId } = await params;
   const sessionUser = await getSessionUser();
+  if (!canEditEmployeeCoreProfile(sessionUser)) {
+    return (
+      <main className="dp-theme-scope dp-employees-scope grid gap-6">
+        <AccessDeniedState
+          title="You cannot edit this employee record."
+          description="You do not have permission to edit this employee record."
+        />
+      </main>
+    );
+  }
 
   const permissionKeys = sessionUser?.permissionKeys ?? [];
 
@@ -56,6 +68,17 @@ export default async function EditEmployeePage({
       ).catch(() => null),
       getDefaultForm("employees", "edit"),
     ]);
+
+  if (employee.accessMode !== "ADMIN_MANAGE") {
+    return (
+      <main className="dp-theme-scope dp-employees-scope grid gap-6">
+        <AccessDeniedState
+          title="You cannot edit this employee record."
+          description="Your access to this employee profile is view-only."
+        />
+      </main>
+    );
+  }
 
   const initialValues: EmployeeFormValues = {
     employeeCode: employee.employeeCode,
@@ -97,7 +120,7 @@ export default async function EditEmployeePage({
     taxIdentifier: toText(employee.taxIdentifier),
     provisionSystemAccess: Boolean(employee.user),
     sendInvitationNow: employee.user?.status !== "Active",
-    initialRoleIds: employee.user?.roles.map((role) => role.id) ?? [],
+    initialRoleIds: employee.user?.roles?.map((role) => role.id) ?? [],
 
     addressLine1: toText(employee.addressLine1),
     addressLine2: toText(employee.addressLine2),
@@ -138,7 +161,7 @@ export default async function EditEmployeePage({
         canManageAccess={canManageAccess}
         employeeId={employee.id}
         initialValues={initialValues}
-        managerOptions={managers.items.filter(
+        managerOptions={(managers.items ?? []).filter(
           (manager) => manager.id !== employee.id,
         )}
         roleOptions={roles}

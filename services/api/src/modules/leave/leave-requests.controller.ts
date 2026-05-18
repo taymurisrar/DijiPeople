@@ -24,6 +24,11 @@ import { LeaveService } from './leave.service';
 export class LeaveRequestsController {
   constructor(private readonly leaveService: LeaveService) {}
 
+  @Get('available-types')
+  availableTypes(@CurrentUser() user: AuthenticatedUser) {
+    return this.leaveService.getAvailableLeaveTypesForEmployee(user);
+  }
+
   @Post()
   @Permissions('leave-requests.create')
   submit(

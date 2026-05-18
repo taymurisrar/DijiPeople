@@ -2,7 +2,6 @@ import { Body, Controller, Get, Patch, Query, UseGuards } from '@nestjs/common';
 import { IsOptional, IsString, Matches, MaxLength } from 'class-validator';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { Permissions } from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -17,8 +16,7 @@ export class SettingsContextController {
   ) {}
 
   @Get('resolved-context')
-  @Permissions('dashboard.view')
-  getResolvedContext(
+  async getResolvedContext(
     @CurrentUser() user: AuthenticatedUser,
     @Query('organizationId') organizationId?: string,
     @Query('businessUnitId') businessUnitId?: string,
@@ -27,19 +25,48 @@ export class SettingsContextController {
     @Query('module') module?: string,
     @Query('effectiveDate') effectiveDate?: string,
   ) {
+    const canResolveArbitraryContext =
+      user.permissionKeys.includes('dashboard.view');
+    const ownEmployee = canResolveArbitraryContext
+      ? null
+      : await this.prisma.employee.findFirst({
+          where: {
+            tenantId: user.tenantId,
+            userId: user.userId,
+            isDeleted: false,
+            deletedAt: null,
+          },
+          select: {
+            id: true,
+            businessUnitId: true,
+            businessUnit: {
+              select: {
+                organizationId: true,
+              },
+            },
+          },
+        });
+
+    // Self-service callers only receive their own effective app context.
+    // Callers with dashboard access retain the existing context-resolution surface.
     return this.configurationResolver.resolveAppContext({
       tenantId: user.tenantId,
-      organizationId,
-      businessUnitId,
-      employeeId,
-      projectId,
+      organizationId: canResolveArbitraryContext
+        ? organizationId
+        : ownEmployee?.businessUnit?.organizationId,
+      businessUnitId: canResolveArbitraryContext
+        ? businessUnitId
+        : ownEmployee?.businessUnitId,
+      employeeId: canResolveArbitraryContext
+        ? employeeId
+        : ownEmployee?.id,
+      projectId: canResolveArbitraryContext ? projectId : undefined,
       module,
       effectiveDate: effectiveDate ? new Date(effectiveDate) : null,
     });
   }
 
   @Get('my-preferences')
-  @Permissions('dashboard.view')
   async getMyPreferences(@CurrentUser() user: AuthenticatedUser) {
     const account = await this.prisma.user.findFirst({
       where: { tenantId: user.tenantId, id: user.userId },
@@ -50,14 +77,22 @@ export class SettingsContextController {
   }
 
   @Patch('my-preferences')
-  @Permissions('dashboard.view')
   async updateMyPreferences(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: Record<string, unknown>,
   ) {
     const nextPreferences = normalizePreferences(dto);
-    const account = await this.prisma.user.update({
-      where: { id: user.userId },
+    const account = await this.prisma.user.findFirst({
+      where: { id: user.userId, tenantId: user.tenantId },
+      select: { id: true },
+    });
+
+    if (!account) {
+      return {};
+    }
+
+    const updatedAccount = await this.prisma.user.update({
+      where: { id: account.id },
       data: {
         preferencesJson: nextPreferences,
         updatedById: user.userId,
@@ -65,7 +100,7 @@ export class SettingsContextController {
       select: { preferencesJson: true },
     });
 
-    return account.preferencesJson ?? {};
+    return updatedAccount.preferencesJson ?? {};
   }
 }
 

@@ -15,6 +15,7 @@ import { Permissions } from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
+import { constrainReferenceListQuery } from '../../common/security/reference-data-access';
 import { CreateEmployeeLevelDto } from './dto/create-employee-level.dto';
 import { ListEmployeeLevelsDto } from './dto/list-employee-levels.dto';
 import { UpdateEmployeeLevelDto } from './dto/update-employee-level.dto';
@@ -26,12 +27,14 @@ export class EmployeeLevelsController {
   constructor(private readonly employeeLevelsService: EmployeeLevelsService) {}
 
   @Get()
-  @Permissions('employee-levels.read')
   findAll(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: ListEmployeeLevelsDto,
   ) {
-    return this.employeeLevelsService.findAll(user.tenantId, query);
+    return this.employeeLevelsService.findAll(
+      user.tenantId,
+      constrainReferenceListQuery(user, query, 'employee-levels.read'),
+    );
   }
 
   @Get(':id')

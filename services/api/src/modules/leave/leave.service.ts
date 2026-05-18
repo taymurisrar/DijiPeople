@@ -2,6 +2,7 @@ import {
   ApprovalActorType,
   LeaveApprovalStepStatus,
   LeaveRequestStatus,
+  NotificationChannel,
   Prisma,
 } from '@prisma/client';
 import {
@@ -34,6 +35,7 @@ import { UpdateLeavePolicyDto } from './dto/update-leave-policy.dto';
 import { UpdateLeaveTypeDto } from './dto/update-leave-type.dto';
 import { LeaveRepository, LeaveRequestWithRelations } from './leave.repository';
 import { ApprovalResolverService } from './approval-resolver.service';
+import { NotificationOrchestratorService } from '../notifications/notification-orchestrator.service';
 
 const ApprovalModes = {
   ANY_ONE: 'ANY_ONE',
@@ -68,6 +70,7 @@ export class LeaveService {
     private readonly usersRepository: UsersRepository,
     private readonly auditService: AuditService,
     private readonly approvalResolver: ApprovalResolverService,
+    private readonly notificationOrchestrator: NotificationOrchestratorService,
   ) {}
 
   findLeaveTypes(tenantId: string, query: ListLeaveConfigDto) {
@@ -435,9 +438,9 @@ export class LeaveService {
       dto.leaveTypeId,
     );
 
-    if (!leaveType) {
+    if (!leaveType || !leaveType.isActive) {
       throw new BadRequestException(
-        'Selected leave type does not belong to this tenant.',
+        'Selected leave type is not active for this tenant.',
       );
     }
 
@@ -505,7 +508,99 @@ export class LeaveService {
       return created;
     });
 
+    await this.notifyPendingApprovers(leaveRequest, currentUser);
+
     return this.mapLeaveRequest(leaveRequest, currentUser);
+  }
+
+  async getAvailableLeaveTypesForEmployee(currentUser: AuthenticatedUser) {
+    const employee = await this.employeesRepository.findByUserIdAndTenant(
+      currentUser.tenantId,
+      currentUser.userId,
+    );
+
+    if (!employee) {
+      throw new BadRequestException(
+        'No employee record is linked to the current user.',
+      );
+    }
+
+    const leavePolicy = await this.resolveApplicableLeavePolicy(
+      currentUser.tenantId,
+      employee,
+      new Date(),
+    );
+
+    if (!leavePolicy) {
+      return {
+        status: 'NO_APPLICABLE_POLICY' as const,
+        leaveTypes: [],
+      };
+    }
+
+    const activeRules = await this.leaveRepository.listActiveLeavePolicyRules(
+      currentUser.tenantId,
+      leavePolicy.id,
+    );
+
+    return {
+      status:
+        activeRules.length > 0
+          ? ('AVAILABLE' as const)
+          : ('NO_ACTIVE_TYPES' as const),
+      leavePolicy: {
+        id: leavePolicy.id,
+        name: leavePolicy.name,
+      },
+      leaveTypes: activeRules.map((rule) => ({
+        id: rule.leaveType.id,
+        name: rule.leaveType.name,
+        code: rule.leaveType.code,
+        category: rule.leaveType.category,
+        requiresApproval: rule.approvalRequired,
+        isPaid: rule.isPaid,
+      })),
+    };
+  }
+
+  private async notifyPendingApprovers(
+    leaveRequest: LeaveRequestWithRelations,
+    currentUser: AuthenticatedUser,
+  ) {
+    const nextStepOrder = leaveRequest.approvalSteps.find(
+      (step) => step.status === LeaveApprovalStepStatus.PENDING,
+    )?.stepOrder;
+    const recipientUserIds = leaveRequest.approvalSteps
+      .filter(
+        (step) =>
+          step.status === LeaveApprovalStepStatus.PENDING &&
+          step.stepOrder === nextStepOrder &&
+          Boolean(step.approverUserId),
+      )
+      .map((step) => step.approverUserId as string);
+
+    if (recipientUserIds.length === 0) {
+      return;
+    }
+
+    await this.notificationOrchestrator.dispatch({
+      tenantId: currentUser.tenantId,
+      eventCode: 'LEAVE_APPROVAL_REQUEST',
+      channels: [NotificationChannel.IN_APP],
+      sourceModule: 'leave',
+      correlationId: leaveRequest.id,
+      requestedByUserId: currentUser.userId,
+      inApp: {
+        title: 'Leave request awaiting approval',
+        body: `${leaveRequest.employee.firstName} ${leaveRequest.employee.lastName} submitted a leave request.`,
+        targetUrl: '/leaves?view=pendingApprovals',
+        recipientUserIds,
+        payload: {
+          leaveRequestId: leaveRequest.id,
+          employeeId: leaveRequest.employeeId,
+        },
+      },
+    });
   }
 
   async listMyLeaveRequests(
@@ -548,16 +643,30 @@ export class LeaveService {
       );
     }
 
-    const pendingRequests =
-      await this.leaveRepository.findPendingLeaveRequestsForTeam(
-        currentUser.tenantId,
-      );
+    const currentEmployee = await this.employeesRepository.findByUserIdAndTenant(
+      currentUser.tenantId,
+      currentUser.userId,
+    );
+    if (!currentEmployee) {
+      return [];
+    }
 
-    return pendingRequests
-      .filter((request) => this.canUserActOnRequest(request, currentUser))
-      .filter((request) =>
-        query.status ? request.status === query.status : true,
-      )
+    const directReports = await this.employeesRepository.findDirectReports(
+      currentUser.tenantId,
+      currentEmployee.id,
+    );
+    const reportIds = directReports.map((employee) => employee.id);
+    if (reportIds.length === 0) {
+      return [];
+    }
+
+    const teamRequests = await this.leaveRepository.findLeaveRequestsByEmployees(
+      currentUser.tenantId,
+      reportIds,
+      query,
+    );
+
+    return teamRequests
       .map((request) => this.mapLeaveRequest(request, currentUser));
   }
 
@@ -1319,6 +1428,7 @@ export class LeaveService {
     ];
 
     const matches = assignments
+      .filter((assignment) => assignment.leavePolicy?.isActive)
       .map((assignment) => {
         const matchedScope = specificity.find(
           (scope) =>

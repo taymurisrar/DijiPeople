@@ -5,6 +5,7 @@ import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { AuditModule } from '../audit/audit.module';
 import { EmployeesModule } from '../employees/employees.module';
 import { UsersModule } from '../users/users.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { ApprovalResolverService } from './approval-resolver.service';
 import { ApprovalMatricesController } from './approval-matrices.controller';
 import { LeavePoliciesController } from './leave-policies.controller';
@@ -14,7 +15,13 @@ import { LeaveRepository } from './leave.repository';
 import { LeaveService } from './leave.service';
 
 @Module({
-  imports: [JwtModule.register({}), EmployeesModule, UsersModule, AuditModule],
+  imports: [
+    JwtModule.register({}),
+    EmployeesModule,
+    UsersModule,
+    AuditModule,
+    NotificationsModule,
+  ],
   controllers: [
     LeaveTypesController,
     LeavePoliciesController,

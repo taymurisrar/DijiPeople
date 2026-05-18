@@ -15,6 +15,15 @@ export type LeaveTypeOption = {
   isPaid: boolean;
 };
 
+export type AvailableLeaveTypesResponse = {
+  status: "AVAILABLE" | "NO_APPLICABLE_POLICY" | "NO_ACTIVE_TYPES";
+  leavePolicy?: {
+    id: string;
+    name: string;
+  };
+  leaveTypes: LeaveTypeOption[];
+};
+
 export type LeaveApprovalStep = {
   id: string;
   stepOrder: number;

@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -7,12 +8,10 @@ import { getAppOrigin } from '@repo/config';
 import { extname } from 'path';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { Prisma, SecurityPrivilege } from '@prisma/client';
-import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import { Prisma } from '@prisma/client';
 import { normalizeEmail } from '../../common/utils/email.util';
 import { getAccessTokenSecret } from '../../common/config/auth.config';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
-import { buildScopedAccessWhere } from '../../common/security/rbac-query-scope';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { StorageService } from '../../common/storage/storage.service';
 import { AuditService } from '../audit/audit.service';
@@ -20,6 +19,7 @@ import { DocumentsRepository } from '../documents/documents.repository';
 import { EmailService } from '../notifications/email/email.service';
 import { TenantSettingsResolverService } from '../tenant-settings/tenant-settings-resolver.service';
 import { EmployeesRepository } from './employees.repository';
+import { EmployeeAccessService } from './employee-access.service';
 import { CreateEmployeePreviousEmploymentDto } from './dto/create-employee-previous-employment.dto';
 import { CreateEmployeeEducationDto } from './dto/create-employee-education.dto';
 import { CreateEmployeeHistoryDto } from './dto/create-employee-history.dto';
@@ -59,10 +59,16 @@ export class EmployeeProfilesService {
     private readonly tenantSettingsResolver: TenantSettingsResolverService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly employeeAccessService: EmployeeAccessService,
   ) {}
 
   async getProfile(currentUser: AuthenticatedUser, employeeId: string) {
     const employee = await this.assertEmployeeAccess(currentUser, employeeId);
+    const accessMode =
+      await this.employeeAccessService.getEmployeeRecordAccess(
+        currentUser,
+        employeeId,
+      );
     const [
       educationRecords,
       employeeHistory,
@@ -264,6 +270,7 @@ export class EmployeeProfilesService {
       educationRecords,
       previousEmployments,
       currentCompensation,
+      accessMode,
       employeeHistory,
       leaveHistory,
       documents,
@@ -285,15 +292,7 @@ export class EmployeeProfilesService {
     const employee = await this.assertEmployeeExists(
       currentUser.tenantId,
       employeeId,
-      buildScopedAccessWhere<Prisma.EmployeeWhereInput>(
-        currentUser,
-        ENTITY_KEYS.EMPLOYEES,
-        SecurityPrivilege.READ,
-        {
-          organizationIdField: null,
-          userIdField: 'userId',
-        },
-      ),
+      await this.employeeAccessService.buildReadableEmployeeWhere(currentUser),
     );
 
     if (
@@ -389,7 +388,10 @@ export class EmployeeProfilesService {
     employeeId: string,
     dto: UpdateAddressDto,
   ) {
-    const employee = await this.assertEmployeeAccess(currentUser, employeeId);
+    const employee = await this.assertEmployeeWriteAccess(
+      currentUser,
+      employeeId,
+    );
     const nextCountryId =
       dto.countryId !== undefined ? dto.countryId : employee.countryId;
     const nextStateProvinceId =
@@ -984,7 +986,7 @@ export class EmployeeProfilesService {
     file: UploadedFile | undefined,
     dto: EmployeeDocumentUploadDto,
   ) {
-    await this.assertEmployeeAccess(currentUser, employeeId);
+    await this.assertEmployeeDocumentUploadAccess(currentUser, employeeId);
     await this.validateEmployeeDocumentType(
       currentUser.tenantId,
       dto.documentTypeId,
@@ -1047,7 +1049,7 @@ export class EmployeeProfilesService {
     employeeId: string,
     documentId: string,
   ) {
-    await this.assertEmployeeAccess(currentUser, employeeId);
+    await this.assertEmployeeDocumentReadAccess(currentUser, employeeId);
     const document = await this.prisma.document.findFirst({
       where: {
         id: documentId,
@@ -1106,7 +1108,10 @@ export class EmployeeProfilesService {
     employeeId: string,
     file: UploadedFile | undefined,
   ) {
-    const employee = await this.assertEmployeeAccess(currentUser, employeeId);
+    const employee = await this.assertProfileImageUploadAccess(
+      currentUser,
+      employeeId,
+    );
     const validatedFile = this.validateUploadedFile(
       file,
       ALLOWED_PROFILE_IMAGE_TYPES,
@@ -1368,7 +1373,7 @@ export class EmployeeProfilesService {
     data: Prisma.EmployeeUncheckedUpdateInput,
     action: string,
   ) {
-    await this.assertEmployeeAccess(currentUser, employeeId);
+    await this.assertEmployeeWriteAccess(currentUser, employeeId);
     const before = await this.getProfile(currentUser, employeeId);
     const result = await this.prisma.employee.updateMany({
       where: { id: employeeId, tenantId: currentUser.tenantId },
@@ -1418,18 +1423,87 @@ export class EmployeeProfilesService {
     const employee = await this.assertEmployeeExists(
       currentUser.tenantId,
       employeeId,
-      buildScopedAccessWhere<Prisma.EmployeeWhereInput>(
-        currentUser,
-        ENTITY_KEYS.EMPLOYEES,
-        SecurityPrivilege.READ,
-        {
-          organizationIdField: null,
-          userIdField: 'userId',
-        },
-      ),
+      await this.employeeAccessService.buildReadableEmployeeWhere(currentUser),
     );
 
     return employee;
+  }
+
+  private async assertEmployeeWriteAccess(
+    currentUser: AuthenticatedUser,
+    employeeId: string,
+  ) {
+    if (
+      !(await this.employeeAccessService.canWriteEmployeeRecord(
+        currentUser,
+        employeeId,
+      ))
+    ) {
+      throw new ForbiddenException({
+        code: 'ACCESS_DENIED',
+        message: 'You do not have permission to update this employee record.',
+      });
+    }
+
+    return this.assertEmployeeAccess(currentUser, employeeId);
+  }
+
+  private async assertProfileImageUploadAccess(
+    currentUser: AuthenticatedUser,
+    employeeId: string,
+  ) {
+    if (
+      !(await this.employeeAccessService.canUploadEmployeeProfileImage(
+        currentUser,
+        employeeId,
+      ))
+    ) {
+      throw new ForbiddenException({
+        code: 'ACCESS_DENIED',
+        message:
+          'You do not have permission to update this employee profile image.',
+      });
+    }
+
+    return this.assertEmployeeAccess(currentUser, employeeId);
+  }
+
+  private async assertEmployeeDocumentUploadAccess(
+    currentUser: AuthenticatedUser,
+    employeeId: string,
+  ) {
+    if (
+      !(await this.employeeAccessService.canUploadEmployeeDocument(
+        currentUser,
+        employeeId,
+      ))
+    ) {
+      throw new ForbiddenException({
+        code: 'ACCESS_DENIED',
+        message: 'You do not have permission to upload this employee document.',
+      });
+    }
+
+    return this.assertEmployeeAccess(currentUser, employeeId);
+  }
+
+  private async assertEmployeeDocumentReadAccess(
+    currentUser: AuthenticatedUser,
+    employeeId: string,
+  ) {
+    if (
+      !(await this.employeeAccessService.canReadEmployeeDocument(
+        currentUser,
+        employeeId,
+      ))
+    ) {
+      throw new ForbiddenException({
+        code: 'ACCESS_DENIED',
+        message: 'You do not have permission to view this employee document.',
+      });
+    }
+
+    return this.assertEmployeeAccess(currentUser, employeeId);
   }
 
   private validatePreviousEmploymentDates(

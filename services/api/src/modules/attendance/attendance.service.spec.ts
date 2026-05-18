@@ -19,6 +19,9 @@ describe('AttendanceService', () => {
   let auditService: {
     log: jest.Mock;
   };
+  let tenantSettingsResolverService: {
+    getAttendanceSettings: jest.Mock;
+  };
 
   const currentUser = {
     tenantId: 'tenant-1',
@@ -108,10 +111,22 @@ describe('AttendanceService', () => {
     auditService = {
       log: jest.fn().mockResolvedValue(undefined),
     };
+    tenantSettingsResolverService = {
+      getAttendanceSettings: jest.fn().mockResolvedValue({
+        lateCheckInGraceMinutes: 0,
+        lateCheckOutGraceMinutes: 0,
+        requireOfficeLocationForOfficeMode: false,
+        requireRemoteLocationForRemoteMode: false,
+        allowRemoteWithoutLocation: true,
+        allowManualAdjustments: true,
+        allowedModes: [AttendanceMode.OFFICE, AttendanceMode.REMOTE],
+      }),
+    };
 
     service = new AttendanceService(
       attendanceRepository as never,
       employeesRepository as never,
+      tenantSettingsResolverService as never,
       auditService as never,
     );
   });

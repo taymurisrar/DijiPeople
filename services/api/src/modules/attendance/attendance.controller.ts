@@ -45,13 +45,11 @@ export class AttendanceController {
   constructor(private readonly attendanceService: AttendanceService) {}
 
   @Post('check-in')
-  @Permissions('attendance.checkin')
   checkIn(@CurrentUser() user: AuthenticatedUser, @Body() dto: CheckInDto) {
     return this.attendanceService.checkIn(user, dto);
   }
 
   @Post('check-out')
-  @Permissions('attendance.checkout')
   checkOut(@CurrentUser() user: AuthenticatedUser, @Body() dto: CheckOutDto) {
     return this.attendanceService.checkOut(user, dto);
   }

@@ -1,16 +1,27 @@
 import { apiRequestJson } from "@/lib/server-api";
+import { getSessionUser } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
+import { PERMISSION_KEYS } from "@/lib/security-keys";
 import { SharedLookupOption } from "@/app/(authenticated)/_components/documents/types";
 import { LeaveRequestForm } from "../_components/leave-request-form";
-import { LeaveTypeOption } from "../types";
+import { AvailableLeaveTypesResponse } from "../types";
+import { ModuleFallbackState } from "../../_components/module-fallback-state";
 
 export const dynamic = "force-dynamic";
 
 export default async function NewLeaveRequestPage() {
-  const [leaveTypes, documentTypes, documentCategories] = await Promise.all([
-    apiRequestJson<LeaveTypeOption[]>("/leave-types?isActive=true").catch(
+  const sessionUser = await getSessionUser();
+  const canCreateLeave = hasPermission(
+    sessionUser?.permissionKeys,
+    PERMISSION_KEYS.LEAVE_REQUESTS_CREATE,
+  );
+  const [availability, documentTypes, documentCategories] = await Promise.all([
+    apiRequestJson<AvailableLeaveTypesResponse>(
+      "/leave-requests/available-types",
+    ).catch(
       (error) => {
-        console.error("leave-types failed", error);
-        return [];
+        console.error("available leave types failed", error);
+        return null;
       },
     ),
     apiRequestJson<SharedLookupOption[]>("/lookups/document-types").catch(
@@ -36,15 +47,43 @@ export default async function NewLeaveRequestPage() {
         </p>
       </section>
 
-      {leaveTypes.length === 0 ? (
-        <div className="rounded-2xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
-          Leave types could not be loaded for this user.
-        </div>
+      {!canCreateLeave ? (
+        <ModuleFallbackState
+          eyebrow="Leave request unavailable"
+          title="You do not have permission to create leave requests."
+          description="Your current role does not include self-service leave request creation."
+          actionHref="/leaves"
+          actionLabel="Back to leaves"
+        />
+      ) : !availability ? (
+        <ModuleFallbackState
+          eyebrow="Leave setup incomplete"
+          title="Leave setup is incomplete."
+          description="The leave request setup could not be resolved for your profile. Please contact an administrator."
+          actionHref="/leaves"
+          actionLabel="Back to leaves"
+        />
+      ) : availability.status === "NO_APPLICABLE_POLICY" ? (
+        <ModuleFallbackState
+          eyebrow="Leave policy needed"
+          title="No applicable leave policy is assigned to you."
+          description="An administrator needs to assign an active leave policy to your tenant scope before you can submit a request."
+          actionHref="/leaves"
+          actionLabel="Back to leaves"
+        />
+      ) : availability.status === "NO_ACTIVE_TYPES" ? (
+        <ModuleFallbackState
+          eyebrow="Leave setup needed"
+          title="No active leave types are available under your leave policy."
+          description="Your leave policy is assigned, but it does not currently contain any active leave type rules."
+          actionHref="/leaves"
+          actionLabel="Back to leaves"
+        />
       ) : (
         <LeaveRequestForm
           documentCategories={documentCategories}
           documentTypes={documentTypes}
-          leaveTypes={leaveTypes}
+          leaveTypes={availability.leaveTypes}
         />
       )}
     </main>

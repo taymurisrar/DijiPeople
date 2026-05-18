@@ -21,6 +21,13 @@ const AUTH_EVENT_CODES = [
   'AUTH_OTP',
 ] as const;
 
+const DEFAULT_LEAVE_TYPES = [
+  { name: 'Annual Leave', code: 'ANNUAL', category: 'PAID', isPaid: true },
+  { name: 'Sick Leave', code: 'SICK', category: 'PAID', isPaid: true },
+  { name: 'Casual Leave', code: 'CASUAL', category: 'PAID', isPaid: true },
+  { name: 'Unpaid Leave', code: 'UNPAID', category: 'UNPAID', isPaid: false },
+] as const;
+
 type AuthEventCode = (typeof AUTH_EVENT_CODES)[number];
 type TenantSeedTarget = { id: string; name: string };
 
@@ -161,20 +168,18 @@ async function main() {
   );
   const settingCount = await seedTenantNotificationSettings(prisma, tenants);
   const providerCount = await seedTenantConsoleProviders(prisma, tenants);
+  const leaveTypeCount = await seedTenantLeaveTypes(prisma, tenants);
 
   console.log(`Email templates created/updated: ${templateCount}`);
   console.log(`Notification preferences created/updated: ${preferenceCount}`);
   console.log(`Notification settings created/updated: ${settingCount}`);
   console.log(`Console providers created/updated: ${providerCount}`);
+  console.log(`Leave types created/updated: ${leaveTypeCount}`);
   console.log('Config seed completed successfully.');
 }
 
 export async function seedNotificationConfig(client: PrismaClient) {
-  const authEvents = NOTIFICATION_EVENT_CATALOG.filter((event) =>
-    AUTH_EVENT_CODES.includes(event.code as AuthEventCode),
-  );
-
-  for (const event of authEvents) {
+  for (const event of NOTIFICATION_EVENT_CATALOG) {
     await client.notificationEvent.upsert({
       where: { code: event.code },
       create: {
@@ -197,7 +202,39 @@ export async function seedNotificationConfig(client: PrismaClient) {
     });
   }
 
-  console.log(`Notification events created/updated: ${authEvents.length}`);
+  console.log(
+    `Notification events created/updated: ${NOTIFICATION_EVENT_CATALOG.length}`,
+  );
+}
+
+export async function seedTenantLeaveTypes(
+  client: PrismaClient,
+  tenants: TenantSeedTarget[],
+) {
+  let count = 0;
+
+  for (const tenant of tenants) {
+    for (const leaveType of DEFAULT_LEAVE_TYPES) {
+      await client.leaveType.upsert({
+        where: {
+          tenantId_code: {
+            tenantId: tenant.id,
+            code: leaveType.code,
+          },
+        },
+        create: {
+          tenantId: tenant.id,
+          ...leaveType,
+          requiresApproval: true,
+          isActive: true,
+        },
+        update: {},
+      });
+      count += 1;
+    }
+  }
+
+  return count;
 }
 
 export async function seedTenantEmailTemplates(

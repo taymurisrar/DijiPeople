@@ -14,6 +14,7 @@ import { Permissions } from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
+import { constrainReferenceListQuery } from '../../common/security/reference-data-access';
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { ListMasterDataDto } from './dto/list-master-data.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
@@ -25,12 +26,14 @@ export class DepartmentsController {
   constructor(private readonly organizationService: OrganizationService) {}
 
   @Get()
-  @Permissions('departments.read')
   findAll(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: ListMasterDataDto,
   ) {
-    return this.organizationService.findDepartments(user.tenantId, query);
+    return this.organizationService.findDepartments(
+      user.tenantId,
+      constrainReferenceListQuery(user, query, 'departments.read'),
+    );
   }
 
   @Get(':id')

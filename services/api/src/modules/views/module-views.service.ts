@@ -148,7 +148,7 @@ export class ModuleViewsService {
     const tenantId = this.getTenantId(currentUser);
     const normalizedModuleKey = this.normalizeModuleKey(moduleKey);
 
-    return this.prisma.moduleView.findMany({
+    const views = await this.prisma.moduleView.findMany({
       where: {
         tenantId,
         isActive: true,
@@ -156,6 +156,32 @@ export class ModuleViewsService {
       },
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
     });
+
+    return views.filter((view) => this.canViewModuleView(view, currentUser));
+  }
+
+  private canViewModuleView(
+    view: {
+      visibilityScope: $Enums.ModuleViewVisibilityScope;
+      allowedRoleKeys: Prisma.JsonValue;
+      allowedUserIds: Prisma.JsonValue;
+    },
+    currentUser: AuthenticatedUser,
+  ) {
+    if (view.visibilityScope === 'tenant') {
+      return true;
+    }
+
+    const allowedRoleKeys = toStringArray(view.allowedRoleKeys);
+    const allowedUserIds = toStringArray(view.allowedUserIds);
+
+    if (view.visibilityScope === 'role') {
+      return currentUser.roleKeys.some((roleKey) =>
+        allowedRoleKeys.includes(roleKey),
+      );
+    }
+
+    return allowedUserIds.includes(currentUser.userId);
   }
 
   async createForCurrentTenant(
@@ -367,4 +393,10 @@ export class ModuleViewsService {
       return { success: true };
     });
   }
+}
+
+function toStringArray(value: Prisma.JsonValue) {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string')
+    : [];
 }

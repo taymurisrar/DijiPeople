@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ApiRequestError, apiRequestJson } from "@/lib/server-api";
 import { getSessionUser } from "@/lib/auth";
+import { canEditEmployeeCoreProfile } from "@/lib/employee-profile-access";
 import {
   formatDateTimeWithTenantSettings,
   formatDateWithTenantSettings,
@@ -21,6 +22,10 @@ import { EmployeeResetPasswordButton } from "../_components/employee-reset-passw
 import { EmployeeStatusBadge } from "../_components/employee-status-badge";
 import { ManagerAssignmentForm } from "../_components/manager-assignment-form";
 import { ReportingStructureSection } from "../_components/reporting-structure-section";
+import type {
+  ReportingNode,
+  ReportingTreeNode,
+} from "../_components/reporting-structure-modal";
 import { TerminateEmployeeButton } from "../_components/terminate-employee-button";
 import { EmployeesCommandBar } from "../_components/employees-command-bar";
 import { Button } from "@/app/components/ui/button";
@@ -174,6 +179,13 @@ type TeamTimesheetsResponse = {
   items: TeamTimesheet[];
 };
 
+type ReportingStructureResponse = {
+  currentEmployee: ReportingNode;
+  reportingLine: ReportingNode[];
+  directReports: ReportingNode[];
+  fullTree: ReportingTreeNode[];
+};
+
 export default async function EmployeeDetailPage({
   params,
   searchParams,
@@ -203,17 +215,33 @@ export default async function EmployeeDetailPage({
     : (visibleTabs[0]?.key ?? "overview");
 
   let employee: EmployeeProfile;
-  let hierarchy: EmployeeHierarchyResponse;
-  let managers: EmployeeListResponse;
+  let reportingStructure: ReportingStructureResponse = {
+    currentEmployee: {} as ReportingNode,
+    reportingLine: [],
+    directReports: [],
+    fullTree: [],
+  };
+  let managers: EmployeeListResponse = {
+    items: [],
+    meta: { page: 1, pageSize: 100, total: 0, totalPages: 1 },
+    filters: {
+      search: null,
+      employmentStatus: null,
+      reportingManagerEmployeeId: null,
+    },
+  };
   let resolvedSettings: TenantResolvedSettingsResponse | null = null;
 
   try {
-    [employee, hierarchy, managers, resolvedSettings] = await Promise.all([
-      apiRequestJson<EmployeeProfile>(`/employees/${employeeId}`),
-      apiRequestJson<EmployeeHierarchyResponse>(
-        `/employees/${employeeId}/hierarchy`,
+    employee = await apiRequestJson<EmployeeProfile>(`/employees/${employeeId}`);
+    [reportingStructure, managers, resolvedSettings] =
+      await Promise.all([
+      apiRequestJson<ReportingStructureResponse>(
+        `/employees/${employeeId}/reporting-structure`,
+      ).catch(() => reportingStructure),
+      apiRequestJson<EmployeeListResponse>("/employees?pageSize=100").catch(
+        () => managers,
       ),
-      apiRequestJson<EmployeeListResponse>("/employees?pageSize=100"),
       apiRequestJson<TenantResolvedSettingsResponse>(
         "/tenant-settings/resolved",
       ).catch(() => null),
@@ -316,9 +344,13 @@ sessionUser.permissionKeys.includes(PERMISSION_KEYS.ATTENDANCE_READ)
     ),
   );
 
-  const canEditEmployee = hasPermission(
+  const canEditEmployee = canEditEmployeeCoreProfile(sessionUser);
+  const isManagerReadOnly = employee.accessMode === "MANAGER_READONLY";
+  const canEditVisibleProfile =
+    canEditEmployee && employee.accessMode === "ADMIN_MANAGE";
+  const canAccessEmployeeList = hasPermission(
     sessionUser.permissionKeys,
-    PERMISSION_KEYS.EMPLOYEES_UPDATE,
+    PERMISSION_KEYS.EMPLOYEES_READ,
   );
   const canCreateEmployee = hasPermission(
     sessionUser.permissionKeys,
@@ -347,10 +379,7 @@ sessionUser.permissionKeys.includes(PERMISSION_KEYS.ATTENDANCE_READ)
     PERMISSION_KEYS.EMPLOYEES_UPDATE,
   );
 
-  const canManageReporting = hasPermission(
-    sessionUser.permissionKeys,
-    PERMISSION_KEYS.EMPLOYEES_UPDATE,
-  );
+  const canManageReporting = canEditVisibleProfile;
 
   const canManageCompensation = hasPermission(
     sessionUser.permissionKeys,
@@ -359,7 +388,7 @@ sessionUser.permissionKeys.includes(PERMISSION_KEYS.ATTENDANCE_READ)
 
   const disallowedManagerIds = new Set([
     employee.id,
-    ...hierarchy.directReports.map((directReport) => directReport.id),
+    ...reportingStructure.directReports.map((directReport) => directReport.employeeId),
   ]);
 
   const managerOptions = managers.items.filter(
@@ -432,9 +461,11 @@ sessionUser.permissionKeys.includes(PERMISSION_KEYS.ATTENDANCE_READ)
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <Button href="/employees" variant="secondary" size="md">
-              Back to list
-            </Button>
+            {canAccessEmployeeList ? (
+              <Button href="/employees" variant="secondary" size="md">
+                Back to list
+              </Button>
+            ) : null}
             {employee.isDraftProfile ? (
               <Link
                 className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800 transition hover:border-amber-400 hover:bg-amber-100"
@@ -443,7 +474,7 @@ sessionUser.permissionKeys.includes(PERMISSION_KEYS.ATTENDANCE_READ)
                 Continue draft essentials
               </Link>
             ) : null}
-            {canEditEmployee ? (
+            {canEditVisibleProfile ? (
               <Button
                 href={`/employees/${employee.id}/edit`}
                 variant="primary"
@@ -481,9 +512,11 @@ sessionUser.permissionKeys.includes(PERMISSION_KEYS.ATTENDANCE_READ)
             <div className="grid gap-6">
               <OverviewGrid employee={employee} formatDate={formatDateValue} />
               <ReportingStructureSection
-                directReports={hierarchy.directReports}
+                canEdit={canEditVisibleProfile}
+                directReports={reportingStructure.directReports}
                 employeeId={employee.id}
-                managerChain={hierarchy.managerChain}
+                fullTree={reportingStructure.fullTree}
+                managerChain={reportingStructure.reportingLine}
               />
             </div>
 
@@ -492,9 +525,10 @@ sessionUser.permissionKeys.includes(PERMISSION_KEYS.ATTENDANCE_READ)
                 employeeId={employee.id}
                 employeeName={employee.fullName}
                 profileImage={employee.profileImage}
+                canUpload={canEditVisibleProfile}
               />
 
-              {canManageReporting ? (
+              {canManageReporting && !isManagerReadOnly ? (
                 <article className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
                   <p className="text-sm uppercase tracking-[0.18em] text-muted">
                     Reporting Manager
@@ -515,7 +549,8 @@ sessionUser.permissionKeys.includes(PERMISSION_KEYS.ATTENDANCE_READ)
                 </article>
               ) : null}
 
-              {canManageAccess || canResetPassword || canTerminateEmployee ? (
+              {!isManagerReadOnly &&
+              (canManageAccess || canResetPassword || canTerminateEmployee) ? (
                 <article className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
                   <p className="text-sm uppercase tracking-[0.18em] text-muted">
                     Admin Actions
@@ -542,7 +577,10 @@ sessionUser.permissionKeys.includes(PERMISSION_KEYS.ATTENDANCE_READ)
       ) : null}
 
       {activeTab === "personal" ? (
-        <EmployeePersonalInfoForm employee={employee} />
+        <EmployeePersonalInfoForm
+          employee={employee}
+          mode={isManagerReadOnly ? "readonly" : "admin"}
+        />
       ) : null}
 
       {activeTab === "employment" ? (

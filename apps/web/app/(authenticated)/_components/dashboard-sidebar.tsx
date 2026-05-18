@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import type { ComponentType } from "react";
 import {
   Briefcase,
@@ -250,7 +251,18 @@ function TenantCard({
   tenantName?: string;
 }) {
   const displayName = resolveText(tenantName, "Tenant workspace");
+  const [copiedTenantId, setCopiedTenantId] = useState(false);
 
+  async function handleCopyTenantId() {
+    if (!tenantId) return;
+
+    await navigator.clipboard.writeText(tenantId);
+    setCopiedTenantId(true);
+
+    window.setTimeout(() => {
+      setCopiedTenantId(false);
+    }, 1500);
+  }
   return (
     <div className="rounded-[22px] border border-border/70 bg-white/55 p-3">
       <div className="flex items-start gap-3">
@@ -262,12 +274,19 @@ function TenantCard({
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
             Active tenant
           </p>
+
           <p className="mt-1 truncate text-sm font-semibold text-foreground">
             {displayName}
           </p>
-          <p className="mt-1 truncate text-xs text-muted" title={tenantId}>
-            ID: {tenantId}
-          </p>
+
+          <button
+            type="button"
+            onClick={handleCopyTenantId}
+            title={`Copy tenant ID: ${tenantId}`}
+            className="mt-1 block max-w-full truncate text-left text-xs text-muted transition hover:text-primary"
+          >
+            {copiedTenantId ? "Copied!" : `ID: ${tenantId}`}
+          </button>
         </div>
       </div>
     </div>

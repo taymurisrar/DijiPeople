@@ -29,6 +29,20 @@ const emptyLookups: EmployeeLookups = {
   locations: [],
 };
 
+type BaseLookups = Pick<
+  EmployeeLookups,
+  | "countries"
+  | "documentTypes"
+  | "documentCategories"
+  | "relationTypes"
+  | "departments"
+  | "designations"
+  | "employeeLevels"
+  | "locations"
+>;
+
+let baseLookupsInFlight: Promise<BaseLookups> | null = null;
+
 export function useEmployeeLookups(filters?: {
   countryId?: string;
   stateProvinceId?: string;
@@ -55,23 +69,18 @@ export function useEmployeeLookups(filters?: {
       }
 
       const requests = [
-        fetch("/api/lookups/countries"),
         fetch(
           `/api/lookups/states${stateQuery.size ? `?${stateQuery.toString()}` : ""}`,
         ),
         fetch(
           `/api/lookups/cities${cityQuery.size ? `?${cityQuery.toString()}` : ""}`,
         ),
-        fetch("/api/lookups/document-types"),
-        fetch("/api/lookups/document-categories"),
-        fetch("/api/lookups/relation-types"),
-        fetch("/api/departments"),
-        fetch("/api/designations"),
-        fetch("/api/employee-levels?isActive=true"),
-        fetch("/api/locations"),
       ] as const;
 
-      const responses = await Promise.all(requests);
+      const [baseLookups, responses] = await Promise.all([
+        loadBaseLookups(),
+        Promise.all(requests),
+      ]);
       const payloads = await Promise.all(
         responses.map(async (response) => {
           if (!response.ok) {
@@ -87,16 +96,9 @@ export function useEmployeeLookups(filters?: {
       }
 
       setLookups({
-        countries: normalizeLookupList(payloads[0]),
-        states: normalizeLookupList(payloads[1]),
-        cities: normalizeLookupList(payloads[2]),
-        documentTypes: normalizeLookupList(payloads[3]),
-        documentCategories: normalizeLookupList(payloads[4]),
-        relationTypes: normalizeLookupList(payloads[5]),
-        departments: normalizeLookupList(payloads[6]),
-        designations: normalizeLookupList(payloads[7]),
-        employeeLevels: normalizeLookupList(payloads[8]),
-        locations: normalizeLookupList(payloads[9]),
+        ...baseLookups,
+        states: normalizeLookupList(payloads[0]),
+        cities: normalizeLookupList(payloads[1]),
       });
       setIsLoading(false);
     }
@@ -143,6 +145,56 @@ export function useEmployeeLookups(filters?: {
     cities: cityOptions,
     isLoading,
   };
+}
+
+function loadBaseLookups() {
+  if (!baseLookupsInFlight) {
+    baseLookupsInFlight = Promise.all([
+      fetchLookup("/api/lookups/countries"),
+      fetchLookup("/api/lookups/document-types"),
+      fetchLookup("/api/lookups/document-categories"),
+      fetchLookup("/api/lookups/relation-types"),
+      fetchLookup("/api/departments?isActive=true"),
+      fetchLookup("/api/designations?isActive=true"),
+      fetchLookup("/api/employee-levels?isActive=true"),
+      fetchLookup("/api/locations?isActive=true"),
+    ])
+      .then(
+        ([
+          countries,
+          documentTypes,
+          documentCategories,
+          relationTypes,
+          departments,
+          designations,
+          employeeLevels,
+          locations,
+        ]) => ({
+          countries,
+          documentTypes,
+          documentCategories,
+          relationTypes,
+          departments,
+          designations,
+          employeeLevels,
+          locations,
+        }),
+      )
+      .finally(() => {
+        baseLookupsInFlight = null;
+      });
+  }
+
+  return baseLookupsInFlight;
+}
+
+async function fetchLookup(url: string) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    return [];
+  }
+
+  return normalizeLookupList(await response.json());
 }
 
 function normalizeLookupList(payload: unknown): LookupOption[] {

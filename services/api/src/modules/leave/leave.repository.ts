@@ -379,6 +379,23 @@ export class LeaveRepository {
     });
   }
 
+  findLeaveRequestsByEmployees(
+    tenantId: string,
+    employeeIds: string[],
+    query: LeaveRequestQueryDto,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.leaveRequest.findMany({
+      where: {
+        tenantId,
+        employeeId: { in: employeeIds },
+        ...(query.status ? { status: query.status } : {}),
+      },
+      include: leaveRequestInclude,
+      orderBy: [{ createdAt: 'desc' }],
+    });
+  }
+
   findPendingLeaveRequestsForTeam(
     tenantId: string,
     db: PrismaDb = this.prisma,
@@ -459,6 +476,21 @@ export class LeaveRepository {
           createdAt: 'desc',
         },
       ],
+    });
+  }
+
+  listActiveLeavePolicyRules(tenantId: string, leavePolicyId: string) {
+    return this.prisma.leavePolicyRule.findMany({
+      where: {
+        tenantId,
+        leavePolicyId,
+        isActive: true,
+        leaveType: { isActive: true },
+      },
+      include: {
+        leaveType: true,
+      },
+      orderBy: [{ leaveType: { name: 'asc' } }],
     });
   }
 

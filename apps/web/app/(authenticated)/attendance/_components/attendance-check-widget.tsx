@@ -315,10 +315,6 @@ export function AttendanceCheckWidget({
                   <p className="text-sm font-medium text-foreground">
                     Remote location capture
                   </p>
-                  <p className="mt-1 text-sm text-muted">
-                    Capture browser coordinates when remote work policies require
-                    location proof.
-                  </p>
                 </div>
                 <button
                   className="rounded-2xl border border-border px-4 py-2 text-sm font-medium text-foreground transition hover:border-accent/30 hover:text-accent"

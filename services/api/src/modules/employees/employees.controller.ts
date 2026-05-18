@@ -153,9 +153,12 @@ export class EmployeesController {
     return this.employeesService.searchForUserLinking(user, query);
   }
 
+  @Get('me/context')
+  getCurrentEmployeeContext(@CurrentUser() user: AuthenticatedUser) {
+    return this.employeesService.getCurrentEmployeeContext(user);
+  }
+
   @Get(':employeeId')
-  @Permissions('employees.read')
-  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
   findOne(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -215,6 +218,17 @@ export class EmployeesController {
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
   ) {
     return this.employeesService.getHierarchy(user.tenantId, employeeId);
+  }
+
+  @Get(':employeeId/reporting-structure')
+  getReportingStructure(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
+  ) {
+    return this.employeesService.getReportingStructure(
+      user.tenantId,
+      employeeId,
+    );
   }
 
   @Get(':employeeId/direct-reports')
@@ -305,8 +319,6 @@ export class EmployeesController {
   }
 
   @Patch(':employeeId/personal-info')
-  @Permissions('employees.update')
-  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'write')
   updatePersonalInfo(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -320,8 +332,6 @@ export class EmployeesController {
   }
 
   @Patch(':employeeId/address')
-  @Permissions('employees.update')
-  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'write')
   updateAddress(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -331,8 +341,6 @@ export class EmployeesController {
   }
 
   @Patch(':employeeId/emergency-contact')
-  @Permissions('employees.update')
-  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'write')
   updateEmergencyContact(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -509,7 +517,6 @@ export class EmployeesController {
   }
 
   @Post(':employeeId/documents/upload')
-  @Permissions('employees.documents.upload')
   @UseInterceptors(FileInterceptor('file'))
   uploadDocument(
     @CurrentUser() user: AuthenticatedUser,
@@ -526,7 +533,6 @@ export class EmployeesController {
   }
 
   @Get(':employeeId/documents/:documentId/download')
-  @Permissions('employees.documents.read')
   async downloadDocument(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -551,7 +557,6 @@ export class EmployeesController {
   }
 
   @Get(':employeeId/documents/:documentId/view')
-  @Permissions('employees.documents.read')
   async viewDocument(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -590,7 +595,6 @@ export class EmployeesController {
   }
 
   @Post(':employeeId/profile-image/upload')
-  @Permissions('employees.documents.upload')
   @UseInterceptors(FileInterceptor('file'))
   uploadProfileImage(
     @CurrentUser() user: AuthenticatedUser,
@@ -605,7 +609,6 @@ export class EmployeesController {
   }
 
   @Get(':employeeId/profile-image')
-  @Permissions('employees.documents.read')
   async getProfileImage(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,

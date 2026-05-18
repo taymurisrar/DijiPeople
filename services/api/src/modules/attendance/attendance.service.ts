@@ -1263,13 +1263,10 @@ export class AttendanceService {
   ) {
     const isCurrentUsersEntry =
       currentUser !== undefined && entry.employee.userId === currentUser.userId;
-    const hasCheckoutPermission =
-      currentUser?.permissionKeys.includes('attendance.checkout') ?? false;
     const canCurrentUserCheckOut =
       isCurrentUsersEntry &&
       entry.checkIn !== null &&
-      entry.checkOut === null &&
-      hasCheckoutPermission;
+      entry.checkOut === null;
     const durationMinutes =
       entry.checkIn && entry.checkOut
         ? Math.max(0, differenceInMinutes(entry.checkOut, entry.checkIn))
@@ -1341,7 +1338,6 @@ export class AttendanceService {
         : resolveCheckOutBlockedReason(
             currentUser,
             isCurrentUsersEntry,
-            hasCheckoutPermission,
             entry.checkIn,
             entry.checkOut,
           ),
@@ -1353,7 +1349,6 @@ export class AttendanceService {
 function resolveCheckOutBlockedReason(
   currentUser: AuthenticatedUser | undefined,
   isCurrentUsersEntry: boolean,
-  hasCheckoutPermission: boolean,
   checkIn: Date | null,
   checkOut: Date | null,
 ) {
@@ -1371,10 +1366,6 @@ function resolveCheckOutBlockedReason(
 
   if (!isCurrentUsersEntry) {
     return 'This attendance entry is not linked to your current user session.';
-  }
-
-  if (!hasCheckoutPermission) {
-    return 'Your current role does not include attendance checkout access yet. Ask an administrator to refresh tenant role permissions or sign in again after the update.';
   }
 
   return 'Checkout is unavailable for this attendance entry.';

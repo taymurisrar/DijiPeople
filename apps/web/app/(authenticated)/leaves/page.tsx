@@ -2,6 +2,7 @@ import { ModuleViewSelector } from "@/app/components/view-selector/module-view-s
 import { getSessionUser } from "@/lib/auth";
 import {
   getTableViews,
+  RuntimeCustomizationView,
   withFallbackViews,
 } from "@/lib/customization-views";
 import { hasPermission } from "@/lib/permissions";
@@ -16,6 +17,7 @@ import {
 import { LeavesCommandBar } from "./_components/leaves-command-bar";
 import { LeavesTable } from "./_components/leaves-table";
 import { LeaveRequestRecord } from "./types";
+import { getCurrentEmployee } from "../_lib/current-employee";
 
 type LeavesPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -39,6 +41,9 @@ export default async function LeavePage({ searchParams }: LeavesPageProps) {
   const selectedViewKey = getSearchParam(params.view);
 
   const sessionUser = await getSessionUser();
+  const currentEmployeeContext = sessionUser
+    ? await getCurrentEmployee(sessionUser)
+    : { employee: null, isReportingManager: false };
 
   const isElevated = hasElevatedTenantRole(sessionUser?.roleKeys);
   const canCreateLeave = hasPermission(
@@ -57,9 +62,11 @@ export default async function LeavePage({ searchParams }: LeavesPageProps) {
       sessionUser?.permissionKeys,
       PERMISSION_KEYS.LEAVE_REQUESTS_REJECT,
     );
+  const canViewTeamLeaves =
+    currentEmployeeContext.isReportingManager || canApproveLeave || canRejectLeave;
   const canViewTenantLeaves = isElevated || canApproveLeave || canRejectLeave;
   const leaveEndpoint = buildLeaveEndpoint(
-    canViewTenantLeaves,
+    canViewTenantLeaves || currentEmployeeContext.isReportingManager,
     selectedViewKey,
   );
 
@@ -69,13 +76,13 @@ export default async function LeavePage({ searchParams }: LeavesPageProps) {
     getTeamRequestsCount(),
   ]);
 
-  const leaveViews = withFallbackViews("leaves", publishedViews, [
+  const systemViews: RuntimeCustomizationView[] = [
     {
       id: "allLeaveRequests",
       viewKey: "allLeaveRequests",
       tableKey: "leaves",
       name: "All Leave Requests",
-      type: "system",
+      type: "system" as const,
       isDefault: canViewTenantLeaves,
       columnsJson: {
         columns: [
@@ -95,7 +102,7 @@ export default async function LeavePage({ searchParams }: LeavesPageProps) {
       viewKey: "myLeaveRequests",
       tableKey: "leaves",
       name: "My Leave Requests",
-      type: "system",
+      type: "system" as const,
       isDefault: !canViewTenantLeaves,
       columnsJson: {
         columns: [
@@ -109,16 +116,21 @@ export default async function LeavePage({ searchParams }: LeavesPageProps) {
       },
       sortingJson: [{ columnKey: "dateRange", direction: "desc" }],
     },
-    buildLeaveStatusView("pendingApprovals", "Pending Approval", "PENDING"),
-    buildLeaveStatusView("approved", "Approved", "APPROVED"),
-    buildLeaveStatusView("rejected", "Rejected", "REJECTED"),
-    buildLeaveStatusView("cancelled", "Cancelled", "CANCELLED"),
-    {
+    ...(canViewTeamLeaves
+      ? [
+          buildLeaveStatusView("pendingApprovals", "Pending Approval", "PENDING"),
+          buildLeaveStatusView("approved", "Approved", "APPROVED"),
+          buildLeaveStatusView("rejected", "Rejected", "REJECTED"),
+          buildLeaveStatusView("cancelled", "Cancelled", "CANCELLED"),
+        ]
+      : []),
+    ...(canViewTeamLeaves
+      ? [{
       id: "teamLeaves",
       viewKey: "teamLeaves",
       tableKey: "leaves",
       name: "Team Leaves",
-      type: "system",
+      type: "system" as const,
       isDefault: false,
       columnsJson: {
         columns: [
@@ -131,8 +143,16 @@ export default async function LeavePage({ searchParams }: LeavesPageProps) {
         ],
       },
       sortingJson: [{ columnKey: "dateRange", direction: "asc" }],
-    },
-  ]);
+    }]
+      : []),
+  ];
+  const leaveViews = withFallbackViews(
+    "leaves",
+    publishedViews,
+    canViewTenantLeaves
+      ? systemViews
+      : systemViews.filter((view) => view.viewKey !== "allLeaveRequests"),
+  );
 
   const selectedView =
     leaveViews.find((view) => view.viewKey === selectedViewKey) ??

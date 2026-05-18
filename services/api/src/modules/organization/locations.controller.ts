@@ -14,6 +14,7 @@ import { Permissions } from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
+import { constrainReferenceListQuery } from '../../common/security/reference-data-access';
 import { CreateLocationDto } from './dto/create-location.dto';
 import { ListMasterDataDto } from './dto/list-master-data.dto';
 import { UpdateLocationDto } from './dto/update-location.dto';
@@ -25,12 +26,14 @@ export class LocationsController {
   constructor(private readonly organizationService: OrganizationService) {}
 
   @Get()
-  @Permissions('locations.read')
   findAll(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: ListMasterDataDto,
   ) {
-    return this.organizationService.findLocations(user.tenantId, query);
+    return this.organizationService.findLocations(
+      user.tenantId,
+      constrainReferenceListQuery(user, query, 'locations.read'),
+    );
   }
 
   @Get(':id')

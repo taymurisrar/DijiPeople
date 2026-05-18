@@ -21,6 +21,7 @@ type EmployeeProfileImageCardProps = {
   employeeId: string;
   employeeName: string;
   profileImage: EmployeeDocumentSummary | null;
+  canUpload?: boolean;
 };
 
 type ImageDraft = {
@@ -38,6 +39,7 @@ export function EmployeeProfileImageCard({
   employeeId,
   employeeName,
   profileImage,
+  canUpload = true,
 }: EmployeeProfileImageCardProps) {
   const router = useRouter();
   const [isUploading, setIsUploading] = useState(false);
@@ -215,16 +217,18 @@ export function EmployeeProfileImageCard({
                 : "No profile image uploaded yet."}
             </p>
             <div className="flex flex-wrap gap-3">
-              <label className="cursor-pointer rounded-2xl bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-strong">
-                {profileImage ? "Change image" : "Upload image"}
-                <input
-                  accept="image/png,image/jpeg"
-                  className="hidden"
-                  disabled={isUploading}
-                  onChange={handleFileChange}
-                  type="file"
-                />
-              </label>
+              {canUpload ? (
+                <label className="cursor-pointer rounded-2xl bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-strong">
+                  {profileImage ? "Change image" : "Upload image"}
+                  <input
+                    accept="image/png,image/jpeg"
+                    className="hidden"
+                    disabled={isUploading}
+                    onChange={handleFileChange}
+                    type="file"
+                  />
+                </label>
+              ) : null}
               {profileImage ? (
                 <a
                   className="rounded-2xl border border-border px-4 py-2 text-sm font-medium text-foreground transition hover:border-accent/30 hover:text-accent"

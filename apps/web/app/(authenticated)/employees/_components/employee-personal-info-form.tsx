@@ -45,7 +45,7 @@ export function EmployeePersonalInfoForm({
   mode = "admin",
 }: {
   employee: EmployeeProfile;
-  mode?: "admin" | "self-service";
+  mode?: "admin" | "self-service" | "readonly";
 }) {
   const router = useRouter();
   const [form, setForm] = useState<PersonalState>({
@@ -89,6 +89,7 @@ export function EmployeePersonalInfoForm({
     });
 
   const isSelfService = mode === "self-service";
+  const isReadOnly = mode === "readonly";
 
   function setValue(key: keyof PersonalState, value: string) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -182,7 +183,8 @@ export function EmployeePersonalInfoForm({
   }
 
   return (
-    <form className="grid gap-6" onSubmit={handleSubmit}>
+    <form className="grid gap-6" onSubmit={isReadOnly ? undefined : handleSubmit}>
+      <fieldset className="contents" disabled={isReadOnly}>
       <FormSection
         description="Keep your personal and contact details up to date."
         title="Personal Details"
@@ -436,7 +438,7 @@ export function EmployeePersonalInfoForm({
         </p>
       ) : null}
 
-      <div>
+      {!isReadOnly ? <div>
         <Button
           variant="primary"
           size="lg"
@@ -447,7 +449,8 @@ export function EmployeePersonalInfoForm({
         >
           {isSelfService ? "Save my profile" : "Save personal info"}
         </Button>
-      </div>
+      </div> : null}
+      </fieldset>
     </form>
   );
 }

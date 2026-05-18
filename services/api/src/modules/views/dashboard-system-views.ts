@@ -30,7 +30,8 @@ export const dashboardSystemViews = [
     type: 'system',
     isDefault: false,
     isShared: true,
-    visibilityScope: 'tenant',
+    visibilityScope: 'role',
+    allowedRoleKeys: ['admin', 'hr', 'system-admin', 'global-admin'],
     sortOrder: 1,
     configJson: {
       layout: 'admin-workbench',
@@ -55,7 +56,8 @@ export const dashboardSystemViews = [
     type: 'system',
     isDefault: false,
     isShared: true,
-    visibilityScope: 'tenant',
+    visibilityScope: 'role',
+    allowedRoleKeys: ['admin', 'hr', 'manager', 'system-admin', 'global-admin'],
     sortOrder: 2,
     configJson: {
       layout: 'operations-focus',

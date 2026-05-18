@@ -357,6 +357,7 @@ export type EmployeeFormValues = {
 };
 
 export type EmployeeProfile = EmployeeListItem & {
+  accessMode?: "SELF" | "MANAGER_READONLY" | "HR_MANAGE" | "ADMIN_MANAGE" | "DENIED";
   basicProfile: {
     fullName: string;
     employeeCode: string;
