@@ -48,7 +48,7 @@ export default async function DashboardLayout({
       apiRequestJson<TenantFeaturesResponse>(
         "/tenant-settings/features/availability",
       ).catch(() => null),
-      getCurrentEmployee(user).catch(() => ({
+      getCurrentEmployee().catch(() => ({
         employee: null,
         isReportingManager: false,
       })),

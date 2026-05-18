@@ -52,7 +52,7 @@ export default async function AttendancePage({
 
   const sessionUser = await getSessionUser();
   const currentEmployeeContext = sessionUser
-    ? await getCurrentEmployee(sessionUser)
+    ? await getCurrentEmployee()
     : { employee: null, isReportingManager: false };
   const isElevated = hasElevatedTenantRole(sessionUser?.roleKeys);
   const canViewTeamAttendance =

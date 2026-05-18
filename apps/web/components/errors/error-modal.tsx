@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef } from "react";
 import { isSessionExpiredError } from "@/lib/api-error";
 import { canDownloadErrorLog, type ErrorLogUser } from "./error-provider";
@@ -71,9 +72,9 @@ export function ErrorModal({ error, user, onClose }: ErrorModalProps) {
             </button>
           ) : null}
           {action.secondary === "dashboard" ? (
-            <a className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50" href="/">
+            <Link className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50" href="/">
               Go to dashboard
-            </a>
+            </Link>
           ) : null}
           <button
             ref={closeButtonRef}
@@ -111,7 +112,7 @@ function PrimaryAction({
     return <button className={className} onClick={() => history.back()} type="button">Go back</button>;
   }
   if (action === "dashboard") {
-    return <a className={className} href="/">Go to dashboard</a>;
+    return <Link className={className} href="/">Go to dashboard</Link>;
   }
   if (action === "retry" && error.retry) {
     return <button className={className} onClick={error.retry} type="button">Try again</button>;

@@ -48,7 +48,7 @@ export default async function ProfilePage() {
 
   const [userProfile, currentEmployeeContext] = await Promise.all([
     apiRequestJson<UserProfile>("/users/me"),
-    getCurrentEmployee(sessionUser),
+    getCurrentEmployee(),
   ]);
 
   const employee = currentEmployeeContext.employee;

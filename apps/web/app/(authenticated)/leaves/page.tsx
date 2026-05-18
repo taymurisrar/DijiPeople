@@ -42,7 +42,7 @@ export default async function LeavePage({ searchParams }: LeavesPageProps) {
 
   const sessionUser = await getSessionUser();
   const currentEmployeeContext = sessionUser
-    ? await getCurrentEmployee(sessionUser)
+    ? await getCurrentEmployee()
     : { employee: null, isReportingManager: false };
 
   const isElevated = hasElevatedTenantRole(sessionUser?.roleKeys);

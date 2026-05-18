@@ -1,5 +1,4 @@
 import { ApiRequestError, apiRequestJson } from "@/lib/server-api";
-import { SessionUser } from "@/lib/auth";
 import { EmployeeListItem } from "../employees/types";
 
 export type CurrentEmployeeContext = {
@@ -7,9 +6,7 @@ export type CurrentEmployeeContext = {
   isReportingManager: boolean;
 };
 
-export async function getCurrentEmployee(
-  _user: SessionUser,
-): Promise<CurrentEmployeeContext> {
+export async function getCurrentEmployee(): Promise<CurrentEmployeeContext> {
   try {
     return await apiRequestJson<CurrentEmployeeContext>("/employees/me/context");
   } catch (error) {

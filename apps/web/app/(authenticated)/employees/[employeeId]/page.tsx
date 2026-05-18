@@ -32,7 +32,6 @@ import { Button } from "@/app/components/ui/button";
 import { AccessDeniedState } from "@/app/(authenticated)/_components/access-denied-state";
 import {
   EmployeeCompensationHistoryRecord,
-  EmployeeHierarchyResponse,
   EmployeeListResponse,
   EmployeeProfile,
   PayComponentRecord,

@@ -43,7 +43,6 @@ export function AttendanceCheckWidget({
   const resolvedSettings = useResolvedSettings();
 
   const openEntry = activeEntry;
-  const latestEntry = activeEntry ?? todayEntry;
   const canCheckIn = activeEntry === null;
   const canCheckOut = activeEntry?.canCurrentUserCheckOut ?? false;
   const activeMode = useMemo(
