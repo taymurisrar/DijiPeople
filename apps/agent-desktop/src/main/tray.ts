@@ -22,6 +22,9 @@ export function createAgentTray(params: CreateAgentTrayParams): Tray {
 
     const status = params.sessionManager.status;
     const connection = resolveConnectionLabel(params.sessionManager);
+    const managedByPolicy =
+      params.configManager.current.policy.mandatory &&
+      !params.configManager.current.policy.allowUserQuit;
 
     tray.setToolTip(`DijiPeople Agent • ${status} • ${connection}`);
 
@@ -92,10 +95,19 @@ export function createAgentTray(params: CreateAgentTrayParams): Tray {
         },
         {
           label: "Quit DijiPeople Agent",
+          enabled: !managedByPolicy,
           click: () => {
             app.quit();
           },
         },
+        ...(managedByPolicy
+          ? [
+              {
+                label: "Managed by company policy",
+                enabled: false,
+              } as const,
+            ]
+          : []),
       ]),
     );
   };

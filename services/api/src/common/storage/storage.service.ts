@@ -62,6 +62,19 @@ export class StorageService {
     }
   }
 
+  async fileExists(storageKey: string | null | undefined) {
+    if (!storageKey) {
+      return false;
+    }
+
+    try {
+      await stat(this.resolveStoragePath(storageKey));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async deleteFile(storageKey: string | null | undefined) {
     if (!storageKey) {
       return;

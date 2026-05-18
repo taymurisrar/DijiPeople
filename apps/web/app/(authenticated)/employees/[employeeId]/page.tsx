@@ -160,6 +160,12 @@ type EmployeeAgentSummaryResponse = {
     agentVersion: string | null;
     occurredAt: string;
   }>;
+  liveStatus?: "LIVE" | "OFFLINE" | "STALE" | "NEVER_CONNECTED";
+  retention?: {
+    historyRetentionDays: number;
+    from: string;
+    to: string;
+  };
 };
 
 type TeamTimesheet = {

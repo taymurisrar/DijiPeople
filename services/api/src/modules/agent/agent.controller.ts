@@ -32,6 +32,7 @@ import {
   StartAgentSessionDto,
 } from './dto/agent-session.dto';
 import { UpdateAgentSettingsDto } from './dto/update-agent-settings.dto';
+import { AgentHistoryQueryDto } from './dto/agent-history-query.dto';
 
 @Controller('agent')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -72,8 +73,9 @@ export class AgentController {
   employeeSummary(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
+    @Query() query: AgentHistoryQueryDto,
   ) {
-    return this.agentService.employeeAgentSummary(user, employeeId);
+    return this.agentService.employeeAgentSummary(user, employeeId, query);
   }
 
   @Get('config')

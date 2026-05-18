@@ -1,6 +1,7 @@
 import { app, dialog } from "electron";
 import { autoUpdater } from "electron-updater";
 import type { AgentConfig } from "./types";
+import { AgentLogger } from "./logger";
 
 const UPDATE_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
@@ -9,7 +10,7 @@ export class UpdateManager {
   private isChecking = false;
   private isShowingRequiredUpdateDialog = false;
 
-  constructor() {
+  constructor(private readonly logger: AgentLogger) {
     autoUpdater.autoDownload = true;
     autoUpdater.autoInstallOnAppQuit = true;
     autoUpdater.allowPrerelease = false;
@@ -53,7 +54,9 @@ export class UpdateManager {
 
     try {
       await autoUpdater.checkForUpdatesAndNotify();
+      this.logger.info("agent.update.check_success");
     } catch {
+      this.logger.warn("agent.update.check_failed");
       // Keep silent for scheduled checks. Manual update UI can be added later.
     } finally {
       this.isChecking = false;
@@ -85,10 +88,12 @@ export class UpdateManager {
       });
 
       if (result.response === 0) {
+        this.logger.info("agent.update.required_prompt_accept");
         await this.checkForUpdates();
         return;
       }
 
+      this.logger.warn("agent.update.required_prompt_quit");
       app.quit();
     } finally {
       this.isShowingRequiredUpdateDialog = false;

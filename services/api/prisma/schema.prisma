@@ -5125,6 +5125,7 @@ model AgentTrackingSettings {
   id                       String   @id @default(uuid())
   tenantId                 String   @unique
   enabled                  Boolean  @default(true)
+  mandatory                Boolean  @default(false)
   heartbeatIntervalSeconds Int      @default(60)
   idleThresholdSeconds     Int      @default(120)
   awayThresholdSeconds     Int      @default(600)
@@ -5137,6 +5138,9 @@ model AgentTrackingSettings {
   forceUpdate              Boolean  @default(false)
   updateMessage            String?
   autoUpdateEnabled        Boolean  @default(true)
+  historyRetentionDays     Int      @default(90)
+  installerUrl             String?
+  releaseDate              DateTime?
   createdAt                DateTime @default(now())
   updatedAt                DateTime @updatedAt
   tenant                   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)

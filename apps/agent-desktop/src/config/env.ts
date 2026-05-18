@@ -1,12 +1,12 @@
-const apiBaseUrl = normalizeBaseUrl(
-  process.env.AGENT_API_BASE_URL ||
-  process.env.DIJIPEOPLE_AGENT_API_BASE_URL ||
-  process.env.DIJIPEOPLE_API_BASE_URL ||
-  process.env.API_BASE_URL ||
-  "https://dijipeople.onrender.com/api",);
+const apiBaseUrl = normalizeBaseUrl(readRequiredString([
+  "AGENT_API_BASE_URL",
+  "DIJIPEOPLE_AGENT_API_BASE_URL",
+  "DIJIPEOPLE_API_BASE_URL",
+  "API_BASE_URL",
+], "Agent API base URL"));
 
 export const agentEnv = {
-  appName: process.env.AGENT_APP_NAME || "DijiPeople Agent",
+  appName: readRequiredString(["AGENT_APP_NAME"], "Agent app name"),
 
   apiBaseUrl,
 
@@ -15,16 +15,16 @@ export const agentEnv = {
     process.env.API_ORIGIN ||
     getOriginFromBaseUrl(apiBaseUrl),
 
-  appVersion: process.env.AGENT_APP_VERSION || "1.0.0",
+  appVersion: readRequiredString(["AGENT_APP_VERSION"], "Agent app version"),
 
   deviceRegistrationEnabled: readBoolean(
     process.env.AGENT_DEVICE_REGISTRATION_ENABLED,
     true,
   ),
 
-  accessTokenTtl: process.env.AGENT_ACCESS_TOKEN_TTL || "15m",
+  accessTokenTtl: readRequiredString(["AGENT_ACCESS_TOKEN_TTL"], "Agent access token TTL"),
 
-  refreshTokenTtl: process.env.AGENT_REFRESH_TOKEN_TTL || "30d",
+  refreshTokenTtl: readRequiredString(["AGENT_REFRESH_TOKEN_TTL"], "Agent refresh token TTL"),
 
   sessionIdleTimeoutSeconds: readNumber(
     process.env.AGENT_SESSION_IDLE_TIMEOUT_SECONDS,
@@ -77,13 +77,17 @@ export const agentEnv = {
   ),
 
   updateUrl:
-    process.env.DIJIPEOPLE_AGENT_UPDATE_URL ||
-    `${apiBaseUrl}/agent/updates`,
+    readRequiredString(["DIJIPEOPLE_AGENT_UPDATE_URL", "AGENT_UPDATE_URL"], "Agent update URL"),
 
   autoUpdateEnabled: readBoolean(
     process.env.AGENT_AUTO_UPDATE_ENABLED,
     true,
   ),
+
+  logsPath: process.env.AGENT_LOGS_PATH?.trim() || "",
+  logMaxBytes: readNumber(process.env.AGENT_LOG_MAX_BYTES, 5 * 1024 * 1024),
+  logMaxFiles: readNumber(process.env.AGENT_LOG_MAX_FILES, 5),
+  installerUrl: process.env.AGENT_INSTALLER_URL?.trim() || "",
 };
 
 export function normalizeBaseUrl(value: string): string {
@@ -123,4 +127,15 @@ function readNumber(value: string | undefined, fallback: number): number {
   const parsed = Number(value);
 
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function readRequiredString(keys: string[], label: string): string {
+  for (const key of keys) {
+    const value = process.env[key]?.trim();
+    if (value) return value;
+  }
+
+  throw new Error(
+    `${label} is required. Set one of: ${keys.join(", ")}.`,
+  );
 }

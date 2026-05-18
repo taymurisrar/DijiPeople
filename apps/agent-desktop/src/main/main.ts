@@ -8,20 +8,23 @@ import { SecureStore } from "./secure-store";
 import { SessionManager } from "./session-manager";
 import { createAgentTray } from "./tray";
 import { UpdateManager } from "./update-manager";
+import { AgentLogger } from "./logger";
 
 let loginWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 
 const apiClient = new ApiClient();
 const configManager = new ConfigManager(apiClient);
+const logger = new AgentLogger();
 const sessionManager = new SessionManager(
   apiClient,
   new SecureStore(),
   configManager,
   new ActivityTracker(),
   new OfflineQueue(),
+  logger,
 );
-const updateManager = new UpdateManager();
+const updateManager = new UpdateManager(logger);
 
 type LoginPayload = {
   email: string;
@@ -73,7 +76,6 @@ function createLoginWindow() {
   });
 
   void loginWindow.loadFile(path.join(__dirname, "../renderer/login.html"));
-loginWindow.webContents.openDevTools({ mode: "detach" });
   loginWindow.on("closed", () => {
     loginWindow = null;
   });
@@ -227,9 +229,7 @@ app.on("ready", async () => {
   });
 
   updateManager.start(() => configManager.current);
-
-  // TEMP: clear stale desktop agent token
-  await sessionManager.logout(false);
+  logger.info("agent.startup", { version: app.getVersion() });
 
   const restored = await sessionManager.restore();
 

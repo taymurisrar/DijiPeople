@@ -1,4 +1,7 @@
+"use client";
+
 import Image from "next/image";
+import { useEffect, useState } from "react";
 
 type UserAvatarProps = {
   firstName?: string | null;
@@ -24,11 +27,16 @@ export function UserAvatar({
   className = "",
 }: UserAvatarProps) {
   const initials = getInitials(firstName, lastName);
+  const [hasImageError, setHasImageError] = useState(false);
   const src = imageSrc
     ? cacheKey
       ? `${imageSrc}${imageSrc.includes("?") ? "&" : "?"}v=${encodeURIComponent(cacheKey)}`
       : imageSrc
     : null;
+
+  useEffect(() => {
+    setHasImageError(false);
+  }, [src]);
 
   return (
     <div
@@ -38,7 +46,7 @@ export function UserAvatar({
         className,
       ].join(" ")}
     >
-      {src ? (
+      {src && !hasImageError ? (
         <Image
           alt={buildAltText(firstName, lastName)}
           className="object-cover"
@@ -46,6 +54,7 @@ export function UserAvatar({
           sizes={size === "lg" ? "96px" : size === "md" ? "44px" : "36px"}
           src={src}
           unoptimized
+          onError={() => setHasImageError(true)}
         />
       ) : (
         <span>{initials}</span>

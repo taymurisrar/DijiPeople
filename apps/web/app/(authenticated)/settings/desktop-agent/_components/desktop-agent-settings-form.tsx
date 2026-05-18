@@ -10,6 +10,7 @@ export type AgentSettingsRecord = {
   updatedAt?: string;
 
   enabled: boolean;
+  mandatory: boolean;
   heartbeatIntervalSeconds: number;
   idleThresholdSeconds: number;
   awayThresholdSeconds: number;
@@ -22,6 +23,9 @@ export type AgentSettingsRecord = {
   forceUpdate: boolean;
   updateMessage: string | null;
   autoUpdateEnabled: boolean;
+  historyRetentionDays: number;
+  installerUrl: string | null;
+  releaseDate: string | null;
 };
 
 export function DesktopAgentSettingsForm({
@@ -32,7 +36,11 @@ export function DesktopAgentSettingsForm({
   const router = useRouter();
   const [form, setForm] = useState({
     ...initialSettings,
+    mandatory: initialSettings.mandatory ?? false,
+    historyRetentionDays: initialSettings.historyRetentionDays ?? 90,
     updateMessage: initialSettings.updateMessage ?? "",
+    installerUrl: initialSettings.installerUrl ?? "",
+    releaseDate: initialSettings.releaseDate?.slice(0, 10) ?? "",
   });
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -50,6 +58,7 @@ async function handleSubmit(event: FormEvent<HTMLFormElement>) {
 
   const payload = {
     enabled: form.enabled,
+    mandatory: form.mandatory,
     heartbeatIntervalSeconds: form.heartbeatIntervalSeconds,
     idleThresholdSeconds: form.idleThresholdSeconds,
     awayThresholdSeconds: form.awayThresholdSeconds,
@@ -62,6 +71,9 @@ async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     forceUpdate: form.forceUpdate,
     updateMessage: form.updateMessage || null,
     autoUpdateEnabled: form.autoUpdateEnabled,
+    historyRetentionDays: form.historyRetentionDays,
+    installerUrl: form.installerUrl || null,
+    releaseDate: form.releaseDate || null,
   };
 
   setIsSaving(true);
@@ -102,10 +114,25 @@ async function handleSubmit(event: FormEvent<HTMLFormElement>) {
           }
         />
         <CheckField
+          checked={form.mandatory}
+          label="Require agent by company policy"
+          onChange={(mandatory) =>
+            setForm((current) => ({ ...current, mandatory }))
+          }
+        />
+        <CheckField
           checked={form.autoUpdateEnabled}
           label="Enable auto-update checks"
           onChange={(autoUpdateEnabled) =>
             setForm((current) => ({ ...current, autoUpdateEnabled }))
+          }
+        />
+        <NumberField
+          label="History retention days"
+          min={1}
+          value={form.historyRetentionDays}
+          onChange={(historyRetentionDays) =>
+            setForm((current) => ({ ...current, historyRetentionDays }))
           }
         />
         <NumberField
@@ -194,6 +221,21 @@ async function handleSubmit(event: FormEvent<HTMLFormElement>) {
             }
           />
         </div>
+        <TextField
+          label="Installer download URL"
+          value={form.installerUrl}
+          onChange={(installerUrl) =>
+            setForm((current) => ({ ...current, installerUrl }))
+          }
+        />
+        <TextField
+          label="Release date"
+          type="date"
+          value={form.releaseDate}
+          onChange={(releaseDate) =>
+            setForm((current) => ({ ...current, releaseDate }))
+          }
+        />
       </section>
 
       {message ? <p className="text-sm text-green-700">{message}</p> : null}
@@ -240,10 +282,12 @@ function NumberField({
 function TextField({
   label,
   onChange,
+  type = "text",
   value,
 }: {
   label: string;
   onChange: (value: string) => void;
+  type?: string;
   value: string;
 }) {
   return (
@@ -252,6 +296,7 @@ function TextField({
       <input
         className="w-full rounded-2xl border border-border bg-white px-4 py-3 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
         onChange={(event) => onChange(event.target.value)}
+        type={type}
         value={value}
       />
     </label>

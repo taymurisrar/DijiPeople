@@ -5,6 +5,7 @@ import { ConfigManager } from "./config-manager";
 import { OfflineQueue } from "./offline-queue";
 import { SecureStore } from "./secure-store";
 import { agentEnv } from "../config/env";
+import { AgentLogger } from "./logger";
 import type {
   AgentState,
   ConnectionState,
@@ -42,6 +43,7 @@ export class SessionManager extends EventEmitter {
   private isRefreshingToken = false;
   private sessionStartedAt: Date | null = null;
   private lastActivityAt: Date | null = null;
+  private accessTokenExpiresAt: Date | null = null;
 
   constructor(
     private readonly apiClient: ApiClient,
@@ -49,6 +51,7 @@ export class SessionManager extends EventEmitter {
     private readonly configManager: ConfigManager,
     private readonly activityTracker: ActivityTracker,
     private readonly offlineQueue: OfflineQueue,
+    private readonly logger: AgentLogger,
   ) {
     super();
   }
@@ -70,6 +73,7 @@ export class SessionManager extends EventEmitter {
 
       await this.applyLoginResult(result);
       await this.secureStore.setRefreshToken(result.tokens.refreshToken);
+      this.logger.info("agent.session.restored", { userId: result.user.id });
 
       return true;
     } catch (error) {
@@ -78,6 +82,7 @@ export class SessionManager extends EventEmitter {
       this.resetSessionState();
       this.emit("session-error", this.normalizeSessionError(error));
       this.emit("login-required");
+      this.logger.warn("agent.session.restore_failed", { reason: this.normalizeSessionError(error) });
 
       return false;
     }
@@ -93,8 +98,13 @@ export class SessionManager extends EventEmitter {
 
       await this.applyLoginResult(result);
       await this.secureStore.setRefreshToken(result.tokens.refreshToken);
+      this.logger.info("agent.auth.login_success", {
+        userId: result.user.id,
+        tenantId: result.tenant.id,
+      });
     } catch (error) {
       this.resetSessionState();
+      this.logger.warn("agent.auth.login_failed", { reason: this.normalizeSessionError(error) });
       throw error;
     }
   }
@@ -121,6 +131,7 @@ export class SessionManager extends EventEmitter {
       await this.offlineQueue.clear().catch(() => undefined);
 
       this.resetSessionState();
+      this.logger.info("agent.auth.logout", { showLogin });
 
       if (showLogin) {
         this.emit("login-required");
@@ -308,6 +319,7 @@ export class SessionManager extends EventEmitter {
       const result = await this.apiClient.refresh(refreshToken);
 
       this.apiClient.setAccessToken(result.tokens.accessToken);
+      this.accessTokenExpiresAt = readJwtExpiry(result.tokens.accessToken);
       this.user = result.user;
       this.deviceId = result.device.id;
 
@@ -338,6 +350,7 @@ export class SessionManager extends EventEmitter {
       this.stopTimers();
 
       this.apiClient.setAccessToken(result.tokens.accessToken);
+      this.accessTokenExpiresAt = readJwtExpiry(result.tokens.accessToken);
 
       this.user = result.user;
       this.deviceId = result.device.id;
@@ -551,18 +564,14 @@ export class SessionManager extends EventEmitter {
   }
 
   private shouldRefreshTokenByEnvPolicy(): boolean {
-    if (!this.lastHeartbeatSync) {
+    if (!this.accessTokenExpiresAt || agentEnv.sessionRefreshThresholdSeconds <= 0) {
       return false;
     }
 
-    if (agentEnv.sessionRefreshThresholdSeconds <= 0) {
-      return false;
-    }
+    const secondsUntilExpiry =
+      (this.accessTokenExpiresAt.getTime() - Date.now()) / 1000;
 
-    const secondsSinceLastSync =
-      (Date.now() - this.lastHeartbeatSync.getTime()) / 1000;
-
-    return secondsSinceLastSync >= agentEnv.sessionRefreshThresholdSeconds;
+    return secondsUntilExpiry <= agentEnv.sessionRefreshThresholdSeconds;
   }
 
   private stopTimers(): void {
@@ -594,6 +603,7 @@ export class SessionManager extends EventEmitter {
     this.lastHeartbeatSync = null;
     this.sessionStartedAt = null;
     this.lastActivityAt = null;
+    this.accessTokenExpiresAt = null;
     this.isSyncingHeartbeat = false;
   }
 
@@ -645,4 +655,14 @@ function isAuthExpiredError(message: string): boolean {
     normalized.includes("unauthorized") ||
     normalized.includes("401")
   );
+}
+function readJwtExpiry(token: string): Date | null {
+  try {
+    const payload = token.split(".")[1];
+    if (!payload) return null;
+    const decoded = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as { exp?: number };
+    return decoded.exp ? new Date(decoded.exp * 1000) : null;
+  } catch {
+    return null;
+  }
 }

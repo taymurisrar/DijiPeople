@@ -44,6 +44,15 @@ import {
   StartAgentSessionDto,
 } from './dto/agent-session.dto';
 import { UpdateAgentSettingsDto } from './dto/update-agent-settings.dto';
+import { AgentHistoryQueryDto } from './dto/agent-history-query.dto';
+import { AuditService } from '../audit/audit.service';
+
+type ExtendedAgentSettings = Prisma.AgentTrackingSettingsGetPayload<{}> & {
+  mandatory: boolean;
+  historyRetentionDays: number;
+  installerUrl: string | null;
+  releaseDate: Date | null;
+};
 
 type AgentTokenPayload = {
   sub: string;
@@ -59,6 +68,7 @@ type AgentTokenPayload = {
 
 const DEFAULT_AGENT_SETTINGS = {
   enabled: true,
+  mandatory: false,
   heartbeatIntervalSeconds: 60,
   idleThresholdSeconds: 120,
   awayThresholdSeconds: 600,
@@ -71,6 +81,9 @@ const DEFAULT_AGENT_SETTINGS = {
   forceUpdate: false,
   updateMessage: null,
   autoUpdateEnabled: true,
+  historyRetentionDays: 90,
+  installerUrl: null,
+  releaseDate: null,
 };
 
 @Injectable()
@@ -79,6 +92,7 @@ export class AgentService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly auditService: AuditService,
   ) {}
 
   async login(dto: AgentLoginDto) {
@@ -209,7 +223,11 @@ export class AgentService {
 
     await this.prisma.agentRefreshToken.update({
       where: { id: tokenRecord.id },
-      data: { revokedAt: new Date(), lastUsedAt: new Date() },
+      data: {
+        revokedAt: new Date(),
+        lastUsedAt: new Date(),
+        lastActivityAt: new Date(),
+      },
     });
 
     await this.prisma.employeeDevice.update({
@@ -251,6 +269,7 @@ export class AgentService {
   async employeeAgentSummary(
     currentUser: AuthenticatedUser,
     employeeId: string,
+    query: AgentHistoryQueryDto,
   ) {
     const employee = await this.prisma.employee.findFirst({
       where: {
@@ -279,7 +298,10 @@ export class AgentService {
       throw new NotFoundException('Employee was not found.');
     }
 
+    const settings = (await this.getOrCreateSettings(currentUser.tenantId)) as ExtendedAgentSettings;
     const today = startOfUtcDay(new Date());
+    const retentionStart = new Date(Date.now() - settings.historyRetentionDays * 24 * 60 * 60 * 1000);
+    const { from, to } = resolveHistoryWindow(query, retentionStart);
 
     const [devices, latestSession, todaySummary, recentEvents] =
       await Promise.all([
@@ -340,11 +362,13 @@ export class AgentService {
           where: {
             tenantId: currentUser.tenantId,
             employeeId,
+            occurredAt: { gte: from, lte: to },
           },
           orderBy: {
             occurredAt: 'desc',
           },
-          take: 25,
+          skip: (query.page - 1) * query.pageSize,
+          take: query.pageSize,
           select: {
             id: true,
             state: true,
@@ -375,6 +399,8 @@ export class AgentService {
           }
         : null,
       recentEvents,
+      liveStatus: resolveLiveStatus(latestSession?.lastHeartbeatAt ?? null, settings),
+      retention: { historyRetentionDays: settings.historyRetentionDays, from, to },
     };
   }
 
@@ -460,7 +486,7 @@ export class AgentService {
   }
 
   async getConfig(tenantId: string) {
-    const settings = await this.getOrCreateSettings(tenantId);
+    const settings = (await this.getOrCreateSettings(tenantId)) as ExtendedAgentSettings;
     return toConfigResponse(settings);
   }
 
@@ -484,7 +510,7 @@ export class AgentService {
       );
     }
 
-    return this.prisma.agentTrackingSettings.upsert({
+    const updated = await this.prisma.agentTrackingSettings.upsert({
       where: { tenantId: currentUser.tenantId },
       create: {
         tenantId: currentUser.tenantId,
@@ -493,6 +519,19 @@ export class AgentService {
       },
       update: normalizeSettingsDto(dto),
     });
+
+    await this.auditService.log({
+      tenantId: currentUser.tenantId,
+      actorUserId: currentUser.userId,
+      action: 'AGENT_SETTINGS_UPDATED',
+      entityType: 'AgentTrackingSettings',
+      entityId: updated.id,
+      beforeSnapshot: current,
+      afterSnapshot: updated,
+      sourceModule: 'agent',
+    });
+
+    return updated;
   }
 
   async registerDevice(currentUser: AuthenticatedUser, dto: AgentDeviceDto) {
@@ -1059,6 +1098,10 @@ function toConfigResponse(settings: {
   heartbeatBatchSize: number;
   offlineQueueEnabled: boolean;
   autoUpdateEnabled: boolean;
+  mandatory: boolean;
+  historyRetentionDays: number;
+  installerUrl: string | null;
+  releaseDate: Date | null;
 }) {
   return {
     agentVersionPolicy: {
@@ -1066,6 +1109,10 @@ function toConfigResponse(settings: {
       latestVersion: settings.latestVersion,
       forceUpdate: settings.forceUpdate,
       updateMessage: settings.updateMessage,
+    },
+    policy: {
+      mandatory: settings.mandatory,
+      allowUserQuit: !settings.mandatory,
     },
     tracking: {
       enabled: settings.enabled,
@@ -1091,6 +1138,11 @@ function toConfigResponse(settings: {
       autoUpdate: settings.autoUpdateEnabled,
       trayStatus: true,
     },
+    release: {
+      installerUrl: settings.installerUrl,
+      releaseDate: settings.releaseDate,
+      historyRetentionDays: settings.historyRetentionDays,
+    },
   };
 }
 
@@ -1103,5 +1155,42 @@ function normalizeSettingsDto(dto: UpdateAgentSettingsDto) {
       dto.updateMessage === undefined
         ? undefined
         : dto.updateMessage?.trim() || null,
+    installerUrl:
+      dto.installerUrl === undefined
+        ? undefined
+        : dto.installerUrl?.trim() || null,
+    releaseDate:
+      dto.releaseDate === undefined
+        ? undefined
+        : dto.releaseDate
+          ? new Date(dto.releaseDate)
+          : null,
   };
+}
+
+function resolveHistoryWindow(query: AgentHistoryQueryDto, retentionStart: Date) {
+  const now = new Date();
+  let from = retentionStart;
+  let to = now;
+
+  if (query.range === 'day') from = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  if (query.range === 'week') from = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  if (query.range === 'month') from = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  if (query.range === 'custom') {
+    from = query.from ? new Date(query.from) : retentionStart;
+    to = query.to ? new Date(query.to) : now;
+  }
+
+  if (from < retentionStart) from = retentionStart;
+  if (to > now) to = now;
+  if (to < from) to = from;
+  return { from, to };
+}
+
+function resolveLiveStatus(lastHeartbeatAt: Date | null, settings: { heartbeatIntervalSeconds: number; awayThresholdSeconds: number }) {
+  if (!lastHeartbeatAt) return 'NEVER_CONNECTED';
+  const ageSeconds = (Date.now() - lastHeartbeatAt.getTime()) / 1000;
+  if (ageSeconds <= settings.heartbeatIntervalSeconds * 2) return 'LIVE';
+  if (ageSeconds <= Math.max(settings.awayThresholdSeconds, settings.heartbeatIntervalSeconds * 4)) return 'STALE';
+  return 'OFFLINE';
 }

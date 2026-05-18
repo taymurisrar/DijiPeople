@@ -45,7 +45,11 @@ const ALLOWED_EMPLOYEE_DOCUMENT_TYPES = new Set([
   'image/png',
 ]);
 
-const ALLOWED_PROFILE_IMAGE_TYPES = new Set(['image/jpeg', 'image/png']);
+const ALLOWED_PROFILE_IMAGE_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+]);
 
 @Injectable()
 export class EmployeeProfilesService {
@@ -91,6 +95,7 @@ export class EmployeeProfilesService {
     ]
       .filter(Boolean)
       .join(' ');
+    const profileImage = await this.buildProfileImageSummary(employee);
 
     return {
       id: employee.id,
@@ -176,15 +181,7 @@ export class EmployeeProfilesService {
       employeeLevel: employee.employeeLevel,
       location: employee.location,
       officialJoiningLocation: employee.officialJoiningLocation,
-      profileImage: employee.profileImageDocument
-        ? {
-            id: employee.profileImageDocument.id,
-            fileName: employee.profileImageDocument.originalFileName,
-            mimeType: employee.profileImageDocument.mimeType,
-            size: employee.profileImageDocument.sizeInBytes,
-            downloadPath: `/api/employees/${employee.id}/profile-image`,
-          }
-        : null,
+      profileImage,
       basicProfile: {
         fullName,
         employeeCode: employee.employeeCode,
@@ -1198,11 +1195,21 @@ export class EmployeeProfilesService {
   }
 
   async getProfileImage(currentUser: AuthenticatedUser, employeeId: string) {
-    const employee = await this.assertEmployeeAccess(currentUser, employeeId);
+    const employee = await this.assertEmployeeImageReadAccess(
+      currentUser,
+      employeeId,
+    );
 
     if (
       !employee.profileImageDocument ||
       !employee.profileImageDocument.storageKey
+    ) {
+      throw new NotFoundException('Employee profile image was not found.');
+    }
+
+    if (
+      !employee.profileImageDocument.mimeType ||
+      !ALLOWED_PROFILE_IMAGE_TYPES.has(employee.profileImageDocument.mimeType)
     ) {
       throw new NotFoundException('Employee profile image was not found.');
     }
@@ -1506,6 +1513,30 @@ export class EmployeeProfilesService {
     return this.assertEmployeeAccess(currentUser, employeeId);
   }
 
+  private async assertEmployeeImageReadAccess(
+    currentUser: AuthenticatedUser,
+    employeeId: string,
+  ) {
+    const employee = await this.assertEmployeeExists(
+      currentUser.tenantId,
+      employeeId,
+    );
+
+    if (
+      !(await this.employeeAccessService.canViewEmployeeRecord(
+        currentUser,
+        employeeId,
+      ))
+    ) {
+      throw new ForbiddenException({
+        code: 'ACCESS_DENIED',
+        message: 'You do not have permission to view this employee record.',
+      });
+    }
+
+    return employee;
+  }
+
   private validatePreviousEmploymentDates(
     startDate?: string,
     endDate?: string,
@@ -1515,6 +1546,31 @@ export class EmployeeProfilesService {
         'Previous employment end date cannot be before the start date.',
       );
     }
+  }
+
+  private async buildProfileImageSummary(
+    employee: Awaited<ReturnType<EmployeeProfilesService['assertEmployeeAccess']>>,
+  ) {
+    const document = employee.profileImageDocument;
+
+    if (
+      !document ||
+      !document.storageKey ||
+      !document.mimeType ||
+      !ALLOWED_PROFILE_IMAGE_TYPES.has(document.mimeType) ||
+      !(await this.storageService.fileExists(document.storageKey))
+    ) {
+      return null;
+    }
+
+    return {
+      id: document.id,
+      fileName: document.originalFileName,
+      mimeType: document.mimeType,
+      size: document.sizeInBytes,
+      createdAt: document.createdAt,
+      downloadPath: `/api/employees/${employee.id}/profile-image`,
+    };
   }
 
   private validateUploadedFile(

@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
 import {
   IsBoolean,
+  IsDateString,
   IsInt,
   IsOptional,
   IsString,
@@ -13,6 +14,10 @@ export class UpdateAgentSettingsDto {
   @IsOptional()
   @IsBoolean()
   enabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  mandatory?: boolean;
 
   @IsOptional()
   @Type(() => Number)
@@ -76,4 +81,20 @@ export class UpdateAgentSettingsDto {
   @IsOptional()
   @IsBoolean()
   autoUpdateEnabled?: boolean;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(3650)
+  historyRetentionDays?: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  installerUrl?: string | null;
+
+  @IsOptional()
+  @IsDateString()
+  releaseDate?: string | null;
 }

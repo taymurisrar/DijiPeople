@@ -9,10 +9,6 @@ files:
   - dist/**/*
   - package.json
 
-extraMetadata:
-  dijipeople:
-    apiBaseUrl: "http://localhost:4000/api"
-    updateUrl: "https://dijipeople.com/agent/updates"
 
 win:
   target:
@@ -26,4 +22,4 @@ nsis:
 
 publish:
   provider: generic
-  url: "https://dijipeople.com/agent/updates"
+  url: "${env.DIJIPEOPLE_AGENT_UPDATE_URL}"

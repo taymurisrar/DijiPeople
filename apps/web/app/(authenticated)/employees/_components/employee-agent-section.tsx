@@ -44,6 +44,12 @@ type EmployeeAgentSummaryResponse = {
     agentVersion: string | null;
     occurredAt: string;
   }>;
+  liveStatus?: "LIVE" | "OFFLINE" | "STALE" | "NEVER_CONNECTED";
+  retention?: {
+    historyRetentionDays: number;
+    from: string;
+    to: string;
+  };
 };
 
 type GroupedAgentActivity = {
@@ -165,6 +171,11 @@ export function EmployeeAgentSection({
         </div>
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <AgentMetricCard
+            label="Connection"
+            value={formatLiveStatus(agentSummary.liveStatus)}
+            helper="Live state from heartbeat freshness"
+          />
           <AgentMetricCard
             label="Focused work"
             value={formatDuration(todaySummary?.activeSeconds ?? 0)}
@@ -571,5 +582,20 @@ function getAgentStatusClassName(value?: string | null) {
       return "bg-slate-100 text-slate-600";
     default:
       return "bg-slate-100 text-slate-600";
+  }
+}
+
+function formatLiveStatus(value?: string | null) {
+  switch (value) {
+    case "LIVE":
+      return "Live";
+    case "STALE":
+      return "Stale";
+    case "OFFLINE":
+      return "Offline";
+    case "NEVER_CONNECTED":
+      return "Never connected";
+    default:
+      return "Unknown";
   }
 }

@@ -13,6 +13,11 @@ export type AgentVersionPolicy = {
   updateMessage: string | null;
 };
 
+export type PolicyConfig = {
+  mandatory: boolean;
+  allowUserQuit: boolean;
+};
+
 export type TrackingConfig = {
   enabled: boolean;
   heartbeatIntervalSeconds: number;
@@ -43,6 +48,7 @@ export type FeatureConfig = {
 
 export type AgentConfig = {
   agentVersionPolicy: AgentVersionPolicy;
+  policy: PolicyConfig;
   tracking: TrackingConfig;
   privacy: PrivacyConfig;
   api: ApiConfig;

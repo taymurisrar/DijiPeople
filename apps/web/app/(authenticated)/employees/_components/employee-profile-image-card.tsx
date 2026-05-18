@@ -74,8 +74,8 @@ export function EmployeeProfileImageCard({
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (!["image/png", "image/jpeg"].includes(file.type)) {
-      setError("Only PNG and JPEG profile images are supported.");
+    if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
+      setError("Only PNG, JPEG, and WebP profile images are supported.");
       event.target.value = "";
       return;
     }
@@ -221,7 +221,7 @@ export function EmployeeProfileImageCard({
                 <label className="cursor-pointer rounded-2xl bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-strong">
                   {profileImage ? "Change image" : "Upload image"}
                   <input
-                    accept="image/png,image/jpeg"
+                    accept="image/png,image/jpeg,image/webp"
                     className="hidden"
                     disabled={isUploading}
                     onChange={handleFileChange}

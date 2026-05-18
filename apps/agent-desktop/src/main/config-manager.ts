@@ -14,6 +14,11 @@ export const DEFAULT_CONFIG: AgentConfig = {
     updateMessage: null,
   },
 
+  policy: {
+    mandatory: false,
+    allowUserQuit: true,
+  },
+
   tracking: {
     enabled: true,
     heartbeatIntervalSeconds: agentEnv.heartbeatIntervalSeconds,
@@ -97,6 +102,15 @@ export class ConfigManager {
         updateMessage:
           config.agentVersionPolicy?.updateMessage ??
           DEFAULT_CONFIG.agentVersionPolicy.updateMessage,
+      },
+
+      policy: {
+        mandatory:
+          config.policy?.mandatory ??
+          DEFAULT_CONFIG.policy.mandatory,
+        allowUserQuit:
+          config.policy?.allowUserQuit ??
+          DEFAULT_CONFIG.policy.allowUserQuit,
       },
 
       tracking: {

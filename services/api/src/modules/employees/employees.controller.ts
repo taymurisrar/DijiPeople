@@ -617,6 +617,8 @@ export class EmployeesController {
     const { document, file } =
       await this.employeeProfilesService.getProfileImage(user, employeeId);
     response.setHeader('Content-Type', document.mimeType ?? 'image/jpeg');
+    response.setHeader('Content-Length', String(file.size));
+    response.setHeader('Cache-Control', 'private, max-age=300');
     return new StreamableFile(file.stream);
   }
 
