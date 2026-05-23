@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Fraunces, Manrope } from "next/font/google";
+import { SiteFooter, SiteHeader } from "./_components/site-shell";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -40,7 +41,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${manrope.variable} ${fraunces.variable}`}>{children}</body>
+      <body className={`${manrope.variable} ${fraunces.variable}`}>
+        <SiteHeader />
+        {children}
+        <SiteFooter />
+      </body>
     </html>
   );
 }

@@ -1,11 +1,11 @@
 import type { MetadataRoute } from "next";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  return [
-    {
-      url: "https://dijipeople.com",
+  return ["", "/plans", "/features", "/about", "/contact", "/subscribe"].map(
+    (path) => ({
+      url: `https://dijipeople.com${path}`,
       changeFrequency: "weekly",
-      priority: 1,
-    },
-  ];
+      priority: path ? 0.8 : 1,
+    }),
+  );
 }

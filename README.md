@@ -101,6 +101,7 @@ Primary shared env variables:
 - `LANDING_PORT`
 - `WEB_PORT`
 - `ADMIN_PORT`
+- `DOCS_PORT`
 - `API_PORT`
 - `NEXT_PUBLIC_LANDING_URL`
 - `NEXT_PUBLIC_WEB_URL`
@@ -130,6 +131,6 @@ That shared config is used to:
 ## Notes
 
 - The backend API now defaults to port `4000`
-- Next.js apps keep fixed default ports, but `PORT` can still override them
+- Next.js apps keep fixed default ports, but scoped variables like `LANDING_PORT` or `WEB_PORT` can override them per app
 - Invitation and reset links now derive their web app URL from shared config/env instead of hardcoded localhost strings
 

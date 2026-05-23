@@ -129,6 +129,18 @@ type CustomerOption = {
   status: string;
 };
 
+type AuditLogItem = {
+  id: string;
+  action: string;
+  entityType: string;
+  entityId: string;
+  sourceModule: string | null;
+  beforeSnapshot: unknown;
+  afterSnapshot: unknown;
+  createdAt: string;
+  actorUser: { id: string; fullName: string; email: string } | null;
+};
+
 type SearchParams = Promise<{
   tab?:
   | "overview"
@@ -161,13 +173,14 @@ export default async function TenantDetailPage({
   const activeTab = resolvedSearchParams.tab ?? "overview";
   const isEditing = resolvedSearchParams.edit === "1";
 
-  const [tenant, plans, featureCatalog, customers] = await Promise.all([
+  const [tenant, plans, featureCatalog, customers, auditLogs] = await Promise.all([
     apiRequestJson<TenantDetail>(`/super-admin/tenants/${tenantId}`),
     apiRequestJson<PlanOption[]>("/super-admin/plans"),
     apiRequestJson<FeatureCatalogItem[]>("/super-admin/feature-catalog"),
     apiRequestJson<{ items: CustomerOption[] }>("/super-admin/customers?pageSize=100").then(
       (response) => response.items,
     ),
+    apiRequestJson<AuditLogItem[]>(`/super-admin/tenants/${tenantId}/audit-logs`),
   ]);
 
   const enabledFeatures = getEnabledFeatures(tenant.enabledFeatures);
@@ -190,7 +203,7 @@ export default async function TenantDetailPage({
         }
         description={
           <>
-            {tenant.slug} •{" "}
+            {tenant.slug} -{" "}
             {tenant.customerAccount ? (
               <Link href={`/customers/${tenant.customerAccount.id}`}>
                 {tenant.customerAccount.companyName}
@@ -619,7 +632,33 @@ export default async function TenantDetailPage({
       {activeTab === "audit" ? (
         <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-xl font-semibold text-slate-950">Audit Log</h2>
-          <p className="mt-2 text-sm text-slate-600">Audit timeline placeholder ready for centralized log rendering.</p>
+          {auditLogs.length ? (
+            <div className="mt-5 space-y-3">
+              {auditLogs.map((item) => (
+                <article
+                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"
+                  key={item.id}
+                >
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-950">
+                        {item.action.replaceAll("_", " ")}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {item.entityType} - {item.sourceModule ?? "system"}
+                      </p>
+                    </div>
+                    <p className="text-xs text-slate-500">{formatDate(item.createdAt)}</p>
+                  </div>
+                  <p className="mt-3 text-xs text-slate-500">
+                    Actor: {item.actorUser?.fullName || item.actorUser?.email || "System / webhook"}
+                  </p>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-2 text-sm text-slate-600">No audit events recorded yet.</p>
+          )}
         </section>
       ) : null}
     </DetailPageShell>

@@ -6,9 +6,12 @@ import type { TenantStatusValue } from "@/lib/domain";
 import { formatEnumLabel } from "@/lib/formatters";
 
 const TENANT_STATUS_OPTIONS: TenantStatusValue[] = [
+  "PENDING_SETUP",
   "ONBOARDING",
   "ACTIVE",
+  "INACTIVE",
   "SUSPENDED",
+  "ARCHIVED",
   "CHURNED",
 ];
 
@@ -58,7 +61,7 @@ export function TenantStatusForm({
       <div>
         <h3 className="text-lg font-semibold text-slate-950">Tenant status</h3>
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          Suspend a tenant to pause workspace access without changing module configuration.
+          Use Inactive for pre-payment or paused workspaces, Active for live access, and Suspended for blocked access.
         </p>
       </div>
 

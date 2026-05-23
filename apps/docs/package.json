@@ -4,9 +4,9 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "next dev --port 3003",
+    "dev": "node ../../scripts/next-with-port.mjs dev 3003 DOCS_PORT",
     "build": "next build",
-    "start": "next start",
+    "start": "node ../../scripts/next-with-port.mjs start 3003 DOCS_PORT",
     "lint": "eslint --max-warnings 0",
     "check-types": "next typegen && tsc --noEmit"
   },

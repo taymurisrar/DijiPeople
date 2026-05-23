@@ -4,8 +4,10 @@ import { formatEnumLabel } from "@/lib/formatters";
 const statusStyles: Record<string, string> = {
   LEAD: "border-slate-200 bg-slate-100 text-slate-700",
   PROSPECT: "border-indigo-200 bg-indigo-50 text-indigo-700",
+  PENDING_SETUP: "border-amber-200 bg-amber-50 text-amber-700",
   ONBOARDING: "border-sky-200 bg-sky-50 text-sky-700",
   ACTIVE: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  INACTIVE: "border-slate-200 bg-slate-50 text-slate-700",
   SUSPENDED: "border-rose-200 bg-rose-50 text-rose-700",
   CHURNED: "border-slate-300 bg-slate-200 text-slate-700",
   TRIALING: "border-amber-200 bg-amber-50 text-amber-700",

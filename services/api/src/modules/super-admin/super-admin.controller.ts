@@ -278,6 +278,14 @@ export class SuperAdminController {
     return this.superAdminService.updateTenantStatus(user, tenantId, dto);
   }
 
+  @Get('tenants/:tenantId/audit-logs')
+  @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
+  listTenantAuditLogs(
+    @Param('tenantId', new ParseUUIDPipe()) tenantId: string,
+  ) {
+    return this.superAdminService.listTenantAuditLogs(tenantId);
+  }
+
   @Patch('tenants/:tenantId/subscription')
   @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
   updateTenantSubscription(

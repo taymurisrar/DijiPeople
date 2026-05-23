@@ -6,11 +6,13 @@ import {
 } from '@nestjs/common';
 import {
   BillingCycle,
+  CustomerAccountStatus,
   InvoiceStatus,
   PaymentMethod,
   PaymentStatus,
   Prisma,
   SubscriptionStatus,
+  TenantStatus,
   WebhookProcessingStatus,
 } from '@prisma/client';
 import { PrismaService } from '../../../common/prisma/prisma.service';
@@ -252,7 +254,7 @@ export class WebhookService {
           ? mapStripeSubscriptionStatus(stripeSubscription.status)
           : SubscriptionStatus.INCOMPLETE;
 
-      await tx.subscription.upsert({
+      const subscription = await tx.subscription.upsert({
         where: { tenantId: metadata.tenantId },
         create: {
           tenantId: metadata.tenantId,
@@ -298,6 +300,23 @@ export class WebhookService {
           trialStart: fromUnix(stripeSubscription.trial_start),
           trialEnd: fromUnix(stripeSubscription.trial_end),
           updatedById: metadata.userId,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          tenantId: metadata.tenantId,
+          action: 'STRIPE_CHECKOUT_COMPLETED',
+          entityType: 'Subscription',
+          entityId: subscription.id,
+          sourceModule: 'stripe-webhook',
+          afterSnapshot: toPrismaJson({
+            checkoutSessionId: session.id,
+            stripeSubscriptionId,
+            stripeCustomerId,
+            paymentStatus: session.payment_status,
+            internalStatus,
+          }),
         },
       });
     });
@@ -400,13 +419,82 @@ export class WebhookService {
         },
       });
 
+      await tx.auditLog.create({
+        data: {
+          tenantId: context.tenantId,
+          action: `STRIPE_${type.toUpperCase().replace(/\./g, '_')}`,
+          entityType: 'Invoice',
+          entityId: internalInvoice.id,
+          sourceModule: 'stripe-webhook',
+          afterSnapshot: toPrismaJson({
+            stripeInvoiceId: invoice.id,
+            status,
+            amountPaid: invoice.amount_paid ?? null,
+            amountDue: invoice.amount_due ?? null,
+          }),
+        },
+      });
+
       if (type === 'invoice.paid') {
         await tx.subscription.update({
           where: { id: context.subscription.id },
           data: {
             status: SubscriptionStatus.ACTIVE,
             stripeLatestInvoiceId: invoice.id,
+            currentPeriodStart: resolveInvoicePeriodStart(invoice),
+            currentPeriodEnd: resolveInvoicePeriodEnd(invoice),
+            renewalDate: resolveInvoicePeriodEnd(invoice),
             updatedAt: new Date(),
+          },
+        });
+
+        const tenant = await tx.tenant.findUnique({
+          where: { id: context.tenantId },
+          select: { id: true, status: true, customerAccountId: true },
+        });
+
+        if (tenant?.status === TenantStatus.INACTIVE) {
+          await tx.tenant.update({
+            where: { id: tenant.id },
+            data: {
+              status: TenantStatus.ACTIVE,
+              subStatus: 'Activated by Stripe payment',
+            },
+          });
+
+          await tx.customerAccount.update({
+            where: { id: tenant.customerAccountId },
+            data: {
+              status: CustomerAccountStatus.ACTIVE,
+              subStatus: 'Live',
+            },
+          });
+
+          await tx.auditLog.create({
+            data: {
+              tenantId: tenant.id,
+              action: 'TENANT_STATUS_CHANGED_BY_STRIPE_PAYMENT',
+              entityType: 'Tenant',
+              entityId: tenant.id,
+              sourceModule: 'stripe-webhook',
+              beforeSnapshot: toPrismaJson({ status: TenantStatus.INACTIVE }),
+              afterSnapshot: toPrismaJson({ status: TenantStatus.ACTIVE }),
+            },
+          });
+        }
+
+        await tx.auditLog.create({
+          data: {
+            tenantId: context.tenantId,
+            action: 'SUBSCRIPTION_ACTIVATED_BY_INVOICE_PAID',
+            entityType: 'Subscription',
+            entityId: context.subscription.id,
+            sourceModule: 'stripe-webhook',
+            afterSnapshot: toPrismaJson({
+              stripeInvoiceId: invoice.id,
+              periodStart: resolveInvoicePeriodStart(invoice),
+              periodEnd: resolveInvoicePeriodEnd(invoice),
+            }),
           },
         });
 
@@ -435,6 +523,20 @@ export class WebhookService {
           subscriptionId: context.subscription.id,
           tenantId: context.tenantId,
           status: PaymentStatus.FAILED,
+        });
+
+        await tx.auditLog.create({
+          data: {
+            tenantId: context.tenantId,
+            action: 'PAYMENT_FAILED_BY_STRIPE_INVOICE',
+            entityType: 'Invoice',
+            entityId: internalInvoice.id,
+            sourceModule: 'stripe-webhook',
+            afterSnapshot: toPrismaJson({
+              stripeInvoiceId: invoice.id,
+              stripePaymentIntentId: getStripeId(invoice.payment_intent),
+            }),
+          },
         });
       }
     });
@@ -483,19 +585,33 @@ export class WebhookService {
       };
 
       if (existingPayment) {
-        await tx.payment.update({
+        const payment = await tx.payment.update({
           where: { id: existingPayment.id },
           data,
         });
+        await logPaymentIntentAudit(
+          tx,
+          payment.id,
+          invoice.tenantId,
+          type,
+          paymentIntent,
+        );
         return;
       }
 
-      await tx.payment.create({
+      const payment = await tx.payment.create({
         data: {
           ...data,
           stripePaymentIntentId,
         },
       });
+      await logPaymentIntentAudit(
+        tx,
+        payment.id,
+        invoice.tenantId,
+        type,
+        paymentIntent,
+      );
     });
 
     return true;
@@ -1078,6 +1194,30 @@ function getSafeErrorMessage(error: unknown) {
 
 function toPrismaJson(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+}
+
+async function logPaymentIntentAudit(
+  tx: PrismaTx,
+  paymentId: string,
+  tenantId: string,
+  type: string,
+  paymentIntent: StripePaymentIntentObject,
+) {
+  await tx.auditLog.create({
+    data: {
+      tenantId,
+      action: `STRIPE_${type.toUpperCase().replace(/\./g, '_')}`,
+      entityType: 'Payment',
+      entityId: paymentId,
+      sourceModule: 'stripe-webhook',
+      afterSnapshot: toPrismaJson({
+        stripePaymentIntentId: paymentIntent.id,
+        stripeChargeId: getStripeId(paymentIntent.latest_charge),
+        status: paymentIntent.status ?? null,
+        failureCode: paymentIntent.last_payment_error?.code ?? null,
+      }),
+    },
+  });
 }
 
 function isUniqueConstraintError(

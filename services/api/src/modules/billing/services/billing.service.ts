@@ -5,8 +5,19 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { SubscriptionStatus } from '@prisma/client';
+import {
+  CustomerAccountStatus,
+  LeadStatus,
+  Prisma,
+  SubscriptionStatus,
+  TenantStatus,
+} from '@prisma/client';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import {
+  assertValidTenantSlug,
+  suggestTenantSlug,
+} from '../../../common/utils/slug.util';
+import { generateTenantCode } from '../../../common/utils/tenant-code.util';
 import { StripeBillingService } from './stripe-billing.service';
 
 const RECENT_CHECKOUT_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -27,7 +38,6 @@ export class BillingService {
       },
       include: {
         features: {
-          where: { isEnabled: true },
           orderBy: { featureKey: 'asc' },
         },
         prices: {
@@ -38,26 +48,297 @@ export class BillingService {
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
     });
 
-    return plans.map((plan) => ({
-      id: plan.id,
-      key: plan.key,
-      name: plan.name,
-      description: plan.description,
-      currency: plan.currency,
-      monthlyBasePrice: Number(plan.monthlyBasePrice),
-      annualBasePrice: Number(plan.annualBasePrice),
-      prices: plan.prices.map((price) => ({
-        id: price.id,
-        billingCycle: price.billingCycle,
-        currency: price.currency,
-        unitAmount: Number(price.unitAmount),
-        hasStripePrice: Boolean(price.stripePriceId),
-        isCheckoutReady: Boolean(price.stripePriceId),
-      })),
-      features: plan.features.map((feature) => ({
-        key: feature.featureKey,
-      })),
-    }));
+    const publicPlans = plans.map((plan) => {
+      const metadata = normalizeJsonObject(plan.metadataJson);
+      const billingCyclesByCurrency = new Map<string, Set<string>>();
+
+      for (const price of plan.prices) {
+        const currency = price.currency.toUpperCase();
+        const cycles = billingCyclesByCurrency.get(currency) ?? new Set();
+        cycles.add(price.billingCycle);
+        billingCyclesByCurrency.set(currency, cycles);
+      }
+
+      return {
+        id: plan.id,
+        key: plan.key,
+        name: plan.name,
+        description: plan.description,
+        isActive: plan.isActive,
+        isPublic: plan.isPublic,
+        sortOrder: plan.sortOrder,
+        currency: plan.currency,
+        monthlyBasePrice: Number(plan.monthlyBasePrice),
+        annualBasePrice: Number(plan.annualBasePrice),
+        prices: plan.prices.map((price) => {
+          const checkoutReady = Boolean(price.isActive && price.stripePriceId);
+
+          return {
+            id: price.id,
+            billingCycle: price.billingCycle,
+            currency: price.currency.toUpperCase(),
+            unitAmount: Number(price.unitAmount),
+            isActive: price.isActive,
+            hasStripePrice: Boolean(price.stripePriceId),
+            checkoutReady,
+            isCheckoutReady: checkoutReady,
+          };
+        }),
+        availableBillingCyclesByCurrency: Array.from(
+          billingCyclesByCurrency.entries(),
+        ).map(([currency, cycles]) => ({
+          currency,
+          billingCycles: Array.from(cycles).sort(),
+        })),
+        features: plan.features.map((feature) => ({
+          id: feature.id,
+          key: feature.featureKey,
+          isEnabled: feature.isEnabled,
+        })),
+        metadata,
+        isPopular: readMetadataBoolean(metadata, ['isPopular', 'popular']),
+        isRecommended: readMetadataBoolean(metadata, [
+          'isRecommended',
+          'recommended',
+        ]),
+      };
+    });
+
+    return {
+      plans: publicPlans,
+      availableCurrencies: Array.from(
+        new Set(
+          publicPlans.flatMap((plan) =>
+            plan.prices.map((price) => price.currency.toUpperCase()),
+          ),
+        ),
+      ).sort(),
+    };
+  }
+
+  async createPublicSubscriptionCheckout(input: {
+    planPriceId: string;
+    companyName: string;
+    contactName: string;
+    email: string;
+    phone?: string;
+    country: string;
+    message?: string;
+    website?: string;
+    detectedCountry?: string | null;
+  }) {
+    if (input.website?.trim()) {
+      return { submitted: true };
+    }
+
+    const planPrice = await this.prisma.planPrice.findUnique({
+      where: { id: input.planPriceId },
+      include: { plan: true },
+    });
+
+    if (
+      !planPrice ||
+      !planPrice.isActive ||
+      !planPrice.stripePriceId ||
+      !planPrice.plan.isActive ||
+      !planPrice.plan.isPublic
+    ) {
+      throw new NotFoundException('Plan price not found.');
+    }
+
+    const contactName = input.contactName.trim();
+    const [firstName, ...lastNameParts] = contactName.split(/\s+/);
+    const lastName = lastNameParts.join(' ') || 'Owner';
+    const companyName = input.companyName.trim();
+    const email = input.email.trim().toLowerCase();
+    const country = input.country.trim();
+    const message = input.message?.trim() || null;
+
+    const created = await this.prisma.$transaction(async (tx) => {
+      const lead = await tx.lead.create({
+        data: {
+          contactFirstName: firstName,
+          contactLastName: lastName,
+          fullName: contactName,
+          companyName,
+          workEmail: email,
+          phoneNumber: input.phone?.trim() || null,
+          industry: 'Unknown',
+          companySize: 'Unknown',
+          country,
+          requirementsSummary: message,
+          message,
+          interestedPlan: planPrice.plan.name,
+          source: 'DijiPeople Public Subscribe',
+          status: LeadStatus.QUALIFIED,
+          subStatus: 'Subscription checkout started',
+          isQualified: true,
+        },
+      });
+
+      const customer = await tx.customerAccount.create({
+        data: {
+          companyName,
+          primaryContactFirstName: firstName,
+          primaryContactLastName: lastName,
+          primaryContactEmail: email,
+          primaryContactPhone: input.phone?.trim() || null,
+          contactEmail: email,
+          contactPhone: input.phone?.trim() || null,
+          billingContactEmail: email,
+          industry: 'Unknown',
+          companySize: 'Unknown',
+          country,
+          selectedPlanId: planPrice.planId,
+          preferredBillingCycle: planPrice.billingCycle,
+          leadId: lead.id,
+          status: CustomerAccountStatus.PROSPECT,
+          subStatus: 'Pending Stripe checkout',
+        },
+      });
+
+      const tenant = await tx.tenant.create({
+        data: {
+          customerAccountId: customer.id,
+          tenantCode: await generateTenantCode(tx),
+          name: companyName,
+          displayName: companyName,
+          slug: await this.resolveUniqueTenantSlug(tx, companyName),
+          status: TenantStatus.INACTIVE,
+          subStatus: 'Pending payment',
+          tenantBranding: {
+            create: buildDefaultTenantBranding(companyName, email),
+          },
+        },
+      });
+
+      const subscription = await tx.subscription.create({
+        data: {
+          tenantId: tenant.id,
+          planId: planPrice.planId,
+          planPriceId: planPrice.id,
+          billingCycle: planPrice.billingCycle,
+          basePrice: planPrice.unitAmount,
+          finalPrice: planPrice.unitAmount,
+          currency: planPrice.currency,
+          status: SubscriptionStatus.INCOMPLETE,
+          startDate: new Date(),
+          autoRenew: true,
+        },
+      });
+
+      await tx.auditLog.createMany({
+        data: [
+          {
+            tenantId: tenant.id,
+            action: 'PUBLIC_SUBSCRIBE_FORM_SUBMITTED',
+            entityType: 'Lead',
+            entityId: lead.id,
+            sourceModule: 'public-subscription',
+            afterSnapshot: toPrismaJson({
+              companyName,
+              email,
+              country,
+              detectedCountry: input.detectedCountry,
+              planPriceId: planPrice.id,
+            }),
+          },
+          {
+            tenantId: tenant.id,
+            action: 'PUBLIC_TENANT_CREATED_INACTIVE',
+            entityType: 'Tenant',
+            entityId: tenant.id,
+            sourceModule: 'public-subscription',
+            afterSnapshot: toPrismaJson({
+              tenantStatus: tenant.status,
+              customerAccountId: customer.id,
+              subscriptionId: subscription.id,
+            }),
+          },
+        ],
+      });
+
+      return { lead, customer, tenant, subscription };
+    });
+
+    const stripeCustomer =
+      await this.stripeBillingService.client.customers.create({
+        name: companyName,
+        email,
+        phone: input.phone?.trim() || undefined,
+        metadata: {
+          tenantId: created.tenant.id,
+          tenantSlug: created.tenant.slug,
+          customerAccountId: created.customer.id,
+          leadId: created.lead.id,
+          source: 'public_website',
+        },
+      });
+
+    await this.prisma.customerAccount.update({
+      where: { id: created.customer.id },
+      data: { stripeCustomerId: stripeCustomer.id },
+    });
+
+    const metadata = {
+      tenantId: created.tenant.id,
+      customerAccountId: created.customer.id,
+      planId: planPrice.planId,
+      planPriceId: planPrice.id,
+      leadId: created.lead.id,
+      publicSubscription: 'true',
+      source: 'public_website',
+    };
+
+    const session =
+      await this.stripeBillingService.client.checkout.sessions.create({
+        mode: 'subscription',
+        customer: stripeCustomer.id,
+        line_items: [{ price: planPrice.stripePriceId, quantity: 1 }],
+        success_url: this.resolvePublicCheckoutUrl(
+          '/subscribe/success?session_id={CHECKOUT_SESSION_ID}',
+        ),
+        cancel_url: this.resolvePublicCheckoutUrl(
+          `/subscribe/cancel?planPriceId=${planPrice.id}`,
+        ),
+        client_reference_id: created.tenant.id,
+        metadata,
+        subscription_data: { metadata },
+        allow_promotion_codes: true,
+      });
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.subscription.update({
+        where: { id: created.subscription.id },
+        data: {
+          stripeCustomerId: stripeCustomer.id,
+          stripeCheckoutSessionId: session.id,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          tenantId: created.tenant.id,
+          action: 'STRIPE_CHECKOUT_SESSION_CREATED',
+          entityType: 'Subscription',
+          entityId: created.subscription.id,
+          sourceModule: 'public-subscription',
+          afterSnapshot: toPrismaJson({
+            checkoutSessionId: session.id,
+            stripeCustomerId: stripeCustomer.id,
+            planPriceId: planPrice.id,
+          }),
+        },
+      });
+    });
+
+    return {
+      submitted: true,
+      checkoutSessionId: session.id,
+      url: session.url,
+      tenantId: created.tenant.id,
+      leadId: created.lead.id,
+    };
   }
 
   async getBillingHealth(tenantId: string) {
@@ -331,6 +612,7 @@ export class BillingService {
       status: subscription.status,
       stripeStatus: subscription.stripeStatus,
       hasStripeCustomer: Boolean(subscription.stripeCustomerId),
+      isStripeBacked: Boolean(subscription.stripeSubscriptionId),
       billingCycle: subscription.billingCycle,
       currency: subscription.currency,
       basePrice: Number(subscription.basePrice),
@@ -576,6 +858,93 @@ export class BillingService {
     assertHttpUrl(webAppUrl, 'WEB_APP_URL');
     return `${webAppUrl.replace(/\/+$/, '')}${fallbackPath}`;
   }
+
+  private resolvePublicCheckoutUrl(path: string) {
+    const configuredUrl =
+      this.configService.get<string>('LANDING_APP_URL')?.trim() ||
+      this.configService.get<string>('PUBLIC_APP_URL')?.trim() ||
+      this.configService.get<string>('WEB_APP_URL')?.trim();
+
+    if (!configuredUrl) {
+      throw new BadRequestException(
+        'LANDING_APP_URL or WEB_APP_URL must be configured for public checkout.',
+      );
+    }
+
+    assertHttpUrl(configuredUrl, 'LANDING_APP_URL');
+    return `${configuredUrl.replace(/\/+$/, '')}${path}`;
+  }
+
+  private async resolveUniqueTenantSlug(
+    tx: Prisma.TransactionClient,
+    companyName: string,
+  ) {
+    const base = assertValidTenantSlug(
+      suggestTenantSlug(companyName) || 'workspace',
+    );
+
+    for (let attempt = 0; attempt < 25; attempt += 1) {
+      const suffix = attempt === 0 ? '' : `-${attempt + 1}`;
+      const candidate = assertValidTenantSlug(
+        `${base.slice(0, 63 - suffix.length)}${suffix}`,
+      );
+      const existing = await tx.tenant.findUnique({
+        where: { slug: candidate },
+        select: { id: true },
+      });
+      if (!existing) return candidate;
+    }
+
+    throw new ConflictException('Unable to allocate a tenant slug.');
+  }
+}
+
+function buildDefaultTenantBranding(
+  companyName: string,
+  supportEmail?: string,
+) {
+  const brandName = companyName.trim() || 'DijiPeople';
+
+  return {
+    appTitle: 'DijiPeople',
+    brandName,
+    shortBrandName: brandName.split(/\s+/)[0] || brandName,
+    portalTagline: 'People operations made simple',
+    loginTitle: `Welcome to ${brandName} HR Portal`,
+    loginSubtitle:
+      'Sign in after your subscription is activated to manage HR operations.',
+    loginFooterText: 'Powered by DijiPeople',
+    supportEmail: supportEmail || null,
+    primaryColor: '#0f766e',
+    secondaryColor: '#115e59',
+    accentColor: '#14b8a6',
+    backgroundColor: '#f8fafc',
+    surfaceColor: '#ffffff',
+    textColor: '#0f172a',
+    mutedTextColor: '#64748b',
+    fontFamily: 'Inter',
+  };
+}
+
+function toPrismaJson(value: unknown): Prisma.InputJsonValue {
+  return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+}
+
+function normalizeJsonObject(value: Prisma.JsonValue | null) {
+  if (!value || Array.isArray(value) || typeof value !== 'object') {
+    return null;
+  }
+
+  return value as Record<string, unknown>;
+}
+
+function readMetadataBoolean(
+  metadata: Record<string, unknown> | null,
+  keys: string[],
+) {
+  if (!metadata) return false;
+
+  return keys.some((key) => metadata[key] === true);
 }
 
 function assertHttpUrl(value: string, key: string) {

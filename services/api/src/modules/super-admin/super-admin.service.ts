@@ -372,7 +372,57 @@ export class SuperAdminService {
       });
     }
 
+    await this.auditService.log({
+      tenantId,
+      actorUserId: actor.userId,
+      action: 'TENANT_STATUS_CHANGED',
+      entityType: 'Tenant',
+      entityId: tenantId,
+      sourceModule: 'super-admin',
+      beforeSnapshot: { status: tenant.status },
+      afterSnapshot: { status: dto.status },
+    });
+
     return this.mapTenantDetail(updatedTenant);
+  }
+
+  async listTenantAuditLogs(tenantId: string) {
+    await this.assertTenantExists(tenantId);
+
+    const items = await this.prisma.auditLog.findMany({
+      where: { tenantId },
+      include: {
+        actorUser: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    });
+
+    return items.map((item) => ({
+      id: item.id,
+      action: item.action,
+      entityType: item.entityType,
+      entityId: item.entityId,
+      sourceModule: item.sourceModule,
+      beforeSnapshot: item.beforeSnapshot,
+      afterSnapshot: item.afterSnapshot,
+      createdAt: item.createdAt,
+      actorUser: item.actorUser
+        ? {
+            id: item.actorUser.id,
+            fullName:
+              `${item.actorUser.firstName} ${item.actorUser.lastName}`.trim(),
+            email: item.actorUser.email,
+          }
+        : null,
+    }));
   }
 
   async updateTenant(
@@ -1657,6 +1707,7 @@ export class SuperAdminService {
       renewalDate: subscription.renewalDate,
       autoRenew: subscription.autoRenew,
       stripeSubscriptionId: subscription.stripeSubscriptionId ?? null,
+      isStripeBacked: Boolean(subscription.stripeSubscriptionId),
       updatedAt: subscription.updatedAt ?? null,
     };
   }

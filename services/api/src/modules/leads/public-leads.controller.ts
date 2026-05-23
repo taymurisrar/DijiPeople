@@ -1,4 +1,5 @@
 import { Body, Controller, Post } from '@nestjs/common';
+import { Public } from '../../common/decorators/public.decorator';
 import { SubmitLeadDto } from './dto/submit-lead.dto';
 import { LeadsService } from './leads.service';
 
@@ -6,6 +7,7 @@ import { LeadsService } from './leads.service';
 export class PublicLeadsController {
   constructor(private readonly leadsService: LeadsService) {}
 
+  @Public()
   @Post()
   submit(@Body() dto: SubmitLeadDto) {
     return this.leadsService.submitLead(dto);

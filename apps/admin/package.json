@@ -3,11 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "node ../../scripts/next-with-port.mjs dev 3002",
+    "dev": "node ../../scripts/next-with-port.mjs dev 3002 ADMIN_PORT",
     "build": "next build",
     "check-types": "next typegen && tsc --noEmit",
     "release": "npm run build",
-    "start": "node ../../scripts/next-with-port.mjs start 3002",
+    "start": "node ../../scripts/next-with-port.mjs start 3002 ADMIN_PORT",
     "lint": "eslint"
   },
   "dependencies": {
