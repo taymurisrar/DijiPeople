@@ -133,8 +133,18 @@ export function OnboardingDetailManager({ onboarding, plans }: { onboarding: Cus
       {!readOnly ? <ActionButton disabled={isPending || onboarding.status === "READY_FOR_TENANT_CREATION"} onClick={handleMarkReady}><CheckCircle2 className="h-4 w-4" />Mark ready</ActionButton> : null}
     </>} right={<span className={isDirty ? "text-sm font-medium text-amber-600" : "text-sm font-medium text-emerald-600"}>{isDirty ? "Unsaved changes" : lastSaveSucceeded ? "Saved" : ""}</span>} />
     </CommandBar>
-    <StatusPipeline current={onboarding.status} steps={["NOT_STARTED", "IN_PROGRESS", "READY_FOR_TENANT_CREATION", "COMPLETED"]} />
-    <SummaryCards>
+<StatusPipeline
+  current={onboarding.status}
+  stages={[
+    { key: "NOT_STARTED", label: "Not started" },
+    { key: "IN_PROGRESS", label: "In progress" },
+    {
+      key: "READY_FOR_TENANT_CREATION",
+      label: "Ready for tenant creation",
+    },
+    { key: "COMPLETED", label: "Completed" },
+  ]}
+/>    <SummaryCards>
       <SummaryCard label="Owner" value={onboarding.onboardingOwnerUser ? `${onboarding.onboardingOwnerUser.firstName} ${onboarding.onboardingOwnerUser.lastName}` : "Unassigned"} />
       <SummaryCard label="Plan" value={onboarding.selectedPlan?.name ?? "Not selected"} />
       <SummaryCard label="Readiness" value={`${onboarding.readiness.completionPercent}%`} hint={`${onboarding.readiness.blockers.length} blocker(s)`} />
