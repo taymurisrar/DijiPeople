@@ -119,12 +119,21 @@ export type AttendanceEntryRecord = {
 
 export type AttendanceListResponse = {
   items: AttendanceEntryRecord[];
+  data?: AttendanceEntryRecord[];
   meta: {
     page: number;
     pageSize: number;
     total: number;
     totalPages: number;
   };
+  pagination?: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalItems?: number;
+    totalPages: number;
+  };
+  summary?: AttendanceSummaryResponse["totals"];
   filters: {
     search?: string | null;
     dateFrom?: string | null;

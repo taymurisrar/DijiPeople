@@ -11,6 +11,10 @@ import {
   UsersRound,
 } from "lucide-react";
 import { PlanForm } from "@/app/_components/plan-form";
+import {
+  PlanPriceManager,
+  type PlanPriceRecord,
+} from "@/app/_components/plan-price-manager";
 import { RecordRibbonBar } from "@/app/_components/crm/record-ribbon-bar";
 import { TenantStatusBadge } from "@/app/_components/tenant-status-badge";
 import { apiRequestJson } from "@/lib/server-api";
@@ -26,6 +30,7 @@ type PlanRecord = {
   currency: string;
   sortOrder: number;
   subscriptionCount: number;
+  prices: PlanPriceRecord[];
   features: string[];
 };
 
@@ -260,6 +265,35 @@ export default async function PlanDetailPage({
             actionUrl={`/api/super-admin/plans/${plan.id}`}
             initialPlan={plan}
             featureCatalog={featureCatalog}
+          />
+        </div>
+      </section>
+
+      <section className="rounded-[32px] border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-200 px-6 py-5 lg:px-8">
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <BadgeDollarSign className="h-5 w-5 text-slate-500" />
+                <h2 className="text-xl font-semibold text-slate-950">
+                  Stripe checkout prices
+                </h2>
+              </div>
+
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+                Manage currency-specific PlanPrice rows used by tenant
+                self-service Checkout. Legacy monthly and annual plan prices
+                above remain available for manual billing compatibility.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-6 lg:p-8">
+          <PlanPriceManager
+            planId={plan.id}
+            initialPrices={plan.prices}
+            defaultCurrency={plan.currency}
           />
         </div>
       </section>

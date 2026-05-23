@@ -9,6 +9,7 @@ type AdminShellProps = {
     firstName: string;
     lastName: string;
     email: string;
+    roleKeys?: string[];
   };
   children: React.ReactNode;
 };
@@ -42,9 +43,7 @@ export function AdminShell({ user, children }: AdminShellProps) {
 
         if (await refreshInFlight) {
           const retry = await originalFetch(...args);
-          if (retry.status !== 401) {
-            return retry;
-          }
+          if (retry.status !== 401) return retry;
         }
 
         window.location.assign(
@@ -60,6 +59,7 @@ export function AdminShell({ user, children }: AdminShellProps) {
     const syncActivity = () => {
       const now = Date.now();
       if (now - lastActivitySyncAt.current < 60_000) return;
+
       lastActivitySyncAt.current = now;
       void originalFetch("/api/auth/activity", { method: "POST" }).catch(
         () => undefined,
@@ -67,6 +67,7 @@ export function AdminShell({ user, children }: AdminShellProps) {
     };
 
     const events: Array<keyof WindowEventMap> = ["click", "keydown", "focus"];
+
     events.forEach((eventName) =>
       window.addEventListener(eventName, syncActivity, { passive: true }),
     );
@@ -81,22 +82,25 @@ export function AdminShell({ user, children }: AdminShellProps) {
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#eef2ff_100%)]">
-      <div className="mx-auto flex min-h-screen max-w-[1600px] gap-4 px-3 py-3 md:px-4 md:py-4">
+      <div className="mx-auto flex min-h-screen max-w-[1600px] gap-0 px-3 py-3 md:px-4 md:py-4 lg:gap-4">
         <AdminSidebar
           collapsed={sidebarCollapsed}
           isOpen={sidebarOpen}
           onCollapseToggle={() => setSidebarCollapsed((current) => !current)}
           onClose={() => setSidebarOpen(false)}
+          roleKeys={user.roleKeys}
         />
-        <div className="flex min-w-0 flex-1 flex-col gap-4">
+
+        <main className="flex min-w-0 flex-1 flex-col gap-4">
           <AdminTopbar
             email={user.email}
             firstName={user.firstName}
             lastName={user.lastName}
             onMenuToggle={() => setSidebarOpen((current) => !current)}
           />
-          <div className="min-w-0">{children}</div>
-        </div>
+
+          <div className="min-w-0 overflow-x-hidden">{children}</div>
+        </main>
       </div>
     </div>
   );

@@ -1,5 +1,12 @@
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, CircleDollarSign, Layers3, Plus, ShieldCheck } from "lucide-react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  CircleDollarSign,
+  Layers3,
+  Plus,
+  ShieldCheck,
+} from "lucide-react";
 import { FeatureChip } from "@/app/_components/ui/feature-chip";
 import { EmptyState } from "@/app/_components/ui/empty-state";
 import { MetricCard } from "@/app/_components/ui/metric-card";
@@ -20,6 +27,15 @@ type PlanRecord = {
   currency: string;
   sortOrder: number;
   subscriptionCount: number;
+  prices: Array<{
+    id: string;
+    billingCycle: "MONTHLY" | "ANNUAL";
+    currency: string;
+    unitAmount: number;
+    stripePriceId: string | null;
+    isActive: boolean;
+    isCheckoutReady: boolean;
+  }>;
   features: string[];
 };
 
@@ -41,12 +57,17 @@ function formatAnnualSavings(plan: PlanRecord): string {
 export default async function PlansPage() {
   const plans = await apiRequestJson<PlanRecord[]>("/super-admin/plans");
   const sortedPlans = [...plans].sort((a, b) =>
-    a.sortOrder === b.sortOrder ? a.name.localeCompare(b.name) : a.sortOrder - b.sortOrder,
+    a.sortOrder === b.sortOrder
+      ? a.name.localeCompare(b.name)
+      : a.sortOrder - b.sortOrder,
   );
 
   const activePlans = plans.filter((plan) => plan.isActive).length;
   const inactivePlans = plans.length - activePlans;
-  const totalSubscriptions = plans.reduce((sum, plan) => sum + plan.subscriptionCount, 0);
+  const totalSubscriptions = plans.reduce(
+    (sum, plan) => sum + plan.subscriptionCount,
+    0,
+  );
   const estimatedMonthlyPlanValue = plans
     .filter((plan) => plan.isActive)
     .reduce((sum, plan) => sum + plan.monthlyBasePrice, 0);
@@ -151,7 +172,9 @@ export default async function PlansPage() {
                     <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400 xl:hidden">
                       Status
                     </p>
-                    <TenantStatusBadge value={plan.isActive ? "ACTIVE" : "SUSPENDED"} />
+                    <TenantStatusBadge
+                      value={plan.isActive ? "ACTIVE" : "SUSPENDED"}
+                    />
                   </div>
 
                   <div>
@@ -160,12 +183,44 @@ export default async function PlansPage() {
                     </p>
                     <p className="font-semibold text-slate-950">
                       {formatCurrency(plan.monthlyBasePrice, plan.currency)}
-                      <span className="font-medium text-slate-500"> / month</span>
+                      <span className="font-medium text-slate-500">
+                        {" "}
+                        / month
+                      </span>
                     </p>
                     <p className="mt-1 text-sm text-slate-500">
-                      {formatCurrency(plan.annualBasePrice, plan.currency)} / year
+                      {formatCurrency(plan.annualBasePrice, plan.currency)} /
+                      year
                     </p>
-                    <p className="mt-2 text-xs font-medium text-emerald-700">{annualSavingLabel}</p>
+                    <p className="mt-2 text-xs font-medium text-emerald-700">
+                      {annualSavingLabel}
+                    </p>
+                    {plan.prices.length > 0 ? (
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        {plan.prices.slice(0, 4).map((price) => (
+                          <span
+                            key={price.id}
+                            className={`rounded-full border px-2 py-1 text-[11px] font-semibold ${
+                              price.isCheckoutReady
+                                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                                : "border-amber-200 bg-amber-50 text-amber-700"
+                            }`}
+                          >
+                            {price.currency}{" "}
+                            {price.billingCycle === "MONTHLY" ? "M" : "A"}
+                          </span>
+                        ))}
+                        {plan.prices.length > 4 ? (
+                          <span className="rounded-full border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-500">
+                            +{plan.prices.length - 4}
+                          </span>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <p className="mt-3 text-xs font-medium text-amber-700">
+                        No checkout prices
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -175,7 +230,10 @@ export default async function PlansPage() {
                     {plan.features.length > 0 ? (
                       <div className="flex flex-wrap gap-2">
                         {visibleFeatures.map((feature) => (
-                          <FeatureChip key={`${plan.id}-${feature}`} value={feature} />
+                          <FeatureChip
+                            key={`${plan.id}-${feature}`}
+                            value={feature}
+                          />
                         ))}
                         {extraFeatureCount > 0 ? (
                           <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-500">
@@ -184,7 +242,9 @@ export default async function PlansPage() {
                         ) : null}
                       </div>
                     ) : (
-                      <span className="text-sm text-slate-500">No features mapped</span>
+                      <span className="text-sm text-slate-500">
+                        No features mapped
+                      </span>
                     )}
                   </div>
 

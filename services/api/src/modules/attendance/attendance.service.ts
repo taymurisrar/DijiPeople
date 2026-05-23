@@ -4,6 +4,8 @@ import {
   AttendanceEntryStatus,
   AttendanceImportBatchStatus,
   AttendanceMode,
+  SecurityAccessLevel,
+  SecurityPrivilege,
   WorkWeekday,
 } from '@prisma/client';
 import {
@@ -15,6 +17,10 @@ import {
 } from '@nestjs/common';
 import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { AuditService } from '../audit/audit.service';
+import {
+  ROLE_KEYS,
+  SECURITY_ACCESS_LEVEL_WEIGHT,
+} from '../../common/constants/rbac-matrix';
 import { hasElevatedTenantRole } from '../../common/security/elevated-tenant-roles';
 import { EmployeesRepository } from '../employees/employees.repository';
 import { TenantSettingsResolverService } from '../tenant-settings/tenant-settings-resolver.service';
@@ -29,6 +35,7 @@ import { CheckOutDto } from './dto/check-out.dto';
 import { CreateAttendanceIntegrationDto } from './dto/create-attendance-integration.dto';
 import { CreateManualAttendanceEntryDto } from './dto/create-manual-attendance-entry.dto';
 import { ImportAttendanceDto } from './dto/import-attendance.dto';
+import { OverrideAttendanceEntryDto } from './dto/override-attendance-entry.dto';
 import { UpdateAttendanceIntegrationDto } from './dto/update-attendance-integration.dto';
 import { UpdateAttendancePolicyDto } from './dto/update-attendance-policy.dto';
 import { UpdateManualAttendanceEntryDto } from './dto/update-manual-attendance-entry.dto';
@@ -227,10 +234,18 @@ export class AttendanceService {
       query,
       { employeeId: employee.id },
     );
+    const summaryItems = await this.attendanceRepository.findAttendanceForSummary(
+      currentUser.tenantId,
+      { ...query, page: 1, pageSize: 5000 },
+      { employeeId: employee.id },
+    );
 
     return this.mapAttendanceList(result.items, result.total, query, {
       scope: 'mine',
       employeeId: employee.id,
+      summaryItems,
+      summaryView: query.view ?? 'week',
+      summaryAnchorDate: query.dateFrom ?? currentDateKey(),
     });
   }
 
@@ -244,19 +259,41 @@ export class AttendanceService {
     return entry ? this.mapAttendanceEntry(entry, currentUser) : null;
   }
 
+  async getAttendanceEntry(currentUser: AuthenticatedUser, entryId: string) {
+    const entry = await this.getAuthorizedAttendanceEntry(
+      currentUser,
+      entryId,
+      false,
+    );
+
+    return this.mapAttendanceEntry(entry, currentUser);
+  }
+
   async listTeamAttendance(
     currentUser: AuthenticatedUser,
     query: AttendanceQueryDto,
   ) {
-    const canManageAll = this.canManageTenantAttendance(currentUser);
+    const canManageAll = this.canReadAttendanceBeyondTeam(currentUser);
+    const scope = query.scope ?? 'all';
     const employeeIds = canManageAll
-      ? await this.resolveAllTenantEmployeeIds(currentUser.tenantId, query)
-      : await this.resolveDirectReportEmployeeIds(currentUser, query);
+      ? await this.resolveAllTenantEmployeeIds(currentUser, query)
+      : scope === 'team'
+        ? await this.resolveDirectReportEmployeeIds(currentUser, query)
+        : await this.resolveReportingHierarchyEmployeeIds(currentUser, query);
 
     if (employeeIds.length === 0) {
+      if (!canManageAll && !this.hasManagerRole(currentUser)) {
+        throw new ForbiddenException(
+          'You do not have permission to view team attendance.',
+        );
+      }
+
       return this.mapAttendanceList([], 0, query, {
-        scope: canManageAll ? 'tenant' : 'team',
+        scope: canManageAll ? 'tenant' : scope === 'team' ? 'team' : 'tenant',
         employeeId: query.employeeId ?? null,
+        summaryItems: [],
+        summaryView: query.view ?? 'week',
+        summaryAnchorDate: query.dateFrom ?? currentDateKey(),
       });
     }
 
@@ -265,10 +302,18 @@ export class AttendanceService {
       query,
       { employeeId: { in: employeeIds } },
     );
+    const summaryItems = await this.attendanceRepository.findAttendanceForSummary(
+      currentUser.tenantId,
+      { ...query, page: 1, pageSize: 5000 },
+      { employeeId: { in: employeeIds } },
+    );
 
     return this.mapAttendanceList(result.items, result.total, query, {
-      scope: canManageAll ? 'tenant' : 'team',
+      scope: canManageAll ? 'tenant' : scope === 'team' ? 'team' : 'tenant',
       employeeId: query.employeeId ?? null,
+      summaryItems,
+      summaryView: query.view ?? 'week',
+      summaryAnchorDate: query.dateFrom ?? currentDateKey(),
     });
   }
 
@@ -298,18 +343,27 @@ export class AttendanceService {
     currentUser: AuthenticatedUser,
     query: AttendanceSummaryQueryDto,
   ) {
-    const canManageAll = this.canManageTenantAttendance(currentUser);
+    const canManageAll = this.canReadAttendanceBeyondTeam(currentUser);
+    const scope = query.scope ?? 'all';
     const employeeIds = canManageAll
-      ? await this.resolveAllTenantEmployeeIds(currentUser.tenantId, {})
-      : await this.resolveDirectReportEmployeeIds(currentUser, {});
+      ? await this.resolveAllTenantEmployeeIds(currentUser, {})
+      : scope === 'team'
+        ? await this.resolveDirectReportEmployeeIds(currentUser, {})
+        : await this.resolveReportingHierarchyEmployeeIds(currentUser, {});
 
     if (employeeIds.length === 0) {
+      if (!canManageAll && !this.hasManagerRole(currentUser)) {
+        throw new ForbiddenException(
+          'You do not have permission to view team attendance.',
+        );
+      }
+
       return buildSummaryResponse(
         [],
         query.view,
         query.date ?? currentDateKey(),
         {
-          scope: canManageAll ? 'tenant' : 'team',
+          scope: canManageAll ? 'tenant' : scope === 'team' ? 'team' : 'tenant',
         },
       );
     }
@@ -326,7 +380,7 @@ export class AttendanceService {
       query.view,
       query.date ?? currentDateKey(),
       {
-        scope: canManageAll ? 'tenant' : 'team',
+        scope: canManageAll ? 'tenant' : scope === 'team' ? 'team' : 'tenant',
       },
     );
   }
@@ -622,13 +676,38 @@ export class AttendanceService {
     return this.mapAttendanceEntry(updated, currentUser);
   }
 
+  async overrideAttendanceEntry(
+    currentUser: AuthenticatedUser,
+    entryId: string,
+    dto: OverrideAttendanceEntryDto,
+  ) {
+    if (!this.canOverrideAttendance(currentUser)) {
+      throw new ForbiddenException(
+        'You do not have permission to override attendance records.',
+      );
+    }
+
+    if (!normalizeOptionalText(dto.adjustmentReason)) {
+      throw new BadRequestException(
+        'Override reason is required when changing attendance records.',
+      );
+    }
+
+    await this.getAuthorizedAttendanceEntry(currentUser, entryId, true);
+
+    return this.updateManualEntry(currentUser, entryId, {
+      ...dto,
+      adjustmentReason: `Override: ${dto.adjustmentReason}`,
+    });
+  }
+
   async exportAttendance(
     currentUser: AuthenticatedUser,
     query: AttendanceQueryDto,
   ) {
     const canManageAll = this.canManageTenantAttendance(currentUser);
     const employeeIds = canManageAll
-      ? await this.resolveAllTenantEmployeeIds(currentUser.tenantId, query)
+      ? await this.resolveAllTenantEmployeeIds(currentUser, query)
       : await this.resolveDirectReportEmployeeIds(currentUser, query);
 
     if (employeeIds.length === 0) {
@@ -1073,6 +1152,125 @@ export class AttendanceService {
     );
   }
 
+  private canReadAttendanceBeyondTeam(currentUser: AuthenticatedUser) {
+    return (
+      this.canManageTenantAttendance(currentUser) ||
+      this.hasAttendanceAccessAtOrAbove(currentUser, SecurityPrivilege.READ, [
+        SecurityAccessLevel.BUSINESS_UNIT,
+        SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNITS,
+        SecurityAccessLevel.ORGANIZATION,
+        SecurityAccessLevel.TENANT,
+      ])
+    );
+  }
+
+  private canOverrideAttendance(currentUser: AuthenticatedUser) {
+    return (
+      this.canManageTenantAttendance(currentUser) ||
+      currentUser.permissionKeys.includes('attendance.update') ||
+      this.hasAttendanceAccessAtOrAbove(currentUser, SecurityPrivilege.WRITE, [
+        SecurityAccessLevel.BUSINESS_UNIT,
+        SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNITS,
+        SecurityAccessLevel.ORGANIZATION,
+        SecurityAccessLevel.TENANT,
+      ]) ||
+      this.hasAttendanceAccessAtOrAbove(currentUser, SecurityPrivilege.MANAGE, [
+        SecurityAccessLevel.BUSINESS_UNIT,
+        SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNITS,
+        SecurityAccessLevel.ORGANIZATION,
+        SecurityAccessLevel.TENANT,
+      ])
+    );
+  }
+
+  private hasAttendanceAccessAtOrAbove(
+    currentUser: AuthenticatedUser,
+    privilege: SecurityPrivilege,
+    allowedLevels: SecurityAccessLevel[],
+  ) {
+    const minimumWeight = Math.min(
+      ...allowedLevels.map((level) => SECURITY_ACCESS_LEVEL_WEIGHT[level] ?? 0),
+    );
+
+    return (
+      currentUser.rolePrivileges?.some(
+        (rolePrivilege) =>
+          rolePrivilege.entityKey === 'attendance' &&
+          rolePrivilege.privilege === privilege &&
+          (SECURITY_ACCESS_LEVEL_WEIGHT[rolePrivilege.accessLevel] ?? 0) >=
+            minimumWeight,
+      ) ?? false
+    );
+  }
+
+  private hasManagerRole(currentUser: AuthenticatedUser) {
+    return currentUser.roleKeys?.includes(ROLE_KEYS.MANAGER) ?? false;
+  }
+
+  private async getAuthorizedAttendanceEntry(
+    currentUser: AuthenticatedUser,
+    entryId: string,
+    requireOverrideAccess: boolean,
+  ) {
+    const entry = await this.attendanceRepository.findAttendanceEntryById(
+      currentUser.tenantId,
+      entryId,
+    );
+
+    if (!entry) {
+      throw new NotFoundException('Attendance entry could not be found.');
+    }
+
+    if (entry.employee.userId === currentUser.userId) {
+      if (requireOverrideAccess && !this.canOverrideAttendance(currentUser)) {
+        throw new ForbiddenException(
+          'You do not have permission to override this attendance record.',
+        );
+      }
+
+      return entry;
+    }
+
+    if (requireOverrideAccess) {
+      const employeeIds = await this.resolveAllTenantEmployeeIds(currentUser, {
+        employeeId: entry.employeeId,
+      });
+
+      if (employeeIds.includes(entry.employeeId)) {
+        return entry;
+      }
+
+      throw new ForbiddenException(
+        'You do not have permission to override this attendance record.',
+      );
+    }
+
+    if (this.canReadAttendanceBeyondTeam(currentUser)) {
+      const employeeIds = await this.resolveAllTenantEmployeeIds(currentUser, {
+        employeeId: entry.employeeId,
+      });
+
+      if (employeeIds.includes(entry.employeeId)) {
+        return entry;
+      }
+    }
+
+    if (this.hasManagerRole(currentUser)) {
+      const employeeIds = await this.resolveReportingHierarchyEmployeeIds(
+        currentUser,
+        { employeeId: entry.employeeId },
+      );
+
+      if (employeeIds.includes(entry.employeeId)) {
+        return entry;
+      }
+    }
+
+    throw new ForbiddenException(
+      'You do not have permission to view this attendance record.',
+    );
+  }
+
   private async resolvePolicy(tenantId: string) {
     const attendanceSettings =
       await this.tenantSettingsResolverService.getAttendanceSettings(tenantId);
@@ -1155,9 +1353,26 @@ export class AttendanceService {
   }
 
   private async resolveAllTenantEmployeeIds(
-    tenantId: string,
+    currentUser: AuthenticatedUser,
     query: Partial<AttendanceQueryDto>,
   ) {
+    const tenantId = currentUser.tenantId;
+    const accessibleBusinessUnitIds =
+      currentUser.accessContext?.accessibleBusinessUnitIds ?? [];
+    const canAccessAllBusinessUnits =
+      hasElevatedTenantRole(currentUser) ||
+      currentUser.accessContext?.canAccessAllBusinessUnits === true;
+    const accessWhere: Prisma.EmployeeWhereInput = canAccessAllBusinessUnits
+      ? {}
+      : accessibleBusinessUnitIds.length > 0
+        ? {
+            OR: [
+              { businessUnitId: { in: accessibleBusinessUnitIds } },
+              { user: { businessUnitId: { in: accessibleBusinessUnitIds } } },
+            ],
+          }
+        : { id: '__attendance_no_business_unit_access__' };
+
     if (query.employeeId) {
       const employee =
         await this.employeesRepository.findHierarchyNodeByIdAndTenant(
@@ -1171,16 +1386,30 @@ export class AttendanceService {
         );
       }
 
+      if (
+        !canAccessAllBusinessUnits &&
+        !accessibleBusinessUnitIds.includes(employee.businessUnitId ?? '') &&
+        !accessibleBusinessUnitIds.includes(employee.user?.businessUnitId ?? '')
+      ) {
+        throw new ForbiddenException(
+          'You do not have permission to view attendance for this employee.',
+        );
+      }
+
       return [employee.id];
     }
 
-    const employees = await this.employeesRepository.findByTenant(tenantId, {
-      page: 1,
-      pageSize: 1000,
-      search: undefined,
-      employmentStatus: undefined,
-      reportingManagerEmployeeId: undefined,
-    });
+    const employees = await this.employeesRepository.findByTenant(
+      tenantId,
+      {
+        page: 1,
+        pageSize: 1000,
+        search: undefined,
+        employmentStatus: undefined,
+        reportingManagerEmployeeId: undefined,
+      },
+      accessWhere,
+    );
 
     let items = employees.items;
 
@@ -1223,6 +1452,60 @@ export class AttendanceService {
     return directReportIds;
   }
 
+  private async resolveReportingHierarchyEmployeeIds(
+    currentUser: AuthenticatedUser,
+    query: Partial<AttendanceQueryDto>,
+  ) {
+    const currentEmployee = await this.getCurrentEmployee(currentUser);
+    const hierarchyIds = new Set<string>();
+    let frontier = [currentEmployee.id];
+
+    while (frontier.length > 0) {
+      const nextFrontier: string[] = [];
+
+      for (const managerEmployeeId of frontier) {
+        const directReports = await this.employeesRepository.findDirectReports(
+          currentUser.tenantId,
+          managerEmployeeId,
+        );
+
+        for (const employee of directReports) {
+          if (
+            query.departmentId &&
+            employee.department?.id !== query.departmentId
+          ) {
+            continue;
+          }
+
+          if (!hierarchyIds.has(employee.id)) {
+            hierarchyIds.add(employee.id);
+            nextFrontier.push(employee.id);
+          }
+        }
+      }
+
+      frontier = nextFrontier;
+    }
+
+    if (query.employeeId) {
+      if (!hierarchyIds.has(query.employeeId)) {
+        throw new ForbiddenException(
+          'You can only view attendance for employees in your reporting hierarchy.',
+        );
+      }
+
+      return [query.employeeId];
+    }
+
+    if (hierarchyIds.size === 0 && !this.hasManagerRole(currentUser)) {
+      throw new ForbiddenException(
+        'You do not have permission to view team attendance.',
+      );
+    }
+
+    return Array.from(hierarchyIds);
+  }
+
   private mapAttendanceList(
     items: AttendanceEntryWithRelations[],
     total: number,
@@ -1230,16 +1513,36 @@ export class AttendanceService {
     filters: {
       scope: 'mine' | 'team' | 'tenant';
       employeeId: string | null;
+      summaryItems?: AttendanceEntryWithRelations[];
+      summaryView?: 'day' | 'week' | 'month';
+      summaryAnchorDate?: string;
     },
   ) {
+    const summary = buildSummaryResponse(
+      filters.summaryItems ?? items,
+      filters.summaryView ?? query.view ?? 'week',
+      filters.summaryAnchorDate ?? query.dateFrom ?? currentDateKey(),
+      { scope: filters.scope },
+    );
+    const mappedItems = items.map((item) => this.mapAttendanceEntry(item));
+
     return {
-      items: items.map((item) => this.mapAttendanceEntry(item)),
+      items: mappedItems,
+      data: mappedItems,
       meta: {
         page: query.page,
         pageSize: query.pageSize,
         total,
         totalPages: Math.max(1, Math.ceil(total / query.pageSize)),
       },
+      pagination: {
+        page: query.page,
+        pageSize: query.pageSize,
+        total,
+        totalItems: total,
+        totalPages: Math.max(1, Math.ceil(total / query.pageSize)),
+      },
+      summary: summary.totals,
       filters: {
         search: query.search ?? null,
         dateFrom: query.dateFrom ?? null,
@@ -1264,9 +1567,7 @@ export class AttendanceService {
     const isCurrentUsersEntry =
       currentUser !== undefined && entry.employee.userId === currentUser.userId;
     const canCurrentUserCheckOut =
-      isCurrentUsersEntry &&
-      entry.checkIn !== null &&
-      entry.checkOut === null;
+      isCurrentUsersEntry && entry.checkIn !== null && entry.checkOut === null;
     const durationMinutes =
       entry.checkIn && entry.checkOut
         ? Math.max(0, differenceInMinutes(entry.checkOut, entry.checkIn))
@@ -1707,28 +2008,48 @@ function buildAttendanceCsv(items: Array<Record<string, unknown>>) {
       [
         escapeCsv(employee.fullName),
         escapeCsv(employee.employeeCode),
-        escapeCsv(String(item.attendanceDate ?? '').slice(0, 10)),
+        escapeCsv(scalarToString(item.attendanceDate).slice(0, 10)),
         escapeCsv(
-          item.checkInAt ? new Date(String(item.checkInAt)).toISOString() : '',
+          item.checkInAt
+            ? new Date(scalarToString(item.checkInAt)).toISOString()
+            : '',
         ),
         escapeCsv(
           item.checkOutAt
-            ? new Date(String(item.checkOutAt)).toISOString()
+            ? new Date(scalarToString(item.checkOutAt)).toISOString()
             : '',
         ),
-        escapeCsv(String(item.durationLabel ?? '')),
-        escapeCsv(String(item.attendanceMode ?? '')),
-        escapeCsv(String(item.status ?? '')),
-        escapeCsv(String(item.source ?? '')),
+        escapeCsv(scalarToString(item.durationLabel)),
+        escapeCsv(scalarToString(item.attendanceMode)),
+        escapeCsv(scalarToString(item.status)),
+        escapeCsv(scalarToString(item.source)),
         escapeCsv(
-          String((item.officeLocation as { name?: string } | null)?.name ?? ''),
+          scalarToString(
+            (item.officeLocation as { name?: string } | null)?.name,
+          ),
         ),
-        escapeCsv(String(item.remoteAddressText ?? '')),
+        escapeCsv(scalarToString(item.remoteAddressText)),
       ].join(','),
     );
   }
 
   return lines.join('\n');
+}
+
+function scalarToString(value: unknown) {
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  if (
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'boolean'
+  ) {
+    return String(value);
+  }
+
+  return '';
 }
 
 function escapeCsv(value: string) {

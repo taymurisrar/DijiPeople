@@ -17,6 +17,7 @@ import {
   TenantStatus,
   TenantFeatureSource,
   UserStatus,
+  WebhookProcessingStatus,
 } from '@prisma/client';
 import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -44,9 +45,11 @@ import {
 } from './dto/customer-lifecycle.dto';
 import { CreateCustomerOnboardingDto } from './dto/create-customer-onboarding.dto';
 import { CreatePlanDto } from './dto/create-plan.dto';
+import { CreatePlanPriceDto } from './dto/create-plan-price.dto';
 import { RecordPaymentDto } from './dto/record-payment.dto';
 import { UpdateInvoiceStatusDto } from './dto/update-invoice-status.dto';
 import { UpdatePlanDto } from './dto/update-plan.dto';
+import { UpdatePlanPriceDto } from './dto/update-plan-price.dto';
 import { UpdatePlatformSettingsDto } from './dto/update-platform-settings.dto';
 import { UpdatePrimaryOwnerDto } from './dto/update-primary-owner.dto';
 import { UpdateTenantCustomerAccountDto } from './dto/update-tenant-customer-account.dto';
@@ -64,6 +67,7 @@ import { PaymentsService } from './payments.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { ConvertLeadToCustomerDto } from '../leads/dto/admin-lead.dto';
 import { UserInvitationsService } from '../auth/user-invitations.service';
+import { WebhookService } from '../billing/services/webhook.service';
 
 @Injectable()
 export class SuperAdminService {
@@ -80,6 +84,7 @@ export class SuperAdminService {
     private readonly platformLifecycleService: PlatformLifecycleService,
     private readonly userInvitationsService: UserInvitationsService,
     private readonly auditService: AuditService,
+    private readonly webhookService: WebhookService,
   ) {}
 
   getLifecycleOptions() {
@@ -830,6 +835,185 @@ export class SuperAdminService {
     return this.mapPlan(updatedPlan);
   }
 
+  async listPlanPrices(planId: string) {
+    await this.assertPlanExists(planId);
+
+    const prices = await this.prisma.planPrice.findMany({
+      where: { planId },
+      include: {
+        _count: {
+          select: {
+            subscriptions: true,
+          },
+        },
+      },
+      orderBy: [
+        { currency: 'asc' },
+        { billingCycle: 'asc' },
+        { isActive: 'desc' },
+        { createdAt: 'desc' },
+      ],
+    });
+
+    return prices.map((price) => this.mapPlanPrice(price));
+  }
+
+  async createPlanPrice(
+    actor: AuthenticatedUser,
+    planId: string,
+    dto: CreatePlanPriceDto,
+  ) {
+    await this.assertPlanExists(planId);
+    const currency = dto.currency.toUpperCase();
+    const stripePriceId = normalizeStripePriceId(dto.stripePriceId);
+    await this.assertPlanPriceStripePriceIdUnique({ stripePriceId });
+
+    const price = await this.prisma.$transaction(async (tx) => {
+      if (dto.isActive ?? true) {
+        await tx.planPrice.updateMany({
+          where: {
+            planId,
+            billingCycle: dto.billingCycle,
+            currency,
+            isActive: true,
+          },
+          data: { isActive: false },
+        });
+      }
+
+      return tx.planPrice.create({
+        data: {
+          planId,
+          billingCycle: dto.billingCycle,
+          currency,
+          unitAmount: dto.unitAmount,
+          stripePriceId,
+          isActive: dto.isActive ?? true,
+        },
+        include: {
+          _count: {
+            select: {
+              subscriptions: true,
+            },
+          },
+        },
+      });
+    });
+
+    await this.auditService.log({
+      tenantId: actor.tenantId,
+      actorUserId: actor.userId,
+      action: 'PLAN_PRICE_CREATED',
+      entityType: 'PlanPrice',
+      entityId: price.id,
+      sourceModule: 'super-admin',
+      afterSnapshot: this.mapPlanPrice(price),
+    });
+
+    return this.mapPlanPrice(price);
+  }
+
+  async updatePlanPrice(
+    actor: AuthenticatedUser,
+    planId: string,
+    priceId: string,
+    dto: UpdatePlanPriceDto,
+  ) {
+    const existing = await this.findPlanPriceOrThrow(planId, priceId);
+    const billingCycle = dto.billingCycle ?? existing.billingCycle;
+    const currency = (dto.currency ?? existing.currency).toUpperCase();
+    const stripePriceId =
+      dto.stripePriceId === undefined
+        ? existing.stripePriceId
+        : normalizeStripePriceId(dto.stripePriceId);
+    const nextIsActive = dto.isActive ?? existing.isActive;
+
+    await this.assertPlanPriceStripePriceIdUnique({
+      stripePriceId,
+      excludePriceId: priceId,
+    });
+
+    const price = await this.prisma.$transaction(async (tx) => {
+      if (nextIsActive) {
+        await tx.planPrice.updateMany({
+          where: {
+            planId,
+            billingCycle,
+            currency,
+            isActive: true,
+            id: { not: priceId },
+          },
+          data: { isActive: false },
+        });
+      }
+
+      return tx.planPrice.update({
+        where: { id: priceId },
+        data: {
+          billingCycle: dto.billingCycle,
+          currency: dto.currency ? currency : undefined,
+          unitAmount: dto.unitAmount,
+          stripePriceId:
+            dto.stripePriceId === undefined ? undefined : stripePriceId,
+          isActive: dto.isActive,
+        },
+        include: {
+          _count: {
+            select: {
+              subscriptions: true,
+            },
+          },
+        },
+      });
+    });
+
+    await this.auditService.log({
+      tenantId: actor.tenantId,
+      actorUserId: actor.userId,
+      action: 'PLAN_PRICE_UPDATED',
+      entityType: 'PlanPrice',
+      entityId: price.id,
+      sourceModule: 'super-admin',
+      beforeSnapshot: this.mapPlanPrice(existing),
+      afterSnapshot: this.mapPlanPrice(price),
+    });
+
+    return this.mapPlanPrice(price);
+  }
+
+  async deactivatePlanPrice(
+    actor: AuthenticatedUser,
+    planId: string,
+    priceId: string,
+  ) {
+    const existing = await this.findPlanPriceOrThrow(planId, priceId);
+
+    const price = await this.prisma.planPrice.update({
+      where: { id: existing.id },
+      data: { isActive: false },
+      include: {
+        _count: {
+          select: {
+            subscriptions: true,
+          },
+        },
+      },
+    });
+
+    await this.auditService.log({
+      tenantId: actor.tenantId,
+      actorUserId: actor.userId,
+      action: 'PLAN_PRICE_DEACTIVATED',
+      entityType: 'PlanPrice',
+      entityId: price.id,
+      sourceModule: 'super-admin',
+      beforeSnapshot: this.mapPlanPrice(existing),
+      afterSnapshot: this.mapPlanPrice(price),
+    });
+
+    return this.mapPlanPrice(price);
+  }
+
   async updateTenantSubscription(
     actor: AuthenticatedUser,
     tenantId: string,
@@ -1065,6 +1249,115 @@ export class SuperAdminService {
     return this.billingService.handleStripeWebhook();
   }
 
+  async getBillingDiagnostics() {
+    const [
+      plansCount,
+      activePublicPlansCount,
+      missingStripePriceIdCount,
+      inactivePlanPricesCount,
+      checkoutReadyPlanPricesCount,
+      recentWebhookFailuresCount,
+      duplicateRisks,
+    ] = await Promise.all([
+      this.prisma.plan.count(),
+      this.prisma.plan.count({
+        where: {
+          isActive: true,
+          isPublic: true,
+        },
+      }),
+      this.prisma.planPrice.count({
+        where: {
+          isActive: true,
+          stripePriceId: null,
+          plan: { isActive: true, isPublic: true },
+        },
+      }),
+      this.prisma.planPrice.count({
+        where: { isActive: false },
+      }),
+      this.prisma.planPrice.count({
+        where: {
+          isActive: true,
+          stripePriceId: { not: null },
+          plan: { isActive: true, isPublic: true },
+        },
+      }),
+      this.prisma.stripeWebhookEvent.count({
+        where: {
+          processingStatus: WebhookProcessingStatus.FAILED,
+          createdAt: {
+            gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+          },
+        },
+      }),
+      this.getPlanPriceDuplicateRisks(),
+    ]);
+
+    return {
+      plansCount,
+      activePublicPlansCount,
+      planPricesMissingStripePriceIdCount: missingStripePriceIdCount,
+      inactivePlanPricesCount,
+      checkoutReadyPlanPricesCount,
+      duplicateCurrencyCycleRisks: duplicateRisks,
+      stripeConfigured: Boolean(process.env.STRIPE_SECRET_KEY?.trim()),
+      webhookConfigured: Boolean(process.env.STRIPE_WEBHOOK_SECRET?.trim()),
+      recentWebhookFailuresCount,
+    };
+  }
+
+  async listStripeWebhookEvents(query: {
+    page?: string;
+    pageSize?: string;
+    status?: string;
+    type?: string;
+  }) {
+    const page = normalizePositiveInt(query.page, 1);
+    const pageSize = Math.min(normalizePositiveInt(query.pageSize, 25), 100);
+    const status = normalizeWebhookStatus(query.status);
+    const type = query.type?.trim();
+    const where: Prisma.StripeWebhookEventWhereInput = {
+      processingStatus: status,
+      type: type || undefined,
+    };
+
+    const [items, total] = await Promise.all([
+      this.prisma.stripeWebhookEvent.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.stripeWebhookEvent.count({ where }),
+    ]);
+
+    return {
+      items: items.map((event) => ({
+        id: event.id,
+        stripeEventId: maskStripeEventId(event.stripeEventId),
+        type: event.type,
+        processingStatus: event.processingStatus,
+        apiVersion: event.apiVersion,
+        livemode: event.livemode,
+        pendingWebhooks: event.pendingWebhooks,
+        createdAt: event.createdAt,
+        processedAt: event.processedAt,
+        errorMessage: event.errorMessage,
+      })),
+      meta: {
+        page,
+        pageSize,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / pageSize)),
+      },
+    };
+  }
+
+  retryStripeWebhookEvent(id: string) {
+    return this.webhookService.retryStoredEvent(id);
+  }
+
   async getPlatformSettings() {
     const keys = [
       'platform-defaults',
@@ -1281,8 +1574,7 @@ export class SuperAdminService {
       },
       code: tenant.tenantCode ?? buildTenantCode(tenant.slug, tenant.id),
       primaryDomain:
-        tenant.tenantDomains.find((domain) => domain.isPrimary)?.domain ??
-        null,
+        tenant.tenantDomains.find((domain) => domain.isPrimary)?.domain ?? null,
       customDomain:
         tenant.tenantDomains.find((domain) => domain.type === 'CUSTOM_DOMAIN')
           ?.domain ?? null,
@@ -1559,12 +1851,119 @@ export class SuperAdminService {
       currency: plan.currency,
       sortOrder: plan.sortOrder,
       subscriptionCount: plan._count.subscriptions,
+      prices: plan.prices.map((price) => this.mapPlanPrice(price)),
       features: plan.features
         .filter((feature) => feature.isEnabled)
         .map((feature) => feature.featureKey),
       createdAt: plan.createdAt,
       updatedAt: plan.updatedAt,
     };
+  }
+
+  private async getPlanPriceDuplicateRisks() {
+    const duplicateGroups = await this.prisma.planPrice.groupBy({
+      by: ['planId', 'billingCycle', 'currency'],
+      _count: { id: true },
+      where: { isActive: true },
+      having: {
+        id: {
+          _count: {
+            gt: 1,
+          },
+        },
+      },
+    });
+
+    return duplicateGroups.map((group) => ({
+      planId: group.planId,
+      billingCycle: group.billingCycle,
+      currency: group.currency,
+      count: group._count.id,
+    }));
+  }
+
+  private mapPlanPrice(price: {
+    id: string;
+    planId: string;
+    billingCycle: BillingCycle;
+    currency: string;
+    unitAmount: Prisma.Decimal | number;
+    stripePriceId: string | null;
+    isActive: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+    _count?: { subscriptions: number };
+  }) {
+    const subscriptionCount = price._count?.subscriptions ?? 0;
+
+    return {
+      id: price.id,
+      planId: price.planId,
+      billingCycle: price.billingCycle,
+      currency: price.currency,
+      unitAmount: Number(price.unitAmount),
+      stripePriceId: price.stripePriceId,
+      isActive: price.isActive,
+      subscriptionCount,
+      isCheckoutReady: price.isActive && Boolean(price.stripePriceId),
+      canDelete: subscriptionCount === 0,
+      createdAt: price.createdAt,
+      updatedAt: price.updatedAt,
+    };
+  }
+
+  private async assertPlanExists(planId: string) {
+    const plan = await this.prisma.plan.findUnique({
+      where: { id: planId },
+      select: { id: true },
+    });
+
+    if (!plan) {
+      throw new NotFoundException('Plan not found.');
+    }
+
+    return plan;
+  }
+
+  private async findPlanPriceOrThrow(planId: string, priceId: string) {
+    const price = await this.prisma.planPrice.findFirst({
+      where: {
+        id: priceId,
+        planId,
+      },
+      include: {
+        _count: {
+          select: {
+            subscriptions: true,
+          },
+        },
+      },
+    });
+
+    if (!price) {
+      throw new NotFoundException('Plan price not found.');
+    }
+
+    return price;
+  }
+
+  private async assertPlanPriceStripePriceIdUnique(input: {
+    stripePriceId?: string | null;
+    excludePriceId?: string;
+  }) {
+    if (!input.stripePriceId) return;
+
+    const duplicateStripePrice = await this.prisma.planPrice.findFirst({
+      where: {
+        stripePriceId: input.stripePriceId,
+        id: input.excludePriceId ? { not: input.excludePriceId } : undefined,
+      },
+      select: { id: true },
+    });
+
+    if (duplicateStripePrice) {
+      throw new ConflictException('Stripe Price ID is already assigned.');
+    }
   }
 
   private async assertTenantExists(tenantId: string) {
@@ -1615,4 +2014,29 @@ function buildTenantCode(slug: string, id: string) {
     .join('')
     .slice(0, 12);
   return `${readable || 'TEN'}-${id.replace(/-/g, '').slice(0, 6).toUpperCase()}`;
+}
+
+function normalizeStripePriceId(value: string | null | undefined) {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+}
+
+function normalizePositiveInt(value: string | undefined, fallback: number) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function normalizeWebhookStatus(value: string | undefined) {
+  if (!value?.trim()) return undefined;
+  const normalized = value.trim().toUpperCase();
+  return Object.values(WebhookProcessingStatus).includes(
+    normalized as WebhookProcessingStatus,
+  )
+    ? (normalized as WebhookProcessingStatus)
+    : undefined;
+}
+
+function maskStripeEventId(value: string) {
+  if (value.length <= 12) return value;
+  return `${value.slice(0, 8)}...${value.slice(-4)}`;
 }

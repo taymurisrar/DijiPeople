@@ -60,6 +60,7 @@ const NAV_PERMISSION_KEYS = {
   ONBOARDING_READ: "onboarding.read",
 
   AUDIT_READ: "audit.read",
+  BILLING_VIEW: PERMISSION_KEYS.BILLING_VIEW,
 
   NOTIFICATIONS_READ: "notifications.read",
   NOTIFICATIONS_MANAGE: "notifications.manage",
@@ -503,6 +504,20 @@ export const settingsNavGroups = [
     icon: "wallet",
     items: [
       {
+        key: "billing",
+        href: "/settings/billing",
+        label: "Billing",
+        description:
+          "Review subscription status, plan checkout options, Stripe billing actions, and invoices.",
+        icon: "receipt",
+        badge: "Admin",
+        keywords: ["billing", "subscription", "invoice", "stripe", "plans"],
+        requiredAnyPermissions: [
+          NAV_PERMISSION_KEYS.BILLING_VIEW,
+          NAV_PERMISSION_KEYS.SETTINGS_READ,
+        ],
+      },
+      {
         key: "payroll-settings",
         href: "/settings/payroll",
         label: "Payroll Settings",
@@ -851,13 +866,14 @@ export function flattenVisibleSettingsItems(
     includeRestricted?: boolean;
   },
 ): VisibleSettingsNavItem[] {
-  return resolveVisibleSettingsGroups(permissionKeys, options).flatMap((group) =>
-    group.items.map((item) => ({
-      ...item,
-      groupKey: group.key,
-      groupLabel: group.label,
-      groupSummary: group.summary,
-    })),
+  return resolveVisibleSettingsGroups(permissionKeys, options).flatMap(
+    (group) =>
+      group.items.map((item) => ({
+        ...item,
+        groupKey: group.key,
+        groupLabel: group.label,
+        groupSummary: group.summary,
+      })),
   );
 }
 

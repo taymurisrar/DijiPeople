@@ -1,9 +1,11 @@
 export const SUPPORTED_CURRENCIES = [
   "USD",
-  "SAR",
+  "QAR",
   "AED",
-  "EUR",
+  "SAR",
   "GBP",
+  "EUR",
+  "PKR",
 ] as const;
 
 export const DATE_FORMAT_OPTIONS = [

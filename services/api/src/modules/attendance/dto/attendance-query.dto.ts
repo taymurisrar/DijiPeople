@@ -57,12 +57,56 @@ export class AttendanceQueryDto {
   view?: 'day' | 'week' | 'month';
 
   @IsOptional()
+  @IsIn(['all', 'team'])
+  scope?: 'all' | 'team';
+
+  @IsOptional()
   @IsIn(['date', 'employeeName', 'checkIn', 'checkOut', 'status'])
   sortField?: 'date' | 'employeeName' | 'checkIn' | 'checkOut' | 'status';
 
   @IsOptional()
   @IsIn(['asc', 'desc'])
   sortDirection?: 'asc' | 'desc';
+
+  @IsOptional()
+  @IsString()
+  orderBy?: string;
+
+  @IsOptional()
+  @IsString()
+  employeeFilter?: string;
+
+  @IsOptional()
+  @IsString()
+  attendanceDateFilter?: string;
+
+  @IsOptional()
+  @IsString()
+  attendanceDateFilterOperator?: string;
+
+  @IsOptional()
+  @IsString()
+  attendanceDateFilterTo?: string;
+
+  @IsOptional()
+  @IsString()
+  attendanceModeFilter?: string;
+
+  @IsOptional()
+  @IsString()
+  statusFilter?: string;
+
+  @IsOptional()
+  @IsString()
+  locationFilter?: string;
+
+  @IsOptional()
+  @IsString()
+  sourceFilter?: string;
+
+  @IsOptional()
+  @IsString()
+  detailsFilter?: string;
 
   @IsOptional()
   @Type(() => Number)

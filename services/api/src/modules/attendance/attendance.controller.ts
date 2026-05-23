@@ -17,9 +17,11 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Permissions } from '../../common/decorators/permissions.decorator';
+import { RequireAnyPermission } from '../../common/decorators/require-permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import { AttendanceService } from './attendance.service';
 import { AttendanceQueryDto } from './dto/attendance-query.dto';
 import { AttendanceSummaryQueryDto } from './dto/attendance-summary-query.dto';
@@ -28,6 +30,7 @@ import { CheckOutDto } from './dto/check-out.dto';
 import { CreateAttendanceIntegrationDto } from './dto/create-attendance-integration.dto';
 import { CreateManualAttendanceEntryDto } from './dto/create-manual-attendance-entry.dto';
 import { ImportAttendanceDto } from './dto/import-attendance.dto';
+import { OverrideAttendanceEntryDto } from './dto/override-attendance-entry.dto';
 import { UpdateAttendanceIntegrationDto } from './dto/update-attendance-integration.dto';
 import { UpdateAttendancePolicyDto } from './dto/update-attendance-policy.dto';
 import { UpdateManualAttendanceEntryDto } from './dto/update-manual-attendance-entry.dto';
@@ -45,11 +48,16 @@ export class AttendanceController {
   constructor(private readonly attendanceService: AttendanceService) {}
 
   @Post('check-in')
+  @RequireAnyPermission({ entityKey: ENTITY_KEYS.ATTENDANCE, action: 'create' })
   checkIn(@CurrentUser() user: AuthenticatedUser, @Body() dto: CheckInDto) {
     return this.attendanceService.checkIn(user, dto);
   }
 
   @Post('check-out')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.ATTENDANCE, action: 'create' },
+    { entityKey: ENTITY_KEYS.ATTENDANCE, action: 'write' },
+  )
   checkOut(@CurrentUser() user: AuthenticatedUser, @Body() dto: CheckOutDto) {
     return this.attendanceService.checkOut(user, dto);
   }
@@ -190,5 +198,27 @@ export class AttendanceController {
       integrationId,
       dto,
     );
+  }
+
+  @Get(':entryId')
+  @Permissions('attendance.read')
+  getAttendanceEntry(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('entryId', new ParseUUIDPipe()) entryId: string,
+  ) {
+    return this.attendanceService.getAttendanceEntry(user, entryId);
+  }
+
+  @Patch(':entryId/override')
+  @RequireAnyPermission(
+    { entityKey: ENTITY_KEYS.ATTENDANCE, action: 'write' },
+    { entityKey: ENTITY_KEYS.ATTENDANCE, action: 'manage' },
+  )
+  overrideAttendanceEntry(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('entryId', new ParseUUIDPipe()) entryId: string,
+    @Body() dto: OverrideAttendanceEntryDto,
+  ) {
+    return this.attendanceService.overrideAttendanceEntry(user, entryId, dto);
   }
 }

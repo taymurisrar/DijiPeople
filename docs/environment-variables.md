@@ -39,6 +39,10 @@ WEB_ACCESS_TOKEN_COOKIE=web_access_token
 WEB_REFRESH_TOKEN_COOKIE=web_refresh_token
 AGENT_ACCESS_TOKEN_COOKIE=agent_access_token
 AGENT_REFRESH_TOKEN_COOKIE=agent_refresh_token
+STRIPE_SECRET_KEY=<stripe-secret-key>
+STRIPE_WEBHOOK_SECRET=<stripe-webhook-signing-secret>
+STRIPE_API_VERSION=2026-02-25.clover
+STRIPE_MODE=live
 ```
 
 JWT secrets must be at least 32 characters. Use different values for:

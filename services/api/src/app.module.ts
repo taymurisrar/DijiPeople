@@ -17,6 +17,7 @@ import { StorageModule } from './common/storage/storage.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { BillingModule } from './modules/billing/billing.module';
 import { AgentModule } from './modules/agent/agent.module';
 import { BusinessTripsModule } from './modules/business-trips/business-trips.module';
 import { TimePayrollModule } from './modules/time-payroll/time-payroll.module';
@@ -64,6 +65,7 @@ import { ErrorLogsModule } from './modules/error-logs/error-logs.module';
     AgentModule,
     AuditModule,
     AuthModule,
+    BillingModule,
     BusinessTripsModule,
     TimePayrollModule,
     TaxRulesModule,

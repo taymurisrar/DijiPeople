@@ -38,6 +38,11 @@ enum SubscriptionStatus {
   ACTIVE
   PAST_DUE
   CANCELLED
+  CANCELED
+  UNPAID
+  INCOMPLETE
+  EXPIRED
+  PAUSED
 }
 
 enum BillingCycle {
@@ -108,6 +113,16 @@ enum InvoiceStatus {
   ISSUED
   PAID
   OVERDUE
+  PAYMENT_FAILED
+  VOIDED
+  UNCOLLECTIBLE
+}
+
+enum WebhookProcessingStatus {
+  RECEIVED
+  PROCESSED
+  FAILED
+  IGNORED
 }
 
 enum DocumentEntityType {
@@ -1404,6 +1419,9 @@ model Plan {
   name                  String
   description           String?
   isActive              Boolean              @default(true)
+  stripeProductId       String?              @unique
+  isPublic              Boolean              @default(true)
+  metadataJson          Json?
   monthlyBasePrice      Decimal              @default(0) @db.Decimal(12, 2)
   annualBasePrice       Decimal              @default(0) @db.Decimal(12, 2)
   currency              String               @default("USD")
@@ -1414,12 +1432,14 @@ model Plan {
   updatedById           String?
   tenant                Tenant?              @relation(fields: [tenantId], references: [id], onDelete: SetNull)
   features              PlanFeature[]
+  prices                PlanPrice[]
   subscriptions         Subscription[]
   selectedByCustomers   CustomerAccount[]    @relation("SelectedCustomerPlan")
   selectedByOnboardings CustomerOnboarding[] @relation("SelectedOnboardingPlan")
 
   @@index([tenantId])
   @@index([isActive, sortOrder])
+  @@index([stripeProductId])
 }
 
 model PlanFeature {
@@ -1441,34 +1461,68 @@ model PlanFeature {
   @@index([featureKey, isEnabled])
 }
 
+model PlanPrice {
+  id            String         @id @default(uuid())
+  planId        String
+  billingCycle  BillingCycle
+  currency      String
+  unitAmount    Decimal        @db.Decimal(12, 2)
+  stripePriceId String?        @unique
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  plan          Plan           @relation(fields: [planId], references: [id], onDelete: Cascade)
+  subscriptions Subscription[]
+
+  @@index([planId])
+  @@index([billingCycle, currency, isActive])
+  @@index([stripePriceId])
+}
+
 model Subscription {
-  id                   String             @id @default(uuid())
-  tenantId             String             @unique
-  planId               String
-  billingCycle         BillingCycle       @default(MONTHLY)
-  basePrice            Decimal            @default(0) @db.Decimal(12, 2)
-  discountType         DiscountType       @default(NONE)
-  discountValue        Decimal            @default(0) @db.Decimal(12, 2)
-  discountReason       String?
-  finalPrice           Decimal            @default(0) @db.Decimal(12, 2)
-  currency             String             @default("USD")
-  status               SubscriptionStatus @default(TRIALING)
-  startDate            DateTime
-  endDate              DateTime?
-  renewalDate          DateTime?
-  autoRenew            Boolean            @default(true)
-  stripeSubscriptionId String?
-  createdAt            DateTime           @default(now())
-  updatedAt            DateTime           @updatedAt
-  createdById          String?
-  updatedById          String?
-  tenant               Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  plan                 Plan               @relation(fields: [planId], references: [id], onDelete: Restrict)
-  invoices             Invoice[]
-  payments             Payment[]
+  id                      String             @id @default(uuid())
+  tenantId                String             @unique
+  planId                  String
+  planPriceId             String?
+  billingCycle            BillingCycle       @default(MONTHLY)
+  basePrice               Decimal            @default(0) @db.Decimal(12, 2)
+  discountType            DiscountType       @default(NONE)
+  discountValue           Decimal            @default(0) @db.Decimal(12, 2)
+  discountReason          String?
+  finalPrice              Decimal            @default(0) @db.Decimal(12, 2)
+  currency                String             @default("USD")
+  status                  SubscriptionStatus @default(TRIALING)
+  startDate               DateTime
+  endDate                 DateTime?
+  renewalDate             DateTime?
+  autoRenew               Boolean            @default(true)
+  stripeCustomerId        String?
+  stripeSubscriptionId    String?            @unique
+  stripeCheckoutSessionId String?
+  stripeLatestInvoiceId   String?
+  stripeStatus            String?
+  currentPeriodStart      DateTime?
+  currentPeriodEnd        DateTime?
+  cancelAtPeriodEnd       Boolean            @default(false)
+  canceledAt              DateTime?
+  trialStart              DateTime?
+  trialEnd                DateTime?
+  createdAt               DateTime           @default(now())
+  updatedAt               DateTime           @updatedAt
+  createdById             String?
+  updatedById             String?
+  tenant                  Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  plan                    Plan               @relation(fields: [planId], references: [id], onDelete: Restrict)
+  planPrice               PlanPrice?         @relation(fields: [planPriceId], references: [id], onDelete: SetNull)
+  invoices                Invoice[]
+  payments                Payment[]
 
   @@index([status])
   @@index([planId, status])
+  @@index([planPriceId])
+  @@index([stripeCustomerId])
+  @@index([stripeSubscriptionId])
+  @@index([stripeCheckoutSessionId])
 }
 
 model User {
@@ -1519,30 +1573,30 @@ model User {
   ownedCustomerOnboardings   CustomerOnboarding[]       @relation("OwnedCustomerOnboardings")
   ownedTenants               Tenant[]                   @relation("TenantOwner")
 
+  @@unique([tenantId, email])
   @@index([tenantId])
   @@index([businessUnitId])
   @@index([tenantId, status])
   @@index([tenantId, lastName, firstName])
-  @@unique([tenantId, email])
 }
 
 model Organization {
-  id                   String         @id @default(uuid())
-  tenantId             String
-  name                 String
-  parentOrganizationId String?
-  createdAt            DateTime       @default(now())
-  updatedAt            DateTime       @updatedAt
-  tenant               Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  parentOrganization   Organization?  @relation("OrganizationHierarchy", fields: [parentOrganizationId, tenantId], references: [id, tenantId], onDelete: Restrict)
-  childOrganizations   Organization[] @relation("OrganizationHierarchy")
-  businessUnits        BusinessUnit[]
-  projects             Project[]
-  holidayCalendars     HolidayCalendar[]
+  id                         String                      @id @default(uuid())
+  tenantId                   String
+  name                       String
+  parentOrganizationId       String?
+  createdAt                  DateTime                    @default(now())
+  updatedAt                  DateTime                    @updatedAt
+  tenant                     Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  parentOrganization         Organization?               @relation("OrganizationHierarchy", fields: [parentOrganizationId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  childOrganizations         Organization[]              @relation("OrganizationHierarchy")
+  businessUnits              BusinessUnit[]
+  projects                   Project[]
+  holidayCalendars           HolidayCalendar[]
   holidayCalendarAssignments HolidayCalendarAssignment[]
-  workSchedules        WorkSchedule[]
-  payrollRegions       PayrollRegion[]
-  currencyConfigurations CurrencyConfiguration[]
+  workSchedules              WorkSchedule[]
+  payrollRegions             PayrollRegion[]
+  currencyConfigurations     CurrencyConfiguration[]
 
   @@unique([id, tenantId])
   @@unique([tenantId, name])
@@ -1551,39 +1605,39 @@ model Organization {
 }
 
 model BusinessUnit {
-  id                   String              @id @default(uuid())
-  tenantId             String
-  name                 String
-  organizationId       String
-  parentBusinessUnitId String?
-  type                 BusinessUnitType    @default(INTERNAL)
-  settingsJson         Json?
-  payrollContactName   String?
-  payrollContactEmail  String?
-  payrollContactPhone  String?
-  approvalContactName  String?
-  approvalContactEmail String?
-  createdAt            DateTime            @default(now())
-  updatedAt            DateTime            @updatedAt
-  tenant               Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  organization         Organization        @relation(fields: [organizationId, tenantId], references: [id, tenantId], onDelete: Restrict)
-  parentBusinessUnit   BusinessUnit?       @relation("BusinessUnitHierarchy", fields: [parentBusinessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
-  childBusinessUnits   BusinessUnit[]      @relation("BusinessUnitHierarchy")
-  users                User[]
-  employees            Employee[]
-  projects             Project[]
-  teams                Team[]
-  timesheets           Timesheet[]
-  payrollCycles        PayrollCycle[]
-  payrollCalendars     PayrollCalendar[]
-  holidayCalendars     HolidayCalendar[]
+  id                         String                      @id @default(uuid())
+  tenantId                   String
+  name                       String
+  organizationId             String
+  parentBusinessUnitId       String?
+  type                       BusinessUnitType            @default(INTERNAL)
+  settingsJson               Json?
+  payrollContactName         String?
+  payrollContactEmail        String?
+  payrollContactPhone        String?
+  approvalContactName        String?
+  approvalContactEmail       String?
+  createdAt                  DateTime                    @default(now())
+  updatedAt                  DateTime                    @updatedAt
+  tenant                     Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  organization               Organization                @relation(fields: [organizationId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  parentBusinessUnit         BusinessUnit?               @relation("BusinessUnitHierarchy", fields: [parentBusinessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  childBusinessUnits         BusinessUnit[]              @relation("BusinessUnitHierarchy")
+  users                      User[]
+  employees                  Employee[]
+  projects                   Project[]
+  teams                      Team[]
+  timesheets                 Timesheet[]
+  payrollCycles              PayrollCycle[]
+  payrollCalendars           PayrollCalendar[]
+  holidayCalendars           HolidayCalendar[]
   holidayCalendarAssignments HolidayCalendarAssignment[]
-  workSchedules        WorkSchedule[]
-  payrollRegions       PayrollRegion[]
-  currencyConfigurations CurrencyConfiguration[]
-  timePayrollPolicies  TimePayrollPolicy[]
-  overtimePolicies     OvertimePolicy[]
-  processingCycles     ProcessingCycle[]
+  workSchedules              WorkSchedule[]
+  payrollRegions             PayrollRegion[]
+  currencyConfigurations     CurrencyConfiguration[]
+  timePayrollPolicies        TimePayrollPolicy[]
+  overtimePolicies           OvertimePolicy[]
+  processingCycles           ProcessingCycle[]
 
   @@unique([id, tenantId])
   @@unique([tenantId, organizationId, name])
@@ -1965,7 +2019,7 @@ model Employee {
   timesheets                     Timesheet[]
   timesheetEntries               TimesheetEntry[]
   projectAssignments             ProjectAssignment[]
-  projectResourceApprovals       ProjectAssignment[]             @relation("ProjectResourceApprovalManager")
+  projectResourceApprovals       ProjectAssignment[]           @relation("ProjectResourceApprovalManager")
   onboardings                    EmployeeOnboarding[]
   documentLinks                  DocumentLink[]
   payrollRecords                 PayrollRecord[]
@@ -2444,7 +2498,7 @@ model LeaveApprovalStep {
 }
 
 model WorkSchedule {
-  id                   String             @id @default(uuid())
+  id                   String              @id @default(uuid())
   tenantId             String
   organizationId       String?
   businessUnitId       String?
@@ -2452,26 +2506,26 @@ model WorkSchedule {
   name                 String
   code                 String?
   description          String?
-  timezone             String             @default("UTC")
-  workWeekModel        WorkWeekModel      @default(FIVE_DAY)
+  timezone             String              @default("UTC")
+  workWeekModel        WorkWeekModel       @default(FIVE_DAY)
   weeklyWorkDays       WorkWeekday[]
   standardStartTime    String
   standardEndTime      String
-  minHoursPerDay       Decimal?           @db.Decimal(6, 2)
-  standardHoursPerWeek Decimal?           @db.Decimal(6, 2)
-  flexibleHours        Boolean            @default(false)
-  shiftBased           Boolean            @default(false)
+  minHoursPerDay       Decimal?            @db.Decimal(6, 2)
+  standardHoursPerWeek Decimal?            @db.Decimal(6, 2)
+  flexibleHours        Boolean             @default(false)
+  shiftBased           Boolean             @default(false)
   graceMinutes         Int?
-  isDefault            Boolean            @default(false)
-  isActive             Boolean            @default(true)
+  isDefault            Boolean             @default(false)
+  isActive             Boolean             @default(true)
   status               ConfigurationStatus @default(ACTIVE)
   effectiveStartDate   DateTime?
   effectiveEndDate     DateTime?
-  createdAt            DateTime           @default(now())
-  updatedAt            DateTime           @updatedAt
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
   createdById          String?
   updatedById          String?
-  tenant               Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant               Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   organization         Organization?       @relation(fields: [organizationId, tenantId], references: [id, tenantId], onDelete: Restrict)
   businessUnit         BusinessUnit?       @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
   scopedProject        Project?            @relation("ScopedProjectWorkSchedules", fields: [projectId], references: [id], onDelete: SetNull)
@@ -2710,25 +2764,25 @@ model Holiday {
 }
 
 model HolidayCalendarAssignment {
-  id                String              @id @default(uuid())
-  tenantId          String
-  holidayCalendarId String
-  organizationId    String?
-  businessUnitId    String?
-  projectId         String?
-  isDefault         Boolean             @default(false)
-  status            ConfigurationStatus @default(ACTIVE)
+  id                 String              @id @default(uuid())
+  tenantId           String
+  holidayCalendarId  String
+  organizationId     String?
+  businessUnitId     String?
+  projectId          String?
+  isDefault          Boolean             @default(false)
+  status             ConfigurationStatus @default(ACTIVE)
   effectiveStartDate DateTime?
   effectiveEndDate   DateTime?
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  createdById       String?
-  updatedById       String?
-  tenant            Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  holidayCalendar   HolidayCalendar     @relation(fields: [holidayCalendarId], references: [id], onDelete: Cascade)
-  organization      Organization?       @relation(fields: [organizationId, tenantId], references: [id, tenantId], onDelete: Cascade)
-  businessUnit      BusinessUnit?       @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Cascade)
-  project           Project?            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  createdById        String?
+  updatedById        String?
+  tenant             Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  holidayCalendar    HolidayCalendar     @relation(fields: [holidayCalendarId], references: [id], onDelete: Cascade)
+  organization       Organization?       @relation(fields: [organizationId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  businessUnit       BusinessUnit?       @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  project            Project?            @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([tenantId, holidayCalendarId])
   @@index([tenantId, organizationId])
@@ -2838,24 +2892,24 @@ model TimesheetEntry {
 }
 
 model Customer {
-  id             String         @id @default(uuid())
-  tenantId       String
-  name           String
-  code           String
-  industry       String?
-  contactName    String?
-  contactEmail   String?
-  contactPhone   String?
-  billingEmail   String?
-  websiteUrl     String?
-  address        String?
-  status         CustomerStatus @default(ACTIVE)
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-  createdById    String?
-  updatedById    String?
-  tenant         Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  projects       Project[]
+  id           String         @id @default(uuid())
+  tenantId     String
+  name         String
+  code         String
+  industry     String?
+  contactName  String?
+  contactEmail String?
+  contactPhone String?
+  billingEmail String?
+  websiteUrl   String?
+  address      String?
+  status       CustomerStatus @default(ACTIVE)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  createdById  String?
+  updatedById  String?
+  tenant       Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  projects     Project[]
 
   @@unique([tenantId, code])
   @@index([tenantId])
@@ -2863,18 +2917,18 @@ model Customer {
 }
 
 model ProjectRole {
-  id          String   @id @default(uuid())
+  id          String              @id @default(uuid())
   tenantId    String
   name        String
   code        String
   description String?
-  isActive    Boolean  @default(true)
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  isActive    Boolean             @default(true)
+  sortOrder   Int                 @default(0)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
   createdById String?
   updatedById String?
-  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant      Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   resources   ProjectAssignment[]
 
   @@unique([tenantId, code])
@@ -2883,12 +2937,12 @@ model ProjectRole {
 }
 
 model Project {
-  id                        String                @id @default(uuid())
+  id                        String                      @id @default(uuid())
   tenantId                  String
   organizationId            String?
   businessUnitId            String?
   customerId                String?
-  projectManagerEmployeeId String?
+  projectManagerEmployeeId  String?
   deliveryManagerEmployeeId String?
   name                      String
   code                      String?
@@ -2897,38 +2951,38 @@ model Project {
   currencyCode              String?
   holidayCalendarId         String?
   workScheduleId            String?
-  billingType               ProjectBillingType    @default(NON_BILLABLE)
-  budgetHours               Decimal?              @db.Decimal(10, 2)
-  budgetAmount              Decimal?              @db.Decimal(14, 2)
+  billingType               ProjectBillingType          @default(NON_BILLABLE)
+  budgetHours               Decimal?                    @db.Decimal(10, 2)
+  budgetAmount              Decimal?                    @db.Decimal(14, 2)
   budgetCurrencyCode        String?
-  consumedAmount            Decimal?              @db.Decimal(14, 2)
-  burnRate                  Decimal?              @db.Decimal(14, 2)
-  plannedHours              Decimal?              @db.Decimal(10, 2)
-  actualHours               Decimal?              @db.Decimal(10, 2)
-  remainingHours            Decimal?              @db.Decimal(10, 2)
-  projectHealth             ProjectHealth         @default(UNKNOWN)
-  riskLevel                 ProjectRiskLevel      @default(MEDIUM)
-  priority                  ProjectPriority       @default(NORMAL)
-  deliveryStatus            ProjectDeliveryStatus @default(NOT_STARTED)
-  billingStatus             ProjectBillingStatus  @default(NOT_STARTED)
-  allowTimesheets           Boolean               @default(true)
-  requireApproval           Boolean               @default(false)
-  approvalMode              ProjectApprovalMode   @default(MANAGER)
+  consumedAmount            Decimal?                    @db.Decimal(14, 2)
+  burnRate                  Decimal?                    @db.Decimal(14, 2)
+  plannedHours              Decimal?                    @db.Decimal(10, 2)
+  actualHours               Decimal?                    @db.Decimal(10, 2)
+  remainingHours            Decimal?                    @db.Decimal(10, 2)
+  projectHealth             ProjectHealth               @default(UNKNOWN)
+  riskLevel                 ProjectRiskLevel            @default(MEDIUM)
+  priority                  ProjectPriority             @default(NORMAL)
+  deliveryStatus            ProjectDeliveryStatus       @default(NOT_STARTED)
+  billingStatus             ProjectBillingStatus        @default(NOT_STARTED)
+  allowTimesheets           Boolean                     @default(true)
+  requireApproval           Boolean                     @default(false)
+  approvalMode              ProjectApprovalMode         @default(MANAGER)
   startDate                 DateTime?
   endDate                   DateTime?
-  status                    ProjectStatus         @default(PLANNING)
-  createdAt                 DateTime              @default(now())
-  updatedAt                 DateTime              @updatedAt
+  status                    ProjectStatus               @default(PLANNING)
+  createdAt                 DateTime                    @default(now())
+  updatedAt                 DateTime                    @updatedAt
   createdById               String?
   updatedById               String?
-  tenant                    Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  organization              Organization?         @relation(fields: [organizationId, tenantId], references: [id, tenantId], onDelete: Restrict)
-  businessUnit              BusinessUnit?         @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
-  customer                  Customer?             @relation(fields: [customerId], references: [id], onDelete: Restrict)
-  holidayCalendar           HolidayCalendar?      @relation("ProjectHolidayCalendar", fields: [holidayCalendarId], references: [id], onDelete: SetNull)
-  workSchedule              WorkSchedule?         @relation("ProjectWorkSchedule", fields: [workScheduleId], references: [id], onDelete: SetNull)
-  scopedHolidayCalendars    HolidayCalendar[]     @relation("ScopedProjectHolidayCalendars")
-  scopedWorkSchedules       WorkSchedule[]        @relation("ScopedProjectWorkSchedules")
+  tenant                    Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  organization              Organization?               @relation(fields: [organizationId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  businessUnit              BusinessUnit?               @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  customer                  Customer?                   @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  holidayCalendar           HolidayCalendar?            @relation("ProjectHolidayCalendar", fields: [holidayCalendarId], references: [id], onDelete: SetNull)
+  workSchedule              WorkSchedule?               @relation("ProjectWorkSchedule", fields: [workScheduleId], references: [id], onDelete: SetNull)
+  scopedHolidayCalendars    HolidayCalendar[]           @relation("ScopedProjectHolidayCalendars")
+  scopedWorkSchedules       WorkSchedule[]              @relation("ScopedProjectWorkSchedules")
   holidayAssignments        HolidayCalendarAssignment[]
   assignments               ProjectAssignment[]
   timesheetEntries          TimesheetEntry[]
@@ -2947,32 +3001,32 @@ model Project {
 }
 
 model ProjectAssignment {
-  id                String   @id @default(uuid())
-  tenantId          String
-  projectId         String
-  employeeId        String
-  projectRoleId     String?
-  roleOnProject     String?
-  allocationPercent Int?
-  allocationHours   Decimal? @db.Decimal(8, 2)
-  allocationType    ProjectAllocationType @default(PERCENTAGE)
-  billableFlag      Boolean  @default(false)
-  costRateAmount    Decimal? @db.Decimal(14, 2)
-  billingRateAmount Decimal? @db.Decimal(14, 2)
-  currencyCode      String?
+  id                        String                @id @default(uuid())
+  tenantId                  String
+  projectId                 String
+  employeeId                String
+  projectRoleId             String?
+  roleOnProject             String?
+  allocationPercent         Int?
+  allocationHours           Decimal?              @db.Decimal(8, 2)
+  allocationType            ProjectAllocationType @default(PERCENTAGE)
+  billableFlag              Boolean               @default(false)
+  costRateAmount            Decimal?              @db.Decimal(14, 2)
+  billingRateAmount         Decimal?              @db.Decimal(14, 2)
+  currencyCode              String?
   approvalManagerEmployeeId String?
-  startDate         DateTime?
-  endDate           DateTime?
-  status            ProjectResourceStatus @default(ACTIVE)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  createdById       String?
-  updatedById       String?
-  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  project           Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  employee          Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  projectRole       ProjectRole? @relation(fields: [projectRoleId], references: [id], onDelete: SetNull)
-  approvalManager   Employee? @relation("ProjectResourceApprovalManager", fields: [approvalManagerEmployeeId], references: [id], onDelete: SetNull)
+  startDate                 DateTime?
+  endDate                   DateTime?
+  status                    ProjectResourceStatus @default(ACTIVE)
+  createdAt                 DateTime              @default(now())
+  updatedAt                 DateTime              @updatedAt
+  createdById               String?
+  updatedById               String?
+  tenant                    Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  project                   Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  employee                  Employee              @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  projectRole               ProjectRole?          @relation(fields: [projectRoleId], references: [id], onDelete: SetNull)
+  approvalManager           Employee?             @relation("ProjectResourceApprovalManager", fields: [approvalManagerEmployeeId], references: [id], onDelete: SetNull)
 
   @@unique([projectId, employeeId])
   @@index([tenantId])
@@ -3599,20 +3653,20 @@ model TenantFeature {
 }
 
 model NotificationEvent {
-  id                 String                    @id @default(uuid())
-  code               String                    @unique
-  name               String
-  description        String?
-  category           NotificationEventCategory
-  enabledByDefault   Boolean                   @default(true)
-  supportedChannels  NotificationChannel[]
-  systemDefined      Boolean                   @default(true)
-  createdAt          DateTime                  @default(now())
-  updatedAt          DateTime                  @updatedAt
-  emailTemplates     EmailTemplate[]
-  emailDeliveryLogs  EmailDeliveryLog[]
-  notifications      Notification[]
-  preferences        NotificationPreference[]
+  id                String                    @id @default(uuid())
+  code              String                    @unique
+  name              String
+  description       String?
+  category          NotificationEventCategory
+  enabledByDefault  Boolean                   @default(true)
+  supportedChannels NotificationChannel[]
+  systemDefined     Boolean                   @default(true)
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+  emailTemplates    EmailTemplate[]
+  emailDeliveryLogs EmailDeliveryLog[]
+  notifications     Notification[]
+  preferences       NotificationPreference[]
 
   @@index([category])
   @@index([systemDefined])
@@ -3674,7 +3728,7 @@ model EmailProviderSetting {
 }
 
 model EmailDeliveryLog {
-  id                String               @id @default(uuid())
+  id                String              @id @default(uuid())
   tenantId          String
   eventCode         String
   templateId        String?
@@ -3683,25 +3737,25 @@ model EmailDeliveryLog {
   cc                String?
   bcc               String?
   subject           String
-  channel           NotificationChannel  @default(EMAIL)
-  status            EmailDeliveryStatus  @default(REQUESTED)
+  channel           NotificationChannel @default(EMAIL)
+  status            EmailDeliveryStatus @default(REQUESTED)
   providerMessageId String?
   errorMessage      String?
   metadata          Json?
-  retryCount        Int                  @default(0)
-  maxRetryCount     Int                  @default(3)
+  retryCount        Int                 @default(0)
+  maxRetryCount     Int                 @default(3)
   nextRetryAt       DateTime?
   lastRetryAt       DateTime?
-  retryable         Boolean              @default(false)
-  requestedAt       DateTime             @default(now())
+  retryable         Boolean             @default(false)
+  requestedAt       DateTime            @default(now())
   processedAt       DateTime?
   deliveredAt       DateTime?
   failedAt          DateTime?
-  createdAt         DateTime             @default(now())
-  updatedAt         DateTime             @updatedAt
-  tenant            Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  event             NotificationEvent    @relation(fields: [eventCode], references: [code], onDelete: Restrict)
-  template          EmailTemplate?       @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  tenant            Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  event             NotificationEvent   @relation(fields: [eventCode], references: [code], onDelete: Restrict)
+  template          EmailTemplate?      @relation(fields: [templateId], references: [id], onDelete: SetNull)
 
   @@index([tenantId])
   @@index([tenantId, eventCode])
@@ -3760,19 +3814,19 @@ model NotificationRecipient {
 }
 
 model NotificationPreference {
-  id          String              @id @default(uuid())
-  tenantId    String
-  userId      String?
-  scopeKey    String
-  eventCode   String
-  channel     NotificationChannel
-  enabled     Boolean             @default(true)
-  metadata    Json?
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
-  tenant      Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user        User?               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  event       NotificationEvent   @relation(fields: [eventCode], references: [code], onDelete: Cascade)
+  id        String              @id @default(uuid())
+  tenantId  String
+  userId    String?
+  scopeKey  String
+  eventCode String
+  channel   NotificationChannel
+  enabled   Boolean             @default(true)
+  metadata  Json?
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+  tenant    Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User?               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event     NotificationEvent   @relation(fields: [eventCode], references: [code], onDelete: Cascade)
 
   @@unique([scopeKey, eventCode, channel])
   @@index([tenantId])
@@ -3796,27 +3850,61 @@ model PlatformSetting {
 }
 
 model Invoice {
-  id              String        @id @default(uuid())
-  tenantId        String
-  subscriptionId  String
-  invoiceNumber   String
-  amount          Decimal       @db.Decimal(12, 2)
-  currency        String
-  issueDate       DateTime
-  dueDate         DateTime
-  status          InvoiceStatus @default(DRAFT)
-  stripeInvoiceId String?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  createdById     String?
-  updatedById     String?
-  tenant          Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  subscription    Subscription  @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
-  payments        Payment[]
+  id                     String        @id @default(uuid())
+  tenantId               String
+  subscriptionId         String
+  invoiceNumber          String
+  amount                 Decimal       @db.Decimal(12, 2)
+  currency               String
+  issueDate              DateTime
+  dueDate                DateTime
+  status                 InvoiceStatus @default(DRAFT)
+  stripeInvoiceId        String?       @unique
+  stripeHostedInvoiceUrl String?
+  stripeInvoicePdfUrl    String?
+  stripePaymentIntentId  String?
+  subtotal               Decimal?      @db.Decimal(12, 2)
+  tax                    Decimal?      @db.Decimal(12, 2)
+  total                  Decimal?      @db.Decimal(12, 2)
+  amountPaid             Decimal?      @db.Decimal(12, 2)
+  amountDue              Decimal?      @db.Decimal(12, 2)
+  periodStart            DateTime?
+  periodEnd              DateTime?
+  paidAt                 DateTime?
+  voidedAt               DateTime?
+  metadataJson           Json?
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+  createdById            String?
+  updatedById            String?
+  tenant                 Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscription           Subscription  @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  payments               Payment[]
 
   @@unique([tenantId, invoiceNumber])
   @@index([tenantId, status])
   @@index([subscriptionId])
+  @@index([stripeInvoiceId])
+  @@index([stripePaymentIntentId])
+}
+
+model StripeWebhookEvent {
+  id               String                  @id @default(uuid())
+  stripeEventId    String                  @unique
+  type             String
+  apiVersion       String?
+  livemode         Boolean
+  pendingWebhooks  Int
+  processingStatus WebhookProcessingStatus @default(RECEIVED)
+  processedAt      DateTime?
+  errorMessage     String?
+  payloadJson      Json
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+
+  @@index([type])
+  @@index([processingStatus])
+  @@index([createdAt])
 }
 
 model Payment {
@@ -3828,7 +3916,10 @@ model Payment {
   currency              String
   paymentMethod         PaymentMethod
   status                PaymentStatus @default(PENDING)
-  stripePaymentIntentId String?
+  stripePaymentIntentId String?       @unique
+  stripeChargeId        String?
+  stripeFailureCode     String?
+  stripeFailureMessage  String?
   paidAt                DateTime?
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
@@ -3841,6 +3932,8 @@ model Payment {
   @@index([tenantId, status])
   @@index([subscriptionId])
   @@index([invoiceId])
+  @@index([stripePaymentIntentId])
+  @@index([stripeChargeId])
 }
 
 model PayrollCycle {
@@ -3947,33 +4040,33 @@ model PayrollCalendar {
 }
 
 model PayrollRegion {
-  id                String              @id @default(uuid())
-  tenantId          String
-  organizationId    String?
-  businessUnitId    String?
-  name              String
-  code              String
-  currencyCode      String
+  id                    String              @id @default(uuid())
+  tenantId              String
+  organizationId        String?
+  businessUnitId        String?
+  name                  String
+  code                  String
+  currencyCode          String
   reportingCurrencyCode String?
-  timezone          String              @default("UTC")
-  payCycle          PayCycle            @default(MONTHLY)
-  taxRegion         String?
-  overtimeRulesJson Json?
-  weekendPolicy     WeekendPolicy       @default(SATURDAY_SUNDAY)
-  weekendDays       WorkWeekday[]
-  holidayCalendarId String?
-  workScheduleId    String?
-  isDefault         Boolean             @default(false)
-  status            ConfigurationStatus @default(ACTIVE)
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  createdById       String?
-  updatedById       String?
-  tenant            Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  organization      Organization?       @relation(fields: [organizationId, tenantId], references: [id, tenantId], onDelete: Restrict)
-  businessUnit      BusinessUnit?       @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
-  holidayCalendar   HolidayCalendar?    @relation(fields: [holidayCalendarId], references: [id], onDelete: SetNull)
-  workSchedule      WorkSchedule?       @relation(fields: [workScheduleId], references: [id], onDelete: SetNull)
+  timezone              String              @default("UTC")
+  payCycle              PayCycle            @default(MONTHLY)
+  taxRegion             String?
+  overtimeRulesJson     Json?
+  weekendPolicy         WeekendPolicy       @default(SATURDAY_SUNDAY)
+  weekendDays           WorkWeekday[]
+  holidayCalendarId     String?
+  workScheduleId        String?
+  isDefault             Boolean             @default(false)
+  status                ConfigurationStatus @default(ACTIVE)
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  createdById           String?
+  updatedById           String?
+  tenant                Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  organization          Organization?       @relation(fields: [organizationId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  businessUnit          BusinessUnit?       @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  holidayCalendar       HolidayCalendar?    @relation(fields: [holidayCalendarId], references: [id], onDelete: SetNull)
+  workSchedule          WorkSchedule?       @relation(fields: [workScheduleId], references: [id], onDelete: SetNull)
 
   @@unique([tenantId, code])
   @@index([tenantId, organizationId])
@@ -5122,28 +5215,28 @@ model DailyProductivitySummary {
 }
 
 model AgentTrackingSettings {
-  id                       String   @id @default(uuid())
-  tenantId                 String   @unique
-  enabled                  Boolean  @default(true)
-  mandatory                Boolean  @default(false)
-  heartbeatIntervalSeconds Int      @default(60)
-  idleThresholdSeconds     Int      @default(120)
-  awayThresholdSeconds     Int      @default(600)
-  captureActiveApp         Boolean  @default(true)
-  captureWindowTitle       Boolean  @default(false)
-  offlineQueueEnabled      Boolean  @default(true)
-  heartbeatBatchSize       Int      @default(10)
-  minimumSupportedVersion  String   @default("1.0.0")
-  latestVersion            String   @default("1.0.0")
-  forceUpdate              Boolean  @default(false)
+  id                       String    @id @default(uuid())
+  tenantId                 String    @unique
+  enabled                  Boolean   @default(true)
+  mandatory                Boolean   @default(false)
+  heartbeatIntervalSeconds Int       @default(60)
+  idleThresholdSeconds     Int       @default(120)
+  awayThresholdSeconds     Int       @default(600)
+  captureActiveApp         Boolean   @default(true)
+  captureWindowTitle       Boolean   @default(false)
+  offlineQueueEnabled      Boolean   @default(true)
+  heartbeatBatchSize       Int       @default(10)
+  minimumSupportedVersion  String    @default("1.0.0")
+  latestVersion            String    @default("1.0.0")
+  forceUpdate              Boolean   @default(false)
   updateMessage            String?
-  autoUpdateEnabled        Boolean  @default(true)
-  historyRetentionDays     Int      @default(90)
+  autoUpdateEnabled        Boolean   @default(true)
+  historyRetentionDays     Int       @default(90)
   installerUrl             String?
   releaseDate              DateTime?
-  createdAt                DateTime @default(now())
-  updatedAt                DateTime @updatedAt
-  tenant                   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+  tenant                   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId, enabled])
 }

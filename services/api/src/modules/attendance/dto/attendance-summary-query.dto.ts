@@ -8,4 +8,8 @@ export class AttendanceSummaryQueryDto {
   @IsOptional()
   @IsIn(['day', 'week', 'month'])
   view: 'day' | 'week' | 'month' = 'week';
+
+  @IsOptional()
+  @IsIn(['all', 'team'])
+  scope?: 'all' | 'team';
 }

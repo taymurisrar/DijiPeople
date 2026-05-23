@@ -147,7 +147,15 @@ export function LeadDetailManager({ lead, lifecycleOptions, operators, plans }: 
       </section>
       ) : null}
 
-      <StatusPipeline current={lead.status} steps={["NEW", "QUALIFIED", "CONVERTED", "ARCHIVED"]} />
+      <StatusPipeline
+  current={lead.status}
+  stages={[
+    { key: "NEW", label: "New" },
+    { key: "QUALIFIED", label: "Qualified" },
+    { key: "CONVERTED", label: "Converted" },
+    { key: "ARCHIVED", label: "Archived" },
+  ]}
+/>
       <SummaryCards>
         <SummaryCard label="Contact" value={fullName || "Unnamed lead"} />
         <SummaryCard label="Owner" value={lead.assignedToUser?.fullName ?? "Unassigned"} />

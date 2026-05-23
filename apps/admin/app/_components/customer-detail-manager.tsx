@@ -120,8 +120,15 @@ export function CustomerDetailManager({ customer, lifecycleOptions, plans }: { c
       {linkedTenant ? <LinkButton href={`/tenants/${linkedTenant.id}`}><Building2 className="h-4 w-4" />View tenant</LinkButton> : null}
     </>} right={<span className={isDirty ? "text-sm font-medium text-amber-600" : "text-sm font-medium text-emerald-600"}>{isDirty ? "Unsaved changes" : lastSaveSucceeded ? "Saved" : ""}</span>} />
     </CommandBar>
-    <StatusPipeline current={customer.status} steps={["PROSPECT", "ONBOARDING", "ACTIVE", "ARCHIVED"]} />
-    <SummaryCards>
+<StatusPipeline
+  current={customer.status}
+  stages={[
+    { key: "PROSPECT", label: "Prospect" },
+    { key: "ONBOARDING", label: "Onboarding" },
+    { key: "ACTIVE", label: "Active" },
+    { key: "ARCHIVED", label: "Archived" },
+  ]}
+/>    <SummaryCards>
       <SummaryCard label="Primary contact" value={fullName || "Not set"} />
       <SummaryCard label="Account manager" value={customer.accountManagerUser ? `${customer.accountManagerUser.firstName} ${customer.accountManagerUser.lastName}` : "Unassigned"} />
       <SummaryCard label="Onboarding" value={linkedOnboarding ? getLifecycleLabel(linkedOnboarding.status) : "Not started"} />

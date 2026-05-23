@@ -17,6 +17,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { CreatePlanDto } from './dto/create-plan.dto';
+import { CreatePlanPriceDto } from './dto/create-plan-price.dto';
 import {
   BulkDeleteCustomerOnboardingsDto,
   BulkDeleteCustomersDto,
@@ -32,6 +33,7 @@ import { RecordPaymentDto } from './dto/record-payment.dto';
 import { CreateInvoiceFromSubscriptionDto } from './dto/create-invoice-from-subscription.dto';
 import { UpdateInvoiceStatusDto } from './dto/update-invoice-status.dto';
 import { UpdatePlanDto } from './dto/update-plan.dto';
+import { UpdatePlanPriceDto } from './dto/update-plan-price.dto';
 import { UpdatePlatformSettingsDto } from './dto/update-platform-settings.dto';
 import { UpdatePrimaryOwnerDto } from './dto/update-primary-owner.dto';
 import { UpdateTenantCustomerAccountDto } from './dto/update-tenant-customer-account.dto';
@@ -418,6 +420,39 @@ export class SuperAdminController {
     return this.superAdminService.updatePlan(user, planId, dto);
   }
 
+  @Get('plans/:planId/prices')
+  listPlanPrices(@Param('planId', new ParseUUIDPipe()) planId: string) {
+    return this.superAdminService.listPlanPrices(planId);
+  }
+
+  @Post('plans/:planId/prices')
+  createPlanPrice(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('planId', new ParseUUIDPipe()) planId: string,
+    @Body() dto: CreatePlanPriceDto,
+  ) {
+    return this.superAdminService.createPlanPrice(user, planId, dto);
+  }
+
+  @Patch('plans/:planId/prices/:priceId')
+  updatePlanPrice(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('planId', new ParseUUIDPipe()) planId: string,
+    @Param('priceId', new ParseUUIDPipe()) priceId: string,
+    @Body() dto: UpdatePlanPriceDto,
+  ) {
+    return this.superAdminService.updatePlanPrice(user, planId, priceId, dto);
+  }
+
+  @Delete('plans/:planId/prices/:priceId')
+  deactivatePlanPrice(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('planId', new ParseUUIDPipe()) planId: string,
+    @Param('priceId', new ParseUUIDPipe()) priceId: string,
+  ) {
+    return this.superAdminService.deactivatePlanPrice(user, planId, priceId);
+  }
+
   @Post('customers/:customerAccountId/stripe-customer')
   createStripeCustomer(
     @Param('customerAccountId', new ParseUUIDPipe()) customerAccountId: string,
@@ -435,6 +470,31 @@ export class SuperAdminController {
   @Post('billing/stripe/webhook')
   handleStripeWebhook() {
     return this.superAdminService.handleStripeWebhook();
+  }
+
+  @Get('billing/diagnostics')
+  getBillingDiagnostics() {
+    return this.superAdminService.getBillingDiagnostics();
+  }
+
+  @Get('billing/stripe-webhook-events')
+  listStripeWebhookEvents(
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+    @Query('status') status?: string,
+    @Query('type') type?: string,
+  ) {
+    return this.superAdminService.listStripeWebhookEvents({
+      page,
+      pageSize,
+      status,
+      type,
+    });
+  }
+
+  @Post('billing/stripe-webhook-events/:id/retry')
+  retryStripeWebhookEvent(@Param('id', new ParseUUIDPipe()) id: string) {
+    return this.superAdminService.retryStripeWebhookEvent(id);
   }
 
   @Get('platform-settings')

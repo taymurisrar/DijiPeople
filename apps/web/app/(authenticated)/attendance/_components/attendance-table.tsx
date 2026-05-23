@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Eye } from "lucide-react";
 import { DataTable } from "@/app/components/data-table/data-table";
 import { DataTablePagination } from "@/app/components/data-table/data-table-pagination";
 import {
@@ -11,6 +12,7 @@ import { formatDateWithTenantSettings } from "@/lib/date-format";
 import { formatTime as formatResolvedTime } from "@/lib/formatting-context";
 import { AttendanceEntryRecord } from "../types";
 import { AttendanceStatusBadge } from "./attendance-status-badge";
+import { AttendanceRecordDetailDialog } from "./attendance-record-detail-dialog";
 
 type AttendanceTableProps = {
   entries: AttendanceEntryRecord[];
@@ -33,6 +35,7 @@ type AttendanceTableProps = {
   showEmployee?: boolean;
   enableSelection?: boolean;
   useEntityDataApi?: boolean;
+  canOverrideAttendance?: boolean;
 };
 
 export function AttendanceTable({
@@ -45,9 +48,11 @@ export function AttendanceTable({
   initialFilters = [],
   showEmployee = false,
   enableSelection = false,
-  useEntityDataApi = false,
+  useEntityDataApi = true,
+  canOverrideAttendance = false,
 }: AttendanceTableProps) {
   const [selectedAttendanceIds, setSelectedAttendanceIds] = useState<string[]>([]);
+  const [activeRecordId, setActiveRecordId] = useState<string | null>(null);
 
   useEffect(() => {
     window.dispatchEvent(
@@ -197,7 +202,8 @@ export function AttendanceTable({
         { label: "Absent", value: "ABSENT" },
         { label: "Late", value: "LATE" },
         { label: "Half Day", value: "HALF_DAY" },
-        { label: "Missed Checkout", value: "MISSED_CHECKOUT" },
+        { label: "Missed Checkout", value: "MISSED_CHECK_OUT" },
+        { label: "On Leave", value: "ON_LEAVE" },
       ],
       sortAccessor: (entry) => entry.status,
       filterAccessor: (entry) => entry.status,
@@ -233,6 +239,26 @@ export function AttendanceTable({
       render: (entry) => entry.source,
     },
     {
+      key: "createdAt",
+      entityField: "createdAt",
+      header: "Created On",
+      sortable: true,
+      filterable: false,
+      sortAccessor: (entry) => new Date(entry.createdAt).getTime(),
+      cellClassName: "text-muted",
+      render: (entry) => formatDateWithTenantSettings(entry.createdAt, formatting),
+    },
+    {
+      key: "updatedAt",
+      entityField: "updatedAt",
+      header: "Updated On",
+      sortable: true,
+      filterable: false,
+      sortAccessor: (entry) => new Date(entry.updatedAt).getTime(),
+      cellClassName: "text-muted",
+      render: (entry) => formatDateWithTenantSettings(entry.updatedAt, formatting),
+    },
+    {
       key: "details",
       entityField: "notes",
       header: "Details",
@@ -253,6 +279,22 @@ export function AttendanceTable({
         entry.checkInNote ??
         entry.notes ??
         "No details",
+    },
+    {
+      key: "actions",
+      header: "Open",
+      sortable: false,
+      filterable: false,
+      render: (entry) => (
+        <button
+          type="button"
+          onClick={() => setActiveRecordId(entry.id)}
+          className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-xs font-semibold text-foreground transition hover:border-accent/40 hover:text-accent"
+        >
+          <Eye className="h-3.5 w-3.5" />
+          View
+        </button>
+      ),
     },
   ];
 
@@ -291,6 +333,14 @@ export function AttendanceTable({
         selectedRowKeys={selectedAttendanceIds}
         onSelectedRowKeysChange={setSelectedAttendanceIds}
       />
+
+      <AttendanceRecordDetailDialog
+        recordId={activeRecordId}
+        open={Boolean(activeRecordId)}
+        canOverride={canOverrideAttendance}
+        formatting={formatting}
+        onClose={() => setActiveRecordId(null)}
+      />
     </section>
   );
 }
@@ -306,7 +356,10 @@ function getAttendanceCustomizationColumnKeys(tableColumnKey: string) {
     status: ["status"],
     location: ["officeLocationId", "officeLocation", "remoteAddressText"],
     source: ["source"],
+    createdAt: ["createdAt"],
+    updatedAt: ["updatedAt"],
     details: ["workSummary", "checkOutNote", "checkInNote", "notes"],
+    actions: ["actions"],
   };
 
   return map[tableColumnKey] ?? [tableColumnKey];

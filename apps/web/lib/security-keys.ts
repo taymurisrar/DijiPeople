@@ -92,6 +92,13 @@ export const PERMISSION_KEYS = {
   APPROVAL_MATRICES_DELETE: "approval-matrices.delete",
 
   ATTENDANCE_READ: "attendance.read",
+  ATTENDANCE_READ_OWN: "attendance.read.own",
+  ATTENDANCE_READ_TEAM: "attendance.read.team",
+  ATTENDANCE_READ_ALL: "attendance.read.all",
+  ATTENDANCE_UPDATE: "attendance.update",
+  ATTENDANCE_OVERRIDE: "attendance.override",
+  ATTENDANCE_CHECKIN: "attendance.checkin",
+  ATTENDANCE_CHECKOUT: "attendance.checkout",
   ATTENDANCE_MANAGE: "attendance.manage",
   ATTENDANCE_IMPORT: "attendance.import",
   ATTENDANCE_EXPORT: "attendance.export",

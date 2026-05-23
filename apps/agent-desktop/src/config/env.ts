@@ -1,9 +1,21 @@
-const apiBaseUrl = normalizeBaseUrl(readRequiredString([
-  "AGENT_API_BASE_URL",
-  "DIJIPEOPLE_AGENT_API_BASE_URL",
-  "DIJIPEOPLE_API_BASE_URL",
-  "API_BASE_URL",
-], "Agent API base URL"));
+import fs from "node:fs";
+import path from "node:path";
+import dotenv from "dotenv";
+import { app } from "electron";
+
+loadAgentEnv();
+
+const apiBaseUrl = normalizeBaseUrl(
+  readRequiredString(
+    [
+      "AGENT_API_BASE_URL",
+      "DIJIPEOPLE_AGENT_API_BASE_URL",
+      "DIJIPEOPLE_API_BASE_URL",
+      "API_BASE_URL",
+    ],
+    "Agent API base URL",
+  ),
+);
 
 export const agentEnv = {
   appName: readRequiredString(["AGENT_APP_NAME"], "Agent app name"),
@@ -11,8 +23,7 @@ export const agentEnv = {
   apiBaseUrl,
 
   apiOrigin:
-    process.env.AGENT_API_ORIGIN ||
-    process.env.API_ORIGIN ||
+    readOptionalString(["AGENT_API_ORIGIN", "API_ORIGIN"]) ||
     getOriginFromBaseUrl(apiBaseUrl),
 
   appVersion: readRequiredString(["AGENT_APP_VERSION"], "Agent app version"),
@@ -22,9 +33,15 @@ export const agentEnv = {
     true,
   ),
 
-  accessTokenTtl: readRequiredString(["AGENT_ACCESS_TOKEN_TTL"], "Agent access token TTL"),
+  accessTokenTtl: readRequiredString(
+    ["AGENT_ACCESS_TOKEN_TTL"],
+    "Agent access token TTL",
+  ),
 
-  refreshTokenTtl: readRequiredString(["AGENT_REFRESH_TOKEN_TTL"], "Agent refresh token TTL"),
+  refreshTokenTtl: readRequiredString(
+    ["AGENT_REFRESH_TOKEN_TTL"],
+    "Agent refresh token TTL",
+  ),
 
   sessionIdleTimeoutSeconds: readNumber(
     process.env.AGENT_SESSION_IDLE_TIMEOUT_SECONDS,
@@ -76,18 +93,26 @@ export const agentEnv = {
     true,
   ),
 
-  updateUrl:
-    readRequiredString(["DIJIPEOPLE_AGENT_UPDATE_URL", "AGENT_UPDATE_URL"], "Agent update URL"),
+  updateUrl: readRequiredString(
+    ["DIJIPEOPLE_AGENT_UPDATE_URL", "AGENT_UPDATE_URL"],
+    "Agent update URL",
+  ),
 
   autoUpdateEnabled: readBoolean(
     process.env.AGENT_AUTO_UPDATE_ENABLED,
     true,
   ),
 
-  logsPath: process.env.AGENT_LOGS_PATH?.trim() || "",
-  logMaxBytes: readNumber(process.env.AGENT_LOG_MAX_BYTES, 5 * 1024 * 1024),
+  logsPath: readOptionalString(["AGENT_LOGS_PATH"]) || "",
+
+  logMaxBytes: readNumber(
+    process.env.AGENT_LOG_MAX_BYTES,
+    5 * 1024 * 1024,
+  ),
+
   logMaxFiles: readNumber(process.env.AGENT_LOG_MAX_FILES, 5),
-  installerUrl: process.env.AGENT_INSTALLER_URL?.trim() || "",
+
+  installerUrl: readOptionalString(["AGENT_INSTALLER_URL"]) || "",
 };
 
 export function normalizeBaseUrl(value: string): string {
@@ -107,6 +132,47 @@ export function normalizeBaseUrl(value: string): string {
       "Invalid agent API base URL. Set AGENT_API_BASE_URL to a valid http(s) URL.",
     );
   }
+}
+
+function loadAgentEnv(): void {
+  const candidateEnvPaths = getCandidateEnvPaths();
+
+  for (const envPath of candidateEnvPaths) {
+    if (!envPath || !fs.existsSync(envPath)) continue;
+
+    const result = dotenv.config({
+      path: envPath,
+      override: false,
+    });
+
+    if (!result.error) {
+      return;
+    }
+  }
+}
+
+function getCandidateEnvPaths(): string[] {
+  const paths = new Set<string>();
+
+  paths.add(path.join(process.cwd(), ".env"));
+  paths.add(path.resolve(__dirname, "../../.env"));
+  paths.add(path.resolve(__dirname, "../../../.env"));
+
+  try {
+    paths.add(path.join(app.getAppPath(), ".env"));
+  } catch {
+    // Electron app may not be ready in some test/runtime contexts.
+  }
+
+  if (process.resourcesPath) {
+    paths.add(path.join(process.resourcesPath, ".env"));
+  }
+
+  if (process.execPath) {
+    paths.add(path.join(path.dirname(process.execPath), ".env"));
+  }
+
+  return [...paths];
 }
 
 function getOriginFromBaseUrl(baseUrl: string): string {
@@ -129,13 +195,20 @@ function readNumber(value: string | undefined, fallback: number): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+function readOptionalString(keys: string[]): string {
+  for (const key of keys) {
+    const value = process.env[key]?.trim();
+    if (value) return value;
+  }
+
+  return "";
+}
+
 function readRequiredString(keys: string[], label: string): string {
   for (const key of keys) {
     const value = process.env[key]?.trim();
     if (value) return value;
   }
 
-  throw new Error(
-    `${label} is required. Set one of: ${keys.join(", ")}.`,
-  );
+  throw new Error(`${label} is required. Set one of: ${keys.join(", ")}.`);
 }

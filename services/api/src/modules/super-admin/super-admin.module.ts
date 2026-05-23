@@ -4,6 +4,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { AuditModule } from '../audit/audit.module';
 import { AuthModule } from '../auth/auth.module';
+import { BillingModule as StripeBillingModule } from '../billing/billing.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { RolesModule } from '../roles/roles.module';
 import { LeadsRepository } from '../leads/leads.repository';
@@ -27,6 +28,7 @@ import { SuperAdminService } from './super-admin.service';
     UsersModule,
     PermissionsModule,
     AuditModule,
+    StripeBillingModule,
   ],
   controllers: [SuperAdminController],
   providers: [

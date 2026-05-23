@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import {
+  AttendanceEntrySource,
+  AttendanceEntryStatus,
+  AttendanceMode,
+  Prisma,
+} from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AttendanceQueryDto } from './dto/attendance-query.dto';
 
@@ -384,20 +389,128 @@ function buildAttendanceWhere(
     ];
   }
 
+  if (query.employeeFilter?.trim()) {
+    const employeeFilter = query.employeeFilter.trim();
+    where.AND = [
+      ...normalizeAnd(where.AND),
+      {
+        OR: [
+          {
+            employee: {
+              employeeCode: {
+                contains: employeeFilter,
+                mode: 'insensitive',
+              },
+            },
+          },
+          {
+            employee: {
+              firstName: {
+                contains: employeeFilter,
+                mode: 'insensitive',
+              },
+            },
+          },
+          {
+            employee: {
+              lastName: {
+                contains: employeeFilter,
+                mode: 'insensitive',
+              },
+            },
+          },
+        ],
+      },
+    ];
+  }
+
   if (query.status) {
     where.status = query.status;
+  }
+
+  if (query.statusFilter) {
+    const statuses = query.statusFilter
+      .split(',')
+      .map((status) => status.trim())
+      .filter(isAttendanceStatus);
+
+    if (statuses.length > 0) {
+      where.status = { in: statuses };
+    }
   }
 
   if (query.attendanceMode) {
     where.attendanceMode = query.attendanceMode;
   }
 
+  if (query.attendanceModeFilter) {
+    const modes = query.attendanceModeFilter
+      .split(',')
+      .map((mode) => mode.trim())
+      .filter(isAttendanceMode);
+
+    if (modes.length > 0) {
+      where.attendanceMode = { in: modes };
+    }
+  }
+
   if (query.source) {
     where.source = query.source;
   }
 
+  if (query.sourceFilter?.trim()) {
+    const sources = query.sourceFilter
+      .split(',')
+      .map((source) => source.trim())
+      .filter(isAttendanceSource);
+
+    if (sources.length > 0) {
+      where.source = { in: sources };
+    }
+  }
+
   if (query.officeLocationId) {
     where.officeLocationId = query.officeLocationId;
+  }
+
+  if (query.locationFilter?.trim()) {
+    const locationFilter = query.locationFilter.trim();
+    where.AND = [
+      ...normalizeAnd(where.AND),
+      {
+        OR: [
+          {
+            officeLocation: {
+              name: {
+                contains: locationFilter,
+                mode: 'insensitive',
+              },
+            },
+          },
+          {
+            remoteAddressText: {
+              contains: locationFilter,
+              mode: 'insensitive',
+            },
+          },
+        ],
+      },
+    ];
+  }
+
+  if (query.detailsFilter?.trim()) {
+    const detailsFilter = query.detailsFilter.trim();
+    where.AND = [
+      ...normalizeAnd(where.AND),
+      {
+        OR: [
+          { notes: { contains: detailsFilter, mode: 'insensitive' } },
+          { checkInNote: { contains: detailsFilter, mode: 'insensitive' } },
+          { checkOutNote: { contains: detailsFilter, mode: 'insensitive' } },
+          { workSummary: { contains: detailsFilter, mode: 'insensitive' } },
+        ],
+      },
+    ];
   }
 
   if (query.departmentId) {
@@ -420,12 +533,38 @@ function buildAttendanceWhere(
     }
   }
 
+  if (query.attendanceDateFilter?.trim()) {
+    const operator = query.attendanceDateFilterOperator ?? 'equals';
+    const value = query.attendanceDateFilter;
+
+    if (operator === 'between' && query.attendanceDateFilterTo) {
+      where.date = {
+        gte: normalizeDate(value, false),
+        lte: normalizeDate(query.attendanceDateFilterTo, true),
+      };
+    } else if (operator === 'before') {
+      where.date = { lte: normalizeDate(value, true) };
+    } else if (operator === 'after') {
+      where.date = { gte: normalizeDate(value, false) };
+    } else {
+      where.date = {
+        gte: normalizeDate(value, false),
+        lte: normalizeDate(value, true),
+      };
+    }
+  }
+
   return where;
 }
 
 function buildAttendanceOrderBy(
   query: AttendanceQueryDto,
 ): Prisma.AttendanceEntryOrderByWithRelationInput[] {
+  const parsedOrderBy = parseDataTableOrderBy(query.orderBy);
+  if (parsedOrderBy) {
+    return parsedOrderBy;
+  }
+
   const direction = query.sortDirection ?? 'desc';
 
   switch (query.sortField) {
@@ -445,6 +584,70 @@ function buildAttendanceOrderBy(
     default:
       return [{ date: direction }, { createdAt: 'desc' }];
   }
+}
+
+function parseDataTableOrderBy(
+  value?: string,
+): Prisma.AttendanceEntryOrderByWithRelationInput[] | null {
+  if (!value?.trim()) {
+    return null;
+  }
+
+  const [field, rawDirection] = value.trim().split(/\s+/);
+  const direction = rawDirection === 'asc' ? 'asc' : 'desc';
+
+  switch (field) {
+    case 'employeeId':
+      return [
+        { employee: { lastName: direction } },
+        { employee: { firstName: direction } },
+      ];
+    case 'attendanceDate':
+      return [{ date: direction }, { createdAt: 'desc' }];
+    case 'attendanceMode':
+      return [{ attendanceMode: direction }, { date: 'desc' }];
+    case 'checkInAt':
+      return [{ checkIn: direction }, { date: 'desc' }];
+    case 'checkOutAt':
+      return [{ checkOut: direction }, { date: 'desc' }];
+    case 'durationMinutes':
+      return [{ checkOut: direction }, { checkIn: direction }];
+    case 'status':
+      return [{ status: direction }, { date: 'desc' }];
+    case 'officeLocationId':
+      return [{ officeLocation: { name: direction } }, { date: 'desc' }];
+    case 'source':
+      return [{ source: direction }, { date: 'desc' }];
+    case 'createdAt':
+      return [{ createdAt: direction }];
+    case 'updatedAt':
+      return [{ updatedAt: direction }];
+    default:
+      return null;
+  }
+}
+
+function normalizeAnd(
+  value: Prisma.AttendanceEntryWhereInput['AND'],
+): Prisma.AttendanceEntryWhereInput[] {
+  if (!value) return [];
+  return Array.isArray(value) ? value : [value];
+}
+
+function isAttendanceStatus(value: string): value is AttendanceEntryStatus {
+  return Object.values(AttendanceEntryStatus).includes(
+    value as AttendanceEntryStatus,
+  );
+}
+
+function isAttendanceMode(value: string): value is AttendanceMode {
+  return Object.values(AttendanceMode).includes(value as AttendanceMode);
+}
+
+function isAttendanceSource(value: string): value is AttendanceEntrySource {
+  return Object.values(AttendanceEntrySource).includes(
+    value as AttendanceEntrySource,
+  );
 }
 
 function normalizeDate(value: string, endOfDay: boolean) {

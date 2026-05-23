@@ -15,6 +15,16 @@ export class PlansRepository {
         features: {
           orderBy: { featureKey: 'asc' },
         },
+        prices: {
+          orderBy: [{ currency: 'asc' }, { billingCycle: 'asc' }],
+          include: {
+            _count: {
+              select: {
+                subscriptions: true,
+              },
+            },
+          },
+        },
         _count: {
           select: {
             subscriptions: true,
@@ -30,6 +40,16 @@ export class PlansRepository {
       include: {
         features: {
           orderBy: { featureKey: 'asc' },
+        },
+        prices: {
+          orderBy: [{ currency: 'asc' }, { billingCycle: 'asc' }],
+          include: {
+            _count: {
+              select: {
+                subscriptions: true,
+              },
+            },
+          },
         },
         _count: {
           select: {
@@ -56,6 +76,16 @@ export class PlansRepository {
         features: {
           orderBy: { featureKey: 'asc' },
         },
+        prices: {
+          orderBy: [{ currency: 'asc' }, { billingCycle: 'asc' }],
+          include: {
+            _count: {
+              select: {
+                subscriptions: true,
+              },
+            },
+          },
+        },
         _count: {
           select: {
             subscriptions: true,
@@ -72,6 +102,16 @@ export class PlansRepository {
       include: {
         features: {
           orderBy: { featureKey: 'asc' },
+        },
+        prices: {
+          orderBy: [{ currency: 'asc' }, { billingCycle: 'asc' }],
+          include: {
+            _count: {
+              select: {
+                subscriptions: true,
+              },
+            },
+          },
         },
         _count: {
           select: {

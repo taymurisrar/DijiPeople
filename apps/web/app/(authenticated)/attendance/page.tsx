@@ -4,7 +4,7 @@ import {
   getTableViews,
   withFallbackViews,
 } from "@/lib/customization-views";
-import { hasPermission } from "@/lib/permissions";
+import { hasPermission, isSelfServiceUser } from "@/lib/permissions";
 import { hasElevatedTenantRole } from "@/lib/elevated-roles";
 import { PERMISSION_KEYS } from "@/lib/security-keys";
 import { ApiRequestError, apiRequestJson } from "@/lib/server-api";
@@ -32,9 +32,29 @@ type AttendancePageProps = {
 export default async function AttendancePage({
   searchParams,
 }: AttendancePageProps) {
+  const params = normalizeSearchParams(await searchParams);
+  const today = formatLocalDate(new Date());
+
+  const sessionUser = await getSessionUser();
+  const hasAttendanceRead = hasPermission(
+    sessionUser?.permissionKeys,
+    PERMISSION_KEYS.ATTENDANCE_READ,
+  );
+  const selfServiceAttendance = isSelfServiceUser(sessionUser?.permissionKeys);
   const businessUnitAccess = await getBusinessUnitAccessSummary();
 
-  if (!hasBusinessUnitScope(businessUnitAccess)) {
+  if (!hasAttendanceRead) {
+    return (
+      <main className="dp-theme-scope dp-attendance-scope grid gap-6">
+        <AccessDeniedState
+          description="Your role does not include attendance self-service access."
+          title="Attendance is unavailable for your account."
+        />
+      </main>
+    );
+  }
+
+  if (!selfServiceAttendance && !hasBusinessUnitScope(businessUnitAccess)) {
     return (
       <main className="dp-theme-scope dp-attendance-scope grid gap-6">
         <AccessDeniedState
@@ -45,12 +65,6 @@ export default async function AttendancePage({
     );
   }
 
-  const params = normalizeSearchParams(await searchParams);
-  const view = parseAttendanceView(params.view);
-  const selectedViewKey = params.tableView ?? params.viewKey;
-  const today = formatLocalDate(new Date());
-
-  const sessionUser = await getSessionUser();
   const currentEmployeeContext = sessionUser
     ? await getCurrentEmployee()
     : { employee: null, isReportingManager: false };
@@ -58,24 +72,53 @@ export default async function AttendancePage({
   const canViewTeamAttendance =
     isElevated ||
     hasPermission(sessionUser?.permissionKeys, PERMISSION_KEYS.ATTENDANCE_MANAGE) ||
+    hasPermission(sessionUser?.permissionKeys, PERMISSION_KEYS.ATTENDANCE_READ_ALL) ||
+    hasPermission(sessionUser?.permissionKeys, PERMISSION_KEYS.ATTENDANCE_READ_TEAM) ||
     currentEmployeeContext.isReportingManager;
+  const canOverrideAttendance =
+    isElevated ||
+    hasPermission(sessionUser?.permissionKeys, PERMISSION_KEYS.ATTENDANCE_OVERRIDE) ||
+    hasPermission(sessionUser?.permissionKeys, PERMISSION_KEYS.ATTENDANCE_MANAGE) ||
+    hasPermission(sessionUser?.permissionKeys, PERMISSION_KEYS.ATTENDANCE_UPDATE);
+  const requestedViewKey =
+    params.tableView ??
+    params.viewKey ??
+    (isAttendanceSystemViewKey(params.view) ? params.view : undefined);
+  const selectedViewKey = selfServiceAttendance
+    ? normalizeSelfServiceAttendanceViewKey(requestedViewKey)
+    : requestedViewKey;
+  const view = parseAttendanceView(params.view, selectedViewKey);
   const effectiveSelectedViewKey =
-    selectedViewKey || (canViewTeamAttendance ? "allAttendance" : "myAttendance");
+    selectedViewKey ||
+    (selfServiceAttendance
+      ? "thisWeek"
+      : canViewTeamAttendance
+        ? "allAttendance"
+        : "myAttendance");
   const queryString = buildAttendanceQueryString(
     params,
     effectiveSelectedViewKey,
     today,
   );
   const listEndpoint =
-    canViewTeamAttendance && effectiveSelectedViewKey !== "myAttendance"
-      ? "/attendance/team"
+    canViewTeamAttendance &&
+    effectiveSelectedViewKey !== "myAttendance" &&
+    !selfServiceAttendance
+      ? `/attendance/team?scope=${
+          effectiveSelectedViewKey === "teamAttendance" ? "team" : "all"
+        }`
       : "/attendance/mine";
-  const summaryEndpoint = canViewTeamAttendance
-    ? "/attendance/team/summary"
-    : "/attendance/mine/summary";
+  const summaryEndpoint =
+    canViewTeamAttendance &&
+    effectiveSelectedViewKey !== "myAttendance" &&
+    !selfServiceAttendance
+      ? `/attendance/team/summary?scope=${
+          effectiveSelectedViewKey === "teamAttendance" ? "team" : "all"
+        }`
+      : "/attendance/mine/summary";
 
   let history: AttendanceListResponse = emptyAttendanceResponse("mine");
-  let todayEntries: AttendanceListResponse = emptyAttendanceResponse("mine");
+  let myTodayEntries: AttendanceListResponse = emptyAttendanceResponse("mine");
   let activeEntry: AttendanceListResponse["items"][number] | null = null;
   let summary: AttendanceSummaryResponse = emptyAttendanceSummary(
     "mine",
@@ -94,21 +137,22 @@ export default async function AttendancePage({
   const publishedViewsPromise = getTableViews("attendance");
 
   try {
-    [history, todayEntries, activeEntry, summary, locations] =
+    [history, myTodayEntries, activeEntry, summary, locations] =
       await Promise.all([
         apiRequestJson<AttendanceListResponse>(
-          `${listEndpoint}?${queryString || "pageSize=20"}`,
+          withQueryString(listEndpoint, queryString || "pageSize=20"),
         ),
         apiRequestJson<AttendanceListResponse>(
-          `${listEndpoint}?dateFrom=${today}&dateTo=${today}&pageSize=1`,
+          `/attendance/mine?dateFrom=${today}&dateTo=${today}&pageSize=1`,
         ),
-        canViewTeamAttendance
-          ? Promise.resolve(null)
-          : apiRequestJson<AttendanceListResponse["items"][number] | null>(
-              "/attendance/mine/active",
-            ),
+        apiRequestJson<AttendanceListResponse["items"][number] | null>(
+          "/attendance/mine/active",
+        ),
         apiRequestJson<AttendanceSummaryResponse>(
-          `${summaryEndpoint}?view=${view}&date=${params.dateFrom || today}`,
+          withQueryString(
+            summaryEndpoint,
+            `view=${view}&date=${params.dateFrom || today}`,
+          ),
         ),
         apiRequestJson<AttendanceLocationOption[]>("/attendance/locations"),
       ]);
@@ -125,7 +169,8 @@ export default async function AttendancePage({
     canViewTeamAttendance ? getTeamAttendanceCount(today) : Promise.resolve(0),
   ]);
 
-  const attendanceViews = withFallbackViews("attendance", publishedViews, [
+  const attendanceViews = filterAttendanceViewsForRole(
+    withFallbackViews("attendance", publishedViews, [
     {
       id: "myAttendance",
       viewKey: "myAttendance",
@@ -205,6 +250,24 @@ export default async function AttendancePage({
       sortingJson: [{ columnKey: "attendanceDate", direction: "desc" }],
     },
     {
+      id: "thisMonth",
+      viewKey: "thisMonth",
+      tableKey: "attendance",
+      name: "This Month",
+      type: "system",
+      isDefault: false,
+      columnsJson: {
+        columns: [
+          { columnKey: "attendanceDate" },
+          { columnKey: "checkIn" },
+          { columnKey: "checkOut" },
+          { columnKey: "duration" },
+          { columnKey: "status" },
+        ],
+      },
+      sortingJson: [{ columnKey: "attendanceDate", direction: "desc" }],
+    },
+    {
       id: "missingCheckOut",
       viewKey: "missingCheckOut",
       tableKey: "attendance",
@@ -247,7 +310,9 @@ export default async function AttendancePage({
       },
       sortingJson: [{ columnKey: "attendanceDate", direction: "desc" }],
     },
-  ]);
+  ]),
+    selfServiceAttendance,
+  );
 
   const selectedView =
     attendanceViews.find((item) => item.viewKey === selectedViewKey) ??
@@ -268,9 +333,14 @@ export default async function AttendancePage({
   return (
     <main className="dp-theme-scope dp-attendance-scope grid gap-6">
       <ModuleViewSelector
-        configureHref="/settings/customization/tables/attendance"
+        configureHref={
+          selfServiceAttendance
+            ? undefined
+            : "/settings/customization/tables/attendance"
+        }
         enabled
         selectedViewId={selectedView?.viewKey ?? ""}
+        paramName="tableView"
         views={attendanceViews}
       />
 
@@ -300,7 +370,7 @@ export default async function AttendancePage({
           <AttendanceCheckWidget
             activeEntry={activeEntry}
             locations={locations}
-            todayEntry={todayEntries.items[0] ?? null}
+            todayEntry={myTodayEntries.items[0] ?? null}
           />
 
           <AttendanceSummaryStrip summary={summary} />
@@ -323,8 +393,11 @@ export default async function AttendancePage({
               },
             }}
             visibleColumnKeys={visibleColumnKeys}
+            canOverrideAttendance={canOverrideAttendance}
             showEmployee={
-              canViewTeamAttendance && selectedView?.viewKey !== "myAttendance"
+              !selfServiceAttendance &&
+              canViewTeamAttendance &&
+              selectedView?.viewKey !== "myAttendance"
             }
           />
         </>
@@ -336,7 +409,7 @@ export default async function AttendancePage({
 async function getTeamAttendanceCount(today: string) {
   try {
     const attendance = await apiRequestJson<AttendanceListResponse>(
-      `/attendance/team?dateFrom=${today}&dateTo=${today}&pageSize=100`,
+      `/attendance/team?scope=all&dateFrom=${today}&dateTo=${today}&pageSize=100`,
     );
 
     return attendance.items.length;
@@ -382,12 +455,19 @@ function buildAttendanceQueryString(
     "sortDirection",
     "page",
     "pageSize",
-    "view",
   ];
 
   for (const key of keys) {
     const value = params[key];
     if (value) query.set(key, value);
+  }
+
+  if (
+    params.view === "day" ||
+    params.view === "week" ||
+    params.view === "month"
+  ) {
+    query.set("view", params.view);
   }
 
   const preset = getAttendanceViewPreset(selectedViewKey, today);
@@ -403,7 +483,7 @@ function buildAttendanceQueryString(
 function getAttendanceViewPreset(selectedViewKey: string, today: string) {
   switch (selectedViewKey) {
     case "today":
-      return { dateFrom: today, dateTo: today };
+      return { dateFrom: today, dateTo: today, view: "day" };
     case "thisWeek": {
       const anchor = new Date(`${today}T00:00:00`);
       const day = anchor.getDay();
@@ -415,6 +495,18 @@ function getAttendanceViewPreset(selectedViewKey: string, today: string) {
       return {
         dateFrom: formatLocalDate(monday),
         dateTo: formatLocalDate(sunday),
+        view: "week",
+      };
+    }
+    case "thisMonth": {
+      const firstDay = new Date(`${today}T00:00:00`);
+      firstDay.setDate(1);
+      const lastDay = new Date(firstDay);
+      lastDay.setMonth(firstDay.getMonth() + 1, 0);
+      return {
+        dateFrom: formatLocalDate(firstDay),
+        dateTo: formatLocalDate(lastDay),
+        view: "month",
       };
     }
     case "missingCheckOut":
@@ -451,9 +543,108 @@ function buildAttendanceStatusView(id: string, name: string, status: string) {
   };
 }
 
-function parseAttendanceView(value?: string): AttendanceView {
+function withQueryString(endpoint: string, queryString: string) {
+  return `${endpoint}${endpoint.includes("?") ? "&" : "?"}${queryString}`;
+}
+
+function isAttendanceSystemViewKey(value?: string) {
+  return Boolean(
+    value &&
+      [
+        "myAttendance",
+        "allAttendance",
+        "today",
+        "thisWeek",
+        "thisMonth",
+        "missingCheckOut",
+        "lateCheckIn",
+        "teamAttendance",
+      ].includes(value),
+  );
+}
+
+function normalizeSelfServiceAttendanceViewKey(value?: string) {
+  return value === "thisWeek" || value === "thisMonth" || value === "today"
+    ? value
+    : undefined;
+}
+
+function filterAttendanceViewsForRole<
+  T extends {
+    viewKey: string;
+    id: string;
+    type: string;
+    isDefault?: boolean;
+  },
+>(views: T[], selfServiceAttendance: boolean) {
+  if (!selfServiceAttendance) {
+    return views;
+  }
+
+  const allowed = new Set(["today", "thisWeek", "thisMonth"]);
+  const filtered = views
+    .filter((view) => view.type === "system" && allowed.has(view.viewKey))
+    .map((view) => ({
+      ...view,
+      isDefault: view.viewKey === "today",
+    }));
+
+  const existing = new Set(filtered.map((view) => view.viewKey));
+  const requiredViews = ["today", "thisWeek", "thisMonth"] as const;
+
+  return [
+    ...filtered,
+    ...requiredViews
+      .filter((viewKey) => !existing.has(viewKey))
+      .map((viewKey) => buildSelfServiceAttendanceView(viewKey) as unknown as T),
+  ];
+}
+
+function buildSelfServiceAttendanceView(
+  viewKey: "today" | "thisWeek" | "thisMonth",
+) {
+  const labels = {
+    today: "Today",
+    thisWeek: "This Week",
+    thisMonth: "This Month",
+  };
+
+  return {
+    id: viewKey,
+    viewKey,
+    tableKey: "attendance",
+    name: labels[viewKey],
+    type: "system" as const,
+    isDefault: viewKey === "today",
+    columnsJson: {
+      columns: [
+        { columnKey: "attendanceDate" },
+        { columnKey: "attendanceMode" },
+        { columnKey: "checkIn" },
+        { columnKey: "checkOut" },
+        { columnKey: "duration" },
+        { columnKey: "status" },
+        { columnKey: "location" },
+      ],
+    },
+    sortingJson: [{ columnKey: "attendanceDate", direction: "desc" }],
+  };
+}
+
+function parseAttendanceView(
+  value?: string,
+  selectedViewKey?: string,
+): AttendanceView {
   if (value === "day" || value === "week" || value === "month") {
     return value;
+  }
+
+  if (selectedViewKey === "today") {
+    return "day";
+  }
+
+  if (selectedViewKey === "thisMonth") {
+    return "month";
   }
 
   return "week";

@@ -270,8 +270,16 @@ export class HttpExceptionFilter implements ExceptionFilter {
         fields: rawMessage
           .filter((message): message is string => typeof message === 'string')
           .map((message) => {
-            const match = message.trim().match(/^([A-Za-z0-9_.-]+)\s+(.+)$/);
-            return { field: match?.[1] ?? 'request', message };
+            const trimmed = message.trim();
+            const unknownPropertyMatch = trimmed.match(
+              /^property\s+([A-Za-z0-9_.-]+)\s+should not exist$/i,
+            );
+            const match = trimmed.match(/^([A-Za-z0-9_.-]+)\s+(.+)$/);
+            return {
+              field:
+                unknownPropertyMatch?.[1] ?? match?.[1] ?? 'request',
+              message,
+            };
           }),
       };
     }

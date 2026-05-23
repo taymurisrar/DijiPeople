@@ -2,6 +2,15 @@ import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { validateDeploymentEnv } from '@repo/config';
 import cookieParser from 'cookie-parser';
+import {
+  type Express,
+  json,
+  raw,
+  urlencoded,
+  type NextFunction,
+  type Request,
+  type Response,
+} from 'express';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { assertAuthEnvironment } from './common/config/auth.config';
@@ -15,7 +24,7 @@ import {
 async function bootstrap() {
   validateDeploymentEnv(process.env, { app: 'api' });
   const envReport = validateApiEnvironment(process.env);
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bodyParser: false });
   const logger = new Logger('Bootstrap');
   const configService = app.get(ConfigService);
 
@@ -24,15 +33,15 @@ async function bootstrap() {
   app.enableShutdownHooks();
   app.setGlobalPrefix('api');
 
+  const expressApp = app.getHttpAdapter().getInstance() as unknown as Express;
   const healthPayload = () => getRuntimeHealthPayload(process.env);
-  app.getHttpAdapter().get('/', (_req, res) => res.json(healthPayload()));
-  app.getHttpAdapter().get('/api', (_req, res) => res.json(healthPayload()));
-  app
-    .getHttpAdapter()
-    .get('/api/health', (_req, res) => res.json(healthPayload()));
+  expressApp.get('/', (_req, res) => res.json(healthPayload()));
+  expressApp.get('/api', (_req, res) => res.json(healthPayload()));
+  expressApp.get('/api/health', (_req, res) => res.json(healthPayload()));
 
   // ✅ Enable cookie parsing (CRITICAL for auth to work)
   app.use(cookieParser());
+  configureBodyParsing(expressApp);
 
   // ✅ CORS must allow credentials for cookies
   app.enableCors(buildCorsOptions(process.env));
@@ -59,3 +68,36 @@ async function bootstrap() {
 }
 
 void bootstrap();
+
+function configureBodyParsing(expressApp: {
+  use: (...args: unknown[]) => void;
+}) {
+  const stripeWebhookPath = '/api/billing/stripe/webhook';
+  const jsonParser = json({ limit: '1mb' });
+  const urlencodedParser = urlencoded({ extended: true, limit: '1mb' });
+
+  expressApp.use(
+    stripeWebhookPath,
+    raw({ type: 'application/json', limit: '2mb' }),
+  );
+
+  expressApp.use((req: Request, res: Response, next: NextFunction) => {
+    if (isStripeWebhookRequest(req, stripeWebhookPath)) {
+      return next();
+    }
+
+    return jsonParser(req, res, next);
+  });
+
+  expressApp.use((req: Request, res: Response, next: NextFunction) => {
+    if (isStripeWebhookRequest(req, stripeWebhookPath)) {
+      return next();
+    }
+
+    return urlencodedParser(req, res, next);
+  });
+}
+
+function isStripeWebhookRequest(req: Request, stripeWebhookPath: string) {
+  return (req.originalUrl ?? req.url).split('?')[0] === stripeWebhookPath;
+}

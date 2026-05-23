@@ -131,13 +131,13 @@ type CustomerOption = {
 
 type SearchParams = Promise<{
   tab?:
-    | "overview"
-    | "branding"
-    | "users"
-    | "subscription"
-    | "invoices"
-    | "settings"
-    | "audit";
+  | "overview"
+  | "branding"
+  | "users"
+  | "subscription"
+  | "invoices"
+  | "settings"
+  | "audit";
   edit?: string;
 }>;
 
@@ -217,7 +217,55 @@ export default async function TenantDetailPage({
 
       <StatusPipeline
         current={String(tenant.status)}
-        steps={["ONBOARDING", "ACTIVE", "SUSPENDED", "ARCHIVED"]}
+        stages={[
+          {
+            key: "ONBOARDING",
+            label: "Onboarding",
+            description: "Tenant record created and setup is in progress.",
+            requiredFields: [
+              "Customer account",
+              "Tenant owner",
+              "Subscription plan",
+              "Enabled features",
+            ],
+            completedFields: [
+              ...(tenant.customerAccount ? ["Customer account"] : []),
+              ...(tenant.owner ? ["Tenant owner"] : []),
+              ...(tenant.subscription ? ["Subscription plan"] : []),
+              ...(enabledFeatures.length > 0 ? ["Enabled features"] : []),
+            ],
+          },
+          {
+            key: "ACTIVE",
+            label: "Active",
+            description: "Tenant is live and users can access the platform.",
+            requiredFields: ["Tenant slug", "Tenant owner", "Active subscription"],
+            completedFields: [
+              ...(tenant.slug ? ["Tenant slug"] : []),
+              ...(tenant.owner ? ["Tenant owner"] : []),
+              ...(tenant.subscription?.status === "ACTIVE"
+                ? ["Active subscription"]
+                : []),
+            ],
+          },
+          {
+            key: "SUSPENDED",
+            label: "Suspended",
+            description: "Access is restricted due to billing or admin action.",
+            status:
+              tenant.status === "SUSPENDED"
+                ? "current"
+                : tenant.status === "ARCHIVED"
+                  ? "completed"
+                  : "pending",
+          },
+          {
+            key: "ARCHIVED",
+            label: "Archived",
+            description: "Tenant is retired and no longer operational.",
+            locked: tenant.status !== "ARCHIVED",
+          },
+        ]}
       />
 
       <SummaryCards>
