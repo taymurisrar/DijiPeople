@@ -8,10 +8,18 @@ import {
   PlatformUserStatus,
   Prisma,
   PrismaClient,
+  type CustomizationFieldDataType,
+  type CustomizationSolutionComponentType,
 } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { NOTIFICATION_EVENT_CATALOG } from '../src/modules/notifications/notification-events.catalog';
 import { buildTenantNotificationScopeKey } from '../src/modules/notifications/notifications.constants';
+import {
+  isDesignerColumn,
+  isViewDesignerColumn,
+  SYSTEM_CUSTOMIZATION_TABLE_KEYS,
+  SYSTEM_CUSTOMIZATION_TABLES,
+} from '../src/modules/customization/customization.registry';
 
 loadEnv({ path: resolve(__dirname, '../.env') });
 loadEnv();
@@ -173,12 +181,14 @@ async function main() {
   const settingCount = await seedTenantNotificationSettings(prisma, tenants);
   const providerCount = await seedTenantConsoleProviders(prisma, tenants);
   const leaveTypeCount = await seedTenantLeaveTypes(prisma, tenants);
+  const metadataCount = await seedTenantDefaultSolutions(prisma, tenants);
 
   console.log(`Email templates created/updated: ${templateCount}`);
   console.log(`Notification preferences created/updated: ${preferenceCount}`);
   console.log(`Notification settings created/updated: ${settingCount}`);
   console.log(`Console providers created/updated: ${providerCount}`);
   console.log(`Leave types created/updated: ${leaveTypeCount}`);
+  console.log(`Default solution metadata components synced: ${metadataCount}`);
   console.log('Config seed completed successfully.');
 }
 
@@ -206,6 +216,373 @@ export async function seedPlatformSuperAdmin(client: PrismaClient) {
   });
 
   console.log(`Platform super admin ensured: ${email}`);
+}
+
+async function seedTenantDefaultSolutions(
+  client: PrismaClient,
+  tenants: TenantSeedTarget[],
+) {
+  let componentCount = 0;
+  for (const tenant of tenants) {
+    const solution = await client.customizationSolution.upsert({
+      where: {
+        tenantId_solutionKey: {
+          tenantId: tenant.id,
+          solutionKey: 'default',
+        },
+      },
+      create: {
+        tenantId: tenant.id,
+        solutionKey: 'default',
+        displayName: 'Default Solution',
+        description:
+          'Built-in tenant solution containing all system and custom metadata components.',
+        scope: 'tenant',
+        isDefault: true,
+        isSystem: true,
+        isManaged: false,
+        isActive: true,
+      },
+      update: {
+        displayName: 'Default Solution',
+        isDefault: true,
+        isSystem: true,
+        isActive: true,
+      },
+    });
+
+    const hiddenSystemTables = await client.customizationTable.findMany({
+      where: {
+        tenantId: tenant.id,
+        isSystem: true,
+        tableKey: { notIn: [...SYSTEM_CUSTOMIZATION_TABLE_KEYS] },
+      },
+      select: { id: true },
+    });
+    const hiddenSystemTableIds = hiddenSystemTables.map((table) => table.id);
+    await client.customizationTable.updateMany({
+      where: {
+        tenantId: tenant.id,
+        isSystem: true,
+        tableKey: { notIn: [...SYSTEM_CUSTOMIZATION_TABLE_KEYS] },
+      },
+      data: {
+        isVisibleInCustomization: false,
+        isValidForAdvancedFind: false,
+        isValidForFormDesigner: false,
+        isValidForViewDesigner: false,
+        isActive: false,
+      },
+    });
+    if (hiddenSystemTableIds.length > 0) {
+      await Promise.all([
+        client.customizationColumn.updateMany({
+          where: {
+            tenantId: tenant.id,
+            tableId: { in: hiddenSystemTableIds },
+            isSystem: true,
+          },
+          data: {
+            isVisible: false,
+            isVisibleInCustomization: false,
+            isValidForFormDesigner: false,
+            isValidForViewDesigner: false,
+            isActive: false,
+          },
+        }),
+        client.customizationForm.updateMany({
+          where: {
+            tenantId: tenant.id,
+            tableId: { in: hiddenSystemTableIds },
+            isSystem: true,
+          },
+          data: { isActive: false },
+        }),
+        client.customizationView.updateMany({
+          where: {
+            tenantId: tenant.id,
+            tableId: { in: hiddenSystemTableIds },
+            isSystem: true,
+          },
+          data: { isHidden: true },
+        }),
+      ]);
+    }
+
+    for (const definition of SYSTEM_CUSTOMIZATION_TABLES) {
+      const table = await client.customizationTable.upsert({
+        where: {
+          tenantId_tableKey: {
+            tenantId: tenant.id,
+            tableKey: definition.tableKey,
+          },
+        },
+        create: {
+          tenantId: tenant.id,
+          tableKey: definition.tableKey,
+          systemName: definition.systemName,
+          displayName: definition.displayName,
+          pluralDisplayName: definition.pluralName,
+          description: definition.description,
+          icon: definition.icon,
+          moduleKey: definition.moduleKey,
+          ownershipType: definition.ownershipType,
+          displayOrder: definition.displayOrder,
+          isSystem: true,
+          isCustom: false,
+          isCustomizable: definition.isCustomizable,
+          isVisibleInCustomization: definition.isVisibleInCustomization,
+          isValidForAdvancedFind: definition.isValidForAdvancedFind,
+          isValidForFormDesigner: definition.isValidForFormDesigner,
+          isValidForViewDesigner: definition.isValidForViewDesigner,
+          isActive: true,
+        },
+        update: {
+          isSystem: true,
+          isCustom: false,
+          moduleKey: definition.moduleKey,
+          ownershipType: definition.ownershipType,
+          displayOrder: definition.displayOrder,
+          isCustomizable: definition.isCustomizable,
+          isVisibleInCustomization: definition.isVisibleInCustomization,
+          isValidForAdvancedFind: definition.isValidForAdvancedFind,
+          isValidForFormDesigner: definition.isValidForFormDesigner,
+          isValidForViewDesigner: definition.isValidForViewDesigner,
+          isActive: true,
+        },
+      });
+
+      await upsertSolutionComponent(client, tenant.id, solution.id, {
+        componentType: 'table',
+        objectId: table.id,
+        objectKey: table.tableKey,
+        tableId: table.id,
+        isSystem: true,
+        isCustom: false,
+      });
+      componentCount += 1;
+
+      for (const [index, column] of definition.columns.entries()) {
+        const row = await client.customizationColumn.upsert({
+          where: {
+            tenantId_tableId_columnKey: {
+              tenantId: tenant.id,
+              tableId: table.id,
+              columnKey: column.columnKey,
+            },
+          },
+          create: {
+            tenantId: tenant.id,
+            tableId: table.id,
+            columnKey: column.columnKey,
+            systemName: column.columnKey,
+            displayName: column.displayName,
+            dataType: column.dataType as CustomizationFieldDataType,
+            fieldType: column.dataType as CustomizationFieldDataType,
+            isSystem: true,
+            isCustom: false,
+            isActive: true,
+            isRequired: column.isRequired ?? false,
+            isSearchable: column.isSearchable ?? false,
+            isFilterable: column.isFilterable ?? true,
+            isSortable: column.isSortable ?? true,
+            isVisible: column.isVisible ?? true,
+            isVisibleInCustomization: column.isVisibleInCustomization ?? true,
+            isValidForFormDesigner: column.isValidForFormDesigner ?? true,
+            isValidForViewDesigner: column.isValidForViewDesigner ?? true,
+            isReadOnly: column.isReadOnly ?? true,
+            sortOrder: column.sortOrder ?? index * 10,
+          },
+          update: {
+            isSystem: true,
+            isCustom: false,
+            displayName: column.displayName,
+            isRequired: column.isRequired ?? false,
+            isSearchable: column.isSearchable ?? false,
+            isFilterable: column.isFilterable ?? true,
+            isSortable: column.isSortable ?? true,
+            isVisible: column.isVisible ?? true,
+            isVisibleInCustomization: column.isVisibleInCustomization ?? true,
+            isValidForFormDesigner: column.isValidForFormDesigner ?? true,
+            isValidForViewDesigner: column.isValidForViewDesigner ?? true,
+            isReadOnly: column.isReadOnly ?? true,
+            sortOrder: column.sortOrder ?? index * 10,
+          },
+        });
+        await upsertSolutionComponent(client, tenant.id, solution.id, {
+          componentType: 'column',
+          objectId: row.id,
+          objectKey: `${table.tableKey}.${row.columnKey}`,
+          tableId: table.id,
+          isSystem: true,
+          isCustom: false,
+        });
+        componentCount += 1;
+      }
+
+      const columns = await client.customizationColumn.findMany({
+        where: {
+          tenantId: tenant.id,
+          tableId: table.id,
+          isVisible: true,
+          isVisibleInCustomization: true,
+        },
+        orderBy: [{ sortOrder: 'asc' }, { columnKey: 'asc' }],
+      });
+      const formColumns = columns.filter(isDesignerColumn);
+      const viewColumns = columns.filter(isViewDesignerColumn);
+      const form = await client.customizationForm.upsert({
+        where: {
+          tenantId_tableId_formKey: {
+            tenantId: tenant.id,
+            tableId: table.id,
+            formKey: 'main',
+          },
+        },
+        create: {
+          tenantId: tenant.id,
+          tableId: table.id,
+          formKey: 'main',
+          name: `${table.displayName} Main Form`,
+          description: `Default system form for ${table.displayName}.`,
+          type: 'main',
+          isDefault: true,
+          isActive: true,
+          isSystem: true,
+          isCustom: false,
+          layoutJson: buildSeedFormLayout(table.tableKey, formColumns),
+        },
+        update: { isSystem: true, isCustom: false },
+      });
+      await upsertSolutionComponent(client, tenant.id, solution.id, {
+        componentType: 'form',
+        objectId: form.id,
+        objectKey: `${table.tableKey}.${form.formKey}`,
+        tableId: table.id,
+        isSystem: true,
+        isCustom: false,
+      });
+      componentCount += 1;
+
+      const view = await client.customizationView.upsert({
+        where: {
+          tenantId_tableId_viewKey: {
+            tenantId: tenant.id,
+            tableId: table.id,
+            viewKey: 'active',
+          },
+        },
+        create: {
+          tenantId: tenant.id,
+          tableId: table.id,
+          viewKey: 'active',
+          name: `Active ${table.pluralDisplayName}`,
+          description: `Default active ${table.pluralDisplayName} view.`,
+          type: 'system',
+          isDefault: true,
+          isHidden: false,
+          isSystem: true,
+          isCustom: false,
+          columnsJson: viewColumns.slice(0, 8).map((column, index) => ({
+            columnKey: column.columnKey,
+            label: column.displayName,
+            sequence: index * 10,
+          })),
+          filtersJson: [],
+          sortingJson: [],
+          visibilityScope: 'tenant',
+        },
+        update: { isSystem: true, isCustom: false },
+      });
+      await upsertSolutionComponent(client, tenant.id, solution.id, {
+        componentType: 'view',
+        objectId: view.id,
+        objectKey: `${table.tableKey}.${view.viewKey}`,
+        tableId: table.id,
+        isSystem: true,
+        isCustom: false,
+      });
+      componentCount += 1;
+    }
+  }
+  return componentCount;
+}
+
+async function upsertSolutionComponent(
+  client: PrismaClient,
+  tenantId: string,
+  solutionId: string,
+  component: {
+    componentType: CustomizationSolutionComponentType;
+    objectId: string;
+    objectKey: string;
+    tableId: string;
+    isSystem: boolean;
+    isCustom: boolean;
+  },
+) {
+  await client.customizationSolutionComponent.upsert({
+    where: {
+      solutionId_componentType_objectId: {
+        solutionId,
+        componentType: component.componentType,
+        objectId: component.objectId,
+      },
+    },
+    create: {
+      tenantId,
+      solutionId,
+      ...component,
+      isManaged: false,
+    },
+    update: {
+      objectKey: component.objectKey,
+      tableId: component.tableId,
+      isSystem: component.isSystem,
+      isCustom: component.isCustom,
+    },
+  });
+}
+
+function buildSeedFormLayout(
+  tableKey: string,
+  columns: Array<{
+    columnKey: string;
+    displayName: string;
+    isRequired: boolean;
+    isReadOnly: boolean;
+    isVisible: boolean;
+  }>,
+): Prisma.InputJsonValue {
+  return {
+    tabs: [
+      {
+        id: 'summary',
+        label: 'Summary',
+        sequence: 10,
+        sections: [
+          {
+            id: 'general',
+            label: 'General',
+            labelVisible: true,
+            columns: 2,
+            layout: 'twoColumns',
+            isVisible: true,
+            sequence: 10,
+            fields: columns.slice(0, 24).map((column, index) => ({
+              columnKey: column.columnKey,
+              label: column.displayName,
+              required: column.isRequired,
+              readOnly: column.isReadOnly,
+              isVisible: column.isVisible,
+              sequence: index * 10,
+            })),
+          },
+        ],
+      },
+    ],
+    metadata: { tableKey, generatedBy: 'seed-config' },
+  };
 }
 
 export async function seedNotificationConfig(client: PrismaClient) {

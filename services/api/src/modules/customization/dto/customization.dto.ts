@@ -120,6 +120,18 @@ export class CreateCustomizationColumnDto {
 
   @IsOptional()
   @IsBoolean()
+  isVisibleInCustomization?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isValidForFormDesigner?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isValidForViewDesigner?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
   isSearchable?: boolean;
 
   @IsOptional()
@@ -191,6 +203,18 @@ export class UpdateCustomizationColumnDto {
   @IsOptional()
   @IsBoolean()
   isVisible?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isVisibleInCustomization?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isValidForFormDesigner?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isValidForViewDesigner?: boolean;
 
   @IsOptional()
   @IsBoolean()

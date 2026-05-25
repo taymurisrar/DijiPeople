@@ -53,123 +53,128 @@ export function ViewsManagement({
   );
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const designerColumns = useMemo(
+    () =>
+      columns.filter(
+        (column) =>
+          column.isVisible &&
+          column.isVisibleInCustomization !== false &&
+          column.isValidForViewDesigner !== false,
+      ),
+    [columns],
+  );
 
-  // eslint-disable-next-line react-hooks/preserve-manual-memoization
-  const tableColumns = useMemo<DataTableColumn<CustomizationView>[]>(
-    () => [
-      {
-        key: "name",
-        header: "Name",
-        sortable: true,
-        sortAccessor: (row) => row.name,
-        render: (row) => (
-          <div>
-            <p className="font-semibold text-foreground">{row.name}</p>
-            <p className="mt-1 text-xs text-muted">{row.viewKey}</p>
-          </div>
-        ),
-      },
-      {
-        key: "type",
-        header: "Type",
-        render: (row) => (
-          <StatusPill tone={row.type === "system" ? "muted" : "neutral"}>
-            {row.type}
-          </StatusPill>
-        ),
-      },
-      {
-        key: "default",
-        header: "Default",
-        render: (row) => (row.isDefault ? "Yes" : "No"),
-      },
-      {
-        key: "hidden",
-        header: "Status",
-        render: (row) => (
-          <StatusPill tone={row.isHidden ? "muted" : "good"}>
-            {row.isHidden ? "Hidden" : "Visible"}
-          </StatusPill>
-        ),
-      },
-      {
-        key: "columns",
-        header: "Columns",
-        sortable: true,
-        sortAccessor: (row) => getViewColumnKeys(row).length,
-        render: (row) => getViewColumnKeys(row).length,
-      },
-      {
-        key: "filters",
-        header: "Filters",
-        render: (row) => summarizeJson(row.filtersJson),
-      },
-      {
-        key: "sorting",
-        header: "Sorting",
-        render: (row) => summarizeJson(row.sortingJson),
-      },
-      {
-        key: "actions",
-        header: "Actions",
-        render: (row) => (
-          <div className="flex flex-wrap gap-2">
-            <PermissionGate anyOf={["customization.views.update"]}>
+  const tableColumns: DataTableColumn<CustomizationView>[] = [
+    {
+      key: "name",
+      header: "Name",
+      sortable: true,
+      sortAccessor: (row) => row.name,
+      render: (row) => (
+        <div>
+          <p className="font-semibold text-foreground">{row.name}</p>
+          <p className="mt-1 text-xs text-muted">{row.viewKey}</p>
+        </div>
+      ),
+    },
+    {
+      key: "type",
+      header: "Type",
+      render: (row) => (
+        <StatusPill tone={row.type === "system" ? "muted" : "neutral"}>
+          {row.type}
+        </StatusPill>
+      ),
+    },
+    {
+      key: "default",
+      header: "Default",
+      render: (row) => (row.isDefault ? "Yes" : "No"),
+    },
+    {
+      key: "hidden",
+      header: "Status",
+      render: (row) => (
+        <StatusPill tone={row.isHidden ? "muted" : "good"}>
+          {row.isHidden ? "Hidden" : "Visible"}
+        </StatusPill>
+      ),
+    },
+    {
+      key: "columns",
+      header: "Columns",
+      sortable: true,
+      sortAccessor: (row) => getViewColumnKeys(row).length,
+      render: (row) => getViewColumnKeys(row).length,
+    },
+    {
+      key: "filters",
+      header: "Filters",
+      render: (row) => summarizeJson(row.filtersJson),
+    },
+    {
+      key: "sorting",
+      header: "Sorting",
+      render: (row) => summarizeJson(row.sortingJson),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      render: (row) => (
+        <div className="flex flex-wrap gap-2">
+          <PermissionGate anyOf={["customization.views.update"]}>
+            <Button
+              href={`/settings/customization/tables/${table.tableKey}/views/${row.viewKey}/designer`}
+              leftIcon={<Edit3 className="h-4 w-4" />}
+              size="sm"
+              variant="secondary"
+            >
+              Designer
+            </Button>
+            <Button
+              leftIcon={
+                row.isHidden ? (
+                  <Eye className="h-4 w-4" />
+                ) : (
+                  <EyeOff className="h-4 w-4" />
+                )
+              }
+              onClick={() => toggleHidden(row)}
+              size="sm"
+              type="button"
+              variant="ghost"
+            >
+              {row.isHidden ? "Unhide" : "Hide"}
+            </Button>
+            {!row.isDefault ? (
               <Button
-                leftIcon={<Edit3 className="h-4 w-4" />}
-                onClick={() => openEdit(row)}
-                size="sm"
-                type="button"
-                variant="secondary"
-              >
-                Edit
-              </Button>
-              <Button
-                leftIcon={
-                  row.isHidden ? (
-                    <Eye className="h-4 w-4" />
-                  ) : (
-                    <EyeOff className="h-4 w-4" />
-                  )
-                }
-                onClick={() => toggleHidden(row)}
+                leftIcon={<Star className="h-4 w-4" />}
+                onClick={() => setDefault(row)}
                 size="sm"
                 type="button"
                 variant="ghost"
               >
-                {row.isHidden ? "Unhide" : "Hide"}
+                Default
               </Button>
-              {!row.isDefault ? (
-                <Button
-                  leftIcon={<Star className="h-4 w-4" />}
-                  onClick={() => setDefault(row)}
-                  size="sm"
-                  type="button"
-                  variant="ghost"
-                >
-                  Default
-                </Button>
-              ) : null}
-            </PermissionGate>
-            {row.type !== "system" ? (
-              <PermissionGate anyOf={["customization.views.delete"]}>
-                <Button
-                  leftIcon={<Trash2 className="h-4 w-4" />}
-                  onClick={() => setDeleteTarget(row)}
-                  size="sm"
-                  type="button"
-                  variant="danger"
-                >
-                  Delete
-                </Button>
-              </PermissionGate>
             ) : null}
-          </div>
-        ),
-      },
-    ],
-    [],
-  );
+          </PermissionGate>
+          {row.type !== "system" ? (
+            <PermissionGate anyOf={["customization.views.delete"]}>
+              <Button
+                leftIcon={<Trash2 className="h-4 w-4" />}
+                onClick={() => setDeleteTarget(row)}
+                size="sm"
+                type="button"
+                variant="danger"
+              >
+                Delete
+              </Button>
+            </PermissionGate>
+          ) : null}
+        </div>
+      ),
+    },
+  ];
 
   function openCreate() {
     setError(null);
@@ -181,28 +186,9 @@ export function ViewsManagement({
       type: "custom",
       isDefault: views.length === 0,
       isHidden: false,
-      selectedColumns: columns
-        .filter((column) => column.isVisible)
-        .map((column) => column.columnKey),
+      selectedColumns: designerColumns.map((column) => column.columnKey),
       filtersText: "",
       sortingText: "",
-    });
-  }
-
-  function openEdit(view: CustomizationView) {
-    setError(null);
-    setForm({
-      mode: "edit",
-      original: view,
-      viewKey: view.viewKey,
-      name: view.name,
-      description: view.description ?? "",
-      type: view.type,
-      isDefault: view.isDefault,
-      isHidden: view.isHidden,
-      selectedColumns: getViewColumnKeys(view),
-      filtersText: stringifyJson(view.filtersJson),
-      sortingText: stringifyJson(view.sortingJson),
     });
   }
 
@@ -250,7 +236,11 @@ export function ViewsManagement({
 
   async function toggleHidden(view: CustomizationView) {
     const action = view.isHidden ? "unhide" : "hide";
-    const errorMessage = await postViewAction(table.tableKey, view.viewKey, action);
+    const errorMessage = await postViewAction(
+      table.tableKey,
+      view.viewKey,
+      action,
+    );
     if (errorMessage) {
       setError(errorMessage);
       return;
@@ -411,7 +401,7 @@ export function ViewsManagement({
                 Visible columns
               </p>
               <div className="mt-3 grid gap-2 md:grid-cols-2">
-                {columns.map((column) => (
+                {designerColumns.map((column) => (
                   <CheckboxField
                     checked={form.selectedColumns.includes(column.columnKey)}
                     key={column.columnKey}
@@ -493,11 +483,16 @@ async function postViewAction(
   viewKey: string,
   action: "hide" | "unhide" | "set-default",
 ) {
-  const response = await fetch(`/api/customization/tables/${tableKey}/views/${viewKey}/${action}`, {
-    method: "POST",
-  });
+  const response = await fetch(
+    `/api/customization/tables/${tableKey}/views/${viewKey}/${action}`,
+    {
+      method: "POST",
+    },
+  );
   if (response.ok) return null;
-  const data = (await response.json().catch(() => ({}))) as { message?: string };
+  const data = (await response.json().catch(() => ({}))) as {
+    message?: string;
+  };
   return data.message ?? "Unable to update view.";
 }
 
@@ -576,7 +571,8 @@ function getViewColumnKeys(view: CustomizationView) {
 function extractColumnKey(value: unknown) {
   if (typeof value === "string") return [value];
   if (value && typeof value === "object") {
-    const key = (value as { columnKey?: unknown; fieldKey?: unknown }).columnKey;
+    const key = (value as { columnKey?: unknown; fieldKey?: unknown })
+      .columnKey;
     return typeof key === "string" ? [key] : [];
   }
   return [];
@@ -592,11 +588,4 @@ function summarizeJson(value: unknown) {
     return "Configured";
   }
   return "Configured";
-}
-
-function stringifyJson(value: unknown) {
-  if (!value) return "";
-  if (Array.isArray(value) && value.length === 0) return "";
-  if (typeof value === "object" && Object.keys(value).length === 0) return "";
-  return JSON.stringify(value, null, 2);
 }

@@ -140,6 +140,7 @@ export function EmployeeForm({
     key: Key,
     value: EmployeeFormValues[Key],
   ) {
+    if (runtimeForm.isReadOnly(String(key))) return;
     setForm((current) => ({ ...current, [key]: value }));
 
     if (["personalEmail", "phone", "cnic", "workEmail"].includes(String(key))) {
@@ -172,6 +173,9 @@ export function EmployeeForm({
     if (!form.lastName.trim()) return "Last name is required.";
     if (!form.phone.trim()) return "Phone is required.";
     if (!form.hireDate) return "Hire date is required.";
+
+    const dynamicRequiredError = runtimeForm.validateRequired(form);
+    if (dynamicRequiredError) return dynamicRequiredError;
 
     if (settings?.requireDepartment && !form.departmentId.trim()) {
       return "Department is required by tenant employee settings.";
@@ -1186,12 +1190,36 @@ function buildRuntimeFormState(layout?: RuntimeFormLayout | null) {
       .map((field) => field.columnKey) ?? [];
 
   const visibleFields = new Set(fields.flatMap(expandEmployeeFieldAlias));
+  const fieldConfigByKey = new Map(
+    (layout?.tabs ?? [])
+      .flatMap((tab) => tab.sections ?? [])
+      .flatMap((section) => section.fields ?? [])
+      .filter((field) => field.isVisible !== false)
+      .flatMap((field) =>
+        expandEmployeeFieldAlias(field.columnKey).map(
+          (fieldKey) => [fieldKey, field] as const,
+        ),
+      ),
+  );
   const isCustomized = visibleFields.size > 0;
 
   return {
     isCustomized,
     showField(fieldKey: string) {
       return !isCustomized || visibleFields.has(fieldKey);
+    },
+    isReadOnly(fieldKey: string) {
+      return Boolean(fieldConfigByKey.get(fieldKey)?.readOnly);
+    },
+    validateRequired(values: EmployeeFormValues) {
+      for (const [fieldKey, field] of fieldConfigByKey.entries()) {
+        if (!field.required) continue;
+        const value = values[fieldKey as keyof EmployeeFormValues];
+        if (value === null || value === undefined || value === "") {
+          return `${field.label ?? fieldKey} is required.`;
+        }
+      }
+      return null;
     },
     showSection(sectionTitle: string) {
       if (!isCustomized) return true;

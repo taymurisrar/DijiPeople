@@ -122,7 +122,7 @@ export class EnterpriseConfigurationService {
       );
       return calendar;
     } catch (error) {
-      handleUniqueError(error, 'Holiday calendar code or name already exists.');
+      handleHolidayCalendarWriteError(error);
     }
   }
 
@@ -198,7 +198,7 @@ export class EnterpriseConfigurationService {
       );
       return calendar;
     } catch (error) {
-      handleUniqueError(error, 'Holiday calendar code or name already exists.');
+      handleHolidayCalendarWriteError(error);
     }
   }
 
@@ -1528,12 +1528,22 @@ function expandHolidayOccurrence(
   return occurrences;
 }
 
-function handleUniqueError(error: unknown, message: string): never {
+function handleHolidayCalendarWriteError(error: unknown): never {
   if (
     error instanceof Prisma.PrismaClientKnownRequestError &&
     error.code === 'P2002'
   ) {
-    throw new ConflictException(message);
+    throw new ConflictException(
+      'Holiday calendar code or name already exists.',
+    );
+  }
+  if (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === 'P2011'
+  ) {
+    throw new BadRequestException(
+      'Holiday calendar date storage is not up to date. Apply the latest database migrations and try again.',
+    );
   }
   throw error;
 }

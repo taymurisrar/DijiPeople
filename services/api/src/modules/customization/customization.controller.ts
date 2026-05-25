@@ -51,6 +51,12 @@ export class CustomizationController {
     return this.customizationService.getPublished(user);
   }
 
+  @Get('default-solution')
+  @Permissions('customization.read')
+  getDefaultSolution(@CurrentUser() user: AuthenticatedUser) {
+    return this.customizationService.getDefaultSolution(user);
+  }
+
   @Get('publish-history')
   @Permissions('customization.read')
   getPublishHistory(@CurrentUser() user: AuthenticatedUser) {

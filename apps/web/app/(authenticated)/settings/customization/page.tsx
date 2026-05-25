@@ -1,14 +1,22 @@
-import { ArrowRight, Database, FormInput, LayoutList, Table2 } from "lucide-react";
+import {
+  ArrowRight,
+  Database,
+  FormInput,
+  LayoutList,
+  Table2,
+} from "lucide-react";
 import { apiRequestJson } from "@/lib/server-api";
 import { Button } from "@/app/components/ui/button";
 import { SectionCard } from "@/app/components/ui/section-card";
 import { SettingsShell } from "../_components/settings-shell";
 import { requireSettingsPermissions } from "../_lib/require-settings-permission";
 import {
+  DefaultSolution,
   CustomizationPublishHistoryItem,
   CustomizationSummary,
 } from "./types";
 import { PublishPanel } from "./_components/publish-panel";
+import { DefaultSolutionBrowser } from "./_components/default-solution-browser";
 
 const quickLinks = [
   {
@@ -32,7 +40,8 @@ const quickLinks = [
   {
     href: "/settings/customization/forms",
     title: "Forms",
-    description: "Manage form metadata for main, quick, create, and edit forms.",
+    description:
+      "Manage form metadata for main, quick, create, and edit forms.",
     icon: FormInput,
   },
 ];
@@ -45,6 +54,9 @@ export default async function CustomizationOverviewPage() {
       "/customization/publish-history",
     ).catch(() => []),
   ]);
+  const solution = await apiRequestJson<DefaultSolution>(
+    "/customization/default-solution",
+  );
 
   return (
     <SettingsShell
@@ -58,6 +70,8 @@ export default async function CustomizationOverviewPage() {
         <Metric label="Tenant columns" value={summary.tenantColumns} />
         <Metric label="Published versions" value={summary.publishSnapshots} />
       </section>
+
+      <DefaultSolutionBrowser solution={solution} />
 
       <SectionCard
         description="This phase intentionally supports metadata customization for existing modules only. Custom tables can be introduced later without changing this workspace pattern."

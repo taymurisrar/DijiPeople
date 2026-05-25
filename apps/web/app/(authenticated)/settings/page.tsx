@@ -386,7 +386,7 @@ function SettingsCard({
         {item.label}
       </h3>
 
-      <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-500">
+      <p className="mt-2 line-clamp-3 text-xs leading-6 text-slate-500">
         {item.description}
       </p>
 

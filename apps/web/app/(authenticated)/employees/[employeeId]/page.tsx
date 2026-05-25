@@ -29,7 +29,9 @@ import type {
 import { TerminateEmployeeButton } from "../_components/terminate-employee-button";
 import { EmployeesCommandBar } from "../_components/employees-command-bar";
 import { Button } from "@/app/components/ui/button";
+import { RuntimeMetadataFormRenderer } from "@/app/components/metadata/runtime-metadata-form-renderer";
 import { AccessDeniedState } from "@/app/(authenticated)/_components/access-denied-state";
+import { getTableForms } from "@/lib/customization-forms";
 import {
   EmployeeCompensationHistoryRecord,
   EmployeeListResponse,
@@ -88,15 +90,15 @@ const employeeTabs: readonly EmployeeTabConfig[] = [
   { key: "documents", label: "Documents" },
   { key: "education", label: "Education" },
   {
-  key: "agent",
-  label: "Agent",
-  requiredAnyPermissions: [PERMISSION_KEYS.ATTENDANCE_READ],
-},
+    key: "agent",
+    label: "Agent",
+    requiredAnyPermissions: [PERMISSION_KEYS.ATTENDANCE_READ],
+  },
 ] as const;
 
 type EmployeeDetailPageProps = {
   params: Promise<{ employeeId: string }>;
-  searchParams?: Promise<{ tab?: string }>;
+  searchParams?: Promise<{ form?: string; tab?: string }>;
 };
 type AttendanceHistoryEntry = {
   id: string;
@@ -202,6 +204,7 @@ export default async function EmployeeDetailPage({
   )
     ? (resolvedSearchParams.tab as EmployeeTabConfig["key"])
     : "overview";
+  const selectedFormKey = resolvedSearchParams.form ?? "";
 
   const sessionUser = await getSessionUser();
 
@@ -238,9 +241,10 @@ export default async function EmployeeDetailPage({
   let resolvedSettings: TenantResolvedSettingsResponse | null = null;
 
   try {
-    employee = await apiRequestJson<EmployeeProfile>(`/employees/${employeeId}`);
-    [reportingStructure, managers, resolvedSettings] =
-      await Promise.all([
+    employee = await apiRequestJson<EmployeeProfile>(
+      `/employees/${employeeId}`,
+    );
+    [reportingStructure, managers, resolvedSettings] = await Promise.all([
       apiRequestJson<ReportingStructureResponse>(
         `/employees/${employeeId}/reporting-structure`,
       ).catch(() => reportingStructure),
@@ -261,14 +265,14 @@ export default async function EmployeeDetailPage({
     ) {
       return (
         <main className="dp-theme-scope dp-employees-scope grid gap-6">
-<AccessDeniedState
-  description={
-    error instanceof ApiRequestError
-      ? `${error.status}: ${error.message}`
-      : "This employee record is outside your accessible business-unit scope."
-  }
-  title="You cannot view this employee record."
-/>
+          <AccessDeniedState
+            description={
+              error instanceof ApiRequestError
+                ? `${error.status}: ${error.message}`
+                : "This employee record is outside your accessible business-unit scope."
+            }
+            title="You cannot view this employee record."
+          />
         </main>
       );
     }
@@ -322,12 +326,12 @@ export default async function EmployeeDetailPage({
       ])
         ? apiRequestJson<PayComponentRecord[]>("/pay-components?isActive=true")
         : Promise.resolve([]),
-        activeTab === "agent" &&
-sessionUser.permissionKeys.includes(PERMISSION_KEYS.ATTENDANCE_READ)
-  ? apiRequestJson<EmployeeAgentSummaryResponse>(
-      `/agent/employees/${employeeId}/summary`,
-    )
-  : Promise.resolve(null),
+      activeTab === "agent" &&
+      sessionUser.permissionKeys.includes(PERMISSION_KEYS.ATTENDANCE_READ)
+        ? apiRequestJson<EmployeeAgentSummaryResponse>(
+            `/agent/employees/${employeeId}/summary`,
+          )
+        : Promise.resolve(null),
     ]);
   } catch (error: unknown) {
     if (isUnauthorizedApiError(error)) {
@@ -393,12 +397,23 @@ sessionUser.permissionKeys.includes(PERMISSION_KEYS.ATTENDANCE_READ)
 
   const disallowedManagerIds = new Set([
     employee.id,
-    ...reportingStructure.directReports.map((directReport) => directReport.employeeId),
+    ...reportingStructure.directReports.map(
+      (directReport) => directReport.employeeId,
+    ),
   ]);
 
   const managerOptions = managers.items.filter(
     (candidate) => !disallowedManagerIds.has(candidate.id),
   );
+  const runtimeForms = await getTableForms("employees");
+  const overviewForms = runtimeForms.filter(
+    (form) => form.type === "main" || form.type === "edit",
+  );
+  const selectedRuntimeForm =
+    overviewForms.find((form) => form.formKey === selectedFormKey) ??
+    overviewForms.find((form) => form.isDefault) ??
+    overviewForms[0] ??
+    null;
   const formattingOptions = {
     dateFormat: resolvedSettings?.system.dateFormat || "MM/dd/yyyy",
     locale: resolvedSettings?.system.locale || "en-US",
@@ -516,6 +531,37 @@ sessionUser.permissionKeys.includes(PERMISSION_KEYS.ATTENDANCE_READ)
           <div className="grid gap-6 xl:grid-cols-[0.65fr_0.35fr]">
             <div className="grid gap-6">
               <OverviewGrid employee={employee} formatDate={formatDateValue} />
+              {selectedRuntimeForm ? (
+                <>
+                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-[20px] border border-accent/20 bg-accent-soft px-5 py-4">
+                    <p className="text-sm font-semibold text-accent">
+                      Active form: {selectedRuntimeForm.name}
+                    </p>
+                    {overviewForms.length > 1 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {overviewForms.map((form) => (
+                          <Button
+                            href={`/employees/${employee.id}?tab=overview&form=${form.formKey}`}
+                            key={form.formKey}
+                            size="sm"
+                            variant={
+                              form.formKey === selectedRuntimeForm.formKey
+                                ? "primary"
+                                : "secondary"
+                            }
+                          >
+                            {form.name}
+                          </Button>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                  <RuntimeMetadataFormRenderer
+                    form={selectedRuntimeForm}
+                    values={buildEmployeeMetadataValues(employee)}
+                  />
+                </>
+              ) : null}
               <ReportingStructureSection
                 canEdit={canEditVisibleProfile}
                 directReports={reportingStructure.directReports}
@@ -766,12 +812,12 @@ sessionUser.permissionKeys.includes(PERMISSION_KEYS.ATTENDANCE_READ)
           title="Timesheets"
         />
       ) : null}
-{activeTab === "agent" ? (
-<EmployeeAgentSection
-  agentSummary={agentSummary}
-  formattingOptions={formattingOptions}
-/>
-) : null}
+      {activeTab === "agent" ? (
+        <EmployeeAgentSection
+          agentSummary={agentSummary}
+          formattingOptions={formattingOptions}
+        />
+      ) : null}
       {activeTab === "history" ? (
         <EmployeeHistoryManager
           employeeId={employee.id}
@@ -969,6 +1015,59 @@ function DetailItem({ label, value }: { label: string; value: string }) {
       <dd className="mt-1 text-sm text-foreground">{value}</dd>
     </div>
   );
+}
+
+function buildEmployeeMetadataValues(employee: EmployeeProfile) {
+  return {
+    employeeCode: employee.employeeCode,
+    firstName: employee.firstName,
+    middleName: employee.middleName,
+    lastName: employee.lastName,
+    preferredName: employee.preferredName,
+    email: employee.workEmail,
+    workEmail: employee.workEmail,
+    personalEmail: employee.personalEmail,
+    phone: employee.phone,
+    alternatePhone: employee.alternatePhone,
+    dateOfBirth: employee.dateOfBirth,
+    gender: employee.gender,
+    maritalStatus: employee.maritalStatus,
+    nationalityCountryId: employee.nationalityCountryId,
+    nationality: employee.nationality,
+    cnic: employee.cnic,
+    bloodGroup: employee.bloodGroup,
+    employmentStatus: employee.employmentStatus,
+    employeeType: employee.employeeType,
+    workMode: employee.workMode,
+    contractType: employee.contractType,
+    hireDate: employee.hireDate,
+    confirmationDate: employee.confirmationDate,
+    probationEndDate: employee.probationEndDate,
+    terminationDate: employee.terminationDate,
+    managerEmployeeId: employee.reportingManagerEmployeeId,
+    departmentId: employee.departmentId,
+    designationId: employee.designationId,
+    locationId: employee.locationId,
+    userId: employee.userId,
+    noticePeriodDays: employee.noticePeriodDays,
+    taxIdentifier: employee.taxIdentifier,
+    addressLine1: employee.addressLine1,
+    addressLine2: employee.addressLine2,
+    countryId: employee.countryId,
+    stateProvinceId: employee.stateProvinceId,
+    cityId: employee.cityId,
+    postalCode: employee.postalCode,
+    emergencyContactName: employee.emergencyContactName,
+    emergencyContactRelationTypeId: employee.emergencyContactRelationTypeId,
+    emergencyContactRelation: employee.emergencyContactRelation,
+    emergencyContactPhone: employee.emergencyContactPhone,
+    emergencyContactAlternatePhone: employee.emergencyContactAlternatePhone,
+    reportingManagerEmployeeId: employee.reportingManagerEmployeeId,
+    department: employee.department?.name,
+    designation: employee.designation?.name,
+    location: employee.location?.name,
+    reportingManager: employee.reportingManager?.fullName,
+  };
 }
 
 function Metric({

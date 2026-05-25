@@ -21,6 +21,47 @@ export type CustomizationPublishHistoryItem = {
   createdAt: string;
 };
 
+export type DefaultSolutionComponentType =
+  | "table"
+  | "column"
+  | "form"
+  | "view"
+  | "optionSet"
+  | "lookup";
+
+export type DefaultSolutionComponent = {
+  id: string;
+  componentType: DefaultSolutionComponentType;
+  objectId: string;
+  objectKey: string;
+  tableKey: string | null;
+  tableDisplayName: string | null;
+  moduleKey: string | null;
+  moduleLabel: string | null;
+  displayName: string;
+  logicalName: string;
+  isSystem: boolean;
+  isCustom: boolean;
+  isManaged: boolean;
+  isActive: boolean;
+  isVisibleInCustomization: boolean;
+  isValidForFormDesigner: boolean;
+  isValidForViewDesigner: boolean;
+  updatedAt: string;
+};
+
+export type DefaultSolution = {
+  id: string;
+  solutionKey: string;
+  displayName: string;
+  description: string | null;
+  isDefault: boolean;
+  isManaged: boolean;
+  isSystem: boolean;
+  updatedAt: string;
+  components: DefaultSolutionComponent[];
+};
+
 export type CustomizationPublishValidationError = {
   scope: "table" | "column" | "view" | "form";
   tableKey?: string;
@@ -38,7 +79,13 @@ export type CustomizationTable = {
   pluralDisplayName: string;
   description: string | null;
   icon: string | null;
+  ownershipType?: string | null;
+  displayOrder?: number;
   isCustomizable: boolean;
+  isVisibleInCustomization?: boolean;
+  isValidForAdvancedFind?: boolean;
+  isValidForFormDesigner?: boolean;
+  isValidForViewDesigner?: boolean;
   isEnabled: boolean;
   isActive: boolean;
   isSystem?: boolean;
@@ -65,6 +112,9 @@ export type CustomizationColumn = {
   isFilterable?: boolean;
   isSortable: boolean;
   isVisible: boolean;
+  isVisibleInCustomization?: boolean;
+  isValidForFormDesigner?: boolean;
+  isValidForViewDesigner?: boolean;
   isReadOnly: boolean;
   maxLength: number | null;
   minValue?: number | string | null;
@@ -101,6 +151,8 @@ export type CustomizationForm = {
   type: "main" | "quick" | "create" | "edit";
   isDefault: boolean;
   isActive: boolean;
+  isSystem?: boolean;
+  isCustom?: boolean;
   layoutJson?: FormLayoutJson;
 };
 
@@ -110,6 +162,7 @@ export type FormLayoutField = {
   required?: boolean;
   readOnly?: boolean;
   isVisible?: boolean;
+  sequence?: number;
 };
 
 export type FormLayoutSection = {
@@ -117,12 +170,16 @@ export type FormLayoutSection = {
   label: string;
   description?: string;
   columns?: number;
+  labelVisible?: boolean;
+  isVisible?: boolean;
+  sequence?: number;
   fields: FormLayoutField[];
 };
 
 export type FormLayoutTab = {
   id: string;
   label: string;
+  sequence?: number;
   sections: FormLayoutSection[];
 };
 

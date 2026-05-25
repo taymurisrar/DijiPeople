@@ -52,88 +52,93 @@ export function FormsManagement({
   );
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-
-  // eslint-disable-next-line react-hooks/preserve-manual-memoization
-  const tableColumns = useMemo<DataTableColumn<CustomizationForm>[]>(
-    () => [
-      {
-        key: "name",
-        header: "Form name",
-        sortable: true,
-        sortAccessor: (row) => row.name,
-        render: (row) => (
-          <div>
-            <p className="font-semibold text-foreground">{row.name}</p>
-            <p className="mt-1 text-xs text-muted">{row.formKey}</p>
-          </div>
-        ),
-      },
-      { key: "type", header: "Type", render: (row) => row.type },
-      {
-        key: "default",
-        header: "Default",
-        render: (row) => (row.isDefault ? "Yes" : "No"),
-      },
-      {
-        key: "active",
-        header: "Active",
-        render: (row) => (
-          <StatusPill tone={row.isActive ? "good" : "muted"}>
-            {row.isActive ? "Active" : "Inactive"}
-          </StatusPill>
-        ),
-      },
-      {
-        key: "sections",
-        header: "Sections",
-        sortable: true,
-        sortAccessor: (row) => countSections(row.layoutJson),
-        render: (row) => countSections(row.layoutJson),
-      },
-      {
-        key: "actions",
-        header: "Actions",
-        render: (row) => (
-          <div className="flex flex-wrap gap-2">
-            <PermissionGate anyOf={["customization.forms.update"]}>
-              <Button
-                leftIcon={<Edit3 className="h-4 w-4" />}
-                onClick={() => openEdit(row)}
-                size="sm"
-                type="button"
-                variant="secondary"
-              >
-                Edit
-              </Button>
-              {!row.isDefault ? (
-                <Button
-                  leftIcon={<Star className="h-4 w-4" />}
-                  onClick={() => setDefault(row)}
-                  size="sm"
-                  type="button"
-                  variant="ghost"
-                >
-                  Default
-                </Button>
-              ) : null}
-            </PermissionGate>
-            <PermissionGate anyOf={["customization.forms.delete"]}>
-              <Button
-                leftIcon={<Trash2 className="h-4 w-4" />}
-                onClick={() => setDeleteTarget(row)}
-                size="sm"
-                type="button"
-                variant="danger"
-              >
-                Delete
-              </Button>
-            </PermissionGate>
-          </div>
-        ),
-      },
-    ],
-    [],
+  const designerColumns = useMemo(
+    () =>
+      columns.filter(
+        (column) =>
+          column.isVisible &&
+          column.isVisibleInCustomization !== false &&
+          column.isValidForFormDesigner !== false,
+      ),
+    [columns],
   );
+
+  const tableColumns: DataTableColumn<CustomizationForm>[] = [
+    {
+      key: "name",
+      header: "Form name",
+      sortable: true,
+      sortAccessor: (row) => row.name,
+      render: (row) => (
+        <div>
+          <p className="font-semibold text-foreground">{row.name}</p>
+          <p className="mt-1 text-xs text-muted">{row.formKey}</p>
+        </div>
+      ),
+    },
+    { key: "type", header: "Type", render: (row) => row.type },
+    {
+      key: "default",
+      header: "Default",
+      render: (row) => (row.isDefault ? "Yes" : "No"),
+    },
+    {
+      key: "active",
+      header: "Active",
+      render: (row) => (
+        <StatusPill tone={row.isActive ? "good" : "muted"}>
+          {row.isActive ? "Active" : "Inactive"}
+        </StatusPill>
+      ),
+    },
+    {
+      key: "sections",
+      header: "Sections",
+      sortable: true,
+      sortAccessor: (row) => countSections(row.layoutJson),
+      render: (row) => countSections(row.layoutJson),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      render: (row) => (
+        <div className="flex flex-wrap gap-2">
+          <PermissionGate anyOf={["customization.forms.update"]}>
+            <Button
+              href={`/settings/customization/tables/${table.tableKey}/forms/${row.formKey}/designer`}
+              leftIcon={<Edit3 className="h-4 w-4" />}
+              size="sm"
+              variant="secondary"
+            >
+              Designer
+            </Button>
+            {!row.isDefault ? (
+              <Button
+                leftIcon={<Star className="h-4 w-4" />}
+                onClick={() => setDefault(row)}
+                size="sm"
+                type="button"
+                variant="ghost"
+              >
+                Default
+              </Button>
+            ) : null}
+          </PermissionGate>
+          <PermissionGate anyOf={["customization.forms.delete"]}>
+            <Button
+              leftIcon={<Trash2 className="h-4 w-4" />}
+              onClick={() => setDeleteTarget(row)}
+              size="sm"
+              type="button"
+              variant="danger"
+            >
+              Delete
+            </Button>
+          </PermissionGate>
+        </div>
+      ),
+    },
+  ];
 
   function openCreate() {
     setError(null);
@@ -145,22 +150,7 @@ export function FormsManagement({
       type: "main",
       isDefault: forms.length === 0,
       isActive: true,
-      layout: buildDefaultLayout(columns),
-    });
-  }
-
-  function openEdit(record: CustomizationForm) {
-    setError(null);
-    setForm({
-      mode: "edit",
-      original: record,
-      formKey: record.formKey,
-      name: record.name,
-      description: record.description ?? "",
-      type: record.type,
-      isDefault: record.isDefault,
-      isActive: record.isActive,
-      layout: normalizeLayout(record.layoutJson, columns),
+      layout: buildDefaultLayout(designerColumns),
     });
   }
 
@@ -355,7 +345,7 @@ export function FormsManagement({
             </div>
 
             <FormDesigner
-              columns={columns}
+              columns={designerColumns}
               layout={form.layout}
               onChange={(layout) => updateForm({ layout })}
             />
@@ -411,7 +401,9 @@ function FormDesigner({
 }) {
   const tab = layout.tabs[0] ?? { id: "main", label: "Main", sections: [] };
 
-  function updateSections(sections: FormLayoutJson["tabs"][number]["sections"]) {
+  function updateSections(
+    sections: FormLayoutJson["tabs"][number]["sections"],
+  ) {
     onChange({ tabs: [{ ...tab, sections }] });
   }
 
@@ -499,7 +491,9 @@ function FormDesigner({
               if (!columnKey) return;
               const next = [...tab.sections];
               const currentFields = section.fields ?? [];
-              if (currentFields.some((field) => field.columnKey === columnKey)) {
+              if (
+                currentFields.some((field) => field.columnKey === columnKey)
+              ) {
                 return;
               }
               next[sectionIndex] = {
@@ -604,8 +598,9 @@ function FormDesigner({
                     className="rounded-xl border border-border bg-slate-50 px-3 py-2 text-sm text-muted"
                     key={`preview-${section.id}-${field.columnKey}`}
                   >
-                    {columns.find((column) => column.columnKey === field.columnKey)
-                      ?.displayName ?? field.columnKey}
+                    {columns.find(
+                      (column) => column.columnKey === field.columnKey,
+                    )?.displayName ?? field.columnKey}
                   </div>
                 ))}
               </div>
@@ -664,19 +659,13 @@ function buildDefaultLayout(columns: CustomizationColumn[]): FormLayoutJson {
   };
 }
 
-function normalizeLayout(
-  layout: FormLayoutJson | undefined,
-  columns: CustomizationColumn[],
-) {
-  if (layout?.tabs?.length) return layout;
-  return buildDefaultLayout(columns);
-}
-
 function countSections(layout: FormLayoutJson | undefined) {
-  return layout?.tabs?.reduce(
-    (count, tab) => count + (tab.sections?.length ?? 0),
-    0,
-  ) ?? 0;
+  return (
+    layout?.tabs?.reduce(
+      (count, tab) => count + (tab.sections?.length ?? 0),
+      0,
+    ) ?? 0
+  );
 }
 
 function moveItem<T>(items: T[], index: number, delta: number) {

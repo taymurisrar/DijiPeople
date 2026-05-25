@@ -6,6 +6,7 @@ export type RuntimeFormLayoutField = {
   required?: boolean;
   readOnly?: boolean;
   isVisible?: boolean;
+  sequence?: number;
 };
 
 export type RuntimeFormLayoutSection = {
@@ -13,6 +14,9 @@ export type RuntimeFormLayoutSection = {
   label: string;
   description?: string;
   columns?: number;
+  labelVisible?: boolean;
+  isVisible?: boolean;
+  sequence?: number;
   fields: RuntimeFormLayoutField[];
 };
 
@@ -20,6 +24,7 @@ export type RuntimeFormLayout = {
   tabs: Array<{
     id: string;
     label: string;
+    sequence?: number;
     sections: RuntimeFormLayoutSection[];
   }>;
 };

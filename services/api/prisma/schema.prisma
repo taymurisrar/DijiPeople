@@ -984,165 +984,167 @@ enum PolicyAssignmentScopeType {
 }
 
 model Tenant {
-  id                             String                          @id @default(uuid())
-  customerAccountId              String
-  ownerUserId                    String?
-  tenantCode                     String?                         @unique
-  name                           String
-  displayName                    String?
-  legalName                      String?
-  slug                           String                          @unique
-  status                         TenantStatus                    @default(ACTIVE)
-  subStatus                      String?
-  createdAt                      DateTime                        @default(now())
-  updatedAt                      DateTime                        @updatedAt
-  createdById                    String?
-  updatedById                    String?
-  users                          User[]
-  roles                          Role[]
-  permissions                    Permission[]
-  userPermissions                UserPermission[]
-  userRoles                      UserRole[]
-  rolePermissions                RolePermission[]
-  rolePrivileges                 RolePrivilege[]
-  roleMiscPermissions            RoleMiscPermission[]
-  teams                          Team[]
-  teamMembers                    TeamMember[]
-  teamRoles                      TeamRole[]
-  refreshTokens                  RefreshToken[]
-  userInvitations                UserInvitation[]
-  employees                      Employee[]
-  employeeEducationRecords       EmployeeEducation[]
-  employeeHistoryRecords         EmployeeHistory[]
-  employeePreviousEmployments    EmployeePreviousEmployment[]
-  departments                    Department[]
-  leavePolicyRules               LeavePolicyRule[]
-  organizations                  Organization[]
-  businessUnits                  BusinessUnit[]
-  designations                   Designation[]
-  locations                      Location[]
-  emergencyContacts              EmergencyContact[]
-  employeeDocumentReferences     EmployeeDocumentReference[]
-  employeeLevels                 EmployeeLevel[]
-  leaveTypes                     LeaveType[]
-  leavePolicies                  LeavePolicy[]
-  policies                       Policy[]
-  policyAssignments              PolicyAssignment[]
-  policySnapshots                PolicySnapshot[]
-  leaveRequests                  LeaveRequest[]
-  leaveBalances                  LeaveBalance[]
-  leaveConsumptionRecords        LeaveConsumptionRecord[]
-  claimTypes                     ClaimType[]
-  claimSubTypes                  ClaimSubType[]
-  claimRequests                  ClaimRequest[]
-  claimLineItems                 ClaimLineItem[]
-  claimApprovals                 ClaimApproval[]
-  businessTrips                  BusinessTrip[]
-  businessTripApprovals          BusinessTripApproval[]
-  travelAllowancePolicies        TravelAllowancePolicy[]
-  travelAllowanceRules           TravelAllowanceRule[]
-  businessTripAllowances         BusinessTripAllowance[]
-  timePayrollPolicies            TimePayrollPolicy[]
-  overtimePolicies               OvertimePolicy[]
-  timePayrollInputs              TimePayrollInput[]
-  taxRules                       TaxRule[]
-  taxRuleBrackets                TaxRuleBracket[]
-  taxRulePayComponents           TaxRulePayComponent[]
-  leaveApprovalSteps             LeaveApprovalStep[]
-  approvalMatrices               ApprovalMatrix[]
-  leavePolicyAssignments         LeavePolicyAssignment[]
-  workSchedules                  WorkSchedule[]
-  workScheduleDays               WorkScheduleDay[]
-  shiftTemplates                 ShiftTemplate[]
-  attendanceEntries              AttendanceEntry[]
-  attendancePolicy               AttendancePolicy?
-  attendanceImportBatches        AttendanceImportBatch[]
-  attendanceIntegrationConfigs   AttendanceIntegrationConfig[]
-  holidayCalendars               HolidayCalendar[]
-  holidays                       Holiday[]
-  holidayCalendarAssignments     HolidayCalendarAssignment[]
-  timesheets                     Timesheet[]
-  timesheetEntries               TimesheetEntry[]
-  timesheetImportBatches         TimesheetImportBatch[]
-  processingCycles               ProcessingCycle[]
-  customers                      Customer[]
-  projects                       Project[]
-  projectRoles                   ProjectRole[]
-  projectAssignments             ProjectAssignment[]
-  jobOpenings                    JobOpening[]
-  candidates                     Candidate[]
-  candidateIdentities            CandidateIdentity[]
-  candidateHistoryRecords        CandidateHistory[]
-  candidateEducationRecords      CandidateEducation[]
-  candidateExperienceRecords     CandidateExperience[]
-  candidateEvaluations           CandidateEvaluation[]
-  applications                   Application[]
-  applicationHistoryRecords      ApplicationHistory[]
-  applicationStageHistoryRecords ApplicationStageHistory[]
-  documentReferences             DocumentReference[]
-  documentParsingJobs            DocumentParsingJob[]
-  onboardingTemplates            OnboardingTemplate[]
-  employeeOnboardings            EmployeeOnboarding[]
-  onboardingTasks                OnboardingTask[]
-  payrollCycles                  PayrollCycle[]
-  payrollRecords                 PayrollRecord[]
-  payrollCalendars               PayrollCalendar[]
-  payrollRegions                 PayrollRegion[]
-  currencyConfigurations         CurrencyConfiguration[]
-  exchangeRateSnapshots          ExchangeRateSnapshot[]
-  payrollPeriods                 PayrollPeriod[]
-  payrollRuns                    PayrollRun[]
-  payrollRunEmployees            PayrollRunEmployee[]
-  payrollRunLineItems            PayrollRunLineItem[]
-  payrollInputSnapshots          PayrollInputSnapshot[]
-  payrollExceptions              PayrollException[]
-  payrollGlAccounts              PayrollGlAccount[]
-  payrollPostingRules            PayrollPostingRule[]
-  payrollJournalEntries          PayrollJournalEntry[]
-  payrollJournalEntryLines       PayrollJournalEntryLine[]
-  payslips                       Payslip[]
-  payslipLineItems               PayslipLineItem[]
-  payslipEventLogs               PayslipEventLog[]
-  salaryComponents               SalaryComponent[]
-  payComponents                  PayComponent[]
-  employeeCompensations          EmployeeCompensation[]
-  employeeCompensationHistories  EmployeeCompensationHistory[]
-  employeeCompensationComponents EmployeeCompensationComponent[]
-  employeeDevices                EmployeeDevice[]
-  agentRefreshTokens             AgentRefreshToken[]
-  workSessions                   WorkSession[]
-  activityEvents                 ActivityEvent[]
-  dailyProductivitySummaries     DailyProductivitySummary[]
-  agentTrackingSettings          AgentTrackingSettings?
-  auditLogs                      AuditLog[]
-  documents                      Document[]
-  documentLinks                  DocumentLink[]
-  tenantSettings                 TenantSetting[]
-  tenantBranding                 TenantBranding?
-  tenantDomains                  TenantDomain[]
-  tenantFeatures                 TenantFeature[]
-  emailTemplates                 EmailTemplate[]
-  emailProviderSettings          EmailProviderSetting[]
-  emailDeliveryLogs              EmailDeliveryLog[]
-  notifications                  Notification[]
-  notificationRecipients         NotificationRecipient[]
-  notificationPreferences        NotificationPreference[]
-  customizationTables            CustomizationTable[]
-  customizationColumns           CustomizationColumn[]
-  customizationViews             CustomizationView[]
-  customizationForms             CustomizationForm[]
-  customizationPublishSnapshots  CustomizationPublishSnapshot[]
-  subscription                   Subscription?
-  customerAccount                CustomerAccount                 @relation(fields: [customerAccountId], references: [id], onDelete: Restrict)
-  customerOnboardings            CustomerOnboarding[]
-  invoices                       Invoice[]
-  payments                       Payment[]
-  plans                          Plan[]
-  planFeatures                   PlanFeature[]
-  documentTypes                  DocumentType[]
-  documentCategories             DocumentCategory[]
-  relationTypes                  RelationType[]
-  ownerUser                      User?                           @relation("TenantOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  id                              String                           @id @default(uuid())
+  customerAccountId               String
+  ownerUserId                     String?
+  tenantCode                      String?                          @unique
+  name                            String
+  displayName                     String?
+  legalName                       String?
+  slug                            String                           @unique
+  status                          TenantStatus                     @default(ACTIVE)
+  subStatus                       String?
+  createdAt                       DateTime                         @default(now())
+  updatedAt                       DateTime                         @updatedAt
+  createdById                     String?
+  updatedById                     String?
+  users                           User[]
+  roles                           Role[]
+  permissions                     Permission[]
+  userPermissions                 UserPermission[]
+  userRoles                       UserRole[]
+  rolePermissions                 RolePermission[]
+  rolePrivileges                  RolePrivilege[]
+  roleMiscPermissions             RoleMiscPermission[]
+  teams                           Team[]
+  teamMembers                     TeamMember[]
+  teamRoles                       TeamRole[]
+  refreshTokens                   RefreshToken[]
+  userInvitations                 UserInvitation[]
+  employees                       Employee[]
+  employeeEducationRecords        EmployeeEducation[]
+  employeeHistoryRecords          EmployeeHistory[]
+  employeePreviousEmployments     EmployeePreviousEmployment[]
+  departments                     Department[]
+  leavePolicyRules                LeavePolicyRule[]
+  organizations                   Organization[]
+  businessUnits                   BusinessUnit[]
+  designations                    Designation[]
+  locations                       Location[]
+  emergencyContacts               EmergencyContact[]
+  employeeDocumentReferences      EmployeeDocumentReference[]
+  employeeLevels                  EmployeeLevel[]
+  leaveTypes                      LeaveType[]
+  leavePolicies                   LeavePolicy[]
+  policies                        Policy[]
+  policyAssignments               PolicyAssignment[]
+  policySnapshots                 PolicySnapshot[]
+  leaveRequests                   LeaveRequest[]
+  leaveBalances                   LeaveBalance[]
+  leaveConsumptionRecords         LeaveConsumptionRecord[]
+  claimTypes                      ClaimType[]
+  claimSubTypes                   ClaimSubType[]
+  claimRequests                   ClaimRequest[]
+  claimLineItems                  ClaimLineItem[]
+  claimApprovals                  ClaimApproval[]
+  businessTrips                   BusinessTrip[]
+  businessTripApprovals           BusinessTripApproval[]
+  travelAllowancePolicies         TravelAllowancePolicy[]
+  travelAllowanceRules            TravelAllowanceRule[]
+  businessTripAllowances          BusinessTripAllowance[]
+  timePayrollPolicies             TimePayrollPolicy[]
+  overtimePolicies                OvertimePolicy[]
+  timePayrollInputs               TimePayrollInput[]
+  taxRules                        TaxRule[]
+  taxRuleBrackets                 TaxRuleBracket[]
+  taxRulePayComponents            TaxRulePayComponent[]
+  leaveApprovalSteps              LeaveApprovalStep[]
+  approvalMatrices                ApprovalMatrix[]
+  leavePolicyAssignments          LeavePolicyAssignment[]
+  workSchedules                   WorkSchedule[]
+  workScheduleDays                WorkScheduleDay[]
+  shiftTemplates                  ShiftTemplate[]
+  attendanceEntries               AttendanceEntry[]
+  attendancePolicy                AttendancePolicy?
+  attendanceImportBatches         AttendanceImportBatch[]
+  attendanceIntegrationConfigs    AttendanceIntegrationConfig[]
+  holidayCalendars                HolidayCalendar[]
+  holidays                        Holiday[]
+  holidayCalendarAssignments      HolidayCalendarAssignment[]
+  timesheets                      Timesheet[]
+  timesheetEntries                TimesheetEntry[]
+  timesheetImportBatches          TimesheetImportBatch[]
+  processingCycles                ProcessingCycle[]
+  customers                       Customer[]
+  projects                        Project[]
+  projectRoles                    ProjectRole[]
+  projectAssignments              ProjectAssignment[]
+  jobOpenings                     JobOpening[]
+  candidates                      Candidate[]
+  candidateIdentities             CandidateIdentity[]
+  candidateHistoryRecords         CandidateHistory[]
+  candidateEducationRecords       CandidateEducation[]
+  candidateExperienceRecords      CandidateExperience[]
+  candidateEvaluations            CandidateEvaluation[]
+  applications                    Application[]
+  applicationHistoryRecords       ApplicationHistory[]
+  applicationStageHistoryRecords  ApplicationStageHistory[]
+  documentReferences              DocumentReference[]
+  documentParsingJobs             DocumentParsingJob[]
+  onboardingTemplates             OnboardingTemplate[]
+  employeeOnboardings             EmployeeOnboarding[]
+  onboardingTasks                 OnboardingTask[]
+  payrollCycles                   PayrollCycle[]
+  payrollRecords                  PayrollRecord[]
+  payrollCalendars                PayrollCalendar[]
+  payrollRegions                  PayrollRegion[]
+  currencyConfigurations          CurrencyConfiguration[]
+  exchangeRateSnapshots           ExchangeRateSnapshot[]
+  payrollPeriods                  PayrollPeriod[]
+  payrollRuns                     PayrollRun[]
+  payrollRunEmployees             PayrollRunEmployee[]
+  payrollRunLineItems             PayrollRunLineItem[]
+  payrollInputSnapshots           PayrollInputSnapshot[]
+  payrollExceptions               PayrollException[]
+  payrollGlAccounts               PayrollGlAccount[]
+  payrollPostingRules             PayrollPostingRule[]
+  payrollJournalEntries           PayrollJournalEntry[]
+  payrollJournalEntryLines        PayrollJournalEntryLine[]
+  payslips                        Payslip[]
+  payslipLineItems                PayslipLineItem[]
+  payslipEventLogs                PayslipEventLog[]
+  salaryComponents                SalaryComponent[]
+  payComponents                   PayComponent[]
+  employeeCompensations           EmployeeCompensation[]
+  employeeCompensationHistories   EmployeeCompensationHistory[]
+  employeeCompensationComponents  EmployeeCompensationComponent[]
+  employeeDevices                 EmployeeDevice[]
+  agentRefreshTokens              AgentRefreshToken[]
+  workSessions                    WorkSession[]
+  activityEvents                  ActivityEvent[]
+  dailyProductivitySummaries      DailyProductivitySummary[]
+  agentTrackingSettings           AgentTrackingSettings?
+  auditLogs                       AuditLog[]
+  documents                       Document[]
+  documentLinks                   DocumentLink[]
+  tenantSettings                  TenantSetting[]
+  tenantBranding                  TenantBranding?
+  tenantDomains                   TenantDomain[]
+  tenantFeatures                  TenantFeature[]
+  emailTemplates                  EmailTemplate[]
+  emailProviderSettings           EmailProviderSetting[]
+  emailDeliveryLogs               EmailDeliveryLog[]
+  notifications                   Notification[]
+  notificationRecipients          NotificationRecipient[]
+  notificationPreferences         NotificationPreference[]
+  customizationTables             CustomizationTable[]
+  customizationColumns            CustomizationColumn[]
+  customizationViews              CustomizationView[]
+  customizationForms              CustomizationForm[]
+  customizationPublishSnapshots   CustomizationPublishSnapshot[]
+  customizationSolutions          CustomizationSolution[]
+  customizationSolutionComponents CustomizationSolutionComponent[]
+  subscription                    Subscription?
+  customerAccount                 CustomerAccount                  @relation(fields: [customerAccountId], references: [id], onDelete: Restrict)
+  customerOnboardings             CustomerOnboarding[]
+  invoices                        Invoice[]
+  payments                        Payment[]
+  plans                           Plan[]
+  planFeatures                    PlanFeature[]
+  documentTypes                   DocumentType[]
+  documentCategories              DocumentCategory[]
+  relationTypes                   RelationType[]
+  ownerUser                       User?                            @relation("TenantOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
 
   @@index([status])
   @@index([slug])
@@ -1589,27 +1591,27 @@ model User {
 }
 
 model PlatformUser {
-  id             String                  @id @default(uuid())
-  email          String                  @unique
-  firstName      String
-  lastName       String
-  passwordHash   String
-  role           PlatformUserRole        @default(MEMBER)
-  status         PlatformUserStatus      @default(ACTIVE)
-  lastActiveAt   DateTime?
-  createdAt      DateTime                @default(now())
-  updatedAt      DateTime                @updatedAt
-  createdById    String?
-  updatedById    String?
-  refreshTokens  PlatformRefreshToken[]
-  createdUsers   PlatformUser[]          @relation("PlatformUserCreatedBy")
-  createdBy      PlatformUser?           @relation("PlatformUserCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  updatedUsers   PlatformUser[]          @relation("PlatformUserUpdatedBy")
-  updatedBy      PlatformUser?           @relation("PlatformUserUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
-  auditLogs                PlatformAuditLog[] @relation("PlatformAuditLogActor")
-  assignedCustomerAccounts CustomerAccount[]  @relation("AssignedCustomerAccounts")
-  managedCustomerAccounts  CustomerAccount[]  @relation("ManagedCustomerAccounts")
-  assignedLeads            Lead[]             @relation("AssignedLeads")
+  id                       String                 @id @default(uuid())
+  email                    String                 @unique
+  firstName                String
+  lastName                 String
+  passwordHash             String
+  role                     PlatformUserRole       @default(MEMBER)
+  status                   PlatformUserStatus     @default(ACTIVE)
+  lastActiveAt             DateTime?
+  createdAt                DateTime               @default(now())
+  updatedAt                DateTime               @updatedAt
+  createdById              String?
+  updatedById              String?
+  refreshTokens            PlatformRefreshToken[]
+  createdUsers             PlatformUser[]         @relation("PlatformUserCreatedBy")
+  createdBy                PlatformUser?          @relation("PlatformUserCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedUsers             PlatformUser[]         @relation("PlatformUserUpdatedBy")
+  updatedBy                PlatformUser?          @relation("PlatformUserUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  auditLogs                PlatformAuditLog[]     @relation("PlatformAuditLogActor")
+  assignedCustomerAccounts CustomerAccount[]      @relation("AssignedCustomerAccounts")
+  managedCustomerAccounts  CustomerAccount[]      @relation("ManagedCustomerAccounts")
+  assignedLeads            Lead[]                 @relation("AssignedLeads")
 
   @@index([email])
   @@index([role])
@@ -5384,6 +5386,20 @@ enum CustomizationPublishStatus {
   failed
 }
 
+enum CustomizationSolutionScope {
+  tenant
+  platform
+}
+
+enum CustomizationSolutionComponentType {
+  table
+  column
+  form
+  view
+  optionSet
+  lookup
+}
+
 model ModuleView {
   id              String                    @id @default(uuid())
   tenantId        String
@@ -5410,64 +5426,76 @@ model ModuleView {
 }
 
 model CustomizationTable {
-  id                String   @id @default(uuid())
-  tenantId          String
-  tableKey          String
-  systemName        String
-  displayName       String
-  pluralDisplayName String
-  description       String?
-  icon              String?
-  isSystem          Boolean  @default(false)
-  isCustom          Boolean  @default(true)
-  isCustomizable    Boolean  @default(true)
-  isActive          Boolean  @default(true)
-  createdByUserId   String?
-  updatedByUserId   String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id                       String   @id @default(uuid())
+  tenantId                 String
+  tableKey                 String
+  systemName               String
+  displayName              String
+  pluralDisplayName        String
+  description              String?
+  icon                     String?
+  ownershipType            String?
+  moduleKey                String?
+  displayOrder             Int      @default(0)
+  isSystem                 Boolean  @default(false)
+  isCustom                 Boolean  @default(true)
+  isCustomizable           Boolean  @default(true)
+  isVisibleInCustomization Boolean  @default(true)
+  isValidForAdvancedFind   Boolean  @default(true)
+  isValidForFormDesigner   Boolean  @default(true)
+  isValidForViewDesigner   Boolean  @default(true)
+  isActive                 Boolean  @default(true)
+  createdByUserId          String?
+  updatedByUserId          String?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
 
-  tenant  Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  columns CustomizationColumn[]
-  views   CustomizationView[]
-  forms   CustomizationForm[]
+  tenant             Tenant                           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  columns            CustomizationColumn[]
+  views              CustomizationView[]
+  forms              CustomizationForm[]
+  solutionComponents CustomizationSolutionComponent[] @relation("CustomizationTableSolutionComponents")
 
   @@unique([tenantId, tableKey])
   @@index([tenantId, isActive])
   @@index([tenantId, isCustomizable])
+  @@index([tenantId, isVisibleInCustomization])
 }
 
 model CustomizationColumn {
-  id                   String                     @id @default(uuid())
-  tenantId             String
-  tableId              String
-  columnKey            String
-  systemName           String
-  displayName          String
-  description          String?
-  dataType             CustomizationFieldDataType
-  fieldType            CustomizationFieldDataType
-  isSystem             Boolean                    @default(false)
-  isCustom             Boolean                    @default(true)
-  isActive             Boolean                    @default(true)
-  isRequired           Boolean                    @default(false)
-  isSearchable         Boolean                    @default(false)
-  isFilterable         Boolean                    @default(false)
-  isSortable           Boolean                    @default(false)
-  isVisible            Boolean                    @default(true)
-  isReadOnly           Boolean                    @default(false)
-  maxLength            Int?
-  minValue             Decimal?
-  maxValue             Decimal?
-  defaultValue         String?
-  lookupTargetTableKey String?
-  optionSetJson        Json?
-  validationJson       Json?
-  sortOrder            Int                        @default(0)
-  createdByUserId      String?
-  updatedByUserId      String?
-  createdAt            DateTime                   @default(now())
-  updatedAt            DateTime                   @updatedAt
+  id                       String                     @id @default(uuid())
+  tenantId                 String
+  tableId                  String
+  columnKey                String
+  systemName               String
+  displayName              String
+  description              String?
+  dataType                 CustomizationFieldDataType
+  fieldType                CustomizationFieldDataType
+  isSystem                 Boolean                    @default(false)
+  isCustom                 Boolean                    @default(true)
+  isActive                 Boolean                    @default(true)
+  isRequired               Boolean                    @default(false)
+  isSearchable             Boolean                    @default(false)
+  isFilterable             Boolean                    @default(false)
+  isSortable               Boolean                    @default(false)
+  isVisible                Boolean                    @default(true)
+  isVisibleInCustomization Boolean                    @default(true)
+  isValidForFormDesigner   Boolean                    @default(true)
+  isValidForViewDesigner   Boolean                    @default(true)
+  isReadOnly               Boolean                    @default(false)
+  maxLength                Int?
+  minValue                 Decimal?
+  maxValue                 Decimal?
+  defaultValue             String?
+  lookupTargetTableKey     String?
+  optionSetJson            Json?
+  validationJson           Json?
+  sortOrder                Int                        @default(0)
+  createdByUserId          String?
+  updatedByUserId          String?
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime                   @updatedAt
 
   tenant Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   table  CustomizationTable @relation(fields: [tableId], references: [id], onDelete: Cascade)
@@ -5476,6 +5504,7 @@ model CustomizationColumn {
   @@index([tenantId, tableId])
   @@index([tenantId, isSystem])
   @@index([tenantId, tableId, sortOrder])
+  @@index([tenantId, tableId, isVisibleInCustomization])
 }
 
 model CustomizationView {
@@ -5533,6 +5562,56 @@ model CustomizationForm {
   @@index([tenantId, tableId])
   @@index([tenantId, tableId, isActive])
   @@index([tenantId, tableId, isDefault])
+}
+
+model CustomizationSolution {
+  id              String                     @id @default(uuid())
+  tenantId        String?
+  solutionKey     String
+  displayName     String
+  description     String?
+  scope           CustomizationSolutionScope @default(tenant)
+  isDefault       Boolean                    @default(false)
+  isSystem        Boolean                    @default(false)
+  isManaged       Boolean                    @default(false)
+  isActive        Boolean                    @default(true)
+  createdByUserId String?
+  updatedByUserId String?
+  createdAt       DateTime                   @default(now())
+  updatedAt       DateTime                   @updatedAt
+
+  tenant     Tenant?                          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  components CustomizationSolutionComponent[]
+
+  @@unique([tenantId, solutionKey])
+  @@index([tenantId, isDefault])
+  @@index([scope, solutionKey])
+}
+
+model CustomizationSolutionComponent {
+  id              String                             @id @default(uuid())
+  tenantId        String?
+  solutionId      String
+  componentType   CustomizationSolutionComponentType
+  objectId        String
+  objectKey       String
+  tableId         String?
+  isSystem        Boolean                            @default(false)
+  isCustom        Boolean                            @default(true)
+  isManaged       Boolean                            @default(false)
+  createdByUserId String?
+  updatedByUserId String?
+  createdAt       DateTime                           @default(now())
+  updatedAt       DateTime                           @updatedAt
+
+  tenant   Tenant?               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  solution CustomizationSolution @relation(fields: [solutionId], references: [id], onDelete: Cascade)
+  table    CustomizationTable?   @relation("CustomizationTableSolutionComponents", fields: [tableId], references: [id], onDelete: Cascade)
+
+  @@unique([solutionId, componentType, objectId])
+  @@index([tenantId, componentType])
+  @@index([solutionId, componentType])
+  @@index([tableId])
 }
 
 model CustomizationPublishSnapshot {

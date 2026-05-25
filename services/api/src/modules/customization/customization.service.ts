@@ -9,6 +9,8 @@ import {
   CustomizationFieldDataType,
   CustomizationForm,
   CustomizationFormType,
+  CustomizationSolution,
+  CustomizationSolutionComponentType,
   CustomizationTable,
   CustomizationView,
   Prisma,
@@ -19,6 +21,8 @@ import { CreateModuleViewDto } from '../views/dto/create-module-view.dto';
 import { UpdateModuleViewDto } from '../views/dto/update-module-view.dto';
 import {
   findSystemCustomizationTable,
+  isDesignerColumn,
+  isViewDesignerColumn,
   SYSTEM_CUSTOMIZATION_TABLES,
   SystemTableDefinition,
 } from './customization.registry';
@@ -35,12 +39,104 @@ import {
 
 @Injectable()
 export class CustomizationService {
+  private readonly syncedDefaultSolutionTenants = new Set<string>();
+  private readonly defaultSolutionSyncPromises = new Map<
+    string,
+    Promise<CustomizationSolution>
+  >();
+
   constructor(private readonly prisma: PrismaService) {}
 
+  async getDefaultSolution(currentUser: AuthenticatedUser) {
+    const solution = await this.syncDefaultSolution(currentUser);
+    const components =
+      await this.prisma.customizationSolutionComponent.findMany({
+        where: { tenantId: currentUser.tenantId, solutionId: solution.id },
+        orderBy: [
+          { componentType: 'asc' },
+          { objectKey: 'asc' },
+          { updatedAt: 'desc' },
+        ],
+      });
+    const [tables, columns, forms, views] = await Promise.all([
+      this.prisma.customizationTable.findMany({
+        where: {
+          tenantId: currentUser.tenantId,
+          id: {
+            in: components
+              .filter((component) => component.componentType === 'table')
+              .map((component) => component.objectId),
+          },
+        },
+      }),
+      this.prisma.customizationColumn.findMany({
+        where: {
+          tenantId: currentUser.tenantId,
+          id: {
+            in: components
+              .filter((component) => component.componentType === 'column')
+              .map((component) => component.objectId),
+          },
+        },
+      }),
+      this.prisma.customizationForm.findMany({
+        where: {
+          tenantId: currentUser.tenantId,
+          id: {
+            in: components
+              .filter((component) => component.componentType === 'form')
+              .map((component) => component.objectId),
+          },
+        },
+      }),
+      this.prisma.customizationView.findMany({
+        where: {
+          tenantId: currentUser.tenantId,
+          id: {
+            in: components
+              .filter((component) => component.componentType === 'view')
+              .map((component) => component.objectId),
+          },
+        },
+      }),
+    ]);
+    const tableById = new Map(tables.map((table) => [table.id, table]));
+    const columnById = new Map(columns.map((column) => [column.id, column]));
+    const formById = new Map(forms.map((form) => [form.id, form]));
+    const viewById = new Map(views.map((view) => [view.id, view]));
+
+    return {
+      id: solution.id,
+      solutionKey: solution.solutionKey,
+      displayName: solution.displayName,
+      description: solution.description,
+      isDefault: solution.isDefault,
+      isManaged: solution.isManaged,
+      isSystem: solution.isSystem,
+      updatedAt: solution.updatedAt,
+      components: components.map((component) =>
+        this.toSolutionComponentResponse(component, {
+          table: tableById.get(component.objectId),
+          column: columnById.get(component.objectId),
+          form: formById.get(component.objectId),
+          view: viewById.get(component.objectId),
+          parentTable: component.tableId
+            ? (tableById.get(component.tableId) ??
+              tables.find((table) => table.id === component.tableId))
+            : undefined,
+        }),
+      ),
+    };
+  }
+
   async getSummary(currentUser: AuthenticatedUser) {
+    await this.syncDefaultSolution(currentUser);
     const [tables, tenantColumns, views, forms, snapshots] = await Promise.all([
       this.prisma.customizationTable.count({
-        where: { tenantId: currentUser.tenantId },
+        where: {
+          tenantId: currentUser.tenantId,
+          OR: [{ isCustom: true }, { isVisibleInCustomization: true }],
+        },
       }),
       this.prisma.customizationColumn.count({
         where: { tenantId: currentUser.tenantId, isSystem: false },
@@ -59,7 +155,13 @@ export class CustomizationService {
     return {
       existingSystemTablesOnly: false,
       customTablesEnabled: true,
-      systemTables: SYSTEM_CUSTOMIZATION_TABLES.length,
+      systemTables: await this.prisma.customizationTable.count({
+        where: {
+          tenantId: currentUser.tenantId,
+          isSystem: true,
+          isVisibleInCustomization: true,
+        },
+      }),
       tableOverrides: tables,
       configuredTables: tables,
       tenantColumns,
@@ -70,10 +172,12 @@ export class CustomizationService {
   }
 
   async listTables(currentUser: AuthenticatedUser) {
+    await this.syncDefaultSolution(currentUser);
     return this.buildTableResponses(currentUser);
   }
 
   async getTable(currentUser: AuthenticatedUser, tableKey: string) {
+    await this.syncDefaultSolution(currentUser);
     const [table] = await this.buildTableResponses(currentUser, [tableKey]);
     if (!table) {
       throw new NotFoundException('Customization table was not found.');
@@ -105,7 +209,7 @@ export class CustomizationService {
       );
     }
 
-    return this.prisma.customizationTable.create({
+    const table = await this.prisma.customizationTable.create({
       data: {
         tenantId: currentUser.tenantId,
         tableKey,
@@ -114,14 +218,30 @@ export class CustomizationService {
         pluralDisplayName: dto.pluralDisplayName.trim(),
         description: dto.description?.trim(),
         icon: dto.icon?.trim(),
+        moduleKey: 'custom',
+        displayOrder: 9000,
+        ownershipType: 'tenant',
         isSystem: false,
         isCustom: true,
         isCustomizable: true,
+        isVisibleInCustomization: true,
+        isValidForAdvancedFind: true,
+        isValidForFormDesigner: true,
+        isValidForViewDesigner: true,
         isActive: dto.isActive ?? true,
         createdByUserId: currentUser.userId,
         updatedByUserId: currentUser.userId,
       },
     });
+    await this.addDefaultSolutionComponent(currentUser, {
+      componentType: 'table',
+      objectId: table.id,
+      objectKey: table.tableKey,
+      tableId: table.id,
+      isSystem: false,
+      isCustom: true,
+    });
+    return table;
   }
 
   async getPublished(currentUser: AuthenticatedUser) {
@@ -238,9 +358,19 @@ export class CustomizationService {
           definition?.description ??
           existing?.description,
         icon: dto.icon?.trim() ?? definition?.icon ?? existing?.icon,
+        moduleKey: definition?.moduleKey ?? existing?.moduleKey ?? 'custom',
+        ownershipType:
+          definition?.ownershipType ?? existing?.ownershipType ?? 'tenant',
+        displayOrder:
+          definition?.displayOrder ?? existing?.displayOrder ?? 9000,
         isSystem: Boolean(definition),
         isCustom: !definition,
-        isCustomizable: dto.isCustomizable ?? true,
+        isCustomizable:
+          dto.isCustomizable ?? definition?.isCustomizable ?? true,
+        isVisibleInCustomization: definition?.isVisibleInCustomization ?? true,
+        isValidForAdvancedFind: definition?.isValidForAdvancedFind ?? true,
+        isValidForFormDesigner: definition?.isValidForFormDesigner ?? true,
+        isValidForViewDesigner: definition?.isValidForViewDesigner ?? true,
         isActive: dto.isActive ?? true,
         createdByUserId: currentUser.userId,
         updatedByUserId: currentUser.userId,
@@ -305,61 +435,21 @@ export class CustomizationService {
   }
 
   async listColumns(currentUser: AuthenticatedUser, tableKey: string) {
+    await this.syncDefaultSolution(currentUser);
     const table = await this.ensureCustomizationTable(
       currentUser.tenantId,
       tableKey,
     );
-    const definition = findSystemCustomizationTable(tableKey);
     const rows = await this.prisma.customizationColumn.findMany({
       where: {
         tenantId: currentUser.tenantId,
         tableId: table.id,
         isActive: true,
+        OR: [{ isCustom: true }, { isVisibleInCustomization: true }],
       },
       orderBy: [{ sortOrder: 'asc' }, { columnKey: 'asc' }],
     });
-    const rowByKey = new Map(rows.map((row) => [row.columnKey, row]));
-    const systemColumns = (definition?.columns ?? []).map((column, index) => {
-      const row = rowByKey.get(column.columnKey);
-      return {
-        id: row?.id ?? null,
-        tableId: table.id,
-        columnKey: column.columnKey,
-        systemName: row?.systemName ?? column.columnKey,
-        displayName: row?.displayName ?? column.displayName,
-        description: row?.description ?? null,
-        dataType:
-          row?.dataType ?? (column.dataType as CustomizationFieldDataType),
-        fieldType:
-          row?.fieldType ?? (column.dataType as CustomizationFieldDataType),
-        isSystem: true,
-        isCustom: false,
-        isActive: row?.isActive ?? true,
-        isRequired: row?.isRequired ?? column.isRequired ?? false,
-        isSearchable: row?.isSearchable ?? column.isSearchable ?? false,
-        isFilterable: row?.isFilterable ?? false,
-        isSortable: row?.isSortable ?? false,
-        isVisible: row?.isVisible ?? true,
-        isReadOnly: row?.isReadOnly ?? column.isReadOnly ?? true,
-        maxLength: row?.maxLength ?? null,
-        minValue: row?.minValue ?? null,
-        maxValue: row?.maxValue ?? null,
-        defaultValue: row?.defaultValue ?? null,
-        lookupTargetTableKey: row?.lookupTargetTableKey ?? null,
-        optionSetJson: row?.optionSetJson ?? null,
-        validationJson: row?.validationJson ?? null,
-        sortOrder: row?.sortOrder ?? index * 10,
-      };
-    });
-    const tenantColumns = rows.filter(
-      (row) =>
-        !row.isSystem &&
-        !(definition?.columns ?? []).some(
-          (column) => column.columnKey === row.columnKey,
-        ),
-    );
-
-    return [...systemColumns, ...tenantColumns];
+    return rows;
   }
 
   async createColumn(
@@ -384,9 +474,18 @@ export class CustomizationService {
       tableKey,
     );
 
-    return this.prisma.customizationColumn.create({
+    const column = await this.prisma.customizationColumn.create({
       data: this.buildColumnData(currentUser.tenantId, table.id, dto, false),
     });
+    await this.addDefaultSolutionComponent(currentUser, {
+      componentType: 'column',
+      objectId: column.id,
+      objectKey: `${table.tableKey}.${column.columnKey}`,
+      tableId: table.id,
+      isSystem: false,
+      isCustom: true,
+    });
+    return column;
   }
 
   async updateColumn(
@@ -566,9 +665,14 @@ export class CustomizationService {
       });
     }
 
-    await this.prisma.customizationColumn.delete({
-      where: { id: existing.id },
-    });
+    await this.prisma.$transaction([
+      this.prisma.customizationSolutionComponent.deleteMany({
+        where: { tenantId: currentUser.tenantId, objectId: existing.id },
+      }),
+      this.prisma.customizationColumn.delete({
+        where: { id: existing.id },
+      }),
+    ]);
 
     return { deleted: true };
   }
@@ -590,6 +694,7 @@ export class CustomizationService {
   }
 
   async listForms(currentUser: AuthenticatedUser, tableKey: string) {
+    await this.syncDefaultSolution(currentUser);
     const table = await this.ensureCustomizationTable(
       currentUser.tenantId,
       tableKey,
@@ -625,7 +730,7 @@ export class CustomizationService {
       });
     }
 
-    return this.prisma.customizationForm.create({
+    const form = await this.prisma.customizationForm.create({
       data: {
         tenantId: currentUser.tenantId,
         tableId: table.id,
@@ -642,6 +747,15 @@ export class CustomizationService {
         updatedByUserId: currentUser.userId,
       },
     });
+    await this.addDefaultSolutionComponent(currentUser, {
+      componentType: 'form',
+      objectId: form.id,
+      objectKey: `${table.tableKey}.${form.formKey}`,
+      tableId: table.id,
+      isSystem: false,
+      isCustom: true,
+    });
+    return form;
   }
 
   async updateForm(
@@ -732,7 +846,10 @@ export class CustomizationService {
     if (!existing) {
       throw new NotFoundException('Customization form was not found.');
     }
-    if (existing.isSystem || existing.isDefault) {
+    if (existing.isSystem) {
+      throw new BadRequestException('System forms cannot be deleted.');
+    }
+    if (existing.isDefault) {
       const activeAlternatives = await this.prisma.customizationForm.count({
         where: {
           tenantId: currentUser.tenantId,
@@ -747,9 +864,14 @@ export class CustomizationService {
         );
       }
     }
-    await this.prisma.customizationForm.delete({
-      where: { id: existing.id },
-    });
+    await this.prisma.$transaction([
+      this.prisma.customizationSolutionComponent.deleteMany({
+        where: { tenantId: currentUser.tenantId, objectId: existing.id },
+      }),
+      this.prisma.customizationForm.delete({
+        where: { id: existing.id },
+      }),
+    ]);
 
     return { deleted: true };
   }
@@ -800,6 +922,7 @@ export class CustomizationService {
   }
 
   async listTableViews(currentUser: AuthenticatedUser, tableKey: string) {
+    await this.syncDefaultSolution(currentUser);
     const table = await this.ensureCustomizationTable(
       currentUser.tenantId,
       tableKey,
@@ -835,7 +958,7 @@ export class CustomizationService {
       });
     }
 
-    return this.prisma.customizationView.create({
+    const view = await this.prisma.customizationView.create({
       data: {
         tenantId: currentUser.tenantId,
         tableId: table.id,
@@ -861,6 +984,15 @@ export class CustomizationService {
         updatedByUserId: currentUser.userId,
       },
     });
+    await this.addDefaultSolutionComponent(currentUser, {
+      componentType: 'view',
+      objectId: view.id,
+      objectKey: `${table.tableKey}.${view.viewKey}`,
+      tableId: table.id,
+      isSystem: false,
+      isCustom: true,
+    });
+    return view;
   }
 
   async updateTableView(
@@ -987,15 +1119,20 @@ export class CustomizationService {
       }
     }
 
-    await this.prisma.customizationView.delete({
-      where: {
-        tenantId_tableId_viewKey: {
-          tenantId: currentUser.tenantId,
-          tableId: table.id,
-          viewKey,
+    await this.prisma.$transaction([
+      this.prisma.customizationSolutionComponent.deleteMany({
+        where: { tenantId: currentUser.tenantId, objectId: existing.id },
+      }),
+      this.prisma.customizationView.delete({
+        where: {
+          tenantId_tableId_viewKey: {
+            tenantId: currentUser.tenantId,
+            tableId: table.id,
+            viewKey,
+          },
         },
-      },
-    });
+      }),
+    ]);
 
     return { deleted: true };
   }
@@ -1079,20 +1216,18 @@ export class CustomizationService {
   }
 
   async listViews(currentUser: AuthenticatedUser, moduleKey?: string) {
+    await this.syncDefaultSolution(currentUser);
     const tableKeys = moduleKey
       ? SYSTEM_CUSTOMIZATION_TABLES.filter(
           (table) => table.moduleKey === moduleKey,
         ).map((table) => table.tableKey)
-      : SYSTEM_CUSTOMIZATION_TABLES.map((table) => table.tableKey);
-
-    if (moduleKey && tableKeys.length === 0) {
-      throw new BadRequestException(
-        'Only existing system modules can be customized in this phase.',
-      );
-    }
+      : null;
 
     const tables = await this.prisma.customizationTable.findMany({
-      where: { tenantId: currentUser.tenantId, tableKey: { in: tableKeys } },
+      where: {
+        tenantId: currentUser.tenantId,
+        ...(tableKeys ? { tableKey: { in: tableKeys } } : {}),
+      },
       select: { id: true },
     });
 
@@ -1124,7 +1259,7 @@ export class CustomizationService {
       sortingJson: configJson.sorting,
     });
 
-    return this.prisma.customizationView.create({
+    const view = await this.prisma.customizationView.create({
       data: {
         tenantId: currentUser.tenantId,
         tableId: table.id,
@@ -1146,6 +1281,15 @@ export class CustomizationService {
         createdByUserId: currentUser.userId,
       },
     });
+    await this.addDefaultSolutionComponent(currentUser, {
+      componentType: 'view',
+      objectId: view.id,
+      objectKey: `${table.tableKey}.${view.viewKey}`,
+      tableId: table.id,
+      isSystem: false,
+      isCustom: true,
+    });
+    return view;
   }
 
   async updateView(
@@ -1232,7 +1376,12 @@ export class CustomizationService {
       throw new BadRequestException('System views cannot be deleted.');
     }
 
-    await this.prisma.customizationView.delete({ where: { id } });
+    await this.prisma.$transaction([
+      this.prisma.customizationSolutionComponent.deleteMany({
+        where: { tenantId: currentUser.tenantId, objectId: existing.id },
+      }),
+      this.prisma.customizationView.delete({ where: { id } }),
+    ]);
 
     return { success: true };
   }
@@ -1284,11 +1433,17 @@ export class CustomizationService {
 
     const [tables, columns, views, forms] = await Promise.all([
       this.prisma.customizationTable.findMany({
-        where: { tenantId },
+        where: {
+          tenantId,
+          OR: [{ isCustom: true }, { isVisibleInCustomization: true }],
+        },
         orderBy: { tableKey: 'asc' },
       }),
       this.prisma.customizationColumn.findMany({
-        where: { tenantId },
+        where: {
+          tenantId,
+          OR: [{ isCustom: true }, { isVisibleInCustomization: true }],
+        },
         orderBy: [
           { tableId: 'asc' },
           { sortOrder: 'asc' },
@@ -1488,26 +1643,420 @@ export class CustomizationService {
       where: {
         tenantId: currentUser.tenantId,
         ...(tableKeys ? { tableKey: { in: tableKeys } } : {}),
+        ...(tableKeys
+          ? {}
+          : {
+              OR: [
+                { isCustom: true },
+                { isVisibleInCustomization: true, isActive: true },
+              ],
+            }),
       },
-      orderBy: [{ tableKey: 'asc' }],
+      orderBy: [
+        { displayOrder: 'asc' },
+        { displayName: 'asc' },
+        { tableKey: 'asc' },
+      ],
     });
-    const rowByKey = new Map(rows.map((row) => [row.tableKey, row]));
-    const requestedDefinitions = SYSTEM_CUSTOMIZATION_TABLES.filter(
-      (definition) => !tableKeys || tableKeys.includes(definition.tableKey),
-    );
-    const systemResponses = requestedDefinitions.map((definition) =>
-      this.toTableResponse(definition, rowByKey.get(definition.tableKey)),
-    );
-    const systemKeys = new Set(
-      SYSTEM_CUSTOMIZATION_TABLES.map((definition) => definition.tableKey),
-    );
-    const customResponses = rows
-      .filter((row) => !systemKeys.has(row.tableKey))
-      .map((row) => this.toTableResponse(null, row));
 
-    return [...systemResponses, ...customResponses].sort((a, b) =>
-      a.displayName.localeCompare(b.displayName),
-    );
+    return rows
+      .map((row) => this.toTableResponse(null, row))
+      .sort((a, b) => a.displayName.localeCompare(b.displayName));
+  }
+
+  private async syncDefaultSolution(currentUser: AuthenticatedUser) {
+    if (this.syncedDefaultSolutionTenants.has(currentUser.tenantId)) {
+      return this.getExistingDefaultSolution(currentUser);
+    }
+
+    const pending = this.defaultSolutionSyncPromises.get(currentUser.tenantId);
+    if (pending) {
+      return pending;
+    }
+
+    const syncPromise = this.runDefaultSolutionSyncWithRetry(
+      currentUser,
+    ).finally(() => {
+      this.defaultSolutionSyncPromises.delete(currentUser.tenantId);
+    });
+    this.defaultSolutionSyncPromises.set(currentUser.tenantId, syncPromise);
+    return syncPromise;
+  }
+
+  private async runDefaultSolutionSyncWithRetry(
+    currentUser: AuthenticatedUser,
+  ) {
+    const maxAttempts = 3;
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        return await this.runDefaultSolutionSync(currentUser);
+      } catch (error) {
+        if (!isDeadlockError(error) || attempt === maxAttempts) {
+          throw error;
+        }
+        await delay(attempt * 100);
+      }
+    }
+    return this.getExistingDefaultSolution(currentUser);
+  }
+
+  private async runDefaultSolutionSync(currentUser: AuthenticatedUser) {
+    const solution = await this.ensureDefaultSolution(currentUser);
+
+    for (const definition of SYSTEM_CUSTOMIZATION_TABLES) {
+      const table = await this.prisma.customizationTable.upsert({
+        where: {
+          tenantId_tableKey: {
+            tenantId: currentUser.tenantId,
+            tableKey: definition.tableKey,
+          },
+        },
+        create: this.buildTableCreateInput(currentUser.tenantId, definition),
+        update: {
+          isSystem: true,
+          isCustom: false,
+          moduleKey: definition.moduleKey,
+          ownershipType: definition.ownershipType,
+          displayOrder: definition.displayOrder,
+          isCustomizable: definition.isCustomizable,
+          isVisibleInCustomization: definition.isVisibleInCustomization,
+          isValidForAdvancedFind: definition.isValidForAdvancedFind,
+          isValidForFormDesigner: definition.isValidForFormDesigner,
+          isValidForViewDesigner: definition.isValidForViewDesigner,
+          isActive: true,
+        },
+      });
+
+      await this.addDefaultSolutionComponent(currentUser, {
+        solutionId: solution.id,
+        componentType: 'table',
+        objectId: table.id,
+        objectKey: table.tableKey,
+        tableId: table.id,
+        isSystem: true,
+        isCustom: false,
+      });
+
+      for (const [index, column] of definition.columns.entries()) {
+        const row = await this.prisma.customizationColumn.upsert({
+          where: {
+            tenantId_tableId_columnKey: {
+              tenantId: currentUser.tenantId,
+              tableId: table.id,
+              columnKey: column.columnKey,
+            },
+          },
+          create: this.buildColumnData(
+            currentUser.tenantId,
+            table.id,
+            {
+              columnKey: column.columnKey,
+              displayName: column.displayName,
+              dataType: column.dataType as CustomizationFieldDataType,
+              fieldType: column.dataType as CustomizationFieldDataType,
+              isRequired: column.isRequired ?? false,
+              isReadOnly: column.isReadOnly ?? true,
+              isSearchable: column.isSearchable ?? false,
+              isFilterable: column.isFilterable ?? true,
+              isSortable: column.isSortable ?? true,
+              isVisible: column.isVisible ?? true,
+              isVisibleInCustomization: column.isVisibleInCustomization ?? true,
+              isValidForFormDesigner: column.isValidForFormDesigner ?? true,
+              isValidForViewDesigner: column.isValidForViewDesigner ?? true,
+              sortOrder: column.sortOrder ?? index * 10,
+            },
+            true,
+            column.columnKey,
+          ),
+          update: {
+            isSystem: true,
+            isCustom: false,
+            displayName: column.displayName,
+            isRequired: column.isRequired ?? false,
+            isReadOnly: column.isReadOnly ?? true,
+            isSearchable: column.isSearchable ?? false,
+            isFilterable: column.isFilterable ?? true,
+            isSortable: column.isSortable ?? true,
+            isVisible: column.isVisible ?? true,
+            isVisibleInCustomization: column.isVisibleInCustomization ?? true,
+            isValidForFormDesigner: column.isValidForFormDesigner ?? true,
+            isValidForViewDesigner: column.isValidForViewDesigner ?? true,
+            sortOrder: column.sortOrder ?? index * 10,
+          },
+        });
+
+        await this.addDefaultSolutionComponent(currentUser, {
+          solutionId: solution.id,
+          componentType: 'column',
+          objectId: row.id,
+          objectKey: `${table.tableKey}.${row.columnKey}`,
+          tableId: table.id,
+          isSystem: true,
+          isCustom: false,
+        });
+      }
+
+      const columns = await this.prisma.customizationColumn.findMany({
+        where: {
+          tenantId: currentUser.tenantId,
+          tableId: table.id,
+          isActive: true,
+          isVisible: true,
+          isVisibleInCustomization: true,
+        },
+        orderBy: [{ sortOrder: 'asc' }, { columnKey: 'asc' }],
+      });
+      const formColumns = columns.filter(isDesignerColumn);
+      const viewColumns = columns.filter(isViewDesignerColumn);
+
+      const form = await this.prisma.customizationForm.upsert({
+        where: {
+          tenantId_tableId_formKey: {
+            tenantId: currentUser.tenantId,
+            tableId: table.id,
+            formKey: 'main',
+          },
+        },
+        create: {
+          tenantId: currentUser.tenantId,
+          tableId: table.id,
+          formKey: 'main',
+          name: `${table.displayName} Main Form`,
+          description: `Default system form for ${table.displayName}.`,
+          type: CustomizationFormType.main,
+          isDefault: true,
+          isActive: true,
+          isSystem: true,
+          isCustom: false,
+          layoutJson: buildDefaultFormLayout(table, formColumns),
+        },
+        update: {
+          isSystem: true,
+          isCustom: false,
+        },
+      });
+
+      await this.addDefaultSolutionComponent(currentUser, {
+        solutionId: solution.id,
+        componentType: 'form',
+        objectId: form.id,
+        objectKey: `${table.tableKey}.${form.formKey}`,
+        tableId: table.id,
+        isSystem: true,
+        isCustom: false,
+      });
+
+      const view = await this.prisma.customizationView.upsert({
+        where: {
+          tenantId_tableId_viewKey: {
+            tenantId: currentUser.tenantId,
+            tableId: table.id,
+            viewKey: 'active',
+          },
+        },
+        create: {
+          tenantId: currentUser.tenantId,
+          tableId: table.id,
+          viewKey: 'active',
+          name: `Active ${table.pluralDisplayName}`,
+          description: `Default active ${table.pluralDisplayName} view.`,
+          type: 'system',
+          isDefault: true,
+          isHidden: false,
+          isSystem: true,
+          isCustom: false,
+          columnsJson: buildDefaultViewColumns(viewColumns),
+          filtersJson: [],
+          sortingJson: buildDefaultViewSorting(viewColumns),
+          visibilityScope: 'tenant',
+        },
+        update: {
+          isSystem: true,
+          isCustom: false,
+        },
+      });
+
+      await this.addDefaultSolutionComponent(currentUser, {
+        solutionId: solution.id,
+        componentType: 'view',
+        objectId: view.id,
+        objectKey: `${table.tableKey}.${view.viewKey}`,
+        tableId: table.id,
+        isSystem: true,
+        isCustom: false,
+      });
+    }
+
+    this.syncedDefaultSolutionTenants.add(currentUser.tenantId);
+    return solution;
+  }
+
+  private ensureDefaultSolution(currentUser: AuthenticatedUser) {
+    return this.prisma.customizationSolution.upsert({
+      where: {
+        tenantId_solutionKey: {
+          tenantId: currentUser.tenantId,
+          solutionKey: 'default',
+        },
+      },
+      create: {
+        tenantId: currentUser.tenantId,
+        solutionKey: 'default',
+        displayName: 'Default Solution',
+        description:
+          'Built-in tenant solution containing all system and custom metadata components.',
+        scope: 'tenant',
+        isDefault: true,
+        isSystem: true,
+        isManaged: false,
+        isActive: true,
+        createdByUserId: currentUser.userId,
+        updatedByUserId: currentUser.userId,
+      },
+      update: {
+        displayName: 'Default Solution',
+        isDefault: true,
+        isSystem: true,
+        isActive: true,
+        updatedByUserId: currentUser.userId,
+      },
+    });
+  }
+
+  private async getExistingDefaultSolution(currentUser: AuthenticatedUser) {
+    const solution = await this.prisma.customizationSolution.findUnique({
+      where: {
+        tenantId_solutionKey: {
+          tenantId: currentUser.tenantId,
+          solutionKey: 'default',
+        },
+      },
+    });
+    return solution ?? this.ensureDefaultSolution(currentUser);
+  }
+
+  private async addDefaultSolutionComponent(
+    currentUser: AuthenticatedUser,
+    component: {
+      solutionId?: string;
+      componentType: CustomizationSolutionComponentType;
+      objectId: string;
+      objectKey: string;
+      tableId?: string | null;
+      isSystem: boolean;
+      isCustom: boolean;
+    },
+  ) {
+    const solutionId =
+      component.solutionId ??
+      (await this.ensureDefaultSolution(currentUser)).id;
+    return this.prisma.customizationSolutionComponent.upsert({
+      where: {
+        solutionId_componentType_objectId: {
+          solutionId,
+          componentType: component.componentType,
+          objectId: component.objectId,
+        },
+      },
+      create: {
+        tenantId: currentUser.tenantId,
+        solutionId,
+        componentType: component.componentType,
+        objectId: component.objectId,
+        objectKey: component.objectKey,
+        tableId: component.tableId ?? null,
+        isSystem: component.isSystem,
+        isCustom: component.isCustom,
+        isManaged: false,
+        createdByUserId: currentUser.userId,
+        updatedByUserId: currentUser.userId,
+      },
+      update: {
+        objectKey: component.objectKey,
+        tableId: component.tableId ?? null,
+        isSystem: component.isSystem,
+        isCustom: component.isCustom,
+        updatedByUserId: currentUser.userId,
+      },
+    });
+  }
+
+  private toSolutionComponentResponse(
+    component: {
+      id: string;
+      componentType: CustomizationSolutionComponentType;
+      objectId: string;
+      objectKey: string;
+      tableId: string | null;
+      isSystem: boolean;
+      isCustom: boolean;
+      isManaged: boolean;
+      updatedAt: Date;
+    },
+    related: {
+      table?: CustomizationTable;
+      parentTable?: CustomizationTable;
+      column?: CustomizationColumn;
+      form?: CustomizationForm;
+      view?: CustomizationView;
+    },
+  ) {
+    const source =
+      related.table ?? related.column ?? related.form ?? related.view ?? null;
+    const displayName =
+      related.table?.displayName ??
+      related.column?.displayName ??
+      related.form?.name ??
+      related.view?.name ??
+      component.objectKey;
+    const logicalName =
+      related.table?.tableKey ??
+      related.column?.columnKey ??
+      related.form?.formKey ??
+      related.view?.viewKey ??
+      component.objectKey;
+
+    return {
+      id: component.id,
+      componentType: component.componentType,
+      objectId: component.objectId,
+      objectKey: component.objectKey,
+      tableKey:
+        related.parentTable?.tableKey ?? related.table?.tableKey ?? null,
+      tableDisplayName:
+        related.parentTable?.displayName ?? related.table?.displayName ?? null,
+      moduleKey:
+        related.parentTable?.moduleKey ?? related.table?.moduleKey ?? null,
+      moduleLabel:
+        related.parentTable?.moduleKey ?? related.table?.moduleKey ?? null,
+      displayName,
+      logicalName,
+      isSystem: component.isSystem,
+      isCustom: component.isCustom,
+      isManaged: component.isManaged,
+      isActive:
+        'isActive' in (source ?? {})
+          ? Boolean((source as { isActive?: boolean }).isActive)
+          : related.view
+            ? !related.view.isHidden
+            : true,
+      isVisibleInCustomization:
+        related.table?.isVisibleInCustomization ??
+        related.column?.isVisibleInCustomization ??
+        related.parentTable?.isVisibleInCustomization ??
+        true,
+      isValidForFormDesigner:
+        related.table?.isValidForFormDesigner ??
+        related.column?.isValidForFormDesigner ??
+        related.parentTable?.isValidForFormDesigner ??
+        true,
+      isValidForViewDesigner:
+        related.table?.isValidForViewDesigner ??
+        related.column?.isValidForViewDesigner ??
+        related.parentTable?.isValidForViewDesigner ??
+        true,
+      updatedAt: component.updatedAt,
+    };
   }
 
   private getFirstTableForModule(moduleKey: string) {
@@ -1531,7 +2080,17 @@ export class CustomizationService {
           tenantId_tableKey: { tenantId, tableKey },
         },
         create: this.buildTableCreateInput(tenantId, definition),
-        update: {},
+        update: {
+          moduleKey: definition.moduleKey,
+          ownershipType: definition.ownershipType,
+          displayOrder: definition.displayOrder,
+          isCustomizable: definition.isCustomizable,
+          isVisibleInCustomization: definition.isVisibleInCustomization,
+          isValidForAdvancedFind: definition.isValidForAdvancedFind,
+          isValidForFormDesigner: definition.isValidForFormDesigner,
+          isValidForViewDesigner: definition.isValidForViewDesigner,
+          isActive: true,
+        },
       });
     }
 
@@ -1631,9 +2190,11 @@ export class CustomizationService {
       sortingJson?: unknown;
     },
   ) {
+    assertViewMetadataShape(metadata);
     const validColumnKeys = await this.getValidColumnKeySet(
       currentUser,
       tableKey,
+      'view',
     );
     this.assertReferencedColumnsExist(
       'View columns',
@@ -1657,9 +2218,11 @@ export class CustomizationService {
     tableKey: string,
     layoutJson: unknown,
   ) {
+    assertFormLayoutShape(layoutJson);
     const validColumnKeys = await this.getValidColumnKeySet(
       currentUser,
       tableKey,
+      'form',
     );
     this.assertReferencedColumnsExist(
       'Form layout',
@@ -1673,7 +2236,9 @@ export class CustomizationService {
     tableKey: string,
     layoutJson: unknown,
   ) {
-    const columns = await this.listColumns(currentUser, tableKey);
+    const columns = (await this.listColumns(currentUser, tableKey)).filter(
+      isDesignerColumn,
+    );
     const requiredColumnKeys = columns
       .filter((column) => column.isRequired)
       .map((column) => column.columnKey);
@@ -1695,9 +2260,16 @@ export class CustomizationService {
   private async getValidColumnKeySet(
     currentUser: AuthenticatedUser,
     tableKey: string,
+    purpose: 'form' | 'view' | 'any' = 'any',
   ) {
     const columns = await this.listColumns(currentUser, tableKey);
-    return new Set(columns.map((column) => column.columnKey));
+    const allowedColumns =
+      purpose === 'form'
+        ? columns.filter(isDesignerColumn)
+        : purpose === 'view'
+          ? columns.filter(isViewDesignerColumn)
+          : columns;
+    return new Set(allowedColumns.map((column) => column.columnKey));
   }
 
   private assertReferencedColumnsExist(
@@ -1727,9 +2299,16 @@ export class CustomizationService {
       pluralDisplayName: definition.pluralName,
       description: definition.description,
       icon: definition.icon,
+      ownershipType: definition.ownershipType,
+      moduleKey: definition.moduleKey,
+      displayOrder: definition.displayOrder,
       isSystem: true,
       isCustom: false,
-      isCustomizable: true,
+      isCustomizable: definition.isCustomizable,
+      isVisibleInCustomization: definition.isVisibleInCustomization,
+      isValidForAdvancedFind: definition.isValidForAdvancedFind,
+      isValidForFormDesigner: definition.isValidForFormDesigner,
+      isValidForViewDesigner: definition.isValidForViewDesigner,
       isActive: true,
     };
   }
@@ -1758,6 +2337,9 @@ export class CustomizationService {
       isFilterable: dto.isFilterable ?? false,
       isSortable: dto.isSortable ?? false,
       isVisible: dto.isVisible ?? true,
+      isVisibleInCustomization: dto.isVisible ?? true,
+      isValidForFormDesigner: dto.isVisible ?? true,
+      isValidForViewDesigner: dto.isVisible ?? true,
       isReadOnly: dto.isReadOnly ?? false,
       maxLength: dto.maxLength,
       minValue: dto.minValue,
@@ -1781,7 +2363,7 @@ export class CustomizationService {
     return {
       id: row?.id ?? null,
       tableKey,
-      moduleKey: definition?.moduleKey ?? row?.tableKey ?? tableKey,
+      moduleKey: row?.moduleKey ?? definition?.moduleKey ?? 'custom',
       systemName:
         row?.systemName ?? definition?.systemName ?? pascalize(tableKey),
       displayName: row?.displayName ?? definition?.displayName ?? tableKey,
@@ -1791,12 +2373,30 @@ export class CustomizationService {
         row?.pluralDisplayName ?? definition?.pluralName ?? `${tableKey}`,
       description: row?.description ?? definition?.description ?? null,
       icon: row?.icon ?? definition?.icon ?? null,
-      isCustomizable: row?.isCustomizable ?? true,
+      ownershipType: row?.ownershipType ?? definition?.ownershipType ?? null,
+      displayOrder: row?.displayOrder ?? definition?.displayOrder ?? 0,
+      isCustomizable: row?.isCustomizable ?? definition?.isCustomizable ?? true,
+      isVisibleInCustomization:
+        row?.isVisibleInCustomization ??
+        definition?.isVisibleInCustomization ??
+        true,
+      isValidForAdvancedFind:
+        row?.isValidForAdvancedFind ??
+        definition?.isValidForAdvancedFind ??
+        true,
+      isValidForFormDesigner:
+        row?.isValidForFormDesigner ??
+        definition?.isValidForFormDesigner ??
+        true,
+      isValidForViewDesigner:
+        row?.isValidForViewDesigner ??
+        definition?.isValidForViewDesigner ??
+        true,
       isEnabled: row?.isActive ?? true,
       isActive: row?.isActive ?? true,
-      isSystem: Boolean(definition),
-      isCustom: !definition,
-      isCustomTable: !definition,
+      isSystem: row?.isSystem ?? Boolean(definition),
+      isCustom: row?.isCustom ?? !definition,
+      isCustomTable: row?.isCustom ?? !definition,
       publishedAt: null,
       createdAt: row?.createdAt ?? null,
       updatedAt: row?.updatedAt ?? null,
@@ -1908,6 +2508,153 @@ type EffectivePublishColumn = {
 
 function toJsonValue(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+}
+
+function isDeadlockError(error: unknown) {
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === 'string'
+        ? error
+        : '';
+  return message.includes('deadlock detected') || message.includes('40P01');
+}
+
+function delay(milliseconds: number) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+function buildDefaultFormLayout(
+  table: CustomizationTable,
+  columns: CustomizationColumn[],
+): Prisma.InputJsonValue {
+  const fields = columns
+    .filter((column) => column.isVisible)
+    .slice(0, 24)
+    .map((column, index) => ({
+      columnKey: column.columnKey,
+      label: column.displayName,
+      required: column.isRequired,
+      readOnly: column.isReadOnly,
+      isVisible: column.isVisible,
+      sequence: index * 10,
+    }));
+
+  return toJsonValue({
+    tabs: [
+      {
+        id: 'summary',
+        label: 'Summary',
+        sequence: 10,
+        sections: [
+          {
+            id: 'general',
+            label: 'General',
+            labelVisible: true,
+            columns: 2,
+            layout: 'twoColumns',
+            isVisible: true,
+            sequence: 10,
+            fields,
+          },
+        ],
+      },
+    ],
+    metadata: {
+      tableKey: table.tableKey,
+      generatedBy: 'default-solution-sync',
+    },
+  });
+}
+
+function buildDefaultViewColumns(
+  columns: CustomizationColumn[],
+): Prisma.InputJsonValue {
+  return toJsonValue(
+    columns
+      .filter((column) => column.isVisible)
+      .slice(0, 8)
+      .map((column, index) => ({
+        columnKey: column.columnKey,
+        label: column.displayName,
+        width: column.dataType === 'textarea' ? 320 : 180,
+        sequence: index * 10,
+      })),
+  );
+}
+
+function buildDefaultViewSorting(
+  columns: CustomizationColumn[],
+): Prisma.InputJsonValue {
+  const sortColumn =
+    columns.find((column) => column.columnKey === 'updatedAt') ??
+    columns.find((column) => column.columnKey === 'createdAt') ??
+    columns.find((column) => column.isSortable) ??
+    columns[0];
+
+  return toJsonValue(
+    sortColumn
+      ? [{ columnKey: sortColumn.columnKey, direction: 'desc', sequence: 10 }]
+      : [],
+  );
+}
+
+function assertFormLayoutShape(value: unknown) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new BadRequestException('Form layout must be a JSON object.');
+  }
+  const tabs = (value as { tabs?: unknown }).tabs;
+  if (!Array.isArray(tabs)) {
+    throw new BadRequestException('Form layout must include a tabs array.');
+  }
+  for (const tab of tabs) {
+    if (!tab || typeof tab !== 'object' || Array.isArray(tab)) {
+      throw new BadRequestException('Each form tab must be an object.');
+    }
+    const sections = (tab as { sections?: unknown }).sections;
+    if (!Array.isArray(sections)) {
+      throw new BadRequestException('Each form tab must include sections.');
+    }
+    for (const section of sections) {
+      if (!section || typeof section !== 'object' || Array.isArray(section)) {
+        throw new BadRequestException('Each form section must be an object.');
+      }
+      const fields = (section as { fields?: unknown }).fields;
+      if (!Array.isArray(fields)) {
+        throw new BadRequestException('Each form section must include fields.');
+      }
+    }
+  }
+}
+
+function assertViewMetadataShape(metadata: {
+  columnsJson?: unknown;
+  filtersJson?: unknown;
+  sortingJson?: unknown;
+}) {
+  if (
+    metadata.columnsJson !== undefined &&
+    !Array.isArray(metadata.columnsJson) &&
+    (typeof metadata.columnsJson !== 'object' || metadata.columnsJson === null)
+  ) {
+    throw new BadRequestException('View columns must be an array or object.');
+  }
+  if (
+    metadata.filtersJson !== undefined &&
+    metadata.filtersJson !== null &&
+    !Array.isArray(metadata.filtersJson) &&
+    typeof metadata.filtersJson !== 'object'
+  ) {
+    throw new BadRequestException('View filters must be an array or object.');
+  }
+  if (
+    metadata.sortingJson !== undefined &&
+    metadata.sortingJson !== null &&
+    !Array.isArray(metadata.sortingJson) &&
+    typeof metadata.sortingJson !== 'object'
+  ) {
+    throw new BadRequestException('View sorting must be an array or object.');
+  }
 }
 
 function slugKey(value: string) {
