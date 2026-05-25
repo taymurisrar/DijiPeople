@@ -68,18 +68,24 @@ export class ConfigurationResolverService {
   }
 
   async resolveCurrency(context: ConfigurationResolutionContext) {
-    const [system, organization, payroll, project, employee, businessUnitSettings] =
-      await Promise.all([
-        this.tenantSettingsResolver.getSystemSettings(context.tenantId),
-        this.tenantSettingsResolver.getOrganizationSettings(context.tenantId),
-        this.tenantSettingsResolver.getPayrollSettingsForBusinessUnit(
-          context.tenantId,
-          context.businessUnitId,
-        ),
-        this.findProject(context),
-        this.findEmployee(context),
-        this.findBusinessUnitSettings(context),
-      ]);
+    const [
+      system,
+      organization,
+      payroll,
+      project,
+      employee,
+      businessUnitSettings,
+    ] = await Promise.all([
+      this.tenantSettingsResolver.getSystemSettings(context.tenantId),
+      this.tenantSettingsResolver.getOrganizationSettings(context.tenantId),
+      this.tenantSettingsResolver.getPayrollSettingsForBusinessUnit(
+        context.tenantId,
+        context.businessUnitId,
+      ),
+      this.findProject(context),
+      this.findEmployee(context),
+      this.findBusinessUnitSettings(context),
+    ]);
 
     return (
       readString(employee?.user?.preferencesJson, 'currencyCode') ||
@@ -97,7 +103,9 @@ export class ConfigurationResolverService {
       context.tenantId,
     );
     const employee = await this.findEmployee(context);
-    return readString(employee?.user?.preferencesJson, 'locale') || system.locale;
+    return (
+      readString(employee?.user?.preferencesJson, 'locale') || system.locale
+    );
   }
 
   async resolveDateFormat(context: ConfigurationResolutionContext) {
@@ -202,7 +210,9 @@ export class ConfigurationResolverService {
     });
   }
 
-  private async findBusinessUnitSettings(context: ConfigurationResolutionContext) {
+  private async findBusinessUnitSettings(
+    context: ConfigurationResolutionContext,
+  ) {
     if (!context.businessUnitId) return null;
     const businessUnit = await this.prisma.businessUnit.findFirst({
       where: { tenantId: context.tenantId, id: context.businessUnitId },

@@ -298,9 +298,13 @@ export class AgentService {
       throw new NotFoundException('Employee was not found.');
     }
 
-    const settings = (await this.getOrCreateSettings(currentUser.tenantId)) as ExtendedAgentSettings;
+    const settings = (await this.getOrCreateSettings(
+      currentUser.tenantId,
+    )) as ExtendedAgentSettings;
     const today = startOfUtcDay(new Date());
-    const retentionStart = new Date(Date.now() - settings.historyRetentionDays * 24 * 60 * 60 * 1000);
+    const retentionStart = new Date(
+      Date.now() - settings.historyRetentionDays * 24 * 60 * 60 * 1000,
+    );
     const { from, to } = resolveHistoryWindow(query, retentionStart);
 
     const [devices, latestSession, todaySummary, recentEvents] =
@@ -399,8 +403,15 @@ export class AgentService {
           }
         : null,
       recentEvents,
-      liveStatus: resolveLiveStatus(latestSession?.lastHeartbeatAt ?? null, settings),
-      retention: { historyRetentionDays: settings.historyRetentionDays, from, to },
+      liveStatus: resolveLiveStatus(
+        latestSession?.lastHeartbeatAt ?? null,
+        settings,
+      ),
+      retention: {
+        historyRetentionDays: settings.historyRetentionDays,
+        from,
+        to,
+      },
     };
   }
 
@@ -486,7 +497,9 @@ export class AgentService {
   }
 
   async getConfig(tenantId: string) {
-    const settings = (await this.getOrCreateSettings(tenantId)) as ExtendedAgentSettings;
+    const settings = (await this.getOrCreateSettings(
+      tenantId,
+    )) as ExtendedAgentSettings;
     return toConfigResponse(settings);
   }
 
@@ -922,9 +935,7 @@ export class AgentService {
         deviceId: input.deviceId,
         sessionId,
         tokenHash: await bcrypt.hash(refreshToken, 10),
-        expiresAt: new Date(
-          now + parseDurationToMilliseconds(refreshTokenTtl),
-        ),
+        expiresAt: new Date(now + parseDurationToMilliseconds(refreshTokenTtl)),
         absoluteExpiresAt:
           input.absoluteExpiresAt ??
           new Date(now + getAgentSessionAbsoluteTimeoutMs(this.configService)),
@@ -1168,14 +1179,20 @@ function normalizeSettingsDto(dto: UpdateAgentSettingsDto) {
   };
 }
 
-function resolveHistoryWindow(query: AgentHistoryQueryDto, retentionStart: Date) {
+function resolveHistoryWindow(
+  query: AgentHistoryQueryDto,
+  retentionStart: Date,
+) {
   const now = new Date();
   let from = retentionStart;
   let to = now;
 
-  if (query.range === 'day') from = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  if (query.range === 'week') from = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  if (query.range === 'month') from = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  if (query.range === 'day')
+    from = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  if (query.range === 'week')
+    from = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  if (query.range === 'month')
+    from = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
   if (query.range === 'custom') {
     from = query.from ? new Date(query.from) : retentionStart;
     to = query.to ? new Date(query.to) : now;
@@ -1187,10 +1204,20 @@ function resolveHistoryWindow(query: AgentHistoryQueryDto, retentionStart: Date)
   return { from, to };
 }
 
-function resolveLiveStatus(lastHeartbeatAt: Date | null, settings: { heartbeatIntervalSeconds: number; awayThresholdSeconds: number }) {
+function resolveLiveStatus(
+  lastHeartbeatAt: Date | null,
+  settings: { heartbeatIntervalSeconds: number; awayThresholdSeconds: number },
+) {
   if (!lastHeartbeatAt) return 'NEVER_CONNECTED';
   const ageSeconds = (Date.now() - lastHeartbeatAt.getTime()) / 1000;
   if (ageSeconds <= settings.heartbeatIntervalSeconds * 2) return 'LIVE';
-  if (ageSeconds <= Math.max(settings.awayThresholdSeconds, settings.heartbeatIntervalSeconds * 4)) return 'STALE';
+  if (
+    ageSeconds <=
+    Math.max(
+      settings.awayThresholdSeconds,
+      settings.heartbeatIntervalSeconds * 4,
+    )
+  )
+    return 'STALE';
   return 'OFFLINE';
 }

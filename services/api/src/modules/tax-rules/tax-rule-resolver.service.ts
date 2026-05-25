@@ -25,7 +25,10 @@ export class TaxRuleResolverService {
         tenantId: input.tenantId,
         isActive: true,
         effectiveFrom: { lte: input.effectiveDate },
-        OR: [{ effectiveTo: null }, { effectiveTo: { gte: input.effectiveDate } }],
+        OR: [
+          { effectiveTo: null },
+          { effectiveTo: { gte: input.effectiveDate } },
+        ],
       },
       include: taxRuleInclude,
       orderBy: [{ effectiveFrom: 'desc' }, { createdAt: 'desc' }],
@@ -34,7 +37,9 @@ export class TaxRuleResolverService {
     return rules
       .map((rule) => ({ rule, score: scoreRule(rule, input) }))
       .filter((item) => item.score > 0)
-      .sort((a, b) => b.score - a.score || a.rule.code.localeCompare(b.rule.code))
+      .sort(
+        (a, b) => b.score - a.score || a.rule.code.localeCompare(b.rule.code),
+      )
       .map((item) => item.rule);
   }
 }
@@ -47,15 +52,26 @@ function scoreRule(
     regionCode?: string | null;
   },
 ) {
-  const levelMatches = Boolean(rule.employeeLevelId && rule.employeeLevelId === input.employeeLevelId);
-  const countryMatches = Boolean(rule.countryCode && input.countryCode && rule.countryCode === input.countryCode.toUpperCase());
-  const regionMatches = Boolean(rule.regionCode && input.regionCode && rule.regionCode === input.regionCode.toUpperCase());
+  const levelMatches = Boolean(
+    rule.employeeLevelId && rule.employeeLevelId === input.employeeLevelId,
+  );
+  const countryMatches = Boolean(
+    rule.countryCode &&
+    input.countryCode &&
+    rule.countryCode === input.countryCode.toUpperCase(),
+  );
+  const regionMatches = Boolean(
+    rule.regionCode &&
+    input.regionCode &&
+    rule.regionCode === input.regionCode.toUpperCase(),
+  );
 
   if (levelMatches && regionMatches) return 600;
   if (levelMatches && countryMatches && !rule.regionCode) return 500;
   if (levelMatches && !rule.countryCode && !rule.regionCode) return 400;
   if (regionMatches && !rule.employeeLevelId) return 300;
   if (countryMatches && !rule.employeeLevelId && !rule.regionCode) return 200;
-  if (!rule.employeeLevelId && !rule.countryCode && !rule.regionCode) return 100;
+  if (!rule.employeeLevelId && !rule.countryCode && !rule.regionCode)
+    return 100;
   return 0;
 }

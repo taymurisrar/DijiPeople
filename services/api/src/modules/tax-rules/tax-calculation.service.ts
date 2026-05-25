@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   PayrollExceptionSeverity,
   PayrollInputSnapshotSourceType,
@@ -11,7 +15,10 @@ import {
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
-import { TaxRuleResolverService, taxRuleInclude } from './tax-rule-resolver.service';
+import {
+  TaxRuleResolverService,
+  taxRuleInclude,
+} from './tax-rule-resolver.service';
 
 const runEmployeeInclude = {
   employee: {
@@ -44,12 +51,20 @@ export class TaxCalculationService {
       where: { tenantId: input.tenantId, id: input.payrollRunEmployeeId },
       include: runEmployeeInclude,
     });
-    if (!runEmployee) throw new NotFoundException('Payroll run employee was not found.');
-    if (runEmployee.status === PayrollRunEmployeeStatus.EXCEPTION || runEmployee.status === PayrollRunEmployeeStatus.PENDING) {
+    if (!runEmployee)
+      throw new NotFoundException('Payroll run employee was not found.');
+    if (
+      runEmployee.status === PayrollRunEmployeeStatus.EXCEPTION ||
+      runEmployee.status === PayrollRunEmployeeStatus.PENDING
+    ) {
       return runEmployee;
     }
-    if (['APPROVED', 'PAID', 'LOCKED'].includes(runEmployee.payrollRun.status)) {
-      throw new BadRequestException('Approved, paid, or locked payroll runs cannot have taxes recalculated.');
+    if (
+      ['APPROVED', 'PAID', 'LOCKED'].includes(runEmployee.payrollRun.status)
+    ) {
+      throw new BadRequestException(
+        'Approved, paid, or locked payroll runs cannot have taxes recalculated.',
+      );
     }
 
     await this.prisma.payrollRunLineItem.deleteMany({
@@ -169,13 +184,18 @@ export class TaxCalculationService {
     }
 
     if (createdLineItems.length) {
-      await this.prisma.payrollRunLineItem.createMany({ data: createdLineItems });
+      await this.prisma.payrollRunLineItem.createMany({
+        data: createdLineItems,
+      });
     }
     if (snapshots.length) {
       await this.prisma.payrollInputSnapshot.createMany({ data: snapshots });
     }
 
-    const updated = await this.recomputeRunEmployeeTotals(input.tenantId, runEmployee.id);
+    const updated = await this.recomputeRunEmployeeTotals(
+      input.tenantId,
+      runEmployee.id,
+    );
     if (input.actorUserId) {
       await this.auditService.log({
         tenantId: input.tenantId,
@@ -184,7 +204,10 @@ export class TaxCalculationService {
         entityType: 'PayrollRunEmployee',
         entityId: runEmployee.id,
         beforeSnapshot: null,
-        afterSnapshot: { taxRuleCount: rules.length, lineItemCount: createdLineItems.length },
+        afterSnapshot: {
+          taxRuleCount: rules.length,
+          lineItemCount: createdLineItems.length,
+        },
       });
     }
     return updated;
@@ -201,7 +224,9 @@ export class TaxCalculationService {
       run.status === PayrollRunStatus.PAID ||
       run.status === PayrollRunStatus.LOCKED
     ) {
-      throw new BadRequestException('Approved, paid, or locked payroll runs cannot have taxes recalculated.');
+      throw new BadRequestException(
+        'Approved, paid, or locked payroll runs cannot have taxes recalculated.',
+      );
     }
     let processed = 0;
     for (const employee of run.employees) {
@@ -218,7 +243,10 @@ export class TaxCalculationService {
     return { payrollRunId, processed };
   }
 
-  private async recomputeRunEmployeeTotals(tenantId: string, payrollRunEmployeeId: string) {
+  private async recomputeRunEmployeeTotals(
+    tenantId: string,
+    payrollRunEmployeeId: string,
+  ) {
     const lineItems = await this.prisma.payrollRunLineItem.findMany({
       where: { tenantId, payrollRunEmployeeId },
     });
@@ -230,28 +258,43 @@ export class TaxCalculationService {
   }
 }
 
-type TaxRulePayload = Prisma.TaxRuleGetPayload<{ include: typeof taxRuleInclude }>;
+type TaxRulePayload = Prisma.TaxRuleGetPayload<{
+  include: typeof taxRuleInclude;
+}>;
 
 function resolveTaxableBase(
   rule: TaxRulePayload,
   lineItems: Prisma.PayrollRunLineItemGetPayload<Record<string, never>>[],
 ) {
-  const mappedComponentIds = new Set(rule.payComponents.map((mapping) => mapping.payComponentId));
+  const mappedComponentIds = new Set(
+    rule.payComponents.map((mapping) => mapping.payComponentId),
+  );
   return lineItems.reduce((sum, line) => {
     if (line.sourceType === 'TAX') return sum;
-    if (line.category === PayrollRunLineItemCategory.DEDUCTION || line.category === PayrollRunLineItemCategory.TAX) return sum;
+    if (
+      line.category === PayrollRunLineItemCategory.DEDUCTION ||
+      line.category === PayrollRunLineItemCategory.TAX
+    )
+      return sum;
     if (mappedComponentIds.size) {
       return line.payComponentId && mappedComponentIds.has(line.payComponentId)
         ? sum.plus(line.amount)
         : sum;
     }
     if (!line.isTaxable || line.amount.lte(0)) return sum;
-    if (line.category === PayrollRunLineItemCategory.REIMBURSEMENT && !line.isTaxable) return sum;
+    if (
+      line.category === PayrollRunLineItemCategory.REIMBURSEMENT &&
+      !line.isTaxable
+    )
+      return sum;
     return sum.plus(line.amount);
   }, new Prisma.Decimal(0));
 }
 
-function calculateRuleAmounts(rule: TaxRulePayload, taxableBase: Prisma.Decimal) {
+function calculateRuleAmounts(
+  rule: TaxRulePayload,
+  taxableBase: Prisma.Decimal,
+) {
   if (rule.calculationMethod === TaxCalculationMethod.FIXED) {
     return {
       employeeAmount: rule.fixedEmployeeAmount ?? new Prisma.Decimal(0),
@@ -266,7 +309,11 @@ function calculateRuleAmounts(rule: TaxRulePayload, taxableBase: Prisma.Decimal)
       error: null as string | null,
     };
   }
-  const bracket = rule.brackets.find((item) => taxableBase.gte(item.minAmount) && (!item.maxAmount || taxableBase.lte(item.maxAmount)));
+  const bracket = rule.brackets.find(
+    (item) =>
+      taxableBase.gte(item.minAmount) &&
+      (!item.maxAmount || taxableBase.lte(item.maxAmount)),
+  );
   if (!bracket) {
     return {
       employeeAmount: new Prisma.Decimal(0),
@@ -275,32 +322,49 @@ function calculateRuleAmounts(rule: TaxRulePayload, taxableBase: Prisma.Decimal)
     };
   }
   return {
-    employeeAmount: (bracket.fixedEmployeeAmount ?? new Prisma.Decimal(0)).plus(taxableBase.mul(bracket.employeeRate ?? 0).div(100)),
-    employerAmount: (bracket.fixedEmployerAmount ?? new Prisma.Decimal(0)).plus(taxableBase.mul(bracket.employerRate ?? 0).div(100)),
+    employeeAmount: (bracket.fixedEmployeeAmount ?? new Prisma.Decimal(0)).plus(
+      taxableBase.mul(bracket.employeeRate ?? 0).div(100),
+    ),
+    employerAmount: (bracket.fixedEmployerAmount ?? new Prisma.Decimal(0)).plus(
+      taxableBase.mul(bracket.employerRate ?? 0).div(100),
+    ),
     error: null as string | null,
   };
 }
 
 function validateRuleBrackets(rule: TaxRulePayload) {
   if (rule.calculationMethod !== TaxCalculationMethod.BRACKET) return null;
-  if (!rule.brackets.length) return `Tax rule ${rule.code} does not have any brackets.`;
+  if (!rule.brackets.length)
+    return `Tax rule ${rule.code} does not have any brackets.`;
 
-  const sorted = [...rule.brackets].sort((a, b) => Number(a.minAmount) - Number(b.minAmount));
+  const sorted = [...rule.brackets].sort(
+    (a, b) => Number(a.minAmount) - Number(b.minAmount),
+  );
   for (let index = 0; index < sorted.length; index += 1) {
     const bracket = sorted[index];
     const min = Number(bracket.minAmount);
-    const max = bracket.maxAmount === null ? Number.POSITIVE_INFINITY : Number(bracket.maxAmount);
-    if (max <= min) return `Tax rule ${rule.code} has a bracket with maxAmount less than or equal to minAmount.`;
+    const max =
+      bracket.maxAmount === null
+        ? Number.POSITIVE_INFINITY
+        : Number(bracket.maxAmount);
+    if (max <= min)
+      return `Tax rule ${rule.code} has a bracket with maxAmount less than or equal to minAmount.`;
     const previous = sorted[index - 1];
     if (previous) {
-      const previousMax = previous.maxAmount === null ? Number.POSITIVE_INFINITY : Number(previous.maxAmount);
-      if (min < previousMax) return `Tax rule ${rule.code} has overlapping brackets.`;
+      const previousMax =
+        previous.maxAmount === null
+          ? Number.POSITIVE_INFINITY
+          : Number(previous.maxAmount);
+      if (min < previousMax)
+        return `Tax rule ${rule.code} has overlapping brackets.`;
     }
   }
   return null;
 }
 
-function calculateTotals(lineItems: Prisma.PayrollRunLineItemGetPayload<Record<string, never>>[]) {
+function calculateTotals(
+  lineItems: Prisma.PayrollRunLineItemGetPayload<Record<string, never>>[],
+) {
   let grossEarnings = new Prisma.Decimal(0);
   let totalDeductions = new Prisma.Decimal(0);
   let totalTaxes = new Prisma.Decimal(0);
@@ -308,11 +372,19 @@ function calculateTotals(lineItems: Prisma.PayrollRunLineItemGetPayload<Record<s
   let employerContributions = new Prisma.Decimal(0);
   for (const item of lineItems) {
     const amount = new Prisma.Decimal(item.amount);
-    if (item.category === PayrollRunLineItemCategory.EARNING || item.category === PayrollRunLineItemCategory.ALLOWANCE) grossEarnings = grossEarnings.plus(amount);
-    else if (item.category === PayrollRunLineItemCategory.DEDUCTION) totalDeductions = totalDeductions.plus(amount.abs());
-    else if (item.category === PayrollRunLineItemCategory.TAX) totalTaxes = totalTaxes.plus(amount.abs());
-    else if (item.category === PayrollRunLineItemCategory.REIMBURSEMENT) totalReimbursements = totalReimbursements.plus(amount);
-    else if (item.category === PayrollRunLineItemCategory.EMPLOYER_CONTRIBUTION) employerContributions = employerContributions.plus(amount);
+    if (
+      item.category === PayrollRunLineItemCategory.EARNING ||
+      item.category === PayrollRunLineItemCategory.ALLOWANCE
+    )
+      grossEarnings = grossEarnings.plus(amount);
+    else if (item.category === PayrollRunLineItemCategory.DEDUCTION)
+      totalDeductions = totalDeductions.plus(amount.abs());
+    else if (item.category === PayrollRunLineItemCategory.TAX)
+      totalTaxes = totalTaxes.plus(amount.abs());
+    else if (item.category === PayrollRunLineItemCategory.REIMBURSEMENT)
+      totalReimbursements = totalReimbursements.plus(amount);
+    else if (item.category === PayrollRunLineItemCategory.EMPLOYER_CONTRIBUTION)
+      employerContributions = employerContributions.plus(amount);
   }
   return {
     grossEarnings,
@@ -320,6 +392,9 @@ function calculateTotals(lineItems: Prisma.PayrollRunLineItemGetPayload<Record<s
     totalTaxes,
     totalReimbursements,
     employerContributions,
-    netPay: grossEarnings.plus(totalReimbursements).minus(totalDeductions).minus(totalTaxes),
+    netPay: grossEarnings
+      .plus(totalReimbursements)
+      .minus(totalDeductions)
+      .minus(totalTaxes),
   };
 }

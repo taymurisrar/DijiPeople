@@ -5,10 +5,7 @@ import type {
   EmailSendPayload,
   EmailSendResult,
 } from '../interfaces/email-provider.interface';
-import {
-  maskSensitiveConfiguration,
-  SECRET_KEY_PATTERN,
-} from './email-safety';
+import { maskSensitiveConfiguration, SECRET_KEY_PATTERN } from './email-safety';
 
 @Injectable()
 export class ConsoleEmailProvider implements EmailProvider {
@@ -99,9 +96,10 @@ function redactUnrelatedSecrets(value: string | null) {
 }
 
 function extractBootstrapArtifacts(payload: EmailSendPayload) {
-  const metadata = sanitizeMetadata(payload.metadata ?? null) as
-    | Record<string, unknown>
-    | null;
+  const metadata = sanitizeMetadata(payload.metadata ?? null) as Record<
+    string,
+    unknown
+  > | null;
   const body = `${payload.text ?? ''}\n${payload.html}`;
   const urlMatches = Array.from(
     new Set(body.match(/https?:\/\/[^\s"'<>]+/gi) ?? []),
@@ -114,11 +112,11 @@ function extractBootstrapArtifacts(payload: EmailSendPayload) {
     activationUrl:
       metadata && typeof metadata.activationUrl === 'string'
         ? metadata.activationUrl
-        : urlMatches.find((url) => /activat/i.test(url)) ?? null,
+        : (urlMatches.find((url) => /activat/i.test(url)) ?? null),
     resetUrl:
       metadata && typeof metadata.resetUrl === 'string'
         ? metadata.resetUrl
-        : urlMatches.find((url) => /reset/i.test(url)) ?? null,
+        : (urlMatches.find((url) => /reset/i.test(url)) ?? null),
     otp: otpFromMetadata ?? otpFromBody,
     urls: urlMatches,
   };
@@ -146,7 +144,11 @@ export class SmtpEmailProvider implements EmailProvider {
     const hasUsername = typeof config.username === 'string' && config.username;
     const hasPassword = typeof config.password === 'string' && config.password;
 
-    if (!hasHost || !hasPort || (!hasAuthObject && (!hasUsername || !hasPassword))) {
+    if (
+      !hasHost ||
+      !hasPort ||
+      (!hasAuthObject && (!hasUsername || !hasPassword))
+    ) {
       throw new BadRequestException(
         'SMTP providers require host, port, and either auth or username/password.',
       );

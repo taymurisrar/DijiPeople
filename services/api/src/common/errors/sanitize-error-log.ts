@@ -26,7 +26,9 @@ export function sanitizeForErrorLog<T>(value: T, depth = 0): T {
 
   const result: Record<string, unknown> = {};
   for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
-    result[key] = isSensitiveKey(key) ? REDACTED : sanitizeForErrorLog(item, depth + 1);
+    result[key] = isSensitiveKey(key)
+      ? REDACTED
+      : sanitizeForErrorLog(item, depth + 1);
   }
   return result as T;
 }

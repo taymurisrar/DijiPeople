@@ -87,7 +87,9 @@ export class UserInvitationsService {
         deliveryMode = delivery.sent ? 'sent' : 'disabled';
       } catch (error) {
         deliveryStatus =
-          error instanceof Error ? error.message : 'Activation delivery unavailable.';
+          error instanceof Error
+            ? error.message
+            : 'Activation delivery unavailable.';
         deliveryMode = 'disabled';
       }
     }

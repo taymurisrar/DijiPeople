@@ -225,16 +225,19 @@ export const PERMISSION_KEYS = {
   CUSTOMIZATION_READ: "customization.read",
   CUSTOMIZATION_ACCESS: "customization.access",
   CUSTOMIZATION_TABLES_READ: "customization.tables.read",
+  CUSTOMIZATION_TABLE_MANAGE: "customization.table.manage",
   CUSTOMIZATION_COLUMNS_READ: "customization.columns.read",
+  CUSTOMIZATION_COLUMN_MANAGE: "customization.column.manage",
   CUSTOMIZATION_VIEWS_READ: "customization.views.read",
   CUSTOMIZATION_VIEWS_CREATE: "customization.views.create",
   CUSTOMIZATION_VIEWS_UPDATE: "customization.views.update",
   CUSTOMIZATION_VIEWS_DELETE: "customization.views.delete",
   CUSTOMIZATION_FORMS_READ: "customization.forms.read",
+  CUSTOMIZATION_FORM_MANAGE: "customization.form.manage",
+  CUSTOMIZATION_VIEW_MANAGE: "customization.view.manage",
   CUSTOMIZATION_PUBLISH: "customization.publish",
 
   BUSINESS_UNITS_READ: "business-units.read",
-
 } as const;
 
 export const FEATURE_KEYS = {

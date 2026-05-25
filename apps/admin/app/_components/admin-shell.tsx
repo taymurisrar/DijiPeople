@@ -97,6 +97,7 @@ export function AdminShell({ user, children }: AdminShellProps) {
             firstName={user.firstName}
             lastName={user.lastName}
             onMenuToggle={() => setSidebarOpen((current) => !current)}
+            roleKeys={user.roleKeys}
           />
 
           <div className="min-w-0 overflow-x-hidden">{children}</div>

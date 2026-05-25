@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { AuditRepository } from './audit.repository';
 import { AuditLogQueryDto } from './dto/audit-log-query.dto';
 
@@ -21,6 +22,21 @@ export class AuditService {
     beforeSnapshot?: unknown;
     afterSnapshot?: unknown;
   }) {
+    if (input.tenantId === 'platform') {
+      return this.auditRepository.createPlatform({
+        platformActorUserId: input.actorUserId ?? null,
+        action: input.action,
+        entityType: input.entityType,
+        entityId: input.entityId,
+        requestId: input.requestId ?? null,
+        traceId: input.traceId ?? null,
+        sourceModule: input.sourceModule ?? null,
+        scope: normalizeSnapshot(input.scope),
+        beforeSnapshot: normalizeSnapshot(input.beforeSnapshot),
+        afterSnapshot: normalizeSnapshot(input.afterSnapshot),
+      });
+    }
+
     return this.auditRepository.create({
       tenantId: input.tenantId,
       organizationId: input.organizationId ?? null,
@@ -75,10 +91,10 @@ export class AuditService {
   }
 }
 
-function normalizeSnapshot(value: unknown) {
+function normalizeSnapshot(value: unknown): Prisma.InputJsonValue | undefined {
   if (value === null || value === undefined) {
     return undefined;
   }
 
-  return JSON.parse(JSON.stringify(value));
+  return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 }

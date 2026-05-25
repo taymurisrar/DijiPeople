@@ -384,7 +384,10 @@ export class EmployeesRepository {
     }
 
     if (columnFilters.length) {
-      where.AND = [...(Array.isArray(where.AND) ? where.AND : []), ...columnFilters];
+      where.AND = [
+        ...(Array.isArray(where.AND) ? where.AND : []),
+        ...columnFilters,
+      ];
     }
 
     return where;
@@ -467,13 +470,17 @@ export class EmployeesRepository {
     return { start, end };
   }
 
-  private buildOrderBy(query: EmployeeQueryDto): Prisma.EmployeeOrderByWithRelationInput[] {
+  private buildOrderBy(
+    query: EmployeeQueryDto,
+  ): Prisma.EmployeeOrderByWithRelationInput[] {
     const fallback: Prisma.EmployeeOrderByWithRelationInput[] = [
       { lastName: 'asc' },
       { firstName: 'asc' },
     ];
 
-    const match = query.orderBy?.match(/^([A-Za-z][A-Za-z0-9_]*)\s+(asc|desc)$/);
+    const match = query.orderBy?.match(
+      /^([A-Za-z][A-Za-z0-9_]*)\s+(asc|desc)$/,
+    );
 
     if (!match) {
       return fallback;
@@ -489,7 +496,10 @@ export class EmployeesRepository {
       case 'employmentStatus':
         return [{ employmentStatus: direction }];
       case 'managerEmployeeId':
-        return [{ manager: { firstName: direction } }, { manager: { lastName: direction } }];
+        return [
+          { manager: { firstName: direction } },
+          { manager: { lastName: direction } },
+        ];
       case 'hireDate':
         return [{ hireDate: direction }];
       case 'email':

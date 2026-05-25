@@ -31,11 +31,16 @@ export class PayrollPostingRuleResolverService {
         isActive: true,
         sourceCategory: input.sourceCategory,
         effectiveFrom: { lte: input.effectiveEnd },
-        OR: [{ effectiveTo: null }, { effectiveTo: { gte: input.effectiveStart } }],
+        OR: [
+          { effectiveTo: null },
+          { effectiveTo: { gte: input.effectiveStart } },
+        ],
         AND: [
           {
             OR: [
-              input.payComponentId ? { payComponentId: input.payComponentId } : undefined,
+              input.payComponentId
+                ? { payComponentId: input.payComponentId }
+                : undefined,
               input.taxRuleId ? { taxRuleId: input.taxRuleId } : undefined,
               { payComponentId: null, taxRuleId: null },
             ].filter(Boolean) as Prisma.PayrollPostingRuleWhereInput[],
@@ -50,7 +55,9 @@ export class PayrollPostingRuleResolverService {
       rules
         .map((rule) => ({ rule, score: scoreRule(rule, input) }))
         .filter((item) => item.score > 0)
-        .sort((a, b) => b.score - a.score || a.rule.name.localeCompare(b.rule.name))[0]?.rule ?? null
+        .sort(
+          (a, b) => b.score - a.score || a.rule.name.localeCompare(b.rule.name),
+        )[0]?.rule ?? null
     );
   }
 }
@@ -59,7 +66,8 @@ function scoreRule(
   rule: PayrollPostingRulePayload,
   input: { payComponentId?: string | null; taxRuleId?: string | null },
 ) {
-  if (input.payComponentId && rule.payComponentId === input.payComponentId) return 300;
+  if (input.payComponentId && rule.payComponentId === input.payComponentId)
+    return 300;
   if (input.taxRuleId && rule.taxRuleId === input.taxRuleId) return 200;
   if (!rule.payComponentId && !rule.taxRuleId) return 100;
   return 0;

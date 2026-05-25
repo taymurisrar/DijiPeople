@@ -25,6 +25,7 @@ import {
 import {
   CreateCustomizationColumnDto,
   CreateCustomizationFormDto,
+  CreateCustomizationTableDto,
   CreateCustomizationViewDto,
   UpdateCustomizationColumnDto,
   UpdateCustomizationFormDto,
@@ -56,8 +57,8 @@ export class CustomizationService {
     ]);
 
     return {
-      existingSystemTablesOnly: true,
-      customTablesEnabled: false,
+      existingSystemTablesOnly: false,
+      customTablesEnabled: true,
       systemTables: SYSTEM_CUSTOMIZATION_TABLES.length,
       tableOverrides: tables,
       configuredTables: tables,
@@ -69,44 +70,58 @@ export class CustomizationService {
   }
 
   async listTables(currentUser: AuthenticatedUser) {
-    const tableRows = await this.prisma.customizationTable.findMany({
-      where: { tenantId: currentUser.tenantId },
-      orderBy: [{ tableKey: 'asc' }],
-    });
-    const rowByKey = new Map(tableRows.map((row) => [row.tableKey, row]));
-
-    return SYSTEM_CUSTOMIZATION_TABLES.map((definition) => {
-      const row = rowByKey.get(definition.tableKey);
-      return {
-        id: row?.id ?? null,
-        tableKey: definition.tableKey,
-        moduleKey: definition.moduleKey,
-        systemName: row?.systemName ?? definition.systemName,
-        displayName: row?.displayName ?? definition.displayName,
-        pluralName: row?.pluralDisplayName ?? definition.pluralName,
-        pluralDisplayName: row?.pluralDisplayName ?? definition.pluralName,
-        description: row?.description ?? definition.description,
-        icon: row?.icon ?? definition.icon ?? null,
-        isCustomizable: row?.isCustomizable ?? true,
-        isEnabled: row?.isActive ?? true,
-        isActive: row?.isActive ?? true,
-        isCustomTable: false,
-        publishedAt: null,
-        createdAt: row?.createdAt ?? null,
-        updatedAt: row?.updatedAt ?? null,
-      };
-    });
+    return this.buildTableResponses(currentUser);
   }
 
   async getTable(currentUser: AuthenticatedUser, tableKey: string) {
     const [table] = await this.buildTableResponses(currentUser, [tableKey]);
     if (!table) {
-      throw new NotFoundException(
-        'Only existing system tables can be customized in this phase.',
-      );
+      throw new NotFoundException('Customization table was not found.');
     }
 
     return table;
+  }
+
+  async createTable(
+    currentUser: AuthenticatedUser,
+    dto: CreateCustomizationTableDto,
+  ) {
+    if (findSystemCustomizationTable(dto.tableKey)) {
+      throw new ConflictException('A system table already uses this key.');
+    }
+
+    const tableKey = dto.tableKey.trim();
+    const existing = await this.prisma.customizationTable.findUnique({
+      where: {
+        tenantId_tableKey: {
+          tenantId: currentUser.tenantId,
+          tableKey,
+        },
+      },
+    });
+    if (existing) {
+      throw new ConflictException(
+        'A customization table already uses this key.',
+      );
+    }
+
+    return this.prisma.customizationTable.create({
+      data: {
+        tenantId: currentUser.tenantId,
+        tableKey,
+        systemName: dto.systemName?.trim() || pascalize(tableKey),
+        displayName: dto.displayName.trim(),
+        pluralDisplayName: dto.pluralDisplayName.trim(),
+        description: dto.description?.trim(),
+        icon: dto.icon?.trim(),
+        isSystem: false,
+        isCustom: true,
+        isCustomizable: true,
+        isActive: dto.isActive ?? true,
+        createdByUserId: currentUser.userId,
+        updatedByUserId: currentUser.userId,
+      },
+    });
   }
 
   async getPublished(currentUser: AuthenticatedUser) {
@@ -183,7 +198,18 @@ export class CustomizationService {
     tableKey: string,
     dto: UpdateCustomizationTableDto,
   ) {
-    const definition = this.getSystemTableOrThrow(tableKey);
+    const definition = findSystemCustomizationTable(tableKey);
+    const existing = await this.prisma.customizationTable.findUnique({
+      where: {
+        tenantId_tableKey: {
+          tenantId: currentUser.tenantId,
+          tableKey,
+        },
+      },
+    });
+    if (!definition && !existing) {
+      throw new NotFoundException('Customization table was not found.');
+    }
 
     return this.prisma.customizationTable.upsert({
       where: {
@@ -195,14 +221,29 @@ export class CustomizationService {
       create: {
         tenantId: currentUser.tenantId,
         tableKey,
-        systemName: definition.systemName,
-        displayName: dto.displayName?.trim() ?? definition.displayName,
+        systemName:
+          definition?.systemName ?? existing?.systemName ?? pascalize(tableKey),
+        displayName:
+          dto.displayName?.trim() ??
+          definition?.displayName ??
+          existing?.displayName ??
+          tableKey,
         pluralDisplayName:
-          dto.pluralDisplayName?.trim() ?? definition.pluralName,
-        description: dto.description?.trim() ?? definition.description,
-        icon: dto.icon?.trim() ?? definition.icon,
+          dto.pluralDisplayName?.trim() ??
+          definition?.pluralName ??
+          existing?.pluralDisplayName ??
+          tableKey,
+        description:
+          dto.description?.trim() ??
+          definition?.description ??
+          existing?.description,
+        icon: dto.icon?.trim() ?? definition?.icon ?? existing?.icon,
+        isSystem: Boolean(definition),
+        isCustom: !definition,
         isCustomizable: dto.isCustomizable ?? true,
         isActive: dto.isActive ?? true,
+        createdByUserId: currentUser.userId,
+        updatedByUserId: currentUser.userId,
       },
       update: {
         ...(dto.displayName !== undefined
@@ -219,8 +260,48 @@ export class CustomizationService {
           ? { isCustomizable: dto.isCustomizable }
           : {}),
         ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
+        updatedByUserId: currentUser.userId,
       },
     });
+  }
+
+  async deleteTable(currentUser: AuthenticatedUser, tableKey: string) {
+    const definition = findSystemCustomizationTable(tableKey);
+    if (definition) {
+      throw new BadRequestException(
+        'System metadata tables cannot be deleted. Deactivate them instead.',
+      );
+    }
+
+    const table = await this.findTenantTableOrThrow(
+      currentUser.tenantId,
+      tableKey,
+    );
+    const dependencies = await this.getTableDependencySummary(
+      currentUser.tenantId,
+      table,
+    );
+    if (dependencies.total > 0) {
+      throw new BadRequestException({
+        message:
+          'This table has metadata dependencies. Deactivate it or remove dependent columns, forms, and views first.',
+        dependencies,
+      });
+    }
+
+    await this.prisma.customizationTable.delete({
+      where: { id: table.id },
+    });
+
+    return { deleted: true };
+  }
+
+  async getTableDependencies(currentUser: AuthenticatedUser, tableKey: string) {
+    const table = await this.findTenantTableOrThrow(
+      currentUser.tenantId,
+      tableKey,
+    );
+    return this.getTableDependencySummary(currentUser.tenantId, table);
   }
 
   async listColumns(currentUser: AuthenticatedUser, tableKey: string) {
@@ -228,13 +309,17 @@ export class CustomizationService {
       currentUser.tenantId,
       tableKey,
     );
-    const definition = this.getSystemTableOrThrow(tableKey);
+    const definition = findSystemCustomizationTable(tableKey);
     const rows = await this.prisma.customizationColumn.findMany({
-      where: { tenantId: currentUser.tenantId, tableId: table.id },
+      where: {
+        tenantId: currentUser.tenantId,
+        tableId: table.id,
+        isActive: true,
+      },
       orderBy: [{ sortOrder: 'asc' }, { columnKey: 'asc' }],
     });
     const rowByKey = new Map(rows.map((row) => [row.columnKey, row]));
-    const systemColumns = definition.columns.map((column, index) => {
+    const systemColumns = (definition?.columns ?? []).map((column, index) => {
       const row = rowByKey.get(column.columnKey);
       return {
         id: row?.id ?? null,
@@ -242,13 +327,17 @@ export class CustomizationService {
         columnKey: column.columnKey,
         systemName: row?.systemName ?? column.columnKey,
         displayName: row?.displayName ?? column.displayName,
+        description: row?.description ?? null,
         dataType:
           row?.dataType ?? (column.dataType as CustomizationFieldDataType),
         fieldType:
           row?.fieldType ?? (column.dataType as CustomizationFieldDataType),
         isSystem: true,
+        isCustom: false,
+        isActive: row?.isActive ?? true,
         isRequired: row?.isRequired ?? column.isRequired ?? false,
         isSearchable: row?.isSearchable ?? column.isSearchable ?? false,
+        isFilterable: row?.isFilterable ?? false,
         isSortable: row?.isSortable ?? false,
         isVisible: row?.isVisible ?? true,
         isReadOnly: row?.isReadOnly ?? column.isReadOnly ?? true,
@@ -265,7 +354,7 @@ export class CustomizationService {
     const tenantColumns = rows.filter(
       (row) =>
         !row.isSystem &&
-        !definition.columns.some(
+        !(definition?.columns ?? []).some(
           (column) => column.columnKey === row.columnKey,
         ),
     );
@@ -278,13 +367,16 @@ export class CustomizationService {
     tableKey: string,
     dto: CreateCustomizationColumnDto,
   ) {
-    const definition = this.getSystemTableOrThrow(tableKey);
+    const definition = findSystemCustomizationTable(tableKey);
     if (
-      definition.columns.some((column) => column.columnKey === dto.columnKey)
+      definition?.columns.some((column) => column.columnKey === dto.columnKey)
     ) {
       throw new ConflictException('A system column already uses this key.');
     }
-    this.validateLookupTarget(dto.lookupTargetTableKey);
+    await this.validateLookupTarget(
+      currentUser.tenantId,
+      dto.lookupTargetTableKey,
+    );
     this.validateValueRules(dto);
 
     const table = await this.ensureCustomizationTable(
@@ -303,12 +395,12 @@ export class CustomizationService {
     columnKey: string,
     dto: UpdateCustomizationColumnDto,
   ) {
-    const definition = this.getSystemTableOrThrow(tableKey);
+    const definition = findSystemCustomizationTable(tableKey);
     const table = await this.ensureCustomizationTable(
       currentUser.tenantId,
       tableKey,
     );
-    const systemColumn = definition.columns.find(
+    const systemColumn = definition?.columns.find(
       (column) => column.columnKey === columnKey,
     );
     const existing = await this.prisma.customizationColumn.findUnique({
@@ -338,10 +430,19 @@ export class CustomizationService {
         'System column field types cannot be changed.',
       );
     }
-    if (!systemColumn && existing && dto.fieldType) {
-      this.assertSafeFieldTypeChange(existing.fieldType, dto.fieldType);
+    if (dto.fieldType !== undefined) {
+      const lockedType =
+        systemColumn?.dataType ?? existing?.dataType ?? existing?.fieldType;
+      if (lockedType && dto.fieldType !== lockedType) {
+        throw new BadRequestException(
+          'Column data type cannot be changed after creation.',
+        );
+      }
     }
-    this.validateLookupTarget(dto.lookupTargetTableKey);
+    await this.validateLookupTarget(
+      currentUser.tenantId,
+      dto.lookupTargetTableKey,
+    );
     this.validateValueRules(dto);
 
     if (systemColumn && !existing) {
@@ -358,6 +459,7 @@ export class CustomizationService {
             isVisible: dto.isVisible ?? true,
             isSearchable:
               dto.isSearchable ?? systemColumn.isSearchable ?? false,
+            isFilterable: dto.isFilterable ?? false,
             isReadOnly: dto.isReadOnly ?? systemColumn.isReadOnly ?? true,
             isSortable: dto.isSortable ?? false,
             maxLength: dto.maxLength,
@@ -387,19 +489,19 @@ export class CustomizationService {
         ...(dto.displayName !== undefined
           ? { displayName: dto.displayName.trim() }
           : {}),
+        ...(dto.description !== undefined
+          ? { description: dto.description.trim() }
+          : {}),
         ...(dto.isRequired !== undefined ? { isRequired: dto.isRequired } : {}),
         ...(dto.isVisible !== undefined ? { isVisible: dto.isVisible } : {}),
         ...(dto.isSearchable !== undefined
           ? { isSearchable: dto.isSearchable }
           : {}),
+        ...(dto.isFilterable !== undefined
+          ? { isFilterable: dto.isFilterable }
+          : {}),
         ...(dto.isSortable !== undefined ? { isSortable: dto.isSortable } : {}),
         ...(dto.isReadOnly !== undefined ? { isReadOnly: dto.isReadOnly } : {}),
-        ...(dto.fieldType !== undefined
-          ? {
-              fieldType: dto.fieldType,
-              ...(existing?.isSystem ? {} : { dataType: dto.fieldType }),
-            }
-          : {}),
         ...(dto.maxLength !== undefined ? { maxLength: dto.maxLength } : {}),
         ...(dto.minValue !== undefined ? { minValue: dto.minValue } : {}),
         ...(dto.maxValue !== undefined ? { maxValue: dto.maxValue } : {}),
@@ -416,6 +518,7 @@ export class CustomizationService {
           ? { validationJson: dto.validationJson as Prisma.InputJsonValue }
           : {}),
         ...(dto.sortOrder !== undefined ? { sortOrder: dto.sortOrder } : {}),
+        updatedByUserId: currentUser.userId,
       },
     });
   }
@@ -425,8 +528,8 @@ export class CustomizationService {
     tableKey: string,
     columnKey: string,
   ) {
-    const definition = this.getSystemTableOrThrow(tableKey);
-    if (definition.columns.some((column) => column.columnKey === columnKey)) {
+    const definition = findSystemCustomizationTable(tableKey);
+    if (definition?.columns.some((column) => column.columnKey === columnKey)) {
       throw new BadRequestException('System columns cannot be deleted.');
     }
 
@@ -435,7 +538,7 @@ export class CustomizationService {
       tableKey,
     );
 
-    await this.prisma.customizationColumn.delete({
+    const existing = await this.prisma.customizationColumn.findUnique({
       where: {
         tenantId_tableId_columnKey: {
           tenantId: currentUser.tenantId,
@@ -444,8 +547,46 @@ export class CustomizationService {
         },
       },
     });
+    if (!existing) {
+      throw new NotFoundException('Customization column was not found.');
+    }
+    if (existing.isSystem) {
+      throw new BadRequestException('System columns cannot be deleted.');
+    }
+    const dependencies = await this.getColumnDependencySummary(
+      currentUser.tenantId,
+      table,
+      columnKey,
+    );
+    if (dependencies.total > 0) {
+      throw new BadRequestException({
+        message:
+          'This column is used by active forms or views. Remove those references before deleting it.',
+        dependencies,
+      });
+    }
+
+    await this.prisma.customizationColumn.delete({
+      where: { id: existing.id },
+    });
 
     return { deleted: true };
+  }
+
+  async getColumnDependencies(
+    currentUser: AuthenticatedUser,
+    tableKey: string,
+    columnKey: string,
+  ) {
+    const table = await this.ensureCustomizationTable(
+      currentUser.tenantId,
+      tableKey,
+    );
+    return this.getColumnDependencySummary(
+      currentUser.tenantId,
+      table,
+      columnKey,
+    );
   }
 
   async listForms(currentUser: AuthenticatedUser, tableKey: string) {
@@ -495,7 +636,10 @@ export class CustomizationService {
         isDefault: dto.isDefault ?? false,
         isActive: dto.isActive ?? true,
         layoutJson: dto.layoutJson as Prisma.InputJsonValue,
+        isSystem: false,
+        isCustom: true,
         createdByUserId: currentUser.userId,
+        updatedByUserId: currentUser.userId,
       },
     });
   }
@@ -562,6 +706,7 @@ export class CustomizationService {
         ...(dto.layoutJson !== undefined
           ? { layoutJson: dto.layoutJson as Prisma.InputJsonValue }
           : {}),
+        updatedByUserId: currentUser.userId,
       },
     });
   }
@@ -575,7 +720,7 @@ export class CustomizationService {
       currentUser.tenantId,
       tableKey,
     );
-    await this.prisma.customizationForm.delete({
+    const existing = await this.prisma.customizationForm.findUnique({
       where: {
         tenantId_tableId_formKey: {
           tenantId: currentUser.tenantId,
@@ -583,6 +728,27 @@ export class CustomizationService {
           formKey,
         },
       },
+    });
+    if (!existing) {
+      throw new NotFoundException('Customization form was not found.');
+    }
+    if (existing.isSystem || existing.isDefault) {
+      const activeAlternatives = await this.prisma.customizationForm.count({
+        where: {
+          tenantId: currentUser.tenantId,
+          tableId: table.id,
+          isActive: true,
+          formKey: { not: formKey },
+        },
+      });
+      if (activeAlternatives === 0) {
+        throw new BadRequestException(
+          'Cannot delete the last active default/system form for this table.',
+        );
+      }
+    }
+    await this.prisma.customizationForm.delete({
+      where: { id: existing.id },
     });
 
     return { deleted: true };
@@ -679,6 +845,8 @@ export class CustomizationService {
         type: dto.type ?? 'custom',
         isDefault: dto.isDefault ?? false,
         isHidden: dto.isHidden ?? false,
+        isSystem: (dto.type ?? 'custom') === 'system',
+        isCustom: (dto.type ?? 'custom') !== 'system',
         columnsJson: dto.columnsJson as Prisma.InputJsonValue,
         filtersJson:
           dto.filtersJson !== undefined
@@ -690,6 +858,7 @@ export class CustomizationService {
             : Prisma.JsonNull,
         visibilityScope: dto.visibilityScope ?? 'tenant',
         createdByUserId: currentUser.userId,
+        updatedByUserId: currentUser.userId,
       },
     });
   }
@@ -756,6 +925,9 @@ export class CustomizationService {
           ? { description: dto.description.trim() }
           : {}),
         ...(dto.type !== undefined ? { type: dto.type } : {}),
+        ...(dto.type !== undefined
+          ? { isSystem: dto.type === 'system', isCustom: dto.type !== 'system' }
+          : {}),
         ...(dto.isDefault !== undefined ? { isDefault: dto.isDefault } : {}),
         ...(dto.isHidden !== undefined ? { isHidden: dto.isHidden } : {}),
         ...(dto.columnsJson !== undefined
@@ -770,6 +942,7 @@ export class CustomizationService {
         ...(dto.visibilityScope !== undefined
           ? { visibilityScope: dto.visibilityScope }
           : {}),
+        updatedByUserId: currentUser.userId,
       },
     });
   }
@@ -795,8 +968,23 @@ export class CustomizationService {
     if (!existing) {
       throw new NotFoundException('Customization view was not found.');
     }
-    if (existing.type === 'system') {
+    if (existing.type === 'system' || existing.isSystem) {
       throw new BadRequestException('System views cannot be deleted.');
+    }
+    if (existing.isDefault && !existing.isHidden) {
+      const visibleAlternatives = await this.prisma.customizationView.count({
+        where: {
+          tenantId: currentUser.tenantId,
+          tableId: table.id,
+          isHidden: false,
+          viewKey: { not: viewKey },
+        },
+      });
+      if (visibleAlternatives === 0) {
+        throw new BadRequestException(
+          'Cannot delete the last visible default view for this table.',
+        );
+      }
     }
 
     await this.prisma.customizationView.delete({
@@ -1123,24 +1311,17 @@ export class CustomizationService {
   private validatePublishDraft(draft: PublishDraft) {
     const errors: PublishValidationError[] = [];
     const tableById = new Map(draft.tables.map((table) => [table.id, table]));
+    const tableByKey = new Map(
+      draft.tables.map((table) => [table.tableKey, table]),
+    );
     const columnsByTableId = groupBy(draft.columns, (column) => column.tableId);
     const viewsByTableId = groupBy(draft.views, (view) => view.tableId);
     const formsByTableId = groupBy(draft.forms, (form) => form.tableId);
 
     for (const table of draft.tables) {
       const definition = findSystemCustomizationTable(table.tableKey);
-      if (!definition) {
-        errors.push({
-          scope: 'table',
-          tableKey: table.tableKey,
-          entityKey: table.tableKey,
-          message: 'Only existing system tables can be published.',
-        });
-        continue;
-      }
-
       const effectiveColumns = buildEffectivePublishColumns(
-        definition,
+        definition ?? null,
         columnsByTableId.get(table.id) ?? [],
       );
       const validColumnKeys = new Set(
@@ -1169,13 +1350,14 @@ export class CustomizationService {
         }
         if (
           column.lookupTargetTableKey &&
-          !findSystemCustomizationTable(column.lookupTargetTableKey)
+          !findSystemCustomizationTable(column.lookupTargetTableKey) &&
+          !tableByKey.has(column.lookupTargetTableKey)
         ) {
           errors.push({
             scope: 'column',
             tableKey: table.tableKey,
             entityKey: column.columnKey,
-            message: `Lookup target "${column.lookupTargetTableKey}" is not a customizable system table.`,
+            message: `Lookup target "${column.lookupTargetTableKey}" is not a customizable table.`,
           });
         }
       }
@@ -1298,52 +1480,34 @@ export class CustomizationService {
     return errors;
   }
 
-  private getSystemTableOrThrow(tableKey: string) {
-    const table = findSystemCustomizationTable(tableKey);
-    if (!table) {
-      throw new NotFoundException(
-        'Only existing system tables can be customized in this phase.',
-      );
-    }
-    return table;
-  }
-
   private async buildTableResponses(
     currentUser: AuthenticatedUser,
     tableKeys?: string[],
   ) {
-    const definitions = tableKeys
-      ? tableKeys.map((tableKey) => this.getSystemTableOrThrow(tableKey))
-      : SYSTEM_CUSTOMIZATION_TABLES;
     const rows = await this.prisma.customizationTable.findMany({
       where: {
         tenantId: currentUser.tenantId,
-        tableKey: { in: definitions.map((definition) => definition.tableKey) },
+        ...(tableKeys ? { tableKey: { in: tableKeys } } : {}),
       },
+      orderBy: [{ tableKey: 'asc' }],
     });
     const rowByKey = new Map(rows.map((row) => [row.tableKey, row]));
+    const requestedDefinitions = SYSTEM_CUSTOMIZATION_TABLES.filter(
+      (definition) => !tableKeys || tableKeys.includes(definition.tableKey),
+    );
+    const systemResponses = requestedDefinitions.map((definition) =>
+      this.toTableResponse(definition, rowByKey.get(definition.tableKey)),
+    );
+    const systemKeys = new Set(
+      SYSTEM_CUSTOMIZATION_TABLES.map((definition) => definition.tableKey),
+    );
+    const customResponses = rows
+      .filter((row) => !systemKeys.has(row.tableKey))
+      .map((row) => this.toTableResponse(null, row));
 
-    return definitions.map((definition) => {
-      const row = rowByKey.get(definition.tableKey);
-      return {
-        id: row?.id ?? null,
-        tableKey: definition.tableKey,
-        moduleKey: definition.moduleKey,
-        systemName: row?.systemName ?? definition.systemName,
-        displayName: row?.displayName ?? definition.displayName,
-        pluralName: row?.pluralDisplayName ?? definition.pluralName,
-        pluralDisplayName: row?.pluralDisplayName ?? definition.pluralName,
-        description: row?.description ?? definition.description,
-        icon: row?.icon ?? definition.icon ?? null,
-        isCustomizable: row?.isCustomizable ?? true,
-        isEnabled: row?.isActive ?? true,
-        isActive: row?.isActive ?? true,
-        isCustomTable: false,
-        publishedAt: null,
-        createdAt: row?.createdAt ?? null,
-        updatedAt: row?.updatedAt ?? null,
-      };
-    });
+    return [...systemResponses, ...customResponses].sort((a, b) =>
+      a.displayName.localeCompare(b.displayName),
+    );
   }
 
   private getFirstTableForModule(moduleKey: string) {
@@ -1360,24 +1524,42 @@ export class CustomizationService {
   }
 
   private ensureCustomizationTable(tenantId: string, tableKey: string) {
-    const definition = this.getSystemTableOrThrow(tableKey);
-    return this.prisma.customizationTable.upsert({
-      where: {
-        tenantId_tableKey: { tenantId, tableKey },
-      },
-      create: this.buildTableCreateInput(tenantId, definition),
-      update: {},
-    });
+    const definition = findSystemCustomizationTable(tableKey);
+    if (definition) {
+      return this.prisma.customizationTable.upsert({
+        where: {
+          tenantId_tableKey: { tenantId, tableKey },
+        },
+        create: this.buildTableCreateInput(tenantId, definition),
+        update: {},
+      });
+    }
+
+    return this.findTenantTableOrThrow(tenantId, tableKey);
   }
 
-  private validateLookupTarget(lookupTargetTableKey?: string) {
+  private async validateLookupTarget(
+    tenantId: string,
+    lookupTargetTableKey?: string,
+  ) {
     if (!lookupTargetTableKey) {
       return;
     }
 
-    if (!findSystemCustomizationTable(lookupTargetTableKey)) {
+    if (findSystemCustomizationTable(lookupTargetTableKey)) {
+      return;
+    }
+    const existing = await this.prisma.customizationTable.findUnique({
+      where: {
+        tenantId_tableKey: {
+          tenantId,
+          tableKey: lookupTargetTableKey,
+        },
+      },
+    });
+    if (!existing) {
       throw new BadRequestException(
-        'Lookup target table must be an existing customizable system table.',
+        'Lookup target table must be an existing customizable table.',
       );
     }
   }
@@ -1545,6 +1727,8 @@ export class CustomizationService {
       pluralDisplayName: definition.pluralName,
       description: definition.description,
       icon: definition.icon,
+      isSystem: true,
+      isCustom: false,
       isCustomizable: true,
       isActive: true,
     };
@@ -1563,11 +1747,15 @@ export class CustomizationService {
       columnKey: dto.columnKey,
       systemName,
       displayName: dto.displayName.trim(),
+      description: dto.description?.trim(),
       dataType: dto.dataType,
       fieldType: dto.fieldType ?? dto.dataType,
       isSystem,
+      isCustom: !isSystem,
+      isActive: true,
       isRequired: dto.isRequired ?? false,
       isSearchable: dto.isSearchable ?? false,
+      isFilterable: dto.isFilterable ?? false,
       isSortable: dto.isSortable ?? false,
       isVisible: dto.isVisible ?? true,
       isReadOnly: dto.isReadOnly ?? false,
@@ -1579,6 +1767,117 @@ export class CustomizationService {
       optionSetJson: dto.optionSetJson as Prisma.InputJsonValue | undefined,
       validationJson: dto.validationJson as Prisma.InputJsonValue | undefined,
       sortOrder: dto.sortOrder ?? 0,
+    };
+  }
+
+  private toTableResponse(
+    definition: SystemTableDefinition | null,
+    row?: CustomizationTable,
+  ) {
+    if (!definition && !row) {
+      throw new NotFoundException('Customization table was not found.');
+    }
+    const tableKey = definition?.tableKey ?? row!.tableKey;
+    return {
+      id: row?.id ?? null,
+      tableKey,
+      moduleKey: definition?.moduleKey ?? row?.tableKey ?? tableKey,
+      systemName:
+        row?.systemName ?? definition?.systemName ?? pascalize(tableKey),
+      displayName: row?.displayName ?? definition?.displayName ?? tableKey,
+      pluralName:
+        row?.pluralDisplayName ?? definition?.pluralName ?? `${tableKey}`,
+      pluralDisplayName:
+        row?.pluralDisplayName ?? definition?.pluralName ?? `${tableKey}`,
+      description: row?.description ?? definition?.description ?? null,
+      icon: row?.icon ?? definition?.icon ?? null,
+      isCustomizable: row?.isCustomizable ?? true,
+      isEnabled: row?.isActive ?? true,
+      isActive: row?.isActive ?? true,
+      isSystem: Boolean(definition),
+      isCustom: !definition,
+      isCustomTable: !definition,
+      publishedAt: null,
+      createdAt: row?.createdAt ?? null,
+      updatedAt: row?.updatedAt ?? null,
+    };
+  }
+
+  private async findTenantTableOrThrow(tenantId: string, tableKey: string) {
+    const table = await this.prisma.customizationTable.findUnique({
+      where: { tenantId_tableKey: { tenantId, tableKey } },
+    });
+    if (!table) {
+      throw new NotFoundException('Customization table was not found.');
+    }
+    return table;
+  }
+
+  private async getTableDependencySummary(
+    tenantId: string,
+    table: CustomizationTable,
+  ) {
+    const [columns, forms, views] = await Promise.all([
+      this.prisma.customizationColumn.count({
+        where: { tenantId, tableId: table.id },
+      }),
+      this.prisma.customizationForm.count({
+        where: { tenantId, tableId: table.id },
+      }),
+      this.prisma.customizationView.count({
+        where: { tenantId, tableId: table.id },
+      }),
+    ]);
+    return {
+      tableKey: table.tableKey,
+      columns,
+      forms,
+      views,
+      total: columns + forms + views,
+    };
+  }
+
+  private async getColumnDependencySummary(
+    tenantId: string,
+    table: CustomizationTable,
+    columnKey: string,
+  ) {
+    const [forms, views] = await Promise.all([
+      this.prisma.customizationForm.findMany({
+        where: { tenantId, tableId: table.id, isActive: true },
+        select: { formKey: true, name: true, layoutJson: true },
+      }),
+      this.prisma.customizationView.findMany({
+        where: { tenantId, tableId: table.id, isHidden: false },
+        select: {
+          viewKey: true,
+          name: true,
+          columnsJson: true,
+          filtersJson: true,
+          sortingJson: true,
+        },
+      }),
+    ]);
+    const formReferences = forms
+      .filter((form) => extractColumnRefs(form.layoutJson, true).has(columnKey))
+      .map((form) => ({ key: form.formKey, name: form.name }));
+    const viewReferences = views
+      .filter((view) => {
+        const references = new Set([
+          ...extractColumnRefs(view.columnsJson, true),
+          ...extractColumnRefs(view.filtersJson),
+          ...extractColumnRefs(view.sortingJson),
+        ]);
+        return references.has(columnKey);
+      })
+      .map((view) => ({ key: view.viewKey, name: view.name }));
+
+    return {
+      tableKey: table.tableKey,
+      columnKey,
+      forms: formReferences,
+      views: viewReferences,
+      total: formReferences.length + viewReferences.length,
     };
   }
 }
@@ -1619,12 +1918,23 @@ function slugKey(value: string) {
     .toLowerCase();
 }
 
+function pascalize(value: string) {
+  const words = value
+    .trim()
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .split(/[^a-zA-Z0-9]+/)
+    .filter(Boolean);
+  return words
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join('');
+}
+
 function buildEffectivePublishColumns(
-  definition: SystemTableDefinition,
+  definition: SystemTableDefinition | null,
   rows: CustomizationColumn[],
 ): EffectivePublishColumn[] {
   const rowByKey = new Map(rows.map((row) => [row.columnKey, row]));
-  const systemColumns = definition.columns.map((column) => {
+  const systemColumns = (definition?.columns ?? []).map((column) => {
     const row = rowByKey.get(column.columnKey);
 
     return {
@@ -1641,7 +1951,7 @@ function buildEffectivePublishColumns(
     .filter(
       (row) =>
         !row.isSystem &&
-        !definition.columns.some(
+        !(definition?.columns ?? []).some(
           (column) => column.columnKey === row.columnKey,
         ),
     )

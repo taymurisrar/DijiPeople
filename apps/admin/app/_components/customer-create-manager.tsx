@@ -26,6 +26,8 @@ export function CustomerCreateManager({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
+  const defaultCustomerStatus =
+    lifecycleOptions.customer.statuses[0]?.value ?? "PROSPECT";
 
   const [form, setForm] = useState({
     companyName: "",
@@ -38,11 +40,9 @@ export function CustomerCreateManager({
     country: "United States",
     selectedPlanId: "",
     accountManagerUserId: "",
-    status: lifecycleOptions.customer.statuses[0] ?? "PROSPECT",
+    status: defaultCustomerStatus,
     subStatus:
-      lifecycleOptions.customer.subStatuses[
-        lifecycleOptions.customer.statuses[0] ?? "PROSPECT"
-      ]?.[0] ?? "",
+      lifecycleOptions.customer.subStatuses[defaultCustomerStatus]?.[0] ?? "",
     notes: "",
   });
 
@@ -94,11 +94,9 @@ export function CustomerCreateManager({
       country: "United States",
       selectedPlanId: "",
       accountManagerUserId: "",
-      status: lifecycleOptions.customer.statuses[0] ?? "PROSPECT",
+      status: defaultCustomerStatus,
       subStatus:
-        lifecycleOptions.customer.subStatuses[
-          lifecycleOptions.customer.statuses[0] ?? "PROSPECT"
-        ]?.[0] ?? "",
+        lifecycleOptions.customer.subStatuses[defaultCustomerStatus]?.[0] ?? "",
       notes: "",
     });
     setMessage(null);
@@ -181,9 +179,9 @@ export function CustomerCreateManager({
                         lifecycleOptions.customer.subStatuses[value]?.[0] ?? "",
                     }))
                   }
-                  options={lifecycleOptions.customer.statuses.map((value) => ({
-                    value,
-                    label: value.replaceAll("_", " "),
+                  options={lifecycleOptions.customer.statuses.map((status) => ({
+                    value: status.value,
+                    label: status.label,
                   }))}
                   value={form.status}
                 />

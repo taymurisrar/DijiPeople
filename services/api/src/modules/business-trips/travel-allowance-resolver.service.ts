@@ -29,7 +29,10 @@ export class TravelAllowanceResolverService {
         tenantId: input.tenantId,
         isActive: true,
         effectiveFrom: { lte: input.effectiveDate },
-        OR: [{ effectiveTo: null }, { effectiveTo: { gte: input.effectiveDate } }],
+        OR: [
+          { effectiveTo: null },
+          { effectiveTo: { gte: input.effectiveDate } },
+        ],
       },
       include: policyInclude,
       orderBy: [{ effectiveFrom: 'desc' }, { createdAt: 'desc' }],
@@ -37,7 +40,10 @@ export class TravelAllowanceResolverService {
 
     const ranked = policies
       .filter((policy) => policy.rules.length > 0)
-      .map((policy) => ({ policy, score: scorePolicy(policy, input.employeeLevelId, countryCode, city) }))
+      .map((policy) => ({
+        policy,
+        score: scorePolicy(policy, input.employeeLevelId, countryCode, city),
+      }))
       .filter((item) => item.score > 0)
       .sort((a, b) => b.score - a.score);
 
@@ -46,7 +52,9 @@ export class TravelAllowanceResolverService {
 }
 
 function scorePolicy(
-  policy: Prisma.TravelAllowancePolicyGetPayload<{ include: typeof policyInclude }>,
+  policy: Prisma.TravelAllowancePolicyGetPayload<{
+    include: typeof policyInclude;
+  }>,
   employeeLevelId: string | null | undefined,
   destinationCountry: string,
   destinationCity: string,
@@ -55,9 +63,14 @@ function scorePolicy(
   const policyCity = normalizeLookup(policy.city);
   const levelMatches =
     !!employeeLevelId && policy.employeeLevelId === employeeLevelId;
-  const levelDefault = !!employeeLevelId && policy.employeeLevelId === employeeLevelId && !policyCountry && !policyCity;
+  const levelDefault =
+    !!employeeLevelId &&
+    policy.employeeLevelId === employeeLevelId &&
+    !policyCountry &&
+    !policyCity;
   const cityMatches = !!policyCity && policyCity === destinationCity;
-  const countryMatches = !!policyCountry && policyCountry === destinationCountry;
+  const countryMatches =
+    !!policyCountry && policyCountry === destinationCountry;
   const noLevel = !policy.employeeLevelId;
   const noLocation = !policyCountry && !policyCity;
 

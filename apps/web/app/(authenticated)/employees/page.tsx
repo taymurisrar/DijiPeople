@@ -182,7 +182,7 @@ export default async function EmployeesPage({
   };
 
   return (
-    <main className="dp-theme-scope dp-employees-scope grid gap-6">
+    <main className="dp-theme-scope dp-employees-scope grid gap-3">
       <ModuleViewSelector
         configureHref="/settings/customization/tables/employees"
         enabled

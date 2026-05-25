@@ -405,12 +405,7 @@ export class DashboardService {
                 '/employees/import',
                 'employees.import',
               ),
-              this.action(
-                'users',
-                'Manage users',
-                '/users',
-                'users.read',
-              ),
+              this.action('users', 'Manage users', '/users', 'users.read'),
               this.action(
                 'roles',
                 'Roles and permissions',
@@ -1030,13 +1025,7 @@ export class DashboardService {
         this.section('tasks', 'My tasks', 'list', 60, [
           this.insightWidget('tasks', 'Action items', [
             ...profileGaps.map((gap) =>
-              this.row(
-                `gap-${gap}`,
-                `Complete ${gap}`,
-                1,
-                '/me',
-                'warning',
-              ),
+              this.row(`gap-${gap}`, `Complete ${gap}`, 1, '/me', 'warning'),
             ),
             this.row(
               'tasks',

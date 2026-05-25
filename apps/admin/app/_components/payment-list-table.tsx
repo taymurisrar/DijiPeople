@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { DataTable } from "@/app/_components/crm/data-table";
 import { TenantStatusBadge } from "@/app/_components/tenant-status-badge";
+import { AdminKeyValueGrid } from "@/app/_components/admin-ui";
 
 export type PaymentTableRecord = {
   id: string;
@@ -98,6 +100,31 @@ export function PaymentListTable({
         ]}
         emptyTitle="No payments yet"
         emptyDescription="Recorded payments will appear here."
+        renderExpandedRow={(payment) => (
+          <div className="space-y-3">
+            <AdminKeyValueGrid
+              items={[
+                { label: "Payment ID", value: payment.id },
+                { label: "Tenant", value: payment.tenant.name },
+                { label: "Slug", value: payment.tenant.slug },
+                { label: "Method", value: payment.paymentMethod },
+                { label: "Created", value: formatDate(payment.createdAt) },
+                {
+                  label: "Paid at",
+                  value: payment.paidAt ? formatDate(payment.paidAt) : "Not paid",
+                },
+              ]}
+            />
+            <div className="flex flex-wrap gap-2">
+              <Link
+                className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                href={`/tenants/${payment.tenant.id}`}
+              >
+                Open tenant
+              </Link>
+            </div>
+          </div>
+        )}
       />
     </div>
   );

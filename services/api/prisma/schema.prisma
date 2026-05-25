@@ -143,6 +143,17 @@ enum UserStatus {
   DISABLED
 }
 
+enum PlatformUserRole {
+  SUPER_ADMIN
+  MEMBER
+}
+
+enum PlatformUserStatus {
+  ACTIVE
+  INVITED
+  DISABLED
+}
+
 enum UserInvitationStatus {
   PENDING
   CONSUMED
@@ -1226,8 +1237,8 @@ model CustomerAccount {
   stripeCustomerId        String?
   createdAt               DateTime              @default(now())
   updatedAt               DateTime              @updatedAt
-  assignedToUser          User?                 @relation("AssignedCustomerAccounts", fields: [assignedToUserId], references: [id], onDelete: SetNull)
-  accountManagerUser      User?                 @relation("ManagedCustomerAccounts", fields: [accountManagerUserId], references: [id], onDelete: SetNull)
+  assignedToUser          PlatformUser?         @relation("AssignedCustomerAccounts", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+  accountManagerUser      PlatformUser?         @relation("ManagedCustomerAccounts", fields: [accountManagerUserId], references: [id], onDelete: SetNull)
   primaryOwnerUser        User?                 @relation("OwnedCustomerAccounts", fields: [primaryOwnerUserId], references: [id], onDelete: SetNull)
   tenants                 Tenant[]
   selectedPlan            Plan?                 @relation("SelectedCustomerPlan", fields: [selectedPlanId], references: [id], onDelete: SetNull)
@@ -1301,7 +1312,7 @@ model Lead {
   status                 LeadStatus           @default(NEW)
   createdAt              DateTime             @default(now())
   updatedAt              DateTime             @updatedAt
-  assignedToUser         User?                @relation("AssignedLeads", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+  assignedToUser         PlatformUser?        @relation("AssignedLeads", fields: [assignedToUserId], references: [id], onDelete: SetNull)
   convertedCustomers     CustomerAccount[]    @relation("LeadToCustomer")
   onboardings            CustomerOnboarding[]
 
@@ -1565,11 +1576,8 @@ model User {
   uploadedDocuments          Document[]                 @relation("UploadedDocuments")
   ownedTeams                 Team[]                     @relation("OwnedTeams")
   auditLogs                  AuditLog[]                 @relation("AuditLogActor")
-  assignedCustomerAccounts   CustomerAccount[]          @relation("AssignedCustomerAccounts")
-  managedCustomerAccounts    CustomerAccount[]          @relation("ManagedCustomerAccounts")
   ownedCustomerAccounts      CustomerAccount[]          @relation("OwnedCustomerAccounts")
   customerNotes              CustomerNote[]             @relation("CustomerNotes")
-  assignedLeads              Lead[]                     @relation("AssignedLeads")
   ownedCustomerOnboardings   CustomerOnboarding[]       @relation("OwnedCustomerOnboardings")
   ownedTenants               Tenant[]                   @relation("TenantOwner")
 
@@ -1578,6 +1586,34 @@ model User {
   @@index([businessUnitId])
   @@index([tenantId, status])
   @@index([tenantId, lastName, firstName])
+}
+
+model PlatformUser {
+  id             String                  @id @default(uuid())
+  email          String                  @unique
+  firstName      String
+  lastName       String
+  passwordHash   String
+  role           PlatformUserRole        @default(MEMBER)
+  status         PlatformUserStatus      @default(ACTIVE)
+  lastActiveAt   DateTime?
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+  createdById    String?
+  updatedById    String?
+  refreshTokens  PlatformRefreshToken[]
+  createdUsers   PlatformUser[]          @relation("PlatformUserCreatedBy")
+  createdBy      PlatformUser?           @relation("PlatformUserCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedUsers   PlatformUser[]          @relation("PlatformUserUpdatedBy")
+  updatedBy      PlatformUser?           @relation("PlatformUserUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  auditLogs                PlatformAuditLog[] @relation("PlatformAuditLogActor")
+  assignedCustomerAccounts CustomerAccount[]  @relation("AssignedCustomerAccounts")
+  managedCustomerAccounts  CustomerAccount[]  @relation("ManagedCustomerAccounts")
+  assignedLeads            Lead[]             @relation("AssignedLeads")
+
+  @@index([email])
+  @@index([role])
+  @@index([status])
 }
 
 model Organization {
@@ -1894,6 +1930,34 @@ model RefreshToken {
   @@index([userId, appClientId, revokedAt])
   @@index([tenantId, expiresAt])
   @@index([tenantId, userId, createdAt])
+}
+
+model PlatformRefreshToken {
+  id                String       @id @default(uuid())
+  platformUserId    String
+  sessionId         String?
+  appClientId       String       @default("admin")
+  tokenFamilyId     String?
+  tokenHash         String       @unique
+  expiresAt         DateTime
+  absoluteExpiresAt DateTime?
+  lastActivityAt    DateTime?
+  revokedAt         DateTime?
+  lastUsedAt        DateTime?
+  userAgent         String?
+  ipAddress         String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  createdById       String?
+  updatedById       String?
+  platformUser      PlatformUser @relation(fields: [platformUserId], references: [id], onDelete: Cascade)
+
+  @@index([platformUserId])
+  @@index([sessionId])
+  @@index([appClientId, sessionId])
+  @@index([platformUserId, revokedAt])
+  @@index([platformUserId, appClientId, revokedAt])
+  @@index([expiresAt])
 }
 
 model UserInvitation {
@@ -4991,6 +5055,29 @@ model AuditLog {
   @@index([tenantId, sourceModule, createdAt])
 }
 
+model PlatformAuditLog {
+  id                  String        @id @default(uuid())
+  platformActorUserId String?
+  action              String
+  entityType          String
+  entityId            String
+  requestId           String?
+  traceId             String?
+  sourceModule        String?
+  scope               Json?
+  beforeSnapshot      Json?
+  afterSnapshot       Json?
+  createdAt           DateTime      @default(now())
+  platformActorUser   PlatformUser? @relation("PlatformAuditLogActor", fields: [platformActorUserId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([action, createdAt])
+  @@index([entityType, createdAt])
+  @@index([platformActorUserId, createdAt])
+  @@index([requestId])
+  @@index([sourceModule, createdAt])
+}
+
 model ErrorLog {
   id             String   @id @default(cuid())
   traceId        String   @unique
@@ -5331,8 +5418,12 @@ model CustomizationTable {
   pluralDisplayName String
   description       String?
   icon              String?
+  isSystem          Boolean  @default(false)
+  isCustom          Boolean  @default(true)
   isCustomizable    Boolean  @default(true)
   isActive          Boolean  @default(true)
+  createdByUserId   String?
+  updatedByUserId   String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -5353,11 +5444,15 @@ model CustomizationColumn {
   columnKey            String
   systemName           String
   displayName          String
+  description          String?
   dataType             CustomizationFieldDataType
   fieldType            CustomizationFieldDataType
   isSystem             Boolean                    @default(false)
+  isCustom             Boolean                    @default(true)
+  isActive             Boolean                    @default(true)
   isRequired           Boolean                    @default(false)
   isSearchable         Boolean                    @default(false)
+  isFilterable         Boolean                    @default(false)
   isSortable           Boolean                    @default(false)
   isVisible            Boolean                    @default(true)
   isReadOnly           Boolean                    @default(false)
@@ -5369,6 +5464,8 @@ model CustomizationColumn {
   optionSetJson        Json?
   validationJson       Json?
   sortOrder            Int                        @default(0)
+  createdByUserId      String?
+  updatedByUserId      String?
   createdAt            DateTime                   @default(now())
   updatedAt            DateTime                   @updatedAt
 
@@ -5391,11 +5488,14 @@ model CustomizationView {
   type            ModuleViewType            @default(custom)
   isDefault       Boolean                   @default(false)
   isHidden        Boolean                   @default(false)
+  isSystem        Boolean                   @default(false)
+  isCustom        Boolean                   @default(true)
   columnsJson     Json
   filtersJson     Json?
   sortingJson     Json?
   visibilityScope ModuleViewVisibilityScope @default(tenant)
   createdByUserId String?
+  updatedByUserId String?
   createdAt       DateTime                  @default(now())
   updatedAt       DateTime                  @updatedAt
 
@@ -5418,8 +5518,11 @@ model CustomizationForm {
   type            CustomizationFormType @default(main)
   isDefault       Boolean               @default(false)
   isActive        Boolean               @default(true)
+  isSystem        Boolean               @default(false)
+  isCustom        Boolean               @default(true)
   layoutJson      Json
   createdByUserId String?
+  updatedByUserId String?
   createdAt       DateTime              @default(now())
   updatedAt       DateTime              @updatedAt
 

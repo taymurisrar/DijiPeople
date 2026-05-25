@@ -19,6 +19,45 @@ import {
 
 const METADATA_KEY_PATTERN = /^[a-z][a-zA-Z0-9]*$/;
 
+export class CreateCustomizationTableDto {
+  @IsString()
+  @Matches(METADATA_KEY_PATTERN)
+  @MaxLength(80)
+  tableKey!: string;
+
+  @IsString()
+  @MaxLength(100)
+  displayName!: string;
+
+  @IsString()
+  @MaxLength(120)
+  pluralDisplayName!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  systemName?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  moduleKey?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  description?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  icon?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+}
+
 export class UpdateCustomizationTableDto {
   @IsOptional()
   @IsString()
@@ -82,6 +121,10 @@ export class CreateCustomizationColumnDto {
   @IsOptional()
   @IsBoolean()
   isSearchable?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isFilterable?: boolean;
 
   @IsOptional()
   @IsBoolean()
@@ -152,6 +195,10 @@ export class UpdateCustomizationColumnDto {
   @IsOptional()
   @IsBoolean()
   isSearchable?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isFilterable?: boolean;
 
   @IsOptional()
   @IsBoolean()

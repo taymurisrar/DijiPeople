@@ -1,4 +1,5 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { PlatformUserRole } from '@prisma/client';
 import { FOUNDATION_PERMISSION_DEFINITIONS } from '../../common/constants/permissions';
 import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -8,6 +9,89 @@ import { hasElevatedTenantRole } from '../../common/security/elevated-tenant-rol
 @Injectable()
 export class AuthAccessService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async loadPlatformAccessContext(platformUserId: string) {
+    const user = await this.prisma.platformUser.findUnique({
+      where: { id: platformUserId },
+    });
+
+    if (!user || user.status !== 'ACTIVE') {
+      throw new UnauthorizedException(
+        'Your admin session expired. Please sign in again to continue.',
+      );
+    }
+
+    const roleKeys =
+      user.role === PlatformUserRole.SUPER_ADMIN
+        ? ['SUPER_ADMIN', ROLE_KEYS.SYSTEM_ADMIN]
+        : ['MEMBER', ROLE_KEYS.SYSTEM_CUSTOMIZER];
+
+    const permissionKeys =
+      user.role === PlatformUserRole.SUPER_ADMIN
+        ? ['platform.*']
+        : [
+            'leads.create',
+            'leads.read',
+            'leads.update',
+            'customers.create',
+            'customers.read',
+            'customers.update',
+            'tenants.create',
+            'tenants.read',
+            'tenants.update',
+            'onboarding.create',
+            'onboarding.read',
+            'onboarding.update',
+            'payments.read',
+            'billing.read',
+            'subscriptions.read',
+            'invoices.read',
+            'plans.read',
+          ];
+
+    const authUser: AuthenticatedUser = {
+      userId: user.id,
+      tenantId: 'platform',
+      tenantName: 'DijiPeople Platform',
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      roleIds: [user.role],
+      roleKeys,
+      permissionKeys,
+      platform: {
+        id: user.id,
+        role: user.role,
+        status: user.status,
+      },
+    };
+
+    return {
+      authUser,
+      response: {
+        user: {
+          id: user.id,
+          userId: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          status: user.status,
+          role: user.role,
+          roleIds: [user.role],
+          roleKeys,
+          permissionKeys,
+        },
+        tenant: {
+          id: 'platform',
+          name: 'DijiPeople Platform',
+          slug: 'platform',
+          status: 'ACTIVE',
+        },
+        roles: [{ id: user.role, key: user.role, name: user.role }],
+        permissions: permissionKeys,
+      },
+    };
+  }
 
   async loadAccessContext(userId: string, expectedTenantId?: string) {
     const user = await this.prisma.user.findUnique({

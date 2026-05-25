@@ -68,11 +68,10 @@ export class EmployeeProfilesService {
 
   async getProfile(currentUser: AuthenticatedUser, employeeId: string) {
     const employee = await this.assertEmployeeAccess(currentUser, employeeId);
-    const accessMode =
-      await this.employeeAccessService.getEmployeeRecordAccess(
-        currentUser,
-        employeeId,
-      );
+    const accessMode = await this.employeeAccessService.getEmployeeRecordAccess(
+      currentUser,
+      employeeId,
+    );
     const [
       educationRecords,
       employeeHistory,
@@ -1549,7 +1548,9 @@ export class EmployeeProfilesService {
   }
 
   private async buildProfileImageSummary(
-    employee: Awaited<ReturnType<EmployeeProfilesService['assertEmployeeAccess']>>,
+    employee: Awaited<
+      ReturnType<EmployeeProfilesService['assertEmployeeAccess']>
+    >,
   ) {
     const document = employee.profileImageDocument;
 

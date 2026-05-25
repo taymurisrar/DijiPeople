@@ -93,10 +93,13 @@ export class JwtAuthGuard implements CanActivate {
 
       await this.assertSessionIsActive(payload, clientId);
 
-      const { authUser } = await this.authAccessService.loadAccessContext(
-        payload.sub,
-        payload.tenantId,
-      );
+      const { authUser } =
+        clientId === 'admin' && payload.authSubjectType === 'platform-user'
+          ? await this.authAccessService.loadPlatformAccessContext(payload.sub)
+          : await this.authAccessService.loadAccessContext(
+              payload.sub,
+              payload.tenantId,
+            );
 
       if (!authUser) {
         this.logger.warn(
@@ -193,21 +196,37 @@ export class JwtAuthGuard implements CanActivate {
       return;
     }
 
-    const tokenRecord = await this.prisma.refreshToken.findFirst({
-      where: {
-        sessionId: payload.sessionId,
-        userId: payload.sub,
-        tenantId: payload.tenantId,
-        appClientId: clientId,
-        revokedAt: null,
-        expiresAt: { gt: new Date() },
-      },
-      orderBy: { createdAt: 'desc' },
-      select: {
-        absoluteExpiresAt: true,
-        lastActivityAt: true,
-      },
-    });
+    const tokenRecord =
+      clientId === 'admin' && payload.authSubjectType === 'platform-user'
+        ? await this.prisma.platformRefreshToken.findFirst({
+            where: {
+              sessionId: payload.sessionId,
+              platformUserId: payload.sub,
+              appClientId: clientId,
+              revokedAt: null,
+              expiresAt: { gt: new Date() },
+            },
+            orderBy: { createdAt: 'desc' },
+            select: {
+              absoluteExpiresAt: true,
+              lastActivityAt: true,
+            },
+          })
+        : await this.prisma.refreshToken.findFirst({
+            where: {
+              sessionId: payload.sessionId,
+              userId: payload.sub,
+              tenantId: payload.tenantId,
+              appClientId: clientId,
+              revokedAt: null,
+              expiresAt: { gt: new Date() },
+            },
+            orderBy: { createdAt: 'desc' },
+            select: {
+              absoluteExpiresAt: true,
+              lastActivityAt: true,
+            },
+          });
 
     if (!tokenRecord) {
       throw new UnauthorizedException({

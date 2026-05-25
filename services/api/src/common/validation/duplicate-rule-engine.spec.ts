@@ -85,6 +85,8 @@ describe('DuplicateRuleEngine', () => {
           },
         ],
       }),
-    ).rejects.toThrow(new ConflictException('Email already exists on another employee.'));
+    ).rejects.toThrow(
+      new ConflictException('Email already exists on another employee.'),
+    );
   });
 });

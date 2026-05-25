@@ -1,8 +1,6 @@
 import type { ReactNode } from "react";
 
 export function ModuleListLayout({
-  title,
-  description,
   ribbon,
   controls,
   children,
@@ -16,7 +14,7 @@ export function ModuleListLayout({
   pagination?: ReactNode;
 }) {
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {ribbon}
       {controls}
       <section className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">

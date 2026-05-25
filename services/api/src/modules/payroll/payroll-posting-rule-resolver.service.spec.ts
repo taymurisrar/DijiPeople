@@ -5,11 +5,13 @@ describe('PayrollPostingRuleResolverService', () => {
   it('prioritizes pay component, then tax rule, then category default', async () => {
     const prisma = {
       payrollPostingRule: {
-        findMany: jest.fn().mockResolvedValue([
-          rule({ id: 'default-rule' }),
-          rule({ id: 'tax-rule', taxRuleId: 'tax-1' }),
-          rule({ id: 'component-rule', payComponentId: 'pc-1' }),
-        ]),
+        findMany: jest
+          .fn()
+          .mockResolvedValue([
+            rule({ id: 'default-rule' }),
+            rule({ id: 'tax-rule', taxRuleId: 'tax-1' }),
+            rule({ id: 'component-rule', payComponentId: 'pc-1' }),
+          ]),
       },
     };
     const service = new PayrollPostingRuleResolverService(prisma as never);

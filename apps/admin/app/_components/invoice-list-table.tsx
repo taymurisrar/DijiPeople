@@ -4,6 +4,7 @@ import Link from "next/link";
 import { DataTable } from "@/app/_components/crm/data-table";
 import { TenantStatusBadge } from "@/app/_components/tenant-status-badge";
 import { InvoiceStatusForm } from "@/app/_components/invoice-status-form";
+import { AdminKeyValueGrid } from "@/app/_components/admin-ui";
 
 export type InvoiceTableRecord = {
   id: string;
@@ -91,6 +92,36 @@ export function InvoiceListTable({ invoices }: { invoices: InvoiceTableRecord[] 
         ]}
         emptyTitle="No invoices yet"
         emptyDescription="Draft and issued invoices will appear here."
+        renderExpandedRow={(invoice) => (
+          <div className="space-y-3">
+            <AdminKeyValueGrid
+              items={[
+                { label: "Invoice ID", value: invoice.id },
+                { label: "Invoice number", value: invoice.invoiceNumber },
+                { label: "Tenant", value: invoice.tenant.name },
+                { label: "Tenant slug", value: invoice.tenant.slug },
+                { label: "Subscription", value: invoice.subscription.plan.name },
+                { label: "Issue date", value: formatDate(invoice.issueDate) },
+                { label: "Due date", value: formatDate(invoice.dueDate) },
+                { label: "Amount", value: `${invoice.currency} ${invoice.amount.toFixed(2)}` },
+              ]}
+            />
+            <div className="flex flex-wrap gap-2">
+              <Link
+                className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                href={`/invoices/${invoice.id}`}
+              >
+                Open invoice
+              </Link>
+              <Link
+                className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                href={`/tenants/${invoice.tenant.id}`}
+              >
+                Open tenant
+              </Link>
+            </div>
+          </div>
+        )}
       />
     </div>
   );

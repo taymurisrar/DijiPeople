@@ -20,7 +20,12 @@ export class AdminAuthController {
   ) {
     const result = await this.authService.adminLogin(dto, req);
 
-    this.authService.setAuthCookies(res, result.tokens, dto.rememberMe, 'admin');
+    this.authService.setAuthCookies(
+      res,
+      result.tokens,
+      dto.rememberMe,
+      'admin',
+    );
 
     return {
       tenant: result.tenant,

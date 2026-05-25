@@ -97,23 +97,36 @@ export class TimePayrollPreparationService {
     const useAttendance = shouldUseAttendance(policy.mode);
     const useTimesheet = shouldUseTimesheet(policy.mode);
     const attendanceEntries = useAttendance
-      ? await this.loadAttendanceEntries(input.tenantId, input.employeeId, period.periodStart, period.periodEnd)
+      ? await this.loadAttendanceEntries(
+          input.tenantId,
+          input.employeeId,
+          period.periodStart,
+          period.periodEnd,
+        )
       : [];
     const timesheetEntries = useTimesheet
-      ? await this.loadTimesheetEntries(input.tenantId, input.employeeId, period.periodStart, period.periodEnd, policy.requireTimesheetApproval)
+      ? await this.loadTimesheetEntries(
+          input.tenantId,
+          input.employeeId,
+          period.periodStart,
+          period.periodEnd,
+          policy.requireTimesheetApproval,
+        )
       : [];
 
     if (policy.requireAttendanceApproval && useAttendance) {
       warnings.push({
         severity: PayrollExceptionSeverity.WARNING,
         errorType: 'ATTENDANCE_APPROVAL_UNAVAILABLE',
-        message: 'Attendance approval is required by policy, but attendance approval state is not available on attendance entries.',
+        message:
+          'Attendance approval is required by policy, but attendance approval state is not available on attendance entries.',
       });
     }
 
     const sourceRows =
       policy.mode === TimePayrollMode.TIMESHEET_ONLY ||
-      (policy.mode === TimePayrollMode.ATTENDANCE_TO_TIMESHEET && timesheetEntries.length)
+      (policy.mode === TimePayrollMode.ATTENDANCE_TO_TIMESHEET &&
+        timesheetEntries.length)
         ? buildTimesheetRows(timesheetEntries)
         : buildAttendanceRows(attendanceEntries);
 
@@ -136,7 +149,11 @@ export class TimePayrollPreparationService {
       });
 
       if (policy.overtimeEnabled) {
-        const overtime = calculateOvertime(row.regularHours, policy.standardHoursPerDay, overtimePolicy);
+        const overtime = calculateOvertime(
+          row.regularHours,
+          policy.standardHoursPerDay,
+          overtimePolicy,
+        );
         if (overtime.gt(0)) {
           data.push({
             tenantId: input.tenantId,
@@ -170,21 +187,23 @@ export class TimePayrollPreparationService {
         coveredDates: new Set(sourceRows.map((row) => dateKey(row.workDate))),
       });
       if (noShowRows.warning) warnings.push(noShowRows.warning);
-      data.push(...noShowRows.rows.map((workDate) => ({
-        tenantId: input.tenantId,
-        employeeId: input.employeeId,
-        payrollRunEmployeeId: input.payrollRunEmployeeId ?? null,
-        sourceType: TimePayrollInputSourceType.NO_SHOW,
-        sourceId: null,
-        workDate,
-        regularHours: new Prisma.Decimal(0),
-        overtimeHours: new Prisma.Decimal(0),
-        absenceDays: new Prisma.Decimal(1),
-        status: input.payrollRunEmployeeId
-          ? TimePayrollInputStatus.INCLUDED_IN_PAYROLL
-          : TimePayrollInputStatus.PREPARED,
-        metadata: { deductNoShow: policy.deductNoShow },
-      })));
+      data.push(
+        ...noShowRows.rows.map((workDate) => ({
+          tenantId: input.tenantId,
+          employeeId: input.employeeId,
+          payrollRunEmployeeId: input.payrollRunEmployeeId ?? null,
+          sourceType: TimePayrollInputSourceType.NO_SHOW,
+          sourceId: null,
+          workDate,
+          regularHours: new Prisma.Decimal(0),
+          overtimeHours: new Prisma.Decimal(0),
+          absenceDays: new Prisma.Decimal(1),
+          status: input.payrollRunEmployeeId
+            ? TimePayrollInputStatus.INCLUDED_IN_PAYROLL
+            : TimePayrollInputStatus.PREPARED,
+          metadata: { deductNoShow: policy.deductNoShow },
+        })),
+      );
     }
 
     if (data.length) {
@@ -198,7 +217,10 @@ export class TimePayrollPreparationService {
         workDate: { gte: period.periodStart, lte: period.periodEnd },
         ...(input.payrollRunEmployeeId
           ? { payrollRunEmployeeId: input.payrollRunEmployeeId }
-          : { payrollRunEmployeeId: null, status: TimePayrollInputStatus.PREPARED }),
+          : {
+              payrollRunEmployeeId: null,
+              status: TimePayrollInputStatus.PREPARED,
+            }),
       },
       orderBy: [{ workDate: 'asc' }, { sourceType: 'asc' }],
     });
@@ -211,7 +233,10 @@ export class TimePayrollPreparationService {
         entityType: 'TimePayrollInput',
         entityId: input.employeeId,
         beforeSnapshot: null,
-        afterSnapshot: { payrollPeriodId: input.payrollPeriodId, count: inputs.length },
+        afterSnapshot: {
+          payrollPeriodId: input.payrollPeriodId,
+          count: inputs.length,
+        },
       });
     }
 
@@ -233,16 +258,26 @@ export class TimePayrollPreparationService {
           employeeId: employee.employeeId,
           payrollRunEmployeeId: employee.id,
         }))
-      : await this.prisma.employee.findMany({
-          where: {
-            tenantId: user.tenantId,
-            isDraftProfile: false,
-            ...(run.payrollPeriod.payrollCalendar.businessUnitId
-              ? { businessUnitId: run.payrollPeriod.payrollCalendar.businessUnitId }
-              : {}),
-          },
-          select: { id: true },
-        }).then((items) => items.map((item) => ({ employeeId: item.id, payrollRunEmployeeId: null })));
+      : await this.prisma.employee
+          .findMany({
+            where: {
+              tenantId: user.tenantId,
+              isDraftProfile: false,
+              ...(run.payrollPeriod.payrollCalendar.businessUnitId
+                ? {
+                    businessUnitId:
+                      run.payrollPeriod.payrollCalendar.businessUnitId,
+                  }
+                : {}),
+            },
+            select: { id: true },
+          })
+          .then((items) =>
+            items.map((item) => ({
+              employeeId: item.id,
+              payrollRunEmployeeId: null,
+            })),
+          );
 
     let preparedCount = 0;
     for (const employee of employees) {
@@ -272,7 +307,12 @@ export class TimePayrollPreparationService {
       },
       include: {
         employee: {
-          select: { id: true, employeeCode: true, firstName: true, lastName: true },
+          select: {
+            id: true,
+            employeeCode: true,
+            firstName: true,
+            lastName: true,
+          },
         },
       },
       orderBy: [{ workDate: 'asc' }, { sourceType: 'asc' }],
@@ -351,7 +391,8 @@ export class TimePayrollPreparationService {
         warning: {
           severity: PayrollExceptionSeverity.WARNING,
           errorType: 'WORK_SCHEDULE_UNAVAILABLE',
-          message: 'No active work schedule was found; no-show detection was skipped.',
+          message:
+            'No active work schedule was found; no-show detection was skipped.',
         },
       };
     }
@@ -392,8 +433,12 @@ export type PreparedTimePayrollInputs = {
   warnings: PreparedTimePayrollWarning[];
 };
 
-type TimePayrollInputPayload = Prisma.TimePayrollInputGetPayload<Record<string, never>>;
-type TimePayrollPolicyPayload = Prisma.TimePayrollPolicyGetPayload<Record<string, never>>;
+type TimePayrollInputPayload = Prisma.TimePayrollInputGetPayload<
+  Record<string, never>
+>;
+type TimePayrollPolicyPayload = Prisma.TimePayrollPolicyGetPayload<
+  Record<string, never>
+>;
 
 export type PreparedTimePayrollWarning = {
   severity: PayrollExceptionSeverity;
@@ -409,16 +454,23 @@ function shouldUseTimesheet(mode: TimePayrollMode) {
   return mode !== TimePayrollMode.ATTENDANCE_ONLY;
 }
 
-type AttendanceEntryPayload = Prisma.AttendanceEntryGetPayload<Record<string, never>>;
-type TimesheetEntryPayload = Prisma.TimesheetEntryGetPayload<Record<string, never>>;
+type AttendanceEntryPayload = Prisma.AttendanceEntryGetPayload<
+  Record<string, never>
+>;
+type TimesheetEntryPayload = Prisma.TimesheetEntryGetPayload<
+  Record<string, never>
+>;
 
 function buildAttendanceRows(entries: AttendanceEntryPayload[]) {
   return entries.map((entry) => {
-    const regularHours = entry.checkIn && entry.checkOut
-      ? new Prisma.Decimal(Math.max(0, entry.checkOut.getTime() - entry.checkIn.getTime())).div(3_600_000)
-      : entry.status === AttendanceEntryStatus.HALF_DAY
-        ? new Prisma.Decimal(4)
-        : new Prisma.Decimal(0);
+    const regularHours =
+      entry.checkIn && entry.checkOut
+        ? new Prisma.Decimal(
+            Math.max(0, entry.checkOut.getTime() - entry.checkIn.getTime()),
+          ).div(3_600_000)
+        : entry.status === AttendanceEntryStatus.HALF_DAY
+          ? new Prisma.Decimal(4)
+          : new Prisma.Decimal(0);
     return {
       sourceType: TimePayrollInputSourceType.ATTENDANCE,
       sourceId: entry.id,
@@ -445,13 +497,27 @@ function calculateOvertime(
   overtimePolicy: OvertimePolicy | null,
 ) {
   const threshold = overtimePolicy?.thresholdHours ?? standardHoursPerDay;
-  return regularHours.gt(threshold) ? regularHours.minus(threshold) : new Prisma.Decimal(0);
+  return regularHours.gt(threshold)
+    ? regularHours.minus(threshold)
+    : new Prisma.Decimal(0);
 }
 
 function eachDate(startDate: Date, endDate: Date) {
   const dates: Date[] = [];
-  const cursor = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate()));
-  const end = new Date(Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate()));
+  const cursor = new Date(
+    Date.UTC(
+      startDate.getUTCFullYear(),
+      startDate.getUTCMonth(),
+      startDate.getUTCDate(),
+    ),
+  );
+  const end = new Date(
+    Date.UTC(
+      endDate.getUTCFullYear(),
+      endDate.getUTCMonth(),
+      endDate.getUTCDate(),
+    ),
+  );
   while (cursor <= end) {
     dates.push(new Date(cursor));
     cursor.setUTCDate(cursor.getUTCDate() + 1);

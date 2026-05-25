@@ -1,9 +1,22 @@
 import Link from "next/link";
+import { RefreshCw } from "lucide-react";
+import {
+  AdminCommandBar,
+  AdminCommandButton,
+  AdminKeyValueGrid,
+  AdminPageHeader,
+  AdminSectionCard,
+  AdminWorkspace,
+} from "@/app/_components/admin-ui";
+import { DataTable } from "@/app/_components/crm/data-table";
 import { EmptyState } from "@/app/_components/ui/empty-state";
-import { PageHeader } from "@/app/_components/ui/page-header";
-import { SectionCard } from "@/app/_components/ui/section-card";
 import { TenantStatusBadge } from "@/app/_components/tenant-status-badge";
-import { formatBillingCycle, formatCurrency, formatDate, formatEnumLabel } from "@/lib/formatters";
+import {
+  formatBillingCycle,
+  formatCurrency,
+  formatDate,
+  formatEnumLabel,
+} from "@/lib/formatters";
 import { apiRequestJson } from "@/lib/server-api";
 
 type SubscriptionRecord = {
@@ -35,80 +48,179 @@ type SubscriptionRecord = {
 };
 
 export default async function SubscriptionsPage() {
-  const subscriptions = await apiRequestJson<SubscriptionRecord[]>("/super-admin/subscriptions");
+  const subscriptions = await apiRequestJson<SubscriptionRecord[]>(
+    "/super-admin/subscriptions",
+  );
 
   return (
-    <main className="space-y-6">
-      <PageHeader eyebrow="Subscriptions" title="Tenant subscriptions" />
+    <AdminWorkspace>
+      <AdminCommandBar
+        left={
+          <AdminCommandButton href="/subscriptions" icon={RefreshCw}>
+            Refresh
+          </AdminCommandButton>
+        }
+      />
+      <AdminPageHeader
+        eyebrow="Subscriptions"
+        title="Tenant subscriptions"
+        description="Monitor plan assignment, billing interval, renewal timing, and subscription state."
+      />
 
-      <SectionCard title="Subscription list">
+      <AdminSectionCard title="Subscription list">
         {subscriptions.length === 0 ? (
           <EmptyState
             title="No subscriptions found"
             description="Subscriptions will appear here when tenant billing is configured."
           />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200">
-              <thead className="bg-slate-50">
-                <tr className="text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                  <th className="px-6 py-4">Customer and tenant</th>
-                  <th className="px-6 py-4">Plan</th>
-                  <th className="px-6 py-4">Billing</th>
-                  <th className="px-6 py-4">Price</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4">Renewal</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
-                {subscriptions.map((subscription) => (
-                  <tr key={subscription.id} className="align-top">
-                    <td className="px-6 py-5">
-                      <div className="font-medium text-slate-950">
-                        {subscription.customerAccount?.companyName ?? "No customer account"}
-                      </div>
-                      <Link
-                        href={`/tenants/${subscription.tenant.id}`}
-                        className="mt-1 block text-slate-500 transition hover:text-slate-700"
-                      >
-                        {subscription.tenant.name} | {subscription.tenant.slug}
-                      </Link>
-                    </td>
-                    <td className="px-6 py-5">
-                      <div className="font-medium text-slate-950">{subscription.plan.name}</div>
-                      <div className="mt-1 text-slate-500">{subscription.plan.key}</div>
-                    </td>
-                    <td className="px-6 py-5">
-                      <div className="font-medium text-slate-950">
-                        {formatBillingCycle(subscription.billingCycle)}
-                      </div>
-                      <div className="mt-1 text-slate-500">
-                        {String(subscription.discountType).toUpperCase() !== "NONE"
-                          ? `${formatEnumLabel(subscription.discountType)} ${subscription.discountValue}`
-                          : "No discount"}
-                      </div>
-                    </td>
-                    <td className="px-6 py-5">
-                      <div className="font-medium text-slate-950">
-                        {formatCurrency(subscription.finalPrice, subscription.currency)}
-                      </div>
-                      <div className="mt-1 text-slate-500">
-                        Base {formatCurrency(subscription.basePrice, subscription.currency)}
-                      </div>
-                    </td>
-                    <td className="px-6 py-5">
-                      <TenantStatusBadge value={subscription.status} />
-                    </td>
-                    <td className="px-6 py-5">
-                      {subscription.renewalDate ? formatDate(subscription.renewalDate) : "Not scheduled"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            compact
+            rows={subscriptions}
+            rowKey={(subscription) => subscription.id}
+            stickyHeader
+            columns={[
+              {
+                key: "customer",
+                header: "Customer and tenant",
+                minWidth: 280,
+                render: (subscription) => (
+                  <div>
+                    <div className="font-medium text-slate-950">
+                      {subscription.customerAccount?.companyName ??
+                        "No customer account"}
+                    </div>
+                    <Link
+                      href={`/tenants/${subscription.tenant.id}`}
+                      className="mt-1 block text-slate-500 transition hover:text-slate-700"
+                    >
+                      {subscription.tenant.name} | {subscription.tenant.slug}
+                    </Link>
+                  </div>
+                ),
+              },
+              {
+                key: "plan",
+                header: "Plan",
+                minWidth: 170,
+                render: (subscription) => (
+                  <div>
+                    <div className="font-medium text-slate-950">
+                      {subscription.plan.name}
+                    </div>
+                    <div className="mt-1 text-slate-500">
+                      {subscription.plan.key}
+                    </div>
+                  </div>
+                ),
+              },
+              {
+                key: "billing",
+                header: "Billing",
+                minWidth: 170,
+                render: (subscription) => (
+                  <div>
+                    <div className="font-medium text-slate-950">
+                      {formatBillingCycle(subscription.billingCycle)}
+                    </div>
+                    <div className="mt-1 text-slate-500">
+                      {String(subscription.discountType).toUpperCase() !== "NONE"
+                        ? `${formatEnumLabel(subscription.discountType)} ${subscription.discountValue}`
+                        : "No discount"}
+                    </div>
+                  </div>
+                ),
+              },
+              {
+                key: "price",
+                header: "Price",
+                minWidth: 160,
+                render: (subscription) => (
+                  <div>
+                    <div className="font-medium text-slate-950">
+                      {formatCurrency(
+                        subscription.finalPrice,
+                        subscription.currency,
+                      )}
+                    </div>
+                    <div className="mt-1 text-slate-500">
+                      Base{" "}
+                      {formatCurrency(
+                        subscription.basePrice,
+                        subscription.currency,
+                      )}
+                    </div>
+                  </div>
+                ),
+              },
+              {
+                key: "status",
+                header: "Status",
+                minWidth: 130,
+                render: (subscription) => (
+                  <TenantStatusBadge value={subscription.status} />
+                ),
+              },
+              {
+                key: "renewal",
+                header: "Renewal",
+                minWidth: 160,
+                render: (subscription) =>
+                  subscription.renewalDate
+                    ? formatDate(subscription.renewalDate)
+                    : "Not scheduled",
+              },
+            ]}
+            renderExpandedRow={(subscription) => (
+              <div className="space-y-3">
+                <AdminKeyValueGrid
+                  items={[
+                    { label: "Subscription ID", value: subscription.id },
+                    { label: "Tenant status", value: subscription.tenant.status },
+                    {
+                      label: "Customer status",
+                      value: subscription.customerAccount?.status,
+                    },
+                    {
+                      label: "Billing interval",
+                      value: formatBillingCycle(subscription.billingCycle),
+                    },
+                    {
+                      label: "Renewal date",
+                      value: subscription.renewalDate
+                        ? formatDate(subscription.renewalDate)
+                        : "Not scheduled",
+                    },
+                    {
+                      label: "Final price",
+                      value: formatCurrency(
+                        subscription.finalPrice,
+                        subscription.currency,
+                      ),
+                    },
+                  ]}
+                />
+                <div className="flex flex-wrap gap-2">
+                  <Link
+                    className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                    href={`/tenants/${subscription.tenant.id}`}
+                  >
+                    Open tenant
+                  </Link>
+                  {subscription.customerAccount ? (
+                    <Link
+                      className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                      href={`/customers/${subscription.customerAccount.id}`}
+                    >
+                      Open customer
+                    </Link>
+                  ) : null}
+                </div>
+              </div>
+            )}
+          />
         )}
-      </SectionCard>
-    </main>
+      </AdminSectionCard>
+    </AdminWorkspace>
   );
 }

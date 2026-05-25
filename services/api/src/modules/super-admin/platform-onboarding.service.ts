@@ -6,10 +6,10 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
-  BillingCycle,
   CustomerAccountStatus,
   InvoiceStatus,
-  Prisma,
+  PlatformUserRole,
+  PlatformUserStatus,
   SubscriptionStatus,
   TenantFeatureSource,
   TenantStatus,
@@ -73,6 +73,10 @@ export class PlatformOnboardingService {
       throw new NotFoundException('Plan not found.');
     }
 
+    const assignedToUserId = await this.resolvePlatformOwnerId(
+      dto.assignedToUserId ?? actor.platform?.id ?? actor.userId,
+    );
+
     const onboardingResult = await this.prisma.$transaction(async (tx) => {
       const customerAccount = await tx.customerAccount.create({
         data: {
@@ -83,7 +87,7 @@ export class PlatformOnboardingService {
           contactPhone: dto.contactPhone?.trim() || null,
           country: dto.country.trim(),
           status: CustomerAccountStatus.ONBOARDING,
-          assignedToUserId: dto.assignedToUserId ?? actor.userId,
+          assignedToUserId,
         },
       });
 
@@ -318,7 +322,9 @@ export class PlatformOnboardingService {
     let candidate = baseSlug;
     let attempt = 0;
 
-    while (await this.prisma.tenant.findUnique({ where: { slug: candidate } })) {
+    while (
+      await this.prisma.tenant.findUnique({ where: { slug: candidate } })
+    ) {
       attempt += 1;
       candidate = assertValidTenantSlug(
         `${baseSlug.slice(0, Math.max(3, 63 - String(attempt).length - 1))}-${attempt}`,
@@ -327,9 +333,33 @@ export class PlatformOnboardingService {
 
     return candidate;
   }
+
+  private async resolvePlatformOwnerId(ownerId: string | null | undefined) {
+    if (!ownerId) return null;
+
+    const owner = await this.prisma.platformUser.findFirst({
+      where: {
+        id: ownerId,
+        role: { in: [PlatformUserRole.SUPER_ADMIN, PlatformUserRole.MEMBER] },
+        status: PlatformUserStatus.ACTIVE,
+      },
+      select: { id: true },
+    });
+
+    if (!owner) {
+      throw new BadRequestException(
+        'Assigned user must be an active platform system user.',
+      );
+    }
+
+    return owner.id;
+  }
 }
 
-function buildDefaultTenantBranding(companyName: string, supportEmail?: string) {
+function buildDefaultTenantBranding(
+  companyName: string,
+  supportEmail?: string,
+) {
   const brandName = companyName.trim() || 'DijiPeople';
 
   return {

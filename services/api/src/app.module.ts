@@ -39,6 +39,8 @@ import { OnboardingModule } from './modules/onboarding/onboarding.module';
 import { OrganizationModule } from './modules/organization/organization.module';
 import { PayComponentsModule } from './modules/pay-components/pay-components.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
+import { PlatformMonitoringModule } from './modules/platform-monitoring/platform-monitoring.module';
+import { PlatformUsersModule } from './modules/platform-users/platform-users.module';
 import { PayrollModule } from './modules/payroll/payroll.module';
 import { PayslipsModule } from './modules/payslips/payslips.module';
 import { PoliciesModule } from './modules/policies/policies.module';
@@ -100,6 +102,8 @@ import { ErrorLogsModule } from './modules/error-logs/error-logs.module';
     UsersModule,
     RolesModule,
     PermissionsModule,
+    PlatformMonitoringModule,
+    PlatformUsersModule,
   ],
   controllers: [AppController],
   providers: [

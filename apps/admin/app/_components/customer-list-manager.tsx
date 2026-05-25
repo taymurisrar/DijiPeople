@@ -345,10 +345,10 @@ export function CustomerListManager({
                 onChange={(value) => updateFilter("status", value)}
                 options={[
                   { value: "", label: "All statuses" },
-                  ...lifecycleOptions.customer.statuses.map((status) => ({
-                    value: status,
-                    label: status.replaceAll("_", " "),
-                  })),
+                   ...lifecycleOptions.customer.statuses.map((status) => ({
+                      value: status.value,
+                      label: status.label,
+                    })),
                 ]}
                 value={currentFilters.status ?? ""}
               />

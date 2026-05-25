@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import clsx from "clsx";
+import { ChevronDown } from "lucide-react";
 
 type DataTableColumn<T> = {
   key: string;
@@ -49,6 +50,7 @@ type DataTableProps<T> = {
   rowClassName?: string;
 
   footer?: ReactNode;
+  renderExpandedRow?: (row: T, index: number) => ReactNode;
 };
 
 function getAlignmentClasses(align: DataTableColumn<unknown>["align"]) {
@@ -101,7 +103,9 @@ export function DataTable<T>({
   bodyClassName,
   rowClassName,
   footer,
+  renderExpandedRow,
 }: DataTableProps<T>) {
+  const [expandedRowIds, setExpandedRowIds] = useState<string[]>([]);
   const visibleColumns = useMemo(
     () => columns.filter((column) => !column.hidden),
     [columns],
@@ -121,6 +125,15 @@ export function DataTable<T>({
 
   const cellPaddingClass = compact ? "px-4 py-3" : "px-6 py-4";
   const checkboxCellPaddingClass = compact ? "px-3 py-3" : "px-4 py-4";
+  const canExpand = Boolean(renderExpandedRow);
+
+  function toggleExpanded(id: string) {
+    setExpandedRowIds((current) =>
+      current.includes(id)
+        ? current.filter((item) => item !== id)
+        : [...current, id],
+    );
+  }
 
   return (
     <div
@@ -161,6 +174,14 @@ export function DataTable<T>({
                   aria-label="Select all rows"
                 />
               </th>
+            ) : null}
+            {canExpand ? (
+              <th
+                className={clsx(
+                  checkboxCellPaddingClass,
+                  stickyHeader ? "bg-slate-50" : "",
+                )}
+              />
             ) : null}
 
             {visibleColumns.map((column) => (
@@ -220,7 +241,11 @@ export function DataTable<T>({
                 <tr>
                   <td
                     className="px-6 py-12 text-center"
-                    colSpan={visibleColumns.length + (selectable ? 1 : 0)}
+                    colSpan={
+                      visibleColumns.length +
+                      (selectable ? 1 : 0) +
+                      (canExpand ? 1 : 0)
+                    }
                   >
                     {emptyState ?? (
                       <div className="mx-auto max-w-md">
@@ -241,55 +266,98 @@ export function DataTable<T>({
                   const clickable = Boolean(onRowClick);
 
                   return (
-                    <tr
-                      key={id}
-                      className={clsx(
-                        rowClassName,
-                        zebra && index % 2 === 1 ? "bg-slate-50/40" : "bg-white",
-                        hoverable ? "hover:bg-slate-50" : "",
-                        isSelected ? "bg-blue-50/50" : "",
-                        clickable ? "cursor-pointer" : "",
-                        getRowClassName?.(row, index),
-                      )}
-                      onClick={clickable ? () => onRowClick?.(row) : undefined}
-                    >
-                      {selectable ? (
-                        <td
-                          className={clsx(
-                            checkboxCellPaddingClass,
-                            "align-top",
-                            onRowClick ? "cursor-default" : "",
-                          )}
-                          onClick={(event) => event.stopPropagation()}
-                        >
-                          <input
-                            checked={isSelected}
-                            onChange={() => onToggleRow?.(id, row)}
-                            type="checkbox"
-                            aria-label={`Select row ${index + 1}`}
-                          />
-                        </td>
-                      ) : null}
+                    <Fragment key={id}>
+                      <tr
+                        className={clsx(
+                          rowClassName,
+                          zebra && index % 2 === 1 ? "bg-slate-50/40" : "bg-white",
+                          hoverable ? "hover:bg-slate-50" : "",
+                          isSelected ? "bg-blue-50/50" : "",
+                          clickable ? "cursor-pointer" : "",
+                          getRowClassName?.(row, index),
+                        )}
+                        onClick={clickable ? () => onRowClick?.(row) : undefined}
+                      >
+                        {selectable ? (
+                          <td
+                            className={clsx(
+                              checkboxCellPaddingClass,
+                              "align-top",
+                              onRowClick ? "cursor-default" : "",
+                            )}
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            <input
+                              checked={isSelected}
+                              onChange={() => onToggleRow?.(id, row)}
+                              type="checkbox"
+                              aria-label={`Select row ${index + 1}`}
+                            />
+                          </td>
+                        ) : null}
 
-                      {visibleColumns.map((column) => (
-                        <td
-                          key={column.key}
-                          className={clsx(
-                            cellPaddingClass,
-                            "align-top",
-                            getAlignmentClasses(column.align),
-                            getStickyClasses(column.sticky),
-                            column.cellClassName,
-                          )}
-                          style={{
-                            width: column.width,
-                            minWidth: column.minWidth,
-                          }}
-                        >
-                          {column.render(row, index)}
-                        </td>
-                      ))}
-                    </tr>
+                        {canExpand ? (
+                          <td
+                            className={clsx(checkboxCellPaddingClass, "align-top")}
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            <button
+                              aria-expanded={expandedRowIds.includes(id)}
+                              aria-label={
+                                expandedRowIds.includes(id)
+                                  ? `Collapse row ${index + 1}`
+                                  : `Expand row ${index + 1}`
+                              }
+                              className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-950 focus:outline-none focus:ring-2 focus:ring-slate-950/15"
+                              onClick={() => toggleExpanded(id)}
+                              type="button"
+                            >
+                              <ChevronDown
+                                className={clsx(
+                                  "h-4 w-4 transition",
+                                  expandedRowIds.includes(id) ? "rotate-180" : "",
+                                )}
+                              />
+                            </button>
+                          </td>
+                        ) : null}
+
+                        {visibleColumns.map((column) => (
+                          <td
+                            key={column.key}
+                            className={clsx(
+                              cellPaddingClass,
+                              "align-top",
+                              getAlignmentClasses(column.align),
+                              getStickyClasses(column.sticky),
+                              column.cellClassName,
+                            )}
+                            style={{
+                              width: column.width,
+                              minWidth: column.minWidth,
+                            }}
+                          >
+                            {column.render(row, index)}
+                          </td>
+                        ))}
+                      </tr>
+                      {canExpand && expandedRowIds.includes(id) ? (
+                        <tr className="bg-slate-50">
+                          <td
+                            className="px-6 py-4"
+                            colSpan={
+                              visibleColumns.length +
+                              (selectable ? 1 : 0) +
+                              (canExpand ? 1 : 0)
+                            }
+                          >
+                            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                              {renderExpandedRow?.(row, index)}
+                            </div>
+                          </td>
+                        </tr>
+                      ) : null}
+                    </Fragment>
                   );
                 })}
         </tbody>

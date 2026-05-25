@@ -15,8 +15,10 @@ export class RequestIdMiddleware implements NestMiddleware {
 
   use(req: RequestWithId, res: Response, next: NextFunction) {
     const traceHeader =
-      this.configService.get<string>('ERROR_TRACE_HEADER')?.trim().toLowerCase() ||
-      'x-trace-id';
+      this.configService
+        .get<string>('ERROR_TRACE_HEADER')
+        ?.trim()
+        .toLowerCase() || 'x-trace-id';
     const incoming = req.header(traceHeader) ?? req.header(REQUEST_ID_HEADER);
     const requestId =
       incoming && incoming.trim().length > 0

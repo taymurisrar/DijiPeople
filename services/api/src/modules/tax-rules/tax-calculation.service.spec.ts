@@ -14,7 +14,11 @@ describe('TaxCalculationService', () => {
   let service: TaxCalculationService;
   let prisma: {
     payrollRunEmployee: { findFirst: jest.Mock; update: jest.Mock };
-    payrollRunLineItem: { deleteMany: jest.Mock; createMany: jest.Mock; findMany: jest.Mock };
+    payrollRunLineItem: {
+      deleteMany: jest.Mock;
+      createMany: jest.Mock;
+      findMany: jest.Mock;
+    };
     payrollInputSnapshot: { deleteMany: jest.Mock; createMany: jest.Mock };
     payrollException: { create: jest.Mock };
     payrollRun: { findFirst: jest.Mock };
@@ -40,7 +44,11 @@ describe('TaxCalculationService', () => {
     prisma = {
       payrollRunEmployee: {
         findFirst: jest.fn().mockResolvedValue(runEmployee),
-        update: jest.fn().mockImplementation(({ data }) => Promise.resolve({ ...runEmployee, ...data })),
+        update: jest
+          .fn()
+          .mockImplementation(({ data }) =>
+            Promise.resolve({ ...runEmployee, ...data }),
+          ),
       },
       payrollRunLineItem: {
         deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
@@ -48,19 +56,29 @@ describe('TaxCalculationService', () => {
           createdLineItems = data;
           return Promise.resolve({ count: data.length });
         }),
-        findMany: jest.fn().mockImplementation(() => Promise.resolve([...runEmployee.lineItems, ...createdLineItems])),
+        findMany: jest
+          .fn()
+          .mockImplementation(() =>
+            Promise.resolve([...runEmployee.lineItems, ...createdLineItems]),
+          ),
       },
       payrollInputSnapshot: {
         deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
         createMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
-      payrollException: { create: jest.fn().mockResolvedValue({ id: 'exception-1' }) },
+      payrollException: {
+        create: jest.fn().mockResolvedValue({ id: 'exception-1' }),
+      },
       payrollRun: { findFirst: jest.fn() },
     };
     resolver = { resolveApplicableTaxRules: jest.fn() };
     auditService = { log: jest.fn().mockResolvedValue(undefined) };
 
-    service = new TaxCalculationService(prisma as never, resolver as never, auditService as never);
+    service = new TaxCalculationService(
+      prisma as never,
+      resolver as never,
+      auditService as never,
+    );
   });
 
   it('calculates percentage employee tax and employer contribution', async () => {
@@ -116,8 +134,14 @@ describe('TaxCalculationService', () => {
 
     expect(createdLineItems).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ category: PayrollRunLineItemCategory.TAX, amount: new Prisma.Decimal(75) }),
-        expect.objectContaining({ category: PayrollRunLineItemCategory.EMPLOYER_CONTRIBUTION, amount: new Prisma.Decimal(25) }),
+        expect.objectContaining({
+          category: PayrollRunLineItemCategory.TAX,
+          amount: new Prisma.Decimal(75),
+        }),
+        expect.objectContaining({
+          category: PayrollRunLineItemCategory.EMPLOYER_CONTRIBUTION,
+          amount: new Prisma.Decimal(25),
+        }),
       ]),
     );
   });
@@ -149,7 +173,12 @@ describe('TaxCalculationService', () => {
         calculationMethod: TaxCalculationMethod.BRACKET,
         brackets: [
           bracket({ minAmount: 0, maxAmount: 500, employeeRate: 5 }),
-          bracket({ minAmount: 500, maxAmount: null, employeeRate: 12, employerRate: 3 }),
+          bracket({
+            minAmount: 500,
+            maxAmount: null,
+            employeeRate: 12,
+            employerRate: 3,
+          }),
         ],
       }),
     ]);
@@ -162,8 +191,14 @@ describe('TaxCalculationService', () => {
 
     expect(createdLineItems).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ category: PayrollRunLineItemCategory.TAX, amount: new Prisma.Decimal(120) }),
-        expect.objectContaining({ category: PayrollRunLineItemCategory.EMPLOYER_CONTRIBUTION, amount: new Prisma.Decimal(30) }),
+        expect.objectContaining({
+          category: PayrollRunLineItemCategory.TAX,
+          amount: new Prisma.Decimal(120),
+        }),
+        expect.objectContaining({
+          category: PayrollRunLineItemCategory.EMPLOYER_CONTRIBUTION,
+          amount: new Prisma.Decimal(30),
+        }),
       ]),
     );
   });
@@ -176,7 +211,14 @@ describe('TaxCalculationService', () => {
     resolver.resolveApplicableTaxRules.mockResolvedValue([
       taxRule({
         employeeRate: 10,
-        payComponents: [{ id: 'mapping-1', taxRuleId: 'tax-rule-1', payComponentId: 'pc-taxable', payComponent: null }],
+        payComponents: [
+          {
+            id: 'mapping-1',
+            taxRuleId: 'tax-rule-1',
+            payComponentId: 'pc-taxable',
+            payComponent: null,
+          },
+        ],
       }),
     ]);
 
@@ -188,13 +230,18 @@ describe('TaxCalculationService', () => {
 
     expect(createdLineItems).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ category: PayrollRunLineItemCategory.TAX, amount: new Prisma.Decimal(50) }),
+        expect.objectContaining({
+          category: PayrollRunLineItemCategory.TAX,
+          amount: new Prisma.Decimal(50),
+        }),
       ]),
     );
   });
 
   it('removes previous tax line items and tax snapshots before recalculation', async () => {
-    resolver.resolveApplicableTaxRules.mockResolvedValue([taxRule({ employeeRate: 10 })]);
+    resolver.resolveApplicableTaxRules.mockResolvedValue([
+      taxRule({ employeeRate: 10 }),
+    ]);
 
     await service.calculateTaxesForPayrollRunEmployee({
       tenantId: 'tenant-1',
@@ -203,7 +250,11 @@ describe('TaxCalculationService', () => {
     });
 
     expect(prisma.payrollRunLineItem.deleteMany).toHaveBeenCalledWith({
-      where: { tenantId: 'tenant-1', payrollRunEmployeeId: 'pre-1', sourceType: 'TAX' },
+      where: {
+        tenantId: 'tenant-1',
+        payrollRunEmployeeId: 'pre-1',
+        sourceType: 'TAX',
+      },
     });
     expect(prisma.payrollInputSnapshot.deleteMany).toHaveBeenCalledWith({
       where: {
@@ -223,7 +274,11 @@ describe('TaxCalculationService', () => {
         payrollRunEmployeeId: 'pre-1',
         effectiveDate: new Date('2026-04-30'),
       }),
-    ).rejects.toThrow(new BadRequestException('Approved, paid, or locked payroll runs cannot have taxes recalculated.'));
+    ).rejects.toThrow(
+      new BadRequestException(
+        'Approved, paid, or locked payroll runs cannot have taxes recalculated.',
+      ),
+    );
     expect(prisma.payrollRunLineItem.deleteMany).not.toHaveBeenCalled();
   });
 
@@ -231,7 +286,9 @@ describe('TaxCalculationService', () => {
     resolver.resolveApplicableTaxRules.mockResolvedValue([
       taxRule({
         calculationMethod: TaxCalculationMethod.BRACKET,
-        brackets: [bracket({ minAmount: 100, maxAmount: 100, employeeRate: 10 })],
+        brackets: [
+          bracket({ minAmount: 100, maxAmount: 100, employeeRate: 10 }),
+        ],
       }),
     ]);
 
@@ -251,9 +308,15 @@ describe('TaxCalculationService', () => {
 
   it('skips rules when taxable base is zero', async () => {
     runEmployee.lineItems = [
-      lineItem({ amount: 1000, category: PayrollRunLineItemCategory.REIMBURSEMENT, isTaxable: false }),
+      lineItem({
+        amount: 1000,
+        category: PayrollRunLineItemCategory.REIMBURSEMENT,
+        isTaxable: false,
+      }),
     ];
-    resolver.resolveApplicableTaxRules.mockResolvedValue([taxRule({ employeeRate: 10 })]);
+    resolver.resolveApplicableTaxRules.mockResolvedValue([
+      taxRule({ employeeRate: 10 }),
+    ]);
 
     await service.calculateTaxesForPayrollRunEmployee({
       tenantId: 'tenant-1',
@@ -318,7 +381,8 @@ function lineItem(overrides: Record<string, unknown> = {}) {
 function normalizeLineItemOverrides(overrides: Record<string, unknown>) {
   const next = { ...overrides };
   for (const key of ['amount', 'quantity', 'rate']) {
-    if (typeof next[key] === 'number') next[key] = new Prisma.Decimal(next[key] as number);
+    if (typeof next[key] === 'number')
+      next[key] = new Prisma.Decimal(next[key]);
   }
   return next;
 }
@@ -371,8 +435,16 @@ function bracket(overrides: Record<string, unknown> = {}) {
 
 function normalizeRuleOverrides(overrides: Record<string, unknown>) {
   const next = { ...overrides };
-  for (const key of ['employeeRate', 'employerRate', 'fixedEmployeeAmount', 'fixedEmployerAmount', 'minAmount', 'maxAmount']) {
-    if (typeof next[key] === 'number') next[key] = new Prisma.Decimal(next[key] as number);
+  for (const key of [
+    'employeeRate',
+    'employerRate',
+    'fixedEmployeeAmount',
+    'fixedEmployerAmount',
+    'minAmount',
+    'maxAmount',
+  ]) {
+    if (typeof next[key] === 'number')
+      next[key] = new Prisma.Decimal(next[key]);
   }
   return next;
 }

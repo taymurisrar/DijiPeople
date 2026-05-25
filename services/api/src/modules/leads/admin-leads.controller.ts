@@ -16,6 +16,7 @@ import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
+import { PlatformPermissionsGuard } from '../platform-auth/platform-permissions';
 import {
   BulkAssignLeadsDto,
   BulkDeleteLeadsDto,
@@ -25,8 +26,8 @@ import {
 } from './dto/admin-lead.dto';
 import { LeadsService } from './leads.service';
 
-@UseGuards(JwtAuthGuard, RolesGuard)
-@RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
+@UseGuards(JwtAuthGuard, RolesGuard, PlatformPermissionsGuard)
+@RequireRoles(ROLE_KEYS.SYSTEM_ADMIN, ROLE_KEYS.SYSTEM_CUSTOMIZER)
 @Controller('super-admin/leads')
 export class AdminLeadsController {
   constructor(private readonly leadsService: LeadsService) {}

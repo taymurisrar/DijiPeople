@@ -20,6 +20,7 @@ import { UpdateModuleViewDto } from '../views/dto/update-module-view.dto';
 import {
   CreateCustomizationColumnDto,
   CreateCustomizationFormDto,
+  CreateCustomizationTableDto,
   CreateCustomizationViewDto,
   UpdateCustomizationColumnDto,
   UpdateCustomizationFormDto,
@@ -62,6 +63,15 @@ export class CustomizationController {
     return this.customizationService.listTables(user);
   }
 
+  @Post('tables')
+  @Permissions('customization.tables.update')
+  createTable(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreateCustomizationTableDto,
+  ) {
+    return this.customizationService.createTable(user, dto);
+  }
+
   @Get('tables/:tableKey')
   @Permissions('customization.tables.read')
   getTable(
@@ -79,6 +89,24 @@ export class CustomizationController {
     @Body() dto: UpdateCustomizationTableDto,
   ) {
     return this.customizationService.updateTable(user, tableKey, dto);
+  }
+
+  @Delete('tables/:tableKey')
+  @Permissions('customization.tables.update')
+  deleteTable(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('tableKey') tableKey: string,
+  ) {
+    return this.customizationService.deleteTable(user, tableKey);
+  }
+
+  @Get('tables/:tableKey/dependencies')
+  @Permissions('customization.tables.read')
+  getTableDependencies(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('tableKey') tableKey: string,
+  ) {
+    return this.customizationService.getTableDependencies(user, tableKey);
   }
 
   @Get('tables/:tableKey/columns')
@@ -124,6 +152,20 @@ export class CustomizationController {
     @Param('columnKey') columnKey: string,
   ) {
     return this.customizationService.deleteColumn(user, tableKey, columnKey);
+  }
+
+  @Get('tables/:tableKey/columns/:columnKey/dependencies')
+  @Permissions('customization.columns.read')
+  getColumnDependencies(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('tableKey') tableKey: string,
+    @Param('columnKey') columnKey: string,
+  ) {
+    return this.customizationService.getColumnDependencies(
+      user,
+      tableKey,
+      columnKey,
+    );
   }
 
   @Get('tables/:tableKey/forms')

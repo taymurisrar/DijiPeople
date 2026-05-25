@@ -11,7 +11,12 @@ import { TimesheetsRepository } from './timesheets.repository';
 import { TimesheetsService } from './timesheets.service';
 
 @Module({
-  imports: [JwtModule.register({}), AuditModule, EmployeesModule, TenantSettingsModule],
+  imports: [
+    JwtModule.register({}),
+    AuditModule,
+    EmployeesModule,
+    TenantSettingsModule,
+  ],
   controllers: [TimesheetsController],
   providers: [
     TimesheetsRepository,

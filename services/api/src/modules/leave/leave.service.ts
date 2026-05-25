@@ -643,10 +643,11 @@ export class LeaveService {
       );
     }
 
-    const currentEmployee = await this.employeesRepository.findByUserIdAndTenant(
-      currentUser.tenantId,
-      currentUser.userId,
-    );
+    const currentEmployee =
+      await this.employeesRepository.findByUserIdAndTenant(
+        currentUser.tenantId,
+        currentUser.userId,
+      );
     if (!currentEmployee) {
       return [];
     }
@@ -660,14 +661,16 @@ export class LeaveService {
       return [];
     }
 
-    const teamRequests = await this.leaveRepository.findLeaveRequestsByEmployees(
-      currentUser.tenantId,
-      reportIds,
-      query,
-    );
+    const teamRequests =
+      await this.leaveRepository.findLeaveRequestsByEmployees(
+        currentUser.tenantId,
+        reportIds,
+        query,
+      );
 
-    return teamRequests
-      .map((request) => this.mapLeaveRequest(request, currentUser));
+    return teamRequests.map((request) =>
+      this.mapLeaveRequest(request, currentUser),
+    );
   }
 
   async approveLeaveRequest(

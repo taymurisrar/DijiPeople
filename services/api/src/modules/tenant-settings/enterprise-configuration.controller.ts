@@ -118,7 +118,11 @@ export class EnterpriseConfigurationController {
     @Param('id', new ParseUUIDPipe()) id: string,
     @Param('holidayId', new ParseUUIDPipe()) holidayId: string,
   ) {
-    return this.enterpriseConfigurationService.deleteHoliday(user, id, holidayId);
+    return this.enterpriseConfigurationService.deleteHoliday(
+      user,
+      id,
+      holidayId,
+    );
   }
 
   @Post('holiday-calendars/:id/assignments')
@@ -163,7 +167,11 @@ export class EnterpriseConfigurationController {
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() body: Record<string, unknown>,
   ) {
-    return this.enterpriseConfigurationService.updateWorkSchedule(user, id, body);
+    return this.enterpriseConfigurationService.updateWorkSchedule(
+      user,
+      id,
+      body,
+    );
   }
 
   @Delete('work-schedules/:id')
@@ -178,7 +186,9 @@ export class EnterpriseConfigurationController {
   @Get('payroll-regions')
   @Permissions('payroll.settings.read')
   listPayrollRegions(@CurrentUser() user: AuthenticatedUser) {
-    return this.enterpriseConfigurationService.listPayrollRegions(user.tenantId);
+    return this.enterpriseConfigurationService.listPayrollRegions(
+      user.tenantId,
+    );
   }
 
   @Post('payroll-regions')
@@ -197,7 +207,11 @@ export class EnterpriseConfigurationController {
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() body: Record<string, unknown>,
   ) {
-    return this.enterpriseConfigurationService.updatePayrollRegion(user, id, body);
+    return this.enterpriseConfigurationService.updatePayrollRegion(
+      user,
+      id,
+      body,
+    );
   }
 
   @Delete('payroll-regions/:id')

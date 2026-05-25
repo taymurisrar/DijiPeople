@@ -77,7 +77,7 @@ export async function resolveFormLayout(tableKey: string, formKey?: string) {
   return form?.layoutJson ?? null;
 }
 
-async function getTableForms(tableKey: string) {
+export async function getTableForms(tableKey: string) {
   const published = await apiRequestJson<PublishedCustomizationResponse>(
     "/customization/published",
   ).catch(() => null);

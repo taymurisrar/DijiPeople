@@ -1,5 +1,7 @@
 import { Request } from 'express';
 import {
+  PlatformUserRole,
+  PlatformUserStatus,
   RoleAccessLevel,
   SecurityAccessLevel,
   SecurityPrivilege,
@@ -35,6 +37,11 @@ export interface AuthenticatedUser {
     businessUnitSubtreeIds: string[];
     canAccessAllBusinessUnits: boolean;
   };
+  platform?: {
+    id: string;
+    role: PlatformUserRole;
+    status: PlatformUserStatus;
+  };
 }
 
 export type AuthTokenPayload = {
@@ -48,6 +55,8 @@ export type AuthTokenPayload = {
   appClientId?: string;
   aud?: string;
   deviceId?: string;
+  authSubjectType?: 'tenant-user' | 'platform-user';
+  platformRole?: PlatformUserRole;
 };
 
 export interface AuthenticatedRequest extends Request {

@@ -8,6 +8,7 @@ import { BillingModule as StripeBillingModule } from '../billing/billing.module'
 import { PermissionsModule } from '../permissions/permissions.module';
 import { RolesModule } from '../roles/roles.module';
 import { LeadsRepository } from '../leads/leads.repository';
+import { PlatformPermissionsGuard } from '../platform-auth/platform-permissions';
 import { TenantSettingsModule } from '../tenant-settings/tenant-settings.module';
 import { TenantsRepository } from '../tenants/tenants.repository';
 import { UsersModule } from '../users/users.module';
@@ -42,6 +43,7 @@ import { SuperAdminService } from './super-admin.service';
     SuperAdminService,
     JwtAuthGuard,
     RolesGuard,
+    PlatformPermissionsGuard,
   ],
 })
 export class SuperAdminModule {}

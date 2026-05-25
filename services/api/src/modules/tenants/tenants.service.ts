@@ -124,9 +124,8 @@ export class TenantsService {
     const normalizedSlug = assertValidTenantSlug(dto.slug);
     const normalizedEmail = normalizeEmail(dto.adminEmail);
 
-    const existingTenant = await this.tenantsRepository.findBySlug(
-      normalizedSlug,
-    );
+    const existingTenant =
+      await this.tenantsRepository.findBySlug(normalizedSlug);
 
     if (existingTenant) {
       throw new ConflictException('Tenant slug is already in use.');

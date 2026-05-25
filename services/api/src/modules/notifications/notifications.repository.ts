@@ -542,10 +542,7 @@ export class NotificationsRepository {
     });
   }
 
-  listRetryableDeliveryLogs(
-    tenantId: string,
-    db: PrismaDb = this.prisma,
-  ) {
+  listRetryableDeliveryLogs(tenantId: string, db: PrismaDb = this.prisma) {
     return db.emailDeliveryLog.findMany({
       where: {
         tenantId,

@@ -29,7 +29,9 @@ export class EmailProviderFactory {
     private readonly smtpProvider: SmtpEmailProvider,
   ) {}
 
-  async resolveProvider(tenantId: string): Promise<ResolvedEmailProvider | null> {
+  async resolveProvider(
+    tenantId: string,
+  ): Promise<ResolvedEmailProvider | null> {
     const enabledTenantProviders =
       await this.repository.listEnabledProviders(tenantId);
     const tenantProvider =

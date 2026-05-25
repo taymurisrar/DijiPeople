@@ -3,7 +3,15 @@ import {
   PaymentListTable,
   type PaymentTableRecord,
 } from "@/app/_components/payment-list-table";
+import {
+  AdminCommandBar,
+  AdminCommandButton,
+  AdminPageHeader,
+  AdminSectionCard,
+  AdminWorkspace,
+} from "@/app/_components/admin-ui";
 import { apiRequestJson } from "@/lib/server-api";
+import { RefreshCw } from "lucide-react";
 
 type TenantOption = {
   id: string;
@@ -55,15 +63,19 @@ export default async function PaymentsPage() {
   );
 
   return (
-    <main className="space-y-6">
-      <section className="rounded-[30px] border border-indigo-100 bg-[radial-gradient(circle_at_top_right,_rgba(14,165,233,0.18),_transparent_32%),linear-gradient(135deg,#ffffff_0%,#eef2ff_100%)] p-6 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
-          Payments
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold text-slate-950">
-          Payment operations
-        </h1>
-      </section>
+    <AdminWorkspace>
+      <AdminCommandBar
+        left={
+          <AdminCommandButton href="/payments" icon={RefreshCw}>
+            Refresh
+          </AdminCommandButton>
+        }
+      />
+      <AdminPageHeader
+        eyebrow="Payments"
+        title="Payment operations"
+        description="Review recorded payments, payment state, tenant links, and related billing context."
+      />
 
       <section className="grid gap-4 md:grid-cols-3">
         <MetricCard label="Collected" value={`USD ${collected.toFixed(2)}`} />
@@ -71,21 +83,23 @@ export default async function PaymentsPage() {
         <MetricCard label="Pending payments" value={String(pending.length)} />
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,1fr)]">
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,1fr)]">
         <PaymentListTable payments={payments} />
-        <PaymentForm tenants={tenantOptions} />
+        <AdminSectionCard title="Record payment">
+          <PaymentForm tenants={tenantOptions} />
+        </AdminSectionCard>
       </section>
-    </main>
+    </AdminWorkspace>
   );
 }
 
 function MetricCard({ label, value }: { label: string; value: string }) {
   return (
-    <article className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
+    <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
         {label}
       </p>
-      <p className="mt-3 text-2xl font-semibold text-slate-950">{value}</p>
+      <p className="mt-2 text-xl font-semibold text-slate-950">{value}</p>
     </article>
   );
 }

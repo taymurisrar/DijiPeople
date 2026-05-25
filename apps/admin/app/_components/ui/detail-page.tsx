@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { CheckCircle2, Circle, Lock } from "lucide-react";
 
 export function DetailPageShell({ children }: { children: ReactNode }) {
-  return <div className="space-y-5">{children}</div>;
+  return <div className="space-y-3">{children}</div>;
 }
 
 export function DetailHeader({
@@ -17,7 +17,7 @@ export function DetailHeader({
   actions?: ReactNode;
 }) {
   return (
-    <section className="overflow-hidden rounded-[30px] border border-indigo-100 bg-[radial-gradient(circle_at_top_right,_rgba(14,165,233,0.22),_transparent_30%),radial-gradient(circle_at_bottom_left,_rgba(99,102,241,0.2),_transparent_32%),linear-gradient(135deg,#ffffff_0%,#eef2ff_100%)] p-6 shadow-sm">
+    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           {eyebrow ? (
@@ -26,7 +26,7 @@ export function DetailHeader({
             </p>
           ) : null}
 
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">
             {title}
           </h1>
 
@@ -45,7 +45,7 @@ export function DetailHeader({
 
 export function CommandBar({ children }: { children: ReactNode }) {
   return (
-    <section className="flex flex-wrap items-center gap-2 rounded-[24px] border border-slate-200 bg-white/90 p-3 shadow-sm backdrop-blur">
+    <section className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
       {children}
     </section>
   );
@@ -69,12 +69,12 @@ export function SummaryCard({
   hint?: ReactNode;
 }) {
   return (
-    <article className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+    <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
         {label}
       </p>
 
-      <div className="mt-3 text-xl font-semibold text-slate-950">{value}</div>
+      <div className="mt-2 text-lg font-semibold text-slate-950">{value}</div>
 
       {hint ? <div className="mt-2 text-sm text-slate-500">{hint}</div> : null}
     </article>
@@ -91,7 +91,7 @@ export function FormSection({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="mb-5">
         <h2 className="text-lg font-semibold text-slate-950">{title}</h2>
 
@@ -113,13 +113,13 @@ export function ReadOnlyField({
   value: ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+    <div className="rounded-lg border border-slate-200 bg-slate-100 px-3 py-2.5">
       <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
         {label}
       </div>
 
       <div className="mt-2 text-sm font-medium text-slate-950">
-        {value || "—"}
+        {value || "Not specified"}
       </div>
     </div>
   );
@@ -166,9 +166,9 @@ export function StatusPipeline({
   };
 
   return (
-    <section className="w-full overflow-visible rounded-[24px] border border-slate-200 bg-white px-6 py-7 shadow-sm">
+    <section className="w-full overflow-visible rounded-2xl border border-slate-200 bg-white px-3 py-3 shadow-sm">
       <div className="overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div className="flex min-w-[820px] items-start justify-center">
+        <div className="flex min-w-[720px] items-start justify-center">
           {stages.map((stage, index) => {
             const status = getStageStatus(stage, index);
             const requiredFields = stage.requiredFields ?? [];
@@ -209,7 +209,7 @@ export function StatusPipeline({
                   <div className="flex items-center">
                     <div
                       className={[
-                        "flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 text-sm font-semibold transition",
+                        "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-semibold transition",
                         circleClass,
                       ].join(" ")}
                     >
@@ -227,7 +227,7 @@ export function StatusPipeline({
                     ) : null}
                   </div>
 
-                  <div className="mt-3 max-w-[180px] pr-4">
+                    <div className="mt-2 max-w-[180px] pr-4">
                     <div
                       className={[
                         "flex items-center gap-2 text-sm font-semibold",

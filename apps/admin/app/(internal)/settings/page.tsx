@@ -1,5 +1,6 @@
 import {
   Building2,
+  Bug,
   CreditCard,
   FileText,
   Mail,
@@ -31,7 +32,8 @@ const settingsGroups: SettingsMenuGroup[] = [
     items: [
       {
         title: "Platform defaults",
-        description: "Country, currency, timezone, locale, and global behavior.",
+        description:
+          "Country, currency, timezone, locale, and global behavior.",
         href: "/settings/platform-defaults",
         icon: Settings,
         badge: "Core",
@@ -49,6 +51,21 @@ const settingsGroups: SettingsMenuGroup[] = [
         href: "/settings/security",
         icon: ShieldCheck,
         badge: "Recommended",
+      },
+      {
+        title: "Users & access",
+        description:
+          "Manage platform admins, members, roles, and account status.",
+        href: "/settings/users",
+        icon: Users,
+        badge: "Core",
+      },
+      {
+        title: "Monitoring",
+        description: "Platform error logs and operational diagnostics.",
+        href: "/settings/monitoring/error-logs",
+        icon: Bug,
+        badge: "Advanced",
       },
     ],
   },
@@ -211,11 +228,7 @@ export default async function SettingsPage() {
 
             <div className="mt-5 grid gap-3 md:grid-cols-2">
               {recommendedSettings.map((item) => (
-                <SettingsCard
-                  key={item.href}
-                  {...item}
-                  compact
-                />
+                <SettingsCard key={item.href} {...item} compact />
               ))}
             </div>
           </section>

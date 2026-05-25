@@ -9,10 +9,7 @@ import { EmailProviderService } from './email/email-provider.service';
 import { EmailService } from './email/email.service';
 import { EmailTemplateRendererService } from './email/email-template-renderer.service';
 import { EmailTemplateService } from './email/email-template.service';
-import {
-  ConsoleEmailProvider,
-  SmtpEmailProvider,
-} from './email/providers';
+import { ConsoleEmailProvider, SmtpEmailProvider } from './email/providers';
 import { EmailNotificationProcessor } from './processors/email-notification.processor';
 import { InAppNotificationsService } from './in-app-notifications.service';
 import { NotificationDiagnosticsService } from './notification-diagnostics.service';

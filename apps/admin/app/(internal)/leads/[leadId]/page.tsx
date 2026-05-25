@@ -28,7 +28,7 @@ export default async function LeadDetailPage({
   const [lead, lifecycleOptions, operators, plans] = await Promise.all([
     apiRequestJson<LeadRecord>(`/super-admin/leads/${leadId}`),
     apiRequestJson<LifecycleOptions>("/super-admin/lifecycle-options"),
-    apiRequestJson<OperatorOption[]>("/super-admin/operators"),
+    apiRequestJson<OperatorOption[]>("/platform-users/owner-candidates"),
     apiRequestJson<PlanOption[]>("/super-admin/plans"),
   ]);
 

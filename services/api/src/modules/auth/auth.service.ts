@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { Prisma } from '@prisma/client';
+import { PlatformUser, Prisma } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import type { Request, Response } from 'express';
 import { randomUUID } from 'node:crypto';
@@ -175,44 +175,34 @@ export class AuthService {
 
   async adminLogin(dto: AdminLoginDto, req?: Request) {
     const clientId: AuthClientId = 'admin';
-    const user = await this.validateAdminCredentials(dto);
-    const tenantStatus = String(user.tenant.status).toUpperCase();
+    const user = await this.validatePlatformAdminCredentials(dto);
 
-    if (user.status !== 'ACTIVE' || tenantStatus !== 'ACTIVE') {
+    if (user.status !== 'ACTIVE') {
       throw this.authUnauthorized(
         'ADMIN_AUTH_ACCOUNT_INACTIVE',
         'This admin account is not active.',
       );
     }
 
-    await this.permissionBootstrapService.bootstrapTenantRbac(user.tenantId);
-
-    const refreshedUser = await this.usersService.findByIdWithAccess(user.id);
-
-    if (!refreshedUser || !this.hasAdminAuthRole(refreshedUser)) {
-      throw this.authUnauthorized(
-        'ADMIN_AUTH_FORBIDDEN',
-        'This account is not authorized for the admin portal.',
-      );
-    }
-
-    const authResponse = this.buildAuthResponse(
-      refreshedUser,
+    const authResponse = this.buildPlatformAuthResponse(
+      user,
       dto.rememberMe ?? false,
       { clientId },
     );
 
     await Promise.all([
-      this.persistRefreshToken(
-        refreshedUser.id,
-        refreshedUser.tenantId,
+      this.persistPlatformRefreshToken(
+        user.id,
         authResponse.tokens.sessionId,
         clientId,
         authResponse.tokens.refreshToken,
         authResponse.tokens.refreshTokenExpiresIn,
         req,
       ),
-      this.usersService.markLastLogin(refreshedUser.id),
+      this.prisma.platformUser.update({
+        where: { id: user.id },
+        data: { lastActiveAt: new Date() },
+      }),
     ]);
 
     return authResponse;
@@ -243,6 +233,10 @@ export class AuthService {
         'INVALID_TOKEN',
         'Refresh token is not valid for this application.',
       );
+    }
+
+    if (clientId === 'admin' && payload.authSubjectType === 'platform-user') {
+      return this.refreshPlatformSession(payload, refreshToken, req, clientId);
     }
 
     const user = await this.usersService.findByIdWithAccess(payload.sub);
@@ -324,6 +318,7 @@ export class AuthService {
     tenantId: string;
     sessionId?: string;
     appClientId?: string;
+    platform?: { id: string };
   }) {
     if (!isSlidingSessionEnabled(this.configService)) {
       return { ok: true, sliding: false };
@@ -331,6 +326,27 @@ export class AuthService {
 
     const throttleMs = getSessionActivityThrottleMs(this.configService);
     const threshold = new Date(Date.now() - throttleMs);
+
+    if (currentUser.appClientId === 'admin' && currentUser.platform?.id) {
+      await this.prisma.platformRefreshToken.updateMany({
+        where: {
+          platformUserId: currentUser.platform.id,
+          ...(currentUser.sessionId
+            ? { sessionId: currentUser.sessionId }
+            : {}),
+          appClientId: 'admin',
+          revokedAt: null,
+          expiresAt: { gt: new Date() },
+          OR: [{ lastActivityAt: null }, { lastActivityAt: { lt: threshold } }],
+        },
+        data: {
+          lastActivityAt: new Date(),
+          lastUsedAt: new Date(),
+        },
+      });
+
+      return { ok: true, sliding: true };
+    }
 
     await this.prisma.refreshToken.updateMany({
       where: {
@@ -362,10 +378,15 @@ export class AuthService {
     if (accessToken) {
       try {
         const payload = await this.verifyAccessToken(accessToken, clientId);
-        const { response } = await this.authAccessService.loadAccessContext(
-          payload.sub,
-          payload.tenantId,
-        );
+        const { response } =
+          clientId === 'admin' && payload.authSubjectType === 'platform-user'
+            ? await this.authAccessService.loadPlatformAccessContext(
+                payload.sub,
+              )
+            : await this.authAccessService.loadAccessContext(
+                payload.sub,
+                payload.tenantId,
+              );
         return response;
       } catch {
         // Fall through to refresh. Invalid refresh clears both cookies below.
@@ -383,10 +404,17 @@ export class AuthService {
     try {
       const refreshed = await this.refresh(refreshToken, req, clientId);
       this.setAuthCookies(res, refreshed.tokens, false, clientId);
-      const { response } = await this.authAccessService.loadAccessContext(
-        refreshed.user.userId,
-        refreshed.tenant.id,
-      );
+      const { response } =
+        clientId === 'admin' &&
+        'role' in refreshed.user &&
+        refreshed.tenant.id === 'platform'
+          ? await this.authAccessService.loadPlatformAccessContext(
+              refreshed.user.userId,
+            )
+          : await this.authAccessService.loadAccessContext(
+              refreshed.user.userId,
+              refreshed.tenant.id,
+            );
       return response;
     } catch {
       this.clearAuthCookies(res, clientId);
@@ -472,24 +500,47 @@ export class AuthService {
     const refreshToken = this.extractTokenFromRequest(req, cookieNames.refresh);
 
     if (refreshToken) {
-      const activeTokens = await this.prisma.refreshToken.findMany({
-        where: { revokedAt: null, appClientId: clientId },
-        select: { id: true, tokenHash: true },
-        orderBy: { createdAt: 'desc' },
-        take: 20,
-      });
+      if (clientId === 'admin') {
+        const activeTokens = await this.prisma.platformRefreshToken.findMany({
+          where: { revokedAt: null, appClientId: clientId },
+          select: { id: true, tokenHash: true },
+          orderBy: { createdAt: 'desc' },
+          take: 20,
+        });
 
-      for (const tokenRecord of activeTokens) {
-        const matches = await bcrypt.compare(
-          refreshToken,
-          tokenRecord.tokenHash,
-        );
-        if (matches) {
-          await this.prisma.refreshToken.update({
-            where: { id: tokenRecord.id },
-            data: { revokedAt: new Date(), lastUsedAt: new Date() },
-          });
-          break;
+        for (const tokenRecord of activeTokens) {
+          const matches = await bcrypt.compare(
+            refreshToken,
+            tokenRecord.tokenHash,
+          );
+          if (matches) {
+            await this.prisma.platformRefreshToken.update({
+              where: { id: tokenRecord.id },
+              data: { revokedAt: new Date(), lastUsedAt: new Date() },
+            });
+            break;
+          }
+        }
+      } else {
+        const activeTokens = await this.prisma.refreshToken.findMany({
+          where: { revokedAt: null, appClientId: clientId },
+          select: { id: true, tokenHash: true },
+          orderBy: { createdAt: 'desc' },
+          take: 20,
+        });
+
+        for (const tokenRecord of activeTokens) {
+          const matches = await bcrypt.compare(
+            refreshToken,
+            tokenRecord.tokenHash,
+          );
+          if (matches) {
+            await this.prisma.refreshToken.update({
+              where: { id: tokenRecord.id },
+              data: { revokedAt: new Date(), lastUsedAt: new Date() },
+            });
+            break;
+          }
         }
       }
     }
@@ -548,9 +599,8 @@ export class AuthService {
 
   private async validateAdminCredentials(dto: AdminLoginDto) {
     const normalizedEmail = normalizeEmail(dto.email);
-    const users = await this.usersService.findManyByEmailWithAccess(
-      normalizedEmail,
-    );
+    const users =
+      await this.usersService.findManyByEmailWithAccess(normalizedEmail);
     const adminCandidates = users.filter((user) => this.hasAdminAuthRole(user));
 
     for (const user of adminCandidates) {
@@ -569,7 +619,8 @@ export class AuthService {
     this.logger.warn(
       JSON.stringify({
         event: 'admin.auth.login.failed',
-        reason: adminCandidates.length > 0 ? 'PASSWORD_MISMATCH' : 'NO_ADMIN_USER',
+        reason:
+          adminCandidates.length > 0 ? 'PASSWORD_MISMATCH' : 'NO_ADMIN_USER',
         identifier: normalizedEmail,
       }),
     );
@@ -577,6 +628,49 @@ export class AuthService {
       'ADMIN_AUTH_INVALID_CREDENTIALS',
       'Invalid admin credentials.',
     );
+  }
+
+  private async validatePlatformAdminCredentials(dto: AdminLoginDto) {
+    const normalizedEmail = normalizeEmail(dto.email);
+    const user = await this.prisma.platformUser.findUnique({
+      where: { email: normalizedEmail },
+    });
+
+    if (!user) {
+      this.logger.warn(
+        JSON.stringify({
+          event: 'admin.auth.login.failed',
+          reason: 'PLATFORM_USER_NOT_FOUND',
+          identifier: normalizedEmail,
+        }),
+      );
+      throw this.authUnauthorized(
+        'ADMIN_AUTH_INVALID_CREDENTIALS',
+        'Invalid admin credentials.',
+      );
+    }
+
+    const isPasswordValid = await bcrypt.compare(
+      dto.password,
+      user.passwordHash,
+    );
+
+    if (!isPasswordValid) {
+      this.logger.warn(
+        JSON.stringify({
+          event: 'admin.auth.login.failed',
+          reason: 'PASSWORD_MISMATCH',
+          identifier: normalizedEmail,
+          platformUserId: user.id,
+        }),
+      );
+      throw this.authUnauthorized(
+        'ADMIN_AUTH_INVALID_CREDENTIALS',
+        'Invalid admin credentials.',
+      );
+    }
+
+    return user;
   }
 
   private hasAdminAuthRole(user: UserWithAccess) {
@@ -867,6 +961,191 @@ export class AuthService {
     });
   }
 
+  private async refreshPlatformSession(
+    payload: AuthTokenPayload,
+    refreshToken: string,
+    req: Request | undefined,
+    clientId: AuthClientId,
+  ) {
+    const user = await this.prisma.platformUser.findUnique({
+      where: { id: payload.sub },
+    });
+
+    if (!user || user.status !== 'ACTIVE') {
+      throw this.authUnauthorized(
+        'SESSION_EXPIRED',
+        'Unable to refresh this admin session.',
+      );
+    }
+
+    const refreshTokenMatches = await this.hasActivePlatformRefreshToken(
+      user.id,
+      payload.sessionId,
+      clientId,
+      refreshToken,
+    );
+
+    if (!refreshTokenMatches) {
+      throw this.authUnauthorized(
+        'SESSION_REVOKED',
+        'Refresh token is invalid.',
+      );
+    }
+
+    const rotateRefresh = isRefreshRotationEnabled(this.configService);
+    const authResponse = this.buildPlatformAuthResponse(user, false, {
+      clientId,
+      sessionId: payload.sessionId,
+      refreshTokenOverride: rotateRefresh ? undefined : refreshToken,
+    });
+
+    if (rotateRefresh) {
+      await this.rotatePlatformRefreshToken(
+        user.id,
+        payload.sessionId,
+        clientId,
+        refreshToken,
+        authResponse.tokens.refreshToken,
+        authResponse.tokens.refreshTokenExpiresIn,
+        req,
+      );
+    } else {
+      await this.touchPlatformRefreshSession(
+        user.id,
+        payload.sessionId,
+        clientId,
+      );
+    }
+
+    return authResponse;
+  }
+
+  private async persistPlatformRefreshToken(
+    platformUserId: string,
+    sessionId: string,
+    clientId: AuthClientId,
+    refreshToken: string,
+    refreshTokenTtl: string,
+    req?: Request,
+    absoluteExpiresAt?: Date | null,
+  ) {
+    const tokenHash = await bcrypt.hash(refreshToken, 10);
+    const now = Date.now();
+
+    await this.prisma.platformRefreshToken.create({
+      data: {
+        platformUserId,
+        sessionId,
+        appClientId: clientId,
+        tokenFamilyId: sessionId,
+        tokenHash,
+        expiresAt: new Date(now + parseDurationToMilliseconds(refreshTokenTtl)),
+        absoluteExpiresAt:
+          absoluteExpiresAt ??
+          new Date(
+            now + getClientAbsoluteTimeoutMs(this.configService, clientId),
+          ),
+        lastActivityAt: new Date(now),
+        userAgent: req?.headers['user-agent']?.slice(0, 500),
+        ipAddress: req?.ip,
+      },
+    });
+  }
+
+  private async hasActivePlatformRefreshToken(
+    platformUserId: string,
+    sessionId: string,
+    clientId: AuthClientId,
+    refreshToken: string,
+  ) {
+    const activeTokens = await this.prisma.platformRefreshToken.findMany({
+      where: {
+        platformUserId,
+        sessionId,
+        appClientId: clientId,
+        revokedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    for (const tokenRecord of activeTokens) {
+      const matches = await bcrypt.compare(refreshToken, tokenRecord.tokenHash);
+
+      if (matches) {
+        this.assertSessionNotExpired(tokenRecord, clientId);
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private async rotatePlatformRefreshToken(
+    platformUserId: string,
+    sessionId: string,
+    clientId: AuthClientId,
+    previousRefreshToken: string,
+    nextRefreshToken: string,
+    nextRefreshTokenTtl: string,
+    req?: Request,
+  ) {
+    const activeTokens = await this.prisma.platformRefreshToken.findMany({
+      where: {
+        platformUserId,
+        sessionId,
+        appClientId: clientId,
+        revokedAt: null,
+      },
+    });
+
+    let absoluteExpiresAt: Date | null = null;
+
+    for (const tokenRecord of activeTokens) {
+      const matches = await bcrypt.compare(
+        previousRefreshToken,
+        tokenRecord.tokenHash,
+      );
+
+      if (matches) {
+        absoluteExpiresAt = tokenRecord.absoluteExpiresAt;
+        await this.prisma.platformRefreshToken.update({
+          where: { id: tokenRecord.id },
+          data: { revokedAt: new Date(), lastUsedAt: new Date() },
+        });
+      }
+    }
+
+    await this.persistPlatformRefreshToken(
+      platformUserId,
+      sessionId,
+      clientId,
+      nextRefreshToken,
+      nextRefreshTokenTtl,
+      req,
+      absoluteExpiresAt,
+    );
+  }
+
+  private async touchPlatformRefreshSession(
+    platformUserId: string,
+    sessionId: string,
+    clientId: AuthClientId,
+  ) {
+    await this.prisma.platformRefreshToken.updateMany({
+      where: {
+        platformUserId,
+        sessionId,
+        appClientId: clientId,
+        revokedAt: null,
+      },
+      data: {
+        lastActivityAt: new Date(),
+        lastUsedAt: new Date(),
+      },
+    });
+  }
+
   private buildAuthResponse(
     user: UserWithAccess,
     rememberMe = false,
@@ -932,6 +1211,99 @@ export class AuthService {
         status: user.tenant.status,
       },
       user: this.mapUserSummary(user, user.tenant.ownerUserId === user.id),
+      tokens: {
+        accessToken,
+        refreshToken,
+        sessionId,
+        accessTokenExpiresIn: accessTokenTtl,
+        refreshTokenExpiresIn: refreshTokenTtl,
+      },
+    };
+  }
+
+  private buildPlatformAuthResponse(
+    user: PlatformUser,
+    rememberMe = false,
+    options: {
+      clientId?: AuthClientId;
+      sessionId?: string;
+      refreshTokenOverride?: string;
+    } = {},
+  ) {
+    const clientId = options.clientId ?? 'admin';
+    const sessionId = options.sessionId ?? randomUUID();
+    const tokenVersion = 0;
+
+    const accessPayload: AuthTokenPayload = {
+      sub: user.id,
+      tenantId: 'platform',
+      email: user.email,
+      sessionId,
+      tokenVersion,
+      type: 'access',
+      tokenUse: 'access',
+      appClientId: clientId,
+      aud: clientId,
+      authSubjectType: 'platform-user',
+      platformRole: user.role,
+    };
+
+    const accessTokenTtl = rememberMe
+      ? this.configService.get<string>('JWT_ACCESS_TTL_REMEMBER_ME') || '30m'
+      : getClientAccessTokenTtl(this.configService, clientId);
+
+    const refreshTokenTtl = rememberMe
+      ? this.configService.get<string>('JWT_REFRESH_TTL_REMEMBER_ME') || '30d'
+      : getClientRefreshTokenTtl(this.configService, clientId);
+
+    const accessToken = this.jwtService.sign(accessPayload, {
+      secret: getClientAccessTokenSecret(this.configService, clientId),
+      expiresIn: accessTokenTtl as StringValue,
+    });
+
+    const refreshToken =
+      options.refreshTokenOverride ??
+      this.jwtService.sign(
+        {
+          sub: user.id,
+          tenantId: 'platform',
+          sessionId,
+          tokenVersion,
+          type: 'refresh',
+          tokenUse: 'refresh',
+          appClientId: clientId,
+          aud: clientId,
+          authSubjectType: 'platform-user',
+          platformRole: user.role,
+        } satisfies AuthTokenPayload,
+        {
+          secret: getClientRefreshTokenSecret(this.configService, clientId),
+          expiresIn: refreshTokenTtl as StringValue,
+        },
+      );
+
+    return {
+      tenant: {
+        id: 'platform',
+        name: 'DijiPeople Platform',
+        slug: 'platform',
+        status: 'ACTIVE',
+      },
+      user: {
+        id: user.id,
+        userId: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        status: user.status,
+        roleIds: [user.role],
+        roleKeys:
+          user.role === 'SUPER_ADMIN'
+            ? ['SUPER_ADMIN', ROLE_KEYS.SYSTEM_ADMIN]
+            : ['MEMBER', ROLE_KEYS.SYSTEM_CUSTOMIZER],
+        permissionKeys: user.role === 'SUPER_ADMIN' ? ['platform.*'] : [],
+      },
       tokens: {
         accessToken,
         refreshToken,

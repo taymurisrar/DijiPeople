@@ -11,10 +11,7 @@ const PLACEHOLDER_PATTERN = /{{\s*([a-zA-Z0-9_.-]+)\s*}}/g;
 export type EmailTemplateRenderInput = {
   template: Pick<
     EmailTemplate,
-    | 'subjectTemplate'
-    | 'htmlTemplate'
-    | 'textTemplate'
-    | 'availableVariables'
+    'subjectTemplate' | 'htmlTemplate' | 'textTemplate' | 'availableVariables'
   >;
   variables: Record<string, unknown>;
 };
@@ -63,10 +60,18 @@ export class EmailTemplateRendererService {
         'text',
       ),
       renderedHtml: sanitizeHtmlTemplate(
-        renderTemplateString(input.template.htmlTemplate, input.variables, 'html'),
+        renderTemplateString(
+          input.template.htmlTemplate,
+          input.variables,
+          'html',
+        ),
       ),
       renderedText: input.template.textTemplate
-        ? renderTemplateString(input.template.textTemplate, input.variables, 'text')
+        ? renderTemplateString(
+            input.template.textTemplate,
+            input.variables,
+            'text',
+          )
         : null,
       missingVariables,
       usedVariables,
@@ -112,7 +117,9 @@ function extractAvailableVariables(value: unknown): string[] {
     return [];
   }
 
-  return Object.keys(value as Record<string, unknown>).filter(Boolean).sort();
+  return Object.keys(value as Record<string, unknown>)
+    .filter(Boolean)
+    .sort();
 }
 
 function resolveVariable(source: Record<string, unknown>, path: string) {

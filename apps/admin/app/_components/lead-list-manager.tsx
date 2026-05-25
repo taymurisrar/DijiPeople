@@ -322,10 +322,10 @@ export function LeadListManager({
                 onChange={(value) => updateFilter("status", value)}
                 options={[
                   { value: "", label: "All statuses" },
-                  ...lifecycleOptions.lead.statuses.map((status) => ({
-                    value: status,
-                    label: status.replaceAll("_", " "),
-                  })),
+                   ...lifecycleOptions.lead.statuses.map((status) => ({
+                      value: status.value,
+                      label: status.label,
+                    })),
                 ]}
                 value={currentFilters.status ?? ""}
               />

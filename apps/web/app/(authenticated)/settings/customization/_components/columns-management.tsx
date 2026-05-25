@@ -46,6 +46,7 @@ type ColumnFormState = {
   isRequired: boolean;
   isVisible: boolean;
   isSearchable: boolean;
+  isFilterable: boolean;
   isSortable: boolean;
   maxLength: number | null;
   defaultValue: string;
@@ -191,6 +192,7 @@ export function ColumnsManagement({
       isRequired: false,
       isVisible: true,
       isSearchable: false,
+      isFilterable: false,
       isSortable: false,
       maxLength: null,
       defaultValue: "",
@@ -211,6 +213,7 @@ export function ColumnsManagement({
       isRequired: column.isRequired,
       isVisible: column.isVisible,
       isSearchable: column.isSearchable,
+      isFilterable: column.isFilterable ?? false,
       isSortable: column.isSortable,
       maxLength: column.maxLength,
       defaultValue: column.defaultValue ?? "",
@@ -369,11 +372,11 @@ export function ColumnsManagement({
                 value={form.displayName}
               />
               <SelectField
-                disabled={Boolean(form.original?.isSystem)}
+                disabled={form.mode === "edit"}
                 hint={
-                  form.original?.isSystem
-                    ? "System field types are locked."
-                    : "Unsafe changes are blocked by the server."
+                  form.mode === "edit"
+                    ? "Column data type is locked after creation."
+                    : "Choose the storage and editor data type."
                 }
                 label="Field type"
                 onChange={(fieldType) => updateForm({ fieldType })}
@@ -427,6 +430,11 @@ export function ColumnsManagement({
                   checked={form.isSearchable}
                   label="Searchable"
                   onChange={(isSearchable) => updateForm({ isSearchable })}
+                />
+                <CheckboxField
+                  checked={form.isFilterable}
+                  label="Filterable"
+                  onChange={(isFilterable) => updateForm({ isFilterable })}
                 />
                 <CheckboxField
                   checked={form.isSortable}
@@ -513,11 +521,8 @@ function validateForm(form: ColumnFormState, columns: CustomizationColumn[]) {
   ) {
     return "Select and multiselect fields require at least one option.";
   }
-  if (form.mode === "edit" && form.original && !form.original.isSystem) {
-    const safe = isSafeTypeChange(form.original.fieldType, form.fieldType);
-    if (!safe) {
-      return `Changing field type from ${form.original.fieldType} to ${form.fieldType} is not safe.`;
-    }
+  if (form.mode === "edit" && form.original?.fieldType !== form.fieldType) {
+    return "Column data type cannot be changed after creation.";
   }
 
   return null;
@@ -530,6 +535,7 @@ function buildPayload(form: ColumnFormState) {
     isRequired: form.isRequired,
     isVisible: form.isVisible,
     isSearchable: form.isSearchable,
+    isFilterable: form.isFilterable,
     isSortable: form.isSortable,
     maxLength: supportsMaxLength(form.fieldType) ? form.maxLength : null,
     defaultValue: form.defaultValue || undefined,
@@ -549,22 +555,14 @@ function buildPayload(form: ColumnFormState) {
   return payload;
 }
 
-function isSafeTypeChange(current: string, next: string) {
-  if (current === next) return true;
-  const groups = [
-    ["text", "textarea", "email", "phone", "url"],
-    ["number", "decimal", "currency"],
-    ["date", "datetime"],
-  ];
-  return groups.some((group) => group.includes(current) && group.includes(next));
-}
-
 function supportsMaxLength(fieldType: string) {
   return ["text", "textarea", "email", "phone", "url"].includes(fieldType);
 }
 
 function nextSortOrder(columns: CustomizationColumn[]) {
-  return columns.reduce((max, column) => Math.max(max, column.sortOrder), 0) + 10;
+  return (
+    columns.reduce((max, column) => Math.max(max, column.sortOrder), 0) + 10
+  );
 }
 
 function parseOptions(value: string) {

@@ -112,7 +112,14 @@ export class EnterpriseConfigurationService {
         include: { holidays: true, assignments: true },
       });
 
-      await this.audit(currentUser, 'holiday-calendar.create', 'HolidayCalendar', calendar.id, null, calendar);
+      await this.audit(
+        currentUser,
+        'holiday-calendar.create',
+        'HolidayCalendar',
+        calendar.id,
+        null,
+        calendar,
+      );
       return calendar;
     } catch (error) {
       handleUniqueError(error, 'Holiday calendar code or name already exists.');
@@ -143,7 +150,12 @@ export class EnterpriseConfigurationService {
         where: { id },
         data: {
           ...(body.name !== undefined
-            ? { name: requiredString(body.name, 'Holiday calendar name is required.') }
+            ? {
+                name: requiredString(
+                  body.name,
+                  'Holiday calendar name is required.',
+                ),
+              }
             : {}),
           ...(body.code !== undefined
             ? { code: normalizeCode(body.code, body.name ?? existing.name) }
@@ -176,7 +188,14 @@ export class EnterpriseConfigurationService {
         include: { holidays: true, assignments: true },
       });
 
-      await this.audit(currentUser, 'holiday-calendar.update', 'HolidayCalendar', id, existing, calendar);
+      await this.audit(
+        currentUser,
+        'holiday-calendar.update',
+        'HolidayCalendar',
+        id,
+        existing,
+        calendar,
+      );
       return calendar;
     } catch (error) {
       handleUniqueError(error, 'Holiday calendar code or name already exists.');
@@ -195,14 +214,25 @@ export class EnterpriseConfigurationService {
         updatedById: currentUser.userId,
       },
     });
-    await this.audit(currentUser, 'holiday-calendar.archive', 'HolidayCalendar', id, existing, {
-      ...existing,
-      status: 'ARCHIVED',
-    });
+    await this.audit(
+      currentUser,
+      'holiday-calendar.archive',
+      'HolidayCalendar',
+      id,
+      existing,
+      {
+        ...existing,
+        status: 'ARCHIVED',
+      },
+    );
     return { id, archived: true };
   }
 
-  async listHolidays(tenantId: string, calendarId: string, query: Record<string, unknown>) {
+  async listHolidays(
+    tenantId: string,
+    calendarId: string,
+    query: Record<string, unknown>,
+  ) {
     await this.findHolidayCalendarOrThrow(tenantId, calendarId);
     const year = readNumber(query.year);
     const search = readString(query.search);
@@ -236,7 +266,10 @@ export class EnterpriseConfigurationService {
     body: Record<string, unknown>,
   ) {
     await this.findHolidayCalendarOrThrow(currentUser.tenantId, calendarId);
-    const holidayDate = requiredDate(body.holidayDate, 'Holiday date is required.');
+    const holidayDate = requiredDate(
+      body.holidayDate,
+      'Holiday date is required.',
+    );
     await this.assertNoDuplicateHoliday(
       currentUser.tenantId,
       calendarId,
@@ -264,7 +297,14 @@ export class EnterpriseConfigurationService {
       },
     });
 
-    await this.audit(currentUser, 'holiday.create', 'Holiday', holiday.id, null, holiday);
+    await this.audit(
+      currentUser,
+      'holiday.create',
+      'Holiday',
+      holiday.id,
+      null,
+      holiday,
+    );
     return holiday;
   }
 
@@ -322,12 +362,22 @@ export class EnterpriseConfigurationService {
           ? { appliesToAll: readBoolean(body.appliesToAll) ?? true }
           : {}),
         ...(body.status !== undefined
-          ? { status: readEnum(body.status, ConfigurationStatus) ?? existing.status }
+          ? {
+              status:
+                readEnum(body.status, ConfigurationStatus) ?? existing.status,
+            }
           : {}),
         updatedById: currentUser.userId,
       },
     });
-    await this.audit(currentUser, 'holiday.update', 'Holiday', holidayId, existing, holiday);
+    await this.audit(
+      currentUser,
+      'holiday.update',
+      'Holiday',
+      holidayId,
+      existing,
+      holiday,
+    );
     return holiday;
   }
 
@@ -345,10 +395,17 @@ export class EnterpriseConfigurationService {
       where: { id: holidayId },
       data: { status: 'ARCHIVED', updatedById: currentUser.userId },
     });
-    await this.audit(currentUser, 'holiday.archive', 'Holiday', holidayId, existing, {
-      ...existing,
-      status: 'ARCHIVED',
-    });
+    await this.audit(
+      currentUser,
+      'holiday.archive',
+      'Holiday',
+      holidayId,
+      existing,
+      {
+        ...existing,
+        status: 'ARCHIVED',
+      },
+    );
     return { id: holidayId, archived: true };
   }
 
@@ -381,7 +438,14 @@ export class EnterpriseConfigurationService {
         updatedById: currentUser.userId,
       },
     });
-    await this.audit(currentUser, 'holiday-calendar.assign', 'HolidayCalendarAssignment', assignment.id, null, assignment);
+    await this.audit(
+      currentUser,
+      'holiday-calendar.assign',
+      'HolidayCalendarAssignment',
+      assignment.id,
+      null,
+      assignment,
+    );
     return assignment;
   }
 
@@ -399,7 +463,10 @@ export class EnterpriseConfigurationService {
             }
           : {}),
       },
-      include: { days: { orderBy: [{ sortOrder: 'asc' }] }, shiftTemplates: true },
+      include: {
+        days: { orderBy: [{ sortOrder: 'asc' }] },
+        shiftTemplates: true,
+      },
       orderBy: [{ isDefault: 'desc' }, { name: 'asc' }],
     });
   }
@@ -419,7 +486,14 @@ export class EnterpriseConfigurationService {
       },
       include: { days: true, shiftTemplates: true },
     });
-    await this.audit(currentUser, 'work-schedule.create', 'WorkSchedule', schedule.id, null, schedule);
+    await this.audit(
+      currentUser,
+      'work-schedule.create',
+      'WorkSchedule',
+      schedule.id,
+      null,
+      schedule,
+    );
     return schedule;
   }
 
@@ -445,13 +519,24 @@ export class EnterpriseConfigurationService {
         data: {
           ...data.update,
           ...(Array.isArray(body.days)
-            ? { days: { create: readScheduleDays(body.days, currentUser.tenantId) } }
+            ? {
+                days: {
+                  create: readScheduleDays(body.days, currentUser.tenantId),
+                },
+              }
             : {}),
         },
         include: { days: true, shiftTemplates: true },
       });
     });
-    await this.audit(currentUser, 'work-schedule.update', 'WorkSchedule', id, existing, schedule);
+    await this.audit(
+      currentUser,
+      'work-schedule.update',
+      'WorkSchedule',
+      id,
+      existing,
+      schedule,
+    );
     return schedule;
   }
 
@@ -462,12 +547,23 @@ export class EnterpriseConfigurationService {
     if (!existing) throw new NotFoundException('Work schedule was not found.');
     await this.prisma.workSchedule.update({
       where: { id },
-      data: { status: 'ARCHIVED', isActive: false, updatedById: currentUser.userId },
+      data: {
+        status: 'ARCHIVED',
+        isActive: false,
+        updatedById: currentUser.userId,
+      },
     });
-    await this.audit(currentUser, 'work-schedule.archive', 'WorkSchedule', id, existing, {
-      ...existing,
-      status: 'ARCHIVED',
-    });
+    await this.audit(
+      currentUser,
+      'work-schedule.archive',
+      'WorkSchedule',
+      id,
+      existing,
+      {
+        ...existing,
+        status: 'ARCHIVED',
+      },
+    );
     return { id, archived: true };
   }
 
@@ -492,7 +588,14 @@ export class EnterpriseConfigurationService {
       },
       include: { holidayCalendar: true, workSchedule: true },
     });
-    await this.audit(currentUser, 'payroll-region.create', 'PayrollRegion', region.id, null, region);
+    await this.audit(
+      currentUser,
+      'payroll-region.create',
+      'PayrollRegion',
+      region.id,
+      null,
+      region,
+    );
     return region;
   }
 
@@ -505,13 +608,24 @@ export class EnterpriseConfigurationService {
       where: { tenantId: currentUser.tenantId, id },
     });
     if (!existing) throw new NotFoundException('Payroll region was not found.');
-    const data = await this.readPayrollRegionData(currentUser.tenantId, body, existing);
+    const data = await this.readPayrollRegionData(
+      currentUser.tenantId,
+      body,
+      existing,
+    );
     const region = await this.prisma.payrollRegion.update({
       where: { id },
       data: { ...data, updatedById: currentUser.userId },
       include: { holidayCalendar: true, workSchedule: true },
     });
-    await this.audit(currentUser, 'payroll-region.update', 'PayrollRegion', id, existing, region);
+    await this.audit(
+      currentUser,
+      'payroll-region.update',
+      'PayrollRegion',
+      id,
+      existing,
+      region,
+    );
     return region;
   }
 
@@ -524,10 +638,17 @@ export class EnterpriseConfigurationService {
       where: { id },
       data: { status: 'ARCHIVED', updatedById: currentUser.userId },
     });
-    await this.audit(currentUser, 'payroll-region.archive', 'PayrollRegion', id, existing, {
-      ...existing,
-      status: 'ARCHIVED',
-    });
+    await this.audit(
+      currentUser,
+      'payroll-region.archive',
+      'PayrollRegion',
+      id,
+      existing,
+      {
+        ...existing,
+        status: 'ARCHIVED',
+      },
+    );
     return { id, archived: true };
   }
 
@@ -559,10 +680,16 @@ export class EnterpriseConfigurationService {
       tenantId: currentUser.tenantId,
       ...scope,
       transactionalCurrency: normalizeCurrencyCode(
-        requiredString(body.transactionalCurrency, 'Transactional currency is required.'),
+        requiredString(
+          body.transactionalCurrency,
+          'Transactional currency is required.',
+        ),
       ),
       reportingCurrency: normalizeCurrencyCode(
-        requiredString(body.reportingCurrency, 'Reporting currency is required.'),
+        requiredString(
+          body.reportingCurrency,
+          'Reporting currency is required.',
+        ),
       ),
       effectiveStartDate,
       effectiveEndDate,
@@ -584,7 +711,16 @@ export class EnterpriseConfigurationService {
       : await this.prisma.currencyConfiguration.create({
           data: { ...payload, createdById: currentUser.userId },
         });
-    await this.audit(currentUser, existing ? 'currency-configuration.update' : 'currency-configuration.create', 'CurrencyConfiguration', config.id, existing, config);
+    await this.audit(
+      currentUser,
+      existing
+        ? 'currency-configuration.update'
+        : 'currency-configuration.create',
+      'CurrencyConfiguration',
+      config.id,
+      existing,
+      config,
+    );
     return config;
   }
 
@@ -593,7 +729,11 @@ export class EnterpriseConfigurationService {
       where: {
         tenantId,
         ...(readString(query.fromCurrency)
-          ? { fromCurrency: normalizeCurrencyCode(readString(query.fromCurrency)!) }
+          ? {
+              fromCurrency: normalizeCurrencyCode(
+                readString(query.fromCurrency)!,
+              ),
+            }
           : {}),
         ...(readString(query.toCurrency)
           ? { toCurrency: normalizeCurrencyCode(readString(query.toCurrency)!) }
@@ -622,14 +762,24 @@ export class EnterpriseConfigurationService {
           requiredString(body.toCurrency, 'To currency is required.'),
         ),
         rate: new Prisma.Decimal(rate),
-        effectiveDate: requiredDate(body.effectiveDate, 'Effective date is required.'),
+        effectiveDate: requiredDate(
+          body.effectiveDate,
+          'Effective date is required.',
+        ),
         source: readEnum(body.source, ExchangeRateSource) ?? 'MANUAL',
         isManual: readBoolean(body.isManual) ?? true,
         createdById: currentUser.userId,
         updatedById: currentUser.userId,
       },
     });
-    await this.audit(currentUser, 'exchange-rate.create', 'ExchangeRateSnapshot', snapshot.id, null, snapshot);
+    await this.audit(
+      currentUser,
+      'exchange-rate.create',
+      'ExchangeRateSnapshot',
+      snapshot.id,
+      null,
+      snapshot,
+    );
     return snapshot;
   }
 
@@ -662,7 +812,9 @@ export class EnterpriseConfigurationService {
       orderBy: [{ effectiveDate: 'desc' }],
     });
     if (inverse) return new Prisma.Decimal(1).div(inverse.rate);
-    throw new BadRequestException(`No exchange rate is configured for ${from} to ${to}.`);
+    throw new BadRequestException(
+      `No exchange rate is configured for ${from} to ${to}.`,
+    );
   }
 
   async convertMoney(input: {
@@ -703,13 +855,27 @@ export class EnterpriseConfigurationService {
         status: 'ACTIVE',
         OR: [
           input.projectId ? { projectId: input.projectId } : undefined,
-          input.businessUnitId ? { businessUnitId: input.businessUnitId } : undefined,
-          input.organizationId ? { organizationId: input.organizationId } : undefined,
-          { organizationId: null, businessUnitId: null, projectId: null, isDefault: true },
+          input.businessUnitId
+            ? { businessUnitId: input.businessUnitId }
+            : undefined,
+          input.organizationId
+            ? { organizationId: input.organizationId }
+            : undefined,
+          {
+            organizationId: null,
+            businessUnitId: null,
+            projectId: null,
+            isDefault: true,
+          },
         ].filter(Boolean) as Prisma.HolidayCalendarAssignmentWhereInput[],
         AND: effectiveDateRangeWhere(effectiveDate),
       },
-      orderBy: [{ projectId: 'desc' }, { businessUnitId: 'desc' }, { organizationId: 'desc' }, { isDefault: 'desc' }],
+      orderBy: [
+        { projectId: 'desc' },
+        { businessUnitId: 'desc' },
+        { organizationId: 'desc' },
+        { isDefault: 'desc' },
+      ],
     });
     if (assignment) return assignment.holidayCalendarId;
 
@@ -748,13 +914,27 @@ export class EnterpriseConfigurationService {
         isActive: true,
         OR: [
           input.projectId ? { projectId: input.projectId } : undefined,
-          input.businessUnitId ? { businessUnitId: input.businessUnitId } : undefined,
-          input.organizationId ? { organizationId: input.organizationId } : undefined,
-          { organizationId: null, businessUnitId: null, projectId: null, isDefault: true },
+          input.businessUnitId
+            ? { businessUnitId: input.businessUnitId }
+            : undefined,
+          input.organizationId
+            ? { organizationId: input.organizationId }
+            : undefined,
+          {
+            organizationId: null,
+            businessUnitId: null,
+            projectId: null,
+            isDefault: true,
+          },
         ].filter(Boolean) as Prisma.WorkScheduleWhereInput[],
         AND: effectiveDateRangeWhere(effectiveDate),
       },
-      orderBy: [{ projectId: 'desc' }, { businessUnitId: 'desc' }, { organizationId: 'desc' }, { isDefault: 'desc' }],
+      orderBy: [
+        { projectId: 'desc' },
+        { businessUnitId: 'desc' },
+        { organizationId: 'desc' },
+        { isDefault: 'desc' },
+      ],
     });
     return schedule?.id ?? null;
   }
@@ -804,18 +984,33 @@ export class EnterpriseConfigurationService {
     const scope = readScopeWithFallback(body, existing);
     const dateRange = readDateRangeWithFallback(body, existing);
     validateDateRange(dateRange);
-    const weeklyWorkDays = readWeekdays(body.weeklyWorkDays) ?? existing?.weeklyWorkDays ?? defaultWeekdays();
+    const weeklyWorkDays =
+      readWeekdays(body.weeklyWorkDays) ??
+      existing?.weeklyWorkDays ??
+      defaultWeekdays();
     const create = {
       tenantId: currentUser.tenantId,
       ...scope,
-      name: requiredString(body.name ?? existing?.name, 'Work schedule name is required.'),
-      code: normalizeCode(body.code ?? existing?.code, body.name ?? existing?.name),
+      name: requiredString(
+        body.name ?? existing?.name,
+        'Work schedule name is required.',
+      ),
+      code: normalizeCode(
+        body.code ?? existing?.code,
+        body.name ?? existing?.name,
+      ),
       description: readNullableString(body.description),
       timezone: normalizeTimezone(body.timezone ?? existing?.timezone) ?? 'UTC',
       workWeekModel: readEnum(body.workWeekModel, WorkWeekModel) ?? 'FIVE_DAY',
       weeklyWorkDays,
-      standardStartTime: readString(body.standardStartTime) ?? existing?.standardStartTime ?? '09:00',
-      standardEndTime: readString(body.standardEndTime) ?? existing?.standardEndTime ?? '17:00',
+      standardStartTime:
+        readString(body.standardStartTime) ??
+        existing?.standardStartTime ??
+        '09:00',
+      standardEndTime:
+        readString(body.standardEndTime) ??
+        existing?.standardEndTime ??
+        '17:00',
       minHoursPerDay: decimalOrNull(body.minHoursPerDay),
       standardHoursPerWeek: decimalOrNull(body.standardHoursPerWeek),
       flexibleHours: readBoolean(body.flexibleHours) ?? false,
@@ -858,15 +1053,25 @@ export class EnterpriseConfigurationService {
       const schedule = await this.prisma.workSchedule.findFirst({
         where: { tenantId, id: workScheduleId },
       });
-      if (!schedule) throw new BadRequestException('Work schedule was not found.');
+      if (!schedule)
+        throw new BadRequestException('Work schedule was not found.');
     }
     return {
       tenantId,
       ...scope,
-      name: requiredString(body.name ?? existing?.name, 'Payroll region name is required.'),
-      code: normalizeCode(body.code ?? existing?.code, body.name ?? existing?.name),
+      name: requiredString(
+        body.name ?? existing?.name,
+        'Payroll region name is required.',
+      ),
+      code: normalizeCode(
+        body.code ?? existing?.code,
+        body.name ?? existing?.name,
+      ),
       currencyCode: normalizeCurrencyCode(
-        requiredString(body.currencyCode ?? existing?.currencyCode, 'Currency code is required.'),
+        requiredString(
+          body.currencyCode ?? existing?.currencyCode,
+          'Currency code is required.',
+        ),
       ),
       reportingCurrencyCode: body.reportingCurrencyCode
         ? normalizeCurrencyCode(String(body.reportingCurrencyCode))
@@ -874,9 +1079,15 @@ export class EnterpriseConfigurationService {
       timezone: normalizeTimezone(body.timezone ?? existing?.timezone) ?? 'UTC',
       payCycle: readEnum(body.payCycle, PayCycle) ?? 'MONTHLY',
       taxRegion: readNullableString(body.taxRegion),
-      overtimeRulesJson: (body.overtimeRulesJson ?? undefined) as Prisma.InputJsonValue | undefined,
-      weekendPolicy: readEnum(body.weekendPolicy, WeekendPolicy) ?? 'SATURDAY_SUNDAY',
-      weekendDays: readWeekdays(body.weekendDays) ?? [WorkWeekday.SATURDAY, WorkWeekday.SUNDAY],
+      overtimeRulesJson: (body.overtimeRulesJson ?? undefined) as
+        | Prisma.InputJsonValue
+        | undefined,
+      weekendPolicy:
+        readEnum(body.weekendPolicy, WeekendPolicy) ?? 'SATURDAY_SUNDAY',
+      weekendDays: readWeekdays(body.weekendDays) ?? [
+        WorkWeekday.SATURDAY,
+        WorkWeekday.SUNDAY,
+      ],
       holidayCalendarId,
       workScheduleId,
       isDefault: readBoolean(body.isDefault) ?? false,
@@ -889,7 +1100,8 @@ export class EnterpriseConfigurationService {
       where: { tenantId, id },
       include: { holidays: true, assignments: true },
     });
-    if (!calendar) throw new NotFoundException('Holiday calendar was not found.');
+    if (!calendar)
+      throw new NotFoundException('Holiday calendar was not found.');
     return calendar;
   }
 
@@ -905,7 +1117,10 @@ export class EnterpriseConfigurationService {
     return holiday;
   }
 
-  private async assertValidScopedReferences(tenantId: string, scope: ScopeInput) {
+  private async assertValidScopedReferences(
+    tenantId: string,
+    scope: ScopeInput,
+  ) {
     if (scope.organizationId) {
       const exists = await this.prisma.organization.count({
         where: { tenantId, id: scope.organizationId },
@@ -916,7 +1131,8 @@ export class EnterpriseConfigurationService {
       const exists = await this.prisma.businessUnit.count({
         where: { tenantId, id: scope.businessUnitId },
       });
-      if (!exists) throw new BadRequestException('Business unit was not found.');
+      if (!exists)
+        throw new BadRequestException('Business unit was not found.');
     }
     if (scope.projectId) {
       const exists = await this.prisma.project.count({
@@ -993,7 +1209,9 @@ export class EnterpriseConfigurationService {
       },
     });
     if (duplicate) {
-      throw new ConflictException('Holiday already exists for this calendar and date.');
+      throw new ConflictException(
+        'Holiday already exists for this calendar and date.',
+      );
     }
   }
 
@@ -1033,15 +1251,15 @@ function readScopeWithFallback(
     organizationId:
       source.organizationId !== undefined
         ? readNullableString(source.organizationId)
-        : existing?.organizationId ?? null,
+        : (existing?.organizationId ?? null),
     businessUnitId:
       source.businessUnitId !== undefined
         ? readNullableString(source.businessUnitId)
-        : existing?.businessUnitId ?? null,
+        : (existing?.businessUnitId ?? null),
     projectId:
       source.projectId !== undefined
         ? readNullableString(source.projectId)
-        : existing?.projectId ?? null,
+        : (existing?.projectId ?? null),
   };
 }
 
@@ -1060,11 +1278,11 @@ function readDateRangeWithFallback(
     effectiveStartDate:
       source.effectiveStartDate !== undefined
         ? readDate(source.effectiveStartDate)
-        : (existing?.effectiveStartDate as Date | null | undefined) ?? null,
+        : (existing?.effectiveStartDate ?? null),
     effectiveEndDate:
       source.effectiveEndDate !== undefined
         ? readDate(source.effectiveEndDate)
-        : (existing?.effectiveEndDate as Date | null | undefined) ?? null,
+        : (existing?.effectiveEndDate ?? null),
   };
 }
 
@@ -1091,7 +1309,8 @@ function readScheduleDays(value: unknown, tenantId: string) {
     }
     const row = item as Record<string, unknown>;
     const dayOfWeek = readEnum(row.dayOfWeek, WorkWeekday);
-    if (!dayOfWeek) throw new BadRequestException('Work schedule day is invalid.');
+    if (!dayOfWeek)
+      throw new BadRequestException('Work schedule day is invalid.');
     return {
       tenantId,
       dayOfWeek,
@@ -1158,13 +1377,19 @@ function validateDateRange(input: EffectiveDateRange) {
     input.effectiveEndDate &&
     input.effectiveEndDate < input.effectiveStartDate
   ) {
-    throw new BadRequestException('Effective end date cannot be before start date.');
+    throw new BadRequestException(
+      'Effective end date cannot be before start date.',
+    );
   }
 }
 
 function normalizeCode(value: unknown, fallback: unknown) {
-  const raw = readString(value) ?? requiredString(fallback, 'Code is required.');
-  return raw.toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  const raw =
+    readString(value) ?? requiredString(fallback, 'Code is required.');
+  return raw
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
 }
 
 function normalizeTimezone(value: unknown) {
@@ -1182,7 +1407,9 @@ function normalizeCountryCode(value: unknown) {
   const country = readString(value);
   if (!country) return null;
   if (!/^[A-Z]{2}$/i.test(country)) {
-    throw new BadRequestException('Country code must be a valid ISO 3166-1 alpha-2 code.');
+    throw new BadRequestException(
+      'Country code must be a valid ISO 3166-1 alpha-2 code.',
+    );
   }
   return country.toUpperCase();
 }
@@ -1190,7 +1417,9 @@ function normalizeCountryCode(value: unknown) {
 function normalizeCurrencyCode(value: string) {
   const currency = value.trim().toUpperCase();
   if (!/^[A-Z]{3}$/.test(currency)) {
-    throw new BadRequestException('Currency code must be a valid ISO 4217 code.');
+    throw new BadRequestException(
+      'Currency code must be a valid ISO 4217 code.',
+    );
   }
   return currency;
 }
@@ -1201,9 +1430,7 @@ function readEnum<T extends Record<string, string>>(
 ): T[keyof T] | null {
   const raw = readString(value);
   if (!raw) return null;
-  return Object.values(enumObject).includes(raw)
-    ? (raw as T[keyof T])
-    : null;
+  return Object.values(enumObject).includes(raw) ? (raw as T[keyof T]) : null;
 }
 
 function readWeekdays(value: unknown) {
@@ -1233,7 +1460,9 @@ function defaultWeekdays() {
 }
 
 function toUtcDateOnly(date: Date) {
-  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  return new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
+  );
 }
 
 function overlapWhere(start: Date | null, end: Date | null) {
@@ -1242,14 +1471,19 @@ function overlapWhere(start: Date | null, end: Date | null) {
   return [
     {
       effectiveStartDate: { lte: normalizedEnd },
-      OR: [{ effectiveEndDate: null }, { effectiveEndDate: { gte: normalizedStart } }],
+      OR: [
+        { effectiveEndDate: null },
+        { effectiveEndDate: { gte: normalizedStart } },
+      ],
     },
   ];
 }
 
 function effectiveDateRangeWhere(date: Date) {
   return [
-    { OR: [{ effectiveStartDate: null }, { effectiveStartDate: { lte: date } }] },
+    {
+      OR: [{ effectiveStartDate: null }, { effectiveStartDate: { lte: date } }],
+    },
     { OR: [{ effectiveEndDate: null }, { effectiveEndDate: { gte: date } }] },
   ];
 }
@@ -1275,10 +1509,20 @@ function expandHolidayOccurrence(
   }
 
   const occurrences: Array<typeof holiday & { date: Date }> = [];
-  for (let year = periodStart.getUTCFullYear(); year <= periodEnd.getUTCFullYear(); year += 1) {
-    const occurrenceDate = new Date(Date.UTC(year, baseDate.getUTCMonth(), baseDate.getUTCDate()));
+  for (
+    let year = periodStart.getUTCFullYear();
+    year <= periodEnd.getUTCFullYear();
+    year += 1
+  ) {
+    const occurrenceDate = new Date(
+      Date.UTC(year, baseDate.getUTCMonth(), baseDate.getUTCDate()),
+    );
     if (occurrenceDate >= periodStart && occurrenceDate <= periodEnd) {
-      occurrences.push({ ...holiday, holidayDate: occurrenceDate, date: occurrenceDate });
+      occurrences.push({
+        ...holiday,
+        holidayDate: occurrenceDate,
+        date: occurrenceDate,
+      });
     }
   }
   return occurrences;

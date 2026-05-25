@@ -33,7 +33,10 @@ export class TimePayrollController {
 
   @Post('time-payroll-policies')
   @Permissions('time-payroll-policies.manage')
-  createTimePolicy(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateTimePayrollPolicyDto) {
+  createTimePolicy(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreateTimePayrollPolicyDto,
+  ) {
     return this.service.createTimePolicy(user, dto);
   }
 
@@ -45,7 +48,10 @@ export class TimePayrollController {
 
   @Get('time-payroll-policies/:id')
   @Permissions('time-payroll-policies.read')
-  getTimePolicy(@CurrentUser() user: AuthenticatedUser, @Param('id', new ParseUUIDPipe()) id: string) {
+  getTimePolicy(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
     return this.service.getTimePolicy(user, id);
   }
 
@@ -61,13 +67,19 @@ export class TimePayrollController {
 
   @Delete('time-payroll-policies/:id')
   @Permissions('time-payroll-policies.manage')
-  deactivateTimePolicy(@CurrentUser() user: AuthenticatedUser, @Param('id', new ParseUUIDPipe()) id: string) {
+  deactivateTimePolicy(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
     return this.service.deactivateTimePolicy(user, id);
   }
 
   @Post('overtime-policies')
   @Permissions('overtime-policies.manage')
-  createOvertimePolicy(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateOvertimePolicyDto) {
+  createOvertimePolicy(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreateOvertimePolicyDto,
+  ) {
     return this.service.createOvertimePolicy(user, dto);
   }
 
@@ -79,7 +91,10 @@ export class TimePayrollController {
 
   @Get('overtime-policies/:id')
   @Permissions('overtime-policies.read')
-  getOvertimePolicy(@CurrentUser() user: AuthenticatedUser, @Param('id', new ParseUUIDPipe()) id: string) {
+  getOvertimePolicy(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
     return this.service.getOvertimePolicy(user, id);
   }
 
@@ -95,19 +110,28 @@ export class TimePayrollController {
 
   @Delete('overtime-policies/:id')
   @Permissions('overtime-policies.manage')
-  deactivateOvertimePolicy(@CurrentUser() user: AuthenticatedUser, @Param('id', new ParseUUIDPipe()) id: string) {
+  deactivateOvertimePolicy(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
     return this.service.deactivateOvertimePolicy(user, id);
   }
 
   @Get('payroll/runs/:runId/time-inputs')
   @Permissions('payroll-time-inputs.read')
-  listRunTimeInputs(@CurrentUser() user: AuthenticatedUser, @Param('runId', new ParseUUIDPipe()) runId: string) {
+  listRunTimeInputs(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('runId', new ParseUUIDPipe()) runId: string,
+  ) {
     return this.preparationService.listRunInputs(user, runId);
   }
 
   @Post('payroll/runs/:runId/prepare-time-inputs')
   @Permissions('payroll-time-inputs.prepare')
-  prepareRunTimeInputs(@CurrentUser() user: AuthenticatedUser, @Param('runId', new ParseUUIDPipe()) runId: string) {
+  prepareRunTimeInputs(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('runId', new ParseUUIDPipe()) runId: string,
+  ) {
     return this.preparationService.prepareRun(user, runId);
   }
 }

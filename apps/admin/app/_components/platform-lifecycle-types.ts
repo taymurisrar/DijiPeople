@@ -5,8 +5,32 @@ export type SelectOption = {
   label: string;
 };
 
+export type LifecycleCriterion = {
+  key: string;
+  label: string;
+  description?: string;
+  type: string;
+  severity: "required" | "recommended";
+  fieldKey?: string;
+  sortOrder: number;
+  isActive: boolean;
+  isSystem: boolean;
+};
+
+export type LifecycleStatusOption = SelectOption & {
+  description?: string;
+  tone: "default" | "info" | "success" | "warning" | "danger" | "muted";
+  sortOrder: number;
+  isActive: boolean;
+  isSystem: boolean;
+  isTerminal: boolean;
+  requiresReason?: boolean;
+  allowedNextStatuses: string[];
+  criteria: LifecycleCriterion[];
+};
+
 type LifecycleStatusGroup = {
-  statuses: string[];
+  statuses: LifecycleStatusOption[];
   subStatuses: Record<string, string[]>;
 };
 

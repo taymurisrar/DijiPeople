@@ -44,8 +44,15 @@ export class TimePayrollService {
     return this.findTimePolicyOrThrow(user.tenantId, id);
   }
 
-  async createTimePolicy(user: AuthenticatedUser, dto: CreateTimePayrollPolicyDto) {
-    await this.assertReferences(user.tenantId, dto.employeeLevelId, dto.businessUnitId);
+  async createTimePolicy(
+    user: AuthenticatedUser,
+    dto: CreateTimePayrollPolicyDto,
+  ) {
+    await this.assertReferences(
+      user.tenantId,
+      dto.employeeLevelId,
+      dto.businessUnitId,
+    );
     const effectiveFrom = parseDate(dto.effectiveFrom);
     const effectiveTo = parseOptionalDate(dto.effectiveTo);
     assertEffectiveDates(effectiveFrom, effectiveTo);
@@ -69,7 +76,8 @@ export class TimePayrollService {
           overtimeEnabled: dto.overtimeEnabled ?? false,
           standardHoursPerDay: new Prisma.Decimal(dto.standardHoursPerDay),
           standardWorkingDaysPerMonth:
-            dto.standardWorkingDaysPerMonth === undefined || dto.standardWorkingDaysPerMonth === null
+            dto.standardWorkingDaysPerMonth === undefined ||
+            dto.standardWorkingDaysPerMonth === null
               ? null
               : new Prisma.Decimal(dto.standardWorkingDaysPerMonth),
           prorationBasis: dto.prorationBasis,
@@ -79,18 +87,38 @@ export class TimePayrollService {
         },
         include: timePolicyInclude,
       });
-      await this.audit(user, 'TIME_PAYROLL_POLICY_CREATED', 'TimePayrollPolicy', created.id, null, created);
+      await this.audit(
+        user,
+        'TIME_PAYROLL_POLICY_CREATED',
+        'TimePayrollPolicy',
+        created.id,
+        null,
+        created,
+      );
       return mapTimePolicy(created);
     } catch (error) {
       handleUnique(error, 'Time payroll policy code already exists.');
     }
   }
 
-  async updateTimePolicy(user: AuthenticatedUser, id: string, dto: UpdateTimePayrollPolicyDto) {
+  async updateTimePolicy(
+    user: AuthenticatedUser,
+    id: string,
+    dto: UpdateTimePayrollPolicyDto,
+  ) {
     const existing = await this.findTimePolicyOrThrow(user.tenantId, id);
-    await this.assertReferences(user.tenantId, dto.employeeLevelId, dto.businessUnitId);
-    const effectiveFrom = dto.effectiveFrom ? parseDate(dto.effectiveFrom) : existing.effectiveFrom;
-    const effectiveTo = dto.effectiveTo !== undefined ? parseOptionalDate(dto.effectiveTo) : existing.effectiveTo;
+    await this.assertReferences(
+      user.tenantId,
+      dto.employeeLevelId,
+      dto.businessUnitId,
+    );
+    const effectiveFrom = dto.effectiveFrom
+      ? parseDate(dto.effectiveFrom)
+      : existing.effectiveFrom;
+    const effectiveTo =
+      dto.effectiveTo !== undefined
+        ? parseOptionalDate(dto.effectiveTo)
+        : existing.effectiveTo;
     assertEffectiveDates(effectiveFrom, effectiveTo);
     try {
       const updated = await this.prisma.timePayrollPolicy.update({
@@ -98,19 +126,47 @@ export class TimePayrollService {
         data: {
           ...(dto.code !== undefined ? { code: normalizeCode(dto.code) } : {}),
           ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
-          ...(dto.description !== undefined ? { description: emptyToNull(dto.description) } : {}),
-          ...(dto.employeeLevelId !== undefined ? { employeeLevelId: dto.employeeLevelId } : {}),
-          ...(dto.businessUnitId !== undefined ? { businessUnitId: dto.businessUnitId } : {}),
-          ...(dto.countryCode !== undefined ? { countryCode: normalizeOptionalCountry(dto.countryCode) } : {}),
+          ...(dto.description !== undefined
+            ? { description: emptyToNull(dto.description) }
+            : {}),
+          ...(dto.employeeLevelId !== undefined
+            ? { employeeLevelId: dto.employeeLevelId }
+            : {}),
+          ...(dto.businessUnitId !== undefined
+            ? { businessUnitId: dto.businessUnitId }
+            : {}),
+          ...(dto.countryCode !== undefined
+            ? { countryCode: normalizeOptionalCountry(dto.countryCode) }
+            : {}),
           ...(dto.mode !== undefined ? { mode: dto.mode } : {}),
-          ...(dto.useAttendanceForPayroll !== undefined ? { useAttendanceForPayroll: dto.useAttendanceForPayroll } : {}),
-          ...(dto.useTimesheetForPayroll !== undefined ? { useTimesheetForPayroll: dto.useTimesheetForPayroll } : {}),
-          ...(dto.requireAttendanceApproval !== undefined ? { requireAttendanceApproval: dto.requireAttendanceApproval } : {}),
-          ...(dto.requireTimesheetApproval !== undefined ? { requireTimesheetApproval: dto.requireTimesheetApproval } : {}),
-          ...(dto.detectNoShow !== undefined ? { detectNoShow: dto.detectNoShow } : {}),
-          ...(dto.deductNoShow !== undefined ? { deductNoShow: dto.deductNoShow } : {}),
-          ...(dto.overtimeEnabled !== undefined ? { overtimeEnabled: dto.overtimeEnabled } : {}),
-          ...(dto.standardHoursPerDay !== undefined ? { standardHoursPerDay: new Prisma.Decimal(dto.standardHoursPerDay) } : {}),
+          ...(dto.useAttendanceForPayroll !== undefined
+            ? { useAttendanceForPayroll: dto.useAttendanceForPayroll }
+            : {}),
+          ...(dto.useTimesheetForPayroll !== undefined
+            ? { useTimesheetForPayroll: dto.useTimesheetForPayroll }
+            : {}),
+          ...(dto.requireAttendanceApproval !== undefined
+            ? { requireAttendanceApproval: dto.requireAttendanceApproval }
+            : {}),
+          ...(dto.requireTimesheetApproval !== undefined
+            ? { requireTimesheetApproval: dto.requireTimesheetApproval }
+            : {}),
+          ...(dto.detectNoShow !== undefined
+            ? { detectNoShow: dto.detectNoShow }
+            : {}),
+          ...(dto.deductNoShow !== undefined
+            ? { deductNoShow: dto.deductNoShow }
+            : {}),
+          ...(dto.overtimeEnabled !== undefined
+            ? { overtimeEnabled: dto.overtimeEnabled }
+            : {}),
+          ...(dto.standardHoursPerDay !== undefined
+            ? {
+                standardHoursPerDay: new Prisma.Decimal(
+                  dto.standardHoursPerDay,
+                ),
+              }
+            : {}),
           ...(dto.standardWorkingDaysPerMonth !== undefined
             ? {
                 standardWorkingDaysPerMonth:
@@ -119,14 +175,23 @@ export class TimePayrollService {
                     : new Prisma.Decimal(dto.standardWorkingDaysPerMonth),
               }
             : {}),
-          ...(dto.prorationBasis !== undefined ? { prorationBasis: dto.prorationBasis } : {}),
+          ...(dto.prorationBasis !== undefined
+            ? { prorationBasis: dto.prorationBasis }
+            : {}),
           ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
           ...(dto.effectiveFrom !== undefined ? { effectiveFrom } : {}),
           ...(dto.effectiveTo !== undefined ? { effectiveTo } : {}),
         },
         include: timePolicyInclude,
       });
-      await this.audit(user, 'TIME_PAYROLL_POLICY_UPDATED', 'TimePayrollPolicy', id, existing, updated);
+      await this.audit(
+        user,
+        'TIME_PAYROLL_POLICY_UPDATED',
+        'TimePayrollPolicy',
+        id,
+        existing,
+        updated,
+      );
       return mapTimePolicy(updated);
     } catch (error) {
       handleUnique(error, 'Time payroll policy code already exists.');
@@ -140,7 +205,14 @@ export class TimePayrollService {
       data: { isActive: false },
       include: timePolicyInclude,
     });
-    await this.audit(user, 'TIME_PAYROLL_POLICY_DEACTIVATED', 'TimePayrollPolicy', id, existing, updated);
+    await this.audit(
+      user,
+      'TIME_PAYROLL_POLICY_DEACTIVATED',
+      'TimePayrollPolicy',
+      id,
+      existing,
+      updated,
+    );
     return mapTimePolicy(updated);
   }
 
@@ -156,8 +228,15 @@ export class TimePayrollService {
     return this.findOvertimePolicyOrThrow(user.tenantId, id);
   }
 
-  async createOvertimePolicy(user: AuthenticatedUser, dto: CreateOvertimePolicyDto) {
-    await this.assertReferences(user.tenantId, dto.employeeLevelId, dto.businessUnitId);
+  async createOvertimePolicy(
+    user: AuthenticatedUser,
+    dto: CreateOvertimePolicyDto,
+  ) {
+    await this.assertReferences(
+      user.tenantId,
+      dto.employeeLevelId,
+      dto.businessUnitId,
+    );
     const effectiveFrom = parseDate(dto.effectiveFrom);
     const effectiveTo = parseOptionalDate(dto.effectiveTo);
     assertEffectiveDates(effectiveFrom, effectiveTo);
@@ -180,18 +259,38 @@ export class TimePayrollService {
         },
         include: overtimePolicyInclude,
       });
-      await this.audit(user, 'OVERTIME_POLICY_CREATED', 'OvertimePolicy', created.id, null, created);
+      await this.audit(
+        user,
+        'OVERTIME_POLICY_CREATED',
+        'OvertimePolicy',
+        created.id,
+        null,
+        created,
+      );
       return mapOvertimePolicy(created);
     } catch (error) {
       handleUnique(error, 'Overtime policy code already exists.');
     }
   }
 
-  async updateOvertimePolicy(user: AuthenticatedUser, id: string, dto: UpdateOvertimePolicyDto) {
+  async updateOvertimePolicy(
+    user: AuthenticatedUser,
+    id: string,
+    dto: UpdateOvertimePolicyDto,
+  ) {
     const existing = await this.findOvertimePolicyOrThrow(user.tenantId, id);
-    await this.assertReferences(user.tenantId, dto.employeeLevelId, dto.businessUnitId);
-    const effectiveFrom = dto.effectiveFrom ? parseDate(dto.effectiveFrom) : existing.effectiveFrom;
-    const effectiveTo = dto.effectiveTo !== undefined ? parseOptionalDate(dto.effectiveTo) : existing.effectiveTo;
+    await this.assertReferences(
+      user.tenantId,
+      dto.employeeLevelId,
+      dto.businessUnitId,
+    );
+    const effectiveFrom = dto.effectiveFrom
+      ? parseDate(dto.effectiveFrom)
+      : existing.effectiveFrom;
+    const effectiveTo =
+      dto.effectiveTo !== undefined
+        ? parseOptionalDate(dto.effectiveTo)
+        : existing.effectiveTo;
     assertEffectiveDates(effectiveFrom, effectiveTo);
     try {
       const updated = await this.prisma.overtimePolicy.update({
@@ -199,20 +298,41 @@ export class TimePayrollService {
         data: {
           ...(dto.code !== undefined ? { code: normalizeCode(dto.code) } : {}),
           ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
-          ...(dto.description !== undefined ? { description: emptyToNull(dto.description) } : {}),
-          ...(dto.employeeLevelId !== undefined ? { employeeLevelId: dto.employeeLevelId } : {}),
-          ...(dto.businessUnitId !== undefined ? { businessUnitId: dto.businessUnitId } : {}),
-          ...(dto.calculationPeriod !== undefined ? { calculationPeriod: dto.calculationPeriod } : {}),
-          ...(dto.thresholdHours !== undefined ? { thresholdHours: new Prisma.Decimal(dto.thresholdHours) } : {}),
-          ...(dto.rateMultiplier !== undefined ? { rateMultiplier: new Prisma.Decimal(dto.rateMultiplier) } : {}),
-          ...(dto.requiresApproval !== undefined ? { requiresApproval: dto.requiresApproval } : {}),
+          ...(dto.description !== undefined
+            ? { description: emptyToNull(dto.description) }
+            : {}),
+          ...(dto.employeeLevelId !== undefined
+            ? { employeeLevelId: dto.employeeLevelId }
+            : {}),
+          ...(dto.businessUnitId !== undefined
+            ? { businessUnitId: dto.businessUnitId }
+            : {}),
+          ...(dto.calculationPeriod !== undefined
+            ? { calculationPeriod: dto.calculationPeriod }
+            : {}),
+          ...(dto.thresholdHours !== undefined
+            ? { thresholdHours: new Prisma.Decimal(dto.thresholdHours) }
+            : {}),
+          ...(dto.rateMultiplier !== undefined
+            ? { rateMultiplier: new Prisma.Decimal(dto.rateMultiplier) }
+            : {}),
+          ...(dto.requiresApproval !== undefined
+            ? { requiresApproval: dto.requiresApproval }
+            : {}),
           ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
           ...(dto.effectiveFrom !== undefined ? { effectiveFrom } : {}),
           ...(dto.effectiveTo !== undefined ? { effectiveTo } : {}),
         },
         include: overtimePolicyInclude,
       });
-      await this.audit(user, 'OVERTIME_POLICY_UPDATED', 'OvertimePolicy', id, existing, updated);
+      await this.audit(
+        user,
+        'OVERTIME_POLICY_UPDATED',
+        'OvertimePolicy',
+        id,
+        existing,
+        updated,
+      );
       return mapOvertimePolicy(updated);
     } catch (error) {
       handleUnique(error, 'Overtime policy code already exists.');
@@ -226,7 +346,14 @@ export class TimePayrollService {
       data: { isActive: false },
       include: overtimePolicyInclude,
     });
-    await this.audit(user, 'OVERTIME_POLICY_DEACTIVATED', 'OvertimePolicy', id, existing, updated);
+    await this.audit(
+      user,
+      'OVERTIME_POLICY_DEACTIVATED',
+      'OvertimePolicy',
+      id,
+      existing,
+      updated,
+    );
     return mapOvertimePolicy(updated);
   }
 
@@ -235,7 +362,8 @@ export class TimePayrollService {
       where: { tenantId, id },
       include: timePolicyInclude,
     });
-    if (!policy) throw new NotFoundException('Time payroll policy was not found.');
+    if (!policy)
+      throw new NotFoundException('Time payroll policy was not found.');
     return policy;
   }
 
@@ -258,14 +386,20 @@ export class TimePayrollService {
         where: { tenantId, id: employeeLevelId, isActive: true },
         select: { id: true },
       });
-      if (!level) throw new BadRequestException('Active employee level was not found for this tenant.');
+      if (!level)
+        throw new BadRequestException(
+          'Active employee level was not found for this tenant.',
+        );
     }
     if (businessUnitId) {
       const businessUnit = await this.prisma.businessUnit.findFirst({
         where: { tenantId, id: businessUnitId },
         select: { id: true },
       });
-      if (!businessUnit) throw new BadRequestException('Business unit was not found for this tenant.');
+      if (!businessUnit)
+        throw new BadRequestException(
+          'Business unit was not found for this tenant.',
+        );
     }
   }
 
@@ -290,17 +424,22 @@ export class TimePayrollService {
 }
 
 function mapTimePolicy(
-  policy: Prisma.TimePayrollPolicyGetPayload<{ include: typeof timePolicyInclude }>,
+  policy: Prisma.TimePayrollPolicyGetPayload<{
+    include: typeof timePolicyInclude;
+  }>,
 ) {
   return {
     ...policy,
     standardHoursPerDay: policy.standardHoursPerDay.toString(),
-    standardWorkingDaysPerMonth: policy.standardWorkingDaysPerMonth?.toString() ?? null,
+    standardWorkingDaysPerMonth:
+      policy.standardWorkingDaysPerMonth?.toString() ?? null,
   };
 }
 
 function mapOvertimePolicy(
-  policy: Prisma.OvertimePolicyGetPayload<{ include: typeof overtimePolicyInclude }>,
+  policy: Prisma.OvertimePolicyGetPayload<{
+    include: typeof overtimePolicyInclude;
+  }>,
 ) {
   return {
     ...policy,
@@ -319,7 +458,9 @@ function parseOptionalDate(value?: string | null) {
 
 function assertEffectiveDates(effectiveFrom: Date, effectiveTo: Date | null) {
   if (effectiveTo && effectiveTo < effectiveFrom) {
-    throw new BadRequestException('effectiveTo must be greater than or equal to effectiveFrom.');
+    throw new BadRequestException(
+      'effectiveTo must be greater than or equal to effectiveFrom.',
+    );
   }
 }
 

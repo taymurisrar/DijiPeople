@@ -4,6 +4,7 @@ import {
   Banknote,
   Building2,
   CheckCircle2,
+  ClipboardList,
   CircleDollarSign,
   Clock3,
   FileText,
@@ -11,10 +12,12 @@ import {
   Plus,
   ReceiptText,
   TrendingUp,
+  UserRoundSearch,
   UsersRound,
 } from "lucide-react";
 import { apiRequestJson } from "@/lib/server-api";
 import { ApiRequestError } from "@/lib/server-api";
+import { getSessionUser } from "@/lib/auth";
 
 type DashboardSummary = {
   customers: number;
@@ -34,6 +37,12 @@ const currencyFormatter = new Intl.NumberFormat("en-US", {
 const numberFormatter = new Intl.NumberFormat("en-US");
 
 export default async function AdminDashboardPage() {
+  const sessionUser = await getSessionUser();
+
+  if (sessionUser?.role === "MEMBER") {
+    return <MemberDashboard />;
+  }
+
   let summary: DashboardSummary;
   try {
     summary = await apiRequestJson<DashboardSummary>(
@@ -41,7 +50,9 @@ export default async function AdminDashboardPage() {
     );
   } catch (error) {
     const reference =
-      error instanceof ApiRequestError && error.traceId ? ` Reference: ${error.traceId}.` : "";
+      error instanceof ApiRequestError && error.traceId
+        ? ` Reference: ${error.traceId}.`
+        : "";
     return (
       <main className="rounded-[30px] border border-rose-200 bg-white p-8 shadow-sm">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-rose-600">
@@ -51,7 +62,9 @@ export default async function AdminDashboardPage() {
           We could not load the dashboard right now.
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-          {error instanceof Error ? error.message : "The dashboard request failed."}
+          {error instanceof Error
+            ? error.message
+            : "The dashboard request failed."}
           {reference}
         </p>
       </main>
@@ -253,9 +266,7 @@ export default async function AdminDashboardPage() {
               className="group rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
             >
               <div className="flex items-start justify-between gap-4">
-                <div
-                  className={`rounded-2xl p-3 ring-1 ${card.accent}`}
-                >
+                <div className={`rounded-2xl p-3 ring-1 ${card.accent}`}>
                   <Icon className="h-5 w-5" />
                 </div>
 
@@ -400,8 +411,8 @@ export default async function AdminDashboardPage() {
             Finance control
           </h3>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            Keep open invoices visible so finance operations do not silently pile
-            up in the background.
+            Keep open invoices visible so finance operations do not silently
+            pile up in the background.
           </p>
         </div>
 
@@ -417,6 +428,86 @@ export default async function AdminDashboardPage() {
             customer and tenant.
           </p>
         </div>
+      </section>
+    </main>
+  );
+}
+
+function MemberDashboard() {
+  const modules = [
+    {
+      label: "Leads",
+      description: "Create, review, and update lead records.",
+      href: "/leads",
+      icon: UserRoundSearch,
+    },
+    {
+      label: "Customers",
+      description: "Manage customer account lifecycle details.",
+      href: "/customers",
+      icon: UsersRound,
+    },
+    {
+      label: "Onboarding",
+      description: "Move customer onboarding records forward.",
+      href: "/onboarding",
+      icon: ClipboardList,
+    },
+    {
+      label: "Tenants",
+      description: "Review and update tenant operational details.",
+      href: "/tenants",
+      icon: Building2,
+    },
+    {
+      label: "Billing records",
+      description:
+        "Read billing, subscription, invoice, plan, and payment records.",
+      href: "/billing",
+      icon: ReceiptText,
+    },
+  ];
+
+  return (
+    <main className="space-y-6">
+      <section className="overflow-hidden rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm lg:p-8">
+        <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+          <Clock3 className="h-3.5 w-3.5" />
+          Member workspace
+        </div>
+        <h1 className="mt-5 max-w-4xl text-3xl font-semibold tracking-tight text-slate-950 md:text-4xl">
+          Platform operations
+        </h1>
+        <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
+          Work with leads, customers, onboarding, and tenants. Financial records
+          are available in read-only mode.
+        </p>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {modules.map((item) => {
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="group rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="rounded-2xl bg-slate-50 p-3 text-slate-700 ring-1 ring-slate-200">
+                  <Icon className="h-5 w-5" />
+                </div>
+                <ArrowRight className="h-4 w-4 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-slate-700" />
+              </div>
+              <p className="mt-5 text-sm font-semibold text-slate-950">
+                {item.label}
+              </p>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                {item.description}
+              </p>
+            </Link>
+          );
+        })}
       </section>
     </main>
   );

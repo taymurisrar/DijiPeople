@@ -1,18 +1,28 @@
 "use client";
 
-import { ArrowLeft, Plus, RefreshCw } from "lucide-react";
-import { useMemo, useState, useTransition } from "react";
+import { ArrowLeft, RefreshCw, Save } from "lucide-react";
+import { useMemo, useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { ModuleDetailLayout } from "@/app/_components/crm/module-detail-layout";
-import { OwnerSelector } from "@/app/_components/crm/owner-selector";
-import { RecordRibbonBar } from "@/app/_components/crm/record-ribbon-bar";
-import { StatusSelector } from "@/app/_components/crm/status-selector";
-import { SubStatusSelector } from "@/app/_components/crm/sub-status-selector";
+import {
+  LeadCrmShell,
+  LeadField,
+  LeadFormShell,
+  type LeadFormMode,
+  LeadRecordHeader,
+  LeadRibbon,
+  LeadRibbonButton,
+  OwnerStatusDropdown,
+  LeadSelectField,
+  LeadTextarea,
+} from "@/app/_components/lead-crm-form";
+import { CrmStatusPipeline } from "@/app/_components/crm-status-pipeline";
+import { buildPipelineStagesFromLifecycle } from "@/app/_components/entity-pipeline-config";
 import type {
   LifecycleOptions,
   OperatorOption,
   PlanOption,
 } from "@/app/_components/platform-lifecycle-types";
+import type { AdminSessionUser } from "@/lib/auth";
 
 type LeadFormState = {
   contactFirstName: string;
@@ -37,6 +47,7 @@ type SelectOption = {
 };
 
 const FALLBACK_LEAD_STATUS = "NEW";
+const FORM_ID = "lead-create-form";
 
 function toSelectOptions(options?: SelectOption[]) {
   return Array.isArray(options) ? options : [];
@@ -48,7 +59,19 @@ function getLeadLifecycle(lifecycleOptions: LifecycleOptions) {
   const statuses =
     Array.isArray(lead?.statuses) && lead.statuses.length > 0
       ? lead.statuses
-      : [FALLBACK_LEAD_STATUS];
+      : [
+          {
+            value: FALLBACK_LEAD_STATUS,
+            label: "New",
+            tone: "info" as const,
+            sortOrder: 10,
+            isActive: true,
+            isSystem: true,
+            isTerminal: false,
+            allowedNextStatuses: [],
+            criteria: [],
+          },
+        ];
 
   const sources = Array.isArray(lead?.sources) ? lead.sources : [];
 
@@ -64,9 +87,30 @@ function getLeadLifecycle(lifecycleOptions: LifecycleOptions) {
   };
 }
 
-function buildInitialForm(lifecycleOptions: LifecycleOptions): LeadFormState {
+function getDefaultOwnerId(
+  currentUser: AdminSessionUser,
+  operators: OperatorOption[],
+) {
+  const matchingOperator = operators.find(
+    (operator) =>
+      operator.id === currentUser.userId ||
+      operator.email.toLowerCase() === currentUser.email.toLowerCase(),
+  );
+
+  return matchingOperator?.id ?? "";
+}
+
+function buildInitialForm(
+  lifecycleOptions: LifecycleOptions,
+  operators: OperatorOption[],
+  currentUser: AdminSessionUser,
+): LeadFormState {
   const leadLifecycle = getLeadLifecycle(lifecycleOptions);
-  const defaultStatus = leadLifecycle.statuses[0] ?? FALLBACK_LEAD_STATUS;
+  const defaultStatus =
+    leadLifecycle.statuses.find((status) => status.value === FALLBACK_LEAD_STATUS)
+      ?.value ??
+    leadLifecycle.statuses[0]?.value ??
+    FALLBACK_LEAD_STATUS;
 
   return {
     contactFirstName: "",
@@ -78,7 +122,7 @@ function buildInitialForm(lifecycleOptions: LifecycleOptions): LeadFormState {
     companySize: lifecycleOptions.companySizes?.[0]?.value ?? "",
     source: leadLifecycle.sources[0]?.value ?? "",
     interestedPlan: "",
-    assignedToUserId: "",
+    assignedToUserId: getDefaultOwnerId(currentUser, operators),
     status: defaultStatus,
     subStatus: leadLifecycle.subStatuses[defaultStatus]?.[0] ?? "",
     notes: "",
@@ -87,10 +131,12 @@ function buildInitialForm(lifecycleOptions: LifecycleOptions): LeadFormState {
 }
 
 export function LeadCreateManager({
+  currentUser,
   lifecycleOptions,
   operators,
   plans,
 }: {
+  currentUser: AdminSessionUser;
   lifecycleOptions: LifecycleOptions;
   operators: OperatorOption[];
   plans: PlanOption[];
@@ -98,6 +144,8 @@ export function LeadCreateManager({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const formMode: LeadFormMode = "CREATE";
 
   const leadLifecycle = useMemo(
     () => getLeadLifecycle(lifecycleOptions),
@@ -105,17 +153,32 @@ export function LeadCreateManager({
   );
 
   const initialForm = useMemo(
-    () => buildInitialForm(lifecycleOptions),
-    [lifecycleOptions],
+    () => buildInitialForm(lifecycleOptions, operators, currentUser),
+    [currentUser, lifecycleOptions, operators],
   );
 
   const [form, setForm] = useState<LeadFormState>(initialForm);
+
+  const ownerOptions = useMemo(() => {
+    return [
+      { value: "", label: "Unassigned" },
+      ...operators.map((operator) => ({
+        value: operator.id,
+        label: operator.fullName,
+      })),
+    ];
+  }, [operators]);
 
   function updateForm<K extends keyof LeadFormState>(
     key: K,
     value: LeadFormState[K],
   ) {
     setForm((current) => ({ ...current, [key]: value }));
+    setFieldErrors((current) => {
+      const next = { ...current };
+      delete next[String(key)];
+      return next;
+    });
     setMessage(null);
   }
 
@@ -128,8 +191,26 @@ export function LeadCreateManager({
     setMessage(null);
   }
 
+  function focusField(key: string) {
+    window.setTimeout(() => {
+      const field = document.querySelector<HTMLElement>(`[data-field-key="${key}"]`);
+      field?.scrollIntoView({ behavior: "smooth", block: "center" });
+      field?.focus();
+    }, 50);
+  }
+
+  function applyMissingFieldErrors(keys: string[]) {
+    const nextErrors = keys.reduce<Record<string, string>>((errors, key) => {
+      errors[key] = "Required for this stage.";
+      return errors;
+    }, {});
+    setFieldErrors(nextErrors);
+    if (keys[0]) focusField(keys[0]);
+  }
+
   function handleCreate() {
     setMessage(null);
+    setFieldErrors({});
 
     startTransition(async () => {
       const response = await fetch("/api/super-admin/leads", {
@@ -156,293 +237,211 @@ export function LeadCreateManager({
     });
   }
 
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    handleCreate();
+  }
+
   function handleReset() {
-    setForm(buildInitialForm(lifecycleOptions));
+    setForm(buildInitialForm(lifecycleOptions, operators, currentUser));
+    setFieldErrors({});
     setMessage(null);
   }
 
-  const fullName = [form.contactFirstName, form.contactLastName]
-    .filter((value) => value.trim())
-    .join(" ")
-    .trim();
-
   return (
-    <ModuleDetailLayout
-      title={form.companyName || "New lead"}
-      description="Create a new lead record."
-      ribbon={
-        <div className="flex flex-col gap-3">
-          <RecordRibbonBar
-            left={
-              <>
-                <button
-                  aria-label="Back"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-slate-700 transition hover:bg-slate-100"
-                  onClick={() => router.push("/leads")}
-                  title="Back"
-                  type="button"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                </button>
-
-                <button
-                  className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-60"
-                  disabled={isPending}
-                  onClick={handleCreate}
-                  type="button"
-                >
-                  <Plus className="h-4 w-4" />
-                  <span>Create</span>
-                </button>
-
-                <button
-                  className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
-                  onClick={handleReset}
-                  type="button"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  <span>Reset</span>
-                </button>
-              </>
-            }
-            right={<></>}
-          />
-
-          <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-lg font-semibold text-slate-900">
-                  {fullName || "New lead"}
-                </h2>
-              </div>
-
-              <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-500">
-                <span className="uppercase tracking-wide">lead</span>
-                <span className="text-slate-300">-</span>
-                <span>Default</span>
-              </div>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2 lg:min-w-[720px] lg:grid-cols-3">
-              <div className="min-w-48">
-                <StatusSelector
-                  label="Status"
-                  onChange={updateStatus}
-                  options={leadLifecycle.statuses.map((value) => ({
-                    value,
-                    label: value.replaceAll("_", " "),
-                  }))}
-                  value={form.status}
-                />
-              </div>
-
-              <div className="min-w-56">
-                <SubStatusSelector
-                  label="Sub-status"
-                  onChange={(value) => updateForm("subStatus", value)}
-                  options={[
-                    { value: "", label: "None" },
-                    ...(leadLifecycle.subStatuses[form.status] ?? []).map(
-                      (value) => ({
-                        value,
-                        label: value,
-                      }),
-                    ),
-                  ]}
-                  value={form.subStatus}
-                />
-              </div>
-
-              <div className="min-w-56">
-                <OwnerSelector
-                  label="Owner"
-                  onChange={(value) => updateForm("assignedToUserId", value)}
-                  options={[
-                    { value: "", label: "Unassigned" },
-                    ...operators.map((operator) => ({
-                      value: operator.id,
-                      label: operator.fullName,
-                    })),
-                  ]}
-                  value={form.assignedToUserId}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      }
-    >
-      <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Field
-            label="First name"
-            onChange={(value) => updateForm("contactFirstName", value)}
-            value={form.contactFirstName}
-          />
-
-          <Field
-            label="Last name"
-            onChange={(value) => updateForm("contactLastName", value)}
-            value={form.contactLastName}
-          />
-
-          <Field
-            label="Company"
-            onChange={(value) => updateForm("companyName", value)}
-            value={form.companyName}
-          />
-
-          <Field
-            label="Work email"
-            onChange={(value) => updateForm("workEmail", value)}
-            type="email"
-            value={form.workEmail}
-          />
-
-          <Field
-            label="Phone"
-            onChange={(value) => updateForm("phoneNumber", value)}
-            value={form.phoneNumber}
-          />
-
-          <Select
-            label="Industry"
-            onChange={(value) => updateForm("industry", value)}
-            options={toSelectOptions(lifecycleOptions.industries)}
-            value={form.industry}
-          />
-
-          <Select
-            label="Company size"
-            onChange={(value) => updateForm("companySize", value)}
-            options={toSelectOptions(lifecycleOptions.companySizes)}
-            value={form.companySize}
-          />
-
-          <Select
-            label="Source"
-            value={form.source}
-            onChange={(value) => updateForm("source", value)}
-            options={[
-              { value: "", label: "Select source" },
-              ...leadLifecycle.sources,
-            ]}
-          />
-
-          <Select
-            label="Interested plan"
-            onChange={(value) => updateForm("interestedPlan", value)}
-            options={[
-              { value: "", label: "Not specified" },
-              ...plans.map((plan) => ({
-                value: plan.name,
-                label: plan.name,
-              })),
-            ]}
-            value={form.interestedPlan}
-          />
-        </div>
-
-        <div className="mt-4 grid gap-4">
-          <TextArea
-            label="Requirements summary"
-            onChange={(value) => updateForm("requirementsSummary", value)}
-            value={form.requirementsSummary}
-          />
-
-          <TextArea
-            label="Internal notes"
-            onChange={(value) => updateForm("notes", value)}
-            value={form.notes}
-          />
-        </div>
-
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-          <div className="text-sm text-slate-600">
-            {message ?? "Fill in the details and create the lead."}
-          </div>
-
-          <button
-            className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
-            disabled={isPending}
-            onClick={handleCreate}
-            type="button"
-          >
-            {isPending ? "Creating..." : "Create lead"}
-          </button>
-        </div>
-      </section>
-    </ModuleDetailLayout>
-  );
-}
-
-function Field({
-  label,
-  value,
-  onChange,
-  type = "text",
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  type?: string;
-}) {
-  return (
-    <label className="block text-sm font-medium text-slate-700">
-      {label}
-      <input
-        className="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
-        onChange={(event) => onChange(event.target.value)}
-        type={type}
-        value={value}
+    <LeadCrmShell>
+      <LeadRibbon
+        left={
+          <>
+            <LeadRibbonButton
+              icon={ArrowLeft}
+              label="Back"
+              onClick={() => router.push("/leads")}
+            />
+            <LeadRibbonButton
+              disabled={isPending}
+              form={FORM_ID}
+              icon={Save}
+              label="Save"
+              type="submit"
+            >
+              Save
+            </LeadRibbonButton>
+            <LeadRibbonButton
+              disabled={isPending}
+              icon={RefreshCw}
+              label="Reset"
+              onClick={handleReset}
+            >
+              Reset
+            </LeadRibbonButton>
+          </>
+        }
+        right={
+          <>
+            <OwnerStatusDropdown
+              ownerOptions={ownerOptions}
+              ownerValue={form.assignedToUserId}
+              onOwnerChange={(value) => updateForm("assignedToUserId", value)}
+              onStatusChange={updateStatus}
+              onSubStatusChange={(value) => updateForm("subStatus", value)}
+              statusOptions={leadLifecycle.statuses.map((status) => ({
+                value: status.value,
+                label: status.label,
+              }))}
+              statusValue={form.status}
+              subStatusOptions={[
+                { value: "", label: "None" },
+                ...(leadLifecycle.subStatuses[form.status] ?? []).map((value) => ({
+                  value,
+                  label: value,
+                })),
+              ]}
+              subStatusValue={form.subStatus}
+            />
+          </>
+        }
       />
-    </label>
-  );
-}
 
-type SelectProps = {
-  label: string;
-  value: string;
-  options: SelectOption[];
-  onChange: (value: string) => void;
-};
+      <CrmStatusPipeline
+        currentStatus={form.status}
+        disabled={isPending}
+        form={form}
+        onFieldFocus={focusField}
+        onStageChange={(stage, missing) => {
+          if (missing.length) {
+            applyMissingFieldErrors(missing);
+            setMessage("Complete missing required fields before moving stages.");
+            return;
+          }
+          updateStatus(stage.statusValue);
+          if (stage.subStatusValue) updateForm("subStatus", stage.subStatusValue);
+        }}
+        stages={buildPipelineStagesFromLifecycle("lead", leadLifecycle.statuses)}
+      />
 
-export function Select({ label, value, options, onChange }: SelectProps) {
-  return (
-    <label className="block text-sm font-medium text-slate-700">
-      {label}
-      <select
-        className="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
+      <LeadRecordHeader
+        helperText="Capture the first required details and qualify the lead as it progresses."
+        metadata={[
+          { label: "Type", value: "LEAD" },
+          { label: "Lifecycle", value: "Draft" },
+          { label: "Form", value: formMode },
+        ]}
+        title="New lead"
+      />
+
+      <LeadFormShell
+        footer={
+          <>
+            <div className="text-sm text-slate-600">
+              {message ?? "Fill in the details and create the lead."}
+            </div>
+            <button
+              className="inline-flex h-10 items-center justify-center rounded-lg bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-950/20 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isPending}
+              type="submit"
+            >
+              {isPending ? "Saving..." : "Save lead"}
+            </button>
+          </>
+        }
+        formId={FORM_ID}
+        onSubmit={handleSubmit}
       >
-        {options.map((option) => (
-          <option key={`${option.value}-${option.label}`} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
-
-function TextArea({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <label className="block text-sm font-medium text-slate-700">
-      {label}
-      <textarea
-        className="mt-2 min-h-28 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm"
-        onChange={(event) => onChange(event.target.value)}
-        value={value}
-      />
-    </label>
+        <LeadField
+          label="First name"
+          error={fieldErrors.contactFirstName}
+          fieldKey="contactFirstName"
+          onChange={(value) => updateForm("contactFirstName", value)}
+          value={form.contactFirstName}
+        />
+        <LeadField
+          label="Last name"
+          error={fieldErrors.contactLastName}
+          fieldKey="contactLastName"
+          onChange={(value) => updateForm("contactLastName", value)}
+          value={form.contactLastName}
+        />
+        <LeadField
+          label="Company"
+          error={fieldErrors.companyName}
+          fieldKey="companyName"
+          onChange={(value) => updateForm("companyName", value)}
+          required
+          value={form.companyName}
+        />
+        <LeadField
+          label="Work email"
+          error={fieldErrors.workEmail}
+          fieldKey="workEmail"
+          onChange={(value) => updateForm("workEmail", value)}
+          required
+          type="email"
+          value={form.workEmail}
+        />
+        <LeadField
+          label="Phone"
+          error={fieldErrors.phoneNumber}
+          fieldKey="phoneNumber"
+          onChange={(value) => updateForm("phoneNumber", value)}
+          value={form.phoneNumber}
+        />
+        <LeadSelectField
+          label="Industry"
+          error={fieldErrors.industry}
+          fieldKey="industry"
+          onChange={(value) => updateForm("industry", value)}
+          options={toSelectOptions(lifecycleOptions.industries)}
+          value={form.industry}
+        />
+        <LeadSelectField
+          label="Company size"
+          error={fieldErrors.companySize}
+          fieldKey="companySize"
+          onChange={(value) => updateForm("companySize", value)}
+          options={toSelectOptions(lifecycleOptions.companySizes)}
+          value={form.companySize}
+        />
+        <LeadSelectField
+          label="Source"
+          error={fieldErrors.source}
+          fieldKey="source"
+          onChange={(value) => updateForm("source", value)}
+          options={[
+            { value: "", label: "Select source" },
+            ...leadLifecycle.sources,
+          ]}
+          value={form.source}
+        />
+        <LeadSelectField
+          label="Interested plan"
+          error={fieldErrors.interestedPlan}
+          fieldKey="interestedPlan"
+          onChange={(value) => updateForm("interestedPlan", value)}
+          options={[
+            { value: "", label: "Not specified" },
+            ...plans.map((plan) => ({
+              value: plan.name,
+              label: plan.name,
+            })),
+          ]}
+          value={form.interestedPlan}
+        />
+        <LeadTextarea
+          label="Requirements summary"
+          error={fieldErrors.requirementsSummary}
+          fieldKey="requirementsSummary"
+          onChange={(value) => updateForm("requirementsSummary", value)}
+          value={form.requirementsSummary}
+        />
+        <LeadTextarea
+          label="Internal notes"
+          error={fieldErrors.notes}
+          fieldKey="notes"
+          onChange={(value) => updateForm("notes", value)}
+          value={form.notes}
+        />
+      </LeadFormShell>
+    </LeadCrmShell>
   );
 }

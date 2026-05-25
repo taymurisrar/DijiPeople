@@ -30,7 +30,14 @@ const journalInclude = {
   lines: {
     include: {
       account: true,
-      employee: { select: { id: true, employeeCode: true, firstName: true, lastName: true } },
+      employee: {
+        select: {
+          id: true,
+          employeeCode: true,
+          firstName: true,
+          lastName: true,
+        },
+      },
       payComponent: { select: { id: true, code: true, name: true } },
       taxRule: { select: { id: true, code: true, name: true } },
       payrollRunLineItem: true,
@@ -44,7 +51,14 @@ const runForJournalInclude = {
   payrollPeriod: true,
   employees: {
     include: {
-      employee: { select: { id: true, employeeCode: true, firstName: true, lastName: true } },
+      employee: {
+        select: {
+          id: true,
+          employeeCode: true,
+          firstName: true,
+          lastName: true,
+        },
+      },
       lineItems: {
         include: { payComponent: true },
         orderBy: [{ displayOrder: 'asc' }, { createdAt: 'asc' }],
@@ -72,7 +86,10 @@ export class PayrollJournalService {
     return this.findAccount(user.tenantId, id);
   }
 
-  async createGlAccount(user: AuthenticatedUser, dto: CreatePayrollGlAccountDto) {
+  async createGlAccount(
+    user: AuthenticatedUser,
+    dto: CreatePayrollGlAccountDto,
+  ) {
     try {
       const created = await this.prisma.payrollGlAccount.create({
         data: {
@@ -84,14 +101,25 @@ export class PayrollJournalService {
           isActive: dto.isActive ?? true,
         },
       });
-      await this.audit(user, 'PAYROLL_GL_ACCOUNT_CREATED', 'PayrollGlAccount', created.id, null, created);
+      await this.audit(
+        user,
+        'PAYROLL_GL_ACCOUNT_CREATED',
+        'PayrollGlAccount',
+        created.id,
+        null,
+        created,
+      );
       return created;
     } catch (error) {
       handleUnique(error, 'GL account code already exists.');
     }
   }
 
-  async updateGlAccount(user: AuthenticatedUser, id: string, dto: UpdatePayrollGlAccountDto) {
+  async updateGlAccount(
+    user: AuthenticatedUser,
+    id: string,
+    dto: UpdatePayrollGlAccountDto,
+  ) {
     const existing = await this.findAccount(user.tenantId, id);
     try {
       const updated = await this.prisma.payrollGlAccount.update({
@@ -99,12 +127,23 @@ export class PayrollJournalService {
         data: {
           ...(dto.code !== undefined ? { code: normalizeCode(dto.code) } : {}),
           ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
-          ...(dto.description !== undefined ? { description: emptyToNull(dto.description) } : {}),
-          ...(dto.accountType !== undefined ? { accountType: dto.accountType } : {}),
+          ...(dto.description !== undefined
+            ? { description: emptyToNull(dto.description) }
+            : {}),
+          ...(dto.accountType !== undefined
+            ? { accountType: dto.accountType }
+            : {}),
           ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
         },
       });
-      await this.audit(user, 'PAYROLL_GL_ACCOUNT_UPDATED', 'PayrollGlAccount', id, existing, updated);
+      await this.audit(
+        user,
+        'PAYROLL_GL_ACCOUNT_UPDATED',
+        'PayrollGlAccount',
+        id,
+        existing,
+        updated,
+      );
       return updated;
     } catch (error) {
       handleUnique(error, 'GL account code already exists.');
@@ -121,12 +160,22 @@ export class PayrollJournalService {
       },
       select: { id: true },
     });
-    if (activeRule) throw new ConflictException('Cannot deactivate an account used by an active posting rule.');
+    if (activeRule)
+      throw new ConflictException(
+        'Cannot deactivate an account used by an active posting rule.',
+      );
     const updated = await this.prisma.payrollGlAccount.update({
       where: { id },
       data: { isActive: false },
     });
-    await this.audit(user, 'PAYROLL_GL_ACCOUNT_DEACTIVATED', 'PayrollGlAccount', id, existing, updated);
+    await this.audit(
+      user,
+      'PAYROLL_GL_ACCOUNT_DEACTIVATED',
+      'PayrollGlAccount',
+      id,
+      existing,
+      updated,
+    );
     return updated;
   }
 
@@ -134,7 +183,11 @@ export class PayrollJournalService {
     return this.prisma.payrollPostingRule.findMany({
       where: { tenantId: user.tenantId },
       include: payrollPostingRuleInclude,
-      orderBy: [{ isActive: 'desc' }, { sourceCategory: 'asc' }, { name: 'asc' }],
+      orderBy: [
+        { isActive: 'desc' },
+        { sourceCategory: 'asc' },
+        { name: 'asc' },
+      ],
     });
   }
 
@@ -142,7 +195,10 @@ export class PayrollJournalService {
     return this.findPostingRule(user.tenantId, id);
   }
 
-  async createPostingRule(user: AuthenticatedUser, dto: CreatePayrollPostingRuleDto) {
+  async createPostingRule(
+    user: AuthenticatedUser,
+    dto: CreatePayrollPostingRuleDto,
+  ) {
     await this.assertPostingRuleReferences(user.tenantId, dto);
     const effectiveFrom = parseDate(dto.effectiveFrom);
     const effectiveTo = parseOptionalDate(dto.effectiveTo);
@@ -164,21 +220,47 @@ export class PayrollJournalService {
       },
       include: payrollPostingRuleInclude,
     });
-    await this.audit(user, 'PAYROLL_POSTING_RULE_CREATED', 'PayrollPostingRule', created.id, null, created);
+    await this.audit(
+      user,
+      'PAYROLL_POSTING_RULE_CREATED',
+      'PayrollPostingRule',
+      created.id,
+      null,
+      created,
+    );
     return created;
   }
 
-  async updatePostingRule(user: AuthenticatedUser, id: string, dto: UpdatePayrollPostingRuleDto) {
+  async updatePostingRule(
+    user: AuthenticatedUser,
+    id: string,
+    dto: UpdatePayrollPostingRuleDto,
+  ) {
     const existing = await this.findPostingRule(user.tenantId, id);
-    const nextDebit = dto.debitAccountId !== undefined ? dto.debitAccountId : existing.debitAccountId;
-    const nextCredit = dto.creditAccountId !== undefined ? dto.creditAccountId : existing.creditAccountId;
+    const nextDebit =
+      dto.debitAccountId !== undefined
+        ? dto.debitAccountId
+        : existing.debitAccountId;
+    const nextCredit =
+      dto.creditAccountId !== undefined
+        ? dto.creditAccountId
+        : existing.creditAccountId;
     assertDistinctAccounts(nextDebit, nextCredit);
-    const effectiveFrom = dto.effectiveFrom ? parseDate(dto.effectiveFrom) : existing.effectiveFrom;
-    const effectiveTo = dto.effectiveTo !== undefined ? parseOptionalDate(dto.effectiveTo) : existing.effectiveTo;
+    const effectiveFrom = dto.effectiveFrom
+      ? parseDate(dto.effectiveFrom)
+      : existing.effectiveFrom;
+    const effectiveTo =
+      dto.effectiveTo !== undefined
+        ? parseOptionalDate(dto.effectiveTo)
+        : existing.effectiveTo;
     assertEffectiveDates(effectiveFrom, effectiveTo);
     await this.assertPostingRuleReferences(user.tenantId, {
-      payComponentId: dto.payComponentId !== undefined ? dto.payComponentId : existing.payComponentId,
-      taxRuleId: dto.taxRuleId !== undefined ? dto.taxRuleId : existing.taxRuleId,
+      payComponentId:
+        dto.payComponentId !== undefined
+          ? dto.payComponentId
+          : existing.payComponentId,
+      taxRuleId:
+        dto.taxRuleId !== undefined ? dto.taxRuleId : existing.taxRuleId,
       debitAccountId: nextDebit,
       creditAccountId: nextCredit,
     });
@@ -186,19 +268,36 @@ export class PayrollJournalService {
       where: { id },
       data: {
         ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
-        ...(dto.description !== undefined ? { description: emptyToNull(dto.description) } : {}),
-        ...(dto.sourceCategory !== undefined ? { sourceCategory: dto.sourceCategory } : {}),
-        ...(dto.payComponentId !== undefined ? { payComponentId: dto.payComponentId } : {}),
+        ...(dto.description !== undefined
+          ? { description: emptyToNull(dto.description) }
+          : {}),
+        ...(dto.sourceCategory !== undefined
+          ? { sourceCategory: dto.sourceCategory }
+          : {}),
+        ...(dto.payComponentId !== undefined
+          ? { payComponentId: dto.payComponentId }
+          : {}),
         ...(dto.taxRuleId !== undefined ? { taxRuleId: dto.taxRuleId } : {}),
-        ...(dto.debitAccountId !== undefined ? { debitAccountId: dto.debitAccountId } : {}),
-        ...(dto.creditAccountId !== undefined ? { creditAccountId: dto.creditAccountId } : {}),
+        ...(dto.debitAccountId !== undefined
+          ? { debitAccountId: dto.debitAccountId }
+          : {}),
+        ...(dto.creditAccountId !== undefined
+          ? { creditAccountId: dto.creditAccountId }
+          : {}),
         ...(dto.effectiveFrom !== undefined ? { effectiveFrom } : {}),
         ...(dto.effectiveTo !== undefined ? { effectiveTo } : {}),
         ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
       },
       include: payrollPostingRuleInclude,
     });
-    await this.audit(user, 'PAYROLL_POSTING_RULE_UPDATED', 'PayrollPostingRule', id, existing, updated);
+    await this.audit(
+      user,
+      'PAYROLL_POSTING_RULE_UPDATED',
+      'PayrollPostingRule',
+      id,
+      existing,
+      updated,
+    );
     return updated;
   }
 
@@ -209,26 +308,46 @@ export class PayrollJournalService {
       data: { isActive: false },
       include: payrollPostingRuleInclude,
     });
-    await this.audit(user, 'PAYROLL_POSTING_RULE_DEACTIVATED', 'PayrollPostingRule', id, existing, updated);
+    await this.audit(
+      user,
+      'PAYROLL_POSTING_RULE_DEACTIVATED',
+      'PayrollPostingRule',
+      id,
+      existing,
+      updated,
+    );
     return updated;
   }
 
-  async generateJournalForPayrollRun(input: { tenantId: string; payrollRunId: string; userId?: string | null }) {
+  async generateJournalForPayrollRun(input: {
+    tenantId: string;
+    payrollRunId: string;
+    userId?: string | null;
+  }) {
     const run = await this.findRun(input.tenantId, input.payrollRunId);
     if (
       run.status !== PayrollRunStatus.CALCULATED &&
       run.status !== PayrollRunStatus.APPROVED &&
       run.status !== PayrollRunStatus.PAID
     ) {
-      throw new BadRequestException('Journal can only be generated for calculated, approved, or paid payroll runs.');
+      throw new BadRequestException(
+        'Journal can only be generated for calculated, approved, or paid payroll runs.',
+      );
     }
 
     const existing = await this.prisma.payrollJournalEntry.findUnique({
-      where: { tenantId_payrollRunId: { tenantId: input.tenantId, payrollRunId: input.payrollRunId } },
+      where: {
+        tenantId_payrollRunId: {
+          tenantId: input.tenantId,
+          payrollRunId: input.payrollRunId,
+        },
+      },
       include: { lines: true },
     });
     if (existing?.status === PayrollJournalEntryStatus.EXPORTED) {
-      throw new ConflictException('Exported payroll journals cannot be regenerated.');
+      throw new ConflictException(
+        'Exported payroll journals cannot be regenerated.',
+      );
     }
 
     const journal =
@@ -250,7 +369,8 @@ export class PayrollJournalService {
     for (const runEmployee of run.employees) {
       for (const lineItem of runEmployee.lineItems) {
         if (lineItem.amount.equals(0)) continue;
-        const taxRuleId = lineItem.sourceType === 'TAX' ? lineItem.sourceId : null;
+        const taxRuleId =
+          lineItem.sourceType === 'TAX' ? lineItem.sourceId : null;
         const rule = await this.postingRuleResolver.resolveRule({
           tenantId: input.tenantId,
           sourceCategory: lineItem.category,
@@ -261,7 +381,9 @@ export class PayrollJournalService {
         });
 
         if (!rule || !rule.debitAccountId || !rule.creditAccountId) {
-          validationErrors.push(`No complete posting rule found for ${lineItem.category} / ${lineItem.label}.`);
+          validationErrors.push(
+            `No complete posting rule found for ${lineItem.category} / ${lineItem.label}.`,
+          );
           await this.prisma.payrollException.create({
             data: {
               tenantId: input.tenantId,
@@ -270,7 +392,12 @@ export class PayrollJournalService {
               severity: PayrollExceptionSeverity.ERROR,
               errorType: 'MISSING_PAYROLL_POSTING_RULE',
               message: `No complete posting rule found for ${lineItem.category} / ${lineItem.label}.`,
-              details: { payrollRunLineItemId: lineItem.id, category: lineItem.category, payComponentId: lineItem.payComponentId, taxRuleId },
+              details: {
+                payrollRunLineItemId: lineItem.id,
+                category: lineItem.category,
+                payComponentId: lineItem.payComponentId,
+                taxRuleId,
+              },
             },
           });
           continue;
@@ -292,7 +419,10 @@ export class PayrollJournalService {
     if (validationErrors.length) {
       throw new BadRequestException(validationErrors[0]);
     }
-    if (!lines.length) throw new BadRequestException('No non-zero payroll line items were available for journal generation.');
+    if (!lines.length)
+      throw new BadRequestException(
+        'No non-zero payroll line items were available for journal generation.',
+      );
 
     assertBalanced(
       lines.map((line) => ({
@@ -313,11 +443,16 @@ export class PayrollJournalService {
     await this.auditService.log({
       tenantId: input.tenantId,
       actorUserId: input.userId ?? null,
-      action: existing ? 'PAYROLL_JOURNAL_REGENERATED' : 'PAYROLL_JOURNAL_GENERATED',
+      action: existing
+        ? 'PAYROLL_JOURNAL_REGENERATED'
+        : 'PAYROLL_JOURNAL_GENERATED',
       entityType: 'PayrollJournalEntry',
       entityId: updated.id,
       beforeSnapshot: existing,
-      afterSnapshot: { lineCount: lines.length, journalNumber: updated.journalNumber },
+      afterSnapshot: {
+        lineCount: lines.length,
+        journalNumber: updated.journalNumber,
+      },
     });
     return mapJournal(updated);
   }
@@ -325,7 +460,9 @@ export class PayrollJournalService {
   async getJournal(user: AuthenticatedUser, runId: string) {
     await this.findRun(user.tenantId, runId);
     const journal = await this.prisma.payrollJournalEntry.findUnique({
-      where: { tenantId_payrollRunId: { tenantId: user.tenantId, payrollRunId: runId } },
+      where: {
+        tenantId_payrollRunId: { tenantId: user.tenantId, payrollRunId: runId },
+      },
       include: journalInclude,
     });
     if (!journal) throw new NotFoundException('Payroll journal was not found.');
@@ -334,33 +471,64 @@ export class PayrollJournalService {
 
   async exportJournalCsv(user: AuthenticatedUser, runId: string) {
     const journal = await this.getJournalPayload(user.tenantId, runId);
-    if (journal.status === PayrollJournalEntryStatus.DRAFT || journal.status === PayrollJournalEntryStatus.VOIDED) {
-      throw new BadRequestException('Only generated or exported journals can be exported.');
+    if (
+      journal.status === PayrollJournalEntryStatus.DRAFT ||
+      journal.status === PayrollJournalEntryStatus.VOIDED
+    ) {
+      throw new BadRequestException(
+        'Only generated or exported journals can be exported.',
+      );
     }
-    await this.audit(user, 'PAYROLL_JOURNAL_EXPORTED', 'PayrollJournalEntry', journal.id, null, { runId });
+    await this.audit(
+      user,
+      'PAYROLL_JOURNAL_EXPORTED',
+      'PayrollJournalEntry',
+      journal.id,
+      null,
+      { runId },
+    );
     return toCsv(journal);
   }
 
   async markJournalExported(user: AuthenticatedUser, runId: string) {
     const journal = await this.getJournalPayload(user.tenantId, runId);
-    if (journal.status !== PayrollJournalEntryStatus.GENERATED && journal.status !== PayrollJournalEntryStatus.EXPORTED) {
-      throw new BadRequestException('Only generated journals can be marked exported.');
+    if (
+      journal.status !== PayrollJournalEntryStatus.GENERATED &&
+      journal.status !== PayrollJournalEntryStatus.EXPORTED
+    ) {
+      throw new BadRequestException(
+        'Only generated journals can be marked exported.',
+      );
     }
-    assertBalanced(journal.lines.map((line) => ({
-      debitAmount: line.debitAmount,
-      creditAmount: line.creditAmount,
-    })));
+    assertBalanced(
+      journal.lines.map((line) => ({
+        debitAmount: line.debitAmount,
+        creditAmount: line.creditAmount,
+      })),
+    );
     const updated = await this.prisma.payrollJournalEntry.update({
       where: { id: journal.id },
-      data: { status: PayrollJournalEntryStatus.EXPORTED, exportedAt: new Date() },
+      data: {
+        status: PayrollJournalEntryStatus.EXPORTED,
+        exportedAt: new Date(),
+      },
       include: journalInclude,
     });
-    await this.audit(user, 'PAYROLL_JOURNAL_MARKED_EXPORTED', 'PayrollJournalEntry', journal.id, journal, updated);
+    await this.audit(
+      user,
+      'PAYROLL_JOURNAL_MARKED_EXPORTED',
+      'PayrollJournalEntry',
+      journal.id,
+      journal,
+      updated,
+    );
     return mapJournal(updated);
   }
 
   private async findAccount(tenantId: string, id: string) {
-    const account = await this.prisma.payrollGlAccount.findFirst({ where: { tenantId, id } });
+    const account = await this.prisma.payrollGlAccount.findFirst({
+      where: { tenantId, id },
+    });
     if (!account) throw new NotFoundException('GL account was not found.');
     return account;
   }
@@ -402,26 +570,65 @@ export class PayrollJournalService {
     },
   ) {
     if (dto.payComponentId) {
-      const item = await this.prisma.payComponent.findFirst({ where: { tenantId, id: dto.payComponentId, isActive: true }, select: { id: true } });
-      if (!item) throw new BadRequestException('Active pay component was not found for this tenant.');
+      const item = await this.prisma.payComponent.findFirst({
+        where: { tenantId, id: dto.payComponentId, isActive: true },
+        select: { id: true },
+      });
+      if (!item)
+        throw new BadRequestException(
+          'Active pay component was not found for this tenant.',
+        );
     }
     if (dto.taxRuleId) {
-      const item = await this.prisma.taxRule.findFirst({ where: { tenantId, id: dto.taxRuleId, isActive: true }, select: { id: true } });
-      if (!item) throw new BadRequestException('Active tax rule was not found for this tenant.');
+      const item = await this.prisma.taxRule.findFirst({
+        where: { tenantId, id: dto.taxRuleId, isActive: true },
+        select: { id: true },
+      });
+      if (!item)
+        throw new BadRequestException(
+          'Active tax rule was not found for this tenant.',
+        );
     }
-    for (const accountId of [dto.debitAccountId, dto.creditAccountId].filter(Boolean) as string[]) {
-      const account = await this.prisma.payrollGlAccount.findFirst({ where: { tenantId, id: accountId, isActive: true }, select: { id: true } });
-      if (!account) throw new BadRequestException('Active GL account was not found for this tenant.');
+    for (const accountId of [dto.debitAccountId, dto.creditAccountId].filter(
+      Boolean,
+    ) as string[]) {
+      const account = await this.prisma.payrollGlAccount.findFirst({
+        where: { tenantId, id: accountId, isActive: true },
+        select: { id: true },
+      });
+      if (!account)
+        throw new BadRequestException(
+          'Active GL account was not found for this tenant.',
+        );
     }
   }
 
-  private audit(user: AuthenticatedUser, action: string, entityType: string, entityId: string, beforeSnapshot: unknown, afterSnapshot: unknown) {
-    return this.auditService.log({ tenantId: user.tenantId, actorUserId: user.userId, action, entityType, entityId, beforeSnapshot, afterSnapshot });
+  private audit(
+    user: AuthenticatedUser,
+    action: string,
+    entityType: string,
+    entityId: string,
+    beforeSnapshot: unknown,
+    afterSnapshot: unknown,
+  ) {
+    return this.auditService.log({
+      tenantId: user.tenantId,
+      actorUserId: user.userId,
+      action,
+      entityType,
+      entityId,
+      beforeSnapshot,
+      afterSnapshot,
+    });
   }
 }
 
-type JournalPayload = Prisma.PayrollJournalEntryGetPayload<{ include: typeof journalInclude }>;
-type RunPayload = Prisma.PayrollRunGetPayload<{ include: typeof runForJournalInclude }>;
+type JournalPayload = Prisma.PayrollJournalEntryGetPayload<{
+  include: typeof journalInclude;
+}>;
+type RunPayload = Prisma.PayrollRunGetPayload<{
+  include: typeof runForJournalInclude;
+}>;
 type RunEmployeePayload = RunPayload['employees'][number];
 type LineItemPayload = RunEmployeePayload['lineItems'][number];
 
@@ -434,8 +641,12 @@ function buildJournalLines(input: {
   taxRuleId: string | null;
 }): Prisma.PayrollJournalEntryLineCreateManyInput[] {
   const amount = input.lineItem.amount.abs();
-  const debitAccountId = input.lineItem.amount.lt(0) ? input.rule.creditAccountId : input.rule.debitAccountId;
-  const creditAccountId = input.lineItem.amount.lt(0) ? input.rule.debitAccountId : input.rule.creditAccountId;
+  const debitAccountId = input.lineItem.amount.lt(0)
+    ? input.rule.creditAccountId
+    : input.rule.debitAccountId;
+  const creditAccountId = input.lineItem.amount.lt(0)
+    ? input.rule.debitAccountId
+    : input.rule.creditAccountId;
   if (!debitAccountId || !creditAccountId) return [];
   const base = {
     tenantId: input.tenantId,
@@ -447,12 +658,24 @@ function buildJournalLines(input: {
     taxRuleId: input.taxRuleId,
   };
   return [
-    { ...base, accountId: debitAccountId, debitAmount: amount, creditAmount: new Prisma.Decimal(0) },
-    { ...base, accountId: creditAccountId, debitAmount: new Prisma.Decimal(0), creditAmount: amount },
+    {
+      ...base,
+      accountId: debitAccountId,
+      debitAmount: amount,
+      creditAmount: new Prisma.Decimal(0),
+    },
+    {
+      ...base,
+      accountId: creditAccountId,
+      debitAmount: new Prisma.Decimal(0),
+      creditAmount: amount,
+    },
   ];
 }
 
-function assertBalanced(lines: Array<{ debitAmount: Prisma.Decimal; creditAmount: Prisma.Decimal }>) {
+function assertBalanced(
+  lines: Array<{ debitAmount: Prisma.Decimal; creditAmount: Prisma.Decimal }>,
+) {
   const totals = lines.reduce(
     (sum, line) => ({
       debit: sum.debit.plus(line.debitAmount),
@@ -466,7 +689,10 @@ function assertBalanced(lines: Array<{ debitAmount: Prisma.Decimal; creditAmount
 }
 
 function buildJournalNumber(run: RunPayload) {
-  const periodEnd = run.payrollPeriod.periodEnd.toISOString().slice(0, 7).replace('-', '');
+  const periodEnd = run.payrollPeriod.periodEnd
+    .toISOString()
+    .slice(0, 7)
+    .replace('-', '');
   return `GL-${periodEnd}-${run.runNumber}`;
 }
 
@@ -504,8 +730,12 @@ function toCsv(journal: JournalPayload) {
       line.debitAmount.toString(),
       line.creditAmount.toString(),
       line.employee?.employeeCode ?? '',
-      line.employee ? `${line.employee.firstName} ${line.employee.lastName}` : '',
-      line.payComponent ? `${line.payComponent.code} / ${line.payComponent.name}` : '',
+      line.employee
+        ? `${line.employee.firstName} ${line.employee.lastName}`
+        : '',
+      line.payComponent
+        ? `${line.payComponent.code} / ${line.payComponent.name}`
+        : '',
       line.taxRule ? `${line.taxRule.code} / ${line.taxRule.name}` : '',
       line.description ?? '',
     ]),
@@ -526,12 +756,20 @@ function parseOptionalDate(value?: string | null) {
 }
 
 function assertEffectiveDates(from: Date, to: Date | null) {
-  if (to && to < from) throw new BadRequestException('effectiveTo must be greater than or equal to effectiveFrom.');
+  if (to && to < from)
+    throw new BadRequestException(
+      'effectiveTo must be greater than or equal to effectiveFrom.',
+    );
 }
 
-function assertDistinctAccounts(debitAccountId?: string | null, creditAccountId?: string | null) {
+function assertDistinctAccounts(
+  debitAccountId?: string | null,
+  creditAccountId?: string | null,
+) {
   if (debitAccountId && creditAccountId && debitAccountId === creditAccountId) {
-    throw new BadRequestException('Debit and credit accounts must be different.');
+    throw new BadRequestException(
+      'Debit and credit accounts must be different.',
+    );
   }
 }
 
@@ -545,7 +783,10 @@ function emptyToNull(value?: string | null) {
 }
 
 function handleUnique(error: unknown, message: string): never {
-  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+  if (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === 'P2002'
+  ) {
     throw new ConflictException(message);
   }
   throw error;

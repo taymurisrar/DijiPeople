@@ -37,19 +37,28 @@ export class BusinessTripsController {
 
   @Post('business-trips')
   @Permissions('business-trips.create')
-  createTrip(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateBusinessTripDto) {
+  createTrip(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreateBusinessTripDto,
+  ) {
     return this.service.createTrip(user, dto);
   }
 
   @Get('business-trips')
   @Permissions('business-trips.read-all')
-  listTrips(@CurrentUser() user: AuthenticatedUser, @Query() query: BusinessTripQueryDto) {
+  listTrips(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: BusinessTripQueryDto,
+  ) {
     return this.service.listTrips(user, query);
   }
 
   @Get('business-trips/:id')
   @Permissions('business-trips.read-all')
-  getTrip(@CurrentUser() user: AuthenticatedUser, @Param('id', new ParseUUIDPipe()) id: string) {
+  getTrip(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
     return this.service.getTrip(user, id);
   }
 
@@ -65,7 +74,10 @@ export class BusinessTripsController {
 
   @Post('business-trips/:id/submit')
   @Permissions('business-trips.update')
-  submitTrip(@CurrentUser() user: AuthenticatedUser, @Param('id', new ParseUUIDPipe()) id: string) {
+  submitTrip(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
     return this.service.submitTrip(user, id);
   }
 
@@ -91,13 +103,19 @@ export class BusinessTripsController {
 
   @Post('business-trips/:id/cancel')
   @Permissions('business-trips.cancel')
-  cancelTrip(@CurrentUser() user: AuthenticatedUser, @Param('id', new ParseUUIDPipe()) id: string) {
+  cancelTrip(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
     return this.service.cancelTrip(user, id);
   }
 
   @Post('business-trips/:id/calculate-allowance')
   @Permissions('business-trips.update')
-  calculateAllowance(@CurrentUser() user: AuthenticatedUser, @Param('id', new ParseUUIDPipe()) id: string) {
+  calculateAllowance(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
     return this.service.calculateTripAllowance(user, id);
   }
 
@@ -109,13 +127,19 @@ export class BusinessTripsController {
 
   @Post('me/business-trips')
   @Permissions('business-trips.create')
-  createMyTrip(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateBusinessTripDto) {
+  createMyTrip(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreateBusinessTripDto,
+  ) {
     return this.service.createTrip(user, dto, true);
   }
 
   @Get('me/business-trips/:id')
   @Permissions('business-trips.read-own')
-  getMyTrip(@CurrentUser() user: AuthenticatedUser, @Param('id', new ParseUUIDPipe()) id: string) {
+  getMyTrip(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
     return this.service.getTrip(user, id, true);
   }
 
@@ -131,19 +155,28 @@ export class BusinessTripsController {
 
   @Post('me/business-trips/:id/submit')
   @Permissions('business-trips.create')
-  submitMyTrip(@CurrentUser() user: AuthenticatedUser, @Param('id', new ParseUUIDPipe()) id: string) {
+  submitMyTrip(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
     return this.service.submitTrip(user, id, true);
   }
 
   @Post('me/business-trips/:id/cancel')
   @Permissions('business-trips.cancel')
-  cancelMyTrip(@CurrentUser() user: AuthenticatedUser, @Param('id', new ParseUUIDPipe()) id: string) {
+  cancelMyTrip(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
     return this.service.cancelTrip(user, id, true);
   }
 
   @Post('travel-allowance-policies')
   @Permissions('tada-policies.manage')
-  createPolicy(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateTravelAllowancePolicyDto) {
+  createPolicy(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreateTravelAllowancePolicyDto,
+  ) {
     return this.service.createPolicy(user, dto);
   }
 
@@ -155,7 +188,10 @@ export class BusinessTripsController {
 
   @Get('travel-allowance-policies/:id')
   @Permissions('tada-policies.read')
-  getPolicy(@CurrentUser() user: AuthenticatedUser, @Param('id', new ParseUUIDPipe()) id: string) {
+  getPolicy(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
     return this.service.getPolicy(user, id);
   }
 
@@ -171,7 +207,10 @@ export class BusinessTripsController {
 
   @Delete('travel-allowance-policies/:id')
   @Permissions('tada-policies.manage')
-  deactivatePolicy(@CurrentUser() user: AuthenticatedUser, @Param('id', new ParseUUIDPipe()) id: string) {
+  deactivatePolicy(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
     return this.service.deactivatePolicy(user, id);
   }
 

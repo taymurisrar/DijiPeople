@@ -58,9 +58,10 @@ export class PublicTenantsService {
   async resolve(input: ResolveInput) {
     const normalizedInput = this.normalizeInput(input);
     const cacheKey = this.buildCacheKey(normalizedInput);
-    const cached = this.cache.get<Awaited<ReturnType<PublicTenantsService['mapResolvedTenant']>>>(
-      cacheKey,
-    );
+    const cached =
+      this.cache.get<
+        Awaited<ReturnType<PublicTenantsService['mapResolvedTenant']>>
+      >(cacheKey);
 
     if (cached) {
       return cached;
@@ -290,8 +291,7 @@ export class PublicTenantsService {
           branding?.shortBrandName ?? brandName.split(/\s+/)[0] ?? brandName,
         portalTagline:
           branding?.portalTagline ?? DEFAULT_BRANDING.portalTagline,
-        loginTitle:
-          branding?.loginTitle ?? `Welcome to ${brandName} HR Portal`,
+        loginTitle: branding?.loginTitle ?? `Welcome to ${brandName} HR Portal`,
         loginSubtitle:
           branding?.loginSubtitle ?? DEFAULT_BRANDING.loginSubtitle,
         loginFooterText:

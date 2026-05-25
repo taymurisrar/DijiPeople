@@ -20,10 +20,17 @@ export class ErrorLogsController {
   constructor(private readonly errorLogsService: ErrorLogsService) {}
 
   @Get(':traceId')
-  async getLog(@Param('traceId') traceId: string, @CurrentUser() user: AuthenticatedUser) {
+  async getLog(
+    @Param('traceId') traceId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
     this.assertDownloadAllowed(user);
     const log = await this.errorLogsService.findForUser(traceId, user);
-    if (!log) throw new NotFoundException({ code: 'DATABASE_RECORD_NOT_FOUND', message: 'Error log not found.' });
+    if (!log)
+      throw new NotFoundException({
+        code: 'DATABASE_RECORD_NOT_FOUND',
+        message: 'Error log not found.',
+      });
     return {
       traceId: log.traceId,
       timestamp: log.createdAt,
@@ -47,9 +54,16 @@ export class ErrorLogsController {
   ) {
     this.assertDownloadAllowed(user);
     const text = await this.errorLogsService.formatDownload(traceId, user);
-    if (!text) throw new NotFoundException({ code: 'DATABASE_RECORD_NOT_FOUND', message: 'Error log not found.' });
+    if (!text)
+      throw new NotFoundException({
+        code: 'DATABASE_RECORD_NOT_FOUND',
+        message: 'Error log not found.',
+      });
 
-    response.setHeader('Content-Disposition', `attachment; filename="dijipeople-error-${sanitizeFilename(traceId)}.txt"`);
+    response.setHeader(
+      'Content-Disposition',
+      `attachment; filename="dijipeople-error-${sanitizeFilename(traceId)}.txt"`,
+    );
     response.send(text);
   }
 

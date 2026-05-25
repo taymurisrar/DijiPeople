@@ -30,7 +30,10 @@ export class PayrollGlController {
 
   @Post('gl-accounts')
   @Permissions('payroll-gl.manage')
-  createGlAccount(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreatePayrollGlAccountDto) {
+  createGlAccount(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreatePayrollGlAccountDto,
+  ) {
     return this.payrollJournalService.createGlAccount(user, dto);
   }
 
@@ -42,7 +45,10 @@ export class PayrollGlController {
 
   @Get('gl-accounts/:id')
   @Permissions('payroll-gl.read')
-  getGlAccount(@CurrentUser() user: AuthenticatedUser, @Param('id', new ParseUUIDPipe()) id: string) {
+  getGlAccount(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
     return this.payrollJournalService.getGlAccount(user, id);
   }
 
@@ -58,13 +64,19 @@ export class PayrollGlController {
 
   @Delete('gl-accounts/:id')
   @Permissions('payroll-gl.manage')
-  deactivateGlAccount(@CurrentUser() user: AuthenticatedUser, @Param('id', new ParseUUIDPipe()) id: string) {
+  deactivateGlAccount(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
     return this.payrollJournalService.deactivateGlAccount(user, id);
   }
 
   @Post('posting-rules')
   @Permissions('payroll-gl.manage')
-  createPostingRule(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreatePayrollPostingRuleDto) {
+  createPostingRule(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreatePayrollPostingRuleDto,
+  ) {
     return this.payrollJournalService.createPostingRule(user, dto);
   }
 
@@ -76,7 +88,10 @@ export class PayrollGlController {
 
   @Get('posting-rules/:id')
   @Permissions('payroll-gl.read')
-  getPostingRule(@CurrentUser() user: AuthenticatedUser, @Param('id', new ParseUUIDPipe()) id: string) {
+  getPostingRule(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
     return this.payrollJournalService.getPostingRule(user, id);
   }
 
@@ -92,13 +107,19 @@ export class PayrollGlController {
 
   @Delete('posting-rules/:id')
   @Permissions('payroll-gl.manage')
-  deactivatePostingRule(@CurrentUser() user: AuthenticatedUser, @Param('id', new ParseUUIDPipe()) id: string) {
+  deactivatePostingRule(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
     return this.payrollJournalService.deactivatePostingRule(user, id);
   }
 
   @Post('runs/:runId/journal/generate')
   @Permissions('payroll-journal.generate')
-  generateJournal(@CurrentUser() user: AuthenticatedUser, @Param('runId', new ParseUUIDPipe()) runId: string) {
+  generateJournal(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('runId', new ParseUUIDPipe()) runId: string,
+  ) {
     return this.payrollJournalService.generateJournalForPayrollRun({
       tenantId: user.tenantId,
       payrollRunId: runId,
@@ -108,7 +129,10 @@ export class PayrollGlController {
 
   @Get('runs/:runId/journal')
   @Permissions('payroll-journal.read')
-  getJournal(@CurrentUser() user: AuthenticatedUser, @Param('runId', new ParseUUIDPipe()) runId: string) {
+  getJournal(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('runId', new ParseUUIDPipe()) runId: string,
+  ) {
     return this.payrollJournalService.getJournal(user, runId);
   }
 
@@ -116,13 +140,19 @@ export class PayrollGlController {
   @Permissions('payroll-journal.export')
   @Header('Content-Type', 'text/csv; charset=utf-8')
   @Header('Content-Disposition', 'attachment; filename="payroll-journal.csv"')
-  exportJournal(@CurrentUser() user: AuthenticatedUser, @Param('runId', new ParseUUIDPipe()) runId: string) {
+  exportJournal(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('runId', new ParseUUIDPipe()) runId: string,
+  ) {
     return this.payrollJournalService.exportJournalCsv(user, runId);
   }
 
   @Post('runs/:runId/journal/mark-exported')
   @Permissions('payroll-journal.export')
-  markJournalExported(@CurrentUser() user: AuthenticatedUser, @Param('runId', new ParseUUIDPipe()) runId: string) {
+  markJournalExported(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('runId', new ParseUUIDPipe()) runId: string,
+  ) {
     return this.payrollJournalService.markJournalExported(user, runId);
   }
 }

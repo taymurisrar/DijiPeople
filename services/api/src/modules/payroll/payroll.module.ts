@@ -37,6 +37,11 @@ import { PayrollService } from './payroll.service';
     JwtAuthGuard,
     PermissionsGuard,
   ],
-  exports: [PayrollRepository, PayrollRunService, PayrollService, PayrollJournalService],
+  exports: [
+    PayrollRepository,
+    PayrollRunService,
+    PayrollService,
+    PayrollJournalService,
+  ],
 })
 export class PayrollModule {}

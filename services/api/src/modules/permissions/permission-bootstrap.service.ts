@@ -313,10 +313,7 @@ function getExpectedBaselineCounts() {
   );
 
   const rolePermissions = SYSTEM_ROLE_DEFINITIONS.reduce((total, role) => {
-    const roleMatrix =
-      SYSTEM_ROLE_PRIVILEGES[
-        role.key as keyof typeof SYSTEM_ROLE_PRIVILEGES
-      ] ?? {};
+    const roleMatrix = SYSTEM_ROLE_PRIVILEGES[role.key] ?? {};
 
     const permissionKeys = new Set<string>();
 
@@ -339,9 +336,7 @@ function getExpectedBaselineCounts() {
       );
     }
 
-    for (const permissionKey of SYSTEM_ROLE_MISC_PERMISSIONS[
-      role.key as keyof typeof SYSTEM_ROLE_MISC_PERMISSIONS
-    ] ?? []) {
+    for (const permissionKey of SYSTEM_ROLE_MISC_PERMISSIONS[role.key] ?? []) {
       permissionKeys.add(permissionKey);
     }
 
@@ -354,21 +349,13 @@ function getExpectedBaselineCounts() {
   }, 0);
 
   const rolePrivileges = SYSTEM_ROLE_DEFINITIONS.reduce((total, role) => {
-    const roleMatrix =
-      SYSTEM_ROLE_PRIVILEGES[
-        role.key as keyof typeof SYSTEM_ROLE_PRIVILEGES
-      ] ?? {};
+    const roleMatrix = SYSTEM_ROLE_PRIVILEGES[role.key] ?? {};
 
     return total + Object.keys(roleMatrix).length;
   }, 0);
 
   const roleMiscPermissions = SYSTEM_ROLE_DEFINITIONS.reduce((total, role) => {
-    return (
-      total +
-      (SYSTEM_ROLE_MISC_PERMISSIONS[
-        role.key as keyof typeof SYSTEM_ROLE_MISC_PERMISSIONS
-      ]?.length ?? 0)
-    );
+    return total + (SYSTEM_ROLE_MISC_PERMISSIONS[role.key]?.length ?? 0);
   }, 0);
 
   return {

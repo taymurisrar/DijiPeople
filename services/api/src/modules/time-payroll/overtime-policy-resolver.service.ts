@@ -23,25 +23,39 @@ export class OvertimePolicyResolverService {
         tenantId: input.tenantId,
         isActive: true,
         effectiveFrom: { lte: input.effectiveDate },
-        OR: [{ effectiveTo: null }, { effectiveTo: { gte: input.effectiveDate } }],
+        OR: [
+          { effectiveTo: null },
+          { effectiveTo: { gte: input.effectiveDate } },
+        ],
       },
       include: overtimePolicyInclude,
       orderBy: [{ effectiveFrom: 'desc' }, { createdAt: 'desc' }],
     });
 
-    return policies
-      .map((policy) => ({ policy, score: scoreOvertimePolicy(policy, input) }))
-      .filter((item) => item.score > 0)
-      .sort((a, b) => b.score - a.score)[0]?.policy ?? null;
+    return (
+      policies
+        .map((policy) => ({
+          policy,
+          score: scoreOvertimePolicy(policy, input),
+        }))
+        .filter((item) => item.score > 0)
+        .sort((a, b) => b.score - a.score)[0]?.policy ?? null
+    );
   }
 }
 
 function scoreOvertimePolicy(
-  policy: Prisma.OvertimePolicyGetPayload<{ include: typeof overtimePolicyInclude }>,
+  policy: Prisma.OvertimePolicyGetPayload<{
+    include: typeof overtimePolicyInclude;
+  }>,
   input: { employeeLevelId?: string | null; businessUnitId?: string | null },
 ) {
-  const levelMatches = Boolean(policy.employeeLevelId && policy.employeeLevelId === input.employeeLevelId);
-  const businessUnitMatches = Boolean(policy.businessUnitId && policy.businessUnitId === input.businessUnitId);
+  const levelMatches = Boolean(
+    policy.employeeLevelId && policy.employeeLevelId === input.employeeLevelId,
+  );
+  const businessUnitMatches = Boolean(
+    policy.businessUnitId && policy.businessUnitId === input.businessUnitId,
+  );
 
   if (levelMatches && businessUnitMatches) return 400;
   if (levelMatches && !policy.businessUnitId) return 300;

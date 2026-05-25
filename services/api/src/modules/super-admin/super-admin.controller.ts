@@ -15,6 +15,7 @@ import { RequireRoles } from '../../common/decorators/require-roles.decorator';
 import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { PlatformPermissionsGuard } from '../platform-auth/platform-permissions';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { CreatePlanDto } from './dto/create-plan.dto';
 import { CreatePlanPriceDto } from './dto/create-plan-price.dto';
@@ -45,7 +46,7 @@ import { UpdateTenantSlugDto } from '../tenants/dto/update-tenant-slug.dto';
 import { SuperAdminService } from './super-admin.service';
 import { ConvertLeadToCustomerDto } from '../leads/dto/admin-lead.dto';
 
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, PlatformPermissionsGuard)
 @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN, ROLE_KEYS.SYSTEM_CUSTOMIZER)
 @Controller('super-admin')
 export class SuperAdminController {
@@ -297,19 +298,16 @@ export class SuperAdminController {
   }
 
   @Get('subscriptions')
-  @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
   listSubscriptions() {
     return this.superAdminService.listSubscriptions();
   }
 
   @Get('invoices')
-  @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
   listInvoices() {
     return this.superAdminService.listInvoices();
   }
 
   @Get('invoices/:invoiceId')
-  @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
   getInvoiceDetail(@Param('invoiceId', new ParseUUIDPipe()) invoiceId: string) {
     return this.superAdminService.getInvoiceDetail(invoiceId);
   }

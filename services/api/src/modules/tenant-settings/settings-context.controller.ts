@@ -57,9 +57,7 @@ export class SettingsContextController {
       businessUnitId: canResolveArbitraryContext
         ? businessUnitId
         : ownEmployee?.businessUnitId,
-      employeeId: canResolveArbitraryContext
-        ? employeeId
-        : ownEmployee?.id,
+      employeeId: canResolveArbitraryContext ? employeeId : ownEmployee?.id,
       projectId: canResolveArbitraryContext ? projectId : undefined,
       module,
       effectiveDate: effectiveDate ? new Date(effectiveDate) : null,

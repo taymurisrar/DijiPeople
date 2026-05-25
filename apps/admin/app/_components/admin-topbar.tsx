@@ -4,13 +4,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Bell,
   ChevronDown,
-  CircleHelp,
   Command,
   LogOut,
   Menu,
   Search,
   Settings,
   ShieldCheck,
+  SlidersHorizontal,
   UserRound,
   X,
 } from "lucide-react";
@@ -20,6 +20,7 @@ type AdminTopbarProps = {
   lastName: string;
   email: string;
   onMenuToggle: () => void;
+  roleKeys?: string[];
 };
 
 type TopbarAction = {
@@ -40,6 +41,7 @@ export function AdminTopbar({
   lastName,
   email,
   onMenuToggle,
+  roleKeys = [],
 }: AdminTopbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -74,26 +76,32 @@ export function AdminTopbar({
     {
       label: "My Profile",
       description: "View account and identity details",
-      href: "/dashboard/profile",
+      href: "/profile",
       icon: UserRound,
+    },
+    {
+      label: "Account settings",
+      description: "Account and access summary",
+      href: "/account-settings",
+      icon: Settings,
+    },
+    {
+      label: "Preferences",
+      description: "Workspace theme, density, and landing page",
+      href: "/preferences",
+      icon: SlidersHorizontal,
     },
     {
       label: "Security",
       description: "Password, sessions and access",
-      href: "/dashboard/security",
+      href: "/security",
       icon: ShieldCheck,
     },
     {
-      label: "Settings",
-      description: "Preferences and admin configuration",
-      href: "/dashboard/settings",
-      icon: Settings,
-    },
-    {
-      label: "Help & Support",
-      description: "Documentation and support center",
-      href: "/dashboard/support",
-      icon: CircleHelp,
+      label: "Notifications",
+      description: "Notification delivery preferences",
+      href: "/notifications",
+      icon: Bell,
     },
   ];
 
@@ -210,6 +218,9 @@ export function AdminTopbar({
             <button
               type="button"
               aria-label="View notifications"
+              onClick={() => {
+                window.location.href = "/notifications";
+              }}
               className="relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-900/10"
             >
               <Bell className="h-4 w-4" />
@@ -263,6 +274,11 @@ export function AdminTopbar({
                         <p className="truncate text-xs text-slate-500">
                           {email || "No email available"}
                         </p>
+                        {roleKeys.length ? (
+                          <p className="mt-1 truncate text-xs text-slate-400">
+                            {roleKeys.join(", ")}
+                          </p>
+                        ) : null}
                       </div>
                     </div>
                   </div>

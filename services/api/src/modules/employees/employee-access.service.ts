@@ -144,10 +144,7 @@ export class EmployeeAccessService {
     return false;
   }
 
-  async canUploadEmployeeDocument(
-    user: AuthenticatedUser,
-    employeeId: string,
-  ) {
+  async canUploadEmployeeDocument(user: AuthenticatedUser, employeeId: string) {
     const accessMode = await this.getEmployeeRecordAccess(user, employeeId);
     if (accessMode === 'SELF') {
       // Own profile documents are baseline self-service profile data. The

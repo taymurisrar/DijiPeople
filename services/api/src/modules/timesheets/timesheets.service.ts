@@ -279,7 +279,10 @@ export class TimesheetsService {
           })
         : [];
     const assignmentByProjectId = new Map(
-      projectAssignments.map((assignment) => [assignment.projectId, assignment]),
+      projectAssignments.map((assignment) => [
+        assignment.projectId,
+        assignment,
+      ]),
     );
 
     for (const incoming of dto.entries) {
@@ -1166,12 +1169,13 @@ export class TimesheetsService {
         .filter((employee) => employee.email)
         .map((employee) => [employee.email!.toLowerCase(), employee]),
     );
-    const holidays = await this.enterpriseConfigurationService.findResolvedHolidaysForRange({
-      tenantId: currentUser.tenantId,
-      businessUnitId: dto.businessUnitId,
-      periodStart,
-      periodEnd,
-    });
+    const holidays =
+      await this.enterpriseConfigurationService.findResolvedHolidaysForRange({
+        tenantId: currentUser.tenantId,
+        businessUnitId: dto.businessUnitId,
+        periodStart,
+        periodEnd,
+      });
     const holidayMap = new Map(
       holidays.map((holiday) => [toDateKey(holiday.date), holiday]),
     );
@@ -2365,20 +2369,22 @@ function summarizeTimesheetAudit(timesheet: TimesheetWithRelations) {
 }
 
 function monthName(month: number) {
-  return [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
-  ][month - 1] ?? `Month ${month}`;
+  return (
+    [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ][month - 1] ?? `Month ${month}`
+  );
 }
 
 function toCsvLine(values: Array<string>) {

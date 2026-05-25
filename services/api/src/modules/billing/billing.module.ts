@@ -15,7 +15,11 @@ import { WebhookService } from './services/webhook.service';
 
 @Module({
   imports: [AuthModule],
-  controllers: [BillingController, PublicBillingController, StripeWebhookController],
+  controllers: [
+    BillingController,
+    PublicBillingController,
+    StripeWebhookController,
+  ],
   providers: [
     {
       provide: STRIPE_CLIENT,

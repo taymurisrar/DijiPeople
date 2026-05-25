@@ -20,6 +20,7 @@ type TableDetailShellProps = {
   views: CustomizationView[];
   forms: CustomizationForm[];
   lookupTables: CustomizationTable[];
+  initialTab?: TabKey;
 };
 
 const tabs: Array<{ key: TabKey; label: string }> = [
@@ -35,8 +36,9 @@ export function TableDetailShell({
   views,
   forms,
   lookupTables,
+  initialTab = "columns",
 }: TableDetailShellProps) {
-  const [activeTab, setActiveTab] = useState<TabKey>("columns");
+  const [activeTab, setActiveTab] = useState<TabKey>(initialTab);
 
   return (
     <div className="grid gap-6">
@@ -44,7 +46,10 @@ export function TableDetailShell({
         <Metric label="Columns" value={columns.length} />
         <Metric label="Views" value={views.length} />
         <Metric label="Forms" value={forms.length} />
-        <Metric label="Mode" value={table.isCustomTable ? "Custom" : "System"} />
+        <Metric
+          label="Mode"
+          value={table.isCustomTable ? "Custom" : "System"}
+        />
       </section>
 
       <div className="flex flex-wrap gap-2 rounded-[24px] border border-border bg-surface p-2 shadow-sm">
@@ -115,7 +120,9 @@ function Metric({ label, value }: { label: string; value: string | number }) {
 function Meta({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-border bg-white px-4 py-3">
-      <dt className="text-xs uppercase tracking-[0.14em] text-muted">{label}</dt>
+      <dt className="text-xs uppercase tracking-[0.14em] text-muted">
+        {label}
+      </dt>
       <dd className="mt-1 text-sm font-semibold text-foreground">{value}</dd>
     </div>
   );

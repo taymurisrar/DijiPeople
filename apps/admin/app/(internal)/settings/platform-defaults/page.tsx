@@ -1,7 +1,29 @@
+import { PlatformDefaultsForm } from "@/app/_components/platform-defaults-form";
 import { SettingsFormCard } from "@/app/_components/settings/settings-form-card";
 import { SettingsShell } from "@/app/_components/settings/settings-shell";
+import {
+  DEFAULT_PLATFORM_DEFAULTS,
+  type PlatformDefaults,
+} from "@/lib/reference-data/platform-reference-data";
+import { getSessionUser } from "@/lib/auth";
+import { ACCESS_DENIED_ROUTE } from "@/lib/auth-config";
+import { apiRequestJson } from "@/lib/server-api";
+import { redirect } from "next/navigation";
 
 export default async function PlatformDefaultsPage() {
+  const sessionUser = await getSessionUser();
+  if (sessionUser?.role !== "SUPER_ADMIN") {
+    redirect(ACCESS_DENIED_ROUTE);
+  }
+
+  const settings = await apiRequestJson<{
+    platformDefaults?: Partial<PlatformDefaults>;
+  }>("/super-admin/platform-settings");
+  const platformDefaults = {
+    ...DEFAULT_PLATFORM_DEFAULTS,
+    ...(settings.platformDefaults ?? {}),
+  };
+
   return (
     <SettingsShell
       title="Platform defaults"
@@ -11,27 +33,8 @@ export default async function PlatformDefaultsPage() {
         title="Regional defaults"
         description="These values are used as the default configuration when new tenants or commercial records are created."
       >
-        <div className="grid gap-4 md:grid-cols-2">
-          <Field label="Default country" value="Qatar" />
-          <Field label="Default currency" value="USD" />
-          <Field label="Default timezone" value="Asia/Qatar" />
-          <Field label="Date format" value="DD/MM/YYYY" />
-          <Field label="Time format" value="12-hour" />
-          <Field label="Default locale" value="en-US" />
-        </div>
+        <PlatformDefaultsForm initialDefaults={platformDefaults} />
       </SettingsFormCard>
     </SettingsShell>
-  );
-}
-
-function Field({ label, value }: { label: string; value: string }) {
-  return (
-    <label className="space-y-2">
-      <span className="text-sm font-medium text-slate-900">{label}</span>
-      <input
-        defaultValue={value}
-        className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition focus:border-slate-500 focus:ring-4 focus:ring-slate-100"
-      />
-    </label>
   );
 }

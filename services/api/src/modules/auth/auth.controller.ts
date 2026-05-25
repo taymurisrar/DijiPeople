@@ -50,7 +50,12 @@ export class AuthController {
     const result = await this.authService.login(dto, req);
     const clientId = getAuthClientIdFromHeaders(req.headers);
 
-    this.authService.setAuthCookies(res, result.tokens, dto.rememberMe, clientId);
+    this.authService.setAuthCookies(
+      res,
+      result.tokens,
+      dto.rememberMe,
+      clientId,
+    );
 
     return {
       tenant: result.tenant,

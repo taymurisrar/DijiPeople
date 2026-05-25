@@ -66,6 +66,10 @@ import { PlatformOnboardingService } from './platform-onboarding.service';
 import { PaymentsService } from './payments.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { ConvertLeadToCustomerDto } from '../leads/dto/admin-lead.dto';
+import {
+  DEFAULT_PLATFORM_DEFAULTS,
+  validatePlatformDefaults,
+} from '../../common/reference-data/platform-reference-data';
 import { UserInvitationsService } from '../auth/user-invitations.service';
 import { WebhookService } from '../billing/services/webhook.service';
 
@@ -482,7 +486,10 @@ export class SuperAdminService {
     tenantId: string,
     dto: UpdateTenantSlugDto,
   ) {
-    if (!actor.roleKeys.includes(ROLE_KEYS.SYSTEM_CUSTOMIZER)) {
+    if (
+      actor.platform?.role !== 'SUPER_ADMIN' &&
+      !actor.roleKeys.includes(ROLE_KEYS.SYSTEM_CUSTOMIZER)
+    ) {
       throw new ForbiddenException(
         'Only System Customizer can edit the tenant slug.',
       );
@@ -1431,7 +1438,10 @@ export class SuperAdminService {
     const byKey = new Map(rows.map((row) => [row.key, row.value]));
 
     return {
-      platformDefaults: byKey.get('platform-defaults') ?? {},
+      platformDefaults: {
+        ...DEFAULT_PLATFORM_DEFAULTS,
+        ...((byKey.get('platform-defaults') as Record<string, unknown>) ?? {}),
+      },
       publicPlanVisibility: byKey.get('public-plan-visibility') ?? {},
       billingDefaults: byKey.get('billing-defaults') ?? {},
       invoiceDefaults: byKey.get('invoice-defaults') ?? {
@@ -1452,6 +1462,25 @@ export class SuperAdminService {
     actor: AuthenticatedUser,
     dto: UpdatePlatformSettingsDto,
   ) {
+    if (actor.platform?.role !== 'SUPER_ADMIN') {
+      throw new ForbiddenException(
+        'Only platform Super Admins can change platform defaults.',
+      );
+    }
+
+    if (dto.platformDefaults) {
+      try {
+        validatePlatformDefaults({
+          ...DEFAULT_PLATFORM_DEFAULTS,
+          ...dto.platformDefaults,
+        });
+      } catch (error) {
+        throw new BadRequestException(
+          error instanceof Error ? error.message : 'Invalid platform defaults.',
+        );
+      }
+    }
+
     const payload = {
       'platform-defaults': dto.platformDefaults,
       'public-plan-visibility': dto.publicPlanVisibility,

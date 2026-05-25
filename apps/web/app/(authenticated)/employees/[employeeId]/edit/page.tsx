@@ -1,7 +1,7 @@
 import { unstable_noStore as noStore } from "next/cache";
 import { apiRequestJson } from "@/lib/server-api";
 import { getSessionUser } from "@/lib/auth";
-import { getDefaultForm } from "@/lib/customization-forms";
+import { getDefaultForm, getTableForms } from "@/lib/customization-forms";
 import { PERMISSION_KEYS } from "@/lib/security-keys";
 import { EmployeeForm } from "../../_components/employee-form";
 import {
@@ -56,18 +56,25 @@ export default async function EditEmployeePage({
     permissionKeys.includes(PERMISSION_KEYS.USERS_ASSIGN_ROLES) &&
     permissionKeys.includes(PERMISSION_KEYS.ROLES_READ);
 
-  const [employee, managers, roles, resolvedSettings, runtimeForm] =
-    await Promise.all([
-      apiRequestJson<EmployeeProfile>(`/employees/${employeeId}`),
-      apiRequestJson<EmployeeListResponse>("/employees?pageSize=100"),
-      canManageAccess
-        ? apiRequestJson<EmployeeRoleOption[]>("/roles")
-        : Promise.resolve([]),
-      apiRequestJson<TenantResolvedSettingsResponse>(
-        "/tenant-settings/resolved",
-      ).catch(() => null),
-      getDefaultForm("employees", "edit"),
-    ]);
+  const [
+    employee,
+    managers,
+    roles,
+    resolvedSettings,
+    runtimeForm,
+    runtimeForms,
+  ] = await Promise.all([
+    apiRequestJson<EmployeeProfile>(`/employees/${employeeId}`),
+    apiRequestJson<EmployeeListResponse>("/employees?pageSize=100"),
+    canManageAccess
+      ? apiRequestJson<EmployeeRoleOption[]>("/roles")
+      : Promise.resolve([]),
+    apiRequestJson<TenantResolvedSettingsResponse>(
+      "/tenant-settings/resolved",
+    ).catch(() => null),
+    getDefaultForm("employees", "edit"),
+    getTableForms("employees"),
+  ]);
 
   if (employee.accessMode !== "ADMIN_MANAGE") {
     return (
@@ -166,6 +173,9 @@ export default async function EditEmployeePage({
         )}
         roleOptions={roles}
         runtimeFormLayout={runtimeForm?.layoutJson ?? null}
+        runtimeForms={runtimeForms.filter(
+          (form) => form.type === "edit" || form.type === "main",
+        )}
         settings={{
           autoGenerateEmployeeId:
             resolvedSettings?.employee.autoGenerateEmployeeId ?? false,

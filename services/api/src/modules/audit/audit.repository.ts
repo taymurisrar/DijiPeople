@@ -16,6 +16,13 @@ export class AuditRepository {
     return db.auditLog.create({ data });
   }
 
+  createPlatform(
+    data: Prisma.PlatformAuditLogUncheckedCreateInput,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.platformAuditLog.create({ data });
+  }
+
   async findByTenant(
     tenantId: string,
     query: AuditLogQueryDto,

@@ -20,6 +20,8 @@ export type AdminSessionUser = {
   roleIds: string[];
   roleKeys?: string[];
   permissionKeys: string[];
+  role: "SUPER_ADMIN" | "MEMBER";
+  status: "ACTIVE" | "INVITED" | "DISABLED";
 };
 
 type AuthMeResponse = {
@@ -33,6 +35,8 @@ type AuthMeResponse = {
     roleIds?: string[];
     roleKeys?: string[];
     permissionKeys?: string[];
+    role?: "SUPER_ADMIN" | "MEMBER";
+    status?: "ACTIVE" | "INVITED" | "DISABLED";
   };
   tenant: { name: string };
   roles?: Array<{ id: string; key: string }>;
@@ -52,8 +56,12 @@ export async function getSessionUser() {
     headers: {
       "X-DijiPeople-App": AUTH_APP_CLIENT_ID,
       Cookie: [
-        accessToken ? `${ACCESS_TOKEN_COOKIE}=${encodeURIComponent(accessToken)}` : "",
-        refreshToken ? `${REFRESH_TOKEN_COOKIE}=${encodeURIComponent(refreshToken)}` : "",
+        accessToken
+          ? `${ACCESS_TOKEN_COOKIE}=${encodeURIComponent(accessToken)}`
+          : "",
+        refreshToken
+          ? `${REFRESH_TOKEN_COOKIE}=${encodeURIComponent(refreshToken)}`
+          : "",
       ]
         .filter(Boolean)
         .join("; "),
@@ -62,7 +70,9 @@ export async function getSessionUser() {
   }).catch(() => null);
 
   if (!response?.ok) return null;
-  const data = (await response.json().catch(() => null)) as AuthMeResponse | null;
+  const data = (await response
+    .json()
+    .catch(() => null)) as AuthMeResponse | null;
   if (!data?.user || !data.tenant) return null;
   const userId = data.user.userId ?? data.user.id;
   if (!userId) return null;
@@ -78,6 +88,10 @@ export async function getSessionUser() {
     roleIds: data.user.roleIds ?? data.roles?.map((role) => role.id) ?? [],
     roleKeys: data.user.roleKeys ?? data.roles?.map((role) => role.key) ?? [],
     permissionKeys: data.user.permissionKeys ?? data.permissions ?? [],
+    role:
+      data.user.role ??
+      (data.user.roleKeys?.includes("system-admin") ? "SUPER_ADMIN" : "MEMBER"),
+    status: data.user.status ?? "ACTIVE",
   } satisfies AdminSessionUser;
 }
 
@@ -88,10 +102,7 @@ export async function requireSystemAdminUser(nextPath = "/tenants") {
     redirect(getAdminLoginUrl(nextPath));
   }
 
-  if (
-    !user.roleKeys?.includes("system-admin") &&
-    !user.roleKeys?.includes("system-customizer")
-  ) {
+  if (user.role !== "SUPER_ADMIN" && user.role !== "MEMBER") {
     redirect(ACCESS_DENIED_ROUTE);
   }
 

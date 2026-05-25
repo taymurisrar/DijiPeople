@@ -276,8 +276,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
             );
             const match = trimmed.match(/^([A-Za-z0-9_.-]+)\s+(.+)$/);
             return {
-              field:
-                unknownPropertyMatch?.[1] ?? match?.[1] ?? 'request',
+              field: unknownPropertyMatch?.[1] ?? match?.[1] ?? 'request',
               message,
             };
           }),

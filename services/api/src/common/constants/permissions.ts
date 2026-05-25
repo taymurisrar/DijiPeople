@@ -1215,6 +1215,12 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
       'Update tenant labels and metadata for existing system tables.',
   },
   {
+    key: 'customization.table.manage',
+    name: 'Manage customization tables',
+    description:
+      'Create, update, deactivate, and delete custom metadata tables.',
+  },
+  {
     key: 'customization.columns.read',
     name: 'Read customization columns',
     description: 'View system and tenant-defined column metadata.',
@@ -1234,6 +1240,12 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     key: 'customization.columns.delete',
     name: 'Delete customization columns',
     description: 'Delete tenant-created column metadata.',
+  },
+  {
+    key: 'customization.column.manage',
+    name: 'Manage customization columns',
+    description:
+      'Create, update, deactivate, and delete table column metadata.',
   },
   {
     key: 'customization.views.read',
@@ -1256,6 +1268,12 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     description: 'Delete tenant-created module views.',
   },
   {
+    key: 'customization.view.manage',
+    name: 'Manage customization views',
+    description:
+      'Create, update, activate, deactivate, and delete table views.',
+  },
+  {
     key: 'customization.forms.read',
     name: 'Read customization forms',
     description: 'View tenant form metadata for existing system modules.',
@@ -1274,6 +1292,12 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     key: 'customization.forms.delete',
     name: 'Delete customization forms',
     description: 'Delete tenant-created form metadata.',
+  },
+  {
+    key: 'customization.form.manage',
+    name: 'Manage customization forms',
+    description:
+      'Create, update, activate, deactivate, and delete table forms.',
   },
 ];
 

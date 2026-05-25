@@ -10,6 +10,8 @@ import {
   CustomerOnboardingStatus,
   DiscountType,
   LeadStatus,
+  PlatformUserRole,
+  PlatformUserStatus,
   Prisma,
   SubscriptionStatus,
   TenantFeatureSource,
@@ -31,7 +33,10 @@ import { UserInvitationsService } from '../auth/user-invitations.service';
 import { LeadsRepository } from '../leads/leads.repository';
 import {
   INDUSTRY_OPTIONS,
+  getEntityStageDefinition,
   getLifecycleOptions,
+  getRequiredCriteria,
+  isValidTransition,
   isValidSubStatus,
 } from './platform-lifecycle.constants';
 import {
@@ -63,11 +68,8 @@ export class PlatformLifecycleService {
     const options = getLifecycleOptions();
     return {
       ...options,
-      industries: INDUSTRY_OPTIONS.map((value) => ({ value, label: value })),
-      companySizes: options.companySizes.map((value) => ({
-        value,
-        label: value,
-      })),
+      industries: INDUSTRY_OPTIONS,
+      companySizes: options.companySizes,
     };
   }
 
@@ -112,7 +114,12 @@ export class PlatformLifecycleService {
       throw new ConflictException('Lead has already been converted.');
     }
 
-    if (!lead.companyName || !lead.workEmail || !lead.industry || !lead.companySize) {
+    if (
+      !lead.companyName ||
+      !lead.workEmail ||
+      !lead.industry ||
+      !lead.companySize
+    ) {
       throw new BadRequestException(
         'Lead conversion requires company name, work email, industry, and company size.',
       );
@@ -130,6 +137,14 @@ export class PlatformLifecycleService {
     this.assertCustomerSubStatus(
       dto.status ?? CustomerAccountStatus.PROSPECT,
       dto.subStatus ?? 'Commercial review',
+    );
+    const assignedToUserId = await this.resolvePlatformOwnerId(
+      dto.assignedToUserId ?? lead.assignedToUserId ?? actor.platform?.id,
+      'Customer owner',
+    );
+    const accountManagerUserId = await this.resolvePlatformOwnerId(
+      dto.accountManagerUserId ?? assignedToUserId,
+      'Account manager',
     );
 
     const customer = await this.prisma.$transaction(async (tx) => {
@@ -174,10 +189,8 @@ export class PlatformLifecycleService {
           leadId,
           status: dto.status ?? CustomerAccountStatus.PROSPECT,
           subStatus: dto.subStatus ?? 'Commercial review',
-          assignedToUserId:
-            dto.assignedToUserId ?? lead.assignedToUserId ?? actor.userId,
-          accountManagerUserId:
-            dto.accountManagerUserId ?? lead.assignedToUserId ?? actor.userId,
+          assignedToUserId,
+          accountManagerUserId,
         },
       });
 
@@ -517,12 +530,22 @@ export class PlatformLifecycleService {
       }
     }
 
+    const assignedToUserId = await this.resolvePlatformOwnerId(
+      dto.assignedToUserId ?? actor.platform?.id ?? actor.userId,
+      'Customer owner',
+    );
+    const accountManagerUserId = await this.resolvePlatformOwnerId(
+      dto.accountManagerUserId ?? assignedToUserId,
+      'Account manager',
+    );
     const customer = await this.prisma.customerAccount.create({
       data: {
         ...(this.mapCustomerDtoToData(
           dto,
-          actor.userId,
+          assignedToUserId,
         ) as Prisma.CustomerAccountUncheckedCreateInput),
+        assignedToUserId,
+        accountManagerUserId,
         contactEmail: (dto.contactEmail ?? dto.primaryContactEmail)
           .trim()
           .toLowerCase(),
@@ -548,6 +571,13 @@ export class PlatformLifecycleService {
     const nextSubStatus =
       dto.subStatus === undefined ? existing.subStatus : dto.subStatus;
     this.assertCustomerSubStatus(nextStatus, nextSubStatus);
+    if (dto.status !== undefined && dto.status !== existing.status) {
+      this.assertLifecycleTransition('customer', existing.status, dto.status);
+      this.assertRequiredCriteria('customer', nextStatus, {
+        ...existing,
+        ...dto,
+      });
+    }
 
     if (dto.leadId && dto.leadId !== existing.leadId) {
       const linked = await this.prisma.customerAccount.findFirst({
@@ -561,9 +591,26 @@ export class PlatformLifecycleService {
       }
     }
 
+    const data = this.mapCustomerDtoToData(
+      dto,
+      undefined,
+    ) as Prisma.CustomerAccountUncheckedUpdateInput;
+    if (dto.assignedToUserId !== undefined) {
+      data.assignedToUserId = await this.resolvePlatformOwnerId(
+        dto.assignedToUserId,
+        'Customer owner',
+      );
+    }
+    if (dto.accountManagerUserId !== undefined) {
+      data.accountManagerUserId = await this.resolvePlatformOwnerId(
+        dto.accountManagerUserId,
+        'Account manager',
+      );
+    }
+
     await this.prisma.customerAccount.update({
       where: { id: customerId },
-      data: this.mapCustomerDtoToData(dto, undefined),
+      data,
     });
 
     return this.getCustomer(customerId);
@@ -645,10 +692,7 @@ export class PlatformLifecycleService {
         customerId,
         leadId: customer.leadId,
         plannedTenantSlug,
-        onboardingOwnerUserId:
-          dto?.onboardingOwnerUserId ??
-          customer.accountManagerUserId ??
-          actor.userId,
+        onboardingOwnerUserId: dto?.onboardingOwnerUserId ?? null,
         selectedPlanId: dto?.selectedPlanId ?? customer.selectedPlanId ?? null,
         billingCycle:
           dto?.billingCycle ?? customer.preferredBillingCycle ?? null,
@@ -874,6 +918,17 @@ export class PlatformLifecycleService {
     const nextSubStatus =
       dto.subStatus === undefined ? existing.subStatus : dto.subStatus;
     this.assertCustomerOnboardingSubStatus(nextStatus, nextSubStatus);
+    if (dto.status !== undefined && dto.status !== existing.status) {
+      this.assertLifecycleTransition(
+        'customerOnboarding',
+        existing.status,
+        dto.status,
+      );
+      this.assertRequiredCriteria('customerOnboarding', nextStatus, {
+        ...existing,
+        ...dto,
+      });
+    }
 
     if (dto.tenantCreated === true && !existing.tenantId) {
       throw new BadRequestException(
@@ -1352,9 +1407,72 @@ export class PlatformLifecycleService {
     }
   }
 
+  private assertLifecycleTransition(
+    entity: 'customer' | 'customerOnboarding',
+    currentStatus: CustomerAccountStatus | CustomerOnboardingStatus,
+    nextStatus: CustomerAccountStatus | CustomerOnboardingStatus,
+  ) {
+    if (isValidTransition(entity, currentStatus, nextStatus)) {
+      return;
+    }
+
+    const currentStage = getEntityStageDefinition(entity, currentStatus);
+    const message = currentStage?.isTerminal
+      ? 'Terminal statuses cannot transition further.'
+      : 'Status transition is not allowed by lifecycle rules.';
+    throw new BadRequestException(message);
+  }
+
+  private assertRequiredCriteria(
+    entity: 'customer' | 'customerOnboarding',
+    status: CustomerAccountStatus | CustomerOnboardingStatus,
+    record: Record<string, unknown>,
+  ) {
+    const missing = getRequiredCriteria(entity, status)
+      .filter(
+        (criterion) =>
+          criterion.fieldKey &&
+          Object.prototype.hasOwnProperty.call(record, criterion.fieldKey),
+      )
+      .filter(
+        (criterion) => !isCompleteCriterionValue(record[criterion.fieldKey!]),
+      )
+      .map((criterion) => criterion.label);
+
+    if (missing.length > 0) {
+      throw new BadRequestException(
+        `Complete required criteria before moving status: ${missing.join(', ')}.`,
+      );
+    }
+  }
+
+  private async resolvePlatformOwnerId(
+    ownerId: string | null | undefined,
+    label: string,
+  ) {
+    if (!ownerId) return null;
+
+    const owner = await this.prisma.platformUser.findFirst({
+      where: {
+        id: ownerId,
+        role: { in: [PlatformUserRole.SUPER_ADMIN, PlatformUserRole.MEMBER] },
+        status: PlatformUserStatus.ACTIVE,
+      },
+      select: { id: true },
+    });
+
+    if (!owner) {
+      throw new BadRequestException(
+        `${label} must be an active platform system user.`,
+      );
+    }
+
+    return owner.id;
+  }
+
   private mapCustomerDtoToData(
     dto: CreateCustomerDto | UpdateCustomerDto,
-    fallbackOwnerId?: string,
+    fallbackOwnerId?: string | null,
   ) {
     return {
       ...(dto.companyName !== undefined
@@ -1736,4 +1854,12 @@ function buildDefaultTenantBranding(
     mutedTextColor: '#64748b',
     fontFamily: 'Inter',
   };
+}
+
+function isCompleteCriterionValue(value: unknown) {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return Number.isFinite(value);
+  if (typeof value === 'string') return value.trim().length > 0;
+  if (Array.isArray(value)) return value.length > 0;
+  return Boolean(value);
 }

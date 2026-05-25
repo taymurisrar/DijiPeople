@@ -64,6 +64,8 @@ electron-builder.env
 # Logs / Debug
 # =========================================================
 logs/
+!apps/admin/app/api/platform/logs/
+!apps/admin/app/api/platform/logs/**
 *.log
 npm-debug.log*
 yarn-debug.log*

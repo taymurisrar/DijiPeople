@@ -4,9 +4,12 @@ import {
   EmailProviderType,
   EmailTemplateStatus,
   NotificationChannel,
+  PlatformUserRole,
+  PlatformUserStatus,
   Prisma,
   PrismaClient,
 } from '@prisma/client';
+import * as bcrypt from 'bcryptjs';
 import { NOTIFICATION_EVENT_CATALOG } from '../src/modules/notifications/notification-events.catalog';
 import { buildTenantNotificationScopeKey } from '../src/modules/notifications/notifications.constants';
 
@@ -154,6 +157,7 @@ async function main() {
   );
 
   await seedNotificationConfig(prisma);
+  await seedPlatformSuperAdmin(prisma);
 
   if (tenants.length === 0) {
     console.warn(
@@ -176,6 +180,32 @@ async function main() {
   console.log(`Console providers created/updated: ${providerCount}`);
   console.log(`Leave types created/updated: ${leaveTypeCount}`);
   console.log('Config seed completed successfully.');
+}
+
+export async function seedPlatformSuperAdmin(client: PrismaClient) {
+  const email = 'taimurisrar@dijipeople.local';
+  const passwordHash = await bcrypt.hash('@DijiPeople2026!', 10);
+
+  await client.platformUser.upsert({
+    where: { email },
+    create: {
+      email,
+      firstName: 'Taimur',
+      lastName: 'Israr',
+      passwordHash,
+      role: PlatformUserRole.SUPER_ADMIN,
+      status: PlatformUserStatus.ACTIVE,
+    },
+    update: {
+      firstName: 'Taimur',
+      lastName: 'Israr',
+      passwordHash,
+      role: PlatformUserRole.SUPER_ADMIN,
+      status: PlatformUserStatus.ACTIVE,
+    },
+  });
+
+  console.log(`Platform super admin ensured: ${email}`);
 }
 
 export async function seedNotificationConfig(client: PrismaClient) {
@@ -215,21 +245,36 @@ export async function seedTenantLeaveTypes(
 
   for (const tenant of tenants) {
     for (const leaveType of DEFAULT_LEAVE_TYPES) {
-      await client.leaveType.upsert({
+      const existing = await client.leaveType.findFirst({
         where: {
-          tenantId_code: {
-            tenantId: tenant.id,
-            code: leaveType.code,
-          },
-        },
-        create: {
           tenantId: tenant.id,
-          ...leaveType,
-          requiresApproval: true,
-          isActive: true,
+          OR: [{ code: leaveType.code }, { name: leaveType.name }],
         },
-        update: {},
+        select: { id: true },
       });
+
+      if (existing) {
+        await client.leaveType.update({
+          where: { id: existing.id },
+          data: {
+            name: leaveType.name,
+            code: leaveType.code,
+            category: leaveType.category,
+            isPaid: leaveType.isPaid,
+            requiresApproval: true,
+            isActive: true,
+          },
+        });
+      } else {
+        await client.leaveType.create({
+          data: {
+            tenantId: tenant.id,
+            ...leaveType,
+            requiresApproval: true,
+            isActive: true,
+          },
+        });
+      }
       count += 1;
     }
   }

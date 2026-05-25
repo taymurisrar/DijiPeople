@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Building2,
+  Bug,
   ClipboardList,
   CreditCard,
   FileText,
@@ -16,7 +17,6 @@ import {
   Settings2,
   UsersRound,
   UserRoundSearch,
-  Webhook,
   X,
 } from "lucide-react";
 
@@ -39,17 +39,24 @@ const navSections = [
       { href: "/subscriptions", label: "Subscriptions", icon: RefreshCcw },
       { href: "/invoices", label: "Invoices", icon: FileText },
       { href: "/payments", label: "Payments", icon: CreditCard },
-      {
-        href: "/billing/webhooks",
-        label: "Billing Webhooks",
-        icon: Webhook,
-        roleKeys: ["system-admin"],
-      },
     ],
   },
   {
     title: "System",
-    items: [{ href: "/settings", label: "Settings", icon: Settings2 }],
+    items: [
+      {
+        href: "/settings",
+        label: "Settings",
+        icon: Settings2,
+        roleKeys: ["SUPER_ADMIN"],
+      },
+      {
+        href: "/settings/monitoring/error-logs",
+        label: "Monitoring",
+        icon: Bug,
+        roleKeys: ["SUPER_ADMIN"],
+      },
+    ],
   },
 ];
 
@@ -205,6 +212,9 @@ export function AdminSidebar({
 type NavItem = (typeof navSections)[number]["items"][number];
 
 function canShowNavItem(item: NavItem, roleKeys: string[]) {
+  if (roleKeys.includes("SUPER_ADMIN") || roleKeys.includes("system-admin")) {
+    return true;
+  }
   if (!("roleKeys" in item) || !item.roleKeys?.length) return true;
 
   return item.roleKeys.some((roleKey) => roleKeys.includes(roleKey));

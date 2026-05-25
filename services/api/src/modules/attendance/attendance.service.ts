@@ -234,11 +234,12 @@ export class AttendanceService {
       query,
       { employeeId: employee.id },
     );
-    const summaryItems = await this.attendanceRepository.findAttendanceForSummary(
-      currentUser.tenantId,
-      { ...query, page: 1, pageSize: 5000 },
-      { employeeId: employee.id },
-    );
+    const summaryItems =
+      await this.attendanceRepository.findAttendanceForSummary(
+        currentUser.tenantId,
+        { ...query, page: 1, pageSize: 5000 },
+        { employeeId: employee.id },
+      );
 
     return this.mapAttendanceList(result.items, result.total, query, {
       scope: 'mine',
@@ -302,11 +303,12 @@ export class AttendanceService {
       query,
       { employeeId: { in: employeeIds } },
     );
-    const summaryItems = await this.attendanceRepository.findAttendanceForSummary(
-      currentUser.tenantId,
-      { ...query, page: 1, pageSize: 5000 },
-      { employeeId: { in: employeeIds } },
-    );
+    const summaryItems =
+      await this.attendanceRepository.findAttendanceForSummary(
+        currentUser.tenantId,
+        { ...query, page: 1, pageSize: 5000 },
+        { employeeId: { in: employeeIds } },
+      );
 
     return this.mapAttendanceList(result.items, result.total, query, {
       scope: canManageAll ? 'tenant' : scope === 'team' ? 'team' : 'tenant',

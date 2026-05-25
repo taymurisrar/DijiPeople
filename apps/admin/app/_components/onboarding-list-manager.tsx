@@ -350,10 +350,10 @@ export function OnboardingListManager({
                 onChange={(value) => updateFilter("status", value)}
                 options={[
                   { value: "", label: "All statuses" },
-                  ...onboardingLifecycle.statuses.map((status) => ({
-                    value: status,
-                    label: status.replaceAll("_", " "),
-                  })),
+                   ...onboardingLifecycle.statuses.map((status) => ({
+                      value: status.value,
+                      label: status.label,
+                    })),
                 ]}
                 value={currentFilters.status ?? ""}
               />

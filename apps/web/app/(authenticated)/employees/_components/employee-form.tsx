@@ -9,7 +9,10 @@ import {
   SelectField,
   TextField,
 } from "@/app/components/ui/form-control";
-import type { RuntimeFormLayout } from "@/lib/customization-forms";
+import type {
+  RuntimeCustomizationForm,
+  RuntimeFormLayout,
+} from "@/lib/customization-forms";
 import {
   BLOOD_GROUP_OPTIONS,
   CONTRACT_TYPE_OPTIONS,
@@ -42,6 +45,7 @@ type EmployeeFormProps = {
     requireWorkLocation?: boolean;
   };
   runtimeFormLayout?: RuntimeFormLayout | null;
+  runtimeForms?: RuntimeCustomizationForm[];
   mode: "create" | "edit";
 };
 
@@ -64,6 +68,7 @@ export function EmployeeForm({
   managerOptions,
   roleOptions,
   runtimeFormLayout,
+  runtimeForms = [],
   settings,
   mode,
 }: EmployeeFormProps) {
@@ -77,6 +82,12 @@ export function EmployeeForm({
   >([]);
   const [hasConfirmedDuplicateWarning, setHasConfirmedDuplicateWarning] =
     useState(false);
+  const [selectedRuntimeFormKey, setSelectedRuntimeFormKey] = useState(
+    () =>
+      runtimeForms.find((form) => form.isDefault)?.formKey ??
+      runtimeForms[0]?.formKey ??
+      "",
+  );
 
   const autoGenerateEmployeeId =
     mode === "create" && settings?.autoGenerateEmployeeId === true;
@@ -113,9 +124,16 @@ export function EmployeeForm({
     [employeeId, managerOptions],
   );
 
+  const selectedRuntimeForm =
+    runtimeForms.find((form) => form.formKey === selectedRuntimeFormKey) ??
+    runtimeForms.find((form) => form.isDefault) ??
+    runtimeForms[0] ??
+    null;
+  const effectiveRuntimeFormLayout =
+    selectedRuntimeForm?.layoutJson ?? runtimeFormLayout;
   const runtimeForm = useMemo(
-    () => buildRuntimeFormState(runtimeFormLayout),
-    [runtimeFormLayout],
+    () => buildRuntimeFormState(effectiveRuntimeFormLayout),
+    [effectiveRuntimeFormLayout],
   );
 
   function updateField<Key extends keyof EmployeeFormValues>(
@@ -407,10 +425,34 @@ export function EmployeeForm({
   return (
     <form className="grid gap-6" onSubmit={handleSubmit}>
       {runtimeForm.isCustomized ? (
-        <section className="rounded-[20px] border border-accent/20 bg-accent-soft px-5 py-4 text-sm text-accent">
-          This employee form is using the published customization layout. Fields
-          not present in the layout are hidden in this integrated runtime view;
-          backend validation still enforces required system rules.
+        <section className="flex flex-wrap items-center justify-between gap-3 rounded-[20px] border border-accent/20 bg-accent-soft px-5 py-4 text-sm text-accent">
+          <span>
+            This employee form is using the published customization layout.
+          </span>
+          {runtimeForms.length > 1 ? (
+            <label className="flex items-center gap-2 text-sm font-semibold text-accent">
+              Form
+              <select
+                className="rounded-xl border border-accent/20 bg-white px-3 py-2 text-sm text-foreground"
+                onChange={(event) => {
+                  if (
+                    window.confirm(
+                      "Switch forms? Unsaved changes stay on this page, but hidden field visibility may change.",
+                    )
+                  ) {
+                    setSelectedRuntimeFormKey(event.target.value);
+                  }
+                }}
+                value={selectedRuntimeForm?.formKey ?? ""}
+              >
+                {runtimeForms.map((formOption) => (
+                  <option key={formOption.formKey} value={formOption.formKey}>
+                    {formOption.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
         </section>
       ) : null}
 

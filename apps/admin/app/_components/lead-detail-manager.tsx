@@ -1,27 +1,69 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import {
+  ArrowLeft,
+  Power,
+  Plus,
+  RefreshCw,
+  Save,
+  Share2,
+  Trash2,
+} from "lucide-react";
+import { useMemo, useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Pencil, Plus, RefreshCw, Save, Share2, Trash2 } from "lucide-react";
-import { OwnerSelector } from "@/app/_components/crm/owner-selector";
-import { RecordRibbonBar } from "@/app/_components/crm/record-ribbon-bar";
-import { StatusSelector } from "@/app/_components/crm/status-selector";
-import { SubStatusSelector } from "@/app/_components/crm/sub-status-selector";
-import { CommandBar, DetailHeader, DetailPageShell, FormSection, ReadOnlyField, StatusPipeline, SummaryCard, SummaryCards } from "@/app/_components/ui/detail-page";
-import { LifecycleTabs } from "@/app/_components/ui/lifecycle-tabs";
+import {
+  LeadCrmShell,
+  LeadField,
+  LeadFormShell,
+  type LeadFormMode,
+  LeadReadOnlyField,
+  LeadRecordHeader,
+  LeadRibbon,
+  LeadRibbonButton,
+  OwnerStatusDropdown,
+  LeadSelectField,
+  LeadTabs,
+  LeadTextarea,
+} from "@/app/_components/lead-crm-form";
+import { StickyNotification } from "@/app/_components/notifications/app-notification";
+import { CrmStatusPipeline } from "@/app/_components/crm-status-pipeline";
+import {
+  buildPipelineStagesFromLifecycle,
+  entityPipelineConfigs,
+  type PipelineStage,
+} from "@/app/_components/entity-pipeline-config";
 import { TenantStatusBadge } from "@/app/_components/tenant-status-badge";
 import { getLifecycleLabel, isLeadReadOnly } from "@/lib/lifecycle";
-import type { LeadRecord, LifecycleOptions, OperatorOption, PlanOption } from "./platform-lifecycle-types";
+import type {
+  LeadRecord,
+  LifecycleOptions,
+  OperatorOption,
+  PlanOption,
+} from "./platform-lifecycle-types";
 
-export function LeadDetailManager({ lead, lifecycleOptions, operators, plans }: { lead: LeadRecord; lifecycleOptions: LifecycleOptions; operators: OperatorOption[]; plans: PlanOption[]; }) {
-  const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"overview" | "qualification" | "conversion" | "audit">("overview");
-  const [isPending, startTransition] = useTransition();
-  const [message, setMessage] = useState<string | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [lastSaveSucceeded, setLastSaveSucceeded] = useState(false);
+type LeadFormState = {
+  contactFirstName: string;
+  contactLastName: string;
+  companyName: string;
+  workEmail: string;
+  phoneNumber: string;
+  industry: string;
+  companySize: string;
+  source: string;
+  interestedPlan: string;
+  assignedToUserId: string;
+  status: string;
+  subStatus: string;
+  notes: string;
+  requirementsSummary: string;
+};
 
-  const initialForm = useMemo(() => ({
+type LeadTab = "overview" | "qualification" | "conversion" | "audit";
+
+const FORM_ID = "lead-detail-form";
+
+function buildInitialForm(lead: LeadRecord): LeadFormState {
+  return {
     contactFirstName: lead.contactFirstName ?? "",
     contactLastName: lead.contactLastName ?? "",
     companyName: lead.companyName ?? "",
@@ -36,28 +78,155 @@ export function LeadDetailManager({ lead, lifecycleOptions, operators, plans }: 
     subStatus: lead.subStatus ?? "",
     notes: lead.notes ?? "",
     requirementsSummary: lead.requirementsSummary ?? "",
-  }), [lead]);
+  };
+}
 
+function formatDate(value: string) {
+  return new Date(value).toLocaleDateString();
+}
+
+function getPipelineStages(
+  lifecycleOptions: LifecycleOptions,
+  current: string,
+) {
+  const statuses = lifecycleOptions.lead.statuses ?? [];
+  const visibleStatuses = statuses.some((status) => status.value === current)
+    ? statuses
+    : [
+        ...statuses,
+        {
+          value: current,
+          label: getLifecycleLabel(current),
+          tone: "default" as const,
+          sortOrder: statuses.length + 1,
+          isActive: true,
+          isSystem: false,
+          isTerminal: false,
+          allowedNextStatuses: [],
+          criteria: [],
+        },
+      ];
+
+  return visibleStatuses.map((status) => ({
+    value: status.value,
+    label: status.label,
+  }));
+}
+
+function getStatusOptions(lifecycleOptions: LifecycleOptions, current: string) {
+  return getPipelineStages(lifecycleOptions, current);
+}
+
+function getSubStatusOptions(
+  lifecycleOptions: LifecycleOptions,
+  status: string,
+  currentSubStatus: string,
+) {
+  const configuredOptions = lifecycleOptions.lead.subStatuses[status] ?? [];
+  const options =
+    configuredOptions.includes(currentSubStatus) || !currentSubStatus
+      ? configuredOptions
+      : [currentSubStatus, ...configuredOptions];
+
+  return [
+    { value: "", label: "None" },
+    ...options.map((value) => ({ value, label: value })),
+  ];
+}
+
+export function LeadDetailManager({
+  lead,
+  lifecycleOptions,
+  operators,
+  plans,
+}: {
+  lead: LeadRecord;
+  lifecycleOptions: LifecycleOptions;
+  operators: OperatorOption[];
+  plans: PlanOption[];
+}) {
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<LeadTab>("overview");
+  const [isPending, startTransition] = useTransition();
+  const [message, setMessage] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [lastSaveSucceeded, setLastSaveSucceeded] = useState(false);
+
+  const initialForm = useMemo(() => buildInitialForm(lead), [lead]);
   const [form, setForm] = useState(initialForm);
-  const readOnly = isLeadReadOnly(lead.status, lead.convertedCustomer?.id);
-  const isDirty = JSON.stringify(form) !== JSON.stringify(initialForm);
-  const saveStateLabel = isDirty ? "Unsaved changes" : lastSaveSucceeded ? "Saved" : "";
-  const fullName = [form.contactFirstName, form.contactLastName].filter(Boolean).join(" ").trim();
 
-  function updateForm<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
+  const isCompleted = isLeadReadOnly(form.status, lead.convertedCustomer?.id);
+  const formMode: LeadFormMode = isCompleted ? "COMPLETED" : "UPDATE";
+  const editable = formMode === "UPDATE";
+  const isDirty = JSON.stringify(form) !== JSON.stringify(initialForm);
+  const saveStateLabel = isDirty
+    ? "Unsaved changes"
+    : lastSaveSucceeded
+      ? "Saved"
+      : "";
+  const fullName = [form.contactFirstName, form.contactLastName]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+  const ownerName =
+    operators.find((operator) => operator.id === form.assignedToUserId)
+      ?.fullName ??
+    (form.assignedToUserId ? "Unknown owner" : null) ??
+    "Unassigned";
+
+  const ownerOptions = useMemo(() => {
+    return [
+      { value: "", label: "Unassigned" },
+      ...operators.map((operator) => ({
+        value: operator.id,
+        label: operator.fullName,
+      })),
+    ];
+  }, [operators]);
+
+  function updateForm<K extends keyof LeadFormState>(
+    key: K,
+    value: LeadFormState[K],
+  ) {
     setForm((current) => ({ ...current, [key]: value }));
+    setFieldErrors((current) => {
+      const next = { ...current };
+      delete next[String(key)];
+      return next;
+    });
     setLastSaveSucceeded(false);
     setMessage(null);
   }
 
+  function updateStatus(value: string) {
+    setForm((current) => ({
+      ...current,
+      status: value,
+      subStatus: lifecycleOptions.lead.subStatuses[value]?.[0] ?? "",
+    }));
+    setLastSaveSucceeded(false);
+    setMessage(null);
+  }
+
+  function buildLeadPayload(nextForm: LeadFormState) {
+    return {
+      ...nextForm,
+      interestedPlan: nextForm.interestedPlan || undefined,
+      assignedToUserId: nextForm.assignedToUserId || undefined,
+      subStatus: nextForm.subStatus || undefined,
+      notes: nextForm.notes || undefined,
+      requirementsSummary: nextForm.requirementsSummary || undefined,
+    };
+  }
+
   function handleSave() {
-    if (!isEditing || readOnly || !isDirty) return;
+    if (!editable || !isDirty) return;
     setMessage(null);
     startTransition(async () => {
       const response = await fetch(`/api/super-admin/leads/${lead.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, interestedPlan: form.interestedPlan || undefined, assignedToUserId: form.assignedToUserId || undefined, subStatus: form.subStatus || undefined, notes: form.notes || undefined, requirementsSummary: form.requirementsSummary || undefined }),
+        body: JSON.stringify(buildLeadPayload(form)),
       });
       const payload = await response.json().catch(() => null);
       if (!response.ok) {
@@ -66,33 +235,101 @@ export function LeadDetailManager({ lead, lifecycleOptions, operators, plans }: 
       }
       setMessage("Lead updated.");
       setLastSaveSucceeded(true);
-      setIsEditing(false);
       router.refresh();
     });
   }
 
+  function focusField(key: string) {
+    window.setTimeout(() => {
+      const field = document.querySelector<HTMLElement>(
+        `[data-field-key="${key}"]`,
+      );
+      field?.scrollIntoView({ behavior: "smooth", block: "center" });
+      field?.focus();
+    }, 80);
+  }
+
+  function applyMissingFieldErrors(keys: string[]) {
+    const nextErrors = keys.reduce<Record<string, string>>((errors, key) => {
+      errors[key] = "Required for this stage.";
+      return errors;
+    }, {});
+    setFieldErrors(nextErrors);
+    setActiveTab("overview");
+    if (keys[0]) focusField(keys[0]);
+  }
+
+  function handleStageChange(stage: PipelineStage, missing: string[]) {
+    if (missing.length) {
+      applyMissingFieldErrors(missing);
+      setMessage("Complete missing required fields before moving stages.");
+      return;
+    }
+    const nextForm = {
+      ...form,
+      status: stage.statusValue,
+      subStatus:
+        stage.subStatusValue ??
+        lifecycleOptions.lead.subStatuses[stage.statusValue]?.[0] ??
+        "",
+    };
+    setForm(nextForm);
+    startTransition(async () => {
+      const response = await fetch(`/api/super-admin/leads/${lead.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(buildLeadPayload(nextForm)),
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        setMessage(payload?.message ?? "Unable to update lead stage.");
+        return;
+      }
+      setLastSaveSucceeded(true);
+      setMessage("Lead stage updated.");
+      router.refresh();
+    });
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    handleSave();
+  }
+
+  function handleReset() {
+    setForm(initialForm);
+    setFieldErrors({});
+    setLastSaveSucceeded(false);
+    setMessage(null);
+  }
+
   function handleConvert() {
-    if (readOnly) return;
+    if (isCompleted) return;
     setMessage(null);
     startTransition(async () => {
-      const response = await fetch(`/api/super-admin/leads/${lead.id}/convert`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          companyName: form.companyName,
-          primaryContactFirstName: form.contactFirstName,
-          primaryContactLastName: form.contactLastName,
-          primaryContactEmail: form.workEmail,
-          primaryContactPhone: form.phoneNumber || undefined,
-          industry: form.industry,
-          companySize: form.companySize,
-          selectedPlanId: plans.find((plan) => plan.name === form.interestedPlan)?.id ?? undefined,
-          accountManagerUserId: form.assignedToUserId || undefined,
-          status: "PROSPECT",
-          subStatus: "Commercial review",
-          leadSubStatus: "Converted to customer",
-        }),
-      });
+      const response = await fetch(
+        `/api/super-admin/leads/${lead.id}/convert`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            companyName: form.companyName,
+            primaryContactFirstName: form.contactFirstName,
+            primaryContactLastName: form.contactLastName,
+            primaryContactEmail: form.workEmail,
+            primaryContactPhone: form.phoneNumber || undefined,
+            industry: form.industry,
+            companySize: form.companySize,
+            selectedPlanId:
+              plans.find((plan) => plan.name === form.interestedPlan)?.id ??
+              undefined,
+            accountManagerUserId: form.assignedToUserId || undefined,
+            status: "PROSPECT",
+            subStatus: "Commercial review",
+            leadSubStatus: "Converted to customer",
+          }),
+        },
+      );
       const payload = await response.json().catch(() => null);
       if (!response.ok) {
         setMessage(payload?.message ?? "Unable to convert lead.");
@@ -103,9 +340,13 @@ export function LeadDetailManager({ lead, lifecycleOptions, operators, plans }: 
   }
 
   function handleDelete() {
-    if (readOnly || !window.confirm("Delete this lead?")) return;
+    if (isCompleted || !window.confirm("Delete this lead?")) return;
     startTransition(async () => {
-      const response = await fetch("/api/super-admin/leads", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids: [lead.id] }) });
+      const response = await fetch("/api/super-admin/leads", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: [lead.id] }),
+      });
       const payload = await response.json().catch(() => null);
       if (!response.ok) {
         setMessage(payload?.message ?? "Unable to delete lead.");
@@ -124,102 +365,343 @@ export function LeadDetailManager({ lead, lifecycleOptions, operators, plans }: 
     }
   }
 
-  return (
-    <DetailPageShell>
-      <DetailHeader eyebrow="Lead" title={<span className="inline-flex flex-wrap items-center gap-3">{lead.companyName}<TenantStatusBadge value={lead.status} /></span>} description={`${lead.fullName} ? ${lead.workEmail} ? ${lead.source} ? Created ${new Date(lead.createdAt).toLocaleDateString()}`} />
-      <CommandBar>
-      <RecordRibbonBar left={<>
-        <IconButton label="Back" onClick={() => router.push("/leads")}><ArrowLeft className="h-4 w-4" /></IconButton>
-        <ActionButton onClick={() => router.push("/leads/new")}><Plus className="h-4 w-4" />New</ActionButton>
-        <ActionButton disabled={readOnly} onClick={() => setIsEditing((current) => !current)}><Pencil className="h-4 w-4" />{isEditing ? "View" : "Edit"}</ActionButton>
-        <ActionButton disabled={isPending || !isEditing || readOnly || !isDirty} onClick={handleSave}><Save className="h-4 w-4" />Save</ActionButton>
-        <ActionButton onClick={() => router.refresh()}><RefreshCw className="h-4 w-4" />Refresh</ActionButton>
-        <ActionButton disabled={isPending || readOnly} onClick={handleDelete}><Trash2 className="h-4 w-4" />Delete</ActionButton>
-        <ActionButton onClick={handleShare}><Share2 className="h-4 w-4" />Share</ActionButton>
-      </>} right={<span className={saveStateLabel === "Unsaved changes" ? "text-sm font-medium text-amber-600" : "text-sm font-medium text-emerald-600"}>{saveStateLabel}</span>} />
-      </CommandBar>
+  const lifecycleLabel = isCompleted ? "Completed" : "Active";
+  const canClickPipeline = editable && !isCompleted;
 
-      {isEditing && !readOnly ? (
-      <section className="grid gap-3 rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm lg:grid-cols-3">
-        <StatusSelector label="Status" onChange={(value) => { updateForm("status", value); updateForm("subStatus", lifecycleOptions.lead.subStatuses[value]?.[0] ?? ""); }} options={lifecycleOptions.lead.statuses.map((value) => ({ value, label: getLifecycleLabel(value) }))} value={form.status} />
-        <SubStatusSelector label="Sub-status" onChange={(value) => updateForm("subStatus", value)} options={[{ value: "", label: "None" }, ...(lifecycleOptions.lead.subStatuses[form.status] ?? []).map((value) => ({ value, label: value }))]} value={form.subStatus} />
-        <OwnerSelector label="Owner" onChange={(value) => updateForm("assignedToUserId", value)} options={[{ value: "", label: "Unassigned" }, ...operators.map((operator) => ({ value: operator.id, label: operator.fullName }))]} value={form.assignedToUserId} />
-      </section>
+  return (
+    <LeadCrmShell>
+      <LeadRibbon
+        left={
+          <>
+            <LeadRibbonButton
+              icon={ArrowLeft}
+              label="Back"
+              onClick={() => router.push("/leads")}
+            />
+            <LeadRibbonButton
+              disabled={isPending || !editable || !isDirty}
+              form={FORM_ID}
+              icon={Save}
+              label="Save"
+              type="submit"
+            >
+              Save
+            </LeadRibbonButton>
+            <LeadRibbonButton
+              disabled={isPending}
+              icon={RefreshCw}
+              label={editable || isDirty ? "Reset" : "Refresh"}
+              onClick={
+                editable || isDirty ? handleReset : () => router.refresh()
+              }
+            >
+              {editable || isDirty ? "Reset" : "Refresh"}
+            </LeadRibbonButton>
+            <LeadRibbonButton
+              icon={Plus}
+              label="New"
+              onClick={() => router.push("/leads/new")}
+            >
+              New
+            </LeadRibbonButton>
+            <LeadRibbonButton
+              disabled={isPending}
+              icon={Power}
+              label={isCompleted ? "Activate" : "Deactivate"}
+              onClick={() => {
+                const nextStatus = isCompleted ? "NEW" : "ARCHIVED";
+                const nextStage = entityPipelineConfigs.lead.stages.find(
+                  (stage) => stage.statusValue === nextStatus,
+                );
+                if (nextStage) handleStageChange(nextStage, []);
+              }}
+            >
+              {isCompleted ? "Activate" : "Deactivate"}
+            </LeadRibbonButton>
+            <LeadRibbonButton
+              disabled={isPending || isCompleted}
+              icon={Trash2}
+              label="Delete"
+              onClick={handleDelete}
+            >
+              Delete
+            </LeadRibbonButton>
+            <LeadRibbonButton icon={Share2} label="Share" onClick={handleShare}>
+              Share
+            </LeadRibbonButton>
+            {saveStateLabel ? (
+              <span
+                className={[
+                  "ml-1 inline-flex h-9 items-center rounded-lg px-2 text-sm font-semibold",
+                  saveStateLabel === "Unsaved changes"
+                    ? "text-amber-700"
+                    : "text-emerald-700",
+                ].join(" ")}
+              >
+                {saveStateLabel}
+              </span>
+            ) : null}
+          </>
+        }
+        right={
+          <>
+            <OwnerStatusDropdown
+              disabled={!editable}
+              ownerLabel={ownerName}
+              ownerOptions={ownerOptions}
+              ownerValue={form.assignedToUserId}
+              onOwnerChange={(value) => updateForm("assignedToUserId", value)}
+              onStatusChange={updateStatus}
+              onSubStatusChange={(value) => updateForm("subStatus", value)}
+              statusOptions={getStatusOptions(lifecycleOptions, form.status)}
+              statusValue={form.status}
+              subStatusOptions={getSubStatusOptions(
+                lifecycleOptions,
+                form.status,
+                form.subStatus,
+              )}
+              subStatusValue={form.subStatus}
+            />
+          </>
+        }
+      />
+
+      <CrmStatusPipeline
+        currentStatus={form.status}
+        disabled={!canClickPipeline}
+        form={form}
+        onFieldFocus={focusField}
+        onStageChange={canClickPipeline ? handleStageChange : undefined}
+        stages={buildPipelineStagesFromLifecycle(
+          "lead",
+          lifecycleOptions.lead.statuses,
+        )}
+      />
+
+      {formMode === "COMPLETED" ? (
+        <StickyNotification
+          storageKey={`lead-read-only-${lead.id}`}
+          title="Read-only completed lead"
+          tone="info"
+        >
+          This lead is complete and read-only. Historical details, conversion
+          state, and audit information remain available for traceability.
+        </StickyNotification>
       ) : null}
 
-      <StatusPipeline
-  current={lead.status}
-  stages={[
-    { key: "NEW", label: "New" },
-    { key: "QUALIFIED", label: "Qualified" },
-    { key: "CONVERTED", label: "Converted" },
-    { key: "ARCHIVED", label: "Archived" },
-  ]}
-/>
-      <SummaryCards>
-        <SummaryCard label="Contact" value={fullName || "Unnamed lead"} />
-        <SummaryCard label="Owner" value={lead.assignedToUser?.fullName ?? "Unassigned"} />
-        <SummaryCard label="Source" value={lead.source} />
-        <SummaryCard label="Lifecycle" value={readOnly ? "Completed" : "Active"} hint={readOnly ? "Read-only stage" : "Editable work item"} />
-      </SummaryCards>
+      <LeadRecordHeader
+        badge={<TenantStatusBadge value={form.status} />}
+        helperText="Review lead context and complete required fields before moving stages."
+        metadata={[
+          { label: "Contact", value: fullName },
+          { label: "Email", value: form.workEmail },
+          { label: "Source", value: form.source },
+          { label: "Created", value: formatDate(lead.createdAt) },
+          { label: "Lifecycle", value: lifecycleLabel },
+        ]}
+        title={form.companyName || fullName || lead.companyName || "Lead"}
+      />
 
-      <FormSection title={isEditing && !readOnly ? "Edit lead" : "Lead workspace"} description={readOnly ? "Converted leads remain visible for traceability, but no longer stay editable forever." : isEditing ? "Editing is explicit. Save to commit changes or switch back to view mode." : "View mode is read-only by default."}>
-        <LifecycleTabs tabs={[{ key: "overview", label: "Overview" }, { key: "qualification", label: "Qualification" }, { key: "conversion", label: "Conversion" }, { key: "audit", label: "Audit Log" }]} activeTab={activeTab} onChange={setActiveTab} />
-        {activeTab === "overview" && isEditing && !readOnly ? (
-          <>
-            <div className="grid gap-4 lg:grid-cols-2">
-              <Field label="First name" onChange={(value) => updateForm("contactFirstName", value)} value={form.contactFirstName} />
-              <Field label="Last name" onChange={(value) => updateForm("contactLastName", value)} value={form.contactLastName} />
-              <Field label="Company" onChange={(value) => updateForm("companyName", value)} value={form.companyName} />
-              <Field label="Work email" onChange={(value) => updateForm("workEmail", value)} type="email" value={form.workEmail} />
-              <Field label="Phone" onChange={(value) => updateForm("phoneNumber", value.replace(/[^+()\-.\s0-9]/g, ""))} value={form.phoneNumber} />
-              <Select label="Industry" onChange={(value) => updateForm("industry", value)} options={lifecycleOptions.industries} value={form.industry} />
-              <Select label="Company size" onChange={(value) => updateForm("companySize", value)} options={lifecycleOptions.companySizes} value={form.companySize} />
-              <Select label="Source" onChange={(value) => updateForm("source", value)} options={[{ value: "", label: "Select source" }, ...lifecycleOptions.lead.sources]} value={form.source} />
-              <Select label="Interested plan" onChange={(value) => updateForm("interestedPlan", value)} options={[{ value: "", label: "Not specified" }, ...plans.map((plan) => ({ value: plan.name, label: plan.name }))]} value={form.interestedPlan} />
-            </div>
-            <div className="mt-4 grid gap-4">
-              <TextArea label="Requirements summary" onChange={(value) => updateForm("requirementsSummary", value)} value={form.requirementsSummary} />
-              <TextArea label="Internal notes" onChange={(value) => updateForm("notes", value)} value={form.notes} />
-            </div>
-          </>
-        ) : activeTab === "overview" ? (
-          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            <ReadOnlyField label="First name" value={form.contactFirstName} />
-            <ReadOnlyField label="Last name" value={form.contactLastName} />
-            <ReadOnlyField label="Company" value={form.companyName} />
-            <ReadOnlyField label="Work email" value={form.workEmail} />
-            <ReadOnlyField label="Phone" value={form.phoneNumber} />
-            <ReadOnlyField label="Industry" value={form.industry} />
-            <ReadOnlyField label="Company size" value={form.companySize} />
-            <ReadOnlyField label="Source" value={form.source} />
-            <ReadOnlyField label="Interested plan" value={form.interestedPlan} />
+      <LeadTabs
+        activeTab={activeTab}
+        onChange={setActiveTab}
+        tabs={[
+          { key: "overview", label: "Overview" },
+          { key: "qualification", label: "Qualification" },
+          { key: "conversion", label: "Conversion" },
+          { key: "audit", label: "Audit Log" },
+        ]}
+      />
+
+      {activeTab === "overview" ? (
+        <LeadFormShell
+          footer={
+            <>
+              <div className="text-sm text-slate-600">
+                {message ??
+                  (isCompleted
+                    ? "This lead is complete."
+                    : editable
+                      ? "Save changes before converting the lead."
+                      : "Select Edit to update this lead.")}
+              </div>
+              <button
+                className="inline-flex h-10 items-center justify-center rounded-lg bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-950/20 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
+                disabled={isPending || isCompleted}
+                onClick={handleConvert}
+                type="button"
+              >
+                {isCompleted ? "Converted" : "Convert to customer"}
+              </button>
+            </>
+          }
+          formId={FORM_ID}
+          onSubmit={handleSubmit}
+        >
+          <LeadField
+            disabled={!editable}
+            error={fieldErrors.contactFirstName}
+            fieldKey="contactFirstName"
+            label="First name"
+            onChange={(value) => updateForm("contactFirstName", value)}
+            value={form.contactFirstName}
+          />
+          <LeadField
+            disabled={!editable}
+            error={fieldErrors.contactLastName}
+            fieldKey="contactLastName"
+            label="Last name"
+            onChange={(value) => updateForm("contactLastName", value)}
+            value={form.contactLastName}
+          />
+          <LeadField
+            disabled={!editable}
+            error={fieldErrors.companyName}
+            fieldKey="companyName"
+            label="Company"
+            onChange={(value) => updateForm("companyName", value)}
+            required
+            value={form.companyName}
+          />
+          <LeadField
+            disabled={!editable}
+            error={fieldErrors.workEmail}
+            fieldKey="workEmail"
+            label="Work email"
+            onChange={(value) => updateForm("workEmail", value)}
+            required
+            type="email"
+            value={form.workEmail}
+          />
+          <LeadField
+            disabled={!editable}
+            error={fieldErrors.phoneNumber}
+            fieldKey="phoneNumber"
+            label="Phone"
+            onChange={(value) =>
+              updateForm("phoneNumber", value.replace(/[^+()\-.\s0-9]/g, ""))
+            }
+            value={form.phoneNumber}
+          />
+          <LeadSelectField
+            disabled={!editable}
+            error={fieldErrors.industry}
+            fieldKey="industry"
+            label="Industry"
+            onChange={(value) => updateForm("industry", value)}
+            options={lifecycleOptions.industries}
+            value={form.industry}
+          />
+          <LeadSelectField
+            disabled={!editable}
+            error={fieldErrors.companySize}
+            fieldKey="companySize"
+            label="Company size"
+            onChange={(value) => updateForm("companySize", value)}
+            options={lifecycleOptions.companySizes}
+            value={form.companySize}
+          />
+          <LeadSelectField
+            disabled={!editable}
+            error={fieldErrors.source}
+            fieldKey="source"
+            label="Source"
+            onChange={(value) => updateForm("source", value)}
+            options={[
+              { value: "", label: "Select source" },
+              ...lifecycleOptions.lead.sources,
+            ]}
+            value={form.source}
+          />
+          <LeadSelectField
+            disabled={!editable}
+            error={fieldErrors.interestedPlan}
+            fieldKey="interestedPlan"
+            label="Interested plan"
+            onChange={(value) => updateForm("interestedPlan", value)}
+            options={[
+              { value: "", label: "Not specified" },
+              ...plans.map((plan) => ({ value: plan.name, label: plan.name })),
+            ]}
+            value={form.interestedPlan}
+          />
+          <LeadTextarea
+            disabled={!editable}
+            error={fieldErrors.requirementsSummary}
+            fieldKey="requirementsSummary"
+            label="Requirements summary"
+            onChange={(value) => updateForm("requirementsSummary", value)}
+            value={form.requirementsSummary}
+          />
+          <LeadTextarea
+            disabled={!editable}
+            error={fieldErrors.notes}
+            fieldKey="notes"
+            label="Internal notes"
+            onChange={(value) => updateForm("notes", value)}
+            value={form.notes}
+          />
+        </LeadFormShell>
+      ) : null}
+
+      {activeTab === "qualification" ? (
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="grid gap-4 lg:grid-cols-2">
+            <LeadReadOnlyField
+              label="Interested plan"
+              value={form.interestedPlan}
+            />
+            <LeadReadOnlyField label="Owner" value={ownerName} />
+            <LeadReadOnlyField label="Sub-status" value={form.subStatus} />
+            <LeadReadOnlyField
+              label="Requirements summary"
+              value={form.requirementsSummary}
+              wide
+            />
           </div>
-        ) : null}
-        {activeTab === "qualification" ? <div className="mt-6 grid gap-4 md:grid-cols-2"><ReadOnlyField label="Interested plan" value={form.interestedPlan} /><ReadOnlyField label="Requirements summary" value={form.requirementsSummary} /><ReadOnlyField label="Owner" value={lead.assignedToUser?.fullName ?? "Unassigned"} /><ReadOnlyField label="Sub-status" value={form.subStatus} /></div> : null}
-        {activeTab === "conversion" ? <div className="mt-6 grid gap-4 md:grid-cols-2"><ReadOnlyField label="Conversion state" value={readOnly ? "Converted / completed" : "Ready when qualified"} /><ReadOnlyField label="Linked customer" value={lead.convertedCustomer?.companyName ?? "Not converted yet"} /></div> : null}
-        {activeTab === "audit" ? <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm text-slate-600">Audit events will appear here as lifecycle actions are recorded.</div> : null}
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-          <div className="text-sm text-slate-600">{message ?? (readOnly ? "This lifecycle stage is complete." : "Keep the lead qualified before conversion.")}</div>
-          <button className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white disabled:opacity-60" disabled={isPending || readOnly} onClick={handleConvert} type="button">Convert to customer</button>
-        </div>
-      </FormSection>
-    </DetailPageShell>
-  );
-}
+        </section>
+      ) : null}
 
-function IconButton({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
-  return <button aria-label={label} className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-slate-700 transition hover:bg-slate-100" onClick={onClick} title={label} type="button">{children}</button>;
-}
-function ActionButton({ children, onClick, disabled = false }: { children: React.ReactNode; onClick: () => void; disabled?: boolean }) {
-  return <button className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-60" disabled={disabled} onClick={onClick} type="button">{children}</button>;
-}
-function Field({ label, value, onChange, type = "text" }: { label: string; value: string; onChange: (value: string) => void; type?: string }) {
-  return <label className="block text-sm font-medium text-slate-700">{label}<input className="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm" onChange={(event) => onChange(event.target.value)} type={type} value={value} /></label>;
-}
-function Select({ label, value, onChange, options }: { label: string; value: string; onChange: (value: string) => void; options: Array<{ value: string; label: string }> }) {
-  return <label className="block text-sm font-medium text-slate-700">{label}<select className="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm" onChange={(event) => onChange(event.target.value)} value={value}>{options.map((option) => <option key={option.value || option.label} value={option.value}>{option.label}</option>)}</select></label>;
-}
-function TextArea({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
-  return <label className="block text-sm font-medium text-slate-700">{label}<textarea className="mt-2 min-h-28 w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm" onChange={(event) => onChange(event.target.value)} value={value} /></label>;
+      {activeTab === "conversion" ? (
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="grid gap-4 lg:grid-cols-2">
+            <LeadReadOnlyField
+              label="Conversion state"
+              value={
+                isCompleted ? "Converted / completed" : "Ready when qualified"
+              }
+            />
+            <LeadReadOnlyField
+              label="Linked customer"
+              value={lead.convertedCustomer?.companyName ?? "Not converted yet"}
+            />
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 lg:col-span-2">
+              <div className="text-sm text-slate-600">
+                {message ??
+                  (isCompleted
+                    ? "Conversion has already been completed."
+                    : "Conversion creates the linked customer record.")}
+              </div>
+              <button
+                className="inline-flex h-10 items-center justify-center rounded-lg bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-950/20 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
+                disabled={isPending || isCompleted}
+                onClick={handleConvert}
+                type="button"
+              >
+                {isCompleted ? "Converted" : "Convert to customer"}
+              </button>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {activeTab === "audit" ? (
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm text-slate-600">
+            Audit events will appear here as lifecycle actions are recorded.
+          </div>
+        </section>
+      ) : null}
+    </LeadCrmShell>
+  );
 }

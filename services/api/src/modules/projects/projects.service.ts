@@ -376,7 +376,9 @@ export class ProjectsService {
     await this.auditService.log({
       tenantId: currentUser.tenantId,
       actorUserId: currentUser.userId,
-      action: existing ? 'project-allocation.update' : 'project-allocation.create',
+      action: existing
+        ? 'project-allocation.update'
+        : 'project-allocation.create',
       entityType: 'ProjectAssignment',
       entityId: existing?.id ?? projectId,
       beforeSnapshot: existing,
@@ -476,7 +478,9 @@ export class ProjectsService {
         },
       })),
       financials: {
-        budgetAmount: project.budgetAmount ? Number(project.budgetAmount) : null,
+        budgetAmount: project.budgetAmount
+          ? Number(project.budgetAmount)
+          : null,
         consumedAmount: project.consumedAmount
           ? Number(project.consumedAmount)
           : null,
@@ -503,16 +507,19 @@ export class ProjectsService {
     if ((dto.allocationType ?? 'PERCENTAGE') !== 'PERCENTAGE') return;
     const allocationPercent = dto.allocationPercent ?? 0;
     if (allocationPercent > 100) {
-      throw new BadRequestException('Allocation percentage cannot exceed 100%.');
+      throw new BadRequestException(
+        'Allocation percentage cannot exceed 100%.',
+      );
     }
 
     const startDate = dto.startDate ? new Date(dto.startDate) : null;
     const endDate = dto.endDate ? new Date(dto.endDate) : null;
-    const overlapping = await this.projectsRepository.findActiveAssignmentsForEmployee(
-      tenantId,
-      employeeId,
-      { projectIdToExclude: projectId, startDate, endDate },
-    );
+    const overlapping =
+      await this.projectsRepository.findActiveAssignmentsForEmployee(
+        tenantId,
+        employeeId,
+        { projectIdToExclude: projectId, startDate, endDate },
+      );
     const totalPercent =
       allocationPercent +
       overlapping.reduce(
@@ -542,7 +549,9 @@ function normalizeTimezone(value?: string | null) {
     new Intl.DateTimeFormat('en-US', { timeZone: timezone });
     return timezone;
   } catch {
-    throw new BadRequestException('Project timezone must be a valid IANA timezone ID.');
+    throw new BadRequestException(
+      'Project timezone must be a valid IANA timezone ID.',
+    );
   }
 }
 
@@ -550,7 +559,9 @@ function normalizeCurrencyCode(value?: string | null) {
   if (!value?.trim()) return null;
   const currencyCode = value.trim().toUpperCase();
   if (!/^[A-Z]{3}$/.test(currencyCode)) {
-    throw new BadRequestException('Currency code must be a valid ISO 4217 code.');
+    throw new BadRequestException(
+      'Currency code must be a valid ISO 4217 code.',
+    );
   }
   try {
     new Intl.NumberFormat('en-US', {
@@ -559,7 +570,9 @@ function normalizeCurrencyCode(value?: string | null) {
     }).format(1);
     return currencyCode;
   } catch {
-    throw new BadRequestException('Currency code must be a valid ISO 4217 code.');
+    throw new BadRequestException(
+      'Currency code must be a valid ISO 4217 code.',
+    );
   }
 }
 
@@ -579,7 +592,11 @@ function validateAssignment(
   projectStartDate?: Date | null,
   projectEndDate?: Date | null,
 ) {
-  if (dto.startDate && dto.endDate && new Date(dto.endDate) < new Date(dto.startDate)) {
+  if (
+    dto.startDate &&
+    dto.endDate &&
+    new Date(dto.endDate) < new Date(dto.startDate)
+  ) {
     throw new BadRequestException(
       'Project resource end date cannot be earlier than start date.',
     );

@@ -44,7 +44,7 @@ export default async function CustomerDetailPage({
       `/super-admin/customers/${customerAccountId}`,
     ),
     apiRequestJson<LifecycleOptions>("/super-admin/lifecycle-options"),
-    apiRequestJson<OperatorOption[]>("/super-admin/operators"),
+    apiRequestJson<OperatorOption[]>("/platform-users/owner-candidates"),
     apiRequestJson<PlanOption[]>("/super-admin/plans"),
   ]);
 

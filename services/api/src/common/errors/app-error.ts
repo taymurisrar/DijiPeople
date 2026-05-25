@@ -26,7 +26,8 @@ export class AppError extends Error {
       isOperational?: boolean;
     } = {},
   ) {
-    const catalog = ERROR_CATALOG[errorCode] ?? ERROR_CATALOG.SYSTEM_UNEXPECTED_ERROR;
+    const catalog =
+      ERROR_CATALOG[errorCode] ?? ERROR_CATALOG.SYSTEM_UNEXPECTED_ERROR;
     super(options.message ?? catalog.message);
     this.name = 'AppError';
     this.errorCode = errorCode;
@@ -43,7 +44,10 @@ export function isErrorCode(value: unknown): value is ErrorCode {
   return typeof value === 'string' && value in ERROR_CATALOG;
 }
 
-export function createAppError(code: string, options: ConstructorParameters<typeof AppError>[1] = {}) {
+export function createAppError(
+  code: string,
+  options: ConstructorParameters<typeof AppError>[1] = {},
+) {
   const resolved = isErrorCode(code) ? code : 'SYSTEM_UNEXPECTED_ERROR';
   const catalog = getErrorCatalogEntry(resolved);
   return new AppError(resolved, {

@@ -3,7 +3,11 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { LeadStatus } from '@prisma/client';
+import {
+  LeadStatus,
+  PlatformUserRole,
+  PlatformUserStatus,
+} from '@prisma/client';
 import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { AuditService } from '../audit/audit.service';
 import {
@@ -14,7 +18,14 @@ import {
 } from './dto/admin-lead.dto';
 import { SubmitLeadDto } from './dto/submit-lead.dto';
 import { LeadsRepository } from './leads.repository';
-import { isValidSubStatus } from '../super-admin/platform-lifecycle.constants';
+import {
+  getEntityStageDefinition,
+  getRequiredCriteria,
+  isValidLeadSource,
+  isValidSubStatus,
+  isValidTransition,
+  normalizeLeadSource,
+} from '../super-admin/platform-lifecycle.constants';
 import { PrismaService } from '../../common/prisma/prisma.service';
 
 @Injectable()
@@ -43,7 +54,7 @@ export class LeadsService {
       requirementsSummary: dto.message ?? null,
       message: dto.message ?? null,
       interestedPlan: dto.interestArea ?? dto.interestedPlan ?? null,
-      source: 'DijiPeople Website',
+      source: 'Website',
       status: LeadStatus.NEW,
       subStatus: 'Demo requested',
     });
@@ -128,6 +139,13 @@ export class LeadsService {
 
   async createLead(currentUser: AuthenticatedUser, dto: CreateAdminLeadDto) {
     this.assertLeadSubStatus(dto.status ?? LeadStatus.NEW, dto.subStatus);
+    this.assertLeadSource(dto.source);
+    const creatorAssigneeId =
+      await this.resolveCreatorLeadAssignee(currentUser);
+    const assignedToUserId =
+      dto.assignedToUserId === undefined || dto.assignedToUserId === null
+        ? creatorAssigneeId
+        : await this.resolveLeadAssignee(dto.assignedToUserId);
 
     const lead = await this.leadsRepository.create({
       contactFirstName: dto.contactFirstName.trim(),
@@ -143,7 +161,7 @@ export class LeadsService {
       country: dto.country ?? null,
       stateProvince: dto.stateProvince ?? null,
       city: dto.city ?? null,
-      source: dto.source ?? 'Manual Entry',
+      source: normalizeLeadSource(dto.source) ?? 'Manual Entry',
       interestedPlan: dto.interestedPlan ?? null,
       estimatedEmployeeCount: dto.estimatedEmployeeCount ?? null,
       expectedGoLiveDate: dto.expectedGoLiveDate
@@ -152,7 +170,7 @@ export class LeadsService {
       budgetExpectation: dto.budgetExpectation ?? null,
       requirementsSummary: dto.requirementsSummary ?? null,
       notes: dto.notes ?? null,
-      assignedToUserId: dto.assignedToUserId ?? currentUser.userId,
+      assignedToUserId,
       status: dto.status ?? LeadStatus.NEW,
       subStatus: dto.subStatus ?? null,
       isQualified:
@@ -195,6 +213,18 @@ export class LeadsService {
     const nextSubStatus =
       dto.subStatus === undefined ? existing.subStatus : dto.subStatus;
     this.assertLeadSubStatus(nextStatus, nextSubStatus);
+    this.assertLeadSource(dto.source);
+    const assignedToUserId =
+      dto.assignedToUserId === undefined
+        ? undefined
+        : await this.resolveLeadAssignee(dto.assignedToUserId);
+    if (dto.status !== undefined && dto.status !== existing.status) {
+      this.assertLeadTransition(existing.status, dto.status);
+      this.assertRequiredCriteriaForLead(nextStatus, {
+        ...existing,
+        ...dto,
+      });
+    }
 
     const updated = await this.leadsRepository.update(leadId, {
       ...(dto.contactFirstName !== undefined
@@ -231,7 +261,9 @@ export class LeadsService {
         ? { stateProvince: dto.stateProvince ?? null }
         : {}),
       ...(dto.city !== undefined ? { city: dto.city ?? null } : {}),
-      ...(dto.source !== undefined ? { source: dto.source.trim() } : {}),
+      ...(dto.source !== undefined
+        ? { source: normalizeLeadSource(dto.source) ?? existing.source }
+        : {}),
       ...(dto.interestedPlan !== undefined
         ? { interestedPlan: dto.interestedPlan ?? null }
         : {}),
@@ -252,9 +284,7 @@ export class LeadsService {
         ? { requirementsSummary: dto.requirementsSummary ?? null }
         : {}),
       ...(dto.notes !== undefined ? { notes: dto.notes ?? null } : {}),
-      ...(dto.assignedToUserId !== undefined
-        ? { assignedToUserId: dto.assignedToUserId ?? null }
-        : {}),
+      ...(dto.assignedToUserId !== undefined ? { assignedToUserId } : {}),
       ...(dto.status !== undefined ? { status: dto.status } : {}),
       ...(dto.subStatus !== undefined
         ? { subStatus: dto.subStatus ?? null }
@@ -310,10 +340,13 @@ export class LeadsService {
     currentUser: AuthenticatedUser,
     dto: BulkAssignLeadsDto,
   ) {
+    const assignedToUserId = await this.resolveLeadAssignee(
+      dto.assignedToUserId,
+    );
     const updated = await this.prisma.lead.updateMany({
       where: { id: { in: dto.ids } },
       data: {
-        assignedToUserId: dto.assignedToUserId ?? null,
+        assignedToUserId,
       },
     });
 
@@ -325,7 +358,7 @@ export class LeadsService {
       entityId: 'bulk',
       afterSnapshot: {
         ids: dto.ids,
-        assignedToUserId: dto.assignedToUserId ?? null,
+        assignedToUserId,
         count: updated.count,
       },
     });
@@ -340,4 +373,90 @@ export class LeadsService {
       );
     }
   }
+
+  private assertLeadSource(source?: string | null) {
+    if (!isValidLeadSource(source)) {
+      throw new BadRequestException('Lead source is not supported.');
+    }
+  }
+
+  private async resolveLeadAssignee(assignedToUserId?: string | null) {
+    if (!assignedToUserId) return null;
+
+    const user = await this.prisma.platformUser.findFirst({
+      where: {
+        id: assignedToUserId,
+        role: { in: [PlatformUserRole.SUPER_ADMIN, PlatformUserRole.MEMBER] },
+        status: PlatformUserStatus.ACTIVE,
+      },
+      select: { id: true },
+    });
+
+    if (!user) {
+      throw new BadRequestException(
+        'Lead owner must be an active platform system user.',
+      );
+    }
+
+    return user.id;
+  }
+
+  private async resolveCreatorLeadAssignee(currentUser: AuthenticatedUser) {
+    const platformUserId = currentUser.platform?.id ?? currentUser.userId;
+    const user = await this.prisma.platformUser.findFirst({
+      where: {
+        id: platformUserId,
+        role: { in: [PlatformUserRole.SUPER_ADMIN, PlatformUserRole.MEMBER] },
+        status: PlatformUserStatus.ACTIVE,
+      },
+      select: { id: true },
+    });
+
+    if (!user) {
+      throw new BadRequestException(
+        'Lead creator must be an active platform system user before owning leads.',
+      );
+    }
+
+    return user.id;
+  }
+
+  private assertLeadTransition(
+    currentStatus: LeadStatus,
+    nextStatus: LeadStatus,
+  ) {
+    if (!isValidTransition('lead', currentStatus, nextStatus)) {
+      const currentStage = getEntityStageDefinition('lead', currentStatus);
+      const message = currentStage?.isTerminal
+        ? 'Terminal lead statuses cannot transition further.'
+        : 'Lead status transition is not allowed by lifecycle rules.';
+      throw new BadRequestException(message);
+    }
+  }
+
+  private assertRequiredCriteriaForLead(
+    status: LeadStatus,
+    record: Record<string, unknown>,
+  ) {
+    const missing = getRequiredCriteria('lead', status)
+      .filter((criterion) => criterion.fieldKey)
+      .filter(
+        (criterion) => !isCompleteCriterionValue(record[criterion.fieldKey!]),
+      )
+      .map((criterion) => criterion.label);
+
+    if (missing.length > 0) {
+      throw new BadRequestException(
+        `Complete required criteria before moving status: ${missing.join(', ')}.`,
+      );
+    }
+  }
+}
+
+function isCompleteCriterionValue(value: unknown) {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return Number.isFinite(value);
+  if (typeof value === 'string') return value.trim().length > 0;
+  if (Array.isArray(value)) return value.length > 0;
+  return Boolean(value);
 }

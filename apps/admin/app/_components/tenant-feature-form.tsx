@@ -87,51 +87,101 @@ export function TenantFeatureForm({
     });
   }
 
-  return (
-    <form
-      onSubmit={handleSubmit}
-      className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
-    >
-      <div>
-        <h3 className="text-lg font-semibold text-slate-950">Feature access</h3>
-        <p className="mt-2 text-sm leading-6 text-slate-600">
-          Plan defaults define the baseline. Manual overrides let operations shape a tenant deal without branching the product.
-        </p>
-      </div>
+return (
+  <form
+    onSubmit={handleSubmit}
+    className="rounded-3xl border border-slate-200 bg-white shadow-sm"
+  >
+    <div className="border-b border-slate-100 px-6 py-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h3 className="text-base font-semibold text-slate-950">
+            Feature access
+          </h3>
+          <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
+            Control which features are available for this tenant. Plan defaults are applied automatically; overrides let you customize access when needed.
+          </p>
+        </div>
 
-      <div className="grid gap-3">
-        {mergedFeatures.map((feature) => (
-          <label
-            key={feature.key}
-            className="flex items-start justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"
-          >
-            <div>
-              <div className="font-medium text-slate-950">{feature.label}</div>
-              <div className="mt-1 text-sm leading-6 text-slate-600">
-                {feature.description}
-              </div>
-              <div className="mt-2 text-xs uppercase tracking-[0.18em] text-slate-500">
-                {feature.key} {feature.isIncludedInPlan ? "• plan" : "• override"}
-              </div>
+        <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+          {mergedFeatures.filter((feature) => feature.isEnabled).length} /{" "}
+          {mergedFeatures.length} enabled
+        </div>
+      </div>
+    </div>
+
+    <div className="grid gap-3 p-4 sm:p-6">
+      {mergedFeatures.map((feature) => (
+        <button
+          key={feature.key}
+          type="button"
+          onClick={() => toggleFeature(feature.key)}
+          className={[
+            "group flex w-full items-start justify-between gap-4 rounded-2xl border p-4 text-left transition",
+            feature.isEnabled
+              ? "border-slate-300 bg-slate-50 shadow-sm"
+              : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50",
+          ].join(" ")}
+        >
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="font-medium text-slate-950">{feature.label}</p>
+
+              <span
+                className={[
+                  "rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                  feature.isIncludedInPlan
+                    ? "bg-emerald-50 text-emerald-700"
+                    : "bg-amber-50 text-amber-700",
+                ].join(" ")}
+              >
+                {feature.isIncludedInPlan ? "Plan default" : "Override"}
+              </span>
             </div>
-            <input
-              checked={feature.isEnabled}
-              onChange={() => toggleFeature(feature.key)}
-              type="checkbox"
-            />
-          </label>
-        ))}
-      </div>
 
-      {message ? <p className="text-sm text-slate-600">{message}</p> : null}
+            <p className="mt-1 text-sm leading-6 text-slate-500">
+              {feature.description}
+            </p>
+
+            <p className="mt-2 truncate font-mono text-xs text-slate-400">
+              {feature.key}
+            </p>
+          </div>
+
+          <span
+            className={[
+              "relative mt-1 inline-flex h-6 w-11 shrink-0 rounded-full transition",
+              feature.isEnabled ? "bg-slate-950" : "bg-slate-300",
+            ].join(" ")}
+          >
+            <span
+              className={[
+                "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition",
+                feature.isEnabled ? "left-5" : "left-0.5",
+              ].join(" ")}
+            />
+          </span>
+        </button>
+      ))}
+    </div>
+
+    <div className="flex flex-col gap-3 border-t border-slate-100 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+      {message ? (
+        <p className="text-sm text-slate-500">{message}</p>
+      ) : (
+        <p className="text-sm text-slate-400">
+          Changes are saved only after clicking save.
+        </p>
+      )}
 
       <button
-        className="inline-flex rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+        className="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
         disabled={isPending}
         type="submit"
       >
-        {isPending ? "Saving..." : "Save features"}
+        {isPending ? "Saving..." : "Save changes"}
       </button>
-    </form>
-  );
+    </div>
+  </form>
+);
 }

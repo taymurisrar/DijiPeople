@@ -66,8 +66,7 @@ export function buildTenantPortalUrl(
       '',
   );
 
-  const isLocalHost =
-    hostname === 'localhost' || hostname === '127.0.0.1';
+  const isLocalHost = hostname === 'localhost' || hostname === '127.0.0.1';
 
   const url =
     appEnv === 'production' && !isLocalHost && tenantRootDomain

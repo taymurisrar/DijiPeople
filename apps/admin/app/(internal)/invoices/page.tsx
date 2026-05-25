@@ -1,5 +1,12 @@
 import { InvoiceListTable, type InvoiceTableRecord } from "@/app/_components/invoice-list-table";
+import {
+  AdminCommandBar,
+  AdminCommandButton,
+  AdminPageHeader,
+  AdminWorkspace,
+} from "@/app/_components/admin-ui";
 import { apiRequestJson } from "@/lib/server-api";
+import { RefreshCw } from "lucide-react";
 
 export default async function InvoicesPage() {
   const invoices = await apiRequestJson<InvoiceTableRecord[]>("/super-admin/invoices");
@@ -8,15 +15,19 @@ export default async function InvoicesPage() {
   const outstanding = openInvoices.reduce((sum, invoice) => sum + invoice.amount, 0);
 
   return (
-    <main className="space-y-6">
-      <section className="rounded-[30px] border border-indigo-100 bg-[radial-gradient(circle_at_top_right,_rgba(14,165,233,0.18),_transparent_32%),linear-gradient(135deg,#ffffff_0%,#eef2ff_100%)] p-6 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
-          Invoices
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold text-slate-950">
-          Invoice lifecycle
-        </h1>
-      </section>
+    <AdminWorkspace>
+      <AdminCommandBar
+        left={
+          <AdminCommandButton href="/invoices" icon={RefreshCw}>
+            Refresh
+          </AdminCommandButton>
+        }
+      />
+      <AdminPageHeader
+        eyebrow="Invoices"
+        title="Invoice lifecycle"
+        description="Track invoice state, due dates, tenant context, and payment readiness from one compact billing view."
+      />
       <section className="grid gap-4 md:grid-cols-3">
         <MetricCard label="Open invoices" value={String(openInvoices.length)} />
         <MetricCard label="Paid invoices" value={String(paidInvoices.length)} />
@@ -24,15 +35,15 @@ export default async function InvoicesPage() {
       </section>
 
       <InvoiceListTable invoices={invoices} />
-    </main>
+    </AdminWorkspace>
   );
 }
 
 function MetricCard({ label, value }: { label: string; value: string }) {
   return (
-    <article className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
+    <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{label}</p>
-      <p className="mt-3 text-2xl font-semibold text-slate-950">{value}</p>
+      <p className="mt-2 text-xl font-semibold text-slate-950">{value}</p>
     </article>
   );
 }

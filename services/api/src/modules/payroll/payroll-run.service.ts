@@ -651,7 +651,10 @@ export class PayrollRunService {
         );
       }
 
-      for (const warning of [...preparedTimeInputs.warnings, ...timeInputs.warnings]) {
+      for (const warning of [
+        ...preparedTimeInputs.warnings,
+        ...timeInputs.warnings,
+      ]) {
         await this.prisma.payrollException.create({
           data: {
             tenantId: user.tenantId,
@@ -1086,14 +1089,14 @@ export class PayrollRunService {
       prorationBasis: policy.prorationBasis,
       warnings,
     });
-    const payableHours =
-      policy.standardWorkingDaysPerMonth?.gt(0)
-        ? policy.standardWorkingDaysPerMonth.mul(policy.standardHoursPerDay)
-        : calendarDays.mul(policy.standardHoursPerDay);
+    const payableHours = policy.standardWorkingDaysPerMonth?.gt(0)
+      ? policy.standardWorkingDaysPerMonth.mul(policy.standardHoursPerDay)
+      : calendarDays.mul(policy.standardHoursPerDay);
     const hourlyRate = payableHours.gt(0)
       ? params.baseAmount.div(payableHours)
       : params.baseAmount.div(calendarDays.mul(policy.standardHoursPerDay));
-    const overtimeMultiplier = overtimePolicy?.rateMultiplier ?? new Prisma.Decimal(1);
+    const overtimeMultiplier =
+      overtimePolicy?.rateMultiplier ?? new Prisma.Decimal(1);
 
     for (const input of params.prepared.inputs) {
       inputIds.push(input.id);

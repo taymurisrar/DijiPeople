@@ -15,7 +15,9 @@ export class NotificationQueueService {
   constructor(private readonly configService: ConfigService) {}
 
   isQueueEnabled() {
-    return this.configService.get<string>('NOTIFICATIONS_QUEUE_ENABLED') === 'true';
+    return (
+      this.configService.get<string>('NOTIFICATIONS_QUEUE_ENABLED') === 'true'
+    );
   }
 
   getQueueDiagnostics() {
@@ -33,7 +35,9 @@ export class NotificationQueueService {
 
   async dispatchEmail(
     input: SendTemplateEmailInput,
-    executeSync: (input: SendTemplateEmailInput) => Promise<SendTemplateEmailResult>,
+    executeSync: (
+      input: SendTemplateEmailInput,
+    ) => Promise<SendTemplateEmailResult>,
     options: NotificationJobOptions = {},
   ) {
     const job = this.buildEmailJobPayload(input, options);
@@ -54,7 +58,8 @@ export class NotificationQueueService {
 
     this.logger.warn(
       JSON.stringify({
-        message: 'Notification queue requested but BullMQ is not wired; using sync fallback.',
+        message:
+          'Notification queue requested but BullMQ is not wired; using sync fallback.',
         tenantId: input.tenantId,
         eventCode: input.eventCode,
         jobId: job.jobId,

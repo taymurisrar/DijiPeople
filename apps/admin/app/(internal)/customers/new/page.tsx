@@ -9,7 +9,7 @@ import { apiRequestJson } from "@/lib/server-api";
 export default async function NewCustomerPage() {
   const [lifecycleOptions, operators, plans] = await Promise.all([
     apiRequestJson<LifecycleOptions>("/super-admin/lifecycle-options"),
-    apiRequestJson<OperatorOption[]>("/super-admin/operators"),
+    apiRequestJson<OperatorOption[]>("/platform-users/owner-candidates"),
     apiRequestJson<PlanOption[]>("/super-admin/plans"),
   ]);
 

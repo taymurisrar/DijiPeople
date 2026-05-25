@@ -94,7 +94,14 @@ export class BusinessTripsService {
       },
       include: tripInclude,
     });
-    await this.audit(user, 'BUSINESS_TRIP_CREATED', 'BusinessTrip', created.id, null, created);
+    await this.audit(
+      user,
+      'BUSINESS_TRIP_CREATED',
+      'BusinessTrip',
+      created.id,
+      null,
+      created,
+    );
     return mapTrip(created);
   }
 
@@ -144,18 +151,37 @@ export class BusinessTripsService {
       where: { id },
       data: {
         ...(dto.title !== undefined ? { title: dto.title.trim() } : {}),
-        ...(dto.purpose !== undefined ? { purpose: emptyToNull(dto.purpose) } : {}),
-        ...(dto.originCountry !== undefined ? { originCountry: emptyToNull(dto.originCountry) } : {}),
-        ...(dto.originCity !== undefined ? { originCity: emptyToNull(dto.originCity) } : {}),
-        ...(dto.destinationCountry !== undefined ? { destinationCountry: dto.destinationCountry.trim() } : {}),
-        ...(dto.destinationCity !== undefined ? { destinationCity: dto.destinationCity.trim() } : {}),
+        ...(dto.purpose !== undefined
+          ? { purpose: emptyToNull(dto.purpose) }
+          : {}),
+        ...(dto.originCountry !== undefined
+          ? { originCountry: emptyToNull(dto.originCountry) }
+          : {}),
+        ...(dto.originCity !== undefined
+          ? { originCity: emptyToNull(dto.originCity) }
+          : {}),
+        ...(dto.destinationCountry !== undefined
+          ? { destinationCountry: dto.destinationCountry.trim() }
+          : {}),
+        ...(dto.destinationCity !== undefined
+          ? { destinationCity: dto.destinationCity.trim() }
+          : {}),
         ...(dto.startDate !== undefined ? { startDate } : {}),
         ...(dto.endDate !== undefined ? { endDate } : {}),
-        ...(dto.currencyCode !== undefined ? { currencyCode: normalizeCurrency(dto.currencyCode) } : {}),
+        ...(dto.currencyCode !== undefined
+          ? { currencyCode: normalizeCurrency(dto.currencyCode) }
+          : {}),
       },
       include: tripInclude,
     });
-    await this.audit(user, 'BUSINESS_TRIP_UPDATED', 'BusinessTrip', id, trip, updated);
+    await this.audit(
+      user,
+      'BUSINESS_TRIP_UPDATED',
+      'BusinessTrip',
+      id,
+      trip,
+      updated,
+    );
     return mapTrip(updated);
   }
 
@@ -170,7 +196,14 @@ export class BusinessTripsService {
       data: { status: BusinessTripStatus.SUBMITTED, submittedAt: new Date() },
       include: tripInclude,
     });
-    await this.audit(user, 'BUSINESS_TRIP_SUBMITTED', 'BusinessTrip', id, trip, updated);
+    await this.audit(
+      user,
+      'BUSINESS_TRIP_SUBMITTED',
+      'BusinessTrip',
+      id,
+      trip,
+      updated,
+    );
     return mapTrip(updated);
   }
 
@@ -200,11 +233,22 @@ export class BusinessTripsService {
       });
     });
     await this.calculateTripAllowance(user, id);
-    await this.audit(user, 'BUSINESS_TRIP_APPROVED', 'BusinessTrip', id, trip, updated);
+    await this.audit(
+      user,
+      'BUSINESS_TRIP_APPROVED',
+      'BusinessTrip',
+      id,
+      trip,
+      updated,
+    );
     return this.getTrip(user, id);
   }
 
-  async rejectTrip(user: AuthenticatedUser, id: string, dto: RejectBusinessTripDto) {
+  async rejectTrip(
+    user: AuthenticatedUser,
+    id: string,
+    dto: RejectBusinessTripDto,
+  ) {
     const trip = await this.findTripOrThrow(user.tenantId, id);
     if (trip.status !== BusinessTripStatus.SUBMITTED) {
       throw new ConflictException('Only submitted trips can be rejected.');
@@ -229,7 +273,14 @@ export class BusinessTripsService {
         include: tripInclude,
       });
     });
-    await this.audit(user, 'BUSINESS_TRIP_REJECTED', 'BusinessTrip', id, trip, updated);
+    await this.audit(
+      user,
+      'BUSINESS_TRIP_REJECTED',
+      'BusinessTrip',
+      id,
+      trip,
+      updated,
+    );
     return mapTrip(updated);
   }
 
@@ -240,14 +291,23 @@ export class BusinessTripsService {
       trip.status === BusinessTripStatus.INCLUDED_IN_PAYROLL ||
       trip.status === BusinessTripStatus.PAID
     ) {
-      throw new ConflictException('Trips included in payroll cannot be cancelled.');
+      throw new ConflictException(
+        'Trips included in payroll cannot be cancelled.',
+      );
     }
     const updated = await this.prisma.businessTrip.update({
       where: { id },
       data: { status: BusinessTripStatus.CANCELLED },
       include: tripInclude,
     });
-    await this.audit(user, 'BUSINESS_TRIP_CANCELLED', 'BusinessTrip', id, trip, updated);
+    await this.audit(
+      user,
+      'BUSINESS_TRIP_CANCELLED',
+      'BusinessTrip',
+      id,
+      trip,
+      updated,
+    );
     return mapTrip(updated);
   }
 
@@ -261,17 +321,31 @@ export class BusinessTripsService {
       data: { status: BusinessTripStatus.COMPLETED },
       include: tripInclude,
     });
-    await this.audit(user, 'BUSINESS_TRIP_COMPLETED', 'BusinessTrip', id, trip, updated);
+    await this.audit(
+      user,
+      'BUSINESS_TRIP_COMPLETED',
+      'BusinessTrip',
+      id,
+      trip,
+      updated,
+    );
     return mapTrip(updated);
   }
 
   async calculateTripAllowance(user: AuthenticatedUser, id: string) {
     const trip = await this.findTripOrThrow(user.tenantId, id);
-    if (trip.status !== BusinessTripStatus.APPROVED && trip.status !== BusinessTripStatus.COMPLETED) {
-      throw new ConflictException('Only approved or completed trips can be calculated.');
+    if (
+      trip.status !== BusinessTripStatus.APPROVED &&
+      trip.status !== BusinessTripStatus.COMPLETED
+    ) {
+      throw new ConflictException(
+        'Only approved or completed trips can be calculated.',
+      );
     }
     if (trip.allowances.some((allowance) => allowance.payrollRunEmployeeId)) {
-      throw new ConflictException('Trips included in payroll cannot be recalculated.');
+      throw new ConflictException(
+        'Trips included in payroll cannot be recalculated.',
+      );
     }
     const policy = await this.resolver.resolveAllowancePolicy({
       tenantId: user.tenantId,
@@ -282,10 +356,14 @@ export class BusinessTripsService {
       effectiveDate: trip.startDate,
     });
     if (!policy) {
-      throw new BadRequestException('No active travel allowance policy matched this trip.');
+      throw new BadRequestException(
+        'No active travel allowance policy matched this trip.',
+      );
     }
 
-    const tripDays = new Prisma.Decimal(countInclusiveDays(trip.startDate, trip.endDate));
+    const tripDays = new Prisma.Decimal(
+      countInclusiveDays(trip.startDate, trip.endDate),
+    );
     const data = policy.rules.map((rule) => {
       const quantity = quantityForBasis(rule.calculationBasis, tripDays);
       return {
@@ -297,25 +375,41 @@ export class BusinessTripsService {
         quantity,
         rate: rule.amount,
         amount: new Prisma.Decimal(rule.amount).mul(quantity),
-        currencyCode: normalizeCurrency(rule.currencyCode || policy.currencyCode),
+        currencyCode: normalizeCurrency(
+          rule.currencyCode || policy.currencyCode,
+        ),
       };
     });
 
     const updated = await this.prisma.$transaction(async (tx) => {
       await tx.businessTripAllowance.deleteMany({
-        where: { tenantId: user.tenantId, businessTripId: id, payrollRunEmployeeId: null },
+        where: {
+          tenantId: user.tenantId,
+          businessTripId: id,
+          payrollRunEmployeeId: null,
+        },
       });
       if (data.length) {
         await tx.businessTripAllowance.createMany({ data });
       }
-      const total = data.reduce((sum, item) => sum.plus(item.amount), new Prisma.Decimal(0));
+      const total = data.reduce(
+        (sum, item) => sum.plus(item.amount),
+        new Prisma.Decimal(0),
+      );
       return tx.businessTrip.update({
         where: { id },
         data: { estimatedAllowance: total, approvedAllowance: total },
         include: tripInclude,
       });
     });
-    await this.audit(user, 'BUSINESS_TRIP_ALLOWANCE_CALCULATED', 'BusinessTrip', id, trip, updated);
+    await this.audit(
+      user,
+      'BUSINESS_TRIP_ALLOWANCE_CALCULATED',
+      'BusinessTrip',
+      id,
+      trip,
+      updated,
+    );
     return mapTrip(updated);
   }
 
@@ -332,7 +426,10 @@ export class BusinessTripsService {
     return mapPolicy(policy);
   }
 
-  async createPolicy(user: AuthenticatedUser, dto: CreateTravelAllowancePolicyDto) {
+  async createPolicy(
+    user: AuthenticatedUser,
+    dto: CreateTravelAllowancePolicyDto,
+  ) {
     await this.assertEmployeeLevel(user.tenantId, dto.employeeLevelId);
     const effectiveFrom = parseDate(dto.effectiveFrom);
     const effectiveTo = parseOptionalDate(dto.effectiveTo);
@@ -354,18 +451,34 @@ export class BusinessTripsService {
         },
         include: policyInclude,
       });
-      await this.audit(user, 'TADA_POLICY_CREATED', 'TravelAllowancePolicy', created.id, null, created);
+      await this.audit(
+        user,
+        'TADA_POLICY_CREATED',
+        'TravelAllowancePolicy',
+        created.id,
+        null,
+        created,
+      );
       return mapPolicy(created);
     } catch (error) {
       handleUnique(error, 'Travel allowance policy code already exists.');
     }
   }
 
-  async updatePolicy(user: AuthenticatedUser, id: string, dto: UpdateTravelAllowancePolicyDto) {
+  async updatePolicy(
+    user: AuthenticatedUser,
+    id: string,
+    dto: UpdateTravelAllowancePolicyDto,
+  ) {
     const existing = await this.findPolicyOrThrow(user.tenantId, id);
     await this.assertEmployeeLevel(user.tenantId, dto.employeeLevelId);
-    const effectiveFrom = dto.effectiveFrom ? parseDate(dto.effectiveFrom) : existing.effectiveFrom;
-    const effectiveTo = dto.effectiveTo !== undefined ? parseOptionalDate(dto.effectiveTo) : existing.effectiveTo;
+    const effectiveFrom = dto.effectiveFrom
+      ? parseDate(dto.effectiveFrom)
+      : existing.effectiveFrom;
+    const effectiveTo =
+      dto.effectiveTo !== undefined
+        ? parseOptionalDate(dto.effectiveTo)
+        : existing.effectiveTo;
     assertEffectiveDates(effectiveFrom, effectiveTo);
     try {
       const updated = await this.prisma.travelAllowancePolicy.update({
@@ -373,18 +486,35 @@ export class BusinessTripsService {
         data: {
           ...(dto.code !== undefined ? { code: normalizeCode(dto.code) } : {}),
           ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
-          ...(dto.description !== undefined ? { description: emptyToNull(dto.description) } : {}),
-          ...(dto.employeeLevelId !== undefined ? { employeeLevelId: dto.employeeLevelId } : {}),
-          ...(dto.countryCode !== undefined ? { countryCode: normalizeOptionalLookup(dto.countryCode) } : {}),
-          ...(dto.city !== undefined ? { city: normalizeOptionalCity(dto.city) } : {}),
-          ...(dto.currencyCode !== undefined ? { currencyCode: normalizeCurrency(dto.currencyCode) } : {}),
+          ...(dto.description !== undefined
+            ? { description: emptyToNull(dto.description) }
+            : {}),
+          ...(dto.employeeLevelId !== undefined
+            ? { employeeLevelId: dto.employeeLevelId }
+            : {}),
+          ...(dto.countryCode !== undefined
+            ? { countryCode: normalizeOptionalLookup(dto.countryCode) }
+            : {}),
+          ...(dto.city !== undefined
+            ? { city: normalizeOptionalCity(dto.city) }
+            : {}),
+          ...(dto.currencyCode !== undefined
+            ? { currencyCode: normalizeCurrency(dto.currencyCode) }
+            : {}),
           ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
           ...(dto.effectiveFrom !== undefined ? { effectiveFrom } : {}),
           ...(dto.effectiveTo !== undefined ? { effectiveTo } : {}),
         },
         include: policyInclude,
       });
-      await this.audit(user, 'TADA_POLICY_UPDATED', 'TravelAllowancePolicy', id, existing, updated);
+      await this.audit(
+        user,
+        'TADA_POLICY_UPDATED',
+        'TravelAllowancePolicy',
+        id,
+        existing,
+        updated,
+      );
       return mapPolicy(updated);
     } catch (error) {
       handleUnique(error, 'Travel allowance policy code already exists.');
@@ -411,11 +541,22 @@ export class BusinessTripsService {
       data: { isActive: false },
       include: policyInclude,
     });
-    await this.audit(user, 'TADA_POLICY_DEACTIVATED', 'TravelAllowancePolicy', id, existing, updated);
+    await this.audit(
+      user,
+      'TADA_POLICY_DEACTIVATED',
+      'TravelAllowancePolicy',
+      id,
+      existing,
+      updated,
+    );
     return mapPolicy(updated);
   }
 
-  async createRule(user: AuthenticatedUser, policyId: string, dto: CreateTravelAllowanceRuleDto) {
+  async createRule(
+    user: AuthenticatedUser,
+    policyId: string,
+    dto: CreateTravelAllowanceRuleDto,
+  ) {
     const policy = await this.findPolicyOrThrow(user.tenantId, policyId);
     const created = await this.prisma.travelAllowanceRule.create({
       data: {
@@ -428,35 +569,81 @@ export class BusinessTripsService {
         isActive: dto.isActive ?? true,
       },
     });
-    await this.audit(user, 'TADA_POLICY_RULE_CREATED', 'TravelAllowanceRule', created.id, null, created);
+    await this.audit(
+      user,
+      'TADA_POLICY_RULE_CREATED',
+      'TravelAllowanceRule',
+      created.id,
+      null,
+      created,
+    );
     return this.getPolicy(user, policyId);
   }
 
-  async updateRule(user: AuthenticatedUser, policyId: string, ruleId: string, dto: UpdateTravelAllowanceRuleDto) {
+  async updateRule(
+    user: AuthenticatedUser,
+    policyId: string,
+    ruleId: string,
+    dto: UpdateTravelAllowanceRuleDto,
+  ) {
     await this.findPolicyOrThrow(user.tenantId, policyId);
-    const existing = await this.findRuleOrThrow(user.tenantId, policyId, ruleId);
+    const existing = await this.findRuleOrThrow(
+      user.tenantId,
+      policyId,
+      ruleId,
+    );
     const updated = await this.prisma.travelAllowanceRule.update({
       where: { id: ruleId },
       data: {
-        ...(dto.allowanceType !== undefined ? { allowanceType: dto.allowanceType } : {}),
-        ...(dto.calculationBasis !== undefined ? { calculationBasis: dto.calculationBasis } : {}),
-        ...(dto.amount !== undefined ? { amount: new Prisma.Decimal(dto.amount) } : {}),
-        ...(dto.currencyCode !== undefined ? { currencyCode: normalizeCurrency(dto.currencyCode) } : {}),
+        ...(dto.allowanceType !== undefined
+          ? { allowanceType: dto.allowanceType }
+          : {}),
+        ...(dto.calculationBasis !== undefined
+          ? { calculationBasis: dto.calculationBasis }
+          : {}),
+        ...(dto.amount !== undefined
+          ? { amount: new Prisma.Decimal(dto.amount) }
+          : {}),
+        ...(dto.currencyCode !== undefined
+          ? { currencyCode: normalizeCurrency(dto.currencyCode) }
+          : {}),
         ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
       },
     });
-    await this.audit(user, 'TADA_POLICY_RULE_UPDATED', 'TravelAllowanceRule', ruleId, existing, updated);
+    await this.audit(
+      user,
+      'TADA_POLICY_RULE_UPDATED',
+      'TravelAllowanceRule',
+      ruleId,
+      existing,
+      updated,
+    );
     return this.getPolicy(user, policyId);
   }
 
-  async deactivateRule(user: AuthenticatedUser, policyId: string, ruleId: string) {
+  async deactivateRule(
+    user: AuthenticatedUser,
+    policyId: string,
+    ruleId: string,
+  ) {
     await this.findPolicyOrThrow(user.tenantId, policyId);
-    const existing = await this.findRuleOrThrow(user.tenantId, policyId, ruleId);
+    const existing = await this.findRuleOrThrow(
+      user.tenantId,
+      policyId,
+      ruleId,
+    );
     const updated = await this.prisma.travelAllowanceRule.update({
       where: { id: ruleId },
       data: { isActive: false },
     });
-    await this.audit(user, 'TADA_POLICY_RULE_DEACTIVATED', 'TravelAllowanceRule', ruleId, existing, updated);
+    await this.audit(
+      user,
+      'TADA_POLICY_RULE_DEACTIVATED',
+      'TravelAllowanceRule',
+      ruleId,
+      existing,
+      updated,
+    );
     return this.getPolicy(user, policyId);
   }
 
@@ -474,15 +661,21 @@ export class BusinessTripsService {
       where: { tenantId, id },
       include: policyInclude,
     });
-    if (!policy) throw new NotFoundException('Travel allowance policy was not found.');
+    if (!policy)
+      throw new NotFoundException('Travel allowance policy was not found.');
     return policy;
   }
 
-  private async findRuleOrThrow(tenantId: string, policyId: string, id: string) {
+  private async findRuleOrThrow(
+    tenantId: string,
+    policyId: string,
+    id: string,
+  ) {
     const rule = await this.prisma.travelAllowanceRule.findFirst({
       where: { tenantId, policyId, id },
     });
-    if (!rule) throw new NotFoundException('Travel allowance rule was not found.');
+    if (!rule)
+      throw new NotFoundException('Travel allowance rule was not found.');
     return rule;
   }
 
@@ -495,7 +688,9 @@ export class BusinessTripsService {
   private async assertSelfTrip(user: AuthenticatedUser, employeeId: string) {
     const employee = await this.findEmployeeForUser(user.tenantId, user.userId);
     if (employee.id !== employeeId) {
-      throw new ForbiddenException('You can only access your own business trips.');
+      throw new ForbiddenException(
+        'You can only access your own business trips.',
+      );
     }
   }
 
@@ -504,7 +699,10 @@ export class BusinessTripsService {
       where: { tenantId, userId },
       select: { id: true },
     });
-    if (!employee) throw new BadRequestException('No employee profile is linked to this user.');
+    if (!employee)
+      throw new BadRequestException(
+        'No employee profile is linked to this user.',
+      );
     return employee;
   }
 
@@ -513,16 +711,23 @@ export class BusinessTripsService {
       where: { tenantId, id: employeeId },
       select: { id: true },
     });
-    if (!employee) throw new BadRequestException('Employee was not found for this tenant.');
+    if (!employee)
+      throw new BadRequestException('Employee was not found for this tenant.');
   }
 
-  private async assertEmployeeLevel(tenantId: string, employeeLevelId?: string | null) {
+  private async assertEmployeeLevel(
+    tenantId: string,
+    employeeLevelId?: string | null,
+  ) {
     if (!employeeLevelId) return;
     const level = await this.prisma.employeeLevel.findFirst({
       where: { tenantId, id: employeeLevelId, isActive: true },
       select: { id: true },
     });
-    if (!level) throw new BadRequestException('Active employee level was not found for this tenant.');
+    if (!level)
+      throw new BadRequestException(
+        'Active employee level was not found for this tenant.',
+      );
   }
 
   private audit(
@@ -560,7 +765,9 @@ function mapTrip(trip: TripWithRelations) {
 }
 
 function mapPolicy(
-  policy: Prisma.TravelAllowancePolicyGetPayload<{ include: typeof policyInclude }>,
+  policy: Prisma.TravelAllowancePolicyGetPayload<{
+    include: typeof policyInclude;
+  }>,
 ) {
   return {
     ...policy,
@@ -581,19 +788,31 @@ function parseOptionalDate(value?: string | null) {
 
 function assertDateRange(startDate: Date, endDate: Date) {
   if (endDate < startDate) {
-    throw new BadRequestException('endDate must be greater than or equal to startDate.');
+    throw new BadRequestException(
+      'endDate must be greater than or equal to startDate.',
+    );
   }
 }
 
 function assertEffectiveDates(effectiveFrom: Date, effectiveTo: Date | null) {
   if (effectiveTo && effectiveTo < effectiveFrom) {
-    throw new BadRequestException('effectiveTo must be greater than or equal to effectiveFrom.');
+    throw new BadRequestException(
+      'effectiveTo must be greater than or equal to effectiveFrom.',
+    );
   }
 }
 
 function countInclusiveDays(startDate: Date, endDate: Date) {
-  const start = Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate());
-  const end = Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate());
+  const start = Date.UTC(
+    startDate.getUTCFullYear(),
+    startDate.getUTCMonth(),
+    startDate.getUTCDate(),
+  );
+  const end = Date.UTC(
+    endDate.getUTCFullYear(),
+    endDate.getUTCMonth(),
+    endDate.getUTCDate(),
+  );
   return Math.floor((end - start) / 86_400_000) + 1;
 }
 
@@ -601,7 +820,8 @@ function quantityForBasis(
   basis: TravelAllowanceCalculationBasis,
   tripDays: Prisma.Decimal,
 ) {
-  if (basis === TravelAllowanceCalculationBasis.PER_TRIP) return new Prisma.Decimal(1);
+  if (basis === TravelAllowanceCalculationBasis.PER_TRIP)
+    return new Prisma.Decimal(1);
   if (basis === TravelAllowanceCalculationBasis.PER_NIGHT) {
     const nights = tripDays.minus(1);
     return nights.gt(1) ? nights : new Prisma.Decimal(1);

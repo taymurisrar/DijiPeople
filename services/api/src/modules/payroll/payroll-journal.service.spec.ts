@@ -19,8 +19,16 @@ describe('PayrollJournalService', () => {
       payrollRun: { findFirst: jest.fn().mockResolvedValue(run()) },
       payrollJournalEntry: {
         findUnique: jest.fn().mockResolvedValue(null),
-        create: jest.fn().mockResolvedValue({ id: 'journal-1', journalNumber: null, status: PayrollJournalEntryStatus.DRAFT }),
-        update: jest.fn().mockImplementation(({ data }) => Promise.resolve(journal({ ...data, lines: createdLines }))),
+        create: jest.fn().mockResolvedValue({
+          id: 'journal-1',
+          journalNumber: null,
+          status: PayrollJournalEntryStatus.DRAFT,
+        }),
+        update: jest
+          .fn()
+          .mockImplementation(({ data }) =>
+            Promise.resolve(journal({ ...data, lines: createdLines })),
+          ),
       },
       payrollJournalEntryLine: {
         deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
@@ -29,14 +37,30 @@ describe('PayrollJournalService', () => {
           return Promise.resolve({ count: data.length });
         }),
       },
-      payrollException: { create: jest.fn().mockResolvedValue({ id: 'exception-1' }) },
-      payrollGlAccount: { findFirst: jest.fn(), create: jest.fn(), update: jest.fn(), findMany: jest.fn() },
-      payrollPostingRule: { findFirst: jest.fn(), findMany: jest.fn(), create: jest.fn(), update: jest.fn() },
+      payrollException: {
+        create: jest.fn().mockResolvedValue({ id: 'exception-1' }),
+      },
+      payrollGlAccount: {
+        findFirst: jest.fn(),
+        create: jest.fn(),
+        update: jest.fn(),
+        findMany: jest.fn(),
+      },
+      payrollPostingRule: {
+        findFirst: jest.fn(),
+        findMany: jest.fn(),
+        create: jest.fn(),
+        update: jest.fn(),
+      },
       payComponent: { findFirst: jest.fn() },
       taxRule: { findFirst: jest.fn() },
     };
     resolver = { resolveRule: jest.fn().mockResolvedValue(postingRule()) };
-    service = new PayrollJournalService(prisma, { log: jest.fn() } as never, resolver as never);
+    service = new PayrollJournalService(
+      prisma,
+      { log: jest.fn() } as never,
+      resolver as never,
+    );
   });
 
   it('generates a balanced journal for payroll line items', async () => {
@@ -48,8 +72,14 @@ describe('PayrollJournalService', () => {
 
     expect(result.status).toBe(PayrollJournalEntryStatus.GENERATED);
     expect(prisma.payrollJournalEntryLine.createMany).toHaveBeenCalled();
-    const debit = createdLines.reduce((sum, line) => sum.plus(line.debitAmount), new Prisma.Decimal(0));
-    const credit = createdLines.reduce((sum, line) => sum.plus(line.creditAmount), new Prisma.Decimal(0));
+    const debit = createdLines.reduce(
+      (sum, line) => sum.plus(line.debitAmount),
+      new Prisma.Decimal(0),
+    );
+    const credit = createdLines.reduce(
+      (sum, line) => sum.plus(line.creditAmount),
+      new Prisma.Decimal(0),
+    );
     expect(debit.equals(credit)).toBe(true);
   });
 
@@ -57,11 +87,16 @@ describe('PayrollJournalService', () => {
     resolver.resolveRule.mockResolvedValueOnce(null);
 
     await expect(
-      service.generateJournalForPayrollRun({ tenantId: 'tenant-1', payrollRunId: 'run-1' }),
+      service.generateJournalForPayrollRun({
+        tenantId: 'tenant-1',
+        payrollRunId: 'run-1',
+      }),
     ).rejects.toThrow(BadRequestException);
     expect(prisma.payrollException.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ errorType: 'MISSING_PAYROLL_POSTING_RULE' }),
+        data: expect.objectContaining({
+          errorType: 'MISSING_PAYROLL_POSTING_RULE',
+        }),
       }),
     );
   });
@@ -72,21 +107,42 @@ describe('PayrollJournalService', () => {
         employees: [
           runEmployee({
             lineItems: [
-              lineItem({ category: PayrollRunLineItemCategory.TAX, sourceType: 'TAX', sourceId: 'tax-1', label: 'Income Tax', amount: 100 }),
-              lineItem({ category: PayrollRunLineItemCategory.EMPLOYER_CONTRIBUTION, sourceType: 'TAX', sourceId: 'tax-1', label: 'Employer Tax', amount: 50 }),
+              lineItem({
+                category: PayrollRunLineItemCategory.TAX,
+                sourceType: 'TAX',
+                sourceId: 'tax-1',
+                label: 'Income Tax',
+                amount: 100,
+              }),
+              lineItem({
+                category: PayrollRunLineItemCategory.EMPLOYER_CONTRIBUTION,
+                sourceType: 'TAX',
+                sourceId: 'tax-1',
+                label: 'Employer Tax',
+                amount: 50,
+              }),
             ],
           }),
         ],
       }),
     );
 
-    await service.generateJournalForPayrollRun({ tenantId: 'tenant-1', payrollRunId: 'run-1' });
+    await service.generateJournalForPayrollRun({
+      tenantId: 'tenant-1',
+      payrollRunId: 'run-1',
+    });
 
     expect(resolver.resolveRule).toHaveBeenCalledWith(
-      expect.objectContaining({ sourceCategory: PayrollRunLineItemCategory.TAX, taxRuleId: 'tax-1' }),
+      expect.objectContaining({
+        sourceCategory: PayrollRunLineItemCategory.TAX,
+        taxRuleId: 'tax-1',
+      }),
     );
     expect(resolver.resolveRule).toHaveBeenCalledWith(
-      expect.objectContaining({ sourceCategory: PayrollRunLineItemCategory.EMPLOYER_CONTRIBUTION, taxRuleId: 'tax-1' }),
+      expect.objectContaining({
+        sourceCategory: PayrollRunLineItemCategory.EMPLOYER_CONTRIBUTION,
+        taxRuleId: 'tax-1',
+      }),
     );
     expect(createdLines).toHaveLength(4);
   });
@@ -98,7 +154,10 @@ describe('PayrollJournalService', () => {
       lines: [{ id: 'old-line' }],
     });
 
-    await service.generateJournalForPayrollRun({ tenantId: 'tenant-1', payrollRunId: 'run-1' });
+    await service.generateJournalForPayrollRun({
+      tenantId: 'tenant-1',
+      payrollRunId: 'run-1',
+    });
 
     expect(prisma.payrollJournalEntryLine.deleteMany).toHaveBeenCalledWith({
       where: { tenantId: 'tenant-1', journalEntryId: 'journal-1' },
@@ -113,12 +172,17 @@ describe('PayrollJournalService', () => {
     });
 
     await expect(
-      service.generateJournalForPayrollRun({ tenantId: 'tenant-1', payrollRunId: 'run-1' }),
+      service.generateJournalForPayrollRun({
+        tenantId: 'tenant-1',
+        payrollRunId: 'run-1',
+      }),
     ).rejects.toThrow(ConflictException);
   });
 
   it('exports generated journal lines as CSV', async () => {
-    prisma.payrollJournalEntry.findUnique.mockResolvedValueOnce(journal({ status: PayrollJournalEntryStatus.GENERATED }));
+    prisma.payrollJournalEntry.findUnique.mockResolvedValueOnce(
+      journal({ status: PayrollJournalEntryStatus.GENERATED }),
+    );
 
     const csv = await service.exportJournalCsv(user(), 'run-1');
 
@@ -129,7 +193,11 @@ describe('PayrollJournalService', () => {
 });
 
 function user() {
-  return { tenantId: 'tenant-1', userId: 'user-1', permissionKeys: [] } as never;
+  return {
+    tenantId: 'tenant-1',
+    userId: 'user-1',
+    permissionKeys: [],
+  } as never;
 }
 
 function run(overrides: Record<string, unknown> = {}) {
@@ -152,10 +220,24 @@ function runEmployee(overrides: Record<string, unknown> = {}) {
   return {
     id: 'pre-1',
     employeeId: 'employee-1',
-    employee: { id: 'employee-1', employeeCode: 'EMP-001', firstName: 'Ava', lastName: 'Stone' },
+    employee: {
+      id: 'employee-1',
+      employeeCode: 'EMP-001',
+      firstName: 'Ava',
+      lastName: 'Stone',
+    },
     lineItems: [
-      lineItem({ category: PayrollRunLineItemCategory.EARNING, label: 'Basic Salary', amount: 1000, payComponentId: 'pc-basic' }),
-      lineItem({ category: PayrollRunLineItemCategory.DEDUCTION, label: 'Deduction', amount: 100 }),
+      lineItem({
+        category: PayrollRunLineItemCategory.EARNING,
+        label: 'Basic Salary',
+        amount: 1000,
+        payComponentId: 'pc-basic',
+      }),
+      lineItem({
+        category: PayrollRunLineItemCategory.DEDUCTION,
+        label: 'Deduction',
+        amount: 100,
+      }),
     ],
     ...overrides,
   };
@@ -163,7 +245,8 @@ function runEmployee(overrides: Record<string, unknown> = {}) {
 
 function lineItem(overrides: Record<string, unknown> = {}) {
   const normalized = { ...overrides };
-  if (typeof normalized.amount === 'number') normalized.amount = new Prisma.Decimal(normalized.amount);
+  if (typeof normalized.amount === 'number')
+    normalized.amount = new Prisma.Decimal(normalized.amount);
   return {
     id: `line-${Math.random()}`,
     category: PayrollRunLineItemCategory.EARNING,
@@ -203,8 +286,16 @@ function journal(overrides: Record<string, unknown> = {}) {
         debitAmount: new Prisma.Decimal(1000),
         creditAmount: new Prisma.Decimal(0),
         description: 'Basic Salary',
-        account: account({ id: 'debit-account', code: '5000', name: 'Payroll Expense' }),
-        employee: { employeeCode: 'EMP-001', firstName: 'Ava', lastName: 'Stone' },
+        account: account({
+          id: 'debit-account',
+          code: '5000',
+          name: 'Payroll Expense',
+        }),
+        employee: {
+          employeeCode: 'EMP-001',
+          firstName: 'Ava',
+          lastName: 'Stone',
+        },
         payComponent: { code: 'BASIC', name: 'Basic Salary' },
         taxRule: null,
         payrollRunLineItem: null,
@@ -214,8 +305,16 @@ function journal(overrides: Record<string, unknown> = {}) {
         debitAmount: new Prisma.Decimal(0),
         creditAmount: new Prisma.Decimal(1000),
         description: 'Basic Salary',
-        account: account({ id: 'credit-account', code: '2000', name: 'Payroll Payable' }),
-        employee: { employeeCode: 'EMP-001', firstName: 'Ava', lastName: 'Stone' },
+        account: account({
+          id: 'credit-account',
+          code: '2000',
+          name: 'Payroll Payable',
+        }),
+        employee: {
+          employeeCode: 'EMP-001',
+          firstName: 'Ava',
+          lastName: 'Stone',
+        },
         payComponent: { code: 'BASIC', name: 'Basic Salary' },
         taxRule: null,
         payrollRunLineItem: null,

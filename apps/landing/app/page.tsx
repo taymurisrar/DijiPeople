@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PlanCards } from "./_components/plan-cards";
 import { PageShell } from "./_components/site-shell";
 import { resolveDefaultCurrency } from "../lib/plans";
+import Image from "next/image";
 import { getDetectedCountry, getPublicPlans } from "../lib/plans-server";
 
 const featureHighlights = [
@@ -65,23 +66,26 @@ export default async function HomePage() {
           </div>
         </div>
 
-        <div className="rounded-[28px] border border-border bg-white p-5 shadow-md">
-          <div className="grid gap-3">
-            {featureHighlights.map((item) => (
-              <div className="rounded-2xl border border-border bg-surface-muted p-4" key={item}>
-                <p className="text-sm font-semibold text-foreground">{item}</p>
-              </div>
-            ))}
-          </div>
-          <div className="mt-5 rounded-2xl bg-foreground p-5 text-white">
-            <p className="text-sm font-semibold">Mockup-ready product area</p>
-            <p className="mt-2 text-sm leading-6 text-white/72">
-              This section is ready to accept uploaded DijiPeople screenshots,
-              dashboard mockups, or product visuals without changing page
-              structure.
-            </p>
-          </div>
-        </div>
+<div className="relative overflow-hidden">
+  <Image
+    src="/images/hero.png"
+    alt="DijiPeople HR platform dashboard"
+    width={1200}
+    height={900}
+    className="h-full w-full object-cover"
+    priority
+  />
+
+  {/* Optional subtle overlay */}
+  {/* <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/45 via-black/10 to-transparent p-6">
+    <h3 className="text-lg font-semibold text-white">
+      HR operations. Unified.
+    </h3>
+    <p className="mt-1 text-sm text-white/80">
+      Employee lifecycle, payroll, leave, onboarding, and recruitment in one platform.
+    </p>
+  </div> */}
+</div>
       </section>
 
       <section className="grid gap-4 py-8 md:grid-cols-3">

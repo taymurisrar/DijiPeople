@@ -43,7 +43,7 @@ export default async function CustomersPage({
       `/super-admin/customers?${query.toString()}`,
     ),
     apiRequestJson<LifecycleOptions>("/super-admin/lifecycle-options"),
-    apiRequestJson<OperatorOption[]>("/super-admin/operators"),
+    apiRequestJson<OperatorOption[]>("/platform-users/owner-candidates"),
     apiRequestJson<PlanOption[]>("/super-admin/plans"),
   ]);
 

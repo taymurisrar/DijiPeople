@@ -39,10 +39,10 @@ export default async function LeadsPage({
 
   const [leads, lifecycleOptions, operators] = await Promise.all([
     apiRequestJson<PaginatedResponse<LeadRecord>>(
-      `/super-admin/leads?${query.toString()}`
+      `/super-admin/leads?${query.toString()}`,
     ),
     apiRequestJson<LifecycleOptions>("/super-admin/lifecycle-options"),
-    apiRequestJson<OperatorOption[]>("/super-admin/operators"),
+    apiRequestJson<OperatorOption[]>("/platform-users/owner-candidates"),
   ]);
 
   return (

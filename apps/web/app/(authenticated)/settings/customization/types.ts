@@ -41,6 +41,8 @@ export type CustomizationTable = {
   isCustomizable: boolean;
   isEnabled: boolean;
   isActive: boolean;
+  isSystem?: boolean;
+  isCustom?: boolean;
   isCustomTable: boolean;
   createdAt: string | null;
   updatedAt: string | null;
@@ -52,11 +54,15 @@ export type CustomizationColumn = {
   columnKey: string;
   systemName: string;
   displayName: string;
+  description?: string | null;
   dataType: string;
   fieldType: string;
   isSystem: boolean;
+  isCustom?: boolean;
+  isActive?: boolean;
   isRequired: boolean;
   isSearchable: boolean;
+  isFilterable?: boolean;
   isSortable: boolean;
   isVisible: boolean;
   isReadOnly: boolean;
@@ -65,7 +71,9 @@ export type CustomizationColumn = {
   maxValue?: number | string | null;
   defaultValue: string | null;
   lookupTargetTableKey: string | null;
-  optionSetJson?: { options?: Array<string | { label?: string; value?: string }> } | null;
+  optionSetJson?: {
+    options?: Array<string | { label?: string; value?: string }>;
+  } | null;
   validationJson?: Record<string, unknown> | null;
   sortOrder: number;
 };

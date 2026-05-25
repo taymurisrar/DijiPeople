@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit3, ExternalLink } from "lucide-react";
+import { Edit3, ExternalLink, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
 import { DataTable } from "@/app/components/data-table/data-table";
@@ -21,6 +21,7 @@ type TablesListProps = {
 };
 
 type EditState = {
+  mode: "create" | "edit";
   tableKey: string;
   displayName: string;
   pluralDisplayName: string;
@@ -32,6 +33,9 @@ type EditState = {
 export function TablesList({ tables }: TablesListProps) {
   const router = useRouter();
   const [editing, setEditing] = useState<EditState | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<CustomizationTable | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -103,6 +107,7 @@ export function TablesList({ tables }: TablesListProps) {
                 leftIcon={<Edit3 className="h-4 w-4" />}
                 onClick={() =>
                   setEditing({
+                    mode: "edit",
                     tableKey: row.tableKey,
                     displayName: row.displayName,
                     pluralDisplayName: row.pluralDisplayName,
@@ -117,6 +122,17 @@ export function TablesList({ tables }: TablesListProps) {
               >
                 Edit
               </Button>
+              {row.isCustomTable ? (
+                <Button
+                  leftIcon={<Trash2 className="h-4 w-4" />}
+                  onClick={() => setDeleteTarget(row)}
+                  size="sm"
+                  type="button"
+                  variant="danger"
+                >
+                  Delete
+                </Button>
+              ) : null}
             </PermissionGate>
           </div>
         ),
@@ -133,11 +149,14 @@ export function TablesList({ tables }: TablesListProps) {
     setIsSaving(true);
 
     const response = await fetch(
-      `/api/customization/tables/${editing.tableKey}`,
+      editing.mode === "create"
+        ? "/api/customization/tables"
+        : `/api/customization/tables/${editing.tableKey}`,
       {
-        method: "PATCH",
+        method: editing.mode === "create" ? "POST" : "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          ...(editing.mode === "create" ? { tableKey: editing.tableKey } : {}),
           displayName: editing.displayName,
           pluralDisplayName: editing.pluralDisplayName,
           icon: editing.icon,
@@ -160,8 +179,54 @@ export function TablesList({ tables }: TablesListProps) {
     router.refresh();
   }
 
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    setError(null);
+    const response = await fetch(
+      `/api/customization/tables/${deleteTarget.tableKey}`,
+      { method: "DELETE" },
+    );
+    const data = (await response.json().catch(() => ({}))) as {
+      message?: string;
+    };
+    if (!response.ok) {
+      setError(data.message ?? "Unable to delete customization table.");
+      return;
+    }
+    setDeleteTarget(null);
+    router.refresh();
+  }
+
   return (
     <>
+      <div className="mb-4 flex justify-end">
+        <PermissionGate anyOf={["customization.tables.update"]}>
+          <Button
+            leftIcon={<Plus className="h-4 w-4" />}
+            onClick={() =>
+              setEditing({
+                mode: "create",
+                tableKey: "",
+                displayName: "",
+                pluralDisplayName: "",
+                icon: "",
+                description: "",
+                isActive: true,
+              })
+            }
+            type="button"
+          >
+            Create table
+          </Button>
+        </PermissionGate>
+      </div>
+
+      {error && !editing ? (
+        <div className="mb-4 rounded-2xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
+          {error}
+        </div>
+      ) : null}
+
       <DataTable
         columns={columns}
         emptyState={
@@ -183,14 +248,30 @@ export function TablesList({ tables }: TablesListProps) {
           >
             <div>
               <h3 className="text-lg font-semibold text-foreground">
-                Edit table metadata
+                {editing.mode === "create"
+                  ? "Create custom table"
+                  : "Edit table metadata"}
               </h3>
               <p className="mt-1 text-sm text-muted">
-                Update tenant-facing labels for `{editing.tableKey}`.
+                {editing.mode === "create"
+                  ? "Create a tenant-scoped metadata table."
+                  : `Update tenant-facing labels for ${editing.tableKey}.`}
               </p>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
+              <TextField
+                disabled={editing.mode === "edit"}
+                hint="Use camelCase. This logical name is immutable after creation."
+                label="Table logical name"
+                onChange={(tableKey) =>
+                  setEditing((current) =>
+                    current ? { ...current, tableKey } : current,
+                  )
+                }
+                required
+                value={editing.tableKey}
+              />
               <TextField
                 label="Display name"
                 onChange={(displayName) =>
@@ -257,6 +338,35 @@ export function TablesList({ tables }: TablesListProps) {
               </Button>
             </div>
           </form>
+        </div>
+      ) : null}
+
+      {deleteTarget ? (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/40 p-4">
+          <div className="grid w-full max-w-lg gap-4 rounded-[24px] border border-border bg-white p-6 shadow-xl">
+            <div>
+              <h3 className="text-lg font-semibold text-foreground">
+                Delete custom table
+              </h3>
+              <p className="mt-1 text-sm leading-6 text-muted">
+                Delete {deleteTarget.displayName}? System tables cannot be
+                deleted, and tables with dependent columns, forms, or views are
+                blocked by the server.
+              </p>
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button
+                onClick={() => setDeleteTarget(null)}
+                type="button"
+                variant="secondary"
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleDelete} type="button" variant="danger">
+                Delete table
+              </Button>
+            </div>
+          </div>
         </div>
       ) : null}
     </>

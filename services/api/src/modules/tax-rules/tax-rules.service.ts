@@ -1,4 +1,9 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -20,11 +25,13 @@ export class TaxRulesService {
   ) {}
 
   list(user: AuthenticatedUser) {
-    return this.prisma.taxRule.findMany({
-      where: { tenantId: user.tenantId },
-      include: taxRuleInclude,
-      orderBy: [{ isActive: 'desc' }, { code: 'asc' }],
-    }).then((rules) => rules.map(mapTaxRule));
+    return this.prisma.taxRule
+      .findMany({
+        where: { tenantId: user.tenantId },
+        include: taxRuleInclude,
+        orderBy: [{ isActive: 'desc' }, { code: 'asc' }],
+      })
+      .then((rules) => rules.map(mapTaxRule));
   }
 
   async get(user: AuthenticatedUser, id: string) {
@@ -59,7 +66,14 @@ export class TaxRulesService {
         },
         include: taxRuleInclude,
       });
-      await this.audit(user, 'TAX_RULE_CREATED', 'TaxRule', created.id, null, created);
+      await this.audit(
+        user,
+        'TAX_RULE_CREATED',
+        'TaxRule',
+        created.id,
+        null,
+        created,
+      );
       return mapTaxRule(created);
     } catch (error) {
       handleUnique(error, 'Tax rule code already exists.');
@@ -69,8 +83,13 @@ export class TaxRulesService {
   async update(user: AuthenticatedUser, id: string, dto: UpdateTaxRuleDto) {
     const existing = await this.findRule(user.tenantId, id);
     await this.assertEmployeeLevel(user.tenantId, dto.employeeLevelId);
-    const effectiveFrom = dto.effectiveFrom ? parseDate(dto.effectiveFrom) : existing.effectiveFrom;
-    const effectiveTo = dto.effectiveTo !== undefined ? parseOptionalDate(dto.effectiveTo) : existing.effectiveTo;
+    const effectiveFrom = dto.effectiveFrom
+      ? parseDate(dto.effectiveFrom)
+      : existing.effectiveFrom;
+    const effectiveTo =
+      dto.effectiveTo !== undefined
+        ? parseOptionalDate(dto.effectiveTo)
+        : existing.effectiveTo;
     assertEffectiveDates(effectiveFrom, effectiveTo);
     try {
       const updated = await this.prisma.taxRule.update({
@@ -78,24 +97,51 @@ export class TaxRulesService {
         data: {
           ...(dto.code !== undefined ? { code: normalizeCode(dto.code) } : {}),
           ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
-          ...(dto.description !== undefined ? { description: emptyToNull(dto.description) } : {}),
-          ...(dto.countryCode !== undefined ? { countryCode: normalizeOptional(dto.countryCode) } : {}),
-          ...(dto.regionCode !== undefined ? { regionCode: normalizeOptional(dto.regionCode) } : {}),
-          ...(dto.employeeLevelId !== undefined ? { employeeLevelId: dto.employeeLevelId } : {}),
-          ...(dto.calculationMethod !== undefined ? { calculationMethod: dto.calculationMethod } : {}),
+          ...(dto.description !== undefined
+            ? { description: emptyToNull(dto.description) }
+            : {}),
+          ...(dto.countryCode !== undefined
+            ? { countryCode: normalizeOptional(dto.countryCode) }
+            : {}),
+          ...(dto.regionCode !== undefined
+            ? { regionCode: normalizeOptional(dto.regionCode) }
+            : {}),
+          ...(dto.employeeLevelId !== undefined
+            ? { employeeLevelId: dto.employeeLevelId }
+            : {}),
+          ...(dto.calculationMethod !== undefined
+            ? { calculationMethod: dto.calculationMethod }
+            : {}),
           ...(dto.taxType !== undefined ? { taxType: dto.taxType } : {}),
-          ...(dto.employeeRate !== undefined ? { employeeRate: nullableDecimal(dto.employeeRate) } : {}),
-          ...(dto.employerRate !== undefined ? { employerRate: nullableDecimal(dto.employerRate) } : {}),
-          ...(dto.fixedEmployeeAmount !== undefined ? { fixedEmployeeAmount: nullableDecimal(dto.fixedEmployeeAmount) } : {}),
-          ...(dto.fixedEmployerAmount !== undefined ? { fixedEmployerAmount: nullableDecimal(dto.fixedEmployerAmount) } : {}),
-          ...(dto.currencyCode !== undefined ? { currencyCode: normalizeOptional(dto.currencyCode) } : {}),
+          ...(dto.employeeRate !== undefined
+            ? { employeeRate: nullableDecimal(dto.employeeRate) }
+            : {}),
+          ...(dto.employerRate !== undefined
+            ? { employerRate: nullableDecimal(dto.employerRate) }
+            : {}),
+          ...(dto.fixedEmployeeAmount !== undefined
+            ? { fixedEmployeeAmount: nullableDecimal(dto.fixedEmployeeAmount) }
+            : {}),
+          ...(dto.fixedEmployerAmount !== undefined
+            ? { fixedEmployerAmount: nullableDecimal(dto.fixedEmployerAmount) }
+            : {}),
+          ...(dto.currencyCode !== undefined
+            ? { currencyCode: normalizeOptional(dto.currencyCode) }
+            : {}),
           ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
           ...(dto.effectiveFrom !== undefined ? { effectiveFrom } : {}),
           ...(dto.effectiveTo !== undefined ? { effectiveTo } : {}),
         },
         include: taxRuleInclude,
       });
-      await this.audit(user, 'TAX_RULE_UPDATED', 'TaxRule', id, existing, updated);
+      await this.audit(
+        user,
+        'TAX_RULE_UPDATED',
+        'TaxRule',
+        id,
+        existing,
+        updated,
+      );
       return mapTaxRule(updated);
     } catch (error) {
       handleUnique(error, 'Tax rule code already exists.');
@@ -116,20 +162,39 @@ export class TaxRulesService {
         },
       },
     });
-    if (used > 0) throw new ConflictException('Tax rules used by approved, paid, or locked payroll cannot be deactivated.');
+    if (used > 0)
+      throw new ConflictException(
+        'Tax rules used by approved, paid, or locked payroll cannot be deactivated.',
+      );
     const updated = await this.prisma.taxRule.update({
       where: { id },
       data: { isActive: false },
       include: taxRuleInclude,
     });
-    await this.audit(user, 'TAX_RULE_DEACTIVATED', 'TaxRule', id, existing, updated);
+    await this.audit(
+      user,
+      'TAX_RULE_DEACTIVATED',
+      'TaxRule',
+      id,
+      existing,
+      updated,
+    );
     return mapTaxRule(updated);
   }
 
-  async addBracket(user: AuthenticatedUser, taxRuleId: string, dto: CreateTaxRuleBracketDto) {
+  async addBracket(
+    user: AuthenticatedUser,
+    taxRuleId: string,
+    dto: CreateTaxRuleBracketDto,
+  ) {
     await this.findRule(user.tenantId, taxRuleId);
     assertBracket(dto.minAmount, dto.maxAmount);
-    await this.assertNoBracketOverlap(user.tenantId, taxRuleId, dto.minAmount, dto.maxAmount);
+    await this.assertNoBracketOverlap(
+      user.tenantId,
+      taxRuleId,
+      dto.minAmount,
+      dto.maxAmount,
+    );
     const created = await this.prisma.taxRuleBracket.create({
       data: {
         tenantId: user.tenantId,
@@ -142,15 +207,37 @@ export class TaxRulesService {
         fixedEmployerAmount: nullableDecimal(dto.fixedEmployerAmount),
       },
     });
-    await this.audit(user, 'TAX_BRACKET_CREATED', 'TaxRuleBracket', created.id, null, created);
+    await this.audit(
+      user,
+      'TAX_BRACKET_CREATED',
+      'TaxRuleBracket',
+      created.id,
+      null,
+      created,
+    );
     return this.get(user, taxRuleId);
   }
 
-  async updateBracket(user: AuthenticatedUser, taxRuleId: string, bracketId: string, dto: UpdateTaxRuleBracketDto) {
+  async updateBracket(
+    user: AuthenticatedUser,
+    taxRuleId: string,
+    bracketId: string,
+    dto: UpdateTaxRuleBracketDto,
+  ) {
     await this.findRule(user.tenantId, taxRuleId);
     assertBracket(dto.minAmount, dto.maxAmount);
-    const existing = await this.findBracket(user.tenantId, taxRuleId, bracketId);
-    await this.assertNoBracketOverlap(user.tenantId, taxRuleId, dto.minAmount, dto.maxAmount, bracketId);
+    const existing = await this.findBracket(
+      user.tenantId,
+      taxRuleId,
+      bracketId,
+    );
+    await this.assertNoBracketOverlap(
+      user.tenantId,
+      taxRuleId,
+      dto.minAmount,
+      dto.maxAmount,
+      bracketId,
+    );
     const updated = await this.prisma.taxRuleBracket.update({
       where: { id: bracketId },
       data: {
@@ -162,61 +249,133 @@ export class TaxRulesService {
         fixedEmployerAmount: nullableDecimal(dto.fixedEmployerAmount),
       },
     });
-    await this.audit(user, 'TAX_BRACKET_UPDATED', 'TaxRuleBracket', bracketId, existing, updated);
+    await this.audit(
+      user,
+      'TAX_BRACKET_UPDATED',
+      'TaxRuleBracket',
+      bracketId,
+      existing,
+      updated,
+    );
     return this.get(user, taxRuleId);
   }
 
-  async deleteBracket(user: AuthenticatedUser, taxRuleId: string, bracketId: string) {
+  async deleteBracket(
+    user: AuthenticatedUser,
+    taxRuleId: string,
+    bracketId: string,
+  ) {
     await this.findRule(user.tenantId, taxRuleId);
-    const existing = await this.findBracket(user.tenantId, taxRuleId, bracketId);
+    const existing = await this.findBracket(
+      user.tenantId,
+      taxRuleId,
+      bracketId,
+    );
     await this.prisma.taxRuleBracket.delete({ where: { id: bracketId } });
-    await this.audit(user, 'TAX_BRACKET_DELETED', 'TaxRuleBracket', bracketId, existing, null);
+    await this.audit(
+      user,
+      'TAX_BRACKET_DELETED',
+      'TaxRuleBracket',
+      bracketId,
+      existing,
+      null,
+    );
     return this.get(user, taxRuleId);
   }
 
-  async addPayComponent(user: AuthenticatedUser, taxRuleId: string, dto: AddTaxRulePayComponentDto) {
+  async addPayComponent(
+    user: AuthenticatedUser,
+    taxRuleId: string,
+    dto: AddTaxRulePayComponentDto,
+  ) {
     await this.findRule(user.tenantId, taxRuleId);
     const component = await this.prisma.payComponent.findFirst({
       where: { tenantId: user.tenantId, id: dto.payComponentId },
       select: { id: true },
     });
-    if (!component) throw new BadRequestException('Pay component was not found for this tenant.');
+    if (!component)
+      throw new BadRequestException(
+        'Pay component was not found for this tenant.',
+      );
     const created = await this.prisma.taxRulePayComponent.upsert({
-      where: { taxRuleId_payComponentId: { taxRuleId, payComponentId: dto.payComponentId } },
-      create: { tenantId: user.tenantId, taxRuleId, payComponentId: dto.payComponentId },
+      where: {
+        taxRuleId_payComponentId: {
+          taxRuleId,
+          payComponentId: dto.payComponentId,
+        },
+      },
+      create: {
+        tenantId: user.tenantId,
+        taxRuleId,
+        payComponentId: dto.payComponentId,
+      },
       update: {},
     });
-    await this.audit(user, 'TAX_PAY_COMPONENT_MAPPING_ADDED', 'TaxRulePayComponent', created.id, null, created);
+    await this.audit(
+      user,
+      'TAX_PAY_COMPONENT_MAPPING_ADDED',
+      'TaxRulePayComponent',
+      created.id,
+      null,
+      created,
+    );
     return this.get(user, taxRuleId);
   }
 
-  async removePayComponent(user: AuthenticatedUser, taxRuleId: string, payComponentId: string) {
+  async removePayComponent(
+    user: AuthenticatedUser,
+    taxRuleId: string,
+    payComponentId: string,
+  ) {
     await this.findRule(user.tenantId, taxRuleId);
     const existing = await this.prisma.taxRulePayComponent.findFirst({
       where: { tenantId: user.tenantId, taxRuleId, payComponentId },
     });
     if (!existing) return this.get(user, taxRuleId);
-    await this.prisma.taxRulePayComponent.delete({ where: { id: existing.id } });
-    await this.audit(user, 'TAX_PAY_COMPONENT_MAPPING_REMOVED', 'TaxRulePayComponent', existing.id, existing, null);
+    await this.prisma.taxRulePayComponent.delete({
+      where: { id: existing.id },
+    });
+    await this.audit(
+      user,
+      'TAX_PAY_COMPONENT_MAPPING_REMOVED',
+      'TaxRulePayComponent',
+      existing.id,
+      existing,
+      null,
+    );
     return this.get(user, taxRuleId);
   }
 
   private async findRule(tenantId: string, id: string) {
-    const rule = await this.prisma.taxRule.findFirst({ where: { tenantId, id }, include: taxRuleInclude });
+    const rule = await this.prisma.taxRule.findFirst({
+      where: { tenantId, id },
+      include: taxRuleInclude,
+    });
     if (!rule) throw new NotFoundException('Tax rule was not found.');
     return rule;
   }
 
   private async findBracket(tenantId: string, taxRuleId: string, id: string) {
-    const bracket = await this.prisma.taxRuleBracket.findFirst({ where: { tenantId, taxRuleId, id } });
+    const bracket = await this.prisma.taxRuleBracket.findFirst({
+      where: { tenantId, taxRuleId, id },
+    });
     if (!bracket) throw new NotFoundException('Tax bracket was not found.');
     return bracket;
   }
 
-  private async assertEmployeeLevel(tenantId: string, employeeLevelId?: string | null) {
+  private async assertEmployeeLevel(
+    tenantId: string,
+    employeeLevelId?: string | null,
+  ) {
     if (!employeeLevelId) return;
-    const level = await this.prisma.employeeLevel.findFirst({ where: { tenantId, id: employeeLevelId, isActive: true }, select: { id: true } });
-    if (!level) throw new BadRequestException('Active employee level was not found for this tenant.');
+    const level = await this.prisma.employeeLevel.findFirst({
+      where: { tenantId, id: employeeLevelId, isActive: true },
+      select: { id: true },
+    });
+    if (!level)
+      throw new BadRequestException(
+        'Active employee level was not found for this tenant.',
+      );
   }
 
   private async assertNoBracketOverlap(
@@ -227,7 +386,10 @@ export class TaxRulesService {
     excludeBracketId?: string,
   ) {
     const nextStart = Number(minAmount);
-    const nextEnd = maxAmount === undefined || maxAmount === null ? Number.POSITIVE_INFINITY : Number(maxAmount);
+    const nextEnd =
+      maxAmount === undefined || maxAmount === null
+        ? Number.POSITIVE_INFINITY
+        : Number(maxAmount);
     const brackets = await this.prisma.taxRuleBracket.findMany({
       where: {
         tenantId,
@@ -239,19 +401,40 @@ export class TaxRulesService {
 
     const hasOverlap = brackets.some((bracket) => {
       const start = Number(bracket.minAmount);
-      const end = bracket.maxAmount === null ? Number.POSITIVE_INFINITY : Number(bracket.maxAmount);
+      const end =
+        bracket.maxAmount === null
+          ? Number.POSITIVE_INFINITY
+          : Number(bracket.maxAmount);
       return nextStart < end && start < nextEnd;
     });
 
-    if (hasOverlap) throw new BadRequestException('Tax brackets cannot overlap.');
+    if (hasOverlap)
+      throw new BadRequestException('Tax brackets cannot overlap.');
   }
 
-  private audit(user: AuthenticatedUser, action: string, entityType: string, entityId: string, beforeSnapshot: unknown, afterSnapshot: unknown) {
-    return this.auditService.log({ tenantId: user.tenantId, actorUserId: user.userId, action, entityType, entityId, beforeSnapshot, afterSnapshot });
+  private audit(
+    user: AuthenticatedUser,
+    action: string,
+    entityType: string,
+    entityId: string,
+    beforeSnapshot: unknown,
+    afterSnapshot: unknown,
+  ) {
+    return this.auditService.log({
+      tenantId: user.tenantId,
+      actorUserId: user.userId,
+      action,
+      entityType,
+      entityId,
+      beforeSnapshot,
+      afterSnapshot,
+    });
   }
 }
 
-function mapTaxRule(rule: Prisma.TaxRuleGetPayload<{ include: typeof taxRuleInclude }>) {
+function mapTaxRule(
+  rule: Prisma.TaxRuleGetPayload<{ include: typeof taxRuleInclude }>,
+) {
   return {
     ...rule,
     employeeRate: rule.employeeRate?.toString() ?? null,
@@ -279,17 +462,24 @@ function parseOptionalDate(value?: string | null) {
 }
 
 function assertEffectiveDates(from: Date, to: Date | null) {
-  if (to && to < from) throw new BadRequestException('effectiveTo must be greater than or equal to effectiveFrom.');
+  if (to && to < from)
+    throw new BadRequestException(
+      'effectiveTo must be greater than or equal to effectiveFrom.',
+    );
 }
 
 function assertBracket(minAmount: number, maxAmount?: number | null) {
   if (maxAmount !== undefined && maxAmount !== null && maxAmount <= minAmount) {
-    throw new BadRequestException('Bracket maxAmount must be greater than minAmount.');
+    throw new BadRequestException(
+      'Bracket maxAmount must be greater than minAmount.',
+    );
   }
 }
 
 function nullableDecimal(value?: number | null) {
-  return value === undefined || value === null ? null : new Prisma.Decimal(value);
+  return value === undefined || value === null
+    ? null
+    : new Prisma.Decimal(value);
 }
 
 function normalizeCode(value: string) {
@@ -307,7 +497,10 @@ function emptyToNull(value?: string | null) {
 }
 
 function handleUnique(error: unknown, message: string): never {
-  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+  if (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === 'P2002'
+  ) {
     throw new ConflictException(message);
   }
   throw error;

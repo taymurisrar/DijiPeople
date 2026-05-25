@@ -6,8 +6,10 @@ import { TenantCustomerAccountForm } from "@/app/_components/tenant-customer-acc
 import { TenantDetailEditForm } from "@/app/_components/tenant-detail-edit-form";
 import { TenantFeatureForm } from "@/app/_components/tenant-feature-form";
 import { TenantOwnerActions } from "@/app/_components/tenant-owner-actions";
+import { TenantStatusPipelineClient } from "@/app/_components/tenant-status-pipeline-client";
 import { TenantStatusBadge } from "@/app/_components/tenant-status-badge";
 import { TenantStatusForm } from "@/app/_components/tenant-status-form";
+import { StickyNotification } from "@/app/_components/notifications/app-notification";
 import { getSessionUser } from "@/lib/auth";
 import { buildTenantLoginUrl } from "@/lib/tenant-url";
 import type { BillingCycleValue, SubscriptionStatusValue, TenantStatusValue } from "@/lib/domain";
@@ -17,7 +19,6 @@ import { isPlatformSuperAdmin } from "@/lib/platform-rbac";
 import {
   DetailHeader,
   DetailPageShell,
-  StatusPipeline,
   SummaryCard,
   SummaryCards,
 } from "@/app/_components/ui/detail-page";
@@ -222,64 +223,34 @@ export default async function TenantDetailPage({
               className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold"
               href={`/tenants/${tenantId}?tab=settings&edit=${isEditing ? "0" : "1"}`}
             >
-              {isEditing ? "View" : "Edit"}
+              {isEditing ? "View" : "Manage settings"}
             </Link>
           </div>
         }
       />
 
-      <StatusPipeline
-        current={String(tenant.status)}
-        stages={[
-          {
-            key: "ONBOARDING",
-            label: "Onboarding",
-            description: "Tenant record created and setup is in progress.",
-            requiredFields: [
-              "Customer account",
-              "Tenant owner",
-              "Subscription plan",
-              "Enabled features",
-            ],
-            completedFields: [
-              ...(tenant.customerAccount ? ["Customer account"] : []),
-              ...(tenant.owner ? ["Tenant owner"] : []),
-              ...(tenant.subscription ? ["Subscription plan"] : []),
-              ...(enabledFeatures.length > 0 ? ["Enabled features"] : []),
-            ],
-          },
-          {
-            key: "ACTIVE",
-            label: "Active",
-            description: "Tenant is live and users can access the platform.",
-            requiredFields: ["Tenant slug", "Tenant owner", "Active subscription"],
-            completedFields: [
-              ...(tenant.slug ? ["Tenant slug"] : []),
-              ...(tenant.owner ? ["Tenant owner"] : []),
-              ...(tenant.subscription?.status === "ACTIVE"
-                ? ["Active subscription"]
-                : []),
-            ],
-          },
-          {
-            key: "SUSPENDED",
-            label: "Suspended",
-            description: "Access is restricted due to billing or admin action.",
-            status:
-              tenant.status === "SUSPENDED"
-                ? "current"
-                : tenant.status === "ARCHIVED"
-                  ? "completed"
-                  : "pending",
-          },
-          {
-            key: "ARCHIVED",
-            label: "Archived",
-            description: "Tenant is retired and no longer operational.",
-            locked: tenant.status !== "ARCHIVED",
-          },
-        ]}
+      <TenantStatusPipelineClient
+        currentStatus={String(tenant.status)}
+        form={{
+          customerAccount: tenant.customerAccount,
+          name: tenant.name,
+          owner: tenant.owner,
+          slug: tenant.slug,
+          subscription: tenant.subscription,
+        }}
+        tenantId={tenant.id}
       />
+
+      {["INACTIVE", "SUSPENDED", "ARCHIVED", "CHURNED"].includes(String(tenant.status)) ? (
+        <StickyNotification
+          storageKey={`tenant-read-only-${tenant.id}`}
+          title="Tenant access is restricted"
+          tone="warning"
+        >
+          This tenant is in a restricted lifecycle state. Historical details,
+          billing context, and audit information remain available.
+        </StickyNotification>
+      ) : null}
 
       <SummaryCards>
         <SummaryCard label="Users" value={tenant.counts.users} />
@@ -491,12 +462,12 @@ export default async function TenantDetailPage({
               <dl className="mt-6 grid gap-4 md:grid-cols-2">
                 <SummaryGridItem label="Tenant ID" value={tenant.id} />
                 <SummaryGridItem label="Tenant code" value={tenant.code} />
-                <SummaryGridItem label="Tenant name" value={tenant.name} />
+                <SummaryGridItem fieldKey="name" label="Tenant name" value={tenant.name} />
                 <SummaryGridItem
                   label="Legal name"
                   value={tenant.customerAccount?.legalCompanyName ?? "Not available"}
                 />
-                <SummaryGridItem label="Tenant slug" value={tenant.slug} />
+                <SummaryGridItem fieldKey="slug" label="Tenant slug" value={tenant.slug} />
                 <SummaryGridItem label="Tenant status" value={<TenantStatusBadge value={tenant.status} />} />
                 <SummaryGridItem label="Primary domain" value={tenant.primaryDomain ?? "Not configured"} />
                 <SummaryGridItem label="Custom domain" value={tenant.customDomain ?? "Not configured"} />
@@ -705,14 +676,16 @@ function InfoRow({
 }
 
 function SummaryGridItem({
+  fieldKey,
   label,
   value,
 }: {
+  fieldKey?: string;
   label: string;
   value: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4" data-field-key={fieldKey}>
       <dt className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
         {label}
       </dt>

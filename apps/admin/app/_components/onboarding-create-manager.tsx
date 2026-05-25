@@ -34,6 +34,8 @@ export function OnboardingCreateManager({
 
   const onboardingLifecycle =
     lifecycleOptions.customerOnboarding ?? lifecycleOptions.onboarding;
+  const defaultOnboardingStatus =
+    onboardingLifecycle.statuses[0]?.value ?? "NOT_STARTED";
 
   const firstCustomer = customers[0];
 
@@ -47,11 +49,9 @@ export function OnboardingCreateManager({
     primaryOwnerLastName: firstCustomer?.primaryContactLastName ?? "",
     primaryOwnerWorkEmail: firstCustomer?.primaryContactEmail ?? "",
     primaryOwnerPhone: firstCustomer?.primaryContactPhone ?? "",
-    status: onboardingLifecycle.statuses[0] ?? "NOT_STARTED",
+    status: defaultOnboardingStatus,
     subStatus:
-      onboardingLifecycle.subStatuses[
-        onboardingLifecycle.statuses[0] ?? "NOT_STARTED"
-      ]?.[0] ?? "",
+      onboardingLifecycle.subStatuses[defaultOnboardingStatus]?.[0] ?? "",
     notes: "",
   });
 
@@ -138,11 +138,9 @@ export function OnboardingCreateManager({
       primaryOwnerLastName: customer?.primaryContactLastName ?? "",
       primaryOwnerWorkEmail: customer?.primaryContactEmail ?? "",
       primaryOwnerPhone: customer?.primaryContactPhone ?? "",
-      status: onboardingLifecycle.statuses[0] ?? "NOT_STARTED",
+      status: defaultOnboardingStatus,
       subStatus:
-        onboardingLifecycle.subStatuses[
-          onboardingLifecycle.statuses[0] ?? "NOT_STARTED"
-        ]?.[0] ?? "",
+        onboardingLifecycle.subStatuses[defaultOnboardingStatus]?.[0] ?? "",
       notes: "",
     });
 
@@ -216,9 +214,9 @@ export function OnboardingCreateManager({
                       onboardingLifecycle.subStatuses[value]?.[0] ?? "",
                   }))
                 }
-                options={onboardingLifecycle.statuses.map((value) => ({
-                  value,
-                  label: value.replaceAll("_", " "),
+                options={onboardingLifecycle.statuses.map((status) => ({
+                  value: status.value,
+                  label: status.label,
                 }))}
               />
 

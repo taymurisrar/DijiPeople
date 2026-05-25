@@ -336,7 +336,10 @@ export function buildAuthCookieOptions(
     throw new Error('AUTH_COOKIE_SECURE must be true when SameSite=None.');
   }
 
-  if (isProductionLike(configService) && isInvalidProductionCookieDomain(domain)) {
+  if (
+    isProductionLike(configService) &&
+    isInvalidProductionCookieDomain(domain)
+  ) {
     throw new Error(
       'Auth cookie domain must be unset on Vercel unless a real custom parent domain is configured.',
     );
@@ -430,7 +433,9 @@ export function assertAuthEnvironment(configService: ConfigService) {
     }
 
     if (cookieOptions.sameSite !== 'lax') {
-      throw new Error('AUTH_COOKIE_SAME_SITE must be lax for admin production.');
+      throw new Error(
+        'AUTH_COOKIE_SAME_SITE must be lax for admin production.',
+      );
     }
 
     if (cookieOptions.path !== '/') {

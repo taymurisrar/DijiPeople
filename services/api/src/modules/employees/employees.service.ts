@@ -466,7 +466,9 @@ export class EmployeesService {
       ]);
     }
 
-    const buildTree = (employee: (typeof employees)[number]): ReportingTreeNode => ({
+    const buildTree = (
+      employee: (typeof employees)[number],
+    ): ReportingTreeNode => ({
       ...mapReportingNode(employee),
       children: (childrenByManagerId.get(employee.id) ?? []).map(buildTree),
     });

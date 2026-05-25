@@ -174,8 +174,10 @@ export class UsersService {
 
     const normalizedEmail = dto.email ? normalizeEmail(dto.email) : undefined;
     if (normalizedEmail && normalizedEmail !== user.email) {
-      const existingUser =
-        await this.usersRepository.findByTenantIdAndEmail(tenantId, normalizedEmail);
+      const existingUser = await this.usersRepository.findByTenantIdAndEmail(
+        tenantId,
+        normalizedEmail,
+      );
       if (existingUser && existingUser.id !== userId) {
         throw new ConflictException('Email is already in use.');
       }
