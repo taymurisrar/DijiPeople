@@ -56,6 +56,15 @@ export class LeaveRequestsController {
     return this.leaveService.listTeamLeaveRequests(user, query);
   }
 
+  @Get(':id')
+  @Permissions('leave-requests.read')
+  getById(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.leaveService.getLeaveRequest(user, id);
+  }
+
   @Post(':id/approve')
   @Permissions('leave-requests.approve')
   approve(

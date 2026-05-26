@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Archive, Bell, Check, Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -8,17 +9,24 @@ import {
   getInAppNotifications,
   getUnreadNotificationCount,
   markInAppNotificationRead,
+  openInboxNotification,
   type InAppNotificationItem,
 } from "@/lib/notifications-api";
 import { formatDateTime } from "@/lib/formatting-context";
 
-export function NotificationBell() {
+export function NotificationBell({
+  canReadInbox = false,
+}: {
+  canReadInbox?: boolean;
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [items, setItems] = useState<InAppNotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [staleState, setStaleState] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const router = useRouter();
 
   async function refresh(openPanel = false) {
     try {
@@ -96,6 +104,26 @@ export function NotificationBell() {
     );
   }
 
+  async function openRelated(notificationId: string) {
+    try {
+      setStaleState(null);
+      const result = await openInboxNotification(notificationId);
+      if (result.state === "OK" && result.navigationTarget) {
+        setIsOpen(false);
+        router.push(result.navigationTarget);
+        return;
+      }
+      setStaleState(readableOpenState(result.state));
+      await refresh(true);
+    } catch (requestError) {
+      setStaleState(
+        requestError instanceof Error
+          ? requestError.message
+          : "Unable to open notification.",
+      );
+    }
+  }
+
   return (
     <div className="relative" ref={containerRef}>
       <button
@@ -135,6 +163,12 @@ export function NotificationBell() {
             </div>
           ) : null}
 
+          {staleState ? (
+            <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-800">
+              {staleState}
+            </div>
+          ) : null}
+
           <div className="mt-3 grid max-h-96 gap-2 overflow-y-auto">
             {!isLoading && items.length === 0 ? (
               <div className="rounded-2xl bg-surface px-4 py-6 text-center text-sm text-muted">
@@ -152,9 +186,9 @@ export function NotificationBell() {
                     <p className="truncate text-sm font-semibold text-foreground">
                       {item.notification.title}
                     </p>
-                    {item.notification.body ? (
+                    {item.notification.summary ?? item.notification.body ? (
                       <p className="mt-1 line-clamp-2 text-sm text-muted">
-                        {item.notification.body}
+                        {item.notification.summary ?? item.notification.body}
                       </p>
                     ) : null}
                     <p className="mt-2 text-xs text-muted">
@@ -168,13 +202,13 @@ export function NotificationBell() {
 
                 <div className="mt-3 flex items-center gap-2">
                   {item.notification.targetUrl ? (
-                    <Link
+                    <button
                       className="rounded-full border border-border px-3 py-1.5 text-xs font-medium text-foreground transition hover:border-accent/30 hover:text-accent"
-                      href={item.notification.targetUrl}
-                      onClick={() => setIsOpen(false)}
+                      onClick={() => void openRelated(item.notification.id)}
+                      type="button"
                     >
                       Open
-                    </Link>
+                    </button>
                   ) : null}
                   {!item.readAt ? (
                     <button
@@ -198,6 +232,19 @@ export function NotificationBell() {
               </article>
             ))}
           </div>
+          {canReadInbox ? (
+            <Link
+              className="mt-3 block rounded-2xl border border-border bg-surface px-3 py-2 text-center text-sm font-medium text-foreground transition hover:border-accent/30 hover:text-accent"
+              href="/inbox"
+              onClick={() => setIsOpen(false)}
+            >
+              Open Inbox
+            </Link>
+          ) : (
+            <p className="mt-3 rounded-2xl border border-border bg-surface px-3 py-2 text-center text-sm font-medium text-muted">
+              Inbox access unavailable
+            </p>
+          )}
         </div>
       ) : null}
     </div>
@@ -206,4 +253,20 @@ export function NotificationBell() {
 
 function formatRelativeDate(value: string) {
   return formatDateTime(value);
+}
+
+function readableOpenState(state: string) {
+  if (state === "ACCESS_DENIED") {
+    return "You no longer have access to the related record.";
+  }
+  if (state === "RECORD_NOT_FOUND") {
+    return "The related record is no longer available.";
+  }
+  if (state === "SUPERSEDED") {
+    return "This notification has been superseded by a newer update.";
+  }
+  if (state === "EXPIRED") {
+    return "This notification has expired.";
+  }
+  return "This notification can no longer be opened.";
 }

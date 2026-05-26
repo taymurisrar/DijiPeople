@@ -70,6 +70,7 @@ export class InAppNotificationsService {
         readAt: item.readAt,
         archivedAt: item.archivedAt,
         deliveredAt: item.deliveredAt,
+        popupShownAt: item.popupShownAt,
         createdAt: item.createdAt,
         notification: item.notification,
       })),
@@ -101,5 +102,14 @@ export class InAppNotificationsService {
       recipientId,
     );
     return { archived: true };
+  }
+
+  async markPopupShown(user: AuthenticatedUser, recipientId: string) {
+    await this.repository.markInAppNotificationPopupShown(
+      user.tenantId,
+      user.userId,
+      recipientId,
+    );
+    return { popupShown: true };
   }
 }

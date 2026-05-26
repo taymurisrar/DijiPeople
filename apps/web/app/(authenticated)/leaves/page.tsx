@@ -64,11 +64,24 @@ export default async function LeavePage({ searchParams }: LeavesPageProps) {
     );
   const canViewTeamLeaves =
     currentEmployeeContext.isReportingManager || canApproveLeave || canRejectLeave;
-  const canViewTenantLeaves = isElevated || canApproveLeave || canRejectLeave;
-  const leaveEndpoint = buildLeaveEndpoint(
-    canViewTenantLeaves || currentEmployeeContext.isReportingManager,
-    selectedViewKey,
-  );
+  const canViewTenantLeaves =
+    isElevated ||
+    hasPermission(sessionUser?.permissionKeys, "leave-requests.manage") ||
+    hasPermission(sessionUser?.permissionKeys, "leaves.manage");
+  const normalizedViewKey = selectedViewKey || "myLeaveRequests";
+  const isApprovalListView = [
+    "allLeaveRequests",
+    "teamLeaves",
+    "pendingApprovals",
+    "approved",
+    "rejected",
+    "cancelled",
+  ].includes(normalizedViewKey);
+  const leaveEndpoint = buildLeaveEndpoint({
+    canViewTeamLeaves,
+    canViewTenantLeaves,
+    selectedViewKey: normalizedViewKey,
+  });
 
   const [requests, publishedViews, pendingApprovals] = await Promise.all([
     apiRequestJson<LeaveRequestRecord[]>(leaveEndpoint),
@@ -186,8 +199,8 @@ export default async function LeavePage({ searchParams }: LeavesPageProps) {
         canAssignLeave={false}
         canImportLeave={false}
         canExportLeave={false}
-        canApproveLeave={canApproveLeave}
-        canRejectLeave={canRejectLeave}
+        canApproveLeave={isApprovalListView && canApproveLeave}
+        canRejectLeave={isApprovalListView && canRejectLeave}
         pendingApprovals={pendingApprovals}
       />
 
@@ -208,7 +221,7 @@ export default async function LeavePage({ searchParams }: LeavesPageProps) {
           },
         }}
         visibleColumnKeys={visibleColumnKeys}
-        enableSelection={canApproveLeave || canRejectLeave}
+        enableSelection={false}
       />
     </main>
   );
@@ -238,18 +251,21 @@ function getSearchParam(value?: string | string[]) {
   return value ?? "";
 }
 
-function buildLeaveEndpoint(
-  canViewTenantLeaves: boolean,
-  selectedViewKey: string,
-) {
+function buildLeaveEndpoint(input: {
+  canViewTeamLeaves: boolean;
+  canViewTenantLeaves: boolean;
+  selectedViewKey: string;
+}) {
   const query = new URLSearchParams();
-  const status = resolveLeaveStatus(selectedViewKey);
+  const status = resolveLeaveStatus(input.selectedViewKey);
   if (status) query.set("status", status);
 
-  const path =
-    canViewTenantLeaves && selectedViewKey !== "myLeaveRequests"
-      ? "/leave-requests/team"
-      : "/leave-requests/mine";
+  const shouldUseTeamScope =
+    input.selectedViewKey !== "myLeaveRequests" &&
+    (input.canViewTenantLeaves || input.canViewTeamLeaves);
+  const path = shouldUseTeamScope
+    ? "/leave-requests/team"
+    : "/leave-requests/mine";
   const suffix = query.toString();
 
   return suffix ? `${path}?${suffix}` : path;

@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
   NotImplementedException,
 } from '@nestjs/common';
@@ -11,8 +12,13 @@ import {
   EmailTemplate,
   EmailTemplateStatus,
   NotificationChannel,
+  NotificationDisplayMode,
+  NotificationEventCategory,
+  NotificationRecipientResolverType,
+  NotificationType,
   Prisma,
 } from '@prisma/client';
+import { PrismaService } from '../../common/prisma/prisma.service';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import {
   CloneEmailTemplateDto,
@@ -42,7 +48,10 @@ import type {
 
 @Injectable()
 export class NotificationsService {
+  private readonly logger = new Logger(NotificationsService.name);
+
   constructor(
+    private readonly prisma: PrismaService,
     private readonly notificationsRepository: NotificationsRepository,
     private readonly emailService: EmailService,
   ) {}
@@ -507,6 +516,147 @@ export class NotificationsService {
     return this.notificationsRepository.createDeliveryLog(input);
   }
 
+  async emit(input: {
+    tenantId: string;
+    eventKey: string;
+    moduleKey: string;
+    actorUserId?: string | null;
+    relatedEntityType: string;
+    relatedEntityId: string;
+    relatedRecordNumber?: string | null;
+    metadata?: Record<string, unknown> | null;
+  }) {
+    const moduleKey = input.moduleKey.toLowerCase();
+    const rules = await this.notificationsRepository.listEnabledRules({
+      tenantId: input.tenantId,
+      moduleKey,
+      eventKey: input.eventKey,
+    });
+
+    if (!rules.length) {
+      return { created: 0, items: [] };
+    }
+
+    const created: unknown[] = [];
+    for (const rule of rules) {
+      const ruleMetadata = mergeRecords(null, rule.metadata);
+      const recipientUserIds = await this.resolveRecipients({
+        tenantId: input.tenantId,
+        actorUserId: input.actorUserId ?? null,
+        moduleKey,
+        relatedEntityType: input.relatedEntityType,
+        relatedEntityId: input.relatedEntityId,
+        resolverType: rule.recipientResolverType,
+        metadata: mergeRecords(input.metadata, ruleMetadata),
+      });
+
+      if (!recipientUserIds.length) {
+        this.logger.warn(
+          `Notification event ${input.eventKey} resolved no recipients for ${input.moduleKey}:${input.relatedEntityType}:${input.relatedEntityId}`,
+        );
+        continue;
+      }
+
+      const template =
+        await this.notificationsRepository.findNotificationTemplate({
+          tenantId: input.tenantId,
+          templateKey: rule.templateKey,
+          moduleKey,
+        });
+
+      if (!template) continue;
+
+      const variables = {
+        ...(input.metadata ?? {}),
+        moduleKey,
+        eventKey: input.eventKey,
+        relatedEntityType: input.relatedEntityType,
+        relatedEntityId: input.relatedEntityId,
+        relatedRecordNumber: input.relatedRecordNumber ?? '',
+      };
+
+      for (const recipientUserId of recipientUserIds) {
+        const dedupeKey = this.buildDedupeKey({
+          tenantId: input.tenantId,
+          recipientUserId,
+          eventKey: input.eventKey,
+          relatedEntityType: input.relatedEntityType,
+          relatedEntityId: input.relatedEntityId,
+        });
+        const existing =
+          await this.notificationsRepository.findActiveNotificationByDedupeKey({
+            tenantId: input.tenantId,
+            recipientUserId,
+            dedupeKey,
+          });
+
+        if (existing) continue;
+
+        const targetUrl = this.resolveTargetUrl({
+          moduleKey,
+          relatedEntityType: input.relatedEntityType,
+          relatedEntityId: input.relatedEntityId,
+          metadata: input.metadata ?? {},
+        });
+
+        const shouldCreateInboxRecord =
+          rule.channels.includes(NotificationChannel.IN_APP) ||
+          rule.displayMode !== NotificationDisplayMode.EMAIL_ONLY;
+
+        if (!shouldCreateInboxRecord) continue;
+
+        created.push(
+          await this.notificationsRepository.createTrackedNotification({
+            tenantId: input.tenantId,
+            recipientUserId,
+            actorUserId: input.actorUserId ?? null,
+            eventKey: input.eventKey,
+            moduleKey,
+            type: this.resolveNotificationType(
+              rule.requiresAction,
+              input.eventKey,
+            ),
+            category: this.resolveCategory(moduleKey, rule.requiresAction),
+            priority: rule.priority,
+            title: renderText(template.titleTemplate, variables),
+            summary: renderText(template.summaryTemplate, variables),
+            body: template.bodyTemplate
+              ? renderText(template.bodyTemplate, variables)
+              : null,
+            relatedEntityType: input.relatedEntityType,
+            relatedEntityId: input.relatedEntityId,
+            relatedRecordNumber: input.relatedRecordNumber ?? null,
+            routeName: targetUrl,
+            actionLabel: 'Open record',
+            targetUrl,
+            metadata: {
+              ...(input.metadata ?? {}),
+              displayMode: rule.displayMode,
+              channels: rule.channels,
+            },
+            requiresAction: rule.requiresAction,
+            tenantTimeZone:
+              stringValue(input.metadata?.tenantTimeZone) ??
+              stringValue(ruleMetadata.tenantTimeZone),
+            userTimeZone: stringValue(input.metadata?.userTimeZone),
+            dedupeKey,
+            displayMode: rule.displayMode,
+          }),
+        );
+      }
+    }
+
+    return { created: created.length, items: created };
+  }
+
+  cleanupExpiredInteractionLogs(beforeUtc = new Date()) {
+    // Scheduler integration is intentionally deferred until the platform has a
+    // shared background job runner for retention tasks.
+    return this.notificationsRepository.cleanupExpiredNotificationInteractionLogs(
+      beforeUtc,
+    );
+  }
+
   bootstrapSystemDefaults() {
     return this.notificationsRepository.bootstrapSystemDefaults();
   }
@@ -562,6 +712,336 @@ export class NotificationsService {
       throw new BadRequestException('Email subject template cannot be empty.');
     }
     sanitizeHtmlTemplate(htmlTemplate);
+  }
+
+  private buildDedupeKey(input: {
+    tenantId: string;
+    recipientUserId: string;
+    eventKey: string;
+    relatedEntityType: string;
+    relatedEntityId: string;
+  }) {
+    return [
+      input.tenantId,
+      input.recipientUserId,
+      input.eventKey,
+      input.relatedEntityType,
+      input.relatedEntityId,
+    ].join(':');
+  }
+
+  private resolveCategory(moduleKey: string, requiresAction: boolean) {
+    if (requiresAction) return NotificationEventCategory.APPROVALS;
+    if (moduleKey === 'employee') return NotificationEventCategory.EMPLOYEE;
+    if (moduleKey === 'attendance') return NotificationEventCategory.ATTENDANCE;
+    if (moduleKey === 'leave') return NotificationEventCategory.LEAVE;
+    return NotificationEventCategory.SYSTEM;
+  }
+
+  private resolveNotificationType(requiresAction: boolean, eventKey: string) {
+    if (eventKey.includes('escalated')) return NotificationType.ESCALATION;
+    if (requiresAction) return NotificationType.ACTION_REQUIRED;
+    if (eventKey.includes('approved')) return NotificationType.SUCCESS;
+    if (eventKey.includes('rejected')) return NotificationType.ERROR;
+    if (eventKey.includes('expiring')) return NotificationType.REMINDER;
+    return NotificationType.INFO;
+  }
+
+  private resolveTargetUrl(input: {
+    moduleKey: string;
+    relatedEntityType: string;
+    relatedEntityId: string;
+    metadata: Record<string, unknown>;
+  }) {
+    const explicitUrl = stringValue(input.metadata.targetUrl);
+    if (explicitUrl) return explicitUrl;
+
+    if (input.relatedEntityType === 'approvalRequest') {
+      return `/approvals/${input.relatedEntityId}`;
+    }
+    if (input.relatedEntityType === 'employeeDocument') {
+      const employeeId = stringValue(input.metadata.employeeId);
+      return employeeId
+        ? `/employees/${employeeId}?documentId=${encodeURIComponent(input.relatedEntityId)}`
+        : '/inbox';
+    }
+    if (input.relatedEntityType === 'onboardingTask') {
+      const onboardingId = stringValue(input.metadata.onboardingId);
+      return onboardingId
+        ? `/onboarding/${onboardingId}?taskId=${encodeURIComponent(input.relatedEntityId)}`
+        : '/inbox';
+    }
+    if (input.relatedEntityType === 'attendanceRecord') {
+      return `/attendance?recordId=${encodeURIComponent(input.relatedEntityId)}`;
+    }
+    if (input.relatedEntityType === 'attendanceCorrectionRequest') {
+      return `/attendance/corrections/${input.relatedEntityId}`;
+    }
+    if (input.moduleKey === 'employee') {
+      return `/employees/${input.relatedEntityId}`;
+    }
+    if (input.moduleKey === 'attendance') {
+      return `/attendance?recordId=${encodeURIComponent(input.relatedEntityId)}`;
+    }
+    if (input.moduleKey === 'leave') {
+      return `/leaves/${input.relatedEntityId}`;
+    }
+    return '/inbox';
+  }
+
+  private async resolveRecipients(input: {
+    tenantId: string;
+    actorUserId: string | null;
+    moduleKey: string;
+    relatedEntityType: string;
+    relatedEntityId: string;
+    resolverType: NotificationRecipientResolverType;
+    metadata?: Record<string, unknown> | null;
+  }) {
+    const metadata = input.metadata ?? {};
+    const recipients = new Set<string>();
+
+    if (input.resolverType === NotificationRecipientResolverType.SELF) {
+      addMaybe(recipients, input.actorUserId);
+      addMaybe(recipients, stringValue(metadata.recipientUserId));
+      addMany(recipients, stringArray(metadata.recipientUserIds));
+    }
+
+    if (input.resolverType === NotificationRecipientResolverType.CUSTOM_USER) {
+      addMaybe(recipients, stringValue(metadata.recipientUserId));
+      addMany(recipients, stringArray(metadata.recipientUserIds));
+    }
+
+    if (input.resolverType === NotificationRecipientResolverType.RECORD_OWNER) {
+      addMaybe(recipients, await this.resolveRecordOwner(input));
+    }
+
+    if (
+      input.resolverType === NotificationRecipientResolverType.REPORTING_MANAGER
+    ) {
+      addMaybe(recipients, await this.resolveReportingManager(input));
+    }
+
+    if (
+      input.resolverType === NotificationRecipientResolverType.APPROVAL_ASSIGNEE
+    ) {
+      addMany(recipients, stringArray(metadata.approvalAssigneeUserIds));
+      addMany(recipients, await this.resolveApprovalAssignees(input));
+    }
+
+    if (
+      input.resolverType === NotificationRecipientResolverType.HR_ROLE ||
+      input.resolverType === NotificationRecipientResolverType.MANAGER_ROLE ||
+      input.resolverType === NotificationRecipientResolverType.CUSTOM_ROLE
+    ) {
+      addMany(recipients, await this.resolveRoleRecipients(input));
+    }
+
+    return [...recipients].filter((userId) => Boolean(userId));
+  }
+
+  private async resolveRecordOwner(input: {
+    tenantId: string;
+    moduleKey: string;
+    relatedEntityType?: string;
+    relatedEntityId: string;
+    metadata?: Record<string, unknown> | null;
+  }) {
+    if (input.relatedEntityType === 'employeeDocument') {
+      const employeeId = stringValue(input.metadata?.employeeId);
+      if (!employeeId) return null;
+      const employee = await this.prisma.employee.findFirst({
+        where: { id: employeeId, tenantId: input.tenantId },
+        select: { ownerUserId: true, userId: true },
+      });
+      return employee?.ownerUserId ?? employee?.userId ?? null;
+    }
+
+    if (input.relatedEntityType === 'onboardingTask') {
+      const task = await this.prisma.onboardingTask.findFirst({
+        where: { id: input.relatedEntityId, tenantId: input.tenantId },
+        select: { assignedUserId: true },
+      });
+      return task?.assignedUserId ?? null;
+    }
+
+    if (input.moduleKey === 'employee') {
+      const employee = await this.prisma.employee.findFirst({
+        where: { id: input.relatedEntityId, tenantId: input.tenantId },
+        select: { ownerUserId: true, userId: true },
+      });
+      return employee?.ownerUserId ?? employee?.userId ?? null;
+    }
+
+    if (input.moduleKey === 'leave') {
+      const leave = await this.prisma.leaveRequest.findFirst({
+        where: { id: input.relatedEntityId, tenantId: input.tenantId },
+        select: { employee: { select: { userId: true } } },
+      });
+      return leave?.employee.userId ?? null;
+    }
+
+    if (input.moduleKey === 'attendance') {
+      if (input.relatedEntityType === 'attendanceCorrectionRequest') {
+        const request = await this.prisma.attendanceCorrectionRequest.findFirst(
+          {
+            where: { id: input.relatedEntityId, tenantId: input.tenantId },
+            select: { employee: { select: { userId: true } } },
+          },
+        );
+        return request?.employee.userId ?? null;
+      }
+
+      const attendance = await this.prisma.attendanceEntry.findFirst({
+        where: { id: input.relatedEntityId, tenantId: input.tenantId },
+        select: { employee: { select: { userId: true } } },
+      });
+      return attendance?.employee.userId ?? null;
+    }
+
+    return null;
+  }
+
+  private async resolveReportingManager(input: {
+    tenantId: string;
+    moduleKey: string;
+    relatedEntityId: string;
+  }) {
+    const employeeId = await this.resolveRelatedEmployeeId(input);
+    if (!employeeId) return null;
+
+    const employee = await this.prisma.employee.findFirst({
+      where: { id: employeeId, tenantId: input.tenantId },
+      select: { manager: { select: { userId: true } } },
+    });
+
+    return employee?.manager?.userId ?? null;
+  }
+
+  private async resolveRelatedEmployeeId(input: {
+    tenantId: string;
+    moduleKey: string;
+    relatedEntityType?: string;
+    relatedEntityId: string;
+    metadata?: Record<string, unknown> | null;
+  }) {
+    if (input.relatedEntityType === 'employeeDocument') {
+      return stringValue(input.metadata?.employeeId);
+    }
+    if (input.relatedEntityType === 'onboardingTask') {
+      const task = await this.prisma.onboardingTask.findFirst({
+        where: { id: input.relatedEntityId, tenantId: input.tenantId },
+        select: {
+          employeeOnboarding: {
+            select: {
+              employeeId: true,
+              targetReportingManagerEmployeeId: true,
+            },
+          },
+        },
+      });
+      return (
+        task?.employeeOnboarding.employeeId ??
+        task?.employeeOnboarding.targetReportingManagerEmployeeId ??
+        null
+      );
+    }
+    if (input.moduleKey === 'employee') return input.relatedEntityId;
+    if (input.moduleKey === 'leave') {
+      const leave = await this.prisma.leaveRequest.findFirst({
+        where: { id: input.relatedEntityId, tenantId: input.tenantId },
+        select: { employeeId: true },
+      });
+      return leave?.employeeId ?? null;
+    }
+    if (input.moduleKey === 'attendance') {
+      if (input.relatedEntityType === 'attendanceCorrectionRequest') {
+        const request = await this.prisma.attendanceCorrectionRequest.findFirst(
+          {
+            where: { id: input.relatedEntityId, tenantId: input.tenantId },
+            select: { employeeId: true },
+          },
+        );
+        return request?.employeeId ?? null;
+      }
+
+      const attendance = await this.prisma.attendanceEntry.findFirst({
+        where: { id: input.relatedEntityId, tenantId: input.tenantId },
+        select: { employeeId: true },
+      });
+      return attendance?.employeeId ?? null;
+    }
+    return null;
+  }
+
+  private async resolveApprovalAssignees(input: {
+    tenantId: string;
+    moduleKey: string;
+    relatedEntityType?: string;
+    relatedEntityId: string;
+  }) {
+    if (
+      input.moduleKey === 'attendance' &&
+      input.relatedEntityType === 'attendanceCorrectionRequest'
+    ) {
+      const assignments = await this.prisma.approvalAssignment.findMany({
+        where: {
+          tenantId: input.tenantId,
+          status: 'PENDING',
+          assignedToUserId: { not: null },
+          approvalRequest: {
+            moduleKey: 'attendance',
+            entityType: 'attendanceCorrectionRequest',
+            entityId: input.relatedEntityId,
+          },
+        },
+        select: { assignedToUserId: true },
+      });
+      return assignments.flatMap((assignment) =>
+        assignment.assignedToUserId ? [assignment.assignedToUserId] : [],
+      );
+    }
+
+    if (input.moduleKey !== 'leave') return [];
+    const steps = await this.prisma.leaveApprovalStep.findMany({
+      where: {
+        tenantId: input.tenantId,
+        leaveRequestId: input.relatedEntityId,
+        status: 'PENDING',
+        approverUserId: { not: null },
+      },
+      select: { approverUserId: true },
+    });
+    return steps.flatMap((step) =>
+      step.approverUserId ? [step.approverUserId] : [],
+    );
+  }
+
+  private async resolveRoleRecipients(input: {
+    tenantId: string;
+    resolverType: NotificationRecipientResolverType;
+    metadata?: Record<string, unknown> | null;
+  }) {
+    const metadata = input.metadata ?? {};
+    const roleIds = stringArray(metadata.roleIds);
+    const configuredRoleKey = stringValue(metadata.roleKey);
+    const roleWhere: Prisma.RoleWhereInput = roleIds.length
+      ? { id: { in: roleIds } }
+      : configuredRoleKey
+        ? { key: configuredRoleKey }
+        : { id: '__no_configured_role__' };
+
+    const users = await this.prisma.user.findMany({
+      where: {
+        tenantId: input.tenantId,
+        userRoles: {
+          some: { role: { tenantId: input.tenantId, ...roleWhere } },
+        },
+      },
+      select: { id: true },
+    });
+
+    return users.map((user) => user.id);
   }
 }
 
@@ -661,4 +1141,65 @@ function mapEmailProviderSetting(provider: EmailProviderSetting) {
     createdAt: provider.createdAt,
     updatedAt: provider.updatedAt,
   };
+}
+
+function renderText(template: string, variables: Record<string, unknown>) {
+  return template.replace(
+    /\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g,
+    (_, key: string) => {
+      const value = resolvePath(variables, key);
+      if (value === null || value === undefined) return '';
+      if (
+        typeof value === 'string' ||
+        typeof value === 'number' ||
+        typeof value === 'boolean'
+      ) {
+        return String(value);
+      }
+      return '';
+    },
+  );
+}
+
+function resolvePath(source: Record<string, unknown>, path: string) {
+  return path.split('.').reduce<unknown>((value, segment) => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return undefined;
+    }
+    return (value as Record<string, unknown>)[segment];
+  }, source);
+}
+
+function stringValue(value: unknown) {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function stringArray(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.filter(
+      (item): item is string =>
+        typeof item === 'string' && item.trim().length > 0,
+    );
+  }
+  const single = stringValue(value);
+  return single ? [single] : [];
+}
+
+function addMaybe(target: Set<string>, value: string | null | undefined) {
+  if (value) target.add(value);
+}
+
+function addMany(target: Set<string>, values: string[]) {
+  values.forEach((value) => addMaybe(target, value));
+}
+
+function mergeRecords(
+  left: Record<string, unknown> | null | undefined,
+  right: unknown,
+) {
+  const rightRecord =
+    right && typeof right === 'object' && !Array.isArray(right)
+      ? (right as Record<string, unknown>)
+      : {};
+  return { ...(left ?? {}), ...rightRecord };
 }

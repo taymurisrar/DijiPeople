@@ -1,11 +1,19 @@
 import {
   Prisma,
+  ApprovalActionType,
+  ApprovalAssignmentStatus,
+  ApprovalRequestStatus,
+  AttendanceCorrectionStatus,
   AttendanceEntrySource,
   AttendanceEntryStatus,
   AttendanceImportBatchStatus,
   AttendanceMode,
+  GenericApprovalStepStatus,
+  NotificationRecipientResolverType,
   SecurityAccessLevel,
   SecurityPrivilege,
+  SlaStatus,
+  SlaTargetType,
   WorkWeekday,
 } from '@prisma/client';
 import {
@@ -22,16 +30,21 @@ import {
   SECURITY_ACCESS_LEVEL_WEIGHT,
 } from '../../common/constants/rbac-matrix';
 import { hasElevatedTenantRole } from '../../common/security/elevated-tenant-roles';
+import { PrismaService } from '../../common/prisma/prisma.service';
 import { EmployeesRepository } from '../employees/employees.repository';
+import { NotificationsService } from '../notifications/notifications.service';
 import { TenantSettingsResolverService } from '../tenant-settings/tenant-settings-resolver.service';
 import {
   AttendanceEntryWithRelations,
   AttendanceRepository,
 } from './attendance.repository';
+import { AttendanceCorrectionActionDto } from './dto/attendance-correction-action.dto';
+import { AttendanceCorrectionQueryDto } from './dto/attendance-correction-query.dto';
 import { AttendanceQueryDto } from './dto/attendance-query.dto';
 import { AttendanceSummaryQueryDto } from './dto/attendance-summary-query.dto';
 import { CheckInDto } from './dto/check-in.dto';
 import { CheckOutDto } from './dto/check-out.dto';
+import { CreateAttendanceCorrectionRequestDto } from './dto/create-attendance-correction-request.dto';
 import { CreateAttendanceIntegrationDto } from './dto/create-attendance-integration.dto';
 import { CreateManualAttendanceEntryDto } from './dto/create-manual-attendance-entry.dto';
 import { ImportAttendanceDto } from './dto/import-attendance.dto';
@@ -63,6 +76,62 @@ const ATTENDANCE_IMPORT_MIME_TYPES = [
   'application/csv',
 ];
 
+const attendanceCorrectionInclude = {
+  employee: {
+    select: {
+      id: true,
+      employeeCode: true,
+      firstName: true,
+      lastName: true,
+      preferredName: true,
+      userId: true,
+      manager: { select: { id: true, userId: true } },
+    },
+  },
+  requestedByUser: {
+    select: { id: true, firstName: true, lastName: true, email: true },
+  },
+  actionedByUser: {
+    select: { id: true, firstName: true, lastName: true, email: true },
+  },
+  attendanceEntry: {
+    include: {
+      employee: {
+        select: {
+          id: true,
+          employeeCode: true,
+          firstName: true,
+          lastName: true,
+          preferredName: true,
+          userId: true,
+          managerEmployeeId: true,
+          departmentId: true,
+          department: { select: { id: true, name: true, code: true } },
+          designation: { select: { id: true, name: true, level: true } },
+          manager: {
+            select: {
+              id: true,
+              employeeCode: true,
+              firstName: true,
+              lastName: true,
+              preferredName: true,
+              userId: true,
+            },
+          },
+        },
+      },
+      workSchedule: true,
+      officeLocation: true,
+      importedBatch: true,
+    },
+  },
+} satisfies Prisma.AttendanceCorrectionRequestInclude;
+
+type AttendanceCorrectionWithRelations =
+  Prisma.AttendanceCorrectionRequestGetPayload<{
+    include: typeof attendanceCorrectionInclude;
+  }>;
+
 @Injectable()
 export class AttendanceService {
   constructor(
@@ -70,6 +139,8 @@ export class AttendanceService {
     private readonly employeesRepository: EmployeesRepository,
     private readonly tenantSettingsResolverService: TenantSettingsResolverService,
     private readonly auditService: AuditService,
+    private readonly notificationsService: NotificationsService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async checkIn(currentUser: AuthenticatedUser, dto: CheckInDto) {
@@ -151,6 +222,14 @@ export class AttendanceService {
         status: entry.status,
       },
     });
+
+    if (entry.isLateCheckIn || entry.status === AttendanceEntryStatus.LATE) {
+      await this.emitAttendanceExceptionNotification(
+        currentUser,
+        entry,
+        'late_check_in',
+      );
+    }
 
     return this.mapAttendanceEntry(entry, currentUser);
   }
@@ -268,6 +347,152 @@ export class AttendanceService {
     );
 
     return this.mapAttendanceEntry(entry, currentUser);
+  }
+
+  async listCorrectionRequests(
+    currentUser: AuthenticatedUser,
+    query: AttendanceCorrectionQueryDto,
+  ) {
+    this.assertCanReadCorrections(currentUser);
+    const where = await this.buildCorrectionWhere(currentUser, query);
+    const [items, total] = await Promise.all([
+      this.prisma.attendanceCorrectionRequest.findMany({
+        where,
+        include: attendanceCorrectionInclude,
+        orderBy: [{ createdAtUtc: 'desc' }],
+        skip: (query.page - 1) * query.pageSize,
+        take: query.pageSize,
+      }),
+      this.prisma.attendanceCorrectionRequest.count({ where }),
+    ]);
+
+    return {
+      items: await Promise.all(
+        items.map((item) => this.mapCorrectionRequest(currentUser, item)),
+      ),
+      page: query.page,
+      pageSize: query.pageSize,
+      total,
+      totalPages: Math.max(1, Math.ceil(total / query.pageSize)),
+    };
+  }
+
+  async getCorrectionRequest(currentUser: AuthenticatedUser, id: string) {
+    const request = await this.findCorrectionRequestForUser(currentUser, id);
+    return {
+      item: await this.mapCorrectionRequest(currentUser, request, true),
+    };
+  }
+
+  async createCorrectionRequest(
+    currentUser: AuthenticatedUser,
+    dto: CreateAttendanceCorrectionRequestDto,
+  ) {
+    if (!currentUser.permissionKeys.includes('attendance.correction.create')) {
+      throw new ForbiddenException(
+        'You do not have permission to request attendance corrections.',
+      );
+    }
+
+    const employee = await this.getCurrentEmployee(currentUser);
+    const attendanceEntry = dto.attendanceEntryId
+      ? await this.getAuthorizedAttendanceEntry(
+          currentUser,
+          dto.attendanceEntryId,
+          false,
+        )
+      : null;
+
+    if (attendanceEntry && attendanceEntry.employeeId !== employee.id) {
+      throw new ForbiddenException(
+        'You can only request corrections for your own attendance records.',
+      );
+    }
+
+    const requestedCheckInAtUtc = dto.requestedCheckInAtUtc
+      ? new Date(dto.requestedCheckInAtUtc)
+      : null;
+    const requestedCheckOutAtUtc = dto.requestedCheckOutAtUtc
+      ? new Date(dto.requestedCheckOutAtUtc)
+      : null;
+
+    if (!requestedCheckInAtUtc && !requestedCheckOutAtUtc) {
+      throw new BadRequestException(
+        'A requested check-in or check-out timestamp is required.',
+      );
+    }
+
+    if (
+      requestedCheckInAtUtc &&
+      requestedCheckOutAtUtc &&
+      requestedCheckOutAtUtc < requestedCheckInAtUtc
+    ) {
+      throw new BadRequestException(
+        'Requested check-out cannot be earlier than requested check-in.',
+      );
+    }
+
+    const now = new Date();
+    const request = await this.prisma.attendanceCorrectionRequest.create({
+      data: {
+        tenantId: currentUser.tenantId,
+        attendanceEntryId: attendanceEntry?.id ?? null,
+        employeeId: employee.id,
+        requestedByUserId: currentUser.userId,
+        requestNumber: await this.nextCorrectionRequestNumber(
+          currentUser.tenantId,
+        ),
+        correctionType: dto.correctionType,
+        originalCheckInAtUtc: attendanceEntry?.checkIn ?? null,
+        originalCheckOutAtUtc: attendanceEntry?.checkOut ?? null,
+        requestedCheckInAtUtc,
+        requestedCheckOutAtUtc,
+        reason: dto.reason.trim(),
+        status: AttendanceCorrectionStatus.PENDING_APPROVAL,
+        submittedAtUtc: now,
+      },
+      include: attendanceCorrectionInclude,
+    });
+
+    await this.syncGenericAttendanceCorrectionApproval(
+      request,
+      currentUser,
+      ApprovalActionType.SUBMITTED,
+    );
+    await this.emitAttendanceCorrectionSubmitted(request, currentUser);
+
+    await this.auditService.log({
+      tenantId: currentUser.tenantId,
+      actorUserId: currentUser.userId,
+      action: 'attendance.correction.submitted',
+      entityType: 'AttendanceCorrectionRequest',
+      entityId: request.id,
+      afterSnapshot: {
+        requestNumber: request.requestNumber,
+        correctionType: request.correctionType,
+        attendanceEntryId: request.attendanceEntryId,
+      },
+    });
+
+    return {
+      item: await this.mapCorrectionRequest(currentUser, request, true),
+    };
+  }
+
+  async approveCorrectionRequest(
+    currentUser: AuthenticatedUser,
+    id: string,
+    dto: AttendanceCorrectionActionDto,
+  ) {
+    return this.actionCorrectionRequest(currentUser, id, 'approve', dto);
+  }
+
+  async rejectCorrectionRequest(
+    currentUser: AuthenticatedUser,
+    id: string,
+    dto: AttendanceCorrectionActionDto,
+  ) {
+    return this.actionCorrectionRequest(currentUser, id, 'reject', dto);
   }
 
   async listTeamAttendance(
@@ -510,6 +735,8 @@ export class AttendanceService {
       },
     });
 
+    await this.emitAttendanceExceptionNotificationForStatus(currentUser, entry);
+
     return this.mapAttendanceEntry(entry, currentUser);
   }
 
@@ -675,6 +902,12 @@ export class AttendanceService {
       },
     });
 
+    await this.emitAttendanceCorrectionStatusNotification(currentUser, updated);
+    await this.emitAttendanceExceptionNotificationForStatus(
+      currentUser,
+      updated,
+    );
+
     return this.mapAttendanceEntry(updated, currentUser);
   }
 
@@ -700,6 +933,720 @@ export class AttendanceService {
     return this.updateManualEntry(currentUser, entryId, {
       ...dto,
       adjustmentReason: `Override: ${dto.adjustmentReason}`,
+    });
+  }
+
+  private async actionCorrectionRequest(
+    currentUser: AuthenticatedUser,
+    id: string,
+    action: 'approve' | 'reject',
+    dto: AttendanceCorrectionActionDto,
+  ) {
+    const permission =
+      action === 'approve'
+        ? 'attendance.correction.approve'
+        : 'attendance.correction.reject';
+    if (!currentUser.permissionKeys.includes(permission)) {
+      throw new ForbiddenException(
+        `You do not have permission to ${action} attendance corrections.`,
+      );
+    }
+
+    const request = await this.findCorrectionRequestForUser(currentUser, id);
+    await this.assertCanActionCorrection(currentUser, request);
+
+    if (request.status !== AttendanceCorrectionStatus.PENDING_APPROVAL) {
+      throw new ConflictException(
+        'Only pending attendance correction requests can be actioned.',
+      );
+    }
+
+    const nextStatus =
+      action === 'approve'
+        ? AttendanceCorrectionStatus.APPROVED
+        : AttendanceCorrectionStatus.REJECTED;
+    const now = new Date();
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      if (action === 'approve') {
+        await this.applyApprovedCorrection(request, currentUser, tx);
+      }
+
+      await tx.attendanceCorrectionRequest.update({
+        where: { id: request.id },
+        data: {
+          status: nextStatus,
+          approvedAtUtc: action === 'approve' ? now : null,
+          rejectedAtUtc: action === 'reject' ? now : null,
+          actionedByUserId: currentUser.userId,
+          actionComment: dto.comment?.trim() || null,
+        },
+      });
+
+      return tx.attendanceCorrectionRequest.findFirstOrThrow({
+        where: { id: request.id, tenantId: currentUser.tenantId },
+        include: attendanceCorrectionInclude,
+      });
+    });
+
+    await this.syncGenericAttendanceCorrectionApproval(
+      updated,
+      currentUser,
+      action === 'approve'
+        ? ApprovalActionType.APPROVED
+        : ApprovalActionType.REJECTED,
+      dto.comment,
+    );
+    await this.emitAttendanceCorrectionActioned(updated, currentUser, action);
+
+    await this.auditService.log({
+      tenantId: currentUser.tenantId,
+      actorUserId: currentUser.userId,
+      action:
+        action === 'approve'
+          ? 'attendance.correction.approved'
+          : 'attendance.correction.rejected',
+      entityType: 'AttendanceCorrectionRequest',
+      entityId: updated.id,
+      beforeSnapshot: { status: request.status },
+      afterSnapshot: { status: updated.status, actionComment: dto.comment },
+    });
+
+    return {
+      item: await this.mapCorrectionRequest(currentUser, updated, true),
+    };
+  }
+
+  private async applyApprovedCorrection(
+    request: AttendanceCorrectionWithRelations,
+    currentUser: AuthenticatedUser,
+    tx: Prisma.TransactionClient,
+  ) {
+    const checkIn =
+      request.requestedCheckInAtUtc ?? request.originalCheckInAtUtc;
+    const checkOut =
+      request.requestedCheckOutAtUtc ?? request.originalCheckOutAtUtc;
+
+    if (checkIn && checkOut && checkOut < checkIn) {
+      throw new BadRequestException(
+        'Requested check-out cannot be earlier than requested check-in.',
+      );
+    }
+
+    if (request.attendanceEntryId) {
+      const existing = await tx.attendanceEntry.findFirst({
+        where: {
+          id: request.attendanceEntryId,
+          tenantId: currentUser.tenantId,
+        },
+      });
+      if (!existing) {
+        throw new NotFoundException('Attendance entry could not be found.');
+      }
+
+      await tx.attendanceEntry.update({
+        where: { id: existing.id },
+        data: {
+          checkIn,
+          checkOut,
+          status: deriveManualStatus(
+            checkIn ?? undefined,
+            checkOut ?? undefined,
+            existing.isLateCheckIn,
+            existing.attendanceMode,
+          ),
+          source: AttendanceEntrySource.MANUAL,
+          notes: mergeNotes(
+            existing.notes,
+            `Correction ${request.requestNumber}: ${request.reason}`,
+          ),
+          updatedById: currentUser.userId,
+        },
+      });
+      return;
+    }
+
+    const attendanceDate = toStartOfDay(checkIn ?? checkOut ?? new Date());
+    const duplicate = await tx.attendanceEntry.findFirst({
+      where: {
+        tenantId: currentUser.tenantId,
+        employeeId: request.employeeId,
+        date: attendanceDate,
+      },
+      select: { id: true },
+    });
+
+    if (duplicate) {
+      throw new ConflictException(
+        'An attendance entry already exists for the requested correction date.',
+      );
+    }
+
+    await tx.attendanceEntry.create({
+      data: {
+        tenantId: currentUser.tenantId,
+        employeeId: request.employeeId,
+        date: attendanceDate,
+        checkIn,
+        checkOut,
+        attendanceMode: AttendanceMode.MANUAL,
+        status: deriveManualStatus(
+          checkIn ?? undefined,
+          checkOut ?? undefined,
+          false,
+          AttendanceMode.MANUAL,
+        ),
+        source: AttendanceEntrySource.MANUAL,
+        notes: `Correction ${request.requestNumber}: ${request.reason}`,
+        createdById: currentUser.userId,
+        updatedById: currentUser.userId,
+      },
+    });
+  }
+
+  private async buildCorrectionWhere(
+    currentUser: AuthenticatedUser,
+    query: AttendanceCorrectionQueryDto,
+  ): Promise<Prisma.AttendanceCorrectionRequestWhereInput> {
+    const base: Prisma.AttendanceCorrectionRequestWhereInput = {
+      tenantId: currentUser.tenantId,
+      ...(query.status ? { status: query.status } : {}),
+      ...(query.search?.trim()
+        ? {
+            OR: [
+              {
+                requestNumber: {
+                  contains: query.search.trim(),
+                  mode: 'insensitive',
+                },
+              },
+              {
+                reason: { contains: query.search.trim(), mode: 'insensitive' },
+              },
+            ],
+          }
+        : {}),
+    };
+    const view = query.view ?? 'mine';
+    if (view === 'mine')
+      return { ...base, requestedByUserId: currentUser.userId };
+    if (view === 'pending') {
+      return {
+        ...base,
+        status: AttendanceCorrectionStatus.PENDING_APPROVAL,
+        ...(await this.correctionRelevantScope(currentUser)),
+      };
+    }
+    if (view === 'approved')
+      return {
+        ...base,
+        status: AttendanceCorrectionStatus.APPROVED,
+        ...(await this.correctionRelevantScope(currentUser)),
+      };
+    if (view === 'rejected')
+      return {
+        ...base,
+        status: AttendanceCorrectionStatus.REJECTED,
+        ...(await this.correctionRelevantScope(currentUser)),
+      };
+    if (view === 'team') {
+      return { ...base, ...(await this.teamCorrectionScope(currentUser)) };
+    }
+    return { ...base, ...(await this.correctionRelevantScope(currentUser)) };
+  }
+
+  private async correctionRelevantScope(
+    currentUser: AuthenticatedUser,
+  ): Promise<Prisma.AttendanceCorrectionRequestWhereInput> {
+    const permissions = new Set(currentUser.permissionKeys);
+    if (
+      permissions.has('attendance.correction.manage') ||
+      permissions.has('attendance.correction.readTeam')
+    ) {
+      return {};
+    }
+
+    return {
+      OR: [
+        { requestedByUserId: currentUser.userId },
+        { employee: { manager: { userId: currentUser.userId } } },
+      ],
+    };
+  }
+
+  private async teamCorrectionScope(
+    currentUser: AuthenticatedUser,
+  ): Promise<Prisma.AttendanceCorrectionRequestWhereInput> {
+    if (
+      currentUser.permissionKeys.includes('attendance.correction.manage') ||
+      currentUser.permissionKeys.includes('attendance.correction.readTeam')
+    ) {
+      return {};
+    }
+    return { employee: { manager: { userId: currentUser.userId } } };
+  }
+
+  private async findCorrectionRequestForUser(
+    currentUser: AuthenticatedUser,
+    id: string,
+  ) {
+    this.assertCanReadCorrections(currentUser);
+    const request = await this.prisma.attendanceCorrectionRequest.findFirst({
+      where: {
+        id,
+        tenantId: currentUser.tenantId,
+        ...(await this.correctionRelevantScope(currentUser)),
+      },
+      include: attendanceCorrectionInclude,
+    });
+
+    if (!request) {
+      throw new NotFoundException(
+        'Attendance correction request was not found.',
+      );
+    }
+
+    return request;
+  }
+
+  private async nextCorrectionRequestNumber(tenantId: string) {
+    const count = await this.prisma.attendanceCorrectionRequest.count({
+      where: { tenantId },
+    });
+    return `ACR-${String(count + 1).padStart(6, '0')}`;
+  }
+
+  private assertCanReadCorrections(currentUser: AuthenticatedUser) {
+    const permissions = new Set(currentUser.permissionKeys);
+    if (
+      permissions.has('attendance.correction.read') ||
+      permissions.has('attendance.correction.readOwn') ||
+      permissions.has('attendance.correction.readTeam') ||
+      permissions.has('attendance.correction.approve') ||
+      permissions.has('attendance.correction.reject') ||
+      permissions.has('attendance.correction.manage')
+    ) {
+      return;
+    }
+
+    throw new ForbiddenException(
+      'You do not have permission to read attendance corrections.',
+    );
+  }
+
+  private async assertCanActionCorrection(
+    currentUser: AuthenticatedUser,
+    request: AttendanceCorrectionWithRelations,
+  ) {
+    const assignment = await this.prisma.approvalAssignment.findFirst({
+      where: {
+        tenantId: currentUser.tenantId,
+        status: ApprovalAssignmentStatus.PENDING,
+        assignedToUserId: currentUser.userId,
+        approvalRequest: {
+          moduleKey: 'attendance',
+          entityType: 'attendanceCorrectionRequest',
+          entityId: request.id,
+        },
+      },
+      select: { id: true },
+    });
+
+    if (!assignment) {
+      throw new ForbiddenException(
+        'Only the assigned approver can action this correction request.',
+      );
+    }
+  }
+
+  private async syncGenericAttendanceCorrectionApproval(
+    request: AttendanceCorrectionWithRelations,
+    currentUser: AuthenticatedUser,
+    actionType: ApprovalActionType,
+    comment?: string,
+  ) {
+    const approverUserId = request.employee.manager?.userId ?? null;
+    const genericStatus = mapCorrectionApprovalStatus(request.status);
+    const dueAtUtc = await this.resolveCorrectionDueAtUtc(currentUser.tenantId);
+    const approval = await this.prisma.approvalRequest.upsert({
+      where: {
+        tenantId_moduleKey_entityType_entityId: {
+          tenantId: currentUser.tenantId,
+          moduleKey: 'attendance',
+          entityType: 'attendanceCorrectionRequest',
+          entityId: request.id,
+        },
+      },
+      create: {
+        tenantId: currentUser.tenantId,
+        moduleKey: 'attendance',
+        entityType: 'attendanceCorrectionRequest',
+        entityId: request.id,
+        requestNumber: request.requestNumber,
+        title: `${request.requestNumber} - ${formatEmployeeName(request.employee)}`,
+        submittedByUserId: request.requestedByUserId,
+        submittedForEmployeeId: request.employeeId,
+        status: genericStatus,
+        createdAtUtc: request.createdAtUtc,
+        submittedAtUtc: request.submittedAtUtc,
+        completedAtUtc:
+          genericStatus === ApprovalRequestStatus.PENDING
+            ? null
+            : (request.approvedAtUtc ?? request.rejectedAtUtc ?? new Date()),
+        metadata: { source: 'attendance-correction' },
+      },
+      update: {
+        status: genericStatus,
+        completedAtUtc:
+          genericStatus === ApprovalRequestStatus.PENDING
+            ? null
+            : (request.approvedAtUtc ?? request.rejectedAtUtc ?? new Date()),
+      },
+    });
+
+    const step = await this.prisma.approvalStep.upsert({
+      where: {
+        approvalRequestId_stepOrder: {
+          approvalRequestId: approval.id,
+          stepOrder: 1,
+        },
+      },
+      create: {
+        tenantId: currentUser.tenantId,
+        approvalRequestId: approval.id,
+        stepOrder: 1,
+        stepName: 'Manager review',
+        approverResolverType:
+          NotificationRecipientResolverType.REPORTING_MANAGER,
+        status: mapCorrectionStepStatus(request.status),
+        startedAtUtc: request.submittedAtUtc ?? request.createdAtUtc,
+        dueAtUtc,
+        completedAtUtc: request.approvedAtUtc ?? request.rejectedAtUtc,
+        slaStatus: dueAtUtc ? SlaStatus.ON_TRACK : SlaStatus.NOT_APPLICABLE,
+        metadata: { attendanceCorrectionRequestId: request.id },
+      },
+      update: {
+        status: mapCorrectionStepStatus(request.status),
+        dueAtUtc,
+        completedAtUtc: request.approvedAtUtc ?? request.rejectedAtUtc,
+        slaStatus: dueAtUtc ? SlaStatus.ON_TRACK : SlaStatus.NOT_APPLICABLE,
+      },
+    });
+
+    if (approverUserId) {
+      await this.prisma.approvalAssignment.upsert({
+        where: {
+          id:
+            (
+              await this.prisma.approvalAssignment.findFirst({
+                where: {
+                  tenantId: currentUser.tenantId,
+                  approvalStepId: step.id,
+                  assignedToUserId: approverUserId,
+                },
+                select: { id: true },
+              })
+            )?.id ?? '__new_assignment__',
+        },
+        create: {
+          tenantId: currentUser.tenantId,
+          approvalRequestId: approval.id,
+          approvalStepId: step.id,
+          assignedToUserId: approverUserId,
+          status: mapCorrectionAssignmentStatus(request.status),
+          assignedAtUtc: request.submittedAtUtc ?? request.createdAtUtc,
+          actionedAtUtc: request.approvedAtUtc ?? request.rejectedAtUtc,
+          metadata: { attendanceCorrectionRequestId: request.id },
+        },
+        update: {
+          status: mapCorrectionAssignmentStatus(request.status),
+          actionedAtUtc: request.approvedAtUtc ?? request.rejectedAtUtc,
+        },
+      });
+    }
+
+    await this.prisma.approvalRequest.update({
+      where: { id: approval.id },
+      data: { currentStepId: step.id },
+    });
+
+    await this.prisma.approvalAction.create({
+      data: {
+        tenantId: currentUser.tenantId,
+        approvalRequestId: approval.id,
+        approvalStepId: step.id,
+        actionType,
+        actionByUserId: currentUser.userId,
+        comment: comment?.trim() || null,
+        actionAtUtc: new Date(),
+        actionTimeZone: null,
+        metadata: { source: 'attendance-correction' },
+      },
+    });
+
+    if (dueAtUtc) {
+      await this.prisma.slaTracking.upsert({
+        where: {
+          tenantId_targetType_targetId: {
+            tenantId: currentUser.tenantId,
+            targetType: SlaTargetType.APPROVAL_STEP,
+            targetId: step.id,
+          },
+        },
+        create: {
+          tenantId: currentUser.tenantId,
+          targetType: SlaTargetType.APPROVAL_STEP,
+          targetId: step.id,
+          dueAtUtc,
+          metadata: { source: 'attendance-correction' },
+        },
+        update: {
+          dueAtUtc,
+          completedAtUtc:
+            request.status === AttendanceCorrectionStatus.PENDING_APPROVAL
+              ? null
+              : new Date(),
+          status:
+            request.status === AttendanceCorrectionStatus.PENDING_APPROVAL
+              ? SlaStatus.ON_TRACK
+              : SlaStatus.NOT_APPLICABLE,
+        },
+      });
+    }
+  }
+
+  private async resolveCorrectionDueAtUtc(tenantId: string) {
+    const rule = await this.prisma.slaRule.findFirst({
+      where: {
+        tenantId,
+        targetType: SlaTargetType.APPROVAL_STEP,
+        targetStatus: 'PENDING',
+        enabled: true,
+        slaPolicy: { moduleKey: 'attendance', enabled: true },
+      },
+      orderBy: { durationMinutes: 'asc' },
+    });
+
+    if (!rule) return null;
+
+    return new Date(Date.now() + rule.durationMinutes * 60_000);
+  }
+
+  private emitAttendanceCorrectionSubmitted(
+    request: AttendanceCorrectionWithRelations,
+    currentUser: AuthenticatedUser,
+  ) {
+    const approverUserId = request.employee.manager?.userId ?? null;
+    return this.notificationsService.emit({
+      tenantId: currentUser.tenantId,
+      eventKey: 'attendance.correction.submitted.approver',
+      moduleKey: 'attendance',
+      actorUserId: currentUser.userId,
+      relatedEntityType: 'attendanceCorrectionRequest',
+      relatedEntityId: request.id,
+      relatedRecordNumber: request.requestNumber,
+      metadata: {
+        employeeId: request.employeeId,
+        employeeName: formatEmployeeName(request.employee),
+        correctionRequestId: request.id,
+        correctionType: request.correctionType,
+        approvalAssigneeUserIds: approverUserId ? [approverUserId] : [],
+        eventAtUtc: new Date().toISOString(),
+        targetUrl: `/attendance/corrections/${request.id}`,
+      },
+    });
+  }
+
+  private emitAttendanceCorrectionActioned(
+    request: AttendanceCorrectionWithRelations,
+    currentUser: AuthenticatedUser,
+    action: 'approve' | 'reject',
+  ) {
+    return this.notificationsService.emit({
+      tenantId: currentUser.tenantId,
+      eventKey:
+        action === 'approve'
+          ? 'attendance.correction.approved.employee'
+          : 'attendance.correction.rejected.employee',
+      moduleKey: 'attendance',
+      actorUserId: currentUser.userId,
+      relatedEntityType: 'attendanceCorrectionRequest',
+      relatedEntityId: request.id,
+      relatedRecordNumber: request.requestNumber,
+      metadata: {
+        employeeId: request.employeeId,
+        employeeName: formatEmployeeName(request.employee),
+        correctionRequestId: request.id,
+        correctionType: request.correctionType,
+        eventAtUtc: new Date().toISOString(),
+        targetUrl: `/attendance/corrections/${request.id}`,
+      },
+    });
+  }
+
+  private async mapCorrectionRequest(
+    currentUser: AuthenticatedUser,
+    request: AttendanceCorrectionWithRelations,
+    includeApproval = false,
+  ) {
+    const approval = includeApproval
+      ? await this.prisma.approvalRequest.findFirst({
+          where: {
+            tenantId: currentUser.tenantId,
+            moduleKey: 'attendance',
+            entityType: 'attendanceCorrectionRequest',
+            entityId: request.id,
+          },
+          include: {
+            steps: {
+              include: {
+                assignments: {
+                  include: {
+                    assignedToUser: {
+                      select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                        email: true,
+                      },
+                    },
+                    assignedToRole: {
+                      select: { id: true, name: true, key: true },
+                    },
+                  },
+                },
+                actions: {
+                  include: {
+                    actionByUser: {
+                      select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                        email: true,
+                      },
+                    },
+                  },
+                  orderBy: { actionAtUtc: 'asc' },
+                },
+              },
+              orderBy: { stepOrder: 'asc' },
+            },
+            actions: {
+              include: {
+                actionByUser: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    email: true,
+                  },
+                },
+              },
+              orderBy: { actionAtUtc: 'asc' },
+            },
+          },
+        })
+      : null;
+    const canAct =
+      request.status === AttendanceCorrectionStatus.PENDING_APPROVAL &&
+      (await this.canCurrentUserActionCorrection(currentUser, request));
+
+    return {
+      ...request,
+      employeeName: formatEmployeeName(request.employee),
+      canApprove:
+        canAct &&
+        currentUser.permissionKeys.includes('attendance.correction.approve'),
+      canReject:
+        canAct &&
+        currentUser.permissionKeys.includes('attendance.correction.reject'),
+      approval,
+      relatedRecordUrl: `/attendance/corrections/${request.id}`,
+    };
+  }
+
+  private async canCurrentUserActionCorrection(
+    currentUser: AuthenticatedUser,
+    request: AttendanceCorrectionWithRelations,
+  ) {
+    const assignment = await this.prisma.approvalAssignment.findFirst({
+      where: {
+        tenantId: currentUser.tenantId,
+        status: ApprovalAssignmentStatus.PENDING,
+        assignedToUserId: currentUser.userId,
+        approvalRequest: {
+          moduleKey: 'attendance',
+          entityType: 'attendanceCorrectionRequest',
+          entityId: request.id,
+        },
+      },
+      select: { id: true },
+    });
+    return Boolean(assignment);
+  }
+
+  private emitAttendanceCorrectionStatusNotification(
+    currentUser: AuthenticatedUser,
+    entry: AttendanceEntryWithRelations,
+  ) {
+    return this.notificationsService.emit({
+      tenantId: currentUser.tenantId,
+      eventKey: 'attendance.correction.updated.employee',
+      moduleKey: 'attendance',
+      actorUserId: currentUser.userId,
+      relatedEntityType: 'attendanceRecord',
+      relatedEntityId: entry.id,
+      relatedRecordNumber: formatAttendanceRecordNumber(entry),
+      metadata: {
+        employeeId: entry.employeeId,
+        employeeName: formatEmployeeName(entry.employee),
+        attendanceDate: entry.date.toISOString(),
+        attendanceStatus: entry.status,
+        eventAtUtc: new Date().toISOString(),
+        targetUrl: `/attendance?recordId=${encodeURIComponent(entry.id)}`,
+      },
+    });
+  }
+
+  private async emitAttendanceExceptionNotificationForStatus(
+    currentUser: AuthenticatedUser,
+    entry: AttendanceEntryWithRelations,
+  ) {
+    const exceptionType = resolveAttendanceExceptionType(entry);
+    if (!exceptionType) return;
+
+    await this.emitAttendanceExceptionNotification(
+      currentUser,
+      entry,
+      exceptionType,
+    );
+  }
+
+  private emitAttendanceExceptionNotification(
+    currentUser: AuthenticatedUser,
+    entry: AttendanceEntryWithRelations,
+    exceptionType:
+      | 'late_check_in'
+      | 'missing_checkout'
+      | 'absence_without_leave',
+  ) {
+    return this.notificationsService.emit({
+      tenantId: currentUser.tenantId,
+      eventKey: 'attendance.exception.detected.manager',
+      moduleKey: 'attendance',
+      actorUserId: currentUser.userId,
+      relatedEntityType: 'attendanceRecord',
+      relatedEntityId: entry.id,
+      relatedRecordNumber: formatAttendanceRecordNumber(entry),
+      metadata: {
+        employeeId: entry.employeeId,
+        employeeName: formatEmployeeName(entry.employee),
+        exceptionType,
+        attendanceDate: entry.date.toISOString(),
+        attendanceStatus: entry.status,
+        eventAtUtc: new Date().toISOString(),
+        targetUrl: `/attendance/team?recordId=${encodeURIComponent(entry.id)}`,
+      },
     });
   }
 
@@ -1807,6 +2754,36 @@ function deriveManualStatus(
   return AttendanceEntryStatus.PRESENT;
 }
 
+function resolveAttendanceExceptionType(entry: AttendanceEntryWithRelations) {
+  if (entry.status === AttendanceEntryStatus.ABSENT) {
+    return 'absence_without_leave' as const;
+  }
+  if (entry.status === AttendanceEntryStatus.MISSED_CHECK_OUT) {
+    return 'missing_checkout' as const;
+  }
+  if (entry.status === AttendanceEntryStatus.LATE || entry.isLateCheckIn) {
+    return 'late_check_in' as const;
+  }
+  return null;
+}
+
+function formatAttendanceRecordNumber(entry: AttendanceEntryWithRelations) {
+  return `${entry.employee.employeeCode}-${entry.date.toISOString().slice(0, 10)}`;
+}
+
+function formatEmployeeName(employee: {
+  firstName: string;
+  lastName: string;
+  preferredName?: string | null;
+}) {
+  return [
+    employee.preferredName || employee.firstName,
+    employee.preferredName ? null : employee.lastName,
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
 function summaryQueryToAttendanceQuery(
   query: AttendanceSummaryQueryDto,
 ): AttendanceQueryDto {
@@ -2219,6 +3196,55 @@ function parseNumber(value: string | undefined) {
 
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function mapCorrectionApprovalStatus(status: AttendanceCorrectionStatus) {
+  switch (status) {
+    case AttendanceCorrectionStatus.APPROVED:
+      return ApprovalRequestStatus.APPROVED;
+    case AttendanceCorrectionStatus.REJECTED:
+      return ApprovalRequestStatus.REJECTED;
+    case AttendanceCorrectionStatus.RETURNED:
+      return ApprovalRequestStatus.RETURNED;
+    case AttendanceCorrectionStatus.CANCELLED:
+      return ApprovalRequestStatus.CANCELLED;
+    case AttendanceCorrectionStatus.DRAFT:
+      return ApprovalRequestStatus.DRAFT;
+    default:
+      return ApprovalRequestStatus.PENDING;
+  }
+}
+
+function mapCorrectionStepStatus(status: AttendanceCorrectionStatus) {
+  switch (status) {
+    case AttendanceCorrectionStatus.APPROVED:
+      return GenericApprovalStepStatus.APPROVED;
+    case AttendanceCorrectionStatus.REJECTED:
+      return GenericApprovalStepStatus.REJECTED;
+    case AttendanceCorrectionStatus.RETURNED:
+      return GenericApprovalStepStatus.RETURNED;
+    case AttendanceCorrectionStatus.CANCELLED:
+      return GenericApprovalStepStatus.SKIPPED;
+    case AttendanceCorrectionStatus.DRAFT:
+      return GenericApprovalStepStatus.NOT_STARTED;
+    default:
+      return GenericApprovalStepStatus.PENDING;
+  }
+}
+
+function mapCorrectionAssignmentStatus(status: AttendanceCorrectionStatus) {
+  switch (status) {
+    case AttendanceCorrectionStatus.APPROVED:
+      return ApprovalAssignmentStatus.APPROVED;
+    case AttendanceCorrectionStatus.REJECTED:
+      return ApprovalAssignmentStatus.REJECTED;
+    case AttendanceCorrectionStatus.RETURNED:
+      return ApprovalAssignmentStatus.RETURNED;
+    case AttendanceCorrectionStatus.CANCELLED:
+      return ApprovalAssignmentStatus.SUPERSEDED;
+    default:
+      return ApprovalAssignmentStatus.PENDING;
+  }
 }
 
 function currentDateKey() {

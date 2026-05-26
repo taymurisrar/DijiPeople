@@ -1,8 +1,11 @@
 import {
   ApprovalActorType,
+  ApprovalAssignmentStatus,
+  ApprovalRequestStatus,
+  GenericApprovalStepStatus,
   LeaveApprovalStepStatus,
   LeaveRequestStatus,
-  NotificationChannel,
+  NotificationRecipientResolverType,
   Prisma,
 } from '@prisma/client';
 import {
@@ -35,7 +38,7 @@ import { UpdateLeavePolicyDto } from './dto/update-leave-policy.dto';
 import { UpdateLeaveTypeDto } from './dto/update-leave-type.dto';
 import { LeaveRepository, LeaveRequestWithRelations } from './leave.repository';
 import { ApprovalResolverService } from './approval-resolver.service';
-import { NotificationOrchestratorService } from '../notifications/notification-orchestrator.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const ApprovalModes = {
   ANY_ONE: 'ANY_ONE',
@@ -61,6 +64,40 @@ const ApprovalActors = {
   USER: 'USER',
 } as const;
 
+function mapLeaveToApprovalStatus(status: LeaveRequestStatus) {
+  if (status === LeaveRequestStatus.APPROVED)
+    return ApprovalRequestStatus.APPROVED;
+  if (status === LeaveRequestStatus.REJECTED)
+    return ApprovalRequestStatus.REJECTED;
+  if (status === LeaveRequestStatus.CANCELLED)
+    return ApprovalRequestStatus.CANCELLED;
+  return ApprovalRequestStatus.PENDING;
+}
+
+function mapLeaveStepStatus(status: LeaveApprovalStepStatus) {
+  if (status === LeaveApprovalStepStatus.APPROVED)
+    return GenericApprovalStepStatus.APPROVED;
+  if (status === LeaveApprovalStepStatus.REJECTED)
+    return GenericApprovalStepStatus.REJECTED;
+  if (status === LeaveApprovalStepStatus.SKIPPED)
+    return GenericApprovalStepStatus.SKIPPED;
+  if (status === LeaveApprovalStepStatus.CANCELLED)
+    return GenericApprovalStepStatus.SKIPPED;
+  return GenericApprovalStepStatus.PENDING;
+}
+
+function mapLeaveAssignmentStatus(status: LeaveApprovalStepStatus) {
+  if (status === LeaveApprovalStepStatus.APPROVED)
+    return ApprovalAssignmentStatus.APPROVED;
+  if (status === LeaveApprovalStepStatus.REJECTED)
+    return ApprovalAssignmentStatus.REJECTED;
+  if (status === LeaveApprovalStepStatus.SKIPPED)
+    return ApprovalAssignmentStatus.SUPERSEDED;
+  if (status === LeaveApprovalStepStatus.CANCELLED)
+    return ApprovalAssignmentStatus.EXPIRED;
+  return ApprovalAssignmentStatus.PENDING;
+}
+
 @Injectable()
 export class LeaveService {
   constructor(
@@ -70,7 +107,7 @@ export class LeaveService {
     private readonly usersRepository: UsersRepository,
     private readonly auditService: AuditService,
     private readonly approvalResolver: ApprovalResolverService,
-    private readonly notificationOrchestrator: NotificationOrchestratorService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   findLeaveTypes(tenantId: string, query: ListLeaveConfigDto) {
@@ -509,6 +546,7 @@ export class LeaveService {
     });
 
     await this.notifyPendingApprovers(leaveRequest, currentUser);
+    await this.syncGenericLeaveApproval(leaveRequest, currentUser, 'SUBMITTED');
 
     return this.mapLeaveRequest(leaveRequest, currentUser);
   }
@@ -583,22 +621,19 @@ export class LeaveService {
       return;
     }
 
-    await this.notificationOrchestrator.dispatch({
+    await this.notificationsService.emit({
       tenantId: currentUser.tenantId,
-      eventCode: 'LEAVE_APPROVAL_REQUEST',
-      channels: [NotificationChannel.IN_APP],
-      sourceModule: 'leave',
-      correlationId: leaveRequest.id,
-      requestedByUserId: currentUser.userId,
-      inApp: {
-        title: 'Leave request awaiting approval',
-        body: `${leaveRequest.employee.firstName} ${leaveRequest.employee.lastName} submitted a leave request.`,
-        targetUrl: '/leaves?view=pendingApprovals',
-        recipientUserIds,
-        payload: {
-          leaveRequestId: leaveRequest.id,
-          employeeId: leaveRequest.employeeId,
-        },
+      eventKey: 'leave.request.submitted.approver',
+      moduleKey: 'leave',
+      actorUserId: currentUser.userId,
+      relatedEntityType: 'leaveRequest',
+      relatedEntityId: leaveRequest.id,
+      relatedRecordNumber: leaveRequest.id,
+      metadata: {
+        employeeName: `${leaveRequest.employee.firstName} ${leaveRequest.employee.lastName}`,
+        leaveTypeName: leaveRequest.leaveType.name,
+        approvalAssigneeUserIds: recipientUserIds,
+        targetUrl: `/leaves/${leaveRequest.id}`,
       },
     });
   }
@@ -631,7 +666,7 @@ export class LeaveService {
     currentUser: AuthenticatedUser,
     query: LeaveRequestQueryDto,
   ) {
-    if (this.canManageTenantLeaveRequests(currentUser)) {
+    if (this.canViewAllTenantLeaveRequests(currentUser)) {
       const tenantRequests =
         await this.leaveRepository.findLeaveRequestsByTenant(
           currentUser.tenantId,
@@ -652,11 +687,10 @@ export class LeaveService {
       return [];
     }
 
-    const directReports = await this.employeesRepository.findDirectReports(
+    const reportIds = await this.resolveReportingHierarchyEmployeeIds(
       currentUser.tenantId,
       currentEmployee.id,
     );
-    const reportIds = directReports.map((employee) => employee.id);
     if (reportIds.length === 0) {
       return [];
     }
@@ -670,6 +704,21 @@ export class LeaveService {
 
     return teamRequests.map((request) =>
       this.mapLeaveRequest(request, currentUser),
+    );
+  }
+
+  async getLeaveRequest(currentUser: AuthenticatedUser, leaveRequestId: string) {
+    const leaveRequest = await this.findLeaveRequestOrThrow(
+      currentUser.tenantId,
+      leaveRequestId,
+    );
+
+    if (await this.canReadLeaveRequest(currentUser, leaveRequest)) {
+      return this.mapLeaveRequest(leaveRequest, currentUser);
+    }
+
+    throw new ForbiddenException(
+      'You do not have permission to view this leave request.',
     );
   }
 
@@ -715,7 +764,7 @@ export class LeaveService {
     );
 
     if (
-      !this.canManageTenantLeaveRequests(currentUser) &&
+      !this.canViewAllTenantLeaveRequests(currentUser) &&
       (!employee || leaveRequest.employeeId !== employee.id)
     ) {
       throw new ForbiddenException(
@@ -1255,7 +1304,171 @@ export class LeaveService {
       afterSnapshot: this.mapLeaveRequest(updated, currentUser),
     });
 
+    await this.syncGenericLeaveApproval(
+      updated,
+      currentUser,
+      action === 'approve' ? 'APPROVED' : 'REJECTED',
+      comments,
+    );
+    await this.notificationsService.emit({
+      tenantId: currentUser.tenantId,
+      eventKey:
+        action === 'approve'
+          ? 'leave.request.approved.employee'
+          : 'leave.request.rejected.employee',
+      moduleKey: 'leave',
+      actorUserId: currentUser.userId,
+      relatedEntityType: 'leaveRequest',
+      relatedEntityId: updated.id,
+      relatedRecordNumber: updated.id,
+      metadata: {
+        employeeName: `${updated.employee.firstName} ${updated.employee.lastName}`,
+        leaveTypeName: updated.leaveType.name,
+        targetUrl: `/leaves/${updated.id}`,
+      },
+    });
+
     return this.mapLeaveRequest(updated, currentUser);
+  }
+
+  private async syncGenericLeaveApproval(
+    leaveRequest: LeaveRequestWithRelations,
+    currentUser: AuthenticatedUser,
+    actionType: 'SUBMITTED' | 'APPROVED' | 'REJECTED',
+    comment?: string,
+  ) {
+    const currentPendingStep = leaveRequest.approvalSteps.find(
+      (step) => step.status === LeaveApprovalStepStatus.PENDING,
+    );
+    const request = await this.prisma.approvalRequest.upsert({
+      where: {
+        tenantId_moduleKey_entityType_entityId: {
+          tenantId: currentUser.tenantId,
+          moduleKey: 'leave',
+          entityType: 'leaveRequest',
+          entityId: leaveRequest.id,
+        },
+      },
+      create: {
+        tenantId: currentUser.tenantId,
+        moduleKey: 'leave',
+        entityType: 'leaveRequest',
+        entityId: leaveRequest.id,
+        requestNumber: leaveRequest.id,
+        title: `${leaveRequest.employee.firstName} ${leaveRequest.employee.lastName} - ${leaveRequest.leaveType.name}`,
+        submittedByUserId: leaveRequest.createdById ?? currentUser.userId,
+        submittedForEmployeeId: leaveRequest.employeeId,
+        status: mapLeaveToApprovalStatus(leaveRequest.status),
+        currentStepId: null,
+        createdAtUtc: leaveRequest.createdAt,
+        submittedAtUtc: leaveRequest.createdAt,
+        completedAtUtc:
+          leaveRequest.status === LeaveRequestStatus.PENDING
+            ? null
+            : leaveRequest.updatedAt,
+        metadata: { source: 'leave' },
+      },
+      update: {
+        status: mapLeaveToApprovalStatus(leaveRequest.status),
+        completedAtUtc:
+          leaveRequest.status === LeaveRequestStatus.PENDING
+            ? null
+            : leaveRequest.updatedAt,
+      },
+      include: { steps: true },
+    });
+
+    for (const step of leaveRequest.approvalSteps) {
+      const genericStep = await this.prisma.approvalStep.upsert({
+        where: {
+          approvalRequestId_stepOrder: {
+            approvalRequestId: request.id,
+            stepOrder: step.stepOrder,
+          },
+        },
+        create: {
+          tenantId: currentUser.tenantId,
+          approvalRequestId: request.id,
+          stepOrder: step.stepOrder,
+          stepName: `Step ${step.stepOrder}`,
+          approverResolverType: step.approverUserId
+            ? NotificationRecipientResolverType.CUSTOM_USER
+            : step.approverRoleId
+              ? NotificationRecipientResolverType.CUSTOM_ROLE
+              : NotificationRecipientResolverType.REPORTING_MANAGER,
+          status: mapLeaveStepStatus(step.status),
+          startedAtUtc: step.createdAt,
+          completedAtUtc: step.actedAt,
+          metadata: { leaveApprovalStepId: step.id },
+        },
+        update: {
+          status: mapLeaveStepStatus(step.status),
+          completedAtUtc: step.actedAt,
+          metadata: { leaveApprovalStepId: step.id },
+        },
+      });
+
+      if (step.approverUserId || step.approverRoleId) {
+        await this.prisma.approvalAssignment.upsert({
+          where: {
+            id:
+              (
+                await this.prisma.approvalAssignment.findFirst({
+                  where: {
+                    tenantId: currentUser.tenantId,
+                    approvalStepId: genericStep.id,
+                    assignedToUserId: step.approverUserId ?? undefined,
+                    assignedToRoleId: step.approverRoleId ?? undefined,
+                  },
+                  select: { id: true },
+                })
+              )?.id ?? '__new_assignment__',
+          },
+          create: {
+            tenantId: currentUser.tenantId,
+            approvalRequestId: request.id,
+            approvalStepId: genericStep.id,
+            assignedToUserId: step.approverUserId,
+            assignedToRoleId: step.approverRoleId,
+            status: mapLeaveAssignmentStatus(step.status),
+            assignedAtUtc: step.createdAt,
+            actionedAtUtc: step.actedAt,
+            metadata: { leaveApprovalStepId: step.id },
+          },
+          update: {
+            status: mapLeaveAssignmentStatus(step.status),
+            actionedAtUtc: step.actedAt,
+          },
+        });
+      }
+    }
+
+    if (currentPendingStep) {
+      const genericCurrentStep = await this.prisma.approvalStep.findFirst({
+        where: {
+          approvalRequestId: request.id,
+          stepOrder: currentPendingStep.stepOrder,
+        },
+        select: { id: true },
+      });
+      await this.prisma.approvalRequest.update({
+        where: { id: request.id },
+        data: { currentStepId: genericCurrentStep?.id ?? null },
+      });
+    }
+
+    await this.prisma.approvalAction.create({
+      data: {
+        tenantId: currentUser.tenantId,
+        approvalRequestId: request.id,
+        actionType,
+        actionByUserId: currentUser.userId,
+        comment: comment?.trim() || null,
+        actionAtUtc: new Date(),
+        actionTimeZone: null,
+        metadata: { source: 'leave' },
+      },
+    });
   }
 
   private async findLeaveRequestOrThrow(
@@ -1518,8 +1731,12 @@ export class LeaveService {
     pendingStep: LeaveRequestWithRelations['approvalSteps'][number],
     currentUser: AuthenticatedUser,
   ) {
-    if (this.canManageTenantLeaveRequests(currentUser)) {
+    if (hasElevatedTenantRole(currentUser)) {
       return true;
+    }
+
+    if (leaveRequest.employee.userId === currentUser.userId) {
+      return false;
     }
 
     if (pendingStep.approverUserId) {
@@ -1529,12 +1746,74 @@ export class LeaveService {
     return false;
   }
 
-  private canManageTenantLeaveRequests(currentUser: AuthenticatedUser) {
+  private canViewAllTenantLeaveRequests(currentUser: AuthenticatedUser) {
     return (
       hasElevatedTenantRole(currentUser) ||
-      currentUser.permissionKeys.includes('leave-requests.approve') ||
-      currentUser.permissionKeys.includes('leave-requests.reject')
+      currentUser.permissionKeys.includes('leave-requests.manage') ||
+      currentUser.permissionKeys.includes('leaves.manage')
     );
+  }
+
+  private async canReadLeaveRequest(
+    currentUser: AuthenticatedUser,
+    leaveRequest: LeaveRequestWithRelations,
+  ) {
+    if (this.canViewAllTenantLeaveRequests(currentUser)) {
+      return true;
+    }
+
+    if (leaveRequest.employee.userId === currentUser.userId) {
+      return true;
+    }
+
+    if (
+      leaveRequest.approvalSteps.some(
+        (step) => step.approverUserId === currentUser.userId,
+      )
+    ) {
+      return true;
+    }
+
+    const currentEmployee =
+      await this.employeesRepository.findByUserIdAndTenant(
+        currentUser.tenantId,
+        currentUser.userId,
+      );
+    if (!currentEmployee) {
+      return false;
+    }
+
+    const reportIds = await this.resolveReportingHierarchyEmployeeIds(
+      currentUser.tenantId,
+      currentEmployee.id,
+    );
+    return reportIds.includes(leaveRequest.employeeId);
+  }
+
+  private async resolveReportingHierarchyEmployeeIds(
+    tenantId: string,
+    managerEmployeeId: string,
+  ) {
+    const visited = new Set<string>();
+    const queue = [managerEmployeeId];
+
+    while (queue.length > 0) {
+      const currentManagerId = queue.shift();
+      if (!currentManagerId) continue;
+
+      const directReports = await this.employeesRepository.findDirectReports(
+        tenantId,
+        currentManagerId,
+      );
+
+      for (const report of directReports) {
+        if (visited.has(report.id)) continue;
+        visited.add(report.id);
+        queue.push(report.id);
+      }
+    }
+
+    return [...visited];
   }
 
   private async validateApprovalMatrixReferences(

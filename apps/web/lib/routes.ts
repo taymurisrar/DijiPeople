@@ -18,6 +18,8 @@ const LEGACY_EXACT_ROUTE_MAP = new Map<string, string>([
   ["/dashboard/my-preferences", APP_ROUTES.me],
   ["/dashboard/profile", APP_ROUTES.me],
   ["/dashboard/leave", APP_ROUTES.leaves],
+  ["/dashboard/inbox", "/inbox"],
+  ["/dashboard/approvals", "/approvals"],
   ["/dashboard/settings", APP_ROUTES.settings],
   ["/dashboard/settings/tenant", APP_ROUTES.tenantSettings],
   ["/dashboard/settings/branding", APP_ROUTES.brandingSettings],

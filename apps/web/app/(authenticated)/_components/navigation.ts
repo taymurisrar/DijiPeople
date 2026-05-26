@@ -64,6 +64,18 @@ export const dashboardNavItems: DashboardNavItem[] = [
     requiredAnyPermissions: [PERMISSION_KEYS.PROJECTS_READ],
   },
   {
+    href: "/approvals",
+    label: "Approvals",
+    description: "Approval requests, step progress, and audit history.",
+    requiredAnyPermissions: [
+      PERMISSION_KEYS.APPROVALS_READ,
+      PERMISSION_KEYS.APPROVALS_READ_OWN,
+      PERMISSION_KEYS.APPROVALS_READ_ASSIGNED,
+      PERMISSION_KEYS.APPROVALS_READ_TEAM,
+      PERMISSION_KEYS.APPROVALS_MANAGE,
+    ],
+  },
+  {
     href: "/customers",
     label: "Customers",
     description: "Client accounts and related delivery projects.",

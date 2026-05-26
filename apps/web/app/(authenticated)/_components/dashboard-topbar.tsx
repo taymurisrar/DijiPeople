@@ -13,7 +13,7 @@ type DashboardTopbarProps = {
   tenantName?: string;
   tenantLogoUrl?: string | null;
   roleLabel: string;
-  canReadNotifications?: boolean;
+  canReadInbox?: boolean;
   pageTitle?: string;
   pageDescription?: string;
 };
@@ -28,7 +28,7 @@ export function DashboardTopbar({
   tenantName,
   tenantLogoUrl,
   roleLabel,
-  canReadNotifications = false,
+  canReadInbox = false,
   pageTitle = "Dashboard",
   pageDescription = "Manage your workspace from one place.",
 }: DashboardTopbarProps) {
@@ -55,7 +55,7 @@ export function DashboardTopbar({
         </div>
 
         <div className="flex items-center gap-2">
-          {canReadNotifications ? <NotificationBell /> : null}
+          <NotificationBell canReadInbox={canReadInbox} />
           <UserMenuDropdown
             avatarCacheKey={avatarCacheKey}
             avatarSrc={avatarSrc}

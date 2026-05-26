@@ -4,6 +4,8 @@ import {
   EmailProviderType,
   EmailTemplateStatus,
   NotificationChannel,
+  NotificationDisplayMode,
+  NotificationRecipientResolverType,
   PlatformUserRole,
   PlatformUserStatus,
   Prisma,
@@ -150,6 +152,40 @@ const AUTH_TEMPLATE_SEEDS: AuthTemplateSeed[] = [
   },
 ];
 
+const DEFAULT_NOTIFICATION_TEMPLATES = [
+  ['leave.request.submitted.approver', 'leave', 'Leave request needs approval', '{{employeeName}} submitted {{leaveTypeName}} leave.', 'Open the leave request to review the approval action.'],
+  ['leave.request.approved.employee', 'leave', 'Leave request approved', 'Your {{leaveTypeName}} leave request was approved.', 'Open the leave request for details.'],
+  ['leave.request.rejected.employee', 'leave', 'Leave request rejected', 'Your {{leaveTypeName}} leave request was rejected.', 'Open the leave request for details.'],
+  ['leave.request.returned.employee', 'leave', 'Leave request returned', 'Your {{leaveTypeName}} leave request was returned.', 'Open the leave request for details.'],
+  ['leave.request.escalated', 'leave', 'Leave approval escalated', '{{employeeName}} leave request breached SLA.', 'Open the related approval request to review escalation.'],
+  ['attendance.correction.submitted.approver', 'attendance', 'Attendance correction needs approval', '{{employeeName}} submitted an attendance correction.', 'Open the correction request to review it.'],
+  ['attendance.correction.approved.employee', 'attendance', 'Attendance correction approved', 'Your attendance correction was approved.', 'Open the correction request for details.'],
+  ['attendance.correction.rejected.employee', 'attendance', 'Attendance correction rejected', 'Your attendance correction was rejected.', 'Open the correction request for details.'],
+  ['attendance.correction.updated.employee', 'attendance', 'Attendance record updated', 'Your attendance record was updated.', 'Open the attendance record for details.'],
+  ['attendance.exception.detected.manager', 'attendance', 'Attendance exception detected', '{{employeeName}} has an attendance exception.', 'Open the attendance record to review the exception.'],
+  ['employee.document.uploaded.hr', 'employee', 'Employee document needs validation', '{{employeeName}} uploaded a document for validation.', 'Open the employee profile to review the document.'],
+  ['employee.document.expiring.employee', 'employee', 'Employee document expiring', 'Your document {{documentName}} is expiring soon.', 'Open your profile to update the document.'],
+  ['employee.profile.change.submitted.hr', 'employee', 'Profile change needs review', '{{employeeName}} submitted a profile change.', 'Open the employee profile to review the change.'],
+  ['employee.onboarding.task.assigned', 'employee', 'Onboarding task assigned', 'A new onboarding task was assigned to you.', 'Open the related onboarding record to continue.'],
+] as const;
+
+const DEFAULT_NOTIFICATION_RULES = [
+  ['leave', 'leave.request.submitted.approver', NotificationRecipientResolverType.APPROVAL_ASSIGNEE, 'leave.request.submitted.approver', NotificationDisplayMode.POPUP_AND_BELL, 1, true, {}],
+  ['leave', 'leave.request.approved.employee', NotificationRecipientResolverType.RECORD_OWNER, 'leave.request.approved.employee', NotificationDisplayMode.BELL_ONLY, 3, false, {}],
+  ['leave', 'leave.request.rejected.employee', NotificationRecipientResolverType.RECORD_OWNER, 'leave.request.rejected.employee', NotificationDisplayMode.POPUP_AND_BELL, 2, false, {}],
+  ['leave', 'leave.request.returned.employee', NotificationRecipientResolverType.RECORD_OWNER, 'leave.request.returned.employee', NotificationDisplayMode.POPUP_AND_BELL, 2, true, {}],
+  ['leave', 'leave.request.escalated', NotificationRecipientResolverType.APPROVAL_ASSIGNEE, 'leave.request.escalated', NotificationDisplayMode.POPUP_AND_BELL, 1, true, {}],
+  ['attendance', 'attendance.correction.submitted.approver', NotificationRecipientResolverType.APPROVAL_ASSIGNEE, 'attendance.correction.submitted.approver', NotificationDisplayMode.POPUP_AND_BELL, 1, true, {}],
+  ['attendance', 'attendance.correction.approved.employee', NotificationRecipientResolverType.RECORD_OWNER, 'attendance.correction.approved.employee', NotificationDisplayMode.BELL_ONLY, 3, false, {}],
+  ['attendance', 'attendance.correction.rejected.employee', NotificationRecipientResolverType.RECORD_OWNER, 'attendance.correction.rejected.employee', NotificationDisplayMode.POPUP_AND_BELL, 2, false, {}],
+  ['attendance', 'attendance.correction.updated.employee', NotificationRecipientResolverType.RECORD_OWNER, 'attendance.correction.updated.employee', NotificationDisplayMode.BELL_ONLY, 3, false, {}],
+  ['attendance', 'attendance.exception.detected.manager', NotificationRecipientResolverType.REPORTING_MANAGER, 'attendance.exception.detected.manager', NotificationDisplayMode.POPUP_AND_BELL, 2, true, {}],
+  ['employee', 'employee.document.uploaded.hr', NotificationRecipientResolverType.HR_ROLE, 'employee.document.uploaded.hr', NotificationDisplayMode.POPUP_AND_BELL, 2, true, { roleKey: 'hr' }],
+  ['employee', 'employee.document.expiring.employee', NotificationRecipientResolverType.RECORD_OWNER, 'employee.document.expiring.employee', NotificationDisplayMode.POPUP_AND_BELL, 2, true, {}],
+  ['employee', 'employee.profile.change.submitted.hr', NotificationRecipientResolverType.HR_ROLE, 'employee.profile.change.submitted.hr', NotificationDisplayMode.POPUP_AND_BELL, 2, true, { roleKey: 'hr' }],
+  ['employee', 'employee.onboarding.task.assigned', NotificationRecipientResolverType.CUSTOM_USER, 'employee.onboarding.task.assigned', NotificationDisplayMode.POPUP_AND_BELL, 2, true, {}],
+] as const;
+
 async function main() {
   if (!process.env.DATABASE_URL?.trim()) {
     throw new Error('DATABASE_URL is required to seed config data.');
@@ -179,6 +215,11 @@ async function main() {
     tenants,
   );
   const settingCount = await seedTenantNotificationSettings(prisma, tenants);
+  const inAppTemplateCount = await seedTenantInAppNotificationTemplates(
+    prisma,
+    tenants,
+  );
+  const ruleCount = await seedTenantNotificationRules(prisma, tenants);
   const providerCount = await seedTenantConsoleProviders(prisma, tenants);
   const leaveTypeCount = await seedTenantLeaveTypes(prisma, tenants);
   const metadataCount = await seedTenantDefaultSolutions(prisma, tenants);
@@ -186,6 +227,8 @@ async function main() {
   console.log(`Email templates created/updated: ${templateCount}`);
   console.log(`Notification preferences created/updated: ${preferenceCount}`);
   console.log(`Notification settings created/updated: ${settingCount}`);
+  console.log(`In-app notification templates created/updated: ${inAppTemplateCount}`);
+  console.log(`Notification rules created/updated: ${ruleCount}`);
   console.log(`Console providers created/updated: ${providerCount}`);
   console.log(`Leave types created/updated: ${leaveTypeCount}`);
   console.log(`Default solution metadata components synced: ${metadataCount}`);
@@ -780,6 +823,104 @@ export async function seedTenantNotificationSettings(
     count += 1;
   }
 
+  return count;
+}
+
+export async function seedTenantInAppNotificationTemplates(
+  client: PrismaClient,
+  tenants: TenantSeedTarget[],
+) {
+  let count = 0;
+  for (const tenant of tenants) {
+    for (const [
+      templateKey,
+      moduleKey,
+      titleTemplate,
+      summaryTemplate,
+      bodyTemplate,
+    ] of DEFAULT_NOTIFICATION_TEMPLATES) {
+      await client.notificationTemplate.upsert({
+        where: {
+          tenantId_templateKey: {
+            tenantId: tenant.id,
+            templateKey,
+          },
+        },
+        create: {
+          tenantId: tenant.id,
+          templateKey,
+          moduleKey,
+          titleTemplate,
+          summaryTemplate,
+          bodyTemplate,
+          enabled: true,
+        },
+        update: {
+          moduleKey,
+          titleTemplate,
+          summaryTemplate,
+          bodyTemplate,
+          enabled: true,
+        },
+      });
+      count += 1;
+    }
+  }
+  return count;
+}
+
+export async function seedTenantNotificationRules(
+  client: PrismaClient,
+  tenants: TenantSeedTarget[],
+) {
+  let count = 0;
+  for (const tenant of tenants) {
+    for (const [
+      moduleKey,
+      eventKey,
+      recipientResolverType,
+      templateKey,
+      displayMode,
+      priority,
+      requiresAction,
+      metadata,
+    ] of DEFAULT_NOTIFICATION_RULES) {
+      await client.notificationRule.upsert({
+        where: {
+          tenantId_moduleKey_eventKey_recipientResolverType: {
+            tenantId: tenant.id,
+            moduleKey,
+            eventKey,
+            recipientResolverType,
+          },
+        },
+        create: {
+          tenantId: tenant.id,
+          moduleKey,
+          eventKey,
+          recipientResolverType,
+          templateKey,
+          channels: [NotificationChannel.IN_APP],
+          displayMode,
+          priority,
+          requiresAction,
+          expireOnEvents: [],
+          metadata: metadata as Prisma.InputJsonValue,
+          enabled: true,
+        },
+        update: {
+          templateKey,
+          channels: [NotificationChannel.IN_APP],
+          displayMode,
+          priority,
+          requiresAction,
+          metadata: metadata as Prisma.InputJsonValue,
+          enabled: true,
+        },
+      });
+      count += 1;
+    }
+  }
   return count;
 }
 

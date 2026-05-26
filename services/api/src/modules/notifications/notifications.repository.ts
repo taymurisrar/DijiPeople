@@ -4,7 +4,11 @@ import {
   EmailProviderType,
   EmailTemplateStatus,
   NotificationChannel,
+  NotificationDisplayMode,
   NotificationType,
+  NotificationEventCategory,
+  NotificationInteractionAction,
+  NotificationStatus,
   Prisma,
 } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -668,7 +672,7 @@ export class NotificationsRepository {
       where: {
         tenantId,
         userId,
-        readAt: null,
+        status: NotificationStatus.UNREAD,
         archivedAt: null,
       },
     });
@@ -682,7 +686,7 @@ export class NotificationsRepository {
   ) {
     return db.notificationRecipient.updateMany({
       where: { id: recipientId, tenantId, userId },
-      data: { readAt: new Date() },
+      data: { readAt: new Date(), status: NotificationStatus.READ },
     });
   }
 
@@ -694,7 +698,236 @@ export class NotificationsRepository {
   ) {
     return db.notificationRecipient.updateMany({
       where: { id: recipientId, tenantId, userId },
-      data: { archivedAt: new Date() },
+      data: { archivedAt: new Date(), status: NotificationStatus.ARCHIVED },
+    });
+  }
+
+  async markInAppNotificationPopupShown(
+    tenantId: string,
+    userId: string,
+    recipientId: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    const now = new Date();
+    const recipient = await db.notificationRecipient.findFirst({
+      where: { id: recipientId, tenantId, userId },
+      select: { notificationId: true, popupShownAt: true },
+    });
+
+    if (!recipient) {
+      return { count: 0 };
+    }
+
+    const result = await db.notificationRecipient.updateMany({
+      where: { id: recipientId, tenantId, userId },
+      data: { popupShownAt: recipient.popupShownAt ?? now },
+    });
+
+    if (!recipient.popupShownAt) {
+      await this.createInteractionLog(
+        {
+          tenantId,
+          userId,
+          notificationId: recipient.notificationId,
+          action: NotificationInteractionAction.POPUP_SHOWN,
+        },
+        db,
+      );
+    }
+
+    return result;
+  }
+
+  listEnabledRules(
+    input: { tenantId: string; moduleKey: string; eventKey: string },
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.notificationRule.findMany({
+      where: {
+        tenantId: input.tenantId,
+        moduleKey: input.moduleKey,
+        eventKey: input.eventKey,
+        enabled: true,
+      },
+      orderBy: [{ priority: 'asc' }, { createdAt: 'asc' }],
+    });
+  }
+
+  findNotificationTemplate(
+    input: { tenantId: string; templateKey: string; moduleKey?: string },
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.notificationTemplate.findFirst({
+      where: {
+        templateKey: input.templateKey,
+        enabled: true,
+        ...(input.moduleKey ? { moduleKey: input.moduleKey } : {}),
+        OR: [{ tenantId: input.tenantId }, { tenantId: null }],
+      },
+      orderBy: [{ tenantId: 'desc' }, { updatedAt: 'desc' }],
+    });
+  }
+
+  findActiveNotificationByDedupeKey(
+    input: { tenantId: string; recipientUserId: string; dedupeKey: string },
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.notification.findFirst({
+      where: {
+        tenantId: input.tenantId,
+        recipientUserId: input.recipientUserId,
+        dedupeKey: input.dedupeKey,
+        status: {
+          notIn: [
+            NotificationStatus.ARCHIVED,
+            NotificationStatus.EXPIRED,
+            NotificationStatus.SUPERSEDED,
+            NotificationStatus.ACTIONED,
+          ],
+        },
+      },
+      include: { recipients: true },
+    });
+  }
+
+  async createTrackedNotification(
+    input: {
+      tenantId: string;
+      recipientUserId: string;
+      actorUserId?: string | null;
+      eventKey: string;
+      moduleKey: string;
+      type: NotificationType;
+      category: NotificationEventCategory;
+      severity?: string;
+      priority: number;
+      title: string;
+      summary: string;
+      body?: string | null;
+      relatedEntityType: string;
+      relatedEntityId: string;
+      relatedRecordNumber?: string | null;
+      routeName?: string | null;
+      actionLabel?: string | null;
+      targetUrl?: string | null;
+      metadata?: Record<string, unknown> | null;
+      requiresAction: boolean;
+      expiresAtUtc?: Date | null;
+      userTimeZone?: string | null;
+      tenantTimeZone?: string | null;
+      dedupeKey?: string | null;
+      displayMode?: NotificationDisplayMode;
+    },
+    db: PrismaDb = this.prisma,
+  ) {
+    const now = new Date();
+    const notification = await db.notification.create({
+      data: {
+        tenantId: input.tenantId,
+        recipientUserId: input.recipientUserId,
+        actorUserId: input.actorUserId ?? null,
+        eventCode: input.eventKey,
+        eventKey: input.eventKey,
+        moduleKey: input.moduleKey,
+        type: input.type,
+        category: input.category,
+        severity: input.severity ?? 'normal',
+        priority: input.priority,
+        title: input.title,
+        summary: input.summary,
+        body: input.body ?? null,
+        relatedEntityType: input.relatedEntityType,
+        relatedEntityId: input.relatedEntityId,
+        relatedRecordNumber: input.relatedRecordNumber ?? null,
+        routeName: input.routeName ?? null,
+        actionLabel: input.actionLabel ?? null,
+        targetUrl: input.targetUrl ?? null,
+        payload:
+          input.metadata === undefined || input.metadata === null
+            ? Prisma.JsonNull
+            : (input.metadata as Prisma.InputJsonValue),
+        metadata:
+          input.metadata === undefined || input.metadata === null
+            ? Prisma.JsonNull
+            : (input.metadata as Prisma.InputJsonValue),
+        requiresAction: input.requiresAction,
+        createdById: input.actorUserId ?? null,
+        createdAtUtc: now,
+        expiresAtUtc: input.expiresAtUtc ?? null,
+        userTimeZone: input.userTimeZone ?? null,
+        tenantTimeZone: input.tenantTimeZone ?? null,
+        dedupeKey: input.dedupeKey ?? null,
+        recipients: {
+          create: {
+            tenantId: input.tenantId,
+            userId: input.recipientUserId,
+            status: NotificationStatus.UNREAD,
+            deliveredAt: now,
+          },
+        },
+      },
+      include: { recipients: true },
+    });
+
+    await this.createInteractionLog(
+      {
+        tenantId: input.tenantId,
+        notificationId: notification.id,
+        userId: input.recipientUserId,
+        action: NotificationInteractionAction.CREATED,
+        metadata: { displayMode: input.displayMode ?? null },
+      },
+      db,
+    );
+
+    return notification;
+  }
+
+  createInteractionLog(
+    input: {
+      tenantId: string;
+      notificationId: string;
+      userId: string;
+      action: NotificationInteractionAction;
+      userTimeZone?: string | null;
+      eventLocalTime?: Date | null;
+      ipAddress?: string | null;
+      userAgent?: string | null;
+      metadata?: Record<string, unknown> | null;
+    },
+    db: PrismaDb = this.prisma,
+  ) {
+    const eventAtUtc = new Date();
+    const retentionUntilUtc = new Date(
+      eventAtUtc.getTime() + 90 * 24 * 60 * 60 * 1000,
+    );
+
+    return db.notificationInteractionLog.create({
+      data: {
+        tenantId: input.tenantId,
+        notificationId: input.notificationId,
+        userId: input.userId,
+        action: input.action,
+        eventAtUtc,
+        userTimeZone: input.userTimeZone ?? null,
+        eventLocalTime: input.eventLocalTime ?? null,
+        ipAddress: input.ipAddress ?? null,
+        userAgent: input.userAgent ?? null,
+        metadata:
+          input.metadata === undefined || input.metadata === null
+            ? Prisma.JsonNull
+            : (input.metadata as Prisma.InputJsonValue),
+        retentionUntilUtc,
+      },
+    });
+  }
+
+  cleanupExpiredNotificationInteractionLogs(
+    beforeUtc = new Date(),
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.notificationInteractionLog.deleteMany({
+      where: { retentionUntilUtc: { lt: beforeUtc } },
     });
   }
 

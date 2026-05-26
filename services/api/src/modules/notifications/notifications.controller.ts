@@ -228,7 +228,6 @@ export class NotificationsController {
   }
 
   @Get('in-app')
-  @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATIONS_READ)
   listInAppNotifications(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: InAppNotificationQueryDto,
@@ -237,13 +236,11 @@ export class NotificationsController {
   }
 
   @Get('in-app/unread-count')
-  @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATIONS_READ)
   getInAppUnreadCount(@CurrentUser() user: AuthenticatedUser) {
     return this.inAppNotificationsService.getUnreadCount(user);
   }
 
   @Post('in-app/:id/read')
-  @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATIONS_READ)
   markInAppNotificationRead(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') recipientId: string,
@@ -252,12 +249,19 @@ export class NotificationsController {
   }
 
   @Post('in-app/:id/archive')
-  @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATIONS_READ)
   archiveInAppNotification(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') recipientId: string,
   ) {
     return this.inAppNotificationsService.archive(user, recipientId);
+  }
+
+  @Post('in-app/:id/popup-shown')
+  markInAppNotificationPopupShown(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') recipientId: string,
+  ) {
+    return this.inAppNotificationsService.markPopupShown(user, recipientId);
   }
 
   @Get('diagnostics')

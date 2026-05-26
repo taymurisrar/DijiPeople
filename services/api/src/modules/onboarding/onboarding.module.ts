@@ -5,6 +5,7 @@ import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { EmployeesModule } from '../employees/employees.module';
 import { OrganizationModule } from '../organization/organization.module';
 import { RecruitmentModule } from '../recruitment/recruitment.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { UsersModule } from '../users/users.module';
 import { OnboardingController } from './onboarding.controller';
 import { OnboardingRepository } from './onboarding.repository';
@@ -17,6 +18,7 @@ import { OnboardingService } from './onboarding.service';
     UsersModule,
     OrganizationModule,
     EmployeesModule,
+    NotificationsModule,
   ],
   controllers: [OnboardingController],
   providers: [

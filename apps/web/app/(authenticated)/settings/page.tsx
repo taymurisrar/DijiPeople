@@ -137,21 +137,6 @@ export default function SettingsPage() {
   }, [user?.permissionKeys]);
   const normalizedQuery = query.trim().toLowerCase();
 
-  if (!canUseGlobalSettings) {
-    return (
-      <main className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mx-auto w-full max-w-5xl">
-          <AccessDeniedState
-            title="Settings are reserved for administrators."
-            description="Employees can manage their personal display preferences from My Preferences."
-            actionHref="/me"
-            actionLabel="Open My Preferences"
-          />
-        </div>
-      </main>
-    );
-  }
-
   const visibleGroups = useMemo(
     () =>
       resolveVisibleSettingsGroups(permissionKeys, {
@@ -195,6 +180,22 @@ export default function SettingsPage() {
       })
       .filter((group) => group.items.length > 0);
   }, [normalizedQuery, visibleGroups]);
+
+  if (!canUseGlobalSettings) {
+    return (
+      <main className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mx-auto w-full max-w-5xl">
+          <AccessDeniedState
+            title="Settings are reserved for administrators."
+            description="Employees can manage their personal display preferences from My Preferences."
+            actionHref="/me"
+            actionLabel="Open My Preferences"
+          />
+        </div>
+      </main>
+    );
+  }
+
 
   const totalItems = visibleGroups.reduce(
     (count, group) => count + group.items.length,
@@ -435,15 +436,6 @@ function Badge({ label }: { label: SettingsBadge }) {
     >
       {label}
     </span>
-  );
-}
-
-function MetricCard({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur">
-      <div className="text-2xl font-semibold text-white">{value}</div>
-      <div className="text-xs font-medium text-slate-300">{label}</div>
-    </div>
   );
 }
 

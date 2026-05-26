@@ -10,6 +10,7 @@ import {
   CalendarDays,
   ClipboardList,
   Clock3,
+  Bell,
   FileText,
   FolderKanban,
   LayoutDashboard,
@@ -310,6 +311,8 @@ function resolveNavIcon(href: string): ComponentType<SidebarNavIconProps> {
   if (href === "/") return LayoutDashboard;
 
   if (href.includes("/employees")) return Users;
+  if (href.includes("/inbox")) return Bell;
+  if (href.includes("/approvals")) return ShieldCheck;
   if (href.includes("/profile")) return User;
   if (href.includes("/leave")) return CalendarDays;
   if (href.includes("/attendance")) return Clock3;

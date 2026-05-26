@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { LeaveRequestRecord } from "../types";
@@ -56,26 +57,12 @@ export function LeaveRequestActionButtons({
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2">
-        {request.canCurrentUserApprove ? (
-          <button
-            className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70"
-            disabled={isSubmitting}
-            onClick={() => runAction("approve")}
-            type="button"
-          >
-            Approve
-          </button>
-        ) : null}
-        {request.canCurrentUserReject ? (
-          <button
-            className="rounded-xl bg-rose-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-70"
-            disabled={isSubmitting}
-            onClick={() => runAction("reject")}
-            type="button"
-          >
-            Reject
-          </button>
-        ) : null}
+        <Link
+          className="rounded-xl border border-border px-3 py-2 text-xs font-semibold text-muted transition hover:border-accent/30 hover:text-foreground"
+          href={`/leaves/${request.id}`}
+        >
+          View
+        </Link>
         {request.canCurrentUserCancel ? (
           <button
             className="rounded-xl border border-border px-3 py-2 text-xs font-semibold text-muted transition hover:border-accent/30 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-70"

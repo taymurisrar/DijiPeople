@@ -9,6 +9,7 @@ import { AuthenticatedUser } from '../../common/interfaces/authenticated-request
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { OrganizationRepository } from '../organization/organization.repository';
 import { RecruitmentRepository } from '../recruitment/recruitment.repository';
+import { NotificationsService } from '../notifications/notifications.service';
 import { UsersRepository } from '../users/users.repository';
 import { CreateEmployeeOnboardingDto } from './dto/create-employee-onboarding.dto';
 import { CreateOnboardingTemplateDto } from './dto/create-onboarding-template.dto';
@@ -29,6 +30,7 @@ export class OnboardingService {
     private readonly usersRepository: UsersRepository,
     private readonly organizationRepository: OrganizationRepository,
     private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async findTemplates(tenantId: string) {
@@ -303,7 +305,12 @@ export class OnboardingService {
       return onboarding.id;
     });
 
-    return this.findOnboardingById(currentUser.tenantId, onboardingId);
+    const onboarding = await this.findOnboardingById(
+      currentUser.tenantId,
+      onboardingId,
+    );
+    await this.emitAssignedTaskNotifications(currentUser, onboarding);
+    return onboarding;
   }
 
   async updateTask(
@@ -312,12 +319,13 @@ export class OnboardingService {
     taskId: string,
     dto: UpdateOnboardingTaskDto,
   ) {
-    const onboarding = await this.onboardingRepository.findOnboardingById(
-      currentUser.tenantId,
-      onboardingId,
-    );
+    const existingOnboarding =
+      await this.onboardingRepository.findOnboardingById(
+        currentUser.tenantId,
+        onboardingId,
+      );
 
-    if (!onboarding) {
+    if (!existingOnboarding) {
       throw new NotFoundException(
         'Onboarding record was not found for this tenant.',
       );
@@ -354,6 +362,8 @@ export class OnboardingService {
         : dto.status && dto.status !== OnboardingTaskStatus.COMPLETED
           ? null
           : task.completedAt;
+
+    const previousAssignedUserId = task.assignedUserId;
 
     await this.onboardingRepository.updateTask(
       currentUser.tenantId,
@@ -396,7 +406,64 @@ export class OnboardingService {
       refreshed,
     );
 
-    return this.findOnboardingById(currentUser.tenantId, onboardingId);
+    const onboarding = await this.findOnboardingById(
+      currentUser.tenantId,
+      onboardingId,
+    );
+
+    if (dto.assignedUserId && dto.assignedUserId !== previousAssignedUserId) {
+      const assignedTask = onboarding.tasks.find((item) => item.id === taskId);
+      if (assignedTask) {
+        await this.emitOnboardingTaskAssignedNotification(
+          currentUser,
+          onboarding,
+          assignedTask,
+        );
+      }
+    }
+
+    return onboarding;
+  }
+
+  private async emitAssignedTaskNotifications(
+    currentUser: AuthenticatedUser,
+    onboarding: ReturnType<OnboardingService['mapOnboarding']>,
+  ) {
+    for (const task of onboarding.tasks) {
+      if (!task.assignedUserId) continue;
+      await this.emitOnboardingTaskAssignedNotification(
+        currentUser,
+        onboarding,
+        task,
+      );
+    }
+  }
+
+  private emitOnboardingTaskAssignedNotification(
+    currentUser: AuthenticatedUser,
+    onboarding: ReturnType<OnboardingService['mapOnboarding']>,
+    task: ReturnType<OnboardingService['mapOnboarding']>['tasks'][number],
+  ) {
+    if (!task.assignedUserId) return null;
+
+    return this.notificationsService.emit({
+      tenantId: currentUser.tenantId,
+      eventKey: 'employee.onboarding.task.assigned',
+      moduleKey: 'employee',
+      actorUserId: currentUser.userId,
+      relatedEntityType: 'onboardingTask',
+      relatedEntityId: task.id,
+      relatedRecordNumber: task.title,
+      metadata: {
+        recipientUserId: task.assignedUserId,
+        onboardingId: onboarding.id,
+        onboardingTitle: onboarding.title,
+        taskId: task.id,
+        taskTitle: task.title,
+        eventAtUtc: new Date().toISOString(),
+        targetUrl: `/onboarding/${onboarding.id}?taskId=${encodeURIComponent(task.id)}`,
+      },
+    });
   }
 
   async convertToEmployee(

@@ -101,10 +101,19 @@ export type SendTemplateEmailResult = {
 export type InAppNotification = {
   id: string;
   eventCode: string;
+  eventKey: string | null;
+  moduleKey: string | null;
   type: string;
   category: string;
+  priority: number;
+  summary: string | null;
   title: string;
   body: string | null;
+  relatedEntityType: string | null;
+  relatedEntityId: string | null;
+  relatedRecordNumber: string | null;
+  status: string;
+  requiresAction: boolean;
   targetUrl: string | null;
   payload: unknown;
   metadata: unknown;
@@ -118,6 +127,7 @@ export type InAppNotificationItem = {
   readAt: string | null;
   archivedAt: string | null;
   deliveredAt: string | null;
+  popupShownAt: string | null;
   createdAt: string;
   notification: InAppNotification;
 };
@@ -275,6 +285,29 @@ export const archiveInAppNotification = (id: string) =>
   requestJson<{ archived: boolean }>(`/in-app/${id}/archive`, {
     method: "POST",
     body: "{}",
+  });
+export const markInAppNotificationPopupShown = (id: string) =>
+  requestJson<{ popupShown: boolean }>(`/in-app/${id}/popup-shown`, {
+    method: "POST",
+    body: "{}",
+  });
+export const openInboxNotification = (id: string) =>
+  fetch(`/api/inbox/${id}/open`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: "{}",
+  }).then(async (response) => {
+    const data = await response.json().catch(() => null);
+    if (!response.ok) {
+      throw new Error(data?.message ?? "Unable to open notification.");
+    }
+    return data as {
+      state: "OK" | "ACCESS_DENIED" | "RECORD_NOT_FOUND" | "SUPERSEDED" | "EXPIRED";
+      navigationTarget: string | null;
+    };
   });
 export const getNotificationDiagnostics = () =>
   requestJson<{

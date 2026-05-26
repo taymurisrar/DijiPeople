@@ -17,6 +17,7 @@ import { StorageService } from '../../common/storage/storage.service';
 import { AuditService } from '../audit/audit.service';
 import { DocumentsRepository } from '../documents/documents.repository';
 import { EmailService } from '../notifications/email/email.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { TenantSettingsResolverService } from '../tenant-settings/tenant-settings-resolver.service';
 import { EmployeesRepository } from './employees.repository';
 import { EmployeeAccessService } from './employee-access.service';
@@ -64,6 +65,7 @@ export class EmployeeProfilesService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly employeeAccessService: EmployeeAccessService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async getProfile(currentUser: AuthenticatedUser, employeeId: string) {
@@ -982,7 +984,10 @@ export class EmployeeProfilesService {
     file: UploadedFile | undefined,
     dto: EmployeeDocumentUploadDto,
   ) {
-    await this.assertEmployeeDocumentUploadAccess(currentUser, employeeId);
+    const employee = await this.assertEmployeeDocumentUploadAccess(
+      currentUser,
+      employeeId,
+    );
     await this.validateEmployeeDocumentType(
       currentUser.tenantId,
       dto.documentTypeId,
@@ -1001,7 +1006,7 @@ export class EmployeeProfilesService {
       subdirectory: `${currentUser.tenantId}/employees/${employeeId}/documents`,
     });
 
-    return this.prisma.$transaction(async (tx) => {
+    const document = await this.prisma.$transaction(async (tx) => {
       const document = await this.documentsRepository.createDocument(
         {
           tenantId: currentUser.tenantId,
@@ -1037,6 +1042,55 @@ export class EmployeeProfilesService {
       );
 
       return document;
+    });
+
+    await this.notificationsService.emit({
+      tenantId: currentUser.tenantId,
+      eventKey: 'employee.document.uploaded.hr',
+      moduleKey: 'employee',
+      actorUserId: currentUser.userId,
+      relatedEntityType: 'employeeDocument',
+      relatedEntityId: document.id,
+      relatedRecordNumber: document.title ?? document.originalFileName,
+      metadata: {
+        employeeId,
+        employeeName: `${employee.firstName} ${employee.lastName}`.trim(),
+        documentId: document.id,
+        documentName: document.title ?? document.originalFileName,
+        eventAtUtc: new Date().toISOString(),
+        targetUrl: `/employees/${employeeId}?documentId=${encodeURIComponent(document.id)}`,
+      },
+    });
+
+    return document;
+  }
+
+  async emitEmployeeDocumentExpiringReminder(input: {
+    tenantId: string;
+    actorUserId?: string | null;
+    employeeId: string;
+    documentId: string;
+    documentName: string;
+    expiresAtUtc?: Date | null;
+  }) {
+    // Document expiry detection is intentionally a call-site hook until the
+    // platform has a shared scheduler for document lifecycle checks.
+    return this.notificationsService.emit({
+      tenantId: input.tenantId,
+      eventKey: 'employee.document.expiring.employee',
+      moduleKey: 'employee',
+      actorUserId: input.actorUserId ?? null,
+      relatedEntityType: 'employeeDocument',
+      relatedEntityId: input.documentId,
+      relatedRecordNumber: input.documentName,
+      metadata: {
+        employeeId: input.employeeId,
+        documentId: input.documentId,
+        documentName: input.documentName,
+        expiresAtUtc: input.expiresAtUtc?.toISOString() ?? null,
+        eventAtUtc: new Date().toISOString(),
+        targetUrl: `/employees/${input.employeeId}?documentId=${encodeURIComponent(input.documentId)}`,
+      },
     });
   }
 

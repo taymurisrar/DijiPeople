@@ -1,0 +1,33 @@
+import { NextResponse } from "next/server";
+import { apiRequest, proxyApiJsonResponse } from "@/lib/server-api";
+
+type RouteContext = {
+  params: Promise<{ id: string }>;
+};
+
+export async function POST(request: Request, context: RouteContext) {
+  const { id } = await context.params;
+  const body = await request.json().catch(() => ({}));
+
+  try {
+    const response = await apiRequest(
+      `/attendance/correction-requests/${id}/approve`,
+      {
+        method: "POST",
+        body: JSON.stringify(body),
+      },
+    );
+
+    return proxyApiJsonResponse(response);
+  } catch (error) {
+    return NextResponse.json(
+      {
+        message:
+          error instanceof Error
+            ? error.message
+            : "Unable to approve attendance correction request.",
+      },
+      { status: 500 },
+    );
+  }
+}

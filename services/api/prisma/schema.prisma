@@ -171,12 +171,15 @@ enum NotificationChannel {
 enum NotificationEventCategory {
   AUTH
   APPROVAL
+  APPROVALS
+  ATTENDANCE
   LEAVE
   TIMESHEET
   PAYROLL
   EMPLOYEE
   ONBOARDING
   DOCUMENT
+  TASKS
   SYSTEM
 }
 
@@ -211,11 +214,123 @@ enum EmailDeliveryStatus {
 
 enum NotificationType {
   INFO
+  SUCCESS
+  ERROR
   ACTION_REQUIRED
+  APPROVAL_REQUIRED
   APPROVAL
   REMINDER
+  ESCALATION
+  SYSTEM_ALERT
   WARNING
   SYSTEM
+}
+
+enum NotificationStatus {
+  UNREAD
+  READ
+  DISMISSED
+  ARCHIVED
+  EXPIRED
+  SUPERSEDED
+  ACTIONED
+}
+
+enum NotificationInteractionAction {
+  CREATED
+  POPUP_SHOWN
+  READ
+  OPENED
+  DISMISSED
+  ARCHIVED
+  EXPIRED
+  SUPERSEDED
+  NAVIGATION_DENIED
+}
+
+enum NotificationDisplayMode {
+  POPUP_AND_BELL
+  BELL_ONLY
+  INBOX_ONLY
+  EMAIL_ONLY
+}
+
+enum NotificationRecipientResolverType {
+  SELF
+  REPORTING_MANAGER
+  RECORD_OWNER
+  APPROVAL_ASSIGNEE
+  HR_ROLE
+  MANAGER_ROLE
+  CUSTOM_ROLE
+  CUSTOM_USER
+}
+
+enum ApprovalRequestStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+  RETURNED
+  CANCELLED
+  ESCALATED
+  COMPLETED
+}
+
+enum GenericApprovalStepStatus {
+  NOT_STARTED
+  PENDING
+  APPROVED
+  REJECTED
+  RETURNED
+  SKIPPED
+  ESCALATED
+}
+
+enum ApprovalAssignmentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  RETURNED
+  DELEGATED
+  EXPIRED
+  SUPERSEDED
+}
+
+enum ApprovalActionType {
+  SUBMITTED
+  APPROVED
+  REJECTED
+  RETURNED
+  DELEGATED
+  ESCALATED
+  CANCELLED
+  COMMENTED
+}
+
+enum SlaStatus {
+  NOT_APPLICABLE
+  ON_TRACK
+  DUE_SOON
+  BREACHED
+  ESCALATED
+}
+
+enum SlaTargetType {
+  APPROVAL_REQUEST
+  APPROVAL_STEP
+  NOTIFICATION
+  RECORD
+}
+
+enum SlaEventType {
+  STARTED
+  MILESTONE_REACHED
+  DUE_SOON
+  BREACHED
+  ESCALATED
+  COMPLETED
+  CANCELLED
 }
 
 enum EmployeeEmploymentStatus {
@@ -364,6 +479,26 @@ enum AttendanceImportBatchStatus {
   COMPLETED
   PARTIAL
   FAILED
+}
+
+enum AttendanceCorrectionType {
+  MISSED_CHECK_IN
+  MISSED_CHECK_OUT
+  LATE_CHECK_IN
+  EARLY_CHECK_OUT
+  ABSENCE_CORRECTION
+  TIME_ADJUSTMENT
+  MANUAL_CORRECTION
+}
+
+enum AttendanceCorrectionStatus {
+  DRAFT
+  SUBMITTED
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  RETURNED
+  CANCELLED
 }
 
 enum TimesheetImportBatchStatus {
@@ -1127,6 +1262,20 @@ model Tenant {
   notifications                   Notification[]
   notificationRecipients          NotificationRecipient[]
   notificationPreferences         NotificationPreference[]
+  notificationInteractionLogs     NotificationInteractionLog[]
+  notificationRules               NotificationRule[]
+  notificationTemplates           NotificationTemplate[]
+  approvalRequests                ApprovalRequest[]
+  approvalSteps                   ApprovalStep[]
+  approvalAssignments             ApprovalAssignment[]
+  approvalActions                 ApprovalAction[]
+  attendanceCorrectionRequests    AttendanceCorrectionRequest[]
+  slaPolicies                     SlaPolicy[]
+  slaRules                        SlaRule[]
+  slaMilestones                   SlaMilestone[]
+  slaEscalationLevels             SlaEscalationLevel[]
+  slaTrackings                    SlaTracking[]
+  slaEventLogs                    SlaEventLog[]
   customizationTables             CustomizationTable[]
   customizationColumns            CustomizationColumn[]
   customizationViews              CustomizationView[]
@@ -1539,49 +1688,57 @@ model Subscription {
 }
 
 model User {
-  id                         String                     @id @default(uuid())
-  tenantId                   String
-  businessUnitId             String
-  firstName                  String
-  lastName                   String
-  email                      String
-  passwordHash               String
-  status                     UserStatus                 @default(ACTIVE)
-  isServiceAccount           Boolean                    @default(false)
-  preferencesJson            Json?
-  lastLoginAt                DateTime?
-  createdAt                  DateTime                   @default(now())
-  updatedAt                  DateTime                   @updatedAt
-  createdById                String?
-  updatedById                String?
-  tenant                     Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  businessUnit               BusinessUnit               @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
-  userRoles                  UserRole[]
-  userPermissions            UserPermission[]
-  teamMemberships            TeamMember[]
-  refreshTokens              RefreshToken[]
-  agentRefreshTokens         AgentRefreshToken[]
-  employeeDevices            EmployeeDevice[]
-  workSessions               WorkSession[]
-  activityEvents             ActivityEvent[]
-  dailyProductivitySummaries DailyProductivitySummary[]
-  invitations                UserInvitation[]
-  notificationRecipients     NotificationRecipient[]
-  notificationPreferences    NotificationPreference[]
-  employee                   Employee?
-  ownedEmployees             Employee[]                 @relation("OwnedEmployees")
-  leaveApprovalSteps         LeaveApprovalStep[]
-  approvalMatricesAsApprover ApprovalMatrix[]           @relation("ApprovalMatrixApproverUser")
-  approvedTimesheets         Timesheet[]                @relation("TimesheetApprover")
-  lockedProcessingCycles     ProcessingCycle[]          @relation("ProcessingCycleLocker")
-  assignedOnboardingTasks    OnboardingTask[]           @relation("OnboardingTaskAssignee")
-  uploadedDocuments          Document[]                 @relation("UploadedDocuments")
-  ownedTeams                 Team[]                     @relation("OwnedTeams")
-  auditLogs                  AuditLog[]                 @relation("AuditLogActor")
-  ownedCustomerAccounts      CustomerAccount[]          @relation("OwnedCustomerAccounts")
-  customerNotes              CustomerNote[]             @relation("CustomerNotes")
-  ownedCustomerOnboardings   CustomerOnboarding[]       @relation("OwnedCustomerOnboardings")
-  ownedTenants               Tenant[]                   @relation("TenantOwner")
+  id                             String                        @id @default(uuid())
+  tenantId                       String
+  businessUnitId                 String
+  firstName                      String
+  lastName                       String
+  email                          String
+  passwordHash                   String
+  status                         UserStatus                    @default(ACTIVE)
+  isServiceAccount               Boolean                       @default(false)
+  preferencesJson                Json?
+  lastLoginAt                    DateTime?
+  createdAt                      DateTime                      @default(now())
+  updatedAt                      DateTime                      @updatedAt
+  createdById                    String?
+  updatedById                    String?
+  tenant                         Tenant                        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  businessUnit                   BusinessUnit                  @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  userRoles                      UserRole[]
+  userPermissions                UserPermission[]
+  teamMemberships                TeamMember[]
+  refreshTokens                  RefreshToken[]
+  agentRefreshTokens             AgentRefreshToken[]
+  employeeDevices                EmployeeDevice[]
+  workSessions                   WorkSession[]
+  activityEvents                 ActivityEvent[]
+  dailyProductivitySummaries     DailyProductivitySummary[]
+  invitations                    UserInvitation[]
+  notificationRecipients         NotificationRecipient[]
+  notificationPreferences        NotificationPreference[]
+  actorNotifications             Notification[]                @relation("NotificationActor")
+  recipientNotifications         Notification[]                @relation("NotificationRecipientUser")
+  notificationInteractionLogs    NotificationInteractionLog[]
+  submittedApprovalRequests      ApprovalRequest[]             @relation("ApprovalSubmittedBy")
+  approvalAssignments            ApprovalAssignment[]          @relation("ApprovalAssignmentUser")
+  approvalActions                ApprovalAction[]              @relation("ApprovalActionUser")
+  requestedAttendanceCorrections AttendanceCorrectionRequest[] @relation("AttendanceCorrectionRequester")
+  actionedAttendanceCorrections  AttendanceCorrectionRequest[] @relation("AttendanceCorrectionActionedBy")
+  employee                       Employee?
+  ownedEmployees                 Employee[]                    @relation("OwnedEmployees")
+  leaveApprovalSteps             LeaveApprovalStep[]
+  approvalMatricesAsApprover     ApprovalMatrix[]              @relation("ApprovalMatrixApproverUser")
+  approvedTimesheets             Timesheet[]                   @relation("TimesheetApprover")
+  lockedProcessingCycles         ProcessingCycle[]             @relation("ProcessingCycleLocker")
+  assignedOnboardingTasks        OnboardingTask[]              @relation("OnboardingTaskAssignee")
+  uploadedDocuments              Document[]                    @relation("UploadedDocuments")
+  ownedTeams                     Team[]                        @relation("OwnedTeams")
+  auditLogs                      AuditLog[]                    @relation("AuditLogActor")
+  ownedCustomerAccounts          CustomerAccount[]             @relation("OwnedCustomerAccounts")
+  customerNotes                  CustomerNote[]                @relation("CustomerNotes")
+  ownedCustomerOnboardings       CustomerOnboarding[]          @relation("OwnedCustomerOnboardings")
+  ownedTenants                   Tenant[]                      @relation("TenantOwner")
 
   @@unique([tenantId, email])
   @@index([tenantId])
@@ -1686,29 +1843,30 @@ model BusinessUnit {
 }
 
 model Role {
-  id                 String               @id @default(uuid())
-  tenantId           String
-  name               String
-  key                String
-  roleType           RoleType             @default(CUSTOM)
-  accessLevel        RoleAccessLevel      @default(USER)
-  description        String?
-  isSystem           Boolean              @default(false)
-  isEditable         Boolean              @default(true)
-  isCloneable        Boolean              @default(true)
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime             @updatedAt
-  createdById        String?
-  updatedById        String?
-  tenant             Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  userRoles          UserRole[]
-  approvalMatrices   ApprovalMatrix[]     @relation("ApprovalMatrixApproverRole")
-  leaveApprovalSteps LeaveApprovalStep[]
-  rolePermissions    RolePermission[]
-  rolePrivileges     RolePrivilege[]
-  miscPermissions    RoleMiscPermission[]
-  teamRoles          TeamRole[]
-  isActive           Boolean              @default(true)
+  id                  String               @id @default(uuid())
+  tenantId            String
+  name                String
+  key                 String
+  roleType            RoleType             @default(CUSTOM)
+  accessLevel         RoleAccessLevel      @default(USER)
+  description         String?
+  isSystem            Boolean              @default(false)
+  isEditable          Boolean              @default(true)
+  isCloneable         Boolean              @default(true)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  createdById         String?
+  updatedById         String?
+  tenant              Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userRoles           UserRole[]
+  approvalAssignments ApprovalAssignment[] @relation("ApprovalAssignmentRole")
+  approvalMatrices    ApprovalMatrix[]     @relation("ApprovalMatrixApproverRole")
+  leaveApprovalSteps  LeaveApprovalStep[]
+  rolePermissions     RolePermission[]
+  rolePrivileges      RolePrivilege[]
+  miscPermissions     RoleMiscPermission[]
+  teamRoles           TeamRole[]
+  isActive            Boolean              @default(true)
 
   @@unique([tenantId, key])
   @@unique([tenantId, name])
@@ -2075,6 +2233,7 @@ model Employee {
   educationRecords               EmployeeEducation[]
   historyRecords                 EmployeeHistory[]
   leaveRequests                  LeaveRequest[]
+  submittedForApprovalRequests   ApprovalRequest[]             @relation("ApprovalSubmittedForEmployee")
   leaveBalances                  LeaveBalance[]
   leaveConsumptionRecords        LeaveConsumptionRecord[]
   claimRequests                  ClaimRequest[]
@@ -2082,6 +2241,7 @@ model Employee {
   businessTrips                  BusinessTrip[]
   timePayrollInputs              TimePayrollInput[]
   attendanceEntries              AttendanceEntry[]
+  attendanceCorrectionRequests   AttendanceCorrectionRequest[]
   timesheets                     Timesheet[]
   timesheetEntries               TimesheetEntry[]
   projectAssignments             ProjectAssignment[]
@@ -2660,7 +2820,7 @@ model ShiftTemplate {
 }
 
 model AttendanceEntry {
-  id                  String                 @id @default(uuid())
+  id                  String                        @id @default(uuid())
   tenantId            String
   employeeId          String
   workScheduleId      String?
@@ -2669,9 +2829,9 @@ model AttendanceEntry {
   date                DateTime
   checkIn             DateTime?
   checkOut            DateTime?
-  attendanceMode      AttendanceMode         @default(OFFICE)
-  status              AttendanceEntryStatus  @default(PRESENT)
-  source              AttendanceEntrySource  @default(SYSTEM)
+  attendanceMode      AttendanceMode                @default(OFFICE)
+  status              AttendanceEntryStatus         @default(PRESENT)
+  source              AttendanceEntrySource         @default(SYSTEM)
   checkInNote         String?
   checkOutNote        String?
   workSummary         String?
@@ -2679,20 +2839,21 @@ model AttendanceEntry {
   remoteLatitude      Float?
   remoteLongitude     Float?
   remoteAddressText   String?
-  isLateCheckIn       Boolean                @default(false)
-  isLateCheckOut      Boolean                @default(false)
+  isLateCheckIn       Boolean                       @default(false)
+  isLateCheckOut      Boolean                       @default(false)
   lateCheckInMinutes  Int?
   lateCheckOutMinutes Int?
   machineDeviceId     String?
-  createdAt           DateTime               @default(now())
-  updatedAt           DateTime               @updatedAt
+  createdAt           DateTime                      @default(now())
+  updatedAt           DateTime                      @updatedAt
   createdById         String?
   updatedById         String?
-  tenant              Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  employee            Employee               @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  workSchedule        WorkSchedule?          @relation(fields: [workScheduleId], references: [id], onDelete: SetNull)
-  officeLocation      Location?              @relation("AttendanceOfficeLocation", fields: [officeLocationId], references: [id], onDelete: SetNull)
-  importedBatch       AttendanceImportBatch? @relation(fields: [importedBatchId], references: [id], onDelete: SetNull)
+  tenant              Tenant                        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee            Employee                      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  workSchedule        WorkSchedule?                 @relation(fields: [workScheduleId], references: [id], onDelete: SetNull)
+  officeLocation      Location?                     @relation("AttendanceOfficeLocation", fields: [officeLocationId], references: [id], onDelete: SetNull)
+  importedBatch       AttendanceImportBatch?        @relation(fields: [importedBatchId], references: [id], onDelete: SetNull)
+  correctionRequests  AttendanceCorrectionRequest[]
 
   @@index([tenantId])
   @@index([tenantId, employeeId, date])
@@ -2701,6 +2862,43 @@ model AttendanceEntry {
   @@index([tenantId, source, date])
   @@index([tenantId, officeLocationId, date])
   @@index([tenantId, importedBatchId])
+}
+
+model AttendanceCorrectionRequest {
+  id                     String                     @id @default(uuid())
+  tenantId               String
+  attendanceEntryId      String?
+  employeeId             String
+  requestedByUserId      String
+  requestNumber          String
+  correctionType         AttendanceCorrectionType
+  originalCheckInAtUtc   DateTime?
+  originalCheckOutAtUtc  DateTime?
+  requestedCheckInAtUtc  DateTime?
+  requestedCheckOutAtUtc DateTime?
+  reason                 String
+  attachmentMetadata     Json?
+  status                 AttendanceCorrectionStatus @default(SUBMITTED)
+  submittedAtUtc         DateTime?
+  approvedAtUtc          DateTime?
+  rejectedAtUtc          DateTime?
+  actionedByUserId       String?
+  actionComment          String?
+  createdAtUtc           DateTime                   @default(now())
+  updatedAtUtc           DateTime                   @updatedAt
+  tenant                 Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  attendanceEntry        AttendanceEntry?           @relation(fields: [attendanceEntryId], references: [id], onDelete: SetNull)
+  employee               Employee                   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  requestedByUser        User                       @relation("AttendanceCorrectionRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict)
+  actionedByUser         User?                      @relation("AttendanceCorrectionActionedBy", fields: [actionedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([tenantId, requestNumber])
+  @@index([tenantId])
+  @@index([tenantId, employeeId])
+  @@index([tenantId, requestedByUserId])
+  @@index([tenantId, status])
+  @@index([tenantId, createdAtUtc])
+  @@index([tenantId, attendanceEntryId])
 }
 
 model AttendancePolicy {
@@ -3834,49 +4032,157 @@ model EmailDeliveryLog {
 }
 
 model Notification {
-  id          String                    @id @default(uuid())
-  tenantId    String
-  eventCode   String
-  type        NotificationType          @default(INFO)
-  category    NotificationEventCategory
-  title       String
-  body        String?
-  targetUrl   String?
-  payload     Json?
-  metadata    Json?
-  createdById String?
-  createdAt   DateTime                  @default(now())
-  updatedAt   DateTime                  @updatedAt
-  tenant      Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  event       NotificationEvent         @relation(fields: [eventCode], references: [code], onDelete: Restrict)
-  recipients  NotificationRecipient[]
+  id                  String                       @id @default(uuid())
+  tenantId            String
+  recipientUserId     String?
+  actorUserId         String?
+  eventCode           String
+  eventKey            String?
+  moduleKey           String?
+  type                NotificationType             @default(INFO)
+  category            NotificationEventCategory
+  severity            String                       @default("normal")
+  priority            Int                          @default(3)
+  title               String
+  summary             String?
+  body                String?
+  relatedEntityType   String?
+  relatedEntityId     String?
+  relatedRecordNumber String?
+  routeName           String?
+  actionLabel         String?
+  targetUrl           String?
+  payload             Json?
+  metadata            Json?
+  status              NotificationStatus           @default(UNREAD)
+  requiresAction      Boolean                      @default(false)
+  createdById         String?
+  createdAt           DateTime                     @default(now())
+  createdAtUtc        DateTime                     @default(now())
+  readAtUtc           DateTime?
+  openedAtUtc         DateTime?
+  dismissedAtUtc      DateTime?
+  archivedAtUtc       DateTime?
+  expiresAtUtc        DateTime?
+  userTimeZone        String?
+  tenantTimeZone      String?
+  dedupeKey           String?
+  updatedAt           DateTime                     @updatedAt
+  tenant              Tenant                       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  recipientUser       User?                        @relation("NotificationRecipientUser", fields: [recipientUserId], references: [id], onDelete: Cascade)
+  actorUser           User?                        @relation("NotificationActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  event               NotificationEvent            @relation(fields: [eventCode], references: [code], onDelete: Restrict)
+  recipients          NotificationRecipient[]
+  interactionLogs     NotificationInteractionLog[]
 
   @@index([tenantId])
   @@index([tenantId, eventCode])
+  @@index([tenantId, eventKey])
+  @@index([tenantId, recipientUserId])
+  @@index([tenantId, recipientUserId, status])
+  @@index([tenantId, moduleKey])
   @@index([tenantId, category])
+  @@index([tenantId, status])
   @@index([tenantId, createdAt])
+  @@index([tenantId, createdAtUtc])
+  @@index([tenantId, dedupeKey])
 }
 
 model NotificationRecipient {
-  id             String       @id @default(uuid())
+  id             String             @id @default(uuid())
   tenantId       String
   notificationId String
   userId         String
+  status         NotificationStatus @default(UNREAD)
   readAt         DateTime?
+  openedAt       DateTime?
+  dismissedAt    DateTime?
   archivedAt     DateTime?
   deliveredAt    DateTime?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  tenant         Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  popupShownAt   DateTime?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  tenant         Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  notification   Notification       @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([notificationId, userId])
   @@index([tenantId])
   @@index([tenantId, userId])
+  @@index([tenantId, userId, status])
   @@index([tenantId, userId, readAt])
   @@index([tenantId, userId, archivedAt])
   @@index([notificationId])
+}
+
+model NotificationInteractionLog {
+  id                String                        @id @default(uuid())
+  tenantId          String
+  notificationId    String
+  userId            String
+  action            NotificationInteractionAction
+  eventAtUtc        DateTime                      @default(now())
+  userTimeZone      String?
+  eventLocalTime    DateTime?
+  ipAddress         String?
+  userAgent         String?
+  metadata          Json?
+  retentionUntilUtc DateTime
+  tenant            Tenant                        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  notification      Notification                  @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  user              User                          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, notificationId])
+  @@index([tenantId, userId])
+  @@index([tenantId, action])
+  @@index([tenantId, eventAtUtc])
+  @@index([retentionUntilUtc])
+}
+
+model NotificationRule {
+  id                    String                            @id @default(uuid())
+  tenantId              String
+  moduleKey             String
+  eventKey              String
+  enabled               Boolean                           @default(true)
+  recipientResolverType NotificationRecipientResolverType
+  templateKey           String
+  channels              NotificationChannel[]
+  displayMode           NotificationDisplayMode           @default(BELL_ONLY)
+  priority              Int                               @default(3)
+  requiresAction        Boolean                           @default(false)
+  expireOnEvents        Json?
+  metadata              Json?
+  createdAt             DateTime                          @default(now())
+  updatedAt             DateTime                          @updatedAt
+  tenant                Tenant                            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, moduleKey, eventKey, recipientResolverType])
+  @@index([tenantId])
+  @@index([tenantId, moduleKey])
+  @@index([tenantId, eventKey])
+  @@index([tenantId, enabled])
+}
+
+model NotificationTemplate {
+  id              String   @id @default(uuid())
+  tenantId        String?
+  templateKey     String
+  moduleKey       String
+  titleTemplate   String
+  summaryTemplate String
+  bodyTemplate    String?
+  enabled         Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  tenant          Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, templateKey])
+  @@index([tenantId])
+  @@index([moduleKey])
+  @@index([templateKey])
+  @@index([enabled])
 }
 
 model NotificationPreference {
@@ -3900,6 +4206,245 @@ model NotificationPreference {
   @@index([tenantId, eventCode])
   @@index([tenantId, channel])
   @@index([enabled])
+}
+
+model ApprovalRequest {
+  id                     String                @id @default(uuid())
+  tenantId               String
+  moduleKey              String
+  entityType             String
+  entityId               String
+  requestNumber          String?
+  title                  String
+  submittedByUserId      String
+  submittedForEmployeeId String?
+  status                 ApprovalRequestStatus @default(PENDING)
+  currentStepId          String?
+  createdAtUtc           DateTime              @default(now())
+  submittedAtUtc         DateTime?
+  completedAtUtc         DateTime?
+  metadata               Json?
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+  tenant                 Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  submittedByUser        User                  @relation("ApprovalSubmittedBy", fields: [submittedByUserId], references: [id], onDelete: Restrict)
+  submittedForEmployee   Employee?             @relation("ApprovalSubmittedForEmployee", fields: [submittedForEmployeeId], references: [id], onDelete: SetNull)
+  steps                  ApprovalStep[]
+  assignments            ApprovalAssignment[]
+  actions                ApprovalAction[]
+
+  @@unique([tenantId, moduleKey, entityType, entityId])
+  @@index([tenantId])
+  @@index([tenantId, moduleKey])
+  @@index([tenantId, status])
+  @@index([tenantId, submittedByUserId])
+  @@index([tenantId, submittedForEmployeeId])
+  @@index([tenantId, createdAtUtc])
+}
+
+model ApprovalStep {
+  id                   String                            @id @default(uuid())
+  tenantId             String
+  approvalRequestId    String
+  stepOrder            Int
+  stepName             String
+  approverResolverType NotificationRecipientResolverType
+  status               GenericApprovalStepStatus         @default(NOT_STARTED)
+  startedAtUtc         DateTime?
+  dueAtUtc             DateTime?
+  completedAtUtc       DateTime?
+  slaStatus            SlaStatus                         @default(NOT_APPLICABLE)
+  metadata             Json?
+  createdAt            DateTime                          @default(now())
+  updatedAt            DateTime                          @updatedAt
+  tenant               Tenant                            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  approvalRequest      ApprovalRequest                   @relation(fields: [approvalRequestId], references: [id], onDelete: Cascade)
+  assignments          ApprovalAssignment[]
+  actions              ApprovalAction[]
+
+  @@unique([approvalRequestId, stepOrder])
+  @@index([tenantId])
+  @@index([tenantId, approvalRequestId])
+  @@index([tenantId, status])
+  @@index([tenantId, dueAtUtc])
+  @@index([tenantId, slaStatus])
+}
+
+model ApprovalAssignment {
+  id                String                   @id @default(uuid())
+  tenantId          String
+  approvalRequestId String
+  approvalStepId    String
+  assignedToUserId  String?
+  assignedToRoleId  String?
+  status            ApprovalAssignmentStatus @default(PENDING)
+  assignedAtUtc     DateTime                 @default(now())
+  actionedAtUtc     DateTime?
+  metadata          Json?
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+  tenant            Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  approvalRequest   ApprovalRequest          @relation(fields: [approvalRequestId], references: [id], onDelete: Cascade)
+  approvalStep      ApprovalStep             @relation(fields: [approvalStepId], references: [id], onDelete: Cascade)
+  assignedToUser    User?                    @relation("ApprovalAssignmentUser", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+  assignedToRole    Role?                    @relation("ApprovalAssignmentRole", fields: [assignedToRoleId], references: [id], onDelete: SetNull)
+  actions           ApprovalAction[]
+
+  @@index([tenantId])
+  @@index([tenantId, approvalRequestId])
+  @@index([tenantId, approvalStepId])
+  @@index([tenantId, assignedToUserId, status])
+  @@index([tenantId, assignedToRoleId, status])
+  @@index([tenantId, status])
+}
+
+model ApprovalAction {
+  id                   String              @id @default(uuid())
+  tenantId             String
+  approvalRequestId    String
+  approvalStepId       String?
+  approvalAssignmentId String?
+  actionType           ApprovalActionType
+  actionByUserId       String
+  comment              String?
+  actionAtUtc          DateTime            @default(now())
+  actionTimeZone       String?
+  actionLocalTime      DateTime?
+  metadata             Json?
+  createdAt            DateTime            @default(now())
+  tenant               Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  approvalRequest      ApprovalRequest     @relation(fields: [approvalRequestId], references: [id], onDelete: Cascade)
+  approvalStep         ApprovalStep?       @relation(fields: [approvalStepId], references: [id], onDelete: SetNull)
+  approvalAssignment   ApprovalAssignment? @relation(fields: [approvalAssignmentId], references: [id], onDelete: SetNull)
+  actionByUser         User                @relation("ApprovalActionUser", fields: [actionByUserId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId])
+  @@index([tenantId, approvalRequestId])
+  @@index([tenantId, approvalStepId])
+  @@index([tenantId, approvalAssignmentId])
+  @@index([tenantId, actionByUserId])
+  @@index([tenantId, actionType])
+  @@index([tenantId, actionAtUtc])
+}
+
+model SlaPolicy {
+  id          String        @id @default(uuid())
+  tenantId    String
+  moduleKey   String
+  name        String
+  description String?
+  enabled     Boolean       @default(true)
+  metadata    Json?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  rules       SlaRule[]
+  trackings   SlaTracking[]
+
+  @@unique([tenantId, moduleKey, name])
+  @@index([tenantId])
+  @@index([tenantId, moduleKey])
+  @@index([tenantId, enabled])
+}
+
+model SlaRule {
+  id                   String               @id @default(uuid())
+  tenantId             String
+  slaPolicyId          String
+  targetType           SlaTargetType
+  targetStatus         String?
+  durationMinutes      Int
+  dueSoonOffsetMinutes Int?
+  enabled              Boolean              @default(true)
+  metadata             Json?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  tenant               Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  slaPolicy            SlaPolicy            @relation(fields: [slaPolicyId], references: [id], onDelete: Cascade)
+  milestones           SlaMilestone[]
+  escalationLevels     SlaEscalationLevel[]
+
+  @@index([tenantId])
+  @@index([tenantId, slaPolicyId])
+  @@index([tenantId, targetType])
+  @@index([tenantId, enabled])
+}
+
+model SlaMilestone {
+  id                   String   @id @default(uuid())
+  tenantId             String
+  slaRuleId            String
+  name                 String
+  offsetMinutes        Int
+  notificationEventKey String?
+  metadata             Json?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  tenant               Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  slaRule              SlaRule  @relation(fields: [slaRuleId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, slaRuleId])
+}
+
+model SlaEscalationLevel {
+  id                    String                            @id @default(uuid())
+  tenantId              String
+  slaRuleId             String
+  level                 Int
+  offsetMinutes         Int
+  recipientResolverType NotificationRecipientResolverType
+  notificationEventKey  String?
+  metadata              Json?
+  createdAt             DateTime                          @default(now())
+  updatedAt             DateTime                          @updatedAt
+  tenant                Tenant                            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  slaRule               SlaRule                           @relation(fields: [slaRuleId], references: [id], onDelete: Cascade)
+
+  @@unique([slaRuleId, level])
+  @@index([tenantId])
+  @@index([tenantId, slaRuleId])
+}
+
+model SlaTracking {
+  id             String        @id @default(uuid())
+  tenantId       String
+  slaPolicyId    String?
+  targetType     SlaTargetType
+  targetId       String
+  status         SlaStatus     @default(ON_TRACK)
+  startedAtUtc   DateTime      @default(now())
+  dueAtUtc       DateTime?
+  breachedAtUtc  DateTime?
+  completedAtUtc DateTime?
+  metadata       Json?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  slaPolicy      SlaPolicy?    @relation(fields: [slaPolicyId], references: [id], onDelete: SetNull)
+  eventLogs      SlaEventLog[]
+
+  @@unique([tenantId, targetType, targetId])
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, dueAtUtc])
+  @@index([tenantId, slaPolicyId])
+}
+
+model SlaEventLog {
+  id            String       @id @default(uuid())
+  tenantId      String
+  slaTrackingId String
+  eventType     SlaEventType
+  eventAtUtc    DateTime     @default(now())
+  metadata      Json?
+  tenant        Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  slaTracking   SlaTracking  @relation(fields: [slaTrackingId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, slaTrackingId])
+  @@index([tenantId, eventType])
+  @@index([tenantId, eventAtUtc])
 }
 
 model PlatformSetting {

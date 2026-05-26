@@ -23,11 +23,14 @@ import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import { AttendanceService } from './attendance.service';
+import { AttendanceCorrectionActionDto } from './dto/attendance-correction-action.dto';
+import { AttendanceCorrectionQueryDto } from './dto/attendance-correction-query.dto';
 import { AttendanceQueryDto } from './dto/attendance-query.dto';
 import { AttendanceSummaryQueryDto } from './dto/attendance-summary-query.dto';
 import { CheckInDto } from './dto/check-in.dto';
 import { CheckOutDto } from './dto/check-out.dto';
 import { CreateAttendanceIntegrationDto } from './dto/create-attendance-integration.dto';
+import { CreateAttendanceCorrectionRequestDto } from './dto/create-attendance-correction-request.dto';
 import { CreateManualAttendanceEntryDto } from './dto/create-manual-attendance-entry.dto';
 import { ImportAttendanceDto } from './dto/import-attendance.dto';
 import { OverrideAttendanceEntryDto } from './dto/override-attendance-entry.dto';
@@ -121,6 +124,48 @@ export class AttendanceController {
     @Body() dto: UpdateManualAttendanceEntryDto,
   ) {
     return this.attendanceService.updateManualEntry(user, entryId, dto);
+  }
+
+  @Get('correction-requests')
+  listCorrectionRequests(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: AttendanceCorrectionQueryDto,
+  ) {
+    return this.attendanceService.listCorrectionRequests(user, query);
+  }
+
+  @Post('correction-requests')
+  createCorrectionRequest(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreateAttendanceCorrectionRequestDto,
+  ) {
+    return this.attendanceService.createCorrectionRequest(user, dto);
+  }
+
+  @Get('correction-requests/:id')
+  getCorrectionRequest(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.attendanceService.getCorrectionRequest(user, id);
+  }
+
+  @Post('correction-requests/:id/approve')
+  approveCorrectionRequest(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: AttendanceCorrectionActionDto,
+  ) {
+    return this.attendanceService.approveCorrectionRequest(user, id, dto);
+  }
+
+  @Post('correction-requests/:id/reject')
+  rejectCorrectionRequest(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: AttendanceCorrectionActionDto,
+  ) {
+    return this.attendanceService.rejectCorrectionRequest(user, id, dto);
   }
 
   @Get('export')

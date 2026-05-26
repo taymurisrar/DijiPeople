@@ -4,8 +4,15 @@ export const NOTIFICATION_TENANT_SCOPE_PREFIX = 'TENANT';
 export const NOTIFICATION_USER_SCOPE_PREFIX = 'USER';
 
 export const NOTIFICATION_PERMISSION_KEYS = {
+  INBOX_READ: 'inbox.read',
+  INBOX_MARK_READ: 'inbox.markRead',
+  INBOX_DISMISS: 'inbox.dismiss',
+  INBOX_ARCHIVE: 'inbox.archive',
+  INBOX_BULK_UPDATE: 'inbox.bulkUpdate',
   NOTIFICATIONS_READ: 'notifications.read',
   NOTIFICATIONS_MANAGE: 'notifications.manage',
+  NOTIFICATIONS_MANAGE_RULES: 'notifications.manageRules',
+  NOTIFICATIONS_MANAGE_TEMPLATES: 'notifications.manageTemplates',
   NOTIFICATION_TEMPLATES_READ: 'notification.templates.read',
   NOTIFICATION_TEMPLATES_MANAGE: 'notification.templates.manage',
   NOTIFICATION_PROVIDERS_READ: 'notification.providers.read',

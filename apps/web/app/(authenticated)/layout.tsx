@@ -11,7 +11,6 @@ import { apiRequestJson } from "@/lib/server-api";
 import { BrandingHeadEffects } from "@/app/components/branding/branding-head-effects";
 import { TenantFontSync } from "@/app/components/branding/tenant-font-sync";
 import { isSelfServiceUser } from "@/lib/permissions";
-import { PERMISSION_KEYS } from "@/lib/security-keys";
 import {
   TenantFeaturesResponse,
   TenantResolvedSettingsResponse,
@@ -23,6 +22,7 @@ import { DashboardSidebar } from "./_components/dashboard-sidebar";
 import { DashboardTopbar } from "./_components/dashboard-topbar";
 import { ErrorProvider } from "@/components/errors/error-provider";
 import { ResolvedSettingsProvider } from "./_components/resolved-settings-provider";
+import { NotificationPopupProvider } from "./_components/notification-popup-provider";
 
 export default async function DashboardLayout({
   children,
@@ -132,9 +132,7 @@ export default async function DashboardLayout({
             <DashboardTopbar
               avatarCacheKey={avatarCacheKey}
               avatarSrc={avatarSrc}
-              canReadNotifications={user.permissionKeys.includes(
-                PERMISSION_KEYS.NOTIFICATIONS_READ,
-              )}
+              canReadInbox={user.permissionKeys.includes("inbox.read")}
               email={user.email}
               firstName={user.firstName}
               lastName={user.lastName}
@@ -150,6 +148,7 @@ export default async function DashboardLayout({
             />
             <ResolvedSettingsProvider initialResolvedSettings={resolvedSettings}>
               <ErrorProvider user={{ roleKeys: user.roleKeys }}>
+                <NotificationPopupProvider />
                 {children}
               </ErrorProvider>
             </ResolvedSettingsProvider>
