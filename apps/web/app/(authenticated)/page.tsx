@@ -37,7 +37,7 @@ export default async function DashboardPage({
     }));
 
     return (
-      <main className="dp-theme-scope grid gap-6 px-4 py-6 md:px-6 lg:px-8">
+      <main className="dp-theme-scope grid gap-6 px-1 py-2 md:px-2 lg:px-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center rounded-xl bg-surface lg:justify-between">
             <ModuleViewSelector
               configureHref="/settings/customization/views"

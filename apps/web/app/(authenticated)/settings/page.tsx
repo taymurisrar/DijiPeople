@@ -219,7 +219,7 @@ export default function SettingsPage() {
                   Enterprise Administration
                 </div>
 
-                <h1 className="font-serif text-4xl text-foreground">
+                <h1 className="font-medium text-4xl text-foreground">
                   Settings
                 </h1>
 

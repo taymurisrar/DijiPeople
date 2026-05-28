@@ -100,7 +100,7 @@ export default async function DashboardLayout({
       }}
     >
       <div
-        className="min-h-screen py-4 md:py-6"
+        className="min-h-screen py-2 md:py-4"
         data-theme={
           resolvedSettings?.branding.defaultThemeMode?.toLowerCase() ||
           resolvedSettings?.system.defaultThemeMode?.toLowerCase() ||

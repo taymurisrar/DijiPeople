@@ -1,17 +1,32 @@
-import Link from "next/link";
+import { ModuleViewSelector } from "@/app/components/view-selector/module-view-selector";
+import { getSessionUser } from "@/lib/auth";
+import {
+  getTableViews,
+  RuntimeCustomizationView,
+  withFallbackViews,
+} from "@/lib/customization-views";
+import { hasElevatedTenantRole } from "@/lib/elevated-roles";
+import { hasPermission } from "@/lib/permissions";
 import { apiRequestJson } from "@/lib/server-api";
-import { formatDate } from "@/lib/formatting-context";
 import { AccessDeniedState } from "../_components/access-denied-state";
-import { getBusinessUnitAccessSummary, hasBusinessUnitScope } from "../_lib/business-unit-access";
+import {
+  getBusinessUnitAccessSummary,
+  hasBusinessUnitScope,
+} from "../_lib/business-unit-access";
+import { ProjectsCommandBar } from "./_components/projects-command-bar";
+import { ProjectsTable } from "./_components/projects-table";
 import { ProjectListResponse } from "./types";
-import { ProjectStatusBadge } from "./_components/project-status-badge";
 
-export default async function ProjectsPage() {
+type ProjectsPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function ProjectsPage({ searchParams }: ProjectsPageProps) {
   const businessUnitAccess = await getBusinessUnitAccessSummary();
 
   if (!hasBusinessUnitScope(businessUnitAccess)) {
     return (
-      <main className="grid gap-6">
+      <main className="dp-theme-scope dp-projects-scope grid gap-6">
         <AccessDeniedState
           description="Your current business-unit scope does not include project records."
           title="Projects are unavailable for your current business unit access."
@@ -20,85 +35,217 @@ export default async function ProjectsPage() {
     );
   }
 
-  const projects = await apiRequestJson<ProjectListResponse>("/projects?pageSize=50");
+  const params = await searchParams;
+  const selectedViewKey = getSearchParam(params.view);
+
+  const sessionUser = await getSessionUser();
+  const isElevated = hasElevatedTenantRole(sessionUser?.roleKeys);
+
+  const canCreateProject =
+    isElevated || hasPermission(sessionUser?.permissionKeys, "projects.create");
+
+  const canViewTenantProjects =
+    isElevated ||
+    hasPermission(sessionUser?.permissionKeys, "projects.manage") ||
+    hasPermission(sessionUser?.permissionKeys, "projects.read");
+
+  const normalizedViewKey = selectedViewKey || "allProjects";
+
+  const projectEndpoint = buildProjectEndpoint({
+    selectedViewKey: normalizedViewKey,
+  });
+
+  const [projectsResponse, publishedViews] = await Promise.all([
+    apiRequestJson<ProjectListResponse>(projectEndpoint),
+    getTableViews("projects"),
+  ]);
+
+  const projects = projectsResponse.items ?? [];
+
+  const systemViews: RuntimeCustomizationView[] = [
+    {
+      id: "allProjects",
+      viewKey: "allProjects",
+      tableKey: "projects",
+      name: "All Projects",
+      type: "system" as const,
+      isDefault: canViewTenantProjects,
+      columnsJson: {
+        columns: [
+          { columnKey: "name" },
+          { columnKey: "code" },
+          { columnKey: "status" },
+          { columnKey: "customer" },
+          { columnKey: "dateRange" },
+          { columnKey: "assignedEmployees" },
+          { columnKey: "actions" },
+        ],
+      },
+      sortingJson: [{ columnKey: "name", direction: "asc" }],
+    },
+    {
+      id: "myProjects",
+      viewKey: "myProjects",
+      tableKey: "projects",
+      name: "My Projects",
+      type: "system" as const,
+      isDefault: !canViewTenantProjects,
+      columnsJson: {
+        columns: [
+          { columnKey: "name" },
+          { columnKey: "code" },
+          { columnKey: "status" },
+          { columnKey: "dateRange" },
+          { columnKey: "assignedEmployees" },
+          { columnKey: "actions" },
+        ],
+      },
+      sortingJson: [{ columnKey: "name", direction: "asc" }],
+    },
+    buildProjectStatusView("activeProjects", "Active Projects", "ACTIVE"),
+buildProjectStatusView("planningProjects", "Planning Projects", "PLANNING"),
+    buildProjectStatusView("completedProjects", "Completed Projects", "COMPLETED"),
+    {
+      id: "teamProjects",
+      viewKey: "teamProjects",
+      tableKey: "projects",
+      name: "Team Projects",
+      type: "system" as const,
+      isDefault: false,
+      columnsJson: {
+        columns: [
+          { columnKey: "name" },
+          { columnKey: "code" },
+          { columnKey: "status" },
+          { columnKey: "customer" },
+          { columnKey: "dateRange" },
+          { columnKey: "assignedEmployees" },
+          { columnKey: "actions" },
+        ],
+      },
+      sortingJson: [{ columnKey: "name", direction: "asc" }],
+    },
+  ];
+
+  const projectViews = withFallbackViews(
+    "projects",
+    publishedViews,
+    canViewTenantProjects
+      ? systemViews
+      : systemViews.filter((view) => view.viewKey !== "allProjects"),
+  );
+
+  const selectedView =
+    projectViews.find((view) => view.viewKey === selectedViewKey) ??
+    projectViews.find((view) => view.isDefault) ??
+    projectViews[0] ??
+    null;
+
+  const visibleColumnKeys = selectedView?.columnsJson
+    ? (
+        (selectedView.columnsJson as {
+          columns?: Array<{ columnKey?: string }>;
+        }).columns ?? []
+      )
+        .map((column) => column.columnKey)
+        .filter((columnKey): columnKey is string => Boolean(columnKey))
+    : undefined;
 
   return (
-    <main className="grid gap-6">
-      <section className="flex flex-col gap-4 rounded-[28px] border border-border bg-[linear-gradient(135deg,rgba(255,255,255,0.95),rgba(239,248,245,0.9))] p-8 shadow-lg lg:flex-row lg:items-end lg:justify-between">
-        <div className="space-y-3">
-          <p className="text-sm uppercase tracking-[0.18em] text-muted">
-            Projects
-          </p>
-          <h3 className="font-serif text-4xl text-foreground">
-            Organize work and assign people to delivery teams.
-          </h3>
-          <p className="max-w-3xl text-muted">
-            This first version focuses on clean project master data and employee assignments so timesheets and utilization can build on top.
-          </p>
-        </div>
-        <Link
-          className="rounded-2xl bg-accent px-5 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong"
-          href="/projects/new"
-        >
-          Add project
-        </Link>
-      </section>
+    <main className="dp-theme-scope dp-projects-scope grid gap-6">
+      <ModuleViewSelector
+        configureHref="/settings/customization/tables/projects"
+        enabled
+        selectedViewId={selectedView?.viewKey ?? ""}
+        views={projectViews}
+      />
 
-      {projects.items.length === 0 ? (
-        <section className="rounded-[24px] border border-dashed border-border bg-surface p-10 text-center shadow-sm">
-          <p className="text-sm uppercase tracking-[0.18em] text-muted">
-            No projects yet
-          </p>
-          <h4 className="mt-3 text-2xl font-semibold text-foreground">
-            Your project catalog is empty.
-          </h4>
-          <p className="mt-3 text-muted">
-            Create the first project to start assigning employees and linking timesheets to real work.
-          </p>
-        </section>
-      ) : (
-        <div className="overflow-hidden rounded-[24px] border border-border bg-surface shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-border text-sm">
-              <thead className="bg-surface-strong text-left text-muted">
-                <tr>
-                  <th className="px-5 py-4 font-medium">Project</th>
-                  <th className="px-5 py-4 font-medium">Status</th>
-                  <th className="px-5 py-4 font-medium">Dates</th>
-                  <th className="px-5 py-4 font-medium">Client / Context</th>
-                  <th className="px-5 py-4 font-medium">Assigned</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border bg-white/90">
-                {projects.items.map((project) => (
-                  <tr key={project.id} className="hover:bg-accent-soft/30">
-                    <td className="px-5 py-4">
-                      <Link className="font-semibold text-foreground hover:text-accent" href={`/projects/${project.id}`}>
-                        {project.name}
-                      </Link>
-                      <p className="mt-1 text-muted">{project.code || "No code"}</p>
-                    </td>
-                    <td className="px-5 py-4">
-                      <ProjectStatusBadge status={project.status} />
-                    </td>
-                    <td className="px-5 py-4 text-muted">
-                      <p>{project.startDate ? formatDate(project.startDate, { timezone: project.timezone }) : "No start date"}</p>
-                      <p>{project.endDate ? formatDate(project.endDate, { timezone: project.timezone }) : "No end date"}</p>
-                    </td>
-                    <td className="px-5 py-4 text-muted">
-                      <p>{project.customer?.name ?? "No customer"}</p>
-                      <p>{project.timezone ?? "Tenant timezone"} · {project.currencyCode ?? "Tenant currency"}</p>
-                    </td>
-                    <td className="px-5 py-4 text-muted">
-                      {project.assignedEmployees.length} employee(s)
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+      <ProjectsCommandBar
+        canCreateProject={canCreateProject}
+        canDeleteProject={false}
+        canShareProject={false}
+        canAssignProject={false}
+        canImportProject={false}
+        canExportProject={false}
+      />
+
+      <ProjectsTable
+        requests={projects}
+        formatting={{
+          dateFormat: "MM/dd/yyyy",
+          locale: "en-US",
+          timezone: "UTC",
+        }}
+        pagination={{
+          page: 1,
+          pageSize: projects.length || 10,
+          totalItems: projects.length,
+          pathname: "/projects",
+          searchParams: {
+            view: selectedViewKey,
+          },
+        }}
+        visibleColumnKeys={visibleColumnKeys}
+        enableSelection={false}
+      />
     </main>
   );
+}
+
+function getSearchParam(value?: string | string[]) {
+  if (Array.isArray(value)) {
+    return value[0] ?? "";
+  }
+
+  return value ?? "";
+}
+
+function buildProjectEndpoint(input: { selectedViewKey: string }) {
+  const query = new URLSearchParams();
+  const status = resolveProjectStatus(input.selectedViewKey);
+
+  if (status) {
+    query.set("status", status);
+  }
+
+  const suffix = query.toString();
+
+  return suffix ? `/projects?${suffix}` : "/projects";
+}
+
+function resolveProjectStatus(selectedViewKey: string) {
+  switch (selectedViewKey) {
+    case "activeProjects":
+      return "ACTIVE";
+    case "plannedProjects":
+      return "PLANNING";
+    case "completedProjects":
+      return "COMPLETED";
+    default:
+      return "";
+  }
+}
+
+function buildProjectStatusView(id: string, name: string, status: string) {
+  return {
+    id,
+    viewKey: id,
+    tableKey: "projects",
+    name,
+    type: "system" as const,
+    isDefault: false,
+    filtersJson: { status },
+    columnsJson: {
+      columns: [
+        { columnKey: "name" },
+        { columnKey: "code" },
+        { columnKey: "status" },
+        { columnKey: "customer" },
+        { columnKey: "dateRange" },
+        { columnKey: "assignedEmployees" },
+        { columnKey: "actions" },
+      ],
+    },
+    sortingJson: [{ columnKey: "name", direction: "asc" }],
+  };
 }

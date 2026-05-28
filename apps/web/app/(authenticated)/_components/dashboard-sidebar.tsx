@@ -136,7 +136,7 @@ function SidebarNavItem({
       href={href}
       title={label}
       className={[
-        "group relative flex w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left outline-none transition-all",
+        "group relative flex w-full items-center gap-3 rounded-2xl border px-2 py-1 text-left outline-none transition-all",
         "focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/20",
         isActive
           ? "border-accent/30 bg-[color-mix(in_oklab,var(--dp-accent)_14%,white)] text-foreground shadow-sm"
@@ -149,17 +149,17 @@ function SidebarNavItem({
 
       <span
         className={[
-          "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition",
+          "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition",
           isActive
             ? "bg-accent text-white"
             : "bg-[color-mix(in_oklab,var(--dp-accent)_9%,white)] text-muted-foreground group-hover:bg-white group-hover:text-foreground",
         ].join(" ")}
       >
-        <Icon className="h-4 w-4" />
+        <Icon className="h-3 w-3" />
       </span>
 
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-semibold">{label}</span>
+        <span className="block truncate text-xs font-semibold">{label}</span>
       </span>
     </Link>
   );
@@ -204,7 +204,7 @@ function SidebarBrand({
         </div>
       </div>
 
-      <p className="mt-4 line-clamp-2 text-sm leading-6 text-muted">
+      <p className="mt-2 line-clamp-2 text-xs leading-5 text-muted">
         {effectiveTagline}
       </p>
     </div>
@@ -265,10 +265,10 @@ function TenantCard({
     }, 1500);
   }
   return (
-    <div className="rounded-[22px] border border-border/70 bg-white/55 p-3">
+    <div className="rounded-[22px] border border-border/70 bg-white/55 p-2">
       <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-surface text-foreground shadow-sm">
-          <Building2 className="h-4 w-4" />
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-surface text-foreground shadow-sm">
+          <Building2 className="h-3 w-3" />
         </div>
 
         <div className="min-w-0">
@@ -284,7 +284,7 @@ function TenantCard({
             type="button"
             onClick={handleCopyTenantId}
             title={`Copy tenant ID: ${tenantId}`}
-            className="mt-1 block max-w-full truncate text-left text-xs text-muted transition hover:text-primary"
+            className="mt-1 block max-w-full truncate text-left text-[10px] text-muted transition hover:text-primary"
           >
             {copiedTenantId ? "Copied!" : `ID: ${tenantId}`}
           </button>

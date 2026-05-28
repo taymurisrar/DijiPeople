@@ -70,13 +70,13 @@ export function UserMenuDropdown({
           firstName={firstName}
           imageSrc={avatarSrc}
           lastName={lastName}
-          size="sm"
+          size="xs"
         />
         <div className="hidden min-w-0 sm:block">
-          <div className="truncate text-sm font-semibold text-foreground">
+          <div className="truncate text-xs font-semibold text-foreground">
             {firstName} {lastName}
           </div>
-          <div className="truncate text-xs text-muted">{roleLabel}</div>
+          {/* <div className="truncate text-xs text-muted">{roleLabel}</div> */}
         </div>
       </button>
 
