@@ -9,13 +9,9 @@ import {
   FilterX,
   Search,
 } from "lucide-react";
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useOptionalSystemPreferences } from "@/app/(authenticated)/_components/resolved-settings-provider";
 import {
   DataTableColumn,
   DataTableFilterOperator,
@@ -53,11 +49,15 @@ export function DataTable<T>({
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const preferences = useOptionalSystemPreferences();
+  const stickyStateKey = `dijipeople:data-table:${entityLogicalName ?? pathname}`;
+  const restoredStickyState = useRef(false);
 
   const [sort, setSort] = useState<DataTableSortState | null>(initialSort);
   const [filters, setFilters] =
     useState<DataTableFilterState[]>(initialFilters);
   const [search, setSearch] = useState("");
+  const [clientPage, setClientPage] = useState(pagination?.page ?? 1);
 
   useEffect(() => {
     setSort(initialSort);
@@ -66,6 +66,51 @@ export function DataTable<T>({
   useEffect(() => {
     setFilters(initialFilters);
   }, [initialFilters]);
+
+  useEffect(() => {
+    if (
+      restoredStickyState.current ||
+      !preferences?.enableStickyFilters ||
+      mode === "server"
+    ) {
+      return;
+    }
+
+    restoredStickyState.current = true;
+    try {
+      const stored = window.localStorage.getItem(stickyStateKey);
+      if (!stored) return;
+      const parsed = JSON.parse(stored) as {
+        search?: string;
+        sort?: DataTableSortState | null;
+        filters?: DataTableFilterState[];
+      };
+      if (typeof parsed.search === "string") setSearch(parsed.search);
+      if (parsed.sort) setSort(parsed.sort);
+      if (Array.isArray(parsed.filters)) setFilters(parsed.filters);
+    } catch {
+      window.localStorage.removeItem(stickyStateKey);
+    }
+  }, [mode, preferences?.enableStickyFilters, stickyStateKey]);
+
+  useEffect(() => {
+    if (!preferences?.enableStickyFilters || mode === "server") {
+      window.localStorage.removeItem(stickyStateKey);
+      return;
+    }
+
+    window.localStorage.setItem(
+      stickyStateKey,
+      JSON.stringify({ search, sort, filters }),
+    );
+  }, [
+    filters,
+    mode,
+    preferences?.enableStickyFilters,
+    search,
+    sort,
+    stickyStateKey,
+  ]);
 
   const processedRows = useMemo(() => {
     const searchedRows = searchRows(rows, columns, search);
@@ -79,9 +124,35 @@ export function DataTable<T>({
     return sortRows(filteredRows, columns, sort);
   }, [rows, columns, search, filters, sort, mode]);
 
+  useEffect(() => {
+    setClientPage(pagination?.page ?? 1);
+  }, [pagination?.page, pagination?.pageSize]);
+
+  useEffect(() => {
+    setClientPage(1);
+  }, [search, filters, sort]);
+
+  const effectivePageSize = pagination?.pageSize ?? processedRows.length;
+  const totalProcessedRows =
+    mode === "server"
+      ? (pagination?.total ?? pagination?.totalItems ?? rows.length)
+      : processedRows.length;
+  const totalPages =
+    pagination?.totalPages ??
+    Math.max(1, Math.ceil(totalProcessedRows / Math.max(1, effectivePageSize)));
+  const currentPage =
+    mode === "server"
+      ? (pagination?.page ?? 1)
+      : Math.min(clientPage, totalPages);
+  const visibleRows = useMemo(() => {
+    if (!pagination || mode === "server") return processedRows;
+    const start = (currentPage - 1) * effectivePageSize;
+    return processedRows.slice(start, start + effectivePageSize);
+  }, [currentPage, effectivePageSize, mode, pagination, processedRows]);
+
   const processedRowKeys = useMemo(
-    () => processedRows.map((row) => getRowKey(row)),
-    [processedRows, getRowKey],
+    () => visibleRows.map((row) => getRowKey(row)),
+    [visibleRows, getRowKey],
   );
 
   const selectedKeySet = useMemo(
@@ -97,14 +168,12 @@ export function DataTable<T>({
     processedRowKeys.length > 0 &&
     selectedVisibleCount === processedRowKeys.length;
 
-  const someVisibleSelected =
-    selectedVisibleCount > 0 && !allVisibleSelected;
+  const someVisibleSelected = selectedVisibleCount > 0 && !allVisibleSelected;
 
   const hasActiveSearchOrFilters =
     search.trim().length > 0 || filters.length > 0;
 
-  const totalRecords =
-    pagination?.total ?? pagination?.totalItems ?? rows.length;
+  const totalRecords = totalProcessedRows;
 
   function toggleRowSelection(rowKey: string) {
     if (!onSelectedRowKeysChange) {
@@ -112,9 +181,7 @@ export function DataTable<T>({
     }
 
     if (selectedKeySet.has(rowKey)) {
-      onSelectedRowKeysChange(
-        selectedRowKeys.filter((key) => key !== rowKey),
-      );
+      onSelectedRowKeysChange(selectedRowKeys.filter((key) => key !== rowKey));
       return;
     }
 
@@ -262,17 +329,19 @@ export function DataTable<T>({
     <div
       className={
         className ??
-        "overflow-hidden rounded-[24px] border border-border bg-surface shadow-sm"
+        `max-w-full overflow-hidden rounded-lg border border-border bg-surface shadow-sm ${
+          preferences?.uiDensity
+            ? `data-table-density-${preferences.uiDensity.toLowerCase()}`
+            : ""
+        }`
       }
     >
-      <div className="flex flex-col gap-3 border-b border-border bg-surface-strong px-5 py-4 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col gap-2 border-b border-border bg-surface-strong px-3 py-2.5 md:flex-row md:items-center md:justify-between">
         <div>
-          <p className="text-sm font-semibold text-foreground">
-            Records
-          </p>
+          <p className="text-sm font-semibold text-foreground">Records</p>
 
           <p className="text-xs text-muted">
-            Showing {processedRows.length} of {totalRecords}
+            Showing {visibleRows.length} of {totalRecords}
             {entityLogicalName ? ` ${entityLogicalName}` : ""}
           </p>
 
@@ -285,7 +354,7 @@ export function DataTable<T>({
 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           {enableSearch ? (
-            <div className="flex min-w-[260px] items-center gap-2 rounded-xl border border-border bg-white px-3 py-2 shadow-sm focus-within:border-foreground">
+            <div className="flex min-w-[220px] items-center gap-2 rounded-lg border border-border bg-white px-2.5 py-1.5 shadow-sm focus-within:border-foreground">
               <Search className="h-4 w-4 text-muted" />
 
               <input
@@ -296,7 +365,7 @@ export function DataTable<T>({
                     ? "Quick filter current page"
                     : searchPlaceholder
                 }
-                className="w-full bg-transparent text-sm outline-none"
+                className="w-full bg-transparent text-xs outline-none"
               />
             </div>
           ) : null}
@@ -305,7 +374,7 @@ export function DataTable<T>({
             <button
               type="button"
               onClick={clearAllFilters}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-white px-3 py-2 text-sm font-medium text-muted shadow-sm transition hover:bg-surface-strong hover:text-foreground"
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-medium text-muted shadow-sm transition hover:bg-surface-strong hover:text-foreground"
             >
               <FilterX className="h-4 w-4" />
               Clear
@@ -314,7 +383,7 @@ export function DataTable<T>({
         </div>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="max-w-full overflow-x-auto">
         <table
           className={
             tableClassName ?? "min-w-full divide-y divide-border text-sm"
@@ -323,7 +392,7 @@ export function DataTable<T>({
           <thead className="bg-surface-strong text-left text-muted">
             <tr>
               {enableSelection ? (
-                <th className="w-12 px-5 py-4">
+                <th className="w-10 px-3 py-2">
                   <input
                     type="checkbox"
                     checked={allVisibleSelected}
@@ -345,54 +414,54 @@ export function DataTable<T>({
                 );
 
                 return (
-                <th
-                  key={column.key}
-                  className={`px-5 py-4 font-medium ${
-                    column.headerClassName ?? ""
-                  }`}
-                >
-                  <div className="inline-flex items-center gap-1.5">
-                    <span className={activeFilter ? "text-foreground" : ""}>
-                      {column.header}
-                    </span>
+                  <th
+                    key={column.key}
+                    className={`px-3 py-2 text-xs font-medium ${
+                      column.headerClassName ?? ""
+                    }`}
+                  >
+                    <div className="inline-flex items-center gap-1.5">
+                      <span className={activeFilter ? "text-foreground" : ""}>
+                        {column.header}
+                      </span>
 
-                    {column.sortable ? (
-                      <button
-                        aria-label={`Sort ${column.header}`}
-                        className="inline-flex h-7 w-7 items-center justify-center rounded-md transition hover:bg-white hover:text-foreground"
-                        onClick={() => handleSort(column)}
-                        type="button"
-                      >
-                        {renderSortIcon(column)}
-                      </button>
-                    ) : null}
+                      {column.sortable ? (
+                        <button
+                          aria-label={`Sort ${column.header}`}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-md transition hover:bg-white hover:text-foreground"
+                          onClick={() => handleSort(column)}
+                          type="button"
+                        >
+                          {renderSortIcon(column)}
+                        </button>
+                      ) : null}
 
-                    {column.filterable ? (
-                      <ColumnFilterButton
-                        column={column}
-                        filter={activeFilter}
-                        onApply={(nextFilter) =>
-                          applyColumnFilter(column, nextFilter)
-                        }
-                      />
-                    ) : null}
-                  </div>
-                </th>
+                      {column.filterable ? (
+                        <ColumnFilterButton
+                          column={column}
+                          filter={activeFilter}
+                          onApply={(nextFilter) =>
+                            applyColumnFilter(column, nextFilter)
+                          }
+                        />
+                      ) : null}
+                    </div>
+                  </th>
                 );
               })}
             </tr>
           </thead>
 
           <tbody className={bodyClassName}>
-            {processedRows.length > 0 ? (
-              processedRows.map((row) => {
+            {visibleRows.length > 0 ? (
+              visibleRows.map((row) => {
                 const rowKey = getRowKey(row);
                 const isSelected = selectedKeySet.has(rowKey);
 
                 return (
                   <tr key={rowKey} className={rowClassName}>
                     {enableSelection ? (
-                      <td className="w-12 px-5 py-4 align-top">
+                      <td className="w-10 px-3 py-2 align-top">
                         <input
                           type="checkbox"
                           checked={isSelected}
@@ -406,7 +475,7 @@ export function DataTable<T>({
                     {columns.map((column) => (
                       <td
                         key={column.key}
-                        className={`px-5 py-4 align-top ${
+                        className={`px-3 py-2 align-top ${
                           column.cellClassName ?? column.className ?? ""
                         }`}
                       >
@@ -420,7 +489,7 @@ export function DataTable<T>({
               <tr>
                 <td
                   colSpan={columns.length + (enableSelection ? 1 : 0)}
-                  className="px-5 py-10 text-center text-sm text-muted"
+                  className="px-3 py-8 text-center text-sm text-muted"
                 >
                   No records match the selected search or filters.
                 </td>
@@ -431,17 +500,36 @@ export function DataTable<T>({
       </div>
 
       {footer ? (
-        <div className="border-t border-border bg-surface-strong px-5 py-4">
+        <div className="border-t border-border bg-surface-strong px-3 py-2.5">
           {footer}
         </div>
       ) : pagination ? (
-        <div className="border-t border-border bg-surface-strong px-5 py-4 text-sm text-muted">
-          Page {pagination.page} of{" "}
-          {pagination.totalPages ??
-            Math.max(
-              1,
-              Math.ceil(totalRecords / Math.max(1, pagination.pageSize)),
-            )}
+        <div className="flex items-center justify-between gap-3 border-t border-border bg-surface-strong px-3 py-2.5 text-sm text-muted">
+          <span>
+            Page {currentPage} of {totalPages}
+          </span>
+          {mode === "client" ? (
+            <div className="flex items-center gap-2">
+              <button
+                className="rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={currentPage <= 1}
+                onClick={() => setClientPage((page) => Math.max(1, page - 1))}
+                type="button"
+              >
+                Previous
+              </button>
+              <button
+                className="rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={currentPage >= totalPages}
+                onClick={() =>
+                  setClientPage((page) => Math.min(totalPages, page + 1))
+                }
+                type="button"
+              >
+                Next
+              </button>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>
@@ -748,7 +836,9 @@ function getDefaultOperator<T>(column: DataTableColumn<T>) {
   return "contains";
 }
 
-function getOperators(type: NonNullable<DataTableColumn<unknown>["filterType"]>) {
+function getOperators(
+  type: NonNullable<DataTableColumn<unknown>["filterType"]>,
+) {
   if (type === "date") {
     return [
       { value: "equals", label: "Equals" },

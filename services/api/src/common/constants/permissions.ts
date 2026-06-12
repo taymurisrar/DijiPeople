@@ -11,6 +11,7 @@ export const PERMISSION_KEYS = {
   TENANT_READ: 'tenant.read',
   TENANT_UPDATE: 'tenant.update',
   SETTINGS_READ: 'settings.read',
+  TENANT_SETTINGS_RESOLVED_READ: 'tenant-settings.resolved.read',
   SETTINGS_UPDATE: 'settings.update',
   USERS_READ: 'users.read',
   USERS_CREATE: 'users.create',
@@ -148,6 +149,21 @@ export const PERMISSION_KEYS = {
   SLA_MANAGE: 'sla.manage',
   CUSTOMIZATION_READ: 'customization.read',
   CUSTOMIZATION_PUBLISH: 'customization.publish',
+  CUSTOMIZATION_MODULES_READ: 'customization.modules.read',
+  CUSTOMIZATION_MODULES_MANAGE: 'customization.modules.manage',
+  CUSTOMIZATION_FIELDS_MANAGE: 'customization.fields.manage',
+  CUSTOMIZATION_FORMS_MANAGE: 'customization.forms.manage',
+  CUSTOMIZATION_VIEWS_MANAGE: 'customization.views.manage',
+  CUSTOMIZATION_CHOICE_LISTS_MANAGE: 'customization.choice-lists.manage',
+  CUSTOMIZATION_RELATIONSHIPS_MANAGE: 'customization.relationships.manage',
+  CUSTOMIZATION_ACTION_BARS_MANAGE: 'customization.action-bars.manage',
+  CUSTOMIZATION_PACKAGES_MANAGE: 'customization.packages.manage',
+  CUSTOMIZATION_PUBLISH_CENTER_READ: 'customization.publish-center.read',
+  CUSTOMIZATION_IMPORT_PREVIEW: 'customization.import.preview',
+  CUSTOMIZATION_EXPORT: 'customization.export',
+  WIDGET_MANAGE: 'widget.manage',
+  TIMELINE_READ: 'timeline.read',
+  TIMELINE_MANAGE_TEMPLATES: 'timeline.manage.templates',
   TEAMS_READ: 'teams.read',
   TEAMS_CREATE: 'teams.create',
   TEAMS_UPDATE: 'teams.update',
@@ -184,6 +200,12 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     key: 'settings.read',
     name: 'Read settings',
     description: 'View tenant configuration, preferences, and enabled modules.',
+  },
+  {
+    key: 'tenant-settings.resolved.read',
+    name: 'Read resolved runtime settings',
+    description:
+      'Read the resolved tenant settings required by the authenticated application shell and runtime.',
   },
   {
     key: 'settings.update',
@@ -1343,6 +1365,81 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
       'Publish tenant customization changes for existing system modules.',
   },
   {
+    key: 'customization.modules.read',
+    name: 'Read customization modules',
+    description: 'View module metadata in customization workspaces.',
+  },
+  {
+    key: 'customization.modules.manage',
+    name: 'Manage customization modules',
+    description: 'Manage module metadata in customization workspaces.',
+  },
+  {
+    key: 'customization.fields.manage',
+    name: 'Manage customization fields',
+    description: 'Manage field metadata in customization workspaces.',
+  },
+  {
+    key: 'customization.forms.manage',
+    name: 'Manage customization forms',
+    description: 'Manage form metadata in customization workspaces.',
+  },
+  {
+    key: 'customization.views.manage',
+    name: 'Manage customization views',
+    description: 'Manage view metadata in customization workspaces.',
+  },
+  {
+    key: 'customization.choice-lists.manage',
+    name: 'Manage customization choice lists',
+    description: 'Manage choice-list metadata in customization workspaces.',
+  },
+  {
+    key: 'customization.relationships.manage',
+    name: 'Manage customization relationships',
+    description: 'Manage relationship metadata in customization workspaces.',
+  },
+  {
+    key: 'customization.action-bars.manage',
+    name: 'Manage customization action bars',
+    description: 'Manage action bar metadata in customization workspaces.',
+  },
+  {
+    key: 'customization.packages.manage',
+    name: 'Manage customization packages',
+    description: 'Manage metadata packages and package components.',
+  },
+  {
+    key: 'customization.publish-center.read',
+    name: 'Read publish center',
+    description: 'Open the customization publish center.',
+  },
+  {
+    key: 'customization.import.preview',
+    name: 'Preview customization imports',
+    description: 'Preview customization package imports before applying them.',
+  },
+  {
+    key: 'customization.export',
+    name: 'Export customization',
+    description: 'Export customization package metadata.',
+  },
+  {
+    key: 'widget.manage',
+    name: 'Manage widgets',
+    description: 'Create, configure, and place reusable runtime widgets.',
+  },
+  {
+    key: 'timeline.read',
+    name: 'Read timeline',
+    description: 'View user-facing record timeline activity.',
+  },
+  {
+    key: 'timeline.manage.templates',
+    name: 'Manage timeline templates',
+    description: 'Manage timeline templates, placeholders, and display rules.',
+  },
+  {
     key: 'customization.tables.read',
     name: 'Read customization tables',
     description: 'View customizable system table metadata.',
@@ -1505,9 +1602,13 @@ export const BASE_ROLE_DEFINITIONS: Array<{
 
 export const BASE_ROLE_PERMISSION_KEYS: Record<BaseRoleKey, string[]> = {
   'system-admin': NON_CUSTOMIZATION_PERMISSION_KEYS,
-  'system-customizer': CUSTOMIZATION_PERMISSION_KEYS,
+  'system-customizer': [
+    ...CUSTOMIZATION_PERMISSION_KEYS,
+    'tenant-settings.resolved.read',
+  ],
   hr: [
     'dashboard.view',
+    'tenant-settings.resolved.read',
     'tenant.read',
     'settings.read',
     'settings.update',
@@ -1696,6 +1797,7 @@ export const BASE_ROLE_PERMISSION_KEYS: Record<BaseRoleKey, string[]> = {
   ],
   recruiter: [
     'dashboard.view',
+    'tenant-settings.resolved.read',
     'settings.read',
     'documents.read',
     'users.read',
@@ -1714,6 +1816,7 @@ export const BASE_ROLE_PERMISSION_KEYS: Record<BaseRoleKey, string[]> = {
   ],
   manager: [
     'dashboard.view',
+    'tenant-settings.resolved.read',
     'settings.read',
     'inbox.read',
     'inbox.markRead',
@@ -1789,6 +1892,7 @@ export const BASE_ROLE_PERMISSION_KEYS: Record<BaseRoleKey, string[]> = {
   ],
   employee: [
     'dashboard.view',
+    'tenant-settings.resolved.read',
     'inbox.read',
     'inbox.markRead',
     'inbox.dismiss',

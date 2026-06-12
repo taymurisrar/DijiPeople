@@ -1,16 +1,19 @@
 "use client";
 
-import Link from "next/link";
 import {
   AlertTriangle,
   ArrowLeft,
   Home,
+  Download,
   Lock,
   LogIn,
   RefreshCcw,
   ShieldAlert,
 } from "lucide-react";
 import { useEffect, useMemo } from "react";
+
+import { Button } from "@/app/components/ui/button";
+import { downloadErrorLog } from "@/app/components/errors/download-error-log";
 
 type DashboardErrorProps = {
   error: Error & {
@@ -22,7 +25,12 @@ type DashboardErrorProps = {
   reset: () => void;
 };
 
-type ErrorVariant = "session-expired" | "access-denied" | "not-found" | "api-error" | "unexpected";
+type ErrorVariant =
+  | "session-expired"
+  | "access-denied"
+  | "not-found"
+  | "api-error"
+  | "unexpected";
 
 type ErrorConfig = {
   variant: ErrorVariant;
@@ -240,40 +248,62 @@ export default function DashboardError({ error, reset }: DashboardErrorProps) {
 
           <div className="flex flex-wrap gap-3">
             {config.primaryAction === "login" ? (
-              <a
-                className="inline-flex items-center gap-2 rounded-2xl bg-accent px-5 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong"
+              <Button
                 href={loginHref}
+                leftIcon={<LogIn className="h-4 w-4" />}
               >
-                <LogIn className="h-4 w-4" />
                 Go to sign in
-              </a>
+              </Button>
             ) : (
-              <button
-                className="inline-flex items-center gap-2 rounded-2xl bg-accent px-5 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong"
+              <Button
                 onClick={reset}
                 type="button"
+                leftIcon={<RefreshCcw className="h-4 w-4" />}
               >
-                <RefreshCcw className="h-4 w-4" />
                 Try again
-              </button>
+              </Button>
             )}
 
-            <Link
-              className="inline-flex items-center gap-2 rounded-2xl border border-border bg-white px-5 py-3 text-sm font-medium text-foreground transition hover:border-accent/40 hover:text-accent"
+            <Button
               href="/"
+              variant="secondary"
+              leftIcon={<Home className="h-4 w-4" />}
             >
-              <Home className="h-4 w-4" />
               Back to dashboard
-            </Link>
+            </Button>
 
-            <button
-              className="inline-flex items-center gap-2 rounded-2xl border border-border bg-white px-5 py-3 text-sm font-medium text-foreground transition hover:border-accent/40 hover:text-accent"
+            <Button
+              variant="secondary"
               onClick={() => window.history.back()}
               type="button"
+              leftIcon={<ArrowLeft className="h-4 w-4" />}
             >
-              <ArrowLeft className="h-4 w-4" />
               Go back
-            </button>
+            </Button>
+
+            <Button
+              variant="secondary"
+              onClick={() =>
+                void downloadErrorLog({
+                  success: false,
+                  traceId:
+                    errorReference ??
+                    `client_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+                  timestamp: new Date().toISOString(),
+                  statusCode: status ?? 500,
+                  errorCode: error.code ?? "SYSTEM_UNEXPECTED_ERROR",
+                  message: error.message || config.title,
+                  description: config.description,
+                  stack: error.stack,
+                  path: getCurrentPath(),
+                  method: "CLIENT",
+                })
+              }
+              type="button"
+              leftIcon={<Download className="h-4 w-4" />}
+            >
+              Download log
+            </Button>
           </div>
         </div>
       </section>

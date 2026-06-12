@@ -59,18 +59,27 @@ export class EmployeeAccessService {
       return scopedAccess;
     }
 
-    // A line manager can read their own profile and direct reports, but this
-    // deliberately does not grant write/manage powers.
+    const directReports = await this.employeesRepository.findDirectReports(
+      user.tenantId,
+      employee.id,
+    );
+    if (directReports.length > 0) {
+      // The Employees module is the manager's team surface. Their own record
+      // remains available through My Profile and the record-level access check.
+      return { managerEmployeeId: employee.id };
+    }
+
     return {
-      OR: [
-        scopedAccess,
-        { userId: user.userId },
-        { managerEmployeeId: employee.id },
-      ],
+      OR: [scopedAccess, { userId: user.userId }],
     };
   }
 
   async canViewEmployeeRecord(user: AuthenticatedUser, employeeId: string) {
+    const currentEmployee = await this.getCurrentEmployee(user);
+    if (currentEmployee?.id === employeeId) {
+      return true;
+    }
+
     const employee = await this.employeesRepository.findByIdAndTenant(
       user.tenantId,
       employeeId,
@@ -101,7 +110,9 @@ export class EmployeeAccessService {
       return 'SELF';
     }
 
-    const canManage = user.permissionKeys.includes('employees.update');
+    const canManage =
+      canEditEmployeeCoreProfile(user) &&
+      user.permissionKeys.includes('employees.update');
     if (canManage) {
       return 'HR_MANAGE';
     }

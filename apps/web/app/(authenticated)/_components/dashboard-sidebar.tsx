@@ -11,6 +11,8 @@ import {
   ClipboardList,
   Clock3,
   Bell,
+  ChevronLeft,
+  ChevronRight,
   FileText,
   FolderKanban,
   LayoutDashboard,
@@ -27,6 +29,7 @@ import { DEFAULT_BRANDING_VALUES } from "@/app/components/branding/branding-defa
 import { TenantLogo } from "@/app/components/branding/tenant-logo";
 import { BusinessUnitAccessSummary } from "../_lib/business-unit-access";
 import { resolveVisibleDashboardNavItems } from "./navigation";
+import { Button } from "@/app/components/ui/button";
 
 type DashboardSidebarProps = {
   brandLogoUrl?: string | null;
@@ -60,6 +63,7 @@ export function DashboardSidebar({
   tenantName,
 }: DashboardSidebarProps) {
   const pathname = usePathname();
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const visibleItems = resolveVisibleDashboardNavItems({
     enabledFeatureKeys,
@@ -73,24 +77,39 @@ export function DashboardSidebar({
   return (
     <aside
       aria-label="Dashboard navigation"
-      className="dp-theme-scope dp-sidebar-scope flex h-full min-h-0 flex-col rounded-[24px] border border-border/70 bg-surface/80 p-2 shadow-[0_10px_30px_rgba(15,23,42,0.05)] backdrop-blur xl:sticky xl:top-4 xl:max-h-[calc(100vh-2rem)]"
+      className={[
+        "dp-theme-scope dp-sidebar-scope flex h-[calc(100vh-2rem)] min-h-0 flex-col overflow-hidden rounded-[24px] border border-border/70 bg-surface/80 p-2 shadow-[0_10px_30px_rgba(15,23,42,0.05)] backdrop-blur transition-all xl:sticky xl:top-4",
+        isCollapsed ? "xl:w-[76px]" : "xl:w-[280px]",
+      ].join(" ")}
     >
       <div className="hidden px-2 pt-2 xl:block">
-        <SidebarBrand
-          brandLogoUrl={brandLogoUrl}
-          brandName={brandName}
-          brandTagline={brandTagline}
-        />
+        {!isCollapsed ? (
+          <SidebarBrand
+            brandLogoUrl={brandLogoUrl}
+            brandName={brandName}
+            brandTagline={brandTagline}
+            onToggleCollapse={() => setIsCollapsed(true)}
+          />
+        ) : (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => setIsCollapsed(false)}
+            aria-label="Expand sidebar"
+            title="Expand sidebar"
+            leftIcon={<ChevronRight className="h-4 w-4" />}
+          />
+        )}
       </div>
 
       <div className="xl:hidden">
         <CompactBrand brandLogoUrl={brandLogoUrl} brandName={brandName} />
       </div>
 
-      <div className="mt-3 min-h-0 flex-1 xl:mt-6">
+      <div className="mt-3 min-h-0 flex-1 overflow-hidden xl:mt-6">
         <nav className="h-full" aria-label="Main menu">
           {visibleItems.length > 0 ? (
-            <div className="flex h-full flex-col gap-1.5 overflow-y-auto pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex max-h-full flex-col gap-1.5 overflow-y-auto pr-1 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {visibleItems.map((item) => {
                 const isActive = isSidebarItemActive(pathname, item.href);
                 const Icon = resolveNavIcon(item.href);
@@ -102,6 +121,7 @@ export function DashboardSidebar({
                     icon={Icon}
                     isActive={isActive}
                     label={item.label}
+                    isCollapsed={isCollapsed}
                   />
                 );
               })}
@@ -112,9 +132,11 @@ export function DashboardSidebar({
         </nav>
       </div>
 
-      <div className="mt-3 hidden px-0 xl:block">
-        <TenantCard tenantId={tenantId} tenantName={tenantName} />
-      </div>
+      {!isCollapsed ? (
+        <div className="mt-3 hidden px-0 xl:block">
+          <TenantCard tenantId={tenantId} tenantName={tenantName} />
+        </div>
+      ) : null}
     </aside>
   );
 }
@@ -124,11 +146,13 @@ function SidebarNavItem({
   icon: Icon,
   isActive,
   label,
+  isCollapsed,
 }: {
   href: string;
   icon: ComponentType<SidebarNavIconProps>;
   isActive: boolean;
   label: string;
+  isCollapsed: boolean;
 }) {
   return (
     <Link
@@ -136,8 +160,9 @@ function SidebarNavItem({
       href={href}
       title={label}
       className={[
-        "group relative flex w-full items-center gap-3 rounded-2xl border px-2 py-1 text-left outline-none transition-all",
+        "group relative flex w-full items-center rounded-2xl border px-2 py-1 text-left outline-none transition-all",
         "focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/20",
+        isCollapsed ? "justify-center gap-0" : "gap-3",
         isActive
           ? "border-accent/30 bg-[color-mix(in_oklab,var(--dp-accent)_14%,white)] text-foreground shadow-sm"
           : "border-transparent bg-transparent text-foreground hover:border-border/80 hover:bg-muted/30",
@@ -158,9 +183,11 @@ function SidebarNavItem({
         <Icon className="h-3 w-3" />
       </span>
 
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-xs font-semibold">{label}</span>
-      </span>
+      {!isCollapsed ? (
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-xs font-semibold">{label}</span>
+        </span>
+      ) : null}
     </Link>
   );
 }
@@ -169,10 +196,12 @@ function SidebarBrand({
   brandLogoUrl,
   brandName,
   brandTagline,
+  onToggleCollapse,
 }: {
   brandLogoUrl?: string | null;
   brandName?: string | null;
   brandTagline?: string | null;
+  onToggleCollapse: () => void;
 }) {
   const effectiveBrandName = resolveText(
     brandName,
@@ -185,8 +214,18 @@ function SidebarBrand({
   );
 
   return (
-    <div className="rounded-[22px] border border-border/60 bg-white/55 p-3">
-      <div className="flex items-center gap-3">
+    <div className="relative rounded-[22px] border border-border/60 bg-white/55 p-3">
+      <Button
+        variant="ghost"
+        size="icon-xs"
+        onClick={onToggleCollapse}
+        aria-label="Collapse sidebar"
+        title="Collapse sidebar"
+        className="absolute right-3 top-3"
+        leftIcon={<ChevronLeft className="h-3.5 w-3.5" />}
+      />
+
+      <div className="flex items-center gap-3 pr-8">
         <TenantLogo
           className="h-11 w-11 shrink-0"
           logoUrl={brandLogoUrl}
@@ -204,7 +243,7 @@ function SidebarBrand({
         </div>
       </div>
 
-      <p className="mt-2 line-clamp-2 text-xs leading-5 text-muted">
+      <p className="mt-2 line-clamp-2 pr-8 text-xs leading-5 text-muted">
         {effectiveTagline}
       </p>
     </div>
@@ -264,6 +303,7 @@ function TenantCard({
       setCopiedTenantId(false);
     }, 1500);
   }
+
   return (
     <div className="rounded-[22px] border border-border/70 bg-white/55 p-2">
       <div className="flex items-start gap-3">
@@ -280,14 +320,15 @@ function TenantCard({
             {displayName}
           </p>
 
-          <button
-            type="button"
+          <Button
+            variant="link"
+            size="xs"
             onClick={handleCopyTenantId}
             title={`Copy tenant ID: ${tenantId}`}
-            className="mt-1 block max-w-full truncate text-left text-[10px] text-muted transition hover:text-primary"
+            className="mt-1 max-w-full justify-start truncate text-[10px]"
           >
             {copiedTenantId ? "Copied!" : `ID: ${tenantId}`}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -323,6 +364,10 @@ function resolveNavIcon(href: string): ComponentType<SidebarNavIconProps> {
   if (href.includes("/organization")) return Building2;
   if (href.includes("/roles")) return ShieldCheck;
   if (href.includes("/users")) return UserCog;
+  if (href.includes("/customers")) return Building2;
+  if (href.includes("/reports")) return FileText;
+  if (href.includes("/recruitment")) return Users;
+  if (href.includes("/onboarding")) return ClipboardList;
   if (href.includes("/settings")) return Settings;
   if (href.includes("/customization")) return Layers;
   if (href.includes("/module-views")) return Layers;

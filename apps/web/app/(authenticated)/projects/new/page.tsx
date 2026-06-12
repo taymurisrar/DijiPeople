@@ -1,17 +1,40 @@
-import { ProjectForm } from "../_components/project-form";
+import { StandardModuleRecordPage } from "@/app/components/runtime";
+import { getSessionUser } from "@/lib/auth";
+import {
+  buildStandardRouteRuntime,
+  resolveStandardActiveForm,
+} from "@/lib/runtime/modules/standard-module-route-helpers";
+import { projectRuntimeSpec } from "@/lib/runtime/modules/standard-module-specs";
 
-export default function NewProjectPage() {
+type PageProps = {
+  searchParams?: Promise<{ formId?: string }>;
+};
+
+export default async function NewProjectPage({ searchParams }: PageProps) {
+  const [resolvedSearchParams, sessionUser] = await Promise.all([
+    searchParams ?? Promise.resolve({} as { formId?: string }),
+    getSessionUser(),
+  ]);
+  const runtime = buildStandardRouteRuntime({
+    pageKind: "create",
+    sessionUser,
+    spec: projectRuntimeSpec,
+  });
+  const activeForm = resolveStandardActiveForm(
+    runtime.metadata.forms,
+    resolvedSearchParams.formId ?? "",
+  );
+
   return (
-    <main className="grid gap-6">
-      <section className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
-        <p className="text-sm uppercase tracking-[0.18em] text-muted">
-          Create Project
-        </p>
-        <h3 className="mt-3 text-3xl font-semibold text-foreground">
-          Add a new project
-        </h3>
-      </section>
-      <ProjectForm mode="create" />
+    <main className="dp-theme-scope dp-projects-scope grid gap-6">
+      <StandardModuleRecordPage
+        activeForm={activeForm}
+        mode="create"
+        record={{ status: "PLANNING" }}
+        runtime={runtime}
+        spec={projectRuntimeSpec}
+        title="New Project"
+      />
     </main>
   );
 }

@@ -23,6 +23,7 @@ import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import { AttendanceService } from './attendance.service';
+import { AuditService } from '../audit/audit.service';
 import { AttendanceCorrectionActionDto } from './dto/attendance-correction-action.dto';
 import { AttendanceCorrectionQueryDto } from './dto/attendance-correction-query.dto';
 import { AttendanceQueryDto } from './dto/attendance-query.dto';
@@ -48,7 +49,10 @@ type UploadedFileShape = {
 @Controller('attendance')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class AttendanceController {
-  constructor(private readonly attendanceService: AttendanceService) {}
+  constructor(
+    private readonly attendanceService: AttendanceService,
+    private readonly auditService: AuditService,
+  ) {}
 
   @Post('check-in')
   @RequireAnyPermission({ entityKey: ENTITY_KEYS.ATTENDANCE, action: 'create' })
@@ -78,6 +82,33 @@ export class AttendanceController {
   @Permissions('attendance.read')
   getMyActiveAttendance(@CurrentUser() user: AuthenticatedUser) {
     return this.attendanceService.getMyActiveAttendance(user);
+  }
+
+  @Get('mine/today')
+  @Permissions('attendance.read')
+  getTodayAttendance(@CurrentUser() user: AuthenticatedUser) {
+    return this.attendanceService.getTodayAttendance(user);
+  }
+
+  @Get('runtime-context')
+  @Permissions('attendance.read')
+  getSelfServiceRuntimeContext(@CurrentUser() user: AuthenticatedUser) {
+    return this.attendanceService.getSelfServiceRuntimeContext(user);
+  }
+
+  @Get(':entryId/timeline')
+  @Permissions('attendance.read', 'timeline.read')
+  async getTimeline(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('entryId', new ParseUUIDPipe()) entryId: string,
+  ) {
+    await this.attendanceService.getAttendanceEntry(user, entryId);
+    return this.auditService.listRecordTimeline({
+      tenantId: user.tenantId,
+      entityType: 'AttendanceEntry',
+      entityId: entryId,
+      recordHref: `/attendance/${entryId}`,
+    });
   }
 
   @Get('mine/summary')
@@ -201,6 +232,12 @@ export class AttendanceController {
     return this.attendanceService.getPolicy(user);
   }
 
+  @Get('configuration')
+  @Permissions('attendance.read')
+  getRuntimeConfiguration(@CurrentUser() user: AuthenticatedUser) {
+    return this.attendanceService.getRuntimeConfiguration(user);
+  }
+
   @Patch('policy')
   @Permissions('attendance.manage')
   updatePolicy(
@@ -214,6 +251,12 @@ export class AttendanceController {
   @Permissions('attendance.read')
   listOfficeLocations(@CurrentUser() user: AuthenticatedUser) {
     return this.attendanceService.listOfficeLocations(user);
+  }
+
+  @Get('shifts')
+  @Permissions('attendance.read')
+  listShiftTemplates(@CurrentUser() user: AuthenticatedUser) {
+    return this.attendanceService.listShiftTemplates(user);
   }
 
   @Get('integrations')

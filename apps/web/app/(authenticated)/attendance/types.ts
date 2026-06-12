@@ -2,6 +2,8 @@ export const ATTENDANCE_VIEW_OPTIONS = ["day", "week", "month"] as const;
 export type AttendanceView = (typeof ATTENDANCE_VIEW_OPTIONS)[number];
 
 export const ATTENDANCE_STATUS_OPTIONS = [
+  "CHECKED_IN",
+  "CHECKED_OUT",
   "PRESENT",
   "LATE",
   "ABSENT",
@@ -21,6 +23,7 @@ export const ATTENDANCE_MODE_OPTIONS = [
 export type AttendanceMode = (typeof ATTENDANCE_MODE_OPTIONS)[number];
 
 export const ATTENDANCE_SOURCE_OPTIONS = [
+  "WEB",
   "MANUAL",
   "SYSTEM",
   "IMPORT",
@@ -34,6 +37,7 @@ export type AttendanceEntryRecord = {
   tenantId: string;
   employeeId: string;
   workScheduleId?: string | null;
+  shiftTemplateId?: string | null;
   officeLocationId?: string | null;
   importedBatchId?: string | null;
   attendanceDate: string;
@@ -45,6 +49,8 @@ export type AttendanceEntryRecord = {
   attendanceMode: AttendanceMode;
   status: AttendanceEntryStatus;
   source: AttendanceEntrySource;
+  checkInSource?: AttendanceEntrySource | null;
+  checkOutSource?: AttendanceEntrySource | null;
   checkInNote?: string | null;
   checkOutNote?: string | null;
   workSummary?: string | null;
@@ -52,6 +58,14 @@ export type AttendanceEntryRecord = {
   remoteLatitude?: number | null;
   remoteLongitude?: number | null;
   remoteAddressText?: string | null;
+  checkInLatitude?: number | null;
+  checkInLongitude?: number | null;
+  checkInLocationAccuracy?: number | null;
+  checkInLocationCapturedAt?: string | null;
+  checkOutLatitude?: number | null;
+  checkOutLongitude?: number | null;
+  checkOutLocationAccuracy?: number | null;
+  checkOutLocationCapturedAt?: string | null;
   isLateCheckIn: boolean;
   isLateCheckOut: boolean;
   lateCheckInMinutes?: number | null;
@@ -104,6 +118,14 @@ export type AttendanceEntryRecord = {
     standardEndTime: string;
     graceMinutes?: number | null;
     isDefault: boolean;
+  } | null;
+  shift: {
+    id: string;
+    name: string;
+    code: string;
+    timezone: string;
+    startTime: string;
+    endTime: string;
   } | null;
   importedBatch: {
     id: string;

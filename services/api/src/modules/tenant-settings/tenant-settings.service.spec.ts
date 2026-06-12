@@ -4,6 +4,7 @@ import { TenantSettingsService } from './tenant-settings.service';
 describe('TenantSettingsService', () => {
   let service: TenantSettingsService;
   let tenantSettingsRepository: {
+    findTenantById: jest.Mock;
     findSettingsByTenant: jest.Mock;
     upsertSettings: jest.Mock;
     upsertFeatures: jest.Mock;
@@ -14,6 +15,7 @@ describe('TenantSettingsService', () => {
 
   beforeEach(() => {
     tenantSettingsRepository = {
+      findTenantById: jest.fn().mockResolvedValue(null),
       findSettingsByTenant: jest.fn().mockResolvedValue([]),
       upsertSettings: jest.fn(),
       upsertFeatures: jest.fn(),
@@ -24,8 +26,18 @@ describe('TenantSettingsService', () => {
 
     service = new TenantSettingsService(
       tenantSettingsRepository as never,
+      {
+        getAllowedKeysByCategory: jest.fn().mockReturnValue(
+          new Map([
+            ['organization', new Set(['companyDisplayName'])],
+            ['branding', new Set(['appTitle'])],
+          ]),
+        ),
+        invalidateTenantCache: jest.fn(),
+      } as never,
       featureAccessService as never,
       { log: jest.fn() } as never,
+      { delete: jest.fn(), deleteByPrefix: jest.fn() } as never,
     );
   });
 

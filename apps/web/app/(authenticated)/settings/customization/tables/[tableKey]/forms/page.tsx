@@ -5,6 +5,7 @@ import { TableDetailShell } from "../../../_components/table-detail-shell";
 import {
   CustomizationColumn,
   CustomizationForm,
+  CustomizationPackage,
   CustomizationTable,
   CustomizationView,
 } from "../../../types";
@@ -23,7 +24,8 @@ export default async function CustomizationTableFormsPage({
     "customization.forms.read",
   ]);
 
-  const [table, columns, views, forms, lookupTables] = await Promise.all([
+  const [table, columns, views, forms, lookupTables, packages] =
+    await Promise.all([
     apiRequestJson<CustomizationTable>(`/customization/tables/${tableKey}`),
     apiRequestJson<CustomizationColumn[]>(
       `/customization/tables/${tableKey}/columns`,
@@ -35,6 +37,7 @@ export default async function CustomizationTableFormsPage({
       `/customization/tables/${tableKey}/forms`,
     ),
     apiRequestJson<CustomizationTable[]>("/customization/tables"),
+    apiRequestJson<CustomizationPackage[]>("/customization/packages"),
   ]);
 
   return (
@@ -48,6 +51,7 @@ export default async function CustomizationTableFormsPage({
         forms={forms}
         initialTab="forms"
         lookupTables={lookupTables}
+        packages={packages}
         table={table}
         views={views}
       />

@@ -1,4 +1,7 @@
+"use client";
+
 import { Button } from "@/app/components/ui/button";
+import { downloadErrorLog } from "@/app/components/errors/download-error-log";
 
 type AccessDeniedStateProps = {
   title?: string;
@@ -6,6 +9,9 @@ type AccessDeniedStateProps = {
   actionHref?: string;
   actionLabel?: string;
   traceId?: string | null;
+  statusCode?: number;
+  errorCode?: string;
+  requestPath?: string;
 };
 
 export function AccessDeniedState({
@@ -14,6 +20,9 @@ export function AccessDeniedState({
   actionHref = "",
   actionLabel = "Back to dashboard",
   traceId,
+  statusCode = 403,
+  errorCode = "ACCESS_DENIED",
+  requestPath,
 }: AccessDeniedStateProps) {
   return (
     <section className="rounded-[24px] border border-border bg-surface p-10 shadow-sm">
@@ -30,9 +39,35 @@ export function AccessDeniedState({
         </p>
       ) : null}
 
-      <Button href={actionHref} variant="secondary" className="mt-6">
-        {actionLabel}
-      </Button>
+      <div className="mt-6 flex flex-wrap gap-3">
+        <Button href={actionHref} variant="secondary">
+          {actionLabel}
+        </Button>
+        {traceId ? (
+          <Button
+            onClick={() =>
+              void downloadErrorLog({
+                success: false,
+                traceId,
+                timestamp: new Date().toISOString(),
+                errorCode,
+                statusCode,
+                message: title,
+                description,
+                method: "GET",
+                path: requestPath,
+                browserInfo:
+                  typeof navigator === "undefined"
+                    ? undefined
+                    : navigator.userAgent,
+              })
+            }
+            variant="secondary"
+          >
+            Download support log
+          </Button>
+        ) : null}
+      </div>
     </section>
   );
 }

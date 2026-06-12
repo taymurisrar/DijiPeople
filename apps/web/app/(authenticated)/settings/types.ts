@@ -4,6 +4,7 @@ export type DepartmentRecord = {
   name: string;
   code?: string | null;
   description?: string | null;
+  defaultWorkScheduleId?: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -32,6 +33,11 @@ export type LocationRecord = {
   country: string;
   zipCode?: string | null;
   timezone?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  allowedRadiusMeters?: number | null;
+  defaultWorkScheduleId?: string | null;
+  holidayCalendarId?: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -145,13 +151,8 @@ export type TenantSettingsCategory =
   | "notifications"
   | "system";
 
-export type TenantSettingValue =
-  | string
-  | number
-  | boolean
-  | string[]
-  | null;
-  
+export type TenantSettingValue = string | number | boolean | string[] | null;
+
 export type TenantSettingsResponse = Partial<
   Record<TenantSettingsCategory, Record<string, TenantSettingValue>>
 >;
@@ -260,13 +261,30 @@ export type TenantResolvedSettingsResponse = {
     backgroundColor?: string;
     surfaceColor?: string;
     textColor?: string;
+    mutedTextColor?: string;
+    borderColor?: string;
+    sidebarBackgroundColor?: string;
+    sidebarTextColor?: string;
+    sidebarActiveBackgroundColor?: string;
+    sidebarActiveTextColor?: string;
+    successColor?: string;
+    warningColor?: string;
+    dangerColor?: string;
+    infoColor?: string;
     fontFamily?: string;
+    themeMode?: string;
+    density?: string;
+    radius?: string;
+    shadow?: string;
+    navigationLayout?: string;
     pageGradientStartColor?: string;
     pageGradientEndColor?: string;
     cardGradientStartColor?: string;
     cardGradientEndColor?: string;
     supportEmail: string;
     supportPhone?: string;
+    privacyPolicyUrl?: string;
+    termsOfUseUrl?: string;
     websiteUrl?: string;
     welcomeTitle?: string;
     welcomeSubtitle?: string;
@@ -282,12 +300,16 @@ export type TenantResolvedSettingsResponse = {
     locale: string;
     uiDensity: string;
     defaultThemeMode: string;
+    defaultDashboardView: string;
     defaultLandingModule: string;
     defaultWeekStartDay: string;
     defaultRecordsPerPage: number;
+    enableStickyFilters: boolean;
     defaultTimezone: string;
     defaultCurrency: string;
+    defaultLanguage: string;
     autoLogoutMinutes: number;
+    showHelpTips: boolean;
   };
 };
 
@@ -553,12 +575,7 @@ export type AccessUserRecord = {
 };
 
 // app/settings/types.ts
-export type TenantSettingsValue =
-  | string
-  | number
-  | boolean
-  | null
-  | string[];
+export type TenantSettingsValue = string | number | boolean | null | string[];
 
 export type OrganizationRecord = {
   id: string;

@@ -6,6 +6,7 @@ import {
 } from '@prisma/client';
 import {
   IsBoolean,
+  IsArray,
   IsEnum,
   IsInt,
   IsNumber,
@@ -18,8 +19,15 @@ import {
 } from 'class-validator';
 
 const METADATA_KEY_PATTERN = /^[a-z][a-zA-Z0-9]*$/;
+const PACKAGE_KEY_PATTERN = /^[a-z][a-z0-9]*_[a-z][a-zA-Z0-9]*$/;
+const FIELD_LOGICAL_NAME_PATTERN = /^[a-z][a-zA-Z0-9]*_[a-z][a-zA-Z0-9]*$/;
+const SEMVER_PATTERN = /^\d+\.\d+\.\d+$/;
 
 export class CreateCustomizationTableDto {
+  @IsOptional()
+  @IsString()
+  packageId?: string;
+
   @IsString()
   @Matches(METADATA_KEY_PATTERN)
   @MaxLength(80)
@@ -89,8 +97,12 @@ export class UpdateCustomizationTableDto {
 }
 
 export class CreateCustomizationColumnDto {
+  @IsOptional()
   @IsString()
-  @Matches(METADATA_KEY_PATTERN)
+  packageId?: string;
+
+  @IsString()
+  @Matches(FIELD_LOGICAL_NAME_PATTERN)
   @MaxLength(80)
   columnKey!: string;
 
@@ -184,6 +196,10 @@ export class CreateCustomizationColumnDto {
 export class UpdateCustomizationColumnDto {
   @IsOptional()
   @IsString()
+  packageId?: string;
+
+  @IsOptional()
+  @IsString()
   @MaxLength(100)
   displayName?: string;
 
@@ -268,6 +284,10 @@ export class UpdateCustomizationColumnDto {
 }
 
 export class CreateCustomizationViewDto {
+  @IsOptional()
+  @IsString()
+  packageId?: string;
+
   @IsString()
   @Matches(METADATA_KEY_PATTERN)
   @MaxLength(80)
@@ -311,6 +331,10 @@ export class CreateCustomizationViewDto {
 export class UpdateCustomizationViewDto {
   @IsOptional()
   @IsString()
+  packageId?: string;
+
+  @IsOptional()
+  @IsString()
   @MaxLength(100)
   name?: string;
 
@@ -347,6 +371,10 @@ export class UpdateCustomizationViewDto {
 }
 
 export class CreateCustomizationFormDto {
+  @IsOptional()
+  @IsString()
+  packageId?: string;
+
   @IsString()
   @Matches(METADATA_KEY_PATTERN)
   @MaxLength(80)
@@ -380,6 +408,10 @@ export class CreateCustomizationFormDto {
 export class UpdateCustomizationFormDto {
   @IsOptional()
   @IsString()
+  packageId?: string;
+
+  @IsOptional()
+  @IsString()
   @MaxLength(100)
   name?: string;
 
@@ -403,4 +435,106 @@ export class UpdateCustomizationFormDto {
   @IsOptional()
   @IsObject()
   layoutJson?: Record<string, unknown>;
+}
+
+export class CreateCustomizationPackageDto {
+  @IsString()
+  @Matches(PACKAGE_KEY_PATTERN)
+  @MaxLength(80)
+  packageKey!: string;
+
+  @IsString()
+  @MaxLength(100)
+  displayName!: string;
+
+  @IsString()
+  @MaxLength(100)
+  publisherName!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  description?: string;
+
+  @IsString()
+  @Matches(SEMVER_PATTERN)
+  @MaxLength(30)
+  version!: string;
+}
+
+export class UpdateCustomizationPackageDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  displayName?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  description?: string;
+}
+
+export class AddExistingPackageComponentsDto {
+  @IsString()
+  componentType!: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  objectIds!: string[];
+}
+
+export class EnsureCustomizationLayerDto {
+  @IsString()
+  moduleKey!: string;
+
+  @IsString()
+  componentType!: string;
+
+  @IsString()
+  componentKey!: string;
+
+  @IsOptional()
+  @IsString()
+  packageId?: string;
+
+  @IsOptional()
+  @IsString()
+  layerAction?: string;
+
+  @IsOptional()
+  @IsString()
+  displayName?: string;
+
+  @IsOptional()
+  @IsObject()
+  metadataJson?: Record<string, unknown>;
+}
+
+export class MoveCustomizationComponentsDto {
+  @IsArray()
+  @IsString({ each: true })
+  componentIds!: string[];
+
+  @IsString()
+  targetPackageId!: string;
+}
+
+export class PreviewCustomizationPackageImportDto {
+  @IsObject()
+  manifest!: Record<string, unknown>;
+
+  @IsArray()
+  modules!: unknown[];
+
+  @IsArray()
+  components!: unknown[];
+
+  @IsArray()
+  dependencies!: unknown[];
+}
+
+export class PublishCustomizationComponentsDto {
+  @IsArray()
+  @IsString({ each: true })
+  componentIds!: string[];
 }

@@ -17,6 +17,14 @@ const DEFAULT_CONTEXT: {
   locale: "en-US",
 };
 
+let runtimeDefaultContext: ResolvedFormattingContext = {};
+
+export function setDefaultFormattingContext(
+  context: ResolvedFormattingContext | null | undefined,
+) {
+  runtimeDefaultContext = context ? { ...context } : {};
+}
+
 export function formatDateTime(
   value: string | Date | null | undefined,
   context?: ResolvedFormattingContext | null,
@@ -24,12 +32,9 @@ export function formatDateTime(
   const date = toDate(value);
   if (!date) return "";
 
-  return new Intl.DateTimeFormat(resolveLocale(context), {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: resolveTimezone(context),
-    hour12: resolveHour12(context),
-  }).format(date);
+  const datePart = formatConfiguredDate(date, context);
+  const timePart = formatConfiguredTime(date, context);
+  return `${datePart}, ${timePart}`;
 }
 
 export function formatDate(
@@ -39,10 +44,7 @@ export function formatDate(
   const date = toDate(value);
   if (!date) return "";
 
-  return new Intl.DateTimeFormat(resolveLocale(context), {
-    dateStyle: "medium",
-    timeZone: resolveTimezone(context),
-  }).format(date);
+  return formatConfiguredDate(date, context);
 }
 
 export function formatTime(
@@ -52,6 +54,13 @@ export function formatTime(
   const date = toDate(value);
   if (!date) return "";
 
+  return formatConfiguredTime(date, context);
+}
+
+function formatConfiguredTime(
+  date: Date,
+  context?: ResolvedFormattingContext | null,
+) {
   return new Intl.DateTimeFormat(resolveLocale(context), {
     timeStyle: "short",
     timeZone: resolveTimezone(context),
@@ -81,7 +90,9 @@ export function formatNumber(
   if (!Number.isFinite(numericValue)) return "";
 
   return new Intl.NumberFormat(
-    context?.numberFormat || resolveLocale(context),
+    context?.numberFormat ||
+      runtimeDefaultContext.numberFormat ||
+      resolveLocale(context),
   ).format(numericValue);
 }
 
@@ -118,21 +129,72 @@ function toDate(value: string | Date | null | undefined) {
 }
 
 function resolveLocale(context?: ResolvedFormattingContext | null) {
-  return context?.locale || DEFAULT_CONTEXT.locale;
+  return (
+    context?.locale || runtimeDefaultContext.locale || DEFAULT_CONTEXT.locale
+  );
 }
 
 function resolveTimezone(context?: ResolvedFormattingContext | null) {
-  return context?.timezone || DEFAULT_CONTEXT.timezone;
+  return (
+    context?.timezone ||
+    runtimeDefaultContext.timezone ||
+    DEFAULT_CONTEXT.timezone
+  );
 }
 
 function resolveHour12(context?: ResolvedFormattingContext | null) {
-  if (context?.timeFormat === "24h") return false;
-  if (context?.timeFormat === "12h") return true;
+  const timeFormat = context?.timeFormat ?? runtimeDefaultContext.timeFormat;
+  if (timeFormat === "24h") return false;
+  if (timeFormat === "12h") return true;
   return undefined;
 }
 
 function normalizeCurrency(currencyCode?: string | null) {
-  return /^[A-Z]{3}$/.test(currencyCode || "")
-    ? currencyCode!
+  const resolvedCurrency =
+    currencyCode || runtimeDefaultContext.currency || DEFAULT_CONTEXT.currency;
+  return /^[A-Z]{3}$/.test(resolvedCurrency)
+    ? resolvedCurrency
     : DEFAULT_CONTEXT.currency;
+}
+
+function formatConfiguredDate(
+  date: Date,
+  context?: ResolvedFormattingContext | null,
+): string {
+  const format = context?.dateFormat ?? runtimeDefaultContext.dateFormat;
+  if (!format) {
+    return new Intl.DateTimeFormat(resolveLocale(context), {
+      dateStyle: "medium",
+      timeZone: resolveTimezone(context),
+    }).format(date);
+  }
+
+  const parts = new Intl.DateTimeFormat(resolveLocale(context), {
+    day: "2-digit",
+    month: format === "dd-MMM-yyyy" ? "short" : "2-digit",
+    year: "numeric",
+    timeZone: resolveTimezone(context),
+  }).formatToParts(date);
+  const values = Object.fromEntries(
+    parts.map((part) => [part.type, part.value]),
+  );
+  const day = values.day ?? "";
+  const month = values.month ?? "";
+  const year = values.year ?? "";
+
+  switch (format) {
+    case "MM/dd/yyyy":
+      return `${month}/${day}/${year}`;
+    case "dd/MM/yyyy":
+      return `${day}/${month}/${year}`;
+    case "yyyy-MM-dd":
+      return `${year}-${month}-${day}`;
+    case "dd-MMM-yyyy":
+      return `${day}-${month}-${year}`;
+    default:
+      return new Intl.DateTimeFormat(resolveLocale(context), {
+        dateStyle: "medium",
+        timeZone: resolveTimezone(context),
+      }).format(date);
+  }
 }

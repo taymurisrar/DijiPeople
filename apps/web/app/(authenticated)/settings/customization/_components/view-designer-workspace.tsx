@@ -87,7 +87,7 @@ export function ViewDesignerWorkspace({ columns, table, view }: Props) {
 
   async function save() {
     if (selectedColumns.length === 0) {
-      setError("Select at least one view column.");
+      setError("Select at least one view field.");
       return;
     }
     setIsSaving(true);
@@ -181,9 +181,9 @@ export function ViewDesignerWorkspace({ columns, table, view }: Props) {
 
       <div className="grid min-h-[640px] gap-4 xl:grid-cols-[280px_minmax(0,1fr)_340px]">
         <aside className="rounded-[20px] border border-border bg-surface p-4 shadow-sm">
-          <p className="text-sm font-semibold text-foreground">Columns</p>
+          <p className="text-sm font-semibold text-foreground">Fields</p>
           <p className="mt-1 text-xs text-muted">
-            Only view-designer-valid columns are listed.
+            Only view-designer-valid fields are listed.
           </p>
           <div className="mt-4 grid gap-2">
             {availableColumns.map((column) => (
@@ -215,11 +215,9 @@ export function ViewDesignerWorkspace({ columns, table, view }: Props) {
 
         <main className="rounded-[20px] border border-border bg-slate-50 p-4 shadow-sm">
           <div className="mb-4">
-            <p className="text-sm font-semibold text-foreground">
-              View columns
-            </p>
+            <p className="text-sm font-semibold text-foreground">View fields</p>
             <p className="mt-1 text-xs text-muted">
-              Drag columns to reorder the runtime grid.
+              Drag fields to reorder the runtime grid.
             </p>
           </div>
           <div className="grid gap-2">
@@ -314,7 +312,7 @@ export function ViewDesignerWorkspace({ columns, table, view }: Props) {
               <p className="text-sm font-semibold text-foreground">Sorting</p>
               <div className="mt-3 grid gap-3">
                 <SelectField
-                  label="Sort column"
+                  label="Sort field"
                   onChange={(columnKey) =>
                     setSort((current) => ({ ...current, columnKey }))
                   }
@@ -374,7 +372,7 @@ export function ViewDesignerWorkspace({ columns, table, view }: Props) {
                     key={filter.id}
                   >
                     <SelectField
-                      label="Column"
+                      label="Field"
                       onChange={(columnKey) =>
                         setFilters((current) =>
                           current.map((item) =>

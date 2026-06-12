@@ -5,6 +5,7 @@ import { TableDetailShell } from "../../../_components/table-detail-shell";
 import {
   CustomizationColumn,
   CustomizationForm,
+  CustomizationPackage,
   CustomizationTable,
   CustomizationView,
 } from "../../../types";
@@ -23,7 +24,8 @@ export default async function CustomizationTableColumnsPage({
     "customization.columns.read",
   ]);
 
-  const [table, columns, views, forms, lookupTables] = await Promise.all([
+  const [table, columns, views, forms, lookupTables, packages] =
+    await Promise.all([
     apiRequestJson<CustomizationTable>(`/customization/tables/${tableKey}`),
     apiRequestJson<CustomizationColumn[]>(
       `/customization/tables/${tableKey}/columns`,
@@ -35,19 +37,21 @@ export default async function CustomizationTableColumnsPage({
       `/customization/tables/${tableKey}/forms`,
     ),
     apiRequestJson<CustomizationTable[]>("/customization/tables"),
+    apiRequestJson<CustomizationPackage[]>("/customization/packages"),
   ]);
 
   return (
     <SettingsShell
-      description={`Manage metadata columns for ${table.pluralDisplayName}.`}
+      description={`Manage metadata fields for ${table.pluralDisplayName}.`}
       eyebrow="Customization"
-      title={`${table.displayName} columns`}
+      title={`${table.displayName} fields`}
     >
       <TableDetailShell
         columns={columns}
         forms={forms}
         initialTab="columns"
         lookupTables={lookupTables}
+        packages={packages}
         table={table}
         views={views}
       />

@@ -32,6 +32,7 @@ export type PersistErrorLogInput = {
   tenantId?: string;
   organizationId?: string;
   businessUnitId?: string;
+  clientReported?: boolean;
 };
 
 @Injectable()
@@ -74,7 +75,8 @@ export class ErrorLogsService implements OnModuleInit, OnModuleDestroy {
       severity: input.severity,
       message: input.message,
       description: input.description,
-      stack: config.includeStack ? input.stack : undefined,
+      stack:
+        input.clientReported || config.includeStack ? input.stack : undefined,
       cause: input.cause,
       details: input.details,
       method: input.method,
@@ -115,7 +117,7 @@ export class ErrorLogsService implements OnModuleInit, OnModuleDestroy {
 
   async findForUser(
     traceId: string,
-    user: { tenantId?: string; roleKeys?: string[] },
+    user: { userId?: string; tenantId?: string; roleKeys?: string[] },
   ) {
     if (!(await this.canUseErrorLogTable(traceId))) return null;
 
@@ -133,10 +135,14 @@ export class ErrorLogsService implements OnModuleInit, OnModuleDestroy {
 
     if (!log) return null;
 
+    if (this.isSupportUser(user)) {
+      return log;
+    }
+
     if (
-      this.isPlatformCustomizer(user) ||
-      !log.tenantId ||
-      log.tenantId === user.tenantId
+      (!log.tenantId || log.tenantId === user.tenantId) &&
+      Boolean(log.userId) &&
+      log.userId === user.userId
     ) {
       return log;
     }
@@ -146,14 +152,18 @@ export class ErrorLogsService implements OnModuleInit, OnModuleDestroy {
 
   async formatDownload(
     traceId: string,
-    user: { tenantId?: string; roleKeys?: string[] },
+    user: { userId?: string; tenantId?: string; roleKeys?: string[] },
   ) {
     const log = await this.findForUser(traceId, user);
     if (!log) return null;
     const config = getErrorFrameworkConfig(this.configService);
 
     return formatErrorLogText(log, {
-      includeStack: config.includeStack && config.exposeStackToSystemCustomizer,
+      includeStack:
+        traceId.startsWith('client_') ||
+        (this.userCanDownload(user) &&
+          config.includeStack &&
+          config.exposeStackToSystemCustomizer),
     });
   }
 
@@ -206,9 +216,15 @@ export class ErrorLogsService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  private isPlatformCustomizer(user: { roleKeys?: string[] }) {
+  private isSupportUser(user: { roleKeys?: string[] }) {
     const roles = new Set((user.roleKeys ?? []).map(normalizeRole));
-    return roles.has('global-admin') && roles.has('system-customizer');
+    return (
+      roles.has('global-admin') ||
+      roles.has('global-administrator') ||
+      roles.has('system-admin') ||
+      roles.has('system-administrator') ||
+      roles.has('system-customizer')
+    );
   }
 
   private isErrorLogTableMissing(error: unknown) {

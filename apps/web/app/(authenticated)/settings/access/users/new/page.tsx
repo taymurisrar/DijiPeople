@@ -4,12 +4,15 @@ import { requireSettingsPermissions } from "../../../_lib/require-settings-permi
 import { SettingsShell } from "../../../_components/settings-shell";
 import { UserForm } from "../../../_components/user-form";
 import { BusinessUnitRecord } from "../../../types";
+import { EmployeeListResponse } from "../../../../employees/types";
 
 export default async function NewAccessUserPage() {
   await requireSettingsPermissions([PERMISSION_KEYS.USERS_CREATE]);
 
-  const businessUnits =
-    await apiRequestJson<BusinessUnitRecord[]>("/business-units");
+  const [businessUnits, employees] = await Promise.all([
+    apiRequestJson<BusinessUnitRecord[]>("/business-units"),
+    apiRequestJson<EmployeeListResponse>("/employees?pageSize=100"),
+  ]);
 
   return (
     <SettingsShell
@@ -17,7 +20,7 @@ export default async function NewAccessUserPage() {
       eyebrow="Role & Access Management"
       title="New User"
     >
-      <UserForm businessUnits={businessUnits} />
+      <UserForm businessUnits={businessUnits} employees={employees.items} />
     </SettingsShell>
   );
 }

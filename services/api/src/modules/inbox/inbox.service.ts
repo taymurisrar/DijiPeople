@@ -89,7 +89,14 @@ export class InboxService {
   }
 
   async open(user: AuthenticatedUser, id: string) {
-    const notification = await this.findOwnedNotification(user, id);
+    const notification = await this.findOwnedNotificationOrNull(user, id);
+    if (!notification) {
+      return {
+        state: 'RECORD_NOT_FOUND' satisfies OpenState,
+        navigationTarget: null,
+        notification: null,
+      };
+    }
     const state = await this.resolveOpenState(user, notification);
 
     if (state !== 'OK') {
@@ -185,13 +192,31 @@ export class InboxService {
   }
 
   private async findOwnedNotification(user: AuthenticatedUser, id: string) {
-    const notification = await this.prisma.notification.findFirst({
-      where: { id, tenantId: user.tenantId, recipientUserId: user.userId },
-    });
+    const notification = await this.findOwnedNotificationOrNull(user, id);
     if (!notification) {
       throw new NotFoundException('Notification was not found.');
     }
     return notification;
+  }
+
+  private findOwnedNotificationOrNull(user: AuthenticatedUser, id: string) {
+    return this.prisma.notification.findFirst({
+      where: {
+        id,
+        tenantId: user.tenantId,
+        OR: [
+          { recipientUserId: user.userId },
+          {
+            recipients: {
+              some: {
+                tenantId: user.tenantId,
+                userId: user.userId,
+              },
+            },
+          },
+        ],
+      },
+    });
   }
 
   private viewWhere(view?: string): Prisma.NotificationWhereInput {
@@ -367,13 +392,90 @@ export class InboxService {
       );
     }
     if (notification.moduleKey === 'leave') {
-      return (
-        permissions.has('leave-requests.read') ||
-        permissions.has('leave-requests.approve') ||
-        permissions.has('leave-requests.reject')
-      );
+      return this.canOpenLeaveRelatedRecord(user, notification, permissions);
     }
     return permissions.has('inbox.read');
+  }
+
+  private async canOpenLeaveRelatedRecord(
+    user: AuthenticatedUser,
+    notification: {
+      relatedEntityId: string | null;
+      relatedEntityType?: string | null;
+    },
+    permissions: Set<string>,
+  ) {
+    if (!notification.relatedEntityId) return false;
+
+    if (
+      permissions.has('leave-requests.manage') ||
+      permissions.has('leaves.manage')
+    ) {
+      return true;
+    }
+
+    const leaveRequest = await this.prisma.leaveRequest.findFirst({
+      where: {
+        tenantId: user.tenantId,
+        id: notification.relatedEntityId,
+      },
+      select: {
+        employee: {
+          select: {
+            userId: true,
+            manager: { select: { userId: true } },
+          },
+        },
+        approvalSteps: {
+          select: { approverUserId: true },
+        },
+      },
+    });
+
+    if (!leaveRequest) return false;
+
+    if (
+      permissions.has('leave-requests.read') &&
+      leaveRequest.employee.userId === user.userId
+    ) {
+      return true;
+    }
+
+    if (
+      (permissions.has('leave-requests.read') ||
+        permissions.has('leave-requests.approve') ||
+        permissions.has('leave-requests.reject')) &&
+      leaveRequest.employee.manager?.userId === user.userId
+    ) {
+      return true;
+    }
+
+    if (
+      leaveRequest.approvalSteps.some(
+        (step) => step.approverUserId === user.userId,
+      )
+    ) {
+      return true;
+    }
+
+    const assignment = await this.prisma.approvalAssignment.findFirst({
+      where: {
+        tenantId: user.tenantId,
+        approvalRequest: {
+          moduleKey: 'leave',
+          entityId: notification.relatedEntityId,
+        },
+        OR: [
+          { assignedToUserId: user.userId },
+          ...(user.roleIds.length
+            ? [{ assignedToRoleId: { in: user.roleIds } }]
+            : []),
+        ],
+      },
+      select: { id: true },
+    });
+
+    return Boolean(assignment);
   }
 
   private async canOpenEmployeeRelatedRecord(

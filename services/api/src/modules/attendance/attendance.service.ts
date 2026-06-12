@@ -9,6 +9,7 @@ import {
   AttendanceImportBatchStatus,
   AttendanceMode,
   GenericApprovalStepStatus,
+  LeaveRequestStatus,
   NotificationRecipientResolverType,
   SecurityAccessLevel,
   SecurityPrivilege,
@@ -34,6 +35,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { EmployeesRepository } from '../employees/employees.repository';
 import { NotificationsService } from '../notifications/notifications.service';
 import { TenantSettingsResolverService } from '../tenant-settings/tenant-settings-resolver.service';
+import { ConfigurationResolverService } from '../tenant-settings/configuration-resolver.service';
 import {
   AttendanceEntryWithRelations,
   AttendanceRepository,
@@ -67,6 +69,12 @@ type AttendancePolicyShape = {
   requireRemoteLocationForRemoteMode: boolean;
   allowRemoteWithoutLocation: boolean;
   allowManualAdjustments: boolean;
+  preventDuplicateAttendance: boolean;
+  allowCheckInOnApprovedLeave: boolean;
+  markMissingCheckout: boolean;
+  allowOffDayCheckIn: boolean;
+  allowHolidayCheckIn: boolean;
+  allowHrAdminOverride: boolean;
   allowedModes: AttendanceMode[];
 };
 
@@ -138,6 +146,7 @@ export class AttendanceService {
     private readonly attendanceRepository: AttendanceRepository,
     private readonly employeesRepository: EmployeesRepository,
     private readonly tenantSettingsResolverService: TenantSettingsResolverService,
+    private readonly configurationResolverService: ConfigurationResolverService,
     private readonly auditService: AuditService,
     private readonly notificationsService: NotificationsService,
     private readonly prisma: PrismaService,
@@ -146,24 +155,53 @@ export class AttendanceService {
   async checkIn(currentUser: AuthenticatedUser, dto: CheckInDto) {
     const employee = await this.getCurrentEmployee(currentUser);
     const now = new Date();
-    const attendanceDate = toStartOfDay(now);
-
-    const [existingOpenEntry, workSchedule, policy] = await Promise.all([
-      this.attendanceRepository.findOpenAttendanceEntry(
+    const context = await this.resolveSelfServiceContext(
+      currentUser,
+      employee.id,
+      now,
+    );
+    const [existingToday, policy, approvedLeave] = await Promise.all([
+      this.attendanceRepository.findAttendanceEntryByEmployeeAndDate(
         currentUser.tenantId,
         employee.id,
+        context.attendanceDate,
       ),
-      this.attendanceRepository.findDefaultWorkSchedule(currentUser.tenantId),
       this.resolvePolicy(currentUser.tenantId),
+      this.findApprovedLeave(
+        currentUser.tenantId,
+        employee.id,
+        context.attendanceDate,
+      ),
     ]);
 
-    if (existingOpenEntry) {
+    if (existingToday && policy.preventDuplicateAttendance) {
+      throw new ConflictException('Already checked in today.');
+    }
+    if (approvedLeave && !policy.allowCheckInOnApprovedLeave) {
       throw new ConflictException(
-        'You already have an active attendance session. Please check out first.',
+        'Check in is unavailable because you have approved leave today.',
+      );
+    }
+    if (context.configurationError) {
+      throw new BadRequestException(context.configurationError);
+    }
+    if (context.isOffDay && !policy.allowOffDayCheckIn) {
+      throw new ConflictException(
+        `Check in is unavailable because ${formatBusinessDateKey(context.attendanceDate)} is a scheduled off day.`,
+      );
+    }
+    if (context.holiday && !policy.allowHolidayCheckIn) {
+      throw new ConflictException(
+        `Check in is unavailable because today is ${context.holiday.name}.`,
+      );
+    }
+    if (!context.shift) {
+      throw new BadRequestException(
+        'The resolved work schedule does not provide a shift for today.',
       );
     }
 
-    const attendanceMode = dto.attendanceMode ?? AttendanceMode.OFFICE;
+    const attendanceMode = dto.attendanceMode;
     const officeLocation = await this.validateModeAndLocation(
       currentUser.tenantId,
       attendanceMode,
@@ -171,28 +209,40 @@ export class AttendanceService {
       dto.officeLocationId,
       dto.remoteLatitude,
       dto.remoteLongitude,
+      true,
     );
 
-    const lateCheckIn = resolveLateCheckIn(workSchedule, policy, now);
+    const capturedAt = parseLocationCapturedAt(dto.locationCapturedAt, now);
+    const lateCheckIn = resolveLateCheckIn(
+      context.workSchedule,
+      policy,
+      now,
+      context.shift,
+    );
     let entry: AttendanceEntryWithRelations;
     try {
       entry = await this.attendanceRepository.createAttendanceEntry({
         tenantId: currentUser.tenantId,
         employeeId: employee.id,
-        workScheduleId: workSchedule?.id,
+        workScheduleId: context.workSchedule?.id,
+        shiftTemplateId: context.shift.id,
         officeLocationId: officeLocation?.id,
-        date: attendanceDate,
+        date: context.attendanceDate,
         checkIn: now,
         attendanceMode,
-        status: lateCheckIn.isLate
-          ? AttendanceEntryStatus.LATE
-          : AttendanceEntryStatus.PRESENT,
-        source: AttendanceEntrySource.SYSTEM,
+        status: AttendanceEntryStatus.CHECKED_IN,
+        source: AttendanceEntrySource.WEB,
+        checkInSource: AttendanceEntrySource.WEB,
         checkInNote: normalizeOptionalText(dto.note),
         workSummary: normalizeOptionalText(dto.workSummary),
         notes: mergeNotes(undefined, dto.note),
         remoteLatitude: dto.remoteLatitude,
         remoteLongitude: dto.remoteLongitude,
+        checkInLatitude: dto.remoteLatitude,
+        checkInLongitude: dto.remoteLongitude,
+        checkInLocationAccuracy: dto.locationAccuracy,
+        checkInLocationCapturedAt:
+          attendanceMode === AttendanceMode.OFFICE ? undefined : capturedAt,
         remoteAddressText: normalizeOptionalText(dto.remoteAddressText),
         isLateCheckIn: lateCheckIn.isLate,
         lateCheckInMinutes: lateCheckIn.minutesLate,
@@ -201,9 +251,7 @@ export class AttendanceService {
       });
     } catch (error) {
       if (isAttendanceCreateConflict(error)) {
-        throw new ConflictException(
-          'Attendance could not be created because an older one-entry-per-day database rule is still active. Apply the latest attendance migration and try again.',
-        );
+        throw new ConflictException('Already checked in today.');
       }
 
       throw error;
@@ -237,13 +285,26 @@ export class AttendanceService {
   async checkOut(currentUser: AuthenticatedUser, dto: CheckOutDto) {
     const employee = await this.getCurrentEmployee(currentUser);
     const now = new Date();
-    const existing = await this.attendanceRepository.findOpenAttendanceEntry(
-      currentUser.tenantId,
+    const context = await this.resolveSelfServiceContext(
+      currentUser,
       employee.id,
+      now,
     );
+    const existing =
+      await this.attendanceRepository.findAttendanceEntryByEmployeeAndDate(
+        currentUser.tenantId,
+        employee.id,
+        context.attendanceDate,
+      );
 
-    if (!existing?.checkIn) {
-      throw new BadRequestException('No active check-in was found.');
+    if (!existing) {
+      throw new BadRequestException('Check out requires a check in today.');
+    }
+    if (!existing.checkIn) {
+      throw new BadRequestException('Check out requires a check in today.');
+    }
+    if (existing.checkOut) {
+      throw new ConflictException('Already checked out.');
     }
 
     if (now < existing.checkIn) {
@@ -252,12 +313,24 @@ export class AttendanceService {
       );
     }
 
-    const [workSchedule, policy] = await Promise.all([
-      this.attendanceRepository.findDefaultWorkSchedule(currentUser.tenantId),
-      this.resolvePolicy(currentUser.tenantId),
-    ]);
+    const policy = await this.resolvePolicy(currentUser.tenantId);
+    await this.validateModeAndLocation(
+      currentUser.tenantId,
+      existing.attendanceMode,
+      policy,
+      existing.officeLocationId ?? undefined,
+      dto.remoteLatitude,
+      dto.remoteLongitude,
+      true,
+    );
 
-    const lateCheckOut = resolveLateCheckOut(workSchedule, policy, now);
+    const capturedAt = parseLocationCapturedAt(dto.locationCapturedAt, now);
+    const lateCheckOut = resolveLateCheckOut(
+      context.workSchedule,
+      policy,
+      now,
+      context.shift,
+    );
     const updated = await this.attendanceRepository.updateAttendanceEntry(
       currentUser.tenantId,
       existing.id,
@@ -267,17 +340,20 @@ export class AttendanceService {
         workSummary:
           normalizeOptionalText(dto.workSummary) ?? existing.workSummary,
         notes: mergeNotes(existing.notes, dto.note),
-        remoteLatitude: dto.remoteLatitude ?? existing.remoteLatitude,
-        remoteLongitude: dto.remoteLongitude ?? existing.remoteLongitude,
+        checkOutSource: AttendanceEntrySource.WEB,
+        checkOutLatitude: dto.remoteLatitude,
+        checkOutLongitude: dto.remoteLongitude,
+        checkOutLocationAccuracy: dto.locationAccuracy,
+        checkOutLocationCapturedAt:
+          existing.attendanceMode === AttendanceMode.OFFICE
+            ? undefined
+            : capturedAt,
         remoteAddressText:
           normalizeOptionalText(dto.remoteAddressText) ??
           existing.remoteAddressText,
         isLateCheckOut: lateCheckOut.isLate,
         lateCheckOutMinutes: lateCheckOut.minutesLate,
-        status:
-          existing.status === AttendanceEntryStatus.MISSED_CHECK_OUT
-            ? AttendanceEntryStatus.PRESENT
-            : existing.status,
+        status: AttendanceEntryStatus.CHECKED_OUT,
         updatedById: currentUser.userId,
       },
     );
@@ -635,7 +711,12 @@ export class AttendanceService {
       );
     }
 
-    const attendanceDate = toStartOfDay(new Date(dto.date));
+    const resolvedContext = await this.resolveSelfServiceContext(
+      currentUser,
+      dto.employeeId,
+      parseBusinessDateInput(dto.date),
+    );
+    const attendanceDate = resolvedContext.attendanceDate;
     const existing =
       await this.attendanceRepository.findAttendanceEntryByEmployeeAndDate(
         currentUser.tenantId,
@@ -648,9 +729,7 @@ export class AttendanceService {
         'An attendance entry already exists for this employee on this date.',
       );
     }
-
-    const [workSchedule, officeLocation] = await Promise.all([
-      this.attendanceRepository.findDefaultWorkSchedule(currentUser.tenantId),
+    const [officeLocation, shift] = await Promise.all([
       this.validateModeAndLocation(
         currentUser.tenantId,
         dto.attendanceMode,
@@ -659,13 +738,32 @@ export class AttendanceService {
         dto.remoteLatitude,
         dto.remoteLongitude,
       ),
+      dto.shiftTemplateId
+        ? this.attendanceRepository.findShiftTemplateById(
+            currentUser.tenantId,
+            dto.shiftTemplateId,
+          )
+        : Promise.resolve(resolvedContext.shift),
     ]);
+    if (!shift) {
+      throw new BadRequestException(
+        'Selected shift is not active for this tenant.',
+      );
+    }
 
     const checkIn = dto.checkInTime
-      ? combineDateAndTime(attendanceDate, dto.checkInTime)
+      ? combineDateAndTimeInTimezone(
+          attendanceDate,
+          dto.checkInTime,
+          resolvedContext.timezone,
+        )
       : undefined;
     const checkOut = dto.checkOutTime
-      ? combineDateAndTime(attendanceDate, dto.checkOutTime)
+      ? combineDateAndTimeInTimezone(
+          attendanceDate,
+          dto.checkOutTime,
+          resolvedContext.timezone,
+        )
       : undefined;
 
     if (checkOut && !checkIn) {
@@ -681,16 +779,22 @@ export class AttendanceService {
     }
 
     const lateCheckIn = checkIn
-      ? resolveLateCheckIn(workSchedule, policy, checkIn)
+      ? resolveLateCheckIn(resolvedContext.workSchedule, policy, checkIn, shift)
       : { isLate: false, minutesLate: null };
     const lateCheckOut = checkOut
-      ? resolveLateCheckOut(workSchedule, policy, checkOut)
+      ? resolveLateCheckOut(
+          resolvedContext.workSchedule,
+          policy,
+          checkOut,
+          shift,
+        )
       : { isLate: false, minutesLate: null };
 
     const entry = await this.attendanceRepository.createAttendanceEntry({
       tenantId: currentUser.tenantId,
       employeeId: dto.employeeId,
-      workScheduleId: workSchedule?.id,
+      workScheduleId: resolvedContext.workSchedule?.id,
+      shiftTemplateId: shift.id,
       officeLocationId: officeLocation?.id,
       date: attendanceDate,
       checkIn,
@@ -774,8 +878,13 @@ export class AttendanceService {
       );
     }
 
+    const resolvedContext = await this.resolveSelfServiceContext(
+      currentUser,
+      targetEmployeeId,
+      dto.date ? parseBusinessDateInput(dto.date) : existing.date,
+    );
     const attendanceDate = dto.date
-      ? toStartOfDay(new Date(dto.date))
+      ? resolvedContext.attendanceDate
       : existing.date;
 
     if (
@@ -796,8 +905,7 @@ export class AttendanceService {
       }
     }
 
-    const [workSchedule, officeLocation] = await Promise.all([
-      this.attendanceRepository.findDefaultWorkSchedule(currentUser.tenantId),
+    const [officeLocation, shift] = await Promise.all([
       this.validateModeAndLocation(
         currentUser.tenantId,
         dto.attendanceMode ?? existing.attendanceMode,
@@ -806,15 +914,34 @@ export class AttendanceService {
         dto.remoteLatitude ?? existing.remoteLatitude ?? undefined,
         dto.remoteLongitude ?? existing.remoteLongitude ?? undefined,
       ),
+      dto.shiftTemplateId
+        ? this.attendanceRepository.findShiftTemplateById(
+            currentUser.tenantId,
+            dto.shiftTemplateId,
+          )
+        : Promise.resolve(existing.shiftTemplate ?? resolvedContext.shift),
     ]);
+    if (!shift) {
+      throw new BadRequestException(
+        'Selected shift is not active for this tenant.',
+      );
+    }
 
     const checkIn = dto.checkInTime
-      ? combineDateAndTime(attendanceDate, dto.checkInTime)
+      ? combineDateAndTimeInTimezone(
+          attendanceDate,
+          dto.checkInTime,
+          resolvedContext.timezone,
+        )
       : dto.checkInTime === undefined
         ? (existing.checkIn ?? undefined)
         : undefined;
     const checkOut = dto.checkOutTime
-      ? combineDateAndTime(attendanceDate, dto.checkOutTime)
+      ? combineDateAndTimeInTimezone(
+          attendanceDate,
+          dto.checkOutTime,
+          resolvedContext.timezone,
+        )
       : dto.checkOutTime === undefined
         ? (existing.checkOut ?? undefined)
         : undefined;
@@ -832,10 +959,15 @@ export class AttendanceService {
     }
 
     const lateCheckIn = checkIn
-      ? resolveLateCheckIn(workSchedule, policy, checkIn)
+      ? resolveLateCheckIn(resolvedContext.workSchedule, policy, checkIn, shift)
       : { isLate: false, minutesLate: null };
     const lateCheckOut = checkOut
-      ? resolveLateCheckOut(workSchedule, policy, checkOut)
+      ? resolveLateCheckOut(
+          resolvedContext.workSchedule,
+          policy,
+          checkOut,
+          shift,
+        )
       : { isLate: false, minutesLate: null };
 
     const updated = await this.attendanceRepository.updateAttendanceEntry(
@@ -846,7 +978,8 @@ export class AttendanceService {
         date: attendanceDate,
         checkIn,
         checkOut,
-        workScheduleId: workSchedule?.id,
+        workScheduleId: resolvedContext.workSchedule?.id,
+        shiftTemplateId: shift.id,
         officeLocationId: officeLocation?.id ?? null,
         attendanceMode: dto.attendanceMode ?? existing.attendanceMode,
         status:
@@ -1909,6 +2042,149 @@ export class AttendanceService {
     return this.resolvePolicy(currentUser.tenantId);
   }
 
+  async getTodayAttendance(currentUser: AuthenticatedUser) {
+    const employee = await this.getCurrentEmployee(currentUser);
+    const context = await this.resolveSelfServiceContext(
+      currentUser,
+      employee.id,
+      new Date(),
+    );
+    const entry =
+      await this.attendanceRepository.findAttendanceEntryByEmployeeAndDate(
+        currentUser.tenantId,
+        employee.id,
+        context.attendanceDate,
+      );
+
+    return entry ? this.mapAttendanceEntry(entry, currentUser) : null;
+  }
+
+  async getSelfServiceRuntimeContext(currentUser: AuthenticatedUser) {
+    const employee = await this.getCurrentEmployee(currentUser);
+    const now = new Date();
+    const context = await this.resolveSelfServiceContext(
+      currentUser,
+      employee.id,
+      now,
+    );
+    const [todayAttendance, policy, workSites, approvedLeave] =
+      await Promise.all([
+        this.attendanceRepository.findAttendanceEntryByEmployeeAndDate(
+          currentUser.tenantId,
+          employee.id,
+          context.attendanceDate,
+        ),
+        this.resolvePolicy(currentUser.tenantId),
+        this.attendanceRepository.listOfficeLocations(currentUser.tenantId),
+        this.findApprovedLeave(
+          currentUser.tenantId,
+          employee.id,
+          context.attendanceDate,
+        ),
+      ]);
+
+    const state = !todayAttendance
+      ? 'not-checked-in'
+      : todayAttendance.checkOut
+        ? 'completed'
+        : todayAttendance.checkIn
+          ? 'checked-in'
+          : 'not-checked-in';
+
+    return {
+      attendanceActionState:
+        (approvedLeave && !policy.allowCheckInOnApprovedLeave) ||
+        Boolean(context.configurationError) ||
+        (context.isOffDay && !policy.allowOffDayCheckIn) ||
+        (Boolean(context.holiday) && !policy.allowHolidayCheckIn)
+          ? 'blocked'
+          : state,
+      attendanceDate: formatBusinessDateKey(context.attendanceDate),
+      timezone: context.timezone,
+      allowedModes: policy.allowedModes.filter(isSelfServiceAttendanceMode),
+      resolvedShift: context.shift
+        ? {
+            id: context.shift.id,
+            name: context.shift.name,
+            code: context.shift.code,
+            startTime: context.shift.startTime,
+            endTime: context.shift.endTime,
+            timezone: context.shift.timezone,
+            breakMinutes: context.shift.breakMinutes,
+            expectedHours: Number(context.shift.expectedHours),
+            lateGraceMinutes: context.shift.lateGraceMinutes,
+            earlyExitGraceMinutes: context.shift.earlyExitGraceMinutes,
+            isNightShift: context.shift.isNightShift,
+          }
+        : null,
+      workSites,
+      todayAttendance: todayAttendance
+        ? this.mapAttendanceEntry(todayAttendance, currentUser)
+        : null,
+      blockedReason: approvedLeave
+        ? policy.allowCheckInOnApprovedLeave
+          ? null
+          : 'Check in is unavailable because you have approved leave today.'
+        : context.configurationError
+          ? context.configurationError
+          : context.isOffDay && !policy.allowOffDayCheckIn
+            ? `Check in is unavailable because ${formatBusinessDateKey(context.attendanceDate)} is a scheduled off day.`
+            : context.holiday && !policy.allowHolidayCheckIn
+              ? `Check in is unavailable because today is ${context.holiday.name}.`
+              : null,
+      policy: {
+        allowManualAdjustments: policy.allowManualAdjustments,
+        officeRequiresWorkSite: policy.requireOfficeLocationForOfficeMode,
+        remoteRequiresLocation: policy.requireRemoteLocationForRemoteMode,
+        hybridRequiresLocation: policy.requireRemoteLocationForRemoteMode,
+      },
+      nonWorkingDayPolicy: {
+        allowOffDayCheckIn: policy.allowOffDayCheckIn,
+        allowHolidayCheckIn: policy.allowHolidayCheckIn,
+        isOffDay: context.isOffDay,
+        holiday: context.holiday,
+      },
+    };
+  }
+
+  async getRuntimeConfiguration(currentUser: AuthenticatedUser) {
+    const [policy, persistedPolicy, persistedSettings] = await Promise.all([
+      this.resolvePolicy(currentUser.tenantId),
+      this.attendanceRepository.findAttendancePolicy(currentUser.tenantId),
+      this.prisma.tenantSetting.findMany({
+        where: {
+          tenantId: currentUser.tenantId,
+          category: 'attendance',
+        },
+        select: { key: true },
+      }),
+    ]);
+    const issues: string[] = [];
+
+    if (!persistedPolicy && persistedSettings.length === 0) {
+      issues.push(
+        'Attendance Configuration has not been saved. Catalog defaults are shown until Attendance Configuration is completed in Settings.',
+      );
+    }
+    if (policy.allowedModes.length === 0) {
+      issues.push(
+        'Attendance allowed modes are missing or invalid. Review Attendance Configuration in Settings.',
+      );
+    }
+
+    return {
+      status:
+        issues.length === 0 ? ('AVAILABLE' as const) : ('INVALID' as const),
+      policy,
+      issues,
+      source: persistedPolicy
+        ? ('policy' as const)
+        : persistedSettings.length > 0
+          ? ('settings' as const)
+          : ('catalog-default' as const),
+    };
+  }
+
   async updatePolicy(
     currentUser: AuthenticatedUser,
     dto: UpdateAttendancePolicyDto,
@@ -1928,6 +2204,13 @@ export class AttendanceService {
         requireRemoteLocationForRemoteMode:
           dto.requireRemoteLocationForRemoteMode,
         allowRemoteWithoutLocation: dto.allowRemoteWithoutLocation,
+        allowManualAdjustments: dto.allowManualAdjustments,
+        preventDuplicateAttendance: dto.preventDuplicateAttendance,
+        allowCheckInOnApprovedLeave: dto.allowCheckInOnApprovedLeave,
+        markMissingCheckout: dto.markMissingCheckout,
+        allowOffDayCheckIn: dto.allowOffDayCheckIn ?? false,
+        allowHolidayCheckIn: dto.allowHolidayCheckIn ?? false,
+        allowHrAdminOverride: dto.allowHrAdminOverride ?? true,
         createdById: currentUser.userId,
         updatedById: currentUser.userId,
       },
@@ -1939,6 +2222,16 @@ export class AttendanceService {
         requireRemoteLocationForRemoteMode:
           dto.requireRemoteLocationForRemoteMode,
         allowRemoteWithoutLocation: dto.allowRemoteWithoutLocation,
+        allowManualAdjustments: dto.allowManualAdjustments,
+        preventDuplicateAttendance: dto.preventDuplicateAttendance,
+        allowCheckInOnApprovedLeave: dto.allowCheckInOnApprovedLeave,
+        markMissingCheckout: dto.markMissingCheckout,
+        allowOffDayCheckIn:
+          dto.allowOffDayCheckIn ?? existing?.allowOffDayCheckIn ?? false,
+        allowHolidayCheckIn:
+          dto.allowHolidayCheckIn ?? existing?.allowHolidayCheckIn ?? false,
+        allowHrAdminOverride:
+          dto.allowHrAdminOverride ?? existing?.allowHrAdminOverride ?? true,
         updatedById: currentUser.userId,
       },
     );
@@ -1958,6 +2251,10 @@ export class AttendanceService {
 
   async listOfficeLocations(currentUser: AuthenticatedUser) {
     return this.attendanceRepository.listOfficeLocations(currentUser.tenantId);
+  }
+
+  async listShiftTemplates(currentUser: AuthenticatedUser) {
+    return this.attendanceRepository.listShiftTemplates(currentUser.tenantId);
   }
 
   private async importRow(
@@ -1984,8 +2281,10 @@ export class AttendanceService {
       throw new BadRequestException('date is required.');
     }
 
-    const attendanceDate = toStartOfDay(new Date(dateValue));
-    if (Number.isNaN(attendanceDate.getTime())) {
+    let attendanceDate: Date;
+    try {
+      attendanceDate = parseBusinessDateInput(dateValue);
+    } catch {
       throw new BadRequestException('date must be a valid ISO date.');
     }
 
@@ -2094,6 +2393,106 @@ export class AttendanceService {
     return employee;
   }
 
+  private async resolveSelfServiceContext(
+    currentUser: AuthenticatedUser,
+    employeeId: string,
+    effectiveDate: Date,
+  ) {
+    const employee = await this.prisma.employee.findFirst({
+      where: {
+        tenantId: currentUser.tenantId,
+        id: employeeId,
+        isDeleted: false,
+      },
+      select: {
+        id: true,
+        businessUnitId: true,
+      },
+    });
+    if (!employee) {
+      throw new BadRequestException(
+        'No employee record is linked to the current user.',
+      );
+    }
+
+    const appContext =
+      await this.configurationResolverService.resolveAppContext({
+        tenantId: currentUser.tenantId,
+        businessUnitId: employee.businessUnitId,
+        employeeId,
+        module: 'attendance',
+        effectiveDate,
+      });
+    const attendanceDate = businessDateAtUtcMidnight(
+      effectiveDate,
+      appContext.timezone,
+    );
+    const resolvedWorkConfiguration =
+      await this.attendanceRepository.resolveEmployeeWorkConfiguration(
+        currentUser.tenantId,
+        employeeId,
+        attendanceDate,
+        toWeekday(attendanceDate),
+      );
+    const workSchedule = resolvedWorkConfiguration?.workSchedule ?? null;
+    const scheduleDay = resolvedWorkConfiguration?.scheduleDay ?? null;
+    const shift =
+      scheduleDay?.isWorkingDay &&
+      scheduleDay.shiftTemplate?.isActive &&
+      scheduleDay.shiftTemplate.status === 'ACTIVE'
+        ? scheduleDay.shiftTemplate
+        : null;
+    const holiday =
+      resolvedWorkConfiguration?.holidayCalendarId &&
+      resolvedWorkConfiguration.employee
+        ? await this.attendanceRepository.findHolidayForEmployeeDate(
+            currentUser.tenantId,
+            resolvedWorkConfiguration.holidayCalendarId,
+            attendanceDate,
+            resolvedWorkConfiguration.employee.departmentId,
+            resolvedWorkConfiguration.employee.locationId,
+          )
+        : null;
+    const isWorkingDay = scheduleDay
+      ? scheduleDay.isWorkingDay
+      : Boolean(
+          workSchedule?.weeklyWorkDays.includes(toWeekday(attendanceDate)),
+        );
+    const configurationError = !workSchedule
+      ? 'No active work schedule is configured for this employee, department, work site, or tenant default.'
+      : isWorkingDay && !shift
+        ? `Work schedule "${workSchedule.name}" has no active shift configured for ${toWeekday(attendanceDate).toLowerCase()}.`
+        : null;
+
+    return {
+      attendanceDate,
+      timezone: appContext.timezone,
+      workSchedule,
+      shift,
+      holiday,
+      isOffDay: Boolean(workSchedule && !isWorkingDay),
+      scheduleSource: resolvedWorkConfiguration?.source ?? null,
+      configurationError,
+    };
+  }
+
+  private findApprovedLeave(
+    tenantId: string,
+    employeeId: string,
+    attendanceDate: Date,
+  ) {
+    return this.prisma.leaveRequest.findFirst({
+      where: {
+        tenantId,
+        employeeId,
+        status: LeaveRequestStatus.APPROVED,
+        startDate: { lte: attendanceDate },
+        endDate: { gte: attendanceDate },
+      },
+      select: { id: true },
+    });
+  }
+
   private canManageTenantAttendance(currentUser: AuthenticatedUser) {
     return (
       hasElevatedTenantRole(currentUser) ||
@@ -2170,7 +2569,15 @@ export class AttendanceService {
       throw new NotFoundException('Attendance entry could not be found.');
     }
 
-    if (entry.employee.userId === currentUser.userId) {
+    const currentEmployee =
+      await this.attendanceRepository.findEmployeeIdByUserId(
+        currentUser.tenantId,
+        currentUser.userId,
+      );
+    if (
+      entry.employee.userId === currentUser.userId ||
+      currentEmployee?.id === entry.employeeId
+    ) {
       if (requireOverrideAccess && !this.canOverrideAttendance(currentUser)) {
         throw new ForbiddenException(
           'You do not have permission to override this attendance record.',
@@ -2243,6 +2650,12 @@ export class AttendanceService {
         policy?.allowRemoteWithoutLocation ??
         !attendanceSettings.requireRemoteLocationCapture,
       allowManualAdjustments: attendanceSettings.allowManualAdjustments,
+      preventDuplicateAttendance: policy?.preventDuplicateAttendance ?? true,
+      allowCheckInOnApprovedLeave: policy?.allowCheckInOnApprovedLeave ?? false,
+      markMissingCheckout: policy?.markMissingCheckout ?? true,
+      allowOffDayCheckIn: policy?.allowOffDayCheckIn ?? false,
+      allowHolidayCheckIn: policy?.allowHolidayCheckIn ?? false,
+      allowHrAdminOverride: policy?.allowHrAdminOverride ?? true,
       allowedModes: attendanceSettings.allowedModes,
     };
   }
@@ -2254,6 +2667,7 @@ export class AttendanceService {
     officeLocationId?: string,
     remoteLatitude?: number,
     remoteLongitude?: number,
+    requireBrowserLocation = false,
   ) {
     if (!policy.allowedModes.includes(attendanceMode)) {
       throw new BadRequestException(
@@ -2262,14 +2676,10 @@ export class AttendanceService {
     }
 
     if (attendanceMode === AttendanceMode.OFFICE) {
-      if (!officeLocationId && policy.requireOfficeLocationForOfficeMode) {
+      if (!officeLocationId) {
         throw new BadRequestException(
           'Office location is required for office attendance.',
         );
-      }
-
-      if (!officeLocationId) {
-        return null;
       }
 
       const officeLocation =
@@ -2288,13 +2698,13 @@ export class AttendanceService {
     }
 
     if (
-      attendanceMode === AttendanceMode.REMOTE &&
-      policy.requireRemoteLocationForRemoteMode &&
-      !policy.allowRemoteWithoutLocation &&
+      requireBrowserLocation &&
+      (attendanceMode === AttendanceMode.REMOTE ||
+        attendanceMode === AttendanceMode.HYBRID) &&
       (remoteLatitude === undefined || remoteLongitude === undefined)
     ) {
       throw new BadRequestException(
-        'Remote attendance requires browser location for this tenant.',
+        `${attendanceMode === AttendanceMode.HYBRID ? 'Hybrid' : 'Remote'} attendance requires browser location.`,
       );
     }
 
@@ -2529,6 +2939,7 @@ export class AttendanceService {
       tenantId: entry.tenantId,
       employeeId: entry.employeeId,
       workScheduleId: entry.workScheduleId,
+      shiftTemplateId: entry.shiftTemplateId,
       officeLocationId: entry.officeLocationId,
       importedBatchId: entry.importedBatchId,
       attendanceDate: entry.date,
@@ -2540,6 +2951,8 @@ export class AttendanceService {
       attendanceMode: entry.attendanceMode,
       status: entry.status,
       source: entry.source,
+      checkInSource: entry.checkInSource,
+      checkOutSource: entry.checkOutSource,
       checkInNote: entry.checkInNote,
       checkOutNote: entry.checkOutNote,
       workSummary: entry.workSummary,
@@ -2547,6 +2960,14 @@ export class AttendanceService {
       remoteLatitude: entry.remoteLatitude,
       remoteLongitude: entry.remoteLongitude,
       remoteAddressText: entry.remoteAddressText,
+      checkInLatitude: entry.checkInLatitude,
+      checkInLongitude: entry.checkInLongitude,
+      checkInLocationAccuracy: entry.checkInLocationAccuracy,
+      checkInLocationCapturedAt: entry.checkInLocationCapturedAt,
+      checkOutLatitude: entry.checkOutLatitude,
+      checkOutLongitude: entry.checkOutLongitude,
+      checkOutLocationAccuracy: entry.checkOutLocationAccuracy,
+      checkOutLocationCapturedAt: entry.checkOutLocationCapturedAt,
       isLateCheckIn: entry.isLateCheckIn,
       isLateCheckOut: entry.isLateCheckOut,
       lateCheckInMinutes: entry.lateCheckInMinutes,
@@ -2578,6 +2999,7 @@ export class AttendanceService {
       },
       officeLocation: entry.officeLocation,
       workSchedule: entry.workSchedule,
+      shift: entry.shiftTemplate,
       importedBatch: entry.importedBatch,
       canCurrentUserEdit: currentUser
         ? this.canManageTenantAttendance(currentUser)
@@ -2634,6 +3056,56 @@ function combineDateAndTime(date: Date, time: string) {
   return combined;
 }
 
+function parseBusinessDateInput(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    throw new BadRequestException('date must be a valid ISO date.');
+  }
+  const parsed = new Date(`${value}T12:00:00.000Z`);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new BadRequestException('date must be a valid ISO date.');
+  }
+  return parsed;
+}
+
+function combineDateAndTimeInTimezone(
+  businessDate: Date,
+  time: string,
+  timezone: string,
+) {
+  const [year, month, day] = businessDate
+    .toISOString()
+    .slice(0, 10)
+    .split('-')
+    .map(Number);
+  const [hours, minutes] = time.split(':').map(Number);
+  const intendedUtc = Date.UTC(year, month - 1, day, hours, minutes);
+  let candidate = new Date(intendedUtc);
+
+  for (let iteration = 0; iteration < 2; iteration += 1) {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: timezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+    }).formatToParts(candidate);
+    const read = (type: Intl.DateTimeFormatPartTypes) =>
+      Number(parts.find((part) => part.type === type)?.value);
+    const representedUtc = Date.UTC(
+      read('year'),
+      read('month') - 1,
+      read('day'),
+      read('hour'),
+      read('minute'),
+    );
+    candidate = new Date(candidate.getTime() + intendedUtc - representedUtc);
+  }
+
+  return candidate;
+}
+
 function differenceInMinutes(later: Date, earlier: Date) {
   return Math.round((later.getTime() - earlier.getTime()) / 60_000);
 }
@@ -2645,6 +3117,7 @@ function resolveLateCheckIn(
   } | null,
   policy: AttendancePolicyShape,
   currentDateTime: Date,
+  shift?: { startTime: string; lateGraceMinutes: number } | null,
 ) {
   if (!schedule) {
     return { isLate: false, minutesLate: null as number | null };
@@ -2658,9 +3131,12 @@ function resolveLateCheckIn(
 
   const startAt = combineDateAndTime(
     toStartOfDay(currentDateTime),
-    schedule.standardStartTime,
+    shift?.startTime ?? schedule.standardStartTime,
   );
-  startAt.setMinutes(startAt.getMinutes() + policy.lateCheckInGraceMinutes);
+  startAt.setMinutes(
+    startAt.getMinutes() +
+      (shift?.lateGraceMinutes ?? policy.lateCheckInGraceMinutes),
+  );
   const minutesLate = differenceInMinutes(currentDateTime, startAt);
 
   return {
@@ -2676,6 +3152,7 @@ function resolveLateCheckOut(
   } | null,
   policy: AttendancePolicyShape,
   currentDateTime: Date,
+  shift?: { endTime: string; earlyExitGraceMinutes: number } | null,
 ) {
   if (!schedule) {
     return { isLate: false, minutesLate: null as number | null };
@@ -2689,14 +3166,18 @@ function resolveLateCheckOut(
 
   const endAt = combineDateAndTime(
     toStartOfDay(currentDateTime),
-    schedule.standardEndTime,
+    shift?.endTime ?? schedule.standardEndTime,
   );
-  endAt.setMinutes(endAt.getMinutes() + policy.lateCheckOutGraceMinutes);
-  const minutesLate = differenceInMinutes(currentDateTime, endAt);
-
+  endAt.setMinutes(
+    endAt.getMinutes() -
+      (shift?.earlyExitGraceMinutes ?? policy.lateCheckOutGraceMinutes),
+  );
   return {
-    isLate: currentDateTime > endAt,
-    minutesLate: currentDateTime > endAt ? minutesLate : null,
+    isLate: currentDateTime < endAt,
+    minutesLate:
+      currentDateTime < endAt
+        ? differenceInMinutes(endAt, currentDateTime)
+        : null,
   };
 }
 
@@ -3050,6 +3531,48 @@ function formatDurationMinutes(value: number) {
   return `${hours} ${hours === 1 ? 'hr' : 'hrs'} ${minutes} ${
     minutes === 1 ? 'min' : 'mins'
   }`;
+}
+
+function businessDateAtUtcMidnight(value: Date, timezone: string) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(value);
+  const year = Number(parts.find((part) => part.type === 'year')?.value);
+  const month = Number(parts.find((part) => part.type === 'month')?.value);
+  const day = Number(parts.find((part) => part.type === 'day')?.value);
+
+  return new Date(Date.UTC(year, month - 1, day));
+}
+
+function formatBusinessDateKey(value: Date) {
+  return value.toISOString().slice(0, 10);
+}
+
+function parseLocationCapturedAt(value: string | undefined, fallback: Date) {
+  if (!value) return fallback;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new BadRequestException(
+      'Location captured timestamp must be a valid ISO timestamp.',
+    );
+  }
+  return parsed;
+}
+
+function isSelfServiceAttendanceMode(
+  value: AttendanceMode,
+): value is
+  | typeof AttendanceMode.OFFICE
+  | typeof AttendanceMode.REMOTE
+  | typeof AttendanceMode.HYBRID {
+  return (
+    value === AttendanceMode.OFFICE ||
+    value === AttendanceMode.REMOTE ||
+    value === AttendanceMode.HYBRID
+  );
 }
 
 function isAttendanceCreateConflict(error: unknown) {

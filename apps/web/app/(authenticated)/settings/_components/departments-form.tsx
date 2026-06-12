@@ -2,6 +2,14 @@
 
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { Button } from "@/app/components/ui/button";
+import {
+  CheckboxField,
+  LookupField,
+  TextAreaField,
+  TextField,
+  type LookupOption,
+} from "@/app/components/ui/form-control";
 
 type DepartmentsFormProps = {
   departmentId?: string;
@@ -9,15 +17,18 @@ type DepartmentsFormProps = {
     name: string;
     code: string;
     description: string;
+    defaultWorkScheduleId: string;
     isActive: boolean;
   };
   mode: "create" | "edit";
+  workSchedules: LookupOption[];
 };
 
 export function DepartmentsForm({
   departmentId,
   initialValues,
   mode,
+  workSchedules,
 }: DepartmentsFormProps) {
   const router = useRouter();
   const [form, setForm] = useState(initialValues);
@@ -36,7 +47,9 @@ export function DepartmentsForm({
     setIsSubmitting(true);
 
     const response = await fetch(
-      mode === "create" ? "/api/departments" : `/api/departments/${departmentId}`,
+      mode === "create"
+        ? "/api/departments"
+        : `/api/departments/${departmentId}`,
       {
         method: mode === "create" ? "POST" : "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -59,67 +72,55 @@ export function DepartmentsForm({
   return (
     <form className="grid gap-5" onSubmit={handleSubmit}>
       <div className="grid gap-4 rounded-[24px] border border-border bg-surface p-6 shadow-sm md:grid-cols-2">
-        <Field label="Department name" required value={form.name} onChange={(name) => setForm((current) => ({ ...current, name }))} />
-        <Field label="Code" value={form.code} onChange={(code) => setForm((current) => ({ ...current, code }))} />
-        <Field
+        <TextField
+          label="Department name"
+          onChange={(name) => setForm((current) => ({ ...current, name }))}
+          required
+          value={form.name}
+        />
+        <TextField
+          label="Code"
+          onChange={(code) => setForm((current) => ({ ...current, code }))}
+          value={form.code}
+        />
+        <TextAreaField
           className="md:col-span-2"
           label="Description"
+          onChange={(description) =>
+            setForm((current) => ({ ...current, description }))
+          }
           value={form.description}
-          onChange={(description) => setForm((current) => ({ ...current, description }))}
         />
-        <label className="flex items-center gap-3 text-sm font-medium text-foreground">
-          <input
-            checked={form.isActive}
-            className="h-4 w-4 rounded border-border"
-            onChange={(event) =>
-              setForm((current) => ({ ...current, isActive: event.target.checked }))
-            }
-            type="checkbox"
-          />
-          Active department
-        </label>
+        <LookupField
+          label="Default work schedule"
+          onChange={(defaultWorkScheduleId) =>
+            setForm((current) => ({ ...current, defaultWorkScheduleId }))
+          }
+          options={workSchedules}
+          placeholder="Inherit work-site or tenant default"
+          value={form.defaultWorkScheduleId}
+        />
+        <CheckboxField
+          checked={form.isActive}
+          label="Active department"
+          onChange={(isActive) =>
+            setForm((current) => ({ ...current, isActive }))
+          }
+        />
       </div>
       {error ? <p className="text-sm text-danger">{error}</p> : null}
       <div className="flex gap-3">
-        <button className="rounded-2xl bg-accent px-5 py-3 text-sm font-semibold text-white" disabled={isSubmitting} type="submit">
-          {isSubmitting ? "Saving..." : mode === "create" ? "Create department" : "Save changes"}
-        </button>
-        <button
-          className="rounded-2xl border border-border px-5 py-3 text-sm font-medium text-muted"
-          onClick={() => router.back()}
-          type="button"
-        >
+        <Button disabled={isSubmitting} type="submit">
+          {isSubmitting
+            ? "Saving..."
+            : mode === "create"
+              ? "Create department"
+              : "Save changes"}
+        </Button>
+        <Button onClick={() => router.back()} type="button" variant="secondary">
           Cancel
-        </button>
+        </Button>
       </div>
     </form>
-  );
-}
-
-function Field({
-  className,
-  label,
-  onChange,
-  required,
-  value,
-}: {
-  className?: string;
-  label: string;
-  onChange: (value: string) => void;
-  required?: boolean;
-  value: string;
-}) {
-  return (
-    <label className={`space-y-2 text-sm ${className ?? ""}`}>
-      <span className="font-medium text-foreground">
-        {label}
-        {required ? " *" : ""}
-      </span>
-      <input
-        className="w-full rounded-2xl border border-border bg-white px-4 py-3 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
-        onChange={(event) => onChange(event.target.value)}
-        value={value}
-      />
-    </label>
   );
 }

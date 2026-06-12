@@ -1,29 +1,27 @@
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
-import { hasPermission, isSelfServiceUser } from "@/lib/permissions";
+import { isSelfServiceUser } from "@/lib/permissions";
 import { apiRequestJson } from "@/lib/server-api";
 import { buildEntityDataUrl } from "@/app/components/entity-data/entity-query-builder";
 import {
   EntityDataResponse,
   EntityFilter,
 } from "@/app/components/entity-data/entity-query-types";
-import { ModuleViewSelector } from "@/app/components/view-selector/module-view-selector";
-import {
-  getTableViews,
-  resolveFiltersAndSorting,
-  resolveVisibleColumns,
-  withFallbackViews,
-} from "@/lib/customization-views";
+import { getTableViews, withFallbackViews } from "@/lib/customization-views";
 import { AccessDeniedState } from "../_components/access-denied-state";
 import {
   getBusinessUnitAccessSummary,
   hasBusinessUnitScope,
 } from "../_lib/business-unit-access";
+import { getCurrentEmployee } from "../_lib/current-employee";
 import { EmployeeEntityRecord, EmployeeListResponse } from "./types";
 import { TenantResolvedSettingsResponse } from "../settings/types";
-import { EmployeesTable } from "./_components/employees-table";
-import { EmployeesCommandBar } from "./_components/employees-command-bar";
 import { DataTableFilterState } from "@/app/components/data-table/types";
+import {
+  buildEmployeeRuntimeContext,
+  resolveEmployeeRuntimeView,
+  resolveTenantRuntimeConfig,
+} from "@/lib/runtime";
 
 type EmployeesPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -45,35 +43,17 @@ export default async function EmployeesPage({
     );
   }
 
-  const user = await getSessionUser();
+  const [user, currentEmployeeContext] = await Promise.all([
+    getSessionUser(),
+    getCurrentEmployee(),
+  ]);
 
-  const canCreateEmployee = hasPermission(
-    user?.permissionKeys,
-    "employees.create",
-  );
-  const canDeleteEmployee = hasPermission(
-    user?.permissionKeys,
-    "employees.delete",
-  );
-  const canShareEmployee = hasPermission(
-    user?.permissionKeys,
-    "employees.share",
-  );
-  const canAssignEmployee = hasPermission(
-    user?.permissionKeys,
-    "employees.assign",
-  );
-  const canImportEmployee = hasPermission(
-    user?.permissionKeys,
-    "employees.import",
-  );
-  const canExportEmployee = hasPermission(
-    user?.permissionKeys,
-    "employees.export",
-  );
-
-  if (user && isSelfServiceUser(user.permissionKeys)) {
-    redirect("/me");
+  if (
+    user &&
+    isSelfServiceUser(user.permissionKeys) &&
+    !currentEmployeeContext.isReportingManager
+  ) {
+    redirect("/my-profile");
   }
 
   const params = await searchParams;
@@ -82,7 +62,7 @@ export default async function EmployeesPage({
   const reportingManagerEmployeeId = getSearchParam(
     params.reportingManagerEmployeeId,
   );
-  const selectedViewKey = getSearchParam(params.view);
+  const selectedViewId = getSearchParam(params.viewId);
   const page = getPositiveNumberParam(params.page, 1);
   const pageSize = getPositiveNumberParam(params.pageSize, 10);
   const orderBy = getSearchParam(params.orderBy);
@@ -117,14 +97,14 @@ export default async function EmployeesPage({
   const [employees, resolvedSettings, publishedViews] = await Promise.all([
     useEntityDataApi
       ? fetchEmployeesFromEntityData({
-        search,
-        employmentStatus,
-        reportingManagerEmployeeId,
-        orderBy,
-        columnFilters: columnFilters.tableFilters,
-        page,
-        pageSize,
-      })
+          search,
+          employmentStatus,
+          reportingManagerEmployeeId,
+          orderBy,
+          columnFilters: columnFilters.tableFilters,
+          page,
+          pageSize,
+        })
       : apiRequestJson<EmployeeListResponse>(`/employees?${query.toString()}`),
     apiRequestJson<TenantResolvedSettingsResponse>(
       "/tenant-settings/resolved",
@@ -154,24 +134,6 @@ export default async function EmployeesPage({
     },
   ]);
 
-  const selectedView =
-    employeeViews.find((view) => view.viewKey === selectedViewKey) ??
-    employeeViews.find((view) => view.isDefault) ??
-    employeeViews[0] ??
-    null;
-
-  const visibleColumnKeys = resolveVisibleColumns("employees", selectedView, [
-    "firstName",
-    "employeeCode",
-    "employmentStatus",
-    "managerEmployeeId",
-    "hireDate",
-    "email",
-  ]);
-
-  const viewState = resolveFiltersAndSorting("employees", selectedView);
-  const initialSort = resolveEmployeeSort(viewState.sorting);
-
   const formatting = {
     dateFormat: resolvedSettings?.system.dateFormat || "MM/dd/yyyy",
     locale: resolvedSettings?.system.locale || "en-US",
@@ -181,31 +143,70 @@ export default async function EmployeesPage({
       "UTC",
   };
 
+  const employeeRuntimeContext = buildEmployeeRuntimeContext({
+    tenant: resolveTenantRuntimeConfig({
+      tenantId: employees.items[0]?.tenantId,
+      tenantSlug: "current",
+      displayName: resolvedSettings?.organization.companyDisplayName,
+      locale: resolvedSettings?.system.locale,
+      timezone:
+        resolvedSettings?.organization.timezone ||
+        resolvedSettings?.system.defaultTimezone,
+      dateFormat: resolvedSettings?.system.dateFormat,
+      timeFormat: resolvedSettings?.system.timeFormat,
+      currencyCode:
+        resolvedSettings?.organization.currency ||
+        resolvedSettings?.system.defaultCurrency,
+      branding: {
+        appTitle: resolvedSettings?.branding.appTitle ?? "DijiPeople",
+        brandName: resolvedSettings?.branding.brandName ?? "DijiPeople",
+        logoUrl: resolvedSettings?.branding.logoUrl,
+        faviconUrl: resolvedSettings?.branding.faviconUrl,
+        primaryColor: resolvedSettings?.branding.primaryColor ?? "#2563eb",
+        secondaryColor: resolvedSettings?.branding.secondaryColor,
+        bodyFontFamilyKey: resolvedSettings?.branding.fontFamily,
+        headingFontFamilyKey: resolvedSettings?.branding.fontFamily,
+        density:
+          resolvedSettings?.system.uiDensity === "COMPACT"
+            ? "compact"
+            : resolvedSettings?.system.uiDensity === "SPACIOUS"
+              ? "spacious"
+              : "comfortable",
+      },
+    }),
+    principal: {
+      userId: user?.userId ?? "",
+      tenantId: employees.items[0]?.tenantId ?? "current",
+      displayName: user
+        ? [user.firstName, user.lastName].filter(Boolean).join(" ")
+        : null,
+      name: user
+        ? [user.firstName, user.lastName].filter(Boolean).join(" ")
+        : null,
+      email: user?.email,
+      roleKeys: user?.roleKeys ?? [],
+      roles: user?.roles ?? [],
+      permissionKeys: user?.permissionKeys ?? [],
+    },
+    forms: [],
+    views: employeeViews,
+  });
+
+  const activeRuntimeView = resolveEmployeeRuntimeView(
+    employeeRuntimeContext.metadata.views,
+    selectedViewId,
+  );
+
+  const { EmployeeRuntimeListWrapper } =
+    await import("./_components/employee-runtime-list-wrapper");
+
   return (
     <main className="dp-theme-scope dp-employees-scope grid gap-3">
-      <ModuleViewSelector
-        configureHref="/settings/customization/tables/employees"
-        enabled
-        selectedViewId={selectedView?.viewKey ?? ""}
-        views={employeeViews}
-      />
-
-      <EmployeesCommandBar
-        canCreateEmployee={canCreateEmployee}
-        canDeleteEmployee={canDeleteEmployee}
-        canShareEmployee={canShareEmployee}
-        canAssignEmployee={canAssignEmployee}
-        canImportEmployee={canImportEmployee}
-        canExportEmployee={canExportEmployee}
-      />
-
-      <EmployeesTable
+      <EmployeeRuntimeListWrapper
+        activeView={activeRuntimeView}
         employees={employees.items}
-        canDeleteEmployee={canDeleteEmployee}
-        canAssignEmployee={canAssignEmployee}
         formatting={formatting}
-        initialSortColumnKey={initialSort.columnKey}
-        initialSortDirection={initialSort.direction}
+        initialFilters={columnFilters.tableFilters}
         pagination={{
           page: employees.meta?.page ?? page,
           pageSize: employees.meta?.pageSize ?? pageSize,
@@ -216,18 +217,15 @@ export default async function EmployeesPage({
             employmentStatus,
             reportingManagerEmployeeId,
             orderBy,
+            viewId: activeRuntimeView?.viewId ?? activeRuntimeView?.id,
             ...columnFilters.searchParams,
           },
         }}
-        initialFilters={columnFilters.tableFilters}
-        useEntityDataApi={useEntityDataApi}
-        visibleColumnKeys={visibleColumnKeys}
+        runtime={employeeRuntimeContext}
       />
     </main>
   );
 }
-
-
 
 async function fetchEmployeesFromEntityData(input: {
   search: string;
@@ -254,21 +252,21 @@ async function fetchEmployeesFromEntityData(input: {
     filter: [
       ...(input.employmentStatus
         ? [
-          {
-            field: "employmentStatus",
-            operator: "eq" as const,
-            value: input.employmentStatus,
-          },
-        ]
+            {
+              field: "employmentStatus",
+              operator: "eq" as const,
+              value: input.employmentStatus,
+            },
+          ]
         : []),
       ...(input.reportingManagerEmployeeId
         ? [
-          {
-            field: "managerEmployeeId",
-            operator: "eq" as const,
-            value: input.reportingManagerEmployeeId,
-          },
-        ]
+            {
+              field: "managerEmployeeId",
+              operator: "eq" as const,
+              value: input.reportingManagerEmployeeId,
+            },
+          ]
         : []),
       ...mapEmployeeEntityFilters(input.columnFilters),
     ],
@@ -284,9 +282,8 @@ async function fetchEmployeesFromEntityData(input: {
     pageSize: input.pageSize,
   }).replace(/^\/api/, "");
 
-  const response = await apiRequestJson<EntityDataResponse<EmployeeEntityRecord>>(
-    url,
-  );
+  const response =
+    await apiRequestJson<EntityDataResponse<EmployeeEntityRecord>>(url);
 
   return {
     items: response.items.map(mapEntityEmployee),
@@ -323,13 +320,13 @@ function mapEntityEmployee(employee: EmployeeEntityRecord) {
 
   const manager = employee.manager
     ? {
-      ...employee.manager,
-      preferredName: null,
-      fullName: [employee.manager.firstName, employee.manager.lastName]
-        .filter(Boolean)
-        .join(" "),
-      employmentStatus: "ACTIVE" as const,
-    }
+        ...employee.manager,
+        preferredName: null,
+        fullName: [employee.manager.firstName, employee.manager.lastName]
+          .filter(Boolean)
+          .join(" "),
+        employmentStatus: "ACTIVE" as const,
+      }
     : null;
 
   return {
@@ -369,37 +366,6 @@ function mapEntityEmployee(employee: EmployeeEntityRecord) {
       documents: 0,
     },
   } as EmployeeListResponse["items"][number];
-}
-
-function resolveEmployeeSort(sorting: unknown) {
-  const firstSort = Array.isArray(sorting) ? sorting[0] : null;
-
-  const columnKey =
-    firstSort && typeof firstSort === "object"
-      ? (firstSort as { columnKey?: unknown }).columnKey
-      : null;
-
-  const direction =
-    firstSort && typeof firstSort === "object"
-      ? (firstSort as { direction?: unknown }).direction
-      : null;
-
-  const map: Record<string, string> = {
-    firstName: "employee",
-    lastName: "employee",
-    employeeCode: "code",
-    employmentStatus: "status",
-    managerEmployeeId: "reportingManager",
-    hireDate: "hireDate",
-    email: "contact",
-    phone: "contact",
-  };
-
-  return {
-    columnKey:
-      typeof columnKey === "string" ? map[columnKey] ?? "employee" : "employee",
-    direction: direction === "desc" ? ("desc" as const) : ("asc" as const),
-  };
 }
 
 function getSearchParam(value?: string | string[]) {

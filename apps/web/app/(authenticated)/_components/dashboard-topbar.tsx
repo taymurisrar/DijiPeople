@@ -46,10 +46,10 @@ export function DashboardTopbar({
               {tenantName || roleLabel}
             </p>
           </div>
-          <h1 className="truncate text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+          <h1 className="truncate text-lg font-semibold tracking-tight text-foreground sm:text-xl">
             {pageTitle}
           </h1>
-          <p className="text-sm text-muted sm:text-base">
+          <p className="text-xs text-muted sm:text-xs">
             {pageDescription}
           </p>
         </div>

@@ -4,8 +4,10 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, SecurityAccessLevel, SecurityPrivilege } from '@prisma/client';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
+import { resolveEffectiveAccessLevel } from '../../common/security/rbac-query-scope';
 import { AuditService } from '../audit/audit.service';
 import { EmployeesRepository } from '../employees/employees.repository';
 import { AssignProjectEmployeeDto } from './dto/assign-project-employee.dto';
@@ -25,10 +27,11 @@ export class ProjectsService {
     private readonly auditService: AuditService,
   ) {}
 
-  async findByTenant(tenantId: string, query: ProjectQueryDto) {
+  async findByTenant(currentUser: AuthenticatedUser, query: ProjectQueryDto) {
     const { items, total } = await this.projectsRepository.findByTenant(
-      tenantId,
+      currentUser.tenantId,
       query,
+      await this.buildProjectReadWhere(currentUser),
     );
 
     return {
@@ -74,11 +77,104 @@ export class ProjectsService {
     return this.mapProject(project);
   }
 
+  async findByIdForUser(currentUser: AuthenticatedUser, projectId: string) {
+    const project = await this.projectsRepository.findById(
+      currentUser.tenantId,
+      projectId,
+      await this.buildProjectReadWhere(currentUser),
+    );
+
+    if (!project) {
+      throw new NotFoundException('Project was not found for this tenant.');
+    }
+
+    return this.mapProject(project);
+  }
+
   findAssignedProjectsForEmployee(tenantId: string, employeeId: string) {
     return this.projectsRepository.findActiveAssignedProjectsForEmployee(
       tenantId,
       employeeId,
     );
+  }
+
+  private async buildProjectReadWhere(
+    currentUser: AuthenticatedUser,
+  ): Promise<Prisma.ProjectWhereInput> {
+    const accessLevel = resolveEffectiveAccessLevel(
+      currentUser,
+      ENTITY_KEYS.PROJECTS,
+      SecurityPrivilege.READ,
+    );
+
+    if (accessLevel === SecurityAccessLevel.TENANT) {
+      return {};
+    }
+
+    if (accessLevel === SecurityAccessLevel.NONE) {
+      return { id: '__rbac_no_access__' };
+    }
+
+    if (
+      accessLevel === SecurityAccessLevel.SELF ||
+      accessLevel === SecurityAccessLevel.USER
+    ) {
+      const employee = await this.employeesRepository.findByUserIdAndTenant(
+        currentUser.tenantId,
+        currentUser.userId,
+      );
+      return {
+        OR: [
+          { createdById: currentUser.userId },
+          ...(employee
+            ? [
+                {
+                  assignments: {
+                    some: {
+                      employeeId: employee.id,
+                      status: 'ACTIVE' as const,
+                    },
+                  },
+                },
+              ]
+            : []),
+        ],
+      };
+    }
+
+    if (
+      accessLevel === SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT ||
+      accessLevel === SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNITS
+    ) {
+      return {
+        businessUnitId: {
+          in: currentUser.accessContext?.businessUnitSubtreeIds ?? [],
+        },
+      };
+    }
+
+    if (accessLevel === SecurityAccessLevel.ORGANIZATION) {
+      return {
+        OR: [
+          {
+            organizationId:
+              currentUser.accessContext?.organizationId ??
+              '__rbac_no_organization__',
+          },
+          {
+            businessUnitId: {
+              in: currentUser.accessContext?.accessibleBusinessUnitIds ?? [],
+            },
+          },
+        ],
+      };
+    }
+
+    return {
+      businessUnitId:
+        currentUser.accessContext?.businessUnitId ??
+        '__rbac_no_business_unit__',
+    };
   }
 
   async create(currentUser: AuthenticatedUser, dto: CreateProjectDto) {

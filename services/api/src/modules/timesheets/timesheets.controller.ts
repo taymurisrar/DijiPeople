@@ -31,6 +31,7 @@ import { SubmitTimesheetDto } from './dto/submit-timesheet.dto';
 import { TimesheetQueryDto } from './dto/timesheet-query.dto';
 import { UpsertTimesheetEntriesDto } from './dto/upsert-timesheet-entries.dto';
 import { TimesheetsService } from './timesheets.service';
+import { AuditService } from '../audit/audit.service';
 
 type UploadedFileShape = {
   buffer: Buffer;
@@ -42,7 +43,10 @@ type UploadedFileShape = {
 @Controller('timesheets')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class TimesheetsController {
-  constructor(private readonly timesheetsService: TimesheetsService) {}
+  constructor(
+    private readonly timesheetsService: TimesheetsService,
+    private readonly auditService: AuditService,
+  ) {}
 
   @Get('mine/monthly')
   @Permissions('timesheets.read')
@@ -78,6 +82,30 @@ export class TimesheetsController {
     @Param('timesheetId', new ParseUUIDPipe()) timesheetId: string,
   ) {
     return this.timesheetsService.getTeamTimesheetById(user, timesheetId);
+  }
+
+  @Get(':timesheetId/timeline')
+  @Permissions('timesheets.read', 'timeline.read')
+  async getTimeline(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('timesheetId', new ParseUUIDPipe()) timesheetId: string,
+  ) {
+    await this.timesheetsService.getTimesheetById(user, timesheetId);
+    return this.auditService.listRecordTimeline({
+      tenantId: user.tenantId,
+      entityType: 'Timesheet',
+      entityId: timesheetId,
+      recordHref: `/timesheets/${timesheetId}`,
+    });
+  }
+
+  @Get(':timesheetId')
+  @Permissions('timesheets.read')
+  getTimesheet(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('timesheetId', new ParseUUIDPipe()) timesheetId: string,
+  ) {
+    return this.timesheetsService.getTimesheetById(user, timesheetId);
   }
 
   @Patch(':timesheetId/entries')

@@ -11,7 +11,11 @@ export default async function EditLocationPage({
   params,
 }: EditLocationPageProps) {
   const { id } = await params;
-  const location = await apiRequestJson<LocationRecord>(`/locations/${id}`);
+  const [location, workSchedules, holidayCalendars] = await Promise.all([
+    apiRequestJson<LocationRecord>(`/locations/${id}`),
+    apiRequestJson<Record<string, unknown>[]>("/work-schedules"),
+    apiRequestJson<Record<string, unknown>[]>("/holiday-calendars"),
+  ]);
 
   return (
     <SettingsShell
@@ -30,11 +34,26 @@ export default async function EditLocationPage({
           country: location.country,
           zipCode: location.zipCode || "",
           timezone: location.timezone || "",
+          latitude: location.latitude?.toString() ?? "",
+          longitude: location.longitude?.toString() ?? "",
+          allowedRadiusMeters: location.allowedRadiusMeters?.toString() ?? "",
+          defaultWorkScheduleId: location.defaultWorkScheduleId ?? "",
+          holidayCalendarId: location.holidayCalendarId ?? "",
           isActive: location.isActive,
         }}
+        holidayCalendars={toLookupOptions(holidayCalendars)}
         locationId={location.id}
         mode="edit"
+        workSchedules={toLookupOptions(workSchedules)}
       />
     </SettingsShell>
+  );
+}
+
+function toLookupOptions(records: Record<string, unknown>[]) {
+  return records.flatMap((record) =>
+    typeof record.id === "string" && typeof record.name === "string"
+      ? [{ id: record.id, name: record.name }]
+      : [],
   );
 }

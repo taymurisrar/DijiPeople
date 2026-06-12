@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit3, Plus, Trash2 } from "lucide-react";
+import { Edit3, GripVertical, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
 import { DataTable } from "@/app/components/data-table/data-table";
@@ -10,32 +10,39 @@ import { Button } from "@/app/components/ui/button";
 import { EmptyState } from "@/app/components/ui/empty-state";
 import {
   CheckboxField,
-  NumberField,
   SelectField,
-  TextAreaField,
   TextField,
 } from "@/app/components/ui/form-control";
 import { SectionCard } from "@/app/components/ui/section-card";
 import { StatusPill } from "@/app/components/ui/status-pill";
 import { PermissionGate } from "@/app/(authenticated)/_components/permission-gate";
-import { CustomizationColumn, CustomizationTable } from "../types";
+import { SYSTEM_COMPONENT_CUSTOMIZATION_MESSAGE } from "@/lib/customization/metadata-layering";
+import {
+  CustomizationColumn,
+  CustomizationPackage,
+  CustomizationTable,
+} from "../types";
+import { CustomPackagePickerDialog } from "./custom-package-picker-dialog";
 
 const fieldTypeOptions = [
   "text",
-  "textarea",
   "number",
-  "decimal",
   "date",
   "datetime",
   "boolean",
-  "select",
-  "multiselect",
-  "lookup",
   "email",
   "phone",
-  "url",
-  "currency",
-].map((value) => ({ value, label: value }));
+  "reference",
+  "choice",
+  "multilineText",
+].map((value) => ({ value, label: fieldTypeLabel(value) }));
+
+type ChoiceOptionRow = {
+  id: string;
+  label: string;
+  value: string;
+  active: boolean;
+};
 
 type ColumnFormState = {
   mode: "create" | "edit";
@@ -51,17 +58,19 @@ type ColumnFormState = {
   maxLength: number | null;
   defaultValue: string;
   lookupTargetTableKey: string;
-  optionSetText: string;
+  optionRows: ChoiceOptionRow[];
   sortOrder: number | null;
 };
 
 export function ColumnsManagement({
   columns,
   lookupTables,
+  packages,
   table,
 }: {
   columns: CustomizationColumn[];
   lookupTables: CustomizationTable[];
+  packages: CustomizationPackage[];
   table: CustomizationTable;
 }) {
   const router = useRouter();
@@ -71,10 +80,21 @@ export function ColumnsManagement({
   );
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedPackageId, setSelectedPackageId] = useState(
+    packages.find((item) => item.type === "custom" && !item.isReadOnly)?.id ??
+      "",
+  );
+  const [pendingSystemColumn, setPendingSystemColumn] =
+    useState<CustomizationColumn | null>(null);
+  const selectedPackage = useMemo(
+    () =>
+      packages.find((item) => item.id === selectedPackageId) ??
+      packages.find((item) => item.type === "custom" && !item.isReadOnly),
+    [packages, selectedPackageId],
+  );
+  const publisherPrefix = packagePrefix(selectedPackage);
 
-  // eslint-disable-next-line react-hooks/preserve-manual-memoization
-  const tableColumns = useMemo<DataTableColumn<CustomizationColumn>[]>(
-    () => [
+  const tableColumns: DataTableColumn<CustomizationColumn>[] = [
       {
         key: "displayName",
         header: "Display name",
@@ -85,6 +105,18 @@ export function ColumnsManagement({
             <p className="font-semibold text-foreground">{row.displayName}</p>
             <p className="mt-1 text-xs text-muted">{row.columnKey}</p>
           </div>
+        ),
+      },
+      {
+        key: "logicalName",
+        header: "Logical name",
+        searchable: true,
+        sortable: true,
+        sortAccessor: (row) => row.columnKey,
+        render: (row) => (
+          <code className="rounded-md bg-slate-100 px-2 py-1 text-xs">
+            {row.columnKey}
+          </code>
         ),
       },
       {
@@ -100,32 +132,38 @@ export function ColumnsManagement({
         ),
       },
       {
-        key: "state",
-        header: "Rules",
-        render: (row) => (
-          <div className="flex flex-wrap gap-2">
-            <StatusPill tone={row.isRequired ? "neutral" : "muted"}>
-              {row.isRequired ? "Required" : "Optional"}
-            </StatusPill>
-            <StatusPill tone={row.isVisible ? "good" : "muted"}>
-              {row.isVisible ? "Visible" : "Hidden"}
-            </StatusPill>
-          </div>
-        ),
+        key: "required",
+        header: "Required",
+        filterable: true,
+        filterType: "select",
+        filterAccessor: (row) => (row.isRequired ? "Yes" : "No"),
+        filterOptions: [
+          { label: "Required", value: "Yes" },
+          { label: "Optional", value: "No" },
+        ],
+        render: (row) => (row.isRequired ? "Yes" : "No"),
       },
       {
-        key: "search",
-        header: "Search / sort",
+        key: "capabilities",
+        header: "Search / filter / sort",
         render: (row) => (
-          <div className="space-y-1 text-sm text-muted">
-            <p>Searchable: {row.isSearchable ? "Yes" : "No"}</p>
-            <p>Sortable: {row.isSortable ? "Yes" : "No"}</p>
+          <div className="space-y-1 text-xs text-muted">
+            <p>Searchable: {yesNo(row.isSearchable)}</p>
+            <p>Filterable: {yesNo(row.isFilterable)}</p>
+            <p>Sortable: {yesNo(row.isSortable)}</p>
           </div>
         ),
       },
       {
         key: "source",
         header: "Source",
+        filterable: true,
+        filterType: "select",
+        filterAccessor: (row) => (row.isSystem ? "System" : "Custom"),
+        filterOptions: [
+          { label: "System", value: "System" },
+          { label: "Custom", value: "Custom" },
+        ],
         render: (row) => (
           <StatusPill tone={row.isSystem ? "muted" : "neutral"}>
             {row.isSystem ? "System" : "Custom"}
@@ -133,18 +171,37 @@ export function ColumnsManagement({
         ),
       },
       {
-        key: "maxLength",
-        header: "Max length",
-        sortable: true,
-        sortAccessor: (row) => row.maxLength ?? 0,
-        render: (row) => row.maxLength ?? "-",
+        key: "package",
+        header: "Package",
+        render: (row) => (row.isSystem ? "Default Package" : "Custom Package"),
       },
       {
-        key: "order",
-        header: "Order",
-        sortable: true,
-        sortAccessor: (row) => row.sortOrder,
-        render: (row) => row.sortOrder,
+        key: "lifecycle",
+        header: "Lifecycle",
+        render: (row) => (
+          <StatusPill tone={row.isSystem ? "good" : "muted"}>
+            {stateLabel(
+              row.lifecycleState ?? (row.isSystem ? "published" : "draft"),
+            )}
+          </StatusPill>
+        ),
+      },
+      {
+        key: "status",
+        header: "Status",
+        filterable: true,
+        filterType: "select",
+        filterAccessor: (row) =>
+          row.isActive === false ? "Inactive" : "Active",
+        filterOptions: [
+          { label: "Active", value: "Active" },
+          { label: "Inactive", value: "Inactive" },
+        ],
+        render: (row) => (
+          <StatusPill tone={row.isActive === false ? "muted" : "good"}>
+            {row.isActive === false ? "Inactive" : "Active"}
+          </StatusPill>
+        ),
       },
       {
         key: "actions",
@@ -156,10 +213,11 @@ export function ColumnsManagement({
                 leftIcon={<Edit3 className="h-4 w-4" />}
                 onClick={() => openEdit(row)}
                 size="sm"
+                title="Edit field"
                 type="button"
                 variant="secondary"
               >
-                Edit
+                Edit/Rename
               </Button>
             </PermissionGate>
             {!row.isSystem ? (
@@ -178,9 +236,7 @@ export function ColumnsManagement({
           </div>
         ),
       },
-    ],
-    [],
-  );
+    ];
 
   function openCreate() {
     setError(null);
@@ -197,14 +253,22 @@ export function ColumnsManagement({
       maxLength: null,
       defaultValue: "",
       lookupTargetTableKey: "",
-      optionSetText: "",
+      optionRows: [],
       sortOrder: nextSortOrder(columns),
     });
   }
 
   function openEdit(column: CustomizationColumn) {
     setError(null);
-    setForm({
+    if (column.isSystem) {
+      setPendingSystemColumn(column);
+      return;
+    }
+    setForm(toColumnFormState(column));
+  }
+
+  function toColumnFormState(column: CustomizationColumn): ColumnFormState {
+    return {
       mode: "edit",
       original: column,
       columnKey: column.columnKey,
@@ -218,13 +282,30 @@ export function ColumnsManagement({
       maxLength: column.maxLength,
       defaultValue: column.defaultValue ?? "",
       lookupTargetTableKey: column.lookupTargetTableKey ?? "",
-      optionSetText: optionSetToText(column.optionSetJson),
+      optionRows: optionSetToRows(column.optionSetJson),
       sortOrder: column.sortOrder,
-    });
+    };
   }
 
   function updateForm(patch: Partial<ColumnFormState>) {
     setForm((current) => (current ? { ...current, ...patch } : current));
+  }
+
+  function updateDisplayName(displayName: string) {
+    setForm((current) => {
+      if (!current) return current;
+      if (current.mode === "edit") return { ...current, displayName };
+
+      return {
+        ...current,
+        displayName,
+        columnKey:
+          current.columnKey &&
+          current.columnKey !== generatedFieldKey(current.displayName, publisherPrefix)
+            ? current.columnKey
+            : generatedFieldKey(displayName, publisherPrefix),
+      };
+    });
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -241,6 +322,9 @@ export function ColumnsManagement({
     setError(null);
 
     const body = buildPayload(form);
+    if (form.mode === "edit" && form.original?.isSystem) {
+      body.packageId = selectedPackageId;
+    }
     const response = await fetch(
       form.mode === "create"
         ? `/api/customization/tables/${table.tableKey}/columns`
@@ -257,12 +341,18 @@ export function ColumnsManagement({
 
     setIsSaving(false);
     if (!response.ok) {
-      setError(data.message ?? "Unable to save column metadata.");
+      setError(data.message ?? "Unable to save field metadata.");
       return;
     }
 
     setForm(null);
     router.refresh();
+  }
+
+  function continueSystemColumnEdit() {
+    if (!pendingSystemColumn) return;
+    setForm(toColumnFormState(pendingSystemColumn));
+    setPendingSystemColumn(null);
   }
 
   async function handleDelete() {
@@ -277,7 +367,7 @@ export function ColumnsManagement({
     };
 
     if (!response.ok) {
-      setError(data.message ?? "Unable to delete column.");
+      setError(data.message ?? "Unable to delete field.");
       return;
     }
 
@@ -287,13 +377,13 @@ export function ColumnsManagement({
 
   return (
     <SectionCard
-      description="System columns can be relabeled, hidden, reordered, and adjusted only where safe. Custom columns are metadata fields on this existing system table."
-      title="Columns"
+      description="System fields can be relabeled and adjusted only where safe. Custom fields are package-owned metadata components on this module."
+      title="Fields"
     >
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted">
-          {columns.length} column{columns.length === 1 ? "" : "s"} configured
-          for {table.pluralDisplayName}.
+          {columns.length} field{columns.length === 1 ? "" : "s"} configured for{" "}
+          {table.pluralDisplayName}.
         </p>
         <PermissionGate anyOf={["customization.columns.create"]}>
           <Button
@@ -301,7 +391,7 @@ export function ColumnsManagement({
             onClick={openCreate}
             type="button"
           >
-            Add custom column
+            Add custom field
           </Button>
         </PermissionGate>
       </div>
@@ -313,23 +403,27 @@ export function ColumnsManagement({
       ) : null}
 
       <DataTable
+        className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm"
         columns={tableColumns}
         emptyState={
           <EmptyState
             action={
               <PermissionGate anyOf={["customization.columns.create"]}>
                 <Button onClick={openCreate} type="button" variant="secondary">
-                  Add custom column
+                  Add custom field
                 </Button>
               </PermissionGate>
             }
-            description="This table has no registered columns yet."
-            title="No columns"
+            description="This module has no registered fields yet."
+            title="No fields"
           />
         }
         getRowKey={(row) => row.columnKey}
-        initialSort={{ columnKey: "order", direction: "asc" }}
+        initialSort={{ columnKey: "displayName", direction: "asc" }}
+        pagination={{ page: 1, pageSize: 10, total: columns.length }}
         rows={columns}
+        searchPlaceholder="Search fields"
+        tableClassName="min-w-[1060px] divide-y divide-border text-xs"
       />
 
       {form ? (
@@ -340,12 +434,12 @@ export function ColumnsManagement({
           >
             <div>
               <h3 className="text-lg font-semibold text-foreground">
-                {form.mode === "create" ? "Add custom column" : "Edit column"}
+                {form.mode === "create" ? "Add custom field" : "Edit field"}
               </h3>
               <p className="mt-1 text-sm leading-6 text-muted">
                 {form.original?.isSystem
-                  ? "This is a system column. Core type and identity changes are protected."
-                  : "Configure metadata for a tenant-managed custom column."}
+                  ? "This is a system field. Core type and identity changes are protected."
+                  : "Configure metadata for a tenant-managed custom field."}
               </p>
             </div>
 
@@ -359,15 +453,15 @@ export function ColumnsManagement({
             <div className="grid gap-4 md:grid-cols-2">
               <TextField
                 disabled={form.mode === "edit"}
-                hint="Use camelCase. This key cannot be changed after creation."
-                label="Column key"
+                hint={`Generated from display name with publisher prefix ${publisherPrefix}. This logical name is locked after creation.`}
+                label="Field logical name"
                 onChange={(columnKey) => updateForm({ columnKey })}
                 required
                 value={form.columnKey}
               />
               <TextField
                 label="Display name"
-                onChange={(displayName) => updateForm({ displayName })}
+                onChange={updateDisplayName}
                 required
                 value={form.displayName}
               />
@@ -375,7 +469,7 @@ export function ColumnsManagement({
                 disabled={form.mode === "edit"}
                 hint={
                   form.mode === "edit"
-                    ? "Column data type is locked after creation."
+                    ? "Field data type is locked after creation."
                     : "Choose the storage and editor data type."
                 }
                 label="Field type"
@@ -384,18 +478,16 @@ export function ColumnsManagement({
                 required
                 value={form.fieldType}
               />
-              <NumberField
-                label="Sort order"
-                min={0}
-                onChange={(sortOrder) => updateForm({ sortOrder })}
-                value={form.sortOrder}
-              />
-              <NumberField
+              <TextField
                 disabled={!supportsMaxLength(form.fieldType)}
                 label="Max length"
-                min={1}
-                onChange={(maxLength) => updateForm({ maxLength })}
-                value={form.maxLength}
+                onChange={(maxLength) =>
+                  updateForm({
+                    maxLength: maxLength ? Number(maxLength) : null,
+                  })
+                }
+                type="text"
+                value={form.maxLength == null ? "" : String(form.maxLength)}
               />
               <TextField
                 label="Default value"
@@ -403,8 +495,8 @@ export function ColumnsManagement({
                 value={form.defaultValue}
               />
               <SelectField
-                disabled={form.fieldType !== "lookup"}
-                label="Lookup target"
+                disabled={form.fieldType !== "reference"}
+                label="Reference target"
                 onChange={(lookupTargetTableKey) =>
                   updateForm({ lookupTargetTableKey })
                 }
@@ -442,15 +534,12 @@ export function ColumnsManagement({
                   onChange={(isSortable) => updateForm({ isSortable })}
                 />
               </div>
-              <TextAreaField
-                className="md:col-span-2"
-                disabled={!["select", "multiselect"].includes(form.fieldType)}
-                hint="Enter one option per line. Used for select and multiselect fields."
-                label="Option values"
-                onChange={(optionSetText) => updateForm({ optionSetText })}
-                rows={5}
-                value={form.optionSetText}
-              />
+              {form.fieldType === "choice" ? (
+                <ChoiceOptionsEditor
+                  onChange={(optionRows) => updateForm({ optionRows })}
+                  rows={form.optionRows}
+                />
+              ) : null}
             </div>
 
             {error ? <p className="text-sm text-danger">{error}</p> : null}
@@ -467,7 +556,7 @@ export function ColumnsManagement({
                 Cancel
               </Button>
               <Button loading={isSaving} loadingText="Saving..." type="submit">
-                Save column
+                Save field
               </Button>
             </div>
           </form>
@@ -476,26 +565,38 @@ export function ColumnsManagement({
 
       <ConfirmDialog
         confirmAction={{
-          label: "Delete column",
+          label: "Delete field",
           onClick: handleDelete,
           variant: "danger",
         }}
         description={
           deleteTarget
-            ? `Delete ${deleteTarget.displayName}? This only removes tenant custom metadata.`
+            ? `Delete ${deleteTarget.displayName}? System fields cannot be deleted, and custom fields with dependencies are blocked by the server.`
             : undefined
         }
         onClose={() => setDeleteTarget(null)}
         open={Boolean(deleteTarget)}
-        title="Delete custom column"
+        title="Delete custom field"
+      />
+      <CustomPackagePickerDialog
+        message={SYSTEM_COMPONENT_CUSTOMIZATION_MESSAGE}
+        onClose={() => setPendingSystemColumn(null)}
+        onConfirm={continueSystemColumnEdit}
+        open={Boolean(pendingSystemColumn)}
+        packages={packages}
+        selectedPackageId={selectedPackageId}
+        setSelectedPackageId={setSelectedPackageId}
       />
     </SectionCard>
   );
 }
 
 function validateForm(form: ColumnFormState, columns: CustomizationColumn[]) {
-  if (!/^[a-z][a-zA-Z0-9]*$/.test(form.columnKey)) {
-    return "Column key must use camelCase and start with a lowercase letter.";
+  if (
+    form.mode === "create" &&
+    !/^[a-z][a-z0-9]*_[a-z][a-zA-Z0-9]*$/.test(form.columnKey)
+  ) {
+    return "Field logical name must use the publisher prefix and camelCase, for example mt_passportExpiryDate.";
   }
   if (!form.displayName.trim()) {
     return "Display name is required.";
@@ -504,25 +605,25 @@ function validateForm(form: ColumnFormState, columns: CustomizationColumn[]) {
     form.mode === "create" &&
     columns.some((column) => column.columnKey === form.columnKey)
   ) {
-    return "A column with this key already exists.";
+    return "A field with this logical name already exists.";
   }
   if (form.original?.isSystem && form.fieldType !== form.original.fieldType) {
-    return "System column field types cannot be changed.";
+    return "System field types cannot be changed.";
   }
   if (form.original?.isSystem && form.original.isRequired && !form.isRequired) {
-    return "Required system columns cannot be made optional.";
+    return "Required system fields cannot be made optional.";
   }
-  if (form.fieldType === "lookup" && !form.lookupTargetTableKey) {
-    return "Lookup fields require a target table.";
+  if (form.fieldType === "reference" && !form.lookupTargetTableKey) {
+    return "Reference fields require a target module.";
   }
   if (
-    ["select", "multiselect"].includes(form.fieldType) &&
-    parseOptions(form.optionSetText).length === 0
+    form.fieldType === "choice" &&
+    activeOptionRows(form.optionRows).length === 0
   ) {
-    return "Select and multiselect fields require at least one option.";
+    return "Choice fields require at least one active option.";
   }
   if (form.mode === "edit" && form.original?.fieldType !== form.fieldType) {
-    return "Column data type cannot be changed after creation.";
+    return "Field data type cannot be changed after creation.";
   }
 
   return null;
@@ -531,7 +632,7 @@ function validateForm(form: ColumnFormState, columns: CustomizationColumn[]) {
 function buildPayload(form: ColumnFormState) {
   const payload: Record<string, unknown> = {
     displayName: form.displayName.trim(),
-    fieldType: form.fieldType,
+    fieldType: apiFieldType(form.fieldType),
     isRequired: form.isRequired,
     isVisible: form.isVisible,
     isSearchable: form.isSearchable,
@@ -540,23 +641,24 @@ function buildPayload(form: ColumnFormState) {
     maxLength: supportsMaxLength(form.fieldType) ? form.maxLength : null,
     defaultValue: form.defaultValue || undefined,
     lookupTargetTableKey:
-      form.fieldType === "lookup" ? form.lookupTargetTableKey : undefined,
-    optionSetJson: ["select", "multiselect"].includes(form.fieldType)
-      ? { options: parseOptions(form.optionSetText) }
-      : undefined,
+      form.fieldType === "reference" ? form.lookupTargetTableKey : undefined,
+    optionSetJson:
+      form.fieldType === "choice"
+        ? { options: activeOptionRows(form.optionRows) }
+        : undefined,
     sortOrder: form.sortOrder ?? 0,
   };
 
   if (form.mode === "create") {
     payload.columnKey = form.columnKey;
-    payload.dataType = form.fieldType;
+    payload.dataType = apiFieldType(form.fieldType);
   }
 
   return payload;
 }
 
 function supportsMaxLength(fieldType: string) {
-  return ["text", "textarea", "email", "phone", "url"].includes(fieldType);
+  return ["text", "multilineText", "email", "phone"].includes(fieldType);
 }
 
 function nextSortOrder(columns: CustomizationColumn[]) {
@@ -565,22 +667,192 @@ function nextSortOrder(columns: CustomizationColumn[]) {
   );
 }
 
-function parseOptions(value: string) {
-  return value
-    .split(/\r?\n/)
-    .map((item) => item.trim())
-    .filter(Boolean);
+function optionSetToRows(optionSetJson: CustomizationColumn["optionSetJson"]) {
+  const options = optionSetJson?.options;
+  if (!Array.isArray(options)) return [];
+  return options
+    .map((option, index) => {
+      const label =
+        typeof option === "string"
+          ? option
+          : (option.label ?? option.value ?? "").trim();
+      const value =
+        typeof option === "string"
+          ? toChoiceValue(option)
+          : (option.value ?? toChoiceValue(label)).trim();
+
+      return {
+        id: `${index}-${value || label}`,
+        label,
+        value,
+        active: true,
+      };
+    })
+    .filter((option) => option.label && option.value);
 }
 
-function optionSetToText(optionSetJson: CustomizationColumn["optionSetJson"]) {
-  const options = optionSetJson?.options;
-  if (!Array.isArray(options)) return "";
-  return options
-    .map((option) =>
-      typeof option === "string"
-        ? option
-        : (option.label ?? option.value ?? "").trim(),
-    )
-    .filter(Boolean)
-    .join("\n");
+function activeOptionRows(rows: readonly ChoiceOptionRow[]) {
+  return rows
+    .filter((row) => row.active && row.label.trim() && row.value.trim())
+    .map((row) => ({
+      label: row.label.trim(),
+      value: row.value.trim(),
+      active: row.active,
+    }));
+}
+
+function generatedFieldKey(displayName: string, prefix = "dp_") {
+  const base = toCamelCase(displayName);
+  return base ? `${prefix}${base}` : "";
+}
+
+function packagePrefix(item?: CustomizationPackage) {
+  const value = item?.prefix || item?.publisher?.prefix || "dp_";
+  const cleaned = value
+    .replace(/_+$/g, "")
+    .replace(/[^a-zA-Z0-9]/g, "")
+    .toLowerCase();
+
+  return cleaned ? `${cleaned}_` : "";
+}
+
+function toCamelCase(value: string) {
+  const words = value
+    .trim()
+    .replace(/[^a-zA-Z0-9]+/g, " ")
+    .split(" ")
+    .filter(Boolean);
+
+  return words
+    .map((word, index) => {
+      const lower = word.toLowerCase();
+      return index === 0
+        ? lower
+        : `${lower[0]?.toUpperCase() ?? ""}${lower.slice(1)}`;
+    })
+    .join("");
+}
+
+function toChoiceValue(label: string) {
+  return toCamelCase(label);
+}
+
+function yesNo(value: unknown) {
+  return value ? "Yes" : "No";
+}
+
+function fieldTypeLabel(value: string) {
+  const labels: Record<string, string> = {
+    multilineText: "multiline text",
+    reference: "reference",
+    choice: "choice",
+  };
+
+  return labels[value] ?? value;
+}
+
+function stateLabel(value: string) {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function apiFieldType(value: string) {
+  const map: Record<string, string> = {
+    reference: "lookup",
+    choice: "select",
+    multilineText: "textarea",
+  };
+
+  return map[value] ?? value;
+}
+
+function ChoiceOptionsEditor({
+  onChange,
+  rows,
+}: {
+  readonly onChange: (rows: ChoiceOptionRow[]) => void;
+  readonly rows: readonly ChoiceOptionRow[];
+}) {
+  function updateRow(id: string, patch: Partial<ChoiceOptionRow>) {
+    onChange(
+      rows.map((row) => {
+        if (row.id !== id) return row;
+        const next = { ...row, ...patch };
+        if (
+          patch.label !== undefined &&
+          row.value === toChoiceValue(row.label)
+        ) {
+          next.value = toChoiceValue(patch.label);
+        }
+        return next;
+      }),
+    );
+  }
+
+  function addRow() {
+    onChange([
+      ...rows,
+      { id: crypto.randomUUID(), label: "", value: "", active: true },
+    ]);
+  }
+
+  return (
+    <div className="md:col-span-2 rounded-lg border border-border bg-slate-50 p-3">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-foreground">
+            Choice options
+          </p>
+          <p className="text-xs text-muted">
+            Define labels, stable values, and active state.
+          </p>
+        </div>
+        <Button onClick={addRow} size="sm" type="button" variant="secondary">
+          Add option
+        </Button>
+      </div>
+
+      <div className="grid gap-2">
+        {rows.map((row, index) => (
+          <div
+            className="grid gap-2 rounded-md border border-border bg-white p-2 md:grid-cols-[auto_1fr_1fr_auto_auto]"
+            key={row.id}
+          >
+            <span className="flex h-10 items-center text-muted">
+              <GripVertical className="h-4 w-4" />
+            </span>
+            <TextField
+              label={`Label ${index + 1}`}
+              onChange={(label) => updateRow(row.id, { label })}
+              value={row.label}
+            />
+            <TextField
+              label="Value/key"
+              onChange={(value) => updateRow(row.id, { value })}
+              value={row.value}
+            />
+            <CheckboxField
+              checked={row.active}
+              label="Active"
+              onChange={(active) => updateRow(row.id, { active })}
+            />
+            <Button
+              onClick={() =>
+                onChange(rows.filter((item) => item.id !== row.id))
+              }
+              size="sm"
+              type="button"
+              variant="ghost"
+            >
+              Remove
+            </Button>
+          </div>
+        ))}
+        {rows.length === 0 ? (
+          <div className="rounded-md border border-dashed border-border bg-white px-3 py-6 text-center text-sm text-muted">
+            No options yet.
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
 }

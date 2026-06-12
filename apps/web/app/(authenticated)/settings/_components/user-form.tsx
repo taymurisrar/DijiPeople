@@ -1,23 +1,38 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Button } from "@/app/components/ui/button";
+import { LookupField, TextField } from "@/app/components/ui/form-control";
 import { SectionCard } from "@/app/components/ui/section-card";
 import { AccessUserRecord, BusinessUnitRecord } from "../types";
 
 type UserFormProps = {
   businessUnits: BusinessUnitRecord[];
+  employees?: Array<{
+    id: string;
+    employeeCode: string;
+    fullName: string;
+    workEmail?: string | null;
+    userId?: string | null;
+  }>;
   user?: AccessUserRecord;
 };
 
-export function UserForm({ businessUnits, user }: UserFormProps) {
+export function UserForm({
+  businessUnits,
+  employees = [],
+  user,
+}: UserFormProps) {
   const router = useRouter();
   const [firstName, setFirstName] = useState(user?.firstName ?? "");
   const [lastName, setLastName] = useState(user?.lastName ?? "");
   const [email, setEmail] = useState(user?.email ?? "");
   const [password, setPassword] = useState("");
-  const [businessUnitId, setBusinessUnitId] = useState(user?.businessUnitId ?? "");
+  const [businessUnitId, setBusinessUnitId] = useState(
+    user?.businessUnitId ?? "",
+  );
+  const [employeeId, setEmployeeId] = useState(user?.linkedEmployee?.id ?? "");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -26,17 +41,21 @@ export function UserForm({ businessUnits, user }: UserFormProps) {
     setError("");
 
     try {
-      const response = await fetch(user ? `/api/users/${user.userId}` : "/api/users", {
-        method: user ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          firstName,
-          lastName,
-          email,
-          businessUnitId,
-          ...(user ? {} : { password }),
-        }),
-      });
+      const response = await fetch(
+        user ? `/api/users/${user.userId}` : "/api/users",
+        {
+          method: user ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            firstName,
+            lastName,
+            email,
+            businessUnitId,
+            ...(!user && employeeId ? { employeeId } : {}),
+            ...(user ? {} : { password }),
+          }),
+        },
+      );
       const payload = (await response.json().catch(() => null)) as
         | AccessUserRecord
         | { message?: string }
@@ -51,7 +70,7 @@ export function UserForm({ businessUnits, user }: UserFormProps) {
         return;
       }
 
-      router.push(`/settings/access/users/${payload.userId}`);
+      router.push(`/settings/security-access/users/${payload.userId}`);
       router.refresh();
     } catch {
       setError("User save failed. Check that the API is running.");
@@ -62,57 +81,67 @@ export function UserForm({ businessUnits, user }: UserFormProps) {
 
   return (
     <SectionCard
-      description="Create the tenant account first, then link it to an employee and assign roles from the access page."
+      description="Create the tenant identity, optionally link an existing employee, then assign roles from the access page."
       title={user ? "Edit User" : "Create User"}
     >
       <div className="grid gap-4 md:grid-cols-2">
-        <FormField label="First name">
-          <input
-            className="rounded-2xl border border-border bg-white px-4 py-3 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
-            onChange={(event) => setFirstName(event.target.value)}
-            value={firstName}
-          />
-        </FormField>
-        <FormField label="Last name">
-          <input
-            className="rounded-2xl border border-border bg-white px-4 py-3 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
-            onChange={(event) => setLastName(event.target.value)}
-            value={lastName}
-          />
-        </FormField>
-        <FormField label="Work email">
-          <input
-            className="rounded-2xl border border-border bg-white px-4 py-3 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
-            onChange={(event) => setEmail(event.target.value)}
-            type="email"
-            value={email}
-          />
-        </FormField>
+        <TextField
+          label="First name"
+          onChange={setFirstName}
+          required
+          value={firstName}
+        />
+        <TextField
+          label="Last name"
+          onChange={setLastName}
+          required
+          value={lastName}
+        />
+        <TextField
+          label="Work email"
+          onChange={setEmail}
+          required
+          type="email"
+          value={email}
+        />
         {!user ? (
-          <FormField label="Temporary password">
-            <input
-              className="rounded-2xl border border-border bg-white px-4 py-3 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
-              onChange={(event) => setPassword(event.target.value)}
-              type="password"
-              value={password}
-            />
-          </FormField>
+          <TextField
+            hint="At least 8 characters. The user can change it after signing in."
+            label="Temporary password"
+            onChange={setPassword}
+            required
+            type="password"
+            value={password}
+          />
         ) : null}
-        <FormField label="Business unit">
-          <select
-            className="rounded-2xl border border-border bg-white px-4 py-3 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
-            onChange={(event) => setBusinessUnitId(event.target.value)}
-            value={businessUnitId}
-          >
-            <option value="">Select business unit</option>
-            {businessUnits.map((unit) => (
-              <option key={unit.id} value={unit.id}>
-                {unit.name}
-                {unit.organization?.name ? ` (${unit.organization.name})` : ""}
-              </option>
-            ))}
-          </select>
-        </FormField>
+        <LookupField
+          label="Business unit"
+          onChange={setBusinessUnitId}
+          options={businessUnits.map((unit) => ({
+            id: unit.id,
+            name: unit.name,
+            subtitle: unit.organization?.name,
+          }))}
+          placeholder="Select business unit"
+          value={businessUnitId}
+        />
+        {!user ? (
+          <LookupField
+            hint="Only employees that are not already linked to a user are available."
+            label="Link employee"
+            onChange={setEmployeeId}
+            options={employees
+              .filter((employee) => !employee.userId)
+              .map((employee) => ({
+                id: employee.id,
+                name: employee.fullName,
+                code: employee.employeeCode,
+                subtitle: employee.workEmail,
+              }))}
+            placeholder="Select an employee"
+            value={employeeId}
+          />
+        ) : null}
       </div>
 
       {error ? (
@@ -122,37 +151,13 @@ export function UserForm({ businessUnits, user }: UserFormProps) {
       ) : null}
 
       <div className="mt-6 flex flex-wrap gap-3">
-        <button
-          className="rounded-2xl bg-accent px-5 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:opacity-70"
-          disabled={saving}
-          onClick={save}
-          type="button"
-        >
+        <Button disabled={saving} onClick={save} type="button">
           {saving ? "Saving..." : user ? "Save user" : "Create user"}
-        </button>
-        <button
-          className="rounded-2xl border border-border px-5 py-3 text-sm font-medium text-foreground"
-          onClick={() => router.back()}
-          type="button"
-        >
+        </Button>
+        <Button onClick={() => router.back()} type="button" variant="secondary">
           Cancel
-        </button>
+        </Button>
       </div>
     </SectionCard>
-  );
-}
-
-function FormField({
-  children,
-  label,
-}: {
-  children: ReactNode;
-  label: string;
-}) {
-  return (
-    <label className="grid gap-2 text-sm">
-      <span className="font-medium text-foreground">{label}</span>
-      {children}
-    </label>
   );
 }

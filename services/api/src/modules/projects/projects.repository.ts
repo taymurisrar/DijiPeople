@@ -70,9 +70,12 @@ export class ProjectsRepository {
   async findByTenant(
     tenantId: string,
     query: ProjectQueryDto,
+    accessWhere: Prisma.ProjectWhereInput = {},
     db: PrismaDb = this.prisma,
   ) {
-    const where: Prisma.ProjectWhereInput = { tenantId };
+    const where: Prisma.ProjectWhereInput = {
+      AND: [{ tenantId }, accessWhere],
+    };
 
     if (query.status) {
       where.status = query.status;
@@ -101,9 +104,14 @@ export class ProjectsRepository {
     return { items, total };
   }
 
-  findById(tenantId: string, id: string, db: PrismaDb = this.prisma) {
+  findById(
+    tenantId: string,
+    id: string,
+    accessWhere: Prisma.ProjectWhereInput = {},
+    db: PrismaDb = this.prisma,
+  ) {
     return db.project.findFirst({
-      where: { tenantId, id },
+      where: { AND: [{ tenantId, id }, accessWhere] },
       include: projectInclude,
     });
   }

@@ -9,8 +9,16 @@ export type ApprovalRequestItem = {
   submittedAtUtc: string | null;
   completedAtUtc: string | null;
   relatedRecordUrl: string;
-  submittedByUser: { firstName: string; lastName: string; email: string };
-  submittedForEmployee: { firstName: string; lastName: string; employeeCode: string } | null;
+  submittedByUser: {
+    firstName: string;
+    lastName: string;
+    email: string;
+  } | null;
+  submittedForEmployee: {
+    firstName: string;
+    lastName: string;
+    employeeCode: string;
+  } | null;
   currentStep: ApprovalStepItem | null;
   steps: ApprovalStepItem[];
 };
@@ -25,7 +33,11 @@ export type ApprovalStepItem = {
   assignments: Array<{
     id: string;
     status: string;
-    assignedToUser: { firstName: string; lastName: string; email: string } | null;
+    assignedToUser: {
+      firstName: string;
+      lastName: string;
+      email: string;
+    } | null;
     assignedToRole: { name: string; key: string } | null;
   }>;
 };

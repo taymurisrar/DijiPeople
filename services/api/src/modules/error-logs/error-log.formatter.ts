@@ -12,6 +12,7 @@ type DownloadableErrorLog = {
   tenantId?: string | null;
   organizationId?: string | null;
   businessUnitId?: string | null;
+  userAgent?: string | null;
   details?: unknown;
   stack?: string | null;
 };
@@ -22,7 +23,8 @@ export function formatErrorLogText(
 ) {
   const stack = options.includeStack
     ? log.stack || 'Stack trace is not available.'
-    : 'Stack trace is not available.';
+    : 'Stack trace is restricted by the server error-log policy.';
+  const clientDetails = readClientDetails(log.details);
 
   return [
     'DijiPeople HRM Error Log',
@@ -59,10 +61,17 @@ export function formatErrorLogText(
     `Business Unit ID: ${log.businessUnitId ?? 'N/A'}`,
     '',
     'Details:',
-    formatJson(log.details),
+    formatJson(clientDetails.details ?? log.details),
     '',
     'Stack Trace:',
     stack,
+    '',
+    'Component Stack:',
+    clientDetails.componentStack ??
+      'Component stack is not available for this error.',
+    '',
+    'Browser Info:',
+    clientDetails.browserInfo ?? log.userAgent ?? 'N/A',
     '',
   ].join('\n');
 }
@@ -78,4 +87,23 @@ function formatJson(value: unknown) {
   } catch {
     return 'N/A';
   }
+}
+
+function readClientDetails(value: unknown) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {
+      details: value,
+      componentStack: null,
+      browserInfo: null,
+    };
+  }
+
+  const record = value as Record<string, unknown>;
+  return {
+    details: record.details,
+    componentStack:
+      typeof record.componentStack === 'string' ? record.componentStack : null,
+    browserInfo:
+      typeof record.browserInfo === 'string' ? record.browserInfo : null,
+  };
 }

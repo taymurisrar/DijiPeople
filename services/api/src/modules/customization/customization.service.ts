@@ -4,12 +4,18 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { createHash } from 'crypto';
+import {
+  listSupportedSystemWidgets,
+  type SystemWidgetDefinition,
+} from '@repo/config';
 import {
   CustomizationColumn,
   CustomizationFieldDataType,
   CustomizationForm,
   CustomizationFormType,
   CustomizationSolution,
+  CustomizationSolutionComponent,
   CustomizationSolutionComponentType,
   CustomizationTable,
   CustomizationView,
@@ -29,13 +35,27 @@ import {
 import {
   CreateCustomizationColumnDto,
   CreateCustomizationFormDto,
+  CreateCustomizationPackageDto,
   CreateCustomizationTableDto,
   CreateCustomizationViewDto,
+  AddExistingPackageComponentsDto,
+  EnsureCustomizationLayerDto,
+  MoveCustomizationComponentsDto,
+  PreviewCustomizationPackageImportDto,
   UpdateCustomizationColumnDto,
   UpdateCustomizationFormDto,
+  UpdateCustomizationPackageDto,
   UpdateCustomizationTableDto,
   UpdateCustomizationViewDto,
 } from './dto/customization.dto';
+import { validatePackageComponentDependencies } from './dependency-validation';
+import {
+  buildMetadataInvalidationKeys,
+  resolveEffectivePackageComponents,
+} from './package-layer-runtime';
+
+const UNASSIGNED_DRAFT_PACKAGE_KEY = 'unassigned-draft-customizations';
+const UNASSIGNED_DRAFT_PACKAGE_NAME = 'Unassigned Draft Customizations';
 
 @Injectable()
 export class CustomizationService {
@@ -190,6 +210,10 @@ export class CustomizationService {
     currentUser: AuthenticatedUser,
     dto: CreateCustomizationTableDto,
   ) {
+    const packageRecord = await this.resolveLayerPackage(
+      currentUser,
+      dto.packageId,
+    );
     if (findSystemCustomizationTable(dto.tableKey)) {
       throw new ConflictException('A system table already uses this key.');
     }
@@ -234,6 +258,7 @@ export class CustomizationService {
       },
     });
     await this.addDefaultSolutionComponent(currentUser, {
+      solutionId: packageRecord.id,
       componentType: 'table',
       objectId: table.id,
       objectKey: table.tableKey,
@@ -265,7 +290,7 @@ export class CustomizationService {
       version: snapshot.version,
       publishedAt: snapshot.publishedAt,
       publishedByUserId: snapshot.publishedByUserId,
-      snapshotJson: snapshot.snapshotJson,
+      snapshotJson: normalizePublishedSnapshot(snapshot.snapshotJson),
     };
   }
 
@@ -311,6 +336,1574 @@ export class CustomizationService {
         publishedByEmail: user?.email ?? null,
       };
     });
+  }
+
+  async listPackages(currentUser: AuthenticatedUser) {
+    await this.syncDefaultSolution(currentUser);
+    const packages = await this.prisma.customizationSolution.findMany({
+      where: { tenantId: currentUser.tenantId },
+      include: { components: { select: { lifecycleState: true } } },
+      orderBy: [{ isDefault: 'desc' }, { displayName: 'asc' }],
+    });
+    return packages.map((record) =>
+      this.toPackageResponse(
+        currentUser,
+        record,
+        this.summarizePackageComponents(record.components),
+      ),
+    );
+  }
+
+  async listPublishDraftComponents(currentUser: AuthenticatedUser) {
+    await this.syncDefaultSolution(currentUser);
+    const packages = await this.prisma.customizationSolution.findMany({
+      where: {
+        tenantId: currentUser.tenantId,
+        isDefault: false,
+      },
+      orderBy: { displayName: 'asc' },
+    });
+    const packageById = new Map(packages.map((item) => [item.id, item]));
+    const componentRows =
+      await this.prisma.customizationSolutionComponent.findMany({
+        where: {
+          tenantId: currentUser.tenantId,
+          solutionId: { in: packages.map((item) => item.id) },
+          lifecycleState: 'draft',
+        },
+        orderBy: [{ updatedAt: 'desc' }],
+      });
+    const components = await Promise.all(
+      packages.map((item) => this.getPackageComponents(currentUser, item.id)),
+    );
+    const componentById = new Map(
+      components.flat().map((component) => [component.id, component]),
+    );
+
+    return componentRows.map((component) => {
+      const packageRecord = packageById.get(component.solutionId);
+      const detail = componentById.get(component.id);
+      return {
+        id: component.id,
+        componentId: component.id,
+        objectId: component.objectId,
+        componentName: detail?.displayName ?? component.objectKey,
+        componentType: component.componentType,
+        module: detail?.tableDisplayName ?? detail?.tableKey ?? 'Global',
+        packageId: component.solutionId,
+        packageKey: packageRecord?.solutionKey ?? null,
+        packageName: packageRecord?.displayName ?? 'Custom Package',
+        layerAction: component.layerAction,
+        lifecycleState: component.lifecycleState,
+        modifiedOn: component.updatedAt,
+        issues: [],
+        isSystem: component.isSystem,
+        isCustom: component.isCustom,
+      };
+    });
+  }
+
+  async validatePublishDrafts(
+    currentUser: AuthenticatedUser,
+    componentIds?: string[],
+  ) {
+    const drafts = await this.listPublishDraftComponents(currentUser);
+    const selectedIds = new Set(componentIds?.filter(Boolean) ?? []);
+    const scopedDrafts = selectedIds.size
+      ? drafts.filter((draft) => selectedIds.has(draft.id))
+      : drafts;
+    if (selectedIds.size && scopedDrafts.length !== selectedIds.size) {
+      throw new BadRequestException(
+        'One or more selected components are not draft components.',
+      );
+    }
+    const scopedRows =
+      await this.prisma.customizationSolutionComponent.findMany({
+        where: {
+          tenantId: currentUser.tenantId,
+          id: { in: scopedDrafts.map((draft) => draft.id) },
+          lifecycleState: 'draft',
+        },
+      });
+    const publishedRows =
+      await this.prisma.customizationSolutionComponent.findMany({
+        where: {
+          tenantId: currentUser.tenantId,
+          lifecycleState: 'published',
+        },
+        select: {
+          id: true,
+          objectId: true,
+          objectKey: true,
+        },
+      });
+    const duplicateKeys = findDuplicates(
+      scopedDrafts.map(
+        (item) => `${item.packageId}:${item.componentType}:${item.objectId}`,
+      ),
+    );
+    const issues = validatePackageComponentDependencies({
+      components: scopedRows.map((item) => ({
+        id: item.id,
+        componentType: item.componentType,
+        objectId: item.objectId,
+        objectKey: item.objectKey,
+        tableId: item.tableId,
+        isSystem: item.isSystem,
+        isCustom: item.isCustom,
+        metadataJson: item.metadataJson,
+      })),
+      duplicateKeys,
+      availableComponentKeys: publishedRows.flatMap((item) => [
+        item.id,
+        item.objectId,
+        item.objectKey,
+      ]),
+      referencedFieldKeys: scopedDrafts
+        .filter((item) => item.componentType === 'column')
+        .map((item) => item.componentName),
+      defaultComponentKeys: scopedDrafts
+        .filter(
+          (item) =>
+            item.componentType === 'form' || item.componentType === 'view',
+        )
+        .map((item) => item.componentName),
+    });
+
+    return {
+      valid: !issues.some((issue) => issue.blocking),
+      issues,
+    };
+  }
+
+  async ensureCustomizationLayer(
+    currentUser: AuthenticatedUser,
+    dto: EnsureCustomizationLayerDto,
+  ) {
+    await this.syncDefaultSolution(currentUser);
+    const packageRecord = dto.packageId
+      ? await this.findPackageOrThrow(currentUser, dto.packageId)
+      : await this.getOrCreateUnassignedDraftPackage(currentUser);
+    if (packageRecord.isDefault || packageRecord.isSystem) {
+      throw new BadRequestException(
+        'Default Package cannot contain customization layers.',
+      );
+    }
+
+    const componentType = toSolutionComponentType(dto.componentType);
+    if (!componentType) {
+      throw new BadRequestException(
+        'This component type is not backed by metadata storage yet.',
+      );
+    }
+    const table = await this.ensureCustomizationTable(
+      currentUser.tenantId,
+      dto.moduleKey,
+    );
+    const objectKey = dto.componentKey.includes('.')
+      ? dto.componentKey
+      : `${table.tableKey}.${dto.componentKey}`;
+    const existingComponent =
+      await this.prisma.customizationSolutionComponent.findFirst({
+        where: {
+          tenantId: currentUser.tenantId,
+          solutionId: packageRecord.id,
+          componentType,
+          objectKey,
+          lifecycleState: 'draft',
+        },
+      });
+    if (existingComponent) {
+      const updated = await this.prisma.customizationSolutionComponent.update({
+        where: { id: existingComponent.id },
+        data: {
+          ...(dto.metadataJson !== undefined
+            ? { metadataJson: dto.metadataJson as Prisma.InputJsonValue }
+            : {}),
+          ...(dto.displayName
+            ? {
+                metadataJson: {
+                  ...((existingComponent.metadataJson as Record<
+                    string,
+                    unknown
+                  > | null) ?? {}),
+                  displayName: dto.displayName,
+                  ...(dto.metadataJson ?? {}),
+                },
+              }
+            : {}),
+          updatedByUserId: currentUser.userId,
+        },
+      });
+      return {
+        packageId: packageRecord.id,
+        packageName: packageRecord.displayName,
+        component: updated,
+      };
+    }
+
+    const base = await this.findComponentBase(
+      currentUser,
+      componentType,
+      table.id,
+      dto.componentKey,
+    );
+    const component = await this.addDefaultSolutionComponent(currentUser, {
+      solutionId: packageRecord.id,
+      componentType,
+      objectId: base.objectId,
+      objectKey,
+      tableId: table.id,
+      isSystem: base.isSystem,
+      isCustom: true,
+      baseComponentId: base.baseComponentId,
+      layerAction: dto.layerAction ?? 'modify',
+      lifecycleState: 'draft',
+      layerOrder: 300,
+      metadataJson: {
+        source: base.isSystem ? 'effective-system' : 'custom',
+        componentKey: objectKey,
+        displayName: dto.displayName ?? localComponentName(dto.componentKey),
+        ...(dto.metadataJson ?? {}),
+      },
+    });
+
+    return {
+      packageId: packageRecord.id,
+      packageName: packageRecord.displayName,
+      component,
+    };
+  }
+
+  async listModuleMetadataComponents(
+    currentUser: AuthenticatedUser,
+    tableKey: string,
+    componentTypeInput: string,
+  ) {
+    await this.syncDefaultSolution(currentUser);
+    const table = await this.ensureCustomizationTable(
+      currentUser.tenantId,
+      tableKey,
+    );
+    const componentType = toSolutionComponentType(componentTypeInput);
+    if (!componentType) {
+      throw new BadRequestException('Unsupported metadata component type.');
+    }
+    const components =
+      await this.prisma.customizationSolutionComponent.findMany({
+        where: {
+          tenantId: currentUser.tenantId,
+          tableId: table.id,
+          componentType,
+        },
+        include: { solution: true },
+        orderBy: [{ updatedAt: 'desc' }],
+      });
+
+    return components.map((component) => {
+      const metadata =
+        (component.metadataJson as Record<string, unknown> | null) ?? {};
+      return {
+        id: component.id,
+        componentType: component.componentType,
+        componentKey: component.objectKey,
+        logicalName:
+          component.objectKey.split('.').pop() ?? component.objectKey,
+        displayName:
+          typeof metadata.displayName === 'string'
+            ? metadata.displayName
+            : component.objectKey,
+        packageId: component.solutionId,
+        packageName: component.solution.displayName,
+        packageKey: component.solution.solutionKey,
+        layerAction: component.layerAction,
+        lifecycleState: component.lifecycleState,
+        source: component.isSystem ? 'System' : 'Custom',
+        isSystem: component.isSystem,
+        isCustom: component.isCustom,
+        isActive: metadata.isActive !== false,
+        metadataJson: metadata,
+        updatedAt: component.updatedAt,
+      };
+    });
+  }
+
+  async moveDraftComponents(
+    currentUser: AuthenticatedUser,
+    dto: MoveCustomizationComponentsDto,
+  ) {
+    const componentIds = [...new Set(dto.componentIds.filter(Boolean))];
+    if (!componentIds.length) {
+      throw new BadRequestException('Select at least one draft component.');
+    }
+    const target = await this.findPackageOrThrow(
+      currentUser,
+      dto.targetPackageId,
+    );
+    if (target.isDefault || target.isSystem) {
+      throw new BadRequestException(
+        'Draft components cannot be moved into Default Package.',
+      );
+    }
+    if (target.solutionKey === UNASSIGNED_DRAFT_PACKAGE_KEY) {
+      throw new BadRequestException(
+        'Select a real Custom Package as the move target.',
+      );
+    }
+    const components =
+      await this.prisma.customizationSolutionComponent.findMany({
+        where: {
+          tenantId: currentUser.tenantId,
+          id: { in: componentIds },
+          lifecycleState: 'draft',
+        },
+      });
+    if (components.length !== componentIds.length) {
+      throw new BadRequestException(
+        'Only draft components can be moved between packages.',
+      );
+    }
+    const duplicate =
+      await this.prisma.customizationSolutionComponent.findFirst({
+        where: {
+          tenantId: currentUser.tenantId,
+          solutionId: target.id,
+          OR: components.map((component) => ({
+            componentType: component.componentType,
+            objectId: component.objectId,
+          })),
+        },
+      });
+    if (duplicate) {
+      throw new ConflictException(
+        'The target package already contains one or more selected components.',
+      );
+    }
+
+    await this.prisma.customizationSolutionComponent.updateMany({
+      where: {
+        tenantId: currentUser.tenantId,
+        id: { in: componentIds },
+        lifecycleState: 'draft',
+      },
+      data: {
+        solutionId: target.id,
+        updatedByUserId: currentUser.userId,
+      },
+    });
+
+    return {
+      moved: true,
+      count: components.length,
+      targetPackageId: target.id,
+    };
+  }
+
+  async publishComponents(
+    currentUser: AuthenticatedUser,
+    componentIds: string[],
+  ) {
+    await this.syncDefaultSolution(currentUser);
+    const selectedIds = [...new Set(componentIds.filter(Boolean))];
+    if (!selectedIds.length) {
+      throw new BadRequestException(
+        'Select at least one draft component to publish.',
+      );
+    }
+
+    const validation = await this.validatePublishDrafts(
+      currentUser,
+      selectedIds,
+    );
+    if (!validation.valid) {
+      throw new BadRequestException({
+        message: 'Publish is blocked by validation issues.',
+        issues: validation.issues,
+      });
+    }
+
+    const drafts = await this.prisma.customizationSolutionComponent.findMany({
+      where: {
+        tenantId: currentUser.tenantId,
+        id: { in: selectedIds },
+        lifecycleState: 'draft',
+      },
+      include: { solution: true },
+    });
+    if (drafts.length !== selectedIds.length) {
+      throw new BadRequestException(
+        'One or more selected components are no longer draft components.',
+      );
+    }
+    if (
+      drafts.some(
+        (component) =>
+          component.solution.solutionKey === UNASSIGNED_DRAFT_PACKAGE_KEY,
+      )
+    ) {
+      throw new BadRequestException(
+        'Move unassigned draft customizations to a Custom Package before publishing.',
+      );
+    }
+
+    const publishedAt = new Date();
+    await Promise.all(
+      drafts.map((component) =>
+        this.prisma.customizationSolutionComponent.update({
+          where: { id: component.id },
+          data: {
+            lifecycleState: 'published',
+            publishedAt,
+            publishedByUserId: currentUser.userId,
+            updatedByUserId: currentUser.userId,
+            version: nextPatchVersion(component.version),
+            checksum: checksumFor({
+              componentType: component.componentType,
+              objectId: component.objectId,
+              objectKey: component.objectKey,
+              tableId: component.tableId,
+              layerAction: component.layerAction,
+              metadataJson: component.metadataJson,
+            }),
+          },
+        }),
+      ),
+    );
+
+    const effectiveMetadata = await this.getEffectiveMetadata(currentUser);
+    const latestSnapshot =
+      await this.prisma.customizationPublishSnapshot.findFirst({
+        where: { tenantId: currentUser.tenantId },
+        orderBy: { version: 'desc' },
+        select: { version: true },
+      });
+    const snapshotVersion = (latestSnapshot?.version ?? 0) + 1;
+    await this.prisma.customizationPublishSnapshot.create({
+      data: {
+        tenantId: currentUser.tenantId,
+        version: snapshotVersion,
+        status: 'published',
+        publishedAt,
+        publishedByUserId: currentUser.userId,
+        snapshotJson: toJsonValue({
+          ...effectiveMetadata,
+          publishedComponentIds: selectedIds,
+          effectiveMetadata,
+        }),
+      },
+    });
+
+    const affectedPackageIds = [
+      ...new Set(drafts.map((draft) => draft.solutionId)),
+    ];
+    const packageSummaries = await this.getPackageStateSummaries(
+      currentUser,
+      affectedPackageIds,
+    );
+    const invalidationKeys = buildMetadataInvalidationKeys({
+      tenantId: currentUser.tenantId,
+      packageIds: affectedPackageIds,
+      componentTypes: drafts.map((draft) => draft.componentType),
+      moduleIds: drafts
+        .map((draft) => draft.tableId)
+        .filter((value): value is string => Boolean(value)),
+      snapshotVersion,
+    });
+
+    return {
+      published: true,
+      count: drafts.length,
+      snapshotVersion,
+      publishedAt,
+      invalidationKeys,
+      packages: packageSummaries,
+      diagnostics: {
+        packageIds: affectedPackageIds,
+        componentIds: selectedIds,
+        validation,
+        invalidationKeys,
+      },
+    };
+  }
+
+  async getEffectiveMetadata(currentUser: AuthenticatedUser) {
+    await this.syncDefaultSolution(currentUser);
+    const publishedComponents =
+      await this.prisma.customizationSolutionComponent.findMany({
+        where: {
+          tenantId: currentUser.tenantId,
+          lifecycleState: 'published',
+        },
+        orderBy: [
+          { layerOrder: 'asc' },
+          { componentType: 'asc' },
+          { objectKey: 'asc' },
+        ],
+      });
+    const components = resolveEffectivePackageComponents(publishedComponents);
+
+    const [tables, columns, forms, views] = await Promise.all([
+      this.prisma.customizationTable.findMany({
+        where: {
+          tenantId: currentUser.tenantId,
+          id: {
+            in: components
+              .filter((component) => component.componentType === 'table')
+              .map((component) => component.objectId),
+          },
+        },
+      }),
+      this.prisma.customizationColumn.findMany({
+        where: {
+          tenantId: currentUser.tenantId,
+          id: {
+            in: components
+              .filter((component) => component.componentType === 'column')
+              .map((component) => component.objectId),
+          },
+        },
+      }),
+      this.prisma.customizationForm.findMany({
+        where: {
+          tenantId: currentUser.tenantId,
+          id: {
+            in: components
+              .filter((component) => component.componentType === 'form')
+              .map((component) => component.objectId),
+          },
+        },
+      }),
+      this.prisma.customizationView.findMany({
+        where: {
+          tenantId: currentUser.tenantId,
+          id: {
+            in: components
+              .filter((component) => component.componentType === 'view')
+              .map((component) => component.objectId),
+          },
+        },
+      }),
+    ]);
+
+    return {
+      generatedAt: new Date().toISOString(),
+      components: components.map((component) => ({
+        id: component.id,
+        componentType: component.componentType,
+        objectId: component.objectId,
+        objectKey: component.objectKey,
+        baseComponentId: component.baseComponentId,
+        layerAction: component.layerAction,
+        lifecycleState: component.lifecycleState,
+        layerOrder: component.layerOrder,
+        version: component.version,
+        checksum: component.checksum,
+        metadataJson: component.metadataJson,
+      })),
+      modules: tables,
+      fields: columns,
+      forms,
+      views,
+    };
+  }
+
+  async getPackage(currentUser: AuthenticatedUser, packageId: string) {
+    await this.syncDefaultSolution(currentUser);
+    const record = await this.findPackageOrThrow(currentUser, packageId);
+    const components = await this.getPackageComponents(currentUser, record.id);
+    const componentRows =
+      await this.prisma.customizationSolutionComponent.findMany({
+        where: {
+          tenantId: currentUser.tenantId,
+          solutionId: record.id,
+        },
+      });
+    const rowById = new Map(
+      componentRows.map((component) => [component.id, component]),
+    );
+    const componentsWithDependencies = await Promise.all(
+      components.map(async (component) => {
+        const row = rowById.get(component.id);
+        if (
+          !row ||
+          row.isSystem ||
+          row.isManaged ||
+          !row.isCustom ||
+          !['column', 'form', 'view'].includes(row.componentType)
+        ) {
+          return component;
+        }
+        const dependencies = await this.findMetadataDeleteDependencies(
+          currentUser,
+          row,
+        );
+        return {
+          ...component,
+          dependencies: dependencies.map((issue) => issue.message),
+        };
+      }),
+    );
+    const validation = await this.validatePackage(currentUser, record.id);
+    return {
+      ...this.toPackageResponse(
+        currentUser,
+        record,
+        this.summarizePackageComponents(componentsWithDependencies),
+      ),
+      components: componentsWithDependencies,
+      diagnostics: validation,
+    };
+  }
+
+  async validatePackage(currentUser: AuthenticatedUser, packageId: string) {
+    const record = await this.findPackageOrThrow(currentUser, packageId);
+    const rows = await this.prisma.customizationSolutionComponent.findMany({
+      where: {
+        tenantId: currentUser.tenantId,
+        solutionId: record.id,
+      },
+    });
+    const draftRows = rows.filter(
+      (component) => component.lifecycleState === 'draft',
+    );
+    const duplicateKeys = findDuplicates(
+      rows.map((item) => `${item.componentType}:${item.objectId}`),
+    );
+    const baseComponentIds = rows
+      .map((item) => item.baseComponentId)
+      .filter((value): value is string => Boolean(value));
+    const existingBaseComponents = baseComponentIds.length
+      ? await this.prisma.customizationSolutionComponent.findMany({
+          where: {
+            tenantId: currentUser.tenantId,
+            OR: [
+              { id: { in: baseComponentIds } },
+              { objectId: { in: baseComponentIds } },
+            ],
+          },
+          select: { id: true, objectId: true },
+        })
+      : [];
+    const existingBaseIds = new Set(
+      existingBaseComponents.flatMap((item) => [item.id, item.objectId]),
+    );
+    const missingBaseComponentKeys = rows
+      .filter(
+        (item) =>
+          item.layerAction === 'modify' &&
+          item.baseComponentId &&
+          !existingBaseIds.has(item.baseComponentId),
+      )
+      .map((item) => item.objectKey);
+    const issues = validatePackageComponentDependencies({
+      components: rows.map((item) => ({
+        id: item.id,
+        componentType: item.componentType,
+        objectId: item.objectId,
+        objectKey: item.objectKey,
+        tableId: item.tableId,
+        isSystem: item.isSystem,
+        isCustom: item.isCustom,
+        metadataJson: item.metadataJson,
+      })),
+      duplicateKeys,
+      missingBaseComponentKeys,
+      defaultComponentKeys: rows
+        .filter(
+          (item) =>
+            item.componentType === 'form' || item.componentType === 'view',
+        )
+        .map((item) => item.objectKey),
+      referencedFieldKeys: rows
+        .filter((item) => item.componentType === 'column')
+        .map((item) => item.objectKey),
+    });
+    const moduleObjectIds = new Set(
+      rows
+        .filter((item) => item.componentType === 'table')
+        .map((item) => item.objectId),
+    );
+    for (const component of rows) {
+      if (
+        component.componentType !== 'table' &&
+        component.tableId &&
+        !moduleObjectIds.has(component.tableId)
+      ) {
+        issues.push({
+          severity: 'error',
+          componentId: component.id,
+          componentType: component.componentType,
+          message: `${component.objectKey} is missing its parent Module membership in this Package.`,
+          blocking: true,
+        });
+      }
+    }
+
+    if (record.isDefault || record.isSystem) {
+      issues.push({
+        severity: 'info',
+        componentId: null,
+        componentType: null,
+        message: 'Default/System Package cannot be deleted.',
+        blocking: false,
+      });
+    } else if (record.isManaged) {
+      issues.push({
+        severity: 'info',
+        componentId: null,
+        componentType: null,
+        message: 'Managed packages cannot be deleted.',
+        blocking: false,
+      });
+    } else if (
+      rows.some((component) => component.lifecycleState === 'published')
+    ) {
+      issues.push({
+        severity: 'info',
+        componentId: null,
+        componentType: null,
+        message:
+          'Package cannot be deleted while published package components exist. Retire or replace the published metadata first.',
+        blocking: false,
+      });
+    }
+    if (!record.isDefault && draftRows.length === 0) {
+      issues.push({
+        severity: 'info',
+        componentId: null,
+        componentType: null,
+        message: 'No draft components are pending publish.',
+        blocking: false,
+      });
+    }
+
+    return {
+      valid: !issues.some((issue) => issue.blocking),
+      issues,
+      draftComponentsCount: draftRows.length,
+      publishedComponentsCount: rows.length - draftRows.length,
+      unsupportedComponentTypes: [
+        'Related Lists',
+        'Actions',
+        'Rules',
+        'Automations',
+        'Guided Processes',
+        'Timeline Templates',
+        'Document Metadata',
+      ],
+      missingHandlers: [],
+      permissionIssues: [],
+    };
+  }
+
+  async publishPackage(currentUser: AuthenticatedUser, packageId: string) {
+    const record = await this.findPackageOrThrow(currentUser, packageId);
+    if (record.isDefault || record.isSystem) {
+      throw new BadRequestException('Default Package is read-only.');
+    }
+    if (record.isManaged) {
+      throw new BadRequestException(
+        'Managed packages cannot be published from this editor.',
+      );
+    }
+    if (record.solutionKey === UNASSIGNED_DRAFT_PACKAGE_KEY) {
+      throw new BadRequestException(
+        'Move unassigned draft customizations to a Custom Package before publishing.',
+      );
+    }
+    const validation = await this.validatePackage(currentUser, record.id);
+    if (!validation.valid) {
+      throw new BadRequestException({
+        message: 'Publish is blocked by package validation errors.',
+        issues: validation.issues,
+      });
+    }
+    const drafts = await this.prisma.customizationSolutionComponent.findMany({
+      where: {
+        tenantId: currentUser.tenantId,
+        solutionId: record.id,
+        lifecycleState: 'draft',
+      },
+      select: { id: true },
+    });
+    if (!drafts.length) {
+      throw new BadRequestException('No draft components are pending publish.');
+    }
+
+    const result = await this.publishComponents(
+      currentUser,
+      drafts.map((component) => component.id),
+    );
+    return {
+      ...result,
+      packageId: record.id,
+      invalidationKeys: [
+        `metadata:${currentUser.tenantId}`,
+        `package:${record.id}`,
+      ],
+    };
+  }
+
+  async removeComponentFromPackage(
+    currentUser: AuthenticatedUser,
+    packageId: string,
+    componentId: string,
+  ) {
+    const record = await this.findPackageOrThrow(currentUser, packageId);
+    if (record.isDefault || record.isSystem) {
+      throw new BadRequestException('Default Package is read-only.');
+    }
+    const component =
+      await this.prisma.customizationSolutionComponent.findFirst({
+        where: {
+          id: componentId,
+          tenantId: currentUser.tenantId,
+          solutionId: record.id,
+        },
+      });
+    if (!component) {
+      throw new NotFoundException('Package component was not found.');
+    }
+    if (component.componentType === 'table') {
+      const childCount = await this.prisma.customizationSolutionComponent.count(
+        {
+          where: {
+            tenantId: currentUser.tenantId,
+            solutionId: record.id,
+            tableId: component.objectId,
+            id: { not: component.id },
+          },
+        },
+      );
+      if (childCount > 0) {
+        throw new BadRequestException(
+          `Cannot remove Module "${component.objectKey}" while ${childCount} child component${childCount === 1 ? '' : 's'} remain in this Package. Remove the child components first.`,
+        );
+      }
+    }
+    await this.prisma.customizationSolutionComponent.delete({
+      where: { id: component.id },
+    });
+    return { removed: true, componentId: component.id };
+  }
+
+  async deletePackageComponentMetadata(
+    currentUser: AuthenticatedUser,
+    packageId: string,
+    componentId: string,
+  ) {
+    const record = await this.findPackageOrThrow(currentUser, packageId);
+    if (record.isDefault || record.isSystem || record.isManaged) {
+      throw new BadRequestException(
+        'System, Default Package, and managed components cannot be deleted.',
+      );
+    }
+    const component =
+      await this.prisma.customizationSolutionComponent.findFirst({
+        where: {
+          id: componentId,
+          tenantId: currentUser.tenantId,
+          solutionId: record.id,
+        },
+      });
+    if (!component) {
+      throw new NotFoundException('Package component was not found.');
+    }
+    if (component.isSystem || component.isManaged || !component.isCustom) {
+      throw new BadRequestException(
+        'System-owned or managed components cannot be deleted.',
+      );
+    }
+    if (component.componentType === 'table') {
+      throw new BadRequestException(
+        'Modules are retired through lifecycle management; they are not hard-deleted from Package customization.',
+      );
+    }
+    const dependencyIssues = await this.findMetadataDeleteDependencies(
+      currentUser,
+      component,
+    );
+    if (dependencyIssues.length) {
+      throw new BadRequestException({
+        message: `Cannot delete ${component.objectKey} because it is still in use. Remove it from dependent metadata first, then try again.`,
+        issues: dependencyIssues,
+      });
+    }
+
+    await this.prisma.$transaction(async (transaction) => {
+      await transaction.customizationSolutionComponent.deleteMany({
+        where: {
+          tenantId: currentUser.tenantId,
+          componentType: component.componentType,
+          objectId: component.objectId,
+        },
+      });
+      if (component.componentType === 'column') {
+        await transaction.customizationColumn.delete({
+          where: { id: component.objectId },
+        });
+      } else if (component.componentType === 'form') {
+        await transaction.customizationForm.delete({
+          where: { id: component.objectId },
+        });
+      } else if (component.componentType === 'view') {
+        await transaction.customizationView.delete({
+          where: { id: component.objectId },
+        });
+      } else {
+        throw new BadRequestException(
+          'This component type is not storage-backed for deletion yet.',
+        );
+      }
+    });
+
+    return { deleted: true, componentId: component.id };
+  }
+
+  async createPackage(
+    currentUser: AuthenticatedUser,
+    dto: CreateCustomizationPackageDto,
+  ) {
+    await this.syncDefaultSolution(currentUser);
+    if (dto.packageKey === 'default') {
+      throw new BadRequestException('Cannot create another Default Package.');
+    }
+    const existing = await this.prisma.customizationSolution.findUnique({
+      where: {
+        tenantId_solutionKey: {
+          tenantId: currentUser.tenantId,
+          solutionKey: dto.packageKey,
+        },
+      },
+    });
+    if (existing) {
+      throw new ConflictException('A package already uses this key.');
+    }
+    const publisherName = dto.publisherName.trim();
+    if (!publisherName) {
+      throw new BadRequestException('Custom Package publisher is required.');
+    }
+    const prefix = await this.uniquePublisherPrefix(currentUser, publisherName);
+    const packageKey = await this.uniquePackageKey(
+      currentUser,
+      `${prefix}${camelize(dto.displayName)}`,
+    );
+    const record = await this.prisma.customizationSolution.create({
+      data: {
+        tenantId: currentUser.tenantId,
+        solutionKey: packageKey,
+        displayName: dto.displayName.trim(),
+        description: dto.description?.trim(),
+        scope: 'tenant',
+        isDefault: false,
+        isSystem: false,
+        isManaged: false,
+        isActive: true,
+        createdByUserId: currentUser.userId,
+        updatedByUserId: currentUser.userId,
+      },
+    });
+    return this.toPackageResponse(
+      currentUser,
+      record,
+      this.summarizePackageComponents([]),
+      dto.version,
+      publisherName,
+    );
+  }
+
+  async updatePackage(
+    currentUser: AuthenticatedUser,
+    packageId: string,
+    dto: UpdateCustomizationPackageDto,
+  ) {
+    const record = await this.findPackageOrThrow(currentUser, packageId);
+    if (record.isDefault || record.isSystem) {
+      throw new BadRequestException('Default Package is read-only.');
+    }
+    const updated = await this.prisma.customizationSolution.update({
+      where: { id: record.id },
+      data: {
+        ...(dto.displayName !== undefined
+          ? { displayName: dto.displayName.trim() }
+          : {}),
+        ...(dto.description !== undefined
+          ? { description: dto.description.trim() }
+          : {}),
+        updatedByUserId: currentUser.userId,
+      },
+    });
+    const components =
+      await this.prisma.customizationSolutionComponent.findMany({
+        where: { solutionId: updated.id },
+        select: { lifecycleState: true },
+      });
+    return this.toPackageResponse(
+      currentUser,
+      updated,
+      this.summarizePackageComponents(components),
+    );
+  }
+
+  async deletePackage(currentUser: AuthenticatedUser, packageId: string) {
+    const record = await this.findPackageOrThrow(currentUser, packageId);
+    if (record.isDefault || record.isSystem) {
+      throw new BadRequestException(
+        'Default/System Package cannot be deleted.',
+      );
+    }
+    if (record.isManaged) {
+      throw new BadRequestException('Managed packages cannot be deleted.');
+    }
+    const componentCount =
+      await this.prisma.customizationSolutionComponent.count({
+        where: { solutionId: record.id, lifecycleState: 'published' },
+      });
+    if (componentCount > 0) {
+      throw new BadRequestException(
+        'Package cannot be deleted while published package components exist. Retire or replace the published metadata first.',
+      );
+    }
+    await this.prisma.customizationSolution.delete({
+      where: { id: record.id },
+    });
+    return {
+      deleted: true,
+      message: 'Package was deleted from customization workspace.',
+    };
+  }
+
+  async listPackageComponentCandidates(
+    currentUser: AuthenticatedUser,
+    input: {
+      packageId: string;
+      moduleKey?: string;
+      componentType?: string;
+    },
+  ) {
+    const record = await this.findPackageOrThrow(currentUser, input.packageId);
+    const existing = await this.prisma.customizationSolutionComponent.findMany({
+      where: { solutionId: record.id },
+      select: { componentType: true, objectId: true },
+    });
+    const existingKeys = new Set(
+      existing.map((item) => `${item.componentType}:${item.objectId}`),
+    );
+    const tables = await this.prisma.customizationTable.findMany({
+      where: {
+        tenantId: currentUser.tenantId,
+        ...(input.moduleKey ? { tableKey: input.moduleKey } : {}),
+      },
+      orderBy: { displayName: 'asc' },
+    });
+    const tableIds = tables.map((table) => table.id);
+    const tableById = new Map(tables.map((table) => [table.id, table]));
+    const candidates: Array<{
+      objectId: string;
+      objectKey: string;
+      displayName: string;
+      componentType: CustomizationSolutionComponentType;
+      moduleKey: string | null;
+      moduleDisplayName: string | null;
+      isSystem: boolean;
+      isCustom: boolean;
+      dependencies: string[];
+      alreadyInPackage: boolean;
+    }> = [];
+    const requestedType = toSolutionComponentType(input.componentType);
+
+    if (!requestedType || requestedType === 'table') {
+      candidates.push(
+        ...tables.map((table) => ({
+          objectId: table.id,
+          objectKey: table.tableKey,
+          displayName: table.displayName,
+          componentType: 'table' as const,
+          moduleKey: table.tableKey,
+          moduleDisplayName: table.displayName,
+          isSystem: table.isSystem,
+          isCustom: table.isCustom,
+          dependencies: [],
+          alreadyInPackage: existingKeys.has(`table:${table.id}`),
+        })),
+      );
+    }
+    if (!requestedType || requestedType === 'column') {
+      const columns = await this.prisma.customizationColumn.findMany({
+        where: { tenantId: currentUser.tenantId, tableId: { in: tableIds } },
+        orderBy: { displayName: 'asc' },
+      });
+      candidates.push(
+        ...columns.map((column) => {
+          const table = tableById.get(column.tableId);
+          return {
+            objectId: column.id,
+            objectKey: `${table?.tableKey ?? column.tableId}.${column.columnKey}`,
+            displayName: column.displayName,
+            componentType: 'column' as const,
+            moduleKey: table?.tableKey ?? null,
+            moduleDisplayName: table?.displayName ?? null,
+            isSystem: column.isSystem,
+            isCustom: column.isCustom,
+            dependencies: column.lookupTargetTableKey
+              ? [column.lookupTargetTableKey]
+              : [],
+            alreadyInPackage: existingKeys.has(`column:${column.id}`),
+          };
+        }),
+      );
+    }
+    if (!requestedType || requestedType === 'form') {
+      const forms = await this.prisma.customizationForm.findMany({
+        where: { tenantId: currentUser.tenantId, tableId: { in: tableIds } },
+        orderBy: { name: 'asc' },
+      });
+      candidates.push(
+        ...forms.map((form) => {
+          const table = tableById.get(form.tableId);
+          return {
+            objectId: form.id,
+            objectKey: `${table?.tableKey ?? form.tableId}.${form.formKey}`,
+            displayName: form.name,
+            componentType: 'form' as const,
+            moduleKey: table?.tableKey ?? null,
+            moduleDisplayName: table?.displayName ?? null,
+            isSystem: form.isSystem,
+            isCustom: form.isCustom,
+            dependencies: [],
+            alreadyInPackage: existingKeys.has(`form:${form.id}`),
+          };
+        }),
+      );
+    }
+    if (!requestedType || requestedType === 'view') {
+      const views = await this.prisma.customizationView.findMany({
+        where: { tenantId: currentUser.tenantId, tableId: { in: tableIds } },
+        orderBy: { name: 'asc' },
+      });
+      candidates.push(
+        ...views.map((view) => {
+          const table = tableById.get(view.tableId);
+          return {
+            objectId: view.id,
+            objectKey: `${table?.tableKey ?? view.tableId}.${view.viewKey}`,
+            displayName: view.name,
+            componentType: 'view' as const,
+            moduleKey: table?.tableKey ?? null,
+            moduleDisplayName: table?.displayName ?? null,
+            isSystem: view.isSystem,
+            isCustom: view.isCustom,
+            dependencies: [],
+            alreadyInPackage: existingKeys.has(`view:${view.id}`),
+          };
+        }),
+      );
+    }
+    if (!requestedType || requestedType === 'widget') {
+      for (const table of tables) {
+        for (const widget of listSupportedSystemWidgets(table.tableKey)) {
+          const objectId = systemWidgetObjectId(
+            table.tableKey,
+            widget.widgetKey,
+          );
+          candidates.push({
+            objectId,
+            objectKey: `${table.tableKey}.${widget.widgetKey}`,
+            displayName: widget.displayName,
+            componentType: 'widget',
+            moduleKey: table.tableKey,
+            moduleDisplayName: table.displayName,
+            isSystem: true,
+            isCustom: false,
+            dependencies: [table.tableKey],
+            alreadyInPackage: existingKeys.has(`widget:${objectId}`),
+          });
+        }
+      }
+    }
+
+    return candidates;
+  }
+
+  async addExistingComponentsToPackage(
+    currentUser: AuthenticatedUser,
+    packageId: string,
+    dto: AddExistingPackageComponentsDto,
+  ) {
+    const record = await this.findPackageOrThrow(currentUser, packageId);
+    if (record.isDefault || record.isSystem) {
+      throw new BadRequestException('Default Package is read-only.');
+    }
+    const componentType = toSolutionComponentType(dto.componentType);
+    if (!componentType) {
+      throw new BadRequestException(
+        'This component type is not backed by metadata storage yet.',
+      );
+    }
+    const components = await this.resolvePackageObjects(
+      currentUser,
+      componentType,
+      dto.objectIds,
+    );
+    for (const component of components) {
+      if (componentType !== 'table' && component.tableId) {
+        const parentModule = await this.prisma.customizationTable.findFirst({
+          where: {
+            id: component.tableId,
+            tenantId: currentUser.tenantId,
+          },
+        });
+        if (parentModule) {
+          await this.addDefaultSolutionComponent(currentUser, {
+            solutionId: record.id,
+            componentType: 'table',
+            objectId: parentModule.id,
+            objectKey: parentModule.tableKey,
+            tableId: parentModule.id,
+            isSystem: parentModule.isSystem,
+            isCustom: parentModule.isCustom,
+            baseComponentId: parentModule.isSystem ? parentModule.id : null,
+            layerAction: parentModule.isSystem ? 'reference' : 'reference',
+            lifecycleState: 'draft',
+            layerOrder: 200,
+            metadataJson: {
+              sourceComponentType: 'table',
+              sourceObjectId: parentModule.id,
+              sourceObjectKey: parentModule.tableKey,
+              autoAddedForChildComponent: true,
+            },
+          });
+        }
+      }
+      await this.addDefaultSolutionComponent(currentUser, {
+        solutionId: record.id,
+        componentType,
+        objectId: component.objectId,
+        objectKey: component.objectKey,
+        tableId: component.tableId,
+        isSystem: component.isSystem,
+        isCustom: component.isCustom,
+        baseComponentId: component.isSystem ? component.objectId : null,
+        layerAction: component.isSystem ? 'modify' : 'reference',
+        lifecycleState: 'draft',
+        layerOrder: component.isSystem ? 300 : 250,
+        metadataJson: {
+          sourceComponentType: componentType,
+          sourceObjectId: component.objectId,
+          sourceObjectKey: component.objectKey,
+          ...('metadataJson' in component &&
+          component.metadataJson &&
+          typeof component.metadataJson === 'object' &&
+          !Array.isArray(component.metadataJson)
+            ? component.metadataJson
+            : {}),
+        },
+      });
+    }
+    return this.getPackage(currentUser, record.id);
+  }
+
+  private async findMetadataDeleteDependencies(
+    currentUser: AuthenticatedUser,
+    component: CustomizationSolutionComponent,
+  ) {
+    const issues: Array<{
+      severity: 'error';
+      componentId: string;
+      componentType: string;
+      message: string;
+      blocking: true;
+    }> = [];
+    const publishedMembership =
+      await this.prisma.customizationSolutionComponent.findFirst({
+        where: {
+          tenantId: currentUser.tenantId,
+          componentType: component.componentType,
+          objectId: component.objectId,
+          lifecycleState: 'published',
+        },
+      });
+    if (publishedMembership) {
+      issues.push({
+        severity: 'error',
+        componentId: component.id,
+        componentType: component.componentType,
+        message:
+          'This component is present in published runtime metadata. Replace or retire the published dependency before deletion.',
+        blocking: true,
+      });
+    }
+
+    if (component.componentType === 'column') {
+      const field = await this.prisma.customizationColumn.findFirst({
+        where: {
+          id: component.objectId,
+          tenantId: currentUser.tenantId,
+        },
+        include: { table: true },
+      });
+      if (!field) return issues;
+      const [forms, views, metadataComponents] = await Promise.all([
+        this.prisma.customizationForm.findMany({
+          where: {
+            tenantId: currentUser.tenantId,
+            tableId: field.tableId,
+          },
+          select: { id: true, name: true, layoutJson: true },
+        }),
+        this.prisma.customizationView.findMany({
+          where: {
+            tenantId: currentUser.tenantId,
+            tableId: field.tableId,
+          },
+          select: {
+            id: true,
+            name: true,
+            columnsJson: true,
+            filtersJson: true,
+            sortingJson: true,
+          },
+        }),
+        this.prisma.customizationSolutionComponent.findMany({
+          where: {
+            tenantId: currentUser.tenantId,
+            tableId: field.tableId,
+            id: { not: component.id },
+          },
+          select: {
+            id: true,
+            componentType: true,
+            objectKey: true,
+            metadataJson: true,
+          },
+        }),
+      ]);
+      const fieldKeys = [field.columnKey, component.objectKey];
+      for (const form of forms) {
+        if (jsonReferencesAny(form.layoutJson, fieldKeys)) {
+          issues.push({
+            severity: 'error',
+            componentId: form.id,
+            componentType: 'form',
+            message: `Field "${field.displayName}" is used in Form "${form.name}".`,
+            blocking: true,
+          });
+        }
+      }
+      for (const view of views) {
+        if (
+          jsonReferencesAny(
+            [view.columnsJson, view.filtersJson, view.sortingJson],
+            fieldKeys,
+          )
+        ) {
+          issues.push({
+            severity: 'error',
+            componentId: view.id,
+            componentType: 'view',
+            message: `Field "${field.displayName}" is used in View "${view.name}".`,
+            blocking: true,
+          });
+        }
+      }
+      for (const dependency of metadataComponents) {
+        if (jsonReferencesAny(dependency.metadataJson, fieldKeys)) {
+          issues.push({
+            severity: 'error',
+            componentId: dependency.id,
+            componentType: dependency.componentType,
+            message: `Field "${field.displayName}" is referenced by "${dependency.objectKey}".`,
+            blocking: true,
+          });
+        }
+      }
+      issues.push(
+        ...(await this.findPackageMetadataReferences(currentUser, component, [
+          component.objectId,
+          component.objectKey,
+          field.columnKey,
+        ])),
+      );
+    }
+
+    if (component.componentType === 'form') {
+      const form = await this.prisma.customizationForm.findFirst({
+        where: {
+          id: component.objectId,
+          tenantId: currentUser.tenantId,
+        },
+      });
+      if (form?.isDefault) {
+        issues.push({
+          severity: 'error',
+          componentId: form.id,
+          componentType: 'form',
+          message: `Form "${form.name}" is the default Form. Select a replacement default before deletion.`,
+          blocking: true,
+        });
+      }
+      if (form) {
+        issues.push(
+          ...(await this.findPackageMetadataReferences(currentUser, component, [
+            component.objectId,
+            component.objectKey,
+            form.formKey,
+          ])),
+        );
+      }
+    }
+
+    if (component.componentType === 'view') {
+      const view = await this.prisma.customizationView.findFirst({
+        where: {
+          id: component.objectId,
+          tenantId: currentUser.tenantId,
+        },
+      });
+      if (view?.isDefault) {
+        issues.push({
+          severity: 'error',
+          componentId: view.id,
+          componentType: 'view',
+          message: `View "${view.name}" is the default View. Select a replacement default before deletion.`,
+          blocking: true,
+        });
+      }
+      if (view) {
+        issues.push(
+          ...(await this.findPackageMetadataReferences(currentUser, component, [
+            component.objectId,
+            component.objectKey,
+            view.viewKey,
+          ])),
+        );
+      }
+    }
+
+    return Array.from(
+      new Map(
+        issues.map((issue) => [
+          `${issue.componentId}:${issue.componentType}:${issue.message}`,
+          issue,
+        ]),
+      ).values(),
+    );
+  }
+
+  private async findPackageMetadataReferences(
+    currentUser: AuthenticatedUser,
+    component: CustomizationSolutionComponent,
+    references: readonly string[],
+  ) {
+    const dependencies =
+      await this.prisma.customizationSolutionComponent.findMany({
+        where: {
+          tenantId: currentUser.tenantId,
+          id: { not: component.id },
+        },
+        select: {
+          id: true,
+          componentType: true,
+          objectKey: true,
+          metadataJson: true,
+        },
+      });
+
+    return dependencies
+      .filter((dependency) =>
+        jsonReferencesAny(dependency.metadataJson, references),
+      )
+      .map((dependency) => ({
+        severity: 'error' as const,
+        componentId: dependency.id,
+        componentType: dependency.componentType,
+        message: `"${component.objectKey}" is referenced by ${dependency.componentType} "${dependency.objectKey}".`,
+        blocking: true as const,
+      }));
+  }
+
+  async exportPackage(currentUser: AuthenticatedUser, packageId: string) {
+    const record = await this.findPackageOrThrow(currentUser, packageId);
+    if (record.solutionKey === UNASSIGNED_DRAFT_PACKAGE_KEY) {
+      throw new BadRequestException(
+        'Move unassigned draft customizations to a Custom Package before export.',
+      );
+    }
+    const components = await this.getPackageComponents(currentUser, record.id);
+    const moduleKeys = [
+      ...new Set(
+        components
+          .map((component) => component.moduleKey)
+          .filter((value): value is string => Boolean(value)),
+      ),
+    ];
+
+    return {
+      manifest: {
+        packageId: record.id,
+        packageKey: record.solutionKey,
+        displayName: record.displayName,
+        version: '1.0.0',
+        publisher: this.getPackagePublisher(currentUser, record),
+        exportedAt: new Date().toISOString(),
+        formatVersion: '1.0',
+        lifecycleState: 'draft',
+      },
+      modules: moduleKeys.map((moduleKey) => ({ moduleKey })),
+      components,
+      dependencies: components.flatMap((component) => component.dependencies),
+    };
+  }
+
+  previewPackageImport(dto: PreviewCustomizationPackageImportDto) {
+    const manifest = dto.manifest;
+    const packageKey = manifest.packageKey;
+    const version = manifest.version;
+    const formatVersion = manifest.formatVersion;
+    if (typeof packageKey !== 'string' || !packageKey.trim()) {
+      throw new BadRequestException('Package key is required.');
+    }
+    if (typeof version !== 'string' || !version.trim()) {
+      throw new BadRequestException('Package version is required.');
+    }
+    if (formatVersion !== '1.0') {
+      throw new BadRequestException('Unsupported package format version.');
+    }
+    for (const component of dto.components) {
+      if (!component || typeof component !== 'object') {
+        throw new BadRequestException('Each component must be an object.');
+      }
+      const record = component as Record<string, unknown>;
+      if (
+        typeof record.id !== 'string' &&
+        typeof record.objectId !== 'string' &&
+        typeof record.logicalName !== 'string' &&
+        typeof record.objectKey !== 'string'
+      ) {
+        throw new BadRequestException(
+          'Each component must include an id, objectId, logicalName, or objectKey.',
+        );
+      }
+    }
+
+    return {
+      valid: true,
+      applySupported: false,
+      packageName:
+        typeof manifest.displayName === 'string'
+          ? manifest.displayName
+          : packageKey,
+      version,
+      publisher:
+        typeof manifest.publisher === 'object' && manifest.publisher
+          ? manifest.publisher
+          : null,
+      modulesCount: dto.modules.length,
+      componentsCount: dto.components.length,
+      dependenciesCount: dto.dependencies.length,
+      message:
+        'Package JSON is valid. Applying imported metadata is blocked until publish center and dependency validation are implemented.',
+    };
   }
 
   async updateTable(
@@ -399,7 +1992,7 @@ export class CustomizationService {
     const definition = findSystemCustomizationTable(tableKey);
     if (definition) {
       throw new BadRequestException(
-        'System metadata tables cannot be deleted. Deactivate them instead.',
+        'System Modules cannot be deleted. Deactivate them instead.',
       );
     }
 
@@ -414,16 +2007,39 @@ export class CustomizationService {
     if (dependencies.total > 0) {
       throw new BadRequestException({
         message:
-          'This table has metadata dependencies. Deactivate it or remove dependent columns, forms, and views first.',
+          'This Module has metadata dependencies. Remove dependent Fields, Forms, Views, and package references before retirement.',
         dependencies,
       });
     }
 
-    await this.prisma.customizationTable.delete({
-      where: { id: table.id },
-    });
+    await this.prisma.$transaction([
+      this.prisma.customizationTable.update({
+        where: { id: table.id },
+        data: {
+          isActive: false,
+          isVisibleInCustomization: false,
+          updatedByUserId: currentUser.userId,
+        },
+      }),
+      this.prisma.customizationSolutionComponent.updateMany({
+        where: {
+          tenantId: currentUser.tenantId,
+          componentType: 'table',
+          objectId: table.id,
+        },
+        data: {
+          lifecycleState: 'retired',
+          updatedByUserId: currentUser.userId,
+        },
+      }),
+    ]);
 
-    return { deleted: true };
+    return {
+      deleted: false,
+      retired: true,
+      lifecycleState: 'retired',
+      message: 'The custom Module was retired. Business data was not purged.',
+    };
   }
 
   async getTableDependencies(currentUser: AuthenticatedUser, tableKey: string) {
@@ -457,6 +2073,10 @@ export class CustomizationService {
     tableKey: string,
     dto: CreateCustomizationColumnDto,
   ) {
+    const packageRecord = await this.resolveLayerPackage(
+      currentUser,
+      dto.packageId,
+    );
     const definition = findSystemCustomizationTable(tableKey);
     if (
       definition?.columns.some((column) => column.columnKey === dto.columnKey)
@@ -473,11 +2093,17 @@ export class CustomizationService {
       currentUser.tenantId,
       tableKey,
     );
+    await this.ensurePackageModuleMembership(
+      currentUser,
+      packageRecord.id,
+      table,
+    );
 
     const column = await this.prisma.customizationColumn.create({
       data: this.buildColumnData(currentUser.tenantId, table.id, dto, false),
     });
     await this.addDefaultSolutionComponent(currentUser, {
+      solutionId: packageRecord.id,
       componentType: 'column',
       objectId: column.id,
       objectKey: `${table.tableKey}.${column.columnKey}`,
@@ -545,7 +2171,14 @@ export class CustomizationService {
     this.validateValueRules(dto);
 
     if (systemColumn && !existing) {
-      return this.prisma.customizationColumn.create({
+      const { component: draftLayer } =
+        await this.requireExistingCustomizationLayer(
+          currentUser,
+          dto.packageId,
+          'column',
+          `${table.tableKey}.${columnKey}`,
+        );
+      const column = await this.prisma.customizationColumn.create({
         data: this.buildColumnData(
           currentUser.tenantId,
           table.id,
@@ -570,10 +2203,51 @@ export class CustomizationService {
             validationJson: dto.validationJson,
             sortOrder: dto.sortOrder,
           },
-          true,
+          false,
           systemColumn.columnKey,
         ),
       });
+      await this.prisma.customizationSolutionComponent.update({
+        where: { id: draftLayer.id },
+        data: {
+          objectId: column.id,
+          metadataJson: {
+            source: 'effective-system',
+            componentKey: `${table.tableKey}.${columnKey}`,
+            patch: JSON.parse(JSON.stringify(dto)) as Prisma.InputJsonValue,
+          },
+          updatedByUserId: currentUser.userId,
+        },
+      });
+      return column;
+    }
+    if (existing?.isSystem) {
+      const { component: draftLayer } =
+        await this.requireExistingCustomizationLayer(
+          currentUser,
+          dto.packageId,
+          'column',
+          `${table.tableKey}.${existing.columnKey}`,
+        );
+      await this.prisma.customizationSolutionComponent.update({
+        where: { id: draftLayer.id },
+        data: {
+          metadataJson: {
+            ...((draftLayer.metadataJson as Record<string, unknown> | null) ??
+              {}),
+            source: 'persisted-system',
+            componentKey: `${table.tableKey}.${existing.columnKey}`,
+            patch: JSON.parse(JSON.stringify(dto)) as Prisma.InputJsonValue,
+          },
+          updatedByUserId: currentUser.userId,
+        },
+      });
+      return {
+        ...existing,
+        ...dto,
+        displayName: dto.displayName?.trim() ?? existing.displayName,
+        updatedByUserId: currentUser.userId,
+      };
     }
 
     return this.prisma.customizationColumn.update({
@@ -710,9 +2384,18 @@ export class CustomizationService {
     tableKey: string,
     dto: CreateCustomizationFormDto,
   ) {
+    const packageRecord = await this.resolveLayerPackage(
+      currentUser,
+      dto.packageId,
+    );
     const table = await this.ensureCustomizationTable(
       currentUser.tenantId,
       tableKey,
+    );
+    await this.ensurePackageModuleMembership(
+      currentUser,
+      packageRecord.id,
+      table,
     );
     await this.validateFormLayout(currentUser, tableKey, dto.layoutJson);
     if ((dto.isDefault ?? false) && (dto.isActive ?? true)) {
@@ -748,6 +2431,7 @@ export class CustomizationService {
       },
     });
     await this.addDefaultSolutionComponent(currentUser, {
+      solutionId: packageRecord.id,
       componentType: 'form',
       objectId: form.id,
       objectKey: `${table.tableKey}.${form.formKey}`,
@@ -778,7 +2462,51 @@ export class CustomizationService {
       },
     });
     if (!existing) {
-      throw new NotFoundException('Customization form was not found.');
+      const { component: draftLayer } =
+        await this.requireExistingCustomizationLayer(
+          currentUser,
+          dto.packageId,
+          'form',
+          `${table.tableKey}.${formKey}`,
+        );
+      const layoutJson = dto.layoutJson ?? { tabs: [] };
+      await this.validateFormLayout(currentUser, tableKey, layoutJson);
+      const form = await this.prisma.customizationForm.create({
+        data: {
+          tenantId: currentUser.tenantId,
+          tableId: table.id,
+          formKey,
+          name: dto.name?.trim() || formKey,
+          description: dto.description?.trim(),
+          type: dto.type ?? CustomizationFormType.main,
+          isDefault: dto.isDefault ?? false,
+          isActive: dto.isActive ?? true,
+          layoutJson: layoutJson as Prisma.InputJsonValue,
+          isSystem: false,
+          isCustom: true,
+          createdByUserId: currentUser.userId,
+          updatedByUserId: currentUser.userId,
+        },
+      });
+      await this.prisma.customizationSolutionComponent.update({
+        where: { id: draftLayer.id },
+        data: {
+          objectId: form.id,
+          metadataJson: {
+            ...((draftLayer.metadataJson as Record<string, unknown> | null) ??
+              {}),
+            source: 'effective-system',
+            componentKey: `${table.tableKey}.${formKey}`,
+          },
+          updatedByUserId: currentUser.userId,
+        },
+      });
+      return form;
+    }
+    if (existing.isSystem) {
+      throw new BadRequestException(
+        'System forms must be customized through a draft layer in a Custom Package.',
+      );
     }
     if (dto.layoutJson !== undefined) {
       await this.validateFormLayout(currentUser, tableKey, dto.layoutJson);
@@ -938,9 +2666,18 @@ export class CustomizationService {
     tableKey: string,
     dto: CreateCustomizationViewDto,
   ) {
+    const packageRecord = await this.resolveLayerPackage(
+      currentUser,
+      dto.packageId,
+    );
     const table = await this.ensureCustomizationTable(
       currentUser.tenantId,
       tableKey,
+    );
+    await this.ensurePackageModuleMembership(
+      currentUser,
+      packageRecord.id,
+      table,
     );
     await this.validateViewMetadata(currentUser, tableKey, {
       columnsJson: dto.columnsJson,
@@ -985,6 +2722,7 @@ export class CustomizationService {
       },
     });
     await this.addDefaultSolutionComponent(currentUser, {
+      solutionId: packageRecord.id,
       componentType: 'view',
       objectId: view.id,
       objectKey: `${table.tableKey}.${view.viewKey}`,
@@ -1015,20 +2753,69 @@ export class CustomizationService {
       },
     });
     if (!existing) {
-      throw new NotFoundException('Customization view was not found.');
+      const { component: draftLayer } =
+        await this.requireExistingCustomizationLayer(
+          currentUser,
+          dto.packageId,
+          'view',
+          `${table.tableKey}.${viewKey}`,
+        );
+      await this.validateViewMetadata(currentUser, tableKey, {
+        columnsJson: dto.columnsJson ?? {},
+        filtersJson: dto.filtersJson,
+        sortingJson: dto.sortingJson,
+      });
+      const view = await this.prisma.customizationView.create({
+        data: {
+          tenantId: currentUser.tenantId,
+          tableId: table.id,
+          viewKey,
+          name: dto.name?.trim() || viewKey,
+          description: dto.description?.trim(),
+          type: 'custom',
+          isDefault: dto.isDefault ?? false,
+          isHidden: dto.isHidden ?? false,
+          isSystem: false,
+          isCustom: true,
+          columnsJson: (dto.columnsJson ?? {}) as Prisma.InputJsonValue,
+          filtersJson:
+            dto.filtersJson !== undefined
+              ? (dto.filtersJson as Prisma.InputJsonValue)
+              : Prisma.JsonNull,
+          sortingJson:
+            dto.sortingJson !== undefined
+              ? (dto.sortingJson as Prisma.InputJsonValue)
+              : Prisma.JsonNull,
+          visibilityScope: dto.visibilityScope ?? 'tenant',
+          createdByUserId: currentUser.userId,
+          updatedByUserId: currentUser.userId,
+        },
+      });
+      await this.prisma.customizationSolutionComponent.update({
+        where: { id: draftLayer.id },
+        data: {
+          objectId: view.id,
+          metadataJson: {
+            ...((draftLayer.metadataJson as Record<string, unknown> | null) ??
+              {}),
+            source: 'effective-system',
+            componentKey: `${table.tableKey}.${viewKey}`,
+          },
+          updatedByUserId: currentUser.userId,
+        },
+      });
+      return view;
+    }
+    if (existing.isSystem || existing.type === 'system') {
+      throw new BadRequestException(
+        'System views must be customized through a draft layer in a Custom Package.',
+      );
     }
 
     await this.validateViewMetadata(currentUser, tableKey, {
-      columnsJson:
-        dto.columnsJson ?? (existing.columnsJson as Record<string, unknown>),
-      filtersJson:
-        dto.filtersJson ??
-        (existing.filtersJson as Record<string, unknown> | null) ??
-        undefined,
-      sortingJson:
-        dto.sortingJson ??
-        (existing.sortingJson as Record<string, unknown> | null) ??
-        undefined,
+      columnsJson: dto.columnsJson ?? existing.columnsJson,
+      filtersJson: dto.filtersJson ?? existing.filtersJson ?? undefined,
+      sortingJson: dto.sortingJson ?? existing.sortingJson ?? undefined,
     });
     const nextIsDefault = dto.isDefault ?? existing.isDefault;
     const nextIsHidden = dto.isHidden ?? existing.isHidden;
@@ -1344,13 +3131,13 @@ export class CustomizationService {
                 ? (configJson.filters as Prisma.InputJsonValue)
                 : existing.filtersJson === null
                   ? Prisma.JsonNull
-                  : (existing.filtersJson as Prisma.InputJsonValue),
+                  : existing.filtersJson,
             sortingJson:
               configJson.sorting !== undefined
                 ? (configJson.sorting as Prisma.InputJsonValue)
                 : existing.sortingJson === null
                   ? Prisma.JsonNull
-                  : (existing.sortingJson as Prisma.InputJsonValue),
+                  : existing.sortingJson,
           }
         : {}),
       ...(dto.visibilityScope !== undefined
@@ -1658,10 +3445,591 @@ export class CustomizationService {
         { tableKey: 'asc' },
       ],
     });
+    const tableIds = rows.map((row) => row.id);
+    const effectiveComponents =
+      await this.prisma.customizationSolutionComponent.findMany({
+        where: {
+          tenantId: currentUser.tenantId,
+          tableId: { in: tableIds },
+          lifecycleState: 'published',
+        },
+        select: {
+          componentType: true,
+          objectId: true,
+          tableId: true,
+          isSystem: true,
+          isCustom: true,
+          lifecycleState: true,
+          solution: {
+            select: {
+              displayName: true,
+              isDefault: true,
+              solutionKey: true,
+            },
+          },
+        },
+      });
+    const countsByTableId = new Map<
+      string,
+      {
+        actionBars: Set<string>;
+        choiceLists: Set<string>;
+        fields: Set<string>;
+        forms: Set<string>;
+        relationships: Set<string>;
+        views: Set<string>;
+      }
+    >();
+    for (const tableId of tableIds) {
+      countsByTableId.set(tableId, {
+        actionBars: new Set(),
+        choiceLists: new Set(),
+        fields: new Set(),
+        forms: new Set(),
+        relationships: new Set(),
+        views: new Set(),
+      });
+    }
+    for (const component of effectiveComponents) {
+      if (!component.tableId) continue;
+      const counts = countsByTableId.get(component.tableId);
+      if (!counts) continue;
+      if (component.componentType === 'column')
+        counts.fields.add(component.objectId);
+      if (component.componentType === 'form')
+        counts.forms.add(component.objectId);
+      if (component.componentType === 'view')
+        counts.views.add(component.objectId);
+      if (component.componentType === 'optionSet') {
+        counts.choiceLists.add(component.objectId);
+      }
+      if (component.componentType === 'lookup') {
+        counts.relationships.add(component.objectId);
+      }
+      if (component.componentType === 'actionBar') {
+        counts.actionBars.add(component.objectId);
+      }
+    }
 
     return rows
-      .map((row) => this.toTableResponse(null, row))
+      .map((row) =>
+        this.toTableResponse(null, row, countsByTableId.get(row.id)),
+      )
       .sort((a, b) => a.displayName.localeCompare(b.displayName));
+  }
+
+  private toPackageResponse(
+    currentUser: AuthenticatedUser,
+    record: CustomizationSolution,
+    componentSummary: PackageComponentSummary,
+    version = '1.0.0',
+    publisherName?: string,
+  ) {
+    const publisher = this.getPackagePublisher(
+      currentUser,
+      record,
+      publisherName,
+    );
+    const type = record.isDefault
+      ? 'default'
+      : record.isManaged
+        ? 'managed'
+        : 'custom';
+    const state = this.packageState(record, componentSummary);
+
+    return {
+      id: record.id,
+      packageKey: record.solutionKey,
+      displayName: record.displayName.replace('Solution', 'Package'),
+      description: record.description?.replace('solution', 'package') ?? null,
+      publisher,
+      publisherId: publisher.publisherId,
+      publisherName: publisher.displayName,
+      prefix: publisher.prefix,
+      version,
+      type,
+      state,
+      isManaged: record.isManaged,
+      isDefault: record.isDefault,
+      isReadOnly: record.isDefault || record.isSystem,
+      canEdit: !record.isDefault && !record.isSystem,
+      canPublish: !record.isDefault && !record.isManaged,
+      canDelete:
+        !record.isDefault &&
+        !record.isSystem &&
+        !record.isManaged &&
+        componentSummary.published === 0,
+      deleteDisabledReason:
+        record.isDefault || record.isSystem
+          ? 'Default/System Package cannot be deleted.'
+          : record.isManaged
+            ? 'Managed packages cannot be deleted.'
+            : componentSummary.published > 0
+              ? 'Package cannot be deleted while published package components exist. Retire or replace the published metadata first.'
+              : null,
+      componentsCount: componentSummary.total,
+      draftComponentsCount: componentSummary.draft,
+      publishedComponentsCount: componentSummary.published,
+      updatedAt: record.updatedAt,
+      createdAt: record.createdAt,
+    };
+  }
+
+  private getPackagePublisher(
+    currentUser: AuthenticatedUser,
+    record: CustomizationSolution,
+    publisherName?: string,
+  ) {
+    if (record.isDefault || record.solutionKey === 'default') {
+      return {
+        publisherId: 'system:dijipeople',
+        displayName: 'DijiPeople',
+        prefix: '',
+        isDefault: true,
+        isPrefixLocked: true,
+      };
+    }
+
+    const displayName =
+      publisherName?.trim() || currentUser.tenantName?.trim() || 'Custom';
+    const prefix =
+      extractPackagePrefix(record.solutionKey) || publisherPrefix(displayName);
+
+    return {
+      publisherId: `tenant:${currentUser.tenantId}`,
+      displayName,
+      prefix,
+      isDefault: false,
+      isPrefixLocked: true,
+    };
+  }
+
+  private packageState(
+    record: CustomizationSolution,
+    componentSummary: PackageComponentSummary,
+  ) {
+    if (!record.isActive) return 'archived';
+    if (record.isDefault) return 'published';
+    if (componentSummary.total > 0 && componentSummary.draft === 0) {
+      return 'published';
+    }
+    return 'draft';
+  }
+
+  private summarizePackageComponents(
+    components: readonly { lifecycleState?: string | null }[],
+  ): PackageComponentSummary {
+    const draft = components.filter(
+      (component) => component.lifecycleState === 'draft',
+    ).length;
+    const published = components.filter(
+      (component) => component.lifecycleState === 'published',
+    ).length;
+
+    return {
+      draft,
+      published,
+      total: components.length,
+    };
+  }
+
+  private async getPackageStateSummaries(
+    currentUser: AuthenticatedUser,
+    packageIds: readonly string[],
+  ) {
+    if (!packageIds.length) return [];
+    const packages = await this.prisma.customizationSolution.findMany({
+      where: {
+        tenantId: currentUser.tenantId,
+        id: { in: [...packageIds] },
+      },
+      include: { components: { select: { lifecycleState: true } } },
+    });
+
+    return packages.map((record) => {
+      const summary = this.summarizePackageComponents(record.components);
+      return {
+        packageId: record.id,
+        packageKey: record.solutionKey,
+        packageName: record.displayName,
+        beforeState: 'draft',
+        afterState: this.packageState(record, summary),
+        draftComponentsCount: summary.draft,
+        publishedComponentsCount: summary.published,
+      };
+    });
+  }
+
+  private async uniquePublisherPrefix(
+    currentUser: AuthenticatedUser,
+    publisherName: string,
+  ) {
+    const basePrefix = publisherPrefix(publisherName);
+    const packages = await this.prisma.customizationSolution.findMany({
+      where: {
+        tenantId: currentUser.tenantId,
+        isDefault: false,
+      },
+      select: { solutionKey: true },
+    });
+    const existingPrefixes = new Set(
+      packages
+        .map((record) => extractPackagePrefix(record.solutionKey))
+        .filter(Boolean),
+    );
+
+    if (!existingPrefixes.has(basePrefix)) return basePrefix;
+
+    for (let index = 2; index < 1000; index += 1) {
+      const candidate = `${basePrefix.replace(/_$/g, '')}${index}_`;
+      if (!existingPrefixes.has(candidate)) return candidate;
+    }
+
+    throw new ConflictException(
+      'Unable to generate a unique publisher prefix.',
+    );
+  }
+
+  private async uniquePackageKey(
+    currentUser: AuthenticatedUser,
+    basePackageKey: string,
+  ) {
+    const normalizedBase = basePackageKey || 'custom_package';
+    let candidate = normalizedBase;
+    for (let index = 2; index < 1000; index += 1) {
+      const existing = await this.prisma.customizationSolution.findUnique({
+        where: {
+          tenantId_solutionKey: {
+            tenantId: currentUser.tenantId,
+            solutionKey: candidate,
+          },
+        },
+      });
+      if (!existing) return candidate;
+      candidate = `${normalizedBase}${index}`;
+    }
+
+    throw new ConflictException('Unable to generate a unique package key.');
+  }
+
+  private async findPackageOrThrow(
+    currentUser: AuthenticatedUser,
+    packageId: string,
+  ) {
+    const record = await this.prisma.customizationSolution.findFirst({
+      where: {
+        tenantId: currentUser.tenantId,
+        OR: [{ id: packageId }, { solutionKey: packageId }],
+      },
+    });
+    if (!record) {
+      throw new NotFoundException('Customization package was not found.');
+    }
+    return record;
+  }
+
+  private async resolveLayerPackage(
+    currentUser: AuthenticatedUser,
+    packageId?: string,
+  ) {
+    const record = packageId
+      ? await this.findPackageOrThrow(currentUser, packageId)
+      : await this.getOrCreateUnassignedDraftPackage(currentUser);
+    if (record.isDefault || record.isSystem) {
+      throw new BadRequestException(
+        'Default Package cannot contain customization layers.',
+      );
+    }
+    return record;
+  }
+
+  private async requireExistingCustomizationLayer(
+    currentUser: AuthenticatedUser,
+    packageId: string | undefined,
+    componentType: CustomizationSolutionComponentType,
+    objectKey: string,
+  ) {
+    if (!packageId) {
+      throw new BadRequestException(
+        'Use Add Existing to add this component to a Custom Package before editing it.',
+      );
+    }
+    const packageRecord = await this.resolveLayerPackage(
+      currentUser,
+      packageId,
+    );
+    const component =
+      await this.prisma.customizationSolutionComponent.findFirst({
+        where: {
+          tenantId: currentUser.tenantId,
+          solutionId: packageRecord.id,
+          componentType,
+          objectKey,
+          layerAction: 'modify',
+          lifecycleState: 'draft',
+        },
+      });
+    if (!component) {
+      throw new BadRequestException(
+        'Use Add Existing to add this component to the selected Custom Package before editing it.',
+      );
+    }
+    return { component, packageRecord };
+  }
+
+  private async getOrCreateUnassignedDraftPackage(
+    currentUser: AuthenticatedUser,
+  ) {
+    return this.prisma.customizationSolution.upsert({
+      where: {
+        tenantId_solutionKey: {
+          tenantId: currentUser.tenantId,
+          solutionKey: UNASSIGNED_DRAFT_PACKAGE_KEY,
+        },
+      },
+      create: {
+        tenantId: currentUser.tenantId,
+        solutionKey: UNASSIGNED_DRAFT_PACKAGE_KEY,
+        displayName: UNASSIGNED_DRAFT_PACKAGE_NAME,
+        description:
+          'Internal holding area for draft customizations not assigned to an exportable Custom Package.',
+        scope: 'tenant',
+        isDefault: false,
+        isSystem: false,
+        isManaged: false,
+        isActive: true,
+        createdByUserId: currentUser.userId,
+        updatedByUserId: currentUser.userId,
+      },
+      update: {
+        displayName: UNASSIGNED_DRAFT_PACKAGE_NAME,
+        isDefault: false,
+        isSystem: false,
+        isActive: true,
+        updatedByUserId: currentUser.userId,
+      },
+    });
+  }
+
+  private async findComponentBase(
+    currentUser: AuthenticatedUser,
+    componentType: CustomizationSolutionComponentType,
+    tableId: string,
+    componentKey: string,
+  ) {
+    const componentKeyParts = componentKey.split('.');
+    const localKey = componentKey.includes('.')
+      ? componentKeyParts[componentKeyParts.length - 1]
+      : componentKey;
+    if (componentType === 'form') {
+      const form = await this.prisma.customizationForm.findUnique({
+        where: {
+          tenantId_tableId_formKey: {
+            tenantId: currentUser.tenantId,
+            tableId,
+            formKey: localKey,
+          },
+        },
+      });
+      return {
+        objectId: form?.id ?? `${tableId}:${localKey}`,
+        baseComponentId: form?.id ?? `${tableId}:${localKey}`,
+        isSystem: form?.isSystem ?? true,
+      };
+    }
+    if (componentType === 'view') {
+      const view = await this.prisma.customizationView.findUnique({
+        where: {
+          tenantId_tableId_viewKey: {
+            tenantId: currentUser.tenantId,
+            tableId,
+            viewKey: localKey,
+          },
+        },
+      });
+      return {
+        objectId: view?.id ?? `${tableId}:${localKey}`,
+        baseComponentId: view?.id ?? `${tableId}:${localKey}`,
+        isSystem: view ? (view.isSystem ?? view.type === 'system') : true,
+      };
+    }
+    if (componentType === 'column') {
+      const column = await this.prisma.customizationColumn.findUnique({
+        where: {
+          tenantId_tableId_columnKey: {
+            tenantId: currentUser.tenantId,
+            tableId,
+            columnKey: localKey,
+          },
+        },
+      });
+      return {
+        objectId: column?.id ?? `${tableId}:${localKey}`,
+        baseComponentId: column?.id ?? `${tableId}:${localKey}`,
+        isSystem: column?.isSystem ?? true,
+      };
+    }
+    return {
+      objectId: `${tableId}:${localKey}`,
+      baseComponentId: `${tableId}:${localKey}`,
+      isSystem: false,
+    };
+  }
+
+  private async getPackageComponents(
+    currentUser: AuthenticatedUser,
+    packageId: string,
+  ) {
+    const components =
+      await this.prisma.customizationSolutionComponent.findMany({
+        where: { tenantId: currentUser.tenantId, solutionId: packageId },
+        orderBy: [
+          { componentType: 'asc' },
+          { objectKey: 'asc' },
+          { updatedAt: 'desc' },
+        ],
+      });
+    const objectIds = components.map((component) => component.objectId);
+    const tableIds = [
+      ...new Set([
+        ...components
+          .map((component) => component.tableId)
+          .filter((value): value is string => Boolean(value)),
+        ...components
+          .filter((component) => component.componentType === 'table')
+          .map((component) => component.objectId),
+      ]),
+    ];
+    const [tables, columns, forms, views] = await Promise.all([
+      this.prisma.customizationTable.findMany({
+        where: {
+          tenantId: currentUser.tenantId,
+          id: { in: [...new Set([...objectIds, ...tableIds])] },
+        },
+      }),
+      this.prisma.customizationColumn.findMany({
+        where: { tenantId: currentUser.tenantId, id: { in: objectIds } },
+      }),
+      this.prisma.customizationForm.findMany({
+        where: { tenantId: currentUser.tenantId, id: { in: objectIds } },
+      }),
+      this.prisma.customizationView.findMany({
+        where: { tenantId: currentUser.tenantId, id: { in: objectIds } },
+      }),
+    ]);
+    const tableById = new Map(tables.map((table) => [table.id, table]));
+    const columnById = new Map(columns.map((column) => [column.id, column]));
+    const formById = new Map(forms.map((form) => [form.id, form]));
+    const viewById = new Map(views.map((view) => [view.id, view]));
+
+    return components.map((component) => {
+      const response = this.toSolutionComponentResponse(component, {
+        table: tableById.get(component.objectId),
+        column: columnById.get(component.objectId),
+        form: formById.get(component.objectId),
+        view: viewById.get(component.objectId),
+        parentTable: component.tableId
+          ? tableById.get(component.tableId)
+          : undefined,
+      });
+      return {
+        ...response,
+        source: component.isSystem ? 'System' : 'Custom',
+        layerAction: component.layerAction,
+        state: stateLabel(component.lifecycleState),
+        lifecycleState: component.lifecycleState,
+        version: component.version,
+        dependencies: [],
+      };
+    });
+  }
+
+  private async resolvePackageObjects(
+    currentUser: AuthenticatedUser,
+    componentType: CustomizationSolutionComponentType,
+    objectIds: string[],
+  ) {
+    const uniqueIds = [...new Set(objectIds)];
+    if (componentType === 'table') {
+      const rows = await this.prisma.customizationTable.findMany({
+        where: { tenantId: currentUser.tenantId, id: { in: uniqueIds } },
+      });
+      return rows.map((row) => ({
+        objectId: row.id,
+        objectKey: row.tableKey,
+        tableId: row.id,
+        isSystem: row.isSystem,
+        isCustom: row.isCustom,
+      }));
+    }
+    if (componentType === 'widget') {
+      const tables = await this.prisma.customizationTable.findMany({
+        where: { tenantId: currentUser.tenantId },
+      });
+      return uniqueIds.flatMap((objectId) => {
+        const parsed = parseSystemWidgetObjectId(objectId);
+        if (!parsed) return [];
+        const table = tables.find(
+          (candidate) => candidate.tableKey === parsed.moduleKey,
+        );
+        const widget = listSupportedSystemWidgets(parsed.moduleKey).find(
+          (candidate) => candidate.widgetKey === parsed.widgetKey,
+        );
+        if (!table || !widget) return [];
+        return [
+          {
+            objectId,
+            objectKey: `${table.tableKey}.${widget.widgetKey}`,
+            tableId: table.id,
+            isSystem: true,
+            isCustom: false,
+            metadataJson: systemWidgetPackageMetadata(widget, table.tableKey),
+          },
+        ];
+      });
+    }
+    if (componentType === 'column') {
+      const rows = await this.prisma.customizationColumn.findMany({
+        where: { tenantId: currentUser.tenantId, id: { in: uniqueIds } },
+        include: { table: true },
+      });
+      return rows.map((row) => ({
+        objectId: row.id,
+        objectKey: `${row.table.tableKey}.${row.columnKey}`,
+        tableId: row.tableId,
+        isSystem: row.isSystem,
+        isCustom: row.isCustom,
+      }));
+    }
+    if (componentType === 'form') {
+      const rows = await this.prisma.customizationForm.findMany({
+        where: { tenantId: currentUser.tenantId, id: { in: uniqueIds } },
+        include: { table: true },
+      });
+      return rows.map((row) => ({
+        objectId: row.id,
+        objectKey: `${row.table.tableKey}.${row.formKey}`,
+        tableId: row.tableId,
+        isSystem: row.isSystem,
+        isCustom: row.isCustom,
+      }));
+    }
+    if (componentType === 'view') {
+      const rows = await this.prisma.customizationView.findMany({
+        where: { tenantId: currentUser.tenantId, id: { in: uniqueIds } },
+        include: { table: true },
+      });
+      return rows.map((row) => ({
+        objectId: row.id,
+        objectKey: `${row.table.tableKey}.${row.viewKey}`,
+        tableId: row.tableId,
+        isSystem: row.isSystem,
+        isCustom: row.isCustom,
+      }));
+    }
+    throw new BadRequestException(
+      'This component type is not backed by metadata storage yet.',
+    );
   }
 
   private async syncDefaultSolution(currentUser: AuthenticatedUser) {
@@ -1736,6 +4104,19 @@ export class CustomizationService {
         isSystem: true,
         isCustom: false,
       });
+
+      for (const widget of listSupportedSystemWidgets(table.tableKey)) {
+        await this.addDefaultSolutionComponent(currentUser, {
+          solutionId: solution.id,
+          componentType: 'widget',
+          objectId: systemWidgetObjectId(table.tableKey, widget.widgetKey),
+          objectKey: `${table.tableKey}.${widget.widgetKey}`,
+          tableId: table.id,
+          isSystem: true,
+          isCustom: false,
+          metadataJson: systemWidgetPackageMetadata(widget, table.tableKey),
+        });
+      }
 
       for (const [index, column] of definition.columns.entries()) {
         const row = await this.prisma.customizationColumn.upsert({
@@ -1833,6 +4214,7 @@ export class CustomizationService {
         update: {
           isSystem: true,
           isCustom: false,
+          layoutJson: buildDefaultFormLayout(table, formColumns),
         },
       });
 
@@ -1884,6 +4266,34 @@ export class CustomizationService {
         tableId: table.id,
         isSystem: true,
         isCustom: false,
+      });
+
+      await this.addDefaultSolutionComponent(currentUser, {
+        solutionId: solution.id,
+        componentType: 'actionBar',
+        objectId: `system-action-bar:${table.tableKey}`,
+        objectKey: `${table.tableKey}.system.actionBar`,
+        tableId: table.id,
+        isSystem: true,
+        isCustom: false,
+        metadataJson: {
+          source: 'runtime-registered',
+          scope: 'module',
+          actions: [
+            'system.new',
+            'system.edit',
+            'system.delete',
+            'system.refresh',
+            'record.assignOwner',
+            'record.share',
+            'system.import',
+            'system.export',
+            'system.exportTemplate',
+            'system.back',
+            'system.save',
+            'system.saveAndClose',
+          ],
+        },
       });
     }
 
@@ -1945,11 +4355,20 @@ export class CustomizationService {
       tableId?: string | null;
       isSystem: boolean;
       isCustom: boolean;
+      baseComponentId?: string | null;
+      layerAction?: string;
+      lifecycleState?: string;
+      layerOrder?: number;
+      version?: string;
+      metadataJson?: Prisma.InputJsonValue;
     },
   ) {
-    const solutionId =
-      component.solutionId ??
-      (await this.ensureDefaultSolution(currentUser)).id;
+    const solution = component.solutionId
+      ? await this.findPackageOrThrow(currentUser, component.solutionId)
+      : await this.ensureDefaultSolution(currentUser);
+    const solutionId = solution.id;
+    const isDefaultBaseComponent =
+      solution.isDefault && solution.isSystem && component.isSystem;
     return this.prisma.customizationSolutionComponent.upsert({
       where: {
         solutionId_componentType_objectId: {
@@ -1968,6 +4387,27 @@ export class CustomizationService {
         isSystem: component.isSystem,
         isCustom: component.isCustom,
         isManaged: false,
+        baseComponentId: component.baseComponentId ?? null,
+        layerAction:
+          component.layerAction ??
+          (component.isSystem ? 'reference' : 'create'),
+        lifecycleState:
+          component.lifecycleState ??
+          (isDefaultBaseComponent ? 'published' : 'draft'),
+        layerOrder:
+          component.layerOrder ?? (isDefaultBaseComponent ? 100 : 300),
+        version: component.version ?? '1.0.0',
+        checksum: checksumFor({
+          componentType: component.componentType,
+          objectId: component.objectId,
+          objectKey: component.objectKey,
+          tableId: component.tableId ?? null,
+          layerAction:
+            component.layerAction ??
+            (component.isSystem ? 'reference' : 'create'),
+          metadataJson: component.metadataJson ?? null,
+        }),
+        metadataJson: component.metadataJson ?? Prisma.JsonNull,
         createdByUserId: currentUser.userId,
         updatedByUserId: currentUser.userId,
       },
@@ -1976,7 +4416,58 @@ export class CustomizationService {
         tableId: component.tableId ?? null,
         isSystem: component.isSystem,
         isCustom: component.isCustom,
+        ...(component.baseComponentId !== undefined
+          ? { baseComponentId: component.baseComponentId }
+          : {}),
+        ...(component.layerAction
+          ? { layerAction: component.layerAction }
+          : {}),
+        lifecycleState:
+          component.lifecycleState ??
+          (isDefaultBaseComponent ? 'published' : 'draft'),
+        layerOrder:
+          component.layerOrder ?? (isDefaultBaseComponent ? 100 : 300),
+        ...(component.version ? { version: component.version } : {}),
+        ...(component.metadataJson !== undefined
+          ? { metadataJson: component.metadataJson ?? Prisma.JsonNull }
+          : {}),
+        checksum: checksumFor({
+          componentType: component.componentType,
+          objectId: component.objectId,
+          objectKey: component.objectKey,
+          tableId: component.tableId ?? null,
+          layerAction:
+            component.layerAction ??
+            (component.isSystem ? 'reference' : 'create'),
+          metadataJson: component.metadataJson ?? null,
+        }),
         updatedByUserId: currentUser.userId,
+      },
+    });
+  }
+
+  private ensurePackageModuleMembership(
+    currentUser: AuthenticatedUser,
+    solutionId: string,
+    table: CustomizationTable,
+  ) {
+    return this.addDefaultSolutionComponent(currentUser, {
+      solutionId,
+      componentType: 'table',
+      objectId: table.id,
+      objectKey: table.tableKey,
+      tableId: table.id,
+      isSystem: table.isSystem,
+      isCustom: table.isCustom,
+      baseComponentId: table.isSystem ? table.id : null,
+      layerAction: 'reference',
+      lifecycleState: 'draft',
+      layerOrder: 200,
+      metadataJson: {
+        sourceComponentType: 'table',
+        sourceObjectId: table.id,
+        sourceObjectKey: table.tableKey,
+        autoAddedForChildComponent: true,
       },
     });
   }
@@ -1991,6 +4482,15 @@ export class CustomizationService {
       isSystem: boolean;
       isCustom: boolean;
       isManaged: boolean;
+      baseComponentId?: string | null;
+      layerAction?: string;
+      lifecycleState?: string;
+      layerOrder?: number;
+      version?: string;
+      checksum?: string | null;
+      metadataJson?: Prisma.JsonValue | null;
+      publishedAt?: Date | null;
+      publishedByUserId?: string | null;
       updatedAt: Date;
     },
     related: {
@@ -2034,6 +4534,18 @@ export class CustomizationService {
       isSystem: component.isSystem,
       isCustom: component.isCustom,
       isManaged: component.isManaged,
+      baseComponentId: component.baseComponentId ?? null,
+      layerAction:
+        component.layerAction ?? (component.isSystem ? 'reference' : 'create'),
+      lifecycleState:
+        component.lifecycleState ??
+        (component.isSystem ? 'published' : 'draft'),
+      layerOrder: component.layerOrder ?? (component.isSystem ? 100 : 300),
+      version: component.version ?? '1.0.0',
+      checksum: component.checksum ?? null,
+      metadataJson: component.metadataJson ?? null,
+      publishedAt: component.publishedAt ?? null,
+      publishedByUserId: component.publishedByUserId ?? null,
       isActive:
         'isActive' in (source ?? {})
           ? Boolean((source as { isActive?: boolean }).isActive)
@@ -2355,6 +4867,14 @@ export class CustomizationService {
   private toTableResponse(
     definition: SystemTableDefinition | null,
     row?: CustomizationTable,
+    effectiveCounts?: {
+      actionBars: Set<string>;
+      choiceLists: Set<string>;
+      fields: Set<string>;
+      forms: Set<string>;
+      relationships: Set<string>;
+      views: Set<string>;
+    },
   ) {
     if (!definition && !row) {
       throw new NotFoundException('Customization table was not found.');
@@ -2398,6 +4918,16 @@ export class CustomizationService {
       isCustom: row?.isCustom ?? !definition,
       isCustomTable: row?.isCustom ?? !definition,
       publishedAt: null,
+      fieldsCount: effectiveCounts?.fields.size ?? 0,
+      formsCount: effectiveCounts?.forms.size ?? 0,
+      viewsCount: effectiveCounts?.views.size ?? 0,
+      choiceListsCount: effectiveCounts?.choiceLists.size ?? 0,
+      relationshipsCount: effectiveCounts?.relationships.size ?? 0,
+      actionBarsCount: effectiveCounts?.actionBars.size ?? 0,
+      source: (row?.isSystem ?? Boolean(definition)) ? 'System' : 'Custom',
+      packageName:
+        (row?.isSystem ?? Boolean(definition)) ? 'Default Package' : null,
+      lifecycleState: 'published',
       createdAt: row?.createdAt ?? null,
       updatedAt: row?.updatedAt ?? null,
     };
@@ -2496,6 +5026,12 @@ type PublishValidationError = {
   message: string;
 };
 
+type PackageComponentSummary = {
+  draft: number;
+  published: number;
+  total: number;
+};
+
 type EffectivePublishColumn = {
   columnKey: string;
   dataType: string;
@@ -2508,6 +5044,27 @@ type EffectivePublishColumn = {
 
 function toJsonValue(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+}
+
+function normalizePublishedSnapshot(value: Prisma.JsonValue) {
+  if (!value || Array.isArray(value) || typeof value !== 'object') {
+    return value;
+  }
+
+  const snapshot = value as Record<string, Prisma.JsonValue>;
+  const effectiveMetadata = snapshot.effectiveMetadata;
+  if (
+    effectiveMetadata &&
+    !Array.isArray(effectiveMetadata) &&
+    typeof effectiveMetadata === 'object'
+  ) {
+    return {
+      ...(effectiveMetadata as Record<string, Prisma.JsonValue>),
+      ...snapshot,
+    };
+  }
+
+  return snapshot;
 }
 
 function isDeadlockError(error: unknown) {
@@ -2541,18 +5098,20 @@ function buildDefaultFormLayout(
     }));
 
   return toJsonValue({
+    columns: 3,
     tabs: [
       {
         id: 'summary',
         label: 'Summary',
+        columns: 3,
         sequence: 10,
         sections: [
           {
             id: 'general',
             label: 'General',
             labelVisible: true,
-            columns: 2,
-            layout: 'twoColumns',
+            columns: 3,
+            layout: 'threeColumns',
             isVisible: true,
             sequence: 10,
             fields,
@@ -2674,6 +5233,134 @@ function pascalize(value: string) {
   return words
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join('');
+}
+
+function publisherPrefix(value: string) {
+  const words = value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .split(' ')
+    .filter(Boolean);
+  const letters =
+    words.length > 1
+      ? words.map((word) => word[0]).join('')
+      : (words[0] ?? 'dp').slice(0, 2).padEnd(2, 'a');
+  const prefix = letters || 'dp';
+  return `${prefix.toLowerCase().replace(/[^a-z0-9]/g, '')}_`;
+}
+
+function extractPackagePrefix(value: string) {
+  const match = value.match(/^([a-z][a-z0-9]*_)/);
+  return match?.[1] ?? '';
+}
+
+function camelize(value: string) {
+  const words = value
+    .trim()
+    .replace(/[^a-zA-Z0-9]+/g, ' ')
+    .split(' ')
+    .filter(Boolean);
+  return words
+    .map((word, index) => {
+      const lower = word.toLowerCase();
+      return index === 0
+        ? lower
+        : `${lower[0]?.toUpperCase() ?? ''}${lower.slice(1)}`;
+    })
+    .join('');
+}
+
+function findDuplicates(values: readonly string[]) {
+  const seen = new Set<string>();
+  const duplicates = new Set<string>();
+  for (const value of values) {
+    if (seen.has(value)) duplicates.add(value);
+    seen.add(value);
+  }
+  return Array.from(duplicates);
+}
+
+function checksumFor(value: unknown) {
+  return createHash('sha256').update(JSON.stringify(value)).digest('hex');
+}
+
+function nextPatchVersion(value?: string | null) {
+  const parts = (value ?? '1.0.0')
+    .split('.')
+    .map((part) => Number.parseInt(part, 10));
+  const [major = 1, minor = 0, patch = 0] = parts.map((part) =>
+    Number.isFinite(part) ? part : 0,
+  );
+  return `${major}.${minor}.${patch + 1}`;
+}
+
+function stateLabel(value: string) {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function toSolutionComponentType(
+  value?: string,
+): CustomizationSolutionComponentType | null {
+  const normalized = (value ?? '').trim();
+  const map: Record<string, CustomizationSolutionComponentType> = {
+    module: 'table',
+    table: 'table',
+    field: 'column',
+    column: 'column',
+    form: 'form',
+    view: 'view',
+    choiceList: 'optionSet',
+    optionSet: 'optionSet',
+    relationship: 'lookup',
+    lookup: 'lookup',
+    actionBar: 'actionBar',
+    widget: 'widget',
+  };
+  if (!normalized) return null;
+  return map[normalized] ?? null;
+}
+
+function systemWidgetObjectId(moduleKey: string, widgetKey: string) {
+  return `system-widget:${moduleKey}:${widgetKey}`;
+}
+
+function parseSystemWidgetObjectId(value: string) {
+  const match = /^system-widget:([^:]+):(system\..+)$/.exec(value);
+  return match
+    ? { moduleKey: match[1] ?? '', widgetKey: match[2] ?? '' }
+    : null;
+}
+
+function systemWidgetPackageMetadata(
+  widget: SystemWidgetDefinition,
+  moduleKey: string,
+): Prisma.InputJsonValue {
+  return toJsonValue({
+    widgetKey: widget.widgetKey,
+    displayName: widget.displayName,
+    widgetType: widget.widgetType,
+    moduleKey,
+    supportedFormComponentTypes: widget.supportedFormComponentTypes,
+    requiredDataAdapterMethods: widget.requiredDataAdapterMethods,
+    requiredPermissions: widget.requiredPermissions,
+    allowedRoles: widget.allowedRoles,
+    savedRecordRequired: widget.savedRecordRequired,
+    source: 'system-widget-registry',
+    customExecutionEnabled: false,
+  });
+}
+
+function localComponentName(value: string) {
+  return value.split('.').pop() || value;
+}
+
+function jsonReferencesAny(value: unknown, references: readonly string[]) {
+  if (value === null || value === undefined) return false;
+  const serialized = JSON.stringify(value);
+  return references.some(
+    (reference) =>
+      reference.length > 0 && serialized.includes(`"${reference}"`),
+  );
 }
 
 function buildEffectivePublishColumns(

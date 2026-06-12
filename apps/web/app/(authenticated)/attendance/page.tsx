@@ -1,29 +1,23 @@
-import { ModuleViewSelector } from "@/app/components/view-selector/module-view-selector";
+import { StandardModuleListPage } from "@/app/components/runtime";
 import { getSessionUser } from "@/lib/auth";
-import {
-  getTableViews,
-  withFallbackViews,
-} from "@/lib/customization-views";
-import { hasPermission, isSelfServiceUser } from "@/lib/permissions";
 import { hasElevatedTenantRole } from "@/lib/elevated-roles";
+import { hasPermission, isSelfServiceUser } from "@/lib/permissions";
+import {
+  buildStandardModuleRuntimeContext,
+  buildStandardRuntimePrincipal,
+} from "@/lib/runtime/modules/standard-module-runtime";
+import { attendanceRuntimeSpec } from "@/lib/runtime/modules/standard-module-specs";
 import { PERMISSION_KEYS } from "@/lib/security-keys";
 import { ApiRequestError, apiRequestJson } from "@/lib/server-api";
+import { formatDate } from "@/lib/formatting-context";
 import { AccessDeniedState } from "../_components/access-denied-state";
 import {
   getBusinessUnitAccessSummary,
   hasBusinessUnitScope,
 } from "../_lib/business-unit-access";
-import { AttendanceCheckWidget } from "./_components/attendance-check-widget";
-import { AttendanceCommandBar } from "./_components/attendance-command-bar";
-import { AttendanceSummaryStrip } from "./_components/attendance-summary-strip";
-import { AttendanceTable } from "./_components/attendance-table";
-import {
-  AttendanceListResponse,
-  AttendanceLocationOption,
-  AttendanceSummaryResponse,
-  AttendanceView,
-} from "./types";
 import { getCurrentEmployee } from "../_lib/current-employee";
+import type { TenantResolvedSettingsResponse } from "../settings/types";
+import type { AttendanceListResponse } from "./types";
 
 type AttendancePageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -33,9 +27,15 @@ export default async function AttendancePage({
   searchParams,
 }: AttendancePageProps) {
   const params = normalizeSearchParams(await searchParams);
-  const today = formatLocalDate(new Date());
-
-  const sessionUser = await getSessionUser();
+  const [sessionUser, resolvedSettings, attendanceContext] = await Promise.all([
+    getSessionUser(),
+    apiRequestJson<TenantResolvedSettingsResponse>(
+      "/tenant-settings/resolved",
+    ).catch(() => null),
+    apiRequestJson<AttendanceRuntimeContext>(
+      "/attendance/runtime-context",
+    ).catch(() => null),
+  ]);
   const hasAttendanceRead = hasPermission(
     sessionUser?.permissionKeys,
     PERMISSION_KEYS.ATTENDANCE_READ,
@@ -71,588 +71,149 @@ export default async function AttendancePage({
   const isElevated = hasElevatedTenantRole(sessionUser?.roleKeys);
   const canViewTeamAttendance =
     isElevated ||
-    hasPermission(sessionUser?.permissionKeys, PERMISSION_KEYS.ATTENDANCE_MANAGE) ||
-    hasPermission(sessionUser?.permissionKeys, PERMISSION_KEYS.ATTENDANCE_READ_ALL) ||
-    hasPermission(sessionUser?.permissionKeys, PERMISSION_KEYS.ATTENDANCE_READ_TEAM) ||
+    hasPermission(
+      sessionUser?.permissionKeys,
+      PERMISSION_KEYS.ATTENDANCE_MANAGE,
+    ) ||
+    hasPermission(
+      sessionUser?.permissionKeys,
+      PERMISSION_KEYS.ATTENDANCE_READ_ALL,
+    ) ||
+    hasPermission(
+      sessionUser?.permissionKeys,
+      PERMISSION_KEYS.ATTENDANCE_READ_TEAM,
+    ) ||
     currentEmployeeContext.isReportingManager;
-  const canOverrideAttendance =
+  const canViewAllAttendance =
     isElevated ||
-    hasPermission(sessionUser?.permissionKeys, PERMISSION_KEYS.ATTENDANCE_OVERRIDE) ||
-    hasPermission(sessionUser?.permissionKeys, PERMISSION_KEYS.ATTENDANCE_MANAGE) ||
-    hasPermission(sessionUser?.permissionKeys, PERMISSION_KEYS.ATTENDANCE_UPDATE);
-  const requestedViewKey =
-    params.tableView ??
-    params.viewKey ??
-    (isAttendanceSystemViewKey(params.view) ? params.view : undefined);
-  const selectedViewKey = selfServiceAttendance
-    ? normalizeSelfServiceAttendanceViewKey(requestedViewKey)
-    : requestedViewKey;
-  const view = parseAttendanceView(params.view, selectedViewKey);
-  const effectiveSelectedViewKey =
-    selectedViewKey ||
-    (selfServiceAttendance
-      ? "thisWeek"
-      : canViewTeamAttendance
-        ? "allAttendance"
-        : "myAttendance");
-  const queryString = buildAttendanceQueryString(
-    params,
-    effectiveSelectedViewKey,
-    today,
-  );
-  const listEndpoint =
-    canViewTeamAttendance &&
-    effectiveSelectedViewKey !== "myAttendance" &&
-    !selfServiceAttendance
-      ? `/attendance/team?scope=${
-          effectiveSelectedViewKey === "teamAttendance" ? "team" : "all"
-        }`
-      : "/attendance/mine";
-  const summaryEndpoint =
-    canViewTeamAttendance &&
-    effectiveSelectedViewKey !== "myAttendance" &&
-    !selfServiceAttendance
-      ? `/attendance/team/summary?scope=${
-          effectiveSelectedViewKey === "teamAttendance" ? "team" : "all"
-        }`
-      : "/attendance/mine/summary";
+    hasPermission(
+      sessionUser?.permissionKeys,
+      PERMISSION_KEYS.ATTENDANCE_MANAGE,
+    ) ||
+    hasPermission(
+      sessionUser?.permissionKeys,
+      PERMISSION_KEYS.ATTENDANCE_READ_ALL,
+    );
+  const canViewMyAttendance = Boolean(currentEmployeeContext.employee);
+  const visibleViewKeys = canViewAllAttendance
+    ? new Set([
+        ...(canViewMyAttendance ? ["attendance.my"] : []),
+        "attendance.today",
+        "attendance.team",
+        "attendance.all",
+        "attendance.missingCheckout",
+      ])
+    : canViewTeamAttendance
+      ? new Set([
+          ...(canViewMyAttendance ? ["attendance.my"] : []),
+          "attendance.team",
+        ])
+      : new Set(["attendance.my"]);
+  const visibleSpec = {
+    ...attendanceRuntimeSpec,
+    views: attendanceRuntimeSpec.views.filter((view) =>
+      visibleViewKeys.has(view.logicalName),
+    ),
+  };
+  const runtime = buildStandardModuleRuntimeContext({
+    pageKind: "list",
+    principal: buildStandardRuntimePrincipal({
+      userId: sessionUser?.userId,
+      tenantId: sessionUser?.tenantId,
+      roleKeys: sessionUser?.roleKeys,
+      roles: sessionUser?.roles,
+      permissionKeys: sessionUser?.permissionKeys,
+    }),
+    spec: visibleSpec,
+  });
+  const activeView = resolveActiveView(runtime, getSearchParam(params.viewId));
+  const endpoint = attendanceEndpoint({
+    businessDate: attendanceContext?.attendanceDate,
+    canViewAllAttendance,
+    canViewTeamAttendance,
+    view: activeView?.logicalName,
+  });
 
-  let history: AttendanceListResponse = emptyAttendanceResponse("mine");
-  let myTodayEntries: AttendanceListResponse = emptyAttendanceResponse("mine");
-  let activeEntry: AttendanceListResponse["items"][number] | null = null;
-  let summary: AttendanceSummaryResponse = emptyAttendanceSummary(
-    "mine",
-    view,
-    today,
-  );
-  let locations: AttendanceLocationOption[] = [];
-  let attendanceUnavailableMessage: string | null = null;
-  const canCreateAttendance =
-    isElevated ||
-    hasPermission(sessionUser?.permissionKeys, PERMISSION_KEYS.ATTENDANCE_MANAGE);
-  const canExportAttendance = hasPermission(
-    sessionUser?.permissionKeys,
-    PERMISSION_KEYS.ATTENDANCE_EXPORT,
-  );
-  const publishedViewsPromise = getTableViews("attendance");
+  let response: AttendanceListResponse = emptyAttendanceResponse();
+  let unavailableMessage: string | null = null;
 
   try {
-    [history, myTodayEntries, activeEntry, summary, locations] =
-      await Promise.all([
-        apiRequestJson<AttendanceListResponse>(
-          withQueryString(listEndpoint, queryString || "pageSize=20"),
-        ),
-        apiRequestJson<AttendanceListResponse>(
-          `/attendance/mine?dateFrom=${today}&dateTo=${today}&pageSize=1`,
-        ),
-        apiRequestJson<AttendanceListResponse["items"][number] | null>(
-          "/attendance/mine/active",
-        ),
-        apiRequestJson<AttendanceSummaryResponse>(
-          withQueryString(
-            summaryEndpoint,
-            `view=${view}&date=${params.dateFrom || today}`,
-          ),
-        ),
-        apiRequestJson<AttendanceLocationOption[]>("/attendance/locations"),
-      ]);
+    response = await apiRequestJson<AttendanceListResponse>(endpoint);
   } catch (error) {
     if (error instanceof ApiRequestError && error.status === 400) {
-      attendanceUnavailableMessage = error.message;
+      unavailableMessage = error.message;
     } else {
       throw error;
     }
   }
-
-  const [publishedViews] = await Promise.all([
-    publishedViewsPromise,
-    canViewTeamAttendance ? getTeamAttendanceCount(today) : Promise.resolve(0),
-  ]);
-
-  const attendanceViews = filterAttendanceViewsForRole(
-    withFallbackViews("attendance", publishedViews, [
-    {
-      id: "myAttendance",
-      viewKey: "myAttendance",
-      tableKey: "attendance",
-      name: "My Attendance",
-      type: "system",
-      isDefault: !canViewTeamAttendance,
-      columnsJson: {
-        columns: [
-          { columnKey: "attendanceDate" },
-          { columnKey: "attendanceMode" },
-          { columnKey: "checkIn" },
-          { columnKey: "checkOut" },
-          { columnKey: "duration" },
-          { columnKey: "status" },
-          { columnKey: "location" },
-        ],
-      },
-      sortingJson: [{ columnKey: "attendanceDate", direction: "desc" }],
-    },
-    {
-      id: "allAttendance",
-      viewKey: "allAttendance",
-      tableKey: "attendance",
-      name: "All Attendance",
-      type: "system",
-      isDefault: canViewTeamAttendance,
-      columnsJson: {
-        columns: [
-          { columnKey: "employee" },
-          { columnKey: "attendanceDate" },
-          { columnKey: "attendanceMode" },
-          { columnKey: "checkIn" },
-          { columnKey: "checkOut" },
-          { columnKey: "duration" },
-          { columnKey: "status" },
-          { columnKey: "location" },
-        ],
-      },
-      sortingJson: [{ columnKey: "attendanceDate", direction: "desc" }],
-    },
-    {
-      id: "today",
-      viewKey: "today",
-      tableKey: "attendance",
-      name: "Today",
-      type: "system",
-      isDefault: false,
-      columnsJson: {
-        columns: [
-          { columnKey: "attendanceDate" },
-          { columnKey: "attendanceMode" },
-          { columnKey: "checkIn" },
-          { columnKey: "status" },
-          { columnKey: "location" },
-        ],
-      },
-      filtersJson: { dateFrom: today, dateTo: today },
-      sortingJson: [{ columnKey: "attendanceDate", direction: "desc" }],
-    },
-    {
-      id: "thisWeek",
-      viewKey: "thisWeek",
-      tableKey: "attendance",
-      name: "This Week",
-      type: "system",
-      isDefault: false,
-      columnsJson: {
-        columns: [
-          { columnKey: "attendanceDate" },
-          { columnKey: "checkIn" },
-          { columnKey: "checkOut" },
-          { columnKey: "duration" },
-          { columnKey: "status" },
-        ],
-      },
-      sortingJson: [{ columnKey: "attendanceDate", direction: "desc" }],
-    },
-    {
-      id: "thisMonth",
-      viewKey: "thisMonth",
-      tableKey: "attendance",
-      name: "This Month",
-      type: "system",
-      isDefault: false,
-      columnsJson: {
-        columns: [
-          { columnKey: "attendanceDate" },
-          { columnKey: "checkIn" },
-          { columnKey: "checkOut" },
-          { columnKey: "duration" },
-          { columnKey: "status" },
-        ],
-      },
-      sortingJson: [{ columnKey: "attendanceDate", direction: "desc" }],
-    },
-    {
-      id: "missingCheckOut",
-      viewKey: "missingCheckOut",
-      tableKey: "attendance",
-      name: "Missing Check Out",
-      type: "system",
-      isDefault: false,
-      columnsJson: {
-        columns: [
-          { columnKey: "attendanceDate" },
-          { columnKey: "attendanceMode" },
-          { columnKey: "checkIn" },
-          { columnKey: "checkOut" },
-          { columnKey: "duration" },
-          { columnKey: "status" },
-          { columnKey: "location" },
-        ],
-      },
-      filtersJson: { status: "MISSED_CHECK_OUT" },
-      sortingJson: [{ columnKey: "attendanceDate", direction: "desc" }],
-    },
-    buildAttendanceStatusView("lateCheckIn", "Late Check In", "LATE"),
-    {
-      id: "teamAttendance",
-      viewKey: "teamAttendance",
-      tableKey: "attendance",
-      name: "Team Attendance",
-      type: "system",
-      isDefault: false,
-      columnsJson: {
-        columns: [
-          { columnKey: "employee" },
-          { columnKey: "attendanceDate" },
-          { columnKey: "attendanceMode" },
-          { columnKey: "checkIn" },
-          { columnKey: "checkOut" },
-          { columnKey: "duration" },
-          { columnKey: "status" },
-          { columnKey: "location" },
-        ],
-      },
-      sortingJson: [{ columnKey: "attendanceDate", direction: "desc" }],
-    },
-  ]),
-    selfServiceAttendance,
-  );
-
-  const selectedView =
-    attendanceViews.find((item) => item.viewKey === selectedViewKey) ??
-    attendanceViews.find((item) => item.isDefault) ??
-    attendanceViews[0] ??
-    null;
-
-  const visibleColumnKeys = selectedView?.columnsJson
-    ? (
-      (selectedView.columnsJson as {
-        columns?: Array<{ columnKey?: string }>;
-      }).columns ?? []
-    )
-      .map((column) => column.columnKey)
-      .filter((columnKey): columnKey is string => Boolean(columnKey))
-    : undefined;
+  const formatting = {
+    dateFormat:
+      resolvedSettings?.system.dateFormat ||
+      resolvedSettings?.organization.dateFormat ||
+      "MM/dd/yyyy",
+    locale: resolvedSettings?.system.locale || "en-US",
+    timeFormat: resolvedSettings?.system.timeFormat,
+    timezone:
+      resolvedSettings?.organization.timezone ||
+      resolvedSettings?.system.defaultTimezone ||
+      "UTC",
+  };
+  const records = (response.items ?? response.data ?? []).map((entry) => ({
+    ...entry,
+    entryName: `${entry.employee.fullName} - ${formatDate(
+      entry.attendanceDate,
+      formatting,
+    )} - ${formatAttendanceStatus(entry.status)}`,
+    employeeName: entry.employee.fullName,
+    checkIn: entry.checkInAt ?? entry.checkIn,
+    checkOut: entry.checkOutAt ?? entry.checkOut,
+    duration: entry.durationLabel ?? "",
+    location: entry.officeLocation?.name ?? entry.remoteAddressText ?? "",
+    workSite: entry.officeLocation?.name ?? "",
+    shift: entry.shift?.name ?? entry.workSchedule?.name ?? "",
+  }));
+  const isMyAttendanceView = activeView?.logicalName === "attendance.my";
+  const attendanceActionState = isMyAttendanceView
+    ? attendanceContext?.attendanceActionState ?? "blocked"
+    : "unavailable";
 
   return (
     <main className="dp-theme-scope dp-attendance-scope grid gap-6">
-      <ModuleViewSelector
-        configureHref={
-          selfServiceAttendance
-            ? undefined
-            : "/settings/customization/tables/attendance"
-        }
-        enabled
-        selectedViewId={selectedView?.viewKey ?? ""}
-        paramName="tableView"
-        views={attendanceViews}
-      />
-
-      <AttendanceCommandBar
-        canCreateAttendance={canCreateAttendance}
-        canDeleteAttendance={false}
-        canShareAttendance={false}
-        canAssignAttendance={false}
-        canImportAttendance={false}
-        canExportAttendance={canExportAttendance}
-      />
-
-      {attendanceUnavailableMessage ? (
-        <section className="rounded-[24px] border border-dashed border-border bg-surface p-10 text-center shadow-sm">
-          <p className="text-sm uppercase tracking-[0.18em] text-muted">
-            Attendance setup needed
-          </p>
-          <h4 className="mt-3 text-2xl font-semibold text-foreground">
-            No employee record is linked to your user account.
-          </h4>
-          <p className="mx-auto mt-3 max-w-2xl text-muted">
-            {attendanceUnavailableMessage}
-          </p>
-        </section>
+      {unavailableMessage ? (
+        <AccessDeniedState
+          description={unavailableMessage}
+          title="Attendance setup needed."
+        />
       ) : (
-        <>
-          <AttendanceCheckWidget
-            activeEntry={activeEntry}
-            locations={locations}
-            todayEntry={myTodayEntries.items[0] ?? null}
-          />
-
-          <AttendanceSummaryStrip summary={summary} />
-
-          <AttendanceTable
-            entries={history.items}
-            formatting={{
-              dateFormat: "MM/dd/yyyy",
-              locale: "en-US",
-              timezone: "UTC",
-            }}
-            pagination={{
-              page: history.meta.page,
-              pageSize: history.meta.pageSize,
-              totalItems: history.meta.total,
-              pathname: "/attendance",
-              searchParams: {
-                ...params,
-                tableView: selectedView?.viewKey,
-              },
-            }}
-            visibleColumnKeys={visibleColumnKeys}
-            canOverrideAttendance={canOverrideAttendance}
-            showEmployee={
-              !selfServiceAttendance &&
-              canViewTeamAttendance &&
-              selectedView?.viewKey !== "myAttendance"
-            }
-          />
-        </>
+        <StandardModuleListPage
+          activeView={activeView}
+          commandRecord={{ attendanceActionState }}
+          formatting={formatting}
+          pagination={{
+            page: response.meta?.page ?? response.pagination?.page ?? 1,
+            pageSize:
+              response.meta?.pageSize ?? response.pagination?.pageSize ?? 20,
+            totalItems:
+              response.meta?.total ??
+              response.pagination?.totalItems ??
+              response.pagination?.total ??
+              records.length,
+            pathname: visibleSpec.routeBase,
+            searchParams: {
+              viewId: activeView?.viewId ?? activeView?.id,
+            },
+          }}
+          records={records}
+          runtime={runtime}
+          spec={visibleSpec}
+          title="Attendance"
+        />
       )}
     </main>
   );
 }
 
-async function getTeamAttendanceCount(today: string) {
-  try {
-    const attendance = await apiRequestJson<AttendanceListResponse>(
-      `/attendance/team?scope=all&dateFrom=${today}&dateTo=${today}&pageSize=100`,
-    );
-
-    return attendance.items.length;
-  } catch (error) {
-    if (error instanceof ApiRequestError && error.status === 403) {
-      return 0;
-    }
-
-    throw error;
-  }
-}
-
-function normalizeSearchParams(
-  value: Record<string, string | string[] | undefined> | undefined,
-) {
-  if (!value) return {};
-
-  return Object.fromEntries(
-    Object.entries(value).map(([key, current]) => [
-      key,
-      Array.isArray(current) ? current[0] : current,
-    ]),
-  ) as Record<string, string | undefined>;
-}
-
-function buildAttendanceQueryString(
-  params: Record<string, string | undefined>,
-  selectedViewKey: string,
-  today: string,
-) {
-  const query = new URLSearchParams();
-
-  const keys = [
-    "search",
-    "dateFrom",
-    "dateTo",
-    "status",
-    "attendanceMode",
-    "source",
-    "employeeId",
-    "officeLocationId",
-    "sortField",
-    "sortDirection",
-    "page",
-    "pageSize",
-  ];
-
-  for (const key of keys) {
-    const value = params[key];
-    if (value) query.set(key, value);
-  }
-
-  if (
-    params.view === "day" ||
-    params.view === "week" ||
-    params.view === "month"
-  ) {
-    query.set("view", params.view);
-  }
-
-  const preset = getAttendanceViewPreset(selectedViewKey, today);
-  for (const [key, value] of Object.entries(preset)) {
-    if (value && !query.has(key)) {
-      query.set(key, value);
-    }
-  }
-
-  return query.toString();
-}
-
-function getAttendanceViewPreset(selectedViewKey: string, today: string) {
-  switch (selectedViewKey) {
-    case "today":
-      return { dateFrom: today, dateTo: today, view: "day" };
-    case "thisWeek": {
-      const anchor = new Date(`${today}T00:00:00`);
-      const day = anchor.getDay();
-      const mondayOffset = day === 0 ? -6 : 1 - day;
-      const monday = new Date(anchor);
-      monday.setDate(anchor.getDate() + mondayOffset);
-      const sunday = new Date(monday);
-      sunday.setDate(monday.getDate() + 6);
-      return {
-        dateFrom: formatLocalDate(monday),
-        dateTo: formatLocalDate(sunday),
-        view: "week",
-      };
-    }
-    case "thisMonth": {
-      const firstDay = new Date(`${today}T00:00:00`);
-      firstDay.setDate(1);
-      const lastDay = new Date(firstDay);
-      lastDay.setMonth(firstDay.getMonth() + 1, 0);
-      return {
-        dateFrom: formatLocalDate(firstDay),
-        dateTo: formatLocalDate(lastDay),
-        view: "month",
-      };
-    }
-    case "missingCheckOut":
-      return { status: "MISSED_CHECK_OUT" };
-    case "lateCheckIn":
-      return { status: "LATE" };
-    default:
-      return {};
-  }
-}
-
-function buildAttendanceStatusView(id: string, name: string, status: string) {
-  return {
-    id,
-    viewKey: id,
-    tableKey: "attendance",
-    name,
-    type: "system" as const,
-    isDefault: false,
-    filtersJson: { status },
-    columnsJson: {
-      columns: [
-        { columnKey: "employee" },
-        { columnKey: "attendanceDate" },
-        { columnKey: "attendanceMode" },
-        { columnKey: "checkIn" },
-        { columnKey: "checkOut" },
-        { columnKey: "duration" },
-        { columnKey: "status" },
-        { columnKey: "location" },
-      ],
-    },
-    sortingJson: [{ columnKey: "attendanceDate", direction: "desc" }],
-  };
-}
-
-function withQueryString(endpoint: string, queryString: string) {
-  return `${endpoint}${endpoint.includes("?") ? "&" : "?"}${queryString}`;
-}
-
-function isAttendanceSystemViewKey(value?: string) {
-  return Boolean(
-    value &&
-      [
-        "myAttendance",
-        "allAttendance",
-        "today",
-        "thisWeek",
-        "thisMonth",
-        "missingCheckOut",
-        "lateCheckIn",
-        "teamAttendance",
-      ].includes(value),
-  );
-}
-
-function normalizeSelfServiceAttendanceViewKey(value?: string) {
-  return value === "thisWeek" || value === "thisMonth" || value === "today"
-    ? value
-    : undefined;
-}
-
-function filterAttendanceViewsForRole<
-  T extends {
-    viewKey: string;
-    id: string;
-    type: string;
-    isDefault?: boolean;
-  },
->(views: T[], selfServiceAttendance: boolean) {
-  if (!selfServiceAttendance) {
-    return views;
-  }
-
-  const allowed = new Set(["today", "thisWeek", "thisMonth"]);
-  const filtered = views
-    .filter((view) => view.type === "system" && allowed.has(view.viewKey))
-    .map((view) => ({
-      ...view,
-      isDefault: view.viewKey === "today",
-    }));
-
-  const existing = new Set(filtered.map((view) => view.viewKey));
-  const requiredViews = ["today", "thisWeek", "thisMonth"] as const;
-
-  return [
-    ...filtered,
-    ...requiredViews
-      .filter((viewKey) => !existing.has(viewKey))
-      .map((viewKey) => buildSelfServiceAttendanceView(viewKey) as unknown as T),
-  ];
-}
-
-function buildSelfServiceAttendanceView(
-  viewKey: "today" | "thisWeek" | "thisMonth",
-) {
-  const labels = {
-    today: "Today",
-    thisWeek: "This Week",
-    thisMonth: "This Month",
-  };
-
-  return {
-    id: viewKey,
-    viewKey,
-    tableKey: "attendance",
-    name: labels[viewKey],
-    type: "system" as const,
-    isDefault: viewKey === "today",
-    columnsJson: {
-      columns: [
-        { columnKey: "attendanceDate" },
-        { columnKey: "attendanceMode" },
-        { columnKey: "checkIn" },
-        { columnKey: "checkOut" },
-        { columnKey: "duration" },
-        { columnKey: "status" },
-        { columnKey: "location" },
-      ],
-    },
-    sortingJson: [{ columnKey: "attendanceDate", direction: "desc" }],
-  };
-}
-
-function parseAttendanceView(
-  value?: string,
-  selectedViewKey?: string,
-): AttendanceView {
-  if (value === "day" || value === "week" || value === "month") {
-    return value;
-  }
-
-  if (selectedViewKey === "today") {
-    return "day";
-  }
-
-  if (selectedViewKey === "thisMonth") {
-    return "month";
-  }
-
-  return "week";
-}
-
-function emptyAttendanceResponse(
-  scope: AttendanceListResponse["filters"]["scope"],
-): AttendanceListResponse {
+function emptyAttendanceResponse(): AttendanceListResponse {
   return {
     items: [],
     meta: {
@@ -662,37 +223,79 @@ function emptyAttendanceResponse(
       totalPages: 1,
     },
     filters: {
-      scope,
+      scope: "mine",
     },
   };
 }
 
-function emptyAttendanceSummary(
-  scope: AttendanceSummaryResponse["scope"],
-  view: AttendanceView,
-  anchorDate: string,
-): AttendanceSummaryResponse {
-  return {
-    scope,
-    view,
-    anchorDate,
-    totals: {
-      entries: 0,
-      present: 0,
-      late: 0,
-      remote: 0,
-      office: 0,
-      missedCheckout: 0,
-      workedMinutes: 0,
-    },
-    buckets: [],
-  };
+function resolveActiveView(
+  runtime: ReturnType<typeof buildStandardModuleRuntimeContext>,
+  viewId: string,
+) {
+  return (
+    runtime.metadata.views.find(
+      (view) => (view.viewId ?? view.id) === viewId,
+    ) ??
+    runtime.metadata.views.find((view) => view.isDefault) ??
+    runtime.metadata.views[0] ??
+    null
+  );
 }
 
-function formatLocalDate(value: Date) {
-  const year = value.getFullYear();
-  const month = `${value.getMonth() + 1}`.padStart(2, "0");
-  const day = `${value.getDate()}`.padStart(2, "0");
+function normalizeSearchParams(
+  params?: Record<string, string | string[] | undefined>,
+) {
+  return params ?? {};
+}
 
-  return `${year}-${month}-${day}`;
+function getSearchParam(value?: string | string[]) {
+  if (Array.isArray(value)) {
+    return value[0] ?? "";
+  }
+
+  return value ?? "";
+}
+
+type AttendanceRuntimeContext = {
+  attendanceActionState:
+    | "not-checked-in"
+    | "checked-in"
+    | "completed"
+    | "blocked";
+  attendanceDate: string;
+};
+
+function attendanceEndpoint({
+  businessDate,
+  canViewAllAttendance,
+  canViewTeamAttendance,
+  view,
+}: {
+  businessDate?: string;
+  canViewAllAttendance: boolean;
+  canViewTeamAttendance: boolean;
+  view?: string;
+}) {
+  if (view === "attendance.today" && canViewAllAttendance) {
+    const date = businessDate ? `&dateFrom=${businessDate}&dateTo=${businessDate}` : "";
+    return `/attendance/team?scope=all&pageSize=20${date}`;
+  }
+  if (view === "attendance.missingCheckout" && canViewAllAttendance) {
+    return "/attendance/team?scope=all&pageSize=20&status=MISSED_CHECK_OUT";
+  }
+  if (view === "attendance.all" && canViewAllAttendance) {
+    return "/attendance/team?scope=all&pageSize=20";
+  }
+  if (view === "attendance.team" && canViewTeamAttendance) {
+    return "/attendance/team?scope=team&pageSize=20";
+  }
+  return "/attendance/mine?pageSize=20";
+}
+
+function formatAttendanceStatus(value: string) {
+  return value
+    .toLowerCase()
+    .split("_")
+    .map((word) => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
+    .join(" ");
 }

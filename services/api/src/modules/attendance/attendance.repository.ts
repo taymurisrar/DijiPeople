@@ -4,6 +4,7 @@ import {
   AttendanceEntryStatus,
   AttendanceMode,
   Prisma,
+  WorkWeekday,
 } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AttendanceQueryDto } from './dto/attendance-query.dto';
@@ -58,6 +59,21 @@ const attendanceInclude = {
       isDefault: true,
     },
   },
+  shiftTemplate: {
+    select: {
+      id: true,
+      name: true,
+      code: true,
+      timezone: true,
+      startTime: true,
+      endTime: true,
+      breakMinutes: true,
+      expectedHours: true,
+      lateGraceMinutes: true,
+      earlyExitGraceMinutes: true,
+      isNightShift: true,
+    },
+  },
   officeLocation: {
     select: {
       id: true,
@@ -94,6 +110,281 @@ export class AttendanceRepository {
         isActive: true,
       },
       orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }],
+    });
+  }
+
+  findEmployeeWorkSchedule(
+    tenantId: string,
+    employeeId: string,
+    effectiveDate: Date,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.employeeScheduleAssignment.findFirst({
+      where: {
+        tenantId,
+        employeeId,
+        isActive: true,
+        effectiveFrom: { lte: effectiveDate },
+        OR: [{ effectiveTo: null }, { effectiveTo: { gte: effectiveDate } }],
+        workSchedule: { isActive: true, status: 'ACTIVE' },
+      },
+      include: { workSchedule: true },
+      orderBy: [{ effectiveFrom: 'desc' }, { createdAt: 'desc' }],
+    });
+  }
+
+  findWorkScheduleById(
+    tenantId: string,
+    workScheduleId: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.workSchedule.findFirst({
+      where: { tenantId, id: workScheduleId, isActive: true },
+    });
+  }
+
+  findResolvedShiftTemplate(
+    tenantId: string,
+    workScheduleId?: string | null,
+    dayOfWeek?: WorkWeekday,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.shiftTemplate.findFirst({
+      where: {
+        tenantId,
+        status: 'ACTIVE',
+        isActive: true,
+        ...(workScheduleId
+          ? {
+              OR: [
+                {
+                  scheduleDays: {
+                    some: {
+                      workScheduleId,
+                      ...(dayOfWeek ? { dayOfWeek } : {}),
+                      isWorkingDay: true,
+                    },
+                  },
+                },
+                { workScheduleId },
+              ],
+            }
+          : {}),
+      },
+      orderBy: [{ createdAt: 'asc' }],
+    });
+  }
+
+  async resolveEmployeeWorkConfiguration(
+    tenantId: string,
+    employeeId: string,
+    effectiveDate: Date,
+    dayOfWeek: WorkWeekday,
+    db: PrismaDb = this.prisma,
+  ) {
+    const employee = await db.employee.findFirst({
+      where: { tenantId, id: employeeId, isDeleted: false },
+      select: {
+        id: true,
+        businessUnitId: true,
+        departmentId: true,
+        locationId: true,
+        defaultWorkScheduleId: true,
+        department: { select: { defaultWorkScheduleId: true } },
+        location: {
+          select: {
+            defaultWorkScheduleId: true,
+            holidayCalendarId: true,
+          },
+        },
+      },
+    });
+    if (!employee) return null;
+
+    const override = await db.employeeScheduleAssignment.findFirst({
+      where: {
+        tenantId,
+        employeeId,
+        isActive: true,
+        effectiveFrom: { lte: effectiveDate },
+        OR: [{ effectiveTo: null }, { effectiveTo: { gte: effectiveDate } }],
+        workSchedule: {
+          isActive: true,
+          status: 'ACTIVE',
+          OR: [
+            { effectiveStartDate: null },
+            { effectiveStartDate: { lte: effectiveDate } },
+          ],
+          AND: [
+            {
+              OR: [
+                { effectiveEndDate: null },
+                { effectiveEndDate: { gte: effectiveDate } },
+              ],
+            },
+          ],
+        },
+      },
+      select: { workScheduleId: true },
+      orderBy: [{ effectiveFrom: 'desc' }, { createdAt: 'desc' }],
+    });
+
+    const candidates = [
+      { id: override?.workScheduleId, source: 'EMPLOYEE_OVERRIDE' },
+      { id: employee.defaultWorkScheduleId, source: 'EMPLOYEE_DEFAULT' },
+      {
+        id: employee.department?.defaultWorkScheduleId,
+        source: 'DEPARTMENT_DEFAULT',
+      },
+      {
+        id: employee.location?.defaultWorkScheduleId,
+        source: 'WORK_SITE_DEFAULT',
+      },
+    ].filter((candidate): candidate is { id: string; source: string } =>
+      Boolean(candidate.id),
+    );
+
+    const findActiveSchedule = (workScheduleId: string) =>
+      db.workSchedule.findFirst({
+        where: {
+          tenantId,
+          id: workScheduleId,
+          isActive: true,
+          status: 'ACTIVE',
+          OR: [
+            { effectiveStartDate: null },
+            { effectiveStartDate: { lte: effectiveDate } },
+          ],
+          AND: [
+            {
+              OR: [
+                { effectiveEndDate: null },
+                { effectiveEndDate: { gte: effectiveDate } },
+              ],
+            },
+          ],
+        },
+        include: {
+          days: {
+            where: { dayOfWeek },
+            include: { shiftTemplate: true },
+          },
+        },
+      });
+
+    let source = 'TENANT_DEFAULT';
+    let workSchedule: Awaited<ReturnType<typeof findActiveSchedule>> = null;
+    for (const candidate of candidates) {
+      workSchedule = await findActiveSchedule(candidate.id);
+      if (workSchedule) {
+        source = candidate.source;
+        break;
+      }
+    }
+
+    workSchedule ??= await db.workSchedule.findFirst({
+      where: {
+        tenantId,
+        isDefault: true,
+        isActive: true,
+        status: 'ACTIVE',
+        OR: [
+          { effectiveStartDate: null },
+          { effectiveStartDate: { lte: effectiveDate } },
+        ],
+        AND: [
+          {
+            OR: [
+              { effectiveEndDate: null },
+              { effectiveEndDate: { gte: effectiveDate } },
+            ],
+          },
+        ],
+      },
+      include: {
+        days: {
+          where: { dayOfWeek },
+          include: { shiftTemplate: true },
+        },
+      },
+      orderBy: [{ createdAt: 'asc' }],
+    });
+
+    return {
+      employee,
+      source,
+      workSchedule,
+      scheduleDay: workSchedule?.days[0] ?? null,
+      holidayCalendarId:
+        employee.location?.holidayCalendarId ??
+        workSchedule?.holidayCalendarId ??
+        null,
+    };
+  }
+
+  findHolidayForEmployeeDate(
+    tenantId: string,
+    holidayCalendarId: string,
+    attendanceDate: Date,
+    departmentId?: string | null,
+    locationId?: string | null,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.holiday.findFirst({
+      where: {
+        tenantId,
+        holidayCalendarId,
+        holidayDate: attendanceDate,
+        isActive: true,
+        status: 'ACTIVE',
+        OR: [
+          { scopeType: 'TENANT' },
+          ...(departmentId
+            ? [{ scopeType: 'DEPARTMENT' as const, departmentId }]
+            : []),
+          ...(locationId
+            ? [{ scopeType: 'WORK_SITE' as const, locationId }]
+            : []),
+        ],
+      },
+      select: { id: true, name: true, isPaid: true, isHalfDay: true },
+    });
+  }
+
+  findShiftTemplateById(
+    tenantId: string,
+    shiftTemplateId: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.shiftTemplate.findFirst({
+      where: {
+        tenantId,
+        id: shiftTemplateId,
+        status: 'ACTIVE',
+        isActive: true,
+      },
+    });
+  }
+
+  listShiftTemplates(tenantId: string, db: PrismaDb = this.prisma) {
+    return db.shiftTemplate.findMany({
+      where: { tenantId, status: 'ACTIVE', isActive: true },
+      select: {
+        id: true,
+        name: true,
+        code: true,
+        timezone: true,
+        startTime: true,
+        endTime: true,
+        breakMinutes: true,
+        expectedHours: true,
+        lateGraceMinutes: true,
+        earlyExitGraceMinutes: true,
+        isNightShift: true,
+        isActive: true,
+        workScheduleId: true,
+      },
+      orderBy: [{ name: 'asc' }],
     });
   }
 
@@ -208,6 +499,21 @@ export class AttendanceRepository {
         id,
       },
       include: attendanceInclude,
+    });
+  }
+
+  findEmployeeIdByUserId(
+    tenantId: string,
+    userId: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.employee.findFirst({
+      where: {
+        tenantId,
+        userId,
+        isDeleted: false,
+      },
+      select: { id: true },
     });
   }
 

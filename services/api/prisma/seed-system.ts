@@ -1,16 +1,17 @@
 import { config as loadEnv } from 'dotenv';
 import { resolve } from 'node:path';
-import { Prisma, PrismaClient } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { PermissionBootstrapService } from '../src/modules/permissions/permission-bootstrap.service';
 import {
   NOTIFICATION_EVENT_CATALOG,
   SYSTEM_EMAIL_TEMPLATE_PLACEHOLDERS,
 } from '../src/modules/notifications/notification-events.catalog';
+import { createPrismaClient } from './create-prisma-client';
 
 loadEnv({ path: resolve(__dirname, '../.env') });
 loadEnv();
 
-const prisma = new PrismaClient();
+const prisma = createPrismaClient();
 
 async function main() {
   if (!process.env.DATABASE_URL?.trim()) {

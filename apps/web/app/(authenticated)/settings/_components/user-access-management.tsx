@@ -371,7 +371,7 @@ export function UserAccessManagement({
 
           <Link
             className="rounded-2xl bg-accent px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-accent-strong"
-            href="/settings/access/users/new"
+            href="/settings/security-access/users/new"
           >
             New user
           </Link>

@@ -96,6 +96,29 @@ export class AuditRepository {
       actors,
     };
   }
+
+  findRecordTimeline(
+    tenantId: string,
+    entityType: string,
+    entityId: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.auditLog.findMany({
+      where: { tenantId, entityType, entityId },
+      include: {
+        actorUser: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    });
+  }
 }
 
 function buildDateRange(fromDate?: string, toDate?: string) {

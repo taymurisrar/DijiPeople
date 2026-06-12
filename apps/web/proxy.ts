@@ -66,7 +66,9 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  return NextResponse.next();
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-dijipeople-pathname", pathname);
+  return NextResponse.next({ request: { headers: requestHeaders } });
 }
 
 export const config = {
@@ -152,6 +154,7 @@ function continueWithRefreshedTokens(
   tokens: Extract<RefreshSessionResult, { ok: true }>,
 ) {
   const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-dijipeople-pathname", request.nextUrl.pathname);
   const requestCookieHeader = buildRequestCookieHeader(
     request.headers.get("cookie"),
     tokens.accessToken,

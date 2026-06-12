@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import type {
   AttendanceEntryRecord,
   AttendanceEntryStatus,
@@ -9,7 +8,7 @@ import type {
 } from "../types";
 import { Button } from "@/app/components/ui/button";
 import { formatDateWithTenantSettings } from "@/lib/date-format";
-import { formatDateTime, formatTime } from "@/lib/formatting-context";
+import { formatDateTime } from "@/lib/formatting-context";
 import { AttendanceStatusBadge } from "./attendance-status-badge";
 
 type AttendanceRecordDetailDialogProps = {
@@ -43,7 +42,6 @@ export function AttendanceRecordDetailDialog({
   formatting,
   onClose,
 }: AttendanceRecordDetailDialogProps) {
-  const router = useRouter();
   const [record, setRecord] = useState<AttendanceEntryRecord | null>(null);
   const [form, setForm] = useState<OverrideForm | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -55,12 +53,15 @@ export function AttendanceRecordDetailDialog({
     if (!open || !recordId) return;
 
     let cancelled = false;
-    setIsLoading(true);
-    setError(null);
-    setMessage(null);
+    async function loadRecord() {
+      setIsLoading(true);
+      setError(null);
+      setMessage(null);
 
-    fetch(`/api/attendance/${recordId}`, { credentials: "include" })
-      .then(async (response) => {
+      try {
+        const response = await fetch(`/api/attendance/${recordId}`, {
+          credentials: "include",
+        });
         const data = (await response.json().catch(() => null)) as
           | AttendanceEntryRecord
           | { message?: string }
@@ -79,8 +80,7 @@ export function AttendanceRecordDetailDialog({
           setRecord(nextRecord);
           setForm(buildOverrideForm(nextRecord));
         }
-      })
-      .catch((loadError) => {
+      } catch (loadError) {
         if (!cancelled) {
           setError(
             loadError instanceof Error
@@ -88,10 +88,12 @@ export function AttendanceRecordDetailDialog({
               : "Unable to load attendance record.",
           );
         }
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setIsLoading(false);
-      });
+      }
+    }
+
+    void loadRecord();
 
     return () => {
       cancelled = true;
@@ -115,7 +117,11 @@ export function AttendanceRecordDetailDialog({
       return;
     }
 
-    if (form.checkInTime && form.checkOutTime && form.checkOutTime < form.checkInTime) {
+    if (
+      form.checkInTime &&
+      form.checkOutTime &&
+      form.checkOutTime < form.checkInTime
+    ) {
       setError("Check-out time cannot be earlier than check-in time.");
       return;
     }
@@ -157,7 +163,6 @@ export function AttendanceRecordDetailDialog({
       setRecord(data as AttendanceEntryRecord);
       setForm(buildOverrideForm(data as AttendanceEntryRecord));
       setMessage("Attendance override saved.");
-      router.refresh();
     } catch (saveError) {
       setError(
         saveError instanceof Error
@@ -205,7 +210,10 @@ export function AttendanceRecordDetailDialog({
             <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
               <section className="grid gap-4 md:grid-cols-2">
                 <DetailItem label="Employee" value={record.employee.fullName} />
-                <DetailItem label="Employee ID" value={record.employee.employeeCode} />
+                <DetailItem
+                  label="Employee ID"
+                  value={record.employee.employeeCode}
+                />
                 <DetailItem
                   label="Department"
                   value={record.employee.department?.name ?? "Not assigned"}
@@ -216,7 +224,10 @@ export function AttendanceRecordDetailDialog({
                 />
                 <DetailItem
                   label="Attendance date"
-                  value={formatDateWithTenantSettings(record.attendanceDate, formatting)}
+                  value={formatDateWithTenantSettings(
+                    record.attendanceDate,
+                    formatting,
+                  )}
                 />
                 <DetailItem
                   label="Status"
@@ -238,12 +249,22 @@ export function AttendanceRecordDetailDialog({
                       : "Pending"
                   }
                 />
-                <DetailItem label="Mode" value={formatValue(record.attendanceMode)} />
+                <DetailItem
+                  label="Mode"
+                  value={formatValue(record.attendanceMode)}
+                />
                 <DetailItem
                   label="Office location"
-                  value={record.officeLocation?.name ?? record.remoteAddressText ?? "No location"}
+                  value={
+                    record.officeLocation?.name ??
+                    record.remoteAddressText ??
+                    "No location"
+                  }
                 />
-                <DetailItem label="Worked duration" value={record.durationLabel ?? "Open"} />
+                <DetailItem
+                  label="Worked duration"
+                  value={record.durationLabel ?? "Open"}
+                />
                 <DetailItem
                   label="Late by"
                   value={
@@ -252,7 +273,10 @@ export function AttendanceRecordDetailDialog({
                       : "Not late"
                   }
                 />
-                <DetailItem label="Source / Device" value={record.machineDeviceId ?? record.source} />
+                <DetailItem
+                  label="Source / Device"
+                  value={record.machineDeviceId ?? record.source}
+                />
                 <DetailItem
                   label="Created on"
                   value={formatDateTime(record.createdAt, formatting)}
@@ -261,10 +285,22 @@ export function AttendanceRecordDetailDialog({
                   label="Updated on"
                   value={formatDateTime(record.updatedAt, formatting)}
                 />
-                <DetailItem label="Check-in note" value={record.checkInNote ?? "None"} />
-                <DetailItem label="Check-out note" value={record.checkOutNote ?? "None"} />
-                <DetailItem label="Work summary" value={record.workSummary ?? "None"} />
-                <DetailItem label="Notes / audit comments" value={record.notes ?? "None"} />
+                <DetailItem
+                  label="Check-in note"
+                  value={record.checkInNote ?? "None"}
+                />
+                <DetailItem
+                  label="Check-out note"
+                  value={record.checkOutNote ?? "None"}
+                />
+                <DetailItem
+                  label="Work summary"
+                  value={record.workSummary ?? "None"}
+                />
+                <DetailItem
+                  label="Notes / audit comments"
+                  value={record.notes ?? "None"}
+                />
               </section>
 
               <section className="rounded-3xl border border-border bg-surface p-5">
@@ -295,7 +331,10 @@ export function AttendanceRecordDetailDialog({
                           type="time"
                           value={form.checkInTime}
                           onChange={(event) =>
-                            setForm({ ...form, checkInTime: event.target.value })
+                            setForm({
+                              ...form,
+                              checkInTime: event.target.value,
+                            })
                           }
                           className="input"
                         />
@@ -305,7 +344,10 @@ export function AttendanceRecordDetailDialog({
                           type="time"
                           value={form.checkOutTime}
                           onChange={(event) =>
-                            setForm({ ...form, checkOutTime: event.target.value })
+                            setForm({
+                              ...form,
+                              checkOutTime: event.target.value,
+                            })
                           }
                           className="input"
                         />
@@ -317,18 +359,23 @@ export function AttendanceRecordDetailDialog({
                         onChange={(event) =>
                           setForm({
                             ...form,
-                            attendanceMode: event.target.value as AttendanceMode,
+                            attendanceMode: event.target
+                              .value as AttendanceMode,
                           })
                         }
                         className="input"
                       >
-                        {["OFFICE", "REMOTE", "HYBRID", "MACHINE", "MANUAL"].map(
-                          (mode) => (
-                            <option key={mode} value={mode}>
-                              {formatValue(mode)}
-                            </option>
-                          ),
-                        )}
+                        {[
+                          "OFFICE",
+                          "REMOTE",
+                          "HYBRID",
+                          "MACHINE",
+                          "MANUAL",
+                        ].map((mode) => (
+                          <option key={mode} value={mode}>
+                            {formatValue(mode)}
+                          </option>
+                        ))}
                       </select>
                     </Field>
                     <Field label="Status">
@@ -343,6 +390,8 @@ export function AttendanceRecordDetailDialog({
                         className="input"
                       >
                         {[
+                          "CHECKED_IN",
+                          "CHECKED_OUT",
                           "PRESENT",
                           "LATE",
                           "ABSENT",
@@ -404,7 +453,9 @@ export function AttendanceRecordDetailDialog({
               </section>
             </div>
           ) : (
-            <p className="text-sm text-muted">Attendance record could not be loaded.</p>
+            <p className="text-sm text-muted">
+              Attendance record could not be loaded.
+            </p>
           )}
         </div>
       </div>

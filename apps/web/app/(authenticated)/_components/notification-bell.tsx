@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Archive, Bell, Check, Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -13,6 +12,7 @@ import {
   type InAppNotificationItem,
 } from "@/lib/notifications-api";
 import { formatDateTime } from "@/lib/formatting-context";
+import { Button } from "@/app/components/ui/button";
 
 export function NotificationBell({
   canReadInbox = false,
@@ -32,14 +32,13 @@ export function NotificationBell({
     try {
       setError(null);
       if (openPanel) setIsLoading(true);
-      const [countResult, listResult] = await Promise.all([
-        getUnreadNotificationCount(),
-        openPanel
-          ? getInAppNotifications("pageSize=8")
-          : Promise.resolve({ items }),
-      ]);
+      if (openPanel) {
+        const listResult = await getInAppNotifications("pageSize=8");
+        setItems(listResult.items);
+        setIsLoading(false);
+      }
+      const countResult = await getUnreadNotificationCount();
       setUnreadCount(countResult.unreadCount);
-      if (openPanel) setItems(listResult.items);
     } catch (requestError) {
       setError(
         requestError instanceof Error
@@ -52,10 +51,12 @@ export function NotificationBell({
   }
 
   useEffect(() => {
-    void refresh(false);
+    const initialRefreshId = window.setTimeout(() => void refresh(false), 0);
     const intervalId = window.setInterval(() => void refresh(false), 60_000);
-    return () => window.clearInterval(intervalId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => {
+      window.clearTimeout(initialRefreshId);
+      window.clearInterval(intervalId);
+    };
   }, []);
 
   useEffect(() => {
@@ -126,20 +127,22 @@ export function NotificationBell({
 
   return (
     <div className="relative" ref={containerRef}>
-      <button
+      <Button
+        variant="ghost"
+        size="icon-md"
         aria-expanded={isOpen}
         aria-label="Notifications"
-        className="relative flex h-11 w-11 items-center justify-center rounded-full border border-border bg-white/80 text-foreground transition hover:border-accent/30 hover:bg-white"
         onClick={() => void openNotifications()}
-        type="button"
+        className="relative rounded-full border border-border bg-white/80 text-foreground hover:border-accent/30 hover:bg-white"
       >
         <Bell className="h-5 w-5" />
+
         {unreadCount > 0 ? (
           <span className="absolute -right-1 -top-1 min-w-5 rounded-full bg-accent px-1.5 py-0.5 text-center text-[11px] font-semibold text-white">
             {unreadCount > 99 ? "99+" : unreadCount}
           </span>
         ) : null}
-      </button>
+      </Button>
 
       {isOpen ? (
         <div className="absolute right-0 z-30 mt-3 w-[min(22rem,calc(100vw-2rem))] rounded-[24px] border border-border bg-white p-3 shadow-xl">
@@ -202,44 +205,46 @@ export function NotificationBell({
 
                 <div className="mt-3 flex items-center gap-2">
                   {item.notification.targetUrl ? (
-                    <button
-                      className="rounded-full border border-border px-3 py-1.5 text-xs font-medium text-foreground transition hover:border-accent/30 hover:text-accent"
+                    <Button
+                      variant="secondary"
+                      size="xs"
                       onClick={() => void openRelated(item.notification.id)}
-                      type="button"
                     >
                       Open
-                    </button>
+                    </Button>
                   ) : null}
                   {!item.readAt ? (
-                    <button
-                      className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1.5 text-xs font-medium text-foreground transition hover:border-accent/30 hover:text-accent"
+                    <Button
+                      variant="secondary"
+                      size="xs"
+                      leftIcon={<Check className="h-3.5 w-3.5" />}
                       onClick={() => void markRead(item.id)}
-                      type="button"
                     >
-                      <Check className="h-3.5 w-3.5" />
                       Read
-                    </button>
+                    </Button>
                   ) : null}
-                  <button
-                    className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1.5 text-xs font-medium text-foreground transition hover:border-accent/30 hover:text-accent"
+                  <Button
+                    variant="secondary"
+                    size="xs"
+                    leftIcon={<Archive className="h-3.5 w-3.5" />}
                     onClick={() => void archive(item.id)}
-                    type="button"
                   >
-                    <Archive className="h-3.5 w-3.5" />
                     Archive
-                  </button>
+                  </Button>
                 </div>
               </article>
             ))}
           </div>
           {canReadInbox ? (
-            <Link
-              className="mt-3 block rounded-2xl border border-border bg-surface px-3 py-2 text-center text-sm font-medium text-foreground transition hover:border-accent/30 hover:text-accent"
+            <Button
               href="/inbox"
+              variant="secondary"
+              fullWidth
+              className="mt-3"
               onClick={() => setIsOpen(false)}
             >
               Open Inbox
-            </Link>
+            </Button>
           ) : (
             <p className="mt-3 rounded-2xl border border-border bg-surface px-3 py-2 text-center text-sm font-medium text-muted">
               Inbox access unavailable

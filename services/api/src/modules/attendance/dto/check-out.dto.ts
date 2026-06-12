@@ -20,6 +20,14 @@ export class CheckOutDto {
   remoteLongitude?: number;
 
   @IsOptional()
+  @IsNumber()
+  locationAccuracy?: number;
+
+  @IsOptional()
+  @IsString()
+  locationCapturedAt?: string;
+
+  @IsOptional()
   @IsString()
   @MaxLength(250)
   remoteAddressText?: string;

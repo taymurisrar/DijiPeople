@@ -3,6 +3,7 @@ import {
   IsBoolean,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
   MinLength,
 } from 'class-validator';
@@ -34,6 +35,10 @@ export class UpdateDepartmentDto {
   @IsString()
   @MaxLength(240)
   description?: string;
+
+  @IsOptional()
+  @IsUUID()
+  defaultWorkScheduleId?: string;
 
   @IsOptional()
   @IsBoolean()

@@ -19,6 +19,7 @@ export const DEFAULT_AUTHENTICATED_ROUTE = "/";
 export const PROTECTED_ROUTE_PREFIXES = [
   "/",
   "/me",
+  "/my-profile",
   "/settings",
   "/employees",
   "/attendance",

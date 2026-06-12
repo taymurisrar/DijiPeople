@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsBoolean, IsInt, Max, Min } from 'class-validator';
+import { IsBoolean, IsInt, IsOptional, Max, Min } from 'class-validator';
 
 export class UpdateAttendancePolicyDto {
   @Type(() => Number)
@@ -25,4 +25,35 @@ export class UpdateAttendancePolicyDto {
   @Type(() => Boolean)
   @IsBoolean()
   allowRemoteWithoutLocation!: boolean;
+
+  @Type(() => Boolean)
+  @IsBoolean()
+  allowManualAdjustments!: boolean;
+
+  @Type(() => Boolean)
+  @IsBoolean()
+  preventDuplicateAttendance!: boolean;
+
+  @Type(() => Boolean)
+  @IsBoolean()
+  allowCheckInOnApprovedLeave!: boolean;
+
+  @Type(() => Boolean)
+  @IsBoolean()
+  markMissingCheckout!: boolean;
+
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  allowOffDayCheckIn?: boolean;
+
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  allowHolidayCheckIn?: boolean;
+
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  allowHrAdminOverride?: boolean;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit3, Plus, Star, Trash2 } from "lucide-react";
+import { Edit3, Eye, EyeOff, Pencil, Plus, Star, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
 import { DataTable } from "@/app/components/data-table/data-table";
@@ -17,12 +17,15 @@ import {
 import { SectionCard } from "@/app/components/ui/section-card";
 import { StatusPill } from "@/app/components/ui/status-pill";
 import { PermissionGate } from "@/app/(authenticated)/_components/permission-gate";
+import { SYSTEM_COMPONENT_CUSTOMIZATION_MESSAGE } from "@/lib/customization/metadata-layering";
 import {
   CustomizationColumn,
   CustomizationForm,
+  CustomizationPackage,
   CustomizationTable,
   FormLayoutJson,
 } from "../types";
+import { CustomPackagePickerDialog } from "./custom-package-picker-dialog";
 
 type FormState = {
   mode: "create" | "edit";
@@ -30,7 +33,7 @@ type FormState = {
   formKey: string;
   name: string;
   description: string;
-  type: "main" | "quick" | "create" | "edit";
+  type: CustomizationForm["type"];
   isDefault: boolean;
   isActive: boolean;
   layout: FormLayoutJson;
@@ -39,10 +42,12 @@ type FormState = {
 export function FormsManagement({
   columns,
   forms,
+  packages,
   table,
 }: {
   columns: CustomizationColumn[];
   forms: CustomizationForm[];
+  packages: CustomizationPackage[];
   table: CustomizationTable;
 }) {
   const router = useRouter();
@@ -52,6 +57,14 @@ export function FormsManagement({
   );
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedPackageId, setSelectedPackageId] = useState(
+    packages.find((item) => item.type === "custom" && !item.isReadOnly)?.id ??
+      "",
+  );
+  const [pendingSystemAction, setPendingSystemAction] = useState<null | {
+    form: CustomizationForm;
+    action: "edit" | "designer" | "toggle" | "default";
+  }>(null);
   const designerColumns = useMemo(
     () =>
       columns.filter(
@@ -67,8 +80,10 @@ export function FormsManagement({
     {
       key: "name",
       header: "Form name",
+      searchable: true,
       sortable: true,
       sortAccessor: (row) => row.name,
+      searchAccessor: (row) => `${row.name} ${row.formKey}`,
       render: (row) => (
         <div>
           <p className="font-semibold text-foreground">{row.name}</p>
@@ -76,15 +91,36 @@ export function FormsManagement({
         </div>
       ),
     },
-    { key: "type", header: "Type", render: (row) => row.type },
+    {
+      key: "type",
+      header: "Type",
+      filterable: true,
+      filterType: "select",
+      filterAccessor: (row) => formTypeLabel(row.type),
+      filterOptions: [
+        { label: "Main Form", value: "Main Form" },
+        { label: "Minimal Form", value: "Minimal Form" },
+        { label: "Quick Create Form", value: "Quick Create Form" },
+        { label: "Card Form", value: "Card Form" },
+        { label: "Lookup Form", value: "Lookup Form" },
+      ],
+      render: (row) => formTypeLabel(row.type),
+    },
     {
       key: "default",
       header: "Default",
       render: (row) => (row.isDefault ? "Yes" : "No"),
     },
     {
-      key: "active",
-      header: "Active",
+      key: "status",
+      header: "Status",
+      filterable: true,
+      filterType: "select",
+      filterAccessor: (row) => (row.isActive ? "Active" : "Inactive"),
+      filterOptions: [
+        { label: "Active", value: "Active" },
+        { label: "Inactive", value: "Inactive" },
+      ],
       render: (row) => (
         <StatusPill tone={row.isActive ? "good" : "muted"}>
           {row.isActive ? "Active" : "Inactive"}
@@ -92,8 +128,53 @@ export function FormsManagement({
       ),
     },
     {
+      key: "source",
+      header: "Source",
+      filterable: true,
+      filterType: "select",
+      filterAccessor: (row) => componentSource(row),
+      filterOptions: [
+        { label: "System", value: "System" },
+        { label: "Custom", value: "Custom" },
+      ],
+      render: (row) => (
+        <StatusPill
+          tone={componentSource(row) === "System" ? "muted" : "neutral"}
+        >
+          {componentSource(row)}
+        </StatusPill>
+      ),
+    },
+    {
+      key: "package",
+      header: "Package",
+      render: (row) =>
+        componentSource(row) === "System"
+          ? "Default Package"
+          : "Custom Package",
+    },
+    {
+      key: "lifecycle",
+      header: "Lifecycle",
+      render: (row) => (
+        <StatusPill tone={componentSource(row) === "System" ? "good" : "muted"}>
+          {stateLabel(
+            row.lifecycleState ??
+              (componentSource(row) === "System" ? "published" : "draft"),
+          )}
+        </StatusPill>
+      ),
+    },
+    {
+      key: "tabs",
+      header: "Tabs count",
+      sortable: true,
+      sortAccessor: (row) => row.layoutJson?.tabs?.length ?? 0,
+      render: (row) => row.layoutJson?.tabs?.length ?? 0,
+    },
+    {
       key: "sections",
-      header: "Sections",
+      header: "Sections count",
       sortable: true,
       sortAccessor: (row) => countSections(row.layoutJson),
       render: (row) => countSections(row.layoutJson),
@@ -105,12 +186,45 @@ export function FormsManagement({
         <div className="flex flex-wrap gap-2">
           <PermissionGate anyOf={["customization.forms.update"]}>
             <Button
-              href={`/settings/customization/tables/${table.tableKey}/forms/${row.formKey}/designer`}
               leftIcon={<Edit3 className="h-4 w-4" />}
+              onClick={() => openDesigner(row)}
               size="sm"
+              title="Open designer"
+              type="button"
               variant="secondary"
             >
               Designer
+            </Button>
+            <Button
+              leftIcon={<Pencil className="h-4 w-4" />}
+              onClick={() => openEdit(row)}
+              size="sm"
+              title="Edit form"
+              type="button"
+              variant="ghost"
+            >
+              Rename/Edit
+            </Button>
+            <Button
+              disabled={!canToggleForm(row, forms)}
+              leftIcon={
+                row.isActive ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )
+              }
+              onClick={() => toggleActive(row)}
+              size="sm"
+              title={
+                canToggleForm(row, forms)
+                  ? "Activate or deactivate this form"
+                  : "Default form cannot be deactivated until another active default exists."
+              }
+              type="button"
+              variant="ghost"
+            >
+              {row.isActive ? "Deactivate" : "Activate"}
             </Button>
             {!row.isDefault ? (
               <Button
@@ -124,17 +238,19 @@ export function FormsManagement({
               </Button>
             ) : null}
           </PermissionGate>
-          <PermissionGate anyOf={["customization.forms.delete"]}>
-            <Button
-              leftIcon={<Trash2 className="h-4 w-4" />}
-              onClick={() => setDeleteTarget(row)}
-              size="sm"
-              type="button"
-              variant="danger"
-            >
-              Delete
-            </Button>
-          </PermissionGate>
+          {componentSource(row) !== "System" ? (
+            <PermissionGate anyOf={["customization.forms.delete"]}>
+              <Button
+                leftIcon={<Trash2 className="h-4 w-4" />}
+                onClick={() => setDeleteTarget(row)}
+                size="sm"
+                type="button"
+                variant="danger"
+              >
+                Delete
+              </Button>
+            </PermissionGate>
+          ) : null}
         </div>
       ),
     },
@@ -152,6 +268,43 @@ export function FormsManagement({
       isActive: true,
       layout: buildDefaultLayout(designerColumns),
     });
+  }
+
+  function openEdit(record: CustomizationForm) {
+    setError(null);
+    if (componentSource(record) === "System") {
+      setPendingSystemAction({ form: record, action: "edit" });
+      return;
+    }
+    setForm(toFormState(record, designerColumns));
+  }
+
+  async function openDesigner(record: CustomizationForm) {
+    setError(null);
+    if (componentSource(record) === "System") {
+      setPendingSystemAction({ form: record, action: "designer" });
+      return;
+    }
+    router.push(
+      `/settings/customization/tables/${table.tableKey}/forms/${record.formKey}/designer`,
+    );
+  }
+
+  function toFormState(
+    record: CustomizationForm,
+    fallbackColumns: CustomizationColumn[],
+  ): FormState {
+    return {
+      mode: "edit",
+      original: record,
+      formKey: record.formKey,
+      name: record.name,
+      description: record.description ?? "",
+      type: record.type,
+      isDefault: record.isDefault,
+      isActive: record.isActive,
+      layout: record.layoutJson ?? buildDefaultLayout(fallbackColumns),
+    };
   }
 
   function updateForm(patch: Partial<FormState>) {
@@ -178,6 +331,9 @@ export function FormsManagement({
         method: form.mode === "create" ? "POST" : "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          ...(form.mode === "edit" && form.original?.isSystem
+            ? { packageId: selectedPackageId }
+            : {}),
           ...(form.mode === "create" ? { formKey: form.formKey } : {}),
           name: form.name,
           description: form.description,
@@ -203,6 +359,10 @@ export function FormsManagement({
   }
 
   async function setDefault(record: CustomizationForm) {
+    if (componentSource(record) === "System") {
+      setPendingSystemAction({ form: record, action: "default" });
+      return;
+    }
     const response = await fetch(
       `/api/customization/tables/${table.tableKey}/forms/${record.formKey}/set-default`,
       { method: "POST" },
@@ -215,6 +375,103 @@ export function FormsManagement({
       return;
     }
     router.refresh();
+  }
+
+  async function toggleActive(record: CustomizationForm) {
+    if (!canToggleForm(record, forms)) return;
+    if (componentSource(record) === "System") {
+      setPendingSystemAction({ form: record, action: "toggle" });
+      return;
+    }
+    const response = await fetch(
+      `/api/customization/tables/${table.tableKey}/forms/${record.formKey}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: !record.isActive }),
+      },
+    );
+    if (!response.ok) {
+      const data = (await response.json().catch(() => ({}))) as {
+        message?: string;
+      };
+      setError(data.message ?? "Unable to update form status.");
+      return;
+    }
+    router.refresh();
+  }
+
+  async function ensureSystemFormLayer(
+    record: CustomizationForm,
+    packageId: string,
+    patch: Partial<CustomizationForm> = {},
+  ) {
+    const response = await fetch(
+      `/api/customization/tables/${table.tableKey}/forms/${record.formKey}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          packageId,
+          name: patch.name ?? record.name,
+          description: patch.description ?? record.description ?? "",
+          type: patch.type ?? record.type,
+          isDefault: patch.isDefault ?? record.isDefault,
+          isActive: patch.isActive ?? record.isActive,
+          layoutJson:
+            patch.layoutJson ?? record.layoutJson ?? buildDefaultLayout(columns),
+        }),
+      },
+    );
+    const data = (await response.json().catch(() => ({}))) as
+      | CustomizationForm
+      | { message?: string };
+    if (!response.ok || !("formKey" in data)) {
+      throw new Error(
+        "message" in data && data.message
+          ? data.message
+          : "This component does not exist in published metadata or customization records.",
+      );
+    }
+    return data;
+  }
+
+  async function continueSystemAction() {
+    if (!pendingSystemAction) return;
+    const current = pendingSystemAction;
+    setPendingSystemAction(null);
+    setIsSaving(true);
+    setError(null);
+    try {
+      const draft = await ensureSystemFormLayer(
+        current.form,
+        selectedPackageId,
+        current.action === "toggle"
+          ? { isActive: !current.form.isActive }
+          : current.action === "default"
+            ? { isDefault: true, isActive: true }
+            : {},
+      );
+      setIsSaving(false);
+      if (current.action === "edit") {
+        setForm(toFormState(draft, designerColumns));
+        return;
+      }
+      if (current.action === "designer") {
+        router.push(
+          `/settings/customization/tables/${table.tableKey}/forms/${draft.formKey}/designer`,
+        );
+        return;
+      }
+      router.refresh();
+    } catch (caught) {
+      setIsSaving(false);
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Unable to create customization layer.",
+      );
+    }
   }
 
   async function handleDelete() {
@@ -238,7 +495,7 @@ export function FormsManagement({
 
   return (
     <SectionCard
-      description="Forms define runtime field layout metadata. Designer v1 keeps tabs, sections, ordering, visibility, and required/read-only overrides simple and explicit."
+      description="Forms define runtime field layout metadata. Designer v1 is unchanged in this phase; this list shows package and lifecycle state."
       title="Forms"
     >
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -264,6 +521,7 @@ export function FormsManagement({
       ) : null}
 
       <DataTable
+        className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm"
         columns={tableColumns}
         emptyState={
           <EmptyState
@@ -274,12 +532,15 @@ export function FormsManagement({
                 </Button>
               </PermissionGate>
             }
-            description="Create a form layout to control how this table is edited."
+            description="Create a form layout to control how this module is edited."
             title="No forms"
           />
         }
         getRowKey={(row) => row.formKey}
+        pagination={{ page: 1, pageSize: 10, total: forms.length }}
         rows={forms}
+        searchPlaceholder="Search forms"
+        tableClassName="min-w-[1080px] divide-y divide-border text-xs"
       />
 
       {form ? (
@@ -317,10 +578,11 @@ export function FormsManagement({
                   updateForm({ type: type as FormState["type"] })
                 }
                 options={[
-                  { value: "main", label: "Main" },
-                  { value: "quick", label: "Quick" },
-                  { value: "create", label: "Create" },
-                  { value: "edit", label: "Edit" },
+                  { value: "main", label: "Main Form" },
+                  { value: "minimal", label: "Minimal Form" },
+                  { value: "quick", label: "Quick Create Form" },
+                  { value: "card", label: "Card Form" },
+                  { value: "lookup", label: "Lookup Form" },
                 ]}
                 value={form.type}
               />
@@ -379,12 +641,21 @@ export function FormsManagement({
         }}
         description={
           deleteTarget
-            ? `Delete ${deleteTarget.name}? Runtime pages will fall back to another default form.`
+            ? `Delete ${deleteTarget.name}? System forms cannot be deleted and default/dependent forms are blocked by the server.`
             : undefined
         }
         onClose={() => setDeleteTarget(null)}
         open={Boolean(deleteTarget)}
         title="Delete form"
+      />
+      <CustomPackagePickerDialog
+        message={SYSTEM_COMPONENT_CUSTOMIZATION_MESSAGE}
+        onClose={() => setPendingSystemAction(null)}
+        onConfirm={continueSystemAction}
+        open={Boolean(pendingSystemAction)}
+        packages={packages}
+        selectedPackageId={selectedPackageId}
+        setSelectedPackageId={setSelectedPackageId}
       />
     </SectionCard>
   );
@@ -632,6 +903,42 @@ function validateForm(form: FormState, forms: CustomizationForm[]) {
     return "Add at least one field to the form.";
   }
   return null;
+}
+
+function componentSource(form: CustomizationForm) {
+  return form.isSystem ||
+    (form.type === "main" && form.formKey.includes("system"))
+    ? "System"
+    : "Custom";
+}
+
+function canToggleForm(
+  form: CustomizationForm,
+  forms: readonly CustomizationForm[],
+) {
+  if (!form.isActive) return true;
+  if (!form.isDefault) return true;
+  return forms.some(
+    (candidate) =>
+      candidate.formKey !== form.formKey &&
+      candidate.isActive &&
+      candidate.isDefault,
+  );
+}
+
+function formTypeLabel(type: CustomizationForm["type"]) {
+  if (type === "main") return "Main Form";
+  if (type === "minimal") return "Minimal Form";
+  if (type === "quick") return "Quick Create Form";
+  if (type === "card") return "Card Form";
+  if (type === "lookup") return "Lookup Form";
+  if (type === "create") return "Legacy Create Form";
+  if (type === "edit") return "Legacy Edit Form";
+  return String(type);
+}
+
+function stateLabel(value: string) {
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 function buildDefaultLayout(columns: CustomizationColumn[]): FormLayoutJson {

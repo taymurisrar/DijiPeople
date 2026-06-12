@@ -16,13 +16,13 @@ export default async function CustomizationFormsPage() {
 
   return (
     <SettingsShell
-      description="Choose a table to manage form layout metadata for main, quick, create, and edit experiences."
+      description="Choose a module to manage form layout metadata for main, quick create, create, and edit experiences."
       eyebrow="Customization"
       title="Forms"
     >
       <SectionCard
-        description="Forms are configured inside each table so layouts can be validated against available columns."
-        title="Select a table"
+        description="Forms are configured inside each module so layouts can be validated against available fields."
+        title="Select a module"
       >
         <div className="grid gap-3 md:grid-cols-2">
           {tables.map((table) => (

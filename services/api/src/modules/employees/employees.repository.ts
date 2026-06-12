@@ -105,6 +105,14 @@ const employeeInclude = {
       isActive: true,
     },
   },
+  defaultWorkSchedule: {
+    select: {
+      id: true,
+      name: true,
+      code: true,
+      isActive: true,
+    },
+  },
   officialJoiningLocation: {
     select: {
       id: true,

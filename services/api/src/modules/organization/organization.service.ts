@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
+import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateBusinessUnitDto } from './dto/create-business-unit.dto';
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { CreateDesignationDto } from './dto/create-designation.dto';
@@ -44,6 +45,7 @@ export type BusinessUnitNode = {
 export class OrganizationService {
   constructor(
     private readonly organizationRepository: OrganizationRepository,
+    private readonly prisma: PrismaService,
   ) {}
 
   findOrganizations(tenantId: string) {
@@ -416,12 +418,17 @@ export class OrganizationService {
     currentUser: AuthenticatedUser,
     dto: CreateDepartmentDto,
   ) {
+    await this.assertLocationWorkConfiguration(
+      currentUser.tenantId,
+      dto.defaultWorkScheduleId,
+    );
     try {
       return await this.organizationRepository.createDepartment({
         tenantId: currentUser.tenantId,
         name: dto.name.trim(),
         code: dto.code?.trim().toUpperCase(),
         description: dto.description?.trim(),
+        defaultWorkScheduleId: dto.defaultWorkScheduleId,
         isActive: dto.isActive ?? true,
         createdById: currentUser.userId,
         updatedById: currentUser.userId,
@@ -436,6 +443,10 @@ export class OrganizationService {
     id: string,
     dto: UpdateDepartmentDto,
   ) {
+    await this.assertLocationWorkConfiguration(
+      currentUser.tenantId,
+      dto.defaultWorkScheduleId,
+    );
     const result = await this.organizationRepository.updateDepartment(
       currentUser.tenantId,
       id,
@@ -446,6 +457,9 @@ export class OrganizationService {
           : {}),
         ...(dto.description !== undefined
           ? { description: dto.description?.trim() ?? null }
+          : {}),
+        ...(dto.defaultWorkScheduleId !== undefined
+          ? { defaultWorkScheduleId: dto.defaultWorkScheduleId }
           : {}),
         ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
         updatedById: currentUser.userId,
@@ -541,6 +555,11 @@ export class OrganizationService {
   }
 
   async createLocation(currentUser: AuthenticatedUser, dto: CreateLocationDto) {
+    await this.assertLocationWorkConfiguration(
+      currentUser.tenantId,
+      dto.defaultWorkScheduleId,
+      dto.holidayCalendarId,
+    );
     try {
       return await this.organizationRepository.createLocation({
         tenantId: currentUser.tenantId,
@@ -553,6 +572,11 @@ export class OrganizationService {
         country: dto.country.trim(),
         zipCode: dto.zipCode?.trim(),
         timezone: dto.timezone?.trim(),
+        latitude: dto.latitude,
+        longitude: dto.longitude,
+        allowedRadiusMeters: dto.allowedRadiusMeters,
+        defaultWorkScheduleId: dto.defaultWorkScheduleId,
+        holidayCalendarId: dto.holidayCalendarId,
         isActive: dto.isActive ?? true,
         createdById: currentUser.userId,
         updatedById: currentUser.userId,
@@ -567,6 +591,11 @@ export class OrganizationService {
     id: string,
     dto: UpdateLocationDto,
   ) {
+    await this.assertLocationWorkConfiguration(
+      currentUser.tenantId,
+      dto.defaultWorkScheduleId,
+      dto.holidayCalendarId,
+    );
     const result = await this.organizationRepository.updateLocation(
       currentUser.tenantId,
       id,
@@ -590,6 +619,17 @@ export class OrganizationService {
         ...(dto.timezone !== undefined
           ? { timezone: dto.timezone?.trim() ?? null }
           : {}),
+        ...(dto.latitude !== undefined ? { latitude: dto.latitude } : {}),
+        ...(dto.longitude !== undefined ? { longitude: dto.longitude } : {}),
+        ...(dto.allowedRadiusMeters !== undefined
+          ? { allowedRadiusMeters: dto.allowedRadiusMeters }
+          : {}),
+        ...(dto.defaultWorkScheduleId !== undefined
+          ? { defaultWorkScheduleId: dto.defaultWorkScheduleId ?? null }
+          : {}),
+        ...(dto.holidayCalendarId !== undefined
+          ? { holidayCalendarId: dto.holidayCalendarId ?? null }
+          : {}),
         ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
         updatedById: currentUser.userId,
       },
@@ -600,6 +640,42 @@ export class OrganizationService {
     }
 
     return this.findLocationById(currentUser.tenantId, id);
+  }
+
+  private async assertLocationWorkConfiguration(
+    tenantId: string,
+    defaultWorkScheduleId?: string,
+    holidayCalendarId?: string,
+  ) {
+    const [schedule, calendar] = await Promise.all([
+      defaultWorkScheduleId
+        ? this.prisma.workSchedule.findFirst({
+            where: {
+              id: defaultWorkScheduleId,
+              tenantId,
+              isActive: true,
+              status: 'ACTIVE',
+            },
+            select: { id: true },
+          })
+        : null,
+      holidayCalendarId
+        ? this.prisma.holidayCalendar.findFirst({
+            where: { id: holidayCalendarId, tenantId, status: 'ACTIVE' },
+            select: { id: true },
+          })
+        : null,
+    ]);
+    if (defaultWorkScheduleId && !schedule) {
+      throw new BadRequestException(
+        'Selected default work schedule is not active for this tenant.',
+      );
+    }
+    if (holidayCalendarId && !calendar) {
+      throw new BadRequestException(
+        'Selected work calendar is not active for this tenant.',
+      );
+    }
   }
 
   private handleUniqueError(error: unknown, entityLabel: string): never {

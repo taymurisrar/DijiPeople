@@ -86,7 +86,7 @@ export function UserProfileHeader({
 
           {canDeleteUser && !user.ownership?.isTenantOwner ? (
             <Button
-              href={`/settings/access/users?userId=${user.id}`}
+              href={`/settings/security-access/users?userId=${user.id}`}
               variant="secondary"
               size="md"
             >
@@ -212,7 +212,7 @@ export function UserAccessDetailCard({
 
             {canAssignRoles ? (
               <Button
-                href={`/settings/access/users?userId=${user.id}`}
+                href={`/settings/security-access/users?userId=${user.id}`}
                 variant="primary"
                 size="md"
               >

@@ -39,7 +39,7 @@ export default async function CustomizationFormDesignerRoute({
     <SettingsShell
       description="Design tabs, sections, fields, and form-specific field behavior."
       eyebrow="Form designer"
-      title={`${table.displayName} · ${form.name}`}
+      title={`${table.displayName} - ${form.name}`}
     >
       <FormDesignerWorkspace columns={columns} form={form} table={table} />
     </SettingsShell>

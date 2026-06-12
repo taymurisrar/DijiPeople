@@ -59,7 +59,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
     const canExport = hasPermission(user?.permissionKeys, "users.export");
 
     if (user && isSelfServiceUser(user.permissionKeys)) {
-        redirect("/me");
+        redirect("/my-profile");
     }
 
     const params = await searchParams;

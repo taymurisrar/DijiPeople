@@ -160,6 +160,7 @@ export type EmployeeListItem = {
   managerEmployeeId?: string | null;
   reportingManagerEmployeeId?: string | null;
   officialJoiningLocationId?: string | null;
+  defaultWorkScheduleId?: string | null;
   userId?: string | null;
   ownerUserId?: string | null;
   addressLine1?: string | null;
@@ -237,6 +238,12 @@ export type EmployeeListItem = {
     state: string;
     country: string;
     timezone?: string | null;
+    isActive: boolean;
+  } | null;
+  defaultWorkSchedule: {
+    id: string;
+    code: string;
+    name: string;
     isActive: boolean;
   } | null;
   profileImage: EmployeeDocumentSummary | null;
@@ -336,6 +343,7 @@ export type EmployeeFormValues = {
   employeeLevelId: string;
   locationId: string;
   officialJoiningLocationId: string;
+  defaultWorkScheduleId: string;
   reportingManagerEmployeeId: string;
   userId: string;
   noticePeriodDays: number | null;
@@ -357,7 +365,12 @@ export type EmployeeFormValues = {
 };
 
 export type EmployeeProfile = EmployeeListItem & {
-  accessMode?: "SELF" | "MANAGER_READONLY" | "HR_MANAGE" | "ADMIN_MANAGE" | "DENIED";
+  accessMode?:
+    | "SELF"
+    | "MANAGER_READONLY"
+    | "HR_MANAGE"
+    | "ADMIN_MANAGE"
+    | "DENIED";
   basicProfile: {
     fullName: string;
     employeeCode: string;
@@ -509,19 +522,19 @@ export type PayComponentRecord = {
   name: string;
   description: string | null;
   componentType:
-  | "EARNING"
-  | "ALLOWANCE"
-  | "REIMBURSEMENT"
-  | "DEDUCTION"
-  | "TAX"
-  | "EMPLOYER_CONTRIBUTION"
-  | "ADJUSTMENT";
+    | "EARNING"
+    | "ALLOWANCE"
+    | "REIMBURSEMENT"
+    | "DEDUCTION"
+    | "TAX"
+    | "EMPLOYER_CONTRIBUTION"
+    | "ADJUSTMENT";
   calculationMethod:
-  | "FIXED"
-  | "PERCENTAGE"
-  | "FORMULA"
-  | "MANUAL"
-  | "SYSTEM_CALCULATED";
+    | "FIXED"
+    | "PERCENTAGE"
+    | "FORMULA"
+    | "MANUAL"
+    | "SYSTEM_CALCULATED";
   isTaxable: boolean;
   affectsGrossPay: boolean;
   affectsNetPay: boolean;

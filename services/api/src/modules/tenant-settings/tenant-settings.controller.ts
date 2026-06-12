@@ -38,8 +38,6 @@ export class TenantSettingsController {
   }
 
   @Get('resolved')
-  @Permissions(SETTINGS_READ_PERMISSION)
-  @RequirePermission(ENTITY_KEYS.SETTINGS, 'read')
   async getResolvedSettings(@CurrentUser() user: AuthenticatedUser) {
     return this.service.getResolvedSettings(user.tenantId);
   }

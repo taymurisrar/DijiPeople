@@ -140,7 +140,7 @@ const ROUTES = new Set<string>([
   '/payroll',
   '/payroll/compensation',
   '/payroll/runs',
-  '/me',
+  '/my-profile',
   '/settings',
   '/settings/access',
   '/settings/approval-matrices',
@@ -944,7 +944,7 @@ export class DashboardService {
             'Profile gaps',
             profileGaps.length,
             'Missing profile fields to complete.',
-            '/me',
+            '/my-profile',
             profileGaps.length ? 'warning' : 'good',
           ),
           this.metric(
@@ -1025,7 +1025,13 @@ export class DashboardService {
         this.section('tasks', 'My tasks', 'list', 60, [
           this.insightWidget('tasks', 'Action items', [
             ...profileGaps.map((gap) =>
-              this.row(`gap-${gap}`, `Complete ${gap}`, 1, '/me', 'warning'),
+              this.row(
+                `gap-${gap}`,
+                `Complete ${gap}`,
+                1,
+                '/my-profile',
+                'warning',
+              ),
             ),
             this.row(
               'tasks',
@@ -1040,7 +1046,7 @@ export class DashboardService {
           this.quickActionsWidget(
             'employeeActions',
             this.actions(currentUser, [
-              this.action('profile', 'View profile', '/me'),
+              this.action('profile', 'View profile', '/my-profile'),
               this.action(
                 'attendance',
                 'View attendance',
@@ -2160,7 +2166,7 @@ export class DashboardService {
       action: {
         key: 'profile',
         label: 'Open profile',
-        href: '/me',
+        href: '/my-profile',
       },
     };
   }

@@ -183,6 +183,78 @@ export class EnterpriseConfigurationController {
     return this.enterpriseConfigurationService.deleteWorkSchedule(user, id);
   }
 
+  @Get('shift-templates')
+  @Permissions('settings.read')
+  listShiftTemplates(@CurrentUser() user: AuthenticatedUser) {
+    return this.enterpriseConfigurationService.listShiftTemplates(
+      user.tenantId,
+    );
+  }
+
+  @Post('shift-templates')
+  @Permissions('settings.update')
+  createShiftTemplate(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() body: Record<string, unknown>,
+  ) {
+    return this.enterpriseConfigurationService.createShiftTemplate(user, body);
+  }
+
+  @Patch('shift-templates/:id')
+  @Permissions('settings.update')
+  updateShiftTemplate(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() body: Record<string, unknown>,
+  ) {
+    return this.enterpriseConfigurationService.updateShiftTemplate(
+      user,
+      id,
+      body,
+    );
+  }
+
+  @Delete('shift-templates/:id')
+  @Permissions('settings.update')
+  archiveShiftTemplate(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.enterpriseConfigurationService.archiveShiftTemplate(user, id);
+  }
+
+  @Get('employee-schedule-assignments')
+  @Permissions('settings.read')
+  listEmployeeScheduleAssignments(@CurrentUser() user: AuthenticatedUser) {
+    return this.enterpriseConfigurationService.listEmployeeScheduleAssignments(
+      user.tenantId,
+    );
+  }
+
+  @Post('employee-schedule-assignments')
+  @Permissions('settings.update')
+  createEmployeeScheduleAssignment(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() body: Record<string, unknown>,
+  ) {
+    return this.enterpriseConfigurationService.createEmployeeScheduleAssignment(
+      user,
+      body,
+    );
+  }
+
+  @Delete('employee-schedule-assignments/:id')
+  @Permissions('settings.update')
+  deactivateEmployeeScheduleAssignment(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.enterpriseConfigurationService.deactivateEmployeeScheduleAssignment(
+      user,
+      id,
+    );
+  }
+
   @Get('payroll-regions')
   @Permissions('payroll.settings.read')
   listPayrollRegions(@CurrentUser() user: AuthenticatedUser) {

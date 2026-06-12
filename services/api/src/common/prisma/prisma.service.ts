@@ -5,6 +5,7 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 import { RequestContextService } from '../request-context/request-context.service';
 
 @Injectable()
@@ -15,7 +16,12 @@ export class PrismaService
   private readonly logger = new Logger(PrismaService.name);
 
   constructor(private readonly requestContextService: RequestContextService) {
+    const connectionString = process.env.DATABASE_URL?.trim();
+    if (!connectionString) {
+      throw new Error('DATABASE_URL is required.');
+    }
     super({
+      adapter: new PrismaPg({ connectionString }),
       log:
         process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
     });

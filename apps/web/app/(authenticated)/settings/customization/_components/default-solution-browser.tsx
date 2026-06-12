@@ -13,11 +13,11 @@ import type {
 } from "../types";
 
 const componentLabels: Record<DefaultSolutionComponentType, string> = {
-  table: "Tables",
-  column: "Columns",
+  table: "Modules",
+  column: "Fields",
   form: "Forms",
   view: "Views",
-  optionSet: "Option Sets",
+  optionSet: "Choice Lists",
   lookup: "Lookups",
 };
 
@@ -79,7 +79,7 @@ export function DefaultSolutionBrowser({ solution }: Props) {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-accent">
-              Default Solution
+              Default Package
             </p>
             <h2 className="mt-2 text-2xl font-semibold text-foreground">
               {solution.displayName}
@@ -115,7 +115,7 @@ export function DefaultSolutionBrowser({ solution }: Props) {
               Business modules
             </h3>
             <p className="mt-1 text-sm text-muted">
-              Default Solution tables exposed for tenant customization.
+              Default Package modules exposed for tenant customization.
             </p>
           </div>
           <StatusPill tone="neutral">
@@ -134,7 +134,7 @@ export function DefaultSolutionBrowser({ solution }: Props) {
               <p className="mt-1 text-2xl font-semibold text-foreground">
                 {items.length}
               </p>
-              <p className="mt-1 text-xs text-muted">table components</p>
+              <p className="mt-1 text-xs text-muted">module components</p>
             </div>
           ))}
         </div>
@@ -255,7 +255,7 @@ function SolutionGroup({
             size="sm"
             variant="ghost"
           >
-            Open table
+            Open module
           </Button>
         ) : null,
     },
@@ -269,7 +269,7 @@ function SolutionGroup({
             {componentLabels[type]}
           </h3>
           <p className="mt-1 text-sm text-muted">
-            Components registered in the tenant Default Solution.
+            Components registered in the tenant Default Package.
           </p>
         </div>
         <StatusPill tone="neutral">{components.length}</StatusPill>

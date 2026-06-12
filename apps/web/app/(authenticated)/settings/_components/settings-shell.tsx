@@ -1,6 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { SettingsLayout } from "@/app/components/settings";
 import { findSettingsItemByPath } from "../_lib/settings-navigation";
@@ -12,6 +14,7 @@ type SettingsShellProps = {
   description: string;
   eyebrow?: string;
   actions?: ReactNode;
+  showSidebar?: boolean;
 };
 
 export function SettingsShell({
@@ -20,10 +23,12 @@ export function SettingsShell({
   description,
   eyebrow = "Tenant Settings",
   actions,
+  showSidebar = true,
 }: SettingsShellProps) {
   const pathname = usePathname();
-  const currentMatch = findSettingsItemByPath(pathname);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
+  const currentMatch = findSettingsItemByPath(pathname);
   const resolvedEyebrow = currentMatch?.groupLabel ?? eyebrow;
 
   const breadcrumb = currentMatch ? (
@@ -41,24 +46,59 @@ export function SettingsShell({
       eyebrow={resolvedEyebrow}
       title={title}
       sidebar={
-        <aside className="space-y-6">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-              Tenant Settings
-            </p>
+        showSidebar ? (
+          <aside
+            className={[
+              "space-y-6 transition-all duration-200",
+              isSidebarCollapsed ? "w-[56px]" : "w-[260px]",
+            ].join(" ")}
+          >
+            {!isSidebarCollapsed ? (
+              <div className="relative rounded-[22px] border border-border/60 bg-white/55 p-4">
+                <button
+                  type="button"
+                  onClick={() => setIsSidebarCollapsed(true)}
+                  aria-label="Collapse settings sidebar"
+                  title="Collapse settings sidebar"
+                  className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full border border-border/60 bg-white text-muted shadow-sm transition hover:bg-muted/30 hover:text-foreground"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                </button>
 
-            <h2 className="mt-3 text-2xl font-semibold tracking-tight text-foreground">
-              Configuration
-            </h2>
+                <div className="pr-8">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+                    Tenant Settings
+                  </p>
 
-            <p className="mt-3 text-sm leading-6 text-muted">
-              Manage tenant setup, access, policies, payroll, customization,
-              and governance from one structured administration workspace.
-            </p>
-          </div>
+                  <h2 className="mt-3 text-2xl font-semibold tracking-tight text-foreground">
+                    Configuration
+                  </h2>
 
-          <SettingsNav currentPath={pathname} />
-        </aside>
+                  <p className="mt-3 text-xs leading-6 text-muted">
+                    Manage tenant setup, access, policies, payroll,
+                    customization, and governance from one structured
+                    administration workspace.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsSidebarCollapsed(false)}
+                aria-label="Expand settings sidebar"
+                title="Expand settings sidebar"
+                className="flex h-10 w-10 items-center justify-center rounded-2xl border border-border/70 bg-white/70 text-muted shadow-sm transition hover:bg-muted/30 hover:text-foreground"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            )}
+
+            <SettingsNav
+              currentPath={pathname}
+              isCollapsed={isSidebarCollapsed}
+            />
+          </aside>
+        ) : undefined
       }
     >
       {actions ? (

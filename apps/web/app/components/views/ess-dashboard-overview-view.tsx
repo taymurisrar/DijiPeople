@@ -57,7 +57,7 @@ export function EssDashboardOverviewView({
             </div>
 
             <Link
-              href="/me"
+              href="/my-profile"
               className="inline-flex h-fit rounded-2xl border border-border bg-white px-4 py-2.5 text-sm font-medium text-foreground transition hover:border-accent/30 hover:text-accent"
             >
               My profile
@@ -158,7 +158,7 @@ export function EssDashboardOverviewView({
             </div>
 
             <Link
-              href="/me"
+              href="/my-profile"
               className="text-sm font-medium text-accent transition hover:text-accent-strong"
             >
               View

@@ -25,7 +25,7 @@ export const dashboardNavItems: DashboardNavItem[] = [
     description: "Ready for employee records and org data.",
     requiredFeatureKey: FEATURE_KEYS.EMPLOYEES,
     requiresBusinessUnitScope: true,
-    selfServiceHref: "/me",
+    selfServiceHref: "/my-profile",
     selfServiceLabel: "My Profile",
   },
   {
@@ -188,7 +188,7 @@ export function resolveVisibleDashboardNavItems(
         return [
           {
             ...item,
-            href: item.selfServiceHref ?? "/me",
+            href: item.selfServiceHref ?? "/my-profile",
             label: item.selfServiceLabel ?? "My Profile",
           },
         ];

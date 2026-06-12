@@ -1,11 +1,17 @@
 import { Transform } from 'class-transformer';
 import {
   IsBoolean,
+  IsInt,
+  IsLatitude,
+  IsLongitude,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
   MinLength,
+  Min,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 function emptyStringToUndefined({ value }: { value: unknown }) {
   if (typeof value !== 'string') {
@@ -66,6 +72,32 @@ export class CreateLocationDto {
   @IsString()
   @MaxLength(80)
   timezone?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsLatitude()
+  latitude?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsLongitude()
+  longitude?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  allowedRadiusMeters?: number;
+
+  @IsOptional()
+  @Transform(emptyStringToUndefined)
+  @IsUUID()
+  defaultWorkScheduleId?: string;
+
+  @IsOptional()
+  @Transform(emptyStringToUndefined)
+  @IsUUID()
+  holidayCalendarId?: string;
 
   @IsOptional()
   @IsBoolean()

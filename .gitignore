@@ -123,3 +123,4 @@ services/api/.env.example
 services/api/.env.production.example
 services/api/.env.development.example
 /services/api/storage
+uat-runtime-tests/

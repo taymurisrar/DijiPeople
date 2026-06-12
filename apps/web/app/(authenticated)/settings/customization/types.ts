@@ -21,6 +21,182 @@ export type CustomizationPublishHistoryItem = {
   createdAt: string;
 };
 
+export type CustomizationComponentType =
+  | "module"
+  | "field"
+  | "form"
+  | "view"
+  | "choiceList"
+  | "relationship"
+  | "relatedList"
+  | "actionBar"
+  | "action"
+  | "widget"
+  | "rule"
+  | "automation"
+  | "guidedProcess"
+  | "documentMetadata"
+  | "timelineConfig";
+
+export type CustomizationPackageType = "default" | "custom";
+
+export type CustomizationPackageState = "draft" | "published" | "archived";
+
+export type CustomizationPublisher = {
+  id?: string;
+  publisherId: string;
+  displayName: string;
+  shortName?: string;
+  prefix: string;
+  isDefault?: boolean;
+  isPrefixLocked?: boolean;
+};
+
+export type CustomizationPackage = {
+  id: string;
+  packageKey: string;
+  displayName: string;
+  description?: string | null;
+  type: CustomizationPackageType | "managed" | "unmanaged" | "patch";
+  state: CustomizationPackageState;
+  publisher?: CustomizationPublisher;
+  publisherId: string;
+  publisherName: string;
+  prefix: string;
+  version: string;
+  isDefault: boolean;
+  isManaged: boolean;
+  isReadOnly: boolean;
+  canEdit: boolean;
+  canPublish: boolean;
+  canDelete: boolean;
+  deleteDisabledReason?: string | null;
+  componentsCount: number;
+  draftComponentsCount?: number;
+  publishedComponentsCount?: number;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+};
+
+export type CustomizationPackageComponent = {
+  id: string;
+  packageId: string;
+  componentType:
+    | CustomizationComponentType
+    | "table"
+    | "column"
+    | "optionSet"
+    | "lookup"
+    | "actionBar";
+  objectId?: string;
+  objectKey?: string;
+  logicalName: string;
+  displayName: string;
+  moduleKey?: string | null;
+  moduleDisplayName?: string | null;
+  moduleLogicalName?: string | null;
+  tableKey?: string | null;
+  tableDisplayName?: string | null;
+  isSystem: boolean;
+  isCustom: boolean;
+  isManaged?: boolean;
+  source?: "System" | "Custom";
+  layerAction?: "Create" | "Modify" | "Reference" | "Remove";
+  state?: "Draft" | "Published";
+  version?: string;
+  updatedAt?: string;
+  dependencies?: readonly string[];
+};
+
+export type CustomizationPackageDetail = CustomizationPackage & {
+  components: CustomizationPackageComponent[];
+  diagnostics?: {
+    valid: boolean;
+    issues: CustomizationDependencyIssue[];
+    draftComponentsCount: number;
+    publishedComponentsCount: number;
+    unsupportedComponentTypes: string[];
+    missingHandlers: string[];
+    permissionIssues: string[];
+  };
+};
+
+export type CustomizationPackageCandidate = {
+  objectId: string;
+  objectKey: string;
+  displayName: string;
+  componentType:
+    | "table"
+    | "column"
+    | "form"
+    | "view"
+    | "optionSet"
+    | "lookup"
+    | "actionBar";
+  moduleKey: string | null;
+  moduleDisplayName: string | null;
+  isSystem: boolean;
+  isCustom: boolean;
+  dependencies: string[];
+  alreadyInPackage: boolean;
+};
+
+export type CustomizationPackageExport = {
+  manifest: {
+    packageId: string;
+    packageKey: string;
+    displayName: string;
+    version: string;
+    publisher: CustomizationPublisher;
+    exportedAt: string;
+    formatVersion: "1.0";
+  };
+  modules: unknown[];
+  components: unknown[];
+  dependencies: unknown[];
+};
+
+export type CustomizationPackageImportPreview = {
+  valid: boolean;
+  applySupported: boolean;
+  packageName: string;
+  version: string;
+  publisher: unknown;
+  modulesCount: number;
+  componentsCount: number;
+  dependenciesCount: number;
+  message: string;
+};
+
+export type CustomizationPublishDraftComponent = {
+  id: string;
+  componentId: string;
+  objectId: string;
+  componentName: string;
+  componentType: string;
+  module: string;
+  packageId: string;
+  packageKey?: string;
+  packageName: string;
+  layerAction: "create" | "modify" | "remove" | "reference";
+  lifecycleState: "draft" | "published" | "deprecated" | "archived";
+  modifiedOn: string;
+  issues: string[];
+};
+
+export type CustomizationDependencyIssue = {
+  severity: "error" | "warning" | "info";
+  componentId?: string | null;
+  componentType?: string | null;
+  message: string;
+  blocking: boolean;
+};
+
+export type CustomizationPublishValidationResult = {
+  valid: boolean;
+  issues: CustomizationDependencyIssue[];
+};
+
 export type DefaultSolutionComponentType =
   | "table"
   | "column"
@@ -93,6 +269,15 @@ export type CustomizationTable = {
   isCustomTable: boolean;
   createdAt: string | null;
   updatedAt: string | null;
+  fieldsCount?: number;
+  formsCount?: number;
+  viewsCount?: number;
+  choiceListsCount?: number;
+  relationshipsCount?: number;
+  actionBarsCount?: number;
+  source?: "System" | "Custom";
+  packageName?: string | null;
+  lifecycleState?: "draft" | "published" | "deprecated" | "archived";
 };
 
 export type CustomizationColumn = {
@@ -116,6 +301,7 @@ export type CustomizationColumn = {
   isValidForFormDesigner?: boolean;
   isValidForViewDesigner?: boolean;
   isReadOnly: boolean;
+  lifecycleState?: "draft" | "published" | "deprecated" | "archived";
   maxLength: number | null;
   minValue?: number | string | null;
   maxValue?: number | string | null;
@@ -141,6 +327,7 @@ export type CustomizationView = {
   filtersJson?: unknown;
   sortingJson?: unknown;
   visibilityScope: "tenant" | "role" | "user";
+  lifecycleState?: "draft" | "published" | "deprecated" | "archived";
 };
 
 export type CustomizationForm = {
@@ -148,12 +335,13 @@ export type CustomizationForm = {
   formKey: string;
   name: string;
   description: string | null;
-  type: "main" | "quick" | "create" | "edit";
+  type: "main" | "minimal" | "quick" | "card" | "lookup" | "create" | "edit";
   isDefault: boolean;
   isActive: boolean;
   isSystem?: boolean;
   isCustom?: boolean;
   layoutJson?: FormLayoutJson;
+  lifecycleState?: "draft" | "published" | "deprecated" | "archived";
 };
 
 export type FormLayoutField = {
@@ -162,6 +350,7 @@ export type FormLayoutField = {
   required?: boolean;
   readOnly?: boolean;
   isVisible?: boolean;
+  columnSpan?: 1 | 2 | 3 | 4;
   sequence?: number;
 };
 
@@ -170,19 +359,39 @@ export type FormLayoutSection = {
   label: string;
   description?: string;
   columns?: number;
+  columnSpan?: 1 | 2 | 3 | 4;
   labelVisible?: boolean;
   isVisible?: boolean;
   sequence?: number;
   fields: FormLayoutField[];
+  components?: FormLayoutComponent[];
+};
+
+export type FormLayoutComponent = {
+  id: string;
+  componentType: "widget";
+  widgetId: string;
+  widgetType: "timeline" | "reporting_hierarchy" | string;
+  label?: string;
+  columnSpan?: 1 | 2 | 3 | 4;
+  height?: number;
+  isInitiallyCollapsed?: boolean;
+  placementConfig?: Record<string, unknown>;
+  sequence?: number;
 };
 
 export type FormLayoutTab = {
   id: string;
   label: string;
+  tabType?: "fields" | "related_module";
+  columns?: 1 | 2 | 3 | 4;
   sequence?: number;
   sections: FormLayoutSection[];
+  relationshipId?: string;
+  relatedModuleKey?: string;
 };
 
 export type FormLayoutJson = {
+  columns?: 1 | 2 | 3 | 4;
   tabs: FormLayoutTab[];
 };

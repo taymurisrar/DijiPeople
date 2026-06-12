@@ -65,6 +65,7 @@ type PatchedWindow = Window & {
 };
 
 const SESSION_EXPIRED_REASON = "session-expired";
+const API_ERROR_HANDLING_HEADER = "x-dijipeople-error-handling";
 const SESSION_WARNING_SECONDS = getPublicNumber(
   process.env.NEXT_PUBLIC_SESSION_WARNING_SECONDS,
   120,
@@ -367,7 +368,7 @@ async function handleAuthFailureResponse(
     }
   }
 
-  if (!response.ok) {
+  if (!response.ok && !usesInlineErrorHandling(fetchArgs)) {
     await dispatchApiError(response);
   }
 
@@ -395,6 +396,17 @@ async function handleAuthFailureResponse(
 
   window.location.assign(logoutUrl);
   return response;
+}
+
+function usesInlineErrorHandling(
+  fetchArgs: Parameters<typeof window.fetch>,
+) {
+  const [input, init] = fetchArgs;
+  const headers = new Headers(
+    init?.headers ?? (input instanceof Request ? input.headers : undefined),
+  );
+
+  return headers.get(API_ERROR_HANDLING_HEADER)?.toLowerCase() === "inline";
 }
 
 async function dispatchApiError(response: Response) {

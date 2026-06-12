@@ -135,14 +135,16 @@ export default function SettingsPage() {
   const permissionKeys = useMemo(() => {
     return user?.permissionKeys ?? [];
   }, [user?.permissionKeys]);
+  const roleKeys = useMemo(() => user?.roleKeys ?? [], [user?.roleKeys]);
   const normalizedQuery = query.trim().toLowerCase();
 
   const visibleGroups = useMemo(
     () =>
       resolveVisibleSettingsGroups(permissionKeys, {
         includeRestricted: true,
+        roleKeys,
       }),
-    [permissionKeys],
+    [permissionKeys, roleKeys],
   );
 
   const filteredGroups = useMemo(() => {
@@ -188,7 +190,7 @@ export default function SettingsPage() {
           <AccessDeniedState
             title="Settings are reserved for administrators."
             description="Employees can manage their personal display preferences from My Preferences."
-            actionHref="/me"
+            actionHref="/my-profile"
             actionLabel="Open My Preferences"
           />
         </div>
@@ -310,6 +312,7 @@ export default function SettingsPage() {
                 key={group.key}
                 group={group}
                 permissionKeys={permissionKeys}
+                roleKeys={roleKeys}
               />))}
           </div>
         )}
@@ -321,9 +324,11 @@ export default function SettingsPage() {
 function SettingsGroupBlock({
   group,
   permissionKeys,
+  roleKeys,
 }: {
   group: ReturnType<typeof resolveVisibleSettingsGroups>[number];
   permissionKeys: readonly string[];
+  roleKeys: readonly string[];
 }) {
   return (
     <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
@@ -355,6 +360,7 @@ function SettingsGroupBlock({
             key={item.key}
             item={item}
             permissionKeys={permissionKeys}
+            roleKeys={roleKeys}
           />
         ))}
       </div>
@@ -365,13 +371,15 @@ function SettingsGroupBlock({
 function SettingsCard({
   item,
   permissionKeys,
+  roleKeys,
 }: {
   item: SettingsNavItem;
   permissionKeys: readonly string[];
+  roleKeys: readonly string[];
 }) {
   const isDisabled = "disabled" in item ? item.disabled === true : false;
   const badge = "badge" in item ? item.badge : undefined;
-  const canOpen = canViewSettingsItem(permissionKeys, item);
+  const canOpen = canViewSettingsItem(permissionKeys, roleKeys, item);
 
   const content = (
     <>

@@ -18,12 +18,28 @@ export type RuntimeFormLayoutSection = {
   isVisible?: boolean;
   sequence?: number;
   fields: RuntimeFormLayoutField[];
+  components?: RuntimeFormLayoutComponent[];
+};
+
+export type RuntimeFormLayoutComponent = {
+  id: string;
+  componentType: "widget";
+  widgetId: string;
+  widgetType: string;
+  label?: string;
+  columnSpan?: 1 | 2 | 3 | 4;
+  height?: number;
+  isInitiallyCollapsed?: boolean;
+  placementConfig?: Record<string, unknown>;
+  sequence?: number;
 };
 
 export type RuntimeFormLayout = {
+  columns?: 1 | 2 | 3 | 4;
   tabs: Array<{
     id: string;
     label: string;
+    columns?: 1 | 2 | 3 | 4;
     sequence?: number;
     sections: RuntimeFormLayoutSection[];
   }>;
@@ -44,6 +60,7 @@ type PublishedCustomizationResponse = {
   published: boolean;
   snapshotJson?: {
     tables?: Array<{ id: string; tableKey: string }>;
+    modules?: Array<{ id: string; tableKey: string }>;
     forms?: Array<{
       id: string;
       tableId: string;
@@ -84,11 +101,13 @@ export async function resolveFormLayout(tableKey: string, formKey?: string) {
 
 export async function getTableForms(tableKey: string) {
   const published = await apiRequestJson<PublishedCustomizationResponse>(
-    "/customization/published",
+    "/runtime-metadata/published",
   ).catch(() => null);
 
   if (!published?.published || !published.snapshotJson) return [];
-  const table = published.snapshotJson.tables?.find(
+  const tables =
+    published.snapshotJson.tables ?? published.snapshotJson.modules ?? [];
+  const table = tables.find(
     (item) => item.tableKey === tableKey,
   );
   if (!table) return [];

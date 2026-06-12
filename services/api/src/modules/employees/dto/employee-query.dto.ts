@@ -1,6 +1,7 @@
 import { EmployeeEmploymentStatus } from '@prisma/client';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
+  IsArray,
   IsEnum,
   IsInt,
   IsIn,
@@ -15,6 +16,15 @@ import {
 const TEXT_FILTER_OPERATORS = ['contains', 'equals', 'startsWith'] as const;
 const DATE_FILTER_OPERATORS = ['equals', 'before', 'after', 'between'] as const;
 
+function parseColumnsQuery(value: unknown) {
+  const values = Array.isArray(value) ? value : [value];
+
+  return values
+    .flatMap((item) => (typeof item === 'string' ? item.split(',') : []))
+    .map((column) => column.trim())
+    .filter((column) => column.length > 0);
+}
+
 export class EmployeeQueryDto {
   @IsOptional()
   @IsString()
@@ -28,6 +38,17 @@ export class EmployeeQueryDto {
   @IsOptional()
   @IsUUID()
   reportingManagerEmployeeId?: string;
+
+  @IsOptional()
+  @IsUUID('4')
+  viewId?: string;
+
+  @IsOptional()
+  @Transform(({ value }) => parseColumnsQuery(value))
+  @IsArray()
+  @IsString({ each: true })
+  @MaxLength(80, { each: true })
+  columns?: string[];
 
   @IsOptional()
   @IsString()

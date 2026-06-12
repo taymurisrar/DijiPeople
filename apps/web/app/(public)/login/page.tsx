@@ -1,11 +1,11 @@
 import { CSSProperties, Suspense } from "react";
 import { headers } from "next/headers";
 import type { Metadata } from "next";
-import { BrandingHeadEffects } from "@/app/components/branding/branding-head-effects";
 import { DEFAULT_BRANDING_VALUES } from "@/app/components/branding/branding-defaults";
 import { TenantLogo } from "@/app/components/branding/tenant-logo";
 import { apiRequestJson, isApiRequestError } from "@/lib/server-api";
 import { getTenantHintFromRequest } from "@/lib/tenant-resolution";
+import { getFontOptionByKey, normalizeFontFamily } from "@/lib/branding";
 import { CompanyCodeLoginStep } from "./company-code-login-step";
 import { LoginForm } from "./login-form";
 
@@ -40,6 +40,7 @@ type PublicTenantResolveResponse = {
     primaryColor?: string;
     secondaryColor?: string;
     accentColor?: string | null;
+    fontFamily?: string | null;
     loginTitle?: string | null;
     loginSubtitle?: string | null;
     loginFooterText?: string | null;
@@ -72,7 +73,7 @@ export async function generateMetadata({
     sanitizeLoginAssetUrl(branding?.faviconUrl) || "/favicon.ico";
 
   return {
-    title,
+    title: `Login | ${title}`,
     description,
     icons: {
       icon: faviconUrl,
@@ -110,14 +111,16 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     branding?.primaryColor || DEFAULT_BRANDING_VALUES.primaryColor;
   const secondaryColor =
     branding?.secondaryColor || DEFAULT_BRANDING_VALUES.secondaryColor;
-  const accentColor = branding?.accentColor || DEFAULT_BRANDING_VALUES.accentColor;
+  const accentColor =
+    branding?.accentColor || DEFAULT_BRANDING_VALUES.accentColor;
   const loginBannerImageUrl =
     sanitizeLoginAssetUrl(branding?.loginImageUrl) || "";
   const logoUrl = sanitizeLoginAssetUrl(branding?.logoUrl);
-  const faviconUrl = sanitizeLoginAssetUrl(branding?.faviconUrl);
-  const pageTitle = branding?.appTitle || DEFAULT_BRANDING_VALUES.appTitle;
   const footerText =
     branding?.loginFooterText || DEFAULT_BRANDING_VALUES.footerText;
+  const fontFamily = getFontOptionByKey(
+    normalizeFontFamily(branding?.fontFamily),
+  ).stack;
 
   return (
     <main
@@ -126,10 +129,11 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         {
           "--accent": accentColor,
           "--accent-strong": secondaryColor,
+          "--font-family": fontFamily,
+          "--dp-font-family": fontFamily,
         } as CSSProperties
       }
     >
-      <BrandingHeadEffects faviconUrl={faviconUrl} title={pageTitle} />
       <div className="mx-auto flex w-full max-w-7xl items-stretch px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8 xl:px-10">
         <div className="grid h-full w-full overflow-hidden rounded-[24px] border border-border/70 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.08)] lg:min-h-[calc(100svh-4rem)] lg:grid-cols-[1fr_minmax(440px,0.95fr)] xl:rounded-[32px]">
           <section
@@ -241,7 +245,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 function TenantUnavailableState() {
   return (
     <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm leading-6 text-amber-900">
-      This company portal is not currently available. Contact your HR or support team for help.
+      This company portal is not currently available. Contact your HR or support
+      team for help.
     </div>
   );
 }
@@ -249,7 +254,8 @@ function TenantUnavailableState() {
 function TenantNotFoundState() {
   return (
     <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-4 text-sm leading-6 text-red-700">
-      We could not find this company portal. Check the login link or use the common login to enter your company code.
+      We could not find this company portal. Check the login link or use the
+      common login to enter your company code.
     </div>
   );
 }
@@ -304,7 +310,7 @@ async function resolvePublicTenantForLogin(
         .then((data) => ({ data, errorCode: null as string | null }))
         .catch((error: unknown) => ({
           data: null,
-          errorCode: isApiRequestError(error) ? error.code ?? null : null,
+          errorCode: isApiRequestError(error) ? (error.code ?? null) : null,
         }))
     : { data: null, errorCode: null as string | null };
 }

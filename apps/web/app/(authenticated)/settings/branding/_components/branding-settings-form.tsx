@@ -2,7 +2,7 @@
 
 import { CSSProperties, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BrandingHeadEffects } from "@/app/components/branding/branding-head-effects";
+import { useTenantSettings } from "@/app/components/settings/tenant-settings-provider";
 import {
   ConfirmationDialog,
   SideToast,
@@ -12,13 +12,15 @@ import { ColorPickerField } from "@/app/components/settings";
 import {
   BRANDING_COLOR_KEYS,
   BRANDING_FONT_OPTIONS,
+  BRANDING_DENSITY_OPTIONS,
+  BRANDING_RADIUS_OPTIONS,
   BRANDING_TEXT_KEYS,
   BrandingColorKey,
   BrandingSettings,
   BrandingTextKey,
   DEFAULT_BRANDING_SETTINGS,
-  getFontOptionByKey,
   isValidHexColor,
+  buildBrandingCssVariables,
 } from "@/lib/branding";
 
 type BrandingSettingsFormProps = {
@@ -80,15 +82,22 @@ const TEXT_FIELD_LABELS: Partial<Record<BrandingTextKey, string>> = {
   employeePortalMessage: "Employee portal message",
 };
 
-export function BrandingSettingsForm({ initialValues }: BrandingSettingsFormProps) {
+export function BrandingSettingsForm({
+  initialValues,
+}: BrandingSettingsFormProps) {
   const router = useRouter();
-  const [savedBranding, setSavedBranding] = useState<BrandingSettings>(initialValues);
-  const [draftBranding, setDraftBranding] = useState<BrandingSettings>(initialValues);
+  const { setBrandingDraft, updatePublicSettings } = useTenantSettings();
+  const [savedBranding, setSavedBranding] =
+    useState<BrandingSettings>(initialValues);
+  const [draftBranding, setDraftBranding] =
+    useState<BrandingSettings>(initialValues);
   const [isSaving, setIsSaving] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [faviconFile, setFaviconFile] = useState<File | null>(null);
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
-  const [faviconPreviewUrl, setFaviconPreviewUrl] = useState<string | null>(null);
+  const [faviconPreviewUrl, setFaviconPreviewUrl] = useState<string | null>(
+    null,
+  );
   const [toast, setToast] = useState<ToastState | null>(null);
   const [topAlert, setTopAlert] = useState<{
     description?: string;
@@ -142,7 +151,10 @@ export function BrandingSettingsForm({ initialValues }: BrandingSettingsFormProp
   );
 
   const hasValidFont = useMemo(
-    () => BRANDING_FONT_OPTIONS.some((option) => option.key === draftBranding.fontFamily),
+    () =>
+      BRANDING_FONT_OPTIONS.some(
+        (option) => option.key === draftBranding.fontFamily,
+      ),
     [draftBranding.fontFamily],
   );
 
@@ -150,18 +162,14 @@ export function BrandingSettingsForm({ initialValues }: BrandingSettingsFormProp
   const previewFaviconUrl = faviconPreviewUrl ?? draftBranding.faviconUrl;
 
   const previewStyle = useMemo(
-    () =>
-      ({
-        "--dp-primary": draftBranding.primaryColor,
-        "--dp-secondary": draftBranding.secondaryColor,
-        "--dp-accent": draftBranding.accentColor,
-        "--dp-background": draftBranding.backgroundColor,
-        "--dp-surface": draftBranding.surfaceColor,
-        "--dp-text": draftBranding.textColor,
-        "--dp-font-family": getFontOptionByKey(draftBranding.fontFamily).stack,
-      }) as CSSProperties,
+    () => buildBrandingCssVariables(draftBranding) as CSSProperties,
     [draftBranding],
   );
+
+  useEffect(() => {
+    setBrandingDraft(draftBranding);
+    return () => setBrandingDraft(null);
+  }, [draftBranding, setBrandingDraft]);
 
   async function handleSave() {
     if (invalidColors.length > 0) {
@@ -219,9 +227,30 @@ export function BrandingSettingsForm({ initialValues }: BrandingSettingsFormProp
             key,
             value: nextDraft[key].trim(),
           })),
-          { category: "branding", key: "fontFamily", value: nextDraft.fontFamily },
+          {
+            category: "branding",
+            key: "fontFamily",
+            value: nextDraft.fontFamily,
+          },
+          {
+            category: "branding",
+            key: "themeMode",
+            value: nextDraft.themeMode,
+          },
+          { category: "branding", key: "density", value: nextDraft.density },
+          { category: "branding", key: "radius", value: nextDraft.radius },
+          { category: "branding", key: "shadow", value: nextDraft.shadow },
+          {
+            category: "branding",
+            key: "navigationLayout",
+            value: nextDraft.navigationLayout,
+          },
           { category: "branding", key: "logoUrl", value: nextLogoUrl.trim() },
-          { category: "branding", key: "faviconUrl", value: nextFaviconUrl.trim() },
+          {
+            category: "branding",
+            key: "faviconUrl",
+            value: nextFaviconUrl.trim(),
+          },
           {
             category: "branding",
             key: "appBackgroundColor",
@@ -241,9 +270,9 @@ export function BrandingSettingsForm({ initialValues }: BrandingSettingsFormProp
         body: JSON.stringify(payload),
       });
 
-      const body = (await response.json().catch(() => null)) as
-        | { message?: string }
-        | null;
+      const body = (await response.json().catch(() => null)) as {
+        message?: string;
+      } | null;
 
       if (!response.ok) {
         setToast({
@@ -264,6 +293,7 @@ export function BrandingSettingsForm({ initialValues }: BrandingSettingsFormProp
 
       setSavedBranding(persisted);
       setDraftBranding(persisted);
+      updatePublicSettings(persisted);
       clearFileDrafts();
       setToast({
         title: "Branding updated",
@@ -300,6 +330,7 @@ export function BrandingSettingsForm({ initialValues }: BrandingSettingsFormProp
 
   function handleRevertDraft() {
     setDraftBranding(savedBranding);
+    setBrandingDraft(null);
     clearFileDrafts();
     setTopAlert(null);
   }
@@ -339,8 +370,10 @@ export function BrandingSettingsForm({ initialValues }: BrandingSettingsFormProp
       return;
     }
 
-    const typeSet = kind === "logo" ? ALLOWED_LOGO_TYPES : ALLOWED_FAVICON_TYPES;
-    const maxSize = kind === "logo" ? MAX_LOGO_SIZE_BYTES : MAX_FAVICON_SIZE_BYTES;
+    const typeSet =
+      kind === "logo" ? ALLOWED_LOGO_TYPES : ALLOWED_FAVICON_TYPES;
+    const maxSize =
+      kind === "logo" ? MAX_LOGO_SIZE_BYTES : MAX_FAVICON_SIZE_BYTES;
 
     if (!typeSet.has(file.type.toLowerCase())) {
       setTopAlert({
@@ -385,11 +418,6 @@ export function BrandingSettingsForm({ initialValues }: BrandingSettingsFormProp
 
   return (
     <div className="grid gap-6 pb-20">
-      <BrandingHeadEffects
-        faviconUrl={previewFaviconUrl}
-        title={draftBranding.appTitle}
-      />
-
       {topAlert ? (
         <TopAlert
           description={topAlert.description}
@@ -400,7 +428,9 @@ export function BrandingSettingsForm({ initialValues }: BrandingSettingsFormProp
       ) : null}
 
       <section className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
-        <h3 className="text-2xl font-semibold text-foreground">Brand identity</h3>
+        <h3 className="text-2xl font-semibold text-foreground">
+          Brand identity
+        </h3>
         <p className="mt-2 text-sm text-muted">
           Configure brand assets and core product display text.
         </p>
@@ -432,24 +462,79 @@ export function BrandingSettingsForm({ initialValues }: BrandingSettingsFormProp
         <div className="mt-5 grid gap-4 md:grid-cols-2">
           {BRANDING_TEXT_KEYS.map((key) => (
             <label className="grid gap-2 text-sm" key={key}>
-              <span className="font-medium text-foreground">{TEXT_FIELD_LABELS[key] ?? key}</span>
+              <span className="font-medium text-foreground">
+                {TEXT_FIELD_LABELS[key] ?? key}
+              </span>
               {key === "welcomeSubtitle" ||
-                key === "portalTagline" ||
-                key === "employeePortalMessage" ? (
+              key === "portalTagline" ||
+              key === "employeePortalMessage" ? (
                 <textarea
                   className="min-h-24 w-full rounded-2xl border border-border bg-white px-4 py-3 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
-                  onChange={(event) => handleTextChange(key, event.target.value)}
+                  onChange={(event) =>
+                    handleTextChange(key, event.target.value)
+                  }
                   value={draftBranding[key]}
                 />
               ) : (
                 <input
                   className="w-full rounded-2xl border border-border bg-white px-4 py-3 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
-                  onChange={(event) => handleTextChange(key, event.target.value)}
+                  onChange={(event) =>
+                    handleTextChange(key, event.target.value)
+                  }
                   value={draftBranding[key]}
                 />
               )}
             </label>
           ))}
+        </div>
+      </section>
+
+      <section className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
+        <h3 className="text-2xl font-semibold text-foreground">
+          Layout and density
+        </h3>
+        <p className="mt-2 text-sm text-muted">
+          Keep spacing and corner treatment consistent across shared components.
+        </p>
+        <div className="mt-5 grid gap-4 md:grid-cols-2">
+          <label className="grid gap-2 text-sm">
+            <span className="font-medium text-foreground">Density</span>
+            <select
+              className="rounded-2xl border border-border bg-white px-4 py-3"
+              onChange={(event) =>
+                setDraftBranding((current) => ({
+                  ...current,
+                  density: event.target.value as BrandingSettings["density"],
+                }))
+              }
+              value={draftBranding.density}
+            >
+              {BRANDING_DENSITY_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option.charAt(0) + option.slice(1).toLowerCase()}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="grid gap-2 text-sm">
+            <span className="font-medium text-foreground">Border radius</span>
+            <select
+              className="rounded-2xl border border-border bg-white px-4 py-3"
+              onChange={(event) =>
+                setDraftBranding((current) => ({
+                  ...current,
+                  radius: event.target.value as BrandingSettings["radius"],
+                }))
+              }
+              value={draftBranding.radius}
+            >
+              {BRANDING_RADIUS_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option.charAt(0) + option.slice(1).toLowerCase()}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
       </section>
 
@@ -463,7 +548,9 @@ export function BrandingSettingsForm({ initialValues }: BrandingSettingsFormProp
           {BRANDING_COLOR_KEYS.map((key) => (
             <ColorPickerField
               key={key}
-              description={COLOR_FIELD_DESCRIPTIONS[key] ?? "Branding color token."}
+              description={
+                COLOR_FIELD_DESCRIPTIONS[key] ?? "Branding color token."
+              }
               label={COLOR_FIELD_LABELS[key] ?? key}
               onChange={(nextValue) => handleColorChange(key, nextValue)}
               value={draftBranding[key]}
@@ -484,7 +571,8 @@ export function BrandingSettingsForm({ initialValues }: BrandingSettingsFormProp
             onChange={(event) =>
               setDraftBranding((current) => ({
                 ...current,
-                fontFamily: event.target.value as BrandingSettings["fontFamily"],
+                fontFamily: event.target
+                  .value as BrandingSettings["fontFamily"],
               }))
             }
             value={draftBranding.fontFamily}
@@ -527,7 +615,9 @@ export function BrandingSettingsForm({ initialValues }: BrandingSettingsFormProp
                 <p className="truncate text-sm font-semibold text-foreground">
                   {draftBranding.brandName}
                 </p>
-                <p className="truncate text-xs text-muted">{draftBranding.portalTagline}</p>
+                <p className="truncate text-xs text-muted">
+                  {draftBranding.portalTagline}
+                </p>
               </div>
             </div>
             <div className="mt-4 grid gap-2">
@@ -537,6 +627,25 @@ export function BrandingSettingsForm({ initialValues }: BrandingSettingsFormProp
               <div className="rounded-xl border border-border bg-white px-3 py-2 text-sm text-foreground">
                 Employees
               </div>
+            </div>
+            <div className="mt-4 rounded-xl border border-border bg-white p-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+                Login card
+              </p>
+              <p className="mt-2 text-sm font-semibold text-foreground">
+                {draftBranding.welcomeTitle}
+              </p>
+              <p className="mt-1 text-xs text-muted">
+                {draftBranding.welcomeSubtitle}
+              </p>
+              <label className="mt-3 grid gap-1 text-xs text-muted">
+                Work email
+                <input
+                  className="rounded-lg border border-border bg-white px-3 py-2 text-foreground"
+                  placeholder="name@company.com"
+                  readOnly
+                />
+              </label>
             </div>
           </article>
 
@@ -548,7 +657,9 @@ export function BrandingSettingsForm({ initialValues }: BrandingSettingsFormProp
               <h4 className="mt-2 text-xl font-semibold text-foreground">
                 {draftBranding.dashboardGreeting}
               </h4>
-              <p className="mt-2 text-sm text-muted">{draftBranding.employeePortalMessage}</p>
+              <p className="mt-2 text-sm text-muted">
+                {draftBranding.employeePortalMessage}
+              </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 <button
                   className="rounded-xl px-4 py-2 text-sm font-semibold text-white"
@@ -560,7 +671,8 @@ export function BrandingSettingsForm({ initialValues }: BrandingSettingsFormProp
                 <button
                   className="rounded-xl border px-4 py-2 text-sm font-medium"
                   style={{
-                    borderColor: "color-mix(in oklab, var(--dp-text) 20%, white)",
+                    borderColor:
+                      "color-mix(in oklab, var(--dp-text) 20%, white)",
                     color: "var(--dp-text)",
                   }}
                   type="button"
@@ -575,13 +687,18 @@ export function BrandingSettingsForm({ initialValues }: BrandingSettingsFormProp
                 Employees list preview
               </p>
               <div className="mt-2 rounded-lg border border-border bg-white px-3 py-2">
-                <p className="text-sm font-semibold text-foreground">Fatima Ahmed</p>
+                <p className="text-sm font-semibold text-foreground">
+                  Fatima Ahmed
+                </p>
                 <p className="text-xs text-muted">Engineering • Active</p>
               </div>
             </div>
 
             <div className="mt-4 rounded-xl border border-border bg-white px-3 py-2 text-xs text-muted">
-              Browser title: <span className="font-medium text-foreground">{draftBranding.appTitle}</span>
+              Browser title:{" "}
+              <span className="font-medium text-foreground">
+                {draftBranding.appTitle}
+              </span>
               <br />
               Favicon: {previewFaviconUrl ? "Configured" : "Default"}
             </div>
@@ -684,7 +801,9 @@ function AssetField({
           />
         </label>
       </div>
-      {fileLabel ? <p className="mt-2 text-xs text-muted">Selected: {fileLabel}</p> : null}
+      {fileLabel ? (
+        <p className="mt-2 text-xs text-muted">Selected: {fileLabel}</p>
+      ) : null}
       <label className="mt-3 grid gap-1 text-xs text-muted">
         Asset URL
         <input
@@ -698,7 +817,10 @@ function AssetField({
   );
 }
 
-async function uploadBrandingAsset(settingKey: "logoUrl" | "faviconUrl", file: File) {
+async function uploadBrandingAsset(
+  settingKey: "logoUrl" | "faviconUrl",
+  file: File,
+) {
   const payload = new FormData();
   payload.set("settingKey", settingKey);
   payload.set("file", file);
@@ -708,13 +830,15 @@ async function uploadBrandingAsset(settingKey: "logoUrl" | "faviconUrl", file: F
     body: payload,
   });
 
-  const body = (await response.json().catch(() => null)) as
-    | { message?: string; value?: string }
-    | null;
+  const body = (await response.json().catch(() => null)) as {
+    message?: string;
+    value?: string;
+  } | null;
 
   if (!response.ok || !body?.value) {
     throw new Error(
-      body?.message ?? `Could not upload ${settingKey === "logoUrl" ? "logo" : "favicon"}.`,
+      body?.message ??
+        `Could not upload ${settingKey === "logoUrl" ? "logo" : "favicon"}.`,
     );
   }
 

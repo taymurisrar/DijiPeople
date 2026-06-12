@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit3, ExternalLink, Plus, Trash2 } from "lucide-react";
+import { Edit3, ExternalLink, PauseCircle, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
 import { DataTable } from "@/app/components/data-table/data-table";
@@ -43,20 +43,25 @@ export function TablesList({ tables }: TablesListProps) {
     () => [
       {
         key: "displayName",
-        header: "Display name",
+        header: "Module name",
         sortable: true,
+        searchable: true,
         sortAccessor: (row) => row.displayName,
+        searchAccessor: (row) => `${row.displayName} ${row.description ?? ""}`,
         render: (row) => (
           <div>
             <p className="font-semibold text-foreground">{row.displayName}</p>
-            <p className="mt-1 text-xs text-muted">{row.description}</p>
+            <p className="mt-1 max-w-xs truncate text-xs text-muted">
+              {row.description || row.pluralDisplayName}
+            </p>
           </div>
         ),
       },
       {
         key: "tableKey",
-        header: "Table key",
+        header: "Logical name",
         sortable: true,
+        searchable: true,
         sortAccessor: (row) => row.tableKey,
         render: (row) => (
           <code className="rounded-lg bg-slate-100 px-2 py-1 text-xs text-slate-700">
@@ -65,76 +70,165 @@ export function TablesList({ tables }: TablesListProps) {
         ),
       },
       {
-        key: "pluralName",
-        header: "Plural name",
+        key: "route",
+        header: "Route",
+        searchable: true,
+        searchAccessor: (row) => row.moduleKey,
         sortable: true,
-        sortAccessor: (row) => row.pluralDisplayName,
-        render: (row) => row.pluralDisplayName,
+        sortAccessor: (row) => row.moduleKey,
+        render: (row) => (
+          <span className="text-xs text-muted">
+            /{row.moduleKey || row.tableKey}
+          </span>
+        ),
       },
       {
-        key: "active",
-        header: "Active",
+        key: "type",
+        header: "Type",
+        filterable: true,
+        filterType: "select",
+        filterAccessor: (row) => componentSource(row),
+        filterOptions: [
+          { label: "System", value: "System" },
+          { label: "Custom", value: "Custom" },
+        ],
         render: (row) => (
-          <StatusPill tone={row.isActive ? "good" : "muted"}>
-            {row.isActive ? "Active" : "Inactive"}
+          <StatusPill tone={row.isCustomTable ? "neutral" : "muted"}>
+            {componentSource(row)}
           </StatusPill>
         ),
       },
       {
-        key: "customizable",
-        header: "Customizable",
-        render: (row) => (
-          <StatusPill tone={row.isCustomizable ? "neutral" : "muted"}>
-            {row.isCustomizable ? "Yes" : "No"}
-          </StatusPill>
-        ),
+        key: "status",
+        header: "Status",
+        filterable: true,
+        filterType: "select",
+        filterAccessor: (row) => (row.isActive ? "Active" : "Inactive"),
+        filterOptions: [
+          { label: "Active", value: "Active" },
+          { label: "Inactive", value: "Inactive" },
+        ],
+        render: (row) => statusBadge(row.isActive),
+      },
+      {
+        key: "source",
+        header: "Source",
+        filterable: true,
+        filterType: "select",
+        filterAccessor: (row) => row.source ?? componentSource(row),
+        filterOptions: [
+          { label: "System", value: "System" },
+          { label: "Custom", value: "Custom" },
+        ],
+        render: (row) => row.source ?? componentSource(row),
+      },
+      {
+        key: "package",
+        header: "Package",
+        searchable: true,
+        searchAccessor: (row) => row.packageName ?? "",
+        render: (row) => row.packageName ?? "Default Package",
+      },
+      {
+        key: "lifecycle",
+        header: "Lifecycle",
+        filterable: true,
+        filterType: "select",
+        filterAccessor: (row) => lifecycleLabel(row.lifecycleState),
+        filterOptions: [
+          { label: "Draft", value: "Draft" },
+          { label: "Published", value: "Published" },
+          { label: "Deprecated", value: "Deprecated" },
+          { label: "Archived", value: "Archived" },
+        ],
+        render: (row) => lifecycleLabel(row.lifecycleState),
+      },
+      metricColumn("fields", "Fields count", (row) =>
+        readCount(row, "fieldsCount"),
+      ),
+      metricColumn("forms", "Forms count", (row) =>
+        readCount(row, "formsCount"),
+      ),
+      metricColumn("views", "Views count", (row) =>
+        readCount(row, "viewsCount"),
+      ),
+      {
+        key: "updatedAt",
+        header: "Modified on",
+        sortable: true,
+        sortAccessor: (row) => row.updatedAt ?? "",
+        render: (row) => formatDate(row.updatedAt),
       },
       {
         key: "actions",
         header: "Actions",
+        cellClassName: "min-w-[260px]",
         render: (row) => (
-          <div className="flex flex-wrap gap-2">
-            <Button
-              href={`/settings/customization/tables/${row.tableKey}`}
-              leftIcon={<ExternalLink className="h-4 w-4" />}
-              size="sm"
-              variant="secondary"
-            >
-              Open
-            </Button>
-            <PermissionGate anyOf={["customization.tables.update"]}>
-              <Button
-                leftIcon={<Edit3 className="h-4 w-4" />}
-                onClick={() =>
-                  setEditing({
-                    mode: "edit",
-                    tableKey: row.tableKey,
-                    displayName: row.displayName,
-                    pluralDisplayName: row.pluralDisplayName,
-                    icon: row.icon ?? "",
-                    description: row.description ?? "",
-                    isActive: row.isActive,
-                  })
-                }
-                size="sm"
-                type="button"
-                variant="ghost"
-              >
-                Edit
-              </Button>
-              {row.isCustomTable ? (
-                <Button
-                  leftIcon={<Trash2 className="h-4 w-4" />}
-                  onClick={() => setDeleteTarget(row)}
-                  size="sm"
-                  type="button"
-                  variant="danger"
-                >
-                  Delete
-                </Button>
-              ) : null}
-            </PermissionGate>
-          </div>
+<div className="flex gap-2">
+  <Button
+    href={`/settings/customization/tables/${row.tableKey}`}
+    leftIcon={<ExternalLink className="h-4 w-4" />}
+    size="icon-sm"
+    variant="secondary"
+    aria-label="Customize"
+    title="Customize"
+  />
+
+  <PermissionGate anyOf={["customization.tables.update"]}>
+    <Button
+      leftIcon={<Edit3 className="h-4 w-4" />}
+      onClick={() =>
+        setEditing({
+          mode: "edit",
+          tableKey: row.tableKey,
+          displayName: row.displayName,
+          pluralDisplayName: row.pluralDisplayName,
+          icon: row.icon ?? "",
+          description: row.description ?? "",
+          isActive: row.isActive,
+        })
+      }
+      size="icon-sm"
+      variant="ghost"
+      aria-label="Rename"
+      title="Rename"
+    />
+
+    <Button
+      disabled={!row.isCustomTable}
+      leftIcon={<PauseCircle className="h-4 w-4" />}
+      onClick={() =>
+        row.isCustomTable
+          ? setEditing({
+              mode: "edit",
+              tableKey: row.tableKey,
+              displayName: row.displayName,
+              pluralDisplayName: row.pluralDisplayName,
+              icon: row.icon ?? "",
+              description: row.description ?? "",
+              isActive: !row.isActive,
+            })
+          : undefined
+      }
+      size="icon-sm"
+      variant="ghost"
+      aria-label={row.isActive ? "Deactivate" : "Activate"}
+      title={row.isActive ? "Deactivate" : "Activate"}
+      type="button"
+    />
+
+    {row.isCustomTable && (
+      <Button
+        leftIcon={<Trash2 className="h-4 w-4" />}
+        onClick={() => setDeleteTarget(row)}
+        size="icon-sm"
+        variant="danger"
+        aria-label="Delete"
+        title="Delete"
+      />
+    )}
+  </PermissionGate>
+</div>
         ),
       },
     ],
@@ -199,7 +293,7 @@ export function TablesList({ tables }: TablesListProps) {
 
   return (
     <>
-      <div className="mb-4 flex justify-end">
+      <div className="mb-3 flex justify-end">
         <PermissionGate anyOf={["customization.tables.update"]}>
           <Button
             leftIcon={<Plus className="h-4 w-4" />}
@@ -216,7 +310,7 @@ export function TablesList({ tables }: TablesListProps) {
             }
             type="button"
           >
-            Create table
+            Create module
           </Button>
         </PermissionGate>
       </div>
@@ -228,16 +322,20 @@ export function TablesList({ tables }: TablesListProps) {
       ) : null}
 
       <DataTable
+        className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm"
         columns={columns}
         emptyState={
           <EmptyState
-            description="No system tables are registered for customization yet."
-            title="No configurable tables"
+            description="No metadata modules are registered for customization yet."
+            title="No configurable modules"
           />
         }
         getRowKey={(row) => row.tableKey}
         initialSort={{ columnKey: "displayName", direction: "asc" }}
+        pagination={{ page: 1, pageSize: 10, total: tables.length }}
         rows={tables}
+        searchPlaceholder="Search modules"
+        tableClassName="min-w-[980px] divide-y divide-border text-xs"
       />
 
       {editing ? (
@@ -249,12 +347,12 @@ export function TablesList({ tables }: TablesListProps) {
             <div>
               <h3 className="text-lg font-semibold text-foreground">
                 {editing.mode === "create"
-                  ? "Create custom table"
-                  : "Edit table metadata"}
+                  ? "Create custom module"
+                  : "Edit module metadata"}
               </h3>
               <p className="mt-1 text-sm text-muted">
                 {editing.mode === "create"
-                  ? "Create a tenant-scoped metadata table."
+                  ? "Create a tenant-scoped metadata module."
                   : `Update tenant-facing labels for ${editing.tableKey}.`}
               </p>
             </div>
@@ -263,7 +361,7 @@ export function TablesList({ tables }: TablesListProps) {
               <TextField
                 disabled={editing.mode === "edit"}
                 hint="Use camelCase. This logical name is immutable after creation."
-                label="Table logical name"
+                label="Module logical name"
                 onChange={(tableKey) =>
                   setEditing((current) =>
                     current ? { ...current, tableKey } : current,
@@ -303,7 +401,7 @@ export function TablesList({ tables }: TablesListProps) {
               />
               <CheckboxField
                 checked={editing.isActive}
-                hint="Inactive tables stay registered but should be hidden from customization-driven UI."
+                hint="Inactive modules stay registered but should be hidden from customization-driven UI."
                 label="Active"
                 onChange={(isActive) =>
                   setEditing((current) =>
@@ -346,11 +444,11 @@ export function TablesList({ tables }: TablesListProps) {
           <div className="grid w-full max-w-lg gap-4 rounded-[24px] border border-border bg-white p-6 shadow-xl">
             <div>
               <h3 className="text-lg font-semibold text-foreground">
-                Delete custom table
+                Delete custom module
               </h3>
               <p className="mt-1 text-sm leading-6 text-muted">
-                Delete {deleteTarget.displayName}? System tables cannot be
-                deleted, and tables with dependent columns, forms, or views are
+                Delete {deleteTarget.displayName}? System modules cannot be
+                deleted, and modules with dependent fields, forms, or views are
                 blocked by the server.
               </p>
             </div>
@@ -363,7 +461,7 @@ export function TablesList({ tables }: TablesListProps) {
                 Cancel
               </Button>
               <Button onClick={handleDelete} type="button" variant="danger">
-                Delete table
+                Delete module
               </Button>
             </div>
           </div>
@@ -371,4 +469,64 @@ export function TablesList({ tables }: TablesListProps) {
       ) : null}
     </>
   );
+}
+
+function componentSource(row: CustomizationTable) {
+  return row.isCustomTable || row.isCustom ? "Custom" : "System";
+}
+
+function statusBadge(isActive: boolean) {
+  return (
+    <StatusPill tone={isActive ? "good" : "muted"}>
+      {isActive ? "Active" : "Inactive"}
+    </StatusPill>
+  );
+}
+
+function lifecycleLabel(value?: string | null) {
+  if (!value) return "Published";
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function metricColumn(
+  key: string,
+  header: string,
+  accessor: (row: CustomizationTable) => number,
+): DataTableColumn<CustomizationTable> {
+  return {
+    key,
+    header,
+    sortable: true,
+    sortAccessor: accessor,
+    render: accessor,
+  };
+}
+
+function readCount(row: CustomizationTable, key: string) {
+  const record = row as unknown as Record<string, unknown>;
+  const value = record[key];
+  if (typeof value === "number") return value;
+
+  const count = record._count;
+  if (count && typeof count === "object") {
+    const mappedKey =
+      key === "fieldsCount"
+        ? "columns"
+        : key === "formsCount"
+          ? "forms"
+          : key === "viewsCount"
+            ? "views"
+            : key;
+    const countValue = (count as Record<string, unknown>)[mappedKey];
+    if (typeof countValue === "number") return countValue;
+  }
+
+  return typeof value === "number" ? value : 0;
+}
+
+function formatDate(value: string | null | undefined) {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat("en", {
+    dateStyle: "medium",
+  }).format(new Date(value));
 }

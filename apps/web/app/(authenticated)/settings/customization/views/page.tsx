@@ -16,13 +16,13 @@ export default async function CustomizationViewsPage() {
 
   return (
     <SettingsShell
-      description="Choose a table to manage its saved views, list columns, filters, sorting, and visibility scope."
+      description="Choose a module to manage its saved views, list fields, filters, sorting, and visibility scope."
       eyebrow="Customization"
       title="Views"
     >
       <SectionCard
-        description="Views are table-scoped so they can be validated against the correct metadata columns."
-        title="Select a table"
+        description="Views are module-scoped so they can be validated against the correct metadata fields."
+        title="Select a module"
       >
         <div className="grid gap-3 md:grid-cols-2">
           {tables.map((table) => (

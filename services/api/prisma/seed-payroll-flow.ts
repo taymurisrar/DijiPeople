@@ -24,7 +24,6 @@ import {
   PayrollRunLineItemCategory,
   PayrollRunStatus,
   Prisma,
-  PrismaClient,
   TaxCalculationMethod,
   TaxType,
   TimePayrollMode,
@@ -33,6 +32,7 @@ import {
   TravelAllowanceType,
   WorkWeekday,
 } from '@prisma/client';
+import { createPrismaClient } from './create-prisma-client';
 import type { AuthenticatedUser } from '../src/common/interfaces/authenticated-request.interface';
 import { CompensationResolverService } from '../src/modules/compensation/compensation-resolver.service';
 import { PayrollJournalService } from '../src/modules/payroll/payroll-journal.service';
@@ -45,7 +45,7 @@ import { OvertimePolicyResolverService } from '../src/modules/time-payroll/overt
 import { TimePayrollPolicyResolverService } from '../src/modules/time-payroll/time-payroll-policy-resolver.service';
 import { TimePayrollPreparationService } from '../src/modules/time-payroll/time-payroll-preparation.service';
 
-const prisma = new PrismaClient();
+const prisma = createPrismaClient();
 const money = (value: string | number) => new Prisma.Decimal(value);
 const date = (value: string) => new Date(`${value}T00:00:00.000Z`);
 const at = (value: string, hour: number) =>

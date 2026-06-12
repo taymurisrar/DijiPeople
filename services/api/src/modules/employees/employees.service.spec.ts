@@ -1,4 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
+import { DEFAULT_TENANT_SETTINGS } from '../tenant-settings/tenant-settings.catalog';
 import { EmployeesService } from './employees.service';
 
 describe('EmployeesService', () => {
@@ -32,6 +33,12 @@ describe('EmployeesService', () => {
   let auditService: {
     log: jest.Mock;
   };
+  let tenantSettingsResolverService: {
+    getEmployeeSettings: jest.Mock;
+  };
+  let duplicateRuleEngine: {
+    checkEmployeeDuplicates: jest.Mock;
+  };
 
   beforeEach(() => {
     prisma = {
@@ -63,6 +70,15 @@ describe('EmployeesService', () => {
     auditService = {
       log: jest.fn(),
     };
+    tenantSettingsResolverService = {
+      getEmployeeSettings: jest.fn().mockResolvedValue({
+        ...DEFAULT_TENANT_SETTINGS.employees,
+        requireEmergencyContact: false,
+      }),
+    };
+    duplicateRuleEngine = {
+      checkEmployeeDuplicates: jest.fn(),
+    };
 
     service = new EmployeesService(
       prisma as never,
@@ -72,7 +88,11 @@ describe('EmployeesService', () => {
       rolesRepository as never,
       permissionsService as never,
       {} as never,
+      tenantSettingsResolverService as never,
       auditService as never,
+      duplicateRuleEngine as never,
+      {} as never,
+      {} as never,
     );
   });
 
@@ -125,7 +145,7 @@ describe('EmployeesService', () => {
           firstName: 'HR',
           lastName: 'Admin',
           roleIds: ['role-1'],
-          roleKeys: ['hr'],
+          roleKeys: ['system-admin'],
           permissionKeys: ['employees.update'],
         },
         'employee-1',

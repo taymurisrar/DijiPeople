@@ -87,10 +87,29 @@ export const BRANDING_FONT_OPTIONS = [
 ] as const;
 
 export const BRANDING_THEME_MODES = ["LIGHT", "DARK", "SYSTEM"] as const;
-export const BRANDING_DENSITY_OPTIONS = ["COMPACT", "COMFORTABLE", "SPACIOUS"] as const;
-export const BRANDING_RADIUS_OPTIONS = ["NONE", "SMALL", "MEDIUM", "LARGE", "FULL"] as const;
-export const BRANDING_SHADOW_OPTIONS = ["NONE", "SOFT", "MEDIUM", "STRONG"] as const;
-export const BRANDING_NAVIGATION_LAYOUTS = ["SIDEBAR", "TOPBAR", "HYBRID"] as const;
+export const BRANDING_DENSITY_OPTIONS = [
+  "COMPACT",
+  "COMFORTABLE",
+  "DENSE",
+] as const;
+export const BRANDING_RADIUS_OPTIONS = [
+  "NONE",
+  "SMALL",
+  "MEDIUM",
+  "LARGE",
+  "FULL",
+] as const;
+export const BRANDING_SHADOW_OPTIONS = [
+  "NONE",
+  "SOFT",
+  "MEDIUM",
+  "STRONG",
+] as const;
+export const BRANDING_NAVIGATION_LAYOUTS = [
+  "SIDEBAR",
+  "TOPBAR",
+  "HYBRID",
+] as const;
 
 export type BrandingFontKey = (typeof BRANDING_FONT_OPTIONS)[number]["key"];
 export type BrandingColorKey = (typeof BRANDING_COLOR_KEYS)[number];
@@ -100,7 +119,8 @@ export type BrandingThemeMode = (typeof BRANDING_THEME_MODES)[number];
 export type BrandingDensity = (typeof BRANDING_DENSITY_OPTIONS)[number];
 export type BrandingRadius = (typeof BRANDING_RADIUS_OPTIONS)[number];
 export type BrandingShadow = (typeof BRANDING_SHADOW_OPTIONS)[number];
-export type BrandingNavigationLayout = (typeof BRANDING_NAVIGATION_LAYOUTS)[number];
+export type BrandingNavigationLayout =
+  (typeof BRANDING_NAVIGATION_LAYOUTS)[number];
 
 export type BrandingSettings = {
   appTitle: string;
@@ -159,8 +179,12 @@ const SUPPORTED_FONT_KEYS = new Set<BrandingFontKey>(
 
 const SUPPORTED_THEME_MODES = new Set<BrandingThemeMode>(BRANDING_THEME_MODES);
 const SUPPORTED_DENSITIES = new Set<BrandingDensity>(BRANDING_DENSITY_OPTIONS);
-const SUPPORTED_RADIUS_OPTIONS = new Set<BrandingRadius>(BRANDING_RADIUS_OPTIONS);
-const SUPPORTED_SHADOW_OPTIONS = new Set<BrandingShadow>(BRANDING_SHADOW_OPTIONS);
+const SUPPORTED_RADIUS_OPTIONS = new Set<BrandingRadius>(
+  BRANDING_RADIUS_OPTIONS,
+);
+const SUPPORTED_SHADOW_OPTIONS = new Set<BrandingShadow>(
+  BRANDING_SHADOW_OPTIONS,
+);
 const SUPPORTED_NAVIGATION_LAYOUTS = new Set<BrandingNavigationLayout>(
   BRANDING_NAVIGATION_LAYOUTS,
 );
@@ -218,7 +242,10 @@ export function isValidHexColor(value: string) {
   return HEX_COLOR_PATTERN.test(value.trim());
 }
 
-export function normalizeHexColor(value: string | null | undefined, fallback: string) {
+export function normalizeHexColor(
+  value: string | null | undefined,
+  fallback: string,
+) {
   if (!value) return fallback;
 
   const trimmed = value.trim();
@@ -284,8 +311,16 @@ export function resolveBrandingSettings(
   branding?: Partial<Record<string, string | null>> | null,
 ): BrandingSettings {
   return {
-    appTitle: normalizeText(branding?.appTitle, DEFAULT_BRANDING_SETTINGS.appTitle, 80),
-    brandName: normalizeText(branding?.brandName, DEFAULT_BRANDING_SETTINGS.brandName, 80),
+    appTitle: normalizeText(
+      branding?.appTitle,
+      DEFAULT_BRANDING_SETTINGS.appTitle,
+      80,
+    ),
+    brandName: normalizeText(
+      branding?.brandName,
+      DEFAULT_BRANDING_SETTINGS.brandName,
+      80,
+    ),
     shortBrandName: normalizeText(
       branding?.shortBrandName,
       DEFAULT_BRANDING_SETTINGS.shortBrandName,
@@ -322,7 +357,10 @@ export function resolveBrandingSettings(
       240,
     ),
 
-    supportEmail: normalizeEmail(branding?.supportEmail, DEFAULT_BRANDING_SETTINGS.supportEmail),
+    supportEmail: normalizeEmail(
+      branding?.supportEmail,
+      DEFAULT_BRANDING_SETTINGS.supportEmail,
+    ),
     supportPhone: normalizeText(
       branding?.supportPhone,
       DEFAULT_BRANDING_SETTINGS.supportPhone,
@@ -342,7 +380,10 @@ export function resolveBrandingSettings(
       branding?.logoDarkUrl,
       branding?.logoUrl ?? DEFAULT_BRANDING_SETTINGS.logoDarkUrl,
     ),
-    faviconUrl: normalizeUrl(branding?.faviconUrl, DEFAULT_BRANDING_SETTINGS.faviconUrl),
+    faviconUrl: normalizeUrl(
+      branding?.faviconUrl,
+      DEFAULT_BRANDING_SETTINGS.faviconUrl,
+    ),
     loginHeroImageUrl: normalizeUrl(
       branding?.loginHeroImageUrl,
       DEFAULT_BRANDING_SETTINGS.loginHeroImageUrl,
@@ -426,10 +467,67 @@ export function resolveBrandingSettings(
   };
 }
 
+export function resolveTenantBranding(
+  settings?:
+    | (Partial<Record<string, string | null>> & {
+        tenantName?: string | null;
+      })
+    | null,
+  defaults: BrandingSettings = DEFAULT_BRANDING_SETTINGS,
+): BrandingSettings {
+  const tenantTitle =
+    readBrandingText(settings?.appTitle) ??
+    readBrandingText(settings?.brandName) ??
+    readBrandingText(settings?.shortBrandName) ??
+    readBrandingText(settings?.tenantName) ??
+    defaults.appTitle;
+
+  return resolveBrandingSettings({
+    ...defaults,
+    ...settings,
+    appTitle: tenantTitle,
+    brandName:
+      readBrandingText(settings?.brandName) ??
+      readBrandingText(settings?.tenantName) ??
+      tenantTitle,
+    shortBrandName:
+      readBrandingText(settings?.shortBrandName) ??
+      readBrandingText(settings?.brandName) ??
+      readBrandingText(settings?.tenantName) ??
+      tenantTitle,
+    faviconUrl:
+      readBrandingText(settings?.faviconUrl) ?? defaults.faviconUrl,
+    fontFamily:
+      readBrandingText(settings?.fontFamily) ?? defaults.fontFamily,
+  });
+}
+
 export function buildBrandingCssVariables(settings: BrandingSettings) {
   const fontStack = getFontOptionByKey(settings.fontFamily).stack;
 
   return {
+    "--brand-primary": settings.primaryColor,
+    "--brand-secondary": settings.secondaryColor,
+    "--brand-accent": settings.accentColor,
+    "--brand-background": settings.backgroundColor,
+    "--brand-surface": settings.surfaceColor,
+    "--brand-text": settings.textColor,
+    "--brand-muted-text": settings.mutedTextColor,
+    "--brand-border": settings.borderColor,
+    "--brand-sidebar-background": settings.sidebarBackgroundColor,
+    "--brand-sidebar-text": settings.sidebarTextColor,
+    "--brand-sidebar-active-background": settings.sidebarActiveBackgroundColor,
+    "--brand-sidebar-active-text": settings.sidebarActiveTextColor,
+    "--color-success": settings.successColor,
+    "--color-warning": settings.warningColor,
+    "--color-danger": settings.dangerColor,
+    "--color-info": settings.infoColor,
+    "--font-family": fontStack,
+    "--font-scale": "1",
+    "--radius-sm": resolveRadiusScale(settings.radius, 0.5),
+    "--radius-md": resolveRadiusScale(settings.radius, 0.75),
+    "--radius-lg": resolveRadiusValue(settings.radius),
+    "--density": resolveDensityScale(settings.density),
     "--dp-primary": settings.primaryColor,
     "--dp-secondary": settings.secondaryColor,
     "--dp-accent": settings.accentColor,
@@ -497,15 +595,31 @@ export function getBrandingValidationIssues(settings: BrandingSettings) {
   const issues: string[] = [];
 
   if (!hasReadableContrast(settings.textColor, settings.backgroundColor)) {
-    issues.push("Text color does not have enough contrast against the background color.");
+    issues.push(
+      "Text color does not have enough contrast against the background color.",
+    );
   }
 
-  if (!hasReadableContrast(settings.sidebarTextColor, settings.sidebarBackgroundColor)) {
-    issues.push("Sidebar text color does not have enough contrast against the sidebar background.");
+  if (
+    !hasReadableContrast(
+      settings.sidebarTextColor,
+      settings.sidebarBackgroundColor,
+    )
+  ) {
+    issues.push(
+      "Sidebar text color does not have enough contrast against the sidebar background.",
+    );
   }
 
-  if (!hasReadableContrast(settings.sidebarActiveTextColor, settings.sidebarActiveBackgroundColor)) {
-    issues.push("Active sidebar text color does not have enough contrast against the active sidebar background.");
+  if (
+    !hasReadableContrast(
+      settings.sidebarActiveTextColor,
+      settings.sidebarActiveBackgroundColor,
+    )
+  ) {
+    issues.push(
+      "Active sidebar text color does not have enough contrast against the active sidebar background.",
+    );
   }
 
   if (settings.supportEmail && !EMAIL_PATTERN.test(settings.supportEmail)) {
@@ -531,6 +645,10 @@ function normalizeText(
   }
 
   return trimmed.length > maxLength ? trimmed.slice(0, maxLength) : trimmed;
+}
+
+function readBrandingText(value: string | null | undefined) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
 function normalizeEmail(value: string | null | undefined, fallback: string) {
@@ -593,7 +711,7 @@ function resolveDensityScale(density: BrandingDensity) {
   const values: Record<BrandingDensity, string> = {
     COMPACT: "0.875",
     COMFORTABLE: "1",
-    SPACIOUS: "1.125",
+    DENSE: "0.75",
   };
 
   return values[density];
@@ -614,4 +732,10 @@ function getRelativeLuminance(hexColor: string) {
   });
 
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+function resolveRadiusScale(radius: BrandingRadius, scale: number) {
+  if (radius === "FULL") return resolveRadiusValue(radius);
+  const numeric = Number.parseFloat(resolveRadiusValue(radius));
+  return `${numeric * scale}px`;
 }

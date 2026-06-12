@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useMemo } from "react";
+import { useOptionalSystemPreferences } from "@/app/(authenticated)/_components/resolved-settings-provider";
 
 export type EntityQueryState = {
   search: string;
@@ -15,6 +16,7 @@ export function useEntityQueryState(defaults: Partial<EntityQueryState> = {}) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const preferences = useOptionalSystemPreferences();
 
   const state = useMemo<EntityQueryState>(
     () => ({
@@ -22,12 +24,20 @@ export function useEntityQueryState(defaults: Partial<EntityQueryState> = {}) {
       page: getPositiveInteger(searchParams.get("page"), defaults.page ?? 1),
       pageSize: getPositiveInteger(
         searchParams.get("pageSize"),
-        defaults.pageSize ?? 25,
+        defaults.pageSize ?? preferences?.defaultRecordsPerPage ?? 25,
       ),
       orderBy: searchParams.get("orderBy") ?? defaults.orderBy ?? "",
       filter: searchParams.get("filter") ?? defaults.filter ?? "",
     }),
-    [defaults.filter, defaults.orderBy, defaults.page, defaults.pageSize, defaults.search, searchParams],
+    [
+      defaults.filter,
+      defaults.orderBy,
+      defaults.page,
+      defaults.pageSize,
+      defaults.search,
+      preferences?.defaultRecordsPerPage,
+      searchParams,
+    ],
   );
 
   const setState = useCallback(

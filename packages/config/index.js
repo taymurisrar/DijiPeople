@@ -206,6 +206,14 @@ function getLocalArchitecture(env = process.env) {
   };
 }
 
+const {
+  SYSTEM_MODULE_CAPABILITIES,
+  SYSTEM_WIDGET_REGISTRY,
+  listSupportedSystemWidgets,
+  resolveSystemWidgetAvailability,
+  resolveSystemWidgetDefinition,
+} = require("./system-widget-registry");
+
 module.exports = {
   DEFAULT_LOCAL_PORTS,
   PRODUCTION_APP_URLS,
@@ -218,4 +226,9 @@ module.exports = {
   isProductionLike,
   requireEnv,
   validateDeploymentEnv,
+  SYSTEM_MODULE_CAPABILITIES,
+  SYSTEM_WIDGET_REGISTRY,
+  listSupportedSystemWidgets,
+  resolveSystemWidgetAvailability,
+  resolveSystemWidgetDefinition,
 };

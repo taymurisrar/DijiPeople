@@ -17,6 +17,7 @@ import { ENTITY_KEYS, ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import { normalizeEmail } from '../../common/utils/email.util';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { buildScopedAccessWhere } from '../../common/security/rbac-query-scope';
+import { hasAnyRole } from '../../common/security/role-matching';
 import {
   canEditEmployeeCoreProfile,
   ELEVATED_TENANT_ROLE_KEYS,
@@ -50,6 +51,40 @@ import { BulkDeleteEmployeesDto } from './dto/bulk-delete-employees.dto';
 type CsvFile = {
   filename: string;
   buffer: Buffer;
+};
+
+const EMPLOYEE_OWNER_ROLE_KEYS = new Set<string>([
+  ROLE_KEYS.GLOBAL_ADMIN,
+  ROLE_KEYS.SYSTEM_ADMIN,
+  ROLE_KEYS.HR,
+]);
+const EMPLOYEE_OWNER_ROLES = [
+  ROLE_KEYS.GLOBAL_ADMIN,
+  'global administrator',
+  ROLE_KEYS.SYSTEM_ADMIN,
+  'system administrator',
+  ROLE_KEYS.HR,
+  'hr',
+  'hr-manager',
+  'hr manager',
+] as const;
+
+const EMPLOYEE_EXPORT_COLUMN_LABELS: Record<string, string> = {
+  employeeCode: 'Employee Code',
+  fullName: 'Full Name',
+  workEmail: 'Work Email',
+  phone: 'Phone',
+  employmentStatus: 'Employment Status',
+  departmentId: 'Department',
+  department: 'Department',
+  designationId: 'Designation',
+  designation: 'Designation',
+  reportingManagerEmployeeId: 'Reporting Manager',
+  reportingManager: 'Reporting Manager',
+  ownerUserId: 'Owner',
+  ownerName: 'Owner',
+  ownerEmail: 'Owner Email',
+  hireDate: 'Hire Date',
 };
 
 function escapeRegExp(value: string) {
@@ -109,6 +144,17 @@ function csvCell(value: unknown) {
             : JSON.stringify(value);
 
   return `"${text.replace(/"/g, '""')}"`;
+}
+
+function exportRowKey(column: string) {
+  const map: Record<string, string> = {
+    departmentId: 'department',
+    designationId: 'designation',
+    reportingManagerEmployeeId: 'reportingManager',
+    ownerUserId: 'ownerName',
+  };
+
+  return map[column] ?? column;
 }
 
 @Injectable()
@@ -674,6 +720,11 @@ export class EmployeesService {
       }
     }
 
+    if (dto.ownerUserId && dto.ownerUserId !== currentUser.userId) {
+      await this.assertAssignableOwner(currentUser, dto.ownerUserId);
+    }
+    await this.assertActiveWorkSchedule(tenantId, dto.defaultWorkScheduleId);
+
     const referenceContext = await this.validateReferences(
       tenantId,
       dto.reportingManagerEmployeeId,
@@ -833,6 +884,11 @@ export class EmployeesService {
     );
     this.validateDateRules(dto);
 
+    if (dto.ownerUserId !== undefined) {
+      await this.assertAssignableOwner(currentUser, dto.ownerUserId);
+    }
+    await this.assertActiveWorkSchedule(tenantId, dto.defaultWorkScheduleId);
+
     try {
       const result = await this.employeesRepository.update(
         tenantId,
@@ -983,6 +1039,8 @@ export class EmployeesService {
     employeeIds: string[],
     ownerUserId: string,
   ) {
+    this.assertOwnerAssignmentRole(currentUser);
+
     const ids = [...new Set(employeeIds)];
 
     if (ids.length === 0) {
@@ -994,12 +1052,28 @@ export class EmployeesService {
         id: ownerUserId,
         tenantId: currentUser.tenantId,
         status: UserStatus.ACTIVE,
+        userRoles: {
+          some: {
+            role: {
+              key: { in: Array.from(EMPLOYEE_OWNER_ROLE_KEYS) },
+            },
+          },
+        },
       },
       select: {
         id: true,
         firstName: true,
         lastName: true,
         email: true,
+        userRoles: {
+          select: {
+            role: {
+              select: {
+                key: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -1081,29 +1155,138 @@ export class EmployeesService {
     };
   }
 
-  async getOwnerOptions(currentUser: AuthenticatedUser) {
-    const users = await this.prisma.user.findMany({
-      where: {
-        tenantId: currentUser.tenantId,
-        status: UserStatus.ACTIVE,
+  async getOwnerOptions(
+    currentUser: AuthenticatedUser,
+    query = '',
+    page = 1,
+    pageSize = 25,
+  ) {
+    this.assertOwnerAssignmentRole(currentUser);
+    const search = query.trim();
+    const normalizedPage = Number.isFinite(page) ? Math.max(1, page) : 1;
+    const normalizedPageSize = Number.isFinite(pageSize)
+      ? Math.min(100, Math.max(1, pageSize))
+      : 25;
+
+    const where: Prisma.UserWhereInput = {
+      tenantId: currentUser.tenantId,
+      status: UserStatus.ACTIVE,
+      userRoles: {
+        some: {
+          role: {
+            key: { in: Array.from(EMPLOYEE_OWNER_ROLE_KEYS) },
+          },
+        },
       },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-      },
-      orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
-      take: 200,
-    });
+      ...(search
+        ? {
+            OR: [
+              { firstName: { contains: search, mode: 'insensitive' } },
+              { lastName: { contains: search, mode: 'insensitive' } },
+              { email: { contains: search, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
+    };
+    const [users, total] = await this.prisma.$transaction([
+      this.prisma.user.findMany({
+        where,
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          userRoles: {
+            select: {
+              role: {
+                select: {
+                  key: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+        skip: (normalizedPage - 1) * normalizedPageSize,
+        take: normalizedPageSize,
+      }),
+      this.prisma.user.count({ where }),
+    ]);
 
     return {
       items: users.map((user) => ({
         id: user.id,
         name: `${user.firstName} ${user.lastName}`.trim(),
         email: user.email,
+        roleKeys: user.userRoles.map((userRole) => userRole.role.key),
       })),
+      meta: {
+        page: normalizedPage,
+        pageSize: normalizedPageSize,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / normalizedPageSize)),
+      },
     };
+  }
+
+  private assertOwnerAssignmentRole(currentUser: AuthenticatedUser) {
+    if (hasAnyRole(currentUser.roleKeys, EMPLOYEE_OWNER_ROLES)) {
+      return;
+    }
+
+    throw new ForbiddenException(
+      'Only Global Admin, System Admin, HR, or HR Manager can assign Employee owners.',
+    );
+  }
+
+  private async assertAssignableOwner(
+    currentUser: AuthenticatedUser,
+    ownerUserId: string,
+  ) {
+    this.assertOwnerAssignmentRole(currentUser);
+
+    const owner = await this.prisma.user.findFirst({
+      where: {
+        id: ownerUserId,
+        tenantId: currentUser.tenantId,
+        status: UserStatus.ACTIVE,
+        userRoles: {
+          some: {
+            role: {
+              key: { in: Array.from(EMPLOYEE_OWNER_ROLE_KEYS) },
+            },
+          },
+        },
+      },
+      select: { id: true },
+    });
+
+    if (!owner) {
+      throw new BadRequestException(
+        'Owner user was not found for this tenant.',
+      );
+    }
+  }
+
+  private async assertActiveWorkSchedule(
+    tenantId: string,
+    workScheduleId?: string,
+  ) {
+    if (!workScheduleId) return;
+    const schedule = await this.prisma.workSchedule.findFirst({
+      where: {
+        id: workScheduleId,
+        tenantId,
+        isActive: true,
+        status: 'ACTIVE',
+      },
+      select: { id: true },
+    });
+    if (!schedule) {
+      throw new BadRequestException(
+        'Selected default work schedule is not active for this tenant.',
+      );
+    }
   }
 
   async exportEmployees(
@@ -1116,6 +1299,7 @@ export class EmployeesService {
       pageSize: 10000,
     });
 
+    const selectedColumns = this.resolveExportColumns(query.columns);
     const rows = response.items.map((employee) => ({
       employeeCode: employee.employeeCode,
       fullName: employee.fullName,
@@ -1133,11 +1317,46 @@ export class EmployeesService {
         ? new Date(employee.hireDate).toISOString().slice(0, 10)
         : '',
     }));
+    const projectedRows = rows.map((row) =>
+      Object.fromEntries(
+        selectedColumns.map((column) => [
+          EMPLOYEE_EXPORT_COLUMN_LABELS[column] ?? column,
+          row[exportRowKey(column) as keyof typeof row],
+        ]),
+      ),
+    );
 
     return {
       filename: `employees-export-${formatDateForFilename(new Date())}.csv`,
-      buffer: Buffer.from(toCsv(rows), 'utf8'),
+      buffer: Buffer.from(toCsv(projectedRows), 'utf8'),
     };
+  }
+
+  private resolveExportColumns(columns: readonly string[] | undefined) {
+    const fallback = [
+      'employeeCode',
+      'fullName',
+      'workEmail',
+      'phone',
+      'employmentStatus',
+      'department',
+      'designation',
+      'reportingManager',
+      'ownerName',
+      'ownerEmail',
+      'hireDate',
+    ];
+
+    if (!columns) return fallback;
+
+    const requested = columns
+      .map((column) => column.trim())
+      .filter((column) => column.length > 0);
+    const allowed = requested.filter(
+      (column) => EMPLOYEE_EXPORT_COLUMN_LABELS[column],
+    );
+
+    return allowed.length ? allowed : fallback;
   }
 
   exportEmployeeTemplate(): CsvFile {
@@ -2053,12 +2272,15 @@ export class EmployeesService {
       designationId: dto.designationId?.trim(),
       employeeLevelId: dto.employeeLevelId?.trim(),
       locationId: dto.locationId,
+      defaultWorkScheduleId: dto.defaultWorkScheduleId,
       officialJoiningLocationId: dto.officialJoiningLocationId,
       managerEmployeeId: dto.reportingManagerEmployeeId,
       userId: dto.userId,
       noticePeriodDays: dto.noticePeriodDays,
       taxIdentifier: dto.taxIdentifier?.trim(),
-      ownerUserId: actorId,
+      ownerUserId: dto.ownerUserId ?? actorId,
+      status: dto.status ?? 'ACTIVE',
+      subStatus: dto.subStatus ?? 'OPEN',
       createdById: actorId,
       updatedById: actorId,
     };
@@ -2085,6 +2307,14 @@ export class EmployeesService {
 
     if (dto.recordType !== undefined) {
       data.recordType = dto.recordType;
+    }
+
+    if (dto.status !== undefined) {
+      data.status = dto.status;
+    }
+
+    if (dto.subStatus !== undefined) {
+      data.subStatus = dto.subStatus;
     }
 
     if (dto.firstName !== undefined) {
@@ -2274,6 +2504,9 @@ export class EmployeesService {
     if (dto.locationId !== undefined) {
       data.locationId = dto.locationId ?? null;
     }
+    if (dto.defaultWorkScheduleId !== undefined) {
+      data.defaultWorkScheduleId = dto.defaultWorkScheduleId ?? null;
+    }
 
     if (dto.officialJoiningLocationId !== undefined) {
       data.officialJoiningLocationId = dto.officialJoiningLocationId ?? null;
@@ -2285,6 +2518,10 @@ export class EmployeesService {
 
     if (dto.userId !== undefined) {
       data.userId = dto.userId ?? null;
+    }
+
+    if (dto.ownerUserId !== undefined) {
+      data.ownerUserId = dto.ownerUserId;
     }
 
     if (dto.noticePeriodDays !== undefined) {
@@ -2323,6 +2560,8 @@ export class EmployeesService {
       cnic: employee.cnic,
       bloodGroup: employee.bloodGroup,
       employmentStatus: employee.employmentStatus,
+      status: employee.status,
+      subStatus: employee.subStatus,
       employeeType: employee.employeeType,
       workMode: employee.workMode,
       contractType: employee.contractType,
@@ -2349,6 +2588,7 @@ export class EmployeesService {
       designationId: employee.designationId,
       employeeLevelId: employee.employeeLevelId,
       locationId: employee.locationId,
+      defaultWorkScheduleId: employee.defaultWorkScheduleId,
       officialJoiningLocationId: employee.officialJoiningLocationId,
       managerEmployeeId: employee.managerEmployeeId,
       reportingManagerEmployeeId: employee.managerEmployeeId,
@@ -2449,6 +2689,14 @@ export class EmployeesService {
             country: employee.location.country,
             timezone: employee.location.timezone,
             isActive: employee.location.isActive,
+          }
+        : null,
+      defaultWorkSchedule: employee.defaultWorkSchedule
+        ? {
+            id: employee.defaultWorkSchedule.id,
+            name: employee.defaultWorkSchedule.name,
+            code: employee.defaultWorkSchedule.code,
+            isActive: employee.defaultWorkSchedule.isActive,
           }
         : null,
       officialJoiningLocation: employee.officialJoiningLocation

@@ -14,6 +14,7 @@ type EmployeeLookups = {
   designations: LookupOption[];
   employeeLevels: LookupOption[];
   locations: LookupOption[];
+  workSchedules: LookupOption[];
 };
 
 const emptyLookups: EmployeeLookups = {
@@ -27,6 +28,7 @@ const emptyLookups: EmployeeLookups = {
   designations: [],
   employeeLevels: [],
   locations: [],
+  workSchedules: [],
 };
 
 type BaseLookups = Pick<
@@ -39,21 +41,31 @@ type BaseLookups = Pick<
   | "designations"
   | "employeeLevels"
   | "locations"
+  | "workSchedules"
 >;
 
 let baseLookupsInFlight: Promise<BaseLookups> | null = null;
+let baseLookupsCache: { value: BaseLookups; expiresAt: number } | null = null;
+const LOOKUP_CACHE_TTL_MS = 5 * 60 * 1000;
+const LOOKUP_TIMEOUT_MS = 8_000;
 
 export function useEmployeeLookups(filters?: {
   countryId?: string;
   stateProvinceId?: string;
+  enabled?: boolean;
 }) {
   const [lookups, setLookups] = useState<EmployeeLookups>(emptyLookups);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(filters?.enabled !== false);
 
   useEffect(() => {
     let ignore = false;
 
     async function load() {
+      if (filters?.enabled === false) {
+        setLookups(emptyLookups);
+        setIsLoading(false);
+        return;
+      }
       setIsLoading(true);
 
       const stateQuery = new URLSearchParams();
@@ -71,9 +83,11 @@ export function useEmployeeLookups(filters?: {
       const requests = [
         fetch(
           `/api/lookups/states${stateQuery.size ? `?${stateQuery.toString()}` : ""}`,
+          { signal: AbortSignal.timeout(LOOKUP_TIMEOUT_MS) },
         ),
         fetch(
           `/api/lookups/cities${cityQuery.size ? `?${cityQuery.toString()}` : ""}`,
+          { signal: AbortSignal.timeout(LOOKUP_TIMEOUT_MS) },
         ),
       ] as const;
 
@@ -103,12 +117,16 @@ export function useEmployeeLookups(filters?: {
       setIsLoading(false);
     }
 
-    void load();
+    void load().catch(() => {
+      if (!ignore) {
+        setIsLoading(false);
+      }
+    });
 
     return () => {
       ignore = true;
     };
-  }, [filters?.countryId, filters?.stateProvinceId]);
+  }, [filters?.countryId, filters?.enabled, filters?.stateProvinceId]);
 
   // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const stateOptions = useMemo(() => {
@@ -148,6 +166,10 @@ export function useEmployeeLookups(filters?: {
 }
 
 function loadBaseLookups() {
+  if (baseLookupsCache && baseLookupsCache.expiresAt > Date.now()) {
+    return Promise.resolve(baseLookupsCache.value);
+  }
+
   if (!baseLookupsInFlight) {
     baseLookupsInFlight = Promise.all([
       fetchLookup("/api/lookups/countries"),
@@ -158,6 +180,7 @@ function loadBaseLookups() {
       fetchLookup("/api/designations?isActive=true"),
       fetchLookup("/api/employee-levels?isActive=true"),
       fetchLookup("/api/locations?isActive=true"),
+      fetchLookup("/api/work-schedules?isActive=true"),
     ])
       .then(
         ([
@@ -169,16 +192,25 @@ function loadBaseLookups() {
           designations,
           employeeLevels,
           locations,
-        ]) => ({
-          countries,
-          documentTypes,
-          documentCategories,
-          relationTypes,
-          departments,
-          designations,
-          employeeLevels,
-          locations,
-        }),
+          workSchedules,
+        ]) => {
+          const value = {
+            countries,
+            documentTypes,
+            documentCategories,
+            relationTypes,
+            departments,
+            designations,
+            employeeLevels,
+            locations,
+            workSchedules,
+          };
+          baseLookupsCache = {
+            value,
+            expiresAt: Date.now() + LOOKUP_CACHE_TTL_MS,
+          };
+          return value;
+        },
       )
       .finally(() => {
         baseLookupsInFlight = null;
@@ -189,7 +221,9 @@ function loadBaseLookups() {
 }
 
 async function fetchLookup(url: string) {
-  const response = await fetch(url);
+  const response = await fetch(url, {
+    signal: AbortSignal.timeout(LOOKUP_TIMEOUT_MS),
+  });
   if (!response.ok) {
     return [];
   }

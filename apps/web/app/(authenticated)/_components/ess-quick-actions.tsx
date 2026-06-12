@@ -1,8 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+
+import { Button } from "@/app/components/ui/button";
 
 type EssQuickActionsProps = {
   canCheckIn: boolean;
@@ -93,7 +94,7 @@ export function EssQuickActions({
 
       <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {canRequestLeave ? (
-          <ActionLink
+          <ActionCard
             description="Create a new leave request."
             href="/leaves/new"
             label="Request leave"
@@ -101,7 +102,7 @@ export function EssQuickActions({
         ) : null}
 
         {canCheckIn || canCheckOut ? (
-          <ActionButton
+          <ActionCard
             description={
               canCheckOut
                 ? "Finish today’s attendance entry."
@@ -109,33 +110,31 @@ export function EssQuickActions({
             }
             disabled={pendingAction !== null}
             label={canCheckOut ? "Check out" : "Check in"}
+            loading={
+              pendingAction === "check-in" || pendingAction === "check-out"
+            }
+            loadingText={canCheckOut ? "Checking out..." : "Checking in..."}
             onClick={() =>
               handleAttendanceAction(canCheckOut ? "check-out" : "check-in")
-            }
-            pendingLabel={
-              canCheckOut ? "Checking out..." : "Checking in..."
-            }
-            pendingState={
-              pendingAction === "check-in" || pendingAction === "check-out"
             }
           />
         ) : null}
 
         {canSubmitTimesheet ? (
-          <ActionButton
+          <ActionCard
             description="Submit the current week for review."
             disabled={pendingAction !== null}
             label="Submit timesheet"
+            loading={pendingAction === "submit-timesheet"}
+            loadingText="Submitting..."
             onClick={handleTimesheetSubmit}
-            pendingLabel="Submitting..."
-            pendingState={pendingAction === "submit-timesheet"}
           />
         ) : null}
 
         {canUpdateProfile ? (
-          <ActionLink
+          <ActionCard
             description="Update your personal employee details."
-            href="/me"
+            href="/my-profile"
             label="Update profile"
           />
         ) : null}
@@ -150,53 +149,53 @@ export function EssQuickActions({
   );
 }
 
-function ActionLink({
-  description,
-  href,
-  label,
-}: {
-  description: string;
-  href: string;
-  label: string;
-}) {
-  return (
-    <Link
-      className="rounded-[22px] border border-border bg-white/90 p-5 transition hover:border-accent/30 hover:bg-accent-soft/20"
-      href={href}
-    >
-      <p className="text-sm font-semibold text-foreground">{label}</p>
-      <p className="mt-2 text-sm text-muted">{description}</p>
-    </Link>
-  );
-}
-
-function ActionButton({
+function ActionCard({
   description,
   disabled,
+  href,
   label,
+  loading,
+  loadingText,
   onClick,
-  pendingLabel,
-  pendingState,
 }: {
   description: string;
-  disabled: boolean;
+  disabled?: boolean;
+  href?: string;
   label: string;
-  onClick: () => void;
-  pendingLabel: string;
-  pendingState: boolean;
+  loading?: boolean;
+  loadingText?: string;
+  onClick?: () => void;
 }) {
+  const content = (
+    <>
+      <span className="block text-sm font-semibold text-foreground">
+        {label}
+      </span>
+      <span className="mt-2 block text-sm font-normal leading-6 text-muted">
+        {description}
+      </span>
+    </>
+  );
+
+  if (href) {
+    return (
+      <Button href={href} variant="card" className="w-full">
+        {content}
+      </Button>
+    );
+  }
+
   return (
-    <button
-      className="rounded-[22px] border border-border bg-white/90 p-5 text-left transition hover:border-accent/30 hover:bg-accent-soft/20 disabled:cursor-not-allowed disabled:opacity-70"
+    <Button
+      variant="card"
+      className="w-full"
       disabled={disabled}
+      loading={loading}
+      loadingText={loadingText}
       onClick={onClick}
       type="button"
     >
-      <p className="text-sm font-semibold text-foreground">
-        {pendingState ? pendingLabel : label}
-      </p>
-      <p className="mt-2 text-sm text-muted">{description}</p>
-    </button>
+      {content}
+    </Button>
   );
 }
-

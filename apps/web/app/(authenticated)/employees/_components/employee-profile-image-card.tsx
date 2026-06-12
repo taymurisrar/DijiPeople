@@ -22,6 +22,7 @@ type EmployeeProfileImageCardProps = {
   employeeName: string;
   profileImage: EmployeeDocumentSummary | null;
   canUpload?: boolean;
+  canRemove?: boolean;
 };
 
 type ImageDraft = {
@@ -40,6 +41,7 @@ export function EmployeeProfileImageCard({
   employeeName,
   profileImage,
   canUpload = true,
+  canRemove = canUpload,
 }: EmployeeProfileImageCardProps) {
   const router = useRouter();
   const [isUploading, setIsUploading] = useState(false);
@@ -153,6 +155,34 @@ export function EmployeeProfileImageCard({
     setDraft(null);
   }
 
+  async function handleRemoveImage() {
+    if (!profileImage || !canRemove) return;
+    setError(null);
+    setIsUploading(true);
+    try {
+      const response = await fetch(
+        `/api/employees/${employeeId}/documents/${profileImage.id}`,
+        { method: "DELETE" },
+      );
+      const data = (await response.json().catch(() => null)) as
+        | { message?: string }
+        | null;
+      if (!response.ok) {
+        throw new Error(data?.message ?? "Unable to remove profile image.");
+      }
+      setAvatarVersion(null);
+      router.refresh();
+    } catch (removeError) {
+      setError(
+        removeError instanceof Error
+          ? removeError.message
+          : "Unable to remove profile image.",
+      );
+    } finally {
+      setIsUploading(false);
+    }
+  }
+
   function handlePointerDown(event: PointerEvent<HTMLDivElement>) {
     if (!draft) return;
 
@@ -196,9 +226,9 @@ export function EmployeeProfileImageCard({
   return (
     <>
       <article className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
-        <p className="text-sm uppercase tracking-[0.18em] text-muted">
-          Profile Image
-        </p>
+        <h4 className="text-sm font-semibold uppercase tracking-[0.18em] text-muted">
+          Profile Photo
+        </h4>
         <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center">
           <UserAvatar
             cacheKey={avatarVersion}
@@ -238,6 +268,16 @@ export function EmployeeProfileImageCard({
                 >
                   View image
                 </a>
+              ) : null}
+              {profileImage && canRemove ? (
+                <button
+                  className="rounded-2xl border border-danger/30 px-4 py-2 text-sm font-medium text-danger transition hover:bg-danger/5"
+                  disabled={isUploading}
+                  onClick={handleRemoveImage}
+                  type="button"
+                >
+                  Remove image
+                </button>
               ) : null}
             </div>
             {error ? (

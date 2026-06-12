@@ -487,21 +487,6 @@ export class LeaveService {
       new Date(),
     );
 
-    if (leavePolicy) {
-      const leavePolicyRule =
-        await this.leaveRepository.findLeavePolicyRuleByPolicyAndLeaveType(
-          currentUser.tenantId,
-          leavePolicy.id,
-          leaveType.id,
-        );
-
-      if (!leavePolicyRule || !leavePolicyRule.isActive) {
-        throw new BadRequestException(
-          'The assigned leave policy does not have an active rule for this leave type.',
-        );
-      }
-    }
-
     const { startDate, endDate, totalDays } = this.validateAndCalculateRange(
       dto.startDate,
       dto.endDate,
@@ -563,40 +548,37 @@ export class LeaveService {
       );
     }
 
-    const leavePolicy = await this.resolveApplicableLeavePolicy(
-      currentUser.tenantId,
-      employee,
-      new Date(),
-    );
-
-    if (!leavePolicy) {
-      return {
-        status: 'NO_APPLICABLE_POLICY' as const,
-        leaveTypes: [],
-      };
-    }
-
-    const activeRules = await this.leaveRepository.listActiveLeavePolicyRules(
-      currentUser.tenantId,
-      leavePolicy.id,
-    );
+    const [leavePolicy, activeLeaveTypes] = await Promise.all([
+      this.resolveApplicableLeavePolicy(
+        currentUser.tenantId,
+        employee,
+        new Date(),
+      ),
+      this.leaveRepository.findLeaveTypes(currentUser.tenantId, {
+        isActive: true,
+      }),
+    ]);
 
     return {
       status:
-        activeRules.length > 0
+        activeLeaveTypes.length > 0
           ? ('AVAILABLE' as const)
           : ('NO_ACTIVE_TYPES' as const),
-      leavePolicy: {
-        id: leavePolicy.id,
-        name: leavePolicy.name,
-      },
-      leaveTypes: activeRules.map((rule) => ({
-        id: rule.leaveType.id,
-        name: rule.leaveType.name,
-        code: rule.leaveType.code,
-        category: rule.leaveType.category,
-        requiresApproval: rule.approvalRequired,
-        isPaid: rule.isPaid,
+      ...(leavePolicy
+        ? {
+            leavePolicy: {
+              id: leavePolicy.id,
+              name: leavePolicy.name,
+            },
+          }
+        : {}),
+      leaveTypes: activeLeaveTypes.map((leaveType) => ({
+        id: leaveType.id,
+        name: leaveType.name,
+        code: leaveType.code,
+        category: leaveType.category,
+        requiresApproval: leaveType.requiresApproval,
+        isPaid: leaveType.isPaid,
       })),
     };
   }
@@ -707,7 +689,10 @@ export class LeaveService {
     );
   }
 
-  async getLeaveRequest(currentUser: AuthenticatedUser, leaveRequestId: string) {
+  async getLeaveRequest(
+    currentUser: AuthenticatedUser,
+    leaveRequestId: string,
+  ) {
     const leaveRequest = await this.findLeaveRequestOrThrow(
       currentUser.tenantId,
       leaveRequestId,
@@ -1198,13 +1183,18 @@ export class LeaveService {
     const pendingStep = leaveRequest.approvalSteps.find(
       (step) =>
         step.status === LeaveApprovalStepStatus.PENDING &&
-        step.stepOrder === nextStepOrder &&
-        this.canUserActOnStep(leaveRequest, step, currentUser),
+        step.stepOrder === nextStepOrder,
     );
 
     if (!pendingStep) {
       throw new ConflictException(
         'This leave request has no pending approval step.',
+      );
+    }
+
+    if (!this.canUserActOnStep(leaveRequest, pendingStep, currentUser)) {
+      throw new ForbiddenException(
+        'You are not assigned to action this leave request.',
       );
     }
 

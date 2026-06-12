@@ -1,0 +1,1961 @@
+import type { RuntimeCustomizationForm } from "../../customization-forms";
+import type { RuntimeCustomizationView } from "../../customization-views";
+import type {
+  EntityMetadata,
+  FieldDataType,
+  FieldMetadata,
+  FormComponentMetadata,
+  FormMetadata,
+  OptionSetValueMetadata,
+  ViewColumnMetadata,
+  ViewMetadata,
+} from "../metadata-runtime.types";
+import { stableRuntimeMetadataId } from "../metadata-id";
+import { createSystemWidgetComponent } from "../system-widget-metadata";
+import type { ModuleMetadataBundle } from "../module-runtime.types";
+import type { ModuleRuntimeContext } from "../module-runtime.types";
+import type { RuntimePrincipal } from "../security-runtime.types";
+import type { FieldSecurityRule } from "../security-runtime.types";
+import type { TenantRuntimeConfig } from "../tenant-runtime.types";
+import {
+  employeeRuntimeCommands,
+  employeeRuntimeModuleConfig,
+  employeeRuntimePermissions,
+} from "./employee.module";
+
+const EMPLOYEE_STATUS_OPTIONS: readonly OptionSetValueMetadata[] = [
+  { value: "ACTIVE", label: "Active", isDefault: true },
+  { value: "INACTIVE", label: "Inactive" },
+  { value: "PROBATION", label: "Probation" },
+  { value: "NOTICE", label: "Notice" },
+  { value: "TERMINATED", label: "Terminated" },
+];
+
+const EMPLOYEE_TYPE_OPTIONS: readonly OptionSetValueMetadata[] = [
+  { value: "FULL_TIME", label: "Full-time" },
+  { value: "PART_TIME", label: "Part-time" },
+  { value: "CONTRACT", label: "Contract" },
+  { value: "INTERN", label: "Intern" },
+  { value: "CONSULTANT", label: "Consultant" },
+];
+
+const WORK_MODE_OPTIONS: readonly OptionSetValueMetadata[] = [
+  { value: "OFFICE", label: "Office" },
+  { value: "REMOTE", label: "Remote" },
+  { value: "HYBRID", label: "Hybrid" },
+];
+
+const CONTRACT_TYPE_OPTIONS: readonly OptionSetValueMetadata[] = [
+  { value: "PERMANENT", label: "Permanent" },
+  { value: "FIXED_TERM", label: "Fixed term" },
+  { value: "FREELANCE", label: "Freelance" },
+  { value: "TEMPORARY", label: "Temporary" },
+];
+
+const GENDER_OPTIONS: readonly OptionSetValueMetadata[] = [
+  { value: "FEMALE", label: "Female" },
+  { value: "MALE", label: "Male" },
+  { value: "NON_BINARY", label: "Non-binary" },
+  { value: "PREFER_NOT_TO_SAY", label: "Prefer not to say" },
+];
+
+const MARITAL_STATUS_OPTIONS: readonly OptionSetValueMetadata[] = [
+  { value: "SINGLE", label: "Single" },
+  { value: "MARRIED", label: "Married" },
+  { value: "DIVORCED", label: "Divorced" },
+  { value: "WIDOWED", label: "Widowed" },
+  { value: "SEPARATED", label: "Separated" },
+];
+
+const BLOOD_GROUP_OPTIONS: readonly OptionSetValueMetadata[] = [
+  { value: "A+", label: "A+" },
+  { value: "A-", label: "A-" },
+  { value: "B+", label: "B+" },
+  { value: "B-", label: "B-" },
+  { value: "AB+", label: "AB+" },
+  { value: "AB-", label: "AB-" },
+  { value: "O+", label: "O+" },
+  { value: "O-", label: "O-" },
+];
+
+const RECORD_STATUS_OPTIONS: readonly OptionSetValueMetadata[] = [
+  { value: "DRAFT", label: "Draft" },
+  { value: "ACTIVE", label: "Active", isDefault: true },
+  { value: "INACTIVE", label: "Inactive" },
+  { value: "ARCHIVED", label: "Archived" },
+];
+
+const RECORD_SUB_STATUS_OPTIONS: readonly OptionSetValueMetadata[] = [
+  { value: "OPEN", label: "Open", parentValue: "ACTIVE", isDefault: true },
+  { value: "IN_PROGRESS", label: "In Progress", parentValue: "ACTIVE" },
+  { value: "COMPLETED", label: "Completed", parentValue: "ACTIVE" },
+  { value: "INACTIVE", label: "Inactive", parentValue: "INACTIVE" },
+  { value: "SUSPENDED", label: "Suspended", parentValue: "INACTIVE" },
+  { value: "DRAFT", label: "Draft", parentValue: "DRAFT" },
+  { value: "PENDING_REVIEW", label: "Pending Review", parentValue: "DRAFT" },
+  { value: "ARCHIVED", label: "Archived", parentValue: "ARCHIVED" },
+  { value: "RETIRED", label: "Retired", parentValue: "ARCHIVED" },
+];
+
+type EmployeeRuntimeFieldValue =
+  | string
+  | number
+  | boolean
+  | readonly string[]
+  | null
+  | undefined;
+
+export type EmployeeRuntimeFormValues = Record<
+  string,
+  EmployeeRuntimeFieldValue
+>;
+
+type EmployeeFieldDefinition = {
+  readonly logicalName: string;
+  readonly displayName: string;
+  readonly dataType: FieldDataType;
+  readonly lookupEntity?: string;
+  readonly minLength?: number;
+  readonly maxLength?: number;
+};
+
+const EMPLOYEE_FIELD_DEFINITIONS: readonly EmployeeFieldDefinition[] = [
+  { logicalName: "id", displayName: "Record ID", dataType: "string" },
+  {
+    logicalName: "employeeCode",
+    displayName: "Employee Code",
+    dataType: "string",
+    maxLength: 40,
+  },
+  {
+    logicalName: "firstName",
+    displayName: "First Name",
+    dataType: "string",
+    minLength: 1,
+    maxLength: 60,
+  },
+  {
+    logicalName: "middleName",
+    displayName: "Middle Name",
+    dataType: "string",
+    maxLength: 60,
+  },
+  {
+    logicalName: "lastName",
+    displayName: "Last Name",
+    dataType: "string",
+    minLength: 1,
+    maxLength: 60,
+  },
+  {
+    logicalName: "preferredName",
+    displayName: "Preferred Name",
+    dataType: "string",
+    maxLength: 60,
+  },
+  { logicalName: "fullName", displayName: "Full Name", dataType: "string" },
+  { logicalName: "workEmail", displayName: "Work Email", dataType: "email" },
+  {
+    logicalName: "personalEmail",
+    displayName: "Personal Email",
+    dataType: "email",
+  },
+  {
+    logicalName: "phone",
+    displayName: "Phone",
+    dataType: "phone",
+    minLength: 7,
+    maxLength: 30,
+  },
+  {
+    logicalName: "alternatePhone",
+    displayName: "Alternate Phone",
+    dataType: "phone",
+    maxLength: 30,
+  },
+  {
+    logicalName: "dateOfBirth",
+    displayName: "Date of Birth",
+    dataType: "date",
+  },
+  { logicalName: "gender", displayName: "Gender", dataType: "optionset" },
+  {
+    logicalName: "maritalStatus",
+    displayName: "Marital Status",
+    dataType: "optionset",
+  },
+  {
+    logicalName: "nationalityCountryId",
+    displayName: "Nationality Country",
+    dataType: "lookup",
+    lookupEntity: "country",
+  },
+  {
+    logicalName: "nationality",
+    displayName: "Nationality",
+    dataType: "string",
+    maxLength: 100,
+  },
+  {
+    logicalName: "cnic",
+    displayName: "CNIC",
+    dataType: "string",
+    maxLength: 32,
+  },
+  {
+    logicalName: "bloodGroup",
+    displayName: "Blood Group",
+    dataType: "optionset",
+    maxLength: 10,
+  },
+  { logicalName: "hireDate", displayName: "Hire Date", dataType: "date" },
+  { logicalName: "status", displayName: "Status", dataType: "optionset" },
+  {
+    logicalName: "subStatus",
+    displayName: "Sub Status",
+    dataType: "optionset",
+  },
+  {
+    logicalName: "confirmationDate",
+    displayName: "Confirmation Date",
+    dataType: "date",
+  },
+  {
+    logicalName: "probationEndDate",
+    displayName: "Probation End Date",
+    dataType: "date",
+  },
+  {
+    logicalName: "terminationDate",
+    displayName: "Termination Date",
+    dataType: "date",
+  },
+  {
+    logicalName: "ownerId",
+    displayName: "Owner",
+    dataType: "lookup",
+    lookupEntity: "user",
+  },
+  {
+    logicalName: "employmentStatus",
+    displayName: "Employment Status",
+    dataType: "optionset",
+  },
+  {
+    logicalName: "reportingManagerEmployeeId",
+    displayName: "Reporting Manager",
+    dataType: "lookup",
+    lookupEntity: "employee",
+  },
+  {
+    logicalName: "departmentId",
+    displayName: "Department",
+    dataType: "lookup",
+    lookupEntity: "department",
+  },
+  {
+    logicalName: "designationId",
+    displayName: "Designation",
+    dataType: "lookup",
+    lookupEntity: "designation",
+  },
+  {
+    logicalName: "locationId",
+    displayName: "Location",
+    dataType: "lookup",
+    lookupEntity: "location",
+  },
+  {
+    logicalName: "officialJoiningLocationId",
+    displayName: "Official Joining Location",
+    dataType: "lookup",
+    lookupEntity: "location",
+  },
+  {
+    logicalName: "defaultWorkScheduleId",
+    displayName: "Default Work Schedule",
+    dataType: "lookup",
+    lookupEntity: "workSchedule",
+  },
+  {
+    logicalName: "employeeLevelId",
+    displayName: "Employee Level",
+    dataType: "lookup",
+    lookupEntity: "employeeLevel",
+  },
+  {
+    logicalName: "employeeType",
+    displayName: "Employee Type",
+    dataType: "optionset",
+  },
+  { logicalName: "workMode", displayName: "Work Mode", dataType: "optionset" },
+  {
+    logicalName: "contractType",
+    displayName: "Contract Type",
+    dataType: "optionset",
+  },
+  {
+    logicalName: "userId",
+    displayName: "System User",
+    dataType: "lookup",
+    lookupEntity: "user",
+  },
+  {
+    logicalName: "noticePeriodDays",
+    displayName: "Notice Period Days",
+    dataType: "number",
+  },
+  {
+    logicalName: "taxIdentifier",
+    displayName: "Tax Identifier",
+    dataType: "string",
+    maxLength: 64,
+  },
+  {
+    logicalName: "addressLine1",
+    displayName: "Address Line 1",
+    dataType: "string",
+    maxLength: 255,
+  },
+  {
+    logicalName: "addressLine2",
+    displayName: "Address Line 2",
+    dataType: "string",
+    maxLength: 255,
+  },
+  {
+    logicalName: "countryId",
+    displayName: "Country",
+    dataType: "lookup",
+    lookupEntity: "country",
+  },
+  {
+    logicalName: "stateProvinceId",
+    displayName: "State / Province",
+    dataType: "lookup",
+    lookupEntity: "stateProvince",
+  },
+  {
+    logicalName: "cityId",
+    displayName: "City",
+    dataType: "lookup",
+    lookupEntity: "city",
+  },
+  {
+    logicalName: "postalCode",
+    displayName: "Postal Code",
+    dataType: "string",
+    maxLength: 30,
+  },
+  {
+    logicalName: "emergencyContactName",
+    displayName: "Emergency Contact Name",
+    dataType: "string",
+    maxLength: 120,
+  },
+  {
+    logicalName: "emergencyContactRelation",
+    displayName: "Emergency Contact Relation",
+    dataType: "string",
+    maxLength: 120,
+  },
+  {
+    logicalName: "emergencyContactRelationTypeId",
+    displayName: "Emergency Contact Relation Type",
+    dataType: "lookup",
+    lookupEntity: "relationType",
+  },
+  {
+    logicalName: "emergencyContactPhone",
+    displayName: "Emergency Contact Phone",
+    dataType: "phone",
+    maxLength: 30,
+  },
+  {
+    logicalName: "emergencyContactAlternatePhone",
+    displayName: "Emergency Contact Alternate Phone",
+    dataType: "phone",
+    maxLength: 30,
+  },
+  {
+    logicalName: "provisionSystemAccess",
+    displayName: "Provision System Access",
+    dataType: "boolean",
+  },
+  {
+    logicalName: "sendInvitationNow",
+    displayName: "Send Invitation Now",
+    dataType: "boolean",
+  },
+  {
+    logicalName: "initialRoleIds",
+    displayName: "Initial Roles",
+    dataType: "multi-optionset",
+  },
+];
+
+export interface EmployeeMetadataAdapterInput {
+  readonly forms?: readonly RuntimeCustomizationForm[];
+  readonly views?: readonly RuntimeCustomizationView[];
+}
+
+export interface EmployeeRuntimeContextInput extends EmployeeMetadataAdapterInput {
+  readonly tenant: TenantRuntimeConfig;
+  readonly principal: RuntimePrincipal;
+  readonly recordId?: string;
+  readonly fieldSecurityRules?: readonly FieldSecurityRule[];
+}
+
+export function buildEmployeeMetadataBundle(
+  input: EmployeeMetadataAdapterInput = {},
+): ModuleMetadataBundle {
+  const entity = buildEmployeeEntityMetadata();
+
+  return {
+    entity,
+    forms: mapEmployeeForms(input.forms ?? []),
+    views: mapEmployeeViews(input.views ?? []),
+    commands: employeeRuntimeCommands,
+  };
+}
+
+export function buildEmployeeRuntimeContext(
+  input: EmployeeRuntimeContextInput,
+): ModuleRuntimeContext {
+  return {
+    tenant: input.tenant,
+    security: {
+      principal: input.principal,
+      fieldSecurityRules: input.fieldSecurityRules ?? [],
+      dataAccessRules: [],
+    },
+    module: employeeRuntimeModuleConfig,
+    metadata: buildEmployeeMetadataBundle(input),
+    recordId: input.recordId,
+    cacheKeys: [
+      input.tenant.cachePartitionKey,
+      `module:${employeeRuntimeModuleConfig.key}`,
+      "entity:employee",
+    ],
+  };
+}
+
+export function buildEmployeeEntityMetadata(): EntityMetadata {
+  return {
+    id: "employee",
+    logicalName: "employee",
+    displayName: "Employee",
+    description: "Employee master profile metadata bridge.",
+    version: "0.5.0",
+    lifecycleState: "published",
+    layer: "system",
+    collectionName: "employees",
+    primaryIdField: "id",
+    primaryNameField: "fullName",
+    ownerField: "ownerId",
+    statusField: "status",
+    subStatusField: "subStatus",
+    routeBase: employeeRuntimeModuleConfig.routeBase,
+    defaultFormLogicalName: employeeRuntimeModuleConfig.defaultFormLogicalName,
+    defaultViewLogicalName: employeeRuntimeModuleConfig.defaultViewLogicalName,
+    permissions: {
+      read: employeeRuntimePermissions.read,
+      create: employeeRuntimePermissions.create,
+      update: employeeRuntimePermissions.update,
+      delete: employeeRuntimePermissions.delete,
+    },
+    fields: EMPLOYEE_FIELD_DEFINITIONS.map(buildEmployeeField),
+    relationships: employeeRelationships(),
+    relatedTabs: employeeRelatedTabs(),
+  };
+}
+
+export function mapEmployeeForms(
+  forms: readonly RuntimeCustomizationForm[],
+): readonly FormMetadata[] {
+  if (forms.length === 0) {
+    return systemEmployeeForms().map(ensureDefaultSystemWidgets);
+  }
+
+  return ensureSystemForms(
+    forms.map((form) => ({
+      id: form.id,
+      logicalName: `employees.${form.formKey}`,
+      displayName: form.name,
+      description: `Bridge for customization form ${form.formKey}.`,
+      version: "0.5.0",
+      lifecycleState: "published",
+      layer: "unmanaged",
+      entityLogicalName: "employee",
+      columns: form.layoutJson.columns ?? 3,
+      formType:
+        form.type === "quick"
+          ? "quickCreate"
+          : form.formKey.toLowerCase().includes("minimal")
+            ? "minimal"
+            : "main",
+      mode:
+        form.type === "create"
+          ? "create"
+          : form.type === "quick"
+            ? "read"
+            : "edit",
+      tabs: form.layoutJson.tabs.map((tab, tabIndex) => ({
+        id: tab.id,
+        tabKey: tab.id,
+        label: tab.label,
+        order: tab.sequence ?? tabIndex * 10,
+        type: "fields",
+        columns: tab.columns ?? form.layoutJson.columns ?? 3,
+        sectionIds: tab.sections.map((section) => section.id),
+      })),
+      sections: form.layoutJson.tabs.flatMap((tab, tabIndex) =>
+        tab.sections.map((section, sectionIndex) => {
+          const hasExplicitComponents = Object.prototype.hasOwnProperty.call(
+            section,
+            "components",
+          );
+          return {
+            id: section.id,
+            tabKey: tab.id,
+            label: section.label,
+            order: section.sequence ?? tabIndex * 100 + sectionIndex,
+            layout:
+              section.columns === 1
+                ? "single-column"
+                : section.columns === 3
+                  ? "three-column"
+                  : "two-column",
+            columns: normalizeFormColumnCount(
+              section.columns ?? tab.columns ?? form.layoutJson.columns ?? 3,
+            ),
+            fields: section.fields.map((field, fieldIndex) => ({
+              fieldLogicalName: normalizeEmployeeFieldName(field.columnKey),
+              label: field.label,
+              order: field.sequence ?? fieldIndex,
+              isVisible: field.isVisible,
+              isReadonly: field.readOnly,
+              requirementLevel: field.required ? "required" : "none",
+            })),
+            ...(hasExplicitComponents
+              ? {
+                  components: (section.components ?? []).map(
+                    (component, componentIndex) => ({
+                      id: component.id,
+                      type: "widget" as const,
+                      widgetId: component.widgetId,
+                      widgetType: component.widgetType,
+                      label: component.label,
+                      order: component.sequence ?? (componentIndex + 1) * 10,
+                      columnSpan: normalizeFormColumnCount(
+                        component.columnSpan ?? 1,
+                      ),
+                      height: component.height,
+                      isInitiallyCollapsed: component.isInitiallyCollapsed,
+                      placementConfig: component.placementConfig,
+                      lifecycleState: "published" as const,
+                    }),
+                  ),
+                }
+              : {}),
+          };
+        }),
+      ),
+    })),
+  ).map(ensureDefaultSystemWidgets);
+}
+
+export function mapEmployeeViews(
+  views: readonly RuntimeCustomizationView[],
+): readonly ViewMetadata[] {
+  if (views.length === 0) {
+    return fallbackEmployeeViews();
+  }
+
+  return ensureDefaultView(
+    views.map((view) => ({
+      id: view.id,
+      logicalName: `employees.${view.viewKey}`,
+      viewKey: `employees.${view.viewKey}`,
+      viewId: view.id,
+      displayName: view.name,
+      description: view.description,
+      version: "0.5.0",
+      lifecycleState: "published",
+      layer: view.type === "system" ? "system" : "unmanaged",
+      entityLogicalName: "employee",
+      type: "main",
+      isDefault: view.isDefault,
+      isSystem: view.type === "system",
+      isCustom: view.type !== "system",
+      isPublished: true,
+      columns: extractViewColumns(view.columnsJson),
+      defaultSort: [{ fieldLogicalName: "fullName", direction: "asc" }],
+    })),
+  );
+}
+
+function normalizeFormColumnCount(value: number): 1 | 2 | 3 | 4 {
+  if (value <= 1) return 1;
+  if (value === 2) return 2;
+  if (value === 3) return 3;
+  return 4;
+}
+
+function fallbackEmployeeForm(): FormMetadata {
+  return {
+    id: stableRuntimeMetadataId("form:employee.main.full"),
+    logicalName: "employee.main.full",
+    displayName: " Main",
+    version: "0.5.0",
+    lifecycleState: "published",
+    layer: "system",
+    entityLogicalName: "employee",
+    mode: "edit",
+    formType: "main",
+    columns: 3,
+    tabs: [
+      formFieldTab("summary", "Profile Summary", 10, [
+        "basic-information",
+        "personal-information",
+        "documents-identification",
+      ]),
+      formFieldTab("employment-info", "Employment Info", 30, [
+        "employment-information",
+      ]),
+      formFieldTab("organization-reporting", "Organization", 40, [
+        "organization-reporting",
+      ]),
+      formFieldTab("contact-address", "Contact & Address", 50, [
+        "contact-information",
+        "address-information",
+      ]),
+      formRelatedTab(
+        "payroll-compensation",
+        "Payroll ",
+        60,
+        "employee_compensation",
+      ),
+      formRelatedTab(
+        "previous-employment",
+        "Previous Employment",
+        70,
+        "employee_previous_employments",
+      ),
+      formFieldTab("emergency-contact", "Emergency Contact", 90, [
+        "emergency-contact",
+      ]),
+      formFieldTab("system-information", "System Information", 100, [
+        "system-information",
+      ]),
+      formRelatedTab(
+        "leave-history",
+        "Leave History",
+        110,
+        "employee_leave_history",
+      ),
+      formRelatedTab("attendance", "Attendance", 120, "employee_attendance"),
+      formRelatedTab("timesheets", "Timesheets", 130, "employee_timesheets"),
+      formRelatedTab(
+        "employee-history",
+        "Employee History",
+        140,
+        "employee_history",
+      ),
+      formRelatedTab("documents", "Documents", 150, "employee_documents"),
+      formRelatedTab("education", "Education", 160, "employee_education"),
+      formFieldTab("agent", "Agent", 170, ["agent-desktop"]),
+    ],
+    sections: [
+      {
+        id: "basic-information",
+        tabKey: "summary",
+        label: "Basic Information",
+        order: 10,
+        layout: "two-column",
+        fields: [
+          { fieldLogicalName: "employeeCode", order: 10 },
+          {
+            fieldLogicalName: "firstName",
+            order: 20,
+            requirementLevel: "required",
+          },
+          { fieldLogicalName: "middleName", order: 30 },
+          {
+            fieldLogicalName: "lastName",
+            order: 40,
+            requirementLevel: "required",
+          },
+          { fieldLogicalName: "preferredName", order: 50 },
+        ],
+      },
+      {
+        id: "employment-information",
+        tabKey: "employment-info",
+        label: "Employment Information",
+        order: 20,
+        layout: "two-column",
+        fields: [
+          {
+            fieldLogicalName: "employmentStatus",
+            order: 10,
+            requirementLevel: "required",
+          },
+          { fieldLogicalName: "employeeType", order: 20 },
+          { fieldLogicalName: "workMode", order: 30 },
+          { fieldLogicalName: "contractType", order: 40 },
+          {
+            fieldLogicalName: "hireDate",
+            order: 50,
+            requirementLevel: "required",
+          },
+          { fieldLogicalName: "confirmationDate", order: 60 },
+          { fieldLogicalName: "probationEndDate", order: 70 },
+          { fieldLogicalName: "terminationDate", order: 80 },
+          { fieldLogicalName: "noticePeriodDays", order: 90 },
+          { fieldLogicalName: "taxIdentifier", order: 100 },
+        ],
+      },
+      {
+        id: "organization-reporting",
+        tabKey: "organization-reporting",
+        label: "Organization",
+        order: 30,
+        layout: "two-column",
+        fields: [
+          { fieldLogicalName: "departmentId", order: 10 },
+          { fieldLogicalName: "designationId", order: 20 },
+          { fieldLogicalName: "employeeLevelId", order: 30 },
+          { fieldLogicalName: "locationId", order: 40 },
+          { fieldLogicalName: "officialJoiningLocationId", order: 50 },
+          { fieldLogicalName: "defaultWorkScheduleId", order: 60 },
+          { fieldLogicalName: "reportingManagerEmployeeId", order: 70 },
+        ],
+      },
+      {
+        id: "contact-information",
+        tabKey: "contact-address",
+        label: "Contact Information",
+        order: 40,
+        layout: "two-column",
+        fields: [
+          { fieldLogicalName: "workEmail", order: 10 },
+          { fieldLogicalName: "personalEmail", order: 20 },
+          {
+            fieldLogicalName: "phone",
+            order: 30,
+            requirementLevel: "required",
+          },
+          { fieldLogicalName: "alternatePhone", order: 40 },
+        ],
+      },
+      {
+        id: "address-information",
+        tabKey: "contact-address",
+        label: "Address Information",
+        order: 50,
+        layout: "two-column",
+        fields: [
+          { fieldLogicalName: "addressLine1", order: 10 },
+          { fieldLogicalName: "addressLine2", order: 20 },
+          { fieldLogicalName: "countryId", order: 30 },
+          { fieldLogicalName: "stateProvinceId", order: 40 },
+          { fieldLogicalName: "cityId", order: 50 },
+          { fieldLogicalName: "postalCode", order: 60 },
+        ],
+      },
+      {
+        id: "personal-information",
+        tabKey: "summary",
+        label: "Personal Information",
+        order: 60,
+        layout: "two-column",
+        fields: [
+          { fieldLogicalName: "dateOfBirth", order: 10 },
+          { fieldLogicalName: "gender", order: 20 },
+          { fieldLogicalName: "maritalStatus", order: 30 },
+          { fieldLogicalName: "nationalityCountryId", order: 40 },
+          { fieldLogicalName: "nationality", order: 50 },
+          { fieldLogicalName: "bloodGroup", order: 60 },
+        ],
+      },
+      {
+        id: "documents-identification",
+        tabKey: "summary",
+        label: "Documents / Identification",
+        order: 70,
+        layout: "two-column",
+        fields: [{ fieldLogicalName: "cnic", order: 10 }],
+      },
+      {
+        id: "emergency-contact",
+        tabKey: "emergency-contact",
+        label: "Emergency Contact",
+        order: 80,
+        layout: "two-column",
+        fields: [
+          { fieldLogicalName: "emergencyContactName", order: 10 },
+          { fieldLogicalName: "emergencyContactRelationTypeId", order: 20 },
+          { fieldLogicalName: "emergencyContactRelation", order: 30 },
+          { fieldLogicalName: "emergencyContactPhone", order: 40 },
+          { fieldLogicalName: "emergencyContactAlternatePhone", order: 50 },
+        ],
+      },
+      {
+        id: "system-information",
+        tabKey: "system-information",
+        label: "System Information",
+        order: 90,
+        layout: "two-column",
+        fields: [
+          { fieldLogicalName: "userId", order: 10 },
+          { fieldLogicalName: "provisionSystemAccess", order: 20 },
+          { fieldLogicalName: "sendInvitationNow", order: 30 },
+          { fieldLogicalName: "initialRoleIds", order: 40, isVisible: false },
+        ],
+      },
+      {
+        id: "agent-desktop",
+        tabKey: "agent",
+        label: "Agent Desktop",
+        order: 110,
+        layout: "single-column",
+        columns: 1,
+        fields: [],
+        components: [
+          {
+            id: "system.agentDesktop",
+            type: "widget",
+            widgetId: "system.agentDesktop",
+            widgetType: "agent_desktop",
+            label: "Agent Desktop",
+            order: 10,
+            columnSpan: 1,
+            lifecycleState: "published",
+          },
+        ],
+      },
+    ],
+  };
+}
+
+function minimalEmployeeForm(): FormMetadata {
+  return {
+    ...fallbackEmployeeForm(),
+    id: stableRuntimeMetadataId("form:employee.main.minimal"),
+    logicalName: "employee.main.minimal",
+    displayName: "Quick form",
+    formType: "minimal",
+    tabs: [
+      formFieldTab("essential-information", "Essential Information", 10, [
+        "minimal",
+      ]),
+    ],
+    sections: [
+      {
+        id: "minimal",
+        tabKey: "essential-information",
+        label: "Essential Information",
+        order: 10,
+        layout: "two-column",
+        fields: [
+          { fieldLogicalName: "employeeCode", order: 10 },
+          { fieldLogicalName: "workEmail", order: 20 },
+          { fieldLogicalName: "employmentStatus", order: 30 },
+          { fieldLogicalName: "reportingManagerEmployeeId", order: 40 },
+          { fieldLogicalName: "hireDate", order: 50 },
+        ],
+      },
+    ],
+  };
+}
+
+function systemEmployeeForms() {
+  return [fallbackEmployeeForm(), minimalEmployeeForm()].map(
+    normalizeRuntimeFormLayout,
+  );
+}
+
+function ensureDefaultSystemWidgets(form: FormMetadata): FormMetadata {
+  if (
+    form.layer !== "system" &&
+    form.sections.some((section) =>
+      Object.prototype.hasOwnProperty.call(section, "components"),
+    )
+  ) {
+    return form;
+  }
+
+  const existingWidgetKeys = new Set(
+    form.sections.flatMap(
+      (section) =>
+        section.components
+          ?.filter((component) => component.type === "widget")
+          .flatMap((component) => [
+            component.widgetId ?? "",
+            component.widgetType ?? "",
+          ]) ?? [],
+    ),
+  );
+
+  const fieldTab = form.tabs?.find((tab) => tab.type === "fields");
+  const targetSection =
+    form.sections.find((section) => section.tabKey === fieldTab?.tabKey) ??
+    form.sections[0];
+  if (!targetSection) return form;
+  const additions: FormComponentMetadata[] = [];
+  if (
+    form.formType === "main" &&
+    !existingWidgetKeys.has("employee.profilePhoto") &&
+    !existingWidgetKeys.has("profile_photo")
+  ) {
+    additions.push(
+      createSystemWidgetComponent({
+        widgetKey: "employee.profilePhoto",
+        idSeed: form.id,
+        order: 9990,
+        columnSpan: 1,
+      }),
+    );
+  }
+  if (
+    !existingWidgetKeys.has("system.timeline") &&
+    !existingWidgetKeys.has("timeline")
+  ) {
+    additions.push(
+      createSystemWidgetComponent({
+        widgetKey: "system.timeline",
+        idSeed: form.id,
+        order: 10000,
+        columnSpan: targetSection.columns ?? 2,
+      }),
+    );
+  }
+  if (
+    form.formType === "main" &&
+    !existingWidgetKeys.has("system.reportingHierarchy") &&
+    !existingWidgetKeys.has("reporting_hierarchy")
+  ) {
+    additions.push(
+      createSystemWidgetComponent({
+        widgetKey: "system.reportingHierarchy",
+        idSeed: form.id,
+        order: 10010,
+        columnSpan: targetSection.columns ?? 2,
+      }),
+    );
+  }
+  if (!additions.length) return form;
+
+  return {
+    ...form,
+    sections: form.sections.map((section) =>
+      section.id === targetSection.id
+        ? {
+            ...section,
+            components: [...(section.components ?? []), ...additions],
+          }
+        : section,
+    ),
+  };
+}
+
+function formFieldTab(
+  tabKey: string,
+  label: string,
+  order: number,
+  sectionIds: readonly string[],
+) {
+  return {
+    id: `employee-form-tab-${tabKey}`,
+    tabKey,
+    label,
+    order,
+    type: "fields" as const,
+    sectionIds,
+  };
+}
+
+function formRelatedTab(
+  tabKey: string,
+  label: string,
+  order: number,
+  relationshipName: string,
+) {
+  return {
+    id: `employee-form-tab-${tabKey}`,
+    tabKey,
+    label,
+    order,
+    type: "related_module" as const,
+    relatedTabKey: tabKey,
+    subgrid: relatedSubgrid(tabKey, label, relationshipName),
+  };
+}
+
+export function resolveEmployeeRuntimeForm(
+  forms: readonly FormMetadata[],
+  selectedFormId?: string | null,
+): FormMetadata | null {
+  const publishedForms = forms.filter(
+    (form) =>
+      form.lifecycleState === "published" ||
+      form.lifecycleState === "deprecated",
+  );
+  const defaultForm =
+    publishedForms.find(
+      (form) =>
+        form.logicalName === employeeRuntimeModuleConfig.defaultFormLogicalName,
+    ) ??
+    publishedForms[0] ??
+    null;
+
+  if (!selectedFormId) return defaultForm;
+
+  return (
+    publishedForms.find((form) => form.id === selectedFormId) ?? defaultForm
+  );
+}
+
+export function resolveEmployeeRuntimeView(
+  views: readonly ViewMetadata[],
+  selectedViewKey?: string | null,
+): ViewMetadata | null {
+  const defaultView =
+    views.find(
+      (view) =>
+        view.logicalName === employeeRuntimeModuleConfig.defaultViewLogicalName,
+    ) ??
+    views[0] ??
+    null;
+
+  if (!selectedViewKey) return defaultView;
+
+  const candidates = new Set([selectedViewKey, `employees.${selectedViewKey}`]);
+
+  return (
+    views.find(
+      (view) =>
+        candidates.has(view.logicalName) ||
+        view.id === selectedViewKey ||
+        view.viewId === selectedViewKey,
+    ) ?? defaultView
+  );
+}
+
+export function buildEmptyEmployeeRuntimeValues(
+  input: {
+    readonly defaultEmployeeStatus?: string | null;
+    readonly defaultEmploymentType?: string | null;
+    readonly defaultWorkMode?: string | null;
+    readonly hireDate?: string | null;
+  } = {},
+): EmployeeRuntimeFormValues {
+  return {
+    employeeCode: "",
+    firstName: "",
+    middleName: "",
+    lastName: "",
+    preferredName: "",
+    fullName: "",
+    workEmail: "",
+    personalEmail: "",
+    phone: "",
+    alternatePhone: "",
+    dateOfBirth: "",
+    gender: "",
+    maritalStatus: "",
+    nationalityCountryId: "",
+    nationality: "",
+    cnic: "",
+    bloodGroup: "",
+    employmentStatus: input.defaultEmployeeStatus || "ACTIVE",
+    status: "ACTIVE",
+    subStatus: "OPEN",
+    employeeType: input.defaultEmploymentType || "",
+    workMode: input.defaultWorkMode || "",
+    contractType: "",
+    hireDate: input.hireDate || new Date().toISOString().slice(0, 10),
+    confirmationDate: "",
+    probationEndDate: "",
+    terminationDate: "",
+    ownerId: "",
+    reportingManagerEmployeeId: "",
+    departmentId: "",
+    designationId: "",
+    employeeLevelId: "",
+    locationId: "",
+    officialJoiningLocationId: "",
+    defaultWorkScheduleId: "",
+    userId: "",
+    noticePeriodDays: null,
+    taxIdentifier: "",
+    addressLine1: "",
+    addressLine2: "",
+    countryId: "",
+    stateProvinceId: "",
+    cityId: "",
+    postalCode: "",
+    emergencyContactName: "",
+    emergencyContactRelation: "",
+    emergencyContactRelationTypeId: "",
+    emergencyContactPhone: "",
+    emergencyContactAlternatePhone: "",
+    provisionSystemAccess: false,
+    sendInvitationNow: true,
+    initialRoleIds: [],
+  };
+}
+
+export function mapEmployeeRecordToRuntimeValues(
+  employee: Readonly<Record<string, unknown>>,
+): EmployeeRuntimeFormValues {
+  return {
+    ...buildEmptyEmployeeRuntimeValues({ hireDate: "" }),
+    id: stringValue(employee.id),
+    employeeCode: stringValue(employee.employeeCode),
+    firstName: stringValue(employee.firstName),
+    middleName: stringValue(employee.middleName),
+    lastName: stringValue(employee.lastName),
+    preferredName: stringValue(employee.preferredName),
+    fullName: stringValue(employee.fullName),
+    workEmail: stringValue(employee.workEmail ?? employee.email),
+    personalEmail: stringValue(employee.personalEmail),
+    phone: stringValue(employee.phone),
+    alternatePhone: stringValue(employee.alternatePhone),
+    dateOfBirth: dateValue(employee.dateOfBirth),
+    gender: stringValue(employee.gender),
+    maritalStatus: stringValue(employee.maritalStatus),
+    nationalityCountryId: stringValue(employee.nationalityCountryId),
+    nationality: stringValue(employee.nationality),
+    cnic: stringValue(employee.cnic),
+    bloodGroup: stringValue(employee.bloodGroup),
+    employmentStatus: stringValue(employee.employmentStatus || "ACTIVE"),
+    status: stringValue(employee.status || "ACTIVE"),
+    subStatus: stringValue(employee.subStatus || "OPEN"),
+    employeeType: stringValue(employee.employeeType),
+    workMode: stringValue(employee.workMode),
+    contractType: stringValue(employee.contractType),
+    hireDate: dateValue(employee.hireDate),
+    confirmationDate: dateValue(employee.confirmationDate),
+    probationEndDate: dateValue(employee.probationEndDate),
+    terminationDate: dateValue(employee.terminationDate),
+    ownerId: stringValue(employee.ownerUserId),
+    ownerDisplayName: readNestedName(employee.ownerUser, ["fullName", "email"]),
+    ownerEmail: readNestedName(employee.ownerUser, ["email"]),
+    reportingManagerEmployeeId: stringValue(
+      employee.reportingManagerEmployeeId ?? employee.managerEmployeeId,
+    ),
+    departmentId: stringValue(employee.departmentId),
+    designationId: stringValue(employee.designationId),
+    employeeLevelId: stringValue(employee.employeeLevelId),
+    locationId: stringValue(employee.locationId),
+    officialJoiningLocationId: stringValue(employee.officialJoiningLocationId),
+    defaultWorkScheduleId: stringValue(employee.defaultWorkScheduleId),
+    userId: stringValue(employee.userId),
+    noticePeriodDays: numberValue(employee.noticePeriodDays),
+    taxIdentifier: stringValue(employee.taxIdentifier),
+    addressLine1: stringValue(employee.addressLine1),
+    addressLine2: stringValue(employee.addressLine2),
+    countryId: stringValue(employee.countryId),
+    stateProvinceId: stringValue(employee.stateProvinceId),
+    cityId: stringValue(employee.cityId),
+    postalCode: stringValue(employee.postalCode),
+    emergencyContactName: stringValue(employee.emergencyContactName),
+    emergencyContactRelation: stringValue(employee.emergencyContactRelation),
+    emergencyContactRelationTypeId: stringValue(
+      employee.emergencyContactRelationTypeId,
+    ),
+    emergencyContactPhone: stringValue(employee.emergencyContactPhone),
+    emergencyContactAlternatePhone: stringValue(
+      employee.emergencyContactAlternatePhone,
+    ),
+    provisionSystemAccess: Boolean(employee.userId),
+    sendInvitationNow: false,
+    initialRoleIds: readUserRoleIds(employee.user),
+  };
+}
+
+export function mapEmployeeRuntimeValuesToUpdatePayload(
+  values: EmployeeRuntimeFormValues,
+) {
+  return {
+    employeeCode: emptyToNull(values.employeeCode),
+    firstName: emptyToNull(values.firstName),
+    middleName: emptyToNull(values.middleName),
+    lastName: emptyToNull(values.lastName),
+    preferredName: emptyToNull(values.preferredName),
+    workEmail: emptyToNull(values.workEmail),
+    personalEmail: emptyToNull(values.personalEmail),
+    phone: emptyToNull(values.phone),
+    alternatePhone: emptyToNull(values.alternatePhone),
+    dateOfBirth: emptyToNull(values.dateOfBirth),
+    gender: emptyToNull(values.gender),
+    maritalStatus: emptyToNull(values.maritalStatus),
+    nationalityCountryId: emptyToNull(values.nationalityCountryId),
+    nationality: emptyToNull(values.nationality),
+    cnic: emptyToNull(values.cnic),
+    bloodGroup: emptyToNull(values.bloodGroup),
+    employmentStatus: emptyToNull(values.employmentStatus),
+    ownerUserId: emptyToNull(values.ownerId),
+    status: emptyToNull(values.status),
+    subStatus: emptyToNull(values.subStatus),
+    employeeType: emptyToNull(values.employeeType),
+    workMode: emptyToNull(values.workMode),
+    contractType: emptyToNull(values.contractType),
+    hireDate: emptyToNull(values.hireDate),
+    confirmationDate: emptyToNull(values.confirmationDate),
+    probationEndDate: emptyToNull(values.probationEndDate),
+    terminationDate: emptyToNull(values.terminationDate),
+    departmentId: emptyToNull(values.departmentId),
+    designationId: emptyToNull(values.designationId),
+    employeeLevelId: emptyToNull(values.employeeLevelId),
+    locationId: emptyToNull(values.locationId),
+    officialJoiningLocationId: emptyToNull(values.officialJoiningLocationId),
+    defaultWorkScheduleId: emptyToNull(values.defaultWorkScheduleId),
+    reportingManagerEmployeeId: emptyToNull(values.reportingManagerEmployeeId),
+    userId: emptyToNull(values.userId),
+    noticePeriodDays:
+      typeof values.noticePeriodDays === "number"
+        ? values.noticePeriodDays
+        : null,
+    taxIdentifier: emptyToNull(values.taxIdentifier),
+    addressLine1: emptyToNull(values.addressLine1),
+    addressLine2: emptyToNull(values.addressLine2),
+    countryId: emptyToNull(values.countryId),
+    stateProvinceId: emptyToNull(values.stateProvinceId),
+    cityId: emptyToNull(values.cityId),
+    postalCode: emptyToNull(values.postalCode),
+    emergencyContactName: emptyToNull(values.emergencyContactName),
+    emergencyContactRelation: emptyToNull(values.emergencyContactRelation),
+    emergencyContactRelationTypeId: emptyToNull(
+      values.emergencyContactRelationTypeId,
+    ),
+    emergencyContactPhone: emptyToNull(values.emergencyContactPhone),
+    emergencyContactAlternatePhone: emptyToNull(
+      values.emergencyContactAlternatePhone,
+    ),
+  };
+}
+
+export function mapEmployeeLookupDisplayValues(
+  employee: Readonly<Record<string, unknown>>,
+): Record<string, string> {
+  return {
+    ownerId: readNestedName(employee.ownerUser, ["fullName", "email"]),
+    reportingManagerEmployeeId: readNestedName(employee.reportingManager, [
+      "fullName",
+      "employeeCode",
+    ]),
+    departmentId: readNestedName(employee.department, ["name", "code"]),
+    designationId: readNestedName(employee.designation, ["name", "level"]),
+    employeeLevelId: readNestedName(employee.employeeLevel, ["name", "code"]),
+    locationId: readNestedName(employee.location, ["name"]),
+    officialJoiningLocationId: readNestedName(
+      employee.officialJoiningLocation,
+      ["name"],
+    ),
+    defaultWorkScheduleId: readNestedName(employee.defaultWorkSchedule, [
+      "name",
+      "code",
+    ]),
+    userId: readNestedName(employee.user, ["email", "firstName", "lastName"]),
+    countryId: stringValue(employee.country),
+    stateProvinceId: stringValue(employee.stateProvince),
+    cityId: stringValue(employee.city),
+    nationalityCountryId: stringValue(employee.nationality),
+  };
+}
+
+export function mapEmployeeLookupOptions(input: {
+  readonly employee?: Readonly<Record<string, unknown>> | null;
+  readonly managers?: readonly Readonly<Record<string, unknown>>[];
+}): Record<
+  string,
+  readonly {
+    id: string;
+    name: string;
+    subtitle?: string | null;
+    code?: string | null;
+  }[]
+> {
+  const managerOptions = (input.managers ?? [])
+    .map((manager) => ({
+      id: stringValue(manager.id),
+      name: readNestedName(manager, ["fullName", "employeeCode"]),
+      subtitle: stringValue(manager.workEmail ?? manager.email),
+      code: stringValue(manager.employeeCode),
+    }))
+    .filter((option) => option.id && option.name);
+
+  const employee = input.employee;
+
+  return {
+    reportingManagerEmployeeId: managerOptions,
+    ownerId: compactLookupOptions([
+      employee
+        ? {
+            id: stringValue(employee.ownerUserId),
+            name: readNestedName(employee.ownerUser, ["fullName", "email"]),
+            subtitle: readNestedName(employee.ownerUser, ["email"]),
+          }
+        : null,
+    ]),
+    departmentId: compactLookupOptions([
+      lookupOptionFromRecord(employee?.department),
+    ]),
+    designationId: compactLookupOptions([
+      lookupOptionFromRecord(employee?.designation),
+    ]),
+    employeeLevelId: compactLookupOptions([
+      lookupOptionFromRecord(employee?.employeeLevel),
+    ]),
+    locationId: compactLookupOptions([
+      lookupOptionFromRecord(employee?.location),
+    ]),
+    officialJoiningLocationId: compactLookupOptions([
+      lookupOptionFromRecord(employee?.officialJoiningLocation),
+    ]),
+    defaultWorkScheduleId: compactLookupOptions([
+      lookupOptionFromRecord(employee?.defaultWorkSchedule),
+    ]),
+    userId: compactLookupOptions([
+      employee
+        ? {
+            id: stringValue(employee.userId),
+            name: readNestedName(employee.user, [
+              "email",
+              "firstName",
+              "lastName",
+            ]),
+          }
+        : null,
+    ]),
+  };
+}
+
+function fallbackEmployeeView(): ViewMetadata {
+  return employeeSystemView({
+    id: "10000000-0000-4000-8000-000000000001",
+    logicalName: "employees.all",
+    displayName: "All Employees",
+    isDefault: true,
+    columns: [
+      "fullName",
+      "employeeCode",
+      "employmentStatus",
+      "reportingManagerEmployeeId",
+      "hireDate",
+      "workEmail",
+    ],
+  });
+}
+
+function employeeSystemView(input: {
+  readonly id: string;
+  readonly logicalName: string;
+  readonly displayName: string;
+  readonly columns: readonly string[];
+  readonly filters?: ViewMetadata["filters"];
+  readonly isDefault?: boolean;
+}): ViewMetadata {
+  return {
+    id: input.id,
+    logicalName: input.logicalName,
+    displayName: input.displayName,
+    version: "0.5.0",
+    lifecycleState: "published",
+    layer: "system",
+    entityLogicalName: "employee",
+    type: "main",
+    viewKey: input.logicalName,
+    viewId: input.id,
+    isDefault: input.isDefault,
+    isSystem: true,
+    isCustom: false,
+    isPublished: true,
+    columns: input.columns.map((fieldLogicalName, index) => ({
+      fieldLogicalName,
+      order: (index + 1) * 10,
+    })),
+    defaultSort: [{ fieldLogicalName: "fullName", direction: "asc" }],
+    filters: input.filters,
+  };
+}
+
+function employeeRelationships() {
+  return [
+    relationship(
+      "employee_previous_employments",
+      "one-to-many",
+      "employee",
+      "employeePreviousEmployment",
+      "id",
+      "employeeId",
+      "companyName",
+    ),
+    relationship(
+      "employee_leave_history",
+      "one-to-many",
+      "employee",
+      "leaveRequest",
+      "id",
+      "employeeId",
+      "leaveType",
+    ),
+    relationship(
+      "employee_attendance",
+      "one-to-many",
+      "employee",
+      "attendance",
+      "id",
+      "employeeId",
+      "attendanceDate",
+    ),
+    relationship(
+      "employee_timesheets",
+      "one-to-many",
+      "employee",
+      "timesheet",
+      "id",
+      "employeeId",
+      "periodStart",
+    ),
+    relationship(
+      "employee_history",
+      "one-to-many",
+      "employee",
+      "employeeHistory",
+      "id",
+      "employeeId",
+      "title",
+    ),
+    relationship(
+      "employee_documents",
+      "one-to-many",
+      "employee",
+      "employeeDocument",
+      "id",
+      "employeeId",
+      "fileName",
+    ),
+    relationship(
+      "employee_education",
+      "one-to-many",
+      "employee",
+      "employeeEducation",
+      "id",
+      "employeeId",
+      "degreeTitle",
+    ),
+    relationship(
+      "employee_compensation",
+      "one-to-many",
+      "employee",
+      "employeeCompensation",
+      "id",
+      "employeeId",
+      "effectiveDate",
+    ),
+  ] as const;
+}
+
+function employeeRelatedTabs() {
+  return [
+    relatedTab(
+      "payroll-compensation",
+      "Payroll ",
+      60,
+      "subgrid",
+      "employee_compensation",
+    ),
+    relatedTab(
+      "previous-employment",
+      "Previous Employment",
+      70,
+      "subgrid",
+      "employee_previous_employments",
+    ),
+    relatedTab(
+      "leave-history",
+      "Leave History",
+      100,
+      "subgrid",
+      "employee_leave_history",
+    ),
+    relatedTab(
+      "attendance",
+      "Attendance",
+      110,
+      "subgrid",
+      "employee_attendance",
+    ),
+    relatedTab(
+      "timesheets",
+      "Timesheets",
+      120,
+      "subgrid",
+      "employee_timesheets",
+    ),
+    relatedTab(
+      "employee-history",
+      "Employee History",
+      130,
+      "subgrid",
+      "employee_history",
+    ),
+    relatedTab("documents", "Documents", 140, "subgrid", "employee_documents"),
+    relatedTab("education", "Education", 150, "subgrid", "employee_education"),
+  ] as const;
+}
+
+function fallbackEmployeeViews(): readonly ViewMetadata[] {
+  return [
+    fallbackEmployeeView(),
+    employeeSystemView({
+      id: "10000000-0000-4000-8000-000000000002",
+      logicalName: "employees.active",
+      displayName: "Active Employees",
+      columns: [
+        "fullName",
+        "employeeCode",
+        "employmentStatus",
+        "departmentId",
+        "designationId",
+        "hireDate",
+        "reportingManagerEmployeeId",
+      ],
+      filters: [
+        {
+          fieldLogicalName: "employmentStatus",
+          operator: "eq",
+          value: "ACTIVE",
+        },
+      ],
+    }),
+    employeeSystemView({
+      id: "10000000-0000-4000-8000-000000000003",
+      logicalName: "employees.probation",
+      displayName: "Employees on Probation",
+      columns: [
+        "fullName",
+        "employeeCode",
+        "employmentStatus",
+        "hireDate",
+        "probationEndDate",
+        "reportingManagerEmployeeId",
+      ],
+      filters: [
+        {
+          fieldLogicalName: "employmentStatus",
+          operator: "eq",
+          value: "PROBATION",
+        },
+      ],
+    }),
+    employeeSystemView({
+      id: "10000000-0000-4000-8000-000000000004",
+      logicalName: "employees.notice",
+      displayName: "Employees on Notice",
+      columns: [
+        "fullName",
+        "employeeCode",
+        "employmentStatus",
+        "noticePeriodDays",
+        "terminationDate",
+        "reportingManagerEmployeeId",
+      ],
+      filters: [
+        {
+          fieldLogicalName: "employmentStatus",
+          operator: "eq",
+          value: "NOTICE",
+        },
+      ],
+    }),
+    employeeSystemView({
+      id: "10000000-0000-4000-8000-000000000005",
+      logicalName: "employees.terminated",
+      displayName: "Terminated Employees",
+      columns: [
+        "fullName",
+        "employeeCode",
+        "employmentStatus",
+        "terminationDate",
+        "departmentId",
+        "designationId",
+      ],
+      filters: [
+        {
+          fieldLogicalName: "employmentStatus",
+          operator: "eq",
+          value: "TERMINATED",
+        },
+      ],
+    }),
+  ];
+}
+
+function relationship(
+  relationshipName: string,
+  type: "one-to-many" | "many-to-one" | "many-to-many",
+  sourceEntityLogicalName: string,
+  targetEntityLogicalName: string,
+  sourceFieldLogicalName?: string,
+  targetFieldLogicalName?: string,
+  displayFieldLogicalName?: string,
+) {
+  return {
+    id: relationshipName,
+    logicalName: relationshipName,
+    relationshipName,
+    displayName: relationshipName,
+    version: "0.5.0",
+    lifecycleState: "published" as const,
+    layer: "system" as const,
+    type,
+    sourceEntityLogicalName,
+    targetEntityLogicalName,
+    parentEntityLogicalName: sourceEntityLogicalName,
+    relatedEntityLogicalName: targetEntityLogicalName,
+    sourceFieldLogicalName,
+    targetFieldLogicalName,
+    lookupFieldLogicalName: targetFieldLogicalName,
+    displayFieldLogicalName,
+    columns: relatedColumnsForRelationship(relationshipName),
+    cascadeDelete: "restrict" as const,
+  };
+}
+
+function relatedTab(
+  tabKey: string,
+  label: string,
+  order: number,
+  layout: "subgrid" | "form-section" | "timeline" | "custom-slot",
+  relationshipName?: string,
+) {
+  return {
+    id: `employee-tab-${tabKey}`,
+    tabKey,
+    label,
+    order,
+    layout,
+    relationshipName,
+    subgrid: relationshipName
+      ? relatedSubgrid(tabKey, label, relationshipName)
+      : undefined,
+  };
+}
+
+function relatedSubgrid(
+  tabKey: string,
+  title: string,
+  relationshipName: string,
+) {
+  return {
+    id: `employee-subgrid-${tabKey}`,
+    relationshipName,
+    entityLogicalName: "employee",
+    relatedEntityLogicalName:
+      employeeRelationships().find(
+        (relationship) => relationship.relationshipName === relationshipName,
+      )?.targetEntityLogicalName ?? relationshipName,
+    title,
+    columns: relatedColumnsForRelationship(relationshipName),
+    emptyStateTitle: `No ${title}`,
+    emptyStateDescription:
+      "No related records are available for this employee yet.",
+  };
+}
+
+function relatedColumnsForRelationship(relationshipName: string) {
+  const columnsByRelationship: Record<string, readonly string[]> = {
+    employee_previous_employments: [
+      "companyName",
+      "designation",
+      "startDate",
+      "endDate",
+    ],
+    employee_leave_history: ["leaveType", "startDate", "endDate", "status"],
+    employee_attendance: [
+      "attendanceDate",
+      "attendanceStatus",
+      "checkInAt",
+      "checkOutAt",
+    ],
+    employee_timesheets: ["periodStart", "periodEnd", "status", "totalHours"],
+    employee_history: ["eventDate", "title", "eventType", "changedByUserId"],
+    employee_documents: ["fileName", "documentType", "uploadedAt"],
+    employee_education: [
+      "degreeTitle",
+      "institutionName",
+      "startDate",
+      "endDate",
+    ],
+    employee_compensation: [
+      "effectiveDate",
+      "grossSalary",
+      "currency",
+      "status",
+    ],
+  };
+
+  return (columnsByRelationship[relationshipName] ?? ["id"]).map(
+    (fieldLogicalName, index) => ({
+      fieldLogicalName,
+      order: (index + 1) * 10,
+    }),
+  );
+}
+
+function buildEmployeeField(
+  definition: EmployeeFieldDefinition,
+): FieldMetadata {
+  const generatedMetadata =
+    definition.logicalName === "employeeCode"
+      ? {
+          autoGenerated: true,
+          formatSource: "settings" as const,
+          settingsKey: "employee.employeeCodeFormat",
+          lockedByDefault: true,
+          unlockableByCustomization: true,
+        }
+      : {};
+  const dependencyMetadata = employeeLookupDependencyMetadata(
+    definition.logicalName,
+  );
+
+  return {
+    id: `employee.${definition.logicalName}`,
+    logicalName: definition.logicalName,
+    displayName: definition.displayName,
+    version: "0.5.0",
+    lifecycleState: "published",
+    layer: "system",
+    entityLogicalName: "employee",
+    dataType: definition.dataType,
+    requirementLevel: requiredEmployeeFields.has(definition.logicalName)
+      ? "required"
+      : "none",
+    behavior: "normal",
+    isPrimaryName: definition.logicalName === "fullName",
+    isOwner: definition.logicalName === "ownerId",
+    isStatus: definition.logicalName === "status",
+    isSubStatus: definition.logicalName === "subStatus",
+    minLength: definition.minLength,
+    maxLength: definition.maxLength,
+    backendFieldName:
+      definition.logicalName === "ownerId" ? "ownerUserId" : undefined,
+    ...generatedMetadata,
+    ...dependencyMetadata,
+    options: employeeOptionSets[definition.logicalName],
+    lookupTargets: definition.lookupEntity
+      ? [{ entityLogicalName: definition.lookupEntity }]
+      : undefined,
+  };
+}
+
+function employeeLookupDependencyMetadata(logicalName: string) {
+  if (logicalName === "stateProvinceId") {
+    return {
+      dependsOnFieldId: "countryId",
+      dependencyFilterKey: "countryId",
+      resetOnParentChange: true,
+    };
+  }
+
+  if (logicalName === "cityId") {
+    return {
+      dependsOnFieldId: "stateProvinceId",
+      dependencyFilterKey: "stateProvinceId",
+      resetOnParentChange: true,
+    };
+  }
+
+  if (logicalName === "subStatus") {
+    return {
+      dependsOnFieldId: "status",
+      dependencyFilterKey: "status",
+      resetOnParentChange: true,
+    };
+  }
+
+  return {};
+}
+
+function extractViewColumns(
+  columnsJson: unknown,
+): readonly ViewColumnMetadata[] {
+  const fallback = fallbackEmployeeView().columns;
+
+  if (!columnsJson || typeof columnsJson !== "object") {
+    return fallback;
+  }
+
+  const columns = (columnsJson as { columns?: unknown }).columns;
+
+  if (!Array.isArray(columns)) {
+    return fallback;
+  }
+
+  const mapped = columns
+    .map((column, index): ViewColumnMetadata | null => {
+      const columnKey =
+        typeof column === "string"
+          ? column
+          : column && typeof column === "object"
+            ? (column as { columnKey?: unknown }).columnKey
+            : null;
+
+      return typeof columnKey === "string"
+        ? {
+            fieldLogicalName: normalizeEmployeeFieldName(columnKey),
+            order: index,
+          }
+        : null;
+    })
+    .filter((column): column is ViewColumnMetadata => Boolean(column));
+
+  return mapped.length ? mapped : fallback;
+}
+
+function normalizeEmployeeFieldName(fieldName: string) {
+  const fieldMap: Record<string, string> = {
+    email: "workEmail",
+    managerEmployeeId: "reportingManagerEmployeeId",
+  };
+
+  return fieldMap[fieldName] ?? fieldName;
+}
+
+const requiredEmployeeFields = new Set([
+  "employeeCode",
+  "firstName",
+  "lastName",
+  "phone",
+  "employmentStatus",
+  "hireDate",
+]);
+
+const employeeOptionSets: Record<string, readonly OptionSetValueMetadata[]> = {
+  employmentStatus: EMPLOYEE_STATUS_OPTIONS,
+  employeeType: EMPLOYEE_TYPE_OPTIONS,
+  workMode: WORK_MODE_OPTIONS,
+  contractType: CONTRACT_TYPE_OPTIONS,
+  gender: GENDER_OPTIONS,
+  maritalStatus: MARITAL_STATUS_OPTIONS,
+  bloodGroup: BLOOD_GROUP_OPTIONS,
+  status: RECORD_STATUS_OPTIONS,
+  subStatus: RECORD_SUB_STATUS_OPTIONS,
+};
+
+function ensureSystemForms(forms: readonly FormMetadata[]) {
+  const byLogicalName = new Map<string, FormMetadata>();
+
+  for (const form of [...systemEmployeeForms(), ...forms]) {
+    byLogicalName.set(form.logicalName, form);
+  }
+
+  return Array.from(byLogicalName.values()).map(normalizeRuntimeFormLayout);
+}
+
+function normalizeRuntimeFormLayout(form: FormMetadata): FormMetadata {
+  return {
+    ...form,
+    columns: 3,
+    sections: form.sections.map((section) => ({
+      ...section,
+      columns: 1,
+      layout: "single-column",
+    })),
+  };
+}
+
+function ensureDefaultView(views: readonly ViewMetadata[]) {
+  const byLogicalName = new Map<string, ViewMetadata>();
+
+  for (const view of [...fallbackEmployeeViews(), ...views]) {
+    byLogicalName.set(view.logicalName, view);
+  }
+
+  return Array.from(byLogicalName.values());
+}
+
+function stringValue(value: unknown) {
+  return typeof value === "string" ? value : "";
+}
+
+function numberValue(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function dateValue(value: unknown) {
+  if (!value) return "";
+  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  return typeof value === "string" ? value.slice(0, 10) : "";
+}
+
+function readUserRoleIds(user: unknown): readonly string[] {
+  if (!user || typeof user !== "object") return [];
+  const roles = (user as { roles?: unknown }).roles;
+  if (!Array.isArray(roles)) return [];
+
+  return roles
+    .map((role) =>
+      role && typeof role === "object" ? (role as { id?: unknown }).id : null,
+    )
+    .filter((id): id is string => typeof id === "string");
+}
+
+function readNestedName(value: unknown, fields: readonly string[]) {
+  if (!value || typeof value !== "object") return "";
+  const record = value as Record<string, unknown>;
+  const values = fields
+    .map((field) => record[field])
+    .filter(
+      (fieldValue): fieldValue is string =>
+        typeof fieldValue === "string" && fieldValue.trim().length > 0,
+    );
+
+  return values.join(" ").trim();
+}
+
+function lookupOptionFromRecord(value: unknown) {
+  if (!value || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  const id = stringValue(record.id);
+  const name = readNestedName(record, ["name", "fullName", "code"]);
+
+  return id && name
+    ? {
+        id,
+        name,
+        code: stringValue(record.code),
+      }
+    : null;
+}
+
+function compactLookupOptions(
+  options: readonly ({
+    readonly id: string;
+    readonly name: string;
+    readonly subtitle?: string | null;
+    readonly code?: string | null;
+  } | null)[],
+) {
+  return options.filter(
+    (
+      option,
+    ): option is {
+      id: string;
+      name: string;
+      subtitle?: string | null;
+      code?: string | null;
+    } => Boolean(option?.id && option.name),
+  );
+}
+
+function emptyToNull(value: EmployeeRuntimeFieldValue) {
+  if (typeof value === "string") return value.trim() || null;
+  return value ?? null;
+}

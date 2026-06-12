@@ -120,14 +120,24 @@ function getIcon(icon: string) {
   return iconMap[icon as keyof typeof iconMap] ?? Settings2;
 }
 
-export function SettingsNav({ currentPath }: { currentPath: string }) {
+export function SettingsNav({
+  currentPath,
+  isCollapsed = false,
+}: {
+  currentPath: string;
+  isCollapsed?: boolean;
+}) {
   const { user } = useCurrentUserAccess();
 
-  const permissionKeys = user?.permissionKeys ?? [];
+  const permissionKeys = useMemo(
+    () => user?.permissionKeys ?? [],
+    [user?.permissionKeys],
+  );
+  const roleKeys = useMemo(() => user?.roleKeys ?? [], [user?.roleKeys]);
 
   const visibleGroups = useMemo(
-    () => resolveVisibleSettingsGroups(permissionKeys),
-    [permissionKeys],
+    () => resolveVisibleSettingsGroups(permissionKeys, { roleKeys }),
+    [permissionKeys, roleKeys],
   );
 
   const currentMatch = findSettingsItemByPath(currentPath);
@@ -155,12 +165,28 @@ export function SettingsNav({ currentPath }: { currentPath: string }) {
   }
 
   return (
-    <nav aria-label="Settings navigation" className="grid gap-3">
+    <nav aria-label="Settings navigation"   className={isCollapsed ? "grid gap-3" : "grid gap-3"}>
       {visibleGroups.map((group) => {
         const isOpen = openGroups[group.key] ?? false;
         const groupIsActive = currentMatch?.groupKey === group.key;
         const GroupIcon = getIcon(group.icon);
-
+if (isCollapsed) {
+  return (
+    <Link
+      key={group.key}
+      href={group.items[0]?.href ?? "#"}
+      title={group.label}
+      className={[
+        "mx-auto flex h-10 w-10 items-center justify-center rounded-2xl border bg-white/85 text-muted shadow-sm transition hover:bg-muted/30 hover:text-foreground",
+        groupIsActive
+          ? "border-accent/30 bg-accent-soft text-accent"
+          : "border-border",
+      ].join(" ")}
+    >
+      <GroupIcon className="h-4 w-4" />
+    </Link>
+  );
+}
         return (
           <section
             className={`overflow-hidden rounded-[22px] border bg-white/85 transition ${groupIsActive
@@ -191,7 +217,7 @@ export function SettingsNav({ currentPath }: { currentPath: string }) {
                 </span>
 
                 <span className="min-w-0">
-                  <span className="block truncate text-sm font-semibold text-foreground">
+                  <span className="block truncate text-xs font-semibold text-foreground">
                     {group.label}
                   </span>
                   <span className="mt-1 block text-xs text-muted">
@@ -298,7 +324,7 @@ function SettingsNavItemContent({
 
       <span className="min-w-0 flex-1">
         <span className="flex flex-wrap items-center gap-2">
-          <span className="truncate text-sm font-medium">{label}</span>
+          <span className="truncate text-xs font-medium">{label}</span>
           {badge ? <SettingsBadgePill badge={badge} /> : null}
         </span>
 

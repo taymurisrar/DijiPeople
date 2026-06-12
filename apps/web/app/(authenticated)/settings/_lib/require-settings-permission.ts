@@ -17,6 +17,12 @@ export function hasSettingsAdministratorRole(user: SessionUser | null) {
   );
 }
 
+export function hasSystemCustomizerRole(user: SessionUser | null) {
+  if (!user) return false;
+
+  return (user.roleKeys ?? []).includes(ROLE_KEYS.SYSTEM_CUSTOMIZER);
+}
+
 export function hasSettingsPermission(
   user: SessionUser | null,
   permissionKey: string,
@@ -48,6 +54,31 @@ export async function requireSettingsPermissions(
   }
 
   if (!hasAnySettingsPermission(user, permissionKeys)) {
+    redirect(fallbackHref);
+  }
+
+  return user;
+}
+
+export async function requireCustomizationAccess(
+  permissionKeys: readonly string[] = ["customization.read"],
+  fallbackHref = "/settings/access/roles",
+) {
+  const user = await getSessionUser();
+
+  if (!user) {
+    redirect(fallbackHref);
+  }
+
+  if (!hasSystemCustomizerRole(user)) {
+    redirect(fallbackHref);
+  }
+
+  const allowed =
+    permissionKeys.length === 0 ||
+    hasAnyPermission(user.permissionKeys, permissionKeys);
+
+  if (!allowed) {
     redirect(fallbackHref);
   }
 

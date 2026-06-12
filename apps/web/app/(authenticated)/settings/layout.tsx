@@ -6,7 +6,7 @@ export default async function SettingsLayout({
 }: {
   children: ReactNode;
 }) {
-  await requireSettingsPermissions(["settings.read"], "/me");
+  await requireSettingsPermissions(["settings.read"], "/my-profile");
 
   return children;
 }

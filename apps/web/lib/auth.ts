@@ -22,6 +22,7 @@ export type SessionUser = {
   lastName: string;
   roleIds: string[];
   roleKeys: string[];
+  roles: Array<{ id: string; key: string; name: string }>;
   permissionKeys: string[];
   isTenantOwner?: boolean;
 };
@@ -163,6 +164,7 @@ async function getSessionFromApi(): Promise<SessionUser | null> {
     lastName: data.user.lastName,
     roleIds,
     roleKeys,
+    roles: data.roles ?? [],
     permissionKeys,
     isTenantOwner: data.user.isTenantOwner,
   };

@@ -52,6 +52,11 @@ export function ManualAttendanceForm({
       return;
     }
 
+    if (form.attendanceMode === "OFFICE" && !form.officeLocationId) {
+      setError("Work site is required for Office attendance.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     const response = await fetch("/api/attendance/manual", {
@@ -131,7 +136,7 @@ export function ManualAttendanceForm({
 
       {form.attendanceMode === "OFFICE" ? (
         <SelectField
-          label="Office location"
+          label="Work site"
           onChange={(value) =>
             setForm((current) => ({ ...current, officeLocationId: value }))
           }

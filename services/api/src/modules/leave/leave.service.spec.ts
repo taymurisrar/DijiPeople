@@ -5,8 +5,8 @@ describe('LeaveService', () => {
   let service: LeaveService;
   let leaveRepository: {
     findLeaveTypeById: jest.Mock;
+    findLeaveTypes: jest.Mock;
     findActiveLeavePolicyAssignments: jest.Mock;
-    listActiveLeavePolicyRules: jest.Mock;
   };
   let employeesRepository: {
     findByUserIdAndTenant: jest.Mock;
@@ -15,8 +15,8 @@ describe('LeaveService', () => {
   beforeEach(() => {
     leaveRepository = {
       findLeaveTypeById: jest.fn(),
+      findLeaveTypes: jest.fn().mockResolvedValue([]),
       findActiveLeavePolicyAssignments: jest.fn().mockResolvedValue([]),
-      listActiveLeavePolicyRules: jest.fn().mockResolvedValue([]),
     };
     employeesRepository = {
       findByUserIdAndTenant: jest.fn(),
@@ -54,7 +54,7 @@ describe('LeaveService', () => {
           leaveTypeId: '6f314f65-cd24-42f2-88ea-5f712fa96f55',
           startDate: '2026-04-10',
           endDate: '2026-04-09',
-        } as never,
+        },
       ),
     ).rejects.toThrow(
       new BadRequestException(
@@ -63,7 +63,7 @@ describe('LeaveService', () => {
     );
   });
 
-  it('returns only active policy leave types available to the current employee', async () => {
+  it('returns active configured leave types for the current employee', async () => {
     employeesRepository.findByUserIdAndTenant.mockResolvedValue({
       id: 'employee-1',
       departmentId: null,
@@ -79,16 +79,14 @@ describe('LeaveService', () => {
         leavePolicy: { id: 'policy-1', name: 'Default', isActive: true },
       },
     ]);
-    leaveRepository.listActiveLeavePolicyRules.mockResolvedValue([
+    leaveRepository.findLeaveTypes.mockResolvedValue([
       {
-        approvalRequired: true,
+        id: 'leave-type-1',
+        name: 'Annual Leave',
+        code: 'ANNUAL',
+        category: 'ANNUAL',
+        requiresApproval: true,
         isPaid: true,
-        leaveType: {
-          id: 'leave-type-1',
-          name: 'Annual Leave',
-          code: 'ANNUAL',
-          category: 'ANNUAL',
-        },
       },
     ]);
 
@@ -113,7 +111,7 @@ describe('LeaveService', () => {
     });
   });
 
-  it('reports when no applicable leave policy is assigned', async () => {
+  it('reports when no active leave types are configured', async () => {
     employeesRepository.findByUserIdAndTenant.mockResolvedValue({
       id: 'employee-1',
       departmentId: null,
@@ -127,7 +125,7 @@ describe('LeaveService', () => {
         userId: 'user-1',
       } as never),
     ).resolves.toEqual({
-      status: 'NO_APPLICABLE_POLICY',
+      status: 'NO_ACTIVE_TYPES',
       leaveTypes: [],
     });
   });

@@ -18,11 +18,15 @@ import { LeaveRequestActionDto } from './dto/leave-request-action.dto';
 import { LeaveRequestQueryDto } from './dto/leave-request-query.dto';
 import { SubmitLeaveRequestDto } from './dto/submit-leave-request.dto';
 import { LeaveService } from './leave.service';
+import { AuditService } from '../audit/audit.service';
 
 @Controller('leave-requests')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class LeaveRequestsController {
-  constructor(private readonly leaveService: LeaveService) {}
+  constructor(
+    private readonly leaveService: LeaveService,
+    private readonly auditService: AuditService,
+  ) {}
 
   @Get('available-types')
   availableTypes(@CurrentUser() user: AuthenticatedUser) {
@@ -65,8 +69,23 @@ export class LeaveRequestsController {
     return this.leaveService.getLeaveRequest(user, id);
   }
 
+  @Get(':id/timeline')
+  @Permissions('leave-requests.read', 'timeline.read')
+  async getTimeline(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    await this.leaveService.getLeaveRequest(user, id);
+    return this.auditService.listRecordTimeline({
+      tenantId: user.tenantId,
+      entityType: 'LeaveRequest',
+      entityId: id,
+      recordHref: `/leaves/${id}`,
+    });
+  }
+
   @Post(':id/approve')
-  @Permissions('leave-requests.approve')
+  @Permissions('leave-requests.read')
   approve(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -76,7 +95,7 @@ export class LeaveRequestsController {
   }
 
   @Post(':id/reject')
-  @Permissions('leave-requests.reject')
+  @Permissions('leave-requests.read')
   reject(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,

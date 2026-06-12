@@ -7,10 +7,12 @@ import {
   GripVertical,
   Plus,
   Save,
+  Search,
   Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { listSupportedSystemWidgets } from "@repo/config";
 import { Button } from "@/app/components/ui/button";
 import {
   CheckboxField,
@@ -24,6 +26,7 @@ import type {
   CustomizationForm,
   CustomizationTable,
   FormLayoutField,
+  FormLayoutComponent,
   FormLayoutJson,
   FormLayoutSection,
 } from "../types";
@@ -73,6 +76,10 @@ export function FormDesignerWorkspace({ columns, form, table }: Props) {
   );
   const [selection, setSelection] = useState<Selection>({ type: "form" });
   const [dragState, setDragState] = useState<DragState>(null);
+  const [paletteSearch, setPaletteSearch] = useState("");
+  const [paletteUsedFilter, setPaletteUsedFilter] = useState("available");
+  const [paletteSourceFilter, setPaletteSourceFilter] = useState("all");
+  const [paletteTypeFilter, setPaletteTypeFilter] = useState("all");
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -83,8 +90,32 @@ export function FormDesignerWorkspace({ columns, form, table }: Props) {
       ),
     ),
   );
-  const availableFields = designerColumns.filter(
-    (column) => !usedFieldKeys.has(column.columnKey),
+  const paletteFields = designerColumns.filter((column) => {
+    const isUsed = usedFieldKeys.has(column.columnKey);
+    const query = paletteSearch.trim().toLowerCase();
+    if (paletteUsedFilter === "available" && isUsed) return false;
+    if (paletteUsedFilter === "used" && !isUsed) return false;
+    if (paletteSourceFilter === "system" && !column.isSystem) return false;
+    if (paletteSourceFilter === "custom" && column.isSystem) return false;
+    if (paletteTypeFilter !== "all" && column.fieldType !== paletteTypeFilter) {
+      return false;
+    }
+    if (!query) return true;
+    return `${column.displayName} ${column.columnKey} ${column.fieldType}`
+      .toLowerCase()
+      .includes(query);
+  });
+  const paletteFieldGroups = groupPaletteFields(paletteFields, usedFieldKeys);
+  const fieldTypeOptions = Array.from(
+    new Set(designerColumns.map((column) => column.fieldType)),
+  ).sort();
+  const supportedWidgets = listSupportedSystemWidgets(table.tableKey);
+  const usedWidgetKeys = new Set(
+    layout.tabs.flatMap((tab) =>
+      tab.sections.flatMap((section) =>
+        (section.components ?? []).map((component) => component.widgetId),
+      ),
+    ),
   );
 
   function updateLayout(updater: (current: FormLayoutJson) => FormLayoutJson) {
@@ -175,30 +206,123 @@ export function FormDesignerWorkspace({ columns, form, table }: Props) {
           <p className="mt-1 text-xs text-muted">
             Only form-designer-valid columns are listed.
           </p>
-          <div className="mt-4 grid gap-2">
-            {availableFields.map((column) => (
-              <button
-                className="rounded-2xl border border-border bg-white px-3 py-3 text-left text-sm transition hover:border-accent/40 hover:bg-accent-soft"
-                key={column.columnKey}
-                onClick={() => addField(column.columnKey)}
-                type="button"
-              >
-                <span className="block font-medium text-foreground">
-                  {column.displayName}
-                  {column.isSystem ? (
-                    <span className="ml-2 text-xs text-muted">locked</span>
-                  ) : null}
-                </span>
-                <span className="mt-1 block text-xs text-muted">
-                  {column.columnKey} · {column.fieldType}
-                </span>
-              </button>
-            ))}
-            {availableFields.length === 0 ? (
+          <div className="mt-3 grid gap-2">
+            <div className="flex items-center gap-2 rounded-md border border-border bg-white px-2 py-1.5">
+              <Search className="h-4 w-4 text-muted" />
+              <input
+                className="w-full bg-transparent text-xs outline-none"
+                onChange={(event) => setPaletteSearch(event.target.value)}
+                placeholder="Search fields"
+                value={paletteSearch}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <SelectField
+                label="Usage"
+                onChange={setPaletteUsedFilter}
+                options={[
+                  { value: "available", label: "Available" },
+                  { value: "used", label: "Used" },
+                  { value: "all", label: "All" },
+                ]}
+                value={paletteUsedFilter}
+              />
+              <SelectField
+                label="Source"
+                onChange={setPaletteSourceFilter}
+                options={[
+                  { value: "all", label: "All" },
+                  { value: "system", label: "System" },
+                  { value: "custom", label: "Custom" },
+                ]}
+                value={paletteSourceFilter}
+              />
+            </div>
+            <SelectField
+              label="Type"
+              onChange={setPaletteTypeFilter}
+              options={[
+                { value: "all", label: "All types" },
+                ...fieldTypeOptions.map((type) => ({
+                  value: type,
+                  label: type,
+                })),
+              ]}
+              value={paletteTypeFilter}
+            />
+          </div>
+          <div className="mt-4 grid max-h-[520px] gap-1.5 overflow-y-auto pr-1">
+            {paletteFieldGroups
+              .flatMap((group) => group.fields)
+              .map((column) => (
+                <button
+                  className="rounded-md border border-border bg-white px-2.5 py-2 text-left text-xs transition hover:border-accent/40 hover:bg-accent-soft"
+                  key={column.columnKey}
+                  onClick={() => addField(column.columnKey)}
+                  type="button"
+                >
+                  <span className="block font-medium text-foreground">
+                    {column.displayName}
+                    {column.isSystem ? (
+                      <span className="ml-2 text-xs text-muted">locked</span>
+                    ) : null}
+                  </span>
+                  <span className="mt-1 block text-xs text-muted">
+                    {column.columnKey} · {column.fieldType}
+                  </span>
+                </button>
+              ))}
+            {paletteFields.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-border px-3 py-6 text-sm text-muted">
-                All available fields are already on this form.
+                No fields match the current palette filters.
               </div>
             ) : null}
+          </div>
+          <div className="mt-5 border-t border-border pt-4">
+            <p className="text-sm font-semibold text-foreground">
+              System Widgets
+            </p>
+            <p className="mt-1 text-xs text-muted">
+              Only Widgets supported by this Module are available.
+            </p>
+            <div className="mt-3 grid gap-2">
+              {supportedWidgets.map((widget) => {
+                const used = usedWidgetKeys.has(widget.widgetKey);
+                return (
+                  <Button
+                    disabled={used}
+                    key={widget.widgetKey}
+                    onClick={() =>
+                      addWidget({
+                        id: uniqueKey(
+                          "widget",
+                          Array.from(usedWidgetKeys),
+                        ),
+                        componentType: "widget",
+                        widgetId: widget.widgetKey,
+                        widgetType: widget.aliases[0] ?? widget.widgetKey,
+                        label: widget.displayName,
+                        columnSpan: 1,
+                      })
+                    }
+                    size="sm"
+                    type="button"
+                    variant="secondary"
+                  >
+                    {used ? `${widget.displayName} added` : widget.displayName}
+                  </Button>
+                );
+              })}
+              <Button
+                disabled
+                size="sm"
+                title="Custom Widget execution requires future plugin or code-activity registration."
+                type="button"
+                variant="ghost"
+              >
+                Custom Widget (future)
+              </Button>
+            </div>
           </div>
         </aside>
 
@@ -250,10 +374,12 @@ export function FormDesignerWorkspace({ columns, form, table }: Props) {
                   </Button>
                 </div>
 
-                <div className="mt-4 grid gap-4">
+                <div
+                  className={`mt-4 grid gap-4 ${gridClass(tab.columns ?? 1)}`}
+                >
                   {tab.sections.map((section) => (
                     <div
-                      className="rounded-2xl border border-border bg-slate-50 p-4"
+                      className={`rounded-2xl border border-border bg-slate-50 p-4 ${spanClass(section.columnSpan ?? 1, tab.columns ?? 1)}`}
                       draggable
                       key={section.id}
                       onClick={(event) => {
@@ -298,14 +424,14 @@ export function FormDesignerWorkspace({ columns, form, table }: Props) {
                       </div>
 
                       <div
-                        className={`grid gap-3 ${sectionGridClass(section.columns)}`}
+                        className={`grid gap-3 ${gridClass(section.columns ?? 2)}`}
                         onDragOver={(event) => event.preventDefault()}
                       >
                         {(section.fields ?? []).map((field) => {
                           const column = columnByKey.get(field.columnKey);
                           return (
                             <div
-                              className="rounded-xl border border-border bg-white px-3 py-3"
+                              className={`rounded-xl border border-border bg-white px-3 py-3 ${spanClass(field.columnSpan ?? 1, section.columns ?? 2)}`}
                               draggable
                               key={`${section.id}-${field.columnKey}`}
                               onClick={(event) => {
@@ -352,6 +478,39 @@ export function FormDesignerWorkspace({ columns, form, table }: Props) {
                             </div>
                           );
                         })}
+                        {(section.components ?? []).map((component) => (
+                          <div
+                            className={`rounded-xl border border-accent/30 bg-accent-soft px-3 py-3 ${spanClass(component.columnSpan ?? 1, section.columns ?? 2)}`}
+                            key={component.id}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <div>
+                                <p className="text-sm font-medium text-foreground">
+                                  {component.label ?? component.widgetId}
+                                </p>
+                                <p className="text-xs text-muted">
+                                  {component.widgetId} · System Widget
+                                </p>
+                              </div>
+                              <Button
+                                leftIcon={<Trash2 className="h-4 w-4" />}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  removeWidget(
+                                    tab.id,
+                                    section.id,
+                                    component.id,
+                                  );
+                                }}
+                                size="xs"
+                                type="button"
+                                variant="ghost"
+                              >
+                                Remove
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   ))}
@@ -384,6 +543,7 @@ export function FormDesignerWorkspace({ columns, form, table }: Props) {
             current.tabs.map((tab) => tab.id),
           ),
           label: `Tab ${current.tabs.length + 1}`,
+          columns: 1,
           sections: [],
         },
       ],
@@ -406,6 +566,7 @@ export function FormDesignerWorkspace({ columns, form, table }: Props) {
                   label: `Section ${tab.sections.length + 1}`,
                   labelVisible: true,
                   columns: 2,
+                  columnSpan: 1,
                   isVisible: true,
                   fields: [],
                 },
@@ -432,7 +593,7 @@ export function FormDesignerWorkspace({ columns, form, table }: Props) {
                 labelVisible: true,
                 columns: 2,
                 isVisible: true,
-                fields: [{ columnKey, isVisible: true }],
+                fields: [{ columnKey, isVisible: true, columnSpan: 1 }],
               },
             ],
           },
@@ -452,8 +613,9 @@ export function FormDesignerWorkspace({ columns, form, table }: Props) {
                     label: "General",
                     labelVisible: true,
                     columns: 2,
+                    columnSpan: 1,
                     isVisible: true,
-                    fields: [{ columnKey, isVisible: true }],
+                    fields: [{ columnKey, isVisible: true, columnSpan: 1 }],
                   },
                 ],
               }
@@ -473,8 +635,58 @@ export function FormDesignerWorkspace({ columns, form, table }: Props) {
                       ...section,
                       fields: [
                         ...(section.fields ?? []),
-                        { columnKey, isVisible: true },
+                        { columnKey, isVisible: true, columnSpan: 1 },
                       ],
+                    }
+                  : section,
+              ),
+            }
+          : tab,
+      ),
+    }));
+  }
+
+  function addWidget(component: FormLayoutComponent) {
+    const firstTab = layout.tabs.find((tab) => tab.tabType !== "related_module");
+    const firstSection = firstTab?.sections[0];
+    if (!firstTab || !firstSection) {
+      setError("Add a Field tab and Section before placing a Widget.");
+      return;
+    }
+    updateLayout((current) => ({
+      ...current,
+      tabs: current.tabs.map((tab) =>
+        tab.id === firstTab.id
+          ? {
+              ...tab,
+              sections: tab.sections.map((section) =>
+                section.id === firstSection.id
+                  ? {
+                      ...section,
+                      components: [...(section.components ?? []), component],
+                    }
+                  : section,
+              ),
+            }
+          : tab,
+      ),
+    }));
+  }
+
+  function removeWidget(tabId: string, sectionId: string, componentId: string) {
+    updateLayout((current) => ({
+      ...current,
+      tabs: current.tabs.map((tab) =>
+        tab.id === tabId
+          ? {
+              ...tab,
+              sections: tab.sections.map((section) =>
+                section.id === sectionId
+                  ? {
+                      ...section,
+                      components: (section.components ?? []).filter(
+                        (component) => component.id !== componentId,
+                      ),
                     }
                   : section,
               ),
@@ -597,10 +809,11 @@ function PropertiesPanel({
                 }))
               }
               options={[
-                { value: "main", label: "Main" },
-                { value: "quick", label: "Quick" },
-                { value: "create", label: "Create" },
-                { value: "edit", label: "Edit" },
+                { value: "main", label: "Main Form" },
+                { value: "minimal", label: "Minimal Form" },
+                { value: "quick", label: "Quick Create Form" },
+                { value: "card", label: "Card Form" },
+                { value: "lookup", label: "Lookup Form" },
               ]}
               value={form.type}
             />
@@ -647,6 +860,20 @@ function PropertiesPanel({
               value={selectedTab.id}
               disabled
             />
+            <SelectField
+              label="Tab columns"
+              onChange={(columns) =>
+                onChangeLayout((current) => ({
+                  tabs: current.tabs.map((tab) =>
+                    tab.id === selectedTab.id
+                      ? { ...tab, columns: clampColumns(columns) }
+                      : tab,
+                  ),
+                }))
+              }
+              options={layoutOptions()}
+              value={String(selectedTab.columns ?? 1)}
+            />
             <Button
               leftIcon={<Trash2 className="h-4 w-4" />}
               onClick={() => {
@@ -686,7 +913,7 @@ function PropertiesPanel({
               disabled
             />
             <SelectField
-              label="Layout"
+              label="Section columns"
               onChange={(columns) =>
                 patchSection(
                   onChangeLayout,
@@ -697,12 +924,26 @@ function PropertiesPanel({
                   },
                 )
               }
-              options={[
-                { value: "1", label: "1 column" },
-                { value: "2", label: "2 columns" },
-                { value: "3", label: "3 columns" },
-              ]}
+              options={[...layoutOptions()]}
               value={String(selectedSection.columns ?? 2)}
+            />
+            <SelectField
+              label="Section span"
+              onChange={(columnSpan) =>
+                patchSection(
+                  onChangeLayout,
+                  sectionSelection.tabId,
+                  selectedSection.id,
+                  {
+                    columnSpan: clampSpan(
+                      columnSpan,
+                      selectedTab?.columns ?? 1,
+                    ),
+                  },
+                )
+              }
+              options={layoutOptions(selectedTab?.columns ?? 1)}
+              value={String(selectedSection.columnSpan ?? 1)}
             />
             <CheckboxField
               checked={selectedSection.labelVisible !== false}
@@ -761,6 +1002,19 @@ function PropertiesPanel({
                 patchField(onChangeLayout, fieldSelection, { isVisible })
               }
             />
+            <SelectField
+              label="Field span"
+              onChange={(columnSpan) =>
+                patchField(onChangeLayout, fieldSelection, {
+                  columnSpan: clampSpan(
+                    columnSpan,
+                    selectedSection?.columns ?? 2,
+                  ),
+                })
+              }
+              options={layoutOptions(selectedSection?.columns ?? 2)}
+              value={String(selectedField.columnSpan ?? 1)}
+            />
             <CheckboxField
               checked={Boolean(selectedField.required)}
               label="Required on this form"
@@ -801,18 +1055,21 @@ function normalizeLayout(
   layout: FormLayoutJson | undefined,
   columns: CustomizationColumn[],
 ): FormLayoutJson {
-  if (layout?.tabs?.length) return resequenceLayout(layout);
+  if (layout?.tabs?.length) return resequenceLayout(normalizeSpans(layout));
   return resequenceLayout({
+    columns: 1,
     tabs: [
       {
         id: "main",
         label: "Main",
+        columns: 1,
         sections: [
           {
             id: "general",
             label: "General",
             labelVisible: true,
             columns: 2,
+            columnSpan: 1,
             isVisible: true,
             fields: columns.slice(0, 8).map((column) => ({
               columnKey: column.columnKey,
@@ -820,6 +1077,7 @@ function normalizeLayout(
               isVisible: true,
               required: column.isRequired,
               readOnly: column.isReadOnly,
+              columnSpan: 1,
             })),
           },
         ],
@@ -828,9 +1086,38 @@ function normalizeLayout(
   });
 }
 
-function resequenceLayout(layout: FormLayoutJson): FormLayoutJson {
+function normalizeSpans(layout: FormLayoutJson): FormLayoutJson {
   return {
-    tabs: layout.tabs.map((tab, tabIndex) => ({
+    ...layout,
+    columns: clampColumns(layout.columns ?? 1),
+    tabs: layout.tabs.map((tab) => ({
+      ...tab,
+      columns: clampColumns(tab.columns ?? 1),
+      sections: (tab.sections ?? []).map((section) => ({
+        ...section,
+        columns: clampColumns(section.columns ?? 2),
+        columnSpan: clampSpan(section.columnSpan ?? 1, tab.columns ?? 1),
+        fields: (section.fields ?? []).map((field) => ({
+          ...field,
+          columnSpan: clampSpan(field.columnSpan ?? 1, section.columns ?? 2),
+        })),
+        components: (section.components ?? []).map((component) => ({
+          ...component,
+          columnSpan: clampSpan(
+            component.columnSpan ?? 1,
+            section.columns ?? 2,
+          ),
+        })),
+      })),
+    })),
+  };
+}
+
+function resequenceLayout(layout: FormLayoutJson): FormLayoutJson {
+  const normalized = normalizeSpans(layout);
+  return {
+    ...normalized,
+    tabs: normalized.tabs.map((tab, tabIndex) => ({
       ...tab,
       sequence: tabIndex * 10,
       sections: (tab.sections ?? []).map((section, sectionIndex) => ({
@@ -840,15 +1127,103 @@ function resequenceLayout(layout: FormLayoutJson): FormLayoutJson {
           ...field,
           sequence: fieldIndex * 10,
         })),
+        components: (section.components ?? []).map(
+          (component, componentIndex) => ({
+            ...component,
+            sequence: componentIndex * 10,
+          }),
+        ),
       })),
     })),
   };
 }
 
-function sectionGridClass(columns = 2) {
+function gridClass(columns = 2) {
   if (columns === 1) return "md:grid-cols-1";
   if (columns === 3) return "md:grid-cols-3";
+  if (columns === 4) return "md:grid-cols-4";
   return "md:grid-cols-2";
+}
+
+function spanClass(span: number, parentColumns: number) {
+  const normalized = Math.min(Math.max(span, 1), parentColumns);
+  if (normalized === 4) return "md:col-span-4";
+  if (normalized === 3) return "md:col-span-3";
+  if (normalized === 2) return "md:col-span-2";
+  return "md:col-span-1";
+}
+
+function clampColumns(value: unknown): 1 | 2 | 3 | 4 {
+  const numeric = Number(value);
+  if (numeric === 4) return 4;
+  if (numeric === 3) return 3;
+  if (numeric === 2) return 2;
+  return 1;
+}
+
+function clampSpan(value: unknown, parentColumns: unknown): 1 | 2 | 3 | 4 {
+  const parent = clampColumns(parentColumns);
+  const numeric = Math.min(Number(value) || 1, parent);
+  return clampColumns(numeric);
+}
+
+function layoutOptions(maxColumns: unknown = 4) {
+  const max = clampColumns(maxColumns);
+  return [1, 2, 3, 4]
+    .filter((value) => value <= max)
+    .map((value) => ({
+      value: String(value),
+      label: `${value} column${value === 1 ? "" : "s"}`,
+    }));
+}
+
+function groupPaletteFields(
+  fields: CustomizationColumn[],
+  usedFieldKeys: Set<string>,
+) {
+  const hiddenOrLocked = (field: CustomizationColumn) =>
+    field.isVisible === false || usedFieldKeys.has(field.columnKey);
+  const groups = [
+    {
+      label: "System Fields",
+      fields: fields.filter(
+        (field) =>
+          field.isSystem &&
+          field.isVisible !== false &&
+          field.isReadOnly !== true &&
+          !hiddenOrLocked(field),
+      ),
+    },
+    {
+      label: "Business Fields",
+      fields: fields.filter(
+        (field) =>
+          field.isSystem &&
+          field.isVisible !== false &&
+          field.isReadOnly === true &&
+          !hiddenOrLocked(field),
+      ),
+    },
+    {
+      label: "Custom Fields",
+      fields: fields.filter(
+        (field) => !field.isSystem && !hiddenOrLocked(field),
+      ),
+    },
+    {
+      label: "Hidden/Locked Fields",
+      fields: fields.filter(hiddenOrLocked),
+    },
+  ];
+
+  return groups
+    .map((group) => ({
+      ...group,
+      fields: Array.from(
+        new Map(group.fields.map((field) => [field.columnKey, field])).values(),
+      ),
+    }))
+    .filter((group) => group.fields.length > 0);
 }
 
 function uniqueKey(prefix: string, existing: string[]) {

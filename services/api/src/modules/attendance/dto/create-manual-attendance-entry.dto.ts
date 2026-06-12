@@ -33,6 +33,10 @@ export class CreateManualAttendanceEntryDto {
   @IsEnum(AttendanceMode)
   attendanceMode!: AttendanceMode;
 
+  @IsOptional()
+  @IsUUID()
+  shiftTemplateId?: string;
+
   @ValidateIf(
     (value: CreateManualAttendanceEntryDto) =>
       value.attendanceMode === AttendanceMode.OFFICE,

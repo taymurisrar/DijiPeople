@@ -94,6 +94,18 @@ export const MISC_PERMISSION_KEYS = {
   REPORTS_EXPORT: 'reports.export',
   CUSTOMIZATION_ACCESS: 'customization.access',
   CUSTOMIZATION_PUBLISH: 'customization.publish',
+  CUSTOMIZATION_MODULES_READ: 'customization.modules.read',
+  CUSTOMIZATION_MODULES_MANAGE: 'customization.modules.manage',
+  CUSTOMIZATION_FIELDS_MANAGE: 'customization.fields.manage',
+  CUSTOMIZATION_FORMS_MANAGE: 'customization.forms.manage',
+  CUSTOMIZATION_VIEWS_MANAGE: 'customization.views.manage',
+  CUSTOMIZATION_CHOICE_LISTS_MANAGE: 'customization.choice-lists.manage',
+  CUSTOMIZATION_RELATIONSHIPS_MANAGE: 'customization.relationships.manage',
+  CUSTOMIZATION_ACTION_BARS_MANAGE: 'customization.action-bars.manage',
+  CUSTOMIZATION_PACKAGES_MANAGE: 'customization.packages.manage',
+  CUSTOMIZATION_PUBLISH_CENTER_READ: 'customization.publish-center.read',
+  CUSTOMIZATION_IMPORT_PREVIEW: 'customization.import.preview',
+  CUSTOMIZATION_EXPORT: 'customization.export',
   NOTIFICATION_TEMPLATES_MANAGE: 'notification.templates.manage',
   ORGANIZATION_MANAGE: 'organization.manage',
 
@@ -345,6 +357,78 @@ export const MISC_PERMISSION_DEFINITIONS: MiscPermissionDefinition[] = [
     key: MISC_PERMISSION_KEYS.CUSTOMIZATION_PUBLISH,
     label: 'Publish customization',
     description: 'Publish metadata changes to tenant users.',
+    category: 'Customization',
+  },
+  {
+    key: MISC_PERMISSION_KEYS.CUSTOMIZATION_MODULES_READ,
+    label: 'Read customization modules',
+    description: 'View module metadata in customization workspaces.',
+    category: 'Customization',
+  },
+  {
+    key: MISC_PERMISSION_KEYS.CUSTOMIZATION_MODULES_MANAGE,
+    label: 'Manage customization modules',
+    description: 'Manage module metadata in customization workspaces.',
+    category: 'Customization',
+  },
+  {
+    key: MISC_PERMISSION_KEYS.CUSTOMIZATION_FIELDS_MANAGE,
+    label: 'Manage customization fields',
+    description: 'Manage field metadata in customization workspaces.',
+    category: 'Customization',
+  },
+  {
+    key: MISC_PERMISSION_KEYS.CUSTOMIZATION_FORMS_MANAGE,
+    label: 'Manage customization forms',
+    description: 'Manage form metadata in customization workspaces.',
+    category: 'Customization',
+  },
+  {
+    key: MISC_PERMISSION_KEYS.CUSTOMIZATION_VIEWS_MANAGE,
+    label: 'Manage customization views',
+    description: 'Manage view metadata in customization workspaces.',
+    category: 'Customization',
+  },
+  {
+    key: MISC_PERMISSION_KEYS.CUSTOMIZATION_CHOICE_LISTS_MANAGE,
+    label: 'Manage customization choice lists',
+    description: 'Manage choice-list metadata in customization workspaces.',
+    category: 'Customization',
+  },
+  {
+    key: MISC_PERMISSION_KEYS.CUSTOMIZATION_RELATIONSHIPS_MANAGE,
+    label: 'Manage customization relationships',
+    description: 'Manage relationship metadata in customization workspaces.',
+    category: 'Customization',
+  },
+  {
+    key: MISC_PERMISSION_KEYS.CUSTOMIZATION_ACTION_BARS_MANAGE,
+    label: 'Manage customization action bars',
+    description: 'Manage action bar metadata in customization workspaces.',
+    category: 'Customization',
+  },
+  {
+    key: MISC_PERMISSION_KEYS.CUSTOMIZATION_PACKAGES_MANAGE,
+    label: 'Manage customization packages',
+    description: 'Manage metadata packages and package components.',
+    category: 'Customization',
+  },
+  {
+    key: MISC_PERMISSION_KEYS.CUSTOMIZATION_PUBLISH_CENTER_READ,
+    label: 'Read publish center',
+    description: 'Open the customization publish center.',
+    category: 'Customization',
+  },
+  {
+    key: MISC_PERMISSION_KEYS.CUSTOMIZATION_IMPORT_PREVIEW,
+    label: 'Preview customization imports',
+    description: 'Preview customization package imports before applying them.',
+    category: 'Customization',
+  },
+  {
+    key: MISC_PERMISSION_KEYS.CUSTOMIZATION_EXPORT,
+    label: 'Export customization',
+    description: 'Export customization package metadata.',
     category: 'Customization',
   },
   {
@@ -680,15 +764,33 @@ export const SYSTEM_ROLE_PRIVILEGES: Record<
 };
 
 export const SYSTEM_ROLE_MISC_PERMISSIONS: Record<SystemRoleKey, string[]> = {
-  [ROLE_KEYS.GLOBAL_ADMIN]: MISC_PERMISSION_DEFINITIONS.map(
-    (permission) => permission.key,
-  ),
-  [ROLE_KEYS.SYSTEM_ADMIN]: MISC_PERMISSION_DEFINITIONS.map(
-    (permission) => permission.key,
-  ).filter((key) => key !== MISC_PERMISSION_KEYS.SUPPORT_IMPERSONATE),
+  [ROLE_KEYS.GLOBAL_ADMIN]: [
+    ...MISC_PERMISSION_DEFINITIONS.map((permission) => permission.key),
+    'approvals.read',
+    'timeline.read',
+  ],
+  [ROLE_KEYS.SYSTEM_ADMIN]: [
+    ...MISC_PERMISSION_DEFINITIONS.map((permission) => permission.key).filter(
+      (key) => key !== MISC_PERMISSION_KEYS.SUPPORT_IMPERSONATE,
+    ),
+    'approvals.read',
+    'timeline.read',
+  ],
   [ROLE_KEYS.SYSTEM_CUSTOMIZER]: [
     MISC_PERMISSION_KEYS.CUSTOMIZATION_ACCESS,
     MISC_PERMISSION_KEYS.CUSTOMIZATION_PUBLISH,
+    MISC_PERMISSION_KEYS.CUSTOMIZATION_MODULES_READ,
+    MISC_PERMISSION_KEYS.CUSTOMIZATION_MODULES_MANAGE,
+    MISC_PERMISSION_KEYS.CUSTOMIZATION_FIELDS_MANAGE,
+    MISC_PERMISSION_KEYS.CUSTOMIZATION_FORMS_MANAGE,
+    MISC_PERMISSION_KEYS.CUSTOMIZATION_VIEWS_MANAGE,
+    MISC_PERMISSION_KEYS.CUSTOMIZATION_CHOICE_LISTS_MANAGE,
+    MISC_PERMISSION_KEYS.CUSTOMIZATION_RELATIONSHIPS_MANAGE,
+    MISC_PERMISSION_KEYS.CUSTOMIZATION_ACTION_BARS_MANAGE,
+    MISC_PERMISSION_KEYS.CUSTOMIZATION_PACKAGES_MANAGE,
+    MISC_PERMISSION_KEYS.CUSTOMIZATION_PUBLISH_CENTER_READ,
+    MISC_PERMISSION_KEYS.CUSTOMIZATION_IMPORT_PREVIEW,
+    MISC_PERMISSION_KEYS.CUSTOMIZATION_EXPORT,
   ],
   [ROLE_KEYS.CEO]: [
     MISC_PERMISSION_KEYS.AUDIT_VIEW,
@@ -701,10 +803,24 @@ export const SYSTEM_ROLE_MISC_PERMISSIONS: Record<SystemRoleKey, string[]> = {
     MISC_PERMISSION_KEYS.AUDIT_VIEW,
     MISC_PERMISSION_KEYS.REPORTS_EXPORT,
     MISC_PERMISSION_KEYS.ORGANIZATION_MANAGE,
+    'approvals.read',
+    'hierarchy.read',
+    'timeline.read',
   ],
   [ROLE_KEYS.PAYROLL_MANAGER]: [MISC_PERMISSION_KEYS.REPORTS_EXPORT],
   [ROLE_KEYS.RECRUITER]: [],
-  [ROLE_KEYS.EMPLOYEE]: [],
+  [ROLE_KEYS.EMPLOYEE]: [
+    'approvals.readOwn',
+    'attendance.checkin',
+    'attendance.checkout',
+    'hierarchy.read',
+    'inbox.archive',
+    'inbox.dismiss',
+    'inbox.markRead',
+    'inbox.read',
+    'notifications.read',
+    'timeline.read',
+  ],
 };
 
 export const SECURITY_ACCESS_LEVEL_WEIGHT: Record<SecurityAccessLevel, number> =

@@ -9,6 +9,7 @@ import {
   ExchangeRateSource,
   HalfDayPeriod,
   HolidayType,
+  HolidayScopeType,
   PayCycle,
   Prisma,
   ProjectApprovalMode,
@@ -102,6 +103,10 @@ export class EnterpriseConfigurationService {
           timezone: normalizeTimezone(body.timezone) ?? 'UTC',
           countryCode: normalizeCountryCode(body.countryCode),
           regionCode: readNullableString(body.regionCode),
+          weekendDays: readWeekdays(body.weekendDays) ?? [
+            WorkWeekday.FRIDAY,
+            WorkWeekday.SATURDAY,
+          ],
           isDefault: readBoolean(body.isDefault) ?? false,
           status: readEnum(body.status, ConfigurationStatus) ?? 'ACTIVE',
           effectiveStartDate: dateRange.effectiveStartDate,
@@ -174,6 +179,12 @@ export class EnterpriseConfigurationService {
             : {}),
           ...(body.regionCode !== undefined
             ? { regionCode: readNullableString(body.regionCode) }
+            : {}),
+          ...(body.weekendDays !== undefined
+            ? {
+                weekendDays:
+                  readWeekdays(body.weekendDays) ?? existing.weekendDays,
+              }
             : {}),
           ...(body.isDefault !== undefined
             ? { isDefault: readBoolean(body.isDefault) ?? false }
@@ -286,6 +297,12 @@ export class EnterpriseConfigurationService {
         description: readNullableString(body.description),
         holidayDate,
         type: readEnum(body.type, HolidayType) ?? 'PUBLIC',
+        scopeType:
+          readEnum(body.scopeType, HolidayScopeType) ?? HolidayScopeType.TENANT,
+        departmentId: readNullableString(body.departmentId),
+        locationId: readNullableString(body.locationId),
+        isPaid: readBoolean(body.isPaid) ?? true,
+        isActive: readBoolean(body.isActive) ?? true,
         isRecurring: readBoolean(body.isRecurring) ?? false,
         recurrenceRule: readNullableString(body.recurrenceRule),
         isHalfDay: readBoolean(body.isHalfDay) ?? false,
@@ -345,6 +362,25 @@ export class EnterpriseConfigurationService {
         ...(body.holidayDate !== undefined ? { holidayDate: nextDate } : {}),
         ...(body.type !== undefined
           ? { type: readEnum(body.type, HolidayType) ?? existing.type }
+          : {}),
+        ...(body.scopeType !== undefined
+          ? {
+              scopeType:
+                readEnum(body.scopeType, HolidayScopeType) ??
+                HolidayScopeType.TENANT,
+            }
+          : {}),
+        ...(body.departmentId !== undefined
+          ? { departmentId: readNullableString(body.departmentId) }
+          : {}),
+        ...(body.locationId !== undefined
+          ? { locationId: readNullableString(body.locationId) }
+          : {}),
+        ...(body.isPaid !== undefined
+          ? { isPaid: readBoolean(body.isPaid) ?? true }
+          : {}),
+        ...(body.isActive !== undefined
+          ? { isActive: readBoolean(body.isActive) ?? true }
           : {}),
         ...(body.isRecurring !== undefined
           ? { isRecurring: readBoolean(body.isRecurring) ?? false }
@@ -466,6 +502,7 @@ export class EnterpriseConfigurationService {
       include: {
         days: { orderBy: [{ sortOrder: 'asc' }] },
         shiftTemplates: true,
+        holidayCalendar: { select: { id: true, name: true, code: true } },
       },
       orderBy: [{ isDefault: 'desc' }, { name: 'asc' }],
     });
@@ -477,14 +514,23 @@ export class EnterpriseConfigurationService {
   ) {
     const data = this.readWorkScheduleData(currentUser, body);
     await this.assertValidScopedReferences(currentUser.tenantId, data.scope);
+    await this.assertWorkConfigurationReferences(currentUser.tenantId, body);
     const schedule = await this.prisma.workSchedule.create({
       data: {
         ...data.create,
         days: {
-          create: readScheduleDays(body.days, currentUser.tenantId),
+          create: readScheduleDays(
+            body.days,
+            currentUser.tenantId,
+            readString(body.defaultShiftTemplateId),
+          ),
         },
       },
-      include: { days: true, shiftTemplates: true },
+      include: {
+        days: { include: { shiftTemplate: true } },
+        shiftTemplates: true,
+        holidayCalendar: true,
+      },
     });
     await this.audit(
       currentUser,
@@ -510,6 +556,7 @@ export class EnterpriseConfigurationService {
 
     const data = this.readWorkScheduleData(currentUser, body, existing);
     await this.assertValidScopedReferences(currentUser.tenantId, data.scope);
+    await this.assertWorkConfigurationReferences(currentUser.tenantId, body);
     const schedule = await this.prisma.$transaction(async (tx) => {
       if (Array.isArray(body.days)) {
         await tx.workScheduleDay.deleteMany({ where: { workScheduleId: id } });
@@ -521,12 +568,20 @@ export class EnterpriseConfigurationService {
           ...(Array.isArray(body.days)
             ? {
                 days: {
-                  create: readScheduleDays(body.days, currentUser.tenantId),
+                  create: readScheduleDays(
+                    body.days,
+                    currentUser.tenantId,
+                    readString(body.defaultShiftTemplateId),
+                  ),
                 },
               }
             : {}),
         },
-        include: { days: true, shiftTemplates: true },
+        include: {
+          days: { include: { shiftTemplate: true } },
+          shiftTemplates: true,
+          holidayCalendar: true,
+        },
       });
     });
     await this.audit(
@@ -565,6 +620,186 @@ export class EnterpriseConfigurationService {
       },
     );
     return { id, archived: true };
+  }
+
+  async listShiftTemplates(tenantId: string) {
+    return this.prisma.shiftTemplate.findMany({
+      where: { tenantId },
+      include: { workSchedule: { select: { id: true, name: true } } },
+      orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
+    });
+  }
+
+  async createShiftTemplate(
+    currentUser: AuthenticatedUser,
+    body: Record<string, unknown>,
+  ) {
+    const data = this.readShiftTemplateData(currentUser, body);
+    const shift = await this.prisma.shiftTemplate.create({ data });
+    await this.audit(
+      currentUser,
+      'shift-template.create',
+      'ShiftTemplate',
+      shift.id,
+      null,
+      shift,
+    );
+    return shift;
+  }
+
+  async updateShiftTemplate(
+    currentUser: AuthenticatedUser,
+    id: string,
+    body: Record<string, unknown>,
+  ) {
+    const existing = await this.prisma.shiftTemplate.findFirst({
+      where: { id, tenantId: currentUser.tenantId },
+    });
+    if (!existing) throw new NotFoundException('Shift was not found.');
+    const data = this.readShiftTemplateData(currentUser, body, existing);
+    const updateData: Prisma.ShiftTemplateUncheckedUpdateInput = { ...data };
+    delete updateData.tenantId;
+    delete updateData.createdById;
+    const shift = await this.prisma.shiftTemplate.update({
+      where: { id },
+      data: updateData,
+    });
+    await this.audit(
+      currentUser,
+      'shift-template.update',
+      'ShiftTemplate',
+      id,
+      existing,
+      shift,
+    );
+    return shift;
+  }
+
+  async archiveShiftTemplate(currentUser: AuthenticatedUser, id: string) {
+    const existing = await this.prisma.shiftTemplate.findFirst({
+      where: { id, tenantId: currentUser.tenantId },
+    });
+    if (!existing) throw new NotFoundException('Shift was not found.');
+    await this.prisma.shiftTemplate.update({
+      where: { id },
+      data: {
+        isActive: false,
+        status: ConfigurationStatus.ARCHIVED,
+        updatedById: currentUser.userId,
+      },
+    });
+    return { id, archived: true };
+  }
+
+  async listEmployeeScheduleAssignments(tenantId: string) {
+    return this.prisma.employeeScheduleAssignment.findMany({
+      where: { tenantId },
+      include: {
+        employee: {
+          select: {
+            id: true,
+            employeeCode: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        workSchedule: { select: { id: true, name: true, code: true } },
+      },
+      orderBy: [{ isActive: 'desc' }, { effectiveFrom: 'desc' }],
+    });
+  }
+
+  async createEmployeeScheduleAssignment(
+    currentUser: AuthenticatedUser,
+    body: Record<string, unknown>,
+  ) {
+    const employeeId = requiredString(body.employeeId, 'Employee is required.');
+    const workScheduleId = requiredString(
+      body.workScheduleId,
+      'Work schedule is required.',
+    );
+    const effectiveFrom = requiredDate(
+      body.effectiveFrom,
+      'Effective from date is required.',
+    );
+    const effectiveTo = readDate(body.effectiveTo);
+    if (effectiveTo && effectiveTo < effectiveFrom) {
+      throw new BadRequestException(
+        'Effective to date cannot be before effective from date.',
+      );
+    }
+    const [employee, schedule] = await Promise.all([
+      this.prisma.employee.findFirst({
+        where: {
+          id: employeeId,
+          tenantId: currentUser.tenantId,
+          isDeleted: false,
+        },
+        select: { id: true },
+      }),
+      this.prisma.workSchedule.findFirst({
+        where: {
+          id: workScheduleId,
+          tenantId: currentUser.tenantId,
+          isActive: true,
+        },
+        select: { id: true },
+      }),
+    ]);
+    if (!employee) throw new BadRequestException('Employee was not found.');
+    if (!schedule)
+      throw new BadRequestException('Work schedule was not found.');
+
+    const assignment = await this.prisma.$transaction(async (tx) => {
+      await tx.employeeScheduleAssignment.updateMany({
+        where: {
+          tenantId: currentUser.tenantId,
+          employeeId,
+          isActive: true,
+          effectiveFrom: { lte: effectiveTo ?? new Date('9999-12-31') },
+          OR: [{ effectiveTo: null }, { effectiveTo: { gte: effectiveFrom } }],
+        },
+        data: {
+          isActive: false,
+          updatedById: currentUser.userId,
+        },
+      });
+      return tx.employeeScheduleAssignment.create({
+        data: {
+          tenantId: currentUser.tenantId,
+          employeeId,
+          workScheduleId,
+          effectiveFrom,
+          effectiveTo,
+          reason: readNullableString(body.reason),
+          isActive: true,
+          createdById: currentUser.userId,
+          updatedById: currentUser.userId,
+        },
+      });
+    });
+    await this.audit(
+      currentUser,
+      'employee-schedule-assignment.create',
+      'EmployeeScheduleAssignment',
+      assignment.id,
+      null,
+      assignment,
+    );
+    return assignment;
+  }
+
+  async deactivateEmployeeScheduleAssignment(
+    currentUser: AuthenticatedUser,
+    id: string,
+  ) {
+    const result = await this.prisma.employeeScheduleAssignment.updateMany({
+      where: { id, tenantId: currentUser.tenantId },
+      data: { isActive: false, updatedById: currentUser.userId },
+    });
+    if (!result.count)
+      throw new NotFoundException('Schedule assignment was not found.');
+    return { id, deactivated: true };
   }
 
   async listPayrollRegions(tenantId: string) {
@@ -973,6 +1208,7 @@ export class EnterpriseConfigurationService {
       organizationId: string | null;
       businessUnitId: string | null;
       projectId: string | null;
+      holidayCalendarId: string | null;
       timezone: string;
       standardStartTime: string;
       standardEndTime: string;
@@ -991,6 +1227,10 @@ export class EnterpriseConfigurationService {
     const create = {
       tenantId: currentUser.tenantId,
       ...scope,
+      holidayCalendarId:
+        body.holidayCalendarId !== undefined
+          ? readNullableString(body.holidayCalendarId)
+          : (existing?.holidayCalendarId ?? null),
       name: requiredString(
         body.name ?? existing?.name,
         'Work schedule name is required.',
@@ -1028,6 +1268,123 @@ export class EnterpriseConfigurationService {
     delete (update as Partial<typeof create>).tenantId;
     delete (update as Partial<typeof create>).createdById;
     return { create, update, scope };
+  }
+
+  private async assertWorkConfigurationReferences(
+    tenantId: string,
+    body: Record<string, unknown>,
+  ) {
+    const holidayCalendarId = readString(body.holidayCalendarId);
+    const shiftIds = [
+      readString(body.defaultShiftTemplateId),
+      ...(Array.isArray(body.days)
+        ? body.days.map((day) =>
+            day && typeof day === 'object' && !Array.isArray(day)
+              ? readString((day as Record<string, unknown>).shiftTemplateId)
+              : undefined,
+          )
+        : []),
+    ].filter((value): value is string => Boolean(value));
+
+    const [calendar, shiftCount] = await Promise.all([
+      holidayCalendarId
+        ? this.prisma.holidayCalendar.findFirst({
+            where: {
+              id: holidayCalendarId,
+              tenantId,
+              status: ConfigurationStatus.ACTIVE,
+            },
+            select: { id: true },
+          })
+        : null,
+      shiftIds.length
+        ? this.prisma.shiftTemplate.count({
+            where: {
+              id: { in: [...new Set(shiftIds)] },
+              tenantId,
+              isActive: true,
+              status: ConfigurationStatus.ACTIVE,
+            },
+          })
+        : 0,
+    ]);
+
+    if (holidayCalendarId && !calendar) {
+      throw new BadRequestException(
+        'Selected work calendar is not active for this tenant.',
+      );
+    }
+    if (shiftIds.length && shiftCount !== new Set(shiftIds).size) {
+      throw new BadRequestException(
+        'One or more selected shifts are not active for this tenant.',
+      );
+    }
+  }
+
+  private readShiftTemplateData(
+    currentUser: AuthenticatedUser,
+    body: Record<string, unknown>,
+    existing?: {
+      name: string;
+      code: string;
+      timezone: string;
+      startTime: string;
+      endTime: string;
+      breakMinutes: number;
+      expectedHours: Prisma.Decimal;
+      lateGraceMinutes: number;
+      earlyExitGraceMinutes: number;
+      isNightShift: boolean;
+      isActive: boolean;
+      workScheduleId: string | null;
+    },
+  ): Prisma.ShiftTemplateUncheckedCreateInput {
+    return {
+      tenantId: currentUser.tenantId,
+      name: requiredString(
+        body.name ?? existing?.name,
+        'Shift name is required.',
+      ),
+      code: normalizeCode(
+        body.code ?? existing?.code,
+        body.name ?? existing?.name,
+      ),
+      description: readNullableString(body.description),
+      timezone: normalizeTimezone(body.timezone ?? existing?.timezone) ?? 'UTC',
+      startTime: readTime(
+        body.startTime ?? existing?.startTime,
+        'Start time is required.',
+      ),
+      endTime: readTime(
+        body.endTime ?? existing?.endTime,
+        'End time is required.',
+      ),
+      breakMinutes:
+        readNumber(body.breakMinutes) ?? existing?.breakMinutes ?? 0,
+      expectedHours:
+        decimalOrNull(body.expectedHours) ??
+        existing?.expectedHours ??
+        new Prisma.Decimal(8),
+      lateGraceMinutes:
+        readNumber(body.lateGraceMinutes) ?? existing?.lateGraceMinutes ?? 0,
+      earlyExitGraceMinutes:
+        readNumber(body.earlyExitGraceMinutes) ??
+        existing?.earlyExitGraceMinutes ??
+        0,
+      isNightShift:
+        readBoolean(body.isNightShift) ?? existing?.isNightShift ?? false,
+      isActive: readBoolean(body.isActive) ?? existing?.isActive ?? true,
+      status:
+        readBoolean(body.isActive) === false
+          ? ConfigurationStatus.INACTIVE
+          : ConfigurationStatus.ACTIVE,
+      workScheduleId:
+        readNullableString(body.workScheduleId) ??
+        existing?.workScheduleId ??
+        null,
+      createdById: currentUser.userId,
+      updatedById: currentUser.userId,
+    };
   }
 
   private async readPayrollRegionData(
@@ -1286,7 +1643,11 @@ function readDateRangeWithFallback(
   };
 }
 
-function readScheduleDays(value: unknown, tenantId: string) {
+function readScheduleDays(
+  value: unknown,
+  tenantId: string,
+  defaultShiftTemplateId?: string | null,
+) {
   if (!Array.isArray(value) || value.length === 0) {
     return defaultWeekdays().map((dayOfWeek, index) => ({
       tenantId,
@@ -1295,6 +1656,12 @@ function readScheduleDays(value: unknown, tenantId: string) {
         WorkWeekday.SATURDAY,
         WorkWeekday.SUNDAY,
       ]).has(dayOfWeek),
+      shiftTemplateId: new Set<WorkWeekday>([
+        WorkWeekday.SATURDAY,
+        WorkWeekday.SUNDAY,
+      ]).has(dayOfWeek)
+        ? null
+        : defaultShiftTemplateId,
       startTime: '09:00',
       endTime: '17:00',
       breakMinutes: 60,
@@ -1315,6 +1682,7 @@ function readScheduleDays(value: unknown, tenantId: string) {
       tenantId,
       dayOfWeek,
       isWorkingDay: readBoolean(row.isWorkingDay) ?? true,
+      shiftTemplateId: readNullableString(row.shiftTemplateId),
       startTime: readNullableString(row.startTime),
       endTime: readNullableString(row.endTime),
       breakMinutes: readNumber(row.breakMinutes) ?? 0,
@@ -1369,6 +1737,14 @@ function requiredDate(value: unknown, message: string) {
   const date = readDate(value);
   if (!date) throw new BadRequestException(message);
   return date;
+}
+
+function readTime(value: unknown, message: string) {
+  const time = requiredString(value, message);
+  if (!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time)) {
+    throw new BadRequestException('Time must use 24-hour HH:mm format.');
+  }
+  return time;
 }
 
 function validateDateRange(input: EffectiveDateRange) {

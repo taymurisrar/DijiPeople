@@ -109,8 +109,18 @@ export class EmployeesController {
   @Get('owner-options')
   @Permissions('employees.assign')
   @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'assign')
-  ownerOptions(@CurrentUser() user: AuthenticatedUser) {
-    return this.employeesService.getOwnerOptions(user);
+  ownerOptions(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('q') query = '',
+    @Query('page') page = '1',
+    @Query('pageSize') pageSize = '25',
+  ) {
+    return this.employeesService.getOwnerOptions(
+      user,
+      query,
+      Number(page),
+      Number(pageSize),
+    );
   }
 
   @Get('export')
@@ -221,6 +231,7 @@ export class EmployeesController {
   }
 
   @Get(':employeeId/reporting-structure')
+  @Permissions('hierarchy.read')
   getReportingStructure(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -354,7 +365,6 @@ export class EmployeesController {
   }
 
   @Get(':employeeId/history')
-  @Permissions('employees.history.read')
   getHistory(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -508,7 +518,6 @@ export class EmployeesController {
   }
 
   @Get(':employeeId/documents')
-  @Permissions('employees.documents.read')
   getDocuments(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,

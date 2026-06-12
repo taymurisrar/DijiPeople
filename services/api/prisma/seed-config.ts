@@ -9,10 +9,11 @@ import {
   PlatformUserRole,
   PlatformUserStatus,
   Prisma,
-  PrismaClient,
+  type PrismaClient,
   type CustomizationFieldDataType,
   type CustomizationSolutionComponentType,
 } from '@prisma/client';
+import { createPrismaClient } from './create-prisma-client';
 import * as bcrypt from 'bcryptjs';
 import { NOTIFICATION_EVENT_CATALOG } from '../src/modules/notifications/notification-events.catalog';
 import { buildTenantNotificationScopeKey } from '../src/modules/notifications/notifications.constants';
@@ -26,7 +27,7 @@ import {
 loadEnv({ path: resolve(__dirname, '../.env') });
 loadEnv();
 
-const prisma = new PrismaClient();
+const prisma = createPrismaClient();
 
 const AUTH_EVENT_CODES = [
   'AUTH_ACCOUNT_ACTIVATION',

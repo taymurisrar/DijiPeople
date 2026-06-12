@@ -180,6 +180,14 @@ export class TimesheetsService {
     currentUser: AuthenticatedUser,
     timesheetId: string,
   ) {
+    return this.getTimesheetById(currentUser, timesheetId, false);
+  }
+
+  async getTimesheetById(
+    currentUser: AuthenticatedUser,
+    timesheetId: string,
+    allowOwn = true,
+  ) {
     const timesheet = await this.timesheetsRepository.findTimesheetById(
       currentUser.tenantId,
       timesheetId,
@@ -189,7 +197,7 @@ export class TimesheetsService {
       throw new NotFoundException('Timesheet was not found for this tenant.');
     }
 
-    await this.assertCanReadTeamTimesheet(currentUser, timesheet);
+    await this.assertCanReadTeamTimesheet(currentUser, timesheet, allowOwn);
     return this.mapTimesheet(timesheet, currentUser);
   }
 

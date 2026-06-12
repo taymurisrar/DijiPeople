@@ -1,9 +1,15 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
+  CheckboxField,
   LookupField,
+  MultiSelectField,
+  NumberField,
+  SelectField,
+  TextAreaField,
+  TextField,
   type LookupOption,
 } from "@/app/components/ui/form-control";
 import { BrandingLogoUploadField } from "./branding-logo-upload-field";
@@ -14,6 +20,7 @@ import {
   SettingsSectionConfig,
   SettingsPrimitiveValue,
 } from "./types";
+import { notifyTenantSettingsChanged } from "@/lib/settings-events";
 
 type SettingsValue = SettingsPrimitiveValue | string[];
 
@@ -31,6 +38,7 @@ type SettingsUpdate = {
 type LookupResponse = {
   items?: LookupOption[];
   options?: LookupOption[];
+  source?: "default" | "resolved";
 };
 
 type SettingsFormProps = {
@@ -46,14 +54,6 @@ type ApiErrorResponse = {
   error?: string;
 };
 
-export function SettingsForm({
-  initialSettings,
-  lookupEndpointBase = "/api/lookups",
-  saveEndpoint = "/api/tenant-settings",
-  saveLabel = "Save settings",
-  sections,
-}: SettingsFormProps) {
-  const router = useRouter();
 const LOOKUP_ENDPOINTS: Record<string, string> = {
   countries: "/api/lookups/countries",
   currencies: "/api/configuration/currencies",
@@ -63,8 +63,28 @@ const LOOKUP_ENDPOINTS: Record<string, string> = {
   documentTypes: "/api/lookups/document-types",
   relationTypes: "/api/lookups/relation-types",
   timezones: "/api/configuration/timezones",
+  onboardingChecklistTemplates: "/api/lookups/onboarding-checklist-templates",
+  dashboardViews: "/api/lookups/dashboard-views",
 };
+
+const RECOVERABLE_LOOKUP_KEYS = new Set(["dashboardViews"]);
+const INLINE_ERROR_HANDLING_HEADER = {
+  "X-DijiPeople-Error-Handling": "inline",
+};
+
+export function SettingsForm({
+  initialSettings,
+  lookupEndpointBase = "/api/lookups",
+  saveEndpoint = "/api/tenant-settings",
+  saveLabel = "Save settings",
+  sections,
+}: SettingsFormProps) {
+  const router = useRouter();
+
   const [settings, setSettings] = useState<SettingsState>(
+    () => (initialSettings ?? {}) as SettingsState,
+  );
+  const [savedSettings, setSavedSettings] = useState<SettingsState>(
     () => (initialSettings ?? {}) as SettingsState,
   );
   const [lookupOptions, setLookupOptions] = useState<
@@ -72,8 +92,10 @@ const LOOKUP_ENDPOINTS: Record<string, string> = {
   >({});
   const [lookupErrors, setLookupErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
+  const [recoveryMessage, setRecoveryMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const repairedLookupValues = useRef(new Set<string>());
 
   const fields = useMemo(
     () => sections.flatMap((section) => section.fields),
@@ -103,31 +125,57 @@ const LOOKUP_ENDPOINTS: Record<string, string> = {
       await Promise.all(
         lookupKeys.map(async (lookupKey) => {
           try {
-const endpoint = LOOKUP_ENDPOINTS[lookupKey];
+            const endpoint = LOOKUP_ENDPOINTS[lookupKey];
 
-if (!endpoint) {
-  nextOptions[lookupKey] = [];
-  nextErrors[lookupKey] = "Lookup not configured.";
-  return;
-}
+            if (!endpoint) {
+              nextOptions[lookupKey] = [];
+              nextErrors[lookupKey] = "Lookup not configured.";
+              return;
+            }
 
-const response = await fetch(endpoint, {
-  method: "GET",
-  headers: { Accept: "application/json" },
-});
+            const response = await fetch(endpoint, {
+              method: "GET",
+              headers: {
+                Accept: "application/json",
+                ...INLINE_ERROR_HANDLING_HEADER,
+              },
+            });
 
             const data = await safeReadJson<LookupResponse>(response);
 
             if (!response.ok) {
               nextOptions[lookupKey] = [];
               nextErrors[lookupKey] = "Unable to load lookup options.";
+              logLookupDiagnostic("lookup failed", {
+                endpoint,
+                lookupKey,
+                status: response.status,
+                fallback: "none",
+              });
               return;
             }
 
             nextOptions[lookupKey] = data?.items ?? data?.options ?? [];
-          } catch {
+            logLookupDiagnostic("lookup loaded", {
+              endpoint,
+              lookupKey,
+              status: response.status,
+              fallback: data?.source ?? "resolved",
+              optionCount: nextOptions[lookupKey].length,
+            });
+          } catch (lookupError) {
             nextOptions[lookupKey] = [];
             nextErrors[lookupKey] = "Unable to load lookup options.";
+            logLookupDiagnostic("lookup request failed", {
+              endpoint: LOOKUP_ENDPOINTS[lookupKey],
+              lookupKey,
+              status: "network-error",
+              fallback: "none",
+              error:
+                lookupError instanceof Error
+                  ? lookupError.message
+                  : "Unknown lookup error",
+            });
           }
         }),
       );
@@ -145,6 +193,54 @@ const response = await fetch(endpoint, {
     };
   }, [lookupEndpointBase, lookupKeys]);
 
+  useEffect(() => {
+    for (const field of fields) {
+      if (
+        field.type !== "lookup" ||
+        !field.lookupKey ||
+        !RECOVERABLE_LOOKUP_KEYS.has(field.lookupKey) ||
+        lookupErrors[field.lookupKey]
+      ) {
+        continue;
+      }
+
+      const options = lookupOptions[field.lookupKey];
+      if (!options?.length) continue;
+
+      const currentValue = settings[field.category]?.[field.key];
+      if (
+        typeof currentValue !== "string" ||
+        !currentValue ||
+        options.some((option) => option.id === currentValue)
+      ) {
+        continue;
+      }
+
+      const repairKey = `${field.category}.${field.key}:${currentValue}`;
+      if (repairedLookupValues.current.has(repairKey)) continue;
+
+      repairedLookupValues.current.add(repairKey);
+      const fallback = options[0].id;
+
+      setSettings((current) => ({
+        ...current,
+        [field.category]: {
+          ...(current[field.category] ?? {}),
+          [field.key]: fallback,
+        },
+      }));
+      setRecoveryMessage(
+        `${field.label} referenced an unavailable option. It was reset to ${options[0].name}; save to persist the repair.`,
+      );
+      logLookupDiagnostic("stale lookup repaired", {
+        endpoint: LOOKUP_ENDPOINTS[field.lookupKey],
+        lookupKey: field.lookupKey,
+        staleId: currentValue,
+        fallback,
+      });
+    }
+  }, [fields, lookupErrors, lookupOptions, settings]);
+
   const updates = useMemo<SettingsUpdate[]>(
     () =>
       fields.map((field) => ({
@@ -159,14 +255,12 @@ const response = await fetch(endpoint, {
     () =>
       updates.filter((update) => {
         const original = normalizeValue(
-          ((initialSettings ?? {}) as SettingsState)[update.category]?.[
-            update.key
-          ] ?? null,
+          savedSettings[update.category]?.[update.key] ?? null,
         );
 
         return !areSettingsValuesEqual(original, update.value);
       }),
-    [initialSettings, updates],
+    [savedSettings, updates],
   );
 
   const isDirty = changedUpdates.length > 0;
@@ -199,6 +293,10 @@ const response = await fetch(endpoint, {
       }
 
       setSuccessMessage("Settings saved successfully.");
+      setSavedSettings(settings);
+      notifyTenantSettingsChanged(
+        changedUpdates.map((update) => update.category),
+      );
       router.refresh();
     } catch {
       setError(
@@ -210,7 +308,7 @@ const response = await fetch(endpoint, {
   }
 
   function resetForm() {
-    setSettings((initialSettings ?? {}) as SettingsState);
+    setSettings(savedSettings);
     setError(null);
     setSuccessMessage(null);
   }
@@ -248,10 +346,10 @@ const response = await fetch(endpoint, {
   return (
     <form className="grid gap-6 pb-24" onSubmit={handleSubmit}>
       {sections.map((section) => (
-        <section
-          className="grid gap-4 rounded-[24px] border border-border bg-surface p-6 shadow-sm md:grid-cols-2"
-          key={section.title}
-        >
+<section
+  className="grid items-start gap-4 rounded-[24px] border border-border bg-surface p-6 shadow-sm md:grid-cols-2"
+  key={section.title}
+>
           <div className="md:col-span-2">
             <h3 className="text-2xl font-semibold text-foreground">
               {section.title}
@@ -265,7 +363,7 @@ const response = await fetch(endpoint, {
           </div>
 
           {section.fields.map((field) => (
-          <SettingsField
+            <SettingsField
               field={field}
               key={`${field.category}-${field.key}`}
               lookupError={
@@ -290,6 +388,12 @@ const response = await fetch(endpoint, {
       {error ? (
         <p className="rounded-2xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
           {error}
+        </p>
+      ) : null}
+
+      {recoveryMessage ? (
+        <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          {recoveryMessage}
         </p>
       ) : null}
 
@@ -362,121 +466,58 @@ function SettingsField({
   onChange: (value: SettingsValue | null) => void;
   value: SettingsValue | null;
 }) {
-  const description = field.description ? (
-    <span className="block text-xs leading-5 text-muted">
-      {field.description}
-    </span>
-  ) : null;
   const disabled = field.disabled || field.readOnly;
 
-  if (field.type === "checkbox") {
-    return (
-      <label className="flex items-start gap-3 rounded-2xl border border-border bg-white px-4 py-4 text-sm">
-        <input
-          checked={Boolean(value)}
-          className="mt-1 h-4 w-4 rounded border-border"
-          onChange={(event) => onChange(event.target.checked)}
-          disabled={disabled}
-          type="checkbox"
-        />
-
-        <span>
-          <span className="block font-medium text-foreground">
-            {field.label}
-          </span>
-          {description}
-        </span>
-      </label>
-    );
-  }
+if (field.type === "checkbox") {
+  return (
+    <CheckboxField
+      label={field.label}
+      hint={field.description}
+      checked={Boolean(value)}
+      onChange={(checked) => onChange(checked)}
+      disabled={disabled}
+      className="self-end"
+    />
+  );
+}
 
   if (field.type === "number") {
     return (
-      <label className="grid gap-2 text-sm">
-        <span className="font-medium text-foreground">{field.label}</span>
-
-        <input
-          className="w-full rounded-2xl border border-border bg-white px-4 py-3 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
-          onChange={(event) => {
-            const rawValue = event.target.value;
-            onChange(rawValue === "" ? null : Number(rawValue));
-          }}
-          disabled={disabled}
-          placeholder={field.placeholder}
-          type="number"
-          value={typeof value === "number" ? String(value) : ""}
-        />
-
-        {description}
-      </label>
+      <NumberField
+        label={field.label}
+        hint={field.description}
+        placeholder={field.placeholder}
+        value={typeof value === "number" ? value : null}
+        onChange={(nextValue) => onChange(nextValue)}
+        disabled={disabled}
+      />
     );
   }
 
   if (field.type === "select" && field.options) {
     return (
-      <label className="grid gap-2 text-sm">
-        <span className="font-medium text-foreground">{field.label}</span>
-
-        <select
-          className="w-full rounded-2xl border border-border bg-white px-4 py-3 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
-          onChange={(event) => onChange(event.target.value || null)}
-          disabled={disabled}
-          value={typeof value === "string" ? value : ""}
-        >
-          <option value="">Select {field.label}</option>
-
-          {field.options.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-
-        {description}
-      </label>
+      <SelectField
+        label={field.label}
+        hint={field.description}
+        options={field.options}
+        placeholder={`Select ${field.label}`}
+        value={typeof value === "string" ? value : ""}
+        onChange={(nextValue) => onChange(nextValue || null)}
+        disabled={disabled}
+      />
     );
   }
 
   if (field.type === "multiselect" && field.options) {
-    const selectedValues = toStringArray(value);
-    const selected = new Set(selectedValues);
-
     return (
-      <div className="grid gap-2 text-sm">
-        <span className="font-medium text-foreground">{field.label}</span>
-
-        <div className="grid gap-2 rounded-2xl border border-border bg-white p-3">
-          {field.options.map((option) => {
-            const checked = selected.has(option.value);
-
-            return (
-              <label className="flex items-center gap-3" key={option.value}>
-                <input
-                  checked={checked}
-                  className="h-4 w-4 rounded border-border"
-                  onChange={() => {
-                    const next = new Set(selectedValues);
-
-                    if (checked) {
-                      next.delete(option.value);
-                    } else {
-                      next.add(option.value);
-                    }
-
-                    onChange(Array.from(next));
-                  }}
-                  disabled={disabled}
-                  type="checkbox"
-                />
-
-                <span className="text-foreground">{option.label}</span>
-              </label>
-            );
-          })}
-        </div>
-
-        {description}
-      </div>
+      <MultiSelectField
+        label={field.label}
+        hint={field.description}
+        options={field.options}
+        value={toStringArray(value)}
+        onChange={(nextValue) => onChange(nextValue)}
+        disabled={disabled}
+      />
     );
   }
 
@@ -487,9 +528,7 @@ function SettingsField({
       <LookupField
         hint={hint || undefined}
         label={field.label}
-        noResultsText={
-          lookupError ?? "No matching lookup options were found."
-        }
+        noResultsText={lookupError ?? "No matching lookup options were found."}
         onChange={(nextValue) => onChange(nextValue || null)}
         options={lookupOptions}
         placeholder={field.placeholder ?? `Search ${field.label}`}
@@ -526,36 +565,27 @@ function SettingsField({
 
   if (field.type === "textarea") {
     return (
-      <label className="grid gap-2 text-sm md:col-span-2">
-        <span className="font-medium text-foreground">{field.label}</span>
-
-        <textarea
-          className="min-h-28 w-full rounded-2xl border border-border bg-white px-4 py-3 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
-          onChange={(event) => onChange(event.target.value)}
-          disabled={disabled}
-          placeholder={field.placeholder}
-          value={typeof value === "string" ? value : ""}
-        />
-
-        {description}
-      </label>
+      <TextAreaField
+        label={field.label}
+        hint={field.description}
+        placeholder={field.placeholder}
+        value={typeof value === "string" ? value : ""}
+        onChange={(nextValue) => onChange(nextValue)}
+        disabled={disabled}
+        className="md:col-span-2"
+      />
     );
   }
 
   return (
-    <label className="grid gap-2 text-sm">
-      <span className="font-medium text-foreground">{field.label}</span>
-
-      <input
-        className="w-full rounded-2xl border border-border bg-white px-4 py-3 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
-        onChange={(event) => onChange(event.target.value)}
-        disabled={disabled}
-        placeholder={field.placeholder}
-        value={typeof value === "string" ? value : ""}
-      />
-
-      {description}
-    </label>
+    <TextField
+      label={field.label}
+      hint={field.description}
+      placeholder={field.placeholder}
+      value={typeof value === "string" ? value : ""}
+      onChange={(nextValue) => onChange(nextValue)}
+      disabled={disabled}
+    />
   );
 }
 
@@ -603,4 +633,12 @@ async function safeReadJson<T>(response: Response): Promise<T | null> {
   } catch {
     return null;
   }
+}
+
+function logLookupDiagnostic(
+  message: string,
+  details: Record<string, unknown>,
+) {
+  if (process.env.NODE_ENV !== "development") return;
+  console.debug(`[settings] ${message}`, details);
 }

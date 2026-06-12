@@ -2,7 +2,7 @@ export const APP_ROUTES = {
   home: "/",
   login: "/login",
   activate: "/activate",
-  me: "/me",
+  me: "/my-profile",
   settings: "/settings",
   tenantSettings: "/settings/tenant",
   brandingSettings: "/settings/branding",

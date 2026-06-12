@@ -16,12 +16,13 @@ export type LeaveTypeOption = {
 };
 
 export type AvailableLeaveTypesResponse = {
-  status: "AVAILABLE" | "NO_APPLICABLE_POLICY" | "NO_ACTIVE_TYPES";
+  status: "AVAILABLE" | "NO_ACTIVE_TYPES" | "ERROR";
   leavePolicy?: {
     id: string;
     name: string;
   };
   leaveTypes: LeaveTypeOption[];
+  diagnostic?: string;
 };
 
 export type LeaveApprovalStep = {

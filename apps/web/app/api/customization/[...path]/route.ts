@@ -14,10 +14,9 @@ async function proxyCustomizationRequest(
   const url = new URL(request.url);
   const query = url.searchParams.toString();
   const apiPath = `/customization/${path.join("/")}${query ? `?${query}` : ""}`;
-  const body =
-    method === "GET" || method === "DELETE"
-      ? undefined
-      : JSON.stringify(await request.json());
+  const requestBody =
+    method === "GET" || method === "DELETE" ? "" : await request.text();
+  const body = requestBody.trim() ? requestBody : undefined;
 
   try {
     const response = await apiRequest(apiPath, {

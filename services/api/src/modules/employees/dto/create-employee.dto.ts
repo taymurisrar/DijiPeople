@@ -14,6 +14,7 @@ import {
   IsEmail,
   IsEnum,
   IsInt,
+  IsIn,
   IsArray,
   IsOptional,
   IsString,
@@ -22,6 +23,24 @@ import {
   MinLength,
   Min,
 } from 'class-validator';
+
+const RECORD_STATUS_VALUES = [
+  'ACTIVE',
+  'INACTIVE',
+  'DRAFT',
+  'ARCHIVED',
+] as const;
+const RECORD_SUB_STATUS_VALUES = [
+  'OPEN',
+  'IN_PROGRESS',
+  'COMPLETED',
+  'INACTIVE',
+  'SUSPENDED',
+  'DRAFT',
+  'PENDING_REVIEW',
+  'ARCHIVED',
+  'RETIRED',
+] as const;
 
 function emptyStringToUndefined({ value }: { value: unknown }) {
   if (typeof value !== 'string') {
@@ -38,6 +57,19 @@ export class CreateEmployeeDto {
   @IsString()
   @MaxLength(40)
   employeeCode?: string;
+
+  @IsOptional()
+  @IsIn(RECORD_STATUS_VALUES)
+  status?: (typeof RECORD_STATUS_VALUES)[number];
+
+  @IsOptional()
+  @IsIn(RECORD_SUB_STATUS_VALUES)
+  subStatus?: (typeof RECORD_SUB_STATUS_VALUES)[number];
+
+  @IsOptional()
+  @Transform(emptyStringToUndefined)
+  @IsUUID()
+  ownerUserId?: string;
 
   @IsOptional()
   @IsEnum(EmployeeRecordType)
@@ -271,6 +303,11 @@ export class CreateEmployeeDto {
   @Transform(emptyStringToUndefined)
   @IsUUID()
   locationId?: string;
+
+  @IsOptional()
+  @Transform(emptyStringToUndefined)
+  @IsUUID()
+  defaultWorkScheduleId?: string;
 
   @IsOptional()
   @Transform(emptyStringToUndefined)

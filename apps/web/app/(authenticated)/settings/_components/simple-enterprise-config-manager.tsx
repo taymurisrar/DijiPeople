@@ -1,7 +1,18 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
-import { Plus, RefreshCw, Trash2 } from "lucide-react";
+import { Pencil, Plus, RefreshCw, Trash2, X } from "lucide-react";
+import { Button } from "@/app/components/ui/button";
+import {
+  CheckboxField,
+  DateField,
+  LookupField,
+  MultiSelectField,
+  NumberField,
+  SelectField,
+  TextField,
+  TimeField,
+} from "@/app/components/ui/form-control";
 import { formatDate, formatMoney } from "@/lib/formatting-context";
 import { useResolvedSettings } from "../../_components/resolved-settings-provider";
 
@@ -19,8 +30,16 @@ type ConfigRecord = Record<string, unknown> & {
 type Field = {
   name: string;
   label: string;
-  type?: "text" | "date" | "number" | "checkbox" | "select";
-  options?: string[];
+  type?:
+    | "text"
+    | "date"
+    | "time"
+    | "number"
+    | "checkbox"
+    | "select"
+    | "lookup"
+    | "multiselect";
+  options?: Array<string | { value: string; label: string }>;
   placeholder?: string;
   required?: boolean;
 };
@@ -40,6 +59,10 @@ export function SimpleEnterpriseConfigManager({
   const [items, setItems] = useState(records);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [editingItem, setEditingItem] = useState<ConfigRecord | null>(null);
+  const [draft, setDraft] = useState<Record<string, unknown>>(() =>
+    buildDraft(createFields),
+  );
 
   const activeItems = useMemo(
     () => items.filter((item) => item.status !== "ARCHIVED"),
@@ -53,25 +76,24 @@ export function SimpleEnterpriseConfigManager({
     }
   }
 
-  async function create(event: FormEvent<HTMLFormElement>) {
+  async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSaving(true);
     setMessage(null);
-    const formData = new FormData(event.currentTarget);
     const payload = Object.fromEntries(
       createFields.map((field) => {
-        const value =
-          field.type === "checkbox"
-            ? formData.get(field.name) === "on"
-            : formData.get(field.name);
+        const value = draft[field.name];
         return [field.name, value === "" ? null : value];
       }),
     );
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    const response = await fetch(
+      editingItem ? `${endpoint}/${editingItem.id}` : endpoint,
+      {
+        method: editingItem ? "PATCH" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      },
+    );
     setIsSaving(false);
     if (!response.ok) {
       const error = (await response.json().catch(() => null)) as {
@@ -80,8 +102,9 @@ export function SimpleEnterpriseConfigManager({
       setMessage(error?.message ?? "Unable to save configuration.");
       return;
     }
-    (event.currentTarget as HTMLFormElement).reset();
-    setMessage("Saved.");
+    setEditingItem(null);
+    setDraft(buildDraft(createFields));
+    setMessage(editingItem ? "Changes saved." : "Created.");
     await refresh();
   }
 
@@ -123,54 +146,48 @@ export function SimpleEnterpriseConfigManager({
         </section>
 
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <form onSubmit={create} className="grid gap-4 lg:grid-cols-4">
+          <form onSubmit={save} className="grid gap-4 lg:grid-cols-4">
             {createFields.map((field) => (
-              <label key={field.name} className="grid gap-1 text-sm">
-                <span className="font-medium text-slate-700">
-                  {field.label}
-                </span>
-                {field.type === "select" ? (
-                  <select
-                    name={field.name}
-                    required={field.required}
-                    className="h-10 rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-slate-400"
-                  >
-                    <option value="">Select</option>
-                    {field.options?.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                ) : field.type === "checkbox" ? (
-                  <input
-                    name={field.name}
-                    type="checkbox"
-                    className="h-5 w-5 rounded border-slate-300"
-                  />
-                ) : (
-                  <input
-                    name={field.name}
-                    type={field.type ?? "text"}
-                    required={field.required}
-                    placeholder={field.placeholder}
-                    className="h-10 rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-slate-400"
-                  />
-                )}
-              </label>
+              <ConfigField
+                field={field}
+                key={field.name}
+                onChange={(value) =>
+                  setDraft((current) => ({
+                    ...current,
+                    [field.name]: value,
+                  }))
+                }
+                value={draft[field.name]}
+              />
             ))}
             <div className="flex items-end">
-              <button
+              <Button
                 type="submit"
                 disabled={isSaving}
-                className="inline-flex h-10 items-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 disabled:opacity-60"
+                leftIcon={<Plus className="h-4 w-4" />}
               >
-                <Plus className="h-4 w-4" />
-                {isSaving ? "Saving" : "Create"}
-              </button>
+                {isSaving ? "Saving" : editingItem ? "Save changes" : "Create"}
+              </Button>
             </div>
+            {editingItem ? (
+              <div className="flex items-end">
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setEditingItem(null);
+                    setDraft(buildDraft(createFields));
+                  }}
+                  leftIcon={<X className="h-4 w-4" />}
+                  variant="secondary"
+                >
+                  Cancel edit
+                </Button>
+              </div>
+            ) : null}
           </form>
-          {message ? <p className="mt-3 text-sm text-slate-500">{message}</p> : null}
+          {message ? (
+            <p className="mt-3 text-sm text-slate-500">{message}</p>
+          ) : null}
         </section>
 
         <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
@@ -220,6 +237,18 @@ export function SimpleEnterpriseConfigManager({
                       <td className="px-5 py-4 text-right">
                         <button
                           type="button"
+                          onClick={() => {
+                            setEditingItem(item);
+                            setDraft(buildDraft(createFields, item));
+                            setMessage(null);
+                          }}
+                          className="mr-2 inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 px-3 text-xs font-medium text-slate-600 hover:bg-slate-50"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                          Edit
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => archive(item.id)}
                           className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 px-3 text-xs font-medium text-slate-600 hover:bg-slate-50"
                         >
@@ -239,6 +268,134 @@ export function SimpleEnterpriseConfigManager({
   );
 }
 
+function ConfigField({
+  field,
+  onChange,
+  value,
+}: {
+  field: Field;
+  onChange: (value: unknown) => void;
+  value: unknown;
+}) {
+  const options = (field.options ?? []).map((option) =>
+    typeof option === "string"
+      ? { value: option, label: humanize(option) }
+      : option,
+  );
+
+  if (field.type === "checkbox") {
+    return (
+      <CheckboxField
+        checked={Boolean(value)}
+        label={field.label}
+        onChange={onChange}
+      />
+    );
+  }
+  if (field.type === "number") {
+    return (
+      <NumberField
+        label={field.label}
+        onChange={onChange}
+        required={field.required}
+        value={typeof value === "number" ? value : value ? Number(value) : null}
+      />
+    );
+  }
+  if (field.type === "date") {
+    return (
+      <DateField
+        label={field.label}
+        onChange={onChange}
+        required={field.required}
+        value={String(value ?? "")}
+      />
+    );
+  }
+  if (field.type === "time") {
+    return (
+      <TimeField
+        label={field.label}
+        onChange={onChange}
+        required={field.required}
+        value={String(value ?? "")}
+      />
+    );
+  }
+  if (field.type === "lookup") {
+    return (
+      <LookupField
+        label={field.label}
+        onChange={onChange}
+        options={options.map((option) => ({
+          id: option.value,
+          name: option.label,
+        }))}
+        placeholder={field.placeholder ?? `Search ${field.label}`}
+        required={field.required}
+        value={String(value ?? "")}
+      />
+    );
+  }
+  if (field.type === "multiselect") {
+    return (
+      <MultiSelectField
+        label={field.label}
+        onChange={onChange}
+        options={options}
+        required={field.required}
+        value={Array.isArray(value) ? value.map(String) : []}
+      />
+    );
+  }
+  if (field.type === "select") {
+    return (
+      <SelectField
+        label={field.label}
+        onChange={onChange}
+        options={options}
+        placeholder={field.placeholder}
+        required={field.required}
+        value={String(value ?? "")}
+      />
+    );
+  }
+  return (
+    <TextField
+      label={field.label}
+      onChange={onChange}
+      placeholder={field.placeholder}
+      required={field.required}
+      value={String(value ?? "")}
+    />
+  );
+}
+
+function buildDraft(
+  fields: readonly Field[],
+  record?: ConfigRecord | null,
+): Record<string, unknown> {
+  return Object.fromEntries(
+    fields.map((field) => [
+      field.name,
+      record?.[field.name] ??
+        (field.type === "checkbox"
+          ? field.name === "isActive"
+          : field.type === "multiselect"
+            ? []
+            : ""),
+    ]),
+  );
+}
+
+function humanize(value: string) {
+  return value
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
 function renderDetails(
   item: ConfigRecord,
   resolved: { locale: string; timezone: string; currency: string },
@@ -249,7 +406,11 @@ function renderDetails(
     return `${item.fromCurrency} to ${item.toCurrency}: ${item.rate}`;
   }
   if (item.budgetAmount) {
-    return formatMoney(Number(item.budgetAmount), item.currencyCode as string, resolved);
+    return formatMoney(
+      Number(item.budgetAmount),
+      item.currencyCode as string,
+      resolved,
+    );
   }
   if (item.effectiveStartDate) {
     return `Effective ${formatDate(String(item.effectiveStartDate), resolved)}`;

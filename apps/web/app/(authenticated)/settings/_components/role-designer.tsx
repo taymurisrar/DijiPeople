@@ -349,7 +349,7 @@ export function RoleDesignerPage({
               </div>
               <Link
                 className="text-sm font-medium text-accent hover:text-accent-strong"
-                href="/settings/access/users"
+                href="/settings/security-access/users"
               >
                 Manage
               </Link>

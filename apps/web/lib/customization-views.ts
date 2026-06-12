@@ -14,6 +14,7 @@ type PublishedCustomizationResponse = {
   published: boolean;
   snapshotJson?: {
     tables?: Array<{ id: string; tableKey: string }>;
+    modules?: Array<{ id: string; tableKey: string }>;
     views?: Array<{
       id: string;
       tableId: string;
@@ -34,14 +35,16 @@ export async function getTableViews(
   tableKey: string,
 ): Promise<RuntimeCustomizationView[]> {
   const published = await apiRequestJson<PublishedCustomizationResponse>(
-    "/customization/published",
+    "/runtime-metadata/published",
   ).catch(() => null);
 
   if (!published?.published || !published.snapshotJson) {
     return [];
   }
 
-  const table = published.snapshotJson.tables?.find(
+  const tables =
+    published.snapshotJson.tables ?? published.snapshotJson.modules ?? [];
+  const table = tables.find(
     (item) => item.tableKey === tableKey,
   );
   if (!table) return [];
@@ -49,7 +52,7 @@ export async function getTableViews(
   return (published.snapshotJson.views ?? [])
     .filter((view) => view.tableId === table.id && !view.isHidden)
     .map((view) => ({
-      id: view.viewKey,
+      id: view.id,
       viewKey: view.viewKey,
       tableKey,
       name: view.name,

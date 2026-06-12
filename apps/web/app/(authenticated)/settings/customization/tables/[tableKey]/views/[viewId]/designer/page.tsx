@@ -37,9 +37,9 @@ export default async function CustomizationViewDesignerRoute({
 
   return (
     <SettingsShell
-      description="Design list columns, filters, and sorting for runtime entity grids."
+      description="Design list fields, filters, and sorting for runtime module grids."
       eyebrow="View designer"
-      title={`${table.displayName} · ${view.name}`}
+      title={`${table.displayName} - ${view.name}`}
     >
       <ViewDesignerWorkspace columns={columns} table={table} view={view} />
     </SettingsShell>

@@ -23,7 +23,9 @@ export function ApprovalsTable({ response }: { response: ApprovalsResponse }) {
         render: (row) => (
           <div>
             <p className="font-semibold text-foreground">{row.title}</p>
-            <p className="mt-1 text-sm text-muted">{row.requestNumber ?? row.entityId}</p>
+            <p className="mt-1 text-sm text-muted">
+              {row.requestNumber ?? row.entityId}
+            </p>
           </div>
         ),
       },
@@ -43,7 +45,12 @@ export function ApprovalsTable({ response }: { response: ApprovalsResponse }) {
       {
         key: "submittedBy",
         header: "Submitted by",
-        render: (row) => person(row.submittedByUser),
+        render: (row) =>
+          row.submittedByUser
+            ? person(row.submittedByUser)
+            : row.submittedForEmployee
+              ? `${row.submittedForEmployee.firstName} ${row.submittedForEmployee.lastName}`
+              : "Unknown requester",
       },
       {
         key: "submittedFor",
@@ -70,34 +77,57 @@ export function ApprovalsTable({ response }: { response: ApprovalsResponse }) {
         filterType: "select",
         filterOptions: statusOptions,
         filterAccessor: (row) => row.status,
-        render: (row) => <StatusPill tone={statusTone(row.status)}>{label(row.status)}</StatusPill>,
+        render: (row) => (
+          <StatusPill tone={statusTone(row.status)}>
+            {label(row.status)}
+          </StatusPill>
+        ),
       },
       {
         key: "sla",
         header: "SLA",
-        render: (row) => <StatusPill tone={slaTone(row.currentStep?.slaStatus)}>{label(row.currentStep?.slaStatus ?? "NOT_APPLICABLE")}</StatusPill>,
+        render: (row) => (
+          <StatusPill tone={slaTone(row.currentStep?.slaStatus)}>
+            {label(row.currentStep?.slaStatus ?? "NOT_APPLICABLE")}
+          </StatusPill>
+        ),
       },
       {
         key: "submitted",
         header: "Submitted",
         sortable: true,
-        sortAccessor: (row) => (row.submittedAtUtc ? new Date(row.submittedAtUtc) : null),
-        render: (row) => (row.submittedAtUtc ? formatDateTime(row.submittedAtUtc) : "Not submitted"),
+        sortAccessor: (row) =>
+          row.submittedAtUtc ? new Date(row.submittedAtUtc) : null,
+        render: (row) =>
+          row.submittedAtUtc
+            ? formatDateTime(row.submittedAtUtc)
+            : "Not submitted",
       },
       {
         key: "due",
         header: "Due",
-        render: (row) => (row.currentStep?.dueAtUtc ? formatDateTime(row.currentStep.dueAtUtc) : "No due date"),
+        render: (row) =>
+          row.currentStep?.dueAtUtc
+            ? formatDateTime(row.currentStep.dueAtUtc)
+            : "No due date",
       },
       {
         key: "actions",
         header: "Actions",
         render: (row) => (
           <div className="flex gap-2">
-            <Link className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-white text-muted transition hover:border-accent/30 hover:text-accent" href={`/approvals/${row.id}`} title="View approval">
+            <Link
+              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-white text-muted transition hover:border-accent/30 hover:text-accent"
+              href={`/approvals/${row.id}`}
+              title="View approval"
+            >
               <Eye className="h-4 w-4" />
             </Link>
-            <Link className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-white text-muted transition hover:border-accent/30 hover:text-accent" href={row.relatedRecordUrl} title="Open record">
+            <Link
+              className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-white text-muted transition hover:border-accent/30 hover:text-accent"
+              href={row.relatedRecordUrl}
+              title="Open record"
+            >
               <ExternalLink className="h-4 w-4" />
             </Link>
           </div>
@@ -110,7 +140,12 @@ export function ApprovalsTable({ response }: { response: ApprovalsResponse }) {
   return (
     <DataTable
       columns={columns}
-      emptyState={<EmptyState title="No approvals found" description="Approval requests and progress will appear here once workflows are submitted." />}
+      emptyState={
+        <EmptyState
+          title="No approvals found"
+          description="Approval requests and progress will appear here once workflows are submitted."
+        />
+      }
       entityLogicalName="approvals"
       getRowKey={(row) => row.id}
       rows={response.items}
@@ -125,7 +160,9 @@ function person(value: { firstName: string; lastName: string; email: string }) {
 }
 
 function assignmentLabel(step: ApprovalRequestItem["currentStep"]) {
-  const assignment = step?.assignments.find((item) => item.status === "PENDING") ?? step?.assignments[0];
+  const assignment =
+    step?.assignments.find((item) => item.status === "PENDING") ??
+    step?.assignments[0];
   if (!assignment) return "Not assigned";
   if (assignment.assignedToUser) return person(assignment.assignedToUser);
   if (assignment.assignedToRole) return assignment.assignedToRole.name;
@@ -133,7 +170,10 @@ function assignmentLabel(step: ApprovalRequestItem["currentStep"]) {
 }
 
 function label(value: string) {
-  return value.replace(/[_-]/g, " ").toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
+  return value
+    .replace(/[_-]/g, " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function statusTone(status: string) {

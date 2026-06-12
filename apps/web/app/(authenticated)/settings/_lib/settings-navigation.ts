@@ -1,5 +1,5 @@
 import { hasAnyPermission } from "@/lib/permissions";
-import { PERMISSION_KEYS } from "@/lib/security-keys";
+import { PERMISSION_KEYS, ROLE_KEYS } from "@/lib/security-keys";
 
 export type SettingsBadge = "Core" | "Admin" | "Advanced" | "New" | "Preview";
 
@@ -13,6 +13,7 @@ export type SettingsNavItem = {
   icon: string;
   keywords: readonly string[];
   requiredAnyPermissions?: readonly string[];
+  requiredAnyRoles?: readonly string[];
   disabled?: boolean;
 };
 
@@ -73,8 +74,17 @@ const NAV_PERMISSION_KEYS = {
 
 function canViewItem(
   permissionKeys: readonly string[],
+  roleKeys: readonly string[],
   requiredAnyPermissions?: readonly string[],
+  requiredAnyRoles?: readonly string[],
 ) {
+  if (
+    requiredAnyRoles?.length &&
+    !requiredAnyRoles.some((roleKey) => roleKeys.includes(roleKey))
+  ) {
+    return false;
+  }
+
   if (!requiredAnyPermissions?.length) return true;
 
   return hasAnyPermission([...permissionKeys], [...requiredAnyPermissions]);
@@ -171,17 +181,17 @@ export const settingsNavGroups = [
       "Localization, currencies, work calendars, holiday calendars, and payroll regions.",
     icon: "globe-2",
     items: [
-      {
-        key: "localization",
-        href: "/settings/localization",
-        label: "Localization",
-        description:
-          "Review locale, date, time, number, timezone, and first-day-of-week behavior.",
-        icon: "globe-2",
-        badge: "Core",
-        keywords: ["locale", "timezone", "date format", "number format"],
-        requiredAnyPermissions: [NAV_PERMISSION_KEYS.SETTINGS_READ],
-      },
+      // {
+      //   key: "localization",
+      //   href: "/settings/localization",
+      //   label: "Localization",
+      //   description:
+      //     "Review locale, date, time, number, timezone, and first-day-of-week behavior.",
+      //   icon: "globe-2",
+      //   badge: "Core",
+      //   keywords: ["locale", "timezone", "date format", "number format"],
+      //   requiredAnyPermissions: [NAV_PERMISSION_KEYS.SETTINGS_READ],
+      // },
       {
         key: "currency",
         href: "/settings/currency",
@@ -252,7 +262,7 @@ export const settingsNavGroups = [
       },
       {
         key: "users",
-        href: "/settings/access/users",
+        href: "/settings/security-access/users",
         label: "Users",
         description:
           "Manage user accounts, employee links, login access, status, and assigned roles.",
@@ -355,6 +365,43 @@ export const settingsNavGroups = [
         requiredAnyPermissions: [
           NAV_PERMISSION_KEYS.SETTINGS_READ,
           NAV_PERMISSION_KEYS.DOCUMENTS_READ,
+        ],
+      },
+      {
+        key: "work-schedules",
+        href: "/settings/work-schedules",
+        label: "Work Schedules",
+        description:
+          "Manage weekly work patterns, default schedules, effective dates, and shift-backed working days.",
+        icon: "calendar-clock",
+        badge: "Core",
+        keywords: ["work schedules", "weekly pattern", "weekend", "default"],
+        requiredAnyPermissions: [NAV_PERMISSION_KEYS.SETTINGS_READ],
+      },
+      {
+        key: "shifts",
+        href: "/settings/shifts",
+        label: "Shifts",
+        description:
+          "Manage shift hours, breaks, expected hours, grace periods, timezones, and night shifts.",
+        icon: "clock-3",
+        badge: "Core",
+        keywords: ["shift", "working hours", "grace", "night shift"],
+        requiredAnyPermissions: [NAV_PERMISSION_KEYS.SETTINGS_READ],
+      },
+      {
+        key: "work-sites",
+        href: "/settings/work-sites",
+        label: "Work Sites / Locations",
+        shortLabel: "Work Sites",
+        description:
+          "Manage active attendance work sites, addresses, timezones, coordinates, and allowed radius.",
+        icon: "map-pinned",
+        badge: "Core",
+        keywords: ["work sites", "locations", "office", "geofence"],
+        requiredAnyPermissions: [
+          NAV_PERMISSION_KEYS.LOCATIONS_READ,
+          NAV_PERMISSION_KEYS.SETTINGS_READ,
         ],
       },
       {
@@ -645,80 +692,60 @@ export const settingsNavGroups = [
     key: "customization",
     label: "Customization",
     summary:
-      "Configure tables, columns, forms, views, publishing, and tenant-specific metadata.",
+      "Manage modules, packages, and publishing for tenant-specific metadata.",
     icon: "sliders-horizontal",
     items: [
       {
-        key: "customization-overview",
-        href: "/settings/customization",
-        label: "Customization Overview",
-        shortLabel: "Overview",
-        description:
-          "Review available customization areas and open metadata workspaces.",
-        icon: "sliders-horizontal",
-        badge: "Advanced",
-        keywords: ["customization", "metadata", "tables", "columns", "forms"],
-        requiredAnyPermissions: [
-          NAV_PERMISSION_KEYS.CUSTOMIZATION_READ,
-          PERMISSION_KEYS.CUSTOMIZATION_ACCESS,
-          NAV_PERMISSION_KEYS.SETTINGS_READ,
-        ],
-      },
-      {
         key: "tables",
-        href: "/settings/customization/tables",
-        label: "Tables",
+        href: "/settings/customization/modules",
+        label: "Modules",
         description:
-          "Configure table labels, icons, descriptions, ownership behavior, and active state.",
+          "Configure module labels, icons, descriptions, ownership behavior, and active state.",
         icon: "table-2",
-        keywords: ["tables", "entities", "metadata"],
+        keywords: ["modules", "tables", "entities", "metadata"],
         requiredAnyPermissions: [
           NAV_PERMISSION_KEYS.CUSTOMIZATION_TABLES_READ,
           PERMISSION_KEYS.CUSTOMIZATION_ACCESS,
           NAV_PERMISSION_KEYS.SETTINGS_READ,
         ],
+        requiredAnyRoles: [ROLE_KEYS.SYSTEM_CUSTOMIZER],
       },
       {
-        key: "columns",
-        href: "/settings/customization/columns",
-        label: "Columns",
+        key: "packages",
+        href: "/settings/customization/packages",
+        label: "Packages",
         description:
-          "Configure field metadata, labels, visibility, validation, and tenant-specific behavior.",
-        icon: "columns-3",
-        keywords: ["columns", "fields", "metadata"],
+          "Organize metadata as Package, Module, and Components for JSON export and future layering.",
+        icon: "package",
+        keywords: [
+          "packages",
+          "solutions",
+          "publisher",
+          "prefix",
+          "import",
+          "export",
+        ],
         requiredAnyPermissions: [
-          NAV_PERMISSION_KEYS.CUSTOMIZATION_COLUMNS_READ,
+          NAV_PERMISSION_KEYS.CUSTOMIZATION_READ,
           PERMISSION_KEYS.CUSTOMIZATION_ACCESS,
           NAV_PERMISSION_KEYS.SETTINGS_READ,
         ],
+        requiredAnyRoles: [ROLE_KEYS.SYSTEM_CUSTOMIZER],
       },
       {
-        key: "views",
-        href: "/settings/customization/views",
-        label: "Views",
+        key: "publish-center",
+        href: "/settings/customization/publish-center",
+        label: "Publish Center",
         description:
-          "Manage saved views, filters, sorting, columns, and visibility scope.",
-        icon: "layout-grid",
-        keywords: ["views", "filters", "sorting", "saved views"],
+          "Validate draft package metadata before publishing. Publish selected is disabled until dependency validation is complete.",
+        icon: "send",
+        keywords: ["publish", "draft", "metadata", "validation", "packages"],
         requiredAnyPermissions: [
-          NAV_PERMISSION_KEYS.CUSTOMIZATION_VIEWS_READ,
+          NAV_PERMISSION_KEYS.CUSTOMIZATION_READ,
           PERMISSION_KEYS.CUSTOMIZATION_ACCESS,
           NAV_PERMISSION_KEYS.SETTINGS_READ,
         ],
-      },
-      {
-        key: "forms",
-        href: "/settings/customization/forms",
-        label: "Forms",
-        description:
-          "Manage form metadata for main, create, edit, quick create, and detail layouts.",
-        icon: "form-input",
-        keywords: ["forms", "layouts", "fields"],
-        requiredAnyPermissions: [
-          NAV_PERMISSION_KEYS.CUSTOMIZATION_FORMS_READ,
-          PERMISSION_KEYS.CUSTOMIZATION_ACCESS,
-          NAV_PERMISSION_KEYS.SETTINGS_READ,
-        ],
+        requiredAnyRoles: [ROLE_KEYS.SYSTEM_CUSTOMIZER],
       },
     ],
   },
@@ -832,24 +859,38 @@ export const settingsNavGroups = [
 
 export function canViewSettingsItem(
   permissionKeys: readonly string[] = [],
+  roleKeys: readonly string[] = [],
   item: SettingsNavItem,
 ) {
-  return canViewItem(permissionKeys, item.requiredAnyPermissions);
+  return canViewItem(
+    permissionKeys,
+    roleKeys,
+    item.requiredAnyPermissions,
+    item.requiredAnyRoles,
+  );
 }
 
 export function resolveVisibleSettingsGroups(
   permissionKeys: readonly string[] = [],
   options?: {
     includeRestricted?: boolean;
+    roleKeys?: readonly string[];
   },
 ) {
+  const roleKeys = options?.roleKeys ?? [];
+
   return settingsNavGroups
     .map((group) => {
       const items = group.items.filter((item) => {
         if ("disabled" in item && item.disabled) return false;
         if (options?.includeRestricted) return true;
 
-        return canViewItem(permissionKeys, item.requiredAnyPermissions);
+        return canViewItem(
+          permissionKeys,
+          roleKeys,
+          item.requiredAnyPermissions,
+          "requiredAnyRoles" in item ? item.requiredAnyRoles : undefined,
+        );
       });
 
       return {
@@ -864,6 +905,7 @@ export function flattenVisibleSettingsItems(
   permissionKeys: readonly string[] = [],
   options?: {
     includeRestricted?: boolean;
+    roleKeys?: readonly string[];
   },
 ): VisibleSettingsNavItem[] {
   return resolveVisibleSettingsGroups(permissionKeys, options).flatMap(
@@ -915,6 +957,7 @@ export function searchVisibleSettingsItems(
   query = "",
   options?: {
     includeRestricted?: boolean;
+    roleKeys?: readonly string[];
   },
 ): VisibleSettingsNavItem[] {
   const normalizedQuery = query.trim().toLowerCase();

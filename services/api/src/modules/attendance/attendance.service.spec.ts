@@ -8,10 +8,20 @@ describe('AttendanceService', () => {
     findOpenAttendanceEntry: jest.Mock;
     findAttendanceEntryByEmployeeAndDate: jest.Mock;
     findDefaultWorkSchedule: jest.Mock;
+    findEmployeeWorkSchedule: jest.Mock;
     findAttendancePolicy: jest.Mock;
     findOfficeLocationById: jest.Mock;
     createAttendanceEntry: jest.Mock;
     findAttendancePage: jest.Mock;
+    findAttendanceForSummary: jest.Mock;
+    findAttendanceEntryById: jest.Mock;
+    findEmployeeIdByUserId: jest.Mock;
+    findWorkScheduleById: jest.Mock;
+    findResolvedShiftTemplate: jest.Mock;
+    resolveEmployeeWorkConfiguration: jest.Mock;
+    findHolidayForEmployeeDate: jest.Mock;
+    findShiftTemplateById: jest.Mock;
+    updateAttendanceEntry: jest.Mock;
   };
   let employeesRepository: {
     findByUserIdAndTenant: jest.Mock;
@@ -23,6 +33,16 @@ describe('AttendanceService', () => {
   };
   let tenantSettingsResolverService: {
     getAttendanceSettings: jest.Mock;
+  };
+  let notificationsService: {
+    emit: jest.Mock;
+  };
+  let configurationResolverService: {
+    resolveAppContext: jest.Mock;
+  };
+  let prisma: {
+    employee: { findFirst: jest.Mock };
+    leaveRequest: { findFirst: jest.Mock };
   };
 
   const currentUser = {
@@ -40,6 +60,7 @@ describe('AttendanceService', () => {
       findOpenAttendanceEntry: jest.fn().mockResolvedValue(null),
       findAttendanceEntryByEmployeeAndDate: jest.fn().mockResolvedValue(null),
       findDefaultWorkSchedule: jest.fn().mockResolvedValue(null),
+      findEmployeeWorkSchedule: jest.fn().mockResolvedValue(null),
       findAttendancePolicy: jest.fn().mockResolvedValue(null),
       findOfficeLocationById: jest.fn().mockResolvedValue({
         id: 'location-1',
@@ -102,6 +123,88 @@ describe('AttendanceService', () => {
         items: [],
         total: 0,
       }),
+      findAttendanceForSummary: jest.fn().mockResolvedValue([]),
+      findAttendanceEntryById: jest.fn(),
+      findEmployeeIdByUserId: jest.fn().mockResolvedValue({ id: 'employee-1' }),
+      findWorkScheduleById: jest.fn().mockResolvedValue({
+        id: 'schedule-1',
+        weeklyWorkDays: [
+          'MONDAY',
+          'TUESDAY',
+          'WEDNESDAY',
+          'THURSDAY',
+          'FRIDAY',
+          'SATURDAY',
+          'SUNDAY',
+        ],
+        standardStartTime: '09:00',
+        standardEndTime: '17:00',
+        graceMinutes: 0,
+      }),
+      findResolvedShiftTemplate: jest.fn().mockResolvedValue({
+        id: 'shift-1',
+        name: 'Day Shift',
+        code: 'DAY',
+        timezone: 'Asia/Riyadh',
+        startTime: '09:00',
+        endTime: '17:00',
+        breakMinutes: 60,
+        expectedHours: 8,
+        lateGraceMinutes: 0,
+        earlyExitGraceMinutes: 0,
+        isNightShift: false,
+      }),
+      resolveEmployeeWorkConfiguration: jest.fn().mockResolvedValue({
+        employee: {
+          id: 'employee-1',
+          businessUnitId: null,
+          departmentId: null,
+          locationId: null,
+          defaultWorkScheduleId: null,
+          department: null,
+          location: null,
+        },
+        source: 'TENANT_DEFAULT',
+        workSchedule: {
+          id: 'schedule-1',
+          name: 'Default Schedule',
+          holidayCalendarId: null,
+          weeklyWorkDays: [
+            'MONDAY',
+            'TUESDAY',
+            'WEDNESDAY',
+            'THURSDAY',
+            'FRIDAY',
+            'SATURDAY',
+            'SUNDAY',
+          ],
+          standardStartTime: '09:00',
+          standardEndTime: '17:00',
+          graceMinutes: 0,
+        },
+        scheduleDay: {
+          isWorkingDay: true,
+          shiftTemplate: {
+            id: 'shift-1',
+            name: 'Day Shift',
+            code: 'DAY',
+            timezone: 'Asia/Riyadh',
+            status: 'ACTIVE',
+            isActive: true,
+            startTime: '09:00',
+            endTime: '17:00',
+            breakMinutes: 60,
+            expectedHours: 8,
+            lateGraceMinutes: 0,
+            earlyExitGraceMinutes: 0,
+            isNightShift: false,
+          },
+        },
+        holidayCalendarId: null,
+      }),
+      findHolidayForEmployeeDate: jest.fn().mockResolvedValue(null),
+      findShiftTemplateById: jest.fn(),
+      updateAttendanceEntry: jest.fn(),
     };
 
     employeesRepository = {
@@ -120,27 +223,212 @@ describe('AttendanceService', () => {
     };
     tenantSettingsResolverService = {
       getAttendanceSettings: jest.fn().mockResolvedValue({
-        lateCheckInGraceMinutes: 0,
-        lateCheckOutGraceMinutes: 0,
-        requireOfficeLocationForOfficeMode: false,
-        requireRemoteLocationForRemoteMode: false,
-        allowRemoteWithoutLocation: true,
+        defaultGraceMinutes: 0,
         allowManualAdjustments: true,
-        allowedModes: [AttendanceMode.OFFICE, AttendanceMode.REMOTE],
+        enforceOfficeLocationForOfficeMode: true,
+        requireRemoteLocationCapture: true,
+        allowedModes: [
+          AttendanceMode.OFFICE,
+          AttendanceMode.REMOTE,
+          AttendanceMode.HYBRID,
+        ],
       }),
+    };
+    notificationsService = {
+      emit: jest.fn().mockResolvedValue(undefined),
+    };
+    configurationResolverService = {
+      resolveAppContext: jest.fn().mockResolvedValue({
+        timezone: 'Asia/Riyadh',
+        workScheduleId: 'schedule-1',
+      }),
+    };
+    prisma = {
+      employee: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 'employee-1',
+          businessUnitId: null,
+        }),
+      },
+      leaveRequest: { findFirst: jest.fn().mockResolvedValue(null) },
     };
 
     service = new AttendanceService(
       attendanceRepository as never,
       employeesRepository as never,
       tenantSettingsResolverService as never,
+      configurationResolverService as never,
       auditService as never,
+      notificationsService as never,
+      prisma as never,
     );
   });
 
-  it('rejects duplicate active check-ins', async () => {
-    attendanceRepository.findOpenAttendanceEntry.mockResolvedValueOnce({
-      id: 'open-entry',
+  it('allows an employee to read an attendance entry linked to their user', async () => {
+    const entry = {
+      ...attendanceRepository.createAttendanceEntry.mock.results,
+      id: 'attendance-1',
+      employeeId: 'employee-1',
+      employee: {
+        id: 'employee-1',
+        userId: null,
+        firstName: 'Ava',
+        lastName: 'Stone',
+        preferredName: null,
+        employeeCode: 'EMP-001',
+        managerEmployeeId: null,
+        departmentId: null,
+        department: null,
+        designation: null,
+        manager: null,
+      },
+      workSchedule: null,
+      officeLocation: null,
+      importedBatch: null,
+      date: new Date('2026-04-13T00:00:00.000Z'),
+      checkIn: new Date('2026-04-13T09:00:00.000Z'),
+      checkOut: null,
+      attendanceMode: AttendanceMode.OFFICE,
+      status: 'PRESENT',
+      source: 'SYSTEM',
+      createdAt: new Date('2026-04-13T09:00:00.000Z'),
+      updatedAt: new Date('2026-04-13T09:00:00.000Z'),
+    };
+    attendanceRepository.findAttendanceEntryById.mockResolvedValue(entry);
+
+    await expect(
+      service.getAttendanceEntry(currentUser, 'attendance-1'),
+    ).resolves.toMatchObject({ id: 'attendance-1' });
+  });
+
+  it('rejects duplicate attendance for the tenant business date', async () => {
+    attendanceRepository.findAttendanceEntryByEmployeeAndDate.mockResolvedValueOnce(
+      {
+        id: 'today-entry',
+      },
+    );
+
+    await expect(
+      service.checkIn(currentUser, {
+        attendanceMode: AttendanceMode.OFFICE,
+        officeLocationId: 'location-1',
+      }),
+    ).rejects.toThrow(new ConflictException('Already checked in today.'));
+  });
+
+  it('rejects check-out when no check-in exists today', async () => {
+    await expect(
+      service.checkOut(currentUser, {
+        note: 'Wrapping up for the day',
+      }),
+    ).rejects.toThrow(
+      new BadRequestException('Check out requires a check in today.'),
+    );
+  });
+
+  it('requires a tenant work site for Office check-in', async () => {
+    await expect(
+      service.checkIn(currentUser, {
+        attendanceMode: AttendanceMode.OFFICE,
+      }),
+    ).rejects.toThrow('Office location is required for office attendance.');
+  });
+
+  it('requires an Office work site even when the legacy policy toggle is false', async () => {
+    tenantSettingsResolverService.getAttendanceSettings.mockResolvedValueOnce({
+      defaultGraceMinutes: 0,
+      allowManualAdjustments: true,
+      enforceOfficeLocationForOfficeMode: false,
+      requireRemoteLocationCapture: true,
+      allowedModes: [
+        AttendanceMode.OFFICE,
+        AttendanceMode.REMOTE,
+        AttendanceMode.HYBRID,
+      ],
+    });
+
+    await expect(
+      service.checkIn(currentUser, {
+        attendanceMode: AttendanceMode.OFFICE,
+      }),
+    ).rejects.toThrow('Office location is required for office attendance.');
+  });
+
+  it('persists the resolved shift and does not require geolocation for Office', async () => {
+    await service.checkIn(currentUser, {
+      attendanceMode: AttendanceMode.OFFICE,
+      officeLocationId: 'location-1',
+      note: 'At reception',
+    });
+
+    expect(attendanceRepository.createAttendanceEntry).toHaveBeenCalledWith(
+      expect.objectContaining({
+        employeeId: 'employee-1',
+        workScheduleId: 'schedule-1',
+        shiftTemplateId: 'shift-1',
+        officeLocationId: 'location-1',
+        attendanceMode: AttendanceMode.OFFICE,
+        status: 'CHECKED_IN',
+        source: 'WEB',
+        checkInSource: 'WEB',
+        checkInLatitude: undefined,
+        checkInLongitude: undefined,
+      }),
+    );
+  });
+
+  it.each([AttendanceMode.REMOTE, AttendanceMode.HYBRID])(
+    'requires browser geolocation for %s check-in',
+    async (attendanceMode) => {
+      await expect(
+        service.checkIn(currentUser, { attendanceMode }),
+      ).rejects.toThrow('attendance requires browser location');
+    },
+  );
+
+  it('captures Hybrid check-in coordinates, accuracy, and timestamp', async () => {
+    const capturedAt = '2026-06-12T07:15:00.000Z';
+    await service.checkIn(currentUser, {
+      attendanceMode: AttendanceMode.HYBRID,
+      remoteLatitude: 24.7136,
+      remoteLongitude: 46.6753,
+      locationAccuracy: 12,
+      locationCapturedAt: capturedAt,
+    });
+
+    expect(attendanceRepository.createAttendanceEntry).toHaveBeenCalledWith(
+      expect.objectContaining({
+        officeLocationId: undefined,
+        checkInLatitude: 24.7136,
+        checkInLongitude: 46.6753,
+        checkInLocationAccuracy: 12,
+        checkInLocationCapturedAt: new Date(capturedAt),
+      }),
+    );
+  });
+
+  it('blocks check-in when approved leave covers the business date', async () => {
+    prisma.leaveRequest.findFirst.mockResolvedValueOnce({ id: 'leave-1' });
+
+    await expect(
+      service.checkIn(currentUser, {
+        attendanceMode: AttendanceMode.OFFICE,
+        officeLocationId: 'location-1',
+      }),
+    ).rejects.toThrow('approved leave today');
+  });
+
+  it('reports the exact missing schedule configuration path', async () => {
+    attendanceRepository.resolveEmployeeWorkConfiguration.mockResolvedValue({
+      employee: {
+        id: 'employee-1',
+        departmentId: null,
+        locationId: null,
+      },
+      source: 'TENANT_DEFAULT',
+      workSchedule: null,
+      scheduleDay: null,
+      holidayCalendarId: null,
     });
 
     await expect(
@@ -149,20 +437,101 @@ describe('AttendanceService', () => {
         officeLocationId: 'location-1',
       }),
     ).rejects.toThrow(
-      new ConflictException(
-        'You already have an active attendance session. Please check out first.',
-      ),
+      'No active work schedule is configured for this employee, department, work site, or tenant default.',
     );
   });
 
-  it('rejects check-out when no active check-in exists', async () => {
-    attendanceRepository.findOpenAttendanceEntry.mockResolvedValueOnce(null);
+  it('blocks self-service check-in on a resolved holiday', async () => {
+    attendanceRepository.resolveEmployeeWorkConfiguration.mockResolvedValue({
+      ...(await attendanceRepository.resolveEmployeeWorkConfiguration()),
+      holidayCalendarId: 'calendar-1',
+    });
+    attendanceRepository.findHolidayForEmployeeDate.mockResolvedValue({
+      id: 'holiday-1',
+      name: 'Saudi National Day',
+      isPaid: true,
+      isHalfDay: false,
+    });
 
     await expect(
-      service.checkOut(currentUser, {
-        note: 'Wrapping up for the day',
+      service.checkIn(currentUser, {
+        attendanceMode: AttendanceMode.OFFICE,
+        officeLocationId: 'location-1',
       }),
-    ).rejects.toThrow(new BadRequestException('No active check-in was found.'));
+    ).rejects.toThrow(
+      'Check in is unavailable because today is Saudi National Day.',
+    );
+  });
+
+  it('blocks self-service check-in on a scheduled off day', async () => {
+    const configured =
+      await attendanceRepository.resolveEmployeeWorkConfiguration();
+    attendanceRepository.resolveEmployeeWorkConfiguration.mockResolvedValue({
+      ...configured,
+      scheduleDay: { isWorkingDay: false, shiftTemplate: null },
+    });
+
+    await expect(
+      service.checkIn(currentUser, {
+        attendanceMode: AttendanceMode.OFFICE,
+        officeLocationId: 'location-1',
+      }),
+    ).rejects.toThrow('is a scheduled off day.');
+  });
+
+  it('updates the same Remote record on check-out and captures location again', async () => {
+    const existing = {
+      ...(await attendanceRepository.createAttendanceEntry()),
+      shiftTemplateId: 'shift-1',
+      shiftTemplate: null,
+      attendanceMode: AttendanceMode.REMOTE,
+      checkIn: new Date(Date.now() - 60 * 60 * 1000),
+      checkOut: null,
+      officeLocationId: null,
+    };
+    const updated = {
+      ...existing,
+      checkOut: new Date(),
+      status: 'CHECKED_OUT',
+    };
+    attendanceRepository.createAttendanceEntry.mockClear();
+    attendanceRepository.findAttendanceEntryByEmployeeAndDate.mockResolvedValueOnce(
+      existing,
+    );
+    attendanceRepository.updateAttendanceEntry.mockResolvedValueOnce(updated);
+
+    await service.checkOut(currentUser, {
+      note: 'Done',
+      remoteLatitude: 24.7136,
+      remoteLongitude: 46.6753,
+      locationAccuracy: 8,
+      locationCapturedAt: '2026-06-12T15:00:00.000Z',
+    });
+
+    expect(attendanceRepository.updateAttendanceEntry).toHaveBeenCalledWith(
+      'tenant-1',
+      'attendance-1',
+      expect.objectContaining({
+        status: 'CHECKED_OUT',
+        checkOutSource: 'WEB',
+        checkOutLatitude: 24.7136,
+        checkOutLongitude: 46.6753,
+        checkOutLocationAccuracy: 8,
+      }),
+    );
+  });
+
+  it('blocks a second check-out', async () => {
+    attendanceRepository.findAttendanceEntryByEmployeeAndDate.mockResolvedValueOnce(
+      {
+        checkIn: new Date('2026-06-12T06:00:00.000Z'),
+        checkOut: new Date('2026-06-12T14:00:00.000Z'),
+      },
+    );
+
+    await expect(service.checkOut(currentUser, {})).rejects.toThrow(
+      new ConflictException('Already checked out.'),
+    );
   });
 
   it('returns an older open self-service session as checkout-eligible', async () => {
@@ -293,11 +662,30 @@ describe('AttendanceService', () => {
         date: '2026-04-10',
         attendanceMode: AttendanceMode.MANUAL,
         adjustmentReason: 'Imported correction',
-      } as never),
+      }),
     ).rejects.toThrow(
       new BadRequestException(
         'Selected employee does not belong to this tenant.',
       ),
+    );
+  });
+
+  it('stores manual attendance with a canonical UTC business-date key', async () => {
+    await service.createManualEntry(currentUser, {
+      employeeId: 'employee-1',
+      date: '2026-06-10',
+      attendanceMode: AttendanceMode.OFFICE,
+      officeLocationId: 'location-1',
+      checkInTime: '08:30',
+      checkOutTime: '16:30',
+      adjustmentReason: 'Canonical business-date regression test',
+    });
+
+    expect(attendanceRepository.createAttendanceEntry).toHaveBeenCalledWith(
+      expect.objectContaining({
+        date: new Date('2026-06-10T00:00:00.000Z'),
+        shiftTemplateId: 'shift-1',
+      }),
     );
   });
 });

@@ -19,11 +19,15 @@ import { CreateProjectDto } from './dto/create-project.dto';
 import { ProjectQueryDto } from './dto/project-query.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { ProjectsService } from './projects.service';
+import { AuditService } from '../audit/audit.service';
 
 @Controller('projects')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class ProjectsController {
-  constructor(private readonly projectsService: ProjectsService) {}
+  constructor(
+    private readonly projectsService: ProjectsService,
+    private readonly auditService: AuditService,
+  ) {}
 
   @Get()
   @Permissions('projects.read')
@@ -31,7 +35,7 @@ export class ProjectsController {
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: ProjectQueryDto,
   ) {
-    return this.projectsService.findByTenant(user.tenantId, query);
+    return this.projectsService.findByTenant(user, query);
   }
 
   @Get('assigned/me')
@@ -46,7 +50,22 @@ export class ProjectsController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('projectId', new ParseUUIDPipe()) projectId: string,
   ) {
-    return this.projectsService.findById(user.tenantId, projectId);
+    return this.projectsService.findByIdForUser(user, projectId);
+  }
+
+  @Get(':projectId/timeline')
+  @Permissions('projects.read', 'timeline.read')
+  async getTimeline(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('projectId', new ParseUUIDPipe()) projectId: string,
+  ) {
+    await this.projectsService.findByIdForUser(user, projectId);
+    return this.auditService.listRecordTimeline({
+      tenantId: user.tenantId,
+      entityType: 'Project',
+      entityId: projectId,
+      recordHref: `/projects/${projectId}`,
+    });
   }
 
   @Post()

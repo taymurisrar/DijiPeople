@@ -167,6 +167,7 @@ export class ApprovalsService {
       tenantId: user.tenantId,
       ...this.relevantScope(user),
       ...(query.moduleKey ? { moduleKey: query.moduleKey.toLowerCase() } : {}),
+      ...(query.entityId ? { entityId: query.entityId } : {}),
       ...(query.status
         ? { status: query.status as ApprovalRequestStatus }
         : {}),
@@ -246,8 +247,7 @@ export class ApprovalsService {
     entityType: string,
     entityId: string,
   ) {
-    if (moduleKey === 'leave')
-      return `/leaves/${entityId}`;
+    if (moduleKey === 'leave') return `/leaves/${entityId}`;
     if (
       moduleKey === 'attendance' &&
       entityType === 'attendanceCorrectionRequest'

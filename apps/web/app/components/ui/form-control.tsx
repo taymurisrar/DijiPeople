@@ -1,4 +1,5 @@
 import * as React from "react";
+import { Button } from "./button";
 
 type SelectOption = {
   id?: string;
@@ -22,19 +23,40 @@ type TextFieldVariant = "default" | "cnic";
 type BaseFieldProps = {
   label: string;
   hint?: string;
+  warning?: string;
+  error?: string;
   required?: boolean;
+  touched?: boolean;
+  dirty?: boolean;
+  validationStatus?: "default" | "error" | "warning" | "success";
   className?: string;
 };
 
 function FieldShell({
+  dirty,
+  error,
   label,
   hint,
   required,
+  touched,
+  validationStatus,
+  warning,
   className,
   children,
 }: BaseFieldProps & { children: React.ReactNode }) {
+  const feedback = error || warning || hint;
+  const feedbackTone = error
+    ? "text-danger"
+    : warning
+      ? "text-amber-700"
+      : "text-muted";
+
   return (
-    <label className={["block space-y-2 text-sm", className].filter(Boolean).join(" ")}>
+    <label
+      className={["block space-y-2 text-sm", className]
+        .filter(Boolean)
+        .join(" ")}
+    >
       <span className="flex items-center gap-1.5 font-medium text-foreground">
         <span>
           {label}
@@ -43,15 +65,17 @@ function FieldShell({
 
         {hint ? (
           <span className="group relative inline-flex">
-            <button
+            <Button
+              variant="ghost"
+              size="icon-xs"
               type="button"
               tabIndex={0}
               aria-label={`${label} help`}
-              className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-border bg-slate-50 text-[10px] font-semibold leading-none text-muted transition hover:border-accent hover:bg-accent/5 hover:text-accent focus:border-accent focus:bg-accent/5 focus:text-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
               onClick={(event) => event.preventDefault()}
+              className="h-4 w-4 rounded-full border border-border bg-slate-50 text-[10px] font-semibold text-muted hover:border-accent hover:bg-accent/5 hover:text-accent"
             >
               i
-            </button>
+            </Button>
 
             <span className="pointer-events-none absolute left-1/2 top-6 z-40 hidden w-72 -translate-x-1/2 rounded-xl border border-border bg-slate-950 px-3 py-2 text-xs font-normal leading-5 text-white shadow-xl group-hover:block group-focus-within:block">
               {hint}
@@ -62,12 +86,35 @@ function FieldShell({
       </span>
 
       {children}
+      {feedback ? (
+        <span
+          className={[
+            "block text-xs leading-5",
+            feedbackTone,
+            touched || dirty || validationStatus ? "" : "",
+          ].join(" ")}
+        >
+          {feedback}
+        </span>
+      ) : null}
     </label>
   );
 }
 
 const baseInputClassName =
   "w-full rounded-2xl border border-border bg-white px-4 py-3 text-sm text-foreground outline-none transition placeholder:text-muted focus:border-accent focus:ring-2 focus:ring-accent/20 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-muted";
+
+function controlClassName(error?: string, validationStatus?: string) {
+  if (error || validationStatus === "error") {
+    return `${baseInputClassName} border-danger focus:border-danger focus:ring-danger/20`;
+  }
+
+  if (validationStatus === "warning") {
+    return `${baseInputClassName} border-amber-400 focus:border-amber-500 focus:ring-amber-500/20`;
+  }
+
+  return baseInputClassName;
+}
 
 export function SelectField({
   label,
@@ -79,6 +126,11 @@ export function SelectField({
   value,
   className,
   disabled,
+  error,
+  warning,
+  touched,
+  dirty,
+  validationStatus,
 }: BaseFieldProps & {
   onChange: (value: string) => void;
   options: readonly SelectOption[];
@@ -92,9 +144,15 @@ export function SelectField({
       hint={hint}
       label={label}
       required={required}
+      error={error}
+      warning={warning}
+      touched={touched}
+      dirty={dirty}
+      validationStatus={validationStatus}
     >
       <select
-        className={baseInputClassName}
+        aria-invalid={Boolean(error)}
+        className={controlClassName(error, validationStatus)}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
         value={value}
@@ -128,6 +186,11 @@ export function DateField({
   disabled,
   min,
   max,
+  error,
+  warning,
+  touched,
+  dirty,
+  validationStatus,
 }: BaseFieldProps & {
   value: string; // format: yyyy-MM-dd
   onChange: (value: string) => void;
@@ -141,15 +204,63 @@ export function DateField({
       hint={hint}
       label={label}
       required={required}
+      error={error}
+      warning={warning}
+      touched={touched}
+      dirty={dirty}
+      validationStatus={validationStatus}
     >
       <input
         type="date"
-        className={baseInputClassName}
+        aria-invalid={Boolean(error)}
+        className={controlClassName(error, validationStatus)}
         value={value ?? ""}
         min={min}
         max={max}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
+      />
+    </FieldShell>
+  );
+}
+
+export function TimeField({
+  label,
+  hint,
+  value,
+  onChange,
+  required,
+  className,
+  disabled,
+  error,
+  warning,
+  touched,
+  dirty,
+  validationStatus,
+}: BaseFieldProps & {
+  value: string;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <FieldShell
+      className={className}
+      hint={hint}
+      label={label}
+      required={required}
+      error={error}
+      warning={warning}
+      touched={touched}
+      dirty={dirty}
+      validationStatus={validationStatus}
+    >
+      <input
+        aria-invalid={Boolean(error)}
+        className={controlClassName(error, validationStatus)}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.value)}
+        type="time"
+        value={value}
       />
     </FieldShell>
   );
@@ -167,6 +278,11 @@ export function TextField({
   type = "text",
   variant = "default",
   maxLength,
+  error,
+  warning,
+  touched,
+  dirty,
+  validationStatus,
 }: BaseFieldProps & {
   onChange: (value: string) => void;
   placeholder?: string;
@@ -205,18 +321,25 @@ export function TextField({
 
   const showError =
     variant === "cnic" && value.length > 0 && !isValidCNIC(value);
+  const errorMessage =
+    error ??
+    (showError ? "Invalid CNIC format. Use XXXXX-XXXXXXX-X" : undefined);
 
   return (
     <FieldShell
       className={className}
-      hint={showError ? "Invalid CNIC format. Use XXXXX-XXXXXXX-X" : hint}
+      hint={hint}
       label={label}
       required={required}
+      error={errorMessage}
+      warning={warning}
+      touched={touched}
+      dirty={dirty}
+      validationStatus={validationStatus}
     >
       <input
-        className={`${baseInputClassName} ${
-          showError ? "border-red-500 focus:border-red-500" : ""
-        }`}
+        aria-invalid={Boolean(errorMessage)}
+        className={controlClassName(errorMessage, validationStatus)}
         disabled={disabled}
         onChange={(event) => handleChange(event.target.value)}
         placeholder={
@@ -243,6 +366,11 @@ export function NumberField({
   min,
   max,
   step = 1,
+  error,
+  warning,
+  touched,
+  dirty,
+  validationStatus,
 }: BaseFieldProps & {
   onChange: (value: number | null) => void;
   placeholder?: string;
@@ -258,9 +386,15 @@ export function NumberField({
       hint={hint}
       label={label}
       required={required}
+      error={error}
+      warning={warning}
+      touched={touched}
+      dirty={dirty}
+      validationStatus={validationStatus}
     >
       <input
-        className={baseInputClassName}
+        aria-invalid={Boolean(error)}
+        className={controlClassName(error, validationStatus)}
         disabled={disabled}
         max={max}
         min={min}
@@ -287,6 +421,11 @@ export function TextAreaField({
   className,
   disabled,
   rows = 4,
+  error,
+  warning,
+  touched,
+  dirty,
+  validationStatus,
 }: BaseFieldProps & {
   onChange: (value: string) => void;
   placeholder?: string;
@@ -300,9 +439,15 @@ export function TextAreaField({
       hint={hint}
       label={label}
       required={required}
+      error={error}
+      warning={warning}
+      touched={touched}
+      dirty={dirty}
+      validationStatus={validationStatus}
     >
       <textarea
-        className={`${baseInputClassName} min-h-24 resize-y`}
+        aria-invalid={Boolean(error)}
+        className={`${controlClassName(error, validationStatus)} min-h-24 resize-y`}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
@@ -320,6 +465,8 @@ export function CheckboxField({
   checked,
   className,
   disabled,
+  error,
+  warning,
 }: Omit<BaseFieldProps, "required"> & {
   onChange: (checked: boolean) => void;
   checked: boolean;
@@ -328,25 +475,125 @@ export function CheckboxField({
   return (
     <label
       className={[
-        "flex items-start gap-3 rounded-2xl bg-white px-4 py-3 text-sm",
+        "flex min-h-[44px] items-center gap-3 rounded-2xl bg-white px-4 py-2 text-sm",
         disabled ? "cursor-not-allowed opacity-70" : "cursor-pointer",
         className,
+        error ? "border border-danger" : "",
       ]
         .filter(Boolean)
         .join(" ")}
     >
       <input
         checked={checked}
-        className="mt-0.5 h-4 w-4 rounded border-border text-accent focus:ring-accent/20"
+        aria-invalid={Boolean(error)}
+        className="h-4 w-4 shrink-0 rounded border-border text-accent focus:ring-accent/20"
         disabled={disabled}
         onChange={(event) => onChange(event.target.checked)}
         type="checkbox"
       />
-      <span className="space-y-1">
-        <span className="block font-medium text-foreground">{label}</span>
-        {hint ? <span className="block text-xs leading-5 text-muted">{hint}</span> : null}
+
+      <span className="min-w-0">
+        <span className="block truncate font-medium text-foreground">
+          {label}
+        </span>
+
+        {hint ? (
+          <span className="mt-1 block text-xs leading-5 text-muted">
+            {hint}
+          </span>
+        ) : null}
+        {error || warning ? (
+          <span
+            className={`mt-1 block text-xs leading-5 ${
+              error ? "text-danger" : "text-amber-700"
+            }`}
+          >
+            {error ?? warning}
+          </span>
+        ) : null}
       </span>
     </label>
+  );
+}
+
+export function MultiSelectField({
+  label,
+  hint,
+  onChange,
+  options,
+  required,
+  value,
+  className,
+  disabled,
+  error,
+  warning,
+  touched,
+  dirty,
+  validationStatus,
+}: BaseFieldProps & {
+  onChange: (value: string[]) => void;
+  options: readonly SelectOption[];
+  value: string[];
+  disabled?: boolean;
+}) {
+  const selected = new Set(value);
+
+  return (
+    <FieldShell
+      className={className}
+      hint={hint}
+      label={label}
+      required={required}
+      error={error}
+      warning={warning}
+      touched={touched}
+      dirty={dirty}
+      validationStatus={validationStatus}
+    >
+      <div
+        aria-invalid={Boolean(error)}
+        className={[
+          "grid gap-2 rounded-2xl border bg-white p-3",
+          error ? "border-danger" : "border-border",
+        ].join(" ")}
+      >
+        {options.map((option, index) => {
+          const optionValue = option.value ?? option.id ?? "";
+          const optionLabel = option.label ?? option.name ?? optionValue;
+          const checked = selected.has(optionValue);
+
+          return (
+            <label
+              className={[
+                "flex items-center gap-3 text-sm",
+                disabled ? "cursor-not-allowed opacity-70" : "cursor-pointer",
+              ].join(" ")}
+              key={option.id ?? option.value ?? `${label}-${index}`}
+            >
+              <input
+                checked={checked}
+                className="h-4 w-4 rounded border-border text-accent focus:ring-accent/20"
+                disabled={disabled}
+                onChange={() => {
+                  const next = new Set(value);
+
+                  if (checked) {
+                    next.delete(optionValue);
+                  } else {
+                    next.add(optionValue);
+                  }
+
+                  onChange(Array.from(next));
+                }}
+                type="checkbox"
+              />
+
+              <span className="text-foreground">{optionLabel}</span>
+            </label>
+          );
+        })}
+      </div>
+    </FieldShell>
   );
 }
 
@@ -361,8 +608,15 @@ export function LookupField({
   className,
   disabled,
   noResultsText = "No matching records found.",
+  onSearch,
+  error,
+  warning,
+  touched,
+  dirty,
+  validationStatus,
 }: BaseFieldProps & {
   onChange: (value: string) => void;
+  onSearch?: (query: string) => void;
   options: LookupOption[];
   placeholder?: string;
   value: string;
@@ -374,6 +628,7 @@ export function LookupField({
 
   const [isOpen, setIsOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
+  const onSearchRef = React.useRef(onSearch);
 
   const selectedOption = React.useMemo(
     () => options.find((option) => option.id === value) ?? null,
@@ -402,6 +657,14 @@ export function LookupField({
   }, [options, query]);
 
   React.useEffect(() => {
+    onSearchRef.current = onSearch;
+  }, [onSearch]);
+
+  React.useEffect(() => {
+    onSearchRef.current?.(query);
+  }, [query]);
+
+  React.useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (!containerRef.current) return;
       if (!containerRef.current.contains(event.target as Node)) {
@@ -423,13 +686,20 @@ export function LookupField({
     });
   }
 
-  function handleSelect(optionId: string) {
+  function handleSelect(
+    optionId: string,
+    event: React.MouseEvent<HTMLButtonElement>,
+  ) {
+    event.preventDefault();
+    event.stopPropagation();
     onChange(optionId);
     setIsOpen(false);
     setQuery("");
   }
 
-  function handleClear() {
+  function handleClear(event: React.MouseEvent<HTMLButtonElement>) {
+    event.preventDefault();
+    event.stopPropagation();
     onChange("");
     setQuery("");
     setIsOpen(false);
@@ -441,11 +711,16 @@ export function LookupField({
       hint={hint}
       label={label}
       required={required}
+      error={error}
+      warning={warning}
+      touched={touched}
+      dirty={dirty}
+      validationStatus={validationStatus}
     >
       <div className="relative" ref={containerRef}>
         <button
           className={[
-            baseInputClassName,
+            controlClassName(error, validationStatus),
             "flex items-center justify-between gap-3 text-left",
             disabled ? "" : "cursor-pointer",
           ].join(" ")}
@@ -491,13 +766,14 @@ export function LookupField({
                 value={query}
               />
               {value ? (
-                <button
-                  className="shrink-0 rounded-xl border border-border bg-white px-3 py-3 text-xs font-medium text-muted transition hover:bg-slate-50"
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={handleClear}
                   type="button"
                 >
                   Clear
-                </button>
+                </Button>
               ) : null}
             </div>
 
@@ -508,20 +784,23 @@ export function LookupField({
                     const isSelected = option.id === value;
 
                     return (
-                      <button
+                      <Button
                         key={option.id}
+                        variant="ghost"
+                        fullWidth
+                        onClick={(event) => handleSelect(option.id, event)}
+                        type="button"
                         className={[
-                          "w-full rounded-xl border px-3 py-2.5 text-left transition",
+                          "h-auto justify-start rounded-xl border px-3 py-2.5 text-left",
                           isSelected
-                            ? "border-accent bg-accent/5"
+                            ? "border-accent bg-accent/5 hover:bg-accent/5"
                             : "border-transparent hover:border-border hover:bg-slate-50",
                         ].join(" ")}
-                        onClick={() => handleSelect(option.id)}
-                        type="button"
                       >
                         <span className="block font-medium text-foreground">
                           {option.name}
                         </span>
+
                         {option.code || option.key || option.subtitle ? (
                           <span className="block text-xs text-muted">
                             {[option.code, option.key, option.subtitle]
@@ -529,7 +808,7 @@ export function LookupField({
                               .join(" • ")}
                           </span>
                         ) : null}
-                      </button>
+                      </Button>
                     );
                   })}
                 </div>

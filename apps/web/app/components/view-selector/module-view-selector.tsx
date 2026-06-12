@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, ChevronDown, LayoutList, Settings } from "lucide-react";
-import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+
+import { Button } from "@/app/components/ui/button";
+
 import type { ModuleViewOption, ModuleViewSelectorConfig } from "./types";
 
 type ModuleViewSelectorProps = ModuleViewSelectorConfig & {
@@ -35,6 +37,32 @@ export function ModuleViewSelector({
 
   const systemViews = views.filter((view) => view.type === "system");
   const customViews = views.filter((view) => view.type === "custom");
+
+  useEffect(() => {
+    if (!selectedViewId || views.some((view) => view.id === selectedViewId)) {
+      return;
+    }
+
+    const params = new URLSearchParams(searchParams.toString());
+    const fallbackView =
+      views.find((view) => view.isDefault) ?? views[0] ?? null;
+
+    if (fallbackView) {
+      params.set(paramName, fallbackView.id);
+    } else {
+      params.delete(paramName);
+    }
+
+    clearStaleViewStorage(pathname, paramName, selectedViewId);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }, [
+    paramName,
+    pathname,
+    router,
+    searchParams,
+    selectedViewId,
+    views,
+  ]);
 
   useEffect(() => {
     if (!open) {
@@ -83,15 +111,17 @@ export function ModuleViewSelector({
   }
 
   return (
-    <div className={className} ref={containerRef}>
-      <div className="flex flex-wrap items-center gap-2 px-3 py-2">
-        <div className="relative">
-          <button
+    <div className={`min-w-0 ${className ?? ""}`} ref={containerRef}>
+      <div className="flex min-w-0 items-center gap-2 px-3 py-2">
+        <div className="relative min-w-0 max-w-full">
+          <Button
+            variant="secondary"
+            size="sm"
             aria-expanded={open}
             aria-haspopup="menu"
-            className="inline-flex min-w-[260px] max-w-full items-center justify-between gap-3 rounded-md border border-transparent bg-white px-3 py-2 text-sm font-semibold text-foreground shadow-sm transition hover:border-border hover:bg-muted/10 focus:outline-none focus:ring-2 focus:ring-accent/25"
             onClick={() => setOpen((current) => !current)}
             type="button"
+            className="w-[min(320px,calc(100vw-3rem))] max-w-full justify-between overflow-hidden rounded-md border-transparent"
           >
             <span className="flex min-w-0 items-center gap-2">
               <LayoutList className="h-4 w-4 shrink-0 text-muted" />
@@ -101,51 +131,58 @@ export function ModuleViewSelector({
                 </span>
               </span>
             </span>
+
             <ChevronDown
               className={`h-4 w-4 shrink-0 text-muted transition-transform duration-150 ${
                 open ? "rotate-180" : ""
               }`}
               aria-hidden="true"
             />
-          </button>
+          </Button>
 
           {open ? (
             <div
-              className="absolute left-0 top-[calc(100%+8px)] z-30 w-[360px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-border bg-white shadow-xl"
+              className="absolute left-0 top-[calc(100%+8px)] z-30 flex max-h-[min(520px,70vh)] w-[min(400px,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-lg border border-border bg-surface shadow-xl"
               role="menu"
             >
               <div className="border-b border-border bg-muted/5 px-4 py-3">
                 <p className="text-xs font-semibold uppercase text-muted">
                   Select view
                 </p>
-                <p className="mt-1 text-sm font-semibold text-foreground">
+                <p className="mt-1 truncate text-sm font-semibold text-foreground">
                   {selectedView.name}
                 </p>
               </div>
-              <ViewGroup
-                title="System views"
-                items={systemViews}
-                selectedViewId={selectedViewId}
-                onSelect={handleSelect}
-              />
 
-              <ViewGroup
-                title="Custom views"
-                items={customViews}
-                selectedViewId={selectedViewId}
-                onSelect={handleSelect}
-              />
+              <div className="min-h-0 overflow-y-auto">
+                <ViewGroup
+                  title="System views"
+                  items={systemViews}
+                  selectedViewId={selectedView.id}
+                  onSelect={handleSelect}
+                />
+
+                <ViewGroup
+                  title="Custom views"
+                  items={customViews}
+                  selectedViewId={selectedView.id}
+                  onSelect={handleSelect}
+                />
+              </div>
 
               {configureHref ? (
-                <div className="border-t border-border p-2">
-                  <Link
+                <div className="shrink-0 border-t border-border bg-surface p-2">
+                  <Button
                     href={configureHref}
-                    className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold text-accent transition hover:bg-accent/5 hover:text-accent-strong"
+                    variant="ghost"
+                    size="sm"
+                    fullWidth
                     onClick={() => setOpen(false)}
+                    className="justify-start rounded-md text-accent hover:bg-accent/5 hover:text-accent-strong"
+                    leftIcon={<Settings className="h-4 w-4" />}
                   >
-                    <Settings className="h-4 w-4" />
                     Manage views
-                  </Link>
+                  </Button>
                 </div>
               ) : null}
             </div>
@@ -154,6 +191,28 @@ export function ModuleViewSelector({
       </div>
     </div>
   );
+}
+
+function clearStaleViewStorage(
+  pathname: string,
+  paramName: string,
+  selectedViewId: string,
+) {
+  for (const storage of [window.localStorage, window.sessionStorage]) {
+    for (let index = storage.length - 1; index >= 0; index -= 1) {
+      const key = storage.key(index);
+      if (!key || !/view/i.test(key)) continue;
+
+      const value = storage.getItem(key);
+      if (
+        value === selectedViewId ||
+        (value?.includes(selectedViewId) &&
+          (key.includes(pathname) || key.includes(paramName)))
+      ) {
+        storage.removeItem(key);
+      }
+    }
+  }
 }
 
 function ViewGroup({
@@ -182,15 +241,16 @@ function ViewGroup({
           const active = view.id === selectedViewId;
 
           return (
-            <button
+            <Button
               key={view.id}
-              type="button"
+              variant="ghost"
+              fullWidth
               onClick={() => onSelect(view.id)}
               role="menuitemradio"
               aria-checked={active}
-              className={`grid w-full grid-cols-[1fr_auto] gap-3 rounded-md px-3 py-2 text-left transition ${
+              className={`grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 overflow-hidden rounded-md px-3 py-2 text-left ${
                 active
-                  ? "bg-accent/10 text-accent"
+                  ? "bg-accent/10 text-accent hover:bg-accent/10 hover:text-accent"
                   : "text-foreground hover:bg-muted/40"
               }`}
             >
@@ -199,20 +259,21 @@ function ViewGroup({
                   {view.name}
                 </span>
                 {view.description ? (
-                  <span className="mt-0.5 block truncate text-xs font-normal text-muted">
+                  <span className="mt-0.5 line-clamp-2 break-words text-xs font-normal leading-4 text-muted">
                     {view.description}
                   </span>
                 ) : null}
               </span>
-              <span className="flex items-center gap-2">
+
+              <span className="flex shrink-0 items-center gap-2">
                 {typeof view.badgeCount === "number" && view.badgeCount > 0 ? (
-                  <span className="rounded-full bg-warning/10 px-2 py-0.5 text-xs font-semibold text-warning">
+                  <span className="max-w-16 truncate rounded-full bg-warning/10 px-2 py-0.5 text-xs font-semibold tabular-nums text-warning">
                     {view.badgeCount}
                   </span>
                 ) : null}
                 {active ? <Check className="h-4 w-4" /> : null}
               </span>
-            </button>
+            </Button>
           );
         })}
       </div>

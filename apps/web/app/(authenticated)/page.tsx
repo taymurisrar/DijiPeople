@@ -5,6 +5,7 @@ import { ModuleViewSelector } from "@/app/components/view-selector/module-view-s
 import type { ModuleViewOption } from "@/app/components/view-selector/types";
 import { ApiRequestError, apiRequestJson } from "@/lib/server-api";
 import { DashboardRefreshButton } from "@/app/components/dashboard/dashboard-refresh-button";
+import type { TenantResolvedSettingsResponse } from "./settings/types";
 
 type DashboardPageProps = {
   searchParams?: Promise<{
@@ -18,11 +19,18 @@ export default async function DashboardPage({
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
 
   try {
-    const summary =
-      await apiRequestJson<DashboardSummary>("/dashboard/summary");
+    const [summary, resolvedSettings] = await Promise.all([
+      apiRequestJson<DashboardSummary>("/dashboard/summary"),
+      apiRequestJson<TenantResolvedSettingsResponse>(
+        "/tenant-settings/resolved",
+      ).catch(() => null),
+    ]);
     const visibleViews = summary.views.filter((view) => view.visible);
+    const configuredDefaultView =
+      resolvedSettings?.system.defaultDashboardView || summary.defaultView;
     const selectedView =
       visibleViews.find((view) => view.key === resolvedSearchParams?.view) ??
+      visibleViews.find((view) => view.key === configuredDefaultView) ??
       visibleViews.find((view) => view.key === summary.defaultView) ??
       visibleViews[0] ??
       null;
@@ -31,7 +39,7 @@ export default async function DashboardPage({
       name: view.label,
       type: "system",
       description: view.description,
-      isDefault: view.key === summary.defaultView,
+      isDefault: view.key === configuredDefaultView,
       badgeCount: view.badgeCount,
       icon: view.icon,
     }));

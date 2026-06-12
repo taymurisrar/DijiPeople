@@ -89,6 +89,47 @@ export class AuditService {
       filters: metadata,
     };
   }
+
+  async listRecordTimeline(input: {
+    tenantId: string;
+    entityType: string;
+    entityId: string;
+    recordHref?: string;
+  }) {
+    const items = await this.auditRepository.findRecordTimeline(
+      input.tenantId,
+      input.entityType,
+      input.entityId,
+    );
+
+    return {
+      items: items.map((item) => ({
+        id: item.id,
+        actionLabel: humanizeAuditAction(item.action),
+        actionType: item.action,
+        actorDisplayName: item.actorUser
+          ? [item.actorUser.firstName, item.actorUser.lastName]
+              .filter(Boolean)
+              .join(' ') || item.actorUser.email
+          : 'System',
+        occurredAt: item.createdAt.toISOString(),
+        recordReference: input.recordHref
+          ? {
+              id: input.entityId,
+              label: input.entityType,
+              href: input.recordHref,
+            }
+          : null,
+      })),
+    };
+  }
+}
+
+function humanizeAuditAction(value: string) {
+  return value
+    .trim()
+    .replace(/[._-]+/g, ' ')
+    .replace(/\b\w/g, (character) => character.toUpperCase());
 }
 
 function normalizeSnapshot(value: unknown): Prisma.InputJsonValue | undefined {

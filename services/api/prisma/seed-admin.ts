@@ -1,15 +1,16 @@
 import { config as loadEnv } from 'dotenv';
 import { resolve } from 'node:path';
-import { PrismaClient, TenantStatus, UserStatus } from '@prisma/client';
+import { TenantStatus, UserStatus } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { normalizeEmail } from '../src/common/utils/email.util';
 import { ROLE_KEYS } from '../src/common/constants/rbac-matrix';
 import { PermissionBootstrapService } from '../src/modules/permissions/permission-bootstrap.service';
+import { createPrismaClient } from './create-prisma-client';
 
 loadEnv({ path: resolve(__dirname, '../.env') });
 loadEnv();
 
-const prisma = new PrismaClient();
+const prisma = createPrismaClient();
 
 function getBootstrapConfig() {
   const tenantName =

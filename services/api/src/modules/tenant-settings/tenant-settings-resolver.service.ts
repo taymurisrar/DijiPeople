@@ -151,7 +151,22 @@ export type BrandingSettingsResolved = {
   backgroundColor: string;
   surfaceColor: string;
   textColor: string;
+  mutedTextColor: string;
+  borderColor: string;
+  sidebarBackgroundColor: string;
+  sidebarTextColor: string;
+  sidebarActiveBackgroundColor: string;
+  sidebarActiveTextColor: string;
+  successColor: string;
+  warningColor: string;
+  dangerColor: string;
+  infoColor: string;
   fontFamily: string;
+  themeMode: string;
+  density: string;
+  radius: string;
+  shadow: string;
+  navigationLayout: string;
   appBackgroundColor: string;
   appSurfaceColor: string;
   pageGradientStartColor: string;
@@ -167,6 +182,8 @@ export type BrandingSettingsResolved = {
   defaultThemeMode: string;
   supportEmail: string;
   supportPhone: string;
+  privacyPolicyUrl: string;
+  termsOfUseUrl: string;
   websiteUrl: string;
   showBrandingOnLoginPage: boolean;
   showBrandingInEmployeePortal: boolean;
@@ -182,10 +199,12 @@ export type SystemSettingsResolved = {
   defaultLandingModule: string;
   defaultWeekStartDay: WorkWeekday;
   defaultRecordsPerPage: number;
+  enableStickyFilters: boolean;
   defaultTimezone: string;
   defaultCurrency: string;
   defaultLanguage: string;
   autoLogoutMinutes: number;
+  showHelpTips: boolean;
 };
 
 export type PublicBrandingResolved = {
@@ -202,12 +221,35 @@ export type PublicBrandingResolved = {
   primaryColor: string;
   secondaryColor: string;
   accentColor: string;
+  backgroundColor: string;
+  surfaceColor: string;
+  textColor: string;
+  mutedTextColor: string;
+  borderColor: string;
+  sidebarBackgroundColor: string;
+  sidebarTextColor: string;
+  sidebarActiveBackgroundColor: string;
+  sidebarActiveTextColor: string;
+  successColor: string;
+  warningColor: string;
+  dangerColor: string;
+  infoColor: string;
   fontFamily: string;
+  themeMode: string;
+  density: string;
+  radius: string;
+  shadow: string;
+  navigationLayout: string;
   welcomeTitle: string;
   welcomeSubtitle: string;
   footerText: string;
   supportEmail: string;
+  supportPhone: string;
+  privacyPolicyUrl: string;
+  termsOfUseUrl: string;
   portalTagline: string;
+  dashboardGreeting: string;
+  employeePortalMessage: string;
   showBrandingOnLoginPage: boolean;
 };
 
@@ -648,7 +690,31 @@ export class TenantSettingsResolverService {
       backgroundColor: stringValue(category.backgroundColor, '#f8fafc'),
       surfaceColor: stringValue(category.surfaceColor, '#ffffff'),
       textColor: stringValue(category.textColor, '#0f172a'),
+      mutedTextColor: stringValue(category.mutedTextColor, '#64748b'),
+      borderColor: stringValue(category.borderColor, '#e2e8f0'),
+      sidebarBackgroundColor: stringValue(
+        category.sidebarBackgroundColor,
+        '#0f172a',
+      ),
+      sidebarTextColor: stringValue(category.sidebarTextColor, '#e5e7eb'),
+      sidebarActiveBackgroundColor: stringValue(
+        category.sidebarActiveBackgroundColor,
+        '#0f766e',
+      ),
+      sidebarActiveTextColor: stringValue(
+        category.sidebarActiveTextColor,
+        '#ffffff',
+      ),
+      successColor: stringValue(category.successColor, '#16a34a'),
+      warningColor: stringValue(category.warningColor, '#f59e0b'),
+      dangerColor: stringValue(category.dangerColor, '#dc2626'),
+      infoColor: stringValue(category.infoColor, '#2563eb'),
       fontFamily: stringValue(category.fontFamily, 'INTER'),
+      themeMode: stringValue(category.themeMode, 'LIGHT'),
+      density: stringValue(category.density, 'COMFORTABLE'),
+      radius: stringValue(category.radius, 'LARGE'),
+      shadow: stringValue(category.shadow, 'SOFT'),
+      navigationLayout: stringValue(category.navigationLayout, 'SIDEBAR'),
       appBackgroundColor: stringValue(category.appBackgroundColor, '#f5f0e8'),
       appSurfaceColor: stringValue(category.appSurfaceColor, '#fffaf4'),
       pageGradientStartColor: stringValue(
@@ -676,6 +742,8 @@ export class TenantSettingsResolverService {
       defaultThemeMode: stringValue(category.defaultThemeMode, 'LIGHT'),
       supportEmail: stringValue(category.supportEmail, ''),
       supportPhone: stringValue(category.supportPhone, ''),
+      privacyPolicyUrl: stringValue(category.privacyPolicyUrl, ''),
+      termsOfUseUrl: stringValue(category.termsOfUseUrl, ''),
       websiteUrl: stringValue(category.websiteUrl, ''),
       showBrandingOnLoginPage: booleanValue(
         category.showBrandingOnLoginPage,
@@ -718,10 +786,12 @@ export class TenantSettingsResolverService {
         5,
         200,
       ),
+      enableStickyFilters: booleanValue(category.enableStickyFilters, true),
       defaultTimezone: stringValue(category.defaultTimezone, 'UTC'),
       defaultCurrency: stringValue(category.defaultCurrency, 'USD'),
       defaultLanguage: stringValue(category.defaultLanguage, 'en'),
       autoLogoutMinutes: numberValue(category.autoLogoutMinutes, 15, 15, 1440),
+      showHelpTips: booleanValue(category.showHelpTips, true),
     };
   }
 
@@ -750,7 +820,40 @@ export class TenantSettingsResolverService {
       primaryColor: stringValue(fallbackBranding.primaryColor, '#0f766e'),
       secondaryColor: stringValue(fallbackBranding.secondaryColor, '#0f172a'),
       accentColor: stringValue(fallbackBranding.accentColor, '#14b8a6'),
+      backgroundColor: stringValue(fallbackBranding.backgroundColor, '#f8fafc'),
+      surfaceColor: stringValue(fallbackBranding.surfaceColor, '#ffffff'),
+      textColor: stringValue(fallbackBranding.textColor, '#0f172a'),
+      mutedTextColor: stringValue(fallbackBranding.mutedTextColor, '#64748b'),
+      borderColor: stringValue(fallbackBranding.borderColor, '#e2e8f0'),
+      sidebarBackgroundColor: stringValue(
+        fallbackBranding.sidebarBackgroundColor,
+        '#0f172a',
+      ),
+      sidebarTextColor: stringValue(
+        fallbackBranding.sidebarTextColor,
+        '#e5e7eb',
+      ),
+      sidebarActiveBackgroundColor: stringValue(
+        fallbackBranding.sidebarActiveBackgroundColor,
+        '#0f766e',
+      ),
+      sidebarActiveTextColor: stringValue(
+        fallbackBranding.sidebarActiveTextColor,
+        '#ffffff',
+      ),
+      successColor: stringValue(fallbackBranding.successColor, '#16a34a'),
+      warningColor: stringValue(fallbackBranding.warningColor, '#f59e0b'),
+      dangerColor: stringValue(fallbackBranding.dangerColor, '#dc2626'),
+      infoColor: stringValue(fallbackBranding.infoColor, '#2563eb'),
       fontFamily: stringValue(fallbackBranding.fontFamily, 'INTER'),
+      themeMode: stringValue(fallbackBranding.themeMode, 'LIGHT'),
+      density: stringValue(fallbackBranding.density, 'COMFORTABLE'),
+      radius: stringValue(fallbackBranding.radius, 'LARGE'),
+      shadow: stringValue(fallbackBranding.shadow, 'SOFT'),
+      navigationLayout: stringValue(
+        fallbackBranding.navigationLayout,
+        'SIDEBAR',
+      ),
       welcomeTitle: stringValue(
         fallbackBranding.welcomeTitle,
         'People operations, without the mess.',
@@ -764,7 +867,15 @@ export class TenantSettingsResolverService {
         'Powered by DijiPeople',
       ),
       supportEmail: stringValue(fallbackBranding.supportEmail, ''),
+      supportPhone: stringValue(fallbackBranding.supportPhone, ''),
+      privacyPolicyUrl: stringValue(fallbackBranding.privacyPolicyUrl, ''),
+      termsOfUseUrl: stringValue(fallbackBranding.termsOfUseUrl, ''),
       portalTagline: stringValue(fallbackBranding.portalTagline, ''),
+      dashboardGreeting: stringValue(fallbackBranding.dashboardGreeting, ''),
+      employeePortalMessage: stringValue(
+        fallbackBranding.employeePortalMessage,
+        '',
+      ),
       showBrandingOnLoginPage: booleanValue(
         fallbackBranding.showBrandingOnLoginPage,
         true,
@@ -802,7 +913,34 @@ export class TenantSettingsResolverService {
       primaryColor: stringValue(branding.primaryColor, '#0f766e'),
       secondaryColor: stringValue(branding.secondaryColor, '#0f172a'),
       accentColor: stringValue(branding.accentColor, '#14b8a6'),
+      backgroundColor: stringValue(branding.backgroundColor, '#f8fafc'),
+      surfaceColor: stringValue(branding.surfaceColor, '#ffffff'),
+      textColor: stringValue(branding.textColor, '#0f172a'),
+      mutedTextColor: stringValue(branding.mutedTextColor, '#64748b'),
+      borderColor: stringValue(branding.borderColor, '#e2e8f0'),
+      sidebarBackgroundColor: stringValue(
+        branding.sidebarBackgroundColor,
+        '#0f172a',
+      ),
+      sidebarTextColor: stringValue(branding.sidebarTextColor, '#e5e7eb'),
+      sidebarActiveBackgroundColor: stringValue(
+        branding.sidebarActiveBackgroundColor,
+        '#0f766e',
+      ),
+      sidebarActiveTextColor: stringValue(
+        branding.sidebarActiveTextColor,
+        '#ffffff',
+      ),
+      successColor: stringValue(branding.successColor, '#16a34a'),
+      warningColor: stringValue(branding.warningColor, '#f59e0b'),
+      dangerColor: stringValue(branding.dangerColor, '#dc2626'),
+      infoColor: stringValue(branding.infoColor, '#2563eb'),
       fontFamily: stringValue(branding.fontFamily, 'INTER'),
+      themeMode: stringValue(branding.themeMode, 'LIGHT'),
+      density: stringValue(branding.density, 'COMFORTABLE'),
+      radius: stringValue(branding.radius, 'LARGE'),
+      shadow: stringValue(branding.shadow, 'SOFT'),
+      navigationLayout: stringValue(branding.navigationLayout, 'SIDEBAR'),
       welcomeTitle: stringValue(
         branding.welcomeTitle,
         'People operations, without the mess.',
@@ -813,7 +951,12 @@ export class TenantSettingsResolverService {
       ),
       footerText: stringValue(branding.footerText, 'Powered by DijiPeople'),
       supportEmail: stringValue(branding.supportEmail, ''),
+      supportPhone: stringValue(branding.supportPhone, ''),
+      privacyPolicyUrl: stringValue(branding.privacyPolicyUrl, ''),
+      termsOfUseUrl: stringValue(branding.termsOfUseUrl, ''),
       portalTagline: stringValue(branding.portalTagline, ''),
+      dashboardGreeting: stringValue(branding.dashboardGreeting, ''),
+      employeePortalMessage: stringValue(branding.employeePortalMessage, ''),
       showBrandingOnLoginPage: booleanValue(
         branding.showBrandingOnLoginPage,
         true,

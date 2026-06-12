@@ -3,12 +3,14 @@
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 
+import { Button } from "@/app/components/ui/button";
+
 type LogoutButtonProps = {
   className?: string;
   label?: string;
   onLoggedOut?: () => void;
   variant?: "pill" | "menu";
-  redirectTo?: string; // optional override
+  redirectTo?: string;
 };
 
 export function LogoutButton({
@@ -23,7 +25,7 @@ export function LogoutButton({
   const abortRef = useRef<AbortController | null>(null);
 
   async function handleLogout() {
-    if (isPending) return; // prevent double trigger
+    if (isPending) return;
 
     setIsPending(true);
 
@@ -38,7 +40,7 @@ export function LogoutButton({
     let redirectUrl = redirectTo || "/login";
 
     try {
-      const timeout = setTimeout(() => controller.abort(), 8000); // fail fast
+      const timeout = setTimeout(() => controller.abort(), 8000);
 
       const res = await fetch(
         `/api/auth/logout?next=${encodeURIComponent(nextPath)}`,
@@ -58,47 +60,34 @@ export function LogoutButton({
       const data = (await res.json().catch(() => null)) as
         | { redirectUrl?: unknown }
         | null;
+
       if (typeof data?.redirectUrl === "string") {
         redirectUrl = data.redirectUrl;
       }
 
-      // Optional hook (analytics, audit log, UI cleanup)
       onLoggedOut?.();
     } catch (err) {
       console.error("[Logout] Failed:", err);
-
-      // Fallback: force client-side session reset behavior
-      // (important if API fails but cookies are already invalid)
     } finally {
       setIsPending(false);
-
-      // Always redirect - never leave user in broken state
       router.replace(redirectUrl);
       router.refresh();
     }
   }
 
   return (
-    <button
-      className={
-        className ??
-        (variant === "menu"
-          ? "flex w-full items-center justify-between rounded-2xl px-4 py-3 text-sm font-medium text-foreground transition hover:bg-surface hover:text-accent disabled:opacity-50"
-          : "rounded-full border border-border bg-white/70 px-4 py-2 text-sm font-medium text-foreground transition hover:border-accent hover:text-accent disabled:opacity-50")
-      }
+    <Button
+      className={className}
+      variant={variant === "menu" ? "ghost" : "pill"}
+      fullWidth={variant === "menu"}
+      loading={isPending}
+      loadingText="Signing out..."
       onClick={handleLogout}
       type="button"
       disabled={isPending}
       aria-busy={isPending}
     >
-      {isPending ? (
-        <span className="flex items-center gap-2">
-          <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-          Signing out...
-        </span>
-      ) : (
-        label
-      )}
-    </button>
+      {label}
+    </Button>
   );
 }

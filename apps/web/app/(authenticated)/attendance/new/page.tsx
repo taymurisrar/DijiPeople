@@ -1,71 +1,80 @@
-import { ApiRequestError, apiRequestJson } from "@/lib/server-api";
-import { AccessDeniedState } from "../../_components/access-denied-state";
+import { AccessDeniedState } from "@/app/(authenticated)/_components/access-denied-state";
+import type { EmployeeListResponse } from "@/app/(authenticated)/employees/types";
+import { TopAlert } from "@/app/components/notifications/top-alert";
+import { getSessionUser } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
+import { loadAttendanceRuntimeConfiguration } from "@/lib/runtime/modules/attendance-settings.adapter";
+import { PERMISSION_KEYS } from "@/lib/security-keys";
+import { apiRequestJson } from "@/lib/server-api";
+import { ManualAttendanceForm } from "../_components/manual-attendance-form";
 import type {
-  AttendanceEntryRecord,
-  AttendanceListResponse,
   AttendanceLocationOption,
+  TeamEmployeeOption,
 } from "../types";
-import { AttendanceNewClient } from "../_components/attendance-new-client";
 
 export default async function NewAttendancePage() {
-  const result = await loadAttendanceNewPageData();
+  const [sessionUser, configuration] = await Promise.all([
+    getSessionUser(),
+    loadAttendanceRuntimeConfiguration(),
+  ]);
+  const canManageAttendance = hasPermission(
+    sessionUser?.permissionKeys,
+    PERMISSION_KEYS.ATTENDANCE_MANAGE,
+  );
 
-  if (result.status === "employee-link-required") {
+  if (!canManageAttendance || !configuration.policy?.allowManualAdjustments) {
     return (
       <main className="dp-theme-scope dp-attendance-scope grid gap-6">
         <AccessDeniedState
-          description={result.message}
-          title="Attendance self-service needs an employee record."
+          description="Manual attendance creation requires attendance management access and the tenant manual-adjustment policy."
+          title="Manual attendance is unavailable."
         />
       </main>
     );
   }
 
+  const [employees, locations] = await Promise.all([
+    getEmployees(),
+    apiRequestJson<AttendanceLocationOption[]>("/attendance/locations"),
+  ]);
+
   return (
     <main className="dp-theme-scope dp-attendance-scope grid gap-6">
-      <AttendanceNewClient
-        activeEntry={result.activeEntry}
-        locations={result.locations}
-        todayEntry={result.todayEntry}
-      />
+      {configuration.status !== "AVAILABLE" ? (
+        <TopAlert
+          description={
+            configuration.issues.join(" ") ||
+            "Attendance Configuration is missing or invalid. Review Attendance Configuration in Settings."
+          }
+          title="Attendance configuration is incomplete"
+          variant="warning"
+        />
+      ) : null}
+      <section className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
+          HR attendance adjustment
+        </p>
+        <h1 className="mt-2 text-2xl font-semibold text-foreground">
+          Create manual attendance
+        </h1>
+        <p className="mt-2 text-sm text-muted">
+          The employee shift is resolved from tenant configuration. Every
+          manual entry requires an audit reason.
+        </p>
+      </section>
+      <ManualAttendanceForm employees={employees} locations={locations} />
     </main>
   );
 }
 
-async function loadAttendanceNewPageData() {
-  const today = formatLocalDate(new Date());
+async function getEmployees(): Promise<TeamEmployeeOption[]> {
+  const response = await apiRequestJson<EmployeeListResponse>(
+    "/employees?pageSize=100",
+  );
 
-  try {
-    const [activeEntry, todayEntries, locations] = await Promise.all([
-      apiRequestJson<AttendanceEntryRecord | null>("/attendance/mine/active"),
-      apiRequestJson<AttendanceListResponse>(
-        `/attendance/mine?dateFrom=${today}&dateTo=${today}&pageSize=1`,
-      ),
-      apiRequestJson<AttendanceLocationOption[]>("/attendance/locations"),
-    ]);
-
-    return {
-      status: "ready" as const,
-      activeEntry,
-      locations,
-      todayEntry: todayEntries.items[0] ?? null,
-    };
-  } catch (error) {
-    if (error instanceof ApiRequestError && error.status === 400) {
-      return {
-        status: "employee-link-required" as const,
-        message: error.message,
-      };
-    }
-
-    throw error;
-  }
-}
-
-function formatLocalDate(value: Date) {
-  const year = value.getFullYear();
-  const month = `${value.getMonth() + 1}`.padStart(2, "0");
-  const day = `${value.getDate()}`.padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
+  return response.items.map((employee) => ({
+    id: employee.id,
+    employeeCode: employee.employeeCode,
+    fullName: employee.fullName,
+  }));
 }

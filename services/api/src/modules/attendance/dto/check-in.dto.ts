@@ -10,9 +10,8 @@ import {
 } from 'class-validator';
 
 export class CheckInDto {
-  @IsOptional()
   @IsEnum(AttendanceMode)
-  attendanceMode?: AttendanceMode;
+  attendanceMode!: AttendanceMode;
 
   @ValidateIf(
     (value: CheckInDto) =>
@@ -28,6 +27,14 @@ export class CheckInDto {
   @IsOptional()
   @IsNumber()
   remoteLongitude?: number;
+
+  @IsOptional()
+  @IsNumber()
+  locationAccuracy?: number;
+
+  @IsOptional()
+  @IsString()
+  locationCapturedAt?: string;
 
   @IsOptional()
   @IsString()

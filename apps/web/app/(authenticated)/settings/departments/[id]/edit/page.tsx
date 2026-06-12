@@ -11,7 +11,10 @@ export default async function EditDepartmentPage({
   params,
 }: EditDepartmentPageProps) {
   const { id } = await params;
-  const department = await apiRequestJson<DepartmentRecord>(`/departments/${id}`);
+  const [department, workSchedules] = await Promise.all([
+    apiRequestJson<DepartmentRecord>(`/departments/${id}`),
+    apiRequestJson<Record<string, unknown>[]>("/work-schedules"),
+  ]);
 
   return (
     <SettingsShell
@@ -25,10 +28,20 @@ export default async function EditDepartmentPage({
           name: department.name,
           code: department.code || "",
           description: department.description || "",
+          defaultWorkScheduleId: department.defaultWorkScheduleId ?? "",
           isActive: department.isActive,
         }}
         mode="edit"
+        workSchedules={toLookupOptions(workSchedules)}
       />
     </SettingsShell>
+  );
+}
+
+function toLookupOptions(records: Record<string, unknown>[]) {
+  return records.flatMap((record) =>
+    typeof record.id === "string" && typeof record.name === "string"
+      ? [{ id: record.id, name: record.name }]
+      : [],
   );
 }

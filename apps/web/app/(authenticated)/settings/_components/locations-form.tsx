@@ -2,6 +2,14 @@
 
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { Button } from "@/app/components/ui/button";
+import {
+  CheckboxField,
+  LookupField,
+  NumberField,
+  TextField,
+  type LookupOption,
+} from "@/app/components/ui/form-control";
 
 type LocationsFormProps = {
   initialValues: {
@@ -14,16 +22,25 @@ type LocationsFormProps = {
     country: string;
     zipCode: string;
     timezone: string;
+    latitude: string;
+    longitude: string;
+    allowedRadiusMeters: string;
+    defaultWorkScheduleId: string;
+    holidayCalendarId: string;
     isActive: boolean;
   };
+  holidayCalendars: LookupOption[];
   locationId?: string;
   mode: "create" | "edit";
+  workSchedules: LookupOption[];
 };
 
 export function LocationsForm({
   initialValues,
+  holidayCalendars,
   locationId,
   mode,
+  workSchedules,
 }: LocationsFormProps) {
   const router = useRouter();
   const [form, setForm] = useState(initialValues);
@@ -34,7 +51,12 @@ export function LocationsForm({
     event.preventDefault();
     setError(null);
 
-    if (!form.name.trim() || !form.city.trim() || !form.state.trim() || !form.country.trim()) {
+    if (
+      !form.name.trim() ||
+      !form.city.trim() ||
+      !form.state.trim() ||
+      !form.country.trim()
+    ) {
       setError("Name, city, state, and country are required.");
       return;
     }
@@ -65,66 +87,138 @@ export function LocationsForm({
   return (
     <form className="grid gap-5" onSubmit={handleSubmit}>
       <div className="grid gap-4 rounded-[24px] border border-border bg-surface p-6 shadow-sm md:grid-cols-2">
-        <Field label="Location name" required value={form.name} onChange={(name) => setForm((current) => ({ ...current, name }))} />
-        <Field label="Code" value={form.code} onChange={(code) => setForm((current) => ({ ...current, code }))} />
-        <Field label="Address line 1" value={form.addressLine1} onChange={(addressLine1) => setForm((current) => ({ ...current, addressLine1 }))} />
-        <Field label="Address line 2" value={form.addressLine2} onChange={(addressLine2) => setForm((current) => ({ ...current, addressLine2 }))} />
-        <Field label="City" required value={form.city} onChange={(city) => setForm((current) => ({ ...current, city }))} />
-        <Field label="State" required value={form.state} onChange={(state) => setForm((current) => ({ ...current, state }))} />
-        <Field label="Country" required value={form.country} onChange={(country) => setForm((current) => ({ ...current, country }))} />
-        <Field label="Zip code" value={form.zipCode} onChange={(zipCode) => setForm((current) => ({ ...current, zipCode }))} />
-        <Field label="Timezone" value={form.timezone} onChange={(timezone) => setForm((current) => ({ ...current, timezone }))} />
-        <label className="flex items-center gap-3 text-sm font-medium text-foreground">
-          <input
-            checked={form.isActive}
-            className="h-4 w-4 rounded border-border"
-            onChange={(event) =>
-              setForm((current) => ({ ...current, isActive: event.target.checked }))
-            }
-            type="checkbox"
-          />
-          Active location
-        </label>
+        <TextField
+          label="Location name"
+          onChange={(name) => setForm((current) => ({ ...current, name }))}
+          required
+          value={form.name}
+        />
+        <TextField
+          label="Code"
+          onChange={(code) => setForm((current) => ({ ...current, code }))}
+          value={form.code}
+        />
+        <TextField
+          label="Address line 1"
+          onChange={(addressLine1) =>
+            setForm((current) => ({ ...current, addressLine1 }))
+          }
+          value={form.addressLine1}
+        />
+        <TextField
+          label="Address line 2"
+          onChange={(addressLine2) =>
+            setForm((current) => ({ ...current, addressLine2 }))
+          }
+          value={form.addressLine2}
+        />
+        <TextField
+          label="City"
+          onChange={(city) => setForm((current) => ({ ...current, city }))}
+          required
+          value={form.city}
+        />
+        <TextField
+          label="State"
+          onChange={(state) => setForm((current) => ({ ...current, state }))}
+          required
+          value={form.state}
+        />
+        <TextField
+          label="Country"
+          onChange={(country) =>
+            setForm((current) => ({ ...current, country }))
+          }
+          required
+          value={form.country}
+        />
+        <TextField
+          label="Zip code"
+          onChange={(zipCode) =>
+            setForm((current) => ({ ...current, zipCode }))
+          }
+          value={form.zipCode}
+        />
+        <TextField
+          label="Timezone"
+          onChange={(timezone) =>
+            setForm((current) => ({ ...current, timezone }))
+          }
+          placeholder="Asia/Riyadh"
+          value={form.timezone}
+        />
+        <NumberField
+          label="Latitude"
+          onChange={(latitude) =>
+            setForm((current) => ({
+              ...current,
+              latitude: latitude === null ? "" : String(latitude),
+            }))
+          }
+          value={form.latitude ? Number(form.latitude) : null}
+        />
+        <NumberField
+          label="Longitude"
+          onChange={(longitude) =>
+            setForm((current) => ({
+              ...current,
+              longitude: longitude === null ? "" : String(longitude),
+            }))
+          }
+          value={form.longitude ? Number(form.longitude) : null}
+        />
+        <NumberField
+          label="Allowed radius (meters)"
+          onChange={(allowedRadiusMeters) =>
+            setForm((current) => ({
+              ...current,
+              allowedRadiusMeters:
+                allowedRadiusMeters === null ? "" : String(allowedRadiusMeters),
+            }))
+          }
+          value={
+            form.allowedRadiusMeters ? Number(form.allowedRadiusMeters) : null
+          }
+        />
+        <LookupField
+          label="Default work schedule"
+          onChange={(defaultWorkScheduleId) =>
+            setForm((current) => ({ ...current, defaultWorkScheduleId }))
+          }
+          options={workSchedules}
+          placeholder="Inherit tenant default"
+          value={form.defaultWorkScheduleId}
+        />
+        <LookupField
+          label="Holiday calendar"
+          onChange={(holidayCalendarId) =>
+            setForm((current) => ({ ...current, holidayCalendarId }))
+          }
+          options={holidayCalendars}
+          placeholder="Use schedule calendar"
+          value={form.holidayCalendarId}
+        />
+        <CheckboxField
+          checked={form.isActive}
+          label="Active work site"
+          onChange={(isActive) =>
+            setForm((current) => ({ ...current, isActive }))
+          }
+        />
       </div>
       {error ? <p className="text-sm text-danger">{error}</p> : null}
       <div className="flex gap-3">
-        <button className="rounded-2xl bg-accent px-5 py-3 text-sm font-semibold text-white" disabled={isSubmitting} type="submit">
-          {isSubmitting ? "Saving..." : mode === "create" ? "Create location" : "Save changes"}
-        </button>
-        <button
-          className="rounded-2xl border border-border px-5 py-3 text-sm font-medium text-muted"
-          onClick={() => router.back()}
-          type="button"
-        >
+        <Button disabled={isSubmitting} type="submit">
+          {isSubmitting
+            ? "Saving..."
+            : mode === "create"
+              ? "Create location"
+              : "Save changes"}
+        </Button>
+        <Button onClick={() => router.back()} type="button" variant="secondary">
           Cancel
-        </button>
+        </Button>
       </div>
     </form>
-  );
-}
-
-function Field({
-  label,
-  onChange,
-  required,
-  value,
-}: {
-  label: string;
-  onChange: (value: string) => void;
-  required?: boolean;
-  value: string;
-}) {
-  return (
-    <label className="space-y-2 text-sm">
-      <span className="font-medium text-foreground">
-        {label}
-        {required ? " *" : ""}
-      </span>
-      <input
-        className="w-full rounded-2xl border border-border bg-white px-4 py-3 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
-        onChange={(event) => onChange(event.target.value)}
-        value={value}
-      />
-    </label>
   );
 }

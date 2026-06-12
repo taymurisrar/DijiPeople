@@ -16,13 +16,13 @@ export default async function CustomizationColumnsPage() {
 
   return (
     <SettingsShell
-      description="Choose a table to configure its columns. Column changes stay tenant-scoped and metadata-only."
+      description="Choose a module to configure its fields. Field changes stay tenant-scoped and metadata-only."
       eyebrow="Customization"
-      title="Columns"
+      title="Fields"
     >
       <SectionCard
-        description="Column editing happens inside each table so validation can use that table's system fields and tenant fields together."
-        title="Select a table"
+        description="Field editing happens inside each module so validation can use that module's system fields and tenant fields together."
+        title="Select a module"
       >
         <div className="grid gap-3 md:grid-cols-2">
           {tables.map((table) => (

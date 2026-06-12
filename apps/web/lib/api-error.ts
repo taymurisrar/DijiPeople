@@ -9,6 +9,9 @@ export type StandardApiError = {
   path?: string;
   method?: string;
   details?: unknown;
+  stack?: string;
+  componentStack?: string;
+  browserInfo?: string;
   support?: {
     reference: string;
     message: string;
@@ -66,6 +69,7 @@ export class AppApiError extends Error {
   constructor(error: StandardApiError) {
     super(error.message);
     this.name = "AppApiError";
+    this.stack = error.stack ?? this.stack;
     this.statusCode = error.statusCode;
     this.errorCode = error.errorCode;
     this.description = error.description;
@@ -80,6 +84,29 @@ export class AppApiError extends Error {
 export function normalizeApiError(input: unknown, fallbackStatus = 500): StandardApiError {
   if (isStandardApiError(input)) return withFallbacks(input);
 
+  if (input instanceof Error) {
+    const cause =
+      input.cause instanceof Error
+        ? {
+            message: input.cause.message,
+            stack: input.cause.stack,
+          }
+        : input.cause;
+    const catalog = CLIENT_ERROR_CATALOG.SYSTEM_UNEXPECTED_ERROR;
+
+    return {
+      success: false,
+      traceId: createClientTraceId(),
+      timestamp: new Date().toISOString(),
+      statusCode: fallbackStatus,
+      errorCode: statusToCode(fallbackStatus),
+      message: input.message || catalog.message,
+      description: catalog.description,
+      stack: input.stack,
+      details: cause ? { cause } : {},
+    };
+  }
+
   if (isRecord(input)) {
     const nested = isRecord(input.error) ? input.error : null;
     const errorCode =
@@ -89,6 +116,11 @@ export function normalizeApiError(input: unknown, fallbackStatus = 500): Standar
       readString(nested?.code) ??
       statusToCode(fallbackStatus);
     const catalog = CLIENT_ERROR_CATALOG[errorCode] ?? CLIENT_ERROR_CATALOG.SYSTEM_UNEXPECTED_ERROR;
+    const message =
+      readString(input.message) ??
+      readString(nested?.message) ??
+      catalog.message;
+    const normalizationError = new Error(message);
 
     return {
       success: false,
@@ -100,10 +132,7 @@ export function normalizeApiError(input: unknown, fallbackStatus = 500): Standar
       timestamp: readString(input.timestamp) ?? new Date().toISOString(),
       statusCode: readNumber(input.statusCode) ?? readNumber(input.status) ?? fallbackStatus,
       errorCode,
-      message:
-        readString(input.message) ??
-        readString(nested?.message) ??
-        catalog.message,
+      message,
       description:
         readString(input.description) ??
         readString(nested?.description) ??
@@ -111,6 +140,18 @@ export function normalizeApiError(input: unknown, fallbackStatus = 500): Standar
       path: readString(input.path) ?? readString(nested?.path) ?? undefined,
       method: readString(input.method) ?? readString(nested?.method) ?? undefined,
       details: input.details ?? nested?.details,
+      stack:
+        readString(input.stack) ??
+        readString(nested?.stack) ??
+        normalizationError.stack,
+      componentStack:
+        readString(input.componentStack) ??
+        readString(nested?.componentStack) ??
+        undefined,
+      browserInfo:
+        readString(input.browserInfo) ??
+        readString(nested?.browserInfo) ??
+        undefined,
       support: isRecord(input.support)
         ? {
             reference: readString(input.support.reference) ?? "",
@@ -121,15 +162,17 @@ export function normalizeApiError(input: unknown, fallbackStatus = 500): Standar
   }
 
   const catalog = CLIENT_ERROR_CATALOG.SYSTEM_UNEXPECTED_ERROR;
+  const message = catalog.message;
   return {
     success: false,
     traceId: createClientTraceId(),
     timestamp: new Date().toISOString(),
     statusCode: fallbackStatus,
     errorCode: statusToCode(fallbackStatus),
-    message: input instanceof Error && input.message ? input.message : catalog.message,
+    message,
     description: catalog.description,
     details: {},
+    stack: new Error(message).stack,
   };
 }
 
@@ -146,10 +189,12 @@ export function apiErrorEventName() {
 
 function withFallbacks(error: StandardApiError) {
   const catalog = CLIENT_ERROR_CATALOG[error.errorCode] ?? CLIENT_ERROR_CATALOG.SYSTEM_UNEXPECTED_ERROR;
+  const message = error.message || catalog.message;
   return {
     ...error,
-    message: error.message || catalog.message,
+    message,
     description: error.description || catalog.description,
+    stack: error.stack ?? new Error(message).stack,
   };
 }
 

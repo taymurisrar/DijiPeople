@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit3, Eye, EyeOff, Plus, Star, Trash2 } from "lucide-react";
+import { Edit3, Eye, EyeOff, Pencil, Plus, Star, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
 import { DataTable } from "@/app/components/data-table/data-table";
@@ -17,11 +17,14 @@ import {
 import { SectionCard } from "@/app/components/ui/section-card";
 import { StatusPill } from "@/app/components/ui/status-pill";
 import { PermissionGate } from "@/app/(authenticated)/_components/permission-gate";
+import { SYSTEM_COMPONENT_CUSTOMIZATION_MESSAGE } from "@/lib/customization/metadata-layering";
 import {
   CustomizationColumn,
+  CustomizationPackage,
   CustomizationTable,
   CustomizationView,
 } from "../types";
+import { CustomPackagePickerDialog } from "./custom-package-picker-dialog";
 
 type ViewFormState = {
   mode: "create" | "edit";
@@ -39,10 +42,12 @@ type ViewFormState = {
 
 export function ViewsManagement({
   columns,
+  packages,
   table,
   views,
 }: {
   columns: CustomizationColumn[];
+  packages: CustomizationPackage[];
   table: CustomizationTable;
   views: CustomizationView[];
 }) {
@@ -53,6 +58,14 @@ export function ViewsManagement({
   );
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedPackageId, setSelectedPackageId] = useState(
+    packages.find((item) => item.type === "custom" && !item.isReadOnly)?.id ??
+      "",
+  );
+  const [pendingSystemAction, setPendingSystemAction] = useState<null | {
+    view: CustomizationView;
+    action: "edit" | "designer" | "toggle" | "default";
+  }>(null);
   const designerColumns = useMemo(
     () =>
       columns.filter(
@@ -67,9 +80,11 @@ export function ViewsManagement({
   const tableColumns: DataTableColumn<CustomizationView>[] = [
     {
       key: "name",
-      header: "Name",
+      header: "View name",
+      searchable: true,
       sortable: true,
       sortAccessor: (row) => row.name,
+      searchAccessor: (row) => `${row.name} ${row.viewKey}`,
       render: (row) => (
         <div>
           <p className="font-semibold text-foreground">{row.name}</p>
@@ -80,9 +95,17 @@ export function ViewsManagement({
     {
       key: "type",
       header: "Type",
+      filterable: true,
+      filterType: "select",
+      filterAccessor: viewTypeLabel,
+      filterOptions: [
+        { label: "System", value: "System" },
+        { label: "Personal", value: "Personal" },
+        { label: "Shared", value: "Shared" },
+      ],
       render: (row) => (
         <StatusPill tone={row.type === "system" ? "muted" : "neutral"}>
-          {row.type}
+          {viewTypeLabel(row)}
         </StatusPill>
       ),
     },
@@ -94,28 +117,73 @@ export function ViewsManagement({
     {
       key: "hidden",
       header: "Status",
+      filterable: true,
+      filterType: "select",
+      filterAccessor: (row) => (row.isHidden ? "Inactive" : "Active"),
+      filterOptions: [
+        { label: "Active", value: "Active" },
+        { label: "Inactive", value: "Inactive" },
+      ],
       render: (row) => (
         <StatusPill tone={row.isHidden ? "muted" : "good"}>
-          {row.isHidden ? "Hidden" : "Visible"}
+          {row.isHidden ? "Inactive" : "Active"}
+        </StatusPill>
+      ),
+    },
+    {
+      key: "source",
+      header: "Source",
+      filterable: true,
+      filterType: "select",
+      filterAccessor: (row) => (row.type === "system" ? "System" : "Custom"),
+      filterOptions: [
+        { label: "System", value: "System" },
+        { label: "Custom", value: "Custom" },
+      ],
+      render: (row) => (
+        <StatusPill tone={row.type === "system" ? "muted" : "neutral"}>
+          {row.type === "system" ? "System" : "Custom"}
+        </StatusPill>
+      ),
+    },
+    {
+      key: "package",
+      header: "Package",
+      render: (row) =>
+        row.type === "system" ? "Default Package" : "Custom Package",
+    },
+    {
+      key: "lifecycle",
+      header: "Lifecycle",
+      render: (row) => (
+        <StatusPill tone={row.type === "system" ? "good" : "muted"}>
+          {stateLabel(
+            row.lifecycleState ??
+              (row.type === "system" ? "published" : "draft"),
+          )}
         </StatusPill>
       ),
     },
     {
       key: "columns",
-      header: "Columns",
+      header: "Fields count",
       sortable: true,
       sortAccessor: (row) => getViewColumnKeys(row).length,
       render: (row) => getViewColumnKeys(row).length,
     },
     {
       key: "filters",
-      header: "Filters",
-      render: (row) => summarizeJson(row.filtersJson),
+      header: "Filters count",
+      sortable: true,
+      sortAccessor: (row) => countJsonRules(row.filtersJson),
+      render: (row) => countJsonRules(row.filtersJson),
     },
     {
       key: "sorting",
-      header: "Sorting",
-      render: (row) => summarizeJson(row.sortingJson),
+      header: "Sorting count",
+      sortable: true,
+      sortAccessor: (row) => countJsonRules(row.sortingJson),
+      render: (row) => countJsonRules(row.sortingJson),
     },
     {
       key: "actions",
@@ -124,14 +192,27 @@ export function ViewsManagement({
         <div className="flex flex-wrap gap-2">
           <PermissionGate anyOf={["customization.views.update"]}>
             <Button
-              href={`/settings/customization/tables/${table.tableKey}/views/${row.viewKey}/designer`}
               leftIcon={<Edit3 className="h-4 w-4" />}
+              onClick={() => openDesigner(row)}
               size="sm"
+              title="Open designer"
+              type="button"
               variant="secondary"
             >
               Designer
             </Button>
             <Button
+              leftIcon={<Pencil className="h-4 w-4" />}
+              onClick={() => openEdit(row)}
+              size="sm"
+              title="Edit view"
+              type="button"
+              variant="ghost"
+            >
+              Rename/Edit
+            </Button>
+            <Button
+              disabled={!canToggleView(row, views)}
               leftIcon={
                 row.isHidden ? (
                   <Eye className="h-4 w-4" />
@@ -141,10 +222,15 @@ export function ViewsManagement({
               }
               onClick={() => toggleHidden(row)}
               size="sm"
+              title={
+                canToggleView(row, views)
+                  ? "Activate or deactivate this view"
+                  : "Default view cannot be deactivated until another active default exists."
+              }
               type="button"
               variant="ghost"
             >
-              {row.isHidden ? "Unhide" : "Hide"}
+              {row.isHidden ? "Activate" : "Deactivate"}
             </Button>
             {!row.isDefault ? (
               <Button
@@ -192,6 +278,42 @@ export function ViewsManagement({
     });
   }
 
+  function openEdit(record: CustomizationView) {
+    setError(null);
+    if (record.type === "system") {
+      setPendingSystemAction({ view: record, action: "edit" });
+      return;
+    }
+    setForm(toViewFormState(record));
+  }
+
+  function openDesigner(record: CustomizationView) {
+    setError(null);
+    if (record.type === "system") {
+      setPendingSystemAction({ view: record, action: "designer" });
+      return;
+    }
+    router.push(
+      `/settings/customization/tables/${table.tableKey}/views/${record.viewKey}/designer`,
+    );
+  }
+
+  function toViewFormState(record: CustomizationView): ViewFormState {
+    return {
+      mode: "edit",
+      original: record,
+      viewKey: record.viewKey,
+      name: record.name,
+      description: record.description ?? "",
+      type: record.type,
+      isDefault: record.isDefault,
+      isHidden: record.isHidden,
+      selectedColumns: getViewColumnKeys(record),
+      filtersText: stringifyOptionalJson(record.filtersJson),
+      sortingText: stringifyOptionalJson(record.sortingJson),
+    };
+  }
+
   function updateForm(patch: Partial<ViewFormState>) {
     setForm((current) => (current ? { ...current, ...patch } : current));
   }
@@ -235,6 +357,11 @@ export function ViewsManagement({
   }
 
   async function toggleHidden(view: CustomizationView) {
+    if (!canToggleView(view, views)) return;
+    if (view.type === "system") {
+      setPendingSystemAction({ view, action: "toggle" });
+      return;
+    }
     const action = view.isHidden ? "unhide" : "hide";
     const errorMessage = await postViewAction(
       table.tableKey,
@@ -249,6 +376,10 @@ export function ViewsManagement({
   }
 
   async function setDefault(view: CustomizationView) {
+    if (view.type === "system") {
+      setPendingSystemAction({ view, action: "default" });
+      return;
+    }
     const errorMessage = await postViewAction(
       table.tableKey,
       view.viewKey,
@@ -259,6 +390,81 @@ export function ViewsManagement({
       return;
     }
     router.refresh();
+  }
+
+  async function ensureSystemViewLayer(
+    view: CustomizationView,
+    packageId: string,
+    patch: Partial<CustomizationView> = {},
+  ) {
+    const response = await fetch(
+      `/api/customization/tables/${table.tableKey}/views/${view.viewKey}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          packageId,
+          name: patch.name ?? view.name,
+          description: patch.description ?? view.description ?? "",
+          type: "custom",
+          isDefault: patch.isDefault ?? view.isDefault,
+          isHidden: patch.isHidden ?? view.isHidden,
+          columnsJson: patch.columnsJson ?? view.columnsJson ?? { columns: [] },
+          filtersJson: patch.filtersJson ?? view.filtersJson ?? undefined,
+          sortingJson: patch.sortingJson ?? view.sortingJson ?? undefined,
+          visibilityScope: patch.visibilityScope ?? view.visibilityScope,
+        }),
+      },
+    );
+    const data = (await response.json().catch(() => ({}))) as
+      | CustomizationView
+      | { message?: string };
+    if (!response.ok || !("viewKey" in data)) {
+      throw new Error(
+        "message" in data && data.message
+          ? data.message
+          : "This component does not exist in published metadata or customization records.",
+      );
+    }
+    return data;
+  }
+
+  async function continueSystemAction() {
+    if (!pendingSystemAction) return;
+    const current = pendingSystemAction;
+    setPendingSystemAction(null);
+    setIsSaving(true);
+    setError(null);
+    try {
+      const draft = await ensureSystemViewLayer(
+        current.view,
+        selectedPackageId,
+        current.action === "toggle"
+          ? { isHidden: !current.view.isHidden }
+          : current.action === "default"
+            ? { isDefault: true, isHidden: false }
+            : {},
+      );
+      setIsSaving(false);
+      if (current.action === "edit") {
+        setForm(toViewFormState(draft));
+        return;
+      }
+      if (current.action === "designer") {
+        router.push(
+          `/settings/customization/tables/${table.tableKey}/views/${draft.viewKey}/designer`,
+        );
+        return;
+      }
+      router.refresh();
+    } catch (caught) {
+      setIsSaving(false);
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Unable to create customization layer.",
+      );
+    }
   }
 
   async function handleDelete() {
@@ -282,7 +488,7 @@ export function ViewsManagement({
 
   return (
     <SectionCard
-      description="Views define runtime list columns, default filters, sorting, and visibility scope for this table."
+      description="Views define runtime list fields, default filters, sorting, and visibility scope for this module."
       title="Views"
     >
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -308,6 +514,7 @@ export function ViewsManagement({
       ) : null}
 
       <DataTable
+        className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm"
         columns={tableColumns}
         emptyState={
           <EmptyState
@@ -318,12 +525,15 @@ export function ViewsManagement({
                 </Button>
               </PermissionGate>
             }
-            description="Create a saved view to control columns, filters, and sorting."
+            description="Create a saved view to control fields, filters, and sorting."
             title="No views"
           />
         }
         getRowKey={(row) => row.viewKey}
+        pagination={{ page: 1, pageSize: 10, total: views.length }}
         rows={views}
+        searchPlaceholder="Search views"
+        tableClassName="min-w-[1120px] divide-y divide-border text-xs"
       />
 
       {form ? (
@@ -337,15 +547,16 @@ export function ViewsManagement({
                 {form.mode === "create" ? "Create view" : "Edit view"}
               </h3>
               <p className="mt-1 text-sm leading-6 text-muted">
-                Configure the columns, default filters, and sorting applied by
+                Configure the fields, default filters, and sorting applied by
                 runtime list pages that consume published customization.
               </p>
             </div>
 
             {form.original?.type === "system" ? (
               <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                This is a system view. It can be configured or hidden, but it
-                cannot be deleted.
+                This is a system view. It can be renamed/customized through a
+                layer or deactivated when default rules allow, but it cannot be
+                deleted.
               </div>
             ) : null}
 
@@ -353,7 +564,7 @@ export function ViewsManagement({
               <TextField
                 disabled={form.mode === "edit"}
                 hint="Use camelCase. This key cannot be changed after creation."
-                label="View key"
+                label="View logical name"
                 onChange={(viewKey) => updateForm({ viewKey })}
                 required
                 value={form.viewKey}
@@ -398,7 +609,7 @@ export function ViewsManagement({
 
             <div className="rounded-[20px] border border-border bg-slate-50 p-4">
               <p className="text-sm font-semibold text-foreground">
-                Visible columns
+                Visible fields
               </p>
               <div className="mt-3 grid gap-2 md:grid-cols-2">
                 {designerColumns.map((column) => (
@@ -467,12 +678,21 @@ export function ViewsManagement({
         }}
         description={
           deleteTarget
-            ? `Delete ${deleteTarget.name}? System views cannot be deleted.`
+            ? `Delete ${deleteTarget.name}? System views cannot be deleted, and default/dependent views are blocked by the server.`
             : undefined
         }
         onClose={() => setDeleteTarget(null)}
         open={Boolean(deleteTarget)}
         title="Delete custom view"
+      />
+      <CustomPackagePickerDialog
+        message={SYSTEM_COMPONENT_CUSTOMIZATION_MESSAGE}
+        onClose={() => setPendingSystemAction(null)}
+        onConfirm={continueSystemAction}
+        open={Boolean(pendingSystemAction)}
+        packages={packages}
+        selectedPackageId={selectedPackageId}
+        setSelectedPackageId={setSelectedPackageId}
       />
     </SectionCard>
   );
@@ -510,7 +730,7 @@ function validateForm(form: ViewFormState, views: CustomizationView[]) {
     return "A view with this key already exists.";
   }
   if (form.selectedColumns.length === 0) {
-    return "Select at least one visible column.";
+    return "Select at least one visible field.";
   }
   try {
     parseOptionalJson(form.filtersText);
@@ -553,6 +773,10 @@ function parseOptionalJson(value: string) {
   return JSON.parse(trimmed) as unknown;
 }
 
+function stringifyOptionalJson(value: unknown) {
+  return value ? JSON.stringify(value, null, 2) : "";
+}
+
 function getViewColumnKeys(view: CustomizationView) {
   const config = view.columnsJson;
   if (!config) return [];
@@ -578,14 +802,38 @@ function extractColumnKey(value: unknown) {
   return [];
 }
 
-function summarizeJson(value: unknown) {
+function countJsonRules(value: unknown) {
   if (!value) return "None";
-  if (Array.isArray(value)) return `${value.length} rule(s)`;
+  if (Array.isArray(value)) return value.length;
   if (typeof value === "object") {
     const values = Object.values(value as Record<string, unknown>);
     const arrayValue = values.find(Array.isArray);
-    if (Array.isArray(arrayValue)) return `${arrayValue.length} rule(s)`;
-    return "Configured";
+    if (Array.isArray(arrayValue)) return arrayValue.length;
+    return 1;
   }
-  return "Configured";
+  return 1;
+}
+
+function viewTypeLabel(view: CustomizationView) {
+  if (view.type === "system") return "System";
+  if (view.visibilityScope === "user") return "Personal";
+  return "Shared";
+}
+
+function stateLabel(value: string) {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function canToggleView(
+  view: CustomizationView,
+  views: readonly CustomizationView[],
+) {
+  if (view.isHidden) return true;
+  if (!view.isDefault) return true;
+  return views.some(
+    (candidate) =>
+      candidate.viewKey !== view.viewKey &&
+      candidate.isDefault &&
+      !candidate.isHidden,
+  );
 }

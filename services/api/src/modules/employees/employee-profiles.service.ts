@@ -131,10 +131,12 @@ export class EmployeeProfilesService {
       designationId: employee.designationId,
       employeeLevelId: employee.employeeLevelId,
       locationId: employee.locationId,
+      defaultWorkScheduleId: employee.defaultWorkScheduleId,
       officialJoiningLocationId: employee.officialJoiningLocationId,
       managerEmployeeId: employee.managerEmployeeId,
       reportingManagerEmployeeId: employee.managerEmployeeId,
       userId: employee.userId,
+      ownerUserId: employee.ownerUserId,
       addressLine1: employee.addressLine1,
       addressLine2: employee.addressLine2,
       countryId: employee.countryId,
@@ -177,10 +179,21 @@ export class EmployeeProfilesService {
           }
         : null,
       user: employee.user ?? null,
+      ownerUser: employee.ownerUser
+        ? {
+            id: employee.ownerUser.id,
+            email: employee.ownerUser.email,
+            firstName: employee.ownerUser.firstName,
+            lastName: employee.ownerUser.lastName,
+            fullName:
+              `${employee.ownerUser.firstName} ${employee.ownerUser.lastName}`.trim(),
+          }
+        : null,
       department: employee.department,
       designation: employee.designation,
       employeeLevel: employee.employeeLevel,
       location: employee.location,
+      defaultWorkSchedule: employee.defaultWorkSchedule,
       officialJoiningLocation: employee.officialJoiningLocation,
       profileImage,
       basicProfile: {
@@ -1483,8 +1496,19 @@ export class EmployeeProfilesService {
     const employee = await this.assertEmployeeExists(
       currentUser.tenantId,
       employeeId,
-      await this.employeeAccessService.buildReadableEmployeeWhere(currentUser),
     );
+
+    if (
+      !(await this.employeeAccessService.canViewEmployeeRecord(
+        currentUser,
+        employeeId,
+      ))
+    ) {
+      throw new ForbiddenException({
+        code: 'ACCESS_DENIED',
+        message: 'You do not have permission to view this employee record.',
+      });
+    }
 
     return employee;
   }

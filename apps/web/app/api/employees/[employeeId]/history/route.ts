@@ -5,6 +5,14 @@ type RouteContext = {
   params: Promise<{ employeeId: string }>;
 };
 
+export async function GET(_request: Request, context: RouteContext) {
+  const { employeeId } = await context.params;
+  const response = await apiRequest(`/employees/${employeeId}/history`, {
+    method: "GET",
+  });
+  return proxyApiJsonResponse(response);
+}
+
 export async function POST(request: Request, context: RouteContext) {
   const { employeeId } = await context.params;
   const body = await request.json();

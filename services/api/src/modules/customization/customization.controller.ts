@@ -15,21 +15,29 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { CustomizationService } from './customization.service';
+import { CustomizationAccessGuard } from './customization-access.guard';
 import { CreateModuleViewDto } from '../views/dto/create-module-view.dto';
 import { UpdateModuleViewDto } from '../views/dto/update-module-view.dto';
 import {
   CreateCustomizationColumnDto,
   CreateCustomizationFormDto,
+  CreateCustomizationPackageDto,
   CreateCustomizationTableDto,
   CreateCustomizationViewDto,
+  AddExistingPackageComponentsDto,
+  EnsureCustomizationLayerDto,
+  MoveCustomizationComponentsDto,
+  PreviewCustomizationPackageImportDto,
+  PublishCustomizationComponentsDto,
   UpdateCustomizationColumnDto,
   UpdateCustomizationFormDto,
+  UpdateCustomizationPackageDto,
   UpdateCustomizationTableDto,
   UpdateCustomizationViewDto,
 } from './dto/customization.dto';
 
 @Controller('customization')
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, CustomizationAccessGuard)
 export class CustomizationController {
   constructor(private readonly customizationService: CustomizationService) {}
 
@@ -61,6 +69,201 @@ export class CustomizationController {
   @Permissions('customization.read')
   getPublishHistory(@CurrentUser() user: AuthenticatedUser) {
     return this.customizationService.getPublishHistory(user);
+  }
+
+  @Get('publish/drafts')
+  @Permissions('customization.read')
+  listPublishDrafts(@CurrentUser() user: AuthenticatedUser) {
+    return this.customizationService.listPublishDraftComponents(user);
+  }
+
+  @Post('layers/ensure')
+  @Permissions('customization.publish')
+  ensureCustomizationLayer(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: EnsureCustomizationLayerDto,
+  ) {
+    return this.customizationService.ensureCustomizationLayer(user, dto);
+  }
+
+  @Post('components/move')
+  @Permissions('customization.publish')
+  moveDraftComponents(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: MoveCustomizationComponentsDto,
+  ) {
+    return this.customizationService.moveDraftComponents(user, dto);
+  }
+
+  @Post('publish/validate')
+  @Permissions('customization.publish')
+  validatePublishDrafts(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto?: Partial<PublishCustomizationComponentsDto>,
+  ) {
+    return this.customizationService.validatePublishDrafts(
+      user,
+      dto?.componentIds,
+    );
+  }
+
+  @Post('publish/components')
+  @Permissions('customization.publish')
+  publishComponents(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: PublishCustomizationComponentsDto,
+  ) {
+    return this.customizationService.publishComponents(user, dto.componentIds);
+  }
+
+  @Get('effective')
+  @Permissions('customization.read')
+  getEffectiveMetadata(@CurrentUser() user: AuthenticatedUser) {
+    return this.customizationService.getEffectiveMetadata(user);
+  }
+
+  @Get('packages')
+  @Permissions('customization.read')
+  listPackages(@CurrentUser() user: AuthenticatedUser) {
+    return this.customizationService.listPackages(user);
+  }
+
+  @Post('packages')
+  @Permissions('customization.publish')
+  createPackage(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreateCustomizationPackageDto,
+  ) {
+    return this.customizationService.createPackage(user, dto);
+  }
+
+  @Get('packages/import/preview')
+  @Permissions('customization.read')
+  getImportPreviewShell() {
+    return {
+      supported: true,
+      applySupported: false,
+      message:
+        'JSON package import preview is available. Apply is not enabled.',
+    };
+  }
+
+  @Post('packages/import/preview')
+  @Permissions('customization.publish')
+  previewPackageImport(@Body() dto: PreviewCustomizationPackageImportDto) {
+    return this.customizationService.previewPackageImport(dto);
+  }
+
+  @Get('packages/:packageId')
+  @Permissions('customization.read')
+  getPackage(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('packageId') packageId: string,
+  ) {
+    return this.customizationService.getPackage(user, packageId);
+  }
+
+  @Patch('packages/:packageId')
+  @Permissions('customization.publish')
+  updatePackage(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('packageId') packageId: string,
+    @Body() dto: UpdateCustomizationPackageDto,
+  ) {
+    return this.customizationService.updatePackage(user, packageId, dto);
+  }
+
+  @Delete('packages/:packageId')
+  @Permissions('customization.publish')
+  deletePackage(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('packageId') packageId: string,
+  ) {
+    return this.customizationService.deletePackage(user, packageId);
+  }
+
+  @Get('packages/:packageId/candidates')
+  @Permissions('customization.read')
+  listPackageComponentCandidates(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('packageId') packageId: string,
+    @Query('moduleKey') moduleKey?: string,
+    @Query('componentType') componentType?: string,
+  ) {
+    return this.customizationService.listPackageComponentCandidates(user, {
+      packageId,
+      moduleKey,
+      componentType,
+    });
+  }
+
+  @Post('packages/:packageId/components')
+  @Permissions('customization.publish')
+  addExistingComponentsToPackage(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('packageId') packageId: string,
+    @Body() dto: AddExistingPackageComponentsDto,
+  ) {
+    return this.customizationService.addExistingComponentsToPackage(
+      user,
+      packageId,
+      dto,
+    );
+  }
+
+  @Post('packages/:packageId/validate')
+  @Permissions('customization.publish')
+  validatePackage(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('packageId') packageId: string,
+  ) {
+    return this.customizationService.validatePackage(user, packageId);
+  }
+
+  @Post('packages/:packageId/publish')
+  @Permissions('customization.publish')
+  publishPackage(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('packageId') packageId: string,
+  ) {
+    return this.customizationService.publishPackage(user, packageId);
+  }
+
+  @Delete('packages/:packageId/components/:componentId')
+  @Permissions('customization.publish')
+  removeComponentFromPackage(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('packageId') packageId: string,
+    @Param('componentId') componentId: string,
+  ) {
+    return this.customizationService.removeComponentFromPackage(
+      user,
+      packageId,
+      componentId,
+    );
+  }
+
+  @Delete('packages/:packageId/components/:componentId/metadata')
+  @Permissions('customization.publish')
+  deletePackageComponentMetadata(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('packageId') packageId: string,
+    @Param('componentId') componentId: string,
+  ) {
+    return this.customizationService.deletePackageComponentMetadata(
+      user,
+      packageId,
+      componentId,
+    );
+  }
+
+  @Get('packages/:packageId/export')
+  @Permissions('customization.read')
+  exportPackage(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('packageId') packageId: string,
+  ) {
+    return this.customizationService.exportPackage(user, packageId);
   }
 
   @Get('tables')
@@ -113,6 +316,20 @@ export class CustomizationController {
     @Param('tableKey') tableKey: string,
   ) {
     return this.customizationService.getTableDependencies(user, tableKey);
+  }
+
+  @Get('tables/:tableKey/metadata-components')
+  @Permissions('customization.tables.read')
+  listModuleMetadataComponents(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('tableKey') tableKey: string,
+    @Query('componentType') componentType: string,
+  ) {
+    return this.customizationService.listModuleMetadataComponents(
+      user,
+      tableKey,
+      componentType,
+    );
   }
 
   @Get('tables/:tableKey/columns')

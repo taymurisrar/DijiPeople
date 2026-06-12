@@ -15,9 +15,9 @@ export default async function CustomizationTablesPage() {
 
   return (
     <SettingsShell
-      description="Manage tenant labels, descriptions, icons, and active state for existing configurable system tables."
+      description="Manage module labels, descriptions, icons, package ownership, and active state for configurable metadata modules."
       eyebrow="Customization"
-      title="Tables"
+      title="Modules"
     >
       <TablesList tables={tables} />
     </SettingsShell>

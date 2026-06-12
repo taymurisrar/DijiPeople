@@ -1,23 +1,23 @@
-import { ModuleViewSelector } from "@/app/components/view-selector/module-view-selector";
+import { StandardModuleListPage } from "@/app/components/runtime";
 import { getSessionUser } from "@/lib/auth";
-import {
-  getTableViews,
-  RuntimeCustomizationView,
-  withFallbackViews,
-} from "@/lib/customization-views";
-import { hasPermission } from "@/lib/permissions";
 import { hasElevatedTenantRole } from "@/lib/elevated-roles";
+import { hasPermission } from "@/lib/permissions";
+import {
+  buildStandardModuleRuntimeContext,
+  buildStandardRuntimePrincipal,
+} from "@/lib/runtime/modules/standard-module-runtime";
+import { leaveRuntimeSpec } from "@/lib/runtime/modules/standard-module-specs";
 import { PERMISSION_KEYS } from "@/lib/security-keys";
-import { ApiRequestError, apiRequestJson } from "@/lib/server-api";
+import { apiRequestJson } from "@/lib/server-api";
+import { formatDate } from "@/lib/formatting-context";
 import { AccessDeniedState } from "../_components/access-denied-state";
 import {
   getBusinessUnitAccessSummary,
   hasBusinessUnitScope,
 } from "../_lib/business-unit-access";
-import { LeavesCommandBar } from "./_components/leaves-command-bar";
-import { LeavesTable } from "./_components/leaves-table";
-import { LeaveRequestRecord } from "./types";
 import { getCurrentEmployee } from "../_lib/current-employee";
+import type { TenantResolvedSettingsResponse } from "../settings/types";
+import type { LeaveRequestRecord } from "./types";
 
 type LeavesPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -37,19 +37,16 @@ export default async function LeavePage({ searchParams }: LeavesPageProps) {
     );
   }
 
-  const params = await searchParams;
-  const selectedViewKey = getSearchParam(params.view);
-
-  const sessionUser = await getSessionUser();
-  const currentEmployeeContext = sessionUser
-    ? await getCurrentEmployee()
-    : { employee: null, isReportingManager: false };
-
+  const [params, sessionUser, currentEmployeeContext, resolvedSettings] =
+    await Promise.all([
+      searchParams,
+      getSessionUser(),
+      getCurrentEmployee(),
+      apiRequestJson<TenantResolvedSettingsResponse>(
+        "/tenant-settings/resolved",
+      ).catch(() => null),
+    ]);
   const isElevated = hasElevatedTenantRole(sessionUser?.roleKeys);
-  const canCreateLeave = hasPermission(
-    sessionUser?.permissionKeys,
-    PERMISSION_KEYS.LEAVE_REQUESTS_CREATE,
-  );
   const canApproveLeave =
     isElevated ||
     hasPermission(
@@ -63,184 +60,91 @@ export default async function LeavePage({ searchParams }: LeavesPageProps) {
       PERMISSION_KEYS.LEAVE_REQUESTS_REJECT,
     );
   const canViewTeamLeaves =
-    currentEmployeeContext.isReportingManager || canApproveLeave || canRejectLeave;
-  const canViewTenantLeaves =
-    isElevated ||
-    hasPermission(sessionUser?.permissionKeys, "leave-requests.manage") ||
-    hasPermission(sessionUser?.permissionKeys, "leaves.manage");
-  const normalizedViewKey = selectedViewKey || "myLeaveRequests";
-  const isApprovalListView = [
-    "allLeaveRequests",
-    "teamLeaves",
-    "pendingApprovals",
-    "approved",
-    "rejected",
-    "cancelled",
-  ].includes(normalizedViewKey);
-  const leaveEndpoint = buildLeaveEndpoint({
-    canViewTeamLeaves,
-    canViewTenantLeaves,
-    selectedViewKey: normalizedViewKey,
+    currentEmployeeContext.isReportingManager ||
+    canApproveLeave ||
+    canRejectLeave;
+  const visibleSpec = canViewTeamLeaves
+    ? leaveRuntimeSpec
+    : {
+        ...leaveRuntimeSpec,
+        views: leaveRuntimeSpec.views.filter(
+          (view) => view.logicalName === "leaves.my",
+        ),
+      };
+  const runtime = buildStandardModuleRuntimeContext({
+    pageKind: "list",
+    principal: buildStandardRuntimePrincipal({
+      userId: sessionUser?.userId,
+      tenantId: sessionUser?.tenantId,
+      roleKeys: sessionUser?.roleKeys,
+      roles: sessionUser?.roles,
+      permissionKeys: sessionUser?.permissionKeys,
+    }),
+    spec: visibleSpec,
   });
-
-  const [requests, publishedViews, pendingApprovals] = await Promise.all([
-    apiRequestJson<LeaveRequestRecord[]>(leaveEndpoint),
-    getTableViews("leaves"),
-    getTeamRequestsCount(),
-  ]);
-
-  const systemViews: RuntimeCustomizationView[] = [
-    {
-      id: "allLeaveRequests",
-      viewKey: "allLeaveRequests",
-      tableKey: "leaves",
-      name: "All Leave Requests",
-      type: "system" as const,
-      isDefault: canViewTenantLeaves,
-      columnsJson: {
-        columns: [
-          { columnKey: "employee" },
-          { columnKey: "leaveType" },
-          { columnKey: "dateRange" },
-          { columnKey: "status" },
-          { columnKey: "attachments" },
-          { columnKey: "approvalFlow" },
-          { columnKey: "actions" },
-        ],
-      },
-      sortingJson: [{ columnKey: "dateRange", direction: "desc" }],
-    },
-    {
-      id: "myLeaveRequests",
-      viewKey: "myLeaveRequests",
-      tableKey: "leaves",
-      name: "My Leave Requests",
-      type: "system" as const,
-      isDefault: !canViewTenantLeaves,
-      columnsJson: {
-        columns: [
-          { columnKey: "leaveType" },
-          { columnKey: "dateRange" },
-          { columnKey: "status" },
-          { columnKey: "attachments" },
-          { columnKey: "approvalFlow" },
-          { columnKey: "actions" },
-        ],
-      },
-      sortingJson: [{ columnKey: "dateRange", direction: "desc" }],
-    },
-    ...(canViewTeamLeaves
-      ? [
-          buildLeaveStatusView("pendingApprovals", "Pending Approval", "PENDING"),
-          buildLeaveStatusView("approved", "Approved", "APPROVED"),
-          buildLeaveStatusView("rejected", "Rejected", "REJECTED"),
-          buildLeaveStatusView("cancelled", "Cancelled", "CANCELLED"),
-        ]
-      : []),
-    ...(canViewTeamLeaves
-      ? [{
-      id: "teamLeaves",
-      viewKey: "teamLeaves",
-      tableKey: "leaves",
-      name: "Team Leaves",
-      type: "system" as const,
-      isDefault: false,
-      columnsJson: {
-        columns: [
-          { columnKey: "employee" },
-          { columnKey: "leaveType" },
-          { columnKey: "dateRange" },
-          { columnKey: "status" },
-          { columnKey: "approvalFlow" },
-          { columnKey: "actions" },
-        ],
-      },
-      sortingJson: [{ columnKey: "dateRange", direction: "asc" }],
-    }]
-      : []),
-  ];
-  const leaveViews = withFallbackViews(
-    "leaves",
-    publishedViews,
-    canViewTenantLeaves
-      ? systemViews
-      : systemViews.filter((view) => view.viewKey !== "allLeaveRequests"),
-  );
-
-  const selectedView =
-    leaveViews.find((view) => view.viewKey === selectedViewKey) ??
-    leaveViews.find((view) => view.isDefault) ??
-    leaveViews[0] ??
-    null;
-
-  const visibleColumnKeys = selectedView?.columnsJson
-    ? (
-        (selectedView.columnsJson as {
-          columns?: Array<{ columnKey?: string }>;
-        }).columns ?? []
-      )
-        .map((column) => column.columnKey)
-        .filter((columnKey): columnKey is string => Boolean(columnKey))
-    : undefined;
+  const activeView = resolveActiveView(runtime, getSearchParam(params.viewId));
+  const teamView = activeView?.logicalName === "leaves.all";
+  const endpoint =
+    teamView && canViewTeamLeaves
+      ? "/leave-requests/team"
+      : "/leave-requests/mine";
+  const requests = await apiRequestJson<LeaveRequestRecord[]>(endpoint);
+  const formatting = {
+    dateFormat:
+      resolvedSettings?.system.dateFormat ||
+      resolvedSettings?.organization.dateFormat ||
+      "MM/dd/yyyy",
+    locale: resolvedSettings?.system.locale || "en-US",
+    timezone:
+      resolvedSettings?.organization.timezone ||
+      resolvedSettings?.system.defaultTimezone ||
+      "UTC",
+  };
+  const records = requests.map((request) => ({
+    ...request,
+    requestName: `${request.leaveType.name} · ${formatDate(
+      request.startDate,
+      formatting,
+    )} - ${formatDate(request.endDate, formatting)}`,
+    employeeName: request.employee.fullName,
+    leaveTypeName: request.leaveType.name,
+    durationDays: Number(request.totalDays),
+  }));
 
   return (
     <main className="dp-theme-scope dp-leaves-scope grid gap-6">
-      <ModuleViewSelector
-        configureHref="/settings/customization/tables/leaves"
-        enabled
-        selectedViewId={selectedView?.viewKey ?? ""}
-        views={leaveViews}
-      />
-
-      <LeavesCommandBar
-        canCreateLeave={canCreateLeave}
-        canDeleteLeave={false}
-        canShareLeave={false}
-        canAssignLeave={false}
-        canImportLeave={false}
-        canExportLeave={false}
-        canApproveLeave={isApprovalListView && canApproveLeave}
-        canRejectLeave={isApprovalListView && canRejectLeave}
-        pendingApprovals={pendingApprovals}
-      />
-
-      <LeavesTable
-        requests={requests}
-        formatting={{
-          dateFormat: "MM/dd/yyyy",
-          locale: "en-US",
-          timezone: "UTC",
-        }}
+      <StandardModuleListPage
+        activeView={activeView}
+        formatting={formatting}
         pagination={{
           page: 1,
-          pageSize: requests.length || 10,
-          totalItems: requests.length,
-          pathname: "/leaves",
+          pageSize: records.length || 10,
+          totalItems: records.length,
+          pathname: visibleSpec.routeBase,
           searchParams: {
-            view: selectedViewKey,
+            viewId: activeView?.viewId ?? activeView?.id,
           },
         }}
-        visibleColumnKeys={visibleColumnKeys}
-        enableSelection={false}
+        records={records}
+        runtime={runtime}
+        title="Leaves"
       />
     </main>
   );
 }
 
-async function getTeamRequestsCount() {
-  try {
-    const teamRequests = await apiRequestJson<LeaveRequestRecord[]>(
-      "/leave-requests/team?status=PENDING",
-    );
-
-    return teamRequests.length;
-  } catch (error) {
-    if (error instanceof ApiRequestError && error.status === 403) {
-      return 0;
-    }
-
-    throw error;
-  }
+function resolveActiveView(
+  runtime: ReturnType<typeof buildStandardModuleRuntimeContext>,
+  viewId: string,
+) {
+  return (
+    runtime.metadata.views.find(
+      (view) => (view.viewId ?? view.id) === viewId,
+    ) ??
+    runtime.metadata.views.find((view) => view.isDefault) ??
+    runtime.metadata.views[0] ??
+    null
+  );
 }
 
 function getSearchParam(value?: string | string[]) {
@@ -249,62 +153,4 @@ function getSearchParam(value?: string | string[]) {
   }
 
   return value ?? "";
-}
-
-function buildLeaveEndpoint(input: {
-  canViewTeamLeaves: boolean;
-  canViewTenantLeaves: boolean;
-  selectedViewKey: string;
-}) {
-  const query = new URLSearchParams();
-  const status = resolveLeaveStatus(input.selectedViewKey);
-  if (status) query.set("status", status);
-
-  const shouldUseTeamScope =
-    input.selectedViewKey !== "myLeaveRequests" &&
-    (input.canViewTenantLeaves || input.canViewTeamLeaves);
-  const path = shouldUseTeamScope
-    ? "/leave-requests/team"
-    : "/leave-requests/mine";
-  const suffix = query.toString();
-
-  return suffix ? `${path}?${suffix}` : path;
-}
-
-function resolveLeaveStatus(selectedViewKey: string) {
-  switch (selectedViewKey) {
-    case "pendingApprovals":
-      return "PENDING";
-    case "approved":
-      return "APPROVED";
-    case "rejected":
-      return "REJECTED";
-    case "cancelled":
-      return "CANCELLED";
-    default:
-      return "";
-  }
-}
-
-function buildLeaveStatusView(id: string, name: string, status: string) {
-  return {
-    id,
-    viewKey: id,
-    tableKey: "leaves",
-    name,
-    type: "system" as const,
-    isDefault: false,
-    filtersJson: { status },
-    columnsJson: {
-      columns: [
-        { columnKey: "employee" },
-        { columnKey: "leaveType" },
-        { columnKey: "dateRange" },
-        { columnKey: "status" },
-        { columnKey: "approvalFlow" },
-        { columnKey: "actions" },
-      ],
-    },
-    sortingJson: [{ columnKey: "dateRange", direction: "desc" }],
-  };
 }

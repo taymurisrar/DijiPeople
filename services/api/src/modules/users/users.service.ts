@@ -93,6 +93,21 @@ export class UsersService {
       throw new ConflictException('Email is already in use.');
     }
 
+    const employee = dto.employeeId
+      ? await this.usersRepository.findEmployeeForLinking(
+          tenantId,
+          dto.employeeId,
+        )
+      : null;
+    if (dto.employeeId && !employee) {
+      throw new NotFoundException('Employee was not found for this tenant.');
+    }
+    if (employee?.userId) {
+      throw new ConflictException(
+        'This employee is already linked to another user.',
+      );
+    }
+
     const passwordHash = await bcrypt.hash(dto.password, 12);
     const actor = await this.findByIdWithAccess(actorId);
     const fallbackBusinessUnitId =
@@ -110,6 +125,19 @@ export class UsersService {
       createdById: actorId,
       updatedById: actorId,
     });
+    if (employee) {
+      const linkResult = await this.usersRepository.linkEmployee(
+        tenantId,
+        user.id,
+        employee.id,
+        actorId,
+      );
+      if (linkResult.count === 0) {
+        throw new ConflictException(
+          'This employee could not be linked because the link changed. Refresh and try again.',
+        );
+      }
+    }
 
     const createdUser = await this.usersRepository.findByIdWithAccess(user.id);
 

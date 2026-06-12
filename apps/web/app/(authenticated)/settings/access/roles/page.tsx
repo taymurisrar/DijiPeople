@@ -1,27 +1,20 @@
 import { apiRequestJson } from "@/lib/server-api";
 import { PERMISSION_KEYS } from "@/lib/security-keys";
 import { requireSettingsPermissions } from "../../_lib/require-settings-permission";
-import { RoleAccessManagement } from "../../_components/role-access-management";
+import { RolesCatalog } from "../../_components/roles-catalog";
 import { SettingsShell } from "../../_components/settings-shell";
 import {
   AccessPermissionRecord,
   AccessRoleRecord,
-  AccessUserRecord,
-  BusinessUnitRecord,
-  RoleMatrixCatalog,
 } from "../../types";
 
 export default async function AccessRolesPage() {
   await requireSettingsPermissions([PERMISSION_KEYS.ROLES_READ]);
 
-  const [roles, permissions, users, businessUnits, matrixCatalog] =
-    await Promise.all([
-      apiRequestJson<AccessRoleRecord[]>("/roles"),
-      apiRequestJson<AccessPermissionRecord[]>("/permissions"),
-      apiRequestJson<AccessUserRecord[]>("/users"),
-      apiRequestJson<BusinessUnitRecord[]>("/business-units"),
-      apiRequestJson<RoleMatrixCatalog>("/roles/matrix/catalog"),
-    ]);
+  const [roles, permissions] = await Promise.all([
+    apiRequestJson<AccessRoleRecord[]>("/roles"),
+    apiRequestJson<AccessPermissionRecord[]>("/permissions"),
+  ]);
 
   return (
     <SettingsShell
@@ -29,13 +22,9 @@ export default async function AccessRolesPage() {
       eyebrow="Role & Access Management"
       title="Roles"
     >
-      <RoleAccessManagement
+      <RolesCatalog
         initialPermissions={permissions}
         initialRoles={roles}
-        initialUsers={users}
-        initialBusinessUnits={businessUnits}
-        matrixCatalog={matrixCatalog}
-        mode="roles"
       />
     </SettingsShell>
   );

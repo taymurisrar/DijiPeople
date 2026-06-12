@@ -3,7 +3,6 @@ import {
   EmployeeEmploymentStatus,
   Prisma,
   TimesheetImportBatchStatus,
-  TimesheetStatus,
 } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { TimesheetQueryDto } from './dto/timesheet-query.dto';
@@ -463,13 +462,13 @@ export class TimesheetsRepository {
     });
   }
 
-  findTimesheetsForTemplate(
+  async findTimesheetsForTemplate(
     tenantId: string,
     employeeIds: string[],
     year: number,
     month: number,
     db: PrismaDb = this.prisma,
-  ) {
+  ): Promise<TimesheetWithRelations[]> {
     if (employeeIds.length === 0) {
       return [];
     }
