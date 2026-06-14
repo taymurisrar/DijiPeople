@@ -157,4 +157,74 @@ describe('EmployeesService', () => {
       ),
     );
   });
+
+  it('returns field errors when tenant settings require emergency contact details', async () => {
+    tenantSettingsResolverService.getEmployeeSettings.mockResolvedValue({
+      ...DEFAULT_TENANT_SETTINGS.employees,
+      requireEmergencyContact: true,
+    });
+    employeesRepository.findByIdAndTenant.mockResolvedValue({
+      id: 'employee-1',
+      tenantId: 'tenant-1',
+      firstName: 'Ada',
+      lastName: 'Lovelace',
+      employeeCode: 'EMP-001',
+      email: 'ada@example.com',
+      phone: '1234567890',
+      employmentStatus: 'ACTIVE',
+      emergencyContactName: null,
+      emergencyContactRelationTypeId: null,
+      emergencyContactRelation: null,
+      emergencyContactPhone: null,
+      manager: null,
+      user: null,
+      profileImageDocument: null,
+      department: null,
+      designation: null,
+      location: null,
+      _count: {
+        directReports: 0,
+        educationRecords: 0,
+        historyRecords: 0,
+        documentLinks: 0,
+        emergencyContacts: 0,
+        documentReferences: 0,
+      },
+    });
+
+    await expect(
+      service.update(
+        {
+          tenantId: 'tenant-1',
+          userId: 'actor-1',
+          email: 'hr@example.com',
+          firstName: 'HR',
+          lastName: 'Admin',
+          roleIds: ['role-1'],
+          roleKeys: ['system-admin'],
+          permissionKeys: ['employees.update'],
+        },
+        'employee-1',
+        {},
+      ),
+    ).rejects.toMatchObject({
+      errorCode: 'VALIDATION_FAILED',
+      details: {
+        fieldErrors: [
+          {
+            field: 'emergencyContactName',
+            message: 'Emergency contact name is required.',
+          },
+          {
+            field: 'emergencyContactRelationTypeId',
+            message: 'Emergency contact relationship is required.',
+          },
+          {
+            field: 'emergencyContactPhone',
+            message: 'Emergency contact phone is required.',
+          },
+        ],
+      },
+    });
+  });
 });

@@ -227,38 +227,78 @@ function RuntimeFormMetadataRenderer({
             </div>
           )
         ) : (
-          <div className="grid gap-5">
-            {visibleSections.map((section) => (
-              <RuntimeSection
-                dataAdapter={dataAdapter}
-                entity={entity}
-                fieldsByName={fieldsByName}
-                key={section.id}
-                lookupDisplayValues={lookupDisplayValues}
-                lookupOptions={{
-                  ...lookupOptions,
-                  ...dynamicLookupOptions,
-                }}
-                mode={mode}
-                fieldErrors={fieldErrors}
-                onLookupOptionsChange={(fieldLogicalName, options) =>
-                  setDynamicLookupOptions((current) => ({
-                    ...current,
-                    [fieldLogicalName]: options,
-                  }))
-                }
-                onValuesChange={onValuesChange}
-                runtime={runtime}
-                section={section}
-                allowedWidgetComponentIds={allowedWidgetComponentIds}
-                touchedFields={touchedFields}
-                values={values}
-              />
-            ))}
-          </div>
+          <RuntimeSectionColumns
+            allowedWidgetComponentIds={allowedWidgetComponentIds}
+            columnCount={activeTab?.columns ?? form.columns ?? 1}
+            dataAdapter={dataAdapter}
+            entity={entity}
+            fieldErrors={fieldErrors}
+            fieldsByName={fieldsByName}
+            lookupDisplayValues={lookupDisplayValues}
+            lookupOptions={{ ...lookupOptions, ...dynamicLookupOptions }}
+            mode={mode}
+            onLookupOptionsChange={(fieldLogicalName, options) =>
+              setDynamicLookupOptions((current) => ({
+                ...current,
+                [fieldLogicalName]: options,
+              }))
+            }
+            onValuesChange={onValuesChange}
+            runtime={runtime}
+            sections={visibleSections}
+            touchedFields={touchedFields}
+            values={values}
+          />
         )}
       </div>
     </article>
+  );
+}
+
+function RuntimeSectionColumns({
+  columnCount,
+  sections,
+  ...sectionProps
+}: {
+  readonly columnCount: 1 | 2 | 3 | 4;
+  readonly sections: readonly FormSectionMetadata[];
+} & Omit<Parameters<typeof RuntimeSection>[0], "section">) {
+  const regularSections = sections.filter(
+    (section) => (section.columnSpan ?? 1) < columnCount,
+  );
+  const fullWidthSections = sections.filter(
+    (section) => (section.columnSpan ?? 1) >= columnCount,
+  );
+
+  return (
+    <div className="grid gap-5">
+      <div
+        className={`grid items-start gap-5 ${runtimeTabGridClass(columnCount)}`}
+      >
+        {Array.from({ length: columnCount }, (_, index) => index + 1).map(
+          (column) => (
+            <div className="grid gap-5" key={column}>
+              {regularSections
+                .filter(
+                  (section, sectionIndex) =>
+                    (section.column ?? (sectionIndex % columnCount) + 1) ===
+                    column,
+                )
+                .map((section) => (
+                  <RuntimeSection
+                    {...sectionProps}
+                    key={section.id}
+                    section={section}
+                  />
+                ))}
+            </div>
+          ),
+        )}
+      </div>
+      {fullWidthSections.map((section) => (
+        <RuntimeSection {...sectionProps} key={section.id} section={section} />
+      ))}
+    </div>
   );
 }
 
@@ -373,8 +413,7 @@ function RuntimeSection({
   const visibleComponents = (section.components ?? []).filter(
     (component) =>
       component.isVisible !== false &&
-      (!component.lifecycleState ||
-        component.lifecycleState === "published") &&
+      (!component.lifecycleState || component.lifecycleState === "published") &&
       (component.type !== "widget" ||
         allowedWidgetComponentIds.has(component.id)),
   );
@@ -413,47 +452,55 @@ function RuntimeSection({
             });
 
             return !fieldEditable ? (
-              <ReadOnlyField
+              <div
+                data-runtime-field={field.logicalName}
                 key={`${section.id}-${formField.fieldLogicalName}`}
-                label={formField.label ?? field.displayName}
-                required={formField.requirementLevel === "required"}
-                error={firstError(fieldErrors[field.logicalName])}
-                touched={touchedFields?.has(field.logicalName)}
-                value={formatRuntimeFieldValue({
-                  field,
-                  lookupDisplayValue: lookupDisplayValues[field.logicalName],
-                  tenant: runtime?.tenant,
-                  value: values[field.logicalName],
-                })}
-              />
+              >
+                <ReadOnlyField
+                  label={formField.label ?? field.displayName}
+                  required={formField.requirementLevel === "required"}
+                  error={firstError(fieldErrors[field.logicalName])}
+                  touched={touchedFields?.has(field.logicalName)}
+                  value={formatRuntimeFieldValue({
+                    field,
+                    lookupDisplayValue: lookupDisplayValues[field.logicalName],
+                    tenant: runtime?.tenant,
+                    value: values[field.logicalName],
+                  })}
+                />
+              </div>
             ) : (
-              <EditableField
-                field={field}
+              <div
+                data-runtime-field={field.logicalName}
                 key={`${section.id}-${formField.fieldLogicalName}`}
-                label={formField.label ?? field.displayName}
-                lookupOptions={lookupOptions[field.logicalName] ?? []}
-                error={firstError(fieldErrors[field.logicalName])}
-                onValueChange={(value) => {
-                  const nextValues = applyFieldValueChange({
-                    changedField: field,
-                    entity,
-                    value,
-                    values,
-                  });
-                  onValuesChange?.(nextValues);
-                  void loadDependentLookupOptions({
-                    changedField: field,
-                    dataAdapter,
-                    entity,
-                    nextValues,
-                    onLookupOptionsChange,
-                    runtime,
-                  });
-                }}
-                required={formField.requirementLevel === "required"}
-                touched={touchedFields?.has(field.logicalName)}
-                value={values[field.logicalName]}
-              />
+              >
+                <EditableField
+                  field={field}
+                  label={formField.label ?? field.displayName}
+                  lookupOptions={lookupOptions[field.logicalName] ?? []}
+                  error={firstError(fieldErrors[field.logicalName])}
+                  onValueChange={(value) => {
+                    const nextValues = applyFieldValueChange({
+                      changedField: field,
+                      entity,
+                      value,
+                      values,
+                    });
+                    onValuesChange?.(nextValues);
+                    void loadDependentLookupOptions({
+                      changedField: field,
+                      dataAdapter,
+                      entity,
+                      nextValues,
+                      onLookupOptionsChange,
+                      runtime,
+                    });
+                  }}
+                  required={formField.requirementLevel === "required"}
+                  touched={touchedFields?.has(field.logicalName)}
+                  value={values[field.logicalName]}
+                />
+              </div>
             );
           })}
           {visibleComponents.map((component) => (
@@ -733,6 +780,13 @@ function runtimeGridClass(columns: 1 | 2 | 3 | 4) {
   if (columns === 3) return "md:grid-cols-3";
   if (columns === 4) return "md:grid-cols-4";
   return "md:grid-cols-2";
+}
+
+function runtimeTabGridClass(columns: 1 | 2 | 3 | 4) {
+  if (columns === 2) return "lg:grid-cols-2";
+  if (columns === 3) return "lg:grid-cols-3";
+  if (columns === 4) return "lg:grid-cols-4";
+  return "grid-cols-1";
 }
 
 function columnsFromLayout(

@@ -44,6 +44,9 @@ function FieldShell({
   className,
   children,
 }: BaseFieldProps & { children: React.ReactNode }) {
+  const generatedId = React.useId();
+  const controlId = `field-${generatedId.replace(/:/g, "")}`;
+  const feedbackId = `${controlId}-feedback`;
   const feedback = error || warning || hint;
   const feedbackTone = error
     ? "text-danger"
@@ -53,6 +56,7 @@ function FieldShell({
 
   return (
     <label
+      htmlFor={controlId}
       className={["block space-y-2 text-sm", className]
         .filter(Boolean)
         .join(" ")}
@@ -85,9 +89,18 @@ function FieldShell({
         ) : null}
       </span>
 
-      {children}
+      {React.isValidElement(children)
+        ? React.cloneElement(
+            children as React.ReactElement<Record<string, unknown>>,
+            {
+              id: controlId,
+              "aria-describedby": feedback ? feedbackId : undefined,
+            },
+          )
+        : children}
       {feedback ? (
         <span
+          id={feedbackId}
           className={[
             "block text-xs leading-5",
             feedbackTone,
@@ -472,8 +485,12 @@ export function CheckboxField({
   checked: boolean;
   disabled?: boolean;
 }) {
+  const generatedId = React.useId();
+  const controlId = `field-${generatedId.replace(/:/g, "")}`;
+  const feedbackId = `${controlId}-feedback`;
   return (
     <label
+      htmlFor={controlId}
       className={[
         "flex min-h-[44px] items-center gap-3 rounded-2xl bg-white px-4 py-2 text-sm",
         disabled ? "cursor-not-allowed opacity-70" : "cursor-pointer",
@@ -484,8 +501,10 @@ export function CheckboxField({
         .join(" ")}
     >
       <input
+        id={controlId}
         checked={checked}
         aria-invalid={Boolean(error)}
+        aria-describedby={error || warning ? feedbackId : undefined}
         className="h-4 w-4 shrink-0 rounded border-border text-accent focus:ring-accent/20"
         disabled={disabled}
         onChange={(event) => onChange(event.target.checked)}
@@ -504,6 +523,7 @@ export function CheckboxField({
         ) : null}
         {error || warning ? (
           <span
+            id={feedbackId}
             className={`mt-1 block text-xs leading-5 ${
               error ? "text-danger" : "text-amber-700"
             }`}

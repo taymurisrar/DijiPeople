@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { DataTable } from "@/app/_components/crm/data-table";
 import { TenantStatusBadge } from "@/app/_components/tenant-status-badge";
 import { formatCurrency, formatDate } from "@/lib/formatters";
@@ -22,13 +23,31 @@ export type TenantInvoice = {
   invoicePdfUrl: string | null;
 };
 
-export function TenantInvoicesTable({ invoices }: { invoices: TenantInvoice[] }) {
+export function TenantInvoicesTable({
+  invoices,
+}: {
+  invoices: TenantInvoice[];
+}) {
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+  const totalPages = Math.max(1, Math.ceil(invoices.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const rows = invoices.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  );
   return (
     <DataTable
-      rows={invoices}
+      rows={rows}
       rowKey={(invoice) => invoice.id}
       emptyTitle="No invoices"
       emptyDescription="No invoices are linked to this tenant subscription yet."
+      pagination={{
+        page: currentPage,
+        pageSize,
+        totalRecords: invoices.length,
+        onPageChange: setPage,
+      }}
       columns={[
         {
           key: "number",

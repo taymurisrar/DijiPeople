@@ -29,6 +29,7 @@ type StandardErrorContract = {
   path: string;
   method: string;
   details: unknown;
+  fieldErrors?: Array<{ field: string; message: string }>;
   support: {
     reference: string;
     message: string;
@@ -74,6 +75,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
         message: config.supportMessage,
       },
     };
+    const fieldErrors = readFieldErrors(details);
+    if (fieldErrors.length) {
+      contract.fieldErrors = fieldErrors;
+    }
 
     if (
       config.verboseResponse &&
@@ -346,4 +351,22 @@ function sanitizeCause(value: unknown) {
     return sanitizeForErrorLog({ name: value.name, message: value.message });
   }
   return sanitizeForErrorLog(value);
+}
+
+function readFieldErrors(
+  details: unknown,
+): Array<{ field: string; message: string }> {
+  if (!details || typeof details !== 'object' || Array.isArray(details)) {
+    return [];
+  }
+
+  const value = (details as Record<string, unknown>).fieldErrors;
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((item) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) return [];
+    const field = readString((item as Record<string, unknown>).field);
+    const message = readString((item as Record<string, unknown>).message);
+    return field && message ? [{ field, message }] : [];
+  });
 }

@@ -615,20 +615,19 @@ function fallbackEmployeeForm(): FormMetadata {
     formType: "main",
     columns: 3,
     tabs: [
-      formFieldTab("summary", "Profile Summary", 10, [
+      formFieldTab("summary", "Summary / General", 10, [
+        "profile-image",
         "basic-information",
+        "employment-information",
+        "timeline",
+        "contact-information",
+        "emergency-contact",
+        "organization-reporting",
+        "address-information",
         "personal-information",
         "documents-identification",
-      ]),
-      formFieldTab("employment-info", "Employment Info", 30, [
-        "employment-information",
-      ]),
-      formFieldTab("organization-reporting", "Organization", 40, [
-        "organization-reporting",
-      ]),
-      formFieldTab("contact-address", "Contact & Address", 50, [
-        "contact-information",
-        "address-information",
+        "system-information",
+        "reporting-hierarchy",
       ]),
       formRelatedTab(
         "payroll-compensation",
@@ -642,12 +641,6 @@ function fallbackEmployeeForm(): FormMetadata {
         70,
         "employee_previous_employments",
       ),
-      formFieldTab("emergency-contact", "Emergency Contact", 90, [
-        "emergency-contact",
-      ]),
-      formFieldTab("system-information", "System Information", 100, [
-        "system-information",
-      ]),
       formRelatedTab(
         "leave-history",
         "Leave History",
@@ -668,11 +661,30 @@ function fallbackEmployeeForm(): FormMetadata {
     ],
     sections: [
       {
+        id: "profile-image",
+        tabKey: "summary",
+        label: "Profile Image",
+        order: 1,
+        layout: "single-column",
+        columns: 1,
+        column: 1,
+        fields: [],
+        components: [
+          createSystemWidgetComponent({
+            widgetKey: "employee.profilePhoto",
+            idSeed: "employee.main.full.profile",
+            order: 10,
+            columnSpan: 1,
+          }),
+        ],
+      },
+      {
         id: "basic-information",
         tabKey: "summary",
         label: "Basic Information",
         order: 10,
-        layout: "two-column",
+        layout: "single-column",
+        column: 1,
         fields: [
           { fieldLogicalName: "employeeCode", order: 10 },
           {
@@ -691,10 +703,11 @@ function fallbackEmployeeForm(): FormMetadata {
       },
       {
         id: "employment-information",
-        tabKey: "employment-info",
+        tabKey: "summary",
         label: "Employment Information",
         order: 20,
-        layout: "two-column",
+        layout: "single-column",
+        column: 1,
         fields: [
           {
             fieldLogicalName: "employmentStatus",
@@ -718,10 +731,11 @@ function fallbackEmployeeForm(): FormMetadata {
       },
       {
         id: "organization-reporting",
-        tabKey: "organization-reporting",
+        tabKey: "summary",
         label: "Organization",
         order: 30,
-        layout: "two-column",
+        layout: "single-column",
+        column: 3,
         fields: [
           { fieldLogicalName: "departmentId", order: 10 },
           { fieldLogicalName: "designationId", order: 20 },
@@ -734,10 +748,11 @@ function fallbackEmployeeForm(): FormMetadata {
       },
       {
         id: "contact-information",
-        tabKey: "contact-address",
+        tabKey: "summary",
         label: "Contact Information",
         order: 40,
-        layout: "two-column",
+        layout: "single-column",
+        column: 2,
         fields: [
           { fieldLogicalName: "workEmail", order: 10 },
           { fieldLogicalName: "personalEmail", order: 20 },
@@ -751,10 +766,11 @@ function fallbackEmployeeForm(): FormMetadata {
       },
       {
         id: "address-information",
-        tabKey: "contact-address",
+        tabKey: "summary",
         label: "Address Information",
         order: 50,
-        layout: "two-column",
+        layout: "single-column",
+        column: 3,
         fields: [
           { fieldLogicalName: "addressLine1", order: 10 },
           { fieldLogicalName: "addressLine2", order: 20 },
@@ -769,7 +785,8 @@ function fallbackEmployeeForm(): FormMetadata {
         tabKey: "summary",
         label: "Personal Information",
         order: 60,
-        layout: "two-column",
+        layout: "single-column",
+        column: 1,
         fields: [
           { fieldLogicalName: "dateOfBirth", order: 10 },
           { fieldLogicalName: "gender", order: 20 },
@@ -784,15 +801,17 @@ function fallbackEmployeeForm(): FormMetadata {
         tabKey: "summary",
         label: "Documents / Identification",
         order: 70,
-        layout: "two-column",
+        layout: "single-column",
+        column: 3,
         fields: [{ fieldLogicalName: "cnic", order: 10 }],
       },
       {
         id: "emergency-contact",
-        tabKey: "emergency-contact",
+        tabKey: "summary",
         label: "Emergency Contact",
         order: 80,
-        layout: "two-column",
+        layout: "single-column",
+        column: 2,
         fields: [
           { fieldLogicalName: "emergencyContactName", order: 10 },
           { fieldLogicalName: "emergencyContactRelationTypeId", order: 20 },
@@ -803,15 +822,53 @@ function fallbackEmployeeForm(): FormMetadata {
       },
       {
         id: "system-information",
-        tabKey: "system-information",
+        tabKey: "summary",
         label: "System Information",
         order: 90,
-        layout: "two-column",
+        layout: "single-column",
+        column: 3,
         fields: [
           { fieldLogicalName: "userId", order: 10 },
           { fieldLogicalName: "provisionSystemAccess", order: 20 },
           { fieldLogicalName: "sendInvitationNow", order: 30 },
           { fieldLogicalName: "initialRoleIds", order: 40, isVisible: false },
+        ],
+      },
+      {
+        id: "timeline",
+        tabKey: "summary",
+        label: "Timeline",
+        order: 15,
+        layout: "single-column",
+        columns: 1,
+        column: 2,
+        fields: [],
+        components: [
+          createSystemWidgetComponent({
+            widgetKey: "system.timeline",
+            idSeed: "employee.main.full.timeline",
+            order: 10,
+            columnSpan: 1,
+          }),
+        ],
+      },
+      {
+        id: "reporting-hierarchy",
+        tabKey: "summary",
+        label: "Reporting Hierarchy",
+        order: 1000,
+        layout: "single-column",
+        columns: 1,
+        column: 1,
+        columnSpan: 3,
+        fields: [],
+        components: [
+          createSystemWidgetComponent({
+            widgetKey: "system.reportingHierarchy",
+            idSeed: "employee.main.full.reporting",
+            order: 10,
+            columnSpan: 1,
+          }),
         ],
       },
       {
@@ -972,6 +1029,7 @@ function formFieldTab(
     label,
     order,
     type: "fields" as const,
+    columns: 3 as const,
     sectionIds,
   };
 }

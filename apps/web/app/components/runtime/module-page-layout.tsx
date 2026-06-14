@@ -60,16 +60,19 @@ export function ModulePageLayout({
 
       {accessDenied ? (
         <ModuleAccessDeniedState />
-      ) : error ? (
-        <section className="rounded-lg border border-danger/20 bg-danger/5 p-5 text-sm text-danger">
-          {error}
-        </section>
       ) : loading ? (
         <section className="rounded-lg border border-border bg-surface p-8 text-sm text-muted shadow-sm">
           Loading...
         </section>
       ) : (
-        children
+        <>
+          {error ? (
+            <section className="rounded-lg border border-danger/20 bg-danger/5 p-4 text-sm text-danger">
+              {error}
+            </section>
+          ) : null}
+          {children}
+        </>
       )}
     </section>
   );

@@ -112,6 +112,23 @@ export function ModuleRecordPage({
     return () => window.clearTimeout(updateDraft);
   }, [effectiveRecord]);
 
+  useEffect(() => {
+    const firstField = Object.keys(fieldErrors)[0];
+    if (!firstField) return;
+    const timer = window.setTimeout(() => {
+      const container = document.querySelector<HTMLElement>(
+        `[data-runtime-field="${CSS.escape(firstField)}"]`,
+      );
+      container?.scrollIntoView({ behavior: "smooth", block: "center" });
+      container
+        ?.querySelector<HTMLElement>(
+          "input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled])",
+        )
+        ?.focus({ preventScroll: true });
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [fieldErrors]);
+
   const requestedFormId = searchParams.get("formId");
 
   useEffect(() => {
@@ -323,21 +340,20 @@ export function ModuleRecordPage({
             if (Object.keys(backendErrors).length) {
               setFieldErrors(backendErrors);
               setTouchedFields(new Set(Object.keys(backendErrors)));
-              setValidationSummary(result.message ?? "Save failed.");
+              setValidationSummary(null);
+              return;
             }
+            setValidationSummary(result.message ?? "Save failed.");
           }}
           runtime={effectiveRuntime}
         >
-          {({ isRefreshing, lastResult, onCommand }) => (
+          {({ isRefreshing, onCommand }) => (
             <>
               <ModuleRefreshOverlay active={isRefreshing} />
               <ModuleDetailShell
                 activeFormId={activeForm?.id}
                 commands={commandGroups}
-                error={
-                  validationSummary ??
-                  (lastResult?.status === "failure" ? lastResult.message : null)
-                }
+                error={validationSummary}
                 formSlot={
                   formSlot ??
                   (activeForm ? (
@@ -408,7 +424,7 @@ export function ModuleRecordPage({
     if (!validation.isValid) {
       setFieldErrors(validation.errors);
       setTouchedFields(new Set(Object.keys(validation.errors)));
-      setValidationSummary("Fix the highlighted fields before saving.");
+      setValidationSummary(null);
       debugRuntime("Save blocked by runtime validation", {
         commandKey,
         moduleKey: effectiveRuntime.module.key,

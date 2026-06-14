@@ -2,6 +2,7 @@
 
 import { DataTable } from "@/app/_components/crm/data-table";
 import { formatDate } from "@/lib/formatters";
+import { useState } from "react";
 
 export type TenantAuditEvent = {
   id: string;
@@ -16,12 +17,26 @@ export type TenantAuditEvent = {
 };
 
 export function TenantAuditTable({ events }: { events: TenantAuditEvent[] }) {
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+  const totalPages = Math.max(1, Math.ceil(events.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const rows = events.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  );
   return (
     <DataTable
-      rows={events}
+      rows={rows}
       rowKey={(event) => event.id}
       emptyTitle="No audit events"
       emptyDescription="Tenant administration events will appear here."
+      pagination={{
+        page: currentPage,
+        pageSize,
+        totalRecords: events.length,
+        onPageChange: setPage,
+      }}
       renderExpandedRow={(event) => (
         <pre className="max-h-80 overflow-auto whitespace-pre-wrap text-xs text-slate-700">
           {JSON.stringify(

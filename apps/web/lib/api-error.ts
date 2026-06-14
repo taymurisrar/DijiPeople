@@ -9,6 +9,7 @@ export type StandardApiError = {
   path?: string;
   method?: string;
   details?: unknown;
+  fieldErrors?: Array<{ field: string; message: string }>;
   stack?: string;
   componentStack?: string;
   browserInfo?: string;
@@ -18,7 +19,10 @@ export type StandardApiError = {
   };
 };
 
-export const CLIENT_ERROR_CATALOG: Record<string, Pick<StandardApiError, "statusCode" | "message" | "description">> = {
+export const CLIENT_ERROR_CATALOG: Record<
+  string,
+  Pick<StandardApiError, "statusCode" | "message" | "description">
+> = {
   SESSION_EXPIRED: {
     statusCode: 401,
     message: "Session expired",
@@ -81,7 +85,10 @@ export class AppApiError extends Error {
   }
 }
 
-export function normalizeApiError(input: unknown, fallbackStatus = 500): StandardApiError {
+export function normalizeApiError(
+  input: unknown,
+  fallbackStatus = 500,
+): StandardApiError {
   if (isStandardApiError(input)) return withFallbacks(input);
 
   if (input instanceof Error) {
@@ -115,7 +122,9 @@ export function normalizeApiError(input: unknown, fallbackStatus = 500): Standar
       readString(nested?.errorCode) ??
       readString(nested?.code) ??
       statusToCode(fallbackStatus);
-    const catalog = CLIENT_ERROR_CATALOG[errorCode] ?? CLIENT_ERROR_CATALOG.SYSTEM_UNEXPECTED_ERROR;
+    const catalog =
+      CLIENT_ERROR_CATALOG[errorCode] ??
+      CLIENT_ERROR_CATALOG.SYSTEM_UNEXPECTED_ERROR;
     const message =
       readString(input.message) ??
       readString(nested?.message) ??
@@ -130,7 +139,10 @@ export function normalizeApiError(input: unknown, fallbackStatus = 500): Standar
         readString(nested?.traceId) ??
         createClientTraceId(),
       timestamp: readString(input.timestamp) ?? new Date().toISOString(),
-      statusCode: readNumber(input.statusCode) ?? readNumber(input.status) ?? fallbackStatus,
+      statusCode:
+        readNumber(input.statusCode) ??
+        readNumber(input.status) ??
+        fallbackStatus,
       errorCode,
       message,
       description:
@@ -138,8 +150,10 @@ export function normalizeApiError(input: unknown, fallbackStatus = 500): Standar
         readString(nested?.description) ??
         catalog.description,
       path: readString(input.path) ?? readString(nested?.path) ?? undefined,
-      method: readString(input.method) ?? readString(nested?.method) ?? undefined,
+      method:
+        readString(input.method) ?? readString(nested?.method) ?? undefined,
       details: input.details ?? nested?.details,
+      fieldErrors: readFieldErrors(input.fieldErrors ?? nested?.fieldErrors),
       stack:
         readString(input.stack) ??
         readString(nested?.stack) ??
@@ -176,10 +190,18 @@ export function normalizeApiError(input: unknown, fallbackStatus = 500): Standar
   };
 }
 
-export function isSessionExpiredError(error: Pick<StandardApiError, "statusCode" | "errorCode">) {
+export function isSessionExpiredError(
+  error: Pick<StandardApiError, "statusCode" | "errorCode">,
+) {
   return (
     error.statusCode === 401 ||
-    ["SESSION_EXPIRED", "SESSION_REVOKED", "AUTH_TOKEN_INVALID", "AUTH_REFRESH_TOKEN_INVALID", "AUTH_UNAUTHORIZED"].includes(error.errorCode)
+    [
+      "SESSION_EXPIRED",
+      "SESSION_REVOKED",
+      "AUTH_TOKEN_INVALID",
+      "AUTH_REFRESH_TOKEN_INVALID",
+      "AUTH_UNAUTHORIZED",
+    ].includes(error.errorCode)
   );
 }
 
@@ -188,7 +210,9 @@ export function apiErrorEventName() {
 }
 
 function withFallbacks(error: StandardApiError) {
-  const catalog = CLIENT_ERROR_CATALOG[error.errorCode] ?? CLIENT_ERROR_CATALOG.SYSTEM_UNEXPECTED_ERROR;
+  const catalog =
+    CLIENT_ERROR_CATALOG[error.errorCode] ??
+    CLIENT_ERROR_CATALOG.SYSTEM_UNEXPECTED_ERROR;
   const message = error.message || catalog.message;
   return {
     ...error,
@@ -199,7 +223,11 @@ function withFallbacks(error: StandardApiError) {
 }
 
 function isStandardApiError(value: unknown): value is StandardApiError {
-  return isRecord(value) && value.success === false && typeof value.errorCode === "string";
+  return (
+    isRecord(value) &&
+    value.success === false &&
+    typeof value.errorCode === "string"
+  );
 }
 
 function statusToCode(status: number) {
@@ -216,6 +244,17 @@ function readString(value: unknown) {
 
 function readNumber(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function readFieldErrors(value: unknown) {
+  if (!Array.isArray(value)) return undefined;
+  const errors = value.flatMap((item) => {
+    if (!isRecord(item)) return [];
+    const field = readString(item.field);
+    const message = readString(item.message);
+    return field && message ? [{ field, message }] : [];
+  });
+  return errors.length ? errors : undefined;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

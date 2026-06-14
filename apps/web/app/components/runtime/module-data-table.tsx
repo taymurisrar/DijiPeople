@@ -87,6 +87,7 @@ export function ModuleDataTable({
       }
       initialFilters={[...initialFilters]}
       initialSort={initialSort}
+      mode={pagination ? "server" : "client"}
       pagination={
         pagination
           ? {

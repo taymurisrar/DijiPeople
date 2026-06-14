@@ -28,11 +28,11 @@ export const employeeModuleDataAdapter: ModuleDataAdapter<
 
     return {
       records,
-      page: readNumber(data, "page") ?? input.page,
-      pageSize: readNumber(data, "pageSize") ?? input.pageSize,
+      page: readPaginationNumber(data, "page") ?? input.page,
+      pageSize: readPaginationNumber(data, "pageSize") ?? input.pageSize,
       totalRecords:
-        readNumber(data, "totalRecords") ??
-        readNumber(data, "total") ??
+        readPaginationNumber(data, "totalRecords") ??
+        readPaginationNumber(data, "total") ??
         records.length,
     };
   },
@@ -544,7 +544,7 @@ async function readResponseError(response: Response, fallback: string) {
 
     return new EmployeeApiError(message, {
       fieldErrors:
-        data.fieldErrors ??
+        normalizeFieldErrors(data.fieldErrors) ??
         data.errors ??
         fieldErrorsFromValidationMessages(data.message),
       response: data,
@@ -552,6 +552,19 @@ async function readResponseError(response: Response, fallback: string) {
   } catch {
     return new EmployeeApiError(text);
   }
+}
+
+function normalizeFieldErrors(value: unknown) {
+  if (!Array.isArray(value)) return value;
+  const result: Record<string, string[]> = {};
+  for (const item of value) {
+    if (!isRecord(item)) continue;
+    const field = stringValue(item.field);
+    const message = stringValue(item.message);
+    if (!field || !message) continue;
+    result[field] = [...(result[field] ?? []), message];
+  }
+  return Object.keys(result).length ? result : undefined;
 }
 
 function fieldErrorsFromValidationMessages(message: unknown) {
@@ -608,6 +621,13 @@ function readNumber(data: unknown, key: string) {
   if (!data || typeof data !== "object") return null;
   const value = (data as Record<string, unknown>)[key];
   return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function readPaginationNumber(data: unknown, key: string) {
+  const direct = readNumber(data, key);
+  if (direct !== null) return direct;
+  if (!isRecord(data)) return null;
+  return readNumber(data.meta, key) ?? readNumber(data.pagination, key);
 }
 
 function stringValue(value: unknown) {

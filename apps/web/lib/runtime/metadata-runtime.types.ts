@@ -212,6 +212,7 @@ export interface FormSectionMetadata {
   readonly order: number;
   readonly layout: FormSectionLayout;
   readonly columns?: FormColumnCount;
+  readonly column?: FormColumnCount;
   readonly columnSpan?: FormColumnCount;
   readonly fields: readonly FormFieldMetadata[];
   readonly components?: readonly FormComponentMetadata[];

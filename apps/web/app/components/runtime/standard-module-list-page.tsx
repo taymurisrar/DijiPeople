@@ -93,7 +93,6 @@ export function StandardModuleListPage({
             pagination
               ? {
                   ...pagination,
-                  totalItems: filteredRecords.length,
                 }
               : undefined
           }

@@ -174,6 +174,15 @@ export function DataTable<T>({
     search.trim().length > 0 || filters.length > 0;
 
   const totalRecords = totalProcessedRows;
+  const rangeStart =
+    totalRecords === 0 ? 0 : (currentPage - 1) * effectivePageSize + 1;
+  const rangeEnd =
+    totalRecords === 0
+      ? 0
+      : Math.min(
+          rangeStart + Math.max(visibleRows.length, 1) - 1,
+          totalRecords,
+        );
 
   function toggleRowSelection(rowKey: string) {
     if (!onSelectedRowKeysChange) {
@@ -341,7 +350,7 @@ export function DataTable<T>({
           <p className="text-sm font-semibold text-foreground">Records</p>
 
           <p className="text-xs text-muted">
-            Showing {visibleRows.length} of {totalRecords}
+            Showing {rangeStart}-{rangeEnd} of {totalRecords}
             {entityLogicalName ? ` ${entityLogicalName}` : ""}
           </p>
 

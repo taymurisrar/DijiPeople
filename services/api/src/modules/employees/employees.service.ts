@@ -13,6 +13,7 @@ import {
 } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { AppError } from '../../common/errors/app-error';
 import { ENTITY_KEYS, ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import { normalizeEmail } from '../../common/utils/email.util';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -97,6 +98,47 @@ function getUpdateDtoValue<Dto extends object, Key extends keyof Dto, Fallback>(
   fallback: Fallback,
 ) {
   return Object.prototype.hasOwnProperty.call(dto, key) ? dto[key] : fallback;
+}
+
+function employeeValidationError(
+  message: string,
+  fieldErrors: Array<{ field: string; message: string }>,
+) {
+  return new AppError('VALIDATION_FAILED', {
+    message,
+    details: { fieldErrors },
+  });
+}
+
+function emergencyContactFieldErrors(input: {
+  emergencyContactName?: string | null;
+  emergencyContactRelationTypeId?: string | null;
+  emergencyContactRelation?: string | null;
+  emergencyContactPhone?: string | null;
+}) {
+  const errors: Array<{ field: string; message: string }> = [];
+  if (!input.emergencyContactName?.trim()) {
+    errors.push({
+      field: 'emergencyContactName',
+      message: 'Emergency contact name is required.',
+    });
+  }
+  if (
+    !input.emergencyContactRelationTypeId?.trim() &&
+    !input.emergencyContactRelation?.trim()
+  ) {
+    errors.push({
+      field: 'emergencyContactRelationTypeId',
+      message: 'Emergency contact relationship is required.',
+    });
+  }
+  if (!input.emergencyContactPhone?.trim()) {
+    errors.push({
+      field: 'emergencyContactPhone',
+      message: 'Emergency contact phone is required.',
+    });
+  }
+  return errors;
 }
 
 function formatDateForFilename(date: Date) {
@@ -209,7 +251,10 @@ export class EmployeesService {
           page: 1,
           pageSize: query.pageSize,
           total: directReports.total,
-          totalPages: 1,
+          totalPages: Math.max(
+            1,
+            Math.ceil(directReports.total / query.pageSize),
+          ),
         },
         filters: {
           search: query.search ?? null,
@@ -2051,10 +2096,14 @@ export class EmployeesService {
         'Personal email is required by tenant employee settings.',
       );
     }
-    if (settings.requireEmergencyContact && !dto.emergencyContactName?.trim()) {
-      throw new BadRequestException(
-        'Emergency contact details are required by tenant employee settings.',
-      );
+    if (settings.requireEmergencyContact) {
+      const fieldErrors = emergencyContactFieldErrors(dto);
+      if (fieldErrors.length) {
+        throw employeeValidationError(
+          'Emergency contact details are required by tenant employee settings.',
+          fieldErrors,
+        );
+      }
     }
     if (settings.requireDepartment && !dto.departmentId?.trim()) {
       throw new BadRequestException(
@@ -2096,6 +2145,21 @@ export class EmployeesService {
       'emergencyContactName',
       employee.emergencyContactName,
     );
+    const nextEmergencyContactRelationTypeId = getUpdateDtoValue(
+      dto,
+      'emergencyContactRelationTypeId',
+      employee.emergencyContactRelationTypeId,
+    );
+    const nextEmergencyContactRelation = getUpdateDtoValue(
+      dto,
+      'emergencyContactRelation',
+      employee.emergencyContactRelation,
+    );
+    const nextEmergencyContactPhone = getUpdateDtoValue(
+      dto,
+      'emergencyContactPhone',
+      employee.emergencyContactPhone,
+    );
     const nextDepartmentId = getUpdateDtoValue(
       dto,
       'departmentId',
@@ -2123,10 +2187,19 @@ export class EmployeesService {
         'Personal email is required by tenant employee settings.',
       );
     }
-    if (settings.requireEmergencyContact && !nextEmergencyContactName?.trim()) {
-      throw new BadRequestException(
-        'Emergency contact details are required by tenant employee settings.',
-      );
+    if (settings.requireEmergencyContact) {
+      const fieldErrors = emergencyContactFieldErrors({
+        emergencyContactName: nextEmergencyContactName,
+        emergencyContactRelationTypeId: nextEmergencyContactRelationTypeId,
+        emergencyContactRelation: nextEmergencyContactRelation,
+        emergencyContactPhone: nextEmergencyContactPhone,
+      });
+      if (fieldErrors.length) {
+        throw employeeValidationError(
+          'Emergency contact details are required by tenant employee settings.',
+          fieldErrors,
+        );
+      }
     }
     if (
       settings.preventActivationUntilMandatoryFieldsCompleted &&
