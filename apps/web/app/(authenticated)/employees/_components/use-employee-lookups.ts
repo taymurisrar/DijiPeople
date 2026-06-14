@@ -93,15 +93,15 @@ export function useEmployeeLookups(filters?: {
 
       const [baseLookups, responses] = await Promise.all([
         loadBaseLookups(),
-        Promise.all(requests),
+        Promise.allSettled(requests),
       ]);
       const payloads = await Promise.all(
-        responses.map(async (response) => {
-          if (!response.ok) {
+        responses.map(async (result) => {
+          if (result.status === "rejected" || !result.value.ok) {
             return null;
           }
 
-          return response.json();
+          return result.value.json();
         }),
       );
 
@@ -221,14 +221,18 @@ function loadBaseLookups() {
 }
 
 async function fetchLookup(url: string) {
-  const response = await fetch(url, {
-    signal: AbortSignal.timeout(LOOKUP_TIMEOUT_MS),
-  });
-  if (!response.ok) {
+  try {
+    const response = await fetch(url, {
+      signal: AbortSignal.timeout(LOOKUP_TIMEOUT_MS),
+    });
+    if (!response.ok) {
+      return [];
+    }
+
+    return normalizeLookupList(await response.json());
+  } catch {
     return [];
   }
-
-  return normalizeLookupList(await response.json());
 }
 
 function normalizeLookupList(payload: unknown): LookupOption[] {

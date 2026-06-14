@@ -74,7 +74,7 @@ export class LookupsService {
   }
 
   async listDocumentTypes(tenantId: string) {
-    await this.ensureTenantLookupDefaults(tenantId);
+    await this.ensureDocumentTypeDefaults();
     return this.prisma.documentType.findMany({
       where: {
         isActive: true,
@@ -85,7 +85,7 @@ export class LookupsService {
   }
 
   async listDocumentCategories(tenantId: string) {
-    await this.ensureTenantLookupDefaults(tenantId);
+    await this.ensureDocumentCategoryDefaults();
     return this.prisma.documentCategory.findMany({
       where: {
         isActive: true,
@@ -96,7 +96,7 @@ export class LookupsService {
   }
 
   async listRelationTypes(tenantId: string) {
-    await this.ensureTenantLookupDefaults(tenantId);
+    await this.ensureRelationTypeDefaults();
     const relationTypes = await this.prisma.relationType.findMany({
       where: {
         isActive: true,
@@ -140,64 +140,60 @@ export class LookupsService {
     });
   }
 
-  private async ensureTenantLookupDefaults(tenantId: string) {
-    for (const [index, documentType] of DEFAULT_DOCUMENT_TYPES.entries()) {
-      const existing = await this.prisma.documentType.findFirst({
-        where: { tenantId: null, key: documentType.key },
-        select: { id: true },
-      });
+  private async ensureDocumentTypeDefaults() {
+    const existing = await this.prisma.documentType.findMany({
+      where: { tenantId: null },
+      select: { key: true },
+    });
+    const existingKeys = new Set(existing.map((item) => item.key));
 
-      if (!existing) {
-        await this.prisma.documentType.create({
-          data: {
-            tenantId: null,
-            key: documentType.key,
-            name: documentType.name,
-            sortOrder: index * 10,
-          },
-        });
-      }
-    }
+    await this.prisma.documentType.createMany({
+      data: DEFAULT_DOCUMENT_TYPES.filter(
+        (item) => !existingKeys.has(item.key),
+      ).map((item, index) => ({
+        tenantId: null,
+        key: item.key,
+        name: item.name,
+        sortOrder: index * 10,
+      })),
+    });
+  }
 
-    for (const [index, relationType] of DEFAULT_RELATION_TYPES.entries()) {
-      const existing = await this.prisma.relationType.findFirst({
-        where: { tenantId: null, key: relationType.key },
-        select: { id: true },
-      });
+  private async ensureRelationTypeDefaults() {
+    const existing = await this.prisma.relationType.findMany({
+      where: { tenantId: null },
+      select: { key: true },
+    });
+    const existingKeys = new Set(existing.map((item) => item.key));
 
-      if (!existing) {
-        await this.prisma.relationType.create({
-          data: {
-            tenantId: null,
-            key: relationType.key,
-            name: relationType.name,
-            sortOrder: index * 10,
-          },
-        });
-      }
-    }
+    await this.prisma.relationType.createMany({
+      data: DEFAULT_RELATION_TYPES.filter(
+        (item) => !existingKeys.has(item.key),
+      ).map((item, index) => ({
+        tenantId: null,
+        key: item.key,
+        name: item.name,
+        sortOrder: index * 10,
+      })),
+    });
+  }
 
-    for (const [
-      index,
-      documentCategory,
-    ] of DEFAULT_DOCUMENT_CATEGORIES.entries()) {
-      const existing = await this.prisma.documentCategory.findFirst({
-        where: { tenantId: null, code: documentCategory.code },
-        select: { id: true },
-      });
+  private async ensureDocumentCategoryDefaults() {
+    const existing = await this.prisma.documentCategory.findMany({
+      where: { tenantId: null },
+      select: { code: true },
+    });
+    const existingCodes = new Set(existing.map((item) => item.code));
 
-      if (!existing) {
-        await this.prisma.documentCategory.create({
-          data: {
-            tenantId: null,
-            code: documentCategory.code,
-            name: documentCategory.name,
-            sortOrder: index * 10,
-          },
-        });
-      }
-    }
-
-    void tenantId;
+    await this.prisma.documentCategory.createMany({
+      data: DEFAULT_DOCUMENT_CATEGORIES.filter(
+        (item) => !existingCodes.has(item.code),
+      ).map((item, index) => ({
+        tenantId: null,
+        code: item.code,
+        name: item.name,
+        sortOrder: index * 10,
+      })),
+    });
   }
 }

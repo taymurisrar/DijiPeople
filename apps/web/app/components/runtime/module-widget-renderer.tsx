@@ -1,6 +1,6 @@
 "use client";
 
-import { Filter, Plus, Search } from "lucide-react";
+import { ArrowDownWideNarrow, ArrowUpNarrowWide, Filter, Plus, Search } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   resolveSystemWidgetAvailability,
@@ -207,7 +207,7 @@ function ModuleAgentDesktopWidget({
           Last activity:{" "}
           {formatDateTime(
             stringValue(latestSession.lastHeartbeatAt) ||
-              stringValue(latestSession.startedAt),
+            stringValue(latestSession.startedAt),
             runtime?.tenant,
           ) || "Not set"}
         </div>
@@ -377,11 +377,11 @@ function EmployeeProfilePhotoWidget({
     permissionKeys.has("employees.update.self");
   const profileImage = isRecord(data.profileImage)
     ? ({
-        id: stringValue(data.profileImage.id),
-        fileName: stringValue(data.profileImage.fileName),
-        mimeType: stringValue(data.profileImage.mimeType),
-        size: numberValue(data.profileImage.size),
-      } as EmployeeDocumentSummary)
+      id: stringValue(data.profileImage.id),
+      fileName: stringValue(data.profileImage.fileName),
+      mimeType: stringValue(data.profileImage.mimeType),
+      size: numberValue(data.profileImage.size),
+    } as EmployeeDocumentSummary)
     : null;
   const employeeName =
     stringValue(data.fullName) ||
@@ -657,8 +657,8 @@ function readApprovalTrackerItem(value: unknown) {
         const latestAction = actions.at(-1);
         const action =
           latestAction &&
-          typeof latestAction === "object" &&
-          !Array.isArray(latestAction)
+            typeof latestAction === "object" &&
+            !Array.isArray(latestAction)
             ? (latestAction as Record<string, unknown>)
             : null;
         return {
@@ -853,26 +853,30 @@ function ModuleTimelineWidget({
             />
           </label>
           <Button
-            leftIcon={<Filter className="h-4 w-4" />}
-            onClick={() =>
-              setSortDirection((current) =>
-                current === "desc" ? "asc" : "desc",
+            leftIcon={
+              sortDirection === "desc" ? (
+                <ArrowDownWideNarrow className="h-4 w-4" />
+              ) : (
+                <ArrowUpNarrowWide className="h-4 w-4" />
               )
             }
-            size="xs"
+            onClick={() =>
+              setSortDirection((current) => (current === "desc" ? "asc" : "desc"))
+            }
+            size="icon-sm"
+            title={sortDirection === "desc" ? "Latest first" : "Oldest first"}
+            aria-label={sortDirection === "desc" ? "Latest first" : "Oldest first"}
             variant="secondary"
-          >
-            {sortDirection === "desc" ? "Latest first" : "Oldest first"}
-          </Button>
+          />
+
           <Button
             disabled
             leftIcon={<Plus className="h-4 w-4" />}
-            size="xs"
-            title="Timeline quick create requires a registered Timeline command handler."
+            size="icon-sm"
+            title="Quick Create"
+            aria-label="Quick Create"
             variant="secondary"
-          >
-            Quick Create
-          </Button>
+          />
         </div>
       </div>
       <div className="grid gap-3 p-4">
@@ -962,9 +966,8 @@ function WidgetState({
 }) {
   return (
     <div
-      className={`rounded-lg border border-dashed p-4 ${
-        tone === "warning" ? "border-warning/40 bg-warning/5" : "border-border"
-      }`}
+      className={`rounded-lg border border-dashed p-4 ${tone === "warning" ? "border-warning/40 bg-warning/5" : "border-border"
+        }`}
     >
       <h4 className="text-sm font-semibold text-foreground">{title}</h4>
       <p className="mt-1 text-sm text-muted">{description}</p>

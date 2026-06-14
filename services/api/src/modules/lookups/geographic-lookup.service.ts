@@ -1,6 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import {
+  DEFAULT_CITIES,
+  DEFAULT_COUNTRIES,
+  DEFAULT_STATES,
+} from './lookups.catalog';
 
 type CountryApiRecord = {
   cca2?: string;
@@ -30,6 +35,7 @@ type CityApiResponse = {
 };
 
 const ONE_DAY_MS = 1000 * 60 * 60 * 24;
+const GEOGRAPHY_API_TIMEOUT_MS = 3_000;
 
 @Injectable()
 export class GeographicLookupService {
@@ -126,6 +132,8 @@ export class GeographicLookupService {
       select: { updatedAt: true },
     });
 
+    await this.ensureDefaultCountries();
+
     if (
       count > 0 &&
       latest &&
@@ -139,7 +147,9 @@ export class GeographicLookupService {
         'GEOGRAPHY_COUNTRIES_API_URL',
         'https://restcountries.com/v3.1/all?fields=name,cca2,cca3',
       );
-      const response = await fetch(endpoint);
+      const response = await fetch(endpoint, {
+        signal: AbortSignal.timeout(GEOGRAPHY_API_TIMEOUT_MS),
+      });
       if (!response.ok) {
         throw new Error(`Countries API returned ${response.status}`);
       }
@@ -162,21 +172,14 @@ export class GeographicLookupService {
         )
         .sort((left, right) => left.name.localeCompare(right.name));
 
-      for (const [index, country] of countries.entries()) {
-        await this.prisma.country.upsert({
-          where: { code: country.code },
-          create: {
-            code: country.code,
-            name: country.name,
-            sortOrder: index,
-          },
-          update: {
-            name: country.name,
-            sortOrder: index,
-            isActive: true,
-          },
-        });
-      }
+      await this.prisma.country.createMany({
+        data: countries.map((country, index) => ({
+          code: country.code,
+          name: country.name,
+          sortOrder: index,
+        })),
+        skipDuplicates: true,
+      });
     } catch (error) {
       this.logger.warn(
         `Unable to refresh internet-backed countries. Falling back to cached records. ${
@@ -204,6 +207,8 @@ export class GeographicLookupService {
       select: { updatedAt: true },
     });
 
+    await this.ensureDefaultStates(countryId);
+
     if (
       latestState &&
       Date.now() - latestState.updatedAt.getTime() < ONE_DAY_MS
@@ -221,6 +226,7 @@ export class GeographicLookupService {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ country: country.name }),
+        signal: AbortSignal.timeout(GEOGRAPHY_API_TIMEOUT_MS),
       });
 
       if (!response.ok) {
@@ -230,35 +236,20 @@ export class GeographicLookupService {
       const payload = (await response.json()) as StateApiResponse;
       const states = payload.data?.states ?? [];
 
-      for (const [index, state] of states.entries()) {
-        const code = (
-          state.state_code?.trim() || slugify(state.name)
-        ).toUpperCase();
-        const name = state.name?.trim();
-        if (!code || !name) {
-          continue;
-        }
+      await this.prisma.stateProvince.createMany({
+        data: states.flatMap((state, index) => {
+          const code = (
+            state.state_code?.trim() || slugify(state.name)
+          ).toUpperCase();
+          const name = state.name?.trim();
+          if (!code || !name) {
+            return [];
+          }
 
-        await this.prisma.stateProvince.upsert({
-          where: {
-            countryId_code: {
-              countryId,
-              code,
-            },
-          },
-          create: {
-            countryId,
-            code,
-            name,
-            sortOrder: index,
-          },
-          update: {
-            name,
-            sortOrder: index,
-            isActive: true,
-          },
-        });
-      }
+          return [{ countryId, code, name, sortOrder: index }];
+        }),
+        skipDuplicates: true,
+      });
     } catch (error) {
       this.logger.warn(
         `Unable to refresh states for ${country.name}. Using cached records. ${
@@ -292,6 +283,8 @@ export class GeographicLookupService {
       select: { updatedAt: true },
     });
 
+    await this.ensureDefaultCities(countryId, stateProvinceId);
+
     if (
       latestCity &&
       Date.now() - latestCity.updatedAt.getTime() < ONE_DAY_MS
@@ -309,6 +302,7 @@ export class GeographicLookupService {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ country: country.name, state: state.name }),
+        signal: AbortSignal.timeout(GEOGRAPHY_API_TIMEOUT_MS),
       });
 
       if (!response.ok) {
@@ -318,38 +312,15 @@ export class GeographicLookupService {
       const payload = (await response.json()) as CityApiResponse;
       const cities = payload.data ?? [];
 
-      for (const [index, cityName] of cities.entries()) {
-        const name = cityName.trim();
-        if (!name) {
-          continue;
-        }
-
-        const existing = await this.prisma.city.findFirst({
-          where: {
-            countryId,
-            stateProvinceId,
-            name,
-          },
-          select: { id: true },
-        });
-
-        if (existing) {
-          await this.prisma.city.update({
-            where: { id: existing.id },
-            data: { isActive: true, sortOrder: index },
-          });
-          continue;
-        }
-
-        await this.prisma.city.create({
-          data: {
-            countryId,
-            stateProvinceId,
-            name,
-            sortOrder: index,
-          },
-        });
-      }
+      await this.prisma.city.createMany({
+        data: cities.flatMap((cityName, index) => {
+          const name = cityName.trim();
+          return name
+            ? [{ countryId, stateProvinceId, name, sortOrder: index }]
+            : [];
+        }),
+        skipDuplicates: true,
+      });
     } catch (error) {
       this.logger.warn(
         `Unable to refresh cities for ${state.name}, ${country.name}. Using cached records. ${
@@ -357,6 +328,95 @@ export class GeographicLookupService {
         }`,
       );
     }
+  }
+
+  private async ensureDefaultCountries() {
+    await Promise.all(
+      DEFAULT_COUNTRIES.map((country) =>
+        this.prisma.country.upsert({
+          where: { code: country.code },
+          create: country,
+          update: {},
+        }),
+      ),
+    );
+  }
+
+  private async ensureDefaultStates(countryId: string) {
+    const country = await this.prisma.country.findUnique({
+      where: { id: countryId },
+      select: { code: true },
+    });
+    if (!country) {
+      return;
+    }
+
+    const defaults = DEFAULT_STATES.filter(
+      (state) => state.countryCode === country.code,
+    );
+    await Promise.all(
+      defaults.map((state) =>
+        this.prisma.stateProvince.upsert({
+          where: {
+            countryId_code: {
+              countryId,
+              code: state.code,
+            },
+          },
+          create: {
+            countryId,
+            code: state.code,
+            name: state.name,
+            sortOrder: state.sortOrder,
+          },
+          update: {},
+        }),
+      ),
+    );
+  }
+
+  private async ensureDefaultCities(
+    countryId: string,
+    stateProvinceId: string,
+  ) {
+    const [country, state] = await Promise.all([
+      this.prisma.country.findUnique({
+        where: { id: countryId },
+        select: { code: true },
+      }),
+      this.prisma.stateProvince.findFirst({
+        where: { id: stateProvinceId, countryId },
+        select: { code: true },
+      }),
+    ]);
+    if (!country || !state) {
+      return;
+    }
+
+    const defaults = DEFAULT_CITIES.filter(
+      (city) =>
+        city.countryCode === country.code && city.stateCode === state.code,
+    );
+    await Promise.all(
+      defaults.map((city) =>
+        this.prisma.city.upsert({
+          where: {
+            countryId_stateProvinceId_name: {
+              countryId,
+              stateProvinceId,
+              name: city.name,
+            },
+          },
+          create: {
+            countryId,
+            stateProvinceId,
+            name: city.name,
+            sortOrder: city.sortOrder,
+          },
+          update: {},
+        }),
+      ),
+    );
   }
 }
 
