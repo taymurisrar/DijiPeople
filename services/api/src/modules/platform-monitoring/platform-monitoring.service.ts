@@ -214,7 +214,7 @@ export class PlatformMonitoringService {
         referenceNumber: log.traceId,
         timestamp: log.createdAt,
         severity: log.severity,
-        sourceApp: log.traceId.startsWith('client_') ? 'web' : 'api',
+        sourceApp: getLogSourceApp(log.traceId),
         tenant:
           tenant ??
           (log.tenantId
@@ -279,4 +279,10 @@ function safeDecodeFileName(fileName: string) {
 
 function isErrorLogName(fileName: string) {
   return /error|exception|fatal/i.test(fileName);
+}
+
+function getLogSourceApp(traceId: string) {
+  if (traceId.startsWith('client_')) return 'web';
+  if (traceId.startsWith('admin_')) return 'admin';
+  return 'api';
 }

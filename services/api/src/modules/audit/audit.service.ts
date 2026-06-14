@@ -37,21 +37,55 @@ export class AuditService {
       });
     }
 
+    const actorContext = input.actorUserId
+      ? await this.resolveTenantAuditActor(input.tenantId, input.actorUserId)
+      : { actorUserId: null, platformActor: null };
+    const normalizedScope = normalizeSnapshot(input.scope);
+
     return this.auditRepository.create({
       tenantId: input.tenantId,
       organizationId: input.organizationId ?? null,
       businessUnitId: input.businessUnitId ?? null,
-      actorUserId: input.actorUserId ?? null,
+      actorUserId: actorContext.actorUserId,
       action: input.action,
       entityType: input.entityType,
       entityId: input.entityId,
       requestId: input.requestId ?? null,
       traceId: input.traceId ?? null,
       sourceModule: input.sourceModule ?? null,
-      scope: normalizeSnapshot(input.scope),
+      scope: mergeAuditScope(normalizedScope, actorContext.platformActor),
       beforeSnapshot: normalizeSnapshot(input.beforeSnapshot),
       afterSnapshot: normalizeSnapshot(input.afterSnapshot),
     });
+  }
+
+  private async resolveTenantAuditActor(tenantId: string, actorUserId: string) {
+    const tenantActor = await this.auditRepository.findTenantActor(
+      tenantId,
+      actorUserId,
+    );
+    if (tenantActor) {
+      return { actorUserId: tenantActor.id, platformActor: null };
+    }
+
+    const platformActor =
+      await this.auditRepository.findPlatformActor(actorUserId);
+    return {
+      actorUserId: null,
+      platformActor: platformActor
+        ? {
+            id: platformActor.id,
+            email: platformActor.email,
+            fullName:
+              `${platformActor.firstName} ${platformActor.lastName}`.trim(),
+            role: platformActor.role,
+            source: 'platform-admin',
+          }
+        : {
+            id: actorUserId,
+            source: 'external-or-platform-actor',
+          },
+    };
   }
 
   async listByTenant(tenantId: string, query: AuditLogQueryDto) {
@@ -138,4 +172,23 @@ function normalizeSnapshot(value: unknown): Prisma.InputJsonValue | undefined {
   }
 
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+}
+
+function mergeAuditScope(
+  scope: Prisma.InputJsonValue | undefined,
+  platformActor: Record<string, unknown> | null,
+): Prisma.InputJsonValue | undefined {
+  if (!platformActor) return scope;
+
+  const base =
+    scope && typeof scope === 'object' && !Array.isArray(scope)
+      ? scope
+      : scope === undefined
+        ? {}
+        : { context: scope };
+
+  return {
+    ...base,
+    platformActor,
+  } as Prisma.InputJsonValue;
 }

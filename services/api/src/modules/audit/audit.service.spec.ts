@@ -82,3 +82,45 @@ describe('AuditService record Timeline', () => {
     ).resolves.toEqual({ items: [] });
   });
 });
+
+describe('AuditService tenant actors', () => {
+  it('stores a platform actor in scope without using the tenant user foreign key', async () => {
+    const create = jest.fn().mockResolvedValue({ id: 'audit-1' });
+    const repository = {
+      findTenantActor: jest.fn().mockResolvedValue(null),
+      findPlatformActor: jest.fn().mockResolvedValue({
+        id: 'platform-user-1',
+        email: 'admin@dijipeople.com',
+        firstName: 'Platform',
+        lastName: 'Admin',
+        role: 'SUPER_ADMIN',
+      }),
+      create,
+    } as unknown as AuditRepository;
+    const service = new AuditService(repository);
+
+    await service.log({
+      tenantId: 'tenant-1',
+      actorUserId: 'platform-user-1',
+      action: 'USER_INVITATION_CREATED',
+      entityType: 'UserInvitation',
+      entityId: 'invitation-1',
+    });
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tenantId: 'tenant-1',
+        actorUserId: null,
+        scope: {
+          platformActor: {
+            id: 'platform-user-1',
+            email: 'admin@dijipeople.com',
+            fullName: 'Platform Admin',
+            role: 'SUPER_ADMIN',
+            source: 'platform-admin',
+          },
+        },
+      }),
+    );
+  });
+});

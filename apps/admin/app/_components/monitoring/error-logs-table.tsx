@@ -24,6 +24,7 @@ export function ErrorLogsTable({ logs }: { logs: PlatformErrorEvent[] }) {
   const [reference, setReference] = useState("");
   const [severity, setSeverity] = useState("");
   const [source, setSource] = useState("");
+  const [tenantId, setTenantId] = useState("");
   const [environment, setEnvironment] = useState("");
 
   const rows = useMemo(
@@ -34,14 +35,15 @@ export function ErrorLogsTable({ logs }: { logs: PlatformErrorEvent[] }) {
             log.referenceNumber.toLowerCase().includes(reference.toLowerCase())) &&
           (!severity || log.severity === severity) &&
           (!source || log.sourceApp === source) &&
+          (!tenantId || getTenantId(log) === tenantId) &&
           (!environment || log.environment === environment),
       ),
-    [environment, logs, reference, severity, source],
+    [environment, logs, reference, severity, source, tenantId],
   );
 
   return (
     <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
-      <div className="grid gap-3 border-b border-slate-200 bg-slate-50 p-4 md:grid-cols-4">
+      <div className="grid gap-3 border-b border-slate-200 bg-slate-50 p-4 md:grid-cols-5">
         <input
           className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
           onChange={(event) => setReference(event.target.value)}
@@ -50,6 +52,7 @@ export function ErrorLogsTable({ logs }: { logs: PlatformErrorEvent[] }) {
         />
         <FilterSelect label="All severities" onChange={setSeverity} values={unique(logs.map((log) => log.severity))} />
         <FilterSelect label="All source apps" onChange={setSource} values={unique(logs.map((log) => log.sourceApp))} />
+        <FilterSelect label="All tenant IDs" onChange={setTenantId} values={unique(logs.map(getTenantId))} />
         <FilterSelect label="All environments" onChange={setEnvironment} values={unique(logs.map((log) => log.environment))} />
       </div>
       <DataTable
@@ -63,6 +66,7 @@ export function ErrorLogsTable({ logs }: { logs: PlatformErrorEvent[] }) {
             <Detail label="Reference" value={log.referenceNumber} mono />
             <Detail label="HTTP status" value={String(log.statusCode)} />
             <Detail label="Tenant" value={log.tenant?.name ?? "Platform / unknown"} />
+            <Detail label="Tenant ID" value={getTenantId(log)} mono />
             <Detail label="User" value={log.user?.email ?? "Unknown"} />
             <Detail label="Route" value={`${log.method ?? ""} ${log.route ?? "Unknown"}`} mono />
             <Detail label="Category" value={log.category} mono />
@@ -83,6 +87,7 @@ export function ErrorLogsTable({ logs }: { logs: PlatformErrorEvent[] }) {
           { key: "severity", header: "Severity", render: (log) => <TenantStatusBadge value={log.severity} /> },
           { key: "source", header: "Source app", render: (log) => log.sourceApp },
           { key: "tenant", header: "Tenant", render: (log) => log.tenant?.name ?? "Platform" },
+          { key: "tenantId", header: "Tenant ID", minWidth: 220, render: (log) => <span className="font-mono text-xs">{getTenantId(log)}</span> },
           { key: "user", header: "User", render: (log) => log.user?.email ?? "Unknown" },
           { key: "route", header: "Route / endpoint", minWidth: 180, render: (log) => <span className="font-mono text-xs">{log.route ?? "Unknown"}</span> },
           { key: "category", header: "Category", render: (log) => log.category },
@@ -110,4 +115,8 @@ function Detail({ label, value, mono = false }: { label: string; value: string; 
 
 function unique(values: string[]) {
   return [...new Set(values)].sort();
+}
+
+function getTenantId(log: PlatformErrorEvent) {
+  return log.tenant?.id ?? "platform";
 }

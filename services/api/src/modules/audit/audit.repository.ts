@@ -9,6 +9,30 @@ type PrismaDb = PrismaService | Prisma.TransactionClient | PrismaClient;
 export class AuditRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  findTenantActor(
+    tenantId: string,
+    userId: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.user.findFirst({
+      where: { id: userId, tenantId },
+      select: { id: true },
+    });
+  }
+
+  findPlatformActor(userId: string, db: PrismaDb = this.prisma) {
+    return db.platformUser.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+      },
+    });
+  }
+
   create(
     data: Prisma.AuditLogUncheckedCreateInput,
     db: PrismaDb = this.prisma,
