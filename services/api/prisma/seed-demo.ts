@@ -21,7 +21,19 @@ import {
 } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { ROLE_KEYS } from '../src/common/constants/rbac-matrix';
+import { PermissionBootstrapService } from '../src/modules/permissions/permission-bootstrap.service';
 import { createPrismaClient } from './create-prisma-client';
+import {
+  seedNotificationConfig,
+  seedTenantConsoleProviders,
+  seedTenantDefaultSolutions,
+  seedTenantEmailTemplates,
+  seedTenantInAppNotificationTemplates,
+  seedTenantLeaveTypes,
+  seedTenantNotificationPreferences,
+  seedTenantNotificationRules,
+  seedTenantNotificationSettings,
+} from './seed-config';
 
 loadEnv({ path: resolve(__dirname, '../.env') });
 loadEnv();
@@ -32,602 +44,700 @@ function env(name: string, fallback: string) {
   return process.env[name]?.trim() || fallback;
 }
 
-async function main() {
+export async function runDemoSeed() {
   if (!process.env.DATABASE_URL?.trim()) {
     throw new Error('DATABASE_URL is required to seed demo data.');
   }
 
-  const slug = env('BOOTSTRAP_TENANT_SLUG', 'dijipeople-demo').toLowerCase();
-  const tenant = await prisma.tenant.findUnique({
+  const slug = env('DEMO_TENANT_SLUG', 'dijipeople-demo').toLowerCase();
+  const existingTenant = await prisma.tenant.findUnique({
     where: { slug },
-    select: { id: true, name: true },
+    select: { id: true, isDemoData: true, customerAccountId: true },
   });
-
-  if (!tenant) {
+  if (existingTenant && !existingTenant.isDemoData) {
     throw new Error(
-      `Tenant "${slug}" was not found. Run seed:admin before seed:demo.`,
+      `Tenant slug "${slug}" belongs to non-demo data and cannot be used.`,
     );
   }
-
-  const organization = await prisma.organization.upsert({
-    where: {
-      tenantId_name: { tenantId: tenant.id, name: 'DijiPeople Demo HQ' },
-    },
-    update: {},
-    create: { tenantId: tenant.id, name: 'DijiPeople Demo HQ' },
+  const batch = await prisma.demoSeedBatch.create({
+    data: { status: 'RUNNING', tenantSlug: slug },
   });
 
-  const businessUnit = await prisma.businessUnit.upsert({
-    where: {
-      tenantId_organizationId_name: {
+  try {
+    const customerAccount =
+      (existingTenant
+        ? await prisma.customerAccount.findUnique({
+            where: { id: existingTenant.customerAccountId },
+          })
+        : await prisma.customerAccount.findFirst({
+            where: { isDemoData: true, seedSource: 'seed-demo' },
+            orderBy: { createdAt: 'asc' },
+          })) ??
+      (await prisma.customerAccount.create({
+        data: {
+          companyName: env('DEMO_TENANT_NAME', 'DijiPeople Demo Company'),
+          legalCompanyName: env('DEMO_TENANT_NAME', 'DijiPeople Demo Company'),
+          contactEmail: env(
+            'DEMO_TENANT_CONTACT_EMAIL',
+            'demo@dijipeople.local',
+          ),
+          country: 'Saudi Arabia',
+          status: 'ACTIVE',
+          isDemoData: true,
+          demoBatchId: batch.id,
+          seedSource: 'seed-demo',
+        },
+      }));
+    if (!customerAccount.isDemoData) {
+      throw new Error('The resolved customer account is not demo-owned.');
+    }
+    await prisma.customerAccount.update({
+      where: { id: customerAccount.id },
+      data: {
+        isDemoData: true,
+        demoBatchId: batch.id,
+        seedSource: 'seed-demo',
+      },
+    });
+    const tenant = await prisma.tenant.upsert({
+      where: { slug },
+      update: {
+        name: env('DEMO_TENANT_NAME', 'DijiPeople Demo Company'),
+        status: 'ACTIVE',
+        isDemoData: true,
+        demoBatchId: batch.id,
+        seedSource: 'seed-demo',
+      },
+      create: {
+        customerAccountId: customerAccount.id,
+        name: env('DEMO_TENANT_NAME', 'DijiPeople Demo Company'),
+        slug,
+        status: 'ACTIVE',
+        isDemoData: true,
+        demoBatchId: batch.id,
+        seedSource: 'seed-demo',
+      },
+      select: { id: true, name: true },
+    });
+
+    const permissionBootstrap = new PermissionBootstrapService(prisma as never);
+    await permissionBootstrap.bootstrapTenantRbac(tenant.id);
+    const target = [{ id: tenant.id, name: tenant.name }];
+    await seedNotificationConfig(prisma);
+    await seedTenantEmailTemplates(prisma, target);
+    await seedTenantNotificationPreferences(prisma, target);
+    await seedTenantNotificationSettings(prisma, target);
+    await seedTenantInAppNotificationTemplates(prisma, target);
+    await seedTenantNotificationRules(prisma, target);
+    await seedTenantConsoleProviders(prisma, target);
+    await seedTenantLeaveTypes(prisma, target);
+    await seedTenantDefaultSolutions(prisma, target);
+
+    const organization = await prisma.organization.upsert({
+      where: {
+        tenantId_name: { tenantId: tenant.id, name: 'DijiPeople Demo HQ' },
+      },
+      update: {},
+      create: { tenantId: tenant.id, name: 'DijiPeople Demo HQ' },
+    });
+
+    const businessUnit = await prisma.businessUnit.upsert({
+      where: {
+        tenantId_organizationId_name: {
+          tenantId: tenant.id,
+          organizationId: organization.id,
+          name: 'Head Office',
+        },
+      },
+      update: {},
+      create: {
         tenantId: tenant.id,
         organizationId: organization.id,
         name: 'Head Office',
       },
-    },
-    update: {},
-    create: {
-      tenantId: tenant.id,
-      organizationId: organization.id,
-      name: 'Head Office',
-    },
-  });
+    });
 
-  const [hrDepartment, engineeringDepartment, financeDepartment] =
-    await Promise.all(
-      [
-        ['HR', 'Human Resources'],
-        ['ENG', 'Engineering'],
-        ['FIN', 'Finance'],
-      ].map(([code, name]) =>
-        prisma.department.upsert({
-          where: { tenantId_code: { tenantId: tenant.id, code } },
-          update: { name },
-          create: { tenantId: tenant.id, code, name },
-        }),
-      ),
-    );
+    const [hrDepartment, engineeringDepartment, financeDepartment] =
+      await Promise.all(
+        [
+          ['HR', 'Human Resources'],
+          ['ENG', 'Engineering'],
+          ['FIN', 'Finance'],
+        ].map(([code, name]) =>
+          prisma.department.upsert({
+            where: { tenantId_code: { tenantId: tenant.id, code } },
+            update: { name },
+            create: { tenantId: tenant.id, code, name },
+          }),
+        ),
+      );
 
-  const [managerDesignation, engineerDesignation, financeDesignation] =
-    await Promise.all(
-      [
-        ['Manager', 'L4'],
-        ['Software Engineer', 'L2'],
-        ['Payroll Specialist', 'L3'],
-      ].map(([name, level]) =>
-        prisma.designation.upsert({
-          where: { tenantId_name: { tenantId: tenant.id, name } },
-          update: { level },
-          create: { tenantId: tenant.id, name, level },
-        }),
-      ),
-    );
+    const [managerDesignation, engineerDesignation, financeDesignation] =
+      await Promise.all(
+        [
+          ['Manager', 'L4'],
+          ['Software Engineer', 'L2'],
+          ['Payroll Specialist', 'L3'],
+        ].map(([name, level]) =>
+          prisma.designation.upsert({
+            where: { tenantId_name: { tenantId: tenant.id, name } },
+            update: { level },
+            create: { tenantId: tenant.id, name, level },
+          }),
+        ),
+      );
 
-  const location = await prisma.location.upsert({
-    where: { tenantId_code: { tenantId: tenant.id, code: 'DOH' } },
-    update: {},
-    create: {
-      tenantId: tenant.id,
-      code: 'DOH',
-      name: 'Doha Office',
-      city: 'Doha',
-      state: 'Doha',
-      country: 'Qatar',
-      timezone: 'Asia/Qatar',
-    },
-  });
-  const secondaryLocation = await prisma.location.upsert({
-    where: { tenantId_code: { tenantId: tenant.id, code: 'RUH' } },
-    update: {
-      isActive: true,
-      latitude: 24.7136,
-      longitude: 46.6753,
-      allowedRadiusMeters: 250,
-    },
-    create: {
-      tenantId: tenant.id,
-      code: 'RUH',
-      name: 'Riyadh Office',
-      addressLine1: 'King Fahd Road',
-      city: 'Riyadh',
-      state: 'Riyadh',
-      country: 'Saudi Arabia',
-      timezone: 'Asia/Riyadh',
-      latitude: 24.7136,
-      longitude: 46.6753,
-      allowedRadiusMeters: 250,
-    },
-  });
-
-  const seededUsers = await seedRoleBasedUsers({
-    tenantId: tenant.id,
-    businessUnitId: businessUnit.id,
-    departmentId: hrDepartment.id,
-    designationId: managerDesignation.id,
-    locationId: secondaryLocation.id,
-  });
-
-  const employees = await Promise.all(
-    [
-      [
-        'DP-1001',
-        'Ayesha',
-        'Khan',
-        'ayesha.demo@dijipeople.local',
-        hrDepartment.id,
-        managerDesignation.id,
-      ],
-      [
-        'DP-1002',
-        'Omar',
-        'Farooq',
-        'omar.demo@dijipeople.local',
-        engineeringDepartment.id,
-        engineerDesignation.id,
-      ],
-      [
-        'DP-1003',
-        'Sara',
-        'Ahmed',
-        'sara.demo@dijipeople.local',
-        financeDepartment.id,
-        financeDesignation.id,
-      ],
-      [
-        'DP-1004',
-        'Bilal',
-        'Hassan',
-        'bilal.demo@dijipeople.local',
-        engineeringDepartment.id,
-        engineerDesignation.id,
-      ],
-      [
-        'DP-1005',
-        'Mariam',
-        'Ali',
-        'mariam.demo@dijipeople.local',
-        hrDepartment.id,
-        engineerDesignation.id,
-      ],
-      [
-        'DP-1006',
-        'Zain',
-        'Malik',
-        'zain.demo@dijipeople.local',
-        financeDepartment.id,
-        financeDesignation.id,
-      ],
-      [
-        'DP-1007',
-        'Noor',
-        'Saeed',
-        'noor.demo@dijipeople.local',
-        engineeringDepartment.id,
-        engineerDesignation.id,
-      ],
-      [
-        'DP-1008',
-        'Hamza',
-        'Raza',
-        'hamza.demo@dijipeople.local',
-        engineeringDepartment.id,
-        engineerDesignation.id,
-      ],
-    ].map(
-      ([
-        employeeCode,
-        firstName,
-        lastName,
-        email,
-        departmentId,
-        designationId,
-      ]) =>
-        prisma.employee.upsert({
-          where: {
-            tenantId_employeeCode: { tenantId: tenant.id, employeeCode },
-          },
-          update: { firstName, lastName, email },
-          create: {
-            tenantId: tenant.id,
-            businessUnitId: businessUnit.id,
-            employeeCode,
-            recordType: EmployeeRecordType.INTERNAL_EMPLOYEE,
-            firstName,
-            lastName,
-            email,
-            phone: '+97400000000',
-            hireDate: new Date('2025-01-01T00:00:00.000Z'),
-            employmentStatus: EmployeeEmploymentStatus.ACTIVE,
-            employeeType: EmployeeType.FULL_TIME,
-            workMode: EmployeeWorkMode.HYBRID,
-            departmentId,
-            designationId,
-            locationId: location.id,
-          },
-        }),
-    ),
-  );
-
-  const defaultCalendar = await prisma.holidayCalendar.upsert({
-    where: {
-      tenantId_code: { tenantId: tenant.id, code: 'SAUDI_STANDARD' },
-    },
-    update: {
-      name: 'Saudi Standard Calendar',
-      timezone: 'Asia/Riyadh',
-      countryCode: 'SA',
-      weekendDays: [WorkWeekday.FRIDAY, WorkWeekday.SATURDAY],
-      isDefault: true,
-      status: 'ACTIVE',
-    },
-    create: {
-      tenantId: tenant.id,
-      name: 'Saudi Standard Calendar',
-      code: 'SAUDI_STANDARD',
-      timezone: 'Asia/Riyadh',
-      countryCode: 'SA',
-      weekendDays: [WorkWeekday.FRIDAY, WorkWeekday.SATURDAY],
-      isDefault: true,
-      status: 'ACTIVE',
-    },
-  });
-  await prisma.holiday.upsert({
-    where: {
-      holidayCalendarId_holidayDate_name: {
-        holidayCalendarId: defaultCalendar.id,
-        holidayDate: new Date('2026-09-23T00:00:00.000Z'),
-        name: 'Saudi National Day',
+    const location = await prisma.location.upsert({
+      where: { tenantId_code: { tenantId: tenant.id, code: 'DOH' } },
+      update: {},
+      create: {
+        tenantId: tenant.id,
+        code: 'DOH',
+        name: 'Doha Office',
+        city: 'Doha',
+        state: 'Doha',
+        country: 'Qatar',
+        timezone: 'Asia/Qatar',
       },
-    },
-    update: {
-      scopeType: 'TENANT',
-      isPaid: true,
-      isActive: true,
-      status: 'ACTIVE',
-    },
-    create: {
-      tenantId: tenant.id,
-      holidayCalendarId: defaultCalendar.id,
-      name: 'Saudi National Day',
-      holidayDate: new Date('2026-09-23T00:00:00.000Z'),
-      type: 'PUBLIC',
-      scopeType: 'TENANT',
-      isPaid: true,
-      isActive: true,
-      appliesToAll: true,
-      status: 'ACTIVE',
-    },
-  });
-
-  const defaultSchedule = await prisma.workSchedule.upsert({
-    where: {
-      tenantId_code: { tenantId: tenant.id, code: 'STANDARD_WEEK' },
-    },
-    update: {
-      isDefault: true,
-      isActive: true,
-      timezone: 'Asia/Riyadh',
-      holidayCalendarId: defaultCalendar.id,
-      weeklyWorkDays: [
-        WorkWeekday.SUNDAY,
-        WorkWeekday.MONDAY,
-        WorkWeekday.TUESDAY,
-        WorkWeekday.WEDNESDAY,
-        WorkWeekday.THURSDAY,
-      ],
-    },
-    create: {
-      tenantId: tenant.id,
-      name: 'Standard Sunday to Thursday',
-      code: 'STANDARD_WEEK',
-      timezone: 'Asia/Riyadh',
-      holidayCalendarId: defaultCalendar.id,
-      workWeekModel: 'FIVE_DAY',
-      weeklyWorkDays: [
-        WorkWeekday.SUNDAY,
-        WorkWeekday.MONDAY,
-        WorkWeekday.TUESDAY,
-        WorkWeekday.WEDNESDAY,
-        WorkWeekday.THURSDAY,
-      ],
-      standardStartTime: '09:00',
-      standardEndTime: '17:00',
-      standardHoursPerWeek: new Prisma.Decimal(40),
-      isDefault: true,
-      isActive: true,
-      status: 'ACTIVE',
-    },
-  });
-  const [dayShift, nightShift] = await Promise.all([
-    prisma.shiftTemplate.upsert({
-      where: { tenantId_code: { tenantId: tenant.id, code: 'DAY' } },
+    });
+    const secondaryLocation = await prisma.location.upsert({
+      where: { tenantId_code: { tenantId: tenant.id, code: 'RUH' } },
       update: {
-        workScheduleId: defaultSchedule.id,
+        isActive: true,
+        latitude: 24.7136,
+        longitude: 46.6753,
+        allowedRadiusMeters: 250,
+      },
+      create: {
+        tenantId: tenant.id,
+        code: 'RUH',
+        name: 'Riyadh Office',
+        addressLine1: 'King Fahd Road',
+        city: 'Riyadh',
+        state: 'Riyadh',
+        country: 'Saudi Arabia',
+        timezone: 'Asia/Riyadh',
+        latitude: 24.7136,
+        longitude: 46.6753,
+        allowedRadiusMeters: 250,
+      },
+    });
+
+    const seededUsers = await seedRoleBasedUsers({
+      tenantId: tenant.id,
+      businessUnitId: businessUnit.id,
+      departmentId: hrDepartment.id,
+      designationId: managerDesignation.id,
+      locationId: secondaryLocation.id,
+    });
+
+    const employees = await Promise.all(
+      [
+        [
+          'DP-1001',
+          'Ayesha',
+          'Khan',
+          'ayesha.demo@dijipeople.local',
+          hrDepartment.id,
+          managerDesignation.id,
+        ],
+        [
+          'DP-1002',
+          'Omar',
+          'Farooq',
+          'omar.demo@dijipeople.local',
+          engineeringDepartment.id,
+          engineerDesignation.id,
+        ],
+        [
+          'DP-1003',
+          'Sara',
+          'Ahmed',
+          'sara.demo@dijipeople.local',
+          financeDepartment.id,
+          financeDesignation.id,
+        ],
+        [
+          'DP-1004',
+          'Bilal',
+          'Hassan',
+          'bilal.demo@dijipeople.local',
+          engineeringDepartment.id,
+          engineerDesignation.id,
+        ],
+        [
+          'DP-1005',
+          'Mariam',
+          'Ali',
+          'mariam.demo@dijipeople.local',
+          hrDepartment.id,
+          engineerDesignation.id,
+        ],
+        [
+          'DP-1006',
+          'Zain',
+          'Malik',
+          'zain.demo@dijipeople.local',
+          financeDepartment.id,
+          financeDesignation.id,
+        ],
+        [
+          'DP-1007',
+          'Noor',
+          'Saeed',
+          'noor.demo@dijipeople.local',
+          engineeringDepartment.id,
+          engineerDesignation.id,
+        ],
+        [
+          'DP-1008',
+          'Hamza',
+          'Raza',
+          'hamza.demo@dijipeople.local',
+          engineeringDepartment.id,
+          engineerDesignation.id,
+        ],
+      ].map(
+        ([
+          employeeCode,
+          firstName,
+          lastName,
+          email,
+          departmentId,
+          designationId,
+        ]) =>
+          prisma.employee.upsert({
+            where: {
+              tenantId_employeeCode: { tenantId: tenant.id, employeeCode },
+            },
+            update: { firstName, lastName, email },
+            create: {
+              tenantId: tenant.id,
+              businessUnitId: businessUnit.id,
+              employeeCode,
+              recordType: EmployeeRecordType.INTERNAL_EMPLOYEE,
+              firstName,
+              lastName,
+              email,
+              phone: '+97400000000',
+              hireDate: new Date('2025-01-01T00:00:00.000Z'),
+              employmentStatus: EmployeeEmploymentStatus.ACTIVE,
+              employeeType: EmployeeType.FULL_TIME,
+              workMode: EmployeeWorkMode.HYBRID,
+              departmentId,
+              designationId,
+              locationId: location.id,
+            },
+          }),
+      ),
+    );
+
+    const defaultCalendar = await prisma.holidayCalendar.upsert({
+      where: {
+        tenantId_code: { tenantId: tenant.id, code: 'SAUDI_STANDARD' },
+      },
+      update: {
+        name: 'Saudi Standard Calendar',
+        timezone: 'Asia/Riyadh',
+        countryCode: 'SA',
+        weekendDays: [WorkWeekday.FRIDAY, WorkWeekday.SATURDAY],
+        isDefault: true,
+        status: 'ACTIVE',
+      },
+      create: {
+        tenantId: tenant.id,
+        name: 'Saudi Standard Calendar',
+        code: 'SAUDI_STANDARD',
+        timezone: 'Asia/Riyadh',
+        countryCode: 'SA',
+        weekendDays: [WorkWeekday.FRIDAY, WorkWeekday.SATURDAY],
+        isDefault: true,
+        status: 'ACTIVE',
+      },
+    });
+    await prisma.holiday.upsert({
+      where: {
+        holidayCalendarId_holidayDate_name: {
+          holidayCalendarId: defaultCalendar.id,
+          holidayDate: new Date('2026-09-23T00:00:00.000Z'),
+          name: 'Saudi National Day',
+        },
+      },
+      update: {
+        scopeType: 'TENANT',
+        isPaid: true,
         isActive: true,
         status: 'ACTIVE',
       },
       create: {
         tenantId: tenant.id,
-        workScheduleId: defaultSchedule.id,
-        name: 'Day Shift',
-        code: 'DAY',
-        timezone: 'Asia/Riyadh',
-        startTime: '09:00',
-        endTime: '17:00',
-        breakMinutes: 60,
-        expectedHours: new Prisma.Decimal(8),
-        lateGraceMinutes: 10,
-        earlyExitGraceMinutes: 10,
-        isNightShift: false,
+        holidayCalendarId: defaultCalendar.id,
+        name: 'Saudi National Day',
+        holidayDate: new Date('2026-09-23T00:00:00.000Z'),
+        type: 'PUBLIC',
+        scopeType: 'TENANT',
+        isPaid: true,
         isActive: true,
+        appliesToAll: true,
+        status: 'ACTIVE',
       },
-    }),
-    prisma.shiftTemplate.upsert({
-      where: { tenantId_code: { tenantId: tenant.id, code: 'NIGHT' } },
-      update: { isActive: true, status: 'ACTIVE' },
+    });
+
+    const defaultSchedule = await prisma.workSchedule.upsert({
+      where: {
+        tenantId_code: { tenantId: tenant.id, code: 'STANDARD_WEEK' },
+      },
+      update: {
+        isDefault: true,
+        isActive: true,
+        timezone: 'Asia/Riyadh',
+        holidayCalendarId: defaultCalendar.id,
+        weeklyWorkDays: [
+          WorkWeekday.SUNDAY,
+          WorkWeekday.MONDAY,
+          WorkWeekday.TUESDAY,
+          WorkWeekday.WEDNESDAY,
+          WorkWeekday.THURSDAY,
+        ],
+      },
       create: {
         tenantId: tenant.id,
-        name: 'Night Shift',
-        code: 'NIGHT',
+        name: 'Standard Sunday to Thursday',
+        code: 'STANDARD_WEEK',
         timezone: 'Asia/Riyadh',
-        startTime: '21:00',
-        endTime: '05:00',
-        breakMinutes: 60,
-        expectedHours: new Prisma.Decimal(8),
-        lateGraceMinutes: 10,
-        earlyExitGraceMinutes: 10,
-        isNightShift: true,
-        isActive: true,
-      },
-    }),
-  ]);
-  await Promise.all(
-    [
-      WorkWeekday.SUNDAY,
-      WorkWeekday.MONDAY,
-      WorkWeekday.TUESDAY,
-      WorkWeekday.WEDNESDAY,
-      WorkWeekday.THURSDAY,
-    ].map(async (dayOfWeek, sortOrder) => {
-      const existingDay = await prisma.workScheduleDay.findFirst({
-        where: {
-          workScheduleId: defaultSchedule.id,
-          dayOfWeek,
-          rotationWeek: null,
-        },
-        select: { id: true },
-      });
-      const data = {
-        shiftTemplateId: dayShift.id,
-        isWorkingDay: true,
-        startTime: dayShift.startTime,
-        endTime: dayShift.endTime,
-        breakMinutes: dayShift.breakMinutes,
-        expectedHours: dayShift.expectedHours,
-        sortOrder,
-      };
-      return existingDay
-        ? prisma.workScheduleDay.update({
-            where: { id: existingDay.id },
-            data,
-          })
-        : prisma.workScheduleDay.create({
-            data: {
-              tenantId: tenant.id,
-              workScheduleId: defaultSchedule.id,
-              dayOfWeek,
-              ...data,
-            },
-          });
-    }),
-  );
-  await Promise.all([
-    prisma.department.update({
-      where: { id: engineeringDepartment.id },
-      data: { defaultWorkScheduleId: defaultSchedule.id },
-    }),
-    prisma.location.update({
-      where: { id: location.id },
-      data: {
-        defaultWorkScheduleId: defaultSchedule.id,
         holidayCalendarId: defaultCalendar.id,
+        workWeekModel: 'FIVE_DAY',
+        weeklyWorkDays: [
+          WorkWeekday.SUNDAY,
+          WorkWeekday.MONDAY,
+          WorkWeekday.TUESDAY,
+          WorkWeekday.WEDNESDAY,
+          WorkWeekday.THURSDAY,
+        ],
+        standardStartTime: '09:00',
+        standardEndTime: '17:00',
+        standardHoursPerWeek: new Prisma.Decimal(40),
+        isDefault: true,
+        isActive: true,
+        status: 'ACTIVE',
       },
-    }),
-  ]);
-  await prisma.employeeScheduleAssignment.upsert({
-    where: {
-      tenantId_employeeId_workScheduleId_effectiveFrom: {
+    });
+    const [dayShift, nightShift] = await Promise.all([
+      prisma.shiftTemplate.upsert({
+        where: { tenantId_code: { tenantId: tenant.id, code: 'DAY' } },
+        update: {
+          workScheduleId: defaultSchedule.id,
+          isActive: true,
+          status: 'ACTIVE',
+        },
+        create: {
+          tenantId: tenant.id,
+          workScheduleId: defaultSchedule.id,
+          name: 'Day Shift',
+          code: 'DAY',
+          timezone: 'Asia/Riyadh',
+          startTime: '09:00',
+          endTime: '17:00',
+          breakMinutes: 60,
+          expectedHours: new Prisma.Decimal(8),
+          lateGraceMinutes: 10,
+          earlyExitGraceMinutes: 10,
+          isNightShift: false,
+          isActive: true,
+        },
+      }),
+      prisma.shiftTemplate.upsert({
+        where: { tenantId_code: { tenantId: tenant.id, code: 'NIGHT' } },
+        update: { isActive: true, status: 'ACTIVE' },
+        create: {
+          tenantId: tenant.id,
+          name: 'Night Shift',
+          code: 'NIGHT',
+          timezone: 'Asia/Riyadh',
+          startTime: '21:00',
+          endTime: '05:00',
+          breakMinutes: 60,
+          expectedHours: new Prisma.Decimal(8),
+          lateGraceMinutes: 10,
+          earlyExitGraceMinutes: 10,
+          isNightShift: true,
+          isActive: true,
+        },
+      }),
+    ]);
+    await Promise.all(
+      [
+        WorkWeekday.SUNDAY,
+        WorkWeekday.MONDAY,
+        WorkWeekday.TUESDAY,
+        WorkWeekday.WEDNESDAY,
+        WorkWeekday.THURSDAY,
+      ].map(async (dayOfWeek, sortOrder) => {
+        const existingDay = await prisma.workScheduleDay.findFirst({
+          where: {
+            workScheduleId: defaultSchedule.id,
+            dayOfWeek,
+            rotationWeek: null,
+          },
+          select: { id: true },
+        });
+        const data = {
+          shiftTemplateId: dayShift.id,
+          isWorkingDay: true,
+          startTime: dayShift.startTime,
+          endTime: dayShift.endTime,
+          breakMinutes: dayShift.breakMinutes,
+          expectedHours: dayShift.expectedHours,
+          sortOrder,
+        };
+        return existingDay
+          ? prisma.workScheduleDay.update({
+              where: { id: existingDay.id },
+              data,
+            })
+          : prisma.workScheduleDay.create({
+              data: {
+                tenantId: tenant.id,
+                workScheduleId: defaultSchedule.id,
+                dayOfWeek,
+                ...data,
+              },
+            });
+      }),
+    );
+    await Promise.all([
+      prisma.department.update({
+        where: { id: engineeringDepartment.id },
+        data: { defaultWorkScheduleId: defaultSchedule.id },
+      }),
+      prisma.location.update({
+        where: { id: location.id },
+        data: {
+          defaultWorkScheduleId: defaultSchedule.id,
+          holidayCalendarId: defaultCalendar.id,
+        },
+      }),
+    ]);
+    await prisma.employeeScheduleAssignment.upsert({
+      where: {
+        tenantId_employeeId_workScheduleId_effectiveFrom: {
+          tenantId: tenant.id,
+          employeeId: seededUsers.employee.employeeId,
+          workScheduleId: defaultSchedule.id,
+          effectiveFrom: new Date('2026-01-01T00:00:00.000Z'),
+        },
+      },
+      update: { isActive: true, effectiveTo: null },
+      create: {
         tenantId: tenant.id,
         employeeId: seededUsers.employee.employeeId,
         workScheduleId: defaultSchedule.id,
         effectiveFrom: new Date('2026-01-01T00:00:00.000Z'),
-      },
-    },
-    update: { isActive: true, effectiveTo: null },
-    create: {
-      tenantId: tenant.id,
-      employeeId: seededUsers.employee.employeeId,
-      workScheduleId: defaultSchedule.id,
-      effectiveFrom: new Date('2026-01-01T00:00:00.000Z'),
-      isActive: true,
-    },
-  });
-
-  await Promise.all(
-    [
-      ['ANNUAL', 'Annual Leave', true],
-      ['SICK', 'Sick Leave', true],
-      ['CASUAL', 'Casual Leave', true],
-      ['UNPAID', 'Unpaid Leave', false],
-    ].map(([code, name, isPaid]) =>
-      prisma.leaveType.upsert({
-        where: { tenantId_code: { tenantId: tenant.id, code: String(code) } },
-        update: { name: String(name), isPaid: Boolean(isPaid) },
-        create: {
-          tenantId: tenant.id,
-          code: String(code),
-          name: String(name),
-          category: String(code),
-          isPaid: Boolean(isPaid),
-        },
-      }),
-    ),
-  );
-
-  await Promise.all(
-    [
-      ['BASIC_SALARY', 'Basic Salary', PayComponentType.EARNING],
-      ['HOUSING_ALLOWANCE', 'Housing Allowance', PayComponentType.ALLOWANCE],
-      [
-        'TRANSPORT_ALLOWANCE',
-        'Transport Allowance',
-        PayComponentType.ALLOWANCE,
-      ],
-      ['OVERTIME', 'Overtime', PayComponentType.EARNING],
-      [
-        'UNPAID_LEAVE_DEDUCTION',
-        'Unpaid Leave Deduction',
-        PayComponentType.DEDUCTION,
-      ],
-      [
-        'MANUAL_REIMBURSEMENT',
-        'Manual Reimbursement',
-        PayComponentType.REIMBURSEMENT,
-      ],
-    ].map(([code, name, componentType], index) =>
-      prisma.payComponent.upsert({
-        where: { tenantId_code: { tenantId: tenant.id, code: String(code) } },
-        update: {
-          name: String(name),
-          componentType: componentType as PayComponentType,
-        },
-        create: {
-          tenantId: tenant.id,
-          code: String(code),
-          name: String(name),
-          componentType: componentType as PayComponentType,
-          calculationMethod: PayComponentCalculationMethod.FIXED,
-          displayOrder: index,
-          isRecurring: index < 3,
-        },
-      }),
-    ),
-  );
-
-  const basicSalary = await prisma.payComponent.findFirstOrThrow({
-    where: { tenantId: tenant.id, code: 'BASIC_SALARY' },
-  });
-
-  for (const [index, employee] of employees.entries()) {
-    const compensation = await prisma.employeeCompensationHistory.upsert({
-      where: {
-        id:
-          (
-            await prisma.employeeCompensationHistory.findFirst({
-              where: { tenantId: tenant.id, employeeId: employee.id },
-              select: { id: true },
-            })
-          )?.id ?? `demo-${employee.id}`,
-      },
-      update: {},
-      create: {
-        tenantId: tenant.id,
-        employeeId: employee.id,
-        effectiveFrom: new Date('2026-01-01T00:00:00.000Z'),
-        payFrequency: 'MONTHLY',
-        currencyCode: 'QAR',
-        baseAmount: new Prisma.Decimal(9000 + index * 750),
-        status: 'ACTIVE',
+        isActive: true,
       },
     });
 
-    await prisma.employeeCompensationComponent.upsert({
-      where: {
-        id:
-          (
-            await prisma.employeeCompensationComponent.findFirst({
-              where: {
-                tenantId: tenant.id,
-                compensationHistoryId: compensation.id,
-                payComponentId: basicSalary.id,
-              },
-              select: { id: true },
-            })
-          )?.id ?? `demo-${compensation.id}`,
-      },
-      update: {},
-      create: {
-        tenantId: tenant.id,
-        compensationHistoryId: compensation.id,
-        payComponentId: basicSalary.id,
-        amount: compensation.baseAmount,
-        calculationMethodSnapshot: 'FIXED',
-        isRecurring: true,
-      },
-    });
-  }
-
-  const project = await prisma.project.upsert({
-    where: { tenantId_code: { tenantId: tenant.id, code: 'HRM-OPS' } },
-    update: {},
-    create: {
-      tenantId: tenant.id,
-      businessUnitId: businessUnit.id,
-      code: 'HRM-OPS',
-      name: 'HRM Operations Rollout',
-      status: 'ACTIVE',
-    },
-  });
-
-  await Promise.all(
-    employees.slice(0, 4).map((employee) =>
-      prisma.projectAssignment.upsert({
-        where: {
-          projectId_employeeId: {
-            projectId: project.id,
-            employeeId: employee.id,
+    await Promise.all(
+      [
+        ['ANNUAL', 'Annual Leave', true],
+        ['SICK', 'Sick Leave', true],
+        ['CASUAL', 'Casual Leave', true],
+        ['UNPAID', 'Unpaid Leave', false],
+      ].map(([code, name, isPaid]) =>
+        prisma.leaveType.upsert({
+          where: { tenantId_code: { tenantId: tenant.id, code: String(code) } },
+          update: { name: String(name), isPaid: Boolean(isPaid) },
+          create: {
+            tenantId: tenant.id,
+            code: String(code),
+            name: String(name),
+            category: String(code),
+            isPaid: Boolean(isPaid),
           },
+        }),
+      ),
+    );
+
+    await Promise.all(
+      [
+        ['BASIC_SALARY', 'Basic Salary', PayComponentType.EARNING],
+        ['HOUSING_ALLOWANCE', 'Housing Allowance', PayComponentType.ALLOWANCE],
+        [
+          'TRANSPORT_ALLOWANCE',
+          'Transport Allowance',
+          PayComponentType.ALLOWANCE,
+        ],
+        ['OVERTIME', 'Overtime', PayComponentType.EARNING],
+        [
+          'UNPAID_LEAVE_DEDUCTION',
+          'Unpaid Leave Deduction',
+          PayComponentType.DEDUCTION,
+        ],
+        [
+          'MANUAL_REIMBURSEMENT',
+          'Manual Reimbursement',
+          PayComponentType.REIMBURSEMENT,
+        ],
+      ].map(([code, name, componentType], index) =>
+        prisma.payComponent.upsert({
+          where: { tenantId_code: { tenantId: tenant.id, code: String(code) } },
+          update: {
+            name: String(name),
+            componentType: componentType as PayComponentType,
+          },
+          create: {
+            tenantId: tenant.id,
+            code: String(code),
+            name: String(name),
+            componentType: componentType as PayComponentType,
+            calculationMethod: PayComponentCalculationMethod.FIXED,
+            displayOrder: index,
+            isRecurring: index < 3,
+          },
+        }),
+      ),
+    );
+
+    const basicSalary = await prisma.payComponent.findFirstOrThrow({
+      where: { tenantId: tenant.id, code: 'BASIC_SALARY' },
+    });
+
+    for (const [index, employee] of employees.entries()) {
+      const compensation = await prisma.employeeCompensationHistory.upsert({
+        where: {
+          id:
+            (
+              await prisma.employeeCompensationHistory.findFirst({
+                where: { tenantId: tenant.id, employeeId: employee.id },
+                select: { id: true },
+              })
+            )?.id ?? `demo-${employee.id}`,
         },
         update: {},
         create: {
           tenantId: tenant.id,
-          projectId: project.id,
           employeeId: employee.id,
-          roleOnProject: 'Contributor',
-          allocationPercent: 50,
+          effectiveFrom: new Date('2026-01-01T00:00:00.000Z'),
+          payFrequency: 'MONTHLY',
+          currencyCode: 'QAR',
+          baseAmount: new Prisma.Decimal(9000 + index * 750),
+          status: 'ACTIVE',
         },
-      }),
-    ),
-  );
+      });
 
-  await seedOperationalFixtures({
-    tenantId: tenant.id,
-    businessUnitId: businessUnit.id,
-    employeeId: seededUsers.employee.employeeId,
-    employeeUserId: seededUsers.employee.userId,
-    managerUserId: seededUsers.manager.userId,
-    hrUserId: seededUsers.hr.userId,
-    workScheduleId: defaultSchedule.id,
-    shiftTemplateId: dayShift.id,
-    officeLocationId: secondaryLocation.id,
-    projectId: project.id,
-  });
+      await prisma.employeeCompensationComponent.upsert({
+        where: {
+          id:
+            (
+              await prisma.employeeCompensationComponent.findFirst({
+                where: {
+                  tenantId: tenant.id,
+                  compensationHistoryId: compensation.id,
+                  payComponentId: basicSalary.id,
+                },
+                select: { id: true },
+              })
+            )?.id ?? `demo-${compensation.id}`,
+        },
+        update: {},
+        create: {
+          tenantId: tenant.id,
+          compensationHistoryId: compensation.id,
+          payComponentId: basicSalary.id,
+          amount: compensation.baseAmount,
+          calculationMethodSnapshot: 'FIXED',
+          isRecurring: true,
+        },
+      });
+    }
 
-  console.log(
-    JSON.stringify(
-      {
-        message: 'Demo seed completed successfully.',
+    const project = await prisma.project.upsert({
+      where: { tenantId_code: { tenantId: tenant.id, code: 'HRM-OPS' } },
+      update: {},
+      create: {
         tenantId: tenant.id,
-        employees: employees.length,
-        roleBasedUsers: Object.keys(seededUsers).length,
-        workSites: 2,
-        shifts: [dayShift.code, nightShift.code],
-        defaultWorkSchedule: defaultSchedule.code,
+        businessUnitId: businessUnit.id,
+        code: 'HRM-OPS',
+        name: 'HRM Operations Rollout',
+        status: 'ACTIVE',
       },
-      null,
-      2,
-    ),
-  );
+    });
+
+    await Promise.all(
+      employees.slice(0, 4).map((employee) =>
+        prisma.projectAssignment.upsert({
+          where: {
+            projectId_employeeId: {
+              projectId: project.id,
+              employeeId: employee.id,
+            },
+          },
+          update: {},
+          create: {
+            tenantId: tenant.id,
+            projectId: project.id,
+            employeeId: employee.id,
+            roleOnProject: 'Contributor',
+            allocationPercent: 50,
+          },
+        }),
+      ),
+    );
+
+    await seedOperationalFixtures({
+      tenantId: tenant.id,
+      businessUnitId: businessUnit.id,
+      employeeId: seededUsers.employee.employeeId,
+      employeeUserId: seededUsers.employee.userId,
+      managerUserId: seededUsers.manager.userId,
+      hrUserId: seededUsers.hr.userId,
+      workScheduleId: defaultSchedule.id,
+      shiftTemplateId: dayShift.id,
+      officeLocationId: secondaryLocation.id,
+      projectId: project.id,
+    });
+
+    const summary = {
+      tenantId: tenant.id,
+      customerAccountId: customerAccount.id,
+      employees: employees.length + Object.keys(seededUsers).length,
+      roleBasedUsers: Object.keys(seededUsers).length,
+      workSites: 2,
+      shifts: [dayShift.code, nightShift.code],
+      defaultWorkSchedule: defaultSchedule.code,
+    };
+    await prisma.demoSeedBatch.update({
+      where: { id: batch.id },
+      data: {
+        status: 'COMPLETED',
+        tenantId: tenant.id,
+        customerAccountId: customerAccount.id,
+        completedAt: new Date(),
+        summaryJson: summary,
+      },
+    });
+    console.log(
+      JSON.stringify(
+        {
+          message: 'Demo seed completed successfully.',
+          batchId: batch.id,
+          ...summary,
+        },
+        null,
+        2,
+      ),
+    );
+  } catch (error) {
+    await prisma.demoSeedBatch.update({
+      where: { id: batch.id },
+      data: {
+        status: 'FAILED',
+        completedAt: new Date(),
+        errorMessage: error instanceof Error ? error.message : String(error),
+      },
+    });
+    throw error;
+  }
 }
 
 async function seedRoleBasedUsers(input: {
@@ -839,6 +949,56 @@ async function seedOperationalFixtures(input: {
         },
       });
 
+  await prisma.leaveBalance.upsert({
+    where: {
+      tenantId_employeeId_leaveTypeId: {
+        tenantId: input.tenantId,
+        employeeId: input.employeeId,
+        leaveTypeId: leaveType.id,
+      },
+    },
+    update: {
+      totalAllocated: new Prisma.Decimal(24),
+      totalUsed: new Prisma.Decimal(4),
+      totalRemaining: new Prisma.Decimal(20),
+      lastUpdatedAt: new Date(),
+    },
+    create: {
+      tenantId: input.tenantId,
+      employeeId: input.employeeId,
+      leaveTypeId: leaveType.id,
+      totalAllocated: new Prisma.Decimal(24),
+      totalUsed: new Prisma.Decimal(4),
+      totalRemaining: new Prisma.Decimal(20),
+    },
+  });
+  const existingApprovalStep = await prisma.leaveApprovalStep.findFirst({
+    where: { leaveRequestId: leaveRequest.id, stepOrder: 1 },
+    select: { id: true },
+  });
+  const approvalStepData = {
+    approverType: 'USER' as const,
+    approverUserId: input.managerUserId,
+    status: 'PENDING' as const,
+    updatedById: input.hrUserId,
+  };
+  if (existingApprovalStep) {
+    await prisma.leaveApprovalStep.update({
+      where: { id: existingApprovalStep.id },
+      data: approvalStepData,
+    });
+  } else {
+    await prisma.leaveApprovalStep.create({
+      data: {
+        tenantId: input.tenantId,
+        leaveRequestId: leaveRequest.id,
+        stepOrder: 1,
+        createdById: input.hrUserId,
+        ...approvalStepData,
+      },
+    });
+  }
+
   const attendanceDate = new Date('2026-05-04T00:00:00.000Z');
   await prisma.attendanceEntry.upsert({
     where: {
@@ -986,11 +1146,13 @@ async function seedOperationalFixtures(input: {
   }
 }
 
-main()
-  .catch((error: unknown) => {
-    console.error(error instanceof Error ? error.message : error);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+if (require.main === module) {
+  runDemoSeed()
+    .catch((error: unknown) => {
+      console.error(error instanceof Error ? error.message : error);
+      process.exit(1);
+    })
+    .finally(async () => {
+      await prisma.$disconnect();
+    });
+}

@@ -58,6 +58,7 @@ import { TeamsModule } from './modules/teams/teams.module';
 import { UsersModule } from './modules/users/users.module';
 import { SuperAdminModule } from './modules/super-admin/super-admin.module';
 import { ErrorLogsModule } from './modules/error-logs/error-logs.module';
+import { DemoDataModule } from './modules/demo-data/demo-data.module';
 
 @Module({
   imports: [
@@ -81,6 +82,7 @@ import { ErrorLogsModule } from './modules/error-logs/error-logs.module';
     DataModule,
     DashboardModule,
     DocumentsModule,
+    DemoDataModule,
     EmployeeLevelsModule,
     EmployeesModule,
     InboxModule,

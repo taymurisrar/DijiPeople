@@ -26,7 +26,7 @@ CREATE TEMP TABLE "_tenant_customer_backfill" (
   "tenantId" TEXT NOT NULL,
   "customerId" TEXT NOT NULL,
   CONSTRAINT "_tenant_customer_backfill_pkey" PRIMARY KEY ("tenantId")
-) ON COMMIT DROP;
+);
 
 INSERT INTO "_tenant_customer_backfill" ("tenantId", "customerId")
 SELECT t."id", t."id"
@@ -63,6 +63,8 @@ UPDATE "Tenant" t
 SET "customerAccountId" = map."customerId"
 FROM "_tenant_customer_backfill" map
 WHERE t."id" = map."tenantId";
+
+DROP TABLE "_tenant_customer_backfill";
 
 ALTER TABLE "Tenant" DROP CONSTRAINT IF EXISTS "Tenant_customerAccountId_fkey";
 

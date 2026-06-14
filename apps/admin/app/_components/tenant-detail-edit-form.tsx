@@ -58,18 +58,21 @@ export function TenantDetailEditForm({
     }
 
     startTransition(async () => {
-      const profileResponse = await fetch(`/api/super-admin/tenants/${tenant.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: form.name.trim(),
-          legalName: form.legalName.trim() || null,
-          status: form.status,
-        }),
-      });
-      const profilePayload = (await profileResponse.json().catch(() => null)) as
-        | { message?: string }
-        | null;
+      const profileResponse = await fetch(
+        `/api/super-admin/tenants/${tenant.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: form.name.trim(),
+            legalName: form.legalName.trim() || null,
+            status: form.status,
+          }),
+        },
+      );
+      const profilePayload = (await profileResponse
+        .json()
+        .catch(() => null)) as { message?: string } | null;
 
       if (!profileResponse.ok) {
         setMessage(profilePayload?.message ?? "Unable to update tenant.");
@@ -85,9 +88,9 @@ export function TenantDetailEditForm({
             body: JSON.stringify({ slug: normalizedSlug }),
           },
         );
-        const slugPayload = (await slugResponse.json().catch(() => null)) as
-          | { message?: string }
-          | null;
+        const slugPayload = (await slugResponse.json().catch(() => null)) as {
+          message?: string;
+        } | null;
 
         if (!slugResponse.ok) {
           setMessage(slugPayload?.message ?? "Unable to update tenant slug.");
@@ -108,7 +111,8 @@ export function TenantDetailEditForm({
       <div>
         <h2 className="text-lg font-semibold text-slate-950">Edit tenant</h2>
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          Tenant ID and generated tenant code are immutable. Changes to the slug update web login URLs immediately.
+          Tenant ID and generated tenant code are immutable. Changes to the slug
+          update web login URLs immediately.
         </p>
       </div>
 
@@ -195,7 +199,7 @@ function TextField({
       {help || readOnly ? (
         <span className="mt-1 block text-xs text-slate-500">
           {readOnly
-            ? "Only System Customizer can update tenant slug."
+            ? "Only Platform Super Admin can update tenant slug."
             : help}
         </span>
       ) : null}

@@ -6,16 +6,15 @@ import {
   NotificationChannel,
   NotificationDisplayMode,
   NotificationRecipientResolverType,
-  PlatformUserRole,
-  PlatformUserStatus,
   Prisma,
   type PrismaClient,
   type CustomizationFieldDataType,
   type CustomizationSolutionComponentType,
 } from '@prisma/client';
 import { createPrismaClient } from './create-prisma-client';
-import * as bcrypt from 'bcryptjs';
+import { PermissionBootstrapService } from '../src/modules/permissions/permission-bootstrap.service';
 import { NOTIFICATION_EVENT_CATALOG } from '../src/modules/notifications/notification-events.catalog';
+import { SYSTEM_EMAIL_TEMPLATE_PLACEHOLDERS } from '../src/modules/notifications/notification-events.catalog';
 import { buildTenantNotificationScopeKey } from '../src/modules/notifications/notifications.constants';
 import {
   isDesignerColumn,
@@ -154,40 +153,250 @@ const AUTH_TEMPLATE_SEEDS: AuthTemplateSeed[] = [
 ];
 
 const DEFAULT_NOTIFICATION_TEMPLATES = [
-  ['leave.request.submitted.approver', 'leave', 'Leave request needs approval', '{{employeeName}} submitted {{leaveTypeName}} leave.', 'Open the leave request to review the approval action.'],
-  ['leave.request.approved.employee', 'leave', 'Leave request approved', 'Your {{leaveTypeName}} leave request was approved.', 'Open the leave request for details.'],
-  ['leave.request.rejected.employee', 'leave', 'Leave request rejected', 'Your {{leaveTypeName}} leave request was rejected.', 'Open the leave request for details.'],
-  ['leave.request.returned.employee', 'leave', 'Leave request returned', 'Your {{leaveTypeName}} leave request was returned.', 'Open the leave request for details.'],
-  ['leave.request.escalated', 'leave', 'Leave approval escalated', '{{employeeName}} leave request breached SLA.', 'Open the related approval request to review escalation.'],
-  ['attendance.correction.submitted.approver', 'attendance', 'Attendance correction needs approval', '{{employeeName}} submitted an attendance correction.', 'Open the correction request to review it.'],
-  ['attendance.correction.approved.employee', 'attendance', 'Attendance correction approved', 'Your attendance correction was approved.', 'Open the correction request for details.'],
-  ['attendance.correction.rejected.employee', 'attendance', 'Attendance correction rejected', 'Your attendance correction was rejected.', 'Open the correction request for details.'],
-  ['attendance.correction.updated.employee', 'attendance', 'Attendance record updated', 'Your attendance record was updated.', 'Open the attendance record for details.'],
-  ['attendance.exception.detected.manager', 'attendance', 'Attendance exception detected', '{{employeeName}} has an attendance exception.', 'Open the attendance record to review the exception.'],
-  ['employee.document.uploaded.hr', 'employee', 'Employee document needs validation', '{{employeeName}} uploaded a document for validation.', 'Open the employee profile to review the document.'],
-  ['employee.document.expiring.employee', 'employee', 'Employee document expiring', 'Your document {{documentName}} is expiring soon.', 'Open your profile to update the document.'],
-  ['employee.profile.change.submitted.hr', 'employee', 'Profile change needs review', '{{employeeName}} submitted a profile change.', 'Open the employee profile to review the change.'],
-  ['employee.onboarding.task.assigned', 'employee', 'Onboarding task assigned', 'A new onboarding task was assigned to you.', 'Open the related onboarding record to continue.'],
+  [
+    'leave.request.submitted.approver',
+    'leave',
+    'Leave request needs approval',
+    '{{employeeName}} submitted {{leaveTypeName}} leave.',
+    'Open the leave request to review the approval action.',
+  ],
+  [
+    'leave.request.approved.employee',
+    'leave',
+    'Leave request approved',
+    'Your {{leaveTypeName}} leave request was approved.',
+    'Open the leave request for details.',
+  ],
+  [
+    'leave.request.rejected.employee',
+    'leave',
+    'Leave request rejected',
+    'Your {{leaveTypeName}} leave request was rejected.',
+    'Open the leave request for details.',
+  ],
+  [
+    'leave.request.returned.employee',
+    'leave',
+    'Leave request returned',
+    'Your {{leaveTypeName}} leave request was returned.',
+    'Open the leave request for details.',
+  ],
+  [
+    'leave.request.escalated',
+    'leave',
+    'Leave approval escalated',
+    '{{employeeName}} leave request breached SLA.',
+    'Open the related approval request to review escalation.',
+  ],
+  [
+    'attendance.correction.submitted.approver',
+    'attendance',
+    'Attendance correction needs approval',
+    '{{employeeName}} submitted an attendance correction.',
+    'Open the correction request to review it.',
+  ],
+  [
+    'attendance.correction.approved.employee',
+    'attendance',
+    'Attendance correction approved',
+    'Your attendance correction was approved.',
+    'Open the correction request for details.',
+  ],
+  [
+    'attendance.correction.rejected.employee',
+    'attendance',
+    'Attendance correction rejected',
+    'Your attendance correction was rejected.',
+    'Open the correction request for details.',
+  ],
+  [
+    'attendance.correction.updated.employee',
+    'attendance',
+    'Attendance record updated',
+    'Your attendance record was updated.',
+    'Open the attendance record for details.',
+  ],
+  [
+    'attendance.exception.detected.manager',
+    'attendance',
+    'Attendance exception detected',
+    '{{employeeName}} has an attendance exception.',
+    'Open the attendance record to review the exception.',
+  ],
+  [
+    'employee.document.uploaded.hr',
+    'employee',
+    'Employee document needs validation',
+    '{{employeeName}} uploaded a document for validation.',
+    'Open the employee profile to review the document.',
+  ],
+  [
+    'employee.document.expiring.employee',
+    'employee',
+    'Employee document expiring',
+    'Your document {{documentName}} is expiring soon.',
+    'Open your profile to update the document.',
+  ],
+  [
+    'employee.profile.change.submitted.hr',
+    'employee',
+    'Profile change needs review',
+    '{{employeeName}} submitted a profile change.',
+    'Open the employee profile to review the change.',
+  ],
+  [
+    'employee.onboarding.task.assigned',
+    'employee',
+    'Onboarding task assigned',
+    'A new onboarding task was assigned to you.',
+    'Open the related onboarding record to continue.',
+  ],
 ] as const;
 
 const DEFAULT_NOTIFICATION_RULES = [
-  ['leave', 'leave.request.submitted.approver', NotificationRecipientResolverType.APPROVAL_ASSIGNEE, 'leave.request.submitted.approver', NotificationDisplayMode.POPUP_AND_BELL, 1, true, {}],
-  ['leave', 'leave.request.approved.employee', NotificationRecipientResolverType.RECORD_OWNER, 'leave.request.approved.employee', NotificationDisplayMode.BELL_ONLY, 3, false, {}],
-  ['leave', 'leave.request.rejected.employee', NotificationRecipientResolverType.RECORD_OWNER, 'leave.request.rejected.employee', NotificationDisplayMode.POPUP_AND_BELL, 2, false, {}],
-  ['leave', 'leave.request.returned.employee', NotificationRecipientResolverType.RECORD_OWNER, 'leave.request.returned.employee', NotificationDisplayMode.POPUP_AND_BELL, 2, true, {}],
-  ['leave', 'leave.request.escalated', NotificationRecipientResolverType.APPROVAL_ASSIGNEE, 'leave.request.escalated', NotificationDisplayMode.POPUP_AND_BELL, 1, true, {}],
-  ['attendance', 'attendance.correction.submitted.approver', NotificationRecipientResolverType.APPROVAL_ASSIGNEE, 'attendance.correction.submitted.approver', NotificationDisplayMode.POPUP_AND_BELL, 1, true, {}],
-  ['attendance', 'attendance.correction.approved.employee', NotificationRecipientResolverType.RECORD_OWNER, 'attendance.correction.approved.employee', NotificationDisplayMode.BELL_ONLY, 3, false, {}],
-  ['attendance', 'attendance.correction.rejected.employee', NotificationRecipientResolverType.RECORD_OWNER, 'attendance.correction.rejected.employee', NotificationDisplayMode.POPUP_AND_BELL, 2, false, {}],
-  ['attendance', 'attendance.correction.updated.employee', NotificationRecipientResolverType.RECORD_OWNER, 'attendance.correction.updated.employee', NotificationDisplayMode.BELL_ONLY, 3, false, {}],
-  ['attendance', 'attendance.exception.detected.manager', NotificationRecipientResolverType.REPORTING_MANAGER, 'attendance.exception.detected.manager', NotificationDisplayMode.POPUP_AND_BELL, 2, true, {}],
-  ['employee', 'employee.document.uploaded.hr', NotificationRecipientResolverType.HR_ROLE, 'employee.document.uploaded.hr', NotificationDisplayMode.POPUP_AND_BELL, 2, true, { roleKey: 'hr' }],
-  ['employee', 'employee.document.expiring.employee', NotificationRecipientResolverType.RECORD_OWNER, 'employee.document.expiring.employee', NotificationDisplayMode.POPUP_AND_BELL, 2, true, {}],
-  ['employee', 'employee.profile.change.submitted.hr', NotificationRecipientResolverType.HR_ROLE, 'employee.profile.change.submitted.hr', NotificationDisplayMode.POPUP_AND_BELL, 2, true, { roleKey: 'hr' }],
-  ['employee', 'employee.onboarding.task.assigned', NotificationRecipientResolverType.CUSTOM_USER, 'employee.onboarding.task.assigned', NotificationDisplayMode.POPUP_AND_BELL, 2, true, {}],
+  [
+    'leave',
+    'leave.request.submitted.approver',
+    NotificationRecipientResolverType.APPROVAL_ASSIGNEE,
+    'leave.request.submitted.approver',
+    NotificationDisplayMode.POPUP_AND_BELL,
+    1,
+    true,
+    {},
+  ],
+  [
+    'leave',
+    'leave.request.approved.employee',
+    NotificationRecipientResolverType.RECORD_OWNER,
+    'leave.request.approved.employee',
+    NotificationDisplayMode.BELL_ONLY,
+    3,
+    false,
+    {},
+  ],
+  [
+    'leave',
+    'leave.request.rejected.employee',
+    NotificationRecipientResolverType.RECORD_OWNER,
+    'leave.request.rejected.employee',
+    NotificationDisplayMode.POPUP_AND_BELL,
+    2,
+    false,
+    {},
+  ],
+  [
+    'leave',
+    'leave.request.returned.employee',
+    NotificationRecipientResolverType.RECORD_OWNER,
+    'leave.request.returned.employee',
+    NotificationDisplayMode.POPUP_AND_BELL,
+    2,
+    true,
+    {},
+  ],
+  [
+    'leave',
+    'leave.request.escalated',
+    NotificationRecipientResolverType.APPROVAL_ASSIGNEE,
+    'leave.request.escalated',
+    NotificationDisplayMode.POPUP_AND_BELL,
+    1,
+    true,
+    {},
+  ],
+  [
+    'attendance',
+    'attendance.correction.submitted.approver',
+    NotificationRecipientResolverType.APPROVAL_ASSIGNEE,
+    'attendance.correction.submitted.approver',
+    NotificationDisplayMode.POPUP_AND_BELL,
+    1,
+    true,
+    {},
+  ],
+  [
+    'attendance',
+    'attendance.correction.approved.employee',
+    NotificationRecipientResolverType.RECORD_OWNER,
+    'attendance.correction.approved.employee',
+    NotificationDisplayMode.BELL_ONLY,
+    3,
+    false,
+    {},
+  ],
+  [
+    'attendance',
+    'attendance.correction.rejected.employee',
+    NotificationRecipientResolverType.RECORD_OWNER,
+    'attendance.correction.rejected.employee',
+    NotificationDisplayMode.POPUP_AND_BELL,
+    2,
+    false,
+    {},
+  ],
+  [
+    'attendance',
+    'attendance.correction.updated.employee',
+    NotificationRecipientResolverType.RECORD_OWNER,
+    'attendance.correction.updated.employee',
+    NotificationDisplayMode.BELL_ONLY,
+    3,
+    false,
+    {},
+  ],
+  [
+    'attendance',
+    'attendance.exception.detected.manager',
+    NotificationRecipientResolverType.REPORTING_MANAGER,
+    'attendance.exception.detected.manager',
+    NotificationDisplayMode.POPUP_AND_BELL,
+    2,
+    true,
+    {},
+  ],
+  [
+    'employee',
+    'employee.document.uploaded.hr',
+    NotificationRecipientResolverType.HR_ROLE,
+    'employee.document.uploaded.hr',
+    NotificationDisplayMode.POPUP_AND_BELL,
+    2,
+    true,
+    { roleKey: 'hr' },
+  ],
+  [
+    'employee',
+    'employee.document.expiring.employee',
+    NotificationRecipientResolverType.RECORD_OWNER,
+    'employee.document.expiring.employee',
+    NotificationDisplayMode.POPUP_AND_BELL,
+    2,
+    true,
+    {},
+  ],
+  [
+    'employee',
+    'employee.profile.change.submitted.hr',
+    NotificationRecipientResolverType.HR_ROLE,
+    'employee.profile.change.submitted.hr',
+    NotificationDisplayMode.POPUP_AND_BELL,
+    2,
+    true,
+    { roleKey: 'hr' },
+  ],
+  [
+    'employee',
+    'employee.onboarding.task.assigned',
+    NotificationRecipientResolverType.CUSTOM_USER,
+    'employee.onboarding.task.assigned',
+    NotificationDisplayMode.POPUP_AND_BELL,
+    2,
+    true,
+    {},
+  ],
 ] as const;
 
-async function main() {
+export async function runSeedConfig() {
   if (!process.env.DATABASE_URL?.trim()) {
     throw new Error('DATABASE_URL is required to seed config data.');
   }
@@ -202,7 +411,14 @@ async function main() {
   );
 
   await seedNotificationConfig(prisma);
-  await seedPlatformSuperAdmin(prisma);
+  await seedSystemEmailTemplates(prisma);
+  const permissionBootstrapService = new PermissionBootstrapService(
+    prisma as never,
+  );
+  for (const tenant of tenants) {
+    await permissionBootstrapService.bootstrapTenantRbac(tenant.id);
+    await seedProjectRoles(prisma, tenant.id);
+  }
 
   if (tenants.length === 0) {
     console.warn(
@@ -228,7 +444,9 @@ async function main() {
   console.log(`Email templates created/updated: ${templateCount}`);
   console.log(`Notification preferences created/updated: ${preferenceCount}`);
   console.log(`Notification settings created/updated: ${settingCount}`);
-  console.log(`In-app notification templates created/updated: ${inAppTemplateCount}`);
+  console.log(
+    `In-app notification templates created/updated: ${inAppTemplateCount}`,
+  );
   console.log(`Notification rules created/updated: ${ruleCount}`);
   console.log(`Console providers created/updated: ${providerCount}`);
   console.log(`Leave types created/updated: ${leaveTypeCount}`);
@@ -236,33 +454,68 @@ async function main() {
   console.log('Config seed completed successfully.');
 }
 
-export async function seedPlatformSuperAdmin(client: PrismaClient) {
-  const email = 'taimurisrar@dijipeople.local';
-  const passwordHash = await bcrypt.hash('@DijiPeople2026!', 10);
-
-  await client.platformUser.upsert({
-    where: { email },
-    create: {
-      email,
-      firstName: 'Taimur',
-      lastName: 'Israr',
-      passwordHash,
-      role: PlatformUserRole.SUPER_ADMIN,
-      status: PlatformUserStatus.ACTIVE,
-    },
-    update: {
-      firstName: 'Taimur',
-      lastName: 'Israr',
-      passwordHash,
-      role: PlatformUserRole.SUPER_ADMIN,
-      status: PlatformUserStatus.ACTIVE,
-    },
-  });
-
-  console.log(`Platform super admin ensured: ${email}`);
+async function seedSystemEmailTemplates(client: PrismaClient) {
+  for (const template of SYSTEM_EMAIL_TEMPLATE_PLACEHOLDERS) {
+    await client.emailTemplate.upsert({
+      where: {
+        scopeKey_templateKey: {
+          scopeKey: template.scopeKey,
+          templateKey: template.templateKey,
+        },
+      },
+      create: {
+        tenantId: null,
+        scopeKey: template.scopeKey,
+        eventCode: template.eventCode,
+        templateKey: template.templateKey,
+        name: template.name,
+        description: template.description,
+        subjectTemplate: template.subjectTemplate,
+        htmlTemplate: template.htmlTemplate,
+        textTemplate: template.textTemplate,
+        availableVariables:
+          template.availableVariables as unknown as Prisma.InputJsonValue,
+        status: template.status,
+        version: template.version,
+        isSystem: template.isSystem,
+      },
+      update: {
+        eventCode: template.eventCode,
+        name: template.name,
+        description: template.description,
+        subjectTemplate: template.subjectTemplate,
+        htmlTemplate: template.htmlTemplate,
+        textTemplate: template.textTemplate,
+        availableVariables:
+          template.availableVariables as unknown as Prisma.InputJsonValue,
+        status: template.status,
+        isSystem: template.isSystem,
+      },
+    });
+  }
 }
 
-async function seedTenantDefaultSolutions(
+async function seedProjectRoles(client: PrismaClient, tenantId: string) {
+  const names = [
+    'Developer',
+    'QA',
+    'BA',
+    'PM',
+    'Consultant',
+    'Designer',
+    'Support Engineer',
+  ];
+  for (const [index, name] of names.entries()) {
+    const code = name.toUpperCase().replace(/[^A-Z0-9]+/g, '_');
+    await client.projectRole.upsert({
+      where: { tenantId_code: { tenantId, code } },
+      create: { tenantId, name, code, sortOrder: index + 1 },
+      update: { name, sortOrder: index + 1, isActive: true },
+    });
+  }
+}
+
+export async function seedTenantDefaultSolutions(
   client: PrismaClient,
   tenants: TenantSeedTarget[],
 ) {
@@ -1059,11 +1312,13 @@ function buildOtpEmailHtml() {
 </div>`.trim();
 }
 
-main()
-  .catch((error: unknown) => {
-    console.error(error instanceof Error ? error.message : error);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+if (require.main === module) {
+  runSeedConfig()
+    .catch((error: unknown) => {
+      console.error(error instanceof Error ? error.message : error);
+      process.exit(1);
+    })
+    .finally(async () => {
+      await prisma.$disconnect();
+    });
+}

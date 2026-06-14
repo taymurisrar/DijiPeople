@@ -247,7 +247,6 @@ export class SuperAdminController {
   }
 
   @Patch('tenants/:tenantId/slug')
-  @RequireRoles(ROLE_KEYS.SYSTEM_CUSTOMIZER)
   updateTenantSlug(
     @CurrentUser() user: AuthenticatedUser,
     @Param('tenantId', new ParseUUIDPipe()) tenantId: string,

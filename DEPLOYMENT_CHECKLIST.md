@@ -20,10 +20,9 @@
 - `API_ORIGIN`: public API origin, for example `https://api.example.com`.
 - `CORS_ALLOWED_ORIGINS`: comma-separated frontend origins, for example `https://app.example.com,https://admin.example.com,https://example.com`.
 - `AUTH_COOKIE_DOMAIN`: optional shared cookie domain when apps share a parent domain.
-- `BOOTSTRAP_ADMIN_EMAIL`: only needed for admin seed.
-- `BOOTSTRAP_ADMIN_PASSWORD`: required for production admin seed; never use the local default.
-- `BOOTSTRAP_TENANT_NAME`
-- `BOOTSTRAP_TENANT_SLUG`
+- `PLATFORM_SUPER_ADMIN_EMAIL`: required for the Admin App super admin seed.
+- `PLATFORM_SUPER_ADMIN_PASSWORD`: required, minimum 12 characters.
+- `ENABLE_DEMO_DATA_RESET=false`: keep disabled in production unless a deliberate demo environment requires it.
 
 ### Vercel Apps
 
@@ -65,7 +64,7 @@ Release command before start:
 
 ```bash
 npm --workspace api run prisma:migrate:deploy
-npm --workspace api run seed:system
+npm --workspace api run seed:config
 npm --workspace api run seed:admin
 ```
 
@@ -92,18 +91,23 @@ Output directory:
 From repository root:
 
 ```bash
-npm run seed:system
 npm run seed:admin
+npm run seed:config
 npm run seed:demo
 npm run seed:all
+npm run seed:demo:reset
+npm run seed:demo:reseed
 ```
 
 Seed behavior:
 
-- `seed:system`: idempotently bootstraps permissions/RBAC for existing tenants.
-- `seed:admin`: idempotently creates the bootstrap tenant and admin user.
-- `seed:demo`: idempotently creates demo master data, employees, leave types, pay components, compensation, and projects.
-- `seed:all`: runs system, admin, then demo seeds.
+- `seed:admin`: upserts only the Admin App `PlatformUser` super admin.
+- `seed:config`: idempotently bootstraps production-safe RBAC, notifications, lookups, leave types, and customization metadata.
+- `seed:demo`: creates or updates one explicitly tagged disposable demo tenant.
+- `seed:all`: runs admin, config, then demo.
+- `seed:demo:reset`: deletes only the tagged demo tenant and seed-owned customer account.
+- `seed:demo:reseed`: resets and recreates demo data.
+- `seed:system`: deprecated alias for `seed:config`.
 
 ## Validation Commands
 

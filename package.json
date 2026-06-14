@@ -23,6 +23,8 @@
     "seed:config": "npm --workspace api run seed:config",
     "seed:admin": "npm --workspace api run seed:admin",
     "seed:demo": "npm --workspace api run seed:demo",
+    "seed:demo:reset": "npm --workspace api run seed:demo:reset",
+    "seed:demo:reseed": "npm --workspace api run seed:demo:reseed",
     "seed:payroll-flow": "npm --workspace api run seed:payroll-flow",
     "seed:all": "npm --workspace api run seed:all",
     "smoke:deployment": "node scripts/smoke-deployment.mjs"

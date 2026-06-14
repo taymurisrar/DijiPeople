@@ -53,15 +53,19 @@ npm run release:api
 This runs:
 
 1. `prisma migrate deploy`
-2. `seed-admin` bootstrap (idempotent upsert)
+2. `seed-config` production-safe system configuration
+3. `seed-admin` platform super admin bootstrap
 
 Set these environment variables in your cloud API service:
 
 - `DATABASE_URL`
-- `BOOTSTRAP_ADMIN_EMAIL` (for example: `superadmin@dijipeople.local`)
-- `BOOTSTRAP_ADMIN_PASSWORD`
-- `BOOTSTRAP_ADMIN_ROLE_KEY=system-admin`
-- `BOOTSTRAP_ADMIN_ROLE_NAME=System Admin`
+- `PLATFORM_SUPER_ADMIN_EMAIL`
+- `PLATFORM_SUPER_ADMIN_PASSWORD` (minimum 12 characters)
+- `PLATFORM_SUPER_ADMIN_FIRST_NAME`
+- `PLATFORM_SUPER_ADMIN_LAST_NAME`
+
+Seed and demo reset details are documented in
+[`docs/seed-architecture.md`](docs/seed-architecture.md).
 
 Recommended release command in cloud platforms:
 
@@ -133,4 +137,3 @@ That shared config is used to:
 - The backend API now defaults to port `4000`
 - Next.js apps keep fixed default ports, but scoped variables like `LANDING_PORT` or `WEB_PORT` can override them per app
 - Invitation and reset links now derive their web app URL from shared config/env instead of hardcoded localhost strings
-

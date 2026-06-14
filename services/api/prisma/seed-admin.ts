@@ -1,10 +1,8 @@
 import { config as loadEnv } from 'dotenv';
 import { resolve } from 'node:path';
-import { TenantStatus, UserStatus } from '@prisma/client';
+import { PlatformUserRole, PlatformUserStatus } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { normalizeEmail } from '../src/common/utils/email.util';
-import { ROLE_KEYS } from '../src/common/constants/rbac-matrix';
-import { PermissionBootstrapService } from '../src/modules/permissions/permission-bootstrap.service';
 import { createPrismaClient } from './create-prisma-client';
 
 loadEnv({ path: resolve(__dirname, '../.env') });
@@ -12,235 +10,75 @@ loadEnv();
 
 const prisma = createPrismaClient();
 
-function getBootstrapConfig() {
-  const tenantName =
-    process.env.BOOTSTRAP_TENANT_NAME?.trim() || 'DijiPeople Demo';
-  const tenantSlug =
-    process.env.BOOTSTRAP_TENANT_SLUG?.trim().toLowerCase() ||
-    'dijipeople-demo';
-  const firstName = process.env.BOOTSTRAP_ADMIN_FIRST_NAME?.trim() || 'Taimur';
-  const lastName = process.env.BOOTSTRAP_ADMIN_LAST_NAME?.trim() || 'Israr';
+function getAdminConfig() {
   const email = normalizeEmail(
-    process.env.BOOTSTRAP_ADMIN_EMAIL || 'taimur@example.com',
+    process.env.PLATFORM_SUPER_ADMIN_EMAIL ||
+      process.env.BOOTSTRAP_ADMIN_EMAIL ||
+      '',
   );
-  const plainPassword = process.env.BOOTSTRAP_ADMIN_PASSWORD || 'Admin@12345';
+  const password =
+    process.env.PLATFORM_SUPER_ADMIN_PASSWORD ||
+    process.env.BOOTSTRAP_ADMIN_PASSWORD ||
+    '';
+  const firstName =
+    process.env.PLATFORM_SUPER_ADMIN_FIRST_NAME ||
+    process.env.BOOTSTRAP_ADMIN_FIRST_NAME ||
+    'Platform';
+  const lastName =
+    process.env.PLATFORM_SUPER_ADMIN_LAST_NAME ||
+    process.env.BOOTSTRAP_ADMIN_LAST_NAME ||
+    'Administrator';
 
   if (!process.env.DATABASE_URL?.trim()) {
-    throw new Error(
-      'DATABASE_URL is required. Set it to your Neon Postgres connection string.',
-    );
+    throw new Error('DATABASE_URL is required to seed the platform admin.');
   }
-
-  if (!plainPassword.trim() || plainPassword.length < 8) {
+  if (!email) {
+    throw new Error('PLATFORM_SUPER_ADMIN_EMAIL is required.');
+  }
+  if (password.length < 12) {
     throw new Error(
-      'BOOTSTRAP_ADMIN_PASSWORD must be at least 8 characters long.',
+      'PLATFORM_SUPER_ADMIN_PASSWORD must be at least 12 characters long.',
     );
   }
 
   return {
-    tenantName,
-    tenantSlug,
-    firstName,
-    lastName,
     email,
-    plainPassword,
-    usingDefaultPassword: !process.env.BOOTSTRAP_ADMIN_PASSWORD,
+    password,
+    firstName: firstName.trim(),
+    lastName: lastName.trim(),
   };
 }
 
 async function main() {
-  const config = getBootstrapConfig();
-  const passwordHash = await bcrypt.hash(config.plainPassword, 10);
-
-  const customerAccount =
-    (await prisma.customerAccount.findFirst({
-      where: {
-        contactEmail: config.email,
-        companyName: config.tenantName,
-      },
-      select: { id: true },
-    })) ??
-    (await prisma.customerAccount.create({
-      data: {
-        companyName: config.tenantName,
-        legalCompanyName: config.tenantName,
-        contactEmail: config.email,
-        country: 'Qatar',
-        status: 'ACTIVE',
-      },
-      select: { id: true },
-    }));
-
-  const tenant = await prisma.tenant.upsert({
-    where: { slug: config.tenantSlug },
+  const config = getAdminConfig();
+  const passwordHash = await bcrypt.hash(config.password, 12);
+  const user = await prisma.platformUser.upsert({
+    where: { email: config.email },
+    create: {
+      email: config.email,
+      firstName: config.firstName,
+      lastName: config.lastName,
+      passwordHash,
+      role: PlatformUserRole.SUPER_ADMIN,
+      status: PlatformUserStatus.ACTIVE,
+    },
     update: {
-      name: config.tenantName,
-      status: TenantStatus.ACTIVE,
+      firstName: config.firstName,
+      lastName: config.lastName,
+      passwordHash,
+      role: PlatformUserRole.SUPER_ADMIN,
+      status: PlatformUserStatus.ACTIVE,
     },
-    create: {
-      name: config.tenantName,
-      slug: config.tenantSlug,
-      status: TenantStatus.ACTIVE,
-      customerAccount: {
-        connect: {
-          id: customerAccount.id,
-        },
-      },
-    },
-    select: {
-      id: true,
-      slug: true,
-      name: true,
-    },
+    select: { id: true, email: true, role: true, status: true },
   });
 
-  const permissionBootstrapService = new PermissionBootstrapService(
-    prisma as never,
-  );
-  const { permissions, roles } =
-    await permissionBootstrapService.bootstrapTenantRbac(tenant.id);
-  const role = roles.find((item) => item.key === ROLE_KEYS.SYSTEM_ADMIN);
-  const globalAdministratorRole = roles.find(
-    (item) => item.key === ROLE_KEYS.GLOBAL_ADMIN,
-  );
-
-  if (!role || !globalAdministratorRole) {
-    throw new Error('System administrator roles could not be bootstrapped.');
-  }
-
-  const defaultOrganization =
-    (await prisma.organization.findFirst({
-      where: { tenantId: tenant.id },
-      orderBy: [{ createdAt: 'asc' }, { name: 'asc' }],
-      select: { id: true },
-    })) ??
-    (await prisma.organization.create({
-      data: {
-        tenantId: tenant.id,
-        name: 'Default Organization',
-      },
-      select: { id: true },
-    }));
-
-  const defaultBusinessUnit =
-    (await prisma.businessUnit.findFirst({
-      where: { tenantId: tenant.id },
-      orderBy: [{ createdAt: 'asc' }, { name: 'asc' }],
-      select: { id: true },
-    })) ??
-    (await prisma.businessUnit.create({
-      data: {
-        tenantId: tenant.id,
-        organizationId: defaultOrganization.id,
-        name: 'Default Business Unit',
-      },
-      select: { id: true },
-    }));
-
-  const existingUser = await prisma.user.findFirst({
-    where: { tenantId: tenant.id, email: config.email },
-    select: { id: true },
-  });
-  const user = existingUser
-    ? await prisma.user.update({
-        where: { id: existingUser.id },
-        data: {
-          businessUnitId: defaultBusinessUnit.id,
-          firstName: config.firstName,
-          lastName: config.lastName,
-          passwordHash,
-          status: UserStatus.ACTIVE,
-          isServiceAccount: false,
-        },
-        select: {
-          id: true,
-          email: true,
-        },
-      })
-    : await prisma.user.create({
-        data: {
-          tenantId: tenant.id,
-          businessUnitId: defaultBusinessUnit.id,
-          firstName: config.firstName,
-          lastName: config.lastName,
-          email: config.email,
-          passwordHash,
-          status: UserStatus.ACTIVE,
-          isServiceAccount: false,
-        },
-        select: {
-          id: true,
-          email: true,
-        },
-      });
-
-  await prisma.userRole.upsert({
-    where: {
-      userId_roleId: {
-        userId: user.id,
-        roleId: role.id,
-      },
-    },
-    update: {},
-    create: {
-      tenantId: tenant.id,
-      userId: user.id,
-      roleId: role.id,
-    },
-  });
-
-  await prisma.userRole.upsert({
-    where: {
-      userId_roleId: {
-        userId: user.id,
-        roleId: globalAdministratorRole.id,
-      },
-    },
-    update: {},
-    create: {
-      tenantId: tenant.id,
-      userId: user.id,
-      roleId: globalAdministratorRole.id,
-    },
-  });
-
-  // Keep bootstrap tenant ownership explicit and consistent with the protected owner model.
-  await prisma.tenant.update({
-    where: { id: tenant.id },
-    data: { ownerUserId: user.id },
-  });
-
-  const result = {
-    tenantId: tenant.id,
-    roleId: role.id,
-    userId: user.id,
-    email: user.email,
-    permissionsAssignedToRole: permissions.length,
-    systemRolesBootstrapped: roles.length,
-    usingDefaultPassword: config.usingDefaultPassword,
-  };
-
-  console.log('Bootstrap admin seed completed successfully.');
-  console.log(JSON.stringify(result, null, 2));
-
-  if (result.usingDefaultPassword) {
-    console.warn(
-      'Warning: default bootstrap password is in use. Set BOOTSTRAP_ADMIN_PASSWORD and re-run immediately in production.',
-    );
-  }
+  console.log('Platform super admin seed completed successfully.');
+  console.log(JSON.stringify(user, null, 2));
 }
 
 main()
   .catch((error: unknown) => {
-    if (error instanceof Error) {
-      console.error(`Bootstrap admin seed failed: ${error.message}`);
-      if (error.stack) {
-        console.error(error.stack);
-      }
-    } else {
-      console.error('Bootstrap admin seed failed with an unknown error.');
-      console.error(error);
-    }
+    console.error(error instanceof Error ? error.message : error);
     process.exit(1);
   })
   .finally(async () => {

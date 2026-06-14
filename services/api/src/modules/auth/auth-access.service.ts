@@ -28,7 +28,7 @@ export class AuthAccessService {
 
     const permissionKeys =
       user.role === PlatformUserRole.SUPER_ADMIN
-        ? ['platform.*']
+        ? ['platform.*', 'platform.demoData.delete']
         : [
             'leads.create',
             'leads.read',

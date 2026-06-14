@@ -23,7 +23,8 @@ type PlatformPermission =
   | 'billing.read'
   | 'subscriptions.read'
   | 'invoices.read'
-  | 'plans.read';
+  | 'plans.read'
+  | 'platform.demoData.delete';
 
 const MEMBER_PERMISSIONS = new Set<PlatformPermission>([
   'leads.create',
@@ -82,6 +83,7 @@ function resolvePlatformPermission(
   const route = request.route as { path?: string } | undefined;
   const path = route?.path ? route.path : (request.path ?? request.url);
 
+  if (path.includes('admin/demo-data')) return 'platform.demoData.delete';
   if (method === 'DELETE') return null;
 
   if (path.includes('dashboard-summary')) return null;

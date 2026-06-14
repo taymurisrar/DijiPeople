@@ -1,6 +1,7 @@
 import {
   Building2,
   Bug,
+  DatabaseBackup,
   CreditCard,
   FileText,
   Mail,
@@ -65,6 +66,14 @@ const settingsGroups: SettingsMenuGroup[] = [
         description: "Platform error logs and operational diagnostics.",
         href: "/settings/monitoring/error-logs",
         icon: Bug,
+        badge: "Advanced",
+      },
+      {
+        title: "Demo data",
+        description:
+          "Review, remove, and recreate the tagged client-demo tenant.",
+        href: "/settings/demo-data",
+        icon: DatabaseBackup,
         badge: "Advanced",
       },
     ],

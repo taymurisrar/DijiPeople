@@ -486,12 +486,9 @@ export class SuperAdminService {
     tenantId: string,
     dto: UpdateTenantSlugDto,
   ) {
-    if (
-      actor.platform?.role !== 'SUPER_ADMIN' &&
-      !actor.roleKeys.includes(ROLE_KEYS.SYSTEM_CUSTOMIZER)
-    ) {
+    if (actor.platform?.role !== 'SUPER_ADMIN') {
       throw new ForbiddenException(
-        'Only System Customizer can edit the tenant slug.',
+        'Only Platform Super Admin can update tenant slug.',
       );
     }
 
