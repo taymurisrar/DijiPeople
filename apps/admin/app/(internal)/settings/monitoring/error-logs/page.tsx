@@ -1,6 +1,6 @@
 import {
   ErrorLogsTable,
-  type PlatformLogFile,
+  type PlatformErrorEvent,
 } from "@/app/_components/monitoring/error-logs-table";
 import { PageHeader } from "@/app/_components/ui/page-header";
 import { requireSystemAdminUser } from "@/lib/auth";
@@ -20,14 +20,16 @@ export default async function PlatformErrorLogsPage() {
     );
   }
 
-  const logs = await apiRequestJson<PlatformLogFile[]>("/platform/logs");
+  const logs = await apiRequestJson<PlatformErrorEvent[]>(
+    "/platform/logs/events?pageSize=250",
+  );
 
   return (
     <main className="space-y-5">
       <PageHeader
         eyebrow="Platform monitoring"
         title="Error logs"
-        description="Review and download application log files from the secured platform log directory."
+        description="Trace sanitized web and API incidents by reference number, tenant, source, and severity."
       />
       <ErrorLogsTable logs={logs} />
     </main>

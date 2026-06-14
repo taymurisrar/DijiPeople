@@ -30,6 +30,18 @@ import {
   SummaryCard,
   SummaryCards,
 } from "@/app/_components/ui/detail-page";
+import {
+  TenantAccessManager,
+  type TenantAccessUser,
+} from "@/app/_components/tenant-access-manager";
+import {
+  TenantInvoicesTable,
+  type TenantInvoice,
+} from "@/app/_components/tenant-invoices-table";
+import {
+  TenantAuditTable,
+  type TenantAuditEvent,
+} from "@/app/_components/tenant-audit-table";
 
 type TenantDetail = {
   id: string;
@@ -138,22 +150,10 @@ type CustomerOption = {
   status: string;
 };
 
-type AuditLogItem = {
-  id: string;
-  action: string;
-  entityType: string;
-  entityId: string;
-  sourceModule: string | null;
-  beforeSnapshot: unknown;
-  afterSnapshot: unknown;
-  createdAt: string;
-  actorUser: { id: string; fullName: string; email: string } | null;
-};
-
 type SearchParams = Promise<{
   tab?:
     | "overview"
-    | "branding"
+    | "features"
     | "users"
     | "subscription"
     | "invoices"
@@ -182,7 +182,7 @@ export default async function TenantDetailPage({
   const activeTab = resolvedSearchParams.tab ?? "overview";
   const isEditing = resolvedSearchParams.edit === "1";
 
-  const [tenant, plans, featureCatalog, customers, auditLogs] =
+  const [tenant, plans, featureCatalog, customers, auditLogs, accessUsers, invoices] =
     await Promise.all([
       apiRequestJson<TenantDetail>(`/super-admin/tenants/${tenantId}`),
       apiRequestJson<PlanOption[]>("/super-admin/plans"),
@@ -190,13 +190,18 @@ export default async function TenantDetailPage({
       apiRequestJson<{ items: CustomerOption[] }>(
         "/super-admin/customers?pageSize=100",
       ).then((response) => response.items),
-      apiRequestJson<AuditLogItem[]>(
+      apiRequestJson<TenantAuditEvent[]>(
         `/super-admin/tenants/${tenantId}/audit-logs`,
+      ),
+      apiRequestJson<TenantAccessUser[]>(
+        `/super-admin/tenants/${tenantId}/access-users`,
+      ),
+      apiRequestJson<TenantInvoice[]>(
+        `/super-admin/tenants/${tenantId}/invoices`,
       ),
     ]);
 
   const enabledFeatures = getEnabledFeatures(tenant.enabledFeatures);
-  const featurePreview = enabledFeatures.slice(0, 6);
   const tenantLoginUrl = buildTenantLoginUrl(tenant.slug);
   const sessionUser = await getSessionUser();
   const canEditSlug = sessionUser?.role === "SUPER_ADMIN";
@@ -284,9 +289,9 @@ export default async function TenantDetailPage({
           isActive={activeTab === "overview"}
         />
         <TabLink
-          href={`/tenants/${tenantId}?tab=branding`}
-          label="Branding"
-          isActive={activeTab === "branding"}
+          href={`/tenants/${tenantId}?tab=features`}
+          label="Features"
+          isActive={activeTab === "features"}
         />
         <TabLink
           href={`/tenants/${tenantId}?tab=users`}
@@ -320,58 +325,7 @@ export default async function TenantDetailPage({
       </nav>
 
       {activeTab === "overview" ? (
-        <section className="grid gap-6 xl:grid-cols-[minmax(0,1.55fr)_360px]">
-          <div className="space-y-6">
-            <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-              <div className="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-start sm:justify-between">
-                <div className="space-y-2">
-                  <h2 className="text-xl font-semibold text-slate-950">
-                    Feature access
-                  </h2>
-                  <p className="max-w-2xl text-sm leading-6 text-slate-600">
-                    Manage tenant feature availability.
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                  <p className="font-medium text-slate-900">
-                    {enabledFeatures.length} feature
-                    {enabledFeatures.length === 1 ? "" : "s"} enabled
-                  </p>
-                  <p className="mt-1 text-slate-500">
-                    {tenant.enabledFeatures.length} total in catalog
-                  </p>
-                </div>
-              </div>
-
-              {featurePreview.length > 0 ? (
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {featurePreview.map((feature) => (
-                    <span
-                      key={feature.id}
-                      className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700"
-                    >
-                      {feature.key}
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm text-slate-600">
-                  No features are enabled for this tenant yet.
-                </div>
-              )}
-
-              <div className="mt-5 border-t border-slate-200 pt-5">
-                <TenantFeatureForm
-                  catalog={featureCatalog}
-                  features={tenant.enabledFeatures}
-                  tenantId={tenant.id}
-                />
-              </div>
-            </section>
-          </div>
-
-          <div className="space-y-6">
+        <section className="grid gap-6 lg:grid-cols-2">
             <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
               <h2 className="text-lg font-semibold text-slate-950">
                 Tenant snapshot
@@ -432,85 +386,29 @@ export default async function TenantDetailPage({
                 <TenantOwnerActions tenantId={tenant.id} />
               </div>
             </section>
-
             <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-              <h2 className="text-lg font-semibold text-slate-950">
-                Quick actions
-              </h2>
-              <div className="mt-4 space-y-4">
-                {canSeeFinancials ? (
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <p className="text-sm font-medium text-slate-900">
-                      Update subscription
-                    </p>
-                    <div className="mt-4">
-                      <SubscriptionForm
-                        currentSubscription={tenant.subscription}
-                        plans={plans}
-                        tenantId={tenant.id}
-                      />
-                    </div>
-                  </div>
-                ) : null}
-
-                {canSeeFinancials ? (
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <p className="text-sm font-medium text-slate-900">
-                      Change tenant status
-                    </p>
-                    <div className="mt-4">
-                      <TenantStatusForm
-                        tenantId={tenant.id}
-                        currentStatus={tenant.status}
-                      />
-                    </div>
-                  </div>
-                ) : null}
-
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-sm font-medium text-slate-900">
-                    Customer account linkage
-                  </p>
-                  <div className="mt-4">
-                    <TenantCustomerAccountForm
-                      tenantId={tenant.id}
-                      customerAccountId={tenant.customerAccount?.id}
-                      options={customers}
-                    />
-                  </div>
-                </div>
-              </div>
+              <h2 className="text-lg font-semibold text-slate-950">Platform summary</h2>
+              <dl className="mt-5 grid gap-4">
+                <InfoRow label="Tenant code" value={tenant.tenantCode ?? tenant.code} />
+                <InfoRow label="Created" value={formatDate(tenant.createdAt)} />
+                <InfoRow label="Customer" value={tenant.customerAccount?.companyName ?? "Not linked"} />
+                <InfoRow label="Privileged access" value={`${accessUsers.length} accounts`} />
+                <InfoRow label="Invoices" value={`${invoices.length} records`} />
+              </dl>
             </section>
+        </section>
+      ) : null}
 
-            <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-              <h2 className="text-lg font-semibold text-slate-950">
-                Service accounts
-              </h2>
-              {tenant.serviceAccounts.length === 0 ? (
-                <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm text-slate-600">
-                  No service accounts were provisioned for this tenant.
-                </div>
-              ) : (
-                <div className="mt-4 space-y-3">
-                  {tenant.serviceAccounts.map((account) => (
-                    <div
-                      className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"
-                      key={account.id}
-                    >
-                      <p className="font-medium text-slate-900">
-                        {account.firstName} {account.lastName}
-                      </p>
-                      <p className="text-sm text-slate-600">{account.email}</p>
-                      <p className="mt-1 text-xs text-slate-500">
-                        Roles:{" "}
-                        {account.roles.map((role) => role.name).join(", ") ||
-                          "None"}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
+      {activeTab === "features" ? (
+        <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="border-b border-slate-200 pb-5">
+            <h2 className="text-xl font-semibold text-slate-950">Feature access</h2>
+            <p className="mt-2 text-sm text-slate-600">
+              Plan defaults and tenant overrides are shown separately so the effective source is clear.
+            </p>
+          </div>
+          <div className="mt-6">
+            <TenantFeatureForm catalog={featureCatalog} features={tenant.enabledFeatures} tenantId={tenant.id} />
           </div>
         </section>
       ) : null}
@@ -664,12 +562,13 @@ export default async function TenantDetailPage({
             </div>
           </section>
 
-          <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-            <h2 className="text-xl font-semibold text-slate-950">
-              Subscription summary
-            </h2>
-            {tenant.subscription ? (
-              <dl className="mt-6 grid gap-4 sm:grid-cols-2">
+          <div className="space-y-6">
+            <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+              <h2 className="text-xl font-semibold text-slate-950">
+                Subscription summary
+              </h2>
+              {tenant.subscription ? (
+                <dl className="mt-6 grid gap-4 sm:grid-cols-2">
                 <SummaryGridItem
                   label="Plan"
                   value={tenant.subscription.plan.name}
@@ -702,88 +601,57 @@ export default async function TenantDetailPage({
                     tenant.subscription.currency,
                   )}
                 />
-              </dl>
-            ) : (
-              <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm text-slate-600">
-                No subscription record exists yet for this tenant.
+                </dl>
+              ) : (
+                <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm text-slate-600">
+                  No subscription record exists yet for this tenant.
+                </div>
+              )}
+            </section>
+            <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+              <h2 className="text-lg font-semibold text-slate-950">Billing relationships</h2>
+              <div className="mt-5 space-y-5">
+                <TenantCustomerAccountForm
+                  customerAccountId={tenant.customerAccount?.id}
+                  options={customers}
+                  tenantId={tenant.id}
+                />
+                <div className="border-t border-slate-200 pt-5">
+                  <TenantStatusForm currentStatus={tenant.status} tenantId={tenant.id} />
+                </div>
               </div>
-            )}
-          </section>
+            </section>
+          </div>
         </section>
       ) : null}
-      {activeTab === "branding" ? (
-        <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-semibold text-slate-950">Branding</h2>
-          <p className="mt-2 text-sm text-slate-600">
-            Branding status: {tenant.brandingStatus}
-          </p>
-        </section>
-      ) : null}
-
       {activeTab === "users" ? (
         <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-xl font-semibold text-slate-950">
             Users & Access
           </h2>
-          <div className="mt-4">
-            <TenantAccessActions
-              loginUrl={tenantLoginUrl}
-              primaryDomain={tenant.primaryDomain}
-              slug={tenant.slug}
-              status={String(tenant.status)}
-              tenantCode={tenant.tenantCode ?? tenant.code}
-              tenantName={tenant.displayName ?? tenant.name}
-            />
-          </div>
+          <p className="mt-2 text-sm text-slate-600">
+            Platform-managed Global Admins and service accounts only. Employees, HR, ESS, and other business users are managed inside the tenant web app.
+          </p>
+          <div className="mt-6"><TenantAccessManager tenantId={tenant.id} users={accessUsers} /></div>
         </section>
       ) : null}
 
       {activeTab === "invoices" && canSeeFinancials ? (
         <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-xl font-semibold text-slate-950">Invoices</h2>
-          <p className="mt-2 text-sm text-slate-600">
-            Invoice records remain available from the shared invoice module.
-          </p>
+          <p className="mt-2 text-sm text-slate-600">Invoices linked to this tenant and subscription.</p>
+          <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200">
+            <TenantInvoicesTable invoices={invoices} />
+          </div>
         </section>
       ) : null}
 
       {activeTab === "audit" ? (
         <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-xl font-semibold text-slate-950">Audit Log</h2>
-          {auditLogs.length ? (
-            <div className="mt-5 space-y-3">
-              {auditLogs.map((item) => (
-                <article
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"
-                  key={item.id}
-                >
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <p className="text-sm font-semibold text-slate-950">
-                        {item.action.replaceAll("_", " ")}
-                      </p>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {item.entityType} - {item.sourceModule ?? "system"}
-                      </p>
-                    </div>
-                    <p className="text-xs text-slate-500">
-                      {formatDate(item.createdAt)}
-                    </p>
-                  </div>
-                  <p className="mt-3 text-xs text-slate-500">
-                    Actor:{" "}
-                    {item.actorUser?.fullName ||
-                      item.actorUser?.email ||
-                      "System / webhook"}
-                  </p>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <p className="mt-2 text-sm text-slate-600">
-              No audit events recorded yet.
-            </p>
-          )}
+          <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200">
+            <TenantAuditTable events={auditLogs} />
+          </div>
         </section>
       ) : null}
     </DetailPageShell>

@@ -1,136 +1,113 @@
 "use client";
 
-import { ArrowDownUp, Download } from "lucide-react";
 import { useMemo, useState } from "react";
-import { AdminCommandButton } from "@/app/_components/admin-ui";
+import { DataTable } from "@/app/_components/crm/data-table";
+import { TenantStatusBadge } from "@/app/_components/tenant-status-badge";
 
-export type PlatformLogFile = {
-  fileName: string;
-  size: number;
-  createdAt: string;
-  modifiedAt: string;
+export type PlatformErrorEvent = {
+  referenceNumber: string;
+  timestamp: string;
+  severity: string;
+  sourceApp: string;
+  tenant: { id: string; name: string; slug: string } | null;
+  user: { id: string; email: string; fullName: string } | null;
+  route: string | null;
+  method: string | null;
+  category: string;
+  message: string;
+  status: string;
+  statusCode: number;
+  environment: string;
 };
 
-type SortKey = "fileName" | "modifiedAt" | "size";
+export function ErrorLogsTable({ logs }: { logs: PlatformErrorEvent[] }) {
+  const [reference, setReference] = useState("");
+  const [severity, setSeverity] = useState("");
+  const [source, setSource] = useState("");
+  const [environment, setEnvironment] = useState("");
 
-export function ErrorLogsTable({ logs }: { logs: PlatformLogFile[] }) {
-  const [sortKey, setSortKey] = useState<SortKey>("modifiedAt");
-  const [direction, setDirection] = useState<"asc" | "desc">("desc");
-
-  const sortedLogs = useMemo(() => {
-    return [...logs].sort((a, b) => {
-      const left = valueForSort(a, sortKey);
-      const right = valueForSort(b, sortKey);
-      const result = left > right ? 1 : left < right ? -1 : 0;
-      return direction === "asc" ? result : -result;
-    });
-  }, [direction, logs, sortKey]);
-
-  function toggleSort(nextKey: SortKey) {
-    if (nextKey === sortKey) {
-      setDirection((current) => (current === "asc" ? "desc" : "asc"));
-      return;
-    }
-    setSortKey(nextKey);
-    setDirection(nextKey === "fileName" ? "asc" : "desc");
-  }
-
-  if (!logs.length) {
-    return (
-      <div className="rounded-[28px] border border-dashed border-slate-300 bg-white p-10 text-center shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-950">No log files</h2>
-        <p className="mt-2 text-sm text-slate-600">
-          No platform log files are available in the configured log directory.
-        </p>
-      </div>
-    );
-  }
+  const rows = useMemo(
+    () =>
+      logs.filter(
+        (log) =>
+          (!reference ||
+            log.referenceNumber.toLowerCase().includes(reference.toLowerCase())) &&
+          (!severity || log.severity === severity) &&
+          (!source || log.sourceApp === source) &&
+          (!environment || log.environment === environment),
+      ),
+    [environment, logs, reference, severity, source],
+  );
 
   return (
     <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
-      <div className="overflow-x-auto">
-        <table className="min-w-full text-left text-sm">
-          <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
-            <tr>
-              <HeaderButton
-                label="File"
-                onClick={() => toggleSort("fileName")}
-              />
-              <HeaderButton
-                label="Modified"
-                onClick={() => toggleSort("modifiedAt")}
-              />
-              <HeaderButton label="Size" onClick={() => toggleSort("size")} />
-              <th className="px-5 py-4 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {sortedLogs.map((log) => (
-              <tr key={log.fileName} className="hover:bg-slate-50/70">
-                <td className="px-5 py-4 font-semibold text-slate-950">
-                  {log.fileName}
-                </td>
-                <td className="px-5 py-4 text-slate-600">
-                  {formatDateTime(log.modifiedAt)}
-                </td>
-                <td className="px-5 py-4 text-slate-600">
-                  {formatBytes(log.size)}
-                </td>
-                <td className="px-5 py-4 text-right">
-                  <AdminCommandButton
-                    href={`/api/platform/logs/${encodeURIComponent(
-                      log.fileName,
-                    )}/download`}
-                    icon={Download}
-                  >
-                    Download
-                  </AdminCommandButton>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="grid gap-3 border-b border-slate-200 bg-slate-50 p-4 md:grid-cols-4">
+        <input
+          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+          onChange={(event) => setReference(event.target.value)}
+          placeholder="Search reference number"
+          value={reference}
+        />
+        <FilterSelect label="All severities" onChange={setSeverity} values={unique(logs.map((log) => log.severity))} />
+        <FilterSelect label="All source apps" onChange={setSource} values={unique(logs.map((log) => log.sourceApp))} />
+        <FilterSelect label="All environments" onChange={setEnvironment} values={unique(logs.map((log) => log.environment))} />
       </div>
+      <DataTable
+        rows={rows}
+        rowKey={(log) => log.referenceNumber}
+        compact
+        emptyTitle="No monitoring events"
+        emptyDescription="Persisted API and web app errors will appear here with a searchable reference number."
+        renderExpandedRow={(log) => (
+          <div className="grid gap-3 text-sm md:grid-cols-2">
+            <Detail label="Reference" value={log.referenceNumber} mono />
+            <Detail label="HTTP status" value={String(log.statusCode)} />
+            <Detail label="Tenant" value={log.tenant?.name ?? "Platform / unknown"} />
+            <Detail label="User" value={log.user?.email ?? "Unknown"} />
+            <Detail label="Route" value={`${log.method ?? ""} ${log.route ?? "Unknown"}`} mono />
+            <Detail label="Category" value={log.category} mono />
+            <div className="md:col-span-2">
+              <Detail label="Message" value={log.message} />
+            </div>
+            <a
+              className="font-semibold text-slate-700 hover:text-slate-950"
+              href={`/api/error-logs/${encodeURIComponent(log.referenceNumber)}/download`}
+            >
+              Download sanitized diagnostics
+            </a>
+          </div>
+        )}
+        columns={[
+          { key: "reference", header: "Reference number", minWidth: 180, render: (log) => <span className="font-mono text-xs font-semibold">{log.referenceNumber}</span> },
+          { key: "timestamp", header: "Timestamp", render: (log) => new Date(log.timestamp).toLocaleString() },
+          { key: "severity", header: "Severity", render: (log) => <TenantStatusBadge value={log.severity} /> },
+          { key: "source", header: "Source app", render: (log) => log.sourceApp },
+          { key: "tenant", header: "Tenant", render: (log) => log.tenant?.name ?? "Platform" },
+          { key: "user", header: "User", render: (log) => log.user?.email ?? "Unknown" },
+          { key: "route", header: "Route / endpoint", minWidth: 180, render: (log) => <span className="font-mono text-xs">{log.route ?? "Unknown"}</span> },
+          { key: "category", header: "Category", render: (log) => log.category },
+          { key: "message", header: "Message summary", minWidth: 240, render: (log) => log.message },
+          { key: "status", header: "Status", render: (log) => log.status },
+          { key: "environment", header: "Environment", render: (log) => log.environment },
+        ]}
+      />
     </div>
   );
 }
 
-function HeaderButton({
-  label,
-  onClick,
-}: {
-  label: string;
-  onClick: () => void;
-}) {
+function FilterSelect({ label, values, onChange }: { label: string; values: string[]; onChange: (value: string) => void }) {
   return (
-    <th className="px-5 py-4">
-      <button
-        className="inline-flex items-center gap-2 rounded-lg text-left transition hover:text-slate-950"
-        onClick={onClick}
-        type="button"
-      >
-        {label}
-        <ArrowDownUp className="h-3.5 w-3.5" />
-      </button>
-    </th>
+    <select className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm" onChange={(event) => onChange(event.target.value)}>
+      <option value="">{label}</option>
+      {values.map((value) => <option key={value} value={value}>{value}</option>)}
+    </select>
   );
 }
 
-function valueForSort(log: PlatformLogFile, sortKey: SortKey) {
-  if (sortKey === "fileName") return log.fileName.toLowerCase();
-  if (sortKey === "size") return log.size;
-  return new Date(log.modifiedAt).getTime();
+function Detail({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
+  return <div><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p><p className={mono ? "mt-1 font-mono text-xs" : "mt-1"}>{value}</p></div>;
 }
 
-function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat("en", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
-}
-
-function formatBytes(value: number) {
-  if (value < 1024) return `${value} B`;
-  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
-  return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+function unique(values: string[]) {
+  return [...new Set(values)].sort();
 }

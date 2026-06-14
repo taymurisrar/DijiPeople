@@ -72,6 +72,11 @@ import {
 } from '../../common/reference-data/platform-reference-data';
 import { UserInvitationsService } from '../auth/user-invitations.service';
 import { WebhookService } from '../billing/services/webhook.service';
+import {
+  CreateTenantAccessUserDto,
+  UpdateTenantAccessUserDto,
+} from './dto/tenant-access-user.dto';
+import { normalizeEmail } from '../../common/utils/email.util';
 
 @Injectable()
 export class SuperAdminService {
@@ -426,6 +431,232 @@ export class SuperAdminService {
             email: item.actorUser.email,
           }
         : null,
+    }));
+  }
+
+  async listTenantAccessUsers(tenantId: string) {
+    await this.assertTenantExists(tenantId);
+    const users = await this.prisma.user.findMany({
+      where: {
+        tenantId,
+        OR: [
+          { isServiceAccount: true },
+          { userRoles: { some: { role: { key: ROLE_KEYS.GLOBAL_ADMIN } } } },
+        ],
+      },
+      include: {
+        userRoles: {
+          include: {
+            role: { select: { id: true, key: true, name: true } },
+          },
+        },
+      },
+      orderBy: [{ isServiceAccount: 'asc' }, { firstName: 'asc' }],
+    });
+
+    return users.map((user) => this.mapTenantAccessUser(user));
+  }
+
+  async createTenantAccessUser(
+    actor: AuthenticatedUser,
+    tenantId: string,
+    dto: CreateTenantAccessUserDto,
+  ) {
+    await this.assertTenantExists(tenantId);
+    const email = normalizeEmail(dto.email);
+    const existing = await this.prisma.user.findFirst({
+      where: { tenantId, email },
+      select: { id: true },
+    });
+    if (existing) {
+      throw new ConflictException(
+        'A tenant user with this email already exists.',
+      );
+    }
+
+    const businessUnit = dto.businessUnitId
+      ? await this.prisma.businessUnit.findFirst({
+          where: { id: dto.businessUnitId, tenantId },
+          select: { id: true },
+        })
+      : await this.prisma.businessUnit.findFirst({
+          where: { tenantId },
+          orderBy: { createdAt: 'asc' },
+          select: { id: true },
+        });
+    if (!businessUnit) {
+      throw new BadRequestException(
+        'The tenant needs a business unit before access can be provisioned.',
+      );
+    }
+
+    const globalAdminRole =
+      dto.accessType === 'GLOBAL_ADMIN'
+        ? await this.rolesRepository.findByKeyAndTenant(
+            tenantId,
+            ROLE_KEYS.GLOBAL_ADMIN,
+          )
+        : null;
+    if (dto.accessType === 'GLOBAL_ADMIN' && !globalAdminRole) {
+      throw new NotFoundException(
+        'Tenant Global Administrator role was not found.',
+      );
+    }
+
+    const passwordHash = await bcrypt.hash(
+      `tenant-access-${tenantId}-${Date.now()}-${Math.random()}`,
+      12,
+    );
+    const created = await this.prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: {
+          tenantId,
+          businessUnitId: businessUnit.id,
+          firstName: dto.firstName.trim(),
+          lastName: dto.lastName.trim(),
+          email,
+          passwordHash,
+          status: UserStatus.INVITED,
+          isServiceAccount: dto.accessType === 'SERVICE_ACCOUNT',
+          createdById: actor.userId,
+          updatedById: actor.userId,
+        },
+      });
+      if (globalAdminRole) {
+        await tx.userRole.create({
+          data: {
+            tenantId,
+            userId: user.id,
+            roleId: globalAdminRole.id,
+            createdById: actor.userId,
+            updatedById: actor.userId,
+          },
+        });
+      }
+      return user;
+    });
+
+    const invitation = await this.userInvitationsService.issueInvitation({
+      tenantId,
+      userId: created.id,
+      email: created.email,
+      fullName: `${created.firstName} ${created.lastName}`.trim(),
+      createdByUserId: actor.userId,
+    });
+    await this.auditService.log({
+      tenantId,
+      actorUserId: actor.userId,
+      action:
+        dto.accessType === 'GLOBAL_ADMIN'
+          ? 'TENANT_GLOBAL_ADMIN_CREATED'
+          : 'TENANT_SERVICE_ACCOUNT_CREATED',
+      entityType: 'User',
+      entityId: created.id,
+      sourceModule: 'super-admin',
+      afterSnapshot: {
+        email: created.email,
+        accessType: dto.accessType,
+        status: created.status,
+      },
+    });
+    return { user: created, invitation };
+  }
+
+  async updateTenantAccessUser(
+    actor: AuthenticatedUser,
+    tenantId: string,
+    userId: string,
+    dto: UpdateTenantAccessUserDto,
+  ) {
+    const user = await this.findTenantAccessUserOrThrow(tenantId, userId);
+    const updated = await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        firstName: dto.firstName?.trim(),
+        lastName: dto.lastName?.trim(),
+        email: dto.email ? normalizeEmail(dto.email) : undefined,
+        status:
+          dto.active === undefined
+            ? undefined
+            : dto.active
+              ? UserStatus.ACTIVE
+              : UserStatus.DISABLED,
+        updatedById: actor.userId,
+      },
+    });
+    await this.auditService.log({
+      tenantId,
+      actorUserId: actor.userId,
+      action:
+        dto.active === false
+          ? 'TENANT_ACCESS_DISABLED'
+          : 'TENANT_ACCESS_UPDATED',
+      entityType: 'User',
+      entityId: userId,
+      sourceModule: 'super-admin',
+      beforeSnapshot: { status: user.status, email: user.email },
+      afterSnapshot: { status: updated.status, email: updated.email },
+    });
+    return this.listTenantAccessUsers(tenantId);
+  }
+
+  async resetTenantAccessUserActivation(
+    actor: AuthenticatedUser,
+    tenantId: string,
+    userId: string,
+  ) {
+    const user = await this.findTenantAccessUserOrThrow(tenantId, userId);
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash: await bcrypt.hash(
+          `tenant-access-reset-${tenantId}-${Date.now()}`,
+          12,
+        ),
+        status: UserStatus.INVITED,
+        updatedById: actor.userId,
+      },
+    });
+    return this.userInvitationsService.issueInvitation({
+      tenantId,
+      userId,
+      email: user.email,
+      fullName: `${user.firstName} ${user.lastName}`.trim(),
+      createdByUserId: actor.userId,
+    });
+  }
+
+  async listTenantInvoices(tenantId: string) {
+    await this.assertTenantExists(tenantId);
+    const invoices = await this.prisma.invoice.findMany({
+      where: { tenantId },
+      include: {
+        tenant: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            customerAccount: {
+              select: { id: true, companyName: true },
+            },
+          },
+        },
+        subscription: {
+          include: { plan: { select: { id: true, key: true, name: true } } },
+        },
+        payments: { orderBy: { createdAt: 'desc' } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    return invoices.map((invoice) => ({
+      ...this.mapInvoice(invoice),
+      periodStart: invoice.periodStart,
+      periodEnd: invoice.periodEnd,
+      paidAt: invoice.paidAt,
+      amountPaid: Number(invoice.amountPaid ?? 0),
+      amountDue: Number(invoice.amountDue ?? invoice.amount),
+      hostedInvoiceUrl: invoice.stripeHostedInvoiceUrl,
+      invoicePdfUrl: invoice.stripeInvoicePdfUrl,
     }));
   }
 
@@ -2051,6 +2282,52 @@ export class SuperAdminService {
     }
 
     return tenant;
+  }
+
+  private async findTenantAccessUserOrThrow(tenantId: string, userId: string) {
+    const user = await this.prisma.user.findFirst({
+      where: {
+        id: userId,
+        tenantId,
+        OR: [
+          { isServiceAccount: true },
+          { userRoles: { some: { role: { key: ROLE_KEYS.GLOBAL_ADMIN } } } },
+        ],
+      },
+    });
+    if (!user) {
+      throw new NotFoundException(
+        'Tenant privileged access user was not found.',
+      );
+    }
+    return user;
+  }
+
+  private mapTenantAccessUser(user: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    status: UserStatus;
+    isServiceAccount: boolean;
+    lastLoginAt: Date | null;
+    createdAt: Date;
+    userRoles: Array<{
+      role: { id: string; key: string; name: string };
+    }>;
+  }) {
+    return {
+      id: user.id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      status: user.status,
+      accessType: user.isServiceAccount ? 'SERVICE_ACCOUNT' : 'GLOBAL_ADMIN',
+      isServiceAccount: user.isServiceAccount,
+      lastLoginAt: user.lastLoginAt,
+      createdAt: user.createdAt,
+      roles: user.userRoles.map(({ role }) => role),
+    };
   }
 
   private validateFeatureKeys(featureKeys: string[]) {

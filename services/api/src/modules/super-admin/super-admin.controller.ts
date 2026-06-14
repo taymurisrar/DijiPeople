@@ -45,6 +45,10 @@ import { UpdateTenantDto } from './dto/update-tenant.dto';
 import { UpdateTenantSlugDto } from '../tenants/dto/update-tenant-slug.dto';
 import { SuperAdminService } from './super-admin.service';
 import { ConvertLeadToCustomerDto } from '../leads/dto/admin-lead.dto';
+import {
+  CreateTenantAccessUserDto,
+  UpdateTenantAccessUserDto,
+} from './dto/tenant-access-user.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard, PlatformPermissionsGuard)
 @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN, ROLE_KEYS.SYSTEM_CUSTOMIZER)
@@ -284,6 +288,60 @@ export class SuperAdminController {
     @Param('tenantId', new ParseUUIDPipe()) tenantId: string,
   ) {
     return this.superAdminService.listTenantAuditLogs(tenantId);
+  }
+
+  @Get('tenants/:tenantId/access-users')
+  @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
+  listTenantAccessUsers(
+    @Param('tenantId', new ParseUUIDPipe()) tenantId: string,
+  ) {
+    return this.superAdminService.listTenantAccessUsers(tenantId);
+  }
+
+  @Post('tenants/:tenantId/access-users')
+  @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
+  createTenantAccessUser(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('tenantId', new ParseUUIDPipe()) tenantId: string,
+    @Body() dto: CreateTenantAccessUserDto,
+  ) {
+    return this.superAdminService.createTenantAccessUser(user, tenantId, dto);
+  }
+
+  @Patch('tenants/:tenantId/access-users/:userId')
+  @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
+  updateTenantAccessUser(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('tenantId', new ParseUUIDPipe()) tenantId: string,
+    @Param('userId', new ParseUUIDPipe()) userId: string,
+    @Body() dto: UpdateTenantAccessUserDto,
+  ) {
+    return this.superAdminService.updateTenantAccessUser(
+      user,
+      tenantId,
+      userId,
+      dto,
+    );
+  }
+
+  @Post('tenants/:tenantId/access-users/:userId/reset-activation')
+  @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
+  resetTenantAccessUserActivation(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('tenantId', new ParseUUIDPipe()) tenantId: string,
+    @Param('userId', new ParseUUIDPipe()) userId: string,
+  ) {
+    return this.superAdminService.resetTenantAccessUserActivation(
+      user,
+      tenantId,
+      userId,
+    );
+  }
+
+  @Get('tenants/:tenantId/invoices')
+  @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
+  listTenantInvoices(@Param('tenantId', new ParseUUIDPipe()) tenantId: string) {
+    return this.superAdminService.listTenantInvoices(tenantId);
   }
 
   @Patch('tenants/:tenantId/subscription')

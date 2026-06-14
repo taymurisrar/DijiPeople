@@ -3,6 +3,7 @@ import {
   Get,
   Header,
   Param,
+  Query,
   Res,
   StreamableFile,
   UseGuards,
@@ -23,6 +24,22 @@ export class PlatformMonitoringController {
   @Get()
   list(@CurrentUser() user: AuthenticatedUser) {
     return this.platformMonitoringService.listLogs(user);
+  }
+
+  @Get('events')
+  listEvents(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: Record<string, string | undefined>,
+  ) {
+    return this.platformMonitoringService.listEvents(user, query);
+  }
+
+  @Get('events/:traceId')
+  getEvent(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('traceId') traceId: string,
+  ) {
+    return this.platformMonitoringService.getEvent(user, traceId);
   }
 
   @Get('latest-error/download')
