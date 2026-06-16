@@ -11,6 +11,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Prisma } from '@prisma/client';
 import { normalizeEmail } from '../../common/utils/email.util';
 import { getAccessTokenSecret } from '../../common/config/auth.config';
+import { canManageEmployeeAccountActions } from '../../common/security/employee-account-actions';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { StorageService } from '../../common/storage/storage.service';
@@ -1330,6 +1331,12 @@ export class EmployeeProfilesService {
     currentUser: AuthenticatedUser,
     employeeId: string,
   ) {
+    if (!canManageEmployeeAccountActions(currentUser)) {
+      throw new ForbiddenException(
+        'Only Global Admin, System Admin, and HR can send employee password reset links.',
+      );
+    }
+
     const employee = await this.assertEmployeeAccess(currentUser, employeeId);
 
     if (!employee.userId || !employee.user) {
@@ -1338,11 +1345,18 @@ export class EmployeeProfilesService {
       );
     }
 
-    const recipientEmail = employee.user.email;
+    const workEmail = employee.email ? normalizeEmail(employee.email) : null;
 
-    if (!recipientEmail) {
+    if (!workEmail) {
       throw new BadRequestException(
         'Employee does not have an official work email address configured.',
+      );
+    }
+
+    const recipientEmail = normalizeEmail(employee.user.email);
+    if (recipientEmail !== workEmail) {
+      throw new BadRequestException(
+        'Employee work email must match the linked user authentication email before a password reset can be sent.',
       );
     }
 
@@ -1434,6 +1448,7 @@ export class EmployeeProfilesService {
       metadata: {
         userId: input.userId,
         employeeId: input.employeeId,
+        resetUrl: input.resetLink,
         source: 'employee-password-reset',
       },
       requestedByUserId: input.userId,

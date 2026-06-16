@@ -1,6 +1,9 @@
 import { BadRequestException } from '@nestjs/common';
 import { DEFAULT_TENANT_SETTINGS } from '../tenant-settings/tenant-settings.catalog';
-import { EmployeesService } from './employees.service';
+import {
+  EmployeesService,
+  isEmployeeInvitationEligibleUser,
+} from './employees.service';
 
 describe('EmployeesService', () => {
   let service: EmployeesService;
@@ -226,5 +229,64 @@ describe('EmployeesService', () => {
         ],
       },
     });
+  });
+
+  it('requires a work email before sending an employee invitation', async () => {
+    employeesRepository.findByIdAndTenant.mockResolvedValue({
+      id: 'employee-1',
+      tenantId: 'tenant-1',
+      firstName: 'Ada',
+      lastName: 'Lovelace',
+      email: null,
+      personalEmail: null,
+      userId: null,
+      user: null,
+    });
+
+    await expect(
+      (
+        service as unknown as {
+          provisionEmployeeUserAccess: (
+            currentUser: unknown,
+            employeeId: string,
+            dto: unknown,
+          ) => Promise<unknown>;
+        }
+      ).provisionEmployeeUserAccess(
+        {
+          tenantId: 'tenant-1',
+          userId: 'actor-1',
+          roleKeys: ['hr'],
+          permissionKeys: [],
+        },
+        'employee-1',
+        { provisionSystemAccess: true, sendInvitationNow: true },
+      ),
+    ).rejects.toThrow(
+      new BadRequestException(
+        'Work email is required before system access can be provisioned.',
+      ),
+    );
+  });
+
+  it('allows invitations only for new or never-logged-in users', () => {
+    expect(
+      isEmployeeInvitationEligibleUser({
+        status: 'INVITED' as never,
+        lastLoginAt: null,
+      }),
+    ).toBe(true);
+    expect(
+      isEmployeeInvitationEligibleUser({
+        status: 'ACTIVE' as never,
+        lastLoginAt: null,
+      }),
+    ).toBe(true);
+    expect(
+      isEmployeeInvitationEligibleUser({
+        status: 'ACTIVE' as never,
+        lastLoginAt: new Date('2026-06-01T00:00:00.000Z'),
+      }),
+    ).toBe(false);
   });
 });

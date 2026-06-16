@@ -89,6 +89,8 @@ Views contain stable identity, display name, Module reference, columns, filters,
 
 The Action Bar renders Actions and Action Groups from command metadata. System Actions include New, Edit, Delete, Refresh, Assign, Share, Import, Export, Export Template, Back, Save, and Save & Close. Data Transfer groups Import, Export, and Export Template. Import can remain disabled until validation/import pipelines exist. Delete means soft delete only; hard delete/purge is not exposed on normal Module pages.
 
+Module-specific Actions may be contributed only by the owning Module wrapper or adapter. They must use the shared Action Bar and command execution pipeline, but must not be registered as global/system Actions. The Employee detail page contributes `Reset Password` and `Send Invitation` only from the Employee runtime wrapper. These Actions remain visible in the Employee Record Action Bar for all roles, but are disabled unless the current principal has Global Admin, System Admin, or HR role access. Execution routes through existing Employee account workflow endpoints and returns non-fatal success/error notices in the Record page.
+
 ## Status Group Contract
 
 The Status Group appears in the generic Record Header summary/popover and contains Owner, Status, and Sub Status. Owner is a mandatory Reference. Status is a mandatory Choice List. Sub Status is a mandatory dependent Choice List. They are read-only in read mode and editable only in edit mode. UI changes must not save immediately; they persist only through Save or Save & Close.
@@ -2263,8 +2265,9 @@ Employee adapter/backend wiring status:
 - Employee API create/update DTOs accept `ownerUserId`.
 - Employee service persists `ownerUserId` to the real Employee owner column and validates owner assignment through the same Global Administrator/System Administrator/HR/HR Manager role gate.
 - Assign action still flows through `ModuleRuntimeCommandHandler -> ModuleDataAdapter.assignOwner -> /api/employees/:id/assign-owner` or bulk assign, with development diagnostics for selected owner, adapter payload, backend response, and refreshed UI via router refresh.
+- Employee account actions are Employee-only command additions: `employees.resetPassword` posts to `/api/employees/:id/send-reset-password-link` and `employees.sendInvitation` posts to `/api/employees/:id/resend-invite`. They are deliberately not generic/global actions. The buttons render disabled for non Global Admin/System Admin/HR users, and backend services enforce the same role gate.
 
-No Employee-specific UI was added. Legacy Employee UI files remain intentionally undeleted until runtime parity receives final approval.
+No broad Employee-specific UI was added. The Employee wrapper owns only the account-action command bridge required for reset/invitation parity. Legacy Employee UI files remain intentionally undeleted until runtime parity receives final approval.
 
 ### Field-Level Validation Contract
 

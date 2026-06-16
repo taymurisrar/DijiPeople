@@ -63,6 +63,18 @@ User. An Employee may exist without a User. Employee Self Service uses
 Settings > Security & Access > Users. `/users` is not exposed as an ESS
 navigation module.
 
+Employee account lifecycle actions are owned by the Employee Module, not by a
+global Action Bar. On Employee detail, Global Admin, System Admin, and HR may
+send a reset password link or send an account invitation. Other roles still see
+the actions disabled. Reset password requires a linked User whose
+authentication email matches the Employee work email, then sends the configured
+`AUTH_PASSWORD_RESET` template with `resetUrl`. Send Invitation requires an
+Employee work email and a new or never-logged-in User account; it creates or
+reuses the linked User and sends the configured `AUTH_ACCOUNT_ACTIVATION`
+template with `activationUrl`. Both flows use the configured notification email
+provider. The console provider writes the rendered template and bootstrap link
+artifacts to server logs.
+
 ### Users Settings Module
 
 The canonical route is `/settings/security-access/users`; the legacy

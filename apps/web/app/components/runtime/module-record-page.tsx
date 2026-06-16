@@ -9,6 +9,7 @@ import {
 } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { RuntimeMetadataFormRenderer } from "@/app/components/metadata/runtime-metadata-form-renderer";
+import { TopAlert } from "@/app/components/notifications";
 import type { LookupOption } from "@/app/components/ui/form-control";
 import {
   groupCommands,
@@ -104,6 +105,11 @@ export function ModuleRecordPage({
   const [validationSummary, setValidationSummary] = useState<string | null>(
     null,
   );
+  const [actionNotice, setActionNotice] = useState<{
+    readonly title: string;
+    readonly description?: string;
+    readonly variant: "success" | "error";
+  } | null>(null);
 
   useEffect(() => {
     const updateDraft = window.setTimeout(() => {
@@ -323,6 +329,21 @@ export function ModuleRecordPage({
           activeForm={activeForm}
           dataAdapter={dataAdapter}
           onResult={(result) => {
+            if (isEmployeeAccountAction(result.command?.key)) {
+              setActionNotice({
+                title:
+                  result.status === "failure"
+                    ? "Employee account action failed"
+                    : "Employee account action complete",
+                description:
+                  result.message ??
+                  (result.status === "failure"
+                    ? "The action could not be completed."
+                    : "The action completed successfully."),
+                variant: result.status === "failure" ? "error" : "success",
+              });
+            }
+
             if (result.status !== "failure") {
               setValidationSummary(null);
               const nextRecord = readResultRecord(result.data);
@@ -357,30 +378,41 @@ export function ModuleRecordPage({
                 formSlot={
                   formSlot ??
                   (activeForm ? (
-                    <RuntimeMetadataFormRenderer
-                      entity={runtime.metadata.entity}
-                      form={activeForm}
-                      lookupDisplayValues={lookupDisplayValues}
-                      lookupOptions={lookupOptions}
-                      mode={
-                        mode === "create"
-                          ? "new"
-                          : mode === "read"
-                            ? "detail"
-                            : "edit"
-                      }
-                      dataAdapter={dataAdapter}
-                      fieldErrors={fieldErrors}
-                      onValuesChange={(values) =>
-                        setDraftRecord((current) => {
-                          setValidationSummary(null);
-                          return { ...current, ...values };
-                        })
-                      }
-                      runtime={effectiveRuntime}
-                      touchedFields={touchedFields}
-                      values={toFieldValueMap(draftRecord)}
-                    />
+                    <div className="grid gap-4">
+                      {actionNotice ? (
+                        <TopAlert
+                          autoCloseMs={8000}
+                          description={actionNotice.description}
+                          onDismiss={() => setActionNotice(null)}
+                          title={actionNotice.title}
+                          variant={actionNotice.variant}
+                        />
+                      ) : null}
+                      <RuntimeMetadataFormRenderer
+                        entity={runtime.metadata.entity}
+                        form={activeForm}
+                        lookupDisplayValues={lookupDisplayValues}
+                        lookupOptions={lookupOptions}
+                        mode={
+                          mode === "create"
+                            ? "new"
+                            : mode === "read"
+                              ? "detail"
+                              : "edit"
+                        }
+                        dataAdapter={dataAdapter}
+                        fieldErrors={fieldErrors}
+                        onValuesChange={(values) =>
+                          setDraftRecord((current) => {
+                            setValidationSummary(null);
+                            return { ...current, ...values };
+                          })
+                        }
+                        runtime={effectiveRuntime}
+                        touchedFields={touchedFields}
+                        values={toFieldValueMap(draftRecord)}
+                      />
+                    </div>
                   ) : (
                     <div className="rounded-lg border border-dashed border-border p-6 text-sm text-muted">
                       Form metadata is unavailable.
@@ -454,6 +486,8 @@ const allowedCommandKeysByMode: Record<
     "record.assignOwner",
     "record.export",
     "record.share",
+    "employees.resetPassword",
+    "employees.sendInvitation",
   ]),
   edit: new Set([
     "system.back",
@@ -476,6 +510,8 @@ const primaryCommandKeysByMode: Record<
     "record.assignOwner",
     "record.export",
     "record.share",
+    "employees.resetPassword",
+    "employees.sendInvitation",
   ],
   edit: ["system.back", "system.save", "system.saveAndClose", "system.refresh"],
   create: ["system.back", "system.save", "system.saveAndClose"],
@@ -492,6 +528,13 @@ const titleByMode: Record<
 
 function isSaveCommand(commandKey: string) {
   return commandKey === "system.save" || commandKey === "system.saveAndClose";
+}
+
+function isEmployeeAccountAction(commandKey: string | undefined) {
+  return (
+    commandKey === "employees.resetPassword" ||
+    commandKey === "employees.sendInvitation"
+  );
 }
 
 function readResultFieldErrors(data: unknown) {

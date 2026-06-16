@@ -13,6 +13,7 @@ import {
   MoreHorizontal,
   Plus,
   RefreshCw,
+  RotateCcwKey,
   Save,
   Share2,
   Trash2,
@@ -568,6 +569,8 @@ function renderCommandIcon(commandKey: string) {
       return <Plus className={COMMAND_ICON_CLASS_NAME} />;
     case "refresh":
       return <RefreshCw className={COMMAND_ICON_CLASS_NAME} />;
+    case "resetPassword":
+      return <RotateCcwKey className={COMMAND_ICON_CLASS_NAME} />;
     case "restore":
       return <ArchiveRestore className={COMMAND_ICON_CLASS_NAME} />;
     case "save":

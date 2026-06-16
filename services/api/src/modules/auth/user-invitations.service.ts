@@ -367,6 +367,7 @@ export class UserInvitationsService {
       metadata: {
         userId: input.userId,
         invitationId: input.invitationId,
+        activationUrl: input.activationLink,
         source: 'user-invitation',
       },
       requestedByUserId: input.userId,

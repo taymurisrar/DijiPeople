@@ -2,10 +2,13 @@
 
 import type { ReactNode } from "react";
 import { ModuleRecordPage } from "@/app/components/runtime";
+import type { CommandDefinition } from "@/lib/runtime/command-runtime.types";
 import type { FormMetadata } from "@/lib/runtime/metadata-runtime.types";
+import type { ModuleDataAdapter } from "@/lib/runtime/module-data-adapter.types";
 import type { ModuleRuntimeContext } from "@/lib/runtime/module-runtime.types";
 import type { EmployeeRuntimeFormValues } from "@/lib/runtime/modules/employee-metadata.adapter";
 import { employeeModuleDataAdapter } from "@/lib/runtime/modules/employee-data.adapter";
+import { canManageEmployeeAccountActions } from "@/lib/employee-account-actions";
 import type { LookupOption } from "@/app/components/ui/form-control";
 import { useEmployeeLookups } from "./use-employee-lookups";
 
@@ -77,21 +80,172 @@ export function EmployeeRuntimeFormWrapper({
       employeeLookups.relationTypes,
     ),
   };
+  const runtimeWithEmployeeCommands = useEmployeeAccountActionRuntime(runtime);
+
   return (
     <ModuleRecordPage
       activeForm={activeForm}
-      dataAdapter={employeeModuleDataAdapter}
+      dataAdapter={employeeAccountActionAdapter}
       lookupDisplayValues={lookupDisplayValues}
       lookupOptions={resolvedLookupOptions}
       mode={mode === "new" ? "create" : mode === "detail" ? "read" : "edit"}
       moduleKey="employees"
       record={record}
       recordId={runtime.recordId}
-      runtime={runtime}
+      runtime={runtimeWithEmployeeCommands}
       tabsSlot={tabsSlot}
       title={titleByMode[mode]}
     />
   );
+}
+
+const employeeAccountActionCommands: readonly CommandDefinition[] = [
+  {
+    key: "employees.resetPassword",
+    label: "Reset Password",
+    description: "Send a reset password link to this employee's work email.",
+    scope: "record",
+    placement: "detail-command-bar",
+    executionMode: "client",
+    handlerKey: "employees.resetPassword",
+    order: 32,
+  },
+  {
+    key: "employees.sendInvitation",
+    label: "Send Invitation",
+    description:
+      "Send an activation invitation to a new employee who has not logged in yet.",
+    scope: "record",
+    placement: "detail-command-bar",
+    executionMode: "client",
+    handlerKey: "employees.sendInvitation",
+    order: 33,
+  },
+];
+
+const employeeAccountActionAdapter: ModuleDataAdapter = {
+  ...employeeModuleDataAdapter,
+  commandHandlers: {
+    ...employeeModuleDataAdapter.commandHandlers,
+    "employees.resetPassword": async (context) => {
+      if (!context.recordId) {
+        return { ok: false, message: "Employee record is required." };
+      }
+
+      const payload = await postEmployeeAction(
+        context.recordId,
+        "send-reset-password-link",
+      );
+      return {
+        ok: true,
+        data: payload,
+        message:
+          readRecordString(payload, "recipientEmail") !== ""
+            ? `Reset password link sent to ${readRecordString(payload, "recipientEmail")}.`
+            : readRecordString(payload, "message") ||
+              "Reset password link sent.",
+        invalidateCacheKeys: context.runtime.cacheKeys,
+      };
+    },
+    "employees.sendInvitation": async (context) => {
+      if (!context.recordId) {
+        return { ok: false, message: "Employee record is required." };
+      }
+
+      const payload = await postEmployeeAction(
+        context.recordId,
+        "resend-invite",
+      );
+      const activationLink = readNestedString(payload, [
+        "access",
+        "invitation",
+        "activationLink",
+      ]);
+      return {
+        ok: true,
+        data: payload,
+        message: activationLink
+          ? `Invitation created. Activation link: ${activationLink}`
+          : readRecordString(payload, "message") || "Invitation sent.",
+        invalidateCacheKeys: context.runtime.cacheKeys,
+      };
+    },
+  },
+};
+
+function useEmployeeAccountActionRuntime(runtime: ModuleRuntimeContext) {
+  const canManage = canManageEmployeeAccountActions([
+    ...runtime.security.principal.roleKeys,
+    ...(runtime.security.principal.roles ?? []),
+  ]);
+  const commands = employeeAccountActionCommands.map((command) => ({
+    ...command,
+    isDisabled: !canManage,
+    disabledReason: !canManage
+      ? "Only Global Admin, System Admin, and HR can run this employee account action."
+      : undefined,
+  }));
+
+  return {
+    ...runtime,
+    metadata: {
+      ...runtime.metadata,
+      commands: mergeCommands(runtime.metadata.commands, commands),
+    },
+  };
+}
+
+function mergeCommands(
+  existing: readonly CommandDefinition[],
+  additions: readonly CommandDefinition[],
+) {
+  const commands = new Map<string, CommandDefinition>();
+  for (const command of [...existing, ...additions]) {
+    commands.set(command.key, command);
+  }
+  return [...commands.values()];
+}
+
+async function postEmployeeAction(employeeId: string, action: string) {
+  const response = await fetch(
+    `/api/employees/${encodeURIComponent(employeeId)}/${action}`,
+    { method: "POST" },
+  );
+  const payload = (await response.json().catch(() => null)) as unknown;
+
+  if (!response.ok) {
+    throw new Error(
+      readString(
+        payload && typeof payload === "object"
+          ? (payload as Record<string, unknown>).message
+          : null,
+      ) || "Employee account action failed.",
+    );
+  }
+
+  return payload;
+}
+
+function readString(value: unknown) {
+  return typeof value === "string" ? value : "";
+}
+
+function readRecordString(value: unknown, key: string) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return "";
+  }
+  return readString((value as Record<string, unknown>)[key]);
+}
+
+function readNestedString(value: unknown, path: readonly string[]) {
+  let current = value;
+  for (const key of path) {
+    if (!current || typeof current !== "object" || Array.isArray(current)) {
+      return "";
+    }
+    current = (current as Record<string, unknown>)[key];
+  }
+  return readString(current);
 }
 
 const titleByMode: Record<EmployeeRuntimeFormMode, string> = {

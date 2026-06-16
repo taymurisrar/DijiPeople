@@ -19,6 +19,7 @@ import { normalizeEmail } from '../../common/utils/email.util';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { buildScopedAccessWhere } from '../../common/security/rbac-query-scope';
 import { hasAnyRole } from '../../common/security/role-matching';
+import { canManageEmployeeAccountActions } from '../../common/security/employee-account-actions';
 import {
   canEditEmployeeCoreProfile,
   ELEVATED_TENANT_ROLE_KEYS,
@@ -90,6 +91,13 @@ const EMPLOYEE_EXPORT_COLUMN_LABELS: Record<string, string> = {
 
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+export function isEmployeeInvitationEligibleUser(user: {
+  status: UserStatus;
+  lastLoginAt?: Date | null;
+}) {
+  return user.status !== UserStatus.ACTIVE || !user.lastLoginAt;
 }
 
 function getUpdateDtoValue<Dto extends object, Key extends keyof Dto, Fallback>(
@@ -1483,6 +1491,12 @@ export class EmployeesService {
   }
 
   async resendInvitation(currentUser: AuthenticatedUser, employeeId: string) {
+    if (!canManageEmployeeAccountActions(currentUser)) {
+      throw new ForbiddenException(
+        'Only Global Admin, System Admin, and HR can send employee invitations.',
+      );
+    }
+
     return this.provisionEmployeeUserAccess(currentUser, employeeId, {
       provisionSystemAccess: true,
       sendInvitationNow: true,
@@ -1694,10 +1708,17 @@ export class EmployeesService {
       activationLink?: string;
     } | null = null;
 
-    if (
+    const shouldSendInvitation =
       dto.sendInvitationNow !== false ||
-      result.user.status !== UserStatus.ACTIVE
-    ) {
+      result.user.status !== UserStatus.ACTIVE;
+
+    if (shouldSendInvitation) {
+      if (!isEmployeeInvitationEligibleUser(result.user)) {
+        throw new BadRequestException(
+          'Invitation can only be sent to a new employee account that has not logged in yet.',
+        );
+      }
+
       invitation = await this.userInvitationsService.issueInvitation({
         tenantId,
         userId: result.user.id,
@@ -1746,6 +1767,10 @@ export class EmployeesService {
   }
 
   private assertAccessProvisioningPermissions(currentUser: AuthenticatedUser) {
+    if (canManageEmployeeAccountActions(currentUser)) {
+      return;
+    }
+
     const requiredPermissions = ['users.create', 'users.assign-roles'];
     const hasPermissions = requiredPermissions.every((permission) =>
       currentUser.permissionKeys.includes(permission),
