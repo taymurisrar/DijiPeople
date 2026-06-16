@@ -1,5 +1,9 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
-import { AttendanceMode } from '@prisma/client';
+import {
+  AttendanceMode,
+  SecurityAccessLevel,
+  SecurityPrivilege,
+} from '@prisma/client';
 import { AttendanceService } from './attendance.service';
 
 describe('AttendanceService', () => {
@@ -27,6 +31,7 @@ describe('AttendanceService', () => {
     findByUserIdAndTenant: jest.Mock;
     findHierarchyNodeByIdAndTenant: jest.Mock;
     findDirectReports: jest.Mock;
+    findByTenant: jest.Mock;
   };
   let auditService: {
     log: jest.Mock;
@@ -216,6 +221,9 @@ describe('AttendanceService', () => {
         id: 'employee-1',
       }),
       findDirectReports: jest.fn().mockResolvedValue([]),
+      findByTenant: jest.fn().mockResolvedValue({
+        items: [{ id: 'employee-1' }, { id: 'employee-2' }],
+      }),
     };
 
     auditService = {
@@ -611,12 +619,181 @@ describe('AttendanceService', () => {
     ).rejects.toThrow('You do not have permission to view team attendance.');
   });
 
+  it('allows CEO users to list tenant attendance without manager-scope filtering', async () => {
+    const ceoUser = {
+      tenantId: 'tenant-1',
+      userId: 'ceo-user-1',
+      roleKeys: ['ceo'],
+      permissionKeys: ['attendance.read'],
+      rolePrivileges: [
+        {
+          entityKey: 'attendance',
+          privilege: SecurityPrivilege.READ,
+          accessLevel: SecurityAccessLevel.TENANT,
+        },
+      ],
+    } as never;
+
+    await service.listTeamAttendance(ceoUser, {
+      page: 1,
+      pageSize: 20,
+      scope: 'all',
+    } as never);
+
+    expect(employeesRepository.findByTenant).toHaveBeenCalledWith(
+      'tenant-1',
+      expect.any(Object),
+      {},
+    );
+    expect(attendanceRepository.findAttendancePage).toHaveBeenCalledWith(
+      'tenant-1',
+      expect.objectContaining({ scope: 'all' }),
+      { employeeId: { in: ['employee-1', 'employee-2'] } },
+    );
+  });
+
+  it('does not give System Customizer implicit team attendance visibility', async () => {
+    const systemCustomizerUser = {
+      tenantId: 'tenant-1',
+      userId: 'customizer-user-1',
+      roleKeys: ['system-customizer'],
+      permissionKeys: ['customization.read'],
+      rolePrivileges: [],
+    } as never;
+
+    await expect(
+      service.listTeamAttendance(systemCustomizerUser, {
+        page: 1,
+        pageSize: 20,
+        scope: 'team',
+      } as never),
+    ).rejects.toThrow('You do not have permission to view team attendance.');
+  });
+
+  it('does not give Recruiter implicit team attendance visibility', async () => {
+    const recruiterUser = {
+      tenantId: 'tenant-1',
+      userId: 'recruiter-user-1',
+      roleKeys: ['recruiter'],
+      permissionKeys: ['candidates.read'],
+      rolePrivileges: [],
+    } as never;
+
+    await expect(
+      service.listTeamAttendance(recruiterUser, {
+        page: 1,
+        pageSize: 20,
+        scope: 'team',
+      } as never),
+    ).rejects.toThrow('You do not have permission to view team attendance.');
+  });
+
+  it('allows CEO users to open attendance details with remote location timestamps', async () => {
+    const ceoUser = {
+      tenantId: 'tenant-1',
+      userId: 'ceo-user-1',
+      roleKeys: ['ceo'],
+      permissionKeys: ['attendance.read'],
+      rolePrivileges: [
+        {
+          entityKey: 'attendance',
+          privilege: SecurityPrivilege.READ,
+          accessLevel: SecurityAccessLevel.TENANT,
+        },
+      ],
+    } as never;
+    const checkInLocationCapturedAt = new Date('2026-06-14T08:55:00.000Z');
+    const checkOutLocationCapturedAt = new Date('2026-06-14T17:05:00.000Z');
+
+    attendanceRepository.findEmployeeIdByUserId.mockResolvedValue({
+      id: 'ceo-employee',
+    });
+    employeesRepository.findHierarchyNodeByIdAndTenant.mockResolvedValue({
+      id: 'employee-2',
+      businessUnitId: null,
+      user: { businessUnitId: null },
+    });
+    attendanceRepository.findAttendanceEntryById.mockResolvedValue({
+      id: 'attendance-remote-1',
+      tenantId: 'tenant-1',
+      employeeId: 'employee-2',
+      workScheduleId: null,
+      shiftTemplateId: null,
+      officeLocationId: null,
+      importedBatchId: null,
+      date: new Date('2026-06-14T00:00:00.000Z'),
+      checkIn: new Date('2026-06-14T09:00:00.000Z'),
+      checkOut: new Date('2026-06-14T17:00:00.000Z'),
+      attendanceMode: AttendanceMode.REMOTE,
+      status: 'PRESENT',
+      source: 'SYSTEM',
+      checkInSource: 'WEB',
+      checkOutSource: 'WEB',
+      checkInNote: null,
+      checkOutNote: null,
+      workSummary: null,
+      notes: null,
+      remoteLatitude: 24.7136,
+      remoteLongitude: 46.6753,
+      remoteAddressText: 'Riyadh',
+      checkInLatitude: 24.7136,
+      checkInLongitude: 46.6753,
+      checkInLocationAccuracy: 20,
+      checkInLocationCapturedAt,
+      checkOutLatitude: 24.7137,
+      checkOutLongitude: 46.6754,
+      checkOutLocationAccuracy: 18,
+      checkOutLocationCapturedAt,
+      isLateCheckIn: false,
+      isLateCheckOut: false,
+      lateCheckInMinutes: null,
+      lateCheckOutMinutes: null,
+      machineDeviceId: null,
+      createdAt: new Date('2026-06-14T09:00:00.000Z'),
+      updatedAt: new Date('2026-06-14T17:00:00.000Z'),
+      employee: {
+        id: 'employee-2',
+        employeeCode: 'EMP-002',
+        firstName: 'Nora',
+        lastName: 'Ali',
+        preferredName: null,
+        userId: 'employee-user-2',
+        managerEmployeeId: null,
+        departmentId: null,
+        department: null,
+        designation: null,
+        manager: null,
+      },
+      workSchedule: null,
+      officeLocation: null,
+      importedBatch: null,
+      shiftTemplate: null,
+    });
+
+    await expect(
+      service.getAttendanceEntry(ceoUser, 'attendance-remote-1'),
+    ).resolves.toMatchObject({
+      id: 'attendance-remote-1',
+      remoteLatitude: 24.7136,
+      remoteLongitude: 46.6753,
+      checkInLocationCapturedAt,
+      checkOutLocationCapturedAt,
+    });
+  });
+
   it('uses the reporting hierarchy for all attendance and direct reports for team attendance', async () => {
     const managerUser = {
       tenantId: 'tenant-1',
       userId: 'manager-user-1',
       roleKeys: ['manager'],
       permissionKeys: ['attendance.read'],
+      rolePrivileges: [
+        {
+          entityKey: 'attendance',
+          privilege: SecurityPrivilege.READ,
+          accessLevel: SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
+        },
+      ],
     } as never;
 
     employeesRepository.findByUserIdAndTenant.mockResolvedValue({

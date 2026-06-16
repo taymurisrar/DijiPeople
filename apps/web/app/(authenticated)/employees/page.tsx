@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
+import { hasElevatedTenantRole } from "@/lib/elevated-roles";
 import { isSelfServiceUser } from "@/lib/permissions";
 import { apiRequestJson } from "@/lib/server-api";
+import { ROLE_KEYS } from "@/lib/security-keys";
 import { buildEntityDataUrl } from "@/app/components/entity-data/entity-query-builder";
 import {
   EntityDataResponse,
@@ -30,9 +32,21 @@ type EmployeesPageProps = {
 export default async function EmployeesPage({
   searchParams,
 }: EmployeesPageProps) {
-  const businessUnitAccess = await getBusinessUnitAccessSummary();
+  const [user, currentEmployeeContext, businessUnitAccess] = await Promise.all([
+    getSessionUser(),
+    getCurrentEmployee(),
+    getBusinessUnitAccessSummary(),
+  ]);
+  const hasOrganizationEmployeeRole =
+    hasElevatedTenantRole(user?.roleKeys) ||
+    (user?.roleKeys ?? []).some(
+      (roleKey) => roleKey === ROLE_KEYS.CEO || roleKey === ROLE_KEYS.HR,
+    );
 
-  if (!hasBusinessUnitScope(businessUnitAccess)) {
+  if (
+    !hasOrganizationEmployeeRole &&
+    !hasBusinessUnitScope(businessUnitAccess)
+  ) {
     return (
       <main className="dp-theme-scope dp-employees-scope grid gap-6">
         <AccessDeniedState
@@ -42,11 +56,6 @@ export default async function EmployeesPage({
       </main>
     );
   }
-
-  const [user, currentEmployeeContext] = await Promise.all([
-    getSessionUser(),
-    getCurrentEmployee(),
-  ]);
 
   if (
     user &&

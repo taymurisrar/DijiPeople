@@ -7,7 +7,7 @@ import {
   buildStandardRuntimePrincipal,
 } from "@/lib/runtime/modules/standard-module-runtime";
 import { attendanceRuntimeSpec } from "@/lib/runtime/modules/standard-module-specs";
-import { PERMISSION_KEYS } from "@/lib/security-keys";
+import { PERMISSION_KEYS, ROLE_KEYS } from "@/lib/security-keys";
 import { ApiRequestError, apiRequestJson } from "@/lib/server-api";
 import { formatDate } from "@/lib/formatting-context";
 import { AccessDeniedState } from "../_components/access-denied-state";
@@ -42,6 +42,10 @@ export default async function AttendancePage({
   );
   const selfServiceAttendance = isSelfServiceUser(sessionUser?.permissionKeys);
   const businessUnitAccess = await getBusinessUnitAccessSummary();
+  const isElevated = hasElevatedTenantRole(sessionUser?.roleKeys);
+  const hasOrganizationAttendanceRole = (sessionUser?.roleKeys ?? []).some(
+    (roleKey) => roleKey === ROLE_KEYS.CEO || roleKey === ROLE_KEYS.HR,
+  );
 
   if (!hasAttendanceRead) {
     return (
@@ -54,7 +58,12 @@ export default async function AttendancePage({
     );
   }
 
-  if (!selfServiceAttendance && !hasBusinessUnitScope(businessUnitAccess)) {
+  if (
+    !selfServiceAttendance &&
+    !isElevated &&
+    !hasOrganizationAttendanceRole &&
+    !hasBusinessUnitScope(businessUnitAccess)
+  ) {
     return (
       <main className="dp-theme-scope dp-attendance-scope grid gap-6">
         <AccessDeniedState
@@ -68,9 +77,9 @@ export default async function AttendancePage({
   const currentEmployeeContext = sessionUser
     ? await getCurrentEmployee()
     : { employee: null, isReportingManager: false };
-  const isElevated = hasElevatedTenantRole(sessionUser?.roleKeys);
   const canViewTeamAttendance =
     isElevated ||
+    hasOrganizationAttendanceRole ||
     hasPermission(
       sessionUser?.permissionKeys,
       PERMISSION_KEYS.ATTENDANCE_MANAGE,
@@ -86,6 +95,7 @@ export default async function AttendancePage({
     currentEmployeeContext.isReportingManager;
   const canViewAllAttendance =
     isElevated ||
+    hasOrganizationAttendanceRole ||
     hasPermission(
       sessionUser?.permissionKeys,
       PERMISSION_KEYS.ATTENDANCE_MANAGE,
@@ -174,7 +184,7 @@ export default async function AttendancePage({
   }));
   const isMyAttendanceView = activeView?.logicalName === "attendance.my";
   const attendanceActionState = isMyAttendanceView
-    ? attendanceContext?.attendanceActionState ?? "blocked"
+    ? (attendanceContext?.attendanceActionState ?? "blocked")
     : "unavailable";
 
   return (
@@ -277,7 +287,9 @@ function attendanceEndpoint({
   view?: string;
 }) {
   if (view === "attendance.today" && canViewAllAttendance) {
-    const date = businessDate ? `&dateFrom=${businessDate}&dateTo=${businessDate}` : "";
+    const date = businessDate
+      ? `&dateFrom=${businessDate}&dateTo=${businessDate}`
+      : "";
     return `/attendance/team?scope=all&pageSize=20${date}`;
   }
   if (view === "attendance.missingCheckout" && canViewAllAttendance) {

@@ -1,6 +1,11 @@
 import { ApiRequestError, apiRequestJson } from "@/lib/server-api";
 import { getSessionUser } from "@/lib/auth";
-import { getBusinessUnitAccessSummary, shouldEnforceSelfScope } from "../../_lib/business-unit-access";
+import { hasElevatedTenantRole } from "@/lib/elevated-roles";
+import {
+  getBusinessUnitAccessSummary,
+  shouldEnforceSelfScope,
+} from "../../_lib/business-unit-access";
+import { ROLE_KEYS } from "@/lib/security-keys";
 import { EmployeeListResponse } from "../../employees/types";
 import { AttendanceEntriesTable } from "../_components/attendance-entries-table";
 import { AttendanceFilterBar } from "../_components/attendance-filter-bar";
@@ -28,9 +33,20 @@ type TeamAttendancePageProps = {
 export default async function TeamAttendancePage({
   searchParams,
 }: TeamAttendancePageProps) {
-  const businessUnitAccess = await getBusinessUnitAccessSummary();
+  const [user, businessUnitAccess] = await Promise.all([
+    getSessionUser(),
+    getBusinessUnitAccessSummary(),
+  ]);
+  const hasOrganizationAttendanceRole =
+    hasElevatedTenantRole(user?.roleKeys) ||
+    (user?.roleKeys ?? []).some(
+      (roleKey) => roleKey === ROLE_KEYS.CEO || roleKey === ROLE_KEYS.HR,
+    );
 
-  if (shouldEnforceSelfScope(businessUnitAccess)) {
+  if (
+    !hasOrganizationAttendanceRole &&
+    shouldEnforceSelfScope(businessUnitAccess)
+  ) {
     return (
       <main className="grid gap-6">
         <section className="rounded-[24px] border border-dashed border-border bg-surface p-10 text-center shadow-sm">
@@ -38,7 +54,8 @@ export default async function TeamAttendancePage({
             Self scope active
           </p>
           <h3 className="mt-3 text-3xl font-semibold text-foreground">
-            Team attendance is not available at your current business-unit access level.
+            Team attendance is not available at your current business-unit
+            access level.
           </h3>
           <p className="mt-3 text-muted">
             Your access is scoped to your own records only.
@@ -48,7 +65,6 @@ export default async function TeamAttendancePage({
     );
   }
 
-  const user = await getSessionUser();
   const params = normalizeSearchParams(await searchParams);
   const view = parseAttendanceView(params.view);
   const queryString = buildAttendanceQueryString(params);
@@ -104,7 +120,9 @@ export default async function TeamAttendancePage({
           allowRemoteWithoutLocation: true,
         }),
     canManageIntegrations
-      ? apiRequestJson<AttendanceIntegrationRecord[]>("/attendance/integrations")
+      ? apiRequestJson<AttendanceIntegrationRecord[]>(
+          "/attendance/integrations",
+        )
       : Promise.resolve([]),
   ]);
 
@@ -182,7 +200,9 @@ export default async function TeamAttendancePage({
       />
 
       {canImportAttendance ? <AttendanceImportCard /> : null}
-      {canManageAttendance ? <AttendancePolicyCard initialPolicy={policy} /> : null}
+      {canManageAttendance ? (
+        <AttendancePolicyCard initialPolicy={policy} />
+      ) : null}
       {canManageIntegrations ? (
         <AttendanceIntegrationsCard integrations={integrations} />
       ) : null}
@@ -217,7 +237,9 @@ function normalizeSearchParams(
   ) as Record<string, string | undefined>;
 }
 
-function buildAttendanceQueryString(params: Record<string, string | undefined>) {
+function buildAttendanceQueryString(
+  params: Record<string, string | undefined>,
+) {
   const query = new URLSearchParams();
   const keys = [
     "search",

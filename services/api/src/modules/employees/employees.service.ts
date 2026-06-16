@@ -322,6 +322,7 @@ export class EmployeesService {
     const elevatedRoleKeys = new Set([
       'admin',
       ROLE_KEYS.HR,
+      ROLE_KEYS.CEO,
       ...ELEVATED_TENANT_ROLE_KEYS,
     ]);
     return (

@@ -1,4 +1,5 @@
 import { EmployeeAccessService } from './employee-access.service';
+import { SecurityAccessLevel, SecurityPrivilege } from '@prisma/client';
 
 describe('EmployeeAccessService manager scope', () => {
   const user = {
@@ -6,8 +7,16 @@ describe('EmployeeAccessService manager scope', () => {
     tenantId: 'tenant-1',
     email: 'manager@example.com',
     roleIds: ['employee-role'],
-    roleKeys: ['employee'],
+    roleKeys: ['manager'],
     permissionKeys: ['employees.read.self'],
+    rolePrivileges: [
+      {
+        roleId: 'manager-role',
+        entityKey: 'employees',
+        privilege: SecurityPrivilege.READ,
+        accessLevel: SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
+      },
+    ],
   };
   let repository: {
     findByUserIdAndTenant: jest.Mock;
@@ -22,17 +31,28 @@ describe('EmployeeAccessService manager scope', () => {
         id: 'manager-employee',
         userId: user.userId,
       }),
-      findDirectReports: jest.fn().mockResolvedValue([{ id: 'direct-report' }]),
+      findDirectReports: jest.fn(),
       findByIdAndTenant: jest.fn(),
     };
+    repository.findDirectReports.mockImplementation(
+      (_tenantId: string, managerEmployeeId: string) => {
+        if (managerEmployeeId === 'manager-employee') {
+          return Promise.resolve([{ id: 'direct-report' }]);
+        }
+        if (managerEmployeeId === 'direct-report') {
+          return Promise.resolve([{ id: 'nested-report' }]);
+        }
+        return Promise.resolve([]);
+      },
+    );
     service = new EmployeeAccessService(repository as never);
   });
 
-  it('scopes a manager Employees list to direct reports', async () => {
+  it('scopes a manager Employees list to the reporting hierarchy', async () => {
     await expect(
       service.buildReadableEmployeeWhere(user as never),
     ).resolves.toEqual({
-      managerEmployeeId: 'manager-employee',
+      id: { in: ['direct-report', 'nested-report'] },
     });
   });
 
@@ -58,5 +78,52 @@ describe('EmployeeAccessService manager scope', () => {
         'direct-report',
       ),
     ).resolves.toBe('MANAGER_READONLY');
+  });
+
+  it('does not restrict CEO employee visibility through manager-scope logic', async () => {
+    await expect(
+      service.buildReadableEmployeeWhere({
+        ...user,
+        roleKeys: ['ceo', 'manager'],
+        permissionKeys: ['employees.read'],
+        rolePrivileges: [
+          {
+            entityKey: 'employees',
+            privilege: SecurityPrivilege.READ,
+            accessLevel: SecurityAccessLevel.TENANT,
+          },
+        ],
+      } as never),
+    ).resolves.toEqual({ tenantId: 'tenant-1' });
+  });
+
+  it('does not give System Customizer implicit employee visibility', async () => {
+    repository.findByUserIdAndTenant.mockResolvedValue(null);
+
+    await expect(
+      service.buildReadableEmployeeWhere({
+        ...user,
+        roleKeys: ['system-customizer'],
+        permissionKeys: ['customization.read'],
+        rolePrivileges: [],
+      } as never),
+    ).resolves.toEqual({
+      AND: [{ tenantId: 'tenant-1' }, { id: '__rbac_no_access__' }],
+    });
+  });
+
+  it('does not give Recruiter implicit employee visibility', async () => {
+    repository.findByUserIdAndTenant.mockResolvedValue(null);
+
+    await expect(
+      service.buildReadableEmployeeWhere({
+        ...user,
+        roleKeys: ['recruiter'],
+        permissionKeys: ['candidates.read'],
+        rolePrivileges: [],
+      } as never),
+    ).resolves.toEqual({
+      AND: [{ tenantId: 'tenant-1' }, { id: '__rbac_no_access__' }],
+    });
   });
 });

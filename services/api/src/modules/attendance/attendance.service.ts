@@ -27,10 +27,12 @@ import {
 import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { AuditService } from '../audit/audit.service';
 import {
+  ENTITY_KEYS,
   ROLE_KEYS,
   SECURITY_ACCESS_LEVEL_WEIGHT,
 } from '../../common/constants/rbac-matrix';
 import { hasElevatedTenantRole } from '../../common/security/elevated-tenant-roles';
+import { resolveEffectiveAccessLevel } from '../../common/security/rbac-query-scope';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { EmployeesRepository } from '../employees/employees.repository';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -2501,6 +2503,10 @@ export class AttendanceService {
   }
 
   private canReadAttendanceBeyondTeam(currentUser: AuthenticatedUser) {
+    if (this.isManagerHierarchyScoped(currentUser)) {
+      return false;
+    }
+
     return (
       this.canManageTenantAttendance(currentUser) ||
       this.hasAttendanceAccessAtOrAbove(currentUser, SecurityPrivilege.READ, [
@@ -2555,6 +2561,17 @@ export class AttendanceService {
     return currentUser.roleKeys?.includes(ROLE_KEYS.MANAGER) ?? false;
   }
 
+  private isManagerHierarchyScoped(currentUser: AuthenticatedUser) {
+    const roleKeys = currentUser.roleKeys ?? [];
+
+    return (
+      roleKeys.includes(ROLE_KEYS.MANAGER) &&
+      !roleKeys.includes(ROLE_KEYS.CEO) &&
+      !roleKeys.includes(ROLE_KEYS.HR) &&
+      !hasElevatedTenantRole(currentUser)
+    );
+  }
+
   private async getAuthorizedAttendanceEntry(
     currentUser: AuthenticatedUser,
     entryId: string,
@@ -2588,6 +2605,12 @@ export class AttendanceService {
     }
 
     if (requireOverrideAccess) {
+      if (!this.canOverrideAttendance(currentUser)) {
+        throw new ForbiddenException(
+          'You do not have permission to override this attendance record.',
+        );
+      }
+
       const employeeIds = await this.resolveAllTenantEmployeeIds(currentUser, {
         employeeId: entry.employeeId,
       });
@@ -2718,8 +2741,14 @@ export class AttendanceService {
     const tenantId = currentUser.tenantId;
     const accessibleBusinessUnitIds =
       currentUser.accessContext?.accessibleBusinessUnitIds ?? [];
+    const attendanceReadAccessLevel = resolveEffectiveAccessLevel(
+      currentUser,
+      ENTITY_KEYS.ATTENDANCE,
+      SecurityPrivilege.READ,
+    );
     const canAccessAllBusinessUnits =
       hasElevatedTenantRole(currentUser) ||
+      attendanceReadAccessLevel === SecurityAccessLevel.TENANT ||
       currentUser.accessContext?.canAccessAllBusinessUnits === true;
     const accessWhere: Prisma.EmployeeWhereInput = canAccessAllBusinessUnits
       ? {}

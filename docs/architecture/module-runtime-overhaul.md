@@ -443,6 +443,24 @@ Expected permission families:
 - Dependency validation and preview.
 - Limited read access needed to validate metadata.
 
+### Operational Role Hierarchy
+
+The workforce data hierarchy is:
+
+Global Admin -> System Admin -> CEO -> HR -> Manager -> ESS.
+
+Global Admin and System Admin are the only tenant-wide operational bypass
+roles. CEO has organization-wide read visibility for employees, attendance,
+remote/hybrid check-in and check-out locations, timestamps, work sites, and the
+reporting hierarchy. HR has organization-wide employee and attendance access
+through HR permissions. Managers are scoped to their direct and indirect
+reportees. ESS users are scoped to their own records only.
+
+System Customizer and Recruiter are capability roles, not management hierarchy
+roles. They do not automatically inherit employee, attendance, reporting
+hierarchy, timeline, or manager visibility; those roles only receive access
+when explicit permissions or RBAC privileges grant it.
+
 ### RBAC Verification TODO
 
 Later phases must verify code and seed data for:
@@ -1968,15 +1986,15 @@ Old Employee detail body/tab files are now replaceable after related-list and sp
 
 ### Standard Module Migration Status
 
-| Module | List | Read Record | Create Record | Edit Record | Generic Adapter Status | Remaining blockers |
-| --- | --- | --- | --- | --- | --- | --- |
-| Employees | Generic | Generic | Generic | Generic | Employee adapter supports list, get, create, update, assign owner, export, and configured related commands. | Legacy specialized Employee widgets remain only as replaceable files pending parity approval. |
-| Leaves | Generic | Generic | Generic | Blocked | Standard REST adapter supports list/get/create through `/api/leave-requests`. | No generic update/edit endpoint is wired. Submit, Cancel, Approve, and Reject are preserved as disabled business Actions until adapter handlers are added. |
-| Attendance | Generic | Backend-limited | Generic create | Backend-limited | Standard adapter lists through `/api/attendance` and creates through `/api/attendance/manual`. | Record read/edit is limited by Attendance's specialized APIs and team/correction flows. Check In, Check Out, and Correction Request remain disabled business Actions until generic handlers are added. |
-| Timesheets | Generic | Generic read | Blocked | Blocked | Read route uses existing team timesheet endpoint. | Timesheet create/edit remains specialized around entries and monthly editor APIs. Submit, Approve, and Reject remain disabled business Actions until generic handlers are added. |
-| Projects | Generic | Generic | Generic | Generic | Standard REST adapter supports list/get/create/update through `/api/projects`. | Close/Reopen are preserved as disabled business Actions until generic handlers are added. Delete/Assign remain disabled because no standard soft-delete or assign-owner adapter capability is declared. |
-| Approvals | Generic | Generic | Not applicable | Not applicable | Standard REST read/list only. | Approve/Reject remain disabled business Actions until generic handlers are added. |
-| Customers | Generic | Generic | Generic | Generic | Standard REST adapter supports list/get/create/update through `/api/customers`. | Activate, Deactivate, and Convert remain disabled business Actions until generic handlers are added. Delete/Assign remain disabled because no standard soft-delete or assign-owner adapter capability is declared. |
+| Module     | List    | Read Record     | Create Record  | Edit Record     | Generic Adapter Status                                                                                      | Remaining blockers                                                                                                                                                                                                 |
+| ---------- | ------- | --------------- | -------------- | --------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Employees  | Generic | Generic         | Generic        | Generic         | Employee adapter supports list, get, create, update, assign owner, export, and configured related commands. | Legacy specialized Employee widgets remain only as replaceable files pending parity approval.                                                                                                                      |
+| Leaves     | Generic | Generic         | Generic        | Blocked         | Standard REST adapter supports list/get/create through `/api/leave-requests`.                               | No generic update/edit endpoint is wired. Submit, Cancel, Approve, and Reject are preserved as disabled business Actions until adapter handlers are added.                                                         |
+| Attendance | Generic | Backend-limited | Generic create | Backend-limited | Standard adapter lists through `/api/attendance` and creates through `/api/attendance/manual`.              | Record read/edit is limited by Attendance's specialized APIs and team/correction flows. Check In, Check Out, and Correction Request remain disabled business Actions until generic handlers are added.             |
+| Timesheets | Generic | Generic read    | Blocked        | Blocked         | Read route uses existing team timesheet endpoint.                                                           | Timesheet create/edit remains specialized around entries and monthly editor APIs. Submit, Approve, and Reject remain disabled business Actions until generic handlers are added.                                   |
+| Projects   | Generic | Generic         | Generic        | Generic         | Standard REST adapter supports list/get/create/update through `/api/projects`.                              | Close/Reopen are preserved as disabled business Actions until generic handlers are added. Delete/Assign remain disabled because no standard soft-delete or assign-owner adapter capability is declared.            |
+| Approvals  | Generic | Generic         | Not applicable | Not applicable  | Standard REST read/list only.                                                                               | Approve/Reject remain disabled business Actions until generic handlers are added.                                                                                                                                  |
+| Customers  | Generic | Generic         | Generic        | Generic         | Standard REST adapter supports list/get/create/update through `/api/customers`.                             | Activate, Deactivate, and Convert remain disabled business Actions until generic handlers are added. Delete/Assign remain disabled because no standard soft-delete or assign-owner adapter capability is declared. |
 
 ### Generic Record Route Rules
 

@@ -1,12 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, SecurityPrivilege } from '@prisma/client';
+import { Prisma, SecurityAccessLevel, SecurityPrivilege } from '@prisma/client';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
-import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import { ENTITY_KEYS, ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import {
   canEditEmployeeCoreProfile,
   hasElevatedTenantRole,
 } from '../../common/security/elevated-tenant-roles';
-import { buildScopedAccessWhere } from '../../common/security/rbac-query-scope';
+import {
+  buildScopedAccessWhere,
+  resolveEffectiveAccessLevel,
+} from '../../common/security/rbac-query-scope';
 import { EmployeesRepository } from './employees.repository';
 
 @Injectable()
@@ -41,6 +44,11 @@ export class EmployeeAccessService {
     user: AuthenticatedUser,
   ): Promise<Prisma.EmployeeWhereInput> {
     const employee = await this.getCurrentEmployee(user);
+    const accessLevel = resolveEffectiveAccessLevel(
+      user,
+      ENTITY_KEYS.EMPLOYEES,
+      SecurityPrivilege.READ,
+    );
     const scopedAccess = buildScopedAccessWhere<Prisma.EmployeeWhereInput>(
       user,
       ENTITY_KEYS.EMPLOYEES,
@@ -55,18 +63,27 @@ export class EmployeeAccessService {
       return scopedAccess;
     }
 
+    if (
+      !this.isManagerHierarchyScoped(user) &&
+      accessLevel !== SecurityAccessLevel.NONE &&
+      accessLevel !== SecurityAccessLevel.SELF &&
+      accessLevel !== SecurityAccessLevel.USER
+    ) {
+      return scopedAccess;
+    }
+
     if (!employee) {
       return scopedAccess;
     }
 
-    const directReports = await this.employeesRepository.findDirectReports(
+    const reporteeIds = await this.resolveReportingHierarchyEmployeeIds(
       user.tenantId,
       employee.id,
     );
-    if (directReports.length > 0) {
+    if (reporteeIds.length > 0) {
       // The Employees module is the manager's team surface. Their own record
       // remains available through My Profile and the record-level access check.
-      return { managerEmployeeId: employee.id };
+      return { id: { in: reporteeIds } };
     }
 
     return {
@@ -117,13 +134,59 @@ export class EmployeeAccessService {
       return 'HR_MANAGE';
     }
 
-    if (!currentEmployee) return 'DENIED';
-
-    if (target.managerEmployeeId === currentEmployee.id) {
+    const readableEmployee = await this.employeesRepository.findByIdAndTenant(
+      user.tenantId,
+      employeeId,
+      await this.buildReadableEmployeeWhere(user),
+    );
+    if (readableEmployee) {
       return 'MANAGER_READONLY';
     }
 
+    if (!currentEmployee) return 'DENIED';
+
     return 'DENIED';
+  }
+
+  private async resolveReportingHierarchyEmployeeIds(
+    tenantId: string,
+    managerEmployeeId: string,
+  ) {
+    const hierarchyIds = new Set<string>();
+    let frontier = [managerEmployeeId];
+
+    while (frontier.length > 0) {
+      const nextFrontier: string[] = [];
+
+      for (const currentManagerEmployeeId of frontier) {
+        const directReports = await this.employeesRepository.findDirectReports(
+          tenantId,
+          currentManagerEmployeeId,
+        );
+
+        for (const employee of directReports) {
+          if (!hierarchyIds.has(employee.id)) {
+            hierarchyIds.add(employee.id);
+            nextFrontier.push(employee.id);
+          }
+        }
+      }
+
+      frontier = nextFrontier;
+    }
+
+    return Array.from(hierarchyIds);
+  }
+
+  private isManagerHierarchyScoped(user: AuthenticatedUser) {
+    const roleKeys = user.roleKeys ?? [];
+
+    return (
+      roleKeys.includes(ROLE_KEYS.MANAGER) &&
+      !roleKeys.includes(ROLE_KEYS.CEO) &&
+      !roleKeys.includes(ROLE_KEYS.HR) &&
+      !hasElevatedTenantRole(user)
+    );
   }
 
   async canWriteEmployeeRecord(user: AuthenticatedUser, employeeId: string) {
