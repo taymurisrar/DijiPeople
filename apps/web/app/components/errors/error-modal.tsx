@@ -16,7 +16,7 @@ type ErrorModalProps = {
   onClose: () => void;
 };
 
-type ErrorModalAction = "close" | "sign-in" | "dashboard" | "retry";
+type ErrorModalAction = "close" | "sign-in" | "retry";
 
 type ResolvedErrorAction = {
   primary: ErrorModalAction;
@@ -127,14 +127,6 @@ const PrimaryAction = React.forwardRef<
     );
   }
 
-  if (action === "dashboard") {
-    return (
-      <Button ref={ref} href="/" size="sm">
-        Go to dashboard
-      </Button>
-    );
-  }
-
   if (action === "retry" && error.retry) {
     return (
       <Button ref={ref} onClick={error.retry} type="button" size="sm">
@@ -157,12 +149,8 @@ function resolveAction(error: DisplayableError): ResolvedErrorAction {
     return { primary: "sign-in" };
   }
 
-  if (error.statusCode === 404) {
-    return { primary: "dashboard" };
-  }
-
-  if (error.statusCode >= 500) {
-    return { primary: error.retry ? "retry" : "dashboard" };
+  if (error.statusCode >= 500 && error.retry) {
+    return { primary: "retry" };
   }
 
   return { primary: "close" };

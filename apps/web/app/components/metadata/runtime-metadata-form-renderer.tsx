@@ -60,6 +60,27 @@ type RuntimeMetadataFormRendererProps =
   | CustomizationFormRendererProps
   | RuntimeFormRendererProps;
 
+const SEED_BACKED_LOOKUP_FIELDS = new Set([
+  "countryId",
+  "nationalityCountryId",
+  "stateProvinceId",
+  "cityId",
+  "emergencyContactRelationTypeId",
+  "departmentId",
+  "designationId",
+  "employeeLevelId",
+  "locationId",
+  "officialJoiningLocationId",
+  "defaultWorkScheduleId",
+  "documentTypeId",
+  "documentCategoryId",
+  "leaveTypeId",
+  "officeLocationId",
+]);
+
+const MISSING_REFERENCE_DATA_MESSAGE =
+  "Reference data missing. Please run seed-config.";
+
 export function RuntimeMetadataFormRenderer(
   props: RuntimeMetadataFormRendererProps,
 ) {
@@ -628,6 +649,13 @@ function EditableField({
   const checked = Boolean(value);
   const numberValue =
     typeof value === "number" && Number.isFinite(value) ? value : null;
+  const lookupReferenceDataMissing =
+    field.dataType === "lookup" &&
+    lookupOptions.length === 0 &&
+    SEED_BACKED_LOOKUP_FIELDS.has(field.logicalName);
+  const lookupWarning = lookupReferenceDataMissing
+    ? MISSING_REFERENCE_DATA_MESSAGE
+    : undefined;
 
   return (
     <div>
@@ -664,11 +692,17 @@ function EditableField({
             onChange={(nextValue) => {
               onValueChange?.(nextValue);
             }}
+            noResultsText={
+              lookupReferenceDataMissing
+                ? MISSING_REFERENCE_DATA_MESSAGE
+                : undefined
+            }
             options={[...lookupOptions]}
             placeholder="Select record"
             required={required}
             touched={touched}
             value={fieldValue}
+            warning={lookupWarning}
           />
         ) : field.dataType === "date" ? (
           <DateField

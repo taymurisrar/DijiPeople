@@ -29,12 +29,13 @@
     "seed:admin": "ts-node prisma/seed-admin.ts",
     "seed:system": "npm run seed:config",
     "seed:config": "ts-node prisma/seed-config.ts",
+    "seed:verify": "ts-node prisma/verify-seed-config.ts",
     "seed:demo": "ts-node prisma/seed-demo.ts",
     "seed:demo:reset": "ts-node prisma/seed-demo-reset.ts",
     "seed:demo:reseed": "npm run seed:demo:reset && npm run seed:demo",
     "seed:payroll-flow": "ts-node prisma/seed-payroll-flow.ts",
     "seed:all": "npm run seed:admin && npm run seed:config && npm run seed:demo",
-    "release": "npm run prisma:migrate:deploy && npm run seed:config && npm run seed:admin"
+    "release": "npm run prisma:migrate:deploy && npm run seed:config && npm run seed:verify && npm run seed:admin"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

@@ -2,6 +2,11 @@ export const DEFAULT_COUNTRIES = [
   { code: 'US', name: 'United States', sortOrder: 10 },
   { code: 'SA', name: 'Saudi Arabia', sortOrder: 20 },
   { code: 'PK', name: 'Pakistan', sortOrder: 30 },
+  { code: 'QA', name: 'Qatar', sortOrder: 40 },
+  { code: 'AE', name: 'United Arab Emirates', sortOrder: 50 },
+  { code: 'IN', name: 'India', sortOrder: 60 },
+  { code: 'GB', name: 'United Kingdom', sortOrder: 70 },
+  { code: 'CA', name: 'Canada', sortOrder: 80 },
 ] as const;
 
 export const DEFAULT_STATES = [
@@ -12,6 +17,16 @@ export const DEFAULT_STATES = [
   { countryCode: 'SA', code: 'MKK', name: 'Makkah', sortOrder: 20 },
   { countryCode: 'PK', code: 'PB', name: 'Punjab', sortOrder: 10 },
   { countryCode: 'PK', code: 'SD', name: 'Sindh', sortOrder: 20 },
+  { countryCode: 'QA', code: 'DA', name: 'Doha', sortOrder: 10 },
+  { countryCode: 'QA', code: 'RA', name: 'Al Rayyan', sortOrder: 20 },
+  { countryCode: 'AE', code: 'DU', name: 'Dubai', sortOrder: 10 },
+  { countryCode: 'AE', code: 'AZ', name: 'Abu Dhabi', sortOrder: 20 },
+  { countryCode: 'IN', code: 'MH', name: 'Maharashtra', sortOrder: 10 },
+  { countryCode: 'IN', code: 'KA', name: 'Karnataka', sortOrder: 20 },
+  { countryCode: 'GB', code: 'ENG', name: 'England', sortOrder: 10 },
+  { countryCode: 'GB', code: 'SCT', name: 'Scotland', sortOrder: 20 },
+  { countryCode: 'CA', code: 'ON', name: 'Ontario', sortOrder: 10 },
+  { countryCode: 'CA', code: 'BC', name: 'British Columbia', sortOrder: 20 },
 ] as const;
 
 export const DEFAULT_CITIES = [
@@ -22,6 +37,16 @@ export const DEFAULT_CITIES = [
   { countryCode: 'SA', stateCode: 'MKK', name: 'Jeddah', sortOrder: 20 },
   { countryCode: 'PK', stateCode: 'PB', name: 'Lahore', sortOrder: 10 },
   { countryCode: 'PK', stateCode: 'SD', name: 'Karachi', sortOrder: 20 },
+  { countryCode: 'QA', stateCode: 'DA', name: 'Doha', sortOrder: 10 },
+  { countryCode: 'QA', stateCode: 'RA', name: 'Al Rayyan', sortOrder: 20 },
+  { countryCode: 'AE', stateCode: 'DU', name: 'Dubai', sortOrder: 10 },
+  { countryCode: 'AE', stateCode: 'AZ', name: 'Abu Dhabi', sortOrder: 20 },
+  { countryCode: 'IN', stateCode: 'MH', name: 'Mumbai', sortOrder: 10 },
+  { countryCode: 'IN', stateCode: 'KA', name: 'Bengaluru', sortOrder: 20 },
+  { countryCode: 'GB', stateCode: 'ENG', name: 'London', sortOrder: 10 },
+  { countryCode: 'GB', stateCode: 'SCT', name: 'Edinburgh', sortOrder: 20 },
+  { countryCode: 'CA', stateCode: 'ON', name: 'Toronto', sortOrder: 10 },
+  { countryCode: 'CA', stateCode: 'BC', name: 'Vancouver', sortOrder: 20 },
 ] as const;
 
 export const DEFAULT_DOCUMENT_TYPES = [

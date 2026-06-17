@@ -65,6 +65,7 @@ Release command before start:
 ```bash
 npm --workspace api run prisma:migrate:deploy
 npm --workspace api run seed:config
+npm --workspace api run seed:verify
 npm --workspace api run seed:admin
 ```
 
@@ -93,6 +94,7 @@ From repository root:
 ```bash
 npm run seed:admin
 npm run seed:config
+npm run seed:verify
 npm run seed:demo
 npm run seed:all
 npm run seed:demo:reset
@@ -102,7 +104,8 @@ npm run seed:demo:reseed
 Seed behavior:
 
 - `seed:admin`: upserts only the Admin App `PlatformUser` super admin.
-- `seed:config`: idempotently bootstraps production-safe RBAC, notifications, lookups, leave types, and customization metadata.
+- `seed:config`: idempotently bootstraps production-safe RBAC, notifications, global reference data, geography, tenant workforce master data, leave types, and customization metadata. It fails loudly if required reference data is missing after the run.
+- `seed:verify`: validates required reference data without writing changes. Run this against Neon after deployment when diagnosing blank lookup dropdowns.
 - `seed:demo`: creates or updates one explicitly tagged disposable demo tenant.
 - `seed:all`: runs admin, config, then demo.
 - `seed:demo:reset`: deletes only the tagged demo tenant and seed-owned customer account.

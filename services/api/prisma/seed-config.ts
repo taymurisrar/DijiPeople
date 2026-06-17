@@ -7,6 +7,7 @@ import {
   NotificationDisplayMode,
   NotificationRecipientResolverType,
   Prisma,
+  WorkWeekday,
   type PrismaClient,
   type CustomizationFieldDataType,
   type CustomizationSolutionComponentType,
@@ -22,6 +23,14 @@ import {
   SYSTEM_CUSTOMIZATION_TABLE_KEYS,
   SYSTEM_CUSTOMIZATION_TABLES,
 } from '../src/modules/customization/customization.registry';
+import {
+  DEFAULT_CITIES,
+  DEFAULT_COUNTRIES,
+  DEFAULT_DOCUMENT_CATEGORIES,
+  DEFAULT_DOCUMENT_TYPES,
+  DEFAULT_RELATION_TYPES,
+  DEFAULT_STATES,
+} from '../src/modules/lookups/lookups.catalog';
 
 loadEnv({ path: resolve(__dirname, '../.env') });
 loadEnv();
@@ -39,6 +48,27 @@ const DEFAULT_LEAVE_TYPES = [
   { name: 'Sick Leave', code: 'SICK', category: 'PAID', isPaid: true },
   { name: 'Casual Leave', code: 'CASUAL', category: 'PAID', isPaid: true },
   { name: 'Unpaid Leave', code: 'UNPAID', category: 'UNPAID', isPaid: false },
+] as const;
+
+const DEFAULT_DEPARTMENTS = [
+  { code: 'HR', name: 'Human Resources' },
+  { code: 'OPS', name: 'Operations' },
+  { code: 'FIN', name: 'Finance' },
+  { code: 'IT', name: 'Information Technology' },
+] as const;
+
+const DEFAULT_DESIGNATIONS = [
+  { name: 'Chief Executive Officer', level: 'Executive' },
+  { name: 'HR Manager', level: 'Manager' },
+  { name: 'Line Manager', level: 'Manager' },
+  { name: 'Employee', level: 'Professional' },
+] as const;
+
+const DEFAULT_EMPLOYEE_LEVELS = [
+  { code: 'EXEC', name: 'Executive', rank: 10 },
+  { code: 'MGR', name: 'Manager', rank: 20 },
+  { code: 'PRO', name: 'Professional', rank: 30 },
+  { code: 'ASSOC', name: 'Associate', rank: 40 },
 ] as const;
 
 type AuthEventCode = (typeof AUTH_EVENT_CODES)[number];
@@ -412,12 +442,18 @@ export async function runSeedConfig() {
 
   await seedNotificationConfig(prisma);
   await seedSystemEmailTemplates(prisma);
+  const referenceDataCount = await seedCoreReferenceData(prisma);
   const permissionBootstrapService = new PermissionBootstrapService(
     prisma as never,
   );
+  let workforceReferenceCount = 0;
   for (const tenant of tenants) {
     await permissionBootstrapService.bootstrapTenantRbac(tenant.id);
     await seedProjectRoles(prisma, tenant.id);
+    workforceReferenceCount += await seedTenantWorkforceReferenceData(
+      prisma,
+      tenant,
+    );
   }
 
   if (tenants.length === 0) {
@@ -441,6 +477,12 @@ export async function runSeedConfig() {
   const leaveTypeCount = await seedTenantLeaveTypes(prisma, tenants);
   const metadataCount = await seedTenantDefaultSolutions(prisma, tenants);
 
+  await verifyRequiredSeedData(prisma, tenants);
+
+  console.log(`Core reference data created/updated: ${referenceDataCount}`);
+  console.log(
+    `Tenant workforce reference data created/updated: ${workforceReferenceCount}`,
+  );
   console.log(`Email templates created/updated: ${templateCount}`);
   console.log(`Notification preferences created/updated: ${preferenceCount}`);
   console.log(`Notification settings created/updated: ${settingCount}`);
@@ -495,7 +537,304 @@ async function seedSystemEmailTemplates(client: PrismaClient) {
   }
 }
 
-async function seedProjectRoles(client: PrismaClient, tenantId: string) {
+export async function seedCoreReferenceData(client: PrismaClient) {
+  let count = 0;
+
+  for (const [index, documentType] of DEFAULT_DOCUMENT_TYPES.entries()) {
+    await upsertGlobalDocumentType(client, {
+      ...documentType,
+      sortOrder: index * 10,
+    });
+    count += 1;
+  }
+
+  for (const [index, category] of DEFAULT_DOCUMENT_CATEGORIES.entries()) {
+    await upsertGlobalDocumentCategory(client, {
+      ...category,
+      sortOrder: index * 10,
+    });
+    count += 1;
+  }
+
+  for (const [index, relationType] of DEFAULT_RELATION_TYPES.entries()) {
+    await upsertGlobalRelationType(client, {
+      ...relationType,
+      sortOrder: index * 10,
+    });
+    count += 1;
+  }
+
+  for (const country of DEFAULT_COUNTRIES) {
+    await client.country.upsert({
+      where: { code: country.code },
+      create: country,
+      update: {
+        name: country.name,
+        sortOrder: country.sortOrder,
+        isActive: true,
+      },
+    });
+    count += 1;
+  }
+
+  const countries = await client.country.findMany({
+    where: { code: { in: DEFAULT_COUNTRIES.map((country) => country.code) } },
+    select: { id: true, code: true },
+  });
+  const countryIdByCode = new Map(
+    countries.map((country) => [country.code, country.id]),
+  );
+
+  for (const state of DEFAULT_STATES) {
+    const countryId = countryIdByCode.get(state.countryCode);
+    if (!countryId) {
+      throw new Error(
+        `Cannot seed state ${state.code}; country ${state.countryCode} is missing.`,
+      );
+    }
+
+    await client.stateProvince.upsert({
+      where: {
+        countryId_code: {
+          countryId,
+          code: state.code,
+        },
+      },
+      create: {
+        countryId,
+        code: state.code,
+        name: state.name,
+        sortOrder: state.sortOrder,
+      },
+      update: {
+        name: state.name,
+        sortOrder: state.sortOrder,
+        isActive: true,
+      },
+    });
+    count += 1;
+  }
+
+  const states = await client.stateProvince.findMany({
+    where: {
+      countryId: { in: [...countryIdByCode.values()] },
+    },
+    select: {
+      id: true,
+      code: true,
+      country: { select: { code: true } },
+      countryId: true,
+    },
+  });
+  const stateByCountryAndCode = new Map(
+    states.map((state) => [
+      `${state.country.code}:${state.code}`,
+      { id: state.id, countryId: state.countryId },
+    ]),
+  );
+
+  for (const city of DEFAULT_CITIES) {
+    const state = stateByCountryAndCode.get(
+      `${city.countryCode}:${city.stateCode}`,
+    );
+    if (!state) {
+      throw new Error(
+        `Cannot seed city ${city.name}; state ${city.countryCode}/${city.stateCode} is missing.`,
+      );
+    }
+
+    await client.city.upsert({
+      where: {
+        countryId_stateProvinceId_name: {
+          countryId: state.countryId,
+          stateProvinceId: state.id,
+          name: city.name,
+        },
+      },
+      create: {
+        countryId: state.countryId,
+        stateProvinceId: state.id,
+        name: city.name,
+        sortOrder: city.sortOrder,
+      },
+      update: {
+        sortOrder: city.sortOrder,
+        isActive: true,
+      },
+    });
+    count += 1;
+  }
+
+  await dedupeGlobalDocumentTypes(client);
+  await dedupeGlobalDocumentCategories(client);
+  await dedupeGlobalRelationTypes(client);
+
+  return count;
+}
+
+async function upsertGlobalDocumentType(
+  client: PrismaClient,
+  documentType: { key: string; name: string; sortOrder: number },
+) {
+  const existing = await client.documentType.findFirst({
+    where: { tenantId: null, key: documentType.key },
+    select: { id: true },
+  });
+
+  if (existing) {
+    await client.documentType.update({
+      where: { id: existing.id },
+      data: {
+        name: documentType.name,
+        sortOrder: documentType.sortOrder,
+        isActive: true,
+      },
+    });
+    return;
+  }
+
+  await client.documentType.create({
+    data: {
+      tenantId: null,
+      key: documentType.key,
+      name: documentType.name,
+      sortOrder: documentType.sortOrder,
+    },
+  });
+}
+
+async function upsertGlobalDocumentCategory(
+  client: PrismaClient,
+  category: { code: string; name: string; sortOrder: number },
+) {
+  const existing = await client.documentCategory.findFirst({
+    where: { tenantId: null, code: category.code },
+    select: { id: true },
+  });
+
+  if (existing) {
+    await client.documentCategory.update({
+      where: { id: existing.id },
+      data: {
+        name: category.name,
+        sortOrder: category.sortOrder,
+        isActive: true,
+      },
+    });
+    return;
+  }
+
+  await client.documentCategory.create({
+    data: {
+      tenantId: null,
+      code: category.code,
+      name: category.name,
+      sortOrder: category.sortOrder,
+    },
+  });
+}
+
+async function upsertGlobalRelationType(
+  client: PrismaClient,
+  relationType: { key: string; name: string; sortOrder: number },
+) {
+  const existing = await client.relationType.findFirst({
+    where: { tenantId: null, key: relationType.key },
+    select: { id: true },
+  });
+
+  if (existing) {
+    await client.relationType.update({
+      where: { id: existing.id },
+      data: {
+        name: relationType.name,
+        sortOrder: relationType.sortOrder,
+        isActive: true,
+      },
+    });
+    return;
+  }
+
+  await client.relationType.create({
+    data: {
+      tenantId: null,
+      key: relationType.key,
+      name: relationType.name,
+      sortOrder: relationType.sortOrder,
+    },
+  });
+}
+
+async function dedupeGlobalDocumentTypes(client: PrismaClient) {
+  for (const documentType of DEFAULT_DOCUMENT_TYPES) {
+    const rows = await client.documentType.findMany({
+      where: { tenantId: null, key: documentType.key },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
+      select: { id: true },
+    });
+    const [canonical, ...duplicates] = rows;
+    if (!canonical || duplicates.length === 0) {
+      continue;
+    }
+
+    const duplicateIds = duplicates.map((row) => row.id);
+    await client.document.updateMany({
+      where: { documentTypeId: { in: duplicateIds } },
+      data: { documentTypeId: canonical.id },
+    });
+    await client.documentType.deleteMany({
+      where: { id: { in: duplicateIds }, tenantId: null },
+    });
+  }
+}
+
+async function dedupeGlobalDocumentCategories(client: PrismaClient) {
+  for (const category of DEFAULT_DOCUMENT_CATEGORIES) {
+    const rows = await client.documentCategory.findMany({
+      where: { tenantId: null, code: category.code },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
+      select: { id: true },
+    });
+    const [canonical, ...duplicates] = rows;
+    if (!canonical || duplicates.length === 0) {
+      continue;
+    }
+
+    const duplicateIds = duplicates.map((row) => row.id);
+    await client.document.updateMany({
+      where: { documentCategoryId: { in: duplicateIds } },
+      data: { documentCategoryId: canonical.id },
+    });
+    await client.documentCategory.deleteMany({
+      where: { id: { in: duplicateIds }, tenantId: null },
+    });
+  }
+}
+
+async function dedupeGlobalRelationTypes(client: PrismaClient) {
+  for (const relationType of DEFAULT_RELATION_TYPES) {
+    const rows = await client.relationType.findMany({
+      where: { tenantId: null, key: relationType.key },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
+      select: { id: true },
+    });
+    const [canonical, ...duplicates] = rows;
+    if (!canonical || duplicates.length === 0) {
+      continue;
+    }
+
+    const duplicateIds = duplicates.map((row) => row.id);
+    await client.employee.updateMany({
+      where: { emergencyContactRelationTypeId: { in: duplicateIds } },
+      data: { emergencyContactRelationTypeId: canonical.id },
+    });
+    await client.relationType.deleteMany({
+      where: { id: { in: duplicateIds }, tenantId: null },
+    });
+  }
+}
+
+export async function seedProjectRoles(client: PrismaClient, tenantId: string) {
   const names = [
     'Developer',
     'QA',
@@ -513,6 +852,259 @@ async function seedProjectRoles(client: PrismaClient, tenantId: string) {
       update: { name, sortOrder: index + 1, isActive: true },
     });
   }
+}
+
+export async function seedTenantWorkforceReferenceData(
+  client: PrismaClient,
+  tenant: TenantSeedTarget,
+) {
+  let count = 0;
+
+  for (const department of DEFAULT_DEPARTMENTS) {
+    await client.department.upsert({
+      where: {
+        tenantId_code: { tenantId: tenant.id, code: department.code },
+      },
+      create: {
+        tenantId: tenant.id,
+        code: department.code,
+        name: department.name,
+      },
+      update: {
+        name: department.name,
+        isActive: true,
+      },
+    });
+    count += 1;
+  }
+
+  for (const designation of DEFAULT_DESIGNATIONS) {
+    await client.designation.upsert({
+      where: {
+        tenantId_name: { tenantId: tenant.id, name: designation.name },
+      },
+      create: {
+        tenantId: tenant.id,
+        name: designation.name,
+        level: designation.level,
+      },
+      update: {
+        level: designation.level,
+        isActive: true,
+      },
+    });
+    count += 1;
+  }
+
+  for (const level of DEFAULT_EMPLOYEE_LEVELS) {
+    await client.employeeLevel.upsert({
+      where: {
+        tenantId_code: { tenantId: tenant.id, code: level.code },
+      },
+      create: {
+        tenantId: tenant.id,
+        code: level.code,
+        name: level.name,
+        rank: level.rank,
+      },
+      update: {
+        name: level.name,
+        rank: level.rank,
+        isActive: true,
+      },
+    });
+    count += 1;
+  }
+
+  const defaultCalendar = await client.holidayCalendar.upsert({
+    where: {
+      tenantId_code: { tenantId: tenant.id, code: 'DEFAULT_CALENDAR' },
+    },
+    create: {
+      tenantId: tenant.id,
+      name: 'Default Holiday Calendar',
+      code: 'DEFAULT_CALENDAR',
+      timezone: 'Asia/Riyadh',
+      countryCode: 'SA',
+      weekendDays: [WorkWeekday.FRIDAY, WorkWeekday.SATURDAY],
+      isDefault: true,
+      status: 'ACTIVE',
+    },
+    update: {
+      name: 'Default Holiday Calendar',
+      timezone: 'Asia/Riyadh',
+      countryCode: 'SA',
+      weekendDays: [WorkWeekday.FRIDAY, WorkWeekday.SATURDAY],
+      isDefault: true,
+      status: 'ACTIVE',
+    },
+  });
+  count += 1;
+
+  const defaultSchedule = await client.workSchedule.upsert({
+    where: {
+      tenantId_code: { tenantId: tenant.id, code: 'STANDARD_WEEK' },
+    },
+    create: {
+      tenantId: tenant.id,
+      holidayCalendarId: defaultCalendar.id,
+      name: 'Standard Sunday to Thursday',
+      code: 'STANDARD_WEEK',
+      timezone: 'Asia/Riyadh',
+      workWeekModel: 'FIVE_DAY',
+      weeklyWorkDays: [
+        WorkWeekday.SUNDAY,
+        WorkWeekday.MONDAY,
+        WorkWeekday.TUESDAY,
+        WorkWeekday.WEDNESDAY,
+        WorkWeekday.THURSDAY,
+      ],
+      standardStartTime: '09:00',
+      standardEndTime: '17:00',
+      standardHoursPerWeek: new Prisma.Decimal(40),
+      isDefault: true,
+      isActive: true,
+      status: 'ACTIVE',
+    },
+    update: {
+      holidayCalendarId: defaultCalendar.id,
+      timezone: 'Asia/Riyadh',
+      weeklyWorkDays: [
+        WorkWeekday.SUNDAY,
+        WorkWeekday.MONDAY,
+        WorkWeekday.TUESDAY,
+        WorkWeekday.WEDNESDAY,
+        WorkWeekday.THURSDAY,
+      ],
+      standardStartTime: '09:00',
+      standardEndTime: '17:00',
+      standardHoursPerWeek: new Prisma.Decimal(40),
+      isDefault: true,
+      isActive: true,
+      status: 'ACTIVE',
+    },
+  });
+  count += 1;
+
+  const dayShift = await client.shiftTemplate.upsert({
+    where: {
+      tenantId_code: { tenantId: tenant.id, code: 'DAY' },
+    },
+    create: {
+      tenantId: tenant.id,
+      workScheduleId: defaultSchedule.id,
+      name: 'Day Shift',
+      code: 'DAY',
+      timezone: 'Asia/Riyadh',
+      startTime: '09:00',
+      endTime: '17:00',
+      breakMinutes: 60,
+      expectedHours: new Prisma.Decimal(8),
+      lateGraceMinutes: 10,
+      earlyExitGraceMinutes: 10,
+      isNightShift: false,
+      isActive: true,
+      status: 'ACTIVE',
+    },
+    update: {
+      workScheduleId: defaultSchedule.id,
+      timezone: 'Asia/Riyadh',
+      startTime: '09:00',
+      endTime: '17:00',
+      breakMinutes: 60,
+      expectedHours: new Prisma.Decimal(8),
+      lateGraceMinutes: 10,
+      earlyExitGraceMinutes: 10,
+      isNightShift: false,
+      isActive: true,
+      status: 'ACTIVE',
+    },
+  });
+  count += 1;
+
+  for (const [index, dayOfWeek] of [
+    WorkWeekday.SUNDAY,
+    WorkWeekday.MONDAY,
+    WorkWeekday.TUESDAY,
+    WorkWeekday.WEDNESDAY,
+    WorkWeekday.THURSDAY,
+  ].entries()) {
+    const existingDay = await client.workScheduleDay.findFirst({
+      where: {
+        workScheduleId: defaultSchedule.id,
+        dayOfWeek,
+        rotationWeek: null,
+      },
+      select: { id: true },
+    });
+    const data = {
+      shiftTemplateId: dayShift.id,
+      isWorkingDay: true,
+      startTime: '09:00',
+      endTime: '17:00',
+      breakMinutes: 60,
+      expectedHours: new Prisma.Decimal(8),
+      sortOrder: index * 10,
+    };
+
+    if (existingDay) {
+      await client.workScheduleDay.update({
+        where: { id: existingDay.id },
+        data,
+      });
+    } else {
+      await client.workScheduleDay.create({
+        data: {
+          tenantId: tenant.id,
+          workScheduleId: defaultSchedule.id,
+          dayOfWeek,
+          ...data,
+        },
+      });
+    }
+    count += 1;
+  }
+
+  await client.location.upsert({
+    where: { tenantId_code: { tenantId: tenant.id, code: 'HQ' } },
+    create: {
+      tenantId: tenant.id,
+      code: 'HQ',
+      name: 'Head Office',
+      addressLine1: 'King Fahd Road',
+      city: 'Riyadh',
+      state: 'Riyadh',
+      country: 'Saudi Arabia',
+      timezone: 'Asia/Riyadh',
+      latitude: 24.7136,
+      longitude: 46.6753,
+      allowedRadiusMeters: 250,
+      defaultWorkScheduleId: defaultSchedule.id,
+      holidayCalendarId: defaultCalendar.id,
+    },
+    update: {
+      name: 'Head Office',
+      timezone: 'Asia/Riyadh',
+      latitude: 24.7136,
+      longitude: 46.6753,
+      allowedRadiusMeters: 250,
+      defaultWorkScheduleId: defaultSchedule.id,
+      holidayCalendarId: defaultCalendar.id,
+      isActive: true,
+    },
+  });
+  count += 1;
+
+  await client.department.updateMany({
+    where: {
+      tenantId: tenant.id,
+      code: { in: DEFAULT_DEPARTMENTS.map((department) => department.code) },
+      defaultWorkScheduleId: null,
+    },
+    data: { defaultWorkScheduleId: defaultSchedule.id },
+  });
+
+  return count;
 }
 
 export async function seedTenantDefaultSolutions(
@@ -954,6 +1546,204 @@ export async function seedTenantLeaveTypes(
   }
 
   return count;
+}
+
+export async function verifyRequiredSeedData(
+  client: PrismaClient,
+  tenants: TenantSeedTarget[],
+) {
+  const failures: string[] = [];
+
+  const [
+    countryCount,
+    stateCount,
+    cityCount,
+    relationTypeCount,
+    documentTypeCount,
+    documentCategoryCount,
+  ] = await Promise.all([
+    client.country.count({
+      where: {
+        isActive: true,
+        code: { in: DEFAULT_COUNTRIES.map((country) => country.code) },
+      },
+    }),
+    client.stateProvince.count({
+      where: {
+        isActive: true,
+        country: {
+          code: { in: DEFAULT_COUNTRIES.map((country) => country.code) },
+        },
+      },
+    }),
+    client.city.count({
+      where: {
+        isActive: true,
+        country: {
+          code: { in: DEFAULT_COUNTRIES.map((country) => country.code) },
+        },
+      },
+    }),
+    client.relationType.count({
+      where: {
+        tenantId: null,
+        isActive: true,
+        key: { in: DEFAULT_RELATION_TYPES.map((item) => item.key) },
+      },
+    }),
+    client.documentType.count({
+      where: {
+        tenantId: null,
+        isActive: true,
+        key: { in: DEFAULT_DOCUMENT_TYPES.map((item) => item.key) },
+      },
+    }),
+    client.documentCategory.count({
+      where: {
+        tenantId: null,
+        isActive: true,
+        code: { in: DEFAULT_DOCUMENT_CATEGORIES.map((item) => item.code) },
+      },
+    }),
+  ]);
+
+  if (countryCount < DEFAULT_COUNTRIES.length) {
+    failures.push(
+      `Country reference data incomplete (${countryCount}/${DEFAULT_COUNTRIES.length}).`,
+    );
+  }
+  if (stateCount < DEFAULT_STATES.length) {
+    failures.push(
+      `State / Province reference data incomplete (${stateCount}/${DEFAULT_STATES.length}).`,
+    );
+  }
+  if (cityCount < DEFAULT_CITIES.length) {
+    failures.push(
+      `City reference data incomplete (${cityCount}/${DEFAULT_CITIES.length}).`,
+    );
+  }
+  if (relationTypeCount < DEFAULT_RELATION_TYPES.length) {
+    failures.push(
+      `Emergency Contact Relation Type data incomplete (${relationTypeCount}/${DEFAULT_RELATION_TYPES.length}).`,
+    );
+  }
+  if (documentTypeCount < DEFAULT_DOCUMENT_TYPES.length) {
+    failures.push(
+      `Employee document type data incomplete (${documentTypeCount}/${DEFAULT_DOCUMENT_TYPES.length}).`,
+    );
+  }
+  if (documentCategoryCount < DEFAULT_DOCUMENT_CATEGORIES.length) {
+    failures.push(
+      `Employee document category data incomplete (${documentCategoryCount}/${DEFAULT_DOCUMENT_CATEGORIES.length}).`,
+    );
+  }
+
+  for (const tenant of tenants) {
+    const [
+      leaveTypeCount,
+      departmentCount,
+      designationCount,
+      employeeLevelCount,
+      locationCount,
+      workScheduleCount,
+      projectRoleCount,
+    ] = await Promise.all([
+      client.leaveType.count({
+        where: {
+          tenantId: tenant.id,
+          isActive: true,
+          code: { in: DEFAULT_LEAVE_TYPES.map((item) => item.code) },
+        },
+      }),
+      client.department.count({
+        where: {
+          tenantId: tenant.id,
+          isActive: true,
+          code: { in: DEFAULT_DEPARTMENTS.map((item) => item.code) },
+        },
+      }),
+      client.designation.count({
+        where: {
+          tenantId: tenant.id,
+          isActive: true,
+          name: { in: DEFAULT_DESIGNATIONS.map((item) => item.name) },
+        },
+      }),
+      client.employeeLevel.count({
+        where: {
+          tenantId: tenant.id,
+          isActive: true,
+          code: { in: DEFAULT_EMPLOYEE_LEVELS.map((item) => item.code) },
+        },
+      }),
+      client.location.count({
+        where: {
+          tenantId: tenant.id,
+          isActive: true,
+          code: 'HQ',
+        },
+      }),
+      client.workSchedule.count({
+        where: {
+          tenantId: tenant.id,
+          isActive: true,
+          code: 'STANDARD_WEEK',
+        },
+      }),
+      client.projectRole.count({
+        where: {
+          tenantId: tenant.id,
+          code: {
+            in: ['DEVELOPER', 'QA', 'BA', 'PM', 'CONSULTANT', 'DESIGNER'],
+          },
+          isActive: true,
+        },
+      }),
+    ]);
+
+    if (leaveTypeCount < DEFAULT_LEAVE_TYPES.length) {
+      failures.push(
+        `${tenant.name}: leave type reference data incomplete (${leaveTypeCount}/${DEFAULT_LEAVE_TYPES.length}).`,
+      );
+    }
+    if (departmentCount < DEFAULT_DEPARTMENTS.length) {
+      failures.push(
+        `${tenant.name}: department lookup data incomplete (${departmentCount}/${DEFAULT_DEPARTMENTS.length}).`,
+      );
+    }
+    if (designationCount < DEFAULT_DESIGNATIONS.length) {
+      failures.push(
+        `${tenant.name}: designation lookup data incomplete (${designationCount}/${DEFAULT_DESIGNATIONS.length}).`,
+      );
+    }
+    if (employeeLevelCount < DEFAULT_EMPLOYEE_LEVELS.length) {
+      failures.push(
+        `${tenant.name}: employee level lookup data incomplete (${employeeLevelCount}/${DEFAULT_EMPLOYEE_LEVELS.length}).`,
+      );
+    }
+    if (locationCount < 1) {
+      failures.push(`${tenant.name}: work site lookup data is missing.`);
+    }
+    if (workScheduleCount < 1) {
+      failures.push(`${tenant.name}: default work schedule is missing.`);
+    }
+    if (projectRoleCount < 6) {
+      failures.push(
+        `${tenant.name}: recruitment/project role lookup data incomplete (${projectRoleCount}/6).`,
+      );
+    }
+  }
+
+  if (failures.length > 0) {
+    throw new Error(
+      [
+        'Seed verification failed. Reference data missing. Please run seed-config and review the failures below:',
+        ...failures.map((failure) => `- ${failure}`),
+      ].join('\n'),
+    );
+  }
+
+  console.log('Seed reference data verification passed.');
 }
 
 export async function seedTenantEmailTemplates(
