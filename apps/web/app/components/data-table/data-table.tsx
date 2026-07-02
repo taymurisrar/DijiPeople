@@ -45,6 +45,7 @@ export function DataTable<T>({
   enableSelection = false,
   selectedRowKeys = [],
   onSelectedRowKeysChange,
+  onRowClick,
 }: DataTableProps<T>) {
   const pathname = usePathname();
   const router = useRouter();
@@ -58,7 +59,12 @@ export function DataTable<T>({
     useState<DataTableFilterState[]>(initialFilters);
   const [search, setSearch] = useState("");
   const [clientPage, setClientPage] = useState(pagination?.page ?? 1);
+  const [clientPageSize, setClientPageSize] = useState(
+    pagination?.pageSize ?? 10,
+  );
 
+  /* DataTable synchronizes controlled inputs and persisted external state into its local interaction model. */
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setSort(initialSort);
   }, [initialSort]);
@@ -126,13 +132,18 @@ export function DataTable<T>({
 
   useEffect(() => {
     setClientPage(pagination?.page ?? 1);
+    if (pagination?.pageSize) setClientPageSize(pagination.pageSize);
   }, [pagination?.page, pagination?.pageSize]);
 
   useEffect(() => {
     setClientPage(1);
-  }, [search, filters, sort]);
+  }, [search, filters, sort, clientPageSize]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
-  const effectivePageSize = pagination?.pageSize ?? processedRows.length;
+  const effectivePageSize =
+    pagination && mode === "client"
+      ? clientPageSize
+      : (pagination?.pageSize ?? processedRows.length);
   const totalProcessedRows =
     mode === "server"
       ? (pagination?.total ?? pagination?.totalItems ?? rows.length)
@@ -183,6 +194,10 @@ export function DataTable<T>({
           rangeStart + Math.max(visibleRows.length, 1) - 1,
           totalRecords,
         );
+  const pageSizeOptions = normalizePageSizeOptions(
+    pagination?.pageSizeOptions,
+    effectivePageSize,
+  );
 
   function toggleRowSelection(rowKey: string) {
     if (!onSelectedRowKeysChange) {
@@ -468,13 +483,18 @@ export function DataTable<T>({
                 const isSelected = selectedKeySet.has(rowKey);
 
                 return (
-                  <tr key={rowKey} className={rowClassName}>
+                  <tr
+                    key={rowKey}
+                    className={`${rowClassName} ${onRowClick ? "cursor-pointer" : ""}`}
+                    onClick={() => onRowClick?.(row)}
+                  >
                     {enableSelection ? (
                       <td className="w-10 px-3 py-2 align-top">
                         <input
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => toggleRowSelection(rowKey)}
+                          onClick={(event) => event.stopPropagation()}
                           className="h-4 w-4 rounded border-border"
                           aria-label="Select record"
                         />
@@ -518,7 +538,28 @@ export function DataTable<T>({
             Page {currentPage} of {totalPages}
           </span>
           {mode === "client" ? (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="flex items-center gap-2 text-xs font-medium text-muted">
+                Rows per page
+                <select
+                  className="h-8 rounded-lg border border-border bg-white px-2 text-xs text-foreground outline-none transition focus:border-accent"
+                  onChange={(event) =>
+                    setClientPageSize(
+                      Math.max(
+                        1,
+                        Number(event.target.value) || effectivePageSize,
+                      ),
+                    )
+                  }
+                  value={effectivePageSize}
+                >
+                  {pageSizeOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <button
                 className="rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={currentPage <= 1}
@@ -878,4 +919,17 @@ function getOperators(
     { value: "equals", label: "Equals" },
     { value: "startsWith", label: "Starts with" },
   ] satisfies Array<{ value: DataTableFilterOperator; label: string }>;
+}
+
+function normalizePageSizeOptions(
+  options: readonly number[] | undefined,
+  currentPageSize: number,
+) {
+  return Array.from(
+    new Set(
+      [...(options?.length ? options : [10, 25, 50, 100]), currentPageSize]
+        .map((option) => Math.floor(option))
+        .filter((option) => Number.isFinite(option) && option > 0),
+    ),
+  ).sort((left, right) => left - right);
 }

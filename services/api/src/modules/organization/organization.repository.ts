@@ -179,6 +179,17 @@ export class OrganizationRepository {
         'level',
         'description',
       ]),
+      include: {
+        employeeLevel: {
+          select: {
+            id: true,
+            code: true,
+            name: true,
+            rank: true,
+            isActive: true,
+          },
+        },
+      },
       orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
     });
   }
@@ -188,7 +199,20 @@ export class OrganizationRepository {
     id: string,
     db: PrismaDb = this.prisma,
   ) {
-    return db.designation.findFirst({ where: { tenantId, id } });
+    return db.designation.findFirst({
+      where: { tenantId, id },
+      include: {
+        employeeLevel: {
+          select: {
+            id: true,
+            code: true,
+            name: true,
+            rank: true,
+            isActive: true,
+          },
+        },
+      },
+    });
   }
 
   createDesignation(

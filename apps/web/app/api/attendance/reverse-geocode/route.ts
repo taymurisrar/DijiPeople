@@ -46,13 +46,23 @@ function buildAddressText(data: {
   display_name?: string;
   address?: Record<string, string | undefined>;
 }) {
+  if (data.display_name?.trim()) {
+    return data.display_name.trim();
+  }
+
   const address = data.address ?? {};
   const parts = [
+    address.house_number,
+    address.road,
     address.suburb,
     address.neighbourhood,
     address.city_district,
+    address.town,
+    address.village,
     address.city,
+    address.county,
     address.state,
+    address.postcode,
     address.country,
   ].filter(Boolean);
 
@@ -60,5 +70,5 @@ function buildAddressText(data: {
     return Array.from(new Set(parts)).join(", ");
   }
 
-  return data.display_name ?? null;
+  return null;
 }

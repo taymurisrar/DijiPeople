@@ -1,8 +1,18 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { ACCESS_TOKEN_COOKIE, AUTH_APP_CLIENT_ID } from "@/lib/auth-config";
+import {
+  ACCESS_TOKEN_COOKIE,
+  AUTH_APP_CLIENT_ID,
+  REFRESH_TOKEN_COOKIE,
+  SESSION_COOKIE,
+} from "@/lib/auth-config";
 import { getApiBaseUrl } from "@/lib/auth";
 import { normalizeApiError } from "@/lib/api-error";
+import {
+  ACCESS_TOKEN_MAX_AGE_SECONDS,
+  getAuthCookieOptions,
+  REFRESH_TOKEN_MAX_AGE_SECONDS,
+} from "@/lib/auth-cookies";
 
 type JsonPrimitive = string | number | boolean | null;
 
@@ -27,6 +37,12 @@ const JSON_CONTENT_TYPES = [
   "application/problem+json",
   "application/vnd.api+json",
 ];
+
+type RefreshedAuthTokens = {
+  accessToken: string;
+  refreshToken: string;
+  sessionId?: string;
+};
 
 export class ApiRequestError extends Error {
   status: number;
@@ -80,28 +96,27 @@ export async function apiRequest(
   validateRequestPath(path);
 
   const cookieStore = await cookies();
-  const accessToken = cookieStore.get(ACCESS_TOKEN_COOKIE)?.value;
+  let accessToken = cookieStore.get(ACCESS_TOKEN_COOKIE)?.value;
+  const refreshToken = cookieStore.get(REFRESH_TOKEN_COOKIE)?.value;
 
   const baseUrl = normalizeBaseUrl(getApiBaseUrl());
   const url = buildRequestUrl(baseUrl, path);
 
-  const headers = new Headers(init.headers);
   const method = (init.method ?? "GET").toUpperCase();
   const includeAuth = init.includeAuth !== false;
 
-  if (includeAuth && accessToken && !headers.has("Authorization")) {
-    headers.set("Authorization", `Bearer ${accessToken}`);
+  if (
+    includeAuth &&
+    !accessToken &&
+    refreshToken &&
+    shouldAttemptServerRefresh(path)
+  ) {
+    const refreshed = await refreshServerAuthTokens(baseUrl, refreshToken);
+    if (refreshed) {
+      accessToken = refreshed.accessToken;
+      await persistRefreshedAuthCookies(refreshed);
+    }
   }
-  if (!headers.has("X-DijiPeople-App")) {
-    headers.set("X-DijiPeople-App", AUTH_APP_CLIENT_ID);
-  }
-  if (!headers.has("X-Request-Id")) {
-    const requestId = createRequestId();
-    headers.set("X-Request-Id", requestId);
-    headers.set("X-Trace-Id", requestId);
-  }
-
-  applyContentTypeHeader(headers, init.body);
 
   const timeoutMs =
     typeof init.timeoutMs === "number" && init.timeoutMs > 0
@@ -110,15 +125,35 @@ export async function apiRequest(
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const headers = buildRequestHeaders(init, accessToken, includeAuth);
 
   try {
-    const response = await fetch(url, {
+    let response = await fetch(url, {
       ...init,
       method,
       headers,
       signal: mergeAbortSignals(init.signal, controller.signal),
       cache: init.cache ?? "no-store",
     });
+
+    if (
+      response.status === 401 &&
+      includeAuth &&
+      refreshToken &&
+      shouldAttemptServerRefresh(path)
+    ) {
+      const refreshed = await refreshServerAuthTokens(baseUrl, refreshToken);
+      if (refreshed) {
+        await persistRefreshedAuthCookies(refreshed);
+        response = await fetch(url, {
+          ...init,
+          method,
+          headers: buildRequestHeaders(init, refreshed.accessToken, true),
+          signal: mergeAbortSignals(init.signal, controller.signal),
+          cache: init.cache ?? "no-store",
+        });
+      }
+    }
 
     return response;
   } catch (error) {
@@ -147,6 +182,126 @@ export async function apiRequest(
   } finally {
     clearTimeout(timeoutId);
   }
+}
+
+function buildRequestHeaders(
+  init: ApiRequestOptions,
+  accessToken: string | undefined,
+  includeAuth: boolean,
+) {
+  const headers = new Headers(init.headers);
+
+  if (includeAuth && accessToken && !headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${accessToken}`);
+  }
+  if (!headers.has("X-DijiPeople-App")) {
+    headers.set("X-DijiPeople-App", AUTH_APP_CLIENT_ID);
+  }
+  if (!headers.has("X-Request-Id")) {
+    const requestId = createRequestId();
+    headers.set("X-Request-Id", requestId);
+    headers.set("X-Trace-Id", requestId);
+  }
+
+  applyContentTypeHeader(headers, init.body);
+
+  return headers;
+}
+
+async function refreshServerAuthTokens(
+  baseUrl: string,
+  refreshToken: string,
+): Promise<RefreshedAuthTokens | null> {
+  try {
+    const response = await fetch(`${baseUrl}/auth/refresh`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-DijiPeople-App": AUTH_APP_CLIENT_ID,
+        "X-Request-Id": createRequestId(),
+      },
+      body: JSON.stringify({ refreshToken }),
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = await response.json();
+    return readRefreshedAuthTokens(data);
+  } catch {
+    return null;
+  }
+}
+
+async function persistRefreshedAuthCookies(tokens: RefreshedAuthTokens) {
+  try {
+    const cookieStore = await cookies();
+
+    cookieStore.set(
+      ACCESS_TOKEN_COOKIE,
+      tokens.accessToken,
+      getAuthCookieOptions(ACCESS_TOKEN_MAX_AGE_SECONDS),
+    );
+    cookieStore.set(
+      REFRESH_TOKEN_COOKIE,
+      tokens.refreshToken,
+      getAuthCookieOptions(REFRESH_TOKEN_MAX_AGE_SECONDS),
+    );
+
+    if (tokens.sessionId) {
+      cookieStore.set(
+        SESSION_COOKIE,
+        tokens.sessionId,
+        getAuthCookieOptions(REFRESH_TOKEN_MAX_AGE_SECONDS),
+      );
+    }
+  } catch {
+    // Server Components cannot mutate cookies; route handlers can. In either
+    // case the current request can continue with the refreshed access token.
+  }
+}
+
+function readRefreshedAuthTokens(data: unknown): RefreshedAuthTokens | null {
+  if (!isJsonObject(data)) {
+    return null;
+  }
+
+  const tokens = data.tokens;
+  if (!isJsonObject(tokens)) {
+    return null;
+  }
+
+  if (
+    typeof tokens.accessToken !== "string" ||
+    typeof tokens.refreshToken !== "string"
+  ) {
+    return null;
+  }
+
+  return {
+    accessToken: tokens.accessToken,
+    refreshToken: tokens.refreshToken,
+    sessionId:
+      typeof tokens.sessionId === "string" ? tokens.sessionId : undefined,
+  };
+}
+
+function shouldAttemptServerRefresh(path: string) {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+
+  return ![
+    "/auth/login",
+    "/auth/logout",
+    "/auth/refresh",
+    "/auth/signup",
+    "/auth/activate-account",
+    "/auth/reset-password",
+  ].some(
+    (authPath) =>
+      normalizedPath === authPath || normalizedPath.startsWith(`${authPath}?`),
+  );
 }
 
 export async function apiRequestJson<T>(

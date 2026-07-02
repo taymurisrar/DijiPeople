@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import type { FieldValueMap } from "@/app/components/metadata/runtime-metadata-form-renderer";
 import { ModuleRecordPage } from "@/app/components/runtime";
 import type { CommandDefinition } from "@/lib/runtime/command-runtime.types";
 import type { FormMetadata } from "@/lib/runtime/metadata-runtime.types";
@@ -92,10 +93,69 @@ export function EmployeeRuntimeFormWrapper({
       moduleKey="employees"
       record={record}
       recordId={runtime.recordId}
+      deriveValuesOnChange={({ changedField, lookupOptions, nextValues }) =>
+        deriveEmployeeLevelFromDesignation({
+          changedFieldLogicalName: changedField.logicalName,
+          designationOptions: mergeLookupOptions(
+            lookupOptions.designationId,
+            resolvedLookupOptions.designationId ?? [],
+          ),
+          nextValues,
+        })
+      }
+      resolveFieldEditable={({ defaultEditable, field, values }) => {
+        if (field.logicalName !== "employeeLevelId") {
+          return defaultEditable;
+        }
+
+        return (
+          defaultEditable &&
+          !designationHasEmployeeLevel(
+            resolvedLookupOptions.designationId ?? [],
+            stringValue(values.designationId),
+          )
+        );
+      }}
       runtime={runtimeWithEmployeeCommands}
       tabsSlot={tabsSlot}
       title={titleByMode[mode]}
     />
+  );
+}
+
+function deriveEmployeeLevelFromDesignation({
+  changedFieldLogicalName,
+  designationOptions,
+  nextValues,
+}: {
+  readonly changedFieldLogicalName: string;
+  readonly designationOptions: readonly LookupOption[];
+  readonly nextValues: FieldValueMap;
+}) {
+  if (changedFieldLogicalName !== "designationId") {
+    return nextValues;
+  }
+
+  const designationId = stringValue(nextValues.designationId);
+  const employeeLevelId =
+    designationOptions.find((option) => option.id === designationId)
+      ?.employeeLevelId ?? "";
+
+  return {
+    ...nextValues,
+    employeeLevelId,
+  };
+}
+
+function designationHasEmployeeLevel(
+  designationOptions: readonly LookupOption[],
+  designationId: string,
+) {
+  if (!designationId) return false;
+
+  return Boolean(
+    designationOptions.find((option) => option.id === designationId)
+      ?.employeeLevelId,
   );
 }
 
@@ -262,7 +322,23 @@ function mergeLookupOptions(
   const merged: LookupOption[] = [];
 
   for (const option of [...(first ?? []), ...second]) {
-    if (seen.has(option.id)) continue;
+    if (seen.has(option.id)) {
+      const existingIndex = merged.findIndex(
+        (candidate) => candidate.id === option.id,
+      );
+      const existing = merged[existingIndex];
+      if (existing) {
+        merged[existingIndex] = {
+          ...option,
+          ...existing,
+          code: existing.code ?? option.code,
+          employeeLevelId: existing.employeeLevelId ?? option.employeeLevelId,
+          key: existing.key ?? option.key,
+          subtitle: existing.subtitle ?? option.subtitle,
+        };
+      }
+      continue;
+    }
     seen.add(option.id);
     merged.push(option);
   }

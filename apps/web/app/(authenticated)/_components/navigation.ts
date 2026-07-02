@@ -160,6 +160,14 @@ export function resolveVisibleDashboardNavItems(
       return [item];
     }
 
+    if (item.href === "/") {
+      const roles = input.roleKeys ?? [];
+      if (roles.includes(ROLE_KEYS.CEO)) return [{ ...item, href: "/executive/dashboard", label: "Executive Dashboard" }];
+      if (roles.includes(ROLE_KEYS.HR)) return [{ ...item, href: "/hr/dashboard", label: "HR Dashboard" }];
+      if (roles.includes(ROLE_KEYS.MANAGER) || input.isReportingManager) return [{ ...item, href: "/manager/dashboard", label: "Manager Dashboard" }];
+      if (input.isSelfService) return [{ ...item, href: "/me/dashboard", label: "My Dashboard" }];
+    }
+
     if (
       item.requiresBusinessUnitScope &&
       (input.businessUnitAccess?.accessibleBusinessUnitIds.length ?? 0) === 0

@@ -9,6 +9,17 @@ export const DEFAULT_COUNTRIES = [
   { code: 'CA', name: 'Canada', sortOrder: 80 },
 ] as const;
 
+export const CURRENCY_OPTIONS = [
+  { code: 'USD', name: 'US Dollar', symbol: '$', decimals: 2 },
+  { code: 'QAR', name: 'Qatari Riyal', symbol: 'QR', decimals: 2 },
+  { code: 'SAR', name: 'Saudi Riyal', symbol: 'SR', decimals: 2 },
+  { code: 'AED', name: 'UAE Dirham', symbol: 'AED', decimals: 2 },
+  { code: 'PKR', name: 'Pakistani Rupee', symbol: 'Rs', decimals: 2 },
+  { code: 'INR', name: 'Indian Rupee', symbol: 'Rs', decimals: 2 },
+  { code: 'GBP', name: 'Pound Sterling', symbol: 'GBP', decimals: 2 },
+  { code: 'EUR', name: 'Euro', symbol: 'EUR', decimals: 2 },
+] as const;
+
 export const DEFAULT_STATES = [
   { countryCode: 'US', code: 'CA', name: 'California', sortOrder: 10 },
   { countryCode: 'US', code: 'TX', name: 'Texas', sortOrder: 20 },

@@ -6,12 +6,19 @@ import {
 } from '@nestjs/common';
 import {
   PayslipEventType,
+  PayslipDeliveryStatus,
   PayslipStatus,
   PayrollRunEmployeeStatus,
+  NotificationChannel,
   Prisma,
 } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { NotificationOrchestratorService } from '../notifications/notification-orchestrator.service';
+import {
+  buildProfessionalInvoicePdf,
+  type InvoicePdfModel,
+} from '../super-admin/invoice-pdf.template';
 
 const payslipInclude = {
   employee: {
@@ -78,6 +85,7 @@ export class PayslipsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
+    private readonly notifications: NotificationOrchestratorService,
   ) {}
 
   async generatePayslipForRunEmployee(params: {
@@ -442,6 +450,267 @@ export class PayslipsService {
     return mapPayslip(payslip);
   }
 
+  async regeneratePayslip(params: {
+    tenantId: string;
+    payslipId: string;
+    actorUserId: string;
+  }) {
+    const payslip = await this.findPayslipOrThrow(
+      params.tenantId,
+      params.payslipId,
+    );
+    return this.generatePayslipForRunEmployee({
+      tenantId: params.tenantId,
+      payrollRunEmployeeId: payslip.payrollRunEmployeeId,
+      actorUserId: params.actorUserId,
+    });
+  }
+
+  async deliverPayslip(params: {
+    tenantId: string;
+    payslipId: string;
+    actorUserId: string;
+  }) {
+    const payslip = await this.findPayslipOrThrow(
+      params.tenantId,
+      params.payslipId,
+    );
+    if (payslip.status !== PayslipStatus.PUBLISHED) {
+      throw new BadRequestException(
+        'Only published payslips can be delivered.',
+      );
+    }
+    if (!payslip.employee.email) {
+      throw new BadRequestException('Employee email is not configured.');
+    }
+    const employeeUser = await this.prisma.employee.findFirst({
+      where: { tenantId: params.tenantId, id: payslip.employeeId },
+      select: { userId: true },
+    });
+    const attemptedAt = new Date();
+    try {
+      await this.notifications.dispatch({
+        tenantId: params.tenantId,
+        eventCode: 'PAYSLIP_AVAILABLE',
+        channels: [
+          NotificationChannel.EMAIL,
+          ...(employeeUser?.userId ? [NotificationChannel.IN_APP] : []),
+        ],
+        sourceModule: 'payroll',
+        correlationId: payslip.id,
+        requestedByUserId: params.actorUserId,
+        email: {
+          templateKey: 'PAYSLIP_AVAILABLE',
+          recipient: payslip.employee.email,
+          variables: {
+            tenantName: payslip.payrollRun.payrollPeriod.payrollCalendar.name,
+            recipientName:
+              `${payslip.employee.firstName} ${payslip.employee.lastName}`.trim(),
+            actionUrl: `/me/payslips/${payslip.id}`,
+            payslipNumber: payslip.payslipNumber,
+            payrollPeriod: payslip.payrollRun.payrollPeriod.name,
+          },
+          metadata: { payslipId: payslip.id },
+        },
+        ...(employeeUser?.userId
+          ? {
+              inApp: {
+                title: 'Your payslip is available',
+                body: `${payslip.payrollRun.payrollPeriod.name} payslip is ready.`,
+                targetUrl: `/me/payslips/${payslip.id}`,
+                recipientUserIds: [employeeUser.userId],
+                payload: { payslipId: payslip.id },
+              },
+            }
+          : {}),
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Payslip delivery failed.';
+      await this.prisma.$transaction([
+        this.prisma.payslip.update({
+          where: { id: payslip.id },
+          data: {
+            deliveryStatus: PayslipDeliveryStatus.FAILED,
+            deliveryAttempts: { increment: 1 },
+            lastDeliveryAttemptAt: attemptedAt,
+            deliveryError: message,
+          },
+        }),
+        this.prisma.payslipEventLog.create({
+          data: {
+            tenantId: params.tenantId,
+            payslipId: payslip.id,
+            eventType: PayslipEventType.DELIVERY_FAILED,
+            actorUserId: params.actorUserId,
+            message,
+          },
+        }),
+      ]);
+      await this.auditService.log({
+        tenantId: params.tenantId,
+        actorUserId: params.actorUserId,
+        action: 'PAYSLIP_DELIVERY_FAILED',
+        entityType: 'Payslip',
+        entityId: payslip.id,
+        afterSnapshot: { message },
+      });
+      throw error;
+    }
+    const delivered = await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.payslip.update({
+        where: { id: payslip.id },
+        data: {
+          deliveryStatus: PayslipDeliveryStatus.SENT,
+          deliveryAttempts: { increment: 1 },
+          lastDeliveryAttemptAt: attemptedAt,
+          deliveredAt: attemptedAt,
+          deliveryError: null,
+        },
+        include: payslipInclude,
+      });
+      await tx.payslipEventLog.create({
+        data: {
+          tenantId: params.tenantId,
+          payslipId: payslip.id,
+          eventType: PayslipEventType.DELIVERY_SENT,
+          actorUserId: params.actorUserId,
+          message:
+            payslip.deliveryAttempts > 0
+              ? 'Payslip resent to notification provider.'
+              : 'Payslip sent to notification provider.',
+        },
+      });
+      return updated;
+    });
+    await this.auditService.log({
+      tenantId: params.tenantId,
+      actorUserId: params.actorUserId,
+      action:
+        payslip.deliveryAttempts > 0
+          ? 'PAYSLIP_RESENT_TO_PROVIDER'
+          : 'PAYSLIP_SENT_TO_PROVIDER',
+      entityType: 'Payslip',
+      entityId: payslip.id,
+      beforeSnapshot: { deliveryStatus: payslip.deliveryStatus },
+      afterSnapshot: { deliveryStatus: delivered.deliveryStatus },
+    });
+    return mapPayslip(delivered);
+  }
+
+  async downloadPayslip(params: {
+    tenantId: string;
+    payslipId: string;
+    actorUserId: string;
+    own?: boolean;
+  }) {
+    const payslip = params.own
+      ? await this.getAuthorizedOwnPayslip(params)
+      : await this.findPayslipOrThrow(params.tenantId, params.payslipId);
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: params.tenantId },
+      select: { name: true, displayName: true },
+    });
+    const period = payslip.payrollRun.payrollPeriod;
+    const model: InvoicePdfModel = {
+      documentTitle: 'PAYSLIP',
+      fromLabel: 'Employer',
+      toLabel: 'Employee',
+      invoiceNumber: payslip.payslipNumber,
+      status: payslip.status,
+      issueDate: payslip.generatedAt ?? payslip.createdAt,
+      dueDate: period.paymentDate ?? period.periodEnd,
+      currency: payslip.currencyCode,
+      billingPeriod: period.name,
+      generatedAt: new Date(),
+      brand: {
+        brandName: tenant?.displayName ?? tenant?.name ?? 'DijiPeople',
+        primaryColor: '#2563eb',
+        accentColor: '#0f766e',
+      },
+      billFrom: { name: tenant?.displayName ?? tenant?.name ?? 'Employer' },
+      billTo: {
+        name: `${payslip.employee.firstName} ${payslip.employee.lastName}`.trim(),
+        email: payslip.employee.email,
+      },
+      lineItems: payslip.lineItems.map((line) => ({
+        description: `${line.category}: ${line.label}`,
+        quantity: Number(line.quantity ?? 1),
+        unitPrice: Number(line.rate ?? line.amount),
+        tax: 0,
+        total: Number(line.amount),
+      })),
+      subtotal:
+        Number(payslip.grossEarnings) + Number(payslip.totalReimbursements),
+      discount: Number(payslip.totalDeductions),
+      tax: Number(payslip.totalTaxes),
+      total: Number(payslip.netPay),
+      paid: Number(payslip.netPay),
+      outstandingBalance: 0,
+      payments: [],
+      summaryRows: [
+        { label: 'Gross Earnings', value: Number(payslip.grossEarnings) },
+        {
+          label: 'Reimbursements',
+          value: Number(payslip.totalReimbursements),
+        },
+        {
+          label: 'Deductions',
+          value: -Math.abs(Number(payslip.totalDeductions)),
+        },
+        { label: 'Taxes', value: -Math.abs(Number(payslip.totalTaxes)) },
+        { label: 'Net Salary', value: Number(payslip.netPay) },
+      ],
+      notes:
+        'Official payroll proof generated from frozen finalized payroll values.',
+    };
+    const buffer = buildProfessionalInvoicePdf(model);
+    await this.prisma.payslipEventLog.create({
+      data: {
+        tenantId: params.tenantId,
+        payslipId: payslip.id,
+        eventType: PayslipEventType.DOWNLOADED,
+        actorUserId: params.actorUserId,
+        message: 'Payslip PDF downloaded.',
+      },
+    });
+    await this.auditService.log({
+      tenantId: params.tenantId,
+      actorUserId: params.actorUserId,
+      action: 'PAYSLIP_DOWNLOADED',
+      entityType: 'Payslip',
+      entityId: payslip.id,
+      afterSnapshot: { payslipNumber: payslip.payslipNumber },
+    });
+    return {
+      buffer,
+      fileName: `${payslip.payslipNumber}.pdf`,
+      contentType: 'application/pdf',
+    };
+  }
+
+  private async getAuthorizedOwnPayslip(params: {
+    tenantId: string;
+    payslipId: string;
+    actorUserId: string;
+  }) {
+    const employee = await this.findEmployeeForUser(
+      params.tenantId,
+      params.actorUserId,
+    );
+    const payslip = await this.prisma.payslip.findFirst({
+      where: {
+        tenantId: params.tenantId,
+        id: params.payslipId,
+        employeeId: employee.id,
+        status: PayslipStatus.PUBLISHED,
+      },
+      include: payslipInclude,
+    });
+    if (!payslip) throw new NotFoundException('Payslip was not found.');
+    return payslip;
+  }
+
   private async findPayslipOrThrow(tenantId: string, payslipId: string) {
     const payslip = await this.prisma.payslip.findFirst({
       where: { tenantId, id: payslipId },
@@ -522,6 +791,7 @@ export class PayslipsService {
 function mapPayslip(payslip: PayslipWithDetails) {
   return {
     ...payslip,
+    sentToProviderAt: payslip.deliveredAt,
     grossEarnings: payslip.grossEarnings.toString(),
     totalDeductions: payslip.totalDeductions.toString(),
     totalTaxes: payslip.totalTaxes.toString(),

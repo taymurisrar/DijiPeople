@@ -21,6 +21,7 @@ export interface ModuleConfig {
   readonly description?: string;
   readonly entityLogicalName: string;
   readonly routeBase: string;
+  readonly recordNavigation?: boolean;
   readonly defaultViewLogicalName?: string;
   readonly defaultFormLogicalName?: string;
   readonly enabled?: boolean;

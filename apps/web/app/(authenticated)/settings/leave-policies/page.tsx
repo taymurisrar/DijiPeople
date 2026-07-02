@@ -81,9 +81,9 @@ export default async function LeavePoliciesPage() {
                   <td className="rounded-r-2xl px-4 py-4">
                     <Link
                       className="text-sm font-medium text-accent transition hover:text-accent-strong"
-                      href={`/settings/leave-policies/${policy.id}/edit`}
+                      href={`/settings/leave-policies/${policy.id}`}
                     >
-                      Edit
+                      Open
                     </Link>
                   </td>
                 </tr>

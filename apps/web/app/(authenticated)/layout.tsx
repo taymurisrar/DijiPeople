@@ -132,6 +132,7 @@ export default async function DashboardLayout({
           roleLabel,
           roleKeys: user.roleKeys,
           tenantId: user.tenantId,
+          tenantSlug: user.tenantSlug,
           businessUnitAccess,
         }}
       >

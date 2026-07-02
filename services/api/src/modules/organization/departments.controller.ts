@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseUUIDPipe,
@@ -62,5 +63,16 @@ export class DepartmentsController {
     @Body() dto: UpdateDepartmentDto,
   ) {
     return this.organizationService.updateDepartment(user, id, dto);
+  }
+
+  @Delete(':id')
+  @Permissions('departments.update')
+  delete(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.organizationService.updateDepartment(user, id, {
+      isActive: false,
+    });
   }
 }

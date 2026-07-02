@@ -96,6 +96,7 @@ describe('EmployeesService', () => {
       duplicateRuleEngine as never,
       {} as never,
       {} as never,
+      { assignDefaults: jest.fn() } as never,
     );
   });
 

@@ -25,6 +25,8 @@ import { TimePayrollModule } from './modules/time-payroll/time-payroll.module';
 import { TaxRulesModule } from './modules/tax-rules/tax-rules.module';
 import { CompensationModule } from './modules/compensation/compensation.module';
 import { ClaimsModule } from './modules/claims/claims.module';
+import { BenefitsModule } from './modules/benefits/benefits.module';
+import { SettingsRuntimeModule } from './modules/settings-runtime/settings-runtime.module';
 import { DocumentsModule } from './modules/documents/documents.module';
 import { CustomizationModule } from './modules/customization/customization.module';
 import { DataModule } from './modules/data/data.module';
@@ -34,6 +36,7 @@ import { EmployeesModule } from './modules/employees/employees.module';
 import { InboxModule } from './modules/inbox/inbox.module';
 import { LeaveModule } from './modules/leave/leave.module';
 import { LeadsModule } from './modules/leads/leads.module';
+import { LoansModule } from './modules/loans/loans.module';
 import { LookupsModule } from './modules/lookups/lookups.module';
 import { ModuleViewsModule } from './modules/views/module-views.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
@@ -77,6 +80,8 @@ import { DemoDataModule } from './modules/demo-data/demo-data.module';
     TimePayrollModule,
     TaxRulesModule,
     ClaimsModule,
+    BenefitsModule,
+    SettingsRuntimeModule,
     CompensationModule,
     CustomizationModule,
     DataModule,
@@ -88,6 +93,7 @@ import { DemoDataModule } from './modules/demo-data/demo-data.module';
     InboxModule,
     LeaveModule,
     LeadsModule,
+    LoansModule,
     LookupsModule,
     ModuleViewsModule,
     NotificationsModule,

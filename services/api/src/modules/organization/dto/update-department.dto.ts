@@ -37,6 +37,7 @@ export class UpdateDepartmentDto {
   description?: string;
 
   @IsOptional()
+  @Transform(emptyStringToUndefined)
   @IsUUID()
   defaultWorkScheduleId?: string;
 

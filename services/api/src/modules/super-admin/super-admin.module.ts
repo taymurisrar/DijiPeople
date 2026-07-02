@@ -6,6 +6,7 @@ import { AuditModule } from '../audit/audit.module';
 import { AuthModule } from '../auth/auth.module';
 import { BillingModule as StripeBillingModule } from '../billing/billing.module';
 import { PermissionsModule } from '../permissions/permissions.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { RolesModule } from '../roles/roles.module';
 import { LeadsRepository } from '../leads/leads.repository';
 import { PlatformPermissionsGuard } from '../platform-auth/platform-permissions';
@@ -28,6 +29,7 @@ import { SuperAdminService } from './super-admin.service';
     RolesModule,
     UsersModule,
     PermissionsModule,
+    NotificationsModule,
     AuditModule,
     StripeBillingModule,
   ],

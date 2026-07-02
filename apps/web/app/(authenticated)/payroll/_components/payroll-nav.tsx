@@ -1,10 +1,13 @@
 import Link from "next/link";
 
 const items = [
+  { href: "/payroll/dashboard", label: "Operations Dashboard" },
+  { href: "/payroll/exceptions", label: "Exception Center" },
   { href: "/payroll/calendars", label: "Calendars" },
   { href: "/payroll/periods", label: "Periods" },
   { href: "/payroll/runs", label: "Runs" },
   { href: "/payroll/payslips", label: "Payslips" },
+  { href: "/payroll/payslips/delivery", label: "Delivery Center" },
   { href: "/payroll/cycles", label: "Payroll Cycles" },
   { href: "/payroll/compensation", label: "Employee Compensation" },
 ];

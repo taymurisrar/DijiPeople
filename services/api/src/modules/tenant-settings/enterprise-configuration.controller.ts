@@ -48,6 +48,18 @@ export class EnterpriseConfigurationController {
     );
   }
 
+  @Get('holiday-calendars/:id')
+  @Permissions('settings.read')
+  getHolidayCalendar(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.enterpriseConfigurationService.getHolidayCalendar(
+      user.tenantId,
+      id,
+    );
+  }
+
   @Patch('holiday-calendars/:id')
   @Permissions('settings.update')
   updateHolidayCalendar(
@@ -160,6 +172,18 @@ export class EnterpriseConfigurationController {
     return this.enterpriseConfigurationService.createWorkSchedule(user, body);
   }
 
+  @Get('work-schedules/:id')
+  @Permissions('settings.read')
+  getWorkSchedule(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.enterpriseConfigurationService.getWorkSchedule(
+      user.tenantId,
+      id,
+    );
+  }
+
   @Patch('work-schedules/:id')
   @Permissions('settings.update')
   updateWorkSchedule(
@@ -198,6 +222,18 @@ export class EnterpriseConfigurationController {
     @Body() body: Record<string, unknown>,
   ) {
     return this.enterpriseConfigurationService.createShiftTemplate(user, body);
+  }
+
+  @Get('shift-templates/:id')
+  @Permissions('settings.read')
+  getShiftTemplate(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.enterpriseConfigurationService.getShiftTemplate(
+      user.tenantId,
+      id,
+    );
   }
 
   @Patch('shift-templates/:id')
@@ -243,6 +279,18 @@ export class EnterpriseConfigurationController {
     );
   }
 
+  @Get('employee-schedule-assignments/:id')
+  @Permissions('settings.read')
+  getEmployeeScheduleAssignment(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.enterpriseConfigurationService.getEmployeeScheduleAssignment(
+      user.tenantId,
+      id,
+    );
+  }
+
   @Delete('employee-schedule-assignments/:id')
   @Permissions('settings.update')
   deactivateEmployeeScheduleAssignment(
@@ -272,6 +320,18 @@ export class EnterpriseConfigurationController {
     return this.enterpriseConfigurationService.createPayrollRegion(user, body);
   }
 
+  @Get('payroll-regions/:id')
+  @Permissions('payroll.settings.read')
+  getPayrollRegion(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.enterpriseConfigurationService.getPayrollRegion(
+      user.tenantId,
+      id,
+    );
+  }
+
   @Patch('payroll-regions/:id')
   @Permissions('payroll.settings.update')
   updatePayrollRegion(
@@ -295,26 +355,6 @@ export class EnterpriseConfigurationController {
     return this.enterpriseConfigurationService.deletePayrollRegion(user, id);
   }
 
-  @Get('currency-configurations')
-  @Permissions('settings.read')
-  listCurrencyConfigurations(@CurrentUser() user: AuthenticatedUser) {
-    return this.enterpriseConfigurationService.listCurrencyConfigurations(
-      user.tenantId,
-    );
-  }
-
-  @Post('currency-configurations')
-  @Permissions('settings.update')
-  upsertCurrencyConfiguration(
-    @CurrentUser() user: AuthenticatedUser,
-    @Body() body: Record<string, unknown>,
-  ) {
-    return this.enterpriseConfigurationService.upsertCurrencyConfiguration(
-      user,
-      body,
-    );
-  }
-
   @Get('exchange-rates')
   @Permissions('settings.read')
   listExchangeRates(
@@ -334,5 +374,40 @@ export class EnterpriseConfigurationController {
     @Body() body: Record<string, unknown>,
   ) {
     return this.enterpriseConfigurationService.createExchangeRate(user, body);
+  }
+
+  @Get('exchange-rates/:id')
+  @Permissions('settings.read')
+  getExchangeRate(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.enterpriseConfigurationService.getExchangeRate(
+      user.tenantId,
+      id,
+    );
+  }
+
+  @Patch('exchange-rates/:id')
+  @Permissions('settings.update')
+  updateExchangeRate(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() body: Record<string, unknown>,
+  ) {
+    return this.enterpriseConfigurationService.updateExchangeRate(
+      user,
+      id,
+      body,
+    );
+  }
+
+  @Delete('exchange-rates/:id')
+  @Permissions('settings.update')
+  deleteExchangeRate(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.enterpriseConfigurationService.deleteExchangeRate(user, id);
   }
 }

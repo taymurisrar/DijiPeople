@@ -246,6 +246,9 @@ export class AttendanceService {
         checkInLocationCapturedAt:
           attendanceMode === AttendanceMode.OFFICE ? undefined : capturedAt,
         remoteAddressText: normalizeOptionalText(dto.remoteAddressText),
+        checkInAddressText:
+          normalizeOptionalText(dto.checkInAddressText) ??
+          normalizeOptionalText(dto.remoteAddressText),
         isLateCheckIn: lateCheckIn.isLate,
         lateCheckInMinutes: lateCheckIn.minutesLate,
         createdById: currentUser.userId,
@@ -350,6 +353,9 @@ export class AttendanceService {
           existing.attendanceMode === AttendanceMode.OFFICE
             ? undefined
             : capturedAt,
+        checkOutAddressText:
+          normalizeOptionalText(dto.checkOutAddressText) ??
+          normalizeOptionalText(dto.remoteAddressText),
         remoteAddressText:
           normalizeOptionalText(dto.remoteAddressText) ??
           existing.remoteAddressText,
@@ -1096,6 +1102,25 @@ export class AttendanceService {
       );
     }
 
+    const requestedCheckInAtUtc =
+      dto.requestedCheckInAtUtc !== undefined
+        ? new Date(dto.requestedCheckInAtUtc)
+        : request.requestedCheckInAtUtc;
+    const requestedCheckOutAtUtc =
+      dto.requestedCheckOutAtUtc !== undefined
+        ? new Date(dto.requestedCheckOutAtUtc)
+        : request.requestedCheckOutAtUtc;
+
+    if (
+      requestedCheckInAtUtc &&
+      requestedCheckOutAtUtc &&
+      requestedCheckOutAtUtc < requestedCheckInAtUtc
+    ) {
+      throw new BadRequestException(
+        'Requested check-out cannot be earlier than requested check-in.',
+      );
+    }
+
     const nextStatus =
       action === 'approve'
         ? AttendanceCorrectionStatus.APPROVED
@@ -1103,13 +1128,25 @@ export class AttendanceService {
     const now = new Date();
 
     const updated = await this.prisma.$transaction(async (tx) => {
+      const requestForAction =
+        requestedCheckInAtUtc !== request.requestedCheckInAtUtc ||
+        requestedCheckOutAtUtc !== request.requestedCheckOutAtUtc
+          ? ({
+              ...request,
+              requestedCheckInAtUtc,
+              requestedCheckOutAtUtc,
+            } as AttendanceCorrectionWithRelations)
+          : request;
+
       if (action === 'approve') {
-        await this.applyApprovedCorrection(request, currentUser, tx);
+        await this.applyApprovedCorrection(requestForAction, currentUser, tx);
       }
 
       await tx.attendanceCorrectionRequest.update({
         where: { id: request.id },
         data: {
+          requestedCheckInAtUtc,
+          requestedCheckOutAtUtc,
           status: nextStatus,
           approvedAtUtc: action === 'approve' ? now : null,
           rejectedAtUtc: action === 'reject' ? now : null,
@@ -1689,6 +1726,9 @@ export class AttendanceService {
     return {
       ...request,
       employeeName: formatEmployeeName(request.employee),
+      canEdit:
+        canAct &&
+        currentUser.permissionKeys.includes('attendance.correction.approve'),
       canApprove:
         canAct &&
         currentUser.permissionKeys.includes('attendance.correction.approve'),
@@ -2092,6 +2132,19 @@ export class AttendanceService {
         : todayAttendance.checkIn
           ? 'checked-in'
           : 'not-checked-in';
+    const actionBlockedReason = approvedLeave
+      ? policy.allowCheckInOnApprovedLeave
+        ? null
+        : 'Check in is unavailable because you have approved leave today.'
+      : context.configurationError
+        ? context.configurationError
+        : context.isOffDay && !policy.allowOffDayCheckIn
+          ? `Check in is unavailable because ${formatBusinessDateKey(context.attendanceDate)} is a scheduled off day.`
+          : context.holiday && !policy.allowHolidayCheckIn
+            ? `Check in is unavailable because today is ${context.holiday.name}.`
+            : state === 'completed'
+              ? 'You have already checked out for the current business date. A new check-in will be available on the next attendance date.'
+              : null;
 
     return {
       attendanceActionState:
@@ -2123,17 +2176,7 @@ export class AttendanceService {
       todayAttendance: todayAttendance
         ? this.mapAttendanceEntry(todayAttendance, currentUser)
         : null,
-      blockedReason: approvedLeave
-        ? policy.allowCheckInOnApprovedLeave
-          ? null
-          : 'Check in is unavailable because you have approved leave today.'
-        : context.configurationError
-          ? context.configurationError
-          : context.isOffDay && !policy.allowOffDayCheckIn
-            ? `Check in is unavailable because ${formatBusinessDateKey(context.attendanceDate)} is a scheduled off day.`
-            : context.holiday && !policy.allowHolidayCheckIn
-              ? `Check in is unavailable because today is ${context.holiday.name}.`
-              : null,
+      blockedReason: actionBlockedReason,
       policy: {
         allowManualAdjustments: policy.allowManualAdjustments,
         officeRequiresWorkSite: policy.requireOfficeLocationForOfficeMode,
@@ -2962,6 +3005,18 @@ export class AttendanceService {
         : null;
     const durationLabel =
       durationMinutes === null ? null : formatDurationMinutes(durationMinutes);
+    const resolvedWorkSite = entry.officeLocation ?? entry.employee.location;
+    const officeLocationText = formatOfficeLocation(resolvedWorkSite);
+    const checkInAddressText =
+      entry.checkInAddressText ??
+      (entry.attendanceMode === AttendanceMode.OFFICE
+        ? officeLocationText
+        : entry.remoteAddressText);
+    const checkOutAddressText =
+      entry.checkOutAddressText ??
+      (entry.attendanceMode === AttendanceMode.OFFICE
+        ? officeLocationText
+        : entry.remoteAddressText);
 
     return {
       id: entry.id,
@@ -2970,6 +3025,7 @@ export class AttendanceService {
       workScheduleId: entry.workScheduleId,
       shiftTemplateId: entry.shiftTemplateId,
       officeLocationId: entry.officeLocationId,
+      workSite: resolvedWorkSite,
       importedBatchId: entry.importedBatchId,
       attendanceDate: entry.date,
       date: entry.date,
@@ -2989,12 +3045,20 @@ export class AttendanceService {
       remoteLatitude: entry.remoteLatitude,
       remoteLongitude: entry.remoteLongitude,
       remoteAddressText: entry.remoteAddressText,
+      checkInAddressText,
+      checkOutAddressText,
+      location:
+        resolvedWorkSite ??
+        entry.remoteAddressText ??
+        formatCoordinatePair(entry.remoteLatitude, entry.remoteLongitude),
       checkInLatitude: entry.checkInLatitude,
       checkInLongitude: entry.checkInLongitude,
+      checkInLocation: checkInAddressText,
       checkInLocationAccuracy: entry.checkInLocationAccuracy,
       checkInLocationCapturedAt: entry.checkInLocationCapturedAt,
       checkOutLatitude: entry.checkOutLatitude,
       checkOutLongitude: entry.checkOutLongitude,
+      checkOutLocation: entry.checkOut ? checkOutAddressText : null,
       checkOutLocationAccuracy: entry.checkOutLocationAccuracy,
       checkOutLocationCapturedAt: entry.checkOutLocationCapturedAt,
       isLateCheckIn: entry.isLateCheckIn,
@@ -3560,6 +3624,30 @@ function formatDurationMinutes(value: number) {
   return `${hours} ${hours === 1 ? 'hr' : 'hrs'} ${minutes} ${
     minutes === 1 ? 'min' : 'mins'
   }`;
+}
+
+function formatCoordinatePair(
+  latitude: number | null,
+  longitude: number | null,
+) {
+  if (latitude === null || longitude === null) return null;
+  return `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+}
+
+function formatOfficeLocation(
+  location:
+    | AttendanceEntryWithRelations['officeLocation']
+    | AttendanceEntryWithRelations['employee']['location'],
+) {
+  if (!location) return null;
+  return [
+    location.name,
+    location.city,
+    location.state,
+    location.country,
+  ]
+    .filter(Boolean)
+    .join(', ');
 }
 
 function businessDateAtUtcMidnight(value: Date, timezone: string) {

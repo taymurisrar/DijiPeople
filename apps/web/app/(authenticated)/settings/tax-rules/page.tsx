@@ -7,6 +7,8 @@ import {
 } from "../_lib/require-settings-permission";
 import {
   EmployeeLevelOption,
+  CountryOption,
+  CurrencyOption,
   PayComponentOption,
   TaxRuleRecord,
   TaxRulesManager,
@@ -17,11 +19,16 @@ export default async function TaxRulesSettingsPage() {
     PERMISSION_KEYS.TAX_RULES_READ,
   ]);
 
-  const [rules, payComponents, employeeLevels] = await Promise.all([
-    apiRequestJson<TaxRuleRecord[]>("/tax-rules"),
-    apiRequestJson<PayComponentOption[]>("/pay-components"),
-    apiRequestJson<EmployeeLevelOption[]>("/employee-levels"),
-  ]);
+  const [rules, payComponents, employeeLevels, countries, currencies] =
+    await Promise.all([
+      apiRequestJson<TaxRuleRecord[]>("/tax-rules"),
+      apiRequestJson<PayComponentOption[]>("/pay-components"),
+      apiRequestJson<EmployeeLevelOption[]>("/employee-levels"),
+      apiRequestJson<CountryOption[]>("/lookups/countries").catch(() => []),
+      apiRequestJson<{ items?: CurrencyOption[] }>(
+        "/configuration/currencies",
+      ).catch(() => ({ items: [] })),
+    ]);
 
   return (
     <SettingsShell
@@ -34,6 +41,8 @@ export default async function TaxRulesSettingsPage() {
           user,
           PERMISSION_KEYS.TAX_RULES_MANAGE,
         )}
+        countries={countries}
+        currencies={currencies.items ?? []}
         employeeLevels={employeeLevels.filter((level) => level.isActive)}
         initialRules={rules}
         payComponents={payComponents.filter((component) => component.isActive)}

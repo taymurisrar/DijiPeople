@@ -14,9 +14,9 @@ export const AUTH_CONFIG_DEFAULTS = {
   accessSecret: 'dijipeople-access-secret-dev',
   refreshSecret: 'dijipeople-refresh-secret-dev',
   accessTtl: '15m',
-  refreshTtl: '1h',
-  idleTimeout: '1h',
-  absoluteTimeout: '8h',
+  refreshTtl: '8h',
+  idleTimeout: '8h',
+  absoluteTimeout: '12h',
   activityThrottle: '60s',
   agentAccessTtl: '15m',
   agentRefreshTtl: '8h',
@@ -396,11 +396,11 @@ export function assertAuthEnvironment(configService: ConfigService) {
     getAgentAccessTokenTtl(configService),
     getAgentRefreshTokenTtl(configService),
     String(
-      configService.get<string>('AUTH_IDLE_SESSION_TIMEOUT_SECONDS') ?? '1h',
+      configService.get<string>('AUTH_IDLE_SESSION_TIMEOUT_SECONDS') ?? '8h',
     ),
     String(
       configService.get<string>('AUTH_ABSOLUTE_SESSION_TIMEOUT_SECONDS') ??
-        '8h',
+        '12h',
     ),
     String(
       configService.get<string>('AUTH_SESSION_ACTIVITY_THROTTLE_SECONDS') ??

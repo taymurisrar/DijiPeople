@@ -47,12 +47,13 @@ import { UpdateAgentSettingsDto } from './dto/update-agent-settings.dto';
 import { AgentHistoryQueryDto } from './dto/agent-history-query.dto';
 import { AuditService } from '../audit/audit.service';
 
-type ExtendedAgentSettings = Prisma.AgentTrackingSettingsGetPayload<{}> & {
-  mandatory: boolean;
-  historyRetentionDays: number;
-  installerUrl: string | null;
-  releaseDate: Date | null;
-};
+type ExtendedAgentSettings =
+  Prisma.AgentTrackingSettingsGetPayload<Prisma.AgentTrackingSettingsDefaultArgs> & {
+    mandatory: boolean;
+    historyRetentionDays: number;
+    installerUrl: string | null;
+    releaseDate: Date | null;
+  };
 
 type AgentTokenPayload = {
   sub: string;
@@ -73,7 +74,7 @@ const DEFAULT_AGENT_SETTINGS = {
   idleThresholdSeconds: 120,
   awayThresholdSeconds: 600,
   captureActiveApp: true,
-  captureWindowTitle: false,
+  captureWindowTitle: true,
   offlineQueueEnabled: true,
   heartbeatBatchSize: 10,
   minimumSupportedVersion: '1.0.0',
@@ -523,14 +524,9 @@ export class AgentService {
       );
     }
 
-    const updated = await this.prisma.agentTrackingSettings.upsert({
+    const updated = await this.prisma.agentTrackingSettings.update({
       where: { tenantId: currentUser.tenantId },
-      create: {
-        tenantId: currentUser.tenantId,
-        ...DEFAULT_AGENT_SETTINGS,
-        ...normalizeSettingsDto(dto),
-      },
-      update: normalizeSettingsDto(dto),
+      data: normalizeSettingsDto(dto),
     });
 
     await this.auditService.log({
@@ -1018,12 +1014,42 @@ export class AgentService {
     }
   }
 
-  private getOrCreateSettings(tenantId: string) {
-    return this.prisma.agentTrackingSettings.upsert({
+  private async getOrCreateSettings(tenantId: string) {
+    const existing = await this.prisma.agentTrackingSettings.findUnique({
       where: { tenantId },
-      create: { tenantId, ...DEFAULT_AGENT_SETTINGS },
-      update: {},
     });
+    if (existing) {
+      if (
+        existing.enabled &&
+        existing.captureActiveApp &&
+        !existing.captureWindowTitle
+      ) {
+        return this.prisma.agentTrackingSettings.update({
+          where: { tenantId },
+          data: { captureWindowTitle: true },
+        });
+      }
+
+      return existing;
+    }
+
+    try {
+      return await this.prisma.agentTrackingSettings.create({
+        data: { tenantId, ...DEFAULT_AGENT_SETTINGS },
+      });
+    } catch (error) {
+      if (!isUniqueConstraintError(error)) {
+        throw error;
+      }
+
+      const createdByConcurrentRequest =
+        await this.prisma.agentTrackingSettings.findUnique({
+          where: { tenantId },
+        });
+      if (createdByConcurrentRequest) return createdByConcurrentRequest;
+
+      throw error;
+    }
   }
 
   private assertAgentRefreshSessionActive(tokenRecord: {
@@ -1177,6 +1203,13 @@ function normalizeSettingsDto(dto: UpdateAgentSettingsDto) {
           ? new Date(dto.releaseDate)
           : null,
   };
+}
+
+function isUniqueConstraintError(error: unknown) {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === 'P2002'
+  );
 }
 
 function resolveHistoryWindow(

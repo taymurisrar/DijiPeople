@@ -10,10 +10,18 @@ import {
 type CountryApiRecord = {
   cca2?: string;
   cca3?: string;
+  Iso2?: string;
+  Iso3?: string;
   name?: {
     common?: string;
     official?: string;
-  };
+  } | string;
+  officialName?: string;
+};
+
+type CountryApiResponse = {
+  error?: boolean;
+  data?: unknown;
 };
 
 type StateApiResponse = {
@@ -145,7 +153,7 @@ export class GeographicLookupService {
     try {
       const endpoint = this.configService.get<string>(
         'GEOGRAPHY_COUNTRIES_API_URL',
-        'https://restcountries.com/v3.1/all?fields=name,cca2,cca3',
+        'https://countriesnow.space/api/v0.1/countries/iso',
       );
       const response = await fetch(endpoint, {
         signal: AbortSignal.timeout(GEOGRAPHY_API_TIMEOUT_MS),
@@ -154,12 +162,17 @@ export class GeographicLookupService {
         throw new Error(`Countries API returned ${response.status}`);
       }
 
-      const payload = (await response.json()) as CountryApiRecord[];
-      const countries = payload
+      const payload: unknown = await response.json();
+      const countryRecords = readCountryApiRecords(payload);
+      if (!countryRecords.length) {
+        throw new Error('Countries API returned an unexpected payload.');
+      }
+
+      const countries = countryRecords
         .map((record) => ({
-          code: record.cca2?.trim().toUpperCase() ?? null,
-          name: record.name?.common?.trim() ?? null,
-          officialName: record.name?.official?.trim() ?? null,
+          code: (record.cca2 ?? record.Iso2)?.trim().toUpperCase() ?? null,
+          name: readCountryName(record),
+          officialName: readCountryOfficialName(record),
         }))
         .filter(
           (
@@ -427,4 +440,41 @@ function slugify(value?: string) {
     .replace(/[^A-Z0-9]+/g, '_')
     .replace(/^_+|_+$/g, '')
     .slice(0, 32);
+}
+
+function readCountryApiRecords(payload: unknown): CountryApiRecord[] {
+  if (Array.isArray(payload)) {
+    return payload.filter(isCountryApiRecord);
+  }
+
+  if (!payload || typeof payload !== 'object') {
+    return [];
+  }
+
+  const response = payload as CountryApiResponse;
+  if (Array.isArray(response.data)) {
+    return response.data.filter(isCountryApiRecord);
+  }
+
+  return [];
+}
+
+function isCountryApiRecord(value: unknown): value is CountryApiRecord {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
+
+function readCountryName(record: CountryApiRecord) {
+  if (typeof record.name === 'string') {
+    return record.name.trim() || null;
+  }
+
+  return record.name?.common?.trim() || null;
+}
+
+function readCountryOfficialName(record: CountryApiRecord) {
+  if (typeof record.name === 'object') {
+    return record.name.official?.trim() || null;
+  }
+
+  return record.officialName?.trim() || null;
 }

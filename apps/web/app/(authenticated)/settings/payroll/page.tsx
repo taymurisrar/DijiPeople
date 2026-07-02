@@ -1,27 +1,40 @@
-import { apiRequestJson } from "@/lib/server-api";
-import { ConfigSettingsForm } from "../_components/config-settings-form";
-import { SettingsShell } from "../_components/settings-shell";
-import { requireSettingsPermissions } from "../_lib/require-settings-permission";
-import { payrollSettingsSections } from "../_lib/settings-page-config";
-import { TenantSettingsResponse } from "../types";
+import { notFound } from "next/navigation";
+import { SettingsCategoryLanding } from "../_components/settings-runtime-landing";
+import { getSettingsRuntimeCategory } from "../_lib/settings-runtime";
+import { getSessionUser } from "@/lib/auth";
+import { hasAnyPermission } from "@/lib/permissions";
+import { AccessDeniedState } from "../../_components/access-denied-state";
 
-export default async function PayrollSettingsPage() {
-  await requireSettingsPermissions(["settings.read", "payroll.settings.read"]);
-  const tenantSettings = await apiRequestJson<TenantSettingsResponse>(
-    "/tenant-settings",
-  );
+const PAYROLL_SETTINGS_ACCESS = [
+  "payroll.settings.read",
+  "payroll-calendars.read",
+  "payroll-periods.read",
+  "pay-components.read",
+  "claim-types.read",
+  "tada-policies.read",
+  "time-payroll-policies.read",
+  "overtime-policies.read",
+  "tax-rules.read",
+  "payroll-gl.read",
+  "benefits.read",
+  "loans.read-all",
+  "employee-bank-accounts.read",
+] as const;
 
-  return (
-    <SettingsShell
-      description="Keep payroll defaults practical and readable so compensation and cycle setup stay aligned across the tenant."
-      eyebrow="Payroll"
-      title="Payroll Settings"
-    >
-      <ConfigSettingsForm
-        initialSettings={tenantSettings}
-        saveLabel="Save payroll settings"
-        sections={payrollSettingsSections}
+export default async function PayrollSettingsCategoryPage() {
+  const user = await getSessionUser();
+  if (
+    !user ||
+    !hasAnyPermission(user.permissionKeys, PAYROLL_SETTINGS_ACCESS)
+  ) {
+    return (
+      <AccessDeniedState
+        title="Access denied"
+        description="Payroll and Finance settings access is required."
       />
-    </SettingsShell>
-  );
+    );
+  }
+  const category = getSettingsRuntimeCategory("payroll");
+  if (!category) notFound();
+  return <SettingsCategoryLanding category={category} />;
 }

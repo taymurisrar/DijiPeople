@@ -100,10 +100,14 @@ export default async function EditEmployeePage({
       userId: sessionUser?.userId ?? "",
       tenantId: employee.tenantId,
       displayName: sessionUser
-        ? [sessionUser.firstName, sessionUser.lastName].filter(Boolean).join(" ")
+        ? [sessionUser.firstName, sessionUser.lastName]
+            .filter(Boolean)
+            .join(" ")
         : null,
       name: sessionUser
-        ? [sessionUser.firstName, sessionUser.lastName].filter(Boolean).join(" ")
+        ? [sessionUser.firstName, sessionUser.lastName]
+            .filter(Boolean)
+            .join(" ")
         : null,
       email: sessionUser?.email,
       roleKeys: sessionUser?.roleKeys ?? [],
@@ -113,6 +117,7 @@ export default async function EditEmployeePage({
     forms: runtimeForms,
     views: [],
     recordId: employee.id,
+    employeeSettings: resolvedSettings?.employee,
   });
   const activeRuntimeForm = resolveEmployeeRuntimeForm(
     employeeRuntimeContext.metadata.forms,

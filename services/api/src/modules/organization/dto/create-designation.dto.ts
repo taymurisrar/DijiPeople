@@ -3,6 +3,7 @@ import {
   IsBoolean,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
   MinLength,
 } from 'class-validator';
@@ -27,6 +28,11 @@ export class CreateDesignationDto {
   @IsString()
   @MaxLength(40)
   level?: string;
+
+  @IsOptional()
+  @Transform(emptyStringToUndefined)
+  @IsUUID()
+  employeeLevelId?: string;
 
   @IsOptional()
   @Transform(emptyStringToUndefined)

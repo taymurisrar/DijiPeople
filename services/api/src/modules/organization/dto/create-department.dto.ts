@@ -36,6 +36,7 @@ export class CreateDepartmentDto {
   description?: string;
 
   @IsOptional()
+  @Transform(emptyStringToUndefined)
   @IsUUID()
   defaultWorkScheduleId?: string;
 

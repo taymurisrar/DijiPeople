@@ -17,7 +17,7 @@ describe('AppController', () => {
   describe('root', () => {
     it('should return a health payload', () => {
       expect(appController.getHealth()).toMatchObject({
-        service: 'dijipeople-api',
+        app: 'dijipeople-api',
         status: 'ok',
       });
     });

@@ -66,7 +66,11 @@ export class LeadsService {
   }
 
   async listLeads(currentUser: AuthenticatedUser, query: LeadQueryDto) {
-    const { items, total } = await this.leadsRepository.findMany(query);
+    const scopedQuery =
+      this.isPlatformSuperAdmin(currentUser) || !currentUser.platform?.id
+        ? query
+        : { ...query, assignedToUserId: currentUser.platform.id };
+    const { items, total } = await this.leadsRepository.findMany(scopedQuery);
     const leadIds = items.map((item) => item.id);
     const customers = leadIds.length
       ? await this.prisma.customerAccount.findMany({
@@ -82,7 +86,12 @@ export class LeadsService {
       action: 'PLATFORM_LEADS_VIEWED',
       entityType: 'Lead',
       entityId: 'list',
-      afterSnapshot: { page: query.page, pageSize: query.pageSize, total },
+      afterSnapshot: {
+        page: scopedQuery.page,
+        pageSize: scopedQuery.pageSize,
+        total,
+        ownerScope: scopedQuery.assignedToUserId ?? 'all',
+      },
     });
 
     return {
@@ -106,7 +115,7 @@ export class LeadsService {
         status: query.status ?? null,
         subStatus: query.subStatus ?? null,
         industry: query.industry ?? null,
-        assignedToUserId: query.assignedToUserId ?? null,
+        assignedToUserId: scopedQuery.assignedToUserId ?? null,
         source: query.source ?? null,
         search: query.search?.trim() ?? null,
         sortField: query.sortField ?? 'createdAt',
@@ -120,6 +129,7 @@ export class LeadsService {
     if (!lead) {
       throw new NotFoundException('Lead not found.');
     }
+    this.assertLeadOwnerAccess(currentUser, lead);
 
     const convertedCustomer = await this.prisma.customerAccount.findFirst({
       where: { leadId },
@@ -198,6 +208,7 @@ export class LeadsService {
     if (!existing) {
       throw new NotFoundException('Lead not found.');
     }
+    this.assertLeadOwnerAccess(currentUser, existing);
 
     const terminalLeadStatuses: LeadStatus[] = [
       LeadStatus.CONVERTED,
@@ -311,6 +322,7 @@ export class LeadsService {
   }
 
   async bulkDeleteLeads(currentUser: AuthenticatedUser, ids: string[]) {
+    await this.assertBulkLeadOwnerAccess(currentUser, ids);
     const customers = await this.prisma.customerAccount.findMany({
       where: { leadId: { in: ids } },
       select: { leadId: true },
@@ -340,6 +352,11 @@ export class LeadsService {
     currentUser: AuthenticatedUser,
     dto: BulkAssignLeadsDto,
   ) {
+    if (!this.isPlatformSuperAdmin(currentUser)) {
+      throw new BadRequestException(
+        'Only Platform Super Admin can reassign leads.',
+      );
+    }
     const assignedToUserId = await this.resolveLeadAssignee(
       dto.assignedToUserId,
     );
@@ -378,6 +395,42 @@ export class LeadsService {
     if (!isValidLeadSource(source)) {
       throw new BadRequestException('Lead source is not supported.');
     }
+  }
+
+  private assertLeadOwnerAccess(
+    currentUser: AuthenticatedUser,
+    lead: { assignedToUserId?: string | null },
+  ) {
+    if (this.isPlatformSuperAdmin(currentUser)) return;
+    if (
+      lead.assignedToUserId &&
+      lead.assignedToUserId === currentUser.platform?.id
+    ) {
+      return;
+    }
+    throw new NotFoundException('Lead not found.');
+  }
+
+  private async assertBulkLeadOwnerAccess(
+    currentUser: AuthenticatedUser,
+    ids: string[],
+  ) {
+    if (this.isPlatformSuperAdmin(currentUser)) return;
+    const ownedCount = await this.prisma.lead.count({
+      where: {
+        id: { in: ids },
+        assignedToUserId: currentUser.platform?.id ?? '__none__',
+      },
+    });
+    if (ownedCount !== ids.length) {
+      throw new BadRequestException(
+        'Members can only bulk modify leads they own.',
+      );
+    }
+  }
+
+  private isPlatformSuperAdmin(currentUser: AuthenticatedUser) {
+    return currentUser.platform?.role === PlatformUserRole.SUPER_ADMIN;
   }
 
   private async resolveLeadAssignee(assignedToUserId?: string | null) {

@@ -21,6 +21,17 @@ npm run seed:demo:reseed
 
 The specialized payroll validation fixture remains available through
 `npm run seed:payroll-flow` and is intentionally excluded from `seed:all`.
+It idempotently seeds Benefit Policies, effective Employee Benefit Assignments,
+and the optional generic Benefit change Approval Matrix alongside compensation,
+claims, loans, time inputs, payroll snapshots, and payslips. Benefits are demo
+operational data; canonical Benefit permissions and role mappings remain owned
+by `seed:config`.
+
+The same fixture idempotently upserts generic Settings Runtime examples for
+Fiscal Year 2026, an effective Approval Delegation Rule, and a seven-year
+Payroll Retention Rule. Their stable identity is
+`(tenantId, settingKey, code)`. Domain configuration continues to seed through
+its own models rather than the generic configuration store.
 
 ## Responsibilities
 

@@ -6,15 +6,18 @@ import { EntityPermissionResolver } from './entity-permission.resolver';
 import { EntityScopeResolver } from './entity-scope.resolver';
 import { MetadataController } from './metadata.controller';
 import { MetadataService } from './metadata.service';
+import { CustomDataService } from './custom-data.service';
+import { AuditModule } from '../audit/audit.module';
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, AuditModule],
   controllers: [DataController, MetadataController],
   providers: [
     DataService,
     EntityPermissionResolver,
     EntityScopeResolver,
     MetadataService,
+    CustomDataService,
   ],
 })
 export class DataModule {}

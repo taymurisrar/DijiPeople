@@ -1,5 +1,4 @@
 import {
-  ApprovalActorType,
   ApprovalAssignmentStatus,
   ApprovalRequestStatus,
   GenericApprovalStepStatus,
@@ -24,7 +23,6 @@ import { AuditService } from '../audit/audit.service';
 import { EmployeesRepository } from '../employees/employees.repository';
 import { UsersRepository } from '../users/users.repository';
 import { CancelLeaveRequestDto } from './dto/cancel-leave-request.dto';
-import { CreateApprovalMatrixDto } from './dto/create-approval-matrix.dto';
 import { CreateLeavePolicyAssignmentDto } from './dto/create-leave-policy-assignment.dto';
 import { CreateLeavePolicyDto } from './dto/create-leave-policy.dto';
 import { CreateLeaveTypeDto } from './dto/create-leave-type.dto';
@@ -32,12 +30,11 @@ import { LeaveRequestActionDto } from './dto/leave-request-action.dto';
 import { LeaveRequestQueryDto } from './dto/leave-request-query.dto';
 import { ListLeaveConfigDto } from './dto/list-leave-config.dto';
 import { SubmitLeaveRequestDto } from './dto/submit-leave-request.dto';
-import { UpdateApprovalMatrixDto } from './dto/update-approval-matrix.dto';
 import { UpdateLeavePolicyAssignmentDto } from './dto/update-leave-policy-assignment.dto';
 import { UpdateLeavePolicyDto } from './dto/update-leave-policy.dto';
 import { UpdateLeaveTypeDto } from './dto/update-leave-type.dto';
 import { LeaveRepository, LeaveRequestWithRelations } from './leave.repository';
-import { ApprovalResolverService } from './approval-resolver.service';
+import { ApprovalMatrixResolverService } from '../approvals/approval-matrix-resolver.service';
 import { NotificationsService } from '../notifications/notifications.service';
 
 const ApprovalModes = {
@@ -56,12 +53,6 @@ const ApprovalScopes = {
   DEPARTMENT: 'DEPARTMENT',
   EMPLOYEE_LEVEL: 'EMPLOYEE_LEVEL',
   EMPLOYEE: 'EMPLOYEE',
-} as const;
-
-const ApprovalActors = {
-  LINE_MANAGER: 'LINE_MANAGER',
-  ROLE: 'ROLE',
-  USER: 'USER',
 } as const;
 
 function mapLeaveToApprovalStatus(status: LeaveRequestStatus) {
@@ -106,7 +97,7 @@ export class LeaveService {
     private readonly employeesRepository: EmployeesRepository,
     private readonly usersRepository: UsersRepository,
     private readonly auditService: AuditService,
-    private readonly approvalResolver: ApprovalResolverService,
+    private readonly approvalResolver: ApprovalMatrixResolverService,
     private readonly notificationsService: NotificationsService,
   ) {}
 
@@ -242,219 +233,6 @@ export class LeaveService {
     return this.findLeavePolicyById(currentUser.tenantId, id);
   }
 
-  findApprovalMatrices(tenantId: string, query: ListLeaveConfigDto) {
-    return this.leaveRepository.findApprovalMatrices(tenantId, query);
-  }
-
-  async findApprovalMatrixById(tenantId: string, id: string) {
-    const approvalMatrix = await this.leaveRepository.findApprovalMatrixById(
-      tenantId,
-      id,
-    );
-
-    if (!approvalMatrix) {
-      throw new NotFoundException(
-        'Approval matrix entry was not found for this tenant.',
-      );
-    }
-
-    return approvalMatrix;
-  }
-
-  async createApprovalMatrix(
-    currentUser: AuthenticatedUser,
-    dto: CreateApprovalMatrixDto,
-  ) {
-    const moduleKey = dto.moduleKey ?? ApprovalModules.LEAVE_REQUEST;
-    this.validateApprovalMatrixConfiguration(dto);
-    await this.validateApprovalMatrixReferences(
-      currentUser.tenantId,
-      dto.leaveTypeId,
-      dto.leavePolicyId,
-      dto.approverRoleId,
-      dto.approverUserId,
-    );
-
-    await this.ensureApprovalMatrixIsUnique(currentUser.tenantId, {
-      moduleKey,
-      leaveTypeId:
-        moduleKey === ApprovalModules.LEAVE_REQUEST
-          ? (dto.leaveTypeId ?? null)
-          : null,
-      leavePolicyId:
-        moduleKey === ApprovalModules.LEAVE_REQUEST
-          ? (dto.leavePolicyId ?? null)
-          : null,
-      scopeType: dto.scopeType ?? null,
-      scopeId: dto.scopeId ?? null,
-      sequence: dto.sequence,
-      approverType: dto.approverType,
-      approverRoleId: dto.approverRoleId ?? null,
-      approverUserId: dto.approverUserId ?? null,
-      isActive: dto.isActive ?? true,
-    });
-
-    return this.leaveRepository.createApprovalMatrix({
-      tenantId: currentUser.tenantId,
-      moduleKey,
-      name: dto.name.trim(),
-      leaveTypeId:
-        moduleKey === ApprovalModules.LEAVE_REQUEST ? dto.leaveTypeId : null,
-      leavePolicyId:
-        moduleKey === ApprovalModules.LEAVE_REQUEST ? dto.leavePolicyId : null,
-      sequence: dto.sequence,
-      approverType: dto.approverType,
-      approverRoleId:
-        dto.approverType === ApprovalActors.ROLE ? dto.approverRoleId : null,
-      approverUserId:
-        dto.approverType === ApprovalActors.USER ? dto.approverUserId : null,
-      approvalMode: dto.approvalMode ?? ApprovalModes.ANY_ONE,
-      scopeType: dto.scopeType,
-      scopeId: dto.scopeType === ApprovalScopes.TENANT ? null : dto.scopeId,
-      isActive: dto.isActive ?? true,
-      createdById: currentUser.userId,
-      updatedById: currentUser.userId,
-    });
-  }
-
-  async updateApprovalMatrix(
-    currentUser: AuthenticatedUser,
-    id: string,
-    dto: UpdateApprovalMatrixDto,
-  ) {
-    const existing = await this.findApprovalMatrixById(
-      currentUser.tenantId,
-      id,
-    );
-    const nextModuleKey = dto.moduleKey ?? existing.moduleKey;
-    const nextApproverType = dto.approverType ?? existing.approverType;
-    const rawNextApproverRoleId =
-      dto.approverRoleId === undefined
-        ? existing.approverRoleId
-        : dto.approverRoleId;
-    const rawNextApproverUserId =
-      dto.approverUserId === undefined
-        ? existing.approverUserId
-        : dto.approverUserId;
-    const nextApproverRoleId =
-      nextApproverType === ApprovalActors.ROLE ? rawNextApproverRoleId : null;
-    const nextApproverUserId =
-      nextApproverType === ApprovalActors.USER ? rawNextApproverUserId : null;
-    const nextScopeType =
-      dto.scopeType === undefined ? existing.scopeType : dto.scopeType;
-    const nextScopeId =
-      dto.scopeId === undefined ? existing.scopeId : dto.scopeId;
-    const nextLeaveTypeId =
-      nextModuleKey === ApprovalModules.LEAVE_REQUEST
-        ? dto.leaveTypeId === undefined
-          ? existing.leaveTypeId
-          : dto.leaveTypeId
-        : null;
-    const nextLeavePolicyId =
-      nextModuleKey === ApprovalModules.LEAVE_REQUEST
-        ? dto.leavePolicyId === undefined
-          ? existing.leavePolicyId
-          : dto.leavePolicyId
-        : null;
-
-    this.validateApprovalMatrixConfiguration({
-      moduleKey: nextModuleKey,
-      name: dto.name ?? existing.name,
-      leaveTypeId: nextLeaveTypeId ?? undefined,
-      leavePolicyId: nextLeavePolicyId ?? undefined,
-      sequence: dto.sequence ?? existing.sequence,
-      approverType: nextApproverType as CreateApprovalMatrixDto['approverType'],
-      approverRoleId: nextApproverRoleId ?? undefined,
-      approverUserId: nextApproverUserId ?? undefined,
-      approvalMode: dto.approvalMode ?? existing.approvalMode,
-      scopeType: nextScopeType ?? undefined,
-      scopeId: nextScopeId ?? undefined,
-      isActive: dto.isActive ?? existing.isActive,
-    });
-
-    await this.validateApprovalMatrixReferences(
-      currentUser.tenantId,
-      nextLeaveTypeId ?? undefined,
-      nextLeavePolicyId ?? undefined,
-      nextApproverRoleId ?? undefined,
-      nextApproverUserId ?? undefined,
-    );
-
-    const nextSequence = dto.sequence ?? existing.sequence;
-    const nextIsActive = dto.isActive ?? existing.isActive;
-
-    await this.ensureApprovalMatrixIsUnique(
-      currentUser.tenantId,
-      {
-        moduleKey: nextModuleKey,
-        leaveTypeId: nextLeaveTypeId,
-        leavePolicyId: nextLeavePolicyId,
-        scopeType: nextScopeType,
-        scopeId: nextScopeType === ApprovalScopes.TENANT ? null : nextScopeId,
-        sequence: nextSequence,
-        approverType: nextApproverType,
-        approverRoleId: nextApproverRoleId,
-        approverUserId: nextApproverUserId,
-        isActive: nextIsActive,
-      },
-      id,
-    );
-
-    const result = await this.leaveRepository.updateApprovalMatrix(
-      currentUser.tenantId,
-      id,
-      {
-        ...(dto.moduleKey !== undefined ? { moduleKey: dto.moduleKey } : {}),
-        ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
-        leaveTypeId: nextLeaveTypeId,
-        leavePolicyId: nextLeavePolicyId,
-        ...(dto.sequence !== undefined ? { sequence: dto.sequence } : {}),
-        ...(dto.approverType !== undefined
-          ? { approverType: dto.approverType }
-          : {}),
-        ...(dto.approverRoleId !== undefined
-          ? { approverRoleId: dto.approverRoleId }
-          : {}),
-        ...(dto.approverUserId !== undefined
-          ? { approverUserId: dto.approverUserId }
-          : {}),
-        ...(dto.approvalMode !== undefined
-          ? { approvalMode: dto.approvalMode }
-          : {}),
-        ...(dto.scopeType !== undefined ? { scopeType: dto.scopeType } : {}),
-        scopeId: nextScopeType === ApprovalScopes.TENANT ? null : nextScopeId,
-        ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
-        updatedById: currentUser.userId,
-      },
-    );
-
-    if (result.count === 0) {
-      throw new NotFoundException(
-        'Approval matrix entry was not found for this tenant.',
-      );
-    }
-
-    return this.findApprovalMatrixById(currentUser.tenantId, id);
-  }
-
-  async deleteApprovalMatrix(currentUser: AuthenticatedUser, id: string) {
-    await this.findApprovalMatrixById(currentUser.tenantId, id);
-
-    const result = await this.leaveRepository.deactivateApprovalMatrix(
-      currentUser.tenantId,
-      id,
-      currentUser.userId,
-    );
-
-    if (result.count === 0) {
-      throw new NotFoundException(
-        'Approval matrix entry was not found for this tenant.',
-      );
-    }
-
-    return { ok: true };
-  }
-
   async submitLeaveRequest(
     currentUser: AuthenticatedUser,
     dto: SubmitLeaveRequestDto,
@@ -497,6 +275,7 @@ export class LeaveService {
       employee,
       leavePolicy?.id ?? null,
       leaveType.id,
+      totalDays,
       currentUser.userId,
     );
 
@@ -1550,20 +1329,29 @@ export class LeaveService {
     },
     leavePolicyId: string | null,
     leaveTypeId: string,
+    duration: Prisma.Decimal,
     actorUserId: string,
   ) {
     const route = await this.approvalResolver.resolveApprovalRoute({
       tenantId,
       moduleKey: ApprovalModules.LEAVE_REQUEST,
+      recordType: 'leaveRequest',
       requesterEmployee: employee,
-      leavePolicyId,
-      leaveTypeId,
       scopeContext: {
         employeeId: employee.id,
         businessUnitId: employee.businessUnitId,
         departmentId: employee.departmentId,
         employeeLevelId: employee.employeeLevelId,
       },
+      conditionContext: {
+        leavePolicyId,
+        leaveTypeId,
+        duration: duration.toString(),
+      },
+      fallback: [
+        { type: 'REPORTING_MANAGER' },
+        { type: 'ROLE', roleKey: 'hr' },
+      ],
     });
     const approvalSteps: Array<Record<string, unknown>> = [];
 
@@ -1804,126 +1592,6 @@ export class LeaveService {
     }
 
     return [...visited];
-  }
-
-  private async validateApprovalMatrixReferences(
-    tenantId: string,
-    leaveTypeId?: string,
-    leavePolicyId?: string,
-    approverRoleId?: string,
-    approverUserId?: string,
-  ) {
-    if (leaveTypeId) {
-      const leaveType = await this.leaveRepository.findLeaveTypeById(
-        tenantId,
-        leaveTypeId,
-      );
-
-      if (!leaveType) {
-        throw new BadRequestException(
-          'Selected leave type does not belong to this tenant.',
-        );
-      }
-    }
-
-    if (leavePolicyId) {
-      const leavePolicy = await this.leaveRepository.findLeavePolicyById(
-        tenantId,
-        leavePolicyId,
-      );
-
-      if (!leavePolicy) {
-        throw new BadRequestException(
-          'Selected leave policy does not belong to this tenant.',
-        );
-      }
-    }
-
-    if (approverRoleId) {
-      const role = await this.leaveRepository.findRoleById(
-        tenantId,
-        approverRoleId,
-      );
-
-      if (!role) {
-        throw new BadRequestException(
-          'Selected approver role does not belong to this tenant.',
-        );
-      }
-    }
-
-    if (approverUserId) {
-      const user = await this.leaveRepository.findUserById(
-        tenantId,
-        approverUserId,
-      );
-
-      if (!user) {
-        throw new BadRequestException(
-          'Selected approver user does not belong to this tenant.',
-        );
-      }
-    }
-  }
-
-  private validateApprovalMatrixConfiguration(
-    dto: Partial<CreateApprovalMatrixDto>,
-  ) {
-    if (dto.moduleKey && dto.moduleKey !== ApprovalModules.LEAVE_REQUEST) {
-      dto.leaveTypeId = undefined;
-      dto.leavePolicyId = undefined;
-    }
-
-    if (dto.approverType === ApprovalActors.ROLE && !dto.approverRoleId) {
-      throw new BadRequestException('Role approver requires a selected role.');
-    }
-
-    if (dto.approverType === ApprovalActors.USER && !dto.approverUserId) {
-      throw new BadRequestException('User approver requires a selected user.');
-    }
-
-    if (dto.scopeType && dto.scopeType !== ApprovalScopes.TENANT) {
-      if (!dto.scopeId?.trim()) {
-        throw new BadRequestException(
-          'Scope ID is required for this approval scope.',
-        );
-      }
-    }
-  }
-
-  private async ensureApprovalMatrixIsUnique(
-    tenantId: string,
-    data: {
-      leaveTypeId?: string | null;
-      leavePolicyId?: string | null;
-      moduleKey: string;
-      scopeType?: string | null;
-      scopeId?: string | null;
-      sequence: number;
-      approverType: ApprovalActorType;
-      approverRoleId?: string | null;
-      approverUserId?: string | null;
-      isActive: boolean;
-    },
-    excludeId?: string,
-  ) {
-    if (!data.isActive) {
-      return;
-    }
-
-    const duplicate = await this.leaveRepository.findConflictingApprovalMatrix(
-      tenantId,
-      {
-        ...data,
-        excludeId,
-      },
-    );
-
-    if (duplicate) {
-      throw new ConflictException(
-        'An approval matrix row already exists for this scope, sequence, and approver.',
-      );
-    }
   }
 
   private validateLeavePolicyAssignment(

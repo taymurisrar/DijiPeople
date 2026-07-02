@@ -15,6 +15,7 @@ export type LookupOption = {
   name: string;
   key?: string | null;
   code?: string | null;
+  employeeLevelId?: string | null;
   subtitle?: string | null;
 };
 
@@ -492,10 +493,9 @@ export function CheckboxField({
     <label
       htmlFor={controlId}
       className={[
-        "flex min-h-[44px] items-center gap-3 rounded-2xl bg-white px-4 py-2 text-sm",
+        "flex items-start gap-3 text-sm text-foreground",
         disabled ? "cursor-not-allowed opacity-70" : "cursor-pointer",
         className,
-        error ? "border border-danger" : "",
       ]
         .filter(Boolean)
         .join(" ")}
@@ -505,14 +505,14 @@ export function CheckboxField({
         checked={checked}
         aria-invalid={Boolean(error)}
         aria-describedby={error || warning ? feedbackId : undefined}
-        className="h-4 w-4 shrink-0 rounded border-border text-accent focus:ring-accent/20"
+        className="mt-0.5 h-4 w-4 shrink-0 rounded border-border text-accent focus:ring-2 focus:ring-accent/20"
         disabled={disabled}
         onChange={(event) => onChange(event.target.checked)}
         type="checkbox"
       />
 
-      <span className="min-w-0">
-        <span className="block truncate font-medium text-foreground">
+      <span className="min-w-0 flex-1">
+        <span className="block whitespace-normal break-words leading-5">
           {label}
         </span>
 
@@ -802,23 +802,22 @@ export function LookupField({
                 <div className="space-y-1">
                   {filteredOptions.map((option) => {
                     const isSelected = option.id === value;
+                    const display = lookupOptionDisplay(option);
 
                     return (
-                      <Button
+                      <button
                         key={option.id}
-                        variant="ghost"
-                        fullWidth
                         onClick={(event) => handleSelect(option.id, event)}
                         type="button"
                         className={[
-                          "h-auto justify-start rounded-xl border px-3 py-2.5 text-left",
+                          "block w-full rounded-xl border px-4 py-3 text-left transition",
                           isSelected
-                            ? "border-accent bg-accent/5 hover:bg-accent/5"
+                            ? "border-accent bg-accent/5"
                             : "border-transparent hover:border-border hover:bg-slate-50",
                         ].join(" ")}
                       >
                         <span className="block font-medium text-foreground">
-                          {option.name}
+                          {display.name}
                         </span>
 
                         {option.code || option.key || option.subtitle ? (
@@ -828,7 +827,7 @@ export function LookupField({
                               .join(" • ")}
                           </span>
                         ) : null}
-                      </Button>
+                      </button>
                     );
                   })}
                 </div>
@@ -843,4 +842,19 @@ export function LookupField({
       </div>
     </FieldShell>
   );
+}
+
+function lookupOptionDisplay(option: LookupOption) {
+  const code = cleanLookupText(option.code);
+  const rawName = option.name.trim();
+  const name =
+    code && rawName.endsWith(code)
+      ? rawName.slice(0, -code.length).trim() || rawName
+      : rawName;
+
+  return { name };
+}
+
+function cleanLookupText(value: string | null | undefined) {
+  return typeof value === "string" ? value.trim() : "";
 }

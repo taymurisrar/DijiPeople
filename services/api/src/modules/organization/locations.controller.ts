@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseUUIDPipe,
@@ -62,5 +63,16 @@ export class LocationsController {
     @Body() dto: UpdateLocationDto,
   ) {
     return this.organizationService.updateLocation(user, id, dto);
+  }
+
+  @Delete(':id')
+  @Permissions('locations.update')
+  delete(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.organizationService.updateLocation(user, id, {
+      isActive: false,
+    });
   }
 }

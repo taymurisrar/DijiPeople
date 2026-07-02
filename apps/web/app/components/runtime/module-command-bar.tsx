@@ -357,7 +357,9 @@ function CommandButton({
   readonly selectedRecordIds?: readonly string[];
   readonly source: RuntimeCommandPlacementGroup;
 }) {
-  const isDisabled = disabled || loading || command.isDisabled;
+  const dynamicDisabledReason = resolveDynamicDisabledReason(command, record);
+  const isDisabled =
+    disabled || loading || command.isDisabled || Boolean(dynamicDisabledReason);
 
   return (
     <button
@@ -376,8 +378,10 @@ function CommandButton({
         )
       }
       title={
-        command.isDisabled
-          ? (command.disabledReason ?? command.description)
+        command.isDisabled || dynamicDisabledReason
+          ? (dynamicDisabledReason ??
+            command.disabledReason ??
+            command.description)
           : (command.description ?? command.label)
       }
       type="button"
@@ -389,8 +393,15 @@ function CommandButton({
 }
 
 function CommandMenuButton(props: Parameters<typeof CommandButton>[0]) {
+  const dynamicDisabledReason = resolveDynamicDisabledReason(
+    props.command,
+    props.record,
+  );
   const isDisabled =
-    props.disabled || props.loading || props.command.isDisabled;
+    props.disabled ||
+    props.loading ||
+    props.command.isDisabled ||
+    Boolean(dynamicDisabledReason);
 
   return (
     <button
@@ -410,8 +421,10 @@ function CommandMenuButton(props: Parameters<typeof CommandButton>[0]) {
       }
       role="menuitem"
       title={
-        props.command.isDisabled
-          ? (props.command.disabledReason ?? props.command.description)
+        props.command.isDisabled || dynamicDisabledReason
+          ? (dynamicDisabledReason ??
+            props.command.disabledReason ??
+            props.command.description)
           : (props.command.description ?? props.command.label)
       }
       type="button"
@@ -420,6 +433,23 @@ function CommandMenuButton(props: Parameters<typeof CommandButton>[0]) {
       <span>{props.command.label}</span>
     </button>
   );
+}
+
+function resolveDynamicDisabledReason(
+  command: CommandDefinition,
+  record?: RuntimeRecordData | null,
+) {
+  const config = command.dynamicDisabled;
+  if (!config) return "";
+  if (record?.[config.fieldLogicalName] === config.enabledValue) return "";
+
+  const reason = config.reasonFieldLogicalName
+    ? record?.[config.reasonFieldLogicalName]
+    : undefined;
+
+  return typeof reason === "string" && reason.trim()
+    ? reason
+    : (config.fallbackReason ?? command.disabledReason ?? "");
 }
 
 function normalizeCommandGroups(

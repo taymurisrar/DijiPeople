@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { EnterpriseConfigurationService } from './enterprise-configuration.service';
 import { TenantSettingsResolverService } from './tenant-settings-resolver.service';
@@ -11,6 +12,22 @@ export type ConfigurationResolutionContext = {
   projectId?: string | null;
   module?: string | null;
   effectiveDate?: Date | null;
+};
+
+export type CurrencyResolutionResult = {
+  payrollCurrency: string;
+  reportingCurrency: string;
+  matchedSource:
+    | 'PAYROLL_REGION_WORK_SITE'
+    | 'PAYROLL_REGION_BUSINESS_UNIT'
+    | 'PAYROLL_REGION_ORGANIZATION'
+    | 'PAYROLL_REGION_COUNTRY'
+    | 'TENANT_PROFILE'
+    | 'PLATFORM_FALLBACK';
+  matchedRuleId: string | null;
+  matchedRuleName: string | null;
+  fallbackLevelUsed: number;
+  effectiveDate: Date;
 };
 
 @Injectable()
@@ -68,34 +85,97 @@ export class ConfigurationResolverService {
   }
 
   async resolveCurrency(context: ConfigurationResolutionContext) {
-    const [
-      system,
-      organization,
-      payroll,
-      project,
-      employee,
-      businessUnitSettings,
-    ] = await Promise.all([
+    const resolved = await this.resolvePayrollCurrency(context);
+    return resolved.payrollCurrency;
+  }
+
+  async resolvePayrollCurrency(
+    context: ConfigurationResolutionContext,
+  ): Promise<CurrencyResolutionResult> {
+    const effectiveDate = context.effectiveDate ?? new Date();
+    const [system, organization, employee] = await Promise.all([
       this.tenantSettingsResolver.getSystemSettings(context.tenantId),
       this.tenantSettingsResolver.getOrganizationSettings(context.tenantId),
-      this.tenantSettingsResolver.getPayrollSettingsForBusinessUnit(
-        context.tenantId,
-        context.businessUnitId,
-      ),
-      this.findProject(context),
       this.findEmployee(context),
-      this.findBusinessUnitSettings(context),
     ]);
 
-    return (
-      readString(employee?.user?.preferencesJson, 'currencyCode') ||
-      payroll.defaultCurrency ||
-      project?.currencyCode ||
-      readString(businessUnitSettings, 'currency') ||
-      organization.currency ||
-      system.defaultCurrency ||
-      'USD'
-    );
+    const businessUnitId = context.businessUnitId ?? employee?.businessUnitId;
+    const organizationId =
+      context.organizationId ?? employee?.businessUnit?.organizationId;
+    const locationId = employee?.locationId ?? null;
+    const countryCode =
+      employee?.location?.country ||
+      employee?.country ||
+      employee?.countryLookup?.code ||
+      null;
+
+    const matchers: Array<{
+      source: CurrencyResolutionResult['matchedSource'];
+      where: Prisma.PayrollRegionWhereInput | undefined;
+      fallbackLevel: number;
+    }> = [
+      {
+        source: 'PAYROLL_REGION_WORK_SITE',
+        where: locationId ? { locationId } : undefined,
+        fallbackLevel: 2,
+      },
+      {
+        source: 'PAYROLL_REGION_BUSINESS_UNIT',
+        where: businessUnitId ? { businessUnitId } : undefined,
+        fallbackLevel: 3,
+      },
+      {
+        source: 'PAYROLL_REGION_ORGANIZATION',
+        where: organizationId ? { organizationId } : undefined,
+        fallbackLevel: 3,
+      },
+      {
+        source: 'PAYROLL_REGION_COUNTRY',
+        where: countryCode ? { countryCode } : undefined,
+        fallbackLevel: 4,
+      },
+    ];
+
+    for (const matcher of matchers) {
+      if (!matcher.where) continue;
+      const region = await this.findPayrollRegion(
+        context.tenantId,
+        effectiveDate,
+        matcher.where,
+      );
+      if (!region) continue;
+      return {
+        payrollCurrency: region.currencyCode,
+        reportingCurrency: region.reportingCurrencyCode ?? region.currencyCode,
+        matchedSource: matcher.source,
+        matchedRuleId: region.id,
+        matchedRuleName: region.name,
+        fallbackLevelUsed: matcher.fallbackLevel,
+        effectiveDate,
+      };
+    }
+
+    if (organization.currency) {
+      return {
+        payrollCurrency: organization.currency,
+        reportingCurrency: organization.currency,
+        matchedSource: 'TENANT_PROFILE',
+        matchedRuleId: null,
+        matchedRuleName: null,
+        fallbackLevelUsed: 5,
+        effectiveDate,
+      };
+    }
+
+    return {
+      payrollCurrency: system.defaultCurrency || 'USD',
+      reportingCurrency: system.defaultCurrency || 'USD',
+      matchedSource: 'PLATFORM_FALLBACK',
+      matchedRuleId: null,
+      matchedRuleName: null,
+      fallbackLevelUsed: 6,
+      effectiveDate,
+    };
   }
 
   async resolveLocale(context: ConfigurationResolutionContext) {
@@ -180,6 +260,39 @@ export class ConfigurationResolverService {
     );
   }
 
+  private findPayrollRegion(
+    tenantId: string,
+    effectiveDate: Date,
+    scopeWhere: Prisma.PayrollRegionWhereInput,
+  ) {
+    return this.prisma.payrollRegion.findFirst({
+      where: {
+        tenantId,
+        status: 'ACTIVE',
+        ...scopeWhere,
+        OR: [
+          { effectiveStartDate: null },
+          { effectiveStartDate: { lte: effectiveDate } },
+        ],
+        AND: [
+          {
+            OR: [
+              { effectiveEndDate: null },
+              { effectiveEndDate: { gte: effectiveDate } },
+            ],
+          },
+        ],
+      },
+      orderBy: [{ effectiveStartDate: 'desc' }, { updatedAt: 'desc' }],
+      select: {
+        id: true,
+        name: true,
+        currencyCode: true,
+        reportingCurrencyCode: true,
+      },
+    });
+  }
+
   private findProject(context: ConfigurationResolutionContext) {
     if (!context.projectId) return null;
     return this.prisma.project.findFirst({
@@ -201,6 +314,11 @@ export class ConfigurationResolverService {
       select: {
         id: true,
         businessUnitId: true,
+        locationId: true,
+        country: true,
+        countryLookup: { select: { code: true } },
+        businessUnit: { select: { organizationId: true } },
+        location: { select: { country: true } },
         user: {
           select: {
             preferencesJson: true,

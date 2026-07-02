@@ -33,11 +33,49 @@ export function DashboardWidgetRenderer({
     return <RowsCard mode="table" widget={widget} />;
   }
 
+  if (widget.type === "chart") {
+    return <ChartCard widget={widget} />;
+  }
+
   if (widget.type === "insight-list" || widget.type === "exception-list") {
     return <RowsCard mode="list" widget={widget} />;
   }
 
   return <SummaryCard widget={widget} />;
+}
+
+function ChartCard({ widget }: { widget: DashboardWidget }) {
+  const rows = getRows(widget).map((row) => ({
+    label: formatValue(row.label ?? row.key ?? row.id ?? "Item"),
+    value: Number(row.value ?? 0),
+  }));
+  const maximum = Math.max(...rows.map((row) => row.value), 0);
+  return (
+    <article className="rounded-xl border border-border bg-surface p-5 shadow-sm">
+      <CardHeader widget={widget} />
+      {rows.length ? (
+        <div className="mt-5 grid gap-3">
+          {rows.slice(0, 12).map((row) => (
+            <div className="grid gap-1" key={row.label}>
+              <div className="flex justify-between gap-3 text-xs text-muted">
+                <span>{row.label}</span>
+                <span>{row.value.toLocaleString()}</span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-muted/15">
+                <div
+                  className="h-full rounded-full bg-accent"
+                  style={{ width: `${maximum ? Math.max(2, (row.value / maximum) * 100) : 0}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <EmptyState message={widget.emptyState} />
+      )}
+      <WidgetAction action={widget.action} />
+    </article>
+  );
 }
 
 function MetricCard({ widget }: { widget: DashboardWidget }) {

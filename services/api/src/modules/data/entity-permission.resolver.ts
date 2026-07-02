@@ -22,4 +22,29 @@ export class EntityPermissionResolver {
       );
     }
   }
+
+  assertCan(
+    metadata: EntityMetadata,
+    user: AuthenticatedUser,
+    privilege: SecurityPrivilege,
+  ) {
+    const permissionByPrivilege: Partial<Record<SecurityPrivilege, string>> = {
+      [SecurityPrivilege.READ]: metadata.permissions.read,
+      [SecurityPrivilege.CREATE]: metadata.permissions.create,
+      [SecurityPrivilege.WRITE]: metadata.permissions.update,
+      [SecurityPrivilege.DELETE]: metadata.permissions.delete,
+    };
+    const permission = permissionByPrivilege[privilege];
+    const hasPermission = Boolean(
+      permission && new Set(user.permissionKeys ?? []).has(permission),
+    );
+    const hasRbac =
+      resolveEffectiveAccessLevel(user, metadata.rbacEntityKey, privilege) !==
+      SecurityAccessLevel.NONE;
+    if (!hasPermission || !hasRbac) {
+      throw new ForbiddenException(
+        'You do not have permission to perform this action.',
+      );
+    }
+  }
 }

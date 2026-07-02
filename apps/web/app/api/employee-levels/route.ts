@@ -1,9 +1,17 @@
 import { NextResponse } from "next/server";
+import { proxyBulkDeleteByIds } from "@/app/api/_lib/bulk-delete";
 import { apiRequest, proxyApiJsonResponse } from "@/lib/server-api";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  const query = url.searchParams.toString();
+  const params = new URLSearchParams(url.searchParams);
+
+  if (!params.has("isActive") && !params.has("includeInactive")) {
+    params.set("isActive", "true");
+  }
+
+  params.delete("includeInactive");
+  const query = params.toString();
   const response = await apiRequest(
     `/employee-levels${query ? `?${query}` : ""}`,
     { method: "GET" },
@@ -33,4 +41,12 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
+}
+
+export async function DELETE(request: Request) {
+  return proxyBulkDeleteByIds(request, {
+    apiPath: "/employee-levels",
+    entityLabel: "employee level",
+    entityPluralLabel: "employee levels",
+  });
 }

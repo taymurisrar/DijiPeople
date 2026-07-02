@@ -21,6 +21,17 @@ const attendanceInclude = {
       preferredName: true,
       userId: true,
       managerEmployeeId: true,
+      location: {
+        select: {
+          id: true,
+          name: true,
+          code: true,
+          city: true,
+          state: true,
+          country: true,
+          timezone: true,
+        },
+      },
       departmentId: true,
       department: {
         select: {

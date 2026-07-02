@@ -38,8 +38,13 @@ export class CheckInDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(250)
+  @MaxLength(1000)
   remoteAddressText?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  checkInAddressText?: string;
 
   @IsOptional()
   @IsString()

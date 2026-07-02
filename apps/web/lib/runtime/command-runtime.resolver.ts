@@ -78,7 +78,12 @@ export function filterCommandsByPermission(
   return commands.filter(
     (command) =>
       !command.permission ||
-      hasPermission(principal.permissionKeys, command.permission.permissionKey),
+      hasAnyPermission(
+        principal.permissionKeys,
+        command.permission.anyPermissionKeys?.length
+          ? command.permission.anyPermissionKeys
+          : [command.permission.permissionKey],
+      ),
   );
 }
 
@@ -218,6 +223,10 @@ function evaluateVisibilityRuleValue(
     case "field-not-equals":
       return (
         context.record?.[rule.fieldLogicalName ?? ""] !== rule.expectedValue
+      );
+    case "field-in":
+      return (rule.expectedValues ?? []).includes(
+        context.record?.[rule.fieldLogicalName ?? ""],
       );
     case "record-selected":
       return Boolean(context.selectedRecordIds?.length);

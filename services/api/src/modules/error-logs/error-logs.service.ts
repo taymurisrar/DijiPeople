@@ -161,9 +161,10 @@ export class ErrorLogsService implements OnModuleInit, OnModuleDestroy {
     return formatErrorLogText(log, {
       includeStack:
         traceId.startsWith('client_') ||
-        (this.userCanDownload(user) &&
-          config.includeStack &&
-          config.exposeStackToSystemCustomizer),
+        (config.includeStack &&
+          (this.userOwnsLog(log, user) ||
+            (config.exposeStackToSystemCustomizer &&
+              this.userCanDownload(user)))),
     });
   }
 
@@ -225,6 +226,13 @@ export class ErrorLogsService implements OnModuleInit, OnModuleDestroy {
       roles.has('system-administrator') ||
       roles.has('system-customizer')
     );
+  }
+
+  private userOwnsLog(
+    log: { userId?: string | null },
+    user: { userId?: string },
+  ) {
+    return Boolean(log.userId && user.userId && log.userId === user.userId);
   }
 
   private isErrorLogTableMissing(error: unknown) {

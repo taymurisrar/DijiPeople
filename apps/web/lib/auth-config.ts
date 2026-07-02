@@ -12,6 +12,9 @@ export const REFRESH_TOKEN_COOKIE =
   `${AUTH_COOKIE_PREFIX}_refresh_token`;
 export const SESSION_COOKIE =
   process.env.AUTH_WEB_COOKIE_SESSION_NAME ?? `${AUTH_COOKIE_PREFIX}_session_id`;
+export const TENANT_SLUG_COOKIE =
+  process.env.AUTH_WEB_COOKIE_TENANT_SLUG_NAME ??
+  `${AUTH_COOKIE_PREFIX}_tenant_slug`;
 export const DASHBOARD_ROUTE = "/";
 export const LOGIN_ROUTE = "/login";
 export const DEFAULT_AUTHENTICATED_ROUTE = "/";
@@ -40,6 +43,7 @@ export const PUBLIC_ROUTE_PREFIXES = [
   "/login",
   "/activate",
   "/activate-account",
+  "/reset-password",
   "/api",
   "/_next",
 ] as const;

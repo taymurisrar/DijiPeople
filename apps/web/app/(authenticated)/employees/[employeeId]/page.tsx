@@ -121,6 +121,7 @@ export default async function EmployeeDetailPage({
     forms: runtimeForms,
     views: [],
     recordId: employee.id,
+    employeeSettings: resolvedSettings?.employee,
   });
   const activeRuntimeForm = resolveEmployeeRuntimeForm(
     employeeRuntimeContext.metadata.forms,

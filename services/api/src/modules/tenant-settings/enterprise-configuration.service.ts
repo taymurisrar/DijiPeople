@@ -37,6 +37,18 @@ type EffectiveDateRange = {
   effectiveEndDate: Date | null;
 };
 
+type ExchangeRateData = {
+  fromCurrency: string;
+  toCurrency: string;
+  rate: Prisma.Decimal;
+  effectiveDate: Date;
+  effectiveEndDate: Date | null;
+  source: ExchangeRateSource;
+  isManual: boolean;
+  lockedRate: boolean;
+  status: ConfigurationStatus;
+};
+
 @Injectable()
 export class EnterpriseConfigurationService {
   constructor(
@@ -78,6 +90,10 @@ export class EnterpriseConfigurationService {
     });
   }
 
+  async getHolidayCalendar(tenantId: string, id: string) {
+    return this.findHolidayCalendarOrThrow(tenantId, id);
+  }
+
   async createHolidayCalendar(
     currentUser: AuthenticatedUser,
     body: Record<string, unknown>,
@@ -89,6 +105,9 @@ export class EnterpriseConfigurationService {
     await this.assertNoOverlappingHolidayCalendar(currentUser.tenantId, {
       ...scope,
       ...dateRange,
+      countryCode: normalizeCountryCode(body.countryCode),
+      regionCode: readNullableString(body.regionCode),
+      timezone: normalizeTimezone(body.timezone) ?? 'UTC',
       idToExclude: null,
     });
 
@@ -144,9 +163,24 @@ export class EnterpriseConfigurationService {
     const dateRange = readDateRangeWithFallback(body, existing);
     validateDateRange(dateRange);
     await this.assertValidScopedReferences(currentUser.tenantId, scope);
+    const countryCode =
+      body.countryCode !== undefined
+        ? normalizeCountryCode(body.countryCode)
+        : existing.countryCode;
+    const regionCode =
+      body.regionCode !== undefined
+        ? readNullableString(body.regionCode)
+        : existing.regionCode;
+    const timezone =
+      body.timezone !== undefined
+        ? (normalizeTimezone(body.timezone) ?? 'UTC')
+        : existing.timezone;
     await this.assertNoOverlappingHolidayCalendar(currentUser.tenantId, {
       ...scope,
       ...dateRange,
+      countryCode,
+      regionCode,
+      timezone,
       idToExclude: id,
     });
 
@@ -171,15 +205,9 @@ export class EnterpriseConfigurationService {
           organizationId: scope.organizationId,
           businessUnitId: scope.businessUnitId,
           projectId: scope.projectId,
-          ...(body.timezone !== undefined
-            ? { timezone: normalizeTimezone(body.timezone) ?? 'UTC' }
-            : {}),
-          ...(body.countryCode !== undefined
-            ? { countryCode: normalizeCountryCode(body.countryCode) }
-            : {}),
-          ...(body.regionCode !== undefined
-            ? { regionCode: readNullableString(body.regionCode) }
-            : {}),
+          ...(body.timezone !== undefined ? { timezone } : {}),
+          ...(body.countryCode !== undefined ? { countryCode } : {}),
+          ...(body.regionCode !== undefined ? { regionCode } : {}),
           ...(body.weekendDays !== undefined
             ? {
                 weekendDays:
@@ -288,6 +316,7 @@ export class EnterpriseConfigurationService {
       holidayDate,
       null,
     );
+    await this.assertValidHolidayScope(currentUser.tenantId, body);
 
     const holiday = await this.prisma.holiday.create({
       data: {
@@ -351,6 +380,11 @@ export class EnterpriseConfigurationService {
       nextDate,
       holidayId,
     );
+    await this.assertValidHolidayScope(currentUser.tenantId, {
+      scopeType: body.scopeType ?? existing.scopeType,
+      departmentId: body.departmentId ?? existing.departmentId,
+      locationId: body.locationId ?? existing.locationId,
+    });
 
     const holiday = await this.prisma.holiday.update({
       where: { id: holidayId },
@@ -487,7 +521,7 @@ export class EnterpriseConfigurationService {
 
   async listWorkSchedules(tenantId: string, query: Record<string, unknown>) {
     const search = readString(query.search);
-    return this.prisma.workSchedule.findMany({
+    const schedules = await this.prisma.workSchedule.findMany({
       where: {
         tenantId,
         ...(search
@@ -506,6 +540,24 @@ export class EnterpriseConfigurationService {
       },
       orderBy: [{ isDefault: 'desc' }, { name: 'asc' }],
     });
+
+    return schedules.map(withDefaultShiftTemplateId);
+  }
+
+  async getWorkSchedule(tenantId: string, id: string) {
+    const schedule = await this.prisma.workSchedule.findFirst({
+      where: { tenantId, id },
+      include: {
+        days: {
+          include: { shiftTemplate: true },
+          orderBy: [{ sortOrder: 'asc' }],
+        },
+        shiftTemplates: true,
+        holidayCalendar: true,
+      },
+    });
+    if (!schedule) throw new NotFoundException('Work schedule was not found.');
+    return withDefaultShiftTemplateId(schedule);
   }
 
   async createWorkSchedule(
@@ -540,7 +592,7 @@ export class EnterpriseConfigurationService {
       null,
       schedule,
     );
-    return schedule;
+    return withDefaultShiftTemplateId(schedule);
   }
 
   async updateWorkSchedule(
@@ -557,11 +609,20 @@ export class EnterpriseConfigurationService {
     const data = this.readWorkScheduleData(currentUser, body, existing);
     await this.assertValidScopedReferences(currentUser.tenantId, data.scope);
     await this.assertWorkConfigurationReferences(currentUser.tenantId, body);
+    const hasDefaultShiftTemplate =
+      Object.prototype.hasOwnProperty.call(body, 'defaultShiftTemplateId');
+    const defaultShiftTemplateId = hasDefaultShiftTemplate
+      ? readNullableString(body.defaultShiftTemplateId)
+      : undefined;
+    const shouldRebuildDefaultDays =
+      hasDefaultShiftTemplate && !Array.isArray(body.days);
+    const workingDays = new Set(data.update.weeklyWorkDays);
+
     const schedule = await this.prisma.$transaction(async (tx) => {
       if (Array.isArray(body.days)) {
         await tx.workScheduleDay.deleteMany({ where: { workScheduleId: id } });
       }
-      return tx.workSchedule.update({
+      const updatedSchedule = await tx.workSchedule.update({
         where: { id },
         data: {
           ...data.update,
@@ -583,6 +644,62 @@ export class EnterpriseConfigurationService {
           holidayCalendar: true,
         },
       });
+
+      if (shouldRebuildDefaultDays) {
+        if (updatedSchedule.days.length === 0) {
+          await tx.workScheduleDay.createMany({
+            data: readScheduleDays(
+              undefined,
+              currentUser.tenantId,
+              defaultShiftTemplateId,
+            ).map((day) => ({
+              ...day,
+              workScheduleId: id,
+              isWorkingDay: workingDays.has(day.dayOfWeek),
+              shiftTemplateId: workingDays.has(day.dayOfWeek)
+                ? defaultShiftTemplateId
+                : null,
+            })),
+          });
+        } else {
+          await tx.workScheduleDay.updateMany({
+            where: {
+              workScheduleId: id,
+              tenantId: currentUser.tenantId,
+              dayOfWeek: { in: [...workingDays] },
+            },
+            data: {
+              isWorkingDay: true,
+              shiftTemplateId: defaultShiftTemplateId ?? null,
+            },
+          });
+          await tx.workScheduleDay.updateMany({
+            where: {
+              workScheduleId: id,
+              tenantId: currentUser.tenantId,
+              dayOfWeek: { notIn: [...workingDays] },
+            },
+            data: {
+              isWorkingDay: false,
+              shiftTemplateId: null,
+            },
+          });
+        }
+
+        return tx.workSchedule.findUniqueOrThrow({
+          where: { id },
+          include: {
+            days: {
+              include: { shiftTemplate: true },
+              orderBy: [{ sortOrder: 'asc' }],
+            },
+            shiftTemplates: true,
+            holidayCalendar: true,
+          },
+        });
+      }
+
+      return updatedSchedule;
     });
     await this.audit(
       currentUser,
@@ -592,7 +709,7 @@ export class EnterpriseConfigurationService {
       existing,
       schedule,
     );
-    return schedule;
+    return withDefaultShiftTemplateId(schedule);
   }
 
   async deleteWorkSchedule(currentUser: AuthenticatedUser, id: string) {
@@ -628,6 +745,15 @@ export class EnterpriseConfigurationService {
       include: { workSchedule: { select: { id: true, name: true } } },
       orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
     });
+  }
+
+  async getShiftTemplate(tenantId: string, id: string) {
+    const shift = await this.prisma.shiftTemplate.findFirst({
+      where: { tenantId, id },
+      include: { workSchedule: { select: { id: true, name: true } } },
+    });
+    if (!shift) throw new NotFoundException('Shift was not found.');
+    return shift;
   }
 
   async createShiftTemplate(
@@ -707,6 +833,26 @@ export class EnterpriseConfigurationService {
       },
       orderBy: [{ isActive: 'desc' }, { effectiveFrom: 'desc' }],
     });
+  }
+
+  async getEmployeeScheduleAssignment(tenantId: string, id: string) {
+    const assignment = await this.prisma.employeeScheduleAssignment.findFirst({
+      where: { tenantId, id },
+      include: {
+        employee: {
+          select: {
+            id: true,
+            employeeCode: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        workSchedule: { select: { id: true, name: true, code: true } },
+      },
+    });
+    if (!assignment)
+      throw new NotFoundException('Schedule assignment was not found.');
+    return assignment;
   }
 
   async createEmployeeScheduleAssignment(
@@ -805,9 +951,30 @@ export class EnterpriseConfigurationService {
   async listPayrollRegions(tenantId: string) {
     return this.prisma.payrollRegion.findMany({
       where: { tenantId },
-      include: { holidayCalendar: true, workSchedule: true },
+      include: {
+        businessUnit: true,
+        holidayCalendar: true,
+        location: true,
+        organization: true,
+        workSchedule: true,
+      },
       orderBy: [{ isDefault: 'desc' }, { name: 'asc' }],
     });
+  }
+
+  async getPayrollRegion(tenantId: string, id: string) {
+    const region = await this.prisma.payrollRegion.findFirst({
+      where: { tenantId, id },
+      include: {
+        businessUnit: true,
+        holidayCalendar: true,
+        location: true,
+        organization: true,
+        workSchedule: true,
+      },
+    });
+    if (!region) throw new NotFoundException('Payroll region was not found.');
+    return region;
   }
 
   async createPayrollRegion(
@@ -815,13 +982,25 @@ export class EnterpriseConfigurationService {
     body: Record<string, unknown>,
   ) {
     const data = await this.readPayrollRegionData(currentUser.tenantId, body);
+    if (data.status === 'ACTIVE') {
+      await this.assertNoOverlappingPayrollRegion(currentUser.tenantId, {
+        ...data,
+        idToExclude: null,
+      });
+    }
     const region = await this.prisma.payrollRegion.create({
       data: {
         ...data,
         createdById: currentUser.userId,
         updatedById: currentUser.userId,
       },
-      include: { holidayCalendar: true, workSchedule: true },
+      include: {
+        businessUnit: true,
+        holidayCalendar: true,
+        location: true,
+        organization: true,
+        workSchedule: true,
+      },
     });
     await this.audit(
       currentUser,
@@ -848,10 +1027,22 @@ export class EnterpriseConfigurationService {
       body,
       existing,
     );
+    if (data.status === 'ACTIVE') {
+      await this.assertNoOverlappingPayrollRegion(currentUser.tenantId, {
+        ...data,
+        idToExclude: id,
+      });
+    }
     const region = await this.prisma.payrollRegion.update({
       where: { id },
       data: { ...data, updatedById: currentUser.userId },
-      include: { holidayCalendar: true, workSchedule: true },
+      include: {
+        businessUnit: true,
+        holidayCalendar: true,
+        location: true,
+        organization: true,
+        workSchedule: true,
+      },
     });
     await this.audit(
       currentUser,
@@ -887,78 +1078,6 @@ export class EnterpriseConfigurationService {
     return { id, archived: true };
   }
 
-  async listCurrencyConfigurations(tenantId: string) {
-    return this.prisma.currencyConfiguration.findMany({
-      where: { tenantId },
-      orderBy: [{ effectiveStartDate: 'desc' }],
-    });
-  }
-
-  async upsertCurrencyConfiguration(
-    currentUser: AuthenticatedUser,
-    body: Record<string, unknown>,
-  ) {
-    const scope = readScope(body);
-    const effectiveStartDate = requiredDate(
-      body.effectiveStartDate,
-      'Effective start date is required.',
-    );
-    const effectiveEndDate = readDate(body.effectiveEndDate);
-    validateDateRange({ effectiveStartDate, effectiveEndDate });
-    await this.assertNoOverlappingCurrencyConfiguration(currentUser.tenantId, {
-      ...scope,
-      effectiveStartDate,
-      effectiveEndDate,
-      idToExclude: readString(body.id),
-    });
-    const payload = {
-      tenantId: currentUser.tenantId,
-      ...scope,
-      transactionalCurrency: normalizeCurrencyCode(
-        requiredString(
-          body.transactionalCurrency,
-          'Transactional currency is required.',
-        ),
-      ),
-      reportingCurrency: normalizeCurrencyCode(
-        requiredString(
-          body.reportingCurrency,
-          'Reporting currency is required.',
-        ),
-      ),
-      effectiveStartDate,
-      effectiveEndDate,
-      status: readEnum(body.status, ConfigurationStatus) ?? 'ACTIVE',
-      updatedById: currentUser.userId,
-    };
-
-    const id = readString(body.id);
-    const existing = id
-      ? await this.prisma.currencyConfiguration.findFirst({
-          where: { tenantId: currentUser.tenantId, id },
-        })
-      : null;
-    const config = existing
-      ? await this.prisma.currencyConfiguration.update({
-          where: { id: existing.id },
-          data: payload,
-        })
-      : await this.prisma.currencyConfiguration.create({
-          data: { ...payload, createdById: currentUser.userId },
-        });
-    await this.audit(
-      currentUser,
-      existing
-        ? 'currency-configuration.update'
-        : 'currency-configuration.create',
-      'CurrencyConfiguration',
-      config.id,
-      existing,
-      config,
-    );
-    return config;
-  }
-
   async listExchangeRates(tenantId: string, query: Record<string, unknown>) {
     return this.prisma.exchangeRateSnapshot.findMany({
       where: {
@@ -979,30 +1098,29 @@ export class EnterpriseConfigurationService {
     });
   }
 
+  async getExchangeRate(tenantId: string, id: string) {
+    const snapshot = await this.prisma.exchangeRateSnapshot.findFirst({
+      where: { tenantId, id },
+    });
+    if (!snapshot) throw new NotFoundException('Exchange rate was not found.');
+    return snapshot;
+  }
+
   async createExchangeRate(
     currentUser: AuthenticatedUser,
     body: Record<string, unknown>,
   ) {
-    const rate = Number(body.rate);
-    if (!Number.isFinite(rate) || rate <= 0) {
-      throw new BadRequestException('Exchange rate must be greater than zero.');
+    const data = this.readExchangeRateData(body);
+    if (data.status === 'ACTIVE') {
+      await this.assertNoOverlappingExchangeRate(currentUser.tenantId, {
+        ...data,
+        idToExclude: null,
+      });
     }
     const snapshot = await this.prisma.exchangeRateSnapshot.create({
       data: {
         tenantId: currentUser.tenantId,
-        fromCurrency: normalizeCurrencyCode(
-          requiredString(body.fromCurrency, 'From currency is required.'),
-        ),
-        toCurrency: normalizeCurrencyCode(
-          requiredString(body.toCurrency, 'To currency is required.'),
-        ),
-        rate: new Prisma.Decimal(rate),
-        effectiveDate: requiredDate(
-          body.effectiveDate,
-          'Effective date is required.',
-        ),
-        source: readEnum(body.source, ExchangeRateSource) ?? 'MANUAL',
-        isManual: readBoolean(body.isManual) ?? true,
+        ...data,
         createdById: currentUser.userId,
         updatedById: currentUser.userId,
       },
@@ -1016,6 +1134,57 @@ export class EnterpriseConfigurationService {
       snapshot,
     );
     return snapshot;
+  }
+
+  async updateExchangeRate(
+    currentUser: AuthenticatedUser,
+    id: string,
+    body: Record<string, unknown>,
+  ) {
+    const existing = await this.prisma.exchangeRateSnapshot.findFirst({
+      where: { tenantId: currentUser.tenantId, id },
+    });
+    if (!existing) throw new NotFoundException('Exchange rate was not found.');
+    const data = this.readExchangeRateData(body, existing);
+    if (data.status === 'ACTIVE') {
+      await this.assertNoOverlappingExchangeRate(currentUser.tenantId, {
+        ...data,
+        idToExclude: id,
+      });
+    }
+    const snapshot = await this.prisma.exchangeRateSnapshot.update({
+      where: { id },
+      data: { ...data, updatedById: currentUser.userId },
+    });
+    await this.audit(
+      currentUser,
+      'exchange-rate.update',
+      'ExchangeRateSnapshot',
+      id,
+      existing,
+      snapshot,
+    );
+    return snapshot;
+  }
+
+  async deleteExchangeRate(currentUser: AuthenticatedUser, id: string) {
+    const existing = await this.prisma.exchangeRateSnapshot.findFirst({
+      where: { tenantId: currentUser.tenantId, id },
+    });
+    if (!existing) throw new NotFoundException('Exchange rate was not found.');
+    const snapshot = await this.prisma.exchangeRateSnapshot.update({
+      where: { id },
+      data: { status: 'ARCHIVED', updatedById: currentUser.userId },
+    });
+    await this.audit(
+      currentUser,
+      'exchange-rate.archive',
+      'ExchangeRateSnapshot',
+      id,
+      existing,
+      snapshot,
+    );
+    return { id, archived: true };
   }
 
   async resolveExchangeRate(
@@ -1032,7 +1201,12 @@ export class EnterpriseConfigurationService {
         tenantId,
         fromCurrency: from,
         toCurrency: to,
+        status: 'ACTIVE',
         effectiveDate: { lte: effectiveDate },
+        OR: [
+          { effectiveEndDate: null },
+          { effectiveEndDate: { gte: effectiveDate } },
+        ],
       },
       orderBy: [{ effectiveDate: 'desc' }],
     });
@@ -1042,7 +1216,12 @@ export class EnterpriseConfigurationService {
         tenantId,
         fromCurrency: to,
         toCurrency: from,
+        status: 'ACTIVE',
         effectiveDate: { lte: effectiveDate },
+        OR: [
+          { effectiveEndDate: null },
+          { effectiveEndDate: { gte: effectiveDate } },
+        ],
       },
       orderBy: [{ effectiveDate: 'desc' }],
     });
@@ -1395,14 +1574,57 @@ export class EnterpriseConfigurationService {
       code: string;
       organizationId: string | null;
       businessUnitId: string | null;
+      locationId?: string | null;
+      countryCode?: string | null;
+      regionCode?: string | null;
       currencyCode: string;
+      reportingCurrencyCode?: string | null;
       timezone: string;
+      effectiveStartDate?: Date | null;
+      effectiveEndDate?: Date | null;
     },
   ) {
-    const scope = readScopeWithFallback(body, existing);
+    const scope = readPayrollRegionScopeWithFallback(body, existing);
     await this.assertValidScopedReferences(tenantId, scope);
+    const locationId =
+      body.locationId !== undefined
+        ? readNullableString(body.locationId)
+        : (existing?.locationId ?? null);
+    if (locationId) {
+      const location = await this.prisma.location.findFirst({
+        where: { tenantId, id: locationId },
+      });
+      if (!location) throw new BadRequestException('Work site was not found.');
+    }
     const holidayCalendarId = readNullableString(body.holidayCalendarId);
     const workScheduleId = readNullableString(body.workScheduleId);
+    const effectiveStartDate = requiredDate(
+      body.effectiveStartDate ?? existing?.effectiveStartDate,
+      'Effective from is required.',
+    );
+    const effectiveEndDate =
+      body.effectiveEndDate !== undefined
+        ? readDate(body.effectiveEndDate)
+        : (existing?.effectiveEndDate ?? null);
+    validateDateRange({ effectiveStartDate, effectiveEndDate });
+    const countryCode =
+      body.countryCode !== undefined
+        ? normalizeCountryCode(body.countryCode)
+        : (existing?.countryCode ?? null);
+    const regionCode =
+      body.regionCode !== undefined
+        ? readNullableString(body.regionCode)
+        : (existing?.regionCode ?? null);
+    if (
+      !scope.organizationId &&
+      !scope.businessUnitId &&
+      !locationId &&
+      !countryCode
+    ) {
+      throw new BadRequestException(
+        'Choose a country/region, organization, business unit, or work site for this payroll region.',
+      );
+    }
     if (holidayCalendarId) {
       await this.findHolidayCalendarOrThrow(tenantId, holidayCalendarId);
     }
@@ -1427,12 +1649,18 @@ export class EnterpriseConfigurationService {
       currencyCode: normalizeCurrencyCode(
         requiredString(
           body.currencyCode ?? existing?.currencyCode,
-          'Currency code is required.',
+          'Payroll currency is required.',
         ),
       ),
-      reportingCurrencyCode: body.reportingCurrencyCode
-        ? normalizeCurrencyCode(String(body.reportingCurrencyCode))
-        : null,
+      reportingCurrencyCode: normalizeCurrencyCode(
+        requiredString(
+          body.reportingCurrencyCode ?? existing?.reportingCurrencyCode,
+          'Reporting currency is required.',
+        ),
+      ),
+      locationId,
+      countryCode,
+      regionCode,
       timezone: normalizeTimezone(body.timezone ?? existing?.timezone) ?? 'UTC',
       payCycle: readEnum(body.payCycle, PayCycle) ?? 'MONTHLY',
       taxRegion: readNullableString(body.taxRegion),
@@ -1447,9 +1675,71 @@ export class EnterpriseConfigurationService {
       ],
       holidayCalendarId,
       workScheduleId,
+      effectiveStartDate,
+      effectiveEndDate,
       isDefault: readBoolean(body.isDefault) ?? false,
       status: readEnum(body.status, ConfigurationStatus) ?? 'ACTIVE',
     } satisfies Prisma.PayrollRegionUncheckedCreateInput;
+  }
+
+  private readExchangeRateData(
+    body: Record<string, unknown>,
+    existing?: {
+      fromCurrency: string;
+      toCurrency: string;
+      rate: Prisma.Decimal;
+      effectiveDate: Date;
+      effectiveEndDate: Date | null;
+      source: ExchangeRateSource;
+      isManual: boolean;
+      lockedRate: boolean;
+      status: ConfigurationStatus;
+    },
+  ): ExchangeRateData {
+    const rate = readNumber(body.rate) ?? existing?.rate?.toNumber();
+    if (!Number.isFinite(rate) || !rate || rate <= 0) {
+      throw new BadRequestException('Exchange rate must be greater than zero.');
+    }
+    const effectiveDate = requiredDate(
+      body.effectiveDate ?? existing?.effectiveDate,
+      'Effective from is required.',
+    );
+    const effectiveEndDate =
+      body.effectiveEndDate !== undefined
+        ? readDate(body.effectiveEndDate)
+        : (existing?.effectiveEndDate ?? null);
+    validateDateRange({
+      effectiveStartDate: effectiveDate,
+      effectiveEndDate,
+    });
+
+    return {
+      fromCurrency: normalizeCurrencyCode(
+        requiredString(
+          body.fromCurrency ?? existing?.fromCurrency,
+          'From currency is required.',
+        ),
+      ),
+      toCurrency: normalizeCurrencyCode(
+        requiredString(
+          body.toCurrency ?? existing?.toCurrency,
+          'To currency is required.',
+        ),
+      ),
+      rate: new Prisma.Decimal(rate),
+      effectiveDate,
+      effectiveEndDate,
+      source:
+        readEnum(body.source, ExchangeRateSource) ??
+        existing?.source ??
+        'MANUAL',
+      isManual: readBoolean(body.isManual) ?? existing?.isManual ?? true,
+      lockedRate: readBoolean(body.lockedRate) ?? existing?.lockedRate ?? false,
+      status:
+        readEnum(body.status, ConfigurationStatus) ??
+        existing?.status ??
+        'ACTIVE',
+    };
   }
 
   private async findHolidayCalendarOrThrow(tenantId: string, id: string) {
@@ -1499,21 +1789,64 @@ export class EnterpriseConfigurationService {
     }
   }
 
+  private async assertValidHolidayScope(
+    tenantId: string,
+    source: Record<string, unknown>,
+  ) {
+    const scopeType = readEnum(source.scopeType, HolidayScopeType);
+    if (scopeType === HolidayScopeType.DEPARTMENT) {
+      const departmentId = readString(source.departmentId);
+      if (!departmentId) {
+        throw new BadRequestException(
+          'Department is required for this holiday.',
+        );
+      }
+      const department = await this.prisma.department.findFirst({
+        where: { tenantId, id: departmentId },
+        select: { id: true },
+      });
+      if (!department) {
+        throw new BadRequestException('Department was not found.');
+      }
+    }
+    if (scopeType === HolidayScopeType.WORK_SITE) {
+      const locationId = readString(source.locationId);
+      if (!locationId) {
+        throw new BadRequestException(
+          'Work site is required for this holiday.',
+        );
+      }
+      const location = await this.prisma.location.findFirst({
+        where: { tenantId, id: locationId },
+        select: { id: true },
+      });
+      if (!location) {
+        throw new BadRequestException('Work site was not found.');
+      }
+    }
+  }
+
   private async assertNoOverlappingHolidayCalendar(
     tenantId: string,
     input: ScopeInput &
       EffectiveDateRange & {
+        countryCode?: string | null;
+        regionCode?: string | null;
+        timezone?: string | null;
         idToExclude: string | null;
       },
   ) {
     const overlaps = await this.prisma.holidayCalendar.findFirst({
       where: {
         tenantId,
-        status: { not: 'ARCHIVED' },
+        status: 'ACTIVE',
         ...(input.idToExclude ? { id: { not: input.idToExclude } } : {}),
         organizationId: input.organizationId ?? null,
         businessUnitId: input.businessUnitId ?? null,
         projectId: input.projectId ?? null,
+        countryCode: input.countryCode ?? null,
+        regionCode: input.regionCode ?? null,
+        timezone: input.timezone ?? 'UTC',
         OR: overlapWhere(input.effectiveStartDate, input.effectiveEndDate),
       },
     });
@@ -1524,26 +1857,65 @@ export class EnterpriseConfigurationService {
     }
   }
 
-  private async assertNoOverlappingCurrencyConfiguration(
+  private async assertNoOverlappingPayrollRegion(
     tenantId: string,
     input: ScopeInput &
       EffectiveDateRange & {
+        locationId?: string | null;
+        countryCode?: string | null;
+        regionCode?: string | null;
         idToExclude: string | null;
       },
   ) {
-    const overlaps = await this.prisma.currencyConfiguration.findFirst({
+    const overlaps = await this.prisma.payrollRegion.findFirst({
       where: {
         tenantId,
-        status: { not: 'ARCHIVED' },
+        status: 'ACTIVE',
         ...(input.idToExclude ? { id: { not: input.idToExclude } } : {}),
         organizationId: input.organizationId ?? null,
         businessUnitId: input.businessUnitId ?? null,
+        locationId: input.locationId ?? null,
+        countryCode: input.countryCode ?? null,
+        regionCode: input.regionCode ?? null,
         OR: overlapWhere(input.effectiveStartDate, input.effectiveEndDate),
       },
     });
     if (overlaps) {
       throw new ConflictException(
-        'Another currency configuration already overlaps this scope and date range.',
+        'An active payroll region already overlaps this scope and effective date range.',
+      );
+    }
+  }
+
+  private async assertNoOverlappingExchangeRate(
+    tenantId: string,
+    input: {
+      fromCurrency: string;
+      toCurrency: string;
+      effectiveDate: Date;
+      effectiveEndDate?: Date | null;
+      idToExclude: string | null;
+    },
+  ) {
+    const normalizedEnd =
+      input.effectiveEndDate ?? new Date('9999-12-31T00:00:00.000Z');
+    const overlaps = await this.prisma.exchangeRateSnapshot.findFirst({
+      where: {
+        tenantId,
+        status: 'ACTIVE',
+        ...(input.idToExclude ? { id: { not: input.idToExclude } } : {}),
+        fromCurrency: input.fromCurrency,
+        toCurrency: input.toCurrency,
+        effectiveDate: { lte: normalizedEnd },
+        OR: [
+          { effectiveEndDate: null },
+          { effectiveEndDate: { gte: input.effectiveDate } },
+        ],
+      },
+    });
+    if (overlaps) {
+      throw new ConflictException(
+        'An active exchange rate already overlaps this currency pair and effective date range.',
       );
     }
   }
@@ -1620,6 +1992,22 @@ function readScopeWithFallback(
   };
 }
 
+function readPayrollRegionScopeWithFallback(
+  source: Record<string, unknown>,
+  existing?: ScopeInput | null,
+): Pick<ScopeInput, 'organizationId' | 'businessUnitId'> {
+  return {
+    organizationId:
+      source.organizationId !== undefined
+        ? readNullableString(source.organizationId)
+        : (existing?.organizationId ?? null),
+    businessUnitId:
+      source.businessUnitId !== undefined
+        ? readNullableString(source.businessUnitId)
+        : (existing?.businessUnitId ?? null),
+  };
+}
+
 function readDateRange(source: Record<string, unknown>): EffectiveDateRange {
   return {
     effectiveStartDate: readDate(source.effectiveStartDate),
@@ -1641,6 +2029,38 @@ function readDateRangeWithFallback(
         ? readDate(source.effectiveEndDate)
         : (existing?.effectiveEndDate ?? null),
   };
+}
+
+function withDefaultShiftTemplateId<
+  T extends {
+    days?: readonly {
+      isWorkingDay: boolean;
+      shiftTemplateId: string | null;
+    }[];
+  },
+>(schedule: T) {
+  return {
+    ...schedule,
+    defaultShiftTemplateId: resolveDefaultShiftTemplateId(schedule.days ?? []),
+  };
+}
+
+function resolveDefaultShiftTemplateId(
+  days: readonly {
+    isWorkingDay: boolean;
+    shiftTemplateId: string | null;
+  }[],
+) {
+  const shiftIds = [
+    ...new Set(
+      days
+        .filter((day) => day.isWorkingDay)
+        .map((day) => day.shiftTemplateId)
+        .filter((shiftId): shiftId is string => Boolean(shiftId)),
+    ),
+  ];
+
+  return shiftIds.length === 1 ? shiftIds[0] : null;
 }
 
 function readScheduleDays(

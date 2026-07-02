@@ -8,6 +8,7 @@ import { Prisma } from '@prisma/client';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { CURRENCY_OPTIONS } from '../lookups/lookups.catalog';
 import {
   AddTaxRulePayComponentDto,
   CreateTaxRuleBracketDto,
@@ -40,6 +41,11 @@ export class TaxRulesService {
 
   async create(user: AuthenticatedUser, dto: CreateTaxRuleDto) {
     await this.assertEmployeeLevel(user.tenantId, dto.employeeLevelId);
+    await this.assertReferenceData(
+      dto.countryCode,
+      dto.regionCode,
+      dto.currencyCode,
+    );
     const effectiveFrom = parseDate(dto.effectiveFrom);
     const effectiveTo = parseOptionalDate(dto.effectiveTo);
     assertEffectiveDates(effectiveFrom, effectiveTo);
@@ -83,6 +89,11 @@ export class TaxRulesService {
   async update(user: AuthenticatedUser, id: string, dto: UpdateTaxRuleDto) {
     const existing = await this.findRule(user.tenantId, id);
     await this.assertEmployeeLevel(user.tenantId, dto.employeeLevelId);
+    await this.assertReferenceData(
+      dto.countryCode !== undefined ? dto.countryCode : existing.countryCode,
+      dto.regionCode !== undefined ? dto.regionCode : existing.regionCode,
+      dto.currencyCode !== undefined ? dto.currencyCode : existing.currencyCode,
+    );
     const effectiveFrom = dto.effectiveFrom
       ? parseDate(dto.effectiveFrom)
       : existing.effectiveFrom;
@@ -376,6 +387,59 @@ export class TaxRulesService {
       throw new BadRequestException(
         'Active employee level was not found for this tenant.',
       );
+  }
+
+  private async assertReferenceData(
+    countryValue?: string | null,
+    regionValue?: string | null,
+    currencyValue?: string | null,
+  ) {
+    const countryCode = normalizeOptional(countryValue);
+    const regionCode = normalizeOptional(regionValue);
+    const currencyCode = normalizeOptional(currencyValue);
+
+    if (
+      currencyCode &&
+      !CURRENCY_OPTIONS.some((currency) => currency.code === currencyCode)
+    ) {
+      throw new BadRequestException(
+        'Select a currency from the configured currency options.',
+      );
+    }
+
+    if (regionCode && !countryCode) {
+      throw new BadRequestException(
+        'Select a country before selecting a region.',
+      );
+    }
+
+    if (!countryCode) return;
+
+    const country = await this.prisma.country.findFirst({
+      where: { code: countryCode, isActive: true },
+      select: { id: true },
+    });
+    if (!country) {
+      throw new BadRequestException(
+        'Select a country from the active country lookup.',
+      );
+    }
+
+    if (!regionCode) return;
+
+    const region = await this.prisma.stateProvince.findFirst({
+      where: {
+        countryId: country.id,
+        code: regionCode,
+        isActive: true,
+      },
+      select: { id: true },
+    });
+    if (!region) {
+      throw new BadRequestException(
+        'Select an active region belonging to the selected country.',
+      );
+    }
   }
 
   private async assertNoBracketOverlap(

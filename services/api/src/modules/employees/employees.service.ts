@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import {
   EmployeeEmploymentStatus,
+  EmployeeBenefitAssignmentSource,
   Prisma,
   SecurityPrivilege,
   UserStatus,
@@ -49,6 +50,7 @@ import {
 } from '../tenant-settings/tenant-settings-resolver.service';
 import { TenantSettingsService } from '../tenant-settings/tenant-settings.service';
 import { BulkDeleteEmployeesDto } from './dto/bulk-delete-employees.dto';
+import { BenefitsService } from '../benefits/benefits.service';
 
 type CsvFile = {
   filename: string;
@@ -121,7 +123,6 @@ function employeeValidationError(
 function emergencyContactFieldErrors(input: {
   emergencyContactName?: string | null;
   emergencyContactRelationTypeId?: string | null;
-  emergencyContactRelation?: string | null;
   emergencyContactPhone?: string | null;
 }) {
   const errors: Array<{ field: string; message: string }> = [];
@@ -131,13 +132,10 @@ function emergencyContactFieldErrors(input: {
       message: 'Emergency contact name is required.',
     });
   }
-  if (
-    !input.emergencyContactRelationTypeId?.trim() &&
-    !input.emergencyContactRelation?.trim()
-  ) {
+  if (!input.emergencyContactRelationTypeId?.trim()) {
     errors.push({
       field: 'emergencyContactRelationTypeId',
-      message: 'Emergency contact relationship is required.',
+      message: 'Emergency contact relation type is required.',
     });
   }
   if (!input.emergencyContactPhone?.trim()) {
@@ -222,6 +220,7 @@ export class EmployeesService {
     private readonly duplicateRuleEngine: DuplicateRuleEngine,
     private readonly tenantSettingsService: TenantSettingsService,
     private readonly employeeAccessService: EmployeeAccessService,
+    private readonly benefitsService: BenefitsService,
   ) {}
 
   async findByTenant(currentUser: AuthenticatedUser, query: EmployeeQueryDto) {
@@ -794,6 +793,7 @@ export class EmployeesService {
       dto.cityId,
       dto.emergencyContactRelationTypeId,
       dto.workEmail,
+      employeeSettings,
     );
 
     this.validateDateRules(dto);
@@ -862,6 +862,13 @@ export class EmployeesService {
       });
     }
 
+    await this.assignDefaultBenefitsSafely(
+      currentUser,
+      createdEmployeeId,
+      EmployeeBenefitAssignmentSource.HIRING,
+      new Date(createDto.hireDate),
+    );
+
     return this.findById(tenantId, createdEmployeeId);
   }
 
@@ -924,7 +931,11 @@ export class EmployeesService {
       dto.reportingManagerEmployeeId,
       dto.userId,
       dto.departmentId,
-      dto.designationId,
+      dto.designationId !== undefined
+        ? dto.designationId
+        : dto.employeeLevelId !== undefined
+          ? (employee.designationId ?? undefined)
+          : undefined,
       dto.employeeLevelId,
       dto.locationId,
       dto.officialJoiningLocationId,
@@ -934,6 +945,7 @@ export class EmployeesService {
       dto.cityId,
       dto.emergencyContactRelationTypeId,
       dto.workEmail,
+      employeeSettings,
       employeeId,
     );
     this.validateDateRules(dto);
@@ -970,6 +982,18 @@ export class EmployeesService {
         beforeSnapshot,
         afterSnapshot: updatedEmployee,
       });
+
+      if (
+        dto.employeeLevelId !== undefined &&
+        dto.employeeLevelId !== employee.employeeLevelId
+      ) {
+        await this.assignDefaultBenefitsSafely(
+          currentUser,
+          employeeId,
+          EmployeeBenefitAssignmentSource.PROMOTION,
+          new Date(),
+        );
+      }
 
       if (dto.provisionSystemAccess) {
         await this.provisionEmployeeUserAccess(currentUser, employeeId, {
@@ -1842,6 +1866,7 @@ export class EmployeesService {
     cityId?: string,
     emergencyContactRelationTypeId?: string,
     workEmail?: string,
+    settings?: EmployeeSettingsResolved,
     employeeId?: string,
   ) {
     let linkedUserEmail: string | undefined;
@@ -1849,12 +1874,14 @@ export class EmployeesService {
     let countryName: string | undefined;
     let stateProvinceName: string | undefined;
     let cityName: string | undefined;
+    let effectiveEmployeeLevelId = employeeLevelId?.trim() || undefined;
 
     if (reportingManagerEmployeeId) {
       await this.validateManagerAssignment(
         tenantId,
         employeeId,
         reportingManagerEmployeeId,
+        settings,
       );
     }
 
@@ -1900,11 +1927,15 @@ export class EmployeesService {
           'Selected designation does not belong to this tenant.',
         );
       }
+
+      if (designation.employeeLevelId) {
+        effectiveEmployeeLevelId = designation.employeeLevelId;
+      }
     }
 
-    if (employeeLevelId) {
+    if (effectiveEmployeeLevelId) {
       const employeeLevel = await this.prisma.employeeLevel.findFirst({
-        where: { tenantId, id: employeeLevelId, isActive: true },
+        where: { tenantId, id: effectiveEmployeeLevelId, isActive: true },
         select: { id: true },
       });
 
@@ -2029,6 +2060,7 @@ export class EmployeesService {
       countryName,
       stateProvinceName,
       cityName,
+      effectiveEmployeeLevelId,
     };
   }
 
@@ -2036,6 +2068,7 @@ export class EmployeesService {
     tenantId: string,
     employeeId: string | undefined,
     managerEmployeeId?: string,
+    settings?: EmployeeSettingsResolved,
   ) {
     if (!managerEmployeeId) {
       return;
@@ -2062,6 +2095,7 @@ export class EmployeesService {
         tenantId,
         employeeId,
         managerEmployeeId,
+        settings?.maxReportingLevels,
       );
     }
   }
@@ -2070,6 +2104,7 @@ export class EmployeesService {
     tenantId: string,
     employeeId: string,
     managerEmployeeId: string,
+    maxReportingLevels = 50,
   ) {
     const visited = new Set<string>();
     let currentManagerId: string | null | undefined = managerEmployeeId;
@@ -2091,9 +2126,9 @@ export class EmployeesService {
       visited.add(currentManagerId);
       depth += 1;
 
-      if (depth > 50) {
+      if (depth > maxReportingLevels) {
         throw new BadRequestException(
-          'Hierarchy depth is too large to validate safely.',
+          `Reporting hierarchy cannot exceed ${maxReportingLevels} levels.`,
         );
       }
 
@@ -2141,8 +2176,14 @@ export class EmployeesService {
         'Designation is required by tenant employee settings.',
       );
     }
+    if (settings.requireJoiningDate && !dto.hireDate) {
+      throw new BadRequestException(
+        'Joining date is required by tenant employee settings.',
+      );
+    }
     if (
-      settings.requireReportingManager &&
+      (settings.requireReportingManager ||
+        !settings.allowEmployeeWithoutManager) &&
       !dto.reportingManagerEmployeeId?.trim()
     ) {
       throw new BadRequestException(
@@ -2176,11 +2217,6 @@ export class EmployeesService {
       'emergencyContactRelationTypeId',
       employee.emergencyContactRelationTypeId,
     );
-    const nextEmergencyContactRelation = getUpdateDtoValue(
-      dto,
-      'emergencyContactRelation',
-      employee.emergencyContactRelation,
-    );
     const nextEmergencyContactPhone = getUpdateDtoValue(
       dto,
       'emergencyContactPhone',
@@ -2206,6 +2242,7 @@ export class EmployeesService {
       'locationId',
       employee.locationId,
     );
+    const nextHireDate = getUpdateDtoValue(dto, 'hireDate', employee.hireDate);
     const nextStatus = dto.employmentStatus ?? employee.employmentStatus;
 
     if (settings.requirePersonalEmail && !nextPersonalEmail?.trim()) {
@@ -2217,7 +2254,6 @@ export class EmployeesService {
       const fieldErrors = emergencyContactFieldErrors({
         emergencyContactName: nextEmergencyContactName,
         emergencyContactRelationTypeId: nextEmergencyContactRelationTypeId,
-        emergencyContactRelation: nextEmergencyContactRelation,
         emergencyContactPhone: nextEmergencyContactPhone,
       });
       if (fieldErrors.length) {
@@ -2226,6 +2262,35 @@ export class EmployeesService {
           fieldErrors,
         );
       }
+    }
+    if (settings.requireDepartment && !nextDepartmentId) {
+      throw new BadRequestException(
+        'Department is required by tenant employee settings.',
+      );
+    }
+    if (settings.requireDesignation && !nextDesignationId) {
+      throw new BadRequestException(
+        'Designation is required by tenant employee settings.',
+      );
+    }
+    if (settings.requireJoiningDate && !nextHireDate) {
+      throw new BadRequestException(
+        'Joining date is required by tenant employee settings.',
+      );
+    }
+    if (
+      (settings.requireReportingManager ||
+        !settings.allowEmployeeWithoutManager) &&
+      !nextManagerId
+    ) {
+      throw new BadRequestException(
+        'Reporting manager is required by tenant employee settings.',
+      );
+    }
+    if (settings.requireWorkLocation && !nextLocationId) {
+      throw new BadRequestException(
+        'Work location is required by tenant employee settings.',
+      );
     }
     if (
       settings.preventActivationUntilMandatoryFieldsCompleted &&
@@ -2241,7 +2306,16 @@ export class EmployeesService {
           'Designation is required before employee activation.',
         );
       }
-      if (settings.requireReportingManager && !nextManagerId) {
+      if (settings.requireJoiningDate && !nextHireDate) {
+        throw new BadRequestException(
+          'Joining date is required before employee activation.',
+        );
+      }
+      if (
+        (settings.requireReportingManager ||
+          !settings.allowEmployeeWithoutManager) &&
+        !nextManagerId
+      ) {
         throw new BadRequestException(
           'Reporting manager is required before employee activation.',
         );
@@ -2309,6 +2383,7 @@ export class EmployeesService {
       countryName?: string;
       stateProvinceName?: string;
       cityName?: string;
+      effectiveEmployeeLevelId?: string;
     },
   ): Prisma.EmployeeUncheckedCreateInput {
     const employeeCode = dto.employeeCode?.trim();
@@ -2369,7 +2444,9 @@ export class EmployeesService {
       departmentId: dto.departmentId?.trim(),
       businessUnitId: dto.businessUnitId?.trim(),
       designationId: dto.designationId?.trim(),
-      employeeLevelId: dto.employeeLevelId?.trim(),
+      employeeLevelId:
+        referenceLabels?.effectiveEmployeeLevelId ??
+        dto.employeeLevelId?.trim(),
       locationId: dto.locationId,
       defaultWorkScheduleId: dto.defaultWorkScheduleId,
       officialJoiningLocationId: dto.officialJoiningLocationId,
@@ -2394,6 +2471,7 @@ export class EmployeesService {
       countryName?: string;
       stateProvinceName?: string;
       cityName?: string;
+      effectiveEmployeeLevelId?: string;
     },
   ): Prisma.EmployeeUncheckedUpdateInput {
     const data: Prisma.EmployeeUncheckedUpdateInput = {
@@ -2596,8 +2674,14 @@ export class EmployeesService {
       data.designationId = dto.designationId?.trim() ?? null;
     }
 
-    if (dto.employeeLevelId !== undefined) {
-      data.employeeLevelId = dto.employeeLevelId?.trim() ?? null;
+    if (
+      dto.employeeLevelId !== undefined ||
+      referenceLabels?.effectiveEmployeeLevelId !== undefined
+    ) {
+      data.employeeLevelId =
+        referenceLabels?.effectiveEmployeeLevelId ??
+        dto.employeeLevelId?.trim() ??
+        null;
     }
 
     if (dto.locationId !== undefined) {
@@ -2766,6 +2850,7 @@ export class EmployeesService {
             id: employee.designation.id,
             name: employee.designation.name,
             level: employee.designation.level,
+            employeeLevelId: employee.designation.employeeLevelId,
             isActive: employee.designation.isActive,
           }
         : null,
@@ -2936,6 +3021,38 @@ export class EmployeesService {
     }
 
     throw error;
+  }
+
+  private async assignDefaultBenefitsSafely(
+    user: AuthenticatedUser,
+    employeeId: string,
+    source: EmployeeBenefitAssignmentSource,
+    effectiveDate: Date,
+  ) {
+    try {
+      await this.benefitsService.assignDefaults(
+        user,
+        employeeId,
+        source,
+        effectiveDate,
+      );
+    } catch (error) {
+      await this.auditService.log({
+        tenantId: user.tenantId,
+        actorUserId: user.userId,
+        action: 'EMPLOYEE_DEFAULT_BENEFITS_ASSIGNMENT_FAILED',
+        entityType: 'Employee',
+        entityId: employeeId,
+        sourceModule: 'benefits',
+        afterSnapshot: {
+          source,
+          message:
+            error instanceof Error
+              ? error.message
+              : 'Default benefit assignment failed.',
+        },
+      });
+    }
   }
 
   private validateDateRules(

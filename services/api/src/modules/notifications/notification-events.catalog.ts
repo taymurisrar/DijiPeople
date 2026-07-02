@@ -60,6 +60,25 @@ export const NOTIFICATION_EVENT_CATALOG: NotificationEventDefinition[] = [
     systemTemplateKey: 'auth.otp',
   },
   {
+    code: 'BILLING_INVOICE_ISSUED',
+    name: 'Invoice issued',
+    description: 'Sent when a platform invoice is issued or manually emailed.',
+    category: NotificationEventCategory.SYSTEM,
+    defaultChannels: [NotificationChannel.EMAIL],
+    enabledByDefault: true,
+    systemTemplateKey: 'BILLING_INVOICE_ISSUED',
+  },
+  {
+    code: 'PAYSLIP_AVAILABLE',
+    name: 'Payslip available',
+    description:
+      'Sent when a published payslip is available in employee self-service.',
+    category: NotificationEventCategory.PAYROLL,
+    defaultChannels: [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+    enabledByDefault: true,
+    systemTemplateKey: 'PAYSLIP_AVAILABLE',
+  },
+  {
     code: 'LEAVE_APPROVAL_REQUEST',
     name: 'Leave approval request',
     description: 'Sent to approvers when a leave request requires action.',
@@ -211,6 +230,55 @@ export const NOTIFICATION_EVENT_CATALOG: NotificationEventDefinition[] = [
     enabledByDefault: true,
     systemTemplateKey: 'payroll.processed',
   },
+  {
+    code: 'LOAN_APPROVAL_REQUESTED',
+    name: 'Loan approval requested',
+    description: 'Sent when an employee loan request requires approval.',
+    category: NotificationEventCategory.APPROVAL,
+    defaultChannels: [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+    enabledByDefault: true,
+  },
+  {
+    code: 'CLAIM_APPROVAL_REQUESTED',
+    name: 'Claim approval requested',
+    description: 'Sent when an employee claim requires approval.',
+    category: NotificationEventCategory.APPROVAL,
+    defaultChannels: [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+    enabledByDefault: true,
+  },
+  {
+    code: 'CLAIM_APPROVED',
+    name: 'Claim approved',
+    description: 'Sent when a claim completes its approval route.',
+    category: NotificationEventCategory.PAYROLL,
+    defaultChannels: [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+    enabledByDefault: true,
+  },
+  {
+    code: 'CLAIM_REJECTED',
+    name: 'Claim rejected',
+    description: 'Sent when an approval assignee rejects a claim.',
+    category: NotificationEventCategory.APPROVAL,
+    defaultChannels: [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+    enabledByDefault: true,
+  },
+  {
+    code: 'LOAN_APPROVED',
+    name: 'Loan approved',
+    description:
+      'Sent when a loan is approved and its repayment schedule is active.',
+    category: NotificationEventCategory.PAYROLL,
+    defaultChannels: [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+    enabledByDefault: true,
+  },
+  {
+    code: 'LOAN_REJECTED',
+    name: 'Loan rejected',
+    description: 'Sent when a loan request is rejected.',
+    category: NotificationEventCategory.APPROVAL,
+    defaultChannels: [NotificationChannel.IN_APP, NotificationChannel.EMAIL],
+    enabledByDefault: true,
+  },
 ];
 
 export const SYSTEM_EMAIL_TEMPLATE_PLACEHOLDERS: SystemEmailTemplateSeed[] =
@@ -263,6 +331,48 @@ function createSystemTemplateSeed(
       textTemplate:
         'Hello {{recipientName}},\n\nA password reset was requested for your {{appName}} account at {{tenantName}}.\n\nReset your password using this link: {{resetUrl}}\n\nThis link expires at {{expiresAt}}.\n\nIf you did not request this change, you can ignore this email or contact {{supportEmail}}.',
       availableVariables: authTemplateVariables('resetUrl'),
+      status: EmailTemplateStatus.ACTIVE,
+      version: 1,
+      isSystem: true,
+    };
+  }
+
+  if (event.code === 'BILLING_INVOICE_ISSUED') {
+    return {
+      scopeKey: NOTIFICATION_SYSTEM_SCOPE_KEY,
+      eventCode: event.code,
+      templateKey: 'BILLING_INVOICE_ISSUED',
+      name: 'Invoice issued email',
+      description: 'System template for platform invoice delivery.',
+      subjectTemplate: 'Invoice {{invoiceNumber}} from {{platformName}}',
+      htmlTemplate: [
+        '<div style="font-family:Inter,Arial,sans-serif;line-height:1.6;color:#0f172a">',
+        '<h1 style="margin:0 0 12px">Invoice {{invoiceNumber}}</h1>',
+        '<p>Hello {{recipientName}},</p>',
+        '<p>Your invoice for {{tenantName}} has been issued.</p>',
+        '<table style="border-collapse:collapse;margin:16px 0">',
+        '<tr><td style="padding:6px 16px 6px 0;color:#64748b">Amount due</td><td style="padding:6px 0;font-weight:700">{{currency}} {{amountDue}}</td></tr>',
+        '<tr><td style="padding:6px 16px 6px 0;color:#64748b">Due date</td><td style="padding:6px 0">{{dueDate}}</td></tr>',
+        '<tr><td style="padding:6px 16px 6px 0;color:#64748b">Billing period</td><td style="padding:6px 0">{{billingPeriod}}</td></tr>',
+        '</table>',
+        '<p>{{paymentInstructions}}</p>',
+        '<p>If you need help, contact {{supportEmail}}.</p>',
+        '</div>',
+      ].join(''),
+      textTemplate:
+        'Hello {{recipientName}},\n\nInvoice {{invoiceNumber}} for {{tenantName}} has been issued.\n\nAmount due: {{currency}} {{amountDue}}\nDue date: {{dueDate}}\nBilling period: {{billingPeriod}}\n\n{{paymentInstructions}}\n\nSupport: {{supportEmail}}',
+      availableVariables: {
+        platformName: 'Platform billing name',
+        tenantName: 'Tenant display name',
+        recipientName: 'Recipient display name',
+        invoiceNumber: 'Invoice number',
+        currency: 'Invoice currency',
+        amountDue: 'Outstanding amount due',
+        dueDate: 'Invoice due date',
+        billingPeriod: 'Subscription billing period',
+        paymentInstructions: 'Payment instructions',
+        supportEmail: 'Support email address',
+      },
       status: EmailTemplateStatus.ACTIVE,
       version: 1,
       isSystem: true,

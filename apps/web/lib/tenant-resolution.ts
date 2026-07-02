@@ -67,16 +67,6 @@ export function getTenantHintFromRequest(input: {
     return hostHint;
   }
 
-  const fallbackSlug = getDefaultTenantSlug();
-
-  if (fallbackSlug) {
-    return {
-      type: "slug",
-      value: fallbackSlug,
-      source: "fallback",
-    };
-  }
-
   const queryTenant = input.queryTenant?.trim() ?? "";
 
   if (queryTenant) {
@@ -93,6 +83,16 @@ export function getTenantHintFromRequest(input: {
         source: "query",
       };
     }
+  }
+
+  const fallbackSlug = getDefaultTenantSlug();
+
+  if (fallbackSlug) {
+    return {
+      type: "slug",
+      value: fallbackSlug,
+      source: "fallback",
+    };
   }
 
   return {

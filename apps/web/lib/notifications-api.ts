@@ -140,12 +140,15 @@ export type RenderedTemplate = {
   usedVariables: string[];
 };
 
+const API_ERROR_HANDLING_HEADER = "x-dijipeople-error-handling";
+
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`/api/notifications${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
+      [API_ERROR_HANDLING_HEADER]: "inline",
       ...(init?.headers ?? {}),
     },
   });

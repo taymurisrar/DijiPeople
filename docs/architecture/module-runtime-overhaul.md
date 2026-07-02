@@ -67,6 +67,174 @@ New runtime documentation and reusable component names must use DijiPeople terms
 
 ## Generic Module Runtime Page Contract
 
+### Settings Runtime
+
+Settings Runtime applies the Module Runtime page contract to tenant
+configuration. Its registry owns category, group, item, permissions, APIs,
+Views, Forms, Fields, Lookups, Choice Lists, Action Bars, Data Transfer,
+validation, formatters, soft delete, and Timeline metadata. Root, category,
+group, list, detail, create, and edit pages are thin metadata renderers and
+CRUD executes through `ModuleDataAdapter`.
+
+`SettingsShell` resolves the same registry for nested breadcrumbs and the
+category -> group -> item tree. This keeps navigation, route resolution, and
+page context synchronized and gives future settings modules one registration
+point instead of another handcrafted page family.
+
+Generic configuration concepts without a domain aggregate persist in
+`TenantConfigurationRecord`. Its controller allowlists registered keys,
+enforces tenant scope and Settings permissions, validates effective dates,
+soft-archives, and audits mutations. Benefits, Banks, Loan Policies, Payroll
+Periods, Approval Matrices, Claims, Tax, GL, and Notifications retain dedicated
+domain adapters.
+
+Payroll foundation runtime registrations cover Payroll Runs, Payslips, Loan
+Requests, Employee Benefit Assignments, and protected Employee Bank Accounts.
+Shared list, create where supported, detail, Form, Lookup, formatting, and
+Action Bar behavior comes from Module Runtime. Domain commands such as payroll
+calculation/lock, payslip publish/void/download, loan approval/settlement,
+benefit suspension/consumption, and bank verification remain command-oriented
+detail behavior rather than being misrepresented as field edits.
+
+## Payroll Finance Foundation
+
+`payroll-manager` (Finance / Payroll Manager) is the separate seeded security
+role from HR. It owns payroll
+calculation and finalization, protected employee bank-account verification,
+claim payroll approval, and loan approval/settlement. HR receives payroll
+visibility only where explicitly granted; manager and ordinary HR access does
+not imply access to unmasked bank, salary, tax, or loan data.
+
+### Release 1 Operational Payroll Center
+
+Payroll operations remain a domain-owned Module Runtime surface, separate from
+the Settings configuration plane. `/payroll/dashboard` composes existing
+Dashboard sections and Widget renderers; `/payroll/exceptions` projects the
+existing payroll-readiness exceptions through the standard Module list runtime;
+and run Preview uses frozen `PayrollRunEmployee` and line-item values with the
+shared DataTable and Dashboard aggregation widgets.
+
+The run lifecycle is Prepare, Validate, Preview, Finalize, Generate Payslips,
+Generate Bank Export, and Mark Disbursed. Finalization resolves the generic
+`PAYROLL_RUN` Approval Matrix when configured. Every state transition, bank
+export, payslip generation/delivery, and PDF download is audit-backed. Bank
+exports use provider contracts (`CSV`, `EXCEL`, and
+`GENERIC_BANK_TRANSFER`) so future bank layouts do not alter payroll business
+logic. Payslip PDFs reuse the platform document/PDF engine and render frozen
+payslip snapshots, never live compensation or benefit values.
+
+Payslip delivery state is deliberately provider-boundary language: Queued,
+Sent to provider, Failed, or Resent to provider. A provider acceptance does not
+claim recipient delivery without a provider receipt. Payslip PDFs identify the
+employer, employee, period, frozen payroll lines, Gross Earnings, deductions,
+taxes, reimbursements, and Net Salary so the document can serve as payroll and
+finance proof.
+
+Operational finance permissions remain separate: Payroll Manager owns
+finalization, export, disbursement, and delivery; HR may receive scoped
+read/download access but not disbursement; Manager receives no payroll finance
+records; ESS receives published own-payslip view/download only.
+
+Employee payroll bank accounts are tenant-scoped and effective-dated. API
+responses mask account number and IBAN, audit snapshots are masked, and only
+one account is promoted as the primary payroll account at a time. Bank master
+records are tenant-owned lookups rather than free-text bank configuration.
+
+Loans use tenant loan policies, a generic approval-tracker record, an immutable
+repayment schedule after approval, and payroll-linked installments. Payroll
+creates a `LOAN` input snapshot and payslip-visible deduction for each due
+installment. Recalculation detaches the installment and restores the balance;
+inclusion reduces the outstanding balance and settles the loan at zero. Early
+settlement is audited and respects the policy flag.
+
+Loan submission must resolve `LOAN_REQUEST` Approval Matrix rows and create the
+generic Approval Request, Steps, and Assignments. Loan approve/reject commands
+may finalize the domain record only after the shared approval engine accepts
+the assigned user's action. A tracker-only mirror without assignments is not a
+valid loan approval workflow.
+
+### Generic Approval Ownership
+
+The Approvals module owns approval-matrix persistence, condition matching,
+route resolution, assignments, actions, tracker history, authorization, and
+transactional audit. Domain modules such as Leave and Loans are consumers;
+Approvals must never import a domain module or its repository.
+
+Matrix resolution is tenant-scoped and supports module plus record type,
+organization (the current legal-entity boundary), Business Unit, Department,
+Employee Level, amount and duration ranges, effective dates, and the applicable
+Leave Type, Leave Policy, Claim Type, or Loan Policy. A JSON conditions object
+may carry future exact-match attributes without creating a module-specific
+resolver. Steps remain sequential, while assignments within a step use
+`ANY_ONE` or `ALL`. Consumer-provided fallbacks are allowed only when no matrix
+route resolves; reusable fallback policy does not belong in a domain module.
+
+Shared matrix DTOs and contracts live under Approvals. Temporary Leave DTO
+exports exist only for route/source compatibility and must not acquire business
+logic. Claims, Salary Revision, Attendance Correction, Payroll Unlock, and
+future modules consume the same resolver contract and may not introduce fixed
+approval chains.
+
+Claims consume that contract directly. Submission resolves `CLAIM_REQUEST`
+matrices using record type, all Claim Types represented by its lines, approved
+amount, currency, employee, Organization, Business Unit, Department, and
+Employee Level. The legacy manager-approve and payroll-approve routes remain
+compatibility command names, but both action only the current generic
+assignment; they do not select or bypass a fixed step. A Claim becomes
+`PAYROLL_APPROVED` only after the shared Approval Request reaches final
+approval. Rejection and cancellation also write shared Approval Actions and
+tracker history.
+
+Payroll includes Claim lines only when the Claim completed approval on or
+before the Payroll Period cutoff and the line transaction date is on or before
+that cutoff. If no cutoff is configured, period end is the boundary. Approved
+amounts and Claim metadata are frozen into payroll input snapshots; late or
+future lines remain available for a later cycle.
+
+Loan installment claiming and outstanding-balance mutation are one database
+transaction. Draft payroll recalculation restores loan, claim, business-trip,
+and time inputs in the same cleanup transaction. A calculation exception
+cleans draft inputs and marks the run failed, so a partial run cannot retain a
+consumed installment.
+
+Payroll readiness considers employees hired by period end who are Active,
+Probation, Notice, or terminated inside the period. Inactive employees and
+employees terminated before the period are excluded. A verified primary bank
+account blocks only compensation that produces a positive disbursement; a
+genuine zero-pay compensation does not create a false bank-account blocker.
+
+### Benefits And Eligibility Engine
+
+Benefits are tenant-owned, effective-dated policies resolved by reusable scope
+rules rather than module-specific conditions. A policy may target Organization
+(the current legal-entity boundary), country, Business Unit, Department, Work
+Site, Employee Level, Employee Type, completed probation, service duration,
+employment status, contract type, and work mode. Policies distinguish benefit
+type from payroll category: allowance, reimbursement, employer-paid plan, perk,
+earning, and deduction can use a fixed amount or percentage of base
+compensation without hardcoded benefit names.
+
+Employee Benefit Assignments are the durable entitlement record. They support
+policy, manual, hiring, and promotion sources; effective and expiry dates;
+active, suspended, expired, cancelled, and pending-approval lifecycle; manual
+overrides; renewal dates; allocated, consumed, and remaining balances; and
+audited consumption records. ESS returns only employee-visible assignments and
+masks sensitive amounts unless the caller has `benefits.read-sensitive`.
+
+Manual assignment and assignment changes may require a
+`BENEFIT_ASSIGNMENT` Approval Matrix. Benefits pass policy and action through
+generic matrix conditions and use the shared Approval Request, Steps,
+Assignments, Actions, authorization, tracker, and audit. Benefits does not own
+a fixed approver chain.
+
+Payroll resolves active eligible assignments at period end. Required missing
+assignments, invalid payroll categories, and unsupported currency mismatches
+are readiness blockers. Payroll-visible values become ordinary earning,
+allowance, reimbursement, deduction, or employer-contribution line items with
+their taxable, gross/net, and payslip flags. The complete calculated benefit is
+stored as a `BENEFIT` Payroll Input Snapshot. Payslips copy payroll line items;
+they never read live Benefit Policy or Assignment values.
+
 A reusable Module page receives a `moduleKey`, resolves published Module metadata, then renders only metadata-driven regions. Page code must not hardcode Module-specific Fields, Views, Forms, routes, permissions, Actions, or related data. Runtime pages use adapters and Action handlers; they never call Module APIs directly.
 
 ## Module List Page Contract
@@ -2556,3 +2724,10 @@ Validation date: 2026-06-11.
 - Release decision: GO WITH ACCEPTED RISKS. Custom Widget execution remains
   intentionally disabled; legacy warning-only typing and image optimization
   debt is non-blocking.
+## Release 2 operational dashboards and related records (June 2026)
+
+Release 2 reuses the shared dashboard section/widget renderers and exposes secured role destinations at `/hr/dashboard`, `/manager/dashboard`, `/me/dashboard`, and `/executive/dashboard`. The API constructs only views authorized for the current principal; manager and executive aggregates retain employee/business-unit scope, and executive payroll cost is omitted unless the caller has payroll read permission.
+
+Related lists now resolve their transport from `RelatedSubgridMetadata.api`, with a generic Data API convention fallback. Module adapters no longer need relationship-name branches. Employee compensation history uses the same relationship contract. Previous Employment and Education retain customizable form tab keys but render as full form-tab experiences, rather than subgrid tabs.
+
+Holiday records are managed as audited children of a selected Work Calendar through the existing tenant configuration endpoints. The Settings runtime now routes the Holidays entry to this parent-child editor instead of displaying a blocker.

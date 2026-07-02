@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type { RuntimeCustomizationForm } from "@/lib/customization-forms";
 import type {
   EntityMetadata,
@@ -17,10 +17,12 @@ import {
   CheckboxField,
   DateField,
   LookupField,
+  MultiSelectField,
   NumberField,
   SelectField,
   TextAreaField,
   TextField,
+  TimeField,
   type LookupOption,
 } from "@/app/components/ui/form-control";
 import { ModuleRelatedSubgrid } from "@/app/components/runtime/module-related-subgrid";
@@ -30,10 +32,24 @@ import { debugRuntime } from "@/lib/runtime/runtime-debug";
 import { resolveSafeFieldMetadata } from "@/lib/runtime/security-runtime.resolver";
 import { formatRuntimeFieldValue } from "@/lib/runtime/runtime-value-formatter";
 
-type FieldValueMap = Record<
+export type FieldValueMap = Record<
   string,
   string | number | boolean | readonly string[] | null | undefined
 >;
+
+type ValuesChangeDeriver = (input: {
+  readonly changedField: FieldMetadata;
+  readonly lookupOptions: Record<string, readonly LookupOption[]>;
+  readonly nextValues: FieldValueMap;
+  readonly previousValues: FieldValueMap;
+}) => FieldValueMap;
+
+type FieldEditabilityResolver = (input: {
+  readonly defaultEditable: boolean;
+  readonly field: FieldMetadata;
+  readonly formField: FormFieldMetadata;
+  readonly values: FieldValueMap;
+}) => boolean;
 
 type CustomizationFormRendererProps = {
   readonly form: RuntimeCustomizationForm;
@@ -52,8 +68,11 @@ type RuntimeFormRendererProps = {
   readonly touchedFields?: ReadonlySet<string>;
   readonly dataAdapter?: ModuleDataAdapter;
   readonly onValuesChange?: (values: FieldValueMap) => void;
+  readonly deriveValuesOnChange?: ValuesChangeDeriver;
+  readonly resolveFieldEditable?: FieldEditabilityResolver;
   readonly runtime?: ModuleRuntimeContext;
   readonly values: FieldValueMap;
+  readonly tabContent?: Readonly<Record<string, ReactNode>>;
 };
 
 type RuntimeMetadataFormRendererProps =
@@ -96,8 +115,11 @@ export function RuntimeMetadataFormRenderer(
         touchedFields={props.touchedFields}
         dataAdapter={props.dataAdapter}
         onValuesChange={props.onValuesChange}
+        deriveValuesOnChange={props.deriveValuesOnChange}
+        resolveFieldEditable={props.resolveFieldEditable}
         runtime={props.runtime}
         values={props.values}
+        tabContent={props.tabContent}
       />
     );
   }
@@ -172,7 +194,10 @@ function RuntimeFormMetadataRenderer({
   dataAdapter,
   fieldErrors = {},
   onValuesChange,
+  deriveValuesOnChange,
+  resolveFieldEditable,
   runtime,
+  tabContent,
   touchedFields,
   values,
 }: {
@@ -185,8 +210,11 @@ function RuntimeFormMetadataRenderer({
   readonly touchedFields?: ReadonlySet<string>;
   readonly dataAdapter?: ModuleDataAdapter;
   readonly onValuesChange?: (values: FieldValueMap) => void;
+  readonly deriveValuesOnChange?: ValuesChangeDeriver;
+  readonly resolveFieldEditable?: FieldEditabilityResolver;
   readonly runtime?: ModuleRuntimeContext;
   readonly values: FieldValueMap;
+  readonly tabContent?: Readonly<Record<string, ReactNode>>;
 }) {
   const fieldsByName = new Map(
     entity.fields.map((field) => [field.logicalName, field]),
@@ -196,6 +224,9 @@ function RuntimeFormMetadataRenderer({
   const [dynamicLookupOptions, setDynamicLookupOptions] = useState<
     Record<string, readonly LookupOption[]>
   >({});
+  const [hydratedLookupFields, setHydratedLookupFields] = useState<
+    ReadonlySet<string>
+  >(() => new Set());
   const allowedWidgetComponentIds = useMemo(
     () => resolveAllowedWidgetComponentIds(form),
     [form],
@@ -220,7 +251,9 @@ function RuntimeFormMetadataRenderer({
       ) : null}
 
       <div className="p-5">
-        {activeTab?.type === "related_module" ? (
+        {activeTab && tabContent?.[activeTab.tabKey] ? (
+          tabContent[activeTab.tabKey]
+        ) : activeTab?.type === "related_module" ? (
           activeTab.subgrid ? (
             <ModuleRelatedSubgrid
               dataAdapter={dataAdapter}
@@ -258,13 +291,22 @@ function RuntimeFormMetadataRenderer({
             lookupDisplayValues={lookupDisplayValues}
             lookupOptions={{ ...lookupOptions, ...dynamicLookupOptions }}
             mode={mode}
+            hydratedLookupFields={hydratedLookupFields}
             onLookupOptionsChange={(fieldLogicalName, options) =>
               setDynamicLookupOptions((current) => ({
                 ...current,
                 [fieldLogicalName]: options,
               }))
             }
+            onLookupHydrated={(fieldLogicalName) =>
+              setHydratedLookupFields((current) => {
+                if (current.has(fieldLogicalName)) return current;
+                return new Set([...current, fieldLogicalName]);
+              })
+            }
             onValuesChange={onValuesChange}
+            deriveValuesOnChange={deriveValuesOnChange}
+            resolveFieldEditable={resolveFieldEditable}
             runtime={runtime}
             sections={visibleSections}
             touchedFields={touchedFields}
@@ -285,10 +327,10 @@ function RuntimeSectionColumns({
   readonly sections: readonly FormSectionMetadata[];
 } & Omit<Parameters<typeof RuntimeSection>[0], "section">) {
   const regularSections = sections.filter(
-    (section) => (section.columnSpan ?? 1) < columnCount,
+    (section) => !isFullWidthRuntimeSection(section, columnCount),
   );
   const fullWidthSections = sections.filter(
-    (section) => (section.columnSpan ?? 1) >= columnCount,
+    (section) => isFullWidthRuntimeSection(section, columnCount),
   );
 
   return (
@@ -335,6 +377,31 @@ function resolveQuickCreateForm(
         form.formType === "quickCreate" &&
         form.entityLogicalName === relatedEntityLogicalName,
     ) ?? null
+  );
+}
+
+function isFormFieldVisible(
+  formField: FormFieldMetadata,
+  values: FieldValueMap,
+) {
+  if (formField.visibilityRuleKey === "attendance.hideWorkSiteOnRemote") {
+    return values.attendanceMode !== "REMOTE";
+  }
+
+  return true;
+}
+
+function isFullWidthRuntimeSection(
+  section: FormSectionMetadata,
+  columnCount: 1 | 2 | 3 | 4,
+) {
+  if ((section.columnSpan ?? 1) >= columnCount) return true;
+
+  return (section.components ?? []).some(
+    (component) =>
+      component.type === "widget" &&
+      (component.widgetType === "agent_desktop" ||
+        (component.columnSpan ?? 1) >= columnCount),
   );
 }
 
@@ -400,9 +467,13 @@ function RuntimeSection({
   lookupDisplayValues,
   lookupOptions,
   mode,
+  hydratedLookupFields,
   fieldErrors,
   onLookupOptionsChange,
+  onLookupHydrated,
   onValuesChange,
+  deriveValuesOnChange,
+  resolveFieldEditable,
   runtime,
   section,
   allowedWidgetComponentIds,
@@ -415,12 +486,16 @@ function RuntimeSection({
   readonly lookupDisplayValues: Record<string, string>;
   readonly lookupOptions: Record<string, readonly LookupOption[]>;
   readonly mode: "detail" | "edit" | "new";
+  readonly hydratedLookupFields: ReadonlySet<string>;
   readonly fieldErrors: Record<string, readonly string[]>;
   readonly onLookupOptionsChange?: (
     fieldLogicalName: string,
     options: readonly LookupOption[],
   ) => void;
+  readonly onLookupHydrated?: (fieldLogicalName: string) => void;
   readonly onValuesChange?: (values: FieldValueMap) => void;
+  readonly deriveValuesOnChange?: ValuesChangeDeriver;
+  readonly resolveFieldEditable?: FieldEditabilityResolver;
   readonly runtime?: ModuleRuntimeContext;
   readonly section: FormSectionMetadata;
   readonly allowedWidgetComponentIds: ReadonlySet<string>;
@@ -429,7 +504,9 @@ function RuntimeSection({
 }) {
   const visibleFields = section.fields.filter(
     (field) =>
-      field.isVisible !== false && fieldsByName.has(field.fieldLogicalName),
+      field.isVisible !== false &&
+      fieldsByName.has(field.fieldLogicalName) &&
+      isFormFieldVisible(field, values),
   );
   const visibleComponents = (section.components ?? []).filter(
     (component) =>
@@ -438,6 +515,93 @@ function RuntimeSection({
       (component.type !== "widget" ||
         allowedWidgetComponentIds.has(component.id)),
   );
+  const lookupHydrationKey = visibleFields
+    .map((formField) => fieldsByName.get(formField.fieldLogicalName))
+    .filter(
+      (field): field is FieldMetadata =>
+        field !== undefined && field.dataType === "lookup",
+    )
+    .map((field) =>
+      [
+        field.logicalName,
+        field.dependsOnFieldId
+          ? String(values[field.dependsOnFieldId] ?? "")
+          : "",
+      ].join(":"),
+    )
+    .join("|");
+
+  useEffect(() => {
+    const getLookupOptions = dataAdapter?.getLookupOptions;
+    if (mode === "detail" || !getLookupOptions || !runtime) {
+      return;
+    }
+    const currentRuntime = runtime;
+    const loadLookupOptions: NonNullable<ModuleDataAdapter["getLookupOptions"]> =
+      getLookupOptions;
+
+    const fieldsToHydrate = visibleFields
+      .map((formField) => fieldsByName.get(formField.fieldLogicalName))
+      .filter(
+        (field): field is FieldMetadata =>
+          field !== undefined &&
+          field.dataType === "lookup" &&
+          !lookupOptions[field.logicalName]?.length &&
+          !hydratedLookupFields.has(field.logicalName),
+      );
+
+    if (fieldsToHydrate.length === 0) return;
+
+    let cancelled = false;
+
+    async function hydrateLookupFields() {
+      await Promise.all(
+        fieldsToHydrate.map(async (field) => {
+          try {
+            const options = await loadLookupOptions(
+              currentRuntime,
+              field,
+              values,
+            );
+            if (cancelled) return;
+            onLookupOptionsChange?.(
+              field.logicalName,
+              options.map((option) => ({
+                id: option.id,
+                name: option.name,
+                key: option.key,
+                code: option.code,
+                employeeLevelId: option.employeeLevelId,
+                subtitle: option.subtitle,
+              })),
+            );
+          } finally {
+            if (!cancelled) {
+              onLookupHydrated?.(field.logicalName);
+            }
+          }
+        }),
+      );
+    }
+
+    void hydrateLookupFields();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    dataAdapter,
+    fieldsByName,
+    hydratedLookupFields,
+    lookupHydrationKey,
+    lookupOptions,
+    mode,
+    onLookupHydrated,
+    onLookupOptionsChange,
+    runtime,
+    values,
+    visibleFields,
+  ]);
 
   if (visibleFields.length === 0 && visibleComponents.length === 0) return null;
 
@@ -460,11 +624,19 @@ function RuntimeSection({
               mode,
               runtime,
             });
+            const resolvedFieldEditable = resolveFieldEditable
+              ? resolveFieldEditable({
+                  defaultEditable: fieldEditable,
+                  field,
+                  formField,
+                  values,
+                })
+              : fieldEditable;
 
             debugRuntime("Form field editability", {
               fieldLogicalName: field.logicalName,
               mode,
-              editable: fieldEditable,
+              editable: resolvedFieldEditable,
               formReadonly: formField.isReadonly,
               behavior: field.behavior,
               autoGenerated: field.autoGenerated,
@@ -472,7 +644,7 @@ function RuntimeSection({
               unlockableByCustomization: field.unlockableByCustomization,
             });
 
-            return !fieldEditable ? (
+            return !resolvedFieldEditable ? (
               <div
                 data-runtime-field={field.logicalName}
                 key={`${section.id}-${formField.fieldLogicalName}`}
@@ -484,7 +656,13 @@ function RuntimeSection({
                   touched={touchedFields?.has(field.logicalName)}
                   value={formatRuntimeFieldValue({
                     field,
-                    lookupDisplayValue: lookupDisplayValues[field.logicalName],
+                    lookupDisplayValue:
+                      resolveLookupDisplayValue(
+                        field,
+                        values[field.logicalName],
+                        lookupDisplayValues,
+                        lookupOptions,
+                      ) ?? lookupDisplayValues[field.logicalName],
                     tenant: runtime?.tenant,
                     value: values[field.logicalName],
                   })}
@@ -499,6 +677,11 @@ function RuntimeSection({
                   field={field}
                   label={formField.label ?? field.displayName}
                   lookupOptions={lookupOptions[field.logicalName] ?? []}
+                  lookupOptionsHydrated={
+                    hydratedLookupFields.has(field.logicalName) ||
+                    Boolean(lookupOptions[field.logicalName]?.length) ||
+                    !dataAdapter?.getLookupOptions
+                  }
                   error={firstError(fieldErrors[field.logicalName])}
                   onValueChange={(value) => {
                     const nextValues = applyFieldValueChange({
@@ -507,12 +690,19 @@ function RuntimeSection({
                       value,
                       values,
                     });
-                    onValuesChange?.(nextValues);
+                    const resolvedNextValues =
+                      deriveValuesOnChange?.({
+                        changedField: field,
+                        lookupOptions,
+                        nextValues,
+                        previousValues: values,
+                      }) ?? nextValues;
+                    onValuesChange?.(resolvedNextValues);
                     void loadDependentLookupOptions({
                       changedField: field,
                       dataAdapter,
                       entity,
-                      nextValues,
+                      nextValues: resolvedNextValues,
                       onLookupOptionsChange,
                       runtime,
                     });
@@ -630,6 +820,7 @@ function EditableField({
   field,
   label,
   lookupOptions,
+  lookupOptionsHydrated,
   error,
   onValueChange,
   required,
@@ -639,6 +830,7 @@ function EditableField({
   readonly field: FieldMetadata;
   readonly label: string;
   readonly lookupOptions: readonly LookupOption[];
+  readonly lookupOptionsHydrated: boolean;
   readonly error?: string;
   readonly onValueChange?: (value: FieldValueMap[string]) => void;
   readonly required?: boolean;
@@ -651,6 +843,7 @@ function EditableField({
     typeof value === "number" && Number.isFinite(value) ? value : null;
   const lookupReferenceDataMissing =
     field.dataType === "lookup" &&
+    lookupOptionsHydrated &&
     lookupOptions.length === 0 &&
     SEED_BACKED_LOOKUP_FIELDS.has(field.logicalName);
   const lookupWarning = lookupReferenceDataMissing
@@ -673,17 +866,12 @@ function EditableField({
             value={fieldValue}
           />
         ) : field.dataType === "multi-optionset" && field.options?.length ? (
-          <TextField
-            disabled
-            hint="Multi-select editing will be enabled when save handlers are connected."
+          <MultiSelectField
             label={label}
             error={error}
-            onChange={(nextValue) => {
-              onValueChange?.(nextValue);
-            }}
-            required={required}
-            touched={touched}
-            value={Array.isArray(value) ? value.join(", ") : fieldValue}
+            onChange={(nextValue) => onValueChange?.(nextValue)}
+            options={field.options}
+            value={Array.isArray(value) ? [...value] : []}
           />
         ) : field.dataType === "lookup" ? (
           <LookupField
@@ -715,6 +903,15 @@ function EditableField({
             touched={touched}
             value={fieldValue}
           />
+        ) : field.dataType === "time" ? (
+          <TimeField
+            label={label}
+            error={error}
+            onChange={(nextValue) => onValueChange?.(nextValue)}
+            required={required}
+            touched={touched}
+            value={fieldValue}
+          />
         ) : field.dataType === "boolean" ? (
           <CheckboxField
             checked={checked}
@@ -724,7 +921,9 @@ function EditableField({
               onValueChange?.(nextValue);
             }}
           />
-        ) : field.dataType === "number" || field.dataType === "decimal" ? (
+        ) : field.dataType === "number" ||
+          field.dataType === "decimal" ||
+          field.dataType === "currency" ? (
           <NumberField
             label={label}
             error={error}
@@ -735,16 +934,29 @@ function EditableField({
             touched={touched}
             value={numberValue}
           />
-        ) : field.dataType === "multiline-string" ? (
+        ) : field.dataType === "multiline-string" ||
+          field.dataType === "json" ? (
           <TextAreaField
             label={label}
             error={error}
             onChange={(nextValue) => {
-              onValueChange?.(nextValue);
+              if (field.dataType !== "json") {
+                onValueChange?.(nextValue);
+                return;
+              }
+              try {
+                onValueChange?.(nextValue.trim() ? JSON.parse(nextValue) : {});
+              } catch {
+                onValueChange?.(nextValue);
+              }
             }}
             required={required}
             touched={touched}
-            value={fieldValue}
+            value={
+              field.dataType === "json" && typeof value !== "string"
+                ? JSON.stringify(value ?? {}, null, 2)
+                : fieldValue
+            }
           />
         ) : (
           <TextField
@@ -894,6 +1106,26 @@ function applyFieldValueChange({
   }
 
   return nextValues;
+}
+
+function resolveLookupDisplayValue(
+  field: FieldMetadata,
+  value: FieldValueMap[string],
+  lookupDisplayValues: Record<string, string>,
+  lookupOptions: Record<string, readonly LookupOption[]>,
+) {
+  if (field.dataType !== "lookup") return null;
+
+  const explicitValue = lookupDisplayValues[field.logicalName];
+  if (explicitValue) return explicitValue;
+
+  const valueId = typeof value === "string" ? value : "";
+  if (!valueId) return null;
+
+  return (
+    lookupOptions[field.logicalName]?.find((option) => option.id === valueId)
+      ?.name ?? null
+  );
 }
 
 async function loadDependentLookupOptions({

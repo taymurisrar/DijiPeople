@@ -5,6 +5,7 @@ import type {
   RelatedRecordMutationInput,
   RelatedRecordsInput,
 } from "../module-data-adapter.types";
+import { relatedRecordPaths } from "../related-record-api";
 import { debugRuntime } from "../runtime-debug";
 import type { StandardModuleRuntimeSpec } from "./standard-module-runtime";
 
@@ -115,18 +116,19 @@ export function createStandardModuleDataAdapter(
     },
 
     async create(_runtime, values) {
+      const payload = sanitizeStandardMutationValues(values, spec);
       debugRuntime("Standard adapter create request", {
         moduleKey: spec.moduleKey,
         path: createPath,
-        payload: values,
+        payload,
       });
       const record =
         readRecord(
           await requestJson(createPath, {
-            body: JSON.stringify(values),
+            body: JSON.stringify(payload),
             method: "POST",
           }),
-        ) ?? values;
+        ) ?? payload;
       debugRuntime("Standard adapter create result", {
         moduleKey: spec.moduleKey,
         record,
@@ -136,19 +138,20 @@ export function createStandardModuleDataAdapter(
 
     async update(_runtime, recordId, values) {
       const path = recordPath(basePath, recordId, updatePath);
+      const payload = sanitizeStandardMutationValues(values, spec);
       debugRuntime("Standard adapter update request", {
         moduleKey: spec.moduleKey,
         recordId,
         path,
-        payload: values,
+        payload,
       });
       const record =
         readRecord(
           await requestJson(path, {
-            body: JSON.stringify(values),
+            body: JSON.stringify(payload),
             method: "PATCH",
           }),
-        ) ?? values;
+        ) ?? payload;
       debugRuntime("Standard adapter update result", {
         moduleKey: spec.moduleKey,
         recordId,
@@ -158,13 +161,31 @@ export function createStandardModuleDataAdapter(
     },
 
     async softDelete(_runtime, recordIds) {
-      if (recordIds.length !== 1) {
-        throw new Error("Bulk soft delete is not available for this module.");
+      if (recordIds.length === 0) return;
+
+      if (recordIds.length > 1) {
+        try {
+          await requestJson(basePath, {
+            method: "DELETE",
+            body: JSON.stringify({ recordIds, ids: recordIds }),
+          });
+          return;
+        } catch (error) {
+          debugRuntime("Standard adapter bulk delete fallback", {
+            moduleKey: spec.moduleKey,
+            path: basePath,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
       }
 
-      await requestJson(`${basePath}/${encodeURIComponent(recordIds[0])}`, {
-        method: "DELETE",
-      });
+      await Promise.all(
+        recordIds.map((recordId) =>
+          requestJson(`${basePath}/${encodeURIComponent(recordId)}`, {
+            method: "DELETE",
+          }),
+        ),
+      );
     },
 
     async assignOwner() {
@@ -180,14 +201,20 @@ export function createStandardModuleDataAdapter(
             if (!path) return [];
             const data = await requestJson(path);
             return readRecordList(data).flatMap((record) => {
-              const id = typeof record.id === "string" ? record.id : "";
+              const code = typeof record.code === "string" ? record.code : "";
+              const id =
+                field.logicalName.endsWith("Code") && code
+                  ? code
+                  : typeof record.id === "string"
+                    ? record.id
+                    : "";
               const name =
                 typeof record.name === "string"
                   ? record.name
                   : typeof record.label === "string"
                     ? record.label
                     : "";
-              return id && name ? [{ id, name }] : [];
+              return id && name ? [{ id, name, code }] : [];
             });
           },
         }
@@ -208,30 +235,66 @@ export function createStandardModuleDataAdapter(
     },
 
     async getRelatedRecords(input: RelatedRecordsInput) {
-      throw new Error(
-        `Related list ${input.subgrid.relationshipName} has no list API.`,
-      );
+      const path = relatedRecordPaths(input).list;
+      if (!path)
+        throw new Error(
+          `Related list ${input.subgrid.relationshipName} has no list API metadata.`,
+        );
+      const data = await requestJson(path);
+      const records = readRecordList(data);
+      return { records, totalRecords: records.length };
     },
 
     async createRelatedRecord(
       input: RelatedRecordMutationInput<RuntimeRecord>,
     ) {
-      throw new Error(
-        `Related list ${input.subgrid.relationshipName} has no create API.`,
-      );
+      const path = relatedRecordPaths(input).create;
+      if (!path)
+        throw new Error(
+          `Related list ${input.subgrid.relationshipName} has no create API metadata.`,
+        );
+      const data = await requestJson(path, {
+        method: "POST",
+        body: JSON.stringify(input.values),
+      });
+      return readRecord(data) ?? input.values;
     },
 
     async updateRelatedRecord(
       input: RelatedRecordMutationInput<Partial<RuntimeRecord>>,
     ) {
-      throw new Error(
-        `Related list ${input.subgrid.relationshipName} has no update API.`,
-      );
+      const path = input.recordId
+        ? relatedRecordPaths(input).record(input.recordId, "update")
+        : undefined;
+      if (!path)
+        throw new Error(
+          `Related list ${input.subgrid.relationshipName} has no update API metadata.`,
+        );
+      const data = await requestJson(path, {
+        method: "PATCH",
+        body: JSON.stringify(input.values),
+      });
+      return readRecord(data) ?? input.values;
     },
 
     async deleteRelatedRecord(input) {
-      throw new Error(
-        `Related list ${input.subgrid.relationshipName} has no delete API.`,
+      const paths = relatedRecordPaths(input);
+      if (paths.bulkDelete) {
+        await requestJson(paths.bulkDelete, {
+          method: "DELETE",
+          body: JSON.stringify({ recordIds: input.recordIds }),
+        });
+        return;
+      }
+      await Promise.all(
+        input.recordIds.map(async (recordId) => {
+          const path = paths.record(recordId, "delete");
+          if (!path)
+            throw new Error(
+              `Related list ${input.subgrid.relationshipName} has no delete API metadata.`,
+            );
+          await requestJson(path, { method: "DELETE" });
+        }),
       );
     },
 
@@ -298,6 +361,8 @@ async function requestJson(path: string, init?: RequestInit) {
     const data = (await response.json().catch(() => null)) as {
       message?: unknown;
       error?: unknown;
+      status?: unknown;
+      statusCode?: unknown;
     } | null;
     const message =
       typeof data?.message === "string"
@@ -305,7 +370,16 @@ async function requestJson(path: string, init?: RequestInit) {
         : typeof data?.error === "string"
           ? data.error
           : `Request failed with ${response.status}.`;
-    throw new Error(message);
+    const error = new Error(message) as Error & { data?: unknown };
+    error.data = {
+      ...(data && typeof data === "object" ? data : {}),
+      status: response.status,
+      statusCode:
+        typeof data?.statusCode === "number"
+          ? data.statusCode
+          : response.status,
+    };
+    throw error;
   }
 
   if (response.status === 204) return null;
@@ -313,7 +387,7 @@ async function requestJson(path: string, init?: RequestInit) {
 }
 
 function readRecordList(data: unknown): readonly RuntimeRecord[] {
-  if (Array.isArray(data)) return data.filter(isRecord);
+  if (Array.isArray(data)) return data.filter(isMeaningfulRecord);
   if (!data || typeof data !== "object") return [];
 
   const record = data as {
@@ -323,14 +397,59 @@ function readRecordList(data: unknown): readonly RuntimeRecord[] {
   };
 
   for (const value of [record.items, record.data, record.records]) {
-    if (Array.isArray(value)) return value.filter(isRecord);
+    if (Array.isArray(value)) return value.filter(isMeaningfulRecord);
   }
 
   return [];
 }
 
+function isMeaningfulRecord(value: unknown): value is RuntimeRecord {
+  if (!isRecord(value)) return false;
+
+  return Object.values(value).some((fieldValue) => {
+    if (fieldValue === null || fieldValue === undefined) return false;
+    if (typeof fieldValue === "string") return fieldValue.trim().length > 0;
+    if (Array.isArray(fieldValue)) return fieldValue.length > 0;
+    if (typeof fieldValue === "object") {
+      return Object.keys(fieldValue).length > 0;
+    }
+    return true;
+  });
+}
+
 function readRecord(data: unknown): RuntimeRecord | null {
   return isRecord(data) ? data : null;
+}
+
+function sanitizeStandardMutationValues(
+  values: RuntimeRecord,
+  spec: StandardModuleRuntimeSpec,
+) {
+  const writableFieldNames = new Set(
+    spec.fields
+      .filter(
+        (field) =>
+          !field.isReadOnly &&
+          field.logicalName !== (spec.primaryIdField ?? "id"),
+      )
+      .map((field) => field.logicalName),
+  );
+  const payload: Record<string, unknown> = {};
+
+  for (const fieldName of writableFieldNames) {
+    if (Object.prototype.hasOwnProperty.call(values, fieldName)) {
+      payload[fieldName] = values[fieldName];
+    }
+  }
+
+  if (spec.entityLogicalName === "settings_designations") {
+    if (Object.prototype.hasOwnProperty.call(payload, "code")) {
+      payload.level = payload.code;
+      delete payload.code;
+    }
+  }
+
+  return payload;
 }
 
 function mapApprovalRecord(data: unknown) {

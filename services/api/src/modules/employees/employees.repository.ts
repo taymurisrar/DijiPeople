@@ -81,6 +81,7 @@ const employeeInclude = {
       id: true,
       name: true,
       level: true,
+      employeeLevelId: true,
       isActive: true,
     },
   },

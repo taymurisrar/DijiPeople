@@ -4,6 +4,7 @@ import {
   Logger,
   UnauthorizedException,
 } from '@nestjs/common';
+import { getAppOrigin } from '@repo/config';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { PlatformUser, Prisma } from '@prisma/client';
@@ -39,6 +40,8 @@ import { PublicTenantsService } from '../tenants/public-tenants.service';
 import { UsersService } from '../users/users.service';
 import { PermissionBootstrapService } from '../permissions/permission-bootstrap.service';
 import { UserInvitationsService } from './user-invitations.service';
+import { EmailService } from '../notifications/email/email.service';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { SignupDto } from './dto/signup.dto';
 import { AuthAccessService } from './auth-access.service';
@@ -121,6 +124,7 @@ export class AuthService {
     private readonly permissionBootstrapService: PermissionBootstrapService,
     private readonly userInvitationsService: UserInvitationsService,
     private readonly authAccessService: AuthAccessService,
+    private readonly emailService: EmailService,
   ) {}
 
   async signup(dto: SignupDto) {
@@ -431,6 +435,244 @@ export class AuthService {
 
   activateAccount(token: string, password: string) {
     return this.userInvitationsService.activateAccount(token, password);
+  }
+
+  async requestPasswordReset(dto: ForgotPasswordDto) {
+    const email = normalizeEmail(dto.email);
+    const tenantSlug = dto.tenantSlug?.trim().toLowerCase();
+    const tenantCode = dto.tenantCode?.trim().toUpperCase();
+    const user = await this.prisma.user.findFirst({
+      where: {
+        email,
+        ...(tenantSlug || tenantCode
+          ? {
+              tenant: {
+                ...(tenantSlug ? { slug: tenantSlug } : {}),
+                ...(tenantCode ? { tenantCode } : {}),
+              },
+            }
+          : {}),
+      },
+      include: {
+        tenant: { select: { id: true, name: true, slug: true, status: true } },
+        employee: { select: { id: true } },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    if (!user || user.status !== 'ACTIVE' || user.tenant.status !== 'ACTIVE') {
+      return {
+        ok: true,
+        message:
+          'If an active account exists for this email, a password reset link will be sent.',
+      };
+    }
+
+    const resetToken = this.jwtService.sign(
+      {
+        sub: user.id,
+        tenantId: user.tenantId,
+        type: 'password-reset',
+      },
+      {
+        secret: getClientAccessTokenSecret(this.configService, 'web'),
+        expiresIn: '1d',
+      },
+    );
+    const baseUrl =
+      this.configService.get<string>('PASSWORD_RESET_LINK_BASE_URL') ??
+      `${getAppOrigin('web', process.env)}/reset-password`;
+    const resetUrl = `${baseUrl}?tenant=${encodeURIComponent(
+      user.tenant.slug,
+    )}&token=${encodeURIComponent(resetToken)}`;
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const recipientName = `${user.firstName} ${user.lastName}`.trim() || email;
+
+    await this.emailService.sendTemplateEmail({
+      tenantId: user.tenantId,
+      eventCode: 'AUTH_PASSWORD_RESET',
+      templateKey: 'AUTH_PASSWORD_RESET',
+      recipient: email,
+      variables: {
+        firstName: user.firstName,
+        name: recipientName,
+        recipientName,
+        email,
+        tenantName: user.tenant.name,
+        appName: 'DijiPeople',
+        resetUrl,
+        expiresIn: '24 hours',
+        expiresAt: expiresAt.toISOString(),
+        supportEmail:
+          this.configService.get<string>('SUPPORT_EMAIL') ??
+          'support@dijipeople.com',
+      },
+      metadata: {
+        userId: user.id,
+        employeeId: user.employee?.id ?? null,
+        resetUrl,
+        source: 'forgot-password',
+      },
+      requestedByUserId: user.id,
+    });
+
+    return {
+      ok: true,
+      message:
+        'If an active account exists for this email, a password reset link will be sent.',
+    };
+  }
+
+  async issuePasswordResetForUser(input: {
+    tenantId: string;
+    userId: string;
+    requestedByUserId: string;
+    source: string;
+  }) {
+    const user = await this.prisma.user.findFirst({
+      where: {
+        id: input.userId,
+        tenantId: input.tenantId,
+      },
+      include: {
+        tenant: { select: { id: true, name: true, slug: true, status: true } },
+        employee: { select: { id: true } },
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User account was not found.');
+    }
+
+    if (user.status === 'DISABLED') {
+      throw new ForbiddenException(
+        'Password reset cannot be sent to a disabled account.',
+      );
+    }
+
+    const reset = await this.sendPasswordResetEmail({
+      user,
+      requestedByUserId: input.requestedByUserId,
+      source: input.source,
+    });
+
+    return {
+      ok: true,
+      expiresAt: reset.expiresAt,
+      deliveryStatus: reset.delivery.status,
+      deliveryMode: reset.delivery.sent ? 'sent' : 'disabled',
+    };
+  }
+
+  async resetPassword(token: string, password: string) {
+    let payload: Omit<AuthTokenPayload, 'type'> & { type?: string };
+    try {
+      payload = this.jwtService.verify(token, {
+        secret: getClientAccessTokenSecret(this.configService, 'web'),
+      });
+    } catch {
+      throw new UnauthorizedException(
+        'This password reset link is invalid or expired.',
+      );
+    }
+
+    if (
+      payload.type !== 'password-reset' ||
+      !payload.sub ||
+      !payload.tenantId
+    ) {
+      throw new UnauthorizedException(
+        'This password reset link is invalid or expired.',
+      );
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: payload.sub },
+        data: {
+          passwordHash,
+          status: 'ACTIVE',
+          updatedById: payload.sub,
+        },
+      }),
+      this.prisma.refreshToken.updateMany({
+        where: {
+          userId: payload.sub,
+          tenantId: payload.tenantId,
+          revokedAt: null,
+        },
+        data: { revokedAt: new Date() },
+      }),
+    ]);
+
+    return { ok: true };
+  }
+
+  private async sendPasswordResetEmail(input: {
+    user: {
+      id: string;
+      tenantId: string;
+      email: string;
+      firstName: string;
+      lastName: string;
+      tenant: { name: string; slug: string };
+      employee?: { id: string } | null;
+    };
+    requestedByUserId: string;
+    source: string;
+  }) {
+    const resetToken = this.jwtService.sign(
+      {
+        sub: input.user.id,
+        tenantId: input.user.tenantId,
+        type: 'password-reset',
+      },
+      {
+        secret: getClientAccessTokenSecret(this.configService, 'web'),
+        expiresIn: '1d',
+      },
+    );
+    const baseUrl =
+      this.configService.get<string>('PASSWORD_RESET_LINK_BASE_URL') ??
+      `${getAppOrigin('web', process.env)}/reset-password`;
+    const resetUrl = `${baseUrl}?tenant=${encodeURIComponent(
+      input.user.tenant.slug,
+    )}&token=${encodeURIComponent(resetToken)}`;
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const recipientName =
+      `${input.user.firstName} ${input.user.lastName}`.trim() ||
+      input.user.email;
+
+    const delivery = await this.emailService.sendTemplateEmail({
+      tenantId: input.user.tenantId,
+      eventCode: 'AUTH_PASSWORD_RESET',
+      templateKey: 'AUTH_PASSWORD_RESET',
+      recipient: input.user.email,
+      variables: {
+        firstName: input.user.firstName,
+        name: recipientName,
+        recipientName,
+        email: input.user.email,
+        tenantName: input.user.tenant.name,
+        appName: 'DijiPeople',
+        resetUrl,
+        expiresIn: '24 hours',
+        expiresAt: expiresAt.toISOString(),
+        supportEmail:
+          this.configService.get<string>('SUPPORT_EMAIL') ??
+          'support@dijipeople.com',
+      },
+      metadata: {
+        userId: input.user.id,
+        employeeId: input.user.employee?.id ?? null,
+        resetUrl,
+        source: input.source,
+      },
+      requestedByUserId: input.requestedByUserId,
+    });
+
+    return { delivery, expiresAt };
   }
 
   setAuthCookies(

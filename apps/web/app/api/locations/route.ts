@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { proxyBulkDeleteByIds } from "@/app/api/_lib/bulk-delete";
 import { apiRequest, proxyApiJsonResponse } from "@/lib/server-api";
 
 export async function GET(request: Request) {
@@ -30,4 +31,12 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
+}
+
+export async function DELETE(request: Request) {
+  return proxyBulkDeleteByIds(request, {
+    apiPath: "/locations",
+    entityLabel: "work site",
+    entityPluralLabel: "work sites",
+  });
 }

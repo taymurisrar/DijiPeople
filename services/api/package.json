@@ -6,7 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "npm run prisma:generate && nest build",
+    "build": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && npm run prisma:generate && nest build",
     "check-types": "tsc --noEmit -p tsconfig.build.json",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
@@ -34,6 +34,7 @@
     "seed:demo:reset": "ts-node prisma/seed-demo-reset.ts",
     "seed:demo:reseed": "npm run seed:demo:reset && npm run seed:demo",
     "seed:payroll-flow": "ts-node prisma/seed-payroll-flow.ts",
+    "invoice:sample-pdf": "ts-node src/modules/super-admin/invoice-pdf.sample.ts",
     "seed:all": "npm run seed:admin && npm run seed:config && npm run seed:demo",
     "release": "npm run prisma:migrate:deploy && npm run seed:config && npm run seed:verify && npm run seed:admin"
   },

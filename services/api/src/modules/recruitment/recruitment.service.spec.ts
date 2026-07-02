@@ -17,6 +17,11 @@ describe('RecruitmentService', () => {
     service = new RecruitmentService(
       recruitmentRepository as never,
       { buildQueuedJob: jest.fn() } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
     );
   });
 

@@ -18,6 +18,14 @@ type AttendanceCheckWidgetProps = {
   todayEntry: AttendanceEntryRecord | null;
 };
 
+type BrowserLocationPayload = {
+  latitude: number;
+  longitude: number;
+  accuracy?: number;
+  capturedAt: string;
+  addressText?: string;
+};
+
 export function AttendanceCheckWidget({
   activeEntry,
   locations,
@@ -38,6 +46,8 @@ export function AttendanceCheckWidget({
   const [remoteLocation, setRemoteLocation] = useState<{
     latitude?: number;
     longitude?: number;
+    accuracy?: number;
+    capturedAt?: string;
     addressText?: string;
   }>({});
   const resolvedSettings = useResolvedSettings();
@@ -51,57 +61,109 @@ export function AttendanceCheckWidget({
   );
 
   async function captureBrowserLocation() {
+    const location = await captureBrowserLocationPayload();
+    if (!location) return null;
+
+    setRemoteLocation({
+      latitude: location.latitude,
+      longitude: location.longitude,
+      accuracy: location.accuracy,
+      capturedAt: location.capturedAt,
+      addressText: location.addressText,
+    });
+    setMessage(
+      location.addressText
+        ? `Current location captured: ${location.addressText}`
+        : "Current location captured for remote attendance.",
+    );
+
+    return location;
+  }
+
+  async function captureBrowserLocationPayload(): Promise<BrowserLocationPayload | null> {
     if (!navigator.geolocation) {
       setError("Browser geolocation is not available on this device.");
-      return;
+      return null;
     }
 
     setIsCapturingLocation(true);
     setError(null);
     setMessage(null);
 
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const latitude = Number(position.coords.latitude.toFixed(6));
-        const longitude = Number(position.coords.longitude.toFixed(6));
-        let addressText: string | undefined;
+    try {
+      const position = await new Promise<GeolocationPosition>(
+        (resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 10000,
+          });
+        },
+      );
+      const latitude = Number(position.coords.latitude.toFixed(6));
+      const longitude = Number(position.coords.longitude.toFixed(6));
+      let addressText: string | undefined;
 
-        try {
-          const response = await fetch(
-            `/api/attendance/reverse-geocode?latitude=${latitude}&longitude=${longitude}`,
-          );
+      try {
+        const response = await fetch(
+          `/api/attendance/reverse-geocode?latitude=${latitude}&longitude=${longitude}`,
+        );
 
-          if (response.ok) {
-            const data = (await response.json()) as { addressText?: string | null };
-            addressText = data.addressText ?? undefined;
-          }
-        } catch {
-          addressText = undefined;
+        if (response.ok) {
+          const data = (await response.json()) as {
+            addressText?: string | null;
+          };
+          addressText = data.addressText ?? undefined;
         }
+      } catch {
+        addressText = undefined;
+      }
 
-        setRemoteLocation({
-          latitude,
-          longitude,
-          addressText,
-        });
-        setIsCapturingLocation(false);
-        setMessage(
-          addressText
-            ? `Current location captured: ${addressText}`
-            : "Current location captured for remote attendance.",
-        );
-      },
-      (geoError) => {
-        setIsCapturingLocation(false);
+      if (!addressText?.trim()) {
         setError(
-          geoError.message || "Location permission was denied or unavailable.",
+          "Current location was detected, but the address could not be resolved. Please try again.",
         );
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-      },
-    );
+        return null;
+      }
+
+      return {
+        latitude,
+        longitude,
+        accuracy: position.coords.accuracy,
+        capturedAt: new Date().toISOString(),
+        addressText,
+      };
+    } catch (geoError) {
+      setError(
+        geoError instanceof Error
+          ? geoError.message
+          : "Location permission was denied or unavailable.",
+      );
+      return null;
+    } finally {
+      setIsCapturingLocation(false);
+    }
+  }
+
+  async function resolveRemoteLocationForSubmit() {
+    if (
+      remoteLocation.latitude !== undefined &&
+      remoteLocation.longitude !== undefined &&
+      remoteLocation.addressText
+    ) {
+      return {
+        latitude: remoteLocation.latitude,
+        longitude: remoteLocation.longitude,
+        accuracy: remoteLocation.accuracy,
+        capturedAt: remoteLocation.capturedAt ?? new Date().toISOString(),
+        addressText: remoteLocation.addressText,
+      } satisfies BrowserLocationPayload;
+    }
+
+    return captureBrowserLocation();
+  }
+
+  function isRemoteLocationMode(mode: AttendanceMode) {
+    return mode === "REMOTE" || mode === "HYBRID";
   }
 
   async function performCheckIn() {
@@ -110,6 +172,15 @@ export function AttendanceCheckWidget({
     setMessage(null);
 
     try {
+      const locationPayload = isRemoteLocationMode(checkInMode)
+        ? await resolveRemoteLocationForSubmit()
+        : null;
+
+      if (isRemoteLocationMode(checkInMode) && !locationPayload) {
+        setIsSubmitting(false);
+        return;
+      }
+
       const response = await fetch("/api/attendance/check-in", {
         method: "POST",
         headers: {
@@ -121,12 +192,12 @@ export function AttendanceCheckWidget({
             checkInMode === "OFFICE" ? officeLocationId || undefined : undefined,
           note: checkInNote || undefined,
           workSummary: workSummary || undefined,
-          remoteLatitude:
-            checkInMode === "REMOTE" ? remoteLocation.latitude : undefined,
-          remoteLongitude:
-            checkInMode === "REMOTE" ? remoteLocation.longitude : undefined,
-          remoteAddressText:
-            checkInMode === "REMOTE" ? remoteLocation.addressText : undefined,
+          remoteLatitude: locationPayload?.latitude,
+          remoteLongitude: locationPayload?.longitude,
+          locationAccuracy: locationPayload?.accuracy,
+          locationCapturedAt: locationPayload?.capturedAt,
+          remoteAddressText: locationPayload?.addressText,
+          checkInAddressText: locationPayload?.addressText,
         }),
       });
 
@@ -155,6 +226,15 @@ export function AttendanceCheckWidget({
     setMessage(null);
 
     try {
+      const locationPayload = isRemoteLocationMode(activeMode)
+        ? await resolveRemoteLocationForSubmit()
+        : null;
+
+      if (isRemoteLocationMode(activeMode) && !locationPayload) {
+        setIsSubmitting(false);
+        return;
+      }
+
       const response = await fetch("/api/attendance/check-out", {
         method: "POST",
         headers: {
@@ -163,12 +243,12 @@ export function AttendanceCheckWidget({
         body: JSON.stringify({
           note: checkOutNote || undefined,
           workSummary: workSummary || undefined,
-          remoteLatitude:
-            activeMode === "REMOTE" ? remoteLocation.latitude : undefined,
-          remoteLongitude:
-            activeMode === "REMOTE" ? remoteLocation.longitude : undefined,
-          remoteAddressText:
-            activeMode === "REMOTE" ? remoteLocation.addressText : undefined,
+          remoteLatitude: locationPayload?.latitude,
+          remoteLongitude: locationPayload?.longitude,
+          locationAccuracy: locationPayload?.accuracy,
+          locationCapturedAt: locationPayload?.capturedAt,
+          remoteAddressText: locationPayload?.addressText,
+          checkOutAddressText: locationPayload?.addressText,
         }),
       });
 
@@ -269,6 +349,7 @@ export function AttendanceCheckWidget({
             label="Location"
             value={
               openEntry.officeLocation?.name ??
+              openEntry.checkInLocation ??
               openEntry.remoteAddressText ??
               "No location captured"
             }
@@ -386,6 +467,8 @@ export function AttendanceCheckWidget({
             label="Last location"
             value={
               todayEntry.officeLocation?.name ??
+              todayEntry.checkOutLocation ??
+              todayEntry.checkInLocation ??
               todayEntry.remoteAddressText ??
               "No location captured"
             }

@@ -110,6 +110,18 @@ export type EmployeeRuntimeFormValues = Record<
   EmployeeRuntimeFieldValue
 >;
 
+export type EmployeeRuntimeSettings = {
+  readonly autoGenerateEmployeeId?: boolean;
+  readonly requirePersonalEmail?: boolean;
+  readonly requireEmergencyContact?: boolean;
+  readonly requireJoiningDate?: boolean;
+  readonly requireDepartment?: boolean;
+  readonly requireDesignation?: boolean;
+  readonly requireReportingManager?: boolean;
+  readonly requireWorkLocation?: boolean;
+  readonly allowEmployeeWithoutManager?: boolean;
+};
+
 type EmployeeFieldDefinition = {
   readonly logicalName: string;
   readonly displayName: string;
@@ -397,6 +409,7 @@ const EMPLOYEE_FIELD_DEFINITIONS: readonly EmployeeFieldDefinition[] = [
 export interface EmployeeMetadataAdapterInput {
   readonly forms?: readonly RuntimeCustomizationForm[];
   readonly views?: readonly RuntimeCustomizationView[];
+  readonly employeeSettings?: EmployeeRuntimeSettings | null;
 }
 
 export interface EmployeeRuntimeContextInput extends EmployeeMetadataAdapterInput {
@@ -409,11 +422,15 @@ export interface EmployeeRuntimeContextInput extends EmployeeMetadataAdapterInpu
 export function buildEmployeeMetadataBundle(
   input: EmployeeMetadataAdapterInput = {},
 ): ModuleMetadataBundle {
-  const entity = buildEmployeeEntityMetadata();
+  const requiredFields = resolveRequiredEmployeeFields(input.employeeSettings);
+  const entity = buildEmployeeEntityMetadata(
+    requiredFields,
+    input.employeeSettings,
+  );
 
   return {
     entity,
-    forms: mapEmployeeForms(input.forms ?? []),
+    forms: mapEmployeeForms(input.forms ?? [], requiredFields),
     views: mapEmployeeViews(input.views ?? []),
     commands: employeeRuntimeCommands,
   };
@@ -440,7 +457,10 @@ export function buildEmployeeRuntimeContext(
   };
 }
 
-export function buildEmployeeEntityMetadata(): EntityMetadata {
+export function buildEmployeeEntityMetadata(
+  requiredFields: ReadonlySet<string> = requiredEmployeeFields,
+  settings?: EmployeeRuntimeSettings | null,
+): EntityMetadata {
   return {
     id: "employee",
     logicalName: "employee",
@@ -464,7 +484,9 @@ export function buildEmployeeEntityMetadata(): EntityMetadata {
       update: employeeRuntimePermissions.update,
       delete: employeeRuntimePermissions.delete,
     },
-    fields: EMPLOYEE_FIELD_DEFINITIONS.map(buildEmployeeField),
+    fields: EMPLOYEE_FIELD_DEFINITIONS.map((definition) =>
+      buildEmployeeField(definition, requiredFields, settings),
+    ),
     relationships: employeeRelationships(),
     relatedTabs: employeeRelatedTabs(),
   };
@@ -472,9 +494,10 @@ export function buildEmployeeEntityMetadata(): EntityMetadata {
 
 export function mapEmployeeForms(
   forms: readonly RuntimeCustomizationForm[],
+  requiredFields: ReadonlySet<string> = requiredEmployeeFields,
 ): readonly FormMetadata[] {
   if (forms.length === 0) {
-    return systemEmployeeForms().map(ensureDefaultSystemWidgets);
+    return systemEmployeeForms(requiredFields).map(ensureDefaultSystemWidgets);
   }
 
   return ensureSystemForms(
@@ -535,7 +558,11 @@ export function mapEmployeeForms(
               order: field.sequence ?? fieldIndex,
               isVisible: field.isVisible,
               isReadonly: field.readOnly,
-              requirementLevel: field.required ? "required" : "none",
+              requirementLevel:
+                field.required ||
+                requiredFields.has(normalizeEmployeeFieldName(field.columnKey))
+                  ? "required"
+                  : "none",
             })),
             ...(hasExplicitComponents
               ? {
@@ -602,7 +629,9 @@ function normalizeFormColumnCount(value: number): 1 | 2 | 3 | 4 {
   return 4;
 }
 
-function fallbackEmployeeForm(): FormMetadata {
+function fallbackEmployeeForm(
+  requiredFields: ReadonlySet<string> = requiredEmployeeFields,
+): FormMetadata {
   return {
     id: stableRuntimeMetadataId("form:employee.main.full"),
     logicalName: "employee.main.full",
@@ -615,7 +644,7 @@ function fallbackEmployeeForm(): FormMetadata {
     formType: "main",
     columns: 3,
     tabs: [
-      formFieldTab("summary", "Summary / General", 10, [
+      formFieldTab("summary", "Summary", 10, [
         "profile-image",
         "basic-information",
         "employment-information",
@@ -686,18 +715,10 @@ function fallbackEmployeeForm(): FormMetadata {
         layout: "single-column",
         column: 1,
         fields: [
-          { fieldLogicalName: "employeeCode", order: 10 },
-          {
-            fieldLogicalName: "firstName",
-            order: 20,
-            requirementLevel: "required",
-          },
+          requiredFormField("employeeCode", 10, requiredFields),
+          requiredFormField("firstName", 20, requiredFields),
           { fieldLogicalName: "middleName", order: 30 },
-          {
-            fieldLogicalName: "lastName",
-            order: 40,
-            requirementLevel: "required",
-          },
+          requiredFormField("lastName", 40, requiredFields),
           { fieldLogicalName: "preferredName", order: 50 },
         ],
       },
@@ -709,19 +730,11 @@ function fallbackEmployeeForm(): FormMetadata {
         layout: "single-column",
         column: 1,
         fields: [
-          {
-            fieldLogicalName: "employmentStatus",
-            order: 10,
-            requirementLevel: "required",
-          },
+          requiredFormField("employmentStatus", 10, requiredFields),
           { fieldLogicalName: "employeeType", order: 20 },
           { fieldLogicalName: "workMode", order: 30 },
           { fieldLogicalName: "contractType", order: 40 },
-          {
-            fieldLogicalName: "hireDate",
-            order: 50,
-            requirementLevel: "required",
-          },
+          requiredFormField("hireDate", 50, requiredFields),
           { fieldLogicalName: "confirmationDate", order: 60 },
           { fieldLogicalName: "probationEndDate", order: 70 },
           { fieldLogicalName: "terminationDate", order: 80 },
@@ -737,13 +750,13 @@ function fallbackEmployeeForm(): FormMetadata {
         layout: "single-column",
         column: 3,
         fields: [
-          { fieldLogicalName: "departmentId", order: 10 },
-          { fieldLogicalName: "designationId", order: 20 },
+          requiredFormField("departmentId", 10, requiredFields),
+          requiredFormField("designationId", 20, requiredFields),
           { fieldLogicalName: "employeeLevelId", order: 30 },
-          { fieldLogicalName: "locationId", order: 40 },
+          requiredFormField("locationId", 40, requiredFields),
           { fieldLogicalName: "officialJoiningLocationId", order: 50 },
           { fieldLogicalName: "defaultWorkScheduleId", order: 60 },
-          { fieldLogicalName: "reportingManagerEmployeeId", order: 70 },
+          requiredFormField("reportingManagerEmployeeId", 70, requiredFields),
         ],
       },
       {
@@ -755,12 +768,8 @@ function fallbackEmployeeForm(): FormMetadata {
         column: 2,
         fields: [
           { fieldLogicalName: "workEmail", order: 10 },
-          { fieldLogicalName: "personalEmail", order: 20 },
-          {
-            fieldLogicalName: "phone",
-            order: 30,
-            requirementLevel: "required",
-          },
+          requiredFormField("personalEmail", 20, requiredFields),
+          requiredFormField("phone", 30, requiredFields),
           { fieldLogicalName: "alternatePhone", order: 40 },
         ],
       },
@@ -813,11 +822,14 @@ function fallbackEmployeeForm(): FormMetadata {
         layout: "single-column",
         column: 2,
         fields: [
-          { fieldLogicalName: "emergencyContactName", order: 10 },
-          { fieldLogicalName: "emergencyContactRelationTypeId", order: 20 },
-          { fieldLogicalName: "emergencyContactRelation", order: 30 },
-          { fieldLogicalName: "emergencyContactPhone", order: 40 },
-          { fieldLogicalName: "emergencyContactAlternatePhone", order: 50 },
+          requiredFormField("emergencyContactName", 10, requiredFields),
+          requiredFormField(
+            "emergencyContactRelationTypeId",
+            20,
+            requiredFields,
+          ),
+          requiredFormField("emergencyContactPhone", 30, requiredFields),
+          { fieldLogicalName: "emergencyContactAlternatePhone", order: 40 },
         ],
       },
       {
@@ -887,7 +899,7 @@ function fallbackEmployeeForm(): FormMetadata {
             widgetType: "agent_desktop",
             label: "Agent Desktop",
             order: 10,
-            columnSpan: 1,
+            columnSpan: 3,
             lifecycleState: "published",
           },
         ],
@@ -896,9 +908,11 @@ function fallbackEmployeeForm(): FormMetadata {
   };
 }
 
-function minimalEmployeeForm(): FormMetadata {
+function minimalEmployeeForm(
+  requiredFields: ReadonlySet<string> = requiredEmployeeFields,
+): FormMetadata {
   return {
-    ...fallbackEmployeeForm(),
+    ...fallbackEmployeeForm(requiredFields),
     id: stableRuntimeMetadataId("form:employee.main.minimal"),
     logicalName: "employee.main.minimal",
     displayName: "Quick form",
@@ -916,21 +930,24 @@ function minimalEmployeeForm(): FormMetadata {
         order: 10,
         layout: "two-column",
         fields: [
-          { fieldLogicalName: "employeeCode", order: 10 },
+          requiredFormField("employeeCode", 10, requiredFields),
           { fieldLogicalName: "workEmail", order: 20 },
-          { fieldLogicalName: "employmentStatus", order: 30 },
-          { fieldLogicalName: "reportingManagerEmployeeId", order: 40 },
-          { fieldLogicalName: "hireDate", order: 50 },
+          requiredFormField("employmentStatus", 30, requiredFields),
+          requiredFormField("reportingManagerEmployeeId", 40, requiredFields),
+          requiredFormField("hireDate", 50, requiredFields),
         ],
       },
     ],
   };
 }
 
-function systemEmployeeForms() {
-  return [fallbackEmployeeForm(), minimalEmployeeForm()].map(
-    normalizeRuntimeFormLayout,
-  );
+function systemEmployeeForms(
+  requiredFields: ReadonlySet<string> = requiredEmployeeFields,
+) {
+  return [
+    fallbackEmployeeForm(requiredFields),
+    minimalEmployeeForm(requiredFields),
+  ].map(normalizeRuntimeFormLayout);
 }
 
 function ensureDefaultSystemWidgets(form: FormMetadata): FormMetadata {
@@ -1720,17 +1737,69 @@ function relatedSubgrid(
       )?.targetEntityLogicalName ?? relationshipName,
     title,
     columns: relatedColumnsForRelationship(relationshipName),
+    quickCreateFields:
+      relatedQuickCreateFieldsForRelationship(relationshipName),
     emptyStateTitle: `No ${title}`,
     emptyStateDescription:
       "No related records are available for this employee yet.",
+    api: employeeRelatedApi(relationshipName),
   };
+}
+
+function employeeRelatedApi(relationshipName: string) {
+  const childPathByRelationship: Record<string, string> = {
+    employee_previous_employments: "previous-employments",
+    employee_education: "education",
+    employee_compensation: "compensation-history",
+    employee_leave_history: "leave-history",
+    employee_history: "history",
+    employee_attendance: "attendance-history",
+    employee_timesheets: "timesheet-history",
+    employee_documents: "documents",
+  };
+  const childPath = childPathByRelationship[relationshipName];
+  if (!childPath) return undefined;
+  const listPath = `/api/employees/{parentId}/${childPath}`;
+  const fullCrud = new Set([
+    "employee_previous_employments",
+    "employee_education",
+  ]).has(relationshipName);
+  const createOnly = relationshipName === "employee_history";
+  const updateOnly = relationshipName === "employee_compensation";
+  return {
+    listPath,
+    createPath: fullCrud || createOnly || updateOnly ? listPath : undefined,
+    updatePath: fullCrud || updateOnly ? `${listPath}/{recordId}` : undefined,
+    deletePath: fullCrud ? `${listPath}/{recordId}` : undefined,
+    permissions: relatedPermissionsForRelationship(relationshipName),
+  };
+}
+
+function relatedPermissionsForRelationship(relationshipName: string) {
+  if (relationshipName === "employee_education") {
+    return {
+      create: "employees.education.create",
+      update: "employees.education.update",
+      delete: "employees.education.delete",
+    };
+  }
+
+  if (relationshipName === "employee_previous_employments") {
+    return {
+      create: "employees.update",
+      update: "employees.update",
+      delete: "employees.update",
+    };
+  }
+
+  return undefined;
 }
 
 function relatedColumnsForRelationship(relationshipName: string) {
   const columnsByRelationship: Record<string, readonly string[]> = {
     employee_previous_employments: [
       "companyName",
-      "designation",
+      "jobTitle",
       "startDate",
       "endDate",
     ],
@@ -1766,11 +1835,123 @@ function relatedColumnsForRelationship(relationshipName: string) {
   );
 }
 
+function relatedQuickCreateFieldsForRelationship(relationshipName: string) {
+  const fieldsByRelationship: Record<
+    string,
+    readonly {
+      readonly fieldLogicalName: string;
+      readonly label?: string;
+      readonly dataType: FieldDataType;
+      readonly required?: boolean;
+      readonly maxLength?: number;
+    }[]
+  > = {
+    employee_previous_employments: [
+      {
+        fieldLogicalName: "companyName",
+        label: "Company name",
+        dataType: "string",
+        required: true,
+        maxLength: 160,
+      },
+      {
+        fieldLogicalName: "jobTitle",
+        label: "Job title",
+        dataType: "string",
+        required: true,
+        maxLength: 160,
+      },
+      {
+        fieldLogicalName: "department",
+        label: "Department",
+        dataType: "string",
+        maxLength: 120,
+      },
+      {
+        fieldLogicalName: "employmentType",
+        label: "Employment type",
+        dataType: "string",
+        maxLength: 80,
+      },
+      { fieldLogicalName: "startDate", label: "Start date", dataType: "date" },
+      { fieldLogicalName: "endDate", label: "End date", dataType: "date" },
+      {
+        fieldLogicalName: "finalSalary",
+        label: "Final salary",
+        dataType: "decimal",
+      },
+      {
+        fieldLogicalName: "reasonForLeaving",
+        label: "Reason for leaving",
+        dataType: "string",
+        maxLength: 240,
+      },
+      {
+        fieldLogicalName: "referenceName",
+        label: "Reference name",
+        dataType: "string",
+        maxLength: 160,
+      },
+      {
+        fieldLogicalName: "referenceContact",
+        label: "Reference contact",
+        dataType: "string",
+        maxLength: 160,
+      },
+      {
+        fieldLogicalName: "notes",
+        label: "Notes",
+        dataType: "multiline-string",
+      },
+    ],
+    employee_education: [
+      {
+        fieldLogicalName: "institutionName",
+        label: "Institution",
+        dataType: "string",
+        required: true,
+        maxLength: 160,
+      },
+      {
+        fieldLogicalName: "degreeTitle",
+        label: "Degree",
+        dataType: "string",
+        required: true,
+        maxLength: 160,
+      },
+      {
+        fieldLogicalName: "fieldOfStudy",
+        label: "Field of study",
+        dataType: "string",
+        maxLength: 160,
+      },
+      { fieldLogicalName: "startDate", label: "Start date", dataType: "date" },
+      { fieldLogicalName: "endDate", label: "End date", dataType: "date" },
+      {
+        fieldLogicalName: "gradeOrCgpa",
+        label: "Grade / CGPA",
+        dataType: "string",
+        maxLength: 80,
+      },
+      {
+        fieldLogicalName: "description",
+        label: "Description",
+        dataType: "multiline-string",
+      },
+    ],
+  };
+
+  return fieldsByRelationship[relationshipName];
+}
+
 function buildEmployeeField(
   definition: EmployeeFieldDefinition,
+  requiredFields: ReadonlySet<string> = requiredEmployeeFields,
+  settings?: EmployeeRuntimeSettings | null,
 ): FieldMetadata {
   const generatedMetadata =
-    definition.logicalName === "employeeCode"
+    definition.logicalName === "employeeCode" &&
+    settings?.autoGenerateEmployeeId !== false
       ? {
           autoGenerated: true,
           formatSource: "settings" as const,
@@ -1792,7 +1973,7 @@ function buildEmployeeField(
     layer: "system",
     entityLogicalName: "employee",
     dataType: definition.dataType,
-    requirementLevel: requiredEmployeeFields.has(definition.logicalName)
+    requirementLevel: requiredFields.has(definition.logicalName)
       ? "required"
       : "none",
     behavior: "normal",
@@ -1895,6 +2076,71 @@ const requiredEmployeeFields = new Set([
   "hireDate",
 ]);
 
+function resolveRequiredEmployeeFields(
+  settings?: EmployeeRuntimeSettings | null,
+) {
+  const fields = new Set(requiredEmployeeFields);
+
+  if (!settings) {
+    return fields;
+  }
+
+  setRequiredField(fields, "employeeCode", !settings.autoGenerateEmployeeId, {
+    allowRemovingSystemRequired: true,
+  });
+  setRequiredField(fields, "personalEmail", settings.requirePersonalEmail);
+  setRequiredField(fields, "hireDate", settings.requireJoiningDate, {
+    allowRemovingSystemRequired: true,
+  });
+  setRequiredField(fields, "departmentId", settings.requireDepartment);
+  setRequiredField(fields, "designationId", settings.requireDesignation);
+  setRequiredField(fields, "locationId", settings.requireWorkLocation);
+
+  const requiresManager =
+    settings.requireReportingManager ||
+    settings.allowEmployeeWithoutManager === false;
+  setRequiredField(fields, "reportingManagerEmployeeId", requiresManager);
+
+  if (settings.requireEmergencyContact) {
+    fields.add("emergencyContactName");
+    fields.add("emergencyContactRelationTypeId");
+    fields.add("emergencyContactPhone");
+  }
+
+  return fields;
+}
+
+function setRequiredField(
+  fields: Set<string>,
+  fieldLogicalName: string,
+  required?: boolean,
+  options: { readonly allowRemovingSystemRequired?: boolean } = {},
+) {
+  if (required === true) {
+    fields.add(fieldLogicalName);
+  } else if (
+    required === false &&
+    (options.allowRemovingSystemRequired ||
+      !requiredEmployeeFields.has(fieldLogicalName))
+  ) {
+    fields.delete(fieldLogicalName);
+  }
+}
+
+function requiredFormField(
+  fieldLogicalName: string,
+  order: number,
+  requiredFields: ReadonlySet<string>,
+) {
+  return {
+    fieldLogicalName,
+    order,
+    requirementLevel: requiredFields.has(fieldLogicalName)
+      ? ("required" as const)
+      : ("none" as const),
+  };
+}
+
 const employeeOptionSets: Record<string, readonly OptionSetValueMetadata[]> = {
   employmentStatus: EMPLOYEE_STATUS_OPTIONS,
   employeeType: EMPLOYEE_TYPE_OPTIONS,
@@ -1989,6 +2235,7 @@ function lookupOptionFromRecord(value: unknown) {
         id,
         name,
         code: stringValue(record.code),
+        employeeLevelId: stringValue(record.employeeLevelId),
       }
     : null;
 }

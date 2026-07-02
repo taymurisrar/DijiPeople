@@ -6,8 +6,7 @@ import { AuditModule } from '../audit/audit.module';
 import { EmployeesModule } from '../employees/employees.module';
 import { UsersModule } from '../users/users.module';
 import { NotificationsModule } from '../notifications/notifications.module';
-import { ApprovalResolverService } from './approval-resolver.service';
-import { ApprovalMatricesController } from './approval-matrices.controller';
+import { ApprovalsModule } from '../approvals/approvals.module';
 import { LeavePoliciesController } from './leave-policies.controller';
 import { LeaveRequestsController } from './leave-requests.controller';
 import { LeaveTypesController } from './leave-types.controller';
@@ -21,20 +20,14 @@ import { LeaveService } from './leave.service';
     UsersModule,
     AuditModule,
     NotificationsModule,
+    ApprovalsModule,
   ],
   controllers: [
     LeaveTypesController,
     LeavePoliciesController,
-    ApprovalMatricesController,
     LeaveRequestsController,
   ],
-  providers: [
-    LeaveRepository,
-    LeaveService,
-    ApprovalResolverService,
-    JwtAuthGuard,
-    PermissionsGuard,
-  ],
-  exports: [LeaveRepository, LeaveService, ApprovalResolverService],
+  providers: [LeaveRepository, LeaveService, JwtAuthGuard, PermissionsGuard],
+  exports: [LeaveRepository, LeaveService],
 })
 export class LeaveModule {}

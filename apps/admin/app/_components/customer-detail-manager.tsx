@@ -180,7 +180,7 @@ export function CustomerDetailManager({ customer, lifecycleOptions, operators, p
     <DetailHeader eyebrow="Customer" title={<span className="inline-flex flex-wrap items-center gap-3">{customer.companyName}<TenantStatusBadge value={customer.status} /></span>} description={`${form.primaryContactEmail || "No primary email"} ? ${getLifecycleLabel(customer.status)}`} />
     <CommandBar>
     <RecordRibbonBar left={
-      <IconButton label="Back" onClick={() => router.push("/customers")}><ArrowLeft className="h-4 w-4" /></IconButton>
+      <IconButton onClick={() => router.push("/customers")}><ArrowLeft className="h-4 w-4" /></IconButton>
     } right={<>
       <ActionButton disabled={readOnly || isPending} onClick={handleActivation}><Power className="h-4 w-4" />{["ARCHIVED", "CHURNED", "SUSPENDED"].includes(String(form.status)) ? "Activate" : "Deactivate"}</ActionButton>
       <ActionButton disabled={isPending || !isDirty || readOnly} onClick={handleSave}><Save className="h-4 w-4" />Save</ActionButton>

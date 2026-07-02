@@ -431,9 +431,15 @@ export const attendanceRuntimeSpec: StandardModuleRuntimeSpec = {
       isReadOnly: true,
     },
     {
-      logicalName: "location",
-      displayName: "Location",
-      dataType: "lookup",
+      logicalName: "checkInLocation",
+      displayName: "Check-In Location",
+      dataType: "string",
+      isReadOnly: true,
+    },
+    {
+      logicalName: "checkOutLocation",
+      displayName: "Check-Out Location",
+      dataType: "string",
       isReadOnly: true,
     },
     {
@@ -452,12 +458,61 @@ export const attendanceRuntimeSpec: StandardModuleRuntimeSpec = {
   formFields: [
     "attendanceDate",
     "attendanceMode",
-    "officeLocationId",
-    "shiftTemplateId",
+    "workSite",
+    "shift",
     "checkIn",
     "checkOut",
     "duration",
-    "location",
+    "checkInLocation",
+    "checkOutLocation",
+  ],
+  formSections: [
+    {
+      id: "attendance.session",
+      tabKey: "general",
+      label: "Session",
+      order: 10,
+      layout: "single-column",
+      columns: 1,
+      column: 1,
+      fields: [
+        { fieldLogicalName: "attendanceDate", order: 10 },
+        { fieldLogicalName: "attendanceMode", order: 20 },
+        {
+          fieldLogicalName: "workSite",
+          order: 30,
+          visibilityRuleKey: "attendance.hideWorkSiteOnRemote",
+        },
+        { fieldLogicalName: "shift", order: 40 },
+      ],
+    },
+    {
+      id: "attendance.time",
+      tabKey: "general",
+      label: "Time",
+      order: 20,
+      layout: "single-column",
+      columns: 1,
+      column: 2,
+      fields: [
+        { fieldLogicalName: "checkIn", order: 10 },
+        { fieldLogicalName: "checkOut", order: 20 },
+        { fieldLogicalName: "duration", order: 30 },
+      ],
+    },
+    {
+      id: "attendance.location",
+      tabKey: "general",
+      label: "Location Capture",
+      order: 30,
+      layout: "two-column",
+      columns: 2,
+      columnSpan: 2,
+      fields: [
+        { fieldLogicalName: "checkInLocation", order: 10 },
+        { fieldLogicalName: "checkOutLocation", order: 20 },
+      ],
+    },
   ],
   views: [
     {
@@ -559,16 +614,18 @@ export const attendanceRuntimeSpec: StandardModuleRuntimeSpec = {
     attendanceCommand(
       "attendance.checkIn",
       "Check In",
-      PERMISSION_KEYS.ATTENDANCE_CHECKIN,
+      [PERMISSION_KEYS.ATTENDANCE_CHECKIN, "attendance.create"],
       10,
       "not-checked-in",
+      ["not-checked-in", "blocked", "completed"],
     ),
     attendanceCommand(
       "attendance.checkOut",
       "Check Out",
-      PERMISSION_KEYS.ATTENDANCE_CHECKOUT,
+      [PERMISSION_KEYS.ATTENDANCE_CHECKOUT, "attendance.create"],
       20,
       "checked-in",
+      ["checked-in", "blocked", "completed"],
     ),
     disabledBusinessCommand("attendance.correction", "Correction Request"),
   ],
@@ -707,9 +764,10 @@ function leaveDecisionCommand(
 function attendanceCommand(
   key: "attendance.checkIn" | "attendance.checkOut",
   label: string,
-  permissionKey: string,
+  permissionKeys: readonly string[],
   order: number,
   expectedState: "not-checked-in" | "checked-in",
+  visibleStates: readonly string[],
 ): CommandDefinition {
   return {
     key,
@@ -720,14 +778,28 @@ function attendanceCommand(
     executionMode: "client",
     handlerKey: key,
     payloadSchemaKey: key,
-    permission: { permissionKey, operation: "execute", scope: "self" },
+    permission: {
+      permissionKey: permissionKeys[0] ?? "",
+      anyPermissionKeys: permissionKeys,
+      operation: "execute",
+      scope: "self",
+    },
     visibilityRules: [
       {
-        operator: "field-equals",
+        operator: "field-in",
         fieldLogicalName: "attendanceActionState",
-        expectedValue: expectedState,
+        expectedValues: visibleStates,
       },
     ],
+    dynamicDisabled: {
+      fieldLogicalName: "attendanceActionState",
+      enabledValue: expectedState,
+      reasonFieldLogicalName: "attendanceBlockedReason",
+      fallbackReason:
+        key === "attendance.checkIn"
+          ? "Check in is not available for the current attendance state."
+          : "Check out is not available for the current attendance state.",
+    },
     order,
   };
 }

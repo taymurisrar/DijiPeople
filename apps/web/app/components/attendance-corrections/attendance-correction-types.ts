@@ -28,6 +28,7 @@ export type AttendanceCorrectionRequest = {
   createdAtUtc: string;
   updatedAtUtc: string;
   employeeName: string;
+  canEdit: boolean;
   canApprove: boolean;
   canReject: boolean;
   relatedRecordUrl: string;

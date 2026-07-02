@@ -107,6 +107,8 @@ export function BrandingSettingsForm({
   const [showResetDialog, setShowResetDialog] = useState(false);
 
   useEffect(() => {
+    // Prop changes represent an external saved snapshot and must reset the editor atomically.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSavedBranding(initialValues);
     setDraftBranding(initialValues);
     setLogoFile(null);

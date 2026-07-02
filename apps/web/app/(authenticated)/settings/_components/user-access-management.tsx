@@ -67,6 +67,13 @@ const PROTECTED_OWNER_ROLE_KEYS = new Set([
   "owner",
 ]);
 
+const HYDRATION_SAFE_DATE_TIME_CONTEXT = {
+  locale: "en-US",
+  timezone: "UTC",
+  timeFormat: "12h",
+  dateFormat: null,
+} as const;
+
 export function UserAccessManagement({
   initialUsers,
   roles,
@@ -1086,7 +1093,7 @@ function formatDateTime(value?: string | null) {
     return "";
   }
 
-  return formatResolvedDateTime(value);
+  return formatResolvedDateTime(value, HYDRATION_SAFE_DATE_TIME_CONTEXT);
 }
 
 function formatOwnershipLabel(

@@ -46,7 +46,7 @@ type BaseLookups = Pick<
 
 let baseLookupsInFlight: Promise<BaseLookups> | null = null;
 let baseLookupsCache: { value: BaseLookups; expiresAt: number } | null = null;
-const LOOKUP_CACHE_TTL_MS = 5 * 60 * 1000;
+const LOOKUP_CACHE_TTL_MS = 0;
 const LOOKUP_TIMEOUT_MS = 8_000;
 
 export function useEmployeeLookups(filters?: {
@@ -205,10 +205,13 @@ function loadBaseLookups() {
             locations,
             workSchedules,
           };
-          baseLookupsCache = {
-            value,
-            expiresAt: Date.now() + LOOKUP_CACHE_TTL_MS,
-          };
+          baseLookupsCache =
+            LOOKUP_CACHE_TTL_MS > 0
+              ? {
+                  value,
+                  expiresAt: Date.now() + LOOKUP_CACHE_TTL_MS,
+                }
+              : null;
           return value;
         },
       )
@@ -223,6 +226,7 @@ function loadBaseLookups() {
 async function fetchLookup(url: string) {
   try {
     const response = await fetch(url, {
+      cache: "no-store",
       signal: AbortSignal.timeout(LOOKUP_TIMEOUT_MS),
     });
     if (!response.ok) {
@@ -261,6 +265,10 @@ function normalizeLookupList(payload: unknown): LookupOption[] {
       const code = typeof record.code === "string" ? record.code : null;
       const countryId =
         typeof record.countryId === "string" ? record.countryId : null;
+      const employeeLevelId =
+        typeof record.employeeLevelId === "string"
+          ? record.employeeLevelId
+          : null;
       const stateProvinceId =
         typeof record.stateProvinceId === "string"
           ? record.stateProvinceId
@@ -270,6 +278,7 @@ function normalizeLookupList(payload: unknown): LookupOption[] {
         stateProvinceId,
         key?.trim().toLowerCase(),
         code?.trim().toLowerCase(),
+        employeeLevelId,
         name.trim().toLowerCase(),
       ]
         .filter(Boolean)
@@ -290,6 +299,7 @@ function normalizeLookupList(payload: unknown): LookupOption[] {
         key,
         code,
         countryId,
+        employeeLevelId,
         stateProvinceId,
       });
     }
@@ -304,6 +314,24 @@ function normalizeLookupList(payload: unknown): LookupOption[] {
     Array.isArray((payload as { items?: unknown[] }).items)
   ) {
     return normalizeLookupList((payload as { items: unknown[] }).items);
+  }
+
+  if (
+    typeof payload === "object" &&
+    payload !== null &&
+    "data" in payload &&
+    Array.isArray((payload as { data?: unknown[] }).data)
+  ) {
+    return normalizeLookupList((payload as { data: unknown[] }).data);
+  }
+
+  if (
+    typeof payload === "object" &&
+    payload !== null &&
+    "records" in payload &&
+    Array.isArray((payload as { records?: unknown[] }).records)
+  ) {
+    return normalizeLookupList((payload as { records: unknown[] }).records);
   }
 
   return [];

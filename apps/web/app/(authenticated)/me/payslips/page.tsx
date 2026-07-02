@@ -38,9 +38,8 @@ export default async function MyPayslipsPage() {
       <section className="grid gap-3">
         {payslips.length ? (
           payslips.map((payslip) => (
-            <Link
+            <div
               className="rounded-2xl border border-border bg-white p-4 transition hover:border-accent/40"
-              href={`/me/payslips/${payslip.id}`}
               key={payslip.id}
             >
               <div className="flex flex-wrap justify-between gap-3">
@@ -52,11 +51,9 @@ export default async function MyPayslipsPage() {
                     {payslip.payrollRun?.payrollPeriod?.name ?? "Payroll"}
                   </p>
                 </div>
-                <p className="font-semibold text-foreground">
-                  {payslip.currencyCode} {payslip.netPay}
-                </p>
+                <div className="text-right"><p className="font-semibold text-foreground">{payslip.currencyCode} {payslip.netPay}</p><div className="mt-2 flex gap-3"><Link className="text-sm font-semibold text-accent" href={`/me/payslips/${payslip.id}`}>View</Link><a className="text-sm font-semibold text-accent" href={`/api/me/payslips/${payslip.id}/download`}>Download PDF</a></div></div>
               </div>
-            </Link>
+            </div>
           ))
         ) : (
           <p className="text-sm text-muted">No published payslips yet.</p>

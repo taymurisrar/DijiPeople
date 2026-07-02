@@ -13,6 +13,7 @@ import {
 } from '@prisma/client';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { ConfigurationResolverService } from '../tenant-settings/configuration-resolver.service';
 import { EmployeesRepository } from '../employees/employees.repository';
 import { TenantSettingsResolverService } from '../tenant-settings/tenant-settings-resolver.service';
 import { CreateEmployeeCompensationDto } from './dto/create-employee-compensation.dto';
@@ -63,6 +64,7 @@ export class PayrollService {
     private readonly employeesRepository: EmployeesRepository,
     private readonly prisma: PrismaService,
     private readonly tenantSettingsResolverService: TenantSettingsResolverService,
+    private readonly configurationResolverService: ConfigurationResolverService,
   ) {}
 
   async listCycles(tenantId: string, query: PayrollCycleQueryDto) {
@@ -143,6 +145,12 @@ export class PayrollService {
       await this.tenantSettingsResolverService.getPayrollSettings(
         currentUser.tenantId,
       );
+    const currencyResolution =
+      await this.configurationResolverService.resolvePayrollCurrency({
+        tenantId: currentUser.tenantId,
+        employeeId: dto.employeeId,
+        effectiveDate: new Date(dto.effectiveDate),
+      });
 
     try {
       const compensation = await this.payrollRepository.createCompensation({
@@ -154,7 +162,9 @@ export class PayrollService {
         effectiveDate: new Date(dto.effectiveDate),
         endDate: dto.endDate ? new Date(dto.endDate) : undefined,
         currency:
-          dto.currency?.trim().toUpperCase() ?? payrollSettings.defaultCurrency,
+          dto.currency?.trim().toUpperCase() ??
+          currencyResolution.payrollCurrency ??
+          payrollSettings.defaultCurrency,
         createdById: currentUser.userId,
         updatedById: currentUser.userId,
       });

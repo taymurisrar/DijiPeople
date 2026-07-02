@@ -144,6 +144,7 @@ export type DataTableProps<T> = {
     total?: number;
     totalItems?: number;
     totalPages?: number;
+    pageSizeOptions?: number[];
   };
   emptyState?: ReactNode;
   initialSort?: DataTableSortState | null;
@@ -159,4 +160,5 @@ export type DataTableProps<T> = {
   enableSelection?: boolean;
   selectedRowKeys?: string[];
   onSelectedRowKeysChange?: (keys: string[]) => void;
+  onRowClick?: (row: T) => void;
 };

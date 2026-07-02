@@ -6,14 +6,17 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
-  ClaimApprovalStatus,
-  ClaimApprovalStep,
+  ApprovalModuleKey,
+  ApprovalRequestStatus,
   ClaimRequestStatus,
   Prisma,
 } from '@prisma/client';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { ApprovalMatrixResolverService } from '../approvals/approval-matrix-resolver.service';
+import { ApprovalsService } from '../approvals/approvals.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import {
   CreateClaimSubTypeDto,
   CreateClaimTypeDto,
@@ -38,6 +41,12 @@ const claimInclude = {
       firstName: true,
       lastName: true,
       userId: true,
+      managerEmployeeId: true,
+      departmentId: true,
+      businessUnitId: true,
+      employeeLevelId: true,
+      manager: { select: { id: true, userId: true } },
+      businessUnit: { select: { organizationId: true } },
     },
   },
   lineItems: {
@@ -67,6 +76,9 @@ export class ClaimsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
+    private readonly approvalResolver: ApprovalMatrixResolverService,
+    private readonly approvalsService: ApprovalsService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   listTypes(tenantId: string) {
@@ -333,6 +345,14 @@ export class ClaimsService {
     const claim = await this.findClaimOrThrow(user.tenantId, id);
     if (self) await this.assertSelfClaim(user, claim.employeeId);
     this.assertDraftEditable(claim);
+    if (
+      dto.currencyCode !== undefined &&
+      normalizeCurrency(dto.currencyCode) !== claim.currencyCode &&
+      claim.lineItems.length
+    )
+      throw new ConflictException(
+        'Remove existing claim lines before changing the claim currency.',
+      );
     const updated = await this.prisma.claimRequest.update({
       where: { id },
       data: {
@@ -437,10 +457,60 @@ export class ClaimsService {
     }
     if (!claim.lineItems.length)
       throw new BadRequestException('Claim must have at least one line item.');
-    const updated = await this.prisma.claimRequest.update({
-      where: { id: claimId },
-      data: { status: ClaimRequestStatus.SUBMITTED, submittedAt: new Date() },
-      include: claimInclude,
+    if (
+      claim.lineItems.some(
+        (line) => normalizeCurrency(line.currencyCode) !== claim.currencyCode,
+      )
+    )
+      throw new BadRequestException(
+        'Every claim line must use the claim request currency.',
+      );
+    const claimTypeIds = [
+      ...new Set(claim.lineItems.map((line) => line.claimTypeId)),
+    ];
+    const route = await this.approvalResolver.resolveApprovalRoute({
+      tenantId: user.tenantId,
+      moduleKey: ApprovalModuleKey.CLAIM_REQUEST,
+      recordType: 'claimRequest',
+      requesterEmployee: claim.employee,
+      scopeContext: {
+        organizationId: claim.employee.businessUnit?.organizationId,
+        businessUnitId: claim.employee.businessUnitId,
+        departmentId: claim.employee.departmentId,
+        employeeLevelId: claim.employee.employeeLevelId,
+        employeeId: claim.employee.id,
+      },
+      conditionContext: {
+        amount: claim.approvedAmount.toString(),
+        claimTypeId: claimTypeIds.length === 1 ? claimTypeIds[0] : null,
+        claimTypeIds,
+        currencyCode: claim.currencyCode,
+      },
+    });
+    const updated = await this.prisma.$transaction(async (tx) => {
+      await this.approvalsService.createWorkflow(
+        {
+          user,
+          moduleKey: 'claim',
+          entityType: 'claimRequest',
+          entityId: claim.id,
+          title: claim.title,
+          submittedForEmployeeId: claim.employeeId,
+          steps: route,
+          metadata: {
+            source: 'claim',
+            approvalModuleKey: ApprovalModuleKey.CLAIM_REQUEST,
+            claimTypeIds,
+            currencyCode: claim.currencyCode,
+          },
+        },
+        tx,
+      );
+      return tx.claimRequest.update({
+        where: { id: claimId },
+        data: { status: ClaimRequestStatus.SUBMITTED, submittedAt: new Date() },
+        include: claimInclude,
+      });
     });
     await this.audit(
       user,
@@ -450,6 +520,11 @@ export class ClaimsService {
       claim,
       updated,
     );
+    await this.emitApprovalRequested(
+      user,
+      updated,
+      route[0]?.candidateUserIds ?? [],
+    );
     return mapClaim(updated);
   }
 
@@ -458,7 +533,7 @@ export class ClaimsService {
     claimId: string,
     dto: ClaimActionDto,
   ) {
-    return this.approve(user, claimId, dto, ClaimApprovalStep.MANAGER);
+    return this.approve(user, claimId, dto);
   }
 
   approvePayroll(
@@ -466,7 +541,7 @@ export class ClaimsService {
     claimId: string,
     dto: ClaimActionDto,
   ) {
-    return this.approve(user, claimId, dto, ClaimApprovalStep.PAYROLL);
+    return this.approve(user, claimId, dto);
   }
 
   async rejectClaim(
@@ -483,20 +558,17 @@ export class ClaimsService {
         'Claims included in payroll cannot be rejected.',
       );
     }
+    const approval = await this.findApprovalRequest(user.tenantId, claimId);
     const updated = await this.prisma.$transaction(async (tx) => {
-      await tx.claimApproval.create({
-        data: {
-          tenantId: user.tenantId,
-          claimRequestId: claimId,
-          step:
-            claim.status === ClaimRequestStatus.MANAGER_APPROVED
-              ? ClaimApprovalStep.PAYROLL
-              : ClaimApprovalStep.MANAGER,
-          status: ClaimApprovalStatus.REJECTED,
-          actorUserId: user.userId,
-          comments: dto.reason.trim(),
+      await this.approvalsService.action(
+        {
+          user,
+          approvalRequestId: approval.id,
+          action: 'REJECTED',
+          comment: dto.reason,
         },
-      });
+        tx,
+      );
       return tx.claimRequest.update({
         where: { id: claimId },
         data: {
@@ -515,6 +587,20 @@ export class ClaimsService {
       claim,
       updated,
     );
+    await this.notificationsService.emit({
+      tenantId: user.tenantId,
+      eventKey: 'CLAIM_REJECTED',
+      moduleKey: 'claim',
+      actorUserId: user.userId,
+      relatedEntityType: 'claimRequest',
+      relatedEntityId: claimId,
+      metadata: {
+        recipientUserIds: updated.employee.userId
+          ? [updated.employee.userId]
+          : [],
+        targetUrl: `/claims/${claimId}`,
+      },
+    });
     return mapClaim(updated);
   }
 
@@ -529,10 +615,22 @@ export class ClaimsService {
         'Claims included in payroll cannot be cancelled.',
       );
     }
-    const updated = await this.prisma.claimRequest.update({
-      where: { id: claimId },
-      data: { status: ClaimRequestStatus.CANCELLED },
-      include: claimInclude,
+    const approval =
+      claim.status === ClaimRequestStatus.SUBMITTED ||
+      claim.status === ClaimRequestStatus.MANAGER_APPROVED
+        ? await this.findApprovalRequest(user.tenantId, claimId)
+        : null;
+    const updated = await this.prisma.$transaction(async (tx) => {
+      if (approval)
+        await this.approvalsService.cancel(
+          { user, approvalRequestId: approval.id },
+          tx,
+        );
+      return tx.claimRequest.update({
+        where: { id: claimId },
+        data: { status: ClaimRequestStatus.CANCELLED },
+        include: claimInclude,
+      });
     });
     await this.audit(
       user,
@@ -549,63 +647,75 @@ export class ClaimsService {
     user: AuthenticatedUser,
     claimId: string,
     dto: ClaimActionDto,
-    step: ClaimApprovalStep,
   ) {
     const claim = await this.findClaimOrThrow(user.tenantId, claimId);
     if (
-      step === ClaimApprovalStep.MANAGER &&
-      claim.status !== ClaimRequestStatus.SUBMITTED
-    ) {
-      throw new ConflictException(
-        'Only submitted claims can be manager approved.',
-      );
-    }
-    if (
-      step === ClaimApprovalStep.PAYROLL &&
+      claim.status !== ClaimRequestStatus.SUBMITTED &&
       claim.status !== ClaimRequestStatus.MANAGER_APPROVED
-    ) {
-      throw new ConflictException(
-        'Only manager-approved claims can be payroll approved.',
-      );
-    }
+    )
+      throw new ConflictException('Only pending claims can be approved.');
     if (!claim.lineItems.length)
       throw new BadRequestException('Claim must have at least one line item.');
-    const nextStatus =
-      step === ClaimApprovalStep.MANAGER
-        ? ClaimRequestStatus.MANAGER_APPROVED
-        : ClaimRequestStatus.PAYROLL_APPROVED;
-    const updated = await this.prisma.$transaction(async (tx) => {
-      await tx.claimApproval.create({
-        data: {
-          tenantId: user.tenantId,
-          claimRequestId: claimId,
-          step,
-          status: ClaimApprovalStatus.APPROVED,
-          actorUserId: user.userId,
-          comments: dto.comments?.trim(),
-        },
-      });
-      return tx.claimRequest.update({
-        where: { id: claimId },
-        data: {
-          status: nextStatus,
-          ...(step === ClaimApprovalStep.MANAGER
-            ? { managerApprovedAt: new Date() }
-            : { payrollApprovedAt: new Date() }),
-        },
-        include: claimInclude,
-      });
-    });
+    const approval = await this.findApprovalRequest(user.tenantId, claimId);
+    const { updated, approvalStatus } = await this.prisma.$transaction(
+      async (tx) => {
+        const result = await this.approvalsService.action(
+          {
+            user,
+            approvalRequestId: approval.id,
+            action: 'APPROVED',
+            comment: dto.comments,
+          },
+          tx,
+        );
+        const finalApproval = result.status === ApprovalRequestStatus.APPROVED;
+        const now = new Date();
+        const updatedClaim = await tx.claimRequest.update({
+          where: { id: claimId },
+          data: {
+            status: finalApproval
+              ? ClaimRequestStatus.PAYROLL_APPROVED
+              : ClaimRequestStatus.MANAGER_APPROVED,
+            managerApprovedAt: claim.managerApprovedAt ?? now,
+            ...(finalApproval ? { payrollApprovedAt: now } : {}),
+          },
+          include: claimInclude,
+        });
+        return { updated: updatedClaim, approvalStatus: result.status };
+      },
+    );
     await this.audit(
       user,
-      step === ClaimApprovalStep.MANAGER
-        ? 'CLAIM_MANAGER_APPROVED'
-        : 'CLAIM_PAYROLL_APPROVED',
+      approvalStatus === ApprovalRequestStatus.APPROVED
+        ? 'CLAIM_APPROVED'
+        : 'CLAIM_APPROVAL_STEP_APPROVED',
       'ClaimRequest',
       claimId,
       claim,
       updated,
     );
+    if (approvalStatus === ApprovalRequestStatus.APPROVED) {
+      await this.notificationsService.emit({
+        tenantId: user.tenantId,
+        eventKey: 'CLAIM_APPROVED',
+        moduleKey: 'claim',
+        actorUserId: user.userId,
+        relatedEntityType: 'claimRequest',
+        relatedEntityId: claimId,
+        metadata: {
+          recipientUserIds: updated.employee.userId
+            ? [updated.employee.userId]
+            : [],
+          targetUrl: `/claims/${claimId}`,
+        },
+      });
+    } else {
+      await this.emitApprovalRequested(
+        user,
+        updated,
+        await this.currentApprovalAssigneeIds(user.tenantId, approval.id),
+      );
+    }
     return mapClaim(updated);
   }
 
@@ -630,6 +740,12 @@ export class ClaimsService {
     if (approvedAmount && approvedAmount.gt(amount)) {
       throw new BadRequestException('approvedAmount cannot exceed amount.');
     }
+    const currencyCode = normalizeCurrency(dto.currencyCode);
+    if (currencyCode !== claim.currencyCode) {
+      throw new BadRequestException(
+        'Claim line currency must match the claim request currency.',
+      );
+    }
     if (claimSubType?.requiresReceipt && !dto.receiptDocumentId) {
       throw new BadRequestException(
         'Receipt document is required for this claim subtype.',
@@ -649,7 +765,7 @@ export class ClaimsService {
       description: emptyToNull(dto.description),
       amount,
       approvedAmount,
-      currencyCode: normalizeCurrency(dto.currencyCode),
+      currencyCode,
       receiptDocumentId: dto.receiptDocumentId ?? null,
     };
   }
@@ -716,6 +832,62 @@ export class ClaimsService {
     });
     if (!claim) throw new NotFoundException('Claim was not found.');
     return claim;
+  }
+
+  private async findApprovalRequest(tenantId: string, claimRequestId: string) {
+    const approval = await this.prisma.approvalRequest.findUnique({
+      where: {
+        tenantId_moduleKey_entityType_entityId: {
+          tenantId,
+          moduleKey: 'claim',
+          entityType: 'claimRequest',
+          entityId: claimRequestId,
+        },
+      },
+      select: { id: true, status: true },
+    });
+    if (!approval)
+      throw new ConflictException(
+        'The claim does not have an active generic approval workflow.',
+      );
+    return approval;
+  }
+
+  private async currentApprovalAssigneeIds(
+    tenantId: string,
+    approvalRequestId: string,
+  ) {
+    const assignments = await this.prisma.approvalAssignment.findMany({
+      where: {
+        tenantId,
+        approvalRequestId,
+        status: 'PENDING',
+        approvalStep: { status: 'PENDING' },
+      },
+      select: { assignedToUserId: true },
+    });
+    return assignments
+      .map((assignment) => assignment.assignedToUserId)
+      .filter((id): id is string => Boolean(id));
+  }
+
+  private emitApprovalRequested(
+    user: AuthenticatedUser,
+    claim: ClaimWithRelations,
+    assigneeUserIds: string[],
+  ) {
+    return this.notificationsService.emit({
+      tenantId: user.tenantId,
+      eventKey: 'CLAIM_APPROVAL_REQUESTED',
+      moduleKey: 'claim',
+      actorUserId: user.userId,
+      relatedEntityType: 'claimRequest',
+      relatedEntityId: claim.id,
+      metadata: {
+        approvalAssigneeUserIds: assigneeUserIds,
+        targetUrl: `/claims/${claim.id}`,
+      },
+    });
   }
 
   private async findLineItemOrThrow(

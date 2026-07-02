@@ -24,6 +24,8 @@ export function NotificationPopupProvider() {
   }, []);
 
   useEffect(() => {
+    // Polling intentionally hydrates popup state from the external notifications API.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadPopup();
     const intervalId = window.setInterval(() => void loadPopup(), 60_000);
     return () => window.clearInterval(intervalId);

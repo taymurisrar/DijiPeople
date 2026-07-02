@@ -7,6 +7,7 @@ import {
   AUTH_APP_CLIENT_ID,
   LOGIN_ROUTE,
   REFRESH_TOKEN_COOKIE,
+  TENANT_SLUG_COOKIE,
 } from "@/lib/auth-config";
 import { sanitizeLocalNextPath } from "@/lib/routes";
 import { getTenantHintFromRequest } from "@/lib/tenant-resolution";
@@ -16,6 +17,7 @@ export type SessionUser = {
   sub: string;
   userId: string;
   tenantId: string;
+  tenantSlug: string;
   tenantName: string;
   email: string;
   firstName: string;
@@ -43,6 +45,7 @@ type AuthMeResponse = {
   tenant: {
     id: string;
     name: string;
+    slug?: string;
   };
   roles?: Array<{ id: string; key: string; name: string }>;
   permissions?: string[];
@@ -158,6 +161,7 @@ async function getSessionFromApi(): Promise<SessionUser | null> {
     sub: userId,
     userId,
     tenantId: data.user.tenantId,
+    tenantSlug: data.tenant.slug ?? "",
     tenantName: data.tenant.name,
     email: data.user.email,
     firstName: data.user.firstName,
@@ -171,10 +175,13 @@ async function getSessionFromApi(): Promise<SessionUser | null> {
 }
 
 async function buildLoginUrl(nextPath: string): Promise<string> {
-  const requestHeaders = await headers();
+  const [requestHeaders, cookieStore] = await Promise.all([headers(), cookies()]);
   const safeNext = sanitizeLocalNextPath(nextPath);
   const host = requestHeaders.get("host");
-  const tenantHint = getTenantHintFromRequest({ host });
+  const tenantHint = getTenantHintFromRequest({
+    host,
+    cookieTenant: cookieStore.get(TENANT_SLUG_COOKIE)?.value,
+  });
   if (tenantHint.type === "slug" && tenantHint.value) {
     return buildTenantLoginUrl(tenantHint.value, { next: safeNext });
   }

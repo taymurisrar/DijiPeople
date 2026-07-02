@@ -12,9 +12,24 @@ export type TenantAccessUser = {
   lastName: string;
   email: string;
   status: string;
+  accessStatus: string;
   accessType: "GLOBAL_ADMIN" | "SERVICE_ACCOUNT";
   lastLoginAt: string | null;
   createdAt: string;
+  createdBy: {
+    id: string;
+    fullName: string;
+    email: string;
+    role: string | null;
+    source: string;
+  } | null;
+  activation: {
+    id: string;
+    status: string;
+    expiresAt: string;
+    consumedAt: string | null;
+    createdAt: string;
+  } | null;
 };
 
 export function TenantAccessManager({
@@ -56,15 +71,20 @@ export function TenantAccessManager({
     setBusy(null);
   }
 
-  async function mutate(user: TenantAccessUser, action: "toggle" | "reset") {
+  async function mutate(
+    user: TenantAccessUser,
+    action: "toggle" | "activation" | "password",
+  ) {
     setBusy(user.id + action);
     setError(null);
     const url =
-      action === "reset"
+      action === "activation"
         ? `/api/super-admin/tenants/${tenantId}/access-users/${user.id}/reset-activation`
+        : action === "password"
+          ? `/api/super-admin/tenants/${tenantId}/access-users/${user.id}/reset-password`
         : `/api/super-admin/tenants/${tenantId}/access-users/${user.id}`;
     const response = await fetch(url, {
-      method: action === "reset" ? "POST" : "PATCH",
+      method: action === "toggle" ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
       body:
         action === "toggle"
@@ -121,16 +141,44 @@ export function TenantAccessManager({
             ),
           },
           { key: "type", header: "Access type", render: (user) => user.accessType === "GLOBAL_ADMIN" ? "Global Admin" : "Service account" },
-          { key: "status", header: "Status", render: (user) => <TenantStatusBadge value={user.status} /> },
+          {
+            key: "status",
+            header: "Status",
+            render: (user) => (
+              <div>
+                <TenantStatusBadge value={user.accessStatus} />
+                {user.activation?.expiresAt ? (
+                  <p className="mt-1 text-xs text-slate-500">
+                    Activation expires {formatDate(user.activation.expiresAt)}
+                  </p>
+                ) : null}
+              </div>
+            ),
+          },
           { key: "login", header: "Last login", render: (user) => formatDate(user.lastLoginAt) },
+          {
+            key: "created",
+            header: "Created",
+            render: (user) => (
+              <div>
+                <p>{formatDate(user.createdAt)}</p>
+                <p className="text-xs text-slate-500">
+                  By {user.createdBy?.email ?? "System"}
+                </p>
+              </div>
+            ),
+          },
           {
             key: "actions",
             header: "Actions",
             align: "right",
             render: (user) => (
               <div className="flex justify-end gap-2">
-                <button className="rounded-lg border border-slate-200 px-3 py-1.5 font-semibold" disabled={busy?.startsWith(user.id)} onClick={() => mutate(user, "reset")} type="button">
-                  Reset / resend
+                <button className="rounded-lg border border-slate-200 px-3 py-1.5 font-semibold" disabled={busy?.startsWith(user.id)} onClick={() => mutate(user, "activation")} type="button">
+                  Send Activation Link
+                </button>
+                <button className="rounded-lg border border-slate-200 px-3 py-1.5 font-semibold" disabled={busy?.startsWith(user.id) || user.status === "DISABLED"} onClick={() => mutate(user, "password")} type="button">
+                  Reset Password
                 </button>
                 <button className="rounded-lg border border-slate-200 px-3 py-1.5 font-semibold" disabled={busy?.startsWith(user.id)} onClick={() => mutate(user, "toggle")} type="button">
                   {user.status === "DISABLED" ? "Reactivate" : user.accessType === "SERVICE_ACCOUNT" ? "Revoke" : "Deactivate"}

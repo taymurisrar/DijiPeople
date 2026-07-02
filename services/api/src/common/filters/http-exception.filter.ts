@@ -57,7 +57,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const traceId = this.resolveTraceId(request, response, config.traceHeader);
     const normalized = this.normalizeException(exception);
     const timestamp = new Date().toISOString();
-    const details = normalized.details ?? {};
+    const details = enrichErrorDetails(normalized.details ?? {}, request.user);
 
     const contract: StandardErrorContract = {
       success: false,
@@ -351,6 +351,30 @@ function sanitizeCause(value: unknown) {
     return sanitizeForErrorLog({ name: value.name, message: value.message });
   }
   return sanitizeForErrorLog(value);
+}
+
+function enrichErrorDetails(details: unknown, user?: AuthenticatedUser) {
+  const base =
+    details && typeof details === 'object' && !Array.isArray(details)
+      ? (details as Record<string, unknown>)
+      : { details };
+
+  if (!user?.platform?.id) {
+    return base;
+  }
+
+  return {
+    ...base,
+    platformActor: {
+      id: user.platform.id,
+      email: user.email,
+      role: user.platform.role,
+      status: user.platform.status,
+      source: 'platform-admin',
+      sessionId: user.sessionId,
+      appClientId: user.appClientId,
+    },
+  };
 }
 
 function readFieldErrors(

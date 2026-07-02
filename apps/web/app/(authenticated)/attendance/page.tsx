@@ -178,14 +178,21 @@ export default async function AttendancePage({
     checkIn: entry.checkInAt ?? entry.checkIn,
     checkOut: entry.checkOutAt ?? entry.checkOut,
     duration: entry.durationLabel ?? "",
-    location: entry.officeLocation?.name ?? entry.remoteAddressText ?? "",
-    workSite: entry.officeLocation?.name ?? "",
+    location:
+      entry.workSite?.name ??
+      entry.officeLocation?.name ??
+      entry.remoteAddressText ??
+      "",
+    workSite: entry.workSite?.name ?? entry.officeLocation?.name ?? "",
     shift: entry.shift?.name ?? entry.workSchedule?.name ?? "",
   }));
   const isMyAttendanceView = activeView?.logicalName === "attendance.my";
   const attendanceActionState = isMyAttendanceView
     ? (attendanceContext?.attendanceActionState ?? "blocked")
     : "unavailable";
+  const attendanceBlockedReason = isMyAttendanceView
+    ? (attendanceContext?.blockedReason ?? undefined)
+    : "Check in and check out are only available from My Attendance.";
 
   return (
     <main className="dp-theme-scope dp-attendance-scope grid gap-6">
@@ -197,7 +204,7 @@ export default async function AttendancePage({
       ) : (
         <StandardModuleListPage
           activeView={activeView}
-          commandRecord={{ attendanceActionState }}
+          commandRecord={{ attendanceActionState, attendanceBlockedReason }}
           formatting={formatting}
           pagination={{
             page: response.meta?.page ?? response.pagination?.page ?? 1,
@@ -273,6 +280,7 @@ type AttendanceRuntimeContext = {
     | "completed"
     | "blocked";
   attendanceDate: string;
+  blockedReason?: string | null;
 };
 
 function attendanceEndpoint({

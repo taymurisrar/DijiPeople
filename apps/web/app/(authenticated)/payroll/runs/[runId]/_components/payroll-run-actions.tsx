@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Button } from "@/app/components/ui/button";
 
 export function PayrollRunActions({
   canCalculate,
@@ -12,6 +13,9 @@ export function PayrollRunActions({
   canGenerateJournal,
   canExportJournal,
   canMarkJournalExported,
+  canFinalize,
+  canGenerateBankExport,
+  canDisburse,
   journalStatus,
   runId,
   status,
@@ -24,6 +28,9 @@ export function PayrollRunActions({
   canLock: boolean;
   canMarkJournalExported: boolean;
   canPrepareTimeInputs: boolean;
+  canFinalize: boolean;
+  canGenerateBankExport: boolean;
+  canDisburse: boolean;
   journalStatus?: string | null;
   runId: string;
   status: string;
@@ -49,6 +56,61 @@ export function PayrollRunActions({
     router.refresh();
   }
 
+  async function operation(action: "finalize" | "disburse") {
+    setBusy(true);
+    setError(null);
+    const response = await fetch(
+      `/api/payroll/operations/runs/${runId}/${action}`,
+      { method: "POST" },
+    );
+    setBusy(false);
+    if (!response.ok) {
+      const data = (await response.json().catch(() => null)) as {
+        message?: string;
+      } | null;
+      setError(data?.message ?? `Unable to ${action} payroll run.`);
+      return;
+    }
+    const data = (await response.json().catch(() => null)) as {
+      approvalRequestId?: string;
+    } | null;
+    if (data?.approvalRequestId)
+      router.push(`/approvals/${data.approvalRequestId}`);
+    else router.refresh();
+  }
+
+  async function generateBankExport(
+    format: "CSV" | "EXCEL" | "GENERIC_BANK_TRANSFER",
+  ) {
+    setBusy(true);
+    setError(null);
+    const response = await fetch(
+      `/api/payroll/operations/runs/${runId}/bank-export?format=${format}`,
+      { method: "POST" },
+    );
+    setBusy(false);
+    if (!response.ok) {
+      const data = (await response.json().catch(() => null)) as {
+        message?: string;
+      } | null;
+      setError(data?.message ?? "Unable to generate the bank export.");
+      return;
+    }
+    const blob = await response.blob();
+    const contentDisposition =
+      response.headers.get("content-disposition") ?? "";
+    const fileName =
+      contentDisposition.match(/filename="?([^";]+)"?/i)?.[1] ??
+      `payroll-export-${format.toLowerCase()}`;
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    link.click();
+    URL.revokeObjectURL(url);
+    router.refresh();
+  }
+
   async function generatePayslips() {
     setBusy(true);
     setError(null);
@@ -69,9 +131,12 @@ export function PayrollRunActions({
   async function prepareTimeInputs() {
     setBusy(true);
     setError(null);
-    const response = await fetch(`/api/payroll/runs/${runId}/prepare-time-inputs`, {
-      method: "POST",
-    });
+    const response = await fetch(
+      `/api/payroll/runs/${runId}/prepare-time-inputs`,
+      {
+        method: "POST",
+      },
+    );
     setBusy(false);
     if (!response.ok) {
       const data = (await response.json().catch(() => null)) as {
@@ -103,9 +168,12 @@ export function PayrollRunActions({
   async function generateJournal() {
     setBusy(true);
     setError(null);
-    const response = await fetch(`/api/payroll/runs/${runId}/journal/generate`, {
-      method: "POST",
-    });
+    const response = await fetch(
+      `/api/payroll/runs/${runId}/journal/generate`,
+      {
+        method: "POST",
+      },
+    );
     setBusy(false);
     if (!response.ok) {
       const data = (await response.json().catch(() => null)) as {
@@ -120,9 +188,12 @@ export function PayrollRunActions({
   async function markJournalExported() {
     setBusy(true);
     setError(null);
-    const response = await fetch(`/api/payroll/runs/${runId}/journal/mark-exported`, {
-      method: "POST",
-    });
+    const response = await fetch(
+      `/api/payroll/runs/${runId}/journal/mark-exported`,
+      {
+        method: "POST",
+      },
+    );
     setBusy(false);
     if (!response.ok) {
       const data = (await response.json().catch(() => null)) as {
@@ -137,6 +208,12 @@ export function PayrollRunActions({
   return (
     <div className="grid gap-3">
       <div className="flex flex-wrap gap-3">
+        <Button href={`/payroll/runs/${runId}/preview`} variant="secondary">
+          Preview
+        </Button>
+        <Button href={`/payroll/exceptions?runId=${runId}`} variant="secondary">
+          Exceptions
+        </Button>
         {canCalculate && !["APPROVED", "PAID", "LOCKED"].includes(status) ? (
           <button
             className="rounded-2xl bg-accent px-4 py-2 text-sm font-semibold text-white"
@@ -147,7 +224,8 @@ export function PayrollRunActions({
             Calculate
           </button>
         ) : null}
-        {canPrepareTimeInputs && !["APPROVED", "PAID", "LOCKED"].includes(status) ? (
+        {canPrepareTimeInputs &&
+        !["APPROVED", "PAID", "LOCKED"].includes(status) ? (
           <button
             className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-foreground"
             disabled={busy}
@@ -167,7 +245,16 @@ export function PayrollRunActions({
             Calculate Taxes
           </button>
         ) : null}
-        {canLock && ["CALCULATED", "REVIEWED"].includes(status) ? (
+        {canFinalize && ["CALCULATED", "REVIEWED"].includes(status) ? (
+          <Button
+            disabled={busy}
+            onClick={() => operation("finalize")}
+            variant="success"
+          >
+            Finalize
+          </Button>
+        ) : null}
+        {canLock && status === "APPROVED" ? (
           <button
             className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-foreground"
             disabled={busy}
@@ -177,10 +264,36 @@ export function PayrollRunActions({
             Lock
           </button>
         ) : null}
+        {canGenerateBankExport && ["APPROVED", "LOCKED"].includes(status) ? (
+          <div className="flex gap-2">
+            {(["CSV", "EXCEL", "GENERIC_BANK_TRANSFER"] as const).map(
+              (format) => (
+                <Button
+                  disabled={busy}
+                  key={format}
+                  onClick={() => generateBankExport(format)}
+                  size="sm"
+                  variant="secondary"
+                >
+                  {format === "GENERIC_BANK_TRANSFER"
+                    ? "Bank Transfer"
+                    : format}
+                </Button>
+              ),
+            )}
+          </div>
+        ) : null}
+        {canDisburse && status === "LOCKED" ? (
+          <Button
+            disabled={busy}
+            onClick={() => operation("disburse")}
+            variant="primary"
+          >
+            Mark Disbursed
+          </Button>
+        ) : null}
         {canGeneratePayslips &&
-        ["CALCULATED", "REVIEWED", "APPROVED", "PAID", "LOCKED"].includes(
-          status,
-        ) ? (
+        ["APPROVED", "PAID", "LOCKED"].includes(status) ? (
           <button
             className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-foreground"
             disabled={busy}
@@ -202,7 +315,8 @@ export function PayrollRunActions({
             Generate Journal
           </button>
         ) : null}
-        {canExportJournal && ["GENERATED", "EXPORTED"].includes(journalStatus ?? "") ? (
+        {canExportJournal &&
+        ["GENERATED", "EXPORTED"].includes(journalStatus ?? "") ? (
           <a
             className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-foreground"
             href={`/api/payroll/runs/${runId}/journal/export`}

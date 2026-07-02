@@ -62,6 +62,7 @@ export type LookupOption = {
   key?: string | null;
   code?: string | null;
   countryId?: string | null;
+  employeeLevelId?: string | null;
   stateProvinceId?: string | null;
 };
 

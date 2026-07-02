@@ -5,8 +5,8 @@ import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { SettingsLayout } from "@/app/components/settings";
-import { findSettingsItemByPath } from "../_lib/settings-navigation";
-import { SettingsNav } from "./settings-nav";
+import { getSettingsRuntimeItemByPath } from "../_lib/settings-runtime";
+import { SettingsRuntimeNav } from "./settings-runtime-nav";
 
 type SettingsShellProps = {
   children: ReactNode;
@@ -28,11 +28,15 @@ export function SettingsShell({
   const pathname = usePathname();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
-  const currentMatch = findSettingsItemByPath(pathname);
-  const resolvedEyebrow = currentMatch?.groupLabel ?? eyebrow;
+  const currentMatch = getSettingsRuntimeItemByPath(pathname);
+  const resolvedEyebrow = currentMatch?.categoryLabel ?? eyebrow;
 
   const breadcrumb = currentMatch ? (
     <>
+      <span>Settings</span>
+      <span className="text-muted">/</span>
+      <span>{currentMatch.categoryLabel}</span>
+      <span className="text-muted">/</span>
       <span>{currentMatch.groupLabel}</span>
       <span className="text-muted">/</span>
       <span className="text-foreground">{currentMatch.label}</span>
@@ -93,7 +97,7 @@ export function SettingsShell({
               </button>
             )}
 
-            <SettingsNav
+            <SettingsRuntimeNav
               currentPath={pathname}
               isCollapsed={isSidebarCollapsed}
             />

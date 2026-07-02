@@ -1,10 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import {
+  ApprovalRequestStatus,
   ApprovalActorType,
   AttendanceEntryStatus,
+  ClaimRequestStatus,
+  EmployeeBenefitStatus,
   EmployeeEmploymentStatus,
   LeaveApprovalStepStatus,
   LeaveRequestStatus,
+  LoanRequestStatus,
   OnboardingTaskStatus,
   PayrollExceptionSeverity,
   PayrollRunStatus,
@@ -79,7 +83,7 @@ type DashboardSection = {
 };
 
 type DashboardView = {
-  key: 'admin' | 'hr' | 'manager' | 'employee';
+  key: 'admin' | 'hr' | 'manager' | 'employee' | 'executive';
   label: string;
   description: string;
   icon: string;
@@ -190,6 +194,10 @@ export class DashboardService {
       canSeeAllViews ||
       Boolean(currentEmployee) ||
       this.canAccessDashboardView(currentUser, 'employee');
+    const canSeeExecutive = this.canAccessDashboardView(
+      currentUser,
+      'executive',
+    );
 
     const views = (
       await Promise.all([
@@ -201,12 +209,140 @@ export class DashboardService {
         canSeeEmployee
           ? this.buildEmployeeView(currentUser, currentEmployee)
           : null,
+        canSeeExecutive ? this.buildExecutiveView(currentUser) : null,
       ])
     ).filter((view): view is DashboardView => Boolean(view));
 
     return {
       defaultView: this.resolveDefaultView(currentUser, views),
       views: views.sort((a, b) => a.order - b.order),
+    };
+  }
+
+  async getView(currentUser: AuthenticatedUser, viewKey: DashboardView['key']) {
+    const summary = await this.getSummary(currentUser);
+    const view = summary.views.find((candidate) => candidate.key === viewKey);
+    if (!view) return { defaultView: viewKey, views: [] };
+    return { defaultView: viewKey, views: [view] };
+  }
+
+  private async buildExecutiveView(
+    currentUser: AuthenticatedUser,
+  ): Promise<DashboardView> {
+    const employeeWhere = this.employeeScopedWhere(currentUser);
+    const today = this.getTodayRange();
+    const canViewPayrollCost =
+      this.hasPrivilegedRole(currentUser) ||
+      this.hasAnyPermission(currentUser, [
+        'payroll.read',
+        'payroll-runs.read',
+        'payroll-operations.read',
+      ]);
+    const [
+      totalEmployees,
+      activeEmployees,
+      statusGroups,
+      departmentGroups,
+      businessUnitGroups,
+      attendance,
+      leave,
+      pendingApprovals,
+      payrollCost,
+    ] = await Promise.all([
+      this.prisma.employee.count({ where: employeeWhere }),
+      this.prisma.employee.count({
+        where: { ...employeeWhere, employmentStatus: EmployeeEmploymentStatus.ACTIVE },
+      }),
+      this.prisma.employee.groupBy({
+        by: ['employmentStatus'],
+        where: employeeWhere,
+        _count: { _all: true },
+      }),
+      this.prisma.employee.groupBy({
+        by: ['departmentId'],
+        where: employeeWhere,
+        _count: { _all: true },
+      }),
+      this.prisma.employee.groupBy({
+        by: ['businessUnitId'],
+        where: employeeWhere,
+        _count: { _all: true },
+      }),
+      this.getAttendanceOperations(currentUser, today, employeeWhere),
+      this.getLeaveOperations(currentUser, true, employeeWhere),
+      this.prisma.approvalRequest.count({
+        where: {
+          tenantId: currentUser.tenantId,
+          status: ApprovalRequestStatus.PENDING,
+        },
+      }),
+      canViewPayrollCost
+        ? this.prisma.payrollRunEmployee.aggregate({
+            where: {
+              tenantId: currentUser.tenantId,
+              employee: employeeWhere,
+              payrollRun: { finalizedAt: { not: null } },
+            },
+            _sum: { grossEarnings: true, netPay: true },
+          })
+        : null,
+    ]);
+    const [departments, businessUnits] = await Promise.all([
+      this.prisma.department.findMany({
+        where: {
+          tenantId: currentUser.tenantId,
+          id: { in: departmentGroups.flatMap((group) => group.departmentId ? [group.departmentId] : []) },
+        },
+        select: { id: true, name: true },
+      }),
+      this.prisma.businessUnit.findMany({
+        where: {
+          tenantId: currentUser.tenantId,
+          id: { in: businessUnitGroups.flatMap((group) => group.businessUnitId ? [group.businessUnitId] : []) },
+        },
+        select: { id: true, name: true },
+      }),
+    ]);
+    const departmentNames = new Map(departments.map((item) => [item.id, item.name]));
+    const businessUnitNames = new Map(businessUnits.map((item) => [item.id, item.name]));
+
+    return {
+      key: 'executive',
+      label: 'Executive',
+      description: 'Read-only workforce and operating indicators within your organization scope.',
+      icon: 'chart',
+      visible: true,
+      order: 25,
+      badgeCount: pendingApprovals,
+      sections: [
+        this.section('overview', 'Workforce overview', 'grid', 10, [
+          this.metric('totalEmployees', 'Total employees', totalEmployees, 'Employees in your accessible organization scope.', '/employees'),
+          this.metric('activeEmployees', 'Active employees', activeEmployees, 'Currently active employees.', '/employees'),
+          this.metric('presentToday', 'Present today', attendance.checkedIn, 'Employees with attendance today.', '/attendance'),
+          this.metric('onLeaveToday', 'On leave today', leave.currentlyOnLeave, 'Employees on approved leave.', '/leaves'),
+          this.metric('pendingApprovals', 'Pending approvals', pendingApprovals, 'Approval requests awaiting action.', '/approvals', pendingApprovals ? 'warning' : 'good'),
+          ...(canViewPayrollCost
+            ? [this.metric('grossPayroll', 'Finalized gross payroll', payrollCost?._sum.grossEarnings?.toString() ?? '0', 'Aggregate finalized payroll; visible only with payroll permission.', '/payroll')]
+            : []),
+        ]),
+        this.section('distribution', 'Workforce distribution', 'grid', 20, [
+          this.chartWidget('departmentDistribution', 'Headcount by department', departmentGroups.map((group) => ({
+            key: group.departmentId ?? 'unassigned',
+            label: group.departmentId ? departmentNames.get(group.departmentId) ?? 'Unknown department' : 'Unassigned',
+            value: group._count._all,
+          }))),
+          this.chartWidget('businessUnitDistribution', 'Headcount by business unit', businessUnitGroups.map((group) => ({
+            key: group.businessUnitId ?? 'unassigned',
+            label: group.businessUnitId ? businessUnitNames.get(group.businessUnitId) ?? 'Unknown business unit' : 'Unassigned',
+            value: group._count._all,
+          }))),
+          this.chartWidget('statusDistribution', 'Employment status', statusGroups.map((group) => ({
+            key: group.employmentStatus,
+            label: group.employmentStatus,
+            value: group._count._all,
+          }))),
+        ]),
+      ],
     };
   }
 
@@ -482,6 +618,7 @@ export class DashboardService {
       missingDocuments,
       noManager,
       lifecycleRows,
+      hrSignals,
     ] = await Promise.all([
       this.countEmployees(currentUser, {
         employmentStatus: EmployeeEmploymentStatus.ACTIVE,
@@ -502,6 +639,7 @@ export class DashboardService {
       this.countEmployees(currentUser, { documentLinks: { none: {} } }),
       this.countEmployees(currentUser, { managerEmployeeId: null }),
       this.getEmployeeLifecycleRows(currentUser, confirmationCutoff),
+      this.getWorkflowSignals(currentUser),
     ]);
 
     const pendingHrWork =
@@ -566,6 +704,8 @@ export class DashboardService {
             '/leaves/approvals',
             pendingHrWork ? 'warning' : 'good',
           ),
+          this.metric('pendingClaims', 'Pending claims', hrSignals.claims, 'Submitted claims awaiting approval.', '/claims', hrSignals.claims ? 'warning' : 'good'),
+          this.metric('pendingBenefits', 'Pending benefit approvals', hrSignals.benefitApprovals, 'Benefit actions waiting in Approvals.', '/approvals', hrSignals.benefitApprovals ? 'warning' : 'good'),
         ]),
         this.section('lifecycle', 'Employee lifecycle', 'table', 20, [
           this.tableWidget(
@@ -704,6 +844,7 @@ export class DashboardService {
       pendingLeaveApprovalSteps,
       directReportRows,
       teamDataQuality,
+      teamSignals,
     ] = await Promise.all([
       this.prisma.employee.count({ where: teamWhere }),
       this.getAttendanceOperations(currentUser, today, teamWhere),
@@ -718,6 +859,7 @@ export class DashboardService {
       }),
       this.getDirectReportRows(teamWhere),
       this.getDataQuality(currentUser, teamWhere),
+      this.getWorkflowSignals(currentUser, teamWhere),
     ]);
 
     const pendingWork =
@@ -780,6 +922,7 @@ export class DashboardService {
             '/timesheets/approvals',
             timesheets.pendingApproval ? 'warning' : 'good',
           ),
+          this.metric('teamClaims', 'Team claims pending', teamSignals.claims, 'Submitted claims from direct reports.', '/claims', teamSignals.claims ? 'warning' : 'good'),
         ]),
         this.section('attendance', 'Team attendance', 'grid', 20, [
           this.summaryWidget(
@@ -881,7 +1024,7 @@ export class DashboardService {
     employee: CurrentEmployee | null,
   ): Promise<DashboardView> {
     const today = this.getTodayRange();
-    const [attendance, leave, timesheets, documents, tasks, latestPayslip] =
+    const [attendance, leave, timesheets, documents, tasks, latestPayslip, selfSignals] =
       employee
         ? await Promise.all([
             this.getMyAttendance(currentUser, employee.id, today),
@@ -914,6 +1057,7 @@ export class DashboardService {
               orderBy: { publishedAt: 'desc' },
               select: { id: true, payslipNumber: true, publishedAt: true },
             }),
+            this.getWorkflowSignals(currentUser, { id: employee.id }),
           ])
         : [
             { todayStatus: 'No linked employee', recentRows: [] },
@@ -922,6 +1066,7 @@ export class DashboardService {
             0,
             0,
             null,
+            { claims: 0, loans: 0, benefits: 0, benefitApprovals: 0, upcomingHolidays: 0 },
           ];
 
     const profileGaps = employee
@@ -1022,6 +1167,12 @@ export class DashboardService {
             '/me/payslips',
           ),
         ]),
+        this.section('requests', 'My benefits and requests', 'grid', 55, [
+          this.metric('claims', 'Open claims', selfSignals.claims, 'Claims still in progress.', '/claims'),
+          this.metric('loans', 'Active or pending loans', selfSignals.loans, 'Loan requests and active loans.', '/loans'),
+          this.metric('benefits', 'Active benefits', selfSignals.benefits, 'Benefits currently assigned to you.', '/benefits'),
+          this.metric('holidays', 'Upcoming holidays', selfSignals.upcomingHolidays, 'Active holidays in the next 90 days.'),
+        ]),
         this.section('tasks', 'My tasks', 'list', 60, [
           this.insightWidget('tasks', 'Action items', [
             ...profileGaps.map((gap) =>
@@ -1082,6 +1233,61 @@ export class DashboardService {
         ]),
       ],
     };
+  }
+
+  private async getWorkflowSignals(
+    currentUser: AuthenticatedUser,
+    employeeWhere?: Prisma.EmployeeWhereInput,
+  ) {
+    const employeeFilter = employeeWhere ? { employee: employeeWhere } : {};
+    const holidayEnd = new Date();
+    holidayEnd.setDate(holidayEnd.getDate() + 90);
+    const [claims, loans, benefits, benefitApprovals, upcomingHolidays] =
+      await Promise.all([
+        this.prisma.claimRequest.count({
+          where: {
+            tenantId: currentUser.tenantId,
+            ...employeeFilter,
+            status: {
+              in: [
+                ClaimRequestStatus.SUBMITTED,
+                ClaimRequestStatus.MANAGER_APPROVED,
+                ClaimRequestStatus.PAYROLL_APPROVED,
+              ],
+            },
+          },
+        }),
+        this.prisma.loanRequest.count({
+          where: {
+            tenantId: currentUser.tenantId,
+            ...employeeFilter,
+            status: { in: [LoanRequestStatus.SUBMITTED, LoanRequestStatus.ACTIVE] },
+          },
+        }),
+        this.prisma.employeeBenefitAssignment.count({
+          where: {
+            tenantId: currentUser.tenantId,
+            ...employeeFilter,
+            status: EmployeeBenefitStatus.ACTIVE,
+          },
+        }),
+        this.prisma.approvalRequest.count({
+          where: {
+            tenantId: currentUser.tenantId,
+            moduleKey: 'benefits',
+            status: ApprovalRequestStatus.PENDING,
+            ...(employeeWhere ? { submittedForEmployee: employeeWhere } : {}),
+          },
+        }),
+        this.prisma.holiday.count({
+          where: {
+            tenantId: currentUser.tenantId,
+            isActive: true,
+            holidayDate: { gte: new Date(), lte: holidayEnd },
+          },
+        }),
+      ]);
+    return { claims, loans, benefits, benefitApprovals, upcomingHolidays };
   }
 
   private async getAttendanceOperations(
@@ -1924,6 +2130,11 @@ export class DashboardService {
         return this.canViewManagerDashboard(currentUser, directReportsCount);
       case 'employee':
         return this.canViewEmployeeDashboard(currentUser);
+      case 'executive':
+        return (
+          this.hasPrivilegedRole(currentUser) ||
+          currentUser.roleKeys.includes(ROLE_KEYS.CEO)
+        );
     }
   }
 
@@ -2068,6 +2279,17 @@ export class DashboardService {
         ? { key: `${key}Action`, label: 'View all', href }
         : undefined,
       emptyState: 'No records found for this widget.',
+    };
+  }
+
+  private chartWidget(key: string, title: string, rows: unknown[]): DashboardWidget {
+    return {
+      key,
+      title,
+      type: 'chart',
+      order: 10,
+      data: { rows },
+      emptyState: 'No aggregate data is available.',
     };
   }
 

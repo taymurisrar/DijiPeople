@@ -16,6 +16,7 @@ export type FieldDataType =
   | "currency"
   | "boolean"
   | "date"
+  | "time"
   | "datetime"
   | "lookup"
   | "optionset"
@@ -325,6 +326,25 @@ export interface RelatedSubgridMetadata {
   readonly pageSize?: number;
   readonly emptyStateTitle?: string;
   readonly emptyStateDescription?: string;
+  readonly quickCreateFields?: readonly {
+    readonly fieldLogicalName: string;
+    readonly label?: string;
+    readonly dataType: FieldDataType;
+    readonly required?: boolean;
+    readonly maxLength?: number;
+  }[];
+  /** Metadata-owned transport contract. Tokens: {parentId}, {recordId}. */
+  readonly api?: {
+    readonly listPath: string;
+    readonly createPath?: string;
+    readonly updatePath?: string;
+    readonly deletePath?: string;
+    readonly permissions?: {
+      readonly create?: string;
+      readonly update?: string;
+      readonly delete?: string;
+    };
+  };
 }
 
 export interface RelatedTabMetadata {

@@ -119,14 +119,14 @@ export function buildAdapterCommandHandlers({
         return unsupported("No ModuleDataAdapter is registered.");
       const recordIds = context.recordId ? [context.recordId] : [];
       if (!recordIds.length)
-        return unsupported("No record is selected for soft delete.");
+        return unsupported("No record is selected for delete.");
 
       await dataAdapter.softDelete(context.runtime, recordIds);
       refresh?.();
 
       return {
         ok: true,
-        message: "Record soft deleted.",
+        message: "Record deleted.",
         redirectTo: context.runtime.module.routeBase,
         invalidateCacheKeys: context.runtime.cacheKeys,
       };
@@ -136,14 +136,14 @@ export function buildAdapterCommandHandlers({
         return unsupported("No ModuleDataAdapter is registered.");
       const recordIds = context.selectedRecordIds ?? [];
       if (!recordIds.length)
-        return unsupported("Select at least one record to soft delete.");
+        return unsupported("Select at least one record to delete.");
 
       await dataAdapter.softDelete(context.runtime, recordIds);
       refresh?.();
 
       return {
         ok: true,
-        message: "Selected records soft deleted.",
+        message: "Selected records deleted.",
         invalidateCacheKeys: context.runtime.cacheKeys,
       };
     },
@@ -182,6 +182,80 @@ export function buildAdapterCommandHandlers({
         ok: true,
         data,
         message: "Owner assigned.",
+        invalidateCacheKeys: context.runtime.cacheKeys,
+      };
+    },
+    "record.activate": async (context) => {
+      if (!dataAdapter)
+        return unsupported("No ModuleDataAdapter is registered.");
+      if (!context.recordId)
+        return unsupported("No record is selected for activation.");
+
+      await dataAdapter.update(context.runtime, context.recordId, {
+        isActive: true,
+      });
+      refresh?.();
+
+      return {
+        ok: true,
+        message: "Record activated.",
+        invalidateCacheKeys: context.runtime.cacheKeys,
+      };
+    },
+    "record.deactivate": async (context) => {
+      if (!dataAdapter)
+        return unsupported("No ModuleDataAdapter is registered.");
+      if (!context.recordId)
+        return unsupported("No record is selected for deactivation.");
+
+      await dataAdapter.update(context.runtime, context.recordId, {
+        isActive: false,
+      });
+      refresh?.();
+
+      return {
+        ok: true,
+        message: "Record deactivated.",
+        invalidateCacheKeys: context.runtime.cacheKeys,
+      };
+    },
+    "selection.activate": async (context) => {
+      if (!dataAdapter)
+        return unsupported("No ModuleDataAdapter is registered.");
+      const recordIds = context.selectedRecordIds ?? [];
+      if (!recordIds.length)
+        return unsupported("Select at least one record to activate.");
+
+      await Promise.all(
+        recordIds.map((recordId) =>
+          dataAdapter.update(context.runtime, recordId, { isActive: true }),
+        ),
+      );
+      refresh?.();
+
+      return {
+        ok: true,
+        message: "Selected records activated.",
+        invalidateCacheKeys: context.runtime.cacheKeys,
+      };
+    },
+    "selection.deactivate": async (context) => {
+      if (!dataAdapter)
+        return unsupported("No ModuleDataAdapter is registered.");
+      const recordIds = context.selectedRecordIds ?? [];
+      if (!recordIds.length)
+        return unsupported("Select at least one record to deactivate.");
+
+      await Promise.all(
+        recordIds.map((recordId) =>
+          dataAdapter.update(context.runtime, recordId, { isActive: false }),
+        ),
+      );
+      refresh?.();
+
+      return {
+        ok: true,
+        message: "Selected records deactivated.",
         invalidateCacheKeys: context.runtime.cacheKeys,
       };
     },

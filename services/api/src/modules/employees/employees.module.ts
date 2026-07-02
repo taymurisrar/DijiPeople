@@ -17,6 +17,7 @@ import { EmployeesController } from './employees.controller';
 import { EmployeesRepository } from './employees.repository';
 import { EmployeesService } from './employees.service';
 import { EmployeeAccessService } from './employee-access.service';
+import { BenefitsModule } from '../benefits/benefits.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { EmployeeAccessService } from './employee-access.service';
     PermissionsModule,
     TenantSettingsModule,
     NotificationsModule,
+    BenefitsModule,
   ],
   controllers: [EmployeesController],
   providers: [

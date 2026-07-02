@@ -18,4 +18,17 @@ export class EntityScopeResolver {
       metadata.scope,
     );
   }
+
+  buildScope(
+    metadata: EntityMetadata,
+    user: AuthenticatedUser,
+    privilege: SecurityPrivilege,
+  ) {
+    return buildScopedAccessWhere(
+      user,
+      metadata.rbacEntityKey,
+      privilege,
+      metadata.scope,
+    );
+  }
 }

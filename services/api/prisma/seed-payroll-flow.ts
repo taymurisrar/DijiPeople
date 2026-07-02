@@ -3,17 +3,31 @@ import {
   AttendanceEntrySource,
   AttendanceEntryStatus,
   AttendanceMode,
+  ApprovalActorType,
+  ApprovalActionType,
+  ApprovalAssignmentStatus,
+  ApprovalMode,
+  ApprovalModuleKey,
+  ApprovalRequestStatus,
+  BenefitRenewalPeriod,
+  BenefitType,
+  BenefitValueType,
   BusinessTripApprovalStatus,
   BusinessTripStatus,
-  ClaimApprovalStatus,
-  ClaimApprovalStep,
   ClaimRequestStatus,
   CompensationPayFrequency,
   EmployeeCompensationHistoryStatus,
+  EmployeeBenefitAssignmentSource,
+  EmployeeBenefitStatus,
   EmployeeEmploymentStatus,
   EmployeeType,
   EmployeeWorkMode,
+  GenericApprovalStepStatus,
   LeaveRequestStatus,
+  BankAccountVerificationStatus,
+  LoanInstallmentStatus,
+  LoanRequestStatus,
+  NotificationRecipientResolverType,
   OvertimeCalculationPeriod,
   PayComponentCalculationMethod,
   PayComponentType,
@@ -44,6 +58,8 @@ import { TaxRuleResolverService } from '../src/modules/tax-rules/tax-rule-resolv
 import { OvertimePolicyResolverService } from '../src/modules/time-payroll/overtime-policy-resolver.service';
 import { TimePayrollPolicyResolverService } from '../src/modules/time-payroll/time-payroll-policy-resolver.service';
 import { TimePayrollPreparationService } from '../src/modules/time-payroll/time-payroll-preparation.service';
+import { BenefitEligibilityService } from '../src/modules/benefits/benefit-eligibility.service';
+import { BenefitsService } from '../src/modules/benefits/benefits.service';
 
 const prisma = createPrismaClient();
 const money = (value: string | number) => new Prisma.Decimal(value);
@@ -57,13 +73,44 @@ async function main() {
   const user = buildSystemUser(tenant.id, actor);
 
   const setup = await seedTenantSetup(tenant.id, actor.id);
+  await seedSettingsRuntimeRecords(tenant.id, actor.id);
   const run = await resetValidationRun(tenant.id, actor.id, setup);
 
   const services = buildServices();
   await services.payrollRun.calculateDraftPayrollRun(user, run.id);
+  const finalizedAt = new Date();
+  await prisma.$transaction([
+    prisma.payrollRunEmployee.updateMany({
+      where: { tenantId: tenant.id, payrollRunId: run.id },
+      data: { status: 'APPROVED' },
+    }),
+    prisma.payrollRun.update({
+      where: { id: run.id },
+      data: {
+        status: PayrollRunStatus.APPROVED,
+        approvedAt: finalizedAt,
+        approvedBy: actor.id,
+        finalizedAt,
+        finalizedBy: actor.id,
+      },
+    }),
+  ]);
   const payslipResult = await services.payslips.generatePayslipsForRun({
     tenantId: tenant.id,
     payrollRunId: run.id,
+    actorUserId: actor.id,
+  });
+  const essPayslip = await prisma.payslip.findFirstOrThrow({
+    where: {
+      tenantId: tenant.id,
+      payrollRunId: run.id,
+      employee: { user: { email: 'employee@dijipeople.local' } },
+    },
+    select: { id: true },
+  });
+  await services.payslips.publishPayslip({
+    tenantId: tenant.id,
+    payslipId: essPayslip.id,
     actorUserId: actor.id,
   });
   const journal = await services.journal.generateJournalForPayrollRun({
@@ -81,6 +128,7 @@ async function main() {
         payrollRunId: run.id,
         payslipsGenerated: payslipResult.generatedCount,
         payslipsSkipped: payslipResult.skippedCount,
+        publishedEssPayslipId: essPayslip.id,
         journalId: journal.id,
         journalStatus: journal.status,
         ...summary,
@@ -102,6 +150,65 @@ async function findTenant() {
     );
   }
   return tenant;
+}
+
+async function seedSettingsRuntimeRecords(
+  tenantId: string,
+  actorUserId: string,
+) {
+  const records = [
+    {
+      settingKey: 'fiscal-years',
+      code: 'FY2026',
+      name: 'Fiscal Year 2026',
+      description: 'Demo fiscal year used by payroll and finance validation.',
+      effectiveFrom: date('2026-01-01'),
+      effectiveTo: date('2026-12-31'),
+      configuration: { startMonth: 1, endMonth: 12 },
+    },
+    {
+      settingKey: 'delegation-rules',
+      code: 'ANNUAL-LEAVE-DELEGATION',
+      name: 'Annual Leave Delegation',
+      description: 'Demo effective-dated approval delegation rule.',
+      effectiveFrom: date('2026-01-01'),
+      effectiveTo: null,
+      configuration: { moduleKey: 'leave', enabled: true },
+    },
+    {
+      settingKey: 'retention-rules',
+      code: 'PAYROLL-SEVEN-YEARS',
+      name: 'Payroll Records Retention',
+      description: 'Retain finalized payroll evidence for seven years.',
+      effectiveFrom: date('2026-01-01'),
+      effectiveTo: null,
+      configuration: { recordType: 'payroll', retentionMonths: 84 },
+    },
+  ];
+
+  for (const record of records) {
+    await prisma.tenantConfigurationRecord.upsert({
+      where: {
+        tenantId_settingKey_code: {
+          tenantId,
+          settingKey: record.settingKey,
+          code: record.code,
+        },
+      },
+      update: {
+        ...record,
+        updatedById: actorUserId,
+        isActive: true,
+      },
+      create: {
+        tenantId,
+        ...record,
+        createdById: actorUserId,
+        updatedById: actorUserId,
+        isActive: true,
+      },
+    });
+  }
 }
 
 async function findActorUser(tenantId: string) {
@@ -165,14 +272,29 @@ function buildServices() {
     taxRuleResolver,
     audit as never,
   );
+  const benefitEligibility = new BenefitEligibilityService(prisma as never);
+  const benefits = new BenefitsService(
+    prisma as never,
+    benefitEligibility,
+    audit as never,
+    {} as never,
+    {} as never,
+  );
   const payrollRun = new PayrollRunService(
     prisma as never,
     audit as never,
     compensationResolver,
     timePayrollPreparation,
     taxCalculation,
+    benefits,
   );
-  const payslips = new PayslipsService(prisma as never, audit as never);
+  const payslips = new PayslipsService(
+    prisma as never,
+    audit as never,
+    {
+      dispatch: async () => undefined,
+    } as never,
+  );
   const postingRuleResolver = new PayrollPostingRuleResolverService(
     prisma as never,
   );
@@ -242,10 +364,18 @@ async function seedTenantSetup(tenantId: string, actorUserId: string) {
   });
   const payComponents = await seedPayComponents(tenantId);
   await seedCompensation(tenantId, actorUserId, employees, payComponents);
+  await seedBenefits(tenantId, actorUserId, employees);
   const leaveTypes = await seedLeave(tenantId, actorUserId, employees);
   await seedClaims(tenantId, actorUserId, employees[0]);
+  await seedLoanAndBankAccount(tenantId, actorUserId, employees);
   await seedTada(tenantId, actorUserId, employees[0], levels.L2);
-  await seedTime(tenantId, actorUserId, businessUnit.id, employees, location.id);
+  await seedTime(
+    tenantId,
+    actorUserId,
+    businessUnit.id,
+    employees,
+    location.id,
+  );
   const taxRules = await seedTaxRules(tenantId, payComponents, levels.L2);
   const glAccounts = await seedGlAccounts(tenantId);
   await seedPostingRules(tenantId, glAccounts);
@@ -264,6 +394,170 @@ async function seedTenantSetup(tenantId: string, actorUserId: string) {
     calendar,
     period,
   };
+}
+
+async function seedLoanAndBankAccount(
+  tenantId: string,
+  actorUserId: string,
+  employees: Array<{ id: string }>,
+) {
+  const bank = await prisma.bank.upsert({
+    where: { tenantId_code: { tenantId, code: 'DEMO-BANK' } },
+    update: { name: 'Diji Demo Bank', countryCode: 'QA', isActive: true },
+    create: {
+      tenantId,
+      code: 'DEMO-BANK',
+      name: 'Diji Demo Bank',
+      countryCode: 'QA',
+      swiftCode: 'DIJIQA00',
+    },
+  });
+  for (const [index, employee] of employees.entries()) {
+    const existingAccount = await prisma.employeeBankAccount.findFirst({
+      where: { tenantId, employeeId: employee.id, isPrimaryPayroll: true },
+    });
+    if (existingAccount) {
+      await prisma.employeeBankAccount.update({
+        where: { id: existingAccount.id },
+        data: {
+          bankId: bank.id,
+          isActive: true,
+          effectiveFrom: date('2025-01-01'),
+          effectiveTo: null,
+          verificationStatus: BankAccountVerificationStatus.VERIFIED,
+          verifiedAt: new Date(),
+          verifiedByUserId: actorUserId,
+        },
+      });
+    } else {
+      await prisma.employeeBankAccount.create({
+        data: {
+          tenantId,
+          employeeId: employee.id,
+          bankId: bank.id,
+          accountTitle: 'Demo Payroll Account',
+          iban: `QA00DIJI${String(index + 1).padStart(21, '0')}`,
+          countryCode: 'QA',
+          currencyCode: 'QAR',
+          isPrimaryPayroll: true,
+          effectiveFrom: date('2025-01-01'),
+          verificationStatus: BankAccountVerificationStatus.VERIFIED,
+          verifiedAt: new Date(),
+          verifiedByUserId: actorUserId,
+        },
+      });
+    }
+  }
+  const employee = employees[0];
+  const policy = await prisma.loanPolicy.upsert({
+    where: { tenantId_code: { tenantId, code: 'SALARY_ADVANCE' } },
+    update: {
+      isActive: true,
+      maximumInstallments: 12,
+      maximumAmount: money(50000),
+    },
+    create: {
+      tenantId,
+      code: 'SALARY_ADVANCE',
+      name: 'Salary advance',
+      currencyCode: 'QAR',
+      maximumAmount: money(50000),
+      maximumInstallments: 12,
+    },
+  });
+  const payrollRole = await prisma.role.findFirst({
+    where: { tenantId, key: 'payroll-manager', isActive: true },
+    select: { id: true },
+  });
+  if (payrollRole) {
+    const existingMatrix = await prisma.approvalMatrix.findFirst({
+      where: {
+        tenantId,
+        moduleKey: ApprovalModuleKey.LOAN_REQUEST,
+        sequence: 1,
+        approverRoleId: payrollRole.id,
+        isActive: true,
+      },
+      select: { id: true },
+    });
+    if (existingMatrix) {
+      await prisma.approvalMatrix.update({
+        where: { id: existingMatrix.id },
+        data: {
+          recordType: 'loanRequest',
+          loanPolicyId: policy.id,
+          isActive: true,
+          updatedById: actorUserId,
+        },
+      });
+    } else {
+      await prisma.approvalMatrix.create({
+        data: {
+          tenantId,
+          moduleKey: ApprovalModuleKey.LOAN_REQUEST,
+          recordType: 'loanRequest',
+          loanPolicyId: policy.id,
+          name: 'Loan finance approval',
+          sequence: 1,
+          approverType: ApprovalActorType.ROLE,
+          approverRoleId: payrollRole.id,
+          approvalMode: ApprovalMode.ANY_ONE,
+          isActive: true,
+          createdById: actorUserId,
+          updatedById: actorUserId,
+        },
+      });
+    }
+  }
+  const loan = await prisma.loanRequest.upsert({
+    where: {
+      tenantId_requestNumber: { tenantId, requestNumber: 'LN-DEMO-0001' },
+    },
+    update: {
+      employeeId: employee.id,
+      status: LoanRequestStatus.ACTIVE,
+      outstandingBalance: money(1000),
+    },
+    create: {
+      tenantId,
+      employeeId: employee.id,
+      loanPolicyId: policy.id,
+      requestNumber: 'LN-DEMO-0001',
+      status: LoanRequestStatus.ACTIVE,
+      requestedAmount: money(2000),
+      approvedAmount: money(2000),
+      currencyCode: 'QAR',
+      installmentCount: 2,
+      monthlyDeduction: money(1000),
+      outstandingBalance: money(1000),
+      requestedStartDate: date('2025-05-31'),
+      approvedAt: date('2025-05-01'),
+      activatedAt: date('2025-05-01'),
+      createdByUserId: actorUserId,
+    },
+  });
+  await prisma.loanInstallment.upsert({
+    where: {
+      loanRequestId_installmentNumber: {
+        loanRequestId: loan.id,
+        installmentNumber: 2,
+      },
+    },
+    update: {
+      status: LoanInstallmentStatus.SCHEDULED,
+      payrollRunEmployeeId: null,
+      includedAt: null,
+    },
+    create: {
+      tenantId,
+      loanRequestId: loan.id,
+      employeeId: employee.id,
+      installmentNumber: 2,
+      dueDate: date('2025-06-30'),
+      amount: money(1000),
+      principalAmount: money(1000),
+    },
+  });
 }
 
 async function upsertBusinessUnit(input: {
@@ -297,8 +591,10 @@ async function seedEmployeeLevels(tenantId: string) {
     ['L3', 'Senior Specialist', 3],
     ['L4', 'Manager', 4],
   ] as const;
-  const result: Record<string, Awaited<ReturnType<typeof prisma.employeeLevel.upsert>>> =
-    {};
+  const result: Record<
+    string,
+    Awaited<ReturnType<typeof prisma.employeeLevel.upsert>>
+  > = {};
   for (const [code, name, rank] of entries) {
     result[code] = await prisma.employeeLevel.upsert({
       where: { tenantId_code: { tenantId, code } },
@@ -365,50 +661,75 @@ async function seedEmployees(input: {
       compensationSeed: (typeof rows)[number];
     }
   > = [];
-  for (const row of rows) {
-    const employee = await prisma.employee.upsert({
-      where: {
-        tenantId_employeeCode: {
-          tenantId: input.tenantId,
-          employeeCode: row.code,
-        },
-      },
-      update: {
-        firstName: row.firstName,
-        lastName: row.lastName,
-        email: row.email,
-        phone: row.phone,
-        businessUnitId: input.businessUnitId,
-        departmentId: input.departmentId,
-        designationId: input.designationId,
-        employeeLevelId: row.levelId,
-        locationId: input.locationId,
-        officialJoiningLocationId: input.locationId,
-        employmentStatus: EmployeeEmploymentStatus.ACTIVE,
-        isDraftProfile: false,
-      },
-      create: {
-        tenantId: input.tenantId,
-        employeeCode: row.code,
-        firstName: row.firstName,
-        lastName: row.lastName,
-        email: row.email,
-        phone: row.phone,
-        hireDate: date('2025-01-01'),
-        businessUnitId: input.businessUnitId,
-        departmentId: input.departmentId,
-        designationId: input.designationId,
-        employeeLevelId: row.levelId,
-        locationId: input.locationId,
-        officialJoiningLocationId: input.locationId,
-        employmentStatus: EmployeeEmploymentStatus.ACTIVE,
-        employeeType: EmployeeType.FULL_TIME,
-        workMode: EmployeeWorkMode.HYBRID,
-        city: 'Doha',
-        country: 'QA',
-        createdById: input.actorUserId,
-      },
-    });
+  const essEmployee = await prisma.employee.findFirst({
+    where: {
+      tenantId: input.tenantId,
+      user: { email: 'employee@dijipeople.local' },
+    },
+  });
+  for (const [index, row] of rows.entries()) {
+    const employee =
+      index === 0 && essEmployee
+        ? await prisma.employee.update({
+            where: { id: essEmployee.id },
+            data: {
+              firstName: row.firstName,
+              lastName: row.lastName,
+              email: 'employee@dijipeople.local',
+              phone: row.phone,
+              businessUnitId: input.businessUnitId,
+              departmentId: input.departmentId,
+              designationId: input.designationId,
+              employeeLevelId: row.levelId,
+              locationId: input.locationId,
+              officialJoiningLocationId: input.locationId,
+              employmentStatus: EmployeeEmploymentStatus.ACTIVE,
+              isDraftProfile: false,
+            },
+          })
+        : await prisma.employee.upsert({
+            where: {
+              tenantId_employeeCode: {
+                tenantId: input.tenantId,
+                employeeCode: row.code,
+              },
+            },
+            update: {
+              firstName: row.firstName,
+              lastName: row.lastName,
+              email: row.email,
+              phone: row.phone,
+              businessUnitId: input.businessUnitId,
+              departmentId: input.departmentId,
+              designationId: input.designationId,
+              employeeLevelId: row.levelId,
+              locationId: input.locationId,
+              officialJoiningLocationId: input.locationId,
+              employmentStatus: EmployeeEmploymentStatus.ACTIVE,
+              isDraftProfile: false,
+            },
+            create: {
+              tenantId: input.tenantId,
+              employeeCode: row.code,
+              firstName: row.firstName,
+              lastName: row.lastName,
+              email: row.email,
+              phone: row.phone,
+              hireDate: date('2025-01-01'),
+              businessUnitId: input.businessUnitId,
+              departmentId: input.departmentId,
+              designationId: input.designationId,
+              employeeLevelId: row.levelId,
+              locationId: input.locationId,
+              officialJoiningLocationId: input.locationId,
+              employmentStatus: EmployeeEmploymentStatus.ACTIVE,
+              employeeType: EmployeeType.FULL_TIME,
+              workMode: EmployeeWorkMode.HYBRID,
+              city: 'Doha',
+              country: 'QA',
+              createdById: input.actorUserId,
+            },
+          });
     employees.push({ ...employee, compensationSeed: row });
   }
   return employees;
@@ -481,8 +802,10 @@ async function seedPayComponents(tenantId: string) {
     },
   ];
 
-  const result: Record<string, Awaited<ReturnType<typeof prisma.payComponent.upsert>>> =
-    {};
+  const result: Record<
+    string,
+    Awaited<ReturnType<typeof prisma.payComponent.upsert>>
+  > = {};
   for (const row of rows) {
     result[row.code] = await prisma.payComponent.upsert({
       where: { tenantId_code: { tenantId, code: row.code } },
@@ -500,7 +823,10 @@ async function seedCompensation(
     id: string;
     compensationSeed: { base: string; housing: string; transport: string };
   }>,
-  payComponents: Record<string, { id: string; calculationMethod: PayComponentCalculationMethod }>,
+  payComponents: Record<
+    string,
+    { id: string; calculationMethod: PayComponentCalculationMethod }
+  >,
 ) {
   for (const employee of employees) {
     await prisma.employeeCompensationHistory.updateMany({
@@ -509,7 +835,10 @@ async function seedCompensation(
         employeeId: employee.id,
         status: EmployeeCompensationHistoryStatus.ACTIVE,
       },
-      data: { status: EmployeeCompensationHistoryStatus.RETIRED, effectiveTo: date('2026-03-31') },
+      data: {
+        status: EmployeeCompensationHistoryStatus.RETIRED,
+        effectiveTo: date('2026-03-31'),
+      },
     });
     const existing = await prisma.employeeCompensationHistory.findFirst({
       where: {
@@ -626,7 +955,9 @@ async function seedLeave(
     actorUserId,
   });
   await prisma.leaveConsumptionRecord.upsert({
-    where: { tenantId_leaveRequestId: { tenantId, leaveRequestId: leaveRequest.id } },
+    where: {
+      tenantId_leaveRequestId: { tenantId, leaveRequestId: leaveRequest.id },
+    },
     update: { days: money(1), isPaid: false },
     create: {
       tenantId,
@@ -672,7 +1003,12 @@ async function upsertLeaveType(
 ) {
   return prisma.leaveType.upsert({
     where: { tenantId_code: { tenantId, code } },
-    update: { name, category: isPaid ? 'PAID' : 'UNPAID', isPaid, isActive: true },
+    update: {
+      name,
+      category: isPaid ? 'PAID' : 'UNPAID',
+      isPaid,
+      isActive: true,
+    },
     create: {
       tenantId,
       code,
@@ -803,8 +1139,197 @@ async function seedClaims(
       includedInPayrollAt: null,
     },
   });
-  await ensureClaimApproval(tenantId, claim.id, ClaimApprovalStep.MANAGER, actorUserId);
-  await ensureClaimApproval(tenantId, claim.id, ClaimApprovalStep.PAYROLL, actorUserId);
+  await ensureGenericClaimApproval({
+    tenantId,
+    actorUserId,
+    employeeId: employee.id,
+    claimRequestId: claim.id,
+    claimTypeId: claimType.id,
+    title: claim.title,
+  });
+}
+
+async function seedBenefits(
+  tenantId: string,
+  actorUserId: string,
+  employees: Array<{ id: string }>,
+) {
+  const effectiveFrom = date('2025-01-01');
+  const policies = [
+    {
+      code: 'TRANSPORT_ALLOWANCE',
+      name: 'Transport Allowance Benefit',
+      benefitType: BenefitType.ALLOWANCE,
+      valueType: BenefitValueType.FIXED_AMOUNT,
+      fixedAmount: money(300),
+      percentage: null,
+      currencyCode: 'QAR',
+      payrollVisible: true,
+      payrollCategory: PayrollRunLineItemCategory.ALLOWANCE,
+      affectsGrossPay: true,
+      affectsNetPay: true,
+      taxable: false,
+      payslipVisible: true,
+      employeeVisible: true,
+      sensitive: false,
+      defaultBalance: null,
+      renewalPeriod: BenefitRenewalPeriod.NONE,
+      autoAssignOnHire: true,
+      requiresChangeApproval: false,
+    },
+    {
+      code: 'WELLNESS_PERK',
+      name: 'Annual Wellness Perk',
+      benefitType: BenefitType.PERK,
+      valueType: BenefitValueType.FIXED_AMOUNT,
+      fixedAmount: money(1200),
+      percentage: null,
+      currencyCode: 'QAR',
+      payrollVisible: false,
+      payrollCategory: null,
+      affectsGrossPay: false,
+      affectsNetPay: false,
+      taxable: false,
+      payslipVisible: false,
+      employeeVisible: true,
+      sensitive: false,
+      defaultBalance: money(1200),
+      renewalPeriod: BenefitRenewalPeriod.ANNUAL,
+      autoAssignOnHire: true,
+      requiresChangeApproval: false,
+    },
+    {
+      code: 'EMPLOYER_HEALTH',
+      name: 'Employer Health Contribution',
+      benefitType: BenefitType.EMPLOYER_PAID,
+      valueType: BenefitValueType.PERCENTAGE,
+      fixedAmount: null,
+      percentage: money(5),
+      currencyCode: 'QAR',
+      payrollVisible: true,
+      payrollCategory: PayrollRunLineItemCategory.EMPLOYER_CONTRIBUTION,
+      affectsGrossPay: false,
+      affectsNetPay: false,
+      taxable: false,
+      payslipVisible: true,
+      employeeVisible: true,
+      sensitive: true,
+      defaultBalance: null,
+      renewalPeriod: BenefitRenewalPeriod.NONE,
+      autoAssignOnHire: true,
+      requiresChangeApproval: true,
+    },
+  ] as const;
+
+  for (const item of policies) {
+    const policy = await prisma.benefitPolicy.upsert({
+      where: { tenantId_code: { tenantId, code: item.code } },
+      update: {
+        ...item,
+        effectiveFrom,
+        status: 'ACTIVE',
+        updatedById: actorUserId,
+      },
+      create: {
+        tenantId,
+        ...item,
+        effectiveFrom,
+        status: 'ACTIVE',
+        createdById: actorUserId,
+        updatedById: actorUserId,
+      },
+    });
+    for (const employee of employees) {
+      await prisma.employeeBenefitAssignment.upsert({
+        where: {
+          employeeId_benefitPolicyId_effectiveFrom: {
+            employeeId: employee.id,
+            benefitPolicyId: policy.id,
+            effectiveFrom,
+          },
+        },
+        update: {
+          status: EmployeeBenefitStatus.ACTIVE,
+          allocatedBalance: policy.defaultBalance,
+          renewalDate: calculateSeedRenewalDate(
+            effectiveFrom,
+            policy.renewalPeriod,
+          ),
+          updatedById: actorUserId,
+        },
+        create: {
+          tenantId,
+          employeeId: employee.id,
+          benefitPolicyId: policy.id,
+          status: EmployeeBenefitStatus.ACTIVE,
+          assignmentSource: EmployeeBenefitAssignmentSource.HIRING,
+          effectiveFrom,
+          allocatedBalance: policy.defaultBalance,
+          renewalDate: calculateSeedRenewalDate(
+            effectiveFrom,
+            policy.renewalPeriod,
+          ),
+          createdById: actorUserId,
+          updatedById: actorUserId,
+        },
+      });
+    }
+  }
+
+  const payrollRole = await prisma.role.findFirst({
+    where: { tenantId, key: 'payroll-manager', isActive: true },
+    select: { id: true },
+  });
+  if (payrollRole) {
+    const existing = await prisma.approvalMatrix.findFirst({
+      where: {
+        tenantId,
+        moduleKey: ApprovalModuleKey.BENEFIT_ASSIGNMENT,
+        recordType: 'employeeBenefitChange',
+        sequence: 1,
+        approverRoleId: payrollRole.id,
+      },
+    });
+    const data = {
+      name: 'Benefit change payroll approval',
+      recordType: 'employeeBenefitChange',
+      sequence: 1,
+      approverType: ApprovalActorType.ROLE,
+      approverRoleId: payrollRole.id,
+      approvalMode: ApprovalMode.ANY_ONE,
+      conditions: { action: 'OVERRIDE' },
+      isActive: true,
+      updatedById: actorUserId,
+    };
+    if (existing)
+      await prisma.approvalMatrix.update({ where: { id: existing.id }, data });
+    else
+      await prisma.approvalMatrix.create({
+        data: {
+          tenantId,
+          moduleKey: ApprovalModuleKey.BENEFIT_ASSIGNMENT,
+          ...data,
+          createdById: actorUserId,
+        },
+      });
+  }
+}
+
+function calculateSeedRenewalDate(
+  effectiveFrom: Date,
+  period: BenefitRenewalPeriod,
+) {
+  if (period === BenefitRenewalPeriod.NONE) return null;
+  const result = new Date(effectiveFrom);
+  result.setUTCMonth(
+    result.getUTCMonth() +
+      (period === BenefitRenewalPeriod.MONTHLY
+        ? 1
+        : period === BenefitRenewalPeriod.QUARTERLY
+          ? 3
+          : 12),
+  );
+  return result;
 }
 
 async function upsertClaimRequest(input: {
@@ -815,7 +1340,11 @@ async function upsertClaimRequest(input: {
   amount: Prisma.Decimal;
 }) {
   const existing = await prisma.claimRequest.findFirst({
-    where: { tenantId: input.tenantId, employeeId: input.employeeId, title: input.title },
+    where: {
+      tenantId: input.tenantId,
+      employeeId: input.employeeId,
+      title: input.title,
+    },
   });
   const data = {
     status: ClaimRequestStatus.PAYROLL_APPROVED,
@@ -830,7 +1359,8 @@ async function upsertClaimRequest(input: {
     rejectionReason: null,
     includedInPayrollAt: null,
   };
-  if (existing) return prisma.claimRequest.update({ where: { id: existing.id }, data });
+  if (existing)
+    return prisma.claimRequest.update({ where: { id: existing.id }, data });
   return prisma.claimRequest.create({
     data: {
       tenantId: input.tenantId,
@@ -842,25 +1372,151 @@ async function upsertClaimRequest(input: {
   });
 }
 
-async function ensureClaimApproval(
-  tenantId: string,
-  claimRequestId: string,
-  step: ClaimApprovalStep,
-  actorUserId: string,
-) {
-  const existing = await prisma.claimApproval.findFirst({
-    where: { tenantId, claimRequestId, step },
+async function ensureGenericClaimApproval(input: {
+  tenantId: string;
+  actorUserId: string;
+  employeeId: string;
+  claimRequestId: string;
+  claimTypeId: string;
+  title: string;
+}) {
+  const payrollRole = await prisma.role.findFirst({
+    where: { tenantId: input.tenantId, key: 'payroll-manager', isActive: true },
+    select: { id: true },
   });
-  if (existing) return;
-  await prisma.claimApproval.create({
-    data: {
-      tenantId,
-      claimRequestId,
-      step,
-      status: ClaimApprovalStatus.APPROVED,
-      actorUserId,
-      comments: 'Seeded approval.',
+  if (!payrollRole) return;
+
+  const existingMatrix = await prisma.approvalMatrix.findFirst({
+    where: {
+      tenantId: input.tenantId,
+      moduleKey: ApprovalModuleKey.CLAIM_REQUEST,
+      sequence: 1,
+      approverRoleId: payrollRole.id,
     },
+  });
+  if (existingMatrix) {
+    await prisma.approvalMatrix.update({
+      where: { id: existingMatrix.id },
+      data: {
+        recordType: 'claimRequest',
+        claimTypeId: input.claimTypeId,
+        currencyCode: 'QAR',
+        isActive: true,
+        updatedById: input.actorUserId,
+      },
+    });
+  } else {
+    await prisma.approvalMatrix.create({
+      data: {
+        tenantId: input.tenantId,
+        moduleKey: ApprovalModuleKey.CLAIM_REQUEST,
+        recordType: 'claimRequest',
+        claimTypeId: input.claimTypeId,
+        currencyCode: 'QAR',
+        name: 'Claim payroll approval',
+        sequence: 1,
+        approverType: ApprovalActorType.ROLE,
+        approverRoleId: payrollRole.id,
+        approvalMode: ApprovalMode.ANY_ONE,
+        isActive: true,
+        createdById: input.actorUserId,
+        updatedById: input.actorUserId,
+      },
+    });
+  }
+
+  const request = await prisma.approvalRequest.upsert({
+    where: {
+      tenantId_moduleKey_entityType_entityId: {
+        tenantId: input.tenantId,
+        moduleKey: 'claim',
+        entityType: 'claimRequest',
+        entityId: input.claimRequestId,
+      },
+    },
+    update: {
+      status: ApprovalRequestStatus.APPROVED,
+      currentStepId: null,
+      completedAtUtc: date('2026-04-02'),
+    },
+    create: {
+      tenantId: input.tenantId,
+      moduleKey: 'claim',
+      entityType: 'claimRequest',
+      entityId: input.claimRequestId,
+      title: input.title,
+      submittedByUserId: input.actorUserId,
+      submittedForEmployeeId: input.employeeId,
+      status: ApprovalRequestStatus.APPROVED,
+      submittedAtUtc: date('2026-04-02'),
+      completedAtUtc: date('2026-04-02'),
+      metadata: { source: 'seed', approvalModuleKey: 'CLAIM_REQUEST' },
+    },
+  });
+  const step = await prisma.approvalStep.upsert({
+    where: {
+      approvalRequestId_stepOrder: {
+        approvalRequestId: request.id,
+        stepOrder: 1,
+      },
+    },
+    update: {
+      status: GenericApprovalStepStatus.APPROVED,
+      completedAtUtc: date('2026-04-02'),
+    },
+    create: {
+      tenantId: input.tenantId,
+      approvalRequestId: request.id,
+      stepOrder: 1,
+      stepName: 'Step 1',
+      approverResolverType: NotificationRecipientResolverType.CUSTOM_ROLE,
+      status: GenericApprovalStepStatus.APPROVED,
+      startedAtUtc: date('2026-04-02'),
+      completedAtUtc: date('2026-04-02'),
+      metadata: { approvalMode: ApprovalMode.ANY_ONE },
+    },
+  });
+  await prisma.approvalAssignment.deleteMany({
+    where: { approvalRequestId: request.id },
+  });
+  const assignment = await prisma.approvalAssignment.create({
+    data: {
+      tenantId: input.tenantId,
+      approvalRequestId: request.id,
+      approvalStepId: step.id,
+      assignedToUserId: input.actorUserId,
+      assignedToRoleId: payrollRole.id,
+      status: ApprovalAssignmentStatus.APPROVED,
+      actionedAtUtc: date('2026-04-02'),
+      metadata: { approvalMode: ApprovalMode.ANY_ONE },
+    },
+  });
+  await prisma.approvalAction.deleteMany({
+    where: { approvalRequestId: request.id },
+  });
+  await prisma.approvalAction.createMany({
+    data: [
+      {
+        tenantId: input.tenantId,
+        approvalRequestId: request.id,
+        actionType: ApprovalActionType.SUBMITTED,
+        actionByUserId: input.actorUserId,
+        actionAtUtc: date('2026-04-02'),
+      },
+      {
+        tenantId: input.tenantId,
+        approvalRequestId: request.id,
+        approvalStepId: step.id,
+        approvalAssignmentId: assignment.id,
+        actionType: ApprovalActionType.APPROVED,
+        actionByUserId: input.actorUserId,
+        comment: 'Seeded approval.',
+        actionAtUtc: date('2026-04-02'),
+      },
+    ],
+  });
+  await prisma.claimApproval.deleteMany({
+    where: { tenantId: input.tenantId, claimRequestId: input.claimRequestId },
   });
 }
 
@@ -995,7 +1651,11 @@ async function upsertTravelRule(
     currencyCode: 'QAR',
     isActive: true,
   };
-  if (existing) return prisma.travelAllowanceRule.update({ where: { id: existing.id }, data });
+  if (existing)
+    return prisma.travelAllowanceRule.update({
+      where: { id: existing.id },
+      data,
+    });
   return prisma.travelAllowanceRule.create({
     data: {
       tenantId,
@@ -1015,7 +1675,11 @@ async function upsertBusinessTrip(input: {
   approvedAllowance: Prisma.Decimal;
 }) {
   const existing = await prisma.businessTrip.findFirst({
-    where: { tenantId: input.tenantId, employeeId: input.employeeId, title: input.title },
+    where: {
+      tenantId: input.tenantId,
+      employeeId: input.employeeId,
+      title: input.title,
+    },
   });
   const data = {
     purpose: 'Seeded trip for TA/DA payroll validation.',
@@ -1035,7 +1699,8 @@ async function upsertBusinessTrip(input: {
     rejectionReason: null,
     includedInPayrollAt: null,
   };
-  if (existing) return prisma.businessTrip.update({ where: { id: existing.id }, data });
+  if (existing)
+    return prisma.businessTrip.update({ where: { id: existing.id }, data });
   return prisma.businessTrip.create({
     data: {
       tenantId: input.tenantId,
@@ -1074,7 +1739,11 @@ async function upsertBusinessTripAllowance(input: {
     payrollRunEmployeeId: null,
     payrollIncludedAt: null,
   };
-  if (existing) return prisma.businessTripAllowance.update({ where: { id: existing.id }, data });
+  if (existing)
+    return prisma.businessTripAllowance.update({
+      where: { id: existing.id },
+      data,
+    });
   return prisma.businessTripAllowance.create({
     data: {
       tenantId: input.tenantId,
@@ -1125,6 +1794,33 @@ async function seedTime(
       createdById: actorUserId,
     },
   });
+  for (const employee of employees) {
+    await prisma.employeeScheduleAssignment.upsert({
+      where: {
+        tenantId_employeeId_workScheduleId_effectiveFrom: {
+          tenantId,
+          employeeId: employee.id,
+          workScheduleId: schedule.id,
+          effectiveFrom: date('2026-01-01'),
+        },
+      },
+      update: {
+        effectiveTo: null,
+        isActive: true,
+        reason: 'Payroll validation schedule assignment.',
+        updatedById: actorUserId,
+      },
+      create: {
+        tenantId,
+        employeeId: employee.id,
+        workScheduleId: schedule.id,
+        effectiveFrom: date('2026-01-01'),
+        reason: 'Payroll validation schedule assignment.',
+        createdById: actorUserId,
+        updatedById: actorUserId,
+      },
+    });
+  }
   await prisma.timePayrollPolicy.upsert({
     where: { tenantId_code: { tenantId, code: 'DEFAULT_TIME_PAYROLL' } },
     update: {
@@ -1189,13 +1885,69 @@ async function seedTime(
     },
   });
 
-  await upsertAttendance(tenantId, employees[0].id, schedule.id, locationId, '2026-04-01', 9, 17);
-  await upsertAttendance(tenantId, employees[0].id, schedule.id, locationId, '2026-04-02', 9, 19);
-  await upsertAttendance(tenantId, employees[1].id, schedule.id, locationId, '2026-04-01', 9, 17);
-  await upsertAttendance(tenantId, employees[1].id, schedule.id, locationId, '2026-04-02', 9, 17);
-  await upsertAttendance(tenantId, employees[2].id, schedule.id, locationId, '2026-04-01', 9, 17);
-  await upsertAttendance(tenantId, employees[2].id, schedule.id, locationId, '2026-04-02', 9, 17);
-  await upsertAttendance(tenantId, employees[2].id, schedule.id, locationId, '2026-04-03', 9, 17);
+  await upsertAttendance(
+    tenantId,
+    employees[0].id,
+    schedule.id,
+    locationId,
+    '2026-04-01',
+    9,
+    17,
+  );
+  await upsertAttendance(
+    tenantId,
+    employees[0].id,
+    schedule.id,
+    locationId,
+    '2026-04-02',
+    9,
+    19,
+  );
+  await upsertAttendance(
+    tenantId,
+    employees[1].id,
+    schedule.id,
+    locationId,
+    '2026-04-01',
+    9,
+    17,
+  );
+  await upsertAttendance(
+    tenantId,
+    employees[1].id,
+    schedule.id,
+    locationId,
+    '2026-04-02',
+    9,
+    17,
+  );
+  await upsertAttendance(
+    tenantId,
+    employees[2].id,
+    schedule.id,
+    locationId,
+    '2026-04-01',
+    9,
+    17,
+  );
+  await upsertAttendance(
+    tenantId,
+    employees[2].id,
+    schedule.id,
+    locationId,
+    '2026-04-02',
+    9,
+    17,
+  );
+  await upsertAttendance(
+    tenantId,
+    employees[2].id,
+    schedule.id,
+    locationId,
+    '2026-04-03',
+    9,
+    17,
+  );
 }
 
 async function upsertAttendance(
@@ -1220,7 +1972,8 @@ async function upsertAttendance(
     source: AttendanceEntrySource.MANUAL,
     notes: 'Seeded attendance for payroll validation.',
   };
-  if (existing) return prisma.attendanceEntry.update({ where: { id: existing.id }, data });
+  if (existing)
+    return prisma.attendanceEntry.update({ where: { id: existing.id }, data });
   return prisma.attendanceEntry.create({
     data: { tenantId, employeeId, date: date(day), ...data },
   });
@@ -1297,7 +2050,8 @@ async function seedTaxRules(
       tenantId,
       code: 'GENERIC_L2_BRACKET_TAX',
       name: 'Generic L2 Bracket Tax',
-      description: 'Generic employee-level bracket rule for resolver validation.',
+      description:
+        'Generic employee-level bracket rule for resolver validation.',
       employeeLevelId: employeeLevel.id,
       calculationMethod: TaxCalculationMethod.BRACKET,
       taxType: TaxType.OTHER,
@@ -1349,7 +2103,8 @@ async function upsertBracket(
     fixedEmployeeAmount: money(0),
     fixedEmployerAmount: money(0),
   };
-  if (existing) return prisma.taxRuleBracket.update({ where: { id: existing.id }, data });
+  if (existing)
+    return prisma.taxRuleBracket.update({ where: { id: existing.id }, data });
   return prisma.taxRuleBracket.create({
     data: { tenantId, taxRuleId, minAmount: money(minAmount), ...data },
   });
@@ -1358,14 +2113,28 @@ async function upsertBracket(
 async function seedGlAccounts(tenantId: string) {
   const rows = [
     ['5000_PAYROLL_EXPENSE', 'Payroll Expense', PayrollGlAccountType.EXPENSE],
-    ['5100_EMPLOYER_TAX_EXPENSE', 'Employer Tax Expense', PayrollGlAccountType.EXPENSE],
+    [
+      '5100_EMPLOYER_TAX_EXPENSE',
+      'Employer Tax Expense',
+      PayrollGlAccountType.EXPENSE,
+    ],
     ['2100_PAYROLL_PAYABLE', 'Payroll Payable', PayrollGlAccountType.LIABILITY],
-    ['2200_DEDUCTION_PAYABLE', 'Deduction Payable', PayrollGlAccountType.LIABILITY],
+    [
+      '2200_DEDUCTION_PAYABLE',
+      'Deduction Payable',
+      PayrollGlAccountType.LIABILITY,
+    ],
     ['2300_TAX_PAYABLE', 'Tax Payable', PayrollGlAccountType.LIABILITY],
-    ['2400_EMPLOYER_TAX_PAYABLE', 'Employer Tax Payable', PayrollGlAccountType.LIABILITY],
+    [
+      '2400_EMPLOYER_TAX_PAYABLE',
+      'Employer Tax Payable',
+      PayrollGlAccountType.LIABILITY,
+    ],
   ] as const;
-  const result: Record<string, Awaited<ReturnType<typeof prisma.payrollGlAccount.upsert>>> =
-    {};
+  const result: Record<
+    string,
+    Awaited<ReturnType<typeof prisma.payrollGlAccount.upsert>>
+  > = {};
   for (const [code, name, accountType] of rows) {
     result[code] = await prisma.payrollGlAccount.upsert({
       where: { tenantId_code: { tenantId, code } },
@@ -1427,7 +2196,13 @@ async function seedPostingRules(
 
   for (const [name, sourceCategory, debitAccountId, creditAccountId] of rows) {
     const existing = await prisma.payrollPostingRule.findFirst({
-      where: { tenantId, name, sourceCategory, payComponentId: null, taxRuleId: null },
+      where: {
+        tenantId,
+        name,
+        sourceCategory,
+        payComponentId: null,
+        taxRuleId: null,
+      },
     });
     const data = {
       description: 'Seeded category default posting rule.',
@@ -1441,9 +2216,14 @@ async function seedPostingRules(
       effectiveTo: null,
     };
     if (existing) {
-      await prisma.payrollPostingRule.update({ where: { id: existing.id }, data });
+      await prisma.payrollPostingRule.update({
+        where: { id: existing.id },
+        data,
+      });
     } else {
-      await prisma.payrollPostingRule.create({ data: { tenantId, name, ...data } });
+      await prisma.payrollPostingRule.create({
+        data: { tenantId, name, ...data },
+      });
     }
   }
 }
@@ -1459,7 +2239,11 @@ enum PayrollAccount {
 
 async function seedPayrollCalendar(tenantId: string, businessUnitId: string) {
   const existing = await prisma.payrollCalendar.findFirst({
-    where: { tenantId, businessUnitId, name: 'Payroll Validation Monthly Calendar' },
+    where: {
+      tenantId,
+      businessUnitId,
+      name: 'Payroll Validation Monthly Calendar',
+    },
   });
   const data = {
     frequency: PayrollCalendarFrequency.MONTHLY,
@@ -1468,7 +2252,8 @@ async function seedPayrollCalendar(tenantId: string, businessUnitId: string) {
     isDefault: true,
     isActive: true,
   };
-  if (existing) return prisma.payrollCalendar.update({ where: { id: existing.id }, data });
+  if (existing)
+    return prisma.payrollCalendar.update({ where: { id: existing.id }, data });
   return prisma.payrollCalendar.create({
     data: {
       tenantId,
@@ -1524,6 +2309,9 @@ async function resetValidationRun(
       calculationStartedAt: null,
       calculatedAt: null,
       approvedAt: null,
+      approvedBy: null,
+      finalizedAt: null,
+      finalizedBy: null,
       paidAt: null,
       lockedAt: null,
       checksum: null,
@@ -1556,15 +2344,24 @@ async function resetGeneratedArtifacts(tenantId: string, payrollRunId: string) {
       data: { status: PayrollJournalEntryStatus.GENERATED, exportedAt: null },
     });
   }
-  await prisma.payrollJournalEntry.deleteMany({ where: { tenantId, payrollRunId } });
+  await prisma.payrollJournalEntry.deleteMany({
+    where: { tenantId, payrollRunId },
+  });
   await prisma.payslip.deleteMany({ where: { tenantId, payrollRunId } });
-  await prisma.payrollRunEmployee.deleteMany({ where: { tenantId, payrollRunId } });
-  await prisma.payrollException.deleteMany({ where: { tenantId, payrollRunId } });
+  await prisma.payrollRunEmployee.deleteMany({
+    where: { tenantId, payrollRunId },
+  });
+  await prisma.payrollException.deleteMany({
+    where: { tenantId, payrollRunId },
+  });
 }
 
 async function resetPayrollSources(tenantId: string) {
   await prisma.claimLineItem.updateMany({
-    where: { tenantId, claimRequest: { title: 'April client visit transport' } },
+    where: {
+      tenantId,
+      claimRequest: { title: 'April client visit transport' },
+    },
     data: { payrollRunEmployeeId: null, payrollIncludedAt: null },
   });
   await prisma.claimRequest.updateMany({
@@ -1576,7 +2373,10 @@ async function resetPayrollSources(tenantId: string) {
     },
   });
   await prisma.businessTripAllowance.updateMany({
-    where: { tenantId, businessTrip: { title: 'Doha client implementation visit' } },
+    where: {
+      tenantId,
+      businessTrip: { title: 'Doha client implementation visit' },
+    },
     data: { payrollRunEmployeeId: null, payrollIncludedAt: null },
   });
   await prisma.businessTrip.updateMany({
@@ -1586,7 +2386,11 @@ async function resetPayrollSources(tenantId: string) {
   await prisma.timePayrollInput.deleteMany({
     where: {
       tenantId,
-      employee: { employeeCode: { in: ['DP-PAY-001', 'DP-PAY-002', 'DP-PAY-003'] } },
+      employee: {
+        employeeCode: {
+          in: ['DP-ESS', 'DP-PAY-001', 'DP-PAY-002', 'DP-PAY-003'],
+        },
+      },
       workDate: { gte: date('2026-04-01'), lte: date('2026-04-03') },
     },
   });
@@ -1618,9 +2422,12 @@ async function buildFlowSummary(
     ),
     overtime: lineItems.some((item) => item.sourceType === 'OVERTIME'),
     noShow: lineItems.some((item) => item.sourceType === 'NO_SHOW'),
-    tax: lineItems.some((item) => item.category === PayrollRunLineItemCategory.TAX),
+    tax: lineItems.some(
+      (item) => item.category === PayrollRunLineItemCategory.TAX,
+    ),
     employerContribution: lineItems.some(
-      (item) => item.category === PayrollRunLineItemCategory.EMPLOYER_CONTRIBUTION,
+      (item) =>
+        item.category === PayrollRunLineItemCategory.EMPLOYER_CONTRIBUTION,
     ),
     payslip: employees.some((employee) => employee.payslip),
     journal: Boolean(journal?.lines.length),

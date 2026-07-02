@@ -123,7 +123,6 @@ export function CustomerCreateManager({
                   aria-label="Back"
                   className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-slate-700 transition hover:bg-slate-100"
                   onClick={() => router.push("/customers")}
-                  title="Back"
                   type="button"
                 >
                   <ArrowLeft className="h-4 w-4" />

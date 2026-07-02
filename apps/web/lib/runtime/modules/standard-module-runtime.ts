@@ -4,6 +4,7 @@ import type {
   FieldDataType,
   FieldMetadata,
   FormMetadata,
+  FormSectionMetadata,
   OptionSetValueMetadata,
   ViewMetadata,
 } from "../metadata-runtime.types";
@@ -23,6 +24,7 @@ export type StandardModuleFieldSpec = {
   readonly logicalName: string;
   readonly displayName: string;
   readonly dataType?: FieldDataType;
+  readonly lookupTargetEntityLogicalName?: string;
   readonly options?: readonly OptionSetValueMetadata[];
   readonly isPrimaryName?: boolean;
   readonly isOwner?: boolean;
@@ -67,6 +69,7 @@ export type StandardModuleRuntimeSpec = {
   readonly label: string;
   readonly singularLabel?: string;
   readonly routeBase: string;
+  readonly recordNavigation?: boolean;
   readonly primaryIdField?: string;
   readonly primaryNameField: string;
   readonly ownerField?: string;
@@ -75,6 +78,7 @@ export type StandardModuleRuntimeSpec = {
   readonly fields: readonly StandardModuleFieldSpec[];
   readonly views: readonly StandardModuleViewSpec[];
   readonly formFields?: readonly string[];
+  readonly formSections?: readonly FormSectionMetadata[];
   readonly minimalFormFields?: readonly string[];
   readonly quickCreateFormFields?: readonly string[];
   readonly commands?: readonly CommandDefinition[];
@@ -86,6 +90,11 @@ export type StandardModuleRuntimeSpec = {
   readonly adapterCapabilities?: {
     readonly softDelete?: boolean;
     readonly assignOwner?: boolean;
+    readonly disableCreate?: boolean;
+    readonly disableEdit?: boolean;
+    readonly import?: boolean;
+    readonly export?: boolean;
+    readonly exportTemplate?: boolean;
   };
   readonly permissions?: {
     readonly read?: string;
@@ -199,6 +208,7 @@ function buildStandardModuleConfig(
     description: `${spec.label} generic module runtime.`,
     entityLogicalName: spec.entityLogicalName,
     routeBase: spec.routeBase,
+    recordNavigation: spec.recordNavigation,
     defaultFormLogicalName: `${spec.moduleKey}.main`,
     defaultViewLogicalName:
       spec.views.find((view) => view.isDefault)?.logicalName ??
@@ -267,8 +277,43 @@ function buildStandardFields(
     isSubStatus: field.isSubStatus ?? field.logicalName === spec.subStatusField,
     isSearchable: field.isSearchable ?? true,
     isSortable: field.isSortable ?? true,
+    lookupTargets: lookupTargetsForField(spec, field),
     options: field.options,
   }));
+}
+
+function lookupTargetsForField(
+  spec: StandardModuleRuntimeSpec,
+  field: StandardModuleFieldSpec,
+) {
+  if (field.dataType !== "lookup") {
+    return undefined;
+  }
+
+  const explicitTarget = field.lookupTargetEntityLogicalName;
+  if (explicitTarget) {
+    return [{ entityLogicalName: explicitTarget }];
+  }
+
+  const lookupPath = spec.lookupApiPaths?.[field.logicalName];
+  const inferredTarget = lookupPath
+    ? inferEntityLogicalNameFromLookupPath(lookupPath)
+    : "";
+
+  return inferredTarget ? [{ entityLogicalName: inferredTarget }] : undefined;
+}
+
+function inferEntityLogicalNameFromLookupPath(path: string) {
+  const pathname = path.split("?")[0]?.replace(/^\/api\//, "") ?? "";
+  const segments = pathname.split("/").filter(Boolean);
+  const key = segments.at(-1);
+  if (!key) return "";
+
+  if (segments[0] === "lookups" || segments[0] === "configuration") {
+    return `settings_${key.replaceAll("-", "_")}`;
+  }
+
+  return `settings_${key.replaceAll("-", "_")}`;
 }
 
 function buildStandardForm(
@@ -280,9 +325,16 @@ function buildStandardForm(
   const fieldNames = configuredFields?.length
     ? configuredFields
     : spec.fields.map((field) => field.logicalName);
-  const columns = 3;
   const logicalName = `${spec.moduleKey}.${formType}`;
   const supportsTimeline = spec.capabilities?.includes("timeline") ?? false;
+  const configuredSections =
+    formType === "main" || formType === "quickCreate"
+      ? spec.formSections
+      : undefined;
+  const columns = configuredSections?.length ? 2 : 3;
+  const sectionIds = configuredSections?.length
+    ? configuredSections.map((section) => section.id)
+    : [`${logicalName}.summary`];
 
   return {
     id: stableRuntimeMetadataId(`form:${logicalName}`),
@@ -303,7 +355,7 @@ function buildStandardForm(
         label: "General",
         order: 10,
         type: "fields",
-        sectionIds: [`${logicalName}.summary`],
+        sectionIds,
       },
       ...(supportsTimeline
         ? [
@@ -331,18 +383,22 @@ function buildStandardForm(
         : []),
     ],
     sections: [
-      {
-        id: `${logicalName}.summary`,
-        tabKey: "general",
-        label: "Summary",
-        order: 10,
-        layout: "single-column",
-        columns: 1,
-        fields: fieldNames.map((fieldLogicalName, index) => ({
-          fieldLogicalName,
-          order: (index + 1) * 10,
-        })),
-      },
+      ...(configuredSections?.length
+        ? configuredSections
+        : [
+            {
+              id: `${logicalName}.summary`,
+              tabKey: "general",
+              label: "Summary",
+              order: 10,
+              layout: "single-column" as const,
+              columns: 1 as const,
+              fields: fieldNames.map((fieldLogicalName, index) => ({
+                fieldLogicalName,
+                order: (index + 1) * 10,
+              })),
+            },
+          ]),
       ...(formType === "main" && spec.widgets?.length
         ? [
             {
@@ -429,55 +485,101 @@ function buildStandardView(
 function buildStandardCommands(
   spec: StandardModuleRuntimeSpec,
 ): readonly CommandDefinition[] {
+  const hasActiveField = spec.fields.some(
+    (field) => field.logicalName === "isActive",
+  );
+
   return [
     command("system.back", "Back", "detail-command-bar", 10),
     command("system.new", "New", "list-command-bar", 20, {
       permission: permission(spec.permissions?.create, "create"),
+      isDisabled:
+        spec.recordNavigation === false ||
+        spec.adapterCapabilities?.disableCreate === true,
+      disabledReason:
+        spec.recordNavigation === false ||
+        spec.adapterCapabilities?.disableCreate
+          ? "Create is not available for this module."
+          : undefined,
     }),
     command("system.edit", "Edit", "detail-command-bar", 30, {
       permission: permission(spec.permissions?.update, "update"),
+      isDisabled:
+        spec.recordNavigation === false ||
+        spec.adapterCapabilities?.disableEdit === true,
+      disabledReason:
+        spec.recordNavigation === false || spec.adapterCapabilities?.disableEdit
+          ? "Edit is not available for this module."
+          : undefined,
     }),
     command("system.refresh", "Refresh", "list-command-bar", 40),
-    command("system.export", "Export", "list-command-bar", 45, {
-      groupKey: "data-transfer",
-      groupLabel: "Data Transfer",
-      permission: permission(spec.permissions?.export, "export"),
+    ...(spec.adapterCapabilities?.export === false
+      ? []
+      : [
+          command("system.export", "Export", "list-command-bar", 45, {
+            groupKey: "data-transfer",
+            groupLabel: "Data Transfer",
+            permission: permission(spec.permissions?.export, "export"),
+          }),
+        ]),
+    ...(spec.adapterCapabilities?.import === false
+      ? []
+      : [
+          command("system.import", "Import", "list-command-bar", 46, {
+            groupKey: "data-transfer",
+            groupLabel: "Data Transfer",
+            permission: permission(spec.permissions?.import, "import"),
+            isDisabled: true,
+            disabledReason:
+              "Generic import is not configured for this module yet.",
+          }),
+        ]),
+    ...(spec.adapterCapabilities?.exportTemplate === false
+      ? []
+      : [
+          command(
+            "system.exportTemplate",
+            "Export Template",
+            "list-command-bar",
+            47,
+            {
+              groupKey: "data-transfer",
+              groupLabel: "Data Transfer",
+              permission: permission(spec.permissions?.export, "export"),
+            },
+          ),
+        ]),
+    command("system.save", "Save", "detail-command-bar", 50, {
+      permission: permission(spec.permissions?.update, "update"),
+      isDisabled: spec.recordNavigation === false,
+      disabledReason:
+        spec.recordNavigation === false
+          ? "This setting is read-only."
+          : undefined,
     }),
-    command("system.import", "Import", "list-command-bar", 46, {
-      groupKey: "data-transfer",
-      groupLabel: "Data Transfer",
-      permission: permission(spec.permissions?.import, "import"),
-      isDisabled: true,
-      disabledReason: "Generic import is not configured for this module yet.",
+    command("system.saveAndClose", "Save & Close", "detail-command-bar", 60, {
+      permission: permission(spec.permissions?.update, "update"),
+      isDisabled: spec.recordNavigation === false,
+      disabledReason:
+        spec.recordNavigation === false
+          ? "This setting is read-only."
+          : undefined,
     }),
-    command(
-      "system.exportTemplate",
-      "Export Template",
-      "list-command-bar",
-      47,
-      {
-        groupKey: "data-transfer",
-        groupLabel: "Data Transfer",
-        permission: permission(spec.permissions?.export, "export"),
-      },
-    ),
-    command("system.save", "Save", "detail-command-bar", 50),
-    command("system.saveAndClose", "Save & Close", "detail-command-bar", 60),
     command("system.delete", "Delete", "detail-command-bar", 90, {
       isDestructive: true,
       requiresConfirmation: true,
       permission: permission(spec.permissions?.delete, "delete"),
       confirmation: {
-        title: "Soft delete this record?",
+        title: "Delete this record?",
         description:
-          "This will archive the record with a soft delete. It will not hard delete or purge data.",
-        confirmLabel: "Soft delete",
+          "This will remove the record from active use. Data may be retained according to module policy.",
+        confirmLabel: "Delete",
         destructive: true,
       },
       isDisabled: !spec.adapterCapabilities?.softDelete,
       disabledReason: spec.adapterCapabilities?.softDelete
         ? undefined
-        : "Soft delete is not wired for this module adapter yet.",
+        : "Delete is not configured for this module.",
     }),
     command("selection.delete", "Delete", "bulk-menu", 91, {
       isDestructive: true,
@@ -485,16 +587,16 @@ function buildStandardCommands(
       permission: permission(spec.permissions?.delete, "delete"),
       visibilityRules: [{ operator: "record-selected" }],
       confirmation: {
-        title: "Soft delete selected records?",
+        title: "Delete selected records?",
         description:
-          "This will archive {selectedCount} selected records with a soft delete. It will not hard delete or purge data.",
-        confirmLabel: "Soft delete",
+          "This will remove {selectedCount} selected records from active use. Data may be retained according to module policy.",
+        confirmLabel: "Delete",
         destructive: true,
       },
       isDisabled: !spec.adapterCapabilities?.softDelete,
       disabledReason: spec.adapterCapabilities?.softDelete
         ? undefined
-        : "Soft delete is not wired for this module adapter yet.",
+        : "Delete is not configured for this module.",
     }),
     command("selection.assignOwner", "Assign", "bulk-menu", 92, {
       permission: permission(spec.permissions?.assign, "assign"),
@@ -504,6 +606,24 @@ function buildStandardCommands(
         ? undefined
         : "Owner assignment is not configured for this module adapter yet.",
     }),
+    ...(hasActiveField
+      ? [
+          command("record.activate", "Activate", "detail-command-bar", 93, {
+            permission: permission(spec.permissions?.update, "update"),
+          }),
+          command("record.deactivate", "Deactivate", "detail-command-bar", 94, {
+            permission: permission(spec.permissions?.update, "update"),
+          }),
+          command("selection.activate", "Activate", "bulk-menu", 95, {
+            permission: permission(spec.permissions?.update, "update"),
+            visibilityRules: [{ operator: "record-selected" }],
+          }),
+          command("selection.deactivate", "Deactivate", "bulk-menu", 96, {
+            permission: permission(spec.permissions?.update, "update"),
+            visibilityRules: [{ operator: "record-selected" }],
+          }),
+        ]
+      : []),
     command("record.assignOwner", "Assign", "detail-command-bar", 100, {
       permission: permission(spec.permissions?.assign, "assign"),
       isDisabled: !spec.adapterCapabilities?.assignOwner,

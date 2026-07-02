@@ -7,23 +7,26 @@ import { AuditLogQueryDto } from './dto/audit-log-query.dto';
 export class AuditService {
   constructor(private readonly auditRepository: AuditRepository) {}
 
-  async log(input: {
-    tenantId: string;
-    organizationId?: string | null;
-    businessUnitId?: string | null;
-    actorUserId?: string | null;
-    action: string;
-    entityType: string;
-    entityId: string;
-    requestId?: string | null;
-    traceId?: string | null;
-    sourceModule?: string | null;
-    scope?: unknown;
-    beforeSnapshot?: unknown;
-    afterSnapshot?: unknown;
-  }) {
+  async log(
+    input: {
+      tenantId: string;
+      organizationId?: string | null;
+      businessUnitId?: string | null;
+      actorUserId?: string | null;
+      action: string;
+      entityType: string;
+      entityId: string;
+      requestId?: string | null;
+      traceId?: string | null;
+      sourceModule?: string | null;
+      scope?: unknown;
+      beforeSnapshot?: unknown;
+      afterSnapshot?: unknown;
+    },
+    db?: Prisma.TransactionClient,
+  ) {
     if (input.tenantId === 'platform') {
-      return this.auditRepository.createPlatform({
+      const data = {
         platformActorUserId: input.actorUserId ?? null,
         action: input.action,
         entityType: input.entityType,
@@ -34,15 +37,22 @@ export class AuditService {
         scope: normalizeSnapshot(input.scope),
         beforeSnapshot: normalizeSnapshot(input.beforeSnapshot),
         afterSnapshot: normalizeSnapshot(input.afterSnapshot),
-      });
+      };
+      return db
+        ? this.auditRepository.createPlatform(data, db)
+        : this.auditRepository.createPlatform(data);
     }
 
     const actorContext = input.actorUserId
-      ? await this.resolveTenantAuditActor(input.tenantId, input.actorUserId)
+      ? await this.resolveTenantAuditActor(
+          input.tenantId,
+          input.actorUserId,
+          db,
+        )
       : { actorUserId: null, platformActor: null };
     const normalizedScope = normalizeSnapshot(input.scope);
 
-    return this.auditRepository.create({
+    const data = {
       tenantId: input.tenantId,
       organizationId: input.organizationId ?? null,
       businessUnitId: input.businessUnitId ?? null,
@@ -56,20 +66,27 @@ export class AuditService {
       scope: mergeAuditScope(normalizedScope, actorContext.platformActor),
       beforeSnapshot: normalizeSnapshot(input.beforeSnapshot),
       afterSnapshot: normalizeSnapshot(input.afterSnapshot),
-    });
+    };
+    return db
+      ? this.auditRepository.create(data, db)
+      : this.auditRepository.create(data);
   }
 
-  private async resolveTenantAuditActor(tenantId: string, actorUserId: string) {
-    const tenantActor = await this.auditRepository.findTenantActor(
-      tenantId,
-      actorUserId,
-    );
+  private async resolveTenantAuditActor(
+    tenantId: string,
+    actorUserId: string,
+    db?: Prisma.TransactionClient,
+  ) {
+    const tenantActor = db
+      ? await this.auditRepository.findTenantActor(tenantId, actorUserId, db)
+      : await this.auditRepository.findTenantActor(tenantId, actorUserId);
     if (tenantActor) {
       return { actorUserId: tenantActor.id, platformActor: null };
     }
 
-    const platformActor =
-      await this.auditRepository.findPlatformActor(actorUserId);
+    const platformActor = db
+      ? await this.auditRepository.findPlatformActor(actorUserId, db)
+      : await this.auditRepository.findPlatformActor(actorUserId);
     return {
       actorUserId: null,
       platformActor: platformActor

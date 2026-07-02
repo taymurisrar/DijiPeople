@@ -13,6 +13,13 @@ exposes Work Sites, Shifts, Work Schedules, and Attendance Rules as separate
 destinations. Authorization is enforced by the API `settings.read` and
 `settings.update` permissions; navigation visibility is permission-aware.
 
+The Settings Runtime registry places those destinations under People
+Configuration groups and redirects concise paths to canonical group routes.
+The shell renders category -> group -> item navigation and derives breadcrumb
+context from the same registry. Work Sites, schedules, holidays, Shifts, and
+Attendance Rules use dedicated adapters and the shared list/record or
+record-style tenant-settings renderer. No parallel records are introduced.
+
 ## Settings-backed records
 
 - `Location` is the canonical Work Site record. It includes address, timezone,

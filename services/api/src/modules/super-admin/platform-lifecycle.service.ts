@@ -219,8 +219,9 @@ export class PlatformLifecycleService {
     return this.getCustomer(customer.id);
   }
 
-  async listCustomers(query: CustomerQueryDto) {
+  async listCustomers(actor: AuthenticatedUser, query: CustomerQueryDto) {
     const where = {
+      ...this.platformCustomerOwnerWhere(actor),
       ...(query.status ? { status: query.status } : {}),
       ...(query.subStatus ? { subStatus: query.subStatus } : {}),
       ...(query.industry ? { industry: query.industry } : {}),
@@ -314,7 +315,16 @@ export class PlatformLifecycleService {
     };
   }
 
-  async getCustomer(customerId: string) {
+  async getCustomer(
+    actorOrCustomerId: AuthenticatedUser | string,
+    maybeCustomerId?: string,
+  ) {
+    const actor =
+      typeof actorOrCustomerId === 'string' ? null : actorOrCustomerId;
+    const customerId =
+      typeof actorOrCustomerId === 'string'
+        ? actorOrCustomerId
+        : (maybeCustomerId as string);
     const customer = await this.prisma.customerAccount.findUnique({
       where: { id: customerId },
       include: {
@@ -383,6 +393,9 @@ export class PlatformLifecycleService {
 
     if (!customer) {
       throw new NotFoundException('Customer not found.');
+    }
+    if (actor) {
+      this.assertCustomerOwnerAccess(actor, customer);
     }
 
     const activeOnboarding = customer.onboardings.find((record) =>
@@ -559,12 +572,26 @@ export class PlatformLifecycleService {
     return this.getCustomer(customer.id);
   }
 
-  async updateCustomer(customerId: string, dto: UpdateCustomerDto) {
+  async updateCustomer(
+    actor: AuthenticatedUser,
+    customerId: string,
+    dto: UpdateCustomerDto,
+  ) {
     const existing = await this.prisma.customerAccount.findUnique({
       where: { id: customerId },
     });
     if (!existing) {
       throw new NotFoundException('Customer not found.');
+    }
+    this.assertCustomerOwnerAccess(actor, existing);
+    if (
+      !this.isPlatformSuperAdmin(actor) &&
+      (dto.assignedToUserId !== undefined ||
+        dto.accountManagerUserId !== undefined)
+    ) {
+      throw new BadRequestException(
+        'Only Platform Super Admin can reassign customer ownership.',
+      );
     }
 
     const nextStatus = dto.status ?? existing.status;
@@ -617,6 +644,19 @@ export class PlatformLifecycleService {
   }
 
   async bulkDeleteCustomers(actor: AuthenticatedUser, ids: string[]) {
+    if (!this.isPlatformSuperAdmin(actor)) {
+      const ownedCount = await this.prisma.customerAccount.count({
+        where: {
+          id: { in: ids },
+          assignedToUserId: actor.platform?.id ?? '__none__',
+        },
+      });
+      if (ownedCount !== ids.length) {
+        throw new BadRequestException(
+          'Members can only bulk delete customers they own.',
+        );
+      }
+    }
     const blockers = await this.prisma.customerAccount.findMany({
       where: {
         id: { in: ids },
@@ -653,6 +693,12 @@ export class PlatformLifecycleService {
     dto?: Partial<CreateCustomerOnboardingRecordDto>,
   ) {
     const customer = await this.getCustomerOrThrow(customerId);
+    this.assertCustomerOwnerAccess(actor, customer);
+    if (!this.isPlatformSuperAdmin(actor) && dto?.onboardingOwnerUserId) {
+      throw new BadRequestException(
+        'Only Platform Super Admin can reassign onboarding ownership.',
+      );
+    }
     const activeOnboarding = await this.findActiveOnboarding(customerId);
 
     if (activeOnboarding) {
@@ -692,7 +738,11 @@ export class PlatformLifecycleService {
         customerId,
         leadId: customer.leadId,
         plannedTenantSlug,
-        onboardingOwnerUserId: dto?.onboardingOwnerUserId ?? null,
+        onboardingOwnerUserId:
+          dto?.onboardingOwnerUserId ??
+          customer.assignedToUserId ??
+          actor.platform?.id ??
+          null,
         selectedPlanId: dto?.selectedPlanId ?? customer.selectedPlanId ?? null,
         billingCycle:
           dto?.billingCycle ?? customer.preferredBillingCycle ?? null,
@@ -745,8 +795,12 @@ export class PlatformLifecycleService {
     return this.getCustomerOnboarding(onboarding.id);
   }
 
-  async listCustomerOnboardings(query: CustomerOnboardingQueryDto) {
+  async listCustomerOnboardings(
+    actor: AuthenticatedUser,
+    query: CustomerOnboardingQueryDto,
+  ) {
     const where = {
+      ...this.platformOnboardingOwnerWhere(actor),
       ...(query.status
         ? { status: query.status }
         : {
@@ -828,7 +882,16 @@ export class PlatformLifecycleService {
     };
   }
 
-  async getCustomerOnboarding(onboardingId: string) {
+  async getCustomerOnboarding(
+    actorOrOnboardingId: AuthenticatedUser | string,
+    maybeOnboardingId?: string,
+  ) {
+    const actor =
+      typeof actorOrOnboardingId === 'string' ? null : actorOrOnboardingId;
+    const onboardingId =
+      typeof actorOrOnboardingId === 'string'
+        ? actorOrOnboardingId
+        : (maybeOnboardingId as string);
     const onboarding = await this.prisma.customerOnboarding.findUnique({
       where: { id: onboardingId },
       include: {
@@ -869,6 +932,9 @@ export class PlatformLifecycleService {
     if (!onboarding) {
       throw new NotFoundException('Onboarding record not found.');
     }
+    if (actor) {
+      this.assertOnboardingOwnerAccess(actor, onboarding);
+    }
 
     return {
       ...onboarding,
@@ -902,6 +968,15 @@ export class PlatformLifecycleService {
     });
     if (!existing) {
       throw new NotFoundException('Onboarding record not found.');
+    }
+    this.assertOnboardingOwnerAccess(actor, existing);
+    if (
+      !this.isPlatformSuperAdmin(actor) &&
+      dto.onboardingOwnerUserId !== undefined
+    ) {
+      throw new BadRequestException(
+        'Only Platform Super Admin can reassign onboarding ownership.',
+      );
     }
 
     if (
@@ -988,6 +1063,19 @@ export class PlatformLifecycleService {
   }
 
   async bulkDeleteCustomerOnboardings(actor: AuthenticatedUser, ids: string[]) {
+    if (!this.isPlatformSuperAdmin(actor)) {
+      const ownedCount = await this.prisma.customerOnboarding.count({
+        where: {
+          id: { in: ids },
+          onboardingOwnerUserId: actor.platform?.id ?? '__none__',
+        },
+      });
+      if (ownedCount !== ids.length) {
+        throw new BadRequestException(
+          'Members can only bulk delete onboarding records they own.',
+        );
+      }
+    }
     const blockers = await this.prisma.customerOnboarding.findMany({
       where: {
         id: { in: ids },
@@ -1036,6 +1124,7 @@ export class PlatformLifecycleService {
     if (!onboarding) {
       throw new NotFoundException('Onboarding record not found.');
     }
+    this.assertOnboardingOwnerAccess(actor, onboarding);
 
     if (onboarding.tenantCreated || onboarding.tenantId) {
       if (onboarding.tenantId) {
@@ -1151,16 +1240,22 @@ export class PlatformLifecycleService {
     );
 
     const provisioning = await this.prisma.$transaction(async (tx) => {
-      const tenantSuperAdminRole =
+      const tenantGlobalAdminRole =
+        await this.rolesRepository.findByKeyAndTenant(
+          createdTenant.id,
+          ROLE_KEYS.GLOBAL_ADMIN,
+          tx,
+        );
+      const tenantSystemAdminRole =
         await this.rolesRepository.findByKeyAndTenant(
           createdTenant.id,
           ROLE_KEYS.SYSTEM_ADMIN,
           tx,
         );
 
-      if (!tenantSuperAdminRole) {
+      if (!tenantGlobalAdminRole || !tenantSystemAdminRole) {
         throw new ConflictException(
-          'Tenant system admin role could not be provisioned.',
+          'Tenant administrator roles could not be provisioned.',
         );
       }
 
@@ -1204,19 +1299,25 @@ export class PlatformLifecycleService {
           )
         : null;
 
-      const roleAssignments = [primaryOwnerUser.id];
-
-      if (serviceAccountUser && assignServiceAccountSystemAdminRole) {
-        roleAssignments.push(serviceAccountUser.id);
-      }
-
       await tx.userRole.createMany({
-        data: roleAssignments.map((userId) => ({
-          tenantId: createdTenant.id,
-          userId,
-          roleId: tenantSuperAdminRole.id,
-          createdById: actor.userId,
-        })),
+        data: [
+          {
+            tenantId: createdTenant.id,
+            userId: primaryOwnerUser.id,
+            roleId: tenantGlobalAdminRole.id,
+            createdById: actor.userId,
+          },
+          ...(serviceAccountUser && assignServiceAccountSystemAdminRole
+            ? [
+                {
+                  tenantId: createdTenant.id,
+                  userId: serviceAccountUser.id,
+                  roleId: tenantSystemAdminRole.id,
+                  createdById: actor.userId,
+                },
+              ]
+            : []),
+        ],
         skipDuplicates: true,
       });
 
@@ -1444,6 +1545,50 @@ export class PlatformLifecycleService {
         `Complete required criteria before moving status: ${missing.join(', ')}.`,
       );
     }
+  }
+
+  private platformCustomerOwnerWhere(actor: AuthenticatedUser) {
+    return this.isPlatformSuperAdmin(actor)
+      ? {}
+      : { assignedToUserId: actor.platform?.id ?? '__none__' };
+  }
+
+  private platformOnboardingOwnerWhere(actor: AuthenticatedUser) {
+    return this.isPlatformSuperAdmin(actor)
+      ? {}
+      : { onboardingOwnerUserId: actor.platform?.id ?? '__none__' };
+  }
+
+  private assertCustomerOwnerAccess(
+    actor: AuthenticatedUser,
+    customer: { assignedToUserId?: string | null },
+  ) {
+    if (this.isPlatformSuperAdmin(actor)) return;
+    if (
+      customer.assignedToUserId &&
+      customer.assignedToUserId === actor.platform?.id
+    ) {
+      return;
+    }
+    throw new NotFoundException('Customer not found.');
+  }
+
+  private assertOnboardingOwnerAccess(
+    actor: AuthenticatedUser,
+    onboarding: { onboardingOwnerUserId?: string | null },
+  ) {
+    if (this.isPlatformSuperAdmin(actor)) return;
+    if (
+      onboarding.onboardingOwnerUserId &&
+      onboarding.onboardingOwnerUserId === actor.platform?.id
+    ) {
+      return;
+    }
+    throw new NotFoundException('Onboarding record not found.');
+  }
+
+  private isPlatformSuperAdmin(actor: AuthenticatedUser) {
+    return actor.platform?.role === PlatformUserRole.SUPER_ADMIN;
   }
 
   private async resolvePlatformOwnerId(

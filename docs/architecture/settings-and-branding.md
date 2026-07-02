@@ -46,6 +46,81 @@ shared UI pattern, and runtime consumer.
 - **Audit & Compliance**: audit events, data access history, retention, and
   compliance exports.
 
+### Settings Runtime And Nested Routes
+
+Settings navigation is owned by the shared Settings Runtime registry. The
+registry enriches every permission-aware setting with category and group
+ownership, canonical and compatibility routes, adapter identity, list and
+form metadata keys, Action Bar capabilities, Data Transfer support, and
+timeline availability. Pages must resolve registry metadata; they must not
+define a private navigation catalog.
+
+The workspace hierarchy is Settings -> Category -> Setting Group -> Setting
+Item -> Record. Category and group pages are metadata renderers. Canonical item
+routes render `StandardModuleListPage` and `StandardModuleRecordPage` directly
+through a registered adapter. Concise routes redirect to the canonical group
+route and never serve as the CRUD implementation.
+
+Canonical categories are `general-setup`, `regional`, `security-access`,
+`people`, `payroll`, `approvals`, `notifications`, `customization`,
+`appearance`, and `audit-compliance`. The Settings sidebar renders this exact
+category -> group -> item hierarchy and applies the item's permission and role
+requirements before rendering a node.
+
+The adapter registry owns server/browser APIs, View and Form metadata, Fields,
+Lookup sources, Choice Lists, permissions, Action Bar commands, validation
+mapping, formatters, Data Transfer flags, timeline availability, and
+soft-delete behavior. CRUD settings expose list, detail, new, and edit modes.
+Read-only adapters suppress mutation and record navigation. Record-style
+tenant settings use the generic record renderer and translate saved fields to
+tenant-setting updates.
+
+Concepts without a domain aggregate use the tenant-scoped, effective-dated,
+audited `TenantConfigurationRecord` store. Its allowlist covers Regions,
+Fiscal Years, Business Date Rules, Field Security, Password/Login Policies,
+Salary Package Rules, Delegation Rules, Escalation Rules, Workflow Templates,
+and Retention Rules. Domain-owned Organizations, Benefits, Loans, Banks,
+Payroll, Tax, Approvals, and Notifications continue using their dedicated
+models and APIs.
+
+Specialized surfaces remain only for non-CRUD interactions: Branding asset
+upload/live preview, Billing checkout/portal, Desktop Agent policy controls,
+Package Explorer, Module metadata design, and Publish Center. Each specialized
+adapter records its blocker and implementation route.
+
+Compound configuration editors also remain specialized until the generic
+Related List mutation contract covers their atomic child records and business
+commands: Users (roles/teams/lifecycle), Roles (privilege matrix), Teams
+(members/roles), Leave Policies (rules/assignments), Approval Matrices
+(ordered steps/conditions), Claim Types (subtypes), Tax Rules (brackets and
+pay-component relationships), Travel Allowance Policies (destination rules),
+Notification Templates (preview/test/activation), Email Providers
+(secret validation/default), and Policy Engine (assignments/resolver
+diagnostics). These are registered adapters with explicit blocker text, not
+silent route fallbacks.
+
+Master-data pages fully hosted by Settings Runtime include Organizations,
+Business Units, Departments, Designations, Employee Levels, Work Sites, Work
+Calendars, Shifts, Pay Components, Time Payroll Policies, Overtime
+Policies, Payroll Regions, Exchange Rates, GL Accounts, Posting Rules, Payroll
+Periods, Benefit Policies, Loan Policies, Banks, Permissions, Countries,
+Currencies, Timezones, Notification Delivery Logs, generic configuration
+records, and record-style tenant settings.
+
+Recent payroll foundation operational records remain outside Settings and use
+Module Runtime routes: `/payroll/runs`, `/payroll/payslips`, `/loans`,
+`/benefits/assignments`, and `/employee-bank-accounts`. Payroll Run and Payslip
+detail pages retain their command-oriented surfaces for calculation,
+readiness, lock, publication, voiding, and download; their lists are generic
+Views/DataTables. Bank account APIs return masked account and IBAN values for
+list/detail and continue enforcing employee scope and field permissions.
+
+The Release 1 Payroll Operations Dashboard, Exception Center, run Preview and
+lifecycle, Payslip Delivery Center, and bank-export generation likewise remain
+under `/payroll`. Settings owns their policies, matrices, calendars, tax,
+currency, banks, and notification configuration; it does not host or duplicate
+operational records or readiness validation logic.
+
 ### User And Employee
 
 `User` is the security and login identity. It owns login email, linked
@@ -78,8 +153,9 @@ artifacts to server logs.
 ### Users Settings Module
 
 The canonical route is `/settings/security-access/users`; the legacy
-`/settings/access/users` route redirects to it. The module uses generic runtime
-list, detail, create, and edit surfaces.
+`/settings/access/users` route redirects to it. The module retains its
+specialized list, detail, create, and edit surfaces because user lifecycle,
+role/team assignment, and effective-access diagnostics are compound operations.
 
 Create User creates the security identity and links an existing Employee by a
 searchable Employee lookup. It does not create a duplicate Employee. Roles are
@@ -119,8 +195,10 @@ types are Public Holiday, Company Holiday, Optional Holiday, and Special
 Non-working Day. Scope values are Tenant, Department, Work Site, and a future
 Employee scope.
 
-Work Calendars and Holidays support manual CRUD and the generic Data Transfer
-Action Bar group: Import, Export, and Export Template. Attendance blocks ESS
+Work Calendars support generic CRUD. Holidays remain child records of a selected
+calendar and are managed through the parent-selected Holidays editor. Generic
+Data Transfer actions stay hidden until import/export handlers and routes exist.
+Attendance blocks ESS
 check-in on holidays and off-days unless Attendance Rules allow it. HR/Admin
 may override only when policy permits. Leave duration excludes configured
 weekends and holidays. Timesheets mark or exclude non-working days according to
@@ -229,46 +307,116 @@ All routes below are authenticated unless marked public. Tenant settings use
 `/tenant-settings`; domain configuration routes use their module API; branding
 and system preferences are consumed globally through providers.
 
-| Route | Purpose | Current data source | Visibility | Consumption | Required fix/status |
-| --- | --- | --- | --- | --- | --- |
-| `/login`, `/t/:tenantSlug/login` | Tenant login | public tenant resolution + public branding | Public | Global | Branding, font, title, favicon resolved before login paint |
-| `/settings` | Settings landing | navigation/permission catalog | Private | Local | Keep as navigation only |
-| `/settings/tenant` | Tenant identity and regional defaults | tenant + tenant settings APIs | Private | Global/local | Shared values must flow through providers |
-| `/settings/company`, `/settings/organization` | Company profile | tenant settings | Private | Global/local | Avoid duplicate ownership with tenant route |
-| `/settings/organizations`, `/settings/business-units` | Organization hierarchy | organization APIs | Private | Local | Domain configuration, not public settings |
-| `/settings/branding` | Identity, assets, theme, typography, density | tenant settings branding category | Public-safe subset + private editor | Global | Live provider draft; save/cancel/reset update provider/cache |
-| `/settings/system` | Tenant-wide display/system preferences | tenant settings system category | Private | Global | Consume through `SystemPreferencesProvider` |
-| `/settings/localization` | Resolved locale summary | resolved tenant settings | Private | Global | Use shared shell and formatter context |
-| `/settings/currency` | Currency master data | currency API | Private | Local | Keep separate from default currency preference |
-| `/settings/security`, `/settings/system-audit`, `/settings/audit` | Security and audit configuration | security/audit APIs | Private | Local | Never expose through public settings |
-| `/settings/features`, `/settings/apps` | Feature availability | tenant feature APIs | Private | Global/local | Authenticated shell may consume availability |
-| `/settings/access` | Access landing | permission-aware navigation | Private | Local | No direct settings fetch |
-| `/settings/access/permissions` | Permission catalog | permissions API | Private | Local | Sensitive; private only |
-| `/settings/access/roles`, `/settings/access/roles/:roleId` | Role catalog/editor | roles API | Private | Local | Sensitive; private only |
-| `/settings/access/teams` | Access teams | teams API | Private | Local | Sensitive; private only |
-| `/settings/access/users/*` | User access lifecycle | users/roles/teams APIs | Private | Local | Sensitive; private only |
-| `/settings/employees` | Employee defaults and validation | tenant settings | Private | Module/global | Resolve through tenant settings service |
-| `/settings/departments/*`, `/settings/designations/*`, `/settings/locations/*` | People master data | domain APIs | Private | Local | Domain records, not tenant branding |
-| `/settings/employee-levels` | Employee levels | enterprise configuration API | Private | Local | Private operational configuration |
-| `/settings/leave-types/*`, `/settings/leave-policies/*` | Leave configuration | leave APIs | Private | Local | Private operational configuration |
-| `/settings/holiday-calendars`, `/settings/work-calendars` | Calendar configuration | calendar APIs | Private | Module/global | IDs may be resolved privately by preferences |
-| `/settings/attendance` | Attendance and timesheet defaults | tenant settings | Private | Module/global | Use resolved settings, not page constants |
-| `/settings/approval-matrices` | Approval routing | approval API | Private | Module | Sensitive policy configuration |
-| `/settings/notifications/*` | Channels, providers, templates, logs | notification APIs + tenant settings | Private | Module/global | Public branding only in rendered communications |
-| `/settings/documents` | Document rules | tenant settings | Private | Module | Private operational configuration |
-| `/settings/recruitment` | Recruitment/onboarding defaults | tenant settings | Private | Module | Private operational configuration |
-| `/settings/projects` | Project settings placeholder | local page | Private | Local | Replace placeholder only when API contract exists |
-| `/settings/payroll`, `/settings/payroll/*` | Payroll defaults and accounting setup | tenant settings + payroll APIs | Private | Module | Sensitive; never public |
-| `/settings/pay-components`, `/settings/policies`, `/settings/overtime-policies` | Pay/policy configuration | enterprise configuration APIs | Private | Module | Sensitive; never public |
-| `/settings/tax-rules`, `/settings/time-payroll-policies`, `/settings/travel-allowance-policies` | Payroll compliance policies | policy APIs | Private | Module | Sensitive; never public |
-| `/settings/claim-types` | Claim configuration | claims API | Private | Module | Private operational configuration |
-| `/settings/customization` | Customization landing | customization APIs | Private | Local/runtime publish | Draft metadata is never public runtime settings |
-| `/settings/customization/packages/*` | Package lifecycle | customization APIs | Private | Runtime publish | Published metadata only affects runtime |
-| `/settings/customization/tables/*` | Module/field/form/view design | customization APIs | Private | Runtime publish | No branding state duplication |
-| `/settings/customization/columns`, `/forms`, `/views` | Module selection shortcuts | customization APIs | Private | Local | Route to module-scoped designers |
-| `/settings/customization/publish` | Publish center | customization APIs | Private | Runtime publish | Invalidates metadata caches, not settings provider |
-| `/settings/billing/*` | Subscription lifecycle | billing API | Private | Local | Financial data remains private |
-| `/settings/desktop-agent` | Desktop agent defaults | agent settings API | Private | Module | Private operational configuration |
+| Route                                                                                           | Purpose                                                         | Current data source                        | Visibility                          | Consumption           | Required fix/status                                                       |
+| ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------ | ----------------------------------- | --------------------- | ------------------------------------------------------------------------- |
+| `/login`, `/t/:tenantSlug/login`                                                                | Tenant login                                                    | public tenant resolution + public branding | Public                              | Global                | Branding, font, title, favicon resolved before login paint                |
+| `/settings`                                                                                     | Settings landing                                                | navigation/permission catalog              | Private                             | Local                 | Keep as navigation only                                                   |
+| `/settings/:category`                                                                           | Category landing                                                | Settings Runtime registry                  | Private                             | Local                 | Generic grouped category surface                                          |
+| `/settings/:category/:settingGroup`                                                             | Group landing or concise item alias                             | Settings Runtime registry                  | Private                             | Local                 | Permission-aware metadata resolution                                      |
+| `/settings/:category/:settingGroup/:item`                                                       | Generic setting list                                            | Settings Runtime adapter + domain API      | Private                             | Local                 | Shared DataTable and Action Bar                                           |
+| `/settings/:category/:settingGroup/:item/new`                                                   | Generic setting create                                          | Settings Runtime Form metadata             | Private                             | Local                 | Shared FormControl and LookupField                                        |
+| `/settings/:category/:settingGroup/:item/:id`                                                   | Generic setting detail                                          | Settings Runtime adapter                   | Private                             | Local                 | Shared detail Action Bar                                                  |
+| `/settings/:category/:settingGroup/:item/:id/edit`                                              | Generic setting edit                                            | Settings Runtime adapter                   | Private                             | Local                 | Shared validation and save commands                                       |
+| `/settings/security-access`                                                                     | Security & Access landing                                       | Settings Runtime registry                  | Private                             | Local                 | Canonical access category                                                 |
+| `/settings/access`                                                                              | Legacy access landing                                           | Redirect                                   | Private                             | Local                 | Redirects to `/settings/security-access`                                  |
+| `/settings/payroll/payroll-settings`                                                            | Payroll tenant defaults                                         | tenant settings API                        | Private                             | Global/local          | Payroll category root no longer owns this form                            |
+| `/settings/notifications/rules`                                                                 | Notification event preferences                                  | notifications + tenant settings APIs       | Private                             | Local                 | Notifications category root no longer owns this form                      |
+| `/settings/tenant`                                                                              | Tenant identity and regional defaults                           | tenant + tenant settings APIs              | Private                             | Global/local          | Shared values must flow through providers                                 |
+| `/settings/company`, `/settings/organization`                                                   | Company profile                                                 | tenant settings                            | Private                             | Global/local          | Avoid duplicate ownership with tenant route                               |
+| `/settings/organizations`, `/settings/business-units`                                           | Organization hierarchy                                          | organization APIs                          | Private                             | Local                 | Domain configuration, not public settings                                 |
+| `/settings/branding`                                                                            | Identity, assets, theme, typography, density                    | tenant settings branding category          | Public-safe subset + private editor | Global                | Live provider draft; save/cancel/reset update provider/cache              |
+| `/settings/system`                                                                              | Tenant-wide display/system preferences                          | tenant settings system category            | Private                             | Global                | Consume through `SystemPreferencesProvider`                               |
+| `/settings/localization`                                                                        | Resolved locale summary                                         | resolved tenant settings                   | Private                             | Global                | Use shared shell and formatter context                                    |
+| `/settings/security`, `/settings/system-audit`, `/settings/audit`                               | Security and audit configuration                                | security/audit APIs                        | Private                             | Local                 | Never expose through public settings                                      |
+| `/settings/features`, `/settings/apps`                                                          | Feature availability                                            | tenant feature APIs                        | Private                             | Global/local          | Authenticated shell may consume availability                              |
+| `/settings/access`                                                                              | Access landing                                                  | permission-aware navigation                | Private                             | Local                 | No direct settings fetch                                                  |
+| `/settings/access/permissions`                                                                  | Permission catalog                                              | permissions API                            | Private                             | Local                 | Sensitive; private only                                                   |
+| `/settings/access/roles`, `/settings/access/roles/:roleId`                                      | Role catalog/editor                                             | roles API                                  | Private                             | Local                 | Sensitive; private only                                                   |
+| `/settings/access/teams`                                                                        | Access teams                                                    | teams API                                  | Private                             | Local                 | Sensitive; private only                                                   |
+| `/settings/access/users/*`                                                                      | User access lifecycle                                           | users/roles/teams APIs                     | Private                             | Local                 | Sensitive; private only                                                   |
+| `/settings/employees`                                                                           | Employee defaults and validation                                | tenant settings                            | Private                             | Module/global         | Resolve through tenant settings service                                   |
+| `/settings/departments/*`, `/settings/designations/*`, `/settings/locations/*`                  | People master data                                              | domain APIs                                | Private                             | Local                 | Domain records, not tenant branding                                       |
+| `/settings/employee-levels`                                                                     | Employee levels                                                 | enterprise configuration API               | Private                             | Local                 | Private operational configuration                                         |
+| `/settings/leave-types/*`, `/settings/leave-policies/*`                                         | Leave configuration                                             | leave APIs                                 | Private                             | Local                 | Private operational configuration                                         |
+| `/settings/holiday-calendars`, `/settings/work-calendars`                                       | Calendar configuration                                          | calendar APIs                              | Private                             | Module/global         | IDs may be resolved privately by preferences                              |
+| `/settings/attendance`                                                                          | Attendance and timesheet defaults                               | tenant settings                            | Private                             | Module/global         | Use resolved settings, not page constants                                 |
+| `/settings/approval-matrices`                                                                   | Approval routing                                                | generic Approvals API                      | Private                             | Module                | Sensitive cross-module policy configuration; domain modules are consumers |
+| `/settings/notifications/*`                                                                     | Channels, providers, templates, logs                            | notification APIs + tenant settings        | Private                             | Module/global         | Public branding only in rendered communications                           |
+| `/settings/documents`                                                                           | Document rules                                                  | tenant settings                            | Private                             | Module                | Private operational configuration                                         |
+| `/settings/recruitment`                                                                         | Recruitment/onboarding defaults                                 | tenant settings                            | Private                             | Module                | Private operational configuration                                         |
+| `/settings/projects`                                                                            | Project settings placeholder                                    | local page                                 | Private                             | Local                 | Replace placeholder only when API contract exists                         |
+| `/settings/payroll`, `/settings/payroll/*`                                                      | Payroll defaults, exchange rates, regions, and accounting setup | tenant settings + payroll APIs             | Private                             | Module                | Sensitive; never public                                                   |
+| `/settings/pay-components`, `/settings/policies`, `/settings/overtime-policies`                 | Pay/policy configuration                                        | enterprise configuration APIs              | Private                             | Module                | Sensitive; never public                                                   |
+| `/settings/tax-rules`, `/settings/time-payroll-policies`, `/settings/travel-allowance-policies` | Payroll compliance policies                                     | policy APIs                                | Private                             | Module                | Sensitive; never public                                                   |
+| `/settings/claim-types`                                                                         | Claim configuration                                             | claims API                                 | Private                             | Module                | Private operational configuration                                         |
+| `/settings/customization`                                                                       | Customization landing                                           | customization APIs                         | Private                             | Local/runtime publish | Draft metadata is never public runtime settings                           |
+| `/settings/customization/packages/*`                                                            | Package lifecycle                                               | customization APIs                         | Private                             | Runtime publish       | Published metadata only affects runtime                                   |
+| `/settings/customization/tables/*`                                                              | Module/field/form/view design                                   | customization APIs                         | Private                             | Runtime publish       | No branding state duplication                                             |
+| `/settings/customization/columns`, `/forms`, `/views`                                           | Module selection shortcuts                                      | customization APIs                         | Private                             | Local                 | Route to module-scoped designers                                          |
+| `/settings/customization/publish`                                                               | Publish center                                                  | customization APIs                         | Private                             | Runtime publish       | Invalidates metadata caches, not settings provider                        |
+| `/settings/billing/*`                                                                           | Subscription lifecycle                                          | billing API                                | Private                             | Local                 | Financial data remains private                                            |
+| `/settings/desktop-agent`                                                                       | Desktop agent defaults                                          | agent settings API                         | Private                             | Module                | Private operational configuration                                         |
+
+### Currency Ownership
+
+### Payroll Banks And Loan Policies
+
+Banks and loan policies are private Payroll & Finance configuration. Employee
+bank accounts reference active bank records and carry country, currency,
+effective dates, primary-payroll status, and verification status. Account
+identifiers are always masked outside persistence and must be protected by
+field-level payroll permissions.
+
+Loan policies own amount/installment limits, currency, interest configuration,
+and early-settlement behavior. Approved requests generate repayment rows;
+payroll consumes scheduled rows instead of recalculating a live schedule.
+
+Benefit Policies are private HR/Payroll configuration and follow the same
+tenant-owned effective configuration boundary. They own eligibility scope,
+calculation, payroll/tax/payslip behavior, renewal, expiry, visibility, and
+optional generic approval requirements. Employee Benefit Assignments are
+operational employee records, not Tenant Settings JSON. No Benefits settings UI
+route is introduced in this backend phase; future settings surfaces must call
+the Benefits API rather than duplicate policy state in tenant settings.
+
+Standalone Currency Configuration was removed because currency ownership is split
+by business responsibility:
+
+1. Tenant Profile owns the tenant-level default currency.
+2. Payroll Regions own payroll currency and reporting currency by scope and
+   effective date.
+3. Payroll & Finance > Exchange Rates owns currency conversion rates.
+
+Currency resolution is centralized in `ConfigurationResolverService` through
+`resolvePayrollCurrency`. The resolver returns payroll currency, reporting
+currency, matched source, matched rule, fallback level, and effective date.
+Current priority is work site Payroll Region, business unit Payroll Region,
+organization Payroll Region, country Payroll Region, Tenant Profile default
+currency, then platform/system default currency. A direct employee Payroll
+Region assignment can be added later when the employee model has that field.
+
+Payroll compensation creation already uses this resolver when no explicit
+currency is supplied. Payroll runs, payslips, reports, and exports should keep
+calling the resolver where a currency default is needed instead of hardcoding
+or duplicating fallback logic. Demo payroll regions belong in demo seed data;
+currency master data and tenant defaults belong in shared lookup/settings seeds.
+
+### Work And Holiday Calendars
+
+Work Calendars are backed by `WorkSchedule` and own working days, standard
+hours, timezone, effective dates, and optional holiday-calendar linkage. Their
+timezone must be selected from the shared timezone lookup rather than typed as
+free text. Employees, departments, locations, projects, attendance, timesheets,
+payroll regions, and payroll preparation all resolve or reference work
+schedules.
+
+Holiday Calendars are backed by `HolidayCalendar` and `Holiday`. A calendar
+owns country, region, timezone, weekend convention, and effective dates. Holiday
+rows own the holiday type (`PUBLIC`, `COMPANY`, `OPTIONAL`, `RELIGIOUS`,
+`REGIONAL`) and scope (`TENANT`, `DEPARTMENT`, `WORK_SITE`). Locations can
+reference a holiday calendar for work-site holidays; projects, payroll regions,
+attendance, timesheets, leave planning, and employee schedule resolution consume
+the resolved calendar context.
 
 ## Taxonomy
 

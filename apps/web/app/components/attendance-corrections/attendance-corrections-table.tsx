@@ -148,7 +148,7 @@ export function label(value: string | null | undefined) {
 export function statusTone(status: string) {
   if (status === "APPROVED") return "good";
   if (status === "REJECTED" || status === "CANCELLED") return "danger";
-  if (status === "PENDING_APPROVAL" || status === "SUBMITTED") return "warning";
+  if (status === "PENDING_APPROVAL" || status === "SUBMITTED") return "danger";
   if (status === "RETURNED") return "info";
   return "neutral";
 }

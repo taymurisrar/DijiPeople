@@ -39,6 +39,12 @@ export default async function MyPayslipDetailPage({ params }: PageProps) {
           {payslip.payrollRun?.payrollPeriod?.name ?? "Payroll period"} /{" "}
           {payslip.currencyCode} {payslip.netPay}
         </p>
+        <a
+          className="mt-5 inline-flex h-12 items-center justify-center rounded-2xl bg-accent px-4 text-sm font-semibold text-white shadow-sm hover:bg-accent-strong"
+          href={`/api/me/payslips/${payslip.id}/download`}
+        >
+          Download PDF
+        </a>
       </section>
       <section className="grid gap-4">
         {payslip.lineItems.map((line) => (

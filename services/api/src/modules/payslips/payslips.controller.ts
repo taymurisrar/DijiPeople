@@ -6,6 +6,8 @@ import {
   ParseUUIDPipe,
   Post,
   Query,
+  Res,
+  StreamableFile,
   UseGuards,
 } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -16,6 +18,7 @@ import type { AuthenticatedUser } from '../../common/interfaces/authenticated-re
 import { PayslipQueryDto } from './dto/payslip-query.dto';
 import { VoidPayslipDto } from './dto/void-payslip.dto';
 import { PayslipsService } from './payslips.service';
+import type { Response } from 'express';
 
 @Controller()
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -101,6 +104,53 @@ export class PayslipsController {
     });
   }
 
+  @Post('payslips/:id/regenerate')
+  @Permissions('payslips.manage')
+  regeneratePayslip(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.payslipsService.regeneratePayslip({
+      tenantId: user.tenantId,
+      payslipId: id,
+      actorUserId: user.userId,
+    });
+  }
+
+  @Post('payslips/:id/deliver')
+  @Permissions('payslips.deliver')
+  deliverPayslip(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.payslipsService.deliverPayslip({
+      tenantId: user.tenantId,
+      payslipId: id,
+      actorUserId: user.userId,
+    });
+  }
+
+  @Get('payslips/:id/download')
+  @Permissions('payslips.read-all', 'payslips.download')
+  async downloadPayslip(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const file = await this.payslipsService.downloadPayslip({
+      tenantId: user.tenantId,
+      payslipId: id,
+      actorUserId: user.userId,
+    });
+    response.setHeader('Content-Type', file.contentType);
+    response.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${file.fileName}"`,
+    );
+    response.setHeader('Cache-Control', 'private, no-store');
+    return new StreamableFile(file.buffer);
+  }
+
   @Get('me/payslips')
   @Permissions('payslips.read-own')
   getMyPayslips(@CurrentUser() user: AuthenticatedUser) {
@@ -121,5 +171,27 @@ export class PayslipsController {
       userId: user.userId,
       payslipId: id,
     });
+  }
+
+  @Get('me/payslips/:id/download')
+  @Permissions('payslips.read-own', 'payslips.download')
+  async downloadMyPayslip(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const file = await this.payslipsService.downloadPayslip({
+      tenantId: user.tenantId,
+      payslipId: id,
+      actorUserId: user.userId,
+      own: true,
+    });
+    response.setHeader('Content-Type', file.contentType);
+    response.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${file.fileName}"`,
+    );
+    response.setHeader('Cache-Control', 'private, no-store');
+    return new StreamableFile(file.buffer);
   }
 }

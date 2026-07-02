@@ -10,6 +10,8 @@ import {
   ClaimRequestStatus,
   EmployeeEmploymentStatus,
   LeaveRequestStatus,
+  LoanInstallmentStatus,
+  LoanRequestStatus,
   PayrollExceptionSeverity,
   PayrollInputSnapshotSourceType,
   PayrollPeriodStatus,
@@ -27,6 +29,7 @@ import { AuditService } from '../audit/audit.service';
 import { CompensationResolverService } from '../compensation/compensation-resolver.service';
 import { TimePayrollPreparationService } from '../time-payroll/time-payroll-preparation.service';
 import { TaxCalculationService } from '../tax-rules/tax-calculation.service';
+import { BenefitsService } from '../benefits/benefits.service';
 import {
   CreatePayrollCalendarDto,
   CreatePayrollPeriodDto,
@@ -79,6 +82,7 @@ export class PayrollRunService {
     private readonly compensationResolver: CompensationResolverService,
     private readonly timePayrollPreparation: TimePayrollPreparationService,
     private readonly taxCalculationService: TaxCalculationService,
+    private readonly benefitsService: BenefitsService,
   ) {}
 
   async createCalendar(user: AuthenticatedUser, dto: CreatePayrollCalendarDto) {
@@ -401,12 +405,12 @@ export class PayrollRunService {
     const period = run.payrollPeriod;
     const businessUnitId = period.payrollCalendar.businessUnitId;
     const employees = await this.prisma.employee.findMany({
-      where: {
+      where: buildPayrollEmployeeEligibilityWhere({
         tenantId: user.tenantId,
-        employmentStatus: EmployeeEmploymentStatus.ACTIVE,
-        isDraftProfile: false,
-        ...(businessUnitId ? { businessUnitId } : {}),
-      },
+        periodStart: period.periodStart,
+        periodEnd: period.periodEnd,
+        businessUnitId,
+      }),
       select: { id: true, employeeCode: true, firstName: true, lastName: true },
       orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
     });
@@ -419,25 +423,115 @@ export class PayrollRunService {
       },
     });
 
-    await this.clearRunDraftData(user.tenantId, id);
+    await this.clearRunDraftData(user.tenantId, id, user.userId);
 
-    for (const employee of employees) {
-      const compensation =
-        await this.compensationResolver.resolveActiveCompensation({
-          tenantId: user.tenantId,
-          employeeId: employee.id,
-          effectiveDate: period.periodEnd,
+    const compensationByEmployeeId = new Map<string, CompensationPayload>();
+    const benefitsByEmployeeId = new Map<
+      string,
+      Awaited<ReturnType<BenefitsService['resolvePayrollBenefits']>>
+    >();
+    let hasBlockingReadinessIssue = false;
+    try {
+      for (const employee of employees) {
+        const compensation =
+          await this.compensationResolver.resolveActiveCompensation({
+            tenantId: user.tenantId,
+            employeeId: employee.id,
+            effectiveDate: period.periodEnd,
+          });
+        compensationByEmployeeId.set(employee.id, compensation);
+        if (!compensation) {
+          hasBlockingReadinessIssue = true;
+          await this.prisma.payrollException.create({
+            data: {
+              tenantId: user.tenantId,
+              payrollRunId: id,
+              employeeId: employee.id,
+              severity: PayrollExceptionSeverity.BLOCKER,
+              errorType: 'MISSING_COMPENSATION',
+              message: 'No active compensation was found for the employee.',
+              details: { employeeCode: employee.employeeCode },
+            },
+          });
+          await this.prisma.payrollRunEmployee.create({
+            data: {
+              tenantId: user.tenantId,
+              payrollRunId: id,
+              employeeId: employee.id,
+              status: PayrollRunEmployeeStatus.EXCEPTION,
+              currencyCode: period.payrollCalendar.currencyCode,
+            },
+          });
+          continue;
+        }
+        const benefitInputs = await this.benefitsService.resolvePayrollBenefits(
+          {
+            tenantId: user.tenantId,
+            employeeId: employee.id,
+            effectiveDate: period.periodEnd,
+            baseCompensation: compensation.baseAmount,
+            currencyCode: compensation.currencyCode,
+          },
+        );
+        benefitsByEmployeeId.set(employee.id, benefitInputs);
+        if (benefitInputs.blockers.length) {
+          hasBlockingReadinessIssue = true;
+          for (const blocker of benefitInputs.blockers) {
+            await this.prisma.payrollException.create({
+              data: {
+                tenantId: user.tenantId,
+                payrollRunId: id,
+                employeeId: employee.id,
+                severity: PayrollExceptionSeverity.BLOCKER,
+                errorType: blocker.code,
+                message: blocker.message,
+                details: {
+                  employeeCode: employee.employeeCode,
+                  benefitPolicyId: blocker.policyId,
+                },
+              },
+            });
+          }
+          await this.prisma.payrollRunEmployee.create({
+            data: {
+              tenantId: user.tenantId,
+              payrollRunId: id,
+              employeeId: employee.id,
+              status: PayrollRunEmployeeStatus.EXCEPTION,
+              currencyCode: compensation.currencyCode,
+            },
+          });
+          continue;
+        }
+        if (!compensationRequiresDisbursement(compensation)) {
+          continue;
+        }
+        const bankAccount = await this.prisma.employeeBankAccount.findFirst({
+          where: {
+            tenantId: user.tenantId,
+            employeeId: employee.id,
+            isPrimaryPayroll: true,
+            isActive: true,
+            verificationStatus: 'VERIFIED',
+            effectiveFrom: { lte: period.periodEnd },
+            OR: [
+              { effectiveTo: null },
+              { effectiveTo: { gte: period.periodStart } },
+            ],
+          },
+          select: { id: true },
         });
-
-      if (!compensation) {
+        if (bankAccount) continue;
+        hasBlockingReadinessIssue = true;
         await this.prisma.payrollException.create({
           data: {
             tenantId: user.tenantId,
             payrollRunId: id,
             employeeId: employee.id,
-            severity: PayrollExceptionSeverity.ERROR,
-            errorType: 'MISSING_COMPENSATION',
-            message: 'No active compensation was found for the employee.',
+            severity: PayrollExceptionSeverity.BLOCKER,
+            errorType: 'MISSING_VERIFIED_PAYROLL_BANK_ACCOUNT',
+            message:
+              'No effective verified primary payroll bank account was found for the employee.',
             details: { employeeCode: employee.employeeCode },
           },
         });
@@ -450,229 +544,347 @@ export class PayrollRunService {
             currencyCode: period.payrollCalendar.currencyCode,
           },
         });
-        continue;
       }
-
-      const leaveInputs = await this.buildLeavePayrollInputs({
-        tenantId: user.tenantId,
-        employeeId: employee.id,
-        periodStart: period.periodStart,
-        periodEnd: period.periodEnd,
-        baseAmount: compensation.baseAmount,
-        currencyCode: compensation.currencyCode,
-      });
-      const claimInputs = await this.buildClaimPayrollInputs({
-        tenantId: user.tenantId,
-        employeeId: employee.id,
-      });
-      const tadaInputs = await this.buildTadaPayrollInputs({
-        tenantId: user.tenantId,
-        employeeId: employee.id,
-      });
-      const preparedTimeInputs =
-        await this.timePayrollPreparation.prepareTimeInputsForPayroll({
-          tenantId: user.tenantId,
-          employeeId: employee.id,
-          payrollPeriodId: period.id,
-          actorUserId: user.userId,
+      if (hasBlockingReadinessIssue) {
+        const failed = await this.prisma.payrollRun.update({
+          where: { id },
+          data: { status: PayrollRunStatus.FAILED },
+          include: runDetailInclude,
         });
-      const timeInputs = this.buildTimePayrollInputs({
-        prepared: preparedTimeInputs,
-        baseAmount: compensation.baseAmount,
-        currencyCode: compensation.currencyCode,
-        periodStart: period.periodStart,
-        periodEnd: period.periodEnd,
-      });
-      const lineItems = [
-        ...buildLineItems(compensation),
-        ...leaveInputs.lineItems,
-        ...timeInputs.lineItems,
-        ...claimInputs.lineItems,
-        ...tadaInputs.lineItems,
-      ];
-      const totals = calculateTotals(lineItems);
-      const runEmployee = await this.prisma.payrollRunEmployee.create({
-        data: {
-          tenantId: user.tenantId,
-          payrollRunId: id,
-          employeeId: employee.id,
-          status: PayrollRunEmployeeStatus.CALCULATED,
-          currencyCode: compensation.currencyCode,
-          grossEarnings: totals.grossEarnings,
-          totalDeductions: totals.totalDeductions,
-          totalTaxes: totals.totalTaxes,
-          totalReimbursements: totals.totalReimbursements,
-          employerContributions: totals.employerContributions,
-          netPay: totals.netPay,
-          calculationSummary: {
-            source: 'COMPENSATION_AND_LEAVE',
-            compensationHistoryId: compensation.id,
-            lineItemCount: lineItems.length,
-            approvedLeaveCount: leaveInputs.snapshots.length,
-            unpaidLeaveDays: leaveInputs.unpaidDays.toString(),
-            unpaidLeaveDeduction: leaveInputs.unpaidDeduction.toString(),
-            approvedClaimLineCount: claimInputs.snapshots.length,
-            claimReimbursementTotal: claimInputs.reimbursementTotal.toString(),
-            approvedTadaAllowanceCount: tadaInputs.snapshots.length,
-            tadaReimbursementTotal: tadaInputs.reimbursementTotal.toString(),
-            timeInputCount: timeInputs.snapshots.length,
-            regularHours: timeInputs.regularHours.toString(),
-            overtimeHours: timeInputs.overtimeHours.toString(),
-            noShowDays: timeInputs.noShowDays.toString(),
-            noShowDeduction: timeInputs.noShowDeduction.toString(),
-            overtimeEarnings: timeInputs.overtimeEarnings.toString(),
-          },
-        },
-      });
-
-      await this.prisma.payrollInputSnapshot.create({
-        data: {
-          tenantId: user.tenantId,
-          payrollRunEmployeeId: runEmployee.id,
-          sourceType: PayrollInputSnapshotSourceType.COMPENSATION,
-          sourceId: compensation.id,
-          effectiveDate: period.periodEnd,
-          snapshotData: compensation as unknown as Prisma.InputJsonValue,
-        },
-      });
-
-      if (leaveInputs.snapshots.length) {
-        await this.prisma.payrollInputSnapshot.createMany({
-          data: leaveInputs.snapshots.map((snapshot) => ({
-            tenantId: user.tenantId,
-            payrollRunEmployeeId: runEmployee.id,
-            sourceType: PayrollInputSnapshotSourceType.LEAVE,
-            sourceId: snapshot.requestId,
-            effectiveDate: period.periodEnd,
-            snapshotData: snapshot as unknown as Prisma.InputJsonValue,
-          })),
-        });
-      }
-
-      if (claimInputs.snapshots.length) {
-        await this.prisma.payrollInputSnapshot.createMany({
-          data: claimInputs.snapshots.map((snapshot) => ({
-            tenantId: user.tenantId,
-            payrollRunEmployeeId: runEmployee.id,
-            sourceType: PayrollInputSnapshotSourceType.CLAIM,
-            sourceId: snapshot.lineItemId,
-            effectiveDate: period.periodEnd,
-            snapshotData: snapshot as unknown as Prisma.InputJsonValue,
-          })),
-        });
-      }
-
-      if (tadaInputs.snapshots.length) {
-        await this.prisma.payrollInputSnapshot.createMany({
-          data: tadaInputs.snapshots.map((snapshot) => ({
-            tenantId: user.tenantId,
-            payrollRunEmployeeId: runEmployee.id,
-            sourceType: PayrollInputSnapshotSourceType.TADA,
-            sourceId: snapshot.allowanceId,
-            effectiveDate: period.periodEnd,
-            snapshotData: snapshot as unknown as Prisma.InputJsonValue,
-          })),
-        });
-      }
-
-      if (timeInputs.snapshots.length) {
-        await this.prisma.payrollInputSnapshot.createMany({
-          data: timeInputs.snapshots.map((snapshot) => ({
-            tenantId: user.tenantId,
-            payrollRunEmployeeId: runEmployee.id,
-            sourceType: sourceSnapshotForTimeInput(snapshot.sourceType),
-            sourceId: snapshot.inputId,
-            effectiveDate: snapshot.workDate,
-            snapshotData: snapshot as unknown as Prisma.InputJsonValue,
-          })),
-        });
-      }
-
-      await this.prisma.payrollRunLineItem.createMany({
-        data: lineItems.map((item) => ({
-          ...item,
-          tenantId: user.tenantId,
-          payrollRunEmployeeId: runEmployee.id,
-        })),
-      });
-
-      if (claimInputs.claimLineItemIds.length) {
-        await this.prisma.claimLineItem.updateMany({
-          where: {
-            tenantId: user.tenantId,
-            id: { in: claimInputs.claimLineItemIds },
-            payrollRunEmployeeId: null,
-          },
-          data: {
-            payrollRunEmployeeId: runEmployee.id,
-            payrollIncludedAt: new Date(),
-          },
-        });
-
-        await this.markIncludedClaims(user, claimInputs.claimRequestIds);
-      }
-
-      if (tadaInputs.allowanceIds.length) {
-        await this.prisma.businessTripAllowance.updateMany({
-          where: {
-            tenantId: user.tenantId,
-            id: { in: tadaInputs.allowanceIds },
-            payrollRunEmployeeId: null,
-          },
-          data: {
-            payrollRunEmployeeId: runEmployee.id,
-            payrollIncludedAt: new Date(),
-          },
-        });
-
-        await this.markIncludedBusinessTrips(user, tadaInputs.businessTripIds);
-      }
-
-      if (timeInputs.inputIds.length) {
-        await this.prisma.timePayrollInput.updateMany({
-          where: {
-            tenantId: user.tenantId,
-            id: { in: timeInputs.inputIds },
-            payrollRunEmployeeId: null,
-          },
-          data: {
-            payrollRunEmployeeId: runEmployee.id,
-            status: TimePayrollInputStatus.INCLUDED_IN_PAYROLL,
-          },
-        });
-
         await this.audit(
           user,
-          'TIME_PAYROLL_INPUTS_INCLUDED_IN_PAYROLL',
-          'PayrollRunEmployee',
-          runEmployee.id,
-          null,
-          { timeInputCount: timeInputs.inputIds.length },
+          'PAYROLL_RUN_READINESS_FAILED',
+          'PayrollRun',
+          id,
+          run,
+          failed,
         );
+        return mapRun(failed);
       }
 
-      for (const warning of [
-        ...preparedTimeInputs.warnings,
-        ...timeInputs.warnings,
-      ]) {
-        await this.prisma.payrollException.create({
+      for (const employee of employees) {
+        const compensation = compensationByEmployeeId.get(employee.id) ?? null;
+        const benefitInputs = benefitsByEmployeeId.get(employee.id) ?? {
+          blockers: [],
+          snapshots: [],
+          lineItems: [],
+        };
+
+        if (!compensation) {
+          await this.prisma.payrollException.create({
+            data: {
+              tenantId: user.tenantId,
+              payrollRunId: id,
+              employeeId: employee.id,
+              severity: PayrollExceptionSeverity.ERROR,
+              errorType: 'MISSING_COMPENSATION',
+              message: 'No active compensation was found for the employee.',
+              details: { employeeCode: employee.employeeCode },
+            },
+          });
+          await this.prisma.payrollRunEmployee.create({
+            data: {
+              tenantId: user.tenantId,
+              payrollRunId: id,
+              employeeId: employee.id,
+              status: PayrollRunEmployeeStatus.EXCEPTION,
+              currencyCode: period.payrollCalendar.currencyCode,
+            },
+          });
+          continue;
+        }
+
+        const leaveInputs = await this.buildLeavePayrollInputs({
+          tenantId: user.tenantId,
+          employeeId: employee.id,
+          periodStart: period.periodStart,
+          periodEnd: period.periodEnd,
+          baseAmount: compensation.baseAmount,
+          currencyCode: compensation.currencyCode,
+        });
+        const claimInputs = await this.buildClaimPayrollInputs({
+          tenantId: user.tenantId,
+          employeeId: employee.id,
+          cutoffDate: endOfUtcDay(period.cutoffDate ?? period.periodEnd),
+        });
+        const loanInputs = await this.buildLoanPayrollInputs({
+          tenantId: user.tenantId,
+          employeeId: employee.id,
+          periodEnd: period.periodEnd,
+          currencyCode: compensation.currencyCode,
+        });
+        const tadaInputs = await this.buildTadaPayrollInputs({
+          tenantId: user.tenantId,
+          employeeId: employee.id,
+        });
+        const preparedTimeInputs =
+          await this.timePayrollPreparation.prepareTimeInputsForPayroll({
+            tenantId: user.tenantId,
+            employeeId: employee.id,
+            payrollPeriodId: period.id,
+            actorUserId: user.userId,
+          });
+        const timeInputs = this.buildTimePayrollInputs({
+          prepared: preparedTimeInputs,
+          baseAmount: compensation.baseAmount,
+          currencyCode: compensation.currencyCode,
+          periodStart: period.periodStart,
+          periodEnd: period.periodEnd,
+        });
+        const lineItems = [
+          ...buildLineItems(compensation),
+          ...leaveInputs.lineItems,
+          ...timeInputs.lineItems,
+          ...claimInputs.lineItems,
+          ...loanInputs.lineItems,
+          ...tadaInputs.lineItems,
+          ...benefitInputs.lineItems,
+        ];
+        const totals = calculateTotals(lineItems);
+        const runEmployee = await this.prisma.payrollRunEmployee.create({
           data: {
             tenantId: user.tenantId,
             payrollRunId: id,
             employeeId: employee.id,
-            severity: warning.severity,
-            errorType: warning.errorType,
-            message: warning.message,
+            status: PayrollRunEmployeeStatus.CALCULATED,
+            currencyCode: compensation.currencyCode,
+            grossEarnings: totals.grossEarnings,
+            totalDeductions: totals.totalDeductions,
+            totalTaxes: totals.totalTaxes,
+            totalReimbursements: totals.totalReimbursements,
+            employerContributions: totals.employerContributions,
+            netPay: totals.netPay,
+            calculationSummary: {
+              source: 'COMPENSATION_AND_LEAVE',
+              compensationHistoryId: compensation.id,
+              lineItemCount: lineItems.length,
+              approvedLeaveCount: leaveInputs.snapshots.length,
+              unpaidLeaveDays: leaveInputs.unpaidDays.toString(),
+              unpaidLeaveDeduction: leaveInputs.unpaidDeduction.toString(),
+              approvedClaimLineCount: claimInputs.snapshots.length,
+              claimReimbursementTotal:
+                claimInputs.reimbursementTotal.toString(),
+              loanInstallmentCount: loanInputs.snapshots.length,
+              loanDeductionTotal: loanInputs.deductionTotal.toString(),
+              approvedTadaAllowanceCount: tadaInputs.snapshots.length,
+              tadaReimbursementTotal: tadaInputs.reimbursementTotal.toString(),
+              timeInputCount: timeInputs.snapshots.length,
+              benefitCount: benefitInputs.snapshots.length,
+              regularHours: timeInputs.regularHours.toString(),
+              overtimeHours: timeInputs.overtimeHours.toString(),
+              noShowDays: timeInputs.noShowDays.toString(),
+              noShowDeduction: timeInputs.noShowDeduction.toString(),
+              overtimeEarnings: timeInputs.overtimeEarnings.toString(),
+            },
           },
         });
-      }
 
-      await this.taxCalculationService.calculateTaxesForPayrollRunEmployee({
-        tenantId: user.tenantId,
-        payrollRunEmployeeId: runEmployee.id,
-        effectiveDate: period.periodEnd,
-        actorUserId: user.userId,
+        await this.prisma.payrollInputSnapshot.create({
+          data: {
+            tenantId: user.tenantId,
+            payrollRunEmployeeId: runEmployee.id,
+            sourceType: PayrollInputSnapshotSourceType.COMPENSATION,
+            sourceId: compensation.id,
+            effectiveDate: period.periodEnd,
+            snapshotData: compensation as unknown as Prisma.InputJsonValue,
+          },
+        });
+
+        if (leaveInputs.snapshots.length) {
+          await this.prisma.payrollInputSnapshot.createMany({
+            data: leaveInputs.snapshots.map((snapshot) => ({
+              tenantId: user.tenantId,
+              payrollRunEmployeeId: runEmployee.id,
+              sourceType: PayrollInputSnapshotSourceType.LEAVE,
+              sourceId: snapshot.requestId,
+              effectiveDate: period.periodEnd,
+              snapshotData: snapshot as unknown as Prisma.InputJsonValue,
+            })),
+          });
+        }
+
+        if (claimInputs.snapshots.length) {
+          await this.prisma.payrollInputSnapshot.createMany({
+            data: claimInputs.snapshots.map((snapshot) => ({
+              tenantId: user.tenantId,
+              payrollRunEmployeeId: runEmployee.id,
+              sourceType: PayrollInputSnapshotSourceType.CLAIM,
+              sourceId: snapshot.lineItemId,
+              effectiveDate: period.periodEnd,
+              snapshotData: snapshot as unknown as Prisma.InputJsonValue,
+            })),
+          });
+        }
+
+        if (loanInputs.snapshots.length) {
+          await this.prisma.payrollInputSnapshot.createMany({
+            data: loanInputs.snapshots.map((snapshot) => ({
+              tenantId: user.tenantId,
+              payrollRunEmployeeId: runEmployee.id,
+              sourceType: PayrollInputSnapshotSourceType.LOAN,
+              sourceId: snapshot.installmentId,
+              effectiveDate: new Date(snapshot.dueDate),
+              snapshotData: snapshot as unknown as Prisma.InputJsonValue,
+            })),
+          });
+        }
+
+        if (tadaInputs.snapshots.length) {
+          await this.prisma.payrollInputSnapshot.createMany({
+            data: tadaInputs.snapshots.map((snapshot) => ({
+              tenantId: user.tenantId,
+              payrollRunEmployeeId: runEmployee.id,
+              sourceType: PayrollInputSnapshotSourceType.TADA,
+              sourceId: snapshot.allowanceId,
+              effectiveDate: period.periodEnd,
+              snapshotData: snapshot as unknown as Prisma.InputJsonValue,
+            })),
+          });
+        }
+
+        if (timeInputs.snapshots.length) {
+          await this.prisma.payrollInputSnapshot.createMany({
+            data: timeInputs.snapshots.map((snapshot) => ({
+              tenantId: user.tenantId,
+              payrollRunEmployeeId: runEmployee.id,
+              sourceType: sourceSnapshotForTimeInput(snapshot.sourceType),
+              sourceId: snapshot.inputId,
+              effectiveDate: snapshot.workDate,
+              snapshotData: snapshot as unknown as Prisma.InputJsonValue,
+            })),
+          });
+        }
+
+        if (benefitInputs.snapshots.length) {
+          await this.prisma.payrollInputSnapshot.createMany({
+            data: benefitInputs.snapshots.map((snapshot) => ({
+              tenantId: user.tenantId,
+              payrollRunEmployeeId: runEmployee.id,
+              sourceType: PayrollInputSnapshotSourceType.BENEFIT,
+              sourceId: snapshot.assignmentId,
+              effectiveDate: period.periodEnd,
+              snapshotData: snapshot as unknown as Prisma.InputJsonValue,
+            })),
+          });
+        }
+
+        await this.prisma.payrollRunLineItem.createMany({
+          data: lineItems.map((item) => ({
+            ...item,
+            tenantId: user.tenantId,
+            payrollRunEmployeeId: runEmployee.id,
+          })),
+        });
+
+        if (claimInputs.claimLineItemIds.length) {
+          await this.prisma.claimLineItem.updateMany({
+            where: {
+              tenantId: user.tenantId,
+              id: { in: claimInputs.claimLineItemIds },
+              payrollRunEmployeeId: null,
+            },
+            data: {
+              payrollRunEmployeeId: runEmployee.id,
+              payrollIncludedAt: new Date(),
+            },
+          });
+
+          await this.markIncludedClaims(user, claimInputs.claimRequestIds);
+        }
+
+        if (tadaInputs.allowanceIds.length) {
+          await this.prisma.businessTripAllowance.updateMany({
+            where: {
+              tenantId: user.tenantId,
+              id: { in: tadaInputs.allowanceIds },
+              payrollRunEmployeeId: null,
+            },
+            data: {
+              payrollRunEmployeeId: runEmployee.id,
+              payrollIncludedAt: new Date(),
+            },
+          });
+
+          await this.markIncludedBusinessTrips(
+            user,
+            tadaInputs.businessTripIds,
+          );
+        }
+
+        if (timeInputs.inputIds.length) {
+          await this.prisma.timePayrollInput.updateMany({
+            where: {
+              tenantId: user.tenantId,
+              id: { in: timeInputs.inputIds },
+              payrollRunEmployeeId: null,
+            },
+            data: {
+              payrollRunEmployeeId: runEmployee.id,
+              status: TimePayrollInputStatus.INCLUDED_IN_PAYROLL,
+            },
+          });
+
+          await this.audit(
+            user,
+            'TIME_PAYROLL_INPUTS_INCLUDED_IN_PAYROLL',
+            'PayrollRunEmployee',
+            runEmployee.id,
+            null,
+            { timeInputCount: timeInputs.inputIds.length },
+          );
+        }
+
+        for (const warning of [
+          ...preparedTimeInputs.warnings,
+          ...timeInputs.warnings,
+        ]) {
+          await this.prisma.payrollException.create({
+            data: {
+              tenantId: user.tenantId,
+              payrollRunId: id,
+              employeeId: employee.id,
+              severity: warning.severity,
+              errorType: warning.errorType,
+              message: warning.message,
+            },
+          });
+        }
+
+        await this.taxCalculationService.calculateTaxesForPayrollRunEmployee({
+          tenantId: user.tenantId,
+          payrollRunEmployeeId: runEmployee.id,
+          effectiveDate: period.periodEnd,
+          actorUserId: user.userId,
+        });
+
+        await this.includeLoanInputs({
+          tenantId: user.tenantId,
+          payrollRunEmployeeId: runEmployee.id,
+          snapshots: loanInputs.snapshots,
+          actorUserId: user.userId,
+        });
+      }
+    } catch (error) {
+      await this.clearRunDraftData(user.tenantId, id, user.userId);
+      await this.prisma.payrollRun.update({
+        where: { id },
+        data: { status: PayrollRunStatus.FAILED },
       });
+      await this.audit(
+        user,
+        'PAYROLL_RUN_CALCULATION_FAILED',
+        'PayrollRun',
+        id,
+        run,
+        {
+          status: PayrollRunStatus.FAILED,
+          message:
+            error instanceof Error
+              ? error.message
+              : 'Payroll calculation failed.',
+        },
+      );
+      throw error;
     }
 
     const calculated = await this.prisma.payrollRun.update({
@@ -701,10 +913,11 @@ export class PayrollRunService {
     const run = await this.findRunOrThrow(user.tenantId, id);
     if (
       run.status !== PayrollRunStatus.CALCULATED &&
-      run.status !== PayrollRunStatus.REVIEWED
+      run.status !== PayrollRunStatus.REVIEWED &&
+      run.status !== PayrollRunStatus.APPROVED
     ) {
       throw new BadRequestException(
-        'Only CALCULATED or REVIEWED payroll runs can be locked.',
+        'Only CALCULATED, REVIEWED, or APPROVED payroll runs can be locked.',
       );
     }
     await this.assertBusinessUnitAccess(
@@ -738,41 +951,236 @@ export class PayrollRunService {
     return this.taxCalculationService.calculateTaxesForRun(user, id);
   }
 
-  private async clearRunDraftData(tenantId: string, payrollRunId: string) {
-    const employees = await this.prisma.payrollRunEmployee.findMany({
-      where: { tenantId, payrollRunId },
-      select: { id: true },
+  private async includeLoanInputs(input: {
+    tenantId: string;
+    payrollRunEmployeeId: string;
+    snapshots: LoanPayrollSnapshot[];
+    actorUserId: string;
+  }) {
+    if (!input.snapshots.length) return;
+    const changes = await this.prisma.$transaction(async (tx) => {
+      const includedAt = new Date();
+      for (const snapshot of input.snapshots) {
+        const claimed = await tx.loanInstallment.updateMany({
+          where: {
+            tenantId: input.tenantId,
+            id: snapshot.installmentId,
+            loanRequestId: snapshot.loanRequestId,
+            status: LoanInstallmentStatus.SCHEDULED,
+            payrollRunEmployeeId: null,
+          },
+          data: {
+            status: LoanInstallmentStatus.INCLUDED_IN_PAYROLL,
+            payrollRunEmployeeId: input.payrollRunEmployeeId,
+            includedAt,
+          },
+        });
+        if (claimed.count !== 1) {
+          throw new ConflictException(
+            `Loan installment ${snapshot.installmentId} was already consumed by another payroll run.`,
+          );
+        }
+      }
+
+      const balanceChanges: Array<{
+        loanRequestId: string;
+        before: string;
+        after: string;
+      }> = [];
+      for (const loanRequestId of [
+        ...new Set(input.snapshots.map((item) => item.loanRequestId)),
+      ]) {
+        const included = input.snapshots
+          .filter((item) => item.loanRequestId === loanRequestId)
+          .reduce((sum, item) => sum.plus(item.amount), new Prisma.Decimal(0));
+        const loan = await tx.loanRequest.findFirst({
+          where: {
+            tenantId: input.tenantId,
+            id: loanRequestId,
+            status: LoanRequestStatus.ACTIVE,
+          },
+          select: { outstandingBalance: true },
+        });
+        if (!loan) {
+          throw new ConflictException(
+            `Active loan ${loanRequestId} was not found while including its installment.`,
+          );
+        }
+        const balance = Prisma.Decimal.max(
+          loan.outstandingBalance.minus(included),
+          0,
+        );
+        await tx.loanRequest.update({
+          where: { id: loanRequestId },
+          data: {
+            outstandingBalance: balance,
+            ...(balance.eq(0)
+              ? { status: LoanRequestStatus.SETTLED, settledAt: includedAt }
+              : {}),
+          },
+        });
+        balanceChanges.push({
+          loanRequestId,
+          before: loan.outstandingBalance.toString(),
+          after: balance.toString(),
+        });
+      }
+      return balanceChanges;
     });
-    const employeeIds = employees.map((item) => item.id);
-    if (employeeIds.length) {
-      await this.prisma.payrollInputSnapshot.deleteMany({
-        where: { tenantId, payrollRunEmployeeId: { in: employeeIds } },
-      });
-      await this.prisma.payrollRunLineItem.deleteMany({
-        where: { tenantId, payrollRunEmployeeId: { in: employeeIds } },
-      });
-      await this.prisma.claimLineItem.updateMany({
-        where: { tenantId, payrollRunEmployeeId: { in: employeeIds } },
-        data: { payrollRunEmployeeId: null, payrollIncludedAt: null },
-      });
-      await this.prisma.businessTripAllowance.updateMany({
-        where: { tenantId, payrollRunEmployeeId: { in: employeeIds } },
-        data: { payrollRunEmployeeId: null, payrollIncludedAt: null },
-      });
-      await this.prisma.timePayrollInput.updateMany({
-        where: { tenantId, payrollRunEmployeeId: { in: employeeIds } },
-        data: {
-          payrollRunEmployeeId: null,
-          status: TimePayrollInputStatus.PREPARED,
+    for (const change of changes) {
+      await this.auditService.log({
+        tenantId: input.tenantId,
+        actorUserId: input.actorUserId,
+        action: 'LOAN_INSTALLMENT_INCLUDED_IN_PAYROLL',
+        entityType: 'LoanRequest',
+        entityId: change.loanRequestId,
+        beforeSnapshot: { outstandingBalance: change.before },
+        afterSnapshot: {
+          outstandingBalance: change.after,
+          payrollRunEmployeeId: input.payrollRunEmployeeId,
+          installmentIds: input.snapshots
+            .filter((item) => item.loanRequestId === change.loanRequestId)
+            .map((item) => item.installmentId),
         },
       });
     }
-    await this.prisma.payrollRunEmployee.deleteMany({
-      where: { tenantId, payrollRunId },
+  }
+
+  private async clearRunDraftData(
+    tenantId: string,
+    payrollRunId: string,
+    actorUserId: string,
+  ) {
+    const restoredLoans: Array<{
+      loanRequestId: string;
+      installmentId: string;
+      amount: string;
+    }> = [];
+    await this.prisma.$transaction(async (tx) => {
+      const employees = await tx.payrollRunEmployee.findMany({
+        where: { tenantId, payrollRunId },
+        select: { id: true },
+      });
+      const employeeIds = employees.map((item) => item.id);
+      if (employeeIds.length) {
+        const includedClaimLines = await tx.claimLineItem.findMany({
+          where: { tenantId, payrollRunEmployeeId: { in: employeeIds } },
+          select: { claimRequestId: true },
+        });
+        const includedTripAllowances = await tx.businessTripAllowance.findMany({
+          where: { tenantId, payrollRunEmployeeId: { in: employeeIds } },
+          select: { businessTripId: true },
+        });
+        const loanInstallments = await tx.loanInstallment.findMany({
+          where: { tenantId, payrollRunEmployeeId: { in: employeeIds } },
+          select: { id: true, loanRequestId: true, amount: true },
+        });
+        for (const installment of loanInstallments) {
+          const restored = await tx.loanInstallment.updateMany({
+            where: {
+              id: installment.id,
+              tenantId,
+              payrollRunEmployeeId: { in: employeeIds },
+              status: LoanInstallmentStatus.INCLUDED_IN_PAYROLL,
+            },
+            data: {
+              payrollRunEmployeeId: null,
+              status: LoanInstallmentStatus.SCHEDULED,
+              includedAt: null,
+            },
+          });
+          if (restored.count !== 1) continue;
+          restoredLoans.push({
+            loanRequestId: installment.loanRequestId,
+            installmentId: installment.id,
+            amount: installment.amount.toString(),
+          });
+          await tx.loanRequest.update({
+            where: { id: installment.loanRequestId },
+            data: {
+              status: LoanRequestStatus.ACTIVE,
+              settledAt: null,
+              outstandingBalance: { increment: installment.amount },
+            },
+          });
+        }
+        await tx.payrollInputSnapshot.deleteMany({
+          where: { tenantId, payrollRunEmployeeId: { in: employeeIds } },
+        });
+        await tx.payrollRunLineItem.deleteMany({
+          where: { tenantId, payrollRunEmployeeId: { in: employeeIds } },
+        });
+        await tx.claimLineItem.updateMany({
+          where: { tenantId, payrollRunEmployeeId: { in: employeeIds } },
+          data: { payrollRunEmployeeId: null, payrollIncludedAt: null },
+        });
+        await tx.claimRequest.updateMany({
+          where: {
+            tenantId,
+            id: {
+              in: [
+                ...new Set(
+                  includedClaimLines.map((item) => item.claimRequestId),
+                ),
+              ],
+            },
+            status: ClaimRequestStatus.INCLUDED_IN_PAYROLL,
+          },
+          data: {
+            status: ClaimRequestStatus.PAYROLL_APPROVED,
+            includedInPayrollAt: null,
+          },
+        });
+        await tx.businessTripAllowance.updateMany({
+          where: { tenantId, payrollRunEmployeeId: { in: employeeIds } },
+          data: { payrollRunEmployeeId: null, payrollIncludedAt: null },
+        });
+        await tx.businessTrip.updateMany({
+          where: {
+            tenantId,
+            id: {
+              in: [
+                ...new Set(
+                  includedTripAllowances.map((item) => item.businessTripId),
+                ),
+              ],
+            },
+            status: BusinessTripStatus.INCLUDED_IN_PAYROLL,
+          },
+          data: {
+            status: BusinessTripStatus.APPROVED,
+            includedInPayrollAt: null,
+          },
+        });
+        await tx.timePayrollInput.updateMany({
+          where: { tenantId, payrollRunEmployeeId: { in: employeeIds } },
+          data: {
+            payrollRunEmployeeId: null,
+            status: TimePayrollInputStatus.PREPARED,
+          },
+        });
+      }
+      await tx.payrollRunEmployee.deleteMany({
+        where: { tenantId, payrollRunId },
+      });
+      await tx.payrollException.deleteMany({
+        where: { tenantId, payrollRunId },
+      });
     });
-    await this.prisma.payrollException.deleteMany({
-      where: { tenantId, payrollRunId },
-    });
+    for (const restored of restoredLoans) {
+      await this.auditService.log({
+        tenantId,
+        actorUserId,
+        action: 'LOAN_INSTALLMENT_ROLLED_BACK_FROM_PAYROLL',
+        entityType: 'LoanRequest',
+        entityId: restored.loanRequestId,
+        afterSnapshot: {
+          payrollRunId,
+          installmentId: restored.installmentId,
+          restoredAmount: restored.amount,
+        },
+      });
+    }
   }
 
   private async buildLeavePayrollInputs(params: {
@@ -872,16 +1280,21 @@ export class PayrollRunService {
   private async buildClaimPayrollInputs(params: {
     tenantId: string;
     employeeId: string;
+    cutoffDate: Date;
   }) {
     const claims = await this.prisma.claimRequest.findMany({
       where: {
         tenantId: params.tenantId,
         employeeId: params.employeeId,
         status: ClaimRequestStatus.PAYROLL_APPROVED,
+        payrollApprovedAt: { lte: params.cutoffDate },
       },
       include: {
         lineItems: {
-          where: { payrollRunEmployeeId: null },
+          where: {
+            payrollRunEmployeeId: null,
+            transactionDate: { lte: params.cutoffDate },
+          },
           include: { claimType: true, claimSubType: true },
           orderBy: [{ transactionDate: 'asc' }, { createdAt: 'asc' }],
         },
@@ -954,6 +1367,70 @@ export class PayrollRunService {
       claimLineItemIds,
       claimRequestIds: [...claimRequestIds],
       reimbursementTotal,
+    };
+  }
+
+  private async buildLoanPayrollInputs(params: {
+    tenantId: string;
+    employeeId: string;
+    periodEnd: Date;
+    currencyCode: string;
+  }) {
+    const installments = await this.prisma.loanInstallment.findMany({
+      where: {
+        tenantId: params.tenantId,
+        employeeId: params.employeeId,
+        status: LoanInstallmentStatus.SCHEDULED,
+        dueDate: { lte: params.periodEnd },
+        loanRequest: { status: LoanRequestStatus.ACTIVE },
+      },
+      include: {
+        loanRequest: {
+          select: { id: true, requestNumber: true, currencyCode: true },
+        },
+      },
+      orderBy: [{ dueDate: 'asc' }, { installmentNumber: 'asc' }],
+    });
+    const snapshots: LoanPayrollSnapshot[] = [];
+    const lineItems: PayrollLineItemDraft[] = [];
+    let deductionTotal = new Prisma.Decimal(0);
+    for (const installment of installments) {
+      if (installment.loanRequest.currencyCode !== params.currencyCode) {
+        throw new BadRequestException(
+          `Loan ${installment.loanRequest.requestNumber} is in ${installment.loanRequest.currencyCode}, but payroll is in ${params.currencyCode}. Configure a supported payroll conversion before calculating this run.`,
+        );
+      }
+      deductionTotal = deductionTotal.plus(installment.amount);
+      snapshots.push({
+        installmentId: installment.id,
+        loanRequestId: installment.loanRequestId,
+        requestNumber: installment.loanRequest.requestNumber,
+        installmentNumber: installment.installmentNumber,
+        dueDate: installment.dueDate.toISOString(),
+        amount: installment.amount.toString(),
+        currencyCode: installment.loanRequest.currencyCode,
+      });
+      lineItems.push({
+        payComponentId: null,
+        category: PayrollRunLineItemCategory.DEDUCTION,
+        sourceType: 'LOAN',
+        sourceId: installment.id,
+        label: `Loan ${installment.loanRequest.requestNumber} / installment ${installment.installmentNumber}`,
+        quantity: null,
+        rate: null,
+        amount: installment.amount,
+        currencyCode: installment.loanRequest.currencyCode,
+        isTaxable: false,
+        affectsGrossPay: false,
+        affectsNetPay: true,
+        displayOnPayslip: true,
+        displayOrder: 920,
+      });
+    }
+    return {
+      snapshots,
+      lineItems,
+      deductionTotal,
     };
   }
 
@@ -1340,6 +1817,20 @@ function parseOptionalDate(value?: string | null) {
   return new Date(value);
 }
 
+function endOfUtcDay(value: Date) {
+  return new Date(
+    Date.UTC(
+      value.getUTCFullYear(),
+      value.getUTCMonth(),
+      value.getUTCDate(),
+      23,
+      59,
+      59,
+      999,
+    ),
+  );
+}
+
 function normalizeCurrency(value: string) {
   return value.trim().toUpperCase();
 }
@@ -1447,6 +1938,16 @@ type ClaimPayrollSnapshot = {
   receiptDocumentId: string | null;
 };
 
+type LoanPayrollSnapshot = {
+  installmentId: string;
+  loanRequestId: string;
+  requestNumber: string;
+  installmentNumber: number;
+  dueDate: string;
+  amount: string;
+  currencyCode: string;
+};
+
 type TadaPayrollSnapshot = {
   businessTripId: string;
   allowanceId: string;
@@ -1525,6 +2026,54 @@ function buildLineItems(
     displayOnPayslip: component.payComponent.displayOnPayslip,
     displayOrder: component.displayOrder,
   }));
+}
+
+export function compensationRequiresDisbursement(
+  compensation: NonNullable<CompensationPayload>,
+) {
+  return calculateTotals(buildLineItems(compensation)).netPay.gt(0);
+}
+
+export function buildPayrollEmployeeEligibilityWhere(input: {
+  tenantId: string;
+  periodStart: Date;
+  periodEnd: Date;
+  businessUnitId?: string | null;
+}): Prisma.EmployeeWhereInput {
+  return {
+    tenantId: input.tenantId,
+    isDraftProfile: false,
+    hireDate: { lte: input.periodEnd },
+    AND: [
+      {
+        OR: [
+          {
+            employmentStatus: {
+              in: [
+                EmployeeEmploymentStatus.ACTIVE,
+                EmployeeEmploymentStatus.PROBATION,
+                EmployeeEmploymentStatus.NOTICE,
+              ],
+            },
+          },
+          {
+            employmentStatus: EmployeeEmploymentStatus.TERMINATED,
+            terminationDate: {
+              gte: input.periodStart,
+              lte: input.periodEnd,
+            },
+          },
+        ],
+      },
+      {
+        OR: [
+          { terminationDate: null },
+          { terminationDate: { gte: input.periodStart } },
+        ],
+      },
+    ],
+    ...(input.businessUnitId ? { businessUnitId: input.businessUnitId } : {}),
+  };
 }
 
 function formatAllowanceType(value: string) {

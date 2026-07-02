@@ -28,6 +28,7 @@ export interface RelatedRecordsInput {
   readonly runtime: ModuleRuntimeContext;
   readonly parentRecordId: string;
   readonly subgrid: RelatedSubgridMetadata;
+  readonly parentLookupField?: string;
 }
 
 export interface RelatedRecordMutationInput<
@@ -38,6 +39,7 @@ export interface RelatedRecordMutationInput<
   readonly subgrid: RelatedSubgridMetadata;
   readonly values: TValues;
   readonly recordId?: string;
+  readonly parentLookupField?: string;
 }
 
 export interface TimelineQueryInput {
@@ -72,6 +74,7 @@ export interface ModuleLookupOption {
   readonly name: string;
   readonly key?: string | null;
   readonly code?: string | null;
+  readonly employeeLevelId?: string | null;
   readonly subtitle?: string | null;
 }
 

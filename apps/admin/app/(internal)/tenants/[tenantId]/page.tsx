@@ -235,7 +235,6 @@ export default async function TenantDetailPage({
               className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold"
               href="/tenants"
             >
-              Back
             </Link>
             <Link
               className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold"
@@ -273,7 +272,7 @@ export default async function TenantDetailPage({
       ) : null}
 
       <SummaryCards>
-        <SummaryCard label="Users" value={tenant.counts.users} />
+        <SummaryCard label="Privileged access" value={accessUsers.length} />
         <SummaryCard label="Employees" value={tenant.counts.employees} />
         <SummaryCard label="Enabled features" value={enabledFeatures.length} />
         <SummaryCard

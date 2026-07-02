@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { ConfirmationDialog } from "@/app/components/notifications";
+import { apiErrorEventName } from "@/lib/api-error";
 import {
   buildAdapterCommandHandlers,
   executeRuntimeCommand,
@@ -115,7 +116,7 @@ export function ModuleRuntimeCommandHandler({
     }
 
     if (commandKey === "record.share") {
-      const href = shareHref(context, runtime);
+      const href = shareHref(context, runtime, activeForm);
       if (!href) {
         setLastResult({
           status: "failure",
@@ -238,11 +239,17 @@ export function ModuleRuntimeCommandHandler({
         navigationCommands: navigationCommands ?? {
           "system.new": {
             kind: "new",
-            hrefTemplate: `${runtime.module.routeBase}/new`,
+            hrefTemplate: appendFormIdToHrefTemplate(
+              `${runtime.module.routeBase}/new`,
+              activeForm,
+            ),
           },
           "system.edit": {
             kind: "edit",
-            hrefTemplate: `${runtime.module.routeBase}/{recordId}/edit`,
+            hrefTemplate: appendFormIdToHrefTemplate(
+              `${runtime.module.routeBase}/{recordId}/edit`,
+              activeForm,
+            ),
           },
           "system.back": { kind: "back" },
           "system.refresh": { kind: "refresh" },
@@ -259,6 +266,10 @@ export function ModuleRuntimeCommandHandler({
 
     setLastResult(result);
     onResult?.(result);
+
+    if (result.status === "failure") {
+      dispatchCommandFailure(result, runtime);
+    }
 
     if (
       (result.status === "success" || result.status === "refreshRequired") &&
@@ -441,6 +452,76 @@ function currentOwnerId(
   return typeof value === "string" ? value : "";
 }
 
+function dispatchCommandFailure(
+  result: RuntimeCommandExecutionResult,
+  runtime: ModuleRuntimeContext,
+) {
+  if (typeof window === "undefined") return;
+
+  window.dispatchEvent(
+    new CustomEvent(apiErrorEventName(), {
+      detail: {
+        error: {
+          success: false,
+          ...readCommandFailureError(result),
+          path:
+            typeof window.location?.pathname === "string"
+              ? window.location.pathname
+              : runtime.module.routeBase,
+          method: result.command?.key,
+          details: {
+            commandKey: result.command?.key,
+            moduleKey: runtime.module.key,
+            errors: result.errors,
+            data: result.data,
+          },
+        },
+      },
+    }),
+  );
+}
+
+function readCommandFailureError(result: RuntimeCommandExecutionResult) {
+  const data = result.data;
+  const record =
+    data && typeof data === "object" && !Array.isArray(data)
+      ? (data as Record<string, unknown>)
+      : {};
+  const statusCode =
+    typeof record.statusCode === "number"
+      ? record.statusCode
+      : typeof record.status === "number"
+        ? record.status
+        : 500;
+  const errorCode =
+    typeof record.errorCode === "string"
+      ? record.errorCode
+      : typeof record.code === "string"
+        ? record.code
+        : statusCode >= 500
+          ? "SYSTEM_UNEXPECTED_ERROR"
+          : statusCode === 403
+            ? "ACCESS_DENIED"
+            : statusCode === 404
+              ? "DATABASE_RECORD_NOT_FOUND"
+              : "VALIDATION_FAILED";
+
+  return {
+    errorCode,
+    message:
+      typeof record.message === "string"
+        ? record.message
+        : result.message || "Command failed",
+    description:
+      typeof record.description === "string"
+        ? record.description
+        : result.errors?.join(" ") ||
+          "The requested action could not be completed.",
+    statusCode,
+    details: record.details ?? result.data,
+  };
+}
+
 function readSystemFieldDebug(
   record: RuntimeRecordData | null | undefined,
   runtime: ModuleRuntimeContext,
@@ -493,11 +574,29 @@ function withCurrentOwnerOption(
 function shareHref(
   context: RuntimeCommandEventContext,
   runtime: ModuleRuntimeContext,
+  activeForm: FormMetadata | null | undefined,
 ) {
   const recordId = context.recordId ?? runtime.recordId;
   if (!recordId) return "";
 
-  return `${window.location.origin}${runtime.module.routeBase}/${recordId}`;
+  return `${window.location.origin}${appendFormIdToHrefTemplate(
+    `${runtime.module.routeBase}/${recordId}`,
+    activeForm,
+  )}`;
+}
+
+function appendFormIdToHrefTemplate(
+  hrefTemplate: string,
+  activeForm: FormMetadata | null | undefined,
+) {
+  if (!activeForm?.id || hrefTemplate.includes("formId=")) {
+    return hrefTemplate;
+  }
+
+  const separator = hrefTemplate.includes("?") ? "&" : "?";
+  return `${hrefTemplate}${separator}formId=${encodeURIComponent(
+    activeForm.id,
+  )}`;
 }
 
 function confirmationConfig(command: CommandDefinition | null | undefined) {

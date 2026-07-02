@@ -494,11 +494,25 @@ export class OrganizationService {
     currentUser: AuthenticatedUser,
     dto: CreateDesignationDto,
   ) {
+    const name = dto.name.trim();
+    const employeeLevel = await this.resolveEmployeeLevel(
+      currentUser.tenantId,
+      dto.employeeLevelId,
+    );
+
     try {
+      await this.prepareDesignationNameForActiveUse(
+        currentUser.tenantId,
+        name,
+      );
+
       return await this.organizationRepository.createDesignation({
         tenantId: currentUser.tenantId,
-        name: dto.name.trim(),
-        level: dto.level?.trim(),
+        name,
+        level: employeeLevel
+          ? employeeLevel.code
+          : normalizeOptionalText(dto.level),
+        employeeLevelId: employeeLevel?.id ?? null,
         description: dto.description?.trim(),
         isActive: dto.isActive ?? true,
         createdById: currentUser.userId,
@@ -514,13 +528,37 @@ export class OrganizationService {
     id: string,
     dto: UpdateDesignationDto,
   ) {
+    const nextName = dto.name?.trim();
+    const employeeLevel =
+      dto.employeeLevelId !== undefined
+        ? await this.resolveEmployeeLevel(
+            currentUser.tenantId,
+            dto.employeeLevelId,
+          )
+        : undefined;
+    if (nextName) {
+      await this.prepareDesignationNameForActiveUse(
+        currentUser.tenantId,
+        nextName,
+        id,
+      );
+    }
+
     const result = await this.organizationRepository.updateDesignation(
       currentUser.tenantId,
       id,
       {
-        ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
-        ...(dto.level !== undefined
-          ? { level: dto.level?.trim() ?? null }
+        ...(nextName ? { name: nextName } : {}),
+        ...(employeeLevel !== undefined
+          ? {
+              employeeLevelId: employeeLevel?.id ?? null,
+              level: employeeLevel
+                ? employeeLevel.code
+                : normalizeOptionalText(dto.level),
+            }
+          : {}),
+        ...(dto.employeeLevelId === undefined && dto.level !== undefined
+          ? { level: normalizeOptionalText(dto.level) }
           : {}),
         ...(dto.description !== undefined
           ? { description: dto.description?.trim() ?? null }
@@ -535,6 +573,92 @@ export class OrganizationService {
     }
 
     return this.findDesignationById(currentUser.tenantId, id);
+  }
+
+  async deleteDesignation(currentUser: AuthenticatedUser, id: string) {
+    const currentDesignation = await this.findDesignationById(
+      currentUser.tenantId,
+      id,
+    );
+    const result = await this.organizationRepository.updateDesignation(
+      currentUser.tenantId,
+      id,
+      {
+        name: archivedDesignationName(currentDesignation.name, id),
+        isActive: false,
+        updatedById: currentUser.userId,
+      },
+    );
+
+    if (result.count === 0) {
+      throw new NotFoundException('Designation was not found for this tenant.');
+    }
+
+    return this.findDesignationById(currentUser.tenantId, id);
+  }
+
+  private async prepareDesignationNameForActiveUse(
+    tenantId: string,
+    name: string,
+    excludeId?: string,
+  ) {
+    const activeConflict = await this.prisma.designation.findFirst({
+      where: {
+        tenantId,
+        name,
+        isActive: true,
+        ...(excludeId ? { id: { not: excludeId } } : {}),
+      },
+      select: { id: true },
+    });
+
+    if (activeConflict) {
+      throw new ConflictException(
+        'Designation name is already in use for this tenant.',
+      );
+    }
+
+    const inactiveConflicts = await this.prisma.designation.findMany({
+      where: {
+        tenantId,
+        name,
+        isActive: false,
+        ...(excludeId ? { id: { not: excludeId } } : {}),
+      },
+      select: { id: true, name: true },
+    });
+
+    await Promise.all(
+      inactiveConflicts.map((designation) =>
+        this.prisma.designation.update({
+          where: { id: designation.id },
+          data: {
+            name: archivedDesignationName(designation.name, designation.id),
+          },
+        }),
+      ),
+    );
+  }
+
+  private async resolveEmployeeLevel(
+    tenantId: string,
+    employeeLevelId: string | undefined,
+  ) {
+    const trimmed = employeeLevelId?.trim();
+    if (!trimmed) return null;
+
+    const employeeLevel = await this.prisma.employeeLevel.findFirst({
+      where: { tenantId, id: trimmed, isActive: true },
+      select: { id: true, code: true, name: true },
+    });
+
+    if (!employeeLevel) {
+      throw new NotFoundException(
+        'Selected employee level does not belong to this tenant or is inactive.',
+      );
+    }
+
+    return employeeLevel;
   }
 
   findLocations(tenantId: string, query: ListMasterDataDto) {
@@ -934,4 +1058,15 @@ export class OrganizationService {
     }
     return null;
   }
+}
+
+function normalizeOptionalText(value: string | undefined) {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+}
+
+function archivedDesignationName(name: string, id: string) {
+  const suffix = ` [deleted ${id.slice(0, 8)}]`;
+  const base = name.trim() || 'Designation';
+  return `${base.slice(0, Math.max(1, 100 - suffix.length))}${suffix}`;
 }

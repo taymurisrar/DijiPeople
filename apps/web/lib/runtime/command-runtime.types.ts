@@ -45,6 +45,7 @@ export type CommandVisibilityOperator =
   | "has-all-permissions"
   | "field-equals"
   | "field-not-equals"
+  | "field-in"
   | "record-selected"
   | "record-not-deleted"
   | "metadata-state";
@@ -54,6 +55,7 @@ export interface CommandVisibilityRule {
   readonly permissionKeys?: readonly string[];
   readonly fieldLogicalName?: string;
   readonly expectedValue?: unknown;
+  readonly expectedValues?: readonly unknown[];
   readonly metadataState?: string;
   readonly invert?: boolean;
 }
@@ -73,6 +75,13 @@ export interface CommandConfirmationDefinition {
   readonly description?: string;
   readonly confirmLabel?: string;
   readonly destructive?: boolean;
+}
+
+export interface CommandDynamicDisabledDefinition {
+  readonly fieldLogicalName: string;
+  readonly enabledValue: unknown;
+  readonly reasonFieldLogicalName?: string;
+  readonly fallbackReason?: string;
 }
 
 export interface CommandExecutionContext<TPayload = unknown> {
@@ -114,6 +123,7 @@ export interface CommandDefinition<TPayload = unknown> {
   readonly confirmation?: CommandConfirmationDefinition;
   readonly isDisabled?: boolean;
   readonly disabledReason?: string;
+  readonly dynamicDisabled?: CommandDynamicDisabledDefinition;
   readonly permission?: PermissionRequirement;
   readonly visibilityRules?: readonly CommandVisibilityRule[];
   readonly dependencies?: readonly string[];

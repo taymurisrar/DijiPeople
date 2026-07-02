@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseUUIDPipe,
@@ -62,5 +63,14 @@ export class DesignationsController {
     @Body() dto: UpdateDesignationDto,
   ) {
     return this.organizationService.updateDesignation(user, id, dto);
+  }
+
+  @Delete(':id')
+  @Permissions('designations.update')
+  delete(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.organizationService.deleteDesignation(user, id);
   }
 }

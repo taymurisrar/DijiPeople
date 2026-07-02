@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
-export default function AccessSettingsIndexPage() {
-  redirect("/settings/access/roles");
+export default function LegacyAccessSettingsIndexPage() {
+  redirect("/settings/security-access");
 }

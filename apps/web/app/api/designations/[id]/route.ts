@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server";
-import { apiRequest, proxyApiJsonResponse } from "@/lib/server-api";
+import {
+  apiRequest,
+  apiRequestJson,
+  getApiErrorMessage,
+  isApiRequestError,
+  proxyApiJsonResponse,
+} from "@/lib/server-api";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -7,8 +13,10 @@ type RouteContext = {
 
 export async function GET(_request: Request, context: RouteContext) {
   const { id } = await context.params;
-  const response = await apiRequest(`/designations/${id}`, { method: "GET" });
-  return proxyApiJsonResponse(response);
+  const data = await apiRequestJson<unknown>(`/designations/${id}`, {
+    method: "GET",
+  });
+  return NextResponse.json(normalizeDesignationRecord(data));
 }
 
 export async function PATCH(request: Request, context: RouteContext) {
@@ -16,19 +24,39 @@ export async function PATCH(request: Request, context: RouteContext) {
   const body = await request.json();
 
   try {
-    const response = await apiRequest(`/designations/${id}`, {
+    const data = await apiRequestJson<unknown>(`/designations/${id}`, {
       method: "PATCH",
       body: JSON.stringify(body),
     });
 
-    return proxyApiJsonResponse(response);
+    return NextResponse.json(normalizeDesignationRecord(data));
   } catch (error) {
     return NextResponse.json(
       {
-        message:
-          error instanceof Error ? error.message : "Unable to update designation.",
+        message: getApiErrorMessage(error, "Unable to update designation."),
       },
-      { status: 500 },
+      { status: isApiRequestError(error) ? error.status : 500 },
     );
   }
+}
+
+export async function DELETE(_request: Request, context: RouteContext) {
+  const { id } = await context.params;
+  const response = await apiRequest(`/designations/${id}`, {
+    method: "DELETE",
+  });
+
+  return proxyApiJsonResponse(response);
+}
+
+function normalizeDesignationRecord(record: unknown): unknown {
+  if (!record || typeof record !== "object" || Array.isArray(record)) {
+    return record;
+  }
+
+  const next = { ...(record as Record<string, unknown>) };
+  if (typeof next.code !== "string" && typeof next.level === "string") {
+    next.code = next.level;
+  }
+  return next;
 }

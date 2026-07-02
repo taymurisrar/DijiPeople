@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import Link from "next/link";
 import { DataTable } from "@/app/components/data-table/data-table";
 import { DataTablePagination } from "@/app/components/data-table/data-table-pagination";
@@ -13,6 +14,7 @@ import type {
   FieldMetadata,
   ViewMetadata,
 } from "@/lib/runtime/metadata-runtime.types";
+import { getEntityMetadata } from "@/lib/runtime/metadata-registry";
 import type { ModuleRuntimeContext } from "@/lib/runtime/module-runtime.types";
 import type { RuntimeRecordData } from "./module-runtime-ui.types";
 
@@ -52,10 +54,17 @@ export function ModuleDataTable({
   const fieldsByName = new Map(
     runtime.metadata.entity.fields.map((field) => [field.logicalName, field]),
   );
+  const resolvedLookupDisplayValues = useMemo(
+    () => ({
+      ...deriveLookupDisplayValues(runtime, records),
+      ...lookupDisplayValues,
+    }),
+    [lookupDisplayValues, records, runtime],
+  );
   const columns = buildColumns({
     fieldsByName,
     formatting,
-    lookupDisplayValues,
+    lookupDisplayValues: resolvedLookupDisplayValues,
     runtime,
     view,
   });
@@ -209,6 +218,7 @@ function RuntimeCell({
 
   if (
     fieldLogicalName === runtime.metadata.entity.primaryNameField &&
+    runtime.module.recordNavigation !== false &&
     recordId
   ) {
     return (
@@ -231,6 +241,14 @@ function RuntimeCell({
 
   if (field?.dataType === "date" || field?.dataType === "datetime") {
     return formatDateValue(record[fieldLogicalName], formatting);
+  }
+
+  if (field?.dataType === "url" && typeof record[fieldLogicalName] === "string") {
+    return (
+      <Link className="font-semibold text-accent hover:underline" href={String(record[fieldLogicalName])}>
+        Open record
+      </Link>
+    );
   }
 
   return value;
@@ -286,6 +304,77 @@ function comparableValue(
   }
 
   return value;
+}
+
+function deriveLookupDisplayValues(
+  runtime: ModuleRuntimeContext,
+  records: readonly RuntimeRecordData[],
+) {
+  const displayValues: Record<string, Record<string, string>> = {};
+  const lookupFields = runtime.metadata.entity.fields.filter(
+    (field) => field.dataType === "lookup",
+  );
+  const primaryIdField = runtime.metadata.entity.primaryIdField;
+
+  for (const record of records) {
+    const recordId = String(record[primaryIdField] ?? record.id ?? "");
+    if (!recordId) continue;
+
+    const recordDisplayValues: Record<string, string> = {};
+
+    for (const field of lookupFields) {
+      const directValue = record[field.logicalName];
+      const directDisplay = readableLookupDisplayValue(field, directValue);
+      if (directDisplay) {
+        recordDisplayValues[field.logicalName] = directDisplay;
+        continue;
+      }
+
+      const relationKey = relationKeyForLookupField(field.logicalName);
+      const relationValue = relationKey ? record[relationKey] : null;
+      const relationDisplay = readableLookupDisplayValue(field, relationValue);
+      if (relationDisplay) {
+        recordDisplayValues[field.logicalName] = relationDisplay;
+      }
+    }
+
+    if (Object.keys(recordDisplayValues).length) {
+      displayValues[recordId] = recordDisplayValues;
+    }
+  }
+
+  return displayValues;
+}
+
+function relationKeyForLookupField(fieldLogicalName: string) {
+  if (fieldLogicalName.endsWith("Id")) {
+    return fieldLogicalName.slice(0, -"Id".length);
+  }
+
+  if (fieldLogicalName.endsWith("Code")) {
+    return fieldLogicalName.slice(0, -"Code".length);
+  }
+
+  return "";
+}
+
+function readableLookupDisplayValue(field: FieldMetadata, value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return "";
+  const record = value as Record<string, unknown>;
+  const displayField = lookupPrimaryNameField(field);
+
+  return stringValue(record[displayField]);
+}
+
+function lookupPrimaryNameField(field: FieldMetadata) {
+  const targetEntityLogicalName = field.lookupTargets?.[0]?.entityLogicalName;
+  if (!targetEntityLogicalName) return "name";
+
+  return getEntityMetadata(targetEntityLogicalName)?.primaryNameField ?? "name";
+}
+
+function stringValue(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : "";
 }
 
 function formatDateValue(

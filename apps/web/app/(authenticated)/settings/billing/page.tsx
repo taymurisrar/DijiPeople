@@ -2,8 +2,7 @@ import type { ComponentProps } from "react";
 import { AccessDeniedState } from "../../_components/access-denied-state";
 import { apiRequestJson, isApiRequestError } from "@/lib/server-api";
 import { getSessionUser } from "@/lib/auth";
-import { PERMISSION_KEYS } from "@/lib/security-keys";
-import { hasAnySettingsPermission } from "../_lib/require-settings-permission";
+import { hasElevatedTenantRole } from "@/lib/elevated-roles";
 import { SettingsShell } from "../_components/settings-shell";
 import { BillingSettingsClient } from "./_components/billing-settings-client";
 
@@ -19,10 +18,7 @@ type BillingInvoice = ComponentProps<
 
 export default async function BillingSettingsPage() {
   const user = await getSessionUser();
-  const canViewBilling = hasAnySettingsPermission(user, [
-    PERMISSION_KEYS.BILLING_VIEW,
-    PERMISSION_KEYS.SETTINGS_READ,
-  ]);
+  const canViewBilling = hasElevatedTenantRole(user?.roleKeys);
 
   if (!canViewBilling) {
     return (
@@ -32,7 +28,7 @@ export default async function BillingSettingsPage() {
       >
         <AccessDeniedState
           title="Billing access is restricted"
-          description="Your current role does not include billing.view or settings administration access."
+          description="Only Global Administrators and System Administrators can access billing."
           actionHref="/settings"
           actionLabel="Back to settings"
         />
@@ -75,11 +71,17 @@ export default async function BillingSettingsPage() {
 
 async function loadBillingData() {
   try {
-    const [plans, subscription, invoices] = await Promise.all([
-      apiRequestJson<BillingPlan[]>("/billing/plans"),
+    const [plansResponse, subscription, invoicesResponse] = await Promise.all([
+      apiRequestJson<unknown>("/billing/plans"),
       apiRequestJson<BillingSubscription>("/billing/subscription"),
-      apiRequestJson<BillingInvoice[]>("/billing/invoices"),
+      apiRequestJson<unknown>("/billing/invoices"),
     ]);
+
+    const plans = readArrayPayload<BillingPlan>(plansResponse, "plans");
+    const invoices = readArrayPayload<BillingInvoice>(
+      invoicesResponse,
+      "invoices",
+    );
 
     return {
       ok: true as const,
@@ -97,4 +99,15 @@ async function loadBillingData() {
       traceId: isApiRequestError(error) ? error.traceId : null,
     };
   }
+}
+
+function readArrayPayload<T>(payload: unknown, key: string): T[] {
+  if (Array.isArray(payload)) return payload as T[];
+
+  if (payload && typeof payload === "object" && key in payload) {
+    const nested = (payload as Record<string, unknown>)[key];
+    if (Array.isArray(nested)) return nested as T[];
+  }
+
+  throw new Error(`Billing ${key} response has an unexpected format.`);
 }

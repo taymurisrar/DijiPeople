@@ -379,13 +379,33 @@ export class TimePayrollPreparationService {
     periodEnd: Date;
     coveredDates: Set<string>;
   }) {
-    const schedules = await this.prisma.workSchedule.findMany({
-      where: { tenantId: input.tenantId, isActive: true },
-      orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }],
-      take: 1,
-    });
-    const schedule = schedules[0];
-    if (!schedule?.weeklyWorkDays.length) {
+    const [assignments, fallbackSchedule] = await Promise.all([
+      this.prisma.employeeScheduleAssignment.findMany({
+        where: {
+          tenantId: input.tenantId,
+          employeeId: input.employeeId,
+          isActive: true,
+          effectiveFrom: { lte: input.periodEnd },
+          OR: [
+            { effectiveTo: null },
+            { effectiveTo: { gte: input.periodStart } },
+          ],
+          workSchedule: { isActive: true },
+        },
+        include: { workSchedule: true },
+        orderBy: [{ effectiveFrom: 'desc' }, { createdAt: 'desc' }],
+      }),
+      this.prisma.workSchedule.findFirst({
+        where: { tenantId: input.tenantId, isActive: true },
+        orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }],
+      }),
+    ]);
+    if (
+      !assignments.some((assignment) =>
+        Boolean(assignment.workSchedule.weeklyWorkDays.length),
+      ) &&
+      !fallbackSchedule?.weeklyWorkDays.length
+    ) {
       return {
         rows: [] as Date[],
         warning: {
@@ -417,6 +437,13 @@ export class TimePayrollPreparationService {
     const rows: Date[] = [];
     for (const date of eachDate(input.periodStart, input.periodEnd)) {
       const key = dateKey(date);
+      const schedule =
+        assignments.find(
+          (assignment) =>
+            assignment.effectiveFrom <= date &&
+            (!assignment.effectiveTo || assignment.effectiveTo >= date),
+        )?.workSchedule ?? fallbackSchedule;
+      if (!schedule) continue;
       if (!schedule.weeklyWorkDays.includes(toWeekday(date))) continue;
       if (input.coveredDates.has(key) || leaveDates.has(key)) continue;
       rows.push(date);

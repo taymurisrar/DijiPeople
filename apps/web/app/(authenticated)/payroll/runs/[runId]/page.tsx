@@ -30,6 +30,12 @@ export default async function PayrollRunDetailPage({ params }: PageProps) {
     );
   }
   const run = await apiRequestJson<PayrollRunRecord>(`/payroll/runs/${runId}`);
+  const lifecycle = await apiRequestJson<{
+    status: string;
+    blockers: number;
+    warnings: number;
+    steps: Array<{ label: string; status: string; completedAt?: string | null }>;
+  }>(`/payroll/operations/runs/${runId}/lifecycle`);
   const canReadPayslips = hasPermission(
     user.permissionKeys,
     PERMISSION_KEYS.PAYSLIPS_READ_ALL,
@@ -184,9 +190,21 @@ export default async function PayrollRunDetailPage({ params }: PageProps) {
                 user.permissionKeys,
                 PERMISSION_KEYS.PAYROLL_JOURNAL_EXPORT,
               )}
+              canFinalize={hasPermission(user.permissionKeys, "payroll-runs.finalize")}
+              canGenerateBankExport={hasPermission(user.permissionKeys, "payroll-bank-export.generate")}
+              canDisburse={hasPermission(user.permissionKeys, "payroll-runs.disburse")}
               journalStatus={journal?.status}
             />
           </div>
+        </article>
+        <article className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div><h3 className="text-xl font-semibold text-foreground">Payroll lifecycle</h3><p className="mt-1 text-sm text-muted">Prepare → Validate → Preview → Finalize → Payslips → Bank Export → Disburse</p></div>
+            <div className="flex gap-2 text-sm"><span className="rounded-full border border-border px-3 py-1">{lifecycle.blockers} blockers</span><span className="rounded-full border border-border px-3 py-1">{lifecycle.warnings} warnings</span></div>
+          </div>
+          <ol className="mt-5 grid gap-3 md:grid-cols-4 xl:grid-cols-7">
+            {lifecycle.steps.map((step, index) => <li className="rounded-xl border border-border p-3" key={step.label}><p className="text-xs font-semibold uppercase text-muted">Step {index + 1}</p><p className="mt-1 font-semibold text-foreground">{step.label}</p><p className={step.status === "COMPLETED" ? "mt-2 text-xs text-success" : "mt-2 text-xs text-warning"}>{step.status}</p></li>)}
+          </ol>
         </article>
         {canReadJournal ? (
           <article className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">

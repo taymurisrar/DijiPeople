@@ -1327,6 +1327,52 @@ export class EmployeeProfilesService {
     }));
   }
 
+  async listAttendanceHistory(
+    currentUser: AuthenticatedUser,
+    employeeId: string,
+  ) {
+    await this.assertEmployeeAccess(currentUser, employeeId);
+    const records = await this.prisma.attendanceEntry.findMany({
+      where: { tenantId: currentUser.tenantId, employeeId },
+      orderBy: [{ date: 'desc' }],
+      take: 250,
+      select: {
+        id: true,
+        date: true,
+        status: true,
+        checkIn: true,
+        checkOut: true,
+        attendanceMode: true,
+      },
+    });
+    return records.map((record) => ({
+      ...record,
+      attendanceDate: record.date,
+      attendanceStatus: record.status,
+      checkInAt: record.checkIn,
+      checkOutAt: record.checkOut,
+    }));
+  }
+
+  async listTimesheetHistory(
+    currentUser: AuthenticatedUser,
+    employeeId: string,
+  ) {
+    await this.assertEmployeeAccess(currentUser, employeeId);
+    const records = await this.prisma.timesheet.findMany({
+      where: { tenantId: currentUser.tenantId, employeeId },
+      orderBy: [{ periodStart: 'desc' }],
+      take: 120,
+      include: { entries: { select: { hours: true } } },
+    });
+    return records.map(({ entries, ...record }) => ({
+      ...record,
+      totalHours: entries
+        .reduce((total, entry) => total.add(entry.hours), new Prisma.Decimal(0))
+        .toString(),
+    }));
+  }
+
   async sendPasswordResetLink(
     currentUser: AuthenticatedUser,
     employeeId: string,

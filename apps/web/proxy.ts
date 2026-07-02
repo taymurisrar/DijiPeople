@@ -6,6 +6,7 @@ import {
   LOGIN_ROUTE,
   REFRESH_TOKEN_COOKIE,
   SESSION_COOKIE,
+  TENANT_SLUG_COOKIE,
   isProtectedRoute,
 } from "@/lib/auth-config";
 import { sanitizeLocalNextPath, toCanonicalPath } from "@/lib/routes";
@@ -203,12 +204,27 @@ function continueWithRefreshedTokens(
 }
 
 function redirectToLogout(request: NextRequest) {
-  const logoutUrl = new URL("/api/auth/logout", request.url);
-  logoutUrl.searchParams.set("reason", "session-expired");
-  logoutUrl.searchParams.set(
-    "next",
+  const tenantHint = getTenantHintFromRequest({
+    host: request.headers.get("host"),
+    queryTenant: request.nextUrl.searchParams.get("tenant"),
+    cookieTenant: request.cookies.get(TENANT_SLUG_COOKIE)?.value,
+  });
+
+  const safeNext = sanitizeLocalNextPath(
     `${toCanonicalPath(request.nextUrl.pathname)}${request.nextUrl.search}`,
   );
+
+  const logoutUrl = new URL("/api/auth/logout", request.url);
+  logoutUrl.searchParams.set("reason", "session-expired");
+  logoutUrl.searchParams.set("next", safeNext);
+
+  if (tenantHint.type === "slug" && tenantHint.value) {
+    logoutUrl.searchParams.set("tenant", tenantHint.value);
+    logoutUrl.searchParams.set(
+      "login",
+      buildTenantLoginUrl(tenantHint.value, { next: safeNext }),
+    );
+  }
 
   return NextResponse.redirect(logoutUrl);
 }
@@ -220,6 +236,7 @@ function buildTenantAwareLoginUrl(
   const tenantHint = getTenantHintFromRequest({
     host: request.headers.get("host"),
     queryTenant: request.nextUrl.searchParams.get("tenant"),
+    cookieTenant: request.cookies.get(TENANT_SLUG_COOKIE)?.value,
   });
   const safeNext = sanitizeLocalNextPath(options.next);
 
@@ -352,7 +369,7 @@ function getRefreshMaxAgeSeconds() {
     parseDurationToMilliseconds(
       process.env.AUTH_REFRESH_TOKEN_TTL_SECONDS ??
         process.env.JWT_REFRESH_TOKEN_TTL ??
-        "1h",
+        "8h",
     ) / 1000,
   );
 }

@@ -1,33 +1,73 @@
 import { NextResponse } from "next/server";
-import { apiRequest, proxyApiJsonResponse } from "@/lib/server-api";
+import { proxyBulkDeleteByIds } from "@/app/api/_lib/bulk-delete";
+import {
+  apiRequestJson,
+  getApiErrorMessage,
+  isApiRequestError,
+} from "@/lib/server-api";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const query = url.searchParams.toString();
-  const response = await apiRequest(`/designations${query ? `?${query}` : ""}`, {
-    method: "GET",
-  });
+  const data = await apiRequestJson<unknown>(
+    `/designations${query ? `?${query}` : ""}`,
+    { method: "GET" },
+  );
 
-  return proxyApiJsonResponse(response);
+  return NextResponse.json(normalizeDesignationPayload(data));
 }
 
 export async function POST(request: Request) {
   const body = await request.json();
 
   try {
-    const response = await apiRequest("/designations", {
+    const data = await apiRequestJson<unknown>("/designations", {
       method: "POST",
       body: JSON.stringify(body),
     });
 
-    return proxyApiJsonResponse(response);
+    return NextResponse.json(normalizeDesignationPayload(data));
   } catch (error) {
     return NextResponse.json(
       {
-        message:
-          error instanceof Error ? error.message : "Unable to create designation.",
+        message: getApiErrorMessage(error, "Unable to create designation."),
       },
-      { status: 500 },
+      { status: isApiRequestError(error) ? error.status : 500 },
     );
   }
+}
+
+export async function DELETE(request: Request) {
+  return proxyBulkDeleteByIds(request, {
+    apiPath: "/designations",
+    entityLabel: "designation",
+    entityPluralLabel: "designations",
+  });
+}
+
+function normalizeDesignationPayload(data: unknown): unknown {
+  if (Array.isArray(data)) return data.map(normalizeDesignationRecord);
+  if (!data || typeof data !== "object") return data;
+
+  const record = data as Record<string, unknown>;
+  const next = { ...record };
+  for (const key of ["items", "records", "data", "results"] as const) {
+    if (Array.isArray(next[key])) {
+      next[key] = next[key].map(normalizeDesignationRecord);
+    }
+  }
+
+  return normalizeDesignationRecord(next);
+}
+
+function normalizeDesignationRecord(record: unknown): unknown {
+  if (!record || typeof record !== "object" || Array.isArray(record)) {
+    return record;
+  }
+
+  const next = { ...(record as Record<string, unknown>) };
+  if (typeof next.code !== "string" && typeof next.level === "string") {
+    next.code = next.level;
+  }
+  return next;
 }

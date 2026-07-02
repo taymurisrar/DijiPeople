@@ -4,7 +4,7 @@ import { X } from "lucide-react";
 import { useState } from "react";
 import { RuntimeMetadataFormRenderer } from "@/app/components/metadata/runtime-metadata-form-renderer";
 import type { LookupOption } from "@/app/components/ui/form-control";
-import type { FormMetadata } from "@/lib/runtime/metadata-runtime.types";
+import type { EntityMetadata, FormMetadata } from "@/lib/runtime/metadata-runtime.types";
 import type { ModuleRuntimeContext } from "@/lib/runtime/module-runtime.types";
 import type { RuntimeRecordData } from "./module-runtime-ui.types";
 
@@ -17,7 +17,9 @@ export function ModuleQuickCreatePanel({
   parentBinding,
   record,
   runtime,
+  entity,
   title,
+  error,
 }: {
   readonly form: FormMetadata | null;
   readonly lookupOptions?: Record<string, readonly LookupOption[]>;
@@ -25,7 +27,7 @@ export function ModuleQuickCreatePanel({
   readonly onSave?: (
     values: RuntimeRecordData,
     closeAfterSave: boolean,
-  ) => void;
+  ) => void | Promise<void>;
   readonly open: boolean;
   readonly parentBinding?: {
     readonly fieldLogicalName: string;
@@ -33,7 +35,9 @@ export function ModuleQuickCreatePanel({
   };
   readonly record: RuntimeRecordData;
   readonly runtime: ModuleRuntimeContext;
+  readonly entity?: EntityMetadata;
   readonly title?: string;
+  readonly error?: string | null;
 }) {
   const [draftValues, setDraftValues] = useState<RuntimeRecordData>({});
 
@@ -64,9 +68,14 @@ export function ModuleQuickCreatePanel({
           </button>
         </div>
         <div className="grid gap-4 p-5">
+          {error ? (
+            <p className="rounded-lg border border-danger/20 bg-danger/5 p-3 text-sm text-danger">
+              {error}
+            </p>
+          ) : null}
           {form ? (
             <RuntimeMetadataFormRenderer
-              entity={runtime.metadata.entity}
+              entity={entity ?? runtime.metadata.entity}
               form={form}
               lookupOptions={lookupOptions}
               mode="new"
@@ -82,14 +91,14 @@ export function ModuleQuickCreatePanel({
           <div className="flex justify-end gap-2">
             <button
               className="rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground transition hover:bg-muted/20"
-              onClick={() => onSave?.(values, false)}
+              onClick={() => void onSave?.(values, false)}
               type="button"
             >
               Save
             </button>
             <button
               className="rounded-md bg-accent px-3 py-2 text-sm font-semibold text-white transition hover:bg-accent-strong"
-              onClick={() => onSave?.(values, true)}
+              onClick={() => void onSave?.(values, true)}
               type="button"
             >
               Save & Close

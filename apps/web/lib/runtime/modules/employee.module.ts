@@ -145,7 +145,7 @@ export const employeeRuntimePreparedCommands: readonly CommandDefinition[] = [
   {
     key: "system.delete",
     label: "Delete",
-    description: "Soft delete/archive this Employee record.",
+    description: "Delete this Employee record.",
     scope: "system",
     placement: "detail-command-bar",
     executionMode: "client",
@@ -154,10 +154,10 @@ export const employeeRuntimePreparedCommands: readonly CommandDefinition[] = [
     isDestructive: true,
     requiresConfirmation: true,
     confirmation: {
-      title: "Soft delete this record?",
+      title: "Delete this record?",
       description:
-        "This will archive the record with a soft delete. It will not hard delete or purge data.",
-      confirmLabel: "Soft delete",
+        "This will remove the record from active use. Data may be retained according to module policy.",
+      confirmLabel: "Delete",
       destructive: true,
     },
     order: 90,
@@ -165,7 +165,7 @@ export const employeeRuntimePreparedCommands: readonly CommandDefinition[] = [
   {
     key: "selection.delete",
     label: "Delete",
-    description: "Soft delete/archive selected Employee records.",
+    description: "Delete selected Employee records.",
     scope: "selection",
     placement: "bulk-menu",
     executionMode: "client",
@@ -174,10 +174,10 @@ export const employeeRuntimePreparedCommands: readonly CommandDefinition[] = [
     isDestructive: true,
     requiresConfirmation: true,
     confirmation: {
-      title: "Soft delete selected records?",
+      title: "Delete selected records?",
       description:
-        "This will archive {selectedCount} selected records with a soft delete. It will not hard delete or purge data.",
-      confirmLabel: "Soft delete",
+        "This will remove {selectedCount} selected records from active use. Data may be retained according to module policy.",
+      confirmLabel: "Delete",
       destructive: true,
     },
     visibilityRules: [{ operator: "record-selected" }],

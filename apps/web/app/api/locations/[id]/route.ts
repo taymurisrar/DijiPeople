@@ -32,3 +32,23 @@ export async function PATCH(request: Request, context: RouteContext) {
     );
   }
 }
+
+export async function DELETE(_request: Request, context: RouteContext) {
+  const { id } = await context.params;
+
+  try {
+    const response = await apiRequest(`/locations/${id}`, {
+      method: "DELETE",
+    });
+
+    return proxyApiJsonResponse(response);
+  } catch (error) {
+    return NextResponse.json(
+      {
+        message:
+          error instanceof Error ? error.message : "Unable to delete work site.",
+      },
+      { status: 500 },
+    );
+  }
+}

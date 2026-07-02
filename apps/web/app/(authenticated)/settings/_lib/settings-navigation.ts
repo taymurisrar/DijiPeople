@@ -14,6 +14,7 @@ export type SettingsNavItem = {
   keywords: readonly string[];
   requiredAnyPermissions?: readonly string[];
   requiredAnyRoles?: readonly string[];
+  hideWhenRestricted?: boolean;
   disabled?: boolean;
 };
 
@@ -61,8 +62,6 @@ const NAV_PERMISSION_KEYS = {
   ONBOARDING_READ: "onboarding.read",
 
   AUDIT_READ: "audit.read",
-  BILLING_VIEW: PERMISSION_KEYS.BILLING_VIEW,
-
   NOTIFICATIONS_READ: "notifications.read",
   NOTIFICATIONS_MANAGE: "notifications.manage",
   NOTIFICATION_TEMPLATES_READ: "notification.templates.read",
@@ -178,7 +177,7 @@ export const settingsNavGroups = [
     key: "regional-operations",
     label: "Regional Operations",
     summary:
-      "Localization, currencies, work calendars, holiday calendars, and payroll regions.",
+      "Localization, work calendars, holiday calendars, and payroll regions.",
     icon: "globe-2",
     items: [
       // {
@@ -192,17 +191,6 @@ export const settingsNavGroups = [
       //   keywords: ["locale", "timezone", "date format", "number format"],
       //   requiredAnyPermissions: [NAV_PERMISSION_KEYS.SETTINGS_READ],
       // },
-      {
-        key: "currency",
-        href: "/settings/currency",
-        label: "Currency",
-        description:
-          "Configure transactional and reporting currencies with effective dates.",
-        icon: "wallet",
-        badge: "Core",
-        keywords: ["currency", "exchange rates", "reporting currency"],
-        requiredAnyPermissions: [NAV_PERMISSION_KEYS.SETTINGS_READ],
-      },
       {
         key: "work-calendars",
         href: "/settings/work-calendars",
@@ -368,17 +356,6 @@ export const settingsNavGroups = [
         ],
       },
       {
-        key: "work-schedules",
-        href: "/settings/work-schedules",
-        label: "Work Schedules",
-        description:
-          "Manage weekly work patterns, default schedules, effective dates, and shift-backed working days.",
-        icon: "calendar-clock",
-        badge: "Core",
-        keywords: ["work schedules", "weekly pattern", "weekend", "default"],
-        requiredAnyPermissions: [NAV_PERMISSION_KEYS.SETTINGS_READ],
-      },
-      {
         key: "shifts",
         href: "/settings/shifts",
         label: "Shifts",
@@ -388,21 +365,6 @@ export const settingsNavGroups = [
         badge: "Core",
         keywords: ["shift", "working hours", "grace", "night shift"],
         requiredAnyPermissions: [NAV_PERMISSION_KEYS.SETTINGS_READ],
-      },
-      {
-        key: "work-sites",
-        href: "/settings/work-sites",
-        label: "Work Sites / Locations",
-        shortLabel: "Work Sites",
-        description:
-          "Manage active attendance work sites, addresses, timezones, coordinates, and allowed radius.",
-        icon: "map-pinned",
-        badge: "Core",
-        keywords: ["work sites", "locations", "office", "geofence"],
-        requiredAnyPermissions: [
-          NAV_PERMISSION_KEYS.LOCATIONS_READ,
-          NAV_PERMISSION_KEYS.SETTINGS_READ,
-        ],
       },
       {
         key: "attendance",
@@ -559,10 +521,8 @@ export const settingsNavGroups = [
         icon: "receipt",
         badge: "Admin",
         keywords: ["billing", "subscription", "invoice", "stripe", "plans"],
-        requiredAnyPermissions: [
-          NAV_PERMISSION_KEYS.BILLING_VIEW,
-          NAV_PERMISSION_KEYS.SETTINGS_READ,
-        ],
+        hideWhenRestricted: true,
+        requiredAnyRoles: [ROLE_KEYS.GLOBAL_ADMIN, ROLE_KEYS.SYSTEM_ADMIN],
       },
       {
         key: "payroll-settings",
@@ -578,6 +538,24 @@ export const settingsNavGroups = [
           NAV_PERMISSION_KEYS.SETTINGS_READ,
           NAV_PERMISSION_KEYS.PAYROLL_SETTINGS_READ,
           PERMISSION_KEYS.PAYROLL_READ,
+        ],
+      },
+      {
+        key: "exchange-rates",
+        href: "/settings/payroll/exchange-rates",
+        label: "Exchange Rates",
+        description:
+          "Maintain effective-dated conversion rates for payroll, reporting, and financial summaries.",
+        icon: "split",
+        badge: "Core",
+        keywords: [
+          "exchange rates",
+          "currency conversion",
+          "reporting currency",
+        ],
+        requiredAnyPermissions: [
+          NAV_PERMISSION_KEYS.SETTINGS_READ,
+          NAV_PERMISSION_KEYS.PAYROLL_SETTINGS_READ,
         ],
       },
       {
@@ -883,12 +861,19 @@ export function resolveVisibleSettingsGroups(
     .map((group) => {
       const items = group.items.filter((item) => {
         if ("disabled" in item && item.disabled) return false;
-        if (options?.includeRestricted) return true;
+        if (
+          options?.includeRestricted &&
+          !("hideWhenRestricted" in item && item.hideWhenRestricted)
+        ) {
+          return true;
+        }
 
         return canViewItem(
           permissionKeys,
           roleKeys,
-          item.requiredAnyPermissions,
+          "requiredAnyPermissions" in item
+            ? item.requiredAnyPermissions
+            : undefined,
           "requiredAnyRoles" in item ? item.requiredAnyRoles : undefined,
         );
       });

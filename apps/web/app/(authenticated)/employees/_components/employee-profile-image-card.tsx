@@ -10,6 +10,7 @@ import {
   useState,
 } from "react";
 import { UserAvatar } from "../../_components/user-avatar";
+import { Download, Eye } from "lucide-react";
 import { EmployeeDocumentSummary } from "../types";
 
 const CROP_PREVIEW_SIZE = 288;
@@ -208,10 +209,10 @@ export function EmployeeProfileImageCard({
     setDraft((current) =>
       current
         ? clampDraftPosition({
-            ...current,
-            offsetX: dragState.current!.originX + deltaX,
-            offsetY: dragState.current!.originY + deltaY,
-          })
+          ...current,
+          offsetX: dragState.current!.originX + deltaX,
+          offsetY: dragState.current!.originY + deltaY,
+        })
         : current,
     );
   }
@@ -229,64 +230,89 @@ export function EmployeeProfileImageCard({
         <h4 className="text-sm font-semibold uppercase tracking-[0.18em] text-muted">
           Profile Photo
         </h4>
-        <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center">
-          <UserAvatar
-            cacheKey={avatarVersion}
-            className="h-24 w-24 text-2xl"
-            firstName={firstName}
-            imageSrc={
-              profileImage ? `/api/employees/${employeeId}/profile-image` : null
-            }
-            lastName={lastName}
-            size="lg"
+<div className="mt-5 flex gap-4">
+  <UserAvatar
+    cacheKey={avatarVersion}
+    className="h-20 w-20 shrink-0 text-xl"
+    firstName={firstName}
+    imageSrc={
+      profileImage ? `/api/employees/${employeeId}/profile-image` : null
+    }
+    lastName={lastName}
+    size="lg"
+  />
+
+  <div className="flex-1">
+    {profileImage ? (
+      <p className="truncate text-sm text-muted">
+        <span className="font-medium text-foreground">
+          {profileImage.fileName}
+        </span>
+        <span className="mx-2">•</span>
+        {formatBytes(profileImage.size)}
+      </p>
+    ) : (
+      <p className="text-sm text-muted">
+        No profile image uploaded yet.
+      </p>
+    )}
+
+    <div className="mt-3 flex flex-wrap items-center gap-2">
+      {canUpload && (
+        <label className="cursor-pointer rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-strong">
+          {profileImage ? "Update" : "Upload Image"}
+          <input
+            accept="image/png,image/jpeg,image/webp"
+            className="hidden"
+            disabled={isUploading}
+            onChange={handleFileChange}
+            type="file"
           />
-          <div className="grid gap-3">
-            <p className="text-sm text-muted">
-              {profileImage
-                ? `${profileImage.fileName} • ${formatBytes(profileImage.size)}`
-                : "No profile image uploaded yet."}
-            </p>
-            <div className="flex flex-wrap gap-3">
-              {canUpload ? (
-                <label className="cursor-pointer rounded-2xl bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-strong">
-                  {profileImage ? "Change image" : "Upload image"}
-                  <input
-                    accept="image/png,image/jpeg,image/webp"
-                    className="hidden"
-                    disabled={isUploading}
-                    onChange={handleFileChange}
-                    type="file"
-                  />
-                </label>
-              ) : null}
-              {profileImage ? (
-                <a
-                  className="rounded-2xl border border-border px-4 py-2 text-sm font-medium text-foreground transition hover:border-accent/30 hover:text-accent"
-                  href={`/api/employees/${employeeId}/profile-image`}
-                  rel="noreferrer"
-                  target="_blank"
-                >
-                  View image
-                </a>
-              ) : null}
-              {profileImage && canRemove ? (
-                <button
-                  className="rounded-2xl border border-danger/30 px-4 py-2 text-sm font-medium text-danger transition hover:bg-danger/5"
-                  disabled={isUploading}
-                  onClick={handleRemoveImage}
-                  type="button"
-                >
-                  Remove image
-                </button>
-              ) : null}
-            </div>
-            {error ? (
-              <p className="rounded-2xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
-                {error}
-              </p>
-            ) : null}
-          </div>
-        </div>
+        </label>
+      )}
+
+      {profileImage && (
+        <>
+          <a
+            href={`/api/employees/${employeeId}/profile-image`}
+            target="_blank"
+            rel="noreferrer"
+            title="View image"
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-border transition hover:bg-muted"
+          >
+            <Eye className="h-4 w-4" />
+          </a>
+
+          <a
+            href={`/api/employees/${employeeId}/profile-image`}
+            download={profileImage.fileName}
+            title="Download image"
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-border transition hover:bg-muted"
+          >
+            <Download className="h-4 w-4" />
+          </a>
+
+          {canRemove && (
+            <button
+              className="rounded-xl border border-danger/30 px-4 py-2 text-sm text-danger transition hover:bg-danger/5"
+              disabled={isUploading}
+              onClick={handleRemoveImage}
+              type="button"
+            >
+              Remove
+            </button>
+          )}
+        </>
+      )}
+    </div>
+
+    {error && (
+      <p className="mt-3 rounded-xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
+        {error}
+      </p>
+    )}
+  </div>
+</div>
       </article>
 
       {draft ? (
@@ -341,9 +367,9 @@ export function EmployeeProfileImageCard({
                       setDraft((current) =>
                         current
                           ? clampDraftPosition({
-                              ...current,
-                              scale: Number(event.target.value),
-                            })
+                            ...current,
+                            scale: Number(event.target.value),
+                          })
                           : current,
                       )
                     }

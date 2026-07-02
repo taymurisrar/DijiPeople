@@ -640,6 +640,24 @@ export class EmployeesController {
     return this.employeeProfilesService.listLeaveHistory(user, employeeId);
   }
 
+  @Get(':employeeId/attendance-history')
+  @Permissions('employees.read')
+  getAttendanceHistory(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
+  ) {
+    return this.employeeProfilesService.listAttendanceHistory(user, employeeId);
+  }
+
+  @Get(':employeeId/timesheet-history')
+  @Permissions('employees.read')
+  getTimesheetHistory(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
+  ) {
+    return this.employeeProfilesService.listTimesheetHistory(user, employeeId);
+  }
+
   @Post(':employeeId/send-reset-password-link')
   @Permissions('employees.update')
   @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'write')

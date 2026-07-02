@@ -400,18 +400,6 @@ const EXPOSED_PRISMA_MODELS: ExposedPrismaModelConfig[] = [
     isValidForFormDesigner: false,
   }),
   table(
-    'CurrencyConfiguration',
-    'currencyConfigurations',
-    'Settings',
-    'Currency',
-    'Currencies',
-    1120,
-    {
-      isCustomizable: false,
-      isValidForFormDesigner: false,
-    },
-  ),
-  table(
     'TenantSetting',
     'tenantSettings',
     'Settings',

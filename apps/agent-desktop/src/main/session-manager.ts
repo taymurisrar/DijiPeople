@@ -82,7 +82,9 @@ export class SessionManager extends EventEmitter {
       this.resetSessionState();
       this.emit("session-error", this.normalizeSessionError(error));
       this.emit("login-required");
-      this.logger.warn("agent.session.restore_failed", { reason: this.normalizeSessionError(error) });
+      this.logger.warn("agent.session.restore_failed", {
+        reason: this.normalizeSessionError(error),
+      });
 
       return false;
     }
@@ -104,7 +106,9 @@ export class SessionManager extends EventEmitter {
       });
     } catch (error) {
       this.resetSessionState();
-      this.logger.warn("agent.auth.login_failed", { reason: this.normalizeSessionError(error) });
+      this.logger.warn("agent.auth.login_failed", {
+        reason: this.normalizeSessionError(error),
+      });
       throw error;
     }
   }
@@ -175,9 +179,18 @@ export class SessionManager extends EventEmitter {
     let requeueEvents: HeartbeatEvent[] = [];
 
     try {
+      await this.configManager.refresh();
+
       console.log("[Agent Heartbeat] building event", {
         sessionId: this.sessionId,
         deviceId: this.deviceId,
+        trackingEnabled: this.configManager.current.tracking.enabled,
+        captureActiveApp: this.configManager.current.tracking.captureActiveApp,
+        captureWindowTitle:
+          this.configManager.current.tracking.captureWindowTitle,
+        activeAppFeature: this.configManager.current.features.activeAppTracking,
+        windowTitleFeature:
+          this.configManager.current.features.windowTitleTracking,
       });
 
       const event = await this.activityTracker.buildHeartbeat({
@@ -191,7 +204,8 @@ export class SessionManager extends EventEmitter {
         state: event.state,
         idleSeconds: event.idleSeconds,
         activeApp: event.activeApp,
-        browserTabTitle: event.browserTabTitle,
+        hasWindowTitle: Boolean(event.windowTitle),
+        hasBrowserTabTitle: Boolean(event.browserTabTitle),
       });
 
       this.status = event.state;
@@ -463,7 +477,8 @@ export class SessionManager extends EventEmitter {
 
     const configRefreshMs = this.resolveConfigRefreshIntervalMs();
     const configRefreshIntervalWithJitter =
-      configRefreshMs + Math.floor(Math.random() * CONFIG_REFRESH_JITTER_MAX_MS);
+      configRefreshMs +
+      Math.floor(Math.random() * CONFIG_REFRESH_JITTER_MAX_MS);
 
     this.configTimer = setInterval(() => {
       void this.refreshConfigWithAuthRecovery();
@@ -493,7 +508,10 @@ export class SessionManager extends EventEmitter {
         : DEFAULT_CONFIG_REFRESH_INTERVAL_SECONDS;
 
     const normalizedSeconds = Math.min(
-      Math.max(Math.floor(intervalSeconds), MIN_CONFIG_REFRESH_INTERVAL_SECONDS),
+      Math.max(
+        Math.floor(intervalSeconds),
+        MIN_CONFIG_REFRESH_INTERVAL_SECONDS,
+      ),
       MAX_CONFIG_REFRESH_INTERVAL_SECONDS,
     );
 
@@ -536,24 +554,16 @@ export class SessionManager extends EventEmitter {
   private isSessionExpiredByEnvPolicy(): boolean {
     const now = Date.now();
 
-    if (
-      this.sessionStartedAt &&
-      agentEnv.sessionAbsoluteTimeoutSeconds > 0
-    ) {
-      const absoluteAgeSeconds =
-        (now - this.sessionStartedAt.getTime()) / 1000;
+    if (this.sessionStartedAt && agentEnv.sessionAbsoluteTimeoutSeconds > 0) {
+      const absoluteAgeSeconds = (now - this.sessionStartedAt.getTime()) / 1000;
 
       if (absoluteAgeSeconds >= agentEnv.sessionAbsoluteTimeoutSeconds) {
         return true;
       }
     }
 
-    if (
-      this.lastActivityAt &&
-      agentEnv.sessionIdleTimeoutSeconds > 0
-    ) {
-      const idleAgeSeconds =
-        (now - this.lastActivityAt.getTime()) / 1000;
+    if (this.lastActivityAt && agentEnv.sessionIdleTimeoutSeconds > 0) {
+      const idleAgeSeconds = (now - this.lastActivityAt.getTime()) / 1000;
 
       if (idleAgeSeconds >= agentEnv.sessionIdleTimeoutSeconds) {
         return true;
@@ -564,7 +574,10 @@ export class SessionManager extends EventEmitter {
   }
 
   private shouldRefreshTokenByEnvPolicy(): boolean {
-    if (!this.accessTokenExpiresAt || agentEnv.sessionRefreshThresholdSeconds <= 0) {
+    if (
+      !this.accessTokenExpiresAt ||
+      agentEnv.sessionRefreshThresholdSeconds <= 0
+    ) {
       return false;
     }
 
@@ -660,7 +673,9 @@ function readJwtExpiry(token: string): Date | null {
   try {
     const payload = token.split(".")[1];
     if (!payload) return null;
-    const decoded = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as { exp?: number };
+    const decoded = JSON.parse(
+      Buffer.from(payload, "base64url").toString("utf8"),
+    ) as { exp?: number };
     return decoded.exp ? new Date(decoded.exp * 1000) : null;
   } catch {
     return null;

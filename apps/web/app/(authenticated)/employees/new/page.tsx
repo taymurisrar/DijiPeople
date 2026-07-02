@@ -81,10 +81,14 @@ export default async function NewEmployeePage({
       userId: sessionUser?.userId ?? "",
       tenantId,
       displayName: sessionUser
-        ? [sessionUser.firstName, sessionUser.lastName].filter(Boolean).join(" ")
+        ? [sessionUser.firstName, sessionUser.lastName]
+            .filter(Boolean)
+            .join(" ")
         : null,
       name: sessionUser
-        ? [sessionUser.firstName, sessionUser.lastName].filter(Boolean).join(" ")
+        ? [sessionUser.firstName, sessionUser.lastName]
+            .filter(Boolean)
+            .join(" ")
         : null,
       email: sessionUser?.email,
       roleKeys: sessionUser?.roleKeys ?? [],
@@ -93,6 +97,7 @@ export default async function NewEmployeePage({
     },
     forms: runtimeForms,
     views: [],
+    employeeSettings: resolvedSettings?.employee,
   });
   const activeRuntimeForm = resolveEmployeeRuntimeForm(
     employeeRuntimeContext.metadata.forms,

@@ -1,9 +1,8 @@
 import type {
   ModuleDataAdapter,
   ModuleListInput,
-  RelatedRecordMutationInput,
-  RelatedRecordsInput,
 } from "../module-data-adapter.types";
+import { relatedRecordPaths } from "../related-record-api";
 import { debugRuntime } from "../runtime-debug";
 import {
   type EmployeeRuntimeFormValues,
@@ -11,6 +10,7 @@ import {
 } from "./employee-metadata.adapter";
 
 type RuntimeRecord = Readonly<Record<string, unknown>>;
+const INLINE_ERROR_HANDLING_HEADER = "x-dijipeople-error-handling";
 
 export const employeeModuleDataAdapter: ModuleDataAdapter<
   RuntimeRecord,
@@ -141,6 +141,23 @@ export const employeeModuleDataAdapter: ModuleDataAdapter<
   },
 
   async getLookupOptions(_runtime, field, values) {
+    const staticLookupPaths: Record<string, string> = {
+      countryId: "/api/lookups/countries",
+      nationalityCountryId: "/api/lookups/countries",
+      emergencyContactRelationTypeId: "/api/lookups/relation-types",
+      departmentId: "/api/departments?isActive=true",
+      designationId: "/api/designations?isActive=true",
+      employeeLevelId: "/api/employee-levels?isActive=true",
+      locationId: "/api/locations?isActive=true",
+      officialJoiningLocationId: "/api/locations?isActive=true",
+      defaultWorkScheduleId: "/api/work-schedules?isActive=true",
+    };
+    const staticLookupPath = staticLookupPaths[field.logicalName];
+
+    if (staticLookupPath) {
+      return readLookupOptions(await requestJson(staticLookupPath));
+    }
+
     if (field.logicalName === "stateProvinceId") {
       const params = new URLSearchParams();
       const countryId = stringValue(values.countryId);
@@ -179,14 +196,18 @@ export const employeeModuleDataAdapter: ModuleDataAdapter<
   },
 
   async getRelatedRecords(input) {
-    const endpoint = relatedEndpoint(input);
+    const endpoint = relatedRecordPaths(input);
     if (!endpoint?.list) {
       throw new Error(
         `Related list ${input.subgrid.relationshipName} has no list API.`,
       );
     }
 
-    const data = await requestJson(endpoint.list);
+    const data = await requestJson(endpoint.list, {
+      headers: {
+        [INLINE_ERROR_HANDLING_HEADER]: "inline",
+      },
+    });
     const records = readRecordList(data);
 
     return {
@@ -196,14 +217,14 @@ export const employeeModuleDataAdapter: ModuleDataAdapter<
   },
 
   async createRelatedRecord(input) {
-    const endpoint = relatedEndpoint(input);
-    if (!endpoint?.list) {
+    const endpoint = relatedRecordPaths(input);
+    if (!endpoint.create) {
       throw new Error(
         `Related list ${input.subgrid.relationshipName} has no create API.`,
       );
     }
 
-    const data = await requestJson(endpoint.list, {
+    const data = await requestJson(endpoint.create, {
       body: JSON.stringify(input.values),
       method: "POST",
     });
@@ -212,14 +233,17 @@ export const employeeModuleDataAdapter: ModuleDataAdapter<
   },
 
   async updateRelatedRecord(input) {
-    const endpoint = relatedEndpoint(input);
-    if (!input.recordId || !endpoint?.record) {
+    const endpoint = relatedRecordPaths(input);
+    const recordPath = input.recordId
+      ? endpoint.record(input.recordId, "update")
+      : undefined;
+    if (!input.recordId || !recordPath) {
       throw new Error(
         `Related list ${input.subgrid.relationshipName} has no update API.`,
       );
     }
 
-    const data = await requestJson(endpoint.record(input.recordId), {
+    const data = await requestJson(recordPath, {
       body: JSON.stringify(input.values),
       method: "PATCH",
     });
@@ -228,8 +252,17 @@ export const employeeModuleDataAdapter: ModuleDataAdapter<
   },
 
   async deleteRelatedRecord(input) {
-    const endpoint = relatedEndpoint(input);
-    if (!endpoint?.record) {
+    const endpoint = relatedRecordPaths(input);
+    if (endpoint.bulkDelete) {
+      await requestJson(endpoint.bulkDelete, {
+        body: JSON.stringify({ recordIds: input.recordIds }),
+        method: "DELETE",
+      });
+      return;
+    }
+    if (
+      !input.recordIds.every((recordId) => endpoint.record(recordId, "delete"))
+    ) {
       throw new Error(
         `Related list ${input.subgrid.relationshipName} has no delete API.`,
       );
@@ -237,7 +270,7 @@ export const employeeModuleDataAdapter: ModuleDataAdapter<
 
     await Promise.all(
       input.recordIds.map((recordId) =>
-        requestJson(endpoint.record(recordId), { method: "DELETE" }),
+        requestJson(endpoint.record(recordId, "delete")!, { method: "DELETE" }),
       ),
     );
   },
@@ -323,7 +356,7 @@ export const employeeModuleDataAdapter: ModuleDataAdapter<
       input.widget.widgetType === "agent_desktop"
     ) {
       return requestJson(
-        `/api/agent/employees/${encodeURIComponent(input.recordId)}/summary`,
+        `/api/agent/employees/${encodeURIComponent(input.recordId)}/summary?pageSize=100`,
       );
     }
 
@@ -449,30 +482,6 @@ function mapOwnerAssignmentResult(value: unknown) {
   };
 }
 
-function relatedEndpoint(
-  input: RelatedRecordsInput | RelatedRecordMutationInput,
-) {
-  const parentId = encodeURIComponent(input.parentRecordId);
-
-  if (input.subgrid.relationshipName === "employee_previous_employments") {
-    return {
-      list: `/api/employees/${parentId}/previous-employments`,
-      record: (recordId: string) =>
-        `/api/employees/${parentId}/previous-employments/${encodeURIComponent(recordId)}`,
-    };
-  }
-
-  if (input.subgrid.relationshipName === "employee_education") {
-    return {
-      list: `/api/employees/${parentId}/education`,
-      record: (recordId: string) =>
-        `/api/employees/${parentId}/education/${encodeURIComponent(recordId)}`,
-    };
-  }
-
-  return null;
-}
-
 function viewExportQuery(input: ModuleListInput) {
   const params = new URLSearchParams();
   const viewId = input.view.viewId ?? input.view.id;
@@ -489,12 +498,12 @@ function viewExportQuery(input: ModuleListInput) {
 
 async function requestJson(path: string, init: RequestInit = {}) {
   const response = await fetch(path, {
+    ...init,
     cache: "no-store",
     headers: {
       "Content-Type": "application/json",
       ...(init.headers ?? {}),
     },
-    ...init,
   });
 
   if (!response.ok) {
@@ -532,6 +541,7 @@ async function readResponseError(response: Response, fallback: string) {
 
   try {
     const data = JSON.parse(text) as {
+      details?: unknown;
       message?: unknown;
       errors?: unknown;
       fieldErrors?: unknown;
@@ -545,7 +555,8 @@ async function readResponseError(response: Response, fallback: string) {
     return new EmployeeApiError(message, {
       fieldErrors:
         normalizeFieldErrors(data.fieldErrors) ??
-        data.errors ??
+        normalizeFieldErrors(readRecord(data.details)?.fields) ??
+        normalizeFieldErrors(data.errors) ??
         fieldErrorsFromValidationMessages(data.message),
       response: data,
     });
@@ -582,16 +593,30 @@ function fieldErrorsFromValidationMessages(message: unknown) {
 }
 
 function readRecordList(data: unknown): readonly RuntimeRecord[] {
-  if (Array.isArray(data)) return data.filter(isRecord);
+  if (Array.isArray(data)) return data.filter(isMeaningfulRecord);
   if (!data || typeof data !== "object") return [];
 
   const record = data as Record<string, unknown>;
   for (const key of ["items", "records", "data"]) {
     const value = record[key];
-    if (Array.isArray(value)) return value.filter(isRecord);
+    if (Array.isArray(value)) return value.filter(isMeaningfulRecord);
   }
 
   return [];
+}
+
+function isMeaningfulRecord(value: unknown): value is RuntimeRecord {
+  if (!isRecord(value)) return false;
+
+  return Object.values(value).some((fieldValue) => {
+    if (fieldValue === null || fieldValue === undefined) return false;
+    if (typeof fieldValue === "string") return fieldValue.trim().length > 0;
+    if (Array.isArray(fieldValue)) return fieldValue.length > 0;
+    if (typeof fieldValue === "object") {
+      return Object.keys(fieldValue).length > 0;
+    }
+    return true;
+  });
 }
 
 function readRecord(data: unknown): RuntimeRecord | null {
@@ -612,6 +637,7 @@ function readLookupOptions(data: unknown) {
       name: stringValue(item.name),
       key: stringValue(item.key) || null,
       code: stringValue(item.code) || null,
+      employeeLevelId: stringValue(item.employeeLevelId) || null,
       subtitle: stringValue(item.subtitle) || null,
     }))
     .filter((item) => item.id && item.name);

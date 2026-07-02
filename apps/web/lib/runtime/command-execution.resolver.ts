@@ -13,7 +13,7 @@ export const STANDARD_SOFT_DELETE_COMMANDS = {
   delete: {
     key: "system.delete",
     label: "Delete",
-    description: "Soft delete the current record.",
+    description: "Delete the current record.",
     scope: "system",
     placement: "detail-command-bar",
     executionMode: "api",

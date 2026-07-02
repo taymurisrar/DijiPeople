@@ -6,6 +6,7 @@ import {
   LOGIN_ROUTE,
   REFRESH_TOKEN_COOKIE,
   SESSION_COOKIE,
+  TENANT_SLUG_COOKIE,
 } from "@/lib/auth-config";
 import { getClearAuthCookieOptions } from "@/lib/auth-cookies";
 import { getApiBaseUrl } from "@/lib/auth";
@@ -17,22 +18,24 @@ export async function POST(request: Request) {
   const requestUrl = new URL(request.url);
   const tenantSlug = await resolveLogoutTenantSlug(request);
   await revokeApiSession();
-  await clearAuthCookies();
 
-  return NextResponse.json({
+  const response = NextResponse.json({
     ok: true,
     redirectUrl: buildLogoutLoginUrl(requestUrl, tenantSlug),
   });
+  clearAuthCookies(response);
+  return response;
 }
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
-  const tenantSlug = await resolveLogoutTenantSlug(request);
-  await revokeApiSession();
-  await clearAuthCookies();
-
   const nextPath = sanitizeLocalNextPath(requestUrl.searchParams.get("next"));
   const reason = requestUrl.searchParams.get("reason");
+  const tenantSlug = await resolveLogoutTenantSlug(request, {
+    skipSessionLookup: reason === "session-expired",
+  });
+  await revokeApiSession();
+
   const redirectUrl = new URL(
     buildLogoutLoginUrl(requestUrl, tenantSlug, reason ? nextPath : null),
   );
@@ -41,12 +44,19 @@ export async function GET(request: Request) {
     redirectUrl.searchParams.set("reason", reason);
   }
 
-  return NextResponse.redirect(redirectUrl);
+  const response = NextResponse.redirect(redirectUrl);
+  clearAuthCookies(response);
+  return response;
 }
 
-async function resolveLogoutTenantSlug(request: Request) {
+async function resolveLogoutTenantSlug(
+  request: Request,
+  options: { skipSessionLookup?: boolean } = {},
+) {
   const requestUrl = new URL(request.url);
-  const sessionTenantSlug = await getSessionTenantSlug();
+  const sessionTenantSlug = options.skipSessionLookup
+    ? ""
+    : await getSessionTenantSlug().catch(() => "");
 
   if (sessionTenantSlug) {
     return sessionTenantSlug;
@@ -55,6 +65,9 @@ async function resolveLogoutTenantSlug(request: Request) {
   const hint = getTenantHintFromRequest({
     host: request.headers.get("host"),
     queryTenant: requestUrl.searchParams.get("tenant"),
+    cookieTenant: requestUrl.searchParams.get("tenant")
+      ? null
+      : (await cookies()).get(TENANT_SLUG_COOKIE)?.value,
   });
 
   return hint.type === "slug" && hint.value ? hint.value : "";
@@ -134,26 +147,54 @@ async function revokeApiSession() {
     return;
   }
 
-  await fetch(`${getApiBaseUrl()}/auth/logout`, {
-    method: "POST",
-    headers: {
-      "X-DijiPeople-App": AUTH_APP_CLIENT_ID,
-      Cookie: cookieHeader,
-    },
-    cache: "no-store",
-  }).catch(() => null);
+  try {
+    await fetch(`${getApiBaseUrl()}/auth/logout`, {
+      method: "POST",
+      headers: {
+        "X-DijiPeople-App": AUTH_APP_CLIENT_ID,
+        Cookie: cookieHeader,
+      },
+      cache: "no-store",
+    });
+  } catch {
+    // Logout must still clear local cookies even if the API is unreachable.
+  }
 }
 
-async function clearAuthCookies() {
-  const cookieStore = await cookies();
+function clearAuthCookies(response: NextResponse) {
   const cookieNames = [
     ACCESS_TOKEN_COOKIE,
     REFRESH_TOKEN_COOKIE,
     SESSION_COOKIE,
   ] as const;
-  const baseOptions = getClearAuthCookieOptions();
+  const fallbackOptions = {
+    httpOnly: true,
+    sameSite: "lax" as const,
+    secure: false,
+    path: "/",
+    maxAge: 0,
+  };
+  const baseOptions = getSafeClearAuthCookieOptions();
 
   for (const cookieName of cookieNames) {
-    cookieStore.set(cookieName, "", baseOptions);
+    try {
+      response.cookies.set(cookieName, "", baseOptions);
+    } catch {
+      response.cookies.set(cookieName, "", fallbackOptions);
+    }
+  }
+}
+
+function getSafeClearAuthCookieOptions() {
+  try {
+    return getClearAuthCookieOptions();
+  } catch {
+    return {
+      httpOnly: true,
+      sameSite: "lax" as const,
+      secure: false,
+      path: "/",
+      maxAge: 0,
+    };
   }
 }

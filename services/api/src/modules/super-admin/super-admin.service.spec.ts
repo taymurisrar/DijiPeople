@@ -31,6 +31,9 @@ describe('SuperAdminService tenant slug authorization', () => {
     {} as never,
     {} as never,
     {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
     auditService as never,
     {} as never,
   );

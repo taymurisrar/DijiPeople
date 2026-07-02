@@ -4,6 +4,7 @@ import {
   AUTH_APP_CLIENT_ID,
   REFRESH_TOKEN_COOKIE,
   SESSION_COOKIE,
+  TENANT_SLUG_COOKIE,
 } from "@/lib/auth-config";
 import {
   ACCESS_TOKEN_MAX_AGE_SECONDS,
@@ -22,7 +23,7 @@ type TokenPair = {
 
 type LoginSuccessResponse = JsonRecord & {
   user: unknown;
-  tenant: unknown;
+  tenant: { slug?: unknown } | unknown;
   tokens: TokenPair;
 };
 
@@ -90,6 +91,14 @@ export async function POST(request: Request) {
         getAuthCookieOptions(REFRESH_TOKEN_MAX_AGE_SECONDS),
       );
     }
+    const tenantSlug = readTenantSlug(data.tenant);
+    if (tenantSlug) {
+      nextResponse.cookies.set(
+        TENANT_SLUG_COOKIE,
+        tenantSlug,
+        getAuthCookieOptions(REFRESH_TOKEN_MAX_AGE_SECONDS),
+      );
+    }
 
     return nextResponse;
   } catch (error: unknown) {
@@ -103,6 +112,15 @@ export async function POST(request: Request) {
       { status: 502 },
     );
   }
+}
+
+function readTenantSlug(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return "";
+  }
+
+  const slug = (value as { slug?: unknown }).slug;
+  return typeof slug === "string" ? slug.trim().toLowerCase() : "";
 }
 
 function safeParseJson(value: string): JsonRecord | null {

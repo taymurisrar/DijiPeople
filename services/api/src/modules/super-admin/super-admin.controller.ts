@@ -8,8 +8,11 @@ import {
   Patch,
   Post,
   Query,
+  Res,
+  StreamableFile,
   UseGuards,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequireRoles } from '../../common/decorators/require-roles.decorator';
 import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
@@ -82,15 +85,19 @@ export class SuperAdminController {
   }
 
   @Get('customers')
-  listCustomers(@Query() query: CustomerQueryDto) {
-    return this.superAdminService.listCustomers(query);
+  listCustomers(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: CustomerQueryDto,
+  ) {
+    return this.superAdminService.listCustomers(user, query);
   }
 
   @Get('customers/:customerAccountId')
   getCustomerDetail(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('customerAccountId', new ParseUUIDPipe()) customerAccountId: string,
   ) {
-    return this.superAdminService.getCustomerDetail(customerAccountId);
+    return this.superAdminService.getCustomerDetail(user, customerAccountId);
   }
 
   @Get('customers/:customerAccountId/onboardings')
@@ -138,10 +145,11 @@ export class SuperAdminController {
 
   @Patch('customers/:customerAccountId')
   updateCustomer(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('customerAccountId', new ParseUUIDPipe()) customerAccountId: string,
     @Body() dto: UpdateCustomerDto,
   ) {
-    return this.superAdminService.updateCustomer(customerAccountId, dto);
+    return this.superAdminService.updateCustomer(user, customerAccountId, dto);
   }
 
   @Delete('customers')
@@ -166,15 +174,19 @@ export class SuperAdminController {
   }
 
   @Get('customer-onboarding')
-  listCustomerOnboardings(@Query() query: CustomerOnboardingQueryDto) {
-    return this.superAdminService.listCustomerOnboardings(query);
+  listCustomerOnboardings(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: CustomerOnboardingQueryDto,
+  ) {
+    return this.superAdminService.listCustomerOnboardings(user, query);
   }
 
   @Get('customer-onboarding/:onboardingId')
   getCustomerOnboarding(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('onboardingId', new ParseUUIDPipe()) onboardingId: string,
   ) {
-    return this.superAdminService.getCustomerOnboarding(onboardingId);
+    return this.superAdminService.getCustomerOnboarding(user, onboardingId);
   }
 
   @Post('customer-onboarding')
@@ -338,6 +350,20 @@ export class SuperAdminController {
     );
   }
 
+  @Post('tenants/:tenantId/access-users/:userId/reset-password')
+  @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
+  resetTenantAccessUserPassword(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('tenantId', new ParseUUIDPipe()) tenantId: string,
+    @Param('userId', new ParseUUIDPipe()) userId: string,
+  ) {
+    return this.superAdminService.resetTenantAccessUserPassword(
+      user,
+      tenantId,
+      userId,
+    );
+  }
+
   @Get('tenants/:tenantId/invoices')
   @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
   listTenantInvoices(@Param('tenantId', new ParseUUIDPipe()) tenantId: string) {
@@ -367,6 +393,35 @@ export class SuperAdminController {
   @Get('invoices/:invoiceId')
   getInvoiceDetail(@Param('invoiceId', new ParseUUIDPipe()) invoiceId: string) {
     return this.superAdminService.getInvoiceDetail(invoiceId);
+  }
+
+  @Get('invoices/:invoiceId/pdf')
+  @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
+  async downloadInvoicePdf(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('invoiceId', new ParseUUIDPipe()) invoiceId: string,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const pdf = await this.superAdminService.downloadInvoicePdf(
+      user,
+      invoiceId,
+    );
+    response.setHeader('Content-Type', 'application/pdf');
+    response.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${pdf.fileName.replaceAll('"', '')}"`,
+    );
+    response.setHeader('Content-Length', String(pdf.buffer.length));
+    return new StreamableFile(pdf.buffer);
+  }
+
+  @Post('invoices/:invoiceId/email')
+  @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
+  emailInvoice(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('invoiceId', new ParseUUIDPipe()) invoiceId: string,
+  ) {
+    return this.superAdminService.emailInvoice(user, invoiceId);
   }
 
   @Patch('invoices/:invoiceId/status')

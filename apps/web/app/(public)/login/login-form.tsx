@@ -41,6 +41,8 @@ export function LoginForm({
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResetSubmitting, setIsResetSubmitting] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const authNotice = useMemo(
     () => getAuthNotice(searchParams.get("reason")),
@@ -83,6 +85,50 @@ export function LoginForm({
 
     if (error) {
       setError(null);
+    }
+    if (notice) {
+      setNotice(null);
+    }
+  }
+
+  async function handleForgotPassword() {
+    setError(null);
+    setNotice(null);
+    const email = form.email.trim().toLowerCase();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setFieldErrors((current) => ({
+        ...current,
+        email: "Enter your work email first.",
+      }));
+      return;
+    }
+
+    setIsResetSubmitting(true);
+    try {
+      const response = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          tenantSlug: tenantSlug || undefined,
+          tenantCode: tenantCode || undefined,
+        }),
+      });
+      const data = (await response.json().catch(() => null)) as {
+        message?: string;
+      } | null;
+      if (!response.ok) {
+        setError(data?.message ?? "Unable to request password reset.");
+        return;
+      }
+      setNotice(
+        data?.message ??
+          "If an active account exists for this email, a password reset link will be sent.",
+      );
+    } catch {
+      setError("Unable to request password reset. Check the API connection.");
+    } finally {
+      setIsResetSubmitting(false);
     }
   }
 
@@ -172,6 +218,12 @@ export function LoginForm({
         </div>
       ) : null}
 
+      {notice ? (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          {notice}
+        </div>
+      ) : null}
+
       <div className="space-y-2">
         <label className="block space-y-2 text-sm">
           <span className="flex items-center gap-1 font-medium text-foreground">
@@ -198,9 +250,14 @@ export function LoginForm({
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-3">
           <span className="text-sm font-medium text-foreground">Password</span>
-          <span className="text-sm font-medium text-muted">
-            Forgot password?
-          </span>
+          <button
+            className="text-sm font-medium text-muted transition hover:text-foreground disabled:opacity-60"
+            disabled={isResetSubmitting}
+            onClick={() => void handleForgotPassword()}
+            type="button"
+          >
+            {isResetSubmitting ? "Sending..." : "Forgot password?"}
+          </button>
         </div>
 
         <div className="relative">

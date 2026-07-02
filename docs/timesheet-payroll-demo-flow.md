@@ -10,6 +10,25 @@ This runbook validates DijiPeople as a standalone Timesheet Records and Payroll 
 - Payroll generation is configured to use approved timesheets.
 - CPA/client portal users are not part of this scope.
 
+## Demo Identities
+
+For the managed demo tenant (`dijipeople-managed-demo`), all identities use
+`DemoUser@12345` unless `DEMO_USER_PASSWORD` overrides it.
+
+| Role | Login |
+| --- | --- |
+| Global Administrator | `ceo@dijipeople.local` |
+| System Administrator | `system-admin@dijipeople.local` |
+| Payroll Manager | `payroll@dijipeople.local` |
+| HR | `hr@dijipeople.local` |
+| Manager | `manager@dijipeople.local` |
+| Employee Self Service | `employee@dijipeople.local` |
+
+Role dashboard UAT routes are `/hr/dashboard`, `/manager/dashboard`, `/me/dashboard`, and `/executive/dashboard`. Use the corresponding HR, Manager, Employee Self Service, and CEO demo identities above. Executive payroll cost appears only when that identity is explicitly granted payroll read permission; manager and ESS dashboards never expose payroll finance aggregates.
+
+Payroll Manager is a standalone identity and must be tested independently from
+Global and System Administrator.
+
 ## Permissions Needed
 
 - Settings: `timesheets.settings.read`, `timesheets.settings.update`, `payroll.settings.read`, `payroll.settings.update`
@@ -18,14 +37,25 @@ This runbook validates DijiPeople as a standalone Timesheet Records and Payroll 
 
 ## Pages
 
-- Timesheet settings: `/dashboard/settings/attendance`
-- Payroll settings: `/dashboard/settings/payroll`
-- Business Units: `/dashboard/settings/business-units`
-- Employees/workers: `/dashboard/employees`
-- Timesheets: `/dashboard/timesheets`
-- Timesheet approvals: `/dashboard/timesheets/approvals`
-- Payroll cycles: `/dashboard/payroll/cycles`
-- Payroll compensation: `/dashboard/payroll/compensation`
+The demo seed includes Settings Runtime records for the 2026 Fiscal Year and
+payroll retention policy alongside domain-owned Payroll Period, Benefits,
+Bank, Loan, Tax, and posting configuration.
+
+- Timesheet settings: `/settings/people/attendance/attendance`
+- Payroll settings: `/settings/payroll/configuration/payroll-settings`
+- Business Units: `/settings/general-setup/organization/business-units`
+- Payroll Periods: `/settings/payroll/cycles/payroll-periods`
+- Benefit Policies: `/settings/payroll/benefits/benefit-policies`
+- Loan Policies: `/settings/payroll/loans/loan-policies`
+- Employees/workers: `/employees`
+- Timesheets: `/timesheets`
+- Timesheet approvals: `/timesheets/approvals`
+- Payroll runs: `/payroll/runs`
+- Payroll operations dashboard: `/payroll/dashboard`
+- Payroll exception center: `/payroll/exceptions`
+- Payslip delivery center: `/payroll/payslips/delivery`
+- Payslips: `/payroll/payslips`
+- Payroll compensation: `/payroll/compensation`
 
 ## Scenario Walkthrough
 
@@ -66,23 +96,67 @@ This runbook validates DijiPeople as a standalone Timesheet Records and Payroll 
 10. Create a payroll cycle from `/dashboard/payroll/cycles`.
     - Select the period and Business Unit when processing a specific organization/account.
 
-11. Open the payroll cycle detail page.
+11. Open `/payroll/dashboard`, select the run, and use the guided lifecycle.
     - Review readiness preview.
-    - Resolve missing compensation or missing approved timesheets.
-    - Generate draft payroll.
-    - Mark reviewed.
-    - Finalize payroll.
+    - Open `/payroll/exceptions` and resolve bank, compensation, benefit,
+      attendance, leave, approval, tax, or currency blockers at their source.
+    - Calculate, inspect employee and organization aggregates in Preview, and
+      finalize. If a `PAYROLL_RUN` matrix exists, complete its generic Approval
+      Tracker before finalizing again.
+    - Lock, generate frozen payslips, and generate a provider-based bank export.
+    - Mark disbursed only after a bank export exists.
 
-12. Export payroll-ready data.
-    - Use `Export payroll` on the payroll cycle detail page.
+12. Publish and deliver payslips from `/payroll/payslips/delivery`.
+    - Regenerate only unpublished snapshots; resend failed deliveries through
+      the notification orchestrator.
+    - Sign in as the employee and verify list, view, and PDF download under
+      `/me/payslips`.
+    - Confirm the downloaded response is a non-empty PDF, uses the payslip
+      number as its filename, and contains employer, employee, payroll period,
+      frozen earning/deduction/tax lines, and Net Salary as finance proof.
+    - Confirm ESS cannot open another employee's payslip ID or any payroll
+      dashboard, run, delivery-center, or Settings route.
+
+13. Export payroll-ready data.
+    - Generate CSV, Excel, or Generic Bank Transfer output on the run detail.
+    - Verify each download's filename and content type, then reconcile its row
+      count and total to the frozen payroll run. Confirm an audit entry and
+      `PayrollBankExport` record were written for each artifact.
+    - Verify HR, Manager, and ESS receive access denied unless the explicit
+      `payroll-bank-export.generate` permission is granted.
 
 ## Expected Demo Signals
+
+- `seed:payroll-flow` idempotently creates a verified primary demo bank account,
+  a salary-advance policy, and a scheduled loan installment.
+- Payroll calculation freezes the installment as a `LOAN` input snapshot,
+  displays the deduction on the payslip, and reduces the outstanding balance.
+- Recalculating the draft run restores and re-includes the same installment
+  without duplicating the deduction.
+- The demo seed also creates an idempotent `LOAN_REQUEST` Approval Matrix for
+  the existing `payroll-manager` role, scoped to the loan-request record type
+  and seeded Loan Policy through the generic Approvals resolver. It also
+  verifies every seeded payroll employee's primary bank account.
+- The seeded travel Claim uses a `CLAIM_REQUEST` matrix and completed generic
+  Approval Request, Step, Assignment, and Action history. Its transaction and
+  approval dates are inside the demo Payroll Period cutoff.
+- Demo employees receive a fixed transport allowance, an annual employee-visible
+  wellness balance, and a percentage employer health contribution through
+  Benefit Policies and effective Employee Benefit Assignments. Payroll freezes
+  the transport and employer contribution as `BENEFIT` snapshots and payslip
+  lines; the wellness perk remains ESS-visible without affecting pay.
 
 - Import/export buttons only appear for users with the matching permissions.
 - Timesheet Excel import validates rows before saving.
 - Payroll generation blocks employees without approved timesheets when required by settings.
 - Payroll records preserve approved timesheet summary totals.
 - Payroll export includes employee, Business Unit, totals, source timesheet IDs, and payroll amounts.
+- The demo seed provides `system-admin@dijipeople.local` and
+  `payroll@dijipeople.local` identities in addition to Global Admin, HR,
+  Manager, and ESS identities for role-parity UAT.
+- `seed:payroll-flow` includes the documented ESS identity in a finalized
+  payroll run and publishes its frozen payslip so list, detail, cross-employee
+  denial, PDF download, and audit behavior can be browser-tested.
 
 ## Current Limitations
 
@@ -90,3 +164,9 @@ This runbook validates DijiPeople as a standalone Timesheet Records and Payroll 
 - Employee-level settings overrides are not exposed in UI yet.
 - Failed import rows are shown in preview but are not downloadable as a separate file yet.
 - This is payroll-ready processing output, not a full statutory tax engine.
+- “Sent to provider” and “Resent to provider” confirm notification-provider
+  acceptance only. Delivery receipts and recipient-inbox confirmation are not
+  currently available.
+- CSV, Excel, and Generic Bank Transfer are provider-neutral formats. Real
+  bank-specific layouts, encryption, signing, and transmission require future
+  export-provider implementations.

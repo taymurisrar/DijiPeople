@@ -32,10 +32,11 @@ export function EssQuickActions({
     setPendingAction(action);
     setError(null);
 
+    const payload = await buildAttendanceActionPayload(action);
     const response = await fetch(`/api/attendance/${action}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
+      body: JSON.stringify(payload),
     });
 
     const data = (await response.json()) as { message?: string };
@@ -147,6 +148,72 @@ export function EssQuickActions({
       ) : null}
     </section>
   );
+}
+
+async function buildAttendanceActionPayload(action: "check-in" | "check-out") {
+  const context = await fetch("/api/attendance/runtime-context", {
+    cache: "no-store",
+  })
+    .then((response) => (response.ok ? response.json() : null))
+    .catch(() => null);
+  const allowedModes = Array.isArray(context?.allowedModes)
+    ? (context.allowedModes as string[])
+    : [];
+  const supportsRemote = allowedModes.includes("REMOTE");
+  const supportsHybrid = allowedModes.includes("HYBRID");
+  const attendanceMode = supportsRemote
+    ? "REMOTE"
+    : supportsHybrid
+      ? "HYBRID"
+      : "OFFICE";
+  const location =
+    attendanceMode === "OFFICE" ? null : await captureBrowserLocation();
+
+  if (action === "check-out") {
+    return location
+      ? {
+          remoteLatitude: location.latitude,
+          remoteLongitude: location.longitude,
+          locationAccuracy: location.accuracy,
+          locationCapturedAt: location.capturedAt,
+        }
+      : {};
+  }
+
+  return {
+    attendanceMode,
+    officeLocationId:
+      attendanceMode === "OFFICE" ? context?.workSites?.[0]?.id : undefined,
+    remoteLatitude: location?.latitude,
+    remoteLongitude: location?.longitude,
+    locationAccuracy: location?.accuracy,
+    locationCapturedAt: location?.capturedAt,
+  };
+}
+
+function captureBrowserLocation() {
+  if (typeof navigator === "undefined" || !navigator.geolocation) {
+    return Promise.resolve(null);
+  }
+
+  return new Promise<{
+    latitude: number;
+    longitude: number;
+    accuracy: number;
+    capturedAt: string;
+  } | null>((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      (position) =>
+        resolve({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+          capturedAt: new Date(position.timestamp).toISOString(),
+        }),
+      () => resolve(null),
+      { enableHighAccuracy: true, maximumAge: 30_000, timeout: 10_000 },
+    );
+  });
 }
 
 function ActionCard({

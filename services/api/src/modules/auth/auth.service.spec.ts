@@ -56,6 +56,7 @@ describe('AuthService', () => {
       permissionBootstrapService as never,
       {} as never,
       {} as never,
+      {} as never,
     );
   });
 

@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { createReadStream } from 'fs';
 import { mkdir, readdir, stat } from 'fs/promises';
 import path from 'path';
@@ -28,27 +29,78 @@ export class PlatformMonitoringService {
     query: Record<string, string | undefined>,
   ) {
     this.assertSuperAdmin(user);
-    const take = Math.min(Math.max(Number(query.pageSize) || 100, 1), 250);
+    const page = normalizePositiveInt(query.page, 1);
+    const pageSize = Math.min(
+      Math.max(normalizePositiveInt(query.pageSize, 25), 10),
+      100,
+    );
     const createdAt = {
       ...(query.from ? { gte: new Date(query.from) } : {}),
       ...(query.to ? { lte: new Date(query.to) } : {}),
     };
-    const logs = await this.prisma.errorLog.findMany({
-      where: {
-        traceId: query.reference
-          ? { contains: query.reference, mode: 'insensitive' }
-          : undefined,
-        tenantId: query.tenantId || undefined,
-        severity: query.severity || undefined,
-        errorCode: query.category
-          ? { contains: query.category, mode: 'insensitive' }
-          : undefined,
-        createdAt: Object.keys(createdAt).length > 0 ? createdAt : undefined,
+    const search = query.search?.trim();
+    const where: Prisma.ErrorLogWhereInput = {
+      AND: [
+        query.reference
+          ? { traceId: { contains: query.reference, mode: 'insensitive' } }
+          : {},
+        getSourceAppWhere(query.sourceApp),
+        query.tenantId && query.tenantId !== 'platform'
+          ? { tenantId: query.tenantId }
+          : {},
+        query.tenantId === 'platform' ? { tenantId: null } : {},
+        query.userId ? { userId: query.userId } : {},
+        query.severity ? { severity: query.severity } : {},
+        query.category
+          ? { errorCode: { contains: query.category, mode: 'insensitive' } }
+          : {},
+        query.route
+          ? { path: { contains: query.route, mode: 'insensitive' } }
+          : {},
+        query.method ? { method: query.method.toUpperCase() } : {},
+        Object.keys(createdAt).length > 0 ? { createdAt } : {},
+        search
+          ? {
+              OR: [
+                { traceId: { contains: search, mode: 'insensitive' } },
+                { errorCode: { contains: search, mode: 'insensitive' } },
+                { message: { contains: search, mode: 'insensitive' } },
+                { description: { contains: search, mode: 'insensitive' } },
+                { path: { contains: search, mode: 'insensitive' } },
+                { userId: { contains: search, mode: 'insensitive' } },
+                { tenantId: { contains: search, mode: 'insensitive' } },
+              ],
+            }
+          : {},
+      ],
+    };
+    const orderBy = getErrorLogOrderBy(query.sortBy, query.sortDirection);
+    const [logs, total] = await Promise.all([
+      this.prisma.errorLog.findMany({
+        where,
+        orderBy,
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.errorLog.count({ where }),
+    ]);
+    const items = await this.enrichEvents(logs);
+    return {
+      items: items.filter((item) => {
+        if (query.environment && item.environment !== query.environment) {
+          return false;
+        }
+        return true;
+      }),
+      meta: {
+        page,
+        pageSize,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / pageSize)),
+        sortBy: normalizeSortBy(query.sortBy),
+        sortDirection: normalizeSortDirection(query.sortDirection),
       },
-      orderBy: { createdAt: 'desc' },
-      take,
-    });
-    return this.enrichEvents(logs);
+    };
   }
 
   async getEvent(user: AuthenticatedUser, traceId: string) {
@@ -79,6 +131,7 @@ export class PlatformMonitoringService {
         tenantId: log.tenantId,
         organizationId: log.organizationId,
         businessUnitId: log.businessUnitId,
+        platformActor: readPlatformActor(log.details),
       },
     };
   }
@@ -190,11 +243,22 @@ export class PlatformMonitoringService {
       tenantId: string | null;
       userId: string | null;
       createdAt: Date;
+      details?: unknown;
     },
   >(logs: T[]) {
     const tenantIds = [...new Set(logs.flatMap((log) => log.tenantId ?? []))];
     const userIds = [...new Set(logs.flatMap((log) => log.userId ?? []))];
-    const [tenants, users] = await Promise.all([
+    const platformActorIds = [
+      ...new Set(
+        logs.flatMap((log) => {
+          const actor = readPlatformActor(
+            'details' in log ? (log as { details?: unknown }).details : null,
+          );
+          return actor?.id ?? [];
+        }),
+      ),
+    ];
+    const [tenants, users, platformUsers] = await Promise.all([
       this.prisma.tenant.findMany({
         where: { id: { in: tenantIds } },
         select: { id: true, name: true, slug: true },
@@ -203,13 +267,32 @@ export class PlatformMonitoringService {
         where: { id: { in: userIds } },
         select: { id: true, email: true, firstName: true, lastName: true },
       }),
+      this.prisma.platformUser.findMany({
+        where: { id: { in: platformActorIds } },
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          role: true,
+        },
+      }),
     ]);
     const tenantById = new Map(tenants.map((tenant) => [tenant.id, tenant]));
     const userById = new Map(users.map((item) => [item.id, item]));
+    const platformUserById = new Map(
+      platformUsers.map((item) => [item.id, item]),
+    );
 
     return logs.map((log) => {
       const tenant = log.tenantId ? tenantById.get(log.tenantId) : null;
       const eventUser = log.userId ? userById.get(log.userId) : null;
+      const platformActor = readPlatformActor(
+        'details' in log ? (log as { details?: unknown }).details : null,
+      );
+      const platformUser = platformActor?.id
+        ? platformUserById.get(platformActor.id)
+        : null;
       return {
         referenceNumber: log.traceId,
         timestamp: log.createdAt,
@@ -220,13 +303,32 @@ export class PlatformMonitoringService {
           (log.tenantId
             ? { id: log.tenantId, name: 'Unknown tenant', slug: '' }
             : null),
-        user: eventUser
+        user: platformUser
           ? {
-              id: eventUser.id,
-              email: eventUser.email,
-              fullName: `${eventUser.firstName} ${eventUser.lastName}`.trim(),
+              id: platformUser.id,
+              email: platformUser.email,
+              fullName:
+                `${platformUser.firstName} ${platformUser.lastName}`.trim(),
+              role: platformUser.role,
+              source: 'platform-admin' as const,
             }
-          : null,
+          : eventUser
+            ? {
+                id: eventUser.id,
+                email: eventUser.email,
+                fullName: `${eventUser.firstName} ${eventUser.lastName}`.trim(),
+                role: null,
+                source: 'tenant-user' as const,
+              }
+            : platformActor
+              ? {
+                  id: platformActor.id,
+                  email: platformActor.email ?? 'Unknown platform user',
+                  fullName: platformActor.email ?? platformActor.id,
+                  role: platformActor.role ?? null,
+                  source: 'platform-admin' as const,
+                }
+              : null,
         route: log.path,
         method: log.method,
         category: log.errorCode,
@@ -285,4 +387,84 @@ function getLogSourceApp(traceId: string) {
   if (traceId.startsWith('client_')) return 'web';
   if (traceId.startsWith('admin_')) return 'admin';
   return 'api';
+}
+
+function normalizePositiveInt(value: string | undefined, fallback: number) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function normalizeSortBy(value: string | undefined) {
+  const allowed = new Set([
+    'timestamp',
+    'severity',
+    'sourceApp',
+    'tenant',
+    'user',
+    'route',
+    'category',
+    'statusCode',
+  ]);
+  return value && allowed.has(value) ? value : 'timestamp';
+}
+
+function normalizeSortDirection(value: string | undefined) {
+  return value === 'asc' ? 'asc' : 'desc';
+}
+
+function getErrorLogOrderBy(
+  sortBy: string | undefined,
+  sortDirection: string | undefined,
+) {
+  const direction = normalizeSortDirection(sortDirection);
+  switch (normalizeSortBy(sortBy)) {
+    case 'severity':
+      return { severity: direction } as const;
+    case 'route':
+      return { path: direction } as const;
+    case 'category':
+      return { errorCode: direction } as const;
+    case 'statusCode':
+      return { statusCode: direction } as const;
+    case 'timestamp':
+    case 'sourceApp':
+    case 'tenant':
+    case 'user':
+    default:
+      return { createdAt: direction } as const;
+  }
+}
+
+function getSourceAppWhere(sourceApp: string | undefined) {
+  switch (sourceApp) {
+    case 'web':
+      return { traceId: { startsWith: 'client_' } };
+    case 'admin':
+      return { traceId: { startsWith: 'admin_' } };
+    case 'api':
+      return {
+        NOT: [
+          { traceId: { startsWith: 'client_' } },
+          { traceId: { startsWith: 'admin_' } },
+        ],
+      };
+    default:
+      return {};
+  }
+}
+
+function readPlatformActor(details: unknown) {
+  if (!details || typeof details !== 'object' || Array.isArray(details)) {
+    return null;
+  }
+  const actor = (details as Record<string, unknown>).platformActor;
+  if (!actor || typeof actor !== 'object' || Array.isArray(actor)) {
+    return null;
+  }
+  const record = actor as Record<string, unknown>;
+  return {
+    id: typeof record.id === 'string' ? record.id : '',
+    email: typeof record.email === 'string' ? record.email : null,
+    role: typeof record.role === 'string' ? record.role : null,
+  };
 }

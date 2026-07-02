@@ -1,67 +1,47 @@
-import Link from "next/link";
-import { formatMoney } from "@/lib/formatting-context";
-import { apiRequestJson } from "@/lib/server-api";
-import { hasPermission } from "@/lib/permissions";
+import { StandardModuleListPage } from "@/app/components/runtime";
 import { getSessionUser } from "@/lib/auth";
-import { PERMISSION_KEYS } from "@/lib/security-keys";
-import { AccessDeniedState } from "../../_components/access-denied-state";
+import { buildStandardRouteRuntime } from "@/lib/runtime/modules/standard-module-route-helpers";
+import { payslipRuntimeSpec } from "@/lib/runtime/modules/payroll-foundation-runtime-specs";
+import { apiRequestJson } from "@/lib/server-api";
 import { PayrollLayoutShell } from "../_components/payroll-layout-shell";
-import { PayslipRecord } from "../payroll-run-types";
 
 export default async function PayrollPayslipsPage() {
-  const user = await getSessionUser();
-  if (
-    !user ||
-    !hasPermission(user.permissionKeys, PERMISSION_KEYS.PAYSLIPS_READ_ALL)
-  ) {
-    return (
-      <AccessDeniedState
-        title="Access denied"
-        description="You do not have access to payslips."
-      />
-    );
-  }
-
-  const payslips = await apiRequestJson<PayslipRecord[]>("/payslips");
-
+  const [rows, user] = await Promise.all([
+    apiRequestJson<Record<string, unknown>[]>("/payslips"),
+    getSessionUser(),
+  ]);
+  const records = rows.map((row) => {
+    const employee = isRecord(row.employee) ? row.employee : {};
+    const run = isRecord(row.payrollRun) ? row.payrollRun : {};
+    const period = isRecord(run.payrollPeriod) ? run.payrollPeriod : {};
+    return {
+      ...row,
+      employeeName: [employee.firstName, employee.lastName]
+        .filter((value) => typeof value === "string")
+        .join(" "),
+      periodName: period.name,
+    };
+  });
+  const runtime = buildStandardRouteRuntime({
+    pageKind: "list",
+    sessionUser: user,
+    spec: payslipRuntimeSpec,
+  });
   return (
     <PayrollLayoutShell
       title="Payslips"
-      description="Review generated employee payslips before publishing them for self-service."
+      description="Review frozen payslip history through the shared Module Runtime."
     >
-      <article className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
-        <div className="grid gap-3">
-          {payslips.length ? (
-            payslips.map((payslip) => (
-              <Link
-                className="rounded-2xl border border-border bg-white p-4 transition hover:border-accent/40"
-                href={`/payroll/payslips/${payslip.id}`}
-                key={payslip.id}
-              >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="font-semibold text-foreground">
-                      {payslip.payslipNumber}
-                    </p>
-                    <p className="text-sm text-muted">
-                      {payslip.employee?.firstName} {payslip.employee?.lastName}{" "}
-                      / {payslip.employee?.employeeCode}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-muted">{payslip.status}</p>
-                    <p className="font-semibold text-foreground">
-                      {formatMoney(payslip.netPay, payslip.currencyCode)}
-                    </p>
-                  </div>
-                </div>
-              </Link>
-            ))
-          ) : (
-            <p className="text-sm text-muted">No payslips generated yet.</p>
-          )}
-        </div>
-      </article>
+      <StandardModuleListPage
+        records={records}
+        runtime={runtime}
+        spec={payslipRuntimeSpec}
+        title="Payslips"
+      />
     </PayrollLayoutShell>
   );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

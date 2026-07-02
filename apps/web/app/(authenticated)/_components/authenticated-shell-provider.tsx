@@ -27,6 +27,7 @@ type AuthenticatedShellUser = {
   roleLabel: string;
   roleKeys?: string[];
   tenantId: string;
+  tenantSlug?: string | null;
   businessUnitAccess?: BusinessUnitAccessSummary | null;
   avatarSrc?: string | null;
   avatarCacheKey?: string | null;
@@ -115,6 +116,7 @@ export function AuthenticatedShellProvider({
             args,
             originalFetch,
             globalWindow,
+            user.tenantSlug,
           );
           return handled;
         } catch (error) {
@@ -182,7 +184,7 @@ export function AuthenticatedShellProvider({
             return;
           }
 
-          redirectToSessionExpired();
+          redirectToSessionExpired(user.tenantSlug);
         },
         SESSION_WARNING_ENABLED ? warningMs : timeoutMs,
       );
@@ -197,11 +199,17 @@ export function AuthenticatedShellProvider({
     };
 
     scheduleIdleTimeout();
+    void syncSessionActivity();
 
     const events: Array<keyof WindowEventMap> = [
       "click",
       "keydown",
+      "input",
+      "pointerdown",
+      "scroll",
       "submit",
+      "touchstart",
+      "wheel",
       "focus",
     ];
 
@@ -217,7 +225,7 @@ export function AuthenticatedShellProvider({
       isDialogOpenRef.current = false;
       setShowSessionExpiredDialog(false);
     };
-  }, [inactivityTimeoutMinutes]);
+  }, [inactivityTimeoutMinutes, user.tenantSlug]);
 
   const stableUser = useMemo<AuthenticatedShellUser>(
     () => ({
@@ -233,6 +241,7 @@ export function AuthenticatedShellProvider({
         ? [...new Set(user.roleKeys.filter(Boolean))]
         : [],
       tenantId: user.tenantId,
+      tenantSlug: user.tenantSlug ?? null,
       businessUnitAccess: user.businessUnitAccess ?? null,
       avatarSrc: user.avatarSrc ?? null,
       avatarCacheKey: user.avatarCacheKey ?? null,
@@ -250,9 +259,11 @@ export function AuthenticatedShellProvider({
               return;
             }
             window.location.assign(
-              `/api/auth/logout?reason=${encodeURIComponent(
+              buildLogoutUrl(
                 SESSION_EXPIRED_REASON,
-              )}&next=${encodeURIComponent(buildNextPath())}`,
+                buildNextPath(),
+                user.tenantSlug,
+              ),
             );
           }}
         />
@@ -283,15 +294,13 @@ async function syncSessionActivity() {
   }).catch(() => undefined);
 }
 
-function redirectToSessionExpired() {
+function redirectToSessionExpired(tenantSlug?: string | null) {
   if (typeof window === "undefined") {
     return;
   }
 
   window.location.assign(
-    `/api/auth/logout?reason=${encodeURIComponent(
-      SESSION_EXPIRED_REASON,
-    )}&next=${encodeURIComponent(buildNextPath())}`,
+    buildLogoutUrl(SESSION_EXPIRED_REASON, buildNextPath(), tenantSlug),
   );
 }
 
@@ -350,6 +359,7 @@ async function handleAuthFailureResponse(
   fetchArgs: Parameters<typeof window.fetch>,
   originalFetch: typeof window.fetch,
   globalWindow: PatchedWindow,
+  tenantSlug?: string | null,
 ) {
   const input = fetchArgs[0];
   const requestUrl = resolveRequestUrl(input);
@@ -368,7 +378,11 @@ async function handleAuthFailureResponse(
     }
   }
 
-  if (!response.ok && !usesInlineErrorHandling(fetchArgs)) {
+  if (
+    !response.ok &&
+    !usesInlineErrorHandling(fetchArgs) &&
+    !usesInlineErrorHandlingByDefault(response)
+  ) {
     await dispatchApiError(response);
   }
 
@@ -390,12 +404,27 @@ async function handleAuthFailureResponse(
   globalWindow.__dpAuthRedirectReason = reason;
 
   const nextPath = buildNextPath();
-  const logoutUrl = `/api/auth/logout?reason=${encodeURIComponent(
-    reason,
-  )}&next=${encodeURIComponent(nextPath)}`;
+  const logoutUrl = buildLogoutUrl(reason, nextPath, tenantSlug);
 
   window.location.assign(logoutUrl);
   return response;
+}
+
+function buildLogoutUrl(
+  reason: string,
+  nextPath: string,
+  tenantSlug?: string | null,
+) {
+  const params = new URLSearchParams({
+    reason,
+    next: nextPath,
+  });
+
+  if (tenantSlug) {
+    params.set("tenant", tenantSlug);
+  }
+
+  return `/api/auth/logout?${params.toString()}`;
 }
 
 function usesInlineErrorHandling(
@@ -407,6 +436,10 @@ function usesInlineErrorHandling(
   );
 
   return headers.get(API_ERROR_HANDLING_HEADER)?.toLowerCase() === "inline";
+}
+
+function usesInlineErrorHandlingByDefault(response: Response) {
+  return [400, 405, 409, 422].includes(response.status);
 }
 
 async function dispatchApiError(response: Response) {

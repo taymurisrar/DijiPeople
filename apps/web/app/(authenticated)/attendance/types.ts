@@ -58,12 +58,16 @@ export type AttendanceEntryRecord = {
   remoteLatitude?: number | null;
   remoteLongitude?: number | null;
   remoteAddressText?: string | null;
+  checkInAddressText?: string | null;
+  checkOutAddressText?: string | null;
   checkInLatitude?: number | null;
   checkInLongitude?: number | null;
+  checkInLocation?: string | null;
   checkInLocationAccuracy?: number | null;
   checkInLocationCapturedAt?: string | null;
   checkOutLatitude?: number | null;
   checkOutLongitude?: number | null;
+  checkOutLocation?: string | null;
   checkOutLocationAccuracy?: number | null;
   checkOutLocationCapturedAt?: string | null;
   isLateCheckIn: boolean;
@@ -100,6 +104,15 @@ export type AttendanceEntryRecord = {
       lastName: string;
       preferredName?: string | null;
     } | null;
+    location?: {
+      id: string;
+      name: string;
+      code?: string | null;
+      city?: string | null;
+      state?: string | null;
+      country?: string | null;
+      timezone?: string | null;
+    } | null;
   };
   officeLocation: {
     id: string;
@@ -108,6 +121,15 @@ export type AttendanceEntryRecord = {
     city: string;
     state: string;
     country: string;
+    timezone?: string | null;
+  } | null;
+  workSite?: {
+    id: string;
+    name: string;
+    code?: string | null;
+    city?: string | null;
+    state?: string | null;
+    country?: string | null;
     timezone?: string | null;
   } | null;
   workSchedule: {

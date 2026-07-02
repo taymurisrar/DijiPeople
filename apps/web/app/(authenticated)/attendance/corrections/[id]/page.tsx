@@ -74,8 +74,11 @@ export default async function AttendanceCorrectionDetailPage({
           </StatusPill>
           <AttendanceCorrectionActions
             canApprove={request.canApprove}
+            canEdit={request.canEdit}
             canReject={request.canReject}
             requestId={request.id}
+            requestedCheckInAtUtc={request.requestedCheckInAtUtc}
+            requestedCheckOutAtUtc={request.requestedCheckOutAtUtc}
           />
         </div>
       </section>

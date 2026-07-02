@@ -1,12 +1,16 @@
 import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { RequireRoles } from '../../../common/decorators/require-roles.decorator';
+import { ROLE_KEYS } from '../../../common/constants/rbac-matrix';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../../common/guards/roles.guard';
 import type { AuthenticatedUser } from '../../../common/interfaces/authenticated-request.interface';
 import { CreateCheckoutSessionDto } from '../dto/create-checkout-session.dto';
 import { BillingService } from '../services/billing.service';
 
 @Controller('billing')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@RequireRoles(ROLE_KEYS.GLOBAL_ADMIN, ROLE_KEYS.SYSTEM_ADMIN)
 export class BillingController {
   constructor(private readonly billingService: BillingService) {}
 

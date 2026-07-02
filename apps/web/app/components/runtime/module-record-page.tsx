@@ -8,14 +8,21 @@ import {
   type ReactNode,
 } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { RuntimeMetadataFormRenderer } from "@/app/components/metadata/runtime-metadata-form-renderer";
+import {
+  RuntimeMetadataFormRenderer,
+  type FieldValueMap,
+} from "@/app/components/metadata/runtime-metadata-form-renderer";
 import { TopAlert } from "@/app/components/notifications";
 import type { LookupOption } from "@/app/components/ui/form-control";
 import {
   groupCommands,
   resolveCommandsForSurface,
 } from "@/lib/runtime/command-runtime.resolver";
-import type { FormMetadata } from "@/lib/runtime/metadata-runtime.types";
+import type {
+  FieldMetadata,
+  FormFieldMetadata,
+  FormMetadata,
+} from "@/lib/runtime/metadata-runtime.types";
 import type {
   ModuleDataAdapter,
   ModuleOwnerOption,
@@ -60,8 +67,11 @@ export function ModuleRecordPage({
   record,
   recordId,
   runtime,
+  tabContent,
   tabsSlot,
   title,
+  deriveValuesOnChange,
+  resolveFieldEditable,
 }: {
   readonly activeForm: FormMetadata | null;
   readonly dataAdapter?: ModuleDataAdapter;
@@ -73,8 +83,21 @@ export function ModuleRecordPage({
   readonly record: RuntimeRecordData;
   readonly recordId?: string;
   readonly runtime: ModuleRuntimeContext;
+  readonly tabContent?: Readonly<Record<string, ReactNode>>;
   readonly tabsSlot?: ReactNode;
   readonly title?: string;
+  readonly deriveValuesOnChange?: (input: {
+    readonly changedField: FieldMetadata;
+    readonly lookupOptions: Record<string, readonly LookupOption[]>;
+    readonly nextValues: FieldValueMap;
+    readonly previousValues: FieldValueMap;
+  }) => FieldValueMap;
+  readonly resolveFieldEditable?: (input: {
+    readonly defaultEditable: boolean;
+    readonly field: FieldMetadata;
+    readonly formField: FormFieldMetadata;
+    readonly values: FieldValueMap;
+  }) => boolean;
 }) {
   void moduleKey;
   const pathname = usePathname();
@@ -401,6 +424,7 @@ export function ModuleRecordPage({
                               : "edit"
                         }
                         dataAdapter={dataAdapter}
+                        deriveValuesOnChange={deriveValuesOnChange}
                         fieldErrors={fieldErrors}
                         onValuesChange={(values) =>
                           setDraftRecord((current) => {
@@ -409,8 +433,10 @@ export function ModuleRecordPage({
                           })
                         }
                         runtime={effectiveRuntime}
+                        resolveFieldEditable={resolveFieldEditable}
                         touchedFields={touchedFields}
                         values={toFieldValueMap(draftRecord)}
+                        tabContent={tabContent}
                       />
                     </div>
                   ) : (

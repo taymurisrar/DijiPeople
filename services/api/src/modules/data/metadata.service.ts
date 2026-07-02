@@ -11,10 +11,14 @@ import {
 } from './entity-query.types';
 import { EntityPermissionResolver } from './entity-permission.resolver';
 import { getEntityMetadata, listEntityMetadata } from './entity-registry';
+import { CustomDataService } from './custom-data.service';
 
 @Injectable()
 export class MetadataService {
-  constructor(private readonly permissionResolver: EntityPermissionResolver) {}
+  constructor(
+    private readonly permissionResolver: EntityPermissionResolver,
+    private readonly customDataService: CustomDataService,
+  ) {}
 
   listEntities(user: AuthenticatedUser) {
     return {
@@ -24,12 +28,10 @@ export class MetadataService {
     };
   }
 
-  getEntity(entityLogicalName: string, user: AuthenticatedUser) {
+  async getEntity(entityLogicalName: string, user: AuthenticatedUser) {
     const metadata = getEntityMetadata(entityLogicalName);
     if (!metadata) {
-      throw new NotFoundException(
-        `Entity is not available: ${entityLogicalName}`,
-      );
+      return this.customDataService.getMetadata(entityLogicalName, user);
     }
 
     this.permissionResolver.assertCanRead(metadata, user);

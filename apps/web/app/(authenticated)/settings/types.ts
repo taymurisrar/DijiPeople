@@ -15,6 +15,14 @@ export type DesignationRecord = {
   tenantId: string;
   name: string;
   level?: string | null;
+  employeeLevelId?: string | null;
+  employeeLevel?: {
+    id: string;
+    code: string;
+    name: string;
+    rank: number;
+    isActive: boolean;
+  } | null;
   description?: string | null;
   isActive: boolean;
   createdAt: string;
@@ -181,10 +189,25 @@ export type TenantResolvedSettingsResponse = {
     defaultEmploymentType: string;
     defaultWorkMode: string;
     defaultEmployeeStatus: string;
+    requirePersonalEmail: boolean;
+    requireEmergencyContact: boolean;
+    requireJoiningDate: boolean;
     requireDepartment: boolean;
     requireDesignation: boolean;
     requireReportingManager: boolean;
     requireWorkLocation: boolean;
+    autoCreateDraftOnHire: boolean;
+    keepEmployeeAsDraftUntilOnboardingComplete: boolean;
+    preventActivationUntilMandatoryFieldsCompleted: boolean;
+    maxReportingLevels: number;
+    allowSkipLevelApprovals: boolean;
+    allowMatrixReporting: boolean;
+    allowEmployeeWithoutManager: boolean;
+    preventDuplicateByPersonalEmail: boolean;
+    preventDuplicateByPhoneNumber: boolean;
+    preventDuplicateByNationalId: boolean;
+    warnOnPossibleDuplicate: boolean;
+    onboardingChecklistTemplate: string;
   };
   attendance: {
     defaultGraceMinutes: number;

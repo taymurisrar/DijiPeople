@@ -763,6 +763,13 @@ async function seedRoleBasedUsers(input: {
         ROLE_KEYS.SYSTEM_CUSTOMIZER,
       ],
     },
+    systemAdmin: {
+      email: 'system-admin@dijipeople.local',
+      firstName: 'Demo',
+      lastName: 'System Admin',
+      employeeCode: 'DP-SYS',
+      roleKeys: [ROLE_KEYS.SYSTEM_ADMIN],
+    },
     hr: {
       email: 'hr@dijipeople.local',
       firstName: 'Demo',
@@ -790,6 +797,13 @@ async function seedRoleBasedUsers(input: {
       lastName: 'Manager',
       employeeCode: 'DP-MGR',
       roleKeys: [ROLE_KEYS.EMPLOYEE, ROLE_KEYS.MANAGER],
+    },
+    payrollManager: {
+      email: 'payroll@dijipeople.local',
+      firstName: 'Demo',
+      lastName: 'Payroll Manager',
+      employeeCode: 'DP-PAY',
+      roleKeys: [ROLE_KEYS.PAYROLL_MANAGER],
     },
   } as const;
   const roleKeys = [

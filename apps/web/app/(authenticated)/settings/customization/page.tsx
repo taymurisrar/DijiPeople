@@ -1,18 +1,11 @@
-import { SettingsShell } from "../_components/settings-shell";
+import { notFound } from "next/navigation";
+import { SettingsCategoryLanding } from "../_components/settings-runtime-landing";
+import { getSettingsRuntimeCategory } from "../_lib/settings-runtime";
 import { requireSettingsPermissions } from "../_lib/require-settings-permission";
-import { CustomizationAreasTable } from "./_components/customization-areas-table";
 
-export default async function CustomizationOverviewPage() {
+export default async function CustomizationCategoryPage() {
   await requireSettingsPermissions(["customization.read"]);
-
-  return (
-    <SettingsShell
-      description="Open the workspace you need to manage modules, organize packages, or publish validated customization changes."
-      eyebrow="Customization"
-      showSidebar={false}
-      title="Customization"
-    >
-      <CustomizationAreasTable />
-    </SettingsShell>
-  );
+  const category = getSettingsRuntimeCategory("customization");
+  if (!category) notFound();
+  return <SettingsCategoryLanding category={category} />;
 }

@@ -5,7 +5,10 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import path from 'node:path';
 import {
   BillingCycle,
   CustomerAccountStatus,
@@ -16,6 +19,7 @@ import {
   SubscriptionStatus,
   TenantStatus,
   TenantFeatureSource,
+  UserInvitationStatus,
   UserStatus,
   WebhookProcessingStatus,
 } from '@prisma/client';
@@ -71,12 +75,21 @@ import {
   validatePlatformDefaults,
 } from '../../common/reference-data/platform-reference-data';
 import { UserInvitationsService } from '../auth/user-invitations.service';
+import { AuthService } from '../auth/auth.service';
+import { EmailService } from '../notifications/email/email.service';
 import { WebhookService } from '../billing/services/webhook.service';
 import {
   CreateTenantAccessUserDto,
   UpdateTenantAccessUserDto,
 } from './dto/tenant-access-user.dto';
 import { normalizeEmail } from '../../common/utils/email.util';
+import {
+  buildProfessionalInvoicePdf,
+  formatInvoiceDate,
+  type InvoicePdfBranding,
+  type InvoicePdfModel,
+  type InvoicePdfParty,
+} from './invoice-pdf.template';
 
 @Injectable()
 export class SuperAdminService {
@@ -92,6 +105,9 @@ export class SuperAdminService {
     private readonly platformOnboardingService: PlatformOnboardingService,
     private readonly platformLifecycleService: PlatformLifecycleService,
     private readonly userInvitationsService: UserInvitationsService,
+    private readonly authService: AuthService,
+    private readonly emailService: EmailService,
+    private readonly configService: ConfigService,
     private readonly auditService: AuditService,
     private readonly webhookService: WebhookService,
   ) {}
@@ -153,12 +169,12 @@ export class SuperAdminService {
     };
   }
 
-  listCustomers(query: CustomerQueryDto) {
-    return this.platformLifecycleService.listCustomers(query);
+  listCustomers(actor: AuthenticatedUser, query: CustomerQueryDto) {
+    return this.platformLifecycleService.listCustomers(actor, query);
   }
 
-  getCustomerDetail(customerAccountId: string) {
-    return this.platformLifecycleService.getCustomer(customerAccountId);
+  getCustomerDetail(actor: AuthenticatedUser, customerAccountId: string) {
+    return this.platformLifecycleService.getCustomer(actor, customerAccountId);
   }
 
   getCustomerOnboardings(customerAccountId: string) {
@@ -189,8 +205,12 @@ export class SuperAdminService {
     return this.platformLifecycleService.createCustomer(actor, dto);
   }
 
-  updateCustomer(customerId: string, dto: UpdateCustomerDto) {
-    return this.platformLifecycleService.updateCustomer(customerId, dto);
+  updateCustomer(
+    actor: AuthenticatedUser,
+    customerId: string,
+    dto: UpdateCustomerDto,
+  ) {
+    return this.platformLifecycleService.updateCustomer(actor, customerId, dto);
   }
 
   bulkDeleteCustomers(actor: AuthenticatedUser, dto: BulkDeleteCustomersDto) {
@@ -209,12 +229,18 @@ export class SuperAdminService {
     );
   }
 
-  listCustomerOnboardings(query: CustomerOnboardingQueryDto) {
-    return this.platformLifecycleService.listCustomerOnboardings(query);
+  listCustomerOnboardings(
+    actor: AuthenticatedUser,
+    query: CustomerOnboardingQueryDto,
+  ) {
+    return this.platformLifecycleService.listCustomerOnboardings(actor, query);
   }
 
-  getCustomerOnboarding(onboardingId: string) {
-    return this.platformLifecycleService.getCustomerOnboarding(onboardingId);
+  getCustomerOnboarding(actor: AuthenticatedUser, onboardingId: string) {
+    return this.platformLifecycleService.getCustomerOnboarding(
+      actor,
+      onboardingId,
+    );
   }
 
   createCustomerOnboarding(
@@ -450,11 +476,54 @@ export class SuperAdminService {
             role: { select: { id: true, key: true, name: true } },
           },
         },
+        invitations: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: {
+            id: true,
+            status: true,
+            expiresAt: true,
+            consumedAt: true,
+            createdAt: true,
+          },
+        },
       },
       orderBy: [{ isServiceAccount: 'asc' }, { firstName: 'asc' }],
     });
 
-    return users.map((user) => this.mapTenantAccessUser(user));
+    const createdByIds = [
+      ...new Set(users.flatMap((user) => user.createdById ?? [])),
+    ];
+    const [tenantActors, platformActors] = await Promise.all([
+      this.prisma.user.findMany({
+        where: { id: { in: createdByIds } },
+        select: { id: true, firstName: true, lastName: true, email: true },
+      }),
+      this.prisma.platformUser.findMany({
+        where: { id: { in: createdByIds } },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          role: true,
+        },
+      }),
+    ]);
+    const actorById = new Map<string, ReturnType<typeof mapAccessActor>>();
+    for (const actor of tenantActors) {
+      actorById.set(actor.id, mapAccessActor(actor, 'tenant-user'));
+    }
+    for (const actor of platformActors) {
+      actorById.set(actor.id, mapAccessActor(actor, 'platform-admin'));
+    }
+
+    return users.map((user) =>
+      this.mapTenantAccessUser(
+        user,
+        user.createdById ? (actorById.get(user.createdById) ?? null) : null,
+      ),
+    );
   }
 
   async createTenantAccessUser(
@@ -617,13 +686,61 @@ export class SuperAdminService {
         updatedById: actor.userId,
       },
     });
-    return this.userInvitationsService.issueInvitation({
+    const invitation = await this.userInvitationsService.issueInvitation({
       tenantId,
       userId,
       email: user.email,
       fullName: `${user.firstName} ${user.lastName}`.trim(),
       createdByUserId: actor.userId,
     });
+
+    await this.auditService.log({
+      tenantId,
+      actorUserId: actor.userId,
+      action: 'TENANT_ACCESS_ACTIVATION_SENT',
+      entityType: 'User',
+      entityId: userId,
+      sourceModule: 'super-admin',
+      afterSnapshot: {
+        email: user.email,
+        expiresAt: invitation.expiresAt,
+        deliveryMode: invitation.deliveryMode,
+        deliveryStatus: invitation.deliveryStatus,
+      },
+    });
+
+    return invitation;
+  }
+
+  async resetTenantAccessUserPassword(
+    actor: AuthenticatedUser,
+    tenantId: string,
+    userId: string,
+  ) {
+    const user = await this.findTenantAccessUserOrThrow(tenantId, userId);
+    const reset = await this.authService.issuePasswordResetForUser({
+      tenantId,
+      userId,
+      requestedByUserId: actor.userId,
+      source: 'platform-admin-tenant-access',
+    });
+
+    await this.auditService.log({
+      tenantId,
+      actorUserId: actor.userId,
+      action: 'TENANT_ACCESS_PASSWORD_RESET_SENT',
+      entityType: 'User',
+      entityId: userId,
+      sourceModule: 'super-admin',
+      afterSnapshot: {
+        email: user.email,
+        expiresAt: reset.expiresAt,
+        deliveryMode: reset.deliveryMode,
+        deliveryStatus: reset.deliveryStatus,
+      },
+    });
+
+    return reset;
   }
 
   async listTenantInvoices(tenantId: string) {
@@ -1381,6 +1498,28 @@ export class SuperAdminService {
               select: {
                 id: true,
                 companyName: true,
+                legalCompanyName: true,
+                contactEmail: true,
+                billingContactEmail: true,
+                financeContactEmail: true,
+                country: true,
+                stateProvince: true,
+                city: true,
+                addressLine1: true,
+                addressLine2: true,
+                website: true,
+              },
+            },
+            tenantBranding: {
+              select: {
+                brandName: true,
+                shortBrandName: true,
+                logoUrl: true,
+                primaryColor: true,
+                accentColor: true,
+                supportEmail: true,
+                supportPhone: true,
+                termsOfUseUrl: true,
               },
             },
           },
@@ -1403,36 +1542,7 @@ export class SuperAdminService {
   }
 
   async getInvoiceDetail(invoiceId: string) {
-    const invoice = await this.prisma.invoice.findUnique({
-      where: { id: invoiceId },
-      include: {
-        tenant: {
-          include: {
-            customerAccount: {
-              select: {
-                id: true,
-                companyName: true,
-              },
-            },
-          },
-        },
-        subscription: {
-          include: {
-            plan: {
-              select: { id: true, key: true, name: true },
-            },
-          },
-        },
-        payments: {
-          orderBy: { createdAt: 'desc' },
-        },
-      },
-    });
-
-    if (!invoice) {
-      throw new NotFoundException('Invoice not found.');
-    }
-
+    const invoice = await this.getInvoiceRecord(invoiceId);
     return this.mapInvoice(invoice);
   }
 
@@ -1460,7 +1570,97 @@ export class SuperAdminService {
       actorUserId: actor.userId,
     });
 
+    if (
+      (dto.status ?? InvoiceStatus.ISSUED) === InvoiceStatus.ISSUED &&
+      this.shouldAutoEmailIssuedInvoices()
+    ) {
+      await this.emailInvoiceIfPossible(actor, invoice.id);
+    }
+
     return this.getInvoiceDetail(invoice.id);
+  }
+
+  async downloadInvoicePdf(actor: AuthenticatedUser, invoiceId: string) {
+    const generated = await this.ensureInvoicePdf(invoiceId, actor.userId);
+    await this.auditService.log({
+      tenantId: generated.tenantId,
+      actorUserId: actor.userId,
+      action: 'INVOICE_PDF_DOWNLOADED',
+      entityType: 'Invoice',
+      entityId: invoiceId,
+      sourceModule: 'super-admin',
+      afterSnapshot: {
+        invoiceNumber: generated.invoiceNumber,
+        pdfStorageKey: generated.pdfStorageKey,
+      },
+    });
+
+    return {
+      fileName: `${generated.invoiceNumber}.pdf`,
+      buffer: await readFile(generated.absolutePath),
+    };
+  }
+
+  async emailInvoice(actor: AuthenticatedUser, invoiceId: string) {
+    const generated = await this.ensureInvoicePdf(invoiceId, actor.userId);
+    const invoice = await this.getInvoiceRecord(invoiceId);
+    const recipient = this.resolveInvoiceRecipient(invoice);
+
+    if (!recipient) {
+      await this.updateInvoiceEmailMetadata(invoiceId, {
+        emailedAt: new Date(),
+        emailedTo: null,
+        emailStatus: 'FAILED_NO_BILLING_EMAIL',
+      });
+      throw new BadRequestException(
+        'Invoice email cannot be sent because no customer billing email is available.',
+      );
+    }
+
+    let emailStatus = 'SENT';
+    try {
+      const delivery = await this.emailService.sendTemplateEmail({
+        tenantId: invoice.tenantId,
+        eventCode: 'BILLING_INVOICE_ISSUED',
+        templateKey: 'BILLING_INVOICE_ISSUED',
+        recipient,
+        variables: buildInvoiceEmailVariables(invoice),
+        metadata: {
+          invoiceId,
+          invoiceNumber: invoice.invoiceNumber,
+          pdfStorageKey: generated.pdfStorageKey,
+          source: 'platform-admin-invoice',
+        },
+        requestedByUserId: actor.userId,
+      });
+      emailStatus = delivery.status;
+    } catch (error) {
+      emailStatus = `FAILED: ${
+        error instanceof Error ? error.message : 'Unknown email error'
+      }`;
+      throw error;
+    } finally {
+      await this.updateInvoiceEmailMetadata(invoiceId, {
+        emailedAt: new Date(),
+        emailedTo: recipient,
+        emailStatus,
+      });
+      await this.auditService.log({
+        tenantId: invoice.tenantId,
+        actorUserId: actor.userId,
+        action: 'INVOICE_EMAIL_SENT',
+        entityType: 'Invoice',
+        entityId: invoiceId,
+        sourceModule: 'super-admin',
+        afterSnapshot: {
+          invoiceNumber: invoice.invoiceNumber,
+          emailedTo: recipient,
+          emailStatus,
+        },
+      });
+    }
+
+    return this.getInvoiceDetail(invoiceId);
   }
 
   async updateInvoiceStatus(
@@ -1499,6 +1699,25 @@ export class SuperAdminService {
         updatedById: actor.userId,
       },
     });
+
+    await this.auditService.log({
+      tenantId: invoice.tenantId,
+      actorUserId: actor.userId,
+      action: 'INVOICE_STATUS_CHANGED',
+      entityType: 'Invoice',
+      entityId: invoiceId,
+      sourceModule: 'super-admin',
+      beforeSnapshot: { status: invoice.status },
+      afterSnapshot: { status: dto.status },
+    });
+
+    if (
+      dto.status === InvoiceStatus.ISSUED &&
+      invoice.status !== InvoiceStatus.ISSUED &&
+      this.shouldAutoEmailIssuedInvoices()
+    ) {
+      await this.emailInvoiceIfPossible(actor, invoiceId);
+    }
 
     return this.listInvoices();
   }
@@ -1969,6 +2188,320 @@ export class SuperAdminService {
     };
   }
 
+  private async getInvoiceRecord(invoiceId: string) {
+    const invoice = await this.prisma.invoice.findUnique({
+      where: { id: invoiceId },
+      include: {
+        tenant: {
+          include: {
+            customerAccount: {
+              select: {
+                id: true,
+                companyName: true,
+                legalCompanyName: true,
+                contactEmail: true,
+                billingContactEmail: true,
+                financeContactEmail: true,
+                country: true,
+                stateProvince: true,
+                city: true,
+                addressLine1: true,
+                addressLine2: true,
+                website: true,
+              },
+            },
+            tenantBranding: {
+              select: {
+                brandName: true,
+                shortBrandName: true,
+                logoUrl: true,
+                primaryColor: true,
+                accentColor: true,
+                supportEmail: true,
+                supportPhone: true,
+                termsOfUseUrl: true,
+              },
+            },
+          },
+        },
+        subscription: {
+          include: {
+            plan: {
+              select: { id: true, key: true, name: true },
+            },
+          },
+        },
+        payments: {
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+    });
+
+    if (!invoice) {
+      throw new NotFoundException('Invoice not found.');
+    }
+
+    return invoice;
+  }
+
+  private async ensureInvoicePdf(invoiceId: string, actorUserId: string) {
+    const invoice = await this.getInvoiceRecord(invoiceId);
+    const storageRoot = this.getInvoiceStorageRoot();
+    const fileName = `${sanitizeFilePart(invoice.invoiceNumber)}.pdf`;
+    const relativePath = path.join('invoices', invoice.id, fileName);
+    const absolutePath = path.join(storageRoot, relativePath);
+    const generatedAt = new Date();
+
+    await mkdir(path.dirname(absolutePath), { recursive: true });
+    await writeFile(
+      absolutePath,
+      buildProfessionalInvoicePdf(
+        await this.buildInvoicePdfModel(invoice, generatedAt),
+      ),
+    );
+    await this.prisma.invoice.update({
+      where: { id: invoice.id },
+      data: {
+        generatedAt,
+        generatedByUserId: actorUserId,
+        pdfStorageKey: relativePath.replaceAll(path.sep, '/'),
+        updatedById: actorUserId,
+      },
+    });
+
+    return {
+      tenantId: invoice.tenantId,
+      invoiceNumber: invoice.invoiceNumber,
+      pdfStorageKey: relativePath.replaceAll(path.sep, '/'),
+      absolutePath,
+    };
+  }
+
+  private getInvoiceStorageRoot() {
+    return path.resolve(
+      this.configService.get<string>('INVOICE_STORAGE_DIR') ??
+        process.env.INVOICE_STORAGE_DIR ??
+        path.join(process.cwd(), 'storage', 'generated'),
+    );
+  }
+
+  private resolveInvoiceRecipient(
+    invoice: Awaited<ReturnType<SuperAdminService['getInvoiceRecord']>>,
+  ) {
+    return (
+      invoice.tenant.customerAccount?.billingContactEmail?.trim() ||
+      invoice.tenant.customerAccount?.financeContactEmail?.trim() ||
+      invoice.tenant.customerAccount?.contactEmail?.trim() ||
+      null
+    );
+  }
+
+  private async buildInvoicePdfModel(
+    invoice: Awaited<ReturnType<SuperAdminService['getInvoiceRecord']>>,
+    generatedAt: Date,
+  ): Promise<InvoicePdfModel> {
+    const platformBranding = await this.resolveInvoicePlatformBranding();
+    const tenantBranding = invoice.tenant.tenantBranding;
+    const customer = invoice.tenant.customerAccount;
+    const paid = invoice.payments
+      .filter((payment) => payment.status === PaymentStatus.SUCCEEDED)
+      .reduce((sum, payment) => sum + Number(payment.amount), 0);
+    const subtotal = Number(invoice.subtotal ?? invoice.amount);
+    const tax = Number(invoice.tax ?? 0);
+    const total = Number(invoice.total ?? invoice.amount);
+    const amountDue = Number(invoice.amountDue ?? Math.max(total - paid, 0));
+    const billingPeriod = formatBillingPeriod(
+      invoice.periodStart,
+      invoice.periodEnd,
+    );
+    const customerName =
+      customer?.legalCompanyName?.trim() ||
+      customer?.companyName?.trim() ||
+      tenantBranding?.brandName?.trim() ||
+      invoice.tenant.name;
+    const customerEmail = this.resolveInvoiceRecipient(invoice);
+
+    return {
+      invoiceNumber: invoice.invoiceNumber,
+      status: invoice.status,
+      issueDate: invoice.issueDate,
+      dueDate: invoice.dueDate,
+      currency: invoice.currency,
+      billingPeriod,
+      subscriptionStatus: invoice.subscription.status,
+      generatedAt,
+      brand: {
+        ...platformBranding,
+        brandName:
+          cleanInvoiceString(platformBranding.brandName) || 'DijiPeople',
+        logoText:
+          cleanInvoiceString(platformBranding.logoText) ||
+          cleanInvoiceString(platformBranding.brandName) ||
+          'DijiPeople',
+        supportEmail:
+          cleanInvoiceString(platformBranding.supportEmail) ||
+          cleanInvoiceString(tenantBranding?.supportEmail) ||
+          'support@dijipeople.com',
+      },
+      billFrom: this.resolveInvoiceBillFrom(platformBranding),
+      billTo: {
+        name: customerName,
+        logoText:
+          cleanInvoiceString(tenantBranding?.shortBrandName) ||
+          cleanInvoiceString(tenantBranding?.brandName) ||
+          customerName,
+        email: customerEmail,
+        addressLines: compactInvoiceLines([
+          customer?.addressLine1,
+          customer?.addressLine2,
+          customer?.city,
+          customer?.stateProvince,
+          customer?.country,
+          customer?.website,
+        ]),
+        taxNumber: readInvoiceMetadataString(invoice.metadataJson, [
+          'customerTaxNumber',
+          'customerVatNumber',
+          'customerTrn',
+          'vatNumber',
+          'trn',
+        ]),
+      },
+      lineItems: [
+        {
+          description: invoice.subscription.plan.name,
+          billingPeriod,
+          quantity: 1,
+          unitPrice: subtotal,
+          tax,
+          total,
+        },
+      ],
+      subtotal,
+      discount: Math.max(subtotal + tax - total, 0),
+      tax,
+      total,
+      paid: Number(invoice.amountPaid ?? paid),
+      outstandingBalance: amountDue,
+      payments: invoice.payments.map((payment) => ({
+        date: payment.paidAt ?? payment.createdAt,
+        method: payment.paymentMethod,
+        status: payment.status,
+        amount: Number(payment.amount),
+      })),
+      notes: readInvoiceMetadataString(invoice.metadataJson, [
+        'invoiceNotes',
+        'notes',
+      ]),
+    };
+  }
+
+  private async resolveInvoicePlatformBranding(): Promise<
+    InvoicePdfBranding & { logoText?: string | null }
+  > {
+    const [brandingRow, invoiceDefaultsRow] = await Promise.all([
+      this.prisma.platformSetting.findUnique({ where: { key: 'branding' } }),
+      this.prisma.platformSetting.findUnique({
+        where: { key: 'invoice-defaults' },
+      }),
+    ]);
+    const branding = objectValue(brandingRow?.value);
+    const invoiceDefaults = objectValue(invoiceDefaultsRow?.value);
+
+    return {
+      brandName:
+        stringSetting(branding, ['brandName', 'platformName', 'name']) ||
+        stringSetting(invoiceDefaults, ['brandName', 'platformName']) ||
+        this.configService.get<string>('INVOICE_PLATFORM_BRAND_NAME') ||
+        'DijiPeople',
+      logoText:
+        stringSetting(branding, ['shortBrandName', 'logoText']) ||
+        this.configService.get<string>('INVOICE_PLATFORM_LOGO_TEXT') ||
+        null,
+      primaryColor:
+        stringSetting(branding, ['primaryColor']) ||
+        this.configService.get<string>('INVOICE_PLATFORM_PRIMARY_COLOR') ||
+        '#0f766e',
+      accentColor:
+        stringSetting(branding, ['accentColor']) ||
+        this.configService.get<string>('INVOICE_PLATFORM_ACCENT_COLOR') ||
+        '#14b8a6',
+      supportEmail:
+        stringSetting(branding, ['supportEmail']) ||
+        stringSetting(invoiceDefaults, ['supportEmail']) ||
+        this.configService.get<string>('SUPPORT_EMAIL') ||
+        'support@dijipeople.com',
+      website:
+        stringSetting(branding, ['website', 'websiteUrl']) ||
+        stringSetting(invoiceDefaults, ['website', 'websiteUrl']) ||
+        this.configService.get<string>('INVOICE_PLATFORM_WEBSITE') ||
+        'https://dijipeople.com',
+      addressLines:
+        arraySetting(invoiceDefaults, 'addressLines') ||
+        splitSetting(
+          stringSetting(invoiceDefaults, ['address']) ||
+            this.configService.get<string>('INVOICE_PLATFORM_ADDRESS'),
+        ),
+      footerText:
+        stringSetting(invoiceDefaults, ['footerText', 'legalText']) ||
+        this.configService.get<string>('INVOICE_FOOTER_TEXT') ||
+        'This invoice was generated electronically by DijiPeople.',
+      paymentInstructions:
+        stringSetting(invoiceDefaults, ['paymentInstructions']) ||
+        this.configService.get<string>('INVOICE_PAYMENT_INSTRUCTIONS') ||
+        'Please pay this invoice according to the payment terms in your platform agreement.',
+      terms:
+        stringSetting(invoiceDefaults, ['terms', 'notes']) ||
+        this.configService.get<string>('INVOICE_TERMS') ||
+        'No signature is required for electronically generated invoices.',
+    };
+  }
+
+  private resolveInvoiceBillFrom(
+    branding: InvoicePdfBranding,
+  ): InvoicePdfParty {
+    return {
+      name: branding.brandName,
+      email: branding.supportEmail,
+      addressLines: branding.addressLines,
+      taxNumber:
+        this.configService.get<string>('INVOICE_PLATFORM_TAX_NUMBER') || null,
+    };
+  }
+
+  private updateInvoiceEmailMetadata(
+    invoiceId: string,
+    data: {
+      emailedAt: Date;
+      emailedTo: string | null;
+      emailStatus: string;
+    },
+  ) {
+    return this.prisma.invoice.update({
+      where: { id: invoiceId },
+      data,
+    });
+  }
+
+  private shouldAutoEmailIssuedInvoices() {
+    return (
+      this.configService.get<string>('INVOICE_EMAIL_ON_ISSUE_ENABLED') ===
+        'true' || process.env.INVOICE_EMAIL_ON_ISSUE_ENABLED === 'true'
+    );
+  }
+
+  private async emailInvoiceIfPossible(
+    actor: AuthenticatedUser,
+    invoiceId: string,
+  ) {
+    try {
+      await this.emailInvoice(actor, invoiceId);
+    } catch {
+      // Manual invoice creation/status changes must not fail just because
+      // invoice email delivery is unavailable; emailInvoice records metadata.
+    }
+  }
+
   private mapCustomerSummary(customer: {
     id: string;
     companyName: string;
@@ -2051,6 +2584,21 @@ export class SuperAdminService {
     dueDate: Date;
     status: InvoiceStatus;
     stripeInvoiceId: string | null;
+    stripeHostedInvoiceUrl?: string | null;
+    stripeInvoicePdfUrl?: string | null;
+    subtotal?: Prisma.Decimal | number | null;
+    tax?: Prisma.Decimal | number | null;
+    total?: Prisma.Decimal | number | null;
+    amountPaid?: Prisma.Decimal | number | null;
+    amountDue?: Prisma.Decimal | number | null;
+    periodStart?: Date | null;
+    periodEnd?: Date | null;
+    generatedAt?: Date | null;
+    generatedByUserId?: string | null;
+    emailedAt?: Date | null;
+    emailedTo?: string | null;
+    emailStatus?: string | null;
+    pdfStorageKey?: string | null;
     tenant: {
       id: string;
       name: string;
@@ -2058,6 +2606,7 @@ export class SuperAdminService {
       customerAccount?: {
         id: string;
         companyName: string;
+        contactEmail?: string;
       } | null;
     };
     subscription: {
@@ -2082,6 +2631,41 @@ export class SuperAdminService {
       dueDate: invoice.dueDate,
       status: invoice.status,
       stripeInvoiceId: invoice.stripeInvoiceId,
+      hostedInvoiceUrl: invoice.stripeHostedInvoiceUrl ?? null,
+      invoicePdfUrl: invoice.stripeInvoicePdfUrl ?? null,
+      subtotal:
+        invoice.subtotal == null
+          ? Number(invoice.amount)
+          : Number(invoice.subtotal),
+      tax: invoice.tax == null ? 0 : Number(invoice.tax),
+      total:
+        invoice.total == null ? Number(invoice.amount) : Number(invoice.total),
+      amountPaid:
+        invoice.amountPaid == null
+          ? invoice.payments
+              .filter((payment) => payment.status === PaymentStatus.SUCCEEDED)
+              .reduce((sum, payment) => sum + Number(payment.amount), 0)
+          : Number(invoice.amountPaid),
+      amountDue:
+        invoice.amountDue == null
+          ? Math.max(
+              Number(invoice.amount) -
+                invoice.payments
+                  .filter(
+                    (payment) => payment.status === PaymentStatus.SUCCEEDED,
+                  )
+                  .reduce((sum, payment) => sum + Number(payment.amount), 0),
+              0,
+            )
+          : Number(invoice.amountDue),
+      periodStart: invoice.periodStart ?? null,
+      periodEnd: invoice.periodEnd ?? null,
+      generatedAt: invoice.generatedAt ?? null,
+      generatedByUserId: invoice.generatedByUserId ?? null,
+      emailedAt: invoice.emailedAt ?? null,
+      emailedTo: invoice.emailedTo ?? null,
+      emailStatus: invoice.emailStatus ?? null,
+      pdfStorageKey: invoice.pdfStorageKey ?? null,
       tenant: {
         id: invoice.tenant.id,
         name: invoice.tenant.name,
@@ -2303,29 +2887,52 @@ export class SuperAdminService {
     return user;
   }
 
-  private mapTenantAccessUser(user: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    status: UserStatus;
-    isServiceAccount: boolean;
-    lastLoginAt: Date | null;
-    createdAt: Date;
-    userRoles: Array<{
-      role: { id: string; key: string; name: string };
-    }>;
-  }) {
+  private mapTenantAccessUser(
+    user: {
+      id: string;
+      firstName: string;
+      lastName: string;
+      email: string;
+      status: UserStatus;
+      isServiceAccount: boolean;
+      lastLoginAt: Date | null;
+      createdAt: Date;
+      createdById: string | null;
+      userRoles: Array<{
+        role: { id: string; key: string; name: string };
+      }>;
+      invitations?: Array<{
+        id: string;
+        status: UserInvitationStatus;
+        expiresAt: Date;
+        consumedAt: Date | null;
+        createdAt: Date;
+      }>;
+    },
+    createdBy: ReturnType<typeof mapAccessActor> | null,
+  ) {
+    const latestInvitation = user.invitations?.[0] ?? null;
     return {
       id: user.id,
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
       status: user.status,
+      accessStatus: resolveTenantAccessStatus(user.status, latestInvitation),
       accessType: user.isServiceAccount ? 'SERVICE_ACCOUNT' : 'GLOBAL_ADMIN',
       isServiceAccount: user.isServiceAccount,
       lastLoginAt: user.lastLoginAt,
       createdAt: user.createdAt,
+      createdBy,
+      activation: latestInvitation
+        ? {
+            id: latestInvitation.id,
+            status: latestInvitation.status,
+            expiresAt: latestInvitation.expiresAt,
+            consumedAt: latestInvitation.consumedAt,
+            createdAt: latestInvitation.createdAt,
+          }
+        : null,
       roles: user.userRoles.map(({ role }) => role),
     };
   }
@@ -2393,4 +3000,140 @@ function normalizeWebhookStatus(value: string | undefined) {
 function maskStripeEventId(value: string) {
   if (value.length <= 12) return value;
   return `${value.slice(0, 8)}...${value.slice(-4)}`;
+}
+
+function mapAccessActor(
+  actor: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    role?: string;
+  },
+  source: 'tenant-user' | 'platform-admin',
+) {
+  return {
+    id: actor.id,
+    fullName: `${actor.firstName} ${actor.lastName}`.trim() || actor.email,
+    email: actor.email,
+    role: actor.role ?? null,
+    source,
+  };
+}
+
+function resolveTenantAccessStatus(
+  userStatus: UserStatus,
+  invitation: {
+    status: UserInvitationStatus;
+    expiresAt: Date;
+    consumedAt: Date | null;
+  } | null,
+) {
+  if (userStatus === UserStatus.DISABLED) return 'Disabled';
+  if (userStatus === UserStatus.ACTIVE) return 'Active';
+
+  if (invitation?.status === UserInvitationStatus.EXPIRED) {
+    return 'Expired Activation';
+  }
+
+  if (
+    invitation?.status === UserInvitationStatus.PENDING &&
+    invitation.expiresAt.getTime() <= Date.now()
+  ) {
+    return 'Expired Activation';
+  }
+
+  return 'Pending Activation';
+}
+
+function buildInvoiceEmailVariables(
+  invoice: Awaited<ReturnType<SuperAdminService['getInvoiceRecord']>>,
+) {
+  const paid = invoice.payments
+    .filter((payment) => payment.status === PaymentStatus.SUCCEEDED)
+    .reduce((sum, payment) => sum + Number(payment.amount), 0);
+  const amountDue = Math.max(Number(invoice.amount) - paid, 0);
+  return {
+    platformName: 'DijiPeople',
+    tenantName: invoice.tenant.name,
+    recipientName:
+      invoice.tenant.customerAccount?.companyName ?? invoice.tenant.name,
+    invoiceNumber: invoice.invoiceNumber,
+    currency: invoice.currency,
+    amountDue: amountDue.toFixed(2),
+    dueDate: invoice.dueDate.toISOString().slice(0, 10),
+    billingPeriod:
+      invoice.periodStart && invoice.periodEnd
+        ? `${invoice.periodStart.toISOString().slice(0, 10)} to ${invoice.periodEnd
+            .toISOString()
+            .slice(0, 10)}`
+        : 'Current billing period',
+    paymentInstructions:
+      'Please pay this invoice according to the payment terms in your platform agreement.',
+    supportEmail: process.env.SUPPORT_EMAIL ?? 'support@dijipeople.com',
+  };
+}
+
+function sanitizeFilePart(value: string) {
+  return value.replace(/[^A-Za-z0-9_.-]/g, '_').slice(0, 120);
+}
+
+function formatBillingPeriod(start?: Date | null, end?: Date | null) {
+  if (!start || !end) return 'Current billing period';
+  return `${formatInvoiceDate(start)} - ${formatInvoiceDate(end)}`;
+}
+
+function cleanInvoiceString(value: string | null | undefined) {
+  const trimmed = value?.trim();
+  return trimmed || null;
+}
+
+function compactInvoiceLines(values: Array<string | null | undefined>) {
+  return values
+    .map((value) => value?.trim())
+    .filter((value): value is string => Boolean(value));
+}
+
+function objectValue(value: unknown): Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function stringSetting(
+  source: Record<string, unknown>,
+  keys: string[],
+): string | null {
+  for (const key of keys) {
+    const value = source[key];
+    if (typeof value === 'string' && value.trim()) return value.trim();
+  }
+  return null;
+}
+
+function arraySetting(
+  source: Record<string, unknown>,
+  key: string,
+): string[] | null {
+  const value = source[key];
+  if (!Array.isArray(value)) return null;
+  const lines = value
+    .map((item) => (typeof item === 'string' ? item.trim() : null))
+    .filter((item): item is string => Boolean(item));
+  return lines.length ? lines : null;
+}
+
+function splitSetting(value: string | null | undefined) {
+  return value
+    ?.split('|')
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+function readInvoiceMetadataString(
+  metadata: Prisma.JsonValue | null,
+  keys: string[],
+) {
+  const source = objectValue(metadata);
+  return stringSetting(source, keys);
 }

@@ -64,6 +64,7 @@ export interface RuntimePrincipal {
 
 export interface PermissionRequirement {
   readonly permissionKey: string;
+  readonly anyPermissionKeys?: readonly string[];
   readonly operation?: PermissionOperation;
   readonly scope?: PermissionScope;
 }

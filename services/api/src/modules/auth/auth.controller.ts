@@ -14,7 +14,9 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { ActivateAccountDto } from './dto/activate-account.dto';
 import { InvitationStatusQueryDto } from './dto/invitation-status-query.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { LoginDto } from './dto/login.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { SignupDto } from './dto/signup.dto';
 import { AuthService } from './auth.service';
@@ -100,6 +102,18 @@ export class AuthController {
   @Post('activate-account')
   activateAccount(@Body() dto: ActivateAccountDto) {
     return this.authService.activateAccount(dto.token, dto.password);
+  }
+
+  @Public()
+  @Post('forgot-password')
+  forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.requestPasswordReset(dto);
+  }
+
+  @Public()
+  @Post('reset-password')
+  resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto.token, dto.password);
   }
 
   @Public()

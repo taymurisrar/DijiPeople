@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import {
+  CURRENCY_OPTIONS,
   DEFAULT_DOCUMENT_CATEGORIES,
   DEFAULT_DOCUMENT_TYPES,
   DEFAULT_RELATION_TYPES,
@@ -51,19 +52,8 @@ export class LookupsService {
   }
 
   listCurrencies() {
-    const currencies = [
-      { code: 'USD', name: 'US Dollar', symbol: '$', decimals: 2 },
-      { code: 'QAR', name: 'Qatari Riyal', symbol: 'QR', decimals: 2 },
-      { code: 'SAR', name: 'Saudi Riyal', symbol: 'SR', decimals: 2 },
-      { code: 'AED', name: 'UAE Dirham', symbol: 'AED', decimals: 2 },
-      { code: 'PKR', name: 'Pakistani Rupee', symbol: 'Rs', decimals: 2 },
-      { code: 'INR', name: 'Indian Rupee', symbol: 'Rs', decimals: 2 },
-      { code: 'GBP', name: 'Pound Sterling', symbol: 'GBP', decimals: 2 },
-      { code: 'EUR', name: 'Euro', symbol: 'EUR', decimals: 2 },
-    ];
-
     return {
-      items: currencies.map((currency) => ({
+      items: CURRENCY_OPTIONS.map((currency) => ({
         ...currency,
         id: currency.code,
         value: currency.code,
