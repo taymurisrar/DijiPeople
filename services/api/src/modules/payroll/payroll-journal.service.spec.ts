@@ -18,7 +18,13 @@ describe('PayrollJournalService', () => {
     prisma = {
       payrollRun: { findFirst: jest.fn().mockResolvedValue(run()) },
       payrollJournalEntry: {
+        findFirst: jest.fn().mockResolvedValue(null),
         findUnique: jest.fn().mockResolvedValue(null),
+        findUniqueOrThrow: jest
+          .fn()
+          .mockImplementation(({ where }) =>
+            Promise.resolve(journal({ id: where.id, lines: createdLines })),
+          ),
         create: jest.fn().mockResolvedValue({
           id: 'journal-1',
           journalNumber: null,
@@ -60,6 +66,7 @@ describe('PayrollJournalService', () => {
       prisma,
       { log: jest.fn() } as never,
       resolver as never,
+      { dispatch: jest.fn().mockResolvedValue(undefined) } as never,
     );
   });
 
@@ -148,7 +155,7 @@ describe('PayrollJournalService', () => {
   });
 
   it('cleans old lines before regeneration', async () => {
-    prisma.payrollJournalEntry.findUnique.mockResolvedValueOnce({
+    prisma.payrollJournalEntry.findFirst.mockResolvedValueOnce({
       id: 'journal-1',
       status: PayrollJournalEntryStatus.GENERATED,
       lines: [{ id: 'old-line' }],
@@ -165,7 +172,7 @@ describe('PayrollJournalService', () => {
   });
 
   it('blocks regeneration for exported journals', async () => {
-    prisma.payrollJournalEntry.findUnique.mockResolvedValueOnce({
+    prisma.payrollJournalEntry.findFirst.mockResolvedValueOnce({
       id: 'journal-1',
       status: PayrollJournalEntryStatus.EXPORTED,
       lines: [],
@@ -180,7 +187,7 @@ describe('PayrollJournalService', () => {
   });
 
   it('exports generated journal lines as CSV', async () => {
-    prisma.payrollJournalEntry.findUnique.mockResolvedValueOnce(
+    prisma.payrollJournalEntry.findFirst.mockResolvedValueOnce(
       journal({ status: PayrollJournalEntryStatus.GENERATED }),
     );
 
@@ -189,6 +196,120 @@ describe('PayrollJournalService', () => {
     expect(csv).toContain('"journalNumber","payrollRunId","accountCode"');
     expect(csv).toContain('GL-202604-1');
     expect(csv).toContain('5000');
+  });
+
+  it('creates a separate balanced reversal journal with swapped debit and credit', async () => {
+    const original = journal({
+      status: PayrollJournalEntryStatus.POSTED,
+      reversalJournalId: null,
+      lines: [
+        {
+          id: 'line-1',
+          tenantId: 'tenant-1',
+          payrollRunLineItemId: 'run-line-1',
+          accountId: 'expense-account',
+          debitAmount: new Prisma.Decimal(250),
+          creditAmount: new Prisma.Decimal(0),
+          description: 'Expense',
+          employeeId: 'employee-1',
+          payComponentId: 'pc-basic',
+          taxRuleId: null,
+          account: account(),
+          employee: null,
+          payComponent: null,
+          taxRule: null,
+          payrollRunLineItem: null,
+        },
+        {
+          id: 'line-2',
+          tenantId: 'tenant-1',
+          payrollRunLineItemId: 'run-line-1',
+          accountId: 'payable-account',
+          debitAmount: new Prisma.Decimal(0),
+          creditAmount: new Prisma.Decimal(250),
+          description: 'Payable',
+          employeeId: 'employee-1',
+          payComponentId: 'pc-basic',
+          taxRuleId: null,
+          account: account(),
+          employee: null,
+          payComponent: null,
+          taxRule: null,
+          payrollRunLineItem: null,
+        },
+      ],
+    });
+    prisma.payrollJournalEntry.findFirst
+      .mockResolvedValueOnce(original)
+      .mockResolvedValueOnce(null);
+    const createMany = jest.fn().mockResolvedValue({ count: 2 });
+    prisma.$transaction = jest.fn(async (callback) =>
+      callback({
+        payrollJournalEntry: {
+          create: jest.fn().mockResolvedValue({
+            id: 'reversal-1',
+            journalNumber: 'GL-202604-1-REV',
+          }),
+          update: jest.fn().mockResolvedValue({}),
+          findUniqueOrThrow: jest.fn().mockResolvedValue(
+            journal({
+              id: 'reversal-1',
+              status: PayrollJournalEntryStatus.GENERATED,
+              journalNumber: 'GL-202604-1-REV',
+              lines: [
+                {
+                  ...original.lines[0],
+                  debitAmount: new Prisma.Decimal(0),
+                  creditAmount: new Prisma.Decimal(250),
+                },
+                {
+                  ...original.lines[1],
+                  debitAmount: new Prisma.Decimal(250),
+                  creditAmount: new Prisma.Decimal(0),
+                },
+              ],
+            }),
+          ),
+        },
+        payrollJournalEntryLine: { createMany },
+      }),
+    );
+
+    const result = await service.reverseJournal(user(), 'run-1', {
+      reason: 'Correction',
+      reversalDate: '2026-05-01',
+    });
+
+    expect(result.id).toBe('reversal-1');
+    expect(createMany).toHaveBeenCalledWith({
+      data: expect.arrayContaining([
+        expect.objectContaining({
+          debitAmount: new Prisma.Decimal(0),
+          creditAmount: new Prisma.Decimal(250),
+        }),
+        expect.objectContaining({
+          debitAmount: new Prisma.Decimal(250),
+          creditAmount: new Prisma.Decimal(0),
+        }),
+      ]),
+    });
+    expect(result.balanced).toBe(true);
+  });
+
+  it('blocks duplicate journal reversals', async () => {
+    prisma.payrollJournalEntry.findFirst.mockResolvedValueOnce(
+      journal({
+        status: PayrollJournalEntryStatus.POSTED,
+        reversalJournalId: 'reversal-1',
+      }),
+    );
+
+    await expect(
+      service.reverseJournal(user(), 'run-1', {
+        reason: 'Duplicate',
+        reversalDate: '2026-05-01',
+      }),
+    ).rejects.toThrow(ConflictException);
   });
 });
 

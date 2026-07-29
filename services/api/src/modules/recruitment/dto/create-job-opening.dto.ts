@@ -3,6 +3,7 @@ import {
   IsEnum,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
   ValidateNested,
 } from 'class-validator';
@@ -23,6 +24,10 @@ export class CreateJobOpeningDto {
   @IsString()
   @MaxLength(4000)
   description?: string;
+
+  @IsOptional()
+  @IsUUID()
+  pipelineId?: string;
 
   @IsOptional()
   @IsEnum(JobOpeningStatus)

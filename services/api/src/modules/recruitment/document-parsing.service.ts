@@ -90,6 +90,7 @@ export type ResumeParseDraft = {
   noticePeriodHint: string;
   workModeHint: string;
   relocationHint: string;
+  preferredLocationHint: string;
 };
 
 @Injectable()
@@ -358,6 +359,7 @@ function parseCandidateDraftFromText(
     ]),
     workModeHint: inferWorkMode(text),
     relocationHint: inferRelocation(text),
+    preferredLocationHint: inferValue(text, ['preferred locations']),
   };
 }
 
@@ -577,13 +579,14 @@ function inferCurrentDesignation(lines: string[], sections: SectionMap) {
   const explicit = inferValue(lines.join('\n'), [
     'current designation',
     'current role',
+    'current job title',
     'job title',
     'title',
     'position',
     'designation',
   ]);
 
-  if (explicit) return explicit;
+  if (explicit) return cleanDesignationValue(explicit);
 
   const searchLines = [
     ...lines.slice(0, 15),
@@ -596,7 +599,7 @@ function inferCurrentDesignation(lines: string[], sections: SectionMap) {
     ),
   );
 
-  return match ? cleanInlineValue(match) : '';
+  return match ? cleanDesignationValue(match) : '';
 }
 
 function inferCurrentEmployer(lines: string[], sections: SectionMap) {
@@ -610,6 +613,14 @@ function inferCurrentEmployer(lines: string[], sections: SectionMap) {
 
   if (explicit) return explicit;
 
+  const currentEmployerMatch = sections.experience?.match(
+    /(?:present|current)\s*\n\s*([A-Z][^\n]{2,120})/i,
+  );
+  if (currentEmployerMatch?.[1]) {
+    const currentEmployer = cleanEmployerValue(currentEmployerMatch[1]);
+    if (currentEmployer) return currentEmployer;
+  }
+
   const experienceLines = sections.experience
     ? sections.experience
         .split('\n')
@@ -619,8 +630,14 @@ function inferCurrentEmployer(lines: string[], sections: SectionMap) {
 
   const employerLine = experienceLines.find((line) => {
     if (line.length > 110) return false;
+    if (
+      /^(lead|manage|design|develop|created|integrated|participated|reduced|improved|established|collaborate|worked|responsible|delivered|built|implemented)\b/i.test(
+        line,
+      )
+    )
+      return false;
 
-    return /\bat\b|\bwith\b|\bcompany\b|\bpvt\b|\bltd\b|\bllc\b|\binc\b|\bbank\b|\bgroup\b|\btechnologies\b|\bsolutions\b/i.test(
+    return /\bat\b|\bcompany\b|\bpvt\b|\bltd\b|\bllc\b|\binc\b|\bbank\b|\bgroup\b|\btechnologies\b|\bsolutions\b|\bsystems\b|\bdigital\b/i.test(
       line,
     );
   });
@@ -628,9 +645,9 @@ function inferCurrentEmployer(lines: string[], sections: SectionMap) {
   if (!employerLine) return '';
 
   const atMatch = employerLine.match(/\bat\s+(.+)$/i);
-  if (atMatch?.[1]) return cleanInlineValue(atMatch[1]);
+  if (atMatch?.[1]) return cleanEmployerValue(atMatch[1]);
 
-  return cleanInlineValue(employerLine);
+  return cleanEmployerValue(employerLine);
 }
 
 function inferLocation(text: string, lines: string[]) {
@@ -665,7 +682,11 @@ function inferLocation(text: string, lines: string[]) {
     ) {
       return {
         city: split.city,
-        stateProvince: split.stateProvince,
+        stateProvince:
+          split.stateProvince ||
+          (normalizeCountryName(split.country) === 'United Arab Emirates'
+            ? split.city
+            : ''),
         country: normalizeCountryName(split.country),
       };
     }
@@ -674,7 +695,7 @@ function inferLocation(text: string, lines: string[]) {
   const knownLocations: Array<{
     city: string;
     stateProvince: string;
-    country: 'Pakistan' | 'United States';
+    country: 'Pakistan' | 'United States' | 'United Arab Emirates';
     aliases: string[];
   }> = [
     // Pakistan - Sindh
@@ -995,6 +1016,26 @@ function inferLocation(text: string, lines: string[]) {
       country: 'United States',
       aliases: ['tampa', 'tampa fl'],
     },
+
+    // United Arab Emirates
+    {
+      city: 'Dubai',
+      stateProvince: 'Dubai',
+      country: 'United Arab Emirates',
+      aliases: ['dubai', 'dubai uae', 'dubai united arab emirates'],
+    },
+    {
+      city: 'Abu Dhabi',
+      stateProvince: 'Abu Dhabi',
+      country: 'United Arab Emirates',
+      aliases: ['abu dhabi', 'abu dhabi uae', 'abu dhabi united arab emirates'],
+    },
+    {
+      city: 'Sharjah',
+      stateProvince: 'Sharjah',
+      country: 'United Arab Emirates',
+      aliases: ['sharjah', 'sharjah uae'],
+    },
   ];
 
   const searchableText = [lines.slice(0, 18).join(' '), text.slice(0, 2500)]
@@ -1042,12 +1083,20 @@ function normalizeCountryName(country: string) {
     return 'Pakistan';
   }
 
+  if (['uae', 'u.a.e.', 'emirates', 'united arab emirates'].includes(value)) {
+    return 'United Arab Emirates';
+  }
+
   return '';
 }
 
 function isSupportedCountry(country: string) {
   const normalized = normalizeCountryName(country);
-  return normalized === 'Pakistan' || normalized === 'United States';
+  return (
+    normalized === 'Pakistan' ||
+    normalized === 'United States' ||
+    normalized === 'United Arab Emirates'
+  );
 }
 
 function isKnownPakistanOrUSCity(city: string) {
@@ -1083,6 +1132,9 @@ function isKnownPakistanOrUSCity(city: string) {
     'las vegas',
     'orlando',
     'tampa',
+    'dubai',
+    'abu dhabi',
+    'sharjah',
   ].includes(value);
 }
 
@@ -1777,7 +1829,7 @@ function extractEntryLines(text: string) {
   return dedupe(
     text
       .split(/\n|•/)
-      .map((line) => cleanInlineValue(line))
+      .map((line) => normalizeResumeInlineText(cleanInlineValue(line)))
       .filter((line) => line.length >= 5)
       .filter((line) => line.length <= 220),
   );
@@ -1797,7 +1849,7 @@ function inferValue(text: string, cues: string[]) {
       );
       const match = line.match(pattern);
 
-      if (match?.[1]) return cleanInlineValue(match[1]);
+      if (match?.[1]) return cleanInferredValue(match[1]);
     }
   }
 
@@ -1998,6 +2050,91 @@ function cleanInlineValue(value: string) {
     .replace(/^[•\-–—|:]+/, '')
     .replace(/[|]+$/g, '')
     .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+function cleanDesignationValue(value: string) {
+  return stopAtResumeLabels(
+    normalizeResumeInlineText(cleanInlineValue(value)),
+    [
+      'applying for',
+      'relevant experience',
+      'current location',
+      'preferred locations',
+      'preferred work mode',
+      'availability',
+    ],
+  )
+    .replace(
+      /\b(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+(?:19|20)\d{2}\b.*$/i,
+      '',
+    )
+    .trim();
+}
+
+function cleanEmployerValue(value: string) {
+  return stopAtResumeLabels(
+    normalizeResumeInlineText(cleanInlineValue(value)),
+    [
+      'current job title',
+      'applying for',
+      'relevant experience',
+      'current location',
+      'preferred locations',
+      'preferred work mode',
+      'availability',
+    ],
+  )
+    .replace(
+      /\b(dubai|abu dhabi|sharjah|lahore|karachi|islamabad|pakistan|uae|united arab emirates|qatar|saudi arabia)\b.*$/i,
+      '',
+    )
+    .trim();
+}
+
+function normalizeResumeInlineText(value: string) {
+  return value
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/([A-Za-z])((?:19|20)\d{2})/g, '$1 $2')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+function stopAtResumeLabels(value: string, labels: string[]) {
+  let output = value;
+
+  for (const label of labels) {
+    const match = output.match(
+      new RegExp(`\\s+${escapeRegExp(label)}\\s*:`, 'i'),
+    );
+    if (match?.index !== undefined) {
+      output = output.slice(0, match.index);
+    }
+  }
+
+  return output.trim();
+}
+
+function cleanInferredValue(value: string) {
+  return stopAtResumeLabels(
+    normalizeResumeInlineText(cleanInlineValue(value)),
+    [
+      'applying for',
+      'relevant experience',
+      'current location',
+      'preferred locations',
+      'preferred work mode',
+      'availability',
+      'work mode',
+      'open to relocation',
+      'current job title',
+      'current employer',
+      'current salary',
+      'expected salary',
+      'notice period',
+    ],
+  )
+    .replace(/\s+Preferred$/i, '')
     .trim();
 }
 

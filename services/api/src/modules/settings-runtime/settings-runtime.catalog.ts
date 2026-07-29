@@ -1,7 +1,4 @@
 export const GENERIC_CONFIGURATION_KEYS = new Set([
-  'regions',
-  'fiscal-years',
-  'business-date-rules',
   'field-security',
   'password-login-policies',
   'salary-package-rules',
@@ -9,6 +6,7 @@ export const GENERIC_CONFIGURATION_KEYS = new Set([
   'escalation-rules',
   'workflow-templates',
   'retention-rules',
+  'document-templates',
 ]);
 
 export function isGenericConfigurationKey(value: string) {

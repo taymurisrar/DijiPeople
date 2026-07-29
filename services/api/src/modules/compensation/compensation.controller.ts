@@ -15,6 +15,10 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { CompensationService } from './compensation.service';
+import {
+  AssignSalaryPackageDto,
+  CreateCompensationRevisionDto,
+} from './dto/assign-salary-package.dto';
 import { CreateCompensationComponentDto } from './dto/create-compensation-component.dto';
 import { CreateCompensationHistoryDto } from './dto/create-compensation-history.dto';
 import { UpdateCompensationComponentDto } from './dto/update-compensation-component.dto';
@@ -44,6 +48,16 @@ export class CompensationController {
     return this.compensationService.createHistory(user, employeeId, dto);
   }
 
+  @Post('compensation-history/assign-package')
+  @Permissions('compensation.manage')
+  assignSalaryPackage(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
+    @Body() dto: AssignSalaryPackageDto,
+  ) {
+    return this.compensationService.assignSalaryPackage(user, employeeId, dto);
+  }
+
   @Get('compensation-history/:id')
   @Permissions('compensation.read')
   getHistory(
@@ -63,6 +77,17 @@ export class CompensationController {
     @Body() dto: UpdateCompensationHistoryDto,
   ) {
     return this.compensationService.updateHistory(user, employeeId, id, dto);
+  }
+
+  @Post('compensation-history/:id/revisions')
+  @Permissions('compensation.manage')
+  createRevision(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: CreateCompensationRevisionDto,
+  ) {
+    return this.compensationService.createRevision(user, employeeId, id, dto);
   }
 
   @Get('active-compensation')

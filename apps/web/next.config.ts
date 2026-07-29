@@ -33,7 +33,7 @@ const nextConfig: NextConfig = {
       ],
       [
         "/settings/holiday-calendars",
-        "/settings/people/work-management/holidays",
+        "/settings/people/work-management/holiday-calendars",
       ],
       ["/settings/shifts", "/settings/people/work-management/shifts"],
       ["/settings/tenant", "/settings/general-setup/tenant/tenant-profile"],
@@ -45,7 +45,9 @@ const nextConfig: NextConfig = {
         "/settings/appearance/experience/system-preferences",
       ],
       ["/settings/recruitment", "/settings/general-setup/modules/recruitment"],
-      ["/settings/access/users", "/settings/security-access/users"],
+      ["/settings/access/users", "/settings/security-access/identities/users"],
+      ["/settings/security-access/users", "/settings/security-access/identities/users"],
+      ["/settings/access/roles", "/settings/security-access/authorization/roles"],
       ["/settings/leave-types", "/settings/people/leave/leave-types"],
       [
         "/settings/pay-components",
@@ -99,15 +101,15 @@ const nextConfig: NextConfig = {
       ],
       [
         "/settings/field-security",
-        "/settings/security-access/governance/field-security",
+        "/settings/security-access/security-governance/field-security",
       ],
       [
         "/settings/password-login-policies",
-        "/settings/security-access/governance/password-login-policies",
+        "/settings/security-access/security-governance/password-login-policies",
       ],
       [
         "/settings/login-history",
-        "/settings/security-access/governance/login-history",
+        "/settings/security-access/security-governance/login-history",
       ],
       ["/settings/payroll-periods", "/settings/payroll/cycles/payroll-periods"],
       [

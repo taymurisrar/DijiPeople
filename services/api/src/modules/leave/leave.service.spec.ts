@@ -7,6 +7,7 @@ describe('LeaveService', () => {
     findLeaveTypeById: jest.Mock;
     findLeaveTypes: jest.Mock;
     findActiveLeavePolicyAssignments: jest.Mock;
+    listActiveLeavePolicyRules: jest.Mock;
   };
   let employeesRepository: {
     findByUserIdAndTenant: jest.Mock;
@@ -17,6 +18,7 @@ describe('LeaveService', () => {
       findLeaveTypeById: jest.fn(),
       findLeaveTypes: jest.fn().mockResolvedValue([]),
       findActiveLeavePolicyAssignments: jest.fn().mockResolvedValue([]),
+      listActiveLeavePolicyRules: jest.fn().mockResolvedValue([]),
     };
     employeesRepository = {
       findByUserIdAndTenant: jest.fn(),
@@ -42,6 +44,7 @@ describe('LeaveService', () => {
     leaveRepository.findLeaveTypeById.mockResolvedValue({
       id: 'leave-type-1',
       isActive: true,
+      employeeRequestAllowed: true,
     });
 
     await expect(
@@ -79,6 +82,11 @@ describe('LeaveService', () => {
         leavePolicy: { id: 'policy-1', name: 'Default', isActive: true },
       },
     ]);
+    leaveRepository.listActiveLeavePolicyRules.mockResolvedValue([
+      {
+        leaveTypeId: 'leave-type-1',
+      },
+    ]);
     leaveRepository.findLeaveTypes.mockResolvedValue([
       {
         id: 'leave-type-1',
@@ -87,6 +95,10 @@ describe('LeaveService', () => {
         category: 'ANNUAL',
         requiresApproval: true,
         isPaid: true,
+        employeeRequestAllowed: true,
+        requiresAttachment: false,
+        allowHalfDay: true,
+        allowHourlyLeave: false,
       },
     ]);
 
@@ -106,6 +118,9 @@ describe('LeaveService', () => {
           category: 'ANNUAL',
           requiresApproval: true,
           isPaid: true,
+          requiresAttachment: false,
+          allowHalfDay: true,
+          allowHourlyLeave: false,
         },
       ],
     });

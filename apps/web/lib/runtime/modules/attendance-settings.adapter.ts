@@ -13,6 +13,7 @@ export type AttendanceRuntimeConfiguration = {
     allowRemoteWithoutLocation: boolean;
     allowManualAdjustments: boolean;
     allowedModes: string[];
+    standardWorkHoursPerDay: number;
   } | null;
   issues: string[];
 };

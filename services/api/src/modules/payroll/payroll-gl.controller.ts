@@ -7,6 +7,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   Delete,
   UseGuards,
 } from '@nestjs/common';
@@ -18,6 +19,7 @@ import type { AuthenticatedUser } from '../../common/interfaces/authenticated-re
 import {
   CreatePayrollGlAccountDto,
   CreatePayrollPostingRuleDto,
+  PreviewPayrollPostingRuleDto,
   UpdatePayrollGlAccountDto,
   UpdatePayrollPostingRuleDto,
 } from './dto/payroll-gl.dto';
@@ -86,6 +88,34 @@ export class PayrollGlController {
     return this.payrollJournalService.listPostingRules(user);
   }
 
+  @Post('posting-rules/preview-resolution')
+  @Permissions('payroll-gl.read')
+  previewPostingRuleResolution(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: PreviewPayrollPostingRuleDto,
+  ) {
+    return this.payrollJournalService.previewPostingRuleResolution(user, dto);
+  }
+
+  @Get('policies')
+  @Permissions('payroll.settings.read')
+  listPayrollPolicies(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query()
+    query: {
+      search?: string;
+      policyType?: string;
+      status?: string;
+      organizationId?: string;
+      countryCode?: string;
+      ownerUserId?: string;
+      effectiveDate?: string;
+      isDefault?: string;
+    },
+  ) {
+    return this.payrollJournalService.listPolicyRegister(user, query);
+  }
+
   @Get('posting-rules/:id')
   @Permissions('payroll-gl.read')
   getPostingRule(
@@ -136,6 +166,15 @@ export class PayrollGlController {
     return this.payrollJournalService.getJournal(user, runId);
   }
 
+  @Get('runs/:runId/journals')
+  @Permissions('payroll-journal.read')
+  listJournals(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('runId', new ParseUUIDPipe()) runId: string,
+  ) {
+    return this.payrollJournalService.listJournals(user, runId);
+  }
+
   @Get('runs/:runId/journal/export')
   @Permissions('payroll-journal.export')
   @Header('Content-Type', 'text/csv; charset=utf-8')
@@ -154,5 +193,33 @@ export class PayrollGlController {
     @Param('runId', new ParseUUIDPipe()) runId: string,
   ) {
     return this.payrollJournalService.markJournalExported(user, runId);
+  }
+
+  @Post('runs/:runId/journal/validate')
+  @Permissions('payroll-journal.read')
+  validateJournal(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('runId', new ParseUUIDPipe()) runId: string,
+  ) {
+    return this.payrollJournalService.validateJournal(user, runId);
+  }
+
+  @Post('runs/:runId/journal/mark-posted')
+  @Permissions('payroll-journal.export')
+  markJournalPosted(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('runId', new ParseUUIDPipe()) runId: string,
+  ) {
+    return this.payrollJournalService.markJournalPosted(user, runId);
+  }
+
+  @Post('runs/:runId/journal/reverse')
+  @Permissions('payroll-journal.export')
+  reverseJournal(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('runId', new ParseUUIDPipe()) runId: string,
+    @Body() body: { reason?: string; reversalDate?: string },
+  ) {
+    return this.payrollJournalService.reverseJournal(user, runId, body);
   }
 }

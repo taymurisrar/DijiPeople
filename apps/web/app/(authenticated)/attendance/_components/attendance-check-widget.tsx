@@ -1,14 +1,19 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import type {
   AttendanceEntryRecord,
   AttendanceLocationOption,
   AttendanceMode,
 } from "../types";
+import { SideToast } from "@/app/components/notifications";
 import { Button } from "@/app/components/ui/button";
 import { formatDateTime } from "@/lib/formatting-context";
+import {
+  captureAttendanceLocation,
+  googleMapsLocationUrl,
+} from "@/lib/location/location-capture";
 import { useResolvedSettings } from "../../_components/resolved-settings-provider";
 import { AttendanceStatusBadge } from "./attendance-status-badge";
 
@@ -24,6 +29,9 @@ type BrowserLocationPayload = {
   accuracy?: number;
   capturedAt: string;
   addressText?: string;
+  source?: string;
+  confidence?: string;
+  permissionState?: string;
 };
 
 export function AttendanceCheckWidget({
@@ -55,11 +63,6 @@ export function AttendanceCheckWidget({
   const openEntry = activeEntry;
   const canCheckIn = activeEntry === null;
   const canCheckOut = activeEntry?.canCurrentUserCheckOut ?? false;
-  const activeMode = useMemo(
-    () => openEntry?.attendanceMode ?? checkInMode,
-    [openEntry?.attendanceMode, checkInMode],
-  );
-
   async function captureBrowserLocation() {
     const location = await captureBrowserLocationPayload();
     if (!location) return null;
@@ -81,61 +84,39 @@ export function AttendanceCheckWidget({
   }
 
   async function captureBrowserLocationPayload(): Promise<BrowserLocationPayload | null> {
-    if (!navigator.geolocation) {
-      setError("Browser geolocation is not available on this device.");
-      return null;
-    }
-
     setIsCapturingLocation(true);
     setError(null);
     setMessage(null);
 
     try {
-      const position = await new Promise<GeolocationPosition>(
-        (resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            enableHighAccuracy: true,
-            timeout: 10000,
-          });
-        },
-      );
-      const latitude = Number(position.coords.latitude.toFixed(6));
-      const longitude = Number(position.coords.longitude.toFixed(6));
-      let addressText: string | undefined;
+      const result = await captureAttendanceLocation({
+        timeoutSeconds:
+          resolvedSettings.raw?.attendance.locationTimeoutSeconds ?? 15,
+        retryAttempts:
+          resolvedSettings.raw?.attendance.locationRetryAttempts ?? 2,
+        highAccuracy:
+          resolvedSettings.raw?.attendance.highAccuracyLocation ?? true,
+      });
 
-      try {
-        const response = await fetch(
-          `/api/attendance/reverse-geocode?latitude=${latitude}&longitude=${longitude}`,
-        );
-
-        if (response.ok) {
-          const data = (await response.json()) as {
-            addressText?: string | null;
-          };
-          addressText = data.addressText ?? undefined;
-        }
-      } catch {
-        addressText = undefined;
-      }
-
-      if (!addressText?.trim()) {
-        setError(
-          "Current location was detected, but the address could not be resolved. Please try again.",
-        );
+      if (!result.ok) {
+        setError(result.message);
         return null;
       }
 
       return {
-        latitude,
-        longitude,
-        accuracy: position.coords.accuracy,
-        capturedAt: new Date().toISOString(),
-        addressText,
+        latitude: result.latitude,
+        longitude: result.longitude,
+        accuracy: result.accuracyMeters,
+        capturedAt: result.capturedAt,
+        source: result.source,
+        confidence: result.confidence,
+        permissionState: result.permissionState,
+        addressText: result.addressText,
       };
-    } catch (geoError) {
+    } catch (locationError) {
       setError(
-        geoError instanceof Error
-          ? geoError.message
+        locationError instanceof Error
+          ? locationError.message
           : "Location permission was denied or unavailable.",
       );
       return null;
@@ -144,42 +125,15 @@ export function AttendanceCheckWidget({
     }
   }
 
-  async function resolveRemoteLocationForSubmit() {
-    if (
-      remoteLocation.latitude !== undefined &&
-      remoteLocation.longitude !== undefined &&
-      remoteLocation.addressText
-    ) {
-      return {
-        latitude: remoteLocation.latitude,
-        longitude: remoteLocation.longitude,
-        accuracy: remoteLocation.accuracy,
-        capturedAt: remoteLocation.capturedAt ?? new Date().toISOString(),
-        addressText: remoteLocation.addressText,
-      } satisfies BrowserLocationPayload;
-    }
-
-    return captureBrowserLocation();
-  }
-
-  function isRemoteLocationMode(mode: AttendanceMode) {
-    return mode === "REMOTE" || mode === "HYBRID";
-  }
-
   async function performCheckIn() {
     setIsSubmitting(true);
     setError(null);
     setMessage(null);
 
     try {
-      const locationPayload = isRemoteLocationMode(checkInMode)
-        ? await resolveRemoteLocationForSubmit()
-        : null;
+      const locationPayload = await captureBrowserLocation();
 
-      if (isRemoteLocationMode(checkInMode) && !locationPayload) {
-        setIsSubmitting(false);
-        return;
-      }
+      if (!locationPayload) return;
 
       const response = await fetch("/api/attendance/check-in", {
         method: "POST",
@@ -189,13 +143,12 @@ export function AttendanceCheckWidget({
         body: JSON.stringify({
           attendanceMode: checkInMode,
           officeLocationId:
-            checkInMode === "OFFICE" ? officeLocationId || undefined : undefined,
+            checkInMode === "OFFICE"
+              ? officeLocationId || undefined
+              : undefined,
           note: checkInNote || undefined,
           workSummary: workSummary || undefined,
-          remoteLatitude: locationPayload?.latitude,
-          remoteLongitude: locationPayload?.longitude,
-          locationAccuracy: locationPayload?.accuracy,
-          locationCapturedAt: locationPayload?.capturedAt,
+          ...buildAttendanceLocationRequest(locationPayload),
           remoteAddressText: locationPayload?.addressText,
           checkInAddressText: locationPayload?.addressText,
         }),
@@ -204,10 +157,10 @@ export function AttendanceCheckWidget({
       const data = (await response.json()) as { message?: string };
       if (!response.ok) {
         setError(data.message ?? "Unable to check in.");
-        setIsSubmitting(false);
         return;
       }
 
+      setMessage("Attendance check-in recorded with your current location.");
       router.refresh();
     } catch (requestError) {
       setError(
@@ -226,14 +179,9 @@ export function AttendanceCheckWidget({
     setMessage(null);
 
     try {
-      const locationPayload = isRemoteLocationMode(activeMode)
-        ? await resolveRemoteLocationForSubmit()
-        : null;
+      const locationPayload = await captureBrowserLocation();
 
-      if (isRemoteLocationMode(activeMode) && !locationPayload) {
-        setIsSubmitting(false);
-        return;
-      }
+      if (!locationPayload) return;
 
       const response = await fetch("/api/attendance/check-out", {
         method: "POST",
@@ -243,10 +191,7 @@ export function AttendanceCheckWidget({
         body: JSON.stringify({
           note: checkOutNote || undefined,
           workSummary: workSummary || undefined,
-          remoteLatitude: locationPayload?.latitude,
-          remoteLongitude: locationPayload?.longitude,
-          locationAccuracy: locationPayload?.accuracy,
-          locationCapturedAt: locationPayload?.capturedAt,
+          ...buildAttendanceLocationRequest(locationPayload),
           remoteAddressText: locationPayload?.addressText,
           checkOutAddressText: locationPayload?.addressText,
         }),
@@ -255,10 +200,10 @@ export function AttendanceCheckWidget({
       const data = (await response.json()) as { message?: string };
       if (!response.ok) {
         setError(data.message ?? "Unable to check out.");
-        setIsSubmitting(false);
         return;
       }
 
+      setMessage("Attendance check-out recorded with your current location.");
       router.refresh();
     } catch (requestError) {
       setError(
@@ -293,29 +238,29 @@ export function AttendanceCheckWidget({
         </div>
 
         <div className="flex flex-wrap gap-3">
-<Button
-  variant="primary"
-  size="lg"
-  disabled={isSubmitting || !canCheckIn}
-  loading={isSubmitting && canCheckIn}
-  loadingText="Checking in..."
-  onClick={performCheckIn}
-  type="button"
->
-  Check in
-</Button>
-<Button
-  variant="secondary"
-  size="lg"
-  disabled={isSubmitting || !canCheckOut}
-  loading={isSubmitting && canCheckOut}
-  loadingText="Checking out..."
-  onClick={performCheckOut}
-  type="button"
-  className="text-muted hover:text-foreground"
->
-  Check out
-</Button>
+          <Button
+            variant="primary"
+            size="lg"
+            disabled={isSubmitting || !canCheckIn}
+            loading={isSubmitting && canCheckIn}
+            loadingText="Checking in..."
+            onClick={performCheckIn}
+            type="button"
+          >
+            Check in
+          </Button>
+          <Button
+            variant="secondary"
+            size="lg"
+            disabled={isSubmitting || !canCheckOut}
+            loading={isSubmitting && canCheckOut}
+            loadingText="Checking out..."
+            onClick={performCheckOut}
+            type="button"
+            className="text-muted hover:text-foreground"
+          >
+            Check out
+          </Button>
         </div>
       </div>
 
@@ -374,7 +319,9 @@ export function AttendanceCheckWidget({
 
           {checkInMode === "OFFICE" ? (
             <label className="space-y-2 text-sm">
-              <span className="font-medium text-foreground">Office location</span>
+              <span className="font-medium text-foreground">
+                Office location
+              </span>
               <select
                 className="w-full rounded-2xl border border-border bg-white px-4 py-3 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
                 onChange={(event) => setOfficeLocationId(event.target.value)}
@@ -402,14 +349,27 @@ export function AttendanceCheckWidget({
                   onClick={captureBrowserLocation}
                   type="button"
                 >
-                  {isCapturingLocation ? "Capturing..." : "Use current location"}
+                  {isCapturingLocation
+                    ? "Capturing..."
+                    : "Use current location"}
                 </button>
               </div>
-              {remoteLocation.latitude && remoteLocation.longitude ? (
+              {remoteLocation.latitude !== undefined &&
+              remoteLocation.longitude !== undefined ? (
                 <p className="mt-3 text-sm text-muted">
                   Captured:{" "}
-                  {remoteLocation.addressText ??
-                    `${remoteLocation.latitude}, ${remoteLocation.longitude}`}
+                  <a
+                    className="font-medium text-accent hover:underline"
+                    href={googleMapsLocationUrl(
+                      remoteLocation.latitude,
+                      remoteLocation.longitude,
+                    )}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    {remoteLocation.addressText ??
+                      `${remoteLocation.latitude}, ${remoteLocation.longitude}`}
+                  </a>
                 </p>
               ) : null}
             </div>
@@ -506,28 +466,47 @@ export function AttendanceCheckWidget({
         </div>
       ) : null}
 
-      {error ? (
-        <p className="mt-4 rounded-2xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
-          {error}
-        </p>
-      ) : null}
-
-      {!error && message ? (
-        <p className="mt-4 rounded-2xl border border-accent/20 bg-accent/5 px-4 py-3 text-sm text-accent">
-          {message}
-        </p>
-      ) : null}
+      <SideToast
+        description={error ?? undefined}
+        isOpen={Boolean(error)}
+        onClose={() => setError(null)}
+        title="Attendance action not completed"
+        variant="error"
+      />
+      <SideToast
+        description={message ?? undefined}
+        isOpen={Boolean(message) && !error}
+        onClose={() => setMessage(null)}
+        title="Attendance updated"
+        variant="success"
+      />
     </section>
   );
 }
 
-function InfoTile({
-  label,
-  value,
-}: {
-  label: string;
-  value: React.ReactNode;
-}) {
+function buildAttendanceLocationRequest(
+  location: BrowserLocationPayload | null,
+) {
+  if (!location) return {};
+
+  return {
+    remoteLatitude: location.latitude,
+    remoteLongitude: location.longitude,
+    locationLatitude: location.latitude,
+    locationLongitude: location.longitude,
+    locationAccuracy: location.accuracy,
+    locationAccuracyMeters:
+      location.accuracy === undefined
+        ? undefined
+        : Math.round(location.accuracy),
+    locationCapturedAt: location.capturedAt,
+    locationSource: location.source,
+    locationConfidence: location.confidence,
+    locationPermissionState: location.permissionState,
+  };
+}
+
+function InfoTile({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <article className="rounded-2xl border border-border bg-white/80 p-4">
       <p className="text-xs uppercase tracking-[0.14em] text-muted">{label}</p>

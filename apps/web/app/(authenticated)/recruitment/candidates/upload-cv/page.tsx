@@ -13,23 +13,25 @@ export default async function UploadCvPage() {
 
   return (
     <main className="grid gap-6">
-      <section className="flex flex-col gap-4 rounded-[28px] border border-border bg-[linear-gradient(135deg,rgba(255,255,255,0.95),rgba(239,248,245,0.9))] p-8 shadow-lg lg:flex-row lg:items-end lg:justify-between">
-        <div className="space-y-3">
-          <p className="text-sm uppercase tracking-[0.18em] text-muted">Recruitment</p>
-          <h3 className="font-serif text-4xl text-foreground">CV Upload & Parse</h3>
-          <p className="max-w-3xl text-muted">
-            Intake resumes from any source, review parsed details, and save a clean candidate profile.
+      <section className="grid gap-3">
+        <div>
+          <p className="text-sm uppercase tracking-[0.18em] text-muted">
+            Recruitment
+          </p>
+          <h3 className="font-serif text-3xl text-foreground">Upload CV</h3>
+          <p className="mt-1 max-w-3xl text-sm text-muted">
+            Parse a resume into a candidate draft.
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3 rounded-2xl border border-border bg-surface px-4 py-3 shadow-sm">
           <Link
-            className="rounded-2xl border border-border px-5 py-3 text-sm font-medium text-muted transition hover:border-accent/30 hover:text-foreground"
+            className="rounded-xl border border-border px-4 py-2 text-sm font-medium text-muted transition hover:border-accent/30 hover:text-foreground"
             href="/recruitment/candidates"
           >
             Back to Candidates
           </Link>
           <Link
-            className="rounded-2xl border border-border px-5 py-3 text-sm font-medium text-muted transition hover:border-accent/30 hover:text-foreground"
+            className="rounded-xl border border-border px-4 py-2 text-sm font-medium text-muted transition hover:border-accent/30 hover:text-foreground"
             href="/recruitment"
           >
             Recruitment Home

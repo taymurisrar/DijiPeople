@@ -8,10 +8,12 @@ import {
 import {
   BusinessTripStatus,
   ClaimRequestStatus,
+  ConfigurationStatus,
   EmployeeEmploymentStatus,
   LeaveRequestStatus,
   LoanInstallmentStatus,
   LoanRequestStatus,
+  PayrollAdjustmentStatus,
   PayrollExceptionSeverity,
   PayrollInputSnapshotSourceType,
   PayrollPeriodStatus,
@@ -30,6 +32,9 @@ import { CompensationResolverService } from '../compensation/compensation-resolv
 import { TimePayrollPreparationService } from '../time-payroll/time-payroll-preparation.service';
 import { TaxCalculationService } from '../tax-rules/tax-calculation.service';
 import { BenefitsService } from '../benefits/benefits.service';
+import { TenantSettingsResolverService } from '../tenant-settings/tenant-settings-resolver.service';
+import { PayrollCostAllocationService } from './payroll-cost-allocation.service';
+import { PayrollExchangeRateService } from './payroll-exchange-rate.service';
 import {
   CreatePayrollCalendarDto,
   CreatePayrollPeriodDto,
@@ -38,6 +43,12 @@ import {
   UpdatePayrollCalendarDto,
   UpdatePayrollPeriodDto,
 } from './dto/payroll-core.dto';
+import {
+  CreatePayrollAdjustmentDto,
+  PayrollAdjustmentDecisionDto,
+  PayrollExceptionActionDto,
+  UpdatePayrollAdjustmentDto,
+} from './dto/payroll-adjustment.dto';
 
 const runDetailInclude = {
   payrollPeriod: { include: { payrollCalendar: true } },
@@ -83,6 +94,9 @@ export class PayrollRunService {
     private readonly timePayrollPreparation: TimePayrollPreparationService,
     private readonly taxCalculationService: TaxCalculationService,
     private readonly benefitsService: BenefitsService,
+    private readonly tenantSettingsResolver: TenantSettingsResolverService,
+    private readonly costAllocationService: PayrollCostAllocationService,
+    private readonly exchangeRateService: PayrollExchangeRateService,
   ) {}
 
   async createCalendar(user: AuthenticatedUser, dto: CreatePayrollCalendarDto) {
@@ -113,7 +127,7 @@ export class PayrollRunService {
       null,
       calendar,
     );
-    return calendar;
+    return this.findCalendarOrThrow(user.tenantId, calendar.id);
   }
 
   listCalendars(user: AuthenticatedUser, query: PayrollCoreQueryDto) {
@@ -124,6 +138,7 @@ export class PayrollRunService {
           ? { businessUnitId: query.businessUnitId }
           : {}),
       },
+      include: { businessUnit: { select: { id: true, name: true } } },
       orderBy: [{ isActive: 'desc' }, { isDefault: 'desc' }, { name: 'asc' }],
     });
   }
@@ -139,18 +154,29 @@ export class PayrollRunService {
   ) {
     const existing = await this.findCalendarOrThrow(user.tenantId, id);
     await this.assertBusinessUnitAccess(user, existing.businessUnitId);
+    if (dto.businessUnitId !== undefined) {
+      await this.assertBusinessUnitAccess(user, dto.businessUnitId);
+    }
 
-    if (dto.isDefault === true && !existing.isDefault) {
-      await this.assertNoDefaultCalendar(
-        user.tenantId,
-        existing.businessUnitId,
-        id,
-      );
+    const nextBusinessUnitId =
+      dto.businessUnitId === undefined
+        ? existing.businessUnitId
+        : dto.businessUnitId || null;
+    const nextIsDefault = dto.isDefault ?? existing.isDefault;
+
+    if (
+      nextIsDefault &&
+      (!existing.isDefault || nextBusinessUnitId !== existing.businessUnitId)
+    ) {
+      await this.assertNoDefaultCalendar(user.tenantId, nextBusinessUnitId, id);
     }
 
     const updated = await this.prisma.payrollCalendar.update({
       where: { id },
       data: {
+        ...(dto.businessUnitId !== undefined
+          ? { businessUnitId: dto.businessUnitId || null }
+          : {}),
         ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
         ...(dto.frequency !== undefined ? { frequency: dto.frequency } : {}),
         ...(dto.timezone !== undefined
@@ -172,7 +198,7 @@ export class PayrollRunService {
       existing,
       updated,
     );
-    return updated;
+    return this.findCalendarOrThrow(user.tenantId, updated.id);
   }
 
   async createPeriod(user: AuthenticatedUser, dto: CreatePayrollPeriodDto) {
@@ -297,24 +323,14 @@ export class PayrollRunService {
       period.payrollCalendar.businessUnitId,
     );
 
-    const run = await this.prisma.payrollRun
-      .create({
-        data: {
-          tenantId: user.tenantId,
-          payrollPeriodId: period.id,
-          runNumber: dto.runNumber ?? 1,
-          notes: dto.notes?.trim() || null,
-          createdBy: user.userId,
-        },
-      })
-      .catch((error) => {
-        if (isUniqueError(error)) {
-          throw new ConflictException(
-            'Run number already exists for this payroll period.',
-          );
-        }
-        throw error;
-      });
+    const run = await this.createPayrollRunRecord(user, {
+      payrollPeriodId: period.id,
+      runNumber:
+        dto.runNumber ??
+        (await this.nextPayrollRunNumber(user.tenantId, period.id)),
+      notes: dto.notes?.trim() || null,
+      retryWithNextRunNumber: dto.runNumber === undefined,
+    });
 
     await this.audit(
       user,
@@ -325,6 +341,58 @@ export class PayrollRunService {
       run,
     );
     return run;
+  }
+
+  private async createPayrollRunRecord(
+    user: AuthenticatedUser,
+    input: {
+      payrollPeriodId: string;
+      runNumber: number;
+      notes: string | null;
+      retryWithNextRunNumber: boolean;
+    },
+  ) {
+    try {
+      return await this.prisma.payrollRun.create({
+        data: {
+          tenantId: user.tenantId,
+          payrollPeriodId: input.payrollPeriodId,
+          runNumber: input.runNumber,
+          notes: input.notes,
+          createdBy: user.userId,
+        },
+      });
+    } catch (error) {
+      if (!isUniqueError(error)) throw error;
+      if (!input.retryWithNextRunNumber) {
+        throw new ConflictException(
+          'Run number already exists for this payroll period.',
+        );
+      }
+      return this.prisma.payrollRun.create({
+        data: {
+          tenantId: user.tenantId,
+          payrollPeriodId: input.payrollPeriodId,
+          runNumber: await this.nextPayrollRunNumber(
+            user.tenantId,
+            input.payrollPeriodId,
+          ),
+          notes: input.notes,
+          createdBy: user.userId,
+        },
+      });
+    }
+  }
+
+  private async nextPayrollRunNumber(
+    tenantId: string,
+    payrollPeriodId: string,
+  ) {
+    const result = await this.prisma.payrollRun.aggregate({
+      where: { tenantId, payrollPeriodId },
+      _max: { runNumber: true },
+    });
+    return (result._max.runNumber ?? 0) + 1;
   }
 
   listPayrollRuns(user: AuthenticatedUser, query: PayrollCoreQueryDto) {
@@ -343,6 +411,38 @@ export class PayrollRunService {
   async getPayrollRun(user: AuthenticatedUser, id: string) {
     const run = await this.findRunOrThrow(user.tenantId, id);
     return mapRun(run);
+  }
+
+  async deletePayrollRun(user: AuthenticatedUser, id: string) {
+    const run = await this.findRunOrThrow(user.tenantId, id);
+    await this.assertBusinessUnitAccess(
+      user,
+      run.payrollPeriod.payrollCalendar.businessUnitId,
+    );
+
+    if (
+      run.status !== PayrollRunStatus.DRAFT &&
+      run.status !== PayrollRunStatus.FAILED
+    ) {
+      throw new BadRequestException(
+        'Only draft or failed payroll runs can be deleted.',
+      );
+    }
+
+    const deleted = await this.prisma.payrollRun.delete({
+      where: { id },
+    });
+
+    await this.audit(
+      user,
+      'PAYROLL_RUN_DELETED',
+      'PayrollRun',
+      id,
+      run,
+      deleted,
+    );
+
+    return { deleted: true, id };
   }
 
   async listRunEmployees(user: AuthenticatedUser, runId: string) {
@@ -384,6 +484,468 @@ export class PayrollRunService {
       },
       orderBy: { createdAt: 'asc' },
     });
+  }
+
+  async acknowledgeRunException(
+    user: AuthenticatedUser,
+    runId: string,
+    exceptionId: string,
+    dto: PayrollExceptionActionDto,
+  ) {
+    await this.findRunOrThrow(user.tenantId, runId);
+    const exception = await this.prisma.payrollException.findFirst({
+      where: { tenantId: user.tenantId, payrollRunId: runId, id: exceptionId },
+    });
+    if (!exception)
+      throw new NotFoundException('Payroll exception was not found.');
+    const updated = await this.prisma.payrollException.update({
+      where: { id: exceptionId },
+      data: {
+        acknowledgedAt: new Date(),
+        acknowledgedBy: user.userId,
+        resolutionNote: dto.comment?.trim() || exception.resolutionNote,
+      },
+    });
+    await this.audit(
+      user,
+      'PAYROLL_EXCEPTION_ACKNOWLEDGED',
+      'PayrollException',
+      exceptionId,
+      exception,
+      updated,
+    );
+    return updated;
+  }
+
+  async resolveRunException(
+    user: AuthenticatedUser,
+    runId: string,
+    exceptionId: string,
+    dto: PayrollExceptionActionDto,
+  ) {
+    const run = await this.findRunOrThrow(user.tenantId, runId);
+    const exception = await this.prisma.payrollException.findFirst({
+      where: { tenantId: user.tenantId, payrollRunId: runId, id: exceptionId },
+    });
+    if (!exception)
+      throw new NotFoundException('Payroll exception was not found.');
+    await this.assertRunExceptionIsResolved(user.tenantId, run, exception);
+    const updated = await this.prisma.payrollException.update({
+      where: { id: exceptionId },
+      data: {
+        isResolved: true,
+        resolvedAt: new Date(),
+        resolvedBy: user.userId,
+        resolutionNote: dto.comment?.trim() || exception.resolutionNote,
+      },
+    });
+    await this.audit(
+      user,
+      'PAYROLL_EXCEPTION_RESOLVED',
+      'PayrollException',
+      exceptionId,
+      exception,
+      updated,
+    );
+    return updated;
+  }
+
+  private async assertRunExceptionIsResolved(
+    tenantId: string,
+    run: { payrollPeriod: { periodStart: Date; periodEnd: Date } },
+    exception: { employeeId: string | null; errorType: string },
+  ) {
+    if (exception.errorType !== 'MISSING_VERIFIED_PAYROLL_BANK_ACCOUNT') return;
+    if (!exception.employeeId) {
+      throw new BadRequestException(
+        'This bank-account blocker is not linked to an employee.',
+      );
+    }
+    const bankAccount = await this.prisma.employeeBankAccount.findFirst({
+      where: {
+        tenantId,
+        employeeId: exception.employeeId,
+        isPrimaryPayroll: true,
+        isActive: true,
+        verificationStatus: 'VERIFIED',
+        effectiveFrom: { lte: run.payrollPeriod.periodEnd },
+        OR: [
+          { effectiveTo: null },
+          { effectiveTo: { gte: run.payrollPeriod.periodStart } },
+        ],
+      },
+      select: { id: true },
+    });
+    if (!bankAccount) {
+      throw new BadRequestException(
+        'Verify an effective primary payroll bank account before resolving this blocker.',
+      );
+    }
+  }
+
+  async listRunAdjustments(user: AuthenticatedUser, runId: string) {
+    await this.findRunOrThrow(user.tenantId, runId);
+    const adjustments = await this.prisma.payrollAdjustment.findMany({
+      where: { tenantId: user.tenantId, payrollRunId: runId },
+      include: {
+        employee: {
+          select: {
+            id: true,
+            employeeCode: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+        payComponent: { select: { id: true, code: true, name: true } },
+      },
+      orderBy: [{ createdAt: 'desc' }],
+    });
+    return adjustments.map(mapAdjustment);
+  }
+
+  async createRunAdjustment(
+    user: AuthenticatedUser,
+    runId: string,
+    dto: CreatePayrollAdjustmentDto,
+  ) {
+    const run = await this.findRunOrThrow(user.tenantId, runId);
+    this.assertRunEditableForAdjustments(run.status);
+    await this.assertEmployeeIsEligibleForRun(
+      user.tenantId,
+      run,
+      dto.employeeId,
+    );
+    const category = dto.category ?? PayrollRunLineItemCategory.ADJUSTMENT;
+    const currencyCode = normalizeCurrency(dto.currencyCode);
+    await this.assertCurrency(user.tenantId, currencyCode);
+    await this.assertAdjustmentPayComponent(
+      user.tenantId,
+      dto.payComponentId,
+      category,
+    );
+    const amount = new Prisma.Decimal(dto.amount);
+    if (amount.eq(0))
+      throw new BadRequestException('Adjustment amount cannot be zero.');
+
+    const adjustment = await this.prisma.payrollAdjustment.create({
+      data: {
+        tenantId: user.tenantId,
+        payrollRunId: runId,
+        employeeId: dto.employeeId,
+        payComponentId: dto.payComponentId ?? null,
+        label: dto.label.trim(),
+        amount,
+        currencyCode,
+        category,
+        reason: dto.reason?.trim() || null,
+        notes: dto.notes?.trim() || null,
+        sourceReference: dto.sourceReference?.trim() || null,
+        createdBy: user.userId,
+      },
+    });
+    await this.audit(
+      user,
+      'PAYROLL_ADJUSTMENT_CREATED',
+      'PayrollAdjustment',
+      adjustment.id,
+      null,
+      adjustment,
+    );
+    return mapAdjustment(adjustment);
+  }
+
+  async updateRunAdjustment(
+    user: AuthenticatedUser,
+    runId: string,
+    adjustmentId: string,
+    dto: UpdatePayrollAdjustmentDto,
+  ) {
+    const run = await this.findRunOrThrow(user.tenantId, runId);
+    this.assertRunEditableForAdjustments(run.status);
+    const existing = await this.findAdjustmentOrThrow(
+      user.tenantId,
+      runId,
+      adjustmentId,
+    );
+    if (existing.status !== PayrollAdjustmentStatus.DRAFT) {
+      throw new BadRequestException('Only draft adjustments can be edited.');
+    }
+    const category = dto.category ?? existing.category;
+    await this.assertAdjustmentPayComponent(
+      user.tenantId,
+      dto.payComponentId === undefined
+        ? existing.payComponentId
+        : (dto.payComponentId ?? undefined),
+      category,
+    );
+    if (dto.currencyCode !== undefined) {
+      await this.assertCurrency(
+        user.tenantId,
+        normalizeCurrency(dto.currencyCode),
+      );
+    }
+    if (dto.amount !== undefined && new Prisma.Decimal(dto.amount).eq(0)) {
+      throw new BadRequestException('Adjustment amount cannot be zero.');
+    }
+    const updated = await this.prisma.payrollAdjustment.update({
+      where: { id: adjustmentId },
+      data: {
+        ...(dto.payComponentId !== undefined
+          ? { payComponentId: dto.payComponentId }
+          : {}),
+        ...(dto.label !== undefined ? { label: dto.label.trim() } : {}),
+        ...(dto.amount !== undefined
+          ? { amount: new Prisma.Decimal(dto.amount) }
+          : {}),
+        ...(dto.currencyCode !== undefined
+          ? { currencyCode: normalizeCurrency(dto.currencyCode) }
+          : {}),
+        ...(dto.category !== undefined ? { category } : {}),
+        ...(dto.reason !== undefined
+          ? { reason: dto.reason?.trim() || null }
+          : {}),
+        ...(dto.notes !== undefined
+          ? { notes: dto.notes?.trim() || null }
+          : {}),
+        ...(dto.sourceReference !== undefined
+          ? { sourceReference: dto.sourceReference?.trim() || null }
+          : {}),
+        updatedBy: user.userId,
+      },
+    });
+    await this.audit(
+      user,
+      'PAYROLL_ADJUSTMENT_UPDATED',
+      'PayrollAdjustment',
+      adjustmentId,
+      existing,
+      updated,
+    );
+    return mapAdjustment(updated);
+  }
+
+  async deleteRunAdjustment(
+    user: AuthenticatedUser,
+    runId: string,
+    adjustmentId: string,
+  ) {
+    const run = await this.findRunOrThrow(user.tenantId, runId);
+    this.assertRunEditableForAdjustments(run.status);
+    const existing = await this.findAdjustmentOrThrow(
+      user.tenantId,
+      runId,
+      adjustmentId,
+    );
+    if (existing.status !== PayrollAdjustmentStatus.DRAFT) {
+      throw new BadRequestException('Only draft adjustments can be deleted.');
+    }
+    await this.prisma.payrollAdjustment.delete({ where: { id: adjustmentId } });
+    await this.audit(
+      user,
+      'PAYROLL_ADJUSTMENT_DELETED',
+      'PayrollAdjustment',
+      adjustmentId,
+      existing,
+      null,
+    );
+    return { deleted: true };
+  }
+
+  async submitRunAdjustment(
+    user: AuthenticatedUser,
+    runId: string,
+    adjustmentId: string,
+  ) {
+    const existing = await this.findAdjustmentOrThrow(
+      user.tenantId,
+      runId,
+      adjustmentId,
+    );
+    if (existing.status !== PayrollAdjustmentStatus.DRAFT) {
+      throw new BadRequestException('Only draft adjustments can be submitted.');
+    }
+    const updated = await this.prisma.payrollAdjustment.update({
+      where: { id: adjustmentId },
+      data: {
+        status: PayrollAdjustmentStatus.SUBMITTED,
+        submittedAt: new Date(),
+        submittedBy: user.userId,
+      },
+    });
+    await this.audit(
+      user,
+      'PAYROLL_ADJUSTMENT_SUBMITTED',
+      'PayrollAdjustment',
+      adjustmentId,
+      existing,
+      updated,
+    );
+    return mapAdjustment(updated);
+  }
+
+  async approveRunAdjustment(
+    user: AuthenticatedUser,
+    runId: string,
+    adjustmentId: string,
+  ) {
+    const existing = await this.findAdjustmentOrThrow(
+      user.tenantId,
+      runId,
+      adjustmentId,
+    );
+    if (
+      existing.status !== PayrollAdjustmentStatus.SUBMITTED &&
+      existing.status !== PayrollAdjustmentStatus.DRAFT
+    ) {
+      throw new BadRequestException(
+        'Only draft or submitted adjustments can be approved.',
+      );
+    }
+    const updated = await this.prisma.payrollAdjustment.update({
+      where: { id: adjustmentId },
+      data: {
+        status: PayrollAdjustmentStatus.APPROVED,
+        approvedAt: new Date(),
+        approvedBy: user.userId,
+        rejectionReason: null,
+      },
+    });
+    await this.audit(
+      user,
+      'PAYROLL_ADJUSTMENT_APPROVED',
+      'PayrollAdjustment',
+      adjustmentId,
+      existing,
+      updated,
+    );
+    return mapAdjustment(updated);
+  }
+
+  async rejectRunAdjustment(
+    user: AuthenticatedUser,
+    runId: string,
+    adjustmentId: string,
+    dto: PayrollAdjustmentDecisionDto,
+  ) {
+    const existing = await this.findAdjustmentOrThrow(
+      user.tenantId,
+      runId,
+      adjustmentId,
+    );
+    if (
+      existing.status !== PayrollAdjustmentStatus.SUBMITTED &&
+      existing.status !== PayrollAdjustmentStatus.DRAFT
+    ) {
+      throw new BadRequestException(
+        'Only draft or submitted adjustments can be rejected.',
+      );
+    }
+    const updated = await this.prisma.payrollAdjustment.update({
+      where: { id: adjustmentId },
+      data: {
+        status: PayrollAdjustmentStatus.REJECTED,
+        rejectedAt: new Date(),
+        rejectedBy: user.userId,
+        rejectionReason: dto.reason?.trim() || null,
+      },
+    });
+    await this.audit(
+      user,
+      'PAYROLL_ADJUSTMENT_REJECTED',
+      'PayrollAdjustment',
+      adjustmentId,
+      existing,
+      updated,
+    );
+    return mapAdjustment(updated);
+  }
+
+  async listRunCostAllocations(
+    user: AuthenticatedUser,
+    runId: string,
+    query: { page?: number; pageSize?: number; search?: string },
+  ) {
+    await this.findRunOrThrow(user.tenantId, runId);
+    const page = Math.max(1, Number(query.page ?? 1));
+    const pageSize = Math.min(100, Math.max(1, Number(query.pageSize ?? 20)));
+    const search = query.search?.trim();
+    const where: Prisma.PayrollCostAllocationLineWhereInput = {
+      tenantId: user.tenantId,
+      payrollRunId: runId,
+      ...(search
+        ? {
+            OR: [
+              {
+                employee: {
+                  firstName: { contains: search, mode: 'insensitive' },
+                },
+              },
+              {
+                employee: {
+                  lastName: { contains: search, mode: 'insensitive' },
+                },
+              },
+              {
+                employee: {
+                  employeeCode: { contains: search, mode: 'insensitive' },
+                },
+              },
+              { project: { name: { contains: search, mode: 'insensitive' } } },
+              {
+                customer: {
+                  companyName: { contains: search, mode: 'insensitive' },
+                },
+              },
+            ],
+          }
+        : {}),
+    };
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.payrollCostAllocationLine.findMany({
+        where,
+        include: {
+          employee: {
+            select: {
+              id: true,
+              employeeCode: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+          project: { select: { id: true, name: true, code: true } },
+          customer: { select: { id: true, companyName: true } },
+        },
+        orderBy: [{ employee: { firstName: 'asc' } }, { createdAt: 'asc' }],
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.payrollCostAllocationLine.count({ where }),
+    ]);
+    return {
+      items: items.map((item) => ({
+        id: item.id,
+        employeeId: item.employeeId,
+        employeeName:
+          `${item.employee.firstName} ${item.employee.lastName}`.trim(),
+        employeeCode: item.employee.employeeCode,
+        projectId: item.projectId,
+        projectName: item.project?.name ?? null,
+        customerId: item.customerId,
+        customerName: item.customer?.companyName ?? null,
+        allocationPercentage: item.allocationPercentage.toString(),
+        originalAmount: item.originalAmount.toString(),
+        currencyCode: item.currencyCode,
+        reportingAmount: item.reportingAmount?.toString() ?? null,
+        reportingCurrency: item.reportingCurrency,
+        isBench: item.isBench,
+      })),
+      meta: {
+        page,
+        pageSize,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / pageSize)),
+      },
+    };
   }
 
   async calculateDraftPayrollRun(user: AuthenticatedUser, id: string) {
@@ -430,6 +992,13 @@ export class PayrollRunService {
       string,
       Awaited<ReturnType<BenefitsService['resolvePayrollBenefits']>>
     >();
+    const payrollSettings =
+      await this.tenantSettingsResolver.getPayrollSettings(user.tenantId);
+    const reportingCurrency = normalizeCurrency(
+      payrollSettings.baseReportingCurrency ||
+        payrollSettings.defaultCurrency ||
+        period.payrollCalendar.currencyCode,
+    );
     let hasBlockingReadinessIssue = false;
     try {
       for (const employee of employees) {
@@ -503,6 +1072,42 @@ export class PayrollRunService {
           });
           continue;
         }
+        const compensationRate = await this.exchangeRateService.lockRate({
+          tenantId: user.tenantId,
+          payrollRunId: id,
+          fromCurrency: compensation.currencyCode,
+          toCurrency: reportingCurrency,
+          effectiveDate: period.paymentDate ?? period.periodEnd,
+        });
+        if (!compensationRate) {
+          hasBlockingReadinessIssue = true;
+          await this.prisma.payrollException.create({
+            data: {
+              tenantId: user.tenantId,
+              payrollRunId: id,
+              employeeId: employee.id,
+              severity: PayrollExceptionSeverity.BLOCKER,
+              errorType: 'MISSING_EXCHANGE_RATE',
+              message: `No exchange rate was found for ${compensation.currencyCode} to ${reportingCurrency}.`,
+              details: {
+                employeeCode: employee.employeeCode,
+                fromCurrency: compensation.currencyCode,
+                toCurrency: reportingCurrency,
+              },
+            },
+          });
+          await this.prisma.payrollRunEmployee.create({
+            data: {
+              tenantId: user.tenantId,
+              payrollRunId: id,
+              employeeId: employee.id,
+              status: PayrollRunEmployeeStatus.EXCEPTION,
+              currencyCode: compensation.currencyCode,
+              reportingCurrencyCode: reportingCurrency,
+            },
+          });
+          continue;
+        }
         if (!compensationRequiresDisbursement(compensation)) {
           continue;
         }
@@ -522,28 +1127,37 @@ export class PayrollRunService {
           select: { id: true },
         });
         if (bankAccount) continue;
-        hasBlockingReadinessIssue = true;
+        if (payrollSettings.payrollBankAccountAction === 'IGNORE') continue;
+        const bankAccountSeverity =
+          payrollSettings.payrollBankAccountAction === 'BLOCK'
+            ? PayrollExceptionSeverity.BLOCKER
+            : PayrollExceptionSeverity.WARNING;
+        if (bankAccountSeverity === PayrollExceptionSeverity.BLOCKER) {
+          hasBlockingReadinessIssue = true;
+        }
         await this.prisma.payrollException.create({
           data: {
             tenantId: user.tenantId,
             payrollRunId: id,
             employeeId: employee.id,
-            severity: PayrollExceptionSeverity.BLOCKER,
+            severity: bankAccountSeverity,
             errorType: 'MISSING_VERIFIED_PAYROLL_BANK_ACCOUNT',
             message:
               'No effective verified primary payroll bank account was found for the employee.',
             details: { employeeCode: employee.employeeCode },
           },
         });
-        await this.prisma.payrollRunEmployee.create({
-          data: {
-            tenantId: user.tenantId,
-            payrollRunId: id,
-            employeeId: employee.id,
-            status: PayrollRunEmployeeStatus.EXCEPTION,
-            currencyCode: period.payrollCalendar.currencyCode,
-          },
-        });
+        if (bankAccountSeverity === PayrollExceptionSeverity.BLOCKER) {
+          await this.prisma.payrollRunEmployee.create({
+            data: {
+              tenantId: user.tenantId,
+              payrollRunId: id,
+              employeeId: employee.id,
+              status: PayrollRunEmployeeStatus.EXCEPTION,
+              currencyCode: period.payrollCalendar.currencyCode,
+            },
+          });
+        }
       }
       if (hasBlockingReadinessIssue) {
         const failed = await this.prisma.payrollRun.update({
@@ -631,6 +1245,12 @@ export class PayrollRunService {
           periodStart: period.periodStart,
           periodEnd: period.periodEnd,
         });
+        const adjustmentInputs = await this.buildAdjustmentPayrollInputs({
+          tenantId: user.tenantId,
+          payrollRunId: id,
+          employeeId: employee.id,
+          currencyCode: compensation.currencyCode,
+        });
         const lineItems = [
           ...buildLineItems(compensation),
           ...leaveInputs.lineItems,
@@ -639,14 +1259,89 @@ export class PayrollRunService {
           ...loanInputs.lineItems,
           ...tadaInputs.lineItems,
           ...benefitInputs.lineItems,
+          ...adjustmentInputs.lineItems,
         ];
+        const rateByCurrency = new Map<string, Prisma.Decimal>();
+        let missingLineItemRate = false;
+        for (const currency of [
+          ...new Set(
+            lineItems.map((item) => normalizeCurrency(item.currencyCode)),
+          ),
+        ]) {
+          const rate = await this.exchangeRateService.lockRate({
+            tenantId: user.tenantId,
+            payrollRunId: id,
+            fromCurrency: currency,
+            toCurrency: reportingCurrency,
+            effectiveDate: period.paymentDate ?? period.periodEnd,
+          });
+          if (!rate) {
+            missingLineItemRate = true;
+            await this.prisma.payrollException.create({
+              data: {
+                tenantId: user.tenantId,
+                payrollRunId: id,
+                employeeId: employee.id,
+                severity: PayrollExceptionSeverity.BLOCKER,
+                errorType: 'MISSING_EXCHANGE_RATE',
+                message: `No exchange rate was found for ${currency} to ${reportingCurrency}.`,
+                details: {
+                  employeeCode: employee.employeeCode,
+                  fromCurrency: currency,
+                  toCurrency: reportingCurrency,
+                },
+              },
+            });
+          } else {
+            rateByCurrency.set(currency, rate.rate);
+          }
+        }
+        if (missingLineItemRate) {
+          await this.prisma.payrollRunEmployee.create({
+            data: {
+              tenantId: user.tenantId,
+              payrollRunId: id,
+              employeeId: employee.id,
+              status: PayrollRunEmployeeStatus.EXCEPTION,
+              currencyCode: compensation.currencyCode,
+              reportingCurrencyCode: reportingCurrency,
+            },
+          });
+          continue;
+        }
+        const reportingLineItems = lineItems.map((item) => {
+          const exchangeRate =
+            rateByCurrency.get(normalizeCurrency(item.currencyCode)) ??
+            new Prisma.Decimal(1);
+          return {
+            ...item,
+            reportingAmount: this.exchangeRateService.convert(
+              item.amount,
+              exchangeRate,
+            ),
+            reportingCurrency,
+            exchangeRate,
+          };
+        });
         const totals = calculateTotals(lineItems);
+        const negativeNetPay = totals.netPay.lt(0);
+        const negativeNetPayAction = payrollSettings.negativeNetPayAction;
+        const reportingTotals = calculateTotals(
+          reportingLineItems.map((item) => ({
+            ...item,
+            amount: item.reportingAmount,
+            currencyCode: reportingCurrency,
+          })),
+        );
         const runEmployee = await this.prisma.payrollRunEmployee.create({
           data: {
             tenantId: user.tenantId,
             payrollRunId: id,
             employeeId: employee.id,
-            status: PayrollRunEmployeeStatus.CALCULATED,
+            status:
+              negativeNetPay && negativeNetPayAction === 'BLOCK'
+                ? PayrollRunEmployeeStatus.EXCEPTION
+                : PayrollRunEmployeeStatus.CALCULATED,
             currencyCode: compensation.currencyCode,
             grossEarnings: totals.grossEarnings,
             totalDeductions: totals.totalDeductions,
@@ -654,6 +1349,18 @@ export class PayrollRunService {
             totalReimbursements: totals.totalReimbursements,
             employerContributions: totals.employerContributions,
             netPay: totals.netPay,
+            reportingCurrencyCode: reportingCurrency,
+            exchangeRate:
+              rateByCurrency.get(
+                normalizeCurrency(compensation.currencyCode),
+              ) ?? null,
+            grossEarningsReporting: reportingTotals.grossEarnings,
+            totalDeductionsReporting: reportingTotals.totalDeductions,
+            totalTaxesReporting: reportingTotals.totalTaxes,
+            totalReimbursementsReporting: reportingTotals.totalReimbursements,
+            employerContributionsReporting:
+              reportingTotals.employerContributions,
+            netPayReporting: reportingTotals.netPay,
             calculationSummary: {
               source: 'COMPENSATION_AND_LEAVE',
               compensationHistoryId: compensation.id,
@@ -670,6 +1377,9 @@ export class PayrollRunService {
               tadaReimbursementTotal: tadaInputs.reimbursementTotal.toString(),
               timeInputCount: timeInputs.snapshots.length,
               benefitCount: benefitInputs.snapshots.length,
+              manualAdjustmentCount: adjustmentInputs.snapshots.length,
+              manualAdjustmentTotal:
+                adjustmentInputs.adjustmentTotal.toString(),
               regularHours: timeInputs.regularHours.toString(),
               overtimeHours: timeInputs.overtimeHours.toString(),
               noShowDays: timeInputs.noShowDays.toString(),
@@ -678,6 +1388,27 @@ export class PayrollRunService {
             },
           },
         });
+
+        if (negativeNetPay && negativeNetPayAction !== 'IGNORE') {
+          await this.prisma.payrollException.create({
+            data: {
+              tenantId: user.tenantId,
+              payrollRunId: id,
+              employeeId: employee.id,
+              severity:
+                negativeNetPayAction === 'BLOCK'
+                  ? PayrollExceptionSeverity.BLOCKER
+                  : PayrollExceptionSeverity.WARNING,
+              errorType: 'NEGATIVE_NET_PAY',
+              message: `Calculated net pay is negative (${totals.netPay.toString()} ${compensation.currencyCode}).`,
+              details: {
+                employeeCode: employee.employeeCode,
+                netPay: totals.netPay.toString(),
+                currencyCode: compensation.currencyCode,
+              },
+            },
+          });
+        }
 
         await this.prisma.payrollInputSnapshot.create({
           data: {
@@ -768,13 +1499,93 @@ export class PayrollRunService {
           });
         }
 
+        if (adjustmentInputs.snapshots.length) {
+          await this.prisma.payrollInputSnapshot.createMany({
+            data: adjustmentInputs.snapshots.map((snapshot) => ({
+              tenantId: user.tenantId,
+              payrollRunEmployeeId: runEmployee.id,
+              sourceType: PayrollInputSnapshotSourceType.MANUAL,
+              sourceId: snapshot.adjustmentId,
+              effectiveDate: period.periodEnd,
+              snapshotData: snapshot as unknown as Prisma.InputJsonValue,
+            })),
+          });
+        }
+
         await this.prisma.payrollRunLineItem.createMany({
-          data: lineItems.map((item) => ({
+          data: reportingLineItems.map((item) => ({
             ...item,
             tenantId: user.tenantId,
             payrollRunEmployeeId: runEmployee.id,
           })),
         });
+
+        const allocationCost = totals.grossEarnings.plus(
+          totals.employerContributions,
+        );
+        const allocation = await this.costAllocationService.allocate({
+          tenantId: user.tenantId,
+          employeeId: employee.id,
+          periodStart: period.periodStart,
+          periodEnd: period.periodEnd,
+          payrollCost: allocationCost,
+          currencyCode: compensation.currencyCode,
+          settings: payrollSettings,
+        });
+        if (allocation.lines.length) {
+          await this.prisma.payrollCostAllocationLine.createMany({
+            data: allocation.lines.map((line) => ({
+              tenantId: user.tenantId,
+              payrollRunId: id,
+              payrollRunEmployeeId: runEmployee.id,
+              employeeId: employee.id,
+              projectId: line.projectId,
+              customerId: line.customerId,
+              costCenterId: line.costCenterId,
+              allocationPercentage: new Prisma.Decimal(
+                line.allocationPercentage,
+              ),
+              originalAmount: new Prisma.Decimal(line.amount),
+              currencyCode: line.currencyCode,
+              reportingAmount: this.exchangeRateService.convert(
+                line.amount,
+                rateByCurrency.get(normalizeCurrency(line.currencyCode)) ??
+                  new Prisma.Decimal(1),
+              ),
+              reportingCurrency,
+              exchangeRate:
+                rateByCurrency.get(normalizeCurrency(line.currencyCode)) ??
+                new Prisma.Decimal(1),
+              isBench: line.source === 'BENCH',
+            })),
+          });
+        }
+        for (const message of allocation.warnings) {
+          await this.prisma.payrollException.create({
+            data: {
+              tenantId: user.tenantId,
+              payrollRunId: id,
+              employeeId: employee.id,
+              severity: PayrollExceptionSeverity.WARNING,
+              errorType: payrollAllocationWarningType(message),
+              message,
+            },
+          });
+        }
+        for (const message of allocation.blockers) {
+          await this.prisma.payrollException.create({
+            data: {
+              tenantId: user.tenantId,
+              payrollRunId: id,
+              employeeId: employee.id,
+              severity: PayrollExceptionSeverity.BLOCKER,
+              errorType: message.includes('exceeds')
+                ? 'PROJECT_OVER_ALLOCATION'
+                : 'PROJECT_UNDER_ALLOCATION',
+              message,
+            },
+          });
+        }
 
         if (claimInputs.claimLineItemIds.length) {
           await this.prisma.claimLineItem.updateMany({
@@ -914,10 +1725,11 @@ export class PayrollRunService {
     if (
       run.status !== PayrollRunStatus.CALCULATED &&
       run.status !== PayrollRunStatus.REVIEWED &&
-      run.status !== PayrollRunStatus.APPROVED
+      run.status !== PayrollRunStatus.APPROVED &&
+      run.status !== PayrollRunStatus.PAID
     ) {
       throw new BadRequestException(
-        'Only CALCULATED, REVIEWED, or APPROVED payroll runs can be locked.',
+        'Only CALCULATED, REVIEWED, APPROVED, or PAID payroll runs can be locked.',
       );
     }
     await this.assertBusinessUnitAccess(
@@ -1110,6 +1922,9 @@ export class PayrollRunService {
         await tx.payrollRunLineItem.deleteMany({
           where: { tenantId, payrollRunEmployeeId: { in: employeeIds } },
         });
+        await tx.payrollCostAllocationLine.deleteMany({
+          where: { tenantId, payrollRunEmployeeId: { in: employeeIds } },
+        });
         await tx.claimLineItem.updateMany({
           where: { tenantId, payrollRunEmployeeId: { in: employeeIds } },
           data: { payrollRunEmployeeId: null, payrollIncludedAt: null },
@@ -1164,6 +1979,9 @@ export class PayrollRunService {
         where: { tenantId, payrollRunId },
       });
       await tx.payrollException.deleteMany({
+        where: { tenantId, payrollRunId },
+      });
+      await tx.payrollExchangeRateLock.deleteMany({
         where: { tenantId, payrollRunId },
       });
     });
@@ -1386,7 +2204,22 @@ export class PayrollRunService {
       },
       include: {
         loanRequest: {
-          select: { id: true, requestNumber: true, currencyCode: true },
+          select: {
+            id: true,
+            requestNumber: true,
+            currencyCode: true,
+            loanPolicy: {
+              select: {
+                id: true,
+                code: true,
+                name: true,
+                deductionPayComponentId: true,
+                postingCategory: true,
+                payslipVisible: true,
+                negativeNetPayHandling: true,
+              },
+            },
+          },
         },
       },
       orderBy: [{ dueDate: 'asc' }, { installmentNumber: 'asc' }],
@@ -1409,9 +2242,12 @@ export class PayrollRunService {
         dueDate: installment.dueDate.toISOString(),
         amount: installment.amount.toString(),
         currencyCode: installment.loanRequest.currencyCode,
+        loanPolicyId: installment.loanRequest.loanPolicy?.id ?? null,
+        loanPolicyCode: installment.loanRequest.loanPolicy?.code ?? null,
       });
       lineItems.push({
-        payComponentId: null,
+        payComponentId:
+          installment.loanRequest.loanPolicy?.deductionPayComponentId ?? null,
         category: PayrollRunLineItemCategory.DEDUCTION,
         sourceType: 'LOAN',
         sourceId: installment.id,
@@ -1423,7 +2259,8 @@ export class PayrollRunService {
         isTaxable: false,
         affectsGrossPay: false,
         affectsNetPay: true,
-        displayOnPayslip: true,
+        displayOnPayslip:
+          installment.loanRequest.loanPolicy?.payslipVisible ?? true,
         displayOrder: 920,
       });
     }
@@ -1655,6 +2492,62 @@ export class PayrollRunService {
     };
   }
 
+  private async buildAdjustmentPayrollInputs(params: {
+    tenantId: string;
+    payrollRunId: string;
+    employeeId: string;
+    currencyCode: string;
+  }) {
+    const adjustments = await this.prisma.payrollAdjustment.findMany({
+      where: {
+        tenantId: params.tenantId,
+        payrollRunId: params.payrollRunId,
+        employeeId: params.employeeId,
+        status: PayrollAdjustmentStatus.APPROVED,
+      },
+      include: { payComponent: true },
+      orderBy: [{ approvedAt: 'asc' }, { createdAt: 'asc' }],
+    });
+    const snapshots: PayrollAdjustmentSnapshot[] = [];
+    const lineItems: PayrollLineItemDraft[] = [];
+    let adjustmentTotal = new Prisma.Decimal(0);
+
+    for (const adjustment of adjustments) {
+      snapshots.push({
+        adjustmentId: adjustment.id,
+        payComponentId: adjustment.payComponentId,
+        label: adjustment.label,
+        amount: adjustment.amount.toString(),
+        currencyCode: adjustment.currencyCode,
+        category: adjustment.category,
+        reason: adjustment.reason,
+        notes: adjustment.notes,
+        sourceReference: adjustment.sourceReference,
+        approvedAt: adjustment.approvedAt?.toISOString() ?? null,
+        approvedBy: adjustment.approvedBy,
+      });
+      adjustmentTotal = adjustmentTotal.plus(adjustment.amount);
+      lineItems.push({
+        payComponentId: adjustment.payComponentId,
+        category: adjustment.category,
+        sourceType: 'MANUAL_ADJUSTMENT',
+        sourceId: adjustment.id,
+        label: adjustment.payComponent?.name ?? adjustment.label,
+        quantity: null,
+        rate: null,
+        amount: adjustment.amount,
+        currencyCode: adjustment.currencyCode,
+        isTaxable: adjustment.payComponent?.isTaxable ?? false,
+        affectsGrossPay: adjustment.payComponent?.affectsGrossPay ?? true,
+        affectsNetPay: adjustment.payComponent?.affectsNetPay ?? true,
+        displayOnPayslip: adjustment.payComponent?.displayOnPayslip ?? true,
+        displayOrder: adjustment.payComponent?.displayOrder ?? 800,
+      });
+    }
+
+    return { snapshots, lineItems, adjustmentTotal };
+  }
+
   private async markIncludedClaims(
     user: AuthenticatedUser,
     claimRequestIds: string[],
@@ -1720,6 +2613,7 @@ export class PayrollRunService {
   private async findCalendarOrThrow(tenantId: string, id: string) {
     const calendar = await this.prisma.payrollCalendar.findFirst({
       where: { tenantId, id },
+      include: { businessUnit: { select: { id: true, name: true } } },
     });
     if (!calendar)
       throw new NotFoundException('Payroll calendar was not found.');
@@ -1742,6 +2636,100 @@ export class PayrollRunService {
     });
     if (!run) throw new NotFoundException('Payroll run was not found.');
     return run;
+  }
+
+  private async findAdjustmentOrThrow(
+    tenantId: string,
+    payrollRunId: string,
+    id: string,
+  ) {
+    const adjustment = await this.prisma.payrollAdjustment.findFirst({
+      where: { tenantId, payrollRunId, id },
+    });
+    if (!adjustment) {
+      throw new NotFoundException('Payroll adjustment was not found.');
+    }
+    return adjustment;
+  }
+
+  private assertRunEditableForAdjustments(status: PayrollRunStatus) {
+    if (
+      status !== PayrollRunStatus.DRAFT &&
+      status !== PayrollRunStatus.FAILED
+    ) {
+      throw new BadRequestException(
+        'Payroll adjustments can only be changed before calculation.',
+      );
+    }
+  }
+
+  private async assertEmployeeIsEligibleForRun(
+    tenantId: string,
+    run: Prisma.PayrollRunGetPayload<{ include: typeof runDetailInclude }>,
+    employeeId: string,
+  ) {
+    const employee = await this.prisma.employee.findFirst({
+      where: buildPayrollEmployeeEligibilityWhere({
+        tenantId,
+        periodStart: run.payrollPeriod.periodStart,
+        periodEnd: run.payrollPeriod.periodEnd,
+        businessUnitId: run.payrollPeriod.payrollCalendar.businessUnitId,
+      }),
+      select: { id: true },
+    });
+    if (!employee || employee.id !== employeeId) {
+      const exactEmployee = await this.prisma.employee.findFirst({
+        where: {
+          ...buildPayrollEmployeeEligibilityWhere({
+            tenantId,
+            periodStart: run.payrollPeriod.periodStart,
+            periodEnd: run.payrollPeriod.periodEnd,
+            businessUnitId: run.payrollPeriod.payrollCalendar.businessUnitId,
+          }),
+          id: employeeId,
+        },
+        select: { id: true },
+      });
+      if (!exactEmployee) {
+        throw new BadRequestException(
+          'Employee is not eligible for this payroll run.',
+        );
+      }
+    }
+  }
+
+  private async assertAdjustmentPayComponent(
+    tenantId: string,
+    payComponentId: string | null | undefined,
+    category: PayrollRunLineItemCategory,
+  ) {
+    if (!payComponentId) return;
+    const component = await this.prisma.payComponent.findFirst({
+      where: { tenantId, id: payComponentId, isActive: true },
+      select: { componentType: true },
+    });
+    if (!component) {
+      throw new BadRequestException('Pay component was not found.');
+    }
+    if (component.componentType !== category) {
+      throw new BadRequestException(
+        'Pay component type must match the adjustment category.',
+      );
+    }
+  }
+
+  private async assertCurrency(tenantId: string, currencyCode: string) {
+    const currency = await this.prisma.currency.findFirst({
+      where: {
+        tenantId,
+        code: currencyCode,
+        status: ConfigurationStatus.ACTIVE,
+      },
+      select: { id: true },
+    });
+    if (!currency) {
+      throw new BadRequestException('Currency was not found for this tenant.');
+    }
   }
 
   private async assertNoDefaultCalendar(
@@ -1897,6 +2885,9 @@ type PayrollLineItemDraft = {
   rate: Prisma.Decimal | null;
   amount: Prisma.Decimal;
   currencyCode: string;
+  reportingAmount?: Prisma.Decimal;
+  reportingCurrency?: string;
+  exchangeRate?: Prisma.Decimal;
   isTaxable: boolean;
   affectsGrossPay: boolean;
   affectsNetPay: boolean;
@@ -1916,6 +2907,20 @@ type LeavePayrollSnapshot = {
   requestId: string;
   startDate: string;
   endDate: string;
+};
+
+type PayrollAdjustmentSnapshot = {
+  adjustmentId: string;
+  payComponentId: string | null;
+  label: string;
+  amount: string;
+  currencyCode: string;
+  category: PayrollRunLineItemCategory;
+  reason: string | null;
+  notes: string | null;
+  sourceReference: string | null;
+  approvedAt: string | null;
+  approvedBy: string | null;
 };
 
 type ClaimPayrollSnapshot = {
@@ -1946,6 +2951,8 @@ type LoanPayrollSnapshot = {
   dueDate: string;
   amount: string;
   currencyCode: string;
+  loanPolicyId: string | null;
+  loanPolicyCode: string | null;
 };
 
 type TadaPayrollSnapshot = {
@@ -2014,11 +3021,7 @@ function buildLineItems(
     label: component.payComponent.name,
     quantity: null,
     rate: component.percentage,
-    amount:
-      component.amount ??
-      (component.percentage
-        ? compensation.baseAmount.mul(component.percentage).div(100)
-        : new Prisma.Decimal(0)),
+    amount: component.calculatedAmount,
     currencyCode: compensation.currencyCode,
     isTaxable: component.payComponent.isTaxable,
     affectsGrossPay: component.payComponent.affectsGrossPay,
@@ -2072,7 +3075,17 @@ export function buildPayrollEmployeeEligibilityWhere(input: {
         ],
       },
     ],
-    ...(input.businessUnitId ? { businessUnitId: input.businessUnitId } : {}),
+    ...(input.businessUnitId
+      ? {
+          OR: [
+            { businessUnitId: input.businessUnitId },
+            {
+              businessUnitId: null,
+              user: { businessUnitId: input.businessUnitId },
+            },
+          ],
+        }
+      : {}),
   };
 }
 
@@ -2164,6 +3177,13 @@ function calculateTotals(lineItems: PayrollLineItemDraft[]) {
   };
 }
 
+function payrollAllocationWarningType(message: string) {
+  if (message.toLowerCase().includes('customer')) {
+    return 'PROJECT_CUSTOMER_ACCOUNT_UNAVAILABLE';
+  }
+  return 'PROJECT_UNDER_ALLOCATION';
+}
+
 function mapRun(
   run: Prisma.PayrollRunGetPayload<{ include: typeof runDetailInclude }>,
 ) {
@@ -2196,11 +3216,42 @@ function mapRunEmployee(
     totalReimbursements: item.totalReimbursements.toString(),
     employerContributions: item.employerContributions.toString(),
     netPay: item.netPay.toString(),
+    exchangeRate: item.exchangeRate?.toString() ?? null,
+    grossEarningsReporting: item.grossEarningsReporting?.toString() ?? null,
+    totalDeductionsReporting: item.totalDeductionsReporting?.toString() ?? null,
+    totalTaxesReporting: item.totalTaxesReporting?.toString() ?? null,
+    totalReimbursementsReporting:
+      item.totalReimbursementsReporting?.toString() ?? null,
+    employerContributionsReporting:
+      item.employerContributionsReporting?.toString() ?? null,
+    netPayReporting: item.netPayReporting?.toString() ?? null,
     lineItems: item.lineItems.map((line) => ({
       ...line,
       quantity: line.quantity?.toString() ?? null,
       rate: line.rate?.toString() ?? null,
       amount: line.amount.toString(),
+      reportingAmount: line.reportingAmount?.toString() ?? null,
+      exchangeRate: line.exchangeRate?.toString() ?? null,
     })),
+  };
+}
+
+function mapAdjustment<T extends { amount: Prisma.Decimal }>(adjustment: T) {
+  const employee = (
+    adjustment as T & {
+      employee?: {
+        employeeCode: string | null;
+        firstName: string;
+        lastName: string;
+      };
+    }
+  ).employee;
+  return {
+    ...adjustment,
+    amount: adjustment.amount.toString(),
+    employeeName: employee
+      ? `${employee.firstName} ${employee.lastName}`.trim()
+      : undefined,
+    employeeCode: employee?.employeeCode,
   };
 }

@@ -36,6 +36,7 @@ export type CandidateForScoring = {
   skills: string[];
   totalYearsExperience?: number | null;
   educationRecords: CandidateEducationForScoring[];
+  educationSummary?: string | null;
   currentCity?: string | null;
   currentCountry?: string | null;
   preferredLocation?: string | null;
@@ -274,6 +275,7 @@ export class RecruitmentScoringService {
     if ((criteria.educationLevels?.length ?? 0) > 0) {
       const candidateLevels = extractCandidateEducationLevels(
         candidate.educationRecords,
+        candidate.educationSummary,
       );
       const configuredLevels = normalizeStringList(
         criteria.educationLevels ?? [],
@@ -284,12 +286,8 @@ export class RecruitmentScoringService {
       );
 
       const educationScore =
-        configuredLevels.length > 0
-          ? clampScore(
-              Math.round(
-                (matchedEducationLevels.length / configuredLevels.length) * 100,
-              ),
-            )
+        configuredLevels.length > 0 && matchedEducationLevels.length > 0
+          ? 100
           : 0;
 
       componentScores.set('educationFit', educationScore);
@@ -613,12 +611,18 @@ function clampScore(value: number) {
 
 function extractCandidateEducationLevels(
   educationRecords: CandidateEducationForScoring[],
+  educationSummary?: string | null,
 ) {
   const levels = new Set<string>();
+  const educationTexts = [
+    ...educationRecords.map(
+      (record) => `${record.degreeTitle ?? ''} ${record.fieldOfStudy ?? ''}`,
+    ),
+    educationSummary ?? '',
+  ];
 
-  for (const record of educationRecords) {
-    const combined =
-      `${record.degreeTitle ?? ''} ${record.fieldOfStudy ?? ''}`.toLowerCase();
+  for (const value of educationTexts) {
+    const combined = value.toLowerCase();
 
     if (!combined.trim()) {
       continue;
@@ -639,6 +643,9 @@ function extractCandidateEducationLevels(
     }
     if (
       combined.includes('bachelor') ||
+      combined.includes('b.s.') ||
+      combined.includes('b.s ') ||
+      combined.includes('bs,') ||
       combined.includes('bsc') ||
       combined.includes('bs ')
     ) {

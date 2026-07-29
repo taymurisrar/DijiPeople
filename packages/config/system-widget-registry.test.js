@@ -13,6 +13,7 @@ const ADMIN_PERMISSIONS = [
   "timeline.read",
   "hierarchy.read",
   "approvals.read",
+  "documents.read",
 ];
 
 function availability(overrides = {}) {
@@ -37,6 +38,7 @@ test("registers the built-in System Widgets", () => {
     "system.reportingHierarchy",
     "employee.profilePhoto",
     "system.approvalTracker",
+    "system.documents",
   ]);
   assert.equal(
     resolveSystemWidgetDefinition("reporting_hierarchy").widgetKey,
@@ -67,11 +69,7 @@ test("allows supported Module capabilities and excludes unsupported Modules", ()
 });
 
 test("enforces permissions for seeded role-style permission sets", () => {
-  for (const role of [
-    "Global Administrator",
-    "System Administrator",
-    "HR",
-  ]) {
+  for (const role of ["Global Administrator", "System Administrator", "HR"]) {
     assert.equal(availability({ roleKeys: [role] }).status, "available");
   }
   assert.equal(
@@ -102,10 +100,7 @@ test("isolates draft placements from published runtime", () => {
 });
 
 test("reports missing adapters and unsaved Records honestly", () => {
-  assert.equal(
-    availability({ adapterMethods: [] }).status,
-    "missing-adapter",
-  );
+  assert.equal(availability({ adapterMethods: [] }).status, "missing-adapter");
   assert.match(
     availability({ adapterMethods: [] }).message,
     /getTimelineEntries/,
@@ -128,8 +123,7 @@ test("declares rendering contracts for Timeline, hierarchy, and approvals", () =
     ["getWidgetData"],
   );
   assert.deepEqual(
-    SYSTEM_WIDGET_REGISTRY["system.approvalTracker"]
-      .requiredDataAdapterMethods,
+    SYSTEM_WIDGET_REGISTRY["system.approvalTracker"].requiredDataAdapterMethods,
     ["getWidgetData"],
   );
 });
@@ -150,7 +144,7 @@ test("covers target Module widget capability matrix", () => {
     leaves: ["timeline", "approvalTracking"],
     attendance: ["timeline"],
     timesheets: ["timeline", "approvalTracking"],
-    projects: ["timeline"],
+    projects: ["timeline", "documents"],
   };
 
   for (const [moduleKey, capabilities] of Object.entries(matrix)) {
@@ -185,6 +179,18 @@ test("covers target Module widget capability matrix", () => {
         : "unsupported-module",
       `${moduleKey} approval`,
     );
+
+    const documents = availability({
+      widgetKey: "system.documents",
+      widgetType: "documents",
+      moduleKey,
+      moduleCapabilities: capabilities,
+    });
+    assert.equal(
+      documents.status,
+      moduleKey === "projects" ? "available" : "unsupported-module",
+      `${moduleKey} documents`,
+    );
   }
 });
 
@@ -198,19 +204,15 @@ test("filters the Form Designer palette by Module capability", () => {
     ["system.timeline", "system.approvalTracker"],
   );
   assert.deepEqual(
-    listSupportedSystemWidgets("attendance").map(
-      (widget) => widget.widgetKey,
-    ),
+    listSupportedSystemWidgets("attendance").map((widget) => widget.widgetKey),
     ["system.timeline"],
   );
   assert.deepEqual(
-    listSupportedSystemWidgets("timesheets").map(
-      (widget) => widget.widgetKey,
-    ),
+    listSupportedSystemWidgets("timesheets").map((widget) => widget.widgetKey),
     ["system.timeline", "system.approvalTracker"],
   );
   assert.deepEqual(
     listSupportedSystemWidgets("projects").map((widget) => widget.widgetKey),
-    ["system.timeline"],
+    ["system.timeline", "system.documents"],
   );
 });

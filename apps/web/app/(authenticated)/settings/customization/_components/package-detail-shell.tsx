@@ -61,23 +61,8 @@ const componentTypeOptions = [
   { value: "view", label: "Views", storageBacked: true },
   { value: "choiceList", label: "Choice Lists", storageBacked: false },
   { value: "relationship", label: "Relationships", storageBacked: false },
-  { value: "relatedList", label: "Related Lists", storageBacked: false },
-    { value: "actionBar", label: "Action Bars", storageBacked: true },
-  { value: "action", label: "Actions", storageBacked: false },
+  { value: "actionBar", label: "Action Bars", storageBacked: false },
   { value: "widget", label: "Widgets", storageBacked: true },
-  { value: "rule", label: "Rules", storageBacked: false },
-  { value: "automation", label: "Automations", storageBacked: false },
-  { value: "guidedProcess", label: "Guided Processes", storageBacked: false },
-  {
-    value: "timelineConfig",
-    label: "Timeline Templates",
-    storageBacked: false,
-  },
-  {
-    value: "documentMetadata",
-    label: "Document Metadata",
-    storageBacked: false,
-  },
 ] as const;
 
 export function PackageDetailShell({
@@ -287,6 +272,10 @@ export function PackageDetailShell({
 
   useEffect(() => {
     if (!addExisting?.componentType || !addExisting.moduleKey) return;
+    if (!isStorageBackedType(addExisting.componentType)) {
+      setCandidates([]);
+      return;
+    }
     const controller = new AbortController();
     const params = new URLSearchParams({
       moduleKey: addExisting.moduleKey,
@@ -522,7 +511,7 @@ export function PackageDetailShell({
         )
       : null;
   const newComponentHref =
-    selection.kind === "type" && selectedType?.storageBacked
+    selection.kind === "type"
       ? newComponentRoute(selection.moduleKey, selection.componentType)
       : null;
 
@@ -568,7 +557,7 @@ export function PackageDetailShell({
                     ? selection.moduleKey
                     : (modules[0]?.tableKey ?? ""),
                 componentType:
-                  selection.kind === "type"
+                  selection.kind === "type" && selectedType?.storageBacked
                     ? selection.componentType
                     : "module",
                 selectedIds: [],
@@ -594,17 +583,7 @@ export function PackageDetailShell({
             >
               New Component
             </Button>
-          ) : (
-            <Button
-              disabled
-              leftIcon={<FilePlus2 className="h-4 w-4" />}
-              size="xs"
-              title="Select a storage-backed component type. This component type is not storage-backed yet."
-              variant="ghost"
-            >
-              New Component
-            </Button>
-          )}
+          ) : null}
           <Button
             disabled={Boolean(publishDisabledReason)}
             leftIcon={<UploadCloud className="h-4 w-4" />}
@@ -717,12 +696,6 @@ export function PackageDetailShell({
                 <h3 className="mt-1 text-lg font-semibold text-foreground">
                   {selectionTitle(selection, explorerModules)}
                 </h3>
-                {selectedType && !selectedType.storageBacked ? (
-                  <p className="mt-2 text-sm text-warning">
-                    This component type is metadata-ready but not storage-backed
-                    yet. Add, remove, and delete handlers remain unavailable.
-                  </p>
-                ) : null}
               </div>
               <DataTable
                 columns={componentColumns}
@@ -787,36 +760,29 @@ export function PackageDetailShell({
                       : current,
                   )
                 }
-                options={componentTypeOptions.map((option) => ({
-                  value: option.value,
-                  label: option.storageBacked
-                    ? option.label
-                    : `${option.label} (coming soon)`,
-                }))}
+                options={componentTypeOptions
+                  .filter((option) => option.storageBacked)
+                  .map((option) => ({
+                    value: option.value,
+                    label: option.label,
+                  }))}
                 value={addExisting.componentType}
               />
             </div>
-            {!isStorageBackedType(addExisting.componentType) ? (
-              <div className="rounded-lg border border-warning/30 bg-warning/5 px-4 py-3 text-sm text-warning">
-                Component type is not storage-backed yet. No broken or fake
-                component records will be created.
-              </div>
-            ) : (
-              <DataTable
-                columns={candidateColumns}
-                emptyState={
-                  <EmptyState
-                    description="No eligible components are available for this selection."
-                    title="No candidates"
-                  />
-                }
-                getRowKey={(row) => row.objectId}
-                pagination={{ page: 1, pageSize: 10, total: candidates.length }}
-                rows={candidates}
-                searchPlaceholder="Search existing components"
-                tableClassName="min-w-[760px] divide-y divide-border text-xs"
-              />
-            )}
+            <DataTable
+              columns={candidateColumns}
+              emptyState={
+                <EmptyState
+                  description="No eligible components are available for this selection."
+                  title="No candidates"
+                />
+              }
+              getRowKey={(row) => row.objectId}
+              pagination={{ page: 1, pageSize: 10, total: candidates.length }}
+              rows={candidates}
+              searchPlaceholder="Search existing components"
+              tableClassName="min-w-[760px] divide-y divide-border text-xs"
+            />
             <div className="flex justify-end gap-3">
               <Button
                 onClick={() => setAddExisting(null)}
@@ -825,12 +791,7 @@ export function PackageDetailShell({
               >
                 Cancel
               </Button>
-              <Button
-                disabled={!isStorageBackedType(addExisting.componentType)}
-                loading={isSaving}
-                loadingText="Adding..."
-                type="submit"
-              >
+              <Button loading={isSaving} loadingText="Adding..." type="submit">
                 Add to Package
               </Button>
             </div>
@@ -1278,6 +1239,15 @@ function newComponentRoute(moduleKey: string, componentType: string) {
   }
   if (componentType === "view") {
     return `/settings/customization/tables/${moduleKey}/views`;
+  }
+  if (componentType === "choiceList") {
+    return `/settings/customization/tables/${moduleKey}?tab=choiceLists`;
+  }
+  if (componentType === "relationship") {
+    return `/settings/customization/tables/${moduleKey}?tab=relationships`;
+  }
+  if (componentType === "actionBar") {
+    return `/settings/customization/tables/${moduleKey}?tab=actionBars`;
   }
   return null;
 }

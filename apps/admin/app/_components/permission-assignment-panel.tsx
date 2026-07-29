@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 type PermissionItem = {
   id: string;
@@ -46,18 +46,11 @@ export function PermissionAssignmentPanel({
       ),
   );
   const [messages, setMessages] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    setSubjectStates(
-      Object.fromEntries(
-        subjects.map((subject) => [subject.id, [...subject.permissionIds]]),
-      ),
-    );
-
-    if (!subjects.some((subject) => subject.id === openSubjectId)) {
-      setOpenSubjectId(subjects[0]?.id ?? null);
-    }
-  }, [subjects, openSubjectId]);
+  const activeSubjectId = subjects.some(
+    (subject) => subject.id === openSubjectId,
+  )
+    ? openSubjectId
+    : subjects[0]?.id ?? null;
 
   const groupedPermissions = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
@@ -200,7 +193,7 @@ export function PermissionAssignmentPanel({
       ) : (
         <div className="mt-5 space-y-4">
           {subjects.map((subject) => {
-            const isOpen = openSubjectId === subject.id;
+            const isOpen = activeSubjectId === subject.id;
             const selectedCount = subjectStates[subject.id]?.length ?? 0;
 
             return (

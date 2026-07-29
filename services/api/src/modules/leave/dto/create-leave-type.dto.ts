@@ -22,10 +22,12 @@ export class CreateLeaveTypeDto {
   @MaxLength(100)
   name!: string;
 
+  @IsOptional()
+  @Transform(emptyStringToUndefined)
   @IsString()
   @MinLength(1)
   @MaxLength(40)
-  code!: string;
+  code?: string;
 
   @IsString()
   @MinLength(1)
@@ -35,6 +37,35 @@ export class CreateLeaveTypeDto {
   @IsOptional()
   @IsBoolean()
   isPaid?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  description?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  affectsPayroll?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  consumesBalance?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  employeeRequestAllowed?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  requiresAttachment?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  allowHalfDay?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  allowHourlyLeave?: boolean;
 
   @IsOptional()
   @IsBoolean()

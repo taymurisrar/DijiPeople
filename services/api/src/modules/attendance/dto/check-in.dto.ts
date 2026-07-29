@@ -1,6 +1,8 @@
 import { AttendanceMode } from '@prisma/client';
 import {
   IsEnum,
+  IsBoolean,
+  IsInt,
   IsNumber,
   IsOptional,
   IsString,
@@ -35,6 +37,56 @@ export class CheckInDto {
   @IsOptional()
   @IsString()
   locationCapturedAt?: string;
+
+  @IsOptional()
+  @IsNumber()
+  locationLatitude?: number;
+
+  @IsOptional()
+  @IsNumber()
+  locationLongitude?: number;
+
+  @IsOptional()
+  @IsInt()
+  locationAccuracyMeters?: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  locationSource?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  locationConfidence?: string;
+
+  @IsOptional()
+  @IsString()
+  locationPermissionState?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  locationFailureReason?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  ipAddress?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  userAgent?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  manualLocationExceptionRequested?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  manualLocationExceptionReason?: string;
 
   @IsOptional()
   @IsString()

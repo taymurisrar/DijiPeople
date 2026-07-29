@@ -32,7 +32,9 @@ export default async function CustomizationViewDesignerRoute({
       `/customization/tables/${tableKey}/views`,
     ),
   ]);
-  const view = views.find((item) => item.viewKey === viewId);
+  const view = views.find(
+    (item) => item.id === viewId || item.viewKey === viewId,
+  );
   if (!view) notFound();
 
   return (

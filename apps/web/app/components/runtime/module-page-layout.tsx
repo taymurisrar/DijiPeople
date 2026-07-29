@@ -28,8 +28,8 @@ export function ModulePageLayout({
   readonly title: string;
 }) {
   return (
-    <section className="grid gap-4">
-      <div className="grid gap-3">
+    <section className="grid w-full min-w-0 gap-4">
+      <div className="grid min-w-0 gap-3">
         {breadcrumbs?.length ? (
           <nav aria-label="Breadcrumb" className="text-xs text-muted">
             {breadcrumbs.map((breadcrumb, index) => (
@@ -41,8 +41,11 @@ export function ModulePageLayout({
           </nav>
         ) : null}
 
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-          <div className="min-w-0">
+        <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          {headerSlot ? (
+            <div className="min-w-0 shrink-0">{headerSlot}</div>
+          ) : null}
+          {/* <div className="min-w-0">
             <h1 className="truncate text-xl pt-1 pl-2 font-semibold text-foreground">
               {title}
             </h1>
@@ -51,12 +54,13 @@ export function ModulePageLayout({
                 {subtitle}
               </p>
             ) : null}
-          </div>
-          {headerSlot ? <div className="shrink-0">{headerSlot}</div> : null}
+          </div> */}
         </div>
       </div>
 
-      {commandBarSlot ? <div>{commandBarSlot}</div> : null}
+      {commandBarSlot ? (
+        <div className="relative z-20 min-w-0">{commandBarSlot}</div>
+      ) : null}
 
       {accessDenied ? (
         <ModuleAccessDeniedState />
@@ -71,7 +75,7 @@ export function ModulePageLayout({
               {error}
             </section>
           ) : null}
-          {children}
+          <div className="relative z-0 min-w-0">{children}</div>
         </>
       )}
     </section>

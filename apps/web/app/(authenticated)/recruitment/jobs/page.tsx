@@ -1,12 +1,31 @@
-import Link from "next/link";
+import { StandardModuleListPage } from "@/app/components/runtime";
+import { getSessionUser } from "@/lib/auth";
+import { buildPublishedStandardRouteRuntime } from "@/lib/runtime/modules/standard-module-route-helpers";
+import { jobOpeningRuntimeSpec } from "@/lib/runtime/modules/standard-module-specs";
 import { apiRequestJson } from "@/lib/server-api";
 import { AccessDeniedState } from "../../_components/access-denied-state";
-import { getBusinessUnitAccessSummary, hasBusinessUnitScope } from "../../_lib/business-unit-access";
-import { JobOpeningStatusBadge } from "../_components/job-opening-status-badge";
-import { JobOpeningListResponse } from "../types";
+import {
+  getBusinessUnitAccessSummary,
+  hasBusinessUnitScope,
+} from "../../_lib/business-unit-access";
+import {
+  hasMatchCriteriaConfigured,
+  JobOpeningListResponse,
+  JobOpeningRecord,
+} from "../types";
 
-export default async function RecruitmentJobsPage() {
-  const businessUnitAccess = await getBusinessUnitAccessSummary();
+type RecruitmentJobsPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function RecruitmentJobsPage({
+  searchParams,
+}: RecruitmentJobsPageProps) {
+  const [businessUnitAccess, params, sessionUser] = await Promise.all([
+    getBusinessUnitAccessSummary(),
+    searchParams,
+    getSessionUser(),
+  ]);
 
   if (!hasBusinessUnitScope(businessUnitAccess)) {
     return (
@@ -19,66 +38,104 @@ export default async function RecruitmentJobsPage() {
     );
   }
 
-  const jobs = await apiRequestJson<JobOpeningListResponse>("/job-openings?pageSize=50");
+  const page = parsePositiveInteger(getSearchParam(params.page), 1);
+  const pageSize = parsePositiveInteger(getSearchParam(params.pageSize), 25);
+  const jobQuery = buildJobQuery(params, page, pageSize);
+  const [jobs, runtime] = await Promise.all([
+    apiRequestJson<JobOpeningListResponse>(`/job-openings?${jobQuery}`),
+    buildPublishedStandardRouteRuntime({
+      pageKind: "list",
+      sessionUser,
+      spec: jobOpeningRuntimeSpec,
+    }),
+  ]);
 
   return (
     <main className="grid gap-6">
-      <section className="flex flex-col gap-4 rounded-[28px] border border-border bg-[linear-gradient(135deg,rgba(255,255,255,0.95),rgba(239,248,245,0.9))] p-8 shadow-lg lg:flex-row lg:items-end lg:justify-between">
-        <div className="space-y-3">
-          <p className="text-sm uppercase tracking-[0.18em] text-muted">Recruitment</p>
-          <h3 className="font-serif text-4xl text-foreground">
-            Manage job openings and keep hiring visible.
-          </h3>
-          <p className="max-w-3xl text-muted">
-            This foundation keeps openings, candidates, and applications tenant-driven so interviews and onboarding can layer on later.
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <Link className="rounded-2xl border border-border px-5 py-3 text-sm font-medium text-muted transition hover:border-accent/30 hover:text-foreground" href="/recruitment/applications">
-            View pipeline
-          </Link>
-          <Link className="rounded-2xl bg-accent px-5 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong" href="/recruitment/jobs/new">
-            Add job opening
-          </Link>
-        </div>
-      </section>
-
-      {jobs.items.length === 0 ? (
-        <section className="rounded-[24px] border border-dashed border-border bg-surface p-10 text-center shadow-sm">
-          <p className="text-sm uppercase tracking-[0.18em] text-muted">No job openings yet</p>
-          <h4 className="mt-3 text-2xl font-semibold text-foreground">Start your hiring pipeline with the first opening.</h4>
-        </section>
-      ) : (
-        <div className="overflow-hidden rounded-[24px] border border-border bg-surface shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-border text-sm">
-              <thead className="bg-surface-strong text-left text-muted">
-                <tr>
-                  <th className="px-5 py-4 font-medium">Opening</th>
-                  <th className="px-5 py-4 font-medium">Status</th>
-                  <th className="px-5 py-4 font-medium">Applications</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border bg-white/90">
-                {jobs.items.map((job) => (
-                  <tr key={job.id} className="hover:bg-accent-soft/30">
-                    <td className="px-5 py-4">
-                      <Link className="font-semibold text-foreground hover:text-accent" href={`/recruitment/jobs/${job.id}`}>
-                        {job.title}
-                      </Link>
-                      <p className="mt-1 text-muted">{job.code || "No code"}</p>
-                    </td>
-                    <td className="px-5 py-4">
-                      <JobOpeningStatusBadge status={job.status} />
-                    </td>
-                    <td className="px-5 py-4 text-muted">{job.applications.length} application(s)</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+      <StandardModuleListPage
+        commandRecord={{
+          jobOpeningCount: jobs.meta.total,
+        }}
+        pagination={{
+          page: jobs.meta.page,
+          pageSize: jobs.meta.pageSize,
+          totalItems: jobs.meta.total,
+          pathname: "/recruitment/jobs",
+          searchParams: toPaginationSearchParams(params),
+        }}
+        records={jobs.items.map(mapJobRecord)}
+        runtime={runtime}
+        spec={jobOpeningRuntimeSpec}
+        title="Job Openings"
+      />
     </main>
+  );
+}
+
+function mapJobRecord(job: JobOpeningRecord) {
+  const averageMatchScore = getAverageMatchScore(job.applications);
+  const scoringConfigured = hasMatchCriteriaConfigured(job.matchCriteria);
+
+  return {
+    ...job,
+    applicationCount: job.applications.length,
+    scoringStatus: scoringConfigured ? "Configured" : "Not configured",
+    averageMatchScore,
+  };
+}
+
+function getAverageMatchScore(applications: JobOpeningRecord["applications"]) {
+  const scores = applications
+    .map((application) => application.matchScore)
+    .filter((score): score is number => typeof score === "number");
+
+  if (!scores.length) return null;
+
+  return Math.round(
+    scores.reduce((total, score) => total + score, 0) / scores.length,
+  );
+}
+
+function getSearchParam(value?: string | string[]) {
+  if (Array.isArray(value)) return value[0] ?? "";
+  return value ?? "";
+}
+
+function parsePositiveInteger(value: string, fallback: number) {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    return fallback;
+  }
+
+  return parsed;
+}
+
+function buildJobQuery(
+  params: Record<string, string | string[] | undefined>,
+  page: number,
+  pageSize: number,
+) {
+  const query = new URLSearchParams();
+  query.set("page", String(page));
+  query.set("pageSize", String(pageSize));
+
+  ["search", "status"].forEach((key) => {
+    const value = getSearchParam(params[key]);
+    if (value) {
+      query.set(key, value);
+    }
+  });
+
+  return query.toString();
+}
+
+function toPaginationSearchParams(
+  params: Record<string, string | string[] | undefined>,
+) {
+  return Object.fromEntries(
+    Object.entries(params).map(([key, value]) => [
+      key,
+      getSearchParam(value) || undefined,
+    ]),
   );
 }

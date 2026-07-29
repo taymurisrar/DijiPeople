@@ -12,7 +12,11 @@ import {
 import { apiErrorEventName, normalizeApiError } from "@/lib/api-error";
 import { ErrorModal } from "./error-modal";
 import type { DisplayableError, ErrorContextValue } from "./types";
-import { enrichClientError, persistClientError } from "./client-error-log";
+import {
+  enrichClientError,
+  persistClientError,
+  shouldReportClientError,
+} from "./client-error-log";
 
 export type ErrorLogUser = {
   roleKeys?: string[];
@@ -34,6 +38,9 @@ export function ErrorProvider({
       ...normalizeApiError(input),
       retry,
     });
+    if (!shouldReportClientError(nextError)) {
+      return;
+    }
     setError(nextError);
     void persistClientError(nextError);
   }, []);

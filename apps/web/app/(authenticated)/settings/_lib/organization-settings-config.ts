@@ -14,6 +14,13 @@ export const organizationSettingsSections: SettingsSectionConfig[] = [
       "Keep the tenant's core business identity aligned across employee records, communication, payroll, and workspace branding.",
     fields: [
       {
+        category: "tenant",
+        key: "tenantSlug",
+        label: "Tenant slug",
+        type: "text",
+        required: true,
+      },
+      {
         category: "organization",
         key: "companyDisplayName",
         label: "Company display name",
@@ -88,7 +95,7 @@ export const organizationSettingsSections: SettingsSectionConfig[] = [
       {
         category: "organization",
         key: "country",
-        label: "Country",
+        label: "Default country",
         type: "lookup",
         lookupKey: "countries",
         placeholder: "Select a country",
@@ -120,6 +127,55 @@ export const organizationSettingsSections: SettingsSectionConfig[] = [
         label: "Company size",
         type: "select",
         options: COMPANY_SIZE_OPTIONS,
+      },
+    ],
+  },
+  {
+    title: "Business Date Settings",
+    description:
+      "Define how tenant-wide business dates are resolved for attendance, leave, timesheets, payroll, and approvals.",
+    fields: [
+      {
+        category: "organization",
+        key: "businessDateSource",
+        label: "Business date source",
+        type: "select",
+        options: [
+          { label: "Tenant Timezone", value: "TENANT_TIMEZONE" },
+          { label: "System Date", value: "SYSTEM_DATE" },
+        ],
+      },
+      {
+        category: "organization",
+        key: "businessDateTimezone",
+        label: "Business date timezone",
+        type: "lookup",
+        lookupKey: "timezones",
+        placeholder: "Select a timezone",
+      },
+      {
+        category: "organization",
+        key: "businessDayStartTime",
+        label: "Business day start time",
+        type: "time",
+      },
+      {
+        category: "organization",
+        key: "allowManualBusinessDateOverride",
+        label: "Allow manual business date override",
+        type: "checkbox",
+      },
+      {
+        category: "organization",
+        key: "manualBusinessDate",
+        label: "Manual business date",
+        type: "date",
+      },
+      {
+        category: "organization",
+        key: "lockPastBusinessDates",
+        label: "Lock past business dates",
+        type: "checkbox",
       },
     ],
   },

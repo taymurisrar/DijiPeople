@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -36,8 +37,8 @@ type SettingsUpdate = {
 };
 
 type LookupResponse = {
-  items?: LookupOption[];
-  options?: LookupOption[];
+  items?: unknown[];
+  options?: unknown[];
   source?: "default" | "resolved";
 };
 
@@ -65,6 +66,42 @@ const LOOKUP_ENDPOINTS: Record<string, string> = {
   timezones: "/api/configuration/timezones",
   onboardingChecklistTemplates: "/api/lookups/onboarding-checklist-templates",
   dashboardViews: "/api/lookups/dashboard-views",
+  glAccounts: "/api/payroll/gl-accounts?isActive=true&postingAllowed=true",
+  payrollRegions: "/api/payroll-regions?status=ACTIVE&pageSize=100",
+  payrollCalendars: "/api/payroll/calendars",
+  compensationPackages: "/api/salary-package-rules?pageSize=100",
+  taxPolicies: "/api/tax-rules",
+  postingProfiles: "/api/payroll/posting-rules",
+  payComponents: "/api/pay-components?isActive=true",
+  employerBankAccounts:
+    "/api/payroll/employer-bank-accounts?isActive=true&pageSize=100",
+  documentTemplates:
+    "/api/settings-runtime/document-templates?isActive=true&pageSize=100",
+};
+
+const ACTIVE_ONLY_LOOKUPS = new Set([
+  "glAccounts",
+  "payrollRegions",
+  "payrollCalendars",
+  "compensationPackages",
+  "taxPolicies",
+  "postingProfiles",
+  "payComponents",
+  "employerBankAccounts",
+  "documentTemplates",
+]);
+
+const LOOKUP_CREATE_HREFS: Readonly<Record<string, string>> = {
+  glAccounts: "/settings/payroll/configuration/gl-accounts/new",
+  payrollRegions: "/settings/payroll/configuration/payroll-regions/new",
+  payrollCalendars: "/payroll/calendars/new",
+  compensationPackages:
+    "/settings/payroll/configuration/salary-package-rules/new",
+  taxPolicies: "/settings/payroll/configuration/tax-rules/new",
+  postingProfiles: "/settings/payroll/configuration/posting-rules/new",
+  payComponents: "/settings/payroll/configuration/pay-components/new",
+  employerBankAccounts: "/settings/payroll/banking/employer-bank-accounts/new",
+  documentTemplates: "/settings/payroll/operations/document-templates/new",
 };
 
 const RECOVERABLE_LOOKUP_KEYS = new Set(["dashboardViews"]);
@@ -91,6 +128,9 @@ export function SettingsForm({
     Record<string, LookupOption[]>
   >({});
   const [lookupErrors, setLookupErrors] = useState<Record<string, string>>({});
+  const [loadedLookups, setLoadedLookups] = useState<Record<string, boolean>>(
+    {},
+  );
   const [error, setError] = useState<string | null>(null);
   const [recoveryMessage, setRecoveryMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -141,7 +181,7 @@ export function SettingsForm({
               },
             });
 
-            const data = await safeReadJson<LookupResponse>(response);
+            const data = await safeReadJson<unknown>(response);
 
             if (!response.ok) {
               nextOptions[lookupKey] = [];
@@ -155,12 +195,12 @@ export function SettingsForm({
               return;
             }
 
-            nextOptions[lookupKey] = data?.items ?? data?.options ?? [];
+            nextOptions[lookupKey] = normalizeLookupOptions(data, lookupKey);
             logLookupDiagnostic("lookup loaded", {
               endpoint,
               lookupKey,
               status: response.status,
-              fallback: data?.source ?? "resolved",
+              fallback: lookupSource(data),
               optionCount: nextOptions[lookupKey].length,
             });
           } catch (lookupError) {
@@ -184,6 +224,9 @@ export function SettingsForm({
 
       setLookupOptions(nextOptions);
       setLookupErrors(nextErrors);
+      setLoadedLookups(
+        Object.fromEntries(lookupKeys.map((lookupKey) => [lookupKey, true])),
+      );
     }
 
     loadLookupOptions();
@@ -346,10 +389,10 @@ export function SettingsForm({
   return (
     <form className="grid gap-6 pb-24" onSubmit={handleSubmit}>
       {sections.map((section) => (
-<section
-  className="grid items-start gap-4 rounded-[24px] border border-border bg-surface p-6 shadow-sm md:grid-cols-2"
-  key={section.title}
->
+        <section
+          className="grid items-start gap-4 rounded-[24px] border border-border bg-surface p-6 shadow-sm md:grid-cols-2"
+          key={section.title}
+        >
           <div className="md:col-span-2">
             <h3 className="text-2xl font-semibold text-foreground">
               {section.title}
@@ -373,8 +416,13 @@ export function SettingsForm({
               }
               lookupOptions={
                 field.type === "lookup" && field.lookupKey
-                  ? lookupOptions[field.lookupKey] ?? []
+                  ? (lookupOptions[field.lookupKey] ?? [])
                   : []
+              }
+              lookupLoaded={
+                field.type === "lookup" && field.lookupKey
+                  ? Boolean(loadedLookups[field.lookupKey])
+                  : true
               }
               onChange={(nextValue) =>
                 updateField(field.category, field.key, nextValue)
@@ -456,30 +504,32 @@ export function SettingsForm({
 function SettingsField({
   field,
   lookupError,
+  lookupLoaded,
   lookupOptions,
   onChange,
   value,
 }: {
   field: SettingsSectionConfig["fields"][number];
   lookupError?: string;
+  lookupLoaded: boolean;
   lookupOptions: LookupOption[];
   onChange: (value: SettingsValue | null) => void;
   value: SettingsValue | null;
 }) {
   const disabled = field.disabled || field.readOnly;
 
-if (field.type === "checkbox") {
-  return (
-    <CheckboxField
-      label={field.label}
-      hint={field.description}
-      checked={Boolean(value)}
-      onChange={(checked) => onChange(checked)}
-      disabled={disabled}
-      className="self-end"
-    />
-  );
-}
+  if (field.type === "checkbox") {
+    return (
+      <CheckboxField
+        label={field.label}
+        hint={field.description}
+        checked={Boolean(value)}
+        onChange={(checked) => onChange(checked)}
+        disabled={disabled}
+        className="self-end"
+      />
+    );
+  }
 
   if (field.type === "number") {
     return (
@@ -523,18 +573,39 @@ if (field.type === "checkbox") {
 
   if (field.type === "lookup") {
     const hint = [field.description, lookupError].filter(Boolean).join(" ");
+    const createHref =
+      field.createHref ??
+      (field.lookupKey ? LOOKUP_CREATE_HREFS[field.lookupKey] : undefined);
 
     return (
-      <LookupField
-        hint={hint || undefined}
-        label={field.label}
-        noResultsText={lookupError ?? "No matching lookup options were found."}
-        onChange={(nextValue) => onChange(nextValue || null)}
-        options={lookupOptions}
-        placeholder={field.placeholder ?? `Search ${field.label}`}
-        value={typeof value === "string" ? value : ""}
-        disabled={disabled}
-      />
+      <div className="grid gap-1.5">
+        <LookupField
+          hint={hint || undefined}
+          label={field.label}
+          noResultsText={
+            lookupError ??
+            (lookupLoaded
+              ? "No active configuration records were found."
+              : "Loading configuration records...")
+          }
+          onChange={(nextValue) => onChange(nextValue || null)}
+          options={lookupOptions}
+          placeholder={field.placeholder ?? `Search ${field.label}`}
+          value={typeof value === "string" ? value : ""}
+          disabled={disabled || !lookupLoaded}
+        />
+        {lookupLoaded &&
+        !lookupError &&
+        lookupOptions.length === 0 &&
+        createHref ? (
+          <Link
+            className="w-fit text-xs font-semibold text-accent hover:underline"
+            href={createHref}
+          >
+            Create configuration
+          </Link>
+        ) : null}
+      </div>
     );
   }
 
@@ -633,6 +704,70 @@ async function safeReadJson<T>(response: Response): Promise<T | null> {
   } catch {
     return null;
   }
+}
+
+function normalizeLookupOptions(
+  payload: unknown,
+  lookupKey: string,
+): LookupOption[] {
+  const records = Array.isArray(payload)
+    ? payload
+    : payload && typeof payload === "object"
+      ? Array.isArray((payload as LookupResponse).items)
+        ? (payload as LookupResponse).items!
+        : Array.isArray((payload as LookupResponse).options)
+          ? (payload as LookupResponse).options!
+          : []
+      : [];
+
+  return records.flatMap((record) => {
+    if (!record || typeof record !== "object" || Array.isArray(record)) {
+      return [];
+    }
+    const item = record as Record<string, unknown>;
+    if (
+      ACTIVE_ONLY_LOOKUPS.has(lookupKey) &&
+      (item.isActive === false ||
+        (typeof item.status === "string" && item.status !== "ACTIVE"))
+    ) {
+      return [];
+    }
+    if (lookupKey === "glAccounts" && item.postingAllowed === false) {
+      return [];
+    }
+    const rawId =
+      lookupKey === "currencies"
+        ? item.code
+        : (item.id ?? item.value ?? item.code);
+    const rawName =
+      item.name ??
+      item.label ??
+      item.displayName ??
+      item.accountName ??
+      item.code;
+    if (
+      (typeof rawId !== "string" && typeof rawId !== "number") ||
+      (typeof rawName !== "string" && typeof rawName !== "number")
+    ) {
+      return [];
+    }
+    const code = typeof item.code === "string" ? item.code : undefined;
+    const name = String(rawName).trim();
+    return [
+      {
+        id: String(rawId),
+        name: code && code !== name ? `${name} (${code})` : name,
+      },
+    ];
+  });
+}
+
+function lookupSource(payload: unknown) {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return "resolved";
+  }
+  const source = (payload as LookupResponse).source;
+  return source === "default" || source === "resolved" ? source : "resolved";
 }
 
 function logLookupDiagnostic(

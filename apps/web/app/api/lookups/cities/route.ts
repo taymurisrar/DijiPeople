@@ -15,6 +15,10 @@ export async function GET(request: Request) {
     if (stateProvinceId) {
       query.set("stateProvinceId", stateProvinceId);
     }
+    const search = searchParams.get("search");
+    if (search) {
+      query.set("search", search);
+    }
 
     const response = await apiRequest(
       `/lookups/cities${query.size ? `?${query.toString()}` : ""}`,
@@ -30,4 +34,13 @@ export async function GET(request: Request) {
       { status: 502 },
     );
   }
+}
+
+export async function POST(request: Request) {
+  return proxyApiJsonResponse(
+    await apiRequest("/lookups/cities", {
+      method: "POST",
+      body: JSON.stringify(await request.json()),
+    }),
+  );
 }

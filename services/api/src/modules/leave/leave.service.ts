@@ -118,17 +118,55 @@ export class LeaveService {
     return leaveType;
   }
 
+  async listLeaveTypePolicyRules(tenantId: string, id: string) {
+    await this.findLeaveTypeById(tenantId, id);
+    return this.leaveRepository.listLeavePolicyRulesByLeaveType(tenantId, id);
+  }
+
+  async listLeaveTypeUsage(tenantId: string, id: string) {
+    await this.findLeaveTypeById(tenantId, id);
+    const [leaveRequests, leaveBalances, leaveConsumptionRecords, policyRules] =
+      await Promise.all([
+        this.prisma.leaveRequest.count({
+          where: { tenantId, leaveTypeId: id },
+        }),
+        this.prisma.leaveBalance.count({
+          where: { tenantId, leaveTypeId: id },
+        }),
+        this.prisma.leaveConsumptionRecord.count({
+          where: { tenantId, leaveTypeId: id },
+        }),
+        this.prisma.leavePolicyRule.count({
+          where: { tenantId, leaveTypeId: id },
+        }),
+      ]);
+    return [
+      { source: 'Leave Requests', count: leaveRequests },
+      { source: 'Leave Balances', count: leaveBalances },
+      { source: 'Leave Consumption Records', count: leaveConsumptionRecords },
+      { source: 'Leave Policy Rules', count: policyRules },
+    ];
+  }
+
   async createLeaveType(
     currentUser: AuthenticatedUser,
     dto: CreateLeaveTypeDto,
   ) {
+    this.validateLeaveType(dto);
     try {
       return await this.leaveRepository.createLeaveType({
         tenantId: currentUser.tenantId,
         name: dto.name.trim(),
-        code: dto.code.trim().toUpperCase(),
+        code: normalizeCode(dto.code ?? dto.name),
         category: dto.category.trim(),
+        description: normalizeOptionalText(dto.description),
         isPaid: dto.isPaid ?? true,
+        affectsPayroll: dto.affectsPayroll ?? false,
+        consumesBalance: dto.consumesBalance ?? true,
+        employeeRequestAllowed: dto.employeeRequestAllowed ?? true,
+        requiresAttachment: dto.requiresAttachment ?? false,
+        allowHalfDay: dto.allowHalfDay ?? true,
+        allowHourlyLeave: dto.allowHourlyLeave ?? false,
         requiresApproval: dto.requiresApproval ?? true,
         isActive: dto.isActive ?? true,
         createdById: currentUser.userId,
@@ -144,6 +182,22 @@ export class LeaveService {
     id: string,
     dto: UpdateLeaveTypeDto,
   ) {
+    const existing = await this.findLeaveTypeById(currentUser.tenantId, id);
+    this.validateLeaveType({
+      name: dto.name ?? existing.name,
+      code: dto.code ?? existing.code,
+      category: dto.category ?? existing.category,
+      isPaid: dto.isPaid ?? existing.isPaid,
+      affectsPayroll: dto.affectsPayroll ?? existing.affectsPayroll,
+      consumesBalance: dto.consumesBalance ?? existing.consumesBalance,
+      employeeRequestAllowed:
+        dto.employeeRequestAllowed ?? existing.employeeRequestAllowed,
+      requiresAttachment: dto.requiresAttachment ?? existing.requiresAttachment,
+      allowHalfDay: dto.allowHalfDay ?? existing.allowHalfDay,
+      allowHourlyLeave: dto.allowHourlyLeave ?? existing.allowHourlyLeave,
+      requiresApproval: dto.requiresApproval ?? existing.requiresApproval,
+      isActive: dto.isActive ?? existing.isActive,
+    });
     const result = await this.leaveRepository.updateLeaveType(
       currentUser.tenantId,
       id,
@@ -155,7 +209,28 @@ export class LeaveService {
         ...(dto.category !== undefined
           ? { category: dto.category.trim() }
           : {}),
+        ...(dto.description !== undefined
+          ? { description: normalizeOptionalText(dto.description) }
+          : {}),
         ...(dto.isPaid !== undefined ? { isPaid: dto.isPaid } : {}),
+        ...(dto.affectsPayroll !== undefined
+          ? { affectsPayroll: dto.affectsPayroll }
+          : {}),
+        ...(dto.consumesBalance !== undefined
+          ? { consumesBalance: dto.consumesBalance }
+          : {}),
+        ...(dto.employeeRequestAllowed !== undefined
+          ? { employeeRequestAllowed: dto.employeeRequestAllowed }
+          : {}),
+        ...(dto.requiresAttachment !== undefined
+          ? { requiresAttachment: dto.requiresAttachment }
+          : {}),
+        ...(dto.allowHalfDay !== undefined
+          ? { allowHalfDay: dto.allowHalfDay }
+          : {}),
+        ...(dto.allowHourlyLeave !== undefined
+          ? { allowHourlyLeave: dto.allowHourlyLeave }
+          : {}),
         ...(dto.requiresApproval !== undefined
           ? { requiresApproval: dto.requiresApproval }
           : {}),
@@ -169,6 +244,31 @@ export class LeaveService {
     }
 
     return this.findLeaveTypeById(currentUser.tenantId, id);
+  }
+
+  async deactivateLeaveType(currentUser: AuthenticatedUser, id: string) {
+    await this.findLeaveTypeById(currentUser.tenantId, id);
+    const [policyRules, leaveRequests, leaveBalances, consumptionRecords] =
+      await Promise.all([
+        this.prisma.leavePolicyRule.count({
+          where: { tenantId: currentUser.tenantId, leaveTypeId: id },
+        }),
+        this.prisma.leaveRequest.count({
+          where: { tenantId: currentUser.tenantId, leaveTypeId: id },
+        }),
+        this.prisma.leaveBalance.count({
+          where: { tenantId: currentUser.tenantId, leaveTypeId: id },
+        }),
+        this.prisma.leaveConsumptionRecord.count({
+          where: { tenantId: currentUser.tenantId, leaveTypeId: id },
+        }),
+      ]);
+    if (policyRules + leaveRequests + leaveBalances + consumptionRecords > 0) {
+      throw new ConflictException(
+        'Leave type cannot be deleted while policy rules, requests, balances, or consumption records reference it.',
+      );
+    }
+    return this.updateLeaveType(currentUser, id, { isActive: false });
   }
 
   findLeavePolicies(tenantId: string, query: ListLeaveConfigDto) {
@@ -198,6 +298,7 @@ export class LeaveService {
       return await this.leaveRepository.createLeavePolicy({
         tenantId: currentUser.tenantId,
         name: dto.name.trim(),
+        description: normalizeOptionalText(dto.description),
         isActive: dto.isActive ?? true,
         createdById: currentUser.userId,
         updatedById: currentUser.userId,
@@ -219,6 +320,9 @@ export class LeaveService {
       id,
       {
         ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
+        ...(dto.description !== undefined
+          ? { description: normalizeOptionalText(dto.description) }
+          : {}),
         ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
         updatedById: currentUser.userId,
       },
@@ -231,6 +335,24 @@ export class LeaveService {
     }
 
     return this.findLeavePolicyById(currentUser.tenantId, id);
+  }
+
+  async deactivateLeavePolicy(currentUser: AuthenticatedUser, id: string) {
+    await this.findLeavePolicyById(currentUser.tenantId, id);
+    const [rules, assignments] = await Promise.all([
+      this.prisma.leavePolicyRule.count({
+        where: { tenantId: currentUser.tenantId, leavePolicyId: id },
+      }),
+      (this.prisma as any).leavePolicyAssignment.count({
+        where: { tenantId: currentUser.tenantId, leavePolicyId: id },
+      }),
+    ]);
+    if (rules + assignments > 0) {
+      throw new ConflictException(
+        'Leave policy cannot be deleted while rules or assignments reference it.',
+      );
+    }
+    return this.updateLeavePolicy(currentUser, id, { isActive: false });
   }
 
   async submitLeaveRequest(
@@ -259,6 +381,12 @@ export class LeaveService {
       );
     }
 
+    if (!leaveType.employeeRequestAllowed) {
+      throw new BadRequestException(
+        'Selected leave type is not available for employee requests.',
+      );
+    }
+
     const leavePolicy = await this.resolveApplicableLeavePolicy(
       currentUser.tenantId,
       employee,
@@ -270,14 +398,31 @@ export class LeaveService {
       dto.endDate,
     );
 
-    const approvalSteps = await this.buildApprovalSteps(
+    const leavePolicyRule = await this.resolveLeavePolicyRuleForRequest(
       currentUser.tenantId,
-      employee,
       leavePolicy?.id ?? null,
       leaveType.id,
-      totalDays,
-      currentUser.userId,
     );
+    await this.validateLeaveRequestAgainstPolicy(
+      currentUser.tenantId,
+      employee.id,
+      leaveType,
+      leavePolicyRule,
+      totalDays,
+      Boolean(dto.attachmentReference?.trim()),
+    );
+
+    const approvalSteps =
+      leavePolicyRule?.approvalRequired !== false
+        ? await this.buildApprovalSteps(
+            currentUser.tenantId,
+            employee,
+            leavePolicy?.id ?? null,
+            leaveType.id,
+            totalDays,
+            currentUser.userId,
+          )
+        : [];
 
     const leaveRequest = await this.prisma.$transaction(async (tx) => {
       const created = await this.leaveRepository.createLeaveRequest(
@@ -293,7 +438,13 @@ export class LeaveService {
             approvalSteps.length > 0
               ? LeaveRequestStatus.PENDING
               : LeaveRequestStatus.APPROVED,
-          attachmentRequired: false,
+          attachmentRequired:
+            leaveType.requiresAttachment ||
+            (leavePolicyRule?.requiresDocumentAfterDays !== null &&
+              leavePolicyRule?.requiresDocumentAfterDays !== undefined &&
+              totalDays.greaterThan(
+                new Prisma.Decimal(leavePolicyRule.requiresDocumentAfterDays),
+              )),
           attachmentReference: dto.attachmentReference?.trim(),
           createdById: currentUser.userId,
           updatedById: currentUser.userId,
@@ -313,6 +464,110 @@ export class LeaveService {
     await this.syncGenericLeaveApproval(leaveRequest, currentUser, 'SUBMITTED');
 
     return this.mapLeaveRequest(leaveRequest, currentUser);
+  }
+
+  private async resolveLeavePolicyRuleForRequest(
+    tenantId: string,
+    leavePolicyId: string | null,
+    leaveTypeId: string,
+  ) {
+    if (!leavePolicyId) return null;
+    const rules = await this.leaveRepository.listActiveLeavePolicyRules(
+      tenantId,
+      leavePolicyId,
+    );
+    const rule = rules.find((item) => item.leaveTypeId === leaveTypeId);
+    if (!rule) {
+      throw new BadRequestException(
+        'Selected leave type is not configured in the assigned leave policy.',
+      );
+    }
+    return rule;
+  }
+
+  private async validateLeaveRequestAgainstPolicy(
+    tenantId: string,
+    employeeId: string,
+    leaveType: {
+      id: string;
+      consumesBalance: boolean;
+      requiresAttachment: boolean;
+    },
+    rule:
+      | Awaited<
+          ReturnType<LeaveRepository['listActiveLeavePolicyRules']>
+        >[number]
+      | null,
+    totalDays: Prisma.Decimal,
+    hasAttachment: boolean,
+  ) {
+    if (leaveType.requiresAttachment && !hasAttachment) {
+      throw new BadRequestException(
+        'An attachment is required for this leave type.',
+      );
+    }
+
+    if (
+      rule?.requiresDocumentAfterDays !== null &&
+      rule?.requiresDocumentAfterDays !== undefined &&
+      totalDays.greaterThan(
+        new Prisma.Decimal(rule.requiresDocumentAfterDays),
+      ) &&
+      !hasAttachment
+    ) {
+      throw new BadRequestException(
+        'An attachment is required for this leave duration.',
+      );
+    }
+
+    if (
+      rule?.maxConsecutiveDays &&
+      totalDays.greaterThan(rule.maxConsecutiveDays)
+    ) {
+      throw new BadRequestException(
+        'Leave request exceeds the maximum consecutive days allowed by policy.',
+      );
+    }
+
+    if (
+      rule?.minimumConsecutiveDays &&
+      totalDays.lessThan(rule.minimumConsecutiveDays)
+    ) {
+      throw new BadRequestException(
+        'Leave request is below the minimum consecutive days required by policy.',
+      );
+    }
+
+    if (!leaveType.consumesBalance) return;
+
+    const balance = await this.prisma.leaveBalance.findUnique({
+      where: {
+        tenantId_employeeId_leaveTypeId: {
+          tenantId,
+          employeeId,
+          leaveTypeId: leaveType.id,
+        },
+      },
+    });
+    const remaining = balance?.totalRemaining ?? new Prisma.Decimal(0);
+    if (remaining.greaterThanOrEqualTo(totalDays)) return;
+
+    if (!rule?.negativeBalanceAllowed) {
+      throw new BadRequestException(
+        'Insufficient leave balance for this request.',
+      );
+    }
+
+    const maximumNegativeBalance =
+      rule.maximumNegativeBalance ?? new Prisma.Decimal(0);
+    const projected = remaining.minus(totalDays);
+    if (
+      projected.lessThan(new Prisma.Decimal(0).minus(maximumNegativeBalance))
+    ) {
+      throw new BadRequestException(
+        'Leave request exceeds the maximum negative balance allowed by policy.',
+      );
+    }
   }
 
   async getAvailableLeaveTypesForEmployee(currentUser: AuthenticatedUser) {
@@ -338,9 +593,22 @@ export class LeaveService {
       }),
     ]);
 
+    const policyRules = leavePolicy
+      ? await this.leaveRepository.listActiveLeavePolicyRules(
+          currentUser.tenantId,
+          leavePolicy.id,
+        )
+      : [];
+    const allowedTypeIds = new Set(policyRules.map((rule) => rule.leaveTypeId));
+    const leaveTypes = activeLeaveTypes.filter(
+      (leaveType) =>
+        leaveType.employeeRequestAllowed &&
+        (!leavePolicy || allowedTypeIds.has(leaveType.id)),
+    );
+
     return {
       status:
-        activeLeaveTypes.length > 0
+        leaveTypes.length > 0
           ? ('AVAILABLE' as const)
           : ('NO_ACTIVE_TYPES' as const),
       ...(leavePolicy
@@ -351,13 +619,16 @@ export class LeaveService {
             },
           }
         : {}),
-      leaveTypes: activeLeaveTypes.map((leaveType) => ({
+      leaveTypes: leaveTypes.map((leaveType) => ({
         id: leaveType.id,
         name: leaveType.name,
         code: leaveType.code,
         category: leaveType.category,
         requiresApproval: leaveType.requiresApproval,
         isPaid: leaveType.isPaid,
+        requiresAttachment: leaveType.requiresAttachment,
+        allowHalfDay: leaveType.allowHalfDay,
+        allowHourlyLeave: leaveType.allowHourlyLeave,
       })),
     };
   }
@@ -588,6 +859,17 @@ export class LeaveService {
     );
   }
 
+  async listLeavePolicyAssignmentsForPolicy(
+    currentUser: AuthenticatedUser,
+    policyId: string,
+  ) {
+    await this.ensureLeavePolicyExists(currentUser.tenantId, policyId);
+    return this.leaveRepository.listLeavePolicyAssignmentsByPolicy(
+      currentUser.tenantId,
+      policyId,
+    );
+  }
+
   async createLeavePolicyRule(
     currentUser: AuthenticatedUser,
     policyId: string,
@@ -620,14 +902,45 @@ export class LeaveService {
           dto.entitlementDays !== undefined
             ? new Prisma.Decimal(dto.entitlementDays)
             : undefined,
+        minimumServiceDays: dto.minimumServiceDays,
+        prorateOnJoining: dto.prorateOnJoining ?? false,
+        prorateOnExit: dto.prorateOnExit ?? false,
+        maximumNegativeBalance:
+          dto.maximumNegativeBalance !== undefined
+            ? new Prisma.Decimal(dto.maximumNegativeBalance)
+            : undefined,
         accrualType: dto.accrualType,
         accrualFrequency: dto.accrualFrequency,
+        accrualDay: dto.accrualDay,
+        accrualAmount:
+          dto.accrualAmount !== undefined
+            ? new Prisma.Decimal(dto.accrualAmount)
+            : undefined,
+        accrueDuringProbation: dto.accrueDuringProbation ?? false,
+        creditOnJoining: dto.creditOnJoining ?? false,
         carryForwardAllowed: dto.carryForwardAllowed ?? false,
         carryForwardLimit:
           dto.carryForwardLimit !== undefined
             ? new Prisma.Decimal(dto.carryForwardLimit)
             : undefined,
+        carryForwardExpiryMonths: dto.carryForwardExpiryMonths,
+        encashUnusedBalance: dto.encashUnusedBalance ?? false,
+        maximumEncashmentDays:
+          dto.maximumEncashmentDays !== undefined
+            ? new Prisma.Decimal(dto.maximumEncashmentDays)
+            : undefined,
         negativeBalanceAllowed: dto.negativeBalanceAllowed ?? false,
+        minimumNoticeDays: dto.minimumNoticeDays,
+        minimumConsecutiveDays:
+          dto.minimumConsecutiveDays !== undefined
+            ? new Prisma.Decimal(dto.minimumConsecutiveDays)
+            : undefined,
+        allowDuringProbation: dto.allowDuringProbation ?? true,
+        allowBackdatedRequests: dto.allowBackdatedRequests ?? false,
+        maxBackdatedDays: dto.maxBackdatedDays,
+        allowFutureRequests: dto.allowFutureRequests ?? true,
+        maxFutureDays: dto.maxFutureDays,
+        blockDuringNoticePeriod: dto.blockDuringNoticePeriod ?? false,
         requiresDocumentAfterDays: dto.requiresDocumentAfterDays,
         probationRestriction: dto.probationRestriction ?? false,
         genderRestriction: dto.genderRestriction,
@@ -637,6 +950,13 @@ export class LeaveService {
             ? new Prisma.Decimal(dto.maxConsecutiveDays)
             : undefined,
         approvalRequired: dto.approvalRequired ?? true,
+        approvalMatrixId: dto.approvalMatrixId,
+        autoApproveUnderDays:
+          dto.autoApproveUnderDays !== undefined
+            ? new Prisma.Decimal(dto.autoApproveUnderDays)
+            : undefined,
+        requireHrApproval: dto.requireHrApproval ?? false,
+        requirePayrollApproval: dto.requirePayrollApproval ?? false,
         isPaid: dto.isPaid ?? true,
         isActive: dto.isActive ?? true,
         createdById: currentUser.userId,
@@ -688,6 +1008,13 @@ export class LeaveService {
             ? Number(existingRule.entitlementDays)
             : undefined,
       accrualType: dto.accrualType ?? existingRule.accrualType,
+      accrualDay: dto.accrualDay ?? existingRule.accrualDay ?? undefined,
+      accrualAmount:
+        dto.accrualAmount !== undefined
+          ? dto.accrualAmount
+          : existingRule.accrualAmount
+            ? Number(existingRule.accrualAmount)
+            : undefined,
       carryForwardAllowed:
         dto.carryForwardAllowed ?? existingRule.carryForwardAllowed,
       carryForwardLimit:
@@ -710,6 +1037,28 @@ export class LeaveService {
           : existingRule.maxConsecutiveDays
             ? Number(existingRule.maxConsecutiveDays)
             : undefined,
+      minimumConsecutiveDays:
+        dto.minimumConsecutiveDays !== undefined
+          ? dto.minimumConsecutiveDays
+          : existingRule.minimumConsecutiveDays
+            ? Number(existingRule.minimumConsecutiveDays)
+            : undefined,
+      negativeBalanceAllowed:
+        dto.negativeBalanceAllowed ?? existingRule.negativeBalanceAllowed,
+      maximumNegativeBalance:
+        dto.maximumNegativeBalance !== undefined
+          ? dto.maximumNegativeBalance
+          : existingRule.maximumNegativeBalance
+            ? Number(existingRule.maximumNegativeBalance)
+            : undefined,
+      allowBackdatedRequests:
+        dto.allowBackdatedRequests ?? existingRule.allowBackdatedRequests,
+      maxBackdatedDays:
+        dto.maxBackdatedDays ?? existingRule.maxBackdatedDays ?? undefined,
+      allowFutureRequests:
+        dto.allowFutureRequests ?? existingRule.allowFutureRequests,
+      maxFutureDays:
+        dto.maxFutureDays ?? existingRule.maxFutureDays ?? undefined,
     });
 
     return this.leaveRepository.updateLeavePolicyRule(
@@ -723,11 +1072,43 @@ export class LeaveService {
         ...(dto.entitlementDays !== undefined
           ? { entitlementDays: new Prisma.Decimal(dto.entitlementDays) }
           : {}),
+        ...(dto.minimumServiceDays !== undefined
+          ? { minimumServiceDays: dto.minimumServiceDays }
+          : {}),
+        ...(dto.prorateOnJoining !== undefined
+          ? { prorateOnJoining: dto.prorateOnJoining }
+          : {}),
+        ...(dto.prorateOnExit !== undefined
+          ? { prorateOnExit: dto.prorateOnExit }
+          : {}),
+        ...(dto.maximumNegativeBalance !== undefined
+          ? {
+              maximumNegativeBalance:
+                dto.maximumNegativeBalance === null
+                  ? null
+                  : new Prisma.Decimal(dto.maximumNegativeBalance),
+            }
+          : {}),
         ...(dto.accrualType !== undefined
           ? { accrualType: dto.accrualType }
           : {}),
         ...(dto.accrualFrequency !== undefined
           ? { accrualFrequency: dto.accrualFrequency }
+          : {}),
+        ...(dto.accrualDay !== undefined ? { accrualDay: dto.accrualDay } : {}),
+        ...(dto.accrualAmount !== undefined
+          ? {
+              accrualAmount:
+                dto.accrualAmount === null
+                  ? null
+                  : new Prisma.Decimal(dto.accrualAmount),
+            }
+          : {}),
+        ...(dto.accrueDuringProbation !== undefined
+          ? { accrueDuringProbation: dto.accrueDuringProbation }
+          : {}),
+        ...(dto.creditOnJoining !== undefined
+          ? { creditOnJoining: dto.creditOnJoining }
           : {}),
         ...(dto.carryForwardAllowed !== undefined
           ? { carryForwardAllowed: dto.carryForwardAllowed }
@@ -740,8 +1121,51 @@ export class LeaveService {
                   : new Prisma.Decimal(dto.carryForwardLimit),
             }
           : {}),
+        ...(dto.carryForwardExpiryMonths !== undefined
+          ? { carryForwardExpiryMonths: dto.carryForwardExpiryMonths }
+          : {}),
+        ...(dto.encashUnusedBalance !== undefined
+          ? { encashUnusedBalance: dto.encashUnusedBalance }
+          : {}),
+        ...(dto.maximumEncashmentDays !== undefined
+          ? {
+              maximumEncashmentDays:
+                dto.maximumEncashmentDays === null
+                  ? null
+                  : new Prisma.Decimal(dto.maximumEncashmentDays),
+            }
+          : {}),
         ...(dto.negativeBalanceAllowed !== undefined
           ? { negativeBalanceAllowed: dto.negativeBalanceAllowed }
+          : {}),
+        ...(dto.minimumNoticeDays !== undefined
+          ? { minimumNoticeDays: dto.minimumNoticeDays }
+          : {}),
+        ...(dto.minimumConsecutiveDays !== undefined
+          ? {
+              minimumConsecutiveDays:
+                dto.minimumConsecutiveDays === null
+                  ? null
+                  : new Prisma.Decimal(dto.minimumConsecutiveDays),
+            }
+          : {}),
+        ...(dto.allowDuringProbation !== undefined
+          ? { allowDuringProbation: dto.allowDuringProbation }
+          : {}),
+        ...(dto.allowBackdatedRequests !== undefined
+          ? { allowBackdatedRequests: dto.allowBackdatedRequests }
+          : {}),
+        ...(dto.maxBackdatedDays !== undefined
+          ? { maxBackdatedDays: dto.maxBackdatedDays }
+          : {}),
+        ...(dto.allowFutureRequests !== undefined
+          ? { allowFutureRequests: dto.allowFutureRequests }
+          : {}),
+        ...(dto.maxFutureDays !== undefined
+          ? { maxFutureDays: dto.maxFutureDays }
+          : {}),
+        ...(dto.blockDuringNoticePeriod !== undefined
+          ? { blockDuringNoticePeriod: dto.blockDuringNoticePeriod }
           : {}),
         ...(dto.requiresDocumentAfterDays !== undefined
           ? { requiresDocumentAfterDays: dto.requiresDocumentAfterDays }
@@ -765,6 +1189,23 @@ export class LeaveService {
           : {}),
         ...(dto.approvalRequired !== undefined
           ? { approvalRequired: dto.approvalRequired }
+          : {}),
+        ...(dto.approvalMatrixId !== undefined
+          ? { approvalMatrixId: dto.approvalMatrixId }
+          : {}),
+        ...(dto.autoApproveUnderDays !== undefined
+          ? {
+              autoApproveUnderDays:
+                dto.autoApproveUnderDays === null
+                  ? null
+                  : new Prisma.Decimal(dto.autoApproveUnderDays),
+            }
+          : {}),
+        ...(dto.requireHrApproval !== undefined
+          ? { requireHrApproval: dto.requireHrApproval }
+          : {}),
+        ...(dto.requirePayrollApproval !== undefined
+          ? { requirePayrollApproval: dto.requirePayrollApproval }
           : {}),
         ...(dto.isPaid !== undefined ? { isPaid: dto.isPaid } : {}),
         ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
@@ -809,13 +1250,18 @@ export class LeaveService {
     dto: CreateLeavePolicyAssignmentDto,
   ) {
     await this.ensureLeavePolicyExists(currentUser.tenantId, dto.leavePolicyId);
-    this.validateLeavePolicyAssignment(dto);
+    await this.validateLeavePolicyAssignment(currentUser.tenantId, dto);
 
     return this.leaveRepository.createLeavePolicyAssignment({
       tenantId: currentUser.tenantId,
       leavePolicyId: dto.leavePolicyId,
       scopeType: dto.scopeType,
-      scopeId: dto.scopeType === ApprovalScopes.TENANT ? null : dto.scopeId,
+      scopeId: this.resolveAssignmentScopeId(dto),
+      organizationId: dto.organizationId,
+      businessUnitId: dto.businessUnitId,
+      departmentId: dto.departmentId,
+      employeeLevelId: dto.employeeLevelId,
+      employeeId: dto.employeeId,
       effectiveFrom: new Date(dto.effectiveFrom),
       effectiveTo: dto.effectiveTo ? new Date(dto.effectiveTo) : null,
       priority: dto.priority ?? 0,
@@ -843,6 +1289,24 @@ export class LeaveService {
       leavePolicyId: dto.leavePolicyId ?? existing.leavePolicyId,
       scopeType: dto.scopeType ?? existing.scopeType,
       scopeId: dto.scopeId === undefined ? existing.scopeId : dto.scopeId,
+      organizationId:
+        dto.organizationId === undefined
+          ? existing.organizationId
+          : dto.organizationId,
+      businessUnitId:
+        dto.businessUnitId === undefined
+          ? existing.businessUnitId
+          : dto.businessUnitId,
+      departmentId:
+        dto.departmentId === undefined
+          ? existing.departmentId
+          : dto.departmentId,
+      employeeLevelId:
+        dto.employeeLevelId === undefined
+          ? existing.employeeLevelId
+          : dto.employeeLevelId,
+      employeeId:
+        dto.employeeId === undefined ? existing.employeeId : dto.employeeId,
       effectiveFrom: dto.effectiveFrom ?? existing.effectiveFrom.toISOString(),
       effectiveTo:
         dto.effectiveTo === undefined
@@ -856,7 +1320,7 @@ export class LeaveService {
       currentUser.tenantId,
       next.leavePolicyId,
     );
-    this.validateLeavePolicyAssignment(next);
+    await this.validateLeavePolicyAssignment(currentUser.tenantId, next);
 
     const result = await this.leaveRepository.updateLeavePolicyAssignment(
       currentUser.tenantId,
@@ -868,12 +1332,24 @@ export class LeaveService {
         ...(dto.scopeType !== undefined ? { scopeType: dto.scopeType } : {}),
         ...(dto.scopeId !== undefined
           ? {
-              scopeId:
-                next.scopeType === ApprovalScopes.TENANT ? null : dto.scopeId,
+              scopeId: this.resolveAssignmentScopeId(next),
             }
           : next.scopeType === ApprovalScopes.TENANT
             ? { scopeId: null }
             : {}),
+        ...(dto.organizationId !== undefined
+          ? { organizationId: dto.organizationId }
+          : {}),
+        ...(dto.businessUnitId !== undefined
+          ? { businessUnitId: dto.businessUnitId }
+          : {}),
+        ...(dto.departmentId !== undefined
+          ? { departmentId: dto.departmentId }
+          : {}),
+        ...(dto.employeeLevelId !== undefined
+          ? { employeeLevelId: dto.employeeLevelId }
+          : {}),
+        ...(dto.employeeId !== undefined ? { employeeId: dto.employeeId } : {}),
         ...(dto.effectiveFrom !== undefined
           ? { effectiveFrom: new Date(dto.effectiveFrom) }
           : {}),
@@ -1594,15 +2070,22 @@ export class LeaveService {
     return [...visited];
   }
 
-  private validateLeavePolicyAssignment(
+  private async validateLeavePolicyAssignment(
+    tenantId: string,
     dto: Pick<
       CreateLeavePolicyAssignmentDto,
-      'scopeType' | 'scopeId' | 'effectiveFrom' | 'effectiveTo'
+      | 'scopeType'
+      | 'scopeId'
+      | 'organizationId'
+      | 'businessUnitId'
+      | 'departmentId'
+      | 'employeeLevelId'
+      | 'employeeId'
+      | 'effectiveFrom'
+      | 'effectiveTo'
     >,
   ) {
-    if (dto.scopeType !== ApprovalScopes.TENANT && !dto.scopeId?.trim()) {
-      throw new BadRequestException('Scope ID is required for this scope.');
-    }
+    const scopeId = this.resolveAssignmentScopeId(dto);
 
     const effectiveFrom = new Date(dto.effectiveFrom);
     const effectiveTo = dto.effectiveTo ? new Date(dto.effectiveTo) : null;
@@ -1620,6 +2103,74 @@ export class LeaveService {
         'Effective to date cannot be before effective from date.',
       );
     }
+
+    await this.assertAssignmentScopeBelongsToTenant(
+      tenantId,
+      dto.scopeType,
+      scopeId,
+    );
+  }
+
+  private resolveAssignmentScopeId(
+    dto: Pick<
+      CreateLeavePolicyAssignmentDto,
+      | 'scopeType'
+      | 'scopeId'
+      | 'organizationId'
+      | 'businessUnitId'
+      | 'departmentId'
+      | 'employeeLevelId'
+      | 'employeeId'
+    >,
+  ) {
+    if (dto.scopeType === ApprovalScopes.TENANT) return null;
+    const byScope = {
+      [ApprovalScopes.ORGANIZATION]: dto.organizationId,
+      [ApprovalScopes.BUSINESS_UNIT]: dto.businessUnitId,
+      [ApprovalScopes.DEPARTMENT]: dto.departmentId,
+      [ApprovalScopes.EMPLOYEE_LEVEL]: dto.employeeLevelId,
+      [ApprovalScopes.EMPLOYEE]: dto.employeeId,
+    } as Record<string, string | undefined>;
+    const scopeId = byScope[dto.scopeType] ?? dto.scopeId;
+    if (!scopeId?.trim()) {
+      throw new BadRequestException('Scope ID is required for this scope.');
+    }
+    return scopeId;
+  }
+
+  private async assertAssignmentScopeBelongsToTenant(
+    tenantId: string,
+    scopeType: string,
+    scopeId: string | null,
+  ) {
+    if (scopeType === ApprovalScopes.TENANT) return;
+    const exists =
+      scopeType === ApprovalScopes.ORGANIZATION
+        ? await this.prisma.organization.count({
+            where: { tenantId, id: scopeId ?? '' },
+          })
+        : scopeType === ApprovalScopes.BUSINESS_UNIT
+          ? await this.prisma.businessUnit.count({
+              where: { tenantId, id: scopeId ?? '' },
+            })
+          : scopeType === ApprovalScopes.DEPARTMENT
+            ? await this.prisma.department.count({
+                where: { tenantId, id: scopeId ?? '' },
+              })
+            : scopeType === ApprovalScopes.EMPLOYEE_LEVEL
+              ? await this.prisma.employeeLevel.count({
+                  where: { tenantId, id: scopeId ?? '' },
+                })
+              : scopeType === ApprovalScopes.EMPLOYEE
+                ? await this.prisma.employee.count({
+                    where: { tenantId, id: scopeId ?? '', isDeleted: false },
+                  })
+                : 0;
+    if (!exists) {
+      throw new BadRequestException(
+        'Selected assignment scope does not belong to this tenant.',
+      );
+    }
   }
 
   private validateLeavePolicyRule(dto: Partial<CreateLeavePolicyRuleDto>) {
@@ -1629,6 +2180,39 @@ export class LeaveService {
 
     if (dto.entitlementDays !== undefined && Number(dto.entitlementDays) < 0) {
       throw new BadRequestException('Entitlement days cannot be negative.');
+    }
+
+    if (
+      dto.negativeBalanceAllowed &&
+      dto.maximumNegativeBalance === undefined
+    ) {
+      throw new BadRequestException(
+        'Maximum negative balance is required when negative balance is allowed.',
+      );
+    }
+
+    if (
+      dto.maximumNegativeBalance !== undefined &&
+      Number(dto.maximumNegativeBalance) < 0
+    ) {
+      throw new BadRequestException(
+        'Maximum negative balance cannot be negative.',
+      );
+    }
+
+    if (
+      dto.accrualType !== 'NONE' &&
+      dto.accrualAmount !== undefined &&
+      Number(dto.accrualAmount) < 0
+    ) {
+      throw new BadRequestException('Accrual amount cannot be negative.');
+    }
+
+    if (
+      dto.accrualDay !== undefined &&
+      (dto.accrualDay < 1 || dto.accrualDay > 31)
+    ) {
+      throw new BadRequestException('Accrual day must be between 1 and 31.');
     }
 
     if (
@@ -1669,6 +2253,61 @@ export class LeaveService {
     ) {
       throw new BadRequestException(
         'Maximum consecutive days cannot be negative.',
+      );
+    }
+
+    if (
+      dto.minimumConsecutiveDays !== undefined &&
+      dto.maxConsecutiveDays !== undefined &&
+      Number(dto.maxConsecutiveDays) < Number(dto.minimumConsecutiveDays)
+    ) {
+      throw new BadRequestException(
+        'Maximum consecutive days cannot be less than minimum consecutive days.',
+      );
+    }
+
+    if (dto.allowBackdatedRequests && dto.maxBackdatedDays === undefined) {
+      throw new BadRequestException(
+        'Maximum backdated days is required when backdated requests are allowed.',
+      );
+    }
+
+    if (dto.maxBackdatedDays !== undefined && dto.maxBackdatedDays < 0) {
+      throw new BadRequestException(
+        'Maximum backdated days cannot be negative.',
+      );
+    }
+
+    if (dto.allowFutureRequests && dto.maxFutureDays === undefined) {
+      throw new BadRequestException(
+        'Maximum future days is required when future requests are allowed.',
+      );
+    }
+
+    if (dto.maxFutureDays !== undefined && dto.maxFutureDays < 0) {
+      throw new BadRequestException('Maximum future days cannot be negative.');
+    }
+
+    if (
+      dto.autoApproveUnderDays !== undefined &&
+      Number(dto.autoApproveUnderDays) < 0
+    ) {
+      throw new BadRequestException('Auto approve days cannot be negative.');
+    }
+  }
+
+  private validateLeaveType(dto: Partial<CreateLeaveTypeDto>) {
+    if (!dto.name?.trim()) {
+      throw new BadRequestException('Leave type name is required.');
+    }
+
+    if (!dto.category?.trim()) {
+      throw new BadRequestException('Leave category is required.');
+    }
+
+    if (dto.category.trim().toUpperCase() === 'UNPAID' && dto.isPaid === true) {
+      throw new ConflictException(
+        'Paid Leave must be false when leave category is Unpaid.',
       );
     }
   }
@@ -1768,4 +2407,16 @@ export class LeaveService {
 
     throw error;
   }
+}
+
+function normalizeOptionalText(value: string | undefined) {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+}
+
+function normalizeCode(value: string) {
+  return value
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '_');
 }

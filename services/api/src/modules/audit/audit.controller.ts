@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Permissions } from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -19,5 +19,14 @@ export class AuditController {
     @Query() query: AuditLogQueryDto,
   ) {
     return this.auditService.listByTenant(user.tenantId, query);
+  }
+
+  @Get(':id')
+  @Permissions('audit.read')
+  detailAuditLog(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ) {
+    return this.auditService.detailByTenant(user.tenantId, id);
   }
 }

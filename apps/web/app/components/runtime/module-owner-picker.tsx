@@ -10,6 +10,7 @@ import { normalizeOwnerOption } from "@/lib/runtime/owner-display.resolver";
 export function ModuleOwnerPicker({
   disabled = false,
   error,
+  className,
   label = "Owner",
   onChange,
   onSearch,
@@ -18,6 +19,7 @@ export function ModuleOwnerPicker({
 }: {
   readonly disabled?: boolean;
   readonly error?: string | null;
+  readonly className?: string;
   readonly label?: string;
   readonly onChange: (ownerId: string) => void;
   readonly onSearch?: (query: string) => void;
@@ -25,7 +27,7 @@ export function ModuleOwnerPicker({
   readonly value: string;
 }) {
   return (
-    <div className="grid gap-1">
+    <div className={["grid min-w-0 gap-1", className].filter(Boolean).join(" ")}>
       <LookupField
         disabled={disabled}
         label={label}

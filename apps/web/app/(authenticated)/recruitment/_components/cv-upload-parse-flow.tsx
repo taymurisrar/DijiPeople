@@ -4,7 +4,9 @@ import { useRouter } from "next/navigation";
 import { DragEvent, useMemo, useRef, useState } from "react";
 import { SharedLookupOption } from "@/app/(authenticated)/_components/documents/types";
 import { LookupOption } from "@/app/(authenticated)/employees/types";
+import { TopAlert } from "@/app/components/notifications/top-alert";
 import { Button } from "@/app/components/ui/button";
+import { LookupField } from "@/app/components/ui/form-control";
 
 type ParsedDraft = {
   firstName: string;
@@ -36,6 +38,7 @@ type ParsedDraft = {
   noticePeriodHint?: string;
   workModeHint?: string;
   relocationHint?: string;
+  preferredLocationHint?: string;
 };
 
 type ParseStatus =
@@ -107,9 +110,9 @@ export function CvUploadParseFlow({
   const [warnings, setWarnings] = useState<string[]>([]);
 
   const [parserVersion, setParserVersion] = useState("");
-  const [extractionConfidence, setExtractionConfidence] = useState<number | null>(
-    null,
-  );
+  const [extractionConfidence, setExtractionConfidence] = useState<
+    number | null
+  >(null);
   const [fieldConfidence, setFieldConfidence] = useState<FieldConfidence>({});
 
   const [parseStatus, setParseStatus] = useState<ParseStatus>("idle");
@@ -158,7 +161,6 @@ export function CvUploadParseFlow({
     if (parseStatus === "uploading") return "Uploading resume...";
     if (parseStatus === "extracting") return "Extracting readable content...";
     if (parseStatus === "parsing") return "Parsing candidate fields...";
-    if (parseStatus === "success") return "Resume parsed successfully.";
     if (parseStatus === "error") return "Resume parsing failed.";
     return null;
   }, [parseStatus]);
@@ -308,7 +310,17 @@ export function CvUploadParseFlow({
         noticePeriodHint: payload.candidateDraft.noticePeriodHint || "",
         workModeHint: payload.candidateDraft.workModeHint || "",
         relocationHint: payload.candidateDraft.relocationHint || "",
+        preferredLocationHint:
+          payload.candidateDraft.preferredLocationHint || "",
       });
+
+      const parsedCountryId = findCountryIdByName(
+        countries,
+        payload.candidateDraft.country,
+      );
+      if (parsedCountryId) {
+        setSelectedCountryId(parsedCountryId);
+      }
 
       const fullPreview =
         payload.extractedTextFull ||
@@ -450,11 +462,35 @@ export function CvUploadParseFlow({
           currentEmployer: emptyToUndefined(parsedDraft.currentEmployer),
           currentDesignation: emptyToUndefined(parsedDraft.currentDesignation),
           totalYearsExperience: toNumber(parsedDraft.totalYearsExperience),
+          noticePeriodDays: parseNoticePeriodDays(parsedDraft.noticePeriodHint),
+          preferredWorkMode: normalizeWorkMode(parsedDraft.workModeHint),
+          preferredLocation: emptyToUndefined(
+            parsedDraft.preferredLocationHint ||
+              [parsedDraft.city, countryLookup?.name ?? parsedDraft.country]
+                .filter((value) => Boolean(value && value.trim().length > 0))
+                .join(", "),
+          ),
+          willingToRelocate: parseRelocation(parsedDraft.relocationHint),
           skills: csvToArray(parsedDraft.skills),
+          certifications: parsedDraft.certifications ?? [],
+          educationRecords: buildEducationRecords(parsedDraft),
           linkedInUrl: emptyToUndefined(parsedDraft.linkedInUrl ?? ""),
           portfolioUrl: emptyToUndefined(parsedDraft.portfolioUrl ?? ""),
+          otherProfileUrl: emptyToUndefined(parsedDraft.githubUrl ?? ""),
           profileSummary: emptyToUndefined(
-            [parsedDraft.experience, parsedDraft.education]
+            [
+              parsedDraft.experience,
+              parsedDraft.education,
+              parsedDraft.workModeHint
+                ? `Preferred work mode: ${parsedDraft.workModeHint}`
+                : "",
+              parsedDraft.relocationHint
+                ? `Relocation: ${parsedDraft.relocationHint}`
+                : "",
+              parsedDraft.preferredLocationHint
+                ? `Preferred locations: ${parsedDraft.preferredLocationHint}`
+                : "",
+            ]
               .filter(Boolean)
               .join("\n\n"),
           ),
@@ -463,12 +499,15 @@ export function CvUploadParseFlow({
         }),
       });
 
-      const createdCandidate = (await createResponse.json()) as
-        | { id?: string; message?: string }
-        | null;
+      const createdCandidate = (await createResponse.json()) as {
+        id?: string;
+        message?: string;
+      } | null;
 
       if (!createResponse.ok || !createdCandidate?.id) {
-        throw new Error(createdCandidate?.message ?? "Unable to create candidate.");
+        throw new Error(
+          createdCandidate?.message ?? "Unable to create candidate.",
+        );
       }
 
       const candidateId = createdCandidate.id;
@@ -508,32 +547,29 @@ export function CvUploadParseFlow({
         },
       );
 
-      const registeredCandidate = (await registerResponse.json()) as
-        | {
-            message?: string;
-            documents?: Array<{
-              id: string;
-              fileName: string;
-              storageKey?: string | null;
-              createdAt?: string;
-            }>;
-          }
-        | null;
+      const registeredCandidate = (await registerResponse.json()) as {
+        message?: string;
+        documents?: Array<{
+          id: string;
+          fileName: string;
+          storageKey?: string | null;
+          createdAt?: string;
+        }>;
+      } | null;
 
       if (!registerResponse.ok) {
         throw new Error(
-          registeredCandidate?.message ?? "Candidate saved but resume link failed.",
+          registeredCandidate?.message ??
+            "Candidate saved but resume link failed.",
         );
       }
 
       const linkedDocumentId =
-        registeredCandidate?.documents
-          ?.find(
-            (item) =>
-              item.storageKey === uploadResult.storageKey ||
-              item.fileName === selectedFile.name,
-          )
-          ?.id ?? registeredCandidate?.documents?.[0]?.id;
+        registeredCandidate?.documents?.find(
+          (item) =>
+            item.storageKey === uploadResult.storageKey ||
+            item.fileName === selectedFile.name,
+        )?.id ?? registeredCandidate?.documents?.[0]?.id;
 
       if (linkedDocumentId) {
         await fetch(
@@ -564,10 +600,11 @@ export function CvUploadParseFlow({
   return (
     <section className="grid gap-6">
       <div className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
-        <h4 className="text-2xl font-semibold text-foreground">Upload CV</h4>
+        <h4 className="text-2xl font-semibold text-foreground">
+          Upload resume
+        </h4>
         <p className="mt-2 max-w-3xl text-sm text-muted">
-          Upload a candidate resume, extract readable content, review parsed fields,
-          then save.
+          Choose a file, parse it, then review the draft.
         </p>
         <p className="mt-2 text-xs uppercase tracking-[0.14em] text-muted">
           Accepted file types: PDF, DOCX
@@ -615,7 +652,9 @@ export function CvUploadParseFlow({
             <Button
               variant="primary"
               size="sm"
-              disabled={!selectedFile || isSaving || isParsingStatus(parseStatus)}
+              disabled={
+                !selectedFile || isSaving || isParsingStatus(parseStatus)
+              }
               loading={isParsingStatus(parseStatus)}
               loadingText="Parsing..."
               onClick={parseSelectedFile}
@@ -664,8 +703,8 @@ export function CvUploadParseFlow({
             Review Parsed Candidate Data
           </h4>
           <p className="text-sm text-muted md:col-span-2">
-            Correct any fields before final save. Parsing is a draft, not a final
-            truth.
+            Correct any fields before final save. Parsing is a draft, not a
+            final truth.
           </p>
 
           {extractionConfidence !== null ? (
@@ -689,7 +728,10 @@ export function CvUploadParseFlow({
                 <ConfidencePill label="Name" value={fieldConfidence.fullName} />
                 <ConfidencePill label="Email" value={fieldConfidence.email} />
                 <ConfidencePill label="Phone" value={fieldConfidence.phone} />
-                <ConfidencePill label="Location" value={fieldConfidence.location} />
+                <ConfidencePill
+                  label="Location"
+                  value={fieldConfidence.location}
+                />
                 <ConfidencePill
                   label="Experience"
                   value={fieldConfidence.totalExperience}
@@ -717,13 +759,14 @@ export function CvUploadParseFlow({
           />
 
           <Field
-            label="Country lookup"
+            label="Country"
             value={selectedCountryId}
             onChange={setSelectedCountryId}
-            asSelect
-            options={countries.map((item) => `${item.id}::${item.name}`)}
-            optionFormatter={(value) => value.split("::")[1] ?? value}
-            optionValueFormatter={(value) => value.split("::")[0] ?? value}
+            asLookup
+            lookupOptions={countries.map((country) => ({
+              id: country.id,
+              name: country.name,
+            }))}
           />
 
           <Field
@@ -837,6 +880,52 @@ export function CvUploadParseFlow({
           />
 
           <Field
+            label="Preferred Work Mode"
+            value={parsedDraft.workModeHint ?? ""}
+            onChange={(value) =>
+              setParsedDraft((current) =>
+                current ? { ...current, workModeHint: value } : current,
+              )
+            }
+            asSelect
+            options={["Hybrid", "Remote", "Onsite"]}
+          />
+
+          <Field
+            label="Preferred Locations"
+            value={parsedDraft.preferredLocationHint ?? ""}
+            onChange={(value) =>
+              setParsedDraft((current) =>
+                current
+                  ? { ...current, preferredLocationHint: value }
+                  : current,
+              )
+            }
+          />
+
+          <Field
+            label="Relocation"
+            value={parsedDraft.relocationHint ?? ""}
+            onChange={(value) =>
+              setParsedDraft((current) =>
+                current ? { ...current, relocationHint: value } : current,
+              )
+            }
+            asSelect
+            options={["Open to relocate", "Not open to relocate"]}
+          />
+
+          <Field
+            label="LinkedIn URL"
+            value={parsedDraft.linkedInUrl ?? ""}
+            onChange={(value) =>
+              setParsedDraft((current) =>
+                current ? { ...current, linkedInUrl: value } : current,
+              )
+            }
+          />
+
+          <Field
             className="md:col-span-2"
             label="Skills (comma separated)"
             value={parsedDraft.skills}
@@ -883,14 +972,19 @@ export function CvUploadParseFlow({
           ) : null}
 
           {parsedDraft.languages?.length ? (
-            <ReadonlyList title="Detected Languages" items={parsedDraft.languages} />
+            <ReadonlyList
+              title="Detected Languages"
+              items={parsedDraft.languages}
+            />
           ) : null}
 
           {warnings.length > 0 ? (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 md:col-span-2">
-              {warnings.map((warning) => (
-                <p key={warning}>{warning}</p>
-              ))}
+            <div className="md:col-span-2">
+              <TopAlert
+                description={warnings.join(" ")}
+                title="Review parser warnings"
+                variant="warning"
+              />
             </div>
           ) : null}
 
@@ -963,8 +1057,8 @@ export function CvUploadParseFlow({
             </div>
           ) : (
             <div className="rounded-2xl border border-border bg-white/90 p-4 text-sm text-muted md:col-span-2">
-              No readable preview is available for this file, but parsed fields can
-              still be reviewed and edited.
+              No readable preview is available for this file, but parsed fields
+              can still be reviewed and edited.
             </div>
           )}
 
@@ -982,15 +1076,15 @@ export function CvUploadParseFlow({
       ) : null}
 
       {success ? (
-        <p className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-          {success}
-        </p>
+        <TopAlert title="CV parsed" description={success} variant="success" />
       ) : null}
 
       {error ? (
-        <p className="rounded-2xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
-          {error}
-        </p>
+        <TopAlert
+          title="CV upload needs attention"
+          description={error}
+          variant="error"
+        />
       ) : null}
     </section>
   );
@@ -1082,34 +1176,164 @@ function toNumber(value: string) {
   return trimmed.length > 0 ? Number(trimmed) : undefined;
 }
 
+function parseNoticePeriodDays(value?: string) {
+  if (!value) return undefined;
+  const match = value.match(/\d+/);
+  return match?.[0] ? Number(match[0]) : undefined;
+}
+
+function normalizeWorkMode(value?: string) {
+  if (!value) return undefined;
+  if (/hybrid/i.test(value)) return "HYBRID";
+  if (/remote|work from home|wfh/i.test(value)) return "REMOTE";
+  if (/onsite|on-site|office/i.test(value)) return "OFFICE";
+  return undefined;
+}
+
+function parseRelocation(value?: string) {
+  if (!value) return undefined;
+  if (/not|no/i.test(value)) return false;
+  if (/open|yes|willing/i.test(value)) return true;
+  return undefined;
+}
+
+function findCountryIdByName(countries: LookupOption[], countryName?: string) {
+  const normalized = normalizeCountryName(countryName ?? "");
+  if (!normalized) return "";
+
+  return (
+    countries.find(
+      (country) => normalizeCountryName(country.name) === normalized,
+    )?.id ?? ""
+  );
+}
+
+function normalizeCountryName(value: string) {
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) return "";
+  if (
+    ["uae", "u.a.e.", "emirates", "united arab emirates"].includes(normalized)
+  ) {
+    return "united arab emirates";
+  }
+  if (["usa", "us", "u.s.", "u.s.a.", "america"].includes(normalized)) {
+    return "united states";
+  }
+  return normalized;
+}
+
 function emptyToUndefined(value: string) {
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
+function buildEducationRecords(parsedDraft: ParsedDraft) {
+  const entries =
+    parsedDraft.educationEntries?.length
+      ? parsedDraft.educationEntries
+      : parsedDraft.education
+          .split(/\n+/)
+          .map((entry) => entry.trim())
+          .filter(Boolean);
+
+  return entries.flatMap((entry) => {
+    const degreeTitle = extractDegreeTitle(entry);
+    if (!degreeTitle) return [];
+
+    return [
+      {
+        institutionName: extractInstitutionName(entry, degreeTitle),
+        degreeTitle,
+        fieldOfStudy: extractFieldOfStudy(entry),
+        country: extractEducationCountry(entry),
+        notes: entry,
+      },
+    ];
+  });
+}
+
+function extractDegreeTitle(value: string) {
+  const match = value.match(
+    /(ph\.?d|doctorate|m\.?phil|master(?:'s)?|msc|mba|bachelor(?:'s)?|b\.?s\.?|bsc|diploma|high school|intermediate)(?:\s+(?:of|in)\s+[^,;\n\d]+)?/i,
+  );
+  if (!match) return "";
+
+  const normalized = match[0].trim().replace(/\s+/g, " ");
+  const lower = normalized.toLowerCase();
+  if (lower.includes("ph") || lower.includes("doctor")) return "PhD";
+  if (lower.includes("mphil") || lower.includes("m.phil")) return "MPhil";
+  if (lower.includes("b.s") || lower.includes("bsc")) return "Bachelor's";
+  if (lower.includes("diploma")) return "Diploma";
+  if (lower.includes("high school") || lower.includes("intermediate")) {
+    return "High School";
+  }
+
+  return normalized;
+}
+
+function extractInstitutionName(value: string, degreeTitle: string) {
+  const degreeIndex = value.toLowerCase().indexOf(degreeTitle.toLowerCase());
+  const institution =
+    degreeIndex > 0 ? value.slice(0, degreeIndex).trim().replace(/[-,]+$/, "") : "";
+
+  return institution || "Not captured";
+}
+
+function extractFieldOfStudy(value: string) {
+  const match = value.match(/\b(?:in|of)\s+([^,;\n\d]+)/i);
+  return match?.[1]?.trim() || undefined;
+}
+
+function extractEducationCountry(value: string) {
+  for (const country of ["Pakistan", "United Arab Emirates", "UAE"]) {
+    if (value.toLowerCase().includes(country.toLowerCase())) {
+      return country === "UAE" ? "United Arab Emirates" : country;
+    }
+  }
+
+  return undefined;
+}
+
 function Field({
+  asLookup = false,
   asSelect = false,
   asTextarea = false,
   className = "",
   confidence,
   label,
+  lookupOptions = [],
   onChange,
   optionFormatter,
   optionValueFormatter,
   options = [],
   value,
 }: {
+  asLookup?: boolean;
   asSelect?: boolean;
   asTextarea?: boolean;
   className?: string;
   confidence?: number;
   label: string;
+  lookupOptions?: Array<{ id: string; name: string }>;
   onChange: (value: string) => void;
   optionFormatter?: (value: string) => string;
   optionValueFormatter?: (value: string) => string;
   options?: string[];
   value: string;
 }) {
+  if (asLookup) {
+    return (
+      <LookupField
+        className={className}
+        label={label}
+        onChange={onChange}
+        options={lookupOptions}
+        placeholder="Select record"
+        value={value}
+      />
+    );
+  }
+
   return (
     <label className={`space-y-2 text-sm ${className}`}>
       <span className="flex items-center justify-between gap-2 font-medium text-foreground">
@@ -1129,7 +1353,9 @@ function Field({
           {options.map((option) => (
             <option
               key={option}
-              value={optionValueFormatter ? optionValueFormatter(option) : option}
+              value={
+                optionValueFormatter ? optionValueFormatter(option) : option
+              }
             >
               {optionFormatter ? optionFormatter(option) : option}
             </option>
@@ -1168,13 +1394,7 @@ function ConfidenceBadge({ value }: { value: number }) {
   );
 }
 
-function ConfidencePill({
-  label,
-  value,
-}: {
-  label: string;
-  value?: number;
-}) {
+function ConfidencePill({ label, value }: { label: string; value?: number }) {
   const score = typeof value === "number" ? value : 0;
 
   return (
@@ -1197,13 +1417,7 @@ function ConfidencePill({
   );
 }
 
-function ReadonlyList({
-  title,
-  items,
-}: {
-  title: string;
-  items: string[];
-}) {
+function ReadonlyList({ title, items }: { title: string; items: string[] }) {
   return (
     <div className="rounded-2xl border border-border bg-white p-4 md:col-span-2">
       <p className="text-xs uppercase tracking-[0.14em] text-muted">{title}</p>

@@ -383,7 +383,6 @@ export class EmployeesController {
   }
 
   @Get(':employeeId/education')
-  @Permissions('employees.education.read')
   getEducation(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -392,8 +391,6 @@ export class EmployeesController {
   }
 
   @Get(':employeeId/compensation')
-  @Permissions('payroll.read')
-  @RequirePermission(ENTITY_KEYS.PAYROLL, 'read')
   getCompensation(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -420,7 +417,6 @@ export class EmployeesController {
   }
 
   @Get(':employeeId/previous-employments')
-  @Permissions('employees.read')
   getPreviousEmployments(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -432,7 +428,6 @@ export class EmployeesController {
   }
 
   @Post(':employeeId/previous-employments')
-  @Permissions('employees.update')
   createPreviousEmployment(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -446,7 +441,6 @@ export class EmployeesController {
   }
 
   @Patch(':employeeId/previous-employments/:previousEmploymentId')
-  @Permissions('employees.update')
   updatePreviousEmployment(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -463,7 +457,6 @@ export class EmployeesController {
   }
 
   @Delete(':employeeId/previous-employments/:previousEmploymentId')
-  @Permissions('employees.update')
   deletePreviousEmployment(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -478,7 +471,6 @@ export class EmployeesController {
   }
 
   @Post(':employeeId/education')
-  @Permissions('employees.education.create')
   createEducation(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -488,7 +480,6 @@ export class EmployeesController {
   }
 
   @Patch(':employeeId/education/:educationId')
-  @Permissions('employees.education.update')
   updateEducation(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -504,7 +495,6 @@ export class EmployeesController {
   }
 
   @Delete(':employeeId/education/:educationId')
-  @Permissions('employees.education.delete')
   deleteEducation(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -536,6 +526,24 @@ export class EmployeesController {
     return this.employeeProfilesService.uploadEmployeeDocument(
       user,
       employeeId,
+      file,
+      dto,
+    );
+  }
+
+  @Patch(':employeeId/documents/:documentId')
+  @UseInterceptors(FileInterceptor('file'))
+  updateDocument(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
+    @Param('documentId', new ParseUUIDPipe()) documentId: string,
+    @UploadedFile() file: UploadedFile | undefined,
+    @Body() dto: EmployeeDocumentUploadDto,
+  ) {
+    return this.employeeProfilesService.updateEmployeeDocument(
+      user,
+      employeeId,
+      documentId,
       file,
       dto,
     );
@@ -590,7 +598,6 @@ export class EmployeesController {
   }
 
   @Delete(':employeeId/documents/:documentId')
-  @Permissions('employees.documents.delete')
   deleteDocument(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
@@ -656,6 +663,15 @@ export class EmployeesController {
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
   ) {
     return this.employeeProfilesService.listTimesheetHistory(user, employeeId);
+  }
+
+  @Get(':employeeId/project-allocations')
+  @Permissions('projects.read')
+  getProjectAllocations(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
+  ) {
+    return this.employeesService.getProjectAllocations(user, employeeId);
   }
 
   @Post(':employeeId/send-reset-password-link')

@@ -1,4 +1,5 @@
 import * as React from "react";
+import { createPortal } from "react-dom";
 import { Button } from "./button";
 
 type SelectOption = {
@@ -130,6 +131,31 @@ function controlClassName(error?: string, validationStatus?: string) {
   return baseInputClassName;
 }
 
+function calculateFloatingMenuPosition(rect: DOMRect) {
+  const viewportHeight = window.innerHeight;
+  const verticalGap = 8;
+  const viewportPadding = 16;
+  const minMenuHeight = 220;
+  const preferredMenuHeight = 360;
+  const spaceBelow = viewportHeight - rect.bottom - viewportPadding;
+  const spaceAbove = rect.top - viewportPadding;
+  const openAbove = spaceBelow < minMenuHeight && spaceAbove > spaceBelow;
+  const availableHeight = openAbove ? spaceAbove : spaceBelow;
+  const maxHeight = Math.max(
+    160,
+    Math.min(preferredMenuHeight, availableHeight - verticalGap),
+  );
+
+  return {
+    left: Math.max(viewportPadding, rect.left),
+    top: openAbove
+      ? Math.max(viewportPadding, rect.top - maxHeight - verticalGap)
+      : rect.bottom + verticalGap,
+    width: Math.max(rect.width, 260),
+    maxHeight,
+  };
+}
+
 export function SelectField({
   label,
   hint,
@@ -152,6 +178,128 @@ export function SelectField({
   value: string;
   disabled?: boolean;
 }) {
+  const containerRef = React.useRef<HTMLDivElement | null>(null);
+  const menuRef = React.useRef<HTMLDivElement | null>(null);
+  const [isOpen, setIsOpen] = React.useState(false);
+  const [menuPosition, setMenuPosition] = React.useState<{
+    left: number;
+    top: number;
+    width: number;
+    maxHeight: number;
+  } | null>(null);
+  const selectedOption =
+    options.find((option) => (option.value ?? option.id ?? "") === value) ??
+    null;
+  const selectedLabel =
+    selectedOption?.label ??
+    selectedOption?.name ??
+    selectedOption?.value ??
+    selectedOption?.id ??
+    "";
+
+  React.useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      const target = event.target as Node;
+      if (
+        !containerRef.current?.contains(target) &&
+        !menuRef.current?.contains(target)
+      ) {
+        setIsOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  React.useLayoutEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const updatePosition = () => {
+      const container = containerRef.current;
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+      setMenuPosition(calculateFloatingMenuPosition(rect));
+    };
+
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [isOpen]);
+
+  function handleOpen() {
+    if (disabled) return;
+    setIsOpen((current) => !current);
+  }
+
+  function handleSelect(nextValue: string) {
+    onChange(nextValue);
+    setIsOpen(false);
+  }
+
+  const selectMenu =
+    isOpen && menuPosition
+      ? createPortal(
+          <div
+            className="fixed z-[80] rounded-2xl border border-border bg-white p-2 shadow-xl"
+            ref={menuRef}
+            style={{
+              left: menuPosition.left,
+              top: menuPosition.top,
+              width: `min(${menuPosition.width}px, calc(100vw - 2rem))`,
+              maxHeight: menuPosition.maxHeight,
+            }}
+          >
+            <div
+              className="overflow-y-auto"
+              style={{ maxHeight: menuPosition.maxHeight - 16 }}
+            >
+              <button
+                className={[
+                  "block w-full rounded-xl border px-4 py-3 text-left text-sm transition",
+                  value
+                    ? "border-transparent hover:border-border hover:bg-slate-50"
+                    : "border-accent bg-accent/5",
+                ].join(" ")}
+                onClick={() => handleSelect("")}
+                type="button"
+              >
+                <span className="text-muted">{placeholder}</span>
+              </button>
+              {options.map((option, index) => {
+                const optionValue = option.value ?? option.id ?? "";
+                const optionLabel = option.label ?? option.name ?? optionValue;
+                const isSelected = optionValue === value;
+
+                return (
+                  <button
+                    className={[
+                      "mt-1 block w-full rounded-xl border px-4 py-3 text-left text-sm transition",
+                      isSelected
+                        ? "border-accent bg-accent/5 text-foreground"
+                        : "border-transparent text-foreground hover:border-border hover:bg-slate-50",
+                    ].join(" ")}
+                    key={option.id ?? option.value ?? `${label}-${index}`}
+                    onClick={() => handleSelect(optionValue)}
+                    type="button"
+                  >
+                    {optionLabel}
+                  </button>
+                );
+              })}
+            </div>
+          </div>,
+          document.body,
+        )
+      : null;
+
   return (
     <FieldShell
       className={className}
@@ -164,28 +312,67 @@ export function SelectField({
       dirty={dirty}
       validationStatus={validationStatus}
     >
-      <select
-        aria-invalid={Boolean(error)}
-        className={controlClassName(error, validationStatus)}
-        disabled={disabled}
-        onChange={(event) => onChange(event.target.value)}
-        value={value}
-      >
-        <option value="">{placeholder}</option>
-        {options.map((option, index) => {
-          const optionValue = option.value ?? option.id ?? "";
-          const optionLabel = option.label ?? option.name ?? optionValue;
+      <div className="relative" ref={containerRef}>
+        <div
+          aria-expanded={isOpen}
+          aria-invalid={Boolean(error)}
+          className={[
+            controlClassName(error, validationStatus),
+            "flex items-center justify-between gap-3 text-left",
+            disabled ? "" : "cursor-pointer",
+          ].join(" ")}
+          onClick={handleOpen}
+          onKeyDown={(event) => {
+            if (disabled) return;
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              handleOpen();
+            }
+            if (event.key === "Escape") {
+              setIsOpen(false);
+            }
+          }}
+          role="combobox"
+          tabIndex={disabled ? -1 : 0}
+        >
+          <span
+            className={[
+              "min-w-0 flex-1 truncate",
+              selectedLabel ? "text-foreground" : "text-muted",
+            ].join(" ")}
+          >
+            {selectedLabel || placeholder}
+          </span>
+          <span aria-hidden="true" className="text-muted">
+            ▾
+          </span>
+        </div>
+        {selectMenu}
+      </div>
+      {false ? (
+        <select
+          aria-invalid={Boolean(error)}
+          className={controlClassName(error, validationStatus)}
+          disabled={disabled}
+          onChange={(event) => onChange(event.target.value)}
+          value={value}
+        >
+          <option value="">{placeholder}</option>
+          {options.map((option, index) => {
+            const optionValue = option.value ?? option.id ?? "";
+            const optionLabel = option.label ?? option.name ?? optionValue;
 
-          return (
-            <option
-              key={option.id ?? option.value ?? `${label}-${index}`}
-              value={optionValue}
-            >
-              {optionLabel}
-            </option>
-          );
-        })}
-      </select>
+            return (
+              <option
+                key={option.id ?? option.value ?? `${label}-${index}`}
+                value={optionValue}
+              >
+                {optionLabel}
+              </option>
+            );
+          })}
+        </select>
+      ) : null}
     </FieldShell>
   );
 }
@@ -634,6 +821,7 @@ export function LookupField({
   touched,
   dirty,
   validationStatus,
+  selectedHref,
 }: BaseFieldProps & {
   onChange: (value: string) => void;
   onSearch?: (query: string) => void;
@@ -642,39 +830,49 @@ export function LookupField({
   value: string;
   disabled?: boolean;
   noResultsText?: string;
+  selectedHref?: string;
 }) {
   const containerRef = React.useRef<HTMLDivElement | null>(null);
+  const menuRef = React.useRef<HTMLDivElement | null>(null);
   const inputRef = React.useRef<HTMLInputElement | null>(null);
 
   const [isOpen, setIsOpen] = React.useState(false);
+  const [menuPosition, setMenuPosition] = React.useState<{
+    left: number;
+    top: number;
+    width: number;
+    maxHeight: number;
+  } | null>(null);
   const [query, setQuery] = React.useState("");
   const onSearchRef = React.useRef(onSearch);
 
+  const uniqueOptions = React.useMemo(
+    () => dedupeLookupOptions(options),
+    [options],
+  );
+
   const selectedOption = React.useMemo(
-    () => options.find((option) => option.id === value) ?? null,
-    [options, value],
+    () =>
+      uniqueOptions.find((option) => lookupOptionMatchesValue(option, value)) ??
+      null,
+    [uniqueOptions, value],
   );
 
   const filteredOptions = React.useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
     if (!normalizedQuery) {
-      return options;
+      return uniqueOptions;
     }
 
-    return options.filter((option) => {
-      const haystack = [
-        option.name,
-        option.code ?? "",
-        option.key ?? "",
-        option.subtitle ?? "",
-      ]
+    return uniqueOptions.filter((option) => {
+      const haystack = [option.name, option.subtitle ?? ""]
         .join(" ")
         .toLowerCase();
 
       return haystack.includes(normalizedQuery);
     });
-  }, [options, query]);
+  }, [uniqueOptions, query]);
 
   React.useEffect(() => {
     onSearchRef.current = onSearch;
@@ -686,8 +884,11 @@ export function LookupField({
 
   React.useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (!containerRef.current) return;
-      if (!containerRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (
+        !containerRef.current?.contains(target) &&
+        !menuRef.current?.contains(target)
+      ) {
         setIsOpen(false);
         setQuery("");
       }
@@ -696,6 +897,50 @@ export function LookupField({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  React.useLayoutEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const updatePosition = () => {
+      const container = containerRef.current;
+      if (!container) return;
+
+      const rect = container.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const verticalGap = 8;
+      const viewportPadding = 16;
+      const minMenuHeight = 140;
+      const preferredMenuHeight = 360;
+      const spaceBelow = viewportHeight - rect.bottom - viewportPadding;
+      const spaceAbove = rect.top - viewportPadding;
+      const openAbove = spaceBelow < minMenuHeight && spaceAbove > spaceBelow;
+      const availableHeight = openAbove ? spaceAbove : spaceBelow;
+      const maxHeight = Math.max(
+        minMenuHeight,
+        Math.min(preferredMenuHeight, availableHeight - verticalGap),
+      );
+
+      setMenuPosition({
+        left: Math.max(16, rect.left),
+        top: openAbove
+          ? Math.max(viewportPadding, rect.top - maxHeight - verticalGap)
+          : rect.bottom + verticalGap,
+        width: Math.max(rect.width, 260),
+        maxHeight,
+      });
+    };
+
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [isOpen]);
 
   function handleOpen() {
     if (disabled) return;
@@ -725,6 +970,85 @@ export function LookupField({
     setIsOpen(false);
   }
 
+  const lookupMenu =
+    isOpen && menuPosition
+      ? createPortal(
+          <div
+            className="fixed z-[80] rounded-2xl border border-border bg-white p-3 shadow-xl"
+            ref={menuRef}
+            style={{
+              left: menuPosition.left,
+              top: menuPosition.top,
+              width: `min(${menuPosition.width}px, calc(100vw - 2rem))`,
+              maxHeight: menuPosition.maxHeight,
+            }}
+          >
+            <div className="mb-3 flex items-center gap-2">
+              <input
+                ref={inputRef}
+                className={baseInputClassName}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder={placeholder}
+                value={query}
+              />
+              {value ? (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleClear}
+                  type="button"
+                >
+                  Clear
+                </Button>
+              ) : null}
+            </div>
+
+            <div
+              className="overflow-y-auto"
+              style={{ maxHeight: Math.max(120, menuPosition.maxHeight - 92) }}
+            >
+              {filteredOptions.length ? (
+                <div className="space-y-1">
+                  {filteredOptions.map((option) => {
+                    const isSelected = lookupOptionMatchesValue(option, value);
+                    const display = lookupOptionDisplay(option);
+
+                    return (
+                      <button
+                        key={option.id}
+                        onClick={(event) => handleSelect(option.id, event)}
+                        type="button"
+                        className={[
+                          "block w-full rounded-xl border px-4 py-3 text-left transition",
+                          isSelected
+                            ? "border-accent bg-accent/5"
+                            : "border-transparent hover:border-border hover:bg-slate-50",
+                        ].join(" ")}
+                      >
+                        <span className="block text-xs font-medium text-foreground">
+                          {display.name}
+                        </span>
+
+                        {option.subtitle ? (
+                          <span className="block text-xs text-muted">
+                            {option.subtitle}
+                          </span>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-dashed border-border px-3 py-6 text-center text-sm text-muted">
+                  {noResultsText}
+                </div>
+              )}
+            </div>
+          </div>,
+          document.body,
+        )
+      : null;
+
   return (
     <FieldShell
       className={className}
@@ -738,33 +1062,50 @@ export function LookupField({
       validationStatus={validationStatus}
     >
       <div className="relative" ref={containerRef}>
-        <button
+        <div
           className={[
             controlClassName(error, validationStatus),
             "flex items-center justify-between gap-3 text-left",
             disabled ? "" : "cursor-pointer",
           ].join(" ")}
-          disabled={disabled}
           onClick={handleOpen}
-          type="button"
+          onKeyDown={(event) => {
+            if (disabled) return;
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              handleOpen();
+            }
+          }}
+          role="combobox"
+          tabIndex={disabled ? -1 : 0}
         >
           <span className="min-w-0 flex-1">
             {selectedOption ? (
               <span className="block min-w-0">
-                <span className="block truncate font-medium text-foreground">
-                  {selectedOption.name}
-                </span>
+                {selectedHref ? (
+                  <a
+                    className="block truncate font-semibold text-accent underline-offset-4 hover:underline"
+                    href={selectedHref}
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    {lookupOptionDisplay(selectedOption).name}
+                  </a>
+                ) : (
+                  <span className="block truncate font-medium text-foreground">
+                    {lookupOptionDisplay(selectedOption).name}
+                  </span>
+                )}
               </span>
             ) : (
               <span className="text-muted">{placeholder}</span>
             )}
           </span>
 
-          <span className="flex items-center gap-2">
+          <span className="flex min-w-0 shrink-0 items-center gap-2">
             {value ? (
               <span
                 aria-hidden="true"
-                className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-medium text-muted"
+                className="rounded-full bg-slate-100 px-[4px] py-[2px] text-[9px] font-medium text-muted"
               >
                 Selected
               </span>
@@ -773,9 +1114,10 @@ export function LookupField({
               ▾
             </span>
           </span>
-        </button>
+        </div>
 
-        {isOpen ? (
+        {lookupMenu}
+        {false && isOpen ? (
           <div className="absolute z-30 mt-2 w-full rounded-2xl border border-border bg-white p-3 shadow-xl">
             <div className="mb-3 flex items-center gap-2">
               <input
@@ -820,7 +1162,8 @@ export function LookupField({
                           {display.name}
                         </span>
 
-                        {option.code || option.key || option.subtitle ? (
+                        {false &&
+                        (option.code || option.key || option.subtitle) ? (
                           <span className="block text-xs text-muted">
                             {[option.code, option.key, option.subtitle]
                               .filter(Boolean)
@@ -857,4 +1200,31 @@ function lookupOptionDisplay(option: LookupOption) {
 
 function cleanLookupText(value: string | null | undefined) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function dedupeLookupOptions(options: readonly LookupOption[]) {
+  const result: LookupOption[] = [];
+  const seen = new Set<string>();
+
+  for (const option of options) {
+    const key =
+      cleanLookupText(option.id).toLowerCase() ||
+      cleanLookupText(option.key).toLowerCase() ||
+      cleanLookupText(option.code).toLowerCase() ||
+      cleanLookupText(option.name).toLowerCase();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    result.push(option);
+  }
+
+  return result;
+}
+
+function lookupOptionMatchesValue(option: LookupOption, value: string) {
+  const normalizedValue = cleanLookupText(value).toLowerCase();
+  if (!normalizedValue) return false;
+
+  return [option.id, option.code, option.key, option.name]
+    .map((item) => cleanLookupText(item).toLowerCase())
+    .some((candidate) => candidate === normalizedValue);
 }

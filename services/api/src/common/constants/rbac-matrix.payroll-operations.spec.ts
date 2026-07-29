@@ -13,6 +13,8 @@ describe('operational payroll RBAC bootstrap matrix', () => {
     expect(permissions(ROLE_KEYS.PAYROLL_MANAGER)).toEqual(
       expect.arrayContaining([
         'payroll-operations.dashboard',
+        'timesheets.read.payroll',
+        'timesheets.override',
         'payroll-exceptions.read',
         'payroll-exceptions.export',
         'payroll-runs.finalize',

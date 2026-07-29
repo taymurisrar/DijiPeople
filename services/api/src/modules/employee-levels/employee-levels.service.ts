@@ -42,6 +42,11 @@ export class EmployeeLevelsService {
             }
           : {}),
       },
+      include: {
+        parentEmployeeLevel: { select: { id: true, name: true, rank: true } },
+        nextEmployeeLevel: { select: { id: true, name: true, rank: true } },
+        _count: { select: { employees: true, designations: true } },
+      },
       orderBy: [{ isActive: 'desc' }, { rank: 'asc' }, { code: 'asc' }],
     });
   }
@@ -49,6 +54,11 @@ export class EmployeeLevelsService {
   async findOne(tenantId: string, id: string) {
     const level = await this.prisma.employeeLevel.findFirst({
       where: { tenantId, id },
+      include: {
+        parentEmployeeLevel: { select: { id: true, name: true, rank: true } },
+        nextEmployeeLevel: { select: { id: true, name: true, rank: true } },
+        _count: { select: { employees: true, designations: true } },
+      },
     });
 
     if (!level) {
@@ -61,13 +71,16 @@ export class EmployeeLevelsService {
   }
 
   async create(currentUser: AuthenticatedUser, dto: CreateEmployeeLevelDto) {
+    await this.validateHierarchyFields(currentUser.tenantId, undefined, dto);
     try {
       const created = await this.prisma.employeeLevel.create({
         data: {
           tenantId: currentUser.tenantId,
-          code: normalizeCode(dto.code),
+          code: normalizeCode(dto.code ?? dto.name),
           name: dto.name.trim(),
           rank: dto.rank,
+          parentEmployeeLevelId: dto.parentEmployeeLevelId,
+          nextEmployeeLevelId: dto.nextEmployeeLevelId,
           description: normalizeOptionalText(dto.description),
           isActive: dto.isActive ?? true,
         },
@@ -94,6 +107,7 @@ export class EmployeeLevelsService {
     dto: UpdateEmployeeLevelDto,
   ) {
     const existing = await this.findOne(currentUser.tenantId, id);
+    await this.validateHierarchyFields(currentUser.tenantId, id, dto);
 
     try {
       const updated = await this.prisma.employeeLevel.update({
@@ -102,6 +116,12 @@ export class EmployeeLevelsService {
           ...(dto.code !== undefined ? { code: normalizeCode(dto.code) } : {}),
           ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
           ...(dto.rank !== undefined ? { rank: dto.rank } : {}),
+          ...(dto.parentEmployeeLevelId !== undefined
+            ? { parentEmployeeLevelId: dto.parentEmployeeLevelId }
+            : {}),
+          ...(dto.nextEmployeeLevelId !== undefined
+            ? { nextEmployeeLevelId: dto.nextEmployeeLevelId }
+            : {}),
           ...(dto.description !== undefined
             ? { description: normalizeOptionalText(dto.description) }
             : {}),
@@ -127,6 +147,15 @@ export class EmployeeLevelsService {
 
   async deactivate(currentUser: AuthenticatedUser, id: string) {
     const existing = await this.findOne(currentUser.tenantId, id);
+    const references = await this.countBlockingReferences(
+      currentUser.tenantId,
+      id,
+    );
+    if (references > 0) {
+      throw new ConflictException(
+        'Employee level cannot be deleted while employees, designations, approval rules, payroll rules, or benefit policies reference it.',
+      );
+    }
     const updated = await this.prisma.employeeLevel.update({
       where: { id },
       data: { isActive: false },
@@ -156,6 +185,133 @@ export class EmployeeLevelsService {
     }
 
     throw error;
+  }
+
+  private async validateHierarchyFields(
+    tenantId: string,
+    currentId: string | undefined,
+    dto:
+      | Pick<
+          CreateEmployeeLevelDto,
+          'parentEmployeeLevelId' | 'nextEmployeeLevelId'
+        >
+      | Pick<
+          UpdateEmployeeLevelDto,
+          'parentEmployeeLevelId' | 'nextEmployeeLevelId'
+        >,
+  ) {
+    for (const field of [
+      'parentEmployeeLevelId',
+      'nextEmployeeLevelId',
+    ] as const) {
+      const relatedId = dto[field];
+      if (!relatedId) continue;
+      if (relatedId === currentId) {
+        throw new ConflictException(
+          'Employee level hierarchy cannot reference itself.',
+        );
+      }
+      await this.findOne(tenantId, relatedId);
+    }
+
+    if (currentId && dto.parentEmployeeLevelId) {
+      await this.assertNoCircularParent(
+        tenantId,
+        currentId,
+        dto.parentEmployeeLevelId,
+      );
+    }
+
+    if (currentId && dto.nextEmployeeLevelId) {
+      await this.assertNoCircularNext(
+        tenantId,
+        currentId,
+        dto.nextEmployeeLevelId,
+      );
+    }
+  }
+
+  private async assertNoCircularParent(
+    tenantId: string,
+    currentId: string,
+    parentId: string,
+  ) {
+    let cursor: string | null | undefined = parentId;
+    const visited = new Set<string>();
+    while (cursor) {
+      if (cursor === currentId || visited.has(cursor)) {
+        throw new ConflictException(
+          'Employee level parent hierarchy cannot be circular.',
+        );
+      }
+      visited.add(cursor);
+      const parent = await this.prisma.employeeLevel.findFirst({
+        where: { tenantId, id: cursor },
+        select: { parentEmployeeLevelId: true },
+      });
+      cursor = parent?.parentEmployeeLevelId;
+    }
+  }
+
+  private async assertNoCircularNext(
+    tenantId: string,
+    currentId: string,
+    nextId: string,
+  ) {
+    let cursor: string | null | undefined = nextId;
+    const visited = new Set<string>();
+    while (cursor) {
+      if (cursor === currentId || visited.has(cursor)) {
+        throw new ConflictException(
+          'Employee level next-level hierarchy cannot be circular.',
+        );
+      }
+      visited.add(cursor);
+      const next = await this.prisma.employeeLevel.findFirst({
+        where: { tenantId, id: cursor },
+        select: { nextEmployeeLevelId: true },
+      });
+      cursor = next?.nextEmployeeLevelId;
+    }
+  }
+
+  private async countBlockingReferences(tenantId: string, id: string) {
+    const [
+      employees,
+      designations,
+      approvalMatrices,
+      benefitPolicies,
+      timePayrollPolicies,
+      overtimePolicies,
+      taxRules,
+    ] = await Promise.all([
+      this.prisma.employee.count({ where: { tenantId, employeeLevelId: id } }),
+      this.prisma.designation.count({
+        where: { tenantId, employeeLevelId: id },
+      }),
+      this.prisma.approvalMatrix.count({
+        where: { tenantId, employeeLevelId: id },
+      }),
+      this.prisma.benefitPolicy.count({
+        where: { tenantId, employeeLevelId: id },
+      }),
+      this.prisma.timePayrollPolicy.count({
+        where: { tenantId, employeeLevelId: id },
+      }),
+      this.prisma.overtimePolicy.count({
+        where: { tenantId, employeeLevelId: id },
+      }),
+      this.prisma.taxRule.count({ where: { tenantId, employeeLevelId: id } }),
+    ]);
+    return (
+      employees +
+      designations +
+      approvalMatrices +
+      benefitPolicies +
+      timePayrollPolicies +
+      overtimePolicies +
+      taxRules
+    );
   }
 }
 

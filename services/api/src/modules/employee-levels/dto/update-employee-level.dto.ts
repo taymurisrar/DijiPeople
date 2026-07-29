@@ -4,6 +4,7 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
   Min,
   MinLength,
@@ -27,6 +28,14 @@ export class UpdateEmployeeLevelDto {
   @IsInt()
   @Min(1)
   rank?: number;
+
+  @IsOptional()
+  @IsUUID()
+  parentEmployeeLevelId?: string | null;
+
+  @IsOptional()
+  @IsUUID()
+  nextEmployeeLevelId?: string | null;
 
   @IsOptional()
   @IsString()

@@ -11,6 +11,9 @@ import {
   Loader2,
   RefreshCcw,
 } from "lucide-react";
+import Link from "next/link";
+
+type SubscriptionView = "overview" | "plans" | "billing-history";
 
 type BillingCycle = "MONTHLY" | "ANNUAL";
 
@@ -27,7 +30,16 @@ type BillingPlan = {
     hasStripePrice: boolean;
     isCheckoutReady: boolean;
   }>;
-  features: Array<{ key: string }>;
+  features: Array<{
+    key: string;
+    label?: string | null;
+    description?: string | null;
+    categoryKey?: string | null;
+    categoryLabel?: string | null;
+    categoryOrder?: number | null;
+    sortOrder?: number | null;
+    isEnabled?: boolean;
+  }>;
 };
 
 type BillingSubscription = {
@@ -69,12 +81,21 @@ type BillingSettingsClientProps = {
   initialPlans: BillingPlan[];
   initialSubscription: BillingSubscription | null;
   initialInvoices: BillingInvoice[];
+  activeView?: SubscriptionView;
+  presentation?: {
+    allowPlanComparison?: boolean;
+    allowSelfServiceUpgrade?: boolean;
+    showUpgradeOptions?: boolean;
+    contactLabel?: string;
+  };
 };
 
 export function BillingSettingsClient({
   initialPlans,
   initialSubscription,
   initialInvoices,
+  activeView = "overview",
+  presentation,
 }: BillingSettingsClientProps) {
   const [plans] = useState(initialPlans);
   const [subscription, setSubscription] = useState(initialSubscription);
@@ -97,6 +118,9 @@ export function BillingSettingsClient({
 
   const hasManageableSubscription = Boolean(subscription?.hasStripeCustomer);
   const subscriptionState = subscription?.status ?? "NOT_SUBSCRIBED";
+  const canComparePlans = presentation?.allowPlanComparison !== false;
+  const canSelfServiceUpgrade = presentation?.allowSelfServiceUpgrade !== false;
+  const contactLabel = presentation?.contactLabel ?? "Contact Administrator";
 
   function refreshBilling() {
     setError(null);
@@ -165,12 +189,34 @@ export function BillingSettingsClient({
 
   return (
     <div className="space-y-6">
+      <nav className="flex flex-wrap gap-2 rounded-[20px] border border-border bg-surface p-2 shadow-sm">
+        {[
+          { key: "overview", label: "Overview", href: "/settings/subscription/overview" },
+          { key: "plans", label: "Plans & Features", href: "/settings/subscription/plans" },
+          { key: "billing-history", label: "Billing History", href: "/settings/subscription/billing-history" },
+        ].map((item) => (
+          <Link
+            key={item.key}
+            href={item.href}
+            className={`rounded-[14px] px-4 py-2 text-sm font-semibold transition ${
+              activeView === item.key
+                ? "bg-foreground text-white"
+                : "text-muted hover:bg-muted/10 hover:text-foreground"
+            }`}
+          >
+            {item.label}
+          </Link>
+        ))}
+      </nav>
+
       {error ? (
         <div className="rounded-[18px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {error}
         </div>
       ) : null}
 
+      {activeView === "overview" ? (
+      <>
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -263,7 +309,10 @@ export function BillingSettingsClient({
         isPending={isPending}
         actionId={actionId}
       />
+      </>
+      ) : null}
 
+      {activeView === "plans" ? (
       <section className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
@@ -306,7 +355,12 @@ export function BillingSettingsClient({
           </div>
         </div>
 
-        {plans.length === 0 ? (
+        {!canComparePlans ? (
+          <EmptyState
+            title="Plan comparison is not enabled"
+            description="The platform administrator has not published tenant-facing plan comparison for this workspace."
+          />
+        ) : plans.length === 0 ? (
           <EmptyState
             title="No online plans are available"
             description="The billing team has not published any self-service plans yet."
@@ -361,13 +415,17 @@ export function BillingSettingsClient({
 
                   <ul className="mt-5 grid gap-2 text-sm text-muted">
                     {plan.features.length > 0 ? (
-                      plan.features.slice(0, 8).map((feature) => (
+                      plan.features
+                        .filter((feature) => feature.isEnabled !== false)
+                        .sort(compareFeatures)
+                        .slice(0, 8)
+                        .map((feature) => (
                         <li
                           key={feature.key}
                           className="flex items-start gap-2"
                         >
                           <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
-                          <span>{feature.key}</span>
+                          <span>{feature.label ?? formatEnum(feature.key)}</span>
                         </li>
                       ))
                     ) : (
@@ -376,7 +434,7 @@ export function BillingSettingsClient({
                   </ul>
 
                   <div className="mt-auto pt-6">
-                    {price?.isCheckoutReady ? (
+                    {price?.isCheckoutReady && canSelfServiceUpgrade ? (
                       <button
                         type="button"
                         onClick={() => createCheckoutSession(price.id)}
@@ -392,7 +450,9 @@ export function BillingSettingsClient({
                       </button>
                     ) : (
                       <div className="rounded-[14px] border border-dashed border-border bg-surface px-4 py-3 text-sm text-muted">
-                        This plan is not available for online checkout yet.
+                        {canSelfServiceUpgrade
+                          ? "This plan is not available for online checkout yet."
+                          : contactLabel}
                       </div>
                     )}
                   </div>
@@ -401,8 +461,14 @@ export function BillingSettingsClient({
             })}
           </div>
         )}
-      </section>
 
+        {canComparePlans && plans.length > 0 ? (
+          <FeatureComparison plans={plans} />
+        ) : null}
+      </section>
+      ) : null}
+
+      {activeView === "billing-history" ? (
       <section className="overflow-hidden rounded-[24px] border border-border bg-surface shadow-sm">
         <div className="border-b border-border px-6 py-5">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
@@ -486,7 +552,140 @@ export function BillingSettingsClient({
           </div>
         )}
       </section>
+      ) : null}
     </div>
+  );
+}
+
+function FeatureComparison({ plans }: { plans: BillingPlan[] }) {
+  const featuresByKey = new Map<
+    string,
+    NonNullable<BillingPlan["features"][number]>
+  >();
+
+  for (const plan of plans) {
+    for (const feature of plan.features) {
+      if (!featuresByKey.has(feature.key)) {
+        featuresByKey.set(feature.key, feature);
+      }
+    }
+  }
+
+  const grouped = [...featuresByKey.values()]
+    .sort(compareFeatures)
+    .reduce<Record<string, BillingPlan["features"]>>((acc, feature) => {
+      const key = feature.categoryLabel ?? "Features";
+      acc[key] = [...(acc[key] ?? []), feature];
+      return acc;
+    }, {});
+
+  return (
+    <div className="mt-8 space-y-5">
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+          Feature access
+        </p>
+        <h3 className="mt-2 text-lg font-semibold text-foreground">
+          Included features by plan
+        </h3>
+      </div>
+
+      {Object.entries(grouped).map(([category, features]) => (
+        <div
+          key={category}
+          className="overflow-hidden rounded-[18px] border border-border bg-white"
+        >
+          <div className="border-b border-border bg-muted/10 px-5 py-3 text-sm font-semibold text-foreground">
+            {category}
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-[760px] w-full text-left text-sm">
+              <thead className="text-xs uppercase tracking-[0.14em] text-muted">
+                <tr>
+                  <th className="px-5 py-3 font-semibold">Feature</th>
+                  {plans.map((plan) => (
+                    <th key={plan.id} className="px-5 py-3 font-semibold">
+                      {plan.name}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {features.map((feature) => (
+                  <tr key={feature.key}>
+                    <td className="px-5 py-4">
+                      <div className="font-semibold text-foreground">
+                        {feature.label ?? formatEnum(feature.key)}
+                      </div>
+                      {feature.description ? (
+                        <div className="mt-1 text-xs leading-5 text-muted">
+                          {feature.description}
+                        </div>
+                      ) : null}
+                    </td>
+                    {plans.map((plan, planIndex) => {
+                      const isIncluded = plan.features.some(
+                        (planFeature) =>
+                          planFeature.key === feature.key &&
+                          planFeature.isEnabled !== false,
+                      );
+                      const availableLater =
+                        !isIncluded &&
+                        plans
+                          .slice(planIndex + 1)
+                          .some((laterPlan) =>
+                            laterPlan.features.some(
+                              (planFeature) =>
+                                planFeature.key === feature.key &&
+                                planFeature.isEnabled !== false,
+                            ),
+                          );
+
+                      return (
+                        <td key={plan.id} className="px-5 py-4">
+                          <FeatureBadge
+                            value={
+                              isIncluded
+                                ? "Included"
+                                : availableLater
+                                  ? "Available in higher plan"
+                                  : "Not included"
+                            }
+                            included={isIncluded}
+                          />
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function FeatureBadge({
+  value,
+  included,
+}: {
+  value: string;
+  included: boolean;
+}) {
+  return (
+    <span
+      className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${
+        included
+          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+          : value === "Available in higher plan"
+            ? "border-amber-200 bg-amber-50 text-amber-700"
+            : "border-border bg-surface text-muted"
+      }`}
+    >
+      {value}
+    </span>
   );
 }
 
@@ -797,4 +996,15 @@ function formatMoney(value: number | null | undefined, currency: string) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(value);
+}
+
+function compareFeatures(
+  left: BillingPlan["features"][number],
+  right: BillingPlan["features"][number],
+) {
+  return (
+    (left.categoryOrder ?? 999) - (right.categoryOrder ?? 999) ||
+    (left.sortOrder ?? 999) - (right.sortOrder ?? 999) ||
+    (left.label ?? left.key).localeCompare(right.label ?? right.key)
+  );
 }

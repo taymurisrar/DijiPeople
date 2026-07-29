@@ -305,9 +305,13 @@ export class EnterpriseConfigurationController {
 
   @Get('payroll-regions')
   @Permissions('payroll.settings.read')
-  listPayrollRegions(@CurrentUser() user: AuthenticatedUser) {
+  listPayrollRegions(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: Record<string, unknown>,
+  ) {
     return this.enterpriseConfigurationService.listPayrollRegions(
       user.tenantId,
+      query,
     );
   }
 
@@ -355,59 +359,64 @@ export class EnterpriseConfigurationController {
     return this.enterpriseConfigurationService.deletePayrollRegion(user, id);
   }
 
-  @Get('exchange-rates')
+  @Get('fiscal-years')
   @Permissions('settings.read')
-  listExchangeRates(
+  listFiscalYears(
     @CurrentUser() user: AuthenticatedUser,
     @Query() query: Record<string, unknown>,
   ) {
-    return this.enterpriseConfigurationService.listExchangeRates(
+    return this.enterpriseConfigurationService.listFiscalYears(
       user.tenantId,
       query,
     );
   }
 
-  @Post('exchange-rates')
+  @Post('fiscal-years')
   @Permissions('settings.update')
-  createExchangeRate(
+  createFiscalYear(
     @CurrentUser() user: AuthenticatedUser,
     @Body() body: Record<string, unknown>,
   ) {
-    return this.enterpriseConfigurationService.createExchangeRate(user, body);
+    return this.enterpriseConfigurationService.createFiscalYear(user, body);
   }
 
-  @Get('exchange-rates/:id')
+  @Get('fiscal-years/:id')
   @Permissions('settings.read')
-  getExchangeRate(
+  getFiscalYear(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
-    return this.enterpriseConfigurationService.getExchangeRate(
+    return this.enterpriseConfigurationService.getFiscalYear(user.tenantId, id);
+  }
+
+  @Get('fiscal-years/:id/usage')
+  @Permissions('settings.read')
+  getFiscalYearUsage(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.enterpriseConfigurationService.getFiscalYearUsage(
       user.tenantId,
       id,
     );
   }
 
-  @Patch('exchange-rates/:id')
+  @Patch('fiscal-years/:id')
   @Permissions('settings.update')
-  updateExchangeRate(
+  updateFiscalYear(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() body: Record<string, unknown>,
   ) {
-    return this.enterpriseConfigurationService.updateExchangeRate(
-      user,
-      id,
-      body,
-    );
+    return this.enterpriseConfigurationService.updateFiscalYear(user, id, body);
   }
 
-  @Delete('exchange-rates/:id')
+  @Delete('fiscal-years/:id')
   @Permissions('settings.update')
-  deleteExchangeRate(
+  deleteFiscalYear(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
-    return this.enterpriseConfigurationService.deleteExchangeRate(user, id);
+    return this.enterpriseConfigurationService.deleteFiscalYear(user, id);
   }
 }

@@ -127,8 +127,11 @@ enum WebhookProcessingStatus {
 
 enum DocumentEntityType {
   EMPLOYEE
+  PROJECT
   LEAVE_REQUEST
   PAYROLL_RECORD
+  PAYSLIP
+  PAYROLL_BANK_EXPORT
   CANDIDATE
   ONBOARDING_RECORD
   TENANT
@@ -530,11 +533,181 @@ enum AttendanceIntegrationType {
 }
 
 enum TimesheetStatus {
+  NOT_STARTED
   DRAFT
+  IN_PROGRESS
   SUBMITTED
+  PENDING_APPROVAL
+  PARTIALLY_APPROVED
   APPROVED
   REJECTED
+  OVERDUE
+  PAYROLL_READY
+  PAYROLL_PROCESSED
   LOCKED
+  NOT_REQUIRED
+  AUTO_COMPLETED
+  EXCEPTION
+  CANCELLED
+}
+
+enum TimesheetWeekStatus {
+  NOT_AVAILABLE
+  NOT_STARTED
+  OPEN
+  DRAFT
+  INCOMPLETE
+  READY_TO_SUBMIT
+  SUBMITTED
+  PENDING_APPROVAL
+  PARTIALLY_APPROVED
+  APPROVED
+  REJECTED
+  REOPENING_REQUESTED
+  REOPENED
+  OVERDUE
+  PAYROLL_READY
+  PAYROLL_PROCESSED
+  LOCKED
+  CANCELLED
+}
+
+enum TimesheetDayType {
+  WORKING_DAY
+  WEEKEND
+  HOLIDAY
+  APPROVED_LEAVE
+  PARTIAL_LEAVE
+  BUSINESS_TRAVEL
+  NOT_EMPLOYED
+  NOT_APPLICABLE
+  EXEMPT
+  SUSPENDED
+  INACTIVE
+  MISSING_SCHEDULE
+  EXCEPTION
+}
+
+enum TimesheetDayTypeSource {
+  WORK_SCHEDULE
+  SHIFT
+  HOLIDAY_CALENDAR
+  LEAVE_REQUEST
+  EMPLOYMENT
+  POLICY
+  ATTENDANCE
+  MANUAL_ADJUSTMENT
+  SYSTEM
+}
+
+enum TimesheetCompletionStatus {
+  NOT_REQUIRED
+  MISSING
+  PARTIAL
+  COMPLETE
+  EXCEPTION
+}
+
+enum TimesheetPayrollStatus {
+  NOT_APPLICABLE
+  NOT_ELIGIBLE
+  BLOCKED
+  READY
+  EXPORT_PENDING
+  EXPORTED
+  FAILED
+  REPROCESSING
+  PAYROLL_PROCESSED
+  ADJUSTMENT_REQUIRED
+}
+
+enum TimesheetLockStatus {
+  UNLOCKED
+  SUBMISSION_LOCKED
+  APPROVAL_LOCKED
+  PAYROLL_LOCKED
+  CUTOFF_LOCKED
+}
+
+enum TimesheetPolicyScopeType {
+  TENANT
+  ORGANIZATION
+  BUSINESS_UNIT
+  DEPARTMENT
+  TEAM
+  EMPLOYEE
+}
+
+enum TimesheetEntrySource {
+  MANUAL
+  ATTENDANCE
+  IMPORT
+  INTEGRATION
+  SYSTEM
+  ADJUSTMENT
+}
+
+enum TimesheetEntryApprovalStatus {
+  NOT_REQUIRED
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum TimesheetReopeningStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum TimesheetExportStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+  EXPIRED
+}
+
+enum TimesheetExportFormat {
+  XLSX
+  CSV
+  PDF
+}
+
+enum TimesheetRestrictionMode {
+  WARNING_ONLY
+  LIMITED_ACCESS
+  TIMESHEET_ONLY
+}
+
+enum TimesheetJobStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  SKIPPED
+}
+
+enum TimesheetJobType {
+  NEXT_MONTH_GENERATION
+  CURRENT_MONTH_REPAIR
+  WEEK_OPENING
+  SUBMISSION_REMINDER
+  OVERDUE_DETECTION
+  APPROVAL_ESCALATION
+  ATTENDANCE_PREFILL
+  ATTENDANCE_RECONCILIATION
+  HOLIDAY_RECALCULATION
+  LEAVE_RECALCULATION
+  PAYROLL_READINESS
+  PAYROLL_EXPORT
+  EXPORT_GENERATION
+  ACCESS_RESTRICTION
+  RESTRICTION_REMOVAL
+  CUTOFF_LOCKING
+  INTEGRATION_RETRY
 }
 
 enum TimesheetEntryType {
@@ -562,6 +735,17 @@ enum ProjectBillingType {
   RETAINER
 }
 
+enum ProjectType {
+  INTERNAL
+  CLIENT
+  IMPLEMENTATION
+  SUPPORT
+  MAINTENANCE
+  RESEARCH
+  TRAINING
+  OTHER
+}
+
 enum ProjectAllocationType {
   PERCENTAGE
   HOURS
@@ -583,6 +767,7 @@ enum ConfigurationStatus {
   DRAFT
   ACTIVE
   INACTIVE
+  EXPIRED
   ARCHIVED
 }
 
@@ -676,7 +861,10 @@ enum ProjectBillingStatus {
 enum ProjectApprovalMode {
   MANAGER
   PROJECT_MANAGER
+  ACCOUNT_MANAGER
+  DELIVERY_MANAGER
   BOTH
+  CUSTOM_MANAGER
   NONE
 }
 
@@ -867,6 +1055,13 @@ enum PayrollRunLineItemCategory {
   ADJUSTMENT
 }
 
+enum PayrollAdjustmentStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
 enum PayrollInputSnapshotSourceType {
   COMPENSATION
   ATTENDANCE
@@ -896,6 +1091,16 @@ enum BenefitType {
   PERK
   EARNING
   DEDUCTION
+  MEDICAL
+  DENTAL
+  LIFE
+  DISABILITY
+  RETIREMENT
+  MEAL
+  TRANSPORT
+  WELLNESS
+  INSURANCE
+  OTHER
 }
 
 enum BenefitRenewalPeriod {
@@ -907,8 +1112,11 @@ enum BenefitRenewalPeriod {
 }
 
 enum BenefitPolicyStatus {
+  DRAFT
   ACTIVE
   INACTIVE
+  EXPIRED
+  ARCHIVED
 }
 
 enum EmployeeBenefitStatus {
@@ -962,6 +1170,9 @@ enum TaxCalculationMethod {
   PERCENTAGE
   FIXED
   BRACKET
+  FORMULA
+  ZERO
+  EXTERNAL
 }
 
 enum TaxType {
@@ -983,7 +1194,15 @@ enum PayrollJournalEntryStatus {
   DRAFT
   GENERATED
   EXPORTED
+  POSTED
+  REVERSED
   VOIDED
+}
+
+enum PayrollJournalEntryType {
+  ORIGINAL
+  REVERSAL
+  ADJUSTMENT
 }
 
 enum PayrollExceptionSeverity {
@@ -1025,7 +1244,19 @@ enum PayrollBankExportFormat {
 
 enum PayrollBankExportStatus {
   GENERATED
+  SUBMITTED
+  PARTIALLY_DISBURSED
   DISBURSED
+  FAILED
+  CANCELLED
+}
+
+enum PayrollPaymentLineStatus {
+  GENERATED
+  SUBMITTED
+  DISBURSED
+  FAILED
+  CANCELLED
 }
 
 enum ClaimRequestStatus {
@@ -1146,9 +1377,18 @@ enum SecurityPrivilege {
 }
 
 enum TeamType {
+  ORGANIZATIONAL
   OWNER
   ACCESS
   WORKFLOW
+}
+
+enum EmployerBankAccountPurpose {
+  PAYROLL
+  OPERATING
+  TAX
+  BENEFITS
+  OTHER
 }
 
 enum PaymentMode {
@@ -1254,6 +1494,7 @@ model Tenant {
   refreshTokens                   RefreshToken[]
   userInvitations                 UserInvitation[]
   employees                       Employee[]
+  employmentTypes                 EmploymentType[]
   employeeEducationRecords        EmployeeEducation[]
   employeeHistoryRecords          EmployeeHistory[]
   employeePreviousEmployments     EmployeePreviousEmployment[]
@@ -1280,6 +1521,7 @@ model Tenant {
   claimLineItems                  ClaimLineItem[]
   claimApprovals                  ClaimApproval[]
   employeeBankAccounts            EmployeeBankAccount[]
+  employerBankAccounts            EmployerBankAccount[]
   banks                           Bank[]
   loanPolicies                    LoanPolicy[]
   loanRequests                    LoanRequest[]
@@ -1295,6 +1537,7 @@ model Tenant {
   taxRules                        TaxRule[]
   taxRuleBrackets                 TaxRuleBracket[]
   taxRulePayComponents            TaxRulePayComponent[]
+  employeeTaxProfiles             EmployeeTaxProfile[]
   leaveApprovalSteps              LeaveApprovalStep[]
   approvalMatrices                ApprovalMatrix[]
   benefitPolicies                 BenefitPolicy[]
@@ -1316,12 +1559,22 @@ model Tenant {
   timesheets                      Timesheet[]
   timesheetEntries                TimesheetEntry[]
   timesheetImportBatches          TimesheetImportBatch[]
+  timesheetPolicies               TimesheetPolicy[]
+  timesheetWeeks                  TimesheetWeek[]
+  timesheetDays                   TimesheetDay[]
+  timesheetReopeningRequests      TimesheetReopeningRequest[]
+  timesheetExportRequests         TimesheetExportRequest[]
+  timesheetAccessRestrictions     TimesheetAccessRestriction[]
+  timesheetPayrollHandoffs        TimesheetPayrollHandoff[]
+  timesheetJobExecutions          TimesheetJobExecution[]
+  timesheetMigrationResults       TimesheetMigrationResult[]
   processingCycles                ProcessingCycle[]
   customers                       Customer[]
   projects                        Project[]
   projectRoles                    ProjectRole[]
   projectAssignments              ProjectAssignment[]
   jobOpenings                     JobOpening[]
+  recruitmentPipelines            RecruitmentPipeline[]
   candidates                      Candidate[]
   candidateIdentities             CandidateIdentity[]
   candidateHistoryRecords         CandidateHistory[]
@@ -1339,13 +1592,19 @@ model Tenant {
   payrollCycles                   PayrollCycle[]
   payrollRecords                  PayrollRecord[]
   payrollCalendars                PayrollCalendar[]
+  fiscalYears                     FiscalYear[]
   payrollRegions                  PayrollRegion[]
+  currencies                      Currency[]
   exchangeRateSnapshots           ExchangeRateSnapshot[]
   payrollPeriods                  PayrollPeriod[]
   payrollRuns                     PayrollRun[]
-  payrollBankExports               PayrollBankExport[]
+  payrollBankExports              PayrollBankExport[]
   payrollRunEmployees             PayrollRunEmployee[]
   payrollRunLineItems             PayrollRunLineItem[]
+  payrollCostAllocationLines      PayrollCostAllocationLine[]
+  payrollAdjustments              PayrollAdjustment[]
+  payrollExchangeRateLocks        PayrollExchangeRateLock[]
+  payrollPaymentLines             PayrollPaymentLine[]
   payrollInputSnapshots           PayrollInputSnapshot[]
   payrollExceptions               PayrollException[]
   payrollGlAccounts               PayrollGlAccount[]
@@ -1354,8 +1613,11 @@ model Tenant {
   payrollJournalEntryLines        PayrollJournalEntryLine[]
   payslips                        Payslip[]
   payslipLineItems                PayslipLineItem[]
+  payComponentEligibilityRules    PayComponentEligibilityRule[]
   payslipEventLogs                PayslipEventLog[]
   salaryComponents                SalaryComponent[]
+  salaryPackageRules              SalaryPackageRule[]
+  salaryPackageRuleComponents     SalaryPackageRuleComponent[]
   payComponents                   PayComponent[]
   employeeCompensations           EmployeeCompensation[]
   employeeCompensationHistories   EmployeeCompensationHistory[]
@@ -1370,6 +1632,10 @@ model Tenant {
   documents                       Document[]
   documentLinks                   DocumentLink[]
   tenantSettings                  TenantSetting[]
+  fieldSecurityPolicies           FieldSecurityPolicy[]
+  fieldSecurityRules              FieldSecurityRule[]
+  fieldSecurityPolicyRoles        FieldSecurityPolicyRole[]
+  fieldSecurityPolicyTeams        FieldSecurityPolicyTeam[]
   configurationRecords            TenantConfigurationRecord[]
   tenantBranding                  TenantBranding?
   tenantDomains                   TenantDomain[]
@@ -1473,53 +1739,54 @@ model TenantDomain {
 }
 
 model CustomerAccount {
-  id                      String                @id @default(uuid())
-  companyName             String
-  legalCompanyName        String?
-  primaryContactFirstName String?
-  primaryContactLastName  String?
-  primaryContactEmail     String?
-  primaryContactPhone     String?
-  billingContactEmail     String?
-  financeContactName      String?
-  financeContactEmail     String?
-  industry                String?
-  companySize             String?
-  contactEmail            String
-  contactPhone            String?
-  country                 String
-  stateProvince           String?
-  city                    String?
-  addressLine1            String?
-  addressLine2            String?
-  website                 String?
-  estimatedEmployeeCount  Int?
-  actualEmployeeCount     Int?
-  selectedPlanId          String?
-  preferredBillingCycle   BillingCycle?
-  customPricingFlag       Boolean               @default(false)
-  discountApproved        Boolean               @default(false)
-  leadId                  String?
-  status                  CustomerAccountStatus @default(LEAD)
-  subStatus               String?
-  assignedToUserId        String?
-  accountManagerUserId    String?
-  primaryOwnerUserId      String?
-  stripeCustomerId        String?
-  isDemoData              Boolean               @default(false)
-  demoBatchId             String?
-  seedSource              String?
-  createdAt               DateTime              @default(now())
-  updatedAt               DateTime              @updatedAt
-  assignedToUser          PlatformUser?         @relation("AssignedCustomerAccounts", fields: [assignedToUserId], references: [id], onDelete: SetNull)
-  accountManagerUser      PlatformUser?         @relation("ManagedCustomerAccounts", fields: [accountManagerUserId], references: [id], onDelete: SetNull)
-  primaryOwnerUser        User?                 @relation("OwnedCustomerAccounts", fields: [primaryOwnerUserId], references: [id], onDelete: SetNull)
-  tenants                 Tenant[]
-  selectedPlan            Plan?                 @relation("SelectedCustomerPlan", fields: [selectedPlanId], references: [id], onDelete: SetNull)
-  sourceLead              Lead?                 @relation("LeadToCustomer", fields: [leadId], references: [id], onDelete: SetNull)
-  contacts                CustomerContact[]
-  notes                   CustomerNote[]
-  onboardings             CustomerOnboarding[]
+  id                         String                      @id @default(uuid())
+  companyName                String
+  legalCompanyName           String?
+  primaryContactFirstName    String?
+  primaryContactLastName     String?
+  primaryContactEmail        String?
+  primaryContactPhone        String?
+  billingContactEmail        String?
+  financeContactName         String?
+  financeContactEmail        String?
+  industry                   String?
+  companySize                String?
+  contactEmail               String
+  contactPhone               String?
+  country                    String
+  stateProvince              String?
+  city                       String?
+  addressLine1               String?
+  addressLine2               String?
+  website                    String?
+  estimatedEmployeeCount     Int?
+  actualEmployeeCount        Int?
+  selectedPlanId             String?
+  preferredBillingCycle      BillingCycle?
+  customPricingFlag          Boolean                     @default(false)
+  discountApproved           Boolean                     @default(false)
+  leadId                     String?
+  status                     CustomerAccountStatus       @default(LEAD)
+  subStatus                  String?
+  assignedToUserId           String?
+  accountManagerUserId       String?
+  primaryOwnerUserId         String?
+  stripeCustomerId           String?
+  isDemoData                 Boolean                     @default(false)
+  demoBatchId                String?
+  seedSource                 String?
+  createdAt                  DateTime                    @default(now())
+  updatedAt                  DateTime                    @updatedAt
+  assignedToUser             PlatformUser?               @relation("AssignedCustomerAccounts", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+  accountManagerUser         PlatformUser?               @relation("ManagedCustomerAccounts", fields: [accountManagerUserId], references: [id], onDelete: SetNull)
+  primaryOwnerUser           User?                       @relation("OwnedCustomerAccounts", fields: [primaryOwnerUserId], references: [id], onDelete: SetNull)
+  tenants                    Tenant[]
+  selectedPlan               Plan?                       @relation("SelectedCustomerPlan", fields: [selectedPlanId], references: [id], onDelete: SetNull)
+  sourceLead                 Lead?                       @relation("LeadToCustomer", fields: [leadId], references: [id], onDelete: SetNull)
+  contacts                   CustomerContact[]
+  notes                      CustomerNote[]
+  onboardings                CustomerOnboarding[]
+  payrollCostAllocationLines PayrollCostAllocationLine[]
 
   @@index([status])
   @@index([subStatus])
@@ -1872,6 +2139,15 @@ model User {
   requestedAttendanceCorrections AttendanceCorrectionRequest[] @relation("AttendanceCorrectionRequester")
   actionedAttendanceCorrections  AttendanceCorrectionRequest[] @relation("AttendanceCorrectionActionedBy")
   employee                       Employee?
+  ownedOrganizations             Organization[]                @relation("OwnedOrganizations")
+  createdOrganizations           Organization[]                @relation("OrganizationCreatedBy")
+  updatedOrganizations           Organization[]                @relation("OrganizationUpdatedBy")
+  ownedBusinessUnits             BusinessUnit[]                @relation("OwnedBusinessUnits")
+  createdBusinessUnits           BusinessUnit[]                @relation("BusinessUnitCreatedBy")
+  updatedBusinessUnits           BusinessUnit[]                @relation("BusinessUnitUpdatedBy")
+  ownedDepartments               Department[]                  @relation("OwnedDepartments")
+  createdDepartments             Department[]                  @relation("DepartmentCreatedBy")
+  updatedDepartments             Department[]                  @relation("DepartmentUpdatedBy")
   ownedEmployees                 Employee[]                    @relation("OwnedEmployees")
   leaveApprovalSteps             LeaveApprovalStep[]
   approvalMatricesAsApprover     ApprovalMatrix[]              @relation("ApprovalMatrixApproverUser")
@@ -1880,6 +2156,7 @@ model User {
   assignedOnboardingTasks        OnboardingTask[]              @relation("OnboardingTaskAssignee")
   uploadedDocuments              Document[]                    @relation("UploadedDocuments")
   ownedTeams                     Team[]                        @relation("OwnedTeams")
+  approvedEmployeeCompensations  EmployeeCompensationHistory[] @relation("EmployeeCompensationApprovedBy")
   auditLogs                      AuditLog[]                    @relation("AuditLogActor")
   ownedCustomerAccounts          CustomerAccount[]             @relation("OwnedCustomerAccounts")
   customerNotes                  CustomerNote[]                @relation("CustomerNotes")
@@ -1924,14 +2201,29 @@ model PlatformUser {
 model Organization {
   id                         String                      @id @default(uuid())
   tenantId                   String
+  code                       String?
   name                       String
+  organizationType           String                      @default("OPERATING")
   parentOrganizationId       String?
+  headEmployeeId             String?
+  ownerUserId                String?
+  status                     String                      @default("ACTIVE")
+  subStatus                  String                      @default("OPERATIONAL")
+  description                String?
+  isActive                   Boolean                     @default(true)
   createdAt                  DateTime                    @default(now())
   updatedAt                  DateTime                    @updatedAt
+  createdById                String?
+  updatedById                String?
   tenant                     Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   parentOrganization         Organization?               @relation("OrganizationHierarchy", fields: [parentOrganizationId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  headEmployee               Employee?                   @relation("OrganizationHead", fields: [headEmployeeId], references: [id], onDelete: SetNull)
+  ownerUser                  User?                       @relation("OwnedOrganizations", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  createdBy                  User?                       @relation("OrganizationCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy                  User?                       @relation("OrganizationUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
   childOrganizations         Organization[]              @relation("OrganizationHierarchy")
   businessUnits              BusinessUnit[]
+  employees                  Employee[]
   projects                   Project[]
   holidayCalendars           HolidayCalendar[]
   holidayCalendarAssignments HolidayCalendarAssignment[]
@@ -1939,20 +2231,34 @@ model Organization {
   payrollRegions             PayrollRegion[]
   approvalMatrices           ApprovalMatrix[]
   benefitPolicies            BenefitPolicy[]
+  salaryPackageRules         SalaryPackageRule[]
 
   @@unique([id, tenantId])
+  @@unique([tenantId, code])
   @@unique([tenantId, name])
   @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, subStatus])
+  @@index([tenantId, isActive])
+  @@index([tenantId, ownerUserId])
+  @@index([tenantId, headEmployeeId])
   @@index([tenantId, parentOrganizationId])
 }
 
 model BusinessUnit {
   id                         String                      @id @default(uuid())
   tenantId                   String
+  code                       String?
   name                       String
   organizationId             String
   parentBusinessUnitId       String?
   type                       BusinessUnitType            @default(INTERNAL)
+  headEmployeeId             String?
+  ownerUserId                String?
+  status                     String                      @default("ACTIVE")
+  subStatus                  String                      @default("OPERATIONAL")
+  description                String?
+  isActive                   Boolean                     @default(true)
   settingsJson               Json?
   payrollContactName         String?
   payrollContactEmail        String?
@@ -1961,10 +2267,17 @@ model BusinessUnit {
   approvalContactEmail       String?
   createdAt                  DateTime                    @default(now())
   updatedAt                  DateTime                    @updatedAt
+  createdById                String?
+  updatedById                String?
   tenant                     Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   organization               Organization                @relation(fields: [organizationId, tenantId], references: [id, tenantId], onDelete: Restrict)
   parentBusinessUnit         BusinessUnit?               @relation("BusinessUnitHierarchy", fields: [parentBusinessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  headEmployee               Employee?                   @relation("BusinessUnitHead", fields: [headEmployeeId], references: [id], onDelete: SetNull)
+  ownerUser                  User?                       @relation("OwnedBusinessUnits", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  createdBy                  User?                       @relation("BusinessUnitCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy                  User?                       @relation("BusinessUnitUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
   childBusinessUnits         BusinessUnit[]              @relation("BusinessUnitHierarchy")
+  departments                Department[]
   users                      User[]
   employees                  Employee[]
   projects                   Project[]
@@ -1981,40 +2294,48 @@ model BusinessUnit {
   processingCycles           ProcessingCycle[]
   approvalMatrices           ApprovalMatrix[]
   benefitPolicies            BenefitPolicy[]
+  salaryPackageRules         SalaryPackageRule[]
 
   @@unique([id, tenantId])
+  @@unique([tenantId, code])
   @@unique([tenantId, organizationId, name])
   @@index([tenantId])
   @@index([tenantId, type])
+  @@index([tenantId, status])
+  @@index([tenantId, subStatus])
+  @@index([tenantId, isActive])
+  @@index([tenantId, ownerUserId])
+  @@index([tenantId, headEmployeeId])
   @@index([tenantId, organizationId])
   @@index([tenantId, parentBusinessUnitId])
 }
 
 model Role {
-  id                  String               @id @default(uuid())
-  tenantId            String
-  name                String
-  key                 String
-  roleType            RoleType             @default(CUSTOM)
-  accessLevel         RoleAccessLevel      @default(USER)
-  description         String?
-  isSystem            Boolean              @default(false)
-  isEditable          Boolean              @default(true)
-  isCloneable         Boolean              @default(true)
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
-  createdById         String?
-  updatedById         String?
-  tenant              Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  userRoles           UserRole[]
-  approvalAssignments ApprovalAssignment[] @relation("ApprovalAssignmentRole")
-  approvalMatrices    ApprovalMatrix[]     @relation("ApprovalMatrixApproverRole")
-  leaveApprovalSteps  LeaveApprovalStep[]
-  rolePermissions     RolePermission[]
-  rolePrivileges      RolePrivilege[]
-  miscPermissions     RoleMiscPermission[]
-  teamRoles           TeamRole[]
-  isActive            Boolean              @default(true)
+  id                    String                    @id @default(uuid())
+  tenantId              String
+  name                  String
+  key                   String
+  roleType              RoleType                  @default(CUSTOM)
+  accessLevel           RoleAccessLevel           @default(USER)
+  description           String?
+  isSystem              Boolean                   @default(false)
+  isEditable            Boolean                   @default(true)
+  isCloneable           Boolean                   @default(true)
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+  createdById           String?
+  updatedById           String?
+  tenant                Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userRoles             UserRole[]
+  approvalAssignments   ApprovalAssignment[]      @relation("ApprovalAssignmentRole")
+  approvalMatrices      ApprovalMatrix[]          @relation("ApprovalMatrixApproverRole")
+  leaveApprovalSteps    LeaveApprovalStep[]
+  rolePermissions       RolePermission[]
+  rolePrivileges        RolePrivilege[]
+  miscPermissions       RoleMiscPermission[]
+  teamRoles             TeamRole[]
+  fieldSecurityPolicies FieldSecurityPolicyRole[]
+  isActive              Boolean                   @default(true)
 
   @@unique([tenantId, key])
   @@unique([tenantId, name])
@@ -2140,31 +2461,36 @@ model RoleMiscPermission {
 }
 
 model Team {
-  id             String        @id @default(uuid())
-  tenantId       String
-  name           String
-  key            String
-  description    String?
-  teamType       TeamType      @default(ACCESS)
-  businessUnitId String?
-  ownerUserId    String?
-  isSystem       Boolean       @default(false)
-  isActive       Boolean       @default(true)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  createdById    String?
-  updatedById    String?
-  tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  businessUnit   BusinessUnit? @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
-  ownerUser      User?         @relation("OwnedTeams", fields: [ownerUserId], references: [id], onDelete: SetNull)
-  members        TeamMember[]
-  teamRoles      TeamRole[]
+  id                    String                    @id @default(uuid())
+  tenantId              String
+  name                  String
+  key                   String
+  description           String?
+  teamType              TeamType                  @default(ACCESS)
+  businessUnitId        String?
+  departmentId          String?
+  ownerUserId           String?
+  isSystem              Boolean                   @default(false)
+  isActive              Boolean                   @default(true)
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+  createdById           String?
+  updatedById           String?
+  tenant                Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  businessUnit          BusinessUnit?             @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  department            Department?               @relation(fields: [departmentId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  ownerUser             User?                     @relation("OwnedTeams", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  employees             Employee[]
+  members               TeamMember[]
+  teamRoles             TeamRole[]
+  fieldSecurityPolicies FieldSecurityPolicyTeam[]
 
   @@unique([tenantId, key])
   @@unique([tenantId, name])
   @@index([tenantId])
   @@index([tenantId, teamType])
   @@index([tenantId, businessUnitId])
+  @@index([tenantId, departmentId])
   @@index([tenantId, isActive])
 }
 
@@ -2317,14 +2643,17 @@ model Employee {
   bloodGroup                     String?
   employmentStatus               EmployeeEmploymentStatus      @default(ACTIVE)
   employeeType                   EmployeeType?
+  employmentTypeId               String?
   workMode                       EmployeeWorkMode?
   contractType                   EmployeeContractType?
   hireDate                       DateTime
   confirmationDate               DateTime?
   probationEndDate               DateTime?
   terminationDate                DateTime?
+  organizationId                 String?
   departmentId                   String?
   businessUnitId                 String?
+  teamId                         String?
   designationId                  String?
   employeeLevelId                String?
   locationId                     String?
@@ -2367,10 +2696,13 @@ model Employee {
   stateProvinceLookup            StateProvince?                @relation(fields: [stateProvinceId], references: [id], onDelete: SetNull)
   cityLookup                     City?                         @relation(fields: [cityId], references: [id], onDelete: SetNull)
   emergencyContactRelationType   RelationType?                 @relation(fields: [emergencyContactRelationTypeId], references: [id], onDelete: SetNull)
+  organization                   Organization?                 @relation(fields: [organizationId, tenantId], references: [id, tenantId], onDelete: Restrict)
   department                     Department?                   @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   businessUnit                   BusinessUnit?                 @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  team                           Team?                         @relation(fields: [teamId], references: [id], onDelete: SetNull)
   designation                    Designation?                  @relation(fields: [designationId], references: [id], onDelete: SetNull)
   employeeLevel                  EmployeeLevel?                @relation(fields: [employeeLevelId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  employmentTypeRef              EmploymentType?               @relation(fields: [employmentTypeId, tenantId], references: [id, tenantId], onDelete: Restrict)
   location                       Location?                     @relation(fields: [locationId], references: [id], onDelete: SetNull)
   defaultWorkSchedule            WorkSchedule?                 @relation("EmployeeDefaultWorkSchedule", fields: [defaultWorkScheduleId], references: [id], onDelete: SetNull)
   officialJoiningLocation        Location?                     @relation("EmployeeOfficialJoiningLocation", fields: [officialJoiningLocationId], references: [id], onDelete: SetNull)
@@ -2400,18 +2732,27 @@ model Employee {
   workScheduleAssignments        EmployeeScheduleAssignment[]
   timesheets                     Timesheet[]
   timesheetEntries               TimesheetEntry[]
+  timesheetPolicies              TimesheetPolicy[]
+  timesheetDays                  TimesheetDay[]
+  timesheetAccessRestrictions    TimesheetAccessRestriction[]
   projectAssignments             ProjectAssignment[]
   projectResourceApprovals       ProjectAssignment[]           @relation("ProjectResourceApprovalManager")
   onboardings                    EmployeeOnboarding[]
   documentLinks                  DocumentLink[]
   payrollRecords                 PayrollRecord[]
   payrollRunEmployees            PayrollRunEmployee[]
+  payrollCostAllocationLines     PayrollCostAllocationLine[]
+  payrollAdjustments             PayrollAdjustment[]
+  payrollPaymentLines            PayrollPaymentLine[]
   payrollExceptions              PayrollException[]
   payrollJournalEntryLines       PayrollJournalEntryLine[]
   payslips                       Payslip[]
   compensations                  EmployeeCompensation[]
   compensationHistories          EmployeeCompensationHistory[]
   employeeDevices                EmployeeDevice[]
+  headedOrganizations            Organization[]                @relation("OrganizationHead")
+  headedBusinessUnits            BusinessUnit[]                @relation("BusinessUnitHead")
+  headedDepartments              Department[]                  @relation("DepartmentHead")
   agentRefreshTokens             AgentRefreshToken[]
   workSessions                   WorkSession[]
   activityEvents                 ActivityEvent[]
@@ -2421,7 +2762,9 @@ model Employee {
   dailyProductivitySummaries     DailyProductivitySummary[]
   previousEmployments            EmployeePreviousEmployment[]
   benefitAssignments             EmployeeBenefitAssignment[]
+  taxProfiles                    EmployeeTaxProfile[]
 
+  @@unique([id, tenantId])
   @@unique([tenantId, employeeCode])
   @@unique([tenantId, email])
   @@unique([tenantId, personalEmail])
@@ -2431,8 +2774,12 @@ model Employee {
   @@index([tenantId, status])
   @@index([tenantId, subStatus])
   @@index([tenantId, recordType])
+  @@index([tenantId, organizationId])
   @@index([tenantId, businessUnitId])
+  @@index([tenantId, departmentId])
+  @@index([tenantId, teamId])
   @@index([tenantId, employeeLevelId])
+  @@index([tenantId, employmentTypeId])
   @@index([tenantId, employmentStatus])
   @@index([tenantId, defaultWorkScheduleId])
   @@index([tenantId, nationalityCountryId])
@@ -2445,22 +2792,58 @@ model Employee {
   @@index([tenantId, sourceJobOpeningId])
 }
 
+model EmploymentType {
+  id                   String              @id @default(uuid())
+  tenantId             String
+  name                 String
+  code                 String
+  description          String?
+  payrollEligible      Boolean             @default(true)
+  leaveEligible        Boolean             @default(true)
+  overtimeEligible     Boolean             @default(false)
+  benefitsEligible     Boolean             @default(true)
+  defaultProbationDays Int                 @default(0)
+  isActive             Boolean             @default(true)
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  createdById          String?
+  updatedById          String?
+  tenant               Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employees            Employee[]
+  salaryPackageRules   SalaryPackageRule[]
+
+  @@unique([id, tenantId])
+  @@unique([tenantId, code])
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@index([tenantId, isActive])
+  @@index([tenantId, payrollEligible])
+  @@index([tenantId, leaveEligible])
+}
+
 model EmployeeLevel {
   id                      String                  @id @default(uuid())
   tenantId                String
   code                    String
   name                    String
   rank                    Int
+  parentEmployeeLevelId   String?
+  nextEmployeeLevelId     String?
   description             String?
   isActive                Boolean                 @default(true)
   createdAt               DateTime                @default(now())
   updatedAt               DateTime                @updatedAt
   tenant                  Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  parentEmployeeLevel     EmployeeLevel?          @relation("EmployeeLevelParent", fields: [parentEmployeeLevelId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  childEmployeeLevels     EmployeeLevel[]         @relation("EmployeeLevelParent")
+  nextEmployeeLevel       EmployeeLevel?          @relation("EmployeeLevelNext", fields: [nextEmployeeLevelId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  previousEmployeeLevels  EmployeeLevel[]         @relation("EmployeeLevelNext")
   designations            Designation[]
   employees               Employee[]
   travelAllowancePolicies TravelAllowancePolicy[]
   timePayrollPolicies     TimePayrollPolicy[]
   overtimePolicies        OvertimePolicy[]
+  salaryPackageRules      SalaryPackageRule[]
   taxRules                TaxRule[]
   approvalMatrices        ApprovalMatrix[]
   benefitPolicies         BenefitPolicy[]
@@ -2468,6 +2851,8 @@ model EmployeeLevel {
   @@unique([id, tenantId])
   @@unique([tenantId, code])
   @@index([tenantId, rank])
+  @@index([tenantId, parentEmployeeLevelId])
+  @@index([tenantId, nextEmployeeLevelId])
   @@index([tenantId, isActive])
 }
 
@@ -2543,27 +2928,45 @@ model EmployeePreviousEmployment {
 }
 
 model Department {
-  id                    String           @id @default(uuid())
+  id                    String              @id @default(uuid())
   tenantId              String
+  businessUnitId        String?
   name                  String
   code                  String?
   description           String?
   defaultWorkScheduleId String?
-  isActive              Boolean          @default(true)
-  createdAt             DateTime         @default(now())
-  updatedAt             DateTime         @updatedAt
+  headEmployeeId        String?
+  ownerUserId           String?
+  status                String              @default("ACTIVE")
+  subStatus             String              @default("OPERATIONAL")
+  isActive              Boolean             @default(true)
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
   createdById           String?
   updatedById           String?
-  tenant                Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  defaultWorkSchedule   WorkSchedule?    @relation("DepartmentDefaultWorkSchedule", fields: [defaultWorkScheduleId], references: [id], onDelete: SetNull)
+  tenant                Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  businessUnit          BusinessUnit?       @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  headEmployee          Employee?           @relation("DepartmentHead", fields: [headEmployeeId], references: [id], onDelete: SetNull)
+  ownerUser             User?               @relation("OwnedDepartments", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  createdBy             User?               @relation("DepartmentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy             User?               @relation("DepartmentUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  defaultWorkSchedule   WorkSchedule?       @relation("DepartmentDefaultWorkSchedule", fields: [defaultWorkScheduleId], references: [id], onDelete: SetNull)
   employees             Employee[]
+  teams                 Team[]
   holidays              Holiday[]
   approvalMatrices      ApprovalMatrix[]
   benefitPolicies       BenefitPolicy[]
+  salaryPackageRules    SalaryPackageRule[]
 
+  @@unique([id, tenantId])
   @@unique([tenantId, name])
   @@unique([tenantId, code])
   @@index([tenantId])
+  @@index([tenantId, businessUnitId])
+  @@index([tenantId, status])
+  @@index([tenantId, subStatus])
+  @@index([tenantId, ownerUserId])
+  @@index([tenantId, headEmployeeId])
   @@index([tenantId, isActive])
   @@index([tenantId, defaultWorkScheduleId])
 }
@@ -2679,7 +3082,14 @@ model LeaveType {
   name                    String
   code                    String
   category                String
+  description             String?
   isPaid                  Boolean                  @default(true)
+  affectsPayroll          Boolean                  @default(false)
+  consumesBalance         Boolean                  @default(true)
+  employeeRequestAllowed  Boolean                  @default(true)
+  requiresAttachment      Boolean                  @default(false)
+  allowHalfDay            Boolean                  @default(true)
+  allowHourlyLeave        Boolean                  @default(false)
   requiresApproval        Boolean                  @default(true)
   isActive                Boolean                  @default(true)
   createdAt               DateTime                 @default(now())
@@ -2703,6 +3113,7 @@ model LeavePolicy {
   id               String                  @id @default(uuid())
   tenantId         String
   name             String
+  description      String?
   isActive         Boolean                 @default(true)
   createdAt        DateTime                @default(now())
   updatedAt        DateTime                @updatedAt
@@ -2719,26 +3130,36 @@ model LeavePolicy {
 }
 
 model LeavePolicyAssignment {
-  id            String            @id @default(uuid())
-  tenantId      String
-  leavePolicyId String
-  scopeType     ApprovalScopeType
-  scopeId       String?
-  effectiveFrom DateTime
-  effectiveTo   DateTime?
-  priority      Int               @default(0)
-  isActive      Boolean           @default(true)
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
-  createdById   String?
-  updatedById   String?
-  tenant        Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  leavePolicy   LeavePolicy       @relation(fields: [leavePolicyId], references: [id], onDelete: Cascade)
+  id              String            @id @default(uuid())
+  tenantId        String
+  leavePolicyId   String
+  scopeType       ApprovalScopeType
+  scopeId         String?
+  organizationId  String?
+  businessUnitId  String?
+  departmentId    String?
+  employeeLevelId String?
+  employeeId      String?
+  effectiveFrom   DateTime
+  effectiveTo     DateTime?
+  priority        Int               @default(0)
+  isActive        Boolean           @default(true)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  createdById     String?
+  updatedById     String?
+  tenant          Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  leavePolicy     LeavePolicy       @relation(fields: [leavePolicyId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([tenantId, isActive])
   @@index([tenantId, leavePolicyId])
   @@index([tenantId, scopeType, scopeId, isActive])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, businessUnitId])
+  @@index([tenantId, departmentId])
+  @@index([tenantId, employeeLevelId])
+  @@index([tenantId, employeeId])
 }
 
 model LeavePolicyRule {
@@ -2748,11 +3169,30 @@ model LeavePolicyRule {
   leaveTypeId   String
 
   entitlementDays           Decimal?               @db.Decimal(10, 2)
+  minimumServiceDays        Int?
+  prorateOnJoining          Boolean                @default(false)
+  prorateOnExit             Boolean                @default(false)
+  maximumNegativeBalance    Decimal?               @db.Decimal(10, 2)
   accrualType               LeaveRuleAccrualType
   accrualFrequency          LeaveAccrualFrequency?
+  accrualDay                Int?
+  accrualAmount             Decimal?               @db.Decimal(10, 2)
+  accrueDuringProbation     Boolean                @default(false)
+  creditOnJoining           Boolean                @default(false)
   carryForwardAllowed       Boolean                @default(false)
   carryForwardLimit         Decimal?               @db.Decimal(10, 2)
+  carryForwardExpiryMonths  Int?
+  encashUnusedBalance       Boolean                @default(false)
+  maximumEncashmentDays     Decimal?               @db.Decimal(10, 2)
   negativeBalanceAllowed    Boolean                @default(false)
+  minimumNoticeDays         Int?
+  minimumConsecutiveDays    Decimal?               @db.Decimal(10, 2)
+  allowDuringProbation      Boolean                @default(true)
+  allowBackdatedRequests    Boolean                @default(false)
+  maxBackdatedDays          Int?
+  allowFutureRequests       Boolean                @default(true)
+  maxFutureDays             Int?
+  blockDuringNoticePeriod   Boolean                @default(false)
   requiresDocumentAfterDays Int?
   probationRestriction      Boolean                @default(false)
   genderRestriction         String?
@@ -2761,6 +3201,10 @@ model LeavePolicyRule {
   updatedById               String?
   maxConsecutiveDays        Decimal?               @db.Decimal(10, 2)
   approvalRequired          Boolean                @default(true)
+  approvalMatrixId          String?
+  autoApproveUnderDays      Decimal?               @db.Decimal(10, 2)
+  requireHrApproval         Boolean                @default(false)
+  requirePayrollApproval    Boolean                @default(false)
   isPaid                    Boolean                @default(true)
   isActive                  Boolean                @default(true)
 
@@ -2774,6 +3218,7 @@ model LeavePolicyRule {
   @@unique([tenantId, leavePolicyId, leaveTypeId])
   @@index([tenantId, leavePolicyId])
   @@index([tenantId, leaveTypeId])
+  @@index([tenantId, approvalMatrixId])
 }
 
 model ApprovalMatrix {
@@ -3069,54 +3514,67 @@ model EmployeeScheduleAssignment {
 }
 
 model AttendanceEntry {
-  id                         String                        @id @default(uuid())
-  tenantId                   String
-  employeeId                 String
-  workScheduleId             String?
-  shiftTemplateId            String?
-  officeLocationId           String?
-  importedBatchId            String?
-  date                       DateTime
-  checkIn                    DateTime?
-  checkOut                   DateTime?
-  attendanceMode             AttendanceMode                @default(OFFICE)
-  status                     AttendanceEntryStatus         @default(PRESENT)
-  source                     AttendanceEntrySource         @default(SYSTEM)
-  checkInSource              AttendanceEntrySource?
-  checkOutSource             AttendanceEntrySource?
-  checkInNote                String?
-  checkOutNote               String?
-  workSummary                String?
-  notes                      String?
-  remoteLatitude             Float?
-  remoteLongitude            Float?
-  remoteAddressText          String?
-  checkInAddressText         String?
-  checkInLatitude            Float?
-  checkInLongitude           Float?
-  checkInLocationAccuracy    Float?
-  checkInLocationCapturedAt  DateTime?
-  checkOutAddressText        String?
-  checkOutLatitude           Float?
-  checkOutLongitude          Float?
-  checkOutLocationAccuracy   Float?
-  checkOutLocationCapturedAt DateTime?
-  isLateCheckIn              Boolean                       @default(false)
-  isLateCheckOut             Boolean                       @default(false)
-  lateCheckInMinutes         Int?
-  lateCheckOutMinutes        Int?
-  machineDeviceId            String?
-  createdAt                  DateTime                      @default(now())
-  updatedAt                  DateTime                      @updatedAt
-  createdById                String?
-  updatedById                String?
-  tenant                     Tenant                        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  employee                   Employee                      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  workSchedule               WorkSchedule?                 @relation(fields: [workScheduleId], references: [id], onDelete: SetNull)
-  shiftTemplate              ShiftTemplate?                @relation(fields: [shiftTemplateId], references: [id], onDelete: SetNull)
-  officeLocation             Location?                     @relation("AttendanceOfficeLocation", fields: [officeLocationId], references: [id], onDelete: SetNull)
-  importedBatch              AttendanceImportBatch?        @relation(fields: [importedBatchId], references: [id], onDelete: SetNull)
-  correctionRequests         AttendanceCorrectionRequest[]
+  id                               String                        @id @default(uuid())
+  tenantId                         String
+  employeeId                       String
+  workScheduleId                   String?
+  shiftTemplateId                  String?
+  officeLocationId                 String?
+  importedBatchId                  String?
+  date                             DateTime
+  checkIn                          DateTime?
+  checkOut                         DateTime?
+  attendanceMode                   AttendanceMode                @default(OFFICE)
+  status                           AttendanceEntryStatus         @default(PRESENT)
+  source                           AttendanceEntrySource         @default(SYSTEM)
+  checkInSource                    AttendanceEntrySource?
+  checkOutSource                   AttendanceEntrySource?
+  checkInNote                      String?
+  checkOutNote                     String?
+  workSummary                      String?
+  notes                            String?
+  remoteLatitude                   Float?
+  remoteLongitude                  Float?
+  remoteAddressText                String?
+  checkInAddressText               String?
+  checkInLatitude                  Float?
+  checkInLongitude                 Float?
+  checkInLocationAccuracy          Float?
+  checkInLocationCapturedAt        DateTime?
+  checkOutAddressText              String?
+  checkOutLatitude                 Float?
+  checkOutLongitude                Float?
+  checkOutLocationAccuracy         Float?
+  checkOutLocationCapturedAt       DateTime?
+  locationLatitude                 Decimal?                      @db.Decimal(10, 7)
+  locationLongitude                Decimal?                      @db.Decimal(10, 7)
+  locationAccuracyMeters           Int?
+  locationSource                   String?
+  locationConfidence               String?
+  locationCapturedAt               DateTime?
+  locationPermissionState          String?
+  locationFailureReason            String?
+  ipAddress                        String?
+  userAgent                        String?
+  manualLocationExceptionRequested Boolean                       @default(false)
+  manualLocationExceptionReason    String?
+  locationPolicySnapshot           Json?
+  isLateCheckIn                    Boolean                       @default(false)
+  isLateCheckOut                   Boolean                       @default(false)
+  lateCheckInMinutes               Int?
+  lateCheckOutMinutes              Int?
+  machineDeviceId                  String?
+  createdAt                        DateTime                      @default(now())
+  updatedAt                        DateTime                      @updatedAt
+  createdById                      String?
+  updatedById                      String?
+  tenant                           Tenant                        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee                         Employee                      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  workSchedule                     WorkSchedule?                 @relation(fields: [workScheduleId], references: [id], onDelete: SetNull)
+  shiftTemplate                    ShiftTemplate?                @relation(fields: [shiftTemplateId], references: [id], onDelete: SetNull)
+  officeLocation                   Location?                     @relation("AttendanceOfficeLocation", fields: [officeLocationId], references: [id], onDelete: SetNull)
+  importedBatch                    AttendanceImportBatch?        @relation(fields: [importedBatchId], references: [id], onDelete: SetNull)
+  correctionRequests               AttendanceCorrectionRequest[]
 
   @@unique([tenantId, employeeId, date])
   @@index([tenantId])
@@ -3180,6 +3638,17 @@ model AttendancePolicy {
   allowHolidayCheckIn                Boolean  @default(false)
   allowHrAdminOverride               Boolean  @default(true)
   markMissingCheckout                Boolean  @default(true)
+  locationCaptureRequired            Boolean  @default(false)
+  locationRequiredForModes           String[] @default([])
+  allowIpFallback                    Boolean  @default(false)
+  allowManualLocationException       Boolean  @default(false)
+  locationTimeoutSeconds             Int      @default(15)
+  highAccuracyLocation               Boolean  @default(true)
+  maxAllowedAccuracyMeters           Int?
+  captureLocationOnCheckIn           Boolean  @default(false)
+  captureLocationOnCheckOut          Boolean  @default(false)
+  storeIpAddress                     Boolean  @default(false)
+  storeUserAgent                     Boolean  @default(false)
   createdAt                          DateTime @default(now())
   updatedAt                          DateTime @updatedAt
   createdById                        String?
@@ -3339,43 +3808,200 @@ model HolidayCalendarAssignment {
 }
 
 model Timesheet {
-  id                String                 @id @default(uuid())
-  tenantId          String
-  businessUnitId    String?
-  processingCycleId String?
-  employeeId        String
-  year              Int
-  month             Int
-  periodStart       DateTime
-  periodEnd         DateTime
-  status            TimesheetStatus        @default(DRAFT)
-  submittedNote     String?
-  submittedAt       DateTime?
-  approvedAt        DateTime?
-  rejectedAt        DateTime?
-  reviewedAt        DateTime?
-  approverUserId    String?
-  reviewNote        String?
-  comments          String?
-  createdAt         DateTime               @default(now())
-  updatedAt         DateTime               @updatedAt
-  createdById       String?
-  updatedById       String?
-  tenant            Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  businessUnit      BusinessUnit?          @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
-  processingCycle   ProcessingCycle?       @relation(fields: [processingCycleId], references: [id], onDelete: SetNull)
-  employee          Employee               @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  approverUser      User?                  @relation("TimesheetApprover", fields: [approverUserId], references: [id], onDelete: SetNull)
-  entries           TimesheetEntry[]
-  importBatches     TimesheetImportBatch[]
+  id                   String                      @id @default(uuid())
+  tenantId             String
+  organizationId       String?
+  businessUnitId       String?
+  departmentId         String?
+  teamId               String?
+  processingCycleId    String?
+  employeeId           String
+  year                 Int
+  month                Int
+  periodStart          DateTime
+  periodEnd            DateTime
+  status               TimesheetStatus             @default(DRAFT)
+  completionPercentage Decimal                     @default(0) @db.Decimal(5, 2)
+  requiredHours        Decimal                     @default(0) @db.Decimal(8, 2)
+  enteredHours         Decimal                     @default(0) @db.Decimal(8, 2)
+  approvedLeaveHours   Decimal                     @default(0) @db.Decimal(8, 2)
+  holidayHours         Decimal                     @default(0) @db.Decimal(8, 2)
+  weekendHours         Decimal                     @default(0) @db.Decimal(8, 2)
+  billableHours        Decimal                     @default(0) @db.Decimal(8, 2)
+  nonBillableHours     Decimal                     @default(0) @db.Decimal(8, 2)
+  overtimeHours        Decimal                     @default(0) @db.Decimal(8, 2)
+  payrollStatus        TimesheetPayrollStatus      @default(NOT_APPLICABLE)
+  lockStatus           TimesheetLockStatus         @default(UNLOCKED)
+  generatedAt          DateTime?
+  finalizedAt          DateTime?
+  payrollProcessedAt   DateTime?
+  policyId             String?
+  policyVersion        Int?
+  policySnapshot       Json?
+  version              Int                         @default(1)
+  submittedNote        String?
+  submittedAt          DateTime?
+  approvedAt           DateTime?
+  rejectedAt           DateTime?
+  reviewedAt           DateTime?
+  approverUserId       String?
+  reviewNote           String?
+  comments             String?
+  createdAt            DateTime                    @default(now())
+  updatedAt            DateTime                    @updatedAt
+  createdById          String?
+  updatedById          String?
+  tenant               Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  businessUnit         BusinessUnit?               @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  processingCycle      ProcessingCycle?            @relation(fields: [processingCycleId], references: [id], onDelete: SetNull)
+  employee             Employee                    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  approverUser         User?                       @relation("TimesheetApprover", fields: [approverUserId], references: [id], onDelete: SetNull)
+  entries              TimesheetEntry[]
+  weeks                TimesheetWeek[]
+  importBatches        TimesheetImportBatch[]
+  reopeningRequests    TimesheetReopeningRequest[]
+  payrollHandoffs      TimesheetPayrollHandoff[]
 
   @@unique([tenantId, employeeId, year, month])
   @@index([tenantId])
   @@index([tenantId, businessUnitId, status])
+  @@index([tenantId, organizationId, departmentId, teamId])
   @@index([tenantId, processingCycleId])
   @@index([tenantId, employeeId, periodStart])
   @@index([tenantId, employeeId, year, month])
   @@index([tenantId, status, periodStart])
+  @@index([tenantId, payrollStatus, periodStart])
+}
+
+model TimesheetPolicy {
+  id                 String                   @id @default(uuid())
+  tenantId           String
+  name               String
+  code               String
+  description        String?
+  scopeType          TimesheetPolicyScopeType @default(TENANT)
+  scopeId            String?
+  organizationId     String?
+  businessUnitId     String?
+  departmentId       String?
+  teamId             String?
+  employeeId         String?
+  priority           Int                      @default(0)
+  effectiveFrom      DateTime
+  effectiveTo        DateTime?
+  enabled            Boolean                  @default(true)
+  inheritUnspecified Boolean                  @default(true)
+  version            Int                      @default(1)
+  settings           Json
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+  createdById        String?
+  updatedById        String?
+  tenant             Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee           Employee?                @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, code, version])
+  @@index([tenantId, enabled, effectiveFrom, effectiveTo])
+  @@index([tenantId, scopeType, scopeId, priority])
+  @@index([tenantId, organizationId, businessUnitId])
+  @@index([tenantId, departmentId, teamId, employeeId])
+}
+
+model TimesheetWeek {
+  id                           String                      @id @default(uuid())
+  tenantId                     String
+  timesheetId                  String
+  weekNumber                   Int
+  startDate                    DateTime
+  endDate                      DateTime
+  status                       TimesheetWeekStatus         @default(NOT_STARTED)
+  submissionDeadline           DateTime?
+  lateSubmissionOverrideAt     DateTime?
+  lateSubmissionOverrideById   String?
+  lateSubmissionOverrideReason String?
+  submittedAt                  DateTime?
+  submittedById                String?
+  approvalRequestId            String?
+  requiredHours                Decimal                     @default(0) @db.Decimal(8, 2)
+  enteredHours                 Decimal                     @default(0) @db.Decimal(8, 2)
+  leaveHours                   Decimal                     @default(0) @db.Decimal(8, 2)
+  holidayHours                 Decimal                     @default(0) @db.Decimal(8, 2)
+  weekendHours                 Decimal                     @default(0) @db.Decimal(8, 2)
+  billableHours                Decimal                     @default(0) @db.Decimal(8, 2)
+  nonBillableHours             Decimal                     @default(0) @db.Decimal(8, 2)
+  overtimeHours                Decimal                     @default(0) @db.Decimal(8, 2)
+  lockStatus                   TimesheetLockStatus         @default(UNLOCKED)
+  rejectedAt                   DateTime?
+  rejectionReason              String?
+  reopenedAt                   DateTime?
+  approvalVersion              Int                         @default(1)
+  payrollEligibility           Boolean                     @default(false)
+  version                      Int                         @default(1)
+  createdAt                    DateTime                    @default(now())
+  updatedAt                    DateTime                    @updatedAt
+  createdById                  String?
+  updatedById                  String?
+  tenant                       Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  timesheet                    Timesheet                   @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
+  days                         TimesheetDay[]
+  reopeningRequests            TimesheetReopeningRequest[]
+
+  @@unique([timesheetId, weekNumber])
+  @@index([tenantId, status, submissionDeadline])
+  @@index([tenantId, approvalRequestId])
+  @@index([tenantId, payrollEligibility, status])
+}
+
+model TimesheetDay {
+  id                 String                    @id @default(uuid())
+  tenantId           String
+  timesheetWeekId    String
+  employeeId         String
+  date               DateTime
+  dayOfWeek          WorkWeekday
+  dayType            TimesheetDayType
+  dayTypeSource      TimesheetDayTypeSource
+  expectedHours      Decimal                   @default(0) @db.Decimal(6, 2)
+  availableHours     Decimal                   @default(0) @db.Decimal(6, 2)
+  enteredHours       Decimal                   @default(0) @db.Decimal(6, 2)
+  attendanceHours    Decimal                   @default(0) @db.Decimal(6, 2)
+  attendanceEntryId  String?
+  attendanceCheckIn  DateTime?
+  attendanceCheckOut DateTime?
+  attendanceMode     AttendanceMode?
+  attendanceStatus   AttendanceEntryStatus?
+  approvedLeaveHours Decimal                   @default(0) @db.Decimal(6, 2)
+  holidayId          String?
+  holidayName        String?
+  leaveRequestId     String?
+  leaveTypeId        String?
+  leaveTypeName      String?
+  workScheduleId     String?
+  shiftId            String?
+  isWeekend          Boolean                   @default(false)
+  isHoliday          Boolean                   @default(false)
+  isApprovedLeave    Boolean                   @default(false)
+  isLocked           Boolean                   @default(false)
+  lockReason         String?
+  completionStatus   TimesheetCompletionStatus @default(MISSING)
+  varianceMinutes    Int                       @default(0)
+  varianceStatus     String                    @default("MATCHED")
+  sourceReference    String?
+  version            Int                       @default(1)
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+  createdById        String?
+  updatedById        String?
+  tenant             Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  timesheetWeek      TimesheetWeek             @relation(fields: [timesheetWeekId], references: [id], onDelete: Cascade)
+  employee           Employee                  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  entries            TimesheetEntry[]
+
+  @@unique([timesheetWeekId, date])
+  @@index([tenantId, employeeId, date])
+  @@index([tenantId, attendanceEntryId])
+  @@index([tenantId, dayType, completionStatus])
+  @@index([tenantId, isLocked, date])
 }
 
 model TimesheetImportBatch {
@@ -3402,61 +4028,220 @@ model TimesheetImportBatch {
 }
 
 model TimesheetEntry {
-  id             String              @id @default(uuid())
-  tenantId       String
-  timesheetId    String
-  employeeId     String
-  date           DateTime
-  dayOfWeek      WorkWeekday
-  entryType      TimesheetEntryType?
-  isWeekend      Boolean             @default(false)
-  isHoliday      Boolean             @default(false)
-  leaveRequestId String?
-  hours          Decimal             @db.Decimal(6, 2)
-  note           String?
-  description    String?
-  projectId      String?
-  activityCode   String?
-  billableFlag   Boolean             @default(false)
-  timezone       String?
-  currencyCode   String?
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
-  createdById    String?
-  updatedById    String?
-  tenant         Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  timesheet      Timesheet           @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
-  employee       Employee            @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  leaveRequest   LeaveRequest?       @relation(fields: [leaveRequestId], references: [id], onDelete: SetNull)
-  project        Project?            @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  id                   String                       @id @default(uuid())
+  tenantId             String
+  timesheetId          String
+  timesheetDayId       String?
+  employeeId           String
+  date                 DateTime
+  dayOfWeek            WorkWeekday
+  entryType            TimesheetEntryType?
+  isWeekend            Boolean                      @default(false)
+  isHoliday            Boolean                      @default(false)
+  leaveRequestId       String?
+  hours                Decimal                      @db.Decimal(6, 2)
+  note                 String?
+  description          String?
+  projectId            String?
+  projectAssignmentId  String?
+  taskId               String?
+  activityTypeId       String?
+  workLocationId       String?
+  costCenterId         String?
+  startTime            DateTime?
+  endTime              DateTime?
+  activityCode         String?
+  billableFlag         Boolean                      @default(false)
+  source               TimesheetEntrySource         @default(MANUAL)
+  approvalStatus       TimesheetEntryApprovalStatus @default(DRAFT)
+  payrollCategory      String?
+  integrationReference String?
+  timezone             String?
+  currencyCode         String?
+  createdAt            DateTime                     @default(now())
+  updatedAt            DateTime                     @updatedAt
+  createdById          String?
+  updatedById          String?
+  tenant               Tenant                       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  timesheet            Timesheet                    @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
+  timesheetDay         TimesheetDay?                @relation(fields: [timesheetDayId], references: [id], onDelete: Cascade)
+  employee             Employee                     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  leaveRequest         LeaveRequest?                @relation(fields: [leaveRequestId], references: [id], onDelete: SetNull)
+  project              Project?                     @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
-  @@unique([timesheetId, date, projectId])
   @@index([tenantId])
   @@index([tenantId, employeeId, date])
   @@index([tenantId, timesheetId])
   @@index([tenantId, timesheetId, date])
+  @@index([tenantId, timesheetDayId])
   @@index([tenantId, projectId, date])
+  @@index([tenantId, projectAssignmentId, date])
+  @@index([tenantId, approvalStatus, payrollCategory])
+}
+
+model TimesheetReopeningRequest {
+  id                 String                   @id @default(uuid())
+  tenantId           String
+  timesheetId        String
+  weekId             String?
+  requestedById      String
+  requestedAt        DateTime                 @default(now())
+  reason             String
+  previousWeekStatus TimesheetWeekStatus?
+  approvalRequestId  String?
+  status             TimesheetReopeningStatus @default(PENDING)
+  approverUserId     String?
+  approvedAt         DateTime?
+  rejectedAt         DateTime?
+  decisionReason     String?
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+  tenant             Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  timesheet          Timesheet                @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
+  week               TimesheetWeek?           @relation(fields: [weekId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status, requestedAt])
+  @@index([tenantId, timesheetId, weekId])
+  @@index([tenantId, approvalRequestId])
+}
+
+model TimesheetExportRequest {
+  id            String                @id @default(uuid())
+  tenantId      String
+  requestedById String
+  requestedAt   DateTime              @default(now())
+  exportType    String
+  filters       Json
+  format        TimesheetExportFormat
+  status        TimesheetExportStatus @default(QUEUED)
+  rowCount      Int                   @default(0)
+  fileReference String?
+  fileName      String?
+  contentType   String?
+  expiresAt     DateTime?
+  failureReason String?
+  completedAt   DateTime?
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  tenant        Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, requestedById, requestedAt])
+  @@index([tenantId, status, createdAt])
+}
+
+model TimesheetAccessRestriction {
+  id                 String                   @id @default(uuid())
+  tenantId           String
+  employeeId         String
+  reason             String
+  sourceTimesheetIds Json
+  restrictionMode    TimesheetRestrictionMode
+  startAt            DateTime
+  expiryAt           DateTime?
+  overriddenById     String?
+  overrideReason     String?
+  overriddenAt       DateTime?
+  isActive           Boolean                  @default(true)
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+  tenant             Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee           Employee                 @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, employeeId, isActive])
+  @@index([tenantId, expiryAt, isActive])
+}
+
+model TimesheetPayrollHandoff {
+  id               String                 @id @default(uuid())
+  tenantId         String
+  timesheetId      String
+  executionKey     String
+  payrollPeriodId  String?
+  includedWeekIds  Json
+  includedEntryIds Json
+  status           TimesheetPayrollStatus @default(EXPORT_PENDING)
+  exportedAt       DateTime?
+  payrollReference String?
+  result           Json?
+  failureReason    String?
+  retryCount       Int                    @default(0)
+  adjustmentForId  String?
+  authorizedById   String?
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+  tenant           Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  timesheet        Timesheet              @relation(fields: [timesheetId], references: [id], onDelete: Restrict)
+
+  @@unique([tenantId, executionKey])
+  @@index([tenantId, timesheetId, status])
+  @@index([tenantId, payrollPeriodId, status])
+}
+
+model TimesheetJobExecution {
+  id             String             @id @default(uuid())
+  tenantId       String
+  jobType        TimesheetJobType
+  idempotencyKey String
+  status         TimesheetJobStatus @default(QUEUED)
+  input          Json?
+  result         Json?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  retryCount     Int                @default(0)
+  failureReason  String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  tenant         Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, jobType, idempotencyKey])
+  @@index([tenantId, status, createdAt])
+  @@index([tenantId, jobType, completedAt])
+}
+
+model TimesheetMigrationResult {
+  id             String    @id @default(uuid())
+  tenantId       String
+  migrationKey   String
+  status         String
+  processedCount Int       @default(0)
+  succeededCount Int       @default(0)
+  failedCount    Int       @default(0)
+  details        Json?
+  failureReason  String?
+  startedAt      DateTime  @default(now())
+  completedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, migrationKey])
+  @@index([tenantId, status, startedAt])
 }
 
 model Customer {
-  id           String         @id @default(uuid())
-  tenantId     String
-  name         String
-  code         String
-  industry     String?
-  contactName  String?
-  contactEmail String?
-  contactPhone String?
-  billingEmail String?
-  websiteUrl   String?
-  address      String?
-  status       CustomerStatus @default(ACTIVE)
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  createdById  String?
-  updatedById  String?
-  tenant       Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  projects     Project[]
+  id              String         @id @default(uuid())
+  tenantId        String
+  name            String
+  code            String
+  industry        String?
+  contactName     String?
+  contactEmail    String?
+  contactPhone    String?
+  billingEmail    String?
+  websiteUrl      String?
+  address         String?
+  addressLine1    String?
+  addressLine2    String?
+  cityId          String?
+  stateProvinceId String?
+  countryId       String?
+  postalCode      String?
+  status          CustomerStatus @default(ACTIVE)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  createdById     String?
+  updatedById     String?
+  tenant          Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  projects        Project[]
 
   @@unique([tenantId, code])
   @@index([tenantId])
@@ -3484,55 +4269,65 @@ model ProjectRole {
 }
 
 model Project {
-  id                        String                      @id @default(uuid())
-  tenantId                  String
-  organizationId            String?
-  businessUnitId            String?
-  customerId                String?
-  projectManagerEmployeeId  String?
-  deliveryManagerEmployeeId String?
-  name                      String
-  code                      String?
-  description               String?
-  timezone                  String?
-  currencyCode              String?
-  holidayCalendarId         String?
-  workScheduleId            String?
-  billingType               ProjectBillingType          @default(NON_BILLABLE)
-  budgetHours               Decimal?                    @db.Decimal(10, 2)
-  budgetAmount              Decimal?                    @db.Decimal(14, 2)
-  budgetCurrencyCode        String?
-  consumedAmount            Decimal?                    @db.Decimal(14, 2)
-  burnRate                  Decimal?                    @db.Decimal(14, 2)
-  plannedHours              Decimal?                    @db.Decimal(10, 2)
-  actualHours               Decimal?                    @db.Decimal(10, 2)
-  remainingHours            Decimal?                    @db.Decimal(10, 2)
-  projectHealth             ProjectHealth               @default(UNKNOWN)
-  riskLevel                 ProjectRiskLevel            @default(MEDIUM)
-  priority                  ProjectPriority             @default(NORMAL)
-  deliveryStatus            ProjectDeliveryStatus       @default(NOT_STARTED)
-  billingStatus             ProjectBillingStatus        @default(NOT_STARTED)
-  allowTimesheets           Boolean                     @default(true)
-  requireApproval           Boolean                     @default(false)
-  approvalMode              ProjectApprovalMode         @default(MANAGER)
-  startDate                 DateTime?
-  endDate                   DateTime?
-  status                    ProjectStatus               @default(PLANNING)
-  createdAt                 DateTime                    @default(now())
-  updatedAt                 DateTime                    @updatedAt
-  createdById               String?
-  updatedById               String?
-  tenant                    Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  organization              Organization?               @relation(fields: [organizationId, tenantId], references: [id, tenantId], onDelete: Restrict)
-  businessUnit              BusinessUnit?               @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
-  customer                  Customer?                   @relation(fields: [customerId], references: [id], onDelete: Restrict)
-  holidayCalendar           HolidayCalendar?            @relation("ProjectHolidayCalendar", fields: [holidayCalendarId], references: [id], onDelete: SetNull)
-  workSchedule              WorkSchedule?               @relation("ProjectWorkSchedule", fields: [workScheduleId], references: [id], onDelete: SetNull)
-  scopedHolidayCalendars    HolidayCalendar[]           @relation("ScopedProjectHolidayCalendars")
-  scopedWorkSchedules       WorkSchedule[]              @relation("ScopedProjectWorkSchedules")
-  holidayAssignments        HolidayCalendarAssignment[]
-  assignments               ProjectAssignment[]
-  timesheetEntries          TimesheetEntry[]
+  id                         String                      @id @default(uuid())
+  tenantId                   String
+  organizationId             String?
+  businessUnitId             String?
+  customerId                 String?
+  projectManagerEmployeeId   String?
+  accountManagerEmployeeId   String?
+  deliveryManagerEmployeeId  String?
+  approvalManagerEmployeeId  String?
+  name                       String
+  code                       String?
+  description                String?
+  projectType                ProjectType                 @default(CLIENT)
+  timezone                   String?
+  currencyCode               String?
+  holidayCalendarId          String?
+  workScheduleId             String?
+  billingType                ProjectBillingType          @default(NON_BILLABLE)
+  budgetHours                Decimal?                    @db.Decimal(10, 2)
+  budgetAmount               Decimal?                    @db.Decimal(14, 2)
+  budgetCurrencyCode         String?
+  requiredResourceCount      Int?
+  requiredSkills             String?
+  billableHours              Decimal?                    @db.Decimal(10, 2)
+  nonBillableHours           Decimal?                    @db.Decimal(10, 2)
+  billingRateAmount          Decimal?                    @db.Decimal(14, 2)
+  costBudgetAmount           Decimal?                    @db.Decimal(14, 2)
+  consumedAmount             Decimal?                    @db.Decimal(14, 2)
+  burnRate                   Decimal?                    @db.Decimal(14, 2)
+  plannedHours               Decimal?                    @db.Decimal(10, 2)
+  actualHours                Decimal?                    @db.Decimal(10, 2)
+  remainingHours             Decimal?                    @db.Decimal(10, 2)
+  projectHealth              ProjectHealth               @default(UNKNOWN)
+  riskLevel                  ProjectRiskLevel            @default(MEDIUM)
+  priority                   ProjectPriority             @default(NORMAL)
+  deliveryStatus             ProjectDeliveryStatus       @default(NOT_STARTED)
+  billingStatus              ProjectBillingStatus        @default(NOT_STARTED)
+  allowTimesheets            Boolean                     @default(true)
+  requireApproval            Boolean                     @default(false)
+  approvalMode               ProjectApprovalMode         @default(MANAGER)
+  startDate                  DateTime?
+  endDate                    DateTime?
+  status                     ProjectStatus               @default(PLANNING)
+  createdAt                  DateTime                    @default(now())
+  updatedAt                  DateTime                    @updatedAt
+  createdById                String?
+  updatedById                String?
+  tenant                     Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  organization               Organization?               @relation(fields: [organizationId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  businessUnit               BusinessUnit?               @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  customer                   Customer?                   @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  holidayCalendar            HolidayCalendar?            @relation("ProjectHolidayCalendar", fields: [holidayCalendarId], references: [id], onDelete: SetNull)
+  workSchedule               WorkSchedule?               @relation("ProjectWorkSchedule", fields: [workScheduleId], references: [id], onDelete: SetNull)
+  scopedHolidayCalendars     HolidayCalendar[]           @relation("ScopedProjectHolidayCalendars")
+  scopedWorkSchedules        WorkSchedule[]              @relation("ScopedProjectWorkSchedules")
+  holidayAssignments         HolidayCalendarAssignment[]
+  assignments                ProjectAssignment[]
+  timesheetEntries           TimesheetEntry[]
+  payrollCostAllocationLines PayrollCostAllocationLine[]
 
   @@unique([tenantId, code])
   @@unique([tenantId, customerId, code])
@@ -3540,6 +4335,9 @@ model Project {
   @@index([tenantId, organizationId])
   @@index([tenantId, businessUnitId])
   @@index([tenantId, customerId])
+  @@index([tenantId, projectManagerEmployeeId])
+  @@index([tenantId, accountManagerEmployeeId])
+  @@index([tenantId, deliveryManagerEmployeeId])
   @@index([tenantId, timezone])
   @@index([tenantId, currencyCode])
   @@index([tenantId, holidayCalendarId])
@@ -3584,25 +4382,76 @@ model ProjectAssignment {
 }
 
 model JobOpening {
-  id             String           @id @default(uuid())
+  id             String               @id @default(uuid())
   tenantId       String
+  pipelineId     String?
   title          String
   code           String?
   description    String?
   matchCriteria  Json?
-  status         JobOpeningStatus @default(DRAFT)
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
+  status         JobOpeningStatus     @default(DRAFT)
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
   createdById    String?
   updatedById    String?
-  tenant         Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant         Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  pipeline       RecruitmentPipeline? @relation(fields: [pipelineId], references: [id], onDelete: SetNull)
   applications   Application[]
-  draftEmployees Employee[]       @relation("JobOpeningDraftEmployees")
+  draftEmployees Employee[]           @relation("JobOpeningDraftEmployees")
 
   @@unique([tenantId, title])
   @@unique([tenantId, code])
   @@index([tenantId])
+  @@index([tenantId, pipelineId])
   @@index([tenantId, status])
+}
+
+model RecruitmentPipeline {
+  id                  String                     @id @default(uuid())
+  tenantId            String
+  name                String
+  code                String?
+  description         String?
+  isDefault           Boolean                    @default(false)
+  isActive            Boolean                    @default(true)
+  allowBackwardMove   Boolean                    @default(true)
+  requireRejectReason Boolean                    @default(true)
+  createdAt           DateTime                   @default(now())
+  updatedAt           DateTime                   @updatedAt
+  createdById         String?
+  updatedById         String?
+  tenant              Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  stages              RecruitmentPipelineStage[]
+  jobOpenings         JobOpening[]
+
+  @@unique([tenantId, name])
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([tenantId, isActive])
+  @@index([tenantId, isDefault])
+}
+
+model RecruitmentPipelineStage {
+  id          String              @id @default(uuid())
+  tenantId    String
+  pipelineId  String
+  stageKey    RecruitmentStage
+  label       String
+  color       String?
+  sortOrder   Int                 @default(0)
+  isTerminal  Boolean             @default(false)
+  isActive    Boolean             @default(true)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  createdById String?
+  updatedById String?
+  pipeline    RecruitmentPipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+
+  @@unique([pipelineId, stageKey])
+  @@unique([pipelineId, sortOrder])
+  @@index([tenantId])
+  @@index([tenantId, pipelineId])
+  @@index([tenantId, stageKey])
 }
 
 model Candidate {
@@ -4044,7 +4893,7 @@ model OnboardingTask {
 }
 
 model Document {
-  id                      String            @id @default(uuid())
+  id                      String                @id @default(uuid())
   tenantId                String
   documentTypeId          String?
   documentCategoryId      String?
@@ -4057,17 +4906,21 @@ model Document {
   storageKey              String?
   uploadedByUserId        String?
   description             String?
-  isArchived              Boolean           @default(false)
-  createdAt               DateTime          @default(now())
-  updatedAt               DateTime          @updatedAt
+  isArchived              Boolean               @default(false)
+  createdAt               DateTime              @default(now())
+  updatedAt               DateTime              @updatedAt
   createdById             String?
   updatedById             String?
-  tenant                  Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  documentType            DocumentType?     @relation(fields: [documentTypeId], references: [id], onDelete: SetNull)
-  documentCategory        DocumentCategory? @relation(fields: [documentCategoryId], references: [id], onDelete: SetNull)
-  uploadedByUser          User?             @relation("UploadedDocuments", fields: [uploadedByUserId], references: [id], onDelete: SetNull)
-  profileImageForEmployee Employee?         @relation("EmployeeProfileImage")
+  tenant                  Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  documentType            DocumentType?         @relation(fields: [documentTypeId], references: [id], onDelete: SetNull)
+  documentCategory        DocumentCategory?     @relation(fields: [documentCategoryId], references: [id], onDelete: SetNull)
+  uploadedByUser          User?                 @relation("UploadedDocuments", fields: [uploadedByUserId], references: [id], onDelete: SetNull)
+  profileImageForEmployee Employee?             @relation("EmployeeProfileImage")
+  employeeBankAccounts    EmployeeBankAccount[] @relation("EmployeeBankAccountSupportingDocument")
+  payslips                Payslip[]             @relation("PayslipDocument")
+  payrollBankExports      PayrollBankExport[]   @relation("PayrollBankExportDocument")
   links                   DocumentLink[]
+  versions                DocumentVersion[]
   receiptClaimLineItems   ClaimLineItem[]
 
   @@index([tenantId])
@@ -4075,6 +4928,29 @@ model Document {
   @@index([tenantId, documentCategoryId])
   @@index([tenantId, uploadedByUserId])
   @@index([tenantId, isArchived, createdAt])
+}
+
+model DocumentVersion {
+  id                 String   @id @default(uuid())
+  tenantId           String
+  documentId         String
+  versionNumber      Int
+  title              String?
+  originalFileName   String
+  storedFileName     String?
+  mimeType           String?
+  fileExtension      String?
+  sizeInBytes        Int?
+  storageKey         String?
+  documentTypeId     String?
+  documentCategoryId String?
+  description        String?
+  createdAt          DateTime @default(now())
+  createdById        String?
+  document           Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, documentId, versionNumber])
+  @@index([tenantId, documentId])
 }
 
 model DocumentType {
@@ -4099,23 +4975,30 @@ model DocumentType {
 }
 
 model DocumentCategory {
-  id          String     @id @default(uuid())
-  tenantId    String?
-  code        String
-  name        String
-  description String?
-  isActive    Boolean    @default(true)
-  sortOrder   Int        @default(0)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  createdById String?
-  updatedById String?
-  tenant      Tenant?    @relation(fields: [tenantId], references: [id], onDelete: SetNull)
-  documents   Document[]
+  id                          String     @id @default(uuid())
+  tenantId                    String?
+  code                        String
+  name                        String
+  appliesTo                   String[]   @default(["GENERAL"])
+  description                 String?
+  expirable                   Boolean    @default(false)
+  requiresVerification        Boolean    @default(false)
+  defaultRetentionMonths      Int?
+  allowedExtensionsOverride   String[]   @default([])
+  maximumUploadSizeOverrideMb Int?
+  isActive                    Boolean    @default(true)
+  sortOrder                   Int        @default(0)
+  createdAt                   DateTime   @default(now())
+  updatedAt                   DateTime   @updatedAt
+  createdById                 String?
+  updatedById                 String?
+  tenant                      Tenant?    @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  documents                   Document[]
 
   @@unique([tenantId, code])
   @@unique([tenantId, name])
   @@index([tenantId, isActive, sortOrder])
+  @@index([tenantId, expirable])
 }
 
 model RelationType {
@@ -4180,6 +5063,90 @@ model TenantSetting {
   @@unique([tenantId, category, key])
   @@index([tenantId])
   @@index([tenantId, category])
+}
+
+model FieldSecurityPolicy {
+  id              String                    @id @default(uuid())
+  tenantId        String
+  name            String
+  description     String?
+  moduleKey       String
+  entityKey       String
+  defaultBehavior String                    @default("ALLOW")
+  isActive        Boolean                   @default(true)
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+  createdById     String?
+  updatedById     String?
+  tenant          Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  rules           FieldSecurityRule[]
+  roles           FieldSecurityPolicyRole[]
+  teams           FieldSecurityPolicyTeam[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@index([tenantId, moduleKey, entityKey])
+  @@index([tenantId, isActive])
+}
+
+model FieldSecurityRule {
+  id             String              @id @default(uuid())
+  tenantId       String
+  policyId       String
+  fieldKey       String
+  fieldLabel     String
+  visibility     String              @default("VISIBLE")
+  accessMode     String              @default("EDITABLE")
+  maskingPattern String?
+  customMask     String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  createdById    String?
+  updatedById    String?
+  tenant         Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  policy         FieldSecurityPolicy @relation(fields: [policyId], references: [id], onDelete: Cascade)
+
+  @@unique([policyId, fieldKey])
+  @@index([tenantId])
+  @@index([tenantId, policyId])
+}
+
+model FieldSecurityPolicyRole {
+  id          String              @id @default(uuid())
+  tenantId    String
+  policyId    String
+  roleId      String
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  createdById String?
+  updatedById String?
+  tenant      Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  policy      FieldSecurityPolicy @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  role        Role                @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([policyId, roleId])
+  @@index([tenantId])
+  @@index([tenantId, policyId])
+  @@index([tenantId, roleId])
+}
+
+model FieldSecurityPolicyTeam {
+  id          String              @id @default(uuid())
+  tenantId    String
+  policyId    String
+  teamId      String
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  createdById String?
+  updatedById String?
+  tenant      Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  policy      FieldSecurityPolicy @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  team        Team                @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([policyId, teamId])
+  @@index([tenantId])
+  @@index([tenantId, policyId])
+  @@index([tenantId, teamId])
 }
 
 model TenantConfigurationRecord {
@@ -4860,27 +5827,53 @@ model Payment {
 }
 
 model PayrollCycle {
-  id                String             @id @default(uuid())
-  tenantId          String
-  businessUnitId    String?
-  processingCycleId String?
-  periodStart       DateTime
-  periodEnd         DateTime
-  runDate           DateTime?
-  status            PayrollCycleStatus @default(DRAFT)
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  createdById       String?
-  updatedById       String?
-  tenant            Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  businessUnit      BusinessUnit?      @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
-  processingCycle   ProcessingCycle?   @relation(fields: [processingCycleId], references: [id], onDelete: SetNull)
-  records           PayrollRecord[]
+  id                           String                    @id @default(uuid())
+  tenantId                     String
+  code                         String
+  name                         String?
+  description                  String?
+  payFrequency                 PayrollCalendarFrequency?
+  payrollRegionId              String?
+  currencyCode                 String?
+  periodStartRule              String?
+  periodEndRule                String?
+  cutoffDay                    Int?
+  paymentDay                   Int?
+  adjustDatesForWeekend        Boolean                   @default(false)
+  adjustDatesForHoliday        Boolean                   @default(false)
+  dateAdjustmentDirection      String?
+  defaultEmployerBankAccountId String?
+  defaultGenerationSource      String?
+  payrollCalendarId            String?
+  businessUnitId               String?
+  processingCycleId            String?
+  periodStart                  DateTime                  @db.Date
+  periodEnd                    DateTime                  @db.Date
+  runDate                      DateTime?                 @db.Date
+  status                       PayrollCycleStatus        @default(DRAFT)
+  isDefault                    Boolean                   @default(false)
+  createdAt                    DateTime                  @default(now())
+  updatedAt                    DateTime                  @updatedAt
+  createdById                  String?
+  updatedById                  String?
+  tenant                       Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  businessUnit                 BusinessUnit?             @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  processingCycle              ProcessingCycle?          @relation(fields: [processingCycleId], references: [id], onDelete: SetNull)
+  payrollRegion                PayrollRegion?            @relation(fields: [payrollRegionId], references: [id], onDelete: SetNull)
+  defaultEmployerBankAccount   EmployerBankAccount?      @relation(fields: [defaultEmployerBankAccountId], references: [id], onDelete: SetNull)
+  payrollCalendar              PayrollCalendar?          @relation(fields: [payrollCalendarId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  records                      PayrollRecord[]
+  periods                      PayrollPeriod[]
 
+  @@unique([id, tenantId])
+  @@unique([tenantId, code])
   @@unique([tenantId, businessUnitId, periodStart, periodEnd])
   @@index([tenantId])
   @@index([tenantId, businessUnitId])
   @@index([tenantId, processingCycleId])
+  @@index([tenantId, payrollRegionId])
+  @@index([tenantId, defaultEmployerBankAccountId])
+  @@index([tenantId, payrollCalendarId])
   @@index([tenantId, status])
   @@index([tenantId, periodStart, periodEnd])
 }
@@ -4955,6 +5948,7 @@ model PayrollCalendar {
   updatedAt      DateTime                 @updatedAt
   tenant         Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   businessUnit   BusinessUnit?            @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  cycles         PayrollCycle[]
   periods        PayrollPeriod[]
 
   @@unique([id, tenantId])
@@ -4986,6 +5980,8 @@ model PayrollRegion {
   effectiveEndDate      DateTime?
   isDefault             Boolean             @default(false)
   status                ConfigurationStatus @default(ACTIVE)
+  subStatus             String?
+  ownerUserId           String?
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
   createdById           String?
@@ -4996,6 +5992,7 @@ model PayrollRegion {
   location              Location?           @relation(fields: [locationId], references: [id], onDelete: SetNull)
   holidayCalendar       HolidayCalendar?    @relation(fields: [holidayCalendarId], references: [id], onDelete: SetNull)
   workSchedule          WorkSchedule?       @relation(fields: [workScheduleId], references: [id], onDelete: SetNull)
+  payrollCycles         PayrollCycle[]
 
   @@unique([tenantId, code])
   @@index([tenantId, organizationId])
@@ -5003,37 +6000,97 @@ model PayrollRegion {
   @@index([tenantId, locationId])
   @@index([tenantId, countryCode, regionCode])
   @@index([tenantId, status])
+  @@index([tenantId, ownerUserId])
   @@index([tenantId, effectiveStartDate, effectiveEndDate])
   @@index([tenantId, isDefault])
 }
 
+model FiscalYear {
+  id          String              @id @default(uuid())
+  tenantId    String
+  name        String
+  startDate   DateTime
+  endDate     DateTime
+  isCurrent   Boolean             @default(false)
+  status      ConfigurationStatus @default(ACTIVE)
+  subStatus   String?
+  ownerUserId String?
+  description String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  createdById String?
+  updatedById String?
+  tenant      Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  periods     PayrollPeriod[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, isCurrent])
+  @@index([tenantId, startDate, endDate])
+}
+
+model Currency {
+  id             String              @id @default(uuid())
+  tenantId       String
+  name           String
+  code           String
+  symbol         String?
+  decimalPlaces  Int                 @default(2)
+  status         ConfigurationStatus @default(ACTIVE)
+  subStatus      String?
+  ownerUserId    String?
+  description    String?
+  integrationKey String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  createdById    String?
+  updatedById    String?
+  tenant         Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, ownerUserId])
+}
+
 model ExchangeRateSnapshot {
-  id               String              @id @default(uuid())
-  tenantId         String
-  fromCurrency     String
-  toCurrency       String
-  rate             Decimal             @db.Decimal(18, 8)
-  effectiveDate    DateTime
-  effectiveEndDate DateTime?
-  source           ExchangeRateSource  @default(MANUAL)
-  isManual         Boolean             @default(true)
-  lockedRate       Boolean             @default(false)
-  status           ConfigurationStatus @default(ACTIVE)
-  createdAt        DateTime            @default(now())
-  updatedAt        DateTime            @updatedAt
-  createdById      String?
-  updatedById      String?
-  tenant           Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id                  String              @id @default(uuid())
+  tenantId            String
+  fromCurrency        String
+  toCurrency          String
+  rate                Decimal             @db.Decimal(18, 8)
+  effectiveDate       DateTime            @default(now())
+  effectiveEndDate    DateTime?
+  source              ExchangeRateSource  @default(MANUAL)
+  isManual            Boolean             @default(true)
+  lockedRate          Boolean             @default(false)
+  provider            String?
+  lastFetchedAt       DateTime?
+  overrideReason      String?
+  subStatus           String?
+  description         String?
+  syncBatchId         String?
+  providerRawResponse Json?
+  status              ConfigurationStatus @default(ACTIVE)
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  createdById         String?
+  updatedById         String?
+  tenant              Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, fromCurrency, toCurrency, effectiveDate])
   @@index([tenantId, fromCurrency, toCurrency, effectiveDate])
   @@index([tenantId, source])
+  @@index([tenantId, status])
 }
 
 model PayrollPeriod {
   id                String              @id @default(uuid())
   tenantId          String
   payrollCalendarId String
+  payrollCycleId    String?
+  fiscalYearId      String?
   name              String
   periodStart       DateTime
   periodEnd         DateTime
@@ -5044,19 +6101,23 @@ model PayrollPeriod {
   updatedAt         DateTime            @updatedAt
   tenant            Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   payrollCalendar   PayrollCalendar     @relation(fields: [payrollCalendarId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  payrollCycle      PayrollCycle?       @relation(fields: [payrollCycleId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  fiscalYear        FiscalYear?         @relation(fields: [fiscalYearId], references: [id], onDelete: SetNull)
   runs              PayrollRun[]
 
   @@unique([id, tenantId])
   @@unique([payrollCalendarId, periodStart, periodEnd])
   @@index([tenantId, payrollCalendarId, periodStart])
+  @@index([tenantId, payrollCycleId, periodStart])
+  @@index([tenantId, fiscalYearId])
 }
 
 model PayrollRun {
-  id                           String               @id @default(uuid())
+  id                           String                      @id @default(uuid())
   tenantId                     String
   payrollPeriodId              String
-  runNumber                    Int                  @default(1)
-  status                       PayrollRunStatus     @default(DRAFT)
+  runNumber                    Int                         @default(1)
+  status                       PayrollRunStatus            @default(DRAFT)
   calculationStartedAt         DateTime?
   calculatedAt                 DateTime?
   approvedAt                   DateTime?
@@ -5070,19 +6131,23 @@ model PayrollRun {
   approvedBy                   String?
   lockedBy                     String?
   checksum                     String?
-  inputChangedAfterCalculation Boolean              @default(false)
-  requiresRecalculation        Boolean              @default(false)
+  inputChangedAfterCalculation Boolean                     @default(false)
+  requiresRecalculation        Boolean                     @default(false)
   correlationId                String?
   notes                        String?
-  createdAt                    DateTime             @default(now())
-  updatedAt                    DateTime             @updatedAt
-  tenant                       Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  payrollPeriod                PayrollPeriod        @relation(fields: [payrollPeriodId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  createdAt                    DateTime                    @default(now())
+  updatedAt                    DateTime                    @updatedAt
+  tenant                       Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payrollPeriod                PayrollPeriod               @relation(fields: [payrollPeriodId, tenantId], references: [id, tenantId], onDelete: Cascade)
   employees                    PayrollRunEmployee[]
   exceptions                   PayrollException[]
   payslips                     Payslip[]
-  journalEntry                 PayrollJournalEntry?
+  journalEntries               PayrollJournalEntry[]
   bankExports                  PayrollBankExport[]
+  costAllocationLines          PayrollCostAllocationLine[]
+  adjustments                  PayrollAdjustment[]
+  exchangeRateLocks            PayrollExchangeRateLock[]
+  paymentLines                 PayrollPaymentLine[]
 
   @@unique([id, tenantId])
   @@unique([payrollPeriodId, runNumber])
@@ -5091,35 +6156,76 @@ model PayrollRun {
 }
 
 model PayrollRunEmployee {
-  id                     String                   @id @default(uuid())
-  tenantId               String
-  payrollRunId           String
-  employeeId             String
-  status                 PayrollRunEmployeeStatus @default(PENDING)
-  currencyCode           String
-  grossEarnings          Decimal                  @default(0) @db.Decimal(12, 2)
-  totalDeductions        Decimal                  @default(0) @db.Decimal(12, 2)
-  totalTaxes             Decimal                  @default(0) @db.Decimal(12, 2)
-  totalReimbursements    Decimal                  @default(0) @db.Decimal(12, 2)
-  employerContributions  Decimal                  @default(0) @db.Decimal(12, 2)
-  netPay                 Decimal                  @default(0) @db.Decimal(12, 2)
-  calculationSummary     Json?
-  createdAt              DateTime                 @default(now())
-  updatedAt              DateTime                 @updatedAt
-  tenant                 Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  payrollRun             PayrollRun               @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
-  employee               Employee                 @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  lineItems              PayrollRunLineItem[]
-  inputSnapshots         PayrollInputSnapshot[]
-  payslip                Payslip?
-  claimLineItems         ClaimLineItem[]
-  businessTripAllowances BusinessTripAllowance[]
-  timePayrollInputs      TimePayrollInput[]
-  loanInstallments       LoanInstallment[]
+  id                             String                      @id @default(uuid())
+  tenantId                       String
+  payrollRunId                   String
+  employeeId                     String
+  status                         PayrollRunEmployeeStatus    @default(PENDING)
+  currencyCode                   String
+  grossEarnings                  Decimal                     @default(0) @db.Decimal(12, 2)
+  totalDeductions                Decimal                     @default(0) @db.Decimal(12, 2)
+  totalTaxes                     Decimal                     @default(0) @db.Decimal(12, 2)
+  totalReimbursements            Decimal                     @default(0) @db.Decimal(12, 2)
+  employerContributions          Decimal                     @default(0) @db.Decimal(12, 2)
+  netPay                         Decimal                     @default(0) @db.Decimal(12, 2)
+  reportingCurrencyCode          String?
+  exchangeRate                   Decimal?                    @db.Decimal(18, 8)
+  grossEarningsReporting         Decimal?                    @db.Decimal(14, 2)
+  totalDeductionsReporting       Decimal?                    @db.Decimal(14, 2)
+  totalTaxesReporting            Decimal?                    @db.Decimal(14, 2)
+  totalReimbursementsReporting   Decimal?                    @db.Decimal(14, 2)
+  employerContributionsReporting Decimal?                    @db.Decimal(14, 2)
+  netPayReporting                Decimal?                    @db.Decimal(14, 2)
+  calculationSummary             Json?
+  createdAt                      DateTime                    @default(now())
+  updatedAt                      DateTime                    @updatedAt
+  tenant                         Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payrollRun                     PayrollRun                  @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
+  employee                       Employee                    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  lineItems                      PayrollRunLineItem[]
+  inputSnapshots                 PayrollInputSnapshot[]
+  payslip                        Payslip?
+  claimLineItems                 ClaimLineItem[]
+  businessTripAllowances         BusinessTripAllowance[]
+  timePayrollInputs              TimePayrollInput[]
+  loanInstallments               LoanInstallment[]
+  costAllocationLines            PayrollCostAllocationLine[]
+  paymentLines                   PayrollPaymentLine[]
 
   @@unique([payrollRunId, employeeId])
   @@index([tenantId, employeeId])
   @@index([tenantId, payrollRunId])
+}
+
+model PayrollCostAllocationLine {
+  id                   String             @id @default(uuid())
+  tenantId             String
+  payrollRunId         String
+  payrollRunEmployeeId String
+  employeeId           String
+  projectId            String?
+  customerId           String?
+  costCenterId         String?
+  allocationPercentage Decimal            @db.Decimal(8, 4)
+  originalAmount       Decimal            @db.Decimal(14, 2)
+  currencyCode         String
+  reportingAmount      Decimal?           @db.Decimal(14, 2)
+  reportingCurrency    String?
+  exchangeRate         Decimal?           @db.Decimal(18, 8)
+  isBench              Boolean            @default(false)
+  createdAt            DateTime           @default(now())
+  tenant               Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payrollRun           PayrollRun         @relation(fields: [payrollRunId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  payrollRunEmployee   PayrollRunEmployee @relation(fields: [payrollRunEmployeeId], references: [id], onDelete: Cascade)
+  employee             Employee           @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  project              Project?           @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  customer             CustomerAccount?   @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, payrollRunId])
+  @@index([tenantId, payrollRunEmployeeId])
+  @@index([tenantId, employeeId])
+  @@index([tenantId, projectId])
+  @@index([tenantId, customerId])
 }
 
 model PayrollRunLineItem {
@@ -5135,6 +6241,9 @@ model PayrollRunLineItem {
   rate                 Decimal?                   @db.Decimal(12, 4)
   amount               Decimal                    @db.Decimal(12, 2)
   currencyCode         String
+  reportingAmount      Decimal?                   @db.Decimal(14, 2)
+  reportingCurrency    String?
+  exchangeRate         Decimal?                   @db.Decimal(18, 8)
   isTaxable            Boolean                    @default(false)
   affectsGrossPay      Boolean                    @default(true)
   affectsNetPay        Boolean                    @default(true)
@@ -5151,6 +6260,61 @@ model PayrollRunLineItem {
   @@index([tenantId, payrollRunEmployeeId])
   @@index([tenantId, category])
   @@index([tenantId, sourceType, sourceId])
+}
+
+model PayrollExchangeRateLock {
+  id            String     @id @default(uuid())
+  tenantId      String
+  payrollRunId  String
+  fromCurrency  String
+  toCurrency    String
+  rate          Decimal    @db.Decimal(18, 8)
+  effectiveDate DateTime
+  source        String?
+  provider      String?
+  fetchedAt     DateTime?
+  createdAt     DateTime   @default(now())
+  tenant        Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payrollRun    PayrollRun @relation(fields: [payrollRunId, tenantId], references: [id, tenantId], onDelete: Cascade)
+
+  @@unique([payrollRunId, fromCurrency, toCurrency])
+  @@index([tenantId, payrollRunId])
+  @@index([tenantId, fromCurrency, toCurrency])
+}
+
+model PayrollAdjustment {
+  id              String                     @id @default(uuid())
+  tenantId        String
+  payrollRunId    String
+  employeeId      String
+  payComponentId  String?
+  label           String
+  amount          Decimal                    @db.Decimal(12, 2)
+  currencyCode    String
+  category        PayrollRunLineItemCategory @default(ADJUSTMENT)
+  reason          String?
+  notes           String?
+  sourceReference String?
+  status          PayrollAdjustmentStatus    @default(DRAFT)
+  submittedAt     DateTime?
+  submittedBy     String?
+  approvedAt      DateTime?
+  approvedBy      String?
+  rejectedAt      DateTime?
+  rejectedBy      String?
+  rejectionReason String?
+  createdAt       DateTime                   @default(now())
+  updatedAt       DateTime                   @updatedAt
+  createdBy       String?
+  updatedBy       String?
+  tenant          Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payrollRun      PayrollRun                 @relation(fields: [payrollRunId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  employee        Employee                   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  payComponent    PayComponent?              @relation(fields: [payComponentId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, payrollRunId])
+  @@index([tenantId, employeeId])
+  @@index([tenantId, status])
 }
 
 model PayrollInputSnapshot {
@@ -5170,22 +6334,25 @@ model PayrollInputSnapshot {
 }
 
 model PayrollException {
-  id           String                   @id @default(uuid())
-  tenantId     String
-  payrollRunId String
-  employeeId   String?
-  severity     PayrollExceptionSeverity
-  errorType    String
-  message      String
-  details      Json?
-  isResolved   Boolean                  @default(false)
-  resolvedAt   DateTime?
-  resolvedBy   String?
-  createdAt    DateTime                 @default(now())
-  updatedAt    DateTime                 @updatedAt
-  tenant       Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  payrollRun   PayrollRun               @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
-  employee     Employee?                @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  id             String                   @id @default(uuid())
+  tenantId       String
+  payrollRunId   String
+  employeeId     String?
+  severity       PayrollExceptionSeverity
+  errorType      String
+  message        String
+  details        Json?
+  isResolved     Boolean                  @default(false)
+  resolvedAt     DateTime?
+  resolvedBy     String?
+  acknowledgedAt DateTime?
+  acknowledgedBy String?
+  resolutionNote String?
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+  tenant         Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payrollRun     PayrollRun               @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
+  employee       Employee?                @relation(fields: [employeeId], references: [id], onDelete: Cascade)
 
   @@index([tenantId, payrollRunId])
   @@index([tenantId, employeeId])
@@ -5193,35 +6360,40 @@ model PayrollException {
 }
 
 model Payslip {
-  id                    String             @id @default(uuid())
+  id                    String                @id @default(uuid())
   tenantId              String
   payrollRunId          String
-  payrollRunEmployeeId  String             @unique
+  payrollRunEmployeeId  String                @unique
   employeeId            String
   payslipNumber         String
-  status                PayslipStatus      @default(DRAFT)
+  status                PayslipStatus         @default(DRAFT)
   currencyCode          String
-  grossEarnings         Decimal            @default(0) @db.Decimal(12, 2)
-  totalDeductions       Decimal            @default(0) @db.Decimal(12, 2)
-  totalTaxes            Decimal            @default(0) @db.Decimal(12, 2)
-  totalReimbursements   Decimal            @default(0) @db.Decimal(12, 2)
-  employerContributions Decimal            @default(0) @db.Decimal(12, 2)
-  netPay                Decimal            @default(0) @db.Decimal(12, 2)
+  grossEarnings         Decimal               @default(0) @db.Decimal(12, 2)
+  totalDeductions       Decimal               @default(0) @db.Decimal(12, 2)
+  totalTaxes            Decimal               @default(0) @db.Decimal(12, 2)
+  totalReimbursements   Decimal               @default(0) @db.Decimal(12, 2)
+  employerContributions Decimal               @default(0) @db.Decimal(12, 2)
+  netPay                Decimal               @default(0) @db.Decimal(12, 2)
   generatedAt           DateTime?
   publishedAt           DateTime?
   voidedAt              DateTime?
   voidReason            String?
+  documentId            String?
+  documentChecksum      String?
+  documentVersion       Int                   @default(1)
+  documentGeneratedAt   DateTime?
   deliveryStatus        PayslipDeliveryStatus @default(PENDING)
   deliveryAttempts      Int                   @default(0)
   lastDeliveryAttemptAt DateTime?
   deliveredAt           DateTime?
   deliveryError         String?
-  createdAt             DateTime           @default(now())
-  updatedAt             DateTime           @updatedAt
-  tenant                Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  payrollRun            PayrollRun         @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
-  payrollRunEmployee    PayrollRunEmployee @relation(fields: [payrollRunEmployeeId], references: [id], onDelete: Restrict)
-  employee              Employee           @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  tenant                Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payrollRun            PayrollRun            @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
+  payrollRunEmployee    PayrollRunEmployee    @relation(fields: [payrollRunEmployeeId], references: [id], onDelete: Restrict)
+  employee              Employee              @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  document              Document?             @relation("PayslipDocument", fields: [documentId], references: [id], onDelete: SetNull)
   lineItems             PayslipLineItem[]
   eventLogs             PayslipEventLog[]
 
@@ -5248,10 +6420,52 @@ model PayrollBankExport {
   generatedBy  String
   disbursedAt  DateTime?
   disbursedBy  String?
+  submittedAt  DateTime?
+  submittedBy  String?
+  cancelledAt  DateTime?
+  cancelledBy  String?
+  documentId   String?
   tenant       Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   payrollRun   PayrollRun              @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
+  document     Document?               @relation("PayrollBankExportDocument", fields: [documentId], references: [id], onDelete: SetNull)
+  paymentLines PayrollPaymentLine[]
 
   @@index([tenantId, payrollRunId])
+  @@index([tenantId, status])
+}
+
+model PayrollPaymentLine {
+  id                    String                   @id @default(uuid())
+  tenantId              String
+  payrollBankExportId   String
+  retryOfPaymentLineId  String?
+  payrollRunId          String
+  payrollRunEmployeeId  String
+  employeeId            String
+  employeeBankAccountId String
+  currencyCode          String
+  amount                Decimal                  @db.Decimal(14, 2)
+  status                PayrollPaymentLineStatus @default(GENERATED)
+  transactionReference  String?
+  failureReason         String?
+  disbursedAt           DateTime?
+  reconciledAt          DateTime?
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+  tenant                Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payrollBankExport     PayrollBankExport        @relation(fields: [payrollBankExportId], references: [id], onDelete: Cascade)
+  retryOfPaymentLine    PayrollPaymentLine?      @relation("PayrollPaymentLineRetry", fields: [retryOfPaymentLineId], references: [id], onDelete: SetNull)
+  retryLines            PayrollPaymentLine[]     @relation("PayrollPaymentLineRetry")
+  payrollRun            PayrollRun               @relation(fields: [payrollRunId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  payrollRunEmployee    PayrollRunEmployee       @relation(fields: [payrollRunEmployeeId], references: [id], onDelete: Cascade)
+  employee              Employee                 @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employeeBankAccount   EmployeeBankAccount      @relation(fields: [employeeBankAccountId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, payrollRunId])
+  @@index([tenantId, payrollBankExportId])
+  @@index([tenantId, retryOfPaymentLineId])
+  @@index([tenantId, payrollRunEmployeeId])
+  @@index([tenantId, employeeId])
   @@index([tenantId, status])
 }
 
@@ -5301,6 +6515,12 @@ model ClaimType {
   code             String
   name             String
   description      String?
+  receiptRequired  Boolean          @default(false)
+  maxAmount        Decimal?         @db.Decimal(12, 2)
+  currencyCode     String?
+  approvalRequired Boolean          @default(true)
+  payrollIncluded  Boolean          @default(false)
+  taxable          Boolean          @default(false)
   isActive         Boolean          @default(true)
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
@@ -5320,16 +6540,20 @@ model ClaimSubType {
   code            String
   name            String
   description     String?
+  maxAmount       Decimal?        @db.Decimal(12, 2)
   requiresReceipt Boolean         @default(false)
+  payComponentId  String?
   isActive        Boolean         @default(true)
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
   tenant          Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   claimType       ClaimType       @relation(fields: [claimTypeId], references: [id], onDelete: Cascade)
+  payComponent    PayComponent?   @relation(fields: [payComponentId, tenantId], references: [id, tenantId], onDelete: Restrict)
   lineItems       ClaimLineItem[]
 
   @@unique([claimTypeId, code])
   @@index([tenantId, claimTypeId])
+  @@index([tenantId, payComponentId])
   @@index([tenantId, isActive])
 }
 
@@ -5415,12 +6639,38 @@ model BenefitPolicy {
   code                        String
   name                        String
   description                 String?
+  provider                    String?
+  legalEntityId               String?
+  ownerUserId                 String?
+  isDefault                   Boolean                     @default(false)
   benefitType                 BenefitType
   valueType                   BenefitValueType
   fixedAmount                 Decimal?                    @db.Decimal(12, 2)
   percentage                  Decimal?                    @db.Decimal(7, 4)
   currencyCode                String?
   payrollCategory             PayrollRunLineItemCategory?
+  employeePayComponentId      String?
+  employerPayComponentId      String?
+  postingCategory             String?
+  minimumServiceMonths        Int?
+  employeeContributionMethod  String                      @default("FIXED_AMOUNT")
+  employeeContributionAmount  Decimal?                    @db.Decimal(12, 2)
+  employeeContributionPercent Decimal?                    @db.Decimal(7, 4)
+  employerContributionMethod  String                      @default("FIXED_AMOUNT")
+  employerContributionAmount  Decimal?                    @db.Decimal(12, 2)
+  employerContributionPercent Decimal?                    @db.Decimal(7, 4)
+  basePayComponentId          String?
+  contributionMinimum         Decimal?                    @db.Decimal(12, 2)
+  contributionMaximum         Decimal?                    @db.Decimal(12, 2)
+  contributionFrequency       String                      @default("MONTHLY")
+  taxTreatment                String                      @default("TAXABLE")
+  includeInEmployerCost       Boolean                     @default(true)
+  prorationMethod             String                      @default("NONE")
+  arrearsHandling             String                      @default("CARRY_FORWARD")
+  enrollmentMethod            String                      @default("HR_ASSIGNED")
+  waitingPeriodDays           Int                         @default(0)
+  enrollmentWindowDays        Int?
+  dependentCoverage           Boolean                     @default(false)
   payrollVisible              Boolean                     @default(false)
   affectsGrossPay             Boolean                     @default(false)
   affectsNetPay               Boolean                     @default(false)
@@ -5448,6 +6698,8 @@ model BenefitPolicy {
   requiresAssignmentApproval  Boolean                     @default(false)
   requiresChangeApproval      Boolean                     @default(false)
   eligibilityRules            Json?
+  configuration               Json?
+  version                     Int                         @default(1)
   status                      BenefitPolicyStatus         @default(ACTIVE)
   createdAt                   DateTime                    @default(now())
   updatedAt                   DateTime                    @updatedAt
@@ -5525,70 +6777,149 @@ model BenefitConsumption {
 }
 
 model Bank {
-  id          String                @id @default(uuid())
-  tenantId    String
-  code        String
-  name        String
-  countryCode String
-  swiftCode   String?
-  routingCode String?
-  isActive    Boolean               @default(true)
-  createdAt   DateTime              @default(now())
-  updatedAt   DateTime              @updatedAt
-  tenant      Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  accounts    EmployeeBankAccount[]
+  id               String                @id @default(uuid())
+  tenantId         String
+  code             String
+  name             String
+  countryCode      String
+  swiftCode        String?
+  routingCode      String?
+  isActive         Boolean               @default(true)
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  tenant           Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  accounts         EmployeeBankAccount[]
+  employerAccounts EmployerBankAccount[]
 
   @@unique([tenantId, code])
   @@index([tenantId, countryCode, isActive])
 }
 
 model EmployeeBankAccount {
-  id                 String                        @id @default(uuid())
-  tenantId           String
-  employeeId         String
-  bankId             String?
-  accountTitle       String
-  accountNumber      String?
-  iban               String?
-  swiftOrRoutingCode String?
-  countryCode        String
-  currencyCode       String
-  isPrimaryPayroll   Boolean                       @default(false)
-  effectiveFrom      DateTime
-  effectiveTo        DateTime?
-  verificationStatus BankAccountVerificationStatus @default(UNVERIFIED)
-  verifiedAt         DateTime?
-  verifiedByUserId   String?
-  isActive           Boolean                       @default(true)
-  createdAt          DateTime                      @default(now())
-  updatedAt          DateTime                      @updatedAt
-  tenant             Tenant                        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  employee           Employee                      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  bank               Bank?                         @relation(fields: [bankId], references: [id], onDelete: SetNull)
+  id                   String                        @id @default(uuid())
+  tenantId             String
+  employeeId           String
+  bankId               String?
+  accountTitle         String
+  accountNumber        String?
+  iban                 String?
+  swiftOrRoutingCode   String?
+  branchName           String?
+  branchCode           String?
+  countryCode          String
+  currencyCode         String
+  isPrimaryPayroll     Boolean                       @default(false)
+  employeeNotes        String?
+  supportingDocumentId String?
+  effectiveFrom        DateTime
+  effectiveTo          DateTime?
+  verificationStatus   BankAccountVerificationStatus @default(UNVERIFIED)
+  verificationNotes    String?
+  verifiedAt           DateTime?
+  verifiedByUserId     String?
+  isActive             Boolean                       @default(true)
+  createdAt            DateTime                      @default(now())
+  updatedAt            DateTime                      @updatedAt
+  tenant               Tenant                        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee             Employee                      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  bank                 Bank?                         @relation(fields: [bankId], references: [id], onDelete: SetNull)
+  supportingDocument   Document?                     @relation("EmployeeBankAccountSupportingDocument", fields: [supportingDocumentId], references: [id], onDelete: SetNull)
+  paymentLines         PayrollPaymentLine[]
 
   @@index([tenantId, employeeId, isPrimaryPayroll, isActive])
   @@index([tenantId, bankId])
+  @@index([tenantId, currencyCode, isPrimaryPayroll, isActive])
   @@index([tenantId, verificationStatus])
 }
 
+model EmployerBankAccount {
+  id                      String                     @id @default(uuid())
+  tenantId                String
+  accountName             String
+  bankId                  String?
+  accountTitle            String
+  accountNumber           String?
+  iban                    String?
+  branch                  String?
+  currencyCode            String
+  accountPurpose          EmployerBankAccountPurpose @default(PAYROLL)
+  isDefaultPayrollAccount Boolean                    @default(false)
+  paymentFileFormat       String?
+  description             String?
+  isActive                Boolean                    @default(true)
+  createdAt               DateTime                   @default(now())
+  updatedAt               DateTime                   @updatedAt
+  createdById             String?
+  updatedById             String?
+  tenant                  Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  bank                    Bank?                      @relation(fields: [bankId], references: [id], onDelete: SetNull)
+  payrollCycles           PayrollCycle[]
+
+  @@unique([tenantId, accountName])
+  @@index([tenantId, bankId])
+  @@index([tenantId, currencyCode, accountPurpose, isActive])
+  @@index([tenantId, currencyCode, isDefaultPayrollAccount, isActive])
+}
+
 model LoanPolicy {
-  id                   String           @id @default(uuid())
-  tenantId             String
-  code                 String
-  name                 String
-  description          String?
-  currencyCode         String?
-  minimumAmount        Decimal?         @db.Decimal(12, 2)
-  maximumAmount        Decimal?         @db.Decimal(12, 2)
-  maximumInstallments  Int?
-  interestRatePercent  Decimal          @default(0) @db.Decimal(7, 4)
-  allowEarlySettlement Boolean          @default(true)
-  isActive             Boolean          @default(true)
-  createdAt            DateTime         @default(now())
-  updatedAt            DateTime         @updatedAt
-  tenant               Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  requests             LoanRequest[]
-  approvalMatrices     ApprovalMatrix[]
+  id                         String              @id @default(uuid())
+  tenantId                   String
+  code                       String
+  name                       String
+  description                String?
+  loanType                   String              @default("PERSONAL_LOAN")
+  organizationId             String?
+  legalEntityId              String?
+  ownerUserId                String?
+  status                     ConfigurationStatus @default(ACTIVE)
+  effectiveFrom              DateTime?
+  effectiveTo                DateTime?
+  isDefault                  Boolean             @default(false)
+  currencyCode               String?
+  minimumAmount              Decimal?            @db.Decimal(12, 2)
+  maximumAmount              Decimal?            @db.Decimal(12, 2)
+  maximumInstallments        Int?
+  minimumServiceMonths       Int?
+  minimumSalary              Decimal?            @db.Decimal(12, 2)
+  maximumActiveLoans         Int?
+  probationCompleted         Boolean             @default(false)
+  maximumSalaryMultiple      Decimal?            @db.Decimal(7, 2)
+  interestRatePercent        Decimal             @default(0) @db.Decimal(7, 4)
+  interestMethod             String              @default("NO_INTEREST")
+  processingFee              Decimal?            @db.Decimal(12, 2)
+  insuranceFee               Decimal?            @db.Decimal(12, 2)
+  gracePeriodDays            Int                 @default(0)
+  repaymentFrequency         String              @default("MONTHLY")
+  installmentMethod          String              @default("EQUAL_INSTALLMENTS")
+  fixedInstallment           Decimal?            @db.Decimal(12, 2)
+  percentageOfSalary         Decimal?            @db.Decimal(7, 4)
+  maximumDeductionPercent    Decimal?            @db.Decimal(7, 4)
+  skipPayrollAllowed         Boolean             @default(false)
+  settlementFee              Decimal?            @db.Decimal(12, 2)
+  arrearsHandling            String              @default("CARRY_FORWARD")
+  finalSettlementHandling    String              @default("DEDUCT_BALANCE")
+  payslipVisible             Boolean             @default(true)
+  negativeNetPayHandling     String              @default("BLOCK")
+  approvalRequired           Boolean             @default(true)
+  approvalWorkflowId         String?
+  minimumApprovers           Int                 @default(1)
+  supportingDocumentRequired Boolean             @default(false)
+  deductionPayComponentId    String?
+  interestPayComponentId     String?
+  feePayComponentId          String?
+  postingCategory            String?
+  eligibilityRules           Json?
+  configuration              Json?
+  version                    Int                 @default(1)
+  allowEarlySettlement       Boolean             @default(true)
+  isActive                   Boolean             @default(true)
+  createdAt                  DateTime            @default(now())
+  updatedAt                  DateTime            @updatedAt
+  createdById                String?
+  updatedById                String?
+  tenant                     Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  requests                   LoanRequest[]
+  approvalMatrices           ApprovalMatrix[]
 
   @@unique([tenantId, code])
   @@index([tenantId, isActive])
@@ -5653,73 +6984,164 @@ model LoanInstallment {
 }
 
 model PayrollGlAccount {
-  id                 String                    @id @default(uuid())
-  tenantId           String
-  code               String
-  name               String
-  description        String?
-  accountType        PayrollGlAccountType
-  isActive           Boolean                   @default(true)
-  createdAt          DateTime                  @default(now())
-  updatedAt          DateTime                  @updatedAt
-  tenant             Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  debitPostingRules  PayrollPostingRule[]      @relation("PayrollPostingRuleDebitAccount")
-  creditPostingRules PayrollPostingRule[]      @relation("PayrollPostingRuleCreditAccount")
-  journalLines       PayrollJournalEntryLine[]
+  id                           String                    @id @default(uuid())
+  tenantId                     String
+  code                         String
+  name                         String
+  description                  String?
+  organizationId               String?
+  legalEntityId                String?
+  accountType                  PayrollGlAccountType
+  accountSubtype               String?
+  currencyCode                 String?
+  parentAccountId              String?
+  postingAllowed               Boolean                   @default(true)
+  isControlAccount             Boolean                   @default(false)
+  reconciliationRequired       Boolean                   @default(false)
+  requireBusinessUnitDimension Boolean                   @default(false)
+  requireDepartmentDimension   Boolean                   @default(false)
+  requireCostCenterDimension   Boolean                   @default(false)
+  requireProjectDimension      Boolean                   @default(false)
+  requireEmployeeDimension     Boolean                   @default(false)
+  requireLocationDimension     Boolean                   @default(false)
+  requireLegalEntityDimension  Boolean                   @default(false)
+  externalSystem               String?
+  externalAccountCode          String?
+  erpCompanyCode               String?
+  erpLedgerCode                String?
+  erpAccountId                 String?
+  effectiveFrom                DateTime?
+  effectiveTo                  DateTime?
+  status                       ConfigurationStatus       @default(ACTIVE)
+  ownerUserId                  String?
+  configuration                Json?
+  version                      Int                       @default(1)
+  isActive                     Boolean                   @default(true)
+  createdAt                    DateTime                  @default(now())
+  updatedAt                    DateTime                  @updatedAt
+  createdById                  String?
+  updatedById                  String?
+  tenant                       Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  parentAccount                PayrollGlAccount?         @relation("PayrollGlAccountParent", fields: [parentAccountId], references: [id], onDelete: SetNull)
+  childAccounts                PayrollGlAccount[]        @relation("PayrollGlAccountParent")
+  debitPostingRules            PayrollPostingRule[]      @relation("PayrollPostingRuleDebitAccount")
+  creditPostingRules           PayrollPostingRule[]      @relation("PayrollPostingRuleCreditAccount")
+  journalLines                 PayrollJournalEntryLine[]
+  defaultDebitPayComponents    PayComponent[]            @relation("PayComponentDefaultDebitAccount")
+  defaultCreditPayComponents   PayComponent[]            @relation("PayComponentDefaultCreditAccount")
 
   @@unique([id, tenantId])
   @@unique([tenantId, code])
   @@index([tenantId, accountType])
+  @@index([tenantId, parentAccountId])
+  @@index([tenantId, postingAllowed])
   @@index([tenantId, isActive])
 }
 
 model PayrollPostingRule {
-  id              String                     @id @default(uuid())
-  tenantId        String
-  name            String
-  description     String?
-  sourceCategory  PayrollRunLineItemCategory
-  payComponentId  String?
-  taxRuleId       String?
-  debitAccountId  String?
-  creditAccountId String?
-  isActive        Boolean                    @default(true)
-  effectiveFrom   DateTime
-  effectiveTo     DateTime?
-  createdAt       DateTime                   @default(now())
-  updatedAt       DateTime                   @updatedAt
-  tenant          Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  payComponent    PayComponent?              @relation(fields: [payComponentId, tenantId], references: [id, tenantId], onDelete: Restrict)
-  taxRule         TaxRule?                   @relation(fields: [taxRuleId, tenantId], references: [id, tenantId], onDelete: Restrict)
-  debitAccount    PayrollGlAccount?          @relation("PayrollPostingRuleDebitAccount", fields: [debitAccountId, tenantId], references: [id, tenantId], onDelete: Restrict)
-  creditAccount   PayrollGlAccount?          @relation("PayrollPostingRuleCreditAccount", fields: [creditAccountId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  id                       String                     @id @default(uuid())
+  tenantId                 String
+  name                     String
+  code                     String
+  description              String?
+  organizationId           String?
+  legalEntityId            String?
+  ownerUserId              String?
+  status                   ConfigurationStatus        @default(ACTIVE)
+  priority                 Int                        @default(100)
+  isDefault                Boolean                    @default(false)
+  postingEvent             String                     @default("PAYROLL_ACCRUAL")
+  lineCategory             String                     @default("PAY_COMPONENT")
+  sourceCategory           PayrollRunLineItemCategory
+  payComponentId           String?
+  taxRuleId                String?
+  debitAccountId           String?
+  creditAccountId          String?
+  businessUnitId           String?
+  departmentId             String?
+  projectId                String?
+  payrollRegionId          String?
+  costCenterId             String?
+  employmentTypeId         String?
+  debitBusinessUnitSource  String?
+  creditBusinessUnitSource String?
+  debitDepartmentSource    String?
+  creditDepartmentSource   String?
+  debitCostCenterSource    String?
+  creditCostCenterSource   String?
+  debitProjectSource       String?
+  creditProjectSource      String?
+  debitEmployeeSource      String?
+  creditEmployeeSource     String?
+  consolidationMode        String                     @default("BY_ACCOUNT_AND_DIMENSIONS")
+  descriptionTemplate      String?
+  journalReferenceTemplate String?
+  allowZeroPosting         Boolean                    @default(false)
+  reversalRule             String                     @default("REVERSE_ORIGINAL")
+  employeeLevelEntry       Boolean                    @default(false)
+  componentLevelEntry      Boolean                    @default(true)
+  departmentLevelEntry     Boolean                    @default(false)
+  allowSameAccount         Boolean                    @default(false)
+  isActive                 Boolean                    @default(true)
+  effectiveFrom            DateTime
+  effectiveTo              DateTime?
+  configuration            Json?
+  version                  Int                        @default(1)
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime                   @updatedAt
+  createdById              String?
+  updatedById              String?
+  tenant                   Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payComponent             PayComponent?              @relation(fields: [payComponentId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  taxRule                  TaxRule?                   @relation(fields: [taxRuleId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  debitAccount             PayrollGlAccount?          @relation("PayrollPostingRuleDebitAccount", fields: [debitAccountId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  creditAccount            PayrollGlAccount?          @relation("PayrollPostingRuleCreditAccount", fields: [creditAccountId, tenantId], references: [id, tenantId], onDelete: Restrict)
 
   @@unique([id, tenantId])
+  @@unique([tenantId, code])
+  @@index([tenantId, lineCategory])
   @@index([tenantId, sourceCategory])
   @@index([tenantId, payComponentId])
   @@index([tenantId, taxRuleId])
+  @@index([tenantId, businessUnitId])
+  @@index([tenantId, departmentId])
+  @@index([tenantId, projectId])
   @@index([tenantId, isActive])
 }
 
 model PayrollJournalEntry {
-  id            String                    @id @default(uuid())
-  tenantId      String
-  payrollRunId  String
-  status        PayrollJournalEntryStatus @default(DRAFT)
-  journalNumber String?
-  generatedAt   DateTime?
-  exportedAt    DateTime?
-  voidedAt      DateTime?
-  createdAt     DateTime                  @default(now())
-  updatedAt     DateTime                  @updatedAt
-  tenant        Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  payrollRun    PayrollRun                @relation(fields: [payrollRunId, tenantId], references: [id, tenantId], onDelete: Cascade)
-  lines         PayrollJournalEntryLine[]
+  id                String                    @id @default(uuid())
+  tenantId          String
+  payrollRunId      String
+  journalType       PayrollJournalEntryType   @default(ORIGINAL)
+  status            PayrollJournalEntryStatus @default(DRAFT)
+  journalNumber     String?
+  originalJournalId String?
+  reversalJournalId String?
+  generatedAt       DateTime?
+  exportedAt        DateTime?
+  postedAt          DateTime?
+  postedBy          String?
+  reversedAt        DateTime?
+  reversedBy        String?
+  reversalReason    String?
+  voidedAt          DateTime?
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+  tenant            Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payrollRun        PayrollRun                @relation(fields: [payrollRunId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  originalJournal   PayrollJournalEntry?      @relation("PayrollJournalReversal", fields: [originalJournalId], references: [id], onDelete: Restrict)
+  reversalJournal   PayrollJournalEntry?      @relation("PayrollJournalOriginal", fields: [reversalJournalId], references: [id], onDelete: SetNull)
+  reversalOf        PayrollJournalEntry[]     @relation("PayrollJournalOriginal")
+  reversals         PayrollJournalEntry[]     @relation("PayrollJournalReversal")
+  lines             PayrollJournalEntryLine[]
 
   @@unique([id, tenantId])
-  @@unique([tenantId, payrollRunId])
-  @@unique([payrollRunId, tenantId])
   @@index([tenantId, status])
+  @@index([tenantId, payrollRunId])
+  @@index([tenantId, journalType])
+  @@index([tenantId, originalJournalId])
+  @@index([tenantId, reversalJournalId])
 }
 
 model PayrollJournalEntryLine {
@@ -5734,6 +7156,7 @@ model PayrollJournalEntryLine {
   employeeId           String?
   payComponentId       String?
   taxRuleId            String?
+  dimensions           Json?
   createdAt            DateTime            @default(now())
   tenant               Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   journalEntry         PayrollJournalEntry @relation(fields: [journalEntryId, tenantId], references: [id, tenantId], onDelete: Cascade)
@@ -5797,27 +7220,34 @@ model BusinessTripApproval {
 }
 
 model TravelAllowancePolicy {
-  id              String                @id @default(uuid())
-  tenantId        String
-  code            String
-  name            String
-  description     String?
-  employeeLevelId String?
-  countryCode     String?
-  city            String?
-  currencyCode    String
-  isActive        Boolean               @default(true)
-  effectiveFrom   DateTime
-  effectiveTo     DateTime?
-  createdAt       DateTime              @default(now())
-  updatedAt       DateTime              @updatedAt
-  tenant          Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  employeeLevel   EmployeeLevel?        @relation(fields: [employeeLevelId, tenantId], references: [id, tenantId], onDelete: Restrict)
-  rules           TravelAllowanceRule[]
+  id               String                @id @default(uuid())
+  tenantId         String
+  code             String
+  name             String
+  description      String?
+  travelType       String                @default("DOMESTIC")
+  businessUnitId   String?
+  departmentId     String?
+  employmentTypeId String?
+  employeeLevelId  String?
+  countryCode      String?
+  city             String?
+  currencyCode     String
+  isActive         Boolean               @default(true)
+  effectiveFrom    DateTime
+  effectiveTo      DateTime?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  tenant           Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employeeLevel    EmployeeLevel?        @relation(fields: [employeeLevelId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  rules            TravelAllowanceRule[]
 
   @@unique([tenantId, code])
   @@unique([id, tenantId])
   @@index([tenantId, employeeLevelId])
+  @@index([tenantId, businessUnitId])
+  @@index([tenantId, departmentId])
+  @@index([tenantId, employmentTypeId])
   @@index([tenantId, countryCode, city])
   @@index([tenantId, isActive])
 }
@@ -5826,8 +7256,11 @@ model TravelAllowanceRule {
   id               String                          @id @default(uuid())
   tenantId         String
   policyId         String
+  countryCode      String?
+  city             String?
   allowanceType    TravelAllowanceType
   calculationBasis TravelAllowanceCalculationBasis
+  unit             String                          @default("DAY")
   amount           Decimal                         @db.Decimal(12, 2)
   currencyCode     String
   isActive         Boolean                         @default(true)
@@ -5872,8 +7305,11 @@ model TimePayrollPolicy {
   code                        String
   name                        String
   description                 String?
+  organizationId              String?
   employeeLevelId             String?
   businessUnitId              String?
+  departmentId                String?
+  employmentTypeId            String?
   countryCode                 String?
   mode                        TimePayrollMode
   useAttendanceForPayroll     Boolean            @default(true)
@@ -5899,34 +7335,53 @@ model TimePayrollPolicy {
   @@unique([tenantId, code])
   @@index([tenantId, employeeLevelId])
   @@index([tenantId, businessUnitId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, departmentId])
+  @@index([tenantId, employmentTypeId])
   @@index([tenantId, isActive])
 }
 
 model OvertimePolicy {
-  id                String                    @id @default(uuid())
-  tenantId          String
-  code              String
-  name              String
-  description       String?
-  employeeLevelId   String?
-  businessUnitId    String?
-  calculationPeriod OvertimeCalculationPeriod
-  thresholdHours    Decimal                   @db.Decimal(8, 2)
-  rateMultiplier    Decimal                   @db.Decimal(8, 4)
-  requiresApproval  Boolean                   @default(true)
-  isActive          Boolean                   @default(true)
-  effectiveFrom     DateTime
-  effectiveTo       DateTime?
-  createdAt         DateTime                  @default(now())
-  updatedAt         DateTime                  @updatedAt
-  tenant            Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  employeeLevel     EmployeeLevel?            @relation(fields: [employeeLevelId, tenantId], references: [id, tenantId], onDelete: Restrict)
-  businessUnit      BusinessUnit?             @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  id                  String                    @id @default(uuid())
+  tenantId            String
+  code                String
+  name                String
+  description         String?
+  organizationId      String?
+  employeeLevelId     String?
+  businessUnitId      String?
+  departmentId        String?
+  employmentTypeId    String?
+  calculationPeriod   OvertimeCalculationPeriod
+  thresholdHours      Decimal                   @db.Decimal(8, 2)
+  rateMultiplier      Decimal                   @db.Decimal(8, 4)
+  normalOtMultiplier  Decimal?                  @db.Decimal(8, 4)
+  weekendOtMultiplier Decimal?                  @db.Decimal(8, 4)
+  holidayOtMultiplier Decimal?                  @db.Decimal(8, 4)
+  nightOtMultiplier   Decimal?                  @db.Decimal(8, 4)
+  minimumOtMinutes    Int?
+  maximumOtHours      Decimal?                  @db.Decimal(8, 2)
+  roundToMinutes      Int?
+  payComponentId      String?
+  requiresApproval    Boolean                   @default(true)
+  isActive            Boolean                   @default(true)
+  effectiveFrom       DateTime
+  effectiveTo         DateTime?
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+  tenant              Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employeeLevel       EmployeeLevel?            @relation(fields: [employeeLevelId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  businessUnit        BusinessUnit?             @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  payComponent        PayComponent?             @relation(fields: [payComponentId, tenantId], references: [id, tenantId], onDelete: Restrict)
 
   @@unique([id, tenantId])
   @@unique([tenantId, code])
   @@index([tenantId, employeeLevelId])
   @@index([tenantId, businessUnitId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, departmentId])
+  @@index([tenantId, employmentTypeId])
+  @@index([tenantId, payComponentId])
   @@index([tenantId, isActive])
 }
 
@@ -5960,9 +7415,23 @@ model TaxRule {
   code                     String
   name                     String
   description              String?
+  organizationId           String?
+  legalEntityId            String?
+  payrollRegionId          String?
+  taxAuthority             String?
+  calculationStrategy      String                    @default("PERIODIC")
+  taxYearStart             DateTime?
+  taxYearEnd               DateTime?
+  status                   ConfigurationStatus       @default(ACTIVE)
+  ownerUserId              String?
+  isDefault                Boolean                   @default(false)
+  priority                 Int                       @default(100)
   countryCode              String?
   regionCode               String?
   employeeLevelId          String?
+  businessUnitId           String?
+  departmentId             String?
+  employmentTypeId         String?
   calculationMethod        TaxCalculationMethod
   taxType                  TaxType
   employeeRate             Decimal?                  @db.Decimal(8, 4)
@@ -5970,39 +7439,60 @@ model TaxRule {
   fixedEmployeeAmount      Decimal?                  @db.Decimal(12, 2)
   fixedEmployerAmount      Decimal?                  @db.Decimal(12, 2)
   currencyCode             String?
+  formulaExpression        String?
+  employeeTaxComponentId   String?
+  employerTaxComponentId   String?
+  postingCategory          String?
+  taxStatementTemplateId   String?
+  applicabilityRules       Json?
+  configuration            Json?
+  version                  Int                       @default(1)
   isActive                 Boolean                   @default(true)
   effectiveFrom            DateTime
   effectiveTo              DateTime?
   createdAt                DateTime                  @default(now())
   updatedAt                DateTime                  @updatedAt
+  createdById              String?
+  updatedById              String?
   tenant                   Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   employeeLevel            EmployeeLevel?            @relation(fields: [employeeLevelId, tenantId], references: [id, tenantId], onDelete: Restrict)
   brackets                 TaxRuleBracket[]
   payComponents            TaxRulePayComponent[]
   payrollPostingRules      PayrollPostingRule[]
   payrollJournalEntryLines PayrollJournalEntryLine[]
+  employeeTaxProfiles      EmployeeTaxProfile[]
 
   @@unique([id, tenantId])
   @@unique([tenantId, code])
   @@index([tenantId, countryCode, regionCode])
   @@index([tenantId, employeeLevelId])
+  @@index([tenantId, businessUnitId])
+  @@index([tenantId, departmentId])
+  @@index([tenantId, employmentTypeId])
   @@index([tenantId, isActive])
 }
 
 model TaxRuleBracket {
-  id                  String   @id @default(uuid())
+  id                  String              @id @default(uuid())
   tenantId            String
   taxRuleId           String
-  minAmount           Decimal  @db.Decimal(12, 2)
-  maxAmount           Decimal? @db.Decimal(12, 2)
-  employeeRate        Decimal? @db.Decimal(8, 4)
-  employerRate        Decimal? @db.Decimal(8, 4)
-  fixedEmployeeAmount Decimal? @db.Decimal(12, 2)
-  fixedEmployerAmount Decimal? @db.Decimal(12, 2)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-  tenant              Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  taxRule             TaxRule  @relation(fields: [taxRuleId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  sequence            Int                 @default(10)
+  minAmount           Decimal             @db.Decimal(12, 2)
+  maxAmount           Decimal?            @db.Decimal(12, 2)
+  employeeRate        Decimal?            @db.Decimal(8, 4)
+  employerRate        Decimal?            @db.Decimal(8, 4)
+  fixedEmployeeAmount Decimal?            @db.Decimal(12, 2)
+  fixedEmployerAmount Decimal?            @db.Decimal(12, 2)
+  excessOver          Decimal?            @db.Decimal(12, 2)
+  minimumTax          Decimal?            @db.Decimal(12, 2)
+  maximumTax          Decimal?            @db.Decimal(12, 2)
+  effectiveFrom       DateTime?
+  effectiveTo         DateTime?
+  status              ConfigurationStatus @default(ACTIVE)
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  tenant              Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  taxRule             TaxRule             @relation(fields: [taxRuleId, tenantId], references: [id, tenantId], onDelete: Cascade)
 
   @@index([tenantId, taxRuleId])
   @@index([taxRuleId, minAmount])
@@ -6021,6 +7511,44 @@ model TaxRulePayComponent {
   @@unique([taxRuleId, payComponentId])
   @@index([tenantId, taxRuleId])
   @@index([tenantId, payComponentId])
+}
+
+model EmployeeTaxProfile {
+  id                            String              @id @default(uuid())
+  tenantId                      String
+  employeeId                    String
+  taxIdentificationNumber       String?
+  taxResidencyCountryCode       String?
+  workTaxJurisdiction           String?
+  taxStatus                     String?
+  taxCategory                   String?
+  filingStatus                  String?
+  dependentAllowances           Int                 @default(0)
+  taxRuleId                     String?
+  additionalTaxAmount           Decimal             @default(0) @db.Decimal(12, 2)
+  taxExemptionAmount            Decimal             @default(0) @db.Decimal(12, 2)
+  taxCreditAmount               Decimal             @default(0) @db.Decimal(12, 2)
+  previousEmployerTaxableIncome Decimal             @default(0) @db.Decimal(12, 2)
+  previousEmployerTaxDeducted   Decimal             @default(0) @db.Decimal(12, 2)
+  jurisdictionExtensions        Json?
+  effectiveFrom                 DateTime
+  effectiveTo                   DateTime?
+  overrideReason                String?
+  status                        ConfigurationStatus @default(ACTIVE)
+  ownerUserId                   String?
+  createdAt                     DateTime            @default(now())
+  updatedAt                     DateTime            @updatedAt
+  createdById                   String?
+  updatedById                   String?
+  tenant                        Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee                      Employee            @relation(fields: [employeeId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  taxRule                       TaxRule?            @relation(fields: [taxRuleId, tenantId], references: [id, tenantId], onDelete: Restrict)
+
+  @@unique([id, tenantId])
+  @@unique([tenantId, employeeId, effectiveFrom])
+  @@index([tenantId, employeeId, status, effectiveFrom, effectiveTo])
+  @@index([tenantId, taxRuleId])
+  @@index([tenantId, ownerUserId])
 }
 
 model SalaryComponent {
@@ -6045,35 +7573,107 @@ model SalaryComponent {
 }
 
 model PayComponent {
-  id                       String                          @id @default(uuid())
-  tenantId                 String
-  code                     String
-  name                     String
-  description              String?
-  componentType            PayComponentType
-  calculationMethod        PayComponentCalculationMethod
-  isTaxable                Boolean                         @default(false)
-  affectsGrossPay          Boolean                         @default(true)
-  affectsNetPay            Boolean                         @default(true)
-  isRecurring              Boolean                         @default(false)
-  requiresApproval         Boolean                         @default(false)
-  displayOnPayslip         Boolean                         @default(true)
-  displayOrder             Int                             @default(0)
-  isActive                 Boolean                         @default(true)
-  createdAt                DateTime                        @default(now())
-  updatedAt                DateTime                        @updatedAt
-  tenant                   Tenant                          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  compensationComponents   EmployeeCompensationComponent[]
-  payrollRunLineItems      PayrollRunLineItem[]
-  payslipLineItems         PayslipLineItem[]
-  taxRuleMappings          TaxRulePayComponent[]
-  payrollPostingRules      PayrollPostingRule[]
-  payrollJournalEntryLines PayrollJournalEntryLine[]
+  id                          String                          @id @default(uuid())
+  tenantId                    String
+  code                        String
+  name                        String
+  description                 String?
+  organizationId              String?
+  legalEntityId               String?
+  ownerUserId                 String?
+  status                      ConfigurationStatus             @default(ACTIVE)
+  isDefault                   Boolean                         @default(false)
+  componentCategory           String                          @default("BASIC")
+  componentType               PayComponentType
+  calculationMethod           PayComponentCalculationMethod
+  fixedAmount                 Decimal?                        @db.Decimal(12, 2)
+  percentage                  Decimal?                        @db.Decimal(8, 4)
+  percentageBaseComponentId   String?
+  formulaExpression           String?
+  eligibilityAppliesTo        String                          @default("ALL_EMPLOYEES")
+  effectiveFrom               DateTime?
+  effectiveTo                 DateTime?
+  prorationBasis              String                          @default("NONE")
+  minimumAmount               Decimal?                        @db.Decimal(12, 2)
+  maximumAmount               Decimal?                        @db.Decimal(12, 2)
+  roundingMethod              String                          @default("NONE")
+  defaultDebitAccountId       String?
+  defaultCreditAccountId      String?
+  isTaxable                   Boolean                         @default(false)
+  affectsGrossPay             Boolean                         @default(true)
+  affectsNetPay               Boolean                         @default(true)
+  isRecurring                 Boolean                         @default(false)
+  requiresApproval            Boolean                         @default(false)
+  displayOnPayslip            Boolean                         @default(true)
+  employeeVisible             Boolean                         @default(true)
+  displayOrder                Int                             @default(0)
+  isActive                    Boolean                         @default(true)
+  version                     Int                             @default(1)
+  createdAt                   DateTime                        @default(now())
+  updatedAt                   DateTime                        @updatedAt
+  createdById                 String?
+  updatedById                 String?
+  tenant                      Tenant                          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  compensationComponents      EmployeeCompensationComponent[]
+  salaryPackageRuleComponents SalaryPackageRuleComponent[]    @relation("SalaryPackageRuleComponentPayComponent")
+  salaryPackageBaseComponents SalaryPackageRuleComponent[]    @relation("SalaryPackageRuleComponentBaseComponent")
+  eligibilityRules            PayComponentEligibilityRule[]
+  payrollRunLineItems         PayrollRunLineItem[]
+  payrollAdjustments          PayrollAdjustment[]
+  payslipLineItems            PayslipLineItem[]
+  taxRuleMappings             TaxRulePayComponent[]
+  payrollPostingRules         PayrollPostingRule[]
+  payrollJournalEntryLines    PayrollJournalEntryLine[]
+  percentageBaseComponent     PayComponent?                   @relation("PayComponentPercentageBase", fields: [percentageBaseComponentId], references: [id], onDelete: SetNull)
+  percentageBasedComponents   PayComponent[]                  @relation("PayComponentPercentageBase")
+  defaultDebitAccount         PayrollGlAccount?               @relation("PayComponentDefaultDebitAccount", fields: [defaultDebitAccountId], references: [id], onDelete: SetNull)
+  defaultCreditAccount        PayrollGlAccount?               @relation("PayComponentDefaultCreditAccount", fields: [defaultCreditAccountId], references: [id], onDelete: SetNull)
+  claimSubTypes               ClaimSubType[]
+  overtimePolicies            OvertimePolicy[]
 
   @@unique([id, tenantId])
   @@unique([tenantId, code])
+  @@index([tenantId, componentCategory])
   @@index([tenantId, componentType])
+  @@index([tenantId, organizationId, legalEntityId])
+  @@index([tenantId, ownerUserId])
+  @@index([tenantId, status])
+  @@index([tenantId, isDefault])
+  @@index([tenantId, percentageBaseComponentId])
+  @@index([tenantId, eligibilityAppliesTo])
+  @@index([tenantId, effectiveFrom, effectiveTo])
+  @@index([tenantId, defaultDebitAccountId])
+  @@index([tenantId, defaultCreditAccountId])
   @@index([tenantId, isActive])
+}
+
+model PayComponentEligibilityRule {
+  id                        String                         @id @default(uuid())
+  tenantId                  String
+  payComponentId            String
+  name                      String?
+  matchType                 String                         @default("ALL")
+  conditions                Json?
+  priority                  Int                            @default(10)
+  calculationMethodOverride PayComponentCalculationMethod?
+  fixedAmount               Decimal?                       @db.Decimal(12, 2)
+  percentage                Decimal?                       @db.Decimal(8, 4)
+  percentageBaseComponentId String?
+  formulaExpression         String?
+  effectiveFrom             DateTime?
+  effectiveTo               DateTime?
+  isActive                  Boolean                        @default(true)
+  createdAt                 DateTime                       @default(now())
+  updatedAt                 DateTime                       @updatedAt
+  createdById               String?
+  updatedById               String?
+  tenant                    Tenant                         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payComponent              PayComponent                   @relation(fields: [payComponentId, tenantId], references: [id, tenantId], onDelete: Cascade)
+
+  @@unique([id, tenantId])
+  @@index([tenantId, payComponentId])
+  @@index([tenantId, isActive, effectiveFrom, effectiveTo])
+  @@index([tenantId, priority])
 }
 
 model EmployeeCompensation {
@@ -6108,25 +7708,122 @@ model EmployeeCompensation {
   @@index([tenantId, effectiveDate])
 }
 
-model EmployeeCompensationHistory {
-  id            String                            @id @default(uuid())
-  tenantId      String
-  employeeId    String
-  effectiveFrom DateTime
-  effectiveTo   DateTime?
-  payFrequency  CompensationPayFrequency
-  currencyCode  String
-  baseAmount    Decimal                           @db.Decimal(12, 2)
-  status        EmployeeCompensationHistoryStatus @default(DRAFT)
-  notes         String?
-  createdBy     String?
-  createdAt     DateTime                          @default(now())
-  updatedAt     DateTime                          @updatedAt
-  tenant        Tenant                            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  employee      Employee                          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  components    EmployeeCompensationComponent[]
+model SalaryPackageRule {
+  id                       String                        @id @default(uuid())
+  tenantId                 String
+  code                     String
+  name                     String
+  description              String?
+  currencyCode             String
+  organizationId           String?
+  legalEntityId            String?
+  businessUnitId           String?
+  departmentId             String?
+  employeeLevelId          String?
+  employmentTypeId         String?
+  payFrequency             CompensationPayFrequency      @default(MONTHLY)
+  effectiveFrom            DateTime?
+  effectiveTo              DateTime?
+  priority                 Int                           @default(0)
+  isDefault                Boolean                       @default(false)
+  status                   ConfigurationStatus           @default(ACTIVE)
+  ownerUserId              String?
+  eligibilityRules         Json?
+  autoAssign               Boolean                       @default(false)
+  allowEmployeeOverride    Boolean                       @default(false)
+  overrideRequiresApproval Boolean                       @default(true)
+  configuration            Json?
+  version                  Int                           @default(1)
+  isActive                 Boolean                       @default(true)
+  createdAt                DateTime                      @default(now())
+  updatedAt                DateTime                      @updatedAt
+  createdById              String?
+  updatedById              String?
+  tenant                   Tenant                        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  organization             Organization?                 @relation(fields: [organizationId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  businessUnit             BusinessUnit?                 @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  department               Department?                   @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  employeeLevel            EmployeeLevel?                @relation(fields: [employeeLevelId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  employmentType           EmploymentType?               @relation(fields: [employmentTypeId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  components               SalaryPackageRuleComponent[]
+  compensations            EmployeeCompensationHistory[]
 
   @@unique([id, tenantId])
+  @@unique([tenantId, code])
+  @@unique([tenantId, name])
+  @@index([tenantId, isDefault])
+  @@index([tenantId, priority])
+  @@index([tenantId, ownerUserId])
+  @@index([tenantId, isActive])
+  @@index([tenantId, currencyCode])
+  @@index([tenantId, organizationId, businessUnitId])
+  @@index([tenantId, departmentId, employeeLevelId, employmentTypeId])
+}
+
+model SalaryPackageRuleComponent {
+  id                        String                        @id @default(uuid())
+  tenantId                  String
+  salaryPackageRuleId       String
+  payComponentId            String
+  calculationMethod         PayComponentCalculationMethod
+  fixedAmount               Decimal?                      @db.Decimal(12, 2)
+  percentage                Decimal?                      @db.Decimal(8, 4)
+  percentageBaseComponentId String?
+  formulaExpression         String?
+  minimumAmount             Decimal?                      @db.Decimal(12, 2)
+  maximumAmount             Decimal?                      @db.Decimal(12, 2)
+  isRequired                Boolean                       @default(false)
+  isEmployeeEditable        Boolean                       @default(false)
+  displayOrder              Int                           @default(0)
+  effectiveFrom             DateTime?
+  effectiveTo               DateTime?
+  status                    ConfigurationStatus           @default(ACTIVE)
+  version                   Int                           @default(1)
+  createdAt                 DateTime                      @default(now())
+  updatedAt                 DateTime                      @updatedAt
+  createdById               String?
+  updatedById               String?
+  tenant                    Tenant                        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  salaryPackageRule         SalaryPackageRule             @relation(fields: [salaryPackageRuleId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  payComponent              PayComponent                  @relation("SalaryPackageRuleComponentPayComponent", fields: [payComponentId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  percentageBaseComponent   PayComponent?                 @relation("SalaryPackageRuleComponentBaseComponent", fields: [percentageBaseComponentId, tenantId], references: [id, tenantId], onDelete: Restrict)
+
+  @@unique([salaryPackageRuleId, payComponentId])
+  @@index([tenantId, salaryPackageRuleId])
+  @@index([tenantId, payComponentId])
+  @@index([tenantId, percentageBaseComponentId])
+}
+
+model EmployeeCompensationHistory {
+  id                    String                            @id @default(uuid())
+  tenantId              String
+  employeeId            String
+  salaryPackageRuleId   String?
+  effectiveFrom         DateTime
+  effectiveTo           DateTime?
+  payFrequency          CompensationPayFrequency
+  currencyCode          String
+  baseAmount            Decimal                           @db.Decimal(12, 2)
+  grossEarnings         Decimal                           @default(0) @db.Decimal(12, 2)
+  totalDeductions       Decimal                           @default(0) @db.Decimal(12, 2)
+  employerContributions Decimal                           @default(0) @db.Decimal(12, 2)
+  estimatedNetPay       Decimal                           @default(0) @db.Decimal(12, 2)
+  changeReason          String?
+  approvedById          String?
+  status                EmployeeCompensationHistoryStatus @default(DRAFT)
+  notes                 String?
+  createdBy             String?
+  createdAt             DateTime                          @default(now())
+  updatedAt             DateTime                          @updatedAt
+  tenant                Tenant                            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee              Employee                          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  salaryPackageRule     SalaryPackageRule?                @relation(fields: [salaryPackageRuleId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  approvedBy            User?                             @relation("EmployeeCompensationApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+  components            EmployeeCompensationComponent[]
+
+  @@unique([id, tenantId])
+  @@index([tenantId, salaryPackageRuleId])
+  @@index([tenantId, approvedById])
   @@index([tenantId, employeeId, effectiveFrom])
   @@index([tenantId, employeeId, status])
   @@index([tenantId, status])
@@ -6139,8 +7836,25 @@ model EmployeeCompensationComponent {
   payComponentId            String
   amount                    Decimal?                      @db.Decimal(12, 2)
   percentage                Decimal?                      @db.Decimal(8, 4)
+  configuredAmount          Decimal?                      @db.Decimal(12, 2)
+  calculatedAmount          Decimal                       @default(0) @db.Decimal(12, 2)
+  overrideAmount            Decimal?                      @db.Decimal(12, 2)
+  effectiveAmount           Decimal                       @default(0) @db.Decimal(12, 2)
+  isOverridden              Boolean                       @default(false)
+  overrideReason            String?
+  overriddenById            String?
+  overriddenAt              DateTime?
+  overrideExpiresAt         DateTime?
+  ruleAppliedId             String?
+  calculationSource         String?
+  calculationSnapshot       Json?
+  effectiveFrom             DateTime?
+  effectiveTo               DateTime?
+  formulaExpression         String?
   calculationMethodSnapshot PayComponentCalculationMethod
+  isTaxable                 Boolean                       @default(false)
   isRecurring               Boolean
+  isEmployeeEditable        Boolean                       @default(false)
   displayOrder              Int                           @default(0)
   createdAt                 DateTime                      @default(now())
   updatedAt                 DateTime                      @updatedAt

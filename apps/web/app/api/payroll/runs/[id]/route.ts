@@ -7,3 +7,11 @@ export async function GET(_request: Request, context: RouteContext) {
   const response = await apiRequest(`/payroll/runs/${id}`, { method: "GET" });
   return proxyApiJsonResponse(response);
 }
+
+export async function DELETE(_request: Request, context: RouteContext) {
+  const { id } = await context.params;
+  const response = await apiRequest(`/payroll/runs/${id}`, {
+    method: "DELETE",
+  });
+  return proxyApiJsonResponse(response);
+}

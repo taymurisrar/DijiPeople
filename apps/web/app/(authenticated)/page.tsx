@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { DashboardShell } from "@/app/components/dashboard/dashboard-shell";
 import type { DashboardSummary } from "@/app/components/dashboard/types";
-import { ModuleViewSelector } from "@/app/components/view-selector/module-view-selector";
-import type { ModuleViewOption } from "@/app/components/view-selector/types";
+import { ModuleViewSelector } from "@/app/components/runtime/module-view-selector";
 import { ApiRequestError, apiRequestJson } from "@/lib/server-api";
 import { DashboardRefreshButton } from "@/app/components/dashboard/dashboard-refresh-button";
 import type { TenantResolvedSettingsResponse } from "./settings/types";
@@ -36,25 +35,24 @@ export default async function DashboardPage({
       visibleViews.find((view) => view.key === summary.defaultView) ??
       visibleViews[0] ??
       null;
-    const dashboardViews: ModuleViewOption[] = visibleViews.map((view) => ({
+    const dashboardViews = visibleViews.map((view) => ({
       id: view.key,
       name: view.label,
-      type: "system",
+      type: "system" as const,
       description: view.description,
       isDefault: view.key === configuredDefaultView,
       badgeCount: view.badgeCount,
-      icon: view.icon,
     }));
 
     return (
       <main className="dp-theme-scope grid gap-6 px-1 py-2 md:px-2 lg:px-4">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center rounded-xl bg-surface lg:justify-between">
-            <ModuleViewSelector
-              configureHref="/settings/customization/views"
-              enabled
-              selectedViewId={selectedView?.key ?? ""}
-              views={dashboardViews}
-            />
+        <div className="flex flex-col px-2 py-1 gap-4 lg:flex-row lg:items-center rounded-xl bg-surface lg:justify-between">
+          <ModuleViewSelector
+            mode="dropdown"
+            configureHref="/settings/customization/views"
+            activeViewId={selectedView?.key}
+            views={dashboardViews}
+          />
           <DashboardRefreshButton />
         </div>
 

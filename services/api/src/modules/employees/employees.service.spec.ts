@@ -221,7 +221,7 @@ describe('EmployeesService', () => {
           },
           {
             field: 'emergencyContactRelationTypeId',
-            message: 'Emergency contact relationship is required.',
+            message: 'Emergency contact relation type is required.',
           },
           {
             field: 'emergencyContactPhone',

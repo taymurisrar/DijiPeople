@@ -10,7 +10,8 @@ export type SettingsFieldType =
   | "phone"
   | "url"
   | "color"
-  | "date";
+  | "date"
+  | "time";
 
 export type SettingsOption = {
   label: string;

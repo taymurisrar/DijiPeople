@@ -1,6 +1,7 @@
 import {
   CanActivate,
   ExecutionContext,
+  ForbiddenException,
   Injectable,
   Logger,
   UnauthorizedException,
@@ -24,6 +25,7 @@ import {
   AuthenticatedRequest,
   AuthTokenPayload,
 } from '../interfaces/authenticated-request.interface';
+import { TimesheetRestrictionMode } from '@prisma/client';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -127,6 +129,8 @@ export class JwtAuthGuard implements CanActivate {
       request.user.sessionId = payload.sessionId;
       request.user.appClientId = payload.appClientId;
 
+      await this.assertTimesheetRestrictionAllowsRequest(request);
+
       return true;
     } catch (error) {
       if (error instanceof UnauthorizedException) {
@@ -165,6 +169,72 @@ export class JwtAuthGuard implements CanActivate {
         message: 'Access token could not be verified.',
       });
     }
+  }
+
+  private async assertTimesheetRestrictionAllowsRequest(
+    request: AuthenticatedRequest,
+  ) {
+    if (
+      request.user.platform ||
+      request.user.roleKeys.includes('system-scheduler')
+    )
+      return;
+    const employee = await this.prisma.employee.findFirst({
+      where: {
+        tenantId: request.user.tenantId,
+        userId: request.user.userId,
+        isDeleted: false,
+      },
+      select: { id: true },
+    });
+    if (!employee) return;
+    const restriction = await this.prisma.timesheetAccessRestriction.findFirst({
+      where: {
+        tenantId: request.user.tenantId,
+        employeeId: employee.id,
+        isActive: true,
+        overriddenAt: null,
+        OR: [{ expiryAt: null }, { expiryAt: { gt: new Date() } }],
+      },
+      orderBy: { startAt: 'desc' },
+    });
+    if (
+      !restriction ||
+      restriction.restrictionMode === TimesheetRestrictionMode.WARNING_ONLY
+    )
+      return;
+    const path = request.path || request.url.split('?')[0] || '/';
+    const alwaysAllowed = [
+      '/timesheets',
+      '/timesheet-exports',
+      '/approvals',
+      '/notifications',
+      '/in-app-notifications',
+      '/my-profile',
+      '/employees/me',
+      '/auth',
+      '/help',
+      '/support',
+      '/tenant-settings/resolved',
+      '/tenant-settings/features/availability',
+      '/runtime-metadata',
+      '/settings-runtime',
+      '/projects/assigned/me',
+      '/audit-logs',
+    ];
+    if (alwaysAllowed.some((prefix) => path.startsWith(prefix))) return;
+    if (
+      restriction.restrictionMode === TimesheetRestrictionMode.LIMITED_ACCESS &&
+      request.method.toUpperCase() === 'GET'
+    )
+      return;
+    throw new ForbiddenException({
+      code: 'TIMESHEET_ACCESS_RESTRICTED',
+      message: restriction.reason,
+      restrictionMode: restriction.restrictionMode,
+      restrictionId: restriction.id,
+      allowedRoutes: ['/timesheets', '/notifications', '/my-profile', '/help'],
+    });
   }
 
   private extractToken(request: AuthenticatedRequest, clientId: AuthClientId) {
@@ -250,13 +320,39 @@ export class JwtAuthGuard implements CanActivate {
       isSlidingSessionEnabled(this.configService) &&
       tokenRecord.lastActivityAt &&
       now - tokenRecord.lastActivityAt.getTime() >
-        getClientIdleTimeoutMs(this.configService, clientId)
+        (await this.resolveIdleTimeoutMs(payload, clientId))
     ) {
       throw new UnauthorizedException({
         code: 'SESSION_EXPIRED',
         message: 'Session expired due to inactivity.',
       });
     }
+  }
+
+  private async resolveIdleTimeoutMs(
+    payload: AuthTokenPayload,
+    clientId: AuthClientId,
+  ) {
+    const fallback = getClientIdleTimeoutMs(this.configService, clientId);
+    if (
+      clientId !== 'web' ||
+      payload.authSubjectType === 'platform-user' ||
+      !payload.tenantId
+    ) {
+      return fallback;
+    }
+
+    const setting = await this.prisma.tenantSetting.findFirst({
+      where: {
+        tenantId: payload.tenantId,
+        category: 'security',
+        key: 'idleTimeoutMinutes',
+      },
+      select: { value: true },
+    });
+    const minutes = numericSetting(setting?.value);
+    if (minutes === null) return fallback;
+    return Math.min(1440, Math.max(15, minutes)) * 60_000;
   }
 
   private async assertAgentSessionIsActive(payload: AuthTokenPayload) {
@@ -306,4 +402,14 @@ export class JwtAuthGuard implements CanActivate {
       });
     }
   }
+}
+
+function numericSetting(value: unknown) {
+  const numeric =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string' && value.trim()
+        ? Number(value)
+        : Number.NaN;
+  return Number.isFinite(numeric) ? numeric : null;
 }

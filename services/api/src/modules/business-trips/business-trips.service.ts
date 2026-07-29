@@ -438,9 +438,13 @@ export class BusinessTripsService {
       const created = await this.prisma.travelAllowancePolicy.create({
         data: {
           tenantId: user.tenantId,
-          code: normalizeCode(dto.code),
+          code: normalizeCode(dto.code, dto.name),
           name: dto.name.trim(),
           description: emptyToNull(dto.description),
+          travelType: normalizeChoice(dto.travelType, 'DOMESTIC'),
+          businessUnitId: dto.businessUnitId ?? null,
+          departmentId: dto.departmentId ?? null,
+          employmentTypeId: dto.employmentTypeId ?? null,
           employeeLevelId: dto.employeeLevelId ?? null,
           countryCode: normalizeOptionalLookup(dto.countryCode),
           city: normalizeOptionalCity(dto.city),
@@ -488,6 +492,18 @@ export class BusinessTripsService {
           ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
           ...(dto.description !== undefined
             ? { description: emptyToNull(dto.description) }
+            : {}),
+          ...(dto.travelType !== undefined
+            ? { travelType: normalizeChoice(dto.travelType, 'DOMESTIC') }
+            : {}),
+          ...(dto.businessUnitId !== undefined
+            ? { businessUnitId: dto.businessUnitId }
+            : {}),
+          ...(dto.departmentId !== undefined
+            ? { departmentId: dto.departmentId }
+            : {}),
+          ...(dto.employmentTypeId !== undefined
+            ? { employmentTypeId: dto.employmentTypeId }
             : {}),
           ...(dto.employeeLevelId !== undefined
             ? { employeeLevelId: dto.employeeLevelId }
@@ -562,8 +578,11 @@ export class BusinessTripsService {
       data: {
         tenantId: user.tenantId,
         policyId: policy.id,
+        countryCode: normalizeOptionalLookup(dto.countryCode),
+        city: normalizeOptionalCity(dto.city),
         allowanceType: dto.allowanceType,
         calculationBasis: dto.calculationBasis,
+        unit: normalizeChoice(dto.unit, 'DAY'),
         amount: new Prisma.Decimal(dto.amount),
         currencyCode: normalizeCurrency(dto.currencyCode),
         isActive: dto.isActive ?? true,
@@ -598,8 +617,17 @@ export class BusinessTripsService {
         ...(dto.allowanceType !== undefined
           ? { allowanceType: dto.allowanceType }
           : {}),
+        ...(dto.countryCode !== undefined
+          ? { countryCode: normalizeOptionalLookup(dto.countryCode) }
+          : {}),
+        ...(dto.city !== undefined
+          ? { city: normalizeOptionalCity(dto.city) }
+          : {}),
         ...(dto.calculationBasis !== undefined
           ? { calculationBasis: dto.calculationBasis }
+          : {}),
+        ...(dto.unit !== undefined
+          ? { unit: normalizeChoice(dto.unit, 'DAY') }
           : {}),
         ...(dto.amount !== undefined
           ? { amount: new Prisma.Decimal(dto.amount) }
@@ -829,8 +857,22 @@ function quantityForBasis(
   return tripDays;
 }
 
-function normalizeCode(value: string) {
-  return value.trim().toUpperCase().replace(/\s+/g, '_');
+function normalizeCode(value: string | undefined, fallbackName?: string) {
+  const source = value?.trim() || `${fallbackName || 'TADA'}_${shortSuffix()}`;
+  return source
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9_ -]+/g, '_')
+    .replace(/^[_ -]+|[_ -]+$/g, '')
+    .slice(0, 50);
+}
+
+function normalizeChoice(value: string | undefined, fallback: string) {
+  return (value?.trim() || fallback).toUpperCase();
+}
+
+function shortSuffix() {
+  return Date.now().toString(36).toUpperCase().slice(-6);
 }
 
 function normalizeCurrency(value: string) {

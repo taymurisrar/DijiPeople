@@ -56,10 +56,19 @@ export type PayrollRunRecord = {
 export type PayrollJournalRecord = {
   id: string;
   payrollRunId: string;
-  status: "DRAFT" | "GENERATED" | "EXPORTED" | "VOIDED";
+  journalType: "ORIGINAL" | "REVERSAL" | "ADJUSTMENT";
+  status: "DRAFT" | "GENERATED" | "EXPORTED" | "POSTED" | "REVERSED" | "VOIDED";
   journalNumber?: string | null;
+  originalJournalId?: string | null;
+  reversalJournalId?: string | null;
   generatedAt?: string | null;
   exportedAt?: string | null;
+  postedAt?: string | null;
+  reversedAt?: string | null;
+  reversalReason?: string | null;
+  debitTotal?: string;
+  creditTotal?: string;
+  balanced?: boolean;
   lines: PayrollJournalEntryLineRecord[];
 };
 
@@ -138,6 +147,84 @@ export type PayrollExceptionRecord = {
   } | null;
 };
 
+export type PayrollAdjustmentRecord = {
+  id: string;
+  employeeId: string;
+  employeeName?: string;
+  employeeCode?: string | null;
+  label: string;
+  amount: string;
+  currencyCode: string;
+  category: string;
+  reason?: string | null;
+  status: "DRAFT" | "SUBMITTED" | "APPROVED" | "REJECTED";
+  approvedBy?: string | null;
+  updatedAt?: string | null;
+  payComponent?: { code: string; name: string } | null;
+};
+
+export type PayrollPaymentBatchRecord = {
+  id: string;
+  status: string;
+  fileName: string;
+  employerBankAccount?: string | null;
+  currencyCode: string;
+  totalAmount: string;
+  generatedAt: string;
+  submittedAt?: string | null;
+  disbursedAt?: string | null;
+  employees: number;
+  completedEmployees: number;
+  failedEmployees: number;
+  documentId?: string | null;
+  paymentLines: PayrollPaymentLineRecord[];
+};
+
+export type PayrollPaymentLineRecord = {
+  id: string;
+  employeeName: string;
+  employeeCode: string;
+  bankName?: string | null;
+  maskedAccount: string;
+  maskedAccountNumber?: string | null;
+  maskedIban?: string | null;
+  amount: string;
+  currencyCode: string;
+  status: string;
+  transactionReference?: string | null;
+  failureReason?: string | null;
+  disbursedAt?: string | null;
+  reconciledAt?: string | null;
+  retryOfPaymentLineId?: string | null;
+};
+
+export type PayrollCostAllocationRecord = {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  employeeCode: string;
+  projectId?: string | null;
+  projectName?: string | null;
+  customerId?: string | null;
+  customerName?: string | null;
+  allocationPercentage: string;
+  originalAmount: string;
+  currencyCode: string;
+  reportingAmount?: string | null;
+  reportingCurrency?: string | null;
+  isBench: boolean;
+};
+
+export type PayrollCostAllocationListResponse = {
+  items: PayrollCostAllocationRecord[];
+  meta: {
+    page: number;
+    pageSize: number;
+    total: number;
+    pageCount: number;
+  };
+};
+
 export type PayslipRecord = {
   id: string;
   tenantId: string;
@@ -157,6 +244,7 @@ export type PayslipRecord = {
   publishedAt?: string | null;
   voidedAt?: string | null;
   voidReason?: string | null;
+  documentId?: string | null;
   employee?: {
     id: string;
     employeeCode: string;

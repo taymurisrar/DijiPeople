@@ -36,23 +36,53 @@ export default async function PayrollPayslipDetailPage({ params }: PageProps) {
         <article className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div className="grid gap-3 md:grid-cols-4">
-              <Summary label="Gross" value={formatMoney(payslip.grossEarnings, payslip.currencyCode)} />
-              <Summary label="Deductions" value={formatMoney(payslip.totalDeductions, payslip.currencyCode)} />
-              <Summary label="Reimbursements" value={formatMoney(payslip.totalReimbursements, payslip.currencyCode)} />
-              <Summary label="Net Pay" value={formatMoney(payslip.netPay, payslip.currencyCode)} />
+              <Summary
+                label="Gross"
+                value={formatMoney(payslip.grossEarnings, payslip.currencyCode)}
+              />
+              <Summary
+                label="Deductions"
+                value={formatMoney(
+                  payslip.totalDeductions,
+                  payslip.currencyCode,
+                )}
+              />
+              <Summary
+                label="Reimbursements"
+                value={formatMoney(
+                  payslip.totalReimbursements,
+                  payslip.currencyCode,
+                )}
+              />
+              <Summary
+                label="Net Pay"
+                value={formatMoney(payslip.netPay, payslip.currencyCode)}
+              />
             </div>
-            <PayslipActions
-              canPublish={hasPermission(
-                user.permissionKeys,
-                PERMISSION_KEYS.PAYSLIPS_PUBLISH,
-              )}
-              canVoid={hasPermission(
-                user.permissionKeys,
-                PERMISSION_KEYS.PAYSLIPS_VOID,
-              )}
-              payslipId={payslip.id}
-              status={payslip.status}
-            />
+            <div className="flex flex-wrap justify-end gap-2">
+              <a
+                className="rounded-xl border border-border bg-white px-4 py-2 text-sm font-semibold text-foreground shadow-sm transition hover:border-accent/40 hover:text-accent"
+                href={`/api/payslips/${payslip.id}/download`}
+              >
+                Download PDF
+              </a>
+              <PayslipActions
+                canRegenerate={hasPermission(
+                  user.permissionKeys,
+                  PERMISSION_KEYS.PAYSLIPS_MANAGE,
+                )}
+                canPublish={hasPermission(
+                  user.permissionKeys,
+                  PERMISSION_KEYS.PAYSLIPS_PUBLISH,
+                )}
+                canVoid={hasPermission(
+                  user.permissionKeys,
+                  PERMISSION_KEYS.PAYSLIPS_VOID,
+                )}
+                payslipId={payslip.id}
+                status={payslip.status}
+              />
+            </div>
           </div>
         </article>
         <LineSection
@@ -68,8 +98,8 @@ export default async function PayrollPayslipDetailPage({ params }: PageProps) {
           title="Reimbursements"
         />
         <LineSection
-          lines={payslip.lineItems.filter((line) =>
-            line.category === "DEDUCTION",
+          lines={payslip.lineItems.filter(
+            (line) => line.category === "DEDUCTION",
           )}
           title="Deductions"
         />
@@ -115,9 +145,7 @@ function LineSection({
               key={line.id}
             >
               <span className="font-medium text-foreground">{line.label}</span>
-              <span>
-                {formatMoney(line.amount, line.currencyCode)}
-              </span>
+              <span>{formatMoney(line.amount, line.currencyCode)}</span>
             </div>
           ))
         ) : (

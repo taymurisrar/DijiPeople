@@ -46,6 +46,11 @@ type ExchangeRateData = {
   source: ExchangeRateSource;
   isManual: boolean;
   lockedRate: boolean;
+  provider: string | null;
+  lastFetchedAt: Date | null;
+  overrideReason: string | null;
+  subStatus: string | null;
+  description: string | null;
   status: ConfigurationStatus;
 };
 
@@ -609,8 +614,10 @@ export class EnterpriseConfigurationService {
     const data = this.readWorkScheduleData(currentUser, body, existing);
     await this.assertValidScopedReferences(currentUser.tenantId, data.scope);
     await this.assertWorkConfigurationReferences(currentUser.tenantId, body);
-    const hasDefaultShiftTemplate =
-      Object.prototype.hasOwnProperty.call(body, 'defaultShiftTemplateId');
+    const hasDefaultShiftTemplate = Object.prototype.hasOwnProperty.call(
+      body,
+      'defaultShiftTemplateId',
+    );
     const defaultShiftTemplateId = hasDefaultShiftTemplate
       ? readNullableString(body.defaultShiftTemplateId)
       : undefined;
@@ -948,9 +955,26 @@ export class EnterpriseConfigurationService {
     return { id, deactivated: true };
   }
 
-  async listPayrollRegions(tenantId: string) {
-    return this.prisma.payrollRegion.findMany({
-      where: { tenantId },
+  async listPayrollRegions(
+    tenantId: string,
+    query: Record<string, unknown> = {},
+  ) {
+    const search = readString(query.search);
+    const regions = await this.prisma.payrollRegion.findMany({
+      where: {
+        tenantId,
+        ...(search
+          ? {
+              OR: [
+                { name: { contains: search, mode: 'insensitive' } },
+                { code: { contains: search, mode: 'insensitive' } },
+                { countryCode: { contains: search, mode: 'insensitive' } },
+                { currencyCode: { contains: search, mode: 'insensitive' } },
+                { timezone: { contains: search, mode: 'insensitive' } },
+              ],
+            }
+          : {}),
+      },
       include: {
         businessUnit: true,
         holidayCalendar: true,
@@ -960,6 +984,7 @@ export class EnterpriseConfigurationService {
       },
       orderBy: [{ isDefault: 'desc' }, { name: 'asc' }],
     });
+    return regions.map(mapPayrollRegion);
   }
 
   async getPayrollRegion(tenantId: string, id: string) {
@@ -974,7 +999,7 @@ export class EnterpriseConfigurationService {
       },
     });
     if (!region) throw new NotFoundException('Payroll region was not found.');
-    return region;
+    return mapPayrollRegion(region);
   }
 
   async createPayrollRegion(
@@ -1010,7 +1035,7 @@ export class EnterpriseConfigurationService {
       null,
       region,
     );
-    return region;
+    return mapPayrollRegion(region);
   }
 
   async updatePayrollRegion(
@@ -1052,7 +1077,7 @@ export class EnterpriseConfigurationService {
       existing,
       region,
     );
-    return region;
+    return mapPayrollRegion(region);
   }
 
   async deletePayrollRegion(currentUser: AuthenticatedUser, id: string) {
@@ -1078,8 +1103,157 @@ export class EnterpriseConfigurationService {
     return { id, archived: true };
   }
 
+  async listFiscalYears(tenantId: string, query: Record<string, unknown> = {}) {
+    const search = readString(query.search);
+    return this.prisma.fiscalYear.findMany({
+      where: {
+        tenantId,
+        ...(search ? { name: { contains: search, mode: 'insensitive' } } : {}),
+      },
+      orderBy: [{ isCurrent: 'desc' }, { startDate: 'desc' }],
+    });
+  }
+
+  async getFiscalYear(tenantId: string, id: string) {
+    const fiscalYear = await this.prisma.fiscalYear.findFirst({
+      where: { tenantId, id },
+    });
+    if (!fiscalYear) throw new NotFoundException('Fiscal year was not found.');
+    return fiscalYear;
+  }
+
+  async getFiscalYearUsage(tenantId: string, id: string) {
+    await this.getFiscalYear(tenantId, id);
+    const payrollPeriodCount = await this.prisma.payrollPeriod.count({
+      where: { tenantId, fiscalYearId: id },
+    });
+    return {
+      fiscalYearId: id,
+      usages: [
+        {
+          area: 'Payroll Periods',
+          count: payrollPeriodCount,
+          blocksDelete: payrollPeriodCount > 0,
+        },
+      ],
+    };
+  }
+
+  async createFiscalYear(
+    currentUser: AuthenticatedUser,
+    body: Record<string, unknown>,
+  ) {
+    const data = await this.readFiscalYearData(currentUser.tenantId, body);
+    await this.assertFiscalYearDoesNotOverlap(currentUser.tenantId, data);
+    const fiscalYear = await this.prisma.$transaction(async (tx) => {
+      if (data.isCurrent) {
+        await tx.fiscalYear.updateMany({
+          where: { tenantId: currentUser.tenantId, isCurrent: true },
+          data: { isCurrent: false, updatedById: currentUser.userId },
+        });
+      }
+      return tx.fiscalYear.create({
+        data: {
+          ...data,
+          tenantId: currentUser.tenantId,
+          createdById: currentUser.userId,
+          updatedById: currentUser.userId,
+        },
+      });
+    });
+    await this.audit(
+      currentUser,
+      'fiscal-year.create',
+      'FiscalYear',
+      fiscalYear.id,
+      null,
+      fiscalYear,
+    );
+    return fiscalYear;
+  }
+
+  async updateFiscalYear(
+    currentUser: AuthenticatedUser,
+    id: string,
+    body: Record<string, unknown>,
+  ) {
+    const existing = await this.prisma.fiscalYear.findFirst({
+      where: { tenantId: currentUser.tenantId, id },
+    });
+    if (!existing) throw new NotFoundException('Fiscal year was not found.');
+    const data = await this.readFiscalYearData(
+      currentUser.tenantId,
+      body,
+      existing,
+    );
+    await this.assertFiscalYearDoesNotOverlap(currentUser.tenantId, {
+      ...data,
+      idToExclude: id,
+    });
+    const fiscalYear = await this.prisma.$transaction(async (tx) => {
+      if (data.isCurrent) {
+        await tx.fiscalYear.updateMany({
+          where: {
+            tenantId: currentUser.tenantId,
+            isCurrent: true,
+            id: { not: id },
+          },
+          data: { isCurrent: false, updatedById: currentUser.userId },
+        });
+      }
+      return tx.fiscalYear.update({
+        where: { id },
+        data: { ...data, updatedById: currentUser.userId },
+      });
+    });
+    await this.audit(
+      currentUser,
+      'fiscal-year.update',
+      'FiscalYear',
+      id,
+      existing,
+      fiscalYear,
+    );
+    return fiscalYear;
+  }
+
+  async deleteFiscalYear(currentUser: AuthenticatedUser, id: string) {
+    const existing = await this.prisma.fiscalYear.findFirst({
+      where: { tenantId: currentUser.tenantId, id },
+    });
+    if (!existing) throw new NotFoundException('Fiscal year was not found.');
+
+    const payrollPeriodCount = await this.prisma.payrollPeriod.count({
+      where: { tenantId: currentUser.tenantId, fiscalYearId: id },
+    });
+    if (payrollPeriodCount > 0) {
+      throw new ConflictException(
+        'Fiscal year cannot be deleted because payroll periods reference it.',
+      );
+    }
+
+    const fiscalYear = await this.prisma.fiscalYear.update({
+      where: { id },
+      data: {
+        status: ConfigurationStatus.ARCHIVED,
+        subStatus: 'ARCHIVED',
+        isCurrent: false,
+        updatedById: currentUser.userId,
+      },
+    });
+    await this.audit(
+      currentUser,
+      'fiscal-year.archive',
+      'FiscalYear',
+      id,
+      existing,
+      fiscalYear,
+    );
+    return { id, archived: true };
+  }
+
   async listExchangeRates(tenantId: string, query: Record<string, unknown>) {
-    return this.prisma.exchangeRateSnapshot.findMany({
+    const items = await this.prisma.exchangeRateSnapshot.findMany({
       where: {
         tenantId,
         ...(readString(query.fromCurrency)
@@ -1093,9 +1267,14 @@ export class EnterpriseConfigurationService {
           ? { toCurrency: normalizeCurrencyCode(readString(query.toCurrency)!) }
           : {}),
       },
-      orderBy: [{ effectiveDate: 'desc' }],
+      orderBy: [{ status: 'asc' }, { updatedAt: 'desc' }],
       take: Math.min(readNumber(query.take) ?? 100, 500),
     });
+
+    return {
+      items: items.map((item) => this.mapExchangeRate(item)),
+      providerStatus: await this.getExchangeRateProviderStatus(tenantId),
+    };
   }
 
   async getExchangeRate(tenantId: string, id: string) {
@@ -1103,7 +1282,7 @@ export class EnterpriseConfigurationService {
       where: { tenantId, id },
     });
     if (!snapshot) throw new NotFoundException('Exchange rate was not found.');
-    return snapshot;
+    return this.mapExchangeRate(snapshot);
   }
 
   async createExchangeRate(
@@ -1111,8 +1290,9 @@ export class EnterpriseConfigurationService {
     body: Record<string, unknown>,
   ) {
     const data = this.readExchangeRateData(body);
+    this.validateExchangeRatePair(data.fromCurrency, data.toCurrency);
     if (data.status === 'ACTIVE') {
-      await this.assertNoOverlappingExchangeRate(currentUser.tenantId, {
+      await this.assertNoActiveExchangeRate(currentUser.tenantId, {
         ...data,
         idToExclude: null,
       });
@@ -1133,7 +1313,7 @@ export class EnterpriseConfigurationService {
       null,
       snapshot,
     );
-    return snapshot;
+    return this.mapExchangeRate(snapshot);
   }
 
   async updateExchangeRate(
@@ -1145,9 +1325,15 @@ export class EnterpriseConfigurationService {
       where: { tenantId: currentUser.tenantId, id },
     });
     if (!existing) throw new NotFoundException('Exchange rate was not found.');
+    if (!existing.isManual && existing.source !== ExchangeRateSource.MANUAL) {
+      throw new BadRequestException(
+        'Provider-synced exchange rates cannot be manually edited. Add a manual override instead.',
+      );
+    }
     const data = this.readExchangeRateData(body, existing);
+    this.validateExchangeRatePair(data.fromCurrency, data.toCurrency);
     if (data.status === 'ACTIVE') {
-      await this.assertNoOverlappingExchangeRate(currentUser.tenantId, {
+      await this.assertNoActiveExchangeRate(currentUser.tenantId, {
         ...data,
         idToExclude: id,
       });
@@ -1164,7 +1350,7 @@ export class EnterpriseConfigurationService {
       existing,
       snapshot,
     );
-    return snapshot;
+    return this.mapExchangeRate(snapshot);
   }
 
   async deleteExchangeRate(currentUser: AuthenticatedUser, id: string) {
@@ -1196,19 +1382,27 @@ export class EnterpriseConfigurationService {
     const from = normalizeCurrencyCode(fromCurrency);
     const to = normalizeCurrencyCode(toCurrency);
     if (from === to) return new Prisma.Decimal(1);
+    const directManual = await this.prisma.exchangeRateSnapshot.findFirst({
+      where: {
+        tenantId,
+        fromCurrency: from,
+        toCurrency: to,
+        status: 'ACTIVE',
+        isManual: true,
+      },
+      orderBy: [{ updatedAt: 'desc' }],
+    });
+    if (directManual) return directManual.rate;
+
     const direct = await this.prisma.exchangeRateSnapshot.findFirst({
       where: {
         tenantId,
         fromCurrency: from,
         toCurrency: to,
         status: 'ACTIVE',
-        effectiveDate: { lte: effectiveDate },
-        OR: [
-          { effectiveEndDate: null },
-          { effectiveEndDate: { gte: effectiveDate } },
-        ],
+        isManual: false,
       },
-      orderBy: [{ effectiveDate: 'desc' }],
+      orderBy: [{ lastFetchedAt: 'desc' }, { updatedAt: 'desc' }],
     });
     if (direct) return direct.rate;
     const inverse = await this.prisma.exchangeRateSnapshot.findFirst({
@@ -1217,17 +1411,16 @@ export class EnterpriseConfigurationService {
         fromCurrency: to,
         toCurrency: from,
         status: 'ACTIVE',
-        effectiveDate: { lte: effectiveDate },
-        OR: [
-          { effectiveEndDate: null },
-          { effectiveEndDate: { gte: effectiveDate } },
-        ],
       },
-      orderBy: [{ effectiveDate: 'desc' }],
+      orderBy: [
+        { isManual: 'desc' },
+        { lastFetchedAt: 'desc' },
+        { updatedAt: 'desc' },
+      ],
     });
     if (inverse) return new Prisma.Decimal(1).div(inverse.rate);
     throw new BadRequestException(
-      `No exchange rate is configured for ${from} to ${to}.`,
+      `Exchange rate is missing for ${from} to ${to}. Please refresh rates or add a manual override.`,
     );
   }
 
@@ -1307,8 +1500,11 @@ export class EnterpriseConfigurationService {
 
   async resolveWorkScheduleId(input: {
     tenantId: string;
+    employeeId?: string | null;
     organizationId?: string | null;
     businessUnitId?: string | null;
+    departmentId?: string | null;
+    locationId?: string | null;
     projectId?: string | null;
     effectiveDate?: Date | null;
   }) {
@@ -1319,6 +1515,73 @@ export class EnterpriseConfigurationService {
         select: { workScheduleId: true },
       });
       if (project?.workScheduleId) return project.workScheduleId;
+    }
+
+    if (input.employeeId) {
+      const assignment = await this.prisma.employeeScheduleAssignment.findFirst(
+        {
+          where: {
+            tenantId: input.tenantId,
+            employeeId: input.employeeId,
+            isActive: true,
+            effectiveFrom: { lte: effectiveDate },
+            OR: [{ effectiveTo: null }, { effectiveTo: { gte: effectiveDate } }],
+            workSchedule: {
+              isActive: true,
+              status: 'ACTIVE',
+              AND: effectiveDateRangeWhere(effectiveDate),
+            },
+          },
+          select: { workScheduleId: true },
+          orderBy: [{ effectiveFrom: 'desc' }, { updatedAt: 'desc' }],
+        },
+      );
+      if (assignment) return assignment.workScheduleId;
+
+      const employee = await this.prisma.employee.findFirst({
+        where: {
+          tenantId: input.tenantId,
+          id: input.employeeId,
+          isDeleted: false,
+        },
+        select: {
+          defaultWorkScheduleId: true,
+          departmentId: true,
+          locationId: true,
+        },
+      });
+      if (employee?.defaultWorkScheduleId) {
+        const activeDefault = await this.prisma.workSchedule.findFirst({
+          where: {
+            tenantId: input.tenantId,
+            id: employee.defaultWorkScheduleId,
+            isActive: true,
+            status: 'ACTIVE',
+            AND: effectiveDateRangeWhere(effectiveDate),
+          },
+          select: { id: true },
+        });
+        if (activeDefault) return activeDefault.id;
+      }
+      input.departmentId ??= employee?.departmentId;
+      input.locationId ??= employee?.locationId;
+    }
+
+    if (input.departmentId) {
+      const department = await this.prisma.department.findFirst({
+        where: { tenantId: input.tenantId, id: input.departmentId },
+        select: { defaultWorkScheduleId: true },
+      });
+      if (department?.defaultWorkScheduleId)
+        return department.defaultWorkScheduleId;
+    }
+
+    if (input.locationId) {
+      const location = await this.prisma.location.findFirst({
+        where: { tenantId: input.tenantId, id: input.locationId },
+        select: { defaultWorkScheduleId: true },
+      });
+      if (location?.defaultWorkScheduleId) return location.defaultWorkScheduleId;
     }
 
     const schedule = await this.prisma.workSchedule.findFirst({
@@ -1389,9 +1652,19 @@ export class EnterpriseConfigurationService {
       projectId: string | null;
       holidayCalendarId: string | null;
       timezone: string;
+      description?: string | null;
+      workWeekModel?: WorkWeekModel;
       standardStartTime: string;
       standardEndTime: string;
       weeklyWorkDays: WorkWeekday[];
+      minHoursPerDay?: Prisma.Decimal | null;
+      standardHoursPerWeek?: Prisma.Decimal | null;
+      flexibleHours?: boolean;
+      shiftBased?: boolean;
+      graceMinutes?: number | null;
+      isDefault?: boolean;
+      isActive?: boolean;
+      status?: ConfigurationStatus;
       effectiveStartDate?: Date | null;
       effectiveEndDate?: Date | null;
     },
@@ -1418,9 +1691,15 @@ export class EnterpriseConfigurationService {
         body.code ?? existing?.code,
         body.name ?? existing?.name,
       ),
-      description: readNullableString(body.description),
+      description:
+        body.description !== undefined
+          ? readNullableString(body.description)
+          : (existing?.description ?? null),
       timezone: normalizeTimezone(body.timezone ?? existing?.timezone) ?? 'UTC',
-      workWeekModel: readEnum(body.workWeekModel, WorkWeekModel) ?? 'FIVE_DAY',
+      workWeekModel:
+        readEnum(body.workWeekModel, WorkWeekModel) ??
+        existing?.workWeekModel ??
+        'FIVE_DAY',
       weeklyWorkDays,
       standardStartTime:
         readString(body.standardStartTime) ??
@@ -1430,14 +1709,27 @@ export class EnterpriseConfigurationService {
         readString(body.standardEndTime) ??
         existing?.standardEndTime ??
         '17:00',
-      minHoursPerDay: decimalOrNull(body.minHoursPerDay),
-      standardHoursPerWeek: decimalOrNull(body.standardHoursPerWeek),
-      flexibleHours: readBoolean(body.flexibleHours) ?? false,
-      shiftBased: readBoolean(body.shiftBased) ?? false,
-      graceMinutes: readNumber(body.graceMinutes),
-      isDefault: readBoolean(body.isDefault) ?? false,
-      isActive: readBoolean(body.isActive) ?? true,
-      status: readEnum(body.status, ConfigurationStatus) ?? 'ACTIVE',
+      minHoursPerDay:
+        body.minHoursPerDay !== undefined
+          ? decimalOrNull(body.minHoursPerDay)
+          : (existing?.minHoursPerDay ?? null),
+      standardHoursPerWeek:
+        body.standardHoursPerWeek !== undefined
+          ? decimalOrNull(body.standardHoursPerWeek)
+          : (existing?.standardHoursPerWeek ?? null),
+      flexibleHours:
+        readBoolean(body.flexibleHours) ?? existing?.flexibleHours ?? false,
+      shiftBased: readBoolean(body.shiftBased) ?? existing?.shiftBased ?? false,
+      graceMinutes:
+        body.graceMinutes !== undefined
+          ? readNumber(body.graceMinutes)
+          : (existing?.graceMinutes ?? null),
+      isDefault: readBoolean(body.isDefault) ?? existing?.isDefault ?? false,
+      isActive: readBoolean(body.isActive) ?? existing?.isActive ?? true,
+      status:
+        readEnum(body.status, ConfigurationStatus) ??
+        existing?.status ??
+        'ACTIVE',
       effectiveStartDate: dateRange.effectiveStartDate,
       effectiveEndDate: dateRange.effectiveEndDate,
       createdById: currentUser.userId,
@@ -1582,6 +1874,9 @@ export class EnterpriseConfigurationService {
       timezone: string;
       effectiveStartDate?: Date | null;
       effectiveEndDate?: Date | null;
+      status?: ConfigurationStatus;
+      subStatus?: string | null;
+      ownerUserId?: string | null;
     },
   ) {
     const scope = readPayrollRegionScopeWithFallback(body, existing);
@@ -1598,10 +1893,10 @@ export class EnterpriseConfigurationService {
     }
     const holidayCalendarId = readNullableString(body.holidayCalendarId);
     const workScheduleId = readNullableString(body.workScheduleId);
-    const effectiveStartDate = requiredDate(
-      body.effectiveStartDate ?? existing?.effectiveStartDate,
-      'Effective from is required.',
-    );
+    const effectiveStartDate =
+      body.effectiveStartDate !== undefined
+        ? readDate(body.effectiveStartDate)
+        : (existing?.effectiveStartDate ?? null);
     const effectiveEndDate =
       body.effectiveEndDate !== undefined
         ? readDate(body.effectiveEndDate)
@@ -1615,16 +1910,6 @@ export class EnterpriseConfigurationService {
       body.regionCode !== undefined
         ? readNullableString(body.regionCode)
         : (existing?.regionCode ?? null);
-    if (
-      !scope.organizationId &&
-      !scope.businessUnitId &&
-      !locationId &&
-      !countryCode
-    ) {
-      throw new BadRequestException(
-        'Choose a country/region, organization, business unit, or work site for this payroll region.',
-      );
-    }
     if (holidayCalendarId) {
       await this.findHolidayCalendarOrThrow(tenantId, holidayCalendarId);
     }
@@ -1634,6 +1919,17 @@ export class EnterpriseConfigurationService {
       });
       if (!schedule)
         throw new BadRequestException('Work schedule was not found.');
+    }
+    const ownerUserId =
+      body.ownerUserId !== undefined
+        ? readNullableString(body.ownerUserId)
+        : (existing?.ownerUserId ?? null);
+    if (ownerUserId) {
+      const owner = await this.prisma.user.findFirst({
+        where: { tenantId, id: ownerUserId },
+        select: { id: true },
+      });
+      if (!owner) throw new BadRequestException('Record owner was not found.');
     }
     return {
       tenantId,
@@ -1652,12 +1948,21 @@ export class EnterpriseConfigurationService {
           'Payroll currency is required.',
         ),
       ),
-      reportingCurrencyCode: normalizeCurrencyCode(
-        requiredString(
-          body.reportingCurrencyCode ?? existing?.reportingCurrencyCode,
-          'Reporting currency is required.',
-        ),
-      ),
+      reportingCurrencyCode:
+        body.reportingCurrencyCode !== undefined
+          ? normalizeCurrencyCode(
+              requiredString(
+                body.reportingCurrencyCode,
+                'Reporting currency is required.',
+              ),
+            )
+          : (existing?.reportingCurrencyCode ??
+            normalizeCurrencyCode(
+              requiredString(
+                body.currencyCode ?? existing?.currencyCode,
+                'Payroll currency is required.',
+              ),
+            )),
       locationId,
       countryCode,
       regionCode,
@@ -1678,8 +1983,78 @@ export class EnterpriseConfigurationService {
       effectiveStartDate,
       effectiveEndDate,
       isDefault: readBoolean(body.isDefault) ?? false,
-      status: readEnum(body.status, ConfigurationStatus) ?? 'ACTIVE',
+      status:
+        readEnum(body.status, ConfigurationStatus) ??
+        existing?.status ??
+        ConfigurationStatus.ACTIVE,
+      subStatus:
+        body.subStatus !== undefined
+          ? (readNullableString(body.subStatus) ?? null)
+          : (existing?.subStatus ?? 'OPEN'),
+      ownerUserId,
     } satisfies Prisma.PayrollRegionUncheckedCreateInput;
+  }
+
+  private async readFiscalYearData(
+    tenantId: string,
+    body: Record<string, unknown>,
+    existing?: {
+      name: string;
+      startDate: Date;
+      endDate: Date;
+      isCurrent: boolean;
+      status: ConfigurationStatus;
+      subStatus: string | null;
+      ownerUserId: string | null;
+      description: string | null;
+    },
+  ) {
+    const startDate = requiredDate(
+      body.startDate ?? existing?.startDate,
+      'Fiscal year start date is required.',
+    );
+    const endDate = requiredDate(
+      body.endDate ?? existing?.endDate,
+      'Fiscal year end date is required.',
+    );
+    if (endDate <= startDate) {
+      throw new BadRequestException(
+        'Fiscal year end date must be after start date.',
+      );
+    }
+    const ownerUserId =
+      body.ownerUserId !== undefined
+        ? readNullableString(body.ownerUserId)
+        : (existing?.ownerUserId ?? null);
+    if (ownerUserId) {
+      const owner = await this.prisma.user.findFirst({
+        where: { tenantId, id: ownerUserId },
+        select: { id: true },
+      });
+      if (!owner) throw new BadRequestException('Record owner was not found.');
+    }
+    return {
+      name: requiredString(
+        body.name ?? existing?.name,
+        'Fiscal year name is required.',
+      ),
+      startDate,
+      endDate,
+      isCurrent: readBoolean(body.isCurrent) ?? existing?.isCurrent ?? false,
+      status:
+        readEnum(body.status, ConfigurationStatus) ??
+        existing?.status ??
+        ConfigurationStatus.ACTIVE,
+      subStatus:
+        body.subStatus !== undefined
+          ? (readNullableString(body.subStatus) ?? null)
+          : (existing?.subStatus ?? 'OPEN'),
+      ownerUserId,
+      description:
+        body.description !== undefined
+          ? (readNullableString(body.description) ?? null)
+          : (existing?.description ?? null),
+    };
   }
 
   private readExchangeRateData(
@@ -1693,6 +2068,11 @@ export class EnterpriseConfigurationService {
       source: ExchangeRateSource;
       isManual: boolean;
       lockedRate: boolean;
+      provider?: string | null;
+      lastFetchedAt?: Date | null;
+      overrideReason?: string | null;
+      subStatus?: string | null;
+      description?: string | null;
       status: ConfigurationStatus;
     },
   ): ExchangeRateData {
@@ -1700,18 +2080,22 @@ export class EnterpriseConfigurationService {
     if (!Number.isFinite(rate) || !rate || rate <= 0) {
       throw new BadRequestException('Exchange rate must be greater than zero.');
     }
-    const effectiveDate = requiredDate(
-      body.effectiveDate ?? existing?.effectiveDate,
-      'Effective from is required.',
-    );
-    const effectiveEndDate =
-      body.effectiveEndDate !== undefined
-        ? readDate(body.effectiveEndDate)
-        : (existing?.effectiveEndDate ?? null);
-    validateDateRange({
-      effectiveStartDate: effectiveDate,
-      effectiveEndDate,
-    });
+    const source =
+      readEnum(body.source, ExchangeRateSource) ?? existing?.source ?? 'MANUAL';
+    const isManual =
+      readBoolean(body.isManual ?? body.override) ??
+      existing?.isManual ??
+      source === ExchangeRateSource.MANUAL;
+    const overrideReason =
+      body.overrideReason !== undefined
+        ? (readString(body.overrideReason) ?? null)
+        : (existing?.overrideReason ?? null);
+
+    if (isManual && !overrideReason) {
+      throw new BadRequestException(
+        'Override reason is required for manual exchange rate overrides.',
+      );
+    }
 
     return {
       fromCurrency: normalizeCurrencyCode(
@@ -1727,14 +2111,30 @@ export class EnterpriseConfigurationService {
         ),
       ),
       rate: new Prisma.Decimal(rate),
-      effectiveDate,
-      effectiveEndDate,
-      source:
-        readEnum(body.source, ExchangeRateSource) ??
-        existing?.source ??
-        'MANUAL',
-      isManual: readBoolean(body.isManual) ?? existing?.isManual ?? true,
+      effectiveDate:
+        readDate(body.effectiveDate) ?? existing?.effectiveDate ?? new Date(),
+      effectiveEndDate: null,
+      source,
+      isManual,
       lockedRate: readBoolean(body.lockedRate) ?? existing?.lockedRate ?? false,
+      provider:
+        body.provider !== undefined
+          ? (readString(body.provider) ?? null)
+          : (existing?.provider ?? (isManual ? null : 'Provider')),
+      lastFetchedAt:
+        readDate(body.lastFetchedAt) ??
+        existing?.lastFetchedAt ??
+        (isManual ? null : new Date()),
+      overrideReason,
+      subStatus:
+        body.subStatus !== undefined
+          ? (readString(body.subStatus) ?? null)
+          : (existing?.subStatus ??
+            (isManual ? 'MANUAL_OVERRIDE' : 'PROVIDER_SYNCED')),
+      description:
+        body.description !== undefined
+          ? (readString(body.description) ?? null)
+          : (existing?.description ?? null),
       status:
         readEnum(body.status, ConfigurationStatus) ??
         existing?.status ??
@@ -1887,37 +2287,108 @@ export class EnterpriseConfigurationService {
     }
   }
 
-  private async assertNoOverlappingExchangeRate(
+  private async assertFiscalYearDoesNotOverlap(
+    tenantId: string,
+    input: {
+      startDate: Date;
+      endDate: Date;
+      idToExclude?: string | null;
+    },
+  ) {
+    const overlaps = await this.prisma.fiscalYear.findFirst({
+      where: {
+        tenantId,
+        status: { not: ConfigurationStatus.ARCHIVED },
+        ...(input.idToExclude ? { id: { not: input.idToExclude } } : {}),
+        startDate: { lte: input.endDate },
+        endDate: { gte: input.startDate },
+      },
+      select: { id: true },
+    });
+    if (overlaps) {
+      throw new ConflictException(
+        'Fiscal year dates cannot overlap another fiscal year.',
+      );
+    }
+  }
+
+  private async assertNoActiveExchangeRate(
     tenantId: string,
     input: {
       fromCurrency: string;
       toCurrency: string;
-      effectiveDate: Date;
-      effectiveEndDate?: Date | null;
       idToExclude: string | null;
     },
   ) {
-    const normalizedEnd =
-      input.effectiveEndDate ?? new Date('9999-12-31T00:00:00.000Z');
-    const overlaps = await this.prisma.exchangeRateSnapshot.findFirst({
+    const activeRate = await this.prisma.exchangeRateSnapshot.findFirst({
       where: {
         tenantId,
         status: 'ACTIVE',
         ...(input.idToExclude ? { id: { not: input.idToExclude } } : {}),
         fromCurrency: input.fromCurrency,
         toCurrency: input.toCurrency,
-        effectiveDate: { lte: normalizedEnd },
-        OR: [
-          { effectiveEndDate: null },
-          { effectiveEndDate: { gte: input.effectiveDate } },
-        ],
       },
     });
-    if (overlaps) {
+    if (activeRate) {
       throw new ConflictException(
-        'An active exchange rate already overlaps this currency pair and effective date range.',
+        'Only one active exchange rate can exist for the same From Currency and To Currency.',
       );
     }
+  }
+
+  private validateExchangeRatePair(fromCurrency: string, toCurrency: string) {
+    if (fromCurrency === toCurrency) {
+      throw new BadRequestException(
+        'From Currency and To Currency cannot be the same.',
+      );
+    }
+  }
+
+  private mapExchangeRate(rate: {
+    id: string;
+    fromCurrency: string;
+    toCurrency: string;
+    rate: Prisma.Decimal;
+    source: ExchangeRateSource;
+    isManual: boolean;
+    provider: string | null;
+    lastFetchedAt: Date | null;
+    overrideReason: string | null;
+    subStatus: string | null;
+    description: string | null;
+    status: ConfigurationStatus;
+    createdAt: Date;
+    updatedAt: Date;
+    createdById: string | null;
+    updatedById: string | null;
+  }) {
+    return {
+      ...rate,
+      rate: rate.rate.toString(),
+      rateName: `${rate.fromCurrency} to ${rate.toCurrency}`,
+      override: rate.isManual,
+      sourceLabel: rate.isManual ? 'Manual Override' : 'Provider',
+    };
+  }
+
+  private async getExchangeRateProviderStatus(tenantId: string) {
+    const lastProviderRate = await this.prisma.exchangeRateSnapshot.findFirst({
+      where: {
+        tenantId,
+        source: ExchangeRateSource.API,
+      },
+      orderBy: [{ lastFetchedAt: 'desc' }, { updatedAt: 'desc' }],
+    });
+
+    return {
+      providerMode: 'AUTOMATIC',
+      provider: lastProviderRate?.provider ?? 'Open Exchange Rates',
+      autoFetchWhenMissing: true,
+      refreshFrequency: 'ON_DEMAND',
+      lastSyncStatus: lastProviderRate ? 'SUCCESS' : 'NEVER_SYNCED',
+      lastSyncAt: lastProviderRate?.lastFetchedAt ?? null,
+      lastErrorMessage: null,
+    };
   }
 
   private async assertNoDuplicateHoliday(
@@ -2028,6 +2499,19 @@ function readDateRangeWithFallback(
       source.effectiveEndDate !== undefined
         ? readDate(source.effectiveEndDate)
         : (existing?.effectiveEndDate ?? null),
+  };
+}
+
+function mapPayrollRegion<
+  T extends {
+    businessUnit?: { name: string } | null;
+    organization?: { name: string } | null;
+  },
+>(region: T) {
+  return {
+    ...region,
+    businessUnitName: region.businessUnit?.name ?? null,
+    organizationName: region.organization?.name ?? null,
   };
 }
 

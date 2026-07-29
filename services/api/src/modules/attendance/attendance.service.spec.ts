@@ -1,4 +1,8 @@
-import { BadRequestException, ConflictException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import {
   AttendanceMode,
   SecurityAccessLevel,
@@ -235,6 +239,17 @@ describe('AttendanceService', () => {
         allowManualAdjustments: true,
         enforceOfficeLocationForOfficeMode: true,
         requireRemoteLocationCapture: true,
+        locationCaptureRequired: false,
+        locationRequiredForModes: [],
+        allowIpFallback: false,
+        allowManualLocationException: false,
+        locationTimeoutSeconds: 15,
+        highAccuracyLocation: true,
+        maxAllowedAccuracyMeters: null,
+        captureLocationOnCheckIn: false,
+        captureLocationOnCheckOut: false,
+        storeIpAddress: false,
+        storeUserAgent: false,
         allowedModes: [
           AttendanceMode.OFFICE,
           AttendanceMode.REMOTE,
@@ -348,6 +363,17 @@ describe('AttendanceService', () => {
       allowManualAdjustments: true,
       enforceOfficeLocationForOfficeMode: false,
       requireRemoteLocationCapture: true,
+      locationCaptureRequired: false,
+      locationRequiredForModes: [],
+      allowIpFallback: false,
+      allowManualLocationException: false,
+      locationTimeoutSeconds: 15,
+      highAccuracyLocation: true,
+      maxAllowedAccuracyMeters: null,
+      captureLocationOnCheckIn: false,
+      captureLocationOnCheckOut: false,
+      storeIpAddress: false,
+      storeUserAgent: false,
       allowedModes: [
         AttendanceMode.OFFICE,
         AttendanceMode.REMOTE,
@@ -362,11 +388,21 @@ describe('AttendanceService', () => {
     ).rejects.toThrow('Office location is required for office attendance.');
   });
 
-  it('persists the resolved shift and does not require geolocation for Office', async () => {
+  it('requires current device location for Office check-in', async () => {
+    await expect(
+      service.checkIn(currentUser, {
+        attendanceMode: AttendanceMode.OFFICE,
+        officeLocationId: 'location-1',
+      }),
+    ).rejects.toThrow(UnprocessableEntityException);
+  });
+
+  it('persists the resolved shift and verified geolocation for Office', async () => {
     await service.checkIn(currentUser, {
       attendanceMode: AttendanceMode.OFFICE,
       officeLocationId: 'location-1',
       note: 'At reception',
+      ...deviceLocation(),
     });
 
     expect(attendanceRepository.createAttendanceEntry).toHaveBeenCalledWith(
@@ -379,29 +415,65 @@ describe('AttendanceService', () => {
         status: 'CHECKED_IN',
         source: 'WEB',
         checkInSource: 'WEB',
-        checkInLatitude: undefined,
-        checkInLongitude: undefined,
+        checkInLatitude: 24.7136,
+        checkInLongitude: 46.6753,
+        locationSource: 'GPS',
       }),
     );
   });
 
   it.each([AttendanceMode.REMOTE, AttendanceMode.HYBRID])(
-    'requires browser geolocation for %s check-in',
+    'requires current device location for %s check-in even when legacy policy is optional',
     async (attendanceMode) => {
       await expect(
         service.checkIn(currentUser, { attendanceMode }),
-      ).rejects.toThrow('attendance requires browser location');
+      ).rejects.toThrow(UnprocessableEntityException);
+    },
+  );
+
+  it.each([AttendanceMode.REMOTE, AttendanceMode.HYBRID])(
+    'returns a controlled location-required error for %s check-in when policy requires it',
+    async (attendanceMode) => {
+      tenantSettingsResolverService.getAttendanceSettings.mockResolvedValueOnce(
+        {
+          defaultGraceMinutes: 0,
+          allowManualAdjustments: true,
+          enforceOfficeLocationForOfficeMode: true,
+          requireRemoteLocationCapture: true,
+          locationCaptureRequired: true,
+          locationRequiredForModes: [attendanceMode],
+          allowIpFallback: false,
+          allowManualLocationException: false,
+          locationTimeoutSeconds: 15,
+          highAccuracyLocation: true,
+          maxAllowedAccuracyMeters: null,
+          captureLocationOnCheckIn: true,
+          captureLocationOnCheckOut: false,
+          storeIpAddress: false,
+          storeUserAgent: false,
+          allowedModes: [
+            AttendanceMode.OFFICE,
+            AttendanceMode.REMOTE,
+            AttendanceMode.HYBRID,
+          ],
+        },
+      );
+
+      await expect(
+        service.checkIn(currentUser, { attendanceMode }),
+      ).rejects.toThrow(UnprocessableEntityException);
     },
   );
 
   it('captures Hybrid check-in coordinates, accuracy, and timestamp', async () => {
-    const capturedAt = '2026-06-12T07:15:00.000Z';
+    const capturedAt = new Date().toISOString();
     await service.checkIn(currentUser, {
       attendanceMode: AttendanceMode.HYBRID,
       remoteLatitude: 24.7136,
       remoteLongitude: 46.6753,
       locationAccuracy: 12,
       locationCapturedAt: capturedAt,
+      locationSource: 'GPS',
     });
 
     expect(attendanceRepository.createAttendanceEntry).toHaveBeenCalledWith(
@@ -413,6 +485,16 @@ describe('AttendanceService', () => {
         checkInLocationCapturedAt: new Date(capturedAt),
       }),
     );
+  });
+
+  it('rejects a stale device location capture', async () => {
+    await expect(
+      service.checkIn(currentUser, {
+        attendanceMode: AttendanceMode.REMOTE,
+        ...deviceLocation(),
+        locationCapturedAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
+      }),
+    ).rejects.toThrow('captured location is stale');
   });
 
   it('blocks check-in when approved leave covers the business date', async () => {
@@ -513,7 +595,8 @@ describe('AttendanceService', () => {
       remoteLatitude: 24.7136,
       remoteLongitude: 46.6753,
       locationAccuracy: 8,
-      locationCapturedAt: '2026-06-12T15:00:00.000Z',
+      locationCapturedAt: new Date().toISOString(),
+      locationSource: 'GPS',
     });
 
     expect(attendanceRepository.updateAttendanceEntry).toHaveBeenCalledWith(
@@ -526,6 +609,25 @@ describe('AttendanceService', () => {
         checkOutLongitude: 46.6753,
         checkOutLocationAccuracy: 8,
       }),
+    );
+  });
+
+  it('requires a fresh device location again at check-out', async () => {
+    const existing = {
+      ...(await attendanceRepository.createAttendanceEntry()),
+      shiftTemplateId: 'shift-1',
+      shiftTemplate: null,
+      attendanceMode: AttendanceMode.OFFICE,
+      checkIn: new Date(Date.now() - 60 * 60 * 1000),
+      checkOut: null,
+      officeLocationId: 'location-1',
+    };
+    attendanceRepository.findAttendanceEntryByEmployeeAndDate.mockResolvedValueOnce(
+      existing,
+    );
+
+    await expect(service.checkOut(currentUser, {})).rejects.toThrow(
+      UnprocessableEntityException,
     );
   });
 
@@ -688,7 +790,7 @@ describe('AttendanceService', () => {
     ).rejects.toThrow('You do not have permission to view team attendance.');
   });
 
-  it('allows CEO users to open attendance details with remote location timestamps', async () => {
+  it('allows CEO users to open attendance details with remote coordinate fallbacks', async () => {
     const ceoUser = {
       tenantId: 'tenant-1',
       userId: 'ceo-user-1',
@@ -735,7 +837,7 @@ describe('AttendanceService', () => {
       notes: null,
       remoteLatitude: 24.7136,
       remoteLongitude: 46.6753,
-      remoteAddressText: 'Riyadh',
+      remoteAddressText: null,
       checkInLatitude: 24.7136,
       checkInLongitude: 46.6753,
       checkInLocationAccuracy: 20,
@@ -776,6 +878,8 @@ describe('AttendanceService', () => {
       id: 'attendance-remote-1',
       remoteLatitude: 24.7136,
       remoteLongitude: 46.6753,
+      checkInLocation: '24.713600, 46.675300',
+      checkOutLocation: '24.713700, 46.675400',
       checkInLocationCapturedAt,
       checkOutLocationCapturedAt,
     });
@@ -866,3 +970,15 @@ describe('AttendanceService', () => {
     );
   });
 });
+
+function deviceLocation() {
+  return {
+    locationLatitude: 24.7136,
+    locationLongitude: 46.6753,
+    locationAccuracyMeters: 12,
+    locationCapturedAt: new Date().toISOString(),
+    locationSource: 'GPS',
+    locationConfidence: 'HIGH',
+    locationPermissionState: 'granted',
+  };
+}

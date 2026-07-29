@@ -6,6 +6,7 @@ import type {
   FieldMetadata,
   FormComponentMetadata,
   FormMetadata,
+  FormSectionMetadata,
   OptionSetValueMetadata,
   ViewColumnMetadata,
   ViewMetadata,
@@ -86,13 +87,24 @@ const RECORD_STATUS_OPTIONS: readonly OptionSetValueMetadata[] = [
 ];
 
 const RECORD_SUB_STATUS_OPTIONS: readonly OptionSetValueMetadata[] = [
+  {
+    value: "DATA_COLLECTION",
+    label: "Data Collection",
+    parentValue: "DRAFT",
+    isDefault: true,
+  },
+  { value: "ONBOARDING", label: "Onboarding", parentValue: "DRAFT" },
+  {
+    value: "READY_FOR_ACTIVATION",
+    label: "Ready for Activation",
+    parentValue: "DRAFT",
+  },
+  { value: "PENDING_REVIEW", label: "Pending Review", parentValue: "DRAFT" },
   { value: "OPEN", label: "Open", parentValue: "ACTIVE", isDefault: true },
   { value: "IN_PROGRESS", label: "In Progress", parentValue: "ACTIVE" },
   { value: "COMPLETED", label: "Completed", parentValue: "ACTIVE" },
   { value: "INACTIVE", label: "Inactive", parentValue: "INACTIVE" },
   { value: "SUSPENDED", label: "Suspended", parentValue: "INACTIVE" },
-  { value: "DRAFT", label: "Draft", parentValue: "DRAFT" },
-  { value: "PENDING_REVIEW", label: "Pending Review", parentValue: "DRAFT" },
   { value: "ARCHIVED", label: "Archived", parentValue: "ARCHIVED" },
   { value: "RETIRED", label: "Retired", parentValue: "ARCHIVED" },
 ];
@@ -260,10 +272,28 @@ const EMPLOYEE_FIELD_DEFINITIONS: readonly EmployeeFieldDefinition[] = [
     lookupEntity: "employee",
   },
   {
+    logicalName: "organizationId",
+    displayName: "Organization",
+    dataType: "lookup",
+    lookupEntity: "organization",
+  },
+  {
+    logicalName: "businessUnitId",
+    displayName: "Business Unit",
+    dataType: "lookup",
+    lookupEntity: "businessUnit",
+  },
+  {
     logicalName: "departmentId",
     displayName: "Department",
     dataType: "lookup",
     lookupEntity: "department",
+  },
+  {
+    logicalName: "teamId",
+    displayName: "Team",
+    dataType: "lookup",
+    lookupEntity: "team",
   },
   {
     logicalName: "designationId",
@@ -552,18 +582,24 @@ export function mapEmployeeForms(
             columns: normalizeFormColumnCount(
               section.columns ?? tab.columns ?? form.layoutJson.columns ?? 3,
             ),
-            fields: section.fields.map((field, fieldIndex) => ({
-              fieldLogicalName: normalizeEmployeeFieldName(field.columnKey),
-              label: field.label,
-              order: field.sequence ?? fieldIndex,
-              isVisible: field.isVisible,
-              isReadonly: field.readOnly,
-              requirementLevel:
-                field.required ||
-                requiredFields.has(normalizeEmployeeFieldName(field.columnKey))
-                  ? "required"
-                  : "none",
-            })),
+            fields: section.fields.map((field, fieldIndex) => {
+              const fieldLogicalName = normalizeEmployeeFieldName(
+                field.columnKey,
+              );
+
+              return {
+                fieldLogicalName,
+                label: field.label,
+                order: field.sequence ?? fieldIndex,
+                isVisible: field.isVisible,
+                isReadonly: field.readOnly,
+                requirementLevel: employeeFormRequirementLevel(
+                  fieldLogicalName,
+                  Boolean(field.required),
+                  requiredFields,
+                ),
+              };
+            }),
             ...(hasExplicitComponents
               ? {
                   components: (section.components ?? []).map(
@@ -660,9 +696,22 @@ function fallbackEmployeeForm(
       ]),
       formRelatedTab(
         "payroll-compensation",
-        "Payroll ",
+        "Compensation",
         60,
         "employee_compensation",
+      ),
+      formRelatedTab(
+        "banking-details",
+        "Banking Details",
+        65,
+        "employee_bank_accounts",
+      ),
+      formRelatedTab("payslips", "Payslips", 66, "employee_payslips"),
+      formRelatedTab(
+        "project-allocations",
+        "Project Allocations",
+        67,
+        "employee_project_allocations",
       ),
       formRelatedTab(
         "previous-employment",
@@ -696,7 +745,6 @@ function fallbackEmployeeForm(
         order: 1,
         layout: "single-column",
         columns: 1,
-        column: 1,
         fields: [],
         components: [
           createSystemWidgetComponent({
@@ -713,7 +761,6 @@ function fallbackEmployeeForm(
         label: "Basic Information",
         order: 10,
         layout: "single-column",
-        column: 1,
         fields: [
           requiredFormField("employeeCode", 10, requiredFields),
           requiredFormField("firstName", 20, requiredFields),
@@ -728,7 +775,6 @@ function fallbackEmployeeForm(
         label: "Employment Information",
         order: 20,
         layout: "single-column",
-        column: 1,
         fields: [
           requiredFormField("employmentStatus", 10, requiredFields),
           { fieldLogicalName: "employeeType", order: 20 },
@@ -748,10 +794,10 @@ function fallbackEmployeeForm(
         label: "Organization",
         order: 30,
         layout: "single-column",
-        column: 3,
         fields: [
-          requiredFormField("departmentId", 10, requiredFields),
-          requiredFormField("designationId", 20, requiredFields),
+          requiredFormField("departmentId", 15, requiredFields),
+          { fieldLogicalName: "teamId", order: 20 },
+          requiredFormField("designationId", 25, requiredFields),
           { fieldLogicalName: "employeeLevelId", order: 30 },
           requiredFormField("locationId", 40, requiredFields),
           { fieldLogicalName: "officialJoiningLocationId", order: 50 },
@@ -765,7 +811,6 @@ function fallbackEmployeeForm(
         label: "Contact Information",
         order: 40,
         layout: "single-column",
-        column: 2,
         fields: [
           { fieldLogicalName: "workEmail", order: 10 },
           requiredFormField("personalEmail", 20, requiredFields),
@@ -779,7 +824,6 @@ function fallbackEmployeeForm(
         label: "Address Information",
         order: 50,
         layout: "single-column",
-        column: 3,
         fields: [
           { fieldLogicalName: "addressLine1", order: 10 },
           { fieldLogicalName: "addressLine2", order: 20 },
@@ -795,7 +839,6 @@ function fallbackEmployeeForm(
         label: "Personal Information",
         order: 60,
         layout: "single-column",
-        column: 1,
         fields: [
           { fieldLogicalName: "dateOfBirth", order: 10 },
           { fieldLogicalName: "gender", order: 20 },
@@ -811,7 +854,6 @@ function fallbackEmployeeForm(
         label: "Documents / Identification",
         order: 70,
         layout: "single-column",
-        column: 3,
         fields: [{ fieldLogicalName: "cnic", order: 10 }],
       },
       {
@@ -820,7 +862,6 @@ function fallbackEmployeeForm(
         label: "Emergency Contact",
         order: 80,
         layout: "single-column",
-        column: 2,
         fields: [
           requiredFormField("emergencyContactName", 10, requiredFields),
           requiredFormField(
@@ -838,7 +879,6 @@ function fallbackEmployeeForm(
         label: "System Information",
         order: 90,
         layout: "single-column",
-        column: 3,
         fields: [
           { fieldLogicalName: "userId", order: 10 },
           { fieldLogicalName: "provisionSystemAccess", order: 20 },
@@ -850,10 +890,9 @@ function fallbackEmployeeForm(
         id: "timeline",
         tabKey: "summary",
         label: "Timeline",
-        order: 15,
+        order: 95,
         layout: "single-column",
         columns: 1,
-        column: 2,
         fields: [],
         components: [
           createSystemWidgetComponent({
@@ -871,7 +910,6 @@ function fallbackEmployeeForm(
         order: 1000,
         layout: "single-column",
         columns: 1,
-        column: 1,
         columnSpan: 3,
         fields: [],
         components: [
@@ -1156,7 +1194,10 @@ export function buildEmptyEmployeeRuntimeValues(
     terminationDate: "",
     ownerId: "",
     reportingManagerEmployeeId: "",
+    organizationId: "",
+    businessUnitId: "",
     departmentId: "",
+    teamId: "",
     designationId: "",
     employeeLevelId: "",
     locationId: "",
@@ -1221,7 +1262,10 @@ export function mapEmployeeRecordToRuntimeValues(
     reportingManagerEmployeeId: stringValue(
       employee.reportingManagerEmployeeId ?? employee.managerEmployeeId,
     ),
+    organizationId: stringValue(employee.organizationId),
+    businessUnitId: stringValue(employee.businessUnitId),
     departmentId: stringValue(employee.departmentId),
+    teamId: stringValue(employee.teamId),
     designationId: stringValue(employee.designationId),
     employeeLevelId: stringValue(employee.employeeLevelId),
     locationId: stringValue(employee.locationId),
@@ -1282,7 +1326,10 @@ export function mapEmployeeRuntimeValuesToUpdatePayload(
     confirmationDate: emptyToNull(values.confirmationDate),
     probationEndDate: emptyToNull(values.probationEndDate),
     terminationDate: emptyToNull(values.terminationDate),
+    organizationId: emptyToNull(values.organizationId),
+    businessUnitId: emptyToNull(values.businessUnitId),
     departmentId: emptyToNull(values.departmentId),
+    teamId: emptyToNull(values.teamId),
     designationId: emptyToNull(values.designationId),
     employeeLevelId: emptyToNull(values.employeeLevelId),
     locationId: emptyToNull(values.locationId),
@@ -1320,11 +1367,13 @@ export function mapEmployeeLookupDisplayValues(
     ownerId: readNestedName(employee.ownerUser, ["fullName", "email"]),
     reportingManagerEmployeeId: readNestedName(employee.reportingManager, [
       "fullName",
-      "employeeCode",
     ]),
-    departmentId: readNestedName(employee.department, ["name", "code"]),
-    designationId: readNestedName(employee.designation, ["name", "level"]),
-    employeeLevelId: readNestedName(employee.employeeLevel, ["name", "code"]),
+    departmentId: readLookupPrimaryName(employee.department),
+    organizationId: readLookupPrimaryName(employee.organization),
+    businessUnitId: readLookupPrimaryName(employee.businessUnit),
+    teamId: readLookupPrimaryName(employee.team),
+    designationId: readLookupPrimaryName(employee.designation),
+    employeeLevelId: readLookupPrimaryName(employee.employeeLevel),
     locationId: readNestedName(employee.location, ["name"]),
     officialJoiningLocationId: readNestedName(
       employee.officialJoiningLocation,
@@ -1339,6 +1388,10 @@ export function mapEmployeeLookupDisplayValues(
     stateProvinceId: stringValue(employee.stateProvince),
     cityId: stringValue(employee.city),
     nationalityCountryId: stringValue(employee.nationality),
+    emergencyContactRelationTypeId: readNestedName(
+      employee.emergencyContactRelationType,
+      ["name", "key"],
+    ),
   };
 }
 
@@ -1376,9 +1429,16 @@ export function mapEmployeeLookupOptions(input: {
           }
         : null,
     ]),
+    organizationId: compactLookupOptions([
+      lookupOptionFromRecord(employee?.organization),
+    ]),
+    businessUnitId: compactLookupOptions([
+      lookupOptionFromRecord(employee?.businessUnit),
+    ]),
     departmentId: compactLookupOptions([
       lookupOptionFromRecord(employee?.department),
     ]),
+    teamId: compactLookupOptions([lookupOptionFromRecord(employee?.team)]),
     designationId: compactLookupOptions([
       lookupOptionFromRecord(employee?.designation),
     ]),
@@ -1393,6 +1453,9 @@ export function mapEmployeeLookupOptions(input: {
     ]),
     defaultWorkScheduleId: compactLookupOptions([
       lookupOptionFromRecord(employee?.defaultWorkSchedule),
+    ]),
+    emergencyContactRelationTypeId: compactLookupOptions([
+      lookupOptionFromRecord(employee?.emergencyContactRelationType),
     ]),
     userId: compactLookupOptions([
       employee
@@ -1532,6 +1595,33 @@ function employeeRelationships() {
       "employeeId",
       "effectiveDate",
     ),
+    relationship(
+      "employee_bank_accounts",
+      "one-to-many",
+      "employee",
+      "employeeBankAccount",
+      "id",
+      "employeeId",
+      "accountTitle",
+    ),
+    relationship(
+      "employee_payslips",
+      "one-to-many",
+      "employee",
+      "payslip",
+      "id",
+      "employeeId",
+      "payslipNumber",
+    ),
+    relationship(
+      "employee_project_allocations",
+      "one-to-many",
+      "employee",
+      "projectAssignment",
+      "id",
+      "employeeId",
+      "projectName",
+    ),
   ] as const;
 }
 
@@ -1539,10 +1629,25 @@ function employeeRelatedTabs() {
   return [
     relatedTab(
       "payroll-compensation",
-      "Payroll ",
+      "Compensation",
       60,
       "subgrid",
       "employee_compensation",
+    ),
+    relatedTab(
+      "banking-details",
+      "Banking Details",
+      65,
+      "subgrid",
+      "employee_bank_accounts",
+    ),
+    relatedTab("payslips", "Payslips", 66, "subgrid", "employee_payslips"),
+    relatedTab(
+      "project-allocations",
+      "Project Allocations",
+      67,
+      "subgrid",
+      "employee_project_allocations",
     ),
     relatedTab(
       "previous-employment",
@@ -1737,6 +1842,12 @@ function relatedSubgrid(
       )?.targetEntityLogicalName ?? relationshipName,
     title,
     columns: relatedColumnsForRelationship(relationshipName),
+    routeBase:
+      relationshipName === "employee_bank_accounts"
+        ? "/employee-bank-accounts"
+        : relationshipName === "employee_payslips"
+          ? "/payroll/payslips"
+          : undefined,
     quickCreateFields:
       relatedQuickCreateFieldsForRelationship(relationshipName),
     emptyStateTitle: `No ${title}`,
@@ -1751,6 +1862,9 @@ function employeeRelatedApi(relationshipName: string) {
     employee_previous_employments: "previous-employments",
     employee_education: "education",
     employee_compensation: "compensation-history",
+    employee_bank_accounts: "bank-accounts",
+    employee_payslips: "payslips",
+    employee_project_allocations: "project-allocations",
     employee_leave_history: "leave-history",
     employee_history: "history",
     employee_attendance: "attendance-history",
@@ -1763,12 +1877,22 @@ function employeeRelatedApi(relationshipName: string) {
   const fullCrud = new Set([
     "employee_previous_employments",
     "employee_education",
+    "employee_documents",
   ]).has(relationshipName);
-  const createOnly = relationshipName === "employee_history";
   const updateOnly = relationshipName === "employee_compensation";
+  const createOnlyRelationships = new Set([
+    "employee_history",
+    "employee_bank_accounts",
+  ]);
+  const createOnly = createOnlyRelationships.has(relationshipName);
   return {
     listPath,
-    createPath: fullCrud || createOnly || updateOnly ? listPath : undefined,
+    createPath:
+      relationshipName === "employee_documents"
+        ? `${listPath}/upload`
+        : fullCrud || createOnly || updateOnly
+          ? listPath
+          : undefined,
     updatePath: fullCrud || updateOnly ? `${listPath}/{recordId}` : undefined,
     deletePath: fullCrud ? `${listPath}/{recordId}` : undefined,
     permissions: relatedPermissionsForRelationship(relationshipName),
@@ -1778,17 +1902,33 @@ function employeeRelatedApi(relationshipName: string) {
 function relatedPermissionsForRelationship(relationshipName: string) {
   if (relationshipName === "employee_education") {
     return {
-      create: "employees.education.create",
-      update: "employees.education.update",
-      delete: "employees.education.delete",
+      create: ["employees.education.create", "employees.education.create.self"],
+      update: ["employees.education.update", "employees.education.update.self"],
+      delete: ["employees.education.delete", "employees.education.delete.self"],
     };
   }
 
   if (relationshipName === "employee_previous_employments") {
     return {
-      create: "employees.update",
-      update: "employees.update",
-      delete: "employees.update",
+      create: ["employees.update", "employees.update.self"],
+      update: ["employees.update", "employees.update.self"],
+      delete: ["employees.update", "employees.update.self"],
+    };
+  }
+
+  if (relationshipName === "employee_documents") {
+    return {
+      create: ["employees.documents.upload", "employees.documents.upload.self"],
+      update: ["employees.documents.upload", "employees.documents.upload.self"],
+      delete: ["employees.documents.delete", "employees.documents.delete.self"],
+    };
+  }
+
+  if (relationshipName === "employee_bank_accounts") {
+    return {
+      create: "employee-bank-accounts.manage",
+      update: "employee-bank-accounts.manage",
+      delete: "employee-bank-accounts.manage",
     };
   }
 
@@ -1812,7 +1952,7 @@ function relatedColumnsForRelationship(relationshipName: string) {
     ],
     employee_timesheets: ["periodStart", "periodEnd", "status", "totalHours"],
     employee_history: ["eventDate", "title", "eventType", "changedByUserId"],
-    employee_documents: ["fileName", "documentType", "uploadedAt"],
+    employee_documents: ["fileName", "documentType", "version", "uploadedAt"],
     employee_education: [
       "degreeTitle",
       "institutionName",
@@ -1820,16 +1960,80 @@ function relatedColumnsForRelationship(relationshipName: string) {
       "endDate",
     ],
     employee_compensation: [
-      "effectiveDate",
-      "grossSalary",
-      "currency",
+      "effectiveFrom",
+      "effectiveTo",
+      "salaryPackageRuleId",
+      "currencyCode",
+      "grossEarnings",
+      "status",
+      "changeReason",
+      "approvedById",
+      "updatedAt",
+    ],
+    employee_bank_accounts: [
+      "bankName",
+      "accountTitle",
+      "accountNumber",
+      "iban",
+      "branchName",
+      "currencyCode",
+      "isPrimaryPayroll",
+      "verificationStatus",
+      "isActive",
+      "effectiveFrom",
+      "effectiveTo",
+      "updatedAt",
+    ],
+    employee_payslips: [
+      "periodName",
+      "payslipNumber",
+      "status",
+      "grossEarnings",
+      "totalDeductions",
+      "totalTaxes",
+      "netPay",
+      "currencyCode",
+      "publishedAt",
+    ],
+    employee_project_allocations: [
+      "projectName",
+      "customerName",
+      "allocationType",
+      "allocationValue",
+      "billable",
+      "effectiveFrom",
+      "effectiveTo",
       "status",
     ],
+  };
+
+  const labelsByField: Record<string, string> = {
+    accountNumber: "Account Number",
+    accountTitle: "Account Title",
+    bankName: "Bank",
+    branchName: "Branch",
+    currencyCode: "Currency",
+    effectiveFrom: "Effective From",
+    effectiveTo: "Effective To",
+    iban: "IBAN",
+    isActive: "Active",
+    isPrimaryPayroll: "Primary Payroll",
+    updatedAt: "Updated At",
+    verificationStatus: "Verification",
+    grossEarnings: "Gross Earnings",
+    netPay: "Net Pay",
+    payslipNumber: "Payslip",
+    periodName: "Period",
+    publishedAt: "Published At",
+    status: "Status",
+    totalDeductions: "Deductions",
+    totalTaxes: "Taxes",
   };
 
   return (columnsByRelationship[relationshipName] ?? ["id"]).map(
     (fieldLogicalName, index) => ({
       fieldLogicalName,
+      label: labelsByField[fieldLogicalName],
       order: (index + 1) * 10,
     }),
   );
@@ -1939,6 +2143,85 @@ function relatedQuickCreateFieldsForRelationship(relationshipName: string) {
         dataType: "multiline-string",
       },
     ],
+    employee_bank_accounts: [
+      {
+        fieldLogicalName: "bankId",
+        label: "Bank",
+        dataType: "lookup",
+      },
+      {
+        fieldLogicalName: "accountTitle",
+        label: "Account title",
+        dataType: "string",
+        required: true,
+        maxLength: 160,
+      },
+      {
+        fieldLogicalName: "accountNumber",
+        label: "Account number",
+        dataType: "string",
+        maxLength: 80,
+      },
+      {
+        fieldLogicalName: "iban",
+        label: "IBAN",
+        dataType: "string",
+        maxLength: 80,
+      },
+      {
+        fieldLogicalName: "swiftOrRoutingCode",
+        label: "SWIFT / Routing code",
+        dataType: "string",
+        maxLength: 80,
+      },
+      {
+        fieldLogicalName: "branchName",
+        label: "Branch",
+        dataType: "string",
+        maxLength: 120,
+      },
+      {
+        fieldLogicalName: "branchCode",
+        label: "Branch code",
+        dataType: "string",
+        maxLength: 40,
+      },
+      {
+        fieldLogicalName: "countryCode",
+        label: "Country",
+        dataType: "lookup",
+        required: true,
+        maxLength: 2,
+      },
+      {
+        fieldLogicalName: "currencyCode",
+        label: "Currency",
+        dataType: "lookup",
+        required: true,
+        maxLength: 3,
+      },
+      {
+        fieldLogicalName: "isPrimaryPayroll",
+        label: "Primary payroll account",
+        dataType: "boolean",
+      },
+      {
+        fieldLogicalName: "effectiveFrom",
+        label: "Effective from",
+        dataType: "date",
+        required: true,
+      },
+      {
+        fieldLogicalName: "effectiveTo",
+        label: "Effective to",
+        dataType: "date",
+      },
+      {
+        fieldLogicalName: "employeeNotes",
+        label: "Notes",
+        dataType: "multiline-string",
+      },
+    ],
   };
 
   return fieldsByRelationship[relationshipName];
@@ -2007,6 +2290,30 @@ function employeeLookupDependencyMetadata(logicalName: string) {
     return {
       dependsOnFieldId: "stateProvinceId",
       dependencyFilterKey: "stateProvinceId",
+      resetOnParentChange: true,
+    };
+  }
+
+  if (logicalName === "teamId") {
+    return {
+      dependsOnFieldId: "departmentId",
+      dependencyFilterKey: "departmentId",
+      resetOnParentChange: true,
+    };
+  }
+
+  if (logicalName === "departmentId") {
+    return {
+      dependsOnFieldId: "businessUnitId",
+      dependencyFilterKey: "businessUnitId",
+      resetOnParentChange: true,
+    };
+  }
+
+  if (logicalName === "businessUnitId") {
+    return {
+      dependsOnFieldId: "organizationId",
+      dependencyFilterKey: "organizationId",
       resetOnParentChange: true,
     };
   }
@@ -2141,6 +2448,20 @@ function requiredFormField(
   };
 }
 
+function employeeFormRequirementLevel(
+  fieldLogicalName: string,
+  isExplicitlyRequired: boolean,
+  requiredFields: ReadonlySet<string>,
+) {
+  if (fieldLogicalName === "teamId") {
+    return "none" as const;
+  }
+
+  return isExplicitlyRequired || requiredFields.has(fieldLogicalName)
+    ? ("required" as const)
+    : ("none" as const);
+}
+
 const employeeOptionSets: Record<string, readonly OptionSetValueMetadata[]> = {
   employmentStatus: EMPLOYEE_STATUS_OPTIONS,
   employeeType: EMPLOYEE_TYPE_OPTIONS,
@@ -2157,22 +2478,73 @@ function ensureSystemForms(forms: readonly FormMetadata[]) {
   const byLogicalName = new Map<string, FormMetadata>();
 
   for (const form of [...systemEmployeeForms(), ...forms]) {
-    byLogicalName.set(form.logicalName, form);
+    byLogicalName.set(form.logicalName, ensureSystemRelatedTabs(form));
   }
 
   return Array.from(byLogicalName.values()).map(normalizeRuntimeFormLayout);
 }
 
+function ensureSystemRelatedTabs(form: FormMetadata): FormMetadata {
+  if (form.formType !== "main") return form;
+
+  const existingKeys = new Set(form.tabs?.map((tab) => tab.tabKey) ?? []);
+  const existingRelationships = new Set(
+    form.tabs
+      ?.map((tab) => tab.subgrid?.relationshipName)
+      .filter((value): value is string => Boolean(value)) ?? [],
+  );
+  const additions = [
+    formRelatedTab("payslips", "Payslips", 66, "employee_payslips"),
+  ].filter(
+    (tab) =>
+      !existingKeys.has(tab.tabKey) &&
+      !existingRelationships.has(tab.subgrid.relationshipName),
+  );
+
+  if (!additions.length) return form;
+
+  return {
+    ...form,
+    tabs: [...(form.tabs ?? []), ...additions].sort(
+      (left, right) => left.order - right.order,
+    ),
+  };
+}
+
 function normalizeRuntimeFormLayout(form: FormMetadata): FormMetadata {
   return {
     ...form,
-    columns: 3,
+    columns: normalizeFormColumnCount(form.columns ?? 3),
     sections: form.sections.map((section) => ({
       ...section,
-      columns: 1,
-      layout: "single-column",
+      columns: normalizeFormColumnCount(
+        section.columns ?? columnsFromSectionLayoutValue(section.layout),
+      ),
+      layout: normalizeSectionLayout(
+        section.layout,
+        section.columns ?? columnsFromSectionLayoutValue(section.layout),
+      ),
     })),
   };
+}
+
+function columnsFromSectionLayoutValue(
+  layout: FormSectionMetadata["layout"] | undefined,
+) {
+  if (layout === "three-column") return 3;
+  if (layout === "two-column") return 2;
+  return 1;
+}
+
+function normalizeSectionLayout(
+  layout: FormSectionMetadata["layout"] | undefined,
+  columns: unknown,
+): FormSectionMetadata["layout"] {
+  if (layout === "three-column" || layout === "two-column") return layout;
+  const normalizedColumns = normalizeFormColumnCount(Number(columns));
+  if (normalizedColumns === 3) return "three-column";
+  if (normalizedColumns === 2) return "two-column";
+  return "single-column";
 }
 
 function ensureDefaultView(views: readonly ViewMetadata[]) {
@@ -2224,11 +2596,22 @@ function readNestedName(value: unknown, fields: readonly string[]) {
   return values.join(" ").trim();
 }
 
+function readLookupPrimaryName(value: unknown) {
+  if (!value || typeof value !== "object") return "";
+  const record = value as Record<string, unknown>;
+  return (
+    stringValue(record.name) ||
+    stringValue(record.fullName) ||
+    stringValue(record.displayName) ||
+    stringValue(record.label)
+  );
+}
+
 function lookupOptionFromRecord(value: unknown) {
   if (!value || typeof value !== "object") return null;
   const record = value as Record<string, unknown>;
   const id = stringValue(record.id);
-  const name = readNestedName(record, ["name", "fullName", "code"]);
+  const name = readLookupPrimaryName(record);
 
   return id && name
     ? {

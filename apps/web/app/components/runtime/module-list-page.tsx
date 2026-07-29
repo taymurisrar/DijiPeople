@@ -17,6 +17,7 @@ import { TenantRuntimeStyleProvider } from "./tenant-runtime-style-provider";
 
 export function ModuleListPage({
   activeView,
+  commandBarAddon,
   dataAdapter,
   listRecords = [],
   moduleKey,
@@ -29,6 +30,7 @@ export function ModuleListPage({
   commandRecord,
 }: {
   readonly activeView?: ViewMetadata | null;
+  readonly commandBarAddon?: ReactNode;
   readonly dataAdapter?: ModuleDataAdapter;
   readonly listRecords?: readonly Readonly<Record<string, unknown>>[];
   readonly moduleKey: string;
@@ -171,6 +173,7 @@ export function ModuleListPage({
                   resolvedActiveView?.viewId ?? resolvedActiveView?.id
                 }
                 commands={commandGroups}
+                commandBarAddon={commandBarAddon}
                 error={
                   lastResult?.status === "failure" ? lastResult.message : null
                 }

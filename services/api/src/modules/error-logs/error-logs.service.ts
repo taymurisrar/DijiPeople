@@ -40,6 +40,7 @@ export class ErrorLogsService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(ErrorLogsService.name);
   private retentionTimer: NodeJS.Timeout | null = null;
   private missingTableWarningLogged = false;
+  private databaseUnavailableWarningLogged = false;
   private errorLogTableAvailable: boolean | null = null;
 
   constructor(
@@ -48,7 +49,6 @@ export class ErrorLogsService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit() {
-    void this.cleanupExpiredLogs();
     this.retentionTimer = setInterval(
       () => void this.cleanupExpiredLogs(),
       24 * 60 * 60 * 1000,
@@ -211,7 +211,7 @@ export class ErrorLogsService implements OnModuleInit, OnModuleDestroy {
         JSON.stringify({
           traceId: 'retention',
           message: 'Error log retention cleanup failed.',
-          error: error instanceof Error ? error.message : String(error),
+          error: formatPrismaError(error),
         }),
       );
     }
@@ -251,19 +251,20 @@ export class ErrorLogsService implements OnModuleInit, OnModuleDestroy {
     }
 
     try {
-      const result = await this.prisma.$queryRaw<
-        Array<{ exists: boolean }>
-      >`SELECT to_regclass('public."ErrorLog"') IS NOT NULL AS "exists"`;
-      this.errorLogTableAvailable = Boolean(result[0]?.exists);
+      await this.prisma.errorLog.count({ take: 1 });
+      this.errorLogTableAvailable = true;
     } catch (error) {
       if (this.isErrorLogTableMissing(error)) {
         this.errorLogTableAvailable = false;
+      } else if (this.isDatabaseUnavailable(error)) {
+        this.logDatabaseUnavailableWarning(traceId, error);
+        return false;
       } else {
         this.logger.warn(
           JSON.stringify({
             traceId,
             message: 'Unable to verify ErrorLog table availability.',
-            error: error instanceof Error ? error.message : String(error),
+            error: formatPrismaError(error),
           }),
         );
         return false;
@@ -275,6 +276,26 @@ export class ErrorLogsService implements OnModuleInit, OnModuleDestroy {
     }
 
     return this.errorLogTableAvailable;
+  }
+
+  private isDatabaseUnavailable(error: unknown) {
+    return getPrismaErrorCode(error) === 'ECONNREFUSED';
+  }
+
+  private logDatabaseUnavailableWarning(traceId: string, error: unknown) {
+    if (this.databaseUnavailableWarningLogged) {
+      return;
+    }
+
+    this.databaseUnavailableWarningLogged = true;
+    this.logger.debug(
+      JSON.stringify({
+        traceId,
+        message:
+          'ErrorLog table availability check skipped because the database is not reachable.',
+        error: formatPrismaError(error),
+      }),
+    );
   }
 
   private logMissingTableWarning(traceId: string) {
@@ -296,4 +317,29 @@ export class ErrorLogsService implements OnModuleInit, OnModuleDestroy {
 
 function normalizeRole(value: string) {
   return value.trim().toLowerCase().replace(/\s+/g, '-');
+}
+
+function getPrismaErrorCode(error: unknown) {
+  return typeof error === 'object' && error !== null && 'code' in error
+    ? String((error as { code?: unknown }).code)
+    : null;
+}
+
+function formatPrismaError(error: unknown) {
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    return {
+      code: error.code,
+      message: error.message,
+      meta: error.meta,
+    };
+  }
+
+  if (error instanceof Error) {
+    return {
+      name: error.name,
+      message: error.message,
+    };
+  }
+
+  return String(error);
 }

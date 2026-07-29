@@ -71,8 +71,6 @@ export class DepartmentsController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
-    return this.organizationService.updateDepartment(user, id, {
-      isActive: false,
-    });
+    return this.organizationService.deleteDepartment(user, id);
   }
 }

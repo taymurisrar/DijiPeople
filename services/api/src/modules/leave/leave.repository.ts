@@ -314,6 +314,17 @@ export class LeaveRepository {
     });
   }
 
+  listLeavePolicyRulesByLeaveType(tenantId: string, leaveTypeId: string) {
+    return this.prisma.leavePolicyRule.findMany({
+      where: { tenantId, leaveTypeId },
+      include: {
+        leaveType: true,
+        leavePolicy: true,
+      },
+      orderBy: [{ isActive: 'desc' }, { createdAt: 'desc' }],
+    });
+  }
+
   listActiveLeavePolicyRules(tenantId: string, leavePolicyId: string) {
     return this.prisma.leavePolicyRule.findMany({
       where: {
@@ -416,6 +427,19 @@ export class LeaveRepository {
   listLeavePolicyAssignments(tenantId: string) {
     return (this.prisma as any).leavePolicyAssignment.findMany({
       where: { tenantId },
+      include: { leavePolicy: true },
+      orderBy: [
+        { isActive: 'desc' },
+        { scopeType: 'asc' },
+        { priority: 'desc' },
+        { effectiveFrom: 'desc' },
+      ],
+    });
+  }
+
+  listLeavePolicyAssignmentsByPolicy(tenantId: string, leavePolicyId: string) {
+    return (this.prisma as any).leavePolicyAssignment.findMany({
+      where: { tenantId, leavePolicyId },
       include: { leavePolicy: true },
       orderBy: [
         { isActive: 'desc' },

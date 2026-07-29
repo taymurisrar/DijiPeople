@@ -41,12 +41,56 @@ export class CreateLeavePolicyRuleDto {
   @Max(365)
   entitlementDays?: number;
 
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(36500)
+  minimumServiceDays?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  prorateOnJoining?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  prorateOnExit?: boolean;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(365)
+  maximumNegativeBalance?: number;
+
   @IsEnum(LeaveRuleAccrualTypeValues)
   accrualType!: LeaveRuleAccrualType;
 
   @IsOptional()
   @IsEnum(LeaveAccrualFrequencyValues)
   accrualFrequency?: LeaveAccrualFrequency;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(31)
+  accrualDay?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(365)
+  accrualAmount?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  accrueDuringProbation?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  creditOnJoining?: boolean;
 
   @IsOptional()
   @IsBoolean()
@@ -60,8 +104,70 @@ export class CreateLeavePolicyRuleDto {
   carryForwardLimit?: number;
 
   @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(1200)
+  carryForwardExpiryMonths?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  encashUnusedBalance?: boolean;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(365)
+  maximumEncashmentDays?: number;
+
+  @IsOptional()
   @IsBoolean()
   negativeBalanceAllowed?: boolean;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(365)
+  minimumNoticeDays?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(365)
+  minimumConsecutiveDays?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  allowDuringProbation?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  allowBackdatedRequests?: boolean;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(3650)
+  maxBackdatedDays?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  allowFutureRequests?: boolean;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(3650)
+  maxFutureDays?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  blockDuringNoticePeriod?: boolean;
 
   @IsOptional()
   @Type(() => Number)
@@ -102,6 +208,25 @@ export class CreateLeavePolicyRuleDto {
   @IsOptional()
   @IsBoolean()
   approvalRequired?: boolean;
+
+  @IsOptional()
+  @IsUUID()
+  approvalMatrixId?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(365)
+  autoApproveUnderDays?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  requireHrApproval?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  requirePayrollApproval?: boolean;
 
   @IsOptional()
   @IsBoolean()

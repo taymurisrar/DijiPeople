@@ -62,8 +62,8 @@ export function DataTablePagination({
   }
 
   return (
-    <div className="flex flex-col gap-4 rounded-b-[24px] border-t border-border bg-surface-strong px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
-      <div className="text-sm text-muted">
+    <div className="flex flex-col gap-3 rounded-b-lg border-t border-border bg-surface-strong px-5 py-3 lg:flex-row lg:items-center lg:justify-between">
+      <div className="whitespace-nowrap text-sm text-muted">
         Showing{" "}
         <span className="font-semibold text-foreground">{startItem}</span> to{" "}
         <span className="font-semibold text-foreground">{endItem}</span> of{" "}
@@ -71,13 +71,13 @@ export function DataTablePagination({
         records
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <label className="flex items-center gap-2 text-sm text-muted">
+      <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+        <label className="flex items-center gap-2 whitespace-nowrap text-sm text-muted">
           Rows per page
           <select
             value={safePageSize}
             onChange={(event) => handlePageSizeChange(event.target.value)}
-            className="h-10 rounded-xl border border-border bg-white px-3 text-sm text-foreground outline-none transition focus:border-accent"
+            className="h-9 rounded-lg border border-border bg-white px-3 text-sm text-foreground outline-none transition focus:border-accent"
           >
             {pageSizeOptions.map((option) => (
               <option key={option} value={option}>
@@ -87,7 +87,7 @@ export function DataTablePagination({
           </select>
         </label>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex max-w-full items-center gap-1.5 overflow-x-auto whitespace-nowrap pb-0.5 sm:pb-0">
           <PaginationLink
             disabled={currentPage <= 1}
             href={buildHref(currentPage - 1)}
@@ -151,7 +151,7 @@ function PaginationLink({
       <span
         aria-disabled="true"
         aria-label={label}
-        className="inline-flex h-10 cursor-not-allowed items-center justify-center gap-1 rounded-xl border border-border bg-white px-3 text-sm font-medium text-muted opacity-50"
+        className="inline-flex h-9 min-w-9 cursor-not-allowed items-center justify-center gap-1 rounded-lg border border-border bg-white px-2.5 text-sm font-medium text-muted opacity-50"
       >
         {children}
       </span>
@@ -162,7 +162,7 @@ function PaginationLink({
     <Link
       aria-current={active ? "page" : undefined}
       aria-label={label}
-      className={`inline-flex h-10 items-center justify-center gap-1 rounded-xl px-3 text-sm font-semibold transition ${
+      className={`inline-flex h-9 min-w-9 items-center justify-center gap-1 rounded-lg px-2.5 text-sm font-semibold transition ${
         active
           ? "bg-accent text-white shadow-sm"
           : "border border-border bg-white text-foreground hover:border-accent/40 hover:text-accent"
@@ -178,32 +178,17 @@ function getVisiblePages(
   currentPage: number,
   totalPages: number,
 ): Array<number | "ellipsis"> {
-  if (totalPages <= 7) {
+  if (totalPages <= 5) {
     return Array.from({ length: totalPages }, (_, index) => index + 1);
   }
 
-  if (currentPage <= 3) {
-    return [1, 2, 3, 4, "ellipsis", totalPages];
+  if (currentPage <= 2) {
+    return [1, 2, "ellipsis", totalPages];
   }
 
-  if (currentPage >= totalPages - 2) {
-    return [
-      1,
-      "ellipsis",
-      totalPages - 3,
-      totalPages - 2,
-      totalPages - 1,
-      totalPages,
-    ];
+  if (currentPage >= totalPages - 1) {
+    return [1, "ellipsis", totalPages - 1, totalPages];
   }
 
-  return [
-    1,
-    "ellipsis",
-    currentPage - 1,
-    currentPage,
-    currentPage + 1,
-    "ellipsis",
-    totalPages,
-  ];
+  return [1, "ellipsis", currentPage, "ellipsis", totalPages];
 }

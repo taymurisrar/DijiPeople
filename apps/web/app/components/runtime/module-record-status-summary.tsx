@@ -18,24 +18,25 @@ export function ModuleRecordStatusSummary({
   readonly subStatus?: string;
 }) {
   const summary = [status, subStatus, owner]
-    .filter((value) => value && value !== "Not set")
+    .filter(Boolean)
     .join(" / ");
+  const fallback = owner ? "Owner, Status, Sub Status" : "Status";
 
   return (
     <button
       aria-expanded={open}
       aria-haspopup="dialog"
-      className="inline-flex h-12 min-w-[240px] max-w-full items-center justify-between gap-3 rounded-lg border border-border bg-white px-3 text-left text-sm text-foreground shadow-sm transition hover:bg-muted/10"
+      className="inline-flex h-12 w-full min-w-0 items-center justify-between gap-3 rounded-lg border border-border bg-white px-3 text-left text-sm text-foreground shadow-sm transition hover:bg-muted/10"
       onClick={onToggle}
       title={disabledReason}
       type="button"
     >
-      <span className="min-w-0">
+      <span className="min-w-0 flex-1">
         <span className="block text-[11px] font-semibold uppercase text-muted">
           Record Status
         </span>
         <span className="block truncate font-medium">
-          {summary || "Owner, Status, Sub Status"}
+          {summary || fallback}
         </span>
       </span>
       <ChevronDown

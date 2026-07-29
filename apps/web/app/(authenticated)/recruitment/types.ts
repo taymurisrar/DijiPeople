@@ -283,14 +283,44 @@ export type ApplicationRecord = {
 export type JobOpeningRecord = {
   id: string;
   tenantId: string;
+  pipelineId?: string | null;
   title: string;
   code?: string | null;
   description?: string | null;
   status: JobOpeningStatus;
   matchCriteria?: JobOpeningMatchCriteria | null;
+  pipeline?: RecruitmentPipelineRecord | null;
   createdAt: string;
   updatedAt: string;
   applications: ApplicationRecord[];
+};
+
+export type RecruitmentPipelineStageRecord = {
+  id: string;
+  stageKey: RecruitmentStage;
+  label: string;
+  color?: string | null;
+  sortOrder: number;
+  isTerminal: boolean;
+  isActive: boolean;
+};
+
+export type RecruitmentPipelineRecord = {
+  id: string;
+  name: string;
+  code?: string | null;
+  description?: string | null;
+  isDefault: boolean;
+  isActive: boolean;
+  allowBackwardMove: boolean;
+  requireRejectReason: boolean;
+  stages: RecruitmentPipelineStageRecord[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type RecruitmentPipelineListResponse = {
+  items: RecruitmentPipelineRecord[];
 };
 
 export type CandidateRecord = {

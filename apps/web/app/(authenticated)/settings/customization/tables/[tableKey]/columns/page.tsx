@@ -3,6 +3,10 @@ import { SettingsShell } from "../../../../_components/settings-shell";
 import { requireSettingsPermissions } from "../../../../_lib/require-settings-permission";
 import { TableDetailShell } from "../../../_components/table-detail-shell";
 import {
+  mergeRuntimeForms,
+  mergeRuntimeViews,
+} from "../../../_lib/runtime-customization-metadata";
+import {
   CustomizationColumn,
   CustomizationForm,
   CustomizationPackage,
@@ -26,19 +30,19 @@ export default async function CustomizationTableColumnsPage({
 
   const [table, columns, views, forms, lookupTables, packages] =
     await Promise.all([
-    apiRequestJson<CustomizationTable>(`/customization/tables/${tableKey}`),
-    apiRequestJson<CustomizationColumn[]>(
-      `/customization/tables/${tableKey}/columns`,
-    ),
-    apiRequestJson<CustomizationView[]>(
-      `/customization/tables/${tableKey}/views`,
-    ),
-    apiRequestJson<CustomizationForm[]>(
-      `/customization/tables/${tableKey}/forms`,
-    ),
-    apiRequestJson<CustomizationTable[]>("/customization/tables"),
-    apiRequestJson<CustomizationPackage[]>("/customization/packages"),
-  ]);
+      apiRequestJson<CustomizationTable>(`/customization/tables/${tableKey}`),
+      apiRequestJson<CustomizationColumn[]>(
+        `/customization/tables/${tableKey}/columns`,
+      ),
+      apiRequestJson<CustomizationView[]>(
+        `/customization/tables/${tableKey}/views`,
+      ),
+      apiRequestJson<CustomizationForm[]>(
+        `/customization/tables/${tableKey}/forms`,
+      ),
+      apiRequestJson<CustomizationTable[]>("/customization/tables"),
+      apiRequestJson<CustomizationPackage[]>("/customization/packages"),
+    ]);
 
   return (
     <SettingsShell
@@ -48,12 +52,12 @@ export default async function CustomizationTableColumnsPage({
     >
       <TableDetailShell
         columns={columns}
-        forms={forms}
+        forms={mergeRuntimeForms(tableKey, forms)}
         initialTab="columns"
         lookupTables={lookupTables}
         packages={packages}
         table={table}
-        views={views}
+        views={mergeRuntimeViews(tableKey, views)}
       />
     </SettingsShell>
   );

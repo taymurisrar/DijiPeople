@@ -18,7 +18,19 @@ function emptyStringToUndefined({ value }: { value: unknown }) {
   return trimmed.length === 0 ? undefined : trimmed;
 }
 
+function normalizeMonetaryAmount({ value }: { value: unknown }) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return String(value);
+  }
+  if (typeof value === 'string') {
+    return value.trim();
+  }
+  return value;
+}
+
 export class UpsertEmployeeCompensationDto {
+  @Transform(normalizeMonetaryAmount)
+  @IsString()
   @Matches(/^\d+(\.\d{1,2})?$/)
   basicSalary!: string;
 

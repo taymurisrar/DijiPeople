@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseUUIDPipe,
@@ -22,6 +23,12 @@ import {
   UpdatePayrollCalendarDto,
   UpdatePayrollPeriodDto,
 } from './dto/payroll-core.dto';
+import {
+  CreatePayrollAdjustmentDto,
+  PayrollAdjustmentDecisionDto,
+  PayrollExceptionActionDto,
+  UpdatePayrollAdjustmentDto,
+} from './dto/payroll-adjustment.dto';
 import { PayrollRunService } from './payroll-run.service';
 
 @Controller('payroll')
@@ -130,6 +137,15 @@ export class PayrollRunController {
     return this.payrollRunService.getPayrollRun(user, id);
   }
 
+  @Delete('runs/:id')
+  @Permissions('payroll-runs.delete')
+  deletePayrollRun(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.payrollRunService.deletePayrollRun(user, id);
+  }
+
   @Post('runs/:id/calculate')
   @Permissions('payroll-runs.calculate')
   calculatePayrollRun(
@@ -173,5 +189,128 @@ export class PayrollRunController {
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
     return this.payrollRunService.listRunExceptions(user, id);
+  }
+
+  @Post('runs/:id/exceptions/:exceptionId/acknowledge')
+  @Permissions('payroll-runs.calculate')
+  acknowledgeRunException(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('exceptionId', new ParseUUIDPipe()) exceptionId: string,
+    @Body() dto: PayrollExceptionActionDto,
+  ) {
+    return this.payrollRunService.acknowledgeRunException(
+      user,
+      id,
+      exceptionId,
+      dto,
+    );
+  }
+
+  @Post('runs/:id/exceptions/:exceptionId/resolve')
+  @Permissions('payroll-runs.calculate')
+  resolveRunException(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('exceptionId', new ParseUUIDPipe()) exceptionId: string,
+    @Body() dto: PayrollExceptionActionDto,
+  ) {
+    return this.payrollRunService.resolveRunException(
+      user,
+      id,
+      exceptionId,
+      dto,
+    );
+  }
+
+  @Get('runs/:id/adjustments')
+  @Permissions('payroll-runs.read')
+  listRunAdjustments(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.payrollRunService.listRunAdjustments(user, id);
+  }
+
+  @Post('runs/:id/adjustments')
+  @Permissions('payroll-runs.manage')
+  createRunAdjustment(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: CreatePayrollAdjustmentDto,
+  ) {
+    return this.payrollRunService.createRunAdjustment(user, id, dto);
+  }
+
+  @Patch('runs/:id/adjustments/:adjustmentId')
+  @Permissions('payroll-runs.manage')
+  updateRunAdjustment(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('adjustmentId', new ParseUUIDPipe()) adjustmentId: string,
+    @Body() dto: UpdatePayrollAdjustmentDto,
+  ) {
+    return this.payrollRunService.updateRunAdjustment(
+      user,
+      id,
+      adjustmentId,
+      dto,
+    );
+  }
+
+  @Delete('runs/:id/adjustments/:adjustmentId')
+  @Permissions('payroll-runs.manage')
+  deleteRunAdjustment(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('adjustmentId', new ParseUUIDPipe()) adjustmentId: string,
+  ) {
+    return this.payrollRunService.deleteRunAdjustment(user, id, adjustmentId);
+  }
+
+  @Post('runs/:id/adjustments/:adjustmentId/submit')
+  @Permissions('payroll-runs.manage')
+  submitRunAdjustment(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('adjustmentId', new ParseUUIDPipe()) adjustmentId: string,
+  ) {
+    return this.payrollRunService.submitRunAdjustment(user, id, adjustmentId);
+  }
+
+  @Post('runs/:id/adjustments/:adjustmentId/approve')
+  @Permissions('payroll-runs.manage')
+  approveRunAdjustment(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('adjustmentId', new ParseUUIDPipe()) adjustmentId: string,
+  ) {
+    return this.payrollRunService.approveRunAdjustment(user, id, adjustmentId);
+  }
+
+  @Post('runs/:id/adjustments/:adjustmentId/reject')
+  @Permissions('payroll-runs.manage')
+  rejectRunAdjustment(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('adjustmentId', new ParseUUIDPipe()) adjustmentId: string,
+    @Body() dto: PayrollAdjustmentDecisionDto,
+  ) {
+    return this.payrollRunService.rejectRunAdjustment(
+      user,
+      id,
+      adjustmentId,
+      dto,
+    );
+  }
+
+  @Get('runs/:id/cost-allocations')
+  @Permissions('payroll-runs.read')
+  listRunCostAllocations(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Query() query: { page?: number; pageSize?: number; search?: string },
+  ) {
+    return this.payrollRunService.listRunCostAllocations(user, id, query);
   }
 }

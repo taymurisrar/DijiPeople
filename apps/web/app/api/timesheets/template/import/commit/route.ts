@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { apiRequest, ApiRequestError, proxyApiJsonResponse } from "@/lib/server-api";
+import {
+  apiRequest,
+  ApiRequestError,
+  proxyApiJsonResponse,
+} from "@/lib/server-api";
 
 export async function POST(request: Request) {
   try {

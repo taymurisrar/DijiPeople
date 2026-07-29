@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseUUIDPipe,
@@ -72,6 +73,27 @@ export class OnboardingController {
     return this.onboardingService.updateTemplate(user, templateId, dto);
   }
 
+  @Delete()
+  @Permissions('onboarding.update')
+  deleteMany(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() body: { recordIds?: string[]; ids?: string[] },
+  ) {
+    return this.onboardingService.hardDeleteOnboardings(
+      user,
+      body.recordIds ?? body.ids ?? [],
+    );
+  }
+
+  @Delete(':onboardingId')
+  @Permissions('onboarding.update')
+  deleteOne(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('onboardingId', new ParseUUIDPipe()) onboardingId: string,
+  ) {
+    return this.onboardingService.hardDeleteOnboardings(user, [onboardingId]);
+  }
+
   @Post('from-candidate')
   @Permissions('onboarding.create')
   createFromCandidate(
@@ -99,5 +121,17 @@ export class OnboardingController {
     @Param('onboardingId', new ParseUUIDPipe()) onboardingId: string,
   ) {
     return this.onboardingService.convertToEmployee(user, onboardingId);
+  }
+
+  @Post(':onboardingId/draft-employee')
+  @Permissions('onboarding.update', 'employees.create')
+  ensureDraftEmployee(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('onboardingId', new ParseUUIDPipe()) onboardingId: string,
+  ) {
+    return this.onboardingService.ensureDraftEmployeeForOnboarding(
+      user,
+      onboardingId,
+    );
   }
 }

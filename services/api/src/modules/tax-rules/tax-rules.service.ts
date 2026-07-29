@@ -13,9 +13,15 @@ import {
   AddTaxRulePayComponentDto,
   CreateTaxRuleBracketDto,
   CreateTaxRuleDto,
+  PreviewTaxRuleDto,
+  ReorderTaxRuleBracketsDto,
   UpdateTaxRuleBracketDto,
   UpdateTaxRuleDto,
 } from './dto/tax-rule.dto';
+import {
+  calculateRuleAmounts,
+  validateRuleBrackets,
+} from './tax-calculation.service';
 import { taxRuleInclude } from './tax-rule-resolver.service';
 
 @Injectable()
@@ -39,8 +45,45 @@ export class TaxRulesService {
     return mapTaxRule(await this.findRule(user.tenantId, id));
   }
 
+  async listBrackets(user: AuthenticatedUser, taxRuleId: string) {
+    const rule = await this.findRule(user.tenantId, taxRuleId);
+    return {
+      items: rule.brackets.map(mapTaxBracket),
+      warnings: taxBracketWarnings(rule.brackets),
+    };
+  }
+
+  async preview(
+    user: AuthenticatedUser,
+    taxRuleId: string,
+    dto: PreviewTaxRuleDto,
+  ) {
+    const rule = await this.findRule(user.tenantId, taxRuleId);
+    const validationError = validateRuleBrackets(rule);
+    if (validationError) throw new BadRequestException(validationError);
+    const taxableIncome = new Prisma.Decimal(dto.taxableIncome);
+    const calculated = calculateRuleAmounts(rule, taxableIncome);
+    if (calculated.error) throw new BadRequestException(calculated.error);
+    return {
+      taxRuleId,
+      taxableIncome: taxableIncome.toString(),
+      employeeTax: calculated.employeeAmount.toDecimalPlaces(2).toString(),
+      employerTax: calculated.employerAmount.toDecimalPlaces(2).toString(),
+      baseTax: calculated.employeeBaseAmount.toDecimalPlaces(2).toString(),
+      marginalTax: calculated.employeeMarginalAmount
+        .toDecimalPlaces(2)
+        .toString(),
+      appliedBracket: calculated.appliedBracket
+        ? mapTaxBracket(calculated.appliedBracket)
+        : null,
+      warnings: taxBracketWarnings(rule.brackets),
+    };
+  }
+
   async create(user: AuthenticatedUser, dto: CreateTaxRuleDto) {
     await this.assertEmployeeLevel(user.tenantId, dto.employeeLevelId);
+    await this.assertExtendedReferences(user.tenantId, dto);
+    await this.assertDefaultScope(user.tenantId, dto, undefined);
     await this.assertReferenceData(
       dto.countryCode,
       dto.regionCode,
@@ -53,12 +96,29 @@ export class TaxRulesService {
       const created = await this.prisma.taxRule.create({
         data: {
           tenantId: user.tenantId,
-          code: normalizeCode(dto.code),
+          code: normalizeCode(dto.code, dto.name),
           name: dto.name.trim(),
           description: emptyToNull(dto.description),
+          organizationId: dto.organizationId ?? null,
+          legalEntityId: dto.legalEntityId ?? null,
+          payrollRegionId: dto.payrollRegionId ?? null,
+          taxAuthority: emptyToNull(dto.taxAuthority),
+          calculationStrategy: normalizeChoice(
+            dto.calculationStrategy,
+            'PERIODIC',
+          ),
+          taxYearStart: parseOptionalDate(dto.taxYearStart),
+          taxYearEnd: parseOptionalDate(dto.taxYearEnd),
+          status: dto.status ?? 'ACTIVE',
+          ownerUserId: dto.ownerUserId ?? user.userId,
+          isDefault: dto.isDefault ?? false,
+          priority: dto.priority ?? 100,
           countryCode: normalizeOptional(dto.countryCode),
           regionCode: normalizeOptional(dto.regionCode),
           employeeLevelId: dto.employeeLevelId ?? null,
+          businessUnitId: dto.businessUnitId ?? null,
+          departmentId: dto.departmentId ?? null,
+          employmentTypeId: dto.employmentTypeId ?? null,
           calculationMethod: dto.calculationMethod,
           taxType: dto.taxType,
           employeeRate: nullableDecimal(dto.employeeRate),
@@ -66,9 +126,20 @@ export class TaxRulesService {
           fixedEmployeeAmount: nullableDecimal(dto.fixedEmployeeAmount),
           fixedEmployerAmount: nullableDecimal(dto.fixedEmployerAmount),
           currencyCode: normalizeOptional(dto.currencyCode),
-          isActive: dto.isActive ?? true,
+          formulaExpression: emptyToNull(dto.formulaExpression),
+          employeeTaxComponentId: dto.employeeTaxComponentId ?? null,
+          employerTaxComponentId: dto.employerTaxComponentId ?? null,
+          postingCategory: emptyToNull(dto.postingCategory),
+          taxStatementTemplateId: dto.taxStatementTemplateId ?? null,
+          applicabilityRules: jsonOrNull(dto.applicabilityRules),
+          configuration: jsonOrNull(dto.configuration),
+          isActive:
+            dto.isActive ??
+            (dto.status === undefined || dto.status === 'ACTIVE'),
           effectiveFrom,
           effectiveTo,
+          createdById: user.userId,
+          updatedById: user.userId,
         },
         include: taxRuleInclude,
       });
@@ -89,6 +160,8 @@ export class TaxRulesService {
   async update(user: AuthenticatedUser, id: string, dto: UpdateTaxRuleDto) {
     const existing = await this.findRule(user.tenantId, id);
     await this.assertEmployeeLevel(user.tenantId, dto.employeeLevelId);
+    await this.assertExtendedReferences(user.tenantId, dto);
+    await this.assertDefaultScope(user.tenantId, dto, id);
     await this.assertReferenceData(
       dto.countryCode !== undefined ? dto.countryCode : existing.countryCode,
       dto.regionCode !== undefined ? dto.regionCode : existing.regionCode,
@@ -111,6 +184,35 @@ export class TaxRulesService {
           ...(dto.description !== undefined
             ? { description: emptyToNull(dto.description) }
             : {}),
+          ...(dto.organizationId !== undefined
+            ? { organizationId: dto.organizationId }
+            : {}),
+          ...(dto.legalEntityId !== undefined
+            ? { legalEntityId: dto.legalEntityId }
+            : {}),
+          ...(dto.payrollRegionId !== undefined
+            ? { payrollRegionId: dto.payrollRegionId }
+            : {}),
+          ...(dto.taxAuthority !== undefined
+            ? { taxAuthority: emptyToNull(dto.taxAuthority) }
+            : {}),
+          ...(dto.calculationStrategy !== undefined
+            ? { calculationStrategy: normalizeChoice(dto.calculationStrategy) }
+            : {}),
+          ...(dto.taxYearStart !== undefined
+            ? { taxYearStart: parseOptionalDate(dto.taxYearStart) }
+            : {}),
+          ...(dto.taxYearEnd !== undefined
+            ? { taxYearEnd: parseOptionalDate(dto.taxYearEnd) }
+            : {}),
+          ...(dto.status !== undefined
+            ? { status: dto.status, isActive: dto.status === 'ACTIVE' }
+            : {}),
+          ...(dto.ownerUserId !== undefined
+            ? { ownerUserId: dto.ownerUserId }
+            : {}),
+          ...(dto.isDefault !== undefined ? { isDefault: dto.isDefault } : {}),
+          ...(dto.priority !== undefined ? { priority: dto.priority } : {}),
           ...(dto.countryCode !== undefined
             ? { countryCode: normalizeOptional(dto.countryCode) }
             : {}),
@@ -119,6 +221,15 @@ export class TaxRulesService {
             : {}),
           ...(dto.employeeLevelId !== undefined
             ? { employeeLevelId: dto.employeeLevelId }
+            : {}),
+          ...(dto.businessUnitId !== undefined
+            ? { businessUnitId: dto.businessUnitId }
+            : {}),
+          ...(dto.departmentId !== undefined
+            ? { departmentId: dto.departmentId }
+            : {}),
+          ...(dto.employmentTypeId !== undefined
+            ? { employmentTypeId: dto.employmentTypeId }
             : {}),
           ...(dto.calculationMethod !== undefined
             ? { calculationMethod: dto.calculationMethod }
@@ -139,9 +250,32 @@ export class TaxRulesService {
           ...(dto.currencyCode !== undefined
             ? { currencyCode: normalizeOptional(dto.currencyCode) }
             : {}),
+          ...(dto.formulaExpression !== undefined
+            ? { formulaExpression: emptyToNull(dto.formulaExpression) }
+            : {}),
+          ...(dto.employeeTaxComponentId !== undefined
+            ? { employeeTaxComponentId: dto.employeeTaxComponentId }
+            : {}),
+          ...(dto.employerTaxComponentId !== undefined
+            ? { employerTaxComponentId: dto.employerTaxComponentId }
+            : {}),
+          ...(dto.postingCategory !== undefined
+            ? { postingCategory: emptyToNull(dto.postingCategory) }
+            : {}),
+          ...(dto.taxStatementTemplateId !== undefined
+            ? { taxStatementTemplateId: dto.taxStatementTemplateId }
+            : {}),
+          ...(dto.applicabilityRules !== undefined
+            ? { applicabilityRules: jsonOrNull(dto.applicabilityRules) }
+            : {}),
+          ...(dto.configuration !== undefined
+            ? { configuration: jsonOrNull(dto.configuration) }
+            : {}),
           ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
           ...(dto.effectiveFrom !== undefined ? { effectiveFrom } : {}),
           ...(dto.effectiveTo !== undefined ? { effectiveTo } : {}),
+          updatedById: user.userId,
+          version: { increment: 1 },
         },
         include: taxRuleInclude,
       });
@@ -198,7 +332,7 @@ export class TaxRulesService {
     taxRuleId: string,
     dto: CreateTaxRuleBracketDto,
   ) {
-    await this.findRule(user.tenantId, taxRuleId);
+    const rule = await this.findRule(user.tenantId, taxRuleId);
     assertBracket(dto.minAmount, dto.maxAmount);
     await this.assertNoBracketOverlap(
       user.tenantId,
@@ -210,12 +344,19 @@ export class TaxRulesService {
       data: {
         tenantId: user.tenantId,
         taxRuleId,
+        sequence: dto.sequence ?? 10,
         minAmount: new Prisma.Decimal(dto.minAmount),
         maxAmount: nullableDecimal(dto.maxAmount),
         employeeRate: nullableDecimal(dto.employeeRate),
         employerRate: nullableDecimal(dto.employerRate),
         fixedEmployeeAmount: nullableDecimal(dto.fixedEmployeeAmount),
         fixedEmployerAmount: nullableDecimal(dto.fixedEmployerAmount),
+        excessOver: nullableDecimal(dto.excessOver),
+        minimumTax: nullableDecimal(dto.minimumTax),
+        maximumTax: nullableDecimal(dto.maximumTax),
+        effectiveFrom: parseOptionalDate(dto.effectiveFrom),
+        effectiveTo: parseOptionalDate(dto.effectiveTo),
+        status: dto.status ?? (rule.status === 'DRAFT' ? 'DRAFT' : 'ACTIVE'),
       },
     });
     await this.audit(
@@ -253,11 +394,18 @@ export class TaxRulesService {
       where: { id: bracketId },
       data: {
         minAmount: new Prisma.Decimal(dto.minAmount),
+        sequence: dto.sequence ?? existing.sequence,
         maxAmount: nullableDecimal(dto.maxAmount),
         employeeRate: nullableDecimal(dto.employeeRate),
         employerRate: nullableDecimal(dto.employerRate),
         fixedEmployeeAmount: nullableDecimal(dto.fixedEmployeeAmount),
         fixedEmployerAmount: nullableDecimal(dto.fixedEmployerAmount),
+        excessOver: nullableDecimal(dto.excessOver),
+        minimumTax: nullableDecimal(dto.minimumTax),
+        maximumTax: nullableDecimal(dto.maximumTax),
+        effectiveFrom: parseOptionalDate(dto.effectiveFrom),
+        effectiveTo: parseOptionalDate(dto.effectiveTo),
+        status: dto.status ?? existing.status,
       },
     });
     await this.audit(
@@ -276,12 +424,17 @@ export class TaxRulesService {
     taxRuleId: string,
     bracketId: string,
   ) {
-    await this.findRule(user.tenantId, taxRuleId);
+    const rule = await this.findRule(user.tenantId, taxRuleId);
     const existing = await this.findBracket(
       user.tenantId,
       taxRuleId,
       bracketId,
     );
+    if (rule.status !== 'DRAFT' || existing.status !== 'DRAFT') {
+      throw new ConflictException(
+        'Only unused draft slabs on a draft tax policy can be deleted.',
+      );
+    }
     await this.prisma.taxRuleBracket.delete({ where: { id: bracketId } });
     await this.audit(
       user,
@@ -292,6 +445,46 @@ export class TaxRulesService {
       null,
     );
     return this.get(user, taxRuleId);
+  }
+
+  async reorderBrackets(
+    user: AuthenticatedUser,
+    taxRuleId: string,
+    dto: ReorderTaxRuleBracketsDto,
+  ) {
+    await this.findRule(user.tenantId, taxRuleId);
+    if (!dto.items.length) return this.listBrackets(user, taxRuleId);
+    const uniqueIds = new Set(dto.items.map((item) => item.id));
+    const uniqueSequences = new Set(dto.items.map((item) => item.sequence));
+    if (
+      uniqueIds.size !== dto.items.length ||
+      uniqueSequences.size !== dto.items.length
+    ) {
+      throw new BadRequestException(
+        'Each slab and sequence must appear exactly once.',
+      );
+    }
+    const count = await this.prisma.taxRuleBracket.count({
+      where: {
+        tenantId: user.tenantId,
+        taxRuleId,
+        id: { in: [...uniqueIds] },
+      },
+    });
+    if (count !== dto.items.length) {
+      throw new BadRequestException(
+        'One or more tax slabs do not belong to this policy.',
+      );
+    }
+    await this.prisma.$transaction(
+      dto.items.map((item) =>
+        this.prisma.taxRuleBracket.update({
+          where: { id: item.id },
+          data: { sequence: item.sequence },
+        }),
+      ),
+    );
+    return this.listBrackets(user, taxRuleId);
   }
 
   async addPayComponent(
@@ -387,6 +580,73 @@ export class TaxRulesService {
       throw new BadRequestException(
         'Active employee level was not found for this tenant.',
       );
+  }
+
+  private async assertExtendedReferences(
+    tenantId: string,
+    dto: CreateTaxRuleDto | UpdateTaxRuleDto,
+  ) {
+    const checks: Array<Promise<unknown>> = [];
+    if (dto.organizationId)
+      checks.push(
+        this.prisma.organization.findFirst({
+          where: { tenantId, id: dto.organizationId, isActive: true },
+          select: { id: true },
+        }),
+      );
+    if (dto.legalEntityId)
+      checks.push(
+        this.prisma.organization.findFirst({
+          where: { tenantId, id: dto.legalEntityId, isActive: true },
+          select: { id: true },
+        }),
+      );
+    if (dto.payrollRegionId)
+      checks.push(
+        this.prisma.payrollRegion.findFirst({
+          where: { tenantId, id: dto.payrollRegionId, status: 'ACTIVE' },
+          select: { id: true },
+        }),
+      );
+    for (const id of [dto.employeeTaxComponentId, dto.employerTaxComponentId]) {
+      if (id)
+        checks.push(
+          this.prisma.payComponent.findFirst({
+            where: { tenantId, id, isActive: true },
+            select: { id: true },
+          }),
+        );
+    }
+    const results = await Promise.all(checks);
+    if (results.some((result) => !result)) {
+      throw new BadRequestException(
+        'Tax policy scope or output mapping does not belong to this tenant or is inactive.',
+      );
+    }
+  }
+
+  private async assertDefaultScope(
+    tenantId: string,
+    dto: CreateTaxRuleDto | UpdateTaxRuleDto,
+    excludeId?: string,
+  ) {
+    if (!dto.isDefault) return;
+    const existing = await this.prisma.taxRule.findFirst({
+      where: {
+        tenantId,
+        isDefault: true,
+        isActive: true,
+        organizationId: dto.organizationId ?? null,
+        legalEntityId: dto.legalEntityId ?? null,
+        ...(excludeId ? { id: { not: excludeId } } : {}),
+      },
+      select: { id: true },
+    });
+    if (existing) {
+      throw new ConflictException(
+        'Only one default tax policy is allowed per organization and legal-entity scope.',
+      );
+    }
   }
 
   private async assertReferenceData(
@@ -505,16 +765,56 @@ function mapTaxRule(
     employerRate: rule.employerRate?.toString() ?? null,
     fixedEmployeeAmount: rule.fixedEmployeeAmount?.toString() ?? null,
     fixedEmployerAmount: rule.fixedEmployerAmount?.toString() ?? null,
-    brackets: rule.brackets.map((bracket) => ({
-      ...bracket,
-      minAmount: bracket.minAmount.toString(),
-      maxAmount: bracket.maxAmount?.toString() ?? null,
-      employeeRate: bracket.employeeRate?.toString() ?? null,
-      employerRate: bracket.employerRate?.toString() ?? null,
-      fixedEmployeeAmount: bracket.fixedEmployeeAmount?.toString() ?? null,
-      fixedEmployerAmount: bracket.fixedEmployerAmount?.toString() ?? null,
-    })),
+    brackets: rule.brackets.map(mapTaxBracket),
+    bracketWarnings: taxBracketWarnings(rule.brackets),
   };
+}
+
+function mapTaxBracket(
+  bracket: Prisma.TaxRuleBracketGetPayload<Record<string, never>>,
+) {
+  return {
+    ...bracket,
+    minAmount: bracket.minAmount.toString(),
+    maxAmount: bracket.maxAmount?.toString() ?? null,
+    employeeRate: bracket.employeeRate?.toString() ?? null,
+    employerRate: bracket.employerRate?.toString() ?? null,
+    fixedEmployeeAmount: bracket.fixedEmployeeAmount?.toString() ?? null,
+    fixedEmployerAmount: bracket.fixedEmployerAmount?.toString() ?? null,
+    excessOver: bracket.excessOver?.toString() ?? null,
+    minimumTax: bracket.minimumTax?.toString() ?? null,
+    maximumTax: bracket.maximumTax?.toString() ?? null,
+  };
+}
+
+function taxBracketWarnings(
+  brackets: Prisma.TaxRuleBracketGetPayload<Record<string, never>>[],
+) {
+  if (!brackets.length) return ['No tax slabs have been configured.'];
+  const warnings: string[] = [];
+  const sorted = [...brackets].sort(
+    (first, second) => Number(first.minAmount) - Number(second.minAmount),
+  );
+  if (Number(sorted[0].minAmount) !== 0) {
+    warnings.push('Slabs do not start at zero. Add a zero-rate exempt slab.');
+  }
+  for (let index = 1; index < sorted.length; index += 1) {
+    const previousMaximum = sorted[index - 1].maxAmount;
+    const currentMinimum = sorted[index].minAmount;
+    if (previousMaximum === null) {
+      warnings.push('Only the final slab may be open-ended.');
+      break;
+    }
+    if (!previousMaximum.equals(currentMinimum)) {
+      warnings.push(
+        `Gap detected between ${previousMaximum.toString()} and ${currentMinimum.toString()}.`,
+      );
+    }
+  }
+  if (sorted[sorted.length - 1]?.maxAmount !== null) {
+    warnings.push('The final slab is not open-ended.');
+  }
+  return warnings;
 }
 
 function parseDate(value: string) {
@@ -546,8 +846,18 @@ function nullableDecimal(value?: number | null) {
     : new Prisma.Decimal(value);
 }
 
-function normalizeCode(value: string) {
-  return value.trim().toUpperCase().replace(/\s+/g, '_');
+function normalizeCode(value: string | undefined, fallbackName?: string) {
+  const source = value?.trim() || `${fallbackName || 'TAX'}_${shortSuffix()}`;
+  return source
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9_ -]+/g, '_')
+    .replace(/^[_ -]+|[_ -]+$/g, '')
+    .slice(0, 80);
+}
+
+function shortSuffix() {
+  return Date.now().toString(36).toUpperCase().slice(-6);
 }
 
 function normalizeOptional(value?: string | null) {
@@ -558,6 +868,15 @@ function normalizeOptional(value?: string | null) {
 function emptyToNull(value?: string | null) {
   const trimmed = value?.trim();
   return trimmed ? trimmed : null;
+}
+
+function normalizeChoice(value?: string | null, fallback = '') {
+  const normalized = value?.trim().toUpperCase();
+  return normalized || fallback;
+}
+
+function jsonOrNull(value?: Record<string, unknown>) {
+  return value === undefined ? Prisma.DbNull : (value as Prisma.InputJsonValue);
 }
 
 function handleUnique(error: unknown, message: string): never {

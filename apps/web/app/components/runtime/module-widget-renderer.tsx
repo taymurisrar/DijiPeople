@@ -7,10 +7,12 @@ import {
   Clock,
   Laptop,
   Plus,
+  Save,
   Search,
   ShieldCheck,
   Timer,
 } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   resolveSystemWidgetAvailability,
@@ -25,10 +27,24 @@ import type { ModuleDataAdapter } from "@/lib/runtime/module-data-adapter.types"
 import type { ModuleRuntimeContext } from "@/lib/runtime/module-runtime.types";
 import { flattenRuntimeRoles } from "@/lib/runtime/role-runtime";
 import { Button } from "@/app/components/ui/button";
+import {
+  CheckboxField,
+  NumberField,
+  TextAreaField,
+  TextField,
+} from "@/app/components/ui/form-control";
 import { formatDateTime } from "@/lib/formatting-context";
 import { DataTable } from "@/app/components/data-table/data-table";
-import { EmployeeProfileImageCard } from "@/app/(authenticated)/employees/_components/employee-profile-image-card";
-import type { EmployeeDocumentSummary } from "@/app/(authenticated)/employees/types";
+import {
+  RuntimeProfileImageCard,
+  type RuntimeProfileImageSummary,
+} from "@/app/components/runtime/runtime-profile-image-card";
+import { DocumentList } from "@/app/(authenticated)/_components/documents/document-list";
+import { DocumentUploadForm } from "@/app/(authenticated)/_components/documents/document-upload-form";
+import type {
+  GenericDocumentRecord,
+  SharedLookupOption,
+} from "@/app/(authenticated)/_components/documents/types";
 
 export function ModuleWidgetRenderer({
   component,
@@ -39,6 +55,12 @@ export function ModuleWidgetRenderer({
   readonly dataAdapter?: ModuleDataAdapter;
   readonly runtime?: ModuleRuntimeContext;
 }) {
+  if (component.widgetType === "organization_hierarchy") {
+    return (
+      <OrganizationHierarchyWidget component={component} runtime={runtime} />
+    );
+  }
+
   if (component.widgetType === "agent_desktop") {
     return (
       <ModuleAgentDesktopWidget
@@ -47,6 +69,44 @@ export function ModuleWidgetRenderer({
         runtime={runtime}
       />
     );
+  }
+
+  if (
+    component.widgetType === "currency_exchange_rate" ||
+    component.widgetType === "currency_manual_override" ||
+    component.widgetType === "currency_usage"
+  ) {
+    return (
+      <CurrencyRuntimeWidget
+        component={component}
+        dataAdapter={dataAdapter}
+        runtime={runtime}
+      />
+    );
+  }
+
+  if (component.widgetType === "regional_usage") {
+    return (
+      <RegionalUsageWidget
+        component={component}
+        dataAdapter={dataAdapter}
+        runtime={runtime}
+      />
+    );
+  }
+
+  if (
+    component.widgetType === "user_security" ||
+    component.widgetType === "user_employee_link"
+  ) {
+    return <UserRecordWidget component={component} runtime={runtime} />;
+  }
+
+  if (
+    component.widgetType === "user_sessions" ||
+    component.widgetType === "user_login_history"
+  ) {
+    return <UserCollectionWidget component={component} runtime={runtime} />;
   }
 
   const availability = resolveSystemWidgetAvailability({
@@ -95,6 +155,904 @@ export function ModuleWidgetRenderer({
       title={title}
       tone="warning"
     />
+  );
+}
+
+function RegionalUsageWidget({
+  component,
+  dataAdapter,
+  runtime,
+}: {
+  readonly component: FormComponentMetadata;
+  readonly dataAdapter?: ModuleDataAdapter;
+  readonly runtime?: ModuleRuntimeContext;
+}) {
+  const [data, setData] = useState<Record<string, unknown> | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(Boolean(runtime?.recordId));
+  const recordId = runtime?.recordId;
+
+  useEffect(() => {
+    let mounted = true;
+    async function load() {
+      if (!runtime || !recordId || !dataAdapter?.getWidgetData) {
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      try {
+        const result = await dataAdapter.getWidgetData({
+          runtime,
+          recordId,
+          widget: {
+            id: component.widgetId ?? component.id,
+            logicalName: `regional.${component.widgetId ?? component.id}`,
+            displayName: component.label ?? "Usage",
+            version: "1.0.0",
+            lifecycleState: "published",
+            layer: "system",
+            widgetType: component.widgetType ?? "",
+            isSystem: true,
+            isCustom: false,
+            allowedModuleKeys: [runtime.module.key],
+          },
+        });
+        if (mounted) {
+          setData(isRecord(result) ? result : null);
+          setError(null);
+        }
+      } catch (caught) {
+        if (mounted) {
+          setError(
+            caught instanceof Error ? caught.message : "Unable to load usage.",
+          );
+        }
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+    void load();
+    return () => {
+      mounted = false;
+    };
+  }, [component, dataAdapter, recordId, runtime]);
+
+  if (loading) {
+    return (
+      <WidgetState
+        title={component.label ?? "Usage"}
+        description="Loading usage..."
+      />
+    );
+  }
+  if (error) {
+    return (
+      <WidgetState
+        title={component.label ?? "Usage"}
+        description={error}
+        tone="warning"
+      />
+    );
+  }
+  return <UsageCountsTable data={data ?? { usages: [] }} />;
+}
+
+function UserRecordWidget({
+  component,
+  runtime,
+}: {
+  readonly component: FormComponentMetadata;
+  readonly runtime?: ModuleRuntimeContext;
+}) {
+  const [record, setRecord] = useState<Record<string, unknown> | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(Boolean(runtime?.recordId));
+  const recordId = runtime?.recordId;
+
+  useEffect(() => {
+    let mounted = true;
+    async function load() {
+      if (!recordId) {
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      try {
+        const response = await fetch(
+          `/api/users/${encodeURIComponent(recordId)}`,
+        );
+        const payload = await response.json().catch(() => null);
+        if (!response.ok) {
+          throw new Error(
+            stringValue(isRecord(payload) ? payload.message : null) ||
+              "Unable to load user details.",
+          );
+        }
+        if (mounted) {
+          setRecord(isRecord(payload) ? payload : null);
+          setError(null);
+        }
+      } catch (caught) {
+        if (mounted) {
+          setError(
+            caught instanceof Error
+              ? caught.message
+              : "Unable to load user details.",
+          );
+        }
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+    void load();
+    return () => {
+      mounted = false;
+    };
+  }, [recordId]);
+
+  if (loading) {
+    return (
+      <WidgetState
+        title={component.label ?? "User"}
+        description="Loading user details..."
+      />
+    );
+  }
+  if (error) {
+    return (
+      <WidgetState
+        title={component.label ?? "User"}
+        description={error}
+        tone="warning"
+      />
+    );
+  }
+  if (!record) {
+    return (
+      <WidgetState
+        title={component.label ?? "User"}
+        description="User details are not available."
+      />
+    );
+  }
+
+  if (component.widgetType === "user_employee_link") {
+    return <UserEmployeeLinkWidget user={record} />;
+  }
+
+  return <UserSecurityWidget user={record} />;
+}
+
+function UserSecurityWidget({
+  user,
+}: {
+  readonly user: Record<string, unknown>;
+}) {
+  const fields = [
+    ["User Status", stringValue(user.status)],
+    ["Login Enabled", stringValue(user.status) === "ACTIVE" ? "Yes" : "No"],
+    ["Service Account", user.isServiceAccount ? "Yes" : "No"],
+    ["Last Login", formatOptionalDateTime(user.lastLoginAt)],
+    ["Created On", formatOptionalDateTime(user.createdAt)],
+  ] as const;
+
+  return (
+    <section className="grid gap-4">
+      <div>
+        <h4 className="text-base font-semibold text-foreground">Security</h4>
+        <p className="mt-1 text-sm text-muted">
+          Account state and login posture for this user.
+        </p>
+      </div>
+      <div className="grid gap-3 rounded-lg border border-border bg-white p-4 md:grid-cols-2">
+        {fields.map(([label, value]) => (
+          <ReadOnlyMetric key={label} label={label} value={value} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function UserEmployeeLinkWidget({
+  user,
+}: {
+  readonly user: Record<string, unknown>;
+}) {
+  const employee = isRecord(user.linkedEmployee) ? user.linkedEmployee : null;
+  const isServiceAccount = Boolean(user.isServiceAccount);
+
+  if (isServiceAccount) {
+    return (
+      <WidgetState
+        title="Employee Link"
+        description="Service accounts cannot be linked to employee profiles."
+      />
+    );
+  }
+
+  if (!employee) {
+    return (
+      <WidgetState
+        title="Employee Link"
+        description="No employee profile is linked to this user."
+      />
+    );
+  }
+
+  const profileHref =
+    stringValue(employee.profileHref) ||
+    stringValue(employee.profileUrl) ||
+    stringValue(employee.recordHref);
+  const fields = [
+    ["Employee", stringValue(employee.fullName)],
+    ["Email", stringValue(employee.email)],
+    ["Organization", stringValue(employee.organizationName)],
+    ["Business Unit", stringValue(employee.businessUnitName)],
+    ["Department", stringValue(employee.departmentName)],
+    ["Team", stringValue(employee.teamName)],
+    ["Designation", stringValue(employee.designationName)],
+    ["Reporting Manager", stringValue(employee.managerName)],
+  ] as const;
+
+  return (
+    <section className="grid gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h4 className="text-base font-semibold text-foreground">
+            Employee Link
+          </h4>
+          <p className="mt-1 text-sm text-muted">
+            HR profile connected to this identity account.
+          </p>
+        </div>
+        {profileHref ? (
+          <Button href={profileHref} type="button" variant="secondary">
+            Open Profile
+          </Button>
+        ) : null}
+      </div>
+      <div className="grid gap-3 rounded-lg border border-border bg-white p-4 md:grid-cols-3">
+        {fields.map(([label, value]) => (
+          <ReadOnlyMetric key={label} label={label} value={value} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function UserCollectionWidget({
+  component,
+  runtime,
+}: {
+  readonly component: FormComponentMetadata;
+  readonly runtime?: ModuleRuntimeContext;
+}) {
+  const recordId = runtime?.recordId;
+  const [rows, setRows] = useState<readonly Record<string, unknown>[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(Boolean(recordId));
+
+  const path =
+    component.widgetType === "user_sessions"
+      ? `/api/users/${encodeURIComponent(recordId ?? "")}/sessions`
+      : `/api/users/${encodeURIComponent(recordId ?? "")}/login-history`;
+
+  const load = useMemo(
+    () => async () => {
+      if (!recordId) {
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      try {
+        const response = await fetch(path);
+        const payload = await response.json().catch(() => null);
+        if (!response.ok) {
+          throw new Error(
+            stringValue(isRecord(payload) ? payload.message : null) ||
+              "Unable to load user records.",
+          );
+        }
+        setRows(Array.isArray(payload) ? payload.filter(isRecord) : []);
+        setError(null);
+      } catch (caught) {
+        setError(
+          caught instanceof Error ? caught.message : "Unable to load records.",
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [path, recordId],
+  );
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(timer);
+  }, [load]);
+
+  if (loading) {
+    return (
+      <WidgetState
+        title={component.label ?? "Records"}
+        description="Loading records..."
+      />
+    );
+  }
+  if (error) {
+    return (
+      <WidgetState
+        title={component.label ?? "Records"}
+        description={error}
+        tone="warning"
+      />
+    );
+  }
+
+  if (component.widgetType === "user_sessions") {
+    return (
+      <UserSessionsWidget
+        onChanged={load}
+        rows={[...rows]}
+        userId={recordId ?? ""}
+      />
+    );
+  }
+
+  return <UserLoginHistoryWidget rows={rows} />;
+}
+
+function UserSessionsWidget({
+  onChanged,
+  rows,
+  userId,
+}: {
+  readonly onChanged: () => Promise<void>;
+  readonly rows: readonly Record<string, unknown>[];
+  readonly userId: string;
+}) {
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function revoke(sessionId: string) {
+    setBusyId(sessionId);
+    setError(null);
+    try {
+      const response = await fetch(
+        `/api/users/${encodeURIComponent(userId)}/sessions/${encodeURIComponent(sessionId)}`,
+        { method: "DELETE" },
+      );
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(
+          stringValue(isRecord(payload) ? payload.message : null) ||
+            "Unable to revoke session.",
+        );
+      }
+      await onChanged();
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Unable to revoke session.",
+      );
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  return (
+    <section className="grid gap-4">
+      <div>
+        <h4 className="sr-only">Sessions</h4>
+        <p className="mt-1 text-sm text-muted">
+          Active and revoked browser sessions. Rotated refresh-token rows are
+          grouped into a single session.
+        </p>
+      </div>
+      {error ? (
+        <p className="rounded-lg border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
+          {error}
+        </p>
+      ) : null}
+      <DataTable
+        columns={[
+          {
+            key: "sessionStatus",
+            header: "Status",
+            render: (row) => stringValue(row.sessionStatus),
+            sortable: true,
+          },
+          {
+            key: "appClientId",
+            header: "Client",
+            render: (row) => stringValue(row.appClientId),
+            sortable: true,
+          },
+          {
+            key: "ipAddress",
+            header: "IP Address",
+            render: (row) => stringValue(row.ipAddress),
+          },
+          {
+            key: "device",
+            header: "Device",
+            render: (row) => stringValue(row.device),
+          },
+          {
+            key: "tokenCount",
+            header: "Tokens",
+            render: (row) => String(numberValue(row.tokenCount)),
+            sortable: true,
+          },
+          {
+            key: "createdAt",
+            header: "Created On",
+            render: (row) => formatOptionalDateTime(row.createdAt),
+          },
+          {
+            key: "lastUsedAt",
+            header: "Last Used",
+            render: (row) => formatOptionalDateTime(row.lastUsedAt),
+          },
+          {
+            key: "lastActivityAt",
+            header: "Last Activity",
+            render: (row) => formatOptionalDateTime(row.lastActivityAt),
+            sortable: true,
+          },
+          {
+            key: "expiresAt",
+            header: "Expires",
+            render: (row) => formatOptionalDateTime(row.expiresAt),
+          },
+          {
+            key: "revokedAt",
+            header: "Revoked",
+            render: (row) => formatOptionalDateTime(row.revokedAt),
+          },
+          {
+            key: "actions",
+            header: "",
+            render: (row) => {
+              const id = stringValue(row.id);
+              const active = stringValue(row.sessionStatus) === "ACTIVE";
+              return !active || !id ? (
+                ""
+              ) : (
+                <Button
+                  disabled={busyId === id}
+                  onClick={() => void revoke(id)}
+                  size="sm"
+                  type="button"
+                  variant="secondary"
+                >
+                  Revoke
+                </Button>
+              );
+            },
+          },
+        ]}
+        entityLogicalName="user-sessions"
+        getRowKey={(row) => stringValue(row.id)}
+        pagination={{
+          page: 1,
+          pageSize: 10,
+          totalItems: rows.length,
+          pageSizeOptions: [10, 25, 50],
+        }}
+        rows={[...rows]}
+      />
+    </section>
+  );
+}
+
+function UserLoginHistoryWidget({
+  rows,
+}: {
+  readonly rows: readonly Record<string, unknown>[];
+}) {
+  return (
+    <section className="grid gap-4">
+      <div>
+        <h4 className="sr-only">Login History</h4>
+        <p className="mt-1 text-sm text-muted">
+          Authentication audit events currently available for this user.
+        </p>
+      </div>
+      <DataTable
+        columns={[
+          {
+            key: "loginTime",
+            header: "Event Time",
+            render: (row) => formatOptionalDateTime(row.loginTime),
+            sortable: true,
+          },
+          {
+            key: "event",
+            header: "Event",
+            render: (row) => stringValue(row.event),
+            sortable: true,
+          },
+          {
+            key: "result",
+            header: "Result",
+            render: (row) => stringValue(row.result),
+            sortable: true,
+          },
+          {
+            key: "user",
+            header: "User",
+            render: (row) => stringValue(row.user),
+          },
+          {
+            key: "email",
+            header: "Email",
+            render: (row) => stringValue(row.email),
+          },
+          {
+            key: "ipAddress",
+            header: "IP Address",
+            render: (row) => stringValue(row.ipAddress),
+          },
+          {
+            key: "appClient",
+            header: "Client",
+            render: (row) => stringValue(row.appClient),
+          },
+          {
+            key: "sessionId",
+            header: "Session",
+            render: (row) => stringValue(row.sessionId),
+          },
+          {
+            key: "failureReason",
+            header: "Failure Reason",
+            render: (row) => stringValue(row.failureReason),
+          },
+          {
+            key: "userAgent",
+            header: "User Agent",
+            render: (row) => stringValue(row.userAgent),
+          },
+        ]}
+        entityLogicalName="user-login-history"
+        getRowKey={(row) => stringValue(row.id)}
+        pagination={{
+          page: 1,
+          pageSize: 10,
+          totalItems: rows.length,
+          pageSizeOptions: [10, 25, 50],
+        }}
+        rows={[...rows]}
+      />
+    </section>
+  );
+}
+
+function CurrencyRuntimeWidget({
+  component,
+  dataAdapter,
+  runtime,
+}: {
+  readonly component: FormComponentMetadata;
+  readonly dataAdapter?: ModuleDataAdapter;
+  readonly runtime?: ModuleRuntimeContext;
+}) {
+  const [data, setData] = useState<Record<string, unknown> | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(Boolean(runtime?.recordId));
+  const recordId = runtime?.recordId;
+
+  const load = useMemo(
+    () => async () => {
+      if (!runtime || !recordId || !dataAdapter?.getWidgetData) {
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      try {
+        const result = await dataAdapter.getWidgetData({
+          runtime,
+          recordId,
+          widget: {
+            id: component.widgetId ?? component.id,
+            logicalName: `currency.${component.widgetType}`,
+            displayName: component.label ?? "Currency",
+            version: "1.0.0",
+            lifecycleState: "published",
+            layer: "system",
+            widgetType: component.widgetType ?? "",
+            isSystem: true,
+            isCustom: false,
+            allowedModuleKeys: ["settings-currencies"],
+          },
+        });
+        setData(isRecord(result) ? result : null);
+        setError(null);
+      } catch (caught) {
+        setError(
+          caught instanceof Error
+            ? caught.message
+            : "Unable to load currency data.",
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [component, dataAdapter, recordId, runtime],
+  );
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(timer);
+  }, [load]);
+
+  if (loading) {
+    return (
+      <WidgetState
+        title={component.label ?? "Currency"}
+        description="Loading currency details..."
+      />
+    );
+  }
+  if (error) {
+    return (
+      <WidgetState
+        title={component.label ?? "Currency"}
+        description={error}
+        tone="warning"
+      />
+    );
+  }
+  if (!data) {
+    return (
+      <WidgetState
+        title={component.label ?? "Currency"}
+        description="Currency details are not available."
+      />
+    );
+  }
+
+  if (component.widgetType === "currency_manual_override") {
+    return (
+      <CurrencyManualOverrideWidget
+        data={data}
+        recordId={recordId ?? ""}
+        onSaved={load}
+      />
+    );
+  }
+
+  if (component.widgetType === "currency_usage") {
+    return <CurrencyUsageWidget data={data} />;
+  }
+
+  return <CurrencyExchangeRateWidget data={data} />;
+}
+
+function CurrencyExchangeRateWidget({
+  data,
+}: {
+  readonly data: Record<string, unknown>;
+}) {
+  const fields = [
+    ["From Currency", stringValue(data.fromCurrency)],
+    ["To Currency", stringValue(data.toCurrency)],
+    ["Rate", stringValue(data.rate)],
+    ["Source", stringValue(data.source)],
+    ["Provider", stringValue(data.provider)],
+    ["Last Fetched At", formatOptionalDateTime(data.lastFetchedAt)],
+    ["Fetch Status", stringValue(data.fetchStatus)],
+    ["Last Error", stringValue(data.lastError)],
+  ] as const;
+
+  return (
+    <section className="grid gap-4">
+      <div>
+        <h4 className="text-base font-semibold text-foreground">
+          Exchange Rate
+        </h4>
+        <p className="mt-1 text-sm text-muted">
+          Current conversion from the tenant default currency to this currency.
+        </p>
+      </div>
+      <div className="grid gap-3 rounded-lg border border-border bg-white p-4 md:grid-cols-2">
+        {fields.map(([label, value]) => (
+          <ReadOnlyMetric key={label} label={label} value={value} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function CurrencyManualOverrideWidget({
+  data,
+  onSaved,
+  recordId,
+}: {
+  readonly data: Record<string, unknown>;
+  readonly onSaved: () => Promise<void>;
+  readonly recordId: string;
+}) {
+  const [overrideRate, setOverrideRate] = useState(
+    numberValue(data.overrideRate) || null,
+  );
+  const [overrideReason, setOverrideReason] = useState(
+    stringValue(data.overrideReason),
+  );
+  const [notes, setNotes] = useState(stringValue(data.notes));
+  const [active, setActive] = useState(Boolean(data.active));
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function saveOverride() {
+    setSaving(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const response = await fetch(
+        `/api/configuration/currencies/${encodeURIComponent(recordId)}/manual-override`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            active,
+            notes,
+            overrideRate,
+            overrideReason,
+          }),
+        },
+      );
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(
+          stringValue(isRecord(payload) ? payload.message : null) ||
+            "Unable to save manual override.",
+        );
+      }
+      setMessage("Manual override saved.");
+      await onSaved();
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Unable to save manual override.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <section className="grid gap-4">
+      <div>
+        <h4 className="text-base font-semibold text-foreground">
+          Manual Override
+        </h4>
+        <p className="mt-1 text-sm text-muted">
+          Active manual overrides take priority over provider rates.
+        </p>
+      </div>
+      {message ? (
+        <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          {message}
+        </p>
+      ) : null}
+      {error ? (
+        <p className="rounded-lg border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
+          {error}
+        </p>
+      ) : null}
+      <div className="grid gap-4 rounded-lg border border-border bg-white p-4 md:grid-cols-2">
+        <NumberField
+          label="Override Rate"
+          min={0}
+          onChange={setOverrideRate}
+          required={active}
+          step={0.000001}
+          value={overrideRate}
+        />
+        <CheckboxField checked={active} label="Active" onChange={setActive} />
+        <TextField
+          className="md:col-span-2"
+          label="Override Reason"
+          onChange={setOverrideReason}
+          required={active}
+          value={overrideReason}
+        />
+        <TextAreaField
+          className="md:col-span-2"
+          label="Notes"
+          onChange={setNotes}
+          value={notes}
+        />
+      </div>
+      <div>
+        <Button
+          leftIcon={<Save className="h-4 w-4" />}
+          loading={saving}
+          onClick={() => void saveOverride()}
+          type="button"
+        >
+          Save Override
+        </Button>
+      </div>
+    </section>
+  );
+}
+
+function CurrencyUsageWidget({
+  data,
+}: {
+  readonly data: Record<string, unknown>;
+}) {
+  return <UsageCountsTable data={data} />;
+}
+
+function UsageCountsTable({
+  data,
+}: {
+  readonly data: Record<string, unknown>;
+}) {
+  const usages = Array.isArray(data.usages) ? data.usages.filter(isRecord) : [];
+  const total = usages.reduce((sum, item) => sum + numberValue(item.count), 0);
+  const hasBlocksDelete = usages.some((item) => "blocksDelete" in item);
+
+  return (
+    <section className="grid gap-4">
+      <div>
+        <h4 className="text-base font-semibold text-foreground">Usage</h4>
+        <p className="mt-1 text-sm text-muted">
+          This currency is referenced by {total} record{total === 1 ? "" : "s"}.
+        </p>
+      </div>
+      <DataTable
+        columns={[
+          {
+            key: "area",
+            header: "Area",
+            render: (row) => stringValue(row.area),
+          },
+          {
+            key: "count",
+            header: "Records",
+            render: (row) => String(numberValue(row.count)),
+            sortable: true,
+          },
+          ...(hasBlocksDelete
+            ? [
+                {
+                  key: "blocksDelete",
+                  header: "Blocks Delete",
+                  render: (row: Record<string, unknown>) =>
+                    row.blocksDelete ? "Yes" : "No",
+                },
+              ]
+            : []),
+        ]}
+        getRowKey={(row) => stringValue(row.area)}
+        rows={usages}
+      />
+    </section>
+  );
+}
+
+function ReadOnlyMetric({
+  label,
+  value,
+}: {
+  readonly label: string;
+  readonly value: string;
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-surface p-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
+        {label}
+      </p>
+      <p className="mt-2 min-h-6 text-sm font-semibold text-foreground">
+        {value}
+      </p>
+    </div>
   );
 }
 
@@ -599,6 +1557,7 @@ type WidgetRenderer = (props: {
 const BUILTIN_WIDGET_RENDERERS: Readonly<Record<string, WidgetRenderer>> = {
   "employee.profilePhoto": (props) => <EmployeeProfilePhotoWidget {...props} />,
   "system.timeline": (props) => <ModuleTimelineWidget {...props} />,
+  "system.documents": (props) => <ModuleDocumentsWidget {...props} />,
   "system.reportingHierarchy": (props) => (
     <ModuleReportingHierarchyWidget {...props} />
   ),
@@ -606,6 +1565,110 @@ const BUILTIN_WIDGET_RENDERERS: Readonly<Record<string, WidgetRenderer>> = {
     <ModuleApprovalTrackerWidget {...props} />
   ),
 };
+
+function ModuleDocumentsWidget({
+  component,
+  definition,
+  runtime,
+}: {
+  readonly component: FormComponentMetadata;
+  readonly dataAdapter?: ModuleDataAdapter;
+  readonly definition: SystemWidgetDefinition;
+  readonly runtime?: ModuleRuntimeContext;
+}) {
+  const recordId = runtime?.recordId;
+  const entityType = documentEntityTypeForRuntime(runtime);
+  const [documents, setDocuments] = useState<GenericDocumentRecord[]>([]);
+  const [documentTypes, setDocumentTypes] = useState<SharedLookupOption[]>([]);
+  const [documentCategories, setDocumentCategories] = useState<
+    SharedLookupOption[]
+  >([]);
+  const [loading, setLoading] = useState(Boolean(recordId && entityType));
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!recordId || !entityType) return;
+    let active = true;
+    Promise.all([
+      fetch(
+        `/api/documents/entity/${entityType}/${encodeURIComponent(recordId)}`,
+      )
+        .then(readJsonResponse)
+        .then(readDocumentList),
+      fetch("/api/lookups/document-types")
+        .then(readJsonResponse)
+        .then(readLookupOptions),
+      fetch("/api/lookups/document-categories")
+        .then(readJsonResponse)
+        .then(readLookupOptions),
+    ])
+      .then(([nextDocuments, nextTypes, nextCategories]) => {
+        if (!active) return;
+        setDocuments(nextDocuments);
+        setDocumentTypes(nextTypes);
+        setDocumentCategories(nextCategories);
+        setError(null);
+      })
+      .catch((caught: unknown) => {
+        if (!active) return;
+        setError(
+          caught instanceof Error
+            ? caught.message
+            : "Unable to load documents.",
+        );
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [entityType, recordId]);
+
+  if (!recordId || !entityType) {
+    return (
+      <WidgetState
+        title={component.label ?? definition.displayName}
+        description={definition.unsavedRecordMessage}
+      />
+    );
+  }
+
+  if (loading) {
+    return (
+      <WidgetState
+        title={component.label ?? definition.displayName}
+        description="Loading documents..."
+      />
+    );
+  }
+
+  if (error) {
+    return (
+      <WidgetState
+        title={component.label ?? definition.displayName}
+        description={error}
+        tone="warning"
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <DocumentUploadForm
+        documentCategories={documentCategories}
+        documentTypes={documentTypes}
+        entityId={recordId}
+        entityType={entityType}
+        submitLabel="Upload project document"
+      />
+      <DocumentList
+        documents={documents}
+        emptyMessage={definition.emptyState}
+      />
+    </div>
+  );
+}
 
 function EmployeeProfilePhotoWidget({
   component,
@@ -686,7 +1749,7 @@ function EmployeeProfilePhotoWidget({
         mimeType: stringValue(data.profileImage.mimeType),
         size: numberValue(data.profileImage.size),
         createdAt: stringValue(data.profileImage.createdAt) || undefined,
-      } as EmployeeDocumentSummary)
+      } as RuntimeProfileImageSummary)
     : null;
   const permissionKeys = new Set(
     runtime?.security.principal.permissionKeys ?? [],
@@ -701,12 +1764,13 @@ function EmployeeProfilePhotoWidget({
   const canRemove = permissionKeys.has("employees.documents.delete");
 
   return (
-    <EmployeeProfileImageCard
+    <RuntimeProfileImageCard
       canRemove={canRemove}
       canUpload={canUpload}
-      employeeId={recordId}
-      employeeName={displayName}
+      displayName={displayName}
       profileImage={profileImage}
+      recordId={recordId}
+      resourcePath="employees"
     />
   );
 }
@@ -838,6 +1902,284 @@ function HierarchyGroup({
           <p className="text-sm text-muted">{emptyText}</p>
         )}
       </div>
+    </div>
+  );
+}
+
+type OrganizationHierarchyTree = {
+  readonly organizations?: readonly OrganizationHierarchyNode[];
+  readonly businessUnitsByOrganization?: Record<
+    string,
+    readonly OrganizationHierarchyNode[]
+  >;
+  readonly departmentsByBusinessUnit?: Record<
+    string,
+    readonly OrganizationHierarchyNode[]
+  >;
+  readonly teamsByDepartment?: Record<
+    string,
+    readonly OrganizationHierarchyNode[]
+  >;
+};
+
+type OrganizationHierarchyNode = {
+  readonly id: string;
+  readonly name: string;
+  readonly children?: readonly OrganizationHierarchyNode[];
+};
+
+function OrganizationHierarchyWidget({
+  component,
+  runtime,
+}: {
+  readonly component: FormComponentMetadata;
+  readonly runtime?: ModuleRuntimeContext;
+}) {
+  const [data, setData] = useState<OrganizationHierarchyTree | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const recordId = runtime?.recordId ?? "";
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/organization-hierarchy/tree", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error(`Unable to load hierarchy (${response.status}).`);
+        }
+        return (await response.json()) as OrganizationHierarchyTree;
+      })
+      .then((result) => {
+        if (!active) return;
+        setData(result);
+        setError(null);
+      })
+      .catch((caught: unknown) => {
+        if (!active) return;
+        setError(
+          caught instanceof Error
+            ? caught.message
+            : "Unable to load organization hierarchy.",
+        );
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <WidgetState
+        description="Loading organization hierarchy..."
+        title={component.label ?? "Organization Hierarchy"}
+      />
+    );
+  }
+
+  if (error) {
+    return (
+      <WidgetState
+        description={error}
+        title={component.label ?? "Organization Hierarchy"}
+        tone="warning"
+      />
+    );
+  }
+
+  const organizations = data?.organizations ?? [];
+
+  return (
+    <section className="rounded-lg border border-border bg-surface p-4">
+      <h4 className="font-semibold text-foreground">
+        {component.label ?? "Organization Hierarchy"}
+      </h4>
+      <div className="mt-4 grid gap-3">
+        {organizations.length ? (
+          organizations.map((organization) => (
+            <OrganizationHierarchyNodeView
+              businessUnitsByOrganization={
+                data?.businessUnitsByOrganization ?? {}
+              }
+              departmentsByBusinessUnit={data?.departmentsByBusinessUnit ?? {}}
+              teamsByDepartment={data?.teamsByDepartment ?? {}}
+              currentOrganizationId={recordId}
+              key={organization.id}
+              node={organization}
+            />
+          ))
+        ) : (
+          <p className="text-sm text-muted">
+            No organization hierarchy is configured.
+          </p>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function OrganizationHierarchyNodeView({
+  businessUnitsByOrganization,
+  departmentsByBusinessUnit,
+  currentOrganizationId,
+  depth = 0,
+  node,
+  teamsByDepartment,
+}: {
+  readonly businessUnitsByOrganization: Record<
+    string,
+    readonly OrganizationHierarchyNode[]
+  >;
+  readonly departmentsByBusinessUnit: Record<
+    string,
+    readonly OrganizationHierarchyNode[]
+  >;
+  readonly currentOrganizationId: string;
+  readonly depth?: number;
+  readonly node: OrganizationHierarchyNode;
+  readonly teamsByDepartment: Record<
+    string,
+    readonly OrganizationHierarchyNode[]
+  >;
+}) {
+  const businessUnits = businessUnitsByOrganization[node.id] ?? [];
+  const active = node.id === currentOrganizationId;
+
+  return (
+    <div className="grid gap-2" style={{ marginLeft: depth ? 18 : 0 }}>
+      <div
+        className={[
+          "rounded-lg border px-3 py-2",
+          active ? "border-accent bg-accent/5" : "border-border bg-white",
+        ].join(" ")}
+      >
+        <Link
+          className="text-sm font-semibold text-foreground hover:text-accent"
+          href={`/settings/general-setup/organization/organizations/${node.id}`}
+        >
+          {node.name}
+        </Link>
+      </div>
+
+      {businessUnits.map((unit) => (
+        <OrganizationBusinessUnitNodeView
+          departmentsByBusinessUnit={departmentsByBusinessUnit}
+          key={unit.id}
+          node={unit}
+          depth={depth + 1}
+          teamsByDepartment={teamsByDepartment}
+        />
+      ))}
+
+      {(node.children ?? []).map((child) => (
+        <OrganizationHierarchyNodeView
+          businessUnitsByOrganization={businessUnitsByOrganization}
+          departmentsByBusinessUnit={departmentsByBusinessUnit}
+          currentOrganizationId={currentOrganizationId}
+          depth={depth + 1}
+          key={child.id}
+          node={child}
+          teamsByDepartment={teamsByDepartment}
+        />
+      ))}
+    </div>
+  );
+}
+
+function OrganizationBusinessUnitNodeView({
+  departmentsByBusinessUnit,
+  depth,
+  node,
+  teamsByDepartment,
+}: {
+  readonly departmentsByBusinessUnit: Record<
+    string,
+    readonly OrganizationHierarchyNode[]
+  >;
+  readonly depth: number;
+  readonly node: OrganizationHierarchyNode;
+  readonly teamsByDepartment: Record<
+    string,
+    readonly OrganizationHierarchyNode[]
+  >;
+}) {
+  const departments = departmentsByBusinessUnit[node.id] ?? [];
+
+  return (
+    <div className="grid gap-2" style={{ marginLeft: depth ? 18 : 0 }}>
+      <div className="rounded-lg border border-border bg-slate-50 px-3 py-2">
+        <Link
+          className="text-sm font-medium text-foreground hover:text-accent"
+          href={`/settings/general-setup/organization/business-units/${node.id}`}
+        >
+          {node.name}
+        </Link>
+      </div>
+
+      {(node.children ?? []).map((child) => (
+        <OrganizationBusinessUnitNodeView
+          departmentsByBusinessUnit={departmentsByBusinessUnit}
+          depth={depth + 1}
+          key={child.id}
+          node={child}
+          teamsByDepartment={teamsByDepartment}
+        />
+      ))}
+
+      {departments.map((department) => (
+        <OrganizationDepartmentNodeView
+          key={department.id}
+          node={department}
+          depth={depth + 1}
+          teamsByDepartment={teamsByDepartment}
+        />
+      ))}
+    </div>
+  );
+}
+
+function OrganizationDepartmentNodeView({
+  depth,
+  node,
+  teamsByDepartment,
+}: {
+  readonly depth: number;
+  readonly node: OrganizationHierarchyNode;
+  readonly teamsByDepartment: Record<
+    string,
+    readonly OrganizationHierarchyNode[]
+  >;
+}) {
+  const teams = teamsByDepartment[node.id] ?? [];
+
+  return (
+    <div className="grid gap-2" style={{ marginLeft: depth ? 18 : 0 }}>
+      <div className="rounded-lg border border-border bg-white px-3 py-2">
+        <Link
+          className="text-sm font-medium text-foreground hover:text-accent"
+          href={`/settings/general-setup/organization/departments/${node.id}`}
+        >
+          {node.name}
+        </Link>
+      </div>
+
+      {teams.map((team) => (
+        <div
+          className="rounded-lg border border-border bg-slate-50 px-3 py-2"
+          key={team.id}
+          style={{ marginLeft: 18 }}
+        >
+          <Link
+            className="text-sm font-medium text-foreground hover:text-accent"
+            href={`/settings/access/teams/${team.id}`}
+          >
+            {team.name}
+          </Link>
+        </div>
+      ))}
     </div>
   );
 }
@@ -1006,8 +2348,70 @@ function readApprovalActor(value: unknown) {
   return "";
 }
 
+async function readJsonResponse(response: Response) {
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(
+      isRecord(data) && typeof data.message === "string"
+        ? data.message
+        : `Request failed with ${response.status}.`,
+    );
+  }
+  return data;
+}
+
+function readDocumentList(value: unknown): GenericDocumentRecord[] {
+  if (Array.isArray(value))
+    return value.filter(isRecord) as GenericDocumentRecord[];
+  if (isRecord(value) && Array.isArray(value.items)) {
+    return value.items.filter(isRecord) as GenericDocumentRecord[];
+  }
+  return [];
+}
+
+function readLookupOptions(value: unknown): SharedLookupOption[] {
+  const records = Array.isArray(value)
+    ? value
+    : isRecord(value) && Array.isArray(value.items)
+      ? value.items
+      : [];
+  return records.filter(isRecord).flatMap((record) => {
+    const id = stringValue(record.id);
+    const name =
+      stringValue(record.name) ||
+      stringValue(record.label) ||
+      stringValue(record.key) ||
+      stringValue(record.code);
+    if (!id || !name) return [];
+    return [
+      {
+        id,
+        name,
+        key: stringValue(record.key) || null,
+        code: stringValue(record.code) || null,
+      },
+    ];
+  });
+}
+
+function documentEntityTypeForRuntime(runtime?: ModuleRuntimeContext) {
+  switch (runtime?.module.key) {
+    case "projects":
+      return "PROJECT";
+    case "employees":
+      return "EMPLOYEE";
+    default:
+      return runtime?.metadata.entity.logicalName.toUpperCase();
+  }
+}
+
 function stringValue(value: unknown) {
   return typeof value === "string" ? value : "";
+}
+
+function formatOptionalDateTime(value: unknown) {
+  const raw = stringValue(value);
+  return raw ? formatDateTime(raw) : "";
 }
 
 type ReportingHierarchyNode = {

@@ -77,6 +77,23 @@ const SYSTEM_WIDGET_REGISTRY = Object.freeze({
     missingAdapterDiagnostic:
       "Approval Tracker is supported by this Module, but its data adapter does not implement getWidgetData.",
   }),
+  "system.documents": Object.freeze({
+    widgetKey: "system.documents",
+    aliases: Object.freeze(["documents"]),
+    displayName: "Documents",
+    widgetType: "system",
+    supportedModuleCapabilities: Object.freeze(["documents"]),
+    supportedFormComponentTypes: Object.freeze(["widget"]),
+    requiredDataAdapterMethods: Object.freeze([]),
+    requiredPermissions: Object.freeze(["documents.read"]),
+    allowedRoles: Object.freeze([]),
+    savedRecordRequired: true,
+    emptyState: "No documents have been uploaded for this record.",
+    unsavedRecordMessage:
+      "Documents will be available after this record is saved.",
+    missingAdapterDiagnostic:
+      "Documents are supported by this Module, but the document widget is not available.",
+  }),
 });
 
 const SYSTEM_MODULE_CAPABILITIES = Object.freeze({
@@ -84,7 +101,7 @@ const SYSTEM_MODULE_CAPABILITIES = Object.freeze({
   leaves: Object.freeze(["timeline", "approvalTracking"]),
   attendance: Object.freeze(["timeline"]),
   timesheets: Object.freeze(["timeline", "approvalTracking"]),
-  projects: Object.freeze(["timeline"]),
+  projects: Object.freeze(["timeline", "documents"]),
 });
 
 function listSupportedSystemWidgets(moduleKey) {
@@ -138,10 +155,7 @@ function resolveSystemWidgetAvailability(input) {
     };
   }
 
-  if (
-    input.lifecycleState &&
-    input.lifecycleState !== "published"
-  ) {
+  if (input.lifecycleState && input.lifecycleState !== "published") {
     return {
       status: "unpublished-placement",
       definition,

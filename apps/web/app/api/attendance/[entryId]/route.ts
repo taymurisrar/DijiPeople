@@ -26,3 +26,25 @@ export async function GET(_request: Request, context: RouteContext) {
     );
   }
 }
+
+export async function DELETE(_request: Request, context: RouteContext) {
+  const { entryId } = await context.params;
+
+  try {
+    const response = await apiRequest(`/attendance/${entryId}`, {
+      method: "DELETE",
+    });
+
+    return proxyApiJsonResponse(response);
+  } catch (error) {
+    return NextResponse.json(
+      {
+        message:
+          error instanceof Error
+            ? error.message
+            : "Unable to delete attendance record.",
+      },
+      { status: 500 },
+    );
+  }
+}

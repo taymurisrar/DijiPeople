@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseUUIDPipe,
@@ -42,6 +43,24 @@ export class LeaveTypesController {
     return this.leaveService.findLeaveTypeById(user.tenantId, id);
   }
 
+  @Get(':id/policy-rules')
+  @Permissions('leave-types.read')
+  listPolicyRules(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.leaveService.listLeaveTypePolicyRules(user.tenantId, id);
+  }
+
+  @Get(':id/usage')
+  @Permissions('leave-types.read')
+  listUsage(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.leaveService.listLeaveTypeUsage(user.tenantId, id);
+  }
+
   @Post()
   @Permissions('leave-types.create')
   create(
@@ -59,5 +78,14 @@ export class LeaveTypesController {
     @Body() dto: UpdateLeaveTypeDto,
   ) {
     return this.leaveService.updateLeaveType(user, id, dto);
+  }
+
+  @Delete(':id')
+  @Permissions('leave-types.update')
+  deactivate(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.leaveService.deactivateLeaveType(user, id);
   }
 }

@@ -78,6 +78,12 @@ describe('PayrollOperationsService', () => {
       { format: 'CSV', key: 'csv' } as never,
       { format: 'EXCEL', key: 'excel' } as never,
       { format: 'GENERIC_BANK_TRANSFER', key: 'bank' } as never,
+      { store: jest.fn() } as never,
+      {
+        buildWorkbookBuffer: jest.fn(),
+        parseFirstWorksheet: jest.fn(),
+      } as never,
+      { dispatch: jest.fn().mockResolvedValue(undefined) } as never,
     );
 
     await expect(service.finalize(user, 'run-1')).resolves.toEqual({
@@ -102,6 +108,87 @@ describe('PayrollOperationsService', () => {
         entityId: 'run-1',
       }),
     );
+  });
+
+  it('returns dashboard costs in the payroll currency', async () => {
+    const run = {
+      id: 'run-1',
+      status: PayrollRunStatus.CALCULATED,
+      createdAt: new Date('2026-07-25T00:00:00.000Z'),
+      payrollPeriod: {
+        name: 'July 2026',
+        payrollCalendar: { currencyCode: 'PKR' },
+      },
+      exceptions: [],
+      payslips: [],
+      bankExports: [],
+      employees: [
+        {
+          status: 'CALCULATED',
+          currencyCode: 'PKR',
+          netPay: 100_850,
+          reportingCurrencyCode: 'USD',
+          netPayReporting: 362.76,
+          lineItems: [],
+          employee: {
+            department: { id: 'department-1', name: 'Engineering' },
+            businessUnit: {
+              id: 'business-unit-1',
+              name: 'Head Office',
+              organization: { id: 'organization-1', name: 'Xoul Ltd' },
+            },
+          },
+        },
+        {
+          status: 'CALCULATED',
+          currencyCode: 'PKR',
+          netPay: 28_000,
+          reportingCurrencyCode: 'USD',
+          netPayReporting: 100.8,
+          lineItems: [],
+          employee: {
+            department: { id: 'department-1', name: 'Engineering' },
+            businessUnit: {
+              id: 'business-unit-1',
+              name: 'Head Office',
+              organization: { id: 'organization-1', name: 'Xoul Ltd' },
+            },
+          },
+        },
+      ],
+    };
+    const prisma = {
+      payrollRun: { findMany: jest.fn().mockResolvedValue([run]) },
+      claimRequest: { count: jest.fn().mockResolvedValue(0) },
+      loanRequest: { count: jest.fn().mockResolvedValue(0) },
+    };
+    const service = new PayrollOperationsService(
+      prisma as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      { format: 'CSV', key: 'csv' } as never,
+      { format: 'EXCEL', key: 'excel' } as never,
+      { format: 'GENERIC_BANK_TRANSFER', key: 'bank' } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+
+    const result = await service.dashboard(user);
+
+    expect(result.widgets.payrollCostTrend).toEqual([
+      { label: 'July 2026', value: 128_850, currencyCode: 'PKR' },
+    ]);
+    expect(result.widgets.payrollCostByDepartment).toEqual([
+      { label: 'Engineering', value: 128_850, currencyCode: 'PKR' },
+    ]);
+    expect(result.widgets.payrollCostByBusinessUnit).toEqual([
+      { label: 'Head Office', value: 128_850, currencyCode: 'PKR' },
+    ]);
+    expect(result.widgets.payrollCostByLegalEntity).toEqual([
+      { label: 'Xoul Ltd', value: 128_850, currencyCode: 'PKR' },
+    ]);
   });
 
   it.each([
@@ -151,6 +238,7 @@ describe('PayrollOperationsService', () => {
         employeeBankAccount: {
           findMany: jest.fn().mockResolvedValue([
             {
+              id: 'bank-account-1',
               employeeId: 'employee-1',
               accountNumber: '001234',
               iban: 'QA001234',
@@ -158,7 +246,25 @@ describe('PayrollOperationsService', () => {
             },
           ]),
         },
-        payrollBankExport: { create },
+        employerBankAccount: {
+          findFirst: jest.fn().mockResolvedValue({
+            id: 'employer-bank-1',
+            accountName: 'Main Payroll',
+            bank: { name: 'Employer Bank' },
+          }),
+        },
+        payrollBankExport: { update: jest.fn().mockResolvedValue({}) },
+        payrollPaymentLine: {
+          createMany: jest.fn().mockResolvedValue({ count: 1 }),
+        },
+        $transaction: jest.fn(async (callback: (tx: unknown) => unknown) =>
+          callback({
+            payrollBankExport: { create },
+            payrollPaymentLine: {
+              createMany: jest.fn().mockResolvedValue({ count: 1 }),
+            },
+          }),
+        ),
       };
       const provider = {
         format,
@@ -181,6 +287,17 @@ describe('PayrollOperationsService', () => {
         providerFor(PayrollBankExportFormat.CSV) as never,
         providerFor(PayrollBankExportFormat.EXCEL) as never,
         providerFor(PayrollBankExportFormat.GENERIC_BANK_TRANSFER) as never,
+        {
+          store: jest.fn().mockResolvedValue({
+            document: { id: 'document-1' },
+            checksum: 'stored-checksum',
+          }),
+        } as never,
+        {
+          buildWorkbookBuffer: jest.fn(),
+          parseFirstWorksheet: jest.fn(),
+        } as never,
+        { dispatch: jest.fn().mockResolvedValue(undefined) } as never,
       );
 
       const result = await service.generateBankExport(user, run.id, format);
@@ -189,16 +306,18 @@ describe('PayrollOperationsService', () => {
       expect(result.fileName).toMatch(
         new RegExp(`^payroll-2026-04-30-provider-.*\\.${extension}$`),
       );
-      expect(create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          payrollRunId: run.id,
-          format,
-          recordCount: 1,
-          totalAmount: 4321.5,
-          currencyCode: 'QAR',
-          checksum: expect.stringMatching(/^[a-f0-9]{64}$/),
+      expect(create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            payrollRunId: run.id,
+            format,
+            recordCount: 1,
+            totalAmount: 4321.5,
+            currencyCode: 'QAR',
+            checksum: expect.stringMatching(/^[a-f0-9]{64}$/),
+          }),
         }),
-      });
+      );
       expect(audit.log).toHaveBeenCalledWith(
         expect.objectContaining({
           action: 'PAYROLL_BANK_EXPORT_GENERATED',

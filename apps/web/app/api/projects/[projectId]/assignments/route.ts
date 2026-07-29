@@ -25,3 +25,10 @@ export async function POST(request: Request, context: RouteContext) {
     );
   }
 }
+
+export async function GET(_request: Request, context: RouteContext) {
+  const { projectId } = await context.params;
+  return proxyApiJsonResponse(
+    await apiRequest(`/projects/${projectId}/assignments`, { method: "GET" }),
+  );
+}

@@ -148,15 +148,20 @@ export class PayslipsController {
       `attachment; filename="${file.fileName}"`,
     );
     response.setHeader('Cache-Control', 'private, no-store');
-    return new StreamableFile(file.buffer);
+    return new StreamableFile(file.stream);
   }
 
   @Get('me/payslips')
   @Permissions('payslips.read-own')
-  getMyPayslips(@CurrentUser() user: AuthenticatedUser) {
+  getMyPayslips(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: { year?: string; month?: string },
+  ) {
     return this.payslipsService.getMyPayslips({
       tenantId: user.tenantId,
       userId: user.userId,
+      year: query.year,
+      month: query.month,
     });
   }
 
@@ -192,6 +197,6 @@ export class PayslipsController {
       `attachment; filename="${file.fileName}"`,
     );
     response.setHeader('Cache-Control', 'private, no-store');
-    return new StreamableFile(file.buffer);
+    return new StreamableFile(file.stream);
   }
 }

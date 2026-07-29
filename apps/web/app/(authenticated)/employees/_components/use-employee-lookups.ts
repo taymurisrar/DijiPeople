@@ -11,6 +11,7 @@ type EmployeeLookups = {
   documentCategories: LookupOption[];
   relationTypes: LookupOption[];
   departments: LookupOption[];
+  teams: LookupOption[];
   designations: LookupOption[];
   employeeLevels: LookupOption[];
   locations: LookupOption[];
@@ -25,6 +26,7 @@ const emptyLookups: EmployeeLookups = {
   documentCategories: [],
   relationTypes: [],
   departments: [],
+  teams: [],
   designations: [],
   employeeLevels: [],
   locations: [],
@@ -38,6 +40,7 @@ type BaseLookups = Pick<
   | "documentCategories"
   | "relationTypes"
   | "departments"
+  | "teams"
   | "designations"
   | "employeeLevels"
   | "locations"
@@ -97,7 +100,11 @@ export function useEmployeeLookups(filters?: {
       ]);
       const payloads = await Promise.all(
         responses.map(async (result) => {
-          if (result.status === "rejected" || !result.value.ok) {
+          if (
+            result.status === "rejected" ||
+            !result.value ||
+            !result.value.ok
+          ) {
             return null;
           }
 
@@ -126,7 +133,11 @@ export function useEmployeeLookups(filters?: {
     return () => {
       ignore = true;
     };
-  }, [filters?.countryId, filters?.enabled, filters?.stateProvinceId]);
+  }, [
+    filters?.countryId,
+    filters?.enabled,
+    filters?.stateProvinceId,
+  ]);
 
   // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const stateOptions = useMemo(() => {
@@ -177,6 +188,7 @@ function loadBaseLookups() {
       fetchLookup("/api/lookups/document-categories"),
       fetchLookup("/api/lookups/relation-types"),
       fetchLookup("/api/departments?isActive=true"),
+      fetchLookup("/api/teams?teamType=ORGANIZATIONAL"),
       fetchLookup("/api/designations?isActive=true"),
       fetchLookup("/api/employee-levels?isActive=true"),
       fetchLookup("/api/locations?isActive=true"),
@@ -189,6 +201,7 @@ function loadBaseLookups() {
           documentCategories,
           relationTypes,
           departments,
+          teams,
           designations,
           employeeLevels,
           locations,
@@ -200,6 +213,7 @@ function loadBaseLookups() {
             documentCategories,
             relationTypes,
             departments,
+            teams,
             designations,
             employeeLevels,
             locations,
@@ -265,6 +279,8 @@ function normalizeLookupList(payload: unknown): LookupOption[] {
       const code = typeof record.code === "string" ? record.code : null;
       const countryId =
         typeof record.countryId === "string" ? record.countryId : null;
+      const departmentId =
+        typeof record.departmentId === "string" ? record.departmentId : null;
       const employeeLevelId =
         typeof record.employeeLevelId === "string"
           ? record.employeeLevelId
@@ -275,6 +291,7 @@ function normalizeLookupList(payload: unknown): LookupOption[] {
           : null;
       const dedupeKey = [
         countryId,
+        departmentId,
         stateProvinceId,
         key?.trim().toLowerCase(),
         code?.trim().toLowerCase(),
@@ -299,6 +316,7 @@ function normalizeLookupList(payload: unknown): LookupOption[] {
         key,
         code,
         countryId,
+        departmentId,
         employeeLevelId,
         stateProvinceId,
       });

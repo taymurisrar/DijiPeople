@@ -7,6 +7,12 @@ import {
   TextAreaField,
   type LookupOption,
 } from "@/app/components/ui/form-control";
+import {
+  buildLocationPayload,
+  captureDeviceLocation,
+  captureIpFallbackLocation,
+  type LocationCaptureResult,
+} from "@/lib/location/location-capture";
 import type { CommandPayloadSchema } from "@/lib/runtime/command-payload-schema";
 
 type JsonRecord = Record<string, unknown>;
@@ -25,6 +31,8 @@ export function ModuleCommandActionDialog({
   const [context, setContext] = useState<JsonRecord>({});
   const [values, setValues] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
+  const [locationFailure, setLocationFailure] =
+    useState<LocationCaptureResult | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -88,17 +96,35 @@ export function ModuleCommandActionDialog({
     const payload: JsonRecord = { ...values };
     if (requiresGeolocation(activeSchema, values, context)) {
       setLoading(true);
-      try {
-        Object.assign(payload, await captureBrowserLocation());
-      } catch (caught) {
-        setError(
-          caught instanceof Error
-            ? caught.message
-            : "Browser location is required.",
-        );
+      const location = await captureDeviceLocation({
+        timeoutSeconds: readNumber(
+          context,
+          "policy.locationTimeoutSeconds",
+          15,
+        ),
+        highAccuracy: readBoolean(
+          context,
+          "policy.highAccuracyLocation",
+          true,
+        ),
+      });
+      if (!location.ok) {
+        setLocationFailure(location);
+        setError(location.message);
         setLoading(false);
         return;
       }
+      setLocationFailure(null);
+      Object.assign(
+        payload,
+        buildLocationPayload(location, {
+          userAgent:
+            readBoolean(context, "policy.storeUserAgent", false) &&
+            typeof navigator !== "undefined"
+              ? navigator.userAgent
+              : undefined,
+        }),
+      );
     }
 
     setLoading(true);
@@ -167,8 +193,47 @@ export function ModuleCommandActionDialog({
           })}
           {requiresGeolocation(activeSchema, values, context) ? (
             <p className="rounded-lg border border-info/30 bg-info/5 p-3 text-sm text-foreground">
-              Browser location will be captured when you submit.
+              Location will be captured when you submit.
             </p>
+          ) : null}
+          {locationFailure && !locationFailure.ok ? (
+            <div className="grid gap-2 rounded-lg border border-danger/30 bg-danger/5 p-3 text-sm">
+              <p className="text-danger">{locationFailure.message}</p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  className="rounded-md border border-border bg-surface px-3 py-1.5 font-medium text-foreground"
+                  disabled={loading}
+                  onClick={() => void submit()}
+                  type="button"
+                >
+                  Retry Location
+                </button>
+                {readBoolean(context, "policy.allowIpFallback", false) ? (
+                  <button
+                    className="rounded-md border border-border bg-surface px-3 py-1.5 font-medium text-foreground"
+                    disabled={loading}
+                    onClick={() => void submitWithApproximateLocation()}
+                    type="button"
+                  >
+                    Use Approximate Location
+                  </button>
+                ) : null}
+                {readBoolean(
+                  context,
+                  "policy.allowManualLocationException",
+                  false,
+                ) ? (
+                  <button
+                    className="rounded-md border border-border bg-surface px-3 py-1.5 font-medium text-foreground"
+                    disabled={loading}
+                    onClick={() => void submitManualLocationException()}
+                    type="button"
+                  >
+                    Request Manual Checkout
+                  </button>
+                ) : null}
+              </div>
+            </div>
           ) : null}
           {readString(context, "blockedReason") ? (
             <p className="rounded-lg border border-danger/30 bg-danger/5 p-3 text-sm text-danger">
@@ -199,6 +264,67 @@ export function ModuleCommandActionDialog({
       </aside>
     </div>
   );
+
+  async function submitWithApproximateLocation() {
+    setError("");
+    setLoading(true);
+    const location = await captureIpFallbackLocation(
+      readBoolean(context, "policy.allowIpFallback", false),
+    );
+    if (!location.ok) {
+      setLocationFailure(location);
+      setError(location.message);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      await onSubmit({
+        ...values,
+        ...buildLocationPayload(location, {
+          failureReason: location.failureReason,
+          userAgent:
+            readBoolean(context, "policy.storeUserAgent", false) &&
+            typeof navigator !== "undefined"
+              ? navigator.userAgent
+              : undefined,
+        }),
+      });
+      setValues({});
+      setLocationFailure(null);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function submitManualLocationException() {
+    setError("");
+    setLoading(true);
+    try {
+      await onSubmit({
+        ...values,
+        ...buildLocationPayload(
+          locationFailure ?? {
+            ok: false,
+            reason: "UNKNOWN",
+            message: "Manual location exception requested.",
+          },
+          {
+            manualLocationExceptionRequested: true,
+            userAgent:
+              readBoolean(context, "policy.storeUserAgent", false) &&
+              typeof navigator !== "undefined"
+                ? navigator.userAgent
+                : undefined,
+          },
+        ),
+      });
+      setValues({});
+      setLocationFailure(null);
+    } finally {
+      setLoading(false);
+    }
+  }
 }
 
 function readOptions(context: JsonRecord, source?: string): LookupOption[] {
@@ -221,31 +347,18 @@ function requiresGeolocation(
   values: Record<string, string>,
   context: JsonRecord,
 ) {
-  const rule = schema.geolocation?.requiredWhen;
-  if (!rule) return false;
-  const value = rule.field.includes(".")
-    ? readPath(context, rule.field)
-    : values[rule.field];
-  return typeof value === "string" && rule.values.includes(value);
-}
+  if (!schema.geolocation) return false;
+  const mode =
+    values.attendanceMode ||
+    readString(context, "todayAttendance.attendanceMode") ||
+    readString(context, "defaultAttendanceMode");
+  const modes = readStringArray(context, "policy.locationRequiredForModes");
+  const commandRequiresCapture =
+    schema.key === "attendance.checkIn"
+      ? readBoolean(context, "policy.captureLocationOnCheckIn", false)
+      : readBoolean(context, "policy.captureLocationOnCheckOut", false);
 
-function captureBrowserLocation() {
-  if (typeof navigator === "undefined" || !navigator.geolocation) {
-    return Promise.reject(new Error("Browser geolocation is unavailable."));
-  }
-  return new Promise<JsonRecord>((resolve, reject) => {
-    navigator.geolocation.getCurrentPosition(
-      (position) =>
-        resolve({
-          remoteLatitude: position.coords.latitude,
-          remoteLongitude: position.coords.longitude,
-          locationAccuracy: position.coords.accuracy,
-          locationCapturedAt: new Date(position.timestamp).toISOString(),
-        }),
-      () => reject(new Error("Browser location permission is required.")),
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 10_000 },
-    );
-  });
+  return Boolean(commandRequiresCapture && mode && modes.includes(mode));
 }
 
 function readPath(source: JsonRecord, path: string): unknown {
@@ -259,6 +372,25 @@ function readPath(source: JsonRecord, path: string): unknown {
 function readString(source: JsonRecord, path: string) {
   const value = readPath(source, path);
   return typeof value === "string" ? value : "";
+}
+
+function readStringArray(source: JsonRecord, path: string) {
+  const value = readPath(source, path);
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
+}
+
+function readBoolean(source: JsonRecord, path: string, fallback: boolean) {
+  const value = readPath(source, path);
+  return typeof value === "boolean" ? value : fallback;
+}
+
+function readNumber(source: JsonRecord, path: string, fallback: number) {
+  const value = readPath(source, path);
+  return typeof value === "number" && Number.isFinite(value)
+    ? value
+    : fallback;
 }
 
 function readMessage(source: JsonRecord | null) {

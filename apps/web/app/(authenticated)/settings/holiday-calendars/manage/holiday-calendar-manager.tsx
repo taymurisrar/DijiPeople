@@ -1,38 +1,57 @@
 "use client";
 
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import { DataTable } from "@/app/components/data-table/data-table";
+import type { DataTableColumn } from "@/app/components/data-table/types";
 import {
-  FormEvent,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from "react";
+  CheckboxField,
+  DateField,
+  LookupField,
+  SelectField,
+  TextAreaField,
+  TextField,
+  type LookupOption,
+} from "@/app/components/ui/form-control";
 
-type LookupOption = {
+type ApiLookupOption = {
   id?: string;
-  code?: string;
-  name?: string;
-  label?: string;
+  code?: string | null;
+  name?: string | null;
+  label?: string | null;
+  key?: string | null;
 };
 
 type HolidayItem = {
   id: string;
   name: string;
+  description?: string | null;
   holidayDate: string;
   type?: string;
+  scopeType?: string;
+  departmentId?: string | null;
+  locationId?: string | null;
   isPaid?: boolean;
   isActive?: boolean;
+  isRecurring?: boolean;
+  isHalfDay?: boolean;
+  halfDayPeriod?: string | null;
+  status?: string;
 };
 
 export type HolidayCalendarItem = {
   id: string;
   name: string;
   code: string | null;
+  description?: string | null;
   countryCode?: string | null;
   regionCode?: string | null;
   timezone?: string | null;
   weekendDays?: string[];
+  organizationId?: string | null;
+  businessUnitId?: string | null;
+  projectId?: string | null;
   isDefault?: boolean;
+  status?: string;
   holidays?: HolidayItem[];
 };
 
@@ -49,44 +68,219 @@ type WorkScheduleItem = {
   } | null;
 };
 
-const weekdayOptions = [
-  "MONDAY",
-  "TUESDAY",
-  "WEDNESDAY",
-  "THURSDAY",
-  "FRIDAY",
-  "SATURDAY",
-  "SUNDAY",
+type HolidayFormState = {
+  name: string;
+  description: string;
+  startDate: string;
+  endDate: string;
+  type: string;
+  scopeType: string;
+  departmentId: string;
+  locationId: string;
+  isPaid: boolean;
+  isActive: boolean;
+  isRecurring: boolean;
+  isHalfDay: boolean;
+  halfDayPeriod: string;
+};
+
+const holidayTypeOptions = ["PUBLIC", "COMPANY", "OPTIONAL", "RELIGIOUS", "REGIONAL"].map(
+  (type) => ({ id: type, name: titleCase(type) }),
+);
+
+const holidayScopeOptions = [
+  { id: "TENANT", name: "Everyone" },
+  { id: "DEPARTMENT", name: "Department" },
+  { id: "WORK_SITE", name: "Work site" },
 ];
+
+const initialHoliday: HolidayFormState = {
+  name: "",
+  description: "",
+  startDate: "",
+  endDate: "",
+  type: "PUBLIC",
+  scopeType: "TENANT",
+  departmentId: "",
+  locationId: "",
+  isPaid: true,
+  isActive: true,
+  isRecurring: false,
+  isHalfDay: false,
+  halfDayPeriod: "",
+};
 
 export function HolidayCalendarManager() {
   const [calendars, setCalendars] = useState<HolidayCalendarItem[]>([]);
-  const [countries, setCountries] = useState<LookupOption[]>([]);
-  const [timezones, setTimezones] = useState<LookupOption[]>([]);
+  const [departments, setDepartments] = useState<LookupOption[]>([]);
+  const [locations, setLocations] = useState<LookupOption[]>([]);
   const [workSchedules, setWorkSchedules] = useState<WorkScheduleItem[]>([]);
   const [calendarId, setCalendarId] = useState("");
+  const [scheduleToConnectId, setScheduleToConnectId] = useState("");
   const [items, setItems] = useState<Record<string, HolidayItem[]>>({});
   const [editing, setEditing] = useState<HolidayItem | null>(null);
-  const [holidayName, setHolidayName] = useState("");
-  const [holidayDate, setHolidayDate] = useState("");
-  const [calendarName, setCalendarName] = useState("");
-  const [calendarCode, setCalendarCode] = useState("");
-  const [countryCode, setCountryCode] = useState("");
-  const [regionCode, setRegionCode] = useState("");
-  const [timezone, setTimezone] = useState("UTC");
-  const [weekendDays, setWeekendDays] = useState<string[]>([
-    "SATURDAY",
-    "SUNDAY",
-  ]);
+  const [holiday, setHoliday] = useState<HolidayFormState>(initialHoliday);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSavingCalendar, setIsSavingCalendar] = useState(false);
+  const [isSavingHoliday, setIsSavingHoliday] = useState(false);
+  const [isUpdatingSchedule, setIsUpdatingSchedule] = useState(false);
 
   const selected = useMemo(
     () => calendars.find((item) => item.id === calendarId) ?? null,
     [calendarId, calendars],
   );
+  const holidays = items[calendarId] ?? [];
+  const connectedSchedules = useMemo(
+    () =>
+      selected
+        ? workSchedules.filter(
+            (schedule) => schedule.holidayCalendarId === selected.id,
+          )
+        : [],
+    [selected, workSchedules],
+  );
+  const availableSchedules = useMemo(
+    () =>
+      selected
+        ? workSchedules.filter(
+            (schedule) => schedule.holidayCalendarId !== selected.id,
+          )
+        : [],
+    [selected, workSchedules],
+  );
+
+  const holidayColumns = useMemo<DataTableColumn<HolidayItem>[]>(
+    () => [
+      {
+        key: "name",
+        header: "Holiday",
+        sortable: true,
+        searchable: true,
+        render: (row) => <span className="font-medium">{row.name}</span>,
+      },
+      {
+        key: "holidayDate",
+        header: "Date",
+        sortable: true,
+        filterType: "date",
+        render: (row) => row.holidayDate.slice(0, 10),
+      },
+      {
+        key: "type",
+        header: "Type",
+        sortable: true,
+        filterType: "select",
+        filterOptions: holidayTypeOptions.map((option) => ({
+          label: option.name,
+          value: option.id,
+        })),
+        render: (row) => titleCase(row.type ?? "PUBLIC"),
+      },
+      {
+        key: "isPaid",
+        header: "Paid",
+        sortable: true,
+        filterType: "select",
+        filterOptions: [
+          { label: "Paid", value: "true" },
+          { label: "Unpaid", value: "false" },
+        ],
+        render: (row) => (row.isPaid === false ? "No" : "Yes"),
+      },
+      {
+        key: "scopeType",
+        header: "Scope",
+        sortable: true,
+        render: (row) => titleCase(row.scopeType ?? "TENANT"),
+      },
+      {
+        key: "actions",
+        header: "Actions",
+        render: (row) => (
+          <div className="flex gap-3">
+            <button
+              className="text-sm font-medium text-accent"
+              onClick={() => startEdit(row)}
+              type="button"
+            >
+              Edit
+            </button>
+            <button
+              className="text-sm font-medium text-danger"
+              onClick={() => void removeHoliday(row.id)}
+              type="button"
+            >
+              Delete
+            </button>
+          </div>
+        ),
+      },
+    ],
+    [calendarId],
+  );
+
+  const workScheduleColumns = useMemo<DataTableColumn<WorkScheduleItem>[]>(
+    () => [
+      {
+        key: "name",
+        header: "Work schedule",
+        sortable: true,
+        searchable: true,
+        render: (row) => <span className="font-medium">{row.name}</span>,
+      },
+      {
+        key: "code",
+        header: "Code",
+        sortable: true,
+        render: (row) => row.code ?? "Not set",
+      },
+      {
+        key: "defaultShiftTemplateId",
+        header: "Default shift",
+        render: (row) => (row.defaultShiftTemplateId ? "Configured" : "Not set"),
+      },
+      {
+        key: "actions",
+        header: "Actions",
+        render: (row) => (
+          <button
+            className="text-sm font-medium text-danger disabled:opacity-60"
+            disabled={isUpdatingSchedule}
+            onClick={() => void disconnectWorkSchedule(row.id)}
+            type="button"
+          >
+            Disconnect
+          </button>
+        ),
+      },
+    ],
+    [isUpdatingSchedule],
+  );
+
+  async function loadSupportingData(commit: (next: () => void) => void) {
+    const [
+      departmentResult,
+      locationResult,
+      workScheduleResult,
+    ] = await Promise.allSettled([
+      fetchJsonList<ApiLookupOption>("/api/departments"),
+      fetchJsonList<ApiLookupOption>("/api/locations"),
+      fetchJsonList<WorkScheduleItem>("/api/work-schedules"),
+    ]);
+
+    commit(() => {
+      if (departmentResult.status === "fulfilled") {
+        setDepartments(toLookupOptions(departmentResult.value));
+      }
+      if (locationResult.status === "fulfilled") {
+        setLocations(toLookupOptions(locationResult.value));
+      }
+      if (workScheduleResult.status === "fulfilled") {
+        setWorkSchedules(workScheduleResult.value);
+      }
+    });
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -96,16 +290,9 @@ export function HolidayCalendarManager() {
       setError(null);
 
       try {
-        const calendarResponse = await fetch("/api/holiday-calendars", {
-          cache: "no-store",
-        });
-        const calendarPayload = await readJson(calendarResponse);
-
-        if (!calendarResponse.ok || !Array.isArray(calendarPayload)) {
-          throw new Error(readError(calendarPayload, "Unable to load calendars."));
-        }
-
-        const activeCalendars = (calendarPayload as HolidayCalendarItem[]).filter(
+        const calendarPayload =
+          await fetchJsonList<HolidayCalendarItem>("/api/holiday-calendars");
+        const activeCalendars = calendarPayload.filter(
           (calendar) => !hasArchivedStatus(calendar),
         );
 
@@ -117,7 +304,7 @@ export function HolidayCalendarManager() {
             activeCalendars.map((calendar) => [
               calendar.id,
               (calendar.holidays ?? []).filter(
-                (holiday) => !hasArchivedStatus(holiday),
+                (item) => !hasArchivedStatus(item),
               ),
             ]),
           ),
@@ -146,76 +333,28 @@ export function HolidayCalendarManager() {
     };
   }, []);
 
-  async function loadSupportingData(commit: (next: () => void) => void) {
-    const [countryResult, timezoneResult, workScheduleResult] =
-      await Promise.allSettled([
-        fetchJsonArray<LookupOption>("/api/lookups/countries"),
-        fetchJsonArray<LookupOption>("/api/configuration/timezones"),
-        fetchJsonArray<WorkScheduleItem>("/api/work-schedules"),
-      ]);
-
-    commit(() => {
-      if (countryResult.status === "fulfilled") {
-        setCountries(countryResult.value);
-      }
-      if (timezoneResult.status === "fulfilled") {
-        setTimezones(timezoneResult.value);
-      }
-      if (workScheduleResult.status === "fulfilled") {
-        setWorkSchedules(workScheduleResult.value);
-      }
-    });
-  }
-
   function resetHoliday() {
     setEditing(null);
-    setHolidayName("");
-    setHolidayDate("");
+    setHoliday(initialHoliday);
   }
 
-  async function createCalendar(event: FormEvent) {
-    event.preventDefault();
-    setError(null);
-    setMessage(null);
-    setIsSavingCalendar(true);
-
-    try {
-      const response = await fetch("/api/holiday-calendars", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: calendarName,
-          code: calendarCode || calendarName,
-          countryCode: countryCode || undefined,
-          regionCode: regionCode || undefined,
-          timezone,
-          weekendDays,
-          isDefault: calendars.length === 0,
-          status: "ACTIVE",
-        }),
-      });
-      const payload = await readJson(response);
-
-      if (!response.ok || !isHolidayCalendar(payload)) {
-        throw new Error(readError(payload, "Unable to create holiday calendar."));
-      }
-
-      setCalendars((current) => [payload, ...current]);
-      setItems((current) => ({ ...current, [payload.id]: payload.holidays ?? [] }));
-      setCalendarId(payload.id);
-      setCalendarName("");
-      setCalendarCode("");
-      setRegionCode("");
-      setMessage("Holiday calendar created.");
-    } catch (saveError) {
-      setError(
-        saveError instanceof Error
-          ? saveError.message
-          : "Unable to create holiday calendar.",
-      );
-    } finally {
-      setIsSavingCalendar(false);
-    }
+  function startEdit(item: HolidayItem) {
+    setEditing(item);
+    setHoliday({
+      name: item.name,
+      description: item.description ?? "",
+      startDate: item.holidayDate.slice(0, 10),
+      endDate: item.holidayDate.slice(0, 10),
+      type: item.type ?? "PUBLIC",
+      scopeType: item.scopeType ?? "TENANT",
+      departmentId: item.departmentId ?? "",
+      locationId: item.locationId ?? "",
+      isPaid: item.isPaid ?? true,
+      isActive: item.isActive ?? true,
+      isRecurring: item.isRecurring ?? false,
+      isHalfDay: item.isHalfDay ?? false,
+      halfDayPeriod: item.halfDayPeriod ?? "",
+    });
   }
 
   async function saveHoliday(event: FormEvent) {
@@ -224,37 +363,93 @@ export function HolidayCalendarManager() {
 
     setError(null);
     setMessage(null);
-    const path = editing
-      ? `/api/holiday-calendars/${calendarId}/holidays/${editing.id}`
-      : `/api/holiday-calendars/${calendarId}/holidays`;
+    setIsSavingHoliday(true);
+
+    try {
+      if (holiday.scopeType === "DEPARTMENT" && !holiday.departmentId) {
+        throw new Error("Select a department for this holiday scope.");
+      }
+      if (holiday.scopeType === "WORK_SITE" && !holiday.locationId) {
+        throw new Error("Select a work site for this holiday scope.");
+      }
+
+      if (editing) {
+        const payload = await persistHoliday(
+          `/api/holiday-calendars/${calendarId}/holidays/${editing.id}`,
+          "PATCH",
+          holiday.startDate,
+        );
+        setItems((current) => ({
+          ...current,
+          [calendarId]: (current[calendarId] ?? []).map((item) =>
+            item.id === payload.id ? payload : item,
+          ),
+        }));
+        setMessage("Holiday updated.");
+      } else {
+        const dates = enumerateDates(holiday.startDate, holiday.endDate || holiday.startDate);
+        const created: HolidayItem[] = [];
+
+        for (const date of dates) {
+          created.push(
+            await persistHoliday(
+              `/api/holiday-calendars/${calendarId}/holidays`,
+              "POST",
+              date,
+            ),
+          );
+        }
+
+        setItems((current) => ({
+          ...current,
+          [calendarId]: [...(current[calendarId] ?? []), ...created],
+        }));
+        setMessage(
+          created.length > 1
+            ? `${created.length} holiday dates added.`
+            : "Holiday added.",
+        );
+      }
+
+      resetHoliday();
+    } catch (saveError) {
+      setError(
+        saveError instanceof Error ? saveError.message : "Unable to save holiday.",
+      );
+    } finally {
+      setIsSavingHoliday(false);
+    }
+  }
+
+  async function persistHoliday(path: string, method: "POST" | "PATCH", date: string) {
     const response = await fetch(path, {
-      method: editing ? "PATCH" : "POST",
+      method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        name: holidayName,
-        holidayDate,
-        type: "PUBLIC",
-        isPaid: true,
-        isActive: true,
+        name: holiday.name,
+        description: holiday.description || undefined,
+        holidayDate: date,
+        type: holiday.type,
+        scopeType: holiday.scopeType,
+        departmentId:
+          holiday.scopeType === "DEPARTMENT" ? holiday.departmentId : null,
+        locationId: holiday.scopeType === "WORK_SITE" ? holiday.locationId : null,
+        isPaid: holiday.isPaid,
+        isActive: holiday.isActive,
+        isRecurring: holiday.isRecurring,
+        isHalfDay: holiday.isHalfDay,
+        halfDayPeriod: holiday.isHalfDay ? holiday.halfDayPeriod || null : null,
+        appliesToAll: holiday.scopeType === "TENANT",
+        status: "ACTIVE",
       }),
     });
     const payload = await readJson(response);
 
     if (!response.ok || !isHoliday(payload)) {
-      setError(readError(payload, "Unable to save holiday."));
-      return;
+      throw new Error(readError(payload, "Unable to save holiday."));
     }
 
-    setItems((current) => ({
-      ...current,
-      [calendarId]: editing
-        ? (current[calendarId] ?? []).map((item) =>
-            item.id === payload.id ? payload : item,
-          )
-        : [...(current[calendarId] ?? []), payload],
-    }));
-    setMessage(editing ? "Holiday updated." : "Holiday added.");
-    resetHoliday();
+    return payload;
   }
 
   async function removeHoliday(id: string) {
@@ -271,6 +466,77 @@ export function HolidayCalendarManager() {
       ...current,
       [calendarId]: (current[calendarId] ?? []).filter((item) => item.id !== id),
     }));
+  }
+
+  async function connectWorkSchedule() {
+    if (!selected || !scheduleToConnectId || isUpdatingSchedule) return;
+
+    await updateWorkScheduleCalendar(scheduleToConnectId, selected.id, {
+      successMessage: "Work schedule connected.",
+    });
+    setScheduleToConnectId("");
+  }
+
+  async function disconnectWorkSchedule(scheduleId: string) {
+    if (isUpdatingSchedule) return;
+
+    await updateWorkScheduleCalendar(scheduleId, null, {
+      successMessage: "Work schedule disconnected.",
+    });
+  }
+
+  async function updateWorkScheduleCalendar(
+    scheduleId: string,
+    nextCalendarId: string | null,
+    options: { successMessage: string },
+  ) {
+    setError(null);
+    setMessage(null);
+    setIsUpdatingSchedule(true);
+
+    try {
+      const response = await fetch(
+        `/api/work-schedules/${encodeURIComponent(scheduleId)}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ holidayCalendarId: nextCalendarId }),
+        },
+      );
+      const payload = await readJson(response);
+
+      if (!response.ok || !isRecord(payload)) {
+        throw new Error(readError(payload, "Unable to update work schedule."));
+      }
+
+      setWorkSchedules((current) =>
+        current.map((schedule) =>
+          schedule.id === scheduleId
+            ? {
+                ...schedule,
+                ...payload,
+                holidayCalendarId: nextCalendarId,
+                holidayCalendar: nextCalendarId
+                  ? {
+                      id: nextCalendarId,
+                      name: selected?.name ?? schedule.holidayCalendar?.name ?? "",
+                      code: selected?.code ?? schedule.holidayCalendar?.code,
+                    }
+                  : null,
+              }
+            : schedule,
+        ),
+      );
+      setMessage(options.successMessage);
+    } catch (updateError) {
+      setError(
+        updateError instanceof Error
+          ? updateError.message
+          : "Unable to update work schedule.",
+      );
+    } finally {
+      setIsUpdatingSchedule(false);
+    }
   }
 
   if (isLoading) {
@@ -295,131 +561,34 @@ export function HolidayCalendarManager() {
       ) : null}
 
       <section className="rounded-xl border border-border bg-surface p-5">
-        <h3 className="text-base font-semibold text-foreground">
-          Regional Holiday Calendar
-        </h3>
-        <form className="mt-4 grid gap-4 lg:grid-cols-3" onSubmit={createCalendar}>
-          <Field label="Name">
-            <input
-              required
-              className={inputClassName}
-              value={calendarName}
-              onChange={(event) => setCalendarName(event.target.value)}
-            />
-          </Field>
-          <Field label="Code">
-            <input
-              className={inputClassName}
-              value={calendarCode}
-              onChange={(event) => setCalendarCode(event.target.value)}
-              placeholder="Auto from name"
-            />
-          </Field>
-          <Field label="Country">
-            <select
-              className={inputClassName}
-              value={countryCode}
-              onChange={(event) => setCountryCode(event.target.value)}
-            >
-              <option value="">Tenant-wide</option>
-              {countries.map((country) => {
-                const code = country.code ?? country.id ?? "";
-                return code ? (
-                  <option key={code} value={code}>
-                    {country.name ?? country.label ?? code}
-                  </option>
-                ) : null;
-              })}
-            </select>
-          </Field>
-          <Field label="Region">
-            <input
-              className={inputClassName}
-              value={regionCode}
-              onChange={(event) => setRegionCode(event.target.value)}
-              placeholder="Province, state, or region code"
-            />
-          </Field>
-          <Field label="Timezone">
-            <select
-              className={inputClassName}
-              value={timezone}
-              onChange={(event) => setTimezone(event.target.value)}
-            >
-              <option value="UTC">UTC</option>
-              {timezones.map((item) => {
-                const value = item.id ?? item.code ?? item.name ?? item.label ?? "";
-                return value ? (
-                  <option key={value} value={value}>
-                    {item.name ?? item.label ?? value}
-                  </option>
-                ) : null;
-              })}
-            </select>
-          </Field>
-          <Field label="Weekend Days">
-            <select
-              className={inputClassName}
-              multiple
-              value={weekendDays}
-              onChange={(event) =>
-                setWeekendDays(
-                  Array.from(event.currentTarget.selectedOptions).map(
-                    (option) => option.value,
-                  ),
-                )
-              }
-            >
-              {weekdayOptions.map((day) => (
-                <option key={day} value={day}>
-                  {titleCase(day)}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <div className="flex items-end">
-            <button
-              className="rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
-              disabled={isSavingCalendar}
-              type="submit"
-            >
-              {isSavingCalendar ? "Creating..." : "Create Calendar"}
-            </button>
-          </div>
-        </form>
-      </section>
-
-      <section className="rounded-xl border border-border bg-surface p-5">
-        <label className="grid gap-2 text-sm font-medium text-foreground">
-          Active holiday calendar
-          <select
-            className="max-w-xl rounded-xl border border-border bg-white px-4 py-3"
-            value={calendarId}
-            onChange={(event) => {
-              setCalendarId(event.target.value);
-              resetHoliday();
-            }}
-          >
-            {calendars.map((calendar) => (
-              <option key={calendar.id} value={calendar.id}>
-                {calendar.name} ({calendar.code ?? "No code"})
-              </option>
-            ))}
-          </select>
-        </label>
+        <LookupField
+          label="Active Work Calendar"
+          onChange={(value) => {
+            setCalendarId(value);
+            resetHoliday();
+          }}
+          options={calendars.map((calendar) => ({
+            id: calendar.id,
+            name: calendar.name,
+            code: calendar.code,
+          }))}
+          placeholder="Select calendar"
+          value={calendarId}
+        />
 
         {selected ? (
           <div className="mt-4 grid gap-3 md:grid-cols-4">
+            <SummaryPill label="Scope" value={formatCalendarScope(selected)} />
             <SummaryPill label="Country" value={selected.countryCode} />
             <SummaryPill label="Region" value={selected.regionCode} />
             <SummaryPill label="Timezone" value={selected.timezone} />
             <SummaryPill
-              label="Work schedules"
-              value={String(
-                workSchedules.filter(
-                  (schedule) => schedule.holidayCalendarId === selected.id,
-                ).length,
-              )}
+              label="Weekend days"
+              value={(selected.weekendDays ?? []).map(titleCase).join(", ")}
+            />
+            <SummaryPill
+              label="Connected work schedules"
+              value={String(connectedSchedules.length)}
             />
           </div>
         ) : null}
@@ -427,37 +596,120 @@ export function HolidayCalendarManager() {
 
       {!selected ? (
         <p className="rounded-xl border border-dashed border-border p-5 text-sm text-muted">
-          Create a holiday calendar before adding holidays.
+          Create a work calendar first, then return here to add holiday dates.
         </p>
       ) : (
         <section className="grid gap-5 rounded-xl border border-border bg-surface p-5">
           <h3 className="text-base font-semibold text-foreground">
             Holidays in {selected.name}
           </h3>
-          <form className="grid gap-4 md:grid-cols-2" onSubmit={saveHoliday}>
-            <Field label="Holiday name">
-              <input
+          <form className="grid gap-4 xl:grid-cols-4" onSubmit={saveHoliday}>
+            <TextField
+              className="xl:col-span-2"
+              label="Holiday name"
+              onChange={(value) => setHolidayValue("name", value)}
+              required
+              value={holiday.name}
+            />
+            <SelectField
+              label="Holiday type"
+              onChange={(value) => setHolidayValue("type", value || "PUBLIC")}
+              options={holidayTypeOptions}
+              value={holiday.type}
+            />
+            <SelectField
+              label="Holiday scope"
+              onChange={(value) =>
+                setHoliday((current) => ({
+                  ...current,
+                  scopeType: value || "TENANT",
+                  departmentId: "",
+                  locationId: "",
+                }))
+              }
+              options={holidayScopeOptions}
+              value={holiday.scopeType}
+            />
+            {holiday.scopeType === "DEPARTMENT" ? (
+              <LookupField
+                label="Department"
+                onChange={(value) => setHolidayValue("departmentId", value)}
+                options={departments}
                 required
-                className={inputClassName}
-                value={holidayName}
-                onChange={(event) => setHolidayName(event.target.value)}
+                value={holiday.departmentId}
               />
-            </Field>
-            <Field label="Date">
-              <input
+            ) : null}
+            {holiday.scopeType === "WORK_SITE" ? (
+              <LookupField
+                label="Work site"
+                onChange={(value) => setHolidayValue("locationId", value)}
+                options={locations}
                 required
-                type="date"
-                className={inputClassName}
-                value={holidayDate}
-                onChange={(event) => setHolidayDate(event.target.value)}
+                value={holiday.locationId}
               />
-            </Field>
-            <div className="flex gap-3 md:col-span-2">
+            ) : null}
+            <DateField
+              label={editing ? "Date" : "Start date"}
+              onChange={(value) => setHolidayValue("startDate", value)}
+              required
+              value={holiday.startDate}
+            />
+            {!editing ? (
+              <DateField
+                label="End date"
+                min={holiday.startDate || undefined}
+                onChange={(value) => setHolidayValue("endDate", value)}
+                value={holiday.endDate}
+              />
+            ) : null}
+            <CheckboxField
+              checked={holiday.isPaid}
+              label="Paid holiday"
+              onChange={(checked) => setHolidayValue("isPaid", checked)}
+            />
+            <CheckboxField
+              checked={holiday.isActive}
+              label="Active"
+              onChange={(checked) => setHolidayValue("isActive", checked)}
+            />
+            <CheckboxField
+              checked={holiday.isRecurring}
+              label="Recurring annually"
+              onChange={(checked) => setHolidayValue("isRecurring", checked)}
+            />
+            <CheckboxField
+              checked={holiday.isHalfDay}
+              label="Half day"
+              onChange={(checked) => setHolidayValue("isHalfDay", checked)}
+            />
+            {holiday.isHalfDay ? (
+              <SelectField
+                label="Half-day period"
+                onChange={(value) => setHolidayValue("halfDayPeriod", value)}
+                options={[
+                  { id: "MORNING", name: "Morning" },
+                  { id: "AFTERNOON", name: "Afternoon" },
+                ]}
+                value={holiday.halfDayPeriod}
+              />
+            ) : null}
+            <TextAreaField
+              className="xl:col-span-4"
+              label="Description"
+              onChange={(value) => setHolidayValue("description", value)}
+              value={holiday.description}
+            />
+            <div className="flex gap-3 xl:col-span-4">
               <button
-                className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white"
+                className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                disabled={isSavingHoliday}
                 type="submit"
               >
-                {editing ? "Update Holiday" : "Add Holiday"}
+                {isSavingHoliday
+                  ? "Saving..."
+                  : editing
+                    ? "Update Holiday"
+                    : "Add Holiday"}
               </button>
               {editing ? (
                 <button
@@ -470,54 +722,17 @@ export function HolidayCalendarManager() {
               ) : null}
             </div>
           </form>
-          <div className="overflow-x-auto rounded-xl border border-border bg-surface">
-            <table className="min-w-full text-left text-sm">
-              <thead className="border-b border-border bg-muted/5">
-                <tr>
-                  <th className="p-4">Holiday</th>
-                  <th className="p-4">Date</th>
-                  <th className="p-4">Type</th>
-                  <th className="p-4">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {(items[calendarId] ?? []).map((item) => (
-                  <tr key={item.id}>
-                    <td className="p-4 font-medium">{item.name}</td>
-                    <td className="p-4">{item.holidayDate.slice(0, 10)}</td>
-                    <td className="p-4">{item.type ?? "PUBLIC"}</td>
-                    <td className="p-4">
-                      <div className="flex gap-3">
-                        <button
-                          className="text-accent"
-                          onClick={() => {
-                            setEditing(item);
-                            setHolidayName(item.name);
-                            setHolidayDate(item.holidayDate.slice(0, 10));
-                          }}
-                          type="button"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          className="text-danger"
-                          onClick={() => void removeHoliday(item.id)}
-                          type="button"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {(items[calendarId] ?? []).length === 0 ? (
-              <p className="p-5 text-sm text-muted">
-                No holidays in this calendar.
-              </p>
-            ) : null}
-          </div>
+
+          <DataTable
+            columns={holidayColumns}
+            emptyState={<p className="p-5 text-sm text-muted">No holidays in this calendar.</p>}
+            enableSearch
+            entityLogicalName="holiday-calendar-holidays"
+            getRowKey={(row) => row.id}
+            pagination={{ page: 1, pageSize: 10, totalItems: holidays.length }}
+            rows={holidays}
+            searchPlaceholder="Search holidays"
+          />
         </section>
       )}
 
@@ -527,44 +742,63 @@ export function HolidayCalendarManager() {
             Connected Work Schedules
           </h3>
           <p className="mt-1 text-sm text-muted">
-            Shifts are applied through work schedules; the holiday calendar is
-            referenced there to suppress or adjust planned work days.
+            Work schedules are the active operational calendars. They reference
+            this holiday calendar to suppress or adjust planned work days.
           </p>
-          <div className="mt-4 overflow-x-auto rounded-xl border border-border">
-            <table className="min-w-full text-left text-sm">
-              <thead className="border-b border-border bg-muted/5">
-                <tr>
-                  <th className="p-4">Work schedule</th>
-                  <th className="p-4">Code</th>
-                  <th className="p-4">Default shift</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {workSchedules
-                  .filter((schedule) => schedule.holidayCalendarId === selected.id)
-                  .map((schedule) => (
-                    <tr key={schedule.id}>
-                      <td className="p-4 font-medium">{schedule.name}</td>
-                      <td className="p-4">{schedule.code ?? "Not set"}</td>
-                      <td className="p-4">
-                        {schedule.defaultShiftTemplateId ? "Configured" : "Not set"}
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-            {workSchedules.filter(
-              (schedule) => schedule.holidayCalendarId === selected.id,
-            ).length === 0 ? (
-              <p className="p-5 text-sm text-muted">
-                This calendar is not assigned to a work schedule yet.
-              </p>
-            ) : null}
+          <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto]">
+            <LookupField
+              label="Connect work schedule"
+              onChange={setScheduleToConnectId}
+              options={availableSchedules.map((schedule) => ({
+                id: schedule.id,
+                name: schedule.name,
+                code: schedule.code,
+              }))}
+              placeholder="Select schedule"
+              value={scheduleToConnectId}
+            />
+            <div className="flex items-end">
+              <button
+                className="rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
+                disabled={!scheduleToConnectId || isUpdatingSchedule}
+                onClick={() => void connectWorkSchedule()}
+                type="button"
+              >
+                {isUpdatingSchedule ? "Updating..." : "Connect"}
+              </button>
+            </div>
+          </div>
+          <div className="mt-4">
+            <DataTable
+              columns={workScheduleColumns}
+              emptyState={
+                <p className="p-5 text-sm text-muted">
+                  This calendar is not assigned to a work schedule yet.
+                </p>
+              }
+              enableSearch
+              entityLogicalName="holiday-calendar-work-schedules"
+              getRowKey={(row) => row.id}
+              pagination={{
+                page: 1,
+                pageSize: 10,
+                totalItems: connectedSchedules.length,
+              }}
+              rows={connectedSchedules}
+              searchPlaceholder="Search work schedules"
+            />
           </div>
         </section>
       ) : null}
     </div>
   );
+
+  function setHolidayValue<Key extends keyof HolidayFormState>(
+    key: Key,
+    value: HolidayFormState[Key],
+  ) {
+    setHoliday((current) => ({ ...current, [key]: value }));
+  }
 }
 
 function SummaryPill({
@@ -586,75 +820,66 @@ function SummaryPill({
   );
 }
 
-function Field({
-  children,
-  label,
-}: {
-  children: ReactNode;
-  label: string;
-}) {
-  return (
-    <label className="grid gap-2 text-sm">
-      <span className="font-medium text-foreground">{label}</span>
-      {children}
-    </label>
-  );
-}
-
-const inputClassName =
-  "w-full rounded-xl border border-border bg-white px-4 py-3 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20";
-
 async function readJson(response: Response) {
   return response.json().catch(() => null) as Promise<unknown>;
 }
 
-async function fetchJsonArray<T>(path: string) {
+async function fetchJsonList<T>(path: string) {
   const response = await fetch(path, { cache: "no-store" });
   const payload = await readJson(response);
-  if (!response.ok || !Array.isArray(payload)) return [];
-  return payload as T[];
+  if (!response.ok) {
+    throw new Error(readError(payload, `Unable to load ${path}.`));
+  }
+  if (Array.isArray(payload)) return payload as T[];
+  if (isRecord(payload) && Array.isArray(payload.items)) return payload.items as T[];
+  if (isRecord(payload) && Array.isArray(payload.data)) return payload.data as T[];
+  return [];
+}
+
+function toLookupOptions(
+  items: ApiLookupOption[],
+  valuePreference: "id" | "code" = "id",
+): LookupOption[] {
+  return items.reduce<LookupOption[]>((options, item) => {
+    const preferred = valuePreference === "code" ? item.code : item.id;
+    const fallback = valuePreference === "code" ? item.id : item.code;
+    const id = preferred ?? fallback ?? item.key ?? "";
+    const name = item.name ?? item.label ?? item.code ?? id;
+
+    if (id) {
+      options.push({
+        id,
+        name,
+        code: item.code ?? null,
+        key: item.key ?? null,
+      });
+    }
+
+    return options;
+  }, []);
 }
 
 function readError(payload: unknown, fallback: string) {
-  return payload &&
-    typeof payload === "object" &&
-    "message" in payload &&
-    typeof payload.message === "string"
+  return isRecord(payload) && typeof payload.message === "string"
     ? payload.message
     : fallback;
 }
 
-function isHolidayCalendar(value: unknown): value is HolidayCalendarItem {
-  return Boolean(
-    value &&
-      typeof value === "object" &&
-      "id" in value &&
-      typeof value.id === "string" &&
-      "name" in value &&
-      typeof value.name === "string",
-  );
-}
-
 function isHoliday(value: unknown): value is HolidayItem {
   return Boolean(
-    value &&
-      typeof value === "object" &&
-      "id" in value &&
+    isRecord(value) &&
       typeof value.id === "string" &&
-      "name" in value &&
       typeof value.name === "string" &&
-      "holidayDate" in value &&
       typeof value.holidayDate === "string",
   );
 }
 
 function hasArchivedStatus(value: unknown) {
-  return Boolean(
-    value &&
-      typeof value === "object" &&
-      "status" in value &&
-      value.status === "ARCHIVED",
-  );
+  return Boolean(isRecord(value) && value.status === "ARCHIVED");
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
 
 function titleCase(value: string) {
@@ -662,4 +887,31 @@ function titleCase(value: string) {
     .toLowerCase()
     .replaceAll("_", " ")
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function enumerateDates(start: string, end: string) {
+  if (!start) return [];
+  const startDate = parseDate(start);
+  const endDate = parseDate(end || start);
+  if (!startDate || !endDate || endDate < startDate) return [start];
+
+  const dates: string[] = [];
+  const cursor = new Date(startDate);
+  while (cursor <= endDate) {
+    dates.push(cursor.toISOString().slice(0, 10));
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+  return dates;
+}
+
+function parseDate(value: string) {
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatCalendarScope(calendar: HolidayCalendarItem) {
+  if (calendar.projectId) return "Project / team";
+  if (calendar.businessUnitId) return "Business unit";
+  if (calendar.organizationId) return "Organization";
+  return "Tenant wide";
 }

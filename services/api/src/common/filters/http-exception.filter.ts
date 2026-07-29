@@ -237,7 +237,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
               prismaCode: exception.code,
               meta: exception.meta,
             })
-          : {},
+          : exception instanceof Prisma.PrismaClientValidationError
+            ? extractPrismaValidationDetails(message)
+            : {},
       severity: catalog.severity,
       cause: sanitizeCause(exception),
       stack: exception instanceof Error ? exception.stack : undefined,
@@ -393,4 +395,54 @@ function readFieldErrors(
     const message = readString((item as Record<string, unknown>).message);
     return field && message ? [{ field, message }] : [];
   });
+}
+
+function extractPrismaValidationDetails(message: string) {
+  const summary = summarizePrismaValidationMessage(message);
+  const fields = extractPrismaValidationFields(summary);
+
+  return sanitizeForErrorLog({
+    prismaValidation: {
+      summary,
+    },
+    ...(fields.length ? { fieldErrors: fields } : {}),
+  });
+}
+
+function summarizePrismaValidationMessage(message: string) {
+  const lines = message
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const actionable = lines.filter(
+    (line) =>
+      /unknown argument|invalid value|argument .* is missing|needs at least one|expected/i.test(
+        line,
+      ) || /^Argument `[^`]+`:/i.test(line),
+  );
+  const selected = actionable.length ? actionable : lines.slice(-6);
+
+  return selected.join(' ').slice(0, 2000);
+}
+
+function extractPrismaValidationFields(summary: string) {
+  const fields = new Map<string, string>();
+  const patterns = [
+    /Unknown argument `([^`]+)`/gi,
+    /Argument `([^`]+)` is missing/gi,
+    /Argument `([^`]+)`:/gi,
+    /Invalid value for argument `([^`]+)`/gi,
+  ];
+
+  for (const pattern of patterns) {
+    for (const match of summary.matchAll(pattern)) {
+      const field = match[1];
+      if (field) fields.set(field, summary);
+    }
+  }
+
+  return [...fields].map(([field, fieldMessage]) => ({
+    field,
+    message: fieldMessage,
+  }));
 }

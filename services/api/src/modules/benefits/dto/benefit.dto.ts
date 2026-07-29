@@ -13,6 +13,7 @@ import {
   IsBoolean,
   IsDateString,
   IsEnum,
+  IsInt,
   IsNumber,
   IsObject,
   IsOptional,
@@ -28,6 +29,10 @@ export class CreateBenefitPolicyDto {
   @IsString() @MinLength(1) @MaxLength(50) code!: string;
   @IsString() @MinLength(1) @MaxLength(120) name!: string;
   @IsOptional() @IsString() @MaxLength(1000) description?: string;
+  @IsOptional() @IsString() @MaxLength(160) provider?: string;
+  @IsOptional() @IsUUID() legalEntityId?: string;
+  @IsOptional() @IsUUID() ownerUserId?: string;
+  @IsOptional() @IsBoolean() isDefault?: boolean;
   @IsEnum(BenefitType) benefitType!: BenefitType;
   @IsEnum(BenefitValueType) valueType!: BenefitValueType;
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) fixedAmount?: number;
@@ -36,6 +41,60 @@ export class CreateBenefitPolicyDto {
   @IsOptional()
   @IsEnum(PayrollRunLineItemCategory)
   payrollCategory?: PayrollRunLineItemCategory;
+  @IsOptional() @IsUUID() employeePayComponentId?: string;
+  @IsOptional() @IsUUID() employerPayComponentId?: string;
+  @IsOptional() @IsString() @MaxLength(80) postingCategory?: string;
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  minimumServiceMonths?: number;
+  @IsOptional() @IsString() @MaxLength(80) employeeContributionMethod?: string;
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  employeeContributionAmount?: number;
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  employeeContributionPercent?: number;
+  @IsOptional() @IsString() @MaxLength(80) employerContributionMethod?: string;
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  employerContributionAmount?: number;
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  employerContributionPercent?: number;
+  @IsOptional() @IsUUID() basePayComponentId?: string;
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  contributionMinimum?: number;
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  contributionMaximum?: number;
+  @IsOptional() @IsString() @MaxLength(40) contributionFrequency?: string;
+  @IsOptional() @IsString() @MaxLength(40) taxTreatment?: string;
+  @IsOptional() @IsBoolean() includeInEmployerCost?: boolean;
+  @IsOptional() @IsString() @MaxLength(40) prorationMethod?: string;
+  @IsOptional() @IsString() @MaxLength(40) arrearsHandling?: string;
+  @IsOptional() @IsString() @MaxLength(40) enrollmentMethod?: string;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(0) waitingPeriodDays?: number;
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  enrollmentWindowDays?: number;
+  @IsOptional() @IsBoolean() dependentCoverage?: boolean;
   @IsOptional() @IsBoolean() payrollVisible?: boolean;
   @IsOptional() @IsBoolean() affectsGrossPay?: boolean;
   @IsOptional() @IsBoolean() affectsNetPay?: boolean;
@@ -73,6 +132,7 @@ export class CreateBenefitPolicyDto {
   @IsOptional() @IsBoolean() requiresAssignmentApproval?: boolean;
   @IsOptional() @IsBoolean() requiresChangeApproval?: boolean;
   @IsOptional() @IsObject() eligibilityRules?: Record<string, unknown>;
+  @IsOptional() @IsObject() configuration?: Record<string, unknown>;
   @IsOptional() @IsEnum(BenefitPolicyStatus) status?: BenefitPolicyStatus;
 }
 

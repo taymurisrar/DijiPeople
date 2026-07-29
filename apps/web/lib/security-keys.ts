@@ -141,6 +141,21 @@ export const PERMISSION_KEYS = {
   TIMESHEETS_UNLOCK: "timesheets.unlock",
   TIMESHEETS_SETTINGS_READ: "timesheets.settings.read",
   TIMESHEETS_SETTINGS_UPDATE: "timesheets.settings.update",
+  TIMESHEETS_WITHDRAW: "timesheets.withdraw",
+  TIMESHEETS_APPROVE_PROJECT: "timesheets.approve.project",
+  TIMESHEETS_READ_PAYROLL: "timesheets.read.payroll",
+  TIMESHEETS_READ_HR: "timesheets.read.hr",
+  TIMESHEETS_REOPEN: "timesheets.reopen",
+  TIMESHEETS_OVERRIDE: "timesheets.override",
+  TIMESHEETS_EXPORT_AUDIT: "timesheets.export.audit",
+  TIMESHEETS_PAYROLL_HANDOFF: "timesheets.payroll.handoff",
+  TIMESHEETS_POLICY_CONFIGURE: "timesheets.policy.configure",
+  TIMESHEETS_POLICY_RESOLUTION_READ: "timesheets.policy.resolution.read",
+  TIMESHEETS_ACCESS_OVERRIDE: "timesheets.access.override",
+  TIMESHEETS_BULK_APPROVE: "timesheets.bulk.approve",
+  TIMESHEETS_BULK_REJECT: "timesheets.bulk.reject",
+  TIMESHEETS_SENSITIVE_NOTES_READ: "timesheets.notes.sensitive.read",
+  TIMESHEETS_JOBS_RUN: "timesheets.jobs.run",
 
   PROJECTS_READ: "projects.read",
   PROJECTS_CREATE: "projects.create",
@@ -181,6 +196,7 @@ export const PERMISSION_KEYS = {
   PAYROLL_RUNS_CREATE: "payroll-runs.create",
   PAYROLL_RUNS_CALCULATE: "payroll-runs.calculate",
   PAYROLL_RUNS_LOCK: "payroll-runs.lock",
+  PAYROLL_RUNS_DELETE: "payroll-runs.delete",
 
   PAYSLIPS_READ_ALL: "payslips.read-all",
   PAYSLIPS_READ_OWN: "payslips.read-own",
@@ -222,6 +238,8 @@ export const PERMISSION_KEYS = {
 
   TAX_RULES_READ: "tax-rules.read",
   TAX_RULES_MANAGE: "tax-rules.manage",
+  EMPLOYEE_TAX_PROFILES_READ: "employee-tax-profiles.read",
+  EMPLOYEE_TAX_PROFILES_MANAGE: "employee-tax-profiles.manage",
   PAYROLL_TAX_CALCULATE: "payroll-tax.calculate",
 
   PAYROLL_GL_READ: "payroll-gl.read",

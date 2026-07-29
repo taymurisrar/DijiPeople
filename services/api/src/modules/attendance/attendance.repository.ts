@@ -591,6 +591,19 @@ export class AttendanceRepository {
     return this.findAttendanceEntryById(tenantId, id, db);
   }
 
+  deleteAttendanceEntry(
+    tenantId: string,
+    id: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.attendanceEntry.deleteMany({
+      where: {
+        tenantId,
+        id,
+      },
+    });
+  }
+
   createImportBatch(
     data: Prisma.AttendanceImportBatchUncheckedCreateInput,
     db: PrismaDb = this.prisma,

@@ -1,0 +1,27 @@
+ALTER TABLE "AttendanceEntry"
+  ADD COLUMN IF NOT EXISTS "locationLatitude" DECIMAL(10, 7),
+  ADD COLUMN IF NOT EXISTS "locationLongitude" DECIMAL(10, 7),
+  ADD COLUMN IF NOT EXISTS "locationAccuracyMeters" INTEGER,
+  ADD COLUMN IF NOT EXISTS "locationSource" TEXT,
+  ADD COLUMN IF NOT EXISTS "locationConfidence" TEXT,
+  ADD COLUMN IF NOT EXISTS "locationCapturedAt" TIMESTAMP(3),
+  ADD COLUMN IF NOT EXISTS "locationPermissionState" TEXT,
+  ADD COLUMN IF NOT EXISTS "locationFailureReason" TEXT,
+  ADD COLUMN IF NOT EXISTS "ipAddress" TEXT,
+  ADD COLUMN IF NOT EXISTS "userAgent" TEXT,
+  ADD COLUMN IF NOT EXISTS "manualLocationExceptionRequested" BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS "manualLocationExceptionReason" TEXT,
+  ADD COLUMN IF NOT EXISTS "locationPolicySnapshot" JSONB;
+
+ALTER TABLE "AttendancePolicy"
+  ADD COLUMN IF NOT EXISTS "locationCaptureRequired" BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS "locationRequiredForModes" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+  ADD COLUMN IF NOT EXISTS "allowIpFallback" BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS "allowManualLocationException" BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS "locationTimeoutSeconds" INTEGER NOT NULL DEFAULT 15,
+  ADD COLUMN IF NOT EXISTS "highAccuracyLocation" BOOLEAN NOT NULL DEFAULT true,
+  ADD COLUMN IF NOT EXISTS "maxAllowedAccuracyMeters" INTEGER,
+  ADD COLUMN IF NOT EXISTS "captureLocationOnCheckIn" BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS "captureLocationOnCheckOut" BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS "storeIpAddress" BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS "storeUserAgent" BOOLEAN NOT NULL DEFAULT false;

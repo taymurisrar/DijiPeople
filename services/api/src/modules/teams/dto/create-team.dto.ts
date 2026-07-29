@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsEnum,
   IsOptional,
   IsString,
@@ -32,5 +33,13 @@ export class CreateTeamDto {
 
   @IsOptional()
   @IsUUID()
+  departmentId?: string;
+
+  @IsOptional()
+  @IsUUID()
   ownerUserId?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
 }

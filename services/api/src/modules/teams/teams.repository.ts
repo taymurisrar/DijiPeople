@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, TeamType } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 
 type PrismaDb = PrismaService | Prisma.TransactionClient;
@@ -8,12 +8,30 @@ type PrismaDb = PrismaService | Prisma.TransactionClient;
 export class TeamsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  findByTenant(tenantId: string, db: PrismaDb = this.prisma) {
+  findByTenant(
+    tenantId: string,
+    filters: {
+      departmentId?: string;
+      businessUnitId?: string;
+      teamType?: TeamType;
+    } = {},
+    db: PrismaDb = this.prisma,
+  ) {
     return db.team.findMany({
-      where: { tenantId },
+      where: {
+        tenantId,
+        ...(filters.departmentId ? { departmentId: filters.departmentId } : {}),
+        ...(filters.businessUnitId
+          ? { businessUnitId: filters.businessUnitId }
+          : {}),
+        ...(filters.teamType ? { teamType: filters.teamType } : {}),
+      },
       include: {
         businessUnit: {
           select: { id: true, name: true, organizationId: true },
+        },
+        department: {
+          select: { id: true, name: true, businessUnitId: true },
         },
         ownerUser: {
           select: { id: true, firstName: true, lastName: true, email: true },
@@ -37,11 +55,20 @@ export class TeamsRepository {
                 id: true,
                 key: true,
                 name: true,
+                description: true,
+                accessLevel: true,
                 roleType: true,
                 isSystem: true,
                 isActive: true,
               },
             },
+          },
+        },
+        _count: {
+          select: {
+            employees: true,
+            members: true,
+            teamRoles: true,
           },
         },
       },
@@ -60,6 +87,9 @@ export class TeamsRepository {
         businessUnit: {
           select: { id: true, name: true, organizationId: true },
         },
+        department: {
+          select: { id: true, name: true, businessUnitId: true },
+        },
         ownerUser: {
           select: { id: true, firstName: true, lastName: true, email: true },
         },
@@ -82,11 +112,20 @@ export class TeamsRepository {
                 id: true,
                 key: true,
                 name: true,
+                description: true,
+                accessLevel: true,
                 roleType: true,
                 isSystem: true,
                 isActive: true,
               },
             },
+          },
+        },
+        _count: {
+          select: {
+            employees: true,
+            members: true,
+            teamRoles: true,
           },
         },
       },
@@ -103,6 +142,17 @@ export class TeamsRepository {
     db: PrismaDb = this.prisma,
   ) {
     return db.team.update({ where: { id: teamId }, data });
+  }
+
+  findDepartmentById(
+    tenantId: string,
+    departmentId: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.department.findFirst({
+      where: { tenantId, id: departmentId },
+      select: { id: true, businessUnitId: true },
+    });
   }
 
   async replaceMembers(
@@ -127,6 +177,64 @@ export class TeamsRepository {
     }
   }
 
+  findMemberById(
+    tenantId: string,
+    teamId: string,
+    memberId: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.teamMember.findFirst({
+      where: { id: memberId, tenantId, teamId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+      },
+    });
+  }
+
+  addMember(
+    tenantId: string,
+    teamId: string,
+    userId: string,
+    actorId: string,
+    isOwner = false,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.teamMember.upsert({
+      where: { teamId_userId: { teamId, userId } },
+      create: {
+        tenantId,
+        teamId,
+        userId,
+        isOwner,
+        createdById: actorId,
+        updatedById: actorId,
+      },
+      update: {
+        isOwner,
+        updatedById: actorId,
+      },
+    });
+  }
+
+  updateMember(
+    memberId: string,
+    data: Prisma.TeamMemberUncheckedUpdateInput,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.teamMember.update({ where: { id: memberId }, data });
+  }
+
+  deleteMember(memberId: string, db: PrismaDb = this.prisma) {
+    return db.teamMember.delete({ where: { id: memberId } });
+  }
+
   async replaceRoles(
     tenantId: string,
     teamId: string,
@@ -147,5 +255,56 @@ export class TeamsRepository {
         skipDuplicates: true,
       });
     }
+  }
+
+  findRoleAssignmentById(
+    tenantId: string,
+    teamId: string,
+    assignmentId: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.teamRole.findFirst({
+      where: { id: assignmentId, tenantId, teamId },
+      include: {
+        role: {
+          select: {
+            id: true,
+            key: true,
+            name: true,
+            description: true,
+            accessLevel: true,
+            roleType: true,
+            isSystem: true,
+            isActive: true,
+          },
+        },
+      },
+    });
+  }
+
+  addRole(
+    tenantId: string,
+    teamId: string,
+    roleId: string,
+    actorId: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.teamRole.upsert({
+      where: { teamId_roleId: { teamId, roleId } },
+      create: {
+        tenantId,
+        teamId,
+        roleId,
+        createdById: actorId,
+        updatedById: actorId,
+      },
+      update: {
+        updatedById: actorId,
+      },
+    });
+  }
+
+  deleteRoleAssignment(assignmentId: string, db: PrismaDb = this.prisma) {
+    return db.teamRole.delete({ where: { id: assignmentId } });
   }
 }

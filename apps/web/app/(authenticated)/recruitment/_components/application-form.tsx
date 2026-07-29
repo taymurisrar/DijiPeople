@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { Button } from "@/app/components/ui/button";
 import { CandidateRecord, JobOpeningRecord } from "../types";
 
 type ApplicationFormProps = {
@@ -14,7 +15,6 @@ export function ApplicationForm({ candidates, jobs }: ApplicationFormProps) {
   const [form, setForm] = useState({
     candidateId: candidates[0]?.id ?? "",
     jobOpeningId: jobs[0]?.id ?? "",
-    notes: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +38,6 @@ export function ApplicationForm({ candidates, jobs }: ApplicationFormProps) {
       body: JSON.stringify({
         candidateId: form.candidateId,
         jobOpeningId: form.jobOpeningId,
-        notes: form.notes || undefined,
       }),
     });
 
@@ -51,24 +50,28 @@ export function ApplicationForm({ candidates, jobs }: ApplicationFormProps) {
     }
 
     router.refresh();
-    setForm((current) => ({ ...current, notes: "" }));
     setIsSubmitting(false);
   }
 
   if (candidates.length === 0 || jobs.length === 0) {
     return (
-      <div className="rounded-[24px] border border-dashed border-border bg-surface p-6 text-sm text-muted shadow-sm">
+      <div className="rounded-lg border border-dashed border-border bg-surface p-4 text-sm text-muted shadow-sm">
         Add at least one candidate and one job opening before creating applications.
       </div>
     );
   }
 
   return (
-    <form className="grid gap-4 rounded-[24px] border border-border bg-surface p-6 shadow-sm md:grid-cols-2" onSubmit={handleSubmit}>
+    <form
+      className="grid gap-3 rounded-lg border border-border bg-surface p-4 shadow-sm md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end"
+      onSubmit={handleSubmit}
+    >
       <label className="space-y-2 text-sm">
-        <span className="font-medium text-foreground">Candidate</span>
+        <span className="text-xs font-semibold uppercase text-muted">
+          Candidate
+        </span>
         <select
-          className="w-full rounded-2xl border border-border bg-white px-4 py-3 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
+          className="h-10 w-full rounded-lg border border-border bg-white px-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
           value={form.candidateId}
           onChange={(event) => setForm((current) => ({ ...current, candidateId: event.target.value }))}
         >
@@ -80,9 +83,11 @@ export function ApplicationForm({ candidates, jobs }: ApplicationFormProps) {
         </select>
       </label>
       <label className="space-y-2 text-sm">
-        <span className="font-medium text-foreground">Job opening</span>
+        <span className="text-xs font-semibold uppercase text-muted">
+          Job opening
+        </span>
         <select
-          className="w-full rounded-2xl border border-border bg-white px-4 py-3 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
+          className="h-10 w-full rounded-lg border border-border bg-white px-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
           value={form.jobOpeningId}
           onChange={(event) => setForm((current) => ({ ...current, jobOpeningId: event.target.value }))}
         >
@@ -93,28 +98,23 @@ export function ApplicationForm({ candidates, jobs }: ApplicationFormProps) {
           ))}
         </select>
       </label>
-      <label className="space-y-2 text-sm md:col-span-2">
-        <span className="font-medium text-foreground">Notes</span>
-        <textarea
-          className="min-h-24 w-full rounded-2xl border border-border bg-white px-4 py-3 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
-          value={form.notes}
-          onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
-        />
-      </label>
+      <div>
+        <Button
+          disabled={isSubmitting}
+          fullWidth
+          loading={isSubmitting}
+          loadingText="Submitting"
+          size="sm"
+          type="submit"
+        >
+          Submit application
+        </Button>
+      </div>
       {error ? (
-        <p className="rounded-2xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger md:col-span-2">
+        <p className="rounded-lg border border-danger/20 bg-danger/5 px-3 py-2 text-sm text-danger md:col-span-3">
           {error}
         </p>
       ) : null}
-      <div className="md:col-span-2">
-        <button
-          className="rounded-2xl bg-accent px-5 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:opacity-70"
-          disabled={isSubmitting}
-          type="submit"
-        >
-          {isSubmitting ? "Submitting..." : "Submit application"}
-        </button>
-      </div>
     </form>
   );
 }

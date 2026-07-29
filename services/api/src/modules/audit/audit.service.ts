@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { AuditRepository } from './audit.repository';
 import { AuditLogQueryDto } from './dto/audit-log-query.dto';
@@ -112,25 +112,7 @@ export class AuditService {
     ]);
 
     return {
-      items: items.map((item) => ({
-        id: item.id,
-        tenantId: item.tenantId,
-        actorUserId: item.actorUserId,
-        action: item.action,
-        entityType: item.entityType,
-        entityId: item.entityId,
-        beforeSnapshot: item.beforeSnapshot,
-        afterSnapshot: item.afterSnapshot,
-        createdAt: item.createdAt,
-        actorUser: item.actorUser
-          ? {
-              id: item.actorUser.id,
-              firstName: item.actorUser.firstName,
-              lastName: item.actorUser.lastName,
-              email: item.actorUser.email,
-            }
-          : null,
-      })),
+      items: items.map((item) => mapAuditLogItem(item)),
       meta: {
         page: query.page,
         pageSize: query.pageSize,
@@ -139,6 +121,15 @@ export class AuditService {
       },
       filters: metadata,
     };
+  }
+
+  async detailByTenant(tenantId: string, id: string) {
+    const item = await this.auditRepository.findOneByTenant(tenantId, id);
+    if (!item) {
+      throw new NotFoundException('Audit log entry was not found.');
+    }
+
+    return mapAuditLogItem(item);
   }
 
   async listRecordTimeline(input: {
@@ -174,6 +165,67 @@ export class AuditService {
       })),
     };
   }
+}
+
+type AuditLogItem = Awaited<
+  ReturnType<AuditRepository['findOneByTenant']>
+> extends infer T
+  ? NonNullable<T>
+  : never;
+
+function mapAuditLogItem(item: AuditLogItem) {
+  const userDisplayName = item.actorUser
+    ? [item.actorUser.firstName, item.actorUser.lastName]
+        .filter(Boolean)
+        .join(' ') || item.actorUser.email
+    : (readSnapshotString(item.afterSnapshot, 'email') ?? 'System');
+
+  return {
+    id: item.id,
+    tenantId: item.tenantId,
+    actorUserId: item.actorUserId,
+    action: item.action,
+    entityType: item.entityType,
+    entityId: item.entityId,
+    requestId: item.requestId,
+    traceId: item.traceId,
+    sourceModule: item.sourceModule,
+    scope: item.scope,
+    beforeSnapshot: item.beforeSnapshot,
+    afterSnapshot: item.afterSnapshot,
+    createdAt: item.createdAt,
+    eventTime: item.createdAt,
+    userDisplayName,
+    actorName: userDisplayName,
+    email:
+      item.actorUser?.email ??
+      readSnapshotString(item.afterSnapshot, 'email') ??
+      null,
+    result: readSnapshotString(item.afterSnapshot, 'result'),
+    failureReason: readSnapshotString(item.afterSnapshot, 'failureReason'),
+    ipAddress: readSnapshotString(item.afterSnapshot, 'ipAddress'),
+    appClientId: readSnapshotString(item.afterSnapshot, 'appClientId'),
+    userAgent: readSnapshotString(item.afterSnapshot, 'userAgent'),
+    sessionId: readSnapshotString(item.afterSnapshot, 'sessionId'),
+    mfaResult: readSnapshotString(item.afterSnapshot, 'mfaResult'),
+    actorUser: item.actorUser
+      ? {
+          id: item.actorUser.id,
+          firstName: item.actorUser.firstName,
+          lastName: item.actorUser.lastName,
+          email: item.actorUser.email,
+        }
+      : null,
+  };
+}
+
+function readSnapshotString(value: unknown, key: string) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  const raw = (value as Record<string, unknown>)[key];
+  return typeof raw === 'string' && raw.length > 0 ? raw : null;
 }
 
 function humanizeAuditAction(value: string) {

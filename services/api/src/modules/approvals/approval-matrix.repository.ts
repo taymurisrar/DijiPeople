@@ -156,6 +156,41 @@ export class ApprovalMatrixRepository {
     });
   }
 
+  async findDepartmentApproverUserId(tenantId: string, departmentId: string) {
+    const department = await this.prisma.department.findFirst({
+      where: { tenantId, id: departmentId, isActive: true },
+      select: {
+        headEmployee: {
+          select: { user: { select: { id: true, status: true } } },
+        },
+        ownerUser: { select: { id: true, status: true } },
+      },
+    });
+    return activeStructureUserId(
+      department?.headEmployee?.user,
+      department?.ownerUser,
+    );
+  }
+
+  async findBusinessUnitApproverUserId(
+    tenantId: string,
+    businessUnitId: string,
+  ) {
+    const businessUnit = await this.prisma.businessUnit.findFirst({
+      where: { tenantId, id: businessUnitId, isActive: true },
+      select: {
+        headEmployee: {
+          select: { user: { select: { id: true, status: true } } },
+        },
+        ownerUser: { select: { id: true, status: true } },
+      },
+    });
+    return activeStructureUserId(
+      businessUnit?.headEmployee?.user,
+      businessUnit?.ownerUser,
+    );
+  }
+
   findReference(tenantId: string, key: ReferenceKey, id: string) {
     const where = { tenantId, id };
     switch (key) {
@@ -206,3 +241,12 @@ export type ReferenceKey =
   | 'businessUnitId'
   | 'departmentId'
   | 'employeeLevelId';
+
+function activeStructureUserId(
+  headUser: { id: string; status: string } | null | undefined,
+  ownerUser: { id: string; status: string } | null | undefined,
+) {
+  if (headUser?.status === 'ACTIVE') return headUser.id;
+  if (ownerUser?.status === 'ACTIVE') return ownerUser.id;
+  return null;
+}

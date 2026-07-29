@@ -22,7 +22,9 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json(
       {
         message:
-          error instanceof Error ? error.message : "Unable to reject timesheet.",
+          error instanceof Error
+            ? error.message
+            : "Unable to reject timesheet.",
       },
       { status: 500 },
     );

@@ -7,6 +7,7 @@ import { PublicTenantCacheService } from '../tenants/public-tenant-cache.service
 import { FeatureAccessService } from './feature-access.service';
 import { ConfigurationResolverService } from './configuration-resolver.service';
 import { EnterpriseConfigurationController } from './enterprise-configuration.controller';
+import { FieldSecurityController } from './field-security.controller';
 import { EnterpriseConfigurationService } from './enterprise-configuration.service';
 import { SettingsContextController } from './settings-context.controller';
 import { TenantSettingsController } from './tenant-settings.controller';
@@ -22,6 +23,7 @@ import { TenantSettingsService } from './tenant-settings.service';
     TenantBrandingController,
     SettingsContextController,
     EnterpriseConfigurationController,
+    FieldSecurityController,
   ],
   providers: [
     ConfigurationResolverService,

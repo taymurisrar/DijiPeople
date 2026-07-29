@@ -26,7 +26,14 @@ async function proxyOperationResponse(response: Response) {
 
 export async function POST(request: Request, context: Context) {
   const { path } = await context.params;
+  const headers = new Headers();
+  const contentType = request.headers.get("content-type");
+  if (contentType) headers.set("Content-Type", contentType);
   return proxyOperationResponse(
-    await apiRequest(target(path, request), { method: "POST" }),
+    await apiRequest(target(path, request), {
+      method: "POST",
+      headers,
+      body: await request.arrayBuffer(),
+    }),
   );
 }

@@ -7,11 +7,14 @@ import {
   ProjectPriority,
   ProjectRiskLevel,
   ProjectStatus,
+  ProjectType,
 } from '@prisma/client';
+import { Type } from 'class-transformer';
 import {
   IsBoolean,
   IsDateString,
   IsEnum,
+  IsInt,
   IsNumberString,
   IsOptional,
   IsString,
@@ -48,6 +51,26 @@ export class CreateProjectDto {
   customerId?: string;
 
   @IsOptional()
+  @IsUUID()
+  projectManagerEmployeeId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  accountManagerEmployeeId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  deliveryManagerEmployeeId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  approvalManagerEmployeeId?: string;
+
+  @IsOptional()
+  @IsEnum(ProjectType)
+  projectType?: ProjectType;
+
+  @IsOptional()
   @IsString()
   @MaxLength(80)
   timezone?: string;
@@ -71,6 +94,32 @@ export class CreateProjectDto {
   @IsOptional()
   @Matches(/^[A-Z]{3}$/)
   budgetCurrencyCode?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  requiredResourceCount?: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  requiredSkills?: string;
+
+  @IsOptional()
+  @IsNumberString()
+  billableHours?: string;
+
+  @IsOptional()
+  @IsNumberString()
+  nonBillableHours?: string;
+
+  @IsOptional()
+  @IsNumberString()
+  billingRateAmount?: string;
+
+  @IsOptional()
+  @IsNumberString()
+  costBudgetAmount?: string;
 
   @IsOptional()
   @IsNumberString()

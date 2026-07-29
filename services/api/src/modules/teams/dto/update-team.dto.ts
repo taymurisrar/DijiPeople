@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsEnum,
   IsOptional,
   IsString,
@@ -33,5 +34,13 @@ export class UpdateTeamDto {
 
   @IsOptional()
   @IsUUID()
+  departmentId?: string | null;
+
+  @IsOptional()
+  @IsUUID()
   ownerUserId?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
 }

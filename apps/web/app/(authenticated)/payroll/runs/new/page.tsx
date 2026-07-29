@@ -6,13 +6,26 @@ import {
 } from "@/lib/runtime/modules/standard-module-route-helpers";
 import { payrollRunRuntimeSpec } from "@/lib/runtime/modules/payroll-foundation-runtime-specs";
 import { PayrollLayoutShell } from "../../_components/payroll-layout-shell";
+import { apiRequestJson } from "@/lib/server-api";
+import type { TenantResolvedSettingsResponse } from "@/app/(authenticated)/settings/types";
 
-export default async function NewPayrollRunPage() {
+type Props = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function NewPayrollRunPage({ searchParams }: Props) {
+  const [user, params, settings] = await Promise.all([
+    getSessionUser(),
+    searchParams,
+    apiRequestJson<TenantResolvedSettingsResponse>("/tenant-settings/resolved"),
+  ]);
   const runtime = buildStandardRouteRuntime({
     pageKind: "create",
-    sessionUser: await getSessionUser(),
+    sessionUser: user,
     spec: payrollRunRuntimeSpec,
   });
+  const formId = first(params?.formId);
+
   return (
     <PayrollLayoutShell
       title="New Payroll Run"
@@ -21,15 +34,25 @@ export default async function NewPayrollRunPage() {
       <StandardModuleRecordPage
         activeForm={resolveStandardActiveForm(
           runtime.metadata.forms,
-          "",
-          "quickCreate",
+          formId,
+          "main",
         )}
         mode="create"
-        record={{ payrollPeriodId: "" }}
+        record={{
+          runName: "",
+          payrollPeriodId: "",
+          employeeScope: "ALL_ELIGIBLE_EMPLOYEES",
+          employerBankAccountId: "",
+          defaultGenerationSource: settings.payroll.payrollGenerationSource,
+        }}
         runtime={runtime}
         spec={payrollRunRuntimeSpec}
         title="New Payroll Run"
       />
     </PayrollLayoutShell>
   );
+}
+
+function first(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] ?? "" : value ?? "";
 }

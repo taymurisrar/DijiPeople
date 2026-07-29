@@ -31,6 +31,26 @@ export class CreateLeavePolicyAssignmentDto {
   @IsString()
   scopeId?: string;
 
+  @IsOptional()
+  @IsUUID()
+  organizationId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  businessUnitId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  departmentId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  employeeLevelId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  employeeId?: string;
+
   @IsDateString()
   effectiveFrom!: string;
 

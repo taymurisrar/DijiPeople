@@ -10,8 +10,11 @@ import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import type { AuthenticatedRequest } from '../../common/interfaces/authenticated-request.interface';
 import { hasAnyRole } from '../../common/security/role-matching';
 
-const SYSTEM_CUSTOMIZER_ROLES = [
+const CUSTOMIZATION_ADMINISTRATOR_ROLES = [
+  ROLE_KEYS.GLOBAL_ADMIN,
   ROLE_KEYS.SYSTEM_CUSTOMIZER,
+  'global administrator',
+  'global-admin',
   'system customizer',
   'system-customizer',
 ] as const;
@@ -24,10 +27,11 @@ export class CustomizationAccessGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const user = request.user;
 
-    if (!hasAnyRole(user?.roleKeys ?? [], SYSTEM_CUSTOMIZER_ROLES)) {
+    if (!hasAnyRole(user?.roleKeys ?? [], CUSTOMIZATION_ADMINISTRATOR_ROLES)) {
       throw new ForbiddenException({
-        code: 'CUSTOMIZATION_REQUIRES_SYSTEM_CUSTOMIZER',
-        message: 'Customization requires the System Customizer role.',
+        code: 'CUSTOMIZATION_ACCESS_ROLE_REQUIRED',
+        message:
+          'Customization requires the Global Administrator or System Customizer role.',
       });
     }
 

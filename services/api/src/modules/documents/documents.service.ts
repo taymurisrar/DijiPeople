@@ -131,6 +131,12 @@ export class DocumentsService {
       );
     }
 
+    if (documentSettings.requireDescription && !dto.description?.trim()) {
+      throw new BadRequestException(
+        'Document description is required by tenant document settings.',
+      );
+    }
+
     await this.assertValidLinkedEntity(
       currentUser.tenantId,
       dto.entityType,
@@ -333,6 +339,13 @@ export class DocumentsService {
   }
 
   async openForDownload(tenantId: string, documentId: string) {
+    const documentSettings =
+      await this.tenantSettingsResolverService.getDocumentSettings(tenantId);
+    if (documentSettings.disableExternalDownloads) {
+      throw new BadRequestException(
+        'Document downloads are disabled by tenant document settings.',
+      );
+    }
     return this.openForView(tenantId, documentId);
   }
 
@@ -367,6 +380,20 @@ export class DocumentsService {
     return this.documentsRepository.listDocumentCategories(tenantId);
   }
 
+  async findDocumentCategoryById(tenantId: string, id: string) {
+    const category = await this.prisma.documentCategory.findFirst({
+      where: {
+        id,
+        OR: [{ tenantId }, { tenantId: null }],
+      },
+      include: { _count: { select: { documents: true } } },
+    });
+    if (!category) {
+      throw new NotFoundException('Document category was not found.');
+    }
+    return category;
+  }
+
   async createDocumentCategory(
     currentUser: AuthenticatedUser,
     dto: CreateDocumentCategoryDto,
@@ -374,9 +401,17 @@ export class DocumentsService {
     const created = await this.prisma.documentCategory.create({
       data: {
         tenantId: dto.isGlobal ? null : currentUser.tenantId,
-        code: dto.code.trim().toLowerCase(),
+        code: normalizeCategoryCode(dto.code ?? dto.name),
         name: dto.name.trim(),
         description: dto.description?.trim(),
+        appliesTo: normalizeStringList(dto.appliesTo, ['GENERAL']),
+        expirable: dto.expirable ?? false,
+        requiresVerification: dto.requiresVerification ?? false,
+        defaultRetentionMonths: dto.defaultRetentionMonths,
+        allowedExtensionsOverride: normalizeExtensions(
+          dto.allowedExtensionsOverride,
+        ),
+        maximumUploadSizeOverrideMb: dto.maximumUploadSizeOverrideMb,
         isActive: dto.isActive ?? true,
         sortOrder: dto.sortOrder ?? 0,
         createdById: currentUser.userId,
@@ -387,18 +422,100 @@ export class DocumentsService {
     return created;
   }
 
+  async updateDocumentCategory(
+    currentUser: AuthenticatedUser,
+    id: string,
+    dto: CreateDocumentCategoryDto,
+  ) {
+    const existing = await this.prisma.documentCategory.findFirst({
+      where: {
+        id,
+        OR: [{ tenantId: currentUser.tenantId }, { tenantId: null }],
+      },
+    });
+    if (!existing) {
+      throw new NotFoundException('Document category was not found.');
+    }
+    if (existing.tenantId === null) {
+      throw new BadRequestException(
+        'Global document categories cannot be edited.',
+      );
+    }
+    return this.prisma.documentCategory.update({
+      where: { id },
+      data: {
+        ...(dto.code !== undefined
+          ? { code: normalizeCategoryCode(dto.code) }
+          : {}),
+        ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
+        ...(dto.description !== undefined
+          ? { description: dto.description?.trim() ?? null }
+          : {}),
+        ...(dto.appliesTo !== undefined
+          ? { appliesTo: normalizeStringList(dto.appliesTo, ['GENERAL']) }
+          : {}),
+        ...(dto.expirable !== undefined ? { expirable: dto.expirable } : {}),
+        ...(dto.requiresVerification !== undefined
+          ? { requiresVerification: dto.requiresVerification }
+          : {}),
+        ...(dto.defaultRetentionMonths !== undefined
+          ? { defaultRetentionMonths: dto.defaultRetentionMonths }
+          : {}),
+        ...(dto.allowedExtensionsOverride !== undefined
+          ? {
+              allowedExtensionsOverride: normalizeExtensions(
+                dto.allowedExtensionsOverride,
+              ),
+            }
+          : {}),
+        ...(dto.maximumUploadSizeOverrideMb !== undefined
+          ? { maximumUploadSizeOverrideMb: dto.maximumUploadSizeOverrideMb }
+          : {}),
+        ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
+        ...(dto.sortOrder !== undefined ? { sortOrder: dto.sortOrder } : {}),
+        updatedById: currentUser.userId,
+      },
+    });
+  }
+
+  async deactivateDocumentCategory(currentUser: AuthenticatedUser, id: string) {
+    const existing = await this.prisma.documentCategory.findFirst({
+      where: { id, tenantId: currentUser.tenantId },
+      include: { _count: { select: { documents: true } } },
+    });
+    if (!existing) {
+      throw new NotFoundException('Document category was not found.');
+    }
+    if (existing._count.documents > 0) {
+      throw new BadRequestException(
+        'Document category cannot be deleted while documents reference it.',
+      );
+    }
+    return this.prisma.documentCategory.update({
+      where: { id },
+      data: { isActive: false, updatedById: currentUser.userId },
+    });
+  }
+
   private validateUploadedFile(
     file: UploadedFile | undefined,
     documentSettings: {
       maxUploadSizeMb: number;
       allowedExtensions: string[];
+      blockedExtensions: string[];
+      allowedMimeTypes: string[];
     },
   ) {
     if (!file) {
       throw new BadRequestException('A file upload is required.');
     }
 
-    if (!ALLOWED_DOCUMENT_MIME_TYPES.has(file.mimetype)) {
+    const settingsMimeTypes = new Set(documentSettings.allowedMimeTypes);
+    const allowedMimeTypes =
+      settingsMimeTypes.size > 0
+        ? settingsMimeTypes
+        : ALLOWED_DOCUMENT_MIME_TYPES;
+    if (!allowedMimeTypes.has(file.mimetype.toLowerCase())) {
       throw new BadRequestException('Uploaded file type is not supported.');
     }
 
@@ -407,6 +524,14 @@ export class DocumentsService {
     const allowedExtensions = new Set(
       documentSettings.allowedExtensions.map((value) => value.toLowerCase()),
     );
+    const blockedExtensions = new Set(
+      documentSettings.blockedExtensions.map((value) => value.toLowerCase()),
+    );
+    if (blockedExtensions.has(extension.toLowerCase())) {
+      throw new BadRequestException(
+        `Uploaded file extension .${extension} is blocked for this tenant.`,
+      );
+    }
     if (
       allowedExtensions.size > 0 &&
       !allowedExtensions.has(extension.toLowerCase())
@@ -496,6 +621,18 @@ export class DocumentsService {
         }
         return;
       }
+      case DocumentEntityType.PROJECT: {
+        const project = await this.prisma.project.findFirst({
+          where: { tenantId, id: entityId },
+          select: { id: true },
+        });
+        if (!project) {
+          throw new BadRequestException(
+            'Selected project does not belong to this tenant.',
+          );
+        }
+        return;
+      }
       case DocumentEntityType.LEAVE_REQUEST: {
         const leaveRequest = await this.prisma.leaveRequest.findFirst({
           where: { tenantId, id: entityId },
@@ -528,6 +665,30 @@ export class DocumentsService {
         if (!payrollRecord) {
           throw new BadRequestException(
             'Selected payroll record does not belong to this tenant.',
+          );
+        }
+        return;
+      }
+      case DocumentEntityType.PAYSLIP: {
+        const payslip = await this.prisma.payslip.findFirst({
+          where: { tenantId, id: entityId },
+          select: { id: true },
+        });
+        if (!payslip) {
+          throw new BadRequestException(
+            'Selected payslip does not belong to this tenant.',
+          );
+        }
+        return;
+      }
+      case DocumentEntityType.PAYROLL_BANK_EXPORT: {
+        const bankExport = await this.prisma.payrollBankExport.findFirst({
+          where: { tenantId, id: entityId },
+          select: { id: true },
+        });
+        if (!bankExport) {
+          throw new BadRequestException(
+            'Selected payroll bank export does not belong to this tenant.',
           );
         }
         return;
@@ -626,6 +787,32 @@ export class DocumentsService {
 function normalizeFileExtension(fileName: string) {
   const extension = extname(fileName).trim().toLowerCase();
   return extension.length > 0 ? extension : null;
+}
+
+function normalizeCategoryCode(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-');
+}
+
+function normalizeStringList(value: string[] | undefined, fallback: string[]) {
+  if (!Array.isArray(value)) return fallback;
+  const normalized = value
+    .map((item) => item.trim().toUpperCase())
+    .filter(Boolean);
+  return normalized.length > 0 ? [...new Set(normalized)] : fallback;
+}
+
+function normalizeExtensions(value: string[] | undefined) {
+  if (!Array.isArray(value)) return [];
+  return [
+    ...new Set(
+      value
+        .map((item) => item.trim().toLowerCase().replace(/^\.+/, ''))
+        .filter(Boolean),
+    ),
+  ];
 }
 
 function buildEntityLinkFields(

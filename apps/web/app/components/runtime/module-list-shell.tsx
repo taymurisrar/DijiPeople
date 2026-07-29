@@ -17,6 +17,7 @@ export function ModuleListShell({
   activeViewId,
   breadcrumbs,
   children,
+  commandBarAddon,
   commands,
   error,
   loading,
@@ -33,6 +34,7 @@ export function ModuleListShell({
   readonly activeViewId?: string | null;
   readonly breadcrumbs?: readonly ModuleBreadcrumb[];
   readonly children?: ReactNode;
+  readonly commandBarAddon?: ReactNode;
   readonly commands: readonly CommandDefinition[] | RuntimeCommandGroups;
   readonly error?: ReactNode;
   readonly loading?: boolean;
@@ -45,12 +47,34 @@ export function ModuleListShell({
   readonly tableSlot?: ReactNode;
   readonly title?: string;
 }) {
+  const views = runtime.metadata.views
+    .filter(
+      (view) =>
+        view.isPublished !== false &&
+        (view.lifecycleState === "published" ||
+          view.lifecycleState === "deprecated"),
+    )
+    .map((view) => ({
+      id: view.viewId ?? view.id,
+      name: view.displayName,
+      description: view.description,
+      type: view.viewId?.startsWith("custom-") ? "custom" : "system",
+      isDefault: view.isDefault,
+    } satisfies {
+      id: string;
+      name: string;
+      description?: string;
+      type?: "system" | "custom";
+      isDefault?: boolean;
+    }));
+
   return (
     <ModulePageLayout
       accessDenied={accessDenied}
       breadcrumbs={breadcrumbs}
       commandBarSlot={
         <ModuleCommandBar
+          addon={commandBarAddon}
           commands={commands}
           loading={loading}
           onCommand={onCommand}
@@ -64,12 +88,8 @@ export function ModuleListShell({
         <ModuleViewSelector
           activeViewId={activeViewId}
           onViewChange={onViewChange}
-          views={runtime.metadata.views.filter(
-            (view) =>
-              view.isPublished !== false &&
-              (view.lifecycleState === "published" ||
-                view.lifecycleState === "deprecated"),
-          )}
+          views={views}
+          mode="dropdown"
         />
       }
       loading={loading}

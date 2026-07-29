@@ -1,12 +1,24 @@
 import { Transform } from 'class-transformer';
 import {
   IsBoolean,
+  IsIn,
   IsOptional,
   IsString,
   IsUUID,
   MaxLength,
   MinLength,
 } from 'class-validator';
+
+const STRUCTURE_STATUSES = ['ACTIVE', 'INACTIVE'] as const;
+const STRUCTURE_SUB_STATUSES = [
+  'OPERATIONAL',
+  'UNDER_SETUP',
+  'PENDING_ACTIVATION',
+  'DEACTIVATED',
+  'ARCHIVED',
+  'MERGED',
+  'CLOSED',
+] as const;
 
 function emptyStringToUndefined({ value }: { value: unknown }) {
   if (typeof value !== 'string') {
@@ -18,6 +30,9 @@ function emptyStringToUndefined({ value }: { value: unknown }) {
 }
 
 export class CreateDepartmentDto {
+  @IsUUID()
+  businessUnitId!: string;
+
   @IsString()
   @MinLength(1)
   @MaxLength(100)
@@ -39,6 +54,24 @@ export class CreateDepartmentDto {
   @Transform(emptyStringToUndefined)
   @IsUUID()
   defaultWorkScheduleId?: string;
+
+  @IsOptional()
+  @Transform(emptyStringToUndefined)
+  @IsUUID()
+  headEmployeeId?: string;
+
+  @IsOptional()
+  @Transform(emptyStringToUndefined)
+  @IsUUID()
+  ownerUserId?: string;
+
+  @IsOptional()
+  @IsIn(STRUCTURE_STATUSES)
+  status?: string;
+
+  @IsOptional()
+  @IsIn(STRUCTURE_SUB_STATUSES)
+  subStatus?: string;
 
   @IsOptional()
   @IsBoolean()

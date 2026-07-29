@@ -10,6 +10,7 @@ import { TimePayrollModule } from '../time-payroll/time-payroll.module';
 import { TaxRulesModule } from '../tax-rules/tax-rules.module';
 import { BenefitsModule } from '../benefits/benefits.module';
 import { ApprovalsModule } from '../approvals/approvals.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { ExcelExportService } from '../../common/excel/excel-export.service';
 import { PayrollController } from './payroll.controller';
 import { PayrollGlController } from './payroll-gl.controller';
@@ -21,6 +22,13 @@ import { PayrollRunService } from './payroll-run.service';
 import { PayrollService } from './payroll.service';
 import { PayrollOperationsController } from './payroll-operations.controller';
 import { PayrollOperationsService } from './payroll-operations.service';
+import { EmployerBankAccountsController } from './employer-bank-accounts.controller';
+import { EmployerBankAccountsService } from './employer-bank-accounts.service';
+import { PayrollCostAllocationService } from './payroll-cost-allocation.service';
+import { PayrollExchangeRateService } from './payroll-exchange-rate.service';
+import { PayrollOutputDocumentService } from './payroll-output-document.service';
+import { PayrollNotificationService } from './payroll-notification.service';
+import { PayrollDefaultsService } from './payroll-defaults.service';
 import {
   CsvPayrollExportProvider,
   ExcelPayrollExportProvider,
@@ -38,12 +46,14 @@ import {
     TaxRulesModule,
     BenefitsModule,
     ApprovalsModule,
+    NotificationsModule,
   ],
   controllers: [
     PayrollController,
     PayrollRunController,
     PayrollGlController,
     PayrollOperationsController,
+    EmployerBankAccountsController,
   ],
   providers: [
     PayrollRepository,
@@ -52,6 +62,12 @@ import {
     PayrollRunService,
     PayrollService,
     PayrollOperationsService,
+    EmployerBankAccountsService,
+    PayrollCostAllocationService,
+    PayrollExchangeRateService,
+    PayrollOutputDocumentService,
+    PayrollNotificationService,
+    PayrollDefaultsService,
     ExcelExportService,
     CsvPayrollExportProvider,
     ExcelPayrollExportProvider,
@@ -64,6 +80,10 @@ import {
     PayrollRunService,
     PayrollService,
     PayrollJournalService,
+    PayrollCostAllocationService,
+    PayrollExchangeRateService,
+    PayrollOutputDocumentService,
+    PayrollNotificationService,
   ],
 })
 export class PayrollModule {}

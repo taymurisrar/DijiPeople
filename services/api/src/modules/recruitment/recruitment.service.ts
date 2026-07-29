@@ -34,6 +34,7 @@ import { TriggerDocumentParseDto } from './dto/trigger-document-parse.dto';
 import { UpdateCandidateDto } from './dto/update-candidate.dto';
 import { UpdateJobOpeningDto } from './dto/update-job-opening.dto';
 import { UpsertCandidateEvaluationDto } from './dto/upsert-candidate-evaluation.dto';
+import { UpsertRecruitmentPipelineDto } from './dto/upsert-recruitment-pipeline.dto';
 import { CandidateQueryDto } from './dto/candidate-query.dto';
 import { CandidateIdentityResolutionService } from './candidate-identity-resolution.service';
 import { DocumentParsingService } from './document-parsing.service';
@@ -44,6 +45,7 @@ import {
   CandidateWithRelations,
   JobOpeningWithRelations,
   RecruitmentRepository,
+  RecruitmentPipelineWithStages,
 } from './recruitment.repository';
 import { RecruitmentScoringService } from './recruitment-scoring.service';
 
@@ -96,10 +98,15 @@ export class RecruitmentService {
     const normalizedCriteria =
       this.recruitmentScoringService.normalizeMatchCriteria(dto.matchCriteria);
     this.recruitmentScoringService.validateMatchCriteria(normalizedCriteria);
+    const pipeline = await this.resolvePipelineForJobOpening(
+      currentUser.tenantId,
+      dto.pipelineId,
+    );
 
     try {
       const jobOpening = await this.recruitmentRepository.createJobOpening({
         tenantId: currentUser.tenantId,
+        pipelineId: pipeline?.id ?? null,
         title: dto.title.trim(),
         code: dto.code?.trim().toUpperCase(),
         description: dto.description?.trim(),
@@ -142,6 +149,13 @@ export class RecruitmentService {
     if (dto.matchCriteria !== undefined) {
       this.recruitmentScoringService.validateMatchCriteria(normalizedCriteria);
     }
+    const pipeline =
+      dto.pipelineId !== undefined
+        ? await this.resolvePipelineForJobOpening(
+            currentUser.tenantId,
+            dto.pipelineId,
+          )
+        : undefined;
 
     try {
       await this.prisma.$transaction(async (tx) => {
@@ -157,6 +171,9 @@ export class RecruitmentService {
               ? { description: dto.description?.trim() ?? null }
               : {}),
             ...(dto.status !== undefined ? { status: dto.status } : {}),
+            ...(dto.pipelineId !== undefined
+              ? { pipelineId: pipeline?.id ?? null }
+              : {}),
             ...(dto.matchCriteria !== undefined
               ? {
                   matchCriteria:
@@ -181,6 +198,155 @@ export class RecruitmentService {
       return this.findJobOpeningById(currentUser.tenantId, jobOpeningId);
     } catch (error) {
       handleRecruitmentWriteError(error, 'Job opening');
+    }
+  }
+
+  async findRecruitmentPipelines(tenantId: string) {
+    const pipelines =
+      await this.recruitmentRepository.findRecruitmentPipelines(tenantId);
+    if (pipelines.length > 0) {
+      return {
+        items: pipelines.map((pipeline) =>
+          this.mapRecruitmentPipeline(pipeline),
+        ),
+      };
+    }
+
+    const defaultPipeline = await this.ensureDefaultRecruitmentPipeline({
+      tenantId,
+      actorUserId: null,
+    });
+    return { items: [this.mapRecruitmentPipeline(defaultPipeline)] };
+  }
+
+  async findRecruitmentPipelineById(tenantId: string, pipelineId: string) {
+    const pipeline =
+      await this.recruitmentRepository.findRecruitmentPipelineById(
+        tenantId,
+        pipelineId,
+      );
+    if (!pipeline) {
+      throw new NotFoundException('Recruitment pipeline was not found.');
+    }
+    return this.mapRecruitmentPipeline(pipeline);
+  }
+
+  async createRecruitmentPipeline(
+    currentUser: AuthenticatedUser,
+    dto: UpsertRecruitmentPipelineDto,
+  ) {
+    this.validatePipelineStages(dto.stages);
+
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        if (dto.isDefault) {
+          await tx.recruitmentPipeline.updateMany({
+            where: { tenantId: currentUser.tenantId },
+            data: { isDefault: false, updatedById: currentUser.userId },
+          });
+        }
+
+        const pipeline =
+          await this.recruitmentRepository.createRecruitmentPipeline(
+            {
+              tenantId: currentUser.tenantId,
+              name: dto.name.trim(),
+              code: dto.code?.trim().toUpperCase() || null,
+              description: dto.description?.trim() || null,
+              isDefault: dto.isDefault ?? false,
+              isActive: dto.isActive ?? true,
+              allowBackwardMove: dto.allowBackwardMove ?? true,
+              requireRejectReason: dto.requireRejectReason ?? true,
+              createdById: currentUser.userId,
+              updatedById: currentUser.userId,
+              stages: {
+                create: dto.stages.map((stage) =>
+                  this.toPipelineStageCreateInput(
+                    currentUser.tenantId,
+                    currentUser.userId,
+                    stage,
+                  ),
+                ),
+              },
+            },
+            tx,
+          );
+
+        return this.mapRecruitmentPipeline(pipeline);
+      });
+    } catch (error) {
+      handleRecruitmentWriteError(error, 'Recruitment pipeline');
+    }
+  }
+
+  async updateRecruitmentPipeline(
+    currentUser: AuthenticatedUser,
+    pipelineId: string,
+    dto: UpsertRecruitmentPipelineDto,
+  ) {
+    const existing =
+      await this.recruitmentRepository.findRecruitmentPipelineById(
+        currentUser.tenantId,
+        pipelineId,
+      );
+    if (!existing) {
+      throw new NotFoundException('Recruitment pipeline was not found.');
+    }
+    this.validatePipelineStages(dto.stages);
+
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        if (dto.isDefault) {
+          await tx.recruitmentPipeline.updateMany({
+            where: { tenantId: currentUser.tenantId, id: { not: pipelineId } },
+            data: { isDefault: false, updatedById: currentUser.userId },
+          });
+        }
+
+        await this.recruitmentRepository.updateRecruitmentPipeline(
+          currentUser.tenantId,
+          pipelineId,
+          {
+            name: dto.name.trim(),
+            code: dto.code?.trim().toUpperCase() || null,
+            description: dto.description?.trim() || null,
+            isDefault: dto.isDefault ?? existing.isDefault,
+            isActive: dto.isActive ?? existing.isActive,
+            allowBackwardMove:
+              dto.allowBackwardMove ?? existing.allowBackwardMove,
+            requireRejectReason:
+              dto.requireRejectReason ?? existing.requireRejectReason,
+            updatedById: currentUser.userId,
+          },
+          tx,
+        );
+        await this.recruitmentRepository.deleteRecruitmentPipelineStages(
+          currentUser.tenantId,
+          pipelineId,
+          tx,
+        );
+        await this.recruitmentRepository.createRecruitmentPipelineStages(
+          dto.stages.map((stage) => ({
+            ...this.toPipelineStageCreateInput(
+              currentUser.tenantId,
+              currentUser.userId,
+              stage,
+            ),
+            pipelineId,
+          })),
+          tx,
+        );
+
+        const updated =
+          await this.recruitmentRepository.findRecruitmentPipelineById(
+            currentUser.tenantId,
+            pipelineId,
+            tx,
+          );
+        return this.mapRecruitmentPipeline(updated!);
+      });
+    } catch (error) {
+      handleRecruitmentWriteError(error, 'Recruitment pipeline');
     }
   }
 
@@ -884,6 +1050,32 @@ export class RecruitmentService {
     return this.mapApplication(application);
   }
 
+  async hardDeleteCandidates(
+    currentUser: AuthenticatedUser,
+    candidateIds: string[],
+  ) {
+    const uniqueCandidateIds = [...new Set(candidateIds.filter(Boolean))];
+    if (uniqueCandidateIds.length === 0) {
+      throw new BadRequestException('Select at least one candidate to delete.');
+    }
+
+    const result = await this.prisma.candidate.deleteMany({
+      where: {
+        tenantId: currentUser.tenantId,
+        id: { in: uniqueCandidateIds },
+      },
+    });
+
+    if (result.count === 0) {
+      throw new NotFoundException('No candidates were found to delete.');
+    }
+
+    return {
+      deleted: result.count,
+      requested: uniqueCandidateIds.length,
+    };
+  }
+
   async submitApplication(
     currentUser: AuthenticatedUser,
     dto: SubmitApplicationDto,
@@ -930,6 +1122,7 @@ export class RecruitmentService {
           degreeTitle: record.degreeTitle,
           fieldOfStudy: record.fieldOfStudy,
         })),
+        educationSummary: candidate.hrNotes ?? candidate.profileSummary,
         currentCity: candidate.currentCity,
         currentCountry: candidate.currentCountry,
         preferredLocation: candidate.preferredLocation,
@@ -1079,23 +1272,23 @@ export class RecruitmentService {
       );
     }
 
-    const recruitmentSettings =
-      await this.tenantSettingsResolverService.getRecruitmentSettings(
+    const jobOpening = await this.recruitmentRepository.findJobOpeningById(
+      currentUser.tenantId,
+      application.jobOpeningId,
+    );
+    const pipeline =
+      jobOpening?.pipeline ??
+      (await this.resolvePipelineForJobOpening(
         currentUser.tenantId,
-      );
-    const configuredStages = recruitmentSettings.candidateStages
-      .map((item) => parseRecruitmentStageFromConfig(item))
-      .filter((item): item is RecruitmentStage => item !== null);
+        jobOpening?.pipelineId,
+      ));
+    this.validateApplicationStageMove(pipeline, application.stage, dto.stage);
 
-    if (configuredStages.length > 0 && !configuredStages.includes(dto.stage)) {
-      throw new BadRequestException(
-        `Stage ${dto.stage} is disabled in tenant recruitment pipeline settings.`,
-      );
-    }
-
-    validateStageTransition(application.stage, dto.stage);
-
-    if (dto.stage === 'REJECTED' && !dto.rejectionReason?.trim()) {
+    if (
+      dto.stage === 'REJECTED' &&
+      pipeline?.requireRejectReason &&
+      !dto.rejectionReason?.trim()
+    ) {
       throw new BadRequestException(
         'A rejection reason is required when rejecting an application.',
       );
@@ -1226,6 +1419,182 @@ export class RecruitmentService {
     );
 
     return this.findApplicationById(currentUser.tenantId, applicationId);
+  }
+
+  private async resolvePipelineForJobOpening(
+    tenantId: string,
+    pipelineId?: string | null,
+  ) {
+    if (pipelineId === null) return null;
+
+    if (pipelineId) {
+      const pipeline =
+        await this.recruitmentRepository.findRecruitmentPipelineById(
+          tenantId,
+          pipelineId,
+        );
+      if (!pipeline || !pipeline.isActive) {
+        throw new BadRequestException(
+          'Selected recruitment pipeline is inactive or unavailable.',
+        );
+      }
+      return pipeline;
+    }
+
+    const recruitmentSettings =
+      await this.tenantSettingsResolverService.getRecruitmentSettings(tenantId);
+    if (recruitmentSettings.defaultRecruitmentPipelineId) {
+      const configured =
+        await this.recruitmentRepository.findRecruitmentPipelineById(
+          tenantId,
+          recruitmentSettings.defaultRecruitmentPipelineId,
+        );
+      if (configured?.isActive) return configured;
+    }
+
+    return this.ensureDefaultRecruitmentPipeline({
+      tenantId,
+      actorUserId: null,
+    });
+  }
+
+  private async ensureDefaultRecruitmentPipeline(params: {
+    tenantId: string;
+    actorUserId: string | null;
+  }) {
+    const existing =
+      await this.recruitmentRepository.findDefaultRecruitmentPipeline(
+        params.tenantId,
+      );
+    if (existing) return existing;
+
+    return this.recruitmentRepository.createRecruitmentPipeline({
+      tenantId: params.tenantId,
+      name: 'Standard Hiring Pipeline',
+      code: 'STANDARD',
+      description:
+        'Default recruitment pipeline for application tracking and hiring conversion.',
+      isDefault: true,
+      isActive: true,
+      allowBackwardMove: true,
+      requireRejectReason: true,
+      createdById: params.actorUserId,
+      updatedById: params.actorUserId,
+      stages: {
+        create: DEFAULT_RECRUITMENT_PIPELINE_STAGES.map((stage) =>
+          this.toPipelineStageCreateInput(
+            params.tenantId,
+            params.actorUserId,
+            stage,
+          ),
+        ),
+      },
+    });
+  }
+
+  private validatePipelineStages(
+    stages: UpsertRecruitmentPipelineDto['stages'],
+  ) {
+    const activeStages = stages.filter((stage) => stage.isActive !== false);
+    if (activeStages.length === 0) {
+      throw new BadRequestException(
+        'Recruitment pipeline must have at least one active stage.',
+      );
+    }
+    if (!activeStages.some((stage) => stage.stageKey === 'HIRED')) {
+      throw new BadRequestException(
+        'Recruitment pipeline must include an active Hired stage.',
+      );
+    }
+
+    const seenStageKeys = new Set<RecruitmentStage>();
+    const seenOrders = new Set<number>();
+    for (const stage of stages) {
+      if (seenStageKeys.has(stage.stageKey)) {
+        throw new BadRequestException(
+          `Duplicate pipeline stage ${stage.stageKey}.`,
+        );
+      }
+      if (seenOrders.has(stage.sortOrder)) {
+        throw new BadRequestException(
+          `Duplicate pipeline stage order ${stage.sortOrder}.`,
+        );
+      }
+      seenStageKeys.add(stage.stageKey);
+      seenOrders.add(stage.sortOrder);
+    }
+  }
+
+  private validateApplicationStageMove(
+    pipeline: RecruitmentPipelineWithStages | null,
+    currentStage: RecruitmentStage,
+    nextStage: RecruitmentStage,
+  ) {
+    if (!pipeline) {
+      validateStageTransition(currentStage, nextStage);
+      return;
+    }
+
+    const activeStages = pipeline.stages.filter((stage) => stage.isActive);
+    const current = activeStages.find(
+      (stage) => stage.stageKey === currentStage,
+    );
+    const next = activeStages.find((stage) => stage.stageKey === nextStage);
+
+    if (!next) {
+      throw new BadRequestException(
+        `Stage ${nextStage} is not active in the selected recruitment pipeline.`,
+      );
+    }
+    if (!current) return;
+    if (!pipeline.allowBackwardMove && next.sortOrder < current.sortOrder) {
+      throw new BadRequestException(
+        'This recruitment pipeline does not allow moving applications backward.',
+      );
+    }
+  }
+
+  private toPipelineStageCreateInput(
+    tenantId: string,
+    actorUserId: string | null,
+    stage: UpsertRecruitmentPipelineDto['stages'][number],
+  ) {
+    return {
+      tenantId,
+      stageKey: stage.stageKey,
+      label: stage.label.trim(),
+      color: stage.color?.trim() || null,
+      sortOrder: stage.sortOrder,
+      isTerminal:
+        stage.isTerminal ?? isTerminalRecruitmentStage(stage.stageKey),
+      isActive: stage.isActive ?? true,
+      createdById: actorUserId,
+      updatedById: actorUserId,
+    };
+  }
+
+  private mapRecruitmentPipeline(pipeline: RecruitmentPipelineWithStages) {
+    return {
+      id: pipeline.id,
+      name: pipeline.name,
+      code: pipeline.code,
+      description: pipeline.description,
+      isDefault: pipeline.isDefault,
+      isActive: pipeline.isActive,
+      allowBackwardMove: pipeline.allowBackwardMove,
+      requireRejectReason: pipeline.requireRejectReason,
+      createdAt: pipeline.createdAt,
+      updatedAt: pipeline.updatedAt,
+      stages: pipeline.stages.map((stage) => ({
+        id: stage.id,
+        stageKey: stage.stageKey,
+        label: stage.label,
+        color: stage.color,
+        sortOrder: stage.sortOrder,
+        isTerminal: stage.isTerminal,
+        isActive: stage.isActive,
+      })),
+    };
   }
 
   private mapJobOpening(jobOpening: JobOpeningWithRelations) {
@@ -1789,6 +2158,9 @@ export class RecruitmentService {
                 fieldOfStudy: record.fieldOfStudy,
               }),
             ),
+            educationSummary:
+              application.candidate.hrNotes ??
+              application.candidate.profileSummary,
             currentCity: application.candidate.currentCity,
             currentCountry: application.candidate.currentCountry,
             preferredLocation: application.candidate.preferredLocation,
@@ -2212,6 +2584,81 @@ function validateStageTransition(
   }
 }
 
+const DEFAULT_RECRUITMENT_PIPELINE_STAGES = [
+  {
+    stageKey: RecruitmentStage.APPLIED,
+    label: 'Applied',
+    color: '#2563eb',
+    sortOrder: 10,
+    isTerminal: false,
+    isActive: true,
+  },
+  {
+    stageKey: RecruitmentStage.SCREENING,
+    label: 'Screening',
+    color: '#0891b2',
+    sortOrder: 20,
+    isTerminal: false,
+    isActive: true,
+  },
+  {
+    stageKey: RecruitmentStage.SHORTLISTED,
+    label: 'Shortlisted',
+    color: '#7c3aed',
+    sortOrder: 30,
+    isTerminal: false,
+    isActive: true,
+  },
+  {
+    stageKey: RecruitmentStage.INTERVIEW,
+    label: 'Interview',
+    color: '#ea580c',
+    sortOrder: 40,
+    isTerminal: false,
+    isActive: true,
+  },
+  {
+    stageKey: RecruitmentStage.FINAL_REVIEW,
+    label: 'Final Review',
+    color: '#ca8a04',
+    sortOrder: 50,
+    isTerminal: false,
+    isActive: true,
+  },
+  {
+    stageKey: RecruitmentStage.OFFER,
+    label: 'Offer',
+    color: '#16a34a',
+    sortOrder: 60,
+    isTerminal: false,
+    isActive: true,
+  },
+  {
+    stageKey: RecruitmentStage.HIRED,
+    label: 'Hired',
+    color: '#047857',
+    sortOrder: 70,
+    isTerminal: true,
+    isActive: true,
+  },
+  {
+    stageKey: RecruitmentStage.REJECTED,
+    label: 'Rejected',
+    color: '#dc2626',
+    sortOrder: 80,
+    isTerminal: true,
+    isActive: true,
+  },
+] satisfies UpsertRecruitmentPipelineDto['stages'];
+
+function isTerminalRecruitmentStage(stage: RecruitmentStage) {
+  return (
+    stage === RecruitmentStage.HIRED ||
+    stage === RecruitmentStage.REJECTED ||
+    stage === RecruitmentStage.WITHDRAWN
+  );
+}
+
 function parseRecruitmentStageFromConfig(
   value: string,
 ): RecruitmentStage | null {
@@ -2271,17 +2718,43 @@ function extractEmployeeSequence(
 
 function handleRecruitmentWriteError(
   error: unknown,
-  entityName: 'Job opening' | 'Candidate',
+  entityName: 'Job opening' | 'Candidate' | 'Recruitment pipeline',
 ): never {
   if (
     error instanceof Prisma.PrismaClientKnownRequestError &&
     error.code === 'P2002'
   ) {
+    const duplicatedFields = duplicatedFieldNames(error.meta?.target);
+    const duplicatedFieldText = duplicatedFields.length
+      ? duplicatedFields.join(', ')
+      : 'name, code, or email';
+    const verb = duplicatedFields.length === 1 ? 'is' : 'are';
     throw new ConflictException(
-      `${entityName} name, code, or email is already in use for this tenant.`,
+      `${entityName} ${duplicatedFieldText} ${verb} already in use for this tenant.`,
     );
   }
   throw error;
+}
+
+function duplicatedFieldNames(target: unknown) {
+  const fields = Array.isArray(target)
+    ? target
+    : typeof target === 'string'
+      ? target.split(/[, ]+/)
+      : [];
+
+  return fields
+    .filter((field): field is string => typeof field === 'string')
+    .map((field) => field.trim())
+    .filter((field) => field && field !== 'tenantId')
+    .map((field) => {
+      if (field === 'title') return 'title';
+      if (field === 'code') return 'code';
+      if (field === 'primaryEmail') return 'primary email';
+      if (field === 'email') return 'email';
+      if (field === 'name') return 'name';
+      return field;
+    });
 }
 
 function toDecimal(value?: number) {

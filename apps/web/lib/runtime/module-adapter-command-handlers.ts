@@ -66,10 +66,19 @@ export function buildAdapterCommandHandlers({
 
       refresh?.();
 
+      const createdRecordId = recordId
+        ? ""
+        : readCreatedRecordId(savedRecord, context.runtime);
+
       return {
         ok: true,
         data: savedRecord,
         message: recordId ? "Record saved." : "Record created.",
+        ...(createdRecordId
+          ? {
+              redirectTo: `${context.runtime.module.routeBase}/${encodeURIComponent(createdRecordId)}/edit`,
+            }
+          : {}),
         invalidateCacheKeys: context.runtime.cacheKeys,
       };
     },
@@ -431,6 +440,24 @@ export function buildAdapterCommandHandlers({
       };
     },
   };
+}
+
+function readCreatedRecordId(
+  savedRecord: unknown,
+  runtime: ModuleRuntimeContext,
+): string {
+  if (!savedRecord || typeof savedRecord !== "object") return "";
+  const record = savedRecord as Readonly<Record<string, unknown>>;
+  const value =
+    record[runtime.metadata.entity.primaryIdField] ?? record.id ?? record.value;
+  if (typeof value === "string" || typeof value === "number") {
+    return String(value);
+  }
+  for (const key of ["data", "record", "item", "result"] as const) {
+    const nested: string = readCreatedRecordId(record[key], runtime);
+    if (nested) return nested;
+  }
+  return "";
 }
 
 function buildListInput(

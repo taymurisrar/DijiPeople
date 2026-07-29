@@ -1,10 +1,17 @@
 import Link from "next/link";
 import { ApiRequestError, apiRequestJson } from "@/lib/server-api";
 import { EmployeeListResponse } from "../../employees/types";
-import { getBusinessUnitAccessSummary, shouldEnforceSelfScope } from "../../_lib/business-unit-access";
+import {
+  getBusinessUnitAccessSummary,
+  shouldEnforceSelfScope,
+} from "../../_lib/business-unit-access";
 import { TimesheetFilterBar } from "../_components/timesheet-filter-bar";
 import { TimesheetManagerReviewPanel } from "../_components/timesheet-manager-review-panel";
-import { TimesheetListResponse, TimesheetRecord, TimesheetStatus } from "../types";
+import {
+  TimesheetListResponse,
+  TimesheetRecord,
+  TimesheetStatus,
+} from "../types";
 
 type BusinessUnitOption = {
   id: string;
@@ -28,7 +35,8 @@ export default async function TimesheetApprovalsPage({
             Self scope active
           </p>
           <h3 className="mt-3 text-3xl font-semibold text-foreground">
-            Timesheet approvals are not available at your current business-unit access level.
+            Timesheet approvals are not available at your current business-unit
+            access level.
           </h3>
           <p className="mt-3 text-muted">
             Your access is scoped to your own records only.
@@ -42,7 +50,8 @@ export default async function TimesheetApprovalsPage({
   const now = new Date();
   const year = Number(getSearchParam(params.year) || now.getFullYear());
   const month = Number(getSearchParam(params.month) || now.getMonth() + 1);
-  const status = (getSearchParam(params.status) || "SUBMITTED") as TimesheetStatus;
+  const status = (getSearchParam(params.status) ||
+    "PENDING_APPROVAL") as TimesheetStatus;
   const timesheetId = getSearchParam(params.timesheetId);
   const page = Number(getSearchParam(params.page) || 1);
   const pageSize = Number(getSearchParam(params.pageSize) || 12);
@@ -104,11 +113,12 @@ export default async function TimesheetApprovalsPage({
               Timesheet Approvals
             </p>
             <h3 className="mt-3 font-serif text-4xl text-foreground">
-              Review submitted monthly timesheets.
+              Review weekly timesheets through the shared approval workflow.
             </h3>
             <p className="mt-3 max-w-3xl text-muted">
               Filter by month, status, employee, manager, and department, then
-              open a submitted record for daily review.
+              open a record for its week, day, project, attendance, and approval
+              detail.
             </p>
           </div>
           <MonthSwitcher month={month} status={status} year={year} />
@@ -127,7 +137,9 @@ export default async function TimesheetApprovalsPage({
 
       <div className="grid gap-6 xl:grid-cols-[0.36fr_0.64fr]">
         <section className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
-          <p className="text-sm uppercase tracking-[0.18em] text-muted">Queue</p>
+          <p className="text-sm uppercase tracking-[0.18em] text-muted">
+            Queue
+          </p>
           <h4 className="mt-2 text-2xl font-semibold text-foreground">
             Timesheet records
           </h4>
@@ -152,7 +164,8 @@ export default async function TimesheetApprovalsPage({
                     {timesheet.employee.fullName}
                   </p>
                   <p className="mt-1 text-sm text-muted">
-                    {monthLabel(timesheet.month, timesheet.year)} - {timesheet.status}
+                    {monthLabel(timesheet.month, timesheet.year)} -{" "}
+                    {timesheet.status}
                   </p>
                   <p className="mt-2 text-sm text-muted">
                     {timesheet.summary.totalWorkDays} work day(s),{" "}
@@ -245,7 +258,10 @@ function buildTimesheetQuery(
   return query.toString();
 }
 
-function queueHref(params: Record<string, string | string[] | undefined>, timesheetId: string) {
+function queueHref(
+  params: Record<string, string | string[] | undefined>,
+  timesheetId: string,
+) {
   const query = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
     const normalized = getSearchParam(value);

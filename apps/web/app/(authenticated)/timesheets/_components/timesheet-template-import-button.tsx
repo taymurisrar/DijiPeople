@@ -195,11 +195,13 @@ export function TimesheetTemplateImportButton({
                   onChange={(event) => setSelectedMonth(event.target.value)}
                   value={selectedMonth}
                 >
-                  {Array.from({ length: 12 }, (_, index) => index + 1).map((value) => (
-                    <option key={value} value={value}>
-                      {monthLabel(value)}
-                    </option>
-                  ))}
+                  {Array.from({ length: 12 }, (_, index) => index + 1).map(
+                    (value) => (
+                      <option key={value} value={value}>
+                        {monthLabel(value)}
+                      </option>
+                    ),
+                  )}
                 </select>
               </Field>
               <Field label="Year">
@@ -215,12 +217,16 @@ export function TimesheetTemplateImportButton({
               <Field label="Scope">
                 <select
                   className="w-full rounded-xl border border-border bg-white px-3 py-2 text-sm"
-                  onChange={(event) => setScope(event.target.value as TemplateScope)}
+                  onChange={(event) =>
+                    setScope(event.target.value as TemplateScope)
+                  }
                   value={scope}
                 >
                   <option value="mine">My timesheet</option>
                   {canReadTeam ? <option value="team">My team</option> : null}
-                  {canReadAll ? <option value="tenant">All employees</option> : null}
+                  {canReadAll ? (
+                    <option value="tenant">All employees</option>
+                  ) : null}
                 </select>
               </Field>
               <Field label="Business unit">
@@ -242,8 +248,8 @@ export function TimesheetTemplateImportButton({
             <div className="mt-5">
               <FileUploadDropzone file={file} onFileSelected={setFile} />
               <p className="mt-2 text-xs text-muted">
-                Import validates employees, period dates, entry types, hours, holidays,
-                weekends, and business-unit scope before saving.
+                Import validates employees, period dates, entry types, hours,
+                holidays, weekends, and business-unit scope before saving.
               </p>
             </div>
 
@@ -322,7 +328,9 @@ function FileUploadDropzone({
       <span className="font-medium text-foreground">
         {file ? file.name : "Drop Excel template here or choose a file"}
       </span>
-      <span className="mt-1 text-sm text-muted">.xlsx files exported from Timesheets</span>
+      <span className="mt-1 text-sm text-muted">
+        .xlsx files exported from Timesheets
+      </span>
     </label>
   );
 }
@@ -357,8 +365,12 @@ function ImportPreviewTable({ preview }: { preview: ImportPreviewResponse }) {
               <tr key={row.rowNumber}>
                 <td className="px-4 py-3">{row.rowNumber}</td>
                 <td className="px-4 py-3">
-                  <p className="font-medium text-foreground">{row.employeeCode}</p>
-                  <p className="text-xs text-muted">{row.employeeName || row.workEmail}</p>
+                  <p className="font-medium text-foreground">
+                    {row.employeeCode}
+                  </p>
+                  <p className="text-xs text-muted">
+                    {row.employeeName || row.workEmail}
+                  </p>
                 </td>
                 <td className="px-4 py-3">{row.date}</td>
                 <td className="px-4 py-3">{row.entryType}</td>
@@ -373,7 +385,8 @@ function ImportPreviewTable({ preview }: { preview: ImportPreviewResponse }) {
       </div>
       {preview.rows.length > visibleRows.length ? (
         <p className="text-sm text-muted">
-          Showing first {visibleRows.length} rows. All rows are validated before import.
+          Showing first {visibleRows.length} rows. All rows are validated before
+          import.
         </p>
       ) : null}
     </div>

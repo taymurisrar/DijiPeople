@@ -30,7 +30,12 @@ export class DataController {
     @Query() query: EntityQueryParams,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    if (await this.customDataService.isCustomTable(entityLogicalName, user.tenantId)) {
+    if (
+      await this.customDataService.isCustomTable(
+        entityLogicalName,
+        user.tenantId,
+      )
+    ) {
       return this.customDataService.findMany(entityLogicalName, query, user);
     }
     return this.dataService.findMany(entityLogicalName, query, user);

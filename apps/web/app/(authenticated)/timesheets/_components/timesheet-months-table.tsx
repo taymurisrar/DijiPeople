@@ -40,16 +40,23 @@ export function TimesheetMonthsTable({
                   {monthLabel(timesheet.month, timesheet.year)}
                 </td>
                 <td className="px-4 py-3">
-                  <p className="font-medium text-foreground">{timesheet.employee.fullName}</p>
+                  <p className="font-medium text-foreground">
+                    {timesheet.employee.fullName}
+                  </p>
                   <p className="text-xs text-muted">
-                    {[timesheet.employee.department?.name, timesheet.employee.businessUnit?.name]
+                    {[
+                      timesheet.employee.department?.name,
+                      timesheet.employee.businessUnit?.name,
+                    ]
                       .filter(Boolean)
                       .join(" / ") || "No org context"}
                   </p>
                 </td>
                 <td className="px-4 py-3">{timesheet.status}</td>
                 <td className="px-4 py-3 text-muted">
-                  {timesheet.summary.totalWorkDays} work, {timesheet.summary.totalLeaveDays} leave, {timesheet.summary.totalHours.toFixed(2)} hrs
+                  {timesheet.summary.totalWorkDays} work,{" "}
+                  {timesheet.summary.totalLeaveDays} leave,{" "}
+                  {timesheet.summary.totalHours.toFixed(2)} hrs
                 </td>
                 <td className="px-4 py-3 text-muted">
                   {timesheet.employee.reportingManager

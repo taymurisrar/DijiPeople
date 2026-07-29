@@ -60,11 +60,14 @@ export class TimePayrollService {
       const created = await this.prisma.timePayrollPolicy.create({
         data: {
           tenantId: user.tenantId,
-          code: normalizeCode(dto.code),
+          code: normalizeCode(dto.code, dto.name),
           name: dto.name.trim(),
           description: emptyToNull(dto.description),
+          organizationId: dto.organizationId ?? null,
           employeeLevelId: dto.employeeLevelId ?? null,
           businessUnitId: dto.businessUnitId ?? null,
+          departmentId: dto.departmentId ?? null,
+          employmentTypeId: dto.employmentTypeId ?? null,
           countryCode: normalizeOptionalCountry(dto.countryCode),
           mode: dto.mode,
           useAttendanceForPayroll: dto.useAttendanceForPayroll ?? true,
@@ -129,11 +132,20 @@ export class TimePayrollService {
           ...(dto.description !== undefined
             ? { description: emptyToNull(dto.description) }
             : {}),
+          ...(dto.organizationId !== undefined
+            ? { organizationId: dto.organizationId }
+            : {}),
           ...(dto.employeeLevelId !== undefined
             ? { employeeLevelId: dto.employeeLevelId }
             : {}),
           ...(dto.businessUnitId !== undefined
             ? { businessUnitId: dto.businessUnitId }
+            : {}),
+          ...(dto.departmentId !== undefined
+            ? { departmentId: dto.departmentId }
+            : {}),
+          ...(dto.employmentTypeId !== undefined
+            ? { employmentTypeId: dto.employmentTypeId }
             : {}),
           ...(dto.countryCode !== undefined
             ? { countryCode: normalizeOptionalCountry(dto.countryCode) }
@@ -244,14 +256,25 @@ export class TimePayrollService {
       const created = await this.prisma.overtimePolicy.create({
         data: {
           tenantId: user.tenantId,
-          code: normalizeCode(dto.code),
+          code: normalizeCode(dto.code, dto.name),
           name: dto.name.trim(),
           description: emptyToNull(dto.description),
+          organizationId: dto.organizationId ?? null,
           employeeLevelId: dto.employeeLevelId ?? null,
           businessUnitId: dto.businessUnitId ?? null,
+          departmentId: dto.departmentId ?? null,
+          employmentTypeId: dto.employmentTypeId ?? null,
           calculationPeriod: dto.calculationPeriod,
           thresholdHours: new Prisma.Decimal(dto.thresholdHours),
           rateMultiplier: new Prisma.Decimal(dto.rateMultiplier),
+          normalOtMultiplier: nullableDecimal(dto.normalOtMultiplier),
+          weekendOtMultiplier: nullableDecimal(dto.weekendOtMultiplier),
+          holidayOtMultiplier: nullableDecimal(dto.holidayOtMultiplier),
+          nightOtMultiplier: nullableDecimal(dto.nightOtMultiplier),
+          minimumOtMinutes: nullableInteger(dto.minimumOtMinutes),
+          maximumOtHours: nullableDecimal(dto.maximumOtHours),
+          roundToMinutes: nullableInteger(dto.roundToMinutes),
+          payComponentId: dto.payComponentId ?? null,
           requiresApproval: dto.requiresApproval ?? true,
           isActive: dto.isActive ?? true,
           effectiveFrom,
@@ -301,11 +324,20 @@ export class TimePayrollService {
           ...(dto.description !== undefined
             ? { description: emptyToNull(dto.description) }
             : {}),
+          ...(dto.organizationId !== undefined
+            ? { organizationId: dto.organizationId }
+            : {}),
           ...(dto.employeeLevelId !== undefined
             ? { employeeLevelId: dto.employeeLevelId }
             : {}),
           ...(dto.businessUnitId !== undefined
             ? { businessUnitId: dto.businessUnitId }
+            : {}),
+          ...(dto.departmentId !== undefined
+            ? { departmentId: dto.departmentId }
+            : {}),
+          ...(dto.employmentTypeId !== undefined
+            ? { employmentTypeId: dto.employmentTypeId }
             : {}),
           ...(dto.calculationPeriod !== undefined
             ? { calculationPeriod: dto.calculationPeriod }
@@ -315,6 +347,30 @@ export class TimePayrollService {
             : {}),
           ...(dto.rateMultiplier !== undefined
             ? { rateMultiplier: new Prisma.Decimal(dto.rateMultiplier) }
+            : {}),
+          ...(dto.normalOtMultiplier !== undefined
+            ? { normalOtMultiplier: nullableDecimal(dto.normalOtMultiplier) }
+            : {}),
+          ...(dto.weekendOtMultiplier !== undefined
+            ? { weekendOtMultiplier: nullableDecimal(dto.weekendOtMultiplier) }
+            : {}),
+          ...(dto.holidayOtMultiplier !== undefined
+            ? { holidayOtMultiplier: nullableDecimal(dto.holidayOtMultiplier) }
+            : {}),
+          ...(dto.nightOtMultiplier !== undefined
+            ? { nightOtMultiplier: nullableDecimal(dto.nightOtMultiplier) }
+            : {}),
+          ...(dto.minimumOtMinutes !== undefined
+            ? { minimumOtMinutes: nullableInteger(dto.minimumOtMinutes) }
+            : {}),
+          ...(dto.maximumOtHours !== undefined
+            ? { maximumOtHours: nullableDecimal(dto.maximumOtHours) }
+            : {}),
+          ...(dto.roundToMinutes !== undefined
+            ? { roundToMinutes: nullableInteger(dto.roundToMinutes) }
+            : {}),
+          ...(dto.payComponentId !== undefined
+            ? { payComponentId: dto.payComponentId }
             : {}),
           ...(dto.requiresApproval !== undefined
             ? { requiresApproval: dto.requiresApproval }
@@ -445,6 +501,11 @@ function mapOvertimePolicy(
     ...policy,
     thresholdHours: policy.thresholdHours.toString(),
     rateMultiplier: policy.rateMultiplier.toString(),
+    normalOtMultiplier: policy.normalOtMultiplier?.toString() ?? null,
+    weekendOtMultiplier: policy.weekendOtMultiplier?.toString() ?? null,
+    holidayOtMultiplier: policy.holidayOtMultiplier?.toString() ?? null,
+    nightOtMultiplier: policy.nightOtMultiplier?.toString() ?? null,
+    maximumOtHours: policy.maximumOtHours?.toString() ?? null,
   };
 }
 
@@ -464,8 +525,19 @@ function assertEffectiveDates(effectiveFrom: Date, effectiveTo: Date | null) {
   }
 }
 
-function normalizeCode(value: string) {
-  return value.trim().toUpperCase().replace(/\s+/g, '_');
+function normalizeCode(value: string | undefined, fallbackName?: string) {
+  const source =
+    value?.trim() || `${fallbackName || 'POLICY'}_${shortSuffix()}`;
+  return source
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9_ -]+/g, '_')
+    .replace(/^[_ -]+|[_ -]+$/g, '')
+    .slice(0, 80);
+}
+
+function shortSuffix() {
+  return Date.now().toString(36).toUpperCase().slice(-6);
 }
 
 function normalizeOptionalCountry(value?: string | null) {
@@ -476,6 +548,16 @@ function normalizeOptionalCountry(value?: string | null) {
 function emptyToNull(value?: string | null) {
   const trimmed = value?.trim();
   return trimmed ? trimmed : null;
+}
+
+function nullableDecimal(value?: number | null) {
+  return value === undefined || value === null
+    ? null
+    : new Prisma.Decimal(value);
+}
+
+function nullableInteger(value?: number | null) {
+  return value === undefined || value === null ? null : Math.trunc(value);
 }
 
 function handleUnique(error: unknown, message: string): never {

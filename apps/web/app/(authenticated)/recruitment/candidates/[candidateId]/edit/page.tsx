@@ -1,27 +1,90 @@
-import { apiRequestJson } from "@/lib/server-api";
-import { CandidateForm } from "../../../_components/candidate-form";
-import { CandidateRecord } from "../../../types";
+import { StandardModuleRecordPage } from "@/app/components/runtime";
+import { AccessDeniedState } from "@/app/(authenticated)/_components/access-denied-state";
+import { getSessionUser } from "@/lib/auth";
+import {
+  buildPublishedStandardRouteRuntime,
+  resolveStandardActiveForm,
+} from "@/lib/runtime/modules/standard-module-route-helpers";
+import { recruitmentCandidateRuntimeSpec } from "@/lib/runtime/modules/standard-module-specs";
+import { ApiRequestError, apiRequestJson } from "@/lib/server-api";
+import {
+  candidateLookupDisplayValues,
+  candidateLookupOptions,
+  mapCandidateRuntimeRecord,
+} from "../../../_components/candidate-runtime-record";
+import type { CandidateRecord } from "../../../types";
 
 type EditCandidatePageProps = {
   params: Promise<{
     candidateId: string;
   }>;
+  searchParams?: Promise<{
+    formId?: string;
+  }>;
 };
 
-export default async function EditCandidatePage({ params }: EditCandidatePageProps) {
-  const { candidateId } = await params;
-  const candidate = await apiRequestJson<CandidateRecord>(`/candidates/${candidateId}`);
+const emptySearchParams: { formId?: string } = {};
+
+export default async function EditCandidatePage({
+  params,
+  searchParams,
+}: EditCandidatePageProps) {
+  const [{ candidateId }, resolvedSearchParams, sessionUser] =
+    await Promise.all([
+      params,
+      searchParams ?? Promise.resolve(emptySearchParams),
+      getSessionUser(),
+    ]);
+
+  let candidate: CandidateRecord;
+
+  try {
+    candidate = await apiRequestJson<CandidateRecord>(
+      `/candidates/${candidateId}`,
+    );
+  } catch (error) {
+    if (
+      error instanceof ApiRequestError &&
+      (error.status === 403 || error.status === 404)
+    ) {
+      return (
+        <main className="grid gap-6">
+          <AccessDeniedState
+            description="This candidate is outside your accessible business-unit scope."
+            title="You cannot edit this candidate record."
+          />
+        </main>
+      );
+    }
+
+    throw error;
+  }
+
+  const runtime = await buildPublishedStandardRouteRuntime({
+    pageKind: "edit",
+    recordId: candidate.id,
+    sessionUser,
+    spec: recruitmentCandidateRuntimeSpec,
+  });
+  const activeForm = resolveStandardActiveForm(
+    runtime.metadata.forms,
+    resolvedSearchParams.formId ?? "",
+    "main",
+  );
 
   return (
-    <main className="grid gap-6">
-      <section className="space-y-3">
-        <p className="text-sm uppercase tracking-[0.18em] text-muted">Candidates</p>
-        <h3 className="font-serif text-4xl text-foreground">Edit candidate</h3>
-        <p className="max-w-3xl text-muted">
-          Keep candidate details current while the application pipeline evolves.
-        </p>
-      </section>
-      <CandidateForm mode="edit" candidate={candidate} />
+    <main className="dp-theme-scope grid gap-6">
+      <StandardModuleRecordPage
+        activeForm={activeForm}
+        lookupDisplayValues={candidateLookupDisplayValues(candidate)}
+        lookupOptions={candidateLookupOptions(candidate)}
+        mode="edit"
+        record={mapCandidateRuntimeRecord(candidate)}
+        recordId={candidate.id}
+        runtime={runtime}
+        spec={recruitmentCandidateRuntimeSpec}
+        title={candidate.fullName || "Candidate"}
+      />
     </main>
   );
 }

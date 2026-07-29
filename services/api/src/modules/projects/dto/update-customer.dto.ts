@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsString,
   IsUrl,
+  IsUUID,
   MaxLength,
 } from 'class-validator';
 
@@ -53,6 +54,33 @@ export class UpdateCustomerDto {
   @IsString()
   @MaxLength(500)
   address?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  addressLine1?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  addressLine2?: string | null;
+
+  @IsOptional()
+  @IsUUID()
+  cityId?: string | null;
+
+  @IsOptional()
+  @IsUUID()
+  stateProvinceId?: string | null;
+
+  @IsOptional()
+  @IsUUID()
+  countryId?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  postalCode?: string | null;
 
   @IsOptional()
   @IsEnum(CustomerStatus)

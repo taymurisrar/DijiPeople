@@ -207,6 +207,7 @@ export class DocumentsRepository {
         isActive: true,
         OR: [{ tenantId }, { tenantId: null }],
       },
+      include: { _count: { select: { documents: true } } },
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
     });
   }

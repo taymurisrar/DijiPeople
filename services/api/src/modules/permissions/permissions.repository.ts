@@ -15,6 +15,15 @@ export class PermissionsRepository {
     });
   }
 
+  findById(tenantId: string, permissionId: string, db: PrismaDb = this.prisma) {
+    return db.permission.findFirst({
+      where: {
+        id: permissionId,
+        tenantId,
+      },
+    });
+  }
+
   findByIds(
     tenantId: string,
     permissionIds: string[],

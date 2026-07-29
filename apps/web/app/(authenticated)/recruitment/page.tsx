@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { AccessDeniedState } from "../_components/access-denied-state";
-import { getBusinessUnitAccessSummary, hasBusinessUnitScope } from "../_lib/business-unit-access";
+import {
+  getBusinessUnitAccessSummary,
+  hasBusinessUnitScope,
+} from "../_lib/business-unit-access";
 
 const recruitmentLinks = [
   {
@@ -29,6 +32,13 @@ const recruitmentLinks = [
     title: "Job Openings",
     description: "Create and manage openings that drive the hiring pipeline.",
     cta: "Open Jobs",
+  },
+  {
+    href: "/recruitment/pipelines",
+    title: "Recruitment Pipelines",
+    description:
+      "Configure hiring workflows, ordered stages, validations, and default pipeline behavior.",
+    cta: "Open Pipelines",
   },
   {
     href: "/recruitment/talent-pool",
@@ -60,23 +70,28 @@ async function RecruitmentIndexContent() {
   return (
     <main className="grid gap-6">
       <section className="rounded-[28px] border border-border bg-[linear-gradient(135deg,rgba(255,255,255,0.95),rgba(239,248,245,0.9))] p-8 shadow-lg">
-        <p className="text-sm uppercase tracking-[0.18em] text-muted">Recruitment</p>
+        <p className="text-sm uppercase tracking-[0.18em] text-muted">
+          Recruitment
+        </p>
         <h3 className="mt-3 font-serif text-4xl text-foreground">
           Manage hiring from CV upload to onboarding.
         </h3>
         <p className="mt-3 max-w-3xl text-muted">
-          Start from CV intake, then move through matching, evaluation, and final conversion.
+          Start from CV intake, then move through matching, evaluation, and
+          final conversion.
         </p>
       </section>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {recruitmentLinks.map((item) => (
           <article
-            key={item.href}
             className="grid gap-4 rounded-[24px] border border-border bg-surface p-6 shadow-sm"
+            key={item.href}
           >
             <div>
-              <h4 className="text-xl font-semibold text-foreground">{item.title}</h4>
+              <h4 className="text-xl font-semibold text-foreground">
+                {item.title}
+              </h4>
               <p className="mt-2 text-sm text-muted">{item.description}</p>
             </div>
             <Link

@@ -138,6 +138,13 @@ export class BenefitEligibilityService {
       !hasCompletedProbation(employee, effectiveDate)
     )
       return false;
+    if (policy.minimumServiceMonths) {
+      const serviceDate = new Date(employee.hireDate);
+      serviceDate.setUTCMonth(
+        serviceDate.getUTCMonth() + policy.minimumServiceMonths,
+      );
+      if (serviceDate > effectiveDate) return false;
+    }
     return matchesJsonRules(policy.eligibilityRules, employee, effectiveDate);
   }
 

@@ -8,6 +8,7 @@ import { CandidateIdentityResolutionService } from './candidate-identity-resolut
 import { CandidatesController } from './candidates.controller';
 import { DocumentParsingService } from './document-parsing.service';
 import { JobOpeningsController } from './job-openings.controller';
+import { RecruitmentPipelinesController } from './recruitment-pipelines.controller';
 import { RecruitmentRepository } from './recruitment.repository';
 import { RecruitmentScoringService } from './recruitment-scoring.service';
 import { RecruitmentService } from './recruitment.service';
@@ -16,6 +17,7 @@ import { RecruitmentService } from './recruitment.service';
   imports: [JwtModule.register({}), TenantSettingsModule],
   controllers: [
     JobOpeningsController,
+    RecruitmentPipelinesController,
     CandidatesController,
     ApplicationsController,
   ],

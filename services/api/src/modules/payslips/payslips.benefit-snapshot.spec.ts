@@ -27,7 +27,7 @@ describe('PayslipsService frozen benefit values', () => {
       tenantId: 'tenant-1',
       payrollRunId: 'run-1',
       employeeId: 'employee-1',
-      status: PayrollRunEmployeeStatus.CALCULATED,
+      status: PayrollRunEmployeeStatus.APPROVED,
       currencyCode: 'QAR',
       grossEarnings: new Prisma.Decimal(10500),
       totalDeductions: new Prisma.Decimal(0),
@@ -68,6 +68,19 @@ describe('PayslipsService frozen benefit values', () => {
       },
       payslipEventLog: { create: jest.fn().mockResolvedValue({}) },
     };
+    const storedPayslip = {
+      ...runEmployee,
+      id: 'payslip-1',
+      payslipNumber: 'PAY-1',
+      documentId: null,
+      documentVersion: 1,
+      employee: runEmployee.employee,
+      payrollRun: runEmployee.payrollRun,
+      payrollRunEmployee: runEmployee,
+      lineItems: [],
+      eventLogs: [],
+      document: null,
+    };
     const service = new PayslipsService(
       {
         payrollRunEmployee: {
@@ -75,12 +88,30 @@ describe('PayslipsService frozen benefit values', () => {
         },
         payslip: {
           count: jest.fn().mockResolvedValue(0),
-          findFirst: jest.fn().mockResolvedValue(null),
+          findFirst: jest
+            .fn()
+            .mockResolvedValueOnce(null)
+            .mockResolvedValue(storedPayslip),
+          update: jest.fn().mockResolvedValue({
+            ...storedPayslip,
+            documentId: 'document-1',
+            documentVersion: 1,
+            document: { id: 'document-1' },
+          }),
         },
+        payslipEventLog: { create: jest.fn().mockResolvedValue({}) },
+        tenant: { findUnique: jest.fn().mockResolvedValue(null) },
         $transaction: jest.fn((callback) => callback(tx)),
       } as never,
       { log: jest.fn().mockResolvedValue({}) } as never,
       { dispatch: jest.fn().mockResolvedValue(undefined) } as never,
+      {
+        store: jest.fn().mockResolvedValue({
+          document: { id: 'document-1' },
+          checksum: 'checksum-1',
+        }),
+      } as never,
+      {} as never,
     );
 
     await service.generatePayslipForRunEmployee({

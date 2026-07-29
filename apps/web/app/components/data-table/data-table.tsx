@@ -40,7 +40,11 @@ export function DataTable<T>({
   footer,
   mode = "client",
   entityLogicalName,
-  pagination,
+  pagination = {
+    page: 1,
+    pageSize: 10,
+    pageSizeOptions: [10, 25, 50, 100],
+  },
 
   enableSelection = false,
   selectedRowKeys = [],
@@ -353,7 +357,7 @@ export function DataTable<T>({
     <div
       className={
         className ??
-        `max-w-full overflow-hidden rounded-lg border border-border bg-surface shadow-sm ${
+        `w-full min-w-0 overflow-hidden rounded-lg border border-border bg-surface shadow-sm ${
           preferences?.uiDensity
             ? `data-table-density-${preferences.uiDensity.toLowerCase()}`
             : ""
@@ -364,10 +368,12 @@ export function DataTable<T>({
         <div>
           <p className="text-sm font-semibold text-foreground">Records</p>
 
-          <p className="text-xs text-muted">
-            Showing {rangeStart}-{rangeEnd} of {totalRecords}
-            {entityLogicalName ? ` ${entityLogicalName}` : ""}
-          </p>
+          {!footer && !pagination ? (
+            <p className="text-xs text-muted">
+              Showing {rangeStart}-{rangeEnd} of {totalRecords}
+              {entityLogicalName ? ` ${entityLogicalName}` : ""}
+            </p>
+          ) : null}
 
           {enableSelection && selectedRowKeys.length > 0 ? (
             <p className="mt-1 text-xs font-medium text-foreground">
@@ -407,7 +413,7 @@ export function DataTable<T>({
         </div>
       </div>
 
-      <div className="max-w-full overflow-x-auto">
+      <div className="w-full min-w-0 overflow-x-auto">
         <table
           className={
             tableClassName ?? "min-w-full divide-y divide-border text-sm"
@@ -533,9 +539,9 @@ export function DataTable<T>({
           {footer}
         </div>
       ) : pagination ? (
-        <div className="flex items-center justify-between gap-3 border-t border-border bg-surface-strong px-3 py-2.5 text-sm text-muted">
+        <div className="flex flex-col gap-3 border-t border-border bg-surface-strong px-3 py-2.5 text-sm text-muted md:flex-row md:items-center md:justify-between">
           <span>
-            Page {currentPage} of {totalPages}
+            Showing {rangeStart} to {rangeEnd} of {totalRecords} records
           </span>
           {mode === "client" ? (
             <div className="flex flex-wrap items-center gap-2">

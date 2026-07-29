@@ -56,6 +56,7 @@ export type AuthTokenPayload = {
   aud?: string;
   deviceId?: string;
   authSubjectType?: 'tenant-user' | 'platform-user';
+  rememberMe?: boolean;
   platformRole?: PlatformUserRole;
 };
 

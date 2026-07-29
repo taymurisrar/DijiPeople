@@ -51,7 +51,7 @@ export class SettingsRuntimeService {
         data: {
           tenantId: user.tenantId,
           settingKey,
-          code: dto.code.trim().toUpperCase(),
+          code: normalizeCode(dto.code, dto.name),
           name: dto.name.trim(),
           description: clean(dto.description),
           configuration: dto.configuration as Prisma.InputJsonValue | undefined,
@@ -179,6 +179,21 @@ export class SettingsRuntimeService {
       afterSnapshot,
     });
   }
+}
+
+function normalizeCode(value: string | undefined, fallbackName: string) {
+  const source =
+    value?.trim() ||
+    `${fallbackName || 'CONFIG'}_${Date.now()
+      .toString(36)
+      .toUpperCase()
+      .slice(-6)}`;
+  return source
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9_ -]+/g, '_')
+    .replace(/^[_ -]+|[_ -]+$/g, '')
+    .slice(0, 50);
 }
 
 function clean(value?: string) {

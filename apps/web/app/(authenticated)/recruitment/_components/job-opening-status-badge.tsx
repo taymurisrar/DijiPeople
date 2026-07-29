@@ -46,7 +46,7 @@ export function JobOpeningStatusBadge({
 
   return (
     <span
-      className={`inline-flex w-fit items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] ${statusStyles[safeStatus]}`}
+      className={`inline-flex w-fit items-center gap-2 whitespace-nowrap rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] ${statusStyles[safeStatus]}`}
     >
       <span
         className={`h-2 w-2 rounded-full ${statusDotStyles[safeStatus]}`}

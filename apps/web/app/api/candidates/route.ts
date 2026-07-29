@@ -23,7 +23,35 @@ export async function POST(request: Request) {
     return proxyApiJsonResponse(response);
   } catch (error) {
     return NextResponse.json(
-      { message: error instanceof Error ? error.message : "Unable to create candidate." },
+      {
+        message:
+          error instanceof Error
+            ? error.message
+            : "Unable to create candidate.",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+export async function DELETE(request: Request) {
+  const body = await request.json().catch(() => ({}));
+
+  try {
+    const response = await apiRequest("/candidates", {
+      method: "DELETE",
+      body: JSON.stringify(body),
+    });
+
+    return proxyApiJsonResponse(response);
+  } catch (error) {
+    return NextResponse.json(
+      {
+        message:
+          error instanceof Error
+            ? error.message
+            : "Unable to delete candidates.",
+      },
       { status: 500 },
     );
   }

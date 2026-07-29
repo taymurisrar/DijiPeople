@@ -14,3 +14,12 @@ export async function GET(_: Request, context: RouteContext) {
 
   return proxyApiJsonResponse(response);
 }
+
+export async function DELETE(_: Request, context: RouteContext) {
+  const { onboardingId } = await context.params;
+  const response = await apiRequest(`/onboarding/${onboardingId}`, {
+    method: "DELETE",
+  });
+
+  return proxyApiJsonResponse(response);
+}

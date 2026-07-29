@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { apiRequest, proxyApiJsonResponse } from "@/lib/server-api";
 
 type RouteContext = {
@@ -19,23 +18,12 @@ export async function GET(_request: Request, context: RouteContext) {
 export async function PATCH(request: Request, context: RouteContext) {
   const { employeeId } = await context.params;
   const body = await request.json();
+  const response = await apiRequest(`/employees/${employeeId}`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
 
-  try {
-    const response = await apiRequest(`/employees/${employeeId}`, {
-      method: "PATCH",
-      body: JSON.stringify(body),
-    });
-
-    return proxyApiJsonResponse(response);
-  } catch (error) {
-    return NextResponse.json(
-      {
-        message:
-          error instanceof Error ? error.message : "Unable to update employee.",
-      },
-      { status: 500 },
-    );
-  }
+  return proxyApiJsonResponse(response);
 }
 
 export async function DELETE(_request: Request, context: RouteContext) {

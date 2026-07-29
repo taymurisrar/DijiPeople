@@ -17,6 +17,7 @@ export function PayrollRunActions({
   canGenerateBankExport,
   canDisburse,
   journalStatus,
+  paymentSummary,
   runId,
   status,
 }: {
@@ -32,12 +33,30 @@ export function PayrollRunActions({
   canGenerateBankExport: boolean;
   canDisburse: boolean;
   journalStatus?: string | null;
+  paymentSummary?: {
+    totalLines: number;
+    disbursedLines: number;
+    failedLines: number;
+    pendingLines: number;
+    hasBankExport: boolean;
+  };
   runId: string;
   status: string;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const hasPaymentBlocker =
+    status === "APPROVED" &&
+    canDisburse &&
+    (!paymentSummary?.hasBankExport ||
+      (paymentSummary.totalLines > 0 &&
+        paymentSummary.disbursedLines < paymentSummary.totalLines));
+  const paymentBlockerMessage = !paymentSummary?.hasBankExport
+    ? "Generate a bank transfer before marking this run paid."
+    : paymentSummary.failedLines > 0
+      ? `${paymentSummary.failedLines} payment line(s) failed. Retry or reconcile them on the Payments tab.`
+      : `${paymentSummary?.disbursedLines ?? 0} of ${paymentSummary?.totalLines ?? 0} payment line(s) are disbursed. Finish reconciliation on the Payments tab.`;
 
   async function post(action: "calculate" | "lock") {
     setBusy(true);
@@ -56,7 +75,9 @@ export function PayrollRunActions({
     router.refresh();
   }
 
-  async function operation(action: "finalize" | "disburse") {
+  async function operation(
+    action: "finalize" | "disburse" | "review" | "return-to-calculation",
+  ) {
     setBusy(true);
     setError(null);
     const response = await fetch(
@@ -205,6 +226,66 @@ export function PayrollRunActions({
     router.refresh();
   }
 
+  async function validateJournal() {
+    setBusy(true);
+    setError(null);
+    const response = await fetch(`/api/payroll/runs/${runId}/journal/validate`, {
+      method: "POST",
+    });
+    setBusy(false);
+    if (!response.ok) {
+      const data = (await response.json().catch(() => null)) as {
+        message?: string;
+      } | null;
+      setError(data?.message ?? "Unable to validate payroll journal.");
+      return;
+    }
+    router.refresh();
+  }
+
+  async function markJournalPosted() {
+    if (!confirm("Mark this exported journal as posted?")) return;
+    setBusy(true);
+    setError(null);
+    const response = await fetch(`/api/payroll/runs/${runId}/journal/mark-posted`, {
+      method: "POST",
+    });
+    setBusy(false);
+    if (!response.ok) {
+      const data = (await response.json().catch(() => null)) as {
+        message?: string;
+      } | null;
+      setError(data?.message ?? "Unable to mark journal posted.");
+      return;
+    }
+    router.refresh();
+  }
+
+  async function reverseJournal() {
+    const reason = window.prompt("Reversal reason");
+    if (!reason?.trim()) return;
+    const reversalDate =
+      window.prompt("Reversal date (YYYY-MM-DD)", new Date().toISOString().slice(0, 10)) ??
+      "";
+    if (!reversalDate.trim()) return;
+    setBusy(true);
+    setError(null);
+    const response = await fetch(`/api/payroll/runs/${runId}/journal/reverse`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason, reversalDate }),
+    });
+    setBusy(false);
+    if (!response.ok) {
+      const data = (await response.json().catch(() => null)) as {
+        message?: string;
+      } | null;
+      setError(data?.message ?? "Unable to reverse payroll journal.");
+      return;
+    }
+    router.refresh();
+  }
+
   return (
     <div className="grid gap-3">
       <div className="flex flex-wrap gap-3">
@@ -254,7 +335,25 @@ export function PayrollRunActions({
             Finalize
           </Button>
         ) : null}
-        {canLock && status === "APPROVED" ? (
+        {canFinalize && status === "CALCULATED" ? (
+          <Button
+            disabled={busy}
+            onClick={() => operation("review")}
+            variant="secondary"
+          >
+            Review
+          </Button>
+        ) : null}
+        {canCalculate && status === "REVIEWED" ? (
+          <Button
+            disabled={busy}
+            onClick={() => operation("return-to-calculation")}
+            variant="secondary"
+          >
+            Return to Calculation
+          </Button>
+        ) : null}
+        {canLock && ["APPROVED", "PAID"].includes(status) ? (
           <button
             className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-foreground"
             disabled={busy}
@@ -264,7 +363,7 @@ export function PayrollRunActions({
             Lock
           </button>
         ) : null}
-        {canGenerateBankExport && ["APPROVED", "LOCKED"].includes(status) ? (
+        {canGenerateBankExport && ["APPROVED", "PAID"].includes(status) ? (
           <div className="flex gap-2">
             {(["CSV", "EXCEL", "GENERIC_BANK_TRANSFER"] as const).map(
               (format) => (
@@ -283,9 +382,9 @@ export function PayrollRunActions({
             )}
           </div>
         ) : null}
-        {canDisburse && status === "LOCKED" ? (
+        {canDisburse && status === "APPROVED" ? (
           <Button
-            disabled={busy}
+            disabled={busy || hasPaymentBlocker}
             onClick={() => operation("disburse")}
             variant="primary"
           >
@@ -324,6 +423,17 @@ export function PayrollRunActions({
             Export CSV
           </a>
         ) : null}
+        {canExportJournal &&
+        ["GENERATED", "EXPORTED", "POSTED"].includes(journalStatus ?? "") ? (
+          <button
+            className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-foreground"
+            disabled={busy}
+            onClick={validateJournal}
+            type="button"
+          >
+            Validate Journal
+          </button>
+        ) : null}
         {canMarkJournalExported && journalStatus === "GENERATED" ? (
           <button
             className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-foreground"
@@ -334,7 +444,36 @@ export function PayrollRunActions({
             Mark Exported
           </button>
         ) : null}
+        {canMarkJournalExported && journalStatus === "EXPORTED" ? (
+          <button
+            className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-foreground"
+            disabled={busy}
+            onClick={markJournalPosted}
+            type="button"
+          >
+            Mark Posted
+          </button>
+        ) : null}
+        {canMarkJournalExported && journalStatus === "POSTED" ? (
+          <button
+            className="rounded-2xl border border-danger/40 px-4 py-2 text-sm font-semibold text-danger"
+            disabled={busy}
+            onClick={reverseJournal}
+            type="button"
+          >
+            Reverse Journal
+          </button>
+        ) : null}
       </div>
+      {hasPaymentBlocker ? (
+        <div className="grid gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          <p className="font-semibold">Payment reconciliation is not complete.</p>
+          <p>{paymentBlockerMessage}</p>
+          <Button href={`/payroll/runs/${runId}?tab=payments`} size="sm" variant="warning-soft">
+            Open Payments
+          </Button>
+        </div>
+      ) : null}
       {error ? <p className="text-sm text-danger">{error}</p> : null}
     </div>
   );

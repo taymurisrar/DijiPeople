@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -22,5 +22,14 @@ export class PermissionsController {
   @RequirePermissions('permissions.read')
   getCatalog(@CurrentUser() user: AuthenticatedUser) {
     return this.permissionsService.findByTenant(user.tenantId);
+  }
+
+  @Get(':permissionId')
+  @RequirePermissions('permissions.read')
+  findOne(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('permissionId') permissionId: string,
+  ) {
+    return this.permissionsService.findById(user.tenantId, permissionId);
   }
 }

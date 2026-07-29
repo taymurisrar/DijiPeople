@@ -20,10 +20,11 @@ import {
 const CODE_PATTERN = /^[A-Z0-9_ -]+$/i;
 
 export class CreateTimePayrollPolicyDto {
+  @IsOptional()
   @IsString()
   @MaxLength(80)
   @Matches(CODE_PATTERN)
-  code!: string;
+  code?: string;
 
   @IsString()
   @MaxLength(160)
@@ -36,11 +37,23 @@ export class CreateTimePayrollPolicyDto {
 
   @IsOptional()
   @IsUUID()
+  organizationId?: string | null;
+
+  @IsOptional()
+  @IsUUID()
   employeeLevelId?: string | null;
 
   @IsOptional()
   @IsUUID()
   businessUnitId?: string | null;
+
+  @IsOptional()
+  @IsUUID()
+  departmentId?: string | null;
+
+  @IsOptional()
+  @IsUUID()
+  employmentTypeId?: string | null;
 
   @IsOptional()
   @IsString()
@@ -123,11 +136,23 @@ export class UpdateTimePayrollPolicyDto {
 
   @IsOptional()
   @IsUUID()
+  organizationId?: string | null;
+
+  @IsOptional()
+  @IsUUID()
   employeeLevelId?: string | null;
 
   @IsOptional()
   @IsUUID()
   businessUnitId?: string | null;
+
+  @IsOptional()
+  @IsUUID()
+  departmentId?: string | null;
+
+  @IsOptional()
+  @IsUUID()
+  employmentTypeId?: string | null;
 
   @IsOptional()
   @IsString()
@@ -196,10 +221,11 @@ export class UpdateTimePayrollPolicyDto {
 }
 
 export class CreateOvertimePolicyDto {
+  @IsOptional()
   @IsString()
   @MaxLength(80)
   @Matches(CODE_PATTERN)
-  code!: string;
+  code?: string;
 
   @IsString()
   @MaxLength(160)
@@ -212,11 +238,23 @@ export class CreateOvertimePolicyDto {
 
   @IsOptional()
   @IsUUID()
+  organizationId?: string | null;
+
+  @IsOptional()
+  @IsUUID()
   employeeLevelId?: string | null;
 
   @IsOptional()
   @IsUUID()
   businessUnitId?: string | null;
+
+  @IsOptional()
+  @IsUUID()
+  departmentId?: string | null;
+
+  @IsOptional()
+  @IsUUID()
+  employmentTypeId?: string | null;
 
   @IsEnum(OvertimeCalculationPeriod)
   calculationPeriod!: OvertimeCalculationPeriod;
@@ -230,6 +268,52 @@ export class CreateOvertimePolicyDto {
   @IsNumber()
   @Min(0.01)
   rateMultiplier!: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  normalOtMultiplier?: number | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  weekendOtMultiplier?: number | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  holidayOtMultiplier?: number | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  nightOtMultiplier?: number | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  minimumOtMinutes?: number | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  maximumOtHours?: number | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  roundToMinutes?: number | null;
+
+  @IsOptional()
+  @IsUUID()
+  payComponentId?: string | null;
 
   @IsOptional()
   @IsBoolean()
@@ -266,11 +350,23 @@ export class UpdateOvertimePolicyDto {
 
   @IsOptional()
   @IsUUID()
+  organizationId?: string | null;
+
+  @IsOptional()
+  @IsUUID()
   employeeLevelId?: string | null;
 
   @IsOptional()
   @IsUUID()
   businessUnitId?: string | null;
+
+  @IsOptional()
+  @IsUUID()
+  departmentId?: string | null;
+
+  @IsOptional()
+  @IsUUID()
+  employmentTypeId?: string | null;
 
   @IsOptional()
   @IsEnum(OvertimeCalculationPeriod)
@@ -287,6 +383,52 @@ export class UpdateOvertimePolicyDto {
   @IsNumber()
   @Min(0.01)
   rateMultiplier?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  normalOtMultiplier?: number | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  weekendOtMultiplier?: number | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  holidayOtMultiplier?: number | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  nightOtMultiplier?: number | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  minimumOtMinutes?: number | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  maximumOtHours?: number | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  roundToMinutes?: number | null;
+
+  @IsOptional()
+  @IsUUID()
+  payComponentId?: string | null;
 
   @IsOptional()
   @IsBoolean()

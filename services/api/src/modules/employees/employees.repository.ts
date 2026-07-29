@@ -68,11 +68,45 @@ const employeeInclude = {
       name: true,
     },
   },
+  emergencyContactRelationType: {
+    select: {
+      id: true,
+      key: true,
+      name: true,
+      isActive: true,
+    },
+  },
+  organization: {
+    select: {
+      id: true,
+      name: true,
+      code: true,
+      isActive: true,
+    },
+  },
+  businessUnit: {
+    select: {
+      id: true,
+      name: true,
+      code: true,
+      organizationId: true,
+      isActive: true,
+    },
+  },
   department: {
     select: {
       id: true,
       name: true,
       code: true,
+      isActive: true,
+    },
+  },
+  team: {
+    select: {
+      id: true,
+      name: true,
+      key: true,
+      departmentId: true,
       isActive: true,
     },
   },

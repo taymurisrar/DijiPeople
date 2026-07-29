@@ -17,7 +17,11 @@ import { SectionCard } from "@/app/components/ui/section-card";
 import { StatusPill } from "@/app/components/ui/status-pill";
 import { CustomizationPackage, CustomizationTable } from "../types";
 
-type MetadataComponentType = "choiceList" | "relationship" | "actionBar";
+type MetadataComponentType =
+  | "choiceList"
+  | "relationship"
+  | "actionBar"
+  | "widget";
 
 type MetadataComponentRow = {
   id: string;
@@ -123,6 +127,14 @@ const componentConfig: Record<
     addLabel: "Add action bar",
     emptyTitle: "No action bars",
   },
+  widget: {
+    title: "Widgets",
+    description:
+      "Review executable system Widgets registered for this module, including type, permissions, supported form surfaces, and data-adapter requirements.",
+    apiType: "widget",
+    addLabel: "Add widget",
+    emptyTitle: "No registered widgets",
+  },
 };
 
 export function MetadataComponentsManagement({
@@ -130,12 +142,14 @@ export function MetadataComponentsManagement({
   lookupTables,
   onCountChange,
   packages,
+  readOnly = false,
   table,
 }: {
   componentType: MetadataComponentType;
   lookupTables: CustomizationTable[];
   onCountChange?: (count: number) => void;
   packages: CustomizationPackage[];
+  readOnly?: boolean;
   table: CustomizationTable;
 }) {
   const config = componentConfig[componentType];
@@ -161,9 +175,9 @@ export function MetadataComponentsManagement({
   }, [componentType, table.tableKey]);
 
   const tableColumns = useMemo(
-    () => buildColumns(componentType, openEdit, deactivateRow),
+    () => buildColumns(componentType, openEdit, deactivateRow, readOnly),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [componentType],
+    [componentType, readOnly],
   );
 
   async function loadRows() {
@@ -342,20 +356,22 @@ export function MetadataComponentsManagement({
           >
             Refresh
           </Button>
-          <Button
-            disabled={!editablePackages.length}
-            leftIcon={<Plus className="h-4 w-4" />}
-            onClick={openCreate}
-            size="sm"
-            title={
-              editablePackages.length
-                ? undefined
-                : "Create or select a custom package before adding metadata."
-            }
-            type="button"
-          >
-            {config.addLabel}
-          </Button>
+          {!readOnly ? (
+            <Button
+              disabled={!editablePackages.length}
+              leftIcon={<Plus className="h-4 w-4" />}
+              onClick={openCreate}
+              size="sm"
+              title={
+                editablePackages.length
+                  ? undefined
+                  : "Create or select a custom package before adding metadata."
+              }
+              type="button"
+            >
+              {config.addLabel}
+            </Button>
+          ) : null}
         </div>
       </div>
 
@@ -371,19 +387,23 @@ export function MetadataComponentsManagement({
         emptyState={
           <EmptyState
             action={
-              <Button
-                disabled={!editablePackages.length}
-                onClick={openCreate}
-                type="button"
-                variant="secondary"
-              >
-                {config.addLabel}
-              </Button>
+              !readOnly ? (
+                <Button
+                  disabled={!editablePackages.length}
+                  onClick={openCreate}
+                  type="button"
+                  variant="secondary"
+                >
+                  {config.addLabel}
+                </Button>
+              ) : undefined
             }
             description={
               isLoading
                 ? "Loading metadata components..."
-                : "Create a draft layer in a custom package to configure this metadata type."
+                : readOnly
+                  ? "No executable system widgets are registered for this module."
+                  : "Create a draft layer in a custom package to configure this metadata type."
             }
             title={config.emptyTitle}
           />
@@ -493,6 +513,7 @@ function buildColumns(
   componentType: MetadataComponentType,
   openEdit: (row: MetadataComponentRow) => void,
   deactivateRow: (row: MetadataComponentRow) => void,
+  readOnly: boolean,
 ): DataTableColumn<MetadataComponentRow>[] {
   const detailColumn: DataTableColumn<MetadataComponentRow> =
     componentType === "choiceList"
@@ -527,22 +548,41 @@ function buildColumns(
               </div>
             ),
           }
-        : {
-            key: "actionScope",
-            header: "Scope / Actions",
-            render: (row) => (
-              <div>
-                <p>
-                  {actionScopeLabel(
-                    stringValue(row.metadataJson.scope, "list"),
-                  )}
-                </p>
-                <p className="text-xs text-muted">
-                  {arrayValue(row.metadataJson.actions).length} actions
-                </p>
-              </div>
-            ),
-          };
+        : componentType === "widget"
+          ? {
+              key: "widgetType",
+              header: "Widget / Requirements",
+              render: (row) => (
+                <div>
+                  <p>{stringValue(row.metadataJson.widgetType, "System")}</p>
+                  <p className="text-xs text-muted">
+                    {arrayValue(row.metadataJson.requiredPermissions).length}{" "}
+                    permissions ·{" "}
+                    {
+                      arrayValue(row.metadataJson.requiredDataAdapterMethods)
+                        .length
+                    }{" "}
+                    adapter methods
+                  </p>
+                </div>
+              ),
+            }
+          : {
+              key: "actionScope",
+              header: "Scope / Actions",
+              render: (row) => (
+                <div>
+                  <p>
+                    {actionScopeLabel(
+                      stringValue(row.metadataJson.scope, "list"),
+                    )}
+                  </p>
+                  <p className="text-xs text-muted">
+                    {arrayValue(row.metadataJson.actions).length} actions
+                  </p>
+                </div>
+              ),
+            };
 
   return [
     {
@@ -609,34 +649,37 @@ function buildColumns(
     {
       key: "actions",
       header: "Actions",
-      render: (row) => (
-        <div className="flex flex-wrap gap-2">
-          <Button
-            leftIcon={<Edit3 className="h-4 w-4" />}
-            onClick={() => openEdit(row)}
-            size="sm"
-            type="button"
-            variant="secondary"
-          >
-            Edit
-          </Button>
-          <Button
-            disabled={row.isSystem || !row.isActive}
-            leftIcon={<Trash2 className="h-4 w-4" />}
-            onClick={() => deactivateRow(row)}
-            size="sm"
-            title={
-              row.isSystem
-                ? "System metadata cannot be deleted."
-                : "Deactivate this draft metadata component."
-            }
-            type="button"
-            variant="danger"
-          >
-            Deactivate
-          </Button>
-        </div>
-      ),
+      render: (row) =>
+        readOnly ? (
+          <StatusPill tone="good">Registered</StatusPill>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            <Button
+              leftIcon={<Edit3 className="h-4 w-4" />}
+              onClick={() => openEdit(row)}
+              size="sm"
+              type="button"
+              variant="secondary"
+            >
+              Edit
+            </Button>
+            <Button
+              disabled={row.isSystem || !row.isActive}
+              leftIcon={<Trash2 className="h-4 w-4" />}
+              onClick={() => deactivateRow(row)}
+              size="sm"
+              title={
+                row.isSystem
+                  ? "System metadata cannot be deleted."
+                  : "Deactivate this draft metadata component."
+              }
+              type="button"
+              variant="danger"
+            >
+              Deactivate
+            </Button>
+          </div>
+        ),
     },
   ];
 }

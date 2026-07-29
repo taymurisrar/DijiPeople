@@ -39,6 +39,9 @@ export type InvoicePdfModel = {
   documentTitle?: string;
   fromLabel?: string;
   toLabel?: string;
+  lineItemsTitle?: string;
+  instructionTitle?: string | null;
+  instructionText?: string | null;
   invoiceNumber: string;
   status: string;
   issueDate: Date;
@@ -60,6 +63,16 @@ export type InvoicePdfModel = {
   payments: InvoicePdfPayment[];
   notes?: string | null;
   summaryRows?: Array<{ label: string; value: number }>;
+  metadataRows?: Array<{ label: string; value: string }>;
+  footerLines?: string[];
+  lineItemColumns?: {
+    description?: string;
+    period?: string;
+    quantity?: string;
+    rate?: string;
+    tax?: string;
+    total?: string;
+  };
 };
 
 type PdfFont = 'regular' | 'bold';
@@ -248,14 +261,17 @@ function renderMetadata(
   model: InvoicePdfModel,
   y: number,
 ) {
-  const items = [
-    ['Issue Date', formatInvoiceDate(model.issueDate)],
-    ['Due Date', formatInvoiceDate(model.dueDate)],
-    ['Billing Period', model.billingPeriod || 'Current period'],
-    ['Currency', model.currency],
-    ['Subscription', model.subscriptionStatus || 'Not specified'],
-  ];
-  const width = (PAGE_WIDTH - MARGIN * 2 - 32) / 5;
+  const items = model.metadataRows?.length
+    ? model.metadataRows.map((row) => [row.label, row.value])
+    : [
+        ['Issue Date', formatInvoiceDate(model.issueDate)],
+        ['Due Date', formatInvoiceDate(model.dueDate)],
+        ['Billing Period', model.billingPeriod || 'Current period'],
+        ['Currency', model.currency],
+        ['Subscription', model.subscriptionStatus || 'Not specified'],
+      ];
+  const columnCount = Math.max(1, Math.min(items.length, 5));
+  const width = (PAGE_WIDTH - MARGIN * 2 - (columnCount - 1) * 8) / columnCount;
   items.forEach(([label, value], index) => {
     const x = MARGIN + index * (width + 8);
     pdf.rect(x, y, width, 70, { fill: SOFT, stroke: BORDER });
@@ -279,7 +295,8 @@ function renderLineItems(
   model: InvoicePdfModel,
   y: number,
 ) {
-  const widths = [188, 98, 46, 78, 56, 82];
+  const tableWidth = PAGE_WIDTH - MARGIN * 2;
+  const widths = [186, 92, 40, 76, 54, tableWidth - 186 - 92 - 40 - 76 - 54];
   const xs = widths.reduce<number[]>(
     (acc, width, index) => [
       ...acc,
@@ -288,16 +305,19 @@ function renderLineItems(
     [],
   );
   const labels = [
-    'Description',
-    'Billing Period',
-    'Qty',
-    'Unit Price',
-    'Tax',
-    'Total',
+    model.lineItemColumns?.description ?? 'Description',
+    model.lineItemColumns?.period ?? 'Billing Period',
+    model.lineItemColumns?.quantity ?? 'Qty',
+    model.lineItemColumns?.rate ?? 'Unit Price',
+    model.lineItemColumns?.tax ?? 'Tax',
+    model.lineItemColumns?.total ?? 'Total',
   ];
 
-  pdf.text('Line Items', MARGIN, y - 22, { font: 'bold', size: 13 });
-  pdf.rect(MARGIN, y, PAGE_WIDTH - MARGIN * 2, 28, { fill: '#eaf7f4' });
+  pdf.text(model.lineItemsTitle ?? 'Line Items', MARGIN, y - 22, {
+    font: 'bold',
+    size: 13,
+  });
+  pdf.rect(MARGIN, y, tableWidth, 28, { fill: '#eaf7f4' });
   labels.forEach((label, index) => {
     pdf.text(label, xs[index] + 8, y + 10, {
       font: 'bold',
@@ -323,7 +343,7 @@ function renderLineItems(
 
   rows.forEach((item, rowIndex) => {
     const rowY = y + 28 + rowIndex * 36;
-    pdf.rect(MARGIN, rowY, PAGE_WIDTH - MARGIN * 2, 36, {
+    pdf.rect(MARGIN, rowY, tableWidth, 36, {
       fill: rowIndex % 2 === 0 ? '#ffffff' : SOFT,
       stroke: BORDER,
     });
@@ -401,17 +421,18 @@ function renderPaymentInstructions(
   width: number,
 ) {
   pdf.rect(x, y, width, 136, { fill: '#ffffff', stroke: BORDER });
-  pdf.text('Payment Instructions', x + 14, y + 14, {
+  pdf.text(model.instructionTitle ?? 'Payment Instructions', x + 14, y + 14, {
     font: 'bold',
     size: 11,
     maxWidth: width - 28,
   });
   pdf.text(
-    model.brand.paymentInstructions ||
+    model.instructionText ||
+      model.brand.paymentInstructions ||
       'Please pay this invoice according to the payment terms in your platform agreement.',
     x + 14,
     y + 34,
-    { size: 8.7, color: MUTED, maxWidth: width - 28, lineHeight: 11 },
+    { size: 8.7, color: MUTED, maxWidth: width - 28, lineHeight: 12 },
   );
   const support = compact([
     model.brand.supportEmail ? `Support: ${model.brand.supportEmail}` : null,
@@ -476,12 +497,19 @@ function renderPayments(
 function renderFooter(pdf: InvoicePdfDocument, model: InvoicePdfModel) {
   const y = PAGE_HEIGHT - 58;
   pdf.line(MARGIN, y - 10, PAGE_WIDTH - MARGIN, y - 10, BORDER);
-  const footer = compact([
-    'Generated electronically by DijiPeople. No signature required.',
-    `Generated ${model.generatedAt.toISOString()}`,
-    model.brand.footerText,
-    model.brand.terms || model.notes,
-  ]).join('  ');
+  const footer = (
+    model.footerLines?.length
+      ? model.footerLines
+      : [
+          'Generated electronically by DijiPeople. No signature required.',
+          `Generated ${model.generatedAt.toISOString()}`,
+          model.brand.footerText,
+          model.brand.terms || model.notes,
+        ]
+  )
+    .map(clean)
+    .filter(Boolean)
+    .join('  ');
   pdf.text(footer, MARGIN, y, {
     size: 7.5,
     color: MUTED,

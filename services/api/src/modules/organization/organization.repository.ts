@@ -5,6 +5,21 @@ import { ListMasterDataDto } from './dto/list-master-data.dto';
 
 type PrismaDb = PrismaService | Prisma.TransactionClient;
 
+const peopleLookupSelect = {
+  id: true,
+  firstName: true,
+  lastName: true,
+  email: true,
+} satisfies Prisma.UserSelect;
+
+const employeeLookupSelect = {
+  id: true,
+  employeeCode: true,
+  firstName: true,
+  lastName: true,
+  email: true,
+} satisfies Prisma.EmployeeSelect;
+
 @Injectable()
 export class OrganizationRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -12,6 +27,13 @@ export class OrganizationRepository {
   findOrganizations(tenantId: string, db: PrismaDb = this.prisma) {
     return db.organization.findMany({
       where: { tenantId },
+      include: {
+        parentOrganization: { select: { id: true, name: true } },
+        headEmployee: { select: employeeLookupSelect },
+        ownerUser: { select: peopleLookupSelect },
+        createdBy: { select: peopleLookupSelect },
+        updatedBy: { select: peopleLookupSelect },
+      },
       orderBy: [{ createdAt: 'asc' }, { name: 'asc' }],
     });
   }
@@ -23,6 +45,13 @@ export class OrganizationRepository {
   ) {
     return db.organization.findFirst({
       where: { tenantId, id },
+      include: {
+        parentOrganization: { select: { id: true, name: true } },
+        headEmployee: { select: employeeLookupSelect },
+        ownerUser: { select: peopleLookupSelect },
+        createdBy: { select: peopleLookupSelect },
+        updatedBy: { select: peopleLookupSelect },
+      },
     });
   }
 
@@ -71,9 +100,33 @@ export class OrganizationRepository {
     });
   }
 
-  findBusinessUnits(tenantId: string, db: PrismaDb = this.prisma) {
+  findBusinessUnits(
+    tenantId: string,
+    query: Pick<
+      ListMasterDataDto,
+      'organizationId' | 'businessUnitId' | 'isActive'
+    > = {},
+    db: PrismaDb = this.prisma,
+  ) {
     return db.businessUnit.findMany({
-      where: { tenantId },
+      where: {
+        tenantId,
+        ...(query.organizationId
+          ? { organizationId: query.organizationId }
+          : {}),
+        ...(query.businessUnitId
+          ? { parentBusinessUnitId: query.businessUnitId }
+          : {}),
+        ...(query.isActive !== undefined ? { isActive: query.isActive } : {}),
+      },
+      include: {
+        organization: { select: { id: true, name: true } },
+        parentBusinessUnit: { select: { id: true, name: true } },
+        headEmployee: { select: employeeLookupSelect },
+        ownerUser: { select: peopleLookupSelect },
+        createdBy: { select: peopleLookupSelect },
+        updatedBy: { select: peopleLookupSelect },
+      },
       orderBy: [{ createdAt: 'asc' }, { name: 'asc' }],
     });
   }
@@ -85,6 +138,14 @@ export class OrganizationRepository {
   ) {
     return db.businessUnit.findFirst({
       where: { tenantId, id },
+      include: {
+        organization: { select: { id: true, name: true } },
+        parentBusinessUnit: { select: { id: true, name: true } },
+        headEmployee: { select: employeeLookupSelect },
+        ownerUser: { select: peopleLookupSelect },
+        createdBy: { select: peopleLookupSelect },
+        updatedBy: { select: peopleLookupSelect },
+      },
     });
   }
 
@@ -133,6 +194,56 @@ export class OrganizationRepository {
     });
   }
 
+  countBusinessUnitDepartments(
+    tenantId: string,
+    id: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.department.count({
+      where: { tenantId, businessUnitId: id },
+    });
+  }
+
+  countBusinessUnitEmployees(
+    tenantId: string,
+    id: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.employee.count({
+      where: { tenantId, businessUnitId: id, isDeleted: false },
+    });
+  }
+
+  countBusinessUnitTeams(
+    tenantId: string,
+    id: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.team.count({
+      where: { tenantId, businessUnitId: id, isActive: true },
+    });
+  }
+
+  countDepartmentTeams(
+    tenantId: string,
+    id: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.team.count({
+      where: { tenantId, departmentId: id, isActive: true },
+    });
+  }
+
+  countDepartmentEmployees(
+    tenantId: string,
+    id: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.employee.count({
+      where: { tenantId, departmentId: id, isDeleted: false },
+    });
+  }
+
   findDepartments(
     tenantId: string,
     query: ListMasterDataDto,
@@ -144,12 +255,32 @@ export class OrganizationRepository {
         'code',
         'description',
       ]),
+      include: {
+        businessUnit: {
+          select: { id: true, name: true, organizationId: true },
+        },
+        headEmployee: { select: employeeLookupSelect },
+        ownerUser: { select: peopleLookupSelect },
+        createdBy: { select: peopleLookupSelect },
+        updatedBy: { select: peopleLookupSelect },
+      },
       orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
     });
   }
 
   findDepartmentById(tenantId: string, id: string, db: PrismaDb = this.prisma) {
-    return db.department.findFirst({ where: { tenantId, id } });
+    return db.department.findFirst({
+      where: { tenantId, id },
+      include: {
+        businessUnit: {
+          select: { id: true, name: true, organizationId: true },
+        },
+        headEmployee: { select: employeeLookupSelect },
+        ownerUser: { select: peopleLookupSelect },
+        createdBy: { select: peopleLookupSelect },
+        updatedBy: { select: peopleLookupSelect },
+      },
+    });
   }
 
   createDepartment(
@@ -189,6 +320,7 @@ export class OrganizationRepository {
             isActive: true,
           },
         },
+        _count: { select: { employees: true } },
       },
       orderBy: [{ isActive: 'desc' }, { name: 'asc' }],
     });
@@ -211,6 +343,7 @@ export class OrganizationRepository {
             isActive: true,
           },
         },
+        _count: { select: { employees: true } },
       },
     });
   }
@@ -278,11 +411,16 @@ function buildMasterDataWhere(
   const where: {
     tenantId: string;
     isActive?: boolean;
+    businessUnitId?: string;
     OR?: Array<Record<string, { contains: string; mode: Prisma.QueryMode }>>;
   } = { tenantId };
 
   if (query.isActive !== undefined) {
     where.isActive = query.isActive;
+  }
+
+  if (query.businessUnitId) {
+    where.businessUnitId = query.businessUnitId;
   }
 
   if (query.search?.trim()) {

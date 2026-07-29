@@ -57,16 +57,16 @@
   --font-sans: var(--dp-font-family, var(--font-instrument-sans));
   --font-serif: var(--dp-font-family, var(--font-instrument-sans));
 
-    --text-2xs: 0.625rem;    /* 10px */
-  --text-xs: 0.75rem;      /* 12px */
-  --text-sm: 0.85rem;     /* 14px */
-  --text-base: 1rem;       /* 16px */
-  --text-lg: 1.125rem;     /* 18px */
-  --text-xl: 1.25rem;      /* 20px */
-  --text-2xl: 1.5rem;      /* 24px */
-  --text-3xl: 1.875rem;    /* 30px */
-  --text-4xl: 2.25rem;     /* 36px */
-  --text-5xl: 3rem;        /* 48px */
+  --text-2xs: 0.625rem; /* 10px */
+  --text-xs: 0.75rem; /* 12px */
+  --text-sm: 0.85rem; /* 14px */
+  --text-base: 1rem; /* 16px */
+  --text-lg: 1.125rem; /* 18px */
+  --text-xl: 1.25rem; /* 20px */
+  --text-2xl: 1.5rem; /* 24px */
+  --text-3xl: 1.875rem; /* 30px */
+  --text-4xl: 2.25rem; /* 36px */
+  --text-5xl: 3rem; /* 48px */
 
   --text-2xs--line-height: 1rem;
   --text-xs--line-height: 1rem;
@@ -118,11 +118,28 @@ html[data-theme="dark"] {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-family, var(--dp-font-family), var(--font-instrument-sans), sans-serif);
+  font-family: var(
+    --font-family,
+    var(--dp-font-family),
+    var(--font-instrument-sans),
+    sans-serif
+  );
   background-image:
-    radial-gradient(circle at top left, color-mix(in oklab, var(--accent) 22%, white), transparent 30%),
-    radial-gradient(circle at 85% 15%, color-mix(in oklab, var(--accent-strong) 18%, white), transparent 24%),
-    linear-gradient(180deg, var(--dp-page-gradient-start, rgba(255, 252, 247, 0.8)), var(--dp-page-gradient-end, rgba(245, 240, 232, 0.95)));
+    radial-gradient(
+      circle at top left,
+      color-mix(in oklab, var(--accent) 22%, white),
+      transparent 30%
+    ),
+    radial-gradient(
+      circle at 85% 15%,
+      color-mix(in oklab, var(--accent-strong) 18%, white),
+      transparent 24%
+    ),
+    linear-gradient(
+      180deg,
+      var(--dp-page-gradient-start, rgba(255, 252, 247, 0.8)),
+      var(--dp-page-gradient-end, rgba(245, 240, 232, 0.95))
+    );
 }
 
 .dp-theme-scope {
@@ -143,8 +160,16 @@ body {
 }
 
 .dp-dashboard-scope {
-  --dp-page-gradient-start: color-mix(in oklab, var(--dp-background) 84%, white);
-  --dp-page-gradient-end: color-mix(in oklab, var(--dp-surface) 80%, var(--dp-background));
+  --dp-page-gradient-start: color-mix(
+    in oklab,
+    var(--dp-background) 84%,
+    white
+  );
+  --dp-page-gradient-end: color-mix(
+    in oklab,
+    var(--dp-surface) 80%,
+    var(--dp-background)
+  );
   --dp-card-gradient-start: color-mix(in oklab, var(--dp-surface) 92%, white);
   --dp-card-gradient-end: color-mix(in oklab, var(--dp-accent) 14%, white);
   background-color: color-mix(in oklab, var(--dp-background) 92%, white);
@@ -169,4 +194,108 @@ a:not([class]) {
 button:not([class]),
 input:not([class]) {
   font: inherit;
+}
+
+.dp-form-grid {
+  --dp-form-grid-gap: 1rem;
+  align-items: start;
+  display: grid;
+  gap: var(--dp-form-grid-gap);
+  grid-template-columns: repeat(var(--dp-form-grid-columns), minmax(0, 1fr));
+  max-width: 100%;
+  min-width: 0;
+  width: 100%;
+}
+
+.dp-form-grid[data-gap="section"] {
+  --dp-form-grid-gap: 1.25rem;
+}
+
+.dp-form-grid[data-gap="field"] {
+  --dp-form-grid-gap: 1rem;
+}
+
+.dp-form-grid-item {
+  box-sizing: border-box;
+  grid-column: span var(--dp-form-grid-column-span);
+  max-width: 100%;
+  min-width: 0;
+  width: 100%;
+}
+
+.dp-form-grid-item > * {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
+  width: 100%;
+}
+
+.dp-form-grid-item[data-column] {
+  grid-column-start: var(--dp-form-grid-column);
+}
+
+.dp-form-grid-item label,
+.dp-form-grid-item dt,
+.dp-form-grid-item dd,
+.dp-form-grid-item input,
+.dp-form-grid-item select,
+.dp-form-grid-item textarea,
+.dp-form-grid-item button,
+.dp-form-grid-item [role="button"],
+.dp-form-grid-item [role="combobox"],
+.dp-form-grid-item [data-slot="control"],
+.dp-form-grid-item [data-runtime-widget],
+.dp-form-grid-item [data-runtime-field] {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.dp-form-grid-item input,
+.dp-form-grid-item select,
+.dp-form-grid-item textarea,
+.dp-form-grid-item [role="combobox"],
+.dp-form-grid-item [data-slot="control"] {
+  width: 100%;
+}
+
+.dp-form-grid-item input[type="checkbox"],
+.dp-form-grid-item input[type="radio"] {
+  flex-shrink: 0;
+  max-width: 1rem;
+  min-width: 1rem;
+  width: 1rem;
+}
+
+.dp-form-grid-item dt,
+.dp-form-grid-item dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.dp-form-grid-item [data-runtime-widget] {
+  overflow-x: auto;
+  width: 100%;
+}
+
+.dp-form-grid[data-form-grid="section"][data-effective-columns="2"]
+  > .dp-form-grid-item[data-span="3"] {
+  grid-column: span 2;
+}
+
+.dp-form-grid[data-form-grid="section"][data-effective-columns="1"]
+  > .dp-form-grid-item {
+  grid-column: span 1;
+}
+
+@media (max-width: 767px) {
+  .dp-form-grid[data-form-grid="tab"],
+  .dp-form-grid[data-form-grid="preview"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dp-form-grid[data-form-grid="tab"] > .dp-form-grid-item,
+  .dp-form-grid[data-form-grid="preview"] > .dp-form-grid-item {
+    grid-column: span 1;
+  }
 }

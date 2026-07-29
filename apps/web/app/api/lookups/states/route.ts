@@ -10,6 +10,10 @@ export async function GET(request: Request) {
     if (countryId) {
       query.set("countryId", countryId);
     }
+    const search = searchParams.get("search");
+    if (search) {
+      query.set("search", search);
+    }
 
     const response = await apiRequest(
       `/lookups/states${query.size ? `?${query.toString()}` : ""}`,
@@ -27,4 +31,13 @@ export async function GET(request: Request) {
       { status: 502 },
     );
   }
+}
+
+export async function POST(request: Request) {
+  return proxyApiJsonResponse(
+    await apiRequest("/lookups/states", {
+      method: "POST",
+      body: JSON.stringify(await request.json()),
+    }),
+  );
 }

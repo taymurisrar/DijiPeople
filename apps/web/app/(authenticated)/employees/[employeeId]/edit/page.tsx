@@ -11,6 +11,7 @@ import {
   resolveEmployeeRuntimeForm,
   resolveTenantRuntimeConfig,
 } from "@/lib/runtime";
+import type { FieldSecurityRule } from "@/lib/runtime/security-runtime.types";
 import { apiRequestJson } from "@/lib/server-api";
 import { TenantResolvedSettingsResponse } from "../../../settings/types";
 import { EmployeeListResponse, EmployeeProfile } from "../../types";
@@ -44,7 +45,7 @@ export default async function EditEmployeePage({
     );
   }
 
-  const [employee, managers, resolvedSettings, runtimeForms] =
+  const [employee, managers, resolvedSettings, runtimeForms, fieldSecurityRules] =
     await Promise.all([
       apiRequestJson<EmployeeProfile>(`/employees/${employeeId}`),
       apiRequestJson<EmployeeListResponse>("/employees?pageSize=100"),
@@ -52,6 +53,9 @@ export default async function EditEmployeePage({
         "/tenant-settings/resolved",
       ).catch(() => null),
       getTableForms("employees"),
+      apiRequestJson<readonly FieldSecurityRule[]>(
+        "/field-security-policies/runtime-rules?entityKey=employees",
+      ).catch(() => []),
     ]);
 
   if (employee.accessMode !== "ADMIN_MANAGE") {
@@ -118,6 +122,7 @@ export default async function EditEmployeePage({
     views: [],
     recordId: employee.id,
     employeeSettings: resolvedSettings?.employee,
+    fieldSecurityRules,
   });
   const activeRuntimeForm = resolveEmployeeRuntimeForm(
     employeeRuntimeContext.metadata.forms,

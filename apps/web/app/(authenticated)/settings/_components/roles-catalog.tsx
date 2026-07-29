@@ -20,7 +20,9 @@ type RoleEditorState = {
 };
 
 type RoleRow = AccessRoleRecord & {
+  miscPermissionCount: number;
   permissionCount: number;
+  privilegeCount: number;
   statusLabel: string;
   typeLabel: string;
   userCount: number;
@@ -29,9 +31,11 @@ type RoleRow = AccessRoleRecord & {
 export function RolesCatalog({
   initialPermissions,
   initialRoles,
+  roleRouteBase = "/settings/security-access/authorization/roles",
 }: {
   initialPermissions: AccessPermissionRecord[];
   initialRoles: AccessRoleRecord[];
+  roleRouteBase?: string;
 }) {
   const [roles, setRoles] = useState(initialRoles);
   const [mode, setMode] = useState<RoleEditorMode>("view");
@@ -51,7 +55,14 @@ export function RolesCatalog({
       roles
         .map((role) => ({
           ...role,
+          miscPermissionCount:
+            role.miscPermissions?.filter((permission) => permission.enabled)
+              .length ?? 0,
           permissionCount: role.rolePermissions.length,
+          privilegeCount:
+            role.rolePrivileges?.filter(
+              (privilege) => privilege.accessLevel !== "NONE",
+            ).length ?? 0,
           statusLabel: role.isActive === false ? "Inactive" : "Active",
           typeLabel: role.isSystem ? "System" : "Custom",
           userCount: role.userRoles?.length ?? 0,
@@ -126,10 +137,23 @@ export function RolesCatalog({
       },
       {
         key: "permissions",
-        header: "Permissions",
+        header: "Access",
         sortable: true,
-        render: (row) => row.permissionCount,
-        sortAccessor: (row) => row.permissionCount,
+        render: (row) => (
+          <div className="min-w-[180px] text-sm">
+            <p className="font-semibold text-foreground">
+              {row.privilegeCount > 0
+                ? `${row.privilegeCount} matrix privileges`
+                : `${row.permissionCount} permissions`}
+            </p>
+            <p className="mt-1 text-xs text-muted">
+              {row.miscPermissionCount} admin switch
+              {row.miscPermissionCount === 1 ? "" : "es"}
+            </p>
+          </div>
+        ),
+        sortAccessor: (row) =>
+          row.privilegeCount + row.permissionCount + row.miscPermissionCount,
       },
       {
         key: "users",
@@ -164,12 +188,12 @@ export function RolesCatalog({
         render: (row) => (
           <div className="flex flex-wrap gap-2">
             <Button
+              href={`${roleRouteBase}/${row.id}`}
               size="icon-sm"
               variant="ghost"
               aria-label={`View ${row.name}`}
               title={`View ${row.name}`}
               leftIcon={<Eye className="h-4 w-4" />}
-              onClick={() => openRole(row, "view")}
             />
             <Button
               size="icon-sm"

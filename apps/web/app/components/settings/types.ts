@@ -28,6 +28,7 @@ export type SettingsFieldConfig = {
 
   options?: { label: string; value: string }[];
   lookupKey?: string;
+  createHref?: string;
   placeholder?: string;
   disabled?: boolean;
   readOnly?: boolean;

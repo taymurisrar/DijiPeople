@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Button } from "@/app/components/ui/button";
 
 export function ConvertToEmployeeButton({
   canConvert,
@@ -44,14 +45,16 @@ export function ConvertToEmployeeButton({
 
   return (
     <div className="grid gap-3">
-      <button
-        className="rounded-2xl bg-accent px-4 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60"
+      <Button
         disabled={!canConvert || isSubmitting}
+        loading={isSubmitting}
+        loadingText="Converting..."
         onClick={handleConvert}
         type="button"
+        fullWidth
       >
-        {isSubmitting ? "Converting..." : "Convert to employee"}
-      </button>
+        Convert to employee
+      </Button>
       {error ? (
         <p className="rounded-2xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
           {error}

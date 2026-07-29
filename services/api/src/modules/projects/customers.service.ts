@@ -65,11 +65,12 @@ export class CustomersService {
 
   async create(currentUser: AuthenticatedUser, dto: CreateCustomerDto) {
     try {
+      const code = await this.resolveCode(currentUser.tenantId, dto);
       return await this.prisma.customer.create({
         data: {
           tenantId: currentUser.tenantId,
           name: dto.name.trim(),
-          code: dto.code.trim().toUpperCase(),
+          code,
           industry: dto.industry?.trim(),
           contactName: dto.contactName?.trim(),
           contactEmail: dto.contactEmail?.trim().toLowerCase(),
@@ -77,6 +78,12 @@ export class CustomersService {
           billingEmail: dto.billingEmail?.trim().toLowerCase(),
           websiteUrl: dto.websiteUrl?.trim(),
           address: dto.address?.trim(),
+          addressLine1: dto.addressLine1?.trim(),
+          addressLine2: dto.addressLine2?.trim(),
+          countryId: dto.countryId,
+          stateProvinceId: dto.stateProvinceId,
+          cityId: dto.cityId,
+          postalCode: dto.postalCode?.trim(),
           status: dto.status ?? 'ACTIVE',
           createdById: currentUser.userId,
           updatedById: currentUser.userId,
@@ -121,6 +128,22 @@ export class CustomersService {
           ...(dto.address !== undefined
             ? { address: dto.address?.trim() ?? null }
             : {}),
+          ...(dto.addressLine1 !== undefined
+            ? { addressLine1: dto.addressLine1?.trim() ?? null }
+            : {}),
+          ...(dto.addressLine2 !== undefined
+            ? { addressLine2: dto.addressLine2?.trim() ?? null }
+            : {}),
+          ...(dto.countryId !== undefined
+            ? { countryId: dto.countryId ?? null }
+            : {}),
+          ...(dto.stateProvinceId !== undefined
+            ? { stateProvinceId: dto.stateProvinceId ?? null }
+            : {}),
+          ...(dto.cityId !== undefined ? { cityId: dto.cityId ?? null } : {}),
+          ...(dto.postalCode !== undefined
+            ? { postalCode: dto.postalCode?.trim() ?? null }
+            : {}),
           ...(dto.status !== undefined ? { status: dto.status } : {}),
           updatedById: currentUser.userId,
         },
@@ -134,6 +157,34 @@ export class CustomersService {
     } catch (error) {
       handleCustomerWriteError(error);
     }
+  }
+
+  private async resolveCode(tenantId: string, dto: CreateCustomerDto) {
+    const requestedCode = dto.code?.trim();
+    if (requestedCode) return requestedCode.toUpperCase();
+
+    const base =
+      dto.name
+        .trim()
+        .toUpperCase()
+        .replace(/[^A-Z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 32) || 'CUSTOMER';
+    let code = base;
+    let suffix = 1;
+
+    while (
+      await this.prisma.customer.findFirst({
+        where: { tenantId, code },
+        select: { id: true },
+      })
+    ) {
+      suffix += 1;
+      const suffixText = `-${suffix}`;
+      code = `${base.slice(0, 40 - suffixText.length)}${suffixText}`;
+    }
+
+    return code;
   }
 }
 

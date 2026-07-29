@@ -94,4 +94,49 @@ describe('TenantSettingsService', () => {
       ),
     );
   });
+
+  it('persists multivalue tenant settings from runtime forms as arrays', async () => {
+    service = new TenantSettingsService(
+      tenantSettingsRepository as never,
+      {
+        getAllowedKeysByCategory: jest
+          .fn()
+          .mockReturnValue(
+            new Map([['attendance', new Set(['allowedModes'])]]),
+          ),
+        invalidateTenantCache: jest.fn(),
+      } as never,
+      featureAccessService as never,
+      { log: jest.fn() } as never,
+      { delete: jest.fn(), deleteByPrefix: jest.fn() } as never,
+    );
+
+    await service.updateTenantSettings(
+      {
+        tenantId: 'tenant-1',
+        userId: 'user-1',
+      } as never,
+      {
+        updates: [
+          {
+            category: 'attendance',
+            key: 'allowedModes',
+            value: ['REMOTE', 'OFFICE'],
+          },
+        ],
+      },
+    );
+
+    expect(tenantSettingsRepository.upsertSettings).toHaveBeenCalledWith(
+      'tenant-1',
+      [
+        {
+          actorUserId: 'user-1',
+          category: 'attendance',
+          key: 'allowedModes',
+          value: ['OFFICE', 'REMOTE'],
+        },
+      ],
+    );
+  });
 });

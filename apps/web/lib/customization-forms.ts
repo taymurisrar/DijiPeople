@@ -6,6 +6,7 @@ export type RuntimeFormLayoutField = {
   required?: boolean;
   readOnly?: boolean;
   isVisible?: boolean;
+  columnSpan?: 1 | 2 | 3 | 4;
   sequence?: number;
 };
 

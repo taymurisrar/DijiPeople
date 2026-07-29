@@ -17,9 +17,10 @@ import {
 } from 'class-validator';
 
 export class CreateTravelAllowancePolicyDto {
+  @IsOptional()
   @IsString()
   @MaxLength(50)
-  code!: string;
+  code?: string;
 
   @IsString()
   @MaxLength(160)
@@ -29,6 +30,23 @@ export class CreateTravelAllowancePolicyDto {
   @IsString()
   @MaxLength(1000)
   description?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  travelType?: string;
+
+  @IsOptional()
+  @IsUUID()
+  businessUnitId?: string | null;
+
+  @IsOptional()
+  @IsUUID()
+  departmentId?: string | null;
+
+  @IsOptional()
+  @IsUUID()
+  employmentTypeId?: string | null;
 
   @IsOptional()
   @IsUUID()
@@ -77,6 +95,23 @@ export class UpdateTravelAllowancePolicyDto {
   description?: string | null;
 
   @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  travelType?: string;
+
+  @IsOptional()
+  @IsUUID()
+  businessUnitId?: string | null;
+
+  @IsOptional()
+  @IsUUID()
+  departmentId?: string | null;
+
+  @IsOptional()
+  @IsUUID()
+  employmentTypeId?: string | null;
+
+  @IsOptional()
   @IsUUID()
   employeeLevelId?: string | null;
 
@@ -109,11 +144,26 @@ export class UpdateTravelAllowancePolicyDto {
 }
 
 export class CreateTravelAllowanceRuleDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  countryCode?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  city?: string | null;
+
   @IsEnum(TravelAllowanceType)
   allowanceType!: TravelAllowanceType;
 
   @IsEnum(TravelAllowanceCalculationBasis)
   calculationBasis!: TravelAllowanceCalculationBasis;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  unit?: string;
 
   @Type(() => Number)
   @IsNumber()
@@ -132,12 +182,27 @@ export class CreateTravelAllowanceRuleDto {
 
 export class UpdateTravelAllowanceRuleDto {
   @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  countryCode?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  city?: string | null;
+
+  @IsOptional()
   @IsEnum(TravelAllowanceType)
   allowanceType?: TravelAllowanceType;
 
   @IsOptional()
   @IsEnum(TravelAllowanceCalculationBasis)
   calculationBasis?: TravelAllowanceCalculationBasis;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  unit?: string;
 
   @IsOptional()
   @Type(() => Number)

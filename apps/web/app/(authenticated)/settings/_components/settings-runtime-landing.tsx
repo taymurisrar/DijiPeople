@@ -19,9 +19,9 @@ export function SettingsWorkspaceLanding() {
     user?.roleKeys ?? [],
   );
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto w-full max-w-7xl">
-        <section className="rounded-[28px] border border-border bg-white p-7 shadow-sm">
+        <section className="rounded-[28px] border border-border bg-surface p-7 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
             Tenant Settings
           </p>
@@ -38,7 +38,7 @@ export function SettingsWorkspaceLanding() {
             <Link
               key={category.key}
               href={category.route}
-              className="group rounded-[24px] border border-border bg-white p-6 shadow-sm transition hover:border-accent/30 hover:shadow-md"
+              className="group rounded-[24px] border border-border bg-surface p-6 shadow-sm transition hover:border-accent/30 hover:shadow-md"
             >
               <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-accent-soft text-accent">
                 <FolderCog className="h-5 w-5" />
@@ -96,7 +96,7 @@ export function SettingsCategoryLanding({
         {groups.map((group) => (
           <section
             key={group.key}
-            className="rounded-[24px] border border-border bg-white p-5 shadow-sm"
+            className="rounded-[24px] border border-border bg-surface p-5 shadow-sm"
           >
             <div className="flex items-start gap-3">
               <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-accent-soft text-accent">
@@ -168,7 +168,7 @@ export function SettingsGroupLanding({
           <Link
             key={item.key}
             href={item.route}
-            className="group rounded-[22px] border border-border bg-white p-5 shadow-sm transition hover:border-accent/30 hover:shadow-md"
+            className="group rounded-[22px] border border-border bg-surface p-5 shadow-sm transition hover:border-accent/30 hover:shadow-md"
           >
             <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-surface text-muted group-hover:bg-accent-soft group-hover:text-accent">
               <Settings2 className="h-5 w-5" />

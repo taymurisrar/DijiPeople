@@ -78,14 +78,18 @@ export function ModuleCommandBarStatusGroup({
     ownerField: {
       fieldLogicalName: config.ownerFieldLogicalName,
       editable: !isDisabled && Boolean(config.ownerField),
-      value: readRecordValue(record, config.ownerFieldLogicalName),
-      display: displayRecordValue(
-        record,
-        config.ownerFieldLogicalName,
-        ownerOptions,
-        config.lookupDisplayValues,
-        runtime,
-      ),
+      value: config.ownerFieldLogicalName
+        ? readRecordValue(record, config.ownerFieldLogicalName)
+        : "",
+      display: config.ownerFieldLogicalName
+        ? displayRecordValue(
+            record,
+            config.ownerFieldLogicalName,
+            ownerOptions,
+            config.lookupDisplayValues,
+            runtime,
+          )
+        : "",
       ownerOptionsCount: ownerOptions.length,
       ownerOptionsError: config.ownerOptionsError,
     },
@@ -126,24 +130,28 @@ export function ModuleCommandBarStatusGroup({
       </Button>
       {open ? (
         <div className="absolute right-0 top-full z-40 mt-2 grid w-[min(22rem,calc(100vw-2rem))] gap-3 rounded-lg border border-border bg-surface p-3 shadow-xl">
-          <StatusLookup
-            disabled={isDisabled || !config.ownerField}
-            label="Owner"
-            value={readRecordValue(record, config.ownerFieldLogicalName)}
-            options={ownerOptions}
-            readOnlyValue={displayRecordValue(
-              record,
-              config.ownerFieldLogicalName,
-              ownerOptions,
-              config.lookupDisplayValues,
-              runtime,
-            )}
-            onChange={(value) =>
-              config.onValueChange?.(config.ownerFieldLogicalName, value)
-            }
-            onSearch={config.onOwnerSearch}
-            error={config.ownerOptionsError}
-          />
+          {config.ownerFieldLogicalName ? (
+            <StatusLookup
+              disabled={isDisabled || !config.ownerField}
+              label="Owner"
+              value={readRecordValue(record, config.ownerFieldLogicalName)}
+              options={ownerOptions}
+              readOnlyValue={displayRecordValue(
+                record,
+                config.ownerFieldLogicalName,
+                ownerOptions,
+                config.lookupDisplayValues,
+                runtime,
+              )}
+              onChange={(value) =>
+                config.ownerFieldLogicalName
+                  ? config.onValueChange?.(config.ownerFieldLogicalName, value)
+                  : undefined
+              }
+              onSearch={config.onOwnerSearch}
+              error={config.ownerOptionsError}
+            />
+          ) : null}
           <StatusSelect
             disabled={isDisabled || !config.statusField}
             label="Status"
@@ -210,7 +218,7 @@ function StatusSelect({
       value={
         resolvedOptions.find((option) => option.value === value)?.label ??
         value ??
-        "Not set"
+        ""
       }
     />
   ) : (
@@ -279,7 +287,7 @@ function ReadOnlyStatusField({
       disabled
       label={label}
       onChange={() => undefined}
-      value={value || "Not set"}
+      value={value || ""}
     />
   );
 }
@@ -292,7 +300,7 @@ function buildStatusSummary(
 ) {
   const owner = displayRecordValue(
     record,
-    config.ownerFieldLogicalName,
+    config.ownerFieldLogicalName ?? "",
     ownerOptions,
     config.lookupDisplayValues,
     runtime,
@@ -313,8 +321,8 @@ function buildStatusSummary(
 
   return (
     [owner, status, subStatus]
-      .filter((value) => value && value !== "Not set")
-      .join(" / ") || "Owner, Status, Sub Status"
+      .filter(Boolean)
+      .join(" / ") || (config.ownerFieldLogicalName ? "Owner, Status, Sub Status" : "Status")
   );
 }
 
@@ -348,7 +356,7 @@ function displayChoiceValue(
   value: string,
   options: readonly { readonly value: string; readonly label: string }[],
 ) {
-  if (!value) return "Not set";
+  if (!value) return "";
   return options.find((option) => option.value === value)?.label ?? value;
 }
 
@@ -363,11 +371,13 @@ function readRecordValue(
 
 function displayRecordValue(
   record: RuntimeRecordData | null | undefined,
-  fieldLogicalName: string,
+  fieldLogicalName: string | undefined,
   options: readonly ModuleOwnerOption[],
   lookupDisplayValues?: Readonly<Record<string, string>>,
   runtime?: ModuleRuntimeContext,
 ) {
+  if (!fieldLogicalName) return "";
+
   return resolveOwnerDisplayName({
     lookupDisplayValue: lookupDisplayValues?.[fieldLogicalName],
     ownerId: readRecordValue(record, fieldLogicalName),

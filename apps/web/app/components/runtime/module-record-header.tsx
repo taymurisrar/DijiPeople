@@ -92,7 +92,10 @@ export function ModuleRecordHeader({
         </div>
 
         {hasStatusGroup && statusGroupConfig ? (
-          <div className="relative shrink-0" ref={statusContainerRef}>
+          <div
+            className="relative w-full min-w-0 lg:w-[320px] lg:shrink-0"
+            ref={statusContainerRef}
+          >
             <ModuleRecordStatusSummary
               disabledReason={statusGroupConfig.disabledReason}
               onToggle={() => setStatusOpen((current) => !current)}

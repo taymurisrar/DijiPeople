@@ -230,7 +230,7 @@ export function EmployeeProfileImageCard({
         <h4 className="text-sm font-semibold uppercase tracking-[0.18em] text-muted">
           Profile Photo
         </h4>
-<div className="mt-5 flex gap-4">
+<div className="mt-5 flex min-w-0 gap-4">
   <UserAvatar
     cacheKey={avatarVersion}
     className="h-20 w-20 shrink-0 text-xl"
@@ -242,14 +242,16 @@ export function EmployeeProfileImageCard({
     size="lg"
   />
 
-  <div className="flex-1">
+  <div className="min-w-0 flex-1">
     {profileImage ? (
-      <p className="truncate text-sm text-muted">
-        <span className="font-medium text-foreground">
+      <p className="grid min-w-0 gap-0.5 text-sm text-muted">
+        <span
+          className="block min-w-0 truncate font-medium text-foreground"
+          title={profileImage.fileName}
+        >
           {profileImage.fileName}
         </span>
-        <span className="mx-2">•</span>
-        {formatBytes(profileImage.size)}
+        <span>{formatBytes(profileImage.size)}</span>
       </p>
     ) : (
       <p className="text-sm text-muted">

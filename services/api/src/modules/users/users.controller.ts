@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Put,
   UseGuards,
@@ -90,6 +91,22 @@ export class UsersController {
     );
   }
 
+  @Patch(':userId')
+  @Permissions('users.update')
+  @RequirePermission(ENTITY_KEYS.USERS, 'write')
+  patch(
+    @CurrentUser() currentUser: AuthenticatedUser,
+    @Param('userId') targetUserId: string,
+    @Body() updateUserDto: UpdateUserDto,
+  ): Promise<unknown> {
+    return this.usersService.update(
+      currentUser.tenantId,
+      targetUserId,
+      updateUserDto,
+      currentUser.userId,
+    );
+  }
+
   @Post(':userId/link-employee')
   @Permissions('users.update')
   @RequirePermission(ENTITY_KEYS.USERS, 'assign')
@@ -133,6 +150,161 @@ export class UsersController {
       targetUserId,
       assignUserRolesDto.roleIds,
       currentUser.userId,
+    );
+  }
+
+  @Get(':userId/roles')
+  @Permissions('users.read')
+  @RequirePermission(ENTITY_KEYS.USERS, 'read')
+  listRoles(
+    @CurrentUser() currentUser: AuthenticatedUser,
+    @Param('userId') targetUserId: string,
+  ): Promise<unknown> {
+    return this.usersService.listRoles(currentUser.tenantId, targetUserId);
+  }
+
+  @Post(':userId/roles')
+  @Permissions('users.assign-roles')
+  @RequirePermission(ENTITY_KEYS.USERS, 'assign')
+  addRole(
+    @CurrentUser() currentUser: AuthenticatedUser,
+    @Param('userId') targetUserId: string,
+    @Body('roleId') roleId: string,
+  ): Promise<unknown> {
+    return this.usersService.addRole(
+      currentUser.tenantId,
+      targetUserId,
+      roleId,
+      currentUser.userId,
+    );
+  }
+
+  @Delete(':userId/roles/:userRoleId')
+  @Permissions('users.assign-roles')
+  @RequirePermission(ENTITY_KEYS.USERS, 'assign')
+  removeRole(
+    @CurrentUser() currentUser: AuthenticatedUser,
+    @Param('userId') targetUserId: string,
+    @Param('userRoleId') userRoleId: string,
+  ): Promise<unknown> {
+    return this.usersService.removeRole(
+      currentUser.tenantId,
+      targetUserId,
+      userRoleId,
+    );
+  }
+
+  @Get(':userId/access-teams')
+  @Permissions('users.read')
+  @RequirePermission(ENTITY_KEYS.USERS, 'read')
+  listAccessTeams(
+    @CurrentUser() currentUser: AuthenticatedUser,
+    @Param('userId') targetUserId: string,
+  ): Promise<unknown> {
+    return this.usersService.listAccessTeams(
+      currentUser.tenantId,
+      targetUserId,
+    );
+  }
+
+  @Post(':userId/access-teams')
+  @Permissions('users.assign-roles')
+  @RequirePermission(ENTITY_KEYS.USERS, 'assign')
+  addAccessTeam(
+    @CurrentUser() currentUser: AuthenticatedUser,
+    @Param('userId') targetUserId: string,
+    @Body('teamId') teamId: string,
+    @Body('isOwner') isOwner?: boolean,
+  ): Promise<unknown> {
+    return this.usersService.addAccessTeam(
+      currentUser.tenantId,
+      targetUserId,
+      teamId,
+      Boolean(isOwner),
+      currentUser.userId,
+    );
+  }
+
+  @Patch(':userId/access-teams/:teamMemberId')
+  @Permissions('users.assign-roles')
+  @RequirePermission(ENTITY_KEYS.USERS, 'assign')
+  updateAccessTeam(
+    @CurrentUser() currentUser: AuthenticatedUser,
+    @Param('userId') targetUserId: string,
+    @Param('teamMemberId') teamMemberId: string,
+    @Body('isOwner') isOwner?: boolean,
+  ): Promise<unknown> {
+    return this.usersService.updateAccessTeam(
+      currentUser.tenantId,
+      targetUserId,
+      teamMemberId,
+      Boolean(isOwner),
+    );
+  }
+
+  @Delete(':userId/access-teams/:teamMemberId')
+  @Permissions('users.assign-roles')
+  @RequirePermission(ENTITY_KEYS.USERS, 'assign')
+  removeAccessTeam(
+    @CurrentUser() currentUser: AuthenticatedUser,
+    @Param('userId') targetUserId: string,
+    @Param('teamMemberId') teamMemberId: string,
+  ): Promise<unknown> {
+    return this.usersService.removeAccessTeam(
+      currentUser.tenantId,
+      targetUserId,
+      teamMemberId,
+    );
+  }
+
+  @Get(':userId/sessions')
+  @Permissions('users.read')
+  @RequirePermission(ENTITY_KEYS.USERS, 'read')
+  listSessions(
+    @CurrentUser() currentUser: AuthenticatedUser,
+    @Param('userId') targetUserId: string,
+  ): Promise<unknown> {
+    return this.usersService.listSessions(currentUser.tenantId, targetUserId);
+  }
+
+  @Delete(':userId/sessions/:sessionId')
+  @Permissions('users.update')
+  @RequirePermission(ENTITY_KEYS.USERS, 'write')
+  revokeSession(
+    @CurrentUser() currentUser: AuthenticatedUser,
+    @Param('userId') targetUserId: string,
+    @Param('sessionId') sessionId: string,
+  ): Promise<unknown> {
+    return this.usersService.revokeSession(
+      currentUser.tenantId,
+      targetUserId,
+      sessionId,
+    );
+  }
+
+  @Delete(':userId/sessions')
+  @Permissions('users.update')
+  @RequirePermission(ENTITY_KEYS.USERS, 'write')
+  revokeAllSessions(
+    @CurrentUser() currentUser: AuthenticatedUser,
+    @Param('userId') targetUserId: string,
+  ): Promise<unknown> {
+    return this.usersService.revokeAllSessions(
+      currentUser.tenantId,
+      targetUserId,
+    );
+  }
+
+  @Get(':userId/login-history')
+  @Permissions('users.read')
+  @RequirePermission(ENTITY_KEYS.USERS, 'read')
+  listLoginHistory(
+    @CurrentUser() currentUser: AuthenticatedUser,
+    @Param('userId') targetUserId: string,
+  ): Promise<unknown> {
+    return this.usersService.listLoginHistory(
+      currentUser.tenantId,
+      targetUserId,
     );
   }
 

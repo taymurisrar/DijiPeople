@@ -5,9 +5,10 @@ import {
 import type { AttendanceCorrectionListResponse } from "@/app/components/attendance-corrections/attendance-correction-types";
 import Link from "next/link";
 import { requireSessionUser } from "@/lib/auth";
+import { hasElevatedTenantRole } from "@/lib/elevated-roles";
 import { hasAnyPermission } from "@/lib/permissions";
 import { apiRequestJson } from "@/lib/server-api";
-import { PERMISSION_KEYS } from "@/lib/security-keys";
+import { PERMISSION_KEYS, ROLE_KEYS } from "@/lib/security-keys";
 import { AccessDeniedState } from "../../_components/access-denied-state";
 
 type AttendanceCorrectionsPageProps = {
@@ -27,7 +28,7 @@ export default async function AttendanceCorrectionsPage({
   searchParams,
 }: AttendanceCorrectionsPageProps) {
   const user = await requireSessionUser("/");
-  if (!hasAnyPermission(user.permissionKeys, READ_PERMISSION_KEYS)) {
+  if (!canUseCorrectionWorkflow(user)) {
     return (
       <main className="dp-theme-scope dp-attendance-scope grid gap-6">
         <AccessDeniedState
@@ -57,9 +58,7 @@ export default async function AttendanceCorrectionsPage({
           Submitted correction requests, assigned approvals, and workflow
           history for attendance records.
         </p>
-        {hasAnyPermission(user.permissionKeys, [
-          PERMISSION_KEYS.ATTENDANCE_CORRECTION_CREATE,
-        ]) ? (
+        {canCreateCorrectionRequest(user) ? (
           <Link
             className="mt-4 inline-flex rounded-xl border border-accent/30 bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-strong"
             href="/attendance/corrections/new"
@@ -71,6 +70,34 @@ export default async function AttendanceCorrectionsPage({
       <AttendanceCorrectionViewTabs />
       <AttendanceCorrectionsTable response={response} />
     </main>
+  );
+}
+
+function canUseCorrectionWorkflow(user: {
+  permissionKeys: string[];
+  roleKeys?: string[] | null;
+}) {
+  return (
+    hasAnyPermission(user.permissionKeys, READ_PERMISSION_KEYS) ||
+    hasElevatedTenantRole(user.roleKeys) ||
+    (user.roleKeys ?? []).some(
+      (roleKey) => roleKey === ROLE_KEYS.MANAGER || roleKey === ROLE_KEYS.HR,
+    )
+  );
+}
+
+function canCreateCorrectionRequest(user: {
+  permissionKeys: string[];
+  roleKeys?: string[] | null;
+}) {
+  return (
+    hasAnyPermission(user.permissionKeys, [
+      PERMISSION_KEYS.ATTENDANCE_CORRECTION_CREATE,
+      PERMISSION_KEYS.ATTENDANCE_READ,
+      PERMISSION_KEYS.ATTENDANCE_READ_OWN,
+      PERMISSION_KEYS.ATTENDANCE_READ_TEAM,
+      PERMISSION_KEYS.ATTENDANCE_READ_ALL,
+    ]) || canUseCorrectionWorkflow(user)
   );
 }
 

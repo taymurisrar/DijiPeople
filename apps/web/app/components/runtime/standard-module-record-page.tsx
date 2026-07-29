@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { ModuleRecordPage } from "./module-record-page";
 import type { LookupOption } from "@/app/components/ui/form-control";
 import type {
@@ -22,10 +23,14 @@ export function StandardModuleRecordPage({
   recordId,
   runtime,
   spec,
+  formSlot,
+  tabContent,
   title,
   dataAdapter,
 }: {
   readonly activeForm: FormMetadata | null;
+  readonly formSlot?: ReactNode;
+  readonly tabContent?: Readonly<Record<string, ReactNode>>;
   readonly lookupDisplayValues?: Record<string, string>;
   readonly lookupOptions?: Record<string, readonly LookupOption[]>;
   readonly mode: "create" | "read" | "edit";
@@ -45,6 +50,7 @@ export function StandardModuleRecordPage({
     <ModuleRecordPage
       activeForm={activeForm}
       dataAdapter={dataAdapter ?? createStandardModuleDataAdapter(spec)}
+      formSlot={formSlot}
       lookupDisplayValues={resolvedLookupDisplayValues}
       lookupOptions={lookupOptions}
       mode={mode}
@@ -52,6 +58,7 @@ export function StandardModuleRecordPage({
       record={record}
       recordId={recordId}
       runtime={runtime}
+      tabContent={tabContent}
       title={title}
     />
   );
@@ -97,7 +104,13 @@ function readableLookupDisplayValue(field: FieldMetadata, value: unknown) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return "";
   const record = value as Record<string, unknown>;
 
-  return stringValue(record[lookupPrimaryNameField(field)]);
+  return (
+    stringValue(record[lookupPrimaryNameField(field)]) ||
+    stringValue(record.name) ||
+    personNameValue(record) ||
+    stringValue(record.label) ||
+    stringValue(record.code)
+  );
 }
 
 function lookupPrimaryNameField(field: FieldMetadata) {
@@ -109,4 +122,11 @@ function lookupPrimaryNameField(field: FieldMetadata) {
 
 function stringValue(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function personNameValue(record: Record<string, unknown>) {
+  return [record.firstName, record.middleName, record.lastName]
+    .map(stringValue)
+    .filter(Boolean)
+    .join(" ");
 }

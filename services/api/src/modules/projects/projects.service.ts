@@ -61,10 +61,27 @@ export class ProjectsService {
       );
     }
 
-    return this.projectsRepository.findActiveAssignedProjectsForEmployee(
+    const projects =
+      await this.projectsRepository.findActiveAssignedProjectsForEmployee(
       currentUser.tenantId,
       employee.id,
     );
+    return projects.map((project) => {
+      const assignment = project.assignments[0];
+      return {
+        id: project.id,
+        name: project.name,
+        code: project.code,
+        status: project.status,
+        timezone: project.timezone,
+        currencyCode: project.currencyCode,
+        projectAssignmentId: assignment?.id ?? null,
+        billable:
+          assignment?.billableFlag ?? project.billingType !== 'NON_BILLABLE',
+        assignmentStartDate: assignment?.startDate ?? null,
+        assignmentEndDate: assignment?.endDate ?? null,
+      };
+    });
   }
 
   async findById(tenantId: string, projectId: string) {
@@ -186,9 +203,14 @@ export class ProjectsService {
         organizationId: dto.organizationId,
         businessUnitId: dto.businessUnitId,
         customerId: dto.customerId,
+        projectManagerEmployeeId: dto.projectManagerEmployeeId,
+        accountManagerEmployeeId: dto.accountManagerEmployeeId,
+        deliveryManagerEmployeeId: dto.deliveryManagerEmployeeId,
+        approvalManagerEmployeeId: dto.approvalManagerEmployeeId,
         name: dto.name.trim(),
         code: dto.code?.trim().toUpperCase(),
         description: dto.description?.trim(),
+        projectType: dto.projectType ?? 'CLIENT',
         timezone: normalizeTimezone(dto.timezone),
         currencyCode: normalizeCurrencyCode(dto.currencyCode),
         billingType: dto.billingType ?? 'NON_BILLABLE',
@@ -201,6 +223,12 @@ export class ProjectsService {
         budgetCurrencyCode: normalizeCurrencyCode(
           dto.budgetCurrencyCode ?? dto.currencyCode,
         ),
+        requiredResourceCount: intOrUndefined(dto.requiredResourceCount),
+        requiredSkills: dto.requiredSkills?.trim(),
+        billableHours: decimalOrUndefined(dto.billableHours),
+        nonBillableHours: decimalOrUndefined(dto.nonBillableHours),
+        billingRateAmount: decimalOrUndefined(dto.billingRateAmount),
+        costBudgetAmount: decimalOrUndefined(dto.costBudgetAmount),
         consumedAmount: decimalOrUndefined(dto.consumedAmount),
         burnRate: decimalOrUndefined(dto.burnRate),
         plannedHours: decimalOrUndefined(dto.plannedHours ?? dto.budgetHours),
@@ -212,7 +240,9 @@ export class ProjectsService {
         deliveryStatus: dto.deliveryStatus ?? 'NOT_STARTED',
         billingStatus: dto.billingStatus ?? 'NOT_STARTED',
         allowTimesheets: dto.allowTimesheets ?? true,
-        requireApproval: dto.requireApproval ?? false,
+        requireApproval:
+          dto.requireApproval ??
+          (dto.approvalMode ? dto.approvalMode !== 'NONE' : false),
         approvalMode: dto.approvalMode ?? 'MANAGER',
         holidayCalendarId: dto.holidayCalendarId,
         workScheduleId: dto.workScheduleId,
@@ -277,8 +307,29 @@ export class ProjectsService {
           ...(dto.customerId !== undefined
             ? { customerId: dto.customerId ?? null }
             : {}),
+          ...(dto.projectManagerEmployeeId !== undefined
+            ? { projectManagerEmployeeId: dto.projectManagerEmployeeId ?? null }
+            : {}),
+          ...(dto.accountManagerEmployeeId !== undefined
+            ? { accountManagerEmployeeId: dto.accountManagerEmployeeId ?? null }
+            : {}),
+          ...(dto.deliveryManagerEmployeeId !== undefined
+            ? {
+                deliveryManagerEmployeeId:
+                  dto.deliveryManagerEmployeeId ?? null,
+              }
+            : {}),
+          ...(dto.approvalManagerEmployeeId !== undefined
+            ? {
+                approvalManagerEmployeeId:
+                  dto.approvalManagerEmployeeId ?? null,
+              }
+            : {}),
           ...(dto.timezone !== undefined
             ? { timezone: normalizeTimezone(dto.timezone) }
+            : {}),
+          ...(dto.projectType !== undefined
+            ? { projectType: dto.projectType }
             : {}),
           ...(dto.currencyCode !== undefined
             ? { currencyCode: normalizeCurrencyCode(dto.currencyCode) }
@@ -306,6 +357,24 @@ export class ProjectsService {
                   dto.budgetCurrencyCode,
                 ),
               }
+            : {}),
+          ...(dto.requiredResourceCount !== undefined
+            ? { requiredResourceCount: intOrNull(dto.requiredResourceCount) }
+            : {}),
+          ...(dto.requiredSkills !== undefined
+            ? { requiredSkills: dto.requiredSkills?.trim() ?? null }
+            : {}),
+          ...(dto.billableHours !== undefined
+            ? { billableHours: decimalOrNull(dto.billableHours) }
+            : {}),
+          ...(dto.nonBillableHours !== undefined
+            ? { nonBillableHours: decimalOrNull(dto.nonBillableHours) }
+            : {}),
+          ...(dto.billingRateAmount !== undefined
+            ? { billingRateAmount: decimalOrNull(dto.billingRateAmount) }
+            : {}),
+          ...(dto.costBudgetAmount !== undefined
+            ? { costBudgetAmount: decimalOrNull(dto.costBudgetAmount) }
             : {}),
           ...(dto.consumedAmount !== undefined
             ? { consumedAmount: decimalOrNull(dto.consumedAmount) }
@@ -340,7 +409,12 @@ export class ProjectsService {
             ? { requireApproval: dto.requireApproval }
             : {}),
           ...(dto.approvalMode !== undefined
-            ? { approvalMode: dto.approvalMode }
+            ? {
+                approvalMode: dto.approvalMode,
+                ...(dto.requireApproval === undefined
+                  ? { requireApproval: dto.approvalMode !== 'NONE' }
+                  : {}),
+              }
             : {}),
           ...(dto.holidayCalendarId !== undefined
             ? { holidayCalendarId: dto.holidayCalendarId ?? null }
@@ -429,13 +503,21 @@ export class ProjectsService {
           allocationHours: dto.allocationHours
             ? new Prisma.Decimal(dto.allocationHours)
             : null,
+          billingRateAmount: dto.billingRateAmount
+            ? new Prisma.Decimal(dto.billingRateAmount)
+            : null,
+          costRateAmount: dto.costRateAmount
+            ? new Prisma.Decimal(dto.costRateAmount)
+            : null,
           allocationType: dto.allocationType ?? 'PERCENTAGE',
           billableFlag: dto.billableFlag ?? existing.billableFlag,
           startDate: dto.startDate ? new Date(dto.startDate) : null,
           endDate: dto.endDate ? new Date(dto.endDate) : null,
           approvalManagerEmployeeId: dto.approvalManagerEmployeeId ?? null,
           status: dto.status ?? existing.status,
-          currencyCode: normalizeCurrencyCode(dto.currencyCode),
+          currencyCode: normalizeCurrencyCode(
+            dto.currencyCode ?? existing.currencyCode ?? project.currencyCode,
+          ),
           updatedById: currentUser.userId,
         },
       );
@@ -456,13 +538,21 @@ export class ProjectsService {
         allocationHours: dto.allocationHours
           ? new Prisma.Decimal(dto.allocationHours)
           : undefined,
+        billingRateAmount: dto.billingRateAmount
+          ? new Prisma.Decimal(dto.billingRateAmount)
+          : undefined,
+        costRateAmount: dto.costRateAmount
+          ? new Prisma.Decimal(dto.costRateAmount)
+          : undefined,
         allocationType: dto.allocationType ?? 'PERCENTAGE',
         billableFlag: dto.billableFlag ?? false,
         startDate: dto.startDate ? new Date(dto.startDate) : undefined,
         endDate: dto.endDate ? new Date(dto.endDate) : undefined,
         approvalManagerEmployeeId: dto.approvalManagerEmployeeId,
         status: dto.status ?? 'ACTIVE',
-        currencyCode: normalizeCurrencyCode(dto.currencyCode),
+        currencyCode: normalizeCurrencyCode(
+          dto.currencyCode ?? project.currencyCode,
+        ),
         createdById: currentUser.userId,
         updatedById: currentUser.userId,
       });
@@ -497,6 +587,52 @@ export class ProjectsService {
     );
   }
 
+  async listAssignments(currentUser: AuthenticatedUser, projectId: string) {
+    const project = await this.findByIdForUser(currentUser, projectId);
+    return {
+      items: project.assignedEmployees.map((assignment) =>
+        mapAssignmentRow(assignment),
+      ),
+      meta: {
+        page: 1,
+        pageSize: project.assignedEmployees.length,
+        total: project.assignedEmployees.length,
+        totalPages: 1,
+      },
+    };
+  }
+
+  async removeAssignment(
+    currentUser: AuthenticatedUser,
+    projectId: string,
+    assignmentId: string,
+  ) {
+    const existing = await this.projectsRepository.findAssignmentById(
+      currentUser.tenantId,
+      projectId,
+      assignmentId,
+    );
+    if (!existing) {
+      throw new NotFoundException('Project assignment was not found.');
+    }
+
+    await this.projectsRepository.deleteAssignment(
+      currentUser.tenantId,
+      assignmentId,
+    );
+    await this.auditService.log({
+      tenantId: currentUser.tenantId,
+      actorUserId: currentUser.userId,
+      action: 'project-allocation.delete',
+      entityType: 'ProjectAssignment',
+      entityId: assignmentId,
+      beforeSnapshot: existing,
+      afterSnapshot: null,
+    });
+
+    return { success: true };
+  }
+
   private mapProject(project: ProjectWithRelations) {
     return {
       id: project.id,
@@ -505,14 +641,35 @@ export class ProjectsService {
       code: project.code,
       description: project.description,
       organizationId: project.organizationId,
+      businessUnitId: project.businessUnitId,
+      customerId: project.customerId,
+      projectManagerEmployeeId: project.projectManagerEmployeeId,
+      accountManagerEmployeeId: project.accountManagerEmployeeId,
+      deliveryManagerEmployeeId: project.deliveryManagerEmployeeId,
+      approvalManagerEmployeeId: project.approvalManagerEmployeeId,
       businessUnit: project.businessUnit,
       customer: project.customer,
+      projectType: project.projectType,
       timezone: project.timezone,
       currencyCode: project.currencyCode,
       billingType: project.billingType,
       budgetHours: project.budgetHours ? Number(project.budgetHours) : null,
       budgetAmount: project.budgetAmount ? Number(project.budgetAmount) : null,
       budgetCurrencyCode: project.budgetCurrencyCode,
+      requiredResourceCount: project.requiredResourceCount,
+      requiredSkills: project.requiredSkills,
+      billableHours: project.billableHours
+        ? Number(project.billableHours)
+        : null,
+      nonBillableHours: project.nonBillableHours
+        ? Number(project.nonBillableHours)
+        : null,
+      billingRateAmount: project.billingRateAmount
+        ? Number(project.billingRateAmount)
+        : null,
+      costBudgetAmount: project.costBudgetAmount
+        ? Number(project.costBudgetAmount)
+        : null,
       consumedAmount: project.consumedAmount
         ? Number(project.consumedAmount)
         : null,
@@ -539,6 +696,8 @@ export class ProjectsService {
       startDate: project.startDate,
       endDate: project.endDate,
       status: project.status,
+      createdById: project.createdById,
+      updatedById: project.updatedById,
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
       assignedEmployees: project.assignments.map((assignment) => ({
@@ -551,12 +710,19 @@ export class ProjectsService {
         allocationHours: assignment.allocationHours
           ? Number(assignment.allocationHours)
           : null,
+        billingRateAmount: assignment.billingRateAmount
+          ? Number(assignment.billingRateAmount)
+          : null,
+        costRateAmount: assignment.costRateAmount
+          ? Number(assignment.costRateAmount)
+          : null,
         allocationType: assignment.allocationType,
         billableFlag: assignment.billableFlag,
         startDate: assignment.startDate,
         endDate: assignment.endDate,
         status: assignment.status,
         currencyCode: assignment.currencyCode,
+        resourceStatus: assignment.status,
         utilizationWarning:
           assignment.allocationType === 'PERCENTAGE' &&
           (assignment.allocationPercent ?? 0) > 100
@@ -630,12 +796,37 @@ export class ProjectsService {
   }
 }
 
+function mapAssignmentRow(
+  assignment: ReturnType<
+    ProjectsService['mapProject']
+  >['assignedEmployees'][number],
+) {
+  return {
+    ...assignment,
+    employeeName: assignment.employee.fullName,
+    employeeCode: assignment.employee.employeeCode,
+    departmentName: assignment.employee.department?.name ?? null,
+    designationName: assignment.employee.designation?.name ?? null,
+    projectRoleName: assignment.projectRole?.name ?? assignment.roleOnProject,
+  };
+}
+
 function decimalOrUndefined(value?: string | null) {
   return value ? new Prisma.Decimal(value) : undefined;
 }
 
 function decimalOrNull(value?: string | null) {
   return value ? new Prisma.Decimal(value) : null;
+}
+
+function intOrUndefined(value?: string | number | null) {
+  if (value === null || value === undefined || value === '') return undefined;
+  return Number.parseInt(String(value), 10);
+}
+
+function intOrNull(value?: string | number | null) {
+  if (value === null || value === undefined || value === '') return null;
+  return Number.parseInt(String(value), 10);
 }
 
 function normalizeTimezone(value?: string | null) {

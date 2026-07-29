@@ -37,6 +37,8 @@ import {
   TimesheetWithRelations,
   TimesheetsRepository,
 } from './timesheets.repository';
+import { TimesheetGenerationService } from './timesheet-generation.service';
+import { TimesheetPolicyResolverService } from './timesheet-policy-resolver.service';
 
 type UploadedExcelFile = {
   buffer: Buffer;
@@ -124,6 +126,8 @@ export class TimesheetsService {
     private readonly excelExportService: ExcelExportService,
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
+    private readonly timesheetGenerationService: TimesheetGenerationService,
+    private readonly timesheetPolicyResolverService: TimesheetPolicyResolverService,
   ) {}
 
   async getMyMONTHLYTimesheet(
@@ -188,7 +192,7 @@ export class TimesheetsService {
     timesheetId: string,
     allowOwn = true,
   ) {
-    const timesheet = await this.timesheetsRepository.findTimesheetById(
+    let timesheet = await this.timesheetsRepository.findTimesheetById(
       currentUser.tenantId,
       timesheetId,
     );
@@ -198,7 +202,28 @@ export class TimesheetsService {
     }
 
     await this.assertCanReadTeamTimesheet(currentUser, timesheet, allowOwn);
-    return this.mapTimesheet(timesheet, currentUser);
+    const needsGenerationRepair =
+      timesheet.weeks.length === 0 ||
+      timesheet.weeks.some((week) =>
+        week.days.some((day) => !day.workScheduleId),
+      );
+    if (needsGenerationRepair) {
+      await this.timesheetGenerationService.synchronize(
+        currentUser,
+        timesheetId,
+        'LAZY_GENERATION',
+      );
+      timesheet = (await this.timesheetsRepository.findTimesheetById(
+        currentUser.tenantId,
+        timesheetId,
+      ))!;
+    }
+    const policy = await this.timesheetPolicyResolverService.resolveForEmployee(
+      currentUser.tenantId,
+      timesheet.employeeId,
+      timesheet.periodStart,
+    );
+    return this.mapTimesheet(timesheet, currentUser, policy.values);
   }
 
   async updateEntries(
@@ -1074,6 +1099,25 @@ export class TimesheetsService {
       });
     }
 
+    const generatedDayCount = timesheet.weeks.reduce(
+      (total, week) => total + week.days.length,
+      0,
+    );
+    const entriesMissingDayLink = timesheet.entries.some(
+      (entry) => !entry.timesheetDayId,
+    );
+    if (
+      generatedDayCount < dates.length ||
+      timesheet.weeks.length === 0 ||
+      entriesMissingDayLink
+    ) {
+      await this.timesheetGenerationService.synchronize(
+        currentUser,
+        timesheet.id,
+        'CURRENT_MONTH_REPAIR',
+      );
+    }
+
     const reloaded = await this.timesheetsRepository.findTimesheetById(
       currentUser.tenantId,
       timesheet.id,
@@ -1464,8 +1508,14 @@ export class TimesheetsService {
   private mapTimesheet(
     timesheet: TimesheetWithRelations,
     currentUser?: AuthenticatedUser,
+    resolvedSettings?: Record<string, unknown>,
   ) {
     const summary = summarizeEntries(timesheet.entries);
+    const payrollBlockers = resolvePayrollBlockers(timesheet, resolvedSettings);
+    const canReadSensitiveNotes =
+      currentUser === undefined ||
+      timesheet.employee.userId === currentUser.userId ||
+      currentUser.permissionKeys.includes('timesheets.notes.sensitive.read');
 
     const canCurrentUserSubmit =
       currentUser !== undefined &&
@@ -1486,7 +1536,16 @@ export class TimesheetsService {
     const canCurrentUserReject =
       currentUser !== undefined &&
       currentUser.permissionKeys.includes('timesheets.reject') &&
-      timesheet.status === TimesheetStatus.SUBMITTED &&
+      timesheet.weeks.some((week) =>
+        [
+          'SUBMITTED',
+          'PENDING_APPROVAL',
+          'PARTIALLY_APPROVED',
+          'APPROVED',
+          'PAYROLL_READY',
+          'LOCKED',
+        ].includes(week.status),
+      ) &&
       (currentUser.permissionKeys.includes('timesheets.read.all') ||
         timesheet.employee.manager?.userId === currentUser.userId);
 
@@ -1506,6 +1565,36 @@ export class TimesheetsService {
       submittedNote: timesheet.submittedNote,
       reviewNote: timesheet.reviewNote ?? timesheet.comments,
       comments: timesheet.comments,
+      completionPercentage: Number(timesheet.completionPercentage),
+      requiredHours: Number(timesheet.requiredHours),
+      enteredHours: Number(timesheet.enteredHours),
+      approvedLeaveHours: Number(timesheet.approvedLeaveHours),
+      holidayHours: Number(timesheet.holidayHours),
+      weekendHours: Number(timesheet.weekendHours),
+      billableHours: Number(timesheet.billableHours),
+      nonBillableHours: Number(timesheet.nonBillableHours),
+      overtimeHours: Number(timesheet.overtimeHours),
+      payrollStatus: timesheet.payrollStatus,
+      payrollBlockers,
+      lockStatus: timesheet.lockStatus,
+      policyId: timesheet.policyId,
+      policyVersion: timesheet.policyVersion,
+      settings: resolvedSettings
+        ? {
+            allowCopyPreviousWeek:
+              resolvedSettings.allowCopyPreviousWeek !== false,
+            attendanceIntegrationMode:
+              typeof resolvedSettings.attendanceIntegrationMode === 'string'
+                ? resolvedSettings.attendanceIntegrationMode
+                : 'INDEPENDENT',
+            requireProject: resolvedSettings.requireProject !== false,
+            allowLateSubmission:
+              resolvedSettings.allowLateSubmission !== false,
+            allowPayrollLateSubmissionOverride:
+              resolvedSettings.allowPayrollLateSubmissionOverride !== false,
+          }
+        : undefined,
+      version: timesheet.version,
       createdAt: timesheet.createdAt,
       updatedAt: timesheet.updatedAt,
       totalHours: summary.totalHours,
@@ -1550,6 +1639,152 @@ export class TimesheetsService {
           : null,
       },
       approverUser: timesheet.approverUser,
+      weeks: timesheet.weeks.map((week) => ({
+        id: week.id,
+        weekNumber: week.weekNumber,
+        startDate: week.startDate,
+        endDate: week.endDate,
+        status: week.status,
+        submissionDeadline: week.submissionDeadline,
+        lateSubmissionOverrideAt: week.lateSubmissionOverrideAt,
+        lateSubmissionOverrideReason: week.lateSubmissionOverrideReason,
+        submittedAt: week.submittedAt,
+        approvalRequestId: week.approvalRequestId,
+        requiredHours: Number(week.requiredHours),
+        enteredHours: Number(week.enteredHours),
+        leaveHours: Number(week.leaveHours),
+        holidayHours: Number(week.holidayHours),
+        weekendHours: Number(week.weekendHours),
+        billableHours: Number(week.billableHours),
+        nonBillableHours: Number(week.nonBillableHours),
+        overtimeHours: Number(week.overtimeHours),
+        lockStatus: week.lockStatus,
+        rejectionReason: week.rejectionReason,
+        approvalVersion: week.approvalVersion,
+        payrollEligibility: week.payrollEligibility,
+        version: week.version,
+        canEdit:
+          currentUser !== undefined &&
+          timesheet.employee.userId === currentUser.userId &&
+          currentUser.permissionKeys.includes('timesheets.write') &&
+          week.lockStatus === 'UNLOCKED' &&
+          [
+            'OPEN',
+            'DRAFT',
+            'INCOMPLETE',
+            'READY_TO_SUBMIT',
+            'REJECTED',
+            'REOPENED',
+            'OVERDUE',
+          ].includes(week.status),
+        canSubmit:
+          currentUser !== undefined &&
+          timesheet.employee.userId === currentUser.userId &&
+          currentUser.permissionKeys.includes('timesheets.submit') &&
+          ['READY_TO_SUBMIT', 'REOPENED', 'OVERDUE'].includes(week.status),
+        canOverrideLateSubmission:
+          currentUser !== undefined &&
+          currentUser.permissionKeys.includes('timesheets.override') &&
+          resolvedSettings?.allowLateSubmission === false &&
+          resolvedSettings?.allowPayrollLateSubmissionOverride !== false &&
+          Boolean(
+            week.submissionDeadline &&
+              new Date() > week.submissionDeadline &&
+              !week.lateSubmissionOverrideAt,
+          ) &&
+          [
+            'OPEN',
+            'DRAFT',
+            'INCOMPLETE',
+            'READY_TO_SUBMIT',
+            'REJECTED',
+            'REOPENED',
+            'OVERDUE',
+          ].includes(week.status),
+        canApprove:
+          currentUser !== undefined &&
+          currentUser.permissionKeys.includes('timesheets.approve') &&
+          ['PENDING_APPROVAL', 'PARTIALLY_APPROVED'].includes(week.status),
+        canReject:
+          currentUser !== undefined &&
+          currentUser.permissionKeys.includes('timesheets.reject') &&
+          ['PENDING_APPROVAL', 'PARTIALLY_APPROVED'].includes(week.status),
+        canWithdraw:
+          currentUser !== undefined &&
+          timesheet.employee.userId === currentUser.userId &&
+          currentUser.permissionKeys.includes('timesheets.withdraw') &&
+          ['PENDING_APPROVAL', 'PARTIALLY_APPROVED'].includes(week.status),
+        reopeningRequests: week.reopeningRequests.map((request) => ({
+          id: request.id,
+          status: request.status,
+          reason: request.reason,
+          requestedAt: request.requestedAt,
+          approvalRequestId: request.approvalRequestId,
+          approverUserId: request.approverUserId,
+          approvedAt: request.approvedAt,
+          rejectedAt: request.rejectedAt,
+          decisionReason: request.decisionReason,
+          canDecide:
+            request.status === 'PENDING' &&
+            currentUser !== undefined &&
+            currentUser.permissionKeys.includes('timesheets.approve'),
+        })),
+        days: week.days.map((day) => ({
+          id: day.id,
+          date: day.date,
+          dayOfWeek: day.dayOfWeek,
+          dayType: day.dayType,
+          dayTypeSource: day.dayTypeSource,
+          expectedHours: Number(day.expectedHours),
+          availableHours: Number(day.availableHours),
+          enteredHours: Number(day.enteredHours),
+          attendanceHours: Number(day.attendanceHours),
+          attendanceEntryId: day.attendanceEntryId,
+          attendanceCheckIn: day.attendanceCheckIn,
+          attendanceCheckOut: day.attendanceCheckOut,
+          attendanceMode: day.attendanceMode,
+          attendanceStatus: day.attendanceStatus,
+          approvedLeaveHours: Number(day.approvedLeaveHours),
+          holidayId: day.holidayId,
+          holidayName: day.holidayName,
+          leaveRequestId: day.leaveRequestId,
+          leaveTypeId: day.leaveTypeId,
+          leaveTypeName: day.leaveTypeName,
+          workScheduleId: day.workScheduleId,
+          shiftId: day.shiftId,
+          isWeekend: day.isWeekend,
+          isHoliday: day.isHoliday,
+          isApprovedLeave: day.isApprovedLeave,
+          isLocked: day.isLocked,
+          lockReason: day.lockReason,
+          completionStatus: day.completionStatus,
+          varianceMinutes: day.varianceMinutes,
+          varianceStatus: day.varianceStatus,
+          version: day.version,
+          entries: day.entries.map((entry) => ({
+            id: entry.id,
+            projectId: entry.projectId,
+            project: entry.project,
+            projectAssignmentId: entry.projectAssignmentId,
+            taskId: entry.taskId,
+            activityTypeId: entry.activityTypeId,
+            workLocationId: entry.workLocationId,
+            costCenterId: entry.costCenterId,
+            startTime: entry.startTime,
+            endTime: entry.endTime,
+            hours: Number(entry.hours),
+            billable: entry.billableFlag,
+            notes: canReadSensitiveNotes
+              ? (entry.note ?? entry.description)
+              : null,
+            activityCode: entry.activityCode,
+            source: entry.source,
+            approvalStatus: entry.approvalStatus,
+            payrollCategory: entry.payrollCategory,
+            integrationReference: entry.integrationReference,
+          })),
+        })),
+      })),
       entries: timesheet.entries.map((entry) => ({
         id: entry.id,
         employeeId: entry.employeeId,
@@ -1559,8 +1794,15 @@ export class TimesheetsService {
         isWeekend: entry.isWeekend,
         isHoliday: entry.isHoliday,
         hoursWorked: Number(entry.hours),
-        note: entry.note ?? entry.description,
+        note: canReadSensitiveNotes ? (entry.note ?? entry.description) : null,
         projectId: entry.projectId,
+        project: entry.project
+          ? {
+              id: entry.project.id,
+              name: entry.project.name,
+              code: entry.project.code,
+            }
+          : null,
         activityCode: entry.activityCode,
         billableFlag: entry.billableFlag,
         timezone: entry.timezone,
@@ -2297,6 +2539,56 @@ function assertProjectAssignmentCoversDate(
       `Project assignment is not active for ${dateKey}.`,
     );
   }
+}
+
+function resolvePayrollBlockers(
+  timesheet: TimesheetWithRelations,
+  settings?: Record<string, unknown>,
+) {
+  if (timesheet.payrollStatus !== 'BLOCKED') return [];
+  const blockers: string[] = [];
+  const blockingWeeks = timesheet.weeks.filter((week) =>
+    ['REJECTED', 'INCOMPLETE', 'OVERDUE'].includes(week.status),
+  );
+  if (blockingWeeks.length) {
+    blockers.push(
+      `${blockingWeeks.length === 1 ? 'Week' : 'Weeks'} ${blockingWeeks
+        .map((week) => week.weekNumber)
+        .join(', ')} ${blockingWeeks.length === 1 ? 'is' : 'are'} incomplete, overdue, or rejected.`,
+    );
+  }
+  if (settings?.approvedTimesheetsOnly !== false) {
+    const unapprovedWeeks = timesheet.weeks.filter(
+      (week) =>
+        !['APPROVED', 'PAYROLL_READY', 'PAYROLL_PROCESSED'].includes(
+          week.status,
+        ),
+    );
+    if (unapprovedWeeks.length) {
+      blockers.push(
+        `${unapprovedWeeks.length} ${unapprovedWeeks.length === 1 ? 'week is' : 'weeks are'} not approved for payroll.`,
+      );
+    }
+  }
+  const varianceDays = timesheet.weeks.flatMap((week) =>
+    week.days.filter((day) => day.varianceStatus === 'OUTSIDE_TOLERANCE'),
+  );
+  if (varianceDays.length) {
+    blockers.push(
+      `${varianceDays.length} ${varianceDays.length === 1 ? 'day has' : 'days have'} an attendance variance outside tolerance.`,
+    );
+  }
+  const exceptionDays = timesheet.weeks.flatMap((week) =>
+    week.days.filter((day) => day.completionStatus === 'EXCEPTION'),
+  );
+  if (exceptionDays.length) {
+    blockers.push(
+      `${exceptionDays.length} ${exceptionDays.length === 1 ? 'day has' : 'days have'} an unresolved exception.`,
+    );
+  }
+  return blockers.length
+    ? blockers
+    : ['Payroll readiness requirements are not yet satisfied.'];
 }
 
 function summarizeEntries(entries: TimesheetWithRelations['entries']) {

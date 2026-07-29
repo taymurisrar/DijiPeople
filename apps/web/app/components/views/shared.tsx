@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ModuleViewSelector } from "@/app/components/view-selector/module-view-selector";
+import { ModuleViewSelector } from "@/app/components/view-selector/dmodule-view-selector";
 import type { ModuleViewSelectorConfig } from "@/app/components/view-selector/types";
 import type { DashboardNotification, PriorityItem } from "./types";
 

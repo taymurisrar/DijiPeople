@@ -190,7 +190,10 @@ export class ApprovalMatrixResolverService {
       matrix.approverType === ApprovalActorType.REQUEST_OWNER_MANAGER
     ) {
       const managerUserId = input.requesterEmployee.manager?.userId;
-      if (!managerUserId) {
+      const managerUser = managerUserId
+        ? await this.repository.findUserById(input.tenantId, managerUserId)
+        : null;
+      if (!managerUser) {
         throw new BadRequestException(
           'Approval route requires a reporting manager with a linked active user.',
         );
@@ -200,9 +203,57 @@ export class ApprovalMatrixResolverService {
         sequence: matrix.sequence,
         approverType: ApprovalActorType.LINE_MANAGER,
         approvalMode: matrix.approvalMode,
-        approverUserId: managerUserId,
+        approverUserId: managerUser.id,
         approvalGroupKey: groupKey,
-        candidateUserIds: [managerUserId],
+        candidateUserIds: [managerUser.id],
+      };
+    }
+    if (matrix.approverType === ApprovalActorType.DEPARTMENT_HEAD) {
+      const departmentId =
+        matrix.departmentId ?? input.scopeContext?.departmentId;
+      const userId = departmentId
+        ? await this.repository.findDepartmentApproverUserId(
+            input.tenantId,
+            departmentId,
+          )
+        : null;
+      if (!userId) {
+        throw new BadRequestException(
+          'Approval route requires an active department head or department owner with a linked user.',
+        );
+      }
+      return {
+        matrixId: matrix.id,
+        sequence: matrix.sequence,
+        approverType: ApprovalActorType.DEPARTMENT_HEAD,
+        approvalMode: matrix.approvalMode,
+        approverUserId: userId,
+        approvalGroupKey: groupKey,
+        candidateUserIds: [userId],
+      };
+    }
+    if (matrix.approverType === ApprovalActorType.BUSINESS_UNIT_HEAD) {
+      const businessUnitId =
+        matrix.businessUnitId ?? input.scopeContext?.businessUnitId;
+      const userId = businessUnitId
+        ? await this.repository.findBusinessUnitApproverUserId(
+            input.tenantId,
+            businessUnitId,
+          )
+        : null;
+      if (!userId) {
+        throw new BadRequestException(
+          'Approval route requires an active business-unit head or owner with a linked user.',
+        );
+      }
+      return {
+        matrixId: matrix.id,
+        sequence: matrix.sequence,
+        approverType: ApprovalActorType.BUSINESS_UNIT_HEAD,
+        approvalMode: matrix.approvalMode,
+        approverUserId: userId,
+        approvalGroupKey: groupKey,
+        candidateUserIds: [userId],
       };
     }
     if (matrix.approverType === ApprovalActorType.USER) {
@@ -255,7 +306,7 @@ export class ApprovalMatrixResolverService {
       };
     }
     throw new BadRequestException(
-      `${matrix.approverType} approval routing is not resolvable because the required head/owner relationship is not configured.`,
+      `${matrix.approverType} approval routing is not supported by the active workflow resolver.`,
     );
   }
 
@@ -273,14 +324,17 @@ export class ApprovalMatrixResolverService {
   ): Promise<ResolvedApprovalStep | null> {
     if (fallback.type === 'REPORTING_MANAGER') {
       const userId = input.requesterEmployee.manager?.userId;
-      return userId
+      const user = userId
+        ? await this.repository.findUserById(input.tenantId, userId)
+        : null;
+      return user
         ? {
             sequence: 1,
             approverType: ApprovalActorType.LINE_MANAGER,
             approvalMode: ApprovalMode.ANY_ONE,
-            approverUserId: userId,
+            approverUserId: user.id,
             approvalGroupKey: `${input.moduleKey}:1:fallback-manager`,
-            candidateUserIds: [userId],
+            candidateUserIds: [user.id],
           }
         : null;
     }

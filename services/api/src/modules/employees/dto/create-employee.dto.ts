@@ -23,24 +23,10 @@ import {
   MinLength,
   Min,
 } from 'class-validator';
-
-const RECORD_STATUS_VALUES = [
-  'ACTIVE',
-  'INACTIVE',
-  'DRAFT',
-  'ARCHIVED',
-] as const;
-const RECORD_SUB_STATUS_VALUES = [
-  'OPEN',
-  'IN_PROGRESS',
-  'COMPLETED',
-  'INACTIVE',
-  'SUSPENDED',
-  'DRAFT',
-  'PENDING_REVIEW',
-  'ARCHIVED',
-  'RETIRED',
-] as const;
+import {
+  EMPLOYEE_RECORD_STATUS_VALUES,
+  EMPLOYEE_RECORD_SUB_STATUS_VALUES,
+} from '../employee-lifecycle.constants';
 
 function emptyStringToUndefined({ value }: { value: unknown }) {
   if (typeof value !== 'string') {
@@ -59,12 +45,12 @@ export class CreateEmployeeDto {
   employeeCode?: string;
 
   @IsOptional()
-  @IsIn(RECORD_STATUS_VALUES)
-  status?: (typeof RECORD_STATUS_VALUES)[number];
+  @IsIn(EMPLOYEE_RECORD_STATUS_VALUES)
+  status?: (typeof EMPLOYEE_RECORD_STATUS_VALUES)[number];
 
   @IsOptional()
-  @IsIn(RECORD_SUB_STATUS_VALUES)
-  subStatus?: (typeof RECORD_SUB_STATUS_VALUES)[number];
+  @IsIn(EMPLOYEE_RECORD_SUB_STATUS_VALUES)
+  subStatus?: (typeof EMPLOYEE_RECORD_SUB_STATUS_VALUES)[number];
 
   @IsOptional()
   @Transform(emptyStringToUndefined)
@@ -282,7 +268,17 @@ export class CreateEmployeeDto {
   @IsOptional()
   @Transform(emptyStringToUndefined)
   @IsUUID()
+  organizationId?: string;
+
+  @IsOptional()
+  @Transform(emptyStringToUndefined)
+  @IsUUID()
   departmentId?: string;
+
+  @IsOptional()
+  @Transform(emptyStringToUndefined)
+  @IsUUID()
+  teamId?: string;
 
   @IsOptional()
   @Transform(emptyStringToUndefined)

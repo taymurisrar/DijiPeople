@@ -27,12 +27,17 @@ export function ModuleRecordStatusPopover({
     id: option.value,
     name: option.label,
   }));
-  const ownerValue = readRecordValue(record, config.ownerFieldLogicalName);
+  const ownerValue = config.ownerFieldLogicalName
+    ? readRecordValue(record, config.ownerFieldLogicalName)
+    : "";
   const statusValue = readRecordValue(record, config.statusFieldLogicalName);
   const subStatusOptions = filterSubStatusOptions(
     config.subStatusField?.options ?? [],
     statusValue,
   );
+  const ownerReadonly = config.ownerField?.behavior === "readonly";
+  const statusReadonly = config.statusField?.behavior === "readonly";
+  const subStatusReadonly = config.subStatusField?.behavior === "readonly";
 
   debugRuntime("ModuleRecordStatusPopover rendered", {
     disabled,
@@ -40,12 +45,14 @@ export function ModuleRecordStatusPopover({
     owner: {
       fieldLogicalName: config.ownerFieldLogicalName,
       value: ownerValue,
-      display: displayRecordValue(
-        record,
-        config.ownerFieldLogicalName,
-        ownerOptions,
-        config.lookupDisplayValues,
-      ),
+      display: config.ownerFieldLogicalName
+        ? displayRecordValue(
+            record,
+            config.ownerFieldLogicalName,
+            ownerOptions,
+            config.lookupDisplayValues,
+          )
+        : "",
     },
     status: {
       fieldLogicalName: config.statusFieldLogicalName,
@@ -62,26 +69,30 @@ export function ModuleRecordStatusPopover({
 
   return (
     <div
-      className="absolute right-0 top-full z-40 mt-2 grid w-[min(24rem,calc(100vw-2rem))] gap-3 rounded-lg border border-border bg-surface p-3 shadow-xl"
+      className="absolute right-0 top-full z-40 mt-2 grid w-full min-w-0 gap-3 overflow-hidden rounded-lg border border-border bg-surface p-3 shadow-xl"
       role="dialog"
     >
-      <StatusLookup
-        disabled={disabled || !config.ownerField}
-        label="Owner"
-        onChange={(value) =>
-          config.onValueChange?.(config.ownerFieldLogicalName, value)
-        }
-        options={ownerOptions}
-        readOnlyValue={displayRecordValue(
-          record,
-          config.ownerFieldLogicalName,
-          ownerOptions,
-          config.lookupDisplayValues,
-        )}
-        value={ownerValue}
-      />
+      {config.ownerFieldLogicalName ? (
+        <StatusLookup
+          disabled={disabled || !config.ownerField || ownerReadonly}
+          label="Owner"
+          onChange={(value) =>
+            config.ownerFieldLogicalName
+              ? config.onValueChange?.(config.ownerFieldLogicalName, value)
+              : undefined
+          }
+          options={ownerOptions}
+          readOnlyValue={displayRecordValue(
+            record,
+            config.ownerFieldLogicalName,
+            ownerOptions,
+            config.lookupDisplayValues,
+          )}
+          value={ownerValue}
+        />
+      ) : null}
       <StatusSelect
-        disabled={disabled || !config.statusField}
+        disabled={disabled || !config.statusField || statusReadonly}
         label="Status"
         onChange={(value) => {
           config.onValueChange?.(config.statusFieldLogicalName, value);
@@ -100,7 +111,7 @@ export function ModuleRecordStatusPopover({
       />
       {config.subStatusFieldLogicalName ? (
         <StatusSelect
-          disabled={disabled || !config.subStatusField}
+          disabled={disabled || !config.subStatusField || subStatusReadonly}
           label="Sub Status"
           onChange={(value) =>
             config.subStatusFieldLogicalName
@@ -132,7 +143,7 @@ export function buildRecordStatusSummary(
   return {
     owner: displayRecordValue(
       record,
-      config.ownerFieldLogicalName,
+      config.ownerFieldLogicalName ?? "",
       ownerOptions,
       config.lookupDisplayValues,
     ),
@@ -167,17 +178,19 @@ function StatusSelect({
 
   return disabled ? (
     <TextField
+      className="min-w-0"
       disabled
       label={label}
       onChange={() => undefined}
       value={
         resolvedOptions.find((option) => option.value === value)?.label ??
         value ??
-        "Not set"
+        ""
       }
     />
   ) : (
     <SelectField
+      className="min-w-0"
       disabled={resolvedOptions.length === 0}
       label={label}
       onChange={onChange}
@@ -205,14 +218,16 @@ function StatusLookup({
 }) {
   return disabled ? (
     <TextField
+      className="min-w-0"
       disabled
       label={label}
       onChange={() => undefined}
-      value={readOnlyValue || "Not set"}
+      value={readOnlyValue || ""}
     />
   ) : (
     <ModuleOwnerPicker
       disabled={options.length === 0}
+      className="min-w-0"
       label={label}
       onChange={onChange}
       options={options}
@@ -240,7 +255,7 @@ function defaultSubStatusValue(
 }
 
 function displayChoiceValue(value: string, options: readonly RuntimeOption[]) {
-  if (!value) return "Not set";
+  if (!value) return "";
   return options.find((option) => option.value === value)?.label ?? value;
 }
 
@@ -263,6 +278,6 @@ function displayRecordValue(
   if (displayValue) return displayValue;
 
   const value = readRecordValue(record, fieldLogicalName);
-  if (!value) return "Not set";
+  if (!value) return "";
   return options.find((option) => option.id === value)?.name ?? value;
 }

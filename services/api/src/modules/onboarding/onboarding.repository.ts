@@ -13,6 +13,7 @@ const onboardingInclude = {
       middleName: true,
       lastName: true,
       email: true,
+      personalEmail: true,
       phone: true,
       currentStatus: true,
       dateOfBirth: true,
@@ -25,6 +26,29 @@ const onboardingInclude = {
       currentCountry: true,
       currentStateProvince: true,
       currentCity: true,
+      currentDesignation: true,
+      draftEmployees: {
+        where: { isDraftProfile: true, isDeleted: false },
+        select: {
+          id: true,
+          employeeCode: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          departmentId: true,
+          designationId: true,
+          locationId: true,
+          managerEmployeeId: true,
+          hireDate: true,
+          employmentStatus: true,
+          status: true,
+          subStatus: true,
+          ownerUserId: true,
+          isDraftProfile: true,
+        },
+        orderBy: [{ updatedAt: 'desc' }],
+        take: 1,
+      },
     },
   },
   employee: {
@@ -33,7 +57,17 @@ const onboardingInclude = {
       employeeCode: true,
       firstName: true,
       lastName: true,
+      email: true,
+      departmentId: true,
+      designationId: true,
+      locationId: true,
+      managerEmployeeId: true,
+      hireDate: true,
       employmentStatus: true,
+      status: true,
+      subStatus: true,
+      ownerUserId: true,
+      isDraftProfile: true,
     },
   },
   template: true,
@@ -188,6 +222,19 @@ export class OnboardingRepository {
     return db.employeeOnboarding.updateMany({
       where: { tenantId, id },
       data,
+    });
+  }
+
+  deleteOnboardings(
+    tenantId: string,
+    onboardingIds: readonly string[],
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.employeeOnboarding.deleteMany({
+      where: {
+        tenantId,
+        id: { in: [...onboardingIds] },
+      },
     });
   }
 

@@ -22,13 +22,12 @@ export class PrismaService
     }
     super({
       adapter: new PrismaPg({ connectionString }),
-      log:
-        process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
+      log: process.env.NODE_ENV === 'development' ? ['warn'] : [],
     });
 
     const middlewareRegistrar = (this as any).$use;
     if (typeof middlewareRegistrar !== 'function') {
-      this.logger.warn(
+      this.logger.debug(
         'Prisma middleware registration skipped because PrismaClient.$use is unavailable in this runtime/client build.',
       );
       return;
@@ -82,23 +81,23 @@ export class PrismaService
               Number(result?.count ?? 0) === 0));
 
         if (accessDeniedByScope) {
-          await this.auditLog
-            .create({
-              data: {
-                tenantId: context.tenantId,
-                actorUserId: context.userId,
-                action: 'BUSINESS_UNIT_ACCESS_DENIED',
-                entityType: model,
-                entityId:
-                  resolveEntityIdFromWhere(params.args?.where) ?? 'unknown',
-                afterSnapshot: {
-                  prismaAction: params.action,
-                  effectiveAccessLevel: context.effectiveAccessLevel,
-                  requiresSelfScope: context.requiresSelfScope,
-                },
-              },
-            })
-            .catch(() => undefined);
+          const auditData = {
+            tenantId: context.tenantId,
+            actorUserId: context.userId,
+            action: 'BUSINESS_UNIT_ACCESS_DENIED',
+            entityType: model,
+            entityId: resolveEntityIdFromWhere(params.args?.where) ?? 'unknown',
+            afterSnapshot: {
+              prismaAction: params.action,
+              effectiveAccessLevel: context.effectiveAccessLevel,
+              requiresSelfScope: context.requiresSelfScope,
+            },
+          };
+          setImmediate(() => {
+            void this.auditLog
+              .create({ data: auditData })
+              .catch(() => undefined);
+          });
         }
 
         return result;

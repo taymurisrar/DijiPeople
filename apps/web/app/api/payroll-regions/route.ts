@@ -1,7 +1,10 @@
 import { apiRequest, proxyApiJsonResponse } from "@/lib/server-api";
 
-export async function GET() {
-  return proxyApiJsonResponse(await apiRequest("/payroll-regions"));
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  return proxyApiJsonResponse(
+    await apiRequest(`/payroll-regions${url.search ? url.search : ""}`),
+  );
 }
 
 export async function POST(request: Request) {

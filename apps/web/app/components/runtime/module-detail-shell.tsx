@@ -69,7 +69,7 @@ export function ModuleDetailShell({
       subtitle={subtitle}
       title={title ?? runtime.module.label}
     >
-      <div className="grid gap-4">
+      <div className="grid w-full min-w-0 gap-4 overflow-hidden">
         <ModuleRecordHeader
           entity={runtime.metadata.entity}
           formSelector={
@@ -86,9 +86,10 @@ export function ModuleDetailShell({
           record={record}
           statusGroupConfig={statusGroupConfig}
           subtitle={recordSubtitle}
+          title={title}
         />
-        {tabsSlot ? <div>{tabsSlot}</div> : null}
-        {formSlot ?? children}
+        {tabsSlot ? <div className="min-w-0">{tabsSlot}</div> : null}
+        <div className="min-w-0">{formSlot ?? children}</div>
       </div>
     </ModulePageLayout>
   );

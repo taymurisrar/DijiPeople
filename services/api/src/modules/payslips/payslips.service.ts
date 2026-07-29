@@ -11,10 +11,13 @@ import {
   PayrollRunEmployeeStatus,
   NotificationChannel,
   Prisma,
+  DocumentEntityType,
 } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { StorageService } from '../../common/storage/storage.service';
 import { AuditService } from '../audit/audit.service';
 import { NotificationOrchestratorService } from '../notifications/notification-orchestrator.service';
+import { PayrollOutputDocumentService } from '../payroll/payroll-output-document.service';
 import {
   buildProfessionalInvoicePdf,
   type InvoicePdfModel,
@@ -28,6 +31,7 @@ const payslipInclude = {
       firstName: true,
       lastName: true,
       email: true,
+      taxIdentifier: true,
     },
   },
   payrollRun: {
@@ -52,6 +56,7 @@ const payslipInclude = {
   eventLogs: {
     orderBy: { createdAt: 'desc' },
   },
+  document: true,
 } satisfies Prisma.PayslipInclude;
 
 const runEmployeeInclude = {
@@ -86,12 +91,15 @@ export class PayslipsService {
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
     private readonly notifications: NotificationOrchestratorService,
+    private readonly outputDocuments: PayrollOutputDocumentService,
+    private readonly storage: StorageService,
   ) {}
 
   async generatePayslipForRunEmployee(params: {
     tenantId: string;
     payrollRunEmployeeId: string;
     actorUserId: string;
+    allowPublishedRegeneration?: boolean;
   }) {
     const runEmployee = await this.prisma.payrollRunEmployee.findFirst({
       where: {
@@ -107,15 +115,18 @@ export class PayslipsService {
 
     this.assertRunEmployeeCanGenerate(runEmployee.status);
 
-    if (runEmployee.payslip?.status === PayslipStatus.PUBLISHED) {
+    if (
+      runEmployee.payslip?.status === PayslipStatus.PUBLISHED &&
+      !params.allowPublishedRegeneration
+    ) {
       throw new ConflictException(
-        'Published payslips cannot be regenerated. Void/reissue will be added in a later phase.',
+        'Published payslips must be regenerated with the dedicated regenerate action.',
       );
     }
 
     if (runEmployee.payslip?.status === PayslipStatus.VOID) {
       throw new ConflictException(
-        'Voided payslips cannot be regenerated in this phase.',
+        'Voided payslips cannot be regenerated. Recalculate the payroll result and issue a new payslip.',
       );
     }
 
@@ -129,7 +140,10 @@ export class PayslipsService {
         ? await tx.payslip.update({
             where: { id: runEmployee.payslip.id },
             data: {
-              status: PayslipStatus.GENERATED,
+              status:
+                runEmployee.payslip.status === PayslipStatus.PUBLISHED
+                  ? PayslipStatus.PUBLISHED
+                  : PayslipStatus.GENERATED,
               currencyCode: runEmployee.currencyCode,
               grossEarnings: runEmployee.grossEarnings,
               totalDeductions: runEmployee.totalDeductions,
@@ -215,7 +229,14 @@ export class PayslipsService {
       afterSnapshot: payslip,
     });
 
-    return mapPayslip(payslip);
+    return this.storeGeneratedPayslipPdf({
+      tenantId: params.tenantId,
+      payslipId: payslip.id,
+      actorUserId: params.actorUserId,
+      eventType: isRegeneration
+        ? PayslipEventType.REGENERATED
+        : PayslipEventType.GENERATED,
+    });
   }
 
   async generatePayslipsForRun(params: {
@@ -342,6 +363,8 @@ export class PayslipsService {
       afterSnapshot: payslip,
     });
 
+    await this.notifyPayslipPublished(payslip, params.actorUserId);
+
     return mapPayslip(payslip);
   }
 
@@ -406,16 +429,46 @@ export class PayslipsService {
     return mapPayslip(payslip);
   }
 
-  async getMyPayslips(params: { tenantId: string; userId: string }) {
+  async getMyPayslips(params: {
+    tenantId: string;
+    userId: string;
+    year?: string;
+    month?: string;
+  }) {
     const employee = await this.findEmployeeForUser(
       params.tenantId,
       params.userId,
     );
+    const year = params.year ? Number(params.year) : undefined;
+    const month = params.month ? Number(params.month) : undefined;
+    if (year && (!Number.isInteger(year) || year < 1900)) {
+      throw new BadRequestException('Invalid payslip year filter.');
+    }
+    if (year && year > new Date().getUTCFullYear()) {
+      throw new BadRequestException(
+        'Future payslip years cannot be requested.',
+      );
+    }
+    if (month && (!Number.isInteger(month) || month < 1 || month > 12)) {
+      throw new BadRequestException('Invalid payslip month filter.');
+    }
+    const periodRange =
+      buildPeriodRange(year, month) ?? buildRollingMonthRange(12);
     const payslips = await this.prisma.payslip.findMany({
       where: {
         tenantId: params.tenantId,
         employeeId: employee.id,
         status: PayslipStatus.PUBLISHED,
+        ...(periodRange
+          ? {
+              payrollRun: {
+                payrollPeriod: {
+                  periodStart: { lte: periodRange.end },
+                  periodEnd: { gte: periodRange.start },
+                },
+              },
+            }
+          : {}),
       },
       include: payslipInclude,
       orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
@@ -463,6 +516,7 @@ export class PayslipsService {
       tenantId: params.tenantId,
       payrollRunEmployeeId: payslip.payrollRunEmployeeId,
       actorUserId: params.actorUserId,
+      allowPublishedRegeneration: true,
     });
   }
 
@@ -604,67 +658,26 @@ export class PayslipsService {
     actorUserId: string;
     own?: boolean;
   }) {
-    const payslip = params.own
+    let payslip = params.own
       ? await this.getAuthorizedOwnPayslip(params)
       : await this.findPayslipOrThrow(params.tenantId, params.payslipId);
-    const tenant = await this.prisma.tenant.findUnique({
-      where: { id: params.tenantId },
-      select: { name: true, displayName: true },
-    });
-    const period = payslip.payrollRun.payrollPeriod;
-    const model: InvoicePdfModel = {
-      documentTitle: 'PAYSLIP',
-      fromLabel: 'Employer',
-      toLabel: 'Employee',
-      invoiceNumber: payslip.payslipNumber,
-      status: payslip.status,
-      issueDate: payslip.generatedAt ?? payslip.createdAt,
-      dueDate: period.paymentDate ?? period.periodEnd,
-      currency: payslip.currencyCode,
-      billingPeriod: period.name,
-      generatedAt: new Date(),
-      brand: {
-        brandName: tenant?.displayName ?? tenant?.name ?? 'DijiPeople',
-        primaryColor: '#2563eb',
-        accentColor: '#0f766e',
-      },
-      billFrom: { name: tenant?.displayName ?? tenant?.name ?? 'Employer' },
-      billTo: {
-        name: `${payslip.employee.firstName} ${payslip.employee.lastName}`.trim(),
-        email: payslip.employee.email,
-      },
-      lineItems: payslip.lineItems.map((line) => ({
-        description: `${line.category}: ${line.label}`,
-        quantity: Number(line.quantity ?? 1),
-        unitPrice: Number(line.rate ?? line.amount),
-        tax: 0,
-        total: Number(line.amount),
-      })),
-      subtotal:
-        Number(payslip.grossEarnings) + Number(payslip.totalReimbursements),
-      discount: Number(payslip.totalDeductions),
-      tax: Number(payslip.totalTaxes),
-      total: Number(payslip.netPay),
-      paid: Number(payslip.netPay),
-      outstandingBalance: 0,
-      payments: [],
-      summaryRows: [
-        { label: 'Gross Earnings', value: Number(payslip.grossEarnings) },
-        {
-          label: 'Reimbursements',
-          value: Number(payslip.totalReimbursements),
-        },
-        {
-          label: 'Deductions',
-          value: -Math.abs(Number(payslip.totalDeductions)),
-        },
-        { label: 'Taxes', value: -Math.abs(Number(payslip.totalTaxes)) },
-        { label: 'Net Salary', value: Number(payslip.netPay) },
-      ],
-      notes:
-        'Official payroll proof generated from frozen finalized payroll values.',
-    };
-    const buffer = buildProfessionalInvoicePdf(model);
+    if (!payslip.document?.storageKey || payslip.documentVersion < 3) {
+      await this.storeGeneratedPayslipPdf({
+        tenantId: params.tenantId,
+        payslipId: payslip.id,
+        actorUserId: params.actorUserId,
+        eventType: payslip.document?.storageKey
+          ? PayslipEventType.REGENERATED
+          : PayslipEventType.GENERATED,
+      });
+      payslip = params.own
+        ? await this.getAuthorizedOwnPayslip(params)
+        : await this.findPayslipOrThrow(params.tenantId, params.payslipId);
+    }
+    if (!payslip.document?.storageKey) {
+      throw new NotFoundException('Payslip PDF could not be generated.');
+    }
+    const file = await this.storage.openFile(payslip.document.storageKey);
     await this.prisma.payslipEventLog.create({
       data: {
         tenantId: params.tenantId,
@@ -683,9 +696,9 @@ export class PayslipsService {
       afterSnapshot: { payslipNumber: payslip.payslipNumber },
     });
     return {
-      buffer,
-      fileName: `${payslip.payslipNumber}.pdf`,
-      contentType: 'application/pdf',
+      stream: file.stream,
+      fileName: payslip.document.originalFileName,
+      contentType: payslip.document.mimeType ?? 'application/pdf',
     };
   }
 
@@ -737,16 +750,130 @@ export class PayslipsService {
     return employee;
   }
 
+  private async notifyPayslipPublished(
+    payslip: PayslipWithDetails,
+    actorUserId: string,
+  ) {
+    const employeeUser = await this.prisma.employee.findFirst({
+      where: { tenantId: payslip.tenantId, id: payslip.employeeId },
+      select: { userId: true },
+    });
+    if (!employeeUser?.userId) return;
+    try {
+      await this.notifications.dispatch({
+        tenantId: payslip.tenantId,
+        eventCode: 'PAYSLIP_PUBLISHED',
+        channels: [NotificationChannel.IN_APP],
+        sourceModule: 'payroll',
+        correlationId: payslip.id,
+        requestedByUserId: actorUserId,
+        inApp: {
+          title: 'Payslip published',
+          body: `${payslip.payrollRun.payrollPeriod.name} payslip is available.`,
+          targetUrl: `/me/payslips/${payslip.id}`,
+          recipientUserIds: [employeeUser.userId],
+          payload: { payslipId: payslip.id },
+        },
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Payslip notification failed.';
+      await this.prisma.payslipEventLog.create({
+        data: {
+          tenantId: payslip.tenantId,
+          payslipId: payslip.id,
+          eventType: PayslipEventType.DELIVERY_FAILED,
+          actorUserId,
+          message,
+        },
+      });
+      await this.auditService.log({
+        tenantId: payslip.tenantId,
+        actorUserId,
+        action: 'PAYSLIP_PUBLISH_NOTIFICATION_FAILED',
+        entityType: 'Payslip',
+        entityId: payslip.id,
+        afterSnapshot: { message },
+      });
+    }
+  }
+
+  private async storeGeneratedPayslipPdf(params: {
+    tenantId: string;
+    payslipId: string;
+    actorUserId: string;
+    eventType: PayslipEventType;
+  }) {
+    const payslip = await this.findPayslipOrThrow(
+      params.tenantId,
+      params.payslipId,
+    );
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: params.tenantId },
+      select: {
+        name: true,
+        displayName: true,
+        tenantBranding: {
+          select: {
+            brandName: true,
+            shortBrandName: true,
+            primaryColor: true,
+            accentColor: true,
+            supportEmail: true,
+            supportPhone: true,
+          },
+        },
+      },
+    });
+    const buffer = buildProfessionalInvoicePdf(
+      buildPayslipPdfModel(payslip, tenant),
+    );
+    const nextVersion = payslip.documentId ? payslip.documentVersion + 1 : 1;
+    const stored = await this.outputDocuments.store({
+      tenantId: params.tenantId,
+      actorUserId: params.actorUserId,
+      entityType: DocumentEntityType.PAYSLIP,
+      entityId: payslip.id,
+      title: `${payslip.payslipNumber} PDF`,
+      fileName: `${payslip.payslipNumber}-v${nextVersion}.pdf`,
+      contentType: 'application/pdf',
+      buffer,
+      description: 'Stored payslip PDF generated from frozen payroll values.',
+    });
+    const updated = await this.prisma.payslip.update({
+      where: { id: payslip.id },
+      data: {
+        documentId: stored.document.id,
+        documentChecksum: stored.checksum,
+        documentVersion: nextVersion,
+        documentGeneratedAt: new Date(),
+      },
+      include: payslipInclude,
+    });
+    await this.prisma.payslipEventLog.create({
+      data: {
+        tenantId: params.tenantId,
+        payslipId: payslip.id,
+        eventType: params.eventType,
+        actorUserId: params.actorUserId,
+        message: 'Stored payslip PDF generated.',
+        metadata: {
+          documentId: stored.document.id,
+          checksum: stored.checksum,
+        },
+      },
+    });
+    return mapPayslip(updated);
+  }
+
   private assertRunEmployeeCanGenerate(status: PayrollRunEmployeeStatus) {
     if (
-      status !== PayrollRunEmployeeStatus.CALCULATED &&
-      status !== PayrollRunEmployeeStatus.REVIEWED &&
       status !== PayrollRunEmployeeStatus.APPROVED &&
       status !== PayrollRunEmployeeStatus.PAID &&
       status !== PayrollRunEmployeeStatus.LOCKED
     ) {
       throw new BadRequestException(
-        'Payslips can only be generated for calculated, reviewed, approved, paid, or locked payroll employees.',
+        'Payslips can only be generated for approved, paid, or locked payroll employees.',
       );
     }
   }
@@ -789,9 +916,12 @@ export class PayslipsService {
 }
 
 function mapPayslip(payslip: PayslipWithDetails) {
+  const period = payslip.payrollRun.payrollPeriod;
   return {
     ...payslip,
     sentToProviderAt: payslip.deliveredAt,
+    periodYear: period.periodEnd.getUTCFullYear(),
+    periodMonth: period.periodEnd.getUTCMonth() + 1,
     grossEarnings: payslip.grossEarnings.toString(),
     totalDeductions: payslip.totalDeductions.toString(),
     totalTaxes: payslip.totalTaxes.toString(),
@@ -815,5 +945,161 @@ function mapPayslip(payslip: PayslipWithDetails) {
       rate: line.rate?.toString() ?? null,
       amount: line.amount.toString(),
     })),
+  };
+}
+
+function buildPayslipPdfModel(
+  payslip: PayslipWithDetails,
+  tenant: {
+    name: string;
+    displayName: string | null;
+    tenantBranding?: {
+      brandName: string | null;
+      shortBrandName: string | null;
+      primaryColor: string;
+      accentColor: string | null;
+      supportEmail: string | null;
+      supportPhone: string | null;
+    } | null;
+  } | null,
+): InvoicePdfModel {
+  const period = payslip.payrollRun.payrollPeriod;
+  const branding = tenant?.tenantBranding;
+  const tenantName =
+    branding?.brandName?.trim() ||
+    tenant?.displayName?.trim() ||
+    tenant?.name ||
+    'DijiPeople';
+  return {
+    documentTitle: 'PAYSLIP',
+    fromLabel: 'Employer',
+    toLabel: 'Employee',
+    lineItemsTitle: 'Pay Components',
+    instructionTitle: 'Payslip Notes',
+    instructionText:
+      'This payslip is generated from approved payroll values. Amounts are shown in the payroll currency and include all payslip-visible earnings, reimbursements, deductions, taxes, and employer contributions for the period.',
+    invoiceNumber: payslip.payslipNumber,
+    status: payslip.status,
+    issueDate: payslip.generatedAt ?? payslip.createdAt,
+    dueDate: period.paymentDate ?? period.periodEnd,
+    currency: payslip.currencyCode,
+    billingPeriod: period.name,
+    metadataRows: [
+      ['Pay Period', period.name],
+      ['Period Start', formatPayslipDate(period.periodStart)],
+      ['Period End', formatPayslipDate(period.periodEnd)],
+      [
+        'Payment Date',
+        formatPayslipDate(period.paymentDate ?? period.periodEnd),
+      ],
+      ['Currency', payslip.currencyCode],
+    ].map(([label, value]) => ({ label, value })),
+    lineItemColumns: {
+      description: 'Component',
+      period: 'Category',
+      quantity: 'Qty',
+      rate: 'Rate',
+      tax: 'Tax',
+      total: 'Amount',
+    },
+    generatedAt: new Date(),
+    brand: {
+      brandName: tenantName,
+      logoText: branding?.shortBrandName || tenantName,
+      primaryColor: branding?.primaryColor || '#0f766e',
+      accentColor: branding?.accentColor || '#14b8a6',
+      supportEmail: branding?.supportEmail,
+      footerText:
+        'Generated electronically from approved payroll values. No signature is required.',
+    },
+    billFrom: { name: tenantName },
+    billTo: {
+      name: `${payslip.employee.firstName} ${payslip.employee.lastName}`.trim(),
+      email: payslip.employee.email,
+      taxNumber: payslip.employee.taxIdentifier,
+      addressLines: payslip.employee.employeeCode
+        ? [`Employee Code: ${payslip.employee.employeeCode}`]
+        : [],
+    },
+    lineItems: payslip.lineItems.map((line) => ({
+      description: line.label,
+      billingPeriod: formatPayslipLineCategory(line.category),
+      quantity: Number(line.quantity ?? 1),
+      unitPrice: Number(line.rate ?? line.amount),
+      tax: 0,
+      total: Number(line.amount),
+    })),
+    subtotal:
+      Number(payslip.grossEarnings) + Number(payslip.totalReimbursements),
+    discount: Number(payslip.totalDeductions),
+    tax: Number(payslip.totalTaxes),
+    total: Number(payslip.netPay),
+    paid: Number(payslip.netPay),
+    outstandingBalance: 0,
+    payments: [],
+    summaryRows: [
+      { label: 'Gross Earnings', value: Number(payslip.grossEarnings) },
+      { label: 'Reimbursements', value: Number(payslip.totalReimbursements) },
+      {
+        label: 'Deductions',
+        value: -Math.abs(Number(payslip.totalDeductions)),
+      },
+      { label: 'Taxes', value: -Math.abs(Number(payslip.totalTaxes)) },
+      { label: 'Net Salary', value: Number(payslip.netPay) },
+    ],
+    notes: `Payslip ${payslip.payslipNumber} for ${period.name}. Official payroll proof generated from frozen finalized payroll values.`,
+    footerLines: [
+      'Generated electronically from approved payroll values. No signature is required.',
+      `Payslip ${payslip.payslipNumber}`,
+      `Generated ${formatPayslipDate(new Date())}`,
+    ],
+  };
+}
+
+function formatPayslipDate(value?: Date | null) {
+  if (!value) return 'Not specified';
+  return value.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+}
+
+function formatPayslipLineCategory(value: string) {
+  return value
+    .toLowerCase()
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function buildPeriodRange(year?: number, month?: number) {
+  if (!year) return null;
+  const startMonth = month ? month - 1 : 0;
+  const endMonth = month ? month : 12;
+  return {
+    start: new Date(Date.UTC(year, startMonth, 1, 0, 0, 0, 0)),
+    end: new Date(Date.UTC(year, endMonth, 0, 23, 59, 59, 999)),
+  };
+}
+
+function buildRollingMonthRange(months: number) {
+  const now = new Date();
+  return {
+    start: new Date(
+      Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth() - Math.max(months - 1, 0),
+        1,
+        0,
+        0,
+        0,
+        0,
+      ),
+    ),
+    end: new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0, 23, 59, 59, 999),
+    ),
   };
 }

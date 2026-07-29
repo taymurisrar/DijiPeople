@@ -1,10 +1,13 @@
 import {
+  IsBoolean,
   IsEmail,
+  IsEnum,
   IsOptional,
   IsString,
   IsUUID,
   MaxLength,
 } from 'class-validator';
+import { UserStatus } from '@prisma/client';
 
 export class UpdateUserDto {
   @IsOptional()
@@ -25,4 +28,36 @@ export class UpdateUserDto {
   @IsOptional()
   @IsUUID()
   businessUnitId?: string;
+
+  @IsOptional()
+  @IsEnum(UserStatus)
+  status?: UserStatus;
+
+  @IsOptional()
+  @IsBoolean()
+  isServiceAccount?: boolean;
+
+  @IsOptional()
+  @IsString()
+  accountType?: string;
+
+  @IsOptional()
+  @IsString()
+  subStatus?: string;
+
+  @IsOptional()
+  @IsString()
+  timezone?: string;
+
+  @IsOptional()
+  @IsString()
+  language?: string;
+
+  @IsOptional()
+  @IsString()
+  dateFormat?: string;
+
+  @IsOptional()
+  @IsString()
+  timeFormat?: string;
 }

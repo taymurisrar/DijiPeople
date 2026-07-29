@@ -17,7 +17,7 @@ const stageStyles: Record<RecruitmentStage, string> = {
 export function RecruitmentStageBadge({ stage }: { stage: RecruitmentStage }) {
   return (
     <span
-      className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold tracking-[0.12em] ${stageStyles[stage]}`}
+      className={`inline-flex whitespace-nowrap rounded-full border px-3 py-1 text-xs font-semibold tracking-[0.12em] ${stageStyles[stage]}`}
     >
       {stage.replaceAll("_", " ")}
     </span>

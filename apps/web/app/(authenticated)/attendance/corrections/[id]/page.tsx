@@ -8,10 +8,11 @@ import {
 import type { AttendanceCorrectionRequest } from "@/app/components/attendance-corrections/attendance-correction-types";
 import { StatusPill } from "@/app/components/ui/status-pill";
 import { requireSessionUser } from "@/lib/auth";
+import { hasElevatedTenantRole } from "@/lib/elevated-roles";
 import { hasAnyPermission } from "@/lib/permissions";
 import { formatDateTime } from "@/lib/formatting-context";
 import { apiRequestJson } from "@/lib/server-api";
-import { PERMISSION_KEYS } from "@/lib/security-keys";
+import { PERMISSION_KEYS, ROLE_KEYS } from "@/lib/security-keys";
 import { AccessDeniedState } from "../../../_components/access-denied-state";
 
 type AttendanceCorrectionDetailPageProps = {
@@ -31,7 +32,7 @@ export default async function AttendanceCorrectionDetailPage({
   params,
 }: AttendanceCorrectionDetailPageProps) {
   const user = await requireSessionUser("/");
-  if (!hasAnyPermission(user.permissionKeys, READ_PERMISSION_KEYS)) {
+  if (!canUseCorrectionWorkflow(user)) {
     return (
       <main className="dp-theme-scope dp-attendance-scope grid gap-6">
         <AccessDeniedState
@@ -177,6 +178,19 @@ export default async function AttendanceCorrectionDetailPage({
         )}
       </DetailCard>
     </main>
+  );
+}
+
+function canUseCorrectionWorkflow(user: {
+  permissionKeys: string[];
+  roleKeys?: string[] | null;
+}) {
+  return (
+    hasAnyPermission(user.permissionKeys, READ_PERMISSION_KEYS) ||
+    hasElevatedTenantRole(user.roleKeys) ||
+    (user.roleKeys ?? []).some(
+      (roleKey) => roleKey === ROLE_KEYS.MANAGER || roleKey === ROLE_KEYS.HR,
+    )
   );
 }
 

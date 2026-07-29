@@ -204,7 +204,16 @@ export default async function AttendancePage({
       ) : (
         <StandardModuleListPage
           activeView={activeView}
-          commandRecord={{ attendanceActionState, attendanceBlockedReason }}
+          commandRecord={{
+            attendanceActionState,
+            attendanceBlockedReason,
+            attendanceMode:
+              attendanceContext?.todayAttendance?.attendanceMode ??
+              attendanceContext?.defaultAttendanceMode,
+            defaultAttendanceMode: attendanceContext?.defaultAttendanceMode,
+            defaultOfficeLocationId: attendanceContext?.defaultOfficeLocationId,
+            officeLocationId: attendanceContext?.defaultOfficeLocationId,
+          }}
           formatting={formatting}
           pagination={{
             page: response.meta?.page ?? response.pagination?.page ?? 1,
@@ -281,6 +290,12 @@ type AttendanceRuntimeContext = {
     | "blocked";
   attendanceDate: string;
   blockedReason?: string | null;
+  defaultAttendanceMode?: "OFFICE" | "REMOTE" | "HYBRID" | null;
+  defaultOfficeLocationId?: string | null;
+  todayAttendance?: {
+    attendanceMode?: "OFFICE" | "REMOTE" | "HYBRID" | null;
+    officeLocationId?: string | null;
+  } | null;
 };
 
 function attendanceEndpoint({

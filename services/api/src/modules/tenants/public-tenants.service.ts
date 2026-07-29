@@ -1,6 +1,7 @@
 import {
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -48,6 +49,9 @@ const DEFAULT_BRANDING = {
 
 @Injectable()
 export class PublicTenantsService {
+  private readonly logger = new Logger(PublicTenantsService.name);
+  private databaseUnavailableWarningLogged = false;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
@@ -67,9 +71,26 @@ export class PublicTenantsService {
       return cached;
     }
 
-    const tenant = await this.findTenantForPublicResolution(normalizedInput);
+    let databaseUnavailable = false;
+    const tenant = await this.findTenantForPublicResolution(
+      normalizedInput,
+    ).catch((error: unknown) => {
+      if (isDatabaseUnavailable(error)) {
+        databaseUnavailable = true;
+        this.logDatabaseUnavailableWarning('resolve', error);
+        return null;
+      }
+
+      throw error;
+    });
 
     if (!tenant) {
+      if (databaseUnavailable && isLocalDevelopment()) {
+        const fallback = this.mapFallbackResolvedTenant(normalizedInput);
+        this.cache.set(cacheKey, fallback);
+        return fallback;
+      }
+
       throw new NotFoundException({
         code: 'TENANT_NOT_FOUND',
         message: 'Tenant was not found.',
@@ -309,6 +330,69 @@ export class PublicTenantsService {
     };
   }
 
+  private mapFallbackResolvedTenant(input: ResolveInput) {
+    const slug =
+      input.slug ??
+      (input.host ? this.getTenantSlugFromHost(input.host) : null) ??
+      'demo';
+    const displayName = toDisplayName(slug);
+
+    return {
+      tenant: {
+        id: `local-${slug}`,
+        tenantCode: input.tenantCode ?? 'LOCAL',
+        slug,
+        displayName,
+        status: TenantStatus.ACTIVE,
+      },
+      branding: {
+        logoUrl: '',
+        faviconUrl: '',
+        loginImageUrl: '',
+        primaryColor: DEFAULT_BRANDING.primaryColor,
+        secondaryColor: DEFAULT_BRANDING.secondaryColor,
+        accentColor: DEFAULT_BRANDING.accentColor,
+        backgroundColor: DEFAULT_BRANDING.backgroundColor,
+        surfaceColor: DEFAULT_BRANDING.surfaceColor,
+        textColor: DEFAULT_BRANDING.textColor,
+        mutedTextColor: DEFAULT_BRANDING.mutedTextColor,
+        fontFamily: DEFAULT_BRANDING.fontFamily,
+        appTitle: DEFAULT_BRANDING.appTitle,
+        brandName: displayName,
+        shortBrandName: displayName.split(/\s+/)[0] ?? displayName,
+        portalTagline: DEFAULT_BRANDING.portalTagline,
+        loginTitle: `Welcome to ${displayName} HR Portal`,
+        loginSubtitle: DEFAULT_BRANDING.loginSubtitle,
+        loginFooterText: DEFAULT_BRANDING.loginFooterText,
+        supportEmail: '',
+        supportPhone: '',
+        privacyPolicyUrl: '',
+        termsOfUseUrl: '',
+      },
+      login: {
+        passwordLoginEnabled: true,
+        ssoEnabled: false,
+        maintenanceMode: false,
+      },
+    };
+  }
+
+  private logDatabaseUnavailableWarning(context: string, error: unknown) {
+    if (this.databaseUnavailableWarningLogged) {
+      return;
+    }
+
+    this.databaseUnavailableWarningLogged = true;
+    this.logger.warn(
+      JSON.stringify({
+        context,
+        message:
+          'Database is not reachable. Returning local development public tenant fallback.',
+        error: formatPrismaError(error),
+      }),
+    );
+  }
+
   private mapPublicBrandingAssetUrl(
     tenant: NonNullable<ResolvedTenant>,
     assetType: PublicBrandingAssetType,
@@ -422,4 +506,47 @@ function extractDocumentIdFromProtectedUrl(value?: string | null) {
 
   const match = value.match(/\/api\/documents\/([^/?#]+)\/view(?:[?#].*)?$/);
   return match?.[1] ?? '';
+}
+
+function isLocalDevelopment() {
+  return process.env.NODE_ENV !== 'production';
+}
+
+function isDatabaseUnavailable(error: unknown) {
+  return getPrismaErrorCode(error) === 'ECONNREFUSED';
+}
+
+function getPrismaErrorCode(error: unknown) {
+  return typeof error === 'object' && error !== null && 'code' in error
+    ? String((error as { code?: unknown }).code)
+    : null;
+}
+
+function formatPrismaError(error: unknown) {
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    return {
+      code: error.code,
+      message: error.message,
+      meta: error.meta,
+    };
+  }
+
+  if (error instanceof Error) {
+    return {
+      name: error.name,
+      message: error.message,
+    };
+  }
+
+  return String(error);
+}
+
+function toDisplayName(slug: string) {
+  return (
+    slug
+      .split(/[-_]+/)
+      .filter(Boolean)
+      .map((part) => `${part[0]?.toUpperCase() ?? ''}${part.slice(1)}`)
+      .join(' ') || DEFAULT_BRANDING.brandName
+  );
 }

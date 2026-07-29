@@ -40,6 +40,35 @@ export class UpdateLeaveTypeDto {
   isPaid?: boolean;
 
   @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  description?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  affectsPayroll?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  consumesBalance?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  employeeRequestAllowed?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  requiresAttachment?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  allowHalfDay?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  allowHourlyLeave?: boolean;
+
+  @IsOptional()
   @IsBoolean()
   requiresApproval?: boolean;
 

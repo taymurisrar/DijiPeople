@@ -58,10 +58,14 @@ export const employeeModuleDataAdapter: ModuleDataAdapter<
   },
 
   async update(_runtime, recordId, values) {
-    const payload = stripGeneratedLockedValues(
+    const rawPayload = stripGeneratedLockedValues(
       mapEmployeeRuntimeValuesToUpdatePayload(
         values as EmployeeRuntimeFormValues,
       ),
+    );
+    const payload = await preserveUnchangedEmployeeDependentLookups(
+      recordId,
+      rawPayload,
     );
     debugRuntime("Employee adapter update request", {
       recordId,
@@ -71,6 +75,8 @@ export const employeeModuleDataAdapter: ModuleDataAdapter<
         ownerUserId: payload.ownerUserId,
         status: values.status,
         subStatus: values.subStatus,
+        teamId: values.teamId,
+        payloadTeamId: payload.teamId,
       },
     });
     const data = await requestJson(
@@ -82,7 +88,8 @@ export const employeeModuleDataAdapter: ModuleDataAdapter<
     );
     debugRuntime("Employee adapter update response", data);
 
-    return readRecord(data) ?? values;
+    const record = readRecord(data);
+    return record ? { ...values, ...record } : values;
   },
 
   async softDelete(_runtime, recordIds) {
@@ -142,10 +149,13 @@ export const employeeModuleDataAdapter: ModuleDataAdapter<
 
   async getLookupOptions(_runtime, field, values) {
     const staticLookupPaths: Record<string, string> = {
+      bankId: "/api/banks",
+      countryCode: "/api/lookups/countries",
+      currencyCode: "/api/configuration/currencies",
       countryId: "/api/lookups/countries",
       nationalityCountryId: "/api/lookups/countries",
       emergencyContactRelationTypeId: "/api/lookups/relation-types",
-      departmentId: "/api/departments?isActive=true",
+      organizationId: "/api/organizations?isActive=true",
       designationId: "/api/designations?isActive=true",
       employeeLevelId: "/api/employee-levels?isActive=true",
       locationId: "/api/locations?isActive=true",
@@ -154,8 +164,43 @@ export const employeeModuleDataAdapter: ModuleDataAdapter<
     };
     const staticLookupPath = staticLookupPaths[field.logicalName];
 
+    if (field.logicalName === "teamId") {
+      const params = new URLSearchParams();
+      const departmentId = stringValue(values.departmentId);
+      if (!departmentId) return [];
+      params.set("departmentId", departmentId);
+      params.set("teamType", "ORGANIZATIONAL");
+      return readLookupOptions(
+        await requestOptionalLookupJson(`/api/teams?${params}`),
+      );
+    }
+
+    if (field.logicalName === "businessUnitId") {
+      const params = new URLSearchParams();
+      params.set("isActive", "true");
+      const organizationId = stringValue(values.organizationId);
+      if (organizationId) params.set("organizationId", organizationId);
+      return readLookupOptions(
+        await requestJson(`/api/business-units${queryString(params)}`),
+      );
+    }
+
+    if (field.logicalName === "departmentId") {
+      const params = new URLSearchParams();
+      params.set("isActive", "true");
+      const businessUnitId = stringValue(values.businessUnitId);
+      if (businessUnitId) params.set("businessUnitId", businessUnitId);
+      return readLookupOptions(
+        await requestJson(`/api/departments${queryString(params)}`),
+      );
+    }
+
     if (staticLookupPath) {
-      return readLookupOptions(await requestJson(staticLookupPath));
+      return readLookupOptions(await requestJson(staticLookupPath), {
+        preferCodeAsId:
+          field.logicalName === "countryCode" ||
+          field.logicalName === "currencyCode",
+      });
     }
 
     if (field.logicalName === "stateProvinceId") {
@@ -401,6 +446,47 @@ function stripGeneratedLockedValues<TValues extends Record<string, unknown>>(
   return nextValues;
 }
 
+async function preserveUnchangedEmployeeDependentLookups(
+  recordId: string,
+  payload: Record<string, unknown>,
+) {
+  const shouldCheckTeam =
+    payload.teamId === null || payload.teamId === undefined;
+  const shouldCheckDepartment =
+    payload.departmentId === null || payload.departmentId === undefined;
+  if (!shouldCheckTeam && !shouldCheckDepartment) {
+    return payload;
+  }
+
+  const current = readRecord(
+    await requestJson(`/api/employees/${encodeURIComponent(recordId)}`),
+  );
+  if (!current) return payload;
+
+  const nextPayload = { ...payload };
+  if (
+    shouldCheckTeam &&
+    stringValue(current.teamId) &&
+    sameOptionalLookup(payload.departmentId, current.departmentId)
+  ) {
+    delete nextPayload.teamId;
+  }
+  if (
+    shouldCheckDepartment &&
+    stringValue(current.departmentId) &&
+    sameOptionalLookup(payload.businessUnitId, current.businessUnitId)
+  ) {
+    delete nextPayload.departmentId;
+  }
+
+  return nextPayload;
+}
+
+function sameOptionalLookup(nextValue: unknown, currentValue: unknown) {
+  const next = stringValue(nextValue);
+  return !next || next === stringValue(currentValue);
+}
+
 function mapReportingHierarchy(data: unknown) {
   if (!isRecord(data)) return data;
   return {
@@ -515,6 +601,17 @@ async function requestJson(path: string, init: RequestInit = {}) {
   return response.json();
 }
 
+async function requestOptionalLookupJson(path: string, init: RequestInit = {}) {
+  try {
+    return await requestJson(path, init);
+  } catch (error) {
+    if (isEmployeeApiStatus(error, 403) || isEmployeeApiStatus(error, 404)) {
+      return [];
+    }
+    throw error;
+  }
+}
+
 async function requestFile(path: string) {
   const response = await fetch(path, { cache: "no-store" });
 
@@ -533,6 +630,17 @@ class EmployeeApiError extends Error {
     this.name = "EmployeeApiError";
     this.data = data;
   }
+}
+
+function isEmployeeApiStatus(error: unknown, status: number) {
+  if (!(error instanceof EmployeeApiError) || !isRecord(error.data)) {
+    return false;
+  }
+  const response = error.data.response;
+  return (
+    isRecord(response) &&
+    (response.statusCode === status || response.status === status)
+  );
 }
 
 async function readResponseError(response: Response, fallback: string) {
@@ -622,6 +730,7 @@ function isMeaningfulRecord(value: unknown): value is RuntimeRecord {
 function readRecord(data: unknown): RuntimeRecord | null {
   if (isRecord(data)) {
     if (isRecord(data.data)) return data.data;
+    if (isRecord(data.employee)) return data.employee;
     if (isRecord(data.item)) return data.item;
     if (isRecord(data.record)) return data.record;
     return data;
@@ -630,16 +739,23 @@ function readRecord(data: unknown): RuntimeRecord | null {
   return null;
 }
 
-function readLookupOptions(data: unknown) {
+function readLookupOptions(
+  data: unknown,
+  options: { readonly preferCodeAsId?: boolean } = {},
+) {
   return readRecordList(data)
-    .map((item) => ({
-      id: stringValue(item.id),
-      name: stringValue(item.name),
-      key: stringValue(item.key) || null,
-      code: stringValue(item.code) || null,
-      employeeLevelId: stringValue(item.employeeLevelId) || null,
-      subtitle: stringValue(item.subtitle) || null,
-    }))
+    .map((item) => {
+      const code = stringValue(item.code);
+      const id = options.preferCodeAsId && code ? code : stringValue(item.id);
+      return {
+        id,
+        name: stringValue(item.name),
+        key: stringValue(item.key) || null,
+        code: code || null,
+        employeeLevelId: stringValue(item.employeeLevelId) || null,
+        subtitle: stringValue(item.subtitle) || null,
+      };
+    })
     .filter((item) => item.id && item.name);
 }
 

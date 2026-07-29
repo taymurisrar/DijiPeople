@@ -13,6 +13,7 @@ const payrollRecordInclude = {
       firstName: true,
       lastName: true,
       preferredName: true,
+      email: true,
       employmentStatus: true,
       businessUnit: {
         select: {
@@ -58,6 +59,38 @@ const payrollCycleInclude = {
     },
   },
   processingCycle: true,
+  payrollRegion: {
+    select: {
+      id: true,
+      name: true,
+      code: true,
+      currencyCode: true,
+      timezone: true,
+      payCycle: true,
+      weekendDays: true,
+      holidayCalendarId: true,
+    },
+  },
+  defaultEmployerBankAccount: {
+    select: {
+      id: true,
+      accountName: true,
+      accountTitle: true,
+      currencyCode: true,
+      isDefaultPayrollAccount: true,
+    },
+  },
+  payrollCalendar: {
+    select: {
+      id: true,
+      name: true,
+      frequency: true,
+      timezone: true,
+      currencyCode: true,
+      businessUnitId: true,
+      isActive: true,
+    },
+  },
   records: {
     include: payrollRecordInclude,
     orderBy: [
@@ -65,9 +98,20 @@ const payrollCycleInclude = {
       { employee: { firstName: 'asc' } },
     ],
   },
+  periods: {
+    select: {
+      id: true,
+      name: true,
+      periodStart: true,
+      periodEnd: true,
+      status: true,
+    },
+    orderBy: [{ periodStart: 'asc' }],
+  },
   _count: {
     select: {
       records: true,
+      periods: true,
     },
   },
 } satisfies Prisma.PayrollCycleInclude;
@@ -80,6 +124,7 @@ const compensationInclude = {
       firstName: true,
       lastName: true,
       preferredName: true,
+      email: true,
       employmentStatus: true,
       department: {
         select: {

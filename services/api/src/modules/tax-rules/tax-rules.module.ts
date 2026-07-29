@@ -7,6 +7,7 @@ import { TaxCalculationService } from './tax-calculation.service';
 import { TaxRuleResolverService } from './tax-rule-resolver.service';
 import { TaxRulesController } from './tax-rules.controller';
 import { TaxRulesService } from './tax-rules.service';
+import { EmployeeTaxProfilesService } from './employee-tax-profiles.service';
 
 @Module({
   imports: [JwtModule.register({}), AuditModule],
@@ -15,6 +16,7 @@ import { TaxRulesService } from './tax-rules.service';
     TaxRulesService,
     TaxCalculationService,
     TaxRuleResolverService,
+    EmployeeTaxProfilesService,
     JwtAuthGuard,
     PermissionsGuard,
   ],

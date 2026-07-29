@@ -3,6 +3,12 @@ import type {
   FormMetadata,
 } from "../../../lib/runtime/metadata-runtime.types";
 import type { RuntimeRecordData } from "./module-runtime-ui.types";
+import {
+  columnsFromSectionLayout,
+  FormGrid,
+  FormGridItem,
+  normalizeFormGridColumnCount,
+} from "@/app/components/metadata/form-layout-grid";
 
 export function ModuleRuntimeFormPreview({
   entity,
@@ -27,40 +33,58 @@ export function ModuleRuntimeFormPreview({
           {form.displayName}
         </h3>
       </div>
-      <div className="grid gap-5">
+      <FormGrid columns={form.columns ?? 1} gap="section" kind="preview">
         {form.sections.map((section) => (
-          <section key={section.id} className="grid gap-3">
-            <h4 className="text-base font-semibold text-foreground">
-              {section.label}
-            </h4>
-            <dl className="grid gap-4 md:grid-cols-2">
-              {section.fields
-                .filter((field) => field.isVisible !== false)
-                .map((formField) => {
-                  const field = fieldsByName.get(formField.fieldLogicalName);
+          <FormGridItem
+            column={section.column}
+            columnSpan={section.columnSpan}
+            key={section.id}
+            parentColumns={form.columns ?? 1}
+          >
+            <section className="grid gap-3">
+              <h4 className="text-base font-semibold text-foreground">
+                {section.label}
+              </h4>
+              <FormGrid
+                columns={normalizeFormGridColumnCount(
+                  section.columns ?? columnsFromSectionLayout(section.layout),
+                )}
+                kind="section"
+              >
+                {section.fields
+                  .filter((field) => field.isVisible !== false)
+                  .map((formField) => {
+                    const field = fieldsByName.get(formField.fieldLogicalName);
 
-                  if (!field) return null;
+                    if (!field) return null;
 
-                  return (
-                    <div key={`${section.id}-${formField.fieldLogicalName}`}>
-                      <dt className="text-sm font-medium text-muted">
-                        {formField.label ?? field.displayName}
-                      </dt>
-                      <dd className="mt-1 text-sm text-foreground">
-                        {formatValue(values[field.logicalName])}
-                      </dd>
-                    </div>
-                  );
-                })}
-            </dl>
-          </section>
+                    return (
+                      <FormGridItem
+                        columnSpan={formField.columnSpan}
+                        key={`${section.id}-${formField.fieldLogicalName}`}
+                        parentColumns={
+                          section.columns ?? columnsFromSectionLayout(section.layout)
+                        }
+                      >
+                        <dt className="text-sm font-medium text-muted">
+                          {formField.label ?? field.displayName}
+                        </dt>
+                        <dd className="mt-1 text-sm text-foreground">
+                          {formatValue(values[field.logicalName])}
+                        </dd>
+                      </FormGridItem>
+                    );
+                  })}
+              </FormGrid>
+            </section>
+          </FormGridItem>
         ))}
-      </div>
+      </FormGrid>
     </article>
   );
 }
 
 function formatValue(value: unknown) {
-  if (value === null || value === undefined || value === "") return "Not set";
+  if (value === null || value === undefined || value === "") return "";
   return String(value);
 }

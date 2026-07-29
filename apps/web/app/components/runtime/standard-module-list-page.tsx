@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import type { DataTableFilterState } from "@/app/components/data-table/types";
 import type { ViewMetadata } from "@/lib/runtime/metadata-runtime.types";
 import type { ModuleDataAdapter } from "@/lib/runtime/module-data-adapter.types";
@@ -11,17 +11,25 @@ import { ModuleDataTable } from "./module-data-table";
 import { ModuleListPage } from "./module-list-page";
 import type { RuntimeRecordData } from "./module-runtime-ui.types";
 
+export type StandardModuleListActionBarContext = {
+  readonly activeView: ViewMetadata | null;
+  readonly selectedRecordIds: readonly string[];
+  readonly visibleRecords: readonly RuntimeRecordData[];
+};
+
 export function StandardModuleListPage({
   activeView,
   dataAdapter,
   formatting,
   initialFilters = [],
   pagination,
+  paginationMode = "server",
   records,
   runtime,
   spec,
   title,
   commandRecord,
+  renderActionBar,
 }: {
   readonly activeView?: ViewMetadata | null;
   readonly dataAdapter?: ModuleDataAdapter;
@@ -38,11 +46,15 @@ export function StandardModuleListPage({
     readonly pathname: string;
     readonly searchParams: Record<string, string | undefined>;
   };
+  readonly paginationMode?: "client" | "server";
   readonly records: readonly RuntimeRecordData[];
   readonly runtime: ModuleRuntimeContext;
   readonly spec?: StandardModuleRuntimeSpec;
   readonly title?: string;
   readonly commandRecord?: Readonly<Record<string, unknown>>;
+  readonly renderActionBar?: (
+    context: StandardModuleListActionBarContext,
+  ) => ReactNode;
 }) {
   const [selectedRecordIds, setSelectedRecordIds] = useState<string[]>([]);
   const [activeViewId, setActiveViewId] = useState(
@@ -63,6 +75,28 @@ export function StandardModuleListPage({
     () => applyRuntimeViewFilters(records, resolvedActiveView),
     [records, resolvedActiveView],
   );
+  const effectivePagination = useMemo(() => {
+    if (!pagination || paginationMode !== "client") return pagination;
+
+    const pageSize = Math.max(1, pagination.pageSize);
+    const totalPages = Math.max(1, Math.ceil(filteredRecords.length / pageSize));
+    const page = Math.min(Math.max(1, pagination.page), totalPages);
+
+    return {
+      ...pagination,
+      page,
+      pageSize,
+      totalItems: filteredRecords.length,
+    };
+  }, [filteredRecords.length, pagination, paginationMode]);
+  const visibleRecords = useMemo(() => {
+    if (!effectivePagination || paginationMode !== "client") {
+      return filteredRecords;
+    }
+
+    const start = (effectivePagination.page - 1) * effectivePagination.pageSize;
+    return filteredRecords.slice(start, start + effectivePagination.pageSize);
+  }, [effectivePagination, filteredRecords, paginationMode]);
   const resolvedDataAdapter = useMemo(
     () =>
       dataAdapter ?? (spec ? createStandardModuleDataAdapter(spec) : undefined),
@@ -72,6 +106,11 @@ export function StandardModuleListPage({
   return (
     <ModuleListPage
       activeView={resolvedActiveView}
+      commandBarAddon={renderActionBar?.({
+        activeView: resolvedActiveView,
+        selectedRecordIds,
+        visibleRecords,
+      })}
       commandRecord={commandRecord}
       dataAdapter={resolvedDataAdapter}
       listRecords={filteredRecords}
@@ -89,14 +128,8 @@ export function StandardModuleListPage({
           formatting={formatting}
           initialFilters={[...initialFilters]}
           onSelectedRecordIdsChange={setSelectedRecordIds}
-          pagination={
-            pagination
-              ? {
-                  ...pagination,
-                }
-              : undefined
-          }
-          records={filteredRecords}
+          pagination={effectivePagination ? { ...effectivePagination } : undefined}
+          records={visibleRecords}
           runtime={runtime}
           selectedRecordIds={selectedRecordIds}
           view={resolvedActiveView}

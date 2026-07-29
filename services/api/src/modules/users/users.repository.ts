@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, TeamType } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 
 type PrismaDb = PrismaService | Prisma.TransactionClient;
@@ -33,6 +33,25 @@ const teamMembershipAccessInclude = {
     },
   },
 } satisfies Prisma.TeamMemberInclude;
+
+const linkedEmployeeSelect = {
+  id: true,
+  employeeCode: true,
+  firstName: true,
+  lastName: true,
+  email: true,
+  employmentStatus: true,
+  hireDate: true,
+  organization: { select: { id: true, name: true } },
+  businessUnitId: true,
+  businessUnit: { select: { id: true, name: true } },
+  department: { select: { id: true, name: true } },
+  team: { select: { id: true, name: true } },
+  designation: { select: { id: true, name: true } },
+  manager: {
+    select: { id: true, firstName: true, lastName: true, email: true },
+  },
+} satisfies Prisma.EmployeeSelect;
 
 @Injectable()
 export class UsersRepository {
@@ -68,22 +87,7 @@ export class UsersRepository {
             },
           },
         },
-        employee: {
-          select: {
-            id: true,
-            employeeCode: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            businessUnitId: true,
-            department: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
-        },
+        employee: { select: linkedEmployeeSelect },
         userPermissions: {
           include: {
             permission: true,
@@ -139,22 +143,7 @@ export class UsersRepository {
             },
           },
         },
-        employee: {
-          select: {
-            id: true,
-            employeeCode: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            businessUnitId: true,
-            department: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
-        },
+        employee: { select: linkedEmployeeSelect },
         userPermissions: {
           include: {
             permission: true,
@@ -207,22 +196,7 @@ export class UsersRepository {
             },
           },
         },
-        employee: {
-          select: {
-            id: true,
-            employeeCode: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            businessUnitId: true,
-            department: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
-        },
+        employee: { select: linkedEmployeeSelect },
         userPermissions: {
           include: {
             permission: true,
@@ -278,22 +252,7 @@ export class UsersRepository {
             },
           },
         },
-        employee: {
-          select: {
-            id: true,
-            employeeCode: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            businessUnitId: true,
-            department: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
-        },
+        employee: { select: linkedEmployeeSelect },
         userPermissions: {
           include: {
             permission: true,
@@ -341,22 +300,7 @@ export class UsersRepository {
             },
           },
         },
-        employee: {
-          select: {
-            id: true,
-            employeeCode: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            businessUnitId: true,
-            department: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
-        },
+        employee: { select: linkedEmployeeSelect },
         userPermissions: {
           include: {
             permission: true,
@@ -403,22 +347,7 @@ export class UsersRepository {
             },
           },
         },
-        employee: {
-          select: {
-            id: true,
-            employeeCode: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            businessUnitId: true,
-            department: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
-        },
+        employee: { select: linkedEmployeeSelect },
         userPermissions: {
           include: {
             permission: true,
@@ -603,6 +532,233 @@ export class UsersRepository {
         userId: null,
         updatedById: actorId,
       },
+    });
+  }
+
+  listUserRoles(tenantId: string, userId: string, db: PrismaDb = this.prisma) {
+    return db.userRole.findMany({
+      where: { tenantId, userId },
+      include: {
+        role: {
+          select: {
+            id: true,
+            name: true,
+            key: true,
+            description: true,
+            roleType: true,
+            accessLevel: true,
+            isActive: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  addUserRole(
+    tenantId: string,
+    userId: string,
+    roleId: string,
+    actorId: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.userRole.create({
+      data: { tenantId, userId, roleId, createdById: actorId },
+      include: {
+        role: {
+          select: {
+            id: true,
+            name: true,
+            key: true,
+            description: true,
+            roleType: true,
+            accessLevel: true,
+            isActive: true,
+          },
+        },
+      },
+    });
+  }
+
+  removeUserRole(
+    tenantId: string,
+    userId: string,
+    userRoleId: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.userRole.deleteMany({
+      where: { id: userRoleId, tenantId, userId },
+    });
+  }
+
+  listAccessTeamMemberships(
+    tenantId: string,
+    userId: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.teamMember.findMany({
+      where: { tenantId, userId, team: { teamType: TeamType.ACCESS } },
+      include: {
+        team: {
+          select: {
+            id: true,
+            name: true,
+            key: true,
+            description: true,
+            teamType: true,
+            isActive: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  addAccessTeamMembership(
+    tenantId: string,
+    userId: string,
+    teamId: string,
+    isOwner: boolean,
+    actorId: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.teamMember.create({
+      data: { tenantId, userId, teamId, isOwner, createdById: actorId },
+      include: {
+        team: {
+          select: {
+            id: true,
+            name: true,
+            key: true,
+            description: true,
+            teamType: true,
+            isActive: true,
+          },
+        },
+      },
+    });
+  }
+
+  updateAccessTeamMembership(
+    tenantId: string,
+    userId: string,
+    teamMemberId: string,
+    data: Prisma.TeamMemberUncheckedUpdateInput,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.teamMember.updateMany({
+      where: {
+        id: teamMemberId,
+        tenantId,
+        userId,
+        team: { teamType: 'ACCESS' },
+      },
+      data,
+    });
+  }
+
+  removeAccessTeamMembership(
+    tenantId: string,
+    userId: string,
+    teamMemberId: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.teamMember.deleteMany({
+      where: {
+        id: teamMemberId,
+        tenantId,
+        userId,
+        team: { teamType: 'ACCESS' },
+      },
+    });
+  }
+
+  findActiveAccessTeam(
+    tenantId: string,
+    teamId: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.team.findFirst({
+      where: {
+        id: teamId,
+        tenantId,
+        teamType: TeamType.ACCESS,
+        isActive: true,
+      },
+      select: { id: true },
+    });
+  }
+
+  listSessions(tenantId: string, userId: string, db: PrismaDb = this.prisma) {
+    return db.refreshToken.findMany({
+      where: { tenantId, userId },
+      select: {
+        id: true,
+        appClientId: true,
+        sessionId: true,
+        deviceId: true,
+        ipAddress: true,
+        userAgent: true,
+        createdAt: true,
+        lastActivityAt: true,
+        lastUsedAt: true,
+        expiresAt: true,
+        absoluteExpiresAt: true,
+        revokedAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 500,
+    });
+  }
+
+  revokeSession(
+    tenantId: string,
+    userId: string,
+    sessionRecordId: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.refreshToken.updateMany({
+      where: {
+        tenantId,
+        userId,
+        revokedAt: null,
+        OR: [{ id: sessionRecordId }, { sessionId: sessionRecordId }],
+      },
+      data: { revokedAt: new Date() },
+    });
+  }
+
+  revokeAllSessions(
+    tenantId: string,
+    userId: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.refreshToken.updateMany({
+      where: { tenantId, userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+  }
+
+  listLoginHistory(
+    tenantId: string,
+    userId: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.auditLog.findMany({
+      where: {
+        tenantId,
+        OR: [
+          { actorUserId: userId, entityType: 'AUTH_LOGIN' },
+          { entityType: 'AUTH_LOGIN', entityId: userId },
+        ],
+      },
+      include: {
+        actorUser: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
     });
   }
 

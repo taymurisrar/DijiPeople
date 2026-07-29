@@ -9,6 +9,7 @@ import {
 import {
   ACCESS_TOKEN_MAX_AGE_SECONDS,
   getAuthCookieOptions,
+  parseDurationToMilliseconds,
   REFRESH_TOKEN_MAX_AGE_SECONDS,
 } from "@/lib/auth-cookies";
 import { getApiBaseUrl } from "@/lib/auth";
@@ -20,6 +21,9 @@ type RefreshSuccessResponse = JsonRecord & {
     accessToken: string;
     refreshToken: string;
     sessionId?: string;
+    accessTokenExpiresIn?: string;
+    refreshTokenExpiresIn?: string;
+    rememberMe?: boolean;
   };
 };
 
@@ -69,23 +73,36 @@ export async function POST() {
     }
 
     const nextResponse = NextResponse.json({ ok: true });
+    const persistSession = data.tokens.rememberMe === true;
+    const accessMaxAge = persistSession
+      ? durationSeconds(
+          data.tokens.accessTokenExpiresIn,
+          ACCESS_TOKEN_MAX_AGE_SECONDS,
+        )
+      : undefined;
+    const refreshMaxAge = persistSession
+      ? durationSeconds(
+          data.tokens.refreshTokenExpiresIn,
+          REFRESH_TOKEN_MAX_AGE_SECONDS,
+        )
+      : undefined;
 
     nextResponse.cookies.set(
       ACCESS_TOKEN_COOKIE,
       data.tokens.accessToken,
-      getAuthCookieOptions(ACCESS_TOKEN_MAX_AGE_SECONDS),
+      getAuthCookieOptions(accessMaxAge),
     );
 
     nextResponse.cookies.set(
       REFRESH_TOKEN_COOKIE,
       data.tokens.refreshToken,
-      getAuthCookieOptions(REFRESH_TOKEN_MAX_AGE_SECONDS),
+      getAuthCookieOptions(refreshMaxAge),
     );
     if (data.tokens.sessionId) {
       nextResponse.cookies.set(
         SESSION_COOKIE,
         data.tokens.sessionId,
-        getAuthCookieOptions(REFRESH_TOKEN_MAX_AGE_SECONDS),
+        getAuthCookieOptions(refreshMaxAge),
       );
     }
 
@@ -154,4 +171,13 @@ function isRefreshSuccessResponse(
     typeof tokens.accessToken === "string" &&
     typeof tokens.refreshToken === "string"
   );
+}
+
+function durationSeconds(value: string | undefined, fallback: number) {
+  if (!value) return fallback;
+  try {
+    return Math.floor(parseDurationToMilliseconds(value) / 1000);
+  } catch {
+    return fallback;
+  }
 }

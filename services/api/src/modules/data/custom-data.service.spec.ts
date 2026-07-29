@@ -81,9 +81,11 @@ describe('CustomDataService related CRUD', () => {
     const tx = {
       customDataRecord: {
         create: jest.fn().mockResolvedValue(created),
-        update: jest.fn().mockImplementation(({ data }) =>
-          Promise.resolve({ ...created, ...data }),
-        ),
+        update: jest
+          .fn()
+          .mockImplementation(({ data }) =>
+            Promise.resolve({ ...created, ...data }),
+          ),
       },
     };
     const prisma = {
@@ -183,12 +185,7 @@ describe('CustomDataService related CRUD', () => {
       { pub_name: 'Updated' },
       user,
     );
-    await service.softDelete(
-      'customChild',
-      ['record-1'],
-      related,
-      user,
-    );
+    await service.softDelete('customChild', ['record-1'], related, user);
     expect(tx.customDataRecord.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ isDeleted: true }),

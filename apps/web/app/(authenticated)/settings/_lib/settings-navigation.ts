@@ -45,6 +45,7 @@ const NAV_PERMISSION_KEYS = {
 
   DOCUMENTS_READ: "documents.read",
 
+  EMPLOYMENT_TYPES_READ: "employment-types.read",
   LEAVE_TYPES_READ: "leave-types.read",
   LEAVE_POLICIES_READ: "leave-policies.read",
   LEAVE_POLICY_ASSIGNMENTS_READ: "leave-policy-assignments.read",
@@ -146,6 +147,19 @@ export const settingsNavGroups = [
         ],
       },
       {
+        key: "organization-teams",
+        href: "/settings/general-setup/organization/teams",
+        label: "Teams",
+        description:
+          "Manage organizational teams under business units and departments.",
+        icon: "users",
+        keywords: ["teams", "organization teams", "department teams"],
+        requiredAnyPermissions: [
+          PERMISSION_KEYS.TEAMS_READ,
+          NAV_PERMISSION_KEYS.SETTINGS_READ,
+        ],
+      },
+      {
         key: "designations",
         href: "/settings/designations",
         label: "Designations",
@@ -161,7 +175,7 @@ export const settingsNavGroups = [
       {
         key: "locations",
         href: "/settings/locations",
-        label: "Locations",
+        label: "Work Sites",
         description:
           "Maintain offices, branches, working locations, and address-level setup.",
         icon: "map-pinned",
@@ -177,45 +191,12 @@ export const settingsNavGroups = [
     key: "regional-operations",
     label: "Regional Operations",
     summary:
-      "Localization, work calendars, holiday calendars, and payroll regions.",
+      "Payroll geography, countries, states, cities, localization, currency, and fiscal years.",
     icon: "globe-2",
     items: [
-      // {
-      //   key: "localization",
-      //   href: "/settings/localization",
-      //   label: "Localization",
-      //   description:
-      //     "Review locale, date, time, number, timezone, and first-day-of-week behavior.",
-      //   icon: "globe-2",
-      //   badge: "Core",
-      //   keywords: ["locale", "timezone", "date format", "number format"],
-      //   requiredAnyPermissions: [NAV_PERMISSION_KEYS.SETTINGS_READ],
-      // },
-      {
-        key: "work-calendars",
-        href: "/settings/work-calendars",
-        label: "Work Calendars",
-        description:
-          "Configure work schedules, working days, hours, flexible schedules, and shift foundations.",
-        icon: "calendar-clock",
-        badge: "Core",
-        keywords: ["work schedule", "calendar", "shift", "working days"],
-        requiredAnyPermissions: [NAV_PERMISSION_KEYS.SETTINGS_READ],
-      },
-      {
-        key: "holiday-calendars",
-        href: "/settings/holiday-calendars",
-        label: "Holiday Calendars",
-        description:
-          "Create reusable holiday calendars with assignments, yearly dates, and recurring holidays.",
-        icon: "calendar-days",
-        badge: "Core",
-        keywords: ["holiday", "calendar", "public holiday", "regional"],
-        requiredAnyPermissions: [NAV_PERMISSION_KEYS.SETTINGS_READ],
-      },
       {
         key: "payroll-regions",
-        href: "/settings/payroll/regions",
+        href: "/settings/regional/payroll-geography/payroll-regions",
         label: "Payroll Regions",
         description:
           "Bind payroll cycles, currencies, tax regions, weekends, holidays, and schedules.",
@@ -250,7 +231,7 @@ export const settingsNavGroups = [
       },
       {
         key: "users",
-        href: "/settings/security-access/users",
+        href: "/settings/security-access/identities/users",
         label: "Users",
         description:
           "Manage user accounts, employee links, login access, status, and assigned roles.",
@@ -264,7 +245,7 @@ export const settingsNavGroups = [
       },
       {
         key: "roles",
-        href: "/settings/access/roles",
+        href: "/settings/security-access/authorization/roles",
         label: "Roles",
         description:
           "Create and maintain system and custom roles with permission matrices.",
@@ -278,7 +259,7 @@ export const settingsNavGroups = [
       },
       {
         key: "permissions",
-        href: "/settings/access/permissions",
+        href: "/settings/security-access/authorization/permissions",
         label: "Permissions",
         description:
           "Review available permissions by module, table, operation, and capability.",
@@ -291,9 +272,9 @@ export const settingsNavGroups = [
         ],
       },
       {
-        key: "teams",
-        href: "/settings/access/teams",
-        label: "Teams",
+        key: "access-teams",
+        href: "/settings/security-access/authorization/access-teams",
+        label: "Access Teams",
         description:
           "Manage access teams, membership, shared ownership, and team-based access.",
         icon: "users",
@@ -301,6 +282,42 @@ export const settingsNavGroups = [
         requiredAnyPermissions: [
           PERMISSION_KEYS.TEAMS_READ,
           NAV_PERMISSION_KEYS.SETTINGS_READ,
+        ],
+      },
+      {
+        key: "field-security",
+        href: "/settings/security-access/security-governance/field-security",
+        label: "Field Security",
+        description:
+          "Control sensitive field visibility, masking, and editability after role permissions.",
+        icon: "shield-check",
+        keywords: ["field security", "masking", "sensitive fields"],
+        requiredAnyPermissions: [
+          NAV_PERMISSION_KEYS.SETTINGS_READ,
+          "field-security.read",
+        ],
+      },
+      {
+        key: "password-login-policies",
+        href: "/settings/security-access/security-governance/password-login-policies",
+        label: "Password & Login Policies",
+        description:
+          "Configure tenant password, session, invitation, and MFA rules.",
+        icon: "lock-keyhole",
+        keywords: ["password", "login", "session", "mfa", "invitation"],
+        requiredAnyPermissions: [NAV_PERMISSION_KEYS.SETTINGS_READ],
+      },
+      {
+        key: "login-history",
+        href: "/settings/security-access/security-governance/login-history",
+        label: "Login History",
+        description:
+          "Review immutable authentication attempts and session outcomes.",
+        icon: "history",
+        keywords: ["login history", "authentication", "sessions", "audit"],
+        requiredAnyPermissions: [
+          NAV_PERMISSION_KEYS.SETTINGS_READ,
+          NAV_PERMISSION_KEYS.AUDIT_READ,
         ],
       },
     ],
@@ -342,14 +359,41 @@ export const settingsNavGroups = [
         ],
       },
       {
+        key: "employment-types",
+        href: "/settings/people/workforce/employment-types",
+        label: "Employment Types",
+        description:
+          "Manage employment categories used by employees, payroll, leave, benefits, overtime, and probation defaults.",
+        icon: "briefcase-business",
+        badge: "Core",
+        keywords: ["employment types", "full time", "part time", "contract"],
+        requiredAnyPermissions: [
+          NAV_PERMISSION_KEYS.EMPLOYMENT_TYPES_READ,
+          NAV_PERMISSION_KEYS.SETTINGS_READ,
+        ],
+      },
+      {
         key: "documents",
-        href: "/settings/documents",
-        label: "Document Rules",
+        href: "/settings/people/documents/documents",
+        label: "Document Settings",
         shortLabel: "Documents",
         description:
           "Configure document categories, storage rules, validation, and employee document governance.",
         icon: "file-stack",
         keywords: ["documents", "files", "validation", "storage"],
+        requiredAnyPermissions: [
+          NAV_PERMISSION_KEYS.SETTINGS_READ,
+          NAV_PERMISSION_KEYS.DOCUMENTS_READ,
+        ],
+      },
+      {
+        key: "document-categories",
+        href: "/settings/people/documents/categories",
+        label: "Document Categories",
+        description:
+          "Maintain reusable document categories for uploads, expiry, verification, and retention.",
+        icon: "folder-open",
+        keywords: ["document categories", "files", "expiry", "verification"],
         requiredAnyPermissions: [
           NAV_PERMISSION_KEYS.SETTINGS_READ,
           NAV_PERMISSION_KEYS.DOCUMENTS_READ,
@@ -367,9 +411,29 @@ export const settingsNavGroups = [
         requiredAnyPermissions: [NAV_PERMISSION_KEYS.SETTINGS_READ],
       },
       {
+        key: "work-calendars",
+        href: "/settings/work-calendars",
+        label: "Work Calendar",
+        description:
+          "Configure work calendar patterns, working days, weekends, and calendar behavior.",
+        icon: "calendar-clock",
+        keywords: ["work calendar", "calendar", "working days", "weekends"],
+        requiredAnyPermissions: [NAV_PERMISSION_KEYS.SETTINGS_READ],
+      },
+      {
+        key: "holiday-calendars",
+        href: "/settings/holiday-calendars",
+        label: "Holiday Calendar",
+        description:
+          "Maintain holiday calendars, public holidays, optional holidays, and assignments.",
+        icon: "calendar-days",
+        keywords: ["holiday calendar", "holidays", "public holidays"],
+        requiredAnyPermissions: [NAV_PERMISSION_KEYS.SETTINGS_READ],
+      },
+      {
         key: "attendance",
-        href: "/settings/attendance",
-        label: "Attendance",
+        href: "/settings/people/attendance/attendance",
+        label: "Attendance Settings",
         description:
           "Configure attendance rules, grace periods, device behavior, shifts, and check-in controls.",
         icon: "clock-3",
@@ -377,6 +441,24 @@ export const settingsNavGroups = [
         requiredAnyPermissions: [
           PERMISSION_KEYS.SETTINGS_READ,
           PERMISSION_KEYS.ATTENDANCE_READ,
+          PERMISSION_KEYS.TIMESHEETS_SETTINGS_READ,
+        ],
+      },
+      {
+        key: "timesheets",
+        href: "/settings/people/attendance/timesheets",
+        label: "Timesheet Settings",
+        description:
+          "Configure scoped monthly timesheets, weekly workflows, integrations, payroll readiness, and exports.",
+        icon: "calendar-clock",
+        keywords: [
+          "timesheets",
+          "weekly submission",
+          "time entry",
+          "payroll readiness",
+        ],
+        requiredAnyPermissions: [
+          PERMISSION_KEYS.SETTINGS_READ,
           PERMISSION_KEYS.TIMESHEETS_SETTINGS_READ,
         ],
       },
@@ -442,7 +524,7 @@ export const settingsNavGroups = [
     items: [
       {
         key: "leave-types",
-        href: "/settings/leave-types",
+        href: "/settings/people/leave/leave-types",
         label: "Leave Types",
         description:
           "Define reusable annual, sick, unpaid, compensatory, and custom leave categories.",
@@ -457,7 +539,7 @@ export const settingsNavGroups = [
       },
       {
         key: "leave-policies",
-        href: "/settings/leave-policies",
+        href: "/settings/people/leave/leave-policies",
         label: "Leave Policies",
         description:
           "Package leave type rules into assignable policy containers.",
@@ -513,20 +595,27 @@ export const settingsNavGroups = [
     icon: "wallet",
     items: [
       {
-        key: "billing",
-        href: "/settings/billing",
-        label: "Billing",
+        key: "subscription",
+        href: "/settings/subscription",
+        label: "Subscription",
         description:
-          "Review subscription status, plan checkout options, Stripe billing actions, and invoices.",
+          "Review subscription status, plan features, Stripe billing actions, and invoices.",
         icon: "receipt",
         badge: "Admin",
-        keywords: ["billing", "subscription", "invoice", "stripe", "plans"],
+        keywords: [
+          "subscription",
+          "billing",
+          "features",
+          "invoice",
+          "stripe",
+          "plans",
+        ],
         hideWhenRestricted: true,
         requiredAnyRoles: [ROLE_KEYS.GLOBAL_ADMIN, ROLE_KEYS.SYSTEM_ADMIN],
       },
       {
         key: "payroll-settings",
-        href: "/settings/payroll",
+        href: "/settings/payroll/configuration/payroll-settings",
         label: "Payroll Settings",
         shortLabel: "Payroll",
         description:
@@ -541,26 +630,8 @@ export const settingsNavGroups = [
         ],
       },
       {
-        key: "exchange-rates",
-        href: "/settings/payroll/exchange-rates",
-        label: "Exchange Rates",
-        description:
-          "Maintain effective-dated conversion rates for payroll, reporting, and financial summaries.",
-        icon: "split",
-        badge: "Core",
-        keywords: [
-          "exchange rates",
-          "currency conversion",
-          "reporting currency",
-        ],
-        requiredAnyPermissions: [
-          NAV_PERMISSION_KEYS.SETTINGS_READ,
-          NAV_PERMISSION_KEYS.PAYROLL_SETTINGS_READ,
-        ],
-      },
-      {
         key: "pay-components",
-        href: "/settings/pay-components",
+        href: "/settings/payroll/configuration/pay-components",
         label: "Pay Components",
         description:
           "Manage earnings, allowances, deductions, reimbursements, tax, and adjustment components.",
@@ -574,7 +645,7 @@ export const settingsNavGroups = [
       },
       {
         key: "claim-types",
-        href: "/settings/claim-types",
+        href: "/settings/payroll/configuration/claim-types",
         label: "Claim Types",
         description:
           "Configure reimbursement claim categories, subtypes, limits, and receipt requirements.",
@@ -587,8 +658,8 @@ export const settingsNavGroups = [
       },
       {
         key: "travel-allowance-policies",
-        href: "/settings/travel-allowance-policies",
-        label: "Travel Allowance Policies",
+        href: "/settings/payroll/configuration/travel-allowance-policies",
+        label: "Travel Allowance Rules",
         shortLabel: "TA/DA Policies",
         description:
           "Configure employee-level, destination-based, and trip-based travel allowance rules.",
@@ -601,8 +672,8 @@ export const settingsNavGroups = [
       },
       {
         key: "time-payroll-policies",
-        href: "/settings/time-payroll-policies",
-        label: "Time Payroll Policies",
+        href: "/settings/payroll/configuration/time-payroll-policies",
+        label: "Time-Based Pay Rules",
         description:
           "Configure attendance, timesheet, no-show, and source-to-payroll behavior.",
         icon: "calendar-clock",
@@ -614,8 +685,8 @@ export const settingsNavGroups = [
       },
       {
         key: "overtime-policies",
-        href: "/settings/overtime-policies",
-        label: "Overtime Policies",
+        href: "/settings/payroll/configuration/overtime-policies",
+        label: "Overtime Rules",
         description:
           "Configure overtime thresholds, multipliers, eligibility, and payroll calculation behavior.",
         icon: "timer-reset",
@@ -627,8 +698,8 @@ export const settingsNavGroups = [
       },
       {
         key: "tax-rules",
-        href: "/settings/tax-rules",
-        label: "Tax Rules",
+        href: "/settings/payroll/configuration/tax-rules",
+        label: "Tax Policies",
         description:
           "Configure effective-dated tax deductions, brackets, exemptions, and employer contributions.",
         icon: "percent",
@@ -639,8 +710,62 @@ export const settingsNavGroups = [
         ],
       },
       {
+        key: "employee-tax-profiles",
+        href: "/settings/payroll/configuration/employee-tax-profiles",
+        label: "Employee Tax Profiles",
+        shortLabel: "Tax Profiles",
+        description:
+          "Assign effective-dated tax policies, exemptions, credits, and employee tax details.",
+        icon: "badge-percent",
+        keywords: ["employee tax", "tax profile", "filing", "tax identifier"],
+        requiredAnyPermissions: [
+          PERMISSION_KEYS.EMPLOYEE_TAX_PROFILES_READ,
+          PERMISSION_KEYS.EMPLOYEE_TAX_PROFILES_MANAGE,
+        ],
+      },
+      {
+        key: "payroll-banks",
+        href: "/settings/payroll/banking/banks",
+        label: "Banks",
+        description:
+          "Maintain bank master records used by employee and employer payroll bank accounts.",
+        icon: "landmark",
+        badge: "Core",
+        keywords: [
+          "banks",
+          "bank master",
+          "swift",
+          "routing",
+          "payroll banking",
+        ],
+        requiredAnyPermissions: [
+          NAV_PERMISSION_KEYS.SETTINGS_READ,
+          NAV_PERMISSION_KEYS.PAYROLL_SETTINGS_READ,
+        ],
+      },
+      {
+        key: "employer-bank-accounts",
+        href: "/settings/payroll/banking/employer-bank-accounts",
+        label: "Employer Bank Accounts",
+        shortLabel: "Employer Banks",
+        description:
+          "Configure employer bank accounts used as payroll funding and payment file sources.",
+        icon: "credit-card",
+        badge: "Core",
+        keywords: [
+          "employer bank account",
+          "payroll banking",
+          "funding account",
+          "payment file",
+        ],
+        requiredAnyPermissions: [
+          NAV_PERMISSION_KEYS.SETTINGS_READ,
+          NAV_PERMISSION_KEYS.PAYROLL_SETTINGS_READ,
+        ],
+      },
+      {
         key: "gl-accounts",
-        href: "/settings/payroll/gl-accounts",
+        href: "/settings/payroll/configuration/gl-accounts",
         label: "GL Accounts",
         description:
           "Maintain payroll accounting accounts used for journals and financial exports.",
@@ -653,7 +778,7 @@ export const settingsNavGroups = [
       },
       {
         key: "posting-rules",
-        href: "/settings/payroll/posting-rules",
+        href: "/settings/payroll/configuration/posting-rules",
         label: "Posting Rules",
         description:
           "Map payroll components, tax rules, and line item categories to debit and credit accounts.",
@@ -686,7 +811,10 @@ export const settingsNavGroups = [
           PERMISSION_KEYS.CUSTOMIZATION_ACCESS,
           NAV_PERMISSION_KEYS.SETTINGS_READ,
         ],
-        requiredAnyRoles: [ROLE_KEYS.SYSTEM_CUSTOMIZER],
+        requiredAnyRoles: [
+          ROLE_KEYS.GLOBAL_ADMIN,
+          ROLE_KEYS.SYSTEM_CUSTOMIZER,
+        ],
       },
       {
         key: "packages",
@@ -708,7 +836,10 @@ export const settingsNavGroups = [
           PERMISSION_KEYS.CUSTOMIZATION_ACCESS,
           NAV_PERMISSION_KEYS.SETTINGS_READ,
         ],
-        requiredAnyRoles: [ROLE_KEYS.SYSTEM_CUSTOMIZER],
+        requiredAnyRoles: [
+          ROLE_KEYS.GLOBAL_ADMIN,
+          ROLE_KEYS.SYSTEM_CUSTOMIZER,
+        ],
       },
       {
         key: "publish-center",
@@ -723,28 +854,19 @@ export const settingsNavGroups = [
           PERMISSION_KEYS.CUSTOMIZATION_ACCESS,
           NAV_PERMISSION_KEYS.SETTINGS_READ,
         ],
-        requiredAnyRoles: [ROLE_KEYS.SYSTEM_CUSTOMIZER],
+        requiredAnyRoles: [
+          ROLE_KEYS.GLOBAL_ADMIN,
+          ROLE_KEYS.SYSTEM_CUSTOMIZER,
+        ],
       },
     ],
   },
   {
     key: "apps",
     label: "Apps & Modules",
-    summary:
-      "Recruitment, desktop agent, feature access, and optional product modules.",
+    summary: "Recruitment, desktop agent, and optional product modules.",
     icon: "app-window",
     items: [
-      {
-        key: "features",
-        href: "/settings/features",
-        label: "Feature Access",
-        shortLabel: "Features",
-        description:
-          "Enable or restrict modules and feature flags based on plan, tenant, and operations.",
-        icon: "toggle-right",
-        keywords: ["features", "modules", "feature flags", "enablement"],
-        requiredAnyPermissions: [NAV_PERMISSION_KEYS.SETTINGS_READ],
-      },
       {
         key: "recruitment",
         href: "/settings/recruitment",

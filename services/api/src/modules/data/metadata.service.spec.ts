@@ -2,12 +2,15 @@ import { ForbiddenException } from '@nestjs/common';
 import { MetadataService } from './metadata.service';
 
 describe('MetadataService', () => {
-  it('does not expose Prisma model names, scope internals, or field mappings', () => {
-    const service = new MetadataService({
-      assertCanRead: jest.fn(),
-    });
+  it('does not expose Prisma model names, scope internals, or field mappings', async () => {
+    const service = new MetadataService(
+      {
+        assertCanRead: jest.fn(),
+      } as never,
+      { getMetadata: jest.fn() } as never,
+    );
 
-    const metadata = service.getEntity('employees', {
+    const metadata = await service.getEntity('employees', {
       userId: 'user-1',
       tenantId: 'tenant-1',
       email: 'user@example.com',
@@ -29,11 +32,14 @@ describe('MetadataService', () => {
   });
 
   it('filters unreadable entities from the list response', () => {
-    const service = new MetadataService({
-      assertCanRead: jest.fn(() => {
-        throw new ForbiddenException();
-      }),
-    });
+    const service = new MetadataService(
+      {
+        assertCanRead: jest.fn(() => {
+          throw new ForbiddenException();
+        }),
+      } as never,
+      { getMetadata: jest.fn() } as never,
+    );
 
     const response = service.listEntities({
       userId: 'user-1',

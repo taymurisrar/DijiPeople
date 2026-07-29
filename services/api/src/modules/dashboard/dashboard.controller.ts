@@ -27,7 +27,9 @@ export class DashboardController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('viewKey') viewKey: string,
   ) {
-    if (!['admin', 'hr', 'manager', 'employee', 'executive'].includes(viewKey)) {
+    if (
+      !['admin', 'hr', 'manager', 'employee', 'executive'].includes(viewKey)
+    ) {
       throw new NotFoundException('Dashboard view was not found.');
     }
     const result = await this.dashboardService.getView(

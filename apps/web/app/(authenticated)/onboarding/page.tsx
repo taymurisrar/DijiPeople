@@ -1,17 +1,27 @@
-import Link from "next/link";
+import { StandardModuleListPage } from "@/app/components/runtime";
+import { getSessionUser } from "@/lib/auth";
+import { buildPublishedStandardRouteRuntime } from "@/lib/runtime/modules/standard-module-route-helpers";
+import { onboardingRuntimeSpec } from "@/lib/runtime/modules/standard-module-specs";
 import { apiRequestJson } from "@/lib/server-api";
 import { AccessDeniedState } from "../_components/access-denied-state";
-import { getBusinessUnitAccessSummary, hasBusinessUnitScope } from "../_lib/business-unit-access";
-import { CandidateListResponse } from "../recruitment/types";
-import { OnboardingStartForm } from "./_components/onboarding-start-form";
-import { OnboardingStatusBadge } from "./_components/onboarding-status-badge";
 import {
-  OnboardingListResponse,
-  OnboardingTemplateRecord,
-} from "./types";
+  getBusinessUnitAccessSummary,
+  hasBusinessUnitScope,
+} from "../_lib/business-unit-access";
+import type { EmployeeOnboardingRecord, OnboardingListResponse } from "./types";
 
-export default async function OnboardingPage() {
-  const businessUnitAccess = await getBusinessUnitAccessSummary();
+type OnboardingPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function OnboardingPage({
+  searchParams,
+}: OnboardingPageProps) {
+  const [businessUnitAccess, params, sessionUser] = await Promise.all([
+    getBusinessUnitAccessSummary(),
+    searchParams,
+    getSessionUser(),
+  ]);
 
   if (!hasBusinessUnitScope(businessUnitAccess)) {
     return (
@@ -24,80 +34,105 @@ export default async function OnboardingPage() {
     );
   }
 
-  const [onboardings, candidates, templates] = await Promise.all([
-    apiRequestJson<OnboardingListResponse>("/onboarding?pageSize=50"),
-    apiRequestJson<CandidateListResponse>("/candidates?pageSize=100"),
-    apiRequestJson<OnboardingTemplateRecord[]>("/onboarding/templates"),
+  const page = parsePositiveInteger(getSearchParam(params.page), 1);
+  const pageSize = parsePositiveInteger(getSearchParam(params.pageSize), 25);
+  const onboardingQuery = buildOnboardingQuery(params, page, pageSize);
+  const [onboardings, runtime] = await Promise.all([
+    apiRequestJson<OnboardingListResponse>(`/onboarding?${onboardingQuery}`),
+    buildPublishedStandardRouteRuntime({
+      pageKind: "list",
+      sessionUser,
+      spec: onboardingRuntimeSpec,
+    }),
   ]);
 
   return (
     <main className="grid gap-6">
-      <section className="flex flex-col gap-4 rounded-[28px] border border-border bg-[linear-gradient(135deg,rgba(255,255,255,0.95),rgba(239,248,245,0.9))] p-8 shadow-lg lg:flex-row lg:items-end lg:justify-between">
-        <div className="space-y-3">
-          <p className="text-sm uppercase tracking-[0.18em] text-muted">Onboarding</p>
-          <h3 className="font-serif text-4xl text-foreground">Turn hired candidates into structured new hires.</h3>
-          <p className="max-w-3xl text-muted">
-            This first version focuses on checklist-driven onboarding with due dates, task ownership, and completion tracking.
-          </p>
-        </div>
-        <div className="rounded-[24px] border border-border bg-white/80 px-5 py-4 text-sm text-muted">
-          {templates.length} template(s) available
-        </div>
-      </section>
-
-      <section className="grid gap-4">
-        <div>
-          <p className="text-sm uppercase tracking-[0.18em] text-muted">Start Flow</p>
-          <h4 className="mt-2 text-2xl font-semibold text-foreground">Convert a hired candidate</h4>
-        </div>
-        <OnboardingStartForm candidates={candidates.items} templates={templates} />
-      </section>
-
-      <section className="overflow-hidden rounded-[24px] border border-border bg-surface shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-border text-sm">
-            <thead className="bg-surface-strong text-left text-muted">
-              <tr>
-                <th className="px-5 py-4 font-medium">Onboarding</th>
-                <th className="px-5 py-4 font-medium">Status</th>
-                <th className="px-5 py-4 font-medium">Progress</th>
-                <th className="px-5 py-4 font-medium">Due</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border bg-white/90">
-              {onboardings.items.map((item) => (
-                <tr key={item.id}>
-                  <td className="px-5 py-4">
-                    <Link className="font-semibold text-foreground hover:text-accent" href={`/onboarding/${item.id}`}>
-                      {item.title}
-                    </Link>
-                    <p className="mt-1 text-muted">
-                      {item.employee?.fullName || item.candidate?.fullName || "Unlinked onboarding"}
-                    </p>
-                  </td>
-                  <td className="px-5 py-4">
-                    <OnboardingStatusBadge status={item.status} />
-                  </td>
-                  <td className="px-5 py-4 text-muted">
-                    {item.progress.completedTasks}/{item.progress.totalTasks} tasks
-                    <p>{item.progress.percent}% complete</p>
-                  </td>
-                  <td className="px-5 py-4 text-muted">
-                    {item.dueDate ? new Date(item.dueDate).toLocaleDateString() : "Not set"}
-                  </td>
-                </tr>
-              ))}
-              {onboardings.items.length === 0 ? (
-                <tr>
-                  <td className="px-5 py-6 text-muted" colSpan={4}>
-                    No onboarding records yet.
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <StandardModuleListPage
+        commandRecord={{
+          onboardingCount: onboardings.meta.total,
+        }}
+        pagination={{
+          page: onboardings.meta.page,
+          pageSize: onboardings.meta.pageSize,
+          totalItems: onboardings.meta.total,
+          pathname: "/onboarding",
+          searchParams: toPaginationSearchParams(params),
+        }}
+        records={onboardings.items.map(mapOnboardingRecord)}
+        runtime={runtime}
+        spec={onboardingRuntimeSpec}
+        title="Onboarding"
+      />
     </main>
+  );
+}
+
+function mapOnboardingRecord(onboarding: EmployeeOnboardingRecord) {
+  const draftEmployee = onboarding.employee?.isDraftProfile
+    ? onboarding.employee
+    : onboarding.candidate?.draftEmployee;
+  const personName =
+    onboarding.employee?.fullName ?? onboarding.candidate?.fullName ?? "";
+
+  return {
+    ...onboarding,
+    personName,
+    candidateEmail: onboarding.candidate?.email ?? "",
+    templateName: onboarding.template?.name ?? "",
+    progressPercent: onboarding.progress.percent,
+    progressText: `${onboarding.progress.percent}% (${onboarding.progress.completedTasks}/${onboarding.progress.totalTasks} tasks)`,
+    blockerCount: onboarding.readiness.blockers.length,
+    draftProfileStatus: onboarding.employee
+      ? onboarding.employee.isDraftProfile
+        ? "Draft profile"
+        : "Employee created"
+      : draftEmployee
+        ? "Draft profile"
+        : "Not created",
+  };
+}
+
+function getSearchParam(value?: string | string[]) {
+  if (Array.isArray(value)) return value[0] ?? "";
+  return value ?? "";
+}
+
+function parsePositiveInteger(value: string, fallback: number) {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    return fallback;
+  }
+
+  return parsed;
+}
+
+function buildOnboardingQuery(
+  params: Record<string, string | string[] | undefined>,
+  page: number,
+  pageSize: number,
+) {
+  const query = new URLSearchParams();
+  query.set("page", String(page));
+  query.set("pageSize", String(pageSize));
+
+  ["search", "status"].forEach((key) => {
+    const value = getSearchParam(params[key]);
+    if (value) {
+      query.set(key, value);
+    }
+  });
+
+  return query.toString();
+}
+
+function toPaginationSearchParams(
+  params: Record<string, string | string[] | undefined>,
+) {
+  return Object.fromEntries(
+    Object.entries(params).map(([key, value]) => [
+      key,
+      getSearchParam(value) || undefined,
+    ]),
   );
 }

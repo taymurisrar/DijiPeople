@@ -1,17 +1,25 @@
-import Link from "next/link";
+import { getSessionUser } from "@/lib/auth";
+import { buildPublishedStandardRouteRuntime } from "@/lib/runtime/modules/standard-module-route-helpers";
+import { recruitmentApplicationRuntimeSpec } from "@/lib/runtime/modules/standard-module-specs";
 import { apiRequestJson } from "@/lib/server-api";
 import { AccessDeniedState } from "../../_components/access-denied-state";
-import { getBusinessUnitAccessSummary, hasBusinessUnitScope } from "../../_lib/business-unit-access";
-import { ApplicationForm } from "../_components/application-form";
-import { RecruitmentApplicationsBoard } from "../_components/recruitment-applications-board";
+import {
+  getBusinessUnitAccessSummary,
+  hasBusinessUnitScope,
+} from "../../_lib/business-unit-access";
+import { RecruitmentApplicationsRuntimeList } from "../_components/recruitment-applications-runtime-list";
 import {
   ApplicationListResponse,
   CandidateListResponse,
   JobOpeningListResponse,
+  RecruitmentPipelineListResponse,
 } from "../types";
 
 export default async function RecruitmentApplicationsPage() {
-  const businessUnitAccess = await getBusinessUnitAccessSummary();
+  const [businessUnitAccess, sessionUser] = await Promise.all([
+    getBusinessUnitAccessSummary(),
+    getSessionUser(),
+  ]);
 
   if (!hasBusinessUnitScope(businessUnitAccess)) {
     return (
@@ -24,52 +32,30 @@ export default async function RecruitmentApplicationsPage() {
     );
   }
 
-  const [applications, candidates, jobs] = await Promise.all([
-    apiRequestJson<ApplicationListResponse>("/applications?pageSize=100"),
-    apiRequestJson<CandidateListResponse>("/candidates?pageSize=100"),
-    apiRequestJson<JobOpeningListResponse>("/job-openings?pageSize=100"),
-  ]);
+  const [applications, candidates, jobs, pipelines, runtime] =
+    await Promise.all([
+      apiRequestJson<ApplicationListResponse>("/applications?pageSize=100"),
+      apiRequestJson<CandidateListResponse>("/candidates?pageSize=100"),
+      apiRequestJson<JobOpeningListResponse>("/job-openings?pageSize=100"),
+      apiRequestJson<RecruitmentPipelineListResponse>("/recruitment/pipelines"),
+      buildPublishedStandardRouteRuntime({
+        pageKind: "list",
+        sessionUser,
+        spec: recruitmentApplicationRuntimeSpec,
+      }),
+    ]);
 
   return (
-    <main className="grid gap-6">
-      <section className="flex flex-col gap-4 rounded-[28px] border border-border bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(239,248,245,0.92))] p-6 shadow-lg lg:flex-row lg:items-end lg:justify-between lg:p-8">
-        <div className="space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted">
-            Recruitment pipeline
-          </p>
-          <h3 className="font-serif text-3xl text-foreground lg:text-4xl">
-            Move applications across hiring stages.
-          </h3>
-          <p className="max-w-3xl text-sm text-muted lg:text-base">
-            Drag applications from one stage to another. Keep the pipeline fast,
-            clean, and easy to scan without bloated cards.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap gap-3">
-          <Link
-            className="rounded-2xl border border-border px-5 py-3 text-sm font-medium text-muted transition hover:border-accent/30 hover:text-foreground"
-            href="/recruitment/jobs"
-          >
-            Jobs
-          </Link>
-          <Link
-            className="rounded-2xl border border-border px-5 py-3 text-sm font-medium text-muted transition hover:border-accent/30 hover:text-foreground"
-            href="/recruitment/candidates"
-          >
-            Candidates
-          </Link>
-        </div>
-      </section>
-
-      <ApplicationForm
+    <main className="dp-theme-scope grid gap-6">
+      <RecruitmentApplicationsRuntimeList
+        applications={applications.items}
         candidates={candidates.items}
-        jobs={jobs.items.filter(
-          (job) => !["CLOSED", "FILLED", "Cancelled"].includes(job.status),
-        )}
+        jobs={jobs.items}
+        pipeline={
+          pipelines.items.find((item) => item.isDefault) ?? pipelines.items[0]
+        }
+        runtime={runtime}
       />
-
-      <RecruitmentApplicationsBoard applications={applications.items} />
     </main>
   );
 }

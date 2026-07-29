@@ -71,6 +71,7 @@ export interface OptionSetValueMetadata {
 
 export interface LookupTargetMetadata {
   readonly entityLogicalName: string;
+  readonly primaryNameField?: string;
   readonly viewLogicalName?: string;
   readonly relationshipName?: string;
 }
@@ -323,6 +324,8 @@ export interface RelatedSubgridMetadata {
   readonly columns?: readonly ViewColumnMetadata[];
   readonly filters?: readonly ViewFilterMetadata[];
   readonly defaultSort?: readonly ViewSortMetadata[];
+  /** Base route used to open related records from read-only subgrids. */
+  readonly routeBase?: string;
   readonly pageSize?: number;
   readonly emptyStateTitle?: string;
   readonly emptyStateDescription?: string;
@@ -332,7 +335,32 @@ export interface RelatedSubgridMetadata {
     readonly dataType: FieldDataType;
     readonly required?: boolean;
     readonly maxLength?: number;
+    readonly options?: readonly OptionSetValueMetadata[];
   }[];
+  readonly assignment?: {
+    readonly lookupFieldLogicalName: string;
+    readonly optionsPath: string;
+    readonly title?: string;
+    readonly optionValueField?: string;
+    readonly optionLabelField?: string;
+    readonly optionDescriptionField?: string;
+    readonly optionMetaFields?: readonly string[];
+    readonly assignedValueField?: string;
+    readonly extraBooleanField?: {
+      readonly fieldLogicalName: string;
+      readonly label: string;
+      readonly defaultValue?: boolean;
+    };
+    readonly extraFields?: readonly {
+      readonly fieldLogicalName: string;
+      readonly label: string;
+      readonly dataType: FieldDataType;
+      readonly required?: boolean;
+      readonly maxLength?: number;
+      readonly defaultValue?: unknown;
+      readonly options?: readonly OptionSetValueMetadata[];
+    }[];
+  };
   /** Metadata-owned transport contract. Tokens: {parentId}, {recordId}. */
   readonly api?: {
     readonly listPath: string;
@@ -340,9 +368,9 @@ export interface RelatedSubgridMetadata {
     readonly updatePath?: string;
     readonly deletePath?: string;
     readonly permissions?: {
-      readonly create?: string;
-      readonly update?: string;
-      readonly delete?: string;
+      readonly create?: string | readonly string[];
+      readonly update?: string | readonly string[];
+      readonly delete?: string | readonly string[];
     };
   };
 }

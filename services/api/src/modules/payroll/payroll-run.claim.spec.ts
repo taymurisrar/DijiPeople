@@ -30,6 +30,9 @@ describe('PayrollRunService claim inclusion', () => {
       {} as never,
       {} as never,
       {} as never,
+      { getPayrollSettings: jest.fn() } as never,
+      { allocate: jest.fn() } as never,
+      { lockRate: jest.fn(), convert: jest.fn() } as never,
     );
     const cutoffDate = new Date('2026-04-20T23:59:59.999Z');
 

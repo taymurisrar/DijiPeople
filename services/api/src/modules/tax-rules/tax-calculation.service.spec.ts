@@ -22,6 +22,7 @@ describe('TaxCalculationService', () => {
     payrollInputSnapshot: { deleteMany: jest.Mock; createMany: jest.Mock };
     payrollException: { create: jest.Mock };
     payrollRun: { findFirst: jest.Mock };
+    employeeTaxProfile: { findFirst: jest.Mock };
   };
   let resolver: { resolveApplicableTaxRules: jest.Mock };
   let auditService: { log: jest.Mock };
@@ -70,6 +71,7 @@ describe('TaxCalculationService', () => {
         create: jest.fn().mockResolvedValue({ id: 'exception-1' }),
       },
       payrollRun: { findFirst: jest.fn() },
+      employeeTaxProfile: { findFirst: jest.fn().mockResolvedValue(null) },
     };
     resolver = { resolveApplicableTaxRules: jest.fn() };
     auditService = { log: jest.fn().mockResolvedValue(undefined) };
@@ -117,6 +119,41 @@ describe('TaxCalculationService', () => {
     );
   });
 
+  it('passes employee tax scope fields into the tax rule resolver', async () => {
+    runEmployee = buildRunEmployee({
+      employee: {
+        id: 'employee-1',
+        employeeCode: 'EMP-001',
+        employeeLevelId: 'level-1',
+        businessUnitId: 'business-unit-1',
+        departmentId: 'department-1',
+        employmentTypeId: 'employment-type-1',
+        countryId: 'country-1',
+        countryLookup: { code: 'PK' },
+        stateProvinceLookup: { code: 'SD' },
+      },
+    });
+    prisma.payrollRunEmployee.findFirst.mockResolvedValue(runEmployee);
+    resolver.resolveApplicableTaxRules.mockResolvedValue([]);
+
+    await service.calculateTaxesForPayrollRunEmployee({
+      tenantId: 'tenant-1',
+      payrollRunEmployeeId: 'pre-1',
+      effectiveDate: new Date('2026-04-30'),
+    });
+
+    expect(resolver.resolveApplicableTaxRules).toHaveBeenCalledWith(
+      expect.objectContaining({
+        employeeLevelId: 'level-1',
+        businessUnitId: 'business-unit-1',
+        departmentId: 'department-1',
+        employmentTypeId: 'employment-type-1',
+        countryCode: 'PK',
+        regionCode: 'SD',
+      }),
+    );
+  });
+
   it('calculates fixed employee tax and employer contribution', async () => {
     resolver.resolveApplicableTaxRules.mockResolvedValue([
       taxRule({
@@ -146,6 +183,62 @@ describe('TaxCalculationService', () => {
     );
   });
 
+  it('applies the assigned employee tax profile and snapshots adjustments', async () => {
+    prisma.employeeTaxProfile.findFirst.mockResolvedValue({
+      id: 'profile-1',
+      taxRuleId: 'rule-1',
+      taxResidencyCountryCode: 'SA',
+      workTaxJurisdiction: 'RIYADH',
+      taxStatus: 'RESIDENT',
+      taxCategory: 'STANDARD',
+      filingStatus: 'SINGLE',
+      dependentAllowances: 1,
+      additionalTaxAmount: new Prisma.Decimal(10),
+      taxExemptionAmount: new Prisma.Decimal(100),
+      taxCreditAmount: new Prisma.Decimal(5),
+      previousEmployerTaxableIncome: new Prisma.Decimal(2000),
+      previousEmployerTaxDeducted: new Prisma.Decimal(100),
+      overrideReason: 'Approved employee declaration',
+      effectiveFrom: new Date('2026-01-01'),
+      effectiveTo: null,
+      createdAt: new Date('2026-01-01'),
+    });
+    resolver.resolveApplicableTaxRules.mockResolvedValue([
+      taxRule({ id: 'rule-1', employeeRate: 10 }),
+    ]);
+
+    await service.calculateTaxesForPayrollRunEmployee({
+      tenantId: 'tenant-1',
+      payrollRunEmployeeId: 'pre-1',
+      effectiveDate: new Date('2026-04-30'),
+    });
+
+    expect(resolver.resolveApplicableTaxRules).toHaveBeenCalledWith(
+      expect.objectContaining({ assignedTaxRuleId: 'rule-1' }),
+    );
+    expect(createdLineItems).toEqual([
+      expect.objectContaining({
+        category: PayrollRunLineItemCategory.TAX,
+        amount: new Prisma.Decimal(95),
+      }),
+    ]);
+    expect(prisma.payrollInputSnapshot.createMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          snapshotData: expect.objectContaining({
+            employeeTaxProfile: expect.objectContaining({ id: 'profile-1' }),
+            taxableBaseBeforeExemption: '1000',
+            taxableBase: '900',
+            credits: '5',
+            exemptions: '100',
+            adjustment: '5',
+            finalDeduction: '95',
+          }),
+        }),
+      ],
+    });
+  });
+
   it('generates employer contribution without employee tax when only employer rate is configured', async () => {
     resolver.resolveApplicableTaxRules.mockResolvedValue([
       taxRule({ employeeRate: 0, employerRate: 4 }),
@@ -167,7 +260,7 @@ describe('TaxCalculationService', () => {
     );
   });
 
-  it('calculates bracket tax from the matching bracket', async () => {
+  it('calculates pure marginal tax across progressive brackets', async () => {
     resolver.resolveApplicableTaxRules.mockResolvedValue([
       taxRule({
         calculationMethod: TaxCalculationMethod.BRACKET,
@@ -193,14 +286,57 @@ describe('TaxCalculationService', () => {
       expect.arrayContaining([
         expect.objectContaining({
           category: PayrollRunLineItemCategory.TAX,
-          amount: new Prisma.Decimal(120),
+          amount: new Prisma.Decimal(85),
         }),
         expect.objectContaining({
           category: PayrollRunLineItemCategory.EMPLOYER_CONTRIBUTION,
-          amount: new Prisma.Decimal(30),
+          amount: new Prisma.Decimal(15),
         }),
       ]),
     );
+  });
+
+  it('calculates base amount plus excess percentage for a progressive slab', async () => {
+    resolver.resolveApplicableTaxRules.mockResolvedValue([
+      taxRule({
+        calculationMethod: TaxCalculationMethod.BRACKET,
+        brackets: [
+          bracket({ minAmount: 0, maxAmount: 500, employeeRate: 5 }),
+          bracket({
+            minAmount: 500,
+            maxAmount: null,
+            employeeRate: 12,
+            fixedEmployeeAmount: 25,
+          }),
+        ],
+      }),
+    ]);
+
+    await service.calculateTaxesForPayrollRunEmployee({
+      tenantId: 'tenant-1',
+      payrollRunEmployeeId: 'pre-1',
+      effectiveDate: new Date('2026-04-30'),
+    });
+
+    expect(createdLineItems).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          category: PayrollRunLineItemCategory.TAX,
+          amount: new Prisma.Decimal(85),
+        }),
+      ]),
+    );
+    expect(prisma.payrollInputSnapshot.createMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          snapshotData: expect.objectContaining({
+            baseTax: '25',
+            marginalTax: '60',
+            finalDeduction: '85',
+          }),
+        }),
+      ],
+    });
   });
 
   it('uses mapped pay components as the taxable base when mappings exist', async () => {
@@ -341,7 +477,12 @@ function buildRunEmployee(overrides: Record<string, unknown> = {}) {
       id: 'employee-1',
       employeeCode: 'EMP-001',
       employeeLevelId: 'level-1',
+      businessUnitId: null,
+      departmentId: null,
+      employmentTypeId: null,
       countryId: null,
+      countryLookup: null,
+      stateProvinceLookup: null,
     },
     payrollRun: {
       id: 'run-1',
@@ -397,6 +538,9 @@ function taxRule(overrides: Record<string, unknown> = {}) {
     countryCode: null,
     regionCode: null,
     employeeLevelId: null,
+    businessUnitId: null,
+    departmentId: null,
+    employmentTypeId: null,
     calculationMethod: TaxCalculationMethod.PERCENTAGE,
     taxType: TaxType.INCOME_TAX,
     employeeRate: new Prisma.Decimal(0),

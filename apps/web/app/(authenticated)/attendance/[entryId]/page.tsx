@@ -62,6 +62,7 @@ export default async function AttendanceRecordPage({
     <main className="dp-theme-scope dp-attendance-scope grid gap-6">
       <StandardModuleRecordPage
         activeForm={activeForm}
+        lookupDisplayValues={{ ownerId: record.employee.fullName }}
         mode="read"
         record={runtimeRecord}
         recordId={entryId}
@@ -78,9 +79,59 @@ function toAttendanceRuntimeRecord(record: AttendanceEntryRecord) {
     ...record,
     entryName: `${record.employee.fullName} Attendance`,
     employeeName: record.employee.fullName,
+    ownerId: record.employeeId,
+    ownerDisplayName: record.employee.fullName,
+    subStatus: resolveAttendanceSubStatus(record),
     checkIn: record.checkInAt ?? record.checkIn,
     checkOut: record.checkOutAt ?? record.checkOut,
     duration: record.durationLabel ?? "",
     location: record.officeLocation?.name ?? record.remoteAddressText ?? "",
+    checkInLocation: buildMapLocationValue(
+      record.checkInAddressText ?? record.checkInLocation,
+      record.checkInLatitude,
+      record.checkInLongitude,
+    ),
+    checkOutLocation: record.checkOutAt
+      ? buildMapLocationValue(
+          record.checkOutAddressText ?? record.checkOutLocation,
+          record.checkOutLatitude,
+          record.checkOutLongitude,
+        )
+      : "Not recorded",
   };
+}
+
+function buildMapLocationValue(
+  address: string | null | undefined,
+  latitude: number | null | undefined,
+  longitude: number | null | undefined,
+) {
+  if (
+    typeof latitude !== "number" ||
+    !Number.isFinite(latitude) ||
+    typeof longitude !== "number" ||
+    !Number.isFinite(longitude)
+  ) {
+    return address ?? "Not captured";
+  }
+
+  const coordinates = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+  return {
+    label: address?.trim() ? `${address.trim()} · ${coordinates}` : coordinates,
+    href: `https://www.google.com/maps?q=${encodeURIComponent(
+      `${latitude},${longitude}`,
+    )}`,
+  };
+}
+
+function resolveAttendanceSubStatus(record: AttendanceEntryRecord) {
+  if (record.status === "MISSED_CHECK_OUT") return "MISSING_CHECK_OUT";
+  if (record.isLateCheckOut) return "LATE_CHECK_OUT";
+  if (record.isLateCheckIn) return "LATE_CHECK_IN";
+  if (record.status === "CHECKED_IN") return "IN_PROGRESS";
+  if (["CHECKED_OUT", "PRESENT"].includes(record.status)) return "COMPLETED";
+  if (record.status === "ON_LEAVE") return "APPROVED_LEAVE";
+  if (record.status === "ABSENT") return "NO_ATTENDANCE";
+  if (record.status === "HALF_DAY") return "PARTIAL_DAY";
+  return "STANDARD";
 }

@@ -14,6 +14,7 @@ type SettingsShellProps = {
   description: string;
   eyebrow?: string;
   actions?: ReactNode;
+  showHeader?: boolean;
   showSidebar?: boolean;
 };
 
@@ -23,6 +24,7 @@ export function SettingsShell({
   description,
   eyebrow = "Tenant Settings",
   actions,
+  showHeader,
   showSidebar = true,
 }: SettingsShellProps) {
   const pathname = usePathname();
@@ -48,6 +50,7 @@ export function SettingsShell({
       breadcrumb={breadcrumb}
       description={description}
       eyebrow={resolvedEyebrow}
+      showHeader={showHeader ?? pathname.startsWith("/settings/customization")}
       title={title}
       sidebar={
         showSidebar ? (

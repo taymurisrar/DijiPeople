@@ -41,6 +41,7 @@ import { UsersService } from '../users/users.service';
 import { PermissionBootstrapService } from '../permissions/permission-bootstrap.service';
 import { UserInvitationsService } from './user-invitations.service';
 import { EmailService } from '../notifications/email/email.service';
+import { AuditService } from '../audit/audit.service';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { SignupDto } from './dto/signup.dto';
@@ -125,6 +126,7 @@ export class AuthService {
     private readonly userInvitationsService: UserInvitationsService,
     private readonly authAccessService: AuthAccessService,
     private readonly emailService: EmailService,
+    private readonly auditService: AuditService,
   ) {}
 
   async signup(dto: SignupDto) {
@@ -140,10 +142,21 @@ export class AuthService {
 
   async login(dto: LoginDto, req?: Request) {
     const clientId = this.getClientId(req);
-    const user = await this.validateCredentials(dto);
+    const user = await this.validateCredentials(dto, req, clientId);
     const tenantStatus = String(user.tenant.status).toUpperCase();
 
     if (user.status !== 'ACTIVE' || tenantStatus !== 'ACTIVE') {
+      await this.logTenantAuthEvent({
+        tenantId: user.tenantId,
+        actorUserId: user.id,
+        action: 'auth.login.failed',
+        entityId: user.id,
+        email: user.email,
+        result: 'FAILED',
+        failureReason: 'ACCOUNT_OR_TENANT_INACTIVE',
+        clientId,
+        req,
+      });
       throw new UnauthorizedException('This account is not active.');
     }
 
@@ -155,7 +168,7 @@ export class AuthService {
       throw new UnauthorizedException('Unable to load this account.');
     }
 
-    const authResponse = this.buildAuthResponse(
+    const authResponse = await this.buildAuthResponse(
       refreshedUser,
       dto.rememberMe ?? false,
       { clientId },
@@ -170,9 +183,25 @@ export class AuthService {
         authResponse.tokens.refreshToken,
         authResponse.tokens.refreshTokenExpiresIn,
         req,
+        new Date(
+          Date.now() +
+            authResponse.tokens.absoluteSessionLifetimeDays * 86_400_000,
+        ),
       ),
       this.usersService.markLastLogin(refreshedUser.id),
     ]);
+
+    await this.logTenantAuthEvent({
+      tenantId: refreshedUser.tenantId,
+      actorUserId: refreshedUser.id,
+      action: 'auth.login.succeeded',
+      entityId: refreshedUser.id,
+      email: refreshedUser.email,
+      result: 'SUCCESS',
+      clientId,
+      sessionId: authResponse.tokens.sessionId,
+      req,
+    });
 
     return authResponse;
   }
@@ -288,11 +317,15 @@ export class AuthService {
     }
 
     const rotateRefresh = isRefreshRotationEnabled(this.configService);
-    const authResponse = this.buildAuthResponse(refreshedUser, false, {
+    const authResponse = await this.buildAuthResponse(
+      refreshedUser,
+      payload.rememberMe ?? false,
+      {
       clientId,
       sessionId: payload.sessionId,
       refreshTokenOverride: rotateRefresh ? undefined : refreshToken,
-    });
+      },
+    );
 
     if (rotateRefresh) {
       await this.rotateRefreshToken(
@@ -790,7 +823,11 @@ export class AuthService {
     this.clearAuthCookies(res, clientId);
   }
 
-  private async validateCredentials(dto: LoginDto) {
+  private async validateCredentials(
+    dto: LoginDto,
+    req?: Request,
+    clientId: AuthClientId = 'web',
+  ) {
     const normalizedEmail = normalizeEmail(dto.email);
     const tenantContext = await this.resolveLoginTenant(dto);
     const user = await this.usersService.findByTenantIdAndEmail(
@@ -808,6 +845,16 @@ export class AuthService {
           tenantSlug: tenantContext.slug,
         }),
       );
+      await this.logTenantAuthEvent({
+        tenantId: tenantContext.id,
+        action: 'auth.login.failed',
+        entityId: normalizedEmail,
+        email: normalizedEmail,
+        result: 'FAILED',
+        failureReason: 'USER_NOT_FOUND',
+        clientId,
+        req,
+      });
       throw this.authUnauthorized(
         'AUTH_INVALID_CREDENTIALS',
         'Invalid credentials.',
@@ -830,6 +877,17 @@ export class AuthService {
           tenantId: user.tenantId,
         }),
       );
+      await this.logTenantAuthEvent({
+        tenantId: user.tenantId,
+        actorUserId: user.id,
+        action: 'auth.login.failed',
+        entityId: user.id,
+        email: user.email,
+        result: 'FAILED',
+        failureReason: 'PASSWORD_MISMATCH',
+        clientId,
+        req,
+      });
       throw this.authUnauthorized(
         'AUTH_INVALID_CREDENTIALS',
         'Invalid credentials.',
@@ -1073,6 +1131,24 @@ export class AuthService {
   ) {
     const tokenHash = await bcrypt.hash(refreshToken, 10);
     const now = Date.now();
+    const allowMultipleSessions =
+      await this.allowsMultipleActiveSessions(tenantId);
+
+    if (!allowMultipleSessions) {
+      await this.prisma.refreshToken.updateMany({
+        where: {
+          tenantId,
+          userId,
+          appClientId: clientId,
+          revokedAt: null,
+          expiresAt: { gt: new Date(now) },
+        },
+        data: {
+          revokedAt: new Date(now),
+          lastUsedAt: new Date(now),
+        },
+      });
+    }
 
     await this.prisma.refreshToken.create({
       data: {
@@ -1093,6 +1169,65 @@ export class AuthService {
         ipAddress: req?.ip,
       },
     });
+  }
+
+  private async allowsMultipleActiveSessions(tenantId: string) {
+    const setting = await this.prisma.tenantSetting.findUnique({
+      where: {
+        tenantId_category_key: {
+          tenantId,
+          category: 'security',
+          key: 'allowMultipleActiveSessions',
+        },
+      },
+      select: { value: true },
+    });
+
+    return setting?.value === true;
+  }
+
+  private async logTenantAuthEvent(input: {
+    tenantId: string;
+    actorUserId?: string | null;
+    action: string;
+    entityId: string;
+    email?: string | null;
+    result: 'SUCCESS' | 'FAILED';
+    failureReason?: string | null;
+    clientId: AuthClientId;
+    sessionId?: string | null;
+    req?: Request;
+  }) {
+    try {
+      const requestInfo = getAuthRequestInfo(input.req);
+      await this.auditService.log({
+        tenantId: input.tenantId,
+        actorUserId: input.actorUserId ?? null,
+        action: input.action,
+        entityType: 'AUTH_LOGIN',
+        entityId: input.entityId,
+        sourceModule: 'auth',
+        afterSnapshot: {
+          email: input.email ?? null,
+          result: input.result,
+          failureReason: input.failureReason ?? null,
+          appClientId: input.clientId,
+          sessionId: input.sessionId ?? null,
+          ipAddress: requestInfo.ipAddress,
+          userAgent: requestInfo.userAgent,
+          mfaResult: 'NOT_REQUIRED',
+        },
+      });
+    } catch (error) {
+      this.logger.warn(
+        JSON.stringify({
+          event: 'auth.audit.failed',
+          action: input.action,
+          tenantId: input.tenantId,
+          reason: error instanceof Error ? error.message : String(error),
+        }),
+      );
+    }
   }
 
   private async hasActiveRefreshToken(
@@ -1120,7 +1255,12 @@ export class AuthService {
       const matches = await bcrypt.compare(refreshToken, tokenRecord.tokenHash);
 
       if (matches) {
-        this.assertSessionNotExpired(tokenRecord, clientId);
+        const authPolicy = await this.resolveTenantAuthPolicy(tenantId);
+        this.assertSessionNotExpired(
+          tokenRecord,
+          clientId,
+          authPolicy.idleTimeoutMinutes * 60_000,
+        );
         return true;
       }
     }
@@ -1388,7 +1528,7 @@ export class AuthService {
     });
   }
 
-  private buildAuthResponse(
+  private async buildAuthResponse(
     user: UserWithAccess,
     rememberMe = false,
     options: {
@@ -1398,6 +1538,8 @@ export class AuthService {
     } = {},
   ) {
     const clientId = options.clientId ?? 'web';
+    const authPolicy = await this.resolveTenantAuthPolicy(user.tenantId);
+    rememberMe = rememberMe && authPolicy.allowRememberMe;
     const sessionId = options.sessionId ?? randomUUID();
     const tokenVersion = 0;
 
@@ -1411,14 +1553,13 @@ export class AuthService {
       tokenUse: 'access',
       appClientId: clientId,
       aud: clientId,
+      rememberMe,
     };
 
-    const accessTokenTtl = rememberMe
-      ? this.configService.get<string>('JWT_ACCESS_TTL_REMEMBER_ME') || '30m'
-      : getClientAccessTokenTtl(this.configService, clientId);
+    const accessTokenTtl = `${authPolicy.sessionTimeoutMinutes}m`;
 
     const refreshTokenTtl = rememberMe
-      ? this.configService.get<string>('JWT_REFRESH_TTL_REMEMBER_ME') || '30d'
+      ? `${authPolicy.refreshTokenExpiryDays}d`
       : getClientRefreshTokenTtl(this.configService, clientId);
 
     const accessToken = this.jwtService.sign(accessPayload, {
@@ -1438,6 +1579,7 @@ export class AuthService {
           tokenUse: 'refresh',
           appClientId: clientId,
           aud: clientId,
+          rememberMe,
         } satisfies AuthTokenPayload,
         {
           secret: getClientRefreshTokenSecret(this.configService, clientId),
@@ -1459,7 +1601,57 @@ export class AuthService {
         sessionId,
         accessTokenExpiresIn: accessTokenTtl,
         refreshTokenExpiresIn: refreshTokenTtl,
+        rememberMe,
+        absoluteSessionLifetimeDays: authPolicy.absoluteSessionLifetimeDays,
+        idleTimeoutMinutes: authPolicy.idleTimeoutMinutes,
       },
+    };
+  }
+
+  private async resolveTenantAuthPolicy(tenantId: string) {
+    const rows = await this.prisma.tenantSetting.findMany({
+      where: {
+        tenantId,
+        category: 'security',
+        key: {
+          in: [
+            'allowRememberMe',
+            'sessionTimeoutMinutes',
+            'refreshTokenExpiryDays',
+            'absoluteSessionLifetimeDays',
+            'idleTimeoutMinutes',
+          ],
+        },
+      },
+      select: { key: true, value: true },
+    });
+    const values = new Map(rows.map((row) => [row.key, row.value]));
+    return {
+      allowRememberMe: readBooleanSetting(values.get('allowRememberMe'), true),
+      sessionTimeoutMinutes: readNumberSetting(
+        values.get('sessionTimeoutMinutes'),
+        480,
+        15,
+        1440,
+      ),
+      refreshTokenExpiryDays: readNumberSetting(
+        values.get('refreshTokenExpiryDays'),
+        30,
+        1,
+        365,
+      ),
+      absoluteSessionLifetimeDays: readNumberSetting(
+        values.get('absoluteSessionLifetimeDays'),
+        30,
+        1,
+        365,
+      ),
+      idleTimeoutMinutes: readNumberSetting(
+        values.get('idleTimeoutMinutes'),
+        480,
+        15,
+        1440,
+      ),
     };
   }
 
@@ -1670,6 +1862,7 @@ export class AuthService {
       lastActivityAt: Date | null;
     },
     clientId: AuthClientId,
+    idleTimeoutMs = getClientIdleTimeoutMs(this.configService, clientId),
   ) {
     const now = Date.now();
     if (
@@ -1687,7 +1880,7 @@ export class AuthService {
     if (
       lastActivityAt &&
       now - lastActivityAt >
-        getClientIdleTimeoutMs(this.configService, clientId)
+        idleTimeoutMs
     ) {
       throw this.authUnauthorized(
         'SESSION_EXPIRED',
@@ -1707,6 +1900,22 @@ export class AuthService {
   }
 }
 
+function readBooleanSetting(value: unknown, fallback: boolean) {
+  return typeof value === 'boolean' ? value : fallback;
+}
+
+function readNumberSetting(
+  value: unknown,
+  fallback: number,
+  minimum: number,
+  maximum: number,
+) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric)
+    ? Math.min(maximum, Math.max(minimum, Math.trunc(numeric)))
+    : fallback;
+}
+
 function toCookieLog(options: {
   maxAge?: number;
   sameSite?: boolean | 'lax' | 'strict' | 'none';
@@ -1722,5 +1931,21 @@ function toCookieLog(options: {
     httpOnly: options.httpOnly,
     path: options.path,
     domainPresent: Boolean(options.domain),
+  };
+}
+
+function getAuthRequestInfo(req?: Request) {
+  const forwardedFor = req?.headers['x-forwarded-for'];
+  const ipAddress = Array.isArray(forwardedFor)
+    ? forwardedFor[0]
+    : forwardedFor?.split(',')[0]?.trim() || req?.ip || null;
+  const userAgentHeader = req?.headers['user-agent'];
+  const userAgent = Array.isArray(userAgentHeader)
+    ? userAgentHeader[0]
+    : userAgentHeader || null;
+
+  return {
+    ipAddress,
+    userAgent: userAgent?.slice(0, 500) ?? null,
   };
 }

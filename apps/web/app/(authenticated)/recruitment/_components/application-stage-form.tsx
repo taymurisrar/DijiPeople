@@ -4,6 +4,7 @@
 
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { Button } from "@/app/components/ui/button";
 import { RecruitmentStage } from "../types";
 
 type ApplicationStageFormProps = {
@@ -74,13 +75,15 @@ export function ApplicationStageForm({
 
   return (
     <form
-      className="grid gap-3 rounded-[20px] border border-border bg-white/90 p-4"
+      className="grid content-start gap-3 rounded-lg border border-border bg-surface p-4 shadow-sm"
       onSubmit={handleSubmit}
     >
       <label className="space-y-2 text-sm">
-        <span className="font-medium text-foreground">Move to stage</span>
+        <span className="text-xs font-semibold uppercase text-muted">
+          Move to stage
+        </span>
         <select
-          className="w-full rounded-2xl border border-border bg-white px-4 py-3 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
+          className="h-10 w-full rounded-lg border border-border bg-white px-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
           value={stage}
           onChange={(event) => setStage(event.target.value as RecruitmentStage)}
         >
@@ -100,9 +103,11 @@ export function ApplicationStageForm({
 
       {stage === "REJECTED" ? (
         <label className="space-y-2 text-sm">
-          <span className="font-medium text-foreground">Rejection reason</span>
+          <span className="text-xs font-semibold uppercase text-muted">
+            Rejection reason
+          </span>
           <input
-            className="w-full rounded-2xl border border-border bg-white px-4 py-3 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
+            className="h-10 w-full rounded-lg border border-border bg-white px-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
             value={rejectionReason}
             onChange={(event) => setRejectionReason(event.target.value)}
           />
@@ -110,27 +115,32 @@ export function ApplicationStageForm({
       ) : null}
 
       <label className="space-y-2 text-sm">
-        <span className="font-medium text-foreground">Stage note</span>
+        <span className="text-xs font-semibold uppercase text-muted">
+          Stage note
+        </span>
         <textarea
-          className="min-h-20 w-full rounded-2xl border border-border bg-white px-4 py-3 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
+          className="min-h-20 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
           value={notes}
           onChange={(event) => setNotes(event.target.value)}
         />
       </label>
 
       {error ? (
-        <p className="rounded-2xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
+        <p className="rounded-lg border border-danger/20 bg-danger/5 px-3 py-2 text-sm text-danger">
           {error}
         </p>
       ) : null}
 
-      <button
-        className="rounded-2xl bg-accent px-5 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:opacity-70"
-        disabled={isSubmitting}
+      <Button
+        disabled={isSubmitting || stage === currentStage}
+        fullWidth
+        loading={isSubmitting}
+        loadingText="Updating"
+        size="sm"
         type="submit"
       >
-        {isSubmitting ? "Updating..." : "Update stage"}
-      </button>
+        Update stage
+      </Button>
     </form>
   );
 }

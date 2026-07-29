@@ -26,7 +26,12 @@ const runEmployeeInclude = {
       id: true,
       employeeCode: true,
       employeeLevelId: true,
+      businessUnitId: true,
+      departmentId: true,
+      employmentTypeId: true,
       countryId: true,
+      countryLookup: { select: { code: true } },
+      stateProvinceLookup: { select: { code: true } },
     },
   },
   payrollRun: { include: { payrollPeriod: true } },
@@ -82,16 +87,36 @@ export class TaxCalculationService {
       },
     });
 
+    const taxProfile = await this.prisma.employeeTaxProfile.findFirst({
+      where: {
+        tenantId: input.tenantId,
+        employeeId: runEmployee.employeeId,
+        status: 'ACTIVE',
+        effectiveFrom: { lte: input.effectiveDate },
+        OR: [
+          { effectiveTo: null },
+          { effectiveTo: { gte: input.effectiveDate } },
+        ],
+      },
+      orderBy: [{ effectiveFrom: 'desc' }, { createdAt: 'desc' }],
+    });
+
     const rules = await this.resolver.resolveApplicableTaxRules({
       tenantId: input.tenantId,
       employeeId: runEmployee.employeeId,
       employeeLevelId: runEmployee.employee.employeeLevelId,
+      businessUnitId: runEmployee.employee.businessUnitId,
+      departmentId: runEmployee.employee.departmentId,
+      employmentTypeId: runEmployee.employee.employmentTypeId,
+      countryCode: runEmployee.employee.countryLookup?.code,
+      regionCode: runEmployee.employee.stateProvinceLookup?.code,
+      assignedTaxRuleId: taxProfile?.taxRuleId,
       effectiveDate: input.effectiveDate,
     });
 
     const createdLineItems: Prisma.PayrollRunLineItemCreateManyInput[] = [];
     const snapshots: Prisma.PayrollInputSnapshotCreateManyInput[] = [];
-    for (const rule of rules) {
+    for (const [ruleIndex, rule] of rules.entries()) {
       const bracketValidationError = validateRuleBrackets(rule);
       if (bracketValidationError) {
         await this.prisma.payrollException.create({
@@ -107,8 +132,27 @@ export class TaxCalculationService {
         });
         continue;
       }
-      const taxableBase = resolveTaxableBase(rule, runEmployee.lineItems);
-      if (taxableBase.lte(0)) continue;
+      const rawTaxableBase = resolveTaxableBase(rule, runEmployee.lineItems);
+      const profileApplies = Boolean(
+        taxProfile &&
+        (taxProfile.taxRuleId
+          ? taxProfile.taxRuleId === rule.id
+          : ruleIndex === 0),
+      );
+      const exemption = profileApplies
+        ? taxProfile!.taxExemptionAmount
+        : new Prisma.Decimal(0);
+      const credit = profileApplies
+        ? taxProfile!.taxCreditAmount
+        : new Prisma.Decimal(0);
+      const additionalTax = profileApplies
+        ? taxProfile!.additionalTaxAmount
+        : new Prisma.Decimal(0);
+      const taxableBase = Prisma.Decimal.max(
+        new Prisma.Decimal(0),
+        rawTaxableBase.minus(exemption),
+      );
+      if (taxableBase.lte(0) && additionalTax.lte(0)) continue;
       const calculated = calculateRuleAmounts(rule, taxableBase);
       if (calculated.error) {
         await this.prisma.payrollException.create({
@@ -124,18 +168,22 @@ export class TaxCalculationService {
         });
         continue;
       }
-      if (calculated.employeeAmount.gt(0)) {
+      const finalEmployeeAmount = Prisma.Decimal.max(
+        new Prisma.Decimal(0),
+        calculated.employeeAmount.minus(credit).plus(additionalTax),
+      );
+      if (finalEmployeeAmount.gt(0)) {
         createdLineItems.push({
           tenantId: input.tenantId,
           payrollRunEmployeeId: runEmployee.id,
-          payComponentId: null,
+          payComponentId: rule.employeeTaxComponentId,
           category: PayrollRunLineItemCategory.TAX,
           sourceType: 'TAX',
           sourceId: rule.id,
           label: rule.name,
           quantity: null,
-          rate: rule.employeeRate,
-          amount: calculated.employeeAmount,
+          rate: calculated.appliedBracket?.employeeRate ?? rule.employeeRate,
+          amount: finalEmployeeAmount,
           currencyCode: runEmployee.currencyCode,
           isTaxable: false,
           affectsGrossPay: false,
@@ -148,13 +196,13 @@ export class TaxCalculationService {
         createdLineItems.push({
           tenantId: input.tenantId,
           payrollRunEmployeeId: runEmployee.id,
-          payComponentId: null,
+          payComponentId: rule.employerTaxComponentId,
           category: PayrollRunLineItemCategory.EMPLOYER_CONTRIBUTION,
           sourceType: 'TAX',
           sourceId: rule.id,
           label: `${rule.name} Employer Contribution`,
           quantity: null,
-          rate: rule.employerRate,
+          rate: calculated.appliedBracket?.employerRate ?? rule.employerRate,
           amount: calculated.employerAmount,
           currencyCode: runEmployee.currencyCode,
           isTaxable: false,
@@ -176,8 +224,82 @@ export class TaxCalculationService {
           name: rule.name,
           taxType: rule.taxType,
           calculationMethod: rule.calculationMethod,
+          calculationStrategy: 'PERIODIC',
+          employeeTaxProfile: taxProfile
+            ? {
+                id: taxProfile.id,
+                effectiveFrom: taxProfile.effectiveFrom.toISOString(),
+                effectiveTo: taxProfile.effectiveTo?.toISOString() ?? null,
+                taxResidencyCountryCode: taxProfile.taxResidencyCountryCode,
+                workTaxJurisdiction: taxProfile.workTaxJurisdiction,
+                taxStatus: taxProfile.taxStatus,
+                taxCategory: taxProfile.taxCategory,
+                filingStatus: taxProfile.filingStatus,
+                dependentAllowances: taxProfile.dependentAllowances,
+                assignedTaxRuleId: taxProfile.taxRuleId,
+                overrideReason: taxProfile.overrideReason,
+              }
+            : null,
+          taxableComponents: runEmployee.lineItems
+            .filter((line) => isTaxableForRule(rule, line))
+            .map((line) => ({
+              payrollRunLineItemId: line.id,
+              payComponentId: line.payComponentId,
+              label: line.label,
+              amount: line.amount.toString(),
+            })),
+          excludedComponents: runEmployee.lineItems
+            .filter(
+              (line) =>
+                line.sourceType !== 'TAX' && !isTaxableForRule(rule, line),
+            )
+            .map((line) => ({
+              payrollRunLineItemId: line.id,
+              payComponentId: line.payComponentId,
+              label: line.label,
+              amount: line.amount.toString(),
+            })),
+          taxableBaseBeforeExemption: rawTaxableBase.toString(),
           taxableBase: taxableBase.toString(),
-          employeeAmount: calculated.employeeAmount.toString(),
+          periodTaxableIncome: taxableBase.toString(),
+          ytdTaxableIncome: taxableBase
+            .plus(
+              profileApplies
+                ? taxProfile!.previousEmployerTaxableIncome
+                : new Prisma.Decimal(0),
+            )
+            .toString(),
+          projectedAnnualIncome: null,
+          appliedPolicy: {
+            id: rule.id,
+            code: rule.code,
+            version: rule.updatedAt.toISOString(),
+            effectiveFrom: rule.effectiveFrom.toISOString(),
+            effectiveTo: rule.effectiveTo?.toISOString() ?? null,
+          },
+          appliedSlab: calculated.appliedBracket
+            ? {
+                id: calculated.appliedBracket.id,
+                lowerLimit: calculated.appliedBracket.minAmount.toString(),
+                upperLimit:
+                  calculated.appliedBracket.maxAmount?.toString() ?? null,
+                employeeRate:
+                  calculated.appliedBracket.employeeRate?.toString() ?? null,
+                employerRate:
+                  calculated.appliedBracket.employerRate?.toString() ?? null,
+              }
+            : null,
+          baseTax: calculated.employeeBaseAmount.toString(),
+          marginalTax: calculated.employeeMarginalAmount.toString(),
+          credits: credit.toString(),
+          exemptions: exemption.toString(),
+          priorTaxDeducted: profileApplies
+            ? taxProfile!.previousEmployerTaxDeducted.toString()
+            : '0',
+          currentTax: calculated.employeeAmount.toString(),
+          adjustment: additionalTax.minus(credit).toString(),
+          finalDeduction: finalEmployeeAmount.toString(),
+          employeeAmount: finalEmployeeAmount.toString(),
           employerAmount: calculated.employerAmount.toString(),
         },
       });
@@ -206,6 +328,7 @@ export class TaxCalculationService {
         beforeSnapshot: null,
         afterSnapshot: {
           taxRuleCount: rules.length,
+          taxProfileId: taxProfile?.id ?? null,
           lineItemCount: createdLineItems.length,
         },
       });
@@ -270,69 +393,202 @@ function resolveTaxableBase(
     rule.payComponents.map((mapping) => mapping.payComponentId),
   );
   return lineItems.reduce((sum, line) => {
-    if (line.sourceType === 'TAX') return sum;
-    if (
-      line.category === PayrollRunLineItemCategory.DEDUCTION ||
-      line.category === PayrollRunLineItemCategory.TAX
-    )
-      return sum;
-    if (mappedComponentIds.size) {
-      return line.payComponentId && mappedComponentIds.has(line.payComponentId)
-        ? sum.plus(line.amount)
-        : sum;
-    }
-    if (!line.isTaxable || line.amount.lte(0)) return sum;
-    if (
-      line.category === PayrollRunLineItemCategory.REIMBURSEMENT &&
-      !line.isTaxable
-    )
-      return sum;
-    return sum.plus(line.amount);
+    return isTaxableForRule(rule, line, mappedComponentIds)
+      ? sum.plus(line.amount)
+      : sum;
   }, new Prisma.Decimal(0));
 }
 
-function calculateRuleAmounts(
+function isTaxableForRule(
+  rule: TaxRulePayload,
+  line: Prisma.PayrollRunLineItemGetPayload<Record<string, never>>,
+  mappedComponentIds = new Set(
+    rule.payComponents.map((mapping) => mapping.payComponentId),
+  ),
+) {
+  if (line.sourceType === 'TAX' || line.amount.lte(0)) return false;
+  if (
+    line.category === PayrollRunLineItemCategory.DEDUCTION ||
+    line.category === PayrollRunLineItemCategory.TAX
+  ) {
+    return false;
+  }
+  if (mappedComponentIds.size) {
+    return Boolean(
+      line.payComponentId && mappedComponentIds.has(line.payComponentId),
+    );
+  }
+  return line.isTaxable;
+}
+
+export function calculateRuleAmounts(
   rule: TaxRulePayload,
   taxableBase: Prisma.Decimal,
 ) {
+  if (
+    rule.calculationMethod === TaxCalculationMethod.ZERO ||
+    rule.calculationMethod === TaxCalculationMethod.EXTERNAL
+  ) {
+    return zeroTaxResult();
+  }
+  if (rule.calculationMethod === TaxCalculationMethod.FORMULA) {
+    const employeeAmount = calculateSimpleTaxFormula(
+      rule.formulaExpression,
+      taxableBase,
+    );
+    if (!employeeAmount) {
+      return {
+        ...zeroTaxResult(),
+        error:
+          'Formula policies must use a supported expression such as taxableBase * 10% or taxableBase * 0.10 + 100.',
+      };
+    }
+    return {
+      employeeAmount,
+      employerAmount: new Prisma.Decimal(0),
+      employeeBaseAmount: new Prisma.Decimal(0),
+      employeeMarginalAmount: employeeAmount,
+      appliedBracket: null,
+      error: null as string | null,
+    };
+  }
   if (rule.calculationMethod === TaxCalculationMethod.FIXED) {
     return {
       employeeAmount: rule.fixedEmployeeAmount ?? new Prisma.Decimal(0),
       employerAmount: rule.fixedEmployerAmount ?? new Prisma.Decimal(0),
+      employeeBaseAmount: rule.fixedEmployeeAmount ?? new Prisma.Decimal(0),
+      employeeMarginalAmount: new Prisma.Decimal(0),
+      appliedBracket: null,
       error: null as string | null,
     };
   }
   if (rule.calculationMethod === TaxCalculationMethod.PERCENTAGE) {
+    const employeeAmount = taxableBase.mul(rule.employeeRate ?? 0).div(100);
     return {
-      employeeAmount: taxableBase.mul(rule.employeeRate ?? 0).div(100),
+      employeeAmount,
       employerAmount: taxableBase.mul(rule.employerRate ?? 0).div(100),
+      employeeBaseAmount: new Prisma.Decimal(0),
+      employeeMarginalAmount: employeeAmount,
+      appliedBracket: null,
       error: null as string | null,
     };
   }
-  const bracket = rule.brackets.find(
+  const sorted = [...rule.brackets].sort((a, b) =>
+    a.minAmount.comparedTo(b.minAmount),
+  );
+  const bracket = sorted.find(
     (item) =>
       taxableBase.gte(item.minAmount) &&
-      (!item.maxAmount || taxableBase.lte(item.maxAmount)),
+      (!item.maxAmount || taxableBase.lt(item.maxAmount)),
   );
   if (!bracket) {
     return {
       employeeAmount: new Prisma.Decimal(0),
       employerAmount: new Prisma.Decimal(0),
+      employeeBaseAmount: new Prisma.Decimal(0),
+      employeeMarginalAmount: new Prisma.Decimal(0),
+      appliedBracket: null,
       error: `No valid tax bracket matched taxable base ${taxableBase.toString()} for ${rule.code}.`,
     };
   }
+  const employee = calculateBracketSide(
+    sorted,
+    bracket,
+    taxableBase,
+    'employeeRate',
+    'fixedEmployeeAmount',
+  );
+  const employer = calculateBracketSide(
+    sorted,
+    bracket,
+    taxableBase,
+    'employerRate',
+    'fixedEmployerAmount',
+  );
+  const employeeTotal = clampTax(
+    employee.total,
+    bracket.minimumTax,
+    bracket.maximumTax,
+  );
   return {
-    employeeAmount: (bracket.fixedEmployeeAmount ?? new Prisma.Decimal(0)).plus(
-      taxableBase.mul(bracket.employeeRate ?? 0).div(100),
-    ),
-    employerAmount: (bracket.fixedEmployerAmount ?? new Prisma.Decimal(0)).plus(
-      taxableBase.mul(bracket.employerRate ?? 0).div(100),
-    ),
+    employeeAmount: employeeTotal,
+    employerAmount: employer.total,
+    employeeBaseAmount: employee.base,
+    employeeMarginalAmount: employeeTotal.minus(employee.base),
+    appliedBracket: bracket,
     error: null as string | null,
   };
 }
 
-function validateRuleBrackets(rule: TaxRulePayload) {
+function calculateBracketSide(
+  sorted: TaxRulePayload['brackets'],
+  applied: TaxRulePayload['brackets'][number],
+  taxableBase: Prisma.Decimal,
+  rateField: 'employeeRate' | 'employerRate',
+  fixedField: 'fixedEmployeeAmount' | 'fixedEmployerAmount',
+) {
+  const configuredBase = applied[fixedField];
+  if (configuredBase !== null) {
+    const marginal = taxableBase
+      .minus(applied.excessOver ?? applied.minAmount)
+      .mul(applied[rateField] ?? 0)
+      .div(100);
+    return {
+      base: configuredBase,
+      marginal,
+      total: configuredBase.plus(marginal),
+    };
+  }
+
+  const marginal = sorted.reduce((total, bracket) => {
+    if (taxableBase.lte(bracket.minAmount)) return total;
+    const upper = bracket.maxAmount
+      ? Prisma.Decimal.min(taxableBase, bracket.maxAmount)
+      : taxableBase;
+    const taxableInBracket = upper.minus(bracket.minAmount);
+    if (taxableInBracket.lte(0)) return total;
+    return total.plus(taxableInBracket.mul(bracket[rateField] ?? 0).div(100));
+  }, new Prisma.Decimal(0));
+  return { base: new Prisma.Decimal(0), marginal, total: marginal };
+}
+
+function zeroTaxResult() {
+  return {
+    employeeAmount: new Prisma.Decimal(0),
+    employerAmount: new Prisma.Decimal(0),
+    employeeBaseAmount: new Prisma.Decimal(0),
+    employeeMarginalAmount: new Prisma.Decimal(0),
+    appliedBracket: null,
+    error: null as string | null,
+  };
+}
+
+function clampTax(
+  amount: Prisma.Decimal,
+  minimum: Prisma.Decimal | null,
+  maximum: Prisma.Decimal | null,
+) {
+  const withMinimum = minimum ? Prisma.Decimal.max(amount, minimum) : amount;
+  return maximum ? Prisma.Decimal.min(withMinimum, maximum) : withMinimum;
+}
+
+function calculateSimpleTaxFormula(
+  expression: string | null,
+  taxableBase: Prisma.Decimal,
+) {
+  if (!expression) return null;
+  const match = expression
+    .trim()
+    .match(
+      /^taxableBase\s*\*\s*([0-9]+(?:\.[0-9]+)?)(%)?(?:\s*\+\s*([0-9]+(?:\.[0-9]+)?))?$/i,
+    );
+  if (!match) return null;
+  const factor = new Prisma.Decimal(match[1]).div(match[2] ? 100 : 1);
+  const fixed = new Prisma.Decimal(match[3] ?? 0);
+  return taxableBase.mul(factor).plus(fixed);
+}
+
+export function validateRuleBrackets(rule: TaxRulePayload) {
   if (rule.calculationMethod !== TaxCalculationMethod.BRACKET) return null;
   if (!rule.brackets.length)
     return `Tax rule ${rule.code} does not have any brackets.`;
@@ -357,6 +613,10 @@ function validateRuleBrackets(rule: TaxRulePayload) {
           : Number(previous.maxAmount);
       if (min < previousMax)
         return `Tax rule ${rule.code} has overlapping brackets.`;
+      if (min > previousMax)
+        return `Tax rule ${rule.code} has a gap between ${previousMax} and ${min}.`;
+    } else if (min !== 0) {
+      return `Tax rule ${rule.code} must start at zero; add a zero-rate slab when the threshold is exempt.`;
     }
   }
   return null;

@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import type { FieldValueMap } from "@/app/components/metadata/runtime-metadata-form-renderer";
 import { ModuleRecordPage } from "@/app/components/runtime";
 import type { CommandDefinition } from "@/lib/runtime/command-runtime.types";
@@ -37,50 +37,55 @@ export function EmployeeRuntimeFormWrapper({
     enabled: mode !== "detail",
     stateProvinceId: stringValue(record.stateProvinceId),
   });
-  const resolvedLookupOptions: Record<string, readonly LookupOption[]> = {
-    ...lookupOptions,
-    departmentId: mergeLookupOptions(
-      lookupOptions.departmentId,
-      employeeLookups.departments,
-    ),
-    designationId: mergeLookupOptions(
-      lookupOptions.designationId,
-      employeeLookups.designations,
-    ),
-    employeeLevelId: mergeLookupOptions(
-      lookupOptions.employeeLevelId,
-      employeeLookups.employeeLevels,
-    ),
-    locationId: mergeLookupOptions(
-      lookupOptions.locationId,
-      employeeLookups.locations,
-    ),
-    officialJoiningLocationId: mergeLookupOptions(
-      lookupOptions.officialJoiningLocationId,
-      employeeLookups.locations,
-    ),
-    defaultWorkScheduleId: mergeLookupOptions(
-      lookupOptions.defaultWorkScheduleId,
-      employeeLookups.workSchedules,
-    ),
-    countryId: mergeLookupOptions(
-      lookupOptions.countryId,
-      employeeLookups.countries,
-    ),
-    nationalityCountryId: mergeLookupOptions(
-      lookupOptions.nationalityCountryId,
-      employeeLookups.countries,
-    ),
-    stateProvinceId: mergeLookupOptions(
-      lookupOptions.stateProvinceId,
-      employeeLookups.states,
-    ),
-    cityId: mergeLookupOptions(lookupOptions.cityId, employeeLookups.cities),
-    emergencyContactRelationTypeId: mergeLookupOptions(
-      lookupOptions.emergencyContactRelationTypeId,
-      employeeLookups.relationTypes,
-    ),
-  };
+  const resolvedLookupOptions: Record<string, readonly LookupOption[]> =
+    useMemo(
+      () => ({
+        ...lookupOptions,
+        departmentId: mergeLookupOptions(
+          lookupOptions.departmentId,
+          employeeLookups.departments,
+        ),
+        teamId: mergeLookupOptions(lookupOptions.teamId, employeeLookups.teams),
+        designationId: mergeLookupOptions(
+          lookupOptions.designationId,
+          employeeLookups.designations,
+        ),
+        employeeLevelId: mergeLookupOptions(
+          lookupOptions.employeeLevelId,
+          employeeLookups.employeeLevels,
+        ),
+        locationId: mergeLookupOptions(
+          lookupOptions.locationId,
+          employeeLookups.locations,
+        ),
+        officialJoiningLocationId: mergeLookupOptions(
+          lookupOptions.officialJoiningLocationId,
+          employeeLookups.locations,
+        ),
+        defaultWorkScheduleId: mergeLookupOptions(
+          lookupOptions.defaultWorkScheduleId,
+          employeeLookups.workSchedules,
+        ),
+        countryId: mergeLookupOptions(
+          lookupOptions.countryId,
+          employeeLookups.countries,
+        ),
+        nationalityCountryId: mergeLookupOptions(
+          lookupOptions.nationalityCountryId,
+          employeeLookups.countries,
+        ),
+        stateProvinceId: mergeLookupOptions(
+          lookupOptions.stateProvinceId,
+          employeeLookups.states,
+        ),
+        cityId: mergeLookupOptions(lookupOptions.cityId, employeeLookups.cities),
+        emergencyContactRelationTypeId: mergeLookupOptions(
+          lookupOptions.emergencyContactRelationTypeId,
+          employeeLookups.relationTypes,
+        ),
+      }),
+      [employeeLookups, lookupOptions],
+    );
   const runtimeWithEmployeeCommands = useEmployeeAccountActionRuntime(runtime);
 
   return (
@@ -93,14 +98,14 @@ export function EmployeeRuntimeFormWrapper({
       moduleKey="employees"
       record={record}
       recordId={runtime.recordId}
-      deriveValuesOnChange={({ changedField, lookupOptions, nextValues }) =>
+      deriveValuesOnChange={(input) =>
         deriveEmployeeLevelFromDesignation({
-          changedFieldLogicalName: changedField.logicalName,
+          changedFieldLogicalName: input.changedField.logicalName,
           designationOptions: mergeLookupOptions(
-            lookupOptions.designationId,
+            input.lookupOptions.designationId,
             resolvedLookupOptions.designationId ?? [],
           ),
-          nextValues,
+          nextValues: input.nextValues,
         })
       }
       resolveFieldEditable={({ defaultEditable, field, values }) => {

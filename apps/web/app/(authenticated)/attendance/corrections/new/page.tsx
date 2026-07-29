@@ -1,17 +1,20 @@
 import Link from "next/link";
 import { AttendanceCorrectionForm } from "@/app/components/attendance-corrections/attendance-correction-form";
 import { requireSessionUser } from "@/lib/auth";
-import { hasPermission } from "@/lib/permissions";
+import { hasAnyPermission } from "@/lib/permissions";
 import { PERMISSION_KEYS } from "@/lib/security-keys";
 import { AccessDeniedState } from "../../../_components/access-denied-state";
 
 export default async function NewAttendanceCorrectionPage() {
   const user = await requireSessionUser("/");
   if (
-    !hasPermission(
-      user.permissionKeys,
+    !hasAnyPermission(user.permissionKeys, [
       PERMISSION_KEYS.ATTENDANCE_CORRECTION_CREATE,
-    )
+      PERMISSION_KEYS.ATTENDANCE_READ,
+      PERMISSION_KEYS.ATTENDANCE_READ_OWN,
+      PERMISSION_KEYS.ATTENDANCE_READ_TEAM,
+      PERMISSION_KEYS.ATTENDANCE_READ_ALL,
+    ])
   ) {
     return (
       <main className="dp-theme-scope dp-attendance-scope grid gap-6">

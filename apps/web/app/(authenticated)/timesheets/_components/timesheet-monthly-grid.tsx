@@ -12,6 +12,7 @@ type EditableRow = TimesheetDayRecord & {
   uiEntryType: TimesheetEntryType | null;
   uiHoursWorked: string;
   uiNote: string;
+  uiProjectId: string;
 };
 
 export function TimesheetMONTHLYGrid({
@@ -22,15 +23,26 @@ export function TimesheetMONTHLYGrid({
   onEntryTypeChange,
   onHoursChange,
   onNoteChange,
+  onProjectChange,
+  projectOptions = [],
   rows,
 }: {
   allowHolidayWork?: boolean;
   allowWeekendWork?: boolean;
   editable?: boolean;
   invalidDates?: string[];
-  onEntryTypeChange?: (date: string, nextValue: TimesheetEntryType | null) => void;
+  onEntryTypeChange?: (
+    date: string,
+    nextValue: TimesheetEntryType | null,
+  ) => void;
   onHoursChange?: (date: string, nextValue: string) => void;
   onNoteChange?: (date: string, nextValue: string) => void;
+  onProjectChange?: (date: string, nextValue: string) => void;
+  projectOptions?: readonly {
+    readonly id: string;
+    readonly name: string;
+    readonly code?: string | null;
+  }[];
   rows: EditableRow[];
 }) {
   const invalidSet = new Set(invalidDates);
@@ -45,6 +57,7 @@ export function TimesheetMONTHLYGrid({
               <th className="px-4 py-3 font-medium">Date</th>
               <th className="px-4 py-3 font-medium">Day</th>
               <th className="px-4 py-3 font-medium">Status</th>
+              <th className="px-4 py-3 font-medium">Project</th>
               <th className="px-4 py-3 font-medium">Hours</th>
               <th className="px-4 py-3 font-medium">Indicators</th>
               <th className="px-4 py-3 font-medium">Note</th>
@@ -71,7 +84,9 @@ export function TimesheetMONTHLYGrid({
                   <td className="px-4 py-3 text-foreground">
                     {formatResolvedDate(row.date, resolvedSettings)}
                   </td>
-                  <td className="px-4 py-3 text-muted">{shortDay(row.dayOfWeek)}</td>
+                  <td className="px-4 py-3 text-muted">
+                    {shortDay(row.dayOfWeek)}
+                  </td>
                   <td className="px-4 py-3">
                     {editable ? (
                       <select
@@ -79,7 +94,8 @@ export function TimesheetMONTHLYGrid({
                         onChange={(event) =>
                           onEntryTypeChange?.(
                             row.date,
-                            (event.target.value || null) as TimesheetEntryType | null,
+                            (event.target.value ||
+                              null) as TimesheetEntryType | null,
                           )
                         }
                         value={row.uiEntryType ?? ""}
@@ -87,12 +103,16 @@ export function TimesheetMONTHLYGrid({
                         {row.isWeekend ? (
                           <>
                             <option value="WEEKEND">Weekend</option>
-                            {allowWeekendWork ? <option value="ON_WORK">On Work</option> : null}
+                            {allowWeekendWork ? (
+                              <option value="ON_WORK">On Work</option>
+                            ) : null}
                           </>
                         ) : row.isHoliday ? (
                           <>
                             <option value="HOLIDAY">Holiday</option>
-                            {allowHolidayWork ? <option value="ON_WORK">On Work</option> : null}
+                            {allowHolidayWork ? (
+                              <option value="ON_WORK">On Work</option>
+                            ) : null}
                           </>
                         ) : (
                           <>
@@ -103,8 +123,44 @@ export function TimesheetMONTHLYGrid({
                         )}
                       </select>
                     ) : (
-                      <span className={badgeClass(row.uiEntryType, row.isWeekend, row.isHoliday)}>
-                        {labelForEntry(row.uiEntryType, row.isWeekend, row.isHoliday)}
+                      <span
+                        className={badgeClass(
+                          row.uiEntryType,
+                          row.isWeekend,
+                          row.isHoliday,
+                        )}
+                      >
+                        {labelForEntry(
+                          row.uiEntryType,
+                          row.isWeekend,
+                          row.isHoliday,
+                        )}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    {editable && row.uiEntryType === "ON_WORK" ? (
+                      <select
+                        className="min-w-48 rounded-xl border border-border bg-white px-3 py-2 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
+                        onChange={(event) =>
+                          onProjectChange?.(row.date, event.target.value)
+                        }
+                        value={row.uiProjectId}
+                      >
+                        <option value="">No project</option>
+                        {projectOptions.map((project) => (
+                          <option key={project.id} value={project.id}>
+                            {project.name}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span className="text-muted">
+                        {row.project?.name ||
+                          projectOptions.find(
+                            (project) => project.id === row.uiProjectId,
+                          )?.name ||
+                          "No project"}
                       </span>
                     )}
                   </td>
@@ -132,12 +188,21 @@ export function TimesheetMONTHLYGrid({
                   </td>
                   <td className="px-4 py-3 text-muted">
                     <div className="flex flex-wrap gap-2">
-                      {row.isWeekend ? <Badge text="Weekend" tone="slate" /> : null}
-                      {row.isHoliday ? <Badge text="Holiday" tone="sky" /> : null}
-                      {row.leaveRequest ? (
-                        <Badge text={row.leaveRequest.leaveType.name} tone="emerald" />
+                      {row.isWeekend ? (
+                        <Badge text="Weekend" tone="slate" />
                       ) : null}
-                      {isInvalid ? <Badge text="Incomplete" tone="amber" /> : null}
+                      {row.isHoliday ? (
+                        <Badge text="Holiday" tone="sky" />
+                      ) : null}
+                      {row.leaveRequest ? (
+                        <Badge
+                          text={row.leaveRequest.leaveType.name}
+                          tone="emerald"
+                        />
+                      ) : null}
+                      {isInvalid ? (
+                        <Badge text="Incomplete" tone="amber" />
+                      ) : null}
                     </div>
                   </td>
                   <td className="px-4 py-3">
@@ -152,7 +217,9 @@ export function TimesheetMONTHLYGrid({
                         value={row.uiNote}
                       />
                     ) : (
-                      <span className="text-muted">{row.uiNote || "No note"}</span>
+                      <span className="text-muted">
+                        {row.uiNote || "No note"}
+                      </span>
                     )}
                   </td>
                 </tr>
@@ -165,7 +232,13 @@ export function TimesheetMONTHLYGrid({
   );
 }
 
-function Badge({ text, tone }: { text: string; tone: "slate" | "sky" | "emerald" | "amber" }) {
+function Badge({
+  text,
+  tone,
+}: {
+  text: string;
+  tone: "slate" | "sky" | "emerald" | "amber";
+}) {
   const classes = {
     slate: "bg-slate-100 text-slate-700",
     sky: "bg-sky-100 text-sky-800",
@@ -174,7 +247,9 @@ function Badge({ text, tone }: { text: string; tone: "slate" | "sky" | "emerald"
   };
 
   return (
-    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${classes[tone]}`}>
+    <span
+      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${classes[tone]}`}
+    >
       {text}
     </span>
   );
@@ -185,10 +260,14 @@ function badgeClass(
   isWeekend: boolean,
   isHoliday: boolean,
 ) {
-  if (entryType === "ON_WORK") return "inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-800";
-  if (entryType === "ON_LEAVE") return "inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-amber-800";
-  if (isHoliday || entryType === "HOLIDAY") return "inline-flex rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-sky-800";
-  if (isWeekend || entryType === "WEEKEND") return "inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-slate-700";
+  if (entryType === "ON_WORK")
+    return "inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-800";
+  if (entryType === "ON_LEAVE")
+    return "inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-amber-800";
+  if (isHoliday || entryType === "HOLIDAY")
+    return "inline-flex rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-sky-800";
+  if (isWeekend || entryType === "WEEKEND")
+    return "inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-slate-700";
   return "inline-flex rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-rose-700";
 }
 

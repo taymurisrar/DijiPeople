@@ -37,6 +37,14 @@ export class AssignProjectEmployeeDto {
   allocationHours?: string;
 
   @IsOptional()
+  @IsNumberString()
+  billingRateAmount?: string;
+
+  @IsOptional()
+  @IsNumberString()
+  costRateAmount?: string;
+
+  @IsOptional()
   @IsEnum(ProjectAllocationType)
   allocationType?: ProjectAllocationType;
 

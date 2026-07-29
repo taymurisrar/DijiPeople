@@ -51,6 +51,11 @@ import {
 import { TenantSettingsService } from '../tenant-settings/tenant-settings.service';
 import { BulkDeleteEmployeesDto } from './dto/bulk-delete-employees.dto';
 import { BenefitsService } from '../benefits/benefits.service';
+import {
+  EMPLOYEE_DRAFT_LIFECYCLE,
+  EMPLOYEE_RECORD_STATUS,
+  EMPLOYEE_RECORD_SUB_STATUS,
+} from './employee-lifecycle.constants';
 
 type CsvFile = {
   filename: string;
@@ -118,6 +123,16 @@ function employeeValidationError(
     message,
     details: { fieldErrors },
   });
+}
+
+function removeUndefinedValues<T extends Record<string, unknown>>(value: T): T {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, fieldValue]) => fieldValue !== undefined),
+  ) as T;
+}
+
+function hasNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0;
 }
 
 function emergencyContactFieldErrors(input: {
@@ -579,6 +594,54 @@ export class EmployeesService {
       fullTree: (childrenByManagerId.get(null) ?? []).map(buildTree),
     };
   }
+
+  async getProjectAllocations(
+    currentUser: AuthenticatedUser,
+    employeeId: string,
+  ) {
+    await this.findById(currentUser.tenantId, employeeId);
+    const assignments = await this.prisma.projectAssignment.findMany({
+      where: { tenantId: currentUser.tenantId, employeeId },
+      include: {
+        project: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            customer: { select: { id: true, name: true } },
+          },
+        },
+      },
+      orderBy: [
+        { status: 'asc' },
+        { startDate: 'desc' },
+        { createdAt: 'desc' },
+      ],
+    });
+
+    return assignments.map((assignment) => ({
+      id: assignment.id,
+      employeeId: assignment.employeeId,
+      projectId: assignment.projectId,
+      projectName: assignment.project.name,
+      projectCode: assignment.project.code,
+      customerName: assignment.project.customer?.name ?? null,
+      allocationType: assignment.allocationType,
+      allocationValue:
+        assignment.allocationType === 'HOURS'
+          ? assignment.allocationHours?.toString()
+          : assignment.allocationPercent,
+      allocationPercent: assignment.allocationPercent,
+      allocationHours: assignment.allocationHours?.toString() ?? null,
+      billable: assignment.billableFlag,
+      billableFlag: assignment.billableFlag,
+      effectiveFrom: assignment.startDate,
+      effectiveTo: assignment.endDate,
+      status: assignment.status,
+      updatedAt: assignment.updatedAt,
+    }));
+  }
+
   private async resolveEmployeeCodeForCreate(
     tenantId: string,
     dto: CreateEmployeeDto,
@@ -782,7 +845,10 @@ export class EmployeesService {
       tenantId,
       dto.reportingManagerEmployeeId,
       dto.userId,
+      dto.organizationId,
+      dto.businessUnitId,
       dto.departmentId,
+      dto.teamId,
       dto.designationId,
       dto.employeeLevelId,
       dto.locationId,
@@ -897,6 +963,7 @@ export class EmployeesService {
     }
 
     const beforeSnapshot = this.mapEmployee(employee);
+    this.preserveUnchangedDependentLookups(dto, employee);
     this.assertEmployeeSettingsRulesForUpdate(dto, employee, employeeSettings);
     await this.assertEmployeeDuplicateRules(
       tenantId,
@@ -930,7 +997,24 @@ export class EmployeesService {
       tenantId,
       dto.reportingManagerEmployeeId,
       dto.userId,
-      dto.departmentId,
+      dto.organizationId !== undefined
+        ? dto.organizationId
+        : dto.businessUnitId !== undefined ||
+            dto.departmentId !== undefined ||
+            dto.teamId !== undefined
+          ? (employee.organizationId ?? undefined)
+          : undefined,
+      dto.businessUnitId !== undefined
+        ? dto.businessUnitId
+        : dto.departmentId !== undefined || dto.teamId !== undefined
+          ? (employee.businessUnitId ?? undefined)
+          : undefined,
+      dto.departmentId !== undefined
+        ? dto.departmentId
+        : dto.teamId !== undefined
+          ? (employee.departmentId ?? undefined)
+          : undefined,
+      dto.teamId,
       dto.designationId !== undefined
         ? dto.designationId
         : dto.employeeLevelId !== undefined
@@ -950,7 +1034,7 @@ export class EmployeesService {
     );
     this.validateDateRules(dto);
 
-    if (dto.ownerUserId !== undefined) {
+    if (hasNonEmptyString(dto.ownerUserId)) {
       await this.assertAssignableOwner(currentUser, dto.ownerUserId);
     }
     await this.assertActiveWorkSchedule(tenantId, dto.defaultWorkScheduleId);
@@ -959,11 +1043,18 @@ export class EmployeesService {
       const result = await this.employeesRepository.update(
         tenantId,
         employeeId,
-        this.buildUpdateData(
-          dto,
-          currentUser.userId,
-          referenceContext.linkedUserEmail,
-          referenceContext,
+        removeUndefinedValues(
+          this.buildUpdateData(
+            dto,
+            currentUser.userId,
+            referenceContext.linkedUserEmail,
+            referenceContext,
+            {
+              isDraftProfile: employee.isDraftProfile,
+              status: employee.status,
+              subStatus: employee.subStatus,
+            },
+          ),
         ),
       );
 
@@ -1348,9 +1439,9 @@ export class EmployeesService {
 
   private async assertActiveWorkSchedule(
     tenantId: string,
-    workScheduleId?: string,
+    workScheduleId?: string | null,
   ) {
-    if (!workScheduleId) return;
+    if (!hasNonEmptyString(workScheduleId)) return;
     const schedule = await this.prisma.workSchedule.findFirst({
       where: {
         id: workScheduleId,
@@ -1855,7 +1946,10 @@ export class EmployeesService {
     tenantId: string,
     reportingManagerEmployeeId?: string,
     userId?: string,
+    organizationId?: string,
+    businessUnitId?: string,
     departmentId?: string,
+    teamId?: string,
     designationId?: string,
     employeeLevelId?: string,
     locationId?: string,
@@ -1903,6 +1997,40 @@ export class EmployeesService {
       }
     }
 
+    if (organizationId) {
+      const organization =
+        await this.organizationRepository.findOrganizationById(
+          tenantId,
+          organizationId,
+        );
+
+      if (!organization) {
+        throw new BadRequestException(
+          'Selected organization does not belong to this tenant.',
+        );
+      }
+    }
+
+    if (businessUnitId) {
+      const businessUnit =
+        await this.organizationRepository.findBusinessUnitById(
+          tenantId,
+          businessUnitId,
+        );
+
+      if (!businessUnit) {
+        throw new BadRequestException(
+          'Selected business unit does not belong to this tenant.',
+        );
+      }
+
+      if (organizationId && businessUnit.organizationId !== organizationId) {
+        throw new BadRequestException(
+          'Selected business unit must belong to the selected organization.',
+        );
+      }
+    }
+
     if (departmentId) {
       const department = await this.organizationRepository.findDepartmentById(
         tenantId,
@@ -1912,6 +2040,52 @@ export class EmployeesService {
       if (!department) {
         throw new BadRequestException(
           'Selected department does not belong to this tenant.',
+        );
+      }
+
+      if (businessUnitId && department.businessUnitId !== businessUnitId) {
+        throw new BadRequestException(
+          'Selected department must belong to the selected business unit.',
+        );
+      }
+
+      if (
+        organizationId &&
+        department.businessUnit?.organizationId !== organizationId
+      ) {
+        throw new BadRequestException(
+          'Selected department must belong to the selected organization.',
+        );
+      }
+    }
+
+    if (teamId) {
+      if (!departmentId) {
+        throw new BadRequestException(
+          'Department is required when assigning a team.',
+        );
+      }
+
+      const team = await this.prisma.team.findFirst({
+        where: {
+          tenantId,
+          id: teamId,
+          departmentId,
+          teamType: 'ORGANIZATIONAL',
+          isActive: true,
+        },
+        select: { id: true, departmentId: true },
+      });
+
+      if (!team) {
+        throw new BadRequestException(
+          'Selected team does not belong to this tenant or is inactive.',
+        );
+      }
+
+      if (departmentId && team.departmentId !== departmentId) {
+        throw new BadRequestException(
+          'Selected team must belong to the selected department.',
         );
       }
     }
@@ -2243,7 +2417,12 @@ export class EmployeesService {
       employee.locationId,
     );
     const nextHireDate = getUpdateDtoValue(dto, 'hireDate', employee.hireDate);
-    const nextStatus = dto.employmentStatus ?? employee.employmentStatus;
+    const nextRecordStatus = dto.status ?? employee.status;
+    const nextStatus =
+      dto.employmentStatus ??
+      (nextRecordStatus === EMPLOYEE_RECORD_STATUS.ACTIVE
+        ? EmployeeEmploymentStatus.ACTIVE
+        : employee.employmentStatus);
 
     if (settings.requirePersonalEmail && !nextPersonalEmail?.trim()) {
       throw new BadRequestException(
@@ -2411,7 +2590,10 @@ export class EmployeesService {
       nationality: referenceLabels?.nationality ?? dto.nationality?.trim(),
       cnic: dto.cnic?.trim(),
       bloodGroup: dto.bloodGroup?.trim().toUpperCase(),
-      employmentStatus: dto.employmentStatus,
+      employmentStatus:
+        dto.status === EMPLOYEE_RECORD_STATUS.DRAFT
+          ? EMPLOYEE_DRAFT_LIFECYCLE.employmentStatus
+          : dto.employmentStatus,
       employeeType: dto.employeeType,
       workMode: dto.workMode,
       contractType: dto.contractType,
@@ -2441,7 +2623,9 @@ export class EmployeesService {
       emergencyContactPhone: dto.emergencyContactPhone?.trim(),
       emergencyContactAlternatePhone:
         dto.emergencyContactAlternatePhone?.trim(),
+      organizationId: dto.organizationId?.trim(),
       departmentId: dto.departmentId?.trim(),
+      teamId: dto.teamId?.trim(),
       businessUnitId: dto.businessUnitId?.trim(),
       designationId: dto.designationId?.trim(),
       employeeLevelId:
@@ -2455,8 +2639,13 @@ export class EmployeesService {
       noticePeriodDays: dto.noticePeriodDays,
       taxIdentifier: dto.taxIdentifier?.trim(),
       ownerUserId: dto.ownerUserId ?? actorId,
-      status: dto.status ?? 'ACTIVE',
-      subStatus: dto.subStatus ?? 'OPEN',
+      status: dto.status ?? EMPLOYEE_RECORD_STATUS.ACTIVE,
+      subStatus:
+        dto.subStatus ??
+        (dto.status === EMPLOYEE_RECORD_STATUS.DRAFT
+          ? EMPLOYEE_RECORD_SUB_STATUS.DATA_COLLECTION
+          : EMPLOYEE_RECORD_SUB_STATUS.OPEN),
+      isDraftProfile: dto.status === EMPLOYEE_RECORD_STATUS.DRAFT,
       createdById: actorId,
       updatedById: actorId,
     };
@@ -2473,6 +2662,11 @@ export class EmployeesService {
       cityName?: string;
       effectiveEmployeeLevelId?: string;
     },
+    existingEmployee?: {
+      isDraftProfile: boolean;
+      status: string;
+      subStatus: string;
+    },
   ): Prisma.EmployeeUncheckedUpdateInput {
     const data: Prisma.EmployeeUncheckedUpdateInput = {
       updatedById: actorId,
@@ -2488,6 +2682,29 @@ export class EmployeesService {
 
     if (dto.status !== undefined) {
       data.status = dto.status;
+
+      if (dto.status === EMPLOYEE_RECORD_STATUS.DRAFT) {
+        data.isDraftProfile = true;
+        if (dto.subStatus === undefined) {
+          data.subStatus = EMPLOYEE_RECORD_SUB_STATUS.DATA_COLLECTION;
+        }
+        if (dto.employmentStatus === undefined) {
+          data.employmentStatus = EmployeeEmploymentStatus.INACTIVE;
+        }
+      }
+
+      if (
+        dto.status === EMPLOYEE_RECORD_STATUS.ACTIVE &&
+        existingEmployee?.isDraftProfile
+      ) {
+        data.isDraftProfile = false;
+        if (dto.subStatus === undefined) {
+          data.subStatus = EMPLOYEE_RECORD_SUB_STATUS.OPEN;
+        }
+        if (dto.employmentStatus === undefined) {
+          data.employmentStatus = EmployeeEmploymentStatus.ACTIVE;
+        }
+      }
     }
 
     if (dto.subStatus !== undefined) {
@@ -2662,8 +2879,16 @@ export class EmployeesService {
         dto.emergencyContactAlternatePhone?.trim() ?? null;
     }
 
+    if (dto.organizationId !== undefined) {
+      data.organizationId = dto.organizationId?.trim() ?? null;
+    }
+
     if (dto.departmentId !== undefined) {
       data.departmentId = dto.departmentId?.trim() ?? null;
+    }
+
+    if (dto.teamId !== undefined) {
+      data.teamId = dto.teamId?.trim() ?? null;
     }
 
     if (dto.businessUnitId !== undefined) {
@@ -2718,7 +2943,56 @@ export class EmployeesService {
     return data;
   }
 
+  private preserveUnchangedDependentLookups(
+    dto: UpdateEmployeeDto,
+    employee: {
+      businessUnitId: string | null;
+      departmentId: string | null;
+      teamId: string | null;
+    },
+  ) {
+    const update = dto as UpdateEmployeeDto & {
+      businessUnitId?: string | null;
+      departmentId?: string | null;
+      teamId?: string | null;
+    };
+
+    if (
+      update.teamId === null &&
+      employee.teamId &&
+      (update.departmentId === undefined ||
+        update.departmentId === null ||
+        update.departmentId === employee.departmentId)
+    ) {
+      delete update.teamId;
+    }
+
+    if (
+      update.departmentId === null &&
+      employee.departmentId &&
+      (update.businessUnitId === undefined ||
+        update.businessUnitId === null ||
+        update.businessUnitId === employee.businessUnitId)
+    ) {
+      delete update.departmentId;
+    }
+  }
+
   private mapEmployee(employee: EmployeeWithRelations) {
+    const normalizedStatus = employee.isDraftProfile
+      ? EMPLOYEE_RECORD_STATUS.DRAFT
+      : employee.status;
+    const normalizedSubStatus = employee.isDraftProfile
+      ? employee.subStatus === EMPLOYEE_RECORD_SUB_STATUS.READY_FOR_ACTIVATION
+        ? EMPLOYEE_RECORD_SUB_STATUS.READY_FOR_ACTIVATION
+        : employee.subStatus === EMPLOYEE_RECORD_SUB_STATUS.ONBOARDING
+          ? EMPLOYEE_RECORD_SUB_STATUS.ONBOARDING
+          : EMPLOYEE_RECORD_SUB_STATUS.DATA_COLLECTION
+      : employee.subStatus;
+    const normalizedEmploymentStatus = employee.isDraftProfile
+      ? EmployeeEmploymentStatus.INACTIVE
+      : employee.employmentStatus;
+
     return {
       id: employee.id,
       tenantId: employee.tenantId,
@@ -2742,9 +3016,9 @@ export class EmployeesService {
       nationality: employee.nationality,
       cnic: employee.cnic,
       bloodGroup: employee.bloodGroup,
-      employmentStatus: employee.employmentStatus,
-      status: employee.status,
-      subStatus: employee.subStatus,
+      employmentStatus: normalizedEmploymentStatus,
+      status: normalizedStatus,
+      subStatus: normalizedSubStatus,
       employeeType: employee.employeeType,
       workMode: employee.workMode,
       contractType: employee.contractType,
@@ -2764,10 +3038,21 @@ export class EmployeesService {
       postalCode: employee.postalCode,
       emergencyContactName: employee.emergencyContactName,
       emergencyContactRelationTypeId: employee.emergencyContactRelationTypeId,
+      emergencyContactRelationType: employee.emergencyContactRelationType
+        ? {
+            id: employee.emergencyContactRelationType.id,
+            key: employee.emergencyContactRelationType.key,
+            name: employee.emergencyContactRelationType.name,
+            isActive: employee.emergencyContactRelationType.isActive,
+          }
+        : null,
       emergencyContactRelation: employee.emergencyContactRelation,
       emergencyContactPhone: employee.emergencyContactPhone,
       emergencyContactAlternatePhone: employee.emergencyContactAlternatePhone,
+      organizationId: employee.organizationId,
       departmentId: employee.departmentId,
+      teamId: employee.teamId,
+      businessUnitId: employee.businessUnitId,
       designationId: employee.designationId,
       employeeLevelId: employee.employeeLevelId,
       locationId: employee.locationId,
@@ -2792,6 +3077,8 @@ export class EmployeesService {
             firstName: employee.manager.firstName,
             lastName: employee.manager.lastName,
             preferredName: employee.manager.preferredName,
+            fullName:
+              `${employee.manager.firstName} ${employee.manager.lastName}`.trim(),
             employmentStatus: employee.manager.employmentStatus,
           }
         : null,
@@ -2802,6 +3089,8 @@ export class EmployeesService {
             firstName: employee.manager.firstName,
             lastName: employee.manager.lastName,
             preferredName: employee.manager.preferredName,
+            fullName:
+              `${employee.manager.firstName} ${employee.manager.lastName}`.trim(),
             employmentStatus: employee.manager.employmentStatus,
           }
         : null,
@@ -2843,6 +3132,32 @@ export class EmployeesService {
             name: employee.department.name,
             code: employee.department.code,
             isActive: employee.department.isActive,
+          }
+        : null,
+      organization: employee.organization
+        ? {
+            id: employee.organization.id,
+            name: employee.organization.name,
+            code: employee.organization.code,
+            isActive: employee.organization.isActive,
+          }
+        : null,
+      businessUnit: employee.businessUnit
+        ? {
+            id: employee.businessUnit.id,
+            name: employee.businessUnit.name,
+            code: employee.businessUnit.code,
+            organizationId: employee.businessUnit.organizationId,
+            isActive: employee.businessUnit.isActive,
+          }
+        : null,
+      team: employee.team
+        ? {
+            id: employee.team.id,
+            name: employee.team.name,
+            key: employee.team.key,
+            departmentId: employee.team.departmentId,
+            isActive: employee.team.isActive,
           }
         : null,
       designation: employee.designation

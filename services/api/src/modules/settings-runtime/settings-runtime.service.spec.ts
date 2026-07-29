@@ -34,12 +34,12 @@ describe('SettingsRuntimeService', () => {
   });
 
   it('audits effective-dated record creation', async () => {
-    const record = { id: 'record-1', settingKey: 'fiscal-years' };
+    const record = { id: 'record-1', settingKey: 'delegation-rules' };
     prisma.tenantConfigurationRecord.create.mockResolvedValue(record);
     audit.log.mockResolvedValue(undefined);
-    await service.create(user, 'fiscal-years', {
-      code: 'FY26',
-      name: 'Fiscal Year 2026',
+    await service.create(user, 'delegation-rules', {
+      code: 'DLG',
+      name: 'Delegation Rule',
       effectiveFrom: '2026-01-01',
       effectiveTo: '2026-12-31',
     });
@@ -59,7 +59,10 @@ describe('SettingsRuntimeService', () => {
       }),
     );
     await expect(
-      service.create(user, 'regions', { code: 'RYD', name: 'Riyadh' }),
+      service.create(user, 'delegation-rules', {
+        code: 'DLG',
+        name: 'Delegation',
+      }),
     ).rejects.toBeInstanceOf(ConflictException);
   });
 });

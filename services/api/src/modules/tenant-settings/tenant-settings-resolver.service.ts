@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { AttendanceMode, WorkWeekday } from '@prisma/client';
+import { Injectable, Logger } from '@nestjs/common';
+import { AttendanceMode, Prisma, WorkWeekday } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import {
   DEFAULT_TENANT_SETTINGS,
@@ -51,6 +51,7 @@ export type OrganizationSettingsResolved = {
   timezone: string;
   currency: string;
   dateFormat: string;
+  timeFormat: string;
   weekStartsOn: WorkWeekday;
 };
 
@@ -62,6 +63,18 @@ export type AttendanceSettingsResolved = {
   allowedModes: AttendanceMode[];
   enforceOfficeLocationForOfficeMode: boolean;
   requireRemoteLocationCapture: boolean;
+  locationCaptureRequired: boolean;
+  locationRequiredForModes: AttendanceMode[];
+  allowIpFallback: boolean;
+  allowManualLocationException: boolean;
+  locationTimeoutSeconds: number;
+  locationRetryAttempts: number;
+  highAccuracyLocation: boolean;
+  maxAllowedAccuracyMeters: number | null;
+  captureLocationOnCheckIn: boolean;
+  captureLocationOnCheckOut: boolean;
+  storeIpAddress: boolean;
+  storeUserAgent: boolean;
   standardWorkHoursPerDay: number;
 };
 
@@ -84,6 +97,8 @@ export type TimesheetSettingsResolved = {
   exportTemplateFormat: 'CSV' | 'XLSX';
   lockTimesheetAfterApproval: boolean;
   allowRejectedTimesheetResubmission: boolean;
+  largeExportRowThreshold: number;
+  exportRetentionDays: number;
 };
 
 export type PayrollSettingsResolved = {
@@ -93,18 +108,44 @@ export type PayrollSettingsResolved = {
   defaultPaymentMode: string;
   compensationReviewCycle: string;
   defaultCurrency: string;
-  payrollGenerationSource: 'approved_timesheets' | 'manual' | 'mixed';
+  defaultPayrollRegionId: string;
+  baseReportingCurrency: string;
+  payrollBankAccountAction: 'IGNORE' | 'WARN' | 'BLOCK';
+  negativeNetPayAction: 'IGNORE' | 'WARN' | 'BLOCK';
+  defaultPayrollCurrencySource:
+    | 'TENANT_DEFAULT'
+    | 'PAYROLL_REGION'
+    | 'EMPLOYEE_COMPENSATION';
+  allowMultiCurrencyPayroll: boolean;
+  exchangeRateSource: 'MANUAL' | 'PROVIDER';
+  exchangeRateLockPoint:
+    | 'PAYROLL_RUN_CREATION'
+    | 'PAYROLL_APPROVAL'
+    | 'PAYMENT_DATE';
+  payrollGenerationSource: 'ATTENDANCE' | 'TIMESHEETS' | 'HYBRID' | 'MANUAL';
   requireApprovedTimesheetsForPayroll: boolean;
+  requireApprovedAttendanceForPayroll: boolean;
+  requireApprovedLeavesForPayroll: boolean;
+  requireEmployeePayrollBankAccount: boolean;
+  requireEmployeeProjectAllocation: boolean;
+  underAllocationAction: 'WARN' | 'BLOCK' | 'ALLOCATE_TO_BENCH';
+  overAllocationAction: 'WARN' | 'BLOCK';
+  defaultBenchCostCenterId: string;
   includeLeavesInPayrollSummary: boolean;
   includeHolidaysInPayrollSummary: boolean;
   includeWeekendWorkInPayrollSummary: boolean;
   defaultPayrollCycleDay: number;
   allowDraftPayrollAdjustments: boolean;
-  payrollExportFormat: 'CSV' | 'XLSX' | 'BANK_FILE';
+  payrollExportFormat: 'CSV' | 'XLSX';
+  requirePayrollApproval: boolean;
+  lockAfterApproval: boolean;
+  allowPayrollRegeneration: boolean;
+  payslipFormat: 'PDF';
+  emailPayslipOnPublish: boolean;
 };
 
 export type RecruitmentSettingsResolved = {
-  candidateStages: string[];
+  defaultRecruitmentPipelineId: string;
   onboardingWorkflow: string;
   autoCreateEmployeeFromCandidate: boolean;
   onboardingChecklistTemplate: string;
@@ -116,8 +157,27 @@ export type RecruitmentSettingsResolved = {
 export type DocumentSettingsResolved = {
   maxUploadSizeMb: number;
   allowedExtensions: string[];
+  blockedExtensions: string[];
+  allowedMimeTypes: string[];
+  virusScanRequired: boolean;
+  allowMultipleFilesPerRecord: boolean;
+  maximumFilesPerRecord: number;
   archiveAfterMonths: number;
+  storageProvider: string;
+  retentionPolicy: string;
+  deleteAfterYears: number;
+  versioningEnabled: boolean;
+  maximumVersions: number;
   requireDocumentCategories: boolean;
+  requireDescription: boolean;
+  requireDocumentNumber: boolean;
+  auditDownloads: boolean;
+  disableExternalDownloads: boolean;
+  allowDuplicateFile: boolean;
+  duplicateDetectionStrategy: string;
+  requireExpiryForExpirableCategories: boolean;
+  blockExpiredDocuments: boolean;
+  warnBeforeExpiryDays: number;
 };
 
 export type NotificationSettingsResolved = {
@@ -207,6 +267,14 @@ export type SystemSettingsResolved = {
   showHelpTips: boolean;
 };
 
+export type SecuritySettingsResolved = {
+  allowRememberMe: boolean;
+  sessionTimeoutMinutes: number;
+  refreshTokenExpiryDays: number;
+  absoluteSessionLifetimeDays: number;
+  idleTimeoutMinutes: number;
+};
+
 export type PublicBrandingResolved = {
   tenantId: string | null;
   tenantSlug: string | null;
@@ -255,6 +323,9 @@ export type PublicBrandingResolved = {
 
 @Injectable()
 export class TenantSettingsResolverService {
+  private readonly logger = new Logger(TenantSettingsResolverService.name);
+  private databaseUnavailableWarningLogged = false;
+
   private readonly cache = new Map<string, CachedSettings>();
 
   constructor(
@@ -278,6 +349,7 @@ export class TenantSettingsResolverService {
       timezone: stringValue(category.timezone, 'UTC'),
       currency: stringValue(category.currency, 'USD'),
       dateFormat: stringValue(category.dateFormat, 'MM/dd/yyyy'),
+      timeFormat: stringValue(category.timeFormat, '12h'),
       weekStartsOn: Object.values(WorkWeekday).includes(
         weekStart as WorkWeekday,
       )
@@ -377,6 +449,19 @@ export class TenantSettingsResolverService {
       (value): value is AttendanceMode =>
         Object.values(AttendanceMode).includes(value as AttendanceMode),
     );
+    const locationRequiredModes = csvValues(
+      category.locationRequiredForModes,
+    ).filter((value): value is AttendanceMode =>
+      Object.values(AttendanceMode).includes(value as AttendanceMode),
+    );
+    const requireRemoteLocationCapture = booleanValue(
+      category.requireRemoteLocationCapture,
+      false,
+    );
+    const locationCaptureRequired = booleanValue(
+      category.locationCaptureRequired,
+      requireRemoteLocationCapture,
+    );
 
     return {
       defaultGraceMinutes: numberValue(
@@ -403,6 +488,47 @@ export class TenantSettingsResolverService {
         category.requireRemoteLocationCapture,
         false,
       ),
+      locationCaptureRequired,
+      locationRequiredForModes:
+        locationRequiredModes.length > 0
+          ? locationRequiredModes
+          : requireRemoteLocationCapture || locationCaptureRequired
+            ? [AttendanceMode.REMOTE, AttendanceMode.HYBRID]
+            : [],
+      allowIpFallback: booleanValue(category.allowIpFallback, false),
+      allowManualLocationException: booleanValue(
+        category.allowManualLocationException,
+        false,
+      ),
+      locationTimeoutSeconds: numberValue(
+        category.locationTimeoutSeconds,
+        15,
+        1,
+        120,
+      ),
+      locationRetryAttempts: numberValue(
+        category.locationRetryAttempts,
+        2,
+        0,
+        3,
+      ),
+      highAccuracyLocation: booleanValue(category.highAccuracyLocation, true),
+      maxAllowedAccuracyMeters:
+        category.maxAllowedAccuracyMeters === null ||
+        category.maxAllowedAccuracyMeters === undefined ||
+        category.maxAllowedAccuracyMeters === ''
+          ? null
+          : numberValue(category.maxAllowedAccuracyMeters, 0, 0, 100000),
+      captureLocationOnCheckIn: booleanValue(
+        category.captureLocationOnCheckIn,
+        locationCaptureRequired,
+      ),
+      captureLocationOnCheckOut: booleanValue(
+        category.captureLocationOnCheckOut,
+        locationCaptureRequired,
+      ),
+      storeIpAddress: booleanValue(category.storeIpAddress, false),
+      storeUserAgent: booleanValue(category.storeUserAgent, false),
       standardWorkHoursPerDay: numberValue(
         category.standardWorkHoursPerDay,
         8,
@@ -506,6 +632,13 @@ export class TenantSettingsResolverService {
         category.allowRejectedTimesheetResubmission,
         true,
       ),
+      largeExportRowThreshold: numberValue(
+        category.largeExportRowThreshold,
+        5000,
+        100,
+        1000000,
+      ),
+      exportRetentionDays: numberValue(category.exportRetentionDays, 7, 1, 365),
     };
   }
 
@@ -547,14 +680,80 @@ export class TenantSettingsResolverService {
         'ANNUAL',
       ),
       defaultCurrency: stringValue(category.defaultCurrency, 'USD'),
+      defaultPayrollRegionId: stringValue(category.defaultPayrollRegionId, ''),
+      baseReportingCurrency: stringValue(
+        category.baseReportingCurrency,
+        stringValue(category.defaultCurrency, 'USD'),
+      ),
+      payrollBankAccountAction: enumStringValue(
+        category.payrollBankAccountAction,
+        ['IGNORE', 'WARN', 'BLOCK'] as const,
+        booleanValue(category.requireEmployeePayrollBankAccount, false)
+          ? 'BLOCK'
+          : 'WARN',
+      ),
+      negativeNetPayAction: enumStringValue(
+        category.negativeNetPayAction,
+        ['IGNORE', 'WARN', 'BLOCK'] as const,
+        'BLOCK',
+      ),
+      defaultPayrollCurrencySource: enumStringValue(
+        category.defaultPayrollCurrencySource,
+        ['TENANT_DEFAULT', 'PAYROLL_REGION', 'EMPLOYEE_COMPENSATION'] as const,
+        'TENANT_DEFAULT',
+      ),
+      allowMultiCurrencyPayroll: booleanValue(
+        category.allowMultiCurrencyPayroll,
+        false,
+      ),
+      exchangeRateSource: enumStringValue(
+        category.exchangeRateSource,
+        ['MANUAL', 'PROVIDER'] as const,
+        'MANUAL',
+      ),
+      exchangeRateLockPoint: enumStringValue(
+        category.exchangeRateLockPoint,
+        ['PAYROLL_RUN_CREATION', 'PAYROLL_APPROVAL', 'PAYMENT_DATE'] as const,
+        'PAYROLL_RUN_CREATION',
+      ),
       payrollGenerationSource: enumStringValue(
         category.payrollGenerationSource,
-        ['approved_timesheets', 'manual', 'mixed'] as const,
-        'approved_timesheets',
+        ['ATTENDANCE', 'TIMESHEETS', 'HYBRID', 'MANUAL'] as const,
+        'ATTENDANCE',
       ),
       requireApprovedTimesheetsForPayroll: booleanValue(
         category.requireApprovedTimesheetsForPayroll,
         true,
+      ),
+      requireApprovedAttendanceForPayroll: booleanValue(
+        category.requireApprovedAttendanceForPayroll,
+        true,
+      ),
+      requireApprovedLeavesForPayroll: booleanValue(
+        category.requireApprovedLeavesForPayroll,
+        true,
+      ),
+      requireEmployeePayrollBankAccount: booleanValue(
+        category.requireEmployeePayrollBankAccount,
+        false,
+      ),
+      requireEmployeeProjectAllocation: booleanValue(
+        category.requireEmployeeProjectAllocation,
+        false,
+      ),
+      underAllocationAction: enumStringValue(
+        category.underAllocationAction,
+        ['WARN', 'BLOCK', 'ALLOCATE_TO_BENCH'] as const,
+        'WARN',
+      ),
+      overAllocationAction: enumStringValue(
+        category.overAllocationAction,
+        ['WARN', 'BLOCK'] as const,
+        'WARN',
+      ),
+      defaultBenchCostCenterId: stringValue(
+        category.defaultBenchCostCenterId,
+        '',
       ),
       includeLeavesInPayrollSummary: booleanValue(
         category.includeLeavesInPayrollSummary,
@@ -580,8 +779,26 @@ export class TenantSettingsResolverService {
       ),
       payrollExportFormat: enumStringValue(
         category.payrollExportFormat,
-        ['CSV', 'XLSX', 'BANK_FILE'] as const,
+        ['CSV', 'XLSX'] as const,
         'CSV',
+      ),
+      requirePayrollApproval: booleanValue(
+        category.requirePayrollApproval,
+        true,
+      ),
+      lockAfterApproval: booleanValue(category.lockAfterApproval, true),
+      allowPayrollRegeneration: booleanValue(
+        category.allowPayrollRegeneration,
+        false,
+      ),
+      payslipFormat: enumStringValue(
+        category.payslipFormat,
+        ['PDF'] as const,
+        'PDF',
+      ),
+      emailPayslipOnPublish: booleanValue(
+        category.emailPayslipOnPublish,
+        false,
       ),
     };
   }
@@ -593,7 +810,10 @@ export class TenantSettingsResolverService {
     const category = source.recruitment ?? {};
 
     return {
-      candidateStages: csvValues(category.candidateStages),
+      defaultRecruitmentPipelineId: stringValue(
+        category.defaultRecruitmentPipelineId,
+        '',
+      ),
       onboardingWorkflow: stringValue(category.onboardingWorkflow, 'standard'),
       autoCreateEmployeeFromCandidate: booleanValue(
         category.autoCreateEmployeeFromCandidate,
@@ -624,10 +844,59 @@ export class TenantSettingsResolverService {
     return {
       maxUploadSizeMb: numberValue(category.maxUploadSizeMb, 10, 1, 200),
       allowedExtensions: csvValues(category.allowedExtensions),
+      blockedExtensions: csvValues(category.blockedExtensions),
+      allowedMimeTypes: csvValues(category.allowedMimeTypes).map((item) =>
+        item.toLowerCase(),
+      ),
+      virusScanRequired: booleanValue(category.virusScanRequired, false),
+      allowMultipleFilesPerRecord: booleanValue(
+        category.allowMultipleFilesPerRecord,
+        true,
+      ),
+      maximumFilesPerRecord: numberValue(
+        category.maximumFilesPerRecord,
+        10,
+        1,
+        100,
+      ),
       archiveAfterMonths: numberValue(category.archiveAfterMonths, 24, 1, 1200),
+      storageProvider: stringValue(category.storageProvider, 'INTERNAL'),
+      retentionPolicy: stringValue(category.retentionPolicy, 'ARCHIVE_ONLY'),
+      deleteAfterYears: numberValue(category.deleteAfterYears, 7, 1, 100),
+      versioningEnabled: booleanValue(category.versioningEnabled, true),
+      maximumVersions: numberValue(category.maximumVersions, 10, 1, 100),
       requireDocumentCategories: booleanValue(
         category.requireDocumentCategories,
         true,
+      ),
+      requireDescription: booleanValue(category.requireDescription, false),
+      requireDocumentNumber: booleanValue(
+        category.requireDocumentNumber,
+        false,
+      ),
+      auditDownloads: booleanValue(category.auditDownloads, true),
+      disableExternalDownloads: booleanValue(
+        category.disableExternalDownloads,
+        false,
+      ),
+      allowDuplicateFile: booleanValue(category.allowDuplicateFile, true),
+      duplicateDetectionStrategy: stringValue(
+        category.duplicateDetectionStrategy,
+        'FILE_HASH_RECORD',
+      ),
+      requireExpiryForExpirableCategories: booleanValue(
+        category.requireExpiryForExpirableCategories,
+        true,
+      ),
+      blockExpiredDocuments: booleanValue(
+        category.blockExpiredDocuments,
+        false,
+      ),
+      warnBeforeExpiryDays: numberValue(
+        category.warnBeforeExpiryDays,
+        30,
+        0,
+        3650,
       ),
     };
   }
@@ -795,6 +1064,40 @@ export class TenantSettingsResolverService {
     };
   }
 
+  async getSecuritySettings(
+    tenantId: string,
+  ): Promise<SecuritySettingsResolved> {
+    const source = await this.getSettingsMap(tenantId);
+    const category = source.security ?? {};
+    return {
+      allowRememberMe: booleanValue(category.allowRememberMe, true),
+      sessionTimeoutMinutes: numberValue(
+        category.sessionTimeoutMinutes,
+        480,
+        15,
+        1440,
+      ),
+      refreshTokenExpiryDays: numberValue(
+        category.refreshTokenExpiryDays,
+        30,
+        1,
+        365,
+      ),
+      absoluteSessionLifetimeDays: numberValue(
+        category.absoluteSessionLifetimeDays,
+        30,
+        1,
+        365,
+      ),
+      idleTimeoutMinutes: numberValue(
+        category.idleTimeoutMinutes,
+        480,
+        15,
+        1440,
+      ),
+    };
+  }
+
   async getPublicBrandingByTenantSlug(
     tenantSlug?: string | null,
   ): Promise<PublicBrandingResolved> {
@@ -886,14 +1189,33 @@ export class TenantSettingsResolverService {
       return fallback;
     }
 
-    const tenant = await this.tenantSettingsRepository.findTenantBySlug(
-      tenantSlug.trim(),
-    );
+    const tenant = await this.tenantSettingsRepository
+      .findTenantBySlug(tenantSlug.trim())
+      .catch((error: unknown) => {
+        if (isDatabaseUnavailable(error)) {
+          this.logDatabaseUnavailableWarning('public-branding', error);
+          return null;
+        }
+
+        throw error;
+      });
     if (!tenant) {
       return fallback;
     }
 
-    const source = await this.getSettingsMap(tenant.id);
+    const source = await this.getSettingsMap(tenant.id).catch(
+      (error: unknown) => {
+        if (isDatabaseUnavailable(error)) {
+          this.logDatabaseUnavailableWarning('public-branding-settings', error);
+          return null;
+        }
+
+        throw error;
+      },
+    );
+    if (!source) {
+      return fallback;
+    }
     const branding = source.branding ?? {};
 
     return {
@@ -1050,6 +1372,22 @@ export class TenantSettingsResolverService {
 
     return settings;
   }
+
+  private logDatabaseUnavailableWarning(context: string, error: unknown) {
+    if (this.databaseUnavailableWarningLogged) {
+      return;
+    }
+
+    this.databaseUnavailableWarningLogged = true;
+    this.logger.warn(
+      JSON.stringify({
+        context,
+        message:
+          'Database is not reachable. Returning default tenant branding fallback.',
+        error: formatPrismaError(error),
+      }),
+    );
+  }
 }
 
 function booleanValue(value: unknown, fallback: boolean) {
@@ -1089,6 +1427,35 @@ function stringValue(value: unknown, fallback: string) {
   }
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : fallback;
+}
+
+function isDatabaseUnavailable(error: unknown) {
+  return getPrismaErrorCode(error) === 'ECONNREFUSED';
+}
+
+function getPrismaErrorCode(error: unknown) {
+  return typeof error === 'object' && error !== null && 'code' in error
+    ? String((error as { code?: unknown }).code)
+    : null;
+}
+
+function formatPrismaError(error: unknown) {
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    return {
+      code: error.code,
+      message: error.message,
+      meta: error.meta,
+    };
+  }
+
+  if (error instanceof Error) {
+    return {
+      name: error.name,
+      message: error.message,
+    };
+  }
+
+  return String(error);
 }
 
 function enumStringValue<const T extends readonly string[]>(

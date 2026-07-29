@@ -61,7 +61,7 @@ export interface CommandVisibilityRule {
 }
 
 export interface StatusGroupConfig {
-  readonly ownerFieldLogicalName: string;
+  readonly ownerFieldLogicalName?: string;
   readonly statusFieldLogicalName: string;
   readonly subStatusFieldLogicalName?: string;
   readonly ownerCommandKey?: string;

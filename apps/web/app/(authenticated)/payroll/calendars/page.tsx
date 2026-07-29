@@ -1,39 +1,54 @@
-import { apiRequestJson } from "@/lib/server-api";
-import { hasPermission } from "@/lib/permissions";
+import { StandardModuleListPage } from "@/app/components/runtime";
 import { getSessionUser } from "@/lib/auth";
-import { PERMISSION_KEYS } from "@/lib/security-keys";
-import { AccessDeniedState } from "../../_components/access-denied-state";
+import { buildStandardRouteRuntime } from "@/lib/runtime/modules/standard-module-route-helpers";
+import { payrollCalendarRuntimeSpec } from "@/lib/runtime/modules/payroll-foundation-runtime-specs";
+import { apiRequestJson } from "@/lib/server-api";
 import { PayrollLayoutShell } from "../_components/payroll-layout-shell";
-import { PayrollCalendarRecord } from "../payroll-run-types";
-import { PayrollCalendarsManager } from "./_components/payroll-calendars-manager";
 
 export default async function PayrollCalendarsPage() {
   const user = await getSessionUser();
-  if (
-    !user ||
-    !hasPermission(user.permissionKeys, PERMISSION_KEYS.PAYROLL_CALENDARS_READ)
-  ) {
-    return (
-      <AccessDeniedState
-        title="Access denied"
-        description="You do not have access to payroll calendars."
-      />
-    );
-  }
-  const calendars =
-    await apiRequestJson<PayrollCalendarRecord[]>("/payroll/calendars");
+  const calendars = await apiRequestJson<Array<Record<string, unknown>>>(
+    "/payroll/calendars",
+  );
+  const records = calendars.map((calendar) => ({
+    ...calendar,
+    businessUnitName: isRecord(calendar.businessUnit)
+      ? stringValue(calendar.businessUnit.name)
+      : "",
+  }));
+  const runtime = buildStandardRouteRuntime({
+    pageKind: "list",
+    sessionUser: user,
+    spec: payrollCalendarRuntimeSpec,
+  });
+
   return (
     <PayrollLayoutShell
       title="Payroll Calendars"
-      description="Define payroll frequency, currency, and business-unit schedule foundations."
+      description="Manage payroll calendar definitions through the shared Module Runtime."
     >
-      <PayrollCalendarsManager
-        calendars={calendars}
-        canManage={hasPermission(
-          user.permissionKeys,
-          PERMISSION_KEYS.PAYROLL_CALENDARS_MANAGE,
-        )}
+      <StandardModuleListPage
+        pagination={{
+          page: 1,
+          pageSize: Math.max(records.length, 20),
+          totalItems: records.length,
+          pathname: "/payroll/calendars",
+          searchParams: {},
+        }}
+        paginationMode="client"
+        records={records}
+        runtime={runtime}
+        spec={payrollCalendarRuntimeSpec}
+        title="Payroll Calendars"
       />
     </PayrollLayoutShell>
   );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function stringValue(value: unknown) {
+  return typeof value === "string" ? value : "";
 }

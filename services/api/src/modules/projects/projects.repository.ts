@@ -142,6 +142,17 @@ export class ProjectsRepository {
         status: true,
         timezone: true,
         currencyCode: true,
+        billingType: true,
+        assignments: {
+          where: { employeeId, status: 'ACTIVE' },
+          select: {
+            id: true,
+            billableFlag: true,
+            startDate: true,
+            endDate: true,
+          },
+          take: 1,
+        },
       },
       orderBy: [{ name: 'asc' }],
     });
@@ -177,6 +188,17 @@ export class ProjectsRepository {
     });
   }
 
+  findAssignmentById(
+    tenantId: string,
+    projectId: string,
+    assignmentId: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.projectAssignment.findFirst({
+      where: { tenantId, projectId, id: assignmentId },
+    });
+  }
+
   createAssignment(
     data: Prisma.ProjectAssignmentUncheckedCreateInput,
     db: PrismaDb = this.prisma,
@@ -193,6 +215,16 @@ export class ProjectsRepository {
     return db.projectAssignment.updateMany({
       where: { tenantId, id },
       data,
+    });
+  }
+
+  deleteAssignment(
+    tenantId: string,
+    assignmentId: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.projectAssignment.deleteMany({
+      where: { tenantId, id: assignmentId },
     });
   }
 

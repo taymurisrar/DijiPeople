@@ -11,7 +11,7 @@ import {
 } from 'class-validator';
 
 export class CreateConfigurationRecordDto {
-  @IsString() @MinLength(1) @MaxLength(50) code!: string;
+  @IsOptional() @IsString() @MinLength(1) @MaxLength(50) code?: string;
   @IsString() @MinLength(1) @MaxLength(160) name!: string;
   @IsOptional() @IsString() @MaxLength(2000) description?: string;
   @IsOptional() @IsObject() configuration?: Record<string, unknown>;

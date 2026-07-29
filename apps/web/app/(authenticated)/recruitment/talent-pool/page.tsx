@@ -1,86 +1,126 @@
-import Link from "next/link";
+import { StandardModuleListPage } from "@/app/components/runtime";
+import { getSessionUser } from "@/lib/auth";
+import { buildPublishedStandardRouteRuntime } from "@/lib/runtime/modules/standard-module-route-helpers";
+import { recruitmentTalentPoolRuntimeSpec } from "@/lib/runtime/modules/standard-module-specs";
 import { apiRequestJson } from "@/lib/server-api";
-import { CandidateListResponse } from "../types";
-import { RecruitmentStageBadge } from "../_components/recruitment-stage-badge";
+import { AccessDeniedState } from "../../_components/access-denied-state";
+import {
+  getBusinessUnitAccessSummary,
+  hasBusinessUnitScope,
+} from "../../_lib/business-unit-access";
+import { CandidateListResponse, CandidateRecord } from "../types";
 
-export default async function TalentPoolPage() {
-  const candidates = await apiRequestJson<CandidateListResponse>(
-    "/candidates?pageSize=100&currentStatus=REJECTED",
-  );
+type TalentPoolPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function TalentPoolPage({
+  searchParams,
+}: TalentPoolPageProps) {
+  const [businessUnitAccess, params, sessionUser] = await Promise.all([
+    getBusinessUnitAccessSummary(),
+    searchParams,
+    getSessionUser(),
+  ]);
+
+  if (!hasBusinessUnitScope(businessUnitAccess)) {
+    return (
+      <main className="grid gap-6">
+        <AccessDeniedState
+          description="Your current business-unit scope does not include candidate records."
+          title="Talent pool is unavailable for your current business unit access."
+        />
+      </main>
+    );
+  }
+
+  const page = parsePositiveInteger(getSearchParam(params.page), 1);
+  const pageSize = parsePositiveInteger(getSearchParam(params.pageSize), 25);
+  const candidateQuery = buildCandidateQuery(params, page, pageSize);
+  const [candidates, runtime] = await Promise.all([
+    apiRequestJson<CandidateListResponse>(`/candidates?${candidateQuery}`),
+    buildPublishedStandardRouteRuntime({
+      pageKind: "list",
+      sessionUser,
+      spec: recruitmentTalentPoolRuntimeSpec,
+    }),
+  ]);
 
   return (
     <main className="grid gap-6">
-      <section className="flex flex-col gap-4 rounded-[28px] border border-border bg-[linear-gradient(135deg,rgba(255,255,255,0.95),rgba(239,248,245,0.9))] p-8 shadow-lg lg:flex-row lg:items-end lg:justify-between">
-        <div className="space-y-3">
-          <p className="text-sm uppercase tracking-[0.18em] text-muted">Talent Pool</p>
-          <h3 className="font-serif text-4xl text-foreground">
-            Keep rejected candidates reusable.
-          </h3>
-          <p className="max-w-3xl text-muted">
-            Rejected candidates stay searchable here so recruiters can revisit them for future openings.
-          </p>
-        </div>
-        <Link
-          className="rounded-2xl border border-border px-5 py-3 text-sm font-medium text-muted transition hover:border-accent/30 hover:text-foreground"
-          href="/recruitment/candidates"
-        >
-          Back to candidates
-        </Link>
-      </section>
-
-      <div className="overflow-hidden rounded-[24px] border border-border bg-surface shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-border text-sm">
-            <thead className="bg-surface-strong text-left text-muted">
-              <tr>
-                <th className="px-5 py-4 font-medium">Candidate</th>
-                <th className="px-5 py-4 font-medium">Location</th>
-                <th className="px-5 py-4 font-medium">Source</th>
-                <th className="px-5 py-4 font-medium">Skills</th>
-                <th className="px-5 py-4 font-medium">Last application</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border bg-white/90">
-              {candidates.items.map((candidate) => (
-                <tr key={candidate.id}>
-                  <td className="px-5 py-4">
-                    <Link
-                      className="font-semibold text-foreground hover:text-accent"
-                      href={`/recruitment/candidates/${candidate.id}`}
-                    >
-                      {candidate.fullName}
-                    </Link>
-                    <div className="mt-2">
-                      <RecruitmentStageBadge stage={candidate.currentStatus} />
-                    </div>
-                  </td>
-                  <td className="px-5 py-4 text-muted">
-                    {[candidate.currentCity, candidate.currentCountry]
-                      .filter(Boolean)
-                      .join(", ") || "Not captured"}
-                  </td>
-                  <td className="px-5 py-4 text-muted">{candidate.source || "Unspecified"}</td>
-                  <td className="px-5 py-4 text-muted">
-                    {candidate.skills.slice(0, 3).join(", ") || "No skills captured"}
-                  </td>
-                  <td className="px-5 py-4 text-muted">
-                    {candidate.applications[0]
-                      ? new Date(candidate.applications[0].appliedAt).toLocaleDateString()
-                      : "No application history"}
-                  </td>
-                </tr>
-              ))}
-              {candidates.items.length === 0 ? (
-                <tr>
-                  <td className="px-5 py-6 text-muted" colSpan={5}>
-                    No rejected candidates in the talent pool yet.
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <StandardModuleListPage
+        commandRecord={{
+          candidateCount: candidates.meta.total,
+          currentStatus: "REJECTED",
+        }}
+        pagination={{
+          page: candidates.meta.page,
+          pageSize: candidates.meta.pageSize,
+          totalItems: candidates.meta.total,
+          pathname: "/recruitment/talent-pool",
+          searchParams: toPaginationSearchParams(params),
+        }}
+        records={candidates.items.map(mapTalentPoolRecord)}
+        runtime={runtime}
+        spec={recruitmentTalentPoolRuntimeSpec}
+        title="Talent Pool"
+      />
     </main>
   );
+}
+
+function mapTalentPoolRecord(candidate: CandidateRecord) {
+  return {
+    ...candidate,
+    applicationCount: candidate.applications.length,
+    lastApplicationAt: candidate.applications[0]?.appliedAt ?? null,
+  };
+}
+
+function getSearchParam(value?: string | string[]) {
+  if (Array.isArray(value)) return value[0] ?? "";
+  return value ?? "";
+}
+
+function parsePositiveInteger(value: string, fallback: number) {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    return fallback;
+  }
+
+  return parsed;
+}
+
+function buildCandidateQuery(
+  params: Record<string, string | string[] | undefined>,
+  page: number,
+  pageSize: number,
+) {
+  const query = new URLSearchParams();
+  query.set("page", String(page));
+  query.set("pageSize", String(pageSize));
+  query.set("currentStatus", "REJECTED");
+
+  ["search", "source", "skill", "city"].forEach((key) => {
+    const value = getSearchParam(params[key]);
+    if (value) {
+      query.set(key, value);
+    }
+  });
+
+  return query.toString();
+}
+
+function toPaginationSearchParams(
+  params: Record<string, string | string[] | undefined>,
+) {
+  const entries = Object.entries(params).map(([key, value]) => [
+    key,
+    getSearchParam(value) || undefined,
+  ]);
+
+  return {
+    ...Object.fromEntries(entries),
+    currentStatus: "REJECTED",
+  };
 }

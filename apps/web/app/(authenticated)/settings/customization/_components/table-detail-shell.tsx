@@ -17,13 +17,14 @@ import { FormsManagement } from "./forms-management";
 import { MetadataComponentsManagement } from "./metadata-components-management";
 import { ViewsManagement } from "./views-management";
 
-type TabKey =
+export type TabKey =
   | "columns"
   | "forms"
   | "views"
   | "choiceLists"
   | "relationships"
   | "actionBars"
+  | "widgets"
   | "settings";
 
 type TableDetailShellProps = {
@@ -43,6 +44,7 @@ const tabs: Array<{ key: TabKey; label: string }> = [
   { key: "choiceLists", label: "Choice Lists" },
   { key: "relationships", label: "Relationships" },
   { key: "actionBars", label: "Action Bars" },
+  { key: "widgets", label: "Widgets" },
   { key: "settings", label: "Module Properties" },
 ];
 
@@ -61,6 +63,7 @@ export function TableDetailShell({
     actionBars: 0,
     choiceLists: 0,
     relationships: 0,
+    widgets: 0,
   });
 
   useEffect(() => {
@@ -68,6 +71,7 @@ export function TableDetailShell({
       ["choiceLists", "choiceList"],
       ["relationships", "relationship"],
       ["actionBars", "actionBar"],
+      ["widgets", "widget"],
     ] as const;
     let cancelled = false;
 
@@ -163,7 +167,8 @@ export function TableDetailShell({
             value={
               metadataCounts.choiceLists +
               metadataCounts.relationships +
-              metadataCounts.actionBars
+              metadataCounts.actionBars +
+              metadataCounts.widgets
             }
           />
           <Metric
@@ -250,6 +255,18 @@ export function TableDetailShell({
             table={table}
           />
         ) : null}
+        {activeTab === "widgets" ? (
+          <MetadataComponentsManagement
+            componentType="widget"
+            lookupTables={lookupTables}
+            onCountChange={(widgets) =>
+              setMetadataCounts((current) => ({ ...current, widgets }))
+            }
+            packages={packages}
+            readOnly
+            table={table}
+          />
+        ) : null}
         {activeTab === "settings" ? (
           <SettingsTab
             counts={{
@@ -259,6 +276,7 @@ export function TableDetailShell({
               forms: forms.length,
               relationships: metadataCounts.relationships,
               views: views.length,
+              widgets: metadataCounts.widgets,
             }}
             table={table}
           />
@@ -279,6 +297,7 @@ function SettingsTab({
     forms: number;
     relationships: number;
     views: number;
+    widgets: number;
   };
   table: CustomizationTable;
 }) {
@@ -333,6 +352,7 @@ function SettingsTab({
         <Meta label="Choice Lists" value={String(counts.choiceLists)} />
         <Meta label="Relationships" value={String(counts.relationships)} />
         <Meta label="Action Bars" value={String(counts.actionBars)} />
+        <Meta label="Widgets" value={String(counts.widgets)} />
         <Meta label="Description" value={table.description ?? "Not set"} />
         <Meta
           label="Customizable"

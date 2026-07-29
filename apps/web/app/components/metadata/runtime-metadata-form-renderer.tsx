@@ -28,13 +28,25 @@ import {
 import { ModuleRelatedSubgrid } from "@/app/components/runtime/module-related-subgrid";
 import { ModuleWidgetRenderer } from "@/app/components/runtime/module-widget-renderer";
 import { ResponsiveRuntimeTabs } from "@/app/components/runtime/responsive-runtime-tabs";
-import { debugRuntime } from "@/lib/runtime/runtime-debug";
 import { resolveSafeFieldMetadata } from "@/lib/runtime/security-runtime.resolver";
 import { formatRuntimeFieldValue } from "@/lib/runtime/runtime-value-formatter";
+import {
+  columnsFromSectionLayout,
+  FormGrid,
+  FormGridItem,
+  normalizeFormGridColumnCount,
+} from "./form-layout-grid";
 
 export type FieldValueMap = Record<
   string,
-  string | number | boolean | readonly string[] | null | undefined
+  | string
+  | number
+  | boolean
+  | readonly string[]
+  | readonly Record<string, unknown>[]
+  | Record<string, unknown>
+  | null
+  | undefined
 >;
 
 type ValuesChangeDeriver = (input: {
@@ -79,26 +91,20 @@ type RuntimeMetadataFormRendererProps =
   | CustomizationFormRendererProps
   | RuntimeFormRendererProps;
 
-const SEED_BACKED_LOOKUP_FIELDS = new Set([
-  "countryId",
-  "nationalityCountryId",
-  "stateProvinceId",
-  "cityId",
-  "emergencyContactRelationTypeId",
-  "departmentId",
-  "designationId",
-  "employeeLevelId",
-  "locationId",
-  "officialJoiningLocationId",
-  "defaultWorkScheduleId",
-  "documentTypeId",
-  "documentCategoryId",
-  "leaveTypeId",
-  "officeLocationId",
+const BLANK_EMPTY_VALUE_MODULES = new Set([
+  "settings-countries",
+  "settings-states",
+  "settings-cities",
+  "settings-timezones",
+  "settings-currencies",
+  "settings-payroll-regions",
+  "settings-fiscal-years",
+  "settings-tenant",
+  "settings-organizations",
+  "settings-business-units",
+  "settings-departments",
+  "settings-users",
 ]);
-
-const MISSING_REFERENCE_DATA_MESSAGE =
-  "Reference data missing. Please run seed-config.";
 
 export function RuntimeMetadataFormRenderer(
   props: RuntimeMetadataFormRendererProps,
@@ -164,18 +170,23 @@ function CustomizationFormRenderer({
                       {section.label}
                     </p>
                   ) : null}
-                  <dl className={`grid gap-4 ${gridClass(section.columns)}`}>
+                  <FormGrid columns={section.columns} kind="section">
                     {(section.fields ?? [])
                       .filter((field) => field.isVisible !== false)
                       .map((field) => (
-                        <ReadOnlyField
+                        <FormGridItem
+                          columnSpan={field.columnSpan}
                           key={`${section.id}-${field.columnKey}`}
-                          label={field.label ?? field.columnKey}
-                          required={field.required}
-                          value={values[field.columnKey]}
-                        />
+                          parentColumns={section.columns}
+                        >
+                          <ReadOnlyField
+                            label={field.label ?? field.columnKey}
+                            required={field.required}
+                            value={values[field.columnKey]}
+                          />
+                        </FormGridItem>
                       ))}
-                  </dl>
+                  </FormGrid>
                 </div>
               ))}
           </section>
@@ -239,9 +250,9 @@ function RuntimeFormMetadataRenderer({
     null;
   const visibleSections = resolveTabSections(form, activeTab);
   return (
-    <article className="rounded-lg border border-border bg-surface shadow-sm">
+    <article className="w-full min-w-0 overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
       {tabs.length > 1 ? (
-        <div className="border-b border-border px-4 pt-4">
+        <div className="min-w-0 overflow-hidden border-b border-border px-4 pt-4">
           <ResponsiveRuntimeTabs
             activeTabKey={activeTab?.tabKey ?? ""}
             onTabChange={setActiveTabKey}
@@ -250,7 +261,7 @@ function RuntimeFormMetadataRenderer({
         </div>
       ) : null}
 
-      <div className="p-5">
+      <div className="min-w-0 p-5">
         {activeTab && tabContent?.[activeTab.tabKey] ? (
           tabContent[activeTab.tabKey]
         ) : activeTab?.type === "related_module" ? (
@@ -262,6 +273,7 @@ function RuntimeFormMetadataRenderer({
                 activeTab.subgrid.relationshipName,
                 runtime?.recordId,
               )}
+              parentRecord={values}
               quickCreateForm={resolveQuickCreateForm(
                 runtime,
                 activeTab.subgrid.relatedEntityLogicalName,
@@ -326,43 +338,132 @@ function RuntimeSectionColumns({
   readonly columnCount: 1 | 2 | 3 | 4;
   readonly sections: readonly FormSectionMetadata[];
 } & Omit<Parameters<typeof RuntimeSection>[0], "section">) {
-  const regularSections = sections.filter(
-    (section) => !isFullWidthRuntimeSection(section, columnCount),
-  );
-  const fullWidthSections = sections.filter(
-    (section) => isFullWidthRuntimeSection(section, columnCount),
-  );
+  const normalizedColumns = normalizeFormGridColumnCount(columnCount);
+  const blocks = buildRuntimeSectionLayoutBlocks(sections, normalizedColumns);
 
   return (
     <div className="grid gap-5">
-      <div
-        className={`grid items-start gap-5 ${runtimeTabGridClass(columnCount)}`}
-      >
-        {Array.from({ length: columnCount }, (_, index) => index + 1).map(
-          (column) => (
-            <div className="grid gap-5" key={column}>
-              {regularSections
-                .filter(
-                  (section, sectionIndex) =>
-                    (section.column ?? (sectionIndex % columnCount) + 1) ===
-                    column,
-                )
-                .map((section) => (
+      {blocks.map((block, blockIndex) =>
+        block.type === "full" ? (
+          <RuntimeSection
+            {...sectionProps}
+            key={block.section.id}
+            section={block.section}
+          />
+        ) : (
+          <div
+            className={`grid items-start gap-5 ${runtimeSectionColumnClass(normalizedColumns)}`}
+            key={`section-columns-${blockIndex}`}
+          >
+            {block.columns.map((columnSections, columnIndex) => (
+              <div className="grid gap-5" key={columnIndex}>
+                {columnSections.map((section) => (
                   <RuntimeSection
                     {...sectionProps}
                     key={section.id}
                     section={section}
                   />
                 ))}
-            </div>
-          ),
-        )}
-      </div>
-      {fullWidthSections.map((section) => (
-        <RuntimeSection {...sectionProps} key={section.id} section={section} />
-      ))}
+              </div>
+            ))}
+          </div>
+        ),
+      )}
     </div>
   );
+}
+
+type RuntimeSectionLayoutBlock =
+  | { readonly type: "columns"; readonly columns: FormSectionMetadata[][] }
+  | { readonly type: "full"; readonly section: FormSectionMetadata };
+
+function buildRuntimeSectionLayoutBlocks(
+  sections: readonly FormSectionMetadata[],
+  columnCount: 1 | 2 | 3,
+): readonly RuntimeSectionLayoutBlock[] {
+  if (columnCount === 1 || sections.length <= 1) {
+    return sections.map((section) => ({ type: "full", section }) as const);
+  }
+
+  const blocks: RuntimeSectionLayoutBlock[] = [];
+  let buckets = emptySectionBuckets(columnCount);
+
+  const flushBuckets = () => {
+    if (buckets.some((bucket) => bucket.length > 0)) {
+      blocks.push({ type: "columns", columns: buckets });
+      buckets = emptySectionBuckets(columnCount);
+    }
+  };
+
+  for (const section of sections) {
+    const span = Number(section.columnSpan);
+    if (Number.isFinite(span) && span >= columnCount) {
+      flushBuckets();
+      blocks.push({ type: "full", section });
+      continue;
+    }
+
+    buckets[shortestSectionBucketIndex(buckets)]?.push(section);
+  }
+
+  flushBuckets();
+  return blocks;
+}
+
+function emptySectionBuckets(columnCount: 1 | 2 | 3) {
+  return Array.from({ length: columnCount }, () => [] as FormSectionMetadata[]);
+}
+
+function shortestSectionBucketIndex(buckets: readonly FormSectionMetadata[][]) {
+  let targetIndex = 0;
+  for (let index = 1; index < buckets.length; index += 1) {
+    if (buckets[index].length < buckets[targetIndex].length) {
+      targetIndex = index;
+    }
+  }
+  return targetIndex;
+}
+
+function runtimeSectionColumnClass(columnCount: 1 | 2 | 3) {
+  if (columnCount === 3) return "md:grid-cols-3";
+  if (columnCount === 2) return "md:grid-cols-2";
+  return "grid-cols-1";
+}
+
+function warnInvalidLayoutConfiguration(
+  scope: string,
+  input: {
+    readonly columns?: unknown;
+    readonly columnSpan?: unknown;
+    readonly parentColumns?: unknown;
+  },
+) {
+  if (process.env.NODE_ENV === "production") return;
+  const columns = Number(input.columns);
+  const span = Number(input.columnSpan);
+  const parentColumns = Number(input.parentColumns);
+  const issues = [
+    input.columns !== undefined &&
+    (!Number.isFinite(columns) || columns < 1 || columns > 3)
+      ? `columns=${String(input.columns)}`
+      : null,
+    input.columnSpan !== undefined &&
+    (!Number.isFinite(span) || span < 1 || span > 3)
+      ? `columnSpan=${String(input.columnSpan)}`
+      : null,
+    input.columnSpan !== undefined &&
+    Number.isFinite(span) &&
+    Number.isFinite(parentColumns) &&
+    span > parentColumns
+      ? `columnSpan exceeds parentColumns=${String(input.parentColumns)}`
+      : null,
+  ].filter(Boolean);
+
+  if (issues.length) {
+    console.warn(
+      `[RuntimeMetadataFormRenderer] Normalized invalid layout for ${scope}: ${issues.join(", ")}`,
+    );
+  }
 }
 
 function resolveQuickCreateForm(
@@ -389,20 +490,6 @@ function isFormFieldVisible(
   }
 
   return true;
-}
-
-function isFullWidthRuntimeSection(
-  section: FormSectionMetadata,
-  columnCount: 1 | 2 | 3 | 4,
-) {
-  if ((section.columnSpan ?? 1) >= columnCount) return true;
-
-  return (section.components ?? []).some(
-    (component) =>
-      component.type === "widget" &&
-      (component.widgetType === "agent_desktop" ||
-        (component.columnSpan ?? 1) >= columnCount),
-  );
 }
 
 function resolveParentBinding(
@@ -502,12 +589,34 @@ function RuntimeSection({
   readonly touchedFields?: ReadonlySet<string>;
   readonly values: FieldValueMap;
 }) {
-  const visibleFields = section.fields.filter(
-    (field) =>
-      field.isVisible !== false &&
-      fieldsByName.has(field.fieldLogicalName) &&
-      isFormFieldVisible(field, values),
+  const sectionColumns = normalizeFormGridColumnCount(
+    section.columns ?? columnsFromSectionLayout(section.layout),
   );
+  warnInvalidLayoutConfiguration(`section:${section.id}`, {
+    columns: section.columns,
+    columnSpan: section.columnSpan,
+  });
+  const visibleFields = section.fields.filter((field) => {
+    if (field.isVisible === false || !isFormFieldVisible(field, values)) {
+      return false;
+    }
+    const metadataField = fieldsByName.get(field.fieldLogicalName);
+    if (!metadataField) return false;
+    if (
+      shouldHideEmptyReadonlyCreateField({
+        field: metadataField,
+        formField: field,
+        mode,
+        runtime,
+        values,
+      })
+    ) {
+      return false;
+    }
+    return runtime
+      ? resolveSafeFieldMetadata(runtime.security, metadataField).canRead
+      : true;
+  });
   const visibleComponents = (section.components ?? []).filter(
     (component) =>
       component.isVisible !== false &&
@@ -533,12 +642,13 @@ function RuntimeSection({
 
   useEffect(() => {
     const getLookupOptions = dataAdapter?.getLookupOptions;
-    if (mode === "detail" || !getLookupOptions || !runtime) {
+    if (!getLookupOptions || !runtime) {
       return;
     }
     const currentRuntime = runtime;
-    const loadLookupOptions: NonNullable<ModuleDataAdapter["getLookupOptions"]> =
-      getLookupOptions;
+    const loadLookupOptions: NonNullable<
+      ModuleDataAdapter["getLookupOptions"]
+    > = getLookupOptions;
 
     const fieldsToHydrate = visibleFields
       .map((formField) => fieldsByName.get(formField.fieldLogicalName))
@@ -546,6 +656,14 @@ function RuntimeSection({
         (field): field is FieldMetadata =>
           field !== undefined &&
           field.dataType === "lookup" &&
+          (mode !== "detail" ||
+            !resolveLookupDisplayValue(
+              field,
+              values[field.logicalName],
+              values,
+              lookupDisplayValues,
+              lookupOptions,
+            )) &&
           !lookupOptions[field.logicalName]?.length &&
           !hydratedLookupFields.has(field.logicalName),
       );
@@ -575,6 +693,15 @@ function RuntimeSection({
                 subtitle: option.subtitle,
               })),
             );
+          } catch (error) {
+            console.error("Runtime lookup hydration failed", {
+              field: field.logicalName,
+              message: error instanceof Error ? error.message : String(error),
+              data:
+                error instanceof Error && "data" in error
+                  ? (error as Error & { data?: unknown }).data
+                  : undefined,
+            });
           } finally {
             if (!cancelled) {
               onLookupHydrated?.(field.logicalName);
@@ -594,6 +721,7 @@ function RuntimeSection({
     fieldsByName,
     hydratedLookupFields,
     lookupHydrationKey,
+    lookupDisplayValues,
     lookupOptions,
     mode,
     onLookupHydrated,
@@ -611,12 +739,17 @@ function RuntimeSection({
         {section.label}
       </h4>
       <div className="rounded-2xl border border-border bg-white/80 p-4">
-        <dl
-          className={`grid gap-4 ${runtimeGridClass(section.columns ?? columnsFromLayout(section.layout))}`}
-        >
+        <FormGrid columns={sectionColumns} kind="section">
           {visibleFields.map((formField) => {
             const field = fieldsByName.get(formField.fieldLogicalName);
             if (!field) return null;
+            warnInvalidLayoutConfiguration(
+              `field:${section.id}.${formField.fieldLogicalName}`,
+              {
+                columnSpan: formField.columnSpan,
+                parentColumns: sectionColumns,
+              },
+            );
 
             const fieldEditable = isEditableRuntimeField({
               field,
@@ -633,49 +766,78 @@ function RuntimeSection({
                 })
               : fieldEditable;
 
-            debugRuntime("Form field editability", {
-              fieldLogicalName: field.logicalName,
-              mode,
-              editable: resolvedFieldEditable,
-              formReadonly: formField.isReadonly,
-              behavior: field.behavior,
-              autoGenerated: field.autoGenerated,
-              lockedByDefault: field.lockedByDefault,
-              unlockableByCustomization: field.unlockableByCustomization,
-            });
+            const fieldAccess = runtime
+              ? resolveSafeFieldMetadata(runtime.security, field)
+              : null;
+            const rawValue = values[field.logicalName];
+            const displayValue = readOnlyExternalLink(rawValue)
+              ? rawValue
+              : formatRuntimeFieldValue({
+                  field,
+                  lookupDisplayValue:
+                    resolveLookupDisplayValue(
+                      field,
+                      rawValue,
+                      values,
+                      lookupDisplayValues,
+                      lookupOptions,
+                    ) ?? lookupDisplayValues[field.logicalName],
+                  record: values,
+                  tenant: runtime?.tenant,
+                  value: rawValue,
+                });
+            const securedDisplayValue =
+              fieldAccess?.isMasked && displayValue
+                ? maskRuntimeFieldValue(
+                    displayValue,
+                    fieldAccess.maskingPattern,
+                    fieldAccess.customMask,
+                  )
+                : displayValue;
+            const readOnlyValue =
+              runtime?.module.key &&
+              BLANK_EMPTY_VALUE_MODULES.has(runtime.module.key) &&
+              securedDisplayValue === "Not set"
+                ? ""
+                : securedDisplayValue;
+            const fieldColumnSpan = runtimeFieldColumnSpan(
+              field,
+              formField,
+              sectionColumns,
+            );
 
             return !resolvedFieldEditable ? (
-              <div
-                data-runtime-field={field.logicalName}
+              <FormGridItem
+                columnSpan={fieldColumnSpan}
+                dataRuntimeField={field.logicalName}
                 key={`${section.id}-${formField.fieldLogicalName}`}
+                parentColumns={sectionColumns}
               >
                 <ReadOnlyField
-                  label={formField.label ?? field.displayName}
-                  required={formField.requirementLevel === "required"}
-                  error={firstError(fieldErrors[field.logicalName])}
-                  touched={touchedFields?.has(field.logicalName)}
-                  value={formatRuntimeFieldValue({
-                    field,
-                    lookupDisplayValue:
-                      resolveLookupDisplayValue(
-                        field,
-                        values[field.logicalName],
-                        lookupDisplayValues,
-                        lookupOptions,
-                      ) ?? lookupDisplayValues[field.logicalName],
-                    tenant: runtime?.tenant,
-                    value: values[field.logicalName],
-                  })}
-                />
-              </div>
-            ) : (
-              <div
-                data-runtime-field={field.logicalName}
-                key={`${section.id}-${formField.fieldLogicalName}`}
-              >
-                <EditableField
                   field={field}
                   label={formField.label ?? field.displayName}
+                  required={
+                    (formField.requirementLevel ?? field.requirementLevel) ===
+                    "required"
+                  }
+                  error={firstError(fieldErrors[field.logicalName])}
+                  touched={touchedFields?.has(field.logicalName)}
+                  value={readOnlyValue}
+                />
+              </FormGridItem>
+            ) : (
+              <FormGridItem
+                columnSpan={fieldColumnSpan}
+                dataRuntimeField={field.logicalName}
+                key={`${section.id}-${formField.fieldLogicalName}`}
+                parentColumns={sectionColumns}
+              >
+                <EditableField
+                  allLookupOptions={lookupOptions}
+                  dataAdapter={dataAdapter}
+                  field={field}
+                  label={formField.label ?? field.displayName}
+                  lookupDisplayValues={lookupDisplayValues}
                   lookupOptions={lookupOptions[field.logicalName] ?? []}
                   lookupOptionsHydrated={
                     hydratedLookupFields.has(field.logicalName) ||
@@ -707,11 +869,16 @@ function RuntimeSection({
                       runtime,
                     });
                   }}
-                  required={formField.requirementLevel === "required"}
+                  required={
+                    (formField.requirementLevel ?? field.requirementLevel) ===
+                    "required"
+                  }
+                  runtime={runtime}
                   touched={touchedFields?.has(field.logicalName)}
                   value={values[field.logicalName]}
+                  values={values}
                 />
-              </div>
+              </FormGridItem>
             );
           })}
           {visibleComponents.map((component) => (
@@ -720,16 +887,43 @@ function RuntimeSection({
               key={component.id}
               dataAdapter={dataAdapter}
               runtime={runtime}
-              sectionColumns={
-                section.columns ?? columnsFromLayout(section.layout)
-              }
+              sectionColumns={sectionColumns}
             />
           ))}
-        </dl>
+        </FormGrid>
       </div>
     </section>
   );
 }
+
+function runtimeFieldColumnSpan(
+  field: FieldMetadata,
+  formField: FormFieldMetadata,
+  sectionColumns: 1 | 2 | 3,
+) {
+  if (FULL_WIDTH_RUNTIME_FIELDS.has(field.logicalName)) {
+    return sectionColumns;
+  }
+
+  return formField.columnSpan;
+}
+
+const FULL_WIDTH_RUNTIME_FIELDS = new Set(["eligibilityRules"]);
+const HIDDEN_EMPTY_CREATE_FIELDS_BY_MODULE: Record<
+  string,
+  ReadonlySet<string>
+> = {
+  "payroll-runs": new Set([
+    "periodName",
+    "payrollCycleName",
+    "payrollCalendarName",
+    "payrollRegionName",
+    "runNumber",
+    "status",
+    "calculatedAt",
+    "lockedAt",
+  ]),
+};
 
 function resolveAllowedWidgetComponentIds(form: FormMetadata) {
   const allowed = new Set<string>();
@@ -776,40 +970,51 @@ function RuntimeComponent({
   readonly component: FormComponentMetadata;
   readonly dataAdapter?: ModuleDataAdapter;
   readonly runtime?: ModuleRuntimeContext;
-  readonly sectionColumns: 1 | 2 | 3 | 4;
+  readonly sectionColumns: 1 | 2 | 3;
 }) {
-  const spanClass = columnSpanClass(component.columnSpan ?? sectionColumns);
+  warnInvalidLayoutConfiguration(`component:${component.id}`, {
+    columnSpan: component.columnSpan,
+    parentColumns: sectionColumns,
+  });
 
   if (component.type === "notes") {
     return (
-      <div
-        className={`${spanClass} rounded-lg border border-dashed border-border p-4 text-sm text-muted`}
+      <FormGridItem
+        className="rounded-lg border border-dashed border-border p-4 text-sm text-muted"
+        columnSpan={component.columnSpan}
+        parentColumns={sectionColumns}
       >
         Notes will appear here when reusable note storage is connected.
-      </div>
+      </FormGridItem>
     );
   }
 
   if (component.type === "relatedList") {
     return (
-      <div
-        className={`${spanClass} rounded-lg border border-dashed border-border p-4 text-sm text-muted`}
+      <FormGridItem
+        className="rounded-lg border border-dashed border-border p-4 text-sm text-muted"
+        columnSpan={component.columnSpan}
+        parentColumns={sectionColumns}
       >
         Related List metadata is present. Connect a related data adapter to show
         records.
-      </div>
+      </FormGridItem>
     );
   }
 
   if (component.type === "widget" && component.widgetType) {
     return (
-      <div className={spanClass}>
+      <FormGridItem
+        columnSpan={component.columnSpan}
+        dataRuntimeWidget={component.id}
+        parentColumns={sectionColumns}
+      >
         <ModuleWidgetRenderer
           component={component}
           dataAdapter={dataAdapter}
           runtime={runtime}
         />
-      </div>
+      </FormGridItem>
     );
   }
 
@@ -817,37 +1022,53 @@ function RuntimeComponent({
 }
 
 function EditableField({
+  dataAdapter,
   field,
   label,
+  lookupDisplayValues,
   lookupOptions,
   lookupOptionsHydrated,
+  allLookupOptions,
   error,
   onValueChange,
   required,
+  runtime,
   touched,
   value,
+  values,
 }: {
+  readonly dataAdapter?: ModuleDataAdapter;
   readonly field: FieldMetadata;
   readonly label: string;
+  readonly lookupDisplayValues: Record<string, string>;
   readonly lookupOptions: readonly LookupOption[];
   readonly lookupOptionsHydrated: boolean;
+  readonly allLookupOptions: Record<string, readonly LookupOption[]>;
   readonly error?: string;
   readonly onValueChange?: (value: FieldValueMap[string]) => void;
   readonly required?: boolean;
+  readonly runtime?: ModuleRuntimeContext;
   readonly touched?: boolean;
   readonly value: FieldValueMap[string];
+  readonly values: FieldValueMap;
 }) {
   const fieldValue = value === null || value === undefined ? "" : String(value);
   const checked = Boolean(value);
-  const numberValue =
-    typeof value === "number" && Number.isFinite(value) ? value : null;
-  const lookupReferenceDataMissing =
+  const numberValue = numericFieldValue(value);
+  const resolvedLookupOptions = ensureSelectedLookupOption({
+    field,
+    lookupDisplayValues,
+    lookupOptions,
+    allLookupOptions,
+    value,
+    values,
+  });
+  const lookupOptionsMissing =
     field.dataType === "lookup" &&
     lookupOptionsHydrated &&
-    lookupOptions.length === 0 &&
-    SEED_BACKED_LOOKUP_FIELDS.has(field.logicalName);
-  const lookupWarning = lookupReferenceDataMissing
-    ? MISSING_REFERENCE_DATA_MESSAGE
+    resolvedLookupOptions.length === 0;
+  const lookupEmptyMessage = lookupOptionsMissing
+    ? emptyLookupOptionsMessage(label)
     : undefined;
 
   return (
@@ -880,22 +1101,25 @@ function EditableField({
             onChange={(nextValue) => {
               onValueChange?.(nextValue);
             }}
-            noResultsText={
-              lookupReferenceDataMissing
-                ? MISSING_REFERENCE_DATA_MESSAGE
-                : undefined
-            }
-            options={[...lookupOptions]}
+            noResultsText={lookupEmptyMessage}
+            options={[...resolvedLookupOptions]}
             placeholder="Select record"
             required={required}
+            selectedHref={lookupReferenceHref(
+              field,
+              fieldValue,
+              resolvedLookupOptions,
+            )}
             touched={touched}
             value={fieldValue}
-            warning={lookupWarning}
+            warning={lookupEmptyMessage}
           />
         ) : field.dataType === "date" ? (
           <DateField
             label={label}
             error={error}
+            max={field.maxDate}
+            min={field.minDate}
             onChange={(nextValue) => {
               onValueChange?.(nextValue);
             }}
@@ -933,6 +1157,13 @@ function EditableField({
             required={required}
             touched={touched}
             value={numberValue}
+          />
+        ) : field.logicalName === "eligibilityRules" ? (
+          <EligibilityRulesField
+            error={error}
+            onChange={(nextValue) => onValueChange?.(nextValue)}
+            touched={touched}
+            value={value}
           />
         ) : field.dataType === "multiline-string" ||
           field.dataType === "json" ? (
@@ -976,19 +1207,696 @@ function EditableField({
   );
 }
 
+function emptyLookupOptionsMessage(label: string) {
+  const normalizedLabel = label.trim().toLowerCase();
+  if (!normalizedLabel) {
+    return "No related records are available yet. Create the related record first, then try again.";
+  }
+
+  return `No ${normalizedLabel} records are available yet. Create one first, then try again.`;
+}
+
+type EligibilityRuleCondition = {
+  attribute: string;
+  operator: string;
+  values: string[];
+};
+
+type EligibilityRuleDraft = {
+  id?: string;
+  name?: string | null;
+  matchType: "ALL" | "ANY";
+  priority: number;
+  conditions: {
+    conditions: EligibilityRuleCondition[];
+  };
+  isActive: boolean;
+};
+
+const eligibilityScopeOptions = [
+  { value: "employeeId", label: "Employee" },
+  { value: "employeeLevelId", label: "Employee Level" },
+  { value: "designationId", label: "Designation" },
+  { value: "teamId", label: "Team" },
+  { value: "departmentId", label: "Department" },
+  { value: "businessUnitId", label: "Business Unit" },
+  { value: "organizationId", label: "Organization" },
+] as const;
+
+const eligibilityOperatorOptions = [
+  { value: "EQUALS", label: "Equals" },
+  { value: "NOT_EQUALS", label: "Does Not Equal" },
+  { value: "IS_ONE_OF", label: "Is One Of" },
+  { value: "IS_NOT_ONE_OF", label: "Is Not One Of" },
+  { value: "IS_EMPTY", label: "Is Empty" },
+  { value: "IS_NOT_EMPTY", label: "Is Not Empty" },
+] as const;
+
+function EligibilityRulesField({
+  error,
+  onChange,
+  touched,
+  value,
+}: {
+  readonly error?: string;
+  readonly onChange?: (value: FieldValueMap[string]) => void;
+  readonly touched?: boolean;
+  readonly value: FieldValueMap[string];
+}) {
+  const rules = normalizeEligibilityRules(value);
+  const showError = touched && error;
+  const [lookupOptionsByScope, setLookupOptionsByScope] = useState<
+    Record<string, readonly LookupOption[]>
+  >({});
+  const activeLookupScopes = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          rules.flatMap((rule) =>
+            rule.conditions.conditions.map((condition) => condition.attribute),
+          ),
+        ),
+      ).filter((scope) => eligibilityLookupField(scope) !== null),
+    [value],
+  );
+  const activeLookupScopeKey = activeLookupScopes.join("|");
+
+  useEffect(() => {
+    if (activeLookupScopes.length === 0) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadEligibilityLookupOptions() {
+      const entries: Array<readonly [string, readonly LookupOption[]]> = [];
+      const loadedEntries = await Promise.all(
+        activeLookupScopes.map(async (scope) => {
+          const options = await loadEligibilityLookupScopeOptions(scope).catch(
+            () => [],
+          );
+          return [scope, options] as const;
+        }),
+      );
+      for (const entry of loadedEntries) {
+        if (entry) entries.push(entry);
+      }
+
+      if (cancelled) return;
+      setLookupOptionsByScope((current) => ({
+        ...current,
+        ...Object.fromEntries(entries.filter(Boolean)),
+      }));
+    }
+
+    void loadEligibilityLookupOptions();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeLookupScopeKey, activeLookupScopes]);
+
+  const updateRules = (nextRules: readonly EligibilityRuleDraft[]) => {
+    onChange?.(nextRules.map(serializeEligibilityRule));
+  };
+
+  const addRule = () => {
+    updateRules([
+      ...rules,
+      {
+        name: "",
+        matchType: "ALL",
+        priority: rules.length + 1,
+        conditions: {
+          conditions: [emptyEligibilityCondition()],
+        },
+        isActive: true,
+      },
+    ]);
+  };
+
+  const updateRule = (
+    index: number,
+    updater: (rule: EligibilityRuleDraft) => EligibilityRuleDraft,
+  ) => {
+    updateRules(
+      rules.map((rule, itemIndex) =>
+        itemIndex === index ? updater(rule) : rule,
+      ),
+    );
+  };
+
+  const removeRule = (index: number) => {
+    updateRules(rules.filter((_, itemIndex) => itemIndex !== index));
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium text-foreground">
+            Eligibility Rules
+          </p>
+          <p className="text-xs text-muted">
+            Match employees by scope, operator, and value.
+          </p>
+        </div>
+        <button
+          className="rounded-md border border-border px-3 py-1.5 text-sm font-medium text-foreground transition hover:bg-muted/10"
+          onClick={addRule}
+          type="button"
+        >
+          Add Rule
+        </button>
+      </div>
+      {rules.length === 0 ? (
+        <div className="rounded-md border border-dashed border-border p-4 text-sm text-muted">
+          No matching rules configured. Add a rule when Applies To is set to
+          Matching Employees.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {rules.map((rule, ruleIndex) => (
+            <div
+              className="min-w-0 space-y-3 overflow-hidden rounded-md border border-border bg-surface p-3"
+              key={rule.id ?? ruleIndex}
+            >
+              <div className="grid gap-3 lg:grid-cols-[minmax(180px,1fr)_minmax(150px,180px)_minmax(110px,140px)_auto]">
+                <label className="min-w-0 space-y-1 text-sm">
+                  <span className="font-medium text-foreground">Rule Name</span>
+                  <input
+                    className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
+                    onChange={(event) =>
+                      updateRule(ruleIndex, (current) => ({
+                        ...current,
+                        name: event.target.value,
+                      }))
+                    }
+                    placeholder="e.g. Managers"
+                    value={rule.name ?? ""}
+                  />
+                </label>
+                <label className="min-w-0 space-y-1 text-sm">
+                  <span className="font-medium text-foreground">Match</span>
+                  <select
+                    className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
+                    onChange={(event) =>
+                      updateRule(ruleIndex, (current) => ({
+                        ...current,
+                        matchType: event.target.value === "ANY" ? "ANY" : "ALL",
+                      }))
+                    }
+                    value={rule.matchType}
+                  >
+                    <option value="ALL">All Conditions</option>
+                    <option value="ANY">Any Condition</option>
+                  </select>
+                </label>
+                <label className="min-w-0 space-y-1 text-sm">
+                  <span className="font-medium text-foreground">Priority</span>
+                  <input
+                    className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
+                    min={1}
+                    onChange={(event) =>
+                      updateRule(ruleIndex, (current) => ({
+                        ...current,
+                        priority: Number(event.target.value) || 1,
+                      }))
+                    }
+                    type="number"
+                    value={rule.priority}
+                  />
+                </label>
+                <div className="flex min-w-0 items-end">
+                  <button
+                    className="h-10 whitespace-nowrap rounded-md border border-danger/40 px-3 text-sm font-medium text-danger transition hover:bg-danger/5"
+                    onClick={() => removeRule(ruleIndex)}
+                    type="button"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                {rule.conditions.conditions.map((condition, conditionIndex) => (
+                  <div
+                    className="grid gap-2 lg:grid-cols-[minmax(150px,1fr)_minmax(150px,1fr)_minmax(180px,2fr)_auto]"
+                    key={conditionIndex}
+                  >
+                    <select
+                      aria-label="Scope"
+                      className="h-10 min-w-0 rounded-md border border-border bg-background px-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
+                      onChange={(event) =>
+                        updateRule(ruleIndex, (current) =>
+                          updateEligibilityCondition(current, conditionIndex, {
+                            attribute: event.target.value,
+                            values: [],
+                          }),
+                        )
+                      }
+                      value={condition.attribute}
+                    >
+                      {eligibilityScopeOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      aria-label="Operator"
+                      className="h-10 min-w-0 rounded-md border border-border bg-background px-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
+                      onChange={(event) =>
+                        updateRule(ruleIndex, (current) =>
+                          updateEligibilityCondition(current, conditionIndex, {
+                            operator: event.target.value,
+                            values: eligibilityOperatorNeedsValue(
+                              event.target.value,
+                            )
+                              ? condition.values
+                              : [],
+                          }),
+                        )
+                      }
+                      value={condition.operator}
+                    >
+                      {eligibilityOperatorOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    <EligibilityConditionValueLookup
+                      condition={condition}
+                      onChange={(nextValues) =>
+                        updateRule(ruleIndex, (current) =>
+                          updateEligibilityCondition(current, conditionIndex, {
+                            values: [...nextValues],
+                          }),
+                        )
+                      }
+                      options={lookupOptionsByScope[condition.attribute] ?? []}
+                    />
+                    <button
+                      className="h-10 whitespace-nowrap rounded-md border border-border px-3 text-sm font-medium text-foreground transition hover:bg-muted/10"
+                      onClick={() =>
+                        updateRule(ruleIndex, (current) => ({
+                          ...current,
+                          conditions: {
+                            conditions: current.conditions.conditions.filter(
+                              (_, itemIndex) => itemIndex !== conditionIndex,
+                            ),
+                          },
+                        }))
+                      }
+                      type="button"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ))}
+                <button
+                  className="rounded-md border border-border px-3 py-1.5 text-sm font-medium text-foreground transition hover:bg-muted/10"
+                  onClick={() =>
+                    updateRule(ruleIndex, (current) => ({
+                      ...current,
+                      conditions: {
+                        conditions: [
+                          ...current.conditions.conditions,
+                          emptyEligibilityCondition(),
+                        ],
+                      },
+                    }))
+                  }
+                  type="button"
+                >
+                  Add Condition
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {showError ? <p className="text-xs text-danger">{error}</p> : null}
+    </div>
+  );
+}
+
+function EligibilityConditionValueLookup({
+  condition,
+  onChange,
+  options,
+}: {
+  readonly condition: EligibilityRuleCondition;
+  readonly onChange: (values: readonly string[]) => void;
+  readonly options: readonly LookupOption[];
+}) {
+  const disabled = !eligibilityOperatorNeedsValue(condition.operator);
+  const selectedValue = disabled ? "" : (condition.values[0] ?? "");
+  const scopeLabel = eligibilityScopeLabel(condition.attribute);
+
+  return (
+    <LookupField
+      className="min-w-0 [&>span:first-child]:sr-only"
+      disabled={disabled}
+      label="Value"
+      noResultsText={`No ${scopeLabel.toLowerCase()} records found.`}
+      onChange={(nextValue) => onChange(nextValue ? [nextValue] : [])}
+      options={[...options]}
+      placeholder={`Select ${scopeLabel.toLowerCase()}`}
+      value={selectedValue}
+    />
+  );
+}
+
+function eligibilityOperatorNeedsValue(operator: string) {
+  return operator !== "IS_EMPTY" && operator !== "IS_NOT_EMPTY";
+}
+
+function eligibilityScopeLabel(scope: string) {
+  return (
+    eligibilityScopeOptions.find((option) => option.value === scope)?.label ??
+    "record"
+  );
+}
+
+function eligibilityLookupField(scope: string): FieldMetadata | null {
+  const config = ELIGIBILITY_LOOKUP_FIELDS[scope];
+  if (!config) return null;
+
+  return {
+    id: `eligibility.${scope}`,
+    logicalName: scope,
+    displayName: config.label,
+    entityLogicalName: "payComponent",
+    version: "1.0.0",
+    lifecycleState: "published",
+    layer: "system",
+    dataType: "lookup",
+    requirementLevel: "none",
+    behavior: "normal",
+    lookupTargets: [
+      {
+        entityLogicalName: config.entityLogicalName,
+      },
+    ],
+  };
+}
+
+async function loadEligibilityLookupScopeOptions(scope: string) {
+  const config = ELIGIBILITY_LOOKUP_FIELDS[scope];
+  if (!config) return [];
+
+  const data = await requestRuntimeJson(config.path, config.fallbackPath);
+  return readRuntimeRecordList(data).flatMap((record) => {
+    const id = stringValue(record.id) || stringValue(record.value);
+    const name = lookupRecordName(record, config.label);
+    if (!id || !name) return [];
+    return [
+      {
+        id,
+        name,
+        code: stringValue(record.code) || null,
+        key: id,
+        subtitle: lookupRecordSubtitle(record),
+      },
+    ];
+  });
+}
+
+async function requestRuntimeJson(path: string, fallbackPath?: string) {
+  const response = await fetch(path, {
+    credentials: "include",
+    headers: { Accept: "application/json" },
+  });
+  if (!response.ok && fallbackPath && response.status === 400) {
+    return requestRuntimeJson(fallbackPath);
+  }
+  if (!response.ok) {
+    throw new Error(`Request failed with status ${response.status}`);
+  }
+  return response.json() as Promise<unknown>;
+}
+
+function readRuntimeRecordList(
+  data: unknown,
+): readonly Record<string, unknown>[] {
+  if (Array.isArray(data)) return data.filter(isRecord);
+  if (!isRecord(data)) return [];
+
+  for (const key of ["items", "records", "data", "results"]) {
+    const value = data[key];
+    if (Array.isArray(value)) return value.filter(isRecord);
+  }
+
+  return [];
+}
+
+function lookupRecordName(
+  record: Record<string, unknown>,
+  fallbackLabel: string,
+) {
+  return (
+    stringValue(record.name) ||
+    stringValue(record.fullName) ||
+    stringValue(record.displayName) ||
+    stringValue(record.label) ||
+    [stringValue(record.firstName), stringValue(record.lastName)]
+      .filter(Boolean)
+      .join(" ") ||
+    stringValue(record.title) ||
+    stringValue(record.value) ||
+    fallbackLabel
+  );
+}
+
+function lookupRecordSubtitle(record: Record<string, unknown>) {
+  return (
+    stringValue(record.subtitle) ||
+    stringValue(record.workEmail) ||
+    stringValue(record.email) ||
+    stringValue(record.code) ||
+    null
+  );
+}
+
+const ELIGIBILITY_LOOKUP_FIELDS: Readonly<
+  Record<
+    string,
+    {
+      readonly entityLogicalName: string;
+      readonly fallbackPath: string;
+      readonly label: string;
+      readonly path: string;
+    }
+  >
+> = {
+  businessUnitId: {
+    entityLogicalName: "businessUnit",
+    fallbackPath: "/api/business-units",
+    label: "Business Unit",
+    path: "/api/business-units?isActive=true&pageSize=100",
+  },
+  departmentId: {
+    entityLogicalName: "department",
+    fallbackPath: "/api/departments",
+    label: "Department",
+    path: "/api/departments?isActive=true&pageSize=100",
+  },
+  designationId: {
+    entityLogicalName: "designation",
+    fallbackPath: "/api/designations",
+    label: "Designation",
+    path: "/api/designations?isActive=true&pageSize=100",
+  },
+  employeeId: {
+    entityLogicalName: "employee",
+    fallbackPath: "/api/employees",
+    label: "Employee",
+    path: "/api/employees?pageSize=100",
+  },
+  employeeLevelId: {
+    entityLogicalName: "employeeLevel",
+    fallbackPath: "/api/employee-levels",
+    label: "Employee Level",
+    path: "/api/employee-levels?isActive=true&pageSize=100",
+  },
+  organizationId: {
+    entityLogicalName: "organization",
+    fallbackPath: "/api/organizations",
+    label: "Organization",
+    path: "/api/organizations?isActive=true&pageSize=100",
+  },
+  teamId: {
+    entityLogicalName: "team",
+    fallbackPath: "/api/teams",
+    label: "Team",
+    path: "/api/teams?isActive=true&pageSize=100",
+  },
+};
+
+function emptyEligibilityCondition(): EligibilityRuleCondition {
+  return {
+    attribute: "employeeId",
+    operator: "EQUALS",
+    values: [],
+  };
+}
+
+function normalizeEligibilityRules(
+  value: unknown,
+): readonly EligibilityRuleDraft[] {
+  const rawRules = Array.isArray(value)
+    ? value
+    : value &&
+        typeof value === "object" &&
+        Array.isArray((value as { rules?: unknown }).rules)
+      ? (value as { rules: unknown[] }).rules
+      : [];
+  return rawRules.map((rawRule, index) => {
+    const rule =
+      rawRule && typeof rawRule === "object"
+        ? (rawRule as Record<string, unknown>)
+        : {};
+    return {
+      id: typeof rule.id === "string" ? rule.id : undefined,
+      name: typeof rule.name === "string" ? rule.name : "",
+      matchType: rule.matchType === "ANY" ? "ANY" : "ALL",
+      priority: typeof rule.priority === "number" ? rule.priority : index + 1,
+      conditions: {
+        conditions: normalizeEligibilityConditions(rule.conditions),
+      },
+      isActive: rule.isActive !== false,
+    };
+  });
+}
+
+function normalizeEligibilityConditions(
+  value: unknown,
+): EligibilityRuleCondition[] {
+  const rawConditions =
+    value &&
+    typeof value === "object" &&
+    Array.isArray((value as { conditions?: unknown }).conditions)
+      ? (value as { conditions: unknown[] }).conditions
+      : [];
+  const normalized = rawConditions
+    .map((condition) => {
+      const record =
+        condition && typeof condition === "object"
+          ? (condition as Record<string, unknown>)
+          : {};
+      return {
+        attribute:
+          typeof record.attribute === "string" && record.attribute.trim()
+            ? record.attribute.trim()
+            : "employeeId",
+        operator:
+          typeof record.operator === "string" && record.operator.trim()
+            ? record.operator.trim().toUpperCase()
+            : "EQUALS",
+        values: normalizeConditionValues(record.values ?? record.value),
+      };
+    })
+    .filter((condition) => condition.attribute);
+  return normalized.length ? normalized : [emptyEligibilityCondition()];
+}
+
+function normalizeConditionValues(value: unknown) {
+  return (Array.isArray(value) ? value : [value])
+    .map((item) => (typeof item === "string" ? item.trim() : ""))
+    .filter(Boolean);
+}
+
+function updateEligibilityCondition(
+  rule: EligibilityRuleDraft,
+  index: number,
+  patch: Partial<EligibilityRuleCondition>,
+): EligibilityRuleDraft {
+  return {
+    ...rule,
+    conditions: {
+      conditions: rule.conditions.conditions.map((condition, conditionIndex) =>
+        conditionIndex === index ? { ...condition, ...patch } : condition,
+      ),
+    },
+  };
+}
+
+function serializeEligibilityRule(rule: EligibilityRuleDraft) {
+  return {
+    ...(rule.id ? { id: rule.id } : {}),
+    name: rule.name?.trim() || null,
+    matchType: rule.matchType,
+    priority: rule.priority,
+    conditions: {
+      conditions: rule.conditions.conditions.map((condition) => ({
+        attribute: condition.attribute,
+        operator: condition.operator,
+        ...(condition.operator === "IS_EMPTY" ||
+        condition.operator === "IS_NOT_EMPTY"
+          ? {}
+          : { values: condition.values }),
+      })),
+    },
+    isActive: rule.isActive,
+  };
+}
+
 function ReadOnlyField({
+  field,
   label,
   required,
   error,
   touched,
   value,
 }: {
+  readonly field?: FieldMetadata;
   readonly label: string;
   readonly required?: boolean;
   readonly error?: string;
   readonly touched?: boolean;
   readonly value: FieldValueMap[string];
 }) {
+  const externalLink = readOnlyExternalLink(value);
+  if (externalLink) {
+    return (
+      <div className="block space-y-2 text-sm">
+        <span className="flex items-center gap-1.5 font-medium text-foreground">
+          {label}
+          {required ? <span className="text-danger">*</span> : null}
+        </span>
+        <a
+          className="flex min-h-12 w-full items-center justify-between gap-3 rounded-2xl border border-border bg-slate-50 px-4 py-3 text-sm font-medium text-accent transition hover:border-accent/40 hover:bg-accent/5 hover:underline"
+          href={externalLink.href}
+          rel="noreferrer"
+          target="_blank"
+        >
+          <span className="min-w-0 truncate">{externalLink.label}</span>
+          <span aria-hidden className="shrink-0">
+            ↗
+          </span>
+        </a>
+        {error ? (
+          <span className="block text-xs leading-5 text-danger">{error}</span>
+        ) : null}
+      </div>
+    );
+  }
+
+  if (field?.dataType === "multiline-string" || field?.dataType === "json") {
+    return (
+      <TextAreaField
+        disabled
+        error={error}
+        label={label}
+        onChange={() => undefined}
+        required={required}
+        touched={touched}
+        value={formatValue(value)}
+      />
+    );
+  }
+
   return (
     <TextField
       disabled
@@ -1002,8 +1910,27 @@ function ReadOnlyField({
   );
 }
 
+function readOnlyExternalLink(value: FieldValueMap[string]) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const candidate = value as Record<string, unknown>;
+  const href = candidate.href;
+  const label = candidate.label;
+  if (typeof href !== "string" || !/^https:\/\//i.test(href)) return null;
+  if (typeof label !== "string" || !label.trim()) return null;
+  return { href, label: label.trim() };
+}
+
 function firstError(errors: readonly string[] | undefined) {
   return errors?.[0];
+}
+
+function numericFieldValue(value: FieldValueMap[string]) {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const normalized = Number(trimmed.replace(/,/g, ""));
+  return Number.isFinite(normalized) ? normalized : null;
 }
 
 function FormHeading({ title }: { readonly title: string }) {
@@ -1014,47 +1941,32 @@ function FormHeading({ title }: { readonly title: string }) {
   );
 }
 
-function gridClass(columns = 2) {
-  if (columns === 1) return "md:grid-cols-1";
-  if (columns === 3) return "md:grid-cols-3";
-  if (columns === 4) return "md:grid-cols-4";
-  return "md:grid-cols-2";
-}
-
-function runtimeGridClass(columns: 1 | 2 | 3 | 4) {
-  if (columns === 1) return "md:grid-cols-1";
-  if (columns === 3) return "md:grid-cols-3";
-  if (columns === 4) return "md:grid-cols-4";
-  return "md:grid-cols-2";
-}
-
-function runtimeTabGridClass(columns: 1 | 2 | 3 | 4) {
-  if (columns === 2) return "lg:grid-cols-2";
-  if (columns === 3) return "lg:grid-cols-3";
-  if (columns === 4) return "lg:grid-cols-4";
-  return "grid-cols-1";
-}
-
-function columnsFromLayout(
-  layout: FormSectionMetadata["layout"],
-): 1 | 2 | 3 | 4 {
-  if (layout === "single-column") return 1;
-  if (layout === "three-column") return 3;
-  if (layout === "four-column") return 4;
-  return 2;
-}
-
-function columnSpanClass(span: 1 | 2 | 3 | 4) {
-  if (span === 2) return "md:col-span-2";
-  if (span === 3) return "md:col-span-3";
-  if (span === 4) return "md:col-span-4";
-  return "";
-}
-
 function inputTypeForField(field: FieldMetadata) {
   if (field.dataType === "email") return "email";
   if (field.dataType === "url") return "url";
   return "text";
+}
+
+function maskRuntimeFieldValue(
+  value: FieldValueMap[string],
+  maskingPattern?: string,
+  customMask?: string | null,
+) {
+  const text = formatValue(value);
+  if (!text) return text;
+  const pattern = (maskingPattern || "FULL").toUpperCase();
+
+  if (pattern === "CUSTOM" && customMask?.trim()) return customMask.trim();
+  if (pattern === "LAST_4") {
+    const visible = text.slice(-4);
+    return `${"•".repeat(Math.max(text.length - visible.length, 4))}${visible}`;
+  }
+  if (pattern === "PARTIAL") {
+    if (text.length <= 4) return "•".repeat(text.length);
+    return `${text.slice(0, 2)}${"•".repeat(Math.max(text.length - 4, 4))}${text.slice(-2)}`;
+  }
+
+  return "•".repeat(Math.max(text.length, 6));
 }
 
 function isEditableRuntimeField({
@@ -1084,6 +1996,39 @@ function isEditableRuntimeField({
   return true;
 }
 
+function shouldHideEmptyReadonlyCreateField({
+  field,
+  formField,
+  mode,
+  runtime,
+  values,
+}: {
+  readonly field: FieldMetadata;
+  readonly formField: FormFieldMetadata;
+  readonly mode: "detail" | "edit" | "new";
+  readonly runtime?: ModuleRuntimeContext;
+  readonly values: FieldValueMap;
+}) {
+  if (mode !== "new" || !runtime?.module.key) return false;
+  const hiddenFields = HIDDEN_EMPTY_CREATE_FIELDS_BY_MODULE[runtime.module.key];
+  if (!hiddenFields?.has(field.logicalName)) return false;
+
+  const isReadonly =
+    formField.isReadonly === true ||
+    field.autoGenerated ||
+    field.lockedByDefault ||
+    field.behavior !== "normal";
+  if (!isReadonly) return false;
+
+  const value = values[field.logicalName];
+  return (
+    value === null ||
+    value === undefined ||
+    value === "" ||
+    (Array.isArray(value) && value.length === 0)
+  );
+}
+
 function applyFieldValueChange({
   changedField,
   entity,
@@ -1095,6 +2040,10 @@ function applyFieldValueChange({
   readonly value: FieldValueMap[string];
   readonly values: FieldValueMap;
 }) {
+  if (values[changedField.logicalName] === value) {
+    return values;
+  }
+
   const nextValues: FieldValueMap = {
     ...values,
     [changedField.logicalName]: value,
@@ -1108,9 +2057,53 @@ function applyFieldValueChange({
   return nextValues;
 }
 
+function ensureSelectedLookupOption({
+  allLookupOptions,
+  field,
+  lookupDisplayValues,
+  lookupOptions,
+  value,
+  values,
+}: {
+  readonly allLookupOptions: Record<string, readonly LookupOption[]>;
+  readonly field: FieldMetadata;
+  readonly lookupDisplayValues: Record<string, string>;
+  readonly lookupOptions: readonly LookupOption[];
+  readonly value: FieldValueMap[string];
+  readonly values: FieldValueMap;
+}) {
+  if (field.dataType !== "lookup") return lookupOptions;
+
+  const valueId = typeof value === "string" ? value.trim() : "";
+  if (!valueId) return lookupOptions;
+  if (
+    lookupOptions.some((option) => lookupOptionMatchesValue(option, valueId))
+  ) {
+    return lookupOptions;
+  }
+
+  const displayName = resolveLookupDisplayValue(
+    field,
+    value,
+    values,
+    lookupDisplayValues,
+    allLookupOptions,
+  );
+  if (!displayName) return lookupOptions;
+
+  return [
+    {
+      id: valueId,
+      name: displayName,
+    },
+    ...lookupOptions,
+  ];
+}
+
 function resolveLookupDisplayValue(
   field: FieldMetadata,
   value: FieldValueMap[string],
+  values: FieldValueMap,
   lookupDisplayValues: Record<string, string>,
   lookupOptions: Record<string, readonly LookupOption[]>,
 ) {
@@ -1119,13 +2112,73 @@ function resolveLookupDisplayValue(
   const explicitValue = lookupDisplayValues[field.logicalName];
   if (explicitValue) return explicitValue;
 
+  const companionValue = companionLookupDisplayValue(field, values);
+  if (companionValue) return companionValue;
+
   const valueId = typeof value === "string" ? value : "";
   if (!valueId) return null;
 
   return (
-    lookupOptions[field.logicalName]?.find((option) => option.id === valueId)
-      ?.name ?? null
+    lookupOptions[field.logicalName]?.find((option) =>
+      lookupOptionMatchesValue(option, valueId),
+    )?.name ?? (field.logicalName.endsWith("Code") ? valueId : null)
   );
+}
+
+function companionLookupDisplayValue(
+  field: FieldMetadata,
+  values: FieldValueMap,
+) {
+  const record = values as Record<string, unknown>;
+  const baseName = field.logicalName.endsWith("Id")
+    ? field.logicalName.slice(0, -"Id".length)
+    : "";
+  const companionName = baseName ? stringValue(record[`${baseName}Name`]) : "";
+  if (companionName) return companionName;
+
+  const target = field.lookupTargets?.[0];
+  const nestedRecord = target?.entityLogicalName
+    ? record[target.entityLogicalName]
+    : null;
+  if (isRecord(nestedRecord)) {
+    return lookupPrimaryRecordValue(nestedRecord, target?.primaryNameField);
+  }
+
+  return "";
+}
+
+function lookupPrimaryRecordValue(
+  record: Record<string, unknown>,
+  primaryNameField?: string,
+) {
+  return (
+    stringValue(record[primaryNameField ?? "name"]) ||
+    stringValue(record.name) ||
+    stringValue(record.fullName) ||
+    stringValue(record.displayName) ||
+    stringValue(record.label)
+  );
+}
+
+function lookupOptionMatchesValue(option: LookupOption, value: string) {
+  const normalizedValue = normalizeLookupValue(value);
+  if (!normalizedValue) return false;
+
+  return [option.id, option.code, option.key, option.name]
+    .map(normalizeLookupValue)
+    .some((candidate) => candidate === normalizedValue);
+}
+
+function normalizeLookupValue(value: string | null | undefined) {
+  return typeof value === "string" ? value.trim().toLowerCase() : "";
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function stringValue(value: unknown) {
+  return typeof value === "string" ? value : "";
 }
 
 async function loadDependentLookupOptions({
@@ -1199,11 +2252,82 @@ function dependentFieldNames(
   return result;
 }
 
-function formatValue(
-  value: string | number | boolean | readonly string[] | null | undefined,
+function lookupReferenceHref(
+  field: FieldMetadata,
+  value: string,
+  lookupOptions: readonly LookupOption[],
 ) {
-  if (Array.isArray(value)) return value.length ? value.join(", ") : "Not set";
-  if (value === null || value === undefined || value === "") return "Not set";
+  if (field.dataType !== "lookup" || !value) return undefined;
+
+  const target = field.lookupTargets?.[0]?.entityLogicalName;
+  if (!target) return undefined;
+
+  const route = lookupReferenceRoute(target);
+  if (!route) return undefined;
+
+  const selected = lookupOptions.find((option) =>
+    lookupOptionMatchesValue(option, value),
+  );
+  const recordId = selected?.key || value;
+  const encodedRecordId = encodeURIComponent(recordId);
+
+  if (READ_ONLY_REFERENCE_MODULES.has(route.moduleKey)) {
+    return `${route.basePath}?reference=${encodeURIComponent(value)}`;
+  }
+
+  return `${route.basePath}/${encodedRecordId}`;
+}
+
+function lookupReferenceRoute(entityLogicalName: string) {
+  const normalized = entityLogicalName
+    .replace(/^settings_/, "")
+    .replaceAll("_", "-");
+
+  const route = LOOKUP_REFERENCE_ROUTES[normalized];
+  return route
+    ? {
+        basePath: route,
+        moduleKey: normalized,
+      }
+    : null;
+}
+
+const LOOKUP_REFERENCE_ROUTES: Readonly<Record<string, string>> = {
+  countries: "/settings/regional/geography/countries",
+  stateprovinces: "/settings/regional/geography/states",
+  "state-provinces": "/settings/regional/geography/states",
+  cities: "/settings/regional/geography/cities",
+  currencies: "/settings/regional/currency/currencies",
+  timezones: "/settings/regional/localization/timezones",
+  departments: "/settings/general-setup/organization/departments",
+  designations: "/settings/people/workforce/designations",
+  "employee-levels": "/settings/people/workforce/employee-levels",
+  locations: "/settings/people/work-management/locations",
+  "work-calendars": "/settings/people/work-management/work-calendars",
+  "holiday-calendars": "/settings/people/work-management/holiday-calendars",
+  shifts: "/settings/people/work-management/shifts",
+  "work-schedules": "/settings/people/work-management/work-schedules",
+  users: "/settings/security-access/users",
+  roles: "/settings/access/roles",
+  teams: "/settings/access/teams",
+  employees: "/employees",
+};
+
+const READ_ONLY_REFERENCE_MODULES = new Set([
+  "countries",
+  "currencies",
+  "timezones",
+]);
+
+function formatValue(value: FieldValueMap[string]) {
+  if (Array.isArray(value)) {
+    if (!value.length) return "";
+    return value.every((item) => typeof item === "string")
+      ? value.join(", ")
+      : JSON.stringify(value, null, 2);
+  }
+  if (value === null || value === undefined || value === "") return "";
   if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (typeof value === "object") return JSON.stringify(value, null, 2);
   return String(value);
 }

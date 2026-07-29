@@ -212,6 +212,19 @@ export type TenantResolvedSettingsResponse = {
   attendance: {
     defaultGraceMinutes: number;
     allowedModes: string[];
+    requireRemoteLocationCapture?: boolean;
+    locationCaptureRequired?: boolean;
+    locationRequiredForModes?: string[];
+    allowIpFallback?: boolean;
+    allowManualLocationException?: boolean;
+    locationTimeoutSeconds?: number;
+    locationRetryAttempts?: number;
+    highAccuracyLocation?: boolean;
+    maxAllowedAccuracyMeters?: number | null;
+    captureLocationOnCheckIn?: boolean;
+    captureLocationOnCheckOut?: boolean;
+    storeIpAddress?: boolean;
+    storeUserAgent?: boolean;
   };
   timesheets: {
     timesheetPeriodType: string;
@@ -239,6 +252,8 @@ export type TenantResolvedSettingsResponse = {
     defaultPaymentMode: string;
     compensationReviewCycle: string;
     defaultCurrency: string;
+    defaultPayrollRegionId?: string;
+    defaultPayrollCalendarId?: string;
     payrollGenerationSource: string;
     requireApprovedTimesheetsForPayroll: boolean;
     includeLeavesInPayrollSummary: boolean;
@@ -249,7 +264,7 @@ export type TenantResolvedSettingsResponse = {
     payrollExportFormat: string;
   };
   recruitment: {
-    candidateStages: string[];
+    defaultRecruitmentPipelineId: string;
     autoCreateEmployeeFromCandidate: boolean;
     onboardingChecklistTemplate?: string;
     keepEmployeeAsDraftUntilOnboardingComplete?: boolean;
@@ -316,6 +331,13 @@ export type TenantResolvedSettingsResponse = {
     dashboardGreeting?: string;
     sidebarStyle?: string;
     defaultThemeMode?: string;
+  };
+  security: {
+    allowRememberMe: boolean;
+    sessionTimeoutMinutes: number;
+    refreshTokenExpiryDays: number;
+    absoluteSessionLifetimeDays: number;
+    idleTimeoutMinutes: number;
   };
   system: {
     dateFormat: string;

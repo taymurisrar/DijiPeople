@@ -104,6 +104,15 @@ export class LeavePoliciesController {
     return this.leaveService.updateLeavePolicy(user, id, dto);
   }
 
+  @Delete(':id')
+  @Permissions('leave-policies.update')
+  deactivate(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.leaveService.deactivateLeavePolicy(user, id);
+  }
+
   @Get(':policyId/rules')
   @Permissions('leave-policies.read')
   listPolicyRules(
@@ -111,6 +120,18 @@ export class LeavePoliciesController {
     @Param('policyId', new ParseUUIDPipe()) policyId: string,
   ) {
     return this.leaveService.listLeavePolicyRules(user, policyId);
+  }
+
+  @Get(':policyId/assignments')
+  @Permissions('leave-policy-assignments.read')
+  listPolicyAssignments(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('policyId', new ParseUUIDPipe()) policyId: string,
+  ) {
+    return this.leaveService.listLeavePolicyAssignmentsForPolicy(
+      user,
+      policyId,
+    );
   }
 
   @Post(':policyId/rules')

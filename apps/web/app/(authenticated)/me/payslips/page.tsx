@@ -32,7 +32,8 @@ export default async function MyPayslipsPage() {
           My Payslips
         </h2>
         <p className="mt-3 max-w-3xl text-muted">
-          Published payroll payslips available for your employee profile.
+          Published payroll payslips from the past 12 months, with secure PDF
+          downloads.
         </p>
       </section>
       <section className="grid gap-3">
@@ -51,7 +52,25 @@ export default async function MyPayslipsPage() {
                     {payslip.payrollRun?.payrollPeriod?.name ?? "Payroll"}
                   </p>
                 </div>
-                <div className="text-right"><p className="font-semibold text-foreground">{payslip.currencyCode} {payslip.netPay}</p><div className="mt-2 flex gap-3"><Link className="text-sm font-semibold text-accent" href={`/me/payslips/${payslip.id}`}>View</Link><a className="text-sm font-semibold text-accent" href={`/api/me/payslips/${payslip.id}/download`}>Download PDF</a></div></div>
+                <div className="text-right">
+                  <p className="font-semibold text-foreground">
+                    {payslip.currencyCode} {payslip.netPay}
+                  </p>
+                  <div className="mt-2 flex gap-3">
+                    <Link
+                      className="text-sm font-semibold text-accent"
+                      href={`/me/payslips/${payslip.id}`}
+                    >
+                      View
+                    </Link>
+                    <a
+                      className="text-sm font-semibold text-accent"
+                      href={`/api/me/payslips/${payslip.id}/download`}
+                    >
+                      Download PDF
+                    </a>
+                  </div>
+                </div>
               </div>
             </div>
           ))

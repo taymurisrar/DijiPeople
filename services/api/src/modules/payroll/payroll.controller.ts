@@ -17,15 +17,34 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { CreateEmployeeCompensationDto } from './dto/create-employee-compensation.dto';
-import { CreatePayrollCycleDto } from './dto/create-payroll-cycle.dto';
+import {
+  CreatePayrollCycleDto,
+  GeneratePayrollPeriodsDto,
+} from './dto/create-payroll-cycle.dto';
 import { PayrollCycleQueryDto } from './dto/payroll-cycle-query.dto';
 import { UpdateEmployeeCompensationDto } from './dto/update-employee-compensation.dto';
 import { PayrollService } from './payroll.service';
+import { PayrollDefaultsService } from './payroll-defaults.service';
 
 @Controller('payroll')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class PayrollController {
-  constructor(private readonly payrollService: PayrollService) {}
+  constructor(
+    private readonly payrollService: PayrollService,
+    private readonly payrollDefaults: PayrollDefaultsService,
+  ) {}
+
+  @Get('configuration/health')
+  @Permissions('payroll.settings.read')
+  configurationHealth(@CurrentUser() user: AuthenticatedUser) {
+    return this.payrollDefaults.health(user.tenantId);
+  }
+
+  @Post('configuration/initialize-defaults')
+  @Permissions('payroll.settings.update')
+  initializeDefaults(@CurrentUser() user: AuthenticatedUser) {
+    return this.payrollDefaults.initialize(user);
+  }
 
   @Get('cycles')
   @Permissions('payroll.read')
@@ -52,6 +71,26 @@ export class PayrollController {
     @Body() dto: CreatePayrollCycleDto,
   ) {
     return this.payrollService.createCycle(user, dto);
+  }
+
+  @Patch('cycles/:cycleId')
+  @Permissions('payroll.write')
+  updateCycle(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('cycleId', new ParseUUIDPipe()) cycleId: string,
+    @Body() dto: CreatePayrollCycleDto,
+  ) {
+    return this.payrollService.updateCycle(user, cycleId, dto);
+  }
+
+  @Post('cycles/:cycleId/generate-periods')
+  @Permissions('payroll-periods.manage')
+  generatePeriods(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('cycleId', new ParseUUIDPipe()) cycleId: string,
+    @Body() dto: GeneratePayrollPeriodsDto,
+  ) {
+    return this.payrollService.generatePeriods(user, cycleId, dto);
   }
 
   @Post('cycles/:cycleId/generate-drafts')
@@ -113,6 +152,15 @@ export class PayrollController {
   @Permissions('payroll.read')
   listCompensations(@CurrentUser() user: AuthenticatedUser) {
     return this.payrollService.listCompensations(user.tenantId);
+  }
+
+  @Get('compensations/:compensationId')
+  @Permissions('payroll.read')
+  getCompensation(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('compensationId', new ParseUUIDPipe()) compensationId: string,
+  ) {
+    return this.payrollService.getCompensation(user.tenantId, compensationId);
   }
 
   @Post('compensations')

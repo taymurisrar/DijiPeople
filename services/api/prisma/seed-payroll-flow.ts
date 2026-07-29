@@ -60,6 +60,10 @@ import { TimePayrollPolicyResolverService } from '../src/modules/time-payroll/ti
 import { TimePayrollPreparationService } from '../src/modules/time-payroll/time-payroll-preparation.service';
 import { BenefitEligibilityService } from '../src/modules/benefits/benefit-eligibility.service';
 import { BenefitsService } from '../src/modules/benefits/benefits.service';
+import { PayrollCostAllocationService } from '../src/modules/payroll/payroll-cost-allocation.service';
+import { PayrollExchangeRateService } from '../src/modules/payroll/payroll-exchange-rate.service';
+import { TenantSettingsRepository } from '../src/modules/tenant-settings/tenant-settings.repository';
+import { TenantSettingsResolverService } from '../src/modules/tenant-settings/tenant-settings-resolver.service';
 
 const prisma = createPrismaClient();
 const money = (value: string | number) => new Prisma.Decimal(value);
@@ -280,6 +284,12 @@ function buildServices() {
     {} as never,
     {} as never,
   );
+  const tenantSettingsResolver = new TenantSettingsResolverService(
+    new TenantSettingsRepository(prisma as never),
+    prisma as never,
+  );
+  const costAllocation = new PayrollCostAllocationService(prisma as never);
+  const exchangeRates = new PayrollExchangeRateService(prisma as never);
   const payrollRun = new PayrollRunService(
     prisma as never,
     audit as never,
@@ -287,6 +297,9 @@ function buildServices() {
     timePayrollPreparation,
     taxCalculation,
     benefits,
+    tenantSettingsResolver,
+    costAllocation,
+    exchangeRates,
   );
   const payslips = new PayslipsService(
     prisma as never,
@@ -294,6 +307,13 @@ function buildServices() {
     {
       dispatch: async () => undefined,
     } as never,
+    {
+      store: async () => ({
+        document: { id: 'seed-document' },
+        checksum: 'seed-checksum',
+      }),
+    } as never,
+    { openFile: async () => ({ stream: undefined }) } as never,
   );
   const postingRuleResolver = new PayrollPostingRuleResolverService(
     prisma as never,
@@ -302,6 +322,7 @@ function buildServices() {
     prisma as never,
     audit as never,
     postingRuleResolver,
+    { dispatch: async () => undefined } as never,
   );
   return { payrollRun, payslips, journal };
 }
@@ -2222,7 +2243,12 @@ async function seedPostingRules(
       });
     } else {
       await prisma.payrollPostingRule.create({
-        data: { tenantId, name, ...data },
+        data: {
+          tenantId,
+          code: name.toUpperCase().replace(/[^A-Z0-9]+/g, '-').slice(0, 80),
+          name,
+          ...data,
+        },
       });
     }
   }
@@ -2335,8 +2361,8 @@ async function resetValidationRun(
 }
 
 async function resetGeneratedArtifacts(tenantId: string, payrollRunId: string) {
-  const existingJournal = await prisma.payrollJournalEntry.findUnique({
-    where: { tenantId_payrollRunId: { tenantId, payrollRunId } },
+  const existingJournal = await prisma.payrollJournalEntry.findFirst({
+    where: { tenantId, payrollRunId, journalType: 'ORIGINAL' },
   });
   if (existingJournal?.status === PayrollJournalEntryStatus.EXPORTED) {
     await prisma.payrollJournalEntry.update({
@@ -2408,8 +2434,8 @@ async function buildFlowSummary(
   });
   const lineItems = employees.flatMap((employee) => employee.lineItems);
   const snapshots = employees.flatMap((employee) => employee.inputSnapshots);
-  const journal = await prisma.payrollJournalEntry.findUnique({
-    where: { tenantId_payrollRunId: { tenantId, payrollRunId } },
+  const journal = await prisma.payrollJournalEntry.findFirst({
+    where: { tenantId, payrollRunId, journalType: 'ORIGINAL' },
     include: { lines: true },
   });
   const checks = {

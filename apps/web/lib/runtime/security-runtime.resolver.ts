@@ -18,6 +18,8 @@ export interface FieldAccessMetadata {
   readonly isMasked: boolean;
   readonly isReadonly: boolean;
   readonly effect?: FieldSecurityEffect;
+  readonly maskingPattern?: string;
+  readonly customMask?: string | null;
   readonly reason?: string;
 }
 
@@ -45,10 +47,9 @@ export function restrictRuntimePermissionKeysToReadOnly(
   ]);
 
   return permissionKeys.filter((permissionKey) => {
-    const [permissionModule, ...operationParts] = permissionKey
-      .trim()
-      .toLowerCase()
-      .split(".");
+    const normalizedPermissionKey = permissionKey.trim().toLowerCase();
+    const [permissionModule, ...operationParts] =
+      normalizedPermissionKey.split(".");
     if (
       permissionModule !== normalizedModuleKey &&
       permissionModule !== normalizedModuleKey.replace(/s$/, "")
@@ -56,10 +57,22 @@ export function restrictRuntimePermissionKeysToReadOnly(
       return true;
     }
 
+    if (isAllowedSelfServiceChildPermission(normalizedPermissionKey)) {
+      return true;
+    }
+
     return !operationParts.some((operation) =>
       blockedOperations.has(operation),
     );
   });
+}
+
+function isAllowedSelfServiceChildPermission(permissionKey: string) {
+  return (
+    permissionKey === "employees.update.self" ||
+    permissionKey.startsWith("employees.education.") ||
+    permissionKey.startsWith("employees.documents.")
+  ) && permissionKey.endsWith(".self");
 }
 
 export function hasAnyPermission(
@@ -140,6 +153,8 @@ export function resolveFieldAccess(
     isMasked: readEffect?.effect === "mask",
     isReadonly: !canWrite,
     effect: updateEffect?.effect ?? readEffect?.effect,
+    maskingPattern: readEffect?.maskingPattern,
+    customMask: readEffect?.customMask,
     reason: updateEffect?.reason ?? readEffect?.reason,
   };
 }

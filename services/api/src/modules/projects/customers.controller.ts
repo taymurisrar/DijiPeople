@@ -17,11 +17,15 @@ import type { AuthenticatedUser } from '../../common/interfaces/authenticated-re
 import { CustomersService } from './customers.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
+import { AuditService } from '../audit/audit.service';
 
 @Controller('customers')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class CustomersController {
-  constructor(private readonly customersService: CustomersService) {}
+  constructor(
+    private readonly customersService: CustomersService,
+    private readonly auditService: AuditService,
+  ) {}
 
   @Get()
   @Permissions('customers.read')
@@ -39,6 +43,21 @@ export class CustomersController {
     @Param('customerId', new ParseUUIDPipe()) customerId: string,
   ) {
     return this.customersService.findOne(user.tenantId, customerId);
+  }
+
+  @Get(':customerId/timeline')
+  @Permissions('customers.read', 'timeline.read')
+  async getTimeline(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('customerId', new ParseUUIDPipe()) customerId: string,
+  ) {
+    await this.customersService.findOne(user.tenantId, customerId);
+    return this.auditService.listRecordTimeline({
+      tenantId: user.tenantId,
+      entityType: 'Customer',
+      entityId: customerId,
+      recordHref: `/customers/${customerId}`,
+    });
   }
 
   @Post()

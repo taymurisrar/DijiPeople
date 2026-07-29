@@ -15,7 +15,9 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         message:
-          error instanceof Error ? error.message : "Unable to submit timesheet.",
+          error instanceof Error
+            ? error.message
+            : "Unable to submit timesheet.",
       },
       { status: 500 },
     );

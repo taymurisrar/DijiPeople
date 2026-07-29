@@ -51,7 +51,7 @@ export function resolveOwnerDisplayName({
   const explicitDisplay = stringValue(lookupDisplayValue);
 
   if (explicitDisplay && !isGuidLike(explicitDisplay)) return explicitDisplay;
-  if (!resolvedOwnerId) return "Not set";
+  if (!resolvedOwnerId) return "";
 
   if (principal?.userId === resolvedOwnerId) {
     return principalDisplayName(principal) ?? "Current user";

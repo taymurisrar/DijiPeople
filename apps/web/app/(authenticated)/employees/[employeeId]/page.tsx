@@ -12,6 +12,7 @@ import {
   restrictRuntimePermissionKeysToReadOnly,
 } from "@/lib/runtime";
 import { ApiRequestError, apiRequestJson } from "@/lib/server-api";
+import type { FieldSecurityRule } from "@/lib/runtime/security-runtime.types";
 import { TenantResolvedSettingsResponse } from "../../settings/types";
 import type { EmployeeProfile } from "../types";
 
@@ -35,14 +36,18 @@ export default async function EmployeeDetailPage({
 
   let employee: EmployeeProfile;
   let resolvedSettings: TenantResolvedSettingsResponse | null = null;
+  let fieldSecurityRules: readonly FieldSecurityRule[] = [];
 
   try {
-    employee = await apiRequestJson<EmployeeProfile>(
-      `/employees/${employeeId}`,
-    );
-    resolvedSettings = await apiRequestJson<TenantResolvedSettingsResponse>(
-      "/tenant-settings/resolved",
-    ).catch(() => null);
+    [employee, resolvedSettings, fieldSecurityRules] = await Promise.all([
+      apiRequestJson<EmployeeProfile>(`/employees/${employeeId}`),
+      apiRequestJson<TenantResolvedSettingsResponse>(
+        "/tenant-settings/resolved",
+      ).catch(() => null),
+      apiRequestJson<readonly FieldSecurityRule[]>(
+        "/field-security-policies/runtime-rules?entityKey=employees",
+      ).catch(() => []),
+    ]);
   } catch (error: unknown) {
     if (isUnauthorizedApiError(error)) {
       redirect("/login?reason=session-expired");
@@ -122,6 +127,7 @@ export default async function EmployeeDetailPage({
     views: [],
     recordId: employee.id,
     employeeSettings: resolvedSettings?.employee,
+    fieldSecurityRules,
   });
   const activeRuntimeForm = resolveEmployeeRuntimeForm(
     employeeRuntimeContext.metadata.forms,

@@ -1,12 +1,14 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseUUIDPipe,
   Patch,
   Post,
   Query,
+  Req,
   Res,
   StreamableFile,
   UploadedFile,
@@ -14,7 +16,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Permissions } from '../../common/decorators/permissions.decorator';
 import { RequireAnyPermission } from '../../common/decorators/require-permissions.decorator';
@@ -56,8 +58,15 @@ export class AttendanceController {
 
   @Post('check-in')
   @RequireAnyPermission({ entityKey: ENTITY_KEYS.ATTENDANCE, action: 'create' })
-  checkIn(@CurrentUser() user: AuthenticatedUser, @Body() dto: CheckInDto) {
-    return this.attendanceService.checkIn(user, dto);
+  checkIn(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CheckInDto,
+    @Req() request: Request,
+  ) {
+    return this.attendanceService.checkIn(
+      user,
+      enrichAttendanceClientContext(dto, request),
+    );
   }
 
   @Post('check-out')
@@ -65,8 +74,15 @@ export class AttendanceController {
     { entityKey: ENTITY_KEYS.ATTENDANCE, action: 'create' },
     { entityKey: ENTITY_KEYS.ATTENDANCE, action: 'write' },
   )
-  checkOut(@CurrentUser() user: AuthenticatedUser, @Body() dto: CheckOutDto) {
-    return this.attendanceService.checkOut(user, dto);
+  checkOut(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CheckOutDto,
+    @Req() request: Request,
+  ) {
+    return this.attendanceService.checkOut(
+      user,
+      enrichAttendanceClientContext(dto, request),
+    );
   }
 
   @Get('mine')
@@ -94,6 +110,15 @@ export class AttendanceController {
   @Permissions('attendance.read')
   getSelfServiceRuntimeContext(@CurrentUser() user: AuthenticatedUser) {
     return this.attendanceService.getSelfServiceRuntimeContext(user);
+  }
+
+  @Delete(':entryId')
+  @Permissions('attendance.manage')
+  deleteAttendanceEntry(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('entryId', new ParseUUIDPipe()) entryId: string,
+  ) {
+    return this.attendanceService.deleteAttendanceEntry(user, entryId);
   }
 
   @Get(':entryId/timeline')
@@ -309,4 +334,27 @@ export class AttendanceController {
   ) {
     return this.attendanceService.overrideAttendanceEntry(user, entryId, dto);
   }
+}
+
+function enrichAttendanceClientContext<T extends CheckInDto | CheckOutDto>(
+  dto: T,
+  request: Request,
+): T {
+  return {
+    ...dto,
+    ipAddress: dto.ipAddress ?? readClientIp(request),
+    userAgent: dto.userAgent ?? request.get('user-agent') ?? undefined,
+  };
+}
+
+function readClientIp(request: Request) {
+  const forwardedFor = request.headers['x-forwarded-for'];
+  const forwardedValue = Array.isArray(forwardedFor)
+    ? forwardedFor[0]
+    : forwardedFor;
+  const firstForwardedIp = forwardedValue?.split(',')[0]?.trim();
+
+  return (
+    firstForwardedIp || request.ip || request.socket.remoteAddress || undefined
+  );
 }

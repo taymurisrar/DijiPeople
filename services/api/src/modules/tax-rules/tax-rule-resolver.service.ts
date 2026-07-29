@@ -16,8 +16,12 @@ export class TaxRuleResolverService {
     tenantId: string;
     employeeId: string;
     employeeLevelId?: string | null;
+    businessUnitId?: string | null;
+    departmentId?: string | null;
+    employmentTypeId?: string | null;
     countryCode?: string | null;
     regionCode?: string | null;
+    assignedTaxRuleId?: string | null;
     effectiveDate: Date;
   }) {
     const rules = await this.prisma.taxRule.findMany({
@@ -34,6 +38,10 @@ export class TaxRuleResolverService {
       orderBy: [{ effectiveFrom: 'desc' }, { createdAt: 'desc' }],
     });
 
+    if (input.assignedTaxRuleId) {
+      return rules.filter((rule) => rule.id === input.assignedTaxRuleId);
+    }
+
     return rules
       .map((rule) => ({ rule, score: scoreRule(rule, input) }))
       .filter((item) => item.score > 0)
@@ -48,30 +56,32 @@ function scoreRule(
   rule: Prisma.TaxRuleGetPayload<{ include: typeof taxRuleInclude }>,
   input: {
     employeeLevelId?: string | null;
+    businessUnitId?: string | null;
+    departmentId?: string | null;
+    employmentTypeId?: string | null;
     countryCode?: string | null;
     regionCode?: string | null;
   },
 ) {
-  const levelMatches = Boolean(
-    rule.employeeLevelId && rule.employeeLevelId === input.employeeLevelId,
-  );
-  const countryMatches = Boolean(
-    rule.countryCode &&
-    input.countryCode &&
-    rule.countryCode === input.countryCode.toUpperCase(),
-  );
-  const regionMatches = Boolean(
-    rule.regionCode &&
-    input.regionCode &&
-    rule.regionCode === input.regionCode.toUpperCase(),
-  );
+  const countryCode = input.countryCode?.toUpperCase() ?? null;
+  const regionCode = input.regionCode?.toUpperCase() ?? null;
+  const checks = [
+    [rule.employeeLevelId, input.employeeLevelId],
+    [rule.businessUnitId, input.businessUnitId],
+    [rule.departmentId, input.departmentId],
+    [rule.employmentTypeId, input.employmentTypeId],
+    [rule.countryCode?.toUpperCase() ?? null, countryCode],
+    [rule.regionCode?.toUpperCase() ?? null, regionCode],
+  ] as const;
+  if (
+    checks.some(([configured, actual]) => configured && configured !== actual)
+  ) {
+    return 0;
+  }
 
-  if (levelMatches && regionMatches) return 600;
-  if (levelMatches && countryMatches && !rule.regionCode) return 500;
-  if (levelMatches && !rule.countryCode && !rule.regionCode) return 400;
-  if (regionMatches && !rule.employeeLevelId) return 300;
-  if (countryMatches && !rule.employeeLevelId && !rule.regionCode) return 200;
-  if (!rule.employeeLevelId && !rule.countryCode && !rule.regionCode)
-    return 100;
-  return 0;
+  const scopeScore = checks.reduce(
+    (score, [configured]) => score + (configured ? 100 : 0),
+    0,
+  );
+  return scopeScore > 0 ? 100 + scopeScore : 100;
 }

@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { GripVertical } from "lucide-react";
 import {
   closestCenter,
   DndContext,
@@ -26,11 +27,12 @@ import { JobOpeningStatusBadge } from "./job-opening-status-badge";
 import { RecruitmentStageBadge } from "./recruitment-stage-badge";
 import {
   hasMatchCriteriaConfigured,
+  RecruitmentPipelineStageRecord,
   JobOpeningMatchCriteria,
   RecruitmentStage,
 } from "../types";
 
-const stageOrder: RecruitmentStage[] = [
+const DEFAULT_STAGE_ORDER: RecruitmentStage[] = [
   "APPLIED",
   "SCREENING",
   "SHORTLISTED",
@@ -65,12 +67,17 @@ type SortableListeners = ReturnType<typeof useSortable>["listeners"];
 
 type RecruitmentApplicationsBoardProps = {
   applications: ApplicationItem[];
+  pipelineStages?: RecruitmentPipelineStageRecord[];
+  requireRejectReason?: boolean;
 };
 
 type BoardState = Record<RecruitmentStage, ApplicationItem[]>;
 
-function buildBoardState(applications: ApplicationItem[]): BoardState {
-  return stageOrder.reduce((accumulator, stage) => {
+function buildBoardState(
+  applications: ApplicationItem[],
+  stages: RecruitmentStage[],
+): BoardState {
+  return stages.reduce((accumulator, stage) => {
     accumulator[stage] = applications.filter(
       (application) => application.stage === stage,
     );
@@ -80,9 +87,10 @@ function buildBoardState(applications: ApplicationItem[]): BoardState {
 
 function findApplicationStage(
   board: BoardState,
+  stages: RecruitmentStage[],
   applicationId: string,
 ): RecruitmentStage | null {
-  for (const stage of stageOrder) {
+  for (const stage of stages) {
     if (board[stage].some((application) => application.id === applicationId)) {
       return stage;
     }
@@ -91,14 +99,50 @@ function findApplicationStage(
   return null;
 }
 
+function normalizePipelineStages(
+  pipelineStages: RecruitmentPipelineStageRecord[] | undefined,
+  applications: ApplicationItem[],
+) {
+  const configuredStages = (pipelineStages ?? [])
+    .filter((stage) => stage.isActive)
+    .sort((first, second) => first.sortOrder - second.sortOrder)
+    .map((stage) => stage.stageKey);
+  const baseStages = configuredStages.length
+    ? configuredStages
+    : DEFAULT_STAGE_ORDER;
+  return Array.from(
+    new Set([
+      ...baseStages,
+      ...applications.map((application) => application.stage),
+    ]),
+  );
+}
+
 export function RecruitmentApplicationsBoard({
   applications,
+  pipelineStages,
+  requireRejectReason = false,
 }: RecruitmentApplicationsBoardProps) {
   const router = useRouter();
-  const [board, setBoard] = useState<BoardState>(() => buildBoardState(applications));
-  const [activeApplicationId, setActiveApplicationId] = useState<string | null>(null);
-  const [savingApplicationId, setSavingApplicationId] = useState<string | null>(null);
+  const stages = useMemo(
+    () => normalizePipelineStages(pipelineStages, applications),
+    [applications, pipelineStages],
+  );
+  const [board, setBoard] = useState<BoardState>(() =>
+    buildBoardState(applications, stages),
+  );
+  const [activeApplicationId, setActiveApplicationId] = useState<string | null>(
+    null,
+  );
+  const [savingApplicationId, setSavingApplicationId] = useState<string | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const sensors = useSensors(
     useSensor(MouseSensor, {
@@ -119,7 +163,7 @@ export function RecruitmentApplicationsBoard({
       return null;
     }
 
-    for (const stage of stageOrder) {
+    for (const stage of stages) {
       const application = board[stage].find(
         (item) => item.id === activeApplicationId,
       );
@@ -130,14 +174,18 @@ export function RecruitmentApplicationsBoard({
     }
 
     return null;
-  }, [activeApplicationId, board]);
+  }, [activeApplicationId, board, stages]);
 
   function moveApplicationInBoard(
     currentBoard: BoardState,
     applicationId: string,
     targetStage: RecruitmentStage,
   ): BoardState {
-    const sourceStage = findApplicationStage(currentBoard, applicationId);
+    const sourceStage = findApplicationStage(
+      currentBoard,
+      stages,
+      applicationId,
+    );
 
     if (!sourceStage || sourceStage === targetStage) {
       return currentBoard;
@@ -167,6 +215,7 @@ export function RecruitmentApplicationsBoard({
     applicationId: string,
     stage: RecruitmentStage,
     previousBoard: BoardState,
+    rejectionReason?: string,
   ) {
     try {
       setSavingApplicationId(applicationId);
@@ -179,12 +228,13 @@ export function RecruitmentApplicationsBoard({
         },
         body: JSON.stringify({
           stage,
+          rejectionReason,
         }),
       });
 
-      const data = (await response.json().catch(() => null)) as
-        | { message?: string }
-        | null;
+      const data = (await response.json().catch(() => null)) as {
+        message?: string;
+      } | null;
 
       if (!response.ok) {
         setBoard(previousBoard);
@@ -221,23 +271,50 @@ export function RecruitmentApplicationsBoard({
     }
 
     const previousBoard = board;
-    const sourceStage = findApplicationStage(previousBoard, applicationId);
+    const sourceStage = findApplicationStage(
+      previousBoard,
+      stages,
+      applicationId,
+    );
 
     if (!sourceStage) {
       return;
     }
 
-    const targetStage = stageOrder.includes(overId as RecruitmentStage)
+    const targetStage = stages.includes(overId as RecruitmentStage)
       ? (overId as RecruitmentStage)
-      : findApplicationStage(previousBoard, overId);
+      : findApplicationStage(previousBoard, stages, overId);
 
     if (!targetStage || sourceStage === targetStage) {
       return;
     }
 
-    const nextBoard = moveApplicationInBoard(previousBoard, applicationId, targetStage);
+    const rejectionReason =
+      targetStage === "REJECTED" && requireRejectReason
+        ? window.prompt("Enter rejection reason")
+        : undefined;
+
+    if (targetStage === "REJECTED" && requireRejectReason) {
+      if (!rejectionReason?.trim()) {
+        setError(
+          "A rejection reason is required before rejecting an application.",
+        );
+        return;
+      }
+    }
+
+    const nextBoard = moveApplicationInBoard(
+      previousBoard,
+      applicationId,
+      targetStage,
+    );
     setBoard(nextBoard);
-    void persistStageChange(applicationId, targetStage, previousBoard);
+    void persistStageChange(
+      applicationId,
+      targetStage,
+      previousBoard,
+      rejectionReason?.trim(),
+    );
   }
 
   return (
@@ -248,64 +325,97 @@ export function RecruitmentApplicationsBoard({
         </div>
       ) : null}
 
-      <DndContext
-        collisionDetection={closestCenter}
-        onDragCancel={handleDragCancel}
-        onDragEnd={handleDragEnd}
-        onDragStart={handleDragStart}
-        sensors={sensors}
-      >
-        <div className="overflow-x-auto pb-2">
-          <div className="flex min-w-max items-start gap-4">
-            {stageOrder.map((stage) => (
-              <StageColumn
-                key={stage}
-                applications={board[stage]}
-                isSaving={Boolean(
-                  savingApplicationId &&
-                    board[stage].some(
-                      (application) => application.id === savingApplicationId,
-                    ),
-                )}
-                stage={stage}
-              />
-            ))}
-          </div>
-        </div>
+      {isMounted ? (
+        <DndContext
+          collisionDetection={closestCenter}
+          onDragCancel={handleDragCancel}
+          onDragEnd={handleDragEnd}
+          onDragStart={handleDragStart}
+          sensors={sensors}
+        >
+          <BoardColumns
+            board={board}
+            savingApplicationId={savingApplicationId}
+            stages={stages}
+            sortable
+          />
 
-        <DragOverlay>
-          {activeApplication ? (
-            <div className="w-[320px] rotate-[1deg] opacity-95">
-              <ApplicationCard application={activeApplication} dragging />
-            </div>
-          ) : null}
-        </DragOverlay>
-      </DndContext>
+          <DragOverlay>
+            {activeApplication ? (
+              <div className="w-[340px] rotate-[1deg] opacity-95">
+                <ApplicationCard application={activeApplication} dragging />
+              </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
+      ) : (
+        <BoardColumns
+          board={board}
+          savingApplicationId={savingApplicationId}
+          stages={stages}
+        />
+      )}
     </section>
+  );
+}
+
+function BoardColumns({
+  board,
+  savingApplicationId,
+  sortable = false,
+  stages,
+}: {
+  board: BoardState;
+  savingApplicationId: string | null;
+  sortable?: boolean;
+  stages: RecruitmentStage[];
+}) {
+  return (
+    <div className="max-w-full overflow-x-auto pb-2">
+      <div className="flex min-w-max items-start gap-3">
+        {stages.map((stage) => (
+          <StageColumn
+            key={stage}
+            applications={board[stage]}
+            isSaving={Boolean(
+              savingApplicationId &&
+                board[stage].some(
+                  (application) => application.id === savingApplicationId,
+                ),
+            )}
+            sortable={sortable}
+            stage={stage}
+          />
+        ))}
+      </div>
+    </div>
   );
 }
 
 function StageColumn({
   applications,
   isSaving,
+  sortable = false,
   stage,
 }: {
   applications: ApplicationItem[];
   isSaving: boolean;
+  sortable?: boolean;
   stage: RecruitmentStage;
 }) {
-  const { isOver, setNodeRef } = useDroppable({
+  const droppable = useDroppable({
     id: stage,
+    disabled: !sortable,
   });
 
   return (
     <article
-      ref={setNodeRef}
-      className={`flex h-[calc(100vh-240px)] w-[320px] shrink-0 flex-col rounded-[28px] border border-border bg-surface/95 shadow-sm transition ${
-        isOver ? "border-accent/40 ring-2 ring-accent/15" : ""
+      ref={sortable ? droppable.setNodeRef : undefined}
+      className={`flex h-[calc(100vh-240px)] w-[340px] max-w-[calc(100vw-2rem)] shrink-0 flex-col overflow-hidden rounded-lg border border-border bg-surface/95 shadow-sm transition ${
+        droppable.isOver ? "border-accent/40 ring-2 ring-accent/15" : ""
       }`}
     >
-      <div className="sticky top-0 z-10 flex items-center justify-between gap-3 rounded-t-[28px] border-b border-border bg-surface/95 px-4 py-4 backdrop-blur">
+      <div className="sticky top-0 z-10 flex min-w-0 items-center justify-between gap-3 border-b border-border bg-surface/95 px-4 py-4 backdrop-blur">
         <RecruitmentStageBadge stage={stage} />
         <div className="flex items-center gap-2">
           {isSaving ? (
@@ -319,26 +429,46 @@ function StageColumn({
         </div>
       </div>
 
-      <SortableContext
-        items={applications.map((application) => application.id)}
-        strategy={verticalListSortingStrategy}
-      >
-        <div className="flex-1 space-y-3 overflow-y-auto p-4">
-          {applications.length === 0 ? (
-            <div className="rounded-[22px] border border-dashed border-border bg-white/60 px-4 py-8 text-center text-sm text-muted">
-              Drop applications here
-            </div>
-          ) : (
-            applications.map((application) => (
-              <SortableApplicationCard
-                key={application.id}
-                application={application}
-              />
-            ))
-          )}
-        </div>
-      </SortableContext>
+      {sortable ? (
+        <SortableContext
+          items={applications.map((application) => application.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          <ApplicationCardList applications={applications} sortable />
+        </SortableContext>
+      ) : (
+        <ApplicationCardList applications={applications} />
+      )}
     </article>
+  );
+}
+
+function ApplicationCardList({
+  applications,
+  sortable = false,
+}: {
+  applications: ApplicationItem[];
+  sortable?: boolean;
+}) {
+  return (
+    <div className="min-w-0 flex-1 space-y-3 overflow-y-auto overflow-x-hidden p-3">
+      {applications.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-border bg-white/60 px-4 py-8 text-center text-sm text-muted">
+          Drop applications here
+        </div>
+      ) : (
+        applications.map((application) =>
+          sortable ? (
+            <SortableApplicationCard
+              key={application.id}
+              application={application}
+            />
+          ) : (
+            <ApplicationCard key={application.id} application={application} />
+          ),
+        )
+      )}
+    </div>
   );
 }
 
@@ -361,6 +491,7 @@ function SortableApplicationCard({
   return (
     <div
       ref={setNodeRef}
+      className="min-w-0"
       style={{
         transform: CSS.Transform.toString(transform),
         transition,
@@ -391,16 +522,16 @@ function ApplicationCard({
 
   return (
     <article
-      className={`group grid gap-4 rounded-[24px] border border-border bg-white p-4 shadow-sm transition-all duration-200 ${
+      className={`group grid min-w-0 gap-4 overflow-hidden rounded-lg border border-border bg-white p-4 shadow-sm transition-all duration-200 ${
         dragging
           ? "scale-[1.01] cursor-grabbing shadow-xl ring-2 ring-accent/20"
           : "hover:-translate-y-0.5 hover:shadow-md"
       }`}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex min-w-0 items-start gap-3">
         <button
           type="button"
-          className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-border bg-surface text-muted transition ${
+          className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-surface text-muted transition ${
             dragging
               ? "cursor-grabbing"
               : "cursor-grab hover:border-accent/30 hover:bg-accent-soft/40 hover:text-foreground"
@@ -409,7 +540,7 @@ function ApplicationCard({
           {...attributes}
           {...listeners}
         >
-          <span className="text-sm leading-none tracking-[-0.2em]">•••</span>
+          <GripVertical className="h-4 w-4" />
         </button>
 
         <div className="min-w-0 flex-1 space-y-1">
@@ -425,37 +556,39 @@ function ApplicationCard({
         </div>
       </div>
 
-      <div className="grid gap-3 rounded-[20px] border border-border bg-surface/55 p-3">
-        <div className="space-y-2">
+      <div className="grid min-w-0 gap-3 overflow-hidden rounded-lg border border-border bg-surface/55 p-3">
+        <div className="min-w-0 space-y-2">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
             Job opening
           </p>
           <Link
-            className="block truncate text-sm font-medium text-foreground transition hover:text-accent"
+            className="block break-words text-sm font-medium text-foreground transition hover:text-accent"
             href={`/recruitment/jobs/${application.jobOpening.id}`}
           >
             {application.jobOpening.title}
           </Link>
         </div>
 
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+          <p className="min-w-0 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
             Status
           </p>
           <JobOpeningStatusBadge status={application.jobOpening.status} />
         </div>
       </div>
 
-      <div className="grid gap-2 rounded-[20px] border border-border bg-white/80 p-3">
-        <div className="flex items-center justify-between gap-3 text-xs uppercase tracking-[0.14em] text-muted">
-          <span>Applied</span>
-          <span className="font-medium text-foreground">{appliedDate}</span>
+      <div className="grid min-w-0 gap-2 overflow-hidden rounded-lg border border-border bg-white/80 p-3">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 text-xs uppercase tracking-[0.14em] text-muted">
+          <span className="truncate">Applied</span>
+          <span className="whitespace-nowrap font-medium text-foreground">
+            {appliedDate}
+          </span>
         </div>
 
         {hasMatchCriteriaConfigured(application.jobOpening.matchCriteria) ? (
-          <div className="flex items-center justify-between gap-3 text-xs uppercase tracking-[0.14em] text-muted">
-            <span>Match score</span>
-            <span className="font-semibold text-foreground">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 text-xs uppercase tracking-[0.14em] text-muted">
+            <span className="truncate">Match score</span>
+            <span className="whitespace-nowrap font-semibold text-foreground">
               {application.matchScore !== null &&
               application.matchScore !== undefined
                 ? `${application.matchScore}%`
@@ -463,9 +596,11 @@ function ApplicationCard({
             </span>
           </div>
         ) : (
-          <div className="flex items-center justify-between gap-3 text-xs uppercase tracking-[0.14em] text-muted">
-            <span>Match score</span>
-            <span className="font-semibold text-muted">Not configured</span>
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 text-xs uppercase tracking-[0.14em] text-muted">
+            <span className="truncate">Match score</span>
+            <span className="whitespace-nowrap font-semibold text-muted">
+              Not configured
+            </span>
           </div>
         )}
       </div>

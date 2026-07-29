@@ -1,5 +1,14 @@
 import { Type } from 'class-transformer';
-import { IsBoolean, IsInt, IsOptional, Max, Min } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsEnum,
+  IsInt,
+  IsOptional,
+  Max,
+  Min,
+} from 'class-validator';
+import { AttendanceMode } from '@prisma/client';
 
 export class UpdateAttendancePolicyDto {
   @Type(() => Number)
@@ -56,4 +65,63 @@ export class UpdateAttendancePolicyDto {
   @Type(() => Boolean)
   @IsBoolean()
   allowHrAdminOverride?: boolean;
+
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  locationCaptureRequired?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  @IsEnum(AttendanceMode, { each: true })
+  locationRequiredForModes?: AttendanceMode[];
+
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  allowIpFallback?: boolean;
+
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  allowManualLocationException?: boolean;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(120)
+  locationTimeoutSeconds?: number;
+
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  highAccuracyLocation?: boolean;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(100000)
+  maxAllowedAccuracyMeters?: number;
+
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  captureLocationOnCheckIn?: boolean;
+
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  captureLocationOnCheckOut?: boolean;
+
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  storeIpAddress?: boolean;
+
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  storeUserAgent?: boolean;
 }

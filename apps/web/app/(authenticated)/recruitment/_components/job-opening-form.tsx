@@ -1,11 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   JobOpeningMatchCriteria,
   JobOpeningRecord,
   JobOpeningStatus,
+  RecruitmentPipelineListResponse,
+  RecruitmentPipelineRecord,
 } from "../types";
 
 type JobOpeningWithMatchCriteria = JobOpeningRecord & {
@@ -36,6 +38,7 @@ export function JobOpeningForm({ mode, jobOpening }: JobOpeningFormProps) {
     code: jobOpening?.code ?? "",
     description: jobOpening?.description ?? "",
     status: jobOpening?.status ?? "DRAFT",
+    pipelineId: jobOpening?.pipelineId ?? jobOpening?.pipeline?.id ?? "",
     requiredSkills: jobOpening?.matchCriteria?.requiredSkills?.join(", ") ?? "",
     preferredSkills: jobOpening?.matchCriteria?.preferredSkills?.join(", ") ?? "",
     minimumYearsExperience:
@@ -71,6 +74,28 @@ export function JobOpeningForm({ mode, jobOpening }: JobOpeningFormProps) {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pipelines, setPipelines] = useState<RecruitmentPipelineRecord[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch("/api/recruitment/pipelines")
+      .then((response) => response.json())
+      .then((payload: RecruitmentPipelineListResponse) => {
+        if (!cancelled) {
+          setPipelines(payload.items ?? []);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setPipelines([]);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const parsedRequiredSkills = useMemo(
     () => parseCommaSeparatedList(form.requiredSkills),
@@ -157,6 +182,7 @@ export function JobOpeningForm({ mode, jobOpening }: JobOpeningFormProps) {
             code: form.code.trim() || undefined,
             description: form.description.trim() || undefined,
             status: form.status,
+            pipelineId: form.pipelineId || undefined,
             matchCriteria: matchCriteriaPayload,
           }),
         },
@@ -225,6 +251,34 @@ export function JobOpeningForm({ mode, jobOpening }: JobOpeningFormProps) {
               <option value="FILLED">FILLED</option>
               <option value="Cancelled">Cancelled</option>
             </select>
+          </label>
+          <label className="space-y-2 text-sm">
+            <span className="font-medium text-foreground">
+              Recruitment pipeline
+            </span>
+            <select
+              className="w-full rounded-2xl border border-border bg-white px-4 py-3 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
+              value={form.pipelineId}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  pipelineId: event.target.value,
+                }))
+              }
+            >
+              <option value="">Tenant default pipeline</option>
+              {pipelines
+                .filter((pipeline) => pipeline.isActive)
+                .map((pipeline) => (
+                  <option key={pipeline.id} value={pipeline.id}>
+                    {pipeline.name}
+                    {pipeline.isDefault ? " (Default)" : ""}
+                  </option>
+                ))}
+            </select>
+            <p className="text-xs text-muted">
+              Applications for this opening follow the selected pipeline.
+            </p>
           </label>
           <div className="rounded-[20px] border border-border bg-white p-4">
             <p className="text-xs uppercase tracking-[0.14em] text-muted">

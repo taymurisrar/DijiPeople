@@ -9,7 +9,7 @@ import {
     EntityDataResponse, EntityFilter,
     EntityOrderBy
 } from "@/app/components/entity-data/entity-query-types";
-import { ModuleViewSelector } from "@/app/components/view-selector/module-view-selector";
+import { ModuleViewSelector } from "@/app/components/view-selector/dmodule-view-selector";
 
 import {
     getTableViews,

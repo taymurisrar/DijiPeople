@@ -57,7 +57,7 @@ const categoryDefinitions = {
   ],
   regional: [
     "Regional Operations",
-    "Countries, calendars, currencies, regions, and localization behavior.",
+    "Payroll geography, countries, states, cities, currencies, and localization behavior.",
   ],
   "security-access": [
     "Security & Access",
@@ -101,37 +101,52 @@ const itemPlacement: Record<
   organizations: ["general-setup", "organization", "Organization Structure"],
   "business-units": ["general-setup", "organization", "Organization Structure"],
   departments: ["general-setup", "organization", "Organization Structure"],
+  "organization-teams": [
+    "general-setup",
+    "organization",
+    "Organization Structure",
+  ],
   designations: ["people", "workforce", "Workforce Structure"],
+  "employment-types": ["people", "workforce", "Workforce Structure"],
   locations: ["people", "work-management", "Work Management"],
   "work-calendars": ["people", "work-management", "Work Management"],
   "holiday-calendars": ["people", "work-management", "Work Management"],
   shifts: ["people", "work-management", "Work Management"],
   "work-schedules": ["people", "work-management", "Work Management"],
   attendance: ["people", "attendance", "Attendance & Time"],
+  timesheets: ["people", "attendance", "Attendance & Time"],
   "employee-settings": ["people", "workforce", "Workforce Structure"],
   "employee-levels": ["people", "workforce", "Workforce Structure"],
+  "document-categories": ["people", "documents", "Document Rules"],
   documents: ["people", "documents", "Document Rules"],
   "leave-types": ["people", "leave", "Leave Configuration"],
   "leave-policies": ["people", "leave", "Leave Configuration"],
   "payroll-regions": ["regional", "payroll-geography", "Payroll Geography"],
-  "exchange-rates": ["regional", "currency", "Currency & Exchange"],
-  countries: ["regional", "geography", "Countries & Regions"],
-  regions: ["regional", "geography", "Countries & Regions"],
+  countries: ["regional", "geography", "Countries & States"],
+  states: ["regional", "geography", "Countries & States"],
+  cities: ["regional", "geography", "Countries & States"],
   timezones: ["regional", "localization", "Localization"],
-  currencies: ["regional", "currency", "Currency & Exchange"],
+  currencies: ["regional", "currency", "Currency"],
   "fiscal-years": ["regional", "business-calendar", "Business Calendar"],
-  "business-date-rules": ["regional", "business-calendar", "Business Calendar"],
   users: ["security-access", "identities", "Identity Management"],
   roles: ["security-access", "authorization", "Authorization"],
   permissions: ["security-access", "authorization", "Authorization"],
-  teams: ["security-access", "authorization", "Authorization"],
-  "field-security": ["security-access", "governance", "Security Governance"],
-  "password-login-policies": [
+  "access-teams": ["security-access", "authorization", "Authorization"],
+  "field-security": [
     "security-access",
-    "governance",
+    "security-governance",
     "Security Governance",
   ],
-  "login-history": ["security-access", "governance", "Security Governance"],
+  "password-login-policies": [
+    "security-access",
+    "security-governance",
+    "Security Governance",
+  ],
+  "login-history": [
+    "security-access",
+    "security-governance",
+    "Security Governance",
+  ],
   "access-center": ["security-access", "authorization", "Authorization"],
   "approval-matrices": ["approvals", "routing", "Approval Routing"],
   "delegation-rules": ["approvals", "routing", "Approval Routing"],
@@ -139,10 +154,35 @@ const itemPlacement: Record<
   "workflow-templates": ["approvals", "templates", "Workflow Templates"],
   "policy-engine": ["approvals", "policies", "Policy Engine"],
   "payroll-periods": ["payroll", "cycles", "Payroll Cycles"],
+  "pay-components": ["payroll", "configuration", "Payroll Configuration"],
+  "claim-types": ["payroll", "configuration", "Payroll Configuration"],
+  "travel-allowance-policies": [
+    "payroll",
+    "configuration",
+    "Payroll Configuration",
+  ],
+  "time-payroll-policies": [
+    "payroll",
+    "configuration",
+    "Payroll Configuration",
+  ],
+  "overtime-policies": ["payroll", "configuration", "Payroll Configuration"],
+  "tax-rules": ["payroll", "configuration", "Payroll Configuration"],
+  "employee-tax-profiles": [
+    "payroll",
+    "configuration",
+    "Payroll Configuration",
+  ],
+  "gl-accounts": ["payroll", "configuration", "Payroll Configuration"],
+  "posting-rules": ["payroll", "configuration", "Payroll Configuration"],
+  "payroll-settings": ["payroll", "configuration", "Payroll Configuration"],
   "salary-package-rules": ["payroll", "configuration", "Payroll Configuration"],
-  "benefit-policies": ["payroll", "benefits", "Benefits"],
-  "loan-policies": ["payroll", "loans", "Loans"],
+  "benefit-policies": ["payroll", "benefits", "Benefit Plans"],
+  "loan-policies": ["payroll", "loans", "Loan Plans"],
   banks: ["payroll", "banking", "Banking"],
+  "payroll-banks": ["payroll", "banking", "Banking"],
+  "employer-bank-accounts": ["payroll", "banking", "Banking"],
+  "document-templates": ["payroll", "operations", "Operations and Governance"],
   notifications: ["notifications", "rules", "Notification Rules"],
   "notification-email-templates": ["notifications", "templates", "Templates"],
   "notification-email-providers": ["notifications", "providers", "Providers"],
@@ -177,19 +217,22 @@ const itemPlacement: Record<
 
 const routeKeys: Record<string, string> = {
   tenant: "tenant-profile",
+  "organization-teams": "teams",
   locations: "work-sites",
   "holiday-calendars": "holiday-calendars",
   "payroll-settings": "payroll-settings",
+  "payroll-banks": "banks",
   "notification-email-templates": "templates",
   "notification-email-providers": "providers",
   "notification-email-logs": "delivery-logs",
   "audit-logs": "audit-events",
   tables: "modules",
   notifications: "rules",
+  documents: "documents",
 };
 
 const implementationRoutes: Record<string, string> = {
-  "payroll-settings": "/settings/payroll/payroll-settings",
+  "payroll-settings": "/settings/payroll/configuration/payroll-settings",
   notifications: "/settings/notifications/rules",
 };
 
@@ -218,15 +261,35 @@ function defaultPlacement(item: {
 
 const supplementalSettingsItems = [
   supplementalItem(
+    "employment-types",
+    "Employment Types",
+    "Configure payroll, leave, overtime, benefit, and probation defaults by employment type.",
+    "briefcase-business",
+    ["settings.read", "employment-types.read"],
+  ),
+  supplementalItem(
+    "document-categories",
+    "Document Categories",
+    "Manage reusable document categories used by upload, expiry, verification, and retention rules.",
+    "folder-open",
+    ["settings.read", "documents.read"],
+  ),
+  supplementalItem(
     "countries",
     "Countries",
     "Maintain the country catalog used by regional and employee configuration.",
     "globe-2",
   ),
   supplementalItem(
-    "regions",
-    "Regions",
-    "Maintain reusable country-region configuration records.",
+    "states",
+    "States / Provinces",
+    "Maintain administrative divisions under each country.",
+    "map-pinned",
+  ),
+  supplementalItem(
+    "cities",
+    "Cities",
+    "Maintain city reference data under countries and states.",
     "map-pinned",
   ),
   supplementalItem(
@@ -248,30 +311,6 @@ const supplementalSettingsItems = [
     "calendar-days",
   ),
   supplementalItem(
-    "business-date-rules",
-    "Business Date Rules",
-    "Configure tenant business-date rollover and processing rules.",
-    "calendar-clock",
-  ),
-  supplementalItem(
-    "field-security",
-    "Field Security",
-    "Configure reusable field visibility and masking policies.",
-    "shield-check",
-  ),
-  supplementalItem(
-    "password-login-policies",
-    "Password & Login Policies",
-    "Configure password, session, and login governance rules.",
-    "lock-keyhole",
-  ),
-  supplementalItem(
-    "login-history",
-    "Login History",
-    "Review authentication activity and login outcomes.",
-    "history",
-  ),
-  supplementalItem(
     "payroll-periods",
     "Payroll Periods",
     "Manage payroll processing periods and cutoff dates.",
@@ -279,8 +318,8 @@ const supplementalSettingsItems = [
   ),
   supplementalItem(
     "salary-package-rules",
-    "Salary Package Rules",
-    "Configure reusable salary-package constraints and defaults.",
+    "Compensation Packages",
+    "Configure reusable compensation components, eligibility and defaults.",
     "wallet",
   ),
   supplementalItem(
@@ -291,24 +330,24 @@ const supplementalSettingsItems = [
   ),
   supplementalItem(
     "benefit-policies",
-    "Benefit Policies",
+    "Benefit Plans",
     "Configure eligibility, payroll, tax, visibility, renewal, and approval behavior.",
     "badge-check",
     ["benefits.read", "benefits.manage"],
   ),
   supplementalItem(
     "loan-policies",
-    "Loan Policies",
+    "Loan Plans",
     "Configure loan limits, installments, interest, and settlement behavior.",
     "landmark",
     ["loans.read-all", "loans.create"],
   ),
   supplementalItem(
-    "banks",
-    "Banks",
-    "Maintain the tenant bank lookup used by protected employee payroll accounts.",
-    "building",
-    ["employee-bank-accounts.read", "employee-bank-accounts.manage"],
+    "document-templates",
+    "Payroll Document Templates",
+    "Configure reusable payslip and tax-statement templates.",
+    "file-cog",
+    ["payroll.settings.read", "payroll.settings.update"],
   ),
   supplementalItem(
     "delegation-rules",
@@ -370,13 +409,6 @@ const supplementalSettingsItems = [
     ["customization.read"],
   ),
   supplementalItem(
-    "rules",
-    "Rules",
-    "Manage reusable runtime Rules.",
-    "workflow",
-    ["customization.read"],
-  ),
-  supplementalItem(
     "data-access-history",
     "Data Access History",
     "Review audited access to protected records.",
@@ -390,9 +422,18 @@ const supplementalSettingsItems = [
   ),
 ] as const;
 
+const primarySettingsItems = flattenSettingsItems().filter(
+  (item) => item.key !== "access-center",
+);
+const primarySettingsItemKeys = new Set(
+  primarySettingsItems.map((item) => item.key),
+);
+
 export const settingsRuntimeItems: readonly SettingsRuntimeItem[] = [
-  ...flattenSettingsItems().filter((item) => item.key !== "access-center"),
-  ...supplementalSettingsItems,
+  ...primarySettingsItems,
+  ...supplementalSettingsItems.filter(
+    (item) => !primarySettingsItemKeys.has(item.key),
+  ),
 ].map((item) => {
   const [category, group, groupLabel] =
     itemPlacement[item.key] ?? defaultPlacement(item);
@@ -524,29 +565,39 @@ export function getSettingsRuntimeGroup(categoryKey: string, groupKey: string) {
 }
 
 export function getSettingsRuntimeItem(categoryKey: string, itemKey: string) {
+  const resolvedItemKey =
+    categoryKey === "regional" && itemKey === "regions" ? "states" : itemKey;
   return (
     settingsRuntimeItems.find(
       (item) =>
         item.category === categoryKey &&
-        (item.key === itemKey || routeKeys[item.key] === itemKey),
+        (item.key === resolvedItemKey ||
+          routeKeys[item.key] === resolvedItemKey),
     ) ?? null
   );
 }
 
 export function getSettingsRuntimeItemByPath(pathname: string) {
   const normalized = pathname.split(/[?#]/)[0]?.replace(/\/+$/, "") || "/";
+  const candidates = [...settingsRuntimeItems].sort(
+    (a, b) =>
+      Math.max(b.route.length, b.conciseRoute.length, b.legacyRoute.length) -
+      Math.max(a.route.length, a.conciseRoute.length, a.legacyRoute.length),
+  );
+  const exact = candidates.find(
+    (item) =>
+      normalized === item.route ||
+      normalized === item.conciseRoute ||
+      normalized === item.legacyRoute,
+  );
+  if (exact) return exact;
   return (
-    [...settingsRuntimeItems]
-      .sort((a, b) => b.route.length - a.route.length)
-      .find(
-        (item) =>
-          normalized === item.route ||
-          normalized.startsWith(`${item.route}/`) ||
-          normalized === item.conciseRoute ||
-          normalized.startsWith(`${item.conciseRoute}/`) ||
-          normalized === item.legacyRoute ||
-          normalized.startsWith(`${item.legacyRoute}/`),
-      ) ?? null
+    candidates.find(
+      (item) =>
+        normalized.startsWith(`${item.route}/`) ||
+        normalized.startsWith(`${item.conciseRoute}/`) ||
+        normalized.startsWith(`${item.legacyRoute}/`),
+    ) ?? null
   );
 }
 

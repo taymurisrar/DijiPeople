@@ -103,9 +103,15 @@ export class ClaimsService {
       const created = await this.prisma.claimType.create({
         data: {
           tenantId: user.tenantId,
-          code: normalizeCode(dto.code),
+          code: normalizeCode(dto.code, dto.name),
           name: dto.name.trim(),
           description: emptyToNull(dto.description),
+          receiptRequired: dto.receiptRequired ?? false,
+          maxAmount: nullableDecimal(dto.maxAmount),
+          currencyCode: emptyToNull(dto.currencyCode),
+          approvalRequired: dto.approvalRequired ?? true,
+          payrollIncluded: dto.payrollIncluded ?? false,
+          taxable: dto.taxable ?? false,
           isActive: dto.isActive ?? true,
         },
       });
@@ -138,6 +144,22 @@ export class ClaimsService {
           ...(dto.description !== undefined
             ? { description: emptyToNull(dto.description) }
             : {}),
+          ...(dto.receiptRequired !== undefined
+            ? { receiptRequired: dto.receiptRequired }
+            : {}),
+          ...(dto.maxAmount !== undefined
+            ? { maxAmount: nullableDecimal(dto.maxAmount) }
+            : {}),
+          ...(dto.currencyCode !== undefined
+            ? { currencyCode: emptyToNull(dto.currencyCode) }
+            : {}),
+          ...(dto.approvalRequired !== undefined
+            ? { approvalRequired: dto.approvalRequired }
+            : {}),
+          ...(dto.payrollIncluded !== undefined
+            ? { payrollIncluded: dto.payrollIncluded }
+            : {}),
+          ...(dto.taxable !== undefined ? { taxable: dto.taxable } : {}),
           ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
         },
       });
@@ -186,7 +208,9 @@ export class ClaimsService {
           code: normalizeCode(dto.code),
           name: dto.name.trim(),
           description: emptyToNull(dto.description),
+          maxAmount: nullableDecimal(dto.maxAmount),
           requiresReceipt: dto.requiresReceipt ?? false,
+          payComponentId: dto.payComponentId ?? null,
           isActive: dto.isActive ?? true,
         },
       });
@@ -235,8 +259,14 @@ export class ClaimsService {
           ...(dto.description !== undefined
             ? { description: emptyToNull(dto.description) }
             : {}),
+          ...(dto.maxAmount !== undefined
+            ? { maxAmount: nullableDecimal(dto.maxAmount) }
+            : {}),
           ...(dto.requiresReceipt !== undefined
             ? { requiresReceipt: dto.requiresReceipt }
+            : {}),
+          ...(dto.payComponentId !== undefined
+            ? { payComponentId: dto.payComponentId }
             : {}),
           ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
         },
@@ -980,8 +1010,18 @@ function mapClaim(claim: ClaimWithRelations) {
   };
 }
 
-function normalizeCode(value: string) {
-  return value.trim().toUpperCase().replace(/\s+/g, '_');
+function normalizeCode(value: string | undefined, fallbackName?: string) {
+  const source = value?.trim() || `${fallbackName || 'CLAIM'}_${shortSuffix()}`;
+  return source
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9_ -]+/g, '_')
+    .replace(/^[_ -]+|[_ -]+$/g, '')
+    .slice(0, 50);
+}
+
+function shortSuffix() {
+  return Date.now().toString(36).toUpperCase().slice(-6);
 }
 
 function normalizeCurrency(value: string) {
@@ -991,6 +1031,12 @@ function normalizeCurrency(value: string) {
 function emptyToNull(value?: string | null) {
   const trimmed = value?.trim();
   return trimmed ? trimmed : null;
+}
+
+function nullableDecimal(value: number | null | undefined) {
+  return value === null || value === undefined
+    ? null
+    : new Prisma.Decimal(value);
 }
 
 function handleUnique(error: unknown, message: string): never {

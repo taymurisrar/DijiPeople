@@ -12,13 +12,14 @@ import {
   RuntimeMetadataFormRenderer,
   type FieldValueMap,
 } from "@/app/components/metadata/runtime-metadata-form-renderer";
-import { TopAlert } from "@/app/components/notifications";
+import { SideToast } from "@/app/components/notifications";
 import type { LookupOption } from "@/app/components/ui/form-control";
 import {
   groupCommands,
   resolveCommandsForSurface,
 } from "@/lib/runtime/command-runtime.resolver";
 import type {
+  EntityMetadata,
   FieldMetadata,
   FormFieldMetadata,
   FormMetadata,
@@ -43,6 +44,7 @@ import {
   normalizeRuntimeRole,
 } from "@/lib/runtime/role-runtime";
 import { debugRuntime } from "@/lib/runtime/runtime-debug";
+import { normalizeRuntimeDateValue } from "@/lib/runtime/runtime-date-value";
 import { ModuleDetailShell } from "./module-detail-shell";
 import { ModuleRefreshOverlay } from "./module-refresh-overlay";
 import { ModuleRuntimeCommandHandler } from "./module-runtime-command-handler";
@@ -111,6 +113,11 @@ export function ModuleRecordPage({
     () => withCreateDefaults(record, effectiveRuntime, mode),
     [effectiveRuntime, mode, record],
   );
+  const effectiveRecordResetKey = runtimeRecordResetKey(
+    effectiveRecord,
+    effectiveRuntime.recordId,
+    mode,
+  );
   const [draftRecord, setDraftRecord] =
     useState<RuntimeRecordData>(effectiveRecord);
   const [adapterOwnerOptions, setAdapterOwnerOptions] = useState<
@@ -135,11 +142,31 @@ export function ModuleRecordPage({
   } | null>(null);
 
   useEffect(() => {
+    const storedNotice = readStoredRuntimeSaveNotice();
+    if (!storedNotice) return;
+    if (
+      storedNotice.moduleKey &&
+      storedNotice.moduleKey !== effectiveRuntime.module.key
+    ) {
+      return;
+    }
+    setActionNotice({
+      title: storedNotice.title,
+      description: storedNotice.description,
+      variant: "success",
+    });
+  }, [effectiveRuntime.module.key]);
+
+  useEffect(() => {
     const updateDraft = window.setTimeout(() => {
-      setDraftRecord(effectiveRecord);
+      setDraftRecord((current) =>
+        mode === "create"
+          ? mergeCreateRecordDefaults(effectiveRecord, current)
+          : effectiveRecord,
+      );
     }, 0);
     return () => window.clearTimeout(updateDraft);
-  }, [effectiveRecord]);
+  }, [effectiveRecordResetKey]);
 
   useEffect(() => {
     const firstField = Object.keys(fieldErrors)[0];
@@ -356,8 +383,8 @@ export function ModuleRecordPage({
               setActionNotice({
                 title:
                   result.status === "failure"
-                    ? "Employee account action failed"
-                    : "Employee account action complete",
+                    ? "Record action failed"
+                    : "Record action complete",
                 description:
                   result.message ??
                   (result.status === "failure"
@@ -369,9 +396,31 @@ export function ModuleRecordPage({
 
             if (result.status !== "failure") {
               setValidationSummary(null);
+              if (isSaveCommand(result.command?.key ?? "")) {
+                const notice = {
+                  title: "Saved.",
+                };
+                setActionNotice({ ...notice, variant: "success" });
+                storeRuntimeSaveNotice({
+                  ...notice,
+                  moduleKey: effectiveRuntime.module.key,
+                });
+              }
               const nextRecord = readResultRecord(result.data);
               if (nextRecord) {
                 setDraftRecord((current) => ({ ...current, ...nextRecord }));
+                if (
+                  mode === "create" &&
+                  result.command?.key === "system.save" &&
+                  typeof nextRecord.id === "string" &&
+                  nextRecord.id.trim()
+                ) {
+                  const params = new URLSearchParams(searchParams.toString());
+                  const query = params.toString();
+                  router.replace(
+                    `${effectiveRuntime.module.routeBase}/${encodeURIComponent(nextRecord.id)}${query ? `?${query}` : ""}`,
+                  );
+                }
               }
               return;
             }
@@ -394,6 +443,15 @@ export function ModuleRecordPage({
           {({ isRefreshing, onCommand }) => (
             <>
               <ModuleRefreshOverlay active={isRefreshing} />
+              <SideToast
+                autoCloseMs={3000}
+                description={actionNotice?.description}
+                isOpen={Boolean(actionNotice)}
+                onClose={() => setActionNotice(null)}
+                placement="bottom-center"
+                title={actionNotice?.title ?? ""}
+                variant={actionNotice?.variant ?? "success"}
+              />
               <ModuleDetailShell
                 activeFormId={activeForm?.id}
                 commands={commandGroups}
@@ -401,16 +459,6 @@ export function ModuleRecordPage({
                 formSlot={
                   formSlot ??
                   (activeForm ? (
-                    <div className="grid gap-4">
-                      {actionNotice ? (
-                        <TopAlert
-                          autoCloseMs={8000}
-                          description={actionNotice.description}
-                          onDismiss={() => setActionNotice(null)}
-                          title={actionNotice.title}
-                          variant={actionNotice.variant}
-                        />
-                      ) : null}
                       <RuntimeMetadataFormRenderer
                         entity={runtime.metadata.entity}
                         form={activeForm}
@@ -435,15 +483,17 @@ export function ModuleRecordPage({
                         runtime={effectiveRuntime}
                         resolveFieldEditable={resolveFieldEditable}
                         touchedFields={touchedFields}
-                        values={toFieldValueMap(draftRecord)}
+                        values={toFieldValueMap(
+                          draftRecord,
+                          effectiveRuntime.metadata.entity,
+                        )}
                         tabContent={tabContent}
                       />
-                    </div>
-                  ) : (
-                    <div className="rounded-lg border border-dashed border-border p-6 text-sm text-muted">
-                      Form metadata is unavailable.
-                    </div>
-                  ))
+                    ) : (
+                      <div className="rounded-lg border border-dashed border-border p-6 text-sm text-muted">
+                        Form metadata is unavailable.
+                      </div>
+                    ))
                 }
                 loading={isRefreshing}
                 onCommand={(commandKey, context) =>
@@ -476,7 +526,10 @@ export function ModuleRecordPage({
     const validation = validateRuntimeForm({
       entity: effectiveRuntime.metadata.entity,
       form: activeForm,
-      values: toFieldValueMap(draftRecord),
+      values: toFieldValueMap(
+        draftRecord,
+        effectiveRuntime.metadata.entity,
+      ),
     });
 
     if (!validation.isValid) {
@@ -495,7 +548,11 @@ export function ModuleRecordPage({
     setFieldErrors({});
     setTouchedFields(new Set());
     setValidationSummary(null);
-    onCommand(commandKey, context);
+    onCommand(commandKey, {
+      ...context,
+      record: draftRecord,
+      value: draftRecord,
+    });
   }
 }
 
@@ -514,6 +571,9 @@ const allowedCommandKeysByMode: Record<
     "record.share",
     "employees.resetPassword",
     "employees.sendInvitation",
+    "employeeBankAccounts.submitVerification",
+    "employeeBankAccounts.verify",
+    "employeeBankAccounts.setPayroll",
   ]),
   edit: new Set([
     "system.back",
@@ -538,10 +598,15 @@ const primaryCommandKeysByMode: Record<
     "record.share",
     "employees.resetPassword",
     "employees.sendInvitation",
+    "employeeBankAccounts.submitVerification",
+    "employeeBankAccounts.verify",
+    "employeeBankAccounts.setPayroll",
   ],
   edit: ["system.back", "system.save", "system.saveAndClose", "system.refresh"],
   create: ["system.back", "system.save", "system.saveAndClose"],
 };
+
+const runtimeSaveNoticeStorageKey = "dp.runtime.recordSaveNotice";
 
 const titleByMode: Record<
   ModuleRecordPageMode,
@@ -556,16 +621,94 @@ function isSaveCommand(commandKey: string) {
   return commandKey === "system.save" || commandKey === "system.saveAndClose";
 }
 
+type StoredRuntimeSaveNotice = {
+  readonly title: string;
+  readonly description?: string;
+  readonly moduleKey?: string;
+  readonly expiresAt: number;
+};
+
+function storeRuntimeSaveNotice(
+  notice: Omit<StoredRuntimeSaveNotice, "expiresAt">,
+) {
+  if (typeof window === "undefined") return;
+
+  window.sessionStorage.setItem(
+    runtimeSaveNoticeStorageKey,
+    JSON.stringify({
+      ...notice,
+      expiresAt: Date.now() + 15_000,
+    } satisfies StoredRuntimeSaveNotice),
+  );
+}
+
+function readStoredRuntimeSaveNotice(): StoredRuntimeSaveNotice | null {
+  if (typeof window === "undefined") return null;
+
+  const storedValue = window.sessionStorage.getItem(
+    runtimeSaveNoticeStorageKey,
+  );
+  if (!storedValue) return null;
+
+  window.sessionStorage.removeItem(runtimeSaveNoticeStorageKey);
+
+  try {
+    const parsed = JSON.parse(storedValue) as Partial<StoredRuntimeSaveNotice>;
+    if (
+      !parsed.title ||
+      typeof parsed.title !== "string" ||
+      !parsed.expiresAt ||
+      Date.now() > parsed.expiresAt
+    ) {
+      return null;
+    }
+
+    return {
+      title: parsed.title,
+      description:
+        typeof parsed.description === "string" ? parsed.description : undefined,
+      moduleKey:
+        typeof parsed.moduleKey === "string" ? parsed.moduleKey : undefined,
+      expiresAt: parsed.expiresAt,
+    };
+  } catch {
+    return null;
+  }
+}
+
 function isEmployeeAccountAction(commandKey: string | undefined) {
   return (
     commandKey === "employees.resetPassword" ||
-    commandKey === "employees.sendInvitation"
+    commandKey === "employees.sendInvitation" ||
+    commandKey === "employeeBankAccounts.submitVerification" ||
+    commandKey === "employeeBankAccounts.verify" ||
+    commandKey === "employeeBankAccounts.setPayroll"
   );
 }
 
 function readResultFieldErrors(data: unknown) {
   if (!data || typeof data !== "object") return undefined;
-  return (data as { fieldErrors?: unknown }).fieldErrors;
+  const record = data as {
+    readonly fieldErrors?: unknown;
+    readonly fields?: unknown;
+    readonly details?: unknown;
+  };
+  if (record.fieldErrors) return record.fieldErrors;
+  if (record.fields) return record.fields;
+
+  if (
+    record.details &&
+    typeof record.details === "object" &&
+    !Array.isArray(record.details)
+  ) {
+    const details = record.details as {
+      readonly fieldErrors?: unknown;
+      readonly fields?: unknown;
+    };
+    return details.fieldErrors ?? details.fields;
+  }
+
+  return undefined;
 }
 
 function readResultRecord(data: unknown): RuntimeRecordData | null {
@@ -608,7 +751,7 @@ function buildStatusGroupConfig(
   const ownerFieldName = runtime.metadata.entity.ownerField;
   const statusFieldName = runtime.metadata.entity.statusField;
 
-  if (!ownerFieldName || !statusFieldName) return null;
+  if (!statusFieldName) return null;
 
   return {
     ownerFieldLogicalName: ownerFieldName,
@@ -627,8 +770,8 @@ function buildStatusGroupConfig(
     ),
     ownerOptions: withCurrentLookupOption(
       ownerOptions,
-      ownerFieldName,
-      readRecordStringValue(record, ownerFieldName),
+      ownerFieldName ?? "",
+      ownerFieldName ? readRecordStringValue(record, ownerFieldName) : "",
       lookupDisplayValues,
       record,
       runtime,
@@ -659,6 +802,8 @@ function withCurrentLookupOption(
   record: RuntimeRecordData,
   runtime: ModuleRuntimeContext,
 ) {
+  if (!fieldLogicalName) return options;
+
   const displayValue = resolveOwnerDisplayName({
     lookupDisplayValue: lookupDisplayValues[fieldLogicalName],
     ownerId: fieldValue,
@@ -801,32 +946,104 @@ function withCreateDefaults(
   };
 }
 
-function toFieldValueMap(record: RuntimeRecordData) {
+function runtimeRecordResetKey(
+  record: RuntimeRecordData,
+  recordId: string | null | undefined,
+  mode: ModuleRecordPageMode,
+) {
+  try {
+    return `${mode}:${recordId ?? "new"}:${JSON.stringify(record)}`;
+  } catch {
+    return `${mode}:${recordId ?? "new"}:${String(
+      record.id ?? record.value ?? record.name ?? "record",
+    )}`;
+  }
+}
+
+function mergeCreateRecordDefaults(
+  defaults: RuntimeRecordData,
+  current: RuntimeRecordData,
+) {
+  const merged: Record<string, unknown> = { ...defaults };
+  for (const [key, value] of Object.entries(current)) {
+    if (hasMeaningfulDraftValue(value)) merged[key] = value;
+  }
+  return merged;
+}
+
+function hasMeaningfulDraftValue(value: unknown) {
+  if (value === null || value === undefined) return false;
+  if (typeof value === "string") return value.trim().length > 0;
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === "object") return Object.keys(value).length > 0;
+  return true;
+}
+
+function toFieldValueMap(record: RuntimeRecordData, entity: EntityMetadata) {
   const values: Record<
     string,
-    string | number | boolean | readonly string[] | null | undefined
+    | string
+    | number
+    | boolean
+    | readonly string[]
+    | readonly Record<string, unknown>[]
+    | Record<string, unknown>
+    | null
+    | undefined
   > = {};
 
+  const fieldsByName = new Map(
+    entity.fields.map((field) => [field.logicalName, field]),
+  );
+
   for (const [key, value] of Object.entries(record)) {
+    if (fieldsByName.get(key)?.dataType === "date") {
+      values[key] = value == null ? null : normalizeRuntimeDateValue(value);
+      continue;
+    }
     values[key] = isFieldValue(value)
       ? value
       : value == null
         ? null
-        : String(value);
+        : readableObjectValue(value) || String(value);
   }
 
   return values;
 }
 
+function readableObjectValue(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return "";
+  const record = value as Record<string, unknown>;
+  for (const key of ["name", "fullName", "displayName", "label"]) {
+    const candidate = record[key];
+    if (typeof candidate === "string" && candidate.trim()) return candidate;
+  }
+  return "";
+}
+
 function isFieldValue(
   value: unknown,
-): value is string | number | boolean | readonly string[] | null | undefined {
+): value is
+  | string
+  | number
+  | boolean
+  | readonly string[]
+  | readonly Record<string, unknown>[]
+  | Record<string, unknown>
+  | null
+  | undefined {
   return (
     value === null ||
     value === undefined ||
     typeof value === "string" ||
     typeof value === "number" ||
     typeof value === "boolean" ||
-    (Array.isArray(value) && value.every((item) => typeof item === "string"))
+    (Array.isArray(value) &&
+      value.every(
+        (item) =>
+          typeof item === "string" ||
+          (Boolean(item) && typeof item === "object" && !Array.isArray(item)),
+      )) ||
+    (Boolean(value) && typeof value === "object" && !Array.isArray(value))
   );
 }

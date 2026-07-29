@@ -7,12 +7,14 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { CreateBusinessUnitDto } from './dto/create-business-unit.dto';
+import { ListMasterDataDto } from './dto/list-master-data.dto';
 import { UpdateBusinessUnitDto } from './dto/update-business-unit.dto';
 import { OrganizationService } from './organization.service';
 
@@ -22,8 +24,11 @@ export class BusinessUnitsController {
   constructor(private readonly organizationService: OrganizationService) {}
 
   @Get()
-  findAll(@CurrentUser() user: AuthenticatedUser) {
-    return this.organizationService.findBusinessUnits(user.tenantId);
+  findAll(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: ListMasterDataDto,
+  ) {
+    return this.organizationService.findBusinessUnits(user.tenantId, query);
   }
 
   @Get(':id')

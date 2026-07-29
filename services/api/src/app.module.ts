@@ -32,6 +32,7 @@ import { CustomizationModule } from './modules/customization/customization.modul
 import { DataModule } from './modules/data/data.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { EmployeeLevelsModule } from './modules/employee-levels/employee-levels.module';
+import { EmploymentTypesModule } from './modules/employment-types/employment-types.module';
 import { EmployeesModule } from './modules/employees/employees.module';
 import { InboxModule } from './modules/inbox/inbox.module';
 import { LeaveModule } from './modules/leave/leave.module';
@@ -89,6 +90,7 @@ import { DemoDataModule } from './modules/demo-data/demo-data.module';
     DocumentsModule,
     DemoDataModule,
     EmployeeLevelsModule,
+    EmploymentTypesModule,
     EmployeesModule,
     InboxModule,
     LeaveModule,

@@ -6,6 +6,7 @@ import {
   AttendanceCorrectionStatus,
   AttendanceEntrySource,
   AttendanceEntryStatus,
+  EmployeeWorkMode,
   AttendanceImportBatchStatus,
   AttendanceMode,
   GenericApprovalStepStatus,
@@ -23,6 +24,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { AuditService } from '../audit/audit.service';
@@ -70,6 +72,18 @@ type AttendancePolicyShape = {
   requireOfficeLocationForOfficeMode: boolean;
   requireRemoteLocationForRemoteMode: boolean;
   allowRemoteWithoutLocation: boolean;
+  locationCaptureRequired: boolean;
+  locationRequiredForModes: AttendanceMode[];
+  allowIpFallback: boolean;
+  allowManualLocationException: boolean;
+  locationTimeoutSeconds: number;
+  locationRetryAttempts: number;
+  highAccuracyLocation: boolean;
+  maxAllowedAccuracyMeters: number | null;
+  captureLocationOnCheckIn: boolean;
+  captureLocationOnCheckOut: boolean;
+  storeIpAddress: boolean;
+  storeUserAgent: boolean;
   allowManualAdjustments: boolean;
   preventDuplicateAttendance: boolean;
   allowCheckInOnApprovedLeave: boolean;
@@ -78,6 +92,7 @@ type AttendancePolicyShape = {
   allowHolidayCheckIn: boolean;
   allowHrAdminOverride: boolean;
   allowedModes: AttendanceMode[];
+  standardWorkHoursPerDay: number;
 };
 
 const ATTENDANCE_IMPORT_MIME_TYPES = [
@@ -162,7 +177,7 @@ export class AttendanceService {
       employee.id,
       now,
     );
-    const [existingToday, policy, approvedLeave] = await Promise.all([
+    const [foundToday, policy, approvedLeave] = await Promise.all([
       this.attendanceRepository.findAttendanceEntryByEmployeeAndDate(
         currentUser.tenantId,
         employee.id,
@@ -175,6 +190,33 @@ export class AttendanceService {
         context.attendanceDate,
       ),
     ]);
+    let existingToday = foundToday;
+
+    if (
+      existingToday &&
+      policy.preventDuplicateAttendance &&
+      isCompletedBeforeCurrentShiftWindow(existingToday, context)
+    ) {
+      const previousAttendanceDate = addUtcDays(context.attendanceDate, -1);
+      const previousEntry =
+        await this.attendanceRepository.findAttendanceEntryByEmployeeAndDate(
+          currentUser.tenantId,
+          employee.id,
+          previousAttendanceDate,
+        );
+
+      if (!previousEntry) {
+        await this.attendanceRepository.updateAttendanceEntry(
+          currentUser.tenantId,
+          existingToday.id,
+          {
+            date: previousAttendanceDate,
+            updatedById: currentUser.userId,
+          },
+        );
+        existingToday = null;
+      }
+    }
 
     if (existingToday && policy.preventDuplicateAttendance) {
       throw new ConflictException('Already checked in today.');
@@ -211,10 +253,19 @@ export class AttendanceService {
       dto.officeLocationId,
       dto.remoteLatitude,
       dto.remoteLongitude,
-      true,
+      false,
+    );
+    const locationAudit = this.validateAttendanceLocationPayload(
+      'checkIn',
+      attendanceMode,
+      policy,
+      dto,
+      now,
     );
 
-    const capturedAt = parseLocationCapturedAt(dto.locationCapturedAt, now);
+    const capturedAt =
+      locationAudit.locationCapturedAt ??
+      parseLocationCapturedAt(dto.locationCapturedAt, now);
     const lateCheckIn = resolveLateCheckIn(
       context.workSchedule,
       policy,
@@ -240,11 +291,25 @@ export class AttendanceService {
         notes: mergeNotes(undefined, dto.note),
         remoteLatitude: dto.remoteLatitude,
         remoteLongitude: dto.remoteLongitude,
-        checkInLatitude: dto.remoteLatitude,
-        checkInLongitude: dto.remoteLongitude,
-        checkInLocationAccuracy: dto.locationAccuracy,
-        checkInLocationCapturedAt:
-          attendanceMode === AttendanceMode.OFFICE ? undefined : capturedAt,
+        checkInLatitude: locationAudit.latitude ?? dto.remoteLatitude,
+        checkInLongitude: locationAudit.longitude ?? dto.remoteLongitude,
+        checkInLocationAccuracy:
+          locationAudit.accuracyMeters ?? dto.locationAccuracy,
+        checkInLocationCapturedAt: capturedAt,
+        locationLatitude: locationAudit.latitude,
+        locationLongitude: locationAudit.longitude,
+        locationAccuracyMeters: locationAudit.accuracyMeters,
+        locationSource: locationAudit.source,
+        locationConfidence: locationAudit.confidence,
+        locationCapturedAt: capturedAt,
+        locationPermissionState: locationAudit.permissionState,
+        locationFailureReason: locationAudit.failureReason,
+        ipAddress: locationAudit.ipAddress,
+        userAgent: locationAudit.userAgent,
+        manualLocationExceptionRequested:
+          locationAudit.manualLocationExceptionRequested,
+        manualLocationExceptionReason: locationAudit.manualExceptionReason,
+        locationPolicySnapshot: locationAudit.policySnapshot,
         remoteAddressText: normalizeOptionalText(dto.remoteAddressText),
         checkInAddressText:
           normalizeOptionalText(dto.checkInAddressText) ??
@@ -290,17 +355,22 @@ export class AttendanceService {
   async checkOut(currentUser: AuthenticatedUser, dto: CheckOutDto) {
     const employee = await this.getCurrentEmployee(currentUser);
     const now = new Date();
-    const context = await this.resolveSelfServiceContext(
+    const currentContext = await this.resolveSelfServiceContext(
       currentUser,
       employee.id,
       now,
     );
+    const openEntry = await this.attendanceRepository.findOpenAttendanceEntry(
+      currentUser.tenantId,
+      employee.id,
+    );
     const existing =
-      await this.attendanceRepository.findAttendanceEntryByEmployeeAndDate(
+      openEntry ??
+      (await this.attendanceRepository.findAttendanceEntryByEmployeeAndDate(
         currentUser.tenantId,
         employee.id,
-        context.attendanceDate,
-      );
+        currentContext.attendanceDate,
+      ));
 
     if (!existing) {
       throw new BadRequestException('Check out requires a check in today.');
@@ -326,15 +396,32 @@ export class AttendanceService {
       existing.officeLocationId ?? undefined,
       dto.remoteLatitude,
       dto.remoteLongitude,
-      true,
+      false,
+    );
+    const locationAudit = this.validateAttendanceLocationPayload(
+      'checkOut',
+      existing.attendanceMode,
+      policy,
+      dto,
+      now,
     );
 
-    const capturedAt = parseLocationCapturedAt(dto.locationCapturedAt, now);
+    const capturedAt =
+      locationAudit.locationCapturedAt ??
+      parseLocationCapturedAt(dto.locationCapturedAt, now);
+    const attendanceContext =
+      existing.date.getTime() === currentContext.attendanceDate.getTime()
+        ? currentContext
+        : await this.resolveSelfServiceContext(
+            currentUser,
+            employee.id,
+            existing.date,
+          );
     const lateCheckOut = resolveLateCheckOut(
-      context.workSchedule,
+      existing.workSchedule ?? attendanceContext.workSchedule,
       policy,
       now,
-      context.shift,
+      existing.shiftTemplate ?? attendanceContext.shift,
     );
     const updated = await this.attendanceRepository.updateAttendanceEntry(
       currentUser.tenantId,
@@ -346,13 +433,25 @@ export class AttendanceService {
           normalizeOptionalText(dto.workSummary) ?? existing.workSummary,
         notes: mergeNotes(existing.notes, dto.note),
         checkOutSource: AttendanceEntrySource.WEB,
-        checkOutLatitude: dto.remoteLatitude,
-        checkOutLongitude: dto.remoteLongitude,
-        checkOutLocationAccuracy: dto.locationAccuracy,
-        checkOutLocationCapturedAt:
-          existing.attendanceMode === AttendanceMode.OFFICE
-            ? undefined
-            : capturedAt,
+        checkOutLatitude: locationAudit.latitude ?? dto.remoteLatitude,
+        checkOutLongitude: locationAudit.longitude ?? dto.remoteLongitude,
+        checkOutLocationAccuracy:
+          locationAudit.accuracyMeters ?? dto.locationAccuracy,
+        checkOutLocationCapturedAt: capturedAt,
+        locationLatitude: locationAudit.latitude,
+        locationLongitude: locationAudit.longitude,
+        locationAccuracyMeters: locationAudit.accuracyMeters,
+        locationSource: locationAudit.source,
+        locationConfidence: locationAudit.confidence,
+        locationCapturedAt: capturedAt,
+        locationPermissionState: locationAudit.permissionState,
+        locationFailureReason: locationAudit.failureReason,
+        ipAddress: locationAudit.ipAddress,
+        userAgent: locationAudit.userAgent,
+        manualLocationExceptionRequested:
+          locationAudit.manualLocationExceptionRequested,
+        manualLocationExceptionReason: locationAudit.manualExceptionReason,
+        locationPolicySnapshot: locationAudit.policySnapshot,
         checkOutAddressText:
           normalizeOptionalText(dto.checkOutAddressText) ??
           normalizeOptionalText(dto.remoteAddressText),
@@ -433,6 +532,44 @@ export class AttendanceService {
     return this.mapAttendanceEntry(entry, currentUser);
   }
 
+  async deleteAttendanceEntry(currentUser: AuthenticatedUser, entryId: string) {
+    if (!this.canManageTenantAttendance(currentUser)) {
+      throw new ForbiddenException(
+        'You do not have permission to delete attendance records.',
+      );
+    }
+
+    const entry = await this.attendanceRepository.findAttendanceEntryById(
+      currentUser.tenantId,
+      entryId,
+    );
+
+    if (!entry) {
+      throw new NotFoundException('Attendance entry could not be found.');
+    }
+
+    await this.attendanceRepository.deleteAttendanceEntry(
+      currentUser.tenantId,
+      entryId,
+    );
+
+    await this.auditService.log({
+      tenantId: currentUser.tenantId,
+      actorUserId: currentUser.userId,
+      action: 'attendance.deleted',
+      entityType: 'AttendanceEntry',
+      entityId: entry.id,
+      beforeSnapshot: {
+        attendanceMode: entry.attendanceMode,
+        employeeId: entry.employeeId,
+        status: entry.status,
+        date: entry.date,
+      },
+    });
+
+    return { id: entryId, deleted: true };
+  }
+
   async listCorrectionRequests(
     currentUser: AuthenticatedUser,
     query: AttendanceCorrectionQueryDto,
@@ -472,7 +609,7 @@ export class AttendanceService {
     currentUser: AuthenticatedUser,
     dto: CreateAttendanceCorrectionRequestDto,
   ) {
-    if (!currentUser.permissionKeys.includes('attendance.correction.create')) {
+    if (!this.canCreateAttendanceCorrection(currentUser)) {
       throw new ForbiddenException(
         'You do not have permission to request attendance corrections.',
       );
@@ -648,6 +785,39 @@ export class AttendanceService {
         scope: 'mine',
       },
     );
+  }
+
+  async getTimesheetAttendanceHours(input: {
+    tenantId: string;
+    employeeId: string;
+    periodStart: Date;
+    periodEnd: Date;
+  }) {
+    const entries = await this.attendanceRepository.findAttendanceForSummary(
+      input.tenantId,
+      {
+        dateFrom: input.periodStart.toISOString().slice(0, 10),
+        dateTo: input.periodEnd.toISOString().slice(0, 10),
+        page: 1,
+        pageSize: 100,
+      },
+      { employeeId: input.employeeId },
+    );
+
+    return entries.map((entry) => ({
+      attendanceEntryId: entry.id,
+      date: entry.date,
+      checkIn: entry.checkIn,
+      checkOut: entry.checkOut,
+      hours:
+        entry.checkIn && entry.checkOut
+          ? validDailyAttendanceHours(entry.checkIn, entry.checkOut)
+          : 0,
+      status: entry.status,
+      mode: entry.attendanceMode,
+      workScheduleId: entry.workScheduleId,
+      shiftId: entry.shiftTemplateId,
+    }));
   }
 
   async getTeamAttendanceSummary(
@@ -1083,18 +1253,8 @@ export class AttendanceService {
     action: 'approve' | 'reject',
     dto: AttendanceCorrectionActionDto,
   ) {
-    const permission =
-      action === 'approve'
-        ? 'attendance.correction.approve'
-        : 'attendance.correction.reject';
-    if (!currentUser.permissionKeys.includes(permission)) {
-      throw new ForbiddenException(
-        `You do not have permission to ${action} attendance corrections.`,
-      );
-    }
-
     const request = await this.findCorrectionRequestForUser(currentUser, id);
-    await this.assertCanActionCorrection(currentUser, request);
+    await this.assertCanActionCorrection(currentUser, request, action);
 
     if (request.status !== AttendanceCorrectionStatus.PENDING_APPROVAL) {
       throw new ConflictException(
@@ -1332,6 +1492,7 @@ export class AttendanceService {
   ): Promise<Prisma.AttendanceCorrectionRequestWhereInput> {
     const permissions = new Set(currentUser.permissionKeys);
     if (
+      this.canManageTenantAttendance(currentUser) ||
       permissions.has('attendance.correction.manage') ||
       permissions.has('attendance.correction.readTeam')
     ) {
@@ -1350,6 +1511,7 @@ export class AttendanceService {
     currentUser: AuthenticatedUser,
   ): Promise<Prisma.AttendanceCorrectionRequestWhereInput> {
     if (
+      this.canManageTenantAttendance(currentUser) ||
       currentUser.permissionKeys.includes('attendance.correction.manage') ||
       currentUser.permissionKeys.includes('attendance.correction.readTeam')
     ) {
@@ -1391,6 +1553,8 @@ export class AttendanceService {
   private assertCanReadCorrections(currentUser: AuthenticatedUser) {
     const permissions = new Set(currentUser.permissionKeys);
     if (
+      this.canManageTenantAttendance(currentUser) ||
+      this.hasManagerRole(currentUser) ||
       permissions.has('attendance.correction.read') ||
       permissions.has('attendance.correction.readOwn') ||
       permissions.has('attendance.correction.readTeam') ||
@@ -1409,7 +1573,12 @@ export class AttendanceService {
   private async assertCanActionCorrection(
     currentUser: AuthenticatedUser,
     request: AttendanceCorrectionWithRelations,
+    action: 'approve' | 'reject',
   ) {
+    if (this.canActionAttendanceCorrection(currentUser, request, action)) {
+      return;
+    }
+
     const assignment = await this.prisma.approvalAssignment.findFirst({
       where: {
         tenantId: currentUser.tenantId,
@@ -1429,6 +1598,34 @@ export class AttendanceService {
         'Only the assigned approver can action this correction request.',
       );
     }
+  }
+
+  private canCreateAttendanceCorrection(currentUser: AuthenticatedUser) {
+    const permissions = new Set(currentUser.permissionKeys);
+    return (
+      permissions.has('attendance.correction.create') ||
+      permissions.has('attendance.read') ||
+      permissions.has('attendance.read.own') ||
+      permissions.has('attendance.read.team') ||
+      permissions.has('attendance.read.all')
+    );
+  }
+
+  private canActionAttendanceCorrection(
+    currentUser: AuthenticatedUser,
+    request: AttendanceCorrectionWithRelations,
+    action: 'approve' | 'reject',
+  ) {
+    const permission =
+      action === 'approve'
+        ? 'attendance.correction.approve'
+        : 'attendance.correction.reject';
+    return (
+      this.canManageTenantAttendance(currentUser) ||
+      currentUser.permissionKeys.includes('attendance.correction.manage') ||
+      currentUser.permissionKeys.includes(permission) ||
+      request.employee.manager?.userId === currentUser.userId
+    );
   }
 
   private async syncGenericAttendanceCorrectionApproval(
@@ -1728,13 +1925,13 @@ export class AttendanceService {
       employeeName: formatEmployeeName(request.employee),
       canEdit:
         canAct &&
-        currentUser.permissionKeys.includes('attendance.correction.approve'),
+        this.canActionAttendanceCorrection(currentUser, request, 'approve'),
       canApprove:
         canAct &&
-        currentUser.permissionKeys.includes('attendance.correction.approve'),
+        this.canActionAttendanceCorrection(currentUser, request, 'approve'),
       canReject:
         canAct &&
-        currentUser.permissionKeys.includes('attendance.correction.reject'),
+        this.canActionAttendanceCorrection(currentUser, request, 'reject'),
       approval,
       relatedRecordUrl: `/attendance/corrections/${request.id}`,
     };
@@ -1744,6 +1941,13 @@ export class AttendanceService {
     currentUser: AuthenticatedUser,
     request: AttendanceCorrectionWithRelations,
   ) {
+    if (
+      this.canActionAttendanceCorrection(currentUser, request, 'approve') ||
+      this.canActionAttendanceCorrection(currentUser, request, 'reject')
+    ) {
+      return true;
+    }
+
     const assignment = await this.prisma.approvalAssignment.findFirst({
       where: {
         tenantId: currentUser.tenantId,
@@ -2109,21 +2313,47 @@ export class AttendanceService {
       employee.id,
       now,
     );
-    const [todayAttendance, policy, workSites, approvedLeave] =
-      await Promise.all([
-        this.attendanceRepository.findAttendanceEntryByEmployeeAndDate(
-          currentUser.tenantId,
-          employee.id,
-          context.attendanceDate,
-        ),
-        this.resolvePolicy(currentUser.tenantId),
-        this.attendanceRepository.listOfficeLocations(currentUser.tenantId),
-        this.findApprovedLeave(
-          currentUser.tenantId,
-          employee.id,
-          context.attendanceDate,
-        ),
-      ]);
+    const [
+      openAttendance,
+      attendanceForDate,
+      policy,
+      workSites,
+      approvedLeave,
+    ] = await Promise.all([
+      this.attendanceRepository.findOpenAttendanceEntry(
+        currentUser.tenantId,
+        employee.id,
+      ),
+      this.attendanceRepository.findAttendanceEntryByEmployeeAndDate(
+        currentUser.tenantId,
+        employee.id,
+        context.attendanceDate,
+      ),
+      this.resolvePolicy(currentUser.tenantId),
+      this.attendanceRepository.listOfficeLocations(currentUser.tenantId),
+      this.findApprovedLeave(
+        currentUser.tenantId,
+        employee.id,
+        context.attendanceDate,
+      ),
+    ]);
+    const completedBeforeCurrentShift =
+      !openAttendance &&
+      attendanceForDate &&
+      isCompletedBeforeCurrentShiftWindow(attendanceForDate, context);
+    const todayAttendance =
+      openAttendance ??
+      (completedBeforeCurrentShift ? null : attendanceForDate);
+    const activeContext =
+      openAttendance &&
+      openAttendance.date.getTime() !== context.attendanceDate.getTime()
+        ? await this.resolveSelfServiceContext(
+            currentUser,
+            employee.id,
+            openAttendance.date,
+          )
+        : context;
+    const resolvedShift = todayAttendance?.shiftTemplate ?? activeContext.shift;
 
     const state = !todayAttendance
       ? 'not-checked-in'
@@ -2132,44 +2362,53 @@ export class AttendanceService {
         : todayAttendance.checkIn
           ? 'checked-in'
           : 'not-checked-in';
-    const actionBlockedReason = approvedLeave
-      ? policy.allowCheckInOnApprovedLeave
-        ? null
-        : 'Check in is unavailable because you have approved leave today.'
-      : context.configurationError
-        ? context.configurationError
-        : context.isOffDay && !policy.allowOffDayCheckIn
-          ? `Check in is unavailable because ${formatBusinessDateKey(context.attendanceDate)} is a scheduled off day.`
-          : context.holiday && !policy.allowHolidayCheckIn
-            ? `Check in is unavailable because today is ${context.holiday.name}.`
-            : state === 'completed'
-              ? 'You have already checked out for the current business date. A new check-in will be available on the next attendance date.'
-              : null;
-
-    return {
-      attendanceActionState:
-        (approvedLeave && !policy.allowCheckInOnApprovedLeave) ||
+    const checkInBlocked =
+      state !== 'checked-in' &&
+      ((approvedLeave && !policy.allowCheckInOnApprovedLeave) ||
         Boolean(context.configurationError) ||
         (context.isOffDay && !policy.allowOffDayCheckIn) ||
-        (Boolean(context.holiday) && !policy.allowHolidayCheckIn)
-          ? 'blocked'
-          : state,
-      attendanceDate: formatBusinessDateKey(context.attendanceDate),
-      timezone: context.timezone,
+        (Boolean(context.holiday) && !policy.allowHolidayCheckIn));
+    const actionBlockedReason =
+      state === 'checked-in'
+        ? null
+        : approvedLeave
+          ? policy.allowCheckInOnApprovedLeave
+            ? null
+            : 'Check in is unavailable because you have approved leave today.'
+          : context.configurationError
+            ? context.configurationError
+            : context.isOffDay && !policy.allowOffDayCheckIn
+              ? `Check in is unavailable because ${formatBusinessDateKey(context.attendanceDate)} is a scheduled off day.`
+              : context.holiday && !policy.allowHolidayCheckIn
+                ? `Check in is unavailable because today is ${context.holiday.name}.`
+                : state === 'completed'
+                  ? 'You have already checked out for the current business date. A new check-in will be available on the next attendance date.'
+                  : null;
+
+    return {
+      attendanceActionState: checkInBlocked ? 'blocked' : state,
+      attendanceDate: formatBusinessDateKey(activeContext.attendanceDate),
+      timezone: activeContext.timezone,
       allowedModes: policy.allowedModes.filter(isSelfServiceAttendanceMode),
-      resolvedShift: context.shift
+      defaultAttendanceMode: resolveDefaultSelfServiceAttendanceMode(
+        employee.workMode,
+        policy.allowedModes,
+      ),
+      defaultOfficeLocationId:
+        workSites.length === 1 ? (workSites[0]?.id ?? null) : null,
+      resolvedShift: resolvedShift
         ? {
-            id: context.shift.id,
-            name: context.shift.name,
-            code: context.shift.code,
-            startTime: context.shift.startTime,
-            endTime: context.shift.endTime,
-            timezone: context.shift.timezone,
-            breakMinutes: context.shift.breakMinutes,
-            expectedHours: Number(context.shift.expectedHours),
-            lateGraceMinutes: context.shift.lateGraceMinutes,
-            earlyExitGraceMinutes: context.shift.earlyExitGraceMinutes,
-            isNightShift: context.shift.isNightShift,
+            id: resolvedShift.id,
+            name: resolvedShift.name,
+            code: resolvedShift.code,
+            startTime: resolvedShift.startTime,
+            endTime: resolvedShift.endTime,
+            timezone: resolvedShift.timezone,
+            breakMinutes: resolvedShift.breakMinutes,
+            expectedHours: Number(resolvedShift.expectedHours),
+            lateGraceMinutes: resolvedShift.lateGraceMinutes,
+            earlyExitGraceMinutes: resolvedShift.earlyExitGraceMinutes,
+            isNightShift: resolvedShift.isNightShift,
           }
         : null,
       workSites,
@@ -2182,6 +2421,18 @@ export class AttendanceService {
         officeRequiresWorkSite: policy.requireOfficeLocationForOfficeMode,
         remoteRequiresLocation: policy.requireRemoteLocationForRemoteMode,
         hybridRequiresLocation: policy.requireRemoteLocationForRemoteMode,
+        locationCaptureRequired: policy.locationCaptureRequired,
+        locationRequiredForModes: policy.locationRequiredForModes,
+        allowIpFallback: policy.allowIpFallback,
+        allowManualLocationException: policy.allowManualLocationException,
+        locationTimeoutSeconds: policy.locationTimeoutSeconds,
+        locationRetryAttempts: policy.locationRetryAttempts,
+        highAccuracyLocation: policy.highAccuracyLocation,
+        maxAllowedAccuracyMeters: policy.maxAllowedAccuracyMeters,
+        captureLocationOnCheckIn: policy.captureLocationOnCheckIn,
+        captureLocationOnCheckOut: policy.captureLocationOnCheckOut,
+        storeIpAddress: policy.storeIpAddress,
+        storeUserAgent: policy.storeUserAgent,
       },
       nonWorkingDayPolicy: {
         allowOffDayCheckIn: policy.allowOffDayCheckIn,
@@ -2256,6 +2507,17 @@ export class AttendanceService {
         allowOffDayCheckIn: dto.allowOffDayCheckIn ?? false,
         allowHolidayCheckIn: dto.allowHolidayCheckIn ?? false,
         allowHrAdminOverride: dto.allowHrAdminOverride ?? true,
+        locationCaptureRequired: dto.locationCaptureRequired ?? false,
+        locationRequiredForModes: dto.locationRequiredForModes ?? [],
+        allowIpFallback: dto.allowIpFallback ?? false,
+        allowManualLocationException: dto.allowManualLocationException ?? false,
+        locationTimeoutSeconds: dto.locationTimeoutSeconds ?? 15,
+        highAccuracyLocation: dto.highAccuracyLocation ?? true,
+        maxAllowedAccuracyMeters: dto.maxAllowedAccuracyMeters ?? null,
+        captureLocationOnCheckIn: dto.captureLocationOnCheckIn ?? false,
+        captureLocationOnCheckOut: dto.captureLocationOnCheckOut ?? false,
+        storeIpAddress: dto.storeIpAddress ?? false,
+        storeUserAgent: dto.storeUserAgent ?? false,
         createdById: currentUser.userId,
         updatedById: currentUser.userId,
       },
@@ -2277,6 +2539,38 @@ export class AttendanceService {
           dto.allowHolidayCheckIn ?? existing?.allowHolidayCheckIn ?? false,
         allowHrAdminOverride:
           dto.allowHrAdminOverride ?? existing?.allowHrAdminOverride ?? true,
+        locationCaptureRequired:
+          dto.locationCaptureRequired ??
+          existing?.locationCaptureRequired ??
+          false,
+        locationRequiredForModes:
+          dto.locationRequiredForModes ??
+          existing?.locationRequiredForModes ??
+          [],
+        allowIpFallback:
+          dto.allowIpFallback ?? existing?.allowIpFallback ?? false,
+        allowManualLocationException:
+          dto.allowManualLocationException ??
+          existing?.allowManualLocationException ??
+          false,
+        locationTimeoutSeconds:
+          dto.locationTimeoutSeconds ?? existing?.locationTimeoutSeconds ?? 15,
+        highAccuracyLocation:
+          dto.highAccuracyLocation ?? existing?.highAccuracyLocation ?? true,
+        maxAllowedAccuracyMeters:
+          dto.maxAllowedAccuracyMeters ??
+          existing?.maxAllowedAccuracyMeters ??
+          null,
+        captureLocationOnCheckIn:
+          dto.captureLocationOnCheckIn ??
+          existing?.captureLocationOnCheckIn ??
+          false,
+        captureLocationOnCheckOut:
+          dto.captureLocationOnCheckOut ??
+          existing?.captureLocationOnCheckOut ??
+          false,
+        storeIpAddress: dto.storeIpAddress ?? existing?.storeIpAddress ?? false,
+        storeUserAgent: dto.storeUserAgent ?? existing?.storeUserAgent ?? false,
         updatedById: currentUser.userId,
       },
     );
@@ -2452,6 +2746,7 @@ export class AttendanceService {
       select: {
         id: true,
         businessUnitId: true,
+        workMode: true,
       },
     });
     if (!employee) {
@@ -2468,17 +2763,45 @@ export class AttendanceService {
         module: 'attendance',
         effectiveDate,
       });
-    const attendanceDate = businessDateAtUtcMidnight(
+    const calendarAttendanceDate = businessDateAtUtcMidnight(
       effectiveDate,
       appContext.timezone,
     );
-    const resolvedWorkConfiguration =
+    const previousAttendanceDate = addUtcDays(calendarAttendanceDate, -1);
+    const previousWorkConfiguration =
       await this.attendanceRepository.resolveEmployeeWorkConfiguration(
         currentUser.tenantId,
         employeeId,
-        attendanceDate,
-        toWeekday(attendanceDate),
+        previousAttendanceDate,
+        toWeekday(previousAttendanceDate),
       );
+    const previousScheduleDay = previousWorkConfiguration?.scheduleDay ?? null;
+    const previousShift =
+      previousScheduleDay?.isWorkingDay &&
+      previousScheduleDay.shiftTemplate?.isActive &&
+      previousScheduleDay.shiftTemplate.status === 'ACTIVE'
+        ? previousScheduleDay.shiftTemplate
+        : null;
+    const usePreviousAttendanceDate = Boolean(
+      previousShift &&
+      isWithinOvernightShiftCarryover(
+        effectiveDate,
+        previousAttendanceDate,
+        previousShift,
+        appContext.timezone,
+      ),
+    );
+    const attendanceDate = usePreviousAttendanceDate
+      ? previousAttendanceDate
+      : calendarAttendanceDate;
+    const resolvedWorkConfiguration = usePreviousAttendanceDate
+      ? previousWorkConfiguration
+      : await this.attendanceRepository.resolveEmployeeWorkConfiguration(
+          currentUser.tenantId,
+          employeeId,
+          attendanceDate,
+          toWeekday(attendanceDate),
+        );
     const workSchedule = resolvedWorkConfiguration?.workSchedule ?? null;
     const scheduleDay = resolvedWorkConfiguration?.scheduleDay ?? null;
     const shift =
@@ -2487,6 +2810,9 @@ export class AttendanceService {
       scheduleDay.shiftTemplate.status === 'ACTIVE'
         ? scheduleDay.shiftTemplate
         : null;
+    const shiftWindow = shift
+      ? resolveShiftWindow(attendanceDate, shift, appContext.timezone)
+      : null;
     const holiday =
       resolvedWorkConfiguration?.holidayCalendarId &&
       resolvedWorkConfiguration.employee
@@ -2516,6 +2842,8 @@ export class AttendanceService {
       shift,
       holiday,
       isOffDay: Boolean(workSchedule && !isWorkingDay),
+      shiftStartAt: shiftWindow?.startAt ?? null,
+      shiftEndAt: shiftWindow?.endAt ?? null,
       scheduleSource: resolvedWorkConfiguration?.source ?? null,
       configurationError,
     };
@@ -2539,8 +2867,11 @@ export class AttendanceService {
   }
 
   private canManageTenantAttendance(currentUser: AuthenticatedUser) {
+    const roleKeys = currentUser.roleKeys ?? [];
     return (
       hasElevatedTenantRole(currentUser) ||
+      roleKeys.includes(ROLE_KEYS.HR) ||
+      roleKeys.includes('SUPER_ADMIN') ||
       currentUser.permissionKeys.includes('attendance.manage')
     );
   }
@@ -2709,12 +3040,32 @@ export class AttendanceService {
       requireOfficeLocationForOfficeMode:
         policy?.requireOfficeLocationForOfficeMode ??
         attendanceSettings.enforceOfficeLocationForOfficeMode,
-      requireRemoteLocationForRemoteMode:
-        policy?.requireRemoteLocationForRemoteMode ??
-        attendanceSettings.requireRemoteLocationCapture,
-      allowRemoteWithoutLocation:
-        policy?.allowRemoteWithoutLocation ??
-        !attendanceSettings.requireRemoteLocationCapture,
+      requireRemoteLocationForRemoteMode: true,
+      allowRemoteWithoutLocation: false,
+      locationCaptureRequired: true,
+      locationRequiredForModes: [
+        AttendanceMode.OFFICE,
+        AttendanceMode.REMOTE,
+        AttendanceMode.HYBRID,
+      ],
+      allowIpFallback:
+        policy?.allowIpFallback ?? attendanceSettings.allowIpFallback,
+      allowManualLocationException: false,
+      locationTimeoutSeconds:
+        policy?.locationTimeoutSeconds ??
+        attendanceSettings.locationTimeoutSeconds,
+      locationRetryAttempts: attendanceSettings.locationRetryAttempts,
+      highAccuracyLocation:
+        policy?.highAccuracyLocation ?? attendanceSettings.highAccuracyLocation,
+      maxAllowedAccuracyMeters:
+        policy?.maxAllowedAccuracyMeters ??
+        attendanceSettings.maxAllowedAccuracyMeters,
+      captureLocationOnCheckIn: true,
+      captureLocationOnCheckOut: true,
+      storeIpAddress:
+        policy?.storeIpAddress ?? attendanceSettings.storeIpAddress,
+      storeUserAgent:
+        policy?.storeUserAgent ?? attendanceSettings.storeUserAgent,
       allowManualAdjustments: attendanceSettings.allowManualAdjustments,
       preventDuplicateAttendance: policy?.preventDuplicateAttendance ?? true,
       allowCheckInOnApprovedLeave: policy?.allowCheckInOnApprovedLeave ?? false,
@@ -2723,6 +3074,7 @@ export class AttendanceService {
       allowHolidayCheckIn: policy?.allowHolidayCheckIn ?? false,
       allowHrAdminOverride: policy?.allowHrAdminOverride ?? true,
       allowedModes: attendanceSettings.allowedModes,
+      standardWorkHoursPerDay: attendanceSettings.standardWorkHoursPerDay,
     };
   }
 
@@ -2775,6 +3127,165 @@ export class AttendanceService {
     }
 
     return null;
+  }
+
+  private validateAttendanceLocationPayload(
+    action: 'checkIn' | 'checkOut',
+    attendanceMode: AttendanceMode,
+    policy: AttendancePolicyShape,
+    dto: CheckInDto | CheckOutDto,
+    now: Date,
+  ) {
+    const latitude = firstFiniteNumber(
+      dto.locationLatitude,
+      dto.remoteLatitude,
+    );
+    const longitude = firstFiniteNumber(
+      dto.locationLongitude,
+      dto.remoteLongitude,
+    );
+    const accuracyMeters =
+      firstFiniteNumber(dto.locationAccuracyMeters, dto.locationAccuracy) ??
+      undefined;
+    const source = normalizeOptionalText(dto.locationSource)?.toUpperCase();
+    const confidence = normalizeOptionalText(
+      dto.locationConfidence,
+    )?.toUpperCase();
+    const permissionState = normalizeOptionalText(dto.locationPermissionState);
+    const failureReason = normalizeOptionalText(dto.locationFailureReason);
+    const manualExceptionRequested =
+      dto.manualLocationExceptionRequested === true;
+    const policySnapshot = this.locationPolicySnapshot(policy, action);
+
+    if (source === 'IP' && !policy.allowIpFallback) {
+      throw new UnprocessableEntityException({
+        code: 'LOCATION_CAPTURE_REQUIRED',
+        errorCode: 'LOCATION_CAPTURE_REQUIRED',
+        severity: 'WARNING',
+        message: 'Approximate IP location is not allowed by tenant policy.',
+      });
+    }
+
+    if (failureReason === 'PERMISSION_DENIED' && !manualExceptionRequested) {
+      throw new ForbiddenException({
+        code: 'LOCATION_PERMISSION_DENIED',
+        errorCode: 'LOCATION_PERMISSION_DENIED',
+        severity: 'WARNING',
+        message:
+          'Location permission is required for attendance. Please enable location access for this site from browser settings.',
+      });
+    }
+
+    if (manualExceptionRequested) {
+      throw new UnprocessableEntityException({
+        code: 'LOCATION_CAPTURE_REQUIRED',
+        errorCode: 'LOCATION_CAPTURE_REQUIRED',
+        severity: 'WARNING',
+        message:
+          'Self-service attendance requires a current device location. Ask a manager to create a manual attendance record when location capture is impossible.',
+      });
+    }
+
+    if (latitude === undefined || longitude === undefined) {
+      throw new UnprocessableEntityException({
+        code: 'LOCATION_CAPTURE_REQUIRED',
+        errorCode: 'LOCATION_CAPTURE_REQUIRED',
+        severity: 'WARNING',
+        message:
+          'Current location is required. Enable device and browser location access, then try again.',
+      });
+    }
+
+    if (!source || !['GPS', 'WIFI', 'IP'].includes(source)) {
+      throw new UnprocessableEntityException({
+        code: 'LOCATION_CAPTURE_INVALID',
+        errorCode: 'LOCATION_CAPTURE_INVALID',
+        severity: 'WARNING',
+        message: 'A verified device location source is required. Try again.',
+      });
+    }
+
+    if (!dto.locationCapturedAt) {
+      throw new UnprocessableEntityException({
+        code: 'LOCATION_CAPTURE_INVALID',
+        errorCode: 'LOCATION_CAPTURE_INVALID',
+        severity: 'WARNING',
+        message: 'A current location capture is required. Try again.',
+      });
+    }
+
+    if (
+      latitude !== undefined &&
+      longitude !== undefined &&
+      (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180)
+    ) {
+      throw new UnprocessableEntityException({
+        code: 'LOCATION_CAPTURE_INVALID',
+        errorCode: 'LOCATION_CAPTURE_INVALID',
+        severity: 'WARNING',
+        message: 'The captured location coordinates are invalid. Try again.',
+      });
+    }
+
+    if (
+      accuracyMeters !== undefined &&
+      policy.maxAllowedAccuracyMeters !== null &&
+      accuracyMeters > policy.maxAllowedAccuracyMeters &&
+      !policy.allowIpFallback &&
+      !policy.allowManualLocationException
+    ) {
+      throw new UnprocessableEntityException({
+        code: 'LOCATION_CAPTURE_REQUIRED',
+        errorCode: 'LOCATION_CAPTURE_REQUIRED',
+        severity: 'WARNING',
+        message: `Location accuracy must be within ${policy.maxAllowedAccuracyMeters} meters.`,
+      });
+    }
+
+    return {
+      latitude,
+      longitude,
+      accuracyMeters,
+      source,
+      confidence,
+      permissionState,
+      failureReason,
+      ipAddress: policy.storeIpAddress
+        ? normalizeOptionalText(dto.ipAddress)
+        : undefined,
+      userAgent: policy.storeUserAgent
+        ? normalizeOptionalText(dto.userAgent)
+        : undefined,
+      manualLocationExceptionRequested: manualExceptionRequested,
+      manualExceptionReason: normalizeOptionalText(
+        dto.manualLocationExceptionReason,
+      ),
+      locationCapturedAt: dto.locationCapturedAt
+        ? parseLocationCapturedAt(dto.locationCapturedAt, now)
+        : undefined,
+      policySnapshot,
+    };
+  }
+
+  private locationPolicySnapshot(
+    policy: AttendancePolicyShape,
+    action: 'checkIn' | 'checkOut',
+  ) {
+    return {
+      action,
+      locationCaptureRequired: policy.locationCaptureRequired,
+      locationRequiredForModes: policy.locationRequiredForModes,
+      allowIpFallback: policy.allowIpFallback,
+      allowManualLocationException: policy.allowManualLocationException,
+      locationTimeoutSeconds: policy.locationTimeoutSeconds,
+      locationRetryAttempts: policy.locationRetryAttempts,
+      highAccuracyLocation: policy.highAccuracyLocation,
+      maxAllowedAccuracyMeters: policy.maxAllowedAccuracyMeters,
+      captureLocationOnCheckIn: policy.captureLocationOnCheckIn,
+      captureLocationOnCheckOut: policy.captureLocationOnCheckOut,
+      storeIpAddress: policy.storeIpAddress,
+      storeUserAgent: policy.storeUserAgent,
+    };
   }
 
   private async resolveAllTenantEmployeeIds(
@@ -3017,6 +3528,12 @@ export class AttendanceService {
       (entry.attendanceMode === AttendanceMode.OFFICE
         ? officeLocationText
         : entry.remoteAddressText);
+    const checkInLocationText =
+      checkInAddressText ??
+      formatCoordinatePair(entry.checkInLatitude, entry.checkInLongitude);
+    const checkOutLocationText =
+      checkOutAddressText ??
+      formatCoordinatePair(entry.checkOutLatitude, entry.checkOutLongitude);
 
     return {
       id: entry.id,
@@ -3053,14 +3570,27 @@ export class AttendanceService {
         formatCoordinatePair(entry.remoteLatitude, entry.remoteLongitude),
       checkInLatitude: entry.checkInLatitude,
       checkInLongitude: entry.checkInLongitude,
-      checkInLocation: checkInAddressText,
+      checkInLocation: checkInLocationText,
       checkInLocationAccuracy: entry.checkInLocationAccuracy,
       checkInLocationCapturedAt: entry.checkInLocationCapturedAt,
       checkOutLatitude: entry.checkOutLatitude,
       checkOutLongitude: entry.checkOutLongitude,
-      checkOutLocation: entry.checkOut ? checkOutAddressText : null,
+      checkOutLocation: entry.checkOut ? checkOutLocationText : null,
       checkOutLocationAccuracy: entry.checkOutLocationAccuracy,
       checkOutLocationCapturedAt: entry.checkOutLocationCapturedAt,
+      locationLatitude: entry.locationLatitude,
+      locationLongitude: entry.locationLongitude,
+      locationAccuracyMeters: entry.locationAccuracyMeters,
+      locationSource: entry.locationSource,
+      locationConfidence: entry.locationConfidence,
+      locationCapturedAt: entry.locationCapturedAt,
+      locationPermissionState: entry.locationPermissionState,
+      locationFailureReason: entry.locationFailureReason,
+      ipAddress: entry.ipAddress,
+      userAgent: entry.userAgent,
+      manualLocationExceptionRequested: entry.manualLocationExceptionRequested,
+      manualLocationExceptionReason: entry.manualLocationExceptionReason,
+      locationPolicySnapshot: entry.locationPolicySnapshot,
       isLateCheckIn: entry.isLateCheckIn,
       isLateCheckOut: entry.isLateCheckOut,
       lateCheckInMinutes: entry.lateCheckInMinutes,
@@ -3199,6 +3729,89 @@ function combineDateAndTimeInTimezone(
   return candidate;
 }
 
+function resolveShiftWindow(
+  businessDate: Date,
+  shift: { startTime: string; endTime: string },
+  timezone: string,
+) {
+  const startAt = combineDateAndTimeInTimezone(
+    businessDate,
+    shift.startTime,
+    timezone,
+  );
+  let endAt = combineDateAndTimeInTimezone(
+    businessDate,
+    shift.endTime,
+    timezone,
+  );
+
+  if (endAt <= startAt) {
+    endAt = addUtcDays(endAt, 1);
+  }
+
+  return { startAt, endAt };
+}
+
+function isWithinOvernightShiftCarryover(
+  value: Date,
+  businessDate: Date,
+  shift: { startTime: string; endTime: string; isNightShift?: boolean },
+  timezone: string,
+) {
+  if (!isOvernightShift(shift)) return false;
+
+  const { startAt, endAt } = resolveShiftWindow(businessDate, shift, timezone);
+  const carryoverEnd = new Date(endAt.getTime() + 12 * 60 * 60 * 1000);
+
+  return value >= startAt && value <= carryoverEnd;
+}
+
+function isOvernightShift(shift: {
+  startTime: string;
+  endTime: string;
+  isNightShift?: boolean;
+}) {
+  if (shift.isNightShift) return true;
+
+  return minutesFromTime(shift.endTime) <= minutesFromTime(shift.startTime);
+}
+
+function isCompletedBeforeCurrentShiftWindow(
+  entry: Pick<
+    AttendanceEntryWithRelations,
+    'checkIn' | 'checkOut' | 'shiftTemplate'
+  >,
+  context: {
+    shift?: { isNightShift: boolean } | null;
+    shiftStartAt?: Date | null;
+  },
+) {
+  if (
+    !entry.checkIn ||
+    !entry.checkOut ||
+    !context.shift?.isNightShift ||
+    !context.shiftStartAt
+  ) {
+    return false;
+  }
+
+  return (
+    entry.checkIn < context.shiftStartAt &&
+    entry.checkOut < context.shiftStartAt
+  );
+}
+
+function minutesFromTime(value: string) {
+  const [hours, minutes] = value.split(':').map(Number);
+  return hours * 60 + minutes;
+}
+
+function addUtcDays(value: Date, days: number) {
+  const next = new Date(value);
+  next.setUTCDate(next.getUTCDate() + days);
+  return next;
+}
+
 function differenceInMinutes(later: Date, earlier: Date) {
   return Math.round((later.getTime() - earlier.getTime()) / 60_000);
 }
@@ -3305,6 +3918,13 @@ function mergeNotes(existing: string | null | undefined, incoming?: string) {
 function normalizeOptionalText(value: string | null | undefined) {
   const trimmed = value?.trim();
   return trimmed ? trimmed : null;
+}
+
+function firstFiniteNumber(...values: Array<number | undefined | null>) {
+  return values.find(
+    (value): value is number =>
+      typeof value === 'number' && Number.isFinite(value),
+  );
 }
 
 function deriveManualStatus(
@@ -3627,10 +4247,18 @@ function formatDurationMinutes(value: number) {
 }
 
 function formatCoordinatePair(
-  latitude: number | null,
-  longitude: number | null,
+  latitude: number | null | undefined,
+  longitude: number | null | undefined,
 ) {
-  if (latitude === null || longitude === null) return null;
+  if (
+    latitude === null ||
+    latitude === undefined ||
+    longitude === null ||
+    longitude === undefined
+  ) {
+    return null;
+  }
+
   return `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
 }
 
@@ -3640,12 +4268,7 @@ function formatOfficeLocation(
     | AttendanceEntryWithRelations['employee']['location'],
 ) {
   if (!location) return null;
-  return [
-    location.name,
-    location.city,
-    location.state,
-    location.country,
-  ]
+  return [location.name, location.city, location.state, location.country]
     .filter(Boolean)
     .join(', ');
 }
@@ -3676,6 +4299,12 @@ function parseLocationCapturedAt(value: string | undefined, fallback: Date) {
       'Location captured timestamp must be a valid ISO timestamp.',
     );
   }
+  const ageMilliseconds = fallback.getTime() - parsed.getTime();
+  if (ageMilliseconds > 5 * 60 * 1000 || ageMilliseconds < -60 * 1000) {
+    throw new BadRequestException(
+      'The captured location is stale. Capture your current location and try again.',
+    );
+  }
   return parsed;
 }
 
@@ -3689,6 +4318,29 @@ function isSelfServiceAttendanceMode(
     value === AttendanceMode.OFFICE ||
     value === AttendanceMode.REMOTE ||
     value === AttendanceMode.HYBRID
+  );
+}
+
+function resolveDefaultSelfServiceAttendanceMode(
+  workMode: EmployeeWorkMode | null | undefined,
+  allowedModes: AttendanceMode[],
+) {
+  const preferred =
+    workMode === EmployeeWorkMode.REMOTE
+      ? AttendanceMode.REMOTE
+      : workMode === EmployeeWorkMode.HYBRID
+        ? AttendanceMode.HYBRID
+        : AttendanceMode.OFFICE;
+
+  if (
+    allowedModes.includes(preferred) &&
+    isSelfServiceAttendanceMode(preferred)
+  ) {
+    return preferred;
+  }
+
+  return (
+    allowedModes.find(isSelfServiceAttendanceMode) ?? AttendanceMode.OFFICE
   );
 }
 
@@ -3889,4 +4541,9 @@ function mapCorrectionAssignmentStatus(status: AttendanceCorrectionStatus) {
 
 function currentDateKey() {
   return new Date().toISOString().slice(0, 10);
+}
+
+function validDailyAttendanceHours(checkIn: Date, checkOut: Date) {
+  const minutes = differenceInMinutes(checkOut, checkIn);
+  return minutes > 0 && minutes <= 24 * 60 ? minutes / 60 : 0;
 }

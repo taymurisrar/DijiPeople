@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseUUIDPipe,
@@ -87,6 +88,27 @@ export class CandidatesController {
     @Body() dto: UpdateCandidateDto,
   ) {
     return this.recruitmentService.updateCandidate(user, candidateId, dto);
+  }
+
+  @Delete()
+  @Permissions('recruitment.update')
+  deleteMany(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() body: { recordIds?: string[]; ids?: string[] },
+  ) {
+    return this.recruitmentService.hardDeleteCandidates(
+      user,
+      body.recordIds ?? body.ids ?? [],
+    );
+  }
+
+  @Delete(':candidateId')
+  @Permissions('recruitment.update')
+  deleteOne(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('candidateId', new ParseUUIDPipe()) candidateId: string,
+  ) {
+    return this.recruitmentService.hardDeleteCandidates(user, [candidateId]);
   }
 
   @Post(':candidateId/documents')

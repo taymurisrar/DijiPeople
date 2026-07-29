@@ -4,13 +4,22 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { OnboardingStatus, OnboardingTaskStatus, Prisma } from '@prisma/client';
+import {
+  EmployeeGender,
+  OnboardingStatus,
+  OnboardingTaskStatus,
+  Prisma,
+} from '@prisma/client';
 import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { OrganizationRepository } from '../organization/organization.repository';
 import { RecruitmentRepository } from '../recruitment/recruitment.repository';
 import { NotificationsService } from '../notifications/notifications.service';
 import { UsersRepository } from '../users/users.repository';
+import {
+  EMPLOYEE_DRAFT_LIFECYCLE,
+  EMPLOYEE_READY_FOR_ACTIVATION_LIFECYCLE,
+} from '../employees/employee-lifecycle.constants';
 import { CreateEmployeeOnboardingDto } from './dto/create-employee-onboarding.dto';
 import { CreateOnboardingTemplateDto } from './dto/create-onboarding-template.dto';
 import { OnboardingQueryDto } from './dto/onboarding-query.dto';
@@ -21,6 +30,35 @@ import {
   EmployeeOnboardingWithRelations,
   OnboardingRepository,
 } from './onboarding.repository';
+
+type DraftEmployeeCandidate = {
+  id: string;
+  firstName: string;
+  middleName: string | null;
+  lastName: string;
+  email: string;
+  personalEmail?: string | null;
+  phone: string;
+  dateOfBirth: Date | null;
+  gender: EmployeeGender | null;
+  nationalityCountryId: string | null;
+  nationality: string | null;
+  currentCountryId: string | null;
+  currentStateProvinceId: string | null;
+  currentCityId: string | null;
+  currentCountry: string | null;
+  currentStateProvince: string | null;
+  currentCity: string | null;
+};
+
+type DraftEmployeeSource = {
+  employeeCode?: string | null;
+  workEmail?: string | null;
+  departmentId?: string | null;
+  designationId?: string | null;
+  locationId?: string | null;
+  reportingManagerEmployeeId?: string | null;
+};
 
 @Injectable()
 export class OnboardingService {
@@ -34,7 +72,7 @@ export class OnboardingService {
   ) {}
 
   async findTemplates(tenantId: string) {
-    const templates = await this.onboardingRepository.findTemplates(tenantId);
+    const templates = await this.ensurePredefinedTemplates(tenantId);
 
     return templates.map((template) => ({
       id: template.id,
@@ -151,7 +189,9 @@ export class OnboardingService {
     );
 
     return {
-      items: items.map((item) => this.mapOnboarding(item)),
+      items: await Promise.all(
+        items.map((item) => this.mapOnboardingWithReadiness(item)),
+      ),
       meta: {
         page: query.page,
         pageSize: query.pageSize,
@@ -177,7 +217,36 @@ export class OnboardingService {
       );
     }
 
-    return this.mapOnboarding(onboarding);
+    return this.mapOnboardingWithReadiness(onboarding);
+  }
+
+  async hardDeleteOnboardings(
+    currentUser: AuthenticatedUser,
+    onboardingIds: string[],
+  ) {
+    const uniqueOnboardingIds = [...new Set(onboardingIds.filter(Boolean))];
+
+    if (uniqueOnboardingIds.length === 0) {
+      throw new BadRequestException(
+        'Select at least one onboarding record to delete.',
+      );
+    }
+
+    const result = await this.onboardingRepository.deleteOnboardings(
+      currentUser.tenantId,
+      uniqueOnboardingIds,
+    );
+
+    if (result.count === 0) {
+      throw new NotFoundException(
+        'No onboarding records were found to delete.',
+      );
+    }
+
+    return {
+      deleted: result.count,
+      requested: uniqueOnboardingIds.length,
+    };
   }
 
   async createFromCandidate(
@@ -213,14 +282,15 @@ export class OnboardingService {
       );
     }
 
+    const templates = await this.ensurePredefinedTemplates(
+      currentUser.tenantId,
+    );
     const template = dto.templateId
       ? await this.onboardingRepository.findTemplateById(
           currentUser.tenantId,
           dto.templateId,
         )
-      : ((
-          await this.onboardingRepository.findTemplates(currentUser.tenantId)
-        ).find((item) => item.isDefault && item.isActive) ?? null);
+      : (templates.find((item) => item.isDefault && item.isActive) ?? null);
 
     if (dto.templateId && !template) {
       throw new BadRequestException(
@@ -241,9 +311,12 @@ export class OnboardingService {
       dto.locationId,
       dto.reportingManagerEmployeeId,
     );
+    await this.validateOnboardingOwner(currentUser.tenantId, dto.ownerUserId);
 
     const startDate = dto.startDate ? new Date(dto.startDate) : new Date();
     const dueDate = dto.dueDate ? new Date(dto.dueDate) : null;
+
+    const onboardingOwnerUserId = dto.ownerUserId ?? currentUser.userId;
 
     const onboardingId = await this.prisma.$transaction(async (tx) => {
       const onboarding = await this.onboardingRepository.createOnboarding(
@@ -253,9 +326,9 @@ export class OnboardingService {
           templateId: template?.id,
           title:
             dto.title?.trim() ??
-            `${candidate.firstName} ${candidate.lastName} onboarding`,
+            `New hire onboarding - ${candidate.firstName} ${candidate.lastName}`,
           status: 'NOT_STARTED',
-          ownerUserId: dto.ownerUserId,
+          ownerUserId: onboardingOwnerUserId,
           startDate,
           dueDate,
           plannedJoiningDate: dto.plannedJoiningDate
@@ -274,10 +347,30 @@ export class OnboardingService {
         tx,
       );
 
+      if (dto.createEmployee ?? true) {
+        const draftEmployee = await this.findOrCreateDraftEmployee(
+          currentUser,
+          onboarding,
+          candidate,
+          dto,
+          tx,
+        );
+
+        await this.onboardingRepository.updateOnboarding(
+          currentUser.tenantId,
+          onboarding.id,
+          {
+            employeeId: draftEmployee.id,
+            updatedById: currentUser.userId,
+          },
+          tx,
+        );
+      }
+
       const generatedBlueprints =
         taskBlueprints.length > 0
           ? taskBlueprints
-          : buildDefaultChecklistBlueprints(dto.ownerUserId);
+          : buildDefaultChecklistBlueprints(onboardingOwnerUserId);
 
       if (generatedBlueprints.length > 0) {
         await this.onboardingRepository.createTasks(
@@ -481,7 +574,7 @@ export class OnboardingService {
       );
     }
 
-    if (onboarding.employeeId) {
+    if (onboarding.employeeId && !onboarding.employee?.isDraftProfile) {
       throw new ConflictException(
         'This onboarding record already has an employee.',
       );
@@ -493,18 +586,16 @@ export class OnboardingService {
       );
     }
 
-    const requiredIncompleteTasks = onboarding.tasks.filter(
-      (task) =>
-        task.isRequired && task.status !== OnboardingTaskStatus.COMPLETED,
-    );
+    const blockers = await this.getOnboardingReadinessBlockers(onboarding);
 
-    if (requiredIncompleteTasks.length > 0) {
+    if (blockers.length > 0) {
       throw new BadRequestException(
-        'Complete all required onboarding checklist items before converting to employee.',
+        `Complete onboarding before converting to employee. ${blockers.join(' ')}`,
       );
     }
 
     const candidate = onboarding.candidate;
+    const linkedDraft = this.resolveOnboardingDraftEmployee(onboarding);
 
     if (!candidate) {
       throw new BadRequestException(
@@ -513,17 +604,51 @@ export class OnboardingService {
     }
 
     const employee = await this.prisma.$transaction(async (tx) => {
-      const existingDraft = await tx.employee.findFirst({
-        where: {
-          tenantId: currentUser.tenantId,
-          sourceCandidateId: candidate.id,
-          isDraftProfile: true,
-        },
-        orderBy: [{ updatedAt: 'desc' }],
-      });
+      const existingDraft = onboarding.employee?.isDraftProfile
+        ? await tx.employee.findFirst({
+            where: {
+              tenantId: currentUser.tenantId,
+              id: onboarding.employee.id,
+              isDraftProfile: true,
+            },
+          })
+        : await tx.employee.findFirst({
+            where: {
+              tenantId: currentUser.tenantId,
+              sourceCandidateId: candidate.id,
+              isDraftProfile: true,
+            },
+            orderBy: [{ updatedAt: 'desc' }],
+          });
 
       const employeeCode =
         existingDraft?.employeeCode ?? candidate.id.slice(0, 8).toUpperCase();
+      const workEmail =
+        onboarding.targetWorkEmail ??
+        existingDraft?.email ??
+        linkedDraft?.email ??
+        candidate.email;
+      const hireDate =
+        onboarding.plannedJoiningDate ??
+        existingDraft?.hireDate ??
+        linkedDraft?.hireDate ??
+        new Date();
+      const departmentId =
+        onboarding.targetDepartmentId ??
+        existingDraft?.departmentId ??
+        linkedDraft?.departmentId;
+      const designationId =
+        onboarding.targetDesignationId ??
+        existingDraft?.designationId ??
+        linkedDraft?.designationId;
+      const locationId =
+        onboarding.targetLocationId ??
+        existingDraft?.locationId ??
+        linkedDraft?.locationId;
+      const managerEmployeeId =
+        onboarding.targetReportingManagerEmployeeId ??
+        existingDraft?.managerEmployeeId ??
+        linkedDraft?.managerEmployeeId;
 
       const created = existingDraft
         ? await tx.employee.update({
@@ -532,7 +657,7 @@ export class OnboardingService {
               firstName: candidate.firstName,
               middleName: candidate.middleName,
               lastName: candidate.lastName,
-              email: onboarding.targetWorkEmail ?? candidate.email,
+              email: workEmail,
               phone: candidate.phone,
               dateOfBirth: candidate.dateOfBirth,
               gender: candidate.gender,
@@ -544,13 +669,15 @@ export class OnboardingService {
               country: candidate.currentCountry,
               stateProvince: candidate.currentStateProvince,
               city: candidate.currentCity,
-              hireDate: onboarding.plannedJoiningDate ?? new Date(),
-              departmentId: onboarding.targetDepartmentId,
-              designationId: onboarding.targetDesignationId,
-              locationId: onboarding.targetLocationId,
-              managerEmployeeId: onboarding.targetReportingManagerEmployeeId,
-              employmentStatus: 'ACTIVE',
-              isDraftProfile: false,
+              hireDate,
+              departmentId,
+              designationId,
+              locationId,
+              managerEmployeeId,
+              ...EMPLOYEE_READY_FOR_ACTIVATION_LIFECYCLE,
+              ownerUserId:
+                existingDraft.ownerUserId ??
+                this.resolveDraftOwnerId(currentUser, onboarding),
               updatedById: currentUser.userId,
             },
           })
@@ -561,7 +688,7 @@ export class OnboardingService {
               firstName: candidate.firstName,
               middleName: candidate.middleName,
               lastName: candidate.lastName,
-              email: onboarding.targetWorkEmail ?? candidate.email,
+              email: workEmail,
               phone: candidate.phone,
               dateOfBirth: candidate.dateOfBirth,
               gender: candidate.gender,
@@ -573,14 +700,14 @@ export class OnboardingService {
               country: candidate.currentCountry,
               stateProvince: candidate.currentStateProvince,
               city: candidate.currentCity,
-              hireDate: onboarding.plannedJoiningDate ?? new Date(),
-              departmentId: onboarding.targetDepartmentId,
-              designationId: onboarding.targetDesignationId,
-              locationId: onboarding.targetLocationId,
-              managerEmployeeId: onboarding.targetReportingManagerEmployeeId,
-              employmentStatus: 'ACTIVE',
-              isDraftProfile: false,
+              hireDate,
+              departmentId,
+              designationId,
+              locationId,
+              managerEmployeeId,
+              ...EMPLOYEE_READY_FOR_ACTIVATION_LIFECYCLE,
               sourceCandidateId: candidate.id,
+              ownerUserId: this.resolveDraftOwnerId(currentUser, onboarding),
               createdById: currentUser.userId,
               updatedById: currentUser.userId,
             },
@@ -611,8 +738,85 @@ export class OnboardingService {
     };
   }
 
+  async ensureDraftEmployeeForOnboarding(
+    currentUser: AuthenticatedUser,
+    onboardingId: string,
+  ) {
+    const onboarding = await this.onboardingRepository.findOnboardingById(
+      currentUser.tenantId,
+      onboardingId,
+    );
+
+    if (!onboarding) {
+      throw new NotFoundException(
+        'Onboarding record was not found for this tenant.',
+      );
+    }
+
+    if (!onboarding.candidate) {
+      throw new BadRequestException(
+        'Only candidate-backed onboarding records can have an employee draft.',
+      );
+    }
+
+    if (onboarding.candidate.currentStatus !== 'HIRED') {
+      throw new BadRequestException(
+        'Employee draft is available only after the candidate is hired.',
+      );
+    }
+
+    const candidate = onboarding.candidate;
+    const existingDraft = this.resolveOnboardingDraftEmployee(onboarding);
+
+    if (existingDraft) {
+      if (onboarding.employeeId !== existingDraft.id) {
+        await this.onboardingRepository.updateOnboarding(
+          currentUser.tenantId,
+          onboarding.id,
+          {
+            employeeId: existingDraft.id,
+            updatedById: currentUser.userId,
+          },
+        );
+      }
+
+      return { employeeId: existingDraft.id };
+    }
+
+    const createdDraft = await this.prisma.$transaction(async (tx) => {
+      const draft = await this.findOrCreateDraftEmployee(
+        currentUser,
+        onboarding,
+        candidate,
+        {
+          workEmail: onboarding.targetWorkEmail,
+          departmentId: onboarding.targetDepartmentId,
+          designationId: onboarding.targetDesignationId,
+          locationId: onboarding.targetLocationId,
+          reportingManagerEmployeeId:
+            onboarding.targetReportingManagerEmployeeId,
+        },
+        tx,
+      );
+
+      await this.onboardingRepository.updateOnboarding(
+        currentUser.tenantId,
+        onboarding.id,
+        {
+          employeeId: draft.id,
+          updatedById: currentUser.userId,
+        },
+        tx,
+      );
+
+      return draft;
+    });
+
+    return { employeeId: createdDraft.id };
+  }
+
   private async clearDefaultTemplates(tenantId: string, keepId?: string) {
-    const templates = await this.onboardingRepository.findTemplates(tenantId);
+    const templates = await this.ensurePredefinedTemplates(tenantId);
 
     await Promise.all(
       templates
@@ -722,7 +926,7 @@ export class OnboardingService {
       (task) => task.status === OnboardingTaskStatus.CANCELLED,
     );
 
-    const readyForConversion = this.isReadyForConversion(onboarding);
+    const readyForConversion = await this.isReadyForConversion(onboarding);
     let status = onboarding.status;
     let completedAt = onboarding.completedAt;
     let readyForConversionAt = onboarding.readyForConversionAt;
@@ -765,14 +969,47 @@ export class OnboardingService {
     }
   }
 
-  private isReadyForConversion(onboarding: EmployeeOnboardingWithRelations) {
-    return this.getOnboardingReadinessBlockers(onboarding).length === 0;
+  private async isReadyForConversion(
+    onboarding: EmployeeOnboardingWithRelations,
+  ) {
+    return (await this.getOnboardingReadinessBlockers(onboarding)).length === 0;
   }
 
-  private getOnboardingReadinessBlockers(
+  private async validateOnboardingOwner(
+    tenantId: string,
+    ownerUserId?: string | null,
+  ) {
+    if (!ownerUserId) return;
+
+    const owner = await this.usersRepository.findByIdWithAccess(ownerUserId);
+    if (!owner || owner.tenantId !== tenantId) {
+      throw new BadRequestException(
+        'Onboarding owner does not belong to this tenant.',
+      );
+    }
+  }
+
+  private async getOnboardingReadinessBlockers(
     onboarding: EmployeeOnboardingWithRelations,
   ) {
     const blockers: string[] = [];
+    const draftEmployee = this.resolveOnboardingDraftEmployee(onboarding);
+    const departmentId =
+      onboarding.targetDepartmentId ?? draftEmployee?.departmentId ?? null;
+    const designationId =
+      onboarding.targetDesignationId ?? draftEmployee?.designationId ?? null;
+    const reportingManagerEmployeeId =
+      onboarding.targetReportingManagerEmployeeId ??
+      draftEmployee?.managerEmployeeId ??
+      null;
+    const workEmail =
+      onboarding.targetWorkEmail ??
+      onboarding.employee?.email ??
+      draftEmployee?.email ??
+      onboarding.candidate?.email ??
+      null;
+    const joiningDate =
+      onboarding.plannedJoiningDate ?? draftEmployee?.hireDate ?? null;
     const requiredTasks = onboarding.tasks.filter((task) => task.isRequired);
     const incompleteRequiredTasks = requiredTasks.filter(
       (task) => task.status !== OnboardingTaskStatus.COMPLETED,
@@ -788,31 +1025,41 @@ export class OnboardingService {
       );
     }
 
-    if (!onboarding.targetDepartmentId) {
+    if (!departmentId) {
       blockers.push('Department is not assigned.');
     }
 
-    if (!onboarding.targetDesignationId) {
+    if (!designationId) {
       blockers.push('Designation is not assigned.');
     }
 
-    if (!onboarding.targetReportingManagerEmployeeId) {
+    if (
+      !reportingManagerEmployeeId &&
+      !(await this.canSkipReportingManager(onboarding))
+    ) {
       blockers.push('Reporting manager is not assigned.');
     }
 
-    if (!isTruthyString(onboarding.targetWorkEmail)) {
+    if (!isTruthyString(workEmail)) {
       blockers.push('Work email is not prepared.');
     }
 
-    if (!onboarding.plannedJoiningDate) {
+    if (!joiningDate) {
       blockers.push('Joining date is not confirmed.');
     }
 
-    if (onboarding.employeeId) {
+    if (onboarding.employeeId && !onboarding.employee?.isDraftProfile) {
       blockers.push('Employee has already been created.');
     }
 
     return blockers;
+  }
+
+  private resolveOnboardingDraftEmployee(
+    onboarding: EmployeeOnboardingWithRelations,
+  ) {
+    if (onboarding.employee?.isDraftProfile) return onboarding.employee;
+    return onboarding.candidate?.draftEmployees[0] ?? null;
   }
 
   private mapOnboarding(onboarding: EmployeeOnboardingWithRelations) {
@@ -859,6 +1106,26 @@ export class OnboardingService {
             currentCountry: onboarding.candidate.currentCountry,
             currentStateProvince: onboarding.candidate.currentStateProvince,
             currentCity: onboarding.candidate.currentCity,
+            currentDesignation: onboarding.candidate.currentDesignation,
+            draftEmployee: onboarding.candidate.draftEmployees[0]
+              ? {
+                  id: onboarding.candidate.draftEmployees[0].id,
+                  employeeCode:
+                    onboarding.candidate.draftEmployees[0].employeeCode,
+                  firstName: onboarding.candidate.draftEmployees[0].firstName,
+                  lastName: onboarding.candidate.draftEmployees[0].lastName,
+                  fullName: `${onboarding.candidate.draftEmployees[0].firstName} ${onboarding.candidate.draftEmployees[0].lastName}`,
+                  email: onboarding.candidate.draftEmployees[0].email,
+                  employmentStatus:
+                    onboarding.candidate.draftEmployees[0].employmentStatus,
+                  status: onboarding.candidate.draftEmployees[0].status,
+                  subStatus: onboarding.candidate.draftEmployees[0].subStatus,
+                  ownerUserId:
+                    onboarding.candidate.draftEmployees[0].ownerUserId,
+                  isDraftProfile:
+                    onboarding.candidate.draftEmployees[0].isDraftProfile,
+                }
+              : null,
           }
         : null,
       employee: onboarding.employee
@@ -869,6 +1136,10 @@ export class OnboardingService {
             lastName: onboarding.employee.lastName,
             fullName: `${onboarding.employee.firstName} ${onboarding.employee.lastName}`,
             employmentStatus: onboarding.employee.employmentStatus,
+            status: onboarding.employee.status,
+            subStatus: onboarding.employee.subStatus,
+            ownerUserId: onboarding.employee.ownerUserId,
+            isDraftProfile: onboarding.employee.isDraftProfile,
           }
         : null,
       template: onboarding.template
@@ -918,10 +1189,160 @@ export class OnboardingService {
             : Math.round((completedTasks / onboarding.tasks.length) * 100),
       },
       readiness: {
-        isReadyForConversion: this.isReadyForConversion(onboarding),
-        blockers: this.getOnboardingReadinessBlockers(onboarding),
+        isReadyForConversion: false,
+        blockers: [] as string[],
       },
     };
+  }
+
+  private async mapOnboardingWithReadiness(
+    onboarding: EmployeeOnboardingWithRelations,
+  ) {
+    const mapped = this.mapOnboarding(onboarding);
+    const blockers = await this.getOnboardingReadinessBlockers(onboarding);
+    return {
+      ...mapped,
+      readiness: {
+        isReadyForConversion: blockers.length === 0,
+        blockers,
+      },
+    };
+  }
+
+  private async ensurePredefinedTemplates(tenantId: string) {
+    const existing = await this.onboardingRepository.findTemplates(tenantId);
+    if (existing.length > 0) return existing;
+
+    for (const template of PREDEFINED_ONBOARDING_TEMPLATES) {
+      await this.onboardingRepository.createTemplate({
+        tenantId,
+        name: template.name,
+        description: template.description,
+        taskBlueprints:
+          template.taskBlueprints as unknown as Prisma.InputJsonValue,
+        isDefault: template.isDefault,
+        isActive: true,
+        createdById: null,
+        updatedById: null,
+      });
+    }
+
+    return this.onboardingRepository.findTemplates(tenantId);
+  }
+
+  private async findOrCreateDraftEmployee(
+    currentUser: AuthenticatedUser,
+    onboarding: {
+      id: string;
+      plannedJoiningDate: Date | null;
+      ownerUserId?: string | null;
+    },
+    candidate: DraftEmployeeCandidate,
+    dto: DraftEmployeeSource,
+    tx: Prisma.TransactionClient,
+  ) {
+    const existingDraft = await tx.employee.findFirst({
+      where: {
+        tenantId: currentUser.tenantId,
+        sourceCandidateId: candidate.id,
+        isDraftProfile: true,
+        isDeleted: false,
+      },
+      orderBy: [{ updatedAt: 'desc' }],
+      select: {
+        id: true,
+        ownerUserId: true,
+        status: true,
+        subStatus: true,
+        employmentStatus: true,
+      },
+    });
+
+    if (existingDraft) {
+      if (
+        !existingDraft.ownerUserId ||
+        existingDraft.status !== EMPLOYEE_DRAFT_LIFECYCLE.status ||
+        existingDraft.subStatus !== EMPLOYEE_DRAFT_LIFECYCLE.subStatus ||
+        existingDraft.employmentStatus !==
+          EMPLOYEE_DRAFT_LIFECYCLE.employmentStatus
+      ) {
+        await tx.employee.update({
+          where: { id: existingDraft.id },
+          data: {
+            ...EMPLOYEE_DRAFT_LIFECYCLE,
+            ownerUserId:
+              existingDraft.ownerUserId ??
+              this.resolveDraftOwnerId(currentUser, onboarding),
+            updatedById: currentUser.userId,
+          },
+          select: { id: true },
+        });
+      }
+
+      return { id: existingDraft.id };
+    }
+
+    return tx.employee.create({
+      data: {
+        tenantId: currentUser.tenantId,
+        employeeCode:
+          dto.employeeCode?.trim() ||
+          `ONB-${candidate.id.slice(0, 8).toUpperCase()}`,
+        firstName: candidate.firstName,
+        middleName: candidate.middleName,
+        lastName: candidate.lastName,
+        email: dto.workEmail?.trim() || null,
+        personalEmail: candidate.personalEmail ?? candidate.email,
+        phone: candidate.phone?.trim() || 'pending',
+        dateOfBirth: candidate.dateOfBirth,
+        gender: candidate.gender,
+        nationalityCountryId: candidate.nationalityCountryId,
+        nationality: candidate.nationality,
+        countryId: candidate.currentCountryId,
+        stateProvinceId: candidate.currentStateProvinceId,
+        cityId: candidate.currentCityId,
+        country: candidate.currentCountry,
+        stateProvince: candidate.currentStateProvince,
+        city: candidate.currentCity,
+        hireDate: onboarding.plannedJoiningDate ?? new Date(),
+        departmentId: dto.departmentId,
+        designationId: dto.designationId,
+        locationId: dto.locationId,
+        managerEmployeeId: dto.reportingManagerEmployeeId,
+        ...EMPLOYEE_DRAFT_LIFECYCLE,
+        sourceCandidateId: candidate.id,
+        ownerUserId: this.resolveDraftOwnerId(currentUser, onboarding),
+        createdById: currentUser.userId,
+        updatedById: currentUser.userId,
+      },
+      select: { id: true },
+    });
+  }
+
+  private async canSkipReportingManager(
+    onboarding: EmployeeOnboardingWithRelations,
+  ) {
+    if (isTopLevelOnboarding(onboarding)) return true;
+
+    const employees = await this.prisma.employee.count({
+      where: {
+        tenantId: onboarding.tenantId,
+        isDeleted: false,
+        isDraftProfile: false,
+        ...(onboarding.employeeId
+          ? { id: { not: onboarding.employeeId } }
+          : {}),
+      },
+    });
+
+    return employees === 0;
+  }
+
+  private resolveDraftOwnerId(
+    currentUser: AuthenticatedUser,
+    onboarding: { ownerUserId?: string | null },
+  ) {
+    return onboarding.ownerUserId ?? currentUser.userId;
   }
 
   private handleTemplateWriteError(error: unknown): never {
@@ -1015,6 +1436,90 @@ function buildDefaultChecklistBlueprints(
   ];
 }
 
+const PREDEFINED_ONBOARDING_TEMPLATES: Array<{
+  name: string;
+  description: string;
+  isDefault: boolean;
+  taskBlueprints: OnboardingTaskBlueprintDto[];
+}> = [
+  {
+    name: 'Standard employee onboarding',
+    description:
+      'General-purpose checklist for converting a hired candidate into an active employee.',
+    isDefault: true,
+    taskBlueprints: buildDefaultChecklistBlueprints(),
+  },
+  {
+    name: 'Executive / top-level onboarding',
+    description:
+      'Lean onboarding path for CEO, founder, director, or first-employee profiles where a reporting manager is not applicable.',
+    isDefault: false,
+    taskBlueprints: [
+      {
+        title: 'Offer and mandate confirmed',
+        description:
+          'Confirm appointment terms, designation authority, and joining expectations.',
+        dueOffsetDays: 0,
+      },
+      {
+        title: 'Board or owner approval documented',
+        description:
+          'Attach or confirm the approval record for the top-level appointment.',
+        dueOffsetDays: 1,
+      },
+      {
+        title: 'Executive employee profile draft completed',
+        description:
+          'Complete work email, designation, department, location, and statutory profile data.',
+        dueOffsetDays: 2,
+      },
+      {
+        title: 'System and approval authority prepared',
+        description:
+          'Provision tenant-level access and workflow authority according to governance policy.',
+        dueOffsetDays: 3,
+      },
+    ],
+  },
+  {
+    name: 'Remote employee onboarding',
+    description:
+      'Checklist for remote or hybrid employees with stronger emphasis on access, documents, and equipment readiness.',
+    isDefault: false,
+    taskBlueprints: [
+      {
+        title: 'Remote work details confirmed',
+        description:
+          'Confirm work mode, address, time zone, and remote attendance expectations.',
+        dueOffsetDays: 0,
+      },
+      {
+        title: 'Identity and compliance documents received',
+        description:
+          'Collect identification, contract, and employment eligibility documents.',
+        dueOffsetDays: 1,
+      },
+      {
+        title: 'Equipment and access prepared',
+        description:
+          'Prepare hardware, account access, security policy acknowledgment, and software setup.',
+        dueOffsetDays: 2,
+      },
+      {
+        title: 'Reporting manager and team intro scheduled',
+        description: 'Assign manager and schedule first-week team orientation.',
+        dueOffsetDays: 3,
+      },
+      {
+        title: 'Payroll and employee profile draft completed',
+        description:
+          'Capture payroll details and complete the draft employee profile before activation.',
+        dueOffsetDays: 4,
+      },
+    ],
+  },
+];
+
 function slugifyTaskCode(title: string) {
   return title
     .toLowerCase()
@@ -1063,6 +1568,21 @@ function inferChecklistGroup(title: string) {
 
 function isTruthyString(value?: string | null) {
   return Boolean(value?.trim());
+}
+
+function isTopLevelOnboarding(onboarding: EmployeeOnboardingWithRelations) {
+  const text = [
+    onboarding.title,
+    onboarding.candidate?.currentDesignation,
+    onboarding.employee?.employmentStatus,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  return /\b(ceo|chief executive|founder|owner|president|managing director|top[- ]level)\b/.test(
+    text,
+  );
 }
 
 function addDays(date: Date, offset: number) {

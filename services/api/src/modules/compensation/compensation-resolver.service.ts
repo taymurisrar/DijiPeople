@@ -24,6 +24,10 @@ export class CompensationResolverService {
         ],
       },
       include: {
+        salaryPackageRule: true,
+        approvedBy: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
         components: {
           include: { payComponent: true },
           orderBy: [{ displayOrder: 'asc' }, { createdAt: 'asc' }],

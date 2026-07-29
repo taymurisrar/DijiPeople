@@ -18,7 +18,7 @@ export const REFRESH_TOKEN_MAX_AGE_SECONDS = Math.floor(
 );
 
 export function getAuthCookieOptions(
-  maxAge: number,
+  maxAge?: number,
 ): Pick<
   ResponseCookie,
   "httpOnly" | "sameSite" | "secure" | "path" | "maxAge" | "domain"
@@ -43,7 +43,7 @@ export function getAuthCookieOptions(
     sameSite: sameSite ?? (secure ? "none" : "lax"),
     secure,
     path: process.env.AUTH_COOKIE_PATH || "/",
-    maxAge,
+    ...(maxAge === undefined ? {} : { maxAge }),
     ...(domain ? { domain } : {}),
   };
 }

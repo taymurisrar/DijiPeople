@@ -21,6 +21,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { ExportTimesheetTemplateDto } from './dto/export-timesheet-template.dto';
+import { TimesheetExportFormatDto } from './dto/timesheet-export.dto';
 import { GetMONTHLYTimesheetDto } from './dto/get-monthly-timesheet.dto';
 import {
   CommitTimesheetImportDto,
@@ -30,8 +31,21 @@ import { ReviewTimesheetDto } from './dto/review-timesheet.dto';
 import { SubmitTimesheetDto } from './dto/submit-timesheet.dto';
 import { TimesheetQueryDto } from './dto/timesheet-query.dto';
 import { UpsertTimesheetEntriesDto } from './dto/upsert-timesheet-entries.dto';
+import {
+  CopyPreviousTimesheetWeekDto,
+  RequestTimesheetCorrectionDto,
+  SubmitTimesheetWeekDto,
+  TimesheetLateSubmissionOverrideDto,
+  TimesheetReopeningDecisionDto,
+  TimesheetReopeningRequestDto,
+  TimesheetWeekDecisionDto,
+  TimesheetWeekRejectionDto,
+  UpdateTimesheetWeekEntriesDto,
+} from './dto/timesheet-week.dto';
 import { TimesheetsService } from './timesheets.service';
 import { AuditService } from '../audit/audit.service';
+import { TimesheetWorkflowService } from './timesheet-workflow.service';
+import { TimesheetExportService } from './timesheet-export.service';
 
 type UploadedFileShape = {
   buffer: Buffer;
@@ -46,7 +60,15 @@ export class TimesheetsController {
   constructor(
     private readonly timesheetsService: TimesheetsService,
     private readonly auditService: AuditService,
+    private readonly workflowService: TimesheetWorkflowService,
+    private readonly exportService: TimesheetExportService,
   ) {}
+
+  @Get('access-restriction')
+  @Permissions('timesheets.read')
+  getAccessRestriction(@CurrentUser() user: AuthenticatedUser) {
+    return this.workflowService.getAccessRestriction(user);
+  }
 
   @Get('mine/monthly')
   @Permissions('timesheets.read')
@@ -116,6 +138,184 @@ export class TimesheetsController {
     @Body() dto: UpsertTimesheetEntriesDto,
   ) {
     return this.timesheetsService.updateEntries(user, timesheetId, dto);
+  }
+
+  @Patch(':timesheetId/weeks/:weekId/entries')
+  @Permissions('timesheets.write')
+  async updateWeekEntries(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('timesheetId', new ParseUUIDPipe()) timesheetId: string,
+    @Param('weekId', new ParseUUIDPipe()) weekId: string,
+    @Body() dto: UpdateTimesheetWeekEntriesDto,
+  ) {
+    await this.workflowService.updateWeekEntries(
+      user,
+      timesheetId,
+      weekId,
+      dto,
+    );
+    return this.timesheetsService.getTimesheetById(user, timesheetId);
+  }
+
+  @Post(':timesheetId/weeks/:weekId/submit')
+  @Permissions('timesheets.submit')
+  async submitWeek(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('timesheetId', new ParseUUIDPipe()) timesheetId: string,
+    @Param('weekId', new ParseUUIDPipe()) weekId: string,
+    @Body() dto: SubmitTimesheetWeekDto,
+  ) {
+    await this.workflowService.submitWeek(user, timesheetId, weekId, dto);
+    return this.timesheetsService.getTimesheetById(user, timesheetId);
+  }
+
+  @Post(':timesheetId/weeks/:weekId/late-submission-override')
+  @Permissions('timesheets.override')
+  async grantLateSubmissionOverride(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('timesheetId', new ParseUUIDPipe()) timesheetId: string,
+    @Param('weekId', new ParseUUIDPipe()) weekId: string,
+    @Body() dto: TimesheetLateSubmissionOverrideDto,
+  ) {
+    await this.workflowService.grantLateSubmissionOverride(
+      user,
+      timesheetId,
+      weekId,
+      dto,
+    );
+    return this.timesheetsService.getTimesheetById(user, timesheetId);
+  }
+
+  @Post(':timesheetId/weeks/:weekId/copy-previous')
+  @Permissions('timesheets.write')
+  async copyPreviousWeek(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('timesheetId', new ParseUUIDPipe()) timesheetId: string,
+    @Param('weekId', new ParseUUIDPipe()) weekId: string,
+    @Body() dto: CopyPreviousTimesheetWeekDto,
+  ) {
+    const result = await this.workflowService.copyPreviousWeek(
+      user,
+      timesheetId,
+      weekId,
+      dto,
+    );
+    return {
+      ...(await this.timesheetsService.getTimesheetById(user, timesheetId)),
+      warnings: result.warnings,
+    };
+  }
+
+  @Post(':timesheetId/correction')
+  @Permissions('timesheets.reject')
+  async requestCorrection(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('timesheetId', new ParseUUIDPipe()) timesheetId: string,
+    @Body() dto: RequestTimesheetCorrectionDto,
+  ) {
+    await this.workflowService.requestCorrection(user, timesheetId, dto);
+    return this.timesheetsService.getTimesheetById(user, timesheetId);
+  }
+
+  @Post(':timesheetId/weeks/:weekId/withdraw')
+  @Permissions('timesheets.withdraw')
+  async withdrawWeek(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('timesheetId', new ParseUUIDPipe()) timesheetId: string,
+    @Param('weekId', new ParseUUIDPipe()) weekId: string,
+    @Body() dto: TimesheetWeekDecisionDto,
+  ) {
+    await this.workflowService.withdrawWeek(user, timesheetId, weekId, dto);
+    return this.timesheetsService.getTimesheetById(user, timesheetId);
+  }
+
+  @Post(':timesheetId/weeks/:weekId/approve')
+  @Permissions('timesheets.approve')
+  async approveWeek(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('timesheetId', new ParseUUIDPipe()) timesheetId: string,
+    @Param('weekId', new ParseUUIDPipe()) weekId: string,
+    @Body() dto: TimesheetWeekDecisionDto,
+  ) {
+    await this.workflowService.decideWeek(
+      user,
+      timesheetId,
+      weekId,
+      'APPROVED',
+      dto,
+    );
+    return this.timesheetsService.getTimesheetById(user, timesheetId);
+  }
+
+  @Post(':timesheetId/weeks/:weekId/reject')
+  @Permissions('timesheets.reject')
+  async rejectWeek(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('timesheetId', new ParseUUIDPipe()) timesheetId: string,
+    @Param('weekId', new ParseUUIDPipe()) weekId: string,
+    @Body() dto: TimesheetWeekRejectionDto,
+  ) {
+    await this.workflowService.decideWeek(
+      user,
+      timesheetId,
+      weekId,
+      'REJECTED',
+      dto,
+    );
+    return this.timesheetsService.getTimesheetById(user, timesheetId);
+  }
+
+  @Get(':timesheetId/weeks/:weekId/approval')
+  @Permissions('timesheets.read')
+  getWeekApproval(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('timesheetId', new ParseUUIDPipe()) timesheetId: string,
+    @Param('weekId', new ParseUUIDPipe()) weekId: string,
+  ) {
+    return this.workflowService.getApprovalTracker(user, timesheetId, weekId);
+  }
+
+  @Post(':timesheetId/weeks/:weekId/reopening-requests')
+  @Permissions('timesheets.reopen')
+  requestReopening(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('timesheetId', new ParseUUIDPipe()) timesheetId: string,
+    @Param('weekId', new ParseUUIDPipe()) weekId: string,
+    @Body() dto: TimesheetReopeningRequestDto,
+  ) {
+    return this.workflowService.requestReopening(
+      user,
+      timesheetId,
+      weekId,
+      dto,
+    );
+  }
+
+  @Patch(':timesheetId/weeks/:weekId/reopening-requests/:requestId')
+  @Permissions('timesheets.approve')
+  decideReopening(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('timesheetId', new ParseUUIDPipe()) timesheetId: string,
+    @Param('weekId', new ParseUUIDPipe()) weekId: string,
+    @Param('requestId', new ParseUUIDPipe()) requestId: string,
+    @Body() dto: TimesheetReopeningDecisionDto,
+  ) {
+    return this.workflowService.decideReopening(
+      user,
+      timesheetId,
+      weekId,
+      requestId,
+      dto,
+    );
+  }
+
+  @Post(':timesheetId/payroll-handoff')
+  @Permissions('timesheets.payroll.handoff')
+  handoffToPayroll(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('timesheetId', new ParseUUIDPipe()) timesheetId: string,
+  ) {
+    return this.workflowService.handoffToPayroll(user, timesheetId);
   }
 
   @Post(':timesheetId/submit')
@@ -191,10 +391,23 @@ export class TimesheetsController {
 
   @Get(':timesheetId/export')
   @Permissions('timesheets.export')
-  export(
+  async export(
     @CurrentUser() user: AuthenticatedUser,
     @Param('timesheetId', new ParseUUIDPipe()) timesheetId: string,
+    @Query() query: TimesheetExportFormatDto,
+    @Res({ passthrough: true }) response: Response,
   ) {
-    return this.timesheetsService.exportTimesheet(user, timesheetId);
+    const artifact = await this.exportService.exportCurrent(
+      user,
+      timesheetId,
+      query.format,
+    );
+    response.setHeader('Content-Type', artifact.contentType);
+    response.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${artifact.fileName}"`,
+    );
+    response.setHeader('Cache-Control', 'private, no-store');
+    return new StreamableFile(artifact.buffer);
   }
 }

@@ -44,6 +44,10 @@ export class CreatePayrollCalendarDto {
 
 export class UpdatePayrollCalendarDto {
   @IsOptional()
+  @IsUUID()
+  businessUnitId?: string;
+
+  @IsOptional()
   @IsString()
   @MaxLength(160)
   name?: string;
@@ -126,6 +130,11 @@ export class UpdatePayrollPeriodDto {
 }
 
 export class CreatePayrollRunDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  runName?: string;
+
   @IsUUID()
   payrollPeriodId!: string;
 
@@ -139,6 +148,15 @@ export class CreatePayrollRunDto {
   @IsString()
   @MaxLength(1000)
   notes?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  employeeScope?: string;
+
+  @IsOptional()
+  @IsUUID()
+  employerBankAccountId?: string;
 }
 
 export class PayrollCoreQueryDto {

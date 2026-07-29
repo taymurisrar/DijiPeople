@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { DataTable } from "@/app/components/data-table/data-table";
 import { DataTablePagination } from "@/app/components/data-table/data-table-pagination";
 import type {
@@ -51,6 +52,7 @@ export function ModuleDataTable({
   readonly selectedRecordIds?: readonly string[];
   readonly view: ViewMetadata | null;
 }) {
+  const router = useRouter();
   const fieldsByName = new Map(
     runtime.metadata.entity.fields.map((field) => [field.logicalName, field]),
   );
@@ -109,6 +111,19 @@ export function ModuleDataTable({
       rows={[...records]}
       selectedRowKeys={[...selectedRecordIds]}
       onSelectedRowKeysChange={onSelectedRecordIdsChange}
+      onRowClick={
+        runtime.module.recordNavigation === false
+          ? undefined
+          : (record) => {
+              const recordId = String(
+                record[runtime.metadata.entity.primaryIdField] ??
+                  record.id ??
+                  "",
+              );
+              if (!recordId) return;
+              router.push(`${runtime.module.routeBase}/${recordId}`);
+            }
+      }
     />
   );
 }
@@ -263,20 +278,23 @@ function displayValue(
   const recordId = String(record.id ?? "");
 
   if (field?.dataType === "lookup") {
-    return lookupDisplayValues[recordId]?.[fieldLogicalName] || "Not set";
+    return (
+      lookupDisplayValues[recordId]?.[fieldLogicalName] ||
+      stringValue(record[fieldLogicalName])
+    );
   }
 
   if (field?.dataType === "optionset") {
     const value = String(record[fieldLogicalName] ?? "");
     return (
       field.options?.find((option) => option.value === value)?.label ??
-      (value || "Not set")
+      (value || "")
     );
   }
 
   const value = record[fieldLogicalName];
-  if (Array.isArray(value)) return value.length ? value.join(", ") : "Not set";
-  if (value === null || value === undefined || value === "") return "Not set";
+  if (Array.isArray(value)) return value.length ? value.join(", ") : "";
+  if (value === null || value === undefined || value === "") return "";
   if (typeof value === "boolean") return value ? "Yes" : "No";
   return String(value);
 }
@@ -330,11 +348,27 @@ function deriveLookupDisplayValues(
         continue;
       }
 
-      const relationKey = relationKeyForLookupField(field.logicalName);
-      const relationValue = relationKey ? record[relationKey] : null;
-      const relationDisplay = readableLookupDisplayValue(field, relationValue);
-      if (relationDisplay) {
-        recordDisplayValues[field.logicalName] = relationDisplay;
+      for (const relationKey of relationKeysForLookupField(field.logicalName)) {
+        const relationDisplay = readableLookupDisplayValue(
+          field,
+          record[relationKey],
+        );
+        if (relationDisplay) {
+          recordDisplayValues[field.logicalName] = relationDisplay;
+          break;
+        }
+      }
+
+      if (recordDisplayValues[field.logicalName]) {
+        continue;
+      }
+
+      const listDisplay = readableLookupDisplayValue(
+        field,
+        findRecordById(records, directValue),
+      );
+      if (listDisplay) {
+        recordDisplayValues[field.logicalName] = listDisplay;
       }
     }
 
@@ -346,16 +380,28 @@ function deriveLookupDisplayValues(
   return displayValues;
 }
 
-function relationKeyForLookupField(fieldLogicalName: string) {
+function findRecordById(records: readonly RuntimeRecordData[], value: unknown) {
+  const id = stringValue(value);
+  if (!id) return null;
+  return records.find((record) => String(record.id ?? "") === id) ?? null;
+}
+
+function relationKeysForLookupField(fieldLogicalName: string) {
+  const keys: string[] = [];
+
+  if (fieldLogicalName.endsWith("EmployeeId")) {
+    keys.push(fieldLogicalName.slice(0, -"EmployeeId".length));
+  }
+
   if (fieldLogicalName.endsWith("Id")) {
-    return fieldLogicalName.slice(0, -"Id".length);
+    keys.push(fieldLogicalName.slice(0, -"Id".length));
   }
 
   if (fieldLogicalName.endsWith("Code")) {
-    return fieldLogicalName.slice(0, -"Code".length);
+    keys.push(fieldLogicalName.slice(0, -"Code".length));
   }
 
-  return "";
+  return [...new Set(keys.filter(Boolean))];
 }
 
 function readableLookupDisplayValue(field: FieldMetadata, value: unknown) {
@@ -363,11 +409,16 @@ function readableLookupDisplayValue(field: FieldMetadata, value: unknown) {
   const record = value as Record<string, unknown>;
   const displayField = lookupPrimaryNameField(field);
 
-  return stringValue(record[displayField]);
+  return (
+    stringValue(record[displayField]) ||
+    [record.firstName, record.lastName].map(stringValue).filter(Boolean).join(" ")
+  );
 }
 
 function lookupPrimaryNameField(field: FieldMetadata) {
-  const targetEntityLogicalName = field.lookupTargets?.[0]?.entityLogicalName;
+  const target = field.lookupTargets?.[0];
+  if (target?.primaryNameField) return target.primaryNameField;
+  const targetEntityLogicalName = target?.entityLogicalName;
   if (!targetEntityLogicalName) return "name";
 
   return getEntityMetadata(targetEntityLogicalName)?.primaryNameField ?? "name";
@@ -385,7 +436,7 @@ function formatDateValue(
     readonly timezone: string;
   },
 ) {
-  if (!value) return "Not set";
+  if (!value) return "";
   if (!formatting) return String(value).slice(0, 10);
   return formatDateWithTenantSettings(String(value), formatting);
 }

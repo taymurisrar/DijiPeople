@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsString,
   MaxLength,
+  Min,
 } from 'class-validator';
 
 function trimToUndefined({ value }: { value: unknown }) {
@@ -18,9 +19,10 @@ function trimToUndefined({ value }: { value: unknown }) {
 
 export class CreateDocumentCategoryDto {
   @Transform(trimToUndefined)
+  @IsOptional()
   @IsString()
   @MaxLength(80)
-  code!: string;
+  code?: string;
 
   @Transform(trimToUndefined)
   @IsString()
@@ -32,6 +34,30 @@ export class CreateDocumentCategoryDto {
   @IsString()
   @MaxLength(500)
   description?: string;
+
+  @IsOptional()
+  appliesTo?: string[];
+
+  @IsOptional()
+  @IsBoolean()
+  expirable?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  requiresVerification?: boolean;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  defaultRetentionMonths?: number;
+
+  @IsOptional()
+  allowedExtensionsOverride?: string[];
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  maximumUploadSizeOverrideMb?: number;
 
   @IsOptional()
   @IsBoolean()

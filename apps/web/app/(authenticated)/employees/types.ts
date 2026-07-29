@@ -62,6 +62,7 @@ export type LookupOption = {
   key?: string | null;
   code?: string | null;
   countryId?: string | null;
+  departmentId?: string | null;
   employeeLevelId?: string | null;
   stateProvinceId?: string | null;
 };
@@ -155,6 +156,7 @@ export type EmployeeListItem = {
   probationEndDate?: string | null;
   terminationDate?: string | null;
   departmentId?: string | null;
+  teamId?: string | null;
   designationId?: string | null;
   employeeLevelId?: string | null;
   locationId?: string | null;
@@ -176,6 +178,12 @@ export type EmployeeListItem = {
   emergencyContactName?: string | null;
   emergencyContactRelation?: string | null;
   emergencyContactRelationTypeId?: string | null;
+  emergencyContactRelationType?: {
+    id: string;
+    key: string;
+    name: string;
+    isActive: boolean;
+  } | null;
   emergencyContactPhone?: string | null;
   emergencyContactAlternatePhone?: string | null;
   noticePeriodDays?: number | null;
@@ -207,6 +215,13 @@ export type EmployeeListItem = {
     id: string;
     name: string;
     code?: string | null;
+    isActive: boolean;
+  } | null;
+  team: {
+    id: string;
+    name: string;
+    key?: string | null;
+    departmentId?: string | null;
     isActive: boolean;
   } | null;
   designation: {

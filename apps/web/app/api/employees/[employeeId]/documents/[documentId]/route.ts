@@ -37,3 +37,27 @@ export async function DELETE(_request: Request, context: RouteContext) {
     );
   }
 }
+
+export async function PATCH(request: Request, context: RouteContext) {
+  const { employeeId, documentId } = await context.params;
+
+  try {
+    const formData = await request.formData();
+    const response = await apiRequest(
+      `/employees/${employeeId}/documents/${documentId}`,
+      { body: formData, method: "PATCH" },
+    );
+
+    return proxyApiJsonResponse(response);
+  } catch (error) {
+    return NextResponse.json(
+      {
+        message:
+          error instanceof Error
+            ? error.message
+            : "Unable to update employee document.",
+      },
+      { status: 500 },
+    );
+  }
+}

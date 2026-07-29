@@ -32,7 +32,9 @@ export default async function CustomizationFormDesignerRoute({
       `/customization/tables/${tableKey}/forms`,
     ),
   ]);
-  const form = forms.find((item) => item.formKey === formId);
+  const form = forms.find(
+    (item) => item.id === formId || item.formKey === formId,
+  );
   if (!form) notFound();
 
   return (

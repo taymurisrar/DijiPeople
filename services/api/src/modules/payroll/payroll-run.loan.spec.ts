@@ -31,7 +31,10 @@ describe('payroll readiness eligibility', () => {
     const serialized = JSON.stringify(where);
 
     expect(where.hireDate).toEqual({ lte: periodEnd });
-    expect(where.businessUnitId).toBe('bu-1');
+    expect(where.OR).toEqual([
+      { businessUnitId: 'bu-1' },
+      { businessUnitId: null, user: { businessUnitId: 'bu-1' } },
+    ]);
     expect(serialized).toContain('ACTIVE');
     expect(serialized).toContain('PROBATION');
     expect(serialized).toContain('NOTICE');
@@ -141,5 +144,8 @@ function createService(prisma: object) {
     {} as never,
     {} as never,
     {} as never,
+    { getPayrollSettings: jest.fn() } as never,
+    { allocate: jest.fn() } as never,
+    { lockRate: jest.fn(), convert: jest.fn() } as never,
   );
 }

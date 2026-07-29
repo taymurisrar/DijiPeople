@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseUUIDPipe,
@@ -95,6 +96,25 @@ export class ProjectsController {
     @Body() dto: AssignProjectEmployeeDto,
   ) {
     return this.projectsService.assignEmployee(user, projectId, dto);
+  }
+
+  @Get(':projectId/assignments')
+  @Permissions('projects.read')
+  listAssignments(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('projectId', new ParseUUIDPipe()) projectId: string,
+  ) {
+    return this.projectsService.listAssignments(user, projectId);
+  }
+
+  @Delete(':projectId/assignments/:assignmentId')
+  @Permissions('projects.assign')
+  removeAssignment(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('projectId', new ParseUUIDPipe()) projectId: string,
+    @Param('assignmentId', new ParseUUIDPipe()) assignmentId: string,
+  ) {
+    return this.projectsService.removeAssignment(user, projectId, assignmentId);
   }
 
   @Post(':projectId/resources')

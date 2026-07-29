@@ -22,6 +22,8 @@ import {
   CreateLoanRequestDto,
   LoanQueryDto,
   RejectLoanDto,
+  RejectEmployeeBankAccountDto,
+  UpdateEmployeeBankAccountDto,
   VerifyEmployeeBankAccountDto,
   UpdateBankDto,
   UpdateLoanPolicyDto,
@@ -153,13 +155,17 @@ export class LoansController {
   bankAccounts(
     @CurrentUser() user: AuthenticatedUser,
     @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
+    @Query() query: { page?: number; pageSize?: number; search?: string },
   ) {
-    return this.loans.listBankAccounts(user, employeeId);
+    return this.loans.listBankAccounts(user, employeeId, query);
   }
   @Get('employee-bank-accounts')
   @Permissions('employee-bank-accounts.read')
-  allBankAccounts(@CurrentUser() user: AuthenticatedUser) {
-    return this.loans.listAllBankAccounts(user);
+  allBankAccounts(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: { page?: number; pageSize?: number; search?: string },
+  ) {
+    return this.loans.listAllBankAccounts(user, query);
   }
   @Get('employee-bank-accounts/:id')
   @Permissions('employee-bank-accounts.read')
@@ -186,6 +192,48 @@ export class LoansController {
   ) {
     return this.loans.createBankAccount(user, { ...dto, employeeId });
   }
+  @Patch('employee-bank-accounts/:id')
+  @Permissions('employee-bank-accounts.manage')
+  updateBankAccount(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: UpdateEmployeeBankAccountDto,
+  ) {
+    return this.loans.updateBankAccount(user, id, dto);
+  }
+  @Post('employee-bank-accounts/:id/submit-verification')
+  @Permissions('employee-bank-accounts.manage')
+  submitBankAccountVerification(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.loans.submitBankAccountForVerification(user, id);
+  }
+  @Post('employee-bank-accounts/:id/reject')
+  @Permissions('employee-bank-accounts.verify')
+  rejectBankAccount(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: RejectEmployeeBankAccountDto,
+  ) {
+    return this.loans.rejectBankAccount(user, id, dto);
+  }
+  @Post('employee-bank-accounts/:id/deactivate')
+  @Permissions('employee-bank-accounts.manage')
+  deactivateBankAccount(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.loans.deactivateBankAccount(user, id);
+  }
+  @Post('employee-bank-accounts/:id/set-payroll')
+  @Permissions('employee-bank-accounts.manage')
+  setPayrollBankAccount(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.loans.setPayrollBankAccount(user, id);
+  }
   @Post('employee-bank-accounts/:id/verify')
   @Permissions('employee-bank-accounts.verify')
   verifyBankAccount(
@@ -198,6 +246,6 @@ export class LoansController {
   @Get('me/bank-accounts')
   @Permissions('employee-bank-accounts.read-own')
   myBankAccounts(@CurrentUser() user: AuthenticatedUser) {
-    return this.loans.listBankAccounts(user, '', true);
+    return this.loans.listBankAccounts(user, '', {}, true);
   }
 }

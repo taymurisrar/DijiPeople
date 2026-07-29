@@ -73,6 +73,13 @@ const timesheetInclude = {
   },
   entries: {
     include: {
+      project: {
+        select: {
+          id: true,
+          name: true,
+          code: true,
+        },
+      },
       leaveRequest: {
         select: {
           id: true,
@@ -87,6 +94,27 @@ const timesheetInclude = {
       },
     },
     orderBy: [{ date: 'asc' }],
+  },
+  weeks: {
+    include: {
+      reopeningRequests: {
+        orderBy: { requestedAt: 'desc' },
+      },
+      days: {
+        include: {
+          entries: {
+            include: {
+              project: {
+                select: { id: true, name: true, code: true },
+              },
+            },
+            orderBy: [{ startTime: 'asc' }, { createdAt: 'asc' }],
+          },
+        },
+        orderBy: { date: 'asc' },
+      },
+    },
+    orderBy: { weekNumber: 'asc' },
   },
 } satisfies Prisma.TimesheetInclude;
 

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { CSSProperties, cache } from "react";
@@ -73,6 +74,7 @@ export default async function DashboardLayout({
     currentEmployeeContext,
     resolvedSettings,
     businessUnitAccess,
+    timesheetRestriction,
   ] = await Promise.all([
     apiRequestJson<TenantFeaturesResponse>(
       "/tenant-settings/features/availability",
@@ -83,6 +85,9 @@ export default async function DashboardLayout({
     })),
     getResolvedTenantSettings(),
     getBusinessUnitAccessSummary(),
+    apiRequestJson<TimesheetRestrictionResponse>(
+      "/timesheets/access-restriction",
+    ).catch(() => ({ item: null })),
   ]);
 
   const currentEmployee = currentEmployeeContext.employee;
@@ -112,13 +117,13 @@ export default async function DashboardLayout({
 
   const sessionTimeoutMinutes = Math.max(
     15,
-    resolvedSettings?.system.autoLogoutMinutes ?? 15,
+    resolvedSettings?.security.sessionTimeoutMinutes ??
+      resolvedSettings?.system.autoLogoutMinutes ??
+      15,
   );
 
   return (
-    <SystemPreferencesProvider
-      initialResolvedSettings={resolvedSettings}
-    >
+    <SystemPreferencesProvider initialResolvedSettings={resolvedSettings}>
       <AuthenticatedShellProvider
         inactivityTimeoutMinutes={sessionTimeoutMinutes}
         user={{
@@ -137,7 +142,7 @@ export default async function DashboardLayout({
         }}
       >
         <div
-          className="min-h-screen py-2 md:py-4"
+          className="dp-theme-scope min-h-screen bg-background py-2 md:py-4"
           data-theme={
             resolvedSettings?.branding.defaultThemeMode?.toLowerCase() ||
             resolvedSettings?.system.defaultThemeMode?.toLowerCase() ||
@@ -181,6 +186,28 @@ export default async function DashboardLayout({
 
               <ErrorProvider user={{ roleKeys: user.roleKeys }}>
                 <NotificationPopupProvider />
+                {timesheetRestriction.item ? (
+                  <div
+                    className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950 shadow-sm"
+                    role="alert"
+                  >
+                    <p className="font-semibold">
+                      Timesheet action required ·{" "}
+                      {timesheetRestriction.item.restrictionMode
+                        .replaceAll("_", " ")
+                        .toLowerCase()}
+                    </p>
+                    <p className="mt-1">
+                      {timesheetRestriction.item.reason}{" "}
+                      <Link
+                        className="font-semibold underline"
+                        href="/timesheets"
+                      >
+                        Open Timesheets
+                      </Link>
+                    </p>
+                  </div>
+                ) : null}
                 {children}
               </ErrorProvider>
             </div>
@@ -190,6 +217,16 @@ export default async function DashboardLayout({
     </SystemPreferencesProvider>
   );
 }
+
+type TimesheetRestrictionResponse = {
+  item: null | {
+    id: string;
+    reason: string;
+    restrictionMode: string;
+    startAt: string;
+    expiryAt?: string | null;
+  };
+};
 
 function buildTenantThemeStyle(brandingTokens: BrandingSettings) {
   return buildBrandingCssVariables(brandingTokens) as CSSProperties;

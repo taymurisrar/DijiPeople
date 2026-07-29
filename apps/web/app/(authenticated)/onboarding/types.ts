@@ -6,13 +6,13 @@ export type OnboardingStatus =
   | "READY_FOR_CONVERSION"
   | "BLOCKED"
   | "COMPLETED"
-  | "Cancelled";
+  | "CANCELLED";
 
 export type OnboardingTaskStatus =
   | "PENDING"
   | "IN_PROGRESS"
   | "COMPLETED"
-  | "Cancelled";
+  | "CANCELLED";
 
 export type OnboardingTemplateRecord = {
   id: string;
@@ -69,6 +69,16 @@ export type EmployeeOnboardingRecord = {
     currentCountry?: string | null;
     currentStateProvince?: string | null;
     currentCity?: string | null;
+    currentDesignation?: string | null;
+    draftEmployee: {
+      id: string;
+      employeeCode: string;
+      firstName: string;
+      lastName: string;
+      fullName: string;
+      employmentStatus: string;
+      isDraftProfile: boolean;
+    } | null;
   } | null;
   employee: {
     id: string;
@@ -77,6 +87,7 @@ export type EmployeeOnboardingRecord = {
     lastName: string;
     fullName: string;
     employmentStatus: string;
+    isDraftProfile: boolean;
   } | null;
   template: {
     id: string;

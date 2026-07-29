@@ -70,6 +70,12 @@ const BRANDING_FONT_VALUES = new Set<string>([
 ]);
 
 const HEX_COLOR_PATTERN = /^#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})$/;
+const MULTI_VALUE_SETTING_KEYS = new Set<string>([
+  'attendance.allowedModes',
+  'attendance.locationRequiredForModes',
+  'timesheets.weekendDays',
+  'documents.allowedExtensions',
+]);
 @Injectable()
 export class TenantSettingsService {
   constructor(
@@ -131,6 +137,7 @@ export class TenantSettingsService {
       documents,
       notifications,
       branding,
+      security,
       system,
     ] = await Promise.all([
       this.tenantSettingsResolverService.getOrganizationSettings(tenantId),
@@ -142,6 +149,7 @@ export class TenantSettingsService {
       this.tenantSettingsResolverService.getDocumentSettings(tenantId),
       this.tenantSettingsResolverService.getNotificationSettings(tenantId),
       this.tenantSettingsResolverService.getBrandingSettings(tenantId),
+      this.tenantSettingsResolverService.getSecuritySettings(tenantId),
       this.tenantSettingsResolverService.getSystemSettings(tenantId),
     ]);
 
@@ -155,6 +163,7 @@ export class TenantSettingsService {
       documents,
       notifications,
       branding,
+      security,
       system,
     };
   }
@@ -392,7 +401,11 @@ export class TenantSettingsService {
       return {
         category,
         key,
-        value: normalizeSettingValue(category, key, item.value),
+        value: enforceCriticalAttendanceSetting(
+          category,
+          key,
+          normalizeSettingValue(category, key, item.value),
+        ),
         actorUserId: currentUser.userId,
       };
     });
@@ -505,6 +518,30 @@ export class TenantSettingsService {
   }
 }
 
+function enforceCriticalAttendanceSetting(
+  category: string,
+  key: string,
+  value: Prisma.InputJsonValue | typeof Prisma.JsonNull,
+) {
+  if (category !== 'attendance') return value;
+
+  const mandatoryValues: Record<
+    string,
+    Prisma.InputJsonValue | typeof Prisma.JsonNull
+  > = {
+    requireRemoteLocationCapture: true,
+    locationCaptureRequired: true,
+    locationRequiredForModes: ['OFFICE', 'REMOTE', 'HYBRID'],
+    captureLocationOnCheckIn: true,
+    captureLocationOnCheckOut: true,
+    allowManualLocationException: false,
+    highAccuracyLocation: true,
+  };
+
+  const mandatoryValue = mandatoryValues[key];
+  return mandatoryValue === undefined ? value : mandatoryValue;
+}
+
 function mapBrandingSettingKey(key: string) {
   const map: Record<string, string> = {
     logoUrl: 'logoUrl',
@@ -547,6 +584,10 @@ function normalizeSettingValue(
 
   if (defaultValue === undefined) {
     return toJsonValue(value);
+  }
+
+  if (MULTI_VALUE_SETTING_KEYS.has(`${category}.${key}`)) {
+    return normalizeArrayValue(category, key, value);
   }
 
   if (typeof defaultValue === 'boolean') {

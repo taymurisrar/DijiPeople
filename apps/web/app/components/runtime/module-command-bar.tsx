@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
   ArchiveRestore,
   Check,
@@ -38,6 +38,7 @@ type NormalizedRuntimeCommandGroups = Required<RuntimeCommandGroups> & {
 };
 
 export function ModuleCommandBar({
+  addon,
   commands,
   disabled = false,
   loading = false,
@@ -46,6 +47,7 @@ export function ModuleCommandBar({
   runtime,
   selectedRecordIds,
 }: {
+  readonly addon?: ReactNode;
   readonly commands: readonly CommandDefinition[] | RuntimeCommandGroups;
   readonly disabled?: boolean;
   readonly loading?: boolean;
@@ -122,6 +124,7 @@ export function ModuleCommandBar({
           runtime={runtime}
           selectedRecordIds={selectedRecordIds}
         />
+        {addon ? <div className="ml-auto min-w-0">{addon}</div> : null}
       </div>
     </div>
   );

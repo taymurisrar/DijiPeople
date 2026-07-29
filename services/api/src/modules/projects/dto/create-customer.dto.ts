@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsString,
   IsUrl,
+  IsUUID,
   MaxLength,
 } from 'class-validator';
 
@@ -13,9 +14,10 @@ export class CreateCustomerDto {
   @MaxLength(160)
   name!: string;
 
+  @IsOptional()
   @IsString()
   @MaxLength(40)
-  code!: string;
+  code?: string;
 
   @IsOptional()
   @IsString()
@@ -51,6 +53,33 @@ export class CreateCustomerDto {
   @IsString()
   @MaxLength(500)
   address?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  addressLine1?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  addressLine2?: string;
+
+  @IsOptional()
+  @IsUUID()
+  cityId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  stateProvinceId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  countryId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  postalCode?: string;
 
   @IsOptional()
   @IsEnum(CustomerStatus)

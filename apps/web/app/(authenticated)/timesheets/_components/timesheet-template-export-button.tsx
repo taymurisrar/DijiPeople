@@ -43,9 +43,12 @@ export function TimesheetTemplateExportButton({
     }
 
     try {
-      const response = await fetch(`/api/timesheets/template/export?${params}`, {
-        method: "GET",
-      });
+      const response = await fetch(
+        `/api/timesheets/template/export?${params}`,
+        {
+          method: "GET",
+        },
+      );
 
       if (!response.ok) {
         const data = await response.json().catch(() => null);
@@ -85,11 +88,13 @@ export function TimesheetTemplateExportButton({
             onChange={(event) => setSelectedMonth(event.target.value)}
             value={selectedMonth}
           >
-            {Array.from({ length: 12 }, (_, index) => index + 1).map((value) => (
-              <option key={value} value={value}>
-                {monthLabel(value)}
-              </option>
-            ))}
+            {Array.from({ length: 12 }, (_, index) => index + 1).map(
+              (value) => (
+                <option key={value} value={value}>
+                  {monthLabel(value)}
+                </option>
+              ),
+            )}
           </select>
           <input
             className="w-24 rounded-xl border border-border bg-white px-3 py-2 text-sm text-foreground outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
@@ -132,7 +137,8 @@ export function TimesheetTemplateExportButton({
           </button>
         </div>
         <p className="text-xs text-muted">
-          Exports an Excel template using tenant and business-unit timesheet settings.
+          Exports an Excel template using tenant and business-unit timesheet
+          settings.
         </p>
         {error ? <p className="text-xs text-danger">{error}</p> : null}
       </div>

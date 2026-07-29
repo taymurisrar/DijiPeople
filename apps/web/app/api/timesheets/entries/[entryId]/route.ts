@@ -22,7 +22,9 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json(
       {
         message:
-          error instanceof Error ? error.message : "Unable to update timesheet entry.",
+          error instanceof Error
+            ? error.message
+            : "Unable to update timesheet entry.",
       },
       { status: 500 },
     );

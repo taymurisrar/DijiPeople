@@ -14,6 +14,7 @@ type DocumentUploadFormProps = {
   accept?: string;
   submitLabel?: string;
   includeEntityFields?: boolean;
+  onUploaded?: () => void | Promise<void>;
 };
 
 export function DocumentUploadForm({
@@ -25,6 +26,7 @@ export function DocumentUploadForm({
   accept = ".pdf,.doc,.docx,.png,.jpg,.jpeg",
   submitLabel = "Upload document",
   includeEntityFields = true,
+  onUploaded,
 }: DocumentUploadFormProps) {
   const router = useRouter();
   const [documentTypeId, setDocumentTypeId] = useState("");
@@ -89,6 +91,7 @@ export function DocumentUploadForm({
     setTitle("");
     setDescription("");
     setIsUploading(false);
+    await onUploaded?.();
     router.refresh();
   }
 

@@ -67,13 +67,17 @@ export function TimesheetFilterBar({
         className="rounded-2xl border border-border bg-white px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
         max={2100}
         min={2000}
-        onChange={(event) => setForm((current) => ({ ...current, year: event.target.value }))}
+        onChange={(event) =>
+          setForm((current) => ({ ...current, year: event.target.value }))
+        }
         type="number"
         value={form.year}
       />
       <select
         className="rounded-2xl border border-border bg-white px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
-        onChange={(event) => setForm((current) => ({ ...current, month: event.target.value }))}
+        onChange={(event) =>
+          setForm((current) => ({ ...current, month: event.target.value }))
+        }
         value={form.month}
       >
         {Array.from({ length: 12 }, (_, index) => index + 1).map((month) => (
@@ -84,7 +88,12 @@ export function TimesheetFilterBar({
       </select>
       <select
         className="rounded-2xl border border-border bg-white px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
-        onChange={(event) => setForm((current) => ({ ...current, businessUnitId: event.target.value }))}
+        onChange={(event) =>
+          setForm((current) => ({
+            ...current,
+            businessUnitId: event.target.value,
+          }))
+        }
         value={form.businessUnitId}
       >
         <option value="">All business units</option>
@@ -96,19 +105,38 @@ export function TimesheetFilterBar({
       </select>
       <select
         className="rounded-2xl border border-border bg-white px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
-        onChange={(event) => setForm((current) => ({ ...current, status: event.target.value }))}
+        onChange={(event) =>
+          setForm((current) => ({ ...current, status: event.target.value }))
+        }
         value={form.status}
       >
         <option value="">All statuses</option>
+        <option value="NOT_STARTED">Not started</option>
         <option value="DRAFT">Draft</option>
+        <option value="IN_PROGRESS">In progress</option>
         <option value="SUBMITTED">Submitted</option>
+        <option value="PENDING_APPROVAL">Pending approval</option>
+        <option value="PARTIALLY_APPROVED">Partially approved</option>
         <option value="APPROVED">Approved</option>
         <option value="REJECTED">Rejected</option>
+        <option value="OVERDUE">Overdue</option>
+        <option value="PAYROLL_READY">Payroll ready</option>
+        <option value="PAYROLL_PROCESSED">Payroll processed</option>
+        <option value="LOCKED">Locked</option>
+        <option value="NOT_REQUIRED">Not required</option>
+        <option value="AUTO_COMPLETED">Auto-completed</option>
+        <option value="EXCEPTION">Exception</option>
+        <option value="CANCELLED">Cancelled</option>
       </select>
       {showEmployee ? (
         <select
           className="rounded-2xl border border-border bg-white px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
-          onChange={(event) => setForm((current) => ({ ...current, employeeId: event.target.value }))}
+          onChange={(event) =>
+            setForm((current) => ({
+              ...current,
+              employeeId: event.target.value,
+            }))
+          }
           value={form.employeeId}
         >
           <option value="">All employees</option>
@@ -122,7 +150,12 @@ export function TimesheetFilterBar({
       {showManager ? (
         <select
           className="rounded-2xl border border-border bg-white px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
-          onChange={(event) => setForm((current) => ({ ...current, managerEmployeeId: event.target.value }))}
+          onChange={(event) =>
+            setForm((current) => ({
+              ...current,
+              managerEmployeeId: event.target.value,
+            }))
+          }
           value={form.managerEmployeeId}
         >
           <option value="">All managers</option>
@@ -135,7 +168,12 @@ export function TimesheetFilterBar({
       ) : null}
       <select
         className="rounded-2xl border border-border bg-white px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
-        onChange={(event) => setForm((current) => ({ ...current, departmentId: event.target.value }))}
+        onChange={(event) =>
+          setForm((current) => ({
+            ...current,
+            departmentId: event.target.value,
+          }))
+        }
         value={form.departmentId}
       >
         <option value="">All departments</option>
@@ -147,7 +185,9 @@ export function TimesheetFilterBar({
       </select>
       <select
         className="rounded-2xl border border-border bg-white px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
-        onChange={(event) => setForm((current) => ({ ...current, sortField: event.target.value }))}
+        onChange={(event) =>
+          setForm((current) => ({ ...current, sortField: event.target.value }))
+        }
         value={form.sortField}
       >
         <option value="yearMonth">Sort: Month</option>
@@ -157,7 +197,12 @@ export function TimesheetFilterBar({
       </select>
       <select
         className="rounded-2xl border border-border bg-white px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
-        onChange={(event) => setForm((current) => ({ ...current, sortDirection: event.target.value }))}
+        onChange={(event) =>
+          setForm((current) => ({
+            ...current,
+            sortDirection: event.target.value,
+          }))
+        }
         value={form.sortDirection}
       >
         <option value="desc">Descending</option>
@@ -165,7 +210,9 @@ export function TimesheetFilterBar({
       </select>
       <select
         className="rounded-2xl border border-border bg-white px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
-        onChange={(event) => setForm((current) => ({ ...current, pageSize: event.target.value }))}
+        onChange={(event) =>
+          setForm((current) => ({ ...current, pageSize: event.target.value }))
+        }
         value={form.pageSize}
       >
         <option value="12">12 rows</option>
@@ -173,7 +220,10 @@ export function TimesheetFilterBar({
         <option value="50">50 rows</option>
       </select>
       <div className="flex flex-wrap gap-3 xl:col-span-6">
-        <button className="rounded-2xl bg-accent px-5 py-3 text-sm font-semibold text-white" type="submit">
+        <button
+          className="rounded-2xl bg-accent px-5 py-3 text-sm font-semibold text-white"
+          type="submit"
+        >
           Apply filters
         </button>
         <button

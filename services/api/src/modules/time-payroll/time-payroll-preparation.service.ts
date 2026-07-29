@@ -356,7 +356,13 @@ export class TimePayrollPreparationService {
         employeeId,
         periodStart: { lte: periodEnd },
         periodEnd: { gte: periodStart },
-        ...(requireApproval ? { status: TimesheetStatus.APPROVED } : {}),
+        ...(requireApproval
+          ? {
+              status: {
+                in: [TimesheetStatus.APPROVED, TimesheetStatus.PAYROLL_READY],
+              },
+            }
+          : {}),
       },
       select: { id: true },
     });

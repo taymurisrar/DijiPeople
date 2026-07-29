@@ -3,7 +3,12 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { SideToast } from "@/app/components/notifications";
 import { Button } from "@/app/components/ui/button";
+import {
+  buildLocationPayload,
+  captureAttendanceLocation,
+} from "@/lib/location/location-capture";
 
 type EssQuickActionsProps = {
   canCheckIn: boolean;
@@ -27,28 +32,43 @@ export function EssQuickActions({
     "check-in" | "check-out" | "submit-timesheet" | null
   >(null);
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
 
   async function handleAttendanceAction(action: "check-in" | "check-out") {
     setPendingAction(action);
     setError(null);
+    setMessage(null);
 
-    const payload = await buildAttendanceActionPayload(action);
-    const response = await fetch(`/api/attendance/${action}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    try {
+      const payload = await buildAttendanceActionPayload(action);
+      const response = await fetch(`/api/attendance/${action}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-    const data = (await response.json()) as { message?: string };
+      const data = (await response.json()) as { message?: string };
 
-    if (!response.ok) {
-      setError(data.message ?? `Unable to ${action}.`);
+      if (!response.ok) {
+        setError(data.message ?? `Unable to ${action}.`);
+        return;
+      }
+
+      setMessage(
+        action === "check-in"
+          ? "Checked in with current location."
+          : "Checked out with current location.",
+      );
+      router.refresh();
+    } catch (actionError) {
+      setError(
+        actionError instanceof Error
+          ? actionError.message
+          : `Unable to ${action}.`,
+      );
+    } finally {
       setPendingAction(null);
-      return;
     }
-
-    router.refresh();
-    setPendingAction(null);
   }
 
   async function handleTimesheetSubmit() {
@@ -59,6 +79,7 @@ export function EssQuickActions({
 
     setPendingAction("submit-timesheet");
     setError(null);
+    setMessage(null);
 
     const response = await fetch("/api/timesheets/submit", {
       method: "POST",
@@ -141,11 +162,20 @@ export function EssQuickActions({
         ) : null}
       </div>
 
-      {error ? (
-        <p className="mt-4 rounded-2xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
-          {error}
-        </p>
-      ) : null}
+      <SideToast
+        description={error ?? undefined}
+        isOpen={Boolean(error)}
+        onClose={() => setError(null)}
+        title="Action not completed"
+        variant="error"
+      />
+      <SideToast
+        description={message ?? undefined}
+        isOpen={Boolean(message) && !error}
+        onClose={() => setMessage(null)}
+        title="Attendance updated"
+        variant="success"
+      />
     </section>
   );
 }
@@ -159,61 +189,51 @@ async function buildAttendanceActionPayload(action: "check-in" | "check-out") {
   const allowedModes = Array.isArray(context?.allowedModes)
     ? (context.allowedModes as string[])
     : [];
-  const supportsRemote = allowedModes.includes("REMOTE");
-  const supportsHybrid = allowedModes.includes("HYBRID");
-  const attendanceMode = supportsRemote
-    ? "REMOTE"
-    : supportsHybrid
-      ? "HYBRID"
-      : "OFFICE";
-  const location =
-    attendanceMode === "OFFICE" ? null : await captureBrowserLocation();
+  const configuredDefault =
+    typeof context?.defaultAttendanceMode === "string"
+      ? context.defaultAttendanceMode
+      : "";
+  const attendanceMode = allowedModes.includes(configuredDefault)
+    ? configuredDefault
+    : allowedModes.includes("OFFICE")
+      ? "OFFICE"
+      : allowedModes.includes("REMOTE")
+        ? "REMOTE"
+        : "HYBRID";
+  const location = await captureAttendanceLocation({
+    timeoutSeconds: readNumber(context?.policy?.locationTimeoutSeconds, 15),
+    retryAttempts: readNumber(context?.policy?.locationRetryAttempts, 2),
+    highAccuracy: readBoolean(context?.policy?.highAccuracyLocation, true),
+  });
+  if (!location.ok) throw new Error(location.message);
+
+  const locationPayload = buildLocationPayload(location, {
+    userAgent:
+      typeof navigator !== "undefined" ? navigator.userAgent : undefined,
+  });
 
   if (action === "check-out") {
-    return location
-      ? {
-          remoteLatitude: location.latitude,
-          remoteLongitude: location.longitude,
-          locationAccuracy: location.accuracy,
-          locationCapturedAt: location.capturedAt,
-        }
-      : {};
+    return {
+      ...locationPayload,
+      checkOutAddressText: location.addressText,
+    };
   }
 
   return {
     attendanceMode,
     officeLocationId:
       attendanceMode === "OFFICE" ? context?.workSites?.[0]?.id : undefined,
-    remoteLatitude: location?.latitude,
-    remoteLongitude: location?.longitude,
-    locationAccuracy: location?.accuracy,
-    locationCapturedAt: location?.capturedAt,
+    ...locationPayload,
+    checkInAddressText: location.addressText,
   };
 }
 
-function captureBrowserLocation() {
-  if (typeof navigator === "undefined" || !navigator.geolocation) {
-    return Promise.resolve(null);
-  }
+function readBoolean(value: unknown, fallback: boolean) {
+  return typeof value === "boolean" ? value : fallback;
+}
 
-  return new Promise<{
-    latitude: number;
-    longitude: number;
-    accuracy: number;
-    capturedAt: string;
-  } | null>((resolve) => {
-    navigator.geolocation.getCurrentPosition(
-      (position) =>
-        resolve({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          accuracy: position.coords.accuracy,
-          capturedAt: new Date(position.timestamp).toISOString(),
-        }),
-      () => resolve(null),
-      { enableHighAccuracy: true, maximumAge: 30_000, timeout: 10_000 },
-    );
-  });
+function readNumber(value: unknown, fallback: number) {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
 }
 
 function ActionCard({

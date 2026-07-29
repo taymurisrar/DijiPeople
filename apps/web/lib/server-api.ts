@@ -11,6 +11,7 @@ import { normalizeApiError } from "@/lib/api-error";
 import {
   ACCESS_TOKEN_MAX_AGE_SECONDS,
   getAuthCookieOptions,
+  parseDurationToMilliseconds,
   REFRESH_TOKEN_MAX_AGE_SECONDS,
 } from "@/lib/auth-cookies";
 
@@ -42,6 +43,9 @@ type RefreshedAuthTokens = {
   accessToken: string;
   refreshToken: string;
   sessionId?: string;
+  accessTokenExpiresIn?: string;
+  refreshTokenExpiresIn?: string;
+  rememberMe?: boolean;
 };
 
 export class ApiRequestError extends Error {
@@ -238,23 +242,35 @@ async function refreshServerAuthTokens(
 async function persistRefreshedAuthCookies(tokens: RefreshedAuthTokens) {
   try {
     const cookieStore = await cookies();
+    const accessMaxAge = tokens.rememberMe
+      ? durationSeconds(
+          tokens.accessTokenExpiresIn,
+          ACCESS_TOKEN_MAX_AGE_SECONDS,
+        )
+      : undefined;
+    const refreshMaxAge = tokens.rememberMe
+      ? durationSeconds(
+          tokens.refreshTokenExpiresIn,
+          REFRESH_TOKEN_MAX_AGE_SECONDS,
+        )
+      : undefined;
 
     cookieStore.set(
       ACCESS_TOKEN_COOKIE,
       tokens.accessToken,
-      getAuthCookieOptions(ACCESS_TOKEN_MAX_AGE_SECONDS),
+      getAuthCookieOptions(accessMaxAge),
     );
     cookieStore.set(
       REFRESH_TOKEN_COOKIE,
       tokens.refreshToken,
-      getAuthCookieOptions(REFRESH_TOKEN_MAX_AGE_SECONDS),
+      getAuthCookieOptions(refreshMaxAge),
     );
 
     if (tokens.sessionId) {
       cookieStore.set(
         SESSION_COOKIE,
         tokens.sessionId,
-        getAuthCookieOptions(REFRESH_TOKEN_MAX_AGE_SECONDS),
+        getAuthCookieOptions(refreshMaxAge),
       );
     }
   } catch {
@@ -285,7 +301,25 @@ function readRefreshedAuthTokens(data: unknown): RefreshedAuthTokens | null {
     refreshToken: tokens.refreshToken,
     sessionId:
       typeof tokens.sessionId === "string" ? tokens.sessionId : undefined,
+    accessTokenExpiresIn:
+      typeof tokens.accessTokenExpiresIn === "string"
+        ? tokens.accessTokenExpiresIn
+        : undefined,
+    refreshTokenExpiresIn:
+      typeof tokens.refreshTokenExpiresIn === "string"
+        ? tokens.refreshTokenExpiresIn
+        : undefined,
+    rememberMe: tokens.rememberMe === true,
   };
+}
+
+function durationSeconds(value: string | undefined, fallback: number) {
+  if (!value) return fallback;
+  try {
+    return Math.floor(parseDurationToMilliseconds(value) / 1000);
+  } catch {
+    return fallback;
+  }
 }
 
 function shouldAttemptServerRefresh(path: string) {

@@ -13,6 +13,7 @@ import {
   TenantStatus,
 } from '@prisma/client';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { TENANT_FEATURE_DEFINITIONS } from '../../tenant-settings/tenant-settings.catalog';
 import {
   assertValidTenantSlug,
   suggestTenantSlug,
@@ -31,6 +32,22 @@ export class BillingService {
   ) {}
 
   async getPublicPlans() {
+    const featureCatalog = TENANT_FEATURE_DEFINITIONS.map((feature, index) => ({
+      key: feature.key,
+      label: feature.label,
+      description: feature.description,
+      categoryKey: feature.categoryKey ?? 'core',
+      categoryLabel: feature.categoryLabel ?? 'Core HR',
+      categoryOrder: feature.categoryOrder ?? 10,
+      sortOrder: feature.sortOrder ?? index + 1,
+      icon: feature.icon ?? 'check-circle',
+      isVisible: feature.isVisible ?? true,
+    }));
+    const featureCatalogByKey = new Map<
+      string,
+      (typeof featureCatalog)[number]
+    >(featureCatalog.map((feature) => [feature.key, feature]));
+
     const plans = await this.prisma.plan.findMany({
       where: {
         isActive: true,
@@ -90,11 +107,24 @@ export class BillingService {
           currency,
           billingCycles: Array.from(cycles).sort(),
         })),
-        features: plan.features.map((feature) => ({
-          id: feature.id,
-          key: feature.featureKey,
-          isEnabled: feature.isEnabled,
-        })),
+        features: plan.features
+          .map((feature) => {
+            const catalogItem = featureCatalogByKey.get(feature.featureKey);
+            return {
+              id: feature.id,
+              key: feature.featureKey,
+              label: catalogItem?.label ?? toTitleCase(feature.featureKey),
+              description: catalogItem?.description ?? null,
+              categoryKey: catalogItem?.categoryKey ?? 'other',
+              categoryLabel: catalogItem?.categoryLabel ?? 'Other',
+              categoryOrder: catalogItem?.categoryOrder ?? 999,
+              sortOrder: catalogItem?.sortOrder ?? 999,
+              icon: catalogItem?.icon ?? 'check-circle',
+              isVisible: catalogItem?.isVisible ?? true,
+              isEnabled: feature.isEnabled,
+            };
+          })
+          .filter((feature) => feature.isVisible),
         metadata,
         isPopular: readMetadataBoolean(metadata, ['isPopular', 'popular']),
         isRecommended: readMetadataBoolean(metadata, [
@@ -106,6 +136,27 @@ export class BillingService {
 
     return {
       plans: publicPlans,
+      featureCatalog,
+      featureCategories: Array.from(
+        new Map(
+          featureCatalog.map((feature) => [
+            feature.categoryKey,
+            {
+              key: feature.categoryKey,
+              label: feature.categoryLabel,
+              sortOrder: feature.categoryOrder,
+            },
+          ]),
+        ).values(),
+      ).sort((left, right) => left.sortOrder - right.sortOrder),
+      presentation: {
+        allowPlanComparison: true,
+        allowSelfServiceUpgrade: true,
+        showUpgradeOptions: true,
+        showPricing: true,
+        showDescriptions: true,
+        contactLabel: 'Contact Administrator',
+      },
       availableCurrencies: Array.from(
         new Set(
           publicPlans.flatMap((plan) =>
@@ -533,11 +584,11 @@ export class BillingService {
         ],
         success_url: this.resolveCheckoutUrl(
           'STRIPE_CHECKOUT_SUCCESS_URL',
-          '/settings/billing/success?session_id={CHECKOUT_SESSION_ID}',
+          '/settings/subscription/success?session_id={CHECKOUT_SESSION_ID}',
         ),
         cancel_url: this.resolveCheckoutUrl(
           'STRIPE_CHECKOUT_CANCEL_URL',
-          '/settings/billing/cancel',
+          '/settings/subscription/cancel',
         ),
         client_reference_id: input.tenantId,
         metadata,
@@ -570,7 +621,7 @@ export class BillingService {
         customer: stripeCustomerId,
         return_url: this.resolveCheckoutUrl(
           'STRIPE_PORTAL_RETURN_URL',
-          '/settings/billing',
+          '/settings/subscription/overview',
         ),
       });
 
@@ -945,6 +996,14 @@ function readMetadataBoolean(
   if (!metadata) return false;
 
   return keys.some((key) => metadata[key] === true);
+}
+
+function toTitleCase(value: string) {
+  return value
+    .replace(/[._-]+/g, ' ')
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .trim()
+    .replace(/\w\S*/g, (part) => part.charAt(0).toUpperCase() + part.slice(1));
 }
 
 function assertHttpUrl(value: string, key: string) {

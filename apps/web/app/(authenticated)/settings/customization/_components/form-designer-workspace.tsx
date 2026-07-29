@@ -21,6 +21,12 @@ import {
   TextField,
 } from "@/app/components/ui/form-control";
 import { StatusPill } from "@/app/components/ui/status-pill";
+import {
+  FormGrid,
+  FormGridItem,
+  normalizeFormGridColumnCount,
+  normalizeFormGridColumnSpan,
+} from "@/app/components/metadata/form-layout-grid";
 import type {
   CustomizationColumn,
   CustomizationForm,
@@ -374,14 +380,21 @@ export function FormDesignerWorkspace({ columns, form, table }: Props) {
                   </Button>
                 </div>
 
-                <div
-                  className={`mt-4 grid gap-4 ${gridClass(tab.columns ?? 1)}`}
+                <FormGrid
+                  className="mt-4"
+                  columns={tab.columns}
+                  gap="section"
+                  kind="tab"
                 >
                   {tab.sections.map((section) => (
-                    <div
-                      className={`rounded-2xl border border-border bg-slate-50 p-4 ${spanClass(section.columnSpan ?? 1, tab.columns ?? 1)}`}
-                      draggable
+                    <FormGridItem
+                      className="rounded-2xl border border-border bg-slate-50 p-4"
+                      columnSpan={section.columnSpan}
                       key={section.id}
+                      parentColumns={tab.columns}
+                    >
+                    <div
+                      draggable
                       onClick={(event) => {
                         event.stopPropagation();
                         setSelection({
@@ -423,17 +436,22 @@ export function FormDesignerWorkspace({ columns, form, table }: Props) {
                         )}
                       </div>
 
-                      <div
-                        className={`grid gap-3 ${gridClass(section.columns ?? 2)}`}
+                      <FormGrid
+                        columns={section.columns ?? 2}
+                        kind="section"
                         onDragOver={(event) => event.preventDefault()}
                       >
                         {(section.fields ?? []).map((field) => {
                           const column = columnByKey.get(field.columnKey);
                           return (
-                            <div
-                              className={`rounded-xl border border-border bg-white px-3 py-3 ${spanClass(field.columnSpan ?? 1, section.columns ?? 2)}`}
-                              draggable
+                            <FormGridItem
+                              className="rounded-xl border border-border bg-white px-3 py-3"
+                              columnSpan={field.columnSpan}
                               key={`${section.id}-${field.columnKey}`}
+                              parentColumns={section.columns ?? 2}
+                            >
+                            <div
+                              draggable
                               onClick={(event) => {
                                 event.stopPropagation();
                                 setSelection({
@@ -476,12 +494,15 @@ export function FormDesignerWorkspace({ columns, form, table }: Props) {
                                 <GripVertical className="h-4 w-4 text-muted" />
                               </div>
                             </div>
+                            </FormGridItem>
                           );
                         })}
                         {(section.components ?? []).map((component) => (
-                          <div
-                            className={`rounded-xl border border-accent/30 bg-accent-soft px-3 py-3 ${spanClass(component.columnSpan ?? 1, section.columns ?? 2)}`}
+                          <FormGridItem
+                            className="rounded-xl border border-accent/30 bg-accent-soft px-3 py-3"
+                            columnSpan={component.columnSpan}
                             key={component.id}
+                            parentColumns={section.columns ?? 2}
                           >
                             <div className="flex items-center justify-between gap-2">
                               <div>
@@ -509,12 +530,13 @@ export function FormDesignerWorkspace({ columns, form, table }: Props) {
                                 Remove
                               </Button>
                             </div>
-                          </div>
+                          </FormGridItem>
                         ))}
-                      </div>
+                      </FormGrid>
                     </div>
+                    </FormGridItem>
                   ))}
-                </div>
+                </FormGrid>
               </section>
             ))}
           </div>
@@ -920,7 +942,7 @@ function PropertiesPanel({
                   sectionSelection.tabId,
                   selectedSection.id,
                   {
-                    columns: Number(columns),
+                    columns: clampColumns(columns),
                   },
                 )
               }
@@ -1138,38 +1160,17 @@ function resequenceLayout(layout: FormLayoutJson): FormLayoutJson {
   };
 }
 
-function gridClass(columns = 2) {
-  if (columns === 1) return "md:grid-cols-1";
-  if (columns === 3) return "md:grid-cols-3";
-  if (columns === 4) return "md:grid-cols-4";
-  return "md:grid-cols-2";
-}
-
-function spanClass(span: number, parentColumns: number) {
-  const normalized = Math.min(Math.max(span, 1), parentColumns);
-  if (normalized === 4) return "md:col-span-4";
-  if (normalized === 3) return "md:col-span-3";
-  if (normalized === 2) return "md:col-span-2";
-  return "md:col-span-1";
-}
-
 function clampColumns(value: unknown): 1 | 2 | 3 | 4 {
-  const numeric = Number(value);
-  if (numeric === 4) return 4;
-  if (numeric === 3) return 3;
-  if (numeric === 2) return 2;
-  return 1;
+  return normalizeFormGridColumnCount(value);
 }
 
 function clampSpan(value: unknown, parentColumns: unknown): 1 | 2 | 3 | 4 {
-  const parent = clampColumns(parentColumns);
-  const numeric = Math.min(Number(value) || 1, parent);
-  return clampColumns(numeric);
+  return normalizeFormGridColumnSpan(value, parentColumns);
 }
 
 function layoutOptions(maxColumns: unknown = 4) {
   const max = clampColumns(maxColumns);
-  return [1, 2, 3, 4]
+  return [1, 2, 3]
     .filter((value) => value <= max)
     .map((value) => ({
       value: String(value),

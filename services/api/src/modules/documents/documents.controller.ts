@@ -87,6 +87,15 @@ export class DocumentsController {
     return this.documentsService.listDocumentCategories(user.tenantId);
   }
 
+  @Get('categories/:id')
+  @Permissions('documents.read')
+  findCategory(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.documentsService.findDocumentCategoryById(user.tenantId, id);
+  }
+
   @Post('categories')
   @Permissions('documents.categories.manage')
   createCategory(
@@ -94,6 +103,25 @@ export class DocumentsController {
     @Body() dto: CreateDocumentCategoryDto,
   ) {
     return this.documentsService.createDocumentCategory(user, dto);
+  }
+
+  @Patch('categories/:id')
+  @Permissions('documents.categories.manage')
+  updateCategory(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: CreateDocumentCategoryDto,
+  ) {
+    return this.documentsService.updateDocumentCategory(user, id, dto);
+  }
+
+  @Delete('categories/:id')
+  @Permissions('documents.categories.manage')
+  deactivateCategory(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.documentsService.deactivateDocumentCategory(user, id);
   }
 
   @Post('upload')

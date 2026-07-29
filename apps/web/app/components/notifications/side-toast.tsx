@@ -4,6 +4,8 @@ import { useEffect } from "react";
 
 type SideToastVariant = "success" | "error" | "warning" | "info";
 type SideToastPlacement =
+  | "top-center"
+  | "bottom-center"
   | "top-right"
   | "bottom-right"
   | "top-left"
@@ -22,17 +24,19 @@ export type SideToastProps = {
 };
 
 const variantStyles: Record<SideToastVariant, string> = {
-  success: "border-emerald-200 bg-emerald-50",
-  error: "border-red-200 bg-red-50",
-  warning: "border-amber-200 bg-amber-50",
-  info: "border-sky-200 bg-sky-50",
+  success: "border-emerald-300 bg-emerald-50 text-emerald-950",
+  error: "border-red-300 bg-red-50 text-red-950",
+  warning: "border-amber-300 bg-amber-50 text-amber-950",
+  info: "border-sky-300 bg-sky-50 text-sky-950",
 };
 
 const placementStyles: Record<SideToastPlacement, string> = {
-  "top-right": "top-4 right-4",
-  "bottom-right": "bottom-4 right-4",
-  "top-left": "top-4 left-4",
-  "bottom-left": "bottom-4 left-4",
+  "top-center": "top-6 left-1/2 -translate-x-1/2",
+  "bottom-center": "bottom-6 left-1/2 -translate-x-1/2",
+  "top-right": "top-6 right-6",
+  "bottom-right": "bottom-6 right-6",
+  "top-left": "top-6 left-6",
+  "bottom-left": "bottom-6 left-6",
 };
 
 export function SideToast({
@@ -60,16 +64,23 @@ export function SideToast({
   }
 
   return (
-    <div className={`fixed z-40 w-full max-w-sm ${placementStyles[placement]}`}>
-      <div className={`rounded-2xl border p-4 shadow-lg ${variantStyles[variant]}`} role="status">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold text-foreground">{title}</p>
-            {description ? <p className="mt-1 text-sm text-muted">{description}</p> : null}
+    <div
+      className={`fixed z-[120] w-[calc(100%-2rem)] max-w-[320px] ${placementStyles[placement]}`}
+    >
+      <div
+        className={`rounded-xl border px-4 py-3 shadow-xl shadow-black/10 backdrop-blur ${variantStyles[variant]}`}
+        role="status"
+      >
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold">{title}</p>
+            {description ? (
+              <p className="mt-1 text-sm opacity-75">{description}</p>
+            ) : null}
           </div>
           <button
             aria-label="Dismiss toast"
-            className="rounded-lg px-2 py-1 text-sm text-muted transition hover:bg-white/70 hover:text-foreground"
+            className="shrink-0 rounded-lg px-2 py-1 text-sm opacity-60 transition hover:bg-white/70 hover:opacity-100"
             onClick={onClose}
             type="button"
           >

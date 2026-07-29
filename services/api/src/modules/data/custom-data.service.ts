@@ -84,7 +84,11 @@ export class CustomDataService {
 
   async getMetadata(entityLogicalName: string, user: AuthenticatedUser) {
     const table = await this.tableOrThrow(entityLogicalName, user.tenantId);
-    this.permissionResolver.assertCan(CUSTOM_METADATA, user, SecurityPrivilege.READ);
+    this.permissionResolver.assertCan(
+      CUSTOM_METADATA,
+      user,
+      SecurityPrivilege.READ,
+    );
     const can = (privilege: SecurityPrivilege) => {
       try {
         this.permissionResolver.assertCan(CUSTOM_METADATA, user, privilege);
@@ -110,7 +114,9 @@ export class CustomDataService {
         table.columns
           .filter((column) => column.isActive && column.isVisible)
           .filter((column) => {
-            const permission = stringOrNull(readJson(column.validationJson).readPermission);
+            const permission = stringOrNull(
+              readJson(column.validationJson).readPermission,
+            );
             return !permission || user.permissionKeys.includes(permission);
           })
           .map((column) => [
@@ -123,10 +129,14 @@ export class CustomDataService {
               readOnly:
                 column.isReadOnly ||
                 Boolean(
-                  stringOrNull(readJson(column.validationJson).writePermission) &&
-                    !user.permissionKeys.includes(
-                      stringOrNull(readJson(column.validationJson).writePermission)!,
-                    ),
+                  stringOrNull(
+                    readJson(column.validationJson).writePermission,
+                  ) &&
+                  !user.permissionKeys.includes(
+                    stringOrNull(
+                      readJson(column.validationJson).writePermission,
+                    )!,
+                  ),
                 ),
               maxLength: column.maxLength,
               lookupTargetTableKey: column.lookupTargetTableKey,
@@ -143,7 +153,11 @@ export class CustomDataService {
     user: AuthenticatedUser,
   ) {
     const table = await this.tableOrThrow(entityLogicalName, user.tenantId);
-    this.permissionResolver.assertCan(CUSTOM_METADATA, user, SecurityPrivilege.READ);
+    this.permissionResolver.assertCan(
+      CUSTOM_METADATA,
+      user,
+      SecurityPrivilege.READ,
+    );
     const relation = await this.resolveRelationship(table, query, user);
     const page = positiveInt(query.page, 1);
     const pageSize = Math.min(200, positiveInt(query.pageSize, 50));
@@ -157,7 +171,14 @@ export class CustomDataService {
         scope,
         { tenantId: user.tenantId, tableId: table.id, isDeleted: false },
         ...(relation
-          ? [{ values: { path: [relation.lookupField], equals: relation.parentId } }]
+          ? [
+              {
+                values: {
+                  path: [relation.lookupField],
+                  equals: relation.parentId,
+                },
+              },
+            ]
           : []),
       ],
     };
@@ -189,7 +210,11 @@ export class CustomDataService {
     user: AuthenticatedUser,
   ) {
     const table = await this.tableOrThrow(entityLogicalName, user.tenantId);
-    this.permissionResolver.assertCan(CUSTOM_METADATA, user, SecurityPrivilege.CREATE);
+    this.permissionResolver.assertCan(
+      CUSTOM_METADATA,
+      user,
+      SecurityPrivilege.CREATE,
+    );
     const relation = await this.resolveRelationship(table, query, user, true);
     const values = this.validateValues(
       table,
@@ -238,10 +263,22 @@ export class CustomDataService {
     user: AuthenticatedUser,
   ) {
     const table = await this.tableOrThrow(entityLogicalName, user.tenantId);
-    this.permissionResolver.assertCan(CUSTOM_METADATA, user, SecurityPrivilege.WRITE);
-    const existing = await this.recordOrThrow(table, recordId, user, SecurityPrivilege.WRITE);
+    this.permissionResolver.assertCan(
+      CUSTOM_METADATA,
+      user,
+      SecurityPrivilege.WRITE,
+    );
+    const existing = await this.recordOrThrow(
+      table,
+      recordId,
+      user,
+      SecurityPrivilege.WRITE,
+    );
     const relation = await this.resolveRelationship(table, query, user);
-    if (relation && readJson(existing.values)[relation.lookupField] !== relation.parentId) {
+    if (
+      relation &&
+      readJson(existing.values)[relation.lookupField] !== relation.parentId
+    ) {
       throw new NotFoundException('Related record was not found.');
     }
     const patch = this.validateValues(table, body, user, 'update');
@@ -250,7 +287,10 @@ export class CustomDataService {
     const record = await this.prisma.$transaction(async (tx) => {
       const updated = await tx.customDataRecord.update({
         where: { id: existing.id },
-        data: { values: values as Prisma.InputJsonValue, updatedById: user.userId },
+        data: {
+          values: values as Prisma.InputJsonValue,
+          updatedById: user.userId,
+        },
       });
       await this.auditService.log(
         {
@@ -279,7 +319,11 @@ export class CustomDataService {
     user: AuthenticatedUser,
   ) {
     const table = await this.tableOrThrow(entityLogicalName, user.tenantId);
-    this.permissionResolver.assertCan(CUSTOM_METADATA, user, SecurityPrivilege.DELETE);
+    this.permissionResolver.assertCan(
+      CUSTOM_METADATA,
+      user,
+      SecurityPrivilege.DELETE,
+    );
     if (!recordIds.length || recordIds.length > 200) {
       throw new BadRequestException('Provide between 1 and 200 record IDs.');
     }
@@ -292,7 +336,8 @@ export class CustomDataService {
     if (
       relation &&
       records.some(
-        (record) => readJson(record.values)[relation.lookupField] !== relation.parentId,
+        (record) =>
+          readJson(record.values)[relation.lookupField] !== relation.parentId,
       )
     ) {
       throw new NotFoundException('Related record was not found.');
@@ -301,7 +346,11 @@ export class CustomDataService {
       for (const record of records) {
         const deleted = await tx.customDataRecord.update({
           where: { id: record.id },
-          data: { isDeleted: true, deletedAt: new Date(), updatedById: user.userId },
+          data: {
+            isDeleted: true,
+            deletedAt: new Date(),
+            updatedById: user.userId,
+          },
         });
         await this.auditService.log(
           {
@@ -320,7 +369,10 @@ export class CustomDataService {
         );
       }
     });
-    return { deleted: records.length, recordIds: records.map((record) => record.id) };
+    return {
+      deleted: records.length,
+      recordIds: records.map((record) => record.id),
+    };
   }
 
   private async recordOrThrow(
@@ -329,7 +381,11 @@ export class CustomDataService {
     user: AuthenticatedUser,
     privilege: SecurityPrivilege,
   ) {
-    const scope = this.scopeResolver.buildScope(CUSTOM_METADATA, user, privilege);
+    const scope = this.scopeResolver.buildScope(
+      CUSTOM_METADATA,
+      user,
+      privilege,
+    );
     const record = await this.prisma.customDataRecord.findFirst({
       where: {
         AND: [
@@ -348,7 +404,9 @@ export class CustomDataService {
     user: AuthenticatedUser,
     required = false,
   ): Promise<RelationshipResolution | null> {
-    const supplied = Boolean(query.parentEntity || query.parentId || query.lookupField);
+    const supplied = Boolean(
+      query.parentEntity || query.parentId || query.lookupField,
+    );
     if (!supplied && !required) return null;
     if (!query.parentEntity || !query.parentId || !query.lookupField) {
       throw new BadRequestException(
@@ -362,13 +420,27 @@ export class CustomDataService {
       throw new BadRequestException('Related lookup field is not configured.');
     }
     if (!sameEntity(column.lookupTargetTableKey, query.parentEntity)) {
-      throw new BadRequestException('Relationship parent does not match lookup metadata.');
+      throw new BadRequestException(
+        'Relationship parent does not match lookup metadata.',
+      );
     }
-    const parentScope = await this.resolveParentScope(query.parentEntity, query.parentId, user);
-    return { lookupField: column.columnKey, parentId: query.parentId, parentScope };
+    const parentScope = await this.resolveParentScope(
+      query.parentEntity,
+      query.parentId,
+      user,
+    );
+    return {
+      lookupField: column.columnKey,
+      parentId: query.parentId,
+      parentScope,
+    };
   }
 
-  private async resolveParentScope(entity: string, id: string, user: AuthenticatedUser) {
+  private async resolveParentScope(
+    entity: string,
+    id: string,
+    user: AuthenticatedUser,
+  ) {
     if (sameEntity(entity, 'Employee') || sameEntity(entity, 'employees')) {
       const employeeMetadata = getEntityMetadata('employees');
       if (!employeeMetadata) {
@@ -393,7 +465,8 @@ export class CustomDataService {
           businessUnit: { select: { organizationId: true } },
         },
       });
-      if (!employee) throw new NotFoundException('Parent record was not found.');
+      if (!employee)
+        throw new NotFoundException('Parent record was not found.');
       return {
         organizationId: employee.businessUnit?.organizationId,
         businessUnitId: employee.businessUnitId,
@@ -401,7 +474,12 @@ export class CustomDataService {
       };
     }
     const parentTable = await this.tableOrThrow(entity, user.tenantId);
-    const parent = await this.recordOrThrow(parentTable, id, user, SecurityPrivilege.READ);
+    const parent = await this.recordOrThrow(
+      parentTable,
+      id,
+      user,
+      SecurityPrivilege.READ,
+    );
     return {
       organizationId: parent.organizationId,
       businessUnitId: parent.businessUnitId,
@@ -419,10 +497,19 @@ export class CustomDataService {
     const inherited = relation?.parentScope ?? {};
     const ownership = (table.ownershipType ?? 'tenant').toLowerCase();
     return {
-      organizationId: stringOrNull(inherited.organizationId ?? values.organizationId ?? user.accessContext?.organizationId),
-      businessUnitId: stringOrNull(inherited.businessUnitId ?? values.businessUnitId ?? user.accessContext?.businessUnitId),
+      organizationId: stringOrNull(
+        inherited.organizationId ??
+          values.organizationId ??
+          user.accessContext?.organizationId,
+      ),
+      businessUnitId: stringOrNull(
+        inherited.businessUnitId ??
+          values.businessUnitId ??
+          user.accessContext?.businessUnitId,
+      ),
       ownerUserId: stringOrNull(
-        inherited.ownerUserId ?? values.ownerUserId ??
+        inherited.ownerUserId ??
+          values.ownerUserId ??
           (ownership === 'user' ? user.userId : user.userId),
       ),
       ownerTeamId: stringOrNull(inherited.ownerTeamId ?? values.ownerTeamId),
@@ -438,13 +525,20 @@ export class CustomDataService {
   ) {
     const output: Record<string, unknown> = {};
     const errors: Record<string, string[]> = {};
-    const columns = new Map(table.columns.filter((item) => item.isActive).map((item) => [item.columnKey, item]));
+    const columns = new Map(
+      table.columns
+        .filter((item) => item.isActive)
+        .map((item) => [item.columnKey, item]),
+    );
     for (const [key, value] of Object.entries(input)) {
       const column = columns.get(key);
       if (!column || !column.isVisible) continue;
       const rules = readJson(column.validationJson);
       const writePermission = stringOrNull(rules.writePermission);
-      if (column.isReadOnly || (writePermission && !user.permissionKeys.includes(writePermission))) {
+      if (
+        column.isReadOnly ||
+        (writePermission && !user.permissionKeys.includes(writePermission))
+      ) {
         errors[key] = ['Field is read-only.'];
         continue;
       }
@@ -463,7 +557,10 @@ export class CustomDataService {
         ) {
           errors[column.columnKey] = ['Field is required.'];
         }
-        if (output[column.columnKey] === undefined && column.defaultValue !== null) {
+        if (
+          output[column.columnKey] === undefined &&
+          column.defaultValue !== null
+        ) {
           output[column.columnKey] = column.defaultValue;
         }
       }
@@ -474,26 +571,53 @@ export class CustomDataService {
     return output;
   }
 
-  private toPublicRecord(record: { id: string; values: Prisma.JsonValue; createdAt: Date; updatedAt: Date }, table: CustomTable, user: AuthenticatedUser) {
+  private toPublicRecord(
+    record: {
+      id: string;
+      values: Prisma.JsonValue;
+      createdAt: Date;
+      updatedAt: Date;
+    },
+    table: CustomTable,
+    user: AuthenticatedUser,
+  ) {
     const values = readJson(record.values);
     const secured: Record<string, unknown> = {};
-    for (const column of table.columns.filter((item) => item.isActive && item.isVisible)) {
+    for (const column of table.columns.filter(
+      (item) => item.isActive && item.isVisible,
+    )) {
       const rules = readJson(column.validationJson);
       const readPermission = stringOrNull(rules.readPermission);
-      if (readPermission && !user.permissionKeys.includes(readPermission)) continue;
+      if (readPermission && !user.permissionKeys.includes(readPermission))
+        continue;
       const value = values[column.columnKey];
-      secured[column.columnKey] = rules.mask === true && value ? maskValue(String(value)) : value;
+      secured[column.columnKey] =
+        rules.mask === true && value ? maskValue(String(value)) : value;
     }
-    return { id: record.id, ...secured, createdAt: record.createdAt, updatedAt: record.updatedAt };
+    return {
+      id: record.id,
+      ...secured,
+      createdAt: record.createdAt,
+      updatedAt: record.updatedAt,
+    };
   }
 
-  private toAuditRecord(record: { id: string; values: Prisma.JsonValue; isDeleted: boolean }) {
-    return { id: record.id, values: record.values, isDeleted: record.isDeleted };
+  private toAuditRecord(record: {
+    id: string;
+    values: Prisma.JsonValue;
+    isDeleted: boolean;
+  }) {
+    return {
+      id: record.id,
+      values: record.values,
+      isDeleted: record.isDeleted,
+    };
   }
 
   private async tableOrThrow(entity: string, tenantId: string) {
     const table = await this.findTable(entity, tenantId);
-    if (!table) throw new NotFoundException(`Entity is not available: ${entity}`);
+    if (!table)
+      throw new NotFoundException(`Entity is not available: ${entity}`);
     return table;
   }
 
@@ -508,7 +632,9 @@ export class CustomDataService {
           { systemName: { equals: entity, mode: 'insensitive' } },
         ],
       },
-      include: { columns: { where: { isActive: true }, orderBy: { sortOrder: 'asc' } } },
+      include: {
+        columns: { where: { isActive: true }, orderBy: { sortOrder: 'asc' } },
+      },
     });
   }
 }
@@ -525,9 +651,15 @@ function positiveInt(value: string | undefined, fallback: number) {
 function stringOrNull(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
-function sameEntity(left: string | null | undefined, right: string | null | undefined) {
+function sameEntity(
+  left: string | null | undefined,
+  right: string | null | undefined,
+) {
   const normalize = (value: string | null | undefined) =>
-    (value ?? '').replace(/[^a-z0-9]/gi, '').replace(/s$/i, '').toLowerCase();
+    (value ?? '')
+      .replace(/[^a-z0-9]/gi, '')
+      .replace(/s$/i, '')
+      .toLowerCase();
   return normalize(left) === normalize(right);
 }
 function maskValue(value: string) {
@@ -536,9 +668,23 @@ function maskValue(value: string) {
 }
 function validateValue(column: CustomizationColumn, value: unknown) {
   if (value === null || value === undefined || value === '') return null;
-  if (column.dataType === 'boolean' && typeof value !== 'boolean') return 'Must be a boolean.';
-  if (['number', 'decimal', 'currency'].includes(column.dataType) && (typeof value !== 'number' || !Number.isFinite(value))) return 'Must be a number.';
-  if (['date', 'datetime'].includes(column.dataType) && (typeof value !== 'string' || Number.isNaN(Date.parse(value)))) return 'Must be a valid date.';
-  if (typeof value === 'string' && column.maxLength && value.length > column.maxLength) return `Must not exceed ${column.maxLength} characters.`;
+  if (column.dataType === 'boolean' && typeof value !== 'boolean')
+    return 'Must be a boolean.';
+  if (
+    ['number', 'decimal', 'currency'].includes(column.dataType) &&
+    (typeof value !== 'number' || !Number.isFinite(value))
+  )
+    return 'Must be a number.';
+  if (
+    ['date', 'datetime'].includes(column.dataType) &&
+    (typeof value !== 'string' || Number.isNaN(Date.parse(value)))
+  )
+    return 'Must be a valid date.';
+  if (
+    typeof value === 'string' &&
+    column.maxLength &&
+    value.length > column.maxLength
+  )
+    return `Must not exceed ${column.maxLength} characters.`;
   return null;
 }

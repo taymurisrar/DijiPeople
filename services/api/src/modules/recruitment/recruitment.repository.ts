@@ -39,6 +39,7 @@ const applicationSummaryInclude = {
       status: true,
       description: true,
       matchCriteria: true,
+      pipelineId: true,
     },
   },
   draftEmployee: {
@@ -63,6 +64,13 @@ const applicationSummaryInclude = {
 } satisfies Prisma.ApplicationInclude;
 
 const jobOpeningInclude = {
+  pipeline: {
+    include: {
+      stages: {
+        orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }],
+      },
+    },
+  },
   applications: {
     include: applicationSummaryInclude,
     orderBy: [{ updatedAt: 'desc' }],
@@ -138,6 +146,8 @@ const applicationScoringInclude = {
           fieldOfStudy: true,
         },
       },
+      hrNotes: true,
+      profileSummary: true,
       currentCity: true,
       currentCountry: true,
       preferredLocation: true,
@@ -173,6 +183,17 @@ export type ApplicationSummaryWithRelations = Prisma.ApplicationGetPayload<{
 export type ApplicationForScoring = Prisma.ApplicationGetPayload<{
   include: typeof applicationScoringInclude;
 }>;
+
+const recruitmentPipelineInclude = {
+  stages: {
+    orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }],
+  },
+} satisfies Prisma.RecruitmentPipelineInclude;
+
+export type RecruitmentPipelineWithStages =
+  Prisma.RecruitmentPipelineGetPayload<{
+    include: typeof recruitmentPipelineInclude;
+  }>;
 
 @Injectable()
 export class RecruitmentRepository {
@@ -239,6 +260,80 @@ export class RecruitmentRepository {
       where: { tenantId, id },
       data,
     });
+  }
+
+  findRecruitmentPipelines(tenantId: string, db: PrismaDb = this.prisma) {
+    return db.recruitmentPipeline.findMany({
+      where: { tenantId },
+      include: recruitmentPipelineInclude,
+      orderBy: [{ isDefault: 'desc' }, { name: 'asc' }],
+    });
+  }
+
+  findActiveRecruitmentPipelines(tenantId: string, db: PrismaDb = this.prisma) {
+    return db.recruitmentPipeline.findMany({
+      where: { tenantId, isActive: true },
+      include: recruitmentPipelineInclude,
+      orderBy: [{ isDefault: 'desc' }, { name: 'asc' }],
+    });
+  }
+
+  findRecruitmentPipelineById(
+    tenantId: string,
+    id: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.recruitmentPipeline.findFirst({
+      where: { tenantId, id },
+      include: recruitmentPipelineInclude,
+    });
+  }
+
+  findDefaultRecruitmentPipeline(tenantId: string, db: PrismaDb = this.prisma) {
+    return db.recruitmentPipeline.findFirst({
+      where: { tenantId, isDefault: true, isActive: true },
+      include: recruitmentPipelineInclude,
+      orderBy: [{ updatedAt: 'desc' }],
+    });
+  }
+
+  createRecruitmentPipeline(
+    data: Prisma.RecruitmentPipelineUncheckedCreateInput,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.recruitmentPipeline.create({
+      data,
+      include: recruitmentPipelineInclude,
+    });
+  }
+
+  updateRecruitmentPipeline(
+    tenantId: string,
+    id: string,
+    data: Prisma.RecruitmentPipelineUncheckedUpdateInput,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.recruitmentPipeline.updateMany({
+      where: { tenantId, id },
+      data,
+    });
+  }
+
+  deleteRecruitmentPipelineStages(
+    tenantId: string,
+    pipelineId: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.recruitmentPipelineStage.deleteMany({
+      where: { tenantId, pipelineId },
+    });
+  }
+
+  createRecruitmentPipelineStages(
+    data: Prisma.RecruitmentPipelineStageCreateManyInput[],
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.recruitmentPipelineStage.createMany({ data });
   }
 
   async findCandidates(

@@ -1,58 +1,52 @@
-import { StandardModuleRecordPage } from "@/app/components/runtime";
-import { getSessionUser } from "@/lib/auth";
-import {
-  buildPublishedStandardRouteRuntime,
-  resolveStandardActiveForm,
-} from "@/lib/runtime/modules/standard-module-route-helpers";
-import { timesheetRuntimeSpec } from "@/lib/runtime/modules/standard-module-specs";
 import { apiRequestJson } from "@/lib/server-api";
+import { TimesheetMONTHLYEditor } from "../_components/timesheet-monthly-editor";
 import type { TimesheetRecord } from "../types";
 
 type PageProps = {
   params: Promise<{ timesheetId: string }>;
-  searchParams?: Promise<{ formId?: string }>;
 };
 
-export default async function TimesheetDetailPage({
-  params,
-  searchParams,
-}: PageProps) {
-  const [{ timesheetId }, resolvedSearchParams, sessionUser] =
-    await Promise.all([
-      params,
-      searchParams ?? Promise.resolve({} as { formId?: string }),
-      getSessionUser(),
-    ]);
+export default async function TimesheetDetailPage({ params }: PageProps) {
+  const { timesheetId } = await params;
   const timesheet = await apiRequestJson<TimesheetRecord>(
     `/timesheets/${timesheetId}`,
   );
-  const runtime = await buildPublishedStandardRouteRuntime({
-    pageKind: "detail",
-    recordId: timesheet.id,
-    sessionUser,
-    spec: timesheetRuntimeSpec,
-  });
-  const activeForm = resolveStandardActiveForm(
-    runtime.metadata.forms,
-    resolvedSearchParams.formId ?? "",
-  );
+  const [projectOptions, workLocationOptions] = await Promise.all([
+      timesheet.canCurrentUserEdit
+        ? apiRequestJson<AssignedProjectOption[]>(
+            "/projects/assigned/me",
+          ).catch(() => [])
+        : Promise.resolve([]),
+      timesheet.canCurrentUserEdit
+        ? apiRequestJson<LookupResponse>("/locations?isActive=true")
+            .then(lookupItems)
+            .catch(() => [])
+        : Promise.resolve([]),
+    ]);
 
   return (
     <main className="grid gap-6">
-      <StandardModuleRecordPage
-        activeForm={activeForm}
-        mode="read"
-        record={{
-          ...timesheet,
-          timesheetName: `${timesheet.employee.fullName} ${timesheet.year}-${String(timesheet.month).padStart(2, "0")}`,
-          employeeName: timesheet.employee.fullName,
-          period: `${timesheet.periodStart} - ${timesheet.periodEnd}`,
-        }}
-        recordId={timesheet.id}
-        runtime={runtime}
-        spec={timesheetRuntimeSpec}
-        title="Timesheet"
+      <TimesheetMONTHLYEditor
+        projectOptions={projectOptions}
+        timesheet={timesheet}
+        workLocationOptions={workLocationOptions}
       />
     </main>
   );
+}
+
+type AssignedProjectOption = {
+  readonly id: string;
+  readonly name: string;
+  readonly code?: string | null;
+  readonly projectAssignmentId?: string | null;
+  readonly billable?: boolean;
+  readonly assignmentStartDate?: string | null;
+  readonly assignmentEndDate?: string | null;
+};
+type LookupResponse =
+  | AssignedProjectOption[]
+  | { items?: AssignedProjectOption[] };
+function lookupItems(response: LookupResponse) {
+  return Array.isArray(response) ? response : (response.items ?? []);
 }

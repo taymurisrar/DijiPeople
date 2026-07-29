@@ -97,7 +97,7 @@ export function EmployeeCompensationForm({
       body: JSON.stringify(payload),
     });
 
-    const data = (await response.json()) as { message?: string };
+    const data = (await response.json().catch(() => ({}))) as { message?: string };
 
     if (!response.ok) {
       setError(data.message ?? "Unable to save employee compensation.");

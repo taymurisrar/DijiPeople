@@ -118,6 +118,17 @@ export default async function TeamAttendancePage({
           requireOfficeLocationForOfficeMode: true,
           requireRemoteLocationForRemoteMode: false,
           allowRemoteWithoutLocation: true,
+          locationCaptureRequired: false,
+          locationRequiredForModes: [],
+          allowIpFallback: false,
+          allowManualLocationException: false,
+          locationTimeoutSeconds: 15,
+          highAccuracyLocation: true,
+          maxAllowedAccuracyMeters: null,
+          captureLocationOnCheckIn: false,
+          captureLocationOnCheckOut: false,
+          storeIpAddress: false,
+          storeUserAgent: false,
         }),
     canManageIntegrations
       ? apiRequestJson<AttendanceIntegrationRecord[]>(

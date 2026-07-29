@@ -5,6 +5,7 @@ import type {
   StatusGroupConfig,
 } from "./command-runtime.types";
 import type { EntityMetadata } from "./metadata-runtime.types";
+import { flattenRuntimeRoles, normalizeRuntimeRole } from "./role-runtime";
 import type { RuntimePrincipal } from "./security-runtime.types";
 import {
   hasAllPermissions,
@@ -75,6 +76,10 @@ export function filterCommandsByPermission(
   commands: readonly CommandDefinition[],
   principal: RuntimePrincipal,
 ) {
+  if (hasElevatedRuntimePrincipal(principal)) {
+    return commands;
+  }
+
   return commands.filter(
     (command) =>
       !command.permission ||
@@ -259,4 +264,21 @@ function sortCommands(commands: readonly CommandDefinition[]) {
         (right.order ?? Number.MAX_SAFE_INTEGER) ||
       left.label.localeCompare(right.label),
   );
+}
+
+function hasElevatedRuntimePrincipal(principal: RuntimePrincipal) {
+  return elevatedRoleValues([
+    ...(principal.roleKeys ?? []),
+    ...flattenRuntimeRoles(principal.roles),
+  ]).some(
+    (roleKey) =>
+      roleKey === "global-admin" ||
+      roleKey === "global-administrator" ||
+      roleKey === "system-admin" ||
+      roleKey === "system-administrator",
+  );
+}
+
+function elevatedRoleValues(values: readonly string[] | undefined) {
+  return (values ?? []).map(normalizeRuntimeRole);
 }

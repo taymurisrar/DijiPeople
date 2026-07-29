@@ -1,4 +1,5 @@
 import { NotFoundException } from '@nestjs/common';
+import { Readable } from 'node:stream';
 import {
   PayslipDeliveryStatus,
   PayslipStatus,
@@ -68,6 +69,12 @@ function publishedPayslip() {
       },
     ],
     eventLogs: [],
+    document: {
+      id: 'document-1',
+      originalFileName: 'PS-202604-DP-ESS-001.pdf',
+      mimeType: 'application/pdf',
+      storageKey: 'tenant-1/payslips/PS-202604-DP-ESS-001.pdf',
+    },
   };
 }
 
@@ -81,18 +88,19 @@ describe('PayslipsService PDF download', () => {
         findFirst: jest.fn().mockResolvedValue({ id: 'employee-1' }),
       },
       payslip: { findFirst: jest.fn().mockResolvedValue(payslip) },
-      tenant: {
-        findUnique: jest.fn().mockResolvedValue({
-          name: 'DijiPeople Demo Company',
-          displayName: 'DijiPeople Demo Company',
-        }),
-      },
       payslipEventLog: { create: eventCreate },
+    };
+    const storage = {
+      openFile: jest.fn().mockResolvedValue({
+        stream: Readable.from(Buffer.from('%PDF-1.4 stored payslip')),
+      }),
     };
     const service = new PayslipsService(
       prisma as never,
       audit as never,
       {} as never,
+      {} as never,
+      storage as never,
     );
 
     const file = await service.downloadPayslip({
@@ -104,12 +112,9 @@ describe('PayslipsService PDF download', () => {
 
     expect(file.contentType).toBe('application/pdf');
     expect(file.fileName).toBe('PS-202604-DP-ESS-001.pdf');
-    expect(file.buffer.length).toBeGreaterThan(1000);
-    const pdf = file.buffer.toString('latin1');
-    expect(pdf).toContain('%PDF-1.4');
-    expect(pdf).toContain('(PAYSLIP) Tj');
-    expect(pdf).toContain('(Demo Employee) Tj');
-    expect(pdf).toContain('(Net Salary) Tj');
+    expect(storage.openFile).toHaveBeenCalledWith(
+      'tenant-1/payslips/PS-202604-DP-ESS-001.pdf',
+    );
     expect(eventCreate).toHaveBeenCalledWith({
       data: expect.objectContaining({
         payslipId: payslip.id,
@@ -135,6 +140,8 @@ describe('PayslipsService PDF download', () => {
     };
     const service = new PayslipsService(
       prisma as never,
+      {} as never,
+      {} as never,
       {} as never,
       {} as never,
     );

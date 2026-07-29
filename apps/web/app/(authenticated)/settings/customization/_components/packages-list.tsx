@@ -1,10 +1,8 @@
 "use client";
 
 import {
-  BookCheck,
   ExternalLink,
   FileDown,
-  FileUp,
   Pencil,
   Plus,
   RefreshCw,
@@ -21,10 +19,7 @@ import { EmptyState } from "@/app/components/ui/empty-state";
 import { TextAreaField, TextField } from "@/app/components/ui/form-control";
 import { StatusPill } from "@/app/components/ui/status-pill";
 import { PermissionGate } from "@/app/(authenticated)/_components/permission-gate";
-import type {
-  CustomizationPackage,
-  CustomizationPackageImportPreview,
-} from "../types";
+import type { CustomizationPackage } from "../types";
 
 type PackagesListProps = {
   initialMessage?: string;
@@ -48,10 +43,6 @@ export function PackagesList({ initialMessage, packages }: PackagesListProps) {
   const [deleteTarget, setDeleteTarget] = useState<CustomizationPackage | null>(
     null,
   );
-  const [importPreview, setImportPreview] =
-    useState<CustomizationPackageImportPreview | null>(null);
-  const [importError, setImportError] = useState<string | null>(null);
-  const [showImport, setShowImport] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState(initialMessage ?? null);
@@ -180,16 +171,6 @@ export function PackagesList({ initialMessage, packages }: PackagesListProps) {
                 type="button"
                 variant="ghost"
                 aria-label="Edit package"
-              />
-
-              <Button
-                disabled
-                leftIcon={<BookCheck className="h-4 w-4" />}
-                size="icon-sm"
-                title="Publish Center and dependency validation are not fully implemented yet."
-                type="button"
-                variant="ghost"
-                aria-label="Publish package"
               />
             </PermissionGate>
 
@@ -355,33 +336,6 @@ export function PackagesList({ initialMessage, packages }: PackagesListProps) {
     downloadJson(data, `${record.packageKey || "package"}.package.json`);
   }
 
-  async function previewImport(file: File | null) {
-    setImportError(null);
-    setImportPreview(null);
-    if (!file) return;
-    try {
-      const json = JSON.parse(await file.text()) as unknown;
-      const response = await fetch(
-        "/api/customization/packages/import/preview",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(json),
-        },
-      );
-      const data = (await response.json()) as
-        | CustomizationPackageImportPreview
-        | { message?: string };
-      if (!response.ok || !("valid" in data)) {
-        setImportError(data.message ?? "Package JSON is not valid.");
-        return;
-      }
-      setImportPreview(data);
-    } catch {
-      setImportError("Upload a valid package JSON file.");
-    }
-  }
-
   return (
     <div className="grid gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface p-3 shadow-sm">
@@ -393,14 +347,6 @@ export function PackagesList({ initialMessage, packages }: PackagesListProps) {
               type="button"
             >
               New Package
-            </Button>
-            <Button
-              leftIcon={<FileUp className="h-4 w-4" />}
-              onClick={() => setShowImport(true)}
-              type="button"
-              variant="secondary"
-            >
-              Import Package
             </Button>
           </PermissionGate>
           <Button
@@ -538,56 +484,6 @@ export function PackagesList({ initialMessage, packages }: PackagesListProps) {
               </Button>
             </div>
           </form>
-        </div>
-      ) : null}
-
-      {showImport ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/40 p-4">
-          <div className="grid w-full max-w-xl gap-4 rounded-[20px] border border-border bg-white p-6 shadow-xl">
-            <div>
-              <h3 className="text-lg font-semibold text-foreground">
-                Import Package
-              </h3>
-              <p className="mt-1 text-sm text-muted">
-                JSON validation and preview only. Applying imported metadata is
-                not enabled in this phase.
-              </p>
-            </div>
-            <input
-              accept="application/json,.json"
-              className="rounded-lg border border-border px-3 py-2 text-sm"
-              onChange={(event) =>
-                previewImport(event.target.files?.[0] ?? null)
-              }
-              type="file"
-            />
-            {importError ? (
-              <p className="text-sm text-danger">{importError}</p>
-            ) : null}
-            {importPreview ? (
-              <div className="grid gap-2 rounded-lg border border-border bg-slate-50 p-3 text-sm">
-                <p className="font-semibold">{importPreview.packageName}</p>
-                <p>Version: {importPreview.version}</p>
-                <p>Modules: {importPreview.modulesCount}</p>
-                <p>Components: {importPreview.componentsCount}</p>
-                <p>Dependencies: {importPreview.dependenciesCount}</p>
-                <p className="text-muted">{importPreview.message}</p>
-              </div>
-            ) : null}
-            <div className="flex justify-end">
-              <Button
-                onClick={() => {
-                  setShowImport(false);
-                  setImportPreview(null);
-                  setImportError(null);
-                }}
-                type="button"
-                variant="secondary"
-              >
-                Close
-              </Button>
-            </div>
-          </div>
         </div>
       ) : null}
 

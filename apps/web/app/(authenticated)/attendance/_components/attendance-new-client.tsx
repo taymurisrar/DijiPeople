@@ -5,6 +5,11 @@ import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { SideToast } from "@/app/components/notifications";
 import { formatDateTime } from "@/lib/formatting-context";
+import {
+  buildLocationPayload,
+  captureAttendanceLocation,
+  type LocationCaptureResult,
+} from "@/lib/location/location-capture";
 import { useResolvedSettings } from "../../_components/resolved-settings-provider";
 import type {
   AttendanceEntryRecord,
@@ -29,7 +34,9 @@ export function AttendanceNewClient({
   const resolvedSettings = useResolvedSettings();
   const [isPending, startTransition] = useTransition();
   const [mode, setMode] = useState<AttendanceMode>("OFFICE");
-  const [officeLocationId, setOfficeLocationId] = useState(locations[0]?.id ?? "");
+  const [officeLocationId, setOfficeLocationId] = useState(
+    locations[0]?.id ?? "",
+  );
   const [checkInNote, setCheckInNote] = useState("");
   const [checkOutNote, setCheckOutNote] = useState("");
   const [workSummary, setWorkSummary] = useState("");
@@ -62,33 +69,88 @@ export function AttendanceNewClient({
     );
   }
 
+  async function captureRequiredLocation(): Promise<Extract<
+    LocationCaptureResult,
+    { ok: true }
+  > | null> {
+    setToast({
+      title: "Location required",
+      description: "Allow location access to record attendance.",
+      variant: "info",
+    });
+
+    const result = await captureAttendanceLocation({
+      timeoutSeconds:
+        resolvedSettings.raw?.attendance.locationTimeoutSeconds ?? 15,
+      retryAttempts:
+        resolvedSettings.raw?.attendance.locationRetryAttempts ?? 2,
+      highAccuracy:
+        resolvedSettings.raw?.attendance.highAccuracyLocation ?? true,
+    });
+
+    if (!result.ok) {
+      setToast({
+        title: "Location not captured",
+        description: result.message,
+        variant: "error",
+      });
+      return null;
+    }
+
+    return result;
+  }
+
   function submitCheckIn() {
     if (checkInDisabled) return;
 
     startTransition(async () => {
-      const response = await fetch("/api/attendance/check-in", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          attendanceMode: mode,
-          officeLocationId:
-            mode === "OFFICE" ? officeLocationId || undefined : undefined,
-          note: checkInNote || undefined,
-          workSummary: workSummary || undefined,
-        }),
-      });
+      try {
+        const location = await captureRequiredLocation();
+        if (!location) return;
+        const locationPayload = buildLocationPayload(location, {
+          userAgent:
+            typeof navigator === "undefined" ? undefined : navigator.userAgent,
+        });
+        const response = await fetch("/api/attendance/check-in", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            attendanceMode: mode,
+            officeLocationId:
+              mode === "OFFICE" ? officeLocationId || undefined : undefined,
+            note: checkInNote || undefined,
+            workSummary: workSummary || undefined,
+            ...locationPayload,
+            checkInAddressText: location.addressText,
+          }),
+        });
 
-      if (!response.ok) {
+        if (!response.ok) {
+          setToast({
+            title: "Check-in failed",
+            description: await readResponseMessage(
+              response,
+              "Unable to check in.",
+            ),
+            variant: "error",
+          });
+          return;
+        }
+
+        setToast({
+          title: "Checked in",
+          description: "Current location captured.",
+          variant: "success",
+        });
+        router.refresh();
+      } catch (error) {
         setToast({
           title: "Check-in failed",
-          description: await readResponseMessage(response, "Unable to check in."),
+          description:
+            error instanceof Error ? error.message : "Unable to check in.",
           variant: "error",
         });
-        return;
       }
-
-      setToast({ title: "Checked in", variant: "success" });
-      router.refresh();
     });
   }
 
@@ -96,26 +158,50 @@ export function AttendanceNewClient({
     if (checkOutDisabled) return;
 
     startTransition(async () => {
-      const response = await fetch("/api/attendance/check-out", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          note: checkOutNote || undefined,
-          workSummary: workSummary || undefined,
-        }),
-      });
+      try {
+        const location = await captureRequiredLocation();
+        if (!location) return;
+        const locationPayload = buildLocationPayload(location, {
+          userAgent:
+            typeof navigator === "undefined" ? undefined : navigator.userAgent,
+        });
+        const response = await fetch("/api/attendance/check-out", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            note: checkOutNote || undefined,
+            workSummary: workSummary || undefined,
+            ...locationPayload,
+            checkOutAddressText: location.addressText,
+          }),
+        });
 
-      if (!response.ok) {
+        if (!response.ok) {
+          setToast({
+            title: "Check-out failed",
+            description: await readResponseMessage(
+              response,
+              "Unable to check out.",
+            ),
+            variant: "error",
+          });
+          return;
+        }
+
+        setToast({
+          title: "Checked out",
+          description: "Current location captured.",
+          variant: "success",
+        });
+        router.refresh();
+      } catch (error) {
         setToast({
           title: "Check-out failed",
-          description: await readResponseMessage(response, "Unable to check out."),
+          description:
+            error instanceof Error ? error.message : "Unable to check out.",
           variant: "error",
         });
-        return;
       }
-
-      setToast({ title: "Checked out", variant: "success" });
-      router.refresh();
     });
   }
 
@@ -138,7 +224,9 @@ export function AttendanceNewClient({
             <select
               className="w-full rounded-2xl border border-border bg-white px-4 py-3 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
               disabled={Boolean(activeEntry)}
-              onChange={(event) => setMode(event.target.value as AttendanceMode)}
+              onChange={(event) =>
+                setMode(event.target.value as AttendanceMode)
+              }
               value={activeMode}
             >
               <option value="OFFICE">Office</option>
@@ -208,7 +296,7 @@ export function AttendanceNewClient({
             )}
           </InfoTile>
           <InfoTile label="Check in">
-            {activeEntry?.checkInAt ?? todayEntry?.checkInAt
+            {(activeEntry?.checkInAt ?? todayEntry?.checkInAt)
               ? formatDateTime(
                   activeEntry?.checkInAt ?? todayEntry?.checkInAt ?? "",
                   resolvedSettings,
@@ -216,7 +304,7 @@ export function AttendanceNewClient({
               : "Pending"}
           </InfoTile>
           <InfoTile label="Check out">
-            {activeEntry?.checkOutAt ?? todayEntry?.checkOutAt
+            {(activeEntry?.checkOutAt ?? todayEntry?.checkOutAt)
               ? formatDateTime(
                   activeEntry?.checkOutAt ?? todayEntry?.checkOutAt ?? "",
                   resolvedSettings,
@@ -239,13 +327,7 @@ export function AttendanceNewClient({
   );
 }
 
-function InfoTile({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactNode;
-}) {
+function InfoTile({ label, children }: { label: string; children: ReactNode }) {
   return (
     <article className="rounded-2xl border border-border bg-white/80 p-4">
       <p className="text-xs uppercase tracking-[0.14em] text-muted">{label}</p>

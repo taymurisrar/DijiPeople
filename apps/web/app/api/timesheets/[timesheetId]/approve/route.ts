@@ -22,7 +22,9 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json(
       {
         message:
-          error instanceof Error ? error.message : "Unable to approve timesheet.",
+          error instanceof Error
+            ? error.message
+            : "Unable to approve timesheet.",
       },
       { status: 500 },
     );

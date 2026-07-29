@@ -14,7 +14,7 @@ describe('PayslipsService frozen loan deductions', () => {
       tenantId: 'tenant-1',
       payrollRunId: 'run-1',
       employeeId: 'employee-1',
-      status: PayrollRunEmployeeStatus.CALCULATED,
+      status: PayrollRunEmployeeStatus.APPROVED,
       currencyCode: 'QAR',
       grossEarnings: new Prisma.Decimal(1000),
       totalDeductions: loanAmount,
@@ -76,20 +76,57 @@ describe('PayslipsService frozen loan deductions', () => {
       },
       payslipEventLog: { create: jest.fn().mockResolvedValue({}) },
     };
+    const storedPayslip = {
+      ...runEmployee,
+      id: 'payslip-1',
+      payslipNumber: 'PAY-1',
+      documentId: null,
+      documentVersion: 1,
+      grossEarnings: runEmployee.grossEarnings,
+      totalDeductions: loanAmount,
+      totalTaxes: new Prisma.Decimal(0),
+      totalReimbursements: new Prisma.Decimal(0),
+      employerContributions: new Prisma.Decimal(0),
+      netPay: runEmployee.netPay,
+      payrollRunEmployee: runEmployee,
+      employee: runEmployee.employee,
+      payrollRun: runEmployee.payrollRun,
+      lineItems: [],
+      eventLogs: [],
+      document: null,
+    };
     const prisma = {
       payrollRunEmployee: {
         findFirst: jest.fn().mockResolvedValue(runEmployee),
       },
       payslip: {
         count: jest.fn().mockResolvedValue(0),
-        findFirst: jest.fn().mockResolvedValue(null),
+        findFirst: jest
+          .fn()
+          .mockResolvedValueOnce(null)
+          .mockResolvedValue(storedPayslip),
+        update: jest.fn().mockResolvedValue({
+          ...storedPayslip,
+          documentId: 'document-1',
+          documentVersion: 1,
+          document: { id: 'document-1' },
+        }),
       },
+      payslipEventLog: { create: jest.fn().mockResolvedValue({}) },
+      tenant: { findUnique: jest.fn().mockResolvedValue(null) },
       $transaction: jest.fn((callback) => callback(tx)),
     };
     const service = new PayslipsService(
       prisma as unknown as PrismaService,
       { log: jest.fn().mockResolvedValue({}) } as never,
       { dispatch: jest.fn().mockResolvedValue(undefined) } as never,
+      {
+        store: jest.fn().mockResolvedValue({
+          document: { id: 'document-1' },
+          checksum: 'checksum-1',
+        }),
+      } as never,
+      {} as never,
     );
 
     await service.generatePayslipForRunEmployee({

@@ -17,7 +17,8 @@ export default async function PayrollRunsPage() {
       />
     );
   }
-  const rows = await apiRequestJson<Record<string, unknown>[]>("/payroll/runs");
+  const data = await apiRequestJson<unknown>("/payroll/runs");
+  const rows = readRecordList(data);
   const records = rows.map((row) => {
     const period = isRecord(row.payrollPeriod) ? row.payrollPeriod : {};
     return {
@@ -48,4 +49,13 @@ export default async function PayrollRunsPage() {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function readRecordList(data: unknown): Record<string, unknown>[] {
+  if (Array.isArray(data)) return data.filter(isRecord);
+  if (!isRecord(data)) return [];
+  for (const value of [data.items, data.records, data.results]) {
+    if (Array.isArray(value)) return value.filter(isRecord);
+  }
+  return isRecord(data.data) ? readRecordList(data.data) : [];
 }

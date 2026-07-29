@@ -226,7 +226,7 @@ export function ModuleRuntimeCommandHandler({
           view: activeView,
         }),
         navigation: {
-          back: () => router.push(runtime.module.routeBase),
+          back: () => router.push(resolveBackHref(runtime)),
           navigate: (href) => {
             if (isSafeModuleHref(href, runtime.module.routeBase)) {
               router.push(href);
@@ -267,7 +267,7 @@ export function ModuleRuntimeCommandHandler({
     setLastResult(result);
     onResult?.(result);
 
-    if (result.status === "failure") {
+    if (result.status === "failure" && !hasFieldValidationErrors(result.data)) {
       dispatchCommandFailure(result, runtime);
     }
 
@@ -425,6 +425,27 @@ function isSafeModuleHref(href: string, routeBase: string) {
   return true;
 }
 
+function resolveBackHref(runtime: ModuleRuntimeContext) {
+  if (runtime.pageKind !== "list") {
+    return runtime.module.routeBase;
+  }
+
+  if (typeof window === "undefined") {
+    return parentPath(runtime.module.routeBase);
+  }
+
+  return parentPath(window.location.pathname);
+}
+
+function parentPath(pathname: string) {
+  const normalized = pathname.replace(/\/+$/, "");
+  const lastSlashIndex = normalized.lastIndexOf("/");
+
+  if (lastSlashIndex <= 0) return "/";
+
+  return normalized.slice(0, lastSlashIndex);
+}
+
 function resolveRuntimeCommand(
   commandKey: string,
   runtime: ModuleRuntimeContext,
@@ -481,12 +502,59 @@ function dispatchCommandFailure(
   );
 }
 
+function hasFieldValidationErrors(data: unknown) {
+  if (!data || typeof data !== "object" || Array.isArray(data)) return false;
+  const record = data as {
+    readonly fieldErrors?: unknown;
+    readonly fields?: unknown;
+    readonly details?: unknown;
+  };
+
+  if (
+    hasFieldErrorEntries(record.fieldErrors) ||
+    hasFieldErrorEntries(record.fields)
+  ) {
+    return true;
+  }
+
+  if (
+    record.details &&
+    typeof record.details === "object" &&
+    !Array.isArray(record.details)
+  ) {
+    const details = record.details as {
+      readonly fieldErrors?: unknown;
+      readonly fields?: unknown;
+    };
+    return (
+      hasFieldErrorEntries(details.fieldErrors) ||
+      hasFieldErrorEntries(details.fields)
+    );
+  }
+
+  return false;
+}
+
+function hasFieldErrorEntries(value: unknown) {
+  if (!value) return false;
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === "object") return Object.keys(value).length > 0;
+  return false;
+}
+
 function readCommandFailureError(result: RuntimeCommandExecutionResult) {
   const data = result.data;
-  const record =
+  const dataRecord =
     data && typeof data === "object" && !Array.isArray(data)
       ? (data as Record<string, unknown>)
       : {};
+  const responseRecord =
+    dataRecord.response &&
+    typeof dataRecord.response === "object" &&
+    !Array.isArray(dataRecord.response)
+      ? (dataRecord.response as Record<string, unknown>)
+      : null;
+  const record = responseRecord ?? dataRecord;
   const statusCode =
     typeof record.statusCode === "number"
       ? record.statusCode
@@ -518,7 +586,7 @@ function readCommandFailureError(result: RuntimeCommandExecutionResult) {
         : result.errors?.join(" ") ||
           "The requested action could not be completed.",
     statusCode,
-    details: record.details ?? result.data,
+    details: record.details ?? dataRecord,
   };
 }
 

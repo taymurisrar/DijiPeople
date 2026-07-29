@@ -75,6 +75,8 @@ export interface FieldSecurityRule {
   readonly fieldLogicalName: string;
   readonly operation: FieldSecurityOperation;
   readonly effect: FieldSecurityEffect;
+  readonly maskingPattern?: "FULL" | "PARTIAL" | "LAST_4" | "CUSTOM" | string;
+  readonly customMask?: string | null;
   readonly permissionKey?: string;
   readonly roleKeys?: readonly string[];
   readonly scope?: PermissionScope;

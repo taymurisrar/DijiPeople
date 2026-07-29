@@ -129,6 +129,7 @@ export class EmployeeProfilesService {
       probationEndDate: employee.probationEndDate,
       terminationDate: employee.terminationDate,
       departmentId: employee.departmentId,
+      teamId: employee.teamId,
       designationId: employee.designationId,
       employeeLevelId: employee.employeeLevelId,
       locationId: employee.locationId,
@@ -191,6 +192,7 @@ export class EmployeeProfilesService {
           }
         : null,
       department: employee.department,
+      team: employee.team,
       designation: employee.designation,
       employeeLevel: employee.employeeLevel,
       location: employee.location,
@@ -241,6 +243,7 @@ export class EmployeeProfilesService {
         probationEndDate: employee.probationEndDate,
         terminationDate: employee.terminationDate,
         department: employee.department,
+        team: employee.team,
         designation: employee.designation,
         employeeLevel: employee.employeeLevel,
         location: employee.location,
@@ -672,7 +675,14 @@ export class EmployeeProfilesService {
     employeeId: string,
     dto: CreateEmployeePreviousEmploymentDto,
   ) {
-    await this.assertEmployeeAccess(currentUser, employeeId);
+    await this.assertEmployeeChildPermission(
+      currentUser,
+      employeeId,
+      'employees.update',
+      'employees.update.self',
+      'create previous employment records for this employee',
+      true,
+    );
     this.validatePreviousEmploymentDates(dto.startDate, dto.endDate);
 
     await this.prisma.employeePreviousEmployment.create({
@@ -706,7 +716,14 @@ export class EmployeeProfilesService {
     previousEmploymentId: string,
     dto: UpdateEmployeePreviousEmploymentDto,
   ) {
-    await this.assertEmployeeAccess(currentUser, employeeId);
+    await this.assertEmployeeChildPermission(
+      currentUser,
+      employeeId,
+      'employees.update',
+      'employees.update.self',
+      'update previous employment records for this employee',
+      true,
+    );
     this.validatePreviousEmploymentDates(dto.startDate, dto.endDate);
 
     const result = await this.prisma.employeePreviousEmployment.updateMany({
@@ -771,7 +788,14 @@ export class EmployeeProfilesService {
     employeeId: string,
     previousEmploymentId: string,
   ) {
-    await this.assertEmployeeAccess(currentUser, employeeId);
+    await this.assertEmployeeChildPermission(
+      currentUser,
+      employeeId,
+      'employees.update',
+      'employees.update.self',
+      'delete previous employment records for this employee',
+      true,
+    );
     const result = await this.prisma.employeePreviousEmployment.deleteMany({
       where: {
         id: previousEmploymentId,
@@ -859,7 +883,14 @@ export class EmployeeProfilesService {
     employeeId: string,
     dto: CreateEmployeeEducationDto,
   ) {
-    await this.assertEmployeeAccess(currentUser, employeeId);
+    await this.assertEmployeeChildPermission(
+      currentUser,
+      employeeId,
+      'employees.education.create',
+      'employees.education.create.self',
+      'create education records for this employee',
+      true,
+    );
     await this.prisma.employeeEducation.create({
       data: {
         tenantId: currentUser.tenantId,
@@ -885,7 +916,14 @@ export class EmployeeProfilesService {
     educationId: string,
     dto: UpdateEmployeeEducationDto,
   ) {
-    await this.assertEmployeeAccess(currentUser, employeeId);
+    await this.assertEmployeeChildPermission(
+      currentUser,
+      employeeId,
+      'employees.education.update',
+      'employees.education.update.self',
+      'update education records for this employee',
+      true,
+    );
     const result = await this.prisma.employeeEducation.updateMany({
       where: { id: educationId, tenantId: currentUser.tenantId, employeeId },
       data: {
@@ -928,7 +966,14 @@ export class EmployeeProfilesService {
     employeeId: string,
     educationId: string,
   ) {
-    await this.assertEmployeeAccess(currentUser, employeeId);
+    await this.assertEmployeeChildPermission(
+      currentUser,
+      employeeId,
+      'employees.education.delete',
+      'employees.education.delete.self',
+      'delete education records for this employee',
+      true,
+    );
     const result = await this.prisma.employeeEducation.deleteMany({
       where: { id: educationId, tenantId: currentUser.tenantId, employeeId },
     });
@@ -947,12 +992,19 @@ export class EmployeeProfilesService {
     employeeId: string,
   ) {
     await this.assertEmployeeAccess(currentUser, employeeId);
+    const accessMode = await this.employeeAccessService.getEmployeeRecordAccess(
+      currentUser,
+      employeeId,
+    );
     const documents = await this.prisma.document.findMany({
       where: {
         tenantId: currentUser.tenantId,
         isArchived: false,
         profileImageForEmployee: null,
         links: { some: { employeeId } },
+        ...(accessMode === 'SELF'
+          ? { uploadedByUserId: currentUser.userId }
+          : {}),
       },
       include: {
         documentType: {
@@ -963,6 +1015,9 @@ export class EmployeeProfilesService {
         },
         uploadedByUser: {
           select: { id: true, firstName: true, lastName: true, email: true },
+        },
+        _count: {
+          select: { versions: true },
         },
       },
       orderBy: [{ createdAt: 'desc' }],
@@ -981,6 +1036,9 @@ export class EmployeeProfilesService {
       size: document.sizeInBytes,
       storageKey: document.storageKey,
       createdAt: document.createdAt,
+      uploadedAt: document.createdAt,
+      updatedAt: document.updatedAt,
+      version: document._count.versions + 1,
       uploadedByUser: document.uploadedByUser
         ? {
             ...document.uploadedByUser,
@@ -1079,6 +1137,98 @@ export class EmployeeProfilesService {
     return document;
   }
 
+  async updateEmployeeDocument(
+    currentUser: AuthenticatedUser,
+    employeeId: string,
+    documentId: string,
+    file: UploadedFile | undefined,
+    dto: EmployeeDocumentUploadDto,
+  ) {
+    const existing = await this.assertEmployeeDocumentWriteAccess(
+      currentUser,
+      employeeId,
+      documentId,
+      'update this employee document',
+    );
+    await this.validateEmployeeDocumentType(
+      currentUser.tenantId,
+      dto.documentTypeId,
+    );
+    await this.validateEmployeeDocumentCategory(
+      currentUser.tenantId,
+      dto.documentCategoryId,
+    );
+
+    const validatedFile = file
+      ? this.validateUploadedFile(file, ALLOWED_EMPLOYEE_DOCUMENT_TYPES)
+      : null;
+    const stored = validatedFile
+      ? await this.storageService.saveFile({
+          buffer: validatedFile.buffer,
+          originalFileName: validatedFile.originalname,
+          subdirectory: `${currentUser.tenantId}/employees/${employeeId}/documents`,
+        })
+      : null;
+
+    try {
+      const updated = await this.prisma.$transaction(async (tx) => {
+        const latestVersion = await tx.documentVersion.findFirst({
+          where: { tenantId: currentUser.tenantId, documentId },
+          orderBy: { versionNumber: 'desc' },
+          select: { versionNumber: true },
+        });
+
+        await tx.documentVersion.create({
+          data: {
+            tenantId: currentUser.tenantId,
+            documentId,
+            versionNumber: (latestVersion?.versionNumber ?? 0) + 1,
+            title: existing.title,
+            originalFileName: existing.originalFileName,
+            storedFileName: existing.storedFileName,
+            mimeType: existing.mimeType,
+            fileExtension: existing.fileExtension,
+            sizeInBytes: existing.sizeInBytes,
+            storageKey: existing.storageKey,
+            documentTypeId: existing.documentTypeId,
+            documentCategoryId: existing.documentCategoryId,
+            description: existing.description,
+            createdById: currentUser.userId,
+          },
+        });
+
+        return tx.document.update({
+          where: { id: documentId },
+          data: {
+            documentTypeId: dto.documentTypeId,
+            documentCategoryId: dto.documentCategoryId,
+            title: dto.title?.trim(),
+            description: dto.description?.trim(),
+            ...(validatedFile && stored
+              ? {
+                  originalFileName: validatedFile.originalname,
+                  storedFileName: stored.storageKey.split('/').pop() ?? null,
+                  mimeType: validatedFile.mimetype,
+                  fileExtension:
+                    extname(validatedFile.originalname).toLowerCase() || null,
+                  sizeInBytes: validatedFile.size,
+                  storageKey: stored.storageKey,
+                }
+              : {}),
+            updatedById: currentUser.userId,
+          },
+        });
+      });
+
+      return updated;
+    } catch (error) {
+      if (stored?.storageKey) {
+        await this.storageService.deleteFile(stored.storageKey);
+      }
+      throw error;
+    }
+  }
+
   async emitEmployeeDocumentExpiringReminder(input: {
     tenantId: string;
     actorUserId?: string | null;
@@ -1114,11 +1264,18 @@ export class EmployeeProfilesService {
     documentId: string,
   ) {
     await this.assertEmployeeDocumentReadAccess(currentUser, employeeId);
+    const accessMode = await this.employeeAccessService.getEmployeeRecordAccess(
+      currentUser,
+      employeeId,
+    );
     const document = await this.prisma.document.findFirst({
       where: {
         id: documentId,
         tenantId: currentUser.tenantId,
         links: { some: { employeeId } },
+        ...(accessMode === 'SELF'
+          ? { uploadedByUserId: currentUser.userId }
+          : {}),
       },
     });
 
@@ -1137,16 +1294,17 @@ export class EmployeeProfilesService {
     employeeId: string,
     documentId: string,
   ) {
-    const { document } = await this.downloadEmployeeDocument(
+    await this.assertEmployeeChildPermission(
       currentUser,
       employeeId,
-      documentId,
+      'employees.documents.delete',
+      'employees.documents.delete.self',
+      'delete this employee document',
+      true,
     );
+    await this.downloadEmployeeDocument(currentUser, employeeId, documentId);
 
     await this.prisma.$transaction(async (tx) => {
-      await tx.documentLink.deleteMany({
-        where: { tenantId: currentUser.tenantId, documentId, employeeId },
-      });
       await tx.employee.updateMany({
         where: {
           id: employeeId,
@@ -1158,12 +1316,15 @@ export class EmployeeProfilesService {
           updatedById: currentUser.userId,
         },
       });
-      await tx.document.deleteMany({
+      await tx.document.updateMany({
         where: { tenantId: currentUser.tenantId, id: documentId },
+        data: {
+          isArchived: true,
+          updatedById: currentUser.userId,
+        },
       });
     });
 
-    await this.storageService.deleteFile(document.storageKey);
     return { deleted: true, id: documentId };
   }
 
@@ -1593,6 +1754,36 @@ export class EmployeeProfilesService {
     return this.assertEmployeeAccess(currentUser, employeeId);
   }
 
+  private async assertEmployeeChildPermission(
+    currentUser: AuthenticatedUser,
+    employeeId: string,
+    adminPermission: string,
+    selfPermission: string,
+    actionLabel: string,
+    allowSelfService = false,
+  ) {
+    const accessMode = await this.employeeAccessService.getEmployeeRecordAccess(
+      currentUser,
+      employeeId,
+    );
+    const allowed =
+      accessMode === 'ADMIN_MANAGE' ||
+      (accessMode === 'HR_MANAGE' &&
+        currentUser.permissionKeys.includes(adminPermission)) ||
+      (accessMode === 'SELF' &&
+        (allowSelfService ||
+          currentUser.permissionKeys.includes(selfPermission)));
+
+    if (!allowed) {
+      throw new ForbiddenException({
+        code: 'ACCESS_DENIED',
+        message: `You do not have permission to ${actionLabel}.`,
+      });
+    }
+
+    return this.assertEmployeeAccess(currentUser, employeeId);
+  }
+
   private async assertProfileImageUploadAccess(
     currentUser: AuthenticatedUser,
     employeeId: string,
@@ -1649,6 +1840,52 @@ export class EmployeeProfilesService {
     }
 
     return this.assertEmployeeAccess(currentUser, employeeId);
+  }
+
+  private async assertEmployeeDocumentWriteAccess(
+    currentUser: AuthenticatedUser,
+    employeeId: string,
+    documentId: string,
+    actionLabel: string,
+  ) {
+    const [employee, accessMode] = await Promise.all([
+      this.assertEmployeeAccess(currentUser, employeeId),
+      this.employeeAccessService.getEmployeeRecordAccess(
+        currentUser,
+        employeeId,
+      ),
+    ]);
+    const document = await this.prisma.document.findFirst({
+      where: {
+        id: documentId,
+        tenantId: currentUser.tenantId,
+        isArchived: false,
+        profileImageForEmployee: null,
+        links: { some: { employeeId } },
+      },
+    });
+
+    if (!document) {
+      throw new NotFoundException('Employee document was not found.');
+    }
+
+    const hasAdminPermission =
+      currentUser.permissionKeys.includes('employees.documents.upload') ||
+      currentUser.permissionKeys.includes('employees.documents.delete');
+    const allowed =
+      accessMode === 'ADMIN_MANAGE' ||
+      (accessMode === 'HR_MANAGE' && hasAdminPermission) ||
+      (accessMode === 'SELF' &&
+        document.uploadedByUserId === currentUser.userId);
+
+    if (!allowed) {
+      throw new ForbiddenException({
+        code: 'ACCESS_DENIED',
+        message: `You do not have permission to ${actionLabel}.`,
+      });
+    }
+
+    return { ...document, employee };
   }
 
   private async assertEmployeeImageReadAccess(

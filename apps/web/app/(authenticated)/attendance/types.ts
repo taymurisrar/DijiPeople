@@ -245,6 +245,18 @@ export type AttendancePolicyRecord = {
   requireOfficeLocationForOfficeMode: boolean;
   requireRemoteLocationForRemoteMode: boolean;
   allowRemoteWithoutLocation: boolean;
+  locationCaptureRequired?: boolean;
+  locationRequiredForModes?: AttendanceMode[];
+  allowIpFallback?: boolean;
+  allowManualLocationException?: boolean;
+  locationTimeoutSeconds?: number;
+  locationRetryAttempts?: number;
+  highAccuracyLocation?: boolean;
+  maxAllowedAccuracyMeters?: number | null;
+  captureLocationOnCheckIn?: boolean;
+  captureLocationOnCheckOut?: boolean;
+  storeIpAddress?: boolean;
+  storeUserAgent?: boolean;
 };
 
 export type AttendanceIntegrationRecord = {

@@ -1,7 +1,14 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
-import { useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from "react";
+import { createPortal } from "react-dom";
 import type { FormTabMetadata } from "@/lib/runtime/metadata-runtime.types";
 
 const TAB_GAP = 8;
@@ -18,10 +25,75 @@ export function ResponsiveRuntimeTabs({
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
+  const moreButtonRef = useRef<HTMLButtonElement>(null);
   const [visibleCount, setVisibleCount] = useState(tabs.length);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState<{
+    readonly right: number;
+    readonly top: number;
+  } | null>(null);
   const visibleTabs = tabs.slice(0, visibleCount);
   const overflowTabs = tabs.slice(visibleCount);
+  const moreMenu =
+    moreOpen && menuPosition
+      ? createPortal(
+          <div
+            className="fixed z-50 min-w-max max-w-[min(28rem,calc(100vw-2rem))] rounded-lg border border-border bg-white p-1 shadow-xl"
+            onKeyDown={handleMenuKeyDown}
+            role="menu"
+            style={{
+              right: menuPosition.right,
+              top: menuPosition.top,
+            }}
+          >
+            {overflowTabs.map((tab) => (
+              <button
+                className={`flex w-full whitespace-nowrap rounded-md px-3 py-2 text-left text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                  tab.tabKey === activeTabKey
+                    ? "bg-accent text-white"
+                    : "text-foreground hover:bg-muted/20"
+                }`}
+                disabled={tab.isDisabled}
+                key={tab.tabKey}
+                onClick={() => {
+                  setMoreOpen(false);
+                  onTabChange(tab.tabKey);
+                }}
+                role="menuitem"
+                title={tab.disabledReason}
+                type="button"
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>,
+          document.body,
+        )
+      : null;
+
+  useEffect(() => {
+    if (!moreOpen) return;
+
+    const updatePosition = () => {
+      const button = moreButtonRef.current;
+      if (!button) return;
+
+      const rect = button.getBoundingClientRect();
+      setMenuPosition({
+        right: Math.max(16, window.innerWidth - rect.right),
+        top: rect.bottom + 8,
+      });
+    };
+
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [moreOpen]);
 
   useLayoutEffect(() => {
     const container = containerRef.current;
@@ -83,10 +155,10 @@ export function ResponsiveRuntimeTabs({
   }
 
   return (
-    <div className="relative" ref={containerRef}>
+    <div className="relative w-full min-w-0 overflow-hidden" ref={containerRef}>
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -z-10 flex gap-2 opacity-0"
+        className="pointer-events-none fixed left-0 top-0 -z-10 flex h-0 gap-2 overflow-hidden opacity-0"
         ref={measureRef}
       >
         {tabs.map((tab) => (
@@ -98,7 +170,7 @@ export function ResponsiveRuntimeTabs({
           />
         ))}
       </div>
-      <div className="flex min-w-0 flex-nowrap items-center gap-2">
+      <div className="flex w-full min-w-0 max-w-full flex-nowrap items-center gap-2 overflow-hidden">
         {visibleTabs.map((tab) => (
           <TabButton
             active={tab.tabKey === activeTabKey}
@@ -117,42 +189,16 @@ export function ResponsiveRuntimeTabs({
               aria-haspopup="menu"
               className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-white px-3 text-sm font-medium text-foreground transition hover:border-accent"
               onClick={() => setMoreOpen((current) => !current)}
+              ref={moreButtonRef}
               type="button"
             >
               More
               <ChevronDown className="h-4 w-4" />
             </button>
-            {moreOpen ? (
-              <div
-                className="absolute right-0 z-30 mt-2 min-w-max max-w-[min(28rem,calc(100vw-2rem))] rounded-lg border border-border bg-white p-1 shadow-xl"
-                onKeyDown={handleMenuKeyDown}
-                role="menu"
-              >
-                {overflowTabs.map((tab) => (
-                  <button
-                    className={`flex w-full whitespace-nowrap rounded-md px-3 py-2 text-left text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                      tab.tabKey === activeTabKey
-                        ? "bg-accent text-white"
-                        : "text-foreground hover:bg-muted/20"
-                    }`}
-                    disabled={tab.isDisabled}
-                    key={tab.tabKey}
-                    onClick={() => {
-                      setMoreOpen(false);
-                      onTabChange(tab.tabKey);
-                    }}
-                    role="menuitem"
-                    title={tab.disabledReason}
-                    type="button"
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-            ) : null}
           </div>
         ) : null}
       </div>
+      {moreMenu}
     </div>
   );
 }

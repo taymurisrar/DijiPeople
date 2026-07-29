@@ -17,10 +17,16 @@ export function hasSettingsAdministratorRole(user: SessionUser | null) {
   );
 }
 
-export function hasSystemCustomizerRole(user: SessionUser | null) {
+export function hasCustomizationAdministratorRole(
+  user: SessionUser | null,
+) {
   if (!user) return false;
 
-  return (user.roleKeys ?? []).includes(ROLE_KEYS.SYSTEM_CUSTOMIZER);
+  return (user.roleKeys ?? []).some(
+    (roleKey) =>
+      roleKey === ROLE_KEYS.GLOBAL_ADMIN ||
+      roleKey === ROLE_KEYS.SYSTEM_CUSTOMIZER,
+  );
 }
 
 export function hasSettingsPermission(
@@ -70,7 +76,7 @@ export async function requireCustomizationAccess(
     redirect(fallbackHref);
   }
 
-  if (!hasSystemCustomizerRole(user)) {
+  if (!hasCustomizationAdministratorRole(user)) {
     redirect(fallbackHref);
   }
 

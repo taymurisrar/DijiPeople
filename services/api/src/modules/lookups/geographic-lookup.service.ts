@@ -12,10 +12,12 @@ type CountryApiRecord = {
   cca3?: string;
   Iso2?: string;
   Iso3?: string;
-  name?: {
-    common?: string;
-    official?: string;
-  } | string;
+  name?:
+    | {
+        common?: string;
+        official?: string;
+      }
+    | string;
   officialName?: string;
 };
 
@@ -79,8 +81,12 @@ export class GeographicLookupService {
   }
 
   async listStates(countryId?: string, search?: string) {
-    if (countryId) {
-      await this.syncStatesForCountry(countryId);
+    const resolvedCountryId = countryId
+      ? await this.resolveCountryIdentifier(countryId)
+      : undefined;
+
+    if (resolvedCountryId) {
+      await this.syncStatesForCountry(resolvedCountryId);
     } else {
       await this.syncCountriesIfNeeded();
     }
@@ -88,7 +94,7 @@ export class GeographicLookupService {
     return this.prisma.stateProvince.findMany({
       where: {
         isActive: true,
-        ...(countryId ? { countryId } : {}),
+        ...(resolvedCountryId ? { countryId: resolvedCountryId } : {}),
         ...(search
           ? {
               OR: [
@@ -105,6 +111,20 @@ export class GeographicLookupService {
       },
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
     });
+  }
+
+  private async resolveCountryIdentifier(value: string) {
+    const trimmed = value.trim();
+    if (!trimmed) return undefined;
+
+    const country = await this.prisma.country.findFirst({
+      where: {
+        OR: [{ id: trimmed }, { code: trimmed.toUpperCase() }],
+      },
+      select: { id: true },
+    });
+
+    return country?.id;
   }
 
   async listCities(

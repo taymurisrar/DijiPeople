@@ -4,11 +4,13 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export function PayslipActions({
+  canRegenerate,
   canPublish,
   canVoid,
   payslipId,
   status,
 }: {
+  canRegenerate: boolean;
   canPublish: boolean;
   canVoid: boolean;
   payslipId: string;
@@ -55,6 +57,23 @@ export function PayslipActions({
     router.refresh();
   }
 
+  async function regenerate() {
+    setBusy(true);
+    setError(null);
+    const response = await fetch(`/api/payslips/${payslipId}/regenerate`, {
+      method: "POST",
+    });
+    setBusy(false);
+    if (!response.ok) {
+      const data = (await response.json().catch(() => null)) as {
+        message?: string;
+      } | null;
+      setError(data?.message ?? "Unable to regenerate payslip.");
+      return;
+    }
+    router.refresh();
+  }
+
   return (
     <div className="grid gap-3">
       <div className="flex flex-wrap gap-3">
@@ -66,6 +85,16 @@ export function PayslipActions({
             type="button"
           >
             Publish
+          </button>
+        ) : null}
+        {canRegenerate && ["GENERATED", "PUBLISHED"].includes(status) ? (
+          <button
+            className="rounded-2xl border border-border bg-white px-4 py-2 text-sm font-semibold text-foreground"
+            disabled={busy}
+            onClick={regenerate}
+            type="button"
+          >
+            Regenerate PDF
           </button>
         ) : null}
         {canVoid && ["GENERATED", "PUBLISHED"].includes(status) ? (

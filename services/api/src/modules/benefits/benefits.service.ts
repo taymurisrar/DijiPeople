@@ -83,7 +83,8 @@ export class BenefitsService {
   }
 
   async createPolicy(user: AuthenticatedUser, dto: CreateBenefitPolicyDto) {
-    const data = await this.policyData(user.tenantId, dto);
+    await this.assertDefaultPolicy(user.tenantId, dto);
+    const data = await this.policyData(user.tenantId, dto, user.userId);
     try {
       const policy = await this.prisma.benefitPolicy.create({
         data: {
@@ -116,12 +117,13 @@ export class BenefitsService {
     const merged = {
       ...policyToDto(existing),
       ...definedValues(dto as object),
-    } as CreateBenefitPolicyDto;
-    const data = await this.policyData(user.tenantId, merged);
+    } as unknown as CreateBenefitPolicyDto;
+    await this.assertDefaultPolicy(user.tenantId, merged, id);
+    const data = await this.policyData(user.tenantId, merged, user.userId);
     try {
       const updated = await this.prisma.benefitPolicy.update({
         where: { id },
-        data: { ...data, updatedById: user.userId },
+        data: { ...data, updatedById: user.userId, version: { increment: 1 } },
       });
       await this.audit(
         user,
@@ -543,6 +545,24 @@ export class BenefitsService {
           baseCompensation: input.baseCompensation,
         })
         .toDecimalPlaces(2);
+      const employeeContribution = calculateBenefitContribution(
+        policy.employeeContributionMethod,
+        policy.employeeContributionAmount,
+        policy.employeeContributionPercent,
+        input.baseCompensation,
+        amount,
+        policy.contributionMinimum,
+        policy.contributionMaximum,
+      );
+      const employerContribution = calculateBenefitContribution(
+        policy.employerContributionMethod,
+        policy.employerContributionAmount,
+        policy.employerContributionPercent,
+        input.baseCompensation,
+        new Prisma.Decimal(0),
+        policy.contributionMinimum,
+        policy.contributionMaximum,
+      );
       const snapshot: BenefitPayrollSnapshot = {
         assignmentId: assignment.id,
         policyId: policy.id,
@@ -550,7 +570,8 @@ export class BenefitsService {
         policyName: policy.name,
         benefitType: policy.benefitType,
         valueType: policy.valueType,
-        amount: amount.toString(),
+        amount: employeeContribution.toString(),
+        employerContributionAmount: employerContribution.toString(),
         currencyCode,
         payrollCategory: policy.payrollCategory,
         taxable: policy.taxable,
@@ -562,25 +583,48 @@ export class BenefitsService {
         consumedBalance: assignment.consumedBalance.toString(),
       };
       snapshots.push(snapshot);
-      lineItems.push({
-        payComponentId: null,
-        category: policy.payrollCategory,
-        sourceType: 'BENEFIT',
-        sourceId: assignment.id,
-        label: policy.name,
-        quantity: null,
-        rate:
-          policy.valueType === BenefitValueType.PERCENTAGE
-            ? (assignment.percentageOverride ?? policy.percentage)
-            : null,
-        amount,
-        currencyCode,
-        isTaxable: policy.taxable,
-        affectsGrossPay: policy.affectsGrossPay,
-        affectsNetPay: policy.affectsNetPay,
-        displayOnPayslip: policy.payslipVisible,
-        displayOrder: 650,
-      });
+      if (employeeContribution.gt(0))
+        lineItems.push({
+          payComponentId: policy.employeePayComponentId,
+          category: policy.payrollCategory,
+          sourceType: 'BENEFIT',
+          sourceId: assignment.id,
+          label: policy.name,
+          quantity: null,
+          rate:
+            policy.employeeContributionMethod === 'PERCENTAGE'
+              ? policy.employeeContributionPercent
+              : policy.valueType === BenefitValueType.PERCENTAGE
+                ? (assignment.percentageOverride ?? policy.percentage)
+                : null,
+          amount: employeeContribution,
+          currencyCode,
+          isTaxable: policy.taxable,
+          affectsGrossPay: policy.affectsGrossPay,
+          affectsNetPay: policy.affectsNetPay,
+          displayOnPayslip: policy.payslipVisible,
+          displayOrder: 650,
+        });
+      if (employerContribution.gt(0))
+        lineItems.push({
+          payComponentId: policy.employerPayComponentId,
+          category: PayrollRunLineItemCategory.EMPLOYER_CONTRIBUTION,
+          sourceType: 'BENEFIT',
+          sourceId: assignment.id,
+          label: `${policy.name} Employer Contribution`,
+          quantity: null,
+          rate:
+            policy.employerContributionMethod === 'PERCENTAGE'
+              ? policy.employerContributionPercent
+              : null,
+          amount: employerContribution,
+          currencyCode,
+          isTaxable: false,
+          affectsGrossPay: false,
+          affectsNetPay: false,
+          displayOnPayslip: policy.payslipVisible,
+          displayOrder: 651,
+        });
     }
     return { blockers, snapshots, lineItems };
   }
@@ -698,13 +742,21 @@ export class BenefitsService {
     return assignment;
   }
 
-  private async policyData(tenantId: string, dto: CreateBenefitPolicyDto) {
+  private async policyData(
+    tenantId: string,
+    dto: CreateBenefitPolicyDto,
+    actorUserId: string,
+  ) {
     validatePolicy(dto);
     await this.validateScopeReferences(tenantId, dto);
     return {
       code: normalizeCode(dto.code),
       name: dto.name.trim(),
       description: clean(dto.description),
+      provider: clean(dto.provider),
+      legalEntityId: dto.legalEntityId ?? null,
+      ownerUserId: dto.ownerUserId ?? actorUserId,
+      isDefault: dto.isDefault ?? false,
       benefitType: dto.benefitType,
       valueType: dto.valueType,
       fixedAmount:
@@ -717,6 +769,38 @@ export class BenefitsService {
           : null,
       currencyCode: normalizeOptionalCode(dto.currencyCode),
       payrollCategory: dto.payrollCategory ?? null,
+      employeePayComponentId: dto.employeePayComponentId ?? null,
+      employerPayComponentId: dto.employerPayComponentId ?? null,
+      postingCategory: clean(dto.postingCategory),
+      minimumServiceMonths: dto.minimumServiceMonths ?? null,
+      employeeContributionMethod: choice(
+        dto.employeeContributionMethod,
+        'FIXED_AMOUNT',
+      ),
+      employeeContributionAmount: decimalOrNull(dto.employeeContributionAmount),
+      employeeContributionPercent: decimalOrNull(
+        dto.employeeContributionPercent,
+      ),
+      employerContributionMethod: choice(
+        dto.employerContributionMethod,
+        'FIXED_AMOUNT',
+      ),
+      employerContributionAmount: decimalOrNull(dto.employerContributionAmount),
+      employerContributionPercent: decimalOrNull(
+        dto.employerContributionPercent,
+      ),
+      basePayComponentId: dto.basePayComponentId ?? null,
+      contributionMinimum: decimalOrNull(dto.contributionMinimum),
+      contributionMaximum: decimalOrNull(dto.contributionMaximum),
+      contributionFrequency: choice(dto.contributionFrequency, 'MONTHLY'),
+      taxTreatment: choice(dto.taxTreatment, 'TAXABLE'),
+      includeInEmployerCost: dto.includeInEmployerCost ?? true,
+      prorationMethod: choice(dto.prorationMethod, 'NONE'),
+      arrearsHandling: choice(dto.arrearsHandling, 'CARRY_FORWARD'),
+      enrollmentMethod: choice(dto.enrollmentMethod, 'HR_ASSIGNED'),
+      waitingPeriodDays: dto.waitingPeriodDays ?? 0,
+      enrollmentWindowDays: dto.enrollmentWindowDays ?? null,
+      dependentCoverage: dto.dependentCoverage ?? false,
       payrollVisible: dto.payrollVisible ?? false,
       affectsGrossPay: dto.affectsGrossPay ?? false,
       affectsNetPay: dto.affectsNetPay ?? false,
@@ -747,6 +831,10 @@ export class BenefitsService {
         dto.eligibilityRules === undefined
           ? Prisma.DbNull
           : (dto.eligibilityRules as Prisma.InputJsonValue),
+      configuration:
+        dto.configuration === undefined
+          ? Prisma.DbNull
+          : (dto.configuration as Prisma.InputJsonValue),
       status: dto.status ?? BenefitPolicyStatus.ACTIVE,
     };
   }
@@ -762,6 +850,24 @@ export class BenefitsService {
           where: { tenantId, id: dto.organizationId },
         }),
       );
+    if (dto.legalEntityId)
+      checks.push(
+        this.prisma.organization.findFirst({
+          where: { tenantId, id: dto.legalEntityId, isActive: true },
+        }),
+      );
+    for (const id of [
+      dto.employeePayComponentId,
+      dto.employerPayComponentId,
+      dto.basePayComponentId,
+    ]) {
+      if (id)
+        checks.push(
+          this.prisma.payComponent.findFirst({
+            where: { tenantId, id, isActive: true },
+          }),
+        );
+    }
     if (dto.businessUnitId)
       checks.push(
         this.prisma.businessUnit.findFirst({
@@ -790,6 +896,30 @@ export class BenefitsService {
     if (results.some((result) => !result))
       throw new BadRequestException(
         'Benefit policy scope does not belong to this tenant.',
+      );
+  }
+
+  private async assertDefaultPolicy(
+    tenantId: string,
+    dto: CreateBenefitPolicyDto,
+    excludeId?: string,
+  ) {
+    if (!dto.isDefault) return;
+    const existing = await this.prisma.benefitPolicy.findFirst({
+      where: {
+        tenantId,
+        isDefault: true,
+        status: 'ACTIVE',
+        organizationId: dto.organizationId ?? null,
+        legalEntityId: dto.legalEntityId ?? null,
+        benefitType: dto.benefitType,
+        ...(excludeId ? { id: { not: excludeId } } : {}),
+      },
+      select: { id: true },
+    });
+    if (existing)
+      throw new ConflictException(
+        'Only one default benefit plan is allowed per type and organization scope.',
       );
   }
 
@@ -834,6 +964,7 @@ export type BenefitPayrollSnapshot = {
   benefitType: string;
   valueType: string;
   amount: string;
+  employerContributionAmount: string;
   currencyCode: string;
   payrollCategory: PayrollRunLineItemCategory;
   taxable: boolean;
@@ -846,7 +977,7 @@ export type BenefitPayrollSnapshot = {
 };
 
 export type BenefitPayrollLineItem = {
-  payComponentId: null;
+  payComponentId: string | null;
   category: PayrollRunLineItemCategory;
   sourceType: 'BENEFIT';
   sourceId: string;
@@ -1041,6 +1172,30 @@ function decimalOrNull(value?: number | null) {
   return value === undefined || value === null
     ? null
     : new Prisma.Decimal(value);
+}
+
+function choice(value?: string | null, fallback = '') {
+  return value?.trim().toUpperCase() || fallback;
+}
+
+function calculateBenefitContribution(
+  method: string,
+  configuredAmount: Prisma.Decimal | null,
+  configuredPercent: Prisma.Decimal | null,
+  baseCompensation: Prisma.Decimal,
+  fallbackAmount: Prisma.Decimal,
+  minimum: Prisma.Decimal | null,
+  maximum: Prisma.Decimal | null,
+) {
+  let amount =
+    method === 'PERCENTAGE' && configuredPercent != null
+      ? baseCompensation.mul(configuredPercent).div(100)
+      : configuredAmount != null
+        ? configuredAmount
+        : fallbackAmount;
+  if (minimum != null) amount = Prisma.Decimal.max(amount, minimum);
+  if (maximum != null) amount = Prisma.Decimal.min(amount, maximum);
+  return amount.toDecimalPlaces(2);
 }
 function dateOrNull(value?: string | null) {
   return value ? new Date(value) : null;

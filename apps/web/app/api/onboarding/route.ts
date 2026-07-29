@@ -23,8 +23,23 @@ export async function POST(request: Request) {
     return proxyApiJsonResponse(response);
   } catch (error) {
     return NextResponse.json(
-      { message: error instanceof Error ? error.message : "Unable to start onboarding." },
+      {
+        message:
+          error instanceof Error
+            ? error.message
+            : "Unable to start onboarding.",
+      },
       { status: 500 },
     );
   }
+}
+
+export async function DELETE(request: Request) {
+  const body = await request.json().catch(() => null);
+  const response = await apiRequest("/onboarding", {
+    method: "DELETE",
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  return proxyApiJsonResponse(response);
 }
