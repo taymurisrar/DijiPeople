@@ -2,7 +2,14 @@ import { app } from "electron";
 import os from "node:os";
 import crypto from "node:crypto";
 import { agentEnv } from "../config/env";
-import type { AgentConfig, HeartbeatEvent, LoginResult } from "./types";
+import type {
+  AgentConfig,
+  AgentDevicePermissions,
+  AgentLocationRequest,
+  AgentLocationResult,
+  HeartbeatEvent,
+  LoginResult,
+} from "./types";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const HEARTBEAT_TIMEOUT_MS = 20_000;
@@ -84,7 +91,10 @@ export class ApiClient {
     });
   }
 
-  refresh(refreshToken: string): Promise<LoginResult> {
+  refresh(
+    refreshToken: string,
+    options: { startNewSession?: boolean } = {},
+  ): Promise<LoginResult> {
     if (!refreshToken?.trim()) {
       throw new Error("Refresh token is required.");
     }
@@ -95,6 +105,9 @@ export class ApiClient {
         refreshToken: refreshToken.trim(),
         deviceFingerprint: this.deviceInfo.deviceFingerprint,
         agentVersion: this.deviceInfo.agentVersion,
+        ...(options.startNewSession
+          ? { startNewSession: true }
+          : {}),
       },
       auth: false,
     });
@@ -179,6 +192,62 @@ export class ApiClient {
         endedAt: new Date().toISOString(),
       },
     });
+  }
+
+  updateDevicePermissions(
+    deviceId: string,
+    permissions: AgentDevicePermissions,
+  ): Promise<AgentDevicePermissions & { id: string; permissionUpdatedAt?: string }> {
+    if (!deviceId?.trim()) {
+      throw new Error("Device id is required to update permission status.");
+    }
+
+    return this.request<
+      AgentDevicePermissions & { id: string; permissionUpdatedAt?: string }
+    >("/agent/devices/permissions", {
+      method: "PATCH",
+      body: {
+        deviceId: deviceId.trim(),
+        ...permissions,
+      },
+    });
+  }
+
+  getPendingLocationRequest(
+    deviceId: string,
+  ): Promise<AgentLocationRequest | null> {
+    if (!deviceId?.trim()) {
+      throw new Error("Device id is required to check location requests.");
+    }
+
+    const query = new URLSearchParams({ deviceId: deviceId.trim() });
+
+    return this.request<AgentLocationRequest | null>(
+      `/agent/location-requests/pending?${query.toString()}`,
+      { method: "GET", timeoutMs: HEARTBEAT_TIMEOUT_MS },
+    );
+  }
+
+  updateLocationRequestResult(
+    result: AgentLocationResult,
+  ): Promise<AgentLocationRequest> {
+    if (!result.requestId?.trim()) {
+      throw new Error("Location request id is required.");
+    }
+
+    const { requestId, ...body } = result;
+    const normalizedBody = {
+      ...body,
+      errorMessage: normalizeLocationError(body.errorMessage),
+    };
+
+    return this.request<AgentLocationRequest>(
+      `/agent/location-requests/${encodeURIComponent(requestId)}/result`,
+      {
+        method: "PATCH",
+        body: normalizedBody,
+      },
+    );
   }
 
   private async request<T>(
@@ -348,6 +417,15 @@ function sanitizeDeviceName(value: string): string {
   }
 
   return cleaned.slice(0, 120);
+}
+
+function normalizeLocationError(value?: string): string | undefined {
+  const message = value?.replace(/\s+/g, " ").trim();
+
+  if (!message) return undefined;
+  if (message.length <= 480) return message;
+
+  return `${message.slice(0, 477)}...`;
 }
 
 function createDeviceFingerprint(): string {

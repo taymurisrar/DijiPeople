@@ -51,6 +51,7 @@ export class BillingController {
       tenantId: user.tenantId,
       userId: user.userId,
       planPriceId: dto.planPriceId,
+      seatQuantity: dto.seatQuantity,
       promotionCode: dto.promotionCode,
     });
   }
@@ -60,5 +61,10 @@ export class BillingController {
     return this.billingService.createPortalSession({
       tenantId: user.tenantId,
     });
+  }
+
+  @Post('subscription/reconcile')
+  reconcileSubscription(@CurrentUser() user: AuthenticatedUser) {
+    return this.billingService.reconcileSubscriptionSeats(user.tenantId);
   }
 }

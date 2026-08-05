@@ -31,7 +31,12 @@ import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { buildScopedAccessWhere } from '../../common/security/rbac-query-scope';
-import { AgentDeviceDto } from './dto/agent-device.dto';
+import {
+  AgentDeviceDto,
+  CompleteAgentLocationRequestDto,
+  CreateAgentLocationRequestDto,
+  UpdateAgentDevicePermissionsDto,
+} from './dto/agent-device.dto';
 import {
   AgentLoginDto,
   AgentLogoutDto,
@@ -75,6 +80,9 @@ const DEFAULT_AGENT_SETTINGS = {
   awayThresholdSeconds: 600,
   captureActiveApp: true,
   captureWindowTitle: true,
+  allowCameraAccess: false,
+  allowMicrophoneAccess: false,
+  allowLocationAccess: false,
   offlineQueueEnabled: true,
   heartbeatBatchSize: 10,
   minimumSupportedVersion: '1.0.0',
@@ -87,8 +95,29 @@ const DEFAULT_AGENT_SETTINGS = {
   releaseDate: null,
 };
 
+const AGENT_RETENTION_CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
+const MAX_LOCATION_ACCURACY_METERS = 100;
+const LOCATION_REQUEST_EXPIRY_MS = 10 * 60 * 1000;
+
+const agentLocationRequestSelect = {
+  id: true,
+  status: true,
+  requestedAt: true,
+  promptedAt: true,
+  respondedAt: true,
+  capturedAt: true,
+  expiresAt: true,
+  latitude: true,
+  longitude: true,
+  accuracyMeters: true,
+  errorMessage: true,
+  deviceId: true,
+} satisfies Prisma.AgentLocationRequestSelect;
+
 @Injectable()
 export class AgentService {
+  private readonly retentionCleanupByTenant = new Map<string, number>();
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
@@ -104,18 +133,6 @@ export class AgentService {
         employee: true,
       },
     });
-    console.log('[Agent Login Debug]', {
-      email: dto.email,
-      normalizedEmail: dto.email.trim().toLowerCase(),
-      userFound: Boolean(user),
-      userId: user?.id,
-      userEmail: user?.email,
-      userStatus: user?.status,
-      tenantId: user?.tenantId,
-      tenantStatus: user?.tenant?.status,
-      employeeId: user?.employee?.id,
-      hasPasswordHash: Boolean(user?.passwordHash),
-    });
     if (!user) {
       throw new UnauthorizedException(
         'Agent login failed: user was not found.',
@@ -126,11 +143,6 @@ export class AgentService {
       dto.password,
       user.passwordHash,
     );
-
-    console.log('[Agent Login Password Debug]', {
-      userId: user.id,
-      passwordMatches,
-    });
 
     if (!passwordMatches) {
       throw new UnauthorizedException(
@@ -212,10 +224,12 @@ export class AgentService {
       throw new UnauthorizedException('Agent device is not registered.');
     }
 
+    const startsNewSession = dto.startNewSession === true;
     const tokenRecord = await this.findMatchingRefreshToken(
       user.id,
       device.id,
       dto.refreshToken,
+      { allowExpiredActiveSession: startsNewSession },
     );
 
     if (!tokenRecord) {
@@ -245,8 +259,10 @@ export class AgentService {
       employeeId: user.employee.id,
       email: user.email,
       deviceId: device.id,
-      sessionId: payload.sessionId,
-      absoluteExpiresAt: tokenRecord.absoluteExpiresAt,
+      sessionId: startsNewSession ? undefined : payload.sessionId,
+      absoluteExpiresAt: startsNewSession
+        ? undefined
+        : tokenRecord.absoluteExpiresAt,
     });
 
     return {
@@ -308,7 +324,7 @@ export class AgentService {
     );
     const { from, to } = resolveHistoryWindow(query, retentionStart);
 
-    const [devices, latestSession, todaySummary, recentEvents] =
+    const [devices, latestSession, todaySummary, recentEvents, latestLocation] =
       await Promise.all([
         this.prisma.employeeDevice.findMany({
           where: {
@@ -323,6 +339,10 @@ export class AgentService {
             os: true,
             platform: true,
             agentVersion: true,
+            cameraPermission: true,
+            microphonePermission: true,
+            locationPermission: true,
+            permissionUpdatedAt: true,
             lastSeenAt: true,
             isActive: true,
           },
@@ -387,6 +407,35 @@ export class AgentService {
             occurredAt: true,
           },
         }),
+
+        this.prisma.agentLocationRequest.findFirst({
+          where: {
+            tenantId: currentUser.tenantId,
+            employeeId,
+          },
+          orderBy: { requestedAt: 'desc' },
+          select: {
+            id: true,
+            status: true,
+            requestedAt: true,
+            promptedAt: true,
+            respondedAt: true,
+            capturedAt: true,
+            expiresAt: true,
+            latitude: true,
+            longitude: true,
+            accuracyMeters: true,
+            errorMessage: true,
+            deviceId: true,
+            requestedBy: {
+              select: {
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+          },
+        }),
       ]);
 
     return {
@@ -404,6 +453,15 @@ export class AgentService {
           }
         : null,
       recentEvents,
+      latestLocationRequest: latestLocation
+        ? {
+            ...latestLocation,
+            requestedBy: latestLocation.requestedBy
+              ? `${latestLocation.requestedBy.firstName} ${latestLocation.requestedBy.lastName}`.trim() ||
+                latestLocation.requestedBy.email
+              : null,
+          }
+        : null,
       liveStatus: resolveLiveStatus(
         latestSession?.lastHeartbeatAt ?? null,
         settings,
@@ -414,6 +472,222 @@ export class AgentService {
         to,
       },
     };
+  }
+
+  async createEmployeeLocationRequest(
+    currentUser: AuthenticatedUser,
+    employeeId: string,
+    dto: CreateAgentLocationRequestDto,
+  ) {
+    const settings = await this.getOrCreateSettings(currentUser.tenantId);
+
+    if (!settings.allowLocationAccess) {
+      throw new BadRequestException(
+        'Location access is disabled in desktop agent settings.',
+      );
+    }
+
+    const employee = await this.prisma.employee.findFirst({
+      where: {
+        AND: [
+          { tenantId: currentUser.tenantId, id: employeeId },
+          buildScopedAccessWhere<Prisma.EmployeeWhereInput>(
+            currentUser,
+            ENTITY_KEYS.EMPLOYEES,
+            SecurityPrivilege.READ,
+            {
+              organizationIdField: null,
+              userIdField: 'userId',
+            },
+          ),
+        ],
+      },
+      select: {
+        id: true,
+        userId: true,
+        firstName: true,
+        lastName: true,
+      },
+    });
+
+    if (!employee) {
+      throw new NotFoundException('Employee was not found.');
+    }
+
+    if (!employee.userId) {
+      throw new BadRequestException(
+        'This employee is not linked to a system user.',
+      );
+    }
+
+    const device = await this.prisma.employeeDevice.findFirst({
+      where: {
+        tenantId: currentUser.tenantId,
+        employeeId: employee.id,
+        userId: employee.userId,
+        isActive: true,
+        locationPermission: 'GRANTED',
+        ...(dto.deviceId ? { id: dto.deviceId } : {}),
+      },
+      orderBy: [{ lastSeenAt: 'desc' }, { updatedAt: 'desc' }],
+      select: {
+        id: true,
+        lastSeenAt: true,
+      },
+    });
+
+    if (!device) {
+      throw new BadRequestException(
+        'No active desktop device with granted location permission was found.',
+      );
+    }
+
+    const now = new Date();
+    const request = await this.prisma.agentLocationRequest.create({
+      data: {
+        tenantId: currentUser.tenantId,
+        employeeId: employee.id,
+        userId: employee.userId,
+        deviceId: device.id,
+        requestedById: currentUser.userId,
+        expiresAt: new Date(now.getTime() + LOCATION_REQUEST_EXPIRY_MS),
+      },
+      select: agentLocationRequestSelect,
+    });
+
+    await this.auditService.log({
+      tenantId: currentUser.tenantId,
+      actorUserId: currentUser.userId,
+      action: 'AGENT_LOCATION_REQUESTED',
+      entityType: 'Employee',
+      entityId: employee.id,
+      beforeSnapshot: null,
+      afterSnapshot: request,
+      sourceModule: 'agent',
+    });
+
+    return request;
+  }
+
+  async getPendingLocationRequest(
+    currentUser: AuthenticatedUser,
+    deviceId: string,
+  ) {
+    const employee = await this.getLinkedEmployee(currentUser);
+    const settings = await this.getOrCreateSettings(currentUser.tenantId);
+    await this.assertOwnDevice(currentUser, employee.id, deviceId);
+
+    if (!settings.allowLocationAccess) {
+      return null;
+    }
+
+    const request = await this.prisma.agentLocationRequest.findFirst({
+      where: {
+        tenantId: currentUser.tenantId,
+        employeeId: employee.id,
+        userId: currentUser.userId,
+        deviceId,
+        status: 'PENDING',
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { requestedAt: 'desc' },
+      select: agentLocationRequestSelect,
+    });
+
+    if (!request) {
+      return null;
+    }
+
+    return this.prisma.agentLocationRequest.update({
+      where: { id: request.id },
+      data: {
+        status: 'PROMPTED',
+        promptedAt: new Date(),
+      },
+      select: agentLocationRequestSelect,
+    });
+  }
+
+  async completeLocationRequest(
+    currentUser: AuthenticatedUser,
+    requestId: string,
+    dto: CompleteAgentLocationRequestDto,
+  ) {
+    const employee = await this.getLinkedEmployee(currentUser);
+    const settings = await this.getOrCreateSettings(currentUser.tenantId);
+    await this.assertOwnDevice(currentUser, employee.id, dto.deviceId);
+
+    if (!settings.allowLocationAccess) {
+      throw new BadRequestException(
+        'Location access is disabled in desktop agent settings.',
+      );
+    }
+
+    const request = await this.prisma.agentLocationRequest.findFirst({
+      where: {
+        id: requestId,
+        tenantId: currentUser.tenantId,
+        employeeId: employee.id,
+        userId: currentUser.userId,
+        deviceId: dto.deviceId,
+        status: { in: ['PENDING', 'PROMPTED'] },
+      },
+      select: {
+        id: true,
+        employeeId: true,
+      },
+    });
+
+    if (!request) {
+      throw new NotFoundException('Location request was not found.');
+    }
+
+    if (
+      dto.status === 'CAPTURED' &&
+      (!Number.isFinite(dto.latitude) || !Number.isFinite(dto.longitude))
+    ) {
+      throw new BadRequestException(
+        'Latitude and longitude are required for a captured location.',
+      );
+    }
+
+    if (
+      dto.status === 'CAPTURED' &&
+      (!Number.isFinite(dto.accuracyMeters) ||
+        Number(dto.accuracyMeters) > MAX_LOCATION_ACCURACY_METERS)
+    ) {
+      throw new BadRequestException(
+        `Location accuracy must be ${MAX_LOCATION_ACCURACY_METERS} meters or better.`,
+      );
+    }
+
+    const now = new Date();
+    const updated = await this.prisma.agentLocationRequest.update({
+      where: { id: request.id },
+      data: {
+        status: dto.status,
+        respondedAt: now,
+        capturedAt:
+          dto.status === 'CAPTURED'
+            ? dto.capturedAt
+              ? new Date(dto.capturedAt)
+              : now
+            : null,
+        latitude: dto.status === 'CAPTURED' ? dto.latitude : null,
+        longitude: dto.status === 'CAPTURED' ? dto.longitude : null,
+        accuracyMeters:
+          dto.status === 'CAPTURED' ? (dto.accuracyMeters ?? null) : null,
+        errorMessage: dto.status === 'CAPTURED' ? null : dto.errorMessage,
+      },
+      select: agentLocationRequestSelect,
+    });
+
+    await this.prisma.employeeDevice.update({
+      where: { id: dto.deviceId },
+      data: { lastSeenAt: now },
+    });
+
+    return updated;
   }
 
   async logout(dto: AgentLogoutDto) {
@@ -555,6 +829,43 @@ export class AgentService {
     );
   }
 
+  async updateDevicePermissions(
+    currentUser: AuthenticatedUser,
+    dto: UpdateAgentDevicePermissionsDto,
+  ) {
+    const employee = await this.getLinkedEmployee(currentUser);
+    const settings = await this.getOrCreateSettings(currentUser.tenantId);
+    const device = await this.assertOwnDevice(
+      currentUser,
+      employee.id,
+      dto.deviceId,
+    );
+
+    return this.prisma.employeeDevice.update({
+      where: { id: device.id },
+      data: {
+        cameraPermission: settings.allowCameraAccess
+          ? dto.cameraPermission
+          : 'UNAVAILABLE',
+        microphonePermission: settings.allowMicrophoneAccess
+          ? dto.microphonePermission
+          : 'UNAVAILABLE',
+        locationPermission: settings.allowLocationAccess
+          ? dto.locationPermission
+          : 'UNAVAILABLE',
+        permissionUpdatedAt: new Date(),
+        lastSeenAt: new Date(),
+      },
+      select: {
+        id: true,
+        cameraPermission: true,
+        microphonePermission: true,
+        locationPermission: true,
+        permissionUpdatedAt: true,
+      },
+    });
+  }
+
   async startSession(
     currentUser: AuthenticatedUser,
     dto: StartAgentSessionDto,
@@ -600,6 +911,8 @@ export class AgentService {
       await this.saveHeartbeatEvent(currentUser, employee.id, event, settings);
       accepted += 1;
     }
+
+    await this.enforceTelemetryRetention(currentUser.tenantId, settings);
 
     return {
       accepted,
@@ -779,6 +1092,56 @@ export class AgentService {
       where: { id: summary.id },
       data: { utilizationPercent },
     });
+  }
+
+  private async enforceTelemetryRetention(
+    tenantId: string,
+    settings: Awaited<ReturnType<AgentService['getOrCreateSettings']>>,
+  ) {
+    const now = Date.now();
+    const lastCleanupAt = this.retentionCleanupByTenant.get(tenantId) ?? 0;
+
+    if (now - lastCleanupAt < AGENT_RETENTION_CLEANUP_INTERVAL_MS) {
+      return;
+    }
+
+    this.retentionCleanupByTenant.set(tenantId, now);
+
+    const retentionDays = Math.max(
+      1,
+      Number(settings.historyRetentionDays) ||
+        DEFAULT_AGENT_SETTINGS.historyRetentionDays,
+    );
+    const cutoff = new Date(now - retentionDays * 24 * 60 * 60 * 1000);
+    const cutoffDay = startOfUtcDay(cutoff);
+
+    await this.prisma.$transaction([
+      this.prisma.activityEvent.deleteMany({
+        where: {
+          tenantId,
+          occurredAt: { lt: cutoff },
+        },
+      }),
+      this.prisma.agentLocationRequest.deleteMany({
+        where: {
+          tenantId,
+          requestedAt: { lt: cutoff },
+          status: { not: 'PENDING' },
+        },
+      }),
+      this.prisma.dailyProductivitySummary.deleteMany({
+        where: {
+          tenantId,
+          date: { lt: cutoffDay },
+        },
+      }),
+      this.prisma.workSession.deleteMany({
+        where: {
+          tenantId,
+          endedAt: { not: null, lt: cutoff },
+        },
+      }),
+    ]);
   }
 
   private async getLinkedEmployee(currentUser: AuthenticatedUser) {
@@ -974,6 +1337,7 @@ export class AgentService {
     userId: string,
     deviceId: string,
     refreshToken: string,
+    options: { allowExpiredActiveSession?: boolean } = {},
   ) {
     const records = await this.prisma.agentRefreshToken.findMany({
       where: {
@@ -987,7 +1351,9 @@ export class AgentService {
 
     for (const record of records) {
       if (await bcrypt.compare(refreshToken, record.tokenHash)) {
-        this.assertAgentRefreshSessionActive(record);
+        if (!options.allowExpiredActiveSession) {
+          this.assertAgentRefreshSessionActive(record);
+        }
         return record;
       }
     }
@@ -1132,6 +1498,9 @@ function toConfigResponse(settings: {
   awayThresholdSeconds: number;
   captureActiveApp: boolean;
   captureWindowTitle: boolean;
+  allowCameraAccess: boolean;
+  allowMicrophoneAccess: boolean;
+  allowLocationAccess: boolean;
   heartbeatBatchSize: number;
   offlineQueueEnabled: boolean;
   autoUpdateEnabled: boolean;
@@ -1163,6 +1532,9 @@ function toConfigResponse(settings: {
       allowScreenshots: false,
       allowClipboardTracking: false,
       allowKeylogging: false,
+      allowCameraAccess: settings.allowCameraAccess,
+      allowMicrophoneAccess: settings.allowMicrophoneAccess,
+      allowLocationAccess: settings.allowLocationAccess,
     },
     api: {
       heartbeatBatchSize: settings.heartbeatBatchSize,
@@ -1171,6 +1543,9 @@ function toConfigResponse(settings: {
     features: {
       activeAppTracking: settings.captureActiveApp,
       windowTitleTracking: settings.captureWindowTitle,
+      cameraAccess: settings.allowCameraAccess,
+      microphoneAccess: settings.allowMicrophoneAccess,
+      locationAccess: settings.allowLocationAccess,
       offlineQueue: settings.offlineQueueEnabled,
       autoUpdate: settings.autoUpdateEnabled,
       trayStatus: true,

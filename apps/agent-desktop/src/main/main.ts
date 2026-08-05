@@ -9,9 +9,15 @@ import { SessionManager } from "./session-manager";
 import { createAgentTray } from "./tray";
 import { UpdateManager } from "./update-manager";
 import { AgentLogger } from "./logger";
+import { captureDesktopLocation } from "./location-capture";
+import type { AgentLocationRequest, AgentLocationResult } from "./types";
 
 let loginWindow: BrowserWindow | null = null;
+let permissionsWindow: BrowserWindow | null = null;
+let locationRequestWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
+let permissionPromptSessionId: string | null = null;
+let currentLocationRequest: AgentLocationRequest | null = null;
 
 const apiClient = new ApiClient();
 const configManager = new ConfigManager(apiClient);
@@ -122,11 +128,11 @@ function normalizeLoginError(error: unknown): LoginResult {
     message.includes("unauthorized") ||
     message.includes("password")
   ) {
-return {
-  ok: false,
-  code: "UNKNOWN_ERROR",
-  message: rawMessage || "Unable to sign in. Please try again.",
-};
+    return {
+      ok: false,
+      code: "INVALID_CREDENTIALS",
+      message: rawMessage || "Unable to sign in. Please try again.",
+    };
   }
 
   if (
@@ -183,10 +189,15 @@ function wireEvents() {
 
   sessionManager.on("authenticated", () => {
     loginWindow?.close();
+    maybeShowDevicePermissionPrompt();
   });
 
   sessionManager.on("update-required", (policy) => {
     void updateManager.showRequiredUpdate(policy);
+  });
+
+  sessionManager.on("location-request", (request) => {
+    createLocationRequestWindow(request as AgentLocationRequest);
   });
 
   ipcMain.handle(
@@ -214,6 +225,214 @@ function wireEvents() {
       }
     },
   );
+
+  ipcMain.handle("agent:resume-session", async (): Promise<LoginResult> => {
+    try {
+      await sessionManager.resumeSavedSession();
+
+      return { ok: true };
+    } catch (error) {
+      const result = normalizeLoginError(error);
+
+      loginWindow?.webContents.send("agent:login-error", result);
+
+      return result;
+    }
+  });
+
+  ipcMain.handle(
+    "agent:update-device-permissions",
+    async (_event, permissions) => {
+      try {
+        await sessionManager.updateDevicePermissions(permissions);
+
+        return { ok: true };
+      } catch (error) {
+        return {
+          ok: false,
+          message:
+            error instanceof Error
+              ? error.message
+              : "Unable to save device permission status.",
+        };
+      }
+    },
+  );
+
+  ipcMain.handle("agent:get-device-permission-config", () => {
+    const features = configManager.current.features;
+
+    return {
+      cameraAccess: Boolean(features.cameraAccess),
+      microphoneAccess: Boolean(features.microphoneAccess),
+      locationAccess: Boolean(features.locationAccess),
+    };
+  });
+
+  ipcMain.handle("agent:get-location-request", () => currentLocationRequest);
+
+  ipcMain.handle("agent:capture-desktop-location", async () => {
+    if (!configManager.current.features.locationAccess) {
+      return {
+        ok: false,
+        message: "Location access is disabled in desktop agent settings.",
+      };
+    }
+
+    return captureDesktopLocation();
+  });
+
+  ipcMain.handle(
+    "agent:submit-location-result",
+    async (_event, result: AgentLocationResult) => {
+      try {
+        await sessionManager.completeLocationRequest(result);
+
+        if (currentLocationRequest?.id === result.requestId) {
+          currentLocationRequest = null;
+        }
+
+        locationRequestWindow?.close();
+
+        return { ok: true };
+      } catch (error) {
+        return {
+          ok: false,
+          message:
+            error instanceof Error
+              ? error.message
+              : "Unable to submit location result.",
+        };
+      }
+    },
+  );
+}
+
+function hasEnabledDevicePermissions() {
+  const features = configManager.current.features;
+
+  return Boolean(
+    features.cameraAccess || features.microphoneAccess || features.locationAccess,
+  );
+}
+
+function maybeShowDevicePermissionPrompt() {
+  if (!sessionManager.sessionId || !sessionManager.deviceId) return;
+  if (!hasEnabledDevicePermissions()) return;
+  if (permissionPromptSessionId === sessionManager.sessionId) return;
+
+  permissionPromptSessionId = sessionManager.sessionId;
+  setTimeout(() => {
+    createPermissionsWindow();
+  }, 1_000);
+}
+
+function createPermissionsWindow() {
+  if (permissionsWindow) {
+    permissionsWindow.show();
+    permissionsWindow.focus();
+    return;
+  }
+
+  permissionsWindow = new BrowserWindow({
+    width: 560,
+    height: 560,
+    minWidth: 520,
+    minHeight: 520,
+    title: "DijiPeople Agent Permissions",
+    show: false,
+    backgroundColor: "#f8fafc",
+    webPreferences: {
+      preload: path.join(__dirname, "preload.js"),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false,
+    },
+  });
+
+  permissionsWindow.webContents.session.setPermissionRequestHandler(
+    (_webContents, permission, callback) => {
+      const features = configManager.current.features;
+
+      if (permission === "media") {
+        callback(Boolean(features.cameraAccess || features.microphoneAccess));
+        return;
+      }
+
+      if (permission === "geolocation") {
+        callback(Boolean(features.locationAccess));
+        return;
+      }
+
+      callback(false);
+    },
+  );
+
+  permissionsWindow.once("ready-to-show", () => {
+    permissionsWindow?.show();
+    permissionsWindow?.focus();
+  });
+
+  void permissionsWindow.loadFile(
+    path.join(__dirname, "../renderer/device-permissions.html"),
+  );
+
+  permissionsWindow.on("closed", () => {
+    permissionsWindow = null;
+  });
+}
+
+function createLocationRequestWindow(request: AgentLocationRequest) {
+  if (!configManager.current.features.locationAccess) return;
+
+  currentLocationRequest = request;
+
+  if (locationRequestWindow) {
+    locationRequestWindow.show();
+    locationRequestWindow.focus();
+    return;
+  }
+
+  locationRequestWindow = new BrowserWindow({
+    width: 520,
+    height: 420,
+    minWidth: 480,
+    minHeight: 380,
+    title: "DijiPeople Location Request",
+    autoHideMenuBar: true,
+    show: false,
+    backgroundColor: "#f8fafc",
+    webPreferences: {
+      preload: path.join(__dirname, "preload.js"),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false,
+    },
+  });
+
+  locationRequestWindow.setMenu(null);
+
+  locationRequestWindow.webContents.session.setPermissionRequestHandler(
+    (_webContents, permission, callback) => {
+      callback(
+        permission === "geolocation" &&
+          Boolean(configManager.current.features.locationAccess),
+      );
+    },
+  );
+
+  locationRequestWindow.once("ready-to-show", () => {
+    locationRequestWindow?.show();
+    locationRequestWindow?.focus();
+  });
+
+  void locationRequestWindow.loadFile(
+    path.join(__dirname, "../renderer/location-request.html"),
+  );
+
+  locationRequestWindow.on("closed", () => {
+    locationRequestWindow = null;
+  });
 }
 
 app.on("ready", async () => {
@@ -225,6 +444,7 @@ app.on("ready", async () => {
     sessionManager,
     configManager,
     onShowLogin: createLoginWindow,
+    onShowDevicePermissions: createPermissionsWindow,
     onCheckUpdates: () => void updateManager.checkForUpdates(),
   });
 
@@ -235,11 +455,13 @@ app.on("ready", async () => {
 
   if (!restored) {
     createLoginWindow();
+  } else {
+    maybeShowDevicePermissionPrompt();
   }
 });
 
 app.on("before-quit", () => {
-  void sessionManager.logout(false);
+  void sessionManager.stopForAppQuit();
   updateManager.stop();
 });
 

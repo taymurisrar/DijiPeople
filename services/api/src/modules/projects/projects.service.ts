@@ -63,9 +63,9 @@ export class ProjectsService {
 
     const projects =
       await this.projectsRepository.findActiveAssignedProjectsForEmployee(
-      currentUser.tenantId,
-      employee.id,
-    );
+        currentUser.tenantId,
+        employee.id,
+      );
     return projects.map((project) => {
       const assignment = project.assignments[0];
       return {

@@ -63,6 +63,11 @@ import { UsersModule } from './modules/users/users.module';
 import { SuperAdminModule } from './modules/super-admin/super-admin.module';
 import { ErrorLogsModule } from './modules/error-logs/error-logs.module';
 import { DemoDataModule } from './modules/demo-data/demo-data.module';
+import { PartnersModule } from './modules/partners/partners.module';
+import { PlatformRuntimeModule } from './modules/platform-runtime/platform-runtime.module';
+import { ContractsModule } from './modules/contracts/contracts.module';
+import { PartnerExperienceModule } from './modules/partner-experience/partner-experience.module';
+import { SupportCasesModule } from './modules/support-cases/support-cases.module';
 
 @Module({
   imports: [
@@ -120,6 +125,11 @@ import { DemoDataModule } from './modules/demo-data/demo-data.module';
     PermissionsModule,
     PlatformMonitoringModule,
     PlatformUsersModule,
+    PartnersModule,
+    ContractsModule,
+    PartnerExperienceModule,
+    SupportCasesModule,
+    PlatformRuntimeModule,
   ],
   controllers: [AppController],
   providers: [

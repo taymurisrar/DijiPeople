@@ -167,11 +167,10 @@ export class AuditService {
   }
 }
 
-type AuditLogItem = Awaited<
-  ReturnType<AuditRepository['findOneByTenant']>
-> extends infer T
-  ? NonNullable<T>
-  : never;
+type AuditLogItem =
+  Awaited<ReturnType<AuditRepository['findOneByTenant']>> extends infer T
+    ? NonNullable<T>
+    : never;
 
 function mapAuditLogItem(item: AuditLogItem) {
   const userDisplayName = item.actorUser

@@ -9,9 +9,9 @@ describe('payroll cycle date-only parsing', () => {
   });
 
   it('uses the business-date portion of a legacy ISO timestamp', () => {
-    expect(
-      parsePayrollDateOnly('2026-07-01T21:00:00.000Z').toISOString(),
-    ).toBe('2026-07-01T00:00:00.000Z');
+    expect(parsePayrollDateOnly('2026-07-01T21:00:00.000Z').toISOString()).toBe(
+      '2026-07-01T00:00:00.000Z',
+    );
   });
 
   it('rejects an impossible calendar date', () => {

@@ -1,9 +1,15 @@
+"use client";
+
+import { useMemo, useState } from "react";
 import {
   Building2,
   Bug,
   DatabaseBackup,
   CreditCard,
   FileText,
+  FileSignature,
+  Handshake,
+  Headphones,
   Mail,
   Palette,
   Search,
@@ -100,6 +106,20 @@ const settingsGroups: SettingsMenuGroup[] = [
         href: "/settings/onboarding-definitions",
         icon: SlidersHorizontal,
       },
+      {
+        title: "Partner policies",
+        description: "Onboarding, activation, agreements, commissions, and submitted leads.",
+        href: "/settings/partners",
+        icon: Handshake,
+        badge: "Core",
+      },
+      {
+        title: "Customer activation",
+        description: "Agreement, commercial approval, provisioning, and activation gates.",
+        href: "/settings/customers",
+        icon: Users,
+        badge: "Core",
+      },
     ],
   },
   {
@@ -124,6 +144,20 @@ const settingsGroups: SettingsMenuGroup[] = [
         description: "Numbering, prefixes, due dates, and invoice notes.",
         href: "/settings/invoices",
         icon: FileText,
+      },
+      {
+        title: "Contracts & agreements",
+        description: "Templates, approvals, signatures, consent, expiry, and renewal rules.",
+        href: "/settings/contracts",
+        icon: FileSignature,
+        badge: "Core",
+      },
+      {
+        title: "Support case policy",
+        description: "Case numbering, severity targets, SLA, escalation, and closure.",
+        href: "/settings/support",
+        icon: Headphones,
+        badge: "Recommended",
       },
     ],
   },
@@ -163,7 +197,33 @@ const recommendedSettings = settingsGroups
   )
   .filter((item) => item.badge === "Core" || item.badge === "Recommended");
 
-export default async function SettingsPage() {
+export default function SettingsPage() {
+  const [query, setQuery] = useState("");
+  const visibleGroups = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    if (!normalized) return settingsGroups;
+
+    return settingsGroups
+      .map((group) => ({
+        ...group,
+        items: group.items.filter((item) =>
+          [group.title, group.description, item.title, item.description]
+            .join(" ")
+            .toLowerCase()
+            .includes(normalized),
+        ),
+      }))
+      .filter((group) => group.items.length > 0);
+  }, [query]);
+
+  const visibleRecommended = useMemo(() => {
+    if (!query.trim()) return recommendedSettings;
+    const visibleHrefs = new Set(
+      visibleGroups.flatMap((group) => group.items.map((item) => item.href)),
+    );
+    return recommendedSettings.filter((item) => visibleHrefs.has(item.href));
+  }, [query, visibleGroups]);
+
   return (
     <main className="space-y-5">
       <PageHeader
@@ -178,14 +238,15 @@ export default async function SettingsPage() {
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
-                disabled
                 placeholder="Search settings..."
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-9 pr-3 text-sm text-slate-500 outline-none"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-9 pr-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[var(--admin-primary)] focus:bg-white focus:ring-4 focus:ring-blue-100/50"
               />
             </div>
 
             <nav className="mt-5 space-y-1">
-              {settingsGroups.map((group) => (
+              {visibleGroups.map((group) => (
                 <a
                   key={group.title}
                   href={`#${toAnchor(group.title)}`}
@@ -200,7 +261,7 @@ export default async function SettingsPage() {
             </nav>
           </div>
 
-          <div className="rounded-[28px] border border-slate-200 bg-slate-950 p-5 text-white shadow-sm">
+          <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(145deg,var(--admin-navigation),var(--admin-primary))] p-5 text-white shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
               Setup health
             </p>
@@ -231,18 +292,18 @@ export default async function SettingsPage() {
               </div>
 
               <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-600">
-                {recommendedSettings.length} priority areas
+                {visibleRecommended.length} priority areas
               </div>
             </div>
 
             <div className="mt-5 grid gap-3 md:grid-cols-2">
-              {recommendedSettings.map((item) => (
+              {visibleRecommended.map((item) => (
                 <SettingsCard key={item.href} {...item} compact />
               ))}
             </div>
           </section>
 
-          {settingsGroups.map((group) => (
+          {visibleGroups.map((group) => (
             <SettingsSection
               key={group.title}
               title={group.title}
@@ -250,6 +311,16 @@ export default async function SettingsPage() {
               items={group.items}
             />
           ))}
+
+          {visibleGroups.length === 0 ? (
+            <section className="rounded-[28px] border border-dashed border-slate-300 bg-white p-10 text-center shadow-sm">
+              <h2 className="text-lg font-semibold text-slate-950">No settings found</h2>
+              <p className="mt-2 text-sm text-slate-600">Try a feature name such as currency, theme, security, or invoice.</p>
+              <button type="button" onClick={() => setQuery("")} className="mt-5 rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white">
+                Clear search
+              </button>
+            </section>
+          ) : null}
         </div>
       </section>
     </main>

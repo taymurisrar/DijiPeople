@@ -383,7 +383,7 @@ async function handleAuthFailureResponse(
     !usesInlineErrorHandling(fetchArgs) &&
     !usesInlineErrorHandlingByDefault(response)
   ) {
-    await dispatchApiError(response);
+    await dispatchApiError(response, fetchArgs);
   }
 
   if (globalWindow.__dpAuthRedirectInFlight) {
@@ -427,9 +427,7 @@ function buildLogoutUrl(
   return `/api/auth/logout?${params.toString()}`;
 }
 
-function usesInlineErrorHandling(
-  fetchArgs: Parameters<typeof window.fetch>,
-) {
+function usesInlineErrorHandling(fetchArgs: Parameters<typeof window.fetch>) {
   const [input, init] = fetchArgs;
   const headers = new Headers(
     init?.headers ?? (input instanceof Request ? input.headers : undefined),
@@ -442,21 +440,90 @@ function usesInlineErrorHandlingByDefault(response: Response) {
   return [400, 405, 409, 422].includes(response.status);
 }
 
-async function dispatchApiError(response: Response) {
+async function dispatchApiError(
+  response: Response,
+  fetchArgs: Parameters<typeof window.fetch>,
+) {
+  const requestUrl = resolveRequestUrl(fetchArgs[0]);
+  const requestMethod =
+    fetchArgs[1]?.method ??
+    (fetchArgs[0] instanceof Request ? fetchArgs[0].method : undefined) ??
+    "GET";
+
   try {
     const data = await response.clone().json();
     window.dispatchEvent(
       new CustomEvent(apiErrorEventName(), {
-        detail: { error: normalizeApiError(data, response.status) },
+        detail: {
+          error: normalizeApiError(
+            addResponseDiagnostics(data, response, requestUrl, requestMethod),
+            response.status,
+          ),
+        },
       }),
     );
   } catch {
+    const responseText = await response
+      .clone()
+      .text()
+      .catch(() => "");
     window.dispatchEvent(
       new CustomEvent(apiErrorEventName(), {
-        detail: { error: normalizeApiError({ statusCode: response.status }, response.status) },
+        detail: {
+          error: normalizeApiError(
+            {
+              statusCode: response.status,
+              message: responseText || response.statusText || "Request failed.",
+              path: requestUrl,
+              method: requestMethod,
+              details: {
+                responseStatus: response.status,
+                responseStatusText: response.statusText || null,
+                responseText: responseText.slice(0, 4000) || null,
+              },
+            },
+            response.status,
+          ),
+        },
       }),
     );
   }
+}
+
+function addResponseDiagnostics(
+  data: unknown,
+  response: Response,
+  path: string,
+  method: string,
+) {
+  if (!isRecord(data)) {
+    return {
+      statusCode: response.status,
+      message: response.statusText || "Request failed.",
+      path,
+      method,
+      details: {
+        responseStatus: response.status,
+        responseStatusText: response.statusText || null,
+        responseBody: data,
+      },
+    };
+  }
+
+  return {
+    ...data,
+    statusCode:
+      typeof data.statusCode === "number" ? data.statusCode : response.status,
+    status: typeof data.status === "number" ? data.status : response.status,
+    path: readString(data.path) ?? path,
+    method: readString(data.method) ?? method,
+    details:
+      data.details ??
+      ({
+        responseStatus: response.status,
+        responseStatusText: response.statusText || null,
+      } satisfies Record<string, unknown>),
+  };
 }
 
 async function resolveRedirectReason(

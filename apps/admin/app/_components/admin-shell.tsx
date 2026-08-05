@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AdminSidebar } from "./admin-sidebar";
 import { AdminTopbar } from "./admin-topbar";
+import { usePlatformDefaults } from "./platform-defaults-provider";
 
 type AdminShellProps = {
   user: {
@@ -10,11 +11,13 @@ type AdminShellProps = {
     lastName: string;
     email: string;
     roleKeys?: string[];
+    permissionKeys?: string[];
   };
   children: React.ReactNode;
 };
 
 export function AdminShell({ user, children }: AdminShellProps) {
+  const { appearance } = usePlatformDefaults();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const lastActivitySyncAt = useRef(0);
@@ -81,7 +84,18 @@ export function AdminShell({ user, children }: AdminShellProps) {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#eef2ff_100%)]">
+    <div
+      className="admin-theme min-h-screen"
+      data-theme={appearance.themePreset}
+      style={
+        {
+          "--admin-primary": appearance.primaryColor,
+          "--admin-accent": appearance.accentColor,
+          "--admin-navigation": appearance.navigationColor,
+          "--admin-surface-tint": appearance.surfaceTint,
+        } as React.CSSProperties
+      }
+    >
       <div className="mx-auto flex min-h-screen max-w-[1600px] gap-0 px-3 py-3 md:px-4 md:py-4 lg:gap-4">
         <AdminSidebar
           collapsed={sidebarCollapsed}
@@ -89,6 +103,7 @@ export function AdminShell({ user, children }: AdminShellProps) {
           onCollapseToggle={() => setSidebarCollapsed((current) => !current)}
           onClose={() => setSidebarOpen(false)}
           roleKeys={user.roleKeys}
+          permissionKeys={user.permissionKeys}
         />
 
         <main className="flex min-w-0 flex-1 flex-col gap-4">

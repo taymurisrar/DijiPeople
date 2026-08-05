@@ -7,7 +7,9 @@ describe('compensation effective-date replacement', () => {
     const nextEffectiveFrom = new Date('2026-07-01T00:00:00.000Z');
 
     await retireOpenActiveCompensations(
-      { employeeCompensationHistory: { updateMany } } as unknown as Prisma.TransactionClient,
+      {
+        employeeCompensationHistory: { updateMany },
+      } as unknown as Prisma.TransactionClient,
       'tenant-1',
       'employee-1',
       nextEffectiveFrom,

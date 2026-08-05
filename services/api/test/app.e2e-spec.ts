@@ -21,8 +21,8 @@ describe('AppController (e2e)', () => {
       .get('/')
       .expect(200)
       .expect(({ body }) => {
-        const typedBody = body as { service: string; status: string };
-        expect(typedBody.service).toBe('dijipeople-api');
+        const typedBody = body as { app: string; status: string };
+        expect(typedBody.app).toBe('dijipeople-api');
         expect(typedBody.status).toBe('ok');
       });
   });

@@ -7,5 +7,6 @@ import { PlatformMonitoringService } from './platform-monitoring.service';
   imports: [AuditModule],
   controllers: [PlatformMonitoringController],
   providers: [PlatformMonitoringService],
+  exports: [PlatformMonitoringService],
 })
 export class PlatformMonitoringModule {}

@@ -1,43 +1,36 @@
-import { SettingsFormCard } from "@/app/_components/settings/settings-form-card";
-import { SettingsShell } from "@/app/_components/settings/settings-shell";
+import { PageHeader } from "@/app/_components/ui/page-header";
+import { OperationalSettingsForm } from "@/app/_components/settings/operational-settings-form";
+import { apiRequestJson } from "@/lib/server-api";
 
 export default async function CompanyProfileSettingsPage() {
-  return (
-    <SettingsShell
-      title="Company profile"
-      description="Manage public company identity, address, registration details, and support contact information."
-    >
-      <SettingsFormCard title="Company details">
-        <div className="grid gap-4 md:grid-cols-2">
-          <Field label="Company name" value="DijiPeople" />
-          <Field label="Legal name" value="DijiPeople Technologies" />
-          <Field label="Business registration number" value="" />
-          <Field label="Tax registration number" value="" />
-          <Field label="Support email" value="support@dijipeople.com" />
-          <Field label="Website" value="https://dijipeople.com" />
-        </div>
-      </SettingsFormCard>
-
-      <SettingsFormCard title="Address">
-        <div className="grid gap-4 md:grid-cols-2">
-          <Field label="Country" value="Qatar" />
-          <Field label="City" value="Doha" />
-          <Field label="Street address" value="" />
-          <Field label="Postal code" value="" />
-        </div>
-      </SettingsFormCard>
-    </SettingsShell>
+  const data = await apiRequestJson<{ companyProfile: Record<string, unknown> }>(
+    "/super-admin/platform-settings",
   );
-}
-
-function Field({ label, value }: { label: string; value: string }) {
   return (
-    <label className="space-y-2">
-      <span className="text-sm font-medium text-slate-900">{label}</span>
-      <input
-        defaultValue={value}
-        className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-slate-500 focus:ring-4 focus:ring-slate-100"
+    <main className="space-y-5">
+      <PageHeader
+        eyebrow="Settings / General"
+        title="Company profile"
+        description="Maintain the authoritative platform identity used by public pages, communications, contracts, and document placeholders."
       />
-    </label>
+      <OperationalSettingsForm
+        title="Company identity"
+        description="These persisted values resolve platform contract tags and customer-facing identity."
+        settingKey="companyProfile"
+        initialValues={data.companyProfile}
+        fields={[
+          { key: "companyName", label: "Company name", description: "Public platform name.", type: "text" },
+          { key: "legalName", label: "Legal name", description: "Legal contracting entity.", type: "text" },
+          { key: "registrationNumber", label: "Registration number", description: "Business registration identifier.", type: "text" },
+          { key: "taxNumber", label: "Tax number", description: "Tax registration identifier.", type: "text" },
+          { key: "supportEmail", label: "Support email", description: "Customer-facing support mailbox.", type: "text" },
+          { key: "website", label: "Website", description: "Public company website.", type: "text" },
+          { key: "country", label: "Country", description: "Registered country.", type: "text" },
+          { key: "city", label: "City", description: "Registered city.", type: "text" },
+          { key: "streetAddress", label: "Street address", description: "Registered street address.", type: "text" },
+          { key: "postalCode", label: "Postal code", description: "Registered postal code.", type: "text" },
+        ]}
+      />
+    </main>
   );
 }

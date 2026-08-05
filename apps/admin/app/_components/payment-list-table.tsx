@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { DataTable } from "@/app/_components/crm/data-table";
+import { ProDataTable } from "@/app/_components/crm/data-table";
 import { TenantStatusBadge } from "@/app/_components/tenant-status-badge";
 import { AdminKeyValueGrid } from "@/app/_components/admin-ui";
+import { usePlatformDefaults } from "@/app/_components/platform-defaults-provider";
 
 export type PaymentTableRecord = {
   id: string;
@@ -22,11 +23,11 @@ export type PaymentTableRecord = {
 
 function formatMoney(
   amount: number | string | null | undefined,
-  currency?: string | null,
+  currency: string,
 ) {
   const numericAmount = Number(amount ?? 0);
 
-  return `${currency ?? "USD"} ${
+  return `${currency} ${
     Number.isFinite(numericAmount)
       ? numericAmount.toFixed(2)
       : "0.00"
@@ -38,9 +39,10 @@ export function PaymentListTable({
 }: {
   payments: PaymentTableRecord[];
 }) {
+  const { defaults } = usePlatformDefaults();
   return (
     <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
-      <DataTable
+      <ProDataTable
         rows={payments}
         rowKey={(payment) => payment.id}
         stickyHeader
@@ -65,7 +67,7 @@ export function PaymentListTable({
             header: "Amount",
             minWidth: 140,
             render: (payment) =>
-              formatMoney(payment.amount, payment.currency),
+              formatMoney(payment.amount, payment.currency ?? defaults.currency),
           },
           {
             key: "method",

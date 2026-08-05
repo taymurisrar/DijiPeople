@@ -1263,7 +1263,7 @@ function EligibilityRulesField({
   readonly touched?: boolean;
   readonly value: FieldValueMap[string];
 }) {
-  const rules = normalizeEligibilityRules(value);
+  const rules = useMemo(() => normalizeEligibilityRules(value), [value]);
   const showError = touched && error;
   const [lookupOptionsByScope, setLookupOptionsByScope] = useState<
     Record<string, readonly LookupOption[]>
@@ -1277,7 +1277,7 @@ function EligibilityRulesField({
           ),
         ),
       ).filter((scope) => eligibilityLookupField(scope) !== null),
-    [value],
+    [rules],
   );
   const activeLookupScopeKey = activeLookupScopes.join("|");
 

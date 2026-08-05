@@ -16,6 +16,9 @@ export type AgentSettingsRecord = {
   awayThresholdSeconds: number;
   captureActiveApp: boolean;
   captureWindowTitle: boolean;
+  allowCameraAccess: boolean;
+  allowMicrophoneAccess: boolean;
+  allowLocationAccess: boolean;
   offlineQueueEnabled: boolean;
   heartbeatBatchSize: number;
   minimumSupportedVersion: string;
@@ -37,6 +40,9 @@ export function DesktopAgentSettingsForm({
   const [form, setForm] = useState({
     ...initialSettings,
     mandatory: initialSettings.mandatory ?? false,
+    allowCameraAccess: initialSettings.allowCameraAccess ?? false,
+    allowMicrophoneAccess: initialSettings.allowMicrophoneAccess ?? false,
+    allowLocationAccess: initialSettings.allowLocationAccess ?? false,
     historyRetentionDays: initialSettings.historyRetentionDays ?? 90,
     updateMessage: initialSettings.updateMessage ?? "",
     installerUrl: initialSettings.installerUrl ?? "",
@@ -64,6 +70,9 @@ async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     awayThresholdSeconds: form.awayThresholdSeconds,
     captureActiveApp: form.captureActiveApp,
     captureWindowTitle: form.captureWindowTitle,
+    allowCameraAccess: form.allowCameraAccess,
+    allowMicrophoneAccess: form.allowMicrophoneAccess,
+    allowLocationAccess: form.allowLocationAccess,
     offlineQueueEnabled: form.offlineQueueEnabled,
     heartbeatBatchSize: form.heartbeatBatchSize,
     minimumSupportedVersion: form.minimumSupportedVersion,
@@ -179,6 +188,27 @@ async function handleSubmit(event: FormEvent<HTMLFormElement>) {
           label="Capture window title and browser tab title"
           onChange={(captureWindowTitle) =>
             setForm((current) => ({ ...current, captureWindowTitle }))
+          }
+        />
+        <CheckField
+          checked={form.allowCameraAccess}
+          label="Allow employee camera consent requests"
+          onChange={(allowCameraAccess) =>
+            setForm((current) => ({ ...current, allowCameraAccess }))
+          }
+        />
+        <CheckField
+          checked={form.allowMicrophoneAccess}
+          label="Allow employee microphone consent requests"
+          onChange={(allowMicrophoneAccess) =>
+            setForm((current) => ({ ...current, allowMicrophoneAccess }))
+          }
+        />
+        <CheckField
+          checked={form.allowLocationAccess}
+          label="Allow employee location consent requests"
+          onChange={(allowLocationAccess) =>
+            setForm((current) => ({ ...current, allowLocationAccess }))
           }
         />
         <CheckField

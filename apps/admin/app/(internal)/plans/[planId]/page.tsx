@@ -1,12 +1,8 @@
-import Link from "next/link";
 import {
-  ArrowLeft,
   BadgeDollarSign,
   CalendarDays,
   CircleDollarSign,
-  Copy,
   Layers3,
-  PackageCheck,
   ShieldCheck,
   UsersRound,
 } from "lucide-react";
@@ -15,9 +11,10 @@ import {
   PlanPriceManager,
   type PlanPriceRecord,
 } from "@/app/_components/plan-price-manager";
-import { RecordRibbonBar } from "@/app/_components/crm/record-ribbon-bar";
+import { PlanDetailActionBar } from "@/app/_components/plans/plan-detail-action-bar";
 import { TenantStatusBadge } from "@/app/_components/tenant-status-badge";
 import { apiRequestJson } from "@/lib/server-api";
+import { RuntimeRecordRoute } from "@/app/_components/runtime/runtime-record-route";
 
 type PlanRecord = {
   id: string;
@@ -42,10 +39,16 @@ type FeatureAvailability = {
 
 export default async function PlanDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ planId: string }>;
+  searchParams: Promise<{ workspace?: string }>;
 }) {
   const { planId } = await params;
+  const { workspace } = await searchParams;
+  if (workspace !== "legacy-commerce") {
+    return <RuntimeRecordRoute moduleKey="plans" recordId={planId} />;
+  }
 
   const [plan, featureCatalog] = await Promise.all([
     apiRequestJson<PlanRecord>(`/super-admin/plans/${planId}`),
@@ -93,41 +96,7 @@ export default async function PlanDetailPage({
 
   return (
     <main className="space-y-6">
-      <RecordRibbonBar
-        left={
-          <>
-            <Link
-              href="/plans"
-              className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back
-            </Link>
-
-            <div className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700">
-              <PackageCheck className="h-4 w-4" />
-              Plan record
-            </div>
-          </>
-        }
-        right={
-          <>
-            <Link
-              href={`/plans/new?sourcePlanId=${plan.id}`}
-              className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
-            >
-              <Copy className="h-4 w-4" />
-              Duplicate
-            </Link>
-
-            <div className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white">
-              <BadgeDollarSign className="h-4 w-4" />
-              {plan.subscriptionCount} subscription
-              {plan.subscriptionCount === 1 ? "" : "s"}
-            </div>
-          </>
-        }
-      />
+      <PlanDetailActionBar planId={plan.id} />
 
       <section className="overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-sm">
         <div className="grid gap-6 p-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:p-8">

@@ -1525,7 +1525,10 @@ export class EnterpriseConfigurationService {
             employeeId: input.employeeId,
             isActive: true,
             effectiveFrom: { lte: effectiveDate },
-            OR: [{ effectiveTo: null }, { effectiveTo: { gte: effectiveDate } }],
+            OR: [
+              { effectiveTo: null },
+              { effectiveTo: { gte: effectiveDate } },
+            ],
             workSchedule: {
               isActive: true,
               status: 'ACTIVE',
@@ -1581,7 +1584,8 @@ export class EnterpriseConfigurationService {
         where: { tenantId: input.tenantId, id: input.locationId },
         select: { defaultWorkScheduleId: true },
       });
-      if (location?.defaultWorkScheduleId) return location.defaultWorkScheduleId;
+      if (location?.defaultWorkScheduleId)
+        return location.defaultWorkScheduleId;
     }
 
     const schedule = await this.prisma.workSchedule.findFirst({

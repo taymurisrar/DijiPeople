@@ -165,7 +165,11 @@ export function normalizeApiError(
       message: input.message || catalog.message,
       description: catalog.description,
       stack: input.stack,
-      details: cause ? { cause } : {},
+      details: {
+        errorName: input.name || "Error",
+        errorMessage: input.message || catalog.message,
+        ...(cause ? { cause } : {}),
+      },
     };
   }
 
@@ -249,7 +253,11 @@ export function normalizeApiError(
     errorCode: statusToCode(fallbackStatus),
     message,
     description: catalog.description,
-    details: {},
+    details: {
+      inputType: typeof input,
+      fallbackStatus,
+      reason: "The error did not include a structured API payload.",
+    },
     stack: new Error(message).stack,
   };
 }
@@ -296,6 +304,16 @@ function withFallbacks(error: StandardApiError) {
     errorCode: error.errorCode || statusToCode(statusCode),
     message,
     description: error.description || catalog.description,
+    details:
+      error.details === undefined || isEmptyRecord(error.details)
+        ? {
+            statusCode,
+            errorCode: error.errorCode || statusToCode(statusCode),
+            message,
+            path: error.path ?? null,
+            method: error.method ?? null,
+          }
+        : error.details,
     stack: error.stack ?? new Error(message).stack,
   };
 }
@@ -390,6 +408,10 @@ function buildDiagnosticDetails(value: Record<string, unknown>) {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function isEmptyRecord(value: unknown) {
+  return isRecord(value) && Object.keys(value).length === 0;
 }
 
 function createClientTraceId() {

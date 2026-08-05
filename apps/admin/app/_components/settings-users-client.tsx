@@ -6,8 +6,16 @@ import { Plus, RefreshCw, Save, Search, ShieldOff, X } from "lucide-react";
 import { AppNotification } from "@/app/_components/notifications/app-notification";
 import { usePlatformDefaults } from "@/app/_components/platform-defaults-provider";
 import { formatPlatformDate } from "@/lib/platform-formatters";
+import {
+  ProDataTable,
+  type ProDataTableColumn,
+} from "@/app/_components/crm/data-table";
+import {
+  formatPlatformRole,
+  PLATFORM_ROLES,
+  type PlatformRole,
+} from "@/lib/platform-rbac";
 
-type PlatformRole = "SUPER_ADMIN" | "MEMBER";
 type PlatformStatus = "ACTIVE" | "INVITED" | "DISABLED";
 
 type PlatformUser = {
@@ -168,6 +176,74 @@ export function SettingsUsersClient({
   }
 
   const panelOpen = editingUser !== null || form !== emptyForm;
+  const columns: ProDataTableColumn<PlatformUser>[] = [
+      {
+        key: "user",
+        header: "User",
+        width: 260,
+        sortable: true,
+        render: (user) => (
+          <div>
+            <div className="font-semibold text-slate-950">
+              {user.firstName} {user.lastName}
+            </div>
+            <div className="text-xs text-slate-500">{user.email}</div>
+          </div>
+        ),
+      },
+      {
+        key: "role",
+        header: "Platform role",
+        width: 160,
+        sortable: true,
+        render: (user) => formatPlatformRole(user.role),
+      },
+      {
+        key: "status",
+        header: "Status",
+        width: 120,
+        sortable: true,
+        render: (user) => (
+          <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
+            {user.status ?? "Unknown"}
+          </span>
+        ),
+      },
+      {
+        key: "lastActiveAt",
+        header: "Last active",
+        width: 180,
+        sortable: true,
+        render: (user) => formatPlatformDate(user.lastActiveAt, defaults),
+      },
+      {
+        key: "actions",
+        header: "Actions",
+        width: 120,
+        align: "right",
+        sticky: "right",
+        render: (user) => (
+          <div className="flex justify-end gap-1">
+            <button
+              className="rounded-lg px-2 py-1 font-semibold text-slate-700 hover:bg-slate-100"
+              onClick={() => openEdit(user)}
+              type="button"
+            >
+              Edit
+            </button>
+            <button
+              aria-label={`Disable ${user.email}`}
+              className="rounded-lg px-2 py-1 font-semibold text-red-700 hover:bg-red-50 disabled:opacity-40"
+              disabled={user.userId === currentUserId}
+              onClick={() => deleteUser(user)}
+              type="button"
+            >
+              <ShieldOff className="h-4 w-4" />
+            </button>
+          </div>
+        ),
+      },
+    ];
 
   return (
     <section className="space-y-4">
@@ -206,63 +282,15 @@ export function SettingsUsersClient({
       ) : null}
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="bg-slate-50 text-xs uppercase tracking-[0.12em] text-slate-500">
-                <tr>
-                  <th className="px-4 py-3 text-left">User</th>
-                  <th className="px-4 py-3 text-left">Platform role</th>
-                  <th className="px-4 py-3 text-left">Status</th>
-                  <th className="px-4 py-3 text-left">Last active</th>
-                  <th className="px-4 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredUsers.map((user) => (
-                  <tr className="hover:bg-slate-50" key={user.userId}>
-                    <td className="px-4 py-3">
-                      <div className="font-semibold text-slate-950">
-                        {user.firstName} {user.lastName}
-                      </div>
-                      <div className="text-xs text-slate-500">{user.email}</div>
-                    </td>
-                    <td className="px-4 py-3 text-slate-700">
-                      {formatRole(user.role)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
-                        {user.status ?? "Unknown"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {formatPlatformDate(user.lastActiveAt, defaults)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex justify-end gap-1">
-                        <button
-                          className="rounded-lg px-2 py-1 font-semibold text-slate-700 hover:bg-slate-100"
-                          onClick={() => openEdit(user)}
-                          type="button"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          className="rounded-lg px-2 py-1 font-semibold text-red-700 hover:bg-red-50 disabled:opacity-40"
-                          disabled={user.userId === currentUserId}
-                          onClick={() => deleteUser(user)}
-                          type="button"
-                        >
-                          <ShieldOff className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <ProDataTable
+          rows={filteredUsers}
+          columns={columns}
+          rowKey={(user) => user.userId}
+          stickyHeader
+          maxHeight="calc(100vh - 310px)"
+          emptyTitle="No platform users found"
+          emptyDescription="Adjust the search or add a platform user."
+        />
 
         <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-start justify-between gap-3">
@@ -317,10 +345,10 @@ export function SettingsUsersClient({
             <SelectField
               label="Platform role"
               onChange={(value) => updateForm("role", value as PlatformRole)}
-              options={[
-                { label: "Super Admin", value: "SUPER_ADMIN" },
-                { label: "Member", value: "MEMBER" },
-              ]}
+              options={PLATFORM_ROLES.map((role) => ({
+                label: formatPlatformRole(role),
+                value: role,
+              }))}
               value={form.role}
             />
             <SelectField
@@ -402,8 +430,4 @@ function SelectField({
       </select>
     </label>
   );
-}
-
-function formatRole(role: PlatformRole) {
-  return role === "SUPER_ADMIN" ? "Super Admin" : "Member";
 }

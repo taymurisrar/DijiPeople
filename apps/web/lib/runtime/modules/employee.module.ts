@@ -77,7 +77,7 @@ export const employeeRuntimeSafeCommands: readonly CommandDefinition[] = [
     key: "system.refresh",
     label: "Refresh",
     scope: "system",
-    placement: "list-command-bar",
+    placement: "detail-command-bar",
     executionMode: "navigation",
     handlerKey: "system.refresh",
     order: 40,

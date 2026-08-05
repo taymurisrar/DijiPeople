@@ -114,6 +114,14 @@ export class PlatformLifecycleService {
       throw new ConflictException('Lead has already been converted.');
     }
 
+    if (lead.status !== LeadStatus.QUALIFIED && !lead.isQualified) {
+      throw new BadRequestException(
+        'Lead must be qualified before it can be converted to a customer.',
+      );
+    }
+
+    await this.assertRequiredCustomerAgreements({ leadId });
+
     if (
       !lead.companyName ||
       !lead.workEmail ||
@@ -187,6 +195,9 @@ export class PlatformLifecycleService {
           customPricingFlag: dto.customPricingFlag ?? false,
           discountApproved: dto.discountApproved ?? false,
           leadId,
+          originatingPartnerId: lead.partnerId,
+          originatingReferralLinkId: lead.partnerReferralLinkId,
+          referralCodeSnapshot: lead.referralCodeSnapshot,
           status: dto.status ?? CustomerAccountStatus.PROSPECT,
           subStatus: dto.subStatus ?? 'Commercial review',
           assignedToUserId,
@@ -203,6 +214,23 @@ export class PlatformLifecycleService {
           convertedAt: new Date(),
         },
       });
+
+      const leadContracts = await tx.contract.findMany({
+        where: { relatedLeadId: leadId },
+        select: { id: true },
+      });
+      if (leadContracts.length) {
+        await tx.contractRelatedRecord.createMany({
+          data: leadContracts.map((contract) => ({
+            contractId: contract.id,
+            entityType: 'CustomerAccount',
+            entityId: createdCustomer.id,
+            relationshipType: 'CONVERTED_CUSTOMER',
+            createdById: actor.userId,
+          })),
+          skipDuplicates: true,
+        });
+      }
 
       return createdCustomer;
     });
@@ -926,6 +954,16 @@ export class PlatformLifecycleService {
             },
           },
         },
+        contracts: {
+          select: {
+            id: true,
+            contractNumber: true,
+            title: true,
+            status: true,
+            updatedAt: true,
+          },
+          orderBy: { updatedAt: 'desc' },
+        },
       },
     });
 
@@ -1147,7 +1185,28 @@ export class PlatformLifecycleService {
       );
     }
 
-    const readiness = this.getReadiness(onboarding, onboarding.customer.status);
+    const customerSettings = await this.readCustomerSettings();
+    const contractRequired =
+      customerSettings.contractRequiredForTenantActivation !== false;
+    if (contractRequired) {
+      await this.assertRequiredCustomerAgreements({
+        customerId: onboarding.customerId,
+        onboardingId,
+      });
+      if (!onboarding.contractSigned)
+        await this.prisma.customerOnboarding.update({
+          where: { id: onboardingId },
+          data: { contractSigned: true },
+        });
+    }
+
+    const readiness = this.getReadiness(
+      {
+        ...onboarding,
+        contractSigned: contractRequired ? true : onboarding.contractSigned,
+      },
+      onboarding.customer.status,
+    );
     if (!readiness.isReadyForTenantCreation) {
       throw new BadRequestException(
         `Customer onboarding is not ready for tenant creation: ${readiness.blockers.join(', ')}.`,
@@ -1219,6 +1278,11 @@ export class PlatformLifecycleService {
     const createdTenant = await this.prisma.tenant.create({
       data: {
         customerAccountId: onboarding.customerId,
+        originatingPartnerId: onboarding.customer.originatingPartnerId,
+        originatingLeadId: onboarding.customer.leadId,
+        originatingReferralLinkId:
+          onboarding.customer.originatingReferralLinkId,
+        referralCodeSnapshot: onboarding.customer.referralCodeSnapshot,
         tenantCode: await generateTenantCode(this.prisma),
         name: tenantName,
         displayName: tenantName,
@@ -1475,6 +1539,82 @@ export class PlatformLifecycleService {
     };
   }
 
+  private async readCustomerSettings() {
+    const row = await this.prisma.platformSetting.findUnique({
+      where: { key: 'customer-settings' },
+    });
+    return row?.value &&
+      typeof row.value === 'object' &&
+      !Array.isArray(row.value)
+      ? (row.value as Record<string, unknown>)
+      : {};
+  }
+
+  private async assertRequiredCustomerAgreements(scope: {
+    leadId?: string;
+    customerId?: string;
+    onboardingId?: string;
+  }) {
+    const settings = await this.readCustomerSettings();
+    const conversion = Boolean(scope.leadId && !scope.customerId);
+    const requirementKey = conversion
+      ? 'agreementRequiredForLeadConversion'
+      : 'contractRequiredForTenantActivation';
+    if (settings[requirementKey] === false) return;
+    const configured = settings.requiredAgreementTypes;
+    const requiredTypes = Array.isArray(configured)
+      ? configured.filter(
+          (value): value is string =>
+            typeof value === 'string' && value.length > 0,
+        )
+      : ['CUSTOMER_AGREEMENT'];
+    if (!requiredTypes.length) return;
+    const contracts = await this.prisma.contract.findMany({
+      where: {
+        contractType: { in: requiredTypes as never[] },
+        status: { in: ['FULLY_EXECUTED', 'FULLY_SIGNED', 'ACTIVE'] },
+        OR: [
+          ...(scope.leadId ? [{ relatedLeadId: scope.leadId }] : []),
+          ...(scope.customerId
+            ? [{ customerAccountId: scope.customerId }]
+            : []),
+          ...(scope.onboardingId
+            ? [{ customerOnboardingId: scope.onboardingId }]
+            : []),
+          ...(scope.leadId
+            ? [
+                {
+                  relatedRecords: {
+                    some: { entityType: 'Lead', entityId: scope.leadId },
+                  },
+                },
+              ]
+            : []),
+          ...(scope.customerId
+            ? [
+                {
+                  relatedRecords: {
+                    some: {
+                      entityType: 'CustomerAccount',
+                      entityId: scope.customerId,
+                    },
+                  },
+                },
+              ]
+            : []),
+        ],
+      },
+      select: { contractType: true },
+    });
+    const present = new Set(contracts.map((contract) => contract.contractType));
+    const missing = requiredTypes.filter((type) => !present.has(type as never));
+    if (missing.length) {
+      throw new BadRequestException(
+        `Fully executed required agreement(s) are missing: ${missing.join(', ')}.`,
+      );
+    }
+  }
+
   private async getCustomerOrThrow(customerId: string) {
     const customer = await this.prisma.customerAccount.findUnique({
       where: { id: customerId },
@@ -1588,7 +1728,11 @@ export class PlatformLifecycleService {
   }
 
   private isPlatformSuperAdmin(actor: AuthenticatedUser) {
-    return actor.platform?.role === PlatformUserRole.SUPER_ADMIN;
+    return new Set<PlatformUserRole>([
+      PlatformUserRole.SUPER_ADMIN,
+      PlatformUserRole.PLATFORM_OWNER,
+      PlatformUserRole.PLATFORM_ADMIN,
+    ]).has(actor.platform?.role as PlatformUserRole);
   }
 
   private async resolvePlatformOwnerId(
@@ -1600,7 +1744,6 @@ export class PlatformLifecycleService {
     const owner = await this.prisma.platformUser.findFirst({
       where: {
         id: ownerId,
-        role: { in: [PlatformUserRole.SUPER_ADMIN, PlatformUserRole.MEMBER] },
         status: PlatformUserStatus.ACTIVE,
       },
       select: { id: true },

@@ -1,0 +1,4 @@
+import { NextResponse } from "next/server";
+import { apiRequest, proxyApiJsonResponse } from "@/lib/server-api";
+export async function GET(request: Request) { try { const url=new URL(request.url); const response=await apiRequest(`/platform-users/me/module-preferences?${url.searchParams}`); return proxyApiJsonResponse(response); } catch(error){return NextResponse.json({message:error instanceof Error?error.message:"Unable to load module preference."},{status:502})} }
+export async function PATCH(request: Request) { try { const response=await apiRequest("/platform-users/me/module-preferences",{method:"PATCH",headers:{"Content-Type":"application/json"},body:await request.text()}); return proxyApiJsonResponse(response); } catch(error){return NextResponse.json({message:error instanceof Error?error.message:"Unable to save module preference."},{status:502})} }

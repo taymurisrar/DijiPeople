@@ -6,6 +6,7 @@ import {
   ArrowUpNarrowWide,
   Clock,
   Laptop,
+  MapPin,
   Plus,
   Save,
   Search,
@@ -1070,6 +1071,9 @@ function ModuleAgentDesktopWidget({
   const [loading, setLoading] = useState(
     Boolean(runtime?.recordId && dataAdapter?.getWidgetData),
   );
+  const [reloadToken, setReloadToken] = useState(0);
+  const [locationMessage, setLocationMessage] = useState<string | null>(null);
+  const [requestingLocation, setRequestingLocation] = useState(false);
   const recordId = runtime?.recordId;
 
   useEffect(() => {
@@ -1118,7 +1122,7 @@ function ModuleAgentDesktopWidget({
       active = false;
       window.clearInterval(interval);
     };
-  }, [component, dataAdapter, recordId, runtime]);
+  }, [component, dataAdapter, recordId, reloadToken, runtime]);
 
   if (loading) {
     return (
@@ -1154,11 +1158,55 @@ function ModuleAgentDesktopWidget({
   const recentEvents = Array.isArray(data.recentEvents)
     ? data.recentEvents.filter(isRecord)
     : [];
+  const latestLocationRequest = isRecord(data.latestLocationRequest)
+    ? data.latestLocationRequest
+    : null;
   const liveStatus = stringValue(data.liveStatus) || "OFFLINE";
   const lastActivityAt =
     stringValue(latestSession?.lastHeartbeatAt) ||
     stringValue(latestSession?.endedAt) ||
     stringValue(latestSession?.startedAt);
+  const canRequestLocation = devices.some(
+    (device) =>
+      device.isActive !== false &&
+      stringValue(device.locationPermission).toUpperCase() === "GRANTED",
+  );
+
+  async function requestLocation() {
+    if (!recordId || requestingLocation) return;
+
+    setRequestingLocation(true);
+    setLocationMessage(null);
+
+    try {
+      const response = await fetch(
+        `/api/agent/employees/${encodeURIComponent(recordId)}/location-requests`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: "{}",
+        },
+      );
+      const payload = (await response.json().catch(() => null)) as
+        | { message?: string }
+        | null;
+
+      if (!response.ok) {
+        throw new Error(payload?.message || "Unable to request location.");
+      }
+
+      setLocationMessage(
+        "Location request sent. It will update here after the employee responds.",
+      );
+      setReloadToken((value) => value + 1);
+    } catch (caught) {
+      setLocationMessage(
+        caught instanceof Error ? caught.message : "Unable to request location.",
+      );
+    } finally {
+      setRequestingLocation(false);
+    }
+  }
 
   return (
     <section className="grid w-full min-w-0 gap-5 rounded-lg border border-border bg-surface p-4">
@@ -1172,16 +1220,31 @@ function ModuleAgentDesktopWidget({
             and productivity telemetry.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            disabled={!canRequestLocation || requestingLocation}
+            onClick={requestLocation}
+            type="button"
+            variant="secondary"
+          >
+            <MapPin className="h-4 w-4" />
+            {requestingLocation ? "Requesting..." : "Request location"}
+          </Button>
           <AgentStatusBadge value={liveStatus} />
-          <span className="rounded-full border border-border px-3 py-1 text-xs font-medium text-muted">
+          <span className="inline-flex h-9 min-w-24 shrink-0 items-center justify-center whitespace-nowrap rounded-full border border-border px-3 text-xs font-medium text-muted">
             {devices.length} device{devices.length === 1 ? "" : "s"}
           </span>
-          <span className="rounded-full border border-border px-3 py-1 text-xs font-medium text-muted">
-            {recentEvents.length} event{recentEvents.length === 1 ? "" : "s"}
+          <span className="inline-flex h-9 min-w-24 shrink-0 items-center justify-center whitespace-nowrap rounded-full border border-border px-3 text-xs font-medium text-muted">
+            {recentEvents.length} recent
           </span>
         </div>
       </div>
+
+      {locationMessage ? (
+        <div className="rounded-lg border border-info/30 bg-info/10 px-3 py-2 text-sm font-medium text-info">
+          {locationMessage}
+        </div>
+      ) : null}
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
         <AgentMetric
@@ -1299,6 +1362,11 @@ function ModuleAgentDesktopWidget({
         </AgentDetailPanel>
       </div>
 
+      <AgentLocationPanel
+        location={latestLocationRequest}
+        tenant={runtime?.tenant}
+      />
+
       <div className="grid gap-3">
         <div className="flex items-center gap-2">
           <Laptop className="h-4 w-4 text-muted" />
@@ -1306,6 +1374,10 @@ function ModuleAgentDesktopWidget({
             Registered devices
           </h5>
         </div>
+        <p className="text-xs text-muted">
+          Camera, microphone, and location permissions are requested by the
+          installed desktop agent and shown here after the employee responds.
+        </p>
         <DataTable
           columns={[
             {
@@ -1334,6 +1406,29 @@ function ModuleAgentDesktopWidget({
               key: "isActive",
               header: "Active",
               render: (row) => (row.isActive === false ? "No" : "Yes"),
+            },
+            {
+              key: "cameraPermission",
+              header: "Camera",
+              render: (row) => (
+                <AgentPermissionBadge value={stringValue(row.cameraPermission)} />
+              ),
+            },
+            {
+              key: "microphonePermission",
+              header: "Microphone",
+              render: (row) => (
+                <AgentPermissionBadge
+                  value={stringValue(row.microphonePermission)}
+                />
+              ),
+            },
+            {
+              key: "locationPermission",
+              header: "Location",
+              render: (row) => (
+                <AgentPermissionBadge value={stringValue(row.locationPermission)} />
+              ),
             },
             {
               key: "lastSeenAt",
@@ -1380,6 +1475,9 @@ function ModuleAgentDesktopWidget({
               header: "Occurred At",
               sortable: true,
               sortAccessor: (row) => stringValue(row.occurredAt),
+              searchAccessor: (row) =>
+                formatDateTime(stringValue(row.occurredAt), runtime?.tenant) ||
+                stringValue(row.occurredAt),
               render: (row) =>
                 formatDateTime(stringValue(row.occurredAt), runtime?.tenant) ||
                 "Not set",
@@ -1394,35 +1492,42 @@ function ModuleAgentDesktopWidget({
                 { label: "Idle", value: "IDLE" },
                 { label: "Away", value: "AWAY" },
               ],
+              filterAccessor: (row) => stringValue(row.state),
+              searchAccessor: (row) => formatStatus(stringValue(row.state)),
               render: (row) => formatStatus(stringValue(row.state)),
             },
             {
               key: "idleSeconds",
               header: "Idle Seconds",
+              searchAccessor: (row) => numberValue(row.idleSeconds),
               render: (row) => String(numberValue(row.idleSeconds)),
             },
             {
               key: "activeApp",
               header: "Active App",
               searchable: true,
+              searchAccessor: (row) => stringValue(row.activeApp),
               render: (row) => stringValue(row.activeApp) || "Not captured",
             },
             {
               key: "windowTitle",
               header: "Window Title",
               searchable: true,
+              searchAccessor: (row) => stringValue(row.windowTitle),
               render: (row) => stringValue(row.windowTitle) || "Not captured",
             },
             {
               key: "browserTabTitle",
               header: "Browser Tab",
               searchable: true,
+              searchAccessor: (row) => stringValue(row.browserTabTitle),
               render: (row) =>
                 stringValue(row.browserTabTitle) || "Not captured",
             },
             {
               key: "agentVersion",
               header: "Agent Version",
+              searchAccessor: (row) => stringValue(row.agentVersion),
               render: (row) => stringValue(row.agentVersion) || "Not set",
             },
           ]}
@@ -1438,7 +1543,7 @@ function ModuleAgentDesktopWidget({
             page: 1,
             pageSize: 10,
             totalItems: recentEvents.length,
-            pageSizeOptions: [10, 25, 50, 100],
+            pageSizeOptions: [10, 25],
           }}
           rows={recentEvents}
           searchPlaceholder="Search activity events"
@@ -1468,6 +1573,125 @@ function AgentMetric({
       </p>
     </div>
   );
+}
+
+function AgentLocationPanel({
+  location,
+  tenant,
+}: {
+  readonly location: Record<string, unknown> | null;
+  readonly tenant?: ModuleRuntimeContext["tenant"];
+}) {
+  const maxAcceptedAccuracyMeters = 100;
+  const status = stringValue(location?.status);
+  const latitude = numberOrNull(location?.latitude);
+  const longitude = numberOrNull(location?.longitude);
+  const accuracyMeters = numberOrNull(location?.accuracyMeters);
+  const isPrecise =
+    accuracyMeters !== null && accuracyMeters <= maxAcceptedAccuracyMeters;
+  const hasCoordinates =
+    status.toUpperCase() === "CAPTURED" &&
+    isPrecise &&
+    latitude !== null &&
+    longitude !== null;
+  const mapsHref = hasCoordinates
+    ? `https://www.google.com/maps?q=${latitude},${longitude}`
+    : null;
+
+  return (
+    <AgentDetailPanel title="Latest location request">
+      <AgentDetailItem label="Status" value={formatStatus(status)} />
+      <AgentDetailItem
+        label="Requested"
+        value={
+          formatDateTime(stringValue(location?.requestedAt), tenant) ||
+          "Not requested"
+        }
+      />
+      <AgentDetailItem
+        label="Captured"
+        value={
+          formatDateTime(stringValue(location?.capturedAt), tenant) ||
+          "Not captured"
+        }
+      />
+      <AgentDetailItem
+        label="Accuracy"
+        value={
+          accuracyMeters === null
+            ? "Not captured"
+            : `${Math.round(accuracyMeters).toLocaleString()} m${
+                isPrecise ? "" : " (not accepted)"
+              }`
+        }
+      />
+      <AgentDetailItem
+        label="Coordinates"
+        value={
+          hasCoordinates
+            ? `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
+            : "Not captured"
+        }
+      />
+      <div className="min-w-0">
+        <dt className="text-xs font-medium uppercase tracking-wide text-muted">
+          Map
+        </dt>
+        <dd className="mt-1 text-sm font-medium">
+          {mapsHref ? (
+            <Link
+              className="text-accent hover:underline"
+              href={mapsHref}
+              target="_blank"
+            >
+              Open map
+            </Link>
+          ) : (
+            <span className="text-muted">Not available</span>
+          )}
+        </dd>
+      </div>
+      {formatAgentLocationResponse(location?.errorMessage) ? (
+        <div className="sm:col-span-2">
+          <dt className="text-xs font-medium uppercase tracking-wide text-muted">
+            Response
+          </dt>
+          <dd className="mt-1 break-words text-sm font-medium text-foreground">
+            {formatAgentLocationResponse(location?.errorMessage)}
+          </dd>
+        </div>
+      ) : null}
+      {status.toUpperCase() === "CAPTURED" && !isPrecise ? (
+        <div className="sm:col-span-2">
+          <dt className="text-xs font-medium uppercase tracking-wide text-muted">
+            Precision
+          </dt>
+          <dd className="mt-1 break-words text-sm font-medium text-warning">
+            This capture is approximate. Request a new location and wait for
+            accuracy under {maxAcceptedAccuracyMeters} m.
+          </dd>
+        </div>
+      ) : null}
+    </AgentDetailPanel>
+  );
+}
+
+function formatAgentLocationResponse(value: unknown) {
+  const message = stringValue(value);
+
+  if (!message) return "";
+
+  if (/GeoCoordinateWatcher|System\.Device|TryStart|powershell/i.test(message)) {
+    return "Windows Location Services could not provide a position. Check that Windows Location is enabled for desktop apps.";
+  }
+
+  if (/Failed to query location from network service/i.test(message)) {
+    return "Device location failed. The desktop agent tried the fallback location services but could not get coordinates.";
+  }
+
+  if (message.length <= 180) return message;
+
+  return `${message.slice(0, 177)}...`;
 }
 
 function AgentDetailPanel({
@@ -1515,9 +1739,29 @@ function AgentStatusBadge({ value }: { readonly value: string }) {
 
   return (
     <span
-      className={`rounded-full border px-3 py-1 text-xs font-semibold ${tone}`}
+      className={`inline-flex h-9 min-w-24 shrink-0 items-center justify-center whitespace-nowrap rounded-full border px-3 text-xs font-semibold ${tone}`}
     >
       {formatStatus(value)}
+    </span>
+  );
+}
+
+function AgentPermissionBadge({ value }: { readonly value: string }) {
+  const normalized = value.toUpperCase();
+  const tone =
+    normalized === "GRANTED"
+      ? "border-success/30 bg-success/10 text-success"
+      : normalized === "DENIED" || normalized === "RESTRICTED"
+        ? "border-danger/30 bg-danger/10 text-danger"
+        : normalized === "PROMPT" || normalized === "UNKNOWN"
+          ? "border-warning/40 bg-warning/10 text-warning"
+          : "border-border bg-muted/10 text-muted";
+
+  return (
+    <span
+      className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${tone}`}
+    >
+      {formatStatus(normalized || "UNKNOWN")}
     </span>
   );
 }
@@ -1545,6 +1789,13 @@ function durationLabel(value: unknown) {
 function numberValue(value: unknown) {
   const number = Number(value);
   return Number.isFinite(number) ? number : 0;
+}
+
+function numberOrNull(value: unknown) {
+  if (value === null || value === undefined || value === "") return null;
+
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
 }
 
 type WidgetRenderer = (props: {

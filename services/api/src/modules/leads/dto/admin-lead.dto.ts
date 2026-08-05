@@ -65,6 +65,10 @@ export class LeadQueryDto {
   assignedToUserId?: string;
 
   @IsOptional()
+  @IsUUID()
+  partnerId?: string;
+
+  @IsOptional()
   @Transform(trimString)
   @IsString()
   @MaxLength(160)
@@ -102,6 +106,26 @@ export class LeadQueryDto {
   @Min(1)
   @Max(100)
   pageSize = 20;
+
+  @IsOptional()
+  @Transform(trimString)
+  @IsString()
+  viewKey?: string;
+
+  @IsOptional()
+  @Transform(trimString)
+  @IsString()
+  filters?: string;
+
+  @IsOptional()
+  @Transform(trimString)
+  @IsString()
+  sort?: string;
+
+  @IsOptional()
+  @Transform(trimString)
+  @IsString()
+  fields?: string;
 }
 
 export class CreateAdminLeadDto {
@@ -207,6 +231,10 @@ export class CreateAdminLeadDto {
   @IsOptional()
   @IsUUID()
   assignedToUserId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  partnerId?: string;
 
   @IsOptional()
   @IsEnum(LeadStatus)
@@ -334,6 +362,10 @@ export class UpdateAdminLeadDto {
   assignedToUserId?: string;
 
   @IsOptional()
+  @IsUUID()
+  partnerId?: string;
+
+  @IsOptional()
   @IsEnum(LeadStatus)
   status?: LeadStatus;
 
@@ -362,6 +394,21 @@ export class BulkAssignLeadsDto {
   @IsOptional()
   @IsUUID()
   assignedToUserId?: string;
+}
+
+export class CorrectLeadAttributionDto {
+  @IsOptional()
+  @IsUUID()
+  partnerId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  referralLinkId?: string;
+
+  @Transform(trimString)
+  @IsString()
+  @MaxLength(500)
+  reason!: string;
 }
 
 export class ConvertLeadToCustomerDto {

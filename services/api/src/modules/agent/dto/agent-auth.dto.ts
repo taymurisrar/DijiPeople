@@ -1,4 +1,11 @@
-import { IsEmail, IsString, MaxLength, MinLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsEmail,
+  IsOptional,
+  IsString,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 import { AgentDeviceDto } from './agent-device.dto';
 
 export class AgentLoginDto extends AgentDeviceDto {
@@ -26,6 +33,10 @@ export class AgentRefreshDto {
   @MinLength(1)
   @MaxLength(40)
   agentVersion!: string;
+
+  @IsOptional()
+  @IsBoolean()
+  startNewSession?: boolean;
 }
 
 export class AgentLogoutDto {

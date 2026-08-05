@@ -6,6 +6,7 @@ const navItems = [
   { href: "/plans", label: "Plans" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
+  { href: "/partners", label: "Partners" },
 ];
 
 const loginHref =

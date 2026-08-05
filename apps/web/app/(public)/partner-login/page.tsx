@@ -1,0 +1,5 @@
+import { PartnerLoginForm } from "./partner-login-form";
+
+export default function PartnerLoginPage() {
+  return <main className="min-h-screen bg-[linear-gradient(135deg,#eff6ff,#f8fafc_45%,#ecfdf5)] p-5"><div className="mx-auto grid min-h-[calc(100vh-2.5rem)] max-w-6xl overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-2xl lg:grid-cols-[1.05fr_.95fr]"><section className="flex flex-col justify-between bg-slate-950 p-8 text-white lg:p-14"><div><p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-300">DijiPeople partners</p><h1 className="mt-6 max-w-xl text-4xl font-semibold leading-tight lg:text-5xl">Grow customer success with a clear referral workflow.</h1><p className="mt-5 max-w-lg text-base leading-7 text-slate-300">Manage your profile, agreements, submitted leads, review outcomes, and next steps in one secure partner-scoped workspace.</p></div><p className="mt-12 text-xs text-slate-400">Access is available after onboarding approval and agreement completion.</p></section><section className="flex items-center p-7 lg:p-14"><PartnerLoginForm /></section></div></main>;
+}

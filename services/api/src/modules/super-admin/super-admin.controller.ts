@@ -60,9 +60,8 @@ export class SuperAdminController {
   constructor(private readonly superAdminService: SuperAdminService) {}
 
   @Get('dashboard-summary')
-  @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN)
-  getDashboardSummary() {
-    return this.superAdminService.getDashboardSummary();
+  getDashboardSummary(@Query('range') range?: string) {
+    return this.superAdminService.getDashboardSummary(range);
   }
 
   @Get('lifecycle-options')

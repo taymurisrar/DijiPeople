@@ -13,6 +13,9 @@ import {
   CreatePlatformUserDto,
   UpdatePlatformUserDto,
 } from './dto/platform-user.dto';
+import { UpdatePlatformPreferencesDto } from './dto/platform-preferences.dto';
+import { UpdatePlatformModulePreferenceDto } from './dto/platform-module-preference.dto';
+import { resolveRuntimeField } from '@repo/config';
 
 @Injectable()
 export class PlatformUsersService {
@@ -44,7 +47,6 @@ export class PlatformUsersService {
 
     const users = await this.prisma.platformUser.findMany({
       where: {
-        role: { in: [PlatformUserRole.SUPER_ADMIN, PlatformUserRole.MEMBER] },
         status: PlatformUserStatus.ACTIVE,
       },
       orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }, { email: 'asc' }],
@@ -88,7 +90,115 @@ export class PlatformUsersService {
       },
     });
 
+    await this.prisma.platformAuditLog.create({
+      data: {
+        platformActorUserId: actor.platform?.id,
+        action: 'PLATFORM_USER_CREATED',
+        entityType: 'PlatformUser',
+        entityId: user.id,
+        sourceModule: 'platform-users',
+        afterSnapshot: {
+          email: user.email,
+          role: user.role,
+          status: user.status,
+        },
+      },
+    });
+
     return { userId: user.id, id: user.id };
+  }
+
+  async getPreferences(actor: AuthenticatedUser) {
+    this.assertPlatformUser(actor);
+    const user = await this.prisma.platformUser.findUniqueOrThrow({
+      where: { id: actor.platform!.id },
+      select: { defaultDashboardView: true },
+    });
+    return { defaultDashboardView: user.defaultDashboardView ?? 'ADMIN' };
+  }
+
+  async updatePreferences(
+    actor: AuthenticatedUser,
+    dto: UpdatePlatformPreferencesDto,
+  ) {
+    this.assertPlatformUser(actor);
+    const updated = await this.prisma.platformUser.update({
+      where: { id: actor.platform!.id },
+      data: { defaultDashboardView: dto.defaultDashboardView },
+      select: { defaultDashboardView: true },
+    });
+    return updated;
+  }
+
+  async getModulePreference(actor: AuthenticatedUser, moduleKey: string) {
+    this.assertPlatformUser(actor);
+    const preference = await this.prisma.platformModulePreference.findUnique({
+      where: {
+        platformUserId_moduleKey: {
+          platformUserId: actor.platform!.id,
+          moduleKey,
+        },
+      },
+    });
+    if (preference) {
+      const tableStateJson = repairRuntimeTableState(
+        moduleKey,
+        preference.tableStateJson,
+      );
+      return { ...preference, tableStateJson };
+    }
+    return {
+      moduleKey,
+      defaultViewKey: null,
+      selectedViewKey: null,
+      tableStateJson: null,
+      dashboardLayoutJson: null,
+    };
+  }
+
+  async updateModulePreference(
+    actor: AuthenticatedUser,
+    dto: UpdatePlatformModulePreferenceDto,
+  ) {
+    this.assertPlatformUser(actor);
+    return this.prisma.platformModulePreference.upsert({
+      where: {
+        platformUserId_moduleKey: {
+          platformUserId: actor.platform!.id,
+          moduleKey: dto.moduleKey,
+        },
+      },
+      create: {
+        platformUserId: actor.platform!.id,
+        moduleKey: dto.moduleKey,
+        defaultViewKey: dto.defaultViewKey ?? null,
+        selectedViewKey: dto.selectedViewKey ?? null,
+        tableStateJson: repairRuntimeTableState(
+          dto.moduleKey,
+          dto.tableStateJson,
+        ) as never,
+        dashboardLayoutJson: dto.dashboardLayoutJson as never,
+      },
+      update: {
+        ...(dto.defaultViewKey !== undefined
+          ? { defaultViewKey: dto.defaultViewKey }
+          : {}),
+        ...(dto.selectedViewKey !== undefined
+          ? { selectedViewKey: dto.selectedViewKey }
+          : {}),
+        ...(dto.tableStateJson !== undefined
+          ? {
+              tableStateJson: repairRuntimeTableState(
+                dto.moduleKey,
+                dto.tableStateJson,
+              ) as never,
+            }
+          : {}),
+        ...(dto.dashboardLayoutJson !== undefined
+          ? { dashboardLayoutJson: dto.dashboardLayoutJson as never }
+          : {}),
+      },
+    });
   }
 
   async update(
@@ -108,7 +218,7 @@ export class PlatformUsersService {
 
     await this.assertSuperAdminInvariant(actor, existing.id, dto);
 
-    return this.prisma.platformUser.update({
+    const updated = await this.prisma.platformUser.update({
       where: { id: userId },
       data: {
         ...(dto.firstName ? { firstName: dto.firstName.trim() } : {}),
@@ -127,6 +237,18 @@ export class PlatformUsersService {
         lastActiveAt: true,
       },
     });
+    await this.prisma.platformAuditLog.create({
+      data: {
+        platformActorUserId: actor.platform?.id,
+        action: 'PLATFORM_USER_ACCESS_UPDATED',
+        entityType: 'PlatformUser',
+        entityId: userId,
+        sourceModule: 'platform-users',
+        beforeSnapshot: { role: existing.role, status: existing.status },
+        afterSnapshot: { role: updated.role, status: updated.status },
+      },
+    });
+    return updated;
   }
 
   async disable(actor: AuthenticatedUser, userId: string) {
@@ -153,7 +275,7 @@ export class PlatformUsersService {
       data: { revokedAt: new Date() },
     });
 
-    return this.prisma.platformUser.update({
+    const disabled = await this.prisma.platformUser.update({
       where: { id: userId },
       data: {
         status: PlatformUserStatus.DISABLED,
@@ -161,11 +283,26 @@ export class PlatformUsersService {
       },
       select: { id: true, status: true },
     });
+    await this.prisma.platformAuditLog.create({
+      data: {
+        platformActorUserId: actor.platform?.id,
+        action: 'PLATFORM_USER_DISABLED',
+        entityType: 'PlatformUser',
+        entityId: userId,
+        sourceModule: 'platform-users',
+        beforeSnapshot: { role: existing.role, status: existing.status },
+        afterSnapshot: { role: existing.role, status: disabled.status },
+      },
+    });
+    return disabled;
   }
 
   private assertCanManage(actor: AuthenticatedUser) {
     this.assertPlatformUser(actor);
-    if (actor.platform?.role !== PlatformUserRole.SUPER_ADMIN) {
+    if (
+      actor.platform?.role !== PlatformUserRole.SUPER_ADMIN &&
+      actor.platform?.role !== PlatformUserRole.PLATFORM_OWNER
+    ) {
       throw new ForbiddenException(
         'Only platform Super Admins can manage platform users.',
       );
@@ -193,16 +330,16 @@ export class PlatformUsersService {
       throw new ForbiddenException('You cannot disable your own account.');
     }
 
-    const wouldRemoveSuperAdmin =
-      dto.role === PlatformUserRole.MEMBER ||
-      dto.status === PlatformUserStatus.DISABLED;
-
-    if (!wouldRemoveSuperAdmin) return;
-
     const target = await this.prisma.platformUser.findUnique({
       where: { id: userId },
       select: { role: true, status: true },
     });
+
+    const wouldRemoveSuperAdmin =
+      (dto.role !== undefined && dto.role !== PlatformUserRole.SUPER_ADMIN) ||
+      dto.status === PlatformUserStatus.DISABLED;
+
+    if (!wouldRemoveSuperAdmin) return;
 
     if (
       target?.role !== PlatformUserRole.SUPER_ADMIN ||
@@ -224,4 +361,48 @@ export class PlatformUsersService {
       );
     }
   }
+}
+
+const RUNTIME_PREFERENCE_VERSION = 2;
+
+export function repairRuntimeTableState(moduleKey: string, value: unknown) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const state = value as Record<string, unknown>;
+  if (state.version !== RUNTIME_PREFERENCE_VERSION) return null;
+  const savedFilters = Array.isArray(state.savedFilters)
+    ? state.savedFilters
+        .filter((item) => item && typeof item === 'object')
+        .map((item) => {
+          const filter = item as Record<string, unknown>;
+          const filters = Array.isArray(filter.filters)
+            ? filter.filters.filter((candidate) => {
+                if (!candidate || typeof candidate !== 'object') return false;
+                const field = (candidate as Record<string, unknown>).field;
+                return (
+                  typeof field === 'string' &&
+                  Boolean(resolveRuntimeField(moduleKey, field)?.filterable)
+                );
+              })
+            : [];
+          return { ...filter, filters };
+        })
+    : [];
+  return {
+    version: RUNTIME_PREFERENCE_VERSION,
+    visibleColumns: Array.isArray(state.visibleColumns)
+      ? state.visibleColumns.filter(
+          (item): item is string => typeof item === 'string',
+        )
+      : [],
+    columnOrder: Array.isArray(state.columnOrder)
+      ? state.columnOrder.filter(
+          (item): item is string => typeof item === 'string',
+        )
+      : [],
+    columnWidths:
+      state.columnWidths && typeof state.columnWidths === 'object'
+        ? state.columnWidths
+        : {},
+    savedFilters,
+  };
 }

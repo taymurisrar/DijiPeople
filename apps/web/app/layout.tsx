@@ -11,6 +11,7 @@ import {
 } from "@/lib/public-tenant-settings";
 import { resolveTenantBranding } from "@/lib/branding";
 import { resolveRouteTitle } from "@/lib/tenant-branding-client";
+import { buildFaviconMetadata } from "@/lib/favicon-metadata";
 import "./globals.css";
 
 const instrumentSans = Instrument_Sans({
@@ -39,9 +40,10 @@ export async function generateMetadata(): Promise<Metadata> {
       ? `${pageTitle} | ${branding.appTitle}`
       : branding.appTitle,
     description: "Configurable multi-tenant HRM platform for modern teams.",
-    icons: {
-      icon: branding.faviconUrl || "/favicon.ico",
-    },
+    icons: buildFaviconMetadata(
+      branding.faviconUrl,
+      `${publicSettings.tenantId ?? publicSettings.tenantSlug ?? ""}:${branding.faviconUrl}`,
+    ),
   };
 }
 

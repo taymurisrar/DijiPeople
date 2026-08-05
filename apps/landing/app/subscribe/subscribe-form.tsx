@@ -32,8 +32,15 @@ export function SubscribeForm({
   );
   const initialSelection = findInitialSelection(plans, initialPlanPriceId);
   const [planId, setPlanId] = useState(initialSelection.planId);
-  const [billingCycle, setBillingCycle] = useState<BillingCycle>(initialSelection.billingCycle);
-  const [currency, setCurrency] = useState(initialSelection.currency || defaultCurrency);
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>(
+    initialSelection.billingCycle,
+  );
+  const [currency, setCurrency] = useState(
+    initialSelection.currency || defaultCurrency,
+  );
+  const [seatQuantity, setSeatQuantity] = useState(
+    initialSelection.minimumSeats,
+  );
   const [form, setForm] = useState({
     companyName: "",
     contactName: "",
@@ -45,11 +52,20 @@ export function SubscribeForm({
   const [status, setStatus] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const selectedPlan = plans.find((plan) => plan.id === planId) ?? plans[0] ?? null;
+  const selectedPlan =
+    plans.find((plan) => plan.id === planId) ?? plans[0] ?? null;
   const selectedPrice = selectedPlan
     ? findPlanPrice(selectedPlan, currency, billingCycle)
     : null;
   const canCheckout = isCheckoutReady(selectedPrice);
+  const minimumSeats = selectedPrice?.minimumSeats ?? 1;
+  const maximumSeats = selectedPrice?.maximumSeats ?? null;
+  const effectiveSeatQuantity = Math.max(
+    minimumSeats,
+    maximumSeats === null
+      ? seatQuantity
+      : Math.min(seatQuantity, maximumSeats),
+  );
   const contactHref = selectedPlan
     ? `/contact?plan=${encodeURIComponent(selectedPlan.key)}`
     : "/contact";
@@ -74,6 +90,7 @@ export function SubscribeForm({
       body: JSON.stringify({
         ...form,
         planPriceId: selectedPrice.id,
+        seatQuantity: effectiveSeatQuantity,
         phone: form.phone || undefined,
         message: form.message || undefined,
       }),
@@ -111,24 +128,44 @@ export function SubscribeForm({
         <h2 className="text-xl font-semibold text-foreground">Selected plan</h2>
         <label className="mt-4 block text-sm font-medium text-foreground">
           Plan
-          <select className="mt-2 w-full rounded-xl border border-border px-3 py-2" onChange={(event) => setPlanId(event.target.value)} value={planId}>
+          <select
+            className="mt-2 w-full rounded-xl border border-border px-3 py-2"
+            onChange={(event) => setPlanId(event.target.value)}
+            value={planId}
+          >
             {plans.map((plan) => (
-              <option key={plan.id} value={plan.id}>{plan.name}</option>
+              <option key={plan.id} value={plan.id}>
+                {plan.name}
+              </option>
             ))}
           </select>
         </label>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <label className="text-sm font-medium text-foreground">
             Billing
-            <select className="mt-2 w-full rounded-xl border border-border px-3 py-2" onChange={(event) => setBillingCycle(event.target.value as BillingCycle)} value={billingCycle}>
+            <select
+              className="mt-2 w-full rounded-xl border border-border px-3 py-2"
+              onChange={(event) =>
+                setBillingCycle(event.target.value as BillingCycle)
+              }
+              value={billingCycle}
+            >
               <option value="MONTHLY">Monthly</option>
               <option value="ANNUAL">Annual</option>
             </select>
           </label>
           <label className="text-sm font-medium text-foreground">
             Currency
-            <select className="mt-2 w-full rounded-xl border border-border px-3 py-2" onChange={(event) => setCurrency(event.target.value)} value={currency}>
-              {currencies.map((code) => <option key={code} value={code}>{code}</option>)}
+            <select
+              className="mt-2 w-full rounded-xl border border-border px-3 py-2"
+              onChange={(event) => setCurrency(event.target.value)}
+              value={currency}
+            >
+              {currencies.map((code) => (
+                <option key={code} value={code}>
+                  {code}
+                </option>
+              ))}
             </select>
           </label>
         </div>
@@ -137,11 +174,14 @@ export function SubscribeForm({
             {formatPlanPrice(selectedPrice)}
           </p>
           <p className="mt-1 text-sm text-muted">
-            Secure subscription checkout is handled by Stripe.
+            {selectedPrice?.billingModel === "PER_SEAT"
+              ? `${effectiveSeatQuantity} purchased seat${effectiveSeatQuantity === 1 ? "" : "s"} · estimated ${new Intl.NumberFormat("en-US", { style: "currency", currency: selectedPrice.currency }).format(selectedPrice.unitAmount * effectiveSeatQuantity)} per month.`
+              : "Secure subscription checkout is handled by Stripe."}
           </p>
           {selectedPrice && selectedPrice.currency !== currency ? (
             <p className="mt-2 text-xs text-warning">
-              {currency} is unavailable for this plan. Showing {selectedPrice.currency.toUpperCase()} price.
+              {currency} is unavailable for this plan. Showing{" "}
+              {selectedPrice.currency.toUpperCase()} price.
             </p>
           ) : null}
           {selectedPrice && !canCheckout ? (
@@ -151,20 +191,84 @@ export function SubscribeForm({
             </p>
           ) : null}
         </div>
+        {selectedPrice?.billingModel === "PER_SEAT" ? (
+          <label className="mt-4 block text-sm font-medium text-foreground">
+            Purchased seats
+            <input
+              className="mt-2 w-full rounded-xl border border-border px-3 py-2"
+              type="number"
+              min={selectedPrice.minimumSeats ?? 1}
+              max={selectedPrice.maximumSeats ?? undefined}
+              value={effectiveSeatQuantity}
+              onChange={(event) => {
+                const nextValue = Number(event.target.value);
+                setSeatQuantity(
+                  Math.max(
+                    minimumSeats,
+                    maximumSeats === null
+                      ? nextValue
+                      : Math.min(nextValue, maximumSeats),
+                  ),
+                );
+              }}
+              required
+            />
+            <span className="mt-1 block text-xs text-muted">
+              Minimum {selectedPrice.minimumSeats ?? 1}
+              {selectedPrice.maximumSeats
+                ? ` · Maximum ${selectedPrice.maximumSeats}`
+                : ""}
+            </span>
+          </label>
+        ) : null}
       </section>
 
       <section className="rounded-[24px] border border-border bg-white p-5 shadow-sm">
-        <h2 className="text-xl font-semibold text-foreground">Company details</h2>
+        <h2 className="text-xl font-semibold text-foreground">
+          Company details
+        </h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <Field label="Company / workspace name" onChange={(value) => setForm({ ...form, companyName: value })} required value={form.companyName} />
-          <Field label="Contact name" onChange={(value) => setForm({ ...form, contactName: value })} required value={form.contactName} />
-          <Field label="Email" onChange={(value) => setForm({ ...form, email: value })} required type="email" value={form.email} />
-          <Field label="Phone" onChange={(value) => setForm({ ...form, phone: value })} type="tel" value={form.phone} />
-          <Field label="Country / region" onChange={(value) => setForm({ ...form, country: value })} required value={form.country} />
+          <Field
+            label="Company / workspace name"
+            onChange={(value) => setForm({ ...form, companyName: value })}
+            required
+            value={form.companyName}
+          />
+          <Field
+            label="Contact name"
+            onChange={(value) => setForm({ ...form, contactName: value })}
+            required
+            value={form.contactName}
+          />
+          <Field
+            label="Email"
+            onChange={(value) => setForm({ ...form, email: value })}
+            required
+            type="email"
+            value={form.email}
+          />
+          <Field
+            label="Phone"
+            onChange={(value) => setForm({ ...form, phone: value })}
+            type="tel"
+            value={form.phone}
+          />
+          <Field
+            label="Country / region"
+            onChange={(value) => setForm({ ...form, country: value })}
+            required
+            value={form.country}
+          />
         </div>
         <label className="mt-4 block text-sm font-medium text-foreground">
           Optional message
-          <textarea className="mt-2 min-h-28 w-full rounded-xl border border-border px-3 py-2" onChange={(event) => setForm({ ...form, message: event.target.value })} value={form.message} />
+          <textarea
+            className="mt-2 min-h-28 w-full rounded-xl border border-border px-3 py-2"
+            onChange={(event) =>
+              setForm({ ...form, message: event.target.value })
+            }
+            value={form.message}
+          />
         </label>
         <p className="mt-4 text-xs leading-5 text-muted">
           Your tenant stays inactive until Stripe confirms payment through the
@@ -172,11 +276,20 @@ export function SubscribeForm({
         </p>
         {status ? <p className="mt-4 text-sm text-danger">{status}</p> : null}
         {canCheckout ? (
-          <button className="mt-5 rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-white disabled:opacity-60" disabled={isSubmitting} type="submit">
-            {isSubmitting ? "Starting checkout..." : "Continue to Stripe Checkout"}
+          <button
+            className="mt-5 rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
+            disabled={isSubmitting}
+            type="submit"
+          >
+            {isSubmitting
+              ? "Starting checkout..."
+              : "Continue to Stripe Checkout"}
           </button>
         ) : (
-          <a className="mt-5 inline-flex rounded-xl border border-border bg-white px-5 py-3 text-sm font-semibold text-foreground hover:bg-surface-muted" href={contactHref}>
+          <a
+            className="mt-5 inline-flex rounded-xl border border-border bg-white px-5 py-3 text-sm font-semibold text-foreground hover:bg-surface-muted"
+            href={contactHref}
+          >
             Contact sales
           </a>
         )}
@@ -201,7 +314,13 @@ function Field({
   return (
     <label className="text-sm font-medium text-foreground">
       {label}
-      <input className="mt-2 w-full rounded-xl border border-border px-3 py-2" onChange={(event) => onChange(event.target.value)} required={required} type={type} value={value} />
+      <input
+        className="mt-2 w-full rounded-xl border border-border px-3 py-2"
+        onChange={(event) => onChange(event.target.value)}
+        required={required}
+        type={type}
+        value={value}
+      />
     </label>
   );
 }
@@ -214,6 +333,7 @@ function findInitialSelection(plans: PublicPlan[], planPriceId?: string) {
         planId: plan.id,
         billingCycle: price.billingCycle,
         currency: price.currency,
+        minimumSeats: price.minimumSeats ?? 1,
       };
     }
   }
@@ -224,5 +344,6 @@ function findInitialSelection(plans: PublicPlan[], planPriceId?: string) {
     planId: firstPlan?.id ?? "",
     billingCycle: firstPrice?.billingCycle ?? "MONTHLY",
     currency: firstPrice?.currency ?? "",
+    minimumSeats: firstPrice?.minimumSeats ?? 1,
   };
 }

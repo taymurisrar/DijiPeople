@@ -7,6 +7,9 @@ import { SecureStore } from "./secure-store";
 import { agentEnv } from "../config/env";
 import { AgentLogger } from "./logger";
 import type {
+  AgentDevicePermissions,
+  AgentLocationRequest,
+  AgentLocationResult,
   AgentState,
   ConnectionState,
   HeartbeatEvent,
@@ -18,6 +21,7 @@ type SessionManagerEvent =
   | "authenticated"
   | "changed"
   | "update-required"
+  | "location-request"
   | "session-error";
 
 const DEFAULT_CONFIG_REFRESH_INTERVAL_SECONDS = 15 * 60;
@@ -41,6 +45,7 @@ export class SessionManager extends EventEmitter {
   private isApplyingSession = false;
   private isSyncingHeartbeat = false;
   private isRefreshingToken = false;
+  private pendingLocationRequestIds = new Set<string>();
   private sessionStartedAt: Date | null = null;
   private lastActivityAt: Date | null = null;
   private accessTokenExpiresAt: Date | null = null;
@@ -77,16 +82,52 @@ export class SessionManager extends EventEmitter {
 
       return true;
     } catch (error) {
-      await this.safeClearRefreshToken();
+      const reason = this.normalizeSessionError(error);
+
+      if (!isReusableSavedSessionError(reason)) {
+        await this.safeClearRefreshToken();
+      }
 
       this.resetSessionState();
-      this.emit("session-error", this.normalizeSessionError(error));
+      this.emit("session-error", reason);
       this.emit("login-required");
       this.logger.warn("agent.session.restore_failed", {
-        reason: this.normalizeSessionError(error),
+        reason,
+        savedCredentialRetained: isReusableSavedSessionError(reason),
       });
 
       return false;
+    }
+  }
+
+  async resumeSavedSession(): Promise<void> {
+    if (this.isApplyingSession) {
+      throw new Error("A sign-in request is already in progress.");
+    }
+
+    const refreshToken = await this.secureStore.getRefreshToken();
+
+    if (!refreshToken) {
+      throw new Error(
+        "No saved session is available. Sign in with your credentials.",
+      );
+    }
+
+    try {
+      const result = await this.apiClient.refresh(refreshToken, {
+        startNewSession: true,
+      });
+
+      await this.applyLoginResult(result);
+      await this.secureStore.setRefreshToken(result.tokens.refreshToken);
+      this.logger.info("agent.session.resumed", { userId: result.user.id });
+    } catch (error) {
+      await this.safeClearRefreshToken();
+      this.resetSessionState();
+      this.logger.warn("agent.session.resume_failed", {
+        reason: this.normalizeSessionError(error),
+      });
+      throw error;
     }
   }
 
@@ -147,6 +188,53 @@ export class SessionManager extends EventEmitter {
     }
   }
 
+  async stopForAppQuit(): Promise<void> {
+    this.stopTimers();
+
+    if (this.sessionId && this.deviceId) {
+      await this.apiClient
+        .endSession(this.sessionId, this.deviceId)
+        .catch(() => undefined);
+    }
+
+    this.resetSessionState();
+    this.logger.info("agent.session.stopped_for_app_quit");
+  }
+
+  async updateDevicePermissions(
+    permissions: AgentDevicePermissions,
+  ): Promise<void> {
+    if (!this.deviceId) {
+      throw new Error(
+        "A registered device is required before permissions can be saved.",
+      );
+    }
+
+    await this.apiClient.updateDevicePermissions(this.deviceId, permissions);
+    this.logger.info("agent.device_permissions.updated", {
+      deviceId: this.deviceId,
+      cameraPermission: permissions.cameraPermission,
+      microphonePermission: permissions.microphonePermission,
+      locationPermission: permissions.locationPermission,
+    });
+    this.emit("changed");
+  }
+
+  async completeLocationRequest(result: AgentLocationResult): Promise<void> {
+    if (!this.deviceId) {
+      throw new Error(
+        "A registered device is required before location can be submitted.",
+      );
+    }
+
+    await this.apiClient.updateLocationRequestResult({
+      ...result,
+      deviceId: this.deviceId,
+    });
+    this.pendingLocationRequestIds.delete(result.requestId);
+    this.emit("changed");
+  }
+
   async syncHeartbeat(): Promise<void> {
     if (!this.sessionId || !this.deviceId) {
       console.warn("[Agent Heartbeat] skipped - missing session/device", {
@@ -179,33 +267,11 @@ export class SessionManager extends EventEmitter {
     let requeueEvents: HeartbeatEvent[] = [];
 
     try {
-      await this.configManager.refresh();
-
-      console.log("[Agent Heartbeat] building event", {
-        sessionId: this.sessionId,
-        deviceId: this.deviceId,
-        trackingEnabled: this.configManager.current.tracking.enabled,
-        captureActiveApp: this.configManager.current.tracking.captureActiveApp,
-        captureWindowTitle:
-          this.configManager.current.tracking.captureWindowTitle,
-        activeAppFeature: this.configManager.current.features.activeAppTracking,
-        windowTitleFeature:
-          this.configManager.current.features.windowTitleTracking,
-      });
-
       const event = await this.activityTracker.buildHeartbeat({
         config: this.configManager.current,
         sessionId: this.sessionId,
         deviceId: this.deviceId,
         agentVersion: this.apiClient.deviceInfo.agentVersion,
-      });
-
-      console.log("[Agent Heartbeat] event built", {
-        state: event.state,
-        idleSeconds: event.idleSeconds,
-        activeApp: event.activeApp,
-        hasWindowTitle: Boolean(event.windowTitle),
-        hasBrowserTabTitle: Boolean(event.browserTabTitle),
       });
 
       this.status = event.state;
@@ -235,6 +301,7 @@ export class SessionManager extends EventEmitter {
       requeueEvents = [...validQueued, event];
 
       await this.sendHeartbeatBatch(requeueEvents, "normal");
+      await this.pollLocationRequest();
 
       requeueEvents = [];
     } catch (error) {
@@ -285,11 +352,6 @@ export class SessionManager extends EventEmitter {
     } finally {
       this.isSyncingHeartbeat = false;
 
-      console.log("[Agent Heartbeat] finished", {
-        connectionStatus: this.connectionStatus,
-        lastHeartbeatSync: this.lastHeartbeatSync,
-      });
-
       this.emit("changed");
     }
   }
@@ -298,20 +360,37 @@ export class SessionManager extends EventEmitter {
     events: HeartbeatEvent[],
     mode: "normal" | "after-refresh",
   ): Promise<void> {
-    console.log("[Agent Heartbeat] sending batch", {
-      mode,
-      totalEvents: events.length,
-    });
-
     const response = await this.apiClient.heartbeat(events);
 
-    console.log("[Agent Heartbeat] success", {
+    this.logger.info("agent.heartbeat.synced", {
       mode,
       accepted: response.accepted,
     });
 
     this.connectionStatus = "ONLINE";
     this.lastHeartbeatSync = new Date();
+  }
+
+  private async pollLocationRequest(): Promise<void> {
+    if (!this.deviceId || !this.sessionId) return;
+    if (!this.configManager.current.features.locationAccess) return;
+
+    try {
+      const request = await this.apiClient.getPendingLocationRequest(
+        this.deviceId,
+      );
+
+      if (!request || this.pendingLocationRequestIds.has(request.id)) {
+        return;
+      }
+
+      this.pendingLocationRequestIds.add(request.id);
+      this.emit("location-request", request);
+    } catch (error) {
+      this.logger.warn("agent.location_request.poll_failed", {
+        reason: this.normalizeSessionError(error),
+      });
+    }
   }
 
   private async refreshAccessToken(): Promise<boolean> {
@@ -345,7 +424,12 @@ export class SessionManager extends EventEmitter {
     } catch (error) {
       console.error("[Agent Session] token refresh failed", error);
 
-      await this.safeClearRefreshToken();
+      const reason = this.normalizeSessionError(error);
+
+      if (!isReusableSavedSessionError(reason)) {
+        await this.safeClearRefreshToken();
+      }
+
       this.resetSessionState();
       this.emit("login-required");
 
@@ -669,6 +753,19 @@ function isAuthExpiredError(message: string): boolean {
     normalized.includes("401")
   );
 }
+
+function isReusableSavedSessionError(message: string): boolean {
+  const normalized = message.toLowerCase();
+
+  return (
+    normalized.includes("agent session has expired") ||
+    normalized.includes("agent session expired due to inactivity") ||
+    normalized.includes(
+      "session expired based on configured agent session policy",
+    )
+  );
+}
+
 function readJwtExpiry(token: string): Date | null {
   try {
     const payload = token.split(".")[1];

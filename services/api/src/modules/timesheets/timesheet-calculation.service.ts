@@ -143,9 +143,9 @@ export class TimesheetCalculationService {
             week.days.some((day) =>
               (
                 [
-                TimesheetCompletionStatus.MISSING,
-                TimesheetCompletionStatus.PARTIAL,
-                TimesheetCompletionStatus.EXCEPTION,
+                  TimesheetCompletionStatus.MISSING,
+                  TimesheetCompletionStatus.PARTIAL,
+                  TimesheetCompletionStatus.EXCEPTION,
                 ] as TimesheetCompletionStatus[]
               ).includes(day.completionStatus),
             ),
@@ -263,10 +263,8 @@ function resolveDayCompletion(
     dayType === TimesheetDayType.EXCEPTION
   )
     return TimesheetCompletionStatus.EXCEPTION;
-  if (requiredHours <= 0)
-    return TimesheetCompletionStatus.EXCEPTION;
-  if (enteredHours >= requiredHours)
-    return TimesheetCompletionStatus.COMPLETE;
+  if (requiredHours <= 0) return TimesheetCompletionStatus.EXCEPTION;
+  if (enteredHours >= requiredHours) return TimesheetCompletionStatus.COMPLETE;
   return enteredHours > 0
     ? TimesheetCompletionStatus.PARTIAL
     : TimesheetCompletionStatus.MISSING;

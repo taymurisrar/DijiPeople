@@ -27,6 +27,10 @@ type BillingPlan = {
     billingCycle: BillingCycle;
     currency: string;
     unitAmount: number;
+    billingModel?: "PER_SEAT" | "FLAT";
+    billingInterval?: "MONTH" | "YEAR";
+    minimumSeats?: number;
+    maximumSeats?: number | null;
     hasStripePrice: boolean;
     isCheckoutReady: boolean;
   }>;
@@ -104,6 +108,7 @@ export function BillingSettingsClient({
   const [currency, setCurrency] = useState(
     resolveInitialCurrency(initialPlans),
   );
+  const [seatQuantity, setSeatQuantity] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [actionId, setActionId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -143,11 +148,20 @@ export function BillingSettingsClient({
     setActionId(planPriceId);
     startTransition(async () => {
       try {
+        const selectedPrice = plans
+          .flatMap((plan) => plan.prices)
+          .find((price) => price.id === planPriceId);
+        const requestedSeats = Math.max(
+          selectedPrice?.minimumSeats ?? 1,
+          selectedPrice?.maximumSeats
+            ? Math.min(seatQuantity, selectedPrice.maximumSeats)
+            : seatQuantity,
+        );
         const response = await fetchJson<{ url?: string }>(
           "/api/billing/checkout-sessions",
           {
             method: "POST",
-            body: JSON.stringify({ planPriceId }),
+            body: JSON.stringify({ planPriceId, seatQuantity: requestedSeats }),
           },
         );
 
@@ -191,9 +205,21 @@ export function BillingSettingsClient({
     <div className="space-y-6">
       <nav className="flex flex-wrap gap-2 rounded-[20px] border border-border bg-surface p-2 shadow-sm">
         {[
-          { key: "overview", label: "Overview", href: "/settings/subscription/overview" },
-          { key: "plans", label: "Plans & Features", href: "/settings/subscription/plans" },
-          { key: "billing-history", label: "Billing History", href: "/settings/subscription/billing-history" },
+          {
+            key: "overview",
+            label: "Overview",
+            href: "/settings/subscription/overview",
+          },
+          {
+            key: "plans",
+            label: "Plans & Features",
+            href: "/settings/subscription/plans",
+          },
+          {
+            key: "billing-history",
+            label: "Billing History",
+            href: "/settings/subscription/billing-history",
+          },
         ].map((item) => (
           <Link
             key={item.key}
@@ -216,342 +242,361 @@ export function BillingSettingsClient({
       ) : null}
 
       {activeView === "overview" ? (
-      <>
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-                Current Subscription
-              </p>
-              <h2 className="mt-2 text-2xl font-semibold text-foreground">
-                {subscription?.plan.name ?? "No active plan"}
-              </h2>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
-                {subscription?.plan.description ??
-                  "Choose a public plan below to start Stripe Checkout. Subscription activation is confirmed by Stripe webhook processing."}
-              </p>
+        <>
+          <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+            <div className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+                    Current Subscription
+                  </p>
+                  <h2 className="mt-2 text-2xl font-semibold text-foreground">
+                    {subscription?.plan.name ?? "No active plan"}
+                  </h2>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
+                    {subscription?.plan.description ??
+                      "Choose a public plan below to start Stripe Checkout. Subscription activation is confirmed by Stripe webhook processing."}
+                  </p>
+                </div>
+
+                <StatusChip value={subscription?.status ?? "NOT_SUBSCRIBED"} />
+              </div>
+
+              <dl className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <InfoTile
+                  label="Billing cycle"
+                  value={formatEnum(subscription?.billingCycle)}
+                />
+                <InfoTile
+                  label="Currency"
+                  value={subscription?.currency ?? "-"}
+                />
+                <InfoTile
+                  label="Period start"
+                  value={formatDate(subscription?.currentPeriodStart)}
+                />
+                <InfoTile
+                  label="Period end"
+                  value={formatDate(subscription?.currentPeriodEnd)}
+                />
+                <InfoTile
+                  label="Cancel at period end"
+                  value={subscription?.cancelAtPeriodEnd ? "Yes" : "No"}
+                />
+                <InfoTile
+                  label="Trial"
+                  value={
+                    subscription?.trialEnd
+                      ? `${formatDate(subscription.trialStart)} - ${formatDate(subscription.trialEnd)}`
+                      : "No active trial"
+                  }
+                />
+              </dl>
             </div>
 
-            <StatusChip value={subscription?.status ?? "NOT_SUBSCRIBED"} />
-          </div>
+            <div className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+                Billing actions
+              </p>
+              <div className="mt-5 grid gap-3">
+                <button
+                  type="button"
+                  onClick={openPortal}
+                  disabled={!hasManageableSubscription || isPending}
+                  className="inline-flex items-center justify-center gap-2 rounded-[14px] bg-foreground px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:bg-muted"
+                >
+                  {actionId === "portal" ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ArrowUpRight className="h-4 w-4" />
+                  )}
+                  Manage in Stripe
+                </button>
+                <button
+                  type="button"
+                  onClick={refreshBilling}
+                  disabled={isPending}
+                  className="inline-flex items-center justify-center gap-2 rounded-[14px] border border-border bg-white px-4 py-3 text-sm font-semibold text-foreground transition hover:bg-muted/10 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <RefreshCcw className="h-4 w-4" />
+                  Refresh status
+                </button>
+              </div>
+              {!hasManageableSubscription ? (
+                <p className="mt-4 text-sm leading-6 text-muted">
+                  Stripe Customer Portal becomes available after a subscription
+                  or Stripe customer is created for this tenant.
+                </p>
+              ) : null}
+            </div>
+          </section>
 
-          <dl className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <InfoTile
-              label="Billing cycle"
-              value={formatEnum(subscription?.billingCycle)}
-            />
-            <InfoTile label="Currency" value={subscription?.currency ?? "-"} />
-            <InfoTile
-              label="Period start"
-              value={formatDate(subscription?.currentPeriodStart)}
-            />
-            <InfoTile
-              label="Period end"
-              value={formatDate(subscription?.currentPeriodEnd)}
-            />
-            <InfoTile
-              label="Cancel at period end"
-              value={subscription?.cancelAtPeriodEnd ? "Yes" : "No"}
-            />
-            <InfoTile
-              label="Trial"
-              value={
-                subscription?.trialEnd
-                  ? `${formatDate(subscription.trialStart)} - ${formatDate(subscription.trialEnd)}`
-                  : "No active trial"
-              }
-            />
-          </dl>
-        </div>
-
-        <div className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-            Billing actions
-          </p>
-          <div className="mt-5 grid gap-3">
-            <button
-              type="button"
-              onClick={openPortal}
-              disabled={!hasManageableSubscription || isPending}
-              className="inline-flex items-center justify-center gap-2 rounded-[14px] bg-foreground px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:bg-muted"
-            >
-              {actionId === "portal" ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <ArrowUpRight className="h-4 w-4" />
-              )}
-              Manage in Stripe
-            </button>
-            <button
-              type="button"
-              onClick={refreshBilling}
-              disabled={isPending}
-              className="inline-flex items-center justify-center gap-2 rounded-[14px] border border-border bg-white px-4 py-3 text-sm font-semibold text-foreground transition hover:bg-muted/10 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <RefreshCcw className="h-4 w-4" />
-              Refresh status
-            </button>
-          </div>
-          {!hasManageableSubscription ? (
-            <p className="mt-4 text-sm leading-6 text-muted">
-              Stripe Customer Portal becomes available after a subscription or
-              Stripe customer is created for this tenant.
-            </p>
-          ) : null}
-        </div>
-      </section>
-
-      <SubscriptionStateAlert
-        status={subscriptionState}
-        hasStripeCustomer={Boolean(subscription?.hasStripeCustomer)}
-        onManage={openPortal}
-        isPending={isPending}
-        actionId={actionId}
-      />
-      </>
+          <SubscriptionStateAlert
+            status={subscriptionState}
+            hasStripeCustomer={Boolean(subscription?.hasStripeCustomer)}
+            onManage={openPortal}
+            isPending={isPending}
+            actionId={actionId}
+          />
+        </>
       ) : null}
 
       {activeView === "plans" ? (
-      <section className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-              Plans
-            </p>
-            <h2 className="mt-2 text-xl font-semibold text-foreground">
-              Select a subscription plan
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-muted">
-              Plans shown here are active, public, and configured by the
-              platform billing team.
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <SegmentedControl
-              label="Billing cycle"
-              value={billingCycle}
-              options={[
-                { label: "Monthly", value: "MONTHLY" },
-                { label: "Annual", value: "ANNUAL" },
-              ]}
-              onChange={setBillingCycle}
+        <section className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
+          <label className="mb-5 block max-w-xs text-sm font-semibold text-foreground">
+            Seats to purchase
+            <input
+              type="number"
+              min={1}
+              value={seatQuantity}
+              onChange={(event) =>
+                setSeatQuantity(Math.max(1, Number(event.target.value)))
+              }
+              className="mt-2 w-full rounded-xl border border-border px-3 py-2"
             />
-            <label className="text-sm font-medium text-foreground">
-              Currency
-              <select
-                value={currency}
-                onChange={(event) => setCurrency(event.target.value)}
-                className="mt-2 h-11 rounded-[12px] border border-border bg-white px-3 text-sm text-foreground outline-none"
-              >
-                {currencies.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-        </div>
+          </label>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+                Plans
+              </p>
+              <h2 className="mt-2 text-xl font-semibold text-foreground">
+                Select a subscription plan
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-muted">
+                Plans shown here are active, public, and configured by the
+                platform billing team.
+              </p>
+            </div>
 
-        {!canComparePlans ? (
-          <EmptyState
-            title="Plan comparison is not enabled"
-            description="The platform administrator has not published tenant-facing plan comparison for this workspace."
-          />
-        ) : plans.length === 0 ? (
-          <EmptyState
-            title="No online plans are available"
-            description="The billing team has not published any self-service plans yet."
-          />
-        ) : (
-          <div className="mt-6 grid gap-4 xl:grid-cols-3">
-            {plans.map((plan) => {
-              const price = plan.prices.find(
-                (item) =>
-                  item.billingCycle === billingCycle &&
-                  item.currency === currency,
-              );
-              const isCurrentPlan = subscription?.plan.id === plan.id;
-              const blocksCheckout =
-                isCurrentPlan &&
-                ["ACTIVE", "TRIALING", "PAST_DUE", "UNPAID"].includes(
-                  subscriptionState,
-                );
-
-              return (
-                <article
-                  key={plan.id}
-                  className="flex min-h-full flex-col rounded-[20px] border border-border bg-white p-5 shadow-sm"
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <SegmentedControl
+                label="Billing cycle"
+                value={billingCycle}
+                options={[
+                  { label: "Monthly", value: "MONTHLY" },
+                  { label: "Annual", value: "ANNUAL" },
+                ]}
+                onChange={setBillingCycle}
+              />
+              <label className="text-sm font-medium text-foreground">
+                Currency
+                <select
+                  value={currency}
+                  onChange={(event) => setCurrency(event.target.value)}
+                  className="mt-2 h-11 rounded-[12px] border border-border bg-white px-3 text-sm text-foreground outline-none"
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <h3 className="text-lg font-semibold text-foreground">
-                        {plan.name}
-                      </h3>
-                      <p className="mt-2 text-sm leading-6 text-muted">
-                        {plan.description ?? "No description provided."}
-                      </p>
-                    </div>
-                    {isCurrentPlan ? <StatusChip value="CURRENT" /> : null}
-                  </div>
-
-                  <div className="mt-5">
-                    {price ? (
-                      <p className="text-3xl font-semibold text-foreground">
-                        {formatMoney(price.unitAmount, price.currency)}
-                        <span className="text-sm font-medium text-muted">
-                          {" "}
-                          / {billingCycle === "MONTHLY" ? "month" : "year"}
-                        </span>
-                      </p>
-                    ) : (
-                      <p className="text-sm font-semibold text-muted">
-                        Not available for {currency} {formatEnum(billingCycle)}
-                      </p>
-                    )}
-                  </div>
-
-                  <ul className="mt-5 grid gap-2 text-sm text-muted">
-                    {plan.features.length > 0 ? (
-                      plan.features
-                        .filter((feature) => feature.isEnabled !== false)
-                        .sort(compareFeatures)
-                        .slice(0, 8)
-                        .map((feature) => (
-                        <li
-                          key={feature.key}
-                          className="flex items-start gap-2"
-                        >
-                          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
-                          <span>{feature.label ?? formatEnum(feature.key)}</span>
-                        </li>
-                      ))
-                    ) : (
-                      <li>No feature list configured.</li>
-                    )}
-                  </ul>
-
-                  <div className="mt-auto pt-6">
-                    {price?.isCheckoutReady && canSelfServiceUpgrade ? (
-                      <button
-                        type="button"
-                        onClick={() => createCheckoutSession(price.id)}
-                        disabled={isPending || blocksCheckout}
-                        className="inline-flex w-full items-center justify-center gap-2 rounded-[14px] bg-foreground px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:bg-muted"
-                      >
-                        {actionId === price.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <ArrowUpRight className="h-4 w-4" />
-                        )}
-                        {blocksCheckout ? "Current plan" : "Subscribe"}
-                      </button>
-                    ) : (
-                      <div className="rounded-[14px] border border-dashed border-border bg-surface px-4 py-3 text-sm text-muted">
-                        {canSelfServiceUpgrade
-                          ? "This plan is not available for online checkout yet."
-                          : contactLabel}
-                      </div>
-                    )}
-                  </div>
-                </article>
-              );
-            })}
+                  {currencies.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
           </div>
-        )}
 
-        {canComparePlans && plans.length > 0 ? (
-          <FeatureComparison plans={plans} />
-        ) : null}
-      </section>
+          {!canComparePlans ? (
+            <EmptyState
+              title="Plan comparison is not enabled"
+              description="The platform administrator has not published tenant-facing plan comparison for this workspace."
+            />
+          ) : plans.length === 0 ? (
+            <EmptyState
+              title="No online plans are available"
+              description="The billing team has not published any self-service plans yet."
+            />
+          ) : (
+            <div className="mt-6 grid gap-4 xl:grid-cols-3">
+              {plans.map((plan) => {
+                const price = plan.prices.find(
+                  (item) =>
+                    item.billingCycle === billingCycle &&
+                    item.currency === currency,
+                );
+                const isCurrentPlan = subscription?.plan.id === plan.id;
+                const blocksCheckout =
+                  isCurrentPlan &&
+                  ["ACTIVE", "TRIALING", "PAST_DUE", "UNPAID"].includes(
+                    subscriptionState,
+                  );
+
+                return (
+                  <article
+                    key={plan.id}
+                    className="flex min-h-full flex-col rounded-[20px] border border-border bg-white p-5 shadow-sm"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h3 className="text-lg font-semibold text-foreground">
+                          {plan.name}
+                        </h3>
+                        <p className="mt-2 text-sm leading-6 text-muted">
+                          {plan.description ?? "No description provided."}
+                        </p>
+                      </div>
+                      {isCurrentPlan ? <StatusChip value="CURRENT" /> : null}
+                    </div>
+
+                    <div className="mt-5">
+                      {price ? (
+                        <p className="text-3xl font-semibold text-foreground">
+                          {formatMoney(price.unitAmount, price.currency)}
+                          <span className="text-sm font-medium text-muted">
+                            {" "}
+                            / {billingCycle === "MONTHLY" ? "month" : "year"}
+                          </span>
+                        </p>
+                      ) : (
+                        <p className="text-sm font-semibold text-muted">
+                          Not available for {currency}{" "}
+                          {formatEnum(billingCycle)}
+                        </p>
+                      )}
+                    </div>
+
+                    <ul className="mt-5 grid gap-2 text-sm text-muted">
+                      {plan.features.length > 0 ? (
+                        plan.features
+                          .filter((feature) => feature.isEnabled !== false)
+                          .sort(compareFeatures)
+                          .slice(0, 8)
+                          .map((feature) => (
+                            <li
+                              key={feature.key}
+                              className="flex items-start gap-2"
+                            >
+                              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                              <span>
+                                {feature.label ?? formatEnum(feature.key)}
+                              </span>
+                            </li>
+                          ))
+                      ) : (
+                        <li>No feature list configured.</li>
+                      )}
+                    </ul>
+
+                    <div className="mt-auto pt-6">
+                      {price?.isCheckoutReady && canSelfServiceUpgrade ? (
+                        <button
+                          type="button"
+                          onClick={() => createCheckoutSession(price.id)}
+                          disabled={isPending || blocksCheckout}
+                          className="inline-flex w-full items-center justify-center gap-2 rounded-[14px] bg-foreground px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:bg-muted"
+                        >
+                          {actionId === price.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <ArrowUpRight className="h-4 w-4" />
+                          )}
+                          {blocksCheckout ? "Current plan" : "Subscribe"}
+                        </button>
+                      ) : (
+                        <div className="rounded-[14px] border border-dashed border-border bg-surface px-4 py-3 text-sm text-muted">
+                          {canSelfServiceUpgrade
+                            ? "This plan is not available for online checkout yet."
+                            : contactLabel}
+                        </div>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+
+          {canComparePlans && plans.length > 0 ? (
+            <FeatureComparison plans={plans} />
+          ) : null}
+        </section>
       ) : null}
 
       {activeView === "billing-history" ? (
-      <section className="overflow-hidden rounded-[24px] border border-border bg-surface shadow-sm">
-        <div className="border-b border-border px-6 py-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-            Invoices
-          </p>
-          <h2 className="mt-2 text-xl font-semibold text-foreground">
-            Billing history
-          </h2>
-        </div>
+        <section className="overflow-hidden rounded-[24px] border border-border bg-surface shadow-sm">
+          <div className="border-b border-border px-6 py-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+              Invoices
+            </p>
+            <h2 className="mt-2 text-xl font-semibold text-foreground">
+              Billing history
+            </h2>
+          </div>
 
-        {invoices.length === 0 ? (
-          <div className="p-6">
-            <EmptyState
-              title="No invoices yet"
-              description="Invoices created by Stripe webhook processing will appear here."
-            />
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-[920px] w-full text-left text-sm">
-              <thead className="bg-muted/10 text-xs uppercase tracking-[0.14em] text-muted">
-                <tr>
-                  <th className="px-5 py-3 font-semibold">Invoice</th>
-                  <th className="px-5 py-3 font-semibold">Status</th>
-                  <th className="px-5 py-3 font-semibold">Period</th>
-                  <th className="px-5 py-3 font-semibold">Total</th>
-                  <th className="px-5 py-3 font-semibold">Paid</th>
-                  <th className="px-5 py-3 font-semibold">Due</th>
-                  <th className="px-5 py-3 font-semibold">Paid date</th>
-                  <th className="px-5 py-3 font-semibold">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {invoices.map((invoice) => (
-                  <tr key={invoice.id} className="bg-white">
-                    <td className="px-5 py-4 font-semibold text-foreground">
-                      {invoice.invoiceNumber}
-                    </td>
-                    <td className="px-5 py-4">
-                      <StatusChip value={invoice.status} />
-                    </td>
-                    <td className="px-5 py-4 text-muted">
-                      {formatDate(invoice.periodStart)} -{" "}
-                      {formatDate(invoice.periodEnd)}
-                    </td>
-                    <td className="px-5 py-4 text-foreground">
-                      {formatMoney(invoice.total, invoice.currency)}
-                    </td>
-                    <td className="px-5 py-4 text-foreground">
-                      {formatMoney(invoice.amountPaid, invoice.currency)}
-                    </td>
-                    <td className="px-5 py-4 text-foreground">
-                      {formatMoney(invoice.amountDue, invoice.currency)}
-                    </td>
-                    <td className="px-5 py-4 text-muted">
-                      {formatDate(invoice.paidAt)}
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="flex flex-wrap gap-2">
-                        {invoice.hostedInvoiceUrl ? (
-                          <SafeExternalLink href={invoice.hostedInvoiceUrl}>
-                            <ExternalLink className="h-4 w-4" />
-                            View
-                          </SafeExternalLink>
-                        ) : null}
-                        {invoice.invoicePdfUrl ? (
-                          <SafeExternalLink href={invoice.invoicePdfUrl}>
-                            <Download className="h-4 w-4" />
-                            PDF
-                          </SafeExternalLink>
-                        ) : null}
-                        {!invoice.hostedInvoiceUrl && !invoice.invoicePdfUrl ? (
-                          <span className="text-muted">No links</span>
-                        ) : null}
-                      </div>
-                    </td>
+          {invoices.length === 0 ? (
+            <div className="p-6">
+              <EmptyState
+                title="No invoices yet"
+                description="Invoices created by Stripe webhook processing will appear here."
+              />
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-[920px] w-full text-left text-sm">
+                <thead className="bg-muted/10 text-xs uppercase tracking-[0.14em] text-muted">
+                  <tr>
+                    <th className="px-5 py-3 font-semibold">Invoice</th>
+                    <th className="px-5 py-3 font-semibold">Status</th>
+                    <th className="px-5 py-3 font-semibold">Period</th>
+                    <th className="px-5 py-3 font-semibold">Total</th>
+                    <th className="px-5 py-3 font-semibold">Paid</th>
+                    <th className="px-5 py-3 font-semibold">Due</th>
+                    <th className="px-5 py-3 font-semibold">Paid date</th>
+                    <th className="px-5 py-3 font-semibold">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {invoices.map((invoice) => (
+                    <tr key={invoice.id} className="bg-white">
+                      <td className="px-5 py-4 font-semibold text-foreground">
+                        {invoice.invoiceNumber}
+                      </td>
+                      <td className="px-5 py-4">
+                        <StatusChip value={invoice.status} />
+                      </td>
+                      <td className="px-5 py-4 text-muted">
+                        {formatDate(invoice.periodStart)} -{" "}
+                        {formatDate(invoice.periodEnd)}
+                      </td>
+                      <td className="px-5 py-4 text-foreground">
+                        {formatMoney(invoice.total, invoice.currency)}
+                      </td>
+                      <td className="px-5 py-4 text-foreground">
+                        {formatMoney(invoice.amountPaid, invoice.currency)}
+                      </td>
+                      <td className="px-5 py-4 text-foreground">
+                        {formatMoney(invoice.amountDue, invoice.currency)}
+                      </td>
+                      <td className="px-5 py-4 text-muted">
+                        {formatDate(invoice.paidAt)}
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex flex-wrap gap-2">
+                          {invoice.hostedInvoiceUrl ? (
+                            <SafeExternalLink href={invoice.hostedInvoiceUrl}>
+                              <ExternalLink className="h-4 w-4" />
+                              View
+                            </SafeExternalLink>
+                          ) : null}
+                          {invoice.invoicePdfUrl ? (
+                            <SafeExternalLink href={invoice.invoicePdfUrl}>
+                              <Download className="h-4 w-4" />
+                              PDF
+                            </SafeExternalLink>
+                          ) : null}
+                          {!invoice.hostedInvoiceUrl &&
+                          !invoice.invoicePdfUrl ? (
+                            <span className="text-muted">No links</span>
+                          ) : null}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
       ) : null}
     </div>
   );

@@ -1588,8 +1588,7 @@ export class TimesheetsService {
                 ? resolvedSettings.attendanceIntegrationMode
                 : 'INDEPENDENT',
             requireProject: resolvedSettings.requireProject !== false,
-            allowLateSubmission:
-              resolvedSettings.allowLateSubmission !== false,
+            allowLateSubmission: resolvedSettings.allowLateSubmission !== false,
             allowPayrollLateSubmissionOverride:
               resolvedSettings.allowPayrollLateSubmissionOverride !== false,
           }
@@ -1689,8 +1688,8 @@ export class TimesheetsService {
           resolvedSettings?.allowPayrollLateSubmissionOverride !== false &&
           Boolean(
             week.submissionDeadline &&
-              new Date() > week.submissionDeadline &&
-              !week.lateSubmissionOverrideAt,
+            new Date() > week.submissionDeadline &&
+            !week.lateSubmissionOverrideAt,
           ) &&
           [
             'OPEN',
@@ -2554,7 +2553,9 @@ function resolvePayrollBlockers(
     blockers.push(
       `${blockingWeeks.length === 1 ? 'Week' : 'Weeks'} ${blockingWeeks
         .map((week) => week.weekNumber)
-        .join(', ')} ${blockingWeeks.length === 1 ? 'is' : 'are'} incomplete, overdue, or rejected.`,
+        .join(
+          ', ',
+        )} ${blockingWeeks.length === 1 ? 'is' : 'are'} incomplete, overdue, or rejected.`,
     );
   }
   if (settings?.approvedTimesheetsOnly !== false) {

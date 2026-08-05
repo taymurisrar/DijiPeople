@@ -46,6 +46,7 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { SignupDto } from './dto/signup.dto';
 import { AuthAccessService } from './auth-access.service';
+import { platformAccessForRole } from '../platform-auth/platform-permissions';
 import { AdminLoginDto } from './dto/admin-login.dto';
 
 type UserWithAccess = Prisma.UserGetPayload<{
@@ -321,9 +322,9 @@ export class AuthService {
       refreshedUser,
       payload.rememberMe ?? false,
       {
-      clientId,
-      sessionId: payload.sessionId,
-      refreshTokenOverride: rotateRefresh ? undefined : refreshToken,
+        clientId,
+        sessionId: payload.sessionId,
+        refreshTokenOverride: rotateRefresh ? undefined : refreshToken,
       },
     );
 
@@ -1716,6 +1717,7 @@ export class AuthService {
         },
       );
 
+    const platformAccess = platformAccessForRole(user.role);
     return {
       tenant: {
         id: 'platform',
@@ -1732,11 +1734,8 @@ export class AuthService {
         role: user.role,
         status: user.status,
         roleIds: [user.role],
-        roleKeys:
-          user.role === 'SUPER_ADMIN'
-            ? ['SUPER_ADMIN', ROLE_KEYS.SYSTEM_ADMIN]
-            : ['MEMBER', ROLE_KEYS.SYSTEM_CUSTOMIZER],
-        permissionKeys: user.role === 'SUPER_ADMIN' ? ['platform.*'] : [],
+        roleKeys: platformAccess.roleKeys,
+        permissionKeys: platformAccess.permissionKeys,
       },
       tokens: {
         accessToken,
@@ -1877,11 +1876,7 @@ export class AuthService {
     }
 
     const lastActivityAt = tokenRecord.lastActivityAt?.getTime();
-    if (
-      lastActivityAt &&
-      now - lastActivityAt >
-        idleTimeoutMs
-    ) {
+    if (lastActivityAt && now - lastActivityAt > idleTimeoutMs) {
       throw this.authUnauthorized(
         'SESSION_EXPIRED',
         'Session expired due to inactivity.',

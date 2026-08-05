@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { DataTable } from "@/app/_components/crm/data-table";
+import { ProDataTable } from "@/app/_components/crm/data-table";
 import { TenantStatusBadge } from "@/app/_components/tenant-status-badge";
 import { formatDate } from "@/lib/formatters";
 
@@ -124,7 +124,7 @@ export function TenantAccessManager({
         </p>
       ) : null}
 
-      <DataTable
+      <ProDataTable
         rows={users}
         rowKey={(user) => user.id}
         emptyTitle="No privileged tenant access"

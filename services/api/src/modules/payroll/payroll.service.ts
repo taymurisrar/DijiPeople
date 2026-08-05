@@ -1368,7 +1368,9 @@ export class PayrollService {
     tenantId: string,
     values: Array<string | null | undefined>,
   ) {
-    const ids = [...new Set(values.filter((value): value is string => !!value))];
+    const ids = [
+      ...new Set(values.filter((value): value is string => !!value)),
+    ];
     if (!ids.length) return new Map<string, string>();
     const users = await this.prisma.user.findMany({
       where: { tenantId, id: { in: ids } },
@@ -1473,8 +1475,7 @@ export class PayrollService {
         [cycle.periodStartRule, cycle.periodEndRule]
           .filter((value): value is string => Boolean(value))
           .map(friendlyEnum)
-          .join(' / ') ||
-        'Explicit dates',
+          .join(' / ') || 'Explicit dates',
       paymentRule: cycle.paymentDay
         ? `Day ${cycle.paymentDay}${cycle.dateAdjustmentDirection ? ` · ${friendlyEnum(cycle.dateAdjustmentDirection)}` : ''}`
         : 'Not configured',
@@ -2108,7 +2109,10 @@ function cleanOptionalString(value?: string | null) {
   return trimmed || null;
 }
 
-function normalizeCycleCode(value?: string | null, fallbackName?: string | null) {
+function normalizeCycleCode(
+  value?: string | null,
+  fallbackName?: string | null,
+) {
   const source = value?.trim() || fallbackName?.trim() || `CYCLE_${Date.now()}`;
   return source
     .toUpperCase()

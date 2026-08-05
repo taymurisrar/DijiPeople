@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { ArrowRight, Mail, Phone } from "lucide-react";
 import {
   companySizeOptions,
@@ -43,6 +43,15 @@ export function LeadFormSection() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    const referralCode = new URLSearchParams(window.location.search).get("ref");
+    if (!referralCode || !/^[A-Za-z0-9_-]{1,64}$/.test(referralCode)) return;
+    const normalized = referralCode.toUpperCase();
+    window.sessionStorage.setItem("dijipeople_referral", normalized);
+    const secure = window.location.protocol === "https:" ? "; Secure" : "";
+    document.cookie = `dijipeople_referral=${encodeURIComponent(normalized)}; Path=/; Max-Age=2592000; SameSite=Lax${secure}`;
+  }, []);
 
   const isFormValid = useMemo(
     () =>
@@ -146,6 +155,7 @@ export function LeadFormSection() {
           interestedPlan: form.interestedPlan || undefined,
           message: form.message.trim() || undefined,
           website: form.website,
+          referralCode: readReferralCode(),
         }),
       });
 
@@ -348,6 +358,20 @@ export function LeadFormSection() {
       </div>
     </section>
   );
+}
+
+function readReferralCode() {
+  if (typeof window === "undefined") return undefined;
+  const sessionCode = window.sessionStorage.getItem("dijipeople_referral");
+  const cookieCode = document.cookie
+    .split(";")
+    .map((value) => value.trim())
+    .find((value) => value.startsWith("dijipeople_referral="))
+    ?.split("=")
+    .slice(1)
+    .join("=");
+  const code = sessionCode ?? (cookieCode ? decodeURIComponent(cookieCode) : undefined);
+  return code && /^[A-Za-z0-9_-]{1,64}$/.test(code) ? code.toUpperCase() : undefined;
 }
 
 function ContactRow({

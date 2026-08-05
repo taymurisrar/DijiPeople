@@ -1,8 +1,10 @@
-import { BillingCycle } from '@prisma/client';
+import { BillingCycle, BillingInterval, BillingModel } from '@prisma/client';
 import {
   IsBoolean,
+  IsDateString,
   IsEnum,
   IsIn,
+  IsInt,
   IsNumber,
   IsOptional,
   IsString,
@@ -18,6 +20,14 @@ export class UpdatePlanPriceDto {
   billingCycle?: BillingCycle;
 
   @IsOptional()
+  @IsEnum(BillingModel)
+  billingModel?: BillingModel;
+
+  @IsOptional()
+  @IsEnum(BillingInterval)
+  billingInterval?: BillingInterval;
+
+  @IsOptional()
   @IsString()
   @Matches(/^[A-Za-z]{3}$/)
   @IsIn(SUPPORTED_PLAN_PRICE_CURRENCIES)
@@ -25,8 +35,27 @@ export class UpdatePlanPriceDto {
 
   @IsOptional()
   @IsNumber({ maxDecimalPlaces: 2 })
-  @Min(0)
+  @Min(0.01)
   unitAmount?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  minimumSeats?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  maximumSeats?: number | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  includedSeats?: number;
+
+  @IsOptional()
+  @IsDateString()
+  effectiveFrom?: string;
 
   @IsOptional()
   @IsString()

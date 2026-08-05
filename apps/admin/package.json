@@ -12,6 +12,16 @@
   },
   "dependencies": {
     "@repo/config": "*",
+    "@tiptap/core": "^3.29.2",
+    "@tiptap/extension-link": "^3.29.2",
+    "@tiptap/extension-table": "^3.29.2",
+    "@tiptap/extension-task-item": "^3.29.2",
+    "@tiptap/extension-task-list": "^3.29.2",
+    "@tiptap/extension-text-align": "^3.29.2",
+    "@tiptap/extension-text-style": "^3.29.2",
+    "@tiptap/pm": "^3.29.2",
+    "@tiptap/react": "^3.29.2",
+    "@tiptap/starter-kit": "^3.29.2",
     "clsx": "^2.1.1",
     "lucide-react": "^1.8.0",
     "next": "16.2.2",
@@ -20,12 +30,12 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "postcss": "^8",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.2",
+    "postcss": "^8",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

@@ -901,10 +901,7 @@ export class PayrollDefaultsService {
       });
       result.created.push('Payroll cycle: DEFAULT-MONTHLY');
     } else {
-      if (
-        cycle.currencyCode !== currencyCode &&
-        isPristineDefault(cycle)
-      ) {
+      if (cycle.currencyCode !== currencyCode && isPristineDefault(cycle)) {
         cycle = await this.prisma.payrollCycle.update({
           where: { id: cycle.id },
           data: {

@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   Injectable,
   Logger,
+  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -156,6 +157,20 @@ export class JwtAuthGuard implements CanActivate {
         throw new UnauthorizedException({
           code: 'INVALID_TOKEN',
           message: 'Access token is invalid.',
+        });
+      }
+
+      if (isDatabaseUnavailableError(error)) {
+        this.logger.error(
+          `Authentication database check failed. Path=${request.url}, Method=${request.method}`,
+          error instanceof Error ? error.stack : String(error),
+        );
+
+        throw new ServiceUnavailableException({
+          code: 'DATABASE_CONNECTION_FAILED',
+          message: 'Database is currently unavailable.',
+          description:
+            'The database is recovering or not accepting connections. Please try again shortly.',
         });
       }
 
@@ -412,4 +427,24 @@ function numericSetting(value: unknown) {
         ? Number(value)
         : Number.NaN;
   return Number.isFinite(numeric) ? numeric : null;
+}
+
+function isDatabaseUnavailableError(error: unknown) {
+  const code =
+    typeof error === 'object' && error !== null && 'code' in error
+      ? String((error as { code?: unknown }).code)
+      : '';
+  const message = error instanceof Error ? error.message : String(error ?? '');
+  const lowerMessage = message.toLowerCase();
+
+  return (
+    code === 'P1001' ||
+    code === 'P1002' ||
+    code === 'P1017' ||
+    code === 'ECONNREFUSED' ||
+    lowerMessage.includes('connection terminated') ||
+    lowerMessage.includes('server has closed the connection') ||
+    lowerMessage.includes('database system is in recovery mode') ||
+    lowerMessage.includes('database system is not yet accepting connections')
+  );
 }

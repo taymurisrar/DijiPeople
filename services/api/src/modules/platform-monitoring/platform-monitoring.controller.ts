@@ -1,8 +1,10 @@
 import {
+  Body,
   Controller,
   Get,
   Header,
   Param,
+  Patch,
   Query,
   Res,
   StreamableFile,
@@ -40,6 +42,15 @@ export class PlatformMonitoringController {
     @Param('traceId') traceId: string,
   ) {
     return this.platformMonitoringService.getEvent(user, traceId);
+  }
+
+  @Patch('events/:traceId')
+  updateEvent(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('traceId') traceId: string,
+    @Body() body: Record<string, unknown>,
+  ) {
+    return this.platformMonitoringService.updateEvent(user, traceId, body);
   }
 
   @Get('latest-error/download')

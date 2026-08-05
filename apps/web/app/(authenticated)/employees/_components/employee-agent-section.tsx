@@ -12,6 +12,10 @@ type EmployeeAgentSummaryResponse = {
     os: string;
     platform: string;
     agentVersion: string;
+    cameraPermission?: string | null;
+    microphonePermission?: string | null;
+    locationPermission?: string | null;
+    permissionUpdatedAt?: string | null;
     lastSeenAt: string | null;
     isActive: boolean;
   }>;
@@ -268,6 +272,29 @@ export function EmployeeAgentSection({
                   <p className="mt-3 text-xs text-muted">
                     Last seen: {formatDateTime(device.lastSeenAt)}
                   </p>
+
+                  <div className="mt-4 grid gap-2 border-t border-border pt-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
+                      Device permissions
+                    </p>
+                    <div className="grid gap-2 sm:grid-cols-3">
+                      <PermissionPill
+                        label="Camera"
+                        value={device.cameraPermission}
+                      />
+                      <PermissionPill
+                        label="Microphone"
+                        value={device.microphonePermission}
+                      />
+                      <PermissionPill
+                        label="Location"
+                        value={device.locationPermission}
+                      />
+                    </div>
+                    <p className="text-xs text-muted">
+                      Updated: {formatDateTime(device.permissionUpdatedAt)}
+                    </p>
+                  </div>
                 </div>
               ))
             )}
@@ -585,6 +612,29 @@ function getAgentStatusClassName(value?: string | null) {
   }
 }
 
+function PermissionPill({
+  label,
+  value,
+}: {
+  label: string;
+  value?: string | null;
+}) {
+  const normalized = (value || "UNKNOWN").toUpperCase();
+
+  return (
+    <div className="rounded-xl border border-border bg-slate-50 px-3 py-2">
+      <p className="text-xs text-muted">{label}</p>
+      <p
+        className={`mt-1 text-xs font-semibold ${getPermissionClassName(
+          normalized,
+        )}`}
+      >
+        {formatPermissionStatus(normalized)}
+      </p>
+    </div>
+  );
+}
+
 function formatLiveStatus(value?: string | null) {
   switch (value) {
     case "LIVE":
@@ -597,5 +647,31 @@ function formatLiveStatus(value?: string | null) {
       return "Never connected";
     default:
       return "Unknown";
+  }
+}
+
+function formatPermissionStatus(value?: string | null) {
+  if (!value) return "Unknown";
+
+  return value
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function getPermissionClassName(value?: string | null) {
+  switch (value) {
+    case "GRANTED":
+      return "text-emerald-700";
+    case "DENIED":
+    case "RESTRICTED":
+      return "text-rose-700";
+    case "PROMPT":
+      return "text-amber-700";
+    case "UNAVAILABLE":
+      return "text-slate-500";
+    default:
+      return "text-muted";
   }
 }

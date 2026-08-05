@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { usePlatformDefaults } from "@/app/_components/platform-defaults-provider";
+import { SUPPORTED_CURRENCIES } from "@/lib/form-options";
 
 type PlanFormProps = {
   mode: "create" | "edit";
@@ -31,6 +33,7 @@ export function PlanForm({
   featureCatalog,
 }: PlanFormProps) {
   const router = useRouter();
+  const { defaults } = usePlatformDefaults();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [key, setKey] = useState(initialPlan?.key ?? "");
@@ -43,7 +46,9 @@ export function PlanForm({
   const [annualBasePrice, setAnnualBasePrice] = useState(
     String(initialPlan?.annualBasePrice ?? 0),
   );
-  const [currency, setCurrency] = useState(initialPlan?.currency ?? "USD");
+  const [currency, setCurrency] = useState(
+    initialPlan?.currency ?? defaults.currency,
+  );
   const [sortOrder, setSortOrder] = useState(String(initialPlan?.sortOrder ?? 0));
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>(
     initialPlan?.features ?? [],
@@ -153,12 +158,15 @@ export function PlanForm({
         </label>
         <label className="block text-sm font-medium text-slate-700">
           Currency
-          <input
-            maxLength={3}
+          <select
             value={currency}
-            onChange={(event) => setCurrency(event.target.value.toUpperCase())}
+            onChange={(event) => setCurrency(event.target.value)}
             className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm uppercase text-slate-900 outline-none transition focus:border-slate-900"
-          />
+          >
+            {SUPPORTED_CURRENCIES.map((option) => (
+              <option key={option} value={option}>{option}</option>
+            ))}
+          </select>
         </label>
         <label className="block text-sm font-medium text-slate-700">
           Sort order

@@ -24,6 +24,7 @@ import { EmptyState } from "@/app/_components/ui/empty-state";
 import { TenantStatusBadge } from "@/app/_components/tenant-status-badge";
 import { formatCurrency, formatNumber } from "@/lib/formatters";
 import { apiRequestJson } from "@/lib/server-api";
+import { DEFAULT_PLATFORM_DEFAULTS } from "@/lib/reference-data/platform-reference-data";
 
 type InvoiceRecord = {
   id: string;
@@ -88,7 +89,7 @@ export default async function BillingPage({
   const params = await searchParams;
   const activeTab = params?.tab === "webhooks" ? "webhooks" : "overview";
 
-  const [invoices, payments, diagnostics, webhookEvents] = await Promise.all([
+  const [invoices, payments, diagnostics, webhookEvents, settings] = await Promise.all([
     apiRequestJson<InvoiceRecord[]>("/super-admin/invoices"),
     apiRequestJson<PaymentRecord[]>("/super-admin/payments"),
     apiRequestJson<BillingDiagnostics>("/super-admin/billing/diagnostics"),
@@ -97,14 +98,23 @@ export default async function BillingPage({
           "/super-admin/billing/stripe-webhook-events?page=1&pageSize=25",
         )
       : Promise.resolve(null),
+    apiRequestJson<{ platformDefaults?: { currency?: string; reportingCurrency?: string } }>(
+      "/super-admin/platform-settings",
+    ),
   ]);
+  const reportingCurrency =
+    settings.platformDefaults?.reportingCurrency ??
+    settings.platformDefaults?.currency ??
+    DEFAULT_PLATFORM_DEFAULTS.reportingCurrency;
 
   const overdue = invoices.filter(
     (invoice) => invoice.status === "OVERDUE",
   ).length;
   const issued = invoices.filter((invoice) => invoice.status === "ISSUED").length;
   const successfulPayments = payments.filter(
-    (payment) => payment.status === "SUCCEEDED",
+    (payment) =>
+      payment.status === "SUCCEEDED" &&
+      payment.currency === reportingCurrency,
   );
   const revenue = successfulPayments.reduce(
     (sum, payment) => sum + payment.amount,
@@ -173,7 +183,7 @@ export default async function BillingPage({
             />
             <MetricTile
               label="Collected revenue"
-              value={formatCurrency(revenue, "USD")}
+              value={formatCurrency(revenue, reportingCurrency)}
               icon={CircleDollarSign}
             />
           </section>

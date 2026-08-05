@@ -1,7 +1,17 @@
+import Link from "next/link";
 import { SettingsFormCard } from "@/app/_components/settings/settings-form-card";
 import { SettingsShell } from "@/app/_components/settings/settings-shell";
+import { apiRequestJson } from "@/lib/server-api";
+import { DEFAULT_PLATFORM_DEFAULTS } from "@/lib/reference-data/platform-reference-data";
 
 export default async function PlanVisibilitySettingsPage() {
+  const settings = await apiRequestJson<{
+    platformDefaults?: { currency?: string; reportingCurrency?: string };
+  }>("/super-admin/platform-settings");
+  const transactionCurrency =
+    settings.platformDefaults?.currency ?? DEFAULT_PLATFORM_DEFAULTS.currency;
+  const reportingCurrency =
+    settings.platformDefaults?.reportingCurrency ?? transactionCurrency;
   return (
     <SettingsShell
       title="Plans & visibility"
@@ -26,9 +36,17 @@ export default async function PlanVisibilitySettingsPage() {
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="Default billing cycle" value="Monthly" />
           <Field label="Default trial duration" value="14 days" />
-          <Field label="Default currency" value="USD" />
+          <Field label="Transaction currency" value={transactionCurrency} />
+          <Field label="Reporting currency" value={reportingCurrency} />
           <Field label="Default plan sort order" value="10" />
         </div>
+        <p className="mt-4 text-sm text-slate-600">
+          Currency values are managed centrally in{" "}
+          <Link href="/settings/platform-defaults" className="font-semibold text-[var(--admin-primary)] hover:underline">
+            Platform defaults
+          </Link>
+          .
+        </p>
       </SettingsFormCard>
     </SettingsShell>
   );

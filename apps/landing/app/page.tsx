@@ -5,13 +5,6 @@ import { resolveDefaultCurrency } from "../lib/plans";
 import Image from "next/image";
 import { getDetectedCountry, getPublicPlans } from "../lib/plans-server";
 
-const featureHighlights = [
-  "Employee records, reporting lines, and documents",
-  "Attendance, leave, timesheets, and approvals",
-  "Recruitment, onboarding, and role-based access",
-  "Tenant branding, configuration, and subscription control",
-];
-
 const faqs = [
   {
     question: "Can DijiPeople support multiple companies or workspaces?",

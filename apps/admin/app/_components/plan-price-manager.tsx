@@ -20,7 +20,18 @@ export type PlanPriceRecord = {
   billingCycle: BillingCycle;
   currency: string;
   unitAmount: number;
+  billingModel: "PER_SEAT" | "FLAT";
+  billingInterval: "MONTH" | "YEAR";
+  minimumSeats: number;
+  maximumSeats: number | null;
+  includedSeats: number;
+  effectiveFrom: string;
+  stripeProductId: string | null;
   stripePriceId: string | null;
+  stripeEnvironment: "TEST" | "LIVE" | null;
+  stripeSyncStatus: string;
+  stripeVerifiedAt: string | null;
+  checkoutReadinessReasons?: string[];
   isActive: boolean;
   subscriptionCount: number;
   isCheckoutReady: boolean;
@@ -37,6 +48,9 @@ type DraftPrice = {
   billingCycle: BillingCycle;
   currency: string;
   unitAmount: string;
+  minimumSeats: string;
+  maximumSeats: string;
+  includedSeats: string;
   stripePriceId: string;
   isActive: boolean;
 };
@@ -45,6 +59,9 @@ const emptyDraft = (currency: string): DraftPrice => ({
   billingCycle: "MONTHLY",
   currency: normalizeCurrencyOption(currency),
   unitAmount: "0",
+  minimumSeats: "1",
+  maximumSeats: "",
+  includedSeats: "0",
   stripePriceId: "",
   isActive: true,
 });
@@ -77,6 +94,10 @@ export function PlanPriceManager({
       billingCycle: price.billingCycle,
       currency: price.currency,
       unitAmount: String(price.unitAmount),
+      minimumSeats: String(price.minimumSeats),
+      maximumSeats:
+        price.maximumSeats === null ? "" : String(price.maximumSeats),
+      includedSeats: String(price.includedSeats),
       stripePriceId: price.stripePriceId ?? "",
       isActive: price.isActive,
     });
@@ -288,6 +309,11 @@ export function PlanPriceManager({
                               <p className="mt-1 font-semibold text-slate-950">
                                 {formatEnum(price.billingCycle)}
                               </p>
+                              <p className="mt-1 text-xs text-slate-500">
+                                {price.billingModel === "PER_SEAT"
+                                  ? `per user/month · minimum ${price.minimumSeats}`
+                                  : "legacy flat price"}
+                              </p>
                             </div>
                             <div>
                               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
@@ -406,9 +432,9 @@ function PriceFields({
         </select>
       </label>
       <label className="block text-sm font-medium text-slate-700">
-        Unit amount
+        Price per seat / month
         <input
-          min="0"
+          min="0.01"
           step="0.01"
           type="number"
           value={draft.unitAmount}
@@ -420,7 +446,49 @@ function PriceFields({
         />
       </label>
       <label className="block text-sm font-medium text-slate-700">
-        Stripe Price ID
+        Minimum seats
+        <input
+          min="1"
+          step="1"
+          type="number"
+          value={draft.minimumSeats}
+          disabled={disabled}
+          onChange={(event) =>
+            onChange({ ...draft, minimumSeats: event.target.value })
+          }
+          className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
+        />
+      </label>
+      <label className="block text-sm font-medium text-slate-700">
+        Maximum seats (optional)
+        <input
+          min={draft.minimumSeats || "1"}
+          step="1"
+          type="number"
+          value={draft.maximumSeats}
+          disabled={disabled}
+          onChange={(event) =>
+            onChange({ ...draft, maximumSeats: event.target.value })
+          }
+          className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
+        />
+      </label>
+      <label className="block text-sm font-medium text-slate-700">
+        Included seats
+        <input
+          min="0"
+          step="1"
+          type="number"
+          value={draft.includedSeats}
+          disabled={disabled}
+          onChange={(event) =>
+            onChange({ ...draft, includedSeats: event.target.value })
+          }
+          className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900"
+        />
+      </label>
+      <label className="block text-sm font-medium text-slate-700">
+        Stripe Price ID (optional)
         <input
           value={draft.stripePriceId}
           placeholder="price_..."
@@ -430,6 +498,9 @@ function PriceFields({
           }
           className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 font-mono text-sm text-slate-900 outline-none transition focus:border-slate-900"
         />
+        <span className="mt-1 block text-xs text-slate-500">
+          Leave blank to create and verify a replacement Stripe Price.
+        </span>
       </label>
       <label className="flex h-[46px] items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700">
         <input
@@ -453,22 +524,25 @@ function PriceFields({
 }
 
 function CheckoutReadyBadge({ price }: { price: PlanPriceRecord }) {
-  if (price.isActive) {
+  if (price.isActive && price.isCheckoutReady) {
     return (
-      <div className="flex flex-wrap gap-2">
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">
-          <CheckCircle2 className="h-3.5 w-3.5" />
-          Current active price
-        </span>
-        {price.isCheckoutReady ? null : (
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700">
-            <XCircle className="h-3.5 w-3.5" />
-            Not checkout-ready
-          </span>
-        )}
-      </div>
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">
+        <CheckCircle2 className="h-3.5 w-3.5" />
+        Current checkout price
+      </span>
     );
   }
+
+  if (price.isActive)
+    return (
+      <div
+        title={price.checkoutReadinessReasons?.join(" ")}
+        className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700"
+      >
+        <XCircle className="h-3.5 w-3.5" /> Active configuration · not
+        checkout-ready
+      </div>
+    );
 
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600">
@@ -514,9 +588,19 @@ function validateDraft(draft: DraftPrice) {
   if (!(SUPPORTED_CURRENCIES as readonly string[]).includes(draft.currency)) {
     return "Select a supported currency.";
   }
-  if (Number.isNaN(Number(draft.unitAmount)) || Number(draft.unitAmount) < 0) {
-    return "Unit amount must be zero or greater.";
+  if (Number.isNaN(Number(draft.unitAmount)) || Number(draft.unitAmount) <= 0) {
+    return "Price per seat must be greater than zero.";
   }
+  if (
+    !Number.isInteger(Number(draft.minimumSeats)) ||
+    Number(draft.minimumSeats) < 1
+  )
+    return "Minimum seats must be at least one.";
+  if (
+    draft.maximumSeats &&
+    Number(draft.maximumSeats) < Number(draft.minimumSeats)
+  )
+    return "Maximum seats cannot be below minimum seats.";
   if (
     draft.stripePriceId.trim() &&
     !draft.stripePriceId.trim().startsWith("price_")
@@ -531,7 +615,13 @@ function toPayload(draft: DraftPrice) {
     billingCycle: draft.billingCycle,
     currency: draft.currency.toUpperCase(),
     unitAmount: Number(draft.unitAmount),
+    billingModel: "PER_SEAT",
+    billingInterval: "MONTH",
+    minimumSeats: Number(draft.minimumSeats),
+    maximumSeats: draft.maximumSeats ? Number(draft.maximumSeats) : null,
+    includedSeats: Number(draft.includedSeats),
     stripePriceId: draft.stripePriceId.trim() || null,
+    syncToStripe: true,
     isActive: draft.isActive,
   };
 }
@@ -540,7 +630,7 @@ function normalizeCurrencyOption(currency: string) {
   const normalized = currency.toUpperCase();
   return (SUPPORTED_CURRENCIES as readonly string[]).includes(normalized)
     ? normalized
-    : "USD";
+    : SUPPORTED_CURRENCIES[0]!;
 }
 
 function hasOtherActivePrice(

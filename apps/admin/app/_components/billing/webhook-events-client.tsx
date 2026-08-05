@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { Loader2, RefreshCcw, RotateCcw } from "lucide-react";
 import { AdminKeyValueGrid } from "@/app/_components/admin-ui";
-import { DataTable } from "@/app/_components/crm/data-table";
+import { ProDataTable } from "@/app/_components/crm/data-table";
 
 type WebhookStatus = "RECEIVED" | "PROCESSED" | "FAILED" | "IGNORED" | "";
 
@@ -150,7 +150,7 @@ export function WebhookEventsClient({ initialData }: WebhookEventsClientProps) {
       </section>
 
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <DataTable
+        <ProDataTable
           compact
           rows={data.items}
           rowKey={(event) => event.id}

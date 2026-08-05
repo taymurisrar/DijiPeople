@@ -45,7 +45,7 @@ export const agentEnv = {
 
   sessionIdleTimeoutSeconds: readNumber(
     process.env.AGENT_SESSION_IDLE_TIMEOUT_SECONDS,
-    43200,
+    2592000,
   ),
 
   sessionAbsoluteTimeoutSeconds: readNumber(

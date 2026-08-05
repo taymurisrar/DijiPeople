@@ -50,6 +50,18 @@ export class UpdateAgentSettingsDto {
 
   @IsOptional()
   @IsBoolean()
+  allowCameraAccess?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  allowMicrophoneAccess?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  allowLocationAccess?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
   offlineQueueEnabled?: boolean;
 
   @IsOptional()

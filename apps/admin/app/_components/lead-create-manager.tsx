@@ -35,6 +35,7 @@ type LeadFormState = {
   source: string;
   interestedPlan: string;
   assignedToUserId: string;
+  partnerId: string;
   status: string;
   subStatus: string;
   notes: string;
@@ -104,6 +105,7 @@ function buildInitialForm(
   lifecycleOptions: LifecycleOptions,
   operators: OperatorOption[],
   currentUser: AdminSessionUser,
+  initialPartnerId = "",
 ): LeadFormState {
   const leadLifecycle = getLeadLifecycle(lifecycleOptions);
   const defaultStatus =
@@ -123,6 +125,7 @@ function buildInitialForm(
     source: leadLifecycle.sources[0]?.value ?? "",
     interestedPlan: "",
     assignedToUserId: getDefaultOwnerId(currentUser, operators),
+    partnerId: initialPartnerId,
     status: defaultStatus,
     subStatus: leadLifecycle.subStatuses[defaultStatus]?.[0] ?? "",
     notes: "",
@@ -135,11 +138,15 @@ export function LeadCreateManager({
   lifecycleOptions,
   operators,
   plans,
+  partners,
+  initialPartnerId = "",
 }: {
   currentUser: AdminSessionUser;
   lifecycleOptions: LifecycleOptions;
   operators: OperatorOption[];
   plans: PlanOption[];
+  partners: Array<{ id: string; code: string; displayName: string }>;
+  initialPartnerId?: string;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -153,8 +160,8 @@ export function LeadCreateManager({
   );
 
   const initialForm = useMemo(
-    () => buildInitialForm(lifecycleOptions, operators, currentUser),
-    [currentUser, lifecycleOptions, operators],
+    () => buildInitialForm(lifecycleOptions, operators, currentUser, initialPartnerId),
+    [currentUser, lifecycleOptions, operators, initialPartnerId],
   );
 
   const [form, setForm] = useState<LeadFormState>(initialForm);
@@ -220,6 +227,7 @@ export function LeadCreateManager({
           ...form,
           interestedPlan: form.interestedPlan || undefined,
           assignedToUserId: form.assignedToUserId || undefined,
+          partnerId: form.partnerId || undefined,
           subStatus: form.subStatus || undefined,
           notes: form.notes || undefined,
           requirementsSummary: form.requirementsSummary || undefined,
@@ -243,7 +251,7 @@ export function LeadCreateManager({
   }
 
   function handleReset() {
-    setForm(buildInitialForm(lifecycleOptions, operators, currentUser));
+    setForm(buildInitialForm(lifecycleOptions, operators, currentUser, initialPartnerId));
     setFieldErrors({});
     setMessage(null);
   }
@@ -426,6 +434,13 @@ export function LeadCreateManager({
             })),
           ]}
           value={form.interestedPlan}
+        />
+        <LeadSelectField
+          label="Referral partner"
+          fieldKey="partnerId"
+          onChange={(value) => updateForm("partnerId", value)}
+          options={[{ value: "", label: "Direct / no partner" }, ...partners.map((partner) => ({ value: partner.id, label: `${partner.displayName} (${partner.code})` }))]}
+          value={form.partnerId}
         />
         <LeadTextarea
           label="Requirements summary"

@@ -1,10 +1,10 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { PlatformUserRole } from '@prisma/client';
 import { FOUNDATION_PERMISSION_DEFINITIONS } from '../../common/constants/permissions';
 import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { hasElevatedTenantRole } from '../../common/security/elevated-tenant-roles';
+import { platformAccessForRole } from '../platform-auth/platform-permissions';
 
 @Injectable()
 export class AuthAccessService {
@@ -21,33 +21,7 @@ export class AuthAccessService {
       );
     }
 
-    const roleKeys =
-      user.role === PlatformUserRole.SUPER_ADMIN
-        ? ['SUPER_ADMIN', ROLE_KEYS.SYSTEM_ADMIN]
-        : ['MEMBER', ROLE_KEYS.SYSTEM_CUSTOMIZER];
-
-    const permissionKeys =
-      user.role === PlatformUserRole.SUPER_ADMIN
-        ? ['platform.*', 'platform.demoData.delete']
-        : [
-            'leads.create',
-            'leads.read',
-            'leads.update',
-            'customers.create',
-            'customers.read',
-            'customers.update',
-            'tenants.create',
-            'tenants.read',
-            'tenants.update',
-            'onboarding.create',
-            'onboarding.read',
-            'onboarding.update',
-            'payments.read',
-            'billing.read',
-            'subscriptions.read',
-            'invoices.read',
-            'plans.read',
-          ];
+    const { roleKeys, permissionKeys } = platformAccessForRole(user.role);
 
     const authUser: AuthenticatedUser = {
       userId: user.id,

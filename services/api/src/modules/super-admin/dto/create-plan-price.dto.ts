@@ -1,8 +1,10 @@
-import { BillingCycle } from '@prisma/client';
+import { BillingCycle, BillingInterval, BillingModel } from '@prisma/client';
 import {
   IsBoolean,
+  IsDateString,
   IsEnum,
   IsIn,
+  IsInt,
   IsNumber,
   IsOptional,
   IsString,
@@ -22,8 +24,17 @@ export const SUPPORTED_PLAN_PRICE_CURRENCIES = [
 ] as const;
 
 export class CreatePlanPriceDto {
+  @IsOptional()
   @IsEnum(BillingCycle)
-  billingCycle!: BillingCycle;
+  billingCycle?: BillingCycle;
+
+  @IsOptional()
+  @IsEnum(BillingModel)
+  billingModel?: BillingModel;
+
+  @IsOptional()
+  @IsEnum(BillingInterval)
+  billingInterval?: BillingInterval;
 
   @IsString()
   @Matches(/^[A-Za-z]{3}$/)
@@ -31,8 +42,27 @@ export class CreatePlanPriceDto {
   currency!: string;
 
   @IsNumber({ maxDecimalPlaces: 2 })
-  @Min(0)
+  @Min(0.01)
   unitAmount!: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  minimumSeats?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  maximumSeats?: number | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  includedSeats?: number;
+
+  @IsOptional()
+  @IsDateString()
+  effectiveFrom?: string;
 
   @IsOptional()
   @IsString()
@@ -41,6 +71,10 @@ export class CreatePlanPriceDto {
     message: 'stripePriceId must start with price_.',
   })
   stripePriceId?: string | null;
+
+  @IsOptional()
+  @IsBoolean()
+  syncToStripe?: boolean;
 
   @IsOptional()
   @IsBoolean()

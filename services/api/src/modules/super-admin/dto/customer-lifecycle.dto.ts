@@ -81,6 +81,26 @@ export class CustomerQueryDto {
   @Min(1)
   @Max(100)
   pageSize = 20;
+
+  @IsOptional()
+  @Transform(trimString)
+  @IsString()
+  viewKey?: string;
+
+  @IsOptional()
+  @Transform(trimString)
+  @IsString()
+  filters?: string;
+
+  @IsOptional()
+  @Transform(trimString)
+  @IsString()
+  sort?: string;
+
+  @IsOptional()
+  @Transform(trimString)
+  @IsString()
+  fields?: string;
 }
 
 export class CreateCustomerDto {
@@ -465,6 +485,26 @@ export class CustomerOnboardingQueryDto {
   @Min(1)
   @Max(100)
   pageSize = 20;
+
+  @IsOptional()
+  @Transform(trimString)
+  @IsString()
+  viewKey?: string;
+
+  @IsOptional()
+  @Transform(trimString)
+  @IsString()
+  filters?: string;
+
+  @IsOptional()
+  @Transform(trimString)
+  @IsString()
+  sort?: string;
+
+  @IsOptional()
+  @Transform(trimString)
+  @IsString()
+  fields?: string;
 }
 
 export class CreateCustomerOnboardingRecordDto {

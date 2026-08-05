@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'unsafe-inline';"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DijiPeople Location Request</title>
+    <style>
+      :root {
+        color: #0f172a;
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+      }
+
+      body {
+        margin: 0;
+        background: #f8fafc;
+      }
+
+      main {
+        display: grid;
+        gap: 16px;
+        padding: 28px 30px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 24px;
+        line-height: 1.2;
+      }
+
+      p {
+        margin: 0;
+        color: #64748b;
+        line-height: 1.5;
+      }
+
+      .panel {
+        display: grid;
+        gap: 16px;
+        border: 1px solid #dbe3ee;
+        border-radius: 18px;
+        background: #fff;
+        padding: 18px;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      button {
+        border: 1px solid #cbd5e1;
+        border-radius: 12px;
+        background: #fff;
+        color: #0f172a;
+        cursor: pointer;
+        font-weight: 700;
+        padding: 10px 14px;
+      }
+
+      button.primary {
+        border-color: #0ea5e9;
+        background: #0ea5e9;
+        color: #fff;
+      }
+
+      button.danger {
+        border-color: #fecaca;
+        color: #b91c1c;
+      }
+
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.65;
+      }
+
+      #message {
+        min-height: 20px;
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      #message.info {
+        color: #475569;
+      }
+
+      #message.success {
+        color: #0f766e;
+      }
+
+      #message.error {
+        color: #b91c1c;
+      }
+
+      .hidden {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section>
+        <h1>Current location</h1>
+        <p>
+          DijiPeople needs your current location for this one-time HR request.
+        </p>
+      </section>
+
+      <section class="panel">
+        <p id="request-summary">Loading request...</p>
+        <div class="actions" id="location-actions">
+          <button class="primary" id="share-button" type="button">
+            Share current location
+          </button>
+          <button class="danger" id="decline-button" type="button">
+            Decline
+          </button>
+        </div>
+        <div id="message"></div>
+      </section>
+    </main>
+    <script type="module" src="./location-request.js"></script>
+  </body>
+</html>

@@ -8,7 +8,6 @@ import { ConfigService } from '@nestjs/config';
 import {
   CustomerAccountStatus,
   InvoiceStatus,
-  PlatformUserRole,
   PlatformUserStatus,
   SubscriptionStatus,
   TenantFeatureSource,
@@ -340,7 +339,6 @@ export class PlatformOnboardingService {
     const owner = await this.prisma.platformUser.findFirst({
       where: {
         id: ownerId,
-        role: { in: [PlatformUserRole.SUPER_ADMIN, PlatformUserRole.MEMBER] },
         status: PlatformUserStatus.ACTIVE,
       },
       select: { id: true },

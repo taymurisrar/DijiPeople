@@ -6,6 +6,7 @@ type CreateAgentTrayParams = {
   sessionManager: SessionManager;
   configManager: ConfigManager;
   onShowLogin: () => void;
+  onShowDevicePermissions: () => void;
   onCheckUpdates: () => void;
 };
 
@@ -25,6 +26,11 @@ export function createAgentTray(params: CreateAgentTrayParams): Tray {
     const managedByPolicy =
       params.configManager.current.policy.mandatory &&
       !params.configManager.current.policy.allowUserQuit;
+    const devicePermissionRequestsEnabled = Boolean(
+      params.configManager.current.features.cameraAccess ||
+        params.configManager.current.features.microphoneAccess ||
+        params.configManager.current.features.locationAccess,
+    );
 
     tray.setToolTip(`DijiPeople Agent • ${status} • ${connection}`);
 
@@ -84,6 +90,13 @@ export function createAgentTray(params: CreateAgentTrayParams): Tray {
           click: () => {
             void params.sessionManager.syncHeartbeat();
           },
+        },
+        {
+          label: "Device permissions",
+          enabled: Boolean(
+            params.sessionManager.user && devicePermissionRequestsEnabled,
+          ),
+          click: params.onShowDevicePermissions,
         },
         { type: "separator" },
         {

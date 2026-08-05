@@ -15,9 +15,10 @@ import {
   normalizeApiError,
   type StandardApiError,
 } from "@/lib/api-error";
+import type { PlatformRole } from "@/lib/platform-rbac";
 
 type DisplayableError = StandardApiError;
-type User = { role?: "SUPER_ADMIN" | "MEMBER"; roleKeys?: string[] };
+type User = { role?: PlatformRole; roleKeys?: string[] };
 
 const ErrorContext = createContext<{
   error: DisplayableError | null;
@@ -30,10 +31,14 @@ export function ErrorProvider({
   user,
 }: PropsWithChildren<{ user?: User | null }>) {
   const [error, setError] = useState<DisplayableError | null>(null);
-  const showError = useCallback(
-    (input: unknown) => setError(normalizeApiError(input)),
-    [],
-  );
+  const showError = useCallback((input: unknown) => {
+    const normalized = normalizeApiError(input);
+    const nextError = normalized.traceId.startsWith("client_")
+      ? { ...normalized, traceId: normalized.traceId.replace(/^client_/, "admin_") }
+      : normalized;
+    setError(nextError);
+    if (nextError.traceId.startsWith("admin_")) void persistAdminError(nextError);
+  }, []);
   const clearError = useCallback(() => setError(null), []);
 
   useEffect(() => {
@@ -41,6 +46,24 @@ export function ErrorProvider({
       showError((event as CustomEvent<{ error: unknown }>).detail?.error);
     window.addEventListener(apiErrorEventName(), handler);
     return () => window.removeEventListener(apiErrorEventName(), handler);
+  }, [showError]);
+
+  useEffect(() => {
+    const handleRuntimeError = (event: ErrorEvent) => {
+      if (event.message?.includes("ResizeObserver loop")) return;
+      showError(event.error ?? new Error(event.message || "Admin browser runtime error"));
+    };
+    const handleRejectedPromise = (event: PromiseRejectionEvent) => {
+      const reason = event.reason;
+      if (reason instanceof DOMException && reason.name === "AbortError") return;
+      showError(reason ?? new Error("Unhandled admin browser promise rejection"));
+    };
+    window.addEventListener("error", handleRuntimeError);
+    window.addEventListener("unhandledrejection", handleRejectedPromise);
+    return () => {
+      window.removeEventListener("error", handleRuntimeError);
+      window.removeEventListener("unhandledrejection", handleRejectedPromise);
+    };
   }, [showError]);
 
   useEffect(() => {
@@ -53,7 +76,12 @@ export function ErrorProvider({
           : args[0] instanceof URL
             ? args[0].toString()
             : args[0].url;
-      if (response.ok || !url.includes("/api/")) return response;
+      if (
+        response.ok ||
+        !url.includes("/api/") ||
+        url.includes("/api/error-logs/client")
+      )
+        return response;
       const data = await response
         .clone()
         .json()
@@ -101,7 +129,9 @@ function ErrorModal({
   onClose: () => void;
 }) {
   const [isDownloading, setIsDownloading] = useState(false);
-  const canDownload = user?.role === "SUPER_ADMIN" && isOperationalError(error);
+  const canDownload =
+    Boolean(error.traceId) &&
+    (user?.role === "SUPER_ADMIN" || user?.roleKeys?.includes("SUPER_ADMIN"));
   const primary = isSessionExpiredError(error)
     ? "sign-in"
     : error.statusCode === 404
@@ -151,7 +181,7 @@ function ErrorModal({
               onClick={() => void handleDownload()}
               type="button"
             >
-              {isDownloading ? "Downloading..." : "Download error log"}
+              {isDownloading ? "Downloading..." : "Download log"}
             </button>
           ) : null}
           <button
@@ -206,17 +236,27 @@ async function downloadLog(error: DisplayableError) {
   URL.revokeObjectURL(url);
 }
 
-function isOperationalError(error: DisplayableError) {
-  if (error.statusCode >= 500) return true;
-  return [
-    "DATABASE_CONSTRAINT_FAILED",
-    "PRISMA_KNOWN_REQUEST_ERROR",
-    "SYSTEM_UNEXPECTED_ERROR",
-  ].includes(error.errorCode);
-}
-
 function readDownloadFileName(header: string | null) {
   if (!header) return null;
   const match = /filename="?([^";]+)"?/i.exec(header);
   return match?.[1] ?? null;
+}
+
+async function persistAdminError(error: DisplayableError) {
+  try {
+    await fetch("/api/error-logs/client", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...error,
+        severity: error.statusCode >= 500 ? "ERROR" : "WARNING",
+        method: "CLIENT",
+        path: `${window.location.pathname}${window.location.search}`,
+        browserInfo: navigator.userAgent,
+      }),
+    });
+  } catch {
+    // The original UI error remains visible even when diagnostics are offline.
+  }
 }

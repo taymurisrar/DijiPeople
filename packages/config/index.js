@@ -213,6 +213,12 @@ const {
   resolveSystemWidgetAvailability,
   resolveSystemWidgetDefinition,
 } = require("./system-widget-registry");
+const {
+  PLATFORM_RUNTIME_SCHEMA_MANIFEST,
+  getRuntimeSchema,
+  resolveRuntimeField,
+  validateRuntimeDefinition,
+} = require("./platform-runtime-schema");
 
 module.exports = {
   DEFAULT_LOCAL_PORTS,
@@ -231,4 +237,8 @@ module.exports = {
   listSupportedSystemWidgets,
   resolveSystemWidgetAvailability,
   resolveSystemWidgetDefinition,
+  PLATFORM_RUNTIME_SCHEMA_MANIFEST,
+  getRuntimeSchema,
+  resolveRuntimeField,
+  validateRuntimeDefinition,
 };

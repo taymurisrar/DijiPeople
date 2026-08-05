@@ -1,11 +1,20 @@
 "use client";
 
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import type { ReactNode } from "react";
+import type { PointerEvent as ReactPointerEvent, ReactNode } from "react";
 import clsx from "clsx";
-import { ChevronDown } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+} from "lucide-react";
 
-type DataTableColumn<T> = {
+export type ProDataTableColumn<T> = {
   key: string;
   header: ReactNode;
   render: (row: T, index: number) => ReactNode;
@@ -13,14 +22,17 @@ type DataTableColumn<T> = {
   cellClassName?: string;
   width?: string | number;
   minWidth?: string | number;
+  maxWidth?: string | number;
   align?: "left" | "center" | "right";
   hidden?: boolean;
   sticky?: "left" | "right";
+  sortable?: boolean;
+  sortField?: string;
 };
 
-type DataTableProps<T> = {
+export type ProDataTableProps<T> = {
   rows: T[];
-  columns: DataTableColumn<T>[];
+  columns: ProDataTableColumn<T>[];
   rowKey: (row: T, index: number) => string;
 
   selectable?: boolean;
@@ -56,10 +68,20 @@ type DataTableProps<T> = {
     pageSize: number;
     totalRecords: number;
     onPageChange?: (page: number) => void;
+    pageSizeOptions?: number[];
+    onPageSizeChange?: (pageSize: number) => void;
   };
+  stickyPagination?: boolean;
+  sort?: { field: string; direction: "asc" | "desc" } | null;
+  onSortChange?: (sort: { field: string; direction: "asc" | "desc" }) => void;
+  sorts?: Array<{ field: string; direction: "asc" | "desc" }>;
+  onSortsChange?: (
+    sorts: Array<{ field: string; direction: "asc" | "desc" }>,
+  ) => void;
+  onColumnResize?: (columnKey: string, width: number) => void;
 };
 
-function getAlignmentClasses(align: DataTableColumn<unknown>["align"]) {
+function getAlignmentClasses(align: ProDataTableColumn<unknown>["align"]) {
   switch (align) {
     case "center":
       return "text-center";
@@ -83,7 +105,7 @@ function getStickyClasses(sticky?: "left" | "right") {
   return "";
 }
 
-export function DataTable<T>({
+export function ProDataTable<T>({
   rows,
   columns,
   rowKey,
@@ -111,7 +133,13 @@ export function DataTable<T>({
   footer,
   renderExpandedRow,
   pagination,
-}: DataTableProps<T>) {
+  stickyPagination = false,
+  sort,
+  onSortChange,
+  sorts,
+  onSortsChange,
+  onColumnResize,
+}: ProDataTableProps<T>) {
   const [expandedRowIds, setExpandedRowIds] = useState<string[]>([]);
   const visibleColumns = useMemo(
     () => columns.filter((column) => !column.hidden),
@@ -142,6 +170,56 @@ export function DataTable<T>({
     );
   }
 
+  function changeSort(
+    field: string,
+    additive: boolean,
+  ) {
+    if (onSortsChange) {
+      const current = sorts ?? [];
+      const existing = current.find((item) => item.field === field);
+      const next = {
+        field,
+        direction: existing?.direction === "asc" ? "desc" : "asc",
+      } as const;
+      onSortsChange(
+        additive
+          ? [...current.filter((item) => item.field !== field), next]
+          : [next],
+      );
+      return;
+    }
+    onSortChange?.({
+      field,
+      direction:
+        sort?.field === field && sort.direction === "asc" ? "desc" : "asc",
+    });
+  }
+
+  function beginResize(
+    event: ReactPointerEvent<HTMLButtonElement>,
+    column: ProDataTableColumn<T>,
+  ) {
+    if (!onColumnResize) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const startX = event.clientX;
+    const header = event.currentTarget.parentElement;
+    const startWidth = header?.getBoundingClientRect().width ?? 160;
+    const minimum = Number(column.minWidth) || 80;
+    const maximum = Number(column.maxWidth) || 720;
+    const move = (pointer: PointerEvent) =>
+      onColumnResize(
+        column.key,
+        Math.min(maximum, Math.max(minimum, startWidth + pointer.clientX - startX)),
+      );
+    const stop = () => {
+      document.removeEventListener("pointermove", move);
+      document.removeEventListener("pointerup", stop);
+    };
+    document.addEventListener("pointermove", move);
+    document.addEventListener("pointerup", stop, { once: true });
+  }
+
   return (
     <div
       className={clsx(
@@ -157,6 +235,20 @@ export function DataTable<T>({
           tableClassName,
         )}
       >
+        <colgroup>
+          {selectable ? <col className="w-12" /> : null}
+          {canExpand ? <col className="w-12" /> : null}
+          {visibleColumns.map((column) => (
+            <col
+              key={column.key}
+              style={{
+                width: column.width,
+                minWidth: column.minWidth,
+                maxWidth: column.maxWidth,
+              }}
+            />
+          ))}
+        </colgroup>
         <thead
           className={clsx(
             "bg-slate-50 text-slate-500",
@@ -169,7 +261,7 @@ export function DataTable<T>({
               <th
                 className={clsx(
                   checkboxCellPaddingClass,
-                  "align-middle",
+                  "w-12 align-middle",
                   stickyHeader ? "bg-slate-50" : "",
                 )}
               >
@@ -196,7 +288,7 @@ export function DataTable<T>({
                 key={column.key}
                 className={clsx(
                   cellPaddingClass,
-                  "font-medium align-middle",
+                  "relative font-medium align-middle",
                   getAlignmentClasses(column.align),
                   getStickyClasses(column.sticky),
                   stickyHeader ? "bg-slate-50" : "",
@@ -205,9 +297,64 @@ export function DataTable<T>({
                 style={{
                   width: column.width,
                   minWidth: column.minWidth,
+                  maxWidth: column.maxWidth,
                 }}
               >
-                {column.header}
+                {column.sortable && (onSortChange || onSortsChange) ? (
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1.5 rounded-md text-left hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-[var(--admin-primary)]/20"
+                    onClick={(event) =>
+                      changeSort(column.sortField ?? column.key, event.shiftKey)
+                    }
+                    title="Sort column. Hold Shift to add another sort."
+                  >
+                    {column.header}
+                    {(sorts?.find(
+                      (item) => item.field === (column.sortField ?? column.key),
+                    ) ??
+                      (sort?.field === (column.sortField ?? column.key)
+                        ? sort
+                        : undefined)) ? (
+                      (sorts?.find(
+                        (item) => item.field === (column.sortField ?? column.key),
+                      ) ?? sort)
+                        ?.direction === "asc" ? (
+                        <ArrowUp className="h-3.5 w-3.5" />
+                      ) : (
+                        <ArrowDown className="h-3.5 w-3.5" />
+                      )
+                    ) : (
+                      <ArrowUpDown className="h-3.5 w-3.5 opacity-50" />
+                    )}
+                    {sorts && sorts.length > 1 ? (
+                      <span className="text-[9px] text-slate-400">
+                        {sorts.findIndex(
+                          (item) => item.field === (column.sortField ?? column.key),
+                        ) + 1 || ""}
+                      </span>
+                    ) : null}
+                  </button>
+                ) : (
+                  column.header
+                )}
+                {onColumnResize ? (
+                  <button
+                    type="button"
+                    aria-label={`Resize ${String(column.header)} column`}
+                    className="absolute right-0 top-0 h-full w-2 cursor-col-resize touch-none border-r border-transparent hover:border-[var(--admin-primary)] focus:border-[var(--admin-primary)] focus:outline-none"
+                    onPointerDown={(event) => beginResize(event, column)}
+                    onKeyDown={(event) => {
+                      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+                      event.preventDefault();
+                      const current = Number(column.width) || 160;
+                      onColumnResize(
+                        column.key,
+                        Math.max(80, current + (event.key === "ArrowRight" ? 16 : -16)),
+                      );
+                    }}
+                  />
+                ) : null}
               </th>
             ))}
           </tr>
@@ -238,6 +385,7 @@ export function DataTable<T>({
                     style={{
                       width: column.width,
                       minWidth: column.minWidth,
+                      maxWidth: column.maxWidth,
                     }}
                   >
                     <div className="h-4 w-3/4 rounded bg-slate-200" />
@@ -285,12 +433,23 @@ export function DataTable<T>({
                       getRowClassName?.(row, index),
                     )}
                     onClick={clickable ? () => onRowClick?.(row) : undefined}
+                    tabIndex={clickable ? 0 : undefined}
+                    onKeyDown={
+                      clickable
+                        ? (event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              onRowClick?.(row);
+                            }
+                          }
+                        : undefined
+                    }
                   >
                     {selectable ? (
                       <td
                         className={clsx(
                           checkboxCellPaddingClass,
-                          "align-top",
+                          "w-12 align-top",
                           onRowClick ? "cursor-default" : "",
                         )}
                         onClick={(event) => event.stopPropagation()}
@@ -343,6 +502,7 @@ export function DataTable<T>({
                         style={{
                           width: column.width,
                           minWidth: column.minWidth,
+                          maxWidth: column.maxWidth,
                         }}
                       >
                         {column.render(row, index)}
@@ -377,7 +537,10 @@ export function DataTable<T>({
           {footer}
         </div>
       ) : pagination ? (
-        <DataTablePaginationFooter pagination={pagination} />
+        <DataTablePaginationFooter
+          pagination={pagination}
+          sticky={stickyPagination}
+        />
       ) : null}
     </div>
   );
@@ -385,8 +548,10 @@ export function DataTable<T>({
 
 function DataTablePaginationFooter({
   pagination,
+  sticky,
 }: {
-  pagination: NonNullable<DataTableProps<unknown>["pagination"]>;
+  pagination: NonNullable<ProDataTableProps<unknown>["pagination"]>;
+  sticky: boolean;
 }) {
   const pageSize = Math.max(1, pagination.pageSize);
   const totalPages = Math.max(1, Math.ceil(pagination.totalRecords / pageSize));
@@ -395,29 +560,78 @@ function DataTablePaginationFooter({
   const end = Math.min(page * pageSize, pagination.totalRecords);
 
   return (
-    <div className="flex items-center justify-between gap-4 border-t border-slate-200 bg-white px-6 py-4 text-sm text-slate-600">
+    <div
+      className={clsx(
+        "flex items-center justify-between gap-4 border-t border-slate-200 bg-white px-4 py-3 text-sm text-slate-600",
+        sticky &&
+          "sticky bottom-0 z-30 shadow-[0_-8px_24px_rgba(15,23,42,0.08)]",
+      )}
+    >
       <span>
         Showing {start}-{end} of {pagination.totalRecords}
       </span>
-      <div className="flex items-center gap-2">
+      {pagination.onPageSizeChange ? (
+        <label className="flex items-center gap-2 text-xs font-medium">
+          Rows
+          <select
+            aria-label="Rows per page"
+            value={pagination.pageSize}
+            onChange={(event) =>
+              pagination.onPageSizeChange?.(Number(event.target.value))
+            }
+            className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-700"
+          >
+            {(pagination.pageSizeOptions ?? [10, 25, 50, 100]).map((size) => (
+              <option key={size} value={size}>
+                {size}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
+      <div
+        className="inline-flex items-center rounded-xl border border-slate-200 bg-white p-1 shadow-sm"
+        role="group"
+        aria-label="Pagination"
+      >
         <button
-          className="rounded-lg border border-slate-200 px-3 py-1.5 font-semibold disabled:opacity-40"
+          className="rounded-lg p-2 hover:bg-slate-50 disabled:opacity-30"
+          disabled={page <= 1}
+          onClick={() => pagination.onPageChange?.(1)}
+          type="button"
+          aria-label="First page"
+        >
+          <ChevronsLeft className="h-4 w-4" />
+        </button>
+        <button
+          className="rounded-lg p-2 hover:bg-slate-50 disabled:opacity-30"
           disabled={page <= 1}
           onClick={() => pagination.onPageChange?.(page - 1)}
           type="button"
+          aria-label="Previous page"
         >
-          Previous
+          <ChevronLeft className="h-4 w-4" />
         </button>
-        <span>
+        <span className="min-w-24 px-3 text-center text-xs font-semibold text-slate-700">
           Page {page} of {totalPages}
         </span>
         <button
-          className="rounded-lg border border-slate-200 px-3 py-1.5 font-semibold disabled:opacity-40"
+          className="rounded-lg p-2 hover:bg-slate-50 disabled:opacity-30"
           disabled={page >= totalPages}
           onClick={() => pagination.onPageChange?.(page + 1)}
           type="button"
+          aria-label="Next page"
         >
-          Next
+          <ChevronRight className="h-4 w-4" />
+        </button>
+        <button
+          className="rounded-lg p-2 hover:bg-slate-50 disabled:opacity-30"
+          disabled={page >= totalPages}
+          onClick={() => pagination.onPageChange?.(totalPages)}
+          type="button"
+          aria-label="Last page"
+        >
+          <ChevronsRight className="h-4 w-4" />
         </button>
       </div>
     </div>

@@ -557,7 +557,10 @@ export class EmployeesService {
     const byId = new Map(employees.map((employee) => [employee.id, employee]));
     const reportingLine: ReturnType<typeof mapReportingNode>[] = [];
     let managerId = current.managerEmployeeId;
+    const reportingLineVisited = new Set<string>([current.id]);
     while (managerId) {
+      if (reportingLineVisited.has(managerId)) break;
+      reportingLineVisited.add(managerId);
       const manager = byId.get(managerId);
       if (!manager) break;
       reportingLine.unshift(mapReportingNode(manager));
@@ -582,16 +585,23 @@ export class EmployeesService {
 
     const buildTree = (
       employee: (typeof employees)[number],
+      visited = new Set<string>(),
     ): ReportingTreeNode => ({
       ...mapReportingNode(employee),
-      children: (childrenByManagerId.get(employee.id) ?? []).map(buildTree),
+      children: visited.has(employee.id)
+        ? []
+        : (childrenByManagerId.get(employee.id) ?? []).map((child) =>
+            buildTree(child, new Set([...visited, employee.id])),
+          ),
     });
 
     return {
       currentEmployee: mapReportingNode(current),
       reportingLine,
       directReports,
-      fullTree: (childrenByManagerId.get(null) ?? []).map(buildTree),
+      fullTree: (childrenByManagerId.get(null) ?? []).map((employee) =>
+        buildTree(employee),
+      ),
     };
   }
 

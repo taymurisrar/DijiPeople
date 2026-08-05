@@ -6,11 +6,16 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
+  BillingInterval,
+  BillingModel,
   CustomerAccountStatus,
   LeadStatus,
   Prisma,
+  StripeEnvironment,
+  StripeSyncStatus,
   SubscriptionStatus,
   TenantStatus,
+  UserStatus,
 } from '@prisma/client';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { TENANT_FEATURE_DEFINITIONS } from '../../tenant-settings/tenant-settings.catalog';
@@ -20,6 +25,13 @@ import {
 } from '../../../common/utils/slug.util';
 import { generateTenantCode } from '../../../common/utils/tenant-code.util';
 import { StripeBillingService } from './stripe-billing.service';
+import {
+  calculateSeatPricing,
+  buildPerSeatCheckoutLineItem,
+  deriveCheckoutReadiness,
+  normalizePurchasedSeats,
+  stripeEnvironmentFromMode,
+} from '../billing-seat-pricing';
 
 const RECENT_CHECKOUT_WINDOW_MS = 24 * 60 * 60 * 1000;
 
@@ -65,6 +77,9 @@ export class BillingService {
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
     });
 
+    const expectedStripeEnvironment = stripeEnvironmentFromMode(
+      this.stripeBillingService.getRuntimeMode(),
+    );
     const publicPlans = plans.map((plan) => {
       const metadata = normalizeJsonObject(plan.metadataJson);
       const billingCyclesByCurrency = new Map<string, Set<string>>();
@@ -88,17 +103,48 @@ export class BillingService {
         monthlyBasePrice: Number(plan.monthlyBasePrice),
         annualBasePrice: Number(plan.annualBasePrice),
         prices: plan.prices.map((price) => {
-          const checkoutReady = Boolean(price.isActive && price.stripePriceId);
+          const contract = mapSeatPriceContract(price);
+          const readiness = deriveCheckoutReadiness(
+            {
+              ...contract,
+              isActive: price.isActive,
+              effectiveFrom: price.effectiveFrom,
+              stripeProductId: price.stripeProductId,
+              stripePriceId: price.stripePriceId,
+              stripeEnvironment: price.stripeEnvironment,
+              stripeSyncStatus: price.stripeSyncStatus,
+              stripeActive: price.stripeActive,
+              stripeUsageType: price.stripeUsageType,
+              stripeRecurringInterval: price.stripeRecurringInterval,
+              stripeVerifiedAt: price.stripeVerifiedAt,
+            },
+            expectedStripeEnvironment,
+          );
 
           return {
             id: price.id,
             billingCycle: price.billingCycle,
+            billingModel: price.billingModel,
+            billingInterval: price.billingInterval,
             currency: price.currency.toUpperCase(),
             unitAmount: Number(price.unitAmount),
+            pricePerSeat:
+              price.billingModel === BillingModel.PER_SEAT
+                ? Number(price.unitAmount)
+                : null,
+            minimumSeats: price.minimumSeats,
+            maximumSeats: price.maximumSeats,
+            includedSeats: price.includedSeats,
+            effectiveFrom: price.effectiveFrom,
             isActive: price.isActive,
+            stripeProductId: price.stripeProductId,
             hasStripePrice: Boolean(price.stripePriceId),
-            checkoutReady,
-            isCheckoutReady: checkoutReady,
+            checkoutReady: readiness.checkoutReady,
+            isCheckoutReady: readiness.checkoutReady,
+            checkoutReadinessReasons: readiness.reasons,
+            stripeEnvironment: price.stripeEnvironment,
+            stripeSyncStatus: price.stripeSyncStatus,
+            stripeVerifiedAt: price.stripeVerifiedAt,
           };
         }),
         availableBillingCyclesByCurrency: Array.from(
@@ -169,6 +215,7 @@ export class BillingService {
 
   async createPublicSubscriptionCheckout(input: {
     planPriceId: string;
+    seatQuantity: number;
     companyName: string;
     contactName: string;
     email: string;
@@ -190,12 +237,26 @@ export class BillingService {
     if (
       !planPrice ||
       !planPrice.isActive ||
-      !planPrice.stripePriceId ||
       !planPrice.plan.isActive ||
       !planPrice.plan.isPublic
     ) {
       throw new NotFoundException('Plan price not found.');
     }
+
+    const purchasedSeats = normalizePurchasedSeats(
+      input.seatQuantity,
+      planPrice,
+    );
+    const verifiedPrice = await this.verifyAndPersistPlanPrice(planPrice);
+    if (!verifiedPrice.checkoutReady || !planPrice.stripePriceId) {
+      throw new BadRequestException(
+        `This price is not checkout-ready: ${verifiedPrice.reasons.join(' ')}`,
+      );
+    }
+    const seatPricing = calculateSeatPricing(
+      mapSeatPriceContract(planPrice),
+      purchasedSeats,
+    );
 
     const contactName = input.contactName.trim();
     const [firstName, ...lastNameParts] = contactName.split(/\s+/);
@@ -270,8 +331,11 @@ export class BillingService {
           planPriceId: planPrice.id,
           billingCycle: planPrice.billingCycle,
           basePrice: planPrice.unitAmount,
-          finalPrice: planPrice.unitAmount,
+          finalPrice:
+            seatPricing.estimatedMonthlyCharge ?? planPrice.unitAmount,
           currency: planPrice.currency,
+          purchasedSeats,
+          stripeQuantity: purchasedSeats,
           status: SubscriptionStatus.INCOMPLETE,
           startDate: new Date(),
           autoRenew: true,
@@ -339,13 +403,16 @@ export class BillingService {
       leadId: created.lead.id,
       publicSubscription: 'true',
       source: 'public_website',
+      seatQuantity: String(purchasedSeats),
     };
 
     const session =
       await this.stripeBillingService.client.checkout.sessions.create({
         mode: 'subscription',
         customer: stripeCustomer.id,
-        line_items: [{ price: planPrice.stripePriceId, quantity: 1 }],
+        line_items: [
+          buildPerSeatCheckoutLineItem(planPrice.stripePriceId, purchasedSeats),
+        ],
         success_url: this.resolvePublicCheckoutUrl(
           '/subscribe/success?session_id={CHECKOUT_SESSION_ID}',
         ),
@@ -395,10 +462,12 @@ export class BillingService {
   async getBillingHealth(tenantId: string) {
     const [
       activePublicPlansCount,
-      checkoutReadyPlanPricesCount,
+      candidatePlanPrices,
       tenant,
       subscription,
       recentWebhookFailuresCount,
+      lastSuccessfulWebhook,
+      lastFailedWebhook,
     ] = await Promise.all([
       this.prisma.plan.count({
         where: {
@@ -406,10 +475,9 @@ export class BillingService {
           isPublic: true,
         },
       }),
-      this.prisma.planPrice.count({
+      this.prisma.planPrice.findMany({
         where: {
           isActive: true,
-          stripePriceId: { not: null },
           plan: {
             isActive: true,
             isPublic: true,
@@ -432,9 +500,49 @@ export class BillingService {
           },
         },
       }),
+      this.prisma.stripeWebhookEvent.findFirst({
+        where: { processingStatus: 'PROCESSED' },
+        orderBy: { processedAt: 'desc' },
+        select: { processedAt: true, stripeEventId: true, type: true },
+      }),
+      this.prisma.stripeWebhookEvent.findFirst({
+        where: { processingStatus: 'FAILED' },
+        orderBy: { updatedAt: 'desc' },
+        select: {
+          updatedAt: true,
+          stripeEventId: true,
+          type: true,
+          errorMessage: true,
+        },
+      }),
     ]);
 
     const portalConfiguredCheck = await this.checkPortalConfiguration();
+    const expectedEnvironment = stripeEnvironmentFromMode(
+      this.stripeBillingService.getRuntimeMode(),
+    );
+    const checkoutReadyPlanPricesCount = candidatePlanPrices.filter(
+      (price) =>
+        deriveCheckoutReadiness(
+          {
+            ...mapSeatPriceContract(price),
+            isActive: price.isActive,
+            effectiveFrom: price.effectiveFrom,
+            stripeProductId: price.stripeProductId,
+            stripePriceId: price.stripePriceId,
+            stripeEnvironment: price.stripeEnvironment,
+            stripeSyncStatus: price.stripeSyncStatus,
+            stripeActive: price.stripeActive,
+            stripeUsageType: price.stripeUsageType,
+            stripeRecurringInterval: price.stripeRecurringInterval,
+            stripeVerifiedAt: price.stripeVerifiedAt,
+          },
+          expectedEnvironment,
+        ).checkoutReady,
+    ).length;
+    const connection = await this.stripeBillingService
+      .verifyConnection()
+      .catch(() => null);
     const warnings: string[] = [];
 
     if (!this.stripeBillingService.isWebhookSecretConfigured()) {
@@ -456,10 +564,33 @@ export class BillingService {
     }
 
     return {
+      enabled: this.stripeBillingService.isSecretKeyConfigured(),
+      mode: this.stripeBillingService.getRuntimeMode(),
       stripeConfigured: this.stripeBillingService.isSecretKeyConfigured(),
+      keysConfigured: {
+        secretKey: this.stripeBillingService.isSecretKeyConfigured(),
+        webhookSecret: this.stripeBillingService.isWebhookSecretConfigured(),
+      },
+      stripeAccountId: connection?.accountId ?? null,
+      lastVerification: connection?.verifiedAt ?? null,
       webhookSecretConfigured:
         this.stripeBillingService.isWebhookSecretConfigured(),
+      webhookConfigured: this.stripeBillingService.isWebhookSecretConfigured(),
+      lastSuccessfulWebhook,
+      lastFailedWebhook,
       portalConfiguredCheck,
+      checkoutSuccessUrl: this.resolveCheckoutUrl(
+        'STRIPE_CHECKOUT_SUCCESS_URL',
+        '/settings/subscription/success?session_id={CHECKOUT_SESSION_ID}',
+      ),
+      checkoutCancelUrl: this.resolveCheckoutUrl(
+        'STRIPE_CHECKOUT_CANCEL_URL',
+        '/settings/subscription/cancel',
+      ),
+      customerPortalReturnUrl: this.resolveCheckoutUrl(
+        'STRIPE_PORTAL_RETURN_URL',
+        '/settings/subscription/overview',
+      ),
       activePublicPlansCount,
       checkoutReadyPlanPricesCount,
       currentTenantHasStripeCustomer: Boolean(
@@ -467,6 +598,40 @@ export class BillingService {
       ),
       currentTenantHasSubscription: Boolean(subscription),
       warnings,
+    };
+  }
+
+  async reconcileSubscriptionSeats(tenantId: string) {
+    const subscription = await this.prisma.subscription.findUnique({
+      where: { tenantId },
+    });
+    if (!subscription?.stripeSubscriptionId)
+      throw new NotFoundException('Stripe subscription was not found.');
+    const remote =
+      await this.stripeBillingService.client.subscriptions.retrieve(
+        subscription.stripeSubscriptionId,
+      );
+    const item = remote.items.data[0];
+    const stripeQuantity = item?.quantity ?? 1;
+    const updated = await this.prisma.subscription.update({
+      where: { id: subscription.id },
+      data: {
+        stripeSubscriptionItemId: item?.id ?? null,
+        stripeQuantity,
+        purchasedSeats: stripeQuantity,
+        seatsLastReconciledAt: new Date(),
+      },
+    });
+    const usedSeats = await this.prisma.user.count({
+      where: { tenantId, status: UserStatus.ACTIVE },
+    });
+    return {
+      subscriptionId: updated.id,
+      purchasedSeats: updated.purchasedSeats,
+      usedSeats,
+      availableSeats: Math.max(updated.purchasedSeats - usedSeats, 0),
+      stripeQuantity: updated.stripeQuantity,
+      reconciledAt: updated.seatsLastReconciledAt,
     };
   }
 
@@ -534,6 +699,7 @@ export class BillingService {
     tenantId: string;
     userId: string;
     planPriceId: string;
+    seatQuantity: number;
     promotionCode?: string;
   }) {
     const planPrice = await this.prisma.planPrice.findUnique({
@@ -551,13 +717,20 @@ export class BillingService {
       throw new NotFoundException('Plan price not found.');
     }
 
-    if (!planPrice.stripePriceId) {
+    const purchasedSeats = normalizePurchasedSeats(
+      input.seatQuantity,
+      planPrice,
+    );
+    const verifiedPrice = await this.verifyAndPersistPlanPrice(planPrice);
+    if (!verifiedPrice.checkoutReady || !planPrice.stripePriceId)
       throw new BadRequestException(
-        'This plan price is not connected to a Stripe Price ID.',
+        `This price is not checkout-ready: ${verifiedPrice.reasons.join(' ')}`,
       );
-    }
 
-    const existingCheckout = await this.resolveCheckoutState(input.tenantId);
+    const existingCheckout = await this.resolveCheckoutState(
+      input.tenantId,
+      purchasedSeats,
+    );
     if (existingCheckout) {
       return existingCheckout;
     }
@@ -570,6 +743,7 @@ export class BillingService {
       planId: planPrice.planId,
       planPriceId: planPrice.id,
       userId: input.userId,
+      seatQuantity: String(purchasedSeats),
     };
 
     const session =
@@ -577,10 +751,7 @@ export class BillingService {
         mode: 'subscription',
         customer: customer.stripeCustomerId,
         line_items: [
-          {
-            price: planPrice.stripePriceId,
-            quantity: 1,
-          },
+          buildPerSeatCheckoutLineItem(planPrice.stripePriceId, purchasedSeats),
         ],
         success_url: this.resolveCheckoutUrl(
           'STRIPE_CHECKOUT_SUCCESS_URL',
@@ -631,28 +802,38 @@ export class BillingService {
   }
 
   async getCurrentSubscription(tenantId: string) {
-    const subscription = await this.prisma.subscription.findUnique({
-      where: { tenantId },
-      include: {
-        plan: {
-          select: {
-            id: true,
-            key: true,
-            name: true,
-            description: true,
+    const [subscription, usedSeats] = await Promise.all([
+      this.prisma.subscription.findUnique({
+        where: { tenantId },
+        include: {
+          plan: {
+            select: {
+              id: true,
+              key: true,
+              name: true,
+              description: true,
+            },
+          },
+          planPrice: {
+            select: {
+              id: true,
+              billingCycle: true,
+              billingModel: true,
+              billingInterval: true,
+              currency: true,
+              unitAmount: true,
+              minimumSeats: true,
+              maximumSeats: true,
+              includedSeats: true,
+              isActive: true,
+            },
           },
         },
-        planPrice: {
-          select: {
-            id: true,
-            billingCycle: true,
-            currency: true,
-            unitAmount: true,
-            isActive: true,
-          },
-        },
-      },
-    });
+      }),
+      this.prisma.user.count({
+        where: { tenantId, status: UserStatus.ACTIVE },
+      }),
+    ]);
 
     if (!subscription) {
       return null;
@@ -665,9 +846,27 @@ export class BillingService {
       hasStripeCustomer: Boolean(subscription.stripeCustomerId),
       isStripeBacked: Boolean(subscription.stripeSubscriptionId),
       billingCycle: subscription.billingCycle,
-      currency: subscription.currency,
       basePrice: Number(subscription.basePrice),
       finalPrice: Number(subscription.finalPrice),
+      ...calculateSeatPricing(
+        subscription.planPrice
+          ? mapSeatPriceContract(subscription.planPrice)
+          : {
+              billingModel: BillingModel.FLAT,
+              billingInterval:
+                subscription.billingCycle === 'ANNUAL'
+                  ? BillingInterval.YEAR
+                  : BillingInterval.MONTH,
+              unitAmount: Number(subscription.finalPrice),
+              currency: subscription.currency,
+              minimumSeats: 1,
+              maximumSeats: null,
+              includedSeats: 0,
+            },
+        subscription.purchasedSeats,
+        usedSeats,
+      ),
+      stripeQuantity: subscription.stripeQuantity,
       startDate: subscription.startDate,
       endDate: subscription.endDate,
       renewalDate: subscription.renewalDate,
@@ -782,7 +981,7 @@ export class BillingService {
     return tenant;
   }
 
-  private async resolveCheckoutState(tenantId: string) {
+  private async resolveCheckoutState(tenantId: string, purchasedSeats: number) {
     const subscription = await this.prisma.subscription.findUnique({
       where: { tenantId },
       select: {
@@ -792,6 +991,7 @@ export class BillingService {
         stripeCheckoutSessionId: true,
         stripeCustomerId: true,
         updatedAt: true,
+        purchasedSeats: true,
       },
     });
 
@@ -827,6 +1027,7 @@ export class BillingService {
 
     if (
       subscription?.status === SubscriptionStatus.INCOMPLETE &&
+      subscription.purchasedSeats === purchasedSeats &&
       subscription.stripeCheckoutSessionId &&
       Date.now() - subscription.updatedAt.getTime() < RECENT_CHECKOUT_WINDOW_MS
     ) {
@@ -851,6 +1052,89 @@ export class BillingService {
     }
 
     return null;
+  }
+
+  private async verifyAndPersistPlanPrice(price: {
+    id: string;
+    stripePriceId: string | null;
+    stripeProductId: string | null;
+    currency: string;
+    unitAmount: Prisma.Decimal;
+    billingModel: BillingModel;
+    billingInterval: BillingInterval;
+    minimumSeats: number;
+    maximumSeats: number | null;
+    includedSeats: number;
+    effectiveFrom: Date;
+    isActive: boolean;
+  }) {
+    const expectedEnvironment = stripeEnvironmentFromMode(
+      this.stripeBillingService.getRuntimeMode(),
+    );
+    if (!price.stripePriceId) {
+      return { checkoutReady: false, reasons: ['Stripe Price ID is missing.'] };
+    }
+
+    try {
+      const verified =
+        await this.stripeBillingService.verifyMonthlyPerSeatPrice({
+          stripePriceId: price.stripePriceId,
+          expectedProductId: price.stripeProductId,
+          expectedCurrency: price.currency,
+          expectedUnitAmount: Number(price.unitAmount),
+        });
+      const environment = verified.livemode
+        ? StripeEnvironment.LIVE
+        : StripeEnvironment.TEST;
+      const syncStatus =
+        environment !== expectedEnvironment
+          ? StripeSyncStatus.ENVIRONMENT_MISMATCH
+          : verified.valid
+            ? StripeSyncStatus.SYNCED
+            : StripeSyncStatus.FAILED;
+      await this.prisma.planPrice.update({
+        where: { id: price.id },
+        data: {
+          stripeProductId: verified.productId,
+          stripeEnvironment: environment,
+          stripeSyncStatus: syncStatus,
+          stripeActive: verified.active,
+          stripeUsageType: verified.usageType,
+          stripeRecurringInterval: verified.recurringInterval,
+          stripeVerifiedAt: verified.verifiedAt,
+          stripeVerificationError: verified.reasons.join(' ') || null,
+        },
+      });
+      return deriveCheckoutReadiness(
+        {
+          ...mapSeatPriceContract(price),
+          isActive: price.isActive,
+          effectiveFrom: price.effectiveFrom,
+          stripeProductId: verified.productId,
+          stripePriceId: price.stripePriceId,
+          stripeEnvironment: environment,
+          stripeSyncStatus: syncStatus,
+          stripeActive: verified.active,
+          stripeUsageType: verified.usageType,
+          stripeRecurringInterval: verified.recurringInterval,
+          stripeVerifiedAt: verified.verifiedAt,
+        },
+        expectedEnvironment,
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Stripe verification failed.';
+      await this.prisma.planPrice.update({
+        where: { id: price.id },
+        data: {
+          stripeSyncStatus: StripeSyncStatus.FAILED,
+          stripeActive: false,
+          stripeVerifiedAt: new Date(),
+          stripeVerificationError: message,
+        },
+      });
+      return { checkoutReady: false, reasons: [message] };
+    }
   }
 
   private async checkPortalConfiguration() {
@@ -1097,4 +1381,24 @@ function mapTenantInvoice(invoice: {
 
 function nullableNumber(value: { toString(): string } | number | null) {
   return value === null ? null : Number(value);
+}
+
+function mapSeatPriceContract(price: {
+  billingModel: BillingModel;
+  billingInterval: BillingInterval;
+  unitAmount: Prisma.Decimal | number;
+  currency: string;
+  minimumSeats: number;
+  maximumSeats: number | null;
+  includedSeats: number;
+}) {
+  return {
+    billingModel: price.billingModel,
+    billingInterval: price.billingInterval,
+    unitAmount: Number(price.unitAmount),
+    currency: price.currency,
+    minimumSeats: price.minimumSeats,
+    maximumSeats: price.maximumSeats,
+    includedSeats: price.includedSeats,
+  };
 }

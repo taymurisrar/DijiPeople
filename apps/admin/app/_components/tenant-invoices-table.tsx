@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { DataTable } from "@/app/_components/crm/data-table";
+import { ProDataTable } from "@/app/_components/crm/data-table";
 import { TenantStatusBadge } from "@/app/_components/tenant-status-badge";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 
@@ -37,7 +37,7 @@ export function TenantInvoicesTable({
     currentPage * pageSize,
   );
   return (
-    <DataTable
+    <ProDataTable
       rows={rows}
       rowKey={(invoice) => invoice.id}
       emptyTitle="No invoices"

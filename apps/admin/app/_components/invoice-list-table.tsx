@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { DataTable } from "@/app/_components/crm/data-table";
+import { ProDataTable } from "@/app/_components/crm/data-table";
 import { TenantStatusBadge } from "@/app/_components/tenant-status-badge";
 import { InvoiceStatusForm } from "@/app/_components/invoice-status-form";
 import { AdminKeyValueGrid } from "@/app/_components/admin-ui";
@@ -21,7 +21,7 @@ export type InvoiceTableRecord = {
 export function InvoiceListTable({ invoices }: { invoices: InvoiceTableRecord[] }) {
   return (
     <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
-      <DataTable
+      <ProDataTable
         rows={invoices}
         rowKey={(invoice) => invoice.id}
         stickyHeader

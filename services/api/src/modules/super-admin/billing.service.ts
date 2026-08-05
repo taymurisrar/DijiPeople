@@ -105,6 +105,7 @@ export class BillingService {
       autoRenew?: boolean;
       renewalDate?: Date | null;
       stripeSubscriptionId?: string | null;
+      purchasedSeats?: number;
       actorUserId?: string;
     },
   ) {
@@ -138,6 +139,7 @@ export class BillingService {
           this.resolveRenewalDate(startDate, input.billingCycle),
         autoRenew: input.autoRenew ?? true,
         stripeSubscriptionId: input.stripeSubscriptionId,
+        purchasedSeats: input.purchasedSeats ?? 1,
         createdById: input.actorUserId,
         updatedById: input.actorUserId,
       },
@@ -161,6 +163,7 @@ export class BillingService {
           input.stripeSubscriptionId === undefined
             ? undefined
             : input.stripeSubscriptionId,
+        purchasedSeats: input.purchasedSeats,
         updatedById: input.actorUserId,
       },
       include: {

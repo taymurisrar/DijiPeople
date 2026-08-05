@@ -285,9 +285,10 @@ export class PayComponentsService {
     tenantId: string,
     dto: PayComponentValidationPayload,
   ) {
-    const scopedOrganizationIds = [dto.organizationId, dto.legalEntityId].filter(
-      (value): value is string => Boolean(value),
-    );
+    const scopedOrganizationIds = [
+      dto.organizationId,
+      dto.legalEntityId,
+    ].filter((value): value is string => Boolean(value));
     if (scopedOrganizationIds.length) {
       const count = await this.prisma.organization.count({
         where: {

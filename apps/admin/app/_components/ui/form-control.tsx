@@ -412,7 +412,6 @@ function LookupControl({
   options,
   placeholder,
   disabled,
-  required,
   error,
   errorNode,
   fieldKey,
@@ -477,9 +476,11 @@ function LookupControl({
       {labelNode}
 
       <button
+        aria-controls={`${id}-listbox`}
         aria-expanded={open}
         aria-haspopup="listbox"
         aria-invalid={Boolean(error)}
+        role="combobox"
         className={[
           "mt-2 flex min-h-[46px] w-full items-center justify-between gap-3 rounded-2xl border bg-white px-4 py-3 text-left text-sm outline-none transition",
           "focus:border-slate-500 focus:ring-4 focus:ring-slate-100",
@@ -535,7 +536,11 @@ function LookupControl({
             />
           </div>
 
-          <div className="max-h-64 overflow-y-auto p-1">
+          <div
+            className="max-h-64 overflow-y-auto p-1"
+            id={`${id}-listbox`}
+            role="listbox"
+          >
             {filteredOptions.length ? (
               filteredOptions.map((option) => {
                 const selected = option.value === value;
@@ -555,6 +560,7 @@ function LookupControl({
                     key={option.value || option.label}
                     onClick={() => selectOption(option)}
                     role="option"
+                    aria-selected={selected}
                     type="button"
                   >
                     <span className="min-w-0">

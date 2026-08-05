@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import type { Metadata } from "next";
 import { DEFAULT_BRANDING_VALUES } from "@/app/components/branding/branding-defaults";
 import { TenantLogo } from "@/app/components/branding/tenant-logo";
+import { buildFaviconMetadata } from "@/lib/favicon-metadata";
 import { apiRequestJson, isApiRequestError } from "@/lib/server-api";
 import { getTenantHintFromRequest } from "@/lib/tenant-resolution";
 import { getFontOptionByKey, normalizeFontFamily } from "@/lib/branding";
@@ -69,16 +70,12 @@ export async function generateMetadata({
     branding?.loginSubtitle ||
     branding?.portalTagline ||
     "Sign in to DijiPeople";
-  const faviconUrl =
-    sanitizeLoginAssetUrl(branding?.faviconUrl) || "/favicon.ico";
+  const faviconUrl = sanitizeLoginAssetUrl(branding?.faviconUrl);
 
   return {
     title: `Login | ${title}`,
     description,
-    icons: {
-      icon: faviconUrl,
-      shortcut: faviconUrl,
-    },
+    icons: buildFaviconMetadata(faviconUrl, `${tenant?.id ?? ""}:${faviconUrl}`),
   };
 }
 

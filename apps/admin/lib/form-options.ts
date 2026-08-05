@@ -1,12 +1,8 @@
-export const SUPPORTED_CURRENCIES = [
-  "USD",
-  "QAR",
-  "AED",
-  "SAR",
-  "GBP",
-  "EUR",
-  "PKR",
-] as const;
+import { PLATFORM_CURRENCIES } from "@/lib/reference-data/platform-reference-data";
+
+export const SUPPORTED_CURRENCIES = PLATFORM_CURRENCIES.map(
+  (currency) => currency.code,
+);
 
 export const DATE_FORMAT_OPTIONS = [
   { value: "MM/DD/YYYY", label: "MM/DD/YYYY" },

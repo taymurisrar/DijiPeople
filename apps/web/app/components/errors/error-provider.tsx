@@ -55,6 +55,25 @@ export function ErrorProvider({
     return () => window.removeEventListener(apiErrorEventName(), handler);
   }, [showError]);
 
+  useEffect(() => {
+    const handleRuntimeError = (event: ErrorEvent) => {
+      if (event.message?.includes("ResizeObserver loop")) return;
+      showError(event.error ?? new Error(event.message || "Browser runtime error"));
+    };
+    const handleRejectedPromise = (event: PromiseRejectionEvent) => {
+      const reason = event.reason;
+      if (reason instanceof DOMException && reason.name === "AbortError") return;
+      showError(reason ?? new Error("Unhandled browser promise rejection"));
+    };
+
+    window.addEventListener("error", handleRuntimeError);
+    window.addEventListener("unhandledrejection", handleRejectedPromise);
+    return () => {
+      window.removeEventListener("error", handleRuntimeError);
+      window.removeEventListener("unhandledrejection", handleRejectedPromise);
+    };
+  }, [showError]);
+
   const value = useMemo(() => ({ error, showError, clearError }), [clearError, error, showError]);
 
   return (

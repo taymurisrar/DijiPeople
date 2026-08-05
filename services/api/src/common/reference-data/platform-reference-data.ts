@@ -56,6 +56,7 @@ export const PLATFORM_LOCALES = [
 export const DEFAULT_PLATFORM_DEFAULTS = {
   country: 'QA',
   currency: 'QAR',
+  reportingCurrency: 'QAR',
   timezone: 'Asia/Qatar',
   dateFormat: 'DD/MM/YYYY',
   timeFormat: '12-hour',
@@ -63,32 +64,61 @@ export const DEFAULT_PLATFORM_DEFAULTS = {
 } as const;
 
 export function validatePlatformDefaults(value: Record<string, unknown>) {
-  assertIncluded(
-    'country',
-    value.country,
-    PLATFORM_COUNTRIES.map((item) => item.code),
-  );
-  assertIncluded(
-    'currency',
-    value.currency,
-    PLATFORM_CURRENCIES.map((item) => item.code),
-  );
-  assertIncluded('timezone', value.timezone, [...PLATFORM_TIMEZONES]);
-  assertIncluded(
-    'dateFormat',
-    value.dateFormat,
-    PLATFORM_DATE_FORMATS.map((item) => item.value),
-  );
+  assertCountry(value.country);
+  assertCurrency('currency', value.currency);
+  assertCurrency('reportingCurrency', value.reportingCurrency);
+  assertTimezone(value.timezone);
+  assertIncluded('dateFormat', value.dateFormat, [
+    ...PLATFORM_DATE_FORMATS.map((item) => item.value),
+    'MMM DD, YYYY',
+    'DD MMMM YYYY',
+  ]);
   assertIncluded(
     'timeFormat',
     value.timeFormat,
     PLATFORM_TIME_FORMATS.map((item) => item.value),
   );
-  assertIncluded(
-    'locale',
-    value.locale,
-    PLATFORM_LOCALES.map((item) => item.code),
-  );
+  assertLocale(value.locale);
+}
+
+function assertCountry(value: unknown) {
+  if (typeof value !== 'string' || !/^[A-Z]{2}$/.test(value)) {
+    throw new Error('Invalid platform default: country.');
+  }
+}
+
+function assertCurrency(field: string, value: unknown) {
+  if (typeof value !== 'string' || !/^[A-Z]{3}$/.test(value)) {
+    throw new Error(`Invalid platform default: ${field}.`);
+  }
+
+  try {
+    new Intl.NumberFormat('en', { style: 'currency', currency: value });
+  } catch {
+    throw new Error(`Invalid platform default: ${field}.`);
+  }
+}
+
+function assertTimezone(value: unknown) {
+  if (typeof value !== 'string') {
+    throw new Error('Invalid platform default: timezone.');
+  }
+  try {
+    new Intl.DateTimeFormat('en', { timeZone: value });
+  } catch {
+    throw new Error('Invalid platform default: timezone.');
+  }
+}
+
+function assertLocale(value: unknown) {
+  if (typeof value !== 'string') {
+    throw new Error('Invalid platform default: locale.');
+  }
+  try {
+    new Intl.DateTimeFormat(value);
+  } catch {
+    throw new Error('Invalid platform default: locale.');
+  }
 }
 
 function assertIncluded(field: string, value: unknown, allowed: string[]) {

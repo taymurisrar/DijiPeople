@@ -24,6 +24,7 @@ type LoginFailure = Extract<LoginResult, { ok: false }>;
 
 type DijiAgentBridge = {
   login: (payload: LoginPayload) => Promise<LoginResult>;
+  resumeSession?: () => Promise<LoginResult>;
   onLoginError?: (callback: (result: LoginResult) => void) => () => void;
 };
 
@@ -142,7 +143,11 @@ async function handleSubmit(
     password: passwordInput?.value ?? "",
   };
 
-  const validation = validatePayload(payload);
+  const shouldResumeSavedSession = !payload.password;
+
+  const validation = shouldResumeSavedSession
+    ? ({ ok: true } as const)
+    : validatePayload(payload);
 
   if (isLoginFailure(validation)) {
     renderFailure(validation);
@@ -165,21 +170,36 @@ async function handleSubmit(
 
   try {
     setStatus(
-      "Connecting to DijiPeople cloud...",
+      shouldResumeSavedSession
+        ? "Restoring saved session..."
+        : "Connecting to DijiPeople cloud...",
       "info",
     );
 
     await wait(500);
 
     setStatus(
-      "Verifying credentials...",
+      shouldResumeSavedSession
+        ? "Starting secure session..."
+        : "Verifying credentials...",
       "info",
     );
 
     await wait(400);
 
-    const result =
-      await dijiWindow.dijiAgent.login(payload);
+    const result = shouldResumeSavedSession
+      ? await dijiWindow.dijiAgent.resumeSession?.()
+      : await dijiWindow.dijiAgent.login(payload);
+
+    if (!result) {
+      renderFailure({
+        ok: false,
+        code: "UNKNOWN_ERROR",
+        message:
+          "Saved-session resume is unavailable. Sign in with your credentials.",
+      });
+      return;
+    }
 
     if (isLoginFailure(result)) {
       renderFailure(result);
@@ -187,7 +207,9 @@ async function handleSubmit(
       return;
     }
 
-    rememberEmail(payload.email);
+    if (payload.email) {
+      rememberEmail(payload.email);
+    }
 
     setStatus(
       "Authentication successful. Starting secure session...",
@@ -233,7 +255,7 @@ function validatePayload(
 
   if (!payload.password) {
     fieldErrors.password =
-      "Password is required.";
+      "Password is required for credential sign-in.";
   }
 
   if (Object.keys(fieldErrors).length > 0) {
@@ -555,3 +577,5 @@ function isValidEmail(
     value,
   );
 }
+
+export {};

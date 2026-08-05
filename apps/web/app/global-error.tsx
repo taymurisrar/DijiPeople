@@ -2,6 +2,11 @@
 
 import { Button } from "@/app/components/ui/button";
 import { downloadErrorLog } from "@/app/components/errors/download-error-log";
+import { useEffect } from "react";
+import {
+  enrichClientError,
+  persistClientError,
+} from "@/app/components/errors/client-error-log";
 
 export default function GlobalError({
   error,
@@ -10,6 +15,27 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const traceId = `client_global_${stableErrorReference(
+    error.digest ?? error.message,
+  )}`;
+
+  useEffect(() => {
+    void persistClientError(
+      enrichClientError({
+        success: false,
+        traceId,
+        timestamp: new Date().toISOString(),
+        statusCode: 500,
+        errorCode: "SYSTEM_UNEXPECTED_ERROR",
+        message: error.message || "The app could not load this view.",
+        description: "An unexpected client error prevented the application from loading.",
+        stack: error.stack,
+        details: { digest: error.digest },
+        method: "CLIENT",
+      }),
+    );
+  }, [error, traceId]);
+
   return (
     <html lang="en">
       <body>
@@ -70,4 +96,9 @@ export default function GlobalError({
       </body>
     </html>
   );
+}
+
+function stableErrorReference(value: string) {
+  const normalized = value.replace(/[^a-z0-9_.-]+/gi, "_").slice(0, 100);
+  return normalized || "unexpected_error";
 }

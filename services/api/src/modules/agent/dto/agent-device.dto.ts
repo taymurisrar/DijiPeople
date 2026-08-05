@@ -1,4 +1,17 @@
-import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import {
+  Transform,
+} from 'class-transformer';
+import {
+  IsIn,
+  IsLatitude,
+  IsLongitude,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
 export class AgentDeviceDto {
   @IsString()
@@ -37,4 +50,71 @@ export class AgentVersionQueryDto {
   @IsString()
   @MaxLength(80)
   platform?: string;
+}
+
+const AGENT_DEVICE_PERMISSION_STATUSES = [
+  'GRANTED',
+  'DENIED',
+  'PROMPT',
+  'RESTRICTED',
+  'UNAVAILABLE',
+  'UNKNOWN',
+] as const;
+
+export class UpdateAgentDevicePermissionsDto {
+  @IsUUID()
+  deviceId!: string;
+
+  @IsIn(AGENT_DEVICE_PERMISSION_STATUSES)
+  cameraPermission!: string;
+
+  @IsIn(AGENT_DEVICE_PERMISSION_STATUSES)
+  microphonePermission!: string;
+
+  @IsIn(AGENT_DEVICE_PERMISSION_STATUSES)
+  locationPermission!: string;
+}
+
+const AGENT_LOCATION_RESULT_STATUSES = [
+  'CAPTURED',
+  'DENIED',
+  'FAILED',
+] as const;
+
+export class CreateAgentLocationRequestDto {
+  @IsOptional()
+  @IsUUID()
+  deviceId?: string;
+}
+
+export class CompleteAgentLocationRequestDto {
+  @IsUUID()
+  deviceId!: string;
+
+  @IsIn(AGENT_LOCATION_RESULT_STATUSES)
+  status!: string;
+
+  @IsOptional()
+  @IsLatitude()
+  latitude?: number;
+
+  @IsOptional()
+  @IsLongitude()
+  longitude?: number;
+
+  @IsOptional()
+  @IsNumber()
+  accuracyMeters?: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.trim().slice(0, 500) : value,
+  )
+  errorMessage?: string;
+
+  @IsOptional()
+  @IsString()
+  capturedAt?: string;
 }

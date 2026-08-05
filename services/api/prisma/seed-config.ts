@@ -442,6 +442,8 @@ export async function runSeedConfig() {
 
   await seedNotificationConfig(prisma);
   await seedSystemEmailTemplates(prisma);
+  await seedPlatformOperationalSettings(prisma);
+  await seedPlatformContractTemplates(prisma);
   const referenceDataCount = await seedCoreReferenceData(prisma);
   const permissionBootstrapService = new PermissionBootstrapService(
     prisma as never,
@@ -494,6 +496,202 @@ export async function runSeedConfig() {
   console.log(`Leave types created/updated: ${leaveTypeCount}`);
   console.log(`Default solution metadata components synced: ${metadataCount}`);
   console.log('Config seed completed successfully.');
+}
+
+async function seedPlatformOperationalSettings(client: PrismaClient) {
+  const settings: Record<string, Record<string, unknown>> = {
+    'contract-settings': {
+      signatureExpiryDays: 14,
+      allowedSignatureMethods: ['TYPED', 'DRAWN', 'UPLOADED'],
+      requireCommercialApproval: true,
+      requireLegalApproval: true,
+      renewalReminderDays: 90,
+      consentText:
+        'I agree to sign this document electronically and understand that my electronic signature is legally binding.',
+    },
+    'partner-settings': {
+      requireSignedAgreementForActivation: true,
+      agreementRequiredForOnboarding: true,
+      requiredAgreementTypes: ['MASTER_PARTNER_AGREEMENT'],
+      onboardingLinkExpiryDays: 14,
+      requireTaxInformation: true,
+      requireBankInformation: true,
+      leadSubmissionRequiresApproval: true,
+      defaultCommissionRate: 10,
+      allowPartnerCampaignLinks: true,
+      maximumActiveReferralLinks: 10,
+    },
+    'customer-settings': {
+      requireSignedAgreementBeforeProvisioning: true,
+      agreementRequiredForLeadConversion: true,
+      contractRequiredForTenantActivation: true,
+      requiredAgreementTypes: ['SUBSCRIPTION_AGREEMENT'],
+      requirePaymentBeforeProvisioning: true,
+      createSubscriptionDuringProvisioning: true,
+      activationRequiresImplementationKickoff: false,
+    },
+    'support-settings': {
+      casePrefix: 'CASE',
+      s1ResponseHours: 1,
+      s1ResolutionHours: 4,
+      s2ResponseHours: 4,
+      s2ResolutionHours: 12,
+      s3ResponseHours: 8,
+      s3ResolutionHours: 48,
+      s4ResponseHours: 24,
+      s4ResolutionHours: 120,
+      closureConfirmationRequired: false,
+    },
+    'module-settings': {
+      personalViewsEnabled: true,
+      sharedViewsEnabled: true,
+      defaultPageSize: 25,
+      exportEnabled: true,
+    },
+    'communication-settings': {
+      partnerInquiryAcknowledgement: true,
+      partnerOnboardingNotifications: true,
+      signatureReminders: true,
+      supportCustomerUpdates: true,
+    },
+  };
+  for (const [key, value] of Object.entries(settings))
+    await client.platformSetting.upsert({
+      where: { key },
+      create: { key, value: value as Prisma.InputJsonValue },
+      update: { value: value as Prisma.InputJsonValue },
+    });
+}
+
+async function seedPlatformContractTemplates(client: PrismaClient) {
+  const templates = [
+    {
+      key: 'PARTNER_REFERRAL_STANDARD',
+      name: 'Standard Partner Agreement',
+      contractType: 'MASTER_PARTNER_AGREEMENT' as const,
+      title: 'Standard Partner Agreement',
+      contentHtml:
+        '<h1>Standard Partner Agreement</h1><p>This agreement is between {{platform.legalName}} and {{partner.name}}.</p><h2>Commercial terms</h2><p>The referral commission is {{partner.commissionPercentage}} and will be reported in {{contract.currency}}.</p><p>Effective date: {{contract.effectiveDate}}</p>',
+    },
+    {
+      key: 'CUSTOMER_SERVICE_STANDARD',
+      name: 'Standard Customer Subscription Agreement',
+      contractType: 'SUBSCRIPTION_AGREEMENT' as const,
+      title: 'DijiPeople Customer Subscription Agreement',
+      contentHtml:
+        '<h1>Customer Subscription Agreement</h1><p>This agreement is between {{platform.legalName}} and {{customer.legalName}}.</p><h2>Subscription</h2><p>Plan: {{subscription.planName}} for {{subscription.purchasedSeats}} seats at {{subscription.pricePerSeat}} per seat monthly.</p><p>Estimated monthly charge: {{subscription.estimatedMonthlyCharge}}.</p>',
+    },
+    {
+      key: 'PARTNER_COMPANY_STANDARD',
+      name: 'Company Partner Agreement',
+      contractType: 'MASTER_PARTNER_AGREEMENT' as const,
+      title: 'Company Partner Agreement',
+      contentHtml:
+        '<h1>Company Partner Agreement</h1><p>{{platform.legalName}} and {{partner.legalName}} agree to the referral and delivery terms in this agreement.</p>',
+    },
+    {
+      key: 'PARTNER_INDIVIDUAL_STANDARD',
+      name: 'Individual Partner Agreement',
+      contractType: 'PARTNER_AGREEMENT' as const,
+      title: 'Individual Partner Agreement',
+      contentHtml:
+        '<h1>Individual Partner Agreement</h1><p>{{platform.legalName}} and {{partner.name}} agree to the terms in this agreement.</p>',
+    },
+    {
+      key: 'CUSTOMER_ENTERPRISE_STANDARD',
+      name: 'Enterprise Customer Agreement',
+      contractType: 'MASTER_SERVICES_AGREEMENT' as const,
+      title: 'Enterprise Customer Agreement',
+      contentHtml:
+        '<h1>Enterprise Customer Agreement</h1><p>This agreement is between {{platform.legalName}} and {{customer.legalName}}.</p><p>Effective date: {{contract.effectiveDate}}</p>',
+    },
+    {
+      key: 'NDA_STANDARD',
+      name: 'NDA',
+      contractType: 'NDA' as const,
+      title: 'Mutual Non-Disclosure Agreement',
+      contentHtml:
+        '<h1>Mutual Non-Disclosure Agreement</h1><p>{{platform.legalName}} and {{counterparty.name}} agree to protect confidential information.</p>',
+    },
+    {
+      key: 'DATA_PROCESSING_STANDARD',
+      name: 'Data Processing Agreement',
+      contractType: 'DATA_PROCESSING_AGREEMENT' as const,
+      title: 'Data Processing Agreement',
+      contentHtml:
+        '<h1>Data Processing Agreement</h1><p>This DPA supplements the agreement between {{platform.legalName}} and {{customer.legalName}}.</p>',
+    },
+    {
+      key: 'REFERRAL_ADDENDUM_STANDARD',
+      name: 'Referral Addendum',
+      contractType: 'REFERRAL_ADDENDUM' as const,
+      title: 'Referral Addendum',
+      contentHtml:
+        '<h1>Referral Addendum</h1><p>This addendum records referral terms for {{partner.name}}.</p>',
+    },
+  ];
+  for (const item of templates) {
+    const template = await client.contractTemplate.upsert({
+      where: {
+        key_contractType: {
+          key: item.key,
+          contractType: item.contractType,
+        },
+      },
+      create: {
+        key: item.key,
+        name: item.name,
+        contractType: item.contractType,
+        description: 'System-maintained enterprise agreement template.',
+        lifecycleGatePurpose: item.contractType.includes('PARTNER')
+          ? 'PARTNER_ONBOARDING'
+          : item.contractType === 'SUBSCRIPTION_AGREEMENT'
+            ? 'LEAD_TO_CUSTOMER'
+            : null,
+        documentMode: 'EDITOR',
+        signingMode: 'MIXED',
+      },
+      update: { name: item.name, isActive: true },
+    });
+    await client.contractTemplateVersion.upsert({
+      where: { templateId_version: { templateId: template.id, version: 1 } },
+      create: {
+        templateId: template.id,
+        version: 1,
+        title: item.title,
+        contentHtml: item.contentHtml,
+        contentText: item.contentHtml.replace(/<[^>]+>/g, ' '),
+        placeholders: [...item.contentHtml.matchAll(/\{\{([^}]+)\}\}/g)].map(
+          (match) => ({ key: match[1] }),
+        ) as Prisma.InputJsonValue,
+        isPublished: true,
+        publishedAt: new Date(),
+        changeSummary: 'Initial enterprise template version.',
+        fieldDefinitions: [
+          { key: 'effectiveDate', type: 'DATE', required: false },
+          { key: 'signature', type: 'SIGNATURE', required: true },
+        ] as Prisma.InputJsonValue,
+        partyDefinitions: [
+          { partyType: 'PLATFORM', role: 'PROVIDER', signingOrder: 1 },
+          {
+            partyType: 'EXTERNAL_ORGANIZATION',
+            role: 'AUTHORIZED_SIGNATORY',
+            signingOrder: 2,
+          },
+        ] as Prisma.InputJsonValue,
+        signingConfig: {
+          mode: 'MIXED',
+          requiredSignatures: true,
+        } as Prisma.InputJsonValue,
+        lifecycleGatePurpose: item.contractType.includes('PARTNER')
+          ? 'PARTNER_ONBOARDING'
+          : item.contractType === 'SUBSCRIPTION_AGREEMENT'
+            ? 'LEAD_TO_CUSTOMER'
+            : null,
+      },
+      update: {},
+    });
+  }
 }
 
 async function seedSystemEmailTemplates(client: PrismaClient) {

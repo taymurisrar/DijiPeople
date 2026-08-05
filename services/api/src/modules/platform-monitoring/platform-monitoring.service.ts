@@ -9,6 +9,7 @@ import { createReadStream } from 'fs';
 import { mkdir, readdir, stat } from 'fs/promises';
 import path from 'path';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
+import { userHasPlatformPermission } from '../platform-auth/platform-permissions';
 import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 
@@ -28,7 +29,7 @@ export class PlatformMonitoringService {
     user: AuthenticatedUser,
     query: Record<string, string | undefined>,
   ) {
-    this.assertSuperAdmin(user);
+    this.assertMonitoring(user, 'read');
     const page = normalizePositiveInt(query.page, 1);
     const pageSize = Math.min(
       Math.max(normalizePositiveInt(query.pageSize, 25), 10),
@@ -44,13 +45,15 @@ export class PlatformMonitoringService {
         query.reference
           ? { traceId: { contains: query.reference, mode: 'insensitive' } }
           : {},
-        getSourceAppWhere(query.sourceApp),
+        query.sourceApp ? { sourceApp: query.sourceApp } : {},
+        query.environment ? { environment: query.environment } : {},
         query.tenantId && query.tenantId !== 'platform'
           ? { tenantId: query.tenantId }
           : {},
         query.tenantId === 'platform' ? { tenantId: null } : {},
         query.userId ? { userId: query.userId } : {},
         query.severity ? { severity: query.severity } : {},
+        query.status ? { supportStatus: query.status } : {},
         query.category
           ? { errorCode: { contains: query.category, mode: 'insensitive' } }
           : {},
@@ -75,7 +78,7 @@ export class PlatformMonitoringService {
       ],
     };
     const orderBy = getErrorLogOrderBy(query.sortBy, query.sortDirection);
-    const [logs, total] = await Promise.all([
+    const [logs, total, critical, webApp, open, resolved] = await Promise.all([
       this.prisma.errorLog.findMany({
         where,
         orderBy,
@@ -83,15 +86,22 @@ export class PlatformMonitoringService {
         take: pageSize,
       }),
       this.prisma.errorLog.count({ where }),
+      this.prisma.errorLog.count({
+        where: { AND: [where, { severity: 'ERROR' }] },
+      }),
+      this.prisma.errorLog.count({
+        where: { AND: [where, { sourceApp: 'web' }] },
+      }),
+      this.prisma.errorLog.count({
+        where: { AND: [where, { supportStatus: { not: 'RESOLVED' } }] },
+      }),
+      this.prisma.errorLog.count({
+        where: { AND: [where, { supportStatus: 'RESOLVED' }] },
+      }),
     ]);
     const items = await this.enrichEvents(logs);
     return {
-      items: items.filter((item) => {
-        if (query.environment && item.environment !== query.environment) {
-          return false;
-        }
-        return true;
-      }),
+      items,
       meta: {
         page,
         pageSize,
@@ -100,11 +110,12 @@ export class PlatformMonitoringService {
         sortBy: normalizeSortBy(query.sortBy),
         sortDirection: normalizeSortDirection(query.sortDirection),
       },
+      metrics: { total, critical, webApp, open, resolved },
     };
   }
 
   async getEvent(user: AuthenticatedUser, traceId: string) {
-    this.assertSuperAdmin(user);
+    this.assertMonitoring(user, 'read');
     const log = await this.prisma.errorLog.findUnique({ where: { traceId } });
     if (!log) {
       throw new NotFoundException('Error event was not found.');
@@ -134,6 +145,85 @@ export class PlatformMonitoringService {
         platformActor: readPlatformActor(log.details),
       },
     };
+  }
+
+  async updateEvent(
+    user: AuthenticatedUser,
+    traceId: string,
+    body: Record<string, unknown>,
+  ) {
+    this.assertMonitoring(user, 'manage');
+    const supportStatus = readSupportStatus(body.supportStatus);
+    const assignedToUserId = readOptionalText(body.assignedToUserId, 80);
+    const assignedTeam = readAssignedTeam(body.assignedTeam);
+    const internalNote = readOptionalText(body.internalNote, 4_000);
+    const customerUpdate = readOptionalText(body.customerUpdate, 4_000);
+    const existing = await this.prisma.errorLog.findUnique({
+      where: { traceId },
+    });
+    if (!existing) throw new NotFoundException('Error event was not found.');
+
+    const assignee = assignedToUserId
+      ? await this.prisma.platformUser.findFirst({
+          where: {
+            id: assignedToUserId,
+            status: 'ACTIVE',
+            role: {
+              in: [
+                'SUPER_ADMIN',
+                'PLATFORM_OWNER',
+                'PLATFORM_ADMIN',
+                'MEMBER',
+                'SUPPORT_MANAGER',
+                'SUPPORT_AGENT',
+                'MONITORING_OPERATOR',
+              ],
+            },
+          },
+          select: { id: true, firstName: true, lastName: true, email: true },
+        })
+      : null;
+    if (assignedToUserId && !assignee) {
+      throw new BadRequestException(
+        'Select an active platform admin or member.',
+      );
+    }
+    const assignedTo = assignee
+      ? `${assignee.firstName} ${assignee.lastName}`.trim() || assignee.email
+      : assignedTeam;
+
+    const resolvedAt =
+      supportStatus === 'RESOLVED' ? (existing.resolvedAt ?? new Date()) : null;
+    const updated = await this.prisma.errorLog.update({
+      where: { traceId },
+      data: {
+        supportStatus,
+        assignedTo,
+        assignedToUserId: assignee?.id ?? null,
+        internalNote,
+        customerUpdate,
+        resolvedAt,
+      },
+    });
+
+    await this.auditService.log({
+      tenantId: 'platform',
+      actorUserId: user.platform?.id ?? user.userId,
+      action: 'PLATFORM_ERROR_SUPPORT_UPDATED',
+      entityType: 'ErrorLog',
+      entityId: traceId,
+      sourceModule: 'platform-monitoring',
+      beforeSnapshot: { supportStatus: existing.supportStatus },
+      afterSnapshot: {
+        supportStatus: updated.supportStatus,
+        assignedTo: updated.assignedTo,
+        assignedToUserId: updated.assignedToUserId,
+        hasCustomerUpdate: Boolean(updated.customerUpdate),
+      },
+    });
+
+    const [event] = await this.enrichEvents([updated]);
+    return event;
   }
 
   async listLogs(user: AuthenticatedUser) {
@@ -215,7 +305,9 @@ export class PlatformMonitoringService {
   }
 
   private assertSuperAdmin(user: AuthenticatedUser) {
-    if (user.platform?.role !== 'SUPER_ADMIN') {
+    if (
+      !['SUPER_ADMIN', 'PLATFORM_OWNER'].includes(user.platform?.role ?? '')
+    ) {
       void this.auditService.log({
         tenantId: 'platform',
         actorUserId: user.platform?.id ?? user.userId ?? null,
@@ -231,9 +323,25 @@ export class PlatformMonitoringService {
     }
   }
 
+  private assertMonitoring(user: AuthenticatedUser, access: 'read' | 'manage') {
+    if (
+      !user.platform?.id ||
+      !userHasPlatformPermission(user, `monitoring.${access}`)
+    )
+      throw new ForbiddenException({
+        code: 'PLATFORM_MONITORING_PERMISSION_REQUIRED',
+        message: `Platform monitoring ${access} access is required.`,
+      });
+  }
+
   private async enrichEvents<
     T extends {
+      id: string;
       traceId: string;
+      fingerprint?: string | null;
+      firstSeenAt?: Date;
+      lastSeenAt?: Date;
+      occurrenceCount?: number;
       errorCode: string;
       statusCode: number;
       severity: string;
@@ -243,6 +351,15 @@ export class PlatformMonitoringService {
       tenantId: string | null;
       userId: string | null;
       createdAt: Date;
+      sourceApp?: string;
+      environment?: string;
+      supportStatus?: string;
+      assignedTo?: string | null;
+      assignedToUserId?: string | null;
+      internalNote?: string | null;
+      customerUpdate?: string | null;
+      resolvedAt?: Date | null;
+      updatedAt?: Date;
       details?: unknown;
     },
   >(logs: T[]) {
@@ -258,6 +375,9 @@ export class PlatformMonitoringService {
         }),
       ),
     ];
+    const assigneeIds = [
+      ...new Set(logs.flatMap((log) => log.assignedToUserId ?? [])),
+    ];
     const [tenants, users, platformUsers] = await Promise.all([
       this.prisma.tenant.findMany({
         where: { id: { in: tenantIds } },
@@ -268,7 +388,9 @@ export class PlatformMonitoringService {
         select: { id: true, email: true, firstName: true, lastName: true },
       }),
       this.prisma.platformUser.findMany({
-        where: { id: { in: platformActorIds } },
+        where: {
+          id: { in: [...new Set([...platformActorIds, ...assigneeIds])] },
+        },
         select: {
           id: true,
           email: true,
@@ -293,11 +415,23 @@ export class PlatformMonitoringService {
       const platformUser = platformActor?.id
         ? platformUserById.get(platformActor.id)
         : null;
+      const assignedToUser = log.assignedToUserId
+        ? platformUserById.get(log.assignedToUserId)
+        : null;
       return {
+        id: log.traceId,
+        traceId: log.traceId,
+        fingerprint: log.fingerprint ?? null,
+        firstSeenAt: log.firstSeenAt ?? log.createdAt,
+        lastSeenAt: log.lastSeenAt ?? log.createdAt,
+        occurrenceCount: log.occurrenceCount ?? 1,
+        createdAt: log.createdAt,
+        tenantId: log.tenantId,
+        supportStatus: log.supportStatus ?? 'NEW',
         referenceNumber: log.traceId,
         timestamp: log.createdAt,
         severity: log.severity,
-        sourceApp: getLogSourceApp(log.traceId),
+        sourceApp: log.sourceApp ?? getLogSourceApp(log.traceId),
         tenant:
           tenant ??
           (log.tenantId
@@ -333,9 +467,23 @@ export class PlatformMonitoringService {
         method: log.method,
         category: log.errorCode,
         message: log.message,
-        status: log.statusCode >= 500 ? 'OPEN' : 'REVIEW',
+        status: log.supportStatus ?? 'NEW',
+        assignedTo: log.assignedTo ?? null,
+        assignedToUser: assignedToUser
+          ? {
+              id: assignedToUser.id,
+              email: assignedToUser.email,
+              fullName:
+                `${assignedToUser.firstName} ${assignedToUser.lastName}`.trim(),
+              role: assignedToUser.role,
+            }
+          : null,
+        internalNote: log.internalNote ?? null,
+        customerUpdate: log.customerUpdate ?? null,
+        resolvedAt: log.resolvedAt ?? null,
+        updatedAt: log.updatedAt ?? log.createdAt,
         statusCode: log.statusCode,
-        environment: process.env.NODE_ENV ?? 'development',
+        environment: log.environment ?? process.env.NODE_ENV ?? 'development',
       };
     });
   }
@@ -435,24 +583,6 @@ function getErrorLogOrderBy(
   }
 }
 
-function getSourceAppWhere(sourceApp: string | undefined) {
-  switch (sourceApp) {
-    case 'web':
-      return { traceId: { startsWith: 'client_' } };
-    case 'admin':
-      return { traceId: { startsWith: 'admin_' } };
-    case 'api':
-      return {
-        NOT: [
-          { traceId: { startsWith: 'client_' } },
-          { traceId: { startsWith: 'admin_' } },
-        ],
-      };
-    default:
-      return {};
-  }
-}
-
 function readPlatformActor(details: unknown) {
   if (!details || typeof details !== 'object' || Array.isArray(details)) {
     return null;
@@ -467,4 +597,42 @@ function readPlatformActor(details: unknown) {
     email: typeof record.email === 'string' ? record.email : null,
     role: typeof record.role === 'string' ? record.role : null,
   };
+}
+
+const SUPPORT_STATUSES = new Set([
+  'NEW',
+  'INVESTIGATING',
+  'WAITING_ON_CUSTOMER',
+  'FIX_IN_PROGRESS',
+  'RESOLVED',
+]);
+const SUPPORT_TEAMS = new Set([
+  'Customer Support',
+  'Engineering',
+  'Billing Support',
+  'Platform Operations',
+]);
+
+function readAssignedTeam(value: unknown) {
+  if (value === undefined || value === null || value === '') return null;
+  if (typeof value !== 'string' || !SUPPORT_TEAMS.has(value))
+    throw new BadRequestException('Select a configured support team.');
+  return value;
+}
+
+function readSupportStatus(value: unknown) {
+  if (typeof value !== 'string' || !SUPPORT_STATUSES.has(value)) {
+    throw new BadRequestException('Select a valid support status.');
+  }
+  return value;
+}
+
+function readOptionalText(value: unknown, maxLength: number) {
+  if (value === null || value === undefined || value === '') return null;
+  if (typeof value !== 'string' || value.length > maxLength) {
+    throw new BadRequestException(
+      `Text must not exceed ${maxLength} characters.`,
+    );
+  }
+  return value.trim() || null;
 }

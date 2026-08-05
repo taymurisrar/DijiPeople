@@ -19,8 +19,8 @@ export const AUTH_CONFIG_DEFAULTS = {
   absoluteTimeout: '12h',
   activityThrottle: '60s',
   agentAccessTtl: '15m',
-  agentRefreshTtl: '8h',
-  agentIdleTimeout: '8h',
+  agentRefreshTtl: '90d',
+  agentIdleTimeout: '30d',
   agentAbsoluteTimeout: '30d',
 } as const;
 
@@ -408,12 +408,12 @@ export function assertAuthEnvironment(configService: ConfigService) {
     ),
     String(
       configService.get<string>('AUTH_AGENT_IDLE_SESSION_TIMEOUT_SECONDS') ??
-        '8h',
+        AUTH_CONFIG_DEFAULTS.agentIdleTimeout,
     ),
     String(
       configService.get<string>(
         'AUTH_AGENT_ABSOLUTE_SESSION_TIMEOUT_SECONDS',
-      ) ?? '30d',
+      ) ?? AUTH_CONFIG_DEFAULTS.agentAbsoluteTimeout,
     ),
   ].forEach((duration) => parseDurationToMilliseconds(duration));
 

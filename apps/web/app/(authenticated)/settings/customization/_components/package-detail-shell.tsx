@@ -273,8 +273,8 @@ export function PackageDetailShell({
   useEffect(() => {
     if (!addExisting?.componentType || !addExisting.moduleKey) return;
     if (!isStorageBackedType(addExisting.componentType)) {
-      setCandidates([]);
-      return;
+      const timer = window.setTimeout(() => setCandidates([]), 0);
+      return () => window.clearTimeout(timer);
     }
     const controller = new AbortController();
     const params = new URLSearchParams({

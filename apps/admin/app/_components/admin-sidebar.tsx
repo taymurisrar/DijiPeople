@@ -6,7 +6,14 @@ import {
   Building2,
   Bug,
   ClipboardList,
+  ClipboardCheck,
   CreditCard,
+  BadgeDollarSign,
+  FileSignature,
+  Files,
+  Handshake,
+  LifeBuoy,
+  PenLine,
   FileText,
   LayoutDashboard,
   Package,
@@ -19,46 +26,93 @@ import {
   UserRoundSearch,
   X,
 } from "lucide-react";
+import { listPlatformModuleDefinitions } from "@/lib/runtime/platform-module-registry";
 
-const navSections = [
-  {
-    title: "Workspace",
-    items: [
-      { href: "/", label: "Dashboard", icon: LayoutDashboard },
-      { href: "/leads", label: "Leads", icon: UserRoundSearch },
-      { href: "/customers", label: "Customers", icon: UsersRound },
-      { href: "/onboarding", label: "Onboarding", icon: ClipboardList },
-      { href: "/tenants", label: "Tenants", icon: Building2 },
-    ],
-  },
-  {
-    title: "Revenue",
-    items: [
-      { href: "/plans", label: "Plans", icon: Package },
-      { href: "/billing", label: "Billing", icon: ReceiptText },
-      { href: "/subscriptions", label: "Subscriptions", icon: RefreshCcw },
-      { href: "/invoices", label: "Invoices", icon: FileText },
-      { href: "/payments", label: "Payments", icon: CreditCard },
-    ],
-  },
-  {
-    title: "System",
-    items: [
-      {
-        href: "/settings",
-        label: "Settings",
-        icon: Settings2,
-        roleKeys: ["SUPER_ADMIN"],
-      },
-      {
-        href: "/settings/monitoring/error-logs",
-        label: "Monitoring",
-        icon: Bug,
-        roleKeys: ["SUPER_ADMIN"],
-      },
-    ],
-  },
-];
+const iconMap = {
+  LayoutDashboard,
+  UserRoundSearch,
+  Handshake,
+  UsersRound,
+  ClipboardCheck,
+  ClipboardList,
+  Building2,
+  FileSignature,
+  Files,
+  PenLine,
+  LifeBuoy,
+  RefreshCcw,
+  Package,
+  FileText,
+  CreditCard,
+  BadgeDollarSign,
+  Bug,
+} as const;
+
+const navigationGroups = [
+  "workspace",
+  "customers",
+  "partners",
+  "agreements",
+  "revenue",
+  "support",
+  "system",
+] as const;
+const navigationTitles = {
+  workspace: "Workspace",
+  customers: "Customer Acquisition",
+  partners: "Partners",
+  agreements: "Agreements",
+  revenue: "Revenue",
+  support: "Support",
+  system: "System",
+} as const;
+const navSections = navigationGroups.map((group) => ({
+  title: navigationTitles[group],
+  items: [
+    ...listPlatformModuleDefinitions()
+      .filter(
+        (definition) =>
+          definition.navigationGroup === group &&
+          ![
+            "partner-inquiries",
+            "partner-onboarding",
+            "signature-requests",
+          ].includes(definition.key),
+      )
+      .map((definition) => ({
+        href: definition.routeBase,
+        label: definition.pluralDisplayName,
+        icon:
+          iconMap[definition.icon as keyof typeof iconMap] ?? LayoutDashboard,
+        roleKeys: [
+          ...new Set(definition.views.flatMap((view) => view.roles ?? [])),
+        ],
+        readPermission: definition.permissions.read,
+      })),
+    ...(group === "revenue"
+      ? [
+          {
+            href: "/billing",
+            label: "Billing",
+            icon: ReceiptText,
+            roleKeys: [] as string[],
+            readPermission: "billing.read",
+          },
+        ]
+      : []),
+    ...(group === "system"
+      ? [
+          {
+            href: "/settings",
+            label: "Settings",
+            icon: Settings2,
+            roleKeys: [] as string[],
+            readPermission: "settings.read",
+          },
+        ]
+      : []),
+  ],
+}));
 
 type AdminSidebarProps = {
   collapsed: boolean;
@@ -66,6 +120,7 @@ type AdminSidebarProps = {
   onCollapseToggle: () => void;
   onClose: () => void;
   roleKeys?: string[];
+  permissionKeys?: string[];
 };
 
 export function AdminSidebar({
@@ -74,8 +129,17 @@ export function AdminSidebar({
   onCollapseToggle,
   onClose,
   roleKeys = [],
+  permissionKeys = [],
 }: AdminSidebarProps) {
   const pathname = usePathname();
+  const activeHref = navSections
+    .flatMap((section) => section.items)
+    .filter(
+      (item) =>
+        canShowNavItem(item, roleKeys, permissionKeys) &&
+        matchesRoute(pathname, item.href),
+    )
+    .sort((left, right) => right.href.length - left.href.length)[0]?.href;
 
   return (
     <>
@@ -156,13 +220,12 @@ export function AdminSidebar({
 
               <div className="space-y-1">
                 {section.items
-                  .filter((item) => canShowNavItem(item, roleKeys))
+                  .filter((item) =>
+                    canShowNavItem(item, roleKeys, permissionKeys),
+                  )
                   .map((item) => {
                     const Icon = item.icon;
-                    const isActive =
-                      pathname === item.href ||
-                      (item.href !== "/" &&
-                        pathname.startsWith(`${item.href}/`));
+                    const isActive = item.href === activeHref;
 
                     return (
                       <Link
@@ -173,7 +236,7 @@ export function AdminSidebar({
                         className={[
                           "group flex min-w-0 items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium transition",
                           isActive
-                            ? "bg-slate-950 text-white"
+                            ? "bg-[var(--admin-navigation)] text-white shadow-sm"
                             : "text-slate-700 hover:bg-slate-100 hover:text-slate-950",
                           collapsed ? "lg:justify-center" : "",
                         ].join(" ")}
@@ -211,11 +274,31 @@ export function AdminSidebar({
 
 type NavItem = (typeof navSections)[number]["items"][number];
 
-function canShowNavItem(item: NavItem, roleKeys: string[]) {
+function canShowNavItem(
+  item: NavItem,
+  roleKeys: string[],
+  permissionKeys: string[],
+) {
   if (roleKeys.includes("SUPER_ADMIN") || roleKeys.includes("system-admin")) {
     return true;
   }
+  if (
+    item.readPermission &&
+    !permissionKeys.some((permission) =>
+      permissionMatches(permission, item.readPermission),
+    )
+  )
+    return false;
   if (!("roleKeys" in item) || !item.roleKeys?.length) return true;
 
   return item.roleKeys.some((roleKey) => roleKeys.includes(roleKey));
+}
+
+function permissionMatches(granted: string, requested: string) {
+  if (granted === "platform.*" || granted === requested) return true;
+  return granted.endsWith(".*") && requested.startsWith(granted.slice(0, -1));
+}
+
+function matchesRoute(pathname: string, href: string) {
+  return pathname === href || (href !== "/" && pathname.startsWith(`${href}/`));
 }

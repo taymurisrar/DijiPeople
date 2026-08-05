@@ -11,11 +11,15 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import {
   BillingCycle,
+  BillingInterval,
+  BillingModel,
   CustomerAccountStatus,
   DiscountType,
   InvoiceStatus,
   PaymentStatus,
   Prisma,
+  StripeEnvironment,
+  StripeSyncStatus,
   SubscriptionStatus,
   TenantStatus,
   TenantFeatureSource,
@@ -76,8 +80,109 @@ import {
 } from '../../common/reference-data/platform-reference-data';
 import { UserInvitationsService } from '../auth/user-invitations.service';
 import { AuthService } from '../auth/auth.service';
+
+function toCountMap<T extends { _count: { _all: number } }>(rows: T[]) {
+  return Object.fromEntries(
+    rows.map((row) => {
+      const item = row as T & {
+        status?: unknown;
+        supportStatus?: unknown;
+        contractType?: unknown;
+        severity?: unknown;
+      };
+      return [
+        String(
+          item.status ??
+            item.supportStatus ??
+            item.contractType ??
+            item.severity ??
+            'UNKNOWN',
+        ),
+        row._count._all,
+      ];
+    }),
+  );
+}
+
+function monthKey(date: Date) {
+  return date.toISOString().slice(0, 7);
+}
+
+function monthlyBuckets(start: Date) {
+  const current = new Date();
+  const length = Math.max(
+    1,
+    (current.getUTCFullYear() - start.getUTCFullYear()) * 12 +
+      current.getUTCMonth() -
+      start.getUTCMonth() +
+      1,
+  );
+  return Array.from({ length }, (_, index) => {
+    const date = new Date(
+      Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + index, 1),
+    );
+    return {
+      key: monthKey(date),
+      label: date.toLocaleDateString('en', { month: 'short' }),
+    };
+  });
+}
+
+function buildMonthlyTrend(
+  start: Date,
+  invoices: Array<{
+    createdAt: Date;
+    amount: Prisma.Decimal;
+    amountPaid: Prisma.Decimal | null;
+  }>,
+  payments: Array<{ createdAt: Date; amount: Prisma.Decimal }>,
+) {
+  return monthlyBuckets(start).map((bucket) => ({
+    ...bucket,
+    invoiced: invoices
+      .filter((item) => monthKey(item.createdAt) === bucket.key)
+      .reduce((sum, item) => sum + Number(item.amount), 0),
+    collected: payments
+      .filter((item) => monthKey(item.createdAt) === bucket.key)
+      .reduce((sum, item) => sum + Number(item.amount), 0),
+  }));
+}
+
+function buildLeadTrend(
+  start: Date,
+  leads: Array<{ createdAt: Date; status: unknown }>,
+) {
+  return monthlyBuckets(start).map((bucket) => ({
+    ...bucket,
+    created: leads.filter((item) => monthKey(item.createdAt) === bucket.key)
+      .length,
+    converted: leads.filter(
+      (item) =>
+        monthKey(item.createdAt) === bucket.key &&
+        String(item.status) === 'CONVERTED',
+    ).length,
+  }));
+}
+
+function periodComparison(current: number, previous: number) {
+  const changePercent = previous
+    ? ((current - previous) / previous) * 100
+    : current
+      ? 100
+      : 0;
+  return {
+    current,
+    previous,
+    changePercent: Number(changePercent.toFixed(1)),
+  };
+}
 import { EmailService } from '../notifications/email/email.service';
 import { WebhookService } from '../billing/services/webhook.service';
+import { StripeBillingService } from '../billing/services/stripe-billing.service';
+import {
+  deriveCheckoutReadiness,
+  stripeEnvironmentFromMode,
+} from '../billing/billing-seat-pricing';
 import {
   CreateTenantAccessUserDto,
   UpdateTenantAccessUserDto,
@@ -110,6 +215,7 @@ export class SuperAdminService {
     private readonly configService: ConfigService,
     private readonly auditService: AuditService,
     private readonly webhookService: WebhookService,
+    private readonly stripeBillingService: StripeBillingService,
   ) {}
 
   getLifecycleOptions() {
@@ -132,13 +238,83 @@ export class SuperAdminService {
     );
   }
 
-  async getDashboardSummary() {
+  async getDashboardSummary(range?: string) {
+    const platformDefaultsRow = await this.prisma.platformSetting.findUnique({
+      where: { key: 'platform-defaults' },
+    });
+    const storedDefaults =
+      platformDefaultsRow?.value &&
+      typeof platformDefaultsRow.value === 'object' &&
+      !Array.isArray(platformDefaultsRow.value)
+        ? (platformDefaultsRow.value as Record<string, unknown>)
+        : {};
+    const reportingCurrency =
+      typeof storedDefaults.reportingCurrency === 'string'
+        ? storedDefaults.reportingCurrency
+        : typeof storedDefaults.currency === 'string'
+          ? storedDefaults.currency
+          : DEFAULT_PLATFORM_DEFAULTS.reportingCurrency;
+
+    const monthCount = range === '3m' ? 3 : range === '12m' ? 12 : 6;
+    const rangeKey = `${monthCount}m`;
+    const rangeStart = new Date();
+    rangeStart.setUTCMonth(rangeStart.getUTCMonth() - (monthCount - 1), 1);
+    rangeStart.setUTCHours(0, 0, 0, 0);
+    const previousRangeStart = new Date(rangeStart);
+    previousRangeStart.setUTCMonth(
+      previousRangeStart.getUTCMonth() - monthCount,
+    );
+    const now = new Date();
+
     const [
       customerCount,
       tenantCount,
       activeSubscriptions,
       invoicesDue,
       payments,
+      leadBreakdown,
+      onboardingBreakdown,
+      invoiceBreakdown,
+      supportBreakdown,
+      outstanding,
+      partnerCount,
+      tenantBreakdown,
+      subscriptionBreakdown,
+      partnerBreakdown,
+      inquiryBreakdown,
+      partnerOnboardingBreakdown,
+      partnerLeadBreakdown,
+      contractBreakdown,
+      contractTypeBreakdown,
+      signatureBreakdown,
+      approvalBreakdown,
+      supportCaseBreakdown,
+      supportSeverityBreakdown,
+      platformUserCount,
+      activePlatformUsers,
+      criticalCases,
+      breachedCases,
+      commissionBreakdown,
+      commissionExposure,
+      recentInvoices,
+      recentPayments,
+      recentLeads,
+      recentPartnerReferrals,
+      recentlyActivatedTenants,
+      staleLeads,
+      expiringContracts,
+      failedPayments,
+      currentCustomers,
+      previousCustomers,
+      currentLeads,
+      previousLeads,
+      currentCollections,
+      previousCollections,
+      awaitingOurSignature,
+      awaitingExternalSignature,
+      oldestPendingSignature,
+      expiringContractCount,
+      topPartners,
     ] = await Promise.all([
       this.prisma.customerAccount.count(),
       this.prisma.tenant.count(),
@@ -156,7 +332,267 @@ export class SuperAdminService {
       }),
       this.prisma.payment.aggregate({
         _sum: { amount: true },
-        where: { status: PaymentStatus.SUCCEEDED },
+        where: {
+          status: PaymentStatus.SUCCEEDED,
+          currency: reportingCurrency,
+        },
+      }),
+      this.prisma.lead.groupBy({ by: ['status'], _count: { _all: true } }),
+      this.prisma.customerOnboarding.groupBy({
+        by: ['status'],
+        _count: { _all: true },
+      }),
+      this.prisma.invoice.groupBy({
+        by: ['status'],
+        where: { currency: reportingCurrency },
+        _count: { _all: true },
+      }),
+      this.prisma.errorLog.groupBy({
+        by: ['supportStatus'],
+        _count: { _all: true },
+      }),
+      this.prisma.invoice.aggregate({
+        _sum: { amountDue: true },
+        where: {
+          currency: reportingCurrency,
+          status: {
+            in: [
+              InvoiceStatus.ISSUED,
+              InvoiceStatus.OVERDUE,
+              InvoiceStatus.PAYMENT_FAILED,
+            ],
+          },
+        },
+      }),
+      this.prisma.partner.count(),
+      this.prisma.tenant.groupBy({ by: ['status'], _count: { _all: true } }),
+      this.prisma.subscription.groupBy({
+        by: ['status'],
+        _count: { _all: true },
+      }),
+      this.prisma.partner.groupBy({ by: ['status'], _count: { _all: true } }),
+      this.prisma.partnerInquiry.groupBy({
+        by: ['status'],
+        _count: { _all: true },
+      }),
+      this.prisma.partnerOnboardingApplication.groupBy({
+        by: ['status'],
+        _count: { _all: true },
+      }),
+      this.prisma.lead.groupBy({
+        by: ['status'],
+        where: { partnerId: { not: null } },
+        _count: { _all: true },
+      }),
+      this.prisma.contract.groupBy({ by: ['status'], _count: { _all: true } }),
+      this.prisma.contract.groupBy({
+        by: ['contractType'],
+        _count: { _all: true },
+      }),
+      this.prisma.signatureRequest.groupBy({
+        by: ['status'],
+        _count: { _all: true },
+      }),
+      this.prisma.platformApprovalRequest.groupBy({
+        by: ['status'],
+        _count: { _all: true },
+      }),
+      this.prisma.supportCase.groupBy({
+        by: ['status'],
+        _count: { _all: true },
+      }),
+      this.prisma.supportCase.groupBy({
+        by: ['severity'],
+        _count: { _all: true },
+      }),
+      this.prisma.platformUser.count(),
+      this.prisma.platformUser.count({ where: { status: 'ACTIVE' } }),
+      this.prisma.supportCase.count({
+        where: {
+          severity: 'S1_CRITICAL',
+          status: { notIn: ['RESOLVED', 'CLOSED', 'CANCELLED'] },
+        },
+      }),
+      this.prisma.supportCase.count({
+        where: {
+          resolutionDueAt: { lt: now },
+          status: { notIn: ['RESOLVED', 'CLOSED', 'CANCELLED'] },
+        },
+      }),
+      this.prisma.partnerCommission.groupBy({
+        by: ['status'],
+        _count: { _all: true },
+      }),
+      this.prisma.partnerCommission.aggregate({
+        _sum: { commissionAmount: true },
+        where: {
+          currencyCode: reportingCurrency,
+          status: { in: ['PENDING', 'APPROVED', 'PAYABLE'] },
+        },
+      }),
+      this.prisma.invoice.findMany({
+        where: {
+          currency: reportingCurrency,
+          createdAt: { gte: rangeStart },
+        },
+        select: { createdAt: true, amount: true, amountPaid: true },
+      }),
+      this.prisma.payment.findMany({
+        where: {
+          currency: reportingCurrency,
+          status: 'SUCCEEDED',
+          createdAt: { gte: rangeStart },
+        },
+        select: { createdAt: true, amount: true },
+      }),
+      this.prisma.lead.findMany({
+        where: { createdAt: { gte: rangeStart } },
+        select: { createdAt: true, status: true },
+      }),
+      this.prisma.lead.findMany({
+        where: { partnerId: { not: null } },
+        orderBy: { referredAt: 'desc' },
+        take: 8,
+        select: {
+          id: true,
+          companyName: true,
+          status: true,
+          referredAt: true,
+          partner: { select: { displayName: true } },
+        },
+      }),
+      this.prisma.tenant.findMany({
+        where: { status: 'ACTIVE' },
+        orderBy: { createdAt: 'desc' },
+        take: 6,
+        select: { id: true, name: true, createdAt: true },
+      }),
+      this.prisma.lead.findMany({
+        where: {
+          status: {
+            notIn: ['CONVERTED', 'UNQUALIFIED', 'CLOSED_LOST', 'ARCHIVED'],
+          },
+          updatedAt: { lt: new Date(now.getTime() - 14 * 86_400_000) },
+        },
+        orderBy: { updatedAt: 'asc' },
+        take: 8,
+        select: { id: true, companyName: true, status: true, updatedAt: true },
+      }),
+      this.prisma.contract.findMany({
+        where: {
+          expiryDate: {
+            gte: now,
+            lte: new Date(now.getTime() + 90 * 86_400_000),
+          },
+          status: { in: ['ACTIVE', 'EXPIRING'] },
+        },
+        orderBy: { expiryDate: 'asc' },
+        take: 8,
+        select: {
+          id: true,
+          contractNumber: true,
+          title: true,
+          expiryDate: true,
+        },
+      }),
+      this.prisma.payment.count({ where: { status: 'FAILED' } }),
+      this.prisma.customerAccount.count({
+        where: { createdAt: { gte: rangeStart } },
+      }),
+      this.prisma.customerAccount.count({
+        where: { createdAt: { gte: previousRangeStart, lt: rangeStart } },
+      }),
+      this.prisma.lead.count({
+        where: { createdAt: { gte: rangeStart } },
+      }),
+      this.prisma.lead.count({
+        where: { createdAt: { gte: previousRangeStart, lt: rangeStart } },
+      }),
+      this.prisma.payment.aggregate({
+        _sum: { amount: true },
+        where: {
+          currency: reportingCurrency,
+          status: PaymentStatus.SUCCEEDED,
+          createdAt: { gte: rangeStart },
+        },
+      }),
+      this.prisma.payment.aggregate({
+        _sum: { amount: true },
+        where: {
+          currency: reportingCurrency,
+          status: PaymentStatus.SUCCEEDED,
+          createdAt: { gte: previousRangeStart, lt: rangeStart },
+        },
+      }),
+      this.prisma.contract.count({
+        where: {
+          status: {
+            in: ['SENT', 'VIEWED', 'SIGNATURE_IN_PROGRESS', 'PARTIALLY_SIGNED'],
+          },
+          signatureRequests: {
+            some: {
+              recipients: {
+                some: {
+                  role: { contains: 'DijiPeople', mode: 'insensitive' },
+                  status: { not: 'SIGNED' },
+                  isRequired: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+      this.prisma.contract.count({
+        where: {
+          status: {
+            in: ['SENT', 'VIEWED', 'SIGNATURE_IN_PROGRESS', 'PARTIALLY_SIGNED'],
+          },
+          signatureRequests: {
+            some: {
+              recipients: {
+                some: {
+                  NOT: {
+                    role: { contains: 'DijiPeople', mode: 'insensitive' },
+                  },
+                  status: { not: 'SIGNED' },
+                  isRequired: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+      this.prisma.signatureRecipient.findFirst({
+        where: {
+          isRequired: true,
+          status: { in: ['PENDING', 'SENT', 'VIEWED', 'CHANGES_REQUESTED'] },
+          signatureRequest: {
+            status: { in: ['SENT', 'VIEWED', 'PARTIALLY_SIGNED'] },
+          },
+        },
+        orderBy: { createdAt: 'asc' },
+        select: { createdAt: true },
+      }),
+      this.prisma.contract.count({
+        where: {
+          expiryDate: {
+            gte: now,
+            lte: new Date(now.getTime() + 90 * 86_400_000),
+          },
+          status: {
+            in: ['FULLY_EXECUTED', 'FULLY_SIGNED', 'ACTIVE', 'EXPIRING'],
+          },
+        },
+      }),
+      this.prisma.partner.findMany({
+        where: { leads: { some: {} } },
+        orderBy: { leads: { _count: 'desc' } },
+        take: 8,
+        select: {
+          id: true,
+          displayName: true,
+          _count: { select: { leads: true } },
+        },
       }),
     ]);
 
@@ -166,6 +602,71 @@ export class SuperAdminService {
       activeSubscriptions,
       openInvoices: invoicesDue,
       collectedRevenue: Number(payments._sum.amount ?? 0),
+      reportingCurrency,
+      outstandingRevenue: Number(outstanding._sum.amountDue ?? 0),
+      partners: partnerCount,
+      leadBreakdown: toCountMap(leadBreakdown),
+      onboardingBreakdown: toCountMap(onboardingBreakdown),
+      invoiceBreakdown: toCountMap(invoiceBreakdown),
+      supportBreakdown: toCountMap(supportBreakdown),
+      tenantBreakdown: toCountMap(tenantBreakdown),
+      subscriptionBreakdown: toCountMap(subscriptionBreakdown),
+      partnerBreakdown: toCountMap(partnerBreakdown),
+      inquiryBreakdown: toCountMap(inquiryBreakdown),
+      partnerOnboardingBreakdown: toCountMap(partnerOnboardingBreakdown),
+      partnerLeadBreakdown: toCountMap(partnerLeadBreakdown),
+      contractBreakdown: toCountMap(contractBreakdown),
+      contractTypeBreakdown: toCountMap(contractTypeBreakdown),
+      signatureBreakdown: toCountMap(signatureBreakdown),
+      awaitingOurSignature,
+      awaitingExternalSignature,
+      oldestPendingSignatureDays: oldestPendingSignature
+        ? Math.max(
+            0,
+            Math.floor(
+              (now.getTime() - oldestPendingSignature.createdAt.getTime()) /
+                86_400_000,
+            ),
+          )
+        : 0,
+      expiringContractCount,
+      topPartnerBreakdown: Object.fromEntries(
+        topPartners.map((partner) => [
+          partner.displayName,
+          partner._count.leads,
+        ]),
+      ),
+      approvalBreakdown: toCountMap(approvalBreakdown),
+      supportCaseBreakdown: toCountMap(supportCaseBreakdown),
+      supportSeverityBreakdown: toCountMap(supportSeverityBreakdown),
+      commissionBreakdown: toCountMap(commissionBreakdown),
+      platformUsers: platformUserCount,
+      activePlatformUsers,
+      criticalCases,
+      breachedCases,
+      failedPayments,
+      commissionExposure: Number(commissionExposure._sum.commissionAmount ?? 0),
+      comparisons: {
+        customers: periodComparison(currentCustomers, previousCustomers),
+        leads: periodComparison(currentLeads, previousLeads),
+        collectedRevenue: periodComparison(
+          Number(currentCollections._sum.amount ?? 0),
+          Number(previousCollections._sum.amount ?? 0),
+        ),
+      },
+      timeRange: rangeKey,
+      timeRangeLabel: `Last ${monthCount} months`,
+      revenueTrend: buildMonthlyTrend(
+        rangeStart,
+        recentInvoices,
+        recentPayments,
+      ),
+      leadTrend: buildLeadTrend(rangeStart, recentLeads),
+      recentPartnerReferrals,
+      recentlyActivatedTenants,
+      staleLeads,
+      expiringContracts,
+      refreshedAt: now,
     };
   }
 
@@ -1265,9 +1766,41 @@ export class SuperAdminService {
     planId: string,
     dto: CreatePlanPriceDto,
   ) {
-    await this.assertPlanExists(planId);
+    const plan = await this.assertPlanExists(planId);
     const currency = dto.currency.toUpperCase();
-    const stripePriceId = normalizeStripePriceId(dto.stripePriceId);
+    const billingModel = dto.billingModel ?? BillingModel.PER_SEAT;
+    const billingInterval = dto.billingInterval ?? BillingInterval.MONTH;
+    const billingCycle =
+      dto.billingCycle ??
+      (billingInterval === BillingInterval.YEAR
+        ? BillingCycle.ANNUAL
+        : BillingCycle.MONTHLY);
+    const minimumSeats = dto.minimumSeats ?? 1;
+    if (
+      dto.maximumSeats !== undefined &&
+      dto.maximumSeats !== null &&
+      dto.maximumSeats < minimumSeats
+    )
+      throw new BadRequestException(
+        'Maximum seats cannot be below minimum seats.',
+      );
+    let stripePriceId = normalizeStripePriceId(dto.stripePriceId);
+    let stripeState: Awaited<
+      ReturnType<SuperAdminService['prepareStripePlanPrice']>
+    > | null = null;
+    if (
+      dto.syncToStripe !== false &&
+      billingModel === BillingModel.PER_SEAT &&
+      billingInterval === BillingInterval.MONTH
+    ) {
+      stripeState = await this.prepareStripePlanPrice({
+        plan,
+        stripePriceId,
+        currency,
+        unitAmount: dto.unitAmount,
+      });
+      stripePriceId = stripeState.stripePriceId;
+    }
     await this.assertPlanPriceStripePriceIdUnique({ stripePriceId });
 
     const price = await this.prisma.$transaction(async (tx) => {
@@ -1275,7 +1808,7 @@ export class SuperAdminService {
         await tx.planPrice.updateMany({
           where: {
             planId,
-            billingCycle: dto.billingCycle,
+            billingCycle,
             currency,
             isActive: true,
           },
@@ -1286,10 +1819,27 @@ export class SuperAdminService {
       return tx.planPrice.create({
         data: {
           planId,
-          billingCycle: dto.billingCycle,
+          billingCycle,
+          billingModel,
+          billingInterval,
           currency,
           unitAmount: dto.unitAmount,
+          minimumSeats,
+          maximumSeats: dto.maximumSeats ?? null,
+          includedSeats: dto.includedSeats ?? 0,
+          effectiveFrom: dto.effectiveFrom
+            ? new Date(dto.effectiveFrom)
+            : undefined,
+          stripeProductId: stripeState?.stripeProductId ?? plan.stripeProductId,
           stripePriceId,
+          stripeEnvironment: stripeState?.stripeEnvironment,
+          stripeSyncStatus:
+            stripeState?.stripeSyncStatus ?? StripeSyncStatus.NOT_SYNCED,
+          stripeActive: stripeState?.stripeActive ?? false,
+          stripeUsageType: stripeState?.stripeUsageType,
+          stripeRecurringInterval: stripeState?.stripeRecurringInterval,
+          stripeVerifiedAt: stripeState?.stripeVerifiedAt,
+          stripeVerificationError: stripeState?.stripeVerificationError,
           isActive: dto.isActive ?? true,
         },
         include: {
@@ -1330,6 +1880,52 @@ export class SuperAdminService {
         : normalizeStripePriceId(dto.stripePriceId);
     const nextIsActive = dto.isActive ?? existing.isActive;
 
+    const replacesImmutableStripePrice = Boolean(
+      existing.stripePriceId &&
+      ((dto.unitAmount !== undefined &&
+        dto.unitAmount !== Number(existing.unitAmount)) ||
+        (dto.currency !== undefined && currency !== existing.currency) ||
+        (dto.billingInterval !== undefined &&
+          dto.billingInterval !== existing.billingInterval) ||
+        (dto.billingModel !== undefined &&
+          dto.billingModel !== existing.billingModel)),
+    );
+    if (replacesImmutableStripePrice) {
+      const replacement = await this.createPlanPrice(actor, planId, {
+        billingCycle,
+        billingModel: dto.billingModel ?? existing.billingModel,
+        billingInterval: dto.billingInterval ?? existing.billingInterval,
+        currency,
+        unitAmount: dto.unitAmount ?? Number(existing.unitAmount),
+        minimumSeats: dto.minimumSeats ?? existing.minimumSeats,
+        maximumSeats:
+          dto.maximumSeats === undefined
+            ? existing.maximumSeats
+            : dto.maximumSeats,
+        includedSeats: dto.includedSeats ?? existing.includedSeats,
+        effectiveFrom: dto.effectiveFrom ?? new Date().toISOString(),
+        isActive: nextIsActive,
+        syncToStripe: true,
+      });
+      await this.prisma.planPrice.update({
+        where: { id: existing.id },
+        data: { isActive: false },
+      });
+      return { ...replacement, replacedPlanPriceId: existing.id };
+    }
+    const plan = await this.assertPlanExists(planId);
+    const stripeState =
+      (dto.billingModel ?? existing.billingModel) === BillingModel.PER_SEAT &&
+      (dto.billingInterval ?? existing.billingInterval) ===
+        BillingInterval.MONTH
+        ? await this.prepareStripePlanPrice({
+            plan,
+            stripePriceId,
+            currency,
+            unitAmount: dto.unitAmount ?? Number(existing.unitAmount),
+          })
+        : null;
+
     await this.assertPlanPriceStripePriceIdUnique({
       stripePriceId,
       excludePriceId: priceId,
@@ -1353,10 +1949,27 @@ export class SuperAdminService {
         where: { id: priceId },
         data: {
           billingCycle: dto.billingCycle,
+          billingModel: dto.billingModel,
+          billingInterval: dto.billingInterval,
           currency: dto.currency ? currency : undefined,
           unitAmount: dto.unitAmount,
+          minimumSeats: dto.minimumSeats,
+          maximumSeats: dto.maximumSeats,
+          includedSeats: dto.includedSeats,
+          effectiveFrom: dto.effectiveFrom
+            ? new Date(dto.effectiveFrom)
+            : undefined,
           stripePriceId:
-            dto.stripePriceId === undefined ? undefined : stripePriceId,
+            stripeState?.stripePriceId ??
+            (dto.stripePriceId === undefined ? undefined : stripePriceId),
+          stripeProductId: stripeState?.stripeProductId,
+          stripeEnvironment: stripeState?.stripeEnvironment,
+          stripeSyncStatus: stripeState?.stripeSyncStatus,
+          stripeActive: stripeState?.stripeActive,
+          stripeUsageType: stripeState?.stripeUsageType,
+          stripeRecurringInterval: stripeState?.stripeRecurringInterval,
+          stripeVerifiedAt: stripeState?.stripeVerifiedAt,
+          stripeVerificationError: stripeState?.stripeVerificationError,
           isActive: dto.isActive,
         },
         include: {
@@ -1445,6 +2058,7 @@ export class SuperAdminService {
         currency: dto.currency,
         autoRenew: dto.autoRenew,
         stripeSubscriptionId: dto.stripeSubscriptionId,
+        purchasedSeats: dto.purchasedSeats,
         actorUserId: actor.userId,
       },
     );
@@ -1759,9 +2373,11 @@ export class SuperAdminService {
       activePublicPlansCount,
       missingStripePriceIdCount,
       inactivePlanPricesCount,
-      checkoutReadyPlanPricesCount,
+      candidatePlanPrices,
       recentWebhookFailuresCount,
       duplicateRisks,
+      lastSuccessfulWebhook,
+      lastFailedWebhook,
     ] = await Promise.all([
       this.prisma.plan.count(),
       this.prisma.plan.count({
@@ -1780,10 +2396,9 @@ export class SuperAdminService {
       this.prisma.planPrice.count({
         where: { isActive: false },
       }),
-      this.prisma.planPrice.count({
+      this.prisma.planPrice.findMany({
         where: {
           isActive: true,
-          stripePriceId: { not: null },
           plan: { isActive: true, isPublic: true },
         },
       }),
@@ -1796,7 +2411,53 @@ export class SuperAdminService {
         },
       }),
       this.getPlanPriceDuplicateRisks(),
+      this.prisma.stripeWebhookEvent.findFirst({
+        where: { processingStatus: WebhookProcessingStatus.PROCESSED },
+        orderBy: { processedAt: 'desc' },
+        select: { stripeEventId: true, type: true, processedAt: true },
+      }),
+      this.prisma.stripeWebhookEvent.findFirst({
+        where: { processingStatus: WebhookProcessingStatus.FAILED },
+        orderBy: { updatedAt: 'desc' },
+        select: {
+          stripeEventId: true,
+          type: true,
+          updatedAt: true,
+          errorMessage: true,
+        },
+      }),
     ]);
+    const expectedEnvironment = stripeEnvironmentFromMode(
+      this.stripeBillingService.getRuntimeMode(),
+    );
+    const checkoutReadyPlanPricesCount = candidatePlanPrices.filter(
+      (price) =>
+        deriveCheckoutReadiness(
+          {
+            billingModel: price.billingModel,
+            billingInterval: price.billingInterval,
+            unitAmount: Number(price.unitAmount),
+            currency: price.currency,
+            minimumSeats: price.minimumSeats,
+            maximumSeats: price.maximumSeats,
+            includedSeats: price.includedSeats,
+            isActive: price.isActive,
+            effectiveFrom: price.effectiveFrom,
+            stripeProductId: price.stripeProductId,
+            stripePriceId: price.stripePriceId,
+            stripeEnvironment: price.stripeEnvironment,
+            stripeSyncStatus: price.stripeSyncStatus,
+            stripeActive: price.stripeActive,
+            stripeUsageType: price.stripeUsageType,
+            stripeRecurringInterval: price.stripeRecurringInterval,
+            stripeVerifiedAt: price.stripeVerifiedAt,
+          },
+          expectedEnvironment,
+        ).checkoutReady,
+    ).length;
+    const connection = await this.stripeBillingService
+      .verifyConnection()
+      .catch(() => null);
 
     return {
       plansCount,
@@ -1806,7 +2467,19 @@ export class SuperAdminService {
       checkoutReadyPlanPricesCount,
       duplicateCurrencyCycleRisks: duplicateRisks,
       stripeConfigured: Boolean(process.env.STRIPE_SECRET_KEY?.trim()),
+      enabled: this.stripeBillingService.isSecretKeyConfigured(),
+      mode: this.stripeBillingService.getRuntimeMode(),
+      stripeAccountId: connection?.accountId ?? null,
+      lastVerification: connection?.verifiedAt ?? null,
       webhookConfigured: Boolean(process.env.STRIPE_WEBHOOK_SECRET?.trim()),
+      lastSuccessfulWebhook,
+      lastFailedWebhook,
+      checkoutSuccessUrl:
+        this.configService.get<string>('STRIPE_CHECKOUT_SUCCESS_URL') ?? null,
+      checkoutCancelUrl:
+        this.configService.get<string>('STRIPE_CHECKOUT_CANCEL_URL') ?? null,
+      customerPortalReturnUrl:
+        this.configService.get<string>('STRIPE_PORTAL_RETURN_URL') ?? null,
       recentWebhookFailuresCount,
     };
   }
@@ -1870,8 +2543,15 @@ export class SuperAdminService {
       'invoice-defaults',
       'email-provider',
       'branding',
+      'company-profile',
       'feature-catalog',
       'lead-definitions',
+      'contract-settings',
+      'partner-settings',
+      'customer-settings',
+      'support-settings',
+      'module-settings',
+      'communication-settings',
     ] as const;
 
     const rows = await this.prisma.platformSetting.findMany({
@@ -1900,8 +2580,57 @@ export class SuperAdminService {
         enabled: false,
       },
       branding: byKey.get('branding') ?? {},
+      companyProfile: byKey.get('company-profile') ?? {
+        companyName: 'DijiPeople',
+        legalName: 'DijiPeople Technologies',
+        registrationNumber: '',
+        taxNumber: '',
+        supportEmail: 'support@dijipeople.com',
+        website: 'https://dijipeople.com',
+        country: 'Qatar',
+        city: 'Doha',
+        streetAddress: '',
+        postalCode: '',
+      },
       featureCatalog: byKey.get('feature-catalog') ?? {},
       leadDefinitions: byKey.get('lead-definitions') ?? {},
+      contractSettings: byKey.get('contract-settings') ?? {
+        signatureExpiryDays: 14,
+        allowedSignatureMethods: ['TYPED', 'DRAWN', 'UPLOADED'],
+        requireCommercialApproval: true,
+        requireLegalApproval: true,
+        renewalReminderDays: 90,
+        consentText:
+          'I agree to sign this document electronically and understand that my electronic signature is legally binding.',
+      },
+      partnerSettings: byKey.get('partner-settings') ?? {
+        requireSignedAgreementForActivation: true,
+        onboardingLinkExpiryDays: 14,
+        requireTaxInformation: true,
+        requireBankInformation: true,
+        leadSubmissionRequiresApproval: true,
+        defaultCommissionRate: 10,
+      },
+      customerSettings: byKey.get('customer-settings') ?? {
+        contractRequiredForTenantActivation: true,
+        commercialApprovalRequired: true,
+        paymentRequiredForProvisioning: true,
+        trainingRequiredForActivation: true,
+      },
+      supportSettings: byKey.get('support-settings') ?? {
+        casePrefix: 'CASE',
+        s1ResponseHours: 1,
+        s1ResolutionHours: 4,
+        s2ResponseHours: 4,
+        s2ResolutionHours: 12,
+        s3ResponseHours: 8,
+        s3ResolutionHours: 48,
+        s4ResponseHours: 24,
+        s4ResolutionHours: 120,
+        closureConfirmationRequired: false,
+      },
+      moduleSettings: byKey.get('module-settings') ?? {},
+      communicationSettings: byKey.get('communication-settings') ?? {},
     };
   }
 
@@ -1909,9 +2638,13 @@ export class SuperAdminService {
     actor: AuthenticatedUser,
     dto: UpdatePlatformSettingsDto,
   ) {
-    if (actor.platform?.role !== 'SUPER_ADMIN') {
+    if (
+      !['SUPER_ADMIN', 'PLATFORM_OWNER', 'PLATFORM_ADMIN'].includes(
+        actor.platform?.role ?? '',
+      )
+    ) {
       throw new ForbiddenException(
-        'Only platform Super Admins can change platform defaults.',
+        'Platform administrator access is required to change platform settings.',
       );
     }
 
@@ -1935,8 +2668,15 @@ export class SuperAdminService {
       'invoice-defaults': dto.invoiceDefaults,
       'email-provider': dto.emailProvider,
       branding: dto.branding,
+      'company-profile': dto.companyProfile,
       'feature-catalog': dto.featureCatalog,
       'lead-definitions': dto.leadDefinitions,
+      'contract-settings': dto.contractSettings,
+      'partner-settings': dto.partnerSettings,
+      'customer-settings': dto.customerSettings,
+      'support-settings': dto.supportSettings,
+      'module-settings': dto.moduleSettings,
+      'communication-settings': dto.communicationSettings,
     } as const;
 
     const merge = dto.merge !== false;
@@ -1990,6 +2730,8 @@ export class SuperAdminService {
       tenantCode: tenant.tenantCode,
       name: tenant.name,
       displayName: tenant.displayName ?? tenant.name,
+      legalName:
+        tenant.legalName ?? tenant.customerAccount?.legalCompanyName ?? null,
       slug: tenant.slug,
       status: tenant.status,
       createdAt: tenant.createdAt,
@@ -2161,6 +2903,9 @@ export class SuperAdminService {
     renewalDate: Date | null;
     autoRenew: boolean;
     stripeSubscriptionId?: string | null;
+    purchasedSeats?: number;
+    stripeQuantity?: number | null;
+    seatsLastReconciledAt?: Date | null;
     updatedAt?: Date;
   }) {
     return {
@@ -2183,6 +2928,9 @@ export class SuperAdminService {
       renewalDate: subscription.renewalDate,
       autoRenew: subscription.autoRenew,
       stripeSubscriptionId: subscription.stripeSubscriptionId ?? null,
+      purchasedSeats: subscription.purchasedSeats ?? 1,
+      stripeQuantity: subscription.stripeQuantity ?? null,
+      seatsLastReconciledAt: subscription.seatsLastReconciledAt ?? null,
       isStripeBacked: Boolean(subscription.stripeSubscriptionId),
       updatedAt: subscription.updatedAt ?? null,
     };
@@ -2778,26 +3526,78 @@ export class SuperAdminService {
     id: string;
     planId: string;
     billingCycle: BillingCycle;
+    billingModel: BillingModel;
+    billingInterval: BillingInterval;
     currency: string;
     unitAmount: Prisma.Decimal | number;
+    minimumSeats: number;
+    maximumSeats: number | null;
+    includedSeats: number;
+    effectiveFrom: Date;
+    stripeProductId: string | null;
     stripePriceId: string | null;
+    stripeEnvironment: StripeEnvironment | null;
+    stripeSyncStatus: StripeSyncStatus;
+    stripeActive: boolean;
+    stripeUsageType: string | null;
+    stripeRecurringInterval: string | null;
+    stripeVerifiedAt: Date | null;
+    stripeVerificationError: string | null;
     isActive: boolean;
     createdAt: Date;
     updatedAt: Date;
     _count?: { subscriptions: number };
   }) {
     const subscriptionCount = price._count?.subscriptions ?? 0;
+    const readiness = deriveCheckoutReadiness(
+      {
+        billingModel: price.billingModel,
+        billingInterval: price.billingInterval,
+        unitAmount: Number(price.unitAmount),
+        currency: price.currency,
+        minimumSeats: price.minimumSeats,
+        maximumSeats: price.maximumSeats,
+        includedSeats: price.includedSeats,
+        isActive: price.isActive,
+        effectiveFrom: price.effectiveFrom,
+        stripeProductId: price.stripeProductId,
+        stripePriceId: price.stripePriceId,
+        stripeEnvironment: price.stripeEnvironment,
+        stripeSyncStatus: price.stripeSyncStatus,
+        stripeActive: price.stripeActive,
+        stripeUsageType: price.stripeUsageType,
+        stripeRecurringInterval: price.stripeRecurringInterval,
+        stripeVerifiedAt: price.stripeVerifiedAt,
+      },
+      stripeEnvironmentFromMode(this.stripeBillingService.getRuntimeMode()),
+    );
 
     return {
       id: price.id,
       planId: price.planId,
       billingCycle: price.billingCycle,
+      billingModel: price.billingModel,
+      billingInterval: price.billingInterval,
       currency: price.currency,
       unitAmount: Number(price.unitAmount),
+      pricePerSeat:
+        price.billingModel === BillingModel.PER_SEAT
+          ? Number(price.unitAmount)
+          : null,
+      minimumSeats: price.minimumSeats,
+      maximumSeats: price.maximumSeats,
+      includedSeats: price.includedSeats,
+      effectiveFrom: price.effectiveFrom,
+      stripeProductId: price.stripeProductId,
       stripePriceId: price.stripePriceId,
+      stripeEnvironment: price.stripeEnvironment,
+      stripeSyncStatus: price.stripeSyncStatus,
+      stripeVerifiedAt: price.stripeVerifiedAt,
+      stripeVerificationError: price.stripeVerificationError,
       isActive: price.isActive,
       subscriptionCount,
-      isCheckoutReady: price.isActive && Boolean(price.stripePriceId),
+      isCheckoutReady: readiness.checkoutReady,
+      checkoutReadinessReasons: readiness.reasons,
       canDelete: subscriptionCount === 0,
       createdAt: price.createdAt,
       updatedAt: price.updatedAt,
@@ -2807,7 +3607,12 @@ export class SuperAdminService {
   private async assertPlanExists(planId: string) {
     const plan = await this.prisma.plan.findUnique({
       where: { id: planId },
-      select: { id: true },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        stripeProductId: true,
+      },
     });
 
     if (!plan) {
@@ -2815,6 +3620,62 @@ export class SuperAdminService {
     }
 
     return plan;
+  }
+
+  private async prepareStripePlanPrice(input: {
+    plan: {
+      id: string;
+      name: string;
+      description: string | null;
+      stripeProductId: string | null;
+    };
+    stripePriceId: string | null;
+    currency: string;
+    unitAmount: number;
+  }) {
+    const product = await this.stripeBillingService.resolveOrCreateProduct({
+      stripeProductId: input.plan.stripeProductId,
+      name: input.plan.name,
+      description: input.plan.description,
+      planId: input.plan.id,
+    });
+    if (!input.plan.stripeProductId) {
+      await this.prisma.plan.update({
+        where: { id: input.plan.id },
+        data: { stripeProductId: product.id },
+      });
+    }
+    const stripePriceId =
+      input.stripePriceId ??
+      (
+        await this.stripeBillingService.createMonthlyPerSeatPrice({
+          productId: product.id,
+          unitAmount: input.unitAmount,
+          currency: input.currency,
+          planId: input.plan.id,
+        })
+      ).id;
+    const verified = await this.stripeBillingService.verifyMonthlyPerSeatPrice({
+      stripePriceId,
+      expectedProductId: product.id,
+      expectedCurrency: input.currency,
+      expectedUnitAmount: input.unitAmount,
+    });
+    return {
+      stripeProductId: product.id,
+      stripePriceId,
+      stripeEnvironment: verified.livemode
+        ? StripeEnvironment.LIVE
+        : StripeEnvironment.TEST,
+      stripeSyncStatus: verified.valid
+        ? StripeSyncStatus.SYNCED
+        : StripeSyncStatus.FAILED,
+      stripeActive: verified.active,
+      stripeUsageType: verified.usageType,
+      stripeRecurringInterval: verified.recurringInterval,
+      stripeVerifiedAt: verified.verifiedAt,
+      stripeVerificationError: verified.reasons.join(' ') || null,
+    };
   }
 
   private async findPlanPriceOrThrow(planId: string, priceId: string) {

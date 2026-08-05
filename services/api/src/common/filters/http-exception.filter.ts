@@ -207,7 +207,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const message = exception instanceof Error ? exception.message : '';
 
     if (exception instanceof Prisma.PrismaClientKnownRequestError) {
-      if (exception.code === 'P2002') errorCode = 'DATABASE_DUPLICATE_RECORD';
+      if (isDatabaseUnavailableError(exception))
+        errorCode = 'DATABASE_CONNECTION_FAILED';
+      else if (exception.code === 'P2002')
+        errorCode = 'DATABASE_DUPLICATE_RECORD';
       else if (exception.code === 'P2025')
         errorCode = 'DATABASE_RECORD_NOT_FOUND';
       else if (exception.code === 'P2003')
@@ -217,6 +220,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
       errorCode = 'PRISMA_VALIDATION_ERROR';
     } else if (exception instanceof Prisma.PrismaClientInitializationError) {
       errorCode = 'PRISMA_CONNECTION_ERROR';
+    } else if (isDatabaseUnavailableError(exception)) {
+      errorCode = 'DATABASE_CONNECTION_FAILED';
     } else if (/pool|connection|connect|database/i.test(message)) {
       errorCode = /timeout|timed out/i.test(message)
         ? 'DATABASE_TIMEOUT'
@@ -445,4 +450,24 @@ function extractPrismaValidationFields(summary: string) {
     field,
     message: fieldMessage,
   }));
+}
+
+function isDatabaseUnavailableError(error: unknown) {
+  const code =
+    typeof error === 'object' && error !== null && 'code' in error
+      ? String((error as { code?: unknown }).code)
+      : '';
+  const message = error instanceof Error ? error.message : String(error ?? '');
+  const lowerMessage = message.toLowerCase();
+
+  return (
+    code === 'P1001' ||
+    code === 'P1002' ||
+    code === 'P1017' ||
+    code === 'ECONNREFUSED' ||
+    lowerMessage.includes('connection terminated') ||
+    lowerMessage.includes('server has closed the connection') ||
+    lowerMessage.includes('database system is in recovery mode') ||
+    lowerMessage.includes('database system is not yet accepting connections')
+  );
 }

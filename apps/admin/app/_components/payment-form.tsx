@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { useToastNotice } from "@/app/_components/ui/toast-provider";
 import { SUPPORTED_CURRENCIES } from "@/lib/form-options";
+import { usePlatformDefaults } from "@/app/_components/platform-defaults-provider";
 
 type PaymentFormProps = {
   tenants: Array<{
@@ -22,6 +23,7 @@ type PaymentFormProps = {
 
 export function PaymentForm({ tenants }: PaymentFormProps) {
   const router = useRouter();
+  const { defaults } = usePlatformDefaults();
   const { showToast } = useToastNotice();
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
@@ -31,7 +33,7 @@ export function PaymentForm({ tenants }: PaymentFormProps) {
   );
   const [invoiceId, setInvoiceId] = useState(tenants[0]?.invoices[0]?.id ?? "");
   const [amount, setAmount] = useState("");
-  const [currency, setCurrency] = useState("USD");
+  const [currency, setCurrency] = useState<string>(defaults.currency);
   const [paymentMethod, setPaymentMethod] = useState("MANUAL");
   const [status, setStatus] = useState("SUCCEEDED");
 

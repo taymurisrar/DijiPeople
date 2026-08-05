@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import {
   BillingCycle,
+  BillingModel,
   CustomerAccountStatus,
   InvoiceStatus,
   PaymentMethod,
@@ -46,6 +47,8 @@ type StripeSubscriptionObject = {
   trial_end?: number | null;
   items?: {
     data?: Array<{
+      id?: string;
+      quantity?: number | null;
       price?: {
         id?: string;
         currency?: string | null;
@@ -193,15 +196,18 @@ export class WebhookService {
       case 'checkout.session.completed':
         return this.handleCheckoutSessionCompleted(
           event.data.object as StripeCheckoutSession,
+          event.created,
         );
       case 'customer.subscription.created':
       case 'customer.subscription.updated':
         return this.handleSubscriptionUpsert(
           event.data.object as StripeSubscriptionObject,
+          event.created,
         );
       case 'customer.subscription.deleted':
         return this.handleSubscriptionDeleted(
           event.data.object as StripeSubscriptionObject,
+          event.created,
         );
       case 'invoice.finalized':
       case 'invoice.paid':
@@ -223,7 +229,10 @@ export class WebhookService {
     }
   }
 
-  private async handleCheckoutSessionCompleted(session: StripeCheckoutSession) {
+  private async handleCheckoutSessionCompleted(
+    session: StripeCheckoutSession,
+    eventCreated?: number,
+  ) {
     if (session.mode !== 'subscription') {
       return false;
     }
@@ -244,6 +253,18 @@ export class WebhookService {
       )) as unknown as StripeSubscriptionObject;
 
     await this.prisma.$transaction(async (tx) => {
+      const incomingEventAt = fromUnix(eventCreated);
+      const existingSubscription = await tx.subscription.findUnique({
+        where: { tenantId: metadata.tenantId },
+        select: { lastStripeEventCreatedAt: true },
+      });
+      if (
+        incomingEventAt &&
+        existingSubscription?.lastStripeEventCreatedAt &&
+        incomingEventAt <= existingSubscription.lastStripeEventCreatedAt
+      ) {
+        return;
+      }
       const planPrice = await this.assertPlanPriceForTenantMetadata(
         tx,
         metadata,
@@ -253,6 +274,11 @@ export class WebhookService {
         ['active', 'trialing'].includes(stripeSubscription.status ?? '')
           ? mapStripeSubscriptionStatus(stripeSubscription.status)
           : SubscriptionStatus.INCOMPLETE;
+      const seatState = subscriptionSeatState(stripeSubscription, metadata);
+      const finalPrice =
+        planPrice.billingModel === BillingModel.PER_SEAT
+          ? Number(planPrice.unitAmount) * seatState.purchasedSeats
+          : Number(planPrice.unitAmount);
 
       const subscription = await tx.subscription.upsert({
         where: { tenantId: metadata.tenantId },
@@ -262,8 +288,13 @@ export class WebhookService {
           planPriceId: metadata.planPriceId,
           billingCycle: planPrice.billingCycle,
           basePrice: planPrice.unitAmount,
-          finalPrice: planPrice.unitAmount,
+          finalPrice,
           currency: planPrice.currency,
+          purchasedSeats: seatState.purchasedSeats,
+          stripeQuantity: seatState.stripeQuantity,
+          stripeSubscriptionItemId: seatState.subscriptionItemId,
+          seatsLastReconciledAt: new Date(),
+          lastStripeEventCreatedAt: incomingEventAt,
           status: internalStatus,
           startDate: new Date(),
           stripeCustomerId,
@@ -285,8 +316,13 @@ export class WebhookService {
           planPriceId: metadata.planPriceId,
           billingCycle: planPrice.billingCycle,
           basePrice: planPrice.unitAmount,
-          finalPrice: planPrice.unitAmount,
+          finalPrice,
           currency: planPrice.currency,
+          purchasedSeats: seatState.purchasedSeats,
+          stripeQuantity: seatState.stripeQuantity,
+          stripeSubscriptionItemId: seatState.subscriptionItemId,
+          seatsLastReconciledAt: new Date(),
+          lastStripeEventCreatedAt: incomingEventAt,
           status: internalStatus,
           stripeCustomerId,
           stripeSubscriptionId,
@@ -326,9 +362,10 @@ export class WebhookService {
 
   private async handleSubscriptionUpsert(
     subscription: StripeSubscriptionObject,
+    eventCreated?: number,
   ) {
     await this.prisma.$transaction(async (tx) => {
-      await this.upsertSubscriptionFromStripe(tx, subscription);
+      await this.upsertSubscriptionFromStripe(tx, subscription, eventCreated);
     });
 
     return true;
@@ -336,12 +373,14 @@ export class WebhookService {
 
   private async handleSubscriptionDeleted(
     subscription: StripeSubscriptionObject,
+    eventCreated?: number,
   ) {
     await this.prisma.$transaction(async (tx) => {
-      await this.upsertSubscriptionFromStripe(tx, {
-        ...subscription,
-        status: 'canceled',
-      });
+      await this.upsertSubscriptionFromStripe(
+        tx,
+        { ...subscription, status: 'canceled' },
+        eventCreated,
+      );
     });
 
     return true;
@@ -620,6 +659,7 @@ export class WebhookService {
   private async upsertSubscriptionFromStripe(
     tx: PrismaTx,
     subscription: StripeSubscriptionObject,
+    eventCreated?: number,
   ) {
     const context = await this.resolveSubscriptionContext(tx, subscription);
     const planPrice = await this.resolvePlanPriceForSubscription(
@@ -628,6 +668,22 @@ export class WebhookService {
       context,
     );
     const status = mapStripeSubscriptionStatus(subscription.status);
+    const incomingEventAt = fromUnix(eventCreated);
+    if (
+      incomingEventAt &&
+      context.existingSubscription?.lastStripeEventCreatedAt &&
+      incomingEventAt <= context.existingSubscription.lastStripeEventCreatedAt
+    ) {
+      return context.existingSubscription;
+    }
+    const seatState = subscriptionSeatState(
+      subscription,
+      subscription.metadata,
+    );
+    const finalPrice =
+      planPrice.billingModel === BillingModel.PER_SEAT
+        ? Number(planPrice.unitAmount) * seatState.purchasedSeats
+        : Number(planPrice.unitAmount);
 
     return tx.subscription.upsert({
       where: { tenantId: context.tenantId },
@@ -637,8 +693,13 @@ export class WebhookService {
         planPriceId: planPrice.id,
         billingCycle: planPrice.billingCycle,
         basePrice: planPrice.unitAmount,
-        finalPrice: planPrice.unitAmount,
+        finalPrice,
         currency: planPrice.currency,
+        purchasedSeats: seatState.purchasedSeats,
+        stripeQuantity: seatState.stripeQuantity,
+        stripeSubscriptionItemId: seatState.subscriptionItemId,
+        seatsLastReconciledAt: new Date(),
+        lastStripeEventCreatedAt: incomingEventAt,
         status,
         startDate: new Date(),
         stripeCustomerId: context.stripeCustomerId,
@@ -657,8 +718,13 @@ export class WebhookService {
         planPriceId: planPrice.id,
         billingCycle: planPrice.billingCycle,
         basePrice: planPrice.unitAmount,
-        finalPrice: planPrice.unitAmount,
+        finalPrice,
         currency: planPrice.currency,
+        purchasedSeats: seatState.purchasedSeats,
+        stripeQuantity: seatState.stripeQuantity,
+        stripeSubscriptionItemId: seatState.subscriptionItemId,
+        seatsLastReconciledAt: new Date(),
+        lastStripeEventCreatedAt: incomingEventAt,
         status,
         stripeCustomerId: context.stripeCustomerId,
         stripeSubscriptionId: subscription.id,
@@ -1037,7 +1103,27 @@ type BillingMetadata = {
   planId: string;
   planPriceId: string;
   userId?: string;
+  seatQuantity?: string;
 };
+
+function subscriptionSeatState(
+  subscription: StripeSubscriptionObject,
+  metadata?: StripeMetadata | null,
+) {
+  const item = subscription.items?.data?.[0];
+  const metadataQuantity = Number(metadata?.seatQuantity);
+  const quantity =
+    typeof item?.quantity === 'number' && item.quantity > 0
+      ? item.quantity
+      : Number.isInteger(metadataQuantity) && metadataQuantity > 0
+        ? metadataQuantity
+        : 1;
+  return {
+    purchasedSeats: quantity,
+    stripeQuantity: quantity,
+    subscriptionItemId: item?.id ?? null,
+  };
+}
 
 function requireBillingMetadata(metadata: StripeMetadata | null | undefined) {
   const tenantId = metadata?.tenantId;

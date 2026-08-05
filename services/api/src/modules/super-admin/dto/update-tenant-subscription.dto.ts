@@ -3,6 +3,7 @@ import {
   IsBoolean,
   IsDateString,
   IsEnum,
+  IsInt,
   IsNumber,
   IsOptional,
   IsString,
@@ -14,6 +15,11 @@ import {
 export class UpdateTenantSubscriptionDto {
   @IsUUID()
   planId!: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  purchasedSeats?: number;
 
   @IsOptional()
   @IsEnum(BillingCycle)

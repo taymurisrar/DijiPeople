@@ -83,11 +83,7 @@ export class AuditRepository {
     return { items, total };
   }
 
-  findOneByTenant(
-    tenantId: string,
-    id: string,
-    db: PrismaDb = this.prisma,
-  ) {
+  findOneByTenant(tenantId: string, id: string, db: PrismaDb = this.prisma) {
     return db.auditLog.findFirst({
       where: { id, tenantId },
       include: {

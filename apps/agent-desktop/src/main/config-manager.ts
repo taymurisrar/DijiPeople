@@ -32,6 +32,9 @@ export const DEFAULT_CONFIG: AgentConfig = {
     allowScreenshots: false,
     allowClipboardTracking: false,
     allowKeylogging: false,
+    allowCameraAccess: false,
+    allowMicrophoneAccess: false,
+    allowLocationAccess: false,
   },
 
   api: {
@@ -45,6 +48,9 @@ export const DEFAULT_CONFIG: AgentConfig = {
     offlineQueue: agentEnv.offlineQueueEnabled,
     autoUpdate: agentEnv.autoUpdateEnabled,
     trayStatus: agentEnv.trayStatusEnabled,
+    cameraAccess: false,
+    microphoneAccess: false,
+    locationAccess: false,
   },
 };
 
@@ -145,6 +151,15 @@ export class ConfigManager {
         allowScreenshots: false,
         allowClipboardTracking: false,
         allowKeylogging: false,
+        allowCameraAccess:
+          config.privacy?.allowCameraAccess ??
+          DEFAULT_CONFIG.privacy.allowCameraAccess,
+        allowMicrophoneAccess:
+          config.privacy?.allowMicrophoneAccess ??
+          DEFAULT_CONFIG.privacy.allowMicrophoneAccess,
+        allowLocationAccess:
+          config.privacy?.allowLocationAccess ??
+          DEFAULT_CONFIG.privacy.allowLocationAccess,
       },
 
       api: {
@@ -180,6 +195,17 @@ export class ConfigManager {
         trayStatus:
           config.features?.trayStatus ??
           DEFAULT_CONFIG.features.trayStatus,
+
+        cameraAccess:
+          config.features?.cameraAccess ?? DEFAULT_CONFIG.features.cameraAccess,
+
+        microphoneAccess:
+          config.features?.microphoneAccess ??
+          DEFAULT_CONFIG.features.microphoneAccess,
+
+        locationAccess:
+          config.features?.locationAccess ??
+          DEFAULT_CONFIG.features.locationAccess,
       },
     };
   }

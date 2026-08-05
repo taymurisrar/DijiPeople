@@ -1,10 +1,14 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import {
+  LeadAttributionStatus,
   LeadStatus,
+  PartnerReferralLinkStatus,
+  PartnerStatus,
   PlatformUserRole,
   PlatformUserStatus,
 } from '@prisma/client';
@@ -12,6 +16,7 @@ import { AuthenticatedUser } from '../../common/interfaces/authenticated-request
 import { AuditService } from '../audit/audit.service';
 import {
   BulkAssignLeadsDto,
+  CorrectLeadAttributionDto,
   CreateAdminLeadDto,
   LeadQueryDto,
   UpdateAdminLeadDto,
@@ -27,6 +32,7 @@ import {
   normalizeLeadSource,
 } from '../super-admin/platform-lifecycle.constants';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { PlatformCommunicationsService } from '../platform-communications/platform-communications.service';
 
 @Injectable()
 export class LeadsService {
@@ -34,6 +40,7 @@ export class LeadsService {
     private readonly leadsRepository: LeadsRepository,
     private readonly auditService: AuditService,
     private readonly prisma: PrismaService,
+    private readonly communications: PlatformCommunicationsService,
   ) {}
 
   async submitLead(dto: SubmitLeadDto) {
@@ -41,23 +48,59 @@ export class LeadsService {
       return { submitted: true };
     }
 
-    const lead = await this.leadsRepository.create({
-      contactFirstName: dto.firstName.trim(),
-      contactLastName: dto.lastName.trim(),
-      fullName: `${dto.firstName.trim()} ${dto.lastName.trim()}`.trim(),
-      companyName: dto.companyName,
-      workEmail: dto.workEmail,
-      phoneNumber: dto.phoneNumber ?? null,
-      industry: dto.industry,
-      companySize: dto.companySize,
-      country: dto.country ?? null,
-      requirementsSummary: dto.message ?? null,
-      message: dto.message ?? null,
-      interestedPlan: dto.interestArea ?? dto.interestedPlan ?? null,
-      source: 'Website',
-      status: LeadStatus.NEW,
-      subStatus: 'Demo requested',
+    const referral = await this.resolveReferral(dto.referralCode);
+    const lead = await this.prisma.$transaction(async (tx) => {
+      const created = await this.leadsRepository.create(
+        {
+          contactFirstName: dto.firstName.trim(),
+          contactLastName: dto.lastName.trim(),
+          fullName: `${dto.firstName.trim()} ${dto.lastName.trim()}`.trim(),
+          companyName: dto.companyName,
+          workEmail: dto.workEmail,
+          phoneNumber: dto.phoneNumber ?? null,
+          industry: dto.industry,
+          companySize: dto.companySize,
+          country: dto.country ?? null,
+          requirementsSummary: dto.message ?? null,
+          message: dto.message ?? null,
+          interestedPlan: dto.interestArea ?? dto.interestedPlan ?? null,
+          source: referral.partnerId ? 'Partner Referral' : 'Website',
+          status: LeadStatus.NEW,
+          subStatus: 'Demo requested',
+          partnerId: referral.partnerId,
+          partnerReferralLinkId: referral.linkId,
+          referralCodeSnapshot: referral.code,
+          referralSource: dto.referralCode ? 'PUBLIC_REQUEST_DEMO' : null,
+          referredAt: dto.referralCode ? new Date() : null,
+          attributionStatus: referral.status,
+        },
+        tx,
+      );
+      if (referral.linkId) {
+        await tx.partnerReferralLink.update({
+          where: { id: referral.linkId },
+          data: { submissionCount: { increment: 1 }, lastUsedAt: new Date() },
+        });
+      }
+      if (referral.partnerId) {
+        await tx.partnerTimeline.create({
+          data: {
+            partnerId: referral.partnerId,
+            eventType: 'REFERRAL_LEAD_CAPTURED',
+            actorType: 'PUBLIC',
+            message: `Referral captured for ${created.companyName}.`,
+            metadata: { leadId: created.id, referralCode: referral.code },
+          },
+        });
+      }
+      return created;
     });
+
+    await this.notifyLeadSubmitted(
+      lead.id,
+      lead.companyName,
+      referral.partnerId,
+    );
 
     return {
       submitted: true,
@@ -65,11 +108,106 @@ export class LeadsService {
     };
   }
 
+  private async resolveReferral(referralCode?: string) {
+    if (!referralCode) {
+      return {
+        partnerId: null,
+        linkId: null,
+        code: null,
+        status: LeadAttributionStatus.DIRECT,
+      };
+    }
+    const code = referralCode.trim().toUpperCase();
+    const link = await this.prisma.partnerReferralLink.findUnique({
+      where: { code },
+      include: { partner: { select: { id: true, status: true } } },
+    });
+    if (!link)
+      return {
+        partnerId: null,
+        linkId: null,
+        code,
+        status: LeadAttributionStatus.INVALID_CODE,
+      };
+    if (link.partner.status !== PartnerStatus.ACTIVE)
+      return {
+        partnerId: null,
+        linkId: null,
+        code,
+        status: LeadAttributionStatus.INACTIVE_PARTNER,
+      };
+    if (link.status === PartnerReferralLinkStatus.DISABLED)
+      return {
+        partnerId: null,
+        linkId: null,
+        code,
+        status: LeadAttributionStatus.DISABLED_LINK,
+      };
+    if (
+      link.status !== PartnerReferralLinkStatus.ACTIVE ||
+      (link.expiresAt && link.expiresAt <= new Date())
+    )
+      return {
+        partnerId: null,
+        linkId: null,
+        code,
+        status: LeadAttributionStatus.EXPIRED_LINK,
+      };
+    return {
+      partnerId: link.partner.id,
+      linkId: link.id,
+      code,
+      status: LeadAttributionStatus.ATTRIBUTED,
+    };
+  }
+
+  private async notifyLeadSubmitted(
+    leadId: string,
+    companyName: string,
+    partnerId: string | null,
+  ) {
+    const recipients = await this.prisma.platformUser.findMany({
+      where: {
+        status: PlatformUserStatus.ACTIVE,
+        role: {
+          in: [
+            PlatformUserRole.SUPER_ADMIN,
+            PlatformUserRole.PLATFORM_OWNER,
+            PlatformUserRole.PLATFORM_ADMIN,
+            PlatformUserRole.PRESALES_MANAGER,
+            PlatformUserRole.PARTNER_MANAGER,
+          ],
+        },
+      },
+      select: { email: true },
+    });
+    await Promise.all(
+      recipients.map(({ email }) =>
+        this.communications.sendEmail({
+          eventCode: partnerId
+            ? 'PARTNER_REFERRAL_LEAD_RECEIVED'
+            : 'WEBSITE_LEAD_RECEIVED',
+          recipient: email,
+          subject: `${partnerId ? 'Partner referral' : 'Website lead'}: ${companyName}`,
+          html: `<p>A new request-demo lead was received for <strong>${escapeEmailHtml(companyName)}</strong>.</p>`,
+          entityType: 'Lead',
+          entityId: leadId,
+          idempotencyKey: `lead-submitted:${leadId}:${email}`,
+          metadata: { partnerId },
+        }),
+      ),
+    );
+  }
+
   async listLeads(currentUser: AuthenticatedUser, query: LeadQueryDto) {
+    const requestedQuery =
+      query.viewKey === 'my-assigned-leads'
+        ? { ...query, assignedToUserId: currentUser.platform?.id }
+        : query;
     const scopedQuery =
       this.isPlatformSuperAdmin(currentUser) || !currentUser.platform?.id
-        ? query
-        : { ...query, assignedToUserId: currentUser.platform.id };
+        ? requestedQuery
+        : { ...requestedQuery, assignedToUserId: currentUser.platform.id };
     const { items, total } = await this.leadsRepository.findMany(scopedQuery);
     const leadIds = items.map((item) => item.id);
     const customers = leadIds.length
@@ -181,6 +319,7 @@ export class LeadsService {
       requirementsSummary: dto.requirementsSummary ?? null,
       notes: dto.notes ?? null,
       assignedToUserId,
+      partnerId: dto.partnerId ?? null,
       status: dto.status ?? LeadStatus.NEW,
       subStatus: dto.subStatus ?? null,
       isQualified:
@@ -209,6 +348,12 @@ export class LeadsService {
       throw new NotFoundException('Lead not found.');
     }
     this.assertLeadOwnerAccess(currentUser, existing);
+
+    if (dto.partnerId !== undefined && dto.partnerId !== existing.partnerId) {
+      throw new BadRequestException(
+        'Use the audited attribution-correction action to change a lead partner.',
+      );
+    }
 
     const terminalLeadStatuses: LeadStatus[] = [
       LeadStatus.CONVERTED,
@@ -296,6 +441,9 @@ export class LeadsService {
         : {}),
       ...(dto.notes !== undefined ? { notes: dto.notes ?? null } : {}),
       ...(dto.assignedToUserId !== undefined ? { assignedToUserId } : {}),
+      ...(dto.partnerId !== undefined
+        ? { partnerId: dto.partnerId ?? null }
+        : {}),
       ...(dto.status !== undefined ? { status: dto.status } : {}),
       ...(dto.subStatus !== undefined
         ? { subStatus: dto.subStatus ?? null }
@@ -346,6 +494,112 @@ export class LeadsService {
     });
 
     return { deletedCount: result.count };
+  }
+
+  async correctAttribution(
+    currentUser: AuthenticatedUser,
+    leadId: string,
+    dto: CorrectLeadAttributionDto,
+  ) {
+    if (
+      !new Set<PlatformUserRole>([
+        PlatformUserRole.SUPER_ADMIN,
+        PlatformUserRole.PLATFORM_OWNER,
+        PlatformUserRole.PLATFORM_ADMIN,
+      ]).has(currentUser.platform?.role as PlatformUserRole)
+    ) {
+      throw new ForbiddenException(
+        'Only an authorized Platform Admin may correct lead attribution.',
+      );
+    }
+    const lead = await this.prisma.lead.findUnique({ where: { id: leadId } });
+    if (!lead) throw new NotFoundException('Lead not found.');
+    if (!dto.reason?.trim())
+      throw new BadRequestException('A correction reason is required.');
+    const link = dto.referralLinkId
+      ? await this.prisma.partnerReferralLink.findUnique({
+          where: { id: dto.referralLinkId },
+        })
+      : null;
+    const partnerId = dto.partnerId ?? link?.partnerId ?? null;
+    if (link && partnerId !== link.partnerId)
+      throw new BadRequestException(
+        'Referral link does not belong to the selected partner.',
+      );
+    if (
+      partnerId &&
+      !(await this.prisma.partner.findUnique({
+        where: { id: partnerId },
+        select: { id: true },
+      }))
+    )
+      throw new BadRequestException('Selected partner does not exist.');
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.leadAttributionCorrection.create({
+        data: {
+          leadId,
+          previousPartnerId: lead.partnerId,
+          correctedPartnerId: partnerId,
+          previousReferralLinkId: lead.partnerReferralLinkId,
+          correctedReferralLinkId: link?.id ?? null,
+          previousReferralCode: lead.referralCodeSnapshot,
+          correctedReferralCode: link?.code ?? null,
+          reason: dto.reason.trim(),
+          changedById: currentUser.userId,
+        },
+      });
+      await tx.lead.update({
+        where: { id: leadId },
+        data: {
+          partnerId,
+          partnerReferralLinkId: link?.id ?? null,
+          referralCodeSnapshot: link?.code ?? null,
+          attributionStatus: 'CORRECTED',
+        },
+      });
+      await tx.customerAccount.updateMany({
+        where: { leadId },
+        data: {
+          originatingPartnerId: partnerId,
+          originatingReferralLinkId: link?.id ?? null,
+          referralCodeSnapshot: link?.code ?? null,
+        },
+      });
+      if (partnerId) {
+        await tx.partnerTimeline.create({
+          data: {
+            partnerId,
+            eventType: 'LEAD_ATTRIBUTION_CORRECTED',
+            actorType: 'PLATFORM_USER',
+            actorId: currentUser.userId,
+            message: `Lead attribution corrected for ${lead.companyName}.`,
+            metadata: {
+              leadId,
+              reason: dto.reason.trim(),
+              previousPartnerId: lead.partnerId,
+            },
+          },
+        });
+      }
+    });
+    await this.auditService.log({
+      tenantId: currentUser.tenantId,
+      actorUserId: currentUser.userId,
+      action: 'PLATFORM_LEAD_ATTRIBUTION_CORRECTED',
+      entityType: 'Lead',
+      entityId: leadId,
+      beforeSnapshot: {
+        partnerId: lead.partnerId,
+        referralLinkId: lead.partnerReferralLinkId,
+      },
+      afterSnapshot: {
+        partnerId,
+        referralLinkId: link?.id ?? null,
+        reason: dto.reason.trim(),
+      },
+    });
+    return this.getLead(currentUser, leadId);
   }
 
   async bulkAssignLeads(
@@ -430,7 +684,12 @@ export class LeadsService {
   }
 
   private isPlatformSuperAdmin(currentUser: AuthenticatedUser) {
-    return currentUser.platform?.role === PlatformUserRole.SUPER_ADMIN;
+    return new Set<PlatformUserRole>([
+      PlatformUserRole.SUPER_ADMIN,
+      PlatformUserRole.PLATFORM_OWNER,
+      PlatformUserRole.PLATFORM_ADMIN,
+      PlatformUserRole.PRESALES_MANAGER,
+    ]).has(currentUser.platform?.role as PlatformUserRole);
   }
 
   private async resolveLeadAssignee(assignedToUserId?: string | null) {
@@ -439,7 +698,6 @@ export class LeadsService {
     const user = await this.prisma.platformUser.findFirst({
       where: {
         id: assignedToUserId,
-        role: { in: [PlatformUserRole.SUPER_ADMIN, PlatformUserRole.MEMBER] },
         status: PlatformUserStatus.ACTIVE,
       },
       select: { id: true },
@@ -459,7 +717,6 @@ export class LeadsService {
     const user = await this.prisma.platformUser.findFirst({
       where: {
         id: platformUserId,
-        role: { in: [PlatformUserRole.SUPER_ADMIN, PlatformUserRole.MEMBER] },
         status: PlatformUserStatus.ACTIVE,
       },
       select: { id: true },
@@ -512,4 +769,13 @@ function isCompleteCriterionValue(value: unknown) {
   if (typeof value === 'string') return value.trim().length > 0;
   if (Array.isArray(value)) return value.length > 0;
   return Boolean(value);
+}
+
+function escapeEmailHtml(value: string) {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
 }

@@ -2,10 +2,14 @@ import {
   ErrorLogsTable,
   type PlatformErrorEvent,
   type PlatformErrorLogsMeta,
+  type PlatformErrorLogMetrics,
+  type SupportOwnerOption,
 } from "@/app/_components/monitoring/error-logs-table";
 import { PageHeader } from "@/app/_components/ui/page-header";
+import { RuntimeViewSelector } from "@/app/_components/runtime/runtime-view-selector";
 import { requireSystemAdminUser } from "@/lib/auth";
 import { apiRequestJson } from "@/lib/server-api";
+import { getPlatformModuleDefinition } from "@/lib/runtime/platform-module-registry";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -15,13 +19,13 @@ export default async function PlatformErrorLogsPage({
   searchParams: SearchParams;
 }) {
   const user = await requireSystemAdminUser("/settings/monitoring/error-logs");
-  if (user.role !== "SUPER_ADMIN") {
+  if (!hasPermission(user.permissionKeys, "monitoring.read")) {
     return (
       <main className="space-y-5">
         <PageHeader
           eyebrow="Monitoring"
           title="Error logs"
-          description="Only Platform Super Admin can access platform monitoring."
+          description="Your platform role does not include monitoring access."
         />
       </main>
     );
@@ -29,22 +33,35 @@ export default async function PlatformErrorLogsPage({
 
   const resolvedSearchParams = await searchParams;
   const query = buildQueryString(resolvedSearchParams);
-  const response = await apiRequestJson<{
+  const [response, assignees, preference] = await Promise.all([apiRequestJson<{
     items: PlatformErrorEvent[];
     meta: PlatformErrorLogsMeta;
+    metrics: PlatformErrorLogMetrics;
   }>(
     `/platform/logs/events${query ? `?${query}` : ""}`,
-  );
+  ), apiRequestJson<SupportOwnerOption[]>("/platform-users/owner-candidates"), apiRequestJson<{ defaultViewKey?: string | null }>("/platform-users/me/module-preferences?moduleKey=monitoring-incidents")]);
+  const moduleDefinition = getPlatformModuleDefinition("monitoring-incidents");
 
   return (
     <main className="space-y-5">
       <PageHeader
         eyebrow="Platform monitoring"
         title="Error logs"
-        description="Trace sanitized web and API incidents by reference number, tenant, source, and severity."
+        description="Support customers from a sanitized incident queue: trace web, admin, and API failures, record investigation progress, and maintain customer-ready updates."
+        actions={<RuntimeViewSelector moduleKey="monitoring-incidents" views={moduleDefinition.views} defaultViewKey={preference.defaultViewKey} roleKeys={[user.role, ...(user.roleKeys ?? [])]} />}
       />
-      <ErrorLogsTable logs={response.items} meta={response.meta} />
+      <ErrorLogsTable logs={response.items} meta={response.meta} metrics={response.metrics} assignees={assignees} />
     </main>
+  );
+}
+
+function hasPermission(granted: string[], requested: string) {
+  return granted.some(
+    (permission) =>
+      permission === "platform.*" ||
+      permission === requested ||
+      (permission.endsWith(".*") &&
+        requested.startsWith(permission.slice(0, -1))),
   );
 }
 
@@ -57,6 +74,7 @@ function buildQueryString(searchParams: Record<string, string | string[] | undef
     "search",
     "reference",
     "severity",
+    "status",
     "sourceApp",
     "environment",
     "tenantId",
@@ -72,6 +90,13 @@ function buildQueryString(searchParams: Record<string, string | string[] | undef
     if (!allowed.has(key)) continue;
     const normalized = Array.isArray(value) ? value[0] : value;
     if (normalized) params.set(key, normalized);
+  }
+  const viewId = Array.isArray(searchParams.viewId)
+    ? searchParams.viewId[0]
+    : searchParams.viewId;
+  if (viewId === "critical" && !params.has("severity")) params.set("severity", "ERROR");
+  if (["new", "investigating", "resolved"].includes(viewId ?? "") && !params.has("status")) {
+    params.set("status", String(viewId).toUpperCase());
   }
   if (!params.has("pageSize")) params.set("pageSize", "25");
   return params.toString();

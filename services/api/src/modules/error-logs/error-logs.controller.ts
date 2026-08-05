@@ -27,7 +27,7 @@ export class ErrorLogsController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     const traceId = readString(body.traceId);
-    if (!traceId?.startsWith('client_')) {
+    if (!traceId || !/^(client|admin)_/.test(traceId)) {
       throw new BadRequestException({
         code: 'VALIDATION_FAILED',
         message: 'A valid client error reference is required.',

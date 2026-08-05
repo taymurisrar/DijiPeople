@@ -13,18 +13,26 @@ export default async function InternalLayout({
   const user = await requireSystemAdminUser("/tenants");
   const settings = await apiRequestJson<{
     platformDefaults?: Record<string, string>;
-  }>("/super-admin/platform-settings").catch(() => ({ platformDefaults: {} }));
+    branding?: Record<string, string>;
+  }>("/super-admin/platform-settings").catch(() => ({
+    platformDefaults: {},
+    branding: {},
+  }));
 
   return (
     <ErrorProvider user={{ role: user.role, roleKeys: user.roleKeys }}>
       <ToastProvider>
-        <PlatformDefaultsProvider defaults={settings.platformDefaults ?? {}}>
+        <PlatformDefaultsProvider
+          defaults={settings.platformDefaults ?? {}}
+          appearance={settings.branding ?? {}}
+        >
           <AdminShell
             user={{
               firstName: user.firstName,
               lastName: user.lastName,
               email: user.email,
               roleKeys: user.roleKeys,
+              permissionKeys: user.permissionKeys,
             }}
           >
             {children}

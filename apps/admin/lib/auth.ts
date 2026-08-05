@@ -1,13 +1,13 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import {
-  ACCESS_DENIED_ROUTE,
   ACCESS_TOKEN_COOKIE,
   AUTH_APP_CLIENT_ID,
   REFRESH_TOKEN_COOKIE,
   getAdminLoginUrl,
   getApiBaseUrl,
 } from "@/lib/auth-config";
+import type { PlatformRole } from "@/lib/platform-rbac";
 
 export type AdminSessionUser = {
   sub: string;
@@ -20,7 +20,7 @@ export type AdminSessionUser = {
   roleIds: string[];
   roleKeys?: string[];
   permissionKeys: string[];
-  role: "SUPER_ADMIN" | "MEMBER";
+  role: PlatformRole;
   status: "ACTIVE" | "INVITED" | "DISABLED";
 };
 
@@ -35,7 +35,7 @@ type AuthMeResponse = {
     roleIds?: string[];
     roleKeys?: string[];
     permissionKeys?: string[];
-    role?: "SUPER_ADMIN" | "MEMBER";
+    role?: PlatformRole;
     status?: "ACTIVE" | "INVITED" | "DISABLED";
   };
   tenant: { name: string };
@@ -100,10 +100,6 @@ export async function requireSystemAdminUser(nextPath = "/tenants") {
 
   if (!user) {
     redirect(getAdminLoginUrl(nextPath));
-  }
-
-  if (user.role !== "SUPER_ADMIN" && user.role !== "MEMBER") {
-    redirect(ACCESS_DENIED_ROUTE);
   }
 
   return user;

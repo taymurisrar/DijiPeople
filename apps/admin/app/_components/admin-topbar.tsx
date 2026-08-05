@@ -14,6 +14,8 @@ import {
   UserRound,
   X,
 } from "lucide-react";
+import { usePlatformDefaults } from "./platform-defaults-provider";
+import { formatPlatformDate } from "@/lib/platform-formatters";
 
 type AdminTopbarProps = {
   firstName: string;
@@ -43,6 +45,7 @@ export function AdminTopbar({
   onMenuToggle,
   roleKeys = [],
 }: AdminTopbarProps) {
+  const { defaults } = usePlatformDefaults();
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -64,13 +67,8 @@ export function AdminTopbar({
   }, [firstName, lastName, email]);
 
   const currentDate = useMemo(() => {
-    return new Intl.DateTimeFormat("en-QA", {
-      weekday: "short",
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    }).format(new Date());
-  }, []);
+    return formatPlatformDate(new Date(), defaults);
+  }, [defaults]);
 
   const profileActions: TopbarAction[] = [
     {

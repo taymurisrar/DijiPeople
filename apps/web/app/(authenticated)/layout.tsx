@@ -25,6 +25,7 @@ import { ErrorProvider } from "@/app/components/errors/error-provider";
 import { SystemPreferencesProvider } from "./_components/resolved-settings-provider";
 import { NotificationPopupProvider } from "./_components/notification-popup-provider";
 import { resolveRouteTitle } from "@/lib/tenant-branding-client";
+import { buildFaviconMetadata } from "@/lib/favicon-metadata";
 
 const getResolvedTenantSettings = cache(() =>
   apiRequestJson<TenantResolvedSettingsResponse>(
@@ -49,9 +50,10 @@ export async function generateMetadata(): Promise<Metadata> {
     title: pageTitle
       ? `${pageTitle} | ${branding.appTitle}`
       : branding.appTitle,
-    icons: {
-      icon: branding.faviconUrl || "/favicon.ico",
-    },
+    icons: buildFaviconMetadata(
+      branding.faviconUrl,
+      `${resolvedSettings?.organization.companyDisplayName ?? ""}:${branding.faviconUrl}`,
+    ),
   };
 }
 

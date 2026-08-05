@@ -36,8 +36,9 @@
     "seed:demo:reset": "ts-node prisma/seed-demo-reset.ts",
     "seed:demo:reseed": "npm run seed:demo:reset && npm run seed:demo",
     "seed:payroll-flow": "ts-node prisma/seed-payroll-flow.ts",
+    "seed:platform-workflows": "ts-node prisma/seed-platform-workflows.ts",
     "invoice:sample-pdf": "ts-node src/modules/super-admin/invoice-pdf.sample.ts",
-    "seed:all": "npm run seed:admin && npm run seed:config && npm run seed:demo",
+    "seed:all": "npm run seed:admin && npm run seed:config && npm run seed:platform-workflows && npm run seed:demo",
     "release": "npm run prisma:migrate:deploy && npm run seed:config && npm run seed:verify && npm run seed:admin"
   },
   "dependencies": {
@@ -55,15 +56,18 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.4",
     "cookie-parser": "^1.4.7",
+    "docx": "^9.7.1",
     "dotenv": "^16.0.3",
     "express": "^5.2.1",
     "mammoth": "^1.12.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "pdf-parse": "^1.1.1",
+    "pdfkit": "^0.19.1",
     "pg": "^8.21.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "sanitize-html": "^2.17.6",
     "stripe": "^22.1.1",
     "xlsx": "^0.18.5"
   },
@@ -79,7 +83,9 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^24.0.0",
     "@types/passport-jwt": "^4.0.1",
+    "@types/pdfkit": "^0.17.6",
     "@types/pg": "^8.20.0",
+    "@types/sanitize-html": "^2.16.1",
     "@types/supertest": "^7.0.0",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
@@ -108,6 +114,9 @@
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },
+    "transformIgnorePatterns": [
+      "/node_modules/(?!(htmlparser2|domelementtype|domhandler|domutils|dom-serializer|entities)/)"
+    ],
     "collectCoverageFrom": [
       "**/*.(t|j)s"
     ],

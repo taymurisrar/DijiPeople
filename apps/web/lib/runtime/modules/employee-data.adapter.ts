@@ -401,7 +401,7 @@ export const employeeModuleDataAdapter: ModuleDataAdapter<
       input.widget.widgetType === "agent_desktop"
     ) {
       return requestJson(
-        `/api/agent/employees/${encodeURIComponent(input.recordId)}/summary?pageSize=100`,
+        `/api/agent/employees/${encodeURIComponent(input.recordId)}/summary?pageSize=25`,
       );
     }
 
@@ -410,7 +410,7 @@ export const employeeModuleDataAdapter: ModuleDataAdapter<
       input.widget.widgetType === "reporting_hierarchy"
     ) {
       return mapReportingHierarchy(
-        await requestJson(
+        await requestOptionalLookupJson(
           `/api/employees/${encodeURIComponent(input.recordId)}/reporting-structure`,
         ),
       );
@@ -488,11 +488,19 @@ function sameOptionalLookup(nextValue: unknown, currentValue: unknown) {
 }
 
 function mapReportingHierarchy(data: unknown) {
-  if (!isRecord(data)) return data;
+  if (!isRecord(data)) return emptyReportingHierarchy();
   return {
     currentEmployee: mapReportingNode(data.currentEmployee),
     reportingLine: mapReportingNodes(data.reportingLine),
     directReports: mapReportingNodes(data.directReports),
+  };
+}
+
+function emptyReportingHierarchy() {
+  return {
+    currentEmployee: null,
+    reportingLine: [],
+    directReports: [],
   };
 }
 
@@ -583,17 +591,24 @@ function viewExportQuery(input: ModuleListInput) {
 }
 
 async function requestJson(path: string, init: RequestInit = {}) {
+  const method = init.method ?? "GET";
   const response = await fetch(path, {
     ...init,
     cache: "no-store",
     headers: {
       "Content-Type": "application/json",
+      [INLINE_ERROR_HANDLING_HEADER]: "inline",
       ...(init.headers ?? {}),
     },
   });
 
   if (!response.ok) {
-    throw await readResponseError(response, "Employee API request failed.");
+    throw await readResponseError(
+      response,
+      "Employee API request failed.",
+      path,
+      method,
+    );
   }
 
   if (response.status === 204) return null;
@@ -616,7 +631,12 @@ async function requestFile(path: string) {
   const response = await fetch(path, { cache: "no-store" });
 
   if (!response.ok) {
-    throw await readResponseError(response, "Employee export failed.");
+    throw await readResponseError(
+      response,
+      "Employee export failed.",
+      path,
+      "GET",
+    );
   }
 
   return response.blob();
@@ -643,9 +663,29 @@ function isEmployeeApiStatus(error: unknown, status: number) {
   );
 }
 
-async function readResponseError(response: Response, fallback: string) {
+async function readResponseError(
+  response: Response,
+  fallback: string,
+  path: string,
+  method: string,
+) {
   const text = await response.text().catch(() => "");
-  if (!text) return new EmployeeApiError(fallback);
+  if (!text) {
+    return new EmployeeApiError(fallback, {
+      response: {
+        success: false,
+        status: response.status,
+        statusCode: response.status,
+        message: response.statusText || fallback,
+        path,
+        method,
+        details: {
+          responseStatus: response.status,
+          responseStatusText: response.statusText || null,
+        },
+      },
+    });
+  }
 
   try {
     const data = JSON.parse(text) as {
@@ -666,10 +706,45 @@ async function readResponseError(response: Response, fallback: string) {
         normalizeFieldErrors(readRecord(data.details)?.fields) ??
         normalizeFieldErrors(data.errors) ??
         fieldErrorsFromValidationMessages(data.message),
-      response: data,
+      response: {
+        ...data,
+        status: response.status,
+        statusCode:
+          typeof (data as { statusCode?: unknown }).statusCode === "number"
+            ? (data as { statusCode: number }).statusCode
+            : response.status,
+        path:
+          typeof (data as { path?: unknown }).path === "string"
+            ? (data as { path: string }).path
+            : path,
+        method:
+          typeof (data as { method?: unknown }).method === "string"
+            ? (data as { method: string }).method
+            : method,
+        details:
+          data.details ??
+          ({
+            responseStatus: response.status,
+            responseStatusText: response.statusText || null,
+          } satisfies Record<string, unknown>),
+      },
     });
   } catch {
-    return new EmployeeApiError(text);
+    return new EmployeeApiError(text || fallback, {
+      response: {
+        success: false,
+        status: response.status,
+        statusCode: response.status,
+        message: text || response.statusText || fallback,
+        path,
+        method,
+        details: {
+          responseStatus: response.status,
+          responseStatusText: response.statusText || null,
+          responseText: text.slice(0, 4000) || null,
+        },
+      },
+    });
   }
 }
 

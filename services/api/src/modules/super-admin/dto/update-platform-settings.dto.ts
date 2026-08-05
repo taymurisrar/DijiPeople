@@ -33,11 +33,22 @@ export class UpdatePlatformSettingsDto {
 
   @IsOptional()
   @IsObject()
+  companyProfile?: Record<string, unknown>;
+
+  @IsOptional()
+  @IsObject()
   featureCatalog?: Record<string, unknown>;
 
   @IsOptional()
   @IsObject()
   leadDefinitions?: Record<string, unknown>;
+
+  @IsOptional() @IsObject() contractSettings?: Record<string, unknown>;
+  @IsOptional() @IsObject() partnerSettings?: Record<string, unknown>;
+  @IsOptional() @IsObject() customerSettings?: Record<string, unknown>;
+  @IsOptional() @IsObject() supportSettings?: Record<string, unknown>;
+  @IsOptional() @IsObject() moduleSettings?: Record<string, unknown>;
+  @IsOptional() @IsObject() communicationSettings?: Record<string, unknown>;
 
   @IsOptional()
   @IsBoolean()

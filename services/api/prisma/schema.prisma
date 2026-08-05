@@ -50,6 +50,29 @@ enum BillingCycle {
   ANNUAL
 }
 
+enum BillingModel {
+  PER_SEAT
+  FLAT
+}
+
+enum BillingInterval {
+  MONTH
+  YEAR
+}
+
+enum StripeEnvironment {
+  TEST
+  LIVE
+}
+
+enum StripeSyncStatus {
+  NOT_SYNCED
+  PENDING
+  SYNCED
+  FAILED
+  ENVIRONMENT_MISMATCH
+}
+
 enum DiscountType {
   NONE
   PERCENTAGE
@@ -149,12 +172,320 @@ enum UserStatus {
 enum PlatformUserRole {
   SUPER_ADMIN
   MEMBER
+  PLATFORM_OWNER
+  PLATFORM_ADMIN
+  PLATFORM_OPERATIONS
+  PRESALES_MANAGER
+  PRESALES_USER
+  PARTNER_MANAGER
+  CONTRACT_MANAGER
+  LEGAL_REVIEWER
+  FINANCE_MANAGER
+  BILLING_USER
+  SUPPORT_MANAGER
+  SUPPORT_AGENT
+  MONITORING_OPERATOR
+  READ_ONLY_AUDITOR
 }
 
 enum PlatformUserStatus {
   ACTIVE
   INVITED
   DISABLED
+}
+
+enum PartnerType {
+  INDIVIDUAL
+  COMPANY
+}
+
+enum PartnerStatus {
+  DRAFT
+  INQUIRY
+  NEW_INQUIRY
+  MORE_INFORMATION_REQUIRED
+  QUALIFIED
+  APPROVED_AWAITING_AGREEMENT
+  AGREEMENT_IN_PROGRESS
+  AGREEMENT_EXECUTED
+  ONBOARDING_PENDING
+  ONBOARDING_INVITED
+  ONBOARDING_IN_PROGRESS
+  SUBMITTED
+  UNDER_REVIEW
+  INFORMATION_APPROVED
+  AGREEMENT_DRAFTING
+  INTERNAL_APPROVAL
+  AWAITING_SIGNATURE
+  FULLY_SIGNED
+  APPROVED_FOR_ACTIVATION
+  ACTIVE
+  SUSPENDED
+  INACTIVE
+  TERMINATED
+  REJECTED
+}
+
+enum PartnerAccountStatus {
+  NOT_PROVISIONED
+  INVITED
+  ACTIVE
+  SUSPENDED
+  DISABLED
+}
+
+enum PartnerReferralLinkStatus {
+  ACTIVE
+  DISABLED
+  EXPIRED
+  REGENERATED
+}
+
+enum LeadAttributionStatus {
+  DIRECT
+  ATTRIBUTED
+  INVALID_CODE
+  INACTIVE_PARTNER
+  EXPIRED_LINK
+  DISABLED_LINK
+  CORRECTED
+}
+
+enum ContractType {
+  PARTNER_AGREEMENT
+  MASTER_PARTNER_AGREEMENT
+  COMMISSION_ADDENDUM
+  TERRITORY_ADDENDUM
+  REFERRAL_ADDENDUM
+  CUSTOMER_AGREEMENT
+  MASTER_SERVICES_AGREEMENT
+  SUBSCRIPTION_AGREEMENT
+  DATA_PROCESSING_AGREEMENT
+  SLA
+  STATEMENT_OF_WORK
+  NDA
+  SERVICE_AGREEMENT
+  ADDENDUM
+  AMENDMENT
+  RENEWAL
+  TERMINATION
+  OTHER
+}
+
+enum ContractStatus {
+  DRAFT
+  INTERNAL_REVIEW
+  APPROVED_FOR_SENDING
+  COMMERCIAL_APPROVAL
+  LEGAL_APPROVAL
+  COUNTERPARTY_REVIEW
+  READY_FOR_SIGNATURE
+  SENT
+  VIEWED
+  SIGNATURE_IN_PROGRESS
+  PARTIALLY_SIGNED
+  FULLY_SIGNED
+  FULLY_EXECUTED
+  DECLINED
+  VOIDED
+  SUPERSEDED
+  ACTIVE
+  EXPIRING
+  EXPIRED
+  TERMINATED
+  ARCHIVED
+}
+
+enum ContractSigningMode {
+  SEQUENTIAL
+  PARALLEL
+  MIXED
+}
+
+enum ContractPartyType {
+  PLATFORM
+  PARTNER
+  CUSTOMER
+  LEAD
+  TENANT
+  INDIVIDUAL
+  EXTERNAL_ORGANIZATION
+}
+
+enum ContractPartyRole {
+  PROVIDER
+  PARTNER
+  CUSTOMER
+  CLIENT
+  REFERRER
+  AUTHORIZED_SIGNATORY
+  WITNESS
+  GUARANTOR
+  OTHER
+}
+
+enum ContractFieldType {
+  TEXT
+  TEXTAREA
+  DATE
+  NUMBER
+  CURRENCY
+  PERCENTAGE
+  DROPDOWN
+  CHECKBOX
+  EMAIL
+  PHONE
+  ADDRESS
+  LOOKUP
+  SIGNATURE
+  INITIALS
+}
+
+enum ContractVersionStatus {
+  DRAFT
+  REVIEW
+  APPROVED
+  SENT_FOR_SIGNATURE
+  SIGNED
+  SUPERSEDED
+}
+
+enum ContractDocumentKind {
+  GENERATED_PREVIEW
+  GENERATED_PDF
+  SOURCE_UPLOAD
+  SIGNED_ORIGINAL
+  SIGNED_COPY
+  EVIDENCE_BUNDLE
+}
+
+enum ContractDocumentSource {
+  BLANK
+  EDITOR
+  TEMPLATE
+  COPY
+  UPLOAD
+  SIGNATURE
+}
+
+enum PlatformApprovalStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+  RETURNED
+  CANCELLED
+}
+
+enum PlatformApprovalStepStatus {
+  NOT_STARTED
+  PENDING
+  APPROVED
+  REJECTED
+  RETURNED
+  SKIPPED
+}
+
+enum SignatureRequestStatus {
+  DRAFT
+  SENT
+  VIEWED
+  PARTIALLY_SIGNED
+  COMPLETED
+  DECLINED
+  CHANGES_REQUESTED
+  CANCELLED
+  EXPIRED
+}
+
+enum SignatureRecipientStatus {
+  PENDING
+  SENT
+  VIEWED
+  SIGNED
+  DECLINED
+  CHANGES_REQUESTED
+  EXPIRED
+}
+
+enum SignatureMethod {
+  TYPED
+  DRAWN
+  UPLOADED
+}
+
+enum PartnerInquiryStatus {
+  NEW
+  QUALIFYING
+  QUALIFIED
+  REJECTED
+  CONVERTED
+}
+
+enum PartnerOnboardingStatus {
+  INVITED
+  IN_PROGRESS
+  SUBMITTED
+  UNDER_REVIEW
+  CHANGES_REQUESTED
+  APPROVED
+  REJECTED
+}
+
+enum PartnerLeadReviewStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  CHANGES_REQUESTED
+  APPROVED
+  REJECTED
+  CONVERTED
+}
+
+enum SupportCaseStatus {
+  NEW
+  TRIAGED
+  ASSIGNED
+  INVESTIGATING
+  WAITING_ON_CUSTOMER
+  WAITING_ON_INTERNAL_TEAM
+  FIX_IN_PROGRESS
+  MONITORING
+  RESOLVED
+  CLOSED
+  REOPENED
+  CANCELLED
+}
+
+enum SupportCasePriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum SupportCaseSeverity {
+  S1_CRITICAL
+  S2_HIGH
+  S3_MEDIUM
+  S4_LOW
+}
+
+enum SupportCaseChannel {
+  WEB
+  EMAIL
+  PHONE
+  CHAT
+  MONITORING
+  INTERNAL
+}
+
+enum PartnerCommissionStatus {
+  PENDING
+  APPROVED
+  PAYABLE
+  PAID
+  VOID
 }
 
 enum DemoSeedBatchStatus {
@@ -1465,6 +1796,10 @@ enum PolicyAssignmentScopeType {
 model Tenant {
   id                              String                           @id @default(uuid())
   customerAccountId               String
+  originatingPartnerId            String?
+  originatingLeadId               String?
+  originatingReferralLinkId       String?
+  referralCodeSnapshot            String?
   ownerUserId                     String?
   tenantCode                      String?                          @unique
   name                            String
@@ -1481,6 +1816,10 @@ model Tenant {
   demoBatchId                     String?
   seedSource                      String?
   users                           User[]
+  platformContracts               Contract[]
+  originatingPartner              Partner?                         @relation("PartnerAttributedTenants", fields: [originatingPartnerId], references: [id], onDelete: SetNull)
+  originatingLead                 Lead?                            @relation("LeadAttributedTenants", fields: [originatingLeadId], references: [id], onDelete: SetNull)
+  platformSupportCases            SupportCase[]
   roles                           Role[]
   permissions                     Permission[]
   userPermissions                 UserPermission[]
@@ -1623,6 +1962,7 @@ model Tenant {
   employeeCompensationHistories   EmployeeCompensationHistory[]
   employeeCompensationComponents  EmployeeCompensationComponent[]
   employeeDevices                 EmployeeDevice[]
+  agentLocationRequests           AgentLocationRequest[]
   agentRefreshTokens              AgentRefreshToken[]
   workSessions                    WorkSession[]
   activityEvents                  ActivityEvent[]
@@ -1683,6 +2023,9 @@ model Tenant {
   @@index([slug])
   @@index([tenantCode])
   @@index([customerAccountId])
+  @@index([originatingPartnerId])
+  @@index([originatingLeadId])
+  @@index([originatingReferralLinkId])
   @@index([ownerUserId])
   @@index([isDemoData])
   @@index([demoBatchId])
@@ -1766,6 +2109,9 @@ model CustomerAccount {
   customPricingFlag          Boolean                     @default(false)
   discountApproved           Boolean                     @default(false)
   leadId                     String?
+  originatingPartnerId       String?
+  originatingReferralLinkId  String?
+  referralCodeSnapshot       String?
   status                     CustomerAccountStatus       @default(LEAD)
   subStatus                  String?
   assignedToUserId           String?
@@ -1783,9 +2129,13 @@ model CustomerAccount {
   tenants                    Tenant[]
   selectedPlan               Plan?                       @relation("SelectedCustomerPlan", fields: [selectedPlanId], references: [id], onDelete: SetNull)
   sourceLead                 Lead?                       @relation("LeadToCustomer", fields: [leadId], references: [id], onDelete: SetNull)
+  originatingPartner         Partner?                    @relation("PartnerAttributedCustomers", fields: [originatingPartnerId], references: [id], onDelete: SetNull)
+  originatingReferralLink    PartnerReferralLink?        @relation("ReferralLinkCustomers", fields: [originatingReferralLinkId], references: [id], onDelete: SetNull)
   contacts                   CustomerContact[]
   notes                      CustomerNote[]
   onboardings                CustomerOnboarding[]
+  contracts                  Contract[]
+  supportCases               SupportCase[]
   payrollCostAllocationLines PayrollCostAllocationLine[]
 
   @@index([status])
@@ -1794,6 +2144,8 @@ model CustomerAccount {
   @@index([accountManagerUserId])
   @@index([primaryOwnerUserId])
   @@index([leadId])
+  @@index([originatingPartnerId])
+  @@index([originatingReferralLinkId])
   @@index([selectedPlanId])
   @@index([isDemoData])
   @@index([demoBatchId])
@@ -1848,7 +2200,7 @@ model CustomerNote {
 }
 
 model Lead {
-  id                     String               @id @default(uuid())
+  id                     String                      @id @default(uuid())
   contactFirstName       String?
   contactLastName        String?
   fullName               String
@@ -1867,18 +2219,30 @@ model Lead {
   requirementsSummary    String?
   notes                  String?
   assignedToUserId       String?
+  partnerId              String?
+  partnerReferralLinkId  String?
+  referralCodeSnapshot   String?
+  referralSource         String?
+  referredAt             DateTime?
+  attributionStatus      LeadAttributionStatus       @default(DIRECT)
   subStatus              String?
-  isQualified            Boolean              @default(false)
+  isQualified            Boolean                     @default(false)
   convertedAt            DateTime?
   message                String?
   interestedPlan         String?
   source                 String
-  status                 LeadStatus           @default(NEW)
-  createdAt              DateTime             @default(now())
-  updatedAt              DateTime             @updatedAt
-  assignedToUser         PlatformUser?        @relation("AssignedLeads", fields: [assignedToUserId], references: [id], onDelete: SetNull)
-  convertedCustomers     CustomerAccount[]    @relation("LeadToCustomer")
+  status                 LeadStatus                  @default(NEW)
+  createdAt              DateTime                    @default(now())
+  updatedAt              DateTime                    @updatedAt
+  assignedToUser         PlatformUser?               @relation("AssignedLeads", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+  partner                Partner?                    @relation(fields: [partnerId], references: [id], onDelete: SetNull)
+  partnerReferralLink    PartnerReferralLink?        @relation(fields: [partnerReferralLinkId], references: [id], onDelete: SetNull)
+  convertedCustomers     CustomerAccount[]           @relation("LeadToCustomer")
   onboardings            CustomerOnboarding[]
+  partnerLeadReview      PartnerLeadReview?
+  contracts              Contract[]                  @relation("LeadContracts")
+  attributedTenants      Tenant[]                    @relation("LeadAttributedTenants")
+  attributionCorrections LeadAttributionCorrection[]
 
   @@index([status, createdAt])
   @@index([subStatus, createdAt])
@@ -1886,6 +2250,918 @@ model Lead {
   @@index([companyName])
   @@index([source, createdAt])
   @@index([assignedToUserId])
+  @@index([partnerId])
+  @@index([partnerReferralLinkId])
+  @@index([attributionStatus, referredAt])
+}
+
+model Partner {
+  id                     String                         @id @default(uuid())
+  code                   String                         @unique
+  type                   PartnerType                    @default(COMPANY)
+  displayName            String
+  legalName              String?
+  companyName            String?
+  contactFirstName       String?
+  contactLastName        String?
+  email                  String
+  phone                  String?
+  country                String?
+  website                String?
+  taxId                  String?
+  defaultCommissionRate  Decimal                        @default(0) @db.Decimal(5, 2)
+  currencyCode           String
+  status                 PartnerStatus                  @default(DRAFT)
+  accountStatus          PartnerAccountStatus           @default(NOT_PROVISIONED)
+  applicationSnapshot    Json?
+  applicationSubmittedAt DateTime?
+  applicationSource      String?
+  assignedToUserId       String?
+  notes                  String?
+  createdAt              DateTime                       @default(now())
+  updatedAt              DateTime                       @updatedAt
+  assignedToUser         PlatformUser?                  @relation("AssignedPartners", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+  leads                  Lead[]
+  commissions            PartnerCommission[]
+  agreements             Contract[]
+  inquiries              PartnerInquiry[]
+  onboardingApplications PartnerOnboardingApplication[]
+  portalUsers            PartnerPortalUser[]
+  leadReviews            PartnerLeadReview[]
+  supportCases           SupportCase[]
+  referralLinks          PartnerReferralLink[]
+  attributedCustomers    CustomerAccount[]              @relation("PartnerAttributedCustomers")
+  attributedTenants      Tenant[]                       @relation("PartnerAttributedTenants")
+  previousAttributions   LeadAttributionCorrection[]    @relation("PreviousAttributionPartner")
+  correctedAttributions  LeadAttributionCorrection[]    @relation("CorrectedAttributionPartner")
+  timeline               PartnerTimeline[]
+
+  @@index([status, createdAt])
+  @@index([displayName])
+  @@index([email])
+  @@index([assignedToUserId])
+  @@index([accountStatus, status])
+}
+
+model PartnerReferralLink {
+  id              String                    @id @default(uuid())
+  partnerId       String
+  name            String
+  code            String                    @unique
+  targetPath      String                    @default("/request-demo")
+  campaignName    String?
+  isDefault       Boolean                   @default(false)
+  status          PartnerReferralLinkStatus @default(ACTIVE)
+  expiresAt       DateTime?
+  createdById     String?
+  lastUsedAt      DateTime?
+  submissionCount Int                       @default(0)
+  replacedById    String?
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+  partner         Partner                   @relation(fields: [partnerId], references: [id], onDelete: Restrict)
+  replacedBy      PartnerReferralLink?      @relation("ReferralLinkReplacement", fields: [replacedById], references: [id], onDelete: SetNull)
+  replaces        PartnerReferralLink[]     @relation("ReferralLinkReplacement")
+  leads           Lead[]
+  customers       CustomerAccount[]         @relation("ReferralLinkCustomers")
+
+  @@index([partnerId, status])
+  @@index([partnerId, isDefault])
+  @@index([expiresAt, status])
+}
+
+model LeadAttributionCorrection {
+  id                      String   @id @default(uuid())
+  leadId                  String
+  previousPartnerId       String?
+  correctedPartnerId      String?
+  previousReferralLinkId  String?
+  correctedReferralLinkId String?
+  previousReferralCode    String?
+  correctedReferralCode   String?
+  reason                  String
+  changedById             String
+  createdAt               DateTime @default(now())
+  lead                    Lead     @relation(fields: [leadId], references: [id], onDelete: Restrict)
+  previousPartner         Partner? @relation("PreviousAttributionPartner", fields: [previousPartnerId], references: [id], onDelete: Restrict)
+  correctedPartner        Partner? @relation("CorrectedAttributionPartner", fields: [correctedPartnerId], references: [id], onDelete: Restrict)
+
+  @@index([leadId, createdAt])
+  @@index([previousPartnerId])
+  @@index([correctedPartnerId])
+}
+
+model PartnerTimeline {
+  id        String   @id @default(uuid())
+  partnerId String
+  eventType String
+  actorType String
+  actorId   String?
+  message   String
+  metadata  Json?
+  createdAt DateTime @default(now())
+  partner   Partner  @relation(fields: [partnerId], references: [id], onDelete: Restrict)
+
+  @@index([partnerId, createdAt])
+}
+
+model PartnerCommission {
+  id                String                  @id @default(uuid())
+  partnerId         String
+  leadId            String?
+  customerAccountId String?
+  invoiceId         String?
+  commissionNumber  String                  @unique
+  status            PartnerCommissionStatus @default(PENDING)
+  baseAmount        Decimal                 @db.Decimal(12, 2)
+  commissionRate    Decimal                 @db.Decimal(5, 2)
+  commissionAmount  Decimal                 @db.Decimal(12, 2)
+  currencyCode      String
+  description       String?
+  earnedAt          DateTime?
+  dueAt             DateTime?
+  paidAt            DateTime?
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+  partner           Partner                 @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@index([partnerId, status])
+  @@index([leadId])
+  @@index([customerAccountId])
+  @@index([invoiceId])
+}
+
+model ContractTemplate {
+  id                   String                    @id @default(uuid())
+  key                  String
+  name                 String
+  contractType         ContractType
+  description          String?
+  documentMode         ContractDocumentSource    @default(EDITOR)
+  signingMode          ContractSigningMode       @default(MIXED)
+  lifecycleGatePurpose String?
+  isActive             Boolean                   @default(true)
+  archivedAt           DateTime?
+  createdById          String?
+  updatedById          String?
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
+  versions             ContractTemplateVersion[]
+  contracts            Contract[]
+
+  @@unique([key, contractType])
+  @@index([contractType, isActive, archivedAt])
+}
+
+model ContractTemplateVersion {
+  id                   String            @id @default(uuid())
+  templateId           String
+  version              Int
+  title                String
+  contentHtml          String
+  contentText          String
+  placeholders         Json?
+  fieldDefinitions     Json?
+  partyDefinitions     Json?
+  signingConfig        Json?
+  lifecycleGatePurpose String?
+  sourceFileName       String?
+  sourceMimeType       String?
+  sourceStorageKey     String?
+  sourceSha256         String?
+  changeSummary        String?
+  isPublished          Boolean           @default(false)
+  publishedAt          DateTime?
+  createdById          String?
+  createdAt            DateTime          @default(now())
+  template             ContractTemplate  @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  contractVersions     ContractVersion[]
+
+  @@unique([templateId, version])
+  @@index([templateId, isPublished])
+}
+
+model Contract {
+  id                    String                     @id @default(uuid())
+  contractNumber        String                     @unique
+  title                 String
+  contractType          ContractType
+  status                ContractStatus             @default(DRAFT)
+  agreementCategory     String?
+  lifecycleGatePurpose  String?
+  isGoverningAgreement  Boolean                    @default(false)
+  signingMode           ContractSigningMode        @default(MIXED)
+  counterpartyType      String?
+  processStage          String?
+  templateId            String?
+  partnerId             String?
+  customerAccountId     String?
+  customerOnboardingId  String?
+  tenantId              String?
+  relatedLeadId         String?
+  ownerPlatformUserId   String?
+  internalLegalOwnerId  String?
+  counterpartyName      String
+  counterpartyEmail     String?
+  documentSource        ContractDocumentSource     @default(BLANK)
+  currencyCode          String?
+  contractValue         Decimal?                   @db.Decimal(14, 2)
+  commissionPercentage  Decimal?                   @db.Decimal(5, 2)
+  commissionBasis       String?
+  paymentTerms          String?
+  governingLaw          String?
+  jurisdiction          String?
+  confidentialityClass  String?
+  effectiveDate         DateTime?
+  expiryDate            DateTime?
+  effectiveFrom         DateTime?
+  effectiveUntil        DateTime?
+  autoRenewal           Boolean                    @default(false)
+  renewalNoticeDays     Int?
+  terminationNoticeDays Int?
+  currentVersionNumber  Int                        @default(0)
+  parentContractId      String?
+  amendsContractId      String?
+  renewsContractId      String?
+  supersedesContractId  String?
+  subscriptionId        String?
+  amendmentNumber       Int?
+  signedAt              DateTime?
+  activatedAt           DateTime?
+  terminatedAt          DateTime?
+  terminationReason     String?
+  archivedAt            DateTime?
+  notes                 String?
+  createdById           String?
+  updatedById           String?
+  createdAt             DateTime                   @default(now())
+  updatedAt             DateTime                   @updatedAt
+  template              ContractTemplate?          @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  partner               Partner?                   @relation(fields: [partnerId], references: [id], onDelete: Restrict)
+  customerAccount       CustomerAccount?           @relation(fields: [customerAccountId], references: [id], onDelete: Restrict)
+  customerOnboarding    CustomerOnboarding?        @relation(fields: [customerOnboardingId], references: [id], onDelete: Restrict)
+  tenant                Tenant?                    @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  relatedLead           Lead?                      @relation("LeadContracts", fields: [relatedLeadId], references: [id], onDelete: Restrict)
+  ownerPlatformUser     PlatformUser?              @relation("OwnedContracts", fields: [ownerPlatformUserId], references: [id], onDelete: SetNull)
+  internalLegalOwner    PlatformUser?              @relation("LegalOwnedContracts", fields: [internalLegalOwnerId], references: [id], onDelete: SetNull)
+  createdBy             PlatformUser?              @relation("ContractsCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy             PlatformUser?              @relation("ContractsUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  parentContract        Contract?                  @relation("ContractAmendments", fields: [parentContractId], references: [id], onDelete: Restrict)
+  amendments            Contract[]                 @relation("ContractAmendments")
+  amendsContract        Contract?                  @relation("ContractAmends", fields: [amendsContractId], references: [id], onDelete: Restrict)
+  amendedByContracts    Contract[]                 @relation("ContractAmends")
+  renewsContract        Contract?                  @relation("ContractRenews", fields: [renewsContractId], references: [id], onDelete: Restrict)
+  renewalContracts      Contract[]                 @relation("ContractRenews")
+  supersedesContract    Contract?                  @relation("ContractSupersedes", fields: [supersedesContractId], references: [id], onDelete: Restrict)
+  supersedingContracts  Contract[]                 @relation("ContractSupersedes")
+  subscription          Subscription?              @relation(fields: [subscriptionId], references: [id], onDelete: Restrict)
+  versions              ContractVersion[]
+  documents             ContractDocument[]
+  placeholderValues     ContractPlaceholderValue[]
+  approvalRequests      PlatformApprovalRequest[]
+  signatureRequests     SignatureRequest[]
+  timeline              ContractTimeline[]
+  relatedRecords        ContractRelatedRecord[]
+  parties               ContractParty[]
+  fieldPlacements       ContractFieldPlacement[]
+  supportCases          SupportCase[]
+
+  @@index([contractType, status, createdAt])
+  @@index([partnerId, status])
+  @@index([customerAccountId, status])
+  @@index([customerOnboardingId, status])
+  @@index([tenantId, status])
+  @@index([relatedLeadId, status])
+  @@index([ownerPlatformUserId, status])
+  @@index([internalLegalOwnerId, status])
+  @@index([parentContractId, amendmentNumber])
+  @@index([amendsContractId])
+  @@index([renewsContractId])
+  @@index([supersedesContractId])
+  @@index([subscriptionId])
+  @@index([lifecycleGatePurpose, status])
+  @@index([expiryDate, status])
+  @@index([signedAt, status])
+}
+
+model ContractVersion {
+  id                        String                   @id @default(uuid())
+  contractId                String
+  templateVersionId         String?
+  version                   Int
+  status                    ContractVersionStatus    @default(DRAFT)
+  title                     String
+  contentHtml               String
+  contentText               String
+  sourceFileName            String?
+  sourceMimeType            String?
+  sourceStorageKey          String?
+  contentSha256             String
+  placeholderSnapshot       Json?
+  placeholderSnapshotSha256 String?                  @db.VarChar(64)
+  frozenMergeValues         Json?
+  renderedAt                DateTime?
+  changeSummary             String?
+  lockedAt                  DateTime?
+  signedAt                  DateTime?
+  createdById               String?
+  createdAt                 DateTime                 @default(now())
+  contract                  Contract                 @relation(fields: [contractId], references: [id], onDelete: Restrict)
+  templateVersion           ContractTemplateVersion? @relation(fields: [templateVersionId], references: [id], onDelete: Restrict)
+  documents                 ContractDocument[]
+  signatureRequests         SignatureRequest[]
+  fieldPlacements           ContractFieldPlacement[]
+
+  @@unique([contractId, version])
+  @@index([contractId, status])
+  @@index([contentSha256])
+  @@index([placeholderSnapshotSha256])
+}
+
+model ContractDocument {
+  id                  String                 @id @default(uuid())
+  contractId          String
+  contractVersionId   String?
+  kind                ContractDocumentKind
+  source              ContractDocumentSource
+  fileName            String
+  mimeType            String
+  storageKey          String
+  sizeBytes           Int
+  sha256              String
+  isImmutable         Boolean                @default(false)
+  uploadedById        String?
+  createdAt           DateTime               @default(now())
+  contract            Contract               @relation(fields: [contractId], references: [id], onDelete: Restrict)
+  contractVersion     ContractVersion?       @relation(fields: [contractVersionId], references: [id], onDelete: Restrict)
+  signedForRequests   SignatureRequest[]     @relation("SignatureSignedDocument")
+  evidenceForRequests SignatureRequest[]     @relation("SignatureEvidenceDocument")
+
+  @@index([contractId, kind, createdAt])
+  @@index([contractVersionId])
+  @@index([sha256])
+}
+
+model ContractPlaceholderValue {
+  id          String   @id @default(uuid())
+  contractId  String
+  key         String
+  value       String
+  source      String?
+  updatedById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  contract    Contract @relation(fields: [contractId], references: [id], onDelete: Restrict)
+
+  @@unique([contractId, key])
+  @@index([contractId])
+}
+
+model ContractRelatedRecord {
+  id               String   @id @default(uuid())
+  contractId       String
+  entityType       String
+  entityId         String
+  relationshipType String   @default("RELATED")
+  metadata         Json?
+  createdById      String?
+  createdAt        DateTime @default(now())
+  contract         Contract @relation(fields: [contractId], references: [id], onDelete: Restrict)
+
+  @@unique([contractId, entityType, entityId, relationshipType])
+  @@index([entityType, entityId])
+}
+
+model ContractParty {
+  id             String               @id @default(uuid())
+  contractId     String
+  partyType      ContractPartyType
+  role           ContractPartyRole
+  name           String
+  legalName      String?
+  email          String?
+  phone          String?
+  organizationId String?
+  isPrimary      Boolean              @default(false)
+  status         String               @default("PENDING")
+  signingOrder   Int                  @default(1)
+  metadata       Json?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  contract       Contract             @relation(fields: [contractId], references: [id], onDelete: Restrict)
+  signers        SignatureRecipient[]
+
+  @@index([contractId, signingOrder])
+  @@index([contractId, partyType, role])
+}
+
+model ContractFieldPlacement {
+  id                String            @id @default(uuid())
+  contractId        String
+  contractVersionId String
+  partyId           String?
+  recipientId       String?
+  fieldKey          String
+  fieldType         ContractFieldType
+  pageNumber        Int
+  x                 Decimal           @db.Decimal(10, 4)
+  y                 Decimal           @db.Decimal(10, 4)
+  width             Decimal           @db.Decimal(10, 4)
+  height            Decimal           @db.Decimal(10, 4)
+  isRequired        Boolean           @default(true)
+  value             String?
+  status            String            @default("PENDING")
+  createdById       String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  contract          Contract          @relation(fields: [contractId], references: [id], onDelete: Restrict)
+  contractVersion   ContractVersion   @relation(fields: [contractVersionId], references: [id], onDelete: Restrict)
+
+  @@unique([contractVersionId, fieldKey])
+  @@index([contractId, pageNumber])
+  @@index([recipientId])
+  @@index([partyId])
+}
+
+model PlatformApprovalRequest {
+  id               String                   @id @default(uuid())
+  requestNumber    String                   @unique
+  moduleKey        String
+  entityType       String
+  entityId         String
+  contractId       String?
+  title            String
+  status           PlatformApprovalStatus   @default(DRAFT)
+  currentStepOrder Int?
+  submittedById    String
+  submittedAt      DateTime?
+  completedAt      DateTime?
+  metadata         Json?
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+  contract         Contract?                @relation(fields: [contractId], references: [id], onDelete: Restrict)
+  steps            PlatformApprovalStep[]
+  actions          PlatformApprovalAction[]
+
+  @@index([moduleKey, entityType, entityId])
+  @@index([status, createdAt])
+  @@index([contractId])
+}
+
+model PlatformApprovalStep {
+  id                String                     @id @default(uuid())
+  approvalRequestId String
+  stepOrder         Int
+  name              String
+  approverType      String
+  approverId        String?
+  status            PlatformApprovalStepStatus @default(NOT_STARTED)
+  dueAt             DateTime?
+  startedAt         DateTime?
+  completedAt       DateTime?
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
+  approvalRequest   PlatformApprovalRequest    @relation(fields: [approvalRequestId], references: [id], onDelete: Restrict)
+  actions           PlatformApprovalAction[]
+
+  @@unique([approvalRequestId, stepOrder])
+  @@index([approverId, status])
+}
+
+model PlatformApprovalAction {
+  id                String                  @id @default(uuid())
+  approvalRequestId String
+  approvalStepId    String?
+  actorUserId       String
+  action            String
+  comment           String?
+  metadata          Json?
+  createdAt         DateTime                @default(now())
+  approvalRequest   PlatformApprovalRequest @relation(fields: [approvalRequestId], references: [id], onDelete: Restrict)
+  approvalStep      PlatformApprovalStep?   @relation(fields: [approvalStepId], references: [id], onDelete: Restrict)
+
+  @@index([approvalRequestId, createdAt])
+  @@index([actorUserId, createdAt])
+}
+
+model SignatureRequest {
+  id                 String                 @id @default(uuid())
+  requestNumber      String                 @unique
+  contractId         String
+  contractVersionId  String
+  status             SignatureRequestStatus @default(DRAFT)
+  subject            String
+  message            String?
+  signingMode        ContractSigningMode    @default(MIXED)
+  voidReason         String?
+  expiresAt          DateTime?
+  sentAt             DateTime?
+  completedAt        DateTime?
+  cancelledAt        DateTime?
+  signedDocumentId   String?
+  evidenceDocumentId String?
+  createdById        String
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+  contract           Contract               @relation(fields: [contractId], references: [id], onDelete: Restrict)
+  contractVersion    ContractVersion        @relation(fields: [contractVersionId], references: [id], onDelete: Restrict)
+  signedDocument     ContractDocument?      @relation("SignatureSignedDocument", fields: [signedDocumentId], references: [id], onDelete: Restrict)
+  evidenceDocument   ContractDocument?      @relation("SignatureEvidenceDocument", fields: [evidenceDocumentId], references: [id], onDelete: Restrict)
+  recipients         SignatureRecipient[]
+  events             SignatureEvent[]
+
+  @@index([contractId, status])
+  @@index([contractVersionId])
+  @@index([expiresAt, status])
+  @@index([signedDocumentId])
+  @@index([evidenceDocumentId])
+}
+
+model SignatureRecipient {
+  id                 String                   @id @default(uuid())
+  signatureRequestId String
+  partyId            String?
+  name               String
+  email              String
+  role               String
+  signingOrder       Int                      @default(1)
+  isRequired         Boolean                  @default(true)
+  status             SignatureRecipientStatus @default(PENDING)
+  accessTokenHash    String                   @unique
+  tokenExpiresAt     DateTime
+  viewedAt           DateTime?
+  signedAt           DateTime?
+  declinedAt         DateTime?
+  declineReason      String?
+  tokenUsedAt        DateTime?
+  tokenRevokedAt     DateTime?
+  identityVerifiedAt DateTime?
+  verificationMethod String?
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+  signatureRequest   SignatureRequest         @relation(fields: [signatureRequestId], references: [id], onDelete: Restrict)
+  party              ContractParty?           @relation(fields: [partyId], references: [id], onDelete: Restrict)
+  evidence           SignatureEvidence?
+  events             SignatureEvent[]
+
+  @@index([signatureRequestId, signingOrder])
+  @@index([email, status])
+  @@index([partyId, status])
+}
+
+model SignatureEvidence {
+  id                   String             @id @default(uuid())
+  recipientId          String             @unique
+  method               SignatureMethod
+  typedName            String?
+  signatureStorageKey  String?
+  signatureSha256      String
+  consentText          String
+  consentVersion       String             @default("1")
+  consentAcceptedAt    DateTime
+  ipAddress            String?
+  userAgent            String?
+  sessionId            String?
+  signerEmail          String?
+  signerRole           String?
+  partyId              String?
+  agreementVersion     Int?
+  localSignedAt        String?
+  timezone             String?
+  authenticationMethod String?
+  verificationStatus   String             @default("UNVERIFIED")
+  requestTokenId       String?
+  requestExpiresAt     DateTime?
+  eventSequence        Int                @default(1)
+  previousEventHash    String?
+  eventHash            String
+  completionStatus     String             @default("COMPLETED")
+  auditMetadata        Json?
+  documentSha256       String
+  signedAt             DateTime           @default(now())
+  recipient            SignatureRecipient @relation(fields: [recipientId], references: [id], onDelete: Restrict)
+
+  @@index([signedAt])
+  @@index([documentSha256])
+  @@index([eventHash])
+}
+
+model SignatureEvent {
+  id                   String              @id @default(uuid())
+  signatureRequestId   String
+  recipientId          String?
+  eventType            String
+  eventSequence        Int
+  previousEventHash    String?
+  eventHash            String
+  ipAddress            String?
+  userAgent            String?
+  authenticationMethod String?
+  verificationStatus   String?
+  metadata             Json?
+  createdAt            DateTime            @default(now())
+  signatureRequest     SignatureRequest    @relation(fields: [signatureRequestId], references: [id], onDelete: Restrict)
+  recipient            SignatureRecipient? @relation(fields: [recipientId], references: [id], onDelete: Restrict)
+
+  @@unique([signatureRequestId, eventSequence])
+  @@index([recipientId, createdAt])
+  @@index([eventHash])
+}
+
+model ContractTimeline {
+  id         String   @id @default(uuid())
+  contractId String
+  eventType  String
+  actorType  String
+  actorId    String?
+  message    String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+  contract   Contract @relation(fields: [contractId], references: [id], onDelete: Restrict)
+
+  @@index([contractId, createdAt])
+}
+
+model PlatformOutboundEmail {
+  id                String    @id @default(uuid())
+  eventCode         String
+  idempotencyKey    String    @unique
+  recipient         String
+  subject           String
+  htmlBody          String
+  textBody          String?
+  status            String    @default("PENDING")
+  providerType      String?
+  providerMessageId String?
+  entityType        String?
+  entityId          String?
+  requestedById     String?
+  metadata          Json?
+  errorMessage      String?
+  attemptCount      Int       @default(0)
+  lastAttemptAt     DateTime?
+  nextRetryAt       DateTime?
+  sentAt            DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([eventCode, createdAt])
+  @@index([entityType, entityId, createdAt])
+  @@index([recipient, createdAt])
+  @@index([status, createdAt])
+  @@index([status, nextRetryAt])
+}
+
+model PartnerInquiry {
+  id                 String               @id @default(uuid())
+  referenceNumber    String               @unique
+  status             PartnerInquiryStatus @default(NEW)
+  partnerId          String?
+  type               PartnerType
+  companyName        String?
+  contactFirstName   String
+  contactLastName    String
+  email              String
+  phone              String?
+  country            String?
+  website            String?
+  message            String?
+  consentAcceptedAt  DateTime
+  source             String?
+  submissionHash     String?              @unique
+  originalSubmission Json
+  submittedAt        DateTime             @default(now())
+  lastRetryAt        DateTime?
+  assignedToUserId   String?
+  qualificationNotes String?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  partner            Partner?             @relation(fields: [partnerId], references: [id], onDelete: Restrict)
+
+  @@index([status, createdAt])
+  @@index([email])
+  @@index([assignedToUserId, status])
+  @@index([submittedAt])
+}
+
+model PartnerOnboardingApplication {
+  id                  String                        @id @default(uuid())
+  partnerId           String
+  status              PartnerOnboardingStatus       @default(INVITED)
+  invitationTokenHash String                        @unique
+  tokenExpiresAt      DateTime
+  submittedAt         DateTime?
+  reviewedAt          DateTime?
+  reviewedById        String?
+  reviewNotes         String?
+  version             Int                           @default(1)
+  createdAt           DateTime                      @default(now())
+  updatedAt           DateTime                      @updatedAt
+  partner             Partner                       @relation(fields: [partnerId], references: [id], onDelete: Restrict)
+  submissions         PartnerOnboardingSubmission[]
+
+  @@index([partnerId, status])
+  @@index([status, submittedAt])
+}
+
+model PartnerOnboardingSubmission {
+  id              String                       @id @default(uuid())
+  applicationId   String
+  version         Int
+  data            Json
+  submittedAt     DateTime
+  submittedFromIp String?
+  createdAt       DateTime                     @default(now())
+  application     PartnerOnboardingApplication @relation(fields: [applicationId], references: [id], onDelete: Restrict)
+
+  @@unique([applicationId, version])
+}
+
+model PartnerPortalUser {
+  id                  String                @id @default(uuid())
+  partnerId           String
+  email               String                @unique
+  firstName           String
+  lastName            String
+  passwordHash        String
+  status              String                @default("INVITED")
+  invitationTokenHash String?               @unique
+  invitationExpiresAt DateTime?
+  activatedAt         DateTime?
+  lastActiveAt        DateTime?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  partner             Partner               @relation(fields: [partnerId], references: [id], onDelete: Restrict)
+  refreshTokens       PartnerRefreshToken[]
+
+  @@index([partnerId, status])
+}
+
+model PartnerRefreshToken {
+  id           String            @id @default(uuid())
+  userId       String
+  tokenHash    String            @unique
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  replacedById String?
+  createdAt    DateTime          @default(now())
+  user         PartnerPortalUser @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId, expiresAt])
+}
+
+model PartnerLeadReview {
+  id              String                  @id @default(uuid())
+  leadId          String                  @unique
+  partnerId       String
+  status          PartnerLeadReviewStatus @default(DRAFT)
+  lockedAt        DateTime?
+  submittedAt     DateTime?
+  reviewedAt      DateTime?
+  reviewedById    String?
+  reviewerNotes   String?
+  rejectionReason String?
+  approvedAt      DateTime?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  lead            Lead                    @relation(fields: [leadId], references: [id], onDelete: Restrict)
+  partner         Partner                 @relation(fields: [partnerId], references: [id], onDelete: Restrict)
+
+  @@index([partnerId, status, createdAt])
+  @@index([status, submittedAt])
+}
+
+model SupportCase {
+  id                   String                     @id @default(uuid())
+  caseNumber           String                     @unique
+  title                String
+  description          String
+  status               SupportCaseStatus          @default(NEW)
+  priority             SupportCasePriority        @default(NORMAL)
+  severity             SupportCaseSeverity        @default(S3_MEDIUM)
+  channel              SupportCaseChannel         @default(INTERNAL)
+  category             String?
+  subcategory          String?
+  productArea          String?
+  customerAccountId    String?
+  tenantId             String?
+  partnerId            String?
+  subscriptionId       String?
+  invoiceId            String?
+  customerOnboardingId String?
+  contractId           String?
+  parentCaseId         String?
+  mergedIntoCaseId     String?
+  requesterName        String?
+  requesterEmail       String?
+  requesterUserId      String?
+  assignedToUserId     String?
+  assignedTeam         String?
+  escalationLevel      Int                        @default(0)
+  firstResponseDueAt   DateTime?
+  resolutionDueAt      DateTime?
+  firstRespondedAt     DateTime?
+  resolvedAt           DateTime?
+  closedAt             DateTime?
+  resolutionSummary    String?
+  resolutionCategory   String?
+  rootCause            String?
+  customerUpdate       String?
+  reopenedCount        Int                        @default(0)
+  closureConfirmedAt   DateTime?
+  createdById          String?
+  createdAt            DateTime                   @default(now())
+  updatedAt            DateTime                   @updatedAt
+  assignedToUser       PlatformUser?              @relation("AssignedSupportCases", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+  customerAccount      CustomerAccount?           @relation(fields: [customerAccountId], references: [id], onDelete: Restrict)
+  tenant               Tenant?                    @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  partner              Partner?                   @relation(fields: [partnerId], references: [id], onDelete: Restrict)
+  subscription         Subscription?              @relation(fields: [subscriptionId], references: [id], onDelete: Restrict)
+  invoice              Invoice?                   @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  customerOnboarding   CustomerOnboarding?        @relation(fields: [customerOnboardingId], references: [id], onDelete: Restrict)
+  contract             Contract?                  @relation(fields: [contractId], references: [id], onDelete: Restrict)
+  parentCase           SupportCase?               @relation("SupportCaseChildren", fields: [parentCaseId], references: [id], onDelete: Restrict)
+  childCases           SupportCase[]              @relation("SupportCaseChildren")
+  mergedIntoCase       SupportCase?               @relation("SupportCaseMerges", fields: [mergedIntoCaseId], references: [id], onDelete: Restrict)
+  mergedCases          SupportCase[]              @relation("SupportCaseMerges")
+  timeline             SupportCaseTimeline[]
+  communications       SupportCaseCommunication[]
+  incidentLinks        SupportCaseIncident[]
+  attachments          SupportCaseAttachment[]
+
+  @@index([status, priority, createdAt])
+  @@index([assignedToUserId, status])
+  @@index([customerAccountId, status])
+  @@index([tenantId, status])
+  @@index([partnerId, status])
+  @@index([subscriptionId])
+  @@index([invoiceId])
+  @@index([customerOnboardingId])
+  @@index([contractId])
+  @@index([parentCaseId])
+  @@index([mergedIntoCaseId])
+  @@index([resolutionDueAt, status])
+}
+
+model SupportCaseAttachment {
+  id             String      @id @default(uuid())
+  supportCaseId  String
+  fileName       String
+  mimeType       String
+  storageKey     String
+  sizeBytes      Int
+  sha256         String
+  isCustomerSafe Boolean     @default(false)
+  uploadedById   String?
+  createdAt      DateTime    @default(now())
+  supportCase    SupportCase @relation(fields: [supportCaseId], references: [id], onDelete: Restrict)
+
+  @@index([supportCaseId, createdAt])
+  @@index([sha256])
+}
+
+model SupportCaseTimeline {
+  id            String      @id @default(uuid())
+  supportCaseId String
+  eventType     String
+  actorType     String
+  actorId       String?
+  message       String
+  metadata      Json?
+  createdAt     DateTime    @default(now())
+  supportCase   SupportCase @relation(fields: [supportCaseId], references: [id], onDelete: Restrict)
+
+  @@index([supportCaseId, createdAt])
+}
+
+model SupportCaseCommunication {
+  id             String             @id @default(uuid())
+  supportCaseId  String
+  direction      String
+  channel        SupportCaseChannel
+  recipientEmail String?
+  subject        String?
+  body           String
+  deliveryStatus String?
+  sentAt         DateTime?
+  createdById    String?
+  createdAt      DateTime           @default(now())
+  supportCase    SupportCase        @relation(fields: [supportCaseId], references: [id], onDelete: Restrict)
+
+  @@index([supportCaseId, createdAt])
+}
+
+model SupportCaseIncident {
+  id            String      @id @default(uuid())
+  supportCaseId String
+  errorLogId    String
+  linkedById    String?
+  createdAt     DateTime    @default(now())
+  supportCase   SupportCase @relation(fields: [supportCaseId], references: [id], onDelete: Restrict)
+  errorLog      ErrorLog    @relation(fields: [errorLogId], references: [id], onDelete: Restrict)
+
+  @@unique([supportCaseId, errorLogId])
+  @@index([errorLogId])
 }
 
 model CustomerOnboarding {
@@ -1926,6 +3202,8 @@ model CustomerOnboarding {
   tenant                          Tenant?                  @relation(fields: [tenantId], references: [id], onDelete: SetNull)
   onboardingOwnerUser             User?                    @relation("OwnedCustomerOnboardings", fields: [onboardingOwnerUserId], references: [id], onDelete: SetNull)
   selectedPlan                    Plan?                    @relation("SelectedOnboardingPlan", fields: [selectedPlanId], references: [id], onDelete: SetNull)
+  contracts                       Contract[]
+  supportCases                    SupportCase[]
 
   @@index([customerId])
   @@index([leadId])
@@ -2037,60 +3315,84 @@ model PlanFeature {
 }
 
 model PlanPrice {
-  id            String         @id @default(uuid())
-  planId        String
-  billingCycle  BillingCycle
-  currency      String
-  unitAmount    Decimal        @db.Decimal(12, 2)
-  stripePriceId String?        @unique
-  isActive      Boolean        @default(true)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  plan          Plan           @relation(fields: [planId], references: [id], onDelete: Cascade)
-  subscriptions Subscription[]
+  id                      String             @id @default(uuid())
+  planId                  String
+  billingCycle            BillingCycle
+  billingModel            BillingModel       @default(PER_SEAT)
+  billingInterval         BillingInterval    @default(MONTH)
+  currency                String
+  unitAmount              Decimal            @db.Decimal(12, 2)
+  minimumSeats            Int                @default(1)
+  maximumSeats            Int?
+  includedSeats           Int                @default(0)
+  effectiveFrom           DateTime           @default(now())
+  stripeProductId         String?
+  stripePriceId           String?            @unique
+  stripeEnvironment       StripeEnvironment?
+  stripeSyncStatus        StripeSyncStatus   @default(NOT_SYNCED)
+  stripeActive            Boolean            @default(false)
+  stripeUsageType         String?
+  stripeRecurringInterval String?
+  stripeVerifiedAt        DateTime?
+  stripeVerificationError String?
+  isActive                Boolean            @default(true)
+  createdAt               DateTime           @default(now())
+  updatedAt               DateTime           @updatedAt
+  plan                    Plan               @relation(fields: [planId], references: [id], onDelete: Cascade)
+  subscriptions           Subscription[]
 
   @@index([planId])
+  @@index([billingModel, billingInterval, currency, isActive])
   @@index([billingCycle, currency, isActive])
   @@index([stripePriceId])
+  @@index([stripeSyncStatus, stripeEnvironment])
+  @@index([effectiveFrom, isActive])
 }
 
 model Subscription {
-  id                      String             @id @default(uuid())
-  tenantId                String             @unique
-  planId                  String
-  planPriceId             String?
-  billingCycle            BillingCycle       @default(MONTHLY)
-  basePrice               Decimal            @default(0) @db.Decimal(12, 2)
-  discountType            DiscountType       @default(NONE)
-  discountValue           Decimal            @default(0) @db.Decimal(12, 2)
-  discountReason          String?
-  finalPrice              Decimal            @default(0) @db.Decimal(12, 2)
-  currency                String             @default("USD")
-  status                  SubscriptionStatus @default(TRIALING)
-  startDate               DateTime
-  endDate                 DateTime?
-  renewalDate             DateTime?
-  autoRenew               Boolean            @default(true)
-  stripeCustomerId        String?
-  stripeSubscriptionId    String?            @unique
-  stripeCheckoutSessionId String?
-  stripeLatestInvoiceId   String?
-  stripeStatus            String?
-  currentPeriodStart      DateTime?
-  currentPeriodEnd        DateTime?
-  cancelAtPeriodEnd       Boolean            @default(false)
-  canceledAt              DateTime?
-  trialStart              DateTime?
-  trialEnd                DateTime?
-  createdAt               DateTime           @default(now())
-  updatedAt               DateTime           @updatedAt
-  createdById             String?
-  updatedById             String?
-  tenant                  Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  plan                    Plan               @relation(fields: [planId], references: [id], onDelete: Restrict)
-  planPrice               PlanPrice?         @relation(fields: [planPriceId], references: [id], onDelete: SetNull)
-  invoices                Invoice[]
-  payments                Payment[]
+  id                       String             @id @default(uuid())
+  tenantId                 String             @unique
+  planId                   String
+  planPriceId              String?
+  billingCycle             BillingCycle       @default(MONTHLY)
+  basePrice                Decimal            @default(0) @db.Decimal(12, 2)
+  discountType             DiscountType       @default(NONE)
+  discountValue            Decimal            @default(0) @db.Decimal(12, 2)
+  discountReason           String?
+  finalPrice               Decimal            @default(0) @db.Decimal(12, 2)
+  currency                 String             @default("USD")
+  status                   SubscriptionStatus @default(TRIALING)
+  startDate                DateTime
+  endDate                  DateTime?
+  renewalDate              DateTime?
+  autoRenew                Boolean            @default(true)
+  stripeCustomerId         String?
+  stripeSubscriptionId     String?            @unique
+  stripeSubscriptionItemId String?
+  purchasedSeats           Int                @default(1)
+  stripeQuantity           Int?
+  seatsLastReconciledAt    DateTime?
+  lastStripeEventCreatedAt DateTime?
+  stripeCheckoutSessionId  String?
+  stripeLatestInvoiceId    String?
+  stripeStatus             String?
+  currentPeriodStart       DateTime?
+  currentPeriodEnd         DateTime?
+  cancelAtPeriodEnd        Boolean            @default(false)
+  canceledAt               DateTime?
+  trialStart               DateTime?
+  trialEnd                 DateTime?
+  createdAt                DateTime           @default(now())
+  updatedAt                DateTime           @updatedAt
+  createdById              String?
+  updatedById              String?
+  tenant                   Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  plan                     Plan               @relation(fields: [planId], references: [id], onDelete: Restrict)
+  planPrice                PlanPrice?         @relation(fields: [planPriceId], references: [id], onDelete: SetNull)
+  invoices                 Invoice[]
+  payments                 Payment[]
+  supportCases             SupportCase[]
+  contracts                Contract[]
 
   @@index([status])
   @@index([planId, status])
@@ -2124,6 +3426,8 @@ model User {
   refreshTokens                  RefreshToken[]
   agentRefreshTokens             AgentRefreshToken[]
   employeeDevices                EmployeeDevice[]
+  agentLocationRequests          AgentLocationRequest[]       @relation("AgentLocationTargetUser")
+  requestedAgentLocations        AgentLocationRequest[]       @relation("AgentLocationRequestedBy")
   workSessions                   WorkSession[]
   activityEvents                 ActivityEvent[]
   dailyProductivitySummaries     DailyProductivitySummary[]
@@ -2171,31 +3475,56 @@ model User {
 }
 
 model PlatformUser {
-  id                       String                 @id @default(uuid())
-  email                    String                 @unique
+  id                       String                     @id @default(uuid())
+  email                    String                     @unique
   firstName                String
   lastName                 String
   passwordHash             String
-  role                     PlatformUserRole       @default(MEMBER)
-  status                   PlatformUserStatus     @default(ACTIVE)
+  role                     PlatformUserRole           @default(MEMBER)
+  status                   PlatformUserStatus         @default(ACTIVE)
   lastActiveAt             DateTime?
-  createdAt                DateTime               @default(now())
-  updatedAt                DateTime               @updatedAt
+  defaultDashboardView     String?
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime                   @updatedAt
   createdById              String?
   updatedById              String?
   refreshTokens            PlatformRefreshToken[]
-  createdUsers             PlatformUser[]         @relation("PlatformUserCreatedBy")
-  createdBy                PlatformUser?          @relation("PlatformUserCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  updatedUsers             PlatformUser[]         @relation("PlatformUserUpdatedBy")
-  updatedBy                PlatformUser?          @relation("PlatformUserUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
-  auditLogs                PlatformAuditLog[]     @relation("PlatformAuditLogActor")
-  assignedCustomerAccounts CustomerAccount[]      @relation("AssignedCustomerAccounts")
-  managedCustomerAccounts  CustomerAccount[]      @relation("ManagedCustomerAccounts")
-  assignedLeads            Lead[]                 @relation("AssignedLeads")
+  createdUsers             PlatformUser[]             @relation("PlatformUserCreatedBy")
+  createdBy                PlatformUser?              @relation("PlatformUserCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedUsers             PlatformUser[]             @relation("PlatformUserUpdatedBy")
+  updatedBy                PlatformUser?              @relation("PlatformUserUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  auditLogs                PlatformAuditLog[]         @relation("PlatformAuditLogActor")
+  assignedCustomerAccounts CustomerAccount[]          @relation("AssignedCustomerAccounts")
+  managedCustomerAccounts  CustomerAccount[]          @relation("ManagedCustomerAccounts")
+  assignedLeads            Lead[]                     @relation("AssignedLeads")
+  assignedPartners         Partner[]                  @relation("AssignedPartners")
+  assignedErrorLogs        ErrorLog[]                 @relation("ErrorLogAssignee")
+  assignedSupportCases     SupportCase[]              @relation("AssignedSupportCases")
+  ownedContracts           Contract[]                 @relation("OwnedContracts")
+  legalOwnedContracts      Contract[]                 @relation("LegalOwnedContracts")
+  createdContracts         Contract[]                 @relation("ContractsCreatedBy")
+  updatedContracts         Contract[]                 @relation("ContractsUpdatedBy")
+  modulePreferences        PlatformModulePreference[]
 
   @@index([email])
   @@index([role])
   @@index([status])
+}
+
+model PlatformModulePreference {
+  id                  String       @id @default(uuid())
+  platformUserId      String
+  moduleKey           String
+  defaultViewKey      String?
+  selectedViewKey     String?
+  tableStateJson      Json?
+  dashboardLayoutJson Json?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  platformUser        PlatformUser @relation(fields: [platformUserId], references: [id], onDelete: Cascade)
+
+  @@unique([platformUserId, moduleKey])
+  @@index([moduleKey, defaultViewKey])
 }
 
 model Organization {
@@ -2750,6 +4079,7 @@ model Employee {
   compensations                  EmployeeCompensation[]
   compensationHistories          EmployeeCompensationHistory[]
   employeeDevices                EmployeeDevice[]
+  agentLocationRequests          AgentLocationRequest[]
   headedOrganizations            Organization[]                @relation("OrganizationHead")
   headedBusinessUnits            BusinessUnit[]                @relation("BusinessUnitHead")
   headedDepartments              Department[]                  @relation("DepartmentHead")
@@ -5770,6 +7100,7 @@ model Invoice {
   tenant                 Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   subscription           Subscription  @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
   payments               Payment[]
+  supportCases           SupportCase[]
 
   @@unique([tenantId, invoiceNumber])
   @@index([tenantId, status])
@@ -7919,34 +9250,66 @@ model PlatformAuditLog {
 }
 
 model ErrorLog {
-  id             String   @id @default(cuid())
-  traceId        String   @unique
-  errorCode      String
-  statusCode     Int
-  severity       String
-  message        String
-  description    String
-  stack          String?
-  cause          Json?
-  details        Json?
-  method         String?
-  path           String?
-  params         Json?
-  query          Json?
-  requestBody    Json?
-  userAgent      String?
-  ipAddress      String?
-  userId         String?
-  tenantId       String?
-  organizationId String?
-  businessUnitId String?
-  createdAt      DateTime @default(now())
+  id               String                @id @default(cuid())
+  traceId          String                @unique
+  fingerprint      String?               @unique
+  firstSeenAt      DateTime              @default(now())
+  lastSeenAt       DateTime              @default(now())
+  occurrenceCount  Int                   @default(1)
+  errorCode        String
+  statusCode       Int
+  severity         String
+  sourceApp        String                @default("api")
+  environment      String                @default("unknown")
+  message          String
+  description      String
+  stack            String?
+  cause            Json?
+  details          Json?
+  method           String?
+  path             String?
+  params           Json?
+  query            Json?
+  requestBody      Json?
+  userAgent        String?
+  ipAddress        String?
+  userId           String?
+  tenantId         String?
+  organizationId   String?
+  businessUnitId   String?
+  supportStatus    String                @default("NEW")
+  assignedTo       String?
+  assignedToUserId String?
+  internalNote     String?
+  customerUpdate   String?
+  resolvedAt       DateTime?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  assignedToUser   PlatformUser?         @relation("ErrorLogAssignee", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+  supportCaseLinks SupportCaseIncident[]
+  occurrences      ErrorLogOccurrence[]
 
   @@index([traceId])
   @@index([tenantId, createdAt])
   @@index([errorCode, createdAt])
   @@index([severity, createdAt])
+  @@index([sourceApp, createdAt])
+  @@index([supportStatus, createdAt])
+  @@index([assignedToUserId, supportStatus])
   @@index([createdAt])
+  @@index([lastSeenAt, occurrenceCount])
+}
+
+model ErrorLogOccurrence {
+  id             String   @id @default(cuid())
+  incidentId     String
+  traceId        String   @unique
+  occurredAt     DateTime @default(now())
+  diagnosticJson Json?
+  incident       ErrorLog @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@index([incidentId, occurredAt])
+  @@index([occurredAt])
 }
 
 model Policy {
@@ -8013,10 +9376,14 @@ model EmployeeDevice {
   userId            String
   deviceFingerprint String
   deviceName        String
-  os                String
-  platform          String
-  agentVersion      String
-  lastSeenAt        DateTime?
+    os                String
+    platform          String
+    agentVersion      String
+    cameraPermission  String              @default("UNKNOWN")
+    microphonePermission String           @default("UNKNOWN")
+    locationPermission String             @default("UNKNOWN")
+    permissionUpdatedAt DateTime?
+    lastSeenAt        DateTime?
   isActive          Boolean             @default(true)
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
@@ -8026,6 +9393,7 @@ model EmployeeDevice {
   refreshTokens     AgentRefreshToken[]
   workSessions      WorkSession[]
   activityEvents    ActivityEvent[]
+  locationRequests  AgentLocationRequest[]
 
   @@unique([tenantId, deviceFingerprint])
   @@index([tenantId, employeeId])
@@ -8118,6 +9486,37 @@ model ActivityEvent {
   @@index([tenantId, deviceId, occurredAt])
 }
 
+model AgentLocationRequest {
+  id             String         @id @default(uuid())
+  tenantId       String
+  employeeId     String
+  userId         String
+  deviceId       String
+  requestedById  String?
+  status         String         @default("PENDING")
+  requestedAt    DateTime       @default(now())
+  promptedAt     DateTime?
+  respondedAt    DateTime?
+  capturedAt     DateTime?
+  expiresAt      DateTime
+  latitude       Float?
+  longitude      Float?
+  accuracyMeters Float?
+  errorMessage   String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  tenant         Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee       Employee       @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  user           User           @relation("AgentLocationTargetUser", fields: [userId], references: [id], onDelete: Cascade)
+  requestedBy    User?          @relation("AgentLocationRequestedBy", fields: [requestedById], references: [id], onDelete: SetNull)
+  device         EmployeeDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, employeeId, requestedAt])
+  @@index([tenantId, deviceId, status, expiresAt])
+  @@index([tenantId, userId])
+  @@index([tenantId, requestedById])
+}
+
 model DailyProductivitySummary {
   id                 String   @id @default(uuid())
   tenantId           String
@@ -8149,9 +9548,12 @@ model AgentTrackingSettings {
   heartbeatIntervalSeconds Int       @default(60)
   idleThresholdSeconds     Int       @default(120)
   awayThresholdSeconds     Int       @default(600)
-  captureActiveApp         Boolean   @default(true)
-  captureWindowTitle       Boolean   @default(true)
-  offlineQueueEnabled      Boolean   @default(true)
+    captureActiveApp         Boolean   @default(true)
+    captureWindowTitle       Boolean   @default(true)
+    allowCameraAccess        Boolean   @default(false)
+    allowMicrophoneAccess    Boolean   @default(false)
+    allowLocationAccess      Boolean   @default(false)
+    offlineQueueEnabled      Boolean   @default(true)
   heartbeatBatchSize       Int       @default(10)
   minimumSupportedVersion  String    @default("1.0.0")
   latestVersion            String    @default("1.0.0")

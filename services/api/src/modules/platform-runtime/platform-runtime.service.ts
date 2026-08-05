@@ -1,0 +1,1434 @@
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
+import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
+import { PrismaService } from '../../common/prisma/prisma.service';
+import { LeadsService } from '../leads/leads.service';
+import {
+  CreateAdminLeadDto,
+  LeadQueryDto,
+  UpdateAdminLeadDto,
+} from '../leads/dto/admin-lead.dto';
+import { PartnersService } from '../partners/partners.service';
+import {
+  CreatePartnerDto,
+  PartnerQueryDto,
+  UpdatePartnerDto,
+} from '../partners/dto/partner.dto';
+import { SuperAdminService } from '../super-admin/super-admin.service';
+import {
+  CreateCustomerDto,
+  CreateCustomerOnboardingRecordDto,
+  CustomerOnboardingQueryDto,
+  CustomerQueryDto,
+  UpdateCustomerDto,
+  UpdateCustomerOnboardingDto,
+} from '../super-admin/dto/customer-lifecycle.dto';
+import { UpdateTenantDto } from '../super-admin/dto/update-tenant.dto';
+import { UpdatePlanDto } from '../super-admin/dto/update-plan.dto';
+import { PlatformMonitoringService } from '../platform-monitoring/platform-monitoring.service';
+import { AuditService } from '../audit/audit.service';
+import { ContractsService } from '../contracts/contracts.service';
+import {
+  ContractQueryDto,
+  CreateContractDto,
+  UpdateContractDto,
+} from '../contracts/dto/contracts.dto';
+import { SupportCasesService } from '../support-cases/support-cases.service';
+import {
+  CreateSupportCaseDto,
+  SupportCaseQueryDto,
+  UpdateSupportCaseDto,
+} from '../support-cases/dto/support-cases.dto';
+import type {
+  PlatformRuntimeModuleKey,
+  PlatformRuntimeQuery,
+} from './platform-runtime.types';
+import { PartnerExperienceService } from '../partner-experience/partner-experience.service';
+import {
+  type PlatformPermission,
+  userHasPlatformPermission,
+} from '../platform-auth/platform-permissions';
+import { resolveRuntimeField } from '@repo/config';
+
+@Injectable()
+export class PlatformRuntimeService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly leads: LeadsService,
+    private readonly partners: PartnersService,
+    private readonly superAdmin: SuperAdminService,
+    private readonly monitoring: PlatformMonitoringService,
+    private readonly audit: AuditService,
+    private readonly contracts: ContractsService,
+    private readonly supportCases: SupportCasesService,
+    private readonly partnerExperience: PartnerExperienceService,
+  ) {}
+  async list(
+    user: AuthenticatedUser,
+    moduleKey: string,
+    query: PlatformRuntimeQuery,
+  ) {
+    this.assertPlatform(user);
+    const key = this.key(moduleKey);
+    this.assertModuleRead(user, key);
+    const page = positive(query.page, 1);
+    const pageSize = Math.min(positive(query.pageSize, 25), 100);
+    const filter = readRuntimeFilters(query.filters);
+    const sort = readRuntimeSort(query.sort);
+    this.validateRuntimeQuery(key, filter, sort);
+    switch (key) {
+      case 'leads':
+        return this.leads.listLeads(
+          user,
+          await dto(LeadQueryDto, {
+            search: query.search,
+            viewKey: query.viewKey,
+            page,
+            pageSize,
+            status:
+              stringFilter(filter, 'status') ??
+              viewStatus(query.viewKey, {
+                new: 'NEW',
+                qualified: 'QUALIFIED',
+                converted: 'CONVERTED',
+              }),
+            industry: stringFilter(filter, 'industry'),
+            source: stringFilter(filter, 'source'),
+            assignedToUserId:
+              stringFilter(filter, 'assignedToUserId') ??
+              stringFilter(filter, 'assignedToUser.id'),
+            partnerId:
+              stringFilter(filter, 'partnerId') ??
+              stringFilter(filter, 'partner.id'),
+            createdFrom: comparisonFilter(filter, 'createdAt', ['gte', 'gt']),
+            createdTo: comparisonFilter(filter, 'createdAt', ['lte', 'lt']),
+            sortField: sort[0]?.field,
+            sortDirection: sort[0]?.direction,
+          }),
+        );
+      case 'partners':
+        return this.partners.list(
+          await dto(PartnerQueryDto, {
+            search: query.search,
+            page,
+            pageSize,
+            status:
+              stringFilter(filter, 'status') ??
+              viewStatus(query.viewKey, {
+                active: 'ACTIVE',
+                suspended: 'SUSPENDED',
+              }),
+          }),
+          { filters: filter, sort },
+        );
+      case 'partner-inquiries': {
+        const items = await this.prisma.partnerInquiry.findMany({
+          include: { partner: true },
+          orderBy: { createdAt: 'desc' },
+        });
+        return paginateRuntimeRecords(
+          items,
+          page,
+          pageSize,
+          query.search,
+          query.viewKey,
+          sort,
+          filter,
+        );
+      }
+      case 'customers':
+        return this.superAdmin.listCustomers(
+          user,
+          await dto(CustomerQueryDto, {
+            search: query.search,
+            viewKey: query.viewKey,
+            page,
+            pageSize,
+            status: stringFilter(filter, 'status'),
+            assignedToUserId:
+              stringFilter(filter, 'assignedToUserId') ??
+              stringFilter(filter, 'assignedToUser.id'),
+          }),
+        );
+      case 'customer-onboarding':
+        return this.superAdmin.listCustomerOnboardings(
+          user,
+          await dto(CustomerOnboardingQueryDto, {
+            search: query.search,
+            viewKey: query.viewKey,
+            page,
+            pageSize,
+            status: stringFilter(filter, 'status'),
+            onboardingOwnerUserId:
+              stringFilter(filter, 'onboardingOwnerUserId') ??
+              stringFilter(filter, 'onboardingOwner.id'),
+          }),
+        );
+      case 'monitoring-incidents':
+        return this.monitoring.listEvents(user, {
+          search: query.search,
+          viewKey: query.viewKey,
+          page: String(page),
+          pageSize: String(pageSize),
+          status: stringFilter(filter, 'supportStatus'),
+        });
+      case 'contracts':
+        return this.contracts.list(
+          user,
+          await dto(ContractQueryDto, {
+            search: query.search,
+            viewKey: query.viewKey,
+            page,
+            pageSize,
+            status: stringFilter(filter, 'status'),
+          }),
+          { filters: filter, sort },
+        );
+      case 'contract-templates':
+        return paginateRuntimeRecords(
+          (await this.contracts.listTemplates(user)).items,
+          page,
+          pageSize,
+          query.search,
+          query.viewKey,
+          sort,
+          filter,
+        );
+      case 'signature-requests':
+        return this.listSignatureRequests(page, pageSize, query.search);
+      case 'support-cases':
+        return this.supportCases.list(
+          user,
+          await dto(SupportCaseQueryDto, {
+            search: query.search,
+            viewKey: query.viewKey,
+            page,
+            pageSize,
+            status: stringFilter(filter, 'status'),
+          }),
+          { filters: filter, sort },
+        );
+      case 'partner-onboarding': {
+        const items = await this.prisma.partnerOnboardingApplication.findMany({
+          include: {
+            partner: true,
+            submissions: { orderBy: { version: 'desc' }, take: 1 },
+          },
+          orderBy: { updatedAt: 'desc' },
+        });
+        return paginateRuntimeRecords(
+          items,
+          page,
+          pageSize,
+          query.search,
+          query.viewKey,
+          sort,
+          filter,
+        );
+      }
+      case 'commissions': {
+        const items = await this.prisma.partnerCommission.findMany({
+          include: { partner: true },
+          orderBy: { createdAt: 'desc' },
+        });
+        return paginateRuntimeRecords(
+          items,
+          page,
+          pageSize,
+          query.search,
+          query.viewKey,
+          sort,
+          filter,
+        );
+      }
+      case 'tenants':
+        return paginateRuntimeRecords(
+          await this.superAdmin.listTenants(),
+          page,
+          pageSize,
+          query.search,
+          query.viewKey,
+          sort,
+          filter,
+        );
+      case 'subscriptions':
+        return paginateRuntimeRecords(
+          await this.superAdmin.listSubscriptions(),
+          page,
+          pageSize,
+          query.search,
+          query.viewKey,
+          sort,
+          filter,
+        );
+      case 'plans':
+        return paginateRuntimeRecords(
+          await this.superAdmin.listPlans(),
+          page,
+          pageSize,
+          query.search,
+          query.viewKey,
+          sort,
+          filter,
+        );
+      case 'invoices':
+        return paginateRuntimeRecords(
+          await this.superAdmin.listInvoices(),
+          page,
+          pageSize,
+          query.search,
+          query.viewKey,
+          sort,
+          filter,
+        );
+      case 'payments':
+        return paginateRuntimeRecords(
+          await this.superAdmin.listPayments(),
+          page,
+          pageSize,
+          query.search,
+          query.viewKey,
+          sort,
+          filter,
+        );
+    }
+  }
+
+  private validateRuntimeQuery(
+    moduleKey: PlatformRuntimeModuleKey,
+    filters: ReturnType<typeof readRuntimeFilters>,
+    sort: ReturnType<typeof readRuntimeSort>,
+  ) {
+    for (const filter of filters) {
+      const field = resolveRuntimeField(moduleKey, filter.field);
+      if (!field)
+        throw new BadRequestException(
+          `Filter field ${filter.field} does not exist for ${moduleKey}.`,
+        );
+      if (!field.filterable)
+        throw new BadRequestException(
+          `Filter field ${filter.field} is not filterable.`,
+        );
+    }
+    for (const item of sort) {
+      const field = resolveRuntimeField(moduleKey, item.field);
+      if (!field)
+        throw new BadRequestException(
+          `Sort field ${item.field} does not exist for ${moduleKey}.`,
+        );
+      if (!field.sortable)
+        throw new BadRequestException(
+          `Sort field ${item.field} is not sortable.`,
+        );
+    }
+  }
+  async get(user: AuthenticatedUser, moduleKey: string, id: string) {
+    this.assertPlatform(user);
+    const key = this.key(moduleKey);
+    this.assertModuleRead(user, key);
+    switch (key) {
+      case 'leads':
+        return envelope(await this.leads.getLead(user, id));
+      case 'partners':
+        return envelope(await this.partners.get(id));
+      case 'partner-inquiries': {
+        const item = await this.prisma.partnerInquiry.findUnique({
+          where: { id },
+          include: { partner: true },
+        });
+        if (!item)
+          throw new NotFoundException('Partner inquiry was not found.');
+        return envelope(item);
+      }
+      case 'customers':
+        return envelope(await this.superAdmin.getCustomerDetail(user, id));
+      case 'customer-onboarding':
+        return envelope(await this.superAdmin.getCustomerOnboarding(user, id));
+      case 'tenants':
+        return envelope(await this.superAdmin.getTenantDetail(id));
+      case 'plans':
+        return envelope(await this.superAdmin.getPlanDetail(id));
+      case 'invoices':
+        return envelope(await this.superAdmin.getInvoiceDetail(id));
+      case 'contracts':
+        return envelope(await this.contracts.get(user, id));
+      case 'support-cases':
+        return envelope(await this.supportCases.get(user, id));
+      case 'monitoring-incidents':
+        return envelope(await this.monitoring.getEvent(user, id));
+      case 'partner-onboarding': {
+        const item = await this.prisma.partnerOnboardingApplication.findUnique({
+          where: { id },
+          include: {
+            partner: true,
+            submissions: { orderBy: { version: 'desc' } },
+          },
+        });
+        if (!item)
+          throw new NotFoundException(
+            'Partner onboarding application was not found.',
+          );
+        return envelope(item);
+      }
+      case 'commissions': {
+        const item = await this.prisma.partnerCommission.findUnique({
+          where: { id },
+          include: { partner: true },
+        });
+        if (!item)
+          throw new NotFoundException('Partner commission was not found.');
+        return envelope(item);
+      }
+      default: {
+        const item = await this.findGeneric(this.key(moduleKey), id);
+        return envelope(item);
+      }
+    }
+  }
+  async create(
+    user: AuthenticatedUser,
+    moduleKey: string,
+    body: { values?: Record<string, unknown> },
+  ) {
+    const key = this.key(moduleKey);
+    this.assertModuleWrite(user, key);
+    const values = body.values ?? {};
+    switch (key) {
+      case 'leads':
+        return envelope(
+          await this.leads.createLead(
+            user,
+            await dto(CreateAdminLeadDto, values),
+          ),
+        );
+      case 'partners':
+        return envelope(
+          await this.partners.create(await dto(CreatePartnerDto, values)),
+        );
+      case 'customers':
+        return envelope(
+          await this.superAdmin.createCustomer(
+            user,
+            await dto(CreateCustomerDto, values),
+          ),
+        );
+      case 'customer-onboarding':
+        return envelope(
+          await this.superAdmin.createCustomerOnboarding(
+            user,
+            await dto(CreateCustomerOnboardingRecordDto, values),
+          ),
+        );
+      case 'contracts':
+        return envelope(
+          await this.contracts.create(
+            user,
+            await dto(CreateContractDto, values),
+          ),
+        );
+      case 'support-cases':
+        return envelope(
+          await this.supportCases.create(
+            user,
+            await dto(CreateSupportCaseDto, values),
+          ),
+        );
+      default:
+        throw new BadRequestException(
+          'Create is not available for this module through the runtime.',
+        );
+    }
+  }
+  async update(
+    user: AuthenticatedUser,
+    moduleKey: string,
+    id: string,
+    body: { values?: Record<string, unknown>; version?: number },
+  ) {
+    const key = this.key(moduleKey);
+    this.assertModuleWrite(user, key);
+    const values = body.values ?? {};
+    switch (key) {
+      case 'leads':
+        return envelope(
+          await this.leads.updateLead(
+            user,
+            id,
+            await dto(UpdateAdminLeadDto, values),
+          ),
+        );
+      case 'partners':
+        return envelope(
+          await this.partners.update(id, await dto(UpdatePartnerDto, values)),
+        );
+      case 'customers':
+        return envelope(
+          await this.superAdmin.updateCustomer(
+            user,
+            id,
+            await dto(UpdateCustomerDto, values),
+          ),
+        );
+      case 'customer-onboarding':
+        return envelope(
+          await this.superAdmin.updateCustomerOnboarding(
+            user,
+            id,
+            await dto(UpdateCustomerOnboardingDto, values),
+          ),
+        );
+      case 'tenants':
+        return envelope(
+          await this.superAdmin.updateTenant(
+            user,
+            id,
+            await dto(UpdateTenantDto, values),
+          ),
+        );
+      case 'contracts': {
+        const { contentHtml, ...contractValues } = values;
+        await this.contracts.update(
+          user,
+          id,
+          await dto(UpdateContractDto, contractValues),
+        );
+        if (typeof contentHtml === 'string') {
+          return envelope(
+            await this.contracts.saveVersion(user, id, {
+              contentHtml,
+              changeSummary: 'Updated in the shared contract editor.',
+            }),
+          );
+        }
+        return envelope(await this.contracts.get(user, id));
+      }
+      case 'support-cases':
+        return envelope(
+          await this.supportCases.update(
+            user,
+            id,
+            await dto(UpdateSupportCaseDto, values),
+          ),
+        );
+      case 'plans':
+        return envelope(
+          await this.superAdmin.updatePlan(
+            user,
+            id,
+            await dto(UpdatePlanDto, values),
+          ),
+        );
+      default:
+        throw new BadRequestException(
+          'Update is not available for this module through the runtime.',
+        );
+    }
+  }
+  async remove(user: AuthenticatedUser, moduleKey: string, id: string) {
+    const key = this.key(moduleKey);
+    this.assertModuleWrite(user, key);
+    switch (key) {
+      case 'leads':
+        return result(await this.leads.bulkDeleteLeads(user, [id]));
+      case 'customers':
+        return result(
+          await this.superAdmin.bulkDeleteCustomers(user, { ids: [id] }),
+        );
+      case 'customer-onboarding':
+        return result(
+          await this.superAdmin.bulkDeleteCustomerOnboardings(user, {
+            ids: [id],
+          }),
+        );
+      default:
+        throw new BadRequestException(
+          'Delete is not available for this module or is prevented by retention policy.',
+        );
+    }
+  }
+  async execute(
+    user: AuthenticatedUser,
+    moduleKey: string,
+    action: string,
+    input: Record<string, unknown>,
+    id?: string,
+  ) {
+    const key = this.key(moduleKey);
+    this.assertModuleWrite(user, key);
+    if (action === 'bulk-delete')
+      return this.bulkDelete(user, key, toIds(input.ids));
+    if (action === 'bulk-assign')
+      return this.bulkAssign(
+        user,
+        key,
+        toIds(input.ids),
+        textOrNull(input.ownerId),
+      );
+    if (action === 'assign' && id)
+      return this.bulkAssign(user, key, [id], textOrNull(input.ownerId));
+    if (action === 'activate' && id && key === 'partners')
+      return this.partnerExperience.activatePartner(user, id);
+    if (id && key === 'partners') {
+      if (action === 'approve-partner' || action === 'reject-partner') {
+        const inquiry = await this.prisma.partnerInquiry.findFirst({
+          where: { partnerId: id },
+          orderBy: { createdAt: 'desc' },
+        });
+        if (!inquiry)
+          throw new BadRequestException(
+            'The immutable partner application submission was not found.',
+          );
+        const review = {
+          notes:
+            textOrNull(input.reason) ??
+            (action === 'approve-partner'
+              ? 'Approved from the Partner runtime.'
+              : 'Rejected from the Partner runtime.'),
+        };
+        return result(
+          action === 'approve-partner'
+            ? await this.partnerExperience.qualifyInquiry(
+                user,
+                inquiry.id,
+                review,
+              )
+            : await this.partnerExperience.rejectInquiry(
+                user,
+                inquiry.id,
+                review,
+              ),
+        );
+      }
+      const partnerActions: Record<
+        string,
+        | 'start-review'
+        | 'approve'
+        | 'reject'
+        | 'request-information'
+        | 'suspend'
+        | 'reactivate'
+        | 'deactivate'
+      > = {
+        'start-review': 'start-review',
+        'request-information': 'request-information',
+        'suspend-partner': 'suspend',
+        'reactivate-partner': 'reactivate',
+        'deactivate-partner': 'deactivate',
+      };
+      if (partnerActions[action])
+        return envelope(
+          await this.partners.lifecycleAction(id, user.userId, {
+            action: partnerActions[action],
+            reason: textOrNull(input.reason) ?? undefined,
+          }),
+        );
+      if (action === 'send-onboarding-link')
+        return result(
+          await this.partnerExperience.sendOnboardingInvitation(user, id),
+        );
+    }
+    if (id && key === 'contracts') {
+      if (action === 'void-agreement')
+        return envelope(
+          await this.contracts.voidContract(
+            user,
+            id,
+            textOrNull(input.reason) ?? 'Voided from the agreement action bar.',
+          ),
+        );
+      if (action === 'terminate-agreement')
+        return envelope(
+          await this.contracts.terminateContract(
+            user,
+            id,
+            textOrNull(input.reason) ??
+              'Terminated from the agreement action bar.',
+          ),
+        );
+      if (action === 'amend' || action === 'renew') {
+        const contract = await this.contracts.get(user, id);
+        return envelope(
+          await this.contracts.createDerivedContract(
+            user,
+            id,
+            action === 'amend' ? 'AMENDMENT' : 'RENEWAL',
+            {
+              title: `${action === 'amend' ? 'Amendment to' : 'Renewal of'} ${contract.title}`,
+            },
+          ),
+        );
+      }
+      if (action === 'new-version') {
+        const contract = await this.contracts.get(user, id);
+        const version =
+          contract.versions.find(
+            (item) => item.version === contract.currentVersionNumber,
+          ) ?? contract.versions[0];
+        if (!version)
+          throw new BadRequestException('No agreement version is available.');
+        return envelope(
+          await this.contracts.saveVersion(user, id, {
+            contentHtml: version.contentHtml,
+            contentText: version.contentText,
+            changeSummary: 'New version created from the action bar.',
+          }),
+        );
+      }
+    }
+    if (action === 'change-status' && id)
+      return this.changeStatus(
+        user,
+        key,
+        id,
+        String(input.status ?? ''),
+        textOrNull(input.reason),
+      );
+    throw new BadRequestException(
+      `Action ${action} is not available for ${key}.`,
+    );
+  }
+  async timeline(user: AuthenticatedUser, moduleKey: string, id: string) {
+    const key = this.key(moduleKey);
+    this.assertModuleRead(user, key);
+    if (key === 'contracts') {
+      const contract = await this.contracts.get(user, id);
+      return { items: contract.timeline };
+    }
+    if (key === 'partners') {
+      const partner = await this.partners.get(id);
+      return { items: partner.timeline };
+    }
+    if (key === 'support-cases') {
+      const supportCase = await this.supportCases.get(user, id);
+      return { items: supportCase.timeline };
+    }
+    return this.audit.listRecordTimeline({
+      tenantId: user.tenantId,
+      entityType: entityType(key),
+      entityId: id,
+      recordHref: `/${moduleKey}/${id}`,
+    });
+  }
+  async addTimeline(
+    user: AuthenticatedUser,
+    moduleKey: string,
+    id: string,
+    input: Record<string, unknown>,
+  ) {
+    const key = this.key(moduleKey);
+    this.assertModuleWrite(user, key);
+    if (key === 'support-cases') {
+      await this.supportCases.addActivity(user, id, {
+        eventType: String(input.activityType ?? 'NOTE'),
+        message: String(input.message ?? ''),
+      });
+      return { success: true, message: 'Timeline activity added.' };
+    }
+    await this.audit.log({
+      tenantId: user.tenantId,
+      actorUserId: user.userId,
+      action: 'TIMELINE_ACTIVITY_ADDED',
+      entityType: entityType(key),
+      entityId: id,
+      sourceModule: 'platform-runtime',
+      afterSnapshot: {
+        message: String(input.message ?? ''),
+        activityType: String(input.activityType ?? 'NOTE'),
+      },
+    });
+    return { success: true, message: 'Timeline activity added.' };
+  }
+  async process(user: AuthenticatedUser, moduleKey: string, id: string) {
+    const item = (await this.get(user, moduleKey, id)) as {
+      item: Record<string, unknown>;
+    };
+    return {
+      success: true,
+      data: {
+        currentStage: item.item.processStage ?? item.item.status ?? null,
+      },
+    };
+  }
+  async updateProcess(
+    user: AuthenticatedUser,
+    moduleKey: string,
+    id: string,
+    input: Record<string, unknown>,
+  ) {
+    const key = this.key(moduleKey);
+    this.assertModuleWrite(user, key);
+    return this.changeStatus(
+      user,
+      key,
+      id,
+      String(input.stage ?? ''),
+      textOrNull(input.reason),
+    );
+  }
+  async related(
+    user: AuthenticatedUser,
+    moduleKey: string,
+    id: string,
+    relationshipKey: string,
+    query: PlatformRuntimeQuery,
+  ) {
+    const key = this.key(moduleKey);
+    this.assertModuleRead(user, key);
+    const allowed: Partial<Record<PlatformRuntimeModuleKey, string[]>> = {
+      partners: [
+        'leads',
+        'commissions',
+        'agreements',
+        'onboardingApplications',
+        'referralLinks',
+        'inquiries',
+        'portalUsers',
+        'attributedCustomers',
+        'attributedTenants',
+      ],
+      customers: ['contracts', 'onboardings', 'supportCases'],
+      'customer-onboarding': ['contracts', 'supportCases'],
+      tenants: ['contracts', 'supportCases', 'invoices'],
+      contracts: [
+        'versions',
+        'documents',
+        'approvalRequests',
+        'signatureRequests',
+        'parties',
+        'fieldPlacements',
+        'relatedRecords',
+      ],
+      'support-cases': [
+        'childCases',
+        'attachments',
+        'communications',
+        'incidentLinks',
+      ],
+      plans: ['subscriptions', 'selectedByCustomers'],
+    };
+    if (!allowed[key]?.includes(relationshipKey))
+      throw new BadRequestException(
+        'This related-record collection is not available.',
+      );
+    if (key === 'plans') {
+      const records =
+        relationshipKey === 'subscriptions'
+          ? await this.prisma.subscription.findMany({
+              where: { planId: id },
+              include: { tenant: true },
+              orderBy: { updatedAt: 'desc' },
+            })
+          : await this.prisma.customerAccount.findMany({
+              where: { selectedPlanId: id },
+              orderBy: { updatedAt: 'desc' },
+            });
+      return paginateRuntimeRecords(
+        records,
+        positive(query.page, 1),
+        Math.min(positive(query.pageSize, 10), 100),
+        query.search,
+      );
+    }
+    const response = (await this.get(user, key, id)) as {
+      item: Record<string, unknown>;
+    };
+    const records = response.item[relationshipKey];
+    if (!Array.isArray(records))
+      return {
+        items: [],
+        meta: { page: 1, pageSize: 25, total: 0, totalPages: 1 },
+      };
+    return paginateRuntimeRecords(
+      records,
+      positive(query.page, 1),
+      Math.min(positive(query.pageSize, 25), 100),
+      query.search,
+      query.viewKey,
+      readRuntimeSort(query.sort),
+      readRuntimeFilters(query.filters),
+    );
+  }
+  async validate(
+    user: AuthenticatedUser,
+    moduleKey: string,
+    body: { values?: Record<string, unknown>; mode?: string },
+  ) {
+    this.assertPlatform(user);
+    const key = this.key(moduleKey);
+    const Class: (new () => object) | null =
+      key === 'leads'
+        ? body.mode === 'create'
+          ? CreateAdminLeadDto
+          : UpdateAdminLeadDto
+        : key === 'partners'
+          ? body.mode === 'create'
+            ? CreatePartnerDto
+            : UpdatePartnerDto
+          : key === 'customers'
+            ? body.mode === 'create'
+              ? CreateCustomerDto
+              : UpdateCustomerDto
+            : key === 'contracts'
+              ? body.mode === 'create'
+                ? CreateContractDto
+                : UpdateContractDto
+              : key === 'support-cases'
+                ? body.mode === 'create'
+                  ? CreateSupportCaseDto
+                  : UpdateSupportCaseDto
+                : null;
+    if (!Class) return { success: true };
+    try {
+      const validationValues = { ...(body.values ?? {}) };
+      if (key === 'contracts' && body.mode !== 'create') {
+        delete validationValues.contentHtml;
+      }
+      await dto(Class, validationValues);
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Validation failed.',
+      };
+    }
+  }
+  async export(
+    user: AuthenticatedUser,
+    moduleKey: string,
+    query: PlatformRuntimeQuery,
+  ) {
+    const response = await this.list(user, moduleKey, {
+      ...query,
+      page: '1',
+      pageSize: '100',
+    });
+    const items =
+      (response as { items?: Record<string, unknown>[] }).items ?? [];
+    const fields =
+      query.selectedColumns?.split(',').filter(Boolean) ??
+      Object.keys(items[0] ?? {}).filter(
+        (key) => typeof items[0]?.[key] !== 'object',
+      );
+    return [
+      fields.join(','),
+      ...items.map((item) =>
+        fields
+          .map((field) => csv(String(readPath(item, field) ?? '')))
+          .join(','),
+      ),
+    ].join('\n');
+  }
+  private async bulkDelete(
+    user: AuthenticatedUser,
+    key: PlatformRuntimeModuleKey,
+    ids: string[],
+  ) {
+    this.assertAdmin(user);
+    if (key === 'leads')
+      return result(await this.leads.bulkDeleteLeads(user, ids));
+    if (key === 'customers')
+      return result(await this.superAdmin.bulkDeleteCustomers(user, { ids }));
+    if (key === 'customer-onboarding')
+      return result(
+        await this.superAdmin.bulkDeleteCustomerOnboardings(user, { ids }),
+      );
+    throw new BadRequestException(
+      'Bulk delete is not available for this module.',
+    );
+  }
+  private async bulkAssign(
+    user: AuthenticatedUser,
+    key: PlatformRuntimeModuleKey,
+    ids: string[],
+    ownerId: string | null,
+  ) {
+    if (key === 'leads')
+      return result(
+        await this.leads.bulkAssignLeads(user, {
+          ids,
+          assignedToUserId: ownerId ?? undefined,
+        }),
+      );
+    const model =
+      key === 'partners'
+        ? 'partner'
+        : key === 'customers'
+          ? 'customerAccount'
+          : key === 'support-cases'
+            ? 'supportCase'
+            : null;
+    if (!model)
+      throw new BadRequestException(
+        'Assignment is not available for this module.',
+      );
+    await (
+      this.prisma[model] as never as {
+        updateMany(args: unknown): Promise<unknown>;
+      }
+    ).updateMany({
+      where: { id: { in: ids } },
+      data: { assignedToUserId: ownerId },
+    });
+    return { success: true, message: `Assigned ${ids.length} record(s).` };
+  }
+  private async changeStatus(
+    user: AuthenticatedUser,
+    key: PlatformRuntimeModuleKey,
+    id: string,
+    status: string,
+    reason: string | null,
+  ) {
+    if (!status) throw new BadRequestException('Status is required.');
+    if (key === 'leads')
+      return envelope(
+        await this.leads.updateLead(
+          user,
+          id,
+          await dto(UpdateAdminLeadDto, { status, notes: reason ?? undefined }),
+        ),
+      );
+    if (key === 'partners') {
+      const existing = await this.partners.get(id);
+      return envelope(
+        await this.partners.update(
+          id,
+          await dto(UpdatePartnerDto, {
+            ...existing,
+            status,
+            notes: reason ?? existing.notes,
+          }),
+        ),
+      );
+    }
+    if (key === 'support-cases') {
+      return envelope(
+        await this.supportCases.update(user, id, {
+          status: status as import('@prisma/client').SupportCaseStatus,
+        }),
+      );
+    }
+    throw new BadRequestException(
+      'Status transition is not available for this module.',
+    );
+  }
+  private async findGeneric(key: PlatformRuntimeModuleKey, id: string) {
+    if (key === 'plans') {
+      const item = await this.prisma.plan.findUnique({
+        where: { id },
+        include: {
+          prices: {
+            include: { _count: { select: { subscriptions: true } } },
+            orderBy: { createdAt: 'desc' },
+          },
+          features: true,
+          subscriptions: { include: { tenant: true } },
+        },
+      });
+      if (!item) throw new NotFoundException('Record was not found.');
+      return {
+        ...item,
+        monthlyBasePrice: Number(item.monthlyBasePrice),
+        annualBasePrice: Number(item.annualBasePrice),
+        prices: item.prices.map((price) => ({
+          ...price,
+          unitAmount: Number(price.unitAmount),
+          subscriptionCount: price._count.subscriptions,
+          canDelete: price._count.subscriptions === 0,
+        })),
+      };
+    }
+    const model =
+      key === 'subscriptions'
+        ? 'subscription'
+        : key === 'payments'
+          ? 'payment'
+          : null;
+    if (!model) throw new NotFoundException('Record is not available.');
+    const item = await (
+      this.prisma[model] as never as {
+        findUnique(args: unknown): Promise<unknown>;
+      }
+    ).findUnique({ where: { id } });
+    if (!item) throw new NotFoundException('Record was not found.');
+    return item;
+  }
+  private async listSignatureRequests(
+    page: number,
+    pageSize: number,
+    search?: string,
+  ) {
+    const where: import('@prisma/client').Prisma.SignatureRequestWhereInput =
+      search
+        ? {
+            OR: [
+              { requestNumber: { contains: search, mode: 'insensitive' } },
+              { subject: { contains: search, mode: 'insensitive' } },
+              {
+                contract: { title: { contains: search, mode: 'insensitive' } },
+              },
+            ],
+          }
+        : {};
+    const [items, total] = await Promise.all([
+      this.prisma.signatureRequest.findMany({
+        where,
+        include: { contract: true, recipients: true },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.signatureRequest.count({ where }),
+    ]);
+    return {
+      items: items.map((item) => ({
+        ...item,
+        recipients: item.recipients.length,
+      })),
+      meta: {
+        page,
+        pageSize,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / pageSize)),
+      },
+    };
+  }
+  private key(value: string) {
+    const keys: PlatformRuntimeModuleKey[] = [
+      'leads',
+      'partners',
+      'partner-inquiries',
+      'partner-onboarding',
+      'customers',
+      'customer-onboarding',
+      'tenants',
+      'subscriptions',
+      'plans',
+      'invoices',
+      'payments',
+      'commissions',
+      'contracts',
+      'contract-templates',
+      'signature-requests',
+      'support-cases',
+      'monitoring-incidents',
+    ];
+    if (!keys.includes(value as PlatformRuntimeModuleKey))
+      throw new NotFoundException('Platform runtime module was not found.');
+    return value as PlatformRuntimeModuleKey;
+  }
+  private assertPlatform(user: AuthenticatedUser) {
+    if (!user.platform?.id)
+      throw new ForbiddenException('Platform access is required.');
+  }
+  private assertModuleRead(
+    user: AuthenticatedUser,
+    key: PlatformRuntimeModuleKey,
+  ) {
+    this.assertPlatform(user);
+    const permission = runtimePermission(key, false);
+    if (!userHasPlatformPermission(user, permission))
+      throw new ForbiddenException(`Read access to ${key} is required.`);
+  }
+  private assertModuleWrite(
+    user: AuthenticatedUser,
+    key: PlatformRuntimeModuleKey,
+  ) {
+    this.assertPlatform(user);
+    const permission = runtimePermission(key, true);
+    if (!userHasPlatformPermission(user, permission))
+      throw new ForbiddenException(`Management access to ${key} is required.`);
+  }
+  private assertAdmin(user: AuthenticatedUser) {
+    this.assertPlatform(user);
+    if (
+      !['SUPER_ADMIN', 'PLATFORM_OWNER', 'PLATFORM_ADMIN'].includes(
+        user.platform?.role ?? '',
+      )
+    )
+      throw new ForbiddenException(
+        'Platform administrator access is required.',
+      );
+  }
+}
+
+function runtimePermission(
+  key: PlatformRuntimeModuleKey,
+  write: boolean,
+): PlatformPermission {
+  if (key === 'leads') return write ? 'leads.update' : 'leads.read';
+  if (
+    [
+      'partners',
+      'partner-inquiries',
+      'partner-onboarding',
+      'commissions',
+    ].includes(key)
+  )
+    return write ? 'partners.manage' : 'partners.read';
+  if (key === 'customers') return write ? 'customers.update' : 'customers.read';
+  if (key === 'customer-onboarding')
+    return write ? 'onboarding.update' : 'onboarding.read';
+  if (['contracts', 'contract-templates', 'signature-requests'].includes(key))
+    return write ? 'contracts.manage' : 'contracts.read';
+  if (key === 'support-cases') return write ? 'support.manage' : 'support.read';
+  if (key === 'monitoring-incidents')
+    return write ? 'monitoring.manage' : 'monitoring.read';
+  if (key === 'tenants') return write ? 'tenants.update' : 'tenants.read';
+  if (key === 'payments') return write ? 'billing.manage' : 'payments.read';
+  if (key === 'subscriptions')
+    return write ? 'billing.manage' : 'subscriptions.read';
+  if (key === 'invoices') return write ? 'billing.manage' : 'invoices.read';
+  if (key === 'plans') return write ? 'billing.manage' : 'plans.read';
+  return write ? 'billing.manage' : 'billing.read';
+}
+
+async function dto<T extends object>(
+  Class: new () => T,
+  plain: Record<string, unknown>,
+): Promise<T> {
+  const instance = plainToInstance(Class, plain, {
+    enableImplicitConversion: true,
+  });
+  const errors = await validate(instance, {
+    whitelist: true,
+    forbidNonWhitelisted: true,
+  });
+  if (errors.length)
+    throw new BadRequestException(
+      errors.flatMap((error) => Object.values(error.constraints ?? {})),
+    );
+  return instance;
+}
+function positive(value: string | undefined, fallback: number) {
+  const number = Number(value);
+  return Number.isInteger(number) && number > 0 ? number : fallback;
+}
+export function readRuntimeFilters(value?: string) {
+  if (!value)
+    return [] as Array<{
+      field: string;
+      operator: string;
+      value?: unknown;
+      values?: unknown[];
+    }>;
+  try {
+    const parsed = JSON.parse(value);
+    if (!Array.isArray(parsed)) return [];
+    const operators = new Set([
+      'eq',
+      'ne',
+      'contains',
+      'startsWith',
+      'in',
+      'gt',
+      'gte',
+      'lt',
+      'lte',
+      'between',
+      'isNull',
+      'isNotNull',
+    ]);
+    return parsed
+      .slice(0, 25)
+      .filter(
+        (item) =>
+          item &&
+          typeof item.field === 'string' &&
+          /^[A-Za-z][A-Za-z0-9_.]{0,119}$/.test(item.field) &&
+          typeof item.operator === 'string' &&
+          operators.has(item.operator),
+      );
+  } catch {
+    throw new BadRequestException('Invalid filters.');
+  }
+}
+export function readRuntimeSort(value?: string) {
+  if (!value) return [] as Array<{ field: string; direction: 'asc' | 'desc' }>;
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed)
+      ? parsed
+          .slice(0, 3)
+          .filter(
+            (item) =>
+              item &&
+              typeof item.field === 'string' &&
+              /^[A-Za-z][A-Za-z0-9_.]{0,119}$/.test(item.field) &&
+              (item.direction === 'asc' || item.direction === 'desc'),
+          )
+      : [];
+  } catch {
+    throw new BadRequestException('Invalid sort.');
+  }
+}
+function stringFilter(
+  filters: Array<{ field: string; value?: unknown }>,
+  field: string,
+) {
+  const value = filters.find((item) => item.field === field)?.value;
+  return typeof value === 'string' ? value : undefined;
+}
+function comparisonFilter(
+  filters: Array<{ field: string; operator: string; value?: unknown }>,
+  field: string,
+  operators: string[],
+) {
+  const value = filters.find(
+    (item) => item.field === field && operators.includes(item.operator),
+  )?.value;
+  return typeof value === 'string' ? value : undefined;
+}
+function viewStatus(view: string | undefined, map: Record<string, string>) {
+  return view ? map[view] : undefined;
+}
+export function paginateRuntimeRecords(
+  items: unknown[],
+  page: number,
+  pageSize: number,
+  search?: string,
+  view?: string,
+  sort: Array<{ field: string; direction: 'asc' | 'desc' }> = [],
+  filters: Array<{
+    field: string;
+    operator: string;
+    value?: unknown;
+    values?: unknown[];
+  }> = [],
+) {
+  let filtered = items as Record<string, unknown>[];
+  if (search) {
+    const needle = search.toLowerCase();
+    filtered = filtered.filter((item) =>
+      JSON.stringify(item).toLowerCase().includes(needle),
+    );
+  }
+  if (view === 'active')
+    filtered = filtered.filter((item) =>
+      ['ACTIVE', 'TRIALING', 'PAID'].includes(String(item.status)),
+    );
+  if (filters.length)
+    filtered = filtered.filter((item) =>
+      filters.every((filter) => matchesRuntimeFilter(item, filter)),
+    );
+  if (sort.length)
+    filtered = [...filtered].sort((a, b) => {
+      for (const { field, direction } of sort) {
+        const compared = compareRuntimeValues(
+          readPath(a, field),
+          readPath(b, field),
+        );
+        if (compared) return compared * (direction === 'asc' ? 1 : -1);
+      }
+      return 0;
+    });
+  const total = filtered.length;
+  return {
+    items: filtered.slice((page - 1) * pageSize, page * pageSize),
+    meta: {
+      page,
+      pageSize,
+      total,
+      totalPages: Math.max(1, Math.ceil(total / pageSize)),
+      hasNextPage: page * pageSize < total,
+      hasPreviousPage: page > 1,
+    },
+  };
+}
+
+function matchesRuntimeFilter(
+  record: Record<string, unknown>,
+  filter: {
+    field: string;
+    operator: string;
+    value?: unknown;
+    values?: unknown[];
+  },
+) {
+  const actual = readPath(record, filter.field);
+  const expected = filter.value;
+  const left = String(actual ?? '').toLocaleLowerCase();
+  const right = String(expected ?? '').toLocaleLowerCase();
+  if (filter.operator === 'isNull') return actual == null || actual === '';
+  if (filter.operator === 'isNotNull') return actual != null && actual !== '';
+  if (filter.operator === 'contains') return left.includes(right);
+  if (filter.operator === 'startsWith') return left.startsWith(right);
+  if (filter.operator === 'in')
+    return (filter.values ?? []).map(String).includes(String(actual));
+  if (filter.operator === 'between') {
+    const [minimum, maximum] = filter.values ?? [];
+    return (
+      minimum !== undefined &&
+      maximum !== undefined &&
+      compareRuntimeValues(actual, minimum) >= 0 &&
+      compareRuntimeValues(actual, maximum) <= 0
+    );
+  }
+  if (filter.operator === 'ne') return left !== right;
+  const compared = compareRuntimeValues(actual, expected);
+  if (filter.operator === 'gt') return compared > 0;
+  if (filter.operator === 'gte') return compared >= 0;
+  if (filter.operator === 'lt') return compared < 0;
+  if (filter.operator === 'lte') return compared <= 0;
+  return left === right;
+}
+
+function compareRuntimeValues(left: unknown, right: unknown) {
+  const leftNumber = Number(left);
+  const rightNumber = Number(right);
+  if (Number.isFinite(leftNumber) && Number.isFinite(rightNumber))
+    return leftNumber - rightNumber;
+  const leftDate = Date.parse(String(left ?? ''));
+  const rightDate = Date.parse(String(right ?? ''));
+  if (Number.isFinite(leftDate) && Number.isFinite(rightDate))
+    return leftDate - rightDate;
+  return String(left ?? '').localeCompare(String(right ?? ''), undefined, {
+    numeric: true,
+    sensitivity: 'base',
+  });
+}
+function readPath(record: Record<string, unknown>, path: string) {
+  return path
+    .split('.')
+    .reduce<unknown>(
+      (value, key) =>
+        value && typeof value === 'object'
+          ? (value as Record<string, unknown>)[key]
+          : undefined,
+      record,
+    );
+}
+function envelope(item: unknown) {
+  return {
+    item,
+    version:
+      item && typeof item === 'object' && 'version' in item
+        ? Number((item as Record<string, unknown>).version)
+        : undefined,
+  };
+}
+function result(data: unknown) {
+  return { success: true, data };
+}
+function toIds(value: unknown) {
+  if (!Array.isArray(value) || !value.every((id) => typeof id === 'string'))
+    throw new BadRequestException('Record IDs are required.');
+  return value;
+}
+function textOrNull(value: unknown) {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+function entityType(key: PlatformRuntimeModuleKey) {
+  return key
+    .split('-')
+    .map((value) => value[0].toUpperCase() + value.slice(1))
+    .join('');
+}
+function csv(value: string) {
+  return `"${value.replaceAll('"', '""')}"`;
+}

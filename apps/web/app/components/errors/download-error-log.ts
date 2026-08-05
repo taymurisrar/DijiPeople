@@ -11,10 +11,9 @@ export async function downloadErrorLog(error: DisplayableError) {
       )
     : null;
 
-  const text =
-    response?.ok
-      ? await response.text()
-      : buildClientFallbackLog(enrichedError);
+  const text = response?.ok
+    ? await response.text()
+    : buildClientFallbackLog(enrichedError);
   const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
@@ -68,11 +67,20 @@ function buildClientFallbackLog(error: DisplayableError) {
 }
 
 function safeJson(value: unknown) {
-  if (value === undefined || value === null) return "N/A";
+  if (value === undefined || value === null) {
+    return "No diagnostic details were provided.";
+  }
   try {
+    if (
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      Object.keys(value).length === 0
+    ) {
+      return "No diagnostic details were provided.";
+    }
     return JSON.stringify(value, null, 2);
   } catch {
-    return "N/A";
+    return "Diagnostic details could not be serialized.";
   }
 }
 

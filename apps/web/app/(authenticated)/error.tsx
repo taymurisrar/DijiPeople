@@ -14,6 +14,10 @@ import { useEffect, useMemo } from "react";
 
 import { Button } from "@/app/components/ui/button";
 import { downloadErrorLog } from "@/app/components/errors/download-error-log";
+import {
+  enrichClientError,
+  persistClientError,
+} from "@/app/components/errors/client-error-log";
 
 type DashboardErrorProps = {
   error: Error & {
@@ -168,6 +172,9 @@ export default function DashboardError({ error, reset }: DashboardErrorProps) {
   const Icon = config.icon;
 
   const errorReference = error.digest ?? error.code ?? undefined;
+  const clientTraceId = `client_boundary_${stableErrorReference(
+    error.digest ?? error.code ?? error.message,
+  )}`;
   const status = getErrorStatus(error);
 
   useEffect(() => {
@@ -179,7 +186,22 @@ export default function DashboardError({ error, reset }: DashboardErrorProps) {
       status,
       stack: error.stack,
     });
-  }, [error, status]);
+    void persistClientError(
+      enrichClientError({
+        success: false,
+        traceId: clientTraceId,
+        timestamp: new Date().toISOString(),
+        statusCode: status ?? 500,
+        errorCode: error.code ?? "SYSTEM_UNEXPECTED_ERROR",
+        message: error.message || config.title,
+        description: config.description,
+        stack: error.stack,
+        details: { digest: error.digest },
+        path: getCurrentPath(),
+        method: "CLIENT",
+      }),
+    );
+  }, [clientTraceId, config.description, config.title, error, status]);
 
   const loginHref = `/api/auth/logout?reason=${config.variant}&next=${encodeURIComponent(
     getCurrentPath(),
@@ -309,4 +331,9 @@ export default function DashboardError({ error, reset }: DashboardErrorProps) {
       </section>
     </main>
   );
+}
+
+function stableErrorReference(value: string) {
+  const normalized = value.replace(/[^a-z0-9_.-]+/gi, "_").slice(0, 100);
+  return normalized || "unexpected_error";
 }

@@ -281,10 +281,7 @@ export class EmployeeTaxProfilesService {
     tenantId: string,
     dto: Pick<
       CreateEmployeeTaxProfileDto,
-      | 'employeeId'
-      | 'taxRuleId'
-      | 'ownerUserId'
-      | 'taxResidencyCountryCode'
+      'employeeId' | 'taxRuleId' | 'ownerUserId' | 'taxResidencyCountryCode'
     >,
     effectiveFrom: Date,
     effectiveTo: Date | null,

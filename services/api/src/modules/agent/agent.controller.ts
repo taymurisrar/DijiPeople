@@ -20,7 +20,13 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { AgentService } from './agent.service';
-import { AgentDeviceDto, AgentVersionQueryDto } from './dto/agent-device.dto';
+import {
+  AgentDeviceDto,
+  AgentVersionQueryDto,
+  CompleteAgentLocationRequestDto,
+  CreateAgentLocationRequestDto,
+  UpdateAgentDevicePermissionsDto,
+} from './dto/agent-device.dto';
 import {
   AgentLoginDto,
   AgentLogoutDto,
@@ -78,6 +84,38 @@ export class AgentController {
     return this.agentService.employeeAgentSummary(user, employeeId, query);
   }
 
+  @Post('employees/:employeeId/location-requests')
+  @Permissions('employees.read', 'attendance.read')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')
+  createEmployeeLocationRequest(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('employeeId', new ParseUUIDPipe()) employeeId: string,
+    @Body() dto: CreateAgentLocationRequestDto,
+  ) {
+    return this.agentService.createEmployeeLocationRequest(
+      user,
+      employeeId,
+      dto,
+    );
+  }
+
+  @Get('location-requests/pending')
+  pendingLocationRequest(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('deviceId', new ParseUUIDPipe()) deviceId: string,
+  ) {
+    return this.agentService.getPendingLocationRequest(user, deviceId);
+  }
+
+  @Patch('location-requests/:requestId/result')
+  completeLocationRequest(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('requestId', new ParseUUIDPipe()) requestId: string,
+    @Body() dto: CompleteAgentLocationRequestDto,
+  ) {
+    return this.agentService.completeLocationRequest(user, requestId, dto);
+  }
+
   @Get('config')
   config(
     @CurrentUser() user: AuthenticatedUser,
@@ -92,6 +130,14 @@ export class AgentController {
     @Body() dto: AgentDeviceDto,
   ) {
     return this.agentService.registerDevice(user, dto);
+  }
+
+  @Patch('devices/permissions')
+  updateDevicePermissions(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: UpdateAgentDevicePermissionsDto,
+  ) {
+    return this.agentService.updateDevicePermissions(user, dto);
   }
 
   @Post('sessions/start')

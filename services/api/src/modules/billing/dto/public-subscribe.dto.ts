@@ -1,11 +1,13 @@
 import { Transform } from 'class-transformer';
 import {
   IsEmail,
+  IsInt,
   IsOptional,
   IsString,
   IsUUID,
   Matches,
   MaxLength,
+  Min,
 } from 'class-validator';
 
 function trimToUndefined({ value }: { value: unknown }) {
@@ -22,6 +24,10 @@ function normalizeEmail({ value }: { value: unknown }) {
 export class PublicSubscribeDto {
   @IsUUID()
   planPriceId!: string;
+
+  @IsInt()
+  @Min(1)
+  seatQuantity!: number;
 
   @Transform(trimToUndefined)
   @IsString()

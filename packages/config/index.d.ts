@@ -115,3 +115,5 @@ export declare function resolveSystemWidgetAvailability(input: {
   readonly permissionKeys?: readonly string[];
   readonly roleKeys?: readonly string[];
 }): SystemWidgetAvailability;
+
+export * from "./platform-runtime-schema";

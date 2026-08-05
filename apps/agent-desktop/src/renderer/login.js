@@ -50,7 +50,10 @@ async function handleSubmit(event) {
         email: emailInput?.value.trim().toLowerCase() ?? "",
         password: passwordInput?.value ?? "",
     };
-    const validation = validatePayload(payload);
+    const shouldResumeSavedSession = !payload.password;
+    const validation = shouldResumeSavedSession
+        ? { ok: true }
+        : validatePayload(payload);
     if (isLoginFailure(validation)) {
         renderFailure(validation);
         focusFirstInvalidField(validation);
@@ -66,17 +69,33 @@ async function handleSubmit(event) {
     }
     setSubmitting(true);
     try {
-        setStatus("Connecting to DijiPeople cloud...", "info");
+        setStatus(shouldResumeSavedSession
+            ? "Restoring saved session..."
+            : "Connecting to DijiPeople cloud...", "info");
         await wait(500);
-        setStatus("Verifying credentials...", "info");
+        setStatus(shouldResumeSavedSession
+            ? "Starting secure session..."
+            : "Verifying credentials...", "info");
         await wait(400);
-        const result = await dijiWindow.dijiAgent.login(payload);
+        const result = shouldResumeSavedSession
+            ? await dijiWindow.dijiAgent.resumeSession?.()
+            : await dijiWindow.dijiAgent.login(payload);
+        if (!result) {
+            renderFailure({
+                ok: false,
+                code: "UNKNOWN_ERROR",
+                message: "Saved-session resume is unavailable. Sign in with your credentials.",
+            });
+            return;
+        }
         if (isLoginFailure(result)) {
             renderFailure(result);
             focusFirstInvalidField(result);
             return;
         }
-        rememberEmail(payload.email);
+        if (payload.email) {
+            rememberEmail(payload.email);
+        }
         setStatus("Authentication successful. Starting secure session...", "success");
         if (submitButton) {
             submitButton.textContent =
@@ -109,7 +128,7 @@ function validatePayload(payload) {
     }
     if (!payload.password) {
         fieldErrors.password =
-            "Password is required.";
+            "Password is required for credential sign-in.";
     }
     if (Object.keys(fieldErrors).length > 0) {
         return {
@@ -292,3 +311,4 @@ function isLoginFailure(result) {
 function isValidEmail(value) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
+export {};

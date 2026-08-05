@@ -5,6 +5,7 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { createHash } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { getErrorFrameworkConfig } from '../../common/errors/error-config';
@@ -68,7 +69,7 @@ export class ErrorLogsService implements OnModuleInit, OnModuleDestroy {
     if (!config.enabled || config.storage !== 'database') return;
     if (!(await this.canUseErrorLogTable(input.traceId))) return;
 
-    const data = sanitizeForErrorLog({
+    const sanitized = sanitizeForErrorLog({
       traceId: input.traceId,
       errorCode: input.errorCode,
       statusCode: input.statusCode,
@@ -91,12 +92,53 @@ export class ErrorLogsService implements OnModuleInit, OnModuleDestroy {
       organizationId: input.organizationId,
       businessUnitId: input.businessUnitId,
     });
+    const data = {
+      ...sanitized,
+      sourceApp: sourceAppFor(input.traceId),
+      environment: process.env.NODE_ENV ?? 'development',
+    };
+    const fingerprint = incidentFingerprint(data);
 
     try {
-      await this.prisma.errorLog.upsert({
-        where: { traceId: data.traceId },
-        update: data as Prisma.ErrorLogUpdateInput,
-        create: data as Prisma.ErrorLogCreateInput,
+      await this.prisma.$transaction(async (tx) => {
+        const existing = await tx.errorLog.findUnique({
+          where: { fingerprint },
+        });
+        const incident = existing
+          ? await tx.errorLog.update({
+              where: { id: existing.id },
+              data: {
+                lastSeenAt: new Date(),
+                occurrenceCount: { increment: 1 },
+                severity: data.severity,
+                statusCode: data.statusCode,
+                message: data.message,
+                description: data.description,
+                stack: data.stack,
+                cause: data.cause as Prisma.InputJsonValue | undefined,
+                details: data.details as Prisma.InputJsonValue | undefined,
+              },
+            })
+          : await tx.errorLog.create({
+              data: {
+                ...(data as Prisma.ErrorLogCreateInput),
+                fingerprint,
+                firstSeenAt: new Date(),
+                lastSeenAt: new Date(),
+                occurrenceCount: 1,
+              },
+            });
+        await tx.errorLogOccurrence.upsert({
+          where: { traceId: data.traceId },
+          update: {},
+          create: {
+            incidentId: incident.id,
+            traceId: data.traceId,
+            diagnosticJson: JSON.parse(
+              JSON.stringify(data),
+            ) as Prisma.InputJsonValue,
+          },
+        });
       });
     } catch (error) {
       if (this.isErrorLogTableMissing(error)) {
@@ -124,6 +166,13 @@ export class ErrorLogsService implements OnModuleInit, OnModuleDestroy {
     let log: Awaited<ReturnType<typeof this.prisma.errorLog.findUnique>>;
     try {
       log = await this.prisma.errorLog.findUnique({ where: { traceId } });
+      if (!log) {
+        const occurrence = await this.prisma.errorLogOccurrence.findUnique({
+          where: { traceId },
+          include: { incident: true },
+        });
+        log = occurrence?.incident ?? null;
+      }
     } catch (error) {
       if (this.isErrorLogTableMissing(error)) {
         this.logMissingTableWarning(traceId);
@@ -279,7 +328,20 @@ export class ErrorLogsService implements OnModuleInit, OnModuleDestroy {
   }
 
   private isDatabaseUnavailable(error: unknown) {
-    return getPrismaErrorCode(error) === 'ECONNREFUSED';
+    const code = getPrismaErrorCode(error);
+    const message = error instanceof Error ? error.message : String(error ?? '');
+    const lowerMessage = message.toLowerCase();
+
+    return (
+      code === 'P1001' ||
+      code === 'P1002' ||
+      code === 'P1017' ||
+      code === 'ECONNREFUSED' ||
+      lowerMessage.includes('connection terminated') ||
+      lowerMessage.includes('server has closed the connection') ||
+      lowerMessage.includes('database system is in recovery mode') ||
+      lowerMessage.includes('database system is not yet accepting connections')
+    );
   }
 
   private logDatabaseUnavailableWarning(traceId: string, error: unknown) {
@@ -317,6 +379,38 @@ export class ErrorLogsService implements OnModuleInit, OnModuleDestroy {
 
 function normalizeRole(value: string) {
   return value.trim().toLowerCase().replace(/\s+/g, '-');
+}
+
+function sourceAppFor(traceId: string) {
+  if (traceId.startsWith('client_')) return 'web';
+  if (traceId.startsWith('admin_')) return 'admin';
+  return 'api';
+}
+
+function incidentFingerprint(input: {
+  errorCode: string;
+  sourceApp: string;
+  method?: string | null;
+  path?: string | null;
+  message: string;
+}) {
+  const stableMessage = input.message
+    .toLowerCase()
+    .replace(/[0-9a-f]{8}-[0-9a-f-]{27,}/gi, ':id')
+    .replace(/\b\d+\b/g, ':n')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return createHash('sha256')
+    .update(
+      [
+        input.sourceApp,
+        input.errorCode,
+        input.method ?? '',
+        input.path ?? '',
+        stableMessage,
+      ].join('|'),
+    )
+    .digest('hex');
 }
 
 function getPrismaErrorCode(error: unknown) {

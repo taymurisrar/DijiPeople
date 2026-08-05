@@ -25,6 +25,15 @@ function normalizeEmail({ value }: { value: unknown }) {
 }
 
 export class SubmitLeadDto {
+  @IsOptional()
+  @Transform(trimToUndefined)
+  @IsString()
+  @MaxLength(64)
+  @Matches(/^[A-Za-z0-9_-]+$/, {
+    message: 'referralCode must be a valid referral code.',
+  })
+  referralCode?: string;
+
   @Transform(trimToUndefined)
   @IsString()
   @MaxLength(100)

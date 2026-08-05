@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'unsafe-inline';"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DijiPeople Agent Permissions</title>
+    <style>
+      :root {
+        color: #0f172a;
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+      }
+
+      body {
+        margin: 0;
+        background: #f8fafc;
+      }
+
+      main {
+        display: grid;
+        gap: 18px;
+        padding: 28px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 24px;
+        line-height: 1.2;
+      }
+
+      p {
+        margin: 0;
+        color: #64748b;
+        line-height: 1.5;
+      }
+
+      .panel {
+        display: grid;
+        gap: 14px;
+        border: 1px solid #dbe3ee;
+        border-radius: 18px;
+        background: #fff;
+        padding: 18px;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 14px;
+        align-items: center;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 14px;
+      }
+
+      .label {
+        font-weight: 700;
+      }
+
+      .status {
+        color: #475569;
+        font-size: 13px;
+      }
+
+      button {
+        border: 1px solid #cbd5e1;
+        border-radius: 12px;
+        background: #fff;
+        color: #0f172a;
+        cursor: pointer;
+        font-weight: 700;
+        padding: 10px 14px;
+      }
+
+      button.primary {
+        border-color: #0ea5e9;
+        background: #0ea5e9;
+        color: #fff;
+      }
+
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.65;
+      }
+
+      #message {
+        min-height: 20px;
+        color: #0f766e;
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section>
+        <h1>Device permissions</h1>
+        <p>
+          Grant access only if your company process requires it. DijiPeople
+          records the permission status; access is still controlled by this
+          device and can be changed in system settings.
+        </p>
+      </section>
+
+      <section class="panel">
+        <div class="row">
+          <div>
+            <div class="label">Camera</div>
+            <div class="status" id="camera-status">Not checked</div>
+          </div>
+          <button id="camera-button" type="button">Request</button>
+        </div>
+
+        <div class="row">
+          <div>
+            <div class="label">Microphone</div>
+            <div class="status" id="microphone-status">Not checked</div>
+          </div>
+          <button id="microphone-button" type="button">Request</button>
+        </div>
+
+        <div class="row">
+          <div>
+            <div class="label">Location</div>
+            <div class="status" id="location-status">Not checked</div>
+          </div>
+          <button id="location-button" type="button">Request</button>
+        </div>
+
+        <button class="primary" id="save-button" type="button">
+          Save status
+        </button>
+        <div id="message"></div>
+      </section>
+    </main>
+    <script type="module" src="./device-permissions.js"></script>
+  </body>
+</html>

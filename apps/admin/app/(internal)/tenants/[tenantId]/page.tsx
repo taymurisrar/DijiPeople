@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { RuntimeRecordRoute } from "@/app/_components/runtime/runtime-record-route";
 import { GenerateInvoiceButton } from "@/app/_components/generate-invoice-button";
 import { SubscriptionForm } from "@/app/_components/subscription-form";
 import { TenantAccessActions } from "@/app/_components/tenant-access-actions";
@@ -151,6 +152,7 @@ type CustomerOption = {
 };
 
 type SearchParams = Promise<{
+  workspace?: string;
   tab?:
     | "overview"
     | "features"
@@ -179,6 +181,9 @@ export default async function TenantDetailPage({
 }) {
   const { tenantId } = await params;
   const resolvedSearchParams = await searchParams;
+  if (resolvedSearchParams.workspace !== "operations") {
+    return <RuntimeRecordRoute moduleKey="tenants" recordId={tenantId} />;
+  }
   const activeTab = resolvedSearchParams.tab ?? "overview";
   const isEditing = resolvedSearchParams.edit === "1";
 
@@ -238,7 +243,7 @@ export default async function TenantDetailPage({
             </Link>
             <Link
               className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold"
-              href={`/tenants/${tenantId}?tab=settings&edit=${isEditing ? "0" : "1"}`}
+              href={`/tenants/${tenantId}?workspace=operations&tab=settings&edit=${isEditing ? "0" : "1"}`}
             >
               {isEditing ? "View" : "Manage settings"}
             </Link>
@@ -283,41 +288,41 @@ export default async function TenantDetailPage({
 
       <nav className="flex flex-wrap gap-2">
         <TabLink
-          href={`/tenants/${tenantId}?tab=overview`}
+          href={`/tenants/${tenantId}?workspace=operations&tab=overview`}
           label="Overview"
           isActive={activeTab === "overview"}
         />
         <TabLink
-          href={`/tenants/${tenantId}?tab=features`}
+          href={`/tenants/${tenantId}?workspace=operations&tab=features`}
           label="Features"
           isActive={activeTab === "features"}
         />
         <TabLink
-          href={`/tenants/${tenantId}?tab=users`}
+          href={`/tenants/${tenantId}?workspace=operations&tab=users`}
           label="Users & Access"
           isActive={activeTab === "users"}
         />
         {canSeeFinancials ? (
           <TabLink
-            href={`/tenants/${tenantId}?tab=subscription`}
+            href={`/tenants/${tenantId}?workspace=operations&tab=subscription`}
             label="Subscription & Billing"
             isActive={activeTab === "subscription"}
           />
         ) : null}
         {canSeeFinancials ? (
           <TabLink
-            href={`/tenants/${tenantId}?tab=invoices`}
+            href={`/tenants/${tenantId}?workspace=operations&tab=invoices`}
             label="Invoices"
             isActive={activeTab === "invoices"}
           />
         ) : null}
         <TabLink
-          href={`/tenants/${tenantId}?tab=settings`}
+          href={`/tenants/${tenantId}?workspace=operations&tab=settings`}
           label="Settings"
           isActive={activeTab === "settings"}
         />
         <TabLink
-          href={`/tenants/${tenantId}?tab=audit`}
+          href={`/tenants/${tenantId}?workspace=operations&tab=audit`}
           label="Audit Log"
           isActive={activeTab === "audit"}
         />

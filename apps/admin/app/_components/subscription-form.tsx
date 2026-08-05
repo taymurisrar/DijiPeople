@@ -3,9 +3,14 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { BillingCycleValue, SubscriptionStatusValue } from "@/lib/domain";
-import { formatBillingCycle, formatCurrency, formatEnumLabel } from "@/lib/formatters";
+import {
+  formatBillingCycle,
+  formatCurrency,
+  formatEnumLabel,
+} from "@/lib/formatters";
 import { SUPPORTED_CURRENCIES } from "@/lib/form-options";
 import { useToastNotice } from "@/app/_components/ui/toast-provider";
+import { usePlatformDefaults } from "@/app/_components/platform-defaults-provider";
 
 type SubscriptionPlanOption = {
   id: string;
@@ -34,6 +39,7 @@ type SubscriptionFormProps = {
     endDate: string | null;
     renewalDate: string | null;
     autoRenew: boolean;
+    purchasedSeats?: number;
   } | null;
 };
 
@@ -43,6 +49,7 @@ export function SubscriptionForm({
   currentSubscription,
 }: SubscriptionFormProps) {
   const router = useRouter();
+  const { defaults } = usePlatformDefaults();
   const { showToast } = useToastNotice();
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
@@ -67,13 +74,18 @@ export function SubscriptionForm({
   const [manualFinalPrice, setManualFinalPrice] = useState(
     String(currentSubscription?.finalPrice ?? ""),
   );
-  const [currency, setCurrency] = useState(currentSubscription?.currency ?? "USD");
+  const [currency, setCurrency] = useState(
+    currentSubscription?.currency ?? defaults.currency,
+  );
   const [autoRenew, setAutoRenew] = useState(
     currentSubscription?.autoRenew ?? true,
   );
+  const [purchasedSeats, setPurchasedSeats] = useState(
+    currentSubscription?.purchasedSeats ?? 1,
+  );
   const [startDate, setStartDate] = useState(
     currentSubscription?.startDate?.slice(0, 10) ??
-    new Date().toISOString().slice(0, 10),
+      new Date().toISOString().slice(0, 10),
   );
   const [endDate, setEndDate] = useState(
     currentSubscription?.endDate?.slice(0, 10) ?? "",
@@ -90,8 +102,8 @@ export function SubscriptionForm({
   const pricingPreview = useMemo(() => {
     const basePrice = Number(
       billingCycle === "ANNUAL" || billingCycle === "Annual"
-        ? selectedPlan?.annualBasePrice ?? 0
-        : selectedPlan?.monthlyBasePrice ?? 0,
+        ? (selectedPlan?.annualBasePrice ?? 0)
+        : (selectedPlan?.monthlyBasePrice ?? 0),
     );
     const parsedDiscount = Number(discountValue || 0);
     let discounted = basePrice;
@@ -104,7 +116,8 @@ export function SubscriptionForm({
       discounted = basePrice - parsedDiscount;
     }
 
-    const manual = manualFinalPrice.length > 0 ? Number(manualFinalPrice) : null;
+    const manual =
+      manualFinalPrice.length > 0 ? Number(manualFinalPrice) : null;
 
     return {
       basePrice,
@@ -129,31 +142,37 @@ export function SubscriptionForm({
     }
 
     startTransition(async () => {
-      const response = await fetch(`/api/super-admin/tenants/${tenantId}/subscription`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        `/api/super-admin/tenants/${tenantId}/subscription`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            planId,
+            purchasedSeats,
+            status,
+            billingCycle,
+            discountType,
+            discountValue: Number(discountValue || 0),
+            discountReason: discountReason || undefined,
+            manualFinalPrice:
+              manualFinalPrice.length > 0
+                ? Number(manualFinalPrice)
+                : undefined,
+            currency,
+            autoRenew,
+            startDate,
+            endDate: endDate.length > 0 ? endDate : null,
+            renewalDate: renewalDate.length > 0 ? renewalDate : undefined,
+          }),
         },
-        body: JSON.stringify({
-          planId,
-          status,
-          billingCycle,
-          discountType,
-          discountValue: Number(discountValue || 0),
-          discountReason: discountReason || undefined,
-          manualFinalPrice:
-            manualFinalPrice.length > 0 ? Number(manualFinalPrice) : undefined,
-          currency,
-          autoRenew,
-          startDate,
-          endDate: endDate.length > 0 ? endDate : null,
-          renewalDate: renewalDate.length > 0 ? renewalDate : undefined,
-        }),
-      });
+      );
 
-      const payload = (await response.json().catch(() => null)) as
-        | { message?: string }
-        | null;
+      const payload = (await response.json().catch(() => null)) as {
+        message?: string;
+      } | null;
 
       if (!response.ok) {
         setMessage(payload?.message ?? "Unable to update subscription.");
@@ -174,11 +193,29 @@ export function SubscriptionForm({
       <div>
         <h3 className="text-lg font-semibold text-slate-950">Subscription</h3>
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          Keep billing cycle, pricing, and renewal details aligned with the customer agreement.
+          Keep billing cycle, pricing, and renewal details aligned with the
+          customer agreement.
         </p>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
+        <label className="block text-sm font-medium text-slate-700">
+          Purchased seats
+          <input
+            min="1"
+            step="1"
+            type="number"
+            value={purchasedSeats}
+            onChange={(event) =>
+              setPurchasedSeats(Math.max(1, Number(event.target.value)))
+            }
+            className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-900"
+          />
+          <span className="mt-1 block text-xs text-slate-500">
+            Billing entitlement. User deactivation does not change this
+            quantity.
+          </span>
+        </label>
         <label className="block text-sm font-medium text-slate-700">
           Plan
           <select
@@ -208,11 +245,13 @@ export function SubscriptionForm({
             onChange={(event) => setStatus(event.target.value as typeof status)}
             className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-900"
           >
-            {(["TRIALING", "ACTIVE", "PAST_DUE", "CANCELLED"] as const).map((option) => (
-              <option key={option} value={option}>
-                {formatEnumLabel(option)}
-              </option>
-            ))}
+            {(["TRIALING", "ACTIVE", "PAST_DUE", "CANCELLED"] as const).map(
+              (option) => (
+                <option key={option} value={option}>
+                  {formatEnumLabel(option)}
+                </option>
+              ),
+            )}
           </select>
         </label>
       </div>
@@ -222,12 +261,10 @@ export function SubscriptionForm({
           Billing cycle
           <select
             value={billingCycle}
-            onChange={(event) =>
-              {
-                setBillingCycle(event.target.value as typeof billingCycle);
-                setManualFinalPrice("");
-              }
-            }
+            onChange={(event) => {
+              setBillingCycle(event.target.value as typeof billingCycle);
+              setManualFinalPrice("");
+            }}
             className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-900"
           >
             {(["MONTHLY", "ANNUAL"] as const).map((option) => (
@@ -346,7 +383,9 @@ export function SubscriptionForm({
       </label>
 
       <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-        <div className="text-sm font-medium text-slate-700">Pricing preview</div>
+        <div className="text-sm font-medium text-slate-700">
+          Pricing preview
+        </div>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <div>
             <div className="text-xs uppercase tracking-[0.18em] text-slate-500">

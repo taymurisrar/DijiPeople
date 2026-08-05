@@ -5,6 +5,12 @@ export type PublicPlanPrice = {
   billingCycle: BillingCycle;
   currency: string;
   unitAmount: number;
+  billingModel?: "PER_SEAT" | "FLAT";
+  billingInterval?: "MONTH" | "YEAR";
+  pricePerSeat?: number | null;
+  minimumSeats?: number;
+  maximumSeats?: number | null;
+  includedSeats?: number;
   isActive?: boolean;
   hasStripePrice: boolean;
   checkoutReady?: boolean;
@@ -83,7 +89,10 @@ export function getAvailableCurrenciesFromPlans(plans: PublicPlan[]) {
   ).sort();
 }
 
-export function resolveDefaultCurrency(plans: PublicPlan[], country?: string | null) {
+export function resolveDefaultCurrency(
+  plans: PublicPlan[],
+  country?: string | null,
+) {
   const available = getAvailableCurrenciesFromPlans(plans);
   const detected = detectRegionCurrency(country);
   if (available.includes(detected)) return detected;
@@ -117,11 +126,14 @@ export function isCheckoutReady(price: PublicPlanPrice | null) {
 
 export function formatPlanPrice(price: PublicPlanPrice | null) {
   if (!price) return "Contact sales";
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: price.currency,
-    maximumFractionDigits: price.unitAmount % 1 === 0 ? 0 : 2,
-  }).format(price.unitAmount);
+  return (
+    new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: price.currency,
+      maximumFractionDigits: price.unitAmount % 1 === 0 ? 0 : 2,
+    }).format(price.unitAmount) +
+    (price.billingModel === "PER_SEAT" ? " per user/month" : "")
+  );
 }
 
 export function humanizeFeature(key: string) {

@@ -136,9 +136,26 @@ export function PlatformDefaultsForm({
             disabled={isPending}
             required
             placeholder="Search currency"
-            helpText="Used as the default billing, invoice, and subscription currency."
+            helpText="Preselected when a new plan, payment, invoice, or subscription is created."
             onChange={(value) =>
               update("currency", String(value) as PlatformDefaults["currency"])
+            }
+          />
+
+          <FormControl
+            type="lookup"
+            label="Reporting currency"
+            value={form.reportingCurrency}
+            options={PLATFORM_CURRENCY_OPTIONS}
+            disabled={isPending}
+            required
+            placeholder="Search reporting currency"
+            helpText="Used for consolidated dashboards and cross-workspace financial summaries."
+            onChange={(value) =>
+              update(
+                "reportingCurrency",
+                String(value) as PlatformDefaults["reportingCurrency"],
+              )
             }
           />
 
@@ -227,6 +244,7 @@ export function PlatformDefaultsForm({
       <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-5 text-slate-500">
         Fallback values: {DEFAULT_PLATFORM_DEFAULTS.country},{" "}
         {DEFAULT_PLATFORM_DEFAULTS.currency},{" "}
+        {DEFAULT_PLATFORM_DEFAULTS.reportingCurrency} reporting,{" "}
         {DEFAULT_PLATFORM_DEFAULTS.timezone},{" "}
         {DEFAULT_PLATFORM_DEFAULTS.locale}
       </div>

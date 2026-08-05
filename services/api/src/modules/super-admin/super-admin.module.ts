@@ -47,5 +47,6 @@ import { SuperAdminService } from './super-admin.service';
     RolesGuard,
     PlatformPermissionsGuard,
   ],
+  exports: [SuperAdminService],
 })
 export class SuperAdminModule {}

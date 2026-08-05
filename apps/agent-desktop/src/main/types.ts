@@ -31,6 +31,9 @@ export type PrivacyConfig = {
   allowScreenshots: false;
   allowClipboardTracking: false;
   allowKeylogging: false;
+  allowCameraAccess: boolean;
+  allowMicrophoneAccess: boolean;
+  allowLocationAccess: boolean;
 };
 
 export type ApiConfig = {
@@ -44,6 +47,9 @@ export type FeatureConfig = {
   offlineQueue: boolean;
   autoUpdate: boolean;
   trayStatus: boolean;
+  cameraAccess: boolean;
+  microphoneAccess: boolean;
+  locationAccess: boolean;
 };
 
 export type AgentConfig = {
@@ -108,6 +114,40 @@ export type LoginResult = {
 export type LoginPayload = {
   email: string;
   password: string;
+};
+
+export type AgentDevicePermissionStatus =
+  | "GRANTED"
+  | "DENIED"
+  | "PROMPT"
+  | "RESTRICTED"
+  | "UNAVAILABLE"
+  | "UNKNOWN";
+
+export type AgentDevicePermissions = {
+  cameraPermission: AgentDevicePermissionStatus;
+  microphonePermission: AgentDevicePermissionStatus;
+  locationPermission: AgentDevicePermissionStatus;
+};
+
+export type AgentLocationRequest = {
+  id: string;
+  status: string;
+  requestedAt: string;
+  promptedAt?: string | null;
+  expiresAt: string;
+  deviceId: string;
+};
+
+export type AgentLocationResult = {
+  requestId: string;
+  deviceId: string;
+  status: "CAPTURED" | "DENIED" | "FAILED";
+  latitude?: number;
+  longitude?: number;
+  accuracyMeters?: number;
+  errorMessage?: string;
+  capturedAt?: string;
 };
 
 export type LoginErrorCode =

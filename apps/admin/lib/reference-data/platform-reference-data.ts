@@ -186,6 +186,7 @@ export const PLATFORM_LOCALES = [
 export const DEFAULT_PLATFORM_DEFAULTS = {
   country: "QA",
   currency: "QAR",
+  reportingCurrency: "QAR",
   timezone: "Asia/Qatar",
   dateFormat: "DD/MM/YYYY",
   timeFormat: "12-hour",
@@ -202,6 +203,7 @@ export type PlatformLocale = (typeof PLATFORM_LOCALES)[number]["code"];
 export type PlatformDefaults = {
   country: PlatformCountryCode;
   currency: PlatformCurrencyCode;
+  reportingCurrency: PlatformCurrencyCode;
   timezone: PlatformTimezone;
   dateFormat: PlatformDateFormat;
   timeFormat: PlatformTimeFormat;
@@ -275,6 +277,14 @@ export function normalizePlatformDefaults(
       defaults?.currency && isPlatformCurrencyCode(defaults.currency)
         ? defaults.currency
         : DEFAULT_PLATFORM_DEFAULTS.currency,
+
+    reportingCurrency:
+      defaults?.reportingCurrency &&
+      isPlatformCurrencyCode(defaults.reportingCurrency)
+        ? defaults.reportingCurrency
+        : defaults?.currency && isPlatformCurrencyCode(defaults.currency)
+          ? defaults.currency
+          : DEFAULT_PLATFORM_DEFAULTS.reportingCurrency,
 
     timezone:
       defaults?.timezone && isPlatformTimezone(defaults.timezone)

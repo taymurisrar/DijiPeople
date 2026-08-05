@@ -119,7 +119,8 @@ export function CompensationPackageAssignment({
   }, [recordId]);
 
   useEffect(() => {
-    void load();
+    const timer = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(timer);
   }, [load]);
 
   if (!recordId) {
@@ -283,7 +284,8 @@ export function TaxSlabManager({ recordId }: { readonly recordId?: string }) {
   }, [recordId]);
 
   useEffect(() => {
-    void load();
+    const timer = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(timer);
   }, [load]);
 
   async function move(index: number, direction: -1 | 1) {

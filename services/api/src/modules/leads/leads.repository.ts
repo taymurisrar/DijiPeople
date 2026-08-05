@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { LeadStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { LeadQueryDto } from './dto/admin-lead.dto';
 
@@ -9,6 +9,7 @@ type LeadListItem = Prisma.LeadGetPayload<{
     assignedToUser: {
       select: { id: true; firstName: true; lastName: true; email: true };
     };
+    partner: { select: { id: true; code: true; displayName: true } };
   };
 }>;
 
@@ -33,7 +34,7 @@ export class LeadsRepository {
   }
 
   async findMany(query: LeadQueryDto, db: PrismaDb = this.prisma) {
-    const where: Prisma.LeadWhereInput = {};
+    const where: Prisma.LeadWhereInput = leadViewWhere(query.viewKey);
     if (query.status) {
       where.status = query.status;
     }
@@ -52,6 +53,10 @@ export class LeadsRepository {
 
     if (query.assignedToUserId) {
       where.assignedToUserId = query.assignedToUserId;
+    }
+
+    if (query.partnerId) {
+      where.partnerId = query.partnerId;
     }
 
     if (query.createdFrom || query.createdTo) {
@@ -101,6 +106,7 @@ export class LeadsRepository {
           assignedToUser: {
             select: { id: true, firstName: true, lastName: true, email: true },
           },
+          partner: { select: { id: true, code: true, displayName: true } },
         },
         orderBy,
         skip,
@@ -115,4 +121,20 @@ export class LeadsRepository {
   deleteMany(ids: string[], db: PrismaDb = this.prisma) {
     return db.lead.deleteMany({ where: { id: { in: ids } } });
   }
+}
+
+function leadViewWhere(viewKey?: string): Prisma.LeadWhereInput {
+  const statuses: Record<string, LeadStatus> = {
+    new: 'NEW',
+    contacted: 'CONTACTED',
+    qualified: 'QUALIFIED',
+    unqualified: 'UNQUALIFIED',
+    converted: 'CONVERTED',
+    'closed-lost': 'CLOSED_LOST',
+  };
+  if (viewKey && statuses[viewKey]) return { status: statuses[viewKey] };
+  if (viewKey === 'direct-leads') return { partnerId: null };
+  if (viewKey === 'partner-referred-leads') return { partnerId: { not: null } };
+  if (viewKey === 'unassigned-leads') return { assignedToUserId: null };
+  return {};
 }

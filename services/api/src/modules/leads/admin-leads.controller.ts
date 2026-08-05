@@ -21,6 +21,7 @@ import {
   BulkAssignLeadsDto,
   BulkDeleteLeadsDto,
   CreateAdminLeadDto,
+  CorrectLeadAttributionDto,
   LeadQueryDto,
   UpdateAdminLeadDto,
 } from './dto/admin-lead.dto';
@@ -60,6 +61,15 @@ export class AdminLeadsController {
     @Body() dto: UpdateAdminLeadDto,
   ) {
     return this.leadsService.updateLead(user, leadId, dto);
+  }
+
+  @Patch(':leadId/attribution')
+  correctAttribution(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('leadId', new ParseUUIDPipe()) leadId: string,
+    @Body() dto: CorrectLeadAttributionDto,
+  ) {
+    return this.leadsService.correctAttribution(user, leadId, dto);
   }
 
   @Delete()

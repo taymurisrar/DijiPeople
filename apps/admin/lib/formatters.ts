@@ -19,7 +19,7 @@ export function formatNumber(
 
 export function formatCurrency(
   value: number | null | undefined,
-  currency = "USD",
+  currency: string,
 ): string {
   if (typeof value !== "number" || Number.isNaN(value)) {
     return new Intl.NumberFormat("en-US", {

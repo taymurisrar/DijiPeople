@@ -43,7 +43,9 @@ export function formatPlatformCurrency(
 ) {
   return new Intl.NumberFormat(defaults.locale ?? "en-US", {
     style: "currency",
-    currency: defaults.currency ?? "QAR",
+    currency:
+      defaults.reportingCurrency ?? defaults.currency ??
+      DEFAULT_PLATFORM_DEFAULTS.reportingCurrency,
   }).format(value);
 }
 

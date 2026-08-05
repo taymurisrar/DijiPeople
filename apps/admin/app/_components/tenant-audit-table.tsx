@@ -1,6 +1,6 @@
 "use client";
 
-import { DataTable } from "@/app/_components/crm/data-table";
+import { ProDataTable } from "@/app/_components/crm/data-table";
 import { formatDate } from "@/lib/formatters";
 import { useState } from "react";
 
@@ -26,7 +26,7 @@ export function TenantAuditTable({ events }: { events: TenantAuditEvent[] }) {
     currentPage * pageSize,
   );
   return (
-    <DataTable
+    <ProDataTable
       rows={rows}
       rowKey={(event) => event.id}
       emptyTitle="No audit events"

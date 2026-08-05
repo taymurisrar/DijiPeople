@@ -5,7 +5,7 @@ import {
 
 const TENANT_FAVICON_ID = "tenant-favicon";
 const BRANDING_ATTRIBUTE = "data-dijipeople-branding";
-const DEFAULT_FAVICON_HREF = "/favicon.ico";
+const DEFAULT_FAVICON_HREF = "/favicon.svg";
 let lastAppliedTitle = "";
 let lastAppliedFavicon = "";
 let lastAppliedFont = "";
@@ -75,9 +75,7 @@ export function upsertFavicon(faviconUrl?: string | null) {
   if (!head) return;
 
   const href = normalizeFaviconHref(faviconUrl);
-  let link = document.getElementById(
-    TENANT_FAVICON_ID,
-  ) as HTMLLinkElement | null;
+  let link = document.getElementById(TENANT_FAVICON_ID) as HTMLLinkElement | null;
   const created = !link;
 
   if (!link) {
@@ -95,6 +93,8 @@ export function upsertFavicon(faviconUrl?: string | null) {
   if (type && link.type !== type) {
     link.type = type;
   }
+  link.setAttribute("data-favicon-source", href);
+  syncFaviconLinks(href, type);
 
   if (lastAppliedFavicon !== href || created) {
     lastAppliedFavicon = href;
@@ -102,6 +102,28 @@ export function upsertFavicon(faviconUrl?: string | null) {
       `favicon ${created ? "created" : "updated"}`,
       href,
     );
+  }
+}
+
+function syncFaviconLinks(href: string, type: string) {
+  const links = Array.from(
+    document.querySelectorAll<HTMLLinkElement>("link[rel]"),
+  ).filter((link) => {
+    const relValues = link.rel.toLowerCase().split(/\s+/);
+    return (
+      relValues.includes("icon") ||
+      link.rel.toLowerCase() === "apple-touch-icon"
+    );
+  });
+
+  for (const link of links) {
+    if (link.href !== href) {
+      link.href = href;
+    }
+    if (type && link.type !== type) {
+      link.type = type;
+    }
+    link.setAttribute(BRANDING_ATTRIBUTE, "true");
   }
 }
 
@@ -113,10 +135,32 @@ function normalizeFaviconHref(value?: string | null) {
   const candidate = value?.trim() || DEFAULT_FAVICON_HREF;
 
   try {
-    return new URL(candidate, window.location.origin).href;
+    return addFaviconCacheKey(
+      new URL(candidate, window.location.origin).href,
+      candidate,
+    );
   } catch {
-    return new URL(DEFAULT_FAVICON_HREF, window.location.origin).href;
+    return addFaviconCacheKey(
+      new URL(DEFAULT_FAVICON_HREF, window.location.origin).href,
+      DEFAULT_FAVICON_HREF,
+    );
   }
+}
+
+function addFaviconCacheKey(href: string, seed: string) {
+  const url = new URL(href);
+  url.searchParams.set("v", stableHash(seed));
+  return url.href;
+}
+
+function stableHash(value: string) {
+  let hash = 0;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
+  }
+
+  return hash.toString(36);
 }
 
 function inferFaviconType(href: string) {

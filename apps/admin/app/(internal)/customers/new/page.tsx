@@ -1,25 +1,5 @@
-import { CustomerCreateManager } from "@/app/_components/customer-create-manager";
-import type {
-  LifecycleOptions,
-  OperatorOption,
-  PlanOption,
-} from "@/app/_components/platform-lifecycle-types";
-import { apiRequestJson } from "@/lib/server-api";
+import { RuntimeRecordRoute } from "@/app/_components/runtime/runtime-record-route";
 
-export default async function NewCustomerPage() {
-  const [lifecycleOptions, operators, plans] = await Promise.all([
-    apiRequestJson<LifecycleOptions>("/super-admin/lifecycle-options"),
-    apiRequestJson<OperatorOption[]>("/platform-users/owner-candidates"),
-    apiRequestJson<PlanOption[]>("/super-admin/plans"),
-  ]);
-
-  return (
-    <main className="space-y-4">
-      <CustomerCreateManager
-        lifecycleOptions={lifecycleOptions}
-        operators={operators}
-        plans={plans}
-      />
-    </main>
-  );
+export default function NewCustomerPage() {
+  return <RuntimeRecordRoute moduleKey="customers" />;
 }

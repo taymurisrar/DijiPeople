@@ -1302,9 +1302,7 @@ function loanPolicyData(
   };
 }
 
-function validateLoanPolicy(
-  dto: CreateLoanPolicyDto | UpdateLoanPolicyDto,
-) {
+function validateLoanPolicy(dto: CreateLoanPolicyDto | UpdateLoanPolicyDto) {
   if (
     dto.minimumAmount != null &&
     dto.maximumAmount != null &&
