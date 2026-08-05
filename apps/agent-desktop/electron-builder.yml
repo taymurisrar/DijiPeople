@@ -7,6 +7,7 @@ directories:
 
 files:
   - dist/**/*
+  - assets/**/*
   - package.json
 
 extraResources:
@@ -14,6 +15,7 @@ extraResources:
     to: .env
 
 win:
+  icon: assets/icon.png
   target:
     - nsis
   signAndEditExecutable: false

@@ -63,6 +63,18 @@ export const agentEnv = {
     60,
   ),
 
+  // Activity thresholds are about keyboard/mouse idleness within a session and
+  // are unrelated to how long a session may live, so they get their own values.
+  idleThresholdSeconds: readNumber(
+    process.env.AGENT_IDLE_THRESHOLD_SECONDS,
+    60,
+  ),
+
+  awayThresholdSeconds: readNumber(
+    process.env.AGENT_AWAY_THRESHOLD_SECONDS,
+    300,
+  ),
+
   heartbeatBatchSize: readNumber(
     process.env.AGENT_HEARTBEAT_BATCH_SIZE,
     1000,

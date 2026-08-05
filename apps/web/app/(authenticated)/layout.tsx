@@ -50,10 +50,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: pageTitle
       ? `${pageTitle} | ${branding.appTitle}`
       : branding.appTitle,
-    icons: buildFaviconMetadata(
-      branding.faviconUrl,
-      `${resolvedSettings?.organization.companyDisplayName ?? ""}:${branding.faviconUrl}`,
-    ),
+    icons: buildFaviconMetadata(branding.faviconUrl),
   };
 }
 

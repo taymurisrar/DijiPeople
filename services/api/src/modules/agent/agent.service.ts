@@ -96,7 +96,11 @@ const DEFAULT_AGENT_SETTINGS = {
 };
 
 const AGENT_RETENTION_CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
-const MAX_LOCATION_ACCURACY_METERS = 100;
+// Desktop machines have no GPS. Windows Location Services positions them from
+// Wi-Fi and network data, which realistically lands between 20 m and 2 km, so a
+// tighter bound rejected every genuine capture. Anything looser than this is
+// IP-level geolocation (tens of kilometres) and is not worth recording.
+const MAX_LOCATION_ACCURACY_METERS = 2000;
 const LOCATION_REQUEST_EXPIRY_MS = 10 * 60 * 1000;
 
 const agentLocationRequestSelect = {
@@ -587,7 +591,9 @@ export class AgentService {
         employeeId: employee.id,
         userId: currentUser.userId,
         deviceId,
-        status: 'PENDING',
+        // PROMPTED is included so a request the employee never answered (window
+        // closed, agent restarted) can be shown again before it expires.
+        status: { in: ['PENDING', 'PROMPTED'] },
         expiresAt: { gt: new Date() },
       },
       orderBy: { requestedAt: 'desc' },

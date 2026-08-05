@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { AccessDeniedState } from "@/app/(authenticated)/_components/access-denied-state";
 import { getSessionUser } from "@/lib/auth";
 import { getTableForms } from "@/lib/customization-forms";
+import { canManageEmployeeRecord } from "@/lib/employee-profile-access";
 import {
   buildEmployeeRuntimeContext,
   mapEmployeeLookupDisplayValues,
@@ -114,14 +115,12 @@ export default async function EmployeeDetailPage({
       email: sessionUser.email,
       roleKeys: sessionUser.roleKeys,
       roles: sessionUser.roles,
-      permissionKeys:
-        employee.accessMode === "ADMIN_MANAGE" ||
-        employee.accessMode === "HR_MANAGE"
-          ? sessionUser.permissionKeys
-          : restrictRuntimePermissionKeysToReadOnly(
-              sessionUser.permissionKeys,
-              "employees",
-            ),
+      permissionKeys: canManageEmployeeRecord(employee.accessMode)
+        ? sessionUser.permissionKeys
+        : restrictRuntimePermissionKeysToReadOnly(
+            sessionUser.permissionKeys,
+            "employees",
+          ),
     },
     forms: runtimeForms,
     views: [],

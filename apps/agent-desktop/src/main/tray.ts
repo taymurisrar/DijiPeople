@@ -1,6 +1,7 @@
 import { app, Menu, nativeImage, Tray } from "electron";
 import { ConfigManager } from "./config-manager";
 import { SessionManager } from "./session-manager";
+import { resolveAgentAsset } from "./assets";
 
 type CreateAgentTrayParams = {
   sessionManager: SessionManager;
@@ -11,9 +12,14 @@ type CreateAgentTrayParams = {
 };
 
 export function createAgentTray(params: CreateAgentTrayParams): Tray {
-  const tray = new Tray(nativeImage.createEmpty());
+  const tray = new Tray(resolveTrayImage());
 
-  tray.setTitle("DP");
+  // setTitle is macOS-only; on Windows the icon is the only affordance, which is
+  // why an empty image left users with a blank slot in the notification area.
+  if (process.platform === "darwin") {
+    tray.setTitle("DP");
+  }
+
   tray.setToolTip("DijiPeople Agent");
 
   const update = () => {
@@ -157,6 +163,19 @@ export function createAgentTray(params: CreateAgentTrayParams): Tray {
   safeUpdate();
 
   return tray;
+}
+
+// Electron picks up the @2x/@3x siblings automatically for HiDPI displays.
+function resolveTrayImage() {
+  const iconPath = resolveAgentAsset("tray-icon.png");
+
+  if (!iconPath) {
+    return nativeImage.createEmpty();
+  }
+
+  const image = nativeImage.createFromPath(iconPath);
+
+  return image.isEmpty() ? nativeImage.createEmpty() : image;
 }
 
 function resolveConnectionLabel(sessionManager: SessionManager): string {

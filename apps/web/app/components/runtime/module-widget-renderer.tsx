@@ -1244,6 +1244,12 @@ function ModuleAgentDesktopWidget({
         <div className="rounded-lg border border-info/30 bg-info/10 px-3 py-2 text-sm font-medium text-info">
           {locationMessage}
         </div>
+      ) : !canRequestLocation ? (
+        <div className="rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-sm font-medium text-warning">
+          {devices.length === 0
+            ? "Location cannot be requested until this employee signs in to the desktop agent at least once."
+            : "Location cannot be requested until the desktop agent reports granted location permission. Ask the employee to open the agent's Device permissions window with Windows location enabled for desktop apps."}
+        </div>
       ) : null}
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
@@ -1582,7 +1588,9 @@ function AgentLocationPanel({
   readonly location: Record<string, unknown> | null;
   readonly tenant?: ModuleRuntimeContext["tenant"];
 }) {
-  const maxAcceptedAccuracyMeters = 100;
+  // Must stay in sync with MAX_LOCATION_ACCURACY_METERS in
+  // services/api/src/modules/agent/agent.service.ts.
+  const maxAcceptedAccuracyMeters = 2000;
   const status = stringValue(location?.status);
   const latitude = numberOrNull(location?.latitude);
   const longitude = numberOrNull(location?.longitude);
@@ -1687,6 +1695,10 @@ function formatAgentLocationResponse(value: unknown) {
 
   if (/Failed to query location from network service/i.test(message)) {
     return "Device location failed. The desktop agent tried the fallback location services but could not get coordinates.";
+  }
+
+  if (/IP location lookup also failed/i.test(message)) {
+    return "The desktop agent could not reach Windows Location Services or any fallback provider. Check the device's location settings and network connection.";
   }
 
   if (message.length <= 180) return message;

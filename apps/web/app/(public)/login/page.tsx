@@ -75,7 +75,7 @@ export async function generateMetadata({
   return {
     title: `Login | ${title}`,
     description,
-    icons: buildFaviconMetadata(faviconUrl, `${tenant?.id ?? ""}:${faviconUrl}`),
+    icons: buildFaviconMetadata(faviconUrl),
   };
 }
 

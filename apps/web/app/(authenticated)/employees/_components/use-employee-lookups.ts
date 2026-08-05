@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { INLINE_ERROR_HANDLING_HEADERS } from "@/lib/api-error";
 import { LookupOption } from "../types";
 
 type EmployeeLookups = {
@@ -241,6 +242,11 @@ async function fetchLookup(url: string) {
   try {
     const response = await fetch(url, {
       cache: "no-store",
+      // These reference lookups are optional and already degrade to an empty
+      // list. Without the inline header the global fetch interceptor turns a
+      // 403 (e.g. HR lacking teams.read) into a blocking ACCESS_DENIED modal
+      // over the employee form.
+      headers: { ...INLINE_ERROR_HANDLING_HEADERS },
       signal: AbortSignal.timeout(LOOKUP_TIMEOUT_MS),
     });
     if (!response.ok) {

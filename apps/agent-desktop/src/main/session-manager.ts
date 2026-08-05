@@ -235,6 +235,14 @@ export class SessionManager extends EventEmitter {
     this.emit("changed");
   }
 
+  /**
+   * Lets a request the employee never answered be prompted again on a later
+   * heartbeat, instead of staying silently suppressed until it expires.
+   */
+  releaseLocationRequest(requestId: string): void {
+    this.pendingLocationRequestIds.delete(requestId);
+  }
+
   async syncHeartbeat(): Promise<void> {
     if (!this.sessionId || !this.deviceId) {
       console.warn("[Agent Heartbeat] skipped - missing session/device", {
@@ -277,8 +285,10 @@ export class SessionManager extends EventEmitter {
       this.status = event.state;
       this.lastActivityAt = new Date();
 
+      // One slot is reserved for the event built above, so a full queue cannot
+      // push the batch past the size the API accepts.
       const queued = await this.offlineQueue.drain(
-        this.configManager.current.api.heartbeatBatchSize,
+        Math.max(1, this.configManager.current.api.heartbeatBatchSize - 1),
       );
 
       const validQueued = queued.filter(

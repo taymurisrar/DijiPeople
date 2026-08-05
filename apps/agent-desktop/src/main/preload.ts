@@ -69,7 +69,17 @@ type DesktopLocationResult =
       capturedAt: string;
       source: string;
     }
-  | { ok: false; message: string };
+  | {
+      ok: false;
+      reason: "denied" | "unavailable" | "error";
+      message: string;
+    };
+
+type DesktopLocationPermission =
+  | "GRANTED"
+  | "DENIED"
+  | "UNAVAILABLE"
+  | "UNKNOWN";
 
 const dijiAgent = {
   login: async (payload: LoginPayload): Promise<LoginResult> => {
@@ -144,11 +154,20 @@ const dijiAgent = {
     } catch (error) {
       return {
         ok: false,
+        reason: "error",
         message:
           error instanceof Error
             ? error.message
             : "Unable to capture location from this device.",
       };
+    }
+  },
+
+  probeLocationPermission: async (): Promise<DesktopLocationPermission> => {
+    try {
+      return await ipcRenderer.invoke("agent:probe-location-permission");
+    } catch {
+      return "UNKNOWN";
     }
   },
 

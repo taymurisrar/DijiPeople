@@ -170,9 +170,10 @@ export const employeeModuleDataAdapter: ModuleDataAdapter<
       if (!departmentId) return [];
       params.set("departmentId", departmentId);
       params.set("teamType", "ORGANIZATIONAL");
-      return readLookupOptions(
-        await requestOptionalLookupJson(`/api/teams?${params}`),
-      );
+      // Deliberately not swallowed: the form renderer distinguishes "no records"
+      // from "could not load", and silently returning [] here made a denied
+      // permission read as an empty list telling the user to create a team.
+      return readLookupOptions(await requestJson(`/api/teams?${params}`));
     }
 
     if (field.logicalName === "businessUnitId") {

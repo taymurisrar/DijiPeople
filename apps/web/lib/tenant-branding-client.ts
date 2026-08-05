@@ -2,12 +2,11 @@ import {
   buildBrandingCssVariables,
   type BrandingSettings,
 } from "@/lib/branding";
+import { buildFaviconHref, DEFAULT_FAVICON_HREF } from "@/lib/favicon-metadata";
 
 const TENANT_FAVICON_ID = "tenant-favicon";
 const BRANDING_ATTRIBUTE = "data-dijipeople-branding";
-const DEFAULT_FAVICON_HREF = "/favicon.svg";
 let lastAppliedTitle = "";
-let lastAppliedFavicon = "";
 let lastAppliedFont = "";
 
 export function applyTenantBranding(
@@ -70,97 +69,71 @@ export function resolveRouteTitle(pathname: string) {
   return titleCase((meaningful ?? segments[0]).replace(/-/g, " "));
 }
 
+/**
+ * Next renders the branded icon into <head> from generateMetadata and re-applies
+ * it on every client navigation. Rewriting those managed tags here made the two
+ * fight each other on each route change, so this now only adds a link of its own
+ * when the rendered icon genuinely differs — which in practice means a live
+ * branding preview, not ordinary navigation.
+ */
 export function upsertFavicon(faviconUrl?: string | null) {
   const head = document.head;
   if (!head) return;
 
   const href = normalizeFaviconHref(faviconUrl);
-  let link = document.getElementById(TENANT_FAVICON_ID) as HTMLLinkElement | null;
-  const created = !link;
+  const existing = document.getElementById(
+    TENANT_FAVICON_ID,
+  ) as HTMLLinkElement | null;
 
-  if (!link) {
-    link = document.createElement("link");
+  if (existing?.href === href) return;
+
+  if (!existing && hasRenderedIcon(href)) return;
+
+  const link = existing ?? document.createElement("link");
+  const created = !existing;
+
+  if (created) {
     link.id = TENANT_FAVICON_ID;
     link.rel = "icon";
     link.setAttribute(BRANDING_ATTRIBUTE, "true");
-    head.appendChild(link);
   }
 
-  if (link.href !== href) {
-    link.href = href;
-  }
+  link.href = href;
+
   const type = inferFaviconType(href);
   if (type && link.type !== type) {
     link.type = type;
   }
-  link.setAttribute("data-favicon-source", href);
-  syncFaviconLinks(href, type);
 
-  if (lastAppliedFavicon !== href || created) {
-    lastAppliedFavicon = href;
-    logBrandingChange(
-      `favicon ${created ? "created" : "updated"}`,
-      href,
-    );
+  if (created) {
+    // Appended last so it takes precedence over the server-rendered icon.
+    head.appendChild(link);
   }
+
+  logBrandingChange(`favicon ${created ? "created" : "updated"}`, href);
 }
 
-function syncFaviconLinks(href: string, type: string) {
-  const links = Array.from(
-    document.querySelectorAll<HTMLLinkElement>("link[rel]"),
-  ).filter((link) => {
-    const relValues = link.rel.toLowerCase().split(/\s+/);
-    return (
-      relValues.includes("icon") ||
-      link.rel.toLowerCase() === "apple-touch-icon"
-    );
-  });
-
-  for (const link of links) {
-    if (link.href !== href) {
-      link.href = href;
-    }
-    if (type && link.type !== type) {
-      link.type = type;
-    }
-    link.setAttribute(BRANDING_ATTRIBUTE, "true");
-  }
+function hasRenderedIcon(href: string) {
+  return Array.from(
+    document.querySelectorAll<HTMLLinkElement>("link[rel~='icon']"),
+  ).some((link) => link.href === href);
 }
 
 function titleCase(value: string) {
   return value.replace(/\b\w/g, (character) => character.toUpperCase());
 }
 
+// Resolved against the origin so it can be compared with link.href, which the
+// DOM always reports as absolute.
 function normalizeFaviconHref(value?: string | null) {
-  const candidate = value?.trim() || DEFAULT_FAVICON_HREF;
-
   try {
-    return addFaviconCacheKey(
-      new URL(candidate, window.location.origin).href,
-      candidate,
-    );
+    return new URL(buildFaviconHref(value), window.location.origin).href;
   } catch {
-    return addFaviconCacheKey(
-      new URL(DEFAULT_FAVICON_HREF, window.location.origin).href,
-      DEFAULT_FAVICON_HREF,
-    );
+    return new URL(
+      buildFaviconHref(DEFAULT_FAVICON_HREF),
+      window.location.origin,
+    ).href;
   }
-}
-
-function addFaviconCacheKey(href: string, seed: string) {
-  const url = new URL(href);
-  url.searchParams.set("v", stableHash(seed));
-  return url.href;
-}
-
-function stableHash(value: string) {
-  let hash = 0;
-
-  for (let index = 0; index < value.length; index += 1) {
-    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
-  }
-
-  return hash.toString(36);
 }
 
 function inferFaviconType(href: string) {

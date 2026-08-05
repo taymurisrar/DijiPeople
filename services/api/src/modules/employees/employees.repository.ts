@@ -531,14 +531,21 @@ export class EmployeesRepository {
 
     const direction = match[2] as Prisma.SortOrder;
 
+    // The runtime list emits the column's logical name, which differs from the
+    // persisted field name for several columns. Both spellings are accepted so
+    // a column sort cannot silently fall through to the default order.
     switch (match[1]) {
       case 'firstName':
+      case 'fullName':
         return [{ firstName: direction }, { lastName: direction }];
+      case 'lastName':
+        return [{ lastName: direction }, { firstName: direction }];
       case 'employeeCode':
         return [{ employeeCode: direction }];
       case 'employmentStatus':
         return [{ employmentStatus: direction }];
       case 'managerEmployeeId':
+      case 'reportingManagerEmployeeId':
         return [
           { manager: { firstName: direction } },
           { manager: { lastName: direction } },
@@ -546,6 +553,7 @@ export class EmployeesRepository {
       case 'hireDate':
         return [{ hireDate: direction }];
       case 'email':
+      case 'workEmail':
         return [{ email: direction }];
       default:
         return fallback;

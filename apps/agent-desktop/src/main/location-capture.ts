@@ -3,6 +3,25 @@ import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
 
+// Chromium's navigator.geolocation is deliberately not used here. In Electron it
+// resolves positions through Google's network location service, which requires a
+// GOOGLE_API_KEY baked into the runtime; without one every fix fails with
+// "Failed to query location from network service". Windows Location Services is
+// the primary source instead, with IP lookup as an approximate last resort.
+const WINDOWS_LOCATION_TIMEOUT_SECONDS = 20;
+const POWERSHELL_TIMEOUT_MS = (WINDOWS_LOCATION_TIMEOUT_SECONDS + 10) * 1_000;
+const IP_LOCATION_ACCURACY_METERS = 50_000;
+
+export type DesktopLocationSource = "windows-location" | "ip-location";
+
+export type DesktopLocationPermission =
+  | "GRANTED"
+  | "DENIED"
+  | "UNAVAILABLE"
+  | "UNKNOWN";
+
+export type DesktopLocationFailureReason = "denied" | "unavailable" | "error";
+
 export type DesktopLocationResult =
   | {
       ok: true;
@@ -10,18 +29,22 @@ export type DesktopLocationResult =
       longitude: number;
       accuracyMeters?: number;
       capturedAt: string;
-      source: "windows-location" | "ip-location";
+      source: DesktopLocationSource;
     }
   | {
       ok: false;
+      reason: DesktopLocationFailureReason;
       message: string;
     };
 
 export async function captureDesktopLocation(): Promise<DesktopLocationResult> {
-  const windowsLocation =
-    process.platform === "win32" ? await captureWindowsLocation() : null;
+  if (process.platform !== "win32") {
+    return captureIpLocation();
+  }
 
-  if (windowsLocation?.ok) {
+  const windowsLocation = await captureWindowsLocation();
+
+  if (windowsLocation.ok) {
     return windowsLocation;
   }
 
@@ -31,41 +54,116 @@ export async function captureDesktopLocation(): Promise<DesktopLocationResult> {
     return ipLocation;
   }
 
+  // Windows is the source that can actually produce a usable fix, so its reason
+  // is what the employee needs to act on.
   return {
     ok: false,
-    message:
-      windowsLocation && !windowsLocation.ok
-        ? `${windowsLocation.message} ${ipLocation.message}`
-        : ipLocation.message,
+    reason: windowsLocation.reason,
+    message: `${windowsLocation.message} ${ipLocation.message}`,
   };
 }
 
-async function captureWindowsLocation(): Promise<DesktopLocationResult> {
+export async function probeDesktopLocationPermission(): Promise<DesktopLocationPermission> {
+  if (process.platform !== "win32") {
+    return "UNAVAILABLE";
+  }
+
+  const consent = await readWindowsLocationConsent();
+
+  if (consent === "DENIED") {
+    return "DENIED";
+  }
+
+  const capture = await captureWindowsLocation();
+
+  if (capture.ok) {
+    return "GRANTED";
+  }
+
+  if (capture.reason === "denied") {
+    return "DENIED";
+  }
+
+  // Consent is on the device even though no fix was available right now (no
+  // Wi-Fi scan, radio off, service still warming up). Permission and fix
+  // availability are different things, so report the permission we actually have.
+  return consent === "GRANTED" ? "GRANTED" : consent;
+}
+
+async function readWindowsLocationConsent(): Promise<DesktopLocationPermission> {
   const script = [
-    "Add-Type -AssemblyName System.Device;",
-    "$watcher = New-Object System.Device.Location.GeoCoordinateWatcher([System.Device.Location.GeoPositionAccuracy]::High);",
-    "$started = $watcher.TryStart($false, [TimeSpan]::FromSeconds(15));",
-    "$coord = $watcher.Position.Location;",
-    "if (-not $started -or $coord.IsUnknown) { throw 'Windows Location Services did not return a position.' }",
-    "$accuracy = if ($coord.HorizontalAccuracy -ge 0) { $coord.HorizontalAccuracy } else { '' };",
-    "Write-Output (('{0}|{1}|{2}' -f $coord.Latitude, $coord.Longitude, $accuracy));",
-  ].join(" ");
+    "$paths = @(",
+    "'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\location',",
+    "'HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\location'",
+    ")",
+    "$seen = $false",
+    "foreach ($path in $paths) {",
+    "  $entry = Get-ItemProperty -Path $path -Name 'Value' -ErrorAction SilentlyContinue",
+    "  if ($null -eq $entry) { continue }",
+    "  $seen = $true",
+    "  if ($entry.Value -ne 'Allow') { Write-Output 'DENIED'; exit 0 }",
+    "}",
+    "if ($seen) { Write-Output 'GRANTED' } else { Write-Output 'UNKNOWN' }",
+  ].join("\n");
 
   try {
-    const { stdout } = await execFileAsync(
-      "powershell.exe",
-      [
-        "-NoProfile",
-        "-NonInteractive",
-        "-ExecutionPolicy",
-        "Bypass",
-        "-Command",
-        script,
-      ],
-      { timeout: 20_000, windowsHide: true },
-    );
+    const { stdout } = await runPowerShell(script, 15_000);
+    const value = stdout.trim().toUpperCase();
 
-    const [latitudeRaw, longitudeRaw, accuracyRaw] = stdout.trim().split("|");
+    if (value === "DENIED" || value === "GRANTED") {
+      return value;
+    }
+
+    return "UNKNOWN";
+  } catch {
+    return "UNKNOWN";
+  }
+}
+
+async function captureWindowsLocation(): Promise<DesktopLocationResult> {
+  // Latitude/longitude are formatted with the invariant culture so a comma
+  // decimal separator on non-English Windows cannot corrupt the coordinates.
+  const script = [
+    "Add-Type -AssemblyName System.Device",
+    "$invariant = [System.Globalization.CultureInfo]::InvariantCulture",
+    "$watcher = New-Object System.Device.Location.GeoCoordinateWatcher([System.Device.Location.GeoPositionAccuracy]::High)",
+    "$watcher.MovementThreshold = 0",
+    `[void]$watcher.TryStart($false, [TimeSpan]::FromSeconds(${WINDOWS_LOCATION_TIMEOUT_SECONDS}))`,
+    `$deadline = (Get-Date).AddSeconds(${WINDOWS_LOCATION_TIMEOUT_SECONDS})`,
+    "while ($watcher.Position.Location.IsUnknown -and (Get-Date) -lt $deadline -and $watcher.Permission -ne [System.Device.Location.GeoPositionPermission]::Denied) {",
+    "  Start-Sleep -Milliseconds 500",
+    "}",
+    "if ($watcher.Permission -eq [System.Device.Location.GeoPositionPermission]::Denied) { Write-Output 'DENIED'; exit 0 }",
+    "$coord = $watcher.Position.Location",
+    "if ($coord.IsUnknown) { Write-Output 'UNAVAILABLE'; exit 0 }",
+    "$accuracy = ''",
+    "if ($coord.HorizontalAccuracy -ge 0) { $accuracy = $coord.HorizontalAccuracy.ToString($invariant) }",
+    "Write-Output ('OK|' + $coord.Latitude.ToString($invariant) + '|' + $coord.Longitude.ToString($invariant) + '|' + $accuracy)",
+  ].join("\n");
+
+  try {
+    const { stdout } = await runPowerShell(script, POWERSHELL_TIMEOUT_MS);
+    const output = stdout.trim();
+
+    if (output === "DENIED") {
+      return {
+        ok: false,
+        reason: "denied",
+        message:
+          "Windows location access is turned off for desktop apps. Enable Settings > Privacy & security > Location, including \"Let desktop apps access your location\".",
+      };
+    }
+
+    if (output === "UNAVAILABLE" || !output.startsWith("OK|")) {
+      return {
+        ok: false,
+        reason: "unavailable",
+        message:
+          "Windows Location Services did not return a position. Make sure location is enabled and the device has a Wi-Fi or network connection it can position from.",
+      };
+    }
+
+    const [, latitudeRaw, longitudeRaw, accuracyRaw] = output.split("|");
     const latitude = Number(latitudeRaw);
     const longitude = Number(longitudeRaw);
     const accuracyMeters = Number(accuracyRaw);
@@ -73,6 +171,7 @@ async function captureWindowsLocation(): Promise<DesktopLocationResult> {
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
       return {
         ok: false,
+        reason: "error",
         message: "Windows Location Services returned an invalid position.",
       };
     }
@@ -81,16 +180,38 @@ async function captureWindowsLocation(): Promise<DesktopLocationResult> {
       ok: true,
       latitude,
       longitude,
-      ...(Number.isFinite(accuracyMeters) ? { accuracyMeters } : {}),
+      ...(Number.isFinite(accuracyMeters) && accuracyMeters > 0
+        ? { accuracyMeters }
+        : {}),
       capturedAt: new Date().toISOString(),
       source: "windows-location",
     };
   } catch (error) {
     return {
       ok: false,
+      reason: "error",
       message: normalizeWindowsLocationError(error),
     };
   }
+}
+
+function runPowerShell(script: string, timeoutMs: number) {
+  // -EncodedCommand avoids every quoting and escaping pitfall of passing a
+  // multi-line script through -Command.
+  const encoded = Buffer.from(script, "utf16le").toString("base64");
+
+  return execFileAsync(
+    "powershell.exe",
+    [
+      "-NoProfile",
+      "-NonInteractive",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-EncodedCommand",
+      encoded,
+    ],
+    { timeout: timeoutMs, windowsHide: true },
+  );
 }
 
 async function captureIpLocation(): Promise<DesktopLocationResult> {
@@ -124,7 +245,8 @@ async function captureIpLocation(): Promise<DesktopLocationResult> {
 
   return {
     ok: false,
-    message: `IP location lookup failed. ${errors.join(" ")}`,
+    reason: "unavailable",
+    message: `IP location lookup also failed. ${errors.join(" ")}`,
   };
 }
 
@@ -143,6 +265,7 @@ async function captureIpLocationFromProvider(
     if (!response.ok) {
       return {
         ok: false,
+        reason: "unavailable",
         message: `${url} returned ${response.status}.`,
       };
     }
@@ -155,6 +278,7 @@ async function captureIpLocationFromProvider(
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
       return {
         ok: false,
+        reason: "unavailable",
         message: `${url} did not return coordinates.`,
       };
     }
@@ -163,13 +287,14 @@ async function captureIpLocationFromProvider(
       ok: true,
       latitude,
       longitude,
-      accuracyMeters: 50_000,
+      accuracyMeters: IP_LOCATION_ACCURACY_METERS,
       capturedAt: new Date().toISOString(),
       source: "ip-location",
     };
   } catch (error) {
     return {
       ok: false,
+      reason: "unavailable",
       message: `${url} failed: ${readNetworkErrorReason(error)}.`,
     };
   }
@@ -179,15 +304,15 @@ function normalizeWindowsLocationError(error: unknown) {
   const message =
     error instanceof Error ? error.message : "Windows Location Services failed.";
 
-  if (/GeoCoordinateWatcher|System\.Device|TryStart|powershell/i.test(message)) {
-    return "Windows Location Services could not provide a position. Check that Windows Location is enabled for desktop apps.";
+  if (/timed out|timeout|ETIMEDOUT/i.test(message)) {
+    return "Windows Location Services timed out before returning a position.";
   }
 
-  if (/timed out|timeout/i.test(message)) {
-    return "Windows Location Services timed out.";
+  if (/ENOENT|not recognized/i.test(message)) {
+    return "Windows PowerShell is unavailable, so Windows Location Services could not be queried.";
   }
 
-  return "Windows Location Services failed.";
+  return "Windows Location Services could not provide a position. Check that location is enabled for desktop apps.";
 }
 
 function readNetworkErrorReason(error: unknown) {

@@ -22,8 +22,8 @@ export const DEFAULT_CONFIG: AgentConfig = {
   tracking: {
     enabled: true,
     heartbeatIntervalSeconds: agentEnv.heartbeatIntervalSeconds,
-    idleThresholdSeconds: agentEnv.sessionIdleTimeoutSeconds,
-    awayThresholdSeconds: agentEnv.sessionIdleTimeoutSeconds,
+    idleThresholdSeconds: agentEnv.idleThresholdSeconds,
+    awayThresholdSeconds: agentEnv.awayThresholdSeconds,
     captureActiveApp: agentEnv.activeAppTrackingEnabled,
     captureWindowTitle: agentEnv.windowTitleTrackingEnabled,
   },

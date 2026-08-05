@@ -9,11 +9,12 @@
     "dev": "npm run build:renderer && tsc -w",
     "build": "npm run clean && npm run build:main && npm run build:renderer && npm run copy:renderer",
     "build:main": "tsc -p tsconfig.json",
-    "build:renderer": "tsc src/renderer/login.ts src/renderer/device-permissions.ts src/renderer/location-request.ts --target ES2020 --module ES2020 --moduleResolution bundler --outDir src/renderer --skipLibCheck",
+    "build:renderer": "tsc src/renderer/login.ts src/renderer/device-permissions.ts src/renderer/location-request.ts --target ES2020 --module ES2020 --moduleResolution bundler --outDir src/renderer --skipLibCheck --strict",
     "copy:renderer": "node scripts/copy-renderer.mjs",
     "clean": "node -e \"const fs=require('fs'); fs.rmSync('dist',{recursive:true,force:true}); fs.rmSync('src/renderer/login.js',{force:true}); fs.rmSync('src/renderer/device-permissions.js',{force:true}); fs.rmSync('src/renderer/location-request.js',{force:true});\"",
     "start": "dotenv -e .env -- electron .",
-    "dist:win": "dotenv -e .env -- npm run build && dotenv -e .env -- electron-builder --win nsis",
+    "clean:release": "node -e \"const fs=require('fs'); fs.rmSync('release',{recursive:true,force:true,maxRetries:5,retryDelay:300});\"",
+    "dist:win": "npm run clean:release && dotenv -e .env -- npm run build && dotenv -e .env -- electron-builder --win nsis",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {

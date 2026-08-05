@@ -45,8 +45,10 @@ async function refreshKnownPermissionStates() {
     state.microphonePermission = permissionConfig.microphoneAccess
         ? await queryPermission("microphone")
         : "UNAVAILABLE";
+    // Location is resolved by requestLocationPermission() through the desktop
+    // bridge; navigator.permissions cannot see the Windows location setting.
     state.locationPermission = permissionConfig.locationAccess
-        ? await queryPermission("geolocation")
+        ? "UNKNOWN"
         : "UNAVAILABLE";
     render();
 }
@@ -77,23 +79,13 @@ async function requestLocationPermission() {
         render();
         return;
     }
-    if (!navigator.geolocation) {
-        state.locationPermission = "UNAVAILABLE";
-        render();
-        return;
-    }
-    try {
-        await new Promise((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(() => resolve(), (error) => reject(error), { enableHighAccuracy: false, maximumAge: 60000, timeout: 15000 });
-        });
-        state.locationPermission = "GRANTED";
-    }
-    catch (error) {
-        state.locationPermission = readPermissionError(error);
-    }
-    finally {
-        render();
-    }
+    // The desktop bridge reports the Windows location consent state. A failed
+    // position fix is not the same as a denied permission, so this no longer
+    // downgrades the device just because no coordinates were available.
+    locationStatus.textContent = "Checking...";
+    state.locationPermission =
+        (await permissionWindow.dijiAgent?.probeLocationPermission?.()) ?? "UNKNOWN";
+    render();
 }
 async function requestEnabledPermissions() {
     if (permissionConfig.cameraAccess &&

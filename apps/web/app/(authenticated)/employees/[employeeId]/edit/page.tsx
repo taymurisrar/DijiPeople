@@ -2,7 +2,10 @@ import { unstable_noStore as noStore } from "next/cache";
 import { AccessDeniedState } from "@/app/(authenticated)/_components/access-denied-state";
 import { getSessionUser } from "@/lib/auth";
 import { getTableForms } from "@/lib/customization-forms";
-import { canEditEmployeeCoreProfile } from "@/lib/employee-profile-access";
+import {
+  canEditEmployeeCoreProfile,
+  canManageEmployeeRecord,
+} from "@/lib/employee-profile-access";
 import {
   buildEmployeeRuntimeContext,
   mapEmployeeLookupDisplayValues,
@@ -58,7 +61,7 @@ export default async function EditEmployeePage({
       ).catch(() => []),
     ]);
 
-  if (employee.accessMode !== "ADMIN_MANAGE") {
+  if (!canManageEmployeeRecord(employee.accessMode)) {
     return (
       <main className="dp-theme-scope dp-employees-scope grid gap-6">
         <AccessDeniedState

@@ -40,10 +40,7 @@ export async function generateMetadata(): Promise<Metadata> {
       ? `${pageTitle} | ${branding.appTitle}`
       : branding.appTitle,
     description: "Configurable multi-tenant HRM platform for modern teams.",
-    icons: buildFaviconMetadata(
-      branding.faviconUrl,
-      `${publicSettings.tenantId ?? publicSettings.tenantSlug ?? ""}:${branding.faviconUrl}`,
-    ),
+    icons: buildFaviconMetadata(branding.faviconUrl),
   };
 }
 

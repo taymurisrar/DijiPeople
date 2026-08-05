@@ -9,7 +9,11 @@ import { SessionManager } from "./session-manager";
 import { createAgentTray } from "./tray";
 import { UpdateManager } from "./update-manager";
 import { AgentLogger } from "./logger";
-import { captureDesktopLocation } from "./location-capture";
+import { resolveAgentAsset } from "./assets";
+import {
+  captureDesktopLocation,
+  probeDesktopLocationPermission,
+} from "./location-capture";
 import type { AgentLocationRequest, AgentLocationResult } from "./types";
 
 let loginWindow: BrowserWindow | null = null;
@@ -52,6 +56,10 @@ type LoginResult =
       fieldErrors?: Partial<Record<keyof LoginPayload, string>>;
     };
 
+function resolveWindowIcon() {
+  return resolveAgentAsset("icon.png") ?? undefined;
+}
+
 function createLoginWindow() {
   if (loginWindow) {
     loginWindow.show();
@@ -67,6 +75,7 @@ function createLoginWindow() {
     resizable: false,
     title: "DijiPeople Agent",
     show: false,
+    icon: resolveWindowIcon(),
     backgroundColor: "#ffffff",
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
@@ -275,11 +284,20 @@ function wireEvents() {
     if (!configManager.current.features.locationAccess) {
       return {
         ok: false,
+        reason: "unavailable",
         message: "Location access is disabled in desktop agent settings.",
       };
     }
 
     return captureDesktopLocation();
+  });
+
+  ipcMain.handle("agent:probe-location-permission", async () => {
+    if (!configManager.current.features.locationAccess) {
+      return "UNAVAILABLE";
+    }
+
+    return probeDesktopLocationPermission();
   });
 
   ipcMain.handle(
@@ -327,6 +345,34 @@ function maybeShowDevicePermissionPrompt() {
   }, 1_000);
 }
 
+function isDevicePermissionAllowed(permission: string): boolean {
+  const features = configManager.current.features;
+
+  if (permission === "media") {
+    return Boolean(features.cameraAccess || features.microphoneAccess);
+  }
+
+  if (permission === "geolocation") {
+    return Boolean(features.locationAccess);
+  }
+
+  return false;
+}
+
+// Without a check handler Electron answers navigator.permissions.query() with
+// "denied", which made the renderer give up before it ever tried to capture.
+function applyDevicePermissionHandlers(window: BrowserWindow) {
+  const { session } = window.webContents;
+
+  session.setPermissionRequestHandler((_webContents, permission, callback) => {
+    callback(isDevicePermissionAllowed(permission));
+  });
+
+  session.setPermissionCheckHandler((_webContents, permission) =>
+    isDevicePermissionAllowed(permission),
+  );
+}
+
 function createPermissionsWindow() {
   if (permissionsWindow) {
     permissionsWindow.show();
@@ -341,6 +387,7 @@ function createPermissionsWindow() {
     minHeight: 520,
     title: "DijiPeople Agent Permissions",
     show: false,
+    icon: resolveWindowIcon(),
     backgroundColor: "#f8fafc",
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
@@ -350,23 +397,7 @@ function createPermissionsWindow() {
     },
   });
 
-  permissionsWindow.webContents.session.setPermissionRequestHandler(
-    (_webContents, permission, callback) => {
-      const features = configManager.current.features;
-
-      if (permission === "media") {
-        callback(Boolean(features.cameraAccess || features.microphoneAccess));
-        return;
-      }
-
-      if (permission === "geolocation") {
-        callback(Boolean(features.locationAccess));
-        return;
-      }
-
-      callback(false);
-    },
-  );
+  applyDevicePermissionHandlers(permissionsWindow);
 
   permissionsWindow.once("ready-to-show", () => {
     permissionsWindow?.show();
@@ -401,6 +432,7 @@ function createLocationRequestWindow(request: AgentLocationRequest) {
     title: "DijiPeople Location Request",
     autoHideMenuBar: true,
     show: false,
+    icon: resolveWindowIcon(),
     backgroundColor: "#f8fafc",
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
@@ -412,14 +444,7 @@ function createLocationRequestWindow(request: AgentLocationRequest) {
 
   locationRequestWindow.setMenu(null);
 
-  locationRequestWindow.webContents.session.setPermissionRequestHandler(
-    (_webContents, permission, callback) => {
-      callback(
-        permission === "geolocation" &&
-          Boolean(configManager.current.features.locationAccess),
-      );
-    },
-  );
+  applyDevicePermissionHandlers(locationRequestWindow);
 
   locationRequestWindow.once("ready-to-show", () => {
     locationRequestWindow?.show();
@@ -432,10 +457,47 @@ function createLocationRequestWindow(request: AgentLocationRequest) {
 
   locationRequestWindow.on("closed", () => {
     locationRequestWindow = null;
+
+    if (currentLocationRequest) {
+      sessionManager.releaseLocationRequest(currentLocationRequest.id);
+      currentLocationRequest = null;
+    }
   });
 }
 
+// The agent auto-starts at login and lives in the tray, so a second copy would
+// register its own work session and double every heartbeat. Hand focus to the
+// instance that is already running instead.
+const hasSingleInstanceLock = app.requestSingleInstanceLock();
+
+if (!hasSingleInstanceLock) {
+  app.quit();
+}
+
+app.on("second-instance", () => {
+  const existingWindow =
+    locationRequestWindow ?? permissionsWindow ?? loginWindow;
+
+  if (existingWindow) {
+    if (existingWindow.isMinimized()) {
+      existingWindow.restore();
+    }
+
+    existingWindow.show();
+    existingWindow.focus();
+    return;
+  }
+
+  if (!sessionManager.user) {
+    createLoginWindow();
+  }
+});
+
 app.on("ready", async () => {
+  if (!hasSingleInstanceLock) {
+    return;
+  }
+
   app.setLoginItemSettings({ openAtLogin: true });
 
   wireEvents();

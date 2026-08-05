@@ -238,6 +238,12 @@ function RuntimeFormMetadataRenderer({
   const [hydratedLookupFields, setHydratedLookupFields] = useState<
     ReadonlySet<string>
   >(() => new Set());
+  // Fields whose options could not be loaded (permission denied, network, 5xx).
+  // Without this they look identical to a genuinely empty list, and the form
+  // told the user to go create a record they simply were not allowed to read.
+  const [failedLookupFields, setFailedLookupFields] = useState<
+    ReadonlySet<string>
+  >(() => new Set());
   const allowedWidgetComponentIds = useMemo(
     () => resolveAllowedWidgetComponentIds(form),
     [form],
@@ -304,18 +310,27 @@ function RuntimeFormMetadataRenderer({
             lookupOptions={{ ...lookupOptions, ...dynamicLookupOptions }}
             mode={mode}
             hydratedLookupFields={hydratedLookupFields}
+            failedLookupFields={failedLookupFields}
             onLookupOptionsChange={(fieldLogicalName, options) =>
               setDynamicLookupOptions((current) => ({
                 ...current,
                 [fieldLogicalName]: options,
               }))
             }
-            onLookupHydrated={(fieldLogicalName) =>
+            onLookupHydrated={(fieldLogicalName, succeeded = true) => {
               setHydratedLookupFields((current) => {
                 if (current.has(fieldLogicalName)) return current;
                 return new Set([...current, fieldLogicalName]);
-              })
-            }
+              });
+              setFailedLookupFields((current) => {
+                const alreadyFailed = current.has(fieldLogicalName);
+                if (succeeded === !alreadyFailed) return current;
+                const next = new Set(current);
+                if (succeeded) next.delete(fieldLogicalName);
+                else next.add(fieldLogicalName);
+                return next;
+              });
+            }}
             onValuesChange={onValuesChange}
             deriveValuesOnChange={deriveValuesOnChange}
             resolveFieldEditable={resolveFieldEditable}
@@ -555,6 +570,7 @@ function RuntimeSection({
   lookupOptions,
   mode,
   hydratedLookupFields,
+  failedLookupFields,
   fieldErrors,
   onLookupOptionsChange,
   onLookupHydrated,
@@ -574,12 +590,16 @@ function RuntimeSection({
   readonly lookupOptions: Record<string, readonly LookupOption[]>;
   readonly mode: "detail" | "edit" | "new";
   readonly hydratedLookupFields: ReadonlySet<string>;
+  readonly failedLookupFields?: ReadonlySet<string>;
   readonly fieldErrors: Record<string, readonly string[]>;
   readonly onLookupOptionsChange?: (
     fieldLogicalName: string,
     options: readonly LookupOption[],
   ) => void;
-  readonly onLookupHydrated?: (fieldLogicalName: string) => void;
+  readonly onLookupHydrated?: (
+    fieldLogicalName: string,
+    succeeded?: boolean,
+  ) => void;
   readonly onValuesChange?: (values: FieldValueMap) => void;
   readonly deriveValuesOnChange?: ValuesChangeDeriver;
   readonly resolveFieldEditable?: FieldEditabilityResolver;
@@ -675,6 +695,7 @@ function RuntimeSection({
     async function hydrateLookupFields() {
       await Promise.all(
         fieldsToHydrate.map(async (field) => {
+          let succeeded = false;
           try {
             const options = await loadLookupOptions(
               currentRuntime,
@@ -682,6 +703,7 @@ function RuntimeSection({
               values,
             );
             if (cancelled) return;
+            succeeded = true;
             onLookupOptionsChange?.(
               field.logicalName,
               options.map((option) => ({
@@ -704,7 +726,7 @@ function RuntimeSection({
             });
           } finally {
             if (!cancelled) {
-              onLookupHydrated?.(field.logicalName);
+              onLookupHydrated?.(field.logicalName, succeeded);
             }
           }
         }),
@@ -844,6 +866,9 @@ function RuntimeSection({
                     Boolean(lookupOptions[field.logicalName]?.length) ||
                     !dataAdapter?.getLookupOptions
                   }
+                  lookupOptionsFailed={Boolean(
+                    failedLookupFields?.has(field.logicalName),
+                  )}
                   error={firstError(fieldErrors[field.logicalName])}
                   onValueChange={(value) => {
                     const nextValues = applyFieldValueChange({
@@ -1028,6 +1053,7 @@ function EditableField({
   lookupDisplayValues,
   lookupOptions,
   lookupOptionsHydrated,
+  lookupOptionsFailed,
   allLookupOptions,
   error,
   onValueChange,
@@ -1043,6 +1069,7 @@ function EditableField({
   readonly lookupDisplayValues: Record<string, string>;
   readonly lookupOptions: readonly LookupOption[];
   readonly lookupOptionsHydrated: boolean;
+  readonly lookupOptionsFailed?: boolean;
   readonly allLookupOptions: Record<string, readonly LookupOption[]>;
   readonly error?: string;
   readonly onValueChange?: (value: FieldValueMap[string]) => void;
@@ -1068,7 +1095,9 @@ function EditableField({
     lookupOptionsHydrated &&
     resolvedLookupOptions.length === 0;
   const lookupEmptyMessage = lookupOptionsMissing
-    ? emptyLookupOptionsMessage(label)
+    ? lookupOptionsFailed
+      ? unavailableLookupOptionsMessage(label)
+      : emptyLookupOptionsMessage(label)
     : undefined;
 
   return (
@@ -1214,6 +1243,18 @@ function emptyLookupOptionsMessage(label: string) {
   }
 
   return `No ${normalizedLabel} records are available yet. Create one first, then try again.`;
+}
+
+/**
+ * Shown when the option request failed rather than returned nothing. Telling
+ * someone to "create one first" is wrong and unactionable when the real cause
+ * is a denied permission or a failed request.
+ */
+function unavailableLookupOptionsMessage(label: string) {
+  const normalizedLabel = label.trim().toLowerCase();
+  const subject = normalizedLabel ? `${normalizedLabel} options` : "options";
+
+  return `Could not load ${subject}. You may not have permission to view these records, or the request failed. Contact your administrator if this continues.`;
 }
 
 type EligibilityRuleCondition = {

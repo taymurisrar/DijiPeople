@@ -818,6 +818,60 @@ export class EmployeesService {
     return { conflicts };
   }
 
+  /**
+   * Employee reads are filtered by business-unit scope, so a record created
+   * without one is invisible to everybody except elevated roles — including the
+   * person who just created it, who then has no way to find or fix it. When the
+   * caller does not supply a scope, inherit it from the chosen department and
+   * fall back to the creator's own business unit.
+   */
+  private async resolveCreateScopeDefaults(
+    tenantId: string,
+    currentUser: AuthenticatedUser,
+    dto: CreateEmployeeDto,
+  ): Promise<{ businessUnitId?: string; organizationId?: string }> {
+    if (dto.businessUnitId && dto.organizationId) {
+      return {};
+    }
+
+    let businessUnitId = dto.businessUnitId ?? null;
+
+    if (!businessUnitId && dto.departmentId) {
+      const department = await this.prisma.department.findFirst({
+        where: { id: dto.departmentId, tenantId },
+        select: { businessUnitId: true },
+      });
+      businessUnitId = department?.businessUnitId ?? null;
+    }
+
+    if (!businessUnitId) {
+      const creator = await this.prisma.user.findFirst({
+        where: { id: currentUser.userId, tenantId },
+        select: { businessUnitId: true },
+      });
+      businessUnitId = creator?.businessUnitId ?? null;
+    }
+
+    if (!businessUnitId) {
+      return {};
+    }
+
+    let organizationId = dto.organizationId ?? null;
+
+    if (!organizationId) {
+      const businessUnit = await this.prisma.businessUnit.findFirst({
+        where: { id: businessUnitId, tenantId },
+        select: { organizationId: true },
+      });
+      organizationId = businessUnit?.organizationId ?? null;
+    }
+
+    return {
+      ...(dto.businessUnitId ? {} : { businessUnitId }),
+      ...(dto.organizationId || !organizationId ? {} : { organizationId }),
+    };
+  }
+
   async create(currentUser: AuthenticatedUser, dto: CreateEmployeeDto) {
     const tenantId = currentUser.tenantId;
     const employeeSettings =
@@ -826,8 +880,15 @@ export class EmployeesService {
     this.assertEmployeeSettingsRulesForCreate(dto, employeeSettings);
     await this.assertEmployeeDuplicateRules(tenantId, dto, employeeSettings);
 
+    const scopeDefaults = await this.resolveCreateScopeDefaults(
+      tenantId,
+      currentUser,
+      dto,
+    );
+
     const createDto: CreateEmployeeDto = {
       ...dto,
+      ...scopeDefaults,
       employeeType:
         dto.employeeType ?? (employeeSettings.defaultEmploymentType as never),
       workMode: dto.workMode ?? (employeeSettings.defaultWorkMode as never),
@@ -855,8 +916,8 @@ export class EmployeesService {
       tenantId,
       dto.reportingManagerEmployeeId,
       dto.userId,
-      dto.organizationId,
-      dto.businessUnitId,
+      createDto.organizationId,
+      createDto.businessUnitId,
       dto.departmentId,
       dto.teamId,
       dto.designationId,
@@ -2053,7 +2114,15 @@ export class EmployeesService {
         );
       }
 
-      if (businessUnitId && department.businessUnitId !== businessUnitId) {
+      // Only a department that is itself assigned to a business unit can
+      // contradict one. An unassigned department constrains nothing, and
+      // treating it as a mismatch blocked every create in tenants that do not
+      // map departments to business units.
+      if (
+        businessUnitId &&
+        department.businessUnitId &&
+        department.businessUnitId !== businessUnitId
+      ) {
         throw new BadRequestException(
           'Selected department must belong to the selected business unit.',
         );
@@ -2061,7 +2130,8 @@ export class EmployeesService {
 
       if (
         organizationId &&
-        department.businessUnit?.organizationId !== organizationId
+        department.businessUnit &&
+        department.businessUnit.organizationId !== organizationId
       ) {
         throw new BadRequestException(
           'Selected department must belong to the selected organization.',

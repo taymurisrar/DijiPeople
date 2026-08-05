@@ -1,9 +1,14 @@
 import { app } from "electron";
 import { mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { agentEnv } from "../config/env";
 import type { AgentState, HeartbeatEvent } from "./types";
 
-const MAX_QUEUE_SIZE = 1000;
+const ABSOLUTE_MAX_QUEUE_SIZE = 100_000;
+const MAX_QUEUE_SIZE = Math.min(
+  Math.max(Math.floor(agentEnv.offlineQueueMaxItems), 1),
+  ABSOLUTE_MAX_QUEUE_SIZE,
+);
 const DEFAULT_DRAIN_SIZE = 50;
 
 const VALID_AGENT_STATES: AgentState[] = ["ACTIVE", "IDLE", "AWAY"];

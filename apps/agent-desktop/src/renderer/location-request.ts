@@ -27,7 +27,11 @@ type DesktopLocationResult =
       capturedAt: string;
       source: string;
     }
-  | { ok: false; message: string };
+  | {
+      ok: false;
+      reason: "denied" | "unavailable" | "error";
+      message: string;
+    };
 
 type LocationBridge = {
   getLocationRequest?: () => Promise<AgentLocationRequest | null>;
@@ -43,8 +47,11 @@ const declineButton = getButton("decline-button");
 const summary = getElement("request-summary");
 const message = getElement("message");
 const actions = getElement("location-actions");
-const MAX_ACCEPTED_ACCURACY_METERS = 100;
-const GEOLOCATION_ATTEMPT_TIMEOUT_MS = 20_000;
+
+// Must stay in sync with MAX_LOCATION_ACCURACY_METERS in
+// services/api/src/modules/agent/agent.service.ts — the API rejects anything looser.
+const MAX_ACCEPTED_ACCURACY_METERS = 2_000;
+const MAX_CAPTURE_ATTEMPTS = 4;
 const LOCATION_RETRY_DELAY_MS = 5_000;
 
 let currentRequest: AgentLocationRequest | null = null;
@@ -76,24 +83,17 @@ async function initialize() {
     currentRequest.requestedAt,
   )}. This request expires ${formatDateTime(currentRequest.expiresAt)}.`;
 
-  await handlePermissionState();
+  actions.classList.remove("hidden");
+  setMessage("Choose Share to approve this one-time request.", "info");
 }
 
 async function shareLocation() {
   if (!currentRequest) return;
 
-  if (!navigator.geolocation) {
-    await submitResult({
-      status: "FAILED",
-      errorMessage: "Location services are not available on this device.",
-    });
-    return;
-  }
-
   setDisabled(true);
-  setMessage("Capturing precise location...", "info");
+  setMessage("Capturing your location...", "info");
 
-  const result = await capturePreciseLocationUntilExpiry();
+  const result = await captureLocationUntilAccurate();
 
   if (result.ok === true) {
     await submitResult({
@@ -112,7 +112,12 @@ async function shareLocation() {
   });
 }
 
-async function capturePreciseLocationUntilExpiry(): Promise<
+/**
+ * Location comes from the desktop main process (Windows Location Services, then
+ * an IP lookup) rather than navigator.geolocation, which cannot resolve a
+ * position in Electron without a Google network-location API key.
+ */
+async function captureLocationUntilAccurate(): Promise<
   | {
       ok: true;
       latitude: number;
@@ -122,111 +127,63 @@ async function capturePreciseLocationUntilExpiry(): Promise<
     }
   | { ok: false; status: "DENIED" | "FAILED"; message: string }
 > {
-  let lastError = "Unable to capture precise location.";
+  let lastError = "Unable to capture a location from this device.";
 
-  while (!isLocationRequestExpired()) {
-    try {
-      const position = await captureBrowserLocation();
-      const accuracyMeters = Number(position.coords.accuracy);
+  for (let attempt = 1; attempt <= MAX_CAPTURE_ATTEMPTS; attempt += 1) {
+    if (isLocationRequestExpired()) {
+      return {
+        ok: false,
+        status: "FAILED",
+        message: compact(
+          `${lastError} The request expired before a usable location was captured.`,
+        ),
+      };
+    }
+
+    const capture = await locationWindow.dijiAgent?.captureDesktopLocation?.();
+
+    if (!capture) {
+      return {
+        ok: false,
+        status: "FAILED",
+        message: "The desktop agent bridge is unavailable.",
+      };
+    }
+
+    if (capture.ok === true) {
+      const accuracyMeters = Number(capture.accuracyMeters);
 
       if (
         Number.isFinite(accuracyMeters) &&
+        accuracyMeters > 0 &&
         accuracyMeters <= MAX_ACCEPTED_ACCURACY_METERS
       ) {
         return {
           ok: true,
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
+          latitude: capture.latitude,
+          longitude: capture.longitude,
           accuracyMeters,
-          capturedAt: new Date(position.timestamp).toISOString(),
+          capturedAt: capture.capturedAt,
         };
       }
 
-      lastError = `Location accuracy is ${formatMeters(accuracyMeters)}. Waiting for accuracy under ${MAX_ACCEPTED_ACCURACY_METERS} m.`;
-      setMessage(lastError, "info");
-    } catch (error) {
-      const status = readLocationErrorStatus(error);
-      const errorMessage = readLocationErrorMessage(error);
-
-      if (status === "DENIED") {
-        return { ok: false, status, message: errorMessage };
-      }
-
-      const fallback = await captureLocationFallback(errorMessage);
-
-      if (fallback.ok) {
-        const accuracyMeters = Number(fallback.accuracyMeters);
-
-        if (
-          fallback.source !== "ip-location" &&
-          Number.isFinite(accuracyMeters) &&
-          accuracyMeters <= MAX_ACCEPTED_ACCURACY_METERS
-        ) {
-          return {
-            ok: true,
-            latitude: fallback.latitude,
-            longitude: fallback.longitude,
-            accuracyMeters,
-            capturedAt: fallback.capturedAt,
-          };
-        }
-
-        lastError = `Fallback location accuracy is ${formatMeters(accuracyMeters)}. Waiting for accuracy under ${MAX_ACCEPTED_ACCURACY_METERS} m.`;
-        setMessage(lastError, "info");
-      } else {
-        lastError =
-          "message" in fallback ? fallback.message : "Unable to capture location.";
-        setMessage(lastError, "info");
-      }
+      lastError = Number.isFinite(accuracyMeters)
+        ? `The best available location is only accurate to ${formatMeters(accuracyMeters)}, which is looser than the ${formatMeters(MAX_ACCEPTED_ACCURACY_METERS)} limit.`
+        : "Windows reported a position without an accuracy value, so it cannot be accepted.";
+    } else if (capture.reason === "denied") {
+      // A device-level block will not resolve itself by retrying.
+      return { ok: false, status: "DENIED", message: compact(capture.message) };
+    } else {
+      lastError = capture.message;
     }
 
-    await delay(LOCATION_RETRY_DELAY_MS);
+    if (attempt < MAX_CAPTURE_ATTEMPTS) {
+      setMessage(`${lastError} Retrying...`, "info");
+      await delay(LOCATION_RETRY_DELAY_MS);
+    }
   }
 
-  return {
-    ok: false,
-    status: "FAILED",
-    message: compactLocationError(
-      `${lastError} The request expired before a precise location was captured.`,
-    ) ?? "The request expired before a precise location was captured.",
-  };
-}
-
-function captureBrowserLocation() {
-  return new Promise<GeolocationPosition>((resolve, reject) => {
-    navigator.geolocation.getCurrentPosition(resolve, reject, {
-      enableHighAccuracy: true,
-      maximumAge: 0,
-      timeout: GEOLOCATION_ATTEMPT_TIMEOUT_MS,
-    });
-  });
-}
-
-async function captureLocationFallback(
-  primaryError: string,
-): Promise<DesktopLocationResult> {
-  setMessage(
-    "Device location failed. Trying Windows Location Services...",
-    "info",
-  );
-
-  const fallback = await locationWindow.dijiAgent?.captureDesktopLocation?.();
-
-  if (!fallback) {
-    return {
-      ok: false,
-      message: primaryError,
-    };
-  }
-
-  return "message" in fallback
-    ? {
-        ok: false,
-        message:
-          compactLocationError(`${primaryError} ${fallback.message}`) ??
-          "Unable to capture location.",
-      }
-    : fallback;
+  return { ok: false, status: "FAILED", message: compact(lastError) };
 }
 
 async function submitResult(
@@ -237,13 +194,14 @@ async function submitResult(
   setDisabled(true);
   setMessage("Sending response...", "info");
 
-  const response =
-    await locationWindow.dijiAgent?.submitLocationResult?.({
-      ...result,
-      errorMessage: compactLocationError(result.errorMessage),
-      requestId: currentRequest.id,
-      deviceId: currentRequest.deviceId,
-    });
+  const response = await locationWindow.dijiAgent?.submitLocationResult?.({
+    ...result,
+    errorMessage: result.errorMessage
+      ? compact(result.errorMessage)
+      : undefined,
+    requestId: currentRequest.id,
+    deviceId: currentRequest.deviceId,
+  });
 
   if (response?.ok) {
     setMessage(
@@ -262,69 +220,13 @@ async function submitResult(
   setDisabled(false);
 }
 
-async function handlePermissionState() {
-  const permission = await readGeolocationPermission();
+function compact(value: string) {
+  const normalized = value.replace(/\s+/g, " ").trim();
 
-  if (permission === "granted") {
-    actions.classList.add("hidden");
-    setMessage("Location permission is already granted. Capturing now.", "info");
-    await shareLocation();
-    return;
-  }
+  if (!normalized) return "Unable to capture location.";
+  if (normalized.length <= 480) return normalized;
 
-  actions.classList.remove("hidden");
-
-  if (permission === "denied") {
-    setMessage(
-      "Location is blocked on this device. Enable location permission, then try again.",
-      "error",
-    );
-    return;
-  }
-
-  setMessage("Choose Share to approve this one-time request.", "info");
-}
-
-async function readGeolocationPermission(): Promise<PermissionState | "unknown"> {
-  if (!navigator.permissions?.query) return "unknown";
-
-  try {
-    const status = await navigator.permissions.query({
-      name: "geolocation" as PermissionName,
-    });
-
-    return status.state;
-  } catch {
-    return "unknown";
-  }
-}
-
-function readLocationErrorStatus(error: unknown): "DENIED" | "FAILED" {
-  if (isGeolocationError(error) && error.code === 1) {
-    return "DENIED";
-  }
-
-  return "FAILED";
-}
-
-function readLocationErrorMessage(error: unknown) {
-  if (isGeolocationError(error)) {
-    return error.message || "Unable to capture current location.";
-  }
-
-  return error instanceof Error
-    ? error.message
-    : "Unable to capture current location.";
-}
-
-function compactLocationError(value?: string) {
-  const message = value?.replace(/\s+/g, " ").trim();
-
-  if (!message) return undefined;
-
-  if (message.length <= 480) return message;
-
-  return `${message.slice(0, 477)}...`;
+  return `${normalized.slice(0, 477)}...`;
 }
 
 function isLocationRequestExpired() {
@@ -342,18 +244,7 @@ function delay(milliseconds: number) {
 }
 
 function formatMeters(value: number) {
-  return Number.isFinite(value) ? `${Math.round(value)} m` : "unknown";
-}
-
-function isGeolocationError(
-  error: unknown,
-): error is { code: number; message?: string } {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    typeof (error as { code?: unknown }).code === "number"
-  );
+  return Number.isFinite(value) ? `${Math.round(value).toLocaleString()} m` : "unknown";
 }
 
 function setDisabled(disabled: boolean) {

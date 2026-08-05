@@ -281,6 +281,18 @@ export function apiErrorEventName() {
   return "dijipeople:api-error";
 }
 
+/**
+ * Requests carrying this header opt out of the global error modal and handle
+ * failures themselves. Use it for background/optional fetches: without it the
+ * patched window.fetch escalates any 403 or 5xx into a blocking dialog, even
+ * when the caller already degrades gracefully.
+ */
+export const API_ERROR_HANDLING_HEADER = "x-dijipeople-error-handling";
+
+export const INLINE_ERROR_HANDLING_HEADERS: Readonly<Record<string, string>> = {
+  [API_ERROR_HANDLING_HEADER]: "inline",
+};
+
 function withFallbacks(error: StandardApiError) {
   const catalog =
     CLIENT_ERROR_CATALOG[error.errorCode] ??
