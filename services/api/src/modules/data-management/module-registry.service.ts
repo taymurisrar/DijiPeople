@@ -87,14 +87,46 @@ const MODULE_DEFINITIONS: Array<{
   matchingKeys: readonly string[];
   supportsImport: boolean;
   supportsExport: boolean;
+  /**
+   * Model field renamed to the name the module's create/update contract uses.
+   * The template keeps the friendlier contract name.
+   */
+  fieldAliases?: Readonly<Record<string, string>>;
+  /**
+   * Model fields the module cannot accept from a file, with the reason shown on
+   * the Instructions sheet. Offering a column that always fails is worse than
+   * leaving it out.
+   */
+  unsupportedFields?: Readonly<Record<string, string>>;
+  /**
+   * Corrects a descriptor when the module's contract expects a different shape
+   * than the model column. Without this an aliased field keeps the column's
+   * type and validation rejects values the module would accept.
+   */
+  fieldOverrides?: Readonly<
+    Record<string, { type?: ImportFieldType; expectedFormat?: string }>
+  >;
 }> = [
   {
     moduleKey: 'employees',
     label: 'Employees',
     modelName: 'Employee',
-    matchingKeys: ['id', 'employeeCode', 'email'],
+    matchingKeys: ['id', 'employeeCode', 'workEmail'],
     supportsImport: true,
     supportsExport: true,
+    fieldAliases: {
+      email: 'workEmail',
+      managerEmployeeId: 'reportingManagerEmployeeId',
+    },
+    unsupportedFields: {
+      employmentTypeId: 'Employment type is assigned after the record exists.',
+      employmentTypeRef: 'Employment type is assigned after the record exists.',
+      isDraftProfile: 'Draft state is managed by the application.',
+      profileImageDocumentId: 'Profile images are uploaded, not imported.',
+      sourceApplicationId: 'Recruitment provenance is set by the system.',
+      sourceCandidateId: 'Recruitment provenance is set by the system.',
+      sourceJobOpeningId: 'Recruitment provenance is set by the system.',
+    },
   },
   {
     moduleKey: 'leaves',
@@ -108,9 +140,62 @@ const MODULE_DEFINITIONS: Array<{
     moduleKey: 'attendance',
     label: 'Attendance',
     modelName: 'AttendanceEntry',
-    matchingKeys: ['id'],
+    matchingKeys: ['id', 'employeeId'],
     supportsImport: true,
     supportsExport: true,
+    fieldAliases: {
+      checkIn: 'checkInTime',
+      checkOut: 'checkOutTime',
+    },
+    // The column stores a timestamp, but manual entry takes a time of day and
+    // combines it with the date field.
+    fieldOverrides: {
+      checkInTime: {
+        type: 'string',
+        expectedFormat: 'HH:mm, for example 09:00',
+      },
+      checkOutTime: {
+        type: 'string',
+        expectedFormat: 'HH:mm, for example 17:30',
+      },
+    },
+    unsupportedFields: {
+      // Derived by the attendance rules from the times and the shift.
+      isLateCheckIn: 'Calculated from the shift, not imported.',
+      isLateCheckOut: 'Calculated from the shift, not imported.',
+      lateCheckInMinutes: 'Calculated from the shift, not imported.',
+      lateCheckOutMinutes: 'Calculated from the shift, not imported.',
+      // Device and location telemetry belongs to a real capture event.
+      checkInLatitude: 'Captured at check-in, not imported.',
+      checkInLongitude: 'Captured at check-in, not imported.',
+      checkInAddressText: 'Captured at check-in, not imported.',
+      checkInLocationAccuracy: 'Captured at check-in, not imported.',
+      checkInLocationCapturedAt: 'Captured at check-in, not imported.',
+      checkInSource: 'Set by the capturing client, not imported.',
+      checkOutLatitude: 'Captured at check-out, not imported.',
+      checkOutLongitude: 'Captured at check-out, not imported.',
+      checkOutAddressText: 'Captured at check-out, not imported.',
+      checkOutLocationAccuracy: 'Captured at check-out, not imported.',
+      checkOutLocationCapturedAt: 'Captured at check-out, not imported.',
+      checkOutSource: 'Set by the capturing client, not imported.',
+      locationLatitude: 'Captured by the device, not imported.',
+      locationLongitude: 'Captured by the device, not imported.',
+      locationAccuracyMeters: 'Captured by the device, not imported.',
+      locationCapturedAt: 'Captured by the device, not imported.',
+      locationConfidence: 'Captured by the device, not imported.',
+      locationFailureReason: 'Captured by the device, not imported.',
+      locationPermissionState: 'Captured by the device, not imported.',
+      locationSource: 'Captured by the device, not imported.',
+      manualLocationExceptionRequested:
+        'Part of the check-in flow, not imported.',
+      manualLocationExceptionReason: 'Part of the check-in flow, not imported.',
+      ipAddress: 'Recorded from the request, not imported.',
+      userAgent: 'Recorded from the request, not imported.',
+      machineDeviceId: 'Set by the device integration, not imported.',
+      importedBatchId: 'Assigned by the importer itself.',
+      workScheduleId: 'Resolved from the employee, not imported.',
+      notes: 'Use the check-in and check-out notes instead.',
+    },
   },
 ];
 
@@ -168,6 +253,13 @@ export class DataModuleRegistryService {
     }
 
     for (const [key, field] of Object.entries(model.fields)) {
+      const unsupported = definition.unsupportedFields?.[key];
+
+      if (unsupported) {
+        excludedFields.push({ key, reason: unsupported });
+        continue;
+      }
+
       const exclusion = this.exclusionReason(key, field, fieldKeys);
 
       if (exclusion) {
@@ -175,9 +267,17 @@ export class DataModuleRegistryService {
         continue;
       }
 
-      importFields.push(
-        this.toDescriptor(key, field, lookupModelByScalar.get(key)),
-      );
+      const descriptorKey = definition.fieldAliases?.[key] ?? key;
+      const override = definition.fieldOverrides?.[descriptorKey];
+
+      importFields.push({
+        ...this.toDescriptor(key, field, lookupModelByScalar.get(key)),
+        key: descriptorKey,
+        ...(override?.type ? { type: override.type } : {}),
+        ...(override?.expectedFormat
+          ? { expectedFormat: override.expectedFormat }
+          : {}),
+      });
     }
 
     const descriptor: DataModuleDescriptor = {

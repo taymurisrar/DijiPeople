@@ -684,13 +684,21 @@ export class EmployeesService {
     settings: EmployeeSettingsResolved,
     tx: Prisma.TransactionClient,
   ) {
-    if (!settings.autoGenerateEmployeeId) {
-      const manualEmployeeCode = dto.employeeCode?.trim();
+    const manualEmployeeCode = dto.employeeCode?.trim();
 
+    if (!settings.autoGenerateEmployeeId) {
       if (!manualEmployeeCode) {
         throw new BadRequestException('Employee code is required.');
       }
 
+      return manualEmployeeCode.toUpperCase();
+    }
+
+    // An explicitly supplied code wins even when generation is enabled.
+    // Migrations carry existing payroll and badge identifiers, and silently
+    // replacing them with a generated sequence would rewrite the natural key
+    // the customer recognises. Uniqueness is still enforced downstream.
+    if (manualEmployeeCode) {
       return manualEmployeeCode.toUpperCase();
     }
 
@@ -2639,53 +2647,121 @@ export class EmployeesService {
     }
   }
 
-  private assertEmployeeSettingsRulesForCreate(
-    dto: CreateEmployeeDto,
+  /** Employee settings resolved for a tenant, for callers outside this module. */
+  async getEmployeeSettingsForTenant(tenantId: string) {
+    return this.tenantSettingsResolverService.getEmployeeSettings(tenantId);
+  }
+
+  /**
+   * The create-time mandatory-field rules, reported rather than thrown.
+   *
+   * Import validation calls this so a dry run predicts exactly what execution
+   * will accept. Keeping one rule set means the two can never drift.
+   */
+  collectCreateSettingsIssues(
+    dto: Partial<
+      Pick<
+        CreateEmployeeDto,
+        | 'personalEmail'
+        | 'emergencyContactName'
+        | 'emergencyContactRelationTypeId'
+        | 'emergencyContactPhone'
+        | 'departmentId'
+        | 'designationId'
+        | 'hireDate'
+        | 'reportingManagerEmployeeId'
+        | 'locationId'
+      >
+    >,
     settings: EmployeeSettingsResolved,
-  ) {
+  ): Array<{ field: string; message: string }> {
+    const issues: Array<{ field: string; message: string }> = [];
+
     if (settings.requirePersonalEmail && !dto.personalEmail?.trim()) {
-      throw new BadRequestException(
-        'Personal email is required by tenant employee settings.',
-      );
+      issues.push({
+        field: 'personalEmail',
+        message: 'Personal email is required by tenant employee settings.',
+      });
     }
     if (settings.requireEmergencyContact) {
-      const fieldErrors = emergencyContactFieldErrors(dto);
-      if (fieldErrors.length) {
-        throw employeeValidationError(
-          'Emergency contact details are required by tenant employee settings.',
-          fieldErrors,
-        );
-      }
+      issues.push(...emergencyContactFieldErrors(dto));
     }
     if (settings.requireDepartment && !dto.departmentId?.trim()) {
-      throw new BadRequestException(
-        'Department is required by tenant employee settings.',
-      );
+      issues.push({
+        field: 'departmentId',
+        message: 'Department is required by tenant employee settings.',
+      });
     }
     if (settings.requireDesignation && !dto.designationId?.trim()) {
-      throw new BadRequestException(
-        'Designation is required by tenant employee settings.',
-      );
+      issues.push({
+        field: 'designationId',
+        message: 'Designation is required by tenant employee settings.',
+      });
     }
     if (settings.requireJoiningDate && !dto.hireDate) {
-      throw new BadRequestException(
-        'Joining date is required by tenant employee settings.',
-      );
+      issues.push({
+        field: 'hireDate',
+        message: 'Joining date is required by tenant employee settings.',
+      });
     }
     if (
       (settings.requireReportingManager ||
         !settings.allowEmployeeWithoutManager) &&
       !dto.reportingManagerEmployeeId?.trim()
     ) {
-      throw new BadRequestException(
-        'Reporting manager is required by tenant employee settings.',
-      );
+      issues.push({
+        field: 'reportingManagerEmployeeId',
+        message: 'Reporting manager is required by tenant employee settings.',
+      });
     }
     if (settings.requireWorkLocation && !dto.locationId?.trim()) {
-      throw new BadRequestException(
-        'Work location is required by tenant employee settings.',
+      issues.push({
+        field: 'locationId',
+        message: 'Work location is required by tenant employee settings.',
+      });
+    }
+
+    return issues;
+  }
+
+  private assertEmployeeSettingsRulesForCreate(
+    dto: CreateEmployeeDto,
+    settings: EmployeeSettingsResolved,
+  ) {
+    const issues = this.collectCreateSettingsIssues(dto, settings);
+
+    if (issues.length === 0) {
+      return;
+    }
+
+    // Emergency contact is reported as a group so the caller sees every missing
+    // part at once rather than one field per attempt.
+    const emergencyContactErrors = issues.filter((issue) =>
+      issue.field.startsWith('emergencyContact'),
+    );
+
+    const firstOther = issues.find(
+      (issue) => !issue.field.startsWith('emergencyContact'),
+    );
+
+    if (firstOther && issues.indexOf(firstOther) < issues.length) {
+      const beforeEmergency =
+        emergencyContactErrors.length === 0 ||
+        issues.indexOf(firstOther) < issues.indexOf(emergencyContactErrors[0]);
+
+      if (beforeEmergency) {
+        throw new BadRequestException(firstOther.message);
+      }
+    }
+
+    if (emergencyContactErrors.length) {
+      throw employeeValidationError(
+        'Emergency contact details are required by tenant employee settings.',
+        emergencyContactErrors,
       );
     }
+
+    throw new BadRequestException(issues[0].message);
   }
 
   private assertEmployeeSettingsRulesForUpdate(

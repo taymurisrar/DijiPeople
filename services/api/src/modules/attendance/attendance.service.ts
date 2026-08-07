@@ -36,10 +36,7 @@ import {
 import { hasElevatedTenantRole } from '../../common/security/elevated-tenant-roles';
 import { resolveEffectiveAccessLevel } from '../../common/security/rbac-query-scope';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import {
-  buildCsvTemplate,
-  type CsvFile,
-} from '../../common/utils/csv.util';
+import { buildCsvTemplate, type CsvFile } from '../../common/utils/csv.util';
 import { EmployeesRepository } from '../employees/employees.repository';
 import { NotificationsService } from '../notifications/notifications.service';
 import { TenantSettingsResolverService } from '../tenant-settings/tenant-settings-resolver.service';
@@ -2748,6 +2745,69 @@ export class AttendanceService {
     }
 
     return employee;
+  }
+
+  /**
+   * Reports why a manual entry for this employee and date would be refused.
+   *
+   * Import validation calls this so a dry run predicts the same shift and
+   * work-schedule rules that `createManualEntry` enforces, instead of the user
+   * discovering them one row at a time during the run.
+   */
+  async describeManualEntryBlockers(
+    currentUser: AuthenticatedUser,
+    employeeId: string,
+    date: string,
+  ): Promise<Array<{ field: string | null; message: string }>> {
+    const employee = await this.prisma.employee.findFirst({
+      where: {
+        id: employeeId,
+        tenantId: currentUser.tenantId,
+        isDeleted: false,
+      },
+      select: { id: true },
+    });
+
+    if (!employee) {
+      return [
+        {
+          field: 'employeeId',
+          message: 'Selected employee does not belong to this tenant.',
+        },
+      ];
+    }
+
+    let context: Awaited<ReturnType<typeof this.resolveSelfServiceContext>>;
+
+    try {
+      context = await this.resolveSelfServiceContext(
+        currentUser,
+        employeeId,
+        parseBusinessDateInput(date),
+      );
+    } catch (error) {
+      return [
+        {
+          field: 'date',
+          message:
+            error instanceof Error
+              ? error.message
+              : 'The work schedule for this date could not be resolved.',
+        },
+      ];
+    }
+
+    if (!context.shift) {
+      return [
+        {
+          field: 'date',
+          message:
+            'No active shift is configured for this employee on this date.',
+        },
+      ];
+    }
+
+    return [];
   }
 
   private async resolveSelfServiceContext(

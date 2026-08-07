@@ -218,6 +218,9 @@ const itemPlacement: Record<
 const routeKeys: Record<string, string> = {
   tenant: "tenant-profile",
   "organization-teams": "teams",
+  // Without this the nav links to /people/documents/categories while the item
+  // is keyed document-categories, so the route resolver returns not-found.
+  "document-categories": "categories",
   locations: "work-sites",
   "holiday-calendars": "holiday-calendars",
   "payroll-settings": "payroll-settings",

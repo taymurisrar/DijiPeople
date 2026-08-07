@@ -75,6 +75,7 @@ export default async function BrandingSettingsPage({
   return (
     <SettingsShell
       eyebrow="Branding"
+      showHeader
       title="Branding"
       description={
         activeOrganizationId
@@ -89,7 +90,12 @@ export default async function BrandingSettingsPage({
         </div>
       ) : null}
 
-      {organizations.length > 1 ? (
+      {/*
+        Shown whenever the tenant has any organization. Even with one, the
+        choice between a tenant default and an organization override is real,
+        and hiding the control makes the capability look absent.
+      */}
+      {organizations.length > 0 ? (
         <BrandingScopeSelector
           activeOrganizationId={activeOrganizationId}
           organizations={organizations}

@@ -4,7 +4,8 @@ import {
   hasSettingsPermission,
   requireSettingsPermissions,
 } from "../_lib/require-settings-permission";
-import { ImportValidatorPanel } from "./_components/import-validator-panel";
+import { ExportPanel } from "./_components/export-panel";
+import { ImportWorkspace } from "./_components/import-workspace";
 import { TemplateDownloadPanel } from "./_components/template-download-panel";
 
 export type DataModuleSummary = {
@@ -26,6 +27,11 @@ export default async function DataManagementPage() {
     user,
     "data-management.import.validate",
   );
+  const canExecute = hasSettingsPermission(
+    user,
+    "data-management.import.execute",
+  );
+  const canExport = hasSettingsPermission(user, "data-management.export");
 
   // A failed load must not render as "no modules", which would look like the
   // feature is empty rather than unavailable.
@@ -44,6 +50,7 @@ export default async function DataManagementPage() {
   return (
     <SettingsShell
       eyebrow="Data Management"
+      showHeader
       title="Import & Export"
       description="Download templates, import records in bulk, and export module data."
     >
@@ -51,8 +58,12 @@ export default async function DataManagementPage() {
         <div className="grid gap-8">
           <TemplateDownloadPanel modules={modulesResult.value} />
           {canValidate ? (
-            <ImportValidatorPanel modules={modulesResult.value} />
+            <ImportWorkspace
+              canExecute={canExecute}
+              modules={modulesResult.value}
+            />
           ) : null}
+          {canExport ? <ExportPanel modules={modulesResult.value} /> : null}
         </div>
       ) : (
         <div className="rounded-2xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm font-medium text-warning">

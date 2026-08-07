@@ -29,11 +29,21 @@ export function ColorPickerField({
   return (
     <label className="grid gap-2 text-sm">
       <span className="font-medium text-foreground">{label}</span>
-      <div className="flex items-center gap-3 rounded-2xl border border-border bg-white px-3 py-2">
+      {/*
+        Colour-picker browser extensions inject their own trigger element next
+        to a native colour input before React hydrates, which React reports as
+        a mismatch. The markup here is server-stable, so differences in this
+        subtree come from outside the app and must not tear down the form.
+      */}
+      <div
+        className="flex items-center gap-3 rounded-2xl border border-border bg-white px-3 py-2"
+        suppressHydrationWarning
+      >
         <input
           className="h-10 w-14 rounded-lg border border-border bg-white p-0"
           disabled={disabled}
           onChange={(event) => onChange(event.target.value)}
+          suppressHydrationWarning
           type="color"
           value={normalizedColor}
         />

@@ -4,6 +4,8 @@ import * as ExcelJS from 'exceljs';
 import { createHash } from 'node:crypto';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { StorageService } from '../../common/storage/storage.service';
+import { AttendanceService } from '../attendance/attendance.service';
+import { EmployeesService } from '../employees/employees.service';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import {
   DataModuleRegistryService,
@@ -62,7 +64,108 @@ export class ImportAnalysisService {
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
     private readonly registry: DataModuleRegistryService,
+    private readonly employeesService: EmployeesService,
+    private readonly attendanceService: AttendanceService,
   ) {}
+
+  /**
+   * Module rules that only the owning module can answer, such as tenant
+   * mandatory-field settings. Resolved once per run, then applied per row so a
+   * dry run predicts exactly what execution will accept.
+   */
+  private async buildModuleRowValidator(
+    moduleKey: string,
+    tenantId: string,
+    currentUser: AuthenticatedUser,
+  ): Promise<
+    | ((values: Record<string, string>) => RowIssue[] | Promise<RowIssue[]>)
+    | null
+  > {
+    if (moduleKey === 'employees') {
+      const settings =
+        await this.employeesService.getEmployeeSettingsForTenant(tenantId);
+
+      return (values) =>
+        this.employeesService
+          .collectCreateSettingsIssues(values, settings)
+          .map((issue) => ({
+            field: issue.field,
+            value: values[issue.field] ?? null,
+            message: issue.message,
+            severity: 'ERROR' as const,
+          }));
+    }
+
+    if (moduleKey === 'attendance') {
+      // Resolving a work schedule costs a query, so each employee and date is
+      // asked once. Beyond the cap the check is skipped rather than issuing
+      // thousands of lookups; execution still reports those rows per row.
+      const scheduleCache = new Map<
+        string,
+        Array<{ field: string | null; message: string }>
+      >();
+      const MAX_SCHEDULE_LOOKUPS = 2_000;
+
+      return async (values) => {
+        const issues: RowIssue[] = [];
+        const mode = values.attendanceMode?.trim().toUpperCase();
+
+        if (!mode) {
+          issues.push({
+            field: 'attendanceMode',
+            value: null,
+            message: 'Attendance mode is required.',
+            severity: 'ERROR',
+            suggestion: 'Use OFFICE, REMOTE or HYBRID.',
+          });
+          return issues;
+        }
+
+        // Manual entry rejects an office day with no work site, so the file is
+        // checked for it rather than failing halfway through the run.
+        if (mode === 'OFFICE' && !values.officeLocationId?.trim()) {
+          issues.push({
+            field: 'officeLocationId',
+            value: null,
+            message: 'Office location is required for office attendance.',
+            severity: 'ERROR',
+            suggestion:
+              'Use an id from the Office Location reference sheet, or choose REMOTE.',
+          });
+        }
+
+        const employeeId = values.employeeId?.trim();
+        const date = values.date?.trim();
+
+        if (employeeId && date) {
+          const cacheKey = `${employeeId}|${date}`;
+          let blockers = scheduleCache.get(cacheKey);
+
+          if (!blockers && scheduleCache.size < MAX_SCHEDULE_LOOKUPS) {
+            blockers = await this.attendanceService.describeManualEntryBlockers(
+              currentUser,
+              employeeId,
+              date,
+            );
+            scheduleCache.set(cacheKey, blockers);
+          }
+
+          for (const blocker of blockers ?? []) {
+            issues.push({
+              field: blocker.field,
+              value: blocker.field ? (values[blocker.field] ?? null) : null,
+              message: blocker.message,
+              severity: 'ERROR',
+            });
+          }
+        }
+
+        return issues;
+      };
+    }
+
+    return null;
+  }
 
   /**
    * Uploads a workbook, maps its columns and validates every row without
@@ -97,9 +200,29 @@ export class ImportAnalysisService {
     }
 
     const mappings = this.autoMap(headers, module);
-    const issuesByRow = rows.map((row) =>
-      this.validateRow(row, mappings, module),
+    const moduleValidator = await this.buildModuleRowValidator(
+      moduleKey,
+      currentUser.tenantId,
+      currentUser,
     );
+
+    const issuesByRow: RowIssue[][] = [];
+
+    for (const row of rows) {
+      const issues = this.validateRow(row, mappings, module);
+
+      if (moduleValidator) {
+        const mapped = this.mapRowToFields(row.values, mappings);
+        // Only add rules the field-level pass has not already reported.
+        for (const issue of await moduleValidator(mapped)) {
+          if (!issues.some((existing) => existing.field === issue.field)) {
+            issues.push(issue);
+          }
+        }
+      }
+
+      issuesByRow.push(issues);
+    }
 
     // Idempotency: the same file, module and sheet resolve to one job so a
     // double submit cannot create duplicate work.
@@ -376,6 +499,22 @@ export class ImportAnalysisService {
 
       return { sourceColumn: header, fieldKey: null, matchedBy: 'unmatched' };
     });
+  }
+
+  /** Source-column values keyed by field, using the resolved mapping. */
+  private mapRowToFields(
+    source: Record<string, string>,
+    mappings: readonly ColumnMapping[],
+  ) {
+    const values: Record<string, string> = {};
+
+    for (const mapping of mappings) {
+      if (!mapping.fieldKey) continue;
+      const raw = source[mapping.sourceColumn];
+      if (raw !== undefined) values[mapping.fieldKey] = raw;
+    }
+
+    return values;
   }
 
   private validateRow(
