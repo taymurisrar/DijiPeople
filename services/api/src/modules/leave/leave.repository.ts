@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { LeaveRequestStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import { ListLeaveConfigDto } from './dto/list-leave-config.dto';
@@ -196,6 +196,45 @@ export class LeaveRepository {
       },
       include: leaveRequestInclude,
       orderBy: [{ createdAt: 'desc' }],
+    });
+  }
+
+  /**
+   * Finds live requests for an employee whose dates intersect the given range.
+   *
+   * Two ranges overlap when each starts on or before the other ends. Only
+   * PENDING and APPROVED requests count: rejected and cancelled ones no longer
+   * reserve the days.
+   */
+  findOverlappingLeaveRequests(
+    tenantId: string,
+    employeeId: string,
+    startDate: Date,
+    endDate: Date,
+    excludeLeaveRequestId?: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.leaveRequest.findMany({
+      where: {
+        tenantId,
+        employeeId,
+        status: {
+          in: [LeaveRequestStatus.PENDING, LeaveRequestStatus.APPROVED],
+        },
+        startDate: { lte: endDate },
+        endDate: { gte: startDate },
+        ...(excludeLeaveRequestId
+          ? { id: { not: excludeLeaveRequestId } }
+          : {}),
+      },
+      select: {
+        id: true,
+        status: true,
+        startDate: true,
+        endDate: true,
+        leaveType: { select: { name: true } },
+      },
+      orderBy: [{ startDate: 'asc' }],
     });
   }
 

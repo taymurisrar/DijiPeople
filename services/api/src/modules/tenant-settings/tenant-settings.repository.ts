@@ -32,6 +32,84 @@ export class TenantSettingsRepository {
     });
   }
 
+  findOrganizationById(
+    tenantId: string,
+    organizationId: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.organization.findFirst({
+      where: { id: organizationId, tenantId },
+      select: { id: true, name: true },
+    });
+  }
+
+  findOrganizationsByTenant(tenantId: string, db: PrismaDb = this.prisma) {
+    return db.organization.findMany({
+      where: { tenantId, isActive: true },
+      select: { id: true, name: true, code: true },
+      orderBy: [{ name: 'asc' }],
+    });
+  }
+
+  findSettingsByOrganization(
+    tenantId: string,
+    organizationId: string,
+    db: PrismaDb = this.prisma,
+  ) {
+    return db.organizationSetting.findMany({
+      where: { tenantId, organizationId },
+      orderBy: [{ category: 'asc' }, { key: 'asc' }],
+    });
+  }
+
+  async upsertOrganizationSettings(
+    tenantId: string,
+    organizationId: string,
+    updates: TenantSettingUpsertInput[],
+  ) {
+    if (updates.length === 0) return;
+
+    await this.prisma.$transaction(async (tx) => {
+      for (const update of updates) {
+        await tx.organizationSetting.upsert({
+          where: {
+            tenantId_organizationId_category_key: {
+              tenantId,
+              organizationId,
+              category: update.category,
+              key: update.key,
+            },
+          },
+          create: {
+            tenantId,
+            organizationId,
+            category: update.category,
+            key: update.key,
+            value: update.value,
+          },
+          update: { value: update.value },
+        });
+      }
+    });
+  }
+
+  /** Removes an organization's override so the tenant value applies again. */
+  async deleteOrganizationSettings(
+    tenantId: string,
+    organizationId: string,
+    keys: Array<{ category: string; key: string }>,
+  ) {
+    if (keys.length === 0) return;
+
+    await this.prisma.organizationSetting.deleteMany({
+      where: {
+        tenantId,
+        organizationId,
+        OR: keys.map(({ category, key }) => ({ category, key })),
+      },
+    });
+  }
+
   findFeaturesByTenant(tenantId: string, db: PrismaDb = this.prisma) {
     return db.tenantFeature.findMany({
       where: { tenantId },

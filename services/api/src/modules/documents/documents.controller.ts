@@ -59,11 +59,7 @@ export class DocumentsController {
     entityType: DocumentEntityType,
     @Param('entityId') entityId: string,
   ) {
-    return this.documentsService.findByEntity(
-      user.tenantId,
-      entityType,
-      entityId,
-    );
+    return this.documentsService.findByEntity(user, entityType, entityId);
   }
 
   @Get('types')

@@ -28,6 +28,7 @@ import { ClaimsModule } from './modules/claims/claims.module';
 import { BenefitsModule } from './modules/benefits/benefits.module';
 import { SettingsRuntimeModule } from './modules/settings-runtime/settings-runtime.module';
 import { DocumentsModule } from './modules/documents/documents.module';
+import { DataManagementModule } from './modules/data-management/data-management.module';
 import { CustomizationModule } from './modules/customization/customization.module';
 import { DataModule } from './modules/data/data.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
@@ -93,6 +94,7 @@ import { SupportCasesModule } from './modules/support-cases/support-cases.module
     DataModule,
     DashboardModule,
     DocumentsModule,
+    DataManagementModule,
     DemoDataModule,
     EmployeeLevelsModule,
     EmploymentTypesModule,

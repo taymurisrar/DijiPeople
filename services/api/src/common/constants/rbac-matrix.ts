@@ -636,23 +636,54 @@ export const SYSTEM_ROLE_PRIVILEGES: Record<
     'reports:READ': SecurityAccessLevel.TENANT,
     'reports:EXPORT': SecurityAccessLevel.TENANT,
   }),
+  /**
+   * A manager owns the operational data of their reporting line: they may
+   * create, read, write, approve, reject and export within their business unit
+   * hierarchy. DELETE is deliberately withheld from every entity — destroying
+   * records stays with HR and the administrator roles.
+   */
   [ROLE_KEYS.MANAGER]: matrix(SecurityAccessLevel.NONE, {
     'custom-records:READ': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
     'custom-records:CREATE': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
     'custom-records:WRITE': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
     'employees:READ': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
+    'employees:CREATE': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
+    'employees:WRITE': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
+    'employees:EXPORT': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
+    'employee-levels:READ': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
     'attendance:READ': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
+    'attendance:CREATE': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
+    'attendance:WRITE': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
+    'attendance:EXPORT': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
     'timesheets:READ': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
+    'timesheets:CREATE': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
+    'timesheets:WRITE': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
     'timesheets:APPROVE': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
     'timesheets:REJECT': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
+    'timesheets:EXPORT': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
     'leave-requests:READ': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
+    'leave-requests:CREATE': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
+    'leave-requests:WRITE': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
     'leave-requests:APPROVE': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
     'leave-requests:REJECT': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
+    // Closes a gap where a manager could open a team member's record but not
+    // the documents attached to it.
+    'documents:READ': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
+    'documents:CREATE': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
+    'documents:WRITE': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
     'projects:READ': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
+    'projects:CREATE': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
+    'projects:WRITE': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
     'business-trips:READ': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
+    'business-trips:CREATE': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
+    'business-trips:WRITE': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
     'business-trips:APPROVE': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
     'business-trips:REJECT': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
     'payroll-time-inputs:READ': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
+    'payroll-time-inputs:CREATE':
+      SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
+    'hierarchy:READ': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
+    'reports:READ': SecurityAccessLevel.PARENT_CHILD_BUSINESS_UNIT,
   }),
   [ROLE_KEYS.HR]: matrix(SecurityAccessLevel.NONE, {
     'custom-records:READ': SecurityAccessLevel.ORGANIZATION,
@@ -663,10 +694,15 @@ export const SYSTEM_ROLE_PRIVILEGES: Record<
     'employees:CREATE': SecurityAccessLevel.ORGANIZATION,
     'employees:WRITE': SecurityAccessLevel.ORGANIZATION,
     'employees:DELETE': SecurityAccessLevel.ORGANIZATION,
+    // HR owns employee records and data migration, so it may export the same
+    // rows it can already list. Export reuses the scoped query, so this grants
+    // no visibility beyond the read scope above.
+    'employees:EXPORT': SecurityAccessLevel.ORGANIZATION,
     'employee-levels:READ': SecurityAccessLevel.ORGANIZATION,
     'employee-levels:MANAGE': SecurityAccessLevel.ORGANIZATION,
     'attendance:READ': SecurityAccessLevel.ORGANIZATION,
     'attendance:WRITE': SecurityAccessLevel.ORGANIZATION,
+    'attendance:EXPORT': SecurityAccessLevel.ORGANIZATION,
     'agent:READ': SecurityAccessLevel.ORGANIZATION,
     'agent:CONFIGURE': SecurityAccessLevel.ORGANIZATION,
     'agent:MANAGE': SecurityAccessLevel.ORGANIZATION,
@@ -833,13 +869,33 @@ export const SYSTEM_ROLE_PRIVILEGES: Record<
   }),
 };
 
+/**
+ * Data Management is a cross-cutting tool rather than an entity, so its
+ * permissions are granted here instead of through the entity x privilege
+ * matrix. Holding these allows use of the importer; each row is still checked
+ * against the target module's own create and update permissions.
+ */
+const DATA_MANAGEMENT_PERMISSION_KEYS: string[] = [
+  'data-management.view',
+  'data-management.template.download',
+  'data-management.import.validate',
+  'data-management.import.execute',
+  'data-management.export',
+  'data-management.jobs.readAll',
+  'data-management.import.retry',
+  'data-management.import.cancel',
+  'data-management.mappings.manage',
+];
+
 export const SYSTEM_ROLE_MISC_PERMISSIONS: Record<SystemRoleKey, string[]> = {
   [ROLE_KEYS.GLOBAL_ADMIN]: [
+    ...DATA_MANAGEMENT_PERMISSION_KEYS,
     ...MISC_PERMISSION_DEFINITIONS.map((permission) => permission.key),
     'approvals.read',
     'timeline.read',
   ],
   [ROLE_KEYS.SYSTEM_ADMIN]: [
+    ...DATA_MANAGEMENT_PERMISSION_KEYS,
     ...MISC_PERMISSION_DEFINITIONS.map((permission) => permission.key).filter(
       (key) => key !== MISC_PERMISSION_KEYS.SUPPORT_IMPERSONATE,
     ),
@@ -861,6 +917,18 @@ export const SYSTEM_ROLE_MISC_PERMISSIONS: Record<SystemRoleKey, string[]> = {
     MISC_PERMISSION_KEYS.CUSTOMIZATION_PUBLISH_CENTER_READ,
     MISC_PERMISSION_KEYS.CUSTOMIZATION_IMPORT_PREVIEW,
     MISC_PERMISSION_KEYS.CUSTOMIZATION_EXPORT,
+    // Table, column and form customization belongs to this role alone. The
+    // endpoints require these granular keys, which no role previously held.
+    'customization.tables.read',
+    'customization.tables.update',
+    'customization.columns.read',
+    'customization.columns.create',
+    'customization.columns.update',
+    'customization.columns.delete',
+    'customization.forms.read',
+    'customization.forms.create',
+    'customization.forms.update',
+    'customization.forms.delete',
   ],
   [ROLE_KEYS.CEO]: [
     MISC_PERMISSION_KEYS.AUDIT_VIEW,
@@ -870,15 +938,57 @@ export const SYSTEM_ROLE_MISC_PERMISSIONS: Record<SystemRoleKey, string[]> = {
   [ROLE_KEYS.MANAGER]: [
     MISC_PERMISSION_KEYS.REPORTS_EXPORT,
     'approvals.readAssigned',
+    'attendance.correction.create',
+    'attendance.correction.readOwn',
+    'attendance.correction.readTeam',
+    'attendance.correction.approve',
+    'attendance.correction.reject',
+    'leave-requests.cancel',
     'loans.approve',
     'loans.reject',
   ],
   [ROLE_KEYS.HR]: [
+    ...DATA_MANAGEMENT_PERMISSION_KEYS,
     MISC_PERMISSION_KEYS.TENANT_SETTINGS_MANAGE,
     MISC_PERMISSION_KEYS.AUDIT_VIEW,
     MISC_PERMISSION_KEYS.REPORTS_EXPORT,
     MISC_PERMISSION_KEYS.ORGANIZATION_MANAGE,
     'approvals.read',
+    // HR owns approval routing for leave and timesheets, and the settings
+    // navigation offers this page to them. Without these the page 403s.
+    'approval-matrices.read',
+    'approval-matrices.create',
+    'approval-matrices.update',
+    'approval-matrices.delete',
+    'attendance.correction.manage',
+    'attendance.integration.manage',
+    'leave-requests.cancel',
+    // HR owns the People and Leave configuration screens. These endpoint
+    // permissions existed but were granted to no role, so the pages they back
+    // were reachable only by the administrator bypass.
+    'leave-types.read',
+    'leave-types.create',
+    'leave-types.update',
+    'leave-policies.read',
+    'leave-policies.create',
+    'leave-policies.update',
+    'leave-policy-assignments.read',
+    'leave-policy-assignments.create',
+    'leave-policy-assignments.update',
+    'leave-policy-assignments.delete',
+    'departments.read',
+    'departments.create',
+    'departments.update',
+    'designations.read',
+    'designations.create',
+    'designations.update',
+    'locations.read',
+    'locations.create',
+    'locations.update',
+    'employment-types.read',
+    'employment-types.manage',
+    'documents.categories.manage',
+    'documents.types.manage',
     'hierarchy.read',
     'timeline.read',
     'payslips.download',
@@ -906,6 +1016,14 @@ export const SYSTEM_ROLE_MISC_PERMISSIONS: Record<SystemRoleKey, string[]> = {
     'approvals.readOwn',
     'attendance.checkin',
     'attendance.checkout',
+    // Self-service corrections: an employee must be able to see the request
+    // they submitted, otherwise the flow ends with no visible status.
+    'attendance.correction.create',
+    'attendance.correction.readOwn',
+    'attendance.correction.cancel',
+    // Withdrawing a request you submitted is self-service. The service still
+    // enforces that only your own pending requests can be cancelled.
+    'leave-requests.cancel',
     'hierarchy.read',
     'inbox.archive',
     'inbox.dismiss',
@@ -1083,6 +1201,7 @@ export function matrixPrivilegeToPermissionKey(
     'employees:create': 'employees.create',
     'employees:write': 'employees.update',
     'employees:delete': 'employees.terminate',
+    'employees:export': 'employees.export',
     'employee-levels:create': 'employee-levels.manage',
     'employee-levels:write': 'employee-levels.manage',
     'employee-levels:delete': 'employee-levels.manage',

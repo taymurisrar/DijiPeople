@@ -14,6 +14,13 @@ import {
 } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import {
+  assertCsvUpload,
+  parseCsvRows,
+  type CsvImportResult,
+  type CsvImportRowError,
+  type ParsedCsvRow,
+} from '../../common/utils/csv.util';
 import { AppError } from '../../common/errors/app-error';
 import { ENTITY_KEYS, ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import { normalizeEmail } from '../../common/utils/email.util';
@@ -23,7 +30,9 @@ import { hasAnyRole } from '../../common/security/role-matching';
 import { canManageEmployeeAccountActions } from '../../common/security/employee-account-actions';
 import {
   canEditEmployeeCoreProfile,
+  canEditEmployeeRecord,
   ELEVATED_TENANT_ROLE_KEYS,
+  hasElevatedTenantRole,
 } from '../../common/security/elevated-tenant-roles';
 import { UserInvitationsService } from '../auth/user-invitations.service';
 import { OrganizationRepository } from '../organization/organization.repository';
@@ -56,6 +65,13 @@ import {
   EMPLOYEE_RECORD_STATUS,
   EMPLOYEE_RECORD_SUB_STATUS,
 } from './employee-lifecycle.constants';
+
+type UploadedImportFile = {
+  buffer: Buffer;
+  originalname: string;
+  mimetype: string;
+  size?: number;
+};
 
 type CsvFile = {
   filename: string;
@@ -113,6 +129,16 @@ function getUpdateDtoValue<Dto extends object, Key extends keyof Dto, Fallback>(
   fallback: Fallback,
 ) {
   return Object.prototype.hasOwnProperty.call(dto, key) ? dto[key] : fallback;
+}
+
+/** Whether the caller explicitly sent any of these fields in a partial update. */
+function touchesAny<Dto extends object>(
+  dto: Dto,
+  ...keys: Array<keyof Dto>
+): boolean {
+  return keys.some((key) =>
+    Object.prototype.hasOwnProperty.call(dto, key as PropertyKey),
+  );
 }
 
 function employeeValidationError(
@@ -1009,12 +1035,41 @@ export class EmployeesService {
     return this.findById(tenantId, createdEmployeeId);
   }
 
+  /**
+   * Confirms the editor may act on this specific record.
+   *
+   * Editing is limited to the records the user can already see, so a manager
+   * edits their own reporting line while HR and the administrator roles keep
+   * their wider scope.
+   */
+  private async assertEmployeeWriteScope(
+    currentUser: AuthenticatedUser,
+    employeeId: string,
+  ) {
+    if (hasElevatedTenantRole(currentUser)) {
+      return;
+    }
+
+    const visible = await this.employeesRepository.findByIdAndTenant(
+      currentUser.tenantId,
+      employeeId,
+      await this.employeeAccessService.buildReadableEmployeeWhere(currentUser),
+    );
+
+    if (!visible) {
+      throw new ForbiddenException({
+        code: 'ACCESS_DENIED',
+        message: 'You do not have permission to edit this employee record.',
+      });
+    }
+  }
+
   async update(
     currentUser: AuthenticatedUser,
     employeeId: string,
     dto: UpdateEmployeeDto,
   ) {
-    if (!canEditEmployeeCoreProfile(currentUser)) {
+    if (!canEditEmployeeRecord(currentUser)) {
       throw new ForbiddenException({
         code: 'ACCESS_DENIED',
         message: 'You do not have permission to edit this employee record.',
@@ -1022,6 +1077,12 @@ export class EmployeesService {
     }
 
     const tenantId = currentUser.tenantId;
+
+    // The role gate above says the user may edit employees; it does not say
+    // which ones. Without this, any editor role could update every record in
+    // the tenant regardless of business unit or reporting line.
+    await this.assertEmployeeWriteScope(currentUser, employeeId);
+
     const employeeSettings =
       await this.tenantSettingsResolverService.getEmployeeSettings(tenantId);
     const employee = await this.employeesRepository.findByIdAndTenant(
@@ -1529,6 +1590,175 @@ export class EmployeesService {
     }
   }
 
+  /**
+   * Imports employees from a CSV produced by the export template.
+   *
+   * Each row is routed through `create`, so imported records get the same
+   * validation, duplicate rules, employee-code generation and business-unit
+   * defaulting as one created through the UI. Rows are independent: a bad row
+   * is reported with its line number and the rest still import, which is what
+   * makes a partial file usable instead of all-or-nothing.
+   */
+  async importEmployees(
+    currentUser: AuthenticatedUser,
+    file: UploadedImportFile | undefined,
+  ): Promise<CsvImportResult> {
+    let rows: ParsedCsvRow[];
+    try {
+      const validated = assertCsvUpload(file, 'Employee');
+      rows = parseCsvRows(validated.buffer.toString('utf8'), 'Employee');
+    } catch (error) {
+      throw new BadRequestException(
+        error instanceof Error ? error.message : 'Employee import failed.',
+      );
+    }
+
+    const [departments, designations, relationTypes] = await Promise.all([
+      this.organizationRepository.findDepartments(currentUser.tenantId, {}),
+      this.organizationRepository.findDesignations(currentUser.tenantId, {}),
+      // Tenant settings can require an emergency contact relation *type*, which
+      // is a lookup id rather than free text, so names are resolved like
+      // department and designation are.
+      // Relation types ship as a global lookup (tenantId null) that a tenant
+      // may extend with its own, so both scopes are matched.
+      this.prisma.relationType.findMany({
+        where: {
+          OR: [{ tenantId: null }, { tenantId: currentUser.tenantId }],
+        },
+        select: { id: true, name: true },
+      }),
+    ]);
+
+    const departmentByName = new Map(
+      departments.map((item) => [item.name.trim().toLowerCase(), item.id]),
+    );
+    const designationByName = new Map(
+      designations.map((item) => [item.name.trim().toLowerCase(), item.id]),
+    );
+    const relationTypeByName = new Map(
+      relationTypes.map((item) => [item.name.trim().toLowerCase(), item.id]),
+    );
+
+    const errors: CsvImportRowError[] = [];
+    let successCount = 0;
+
+    for (const row of rows) {
+      try {
+        await this.create(
+          currentUser,
+          this.buildImportCreateDto(
+            row,
+            departmentByName,
+            designationByName,
+            relationTypeByName,
+          ),
+        );
+        successCount += 1;
+      } catch (error) {
+        errors.push({
+          row: row.rowNumber,
+          message:
+            error instanceof Error
+              ? error.message
+              : 'Row could not be imported.',
+        });
+      }
+    }
+
+    await this.auditService.log({
+      tenantId: currentUser.tenantId,
+      actorUserId: currentUser.userId,
+      action: 'EMPLOYEES_IMPORTED',
+      entityType: 'Employee',
+      entityId: currentUser.tenantId,
+      beforeSnapshot: null,
+      afterSnapshot: {
+        totalRows: rows.length,
+        successCount,
+        failureCount: errors.length,
+      },
+      sourceModule: 'employees',
+    });
+
+    return {
+      totalRows: rows.length,
+      successCount,
+      failureCount: errors.length,
+      errors,
+    };
+  }
+
+  private buildImportCreateDto(
+    row: ParsedCsvRow,
+    departmentByName: Map<string, string>,
+    designationByName: Map<string, string>,
+    relationTypeByName: Map<string, string>,
+  ): CreateEmployeeDto {
+    const value = (key: string) => row.values[key]?.trim() || undefined;
+
+    const departmentName = value('department');
+    const designationName = value('designation');
+
+    if (departmentName && !departmentByName.has(departmentName.toLowerCase())) {
+      throw new BadRequestException(
+        `Department "${departmentName}" was not found for this tenant.`,
+      );
+    }
+
+    if (
+      designationName &&
+      !designationByName.has(designationName.toLowerCase())
+    ) {
+      throw new BadRequestException(
+        `Designation "${designationName}" was not found for this tenant.`,
+      );
+    }
+
+    const relationTypeName = value('emergencyContactRelationType');
+
+    if (
+      relationTypeName &&
+      !relationTypeByName.has(relationTypeName.toLowerCase())
+    ) {
+      throw new BadRequestException(
+        `Emergency contact relation type "${relationTypeName}" was not found for this tenant.`,
+      );
+    }
+
+    return {
+      firstName: value('firstName') ?? '',
+      middleName: value('middleName'),
+      lastName: value('lastName') ?? '',
+      preferredName: value('preferredName'),
+      workEmail: value('workEmail'),
+      personalEmail: value('personalEmail'),
+      phone: value('phone') ?? '',
+      hireDate: value('hireDate') ?? '',
+      employmentStatus: value('employmentStatus') as never,
+      employeeType: value('employeeType') as never,
+      workMode: value('workMode') as never,
+      contractType: value('contractType') as never,
+      ...(departmentName
+        ? { departmentId: departmentByName.get(departmentName.toLowerCase()) }
+        : {}),
+      ...(designationName
+        ? {
+            designationId: designationByName.get(designationName.toLowerCase()),
+          }
+        : {}),
+      emergencyContactName: value('emergencyContactName'),
+      emergencyContactPhone: value('emergencyContactPhone'),
+      emergencyContactRelation: value('emergencyContactRelation'),
+      ...(relationTypeName
+        ? {
+            emergencyContactRelationTypeId: relationTypeByName.get(
+              relationTypeName.toLowerCase(),
+            ),
+          }
+        : {}),
+    } as CreateEmployeeDto;
+  }
+
   async exportEmployees(
     currentUser: AuthenticatedUser,
     query: EmployeeQueryDto,
@@ -1618,6 +1848,13 @@ export class EmployeesService {
       'designation',
       'reportingManagerEmployeeCode',
       'ownerEmail',
+      // Tenant employee settings can require emergency contact details, and the
+      // create path rejects rows without them. Shipping the columns in the
+      // template means a file filled from it can actually import.
+      'emergencyContactName',
+      'emergencyContactPhone',
+      'emergencyContactRelation',
+      'emergencyContactRelationType',
     ];
 
     return {
@@ -2504,12 +2741,29 @@ export class EmployeesService {
         ? EmployeeEmploymentStatus.ACTIVE
         : employee.employmentStatus);
 
-    if (settings.requirePersonalEmail && !nextPersonalEmail?.trim()) {
+    // A mandatory-field rule is enforced only on the fields this request
+    // actually sends. Records that predate a rule, or arrived incomplete
+    // through an import, stay editable: changing an unrelated field must not
+    // demand data the caller never touched. Clearing a required field is still
+    // rejected, so the rule holds for everything going forward.
+    if (
+      settings.requirePersonalEmail &&
+      !nextPersonalEmail?.trim() &&
+      touchesAny(dto, 'personalEmail')
+    ) {
       throw new BadRequestException(
         'Personal email is required by tenant employee settings.',
       );
     }
-    if (settings.requireEmergencyContact) {
+    if (
+      settings.requireEmergencyContact &&
+      touchesAny(
+        dto,
+        'emergencyContactName',
+        'emergencyContactRelationTypeId',
+        'emergencyContactPhone',
+      )
+    ) {
       const fieldErrors = emergencyContactFieldErrors({
         emergencyContactName: nextEmergencyContactName,
         emergencyContactRelationTypeId: nextEmergencyContactRelationTypeId,
@@ -2522,17 +2776,29 @@ export class EmployeesService {
         );
       }
     }
-    if (settings.requireDepartment && !nextDepartmentId) {
+    if (
+      settings.requireDepartment &&
+      !nextDepartmentId &&
+      touchesAny(dto, 'departmentId')
+    ) {
       throw new BadRequestException(
         'Department is required by tenant employee settings.',
       );
     }
-    if (settings.requireDesignation && !nextDesignationId) {
+    if (
+      settings.requireDesignation &&
+      !nextDesignationId &&
+      touchesAny(dto, 'designationId')
+    ) {
       throw new BadRequestException(
         'Designation is required by tenant employee settings.',
       );
     }
-    if (settings.requireJoiningDate && !nextHireDate) {
+    if (
+      settings.requireJoiningDate &&
+      !nextHireDate &&
+      touchesAny(dto, 'hireDate')
+    ) {
       throw new BadRequestException(
         'Joining date is required by tenant employee settings.',
       );
@@ -2540,13 +2806,18 @@ export class EmployeesService {
     if (
       (settings.requireReportingManager ||
         !settings.allowEmployeeWithoutManager) &&
-      !nextManagerId
+      !nextManagerId &&
+      touchesAny(dto, 'reportingManagerEmployeeId')
     ) {
       throw new BadRequestException(
         'Reporting manager is required by tenant employee settings.',
       );
     }
-    if (settings.requireWorkLocation && !nextLocationId) {
+    if (
+      settings.requireWorkLocation &&
+      !nextLocationId &&
+      touchesAny(dto, 'locationId')
+    ) {
       throw new BadRequestException(
         'Work location is required by tenant employee settings.',
       );

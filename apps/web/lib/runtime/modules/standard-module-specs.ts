@@ -1196,6 +1196,17 @@ export const leaveRuntimeSpec: StandardModuleRuntimeSpec = {
         },
       },
     },
+    // Same generic documents widget the Employee and Project forms use, so
+    // supporting evidence (medical certificates, approvals) lives with the
+    // request instead of needing a leave-specific attachment feature.
+    {
+      id: "system.documents",
+      widgetType: "documents",
+      label: "Documents",
+      tabKey: "documents",
+      order: 40,
+      columnSpan: 1,
+    },
   ],
   widgetTabLabel: "Leave Tracker",
 };
@@ -1516,6 +1527,18 @@ export const attendanceRuntimeSpec: StandardModuleRuntimeSpec = {
       ["checked-in", "blocked", "completed"],
     ),
     attendanceCorrectionCommand(),
+  ],
+  widgets: [
+    // Attendance evidence (correction proof, timesheets, travel records) uses
+    // the same generic documents widget as every other module.
+    {
+      id: "system.documents",
+      widgetType: "documents",
+      label: "Documents",
+      tabKey: "documents",
+      order: 40,
+      columnSpan: 1,
+    },
   ],
 };
 

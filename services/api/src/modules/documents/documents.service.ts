@@ -1,11 +1,14 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { DocumentEntityType, Prisma } from '@prisma/client';
+import { DocumentEntityType, Prisma, SecurityPrivilege } from '@prisma/client';
 import { extname } from 'path';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
+import { buildScopedAccessWhere } from '../../common/security/rbac-query-scope';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { StorageService } from '../../common/storage/storage.service';
 import { AuditService } from '../audit/audit.service';
@@ -77,17 +80,96 @@ export class DocumentsService {
   }
 
   async findByEntity(
-    tenantId: string,
+    currentUser: AuthenticatedUser,
     entityType: DocumentEntityType,
     entityId: string,
   ) {
+    const tenantId = currentUser.tenantId;
+
     await this.assertValidLinkedEntity(tenantId, entityType, entityId);
+    await this.assertEntityReadAccess(currentUser, entityType, entityId);
+
     const items = await this.documentsRepository.findByEntity(
       tenantId,
       entityType,
       entityId,
     );
     return items.map((item) => this.mapDocument(item));
+  }
+
+  /**
+   * Ensures the caller may see the record the documents hang off.
+   *
+   * The `documents.read` permission alone is not sufficient: it says a user may
+   * read documents, not whose. Without this, any holder of that permission
+   * could list documents for any employee, leave request or attendance entry in
+   * the tenant — including records they are explicitly denied. Access is decided
+   * by the owning employee, using the same scoping employee reads apply.
+   */
+  private async assertEntityReadAccess(
+    currentUser: AuthenticatedUser,
+    entityType: DocumentEntityType,
+    entityId: string,
+  ) {
+    const employeeId = await this.resolveOwningEmployeeId(
+      currentUser.tenantId,
+      entityType,
+      entityId,
+    );
+
+    if (!employeeId) {
+      // Entity types not tied to an employee (tenant, invoice, policy) keep
+      // relying on the permission check alone.
+      return;
+    }
+
+    const visible = await this.prisma.employee.findFirst({
+      where: {
+        AND: [
+          { id: employeeId, tenantId: currentUser.tenantId, isDeleted: false },
+          buildScopedAccessWhere<Prisma.EmployeeWhereInput>(
+            currentUser,
+            ENTITY_KEYS.EMPLOYEES,
+            SecurityPrivilege.READ,
+            { organizationIdField: null, userIdField: 'userId' },
+          ),
+        ],
+      },
+      select: { id: true },
+    });
+
+    if (!visible) {
+      throw new ForbiddenException(
+        'You do not have access to documents for this record.',
+      );
+    }
+  }
+
+  private async resolveOwningEmployeeId(
+    tenantId: string,
+    entityType: DocumentEntityType,
+    entityId: string,
+  ): Promise<string | null> {
+    switch (entityType) {
+      case DocumentEntityType.EMPLOYEE:
+        return entityId;
+      case DocumentEntityType.LEAVE_REQUEST: {
+        const leaveRequest = await this.prisma.leaveRequest.findFirst({
+          where: { tenantId, id: entityId },
+          select: { employeeId: true },
+        });
+        return leaveRequest?.employeeId ?? null;
+      }
+      case DocumentEntityType.ATTENDANCE: {
+        const attendance = await this.prisma.attendanceEntry.findFirst({
+          where: { tenantId, id: entityId },
+          select: { employeeId: true },
+        });
+        return attendance?.employeeId ?? null;
+      }
+      default:
+        return null;
+    }
   }
 
   async findById(tenantId: string, documentId: string) {
@@ -725,6 +807,18 @@ export class DocumentsService {
         if (!invoice) {
           throw new BadRequestException(
             'Selected invoice does not belong to this tenant.',
+          );
+        }
+        return;
+      }
+      case DocumentEntityType.ATTENDANCE: {
+        const attendance = await this.prisma.attendanceEntry.findFirst({
+          where: { tenantId, id: entityId },
+          select: { id: true },
+        });
+        if (!attendance) {
+          throw new BadRequestException(
+            'Selected attendance record does not belong to this tenant.',
           );
         }
         return;

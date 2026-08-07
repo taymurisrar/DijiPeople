@@ -25,6 +25,9 @@ import {
 
 type BrandingSettingsFormProps = {
   initialValues: BrandingSettings;
+  /** When set, saves write overrides for that organization instead of the tenant. */
+  organizationId?: string | null;
+  organizationName?: string | null;
 };
 
 type ToastState = {
@@ -84,6 +87,8 @@ const TEXT_FIELD_LABELS: Partial<Record<BrandingTextKey, string>> = {
 
 export function BrandingSettingsForm({
   initialValues,
+  organizationId = null,
+  organizationName = null,
 }: BrandingSettingsFormProps) {
   const router = useRouter();
   const { setBrandingDraft, updatePublicSettings } = useTenantSettings();
@@ -266,7 +271,11 @@ export function BrandingSettingsForm({
         ],
       };
 
-      const response = await fetch("/api/tenant-settings", {
+      const endpoint = organizationId
+        ? `/api/tenant-settings/organizations/${encodeURIComponent(organizationId)}/settings`
+        : "/api/tenant-settings";
+
+      const response = await fetch(endpoint, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -295,11 +304,18 @@ export function BrandingSettingsForm({
 
       setSavedBranding(persisted);
       setDraftBranding(persisted);
-      updatePublicSettings(persisted);
+      // Only reflect the change in this session's chrome when editing the
+      // tenant defaults. Editing another organization's branding must not
+      // repaint the administrator's own UI with that organization's colours.
+      if (!organizationId) {
+        updatePublicSettings(persisted);
+      }
       clearFileDrafts();
       setToast({
         title: "Branding updated",
-        description: "Changes were saved and applied successfully.",
+        description: organizationName
+          ? `Changes were saved for ${organizationName}.`
+          : "Changes were saved and applied successfully.",
         variant: "success",
       });
       router.refresh();

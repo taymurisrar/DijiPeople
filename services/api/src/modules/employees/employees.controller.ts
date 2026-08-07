@@ -140,6 +140,17 @@ export class EmployeesController {
     return new StreamableFile(file.buffer);
   }
 
+  @Post('import')
+  @Permissions('employees.create')
+  @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'create')
+  @UseInterceptors(FileInterceptor('file'))
+  async importEmployees(
+    @CurrentUser() user: AuthenticatedUser,
+    @UploadedFile() file: UploadedFile | undefined,
+  ) {
+    return this.employeesService.importEmployees(user, file);
+  }
+
   @Get('export-template')
   @Permissions('employees.export')
   @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')

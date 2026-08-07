@@ -57,31 +57,48 @@ CREATE TYPE "SupportCaseChannel" AS ENUM ('WEB', 'EMAIL', 'PHONE', 'CHAT', 'MONI
 -- the enum.
 
 
-ALTER TYPE "PartnerStatus" ADD VALUE 'NEW_INQUIRY';
+-- PartnerType is created by that same later migration and is referenced below.
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'PartnerType') THEN
+    CREATE TYPE "PartnerType" AS ENUM ('INDIVIDUAL', 'COMPANY');
+  END IF;
+END $$;
 
-ALTER TYPE "PartnerStatus" ADD VALUE 'QUALIFIED';
+-- PartnerStatus is created by a later-timestamped migration, so on a fresh
+-- database it does not exist yet and every ALTER below failed. Create it here
+-- if absent; on databases where the later migration already ran, this is a
+-- no-op and the enum keeps its existing definition.
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'PartnerStatus') THEN
+    CREATE TYPE "PartnerStatus" AS ENUM ('DRAFT', 'ACTIVE', 'SUSPENDED', 'TERMINATED');
+  END IF;
+END $$;
 
-ALTER TYPE "PartnerStatus" ADD VALUE 'ONBOARDING_INVITED';
+ALTER TYPE "PartnerStatus" ADD VALUE IF NOT EXISTS 'NEW_INQUIRY';
 
-ALTER TYPE "PartnerStatus" ADD VALUE 'ONBOARDING_IN_PROGRESS';
+ALTER TYPE "PartnerStatus" ADD VALUE IF NOT EXISTS 'QUALIFIED';
 
-ALTER TYPE "PartnerStatus" ADD VALUE 'SUBMITTED';
+ALTER TYPE "PartnerStatus" ADD VALUE IF NOT EXISTS 'ONBOARDING_INVITED';
 
-ALTER TYPE "PartnerStatus" ADD VALUE 'UNDER_REVIEW';
+ALTER TYPE "PartnerStatus" ADD VALUE IF NOT EXISTS 'ONBOARDING_IN_PROGRESS';
 
-ALTER TYPE "PartnerStatus" ADD VALUE 'INFORMATION_APPROVED';
+ALTER TYPE "PartnerStatus" ADD VALUE IF NOT EXISTS 'SUBMITTED';
 
-ALTER TYPE "PartnerStatus" ADD VALUE 'AGREEMENT_DRAFTING';
+ALTER TYPE "PartnerStatus" ADD VALUE IF NOT EXISTS 'UNDER_REVIEW';
 
-ALTER TYPE "PartnerStatus" ADD VALUE 'INTERNAL_APPROVAL';
+ALTER TYPE "PartnerStatus" ADD VALUE IF NOT EXISTS 'INFORMATION_APPROVED';
 
-ALTER TYPE "PartnerStatus" ADD VALUE 'AWAITING_SIGNATURE';
+ALTER TYPE "PartnerStatus" ADD VALUE IF NOT EXISTS 'AGREEMENT_DRAFTING';
 
-ALTER TYPE "PartnerStatus" ADD VALUE 'FULLY_SIGNED';
+ALTER TYPE "PartnerStatus" ADD VALUE IF NOT EXISTS 'INTERNAL_APPROVAL';
 
-ALTER TYPE "PartnerStatus" ADD VALUE 'APPROVED_FOR_ACTIVATION';
+ALTER TYPE "PartnerStatus" ADD VALUE IF NOT EXISTS 'AWAITING_SIGNATURE';
 
-ALTER TYPE "PartnerStatus" ADD VALUE 'REJECTED';
+ALTER TYPE "PartnerStatus" ADD VALUE IF NOT EXISTS 'FULLY_SIGNED';
+
+ALTER TYPE "PartnerStatus" ADD VALUE IF NOT EXISTS 'APPROVED_FOR_ACTIVATION';
+
+ALTER TYPE "PartnerStatus" ADD VALUE IF NOT EXISTS 'REJECTED';
 
 -- CreateTable
 CREATE TABLE "ContractTemplate" (

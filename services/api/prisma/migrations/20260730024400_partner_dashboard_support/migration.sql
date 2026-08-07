@@ -1,5 +1,16 @@
-CREATE TYPE "PartnerType" AS ENUM ('INDIVIDUAL', 'COMPANY');
-CREATE TYPE "PartnerStatus" AS ENUM ('DRAFT', 'ACTIVE', 'SUSPENDED', 'TERMINATED');
+-- Guarded: created earlier when missing, so it may already exist here.
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'PartnerType') THEN
+    CREATE TYPE "PartnerType" AS ENUM ('INDIVIDUAL', 'COMPANY');
+  END IF;
+END $$;
+-- Guarded: an earlier-timestamped migration now creates this type when missing,
+-- so on a fresh database it already exists by the time this migration runs.
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'PartnerStatus') THEN
+    CREATE TYPE "PartnerStatus" AS ENUM ('DRAFT', 'ACTIVE', 'SUSPENDED', 'TERMINATED');
+  END IF;
+END $$;
 CREATE TYPE "PartnerContractStatus" AS ENUM ('DRAFT', 'SENT', 'VIEWED', 'SIGNED', 'DECLINED', 'EXPIRED', 'TERMINATED');
 CREATE TYPE "PartnerESignProvider" AS ENUM ('MANUAL', 'DOCUSIGN', 'ADOBE_SIGN', 'DROPBOX_SIGN', 'OTHER');
 CREATE TYPE "PartnerCommissionStatus" AS ENUM ('PENDING', 'APPROVED', 'PAYABLE', 'PAID', 'VOID');

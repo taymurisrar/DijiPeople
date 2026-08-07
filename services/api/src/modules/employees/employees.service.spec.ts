@@ -209,7 +209,7 @@ describe('EmployeesService', () => {
           permissionKeys: ['employees.update'],
         },
         'employee-1',
-        {},
+        { emergencyContactName: '' },
       ),
     ).rejects.toMatchObject({
       errorCode: 'VALIDATION_FAILED',
@@ -230,6 +230,33 @@ describe('EmployeesService', () => {
         ],
       },
     });
+  });
+
+  it('allows an unrelated edit on a record that predates a mandatory-field rule', async () => {
+    // The record has no emergency contact, and the caller is not touching it.
+    // Enforcing the rule here would make legacy records permanently uneditable.
+    const error = await service
+      .update(
+        {
+          tenantId: 'tenant-1',
+          userId: 'actor-1',
+          email: 'hr@example.com',
+          firstName: 'HR',
+          lastName: 'Admin',
+          roleIds: ['role-1'],
+          roleKeys: ['system-admin'],
+          permissionKeys: ['employees.update'],
+        },
+        'employee-1',
+        { preferredName: 'Ada' },
+      )
+      .catch((thrown: unknown) => thrown);
+
+    // It may still fail further down on unmocked persistence; what matters is
+    // that it is no longer blocked by a rule the caller never touched.
+    const message =
+      error instanceof Error ? error.message : String(error ?? '');
+    expect(message).not.toContain('Emergency contact');
   });
 
   it('requires a work email before sending an employee invitation', async () => {

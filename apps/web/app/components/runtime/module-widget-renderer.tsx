@@ -2657,14 +2657,53 @@ function readLookupOptions(value: unknown): SharedLookupOption[] {
   });
 }
 
+/**
+ * DocumentEntityType values accepted by the documents API. The API validates
+ * this with a ParseEnumPipe, so anything not in this set is rejected outright.
+ */
+const DOCUMENT_ENTITY_TYPES = new Set([
+  "EMPLOYEE",
+  "PROJECT",
+  "LEAVE_REQUEST",
+  "ATTENDANCE",
+  "PAYROLL_RECORD",
+  "PAYSLIP",
+  "PAYROLL_BANK_EXPORT",
+  "CANDIDATE",
+  "ONBOARDING_RECORD",
+  "TENANT",
+  "INVOICE",
+  "POLICY",
+  "OTHER",
+]);
+
+/**
+ * Maps a module onto the entity type its documents are linked by.
+ *
+ * Modules whose entity name does not match the enum need an explicit case:
+ * leaves resolve to leaveRequest and attendance to attendanceEntry, which would
+ * otherwise be upper-cased into LEAVEREQUEST and ATTENDANCEENTRY and rejected.
+ * The fallback is validated for the same reason rather than trusted blindly.
+ */
 function documentEntityTypeForRuntime(runtime?: ModuleRuntimeContext) {
   switch (runtime?.module.key) {
     case "projects":
       return "PROJECT";
     case "employees":
       return "EMPLOYEE";
-    default:
-      return runtime?.metadata.entity.logicalName.toUpperCase();
+    case "leaves":
+      return "LEAVE_REQUEST";
+    case "attendance":
+      return "ATTENDANCE";
+    case "recruitmentCandidates":
+    case "recruitmentTalentPool":
+      return "CANDIDATE";
+    case "onboarding":
+      return "ONBOARDING_RECORD";
+    default: {
+      const derived = runtime?.metadata.entity.logicalName.toUpperCase();
+      return derived && DOCUMENT_ENTITY_TYPES.has(derived) ? derived : undefined;
+    }
   }
 }
 

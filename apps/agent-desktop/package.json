@@ -13,7 +13,7 @@
     "copy:renderer": "node scripts/copy-renderer.mjs",
     "clean": "node -e \"const fs=require('fs'); fs.rmSync('dist',{recursive:true,force:true}); fs.rmSync('src/renderer/login.js',{force:true}); fs.rmSync('src/renderer/device-permissions.js',{force:true}); fs.rmSync('src/renderer/location-request.js',{force:true});\"",
     "start": "dotenv -e .env -- electron .",
-    "clean:release": "node -e \"const fs=require('fs'); fs.rmSync('release',{recursive:true,force:true,maxRetries:5,retryDelay:300});\"",
+    "clean:release": "node scripts/clean-release.mjs",
     "dist:win": "npm run clean:release && dotenv -e .env -- npm run build && dotenv -e .env -- electron-builder --win nsis",
     "check-types": "tsc --noEmit"
   },

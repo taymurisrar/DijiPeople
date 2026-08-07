@@ -6,8 +6,12 @@ import {
   ParseUUIDPipe,
   Post,
   Query,
+  Res,
+  StreamableFile,
   UseGuards,
 } from '@nestjs/common';
+import type { Response } from 'express';
+import { setCsvDownloadHeaders } from '../../common/utils/csv-response.util';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Permissions } from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -40,6 +44,27 @@ export class LeaveRequestsController {
     @Body() dto: SubmitLeaveRequestDto,
   ) {
     return this.leaveService.submitLeaveRequest(user, dto);
+  }
+
+  // Declared before ':id'-style routes so "export" is not captured as an id.
+  @Get('export')
+  @Permissions('leave-requests.read')
+  async exportLeaveRequests(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: LeaveRequestQueryDto,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const file = await this.leaveService.exportLeaveRequests(user, query);
+    setCsvDownloadHeaders(response, file.filename);
+    return new StreamableFile(file.buffer);
+  }
+
+  @Get('export-template')
+  @Permissions('leave-requests.read')
+  exportTemplate(@Res({ passthrough: true }) response: Response) {
+    const file = this.leaveService.exportLeaveRequestTemplate();
+    setCsvDownloadHeaders(response, file.filename);
+    return new StreamableFile(file.buffer);
   }
 
   @Get('mine')

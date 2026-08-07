@@ -152,6 +152,7 @@ enum DocumentEntityType {
   EMPLOYEE
   PROJECT
   LEAVE_REQUEST
+  ATTENDANCE
   PAYROLL_RECORD
   PAYSLIP
   PAYROLL_BANK_EXPORT
@@ -1972,6 +1973,11 @@ model Tenant {
   documents                       Document[]
   documentLinks                   DocumentLink[]
   tenantSettings                  TenantSetting[]
+  organizationSettings            OrganizationSetting[]
+  dataJobs                        DataJob[]
+  dataJobRows                     DataJobRow[]
+  dataJobBatches                  DataJobBatch[]
+  dataMappingProfiles             DataMappingProfile[]
   fieldSecurityPolicies           FieldSecurityPolicy[]
   fieldSecurityRules              FieldSecurityRule[]
   fieldSecurityPolicyRoles        FieldSecurityPolicyRole[]
@@ -3459,6 +3465,7 @@ model User {
   lockedProcessingCycles         ProcessingCycle[]             @relation("ProcessingCycleLocker")
   assignedOnboardingTasks        OnboardingTask[]              @relation("OnboardingTaskAssignee")
   uploadedDocuments              Document[]                    @relation("UploadedDocuments")
+  submittedDataJobs              DataJob[]                     @relation("DataJobSubmittedBy")
   ownedTeams                     Team[]                        @relation("OwnedTeams")
   approvedEmployeeCompensations  EmployeeCompensationHistory[] @relation("EmployeeCompensationApprovedBy")
   auditLogs                      AuditLog[]                    @relation("AuditLogActor")
@@ -3561,6 +3568,7 @@ model Organization {
   approvalMatrices           ApprovalMatrix[]
   benefitPolicies            BenefitPolicy[]
   salaryPackageRules         SalaryPackageRule[]
+  settings                   OrganizationSetting[]
 
   @@unique([id, tenantId])
   @@unique([tenantId, code])
@@ -6393,6 +6401,37 @@ model TenantSetting {
   @@unique([tenantId, category, key])
   @@index([tenantId])
   @@index([tenantId, category])
+}
+
+/// Organization-scoped overrides for tenant settings.
+///
+/// Mirrors TenantSetting but is keyed by organization, so one tenant can run
+/// several organizations with their own branding. Resolution merges key by key:
+/// a tenant row supplies the value unless the organization overrides that exact
+/// key, which matches how the resolver already falls back to built-in defaults.
+///
+/// This is a separate table rather than a nullable organizationId on
+/// TenantSetting because Postgres treats NULLs as distinct in unique indexes,
+/// so a nullable scope column would silently allow duplicate tenant-level rows
+/// and break the upsert path every settings category depends on.
+model OrganizationSetting {
+  id             String   @id @default(uuid())
+  tenantId       String
+  organizationId String
+  category       String
+  key            String
+  value          Json
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  createdById    String?
+  updatedById    String?
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId, tenantId], references: [id, tenantId], onDelete: Cascade)
+
+  @@unique([tenantId, organizationId, category, key])
+  @@index([tenantId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, organizationId, category])
 }
 
 model FieldSecurityPolicy {
@@ -9912,4 +9951,172 @@ model CustomizationPublishSnapshot {
   @@unique([tenantId, version])
   @@index([tenantId, status])
   @@index([tenantId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Data Management: tenant-scoped import and export jobs.
+//
+// Jobs are persisted rather than held in memory so progress survives a restart
+// and can be reported to the UI, and so an in-process worker can pick up work
+// in chunks. This mirrors TimesheetJobExecution, which is the established
+// background-job pattern in this codebase.
+//
+// Workbook binaries are never stored here: only a storage key produced by
+// StorageService, matching how documents are handled.
+// ---------------------------------------------------------------------------
+
+enum DataJobKind {
+  IMPORT
+  EXPORT
+}
+
+enum DataJobStatus {
+  UPLOADED
+  ANALYSING
+  VALIDATION_FAILED
+  READY
+  QUEUED
+  PROCESSING
+  PARTIALLY_COMPLETED
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum DataImportMode {
+  CREATE_ONLY
+  UPDATE_ONLY
+  CREATE_OR_UPDATE
+  VALIDATE_ONLY
+}
+
+enum DataRowStatus {
+  PENDING
+  VALID
+  INVALID
+  CREATED
+  UPDATED
+  SKIPPED
+  FAILED
+}
+
+enum DataIssueSeverity {
+  ERROR
+  WARNING
+  INFO
+}
+
+/// One import or export run for a single module.
+model DataJob {
+  id             String          @id @default(uuid())
+  tenantId       String
+  kind           DataJobKind
+  moduleKey      String
+  status         DataJobStatus   @default(UPLOADED)
+  importMode     DataImportMode?
+  /// Blocks accidental duplicate submissions of the same upload.
+  idempotencyKey String
+  name           String?
+  fileName       String?
+  /// StorageService key for the uploaded workbook; never the binary itself.
+  sourceFileKey  String?
+  resultFileKey  String?
+  errorFileKey   String?
+  sheetName      String?
+  /// Column mapping and cleansing rules actually used, retained for audit.
+  mappingJson    Json?
+  cleansingJson  Json?
+  optionsJson    Json?
+  matchingKey    String?
+  totalRows      Int             @default(0)
+  validRows      Int             @default(0)
+  createdRows    Int             @default(0)
+  updatedRows    Int             @default(0)
+  skippedRows    Int             @default(0)
+  failedRows     Int             @default(0)
+  processedRows  Int             @default(0)
+  batchSize      Int             @default(500)
+  retryCount     Int             @default(0)
+  progressPercent Int            @default(0)
+  failureReason  String?
+  cancelledAt    DateTime?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  submittedByUserId String?
+  tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  submittedByUser User?          @relation("DataJobSubmittedBy", fields: [submittedByUserId], references: [id], onDelete: SetNull)
+  rows           DataJobRow[]
+  batches        DataJobBatch[]
+
+  @@unique([tenantId, kind, idempotencyKey])
+  @@index([tenantId, kind, status, createdAt])
+  @@index([tenantId, moduleKey, createdAt])
+  @@index([tenantId, submittedByUserId])
+}
+
+/// Per-row outcome, so errors can be reported and an error file rebuilt.
+model DataJobRow {
+  id            String        @id @default(uuid())
+  tenantId      String
+  jobId         String
+  rowNumber     Int
+  status        DataRowStatus @default(PENDING)
+  /// Raw source values keyed by source column.
+  sourceJson    Json?
+  /// Values after mapping and cleansing.
+  mappedJson    Json?
+  /// Identifier of the record created or updated, for traceability.
+  recordId      String?
+  issuesJson    Json?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  job           DataJob       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, rowNumber])
+  @@index([tenantId, jobId, status])
+}
+
+/// Chunk of rows processed as one transaction, enabling resume and retry.
+model DataJobBatch {
+  id            String        @id @default(uuid())
+  tenantId      String
+  jobId         String
+  sequence      Int
+  startRow      Int
+  endRow        Int
+  status        DataJobStatus @default(QUEUED)
+  attempts      Int           @default(0)
+  failureReason String?
+  startedAt     DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  job           DataJob       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, sequence])
+  @@index([tenantId, jobId, status])
+}
+
+/// Reusable column mapping and cleansing profile per tenant and module.
+model DataMappingProfile {
+  id            String   @id @default(uuid())
+  tenantId      String
+  moduleKey     String
+  name          String
+  description   String?
+  mappingJson   Json
+  cleansingJson Json?
+  isDefault     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  createdById   String?
+  updatedById   String?
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, moduleKey, name])
+  @@index([tenantId, moduleKey])
 }

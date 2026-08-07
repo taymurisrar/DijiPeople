@@ -43,6 +43,9 @@ const NAV_PERMISSION_KEYS = {
 
   PERMISSIONS_READ: "permissions.read",
 
+  DATA_MANAGEMENT_VIEW: "data-management.view",
+  DATA_MANAGEMENT_TEMPLATE_DOWNLOAD: "data-management.template.download",
+
   DOCUMENTS_READ: "documents.read",
 
   EMPLOYMENT_TYPES_READ: "employment-types.read",
@@ -952,6 +955,39 @@ export const settingsNavGroups = [
           PERMISSION_KEYS.AUDIT_VIEW,
           NAV_PERMISSION_KEYS.SETTINGS_READ,
         ],
+      },
+    ],
+  },
+  {
+    key: "data-management",
+    label: "Data Management",
+    summary:
+      "Import and export module data, download templates, and review import history.",
+    icon: "database",
+    items: [
+      {
+        key: "data-management",
+        href: "/settings/data-management",
+        label: "Import & Export",
+        shortLabel: "Data",
+        description:
+          "Download import templates, import records in bulk, export module data, and review past jobs.",
+        icon: "database",
+        badge: "New",
+        keywords: [
+          "import",
+          "export",
+          "data",
+          "template",
+          "migration",
+          "bulk",
+          "excel",
+          "csv",
+        ],
+        // Gated on the dedicated permission rather than settings.read, so a
+        // user who can read settings does not automatically get bulk data
+        // tooling.
+        requiredAnyPermissions: [NAV_PERMISSION_KEYS.DATA_MANAGEMENT_VIEW],
       },
     ],
   },

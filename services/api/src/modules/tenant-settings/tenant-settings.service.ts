@@ -126,7 +126,12 @@ export class TenantSettingsService {
     };
   }
 
-  async getResolvedSettings(tenantId: string) {
+  /**
+   * `organizationId` layers that organization's overrides on top of the tenant
+   * values. Callers pass the signed-in user's organization so a tenant running
+   * several organizations serves each its own branding.
+   */
+  async getResolvedSettings(tenantId: string, organizationId?: string) {
     const [
       organization,
       employee,
@@ -140,17 +145,50 @@ export class TenantSettingsService {
       security,
       system,
     ] = await Promise.all([
-      this.tenantSettingsResolverService.getOrganizationSettings(tenantId),
-      this.tenantSettingsResolverService.getEmployeeSettings(tenantId),
-      this.tenantSettingsResolverService.getAttendanceSettings(tenantId),
-      this.tenantSettingsResolverService.getTimesheetSettings(tenantId),
-      this.tenantSettingsResolverService.getPayrollSettings(tenantId),
-      this.tenantSettingsResolverService.getRecruitmentSettings(tenantId),
-      this.tenantSettingsResolverService.getDocumentSettings(tenantId),
-      this.tenantSettingsResolverService.getNotificationSettings(tenantId),
-      this.tenantSettingsResolverService.getBrandingSettings(tenantId),
-      this.tenantSettingsResolverService.getSecuritySettings(tenantId),
-      this.tenantSettingsResolverService.getSystemSettings(tenantId),
+      this.tenantSettingsResolverService.getOrganizationSettings(
+        tenantId,
+        organizationId,
+      ),
+      this.tenantSettingsResolverService.getEmployeeSettings(
+        tenantId,
+        organizationId,
+      ),
+      this.tenantSettingsResolverService.getAttendanceSettings(
+        tenantId,
+        organizationId,
+      ),
+      this.tenantSettingsResolverService.getTimesheetSettings(
+        tenantId,
+        organizationId,
+      ),
+      this.tenantSettingsResolverService.getPayrollSettings(
+        tenantId,
+        organizationId,
+      ),
+      this.tenantSettingsResolverService.getRecruitmentSettings(
+        tenantId,
+        organizationId,
+      ),
+      this.tenantSettingsResolverService.getDocumentSettings(
+        tenantId,
+        organizationId,
+      ),
+      this.tenantSettingsResolverService.getNotificationSettings(
+        tenantId,
+        organizationId,
+      ),
+      this.tenantSettingsResolverService.getBrandingSettings(
+        tenantId,
+        organizationId,
+      ),
+      this.tenantSettingsResolverService.getSecuritySettings(
+        tenantId,
+        organizationId,
+      ),
+      this.tenantSettingsResolverService.getSystemSettings(
+        tenantId,
+        organizationId,
+      ),
     ]);
 
     return {
@@ -165,6 +203,7 @@ export class TenantSettingsService {
       branding,
       security,
       system,
+      activeOrganizationId: organizationId ?? null,
     };
   }
 
@@ -245,6 +284,139 @@ export class TenantSettingsService {
     });
 
     return afterSettings;
+  }
+
+  /**
+   * Categories an organization may override. Branding carries colours, fonts,
+   * density and layout, so this covers both branding and appearance. The store
+   * itself is category-agnostic, so widening this list is the only change
+   * needed to scope more categories later.
+   */
+  private static readonly ORGANIZATION_SCOPED_CATEGORIES = new Set([
+    'branding',
+  ]);
+
+  getBrandableOrganizations(tenantId: string) {
+    return this.tenantSettingsRepository.findOrganizationsByTenant(tenantId);
+  }
+
+  async assertOrganizationInTenant(tenantId: string, organizationId: string) {
+    const organization =
+      await this.tenantSettingsRepository.findOrganizationById(
+        tenantId,
+        organizationId,
+      );
+
+    if (!organization) {
+      throw new BadRequestException(
+        'Selected organization does not belong to this tenant.',
+      );
+    }
+
+    return organization.id;
+  }
+
+  /** Returns only the keys this organization overrides, not the merged view. */
+  async getOrganizationSettingOverrides(
+    tenantId: string,
+    organizationId: string,
+  ) {
+    await this.assertOrganizationInTenant(tenantId, organizationId);
+
+    const rows = await this.tenantSettingsRepository.findSettingsByOrganization(
+      tenantId,
+      organizationId,
+    );
+
+    const overrides: Record<string, Record<string, unknown>> = {};
+    for (const row of rows) {
+      overrides[row.category] ??= {};
+      overrides[row.category][row.key] = row.value;
+    }
+
+    return { organizationId, overrides };
+  }
+
+  async updateOrganizationSettings(
+    currentUser: AuthenticatedUser,
+    organizationId: string,
+    dto: UpdateTenantSettingsDto,
+  ) {
+    if (!dto?.updates?.length) {
+      throw new BadRequestException(
+        'No organization setting updates were provided.',
+      );
+    }
+
+    await this.assertOrganizationInTenant(currentUser.tenantId, organizationId);
+
+    const unsupported = dto.updates.find(
+      (update) =>
+        !TenantSettingsService.ORGANIZATION_SCOPED_CATEGORIES.has(
+          update.category,
+        ),
+    );
+
+    if (unsupported) {
+      throw new BadRequestException(
+        `Settings in "${unsupported.category}" cannot be scoped to an organization.`,
+      );
+    }
+
+    const allowedKeysByCategory =
+      this.tenantSettingsResolverService.getAllowedKeysByCategory();
+    const normalizedUpdates = this.normalizeSettingUpdates(
+      currentUser,
+      dto,
+      allowedKeysByCategory,
+    );
+
+    // A blank value clears the override so the tenant value applies again,
+    // which is how an organization returns to inheriting.
+    const cleared = normalizedUpdates.filter(
+      (update) =>
+        update.value === null ||
+        update.value === Prisma.JsonNull ||
+        (typeof update.value === 'string' && update.value.trim() === ''),
+    );
+    const applied = normalizedUpdates.filter(
+      (update) => !cleared.includes(update),
+    );
+
+    await this.tenantSettingsRepository.upsertOrganizationSettings(
+      currentUser.tenantId,
+      organizationId,
+      applied,
+    );
+    await this.tenantSettingsRepository.deleteOrganizationSettings(
+      currentUser.tenantId,
+      organizationId,
+      cleared.map(({ category, key }) => ({ category, key })),
+    );
+
+    this.tenantSettingsResolverService.invalidateTenantCache(
+      currentUser.tenantId,
+    );
+
+    await this.auditService.log({
+      tenantId: currentUser.tenantId,
+      actorUserId: currentUser.userId,
+      action: 'ORGANIZATION_SETTINGS_UPDATED',
+      entityType: 'OrganizationSetting',
+      entityId: organizationId,
+      beforeSnapshot: null,
+      afterSnapshot: {
+        organizationId,
+        applied: applied.map(({ category, key }) => `${category}.${key}`),
+        cleared: cleared.map(({ category, key }) => `${category}.${key}`),
+      },
+      sourceModule: 'tenant-settings',
+    });
+
+    return this.getOrganizationSettingOverrides(
+      currentUser.tenantId,
+      organizationId,
+    );
   }
 
   async updateTenantSettingsCategory(

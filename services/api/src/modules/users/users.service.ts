@@ -17,6 +17,7 @@ import type { AuthenticatedUser } from '../../common/interfaces/authenticated-re
 import { buildScopedAccessWhere } from '../../common/security/rbac-query-scope';
 import { normalizeEmail } from '../../common/utils/email.util';
 import { AuditService } from '../audit/audit.service';
+import { ActiveOrganizationService } from '../tenant-settings/active-organization.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { RolesRepository } from '../roles/roles.repository';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -31,6 +32,7 @@ export class UsersService {
     private readonly rolesRepository: RolesRepository,
     private readonly permissionsService: PermissionsService,
     private readonly auditService: AuditService,
+    private readonly activeOrganizationService: ActiveOrganizationService,
   ) {}
 
   findByTenant(tenantId: string, currentUser?: AuthenticatedUser) {
@@ -256,6 +258,13 @@ export class UsersService {
         : {}),
       updatedById: actorId,
     });
+
+    // A business unit change moves the user to a different organization, which
+    // changes the settings and branding they resolve to. Drop the cached
+    // mapping so the next request reflects the move immediately.
+    if (dto.businessUnitId) {
+      this.activeOrganizationService.invalidateUser(user.tenantId, userId);
+    }
 
     const updatedUser = await this.findByIdWithAccess(userId);
     return this.mapUserSummary(updatedUser);

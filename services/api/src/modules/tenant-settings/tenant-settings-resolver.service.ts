@@ -335,8 +335,9 @@ export class TenantSettingsResolverService {
 
   async getOrganizationSettings(
     tenantId: string,
+    organizationId?: string,
   ): Promise<OrganizationSettingsResolved> {
-    const source = await this.getSettingsMap(tenantId);
+    const source = await this.getSettingsMap(tenantId, organizationId);
     const category = source.organization ?? {};
     const weekStart = stringValue(category.weekStartsOn, 'MONDAY');
 
@@ -360,8 +361,9 @@ export class TenantSettingsResolverService {
 
   async getEmployeeSettings(
     tenantId: string,
+    organizationId?: string,
   ): Promise<EmployeeSettingsResolved> {
-    const source = await this.getSettingsMap(tenantId);
+    const source = await this.getSettingsMap(tenantId, organizationId);
     const category = source.employees ?? {};
 
     return {
@@ -442,8 +444,9 @@ export class TenantSettingsResolverService {
 
   async getAttendanceSettings(
     tenantId: string,
+    organizationId?: string,
   ): Promise<AttendanceSettingsResolved> {
-    const source = await this.getSettingsMap(tenantId);
+    const source = await this.getSettingsMap(tenantId, organizationId);
     const category = source.attendance ?? {};
     const modes = csvValues(category.allowedModes).filter(
       (value): value is AttendanceMode =>
@@ -540,16 +543,18 @@ export class TenantSettingsResolverService {
 
   async getTimesheetSettings(
     tenantId: string,
+    organizationId?: string,
   ): Promise<TimesheetSettingsResolved> {
-    const source = await this.getSettingsMap(tenantId);
+    const source = await this.getSettingsMap(tenantId, organizationId);
     return this.resolveTimesheetSettings(source.timesheets ?? {});
   }
 
   async getTimesheetSettingsForBusinessUnit(
     tenantId: string,
     businessUnitId?: string | null,
+    organizationId?: string,
   ): Promise<TimesheetSettingsResolved> {
-    const source = await this.getSettingsMap(tenantId);
+    const source = await this.getSettingsMap(tenantId, organizationId);
     const overrides = await this.getBusinessUnitCategorySettings(
       tenantId,
       businessUnitId,
@@ -642,16 +647,20 @@ export class TenantSettingsResolverService {
     };
   }
 
-  async getPayrollSettings(tenantId: string): Promise<PayrollSettingsResolved> {
-    const source = await this.getSettingsMap(tenantId);
+  async getPayrollSettings(
+    tenantId: string,
+    organizationId?: string,
+  ): Promise<PayrollSettingsResolved> {
+    const source = await this.getSettingsMap(tenantId, organizationId);
     return this.resolvePayrollSettings(source.payroll ?? {});
   }
 
   async getPayrollSettingsForBusinessUnit(
     tenantId: string,
     businessUnitId?: string | null,
+    organizationId?: string,
   ): Promise<PayrollSettingsResolved> {
-    const source = await this.getSettingsMap(tenantId);
+    const source = await this.getSettingsMap(tenantId, organizationId);
     const overrides = await this.getBusinessUnitCategorySettings(
       tenantId,
       businessUnitId,
@@ -805,8 +814,9 @@ export class TenantSettingsResolverService {
 
   async getRecruitmentSettings(
     tenantId: string,
+    organizationId?: string,
   ): Promise<RecruitmentSettingsResolved> {
-    const source = await this.getSettingsMap(tenantId);
+    const source = await this.getSettingsMap(tenantId, organizationId);
     const category = source.recruitment ?? {};
 
     return {
@@ -837,8 +847,9 @@ export class TenantSettingsResolverService {
 
   async getDocumentSettings(
     tenantId: string,
+    organizationId?: string,
   ): Promise<DocumentSettingsResolved> {
-    const source = await this.getSettingsMap(tenantId);
+    const source = await this.getSettingsMap(tenantId, organizationId);
     const category = source.documents ?? {};
 
     return {
@@ -903,8 +914,9 @@ export class TenantSettingsResolverService {
 
   async getNotificationSettings(
     tenantId: string,
+    organizationId?: string,
   ): Promise<NotificationSettingsResolved> {
-    const source = await this.getSettingsMap(tenantId);
+    const source = await this.getSettingsMap(tenantId, organizationId);
     const category = source.notifications ?? {};
 
     return {
@@ -938,8 +950,9 @@ export class TenantSettingsResolverService {
 
   async getBrandingSettings(
     tenantId: string,
+    organizationId?: string,
   ): Promise<BrandingSettingsResolved> {
-    const source = await this.getSettingsMap(tenantId);
+    const source = await this.getSettingsMap(tenantId, organizationId);
     const category = source.branding ?? {};
 
     return {
@@ -1025,8 +1038,11 @@ export class TenantSettingsResolverService {
     };
   }
 
-  async getSystemSettings(tenantId: string): Promise<SystemSettingsResolved> {
-    const source = await this.getSettingsMap(tenantId);
+  async getSystemSettings(
+    tenantId: string,
+    organizationId?: string,
+  ): Promise<SystemSettingsResolved> {
+    const source = await this.getSettingsMap(tenantId, organizationId);
     const category = source.system ?? {};
     const weekStart = stringValue(category.defaultWeekStartDay, 'MONDAY');
 
@@ -1066,8 +1082,9 @@ export class TenantSettingsResolverService {
 
   async getSecuritySettings(
     tenantId: string,
+    organizationId?: string,
   ): Promise<SecuritySettingsResolved> {
-    const source = await this.getSettingsMap(tenantId);
+    const source = await this.getSettingsMap(tenantId, organizationId);
     const category = source.security ?? {};
     return {
       allowRememberMe: booleanValue(category.allowRememberMe, true),
@@ -1302,29 +1319,65 @@ export class TenantSettingsResolverService {
     return allowed;
   }
 
+  /**
+   * Drops the tenant entry and every organization-scoped entry derived from it.
+   * Organization views are merged on top of tenant values, so a tenant change
+   * that only cleared `tenantId` would leave each organization serving stale
+   * settings until its own TTL expired.
+   */
   invalidateTenantCache(tenantId: string) {
     this.cache.delete(tenantId);
+
+    const scopePrefix = `${tenantId}:`;
+    for (const key of this.cache.keys()) {
+      if (key.startsWith(scopePrefix)) {
+        this.cache.delete(key);
+      }
+    }
   }
 
-  private async getSettingsMap(tenantId: string): Promise<SettingsMap> {
+  /**
+   * Resolves settings for a tenant, optionally layering an organization's
+   * overrides on top.
+   *
+   * Precedence is defaults < tenant < organization, applied per (category, key)
+   * so an organization only has to store the handful of values it changes and
+   * inherits everything else. Entries are cached per scope, because the tenant
+   * view and each organization view are different results.
+   */
+  private async getSettingsMap(
+    tenantId: string,
+    organizationId?: string,
+  ): Promise<SettingsMap> {
+    const scopeKey = organizationId
+      ? `${tenantId}:${organizationId}`
+      : tenantId;
     const now = Date.now();
-    const cached = this.cache.get(tenantId);
+    const cached = this.cache.get(scopeKey);
     if (cached && cached.expiresAt > now) {
       return cached.value;
     }
 
-    const persistedSettings =
-      await this.tenantSettingsRepository.findSettingsByTenant(tenantId);
+    const [persistedSettings, organizationSettings] = await Promise.all([
+      this.tenantSettingsRepository.findSettingsByTenant(tenantId),
+      organizationId
+        ? this.tenantSettingsRepository.findSettingsByOrganization(
+            tenantId,
+            organizationId,
+          )
+        : Promise.resolve([]),
+    ]);
+
     const settings = structuredClone(DEFAULT_TENANT_SETTINGS) as SettingsMap;
 
-    for (const item of persistedSettings) {
+    for (const item of [...persistedSettings, ...organizationSettings]) {
       if (!settings[item.category]) {
         settings[item.category] = {};
       }
       settings[item.category][item.key] = item.value;
     }
 
-    this.cache.set(tenantId, {
+    this.cache.set(scopeKey, {
       value: settings,
       expiresAt: now + 30_000,
     });

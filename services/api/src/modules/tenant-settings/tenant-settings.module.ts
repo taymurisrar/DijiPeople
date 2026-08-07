@@ -5,6 +5,7 @@ import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { AuditModule } from '../audit/audit.module';
 import { PublicTenantCacheService } from '../tenants/public-tenant-cache.service';
 import { FeatureAccessService } from './feature-access.service';
+import { ActiveOrganizationService } from './active-organization.service';
 import { ConfigurationResolverService } from './configuration-resolver.service';
 import { EnterpriseConfigurationController } from './enterprise-configuration.controller';
 import { FieldSecurityController } from './field-security.controller';
@@ -26,6 +27,7 @@ import { TenantSettingsService } from './tenant-settings.service';
     FieldSecurityController,
   ],
   providers: [
+    ActiveOrganizationService,
     ConfigurationResolverService,
     EnterpriseConfigurationService,
     TenantSettingsRepository,
@@ -37,6 +39,7 @@ import { TenantSettingsService } from './tenant-settings.service';
     PermissionsGuard,
   ],
   exports: [
+    ActiveOrganizationService,
     TenantSettingsRepository,
     TenantSettingsService,
     TenantSettingsResolverService,

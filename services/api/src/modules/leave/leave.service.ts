@@ -6,6 +6,7 @@ import {
   LeaveRequestStatus,
   NotificationRecipientResolverType,
   Prisma,
+  SecurityPrivilege,
 } from '@prisma/client';
 import {
   BadRequestException,
@@ -18,7 +19,15 @@ import { CreateLeavePolicyRuleDto } from './dto/create-leave-policy-rule.dto';
 import { UpdateLeavePolicyRuleDto } from './dto/update-leave-policy-rule.dto';
 import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import {
+  buildCsvFile,
+  buildCsvTemplate,
+  csvDate,
+  type CsvFile,
+} from '../../common/utils/csv.util';
 import { hasElevatedTenantRole } from '../../common/security/elevated-tenant-roles';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import { buildScopedAccessWhere } from '../../common/security/rbac-query-scope';
 import { AuditService } from '../audit/audit.service';
 import { EmployeesRepository } from '../employees/employees.repository';
 import { UsersRepository } from '../users/users.repository';
@@ -398,6 +407,13 @@ export class LeaveService {
       dto.endDate,
     );
 
+    await this.assertNoOverlappingLeave(
+      currentUser.tenantId,
+      employee.id,
+      startDate,
+      endDate,
+    );
+
     const leavePolicyRule = await this.resolveLeavePolicyRuleForRequest(
       currentUser.tenantId,
       leavePolicy?.id ?? null,
@@ -694,6 +710,46 @@ export class LeaveService {
     );
   }
 
+  /**
+   * Exports the leave requests the caller can already see.
+   *
+   * Rows come from listTeamLeaveRequests, so the export inherits that method's
+   * scoping: tenant-wide for elevated roles, reporting line for managers, own
+   * records otherwise. That is why this needs no permission beyond read — it
+   * can never reveal a request the caller could not already list.
+   */
+  async exportLeaveRequests(
+    currentUser: AuthenticatedUser,
+    query: LeaveRequestQueryDto,
+  ): Promise<CsvFile> {
+    const requests = await this.listTeamLeaveRequests(currentUser, query);
+
+    // Exports use human-readable headers, matching the Employee and Attendance
+    // exports. The import template keeps machine keys, because that file is a
+    // contract with the parser rather than something a person reads.
+    const rows = requests.map((request) => ({
+      'Employee Code': request.employee.employeeCode ?? '',
+      'Employee Name': request.employee.fullName,
+      'Leave Type': request.leaveType?.name ?? '',
+      'Start Date': csvDate(request.startDate),
+      'End Date': csvDate(request.endDate),
+      'Total Days': Number(request.totalDays ?? 0),
+      Status: request.status,
+      Reason: request.reason ?? '',
+      Documents: request.documents.length,
+      'Submitted At': csvDate(request.createdAt),
+    }));
+
+    return buildCsvFile('leave-requests.csv', rows, LEAVE_EXPORT_COLUMNS);
+  }
+
+  exportLeaveRequestTemplate(): CsvFile {
+    return buildCsvTemplate(
+      'leave-requests-import-template.csv',
+      LEAVE_IMPORT_TEMPLATE_COLUMNS,
+    );
+  }
+
   async listTeamLeaveRequests(
     currentUser: AuthenticatedUser,
     query: LeaveRequestQueryDto,
@@ -798,12 +854,17 @@ export class LeaveService {
       currentUser.userId,
     );
 
+    const isOwnRequest = Boolean(
+      employee && leaveRequest.employeeId === employee.id,
+    );
+
     if (
+      !isOwnRequest &&
       !this.canViewAllTenantLeaveRequests(currentUser) &&
-      (!employee || leaveRequest.employeeId !== employee.id)
+      !(await this.canOverrideLeaveDecision(currentUser, leaveRequest))
     ) {
       throw new ForbiddenException(
-        'You can only cancel your own leave requests.',
+        'You can only cancel your own leave requests, or those of employees you administer.',
       );
     }
 
@@ -1447,7 +1508,16 @@ export class LeaveService {
       );
     }
 
-    if (!this.canUserActOnStep(leaveRequest, pendingStep, currentUser)) {
+    const isAssignedApprover = this.canUserActOnStep(
+      leaveRequest,
+      pendingStep,
+      currentUser,
+    );
+
+    if (
+      !isAssignedApprover &&
+      !(await this.canOverrideLeaveDecision(currentUser, leaveRequest))
+    ) {
       throw new ForbiddenException(
         'You are not assigned to action this leave request.',
       );
@@ -1980,6 +2050,45 @@ export class LeaveService {
     return this.canUserActOnStep(leaveRequest, pendingStep, currentUser);
   }
 
+  /**
+   * Rejects a request whose dates collide with a live request for the same
+   * employee.
+   *
+   * Without this an employee can hold an approved leave and a duplicate pending
+   * one for the same days, which double-counts the balance and leaves approvers
+   * acting on days that are already booked.
+   */
+  private async assertNoOverlappingLeave(
+    tenantId: string,
+    employeeId: string,
+    startDate: Date,
+    endDate: Date,
+    excludeLeaveRequestId?: string,
+  ) {
+    const clashes = await this.leaveRepository.findOverlappingLeaveRequests(
+      tenantId,
+      employeeId,
+      startDate,
+      endDate,
+      excludeLeaveRequestId,
+    );
+
+    if (clashes.length === 0) {
+      return;
+    }
+
+    const clash = clashes[0];
+    const formatted = `${clash.startDate.toISOString().slice(0, 10)} to ${clash.endDate
+      .toISOString()
+      .slice(0, 10)}`;
+
+    throw new ConflictException(
+      `These dates overlap an existing ${clash.status.toLowerCase()} ${
+        clash.leaveType?.name ?? 'leave'
+      } request for ${formatted}. Cancel that request first or choose different dates.`,
+    );
+  }
+
   private canUserActOnStep(
     leaveRequest: LeaveRequestWithRelations,
     pendingStep: LeaveRequestWithRelations['approvalSteps'][number],
@@ -2006,6 +2115,59 @@ export class LeaveService {
       currentUser.permissionKeys.includes('leave-requests.manage') ||
       currentUser.permissionKeys.includes('leaves.manage')
     );
+  }
+
+  /**
+   * Whether the user may decide or cancel this request without being the
+   * assigned approver.
+   *
+   * This is the HR override. It is deliberately scoped: the requesting employee
+   * must fall inside the user's own leave-request access scope, so an
+   * organization-scoped HR user cannot reach another organization's records.
+   * Nobody may action their own request.
+   */
+  private async canOverrideLeaveDecision(
+    currentUser: AuthenticatedUser,
+    leaveRequest: LeaveRequestWithRelations,
+  ) {
+    if (leaveRequest.employee.userId === currentUser.userId) {
+      return false;
+    }
+
+    if (hasElevatedTenantRole(currentUser)) {
+      return true;
+    }
+
+    const canDecide =
+      currentUser.permissionKeys.includes('leave-requests.approve') ||
+      currentUser.permissionKeys.includes('leave-requests.reject');
+
+    if (!canDecide) {
+      return false;
+    }
+
+    // Capability comes from the leave permissions above; reach comes from the
+    // employee read scope, which is the same scope used to list people.
+    const visible = await this.prisma.employee.findFirst({
+      where: {
+        AND: [
+          {
+            id: leaveRequest.employeeId,
+            tenantId: currentUser.tenantId,
+            isDeleted: false,
+          },
+          buildScopedAccessWhere<Prisma.EmployeeWhereInput>(
+            currentUser,
+            ENTITY_KEYS.EMPLOYEES,
+            SecurityPrivilege.READ,
+            { organizationIdField: null, userIdField: 'userId' },
+          ),
+        ],
+      },
+      select: { id: true },
+    });
+
+    return Boolean(visible);
   }
 
   private async canReadLeaveRequest(
@@ -2420,3 +2582,29 @@ function normalizeCode(value: string) {
     .toUpperCase()
     .replace(/[^A-Z0-9]+/g, '_');
 }
+
+/**
+ * Export column order is fixed so downstream spreadsheets and any re-import
+ * see a stable contract regardless of how rows are built.
+ */
+const LEAVE_EXPORT_COLUMNS = [
+  'Employee Code',
+  'Employee Name',
+  'Leave Type',
+  'Start Date',
+  'End Date',
+  'Total Days',
+  'Status',
+  'Reason',
+  'Documents',
+  'Submitted At',
+] as const;
+
+/** Columns an import file must supply; mirrors the submit payload. */
+const LEAVE_IMPORT_TEMPLATE_COLUMNS = [
+  'employeeCode',
+  'leaveType',
+  'startDate',
+  'endDate',
+  'reason',
+] as const;

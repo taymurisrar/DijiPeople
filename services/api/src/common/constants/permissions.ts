@@ -160,6 +160,15 @@ export const PERMISSION_KEYS = {
   RECRUITMENT_READ: 'recruitment.read',
   ONBOARDING_READ: 'onboarding.read',
   DOCUMENTS_READ: 'documents.read',
+  DATA_MANAGEMENT_VIEW: 'data-management.view',
+  DATA_MANAGEMENT_TEMPLATE_DOWNLOAD: 'data-management.template.download',
+  DATA_MANAGEMENT_IMPORT_VALIDATE: 'data-management.import.validate',
+  DATA_MANAGEMENT_IMPORT_EXECUTE: 'data-management.import.execute',
+  DATA_MANAGEMENT_EXPORT: 'data-management.export',
+  DATA_MANAGEMENT_JOBS_READ_ALL: 'data-management.jobs.readAll',
+  DATA_MANAGEMENT_IMPORT_RETRY: 'data-management.import.retry',
+  DATA_MANAGEMENT_IMPORT_CANCEL: 'data-management.import.cancel',
+  DATA_MANAGEMENT_MAPPINGS_MANAGE: 'data-management.mappings.manage',
   INBOX_READ: 'inbox.read',
   INBOX_MARK_READ: 'inbox.markRead',
   INBOX_DISMISS: 'inbox.dismiss',
@@ -467,6 +476,58 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     description: 'View uploaded document metadata and linked records.',
   },
   {
+    key: PERMISSION_KEYS.DATA_MANAGEMENT_VIEW,
+    name: 'View data management',
+    description:
+      'Open Settings > Data Management and view import and export activity.',
+  },
+  {
+    key: PERMISSION_KEYS.DATA_MANAGEMENT_TEMPLATE_DOWNLOAD,
+    name: 'Download import templates',
+    description:
+      'Download module import templates and reference data workbooks.',
+  },
+  {
+    key: PERMISSION_KEYS.DATA_MANAGEMENT_IMPORT_VALIDATE,
+    name: 'Validate imports',
+    description:
+      'Upload a file and run validation without writing any records.',
+  },
+  {
+    key: PERMISSION_KEYS.DATA_MANAGEMENT_IMPORT_EXECUTE,
+    name: 'Execute imports',
+    description:
+      'Run an import that creates or updates records. Module create and update permissions are still enforced per row.',
+  },
+  {
+    key: PERMISSION_KEYS.DATA_MANAGEMENT_EXPORT,
+    name: 'Export data',
+    description:
+      'Export module records, filtered results, and failed import rows.',
+  },
+  {
+    key: PERMISSION_KEYS.DATA_MANAGEMENT_JOBS_READ_ALL,
+    name: 'View all import jobs',
+    description:
+      'View import and export jobs submitted by any user in the tenant, not only your own.',
+  },
+  {
+    key: PERMISSION_KEYS.DATA_MANAGEMENT_IMPORT_RETRY,
+    name: 'Retry imports',
+    description: 'Retry failed rows or batches on an existing import job.',
+  },
+  {
+    key: PERMISSION_KEYS.DATA_MANAGEMENT_IMPORT_CANCEL,
+    name: 'Cancel imports',
+    description: 'Cancel a queued or in-progress import job where it is safe.',
+  },
+  {
+    key: PERMISSION_KEYS.DATA_MANAGEMENT_MAPPINGS_MANAGE,
+    name: 'Manage saved mappings',
+    description:
+      'Create, update, and delete reusable column mapping profiles for the tenant.',
+  },
+  {
     key: 'documents.upload',
     name: 'Upload documents',
     description:
@@ -606,6 +667,15 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     key: 'employees.terminate',
     name: 'Terminate employees',
     description: 'Terminate or deactivate employee records within the tenant.',
+  },
+  {
+    // The employees export and export-template endpoints already require this
+    // key, but it was never defined, so no role could hold it and export was
+    // reachable only by roles that bypass permission checks.
+    key: 'employees.export',
+    name: 'Export employees',
+    description:
+      'Export employee records and download the employee import template. Rows are limited to the caller’s existing read scope.',
   },
   {
     key: PERMISSION_KEYS.EMPLOYEE_LEVELS_READ,
@@ -1909,6 +1979,19 @@ export const BASE_ROLE_PERMISSION_KEYS: Record<BaseRoleKey, string[]> = {
   hr: [
     'dashboard.view',
     'tenant-settings.resolved.read',
+    // HR runs employee data migration, so it owns the Data Management area.
+    // These grant use of the tool only: each row still goes through the
+    // module's own create/update permission checks, so HR cannot import
+    // anything it could not create by hand.
+    PERMISSION_KEYS.DATA_MANAGEMENT_VIEW,
+    PERMISSION_KEYS.DATA_MANAGEMENT_TEMPLATE_DOWNLOAD,
+    PERMISSION_KEYS.DATA_MANAGEMENT_IMPORT_VALIDATE,
+    PERMISSION_KEYS.DATA_MANAGEMENT_IMPORT_EXECUTE,
+    PERMISSION_KEYS.DATA_MANAGEMENT_EXPORT,
+    PERMISSION_KEYS.DATA_MANAGEMENT_JOBS_READ_ALL,
+    PERMISSION_KEYS.DATA_MANAGEMENT_IMPORT_RETRY,
+    PERMISSION_KEYS.DATA_MANAGEMENT_IMPORT_CANCEL,
+    PERMISSION_KEYS.DATA_MANAGEMENT_MAPPINGS_MANAGE,
     'tenant.read',
     'settings.read',
     'settings.update',

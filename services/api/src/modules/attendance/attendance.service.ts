@@ -36,6 +36,10 @@ import {
 import { hasElevatedTenantRole } from '../../common/security/elevated-tenant-roles';
 import { resolveEffectiveAccessLevel } from '../../common/security/rbac-query-scope';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import {
+  buildCsvTemplate,
+  type CsvFile,
+} from '../../common/utils/csv.util';
 import { EmployeesRepository } from '../employees/employees.repository';
 import { NotificationsService } from '../notifications/notifications.service';
 import { TenantSettingsResolverService } from '../tenant-settings/tenant-settings-resolver.service';
@@ -2061,6 +2065,20 @@ export class AttendanceService {
         items.map((item) => this.mapAttendanceEntry(item)),
       ),
     };
+  }
+
+  /**
+   * Header-only CSV for the import action.
+   *
+   * The columns are exactly the keys importRow reads, so a file produced from
+   * this template round-trips through the importer without silently dropping
+   * values into columns nothing consumes.
+   */
+  exportAttendanceTemplate(): CsvFile {
+    return buildCsvTemplate(
+      'attendance-import-template.csv',
+      ATTENDANCE_IMPORT_TEMPLATE_COLUMNS,
+    );
   }
 
   async importAttendance(
@@ -4547,3 +4565,26 @@ function validDailyAttendanceHours(checkIn: Date, checkOut: Date) {
   const minutes = differenceInMinutes(checkOut, checkIn);
   return minutes > 0 && minutes <= 24 * 60 ? minutes / 60 : 0;
 }
+
+/**
+ * Columns the attendance importer reads from each CSV row. Kept next to the
+ * import path so the template and the parser cannot drift apart.
+ */
+const ATTENDANCE_IMPORT_TEMPLATE_COLUMNS = [
+  'employeeCode',
+  'workEmail',
+  'date',
+  'checkInTime',
+  'checkOutTime',
+  'attendanceMode',
+  'status',
+  'officeLocationId',
+  'remoteLatitude',
+  'remoteLongitude',
+  'remoteAddressText',
+  'checkInNote',
+  'checkOutNote',
+  'workSummary',
+  'notes',
+  'machineDeviceId',
+] as const;

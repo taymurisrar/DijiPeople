@@ -6650,6 +6650,17 @@ const adapters: readonly SettingsRuntimeAdapter[] = [
     specializedHref: "/settings/subscription/plans",
   }),
   adapter({
+    key: "data-management",
+    label: "Import & Export",
+    serverApiPath: "/data-management/modules",
+    collectionKey: "items",
+    fields: [field("label", "Module", "string", { isPrimaryName: true })],
+    mode: "specialized",
+    blocker:
+      "Data management is a multi-step import and export workspace with file upload, column mapping, and background jobs, which the generic record renderer cannot express.",
+    specializedHref: "/settings/data-management",
+  }),
+  adapter({
     key: "branding",
     label: "Branding",
     serverApiPath: "/tenant-settings/branding",

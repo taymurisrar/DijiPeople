@@ -12,6 +12,7 @@ import {
   type CustomizationFieldDataType,
   type CustomizationSolutionComponentType,
 } from '@prisma/client';
+import type { ApprovalActorType, ApprovalModuleKey } from '@prisma/client';
 import { createPrismaClient } from './create-prisma-client';
 import { PermissionBootstrapService } from '../src/modules/permissions/permission-bootstrap.service';
 import { NOTIFICATION_EVENT_CATALOG } from '../src/modules/notifications/notification-events.catalog';
@@ -477,6 +478,10 @@ export async function runSeedConfig() {
   const ruleCount = await seedTenantNotificationRules(prisma, tenants);
   const providerCount = await seedTenantConsoleProviders(prisma, tenants);
   const leaveTypeCount = await seedTenantLeaveTypes(prisma, tenants);
+  const approvalMatrixCount = await seedTenantDefaultApprovalMatrices(
+    prisma,
+    tenants,
+  );
   const metadataCount = await seedTenantDefaultSolutions(prisma, tenants);
 
   await verifyRequiredSeedData(prisma, tenants);
@@ -494,6 +499,9 @@ export async function runSeedConfig() {
   console.log(`Notification rules created/updated: ${ruleCount}`);
   console.log(`Console providers created/updated: ${providerCount}`);
   console.log(`Leave types created/updated: ${leaveTypeCount}`);
+  console.log(
+    `Default approval matrices created: ${approvalMatrixCount}`,
+  );
   console.log(`Default solution metadata components synced: ${metadataCount}`);
   console.log('Config seed completed successfully.');
 }
@@ -2309,4 +2317,106 @@ if (require.main === module) {
     .finally(async () => {
       await prisma.$disconnect();
     });
+}
+
+/**
+ * Default approval matrices.
+ *
+ * The approval resolver falls back to reporting-manager then HR when a tenant
+ * has no matrix, so approvals still route without these rows — but that routing
+ * is invisible in the UI and cannot be edited. Seeding explicit defaults makes
+ * the behaviour discoverable and gives administrators a starting point to
+ * adjust rather than a blank Approval Matrices screen.
+ *
+ * Only seeded when a tenant has no matrix for that module, so any configuration
+ * an administrator has already made is never overwritten.
+ */
+const DEFAULT_APPROVAL_MATRICES: Array<{
+  moduleKey: ApprovalModuleKey;
+  recordType: string;
+  steps: Array<{
+    name: string;
+    sequence: number;
+    approverType: ApprovalActorType;
+    roleKey?: string;
+  }>;
+}> = [
+  {
+    moduleKey: 'LEAVE_REQUEST' as ApprovalModuleKey,
+    recordType: 'leaveRequest',
+    steps: [
+      {
+        name: 'Leave request to line manager',
+        sequence: 1,
+        approverType: 'LINE_MANAGER' as ApprovalActorType,
+      },
+      {
+        name: 'Leave request to HR',
+        sequence: 2,
+        approverType: 'ROLE' as ApprovalActorType,
+        roleKey: 'hr',
+      },
+    ],
+  },
+  {
+    moduleKey: 'TIMESHEET' as ApprovalModuleKey,
+    recordType: 'timesheet',
+    steps: [
+      {
+        name: 'Timesheet to line manager',
+        sequence: 1,
+        approverType: 'LINE_MANAGER' as ApprovalActorType,
+      },
+    ],
+  },
+];
+
+export async function seedTenantDefaultApprovalMatrices(
+  client: PrismaClient,
+  tenants: TenantSeedTarget[],
+) {
+  let count = 0;
+
+  for (const tenant of tenants) {
+    for (const matrix of DEFAULT_APPROVAL_MATRICES) {
+      const existing = await client.approvalMatrix.count({
+        where: { tenantId: tenant.id, moduleKey: matrix.moduleKey },
+      });
+
+      // A tenant that already configured this module keeps its own rules.
+      if (existing > 0) continue;
+
+      for (const step of matrix.steps) {
+        const approverRoleId = step.roleKey
+          ? (
+              await client.role.findFirst({
+                where: { tenantId: tenant.id, key: step.roleKey },
+                select: { id: true },
+              })
+            )?.id
+          : undefined;
+
+        // A role-based step without its role would create an unroutable
+        // approval, so skip it rather than seed a dead end.
+        if (step.roleKey && !approverRoleId) continue;
+
+        await client.approvalMatrix.create({
+          data: {
+            tenantId: tenant.id,
+            moduleKey: matrix.moduleKey,
+            recordType: matrix.recordType,
+            name: step.name,
+            sequence: step.sequence,
+            approverType: step.approverType,
+            approvalMode: 'ANY_ONE',
+            isActive: true,
+            ...(approverRoleId ? { approverRoleId } : {}),
+          },
+        });
+        count += 1;
+      }
+    }
+  }
+
+  return count;
 }

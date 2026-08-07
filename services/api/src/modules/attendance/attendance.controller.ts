@@ -17,6 +17,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Request, Response } from 'express';
+import { setCsvDownloadHeaders } from '../../common/utils/csv-response.util';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Permissions } from '../../common/decorators/permissions.decorator';
 import { RequireAnyPermission } from '../../common/decorators/require-permissions.decorator';
@@ -238,6 +239,14 @@ export class AttendanceController {
       `attachment; filename="${exported.fileName}"`,
     );
     return new StreamableFile(Buffer.from(exported.csv, 'utf8'));
+  }
+
+  @Get('export-template')
+  @Permissions('attendance.import')
+  exportAttendanceTemplate(@Res({ passthrough: true }) response: Response) {
+    const file = this.attendanceService.exportAttendanceTemplate();
+    setCsvDownloadHeaders(response, file.filename);
+    return new StreamableFile(file.buffer);
   }
 
   @Post('import')
