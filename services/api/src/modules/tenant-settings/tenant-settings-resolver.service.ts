@@ -273,6 +273,21 @@ export type SecuritySettingsResolved = {
   refreshTokenExpiryDays: number;
   absoluteSessionLifetimeDays: number;
   idleTimeoutMinutes: number;
+  /*
+   * Password rules a tenant configures on the Password & Login Policies screen.
+   * The minimum is floored at 8 so a tenant can be stricter than the platform
+   * but never looser.
+   */
+  minimumPasswordLength: number;
+  requireUppercase: boolean;
+  requireLowercase: boolean;
+  requireNumber: boolean;
+  requireSpecialCharacter: boolean;
+  /* Sign-in lockout, enforced by LoginLockoutService. */
+  failedAttemptsBeforeLock: number;
+  lockDurationMinutes: number;
+  passwordExpiryDays: number;
+  passwordHistoryCount: number;
 };
 
 export type PublicBrandingResolved = {
@@ -1111,6 +1126,39 @@ export class TenantSettingsResolverService {
         480,
         15,
         1440,
+      ),
+      minimumPasswordLength: numberValue(
+        category.minimumPasswordLength,
+        12,
+        8,
+        200,
+      ),
+      requireUppercase: booleanValue(category.requireUppercase, true),
+      requireLowercase: booleanValue(category.requireLowercase, true),
+      requireNumber: booleanValue(category.requireNumber, true),
+      requireSpecialCharacter: booleanValue(
+        category.requireSpecialCharacter,
+        true,
+      ),
+      failedAttemptsBeforeLock: numberValue(
+        category.failedAttemptsBeforeLock,
+        5,
+        1,
+        20,
+      ),
+      lockDurationMinutes: numberValue(
+        category.lockDurationMinutes,
+        30,
+        1,
+        1440,
+      ),
+      /* 0 means never expire, so the floor is 0 rather than 1. */
+      passwordExpiryDays: numberValue(category.passwordExpiryDays, 0, 0, 3650),
+      passwordHistoryCount: numberValue(
+        category.passwordHistoryCount,
+        5,
+        0,
+        24,
       ),
     };
   }

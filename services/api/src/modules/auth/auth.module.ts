@@ -19,6 +19,8 @@ import { UsersModule } from '../users/users.module';
 import { AdminAuthController } from './admin-auth.controller';
 import { AuthController } from './auth.controller';
 import { AuthAccessService } from './auth-access.service';
+import { LoginLockoutService } from './login-lockout.service';
+import { PasswordPolicyService } from './password-policy.service';
 import { AuthService } from './auth.service';
 import { UserInvitationsService } from './user-invitations.service';
 
@@ -48,6 +50,8 @@ import { UserInvitationsService } from './user-invitations.service';
   providers: [
     AuthService,
     AuthAccessService,
+    LoginLockoutService,
+    PasswordPolicyService,
     UserInvitationsService,
     JwtAuthGuard,
     PermissionsGuard,
@@ -55,6 +59,8 @@ import { UserInvitationsService } from './user-invitations.service';
   exports: [
     AuthService,
     AuthAccessService,
+    LoginLockoutService,
+    PasswordPolicyService,
     UserInvitationsService,
 
     JwtModule,

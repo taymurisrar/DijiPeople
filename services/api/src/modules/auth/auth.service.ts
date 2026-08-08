@@ -46,6 +46,8 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { SignupDto } from './dto/signup.dto';
 import { AuthAccessService } from './auth-access.service';
+import { LoginLockoutService } from './login-lockout.service';
+import { PasswordPolicyService } from './password-policy.service';
 import { platformAccessForRole } from '../platform-auth/platform-permissions';
 import { AdminLoginDto } from './dto/admin-login.dto';
 
@@ -128,6 +130,8 @@ export class AuthService {
     private readonly authAccessService: AuthAccessService,
     private readonly emailService: EmailService,
     private readonly auditService: AuditService,
+    private readonly passwordPolicyService: PasswordPolicyService,
+    private readonly loginLockoutService: LoginLockoutService,
   ) {}
 
   async signup(dto: SignupDto) {
@@ -159,6 +163,36 @@ export class AuthService {
         req,
       });
       throw new UnauthorizedException('This account is not active.');
+    }
+
+    /*
+     * An expired password stops here rather than being allowed through with a
+     * "change it soon" flag: issuing tokens would leave a working session on a
+     * credential the tenant has decided is too old. The distinct code lets the
+     * sign-in screen send the user to the reset flow instead of showing them a
+     * generic failure they cannot act on.
+     */
+    if (
+      await this.passwordPolicyService.isPasswordExpired(
+        user.tenantId,
+        user.passwordChangedAt,
+      )
+    ) {
+      await this.logTenantAuthEvent({
+        tenantId: user.tenantId,
+        actorUserId: user.id,
+        action: 'auth.login.failed',
+        entityId: user.id,
+        email: user.email,
+        result: 'FAILED',
+        failureReason: 'PASSWORD_EXPIRED',
+        clientId,
+        req,
+      });
+      throw this.authUnauthorized(
+        'AUTH_PASSWORD_EXPIRED',
+        'Your password has expired. Reset it to sign in again.',
+      );
     }
 
     await this.permissionBootstrapService.bootstrapTenantRbac(user.tenantId);
@@ -524,6 +558,7 @@ export class AuthService {
 
     await this.emailService.sendTemplateEmail({
       tenantId: user.tenantId,
+      subjectUserId: user.id,
       eventCode: 'AUTH_PASSWORD_RESET',
       templateKey: 'AUTH_PASSWORD_RESET',
       recipient: email,
@@ -620,12 +655,23 @@ export class AuthService {
       );
     }
 
+    await this.passwordPolicyService.assertPasswordMeetsPolicy(
+      payload.tenantId,
+      password,
+    );
+    await this.passwordPolicyService.assertPasswordNotReused(
+      payload.sub,
+      payload.tenantId,
+      password,
+    );
+
     const passwordHash = await bcrypt.hash(password, 10);
     await this.prisma.$transaction([
       this.prisma.user.update({
         where: { id: payload.sub },
         data: {
           passwordHash,
+          passwordChangedAt: new Date(),
           status: 'ACTIVE',
           updatedById: payload.sub,
         },
@@ -639,6 +685,12 @@ export class AuthService {
         data: { revokedAt: new Date() },
       }),
     ]);
+
+    await this.passwordPolicyService.recordPasswordChange(
+      payload.sub,
+      payload.tenantId,
+      passwordHash,
+    );
 
     return { ok: true };
   }
@@ -680,6 +732,7 @@ export class AuthService {
 
     const delivery = await this.emailService.sendTemplateEmail({
       tenantId: input.user.tenantId,
+      subjectUserId: input.user.id,
       eventCode: 'AUTH_PASSWORD_RESET',
       templateKey: 'AUTH_PASSWORD_RESET',
       recipient: input.user.email,
@@ -862,12 +915,45 @@ export class AuthService {
       );
     }
 
+    if (this.loginLockoutService.isLocked(user)) {
+      this.logger.warn(
+        JSON.stringify({
+          event: 'auth.login.failed',
+          reason: 'ACCOUNT_LOCKED',
+          identifier: normalizedEmail,
+          tenantSlug: tenantContext.slug,
+          userId: user.id,
+          tenantId: user.tenantId,
+        }),
+      );
+      await this.logTenantAuthEvent({
+        tenantId: user.tenantId,
+        actorUserId: user.id,
+        action: 'auth.login.failed',
+        entityId: user.id,
+        email: user.email,
+        result: 'FAILED',
+        failureReason: 'ACCOUNT_LOCKED',
+        clientId,
+        req,
+      });
+      /*
+       * Deliberately the same response as a wrong password: naming the lock
+       * confirms the account exists and tells an attacker they are close.
+       */
+      throw this.authUnauthorized(
+        'AUTH_INVALID_CREDENTIALS',
+        'Invalid credentials.',
+      );
+    }
+
     const isPasswordValid = await bcrypt.compare(
       dto.password,
       user.passwordHash,
     );
 
     if (!isPasswordValid) {
+      await this.loginLockoutService.registerFailure(user);
       this.logger.warn(
         JSON.stringify({
           event: 'auth.login.failed',
@@ -894,6 +980,8 @@ export class AuthService {
         'Invalid credentials.',
       );
     }
+
+    await this.loginLockoutService.registerSuccess(user);
 
     return user;
   }

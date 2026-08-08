@@ -212,9 +212,58 @@ function buildRequestHeaders(
   return headers;
 }
 
-async function refreshServerAuthTokens(
+/*
+ * Refreshing is de-duplicated and short-circuited.
+ *
+ * Every server-side fetch that saw a 401 used to fire its own POST /auth/refresh,
+ * so one page with eight parallel data loads produced eight refresh calls. When
+ * the session was genuinely gone they all failed identically, which turned a
+ * single revoked session into a burst of pointless auth traffic.
+ *
+ * Both maps are keyed by the refresh token, so one user's dead session can never
+ * suppress another's refresh.
+ */
+const inFlightRefreshes = new Map<string, Promise<RefreshedAuthTokens | null>>();
+const deadRefreshTokens = new Map<string, number>();
+
+/*
+ * A revoked or expired session stays dead for this long. Long enough to cover
+ * the render it was discovered in, short enough that signing in again is picked
+ * up immediately.
+ */
+const DEAD_TOKEN_TTL_MS = 30_000;
+const MAX_DEAD_TOKENS = 500;
+
+/* Keyed on a suffix so the full credential is not held in a long-lived map. */
+function refreshTokenKey(refreshToken: string) {
+  return refreshToken.slice(-24);
+}
+
+function markRefreshTokenDead(key: string) {
+  if (deadRefreshTokens.size >= MAX_DEAD_TOKENS) {
+    // Bounded: drop the oldest rather than grow without limit.
+    const oldest = deadRefreshTokens.keys().next().value;
+    if (oldest) deadRefreshTokens.delete(oldest);
+  }
+  deadRefreshTokens.set(key, Date.now());
+}
+
+function isRefreshTokenKnownDead(key: string) {
+  const markedAt = deadRefreshTokens.get(key);
+  if (!markedAt) return false;
+
+  if (Date.now() - markedAt > DEAD_TOKEN_TTL_MS) {
+    deadRefreshTokens.delete(key);
+    return false;
+  }
+
+  return true;
+}
+
+async function performRefresh(
   baseUrl: string,
   refreshToken: string,
+  key: string,
 ): Promise<RefreshedAuthTokens | null> {
   try {
     const response = await fetch(`${baseUrl}/auth/refresh`, {
@@ -229,14 +278,52 @@ async function refreshServerAuthTokens(
     });
 
     if (!response.ok) {
+      /*
+       * 401 and 403 mean the session is gone - revoked, expired, or signed out
+       * elsewhere. Retrying can never succeed, so it is remembered. Other
+       * statuses may be transient and are left retryable.
+       */
+      if (response.status === 401 || response.status === 403) {
+        markRefreshTokenDead(key);
+      }
       return null;
     }
 
     const data = await response.json();
-    return readRefreshedAuthTokens(data);
+    const tokens = readRefreshedAuthTokens(data);
+    if (!tokens) return null;
+
+    // The old token is spent; forget any negative marker against it.
+    deadRefreshTokens.delete(key);
+    return tokens;
   } catch {
+    // A network failure is transient; do not poison the token.
     return null;
   }
+}
+
+async function refreshServerAuthTokens(
+  baseUrl: string,
+  refreshToken: string,
+): Promise<RefreshedAuthTokens | null> {
+  const key = refreshTokenKey(refreshToken);
+
+  if (isRefreshTokenKnownDead(key)) {
+    return null;
+  }
+
+  const existing = inFlightRefreshes.get(key);
+  if (existing) {
+    // Concurrent callers share the one request rather than each making their own.
+    return existing;
+  }
+
+  const pending = performRefresh(baseUrl, refreshToken, key).finally(() => {
+    inFlightRefreshes.delete(key);
+  });
+
+  inFlightRefreshes.set(key, pending);
+  return pending;
 }
 
 async function persistRefreshedAuthCookies(tokens: RefreshedAuthTokens) {

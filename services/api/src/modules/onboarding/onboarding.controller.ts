@@ -74,7 +74,7 @@ export class OnboardingController {
   }
 
   @Delete()
-  @Permissions('onboarding.update')
+  @Permissions('onboarding.delete')
   deleteMany(
     @CurrentUser() user: AuthenticatedUser,
     @Body() body: { recordIds?: string[]; ids?: string[] },

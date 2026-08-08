@@ -16,6 +16,7 @@ import { AuditService } from '../audit/audit.service';
 import { EmailService } from '../notifications/email/email.service';
 import { TenantSettingsResolverService } from '../tenant-settings/tenant-settings-resolver.service';
 import { UsersRepository } from '../users/users.repository';
+import { PasswordPolicyService } from './password-policy.service';
 
 type PrismaDb = PrismaService | Prisma.TransactionClient;
 
@@ -28,6 +29,7 @@ export class UserInvitationsService {
     private readonly tenantSettingsResolver: TenantSettingsResolverService,
     private readonly usersRepository: UsersRepository,
     private readonly auditService: AuditService,
+    private readonly passwordPolicyService: PasswordPolicyService,
   ) {}
 
   async issueInvitation(input: {
@@ -180,6 +182,16 @@ export class UserInvitationsService {
       throw new UnauthorizedException('Invitation has expired.');
     }
 
+    await this.passwordPolicyService.assertPasswordMeetsPolicy(
+      invitation.tenantId,
+      password,
+    );
+    await this.passwordPolicyService.assertPasswordNotReused(
+      invitation.userId,
+      invitation.tenantId,
+      password,
+    );
+
     const passwordHash = await bcrypt.hash(password, 12);
 
     await this.prisma.$transaction(async (tx) => {
@@ -187,6 +199,7 @@ export class UserInvitationsService {
         invitation.userId,
         {
           passwordHash,
+          passwordChangedAt: new Date(),
           status: UserStatus.ACTIVE,
           updatedById: invitation.userId,
         },
@@ -341,6 +354,7 @@ export class UserInvitationsService {
 
     return this.emailService.sendTemplateEmail({
       tenantId: input.tenantId,
+      subjectUserId: input.userId,
       eventCode: 'AUTH_ACCOUNT_ACTIVATION',
       templateKey: 'AUTH_ACCOUNT_ACTIVATION',
       recipient: input.email,

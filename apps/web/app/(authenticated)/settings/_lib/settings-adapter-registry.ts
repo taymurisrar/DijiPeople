@@ -1139,7 +1139,6 @@ const adapters: readonly SettingsRuntimeAdapter[] = [
   salaryPackageRulesAdapter(),
   genericConfigurationAdapter("delegation-rules", "Delegation Rules"),
   genericConfigurationAdapter("escalation-rules", "Escalation Rules"),
-  genericConfigurationAdapter("workflow-templates", "Workflow Templates"),
   genericConfigurationAdapter("retention-rules", "Retention Rules"),
   genericConfigurationAdapter(
     "document-templates",

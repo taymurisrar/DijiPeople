@@ -25,6 +25,7 @@ import {
   UpdateEmailTemplateDto,
   UpdateNotificationPreferencesDto,
 } from './dto';
+import { PROVIDER_SCHEMAS } from './email/provider-field-schema';
 import { InAppNotificationsService } from './in-app-notifications.service';
 import { NotificationDiagnosticsService } from './notification-diagnostics.service';
 import { NOTIFICATION_PERMISSION_KEYS } from './notifications.constants';
@@ -70,6 +71,16 @@ export class NotificationsController {
   @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATION_TEMPLATES_READ)
   listTemplates(@CurrentUser() user: AuthenticatedUser) {
     return this.notificationsService.listTemplates(user);
+  }
+
+  /*
+   * The placements and modules a template may be limited to, for the authoring
+   * screen. Registered before the :id route so it is not read as a template id.
+   */
+  @Get('email-templates/scope-options')
+  @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATION_TEMPLATES_READ)
+  listScopeOptions(@CurrentUser() user: AuthenticatedUser) {
+    return this.notificationsService.listTemplateScopeOptions(user);
   }
 
   @Get('email-templates/:id')
@@ -146,6 +157,16 @@ export class NotificationsController {
     @Body() dto: TestSendEmailTemplateDto,
   ) {
     return this.notificationsService.testSendTemplate(user, templateId, dto);
+  }
+
+  /*
+   * What each provider type needs configured, so the screen can render the
+   * right fields instead of asking for raw JSON. Registered before :id.
+   */
+  @Get('email-providers/field-schema')
+  @Permissions(NOTIFICATION_PERMISSION_KEYS.NOTIFICATION_PROVIDERS_READ)
+  listProviderFieldSchema() {
+    return { items: PROVIDER_SCHEMAS };
   }
 
   @Get('email-providers')

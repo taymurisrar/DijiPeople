@@ -5,11 +5,19 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/app/components/ui/button";
 import {
   EmailTemplate,
+  EmailTemplateScopeLevel,
   RenderedTemplate,
+  TemplateScopeOptions,
   previewEmailTemplate,
   testSendEmailTemplate,
   updateEmailTemplate,
 } from "@/lib/notifications-api";
+import {
+  ScopePicker,
+  ScopeValue,
+  describeScope,
+  validateScope,
+} from "../../_components/scope-picker";
 import {
   codeInputClassName,
   ErrorBanner,
@@ -22,9 +30,11 @@ import {
 
 export function EmailTemplateEditor({
   canManage,
+  scopeOptions,
   template,
 }: {
   canManage: boolean;
+  scopeOptions: TemplateScopeOptions | null;
   template: EmailTemplate;
 }) {
   const router = useRouter();
@@ -37,6 +47,15 @@ export function EmailTemplateEditor({
     textTemplate: template.textTemplate ?? "",
     availableVariables: stringifyJson(template.availableVariables),
     status: template.status,
+  });
+  const [scope, setScope] = useState<ScopeValue>({
+    // A system template has no tenant placement; editing one starts from tenant.
+    scopeLevel:
+      template.scopeLevel === "SYSTEM"
+        ? "TENANT"
+        : (template.scopeLevel as EmailTemplateScopeLevel),
+    scopeId: template.scopeId,
+    moduleKey: template.moduleKey,
   });
   const [sampleVariables, setSampleVariables] = useState(() =>
     stringifyJson(buildSampleVariables(template.availableVariables)),
@@ -66,6 +85,11 @@ export function EmailTemplateEditor({
       setError("Script tags are not allowed in email templates.");
       return;
     }
+    const scopeError = validateScope(scope);
+    if (scopeError) {
+      setError(scopeError);
+      return;
+    }
 
     setBusy("save");
     try {
@@ -81,6 +105,9 @@ export function EmailTemplateEditor({
         textTemplate: form.textTemplate || null,
         availableVariables,
         status: form.status,
+        scopeLevel: scope.scopeLevel,
+        scopeId: scope.scopeId,
+        moduleKey: scope.moduleKey,
       });
       setMessage("Template saved.");
       router.refresh();
@@ -214,6 +241,36 @@ export function EmailTemplateEditor({
               />
             </Field>
           </div>
+          <div className="mt-6 rounded-2xl border border-border bg-surface-muted/40 p-4">
+            <div className="mb-1 text-sm font-semibold text-foreground">
+              Where this template applies
+            </div>
+            <p className="mb-4 text-xs text-muted">
+              The most specific matching template wins. A team template beats a
+              department one, which beats a business unit, an organization, and
+              finally the tenant default.
+              {template.isSystem
+                ? " System templates apply to every tenant and cannot be placed."
+                : ""}
+            </p>
+            <ScopePicker
+              disabled={readOnly}
+              onChange={setScope}
+              options={scopeOptions}
+              value={scope}
+            />
+            <p className="mt-3 text-xs text-muted">
+              Currently:{" "}
+              <span className="font-medium text-foreground">
+                {describeScope(
+                  template.scopeLevel,
+                  template.scopeId,
+                  scopeOptions,
+                )}
+              </span>
+            </p>
+          </div>
+
           <div className="mt-4 grid gap-4">
             <Field label="HTML Template" required>
               <textarea

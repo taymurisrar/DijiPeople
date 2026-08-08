@@ -1987,6 +1987,7 @@ model Tenant {
   tenantDomains                   TenantDomain[]
   tenantFeatures                  TenantFeature[]
   emailTemplates                  EmailTemplate[]
+  workflows                       Workflow[]
   emailProviderSettings           EmailProviderSetting[]
   emailDeliveryLogs               EmailDeliveryLog[]
   notifications                   Notification[]
@@ -3420,6 +3421,13 @@ model User {
   isServiceAccount               Boolean                       @default(false)
   preferencesJson                Json?
   lastLoginAt                    DateTime?
+  /// Brute-force protection. Counts consecutive failures; cleared on success.
+  failedLoginAttempts            Int                           @default(0)
+  /// While in the future, authentication is refused regardless of password.
+  lockedUntil                    DateTime?
+  /// When the password was last set, for expiry checks.
+  passwordChangedAt              DateTime?
+  passwordHistory                PasswordHistory[]
   createdAt                      DateTime                      @default(now())
   updatedAt                      DateTime                      @updatedAt
   createdById                    String?
@@ -6572,6 +6580,7 @@ model NotificationEvent {
   emailDeliveryLogs EmailDeliveryLog[]
   notifications     Notification[]
   preferences       NotificationPreference[]
+  workflows         Workflow[]
 
   @@index([category])
   @@index([systemDefined])
@@ -6590,6 +6599,8 @@ model EmailTemplate {
   htmlTemplate       String
   textTemplate       String?
   availableVariables Json
+  /// Null means the template applies to every module.
+  moduleKey          String?
   status             EmailTemplateStatus @default(DRAFT)
   version            Int                 @default(1)
   isSystem           Boolean             @default(false)
@@ -6608,6 +6619,7 @@ model EmailTemplate {
   @@index([status])
   @@index([isSystem])
   @@index([tenantId, eventCode, status])
+  @@index([tenantId, moduleKey])
 }
 
 model EmailProviderSetting {
@@ -10119,4 +10131,96 @@ model DataMappingProfile {
 
   @@unique([tenantId, moduleKey, name])
   @@index([tenantId, moduleKey])
+}
+
+/// A tenant-authored rule: when an event happens, run these actions.
+/// Placement and module reach work exactly as they do for email templates.
+model Workflow {
+  id          String             @id @default(uuid())
+  tenantId    String
+  scopeKey    String
+  /// Null means the workflow applies to every module.
+  moduleKey   String?
+  name        String
+  description String?
+  eventCode   String
+  status      WorkflowStatus     @default(DRAFT)
+  /// Optional [{field, operator, value}] tests evaluated against event context.
+  conditions  Json?
+  createdBy   String?
+  updatedBy   String?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  tenant      Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  event       NotificationEvent  @relation(fields: [eventCode], references: [code], onDelete: Restrict)
+  actions     WorkflowAction[]
+  runs        WorkflowRun[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId, eventCode, status])
+  @@index([tenantId, moduleKey])
+  @@index([scopeKey])
+}
+
+model WorkflowAction {
+  id            String             @id @default(uuid())
+  workflowId    String
+  type          WorkflowActionType @default(SEND_EMAIL)
+  sortOrder     Int                @default(0)
+  /// Shape depends on type. SEND_EMAIL: { templateId?, templateKey?, recipientMode, recipientAddress? }
+  configuration Json
+  isActive      Boolean            @default(true)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  workflow      Workflow           @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([workflowId, sortOrder])
+}
+
+/// One record per triggering event, so a tenant can see whether a workflow
+/// actually fired and why it did not.
+model WorkflowRun {
+  id            String            @id @default(uuid())
+  tenantId      String
+  workflowId    String
+  eventCode     String
+  status        WorkflowRunStatus
+  startedAt     DateTime          @default(now())
+  finishedAt    DateTime?
+  actionsRun    Int               @default(0)
+  error         String?
+  correlationId String?
+  context       Json?
+  workflow      Workflow          @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, workflowId, startedAt])
+  @@index([tenantId, status])
+}
+
+enum WorkflowStatus {
+  DRAFT
+  ACTIVE
+  INACTIVE
+}
+
+enum WorkflowActionType {
+  SEND_EMAIL
+}
+
+enum WorkflowRunStatus {
+  SUCCEEDED
+  FAILED
+  SKIPPED
+}
+
+/// Previous password hashes, so a user cannot cycle back to a recent one.
+/// Trimmed to the tenant's `passwordHistoryCount` after each change.
+model PasswordHistory {
+  id           String   @id @default(uuid())
+  userId       String
+  passwordHash String
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }

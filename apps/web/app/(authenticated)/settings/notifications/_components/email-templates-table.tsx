@@ -9,17 +9,21 @@ import { Button } from "@/app/components/ui/button";
 import { EmptyState } from "@/app/components/ui/empty-state";
 import {
   EmailTemplate,
+  TemplateScopeOptions,
   activateEmailTemplate,
   archiveEmailTemplate,
   cloneEmailTemplate,
 } from "@/lib/notifications-api";
+import { describeScope } from "../../_components/scope-picker";
 import { formatDateTime, StatusBadge } from "./notification-ui";
 
 export function EmailTemplatesTable({
   canManage,
+  scopeOptions,
   templates,
 }: {
   canManage: boolean;
+  scopeOptions: TemplateScopeOptions | null;
   templates: EmailTemplate[];
 }) {
   const router = useRouter();
@@ -91,15 +95,45 @@ export function EmailTemplatesTable({
       },
       {
         key: "scope",
-        header: "Scope",
+        header: "Applies To",
+        sortable: true,
         filterable: true,
         filterType: "select",
         filterOptions: [
-          { label: "System", value: "System" },
-          { label: "Tenant", value: "Tenant" },
+          { label: "System default", value: "SYSTEM" },
+          { label: "Whole tenant", value: "TENANT" },
+          { label: "Organization", value: "ORGANIZATION" },
+          { label: "Business unit", value: "BUSINESS_UNIT" },
+          { label: "Department", value: "DEPARTMENT" },
+          { label: "Team", value: "TEAM" },
         ],
-        filterAccessor: (template) => (template.isSystem ? "System" : "Tenant"),
-        render: (template) => (template.isSystem ? "System" : "Tenant"),
+        filterAccessor: (template) => template.scopeLevel,
+        sortAccessor: (template) =>
+          describeScope(template.scopeLevel, template.scopeId, scopeOptions),
+        render: (template) =>
+          describeScope(template.scopeLevel, template.scopeId, scopeOptions),
+      },
+      {
+        key: "moduleKey",
+        header: "Module",
+        sortable: true,
+        filterable: true,
+        filterType: "select",
+        filterOptions: [
+          { label: "All modules", value: "" },
+          ...(scopeOptions?.modules ?? []).map((module) => ({
+            label: module.label,
+            value: module.value,
+          })),
+        ],
+        filterAccessor: (template) => template.moduleKey ?? "",
+        sortAccessor: (template) => template.moduleKey ?? "",
+        render: (template) =>
+          scopeOptions?.modules.find(
+            (module) => module.value === template.moduleKey,
+          )?.label ??
+          template.moduleKey ??
+          "All modules",
       },
       {
         key: "version",
@@ -162,11 +196,18 @@ export function EmailTemplatesTable({
         ),
       },
     ],
-    [busyId, canManage],
+    [busyId, canManage, scopeOptions],
   );
 
   return (
     <div className="grid gap-4">
+      {canManage ? (
+        <div className="flex justify-end">
+          <Button href="/settings/notifications/templates/new" size="sm">
+            New Template
+          </Button>
+        </div>
+      ) : null}
       {error ? (
         <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
@@ -176,7 +217,7 @@ export function EmailTemplatesTable({
         columns={columns}
         emptyState={
           <EmptyState
-            description="No email templates are available yet. System template seed data may need to be run."
+            description="No email templates are available yet. Create one, or clone a system template to start from a working default."
             title="No email templates"
           />
         }

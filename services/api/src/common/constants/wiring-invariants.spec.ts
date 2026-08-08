@@ -86,6 +86,13 @@ const ADMIN_ONLY_PERMISSIONS = new Set<string>([
   'timesheets.settings.read',
   'timesheets.template.export',
   'audit.read',
+  /*
+   * Bulk hard deletes. Reserved for administrators by default rather than
+   * granted with the matching update permission: erasing records permanently
+   * should be a deliberate grant, not a side effect of being able to edit.
+   */
+  'recruitment.delete',
+  'onboarding.delete',
 ]);
 
 describe('wiring invariants', () => {

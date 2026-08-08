@@ -20,6 +20,7 @@ import {
   buildTenantNotificationScopeKey,
   buildUserNotificationScopeKey,
   NOTIFICATION_SYSTEM_SCOPE_KEY,
+  notificationScopeChain,
 } from './notifications.constants';
 import type {
   EmailDeliveryLogCreateInput,
@@ -34,6 +35,9 @@ type PrismaDb = PrismaService | Prisma.TransactionClient;
 
 export type TenantEmailTemplateWriteInput = {
   tenantId: string;
+  /* Defaults to the tenant scope when the caller does not place the template. */
+  scopeKey?: string;
+  moduleKey?: string | null;
   eventCode: string;
   templateKey: string;
   name: string;
@@ -124,41 +128,94 @@ export class NotificationsRepository {
     input: EmailTemplateLookupInput,
     db: PrismaDb = this.prisma,
   ) {
-    const tenantScopeKey = buildTenantNotificationScopeKey(input.tenantId);
     const templateWhere = input.templateKey
       ? { templateKey: input.templateKey }
       : { eventCode: input.eventCode };
 
-    const [tenantTemplate, systemTemplate] = await Promise.all([
-      db.emailTemplate.findFirst({
-        where: {
-          ...templateWhere,
-          scopeKey: tenantScopeKey,
-          status: EmailTemplateStatus.ACTIVE,
-        },
-        orderBy: { version: 'desc' },
-      }),
-      db.emailTemplate.findFirst({
-        where: {
-          ...templateWhere,
-          scopeKey: NOTIFICATION_SYSTEM_SCOPE_KEY,
-          status: EmailTemplateStatus.ACTIVE,
-        },
-        orderBy: { version: 'desc' },
-      }),
-    ]);
+    /*
+     * Scopes are tried most specific first so a team or department template
+     * overrides the broader one without duplicating it. A single query ordered
+     * by scope rank avoids one round trip per level.
+     */
+    const scopeChain = notificationScopeChain({
+      tenantId: input.tenantId,
+      organizationId: input.organizationId,
+      businessUnitId: input.businessUnitId,
+      departmentId: input.departmentId,
+      teamId: input.teamId,
+    });
 
-    return tenantTemplate ?? systemTemplate;
+    const candidates = await db.emailTemplate.findMany({
+      where: {
+        ...templateWhere,
+        scopeKey: { in: scopeChain },
+        status: EmailTemplateStatus.ACTIVE,
+      },
+      orderBy: { version: 'desc' },
+    });
+
+    for (const scopeKey of scopeChain) {
+      const match = candidates.find(
+        (candidate) => candidate.scopeKey === scopeKey,
+      );
+      if (match) return match;
+    }
+
+    return null;
+  }
+
+  /*
+   * Where an employee sits, used to pick the most specific email template when
+   * a caller supplies only the person the email is about. Looked up by
+   * employee id or by the user id linked to the employee record.
+   */
+  findEmployeePlacement(
+    input: {
+      tenantId: string;
+      employeeId?: string | null;
+      userId?: string | null;
+    },
+    db: PrismaDb = this.prisma,
+  ) {
+    if (!input.employeeId && !input.userId) return null;
+
+    return db.employee.findFirst({
+      where: {
+        tenantId: input.tenantId,
+        ...(input.employeeId
+          ? { id: input.employeeId }
+          : { userId: input.userId }),
+      },
+      select: {
+        organizationId: true,
+        businessUnitId: true,
+        departmentId: true,
+        teamId: true,
+      },
+    });
+  }
+
+  /*
+   * Ownership is the tenant id, not the scope key: a template placed on a
+   * business unit or a team belongs to the tenant just as much as one placed at
+   * tenant level, and all of them must be listed and editable.
+   */
+  private tenantOwnedTemplateWhere(tenantId: string) {
+    return { tenantId, isSystem: false };
+  }
+
+  private visibleTemplateWhere(tenantId: string) {
+    return {
+      OR: [
+        { scopeKey: NOTIFICATION_SYSTEM_SCOPE_KEY },
+        this.tenantOwnedTemplateWhere(tenantId),
+      ],
+    };
   }
 
   listTemplates(tenantId: string, db: PrismaDb = this.prisma) {
     return db.emailTemplate.findMany({
-      where: {
-        OR: [
-          { scopeKey: NOTIFICATION_SYSTEM_SCOPE_KEY },
-          { scopeKey: buildTenantNotificationScopeKey(tenantId) },
-        ],
-      },
+      where: this.visibleTemplateWhere(tenantId),
       orderBy: [{ eventCode: 'asc' }, { scopeKey: 'asc' }, { version: 'desc' }],
     });
   }
@@ -169,13 +226,7 @@ export class NotificationsRepository {
     db: PrismaDb = this.prisma,
   ) {
     return db.emailTemplate.findFirst({
-      where: {
-        id: templateId,
-        OR: [
-          { scopeKey: NOTIFICATION_SYSTEM_SCOPE_KEY },
-          { scopeKey: buildTenantNotificationScopeKey(tenantId) },
-        ],
-      },
+      where: { id: templateId, ...this.visibleTemplateWhere(tenantId) },
     });
   }
 
@@ -185,21 +236,50 @@ export class NotificationsRepository {
     db: PrismaDb = this.prisma,
   ) {
     return db.emailTemplate.findFirst({
-      where: {
-        id: templateId,
-        scopeKey: buildTenantNotificationScopeKey(tenantId),
-        tenantId,
-      },
+      where: { id: templateId, ...this.tenantOwnedTemplateWhere(tenantId) },
     });
   }
 
+  /*
+   * Confirms a placement target belongs to this tenant before a template is
+   * scoped to it. Without this a user could point a template at another
+   * tenant's business unit.
+   */
+  async scopeTargetExists(input: {
+    tenantId: string;
+    level: 'ORGANIZATION' | 'BUSINESS_UNIT' | 'DEPARTMENT' | 'TEAM';
+    scopeId: string;
+  }) {
+    const where = { id: input.scopeId, tenantId: input.tenantId };
+    const select = { id: true };
+
+    switch (input.level) {
+      case 'ORGANIZATION':
+        return Boolean(
+          await this.prisma.organization.findFirst({ where, select }),
+        );
+      case 'BUSINESS_UNIT':
+        return Boolean(
+          await this.prisma.businessUnit.findFirst({ where, select }),
+        );
+      case 'DEPARTMENT':
+        return Boolean(
+          await this.prisma.department.findFirst({ where, select }),
+        );
+      case 'TEAM':
+        return Boolean(await this.prisma.team.findFirst({ where, select }));
+    }
+  }
+
   createTenantTemplate(input: TenantEmailTemplateWriteInput) {
-    const scopeKey = buildTenantNotificationScopeKey(input.tenantId);
+    const scopeKey =
+      input.scopeKey ?? buildTenantNotificationScopeKey(input.tenantId);
 
     return this.prisma.$transaction(async (tx) => {
       if (input.status === EmailTemplateStatus.ACTIVE) {
-        await this.archiveActiveTenantTemplates(
+        await this.archiveActiveTemplatesInScope(
           input.tenantId,
+          scopeKey,
           input.templateKey,
           undefined,
           tx,
@@ -218,6 +298,7 @@ export class NotificationsRepository {
           htmlTemplate: input.htmlTemplate,
           textTemplate: input.textTemplate ?? null,
           availableVariables: input.availableVariables,
+          moduleKey: input.moduleKey ?? null,
           status: input.status,
           version: 1,
           isSystem: false,
@@ -249,8 +330,9 @@ export class NotificationsRepository {
     if (!template) return null;
 
     return this.prisma.$transaction(async (tx) => {
-      await this.archiveActiveTenantTemplates(
+      await this.archiveActiveTemplatesInScope(
         tenantId,
+        template.scopeKey,
         template.templateKey,
         template.id,
         tx,
@@ -263,19 +345,60 @@ export class NotificationsRepository {
     });
   }
 
+  /* Flat placement targets for the template and workflow authoring screens. */
+  async listScopeTargets(tenantId: string) {
+    const select = { id: true, name: true };
+    const orderBy = { name: 'asc' } as const;
+
+    const [organizations, businessUnits, departments, teams] =
+      await Promise.all([
+        this.prisma.organization.findMany({
+          where: { tenantId },
+          select,
+          orderBy,
+        }),
+        this.prisma.businessUnit.findMany({
+          where: { tenantId },
+          select: { ...select, organizationId: true },
+          orderBy,
+        }),
+        this.prisma.department.findMany({
+          where: { tenantId },
+          select: { ...select, businessUnitId: true },
+          orderBy,
+        }),
+        this.prisma.team.findMany({
+          where: { tenantId },
+          select: { ...select, departmentId: true },
+          orderBy,
+        }),
+      ]);
+
+    return { organizations, businessUnits, departments, teams };
+  }
+
+  findTemplateByScopeAndKey(scopeKey: string, templateKey: string) {
+    return this.prisma.emailTemplate.findUnique({
+      where: { scopeKey_templateKey: { scopeKey, templateKey } },
+      select: { id: true },
+    });
+  }
+
   archiveTenantTemplate(tenantId: string, templateId: string) {
     return this.prisma.emailTemplate.updateMany({
-      where: {
-        id: templateId,
-        tenantId,
-        scopeKey: buildTenantNotificationScopeKey(tenantId),
-      },
+      where: { id: templateId, ...this.tenantOwnedTemplateWhere(tenantId) },
       data: { status: EmailTemplateStatus.ARCHIVED },
     });
   }
 
-  private archiveActiveTenantTemplates(
+  /*
+   * Activating one template retires the previous active version of the same key
+   * at the same scope only. Archiving across scopes would let a team template
+   * silently switch off the tenant default every other team still relies on.
+   */
+  private archiveActiveTemplatesInScope(
     tenantId: string,
+    scopeKey: string,
     templateKey: string,
     excludeTemplateId?: string,
     db: PrismaDb = this.prisma,
@@ -283,7 +406,7 @@ export class NotificationsRepository {
     return db.emailTemplate.updateMany({
       where: {
         tenantId,
-        scopeKey: buildTenantNotificationScopeKey(tenantId),
+        scopeKey,
         templateKey,
         status: EmailTemplateStatus.ACTIVE,
         ...(excludeTemplateId ? { id: { not: excludeTemplateId } } : {}),

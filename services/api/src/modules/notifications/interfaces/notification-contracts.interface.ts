@@ -10,6 +10,15 @@ export type EmailTemplateLookupInput = {
   tenantId: string;
   eventCode: string;
   templateKey?: string;
+  /*
+   * Optional placement of the record this email is about. Supplying it lets a
+   * team, department, business unit or organization template win over the
+   * tenant default.
+   */
+  organizationId?: string | null;
+  businessUnitId?: string | null;
+  departmentId?: string | null;
+  teamId?: string | null;
 };
 
 export type EmailProviderLookupInput = {

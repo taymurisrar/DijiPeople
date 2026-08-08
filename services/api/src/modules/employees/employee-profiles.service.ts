@@ -1631,6 +1631,7 @@ export class EmployeeProfilesService {
 
     return this.emailService.sendTemplateEmail({
       tenantId: input.tenantId,
+      subjectEmployeeId: input.employeeId,
       eventCode: 'AUTH_PASSWORD_RESET',
       templateKey: 'AUTH_PASSWORD_RESET',
       recipient: input.recipientEmail,

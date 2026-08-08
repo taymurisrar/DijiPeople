@@ -1,15 +1,45 @@
 import { EmailTemplateStatus } from '@prisma/client';
 import {
   IsEnum,
+  IsIn,
   IsObject,
   IsOptional,
   IsString,
+  IsUUID,
   Matches,
   MaxLength,
   MinLength,
 } from 'class-validator';
+import {
+  TENANT_MODULE_KEYS,
+  TenantModuleKey,
+} from '../../../common/constants/tenant-modules';
+import {
+  EMAIL_TEMPLATE_SCOPE_LEVELS,
+  EmailTemplateScopeLevel,
+} from '../notifications.constants';
 
-export class CreateEmailTemplateDto {
+/*
+ * Placement and module reach are authored the same way on create and update, so
+ * both DTOs share these. `scopeId` is required for every level except TENANT,
+ * which is checked in the service where the tenant is known.
+ */
+class EmailTemplatePlacementDto {
+  @IsOptional()
+  @IsIn(EMAIL_TEMPLATE_SCOPE_LEVELS as unknown as string[])
+  scopeLevel?: EmailTemplateScopeLevel;
+
+  @IsOptional()
+  @IsUUID()
+  scopeId?: string | null;
+
+  /* Null or absent means the template applies to every module. */
+  @IsOptional()
+  @IsIn(TENANT_MODULE_KEYS as unknown as string[])
+  moduleKey?: TenantModuleKey | null;
+}
+
+export class CreateEmailTemplateDto extends EmailTemplatePlacementDto {
   @IsString()
   @MinLength(1)
   @MaxLength(160)
@@ -52,7 +82,7 @@ export class CreateEmailTemplateDto {
   status?: EmailTemplateStatus;
 }
 
-export class UpdateEmailTemplateDto {
+export class UpdateEmailTemplateDto extends EmailTemplatePlacementDto {
   @IsOptional()
   @IsString()
   @MinLength(1)

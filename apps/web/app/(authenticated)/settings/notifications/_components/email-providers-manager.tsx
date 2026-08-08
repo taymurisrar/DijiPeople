@@ -1,12 +1,14 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/app/components/ui/button";
 import { EmptyState } from "@/app/components/ui/empty-state";
 import {
   EmailProviderSetting,
   EmailProviderType,
+  ProviderField,
+  ProviderSchema,
   createEmailProvider,
   disableEmailProvider,
   setDefaultEmailProvider,
@@ -14,14 +16,11 @@ import {
   validateEmailProvider,
 } from "@/lib/notifications-api";
 import {
-  codeInputClassName,
   ErrorBanner,
   Field,
   formatDateTime,
   inputClassName,
-  parseJsonObject,
   SettingsPanel,
-  stringifyJson,
 } from "./notification-ui";
 
 type ProviderForm = {
@@ -33,7 +32,8 @@ type ProviderForm = {
   fromEmail: string;
   fromName: string;
   replyToEmail: string;
-  configuration: string;
+  /* Keyed by the schema field, so the shape follows the provider type. */
+  configuration: Record<string, string>;
 };
 
 const emptyProvider: ProviderForm = {
@@ -44,7 +44,7 @@ const emptyProvider: ProviderForm = {
   fromEmail: "",
   fromName: "",
   replyToEmail: "",
-  configuration: "{}",
+  configuration: {},
 };
 
 const providerTypes: EmailProviderType[] = [
@@ -61,12 +61,28 @@ const providerTypes: EmailProviderType[] = [
 export function EmailProvidersManager({
   canManage,
   providers,
+  schemas,
 }: {
   canManage: boolean;
   providers: EmailProviderSetting[];
+  schemas: ProviderSchema[];
 }) {
   const router = useRouter();
   const [form, setForm] = useState<ProviderForm>(emptyProvider);
+  /*
+   * The server describes what each provider type needs, so the form follows it
+   * rather than asking a user to hand-write configuration JSON.
+   */
+  const activeSchema = useMemo(
+    () =>
+      schemas.find((schema) => schema.providerType === form.providerType) ?? {
+        providerType: form.providerType,
+        label: form.providerType,
+        description: "",
+        fields: [],
+      },
+    [form.providerType, schemas],
+  );
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -83,7 +99,7 @@ export function EmailProvidersManager({
       fromEmail: provider.fromEmail,
       fromName: provider.fromName,
       replyToEmail: provider.replyToEmail ?? "",
-      configuration: stringifyJson(provider.configuration),
+      configuration: toFieldValues(provider.configuration),
     });
   }
 
@@ -95,15 +111,24 @@ export function EmailProvidersManager({
       setError("Provider name, from email, and from name are required.");
       return;
     }
+    const missing = activeSchema.fields
+      .filter(
+        (field) =>
+          field.required &&
+          !String(form.configuration[field.key] ?? "").trim() &&
+          /* An existing secret stays set unless the user types a new one. */
+          !(field.secret && form.id),
+      )
+      .map((field) => field.label);
+
+    if (missing.length) {
+      setError(`${missing.join(", ")} ${missing.length === 1 ? "is" : "are"} required for ${activeSchema.label}.`);
+      return;
+    }
+
     setBusy("save");
     try {
-      const configuration =
-        form.providerType === "CONSOLE"
-          ? {}
-          : parseJsonObject(
-              form.configuration,
-              "Configuration must be a JSON object.",
-            );
+      const configuration = buildConfiguration(activeSchema, form.configuration);
       const body = {
         providerType: form.providerType,
         providerName: form.providerName,
@@ -277,21 +302,44 @@ export function EmailProvidersManager({
               </label>
             </div>
           </div>
-          {form.providerType !== "CONSOLE" ? (
-            <Field label="Configuration JSON" required>
-              <textarea
-                className={`${codeInputClassName} min-h-[180px]`}
-                disabled={!canManage}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    configuration: event.target.value,
-                  }))
-                }
-                value={form.configuration}
-              />
-            </Field>
-          ) : null}
+          {activeSchema.fields.length ? (
+            <div className="rounded-2xl border border-border bg-surface-muted/40 p-4">
+              <div className="mb-1 text-sm font-semibold text-foreground">
+                {activeSchema.label} settings
+              </div>
+              {activeSchema.description ? (
+                <p className="mb-4 text-xs text-muted">
+                  {activeSchema.description}
+                </p>
+              ) : null}
+
+              <div className="grid gap-4 md:grid-cols-2">
+                {activeSchema.fields.map((field) => (
+                  <ProviderFieldInput
+                    disabled={!canManage}
+                    field={field}
+                    isExisting={Boolean(form.id)}
+                    key={field.key}
+                    value={form.configuration[field.key] ?? ""}
+                    onChange={(value) =>
+                      setForm((current) => ({
+                        ...current,
+                        configuration: {
+                          ...current.configuration,
+                          [field.key]: value,
+                        },
+                      }))
+                    }
+                  />
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="rounded-2xl border border-border bg-surface-muted/40 px-4 py-3 text-sm text-muted">
+              {activeSchema.description ||
+                "This provider needs no extra configuration."}
+            </p>
+          )}
           <div className="flex flex-wrap gap-3">
             <Button disabled={!canManage} loading={busy === "save"} type="submit">
               Save Provider
@@ -396,5 +444,114 @@ export function EmailProvidersManager({
         )}
       </SettingsPanel>
     </div>
+  );
+}
+
+/*
+ * A stored secret comes back masked, so an untouched field must not overwrite
+ * the real value. Masked placeholders are dropped rather than resent.
+ */
+const MASKED = /^\*+$/;
+
+function toFieldValues(configuration: Record<string, unknown>) {
+  const values: Record<string, string> = {};
+
+  for (const [key, value] of Object.entries(configuration ?? {})) {
+    if (value === null || value === undefined) continue;
+    if (typeof value === "object") continue;
+    values[key] = String(value);
+  }
+
+  return values;
+}
+
+function buildConfiguration(
+  schema: ProviderSchema,
+  values: Record<string, string>,
+) {
+  const configuration: Record<string, unknown> = {};
+
+  for (const field of schema.fields) {
+    const raw = values[field.key];
+
+    if (field.type === "boolean") {
+      configuration[field.key] = raw === "true";
+      continue;
+    }
+
+    const text = String(raw ?? "").trim();
+    if (!text) continue;
+    // Leaving a masked secret untouched keeps whatever is already stored.
+    if (field.secret && MASKED.test(text)) continue;
+
+    configuration[field.key] =
+      field.type === "number" && Number.isFinite(Number(text))
+        ? Number(text)
+        : text;
+  }
+
+  return configuration;
+}
+
+function ProviderFieldInput({
+  disabled,
+  field,
+  isExisting,
+  value,
+  onChange,
+}: {
+  disabled: boolean;
+  field: ProviderField;
+  isExisting: boolean;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  if (field.type === "boolean") {
+    return (
+      <label className="flex items-start gap-3 pt-6 text-sm text-foreground">
+        <input
+          checked={value === "true"}
+          className="mt-0.5 h-4 w-4 rounded border-border"
+          disabled={disabled}
+          onChange={(event) => onChange(String(event.target.checked))}
+          type="checkbox"
+        />
+        <span>
+          <span className="block font-medium">{field.label}</span>
+          {field.helpText ? (
+            <span className="mt-0.5 block text-xs text-muted">
+              {field.helpText}
+            </span>
+          ) : null}
+        </span>
+      </label>
+    );
+  }
+
+  return (
+    <Field label={field.label} required={field.required}>
+      <input
+        autoComplete={field.secret ? "new-password" : "off"}
+        className={inputClassName}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={
+          field.secret && isExisting
+            ? "Leave blank to keep the stored value"
+            : field.placeholder
+        }
+        type={
+          field.type === "password"
+            ? "password"
+            : field.type === "number"
+              ? "number"
+              : "text"
+        }
+        value={value}
+      />
+      {field.helpText ? (
+        <span className="mt-1 block text-xs text-muted">{field.helpText}</span>
+      ) : null}
+    </Field>
   );
 }

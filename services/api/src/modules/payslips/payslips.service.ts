@@ -553,6 +553,7 @@ export class PayslipsService {
         sourceModule: 'payroll',
         correlationId: payslip.id,
         requestedByUserId: params.actorUserId,
+        scope: { employeeId: payslip.employeeId },
         email: {
           templateKey: 'PAYSLIP_AVAILABLE',
           recipient: payslip.employee.email,

@@ -75,6 +75,13 @@ export function RoleDesignerPage({
     hydrateMiscPermissions(matrixCatalog, initialRole.miscPermissions ?? []),
   );
   const [query, setQuery] = useState("");
+  /*
+   * The matrix is 1300px wide at its narrowest useful size. Sharing the row
+   * with a sidebar forced every one of the eleven groups through a ~700px
+   * column, so placement moved to tabs and the matrix gets the full width.
+   */
+  const [activeTab, setActiveTab] = useState<RoleWorkspaceTab>("permissions");
+  const [activeGroup, setActiveGroup] = useState<string | null>(null);
   const [expandedGroups, setExpandedGroups] = useState(
     () => new Set(matrixCatalog.entities.map((entity) => entity.category)),
   );
@@ -93,6 +100,38 @@ export function RoleDesignerPage({
   const activePrivilegeCount = draftPrivileges.filter(
     (item) => item.accessLevel !== "NONE",
   ).length;
+
+  /*
+   * How many privileges each group actually grants. Without this a user has to
+   * open all eleven groups to find where a role's access lives.
+   */
+  const grantedByGroup = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const entity of matrixCatalog.entities) {
+      const granted = draftPrivileges.filter(
+        (item) => item.entityKey === entity.key && item.accessLevel !== "NONE",
+      ).length;
+      counts.set(entity.category, (counts.get(entity.category) ?? 0) + granted);
+    }
+    return counts;
+  }, [draftPrivileges, matrixCatalog.entities]);
+
+  const enabledMiscCount = draftMiscPermissions.filter(
+    (item) => item.enabled,
+  ).length;
+
+  /*
+   * Searching should show every match at once; browsing shows one group so the
+   * page stays a screenful instead of five thousand pixels.
+   */
+  const isSearching = query.trim().length > 0;
+  const selectedGroup =
+    activeGroup && filteredGroups.some(([category]) => category === activeGroup)
+      ? activeGroup
+      : (filteredGroups[0]?.[0] ?? null);
+  const visibleGroups = isSearching
+    ? filteredGroups
+    : filteredGroups.filter(([category]) => category === selectedGroup);
 
   function updateCell(
     entityKey: string,
@@ -128,14 +167,6 @@ export function RoleDesignerPage({
       }
       return next;
     });
-  }
-
-  function setAllGroups(expanded: boolean) {
-    setExpandedGroups(
-      expanded
-        ? new Set(matrixCatalog.entities.map((entity) => entity.category))
-        : new Set(),
-    );
   }
 
   function applyRoleSnapshot(nextRole: AccessRoleRecord) {
@@ -248,43 +279,35 @@ export function RoleDesignerPage({
         role={role}
       />
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <RoleWorkspaceTabs
+        activeTab={activeTab}
+        counts={{
+          permissions: activePrivilegeCount,
+          administration: enabledMiscCount,
+          users: assignedUsers.length,
+        }}
+        onChange={setActiveTab}
+      />
+
+      {activeTab === "permissions" ? (
         <section className="grid gap-4">
           <div className="rounded-[24px] border border-border bg-surface p-5 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="text-sm uppercase tracking-[0.18em] text-muted">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
                   Permission Matrix
                 </p>
-                <h3 className="mt-2 text-xl font-semibold text-foreground">
+                <h3 className="mt-1 text-lg font-semibold text-foreground">
                   Entity access by action and scope
                 </h3>
               </div>
               <div className="flex flex-wrap gap-2">
-                <button
-                  className="rounded-2xl border border-border bg-white px-4 py-2 text-sm font-medium text-foreground transition hover:border-accent/30 hover:text-accent"
-                  onClick={() => setAllGroups(true)}
-                  type="button"
-                >
-                  Expand all
-                </button>
-                <button
-                  className="rounded-2xl border border-border bg-white px-4 py-2 text-sm font-medium text-foreground transition hover:border-accent/30 hover:text-accent"
-                  onClick={() => setAllGroups(false)}
-                  type="button"
-                >
-                  Collapse all
-                </button>
-                <button
-                  className="rounded-2xl border border-border bg-white px-4 py-2 text-sm font-medium text-foreground transition hover:border-accent/30 hover:text-accent"
-                  onClick={() => setIsCopyOpen(true)}
-                  type="button"
-                >
+                <ToolbarButton onClick={() => setIsCopyOpen(true)}>
                   Copy from role
-                </button>
+                </ToolbarButton>
                 {role.isSystem ? (
                   <button
-                    className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-800 transition hover:border-amber-300"
+                    className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800 transition hover:border-amber-300"
                     disabled={isSaving}
                     onClick={resetDefault}
                     type="button"
@@ -297,67 +320,90 @@ export function RoleDesignerPage({
 
             <div className="mt-4 flex flex-wrap items-center gap-3">
               <input
-                className="min-w-72 rounded-2xl border border-border bg-white px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
+                className="min-w-72 flex-1 rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search modules, entities, or groups"
                 value={query}
               />
-              {locked ? (
-                <span className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                  Locked system role. Clone it for custom edits.
-                </span>
-              ) : null}
+              <PermissionLegend />
             </div>
+
+            {locked ? (
+              <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                This is a locked system role. Copy it into a custom role to
+                change what it can do.
+              </p>
+            ) : null}
           </div>
 
-          <PermissionMatrix
-            catalog={matrixCatalog}
-            disabled={locked}
-            expandedGroups={expandedGroups}
-            groups={filteredGroups}
-            privileges={draftPrivileges}
-            onCellChange={updateCell}
-            onGroupToggle={toggleGroup}
-            onRowChange={updateRow}
-          />
-        </section>
+          {isSearching ? (
+            <p className="text-sm text-muted">
+              Showing every module matching &ldquo;{query}&rdquo;.
+            </p>
+          ) : null}
 
-        <aside className="grid h-fit gap-4">
-          <PermissionLegend />
-          <MiscPermissionPanel
-            catalog={matrixCatalog}
-            disabled={locked}
-            permissions={draftMiscPermissions}
-            onChange={(permissionKey, enabled) => {
-              setDraftMiscPermissions((current) =>
-                current.map((item) =>
-                  item.permissionKey === permissionKey ? { ...item, enabled } : item,
-                ),
-              );
-              setIsDirty(true);
-            }}
-          />
-          <section className="rounded-[24px] border border-border bg-surface p-5 shadow-sm">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm uppercase tracking-[0.18em] text-muted">
-                  Assigned Users
-                </p>
-                <h3 className="mt-1 text-lg font-semibold text-foreground">
-                  {assignedUsers.length} assigned
-                </h3>
-              </div>
-              <Link
-                className="text-sm font-medium text-accent hover:text-accent-strong"
-                href="/settings/security-access/users"
-              >
-                Manage
-              </Link>
+          <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)]">
+            {isSearching ? null : (
+              <ModuleGroupRail
+                grantedByGroup={grantedByGroup}
+                groups={filteredGroups}
+                selected={selectedGroup}
+                onSelect={setActiveGroup}
+              />
+            )}
+            <PermissionMatrix
+              catalog={matrixCatalog}
+              disabled={locked}
+              expandedGroups={expandedGroups}
+              groups={visibleGroups}
+              privileges={draftPrivileges}
+              onCellChange={updateCell}
+              onGroupToggle={toggleGroup}
+              onRowChange={updateRow}
+            />
+          </div>
+        </section>
+      ) : null}
+
+      {activeTab === "administration" ? (
+        <MiscPermissionPanel
+          catalog={matrixCatalog}
+          disabled={locked}
+          permissions={draftMiscPermissions}
+          onChange={(permissionKey, enabled) => {
+            setDraftMiscPermissions((current) =>
+              current.map((item) =>
+                item.permissionKey === permissionKey
+                  ? { ...item, enabled }
+                  : item,
+              ),
+            );
+            setIsDirty(true);
+          }}
+        />
+      ) : null}
+
+      {activeTab === "users" ? (
+        <section className="rounded-[24px] border border-border bg-surface p-5 shadow-sm">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+                Assigned Users
+              </p>
+              <h3 className="mt-1 text-lg font-semibold text-foreground">
+                {assignedUsers.length} assigned
+              </h3>
             </div>
-            <AssignedUsersPanel users={assignedUsers} />
-          </section>
-        </aside>
-      </div>
+            <Link
+              className="text-sm font-medium text-accent hover:text-accent-strong"
+              href="/settings/security-access/users"
+            >
+              Manage
+            </Link>
+          </div>
+          <AssignedUsersPanel users={assignedUsers} />
+        </section>
+      ) : null}
 
       <UnsavedChangesBar
         disabled={locked || isSaving}
@@ -532,8 +578,10 @@ export function PermissionMatrixGroup({
         type="button"
       >
         <span>
-          <span className="block text-lg font-semibold text-foreground">{title}</span>
-          <span className="mt-1 block text-sm text-muted">
+          <span className="block text-base font-semibold text-foreground">
+            {title}
+          </span>
+          <span className="mt-0.5 block text-sm text-muted">
             {entities.length} module{entities.length === 1 ? "" : "s"}
           </span>
         </span>
@@ -543,11 +591,11 @@ export function PermissionMatrixGroup({
       </button>
       {isOpen ? (
         <div className="border-t border-border">
-          <div className="overflow-x-auto">
+          <div className="max-h-[70vh] overflow-auto">
             <table className="w-full min-w-[1320px] border-collapse text-sm">
-              <thead>
+              <thead className="sticky top-0 z-20">
                 <tr className="bg-surface-strong text-left text-xs uppercase tracking-[0.12em] text-muted">
-                  <th className="sticky left-0 z-10 w-56 bg-surface-strong px-4 py-3">
+                  <th className="sticky left-0 z-30 w-56 bg-surface-strong px-4 py-3">
                     Module
                   </th>
                   <th className="w-44 px-3 py-3">Set row</th>
@@ -660,74 +708,284 @@ export function MiscPermissionPanel({
   permissions: MiscItem[];
   onChange: (permissionKey: string, enabled: boolean) => void;
 }) {
+  const [query, setQuery] = useState("");
   const groups = groupMiscPermissions(catalog);
 
-  return (
-    <section className="rounded-[24px] border border-border bg-surface p-5 shadow-sm">
-      <p className="text-sm uppercase tracking-[0.18em] text-muted">
-        Miscellaneous
-      </p>
-      <h3 className="mt-1 text-lg font-semibold text-foreground">
-        Administrative switches
-      </h3>
-      <div className="mt-4 grid gap-4">
-        {groups.map(([category, items]) => (
-          <div className="grid gap-2" key={category}>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-              {category}
-            </p>
-            {items.map((permission) => {
-              const enabled =
-                permissions.find((item) => item.permissionKey === permission.key)
-                  ?.enabled ?? false;
+  const term = query.trim().toLowerCase();
+  const visibleGroups = term
+    ? groups
+        .map(
+          ([category, items]) =>
+            [
+              category,
+              items.filter(
+                (item) =>
+                  item.label.toLowerCase().includes(term) ||
+                  item.description?.toLowerCase().includes(term) ||
+                  item.key.toLowerCase().includes(term),
+              ),
+            ] as (typeof groups)[number],
+        )
+        .filter(([, items]) => items.length > 0)
+    : groups;
 
-              return (
-                <label
-                  className="flex items-start gap-3 rounded-2xl border border-border bg-white px-3 py-3"
-                  key={permission.key}
-                >
-                  <input
-                    checked={enabled}
-                    className="mt-1"
-                    disabled={disabled}
-                    onChange={(event) =>
-                      onChange(permission.key, event.target.checked)
-                    }
-                    type="checkbox"
-                  />
-                  <span>
-                    <span className="block text-sm font-semibold text-foreground">
-                      {permission.label}
-                    </span>
-                    <span className="mt-1 block text-xs leading-5 text-muted">
-                      {permission.description}
-                    </span>
-                  </span>
-                </label>
-              );
-            })}
+  const isEnabled = (permissionKey: string) =>
+    permissions.find((item) => item.permissionKey === permissionKey)?.enabled ??
+    false;
+
+  return (
+    <section className="grid gap-4">
+      <div className="rounded-[24px] border border-border bg-surface p-5 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+              Administration
+            </p>
+            <h3 className="mt-1 text-lg font-semibold text-foreground">
+              Switches this role turns on
+            </h3>
+            <p className="mt-1 text-sm text-muted">
+              These sit outside the entity matrix. Each one grants a specific
+              capability rather than access to a module.
+            </p>
           </div>
-        ))}
+          <input
+            className="min-w-64 rounded-xl border border-border bg-white px-4 py-2.5 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search switches"
+            value={query}
+          />
+        </div>
       </div>
+
+      {visibleGroups.length ? (
+        <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+          {visibleGroups.map(([category, items]) => {
+            const enabledCount = items.filter((item) =>
+              isEnabled(item.key),
+            ).length;
+
+            return (
+              <section
+                className="grid h-fit gap-2 rounded-[20px] border border-border bg-surface p-4 shadow-sm"
+                key={category}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                    {category}
+                  </p>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                      enabledCount
+                        ? "bg-emerald-50 text-emerald-700"
+                        : "bg-surface-strong text-muted"
+                    }`}
+                  >
+                    {enabledCount}/{items.length}
+                  </span>
+                </div>
+
+                {items.map((permission) => {
+                  const enabled = isEnabled(permission.key);
+
+                  return (
+                    <label
+                      className={`flex items-start gap-3 rounded-xl border px-3 py-2.5 transition ${
+                        enabled
+                          ? "border-accent/30 bg-accent/5"
+                          : "border-border bg-white"
+                      } ${disabled ? "opacity-70" : "cursor-pointer hover:border-accent/30"}`}
+                      key={permission.key}
+                    >
+                      <input
+                        checked={enabled}
+                        className="mt-0.5 h-4 w-4 shrink-0 rounded border-border"
+                        disabled={disabled}
+                        onChange={(event) =>
+                          onChange(permission.key, event.target.checked)
+                        }
+                        type="checkbox"
+                      />
+                      <span className="min-w-0">
+                        <span className="block text-sm font-medium text-foreground">
+                          {permission.label}
+                        </span>
+                        <span className="mt-0.5 block text-xs leading-5 text-muted">
+                          {permission.description}
+                        </span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </section>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="rounded-[20px] border border-dashed border-border bg-surface p-6 text-sm text-muted">
+          No switches match your search.
+        </div>
+      )}
     </section>
   );
 }
 
+/*
+ * A horizontal strip rather than a stacked column: the scopes are a key for the
+ * cells beside it, not a section of its own, and a vertical list pushed the
+ * matrix down the page for no benefit.
+ */
 export function PermissionLegend() {
   return (
-    <section className="rounded-[24px] border border-border bg-surface p-5 shadow-sm">
-      <p className="text-sm uppercase tracking-[0.18em] text-muted">Legend</p>
-      <div className="mt-4 grid gap-2">
-        {ACCESS_LEVELS.map((level) => (
-          <div
-            className={`rounded-xl border px-3 py-2 text-xs font-semibold ${ACCESS_STYLES[level]}`}
-            key={level}
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className="mr-1 text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+        Scope
+      </span>
+      {ACCESS_LEVELS.map((level) => (
+        <span
+          className={`rounded-lg border px-2 py-1 text-[11px] font-semibold ${ACCESS_STYLES[level]}`}
+          key={level}
+        >
+          {ACCESS_LABELS[level]}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+export type RoleWorkspaceTab = "permissions" | "administration" | "users";
+
+const ROLE_WORKSPACE_TABS: Array<{ key: RoleWorkspaceTab; label: string }> = [
+  { key: "permissions", label: "Permissions" },
+  { key: "administration", label: "Administration" },
+  { key: "users", label: "Assigned Users" },
+];
+
+/*
+ * Placement, administrative switches and assignments were competing with the
+ * matrix for the same row. As tabs each one gets the whole width.
+ */
+export function RoleWorkspaceTabs({
+  activeTab,
+  counts,
+  onChange,
+}: {
+  activeTab: RoleWorkspaceTab;
+  counts: Record<RoleWorkspaceTab, number>;
+  onChange: (tab: RoleWorkspaceTab) => void;
+}) {
+  return (
+    <div
+      className="flex flex-wrap gap-1 border-b border-border"
+      role="tablist"
+    >
+      {ROLE_WORKSPACE_TABS.map((tab) => {
+        const isActive = tab.key === activeTab;
+        return (
+          <button
+            aria-selected={isActive}
+            className={`-mb-px flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition ${
+              isActive
+                ? "border-accent text-accent"
+                : "border-transparent text-muted hover:text-foreground"
+            }`}
+            key={tab.key}
+            onClick={() => onChange(tab.key)}
+            role="tab"
+            type="button"
           >
-            {ACCESS_LABELS[level]}
-          </div>
-        ))}
-      </div>
-    </section>
+            {tab.label}
+            <span
+              className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                isActive
+                  ? "bg-accent/10 text-accent"
+                  : "bg-surface-strong text-muted"
+              }`}
+            >
+              {counts[tab.key]}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+export function ToolbarButton({
+  children,
+  onClick,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      className="rounded-xl border border-border bg-white px-3 py-2 text-sm font-medium text-foreground transition hover:border-accent/30 hover:text-accent"
+      onClick={onClick}
+      type="button"
+    >
+      {children}
+    </button>
+  );
+}
+
+/*
+ * One group at a time, with the number of privileges each one grants. Eleven
+ * expanded tables made the page five thousand pixels tall and hid where a
+ * role's access actually was.
+ */
+export function ModuleGroupRail({
+  grantedByGroup,
+  groups,
+  selected,
+  onSelect,
+}: {
+  grantedByGroup: Map<string, number>;
+  groups: Array<[string, RoleMatrixCatalog["entities"]]>;
+  selected: string | null;
+  onSelect: (category: string) => void;
+}) {
+  return (
+    <nav
+      aria-label="Module groups"
+      className="grid h-fit gap-1 rounded-[20px] border border-border bg-surface p-2 shadow-sm"
+    >
+      {groups.map(([category, entities]) => {
+        const granted = grantedByGroup.get(category) ?? 0;
+        const isActive = category === selected;
+
+        return (
+          <button
+            aria-current={isActive}
+            className={`flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-left text-sm transition ${
+              isActive
+                ? "bg-accent/10 font-semibold text-accent"
+                : "text-foreground hover:bg-surface-strong"
+            }`}
+            key={category}
+            onClick={() => onSelect(category)}
+            type="button"
+          >
+            <span className="min-w-0">
+              <span className="block truncate">{category}</span>
+              <span className="mt-0.5 block text-xs font-normal text-muted">
+                {entities.length} module{entities.length === 1 ? "" : "s"}
+              </span>
+            </span>
+            <span
+              className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${
+                granted
+                  ? "bg-emerald-50 text-emerald-700"
+                  : "bg-surface-strong text-muted"
+              }`}
+              title={`${granted} privilege${granted === 1 ? "" : "s"} granted`}
+            >
+              {granted}
+            </span>
+          </button>
+        );
+      })}
+    </nav>
   );
 }
 

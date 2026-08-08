@@ -1,6 +1,8 @@
 import {
   BadRequestException,
   ForbiddenException,
+  forwardRef,
+  Inject,
   Injectable,
   Logger,
   NotFoundException,
@@ -38,7 +40,17 @@ import {
   sanitizeHtmlTemplate,
   SECRET_KEY_PATTERN,
 } from './email/email-safety';
+import { TENANT_MODULES } from '../../common/constants/tenant-modules';
+import {
+  buildNotificationScopeKey,
+  EMAIL_TEMPLATE_SCOPE_LEVELS,
+  buildTenantNotificationScopeKey,
+  EmailTemplateScopeLevel,
+  parseNotificationScopeKey,
+} from './notifications.constants';
+import { SecretEncryptionService } from '../../common/security/secret-encryption.service';
 import { NotificationsRepository } from './notifications.repository';
+import { WorkflowRuntimeService } from '../workflows/workflow-runtime.service';
 import type {
   EmailDeliveryLogCreateInput,
   EmailProviderLookupInput,
@@ -54,6 +66,9 @@ export class NotificationsService {
     private readonly prisma: PrismaService,
     private readonly notificationsRepository: NotificationsRepository,
     private readonly emailService: EmailService,
+    private readonly secretEncryption: SecretEncryptionService,
+    @Inject(forwardRef(() => WorkflowRuntimeService))
+    private readonly workflowRuntime: WorkflowRuntimeService,
   ) {}
 
   listEvents() {
@@ -154,6 +169,29 @@ export class NotificationsService {
     return mapEmailTemplate(template);
   }
 
+  /*
+   * Everything the authoring screen needs to offer a placement: the tenant's
+   * own organizations, business units, departments and teams, plus the module
+   * catalogue. Reading it requires the same permission as reading a template.
+   */
+  async listTemplateScopeOptions(currentUser: AuthenticatedUser) {
+    const targets = await this.notificationsRepository.listScopeTargets(
+      currentUser.tenantId,
+    );
+
+    return {
+      levels: EMAIL_TEMPLATE_SCOPE_LEVELS.map((level) => ({
+        value: level,
+        label: SCOPE_LEVEL_LABELS[level],
+      })),
+      ...targets,
+      modules: TENANT_MODULES.map((module) => ({
+        value: module.key,
+        label: module.label,
+      })),
+    };
+  }
+
   async createTemplate(
     currentUser: AuthenticatedUser,
     dto: CreateEmailTemplateDto,
@@ -161,8 +199,16 @@ export class NotificationsService {
     await this.assertEventExists(dto.eventCode);
     this.validateTemplateContent(dto.subjectTemplate, dto.htmlTemplate);
 
+    const scopeKey = await this.resolveTemplateScopeKey(
+      currentUser.tenantId,
+      dto.scopeLevel,
+      dto.scopeId,
+    );
+
     const template = await this.notificationsRepository.createTenantTemplate({
       tenantId: currentUser.tenantId,
+      scopeKey,
+      moduleKey: dto.moduleKey?.trim() || null,
       eventCode: dto.eventCode.trim(),
       templateKey: dto.templateKey.trim(),
       name: dto.name.trim(),
@@ -195,6 +241,33 @@ export class NotificationsService {
       );
     }
 
+    /*
+     * Re-placing a template moves it to a different scope key. The unique
+     * constraint on (scopeKey, templateKey) means the target may already be
+     * taken, which is reported plainly rather than surfacing a database error.
+     */
+    const scopeKey =
+      dto.scopeLevel !== undefined || dto.scopeId !== undefined
+        ? await this.resolveTemplateScopeKey(
+            currentUser.tenantId,
+            dto.scopeLevel,
+            dto.scopeId,
+          )
+        : null;
+
+    if (scopeKey && scopeKey !== existing.scopeKey) {
+      const clash =
+        await this.notificationsRepository.findTemplateByScopeAndKey(
+          scopeKey,
+          existing.templateKey,
+        );
+      if (clash) {
+        throw new BadRequestException(
+          'Another template with this key already exists at the selected scope.',
+        );
+      }
+    }
+
     const activateAfterUpdate = dto.status === EmailTemplateStatus.ACTIVE;
     const data: Prisma.EmailTemplateUpdateInput = {
       ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
@@ -215,6 +288,10 @@ export class NotificationsService {
             availableVariables: dto.availableVariables as Prisma.InputJsonValue,
           }
         : {}),
+      ...(dto.moduleKey !== undefined
+        ? { moduleKey: dto.moduleKey?.trim() || null }
+        : {}),
+      ...(scopeKey && scopeKey !== existing.scopeKey ? { scopeKey } : {}),
       ...(dto.status !== undefined && !activateAfterUpdate
         ? { status: dto.status }
         : {}),
@@ -333,7 +410,7 @@ export class NotificationsService {
       fromEmail: dto.fromEmail.trim().toLowerCase(),
       fromName: dto.fromName.trim(),
       replyToEmail: dto.replyToEmail?.trim().toLowerCase() || null,
-      configuration: configuration as Prisma.InputJsonValue,
+      configuration: this.protectConfiguration(configuration),
     });
 
     return mapEmailProviderSetting(provider);
@@ -387,7 +464,7 @@ export class NotificationsService {
           ? { replyToEmail: dto.replyToEmail?.trim().toLowerCase() || null }
           : {}),
         ...(dto.configuration !== undefined
-          ? { configuration: configuration as Prisma.InputJsonValue }
+          ? { configuration: this.protectConfiguration(configuration) }
           : {}),
       },
     );
@@ -533,7 +610,34 @@ export class NotificationsService {
       eventKey: input.eventKey,
     });
 
+    /*
+     * Workflows run off the same events the inbox does, so authoring one needs
+     * no change in the emitting module. It is deliberately independent of the
+     * inbox rules: a tenant can have a workflow for an event nobody is notified
+     * about. This never throws, so a bad workflow cannot fail the action that
+     * caused it.
+     */
+    const triggerWorkflows = () =>
+      this.workflowRuntime.handleEvent({
+        tenantId: input.tenantId,
+        eventCode: input.eventKey,
+        moduleKey,
+        actorUserId: input.actorUserId ?? null,
+        correlationId: input.relatedEntityId,
+        relatedEntityType: input.relatedEntityType,
+        relatedEntityId: input.relatedEntityId,
+        variables: {
+          ...(input.metadata ?? {}),
+          eventKey: input.eventKey,
+          moduleKey,
+          relatedEntityType: input.relatedEntityType,
+          relatedEntityId: input.relatedEntityId,
+          relatedRecordNumber: input.relatedRecordNumber ?? '',
+        },
+      });
+
     if (!rules.length) {
+      await triggerWorkflows();
       return { created: 0, items: [] };
     }
 
@@ -646,6 +750,8 @@ export class NotificationsService {
       }
     }
 
+    await triggerWorkflows();
+
     return { created: created.length, items: created };
   }
 
@@ -671,6 +777,52 @@ export class NotificationsService {
     throw new NotImplementedException(
       'Notification dispatch will be implemented after queues/providers are introduced.',
     );
+  }
+
+  /*
+   * Turns an authored placement into a scope key. Every level below tenant is
+   * checked against the tenant first: without that, a user could point a
+   * template at another tenant's business unit and have it resolve for them.
+   */
+  private async resolveTemplateScopeKey(
+    tenantId: string,
+    level: EmailTemplateScopeLevel | undefined,
+    scopeId: string | null | undefined,
+  ) {
+    if (!level || level === 'TENANT') {
+      return buildTenantNotificationScopeKey(tenantId);
+    }
+
+    if (!scopeId) {
+      throw new BadRequestException(
+        `A ${SCOPE_LABELS[level]} must be selected for this scope.`,
+      );
+    }
+
+    const exists = await this.notificationsRepository.scopeTargetExists({
+      tenantId,
+      level,
+      scopeId,
+    });
+
+    if (!exists) {
+      throw new BadRequestException(
+        `The selected ${SCOPE_LABELS[level]} was not found in this tenant.`,
+      );
+    }
+
+    return buildNotificationScopeKey(level, scopeId);
+  }
+
+  /*
+   * Credentials are encrypted before they reach the database. Masking hid them
+   * from API responses but left them readable in the database, a backup or a
+   * replica.
+   */
+  private protectConfiguration(configuration: Record<string, unknown>) {
+    return this.secretEncryption.encryptSecrets(configuration, (key) =>
+      SECRET_KEY_PATTERN.test(key),
+    ) as Prisma.InputJsonValue;
   }
 
   private async assertEventExists(eventCode: string) {
@@ -1104,6 +1256,22 @@ function validateProviderConfiguration(
   }
 }
 
+const SCOPE_LABELS: Record<EmailTemplateScopeLevel, string> = {
+  TENANT: 'tenant',
+  ORGANIZATION: 'organization',
+  BUSINESS_UNIT: 'business unit',
+  DEPARTMENT: 'department',
+  TEAM: 'team',
+};
+
+const SCOPE_LEVEL_LABELS: Record<EmailTemplateScopeLevel, string> = {
+  TENANT: 'Whole tenant',
+  ORGANIZATION: 'Organization',
+  BUSINESS_UNIT: 'Business unit',
+  DEPARTMENT: 'Department',
+  TEAM: 'Team',
+};
+
 function mapEmailTemplate(template: EmailTemplate) {
   return {
     id: template.id,
@@ -1116,6 +1284,10 @@ function mapEmailTemplate(template: EmailTemplate) {
     htmlTemplate: template.htmlTemplate,
     textTemplate: template.textTemplate,
     availableVariables: template.availableVariables,
+    moduleKey: template.moduleKey,
+    scopeKey: template.scopeKey,
+    scopeLevel: parseNotificationScopeKey(template.scopeKey).level,
+    scopeId: parseNotificationScopeKey(template.scopeKey).id,
     status: template.status,
     version: template.version,
     isSystem: template.isSystem,

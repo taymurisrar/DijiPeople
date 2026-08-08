@@ -366,8 +366,8 @@ const supplementalSettingsItems = [
   ),
   supplementalItem(
     "workflow-templates",
-    "Workflow Templates",
-    "Configure reusable workflow definitions.",
+    "Workflows",
+    "Send email automatically when an event happens, scoped to a module and to any part of the organization.",
     "file-cog",
   ),
   supplementalItem(
@@ -443,7 +443,15 @@ export const settingsRuntimeItems: readonly SettingsRuntimeItem[] = [
   const [categoryLabel] = categoryDefinitions[category];
   const itemRouteKey = routeKeys[item.key] ?? item.key;
   const conciseRoute = `/settings/${category}/${itemRouteKey}`;
-  const route = `/settings/${category}/${group}/${itemRouteKey}`;
+  /*
+   * When the group and the item share a key the three segment form doubles it
+   * (".../templates/templates"), which collides with that group's record detail
+   * route and renders not-found. The concise form is the real page.
+   */
+  const route =
+    group === itemRouteKey
+      ? conciseRoute
+      : `/settings/${category}/${group}/${itemRouteKey}`;
   const adapter = getSettingsAdapter(item.key);
   const isReadOnly = adapter?.mode === "read-only";
   const isSpecialized = adapter?.mode === "specialized";
@@ -495,8 +503,20 @@ export const settingsRuntimeItems: readonly SettingsRuntimeItem[] = [
   };
 });
 
+/*
+ * Items served by a purpose-built page rather than the generic runtime. They
+ * still belong in the information architecture so they appear in the settings
+ * navigation and search, but a generic name/code/JSON adapter would be dead
+ * code sitting behind a URL that a real page already answers.
+ *
+ * Adding a key here is a promise that a physical route exists for it.
+ */
+const DEDICATED_PAGE_KEYS = new Set<string>(["workflow-templates"]);
+
 const missingAdapterKeys = settingsRuntimeItems
-  .filter((item) => !getSettingsAdapter(item.key))
+  .filter(
+    (item) => !getSettingsAdapter(item.key) && !DEDICATED_PAGE_KEYS.has(item.key),
+  )
   .map((item) => item.key);
 if (missingAdapterKeys.length) {
   throw new Error(

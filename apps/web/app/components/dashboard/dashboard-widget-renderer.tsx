@@ -44,35 +44,136 @@ export function DashboardWidgetRenderer({
   return <SummaryCard widget={widget} />;
 }
 
+/*
+ * Distribution widgets answer "how is this split up", so the chart leads with
+ * the total and each slice's share. Bare bars scaled to the largest value made
+ * every chart look full regardless of how lopsided the split actually was.
+ *
+ * Drawn with plain elements rather than a charting library: these are ranked
+ * proportions, and a dependency would cost more than it explains.
+ */
+
+const CHART_SERIES_COLORS = [
+  "#2563eb",
+  "#0891b2",
+  "#7c3aed",
+  "#c026d3",
+  "#ea580c",
+  "#16a34a",
+  "#ca8a04",
+  "#dc2626",
+];
+
+/* Beyond this the bars stop being readable and the tail is rolled into Other. */
+const MAX_CHART_SLICES = 7;
+
 function ChartCard({ widget }: { widget: DashboardWidget }) {
-  const rows = getRows(widget).map((row) => ({
-    label: formatValue(row.label ?? row.key ?? row.id ?? "Item"),
-    value: Number(row.value ?? 0),
-  }));
-  const maximum = Math.max(...rows.map((row) => row.value), 0);
+  const rows = getRows(widget)
+    .map((row) => ({
+      label: formatValue(row.label ?? row.key ?? row.id ?? "Item"),
+      value: Number(row.value ?? 0),
+    }))
+    .filter((row) => Number.isFinite(row.value) && row.value > 0)
+    .sort((left, right) => right.value - left.value);
+
+  const total = rows.reduce((sum, row) => sum + row.value, 0);
+
+  /*
+   * The tail is summed rather than dropped so the segments always add up to the
+   * total shown above them.
+   */
+  const head = rows.slice(0, MAX_CHART_SLICES);
+  const tail = rows.slice(MAX_CHART_SLICES);
+  const slices = tail.length
+    ? [
+        ...head,
+        {
+          label: `Other (${tail.length})`,
+          value: tail.reduce((sum, row) => sum + row.value, 0),
+        },
+      ]
+    : head;
+
+  const share = (value: number) => (total ? (value / total) * 100 : 0);
+
   return (
     <article className="rounded-xl border border-border bg-surface p-5 shadow-sm">
       <CardHeader widget={widget} />
-      {rows.length ? (
-        <div className="mt-5 grid gap-3">
-          {rows.slice(0, 12).map((row) => (
-            <div className="grid gap-1" key={row.label}>
-              <div className="flex justify-between gap-3 text-xs text-muted">
-                <span>{row.label}</span>
-                <span>{row.value.toLocaleString()}</span>
-              </div>
-              <div className="h-2 overflow-hidden rounded-full bg-muted/15">
-                <div
-                  className="h-full rounded-full bg-accent"
-                  style={{ width: `${maximum ? Math.max(2, (row.value / maximum) * 100) : 0}%` }}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
+
+      {slices.length ? (
+        <>
+          <div className="mt-4 flex items-baseline gap-2">
+            <span className="text-2xl font-semibold tracking-tight text-foreground">
+              {total.toLocaleString()}
+            </span>
+            <span className="text-sm text-muted">
+              across {slices.length} {slices.length === 1 ? "group" : "groups"}
+            </span>
+          </div>
+
+          {/* One stacked bar so the whole split reads at a glance. */}
+          <div
+            aria-hidden
+            className="mt-3 flex h-2.5 overflow-hidden rounded-full bg-muted/15"
+          >
+            {slices.map((slice, index) => (
+              <div
+                className="h-full first:rounded-l-full last:rounded-r-full"
+                key={`segment-${slice.label}`}
+                style={{
+                  width: `${share(slice.value)}%`,
+                  backgroundColor:
+                    CHART_SERIES_COLORS[index % CHART_SERIES_COLORS.length],
+                }}
+              />
+            ))}
+          </div>
+
+          <ul className="mt-4 grid gap-2.5">
+            {slices.map((slice, index) => (
+              <li className="grid gap-1" key={slice.label}>
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span
+                      aria-hidden
+                      className="h-2.5 w-2.5 shrink-0 rounded-sm"
+                      style={{
+                        backgroundColor:
+                          CHART_SERIES_COLORS[
+                            index % CHART_SERIES_COLORS.length
+                          ],
+                      }}
+                    />
+                    <span className="truncate text-foreground">
+                      {slice.label}
+                    </span>
+                  </span>
+                  <span className="shrink-0 tabular-nums text-muted">
+                    <span className="font-medium text-foreground">
+                      {slice.value.toLocaleString()}
+                    </span>{" "}
+                    ({share(slice.value).toFixed(share(slice.value) < 10 ? 1 : 0)}%)
+                  </span>
+                </div>
+                <div className="h-1.5 overflow-hidden rounded-full bg-muted/15">
+                  <div
+                    className="h-full rounded-full"
+                    style={{
+                      /* A visible sliver beats an invisible bar for small shares. */
+                      width: `${Math.max(1.5, share(slice.value))}%`,
+                      backgroundColor:
+                        CHART_SERIES_COLORS[index % CHART_SERIES_COLORS.length],
+                    }}
+                  />
+                </div>
+              </li>
+            ))}
+          </ul>
+        </>
       ) : (
         <EmptyState message={widget.emptyState} />
       )}
+
       <WidgetAction action={widget.action} />
     </article>
   );
@@ -384,13 +485,51 @@ function humanize(value: string) {
     .replace(/\b\w/g, (match) => match.toUpperCase());
 }
 
+/*
+ * Widget rows arrive as raw API values, so timestamps reach the screen as
+ * "2026-08-07T16:44:50.051Z" unless they are recognised here. Dates are the
+ * only type that needs interpreting; everything else is shown as sent.
+ */
+const ISO_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
 function formatValue(value: unknown): string {
   if (value === null || value === undefined || value === "") {
     return "-";
   }
 
-  if (typeof value === "string" || typeof value === "number") {
-    return String(value);
+  if (typeof value === "string") {
+    if (ISO_TIMESTAMP.test(value)) {
+      const parsed = new Date(value);
+      if (!Number.isNaN(parsed.getTime())) {
+        return parsed.toLocaleString(undefined, {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      }
+    }
+
+    if (ISO_DATE.test(value)) {
+      // Parsed as UTC so a date-only value cannot slip a day in a west offset.
+      const parsed = new Date(`${value}T00:00:00Z`);
+      if (!Number.isNaN(parsed.getTime())) {
+        return parsed.toLocaleDateString(undefined, {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+          timeZone: "UTC",
+        });
+      }
+    }
+
+    return value;
+  }
+
+  if (typeof value === "number") {
+    return value.toLocaleString();
   }
 
   if (typeof value === "boolean") {

@@ -7,6 +7,8 @@ import {
 } from '@prisma/client';
 import { performance } from 'node:perf_hooks';
 import { TenantSettingsResolverService } from '../../tenant-settings/tenant-settings-resolver.service';
+import { SecretEncryptionService } from '../../../common/security/secret-encryption.service';
+import { SECRET_KEY_PATTERN } from './email-safety';
 import { NotificationsRepository } from '../notifications.repository';
 import { EmailProviderFactory } from './email-provider-factory.service';
 import {
@@ -17,6 +19,22 @@ import {
 export type SendTemplateEmailInput = {
   tenantId: string;
   eventCode: string;
+  /*
+   * Where the record this email is about sits. Supplying any of these lets a
+   * team, department, business unit or organization template override the
+   * tenant default; omitting them resolves exactly as before.
+   */
+  organizationId?: string | null;
+  businessUnitId?: string | null;
+  departmentId?: string | null;
+  teamId?: string | null;
+  /*
+   * The person the email is about. When the four placement fields above are
+   * not supplied, placement is read from this employee's record so a caller
+   * that only holds an id still gets scoped template resolution.
+   */
+  subjectEmployeeId?: string | null;
+  subjectUserId?: string | null;
   templateKey?: string;
   templateId?: string;
   recipient: string;
@@ -54,7 +72,47 @@ export class EmailExecutionService {
     private readonly renderer: EmailTemplateRendererService,
     private readonly providerFactory: EmailProviderFactory,
     private readonly tenantSettingsResolver: TenantSettingsResolverService,
+    private readonly secretEncryption: SecretEncryptionService,
   ) {}
+
+  /*
+   * Explicit placement always wins; the employee lookup only fills what the
+   * caller did not state, and a missing or unlinked employee simply leaves the
+   * chain at tenant level.
+   */
+  private async resolveScope(input: SendTemplateEmailInput) {
+    const explicit = {
+      organizationId: input.organizationId ?? null,
+      businessUnitId: input.businessUnitId ?? null,
+      departmentId: input.departmentId ?? null,
+      teamId: input.teamId ?? null,
+    };
+
+    const hasExplicitScope = Object.values(explicit).some(Boolean);
+    if (
+      hasExplicitScope ||
+      (!input.subjectEmployeeId && !input.subjectUserId)
+    ) {
+      return explicit;
+    }
+
+    try {
+      const placement = await this.repository.findEmployeePlacement({
+        tenantId: input.tenantId,
+        employeeId: input.subjectEmployeeId,
+        userId: input.subjectUserId,
+      });
+      return placement ? { ...explicit, ...placement } : explicit;
+    } catch (error) {
+      // Template resolution must never block a send.
+      this.logger.warn(
+        `Could not resolve email scope for ${input.eventCode}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      return explicit;
+    }
+  }
 
   async previewTemplate(input: {
     tenantId: string;
@@ -81,6 +139,7 @@ export class EmailExecutionService {
   ): Promise<SendTemplateEmailResult> {
     const startedAt = performance.now();
     const templateResolutionStartedAt = performance.now();
+    const scope = await this.resolveScope(input);
     const template = input.templateId
       ? await this.repository.findVisibleTemplateById(
           input.tenantId,
@@ -90,6 +149,7 @@ export class EmailExecutionService {
           tenantId: input.tenantId,
           eventCode: input.eventCode,
           templateKey: input.templateKey,
+          ...scope,
         });
     const templateResolutionDurationMs = Math.round(
       performance.now() - templateResolutionStartedAt,
@@ -274,6 +334,11 @@ export class EmailExecutionService {
     const providerStartedAt = performance.now();
     try {
       const sendResult = await resolvedProvider.provider.send({
+        /* Stored encrypted; the provider needs the real credential. */
+        providerConfiguration: this.secretEncryption.decryptSecrets(
+          resolvedProvider.configuration,
+          (key) => SECRET_KEY_PATTERN.test(key),
+        ) as Record<string, unknown> | null,
         tenantId: input.tenantId,
         eventCode: input.eventCode,
         recipient: input.recipient,

@@ -39,6 +39,13 @@ export const ERROR_CATALOG = {
     'warning',
     'auth',
   ),
+  AUTH_PASSWORD_EXPIRED: entry(
+    401,
+    'Password expired',
+    'Your password has expired. Reset it to sign in again.',
+    'warning',
+    'auth',
+  ),
   AUTH_ACCOUNT_DISABLED: entry(
     403,
     'Account disabled',

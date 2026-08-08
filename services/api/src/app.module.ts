@@ -42,6 +42,7 @@ import { LoansModule } from './modules/loans/loans.module';
 import { LookupsModule } from './modules/lookups/lookups.module';
 import { ModuleViewsModule } from './modules/views/module-views.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { WorkflowsModule } from './modules/workflows/workflows.module';
 import { OnboardingModule } from './modules/onboarding/onboarding.module';
 import { OrganizationModule } from './modules/organization/organization.module';
 import { PayComponentsModule } from './modules/pay-components/pay-components.module';
@@ -106,6 +107,7 @@ import { SupportCasesModule } from './modules/support-cases/support-cases.module
     LookupsModule,
     ModuleViewsModule,
     NotificationsModule,
+    WorkflowsModule,
     OnboardingModule,
     OrganizationModule,
     PayComponentsModule,

@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { EmailProviderType } from '@prisma/client';
+import { createTransport } from 'nodemailer';
 import type {
   EmailProvider,
   EmailSendPayload,
@@ -122,14 +123,99 @@ function extractBootstrapArtifacts(payload: EmailSendPayload) {
   };
 }
 
+/** Normalises the shared address list shape into what nodemailer expects. */
+function toAddressList(value: unknown): string | string[] | undefined {
+  if (!value) return undefined;
+  if (Array.isArray(value)) {
+    const items = value.filter(
+      (entry): entry is string => typeof entry === 'string' && entry.length > 0,
+    );
+    return items.length ? items : undefined;
+  }
+  return typeof value === 'string' && value ? value : undefined;
+}
+
+/*
+ * Configuration arrives as unknown JSON. Anything that is not already a scalar
+ * is treated as absent rather than stringified, since `String({})` would send
+ * "[object Object]" as a host or a password and fail in a way that looks like a
+ * credential problem.
+ */
+function configText(value: unknown): string {
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number') return String(value);
+  return '';
+}
+
 @Injectable()
 export class SmtpEmailProvider implements EmailProvider {
   readonly providerType = EmailProviderType.SMTP;
 
-  async send(): Promise<EmailSendResult> {
-    throw new BadRequestException(
-      'SMTP provider adapter is prepared but nodemailer is not installed. Run: npm --workspace api install nodemailer && npm --workspace api install -D @types/nodemailer',
-    );
+  private readonly logger = new Logger(SmtpEmailProvider.name);
+
+  async send(payload: EmailSendPayload): Promise<EmailSendResult> {
+    const config = payload.providerConfiguration ?? {};
+    this.validateConfig(config);
+
+    const auth =
+      config.auth && typeof config.auth === 'object'
+        ? (config.auth as { user?: string; pass?: string })
+        : {
+            user: configText(config.username),
+            pass: configText(config.password),
+          };
+
+    const port = Number(config.port);
+    const transport = createTransport({
+      host: configText(config.host),
+      port,
+      // Implicit TLS is port 465; other ports negotiate STARTTLS when offered.
+      secure: config.secure === true || port === 465,
+      auth: { user: auth.user ?? '', pass: auth.pass ?? '' },
+    });
+
+    const from = payload.fromName
+      ? `${payload.fromName} <${payload.fromEmail}>`
+      : payload.fromEmail;
+
+    try {
+      const info = await transport.sendMail({
+        from,
+        to: payload.recipient,
+        cc: toAddressList(payload.cc),
+        bcc: toAddressList(payload.bcc),
+        replyTo: payload.replyToEmail ?? undefined,
+        subject: payload.subject,
+        html: payload.html,
+        text: payload.text ?? undefined,
+      });
+
+      return {
+        accepted: (info.accepted?.length ?? 0) > 0,
+        providerType: this.providerType,
+        providerMessageId: info.messageId ?? null,
+        response: {
+          accepted: info.accepted,
+          rejected: info.rejected,
+          response: info.response,
+        },
+      };
+    } catch (error) {
+      // Surfaced to the delivery log rather than thrown, so one bad mailbox
+      // does not abort the notification that triggered it.
+      const message =
+        error instanceof Error ? error.message : 'SMTP send failed.';
+      this.logger.error(`SMTP send failed: ${message}`);
+
+      return {
+        accepted: false,
+        providerType: this.providerType,
+        providerMessageId: null,
+        response: { error: message },
+      };
+    } finally {
+      transport.close();
+    }
   }
 
   validateConfig(config: Record<string, unknown>) {

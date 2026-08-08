@@ -438,6 +438,8 @@ export class DashboardService {
       setup,
       dataQuality,
       recentActivity,
+      distributionSection,
+      analyticsSection,
     ] = await Promise.all([
       this.countEmployees(currentUser, {
         employmentStatus: EmployeeEmploymentStatus.ACTIVE,
@@ -460,6 +462,8 @@ export class DashboardService {
       this.getTenantSetupHealth(currentUser),
       this.getDataQuality(currentUser),
       this.getRecentActivity(currentUser),
+      this.buildWorkforceDistributionSection(currentUser, 15),
+      this.buildOperationsAnalyticsSection(currentUser, 16),
     ]);
 
     const pendingApprovals =
@@ -524,6 +528,8 @@ export class DashboardService {
             pendingApprovals ? 'warning' : 'good',
           ),
         ]),
+        distributionSection,
+        analyticsSection,
         this.section('attendance', 'Attendance operations', 'grid', 20, [
           this.summaryWidget(
             'attendanceToday',
@@ -692,6 +698,7 @@ export class DashboardService {
       noManager,
       lifecycleRows,
       hrSignals,
+      hrAnalyticsSection,
     ] = await Promise.all([
       this.countEmployees(currentUser, {
         employmentStatus: EmployeeEmploymentStatus.ACTIVE,
@@ -713,6 +720,11 @@ export class DashboardService {
       this.countEmployees(currentUser, { managerEmployeeId: null }),
       this.getEmployeeLifecycleRows(currentUser, confirmationCutoff),
       this.getWorkflowSignals(currentUser),
+      this.buildOperationsAnalyticsSection(
+        currentUser,
+        15,
+        'Leave and attendance analytics',
+      ),
     ]);
 
     const pendingHrWork =
@@ -794,6 +806,7 @@ export class DashboardService {
             hrSignals.benefitApprovals ? 'warning' : 'good',
           ),
         ]),
+        hrAnalyticsSection,
         this.section('lifecycle', 'Employee lifecycle', 'table', 20, [
           this.tableWidget(
             'lifecycleRows',
@@ -2216,6 +2229,198 @@ export class DashboardService {
     });
   }
 
+  /*
+   * Headcount split by placement and status. Kept as one method so any view
+   * that wants the distribution gets the same numbers, scoped by the caller's
+   * own access rather than the tenant at large.
+   */
+  private async buildWorkforceDistributionSection(
+    currentUser: AuthenticatedUser,
+    order: number,
+  ) {
+    const employeeWhere = this.employeeScopedWhere(currentUser);
+
+    const [statusGroups, departmentGroups, businessUnitGroups] =
+      await Promise.all([
+        this.prisma.employee.groupBy({
+          by: ['employmentStatus'],
+          where: employeeWhere,
+          _count: { _all: true },
+        }),
+        this.prisma.employee.groupBy({
+          by: ['departmentId'],
+          where: employeeWhere,
+          _count: { _all: true },
+        }),
+        this.prisma.employee.groupBy({
+          by: ['businessUnitId'],
+          where: employeeWhere,
+          _count: { _all: true },
+        }),
+      ]);
+
+    const [departments, businessUnits] = await Promise.all([
+      this.prisma.department.findMany({
+        where: {
+          tenantId: currentUser.tenantId,
+          id: {
+            in: departmentGroups.flatMap((group) =>
+              group.departmentId ? [group.departmentId] : [],
+            ),
+          },
+        },
+        select: { id: true, name: true },
+      }),
+      this.prisma.businessUnit.findMany({
+        where: {
+          tenantId: currentUser.tenantId,
+          id: {
+            in: businessUnitGroups.flatMap((group) =>
+              group.businessUnitId ? [group.businessUnitId] : [],
+            ),
+          },
+        },
+        select: { id: true, name: true },
+      }),
+    ]);
+
+    const departmentNames = new Map(
+      departments.map((item) => [item.id, item.name]),
+    );
+    const businessUnitNames = new Map(
+      businessUnits.map((item) => [item.id, item.name]),
+    );
+
+    return this.section(
+      'distribution',
+      'Workforce distribution',
+      'grid',
+      order,
+      [
+        this.chartWidget(
+          'departmentDistribution',
+          'Headcount by department',
+          departmentGroups.map((group) => ({
+            key: group.departmentId ?? 'unassigned',
+            label: group.departmentId
+              ? (departmentNames.get(group.departmentId) ??
+                'Unknown department')
+              : 'Unassigned',
+            value: group._count._all,
+          })),
+        ),
+        this.chartWidget(
+          'businessUnitDistribution',
+          'Headcount by business unit',
+          businessUnitGroups.map((group) => ({
+            key: group.businessUnitId ?? 'unassigned',
+            label: group.businessUnitId
+              ? (businessUnitNames.get(group.businessUnitId) ??
+                'Unknown business unit')
+              : 'Unassigned',
+            value: group._count._all,
+          })),
+        ),
+        this.chartWidget(
+          'statusDistribution',
+          'Employment status',
+          statusGroups.map((group) => ({
+            key: group.employmentStatus,
+            label: group.employmentStatus,
+            value: group._count._all,
+          })),
+        ),
+      ],
+    );
+  }
+
+  /*
+   * Charts that answer the question a role actually has, built from the same
+   * scoped employee set the rest of that view uses. Leave and attendance are
+   * grouped rather than counted so the screen shows a shape, not a single
+   * number with no context.
+   */
+  private async buildOperationsAnalyticsSection(
+    currentUser: AuthenticatedUser,
+    order: number,
+    title = 'Operational analytics',
+  ) {
+    const employeeWhere = this.employeeScopedWhere(currentUser);
+    const since = new Date();
+    since.setMonth(since.getMonth() - 6);
+
+    const [leaveByStatus, leaveByType, attendanceByStatus, leaveTypes] =
+      await Promise.all([
+        this.prisma.leaveRequest.groupBy({
+          by: ['status'],
+          where: { tenantId: currentUser.tenantId, employee: employeeWhere },
+          _count: { _all: true },
+        }),
+        this.prisma.leaveRequest.groupBy({
+          by: ['leaveTypeId'],
+          where: {
+            tenantId: currentUser.tenantId,
+            employee: employeeWhere,
+            createdAt: { gte: since },
+          },
+          _count: { _all: true },
+        }),
+        this.prisma.attendanceEntry.groupBy({
+          by: ['status'],
+          where: {
+            tenantId: currentUser.tenantId,
+            employee: employeeWhere,
+            date: { gte: since },
+          },
+          _count: true,
+        }),
+        this.prisma.leaveType.findMany({
+          where: { tenantId: currentUser.tenantId },
+          select: { id: true, name: true },
+        }),
+      ]);
+
+    const leaveTypeNames = new Map(
+      leaveTypes.map((item) => [item.id, item.name]),
+    );
+
+    return this.section(
+      title.toLowerCase().replace(/\s+/g, '-'),
+      title,
+      'grid',
+      order,
+      [
+        this.chartWidget(
+          'leaveByStatus',
+          'Leave requests by status',
+          leaveByStatus.map((group) => ({
+            key: group.status,
+            label: humanizeEnum(group.status),
+            value: group._count._all,
+          })),
+        ),
+        this.chartWidget(
+          'leaveByType',
+          'Leave taken by type (6 months)',
+          leaveByType.map((group) => ({
+            key: group.leaveTypeId,
+            label: leaveTypeNames.get(group.leaveTypeId) ?? 'Unknown type',
+            value: group._count._all,
+          })),
+        ),
+        this.chartWidget(
+          'attendanceByStatus',
+          'Attendance mix (6 months)',
+          attendanceByStatus.map((group) => ({
+            key: group.status,
+            label: humanizeEnum(group.status),
+            value: group._count,
+          })),
+        ),
+      ],
+    );
+  }
+
   private countEmployees(
     currentUser: AuthenticatedUser,
     where: Prisma.EmployeeWhereInput = {},
@@ -2601,4 +2806,10 @@ export class DashboardService {
     end.setDate(start.getDate() + 1);
     return { start, end };
   }
+}
+
+/* PENDING_APPROVAL -> Pending approval, so charts read like prose. */
+function humanizeEnum(value: string) {
+  const text = String(value).replace(/[_-]+/g, ' ').toLowerCase().trim();
+  return text ? text.charAt(0).toUpperCase() + text.slice(1) : 'Unknown';
 }

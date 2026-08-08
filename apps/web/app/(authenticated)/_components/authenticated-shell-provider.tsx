@@ -62,6 +62,8 @@ type PatchedWindow = Window & {
   __dpAuthRedirectReason?: string | null;
   __dpFetchPatchConsumers?: number;
   __dpRefreshInFlight?: Promise<boolean> | null;
+  /* When the session was found to be unrecoverable, so we stop retrying. */
+  __dpRefreshDeadUntil?: number | null;
   __dpLastActivitySyncAt?: number;
 };
 
@@ -630,10 +632,35 @@ function isRefreshEndpoint(url: string) {
   return url === "/api/auth/refresh" || url.endsWith("/api/auth/refresh");
 }
 
+/*
+ * A revoked or expired session cannot be refreshed back into existence, so once
+ * the server says so we stop asking for a short while. Without this, every new
+ * wave of requests started another refresh: the in-flight guard below only
+ * merges calls that overlap, not ones that arrive a moment apart, which is how
+ * a single revoked session turned into a burst of refresh traffic.
+ */
+const REFRESH_DEAD_WINDOW_MS = 30_000;
+
+function isRefreshKnownDead(globalWindow: PatchedWindow) {
+  const deadUntil = globalWindow.__dpRefreshDeadUntil;
+  if (!deadUntil) return false;
+
+  if (Date.now() >= deadUntil) {
+    globalWindow.__dpRefreshDeadUntil = null;
+    return false;
+  }
+
+  return true;
+}
+
 async function attemptSessionRefresh(
   originalFetch: typeof window.fetch,
   globalWindow: PatchedWindow,
 ) {
+  if (isRefreshKnownDead(globalWindow)) {
+    return false;
+  }
+
   if (globalWindow.__dpRefreshInFlight) {
     return globalWindow.__dpRefreshInFlight;
   }
@@ -643,8 +670,23 @@ async function attemptSessionRefresh(
       const response = await originalFetch("/api/auth/refresh", {
         method: "POST",
       });
-      return response.ok;
+
+      if (response.ok) {
+        globalWindow.__dpRefreshDeadUntil = null;
+        return true;
+      }
+
+      /*
+       * 401 and 403 are terminal: the session is gone. Anything else may be a
+       * transient server problem and stays retryable.
+       */
+      if (response.status === 401 || response.status === 403) {
+        globalWindow.__dpRefreshDeadUntil = Date.now() + REFRESH_DEAD_WINDOW_MS;
+      }
+
+      return false;
     } catch {
+      // Network failure; the session may still be fine once connectivity returns.
       return false;
     } finally {
       globalWindow.__dpRefreshInFlight = null;

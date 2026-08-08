@@ -91,7 +91,7 @@ export class CandidatesController {
   }
 
   @Delete()
-  @Permissions('recruitment.update')
+  @Permissions('recruitment.delete')
   deleteMany(
     @CurrentUser() user: AuthenticatedUser,
     @Body() body: { recordIds?: string[]; ids?: string[] },

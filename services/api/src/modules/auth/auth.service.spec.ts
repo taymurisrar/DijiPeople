@@ -58,6 +58,14 @@ describe('AuthService', () => {
       {} as never,
       {} as never,
       { log: jest.fn() } as never,
+      {
+        assertPasswordMeetsPolicy: jest.fn().mockResolvedValue(undefined),
+      } as never,
+      {
+        isLocked: jest.fn().mockReturnValue(false),
+        registerFailure: jest.fn().mockResolvedValue({ locked: false }),
+        registerSuccess: jest.fn().mockResolvedValue(undefined),
+      } as never,
     );
   });
 

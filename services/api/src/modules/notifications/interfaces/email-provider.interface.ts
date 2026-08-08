@@ -15,6 +15,12 @@ export type EmailSendPayload = {
   fromName: string;
   replyToEmail?: string | null;
   metadata?: Record<string, unknown> | null;
+  /**
+   * Resolved provider settings for this tenant. Transports that talk to an
+   * external service read their host and credentials from here; the console
+   * transport ignores it.
+   */
+  providerConfiguration?: Record<string, unknown> | null;
 };
 
 export type EmailSendResult = {

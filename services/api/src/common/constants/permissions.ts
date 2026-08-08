@@ -182,6 +182,8 @@ export const PERMISSION_KEYS = {
   NOTIFICATIONS_MANAGE_TEMPLATES: 'notifications.manageTemplates',
   NOTIFICATION_TEMPLATES_READ: 'notification.templates.read',
   NOTIFICATION_TEMPLATES_MANAGE: 'notification.templates.manage',
+  WORKFLOWS_READ: 'workflows.read',
+  WORKFLOWS_MANAGE: 'workflows.manage',
   NOTIFICATION_PROVIDERS_READ: 'notification.providers.read',
   NOTIFICATION_PROVIDERS_MANAGE: 'notification.providers.manage',
   NOTIFICATION_LOGS_READ: 'notification.logs.read',
@@ -386,6 +388,18 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     name: 'Manage notification templates',
     description:
       'Create, update, version, and archive tenant notification email templates.',
+  },
+  {
+    key: PERMISSION_KEYS.WORKFLOWS_READ,
+    name: 'Read workflows',
+    description:
+      'View tenant workflows, their triggers and actions, and their run history.',
+  },
+  {
+    key: PERMISSION_KEYS.WORKFLOWS_MANAGE,
+    name: 'Manage workflows',
+    description:
+      'Create, update, activate and delete workflows that send email when an event happens.',
   },
   {
     key: PERMISSION_KEYS.NOTIFICATION_PROVIDERS_READ,
@@ -925,6 +939,18 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     key: 'recruitment.advance',
     name: 'Advance recruitment',
     description: 'Move applications through recruitment stages and decisions.',
+  },
+  {
+    key: 'recruitment.delete',
+    name: 'Delete recruitment records',
+    description:
+      'Permanently remove candidates and their documents. Separate from update because the removal cannot be undone.',
+  },
+  {
+    key: 'onboarding.delete',
+    name: 'Delete onboarding records',
+    description:
+      'Permanently remove onboarding records. Separate from update because the removal cannot be undone.',
   },
   {
     key: 'attendance.read',

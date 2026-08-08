@@ -39,6 +39,17 @@ export type NotificationPreferenceItem = {
   metadata: unknown;
 };
 
+/*
+ * Where a template applies. SYSTEM is the read-only platform default; every
+ * other level is authored by the tenant and beats the levels above it.
+ */
+export type EmailTemplateScopeLevel =
+  | "TENANT"
+  | "ORGANIZATION"
+  | "BUSINESS_UNIT"
+  | "DEPARTMENT"
+  | "TEAM";
+
 export type EmailTemplate = {
   id: string;
   tenantId: string | null;
@@ -50,11 +61,26 @@ export type EmailTemplate = {
   htmlTemplate: string;
   textTemplate: string | null;
   availableVariables: Record<string, unknown>;
+  moduleKey: string | null;
+  scopeKey: string;
+  scopeLevel: EmailTemplateScopeLevel | "SYSTEM";
+  scopeId: string | null;
   status: EmailTemplateStatus;
   version: number;
   isSystem: boolean;
   createdAt: string;
   updatedAt: string;
+};
+
+export type ScopeTarget = { id: string; name: string };
+
+export type TemplateScopeOptions = {
+  levels: { value: EmailTemplateScopeLevel; label: string }[];
+  organizations: ScopeTarget[];
+  businessUnits: (ScopeTarget & { organizationId: string | null })[];
+  departments: (ScopeTarget & { businessUnitId: string | null })[];
+  teams: (ScopeTarget & { departmentId: string | null })[];
+  modules: { value: string; label: string }[];
 };
 
 export type EmailProviderSetting = {
@@ -195,6 +221,8 @@ export const getEmailTemplates = () =>
   requestJson<{ items: EmailTemplate[] }>("/email-templates");
 export const getEmailTemplate = (id: string) =>
   requestJson<EmailTemplate>(`/email-templates/${id}`);
+export const getTemplateScopeOptions = () =>
+  requestJson<TemplateScopeOptions>("/email-templates/scope-options");
 export const createEmailTemplate = (body: unknown) =>
   requestJson<EmailTemplate>("/email-templates", {
     method: "POST",
@@ -234,6 +262,26 @@ export const testSendEmailTemplate = (id: string, body: unknown) =>
     body: JSON.stringify(body),
   });
 
+export type ProviderField = {
+  key: string;
+  label: string;
+  type: "text" | "number" | "password" | "boolean";
+  required: boolean;
+  placeholder?: string;
+  helpText?: string;
+  secret?: boolean;
+  defaultValue?: string | number | boolean;
+};
+
+export type ProviderSchema = {
+  providerType: EmailProviderType;
+  label: string;
+  description: string;
+  fields: ProviderField[];
+};
+
+export const getProviderFieldSchemas = () =>
+  requestJson<{ items: ProviderSchema[] }>("/email-providers/field-schema");
 export const getEmailProviders = () =>
   requestJson<{ items: EmailProviderSetting[] }>("/email-providers");
 export const createEmailProvider = (body: unknown) =>

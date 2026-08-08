@@ -1,5 +1,8 @@
 import { apiRequestJson } from "@/lib/server-api";
-import type { EmailTemplate } from "@/lib/notifications-api";
+import type {
+  EmailTemplate,
+  TemplateScopeOptions,
+} from "@/lib/notifications-api";
 import { SettingsShell } from "../../../_components/settings-shell";
 import {
   hasAnySettingsPermission,
@@ -14,9 +17,14 @@ type PageProps = {
 export default async function EmailTemplateDetailPage({ params }: PageProps) {
   const { id } = await params;
   const user = await requireSettingsPermissions(["notification.templates.read"]);
-  const template = await apiRequestJson<EmailTemplate>(
-    `/notifications/email-templates/${encodeURIComponent(id)}`,
-  );
+  const [template, scopeOptions] = await Promise.all([
+    apiRequestJson<EmailTemplate>(
+      `/notifications/email-templates/${encodeURIComponent(id)}`,
+    ),
+    apiRequestJson<TemplateScopeOptions>(
+      "/notifications/email-templates/scope-options",
+    ),
+  ]);
   const canManage = hasAnySettingsPermission(user, [
     "notification.templates.manage",
   ]);
@@ -27,7 +35,11 @@ export default async function EmailTemplateDetailPage({ params }: PageProps) {
       eyebrow="Notifications"
       title={template.name}
     >
-      <EmailTemplateEditor canManage={canManage} template={template} />
+      <EmailTemplateEditor
+        canManage={canManage}
+        scopeOptions={scopeOptions}
+        template={template}
+      />
     </SettingsShell>
   );
 }

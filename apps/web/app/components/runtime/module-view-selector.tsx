@@ -1,21 +1,30 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronDown, LayoutList, Settings } from "lucide-react";
+import { Check, ChevronDown, Settings } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { Button } from "@/app/components/ui/button";
 
-type ModuleViewOption = {
+/*
+ * The one view selector. A second near-identical component used to live under
+ * components/view-selector; both are now this, so a change to how views are
+ * chosen lands everywhere at once.
+ */
+
+export type ModuleViewType = "system" | "custom";
+
+export type ModuleViewOption = {
   id: string;
   name: string;
   description?: string | null;
-  type?: "system" | "custom";
+  type?: ModuleViewType;
   isDefault?: boolean;
   badgeCount?: number;
+  icon?: string;
 };
 
-type ModuleViewSelectorProps = {
+export type ModuleViewSelectorProps = {
   enabled?: boolean;
   activeViewId?: string | null;
   selectedViewId?: string | null;
@@ -25,7 +34,24 @@ type ModuleViewSelectorProps = {
   className?: string;
   disabled?: boolean;
   mode?: "select" | "dropdown";
+  /* Shown above the trigger when the selector needs naming on a busy page. */
+  title?: string;
+  /*
+   * Above this many views the list gets a filter box. Below it the box is
+   * noise, so it only appears when scanning actually becomes hard.
+   */
+  searchThreshold?: number;
   onViewChange?: (viewId: string) => void;
+};
+
+/* The server-side shape pages pass through; kept for callers that build it. */
+export type ModuleViewSelectorConfig = {
+  enabled: boolean;
+  selectedViewId: string;
+  views: ModuleViewOption[];
+  configureHref?: string;
+  paramName?: string;
+  title?: string;
 };
 
 export function ModuleViewSelector({
@@ -38,9 +64,12 @@ export function ModuleViewSelector({
   className,
   disabled = false,
   mode = "select",
+  title,
+  searchThreshold = 8,
   onViewChange,
 }: ModuleViewSelectorProps) {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
   const containerRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
   const pathname = usePathname();
@@ -57,9 +86,19 @@ export function ModuleViewSelector({
     );
   }, [resolvedSelectedViewId, views]);
 
-  const systemViews = views.filter((view) => view.type === "system");
-  const customViews = views.filter((view) => view.type === "custom");
-  const otherViews = views.filter(
+  const showSearch = views.length > searchThreshold;
+  const term = query.trim().toLowerCase();
+  const matchingViews = term
+    ? views.filter(
+        (view) =>
+          view.name.toLowerCase().includes(term) ||
+          view.description?.toLowerCase().includes(term),
+      )
+    : views;
+
+  const systemViews = matchingViews.filter((view) => view.type === "system");
+  const customViews = matchingViews.filter((view) => view.type === "custom");
+  const otherViews = matchingViews.filter(
     (view) => view.type !== "system" && view.type !== "custom",
   );
 
@@ -133,6 +172,7 @@ export function ModuleViewSelector({
     if (onViewChange) {
       onViewChange(viewId);
       setOpen(false);
+      setQuery("");
       return;
     }
 
@@ -151,11 +191,17 @@ export function ModuleViewSelector({
     });
 
     setOpen(false);
+    setQuery("");
   }
 
   if (mode === "select") {
     return (
       <label className={`inline-flex items-center gap-2 ${className ?? ""}`}>
+        {title ? (
+          <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+            {title}
+          </span>
+        ) : null}
         <span className="text-sm font-medium text-muted">View</span>
 
         <select
@@ -176,6 +222,11 @@ export function ModuleViewSelector({
 
   return (
     <div className={`min-w-0 ${className ?? ""} px-2 py-1`} ref={containerRef}>
+      {title ? (
+        <p className="mb-0.5 text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+          {title}
+        </p>
+      ) : null}
       <div className="relative min-w-0 max-w-full">
         <button
           aria-expanded={open}
@@ -210,7 +261,25 @@ export function ModuleViewSelector({
               </p>
             </div>
 
+            {showSearch ? (
+              <div className="shrink-0 border-b border-border p-2">
+                <input
+                  autoFocus
+                  className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Filter views"
+                  value={query}
+                />
+              </div>
+            ) : null}
+
             <div className="min-h-0 overflow-y-auto">
+              {matchingViews.length === 0 ? (
+                <p className="px-4 py-6 text-center text-sm text-muted">
+                  No views match &ldquo;{query}&rdquo;.
+                </p>
+              ) : null}
+
               <ViewGroup
                 title="System views"
                 items={systemViews}

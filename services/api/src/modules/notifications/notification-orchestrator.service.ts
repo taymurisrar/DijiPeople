@@ -10,6 +10,20 @@ export type NotificationDispatchInput = {
   sourceModule: string;
   correlationId?: string | null;
   requestedByUserId?: string | null;
+  /*
+   * Placement of the record the notification is about, used to pick the most
+   * specific email template. Optional: without it resolution falls back to the
+   * tenant template exactly as before.
+   */
+  scope?: {
+    organizationId?: string | null;
+    businessUnitId?: string | null;
+    departmentId?: string | null;
+    teamId?: string | null;
+    /* Placement is read from this person when not stated outright. */
+    employeeId?: string | null;
+    userId?: string | null;
+  };
   email?: {
     templateKey?: string;
     templateId?: string;
@@ -50,6 +64,12 @@ export class NotificationOrchestratorService {
       results.email = await this.emailService.sendTemplateEmail({
         tenantId: input.tenantId,
         eventCode: input.eventCode,
+        organizationId: input.scope?.organizationId,
+        businessUnitId: input.scope?.businessUnitId,
+        departmentId: input.scope?.departmentId,
+        teamId: input.scope?.teamId,
+        subjectEmployeeId: input.scope?.employeeId,
+        subjectUserId: input.scope?.userId,
         templateKey: input.email.templateKey,
         templateId: input.email.templateId,
         recipient: input.email.recipient,
