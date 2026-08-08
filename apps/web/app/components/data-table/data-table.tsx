@@ -9,7 +9,7 @@ import {
   FilterX,
   Search,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useOptionalSystemPreferences } from "@/app/(authenticated)/_components/resolved-settings-provider";
 import {
@@ -58,7 +58,35 @@ export function DataTable<T>({
   const stickyStateKey = `dijipeople:data-table:${entityLogicalName ?? pathname}`;
   const restoredStickyState = useRef(false);
 
-  const [sort, setSort] = useState<DataTableSortState | null>(initialSort);
+  /*
+   * In server mode the URL is the source of truth for ordering. Without this
+   * the state resets to the view's default after every navigation, so each
+   * header click recomputed the same direction and the toggle never returned.
+   */
+  const urlSort = useMemo<DataTableSortState | null>(() => {
+    if (mode !== "server") return null;
+
+    const raw = searchParams.get("orderBy")?.trim();
+    if (!raw) return null;
+
+    const [field, direction] = raw.split(/\s+/);
+    const matched = columns.find(
+      (column) => (column.entityField ?? column.key) === field,
+    );
+
+    if (!matched) return null;
+
+    return {
+      columnKey: matched.key,
+      direction: direction === "desc" ? "desc" : "asc",
+    };
+  }, [mode, searchParams, columns]);
+
+  const effectiveInitialSort = urlSort ?? initialSort;
+
+  const [sort, setSort] = useState<DataTableSortState | null>(
+    effectiveInitialSort,
+  );
   const [filters, setFilters] =
     useState<DataTableFilterState[]>(initialFilters);
   const [search, setSearch] = useState("");
@@ -66,12 +94,36 @@ export function DataTable<T>({
   const [clientPageSize, setClientPageSize] = useState(
     pagination?.pageSize ?? 10,
   );
+  /* Widths a user has dragged, keyed by column. Untouched columns stay auto. */
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
+  const [isResizing, setIsResizing] = useState(false);
+
+  function resizeColumn(columnKey: string, startX: number, startWidth: number) {
+    const MIN_WIDTH = 80;
+
+    const onMove = (event: PointerEvent) => {
+      const next = Math.max(MIN_WIDTH, startWidth + event.clientX - startX);
+      setColumnWidths((current) => ({ ...current, [columnKey]: next }));
+    };
+
+    const onUp = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      setIsResizing(false);
+    };
+
+    // Selecting text while dragging makes the header flicker, so the table
+    // suppresses selection for the duration of the drag.
+    setIsResizing(true);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  }
 
   /* DataTable synchronizes controlled inputs and persisted external state into its local interaction model. */
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    setSort(initialSort);
-  }, [initialSort]);
+    setSort(effectiveInitialSort);
+  }, [effectiveInitialSort]);
 
   useEffect(() => {
     setFilters(initialFilters);
@@ -413,7 +465,11 @@ export function DataTable<T>({
         </div>
       </div>
 
-      <div className="w-full min-w-0 overflow-x-auto">
+      <div
+        className={`w-full min-w-0 overflow-x-auto ${
+          isResizing ? "select-none" : ""
+        }`}
+      >
         <table
           className={
             tableClassName ?? "min-w-full divide-y divide-border text-sm"
@@ -446,7 +502,15 @@ export function DataTable<T>({
                 return (
                   <th
                     key={column.key}
-                    className={`px-3 py-2 text-xs font-medium ${
+                    style={
+                      columnWidths[column.key]
+                        ? {
+                            width: columnWidths[column.key],
+                            minWidth: columnWidths[column.key],
+                          }
+                        : undefined
+                    }
+                    className={`relative px-3 py-2 text-xs font-medium ${
                       column.headerClassName ?? ""
                     }`}
                   >
@@ -470,12 +534,36 @@ export function DataTable<T>({
                         <ColumnFilterButton
                           column={column}
                           filter={activeFilter}
+                          suggestionRows={rows}
                           onApply={(nextFilter) =>
                             applyColumnFilter(column, nextFilter)
                           }
                         />
                       ) : null}
                     </div>
+
+                    {/* Drag to widen a column; double click restores auto width. */}
+                    <span
+                      aria-hidden="true"
+                      onDoubleClick={() =>
+                        setColumnWidths((current) => {
+                          const next = { ...current };
+                          delete next[column.key];
+                          return next;
+                        })
+                      }
+                      onPointerDown={(event) => {
+                        event.preventDefault();
+                        const cell = event.currentTarget
+                          .parentElement as HTMLElement | null;
+                        resizeColumn(
+                          column.key,
+                          event.clientX,
+                          cell?.offsetWidth ?? 160,
+                        );
+                      }}
+                      className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize select-none hover:bg-border"
+                    />
                   </th>
                 );
               })}
@@ -596,15 +684,64 @@ function ColumnFilterButton<T>({
   column,
   filter,
   onApply,
+  suggestionRows,
 }: {
   column: DataTableColumn<T>;
   filter?: DataTableFilterState;
   onApply: (filter: DataTableFilterState | null) => void;
+  suggestionRows?: readonly T[];
 }) {
   const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
   const [open, setOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState<{
+    top: number;
+    left: number;
+  }>({ top: 0, left: 0 });
+
+  /*
+   * Measured from the trigger when the menu opens, and nudged back inside the
+   * viewport when the column sits near the right edge.
+   */
+  function measureMenuPosition() {
+    const anchor = triggerRef.current?.getBoundingClientRect();
+    if (!anchor) return;
+
+    const MENU_WIDTH = 288;
+    const MARGIN = 8;
+    const left = Math.min(
+      Math.max(MARGIN, anchor.left),
+      Math.max(MARGIN, window.innerWidth - MENU_WIDTH - MARGIN),
+    );
+
+    setMenuPosition({ top: anchor.bottom + 6, left });
+  }
 
   const filterType = column.filterType ?? "text";
+
+  /*
+   * Values offered for an exact match. Declared options win when a column has
+   * them; otherwise the values already loaded for that column are used, so a
+   * free-text column still suggests real data instead of nothing.
+   */
+  const suggestionValues = useMemo(() => {
+    if (column.filterOptions?.length) {
+      return column.filterOptions.map((option) => option.value);
+    }
+
+    const accessor = column.filterAccessor ?? column.sortAccessor;
+    const seen = new Set<string>();
+
+    for (const row of suggestionRows ?? []) {
+      const raw = accessor?.(row);
+      const text = raw === null || raw === undefined ? "" : String(raw).trim();
+
+      if (text) seen.add(text);
+      if (seen.size >= 100) break;
+    }
+
+    return [...seen].sort((left, right) => left.localeCompare(right));
+  }, [column, suggestionRows]);
   const isActive = Boolean(filter);
 
   const [operator, setOperator] = useState<DataTableFilterOperator>(
@@ -617,6 +754,7 @@ function ColumnFilterButton<T>({
     setOperator(filter?.operator ?? getDefaultOperator(column));
     setValue(filter?.value ?? "");
     setValueTo(filter?.valueTo ?? "");
+    measureMenuPosition();
     setOpen(true);
   }
 
@@ -684,6 +822,7 @@ function ColumnFilterButton<T>({
   return (
     <div ref={wrapperRef} className="relative inline-flex">
       <button
+        ref={triggerRef}
         type="button"
         aria-label={`Filter ${column.header}`}
         aria-haspopup="menu"
@@ -699,7 +838,13 @@ function ColumnFilterButton<T>({
       {open ? (
         <div
           role="menu"
-          className="absolute left-0 top-8 z-30 w-72 rounded-2xl border border-border bg-white p-3 text-sm text-foreground shadow-xl"
+          /*
+           * The table body scrolls and the shell hides overflow, so an
+           * absolutely positioned menu is clipped. Positioning against the
+           * viewport keeps the whole menu, including its actions, reachable.
+           */
+          style={menuPosition}
+          className="fixed z-50 w-72 rounded-2xl border border-border bg-white p-3 text-sm text-foreground shadow-xl"
         >
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
@@ -743,6 +888,7 @@ function ColumnFilterButton<T>({
               />
             ) : (
               <FilterTextInput
+                suggestions={suggestionValues}
                 type={
                   filterType === "date"
                     ? "date"
@@ -796,24 +942,39 @@ function ColumnFilterButton<T>({
 }
 function FilterTextInput({
   label = "Value",
+  suggestions,
   type,
   value,
   onChange,
 }: {
   label?: string;
+  suggestions?: readonly string[];
   type: "text" | "date" | "number";
   value: string;
   onChange: (value: string) => void;
 }) {
+  // Unique per input so several open filters cannot share a suggestion list.
+  const listId = `${useId()}-filter-values`;
+
+  const hasSuggestions = Boolean(suggestions?.length) && type !== "date";
+
   return (
     <label className="grid gap-1.5">
       <span className="text-xs font-medium text-muted">{label}</span>
       <input
         type={type}
         value={value}
+        list={hasSuggestions ? listId : undefined}
         onChange={(event) => onChange(event.target.value)}
         className="rounded-xl border border-border bg-white px-3 py-2 text-sm outline-none focus:border-foreground"
       />
+      {hasSuggestions ? (
+        <datalist id={listId}>
+          {suggestions?.map((suggestion) => (
+            <option key={suggestion} value={suggestion} />
+          ))}
+        </datalist>
+      ) : null}
     </label>
   );
 }
@@ -895,35 +1056,50 @@ function getDefaultOperator<T>(column: DataTableColumn<T>) {
 function getOperators(
   type: NonNullable<DataTableColumn<unknown>["filterType"]>,
 ) {
+  const blank = [
+    { value: "isEmpty", label: "Is empty" },
+    { value: "isNotEmpty", label: "Has data" },
+  ] satisfies Array<{ value: DataTableFilterOperator; label: string }>;
+
   if (type === "date") {
     return [
-      { value: "equals", label: "Equals" },
+      { value: "equals", label: "On" },
       { value: "before", label: "Before" },
       { value: "after", label: "After" },
+      { value: "onOrBefore", label: "On or before" },
+      { value: "onOrAfter", label: "On or after" },
       { value: "between", label: "Between" },
+      ...blank,
     ] satisfies Array<{ value: DataTableFilterOperator; label: string }>;
   }
 
   if (type === "number") {
     return [
       { value: "equals", label: "Equals" },
+      { value: "notEquals", label: "Does not equal" },
       { value: "greaterThan", label: "Greater than" },
       { value: "lessThan", label: "Less than" },
       { value: "between", label: "Between" },
+      ...blank,
     ] satisfies Array<{ value: DataTableFilterOperator; label: string }>;
   }
 
   if (type === "select" || type === "multiSelect") {
-    return [{ value: "equals", label: "Equals" }] satisfies Array<{
-      value: DataTableFilterOperator;
-      label: string;
-    }>;
+    return [
+      { value: "equals", label: "Is" },
+      { value: "notEquals", label: "Is not" },
+      ...blank,
+    ] satisfies Array<{ value: DataTableFilterOperator; label: string }>;
   }
 
   return [
     { value: "contains", label: "Contains" },
+    { value: "notContains", label: "Does not contain" },
     { value: "equals", label: "Equals" },
+    { value: "notEquals", label: "Does not equal" },
     { value: "startsWith", label: "Starts with" },
+    { value: "endsWith", label: "Ends with" },
+    ...blank,
   ] satisfies Array<{ value: DataTableFilterOperator; label: string }>;
 }
 

@@ -58,24 +58,24 @@ export class LoansController {
   ) {
     return this.loans.updateLoanPolicy(user, id, dto);
   }
-  @Get('banks') @Permissions('employee-bank-accounts.read') listBanks(
+  @Get('banks') @Permissions('banks.read') listBanks(
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.loans.listBanks(user);
   }
-  @Get('banks/:id') @Permissions('employee-bank-accounts.read') bank(
+  @Get('banks/:id') @Permissions('banks.read') bank(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
     return this.loans.bank(user, id);
   }
-  @Post('banks') @Permissions('employee-bank-accounts.manage') createBank(
+  @Post('banks') @Permissions('banks.manage') createBank(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateBankDto,
   ) {
     return this.loans.createBank(user, dto);
   }
-  @Patch('banks/:id') @Permissions('employee-bank-accounts.manage') updateBank(
+  @Patch('banks/:id') @Permissions('banks.manage') updateBank(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: UpdateBankDto,

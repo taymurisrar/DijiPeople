@@ -13,8 +13,26 @@ import {
   Min,
 } from 'class-validator';
 
-const TEXT_FILTER_OPERATORS = ['contains', 'equals', 'startsWith'] as const;
-const DATE_FILTER_OPERATORS = ['equals', 'before', 'after', 'between'] as const;
+const TEXT_FILTER_OPERATORS = [
+  'contains',
+  'notContains',
+  'equals',
+  'notEquals',
+  'startsWith',
+  'endsWith',
+  'isEmpty',
+  'isNotEmpty',
+] as const;
+const DATE_FILTER_OPERATORS = [
+  'equals',
+  'before',
+  'after',
+  'onOrBefore',
+  'onOrAfter',
+  'between',
+  'isEmpty',
+  'isNotEmpty',
+] as const;
 
 function parseColumnsQuery(value: unknown) {
   const values = Array.isArray(value) ? value : [value];

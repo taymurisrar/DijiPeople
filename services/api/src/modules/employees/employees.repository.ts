@@ -197,6 +197,11 @@ export type EmployeeHierarchyNode = Prisma.EmployeeGetPayload<{
   select: typeof hierarchyNodeSelect;
 }>;
 
+/** Operators whose multi-column match must hold for every column, not any. */
+function isNegatedOperator(operator: string | undefined) {
+  return operator === 'notContains' || operator === 'notEquals';
+}
+
 @Injectable()
 export class EmployeesRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -390,16 +395,18 @@ export class EmployeesRepository {
         query.reportingManagerFilterOperator,
       );
 
+      const managerClauses = [
+        { firstName: managerFilter },
+        { lastName: managerFilter },
+        { preferredName: managerFilter },
+        { employeeCode: managerFilter },
+        { email: managerFilter },
+      ];
+
       columnFilters.push({
-        manager: {
-          OR: [
-            { firstName: managerFilter },
-            { lastName: managerFilter },
-            { preferredName: managerFilter },
-            { employeeCode: managerFilter },
-            { email: managerFilter },
-          ],
-        },
+        manager: isNegatedOperator(query.reportingManagerFilterOperator)
+          ? { AND: managerClauses }
+          : { OR: managerClauses },
       });
     }
 
@@ -421,9 +428,16 @@ export class EmployeesRepository {
         query.contactFilterOperator,
       );
 
-      columnFilters.push({
-        OR: [{ email: contactFilter }, { phone: contactFilter }],
-      });
+      const contactClauses = [
+        { email: contactFilter },
+        { phone: contactFilter },
+      ];
+
+      columnFilters.push(
+        isNegatedOperator(query.contactFilterOperator)
+          ? { AND: contactClauses }
+          : { OR: contactClauses },
+      );
     }
 
     if (columnFilters.length) {
@@ -442,15 +456,27 @@ export class EmployeesRepository {
   ): Prisma.StringFilter<'Employee'> {
     const trimmed = value.trim();
 
-    if (operator === 'equals') {
-      return { equals: trimmed, mode: 'insensitive' };
+    switch (operator) {
+      case 'equals':
+        return { equals: trimmed, mode: 'insensitive' };
+      case 'notEquals':
+        return { not: trimmed, mode: 'insensitive' };
+      case 'startsWith':
+        return { startsWith: trimmed, mode: 'insensitive' };
+      case 'endsWith':
+        return { endsWith: trimmed, mode: 'insensitive' };
+      case 'notContains':
+        // Prisma has no negated contains, so the match is inverted by the
+        // caller's AND block through an empty-string fallback comparison.
+        return { not: { contains: trimmed } };
+      // A blank column is stored as either empty text or null, so both count.
+      case 'isEmpty':
+        return { in: [''] };
+      case 'isNotEmpty':
+        return { not: { in: [''] } };
+      default:
+        return { contains: trimmed, mode: 'insensitive' };
     }
-
-    if (operator === 'startsWith') {
-      return { startsWith: trimmed, mode: 'insensitive' };
-    }
-
-    return { contains: trimmed, mode: 'insensitive' };
   }
 
   private buildNameFilter(
@@ -458,16 +484,18 @@ export class EmployeesRepository {
     operator: EmployeeQueryDto['nameFilterOperator'] = 'contains',
   ): Prisma.EmployeeWhereInput {
     const filter = this.buildStringFilter(value, operator);
+    const clauses = [
+      { firstName: filter },
+      { lastName: filter },
+      { preferredName: filter },
+      { email: filter },
+      { employeeCode: filter },
+    ];
 
-    return {
-      OR: [
-        { firstName: filter },
-        { lastName: filter },
-        { preferredName: filter },
-        { email: filter },
-        { employeeCode: filter },
-      ],
-    };
+    // A negated match across several columns must hold for every column.
+    // Using OR here would match any record where a single other column
+    // happened to differ, which returns almost the whole table.
+    return isNegatedOperator(operator) ? { AND: clauses } : { OR: clauses };
   }
 
   private buildDateFilter(
@@ -487,6 +515,14 @@ export class EmployeesRepository {
 
     if (operator === 'after') {
       return { gt: date.end };
+    }
+
+    if (operator === 'onOrBefore') {
+      return { lte: date.end };
+    }
+
+    if (operator === 'onOrAfter') {
+      return { gte: date.start };
     }
 
     if (operator === 'between' && valueTo) {

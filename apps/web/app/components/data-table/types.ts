@@ -12,16 +12,26 @@ export type DataTableComparableValue =
 
 export type DataTableFilterOperator =
   | "contains"
+  | "notContains"
   | "equals"
+  | "notEquals"
   | "startsWith"
   | "endsWith"
   | "isEmpty"
   | "isNotEmpty"
   | "before"
   | "after"
+  | "onOrBefore"
+  | "onOrAfter"
   | "between"
   | "greaterThan"
   | "lessThan";
+
+/** Operators that compare nothing, so the value input is hidden for them. */
+export const VALUELESS_FILTER_OPERATORS: readonly DataTableFilterOperator[] = [
+  "isEmpty",
+  "isNotEmpty",
+];
 
 export type DataTableFilterType =
   | "text"

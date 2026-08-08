@@ -944,6 +944,10 @@ export const SYSTEM_ROLE_MISC_PERMISSIONS: Record<SystemRoleKey, string[]> = {
     'attendance.correction.approve',
     'attendance.correction.reject',
     'leave-requests.cancel',
+    // A manager already approves and rejects timesheets; without this it could
+    // not list the team timesheets it is being asked to action.
+    'timesheets.read.team',
+    'timesheets.template.export',
     'loans.approve',
     'loans.reject',
   ],
@@ -951,6 +955,14 @@ export const SYSTEM_ROLE_MISC_PERMISSIONS: Record<SystemRoleKey, string[]> = {
     ...DATA_MANAGEMENT_PERMISSION_KEYS,
     MISC_PERMISSION_KEYS.TENANT_SETTINGS_MANAGE,
     MISC_PERMISSION_KEYS.AUDIT_VIEW,
+    // The audit endpoints check audit.read; audit.view is a near-duplicate key
+    // that nothing enforces, so holding it alone left the audit pages denied.
+    'audit.read',
+    // The payroll banking, regions and subscription settings pages are offered
+    // to HR through settings.read; reading their data needs this key too.
+    // Update is deliberately withheld: payroll owns changing those values.
+    'payroll.settings.read',
+    'banks.read',
     MISC_PERMISSION_KEYS.REPORTS_EXPORT,
     MISC_PERMISSION_KEYS.ORGANIZATION_MANAGE,
     'approvals.read',
@@ -1010,6 +1022,15 @@ export const SYSTEM_ROLE_MISC_PERMISSIONS: Record<SystemRoleKey, string[]> = {
     'payroll-runs.disburse',
     'payslips.deliver',
     'payslips.download',
+    // Backs the payroll banking, regions and subscription settings pages, which
+    // the navigation already offers to this role.
+    'payroll.settings.read',
+    'payroll.settings.update',
+    'payroll.finalize',
+    'banks.read',
+    'banks.manage',
+    'timesheets.read.team',
+    'timesheets.payroll.handoff',
   ],
   [ROLE_KEYS.RECRUITER]: [],
   [ROLE_KEYS.EMPLOYEE]: [

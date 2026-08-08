@@ -465,30 +465,74 @@ function mapEmployeeEntityFilters(
 function resolveEmployeeColumnFilters(
   params: Record<string, string | string[] | undefined>,
 ) {
+  /*
+   * The table derives its filter parameter from the column's entity field,
+   * which is not always the name the employees endpoint accepts. Each spec
+   * therefore lists the aliases a column can arrive under, and only ever emits
+   * the endpoint's own parameter name. Forwarding the raw table parameter made
+   * the request fail validation, which dropped the whole list rather than just
+   * the filter.
+   */
   const specs = [
-    { columnKey: "employee", paramKey: "name", defaultOperator: "contains" },
-    { columnKey: "code", paramKey: "code", defaultOperator: "contains" },
-    { columnKey: "status", paramKey: "status", defaultOperator: "equals" },
+    {
+      columnKey: "employee",
+      paramKey: "name",
+      aliases: ["fullName", "firstName", "employee"],
+      defaultOperator: "contains",
+    },
+    {
+      columnKey: "code",
+      paramKey: "code",
+      aliases: ["employeeCode"],
+      defaultOperator: "contains",
+    },
+    {
+      columnKey: "status",
+      paramKey: "status",
+      aliases: ["employmentStatus"],
+      defaultOperator: "equals",
+    },
     {
       columnKey: "reportingManager",
       paramKey: "reportingManager",
+      aliases: ["reportingManagerEmployeeId", "manager"],
       defaultOperator: "contains",
     },
-    { columnKey: "hireDate", paramKey: "hireDate", defaultOperator: "equals" },
-    { columnKey: "contact", paramKey: "contact", defaultOperator: "contains" },
+    {
+      columnKey: "hireDate",
+      paramKey: "hireDate",
+      aliases: [],
+      defaultOperator: "equals",
+    },
+    {
+      columnKey: "contact",
+      paramKey: "contact",
+      aliases: ["email", "workEmail", "phone"],
+      defaultOperator: "contains",
+    },
   ];
   const tableFilters: DataTableFilterState[] = [];
   const queryParams: Array<{ key: string; value: string }> = [];
   const searchParams: Record<string, string> = {};
 
   for (const spec of specs) {
-    const value = getSearchParam(params[`${spec.paramKey}Filter`]);
-    const operator =
-      getSearchParam(params[`${spec.paramKey}FilterOperator`]) ||
-      spec.defaultOperator;
-    const valueTo = getSearchParam(params[`${spec.paramKey}FilterTo`]);
+    const names = [spec.paramKey, ...spec.aliases];
+    const nameInUse =
+      names.find((name) => getSearchParam(params[`${name}Filter`])) ??
+      spec.paramKey;
 
-    if (!value) continue;
+    const value = getSearchParam(params[`${nameInUse}Filter`]);
+    const operator =
+      getSearchParam(params[`${nameInUse}FilterOperator`]) ||
+      spec.defaultOperator;
+    const valueTo = getSearchParam(params[`${nameInUse}FilterTo`]);
+
+    // "Is empty" and "Has data" compare nothing, so requiring a value here
+    // would silently drop them and the condition would appear to do nothing.
+    const comparesNothing =
+      operator === "isEmpty" || operator === "isNotEmpty";
+
+    if (!value && !comparesNothing) continue;
 
     tableFilters.push({
       columnKey: spec.columnKey,
@@ -497,11 +541,15 @@ function resolveEmployeeColumnFilters(
       valueTo: valueTo || undefined,
     });
 
+    // The endpoint keys off the filter value being present, so a valueless
+    // operator sends a marker the repository ignores when building the clause.
+    const outboundValue = value || (comparesNothing ? "-" : value);
+
     queryParams.push(
-      { key: `${spec.paramKey}Filter`, value },
+      { key: `${spec.paramKey}Filter`, value: outboundValue },
       { key: `${spec.paramKey}FilterOperator`, value: operator },
     );
-    searchParams[`${spec.paramKey}Filter`] = value;
+    searchParams[`${spec.paramKey}Filter`] = outboundValue;
     searchParams[`${spec.paramKey}FilterOperator`] = operator;
 
     if (valueTo) {

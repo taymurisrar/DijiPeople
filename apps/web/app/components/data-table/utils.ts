@@ -26,18 +26,61 @@ function normalizeValue(value: ComparableValue) {
   return value.toString().trim().toLowerCase();
 }
 
+/*
+ * Columns built from view metadata carry no accessor functions, so falling back
+ * to the row's own field keeps sorting and filtering working for every module
+ * instead of silently doing nothing.
+ */
+function readRowField<T>(row: T, column: DataTableColumn<T>) {
+  const field = column.entityField ?? column.key;
+  const source = row as Record<string, unknown>;
+  const value = source?.[field];
+
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean" ||
+    value instanceof Date
+  ) {
+    return value as ComparableValue;
+  }
+
+  // Lookup objects render through a label, so prefer a human-readable field.
+  const nested = value as Record<string, unknown>;
+  const label = nested.name ?? nested.label ?? nested.fullName ?? nested.title;
+
+  return typeof label === "string" ? label : undefined;
+}
+
+function resolveColumnValue<T>(
+  row: T,
+  column: DataTableColumn<T>,
+  preferred: "filter" | "sort",
+): ComparableValue {
+  const accessor =
+    preferred === "filter"
+      ? (column.filterAccessor ?? column.sortAccessor)
+      : (column.sortAccessor ?? column.filterAccessor);
+
+  const fromAccessor = accessor?.(row) as ComparableValue | undefined;
+
+  if (fromAccessor !== undefined && fromAccessor !== null) {
+    return fromAccessor;
+  }
+
+  return readRowField(row, column);
+}
+
 function getAccessorValue<T>(row: T, column?: DataTableColumn<T>) {
   if (!column) {
     return "";
   }
 
-  const accessor = column.filterAccessor ?? column.sortAccessor;
-
-  if (!accessor) {
-    return "";
-  }
-
-  return normalizeValue(accessor(row) as ComparableValue);
+  return normalizeValue(resolveColumnValue(row, column, "filter"));
 }
 
 function toComparableNumber(value: string) {
@@ -63,19 +106,17 @@ export function sortRows<T>(
 
   const column = columns.find((item) => item.key === sort.columnKey);
 
-  if (!column?.sortable || !column.sortAccessor) {
+  if (!column?.sortable) {
     return rows;
   }
 
   const multiplier = sort.direction === "asc" ? 1 : -1;
 
   return [...rows].sort((left, right) => {
-    const leftValue = normalizeValue(
-      column.sortAccessor?.(left) as ComparableValue,
-    );
+    const leftValue = normalizeValue(resolveColumnValue(left, column, "sort"));
 
     const rightValue = normalizeValue(
-      column.sortAccessor?.(right) as ComparableValue,
+      resolveColumnValue(right, column, "sort"),
     );
 
     if (typeof leftValue === "number" && typeof rightValue === "number") {

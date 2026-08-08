@@ -122,6 +122,8 @@ export const PERMISSION_KEYS = {
   LOANS_APPROVE: 'loans.approve',
   LOANS_REJECT: 'loans.reject',
   LOANS_SETTLE: 'loans.settle',
+  BANKS_READ: 'banks.read',
+  BANKS_MANAGE: 'banks.manage',
   EMPLOYEE_BANK_ACCOUNTS_READ: 'employee-bank-accounts.read',
   EMPLOYEE_BANK_ACCOUNTS_READ_OWN: 'employee-bank-accounts.read-own',
   EMPLOYEE_BANK_ACCOUNTS_MANAGE: 'employee-bank-accounts.manage',
@@ -474,6 +476,17 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     key: 'documents.read',
     name: 'Read documents',
     description: 'View uploaded document metadata and linked records.',
+  },
+  {
+    key: PERMISSION_KEYS.BANKS_READ,
+    name: 'Read banks',
+    description:
+      'View the tenant list of banking institutions used to pick a bank. Contains no employee account data.',
+  },
+  {
+    key: PERMISSION_KEYS.BANKS_MANAGE,
+    name: 'Manage banks',
+    description: 'Add and edit the tenant list of banking institutions.',
   },
   {
     key: PERMISSION_KEYS.DATA_MANAGEMENT_VIEW,
