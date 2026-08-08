@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { CustomizationModule } from '../customization/customization.module';
 import { JwtModule } from '@nestjs/jwt';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -23,6 +24,7 @@ import { SuperAdminService } from './super-admin.service';
 
 @Module({
   imports: [
+    CustomizationModule,
     JwtModule.register({}),
     AuthModule,
     TenantSettingsModule,

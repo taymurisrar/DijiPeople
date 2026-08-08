@@ -78,6 +78,10 @@ export class AttendanceQueryDto {
 
   @IsOptional()
   @IsString()
+  employeeFilterOperator?: string;
+
+  @IsOptional()
+  @IsString()
   attendanceDateFilter?: string;
 
   @IsOptional()
@@ -107,6 +111,14 @@ export class AttendanceQueryDto {
   @IsOptional()
   @IsString()
   detailsFilter?: string;
+
+  @IsOptional()
+  @IsString()
+  detailsFilterOperator?: string;
+
+  @IsOptional()
+  @IsString()
+  locationFilterOperator?: string;
 
   @IsOptional()
   @Type(() => Number)

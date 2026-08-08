@@ -3173,6 +3173,44 @@ export class CustomizationService {
     return { success: true };
   }
 
+  /**
+   * Publishes the default views and forms for a tenant that has none.
+   *
+   * A tenant with no published snapshot falls back to views hardcoded in the
+   * web app, so its customization metadata is never actually used. Publishing
+   * once at provisioning makes the defaults real for every tenant, and a
+   * customer's own views then layer on top through their custom package.
+   */
+  async publishTenantDefaults(tenantId: string, actorUserId: string | null) {
+    const existing = await this.prisma.customizationPublishSnapshot.findFirst({
+      where: { tenantId, status: 'published' },
+      select: { id: true },
+    });
+
+    if (existing) {
+      return { published: false, reason: 'already-published' as const };
+    }
+
+    const draft = await this.buildPublishDraft(tenantId);
+    const snapshot = await this.prisma.customizationPublishSnapshot.create({
+      data: {
+        tenantId,
+        version: 1,
+        status: 'published',
+        publishedByUserId: actorUserId,
+        publishedAt: new Date(),
+        snapshotJson: toJsonValue(draft),
+      },
+    });
+
+    return {
+      published: true,
+      snapshotId: snapshot.id,
+      views: draft.views.length,
+      forms: draft.forms.length,
+    };
+  }
+
   async publish(currentUser: AuthenticatedUser) {
     const draft = await this.buildPublishDraft(currentUser.tenantId);
     const validationErrors = this.validatePublishDraft(draft);

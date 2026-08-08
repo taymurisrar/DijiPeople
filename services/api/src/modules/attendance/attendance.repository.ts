@@ -671,6 +671,43 @@ export class AttendanceRepository {
   }
 }
 
+/**
+ * Text filter shared by the attendance column filters.
+ *
+ * Mirrors the employee module so the conditions the shared table offers behave
+ * the same everywhere instead of silently degrading to "contains".
+ */
+function buildAttendanceTextFilter(
+  value: string,
+  operator: string | undefined,
+): Prisma.StringFilter {
+  const trimmed = value.trim();
+
+  switch (operator) {
+    case 'equals':
+      return { equals: trimmed, mode: 'insensitive' };
+    case 'notEquals':
+      return { not: trimmed, mode: 'insensitive' };
+    case 'startsWith':
+      return { startsWith: trimmed, mode: 'insensitive' };
+    case 'endsWith':
+      return { endsWith: trimmed, mode: 'insensitive' };
+    case 'notContains':
+      return { not: { contains: trimmed } };
+    case 'isEmpty':
+      return { in: [''] };
+    case 'isNotEmpty':
+      return { not: { in: [''] } };
+    default:
+      return { contains: trimmed, mode: 'insensitive' };
+  }
+}
+
+/** Negated matches must hold for every column, not any one of them. */
+function isNegatedAttendanceOperator(operator: string | undefined) {
+  return operator === 'notContains' || operator === 'notEquals';
+}
+
 function buildAttendanceWhere(
   tenantId: string,
   query: AttendanceQueryDto,
@@ -720,37 +757,21 @@ function buildAttendanceWhere(
   }
 
   if (query.employeeFilter?.trim()) {
-    const employeeFilter = query.employeeFilter.trim();
+    const textFilter = buildAttendanceTextFilter(
+      query.employeeFilter,
+      query.employeeFilterOperator,
+    );
+    const clauses = [
+      { employee: { employeeCode: textFilter } },
+      { employee: { firstName: textFilter } },
+      { employee: { lastName: textFilter } },
+    ];
+
     where.AND = [
       ...normalizeAnd(where.AND),
-      {
-        OR: [
-          {
-            employee: {
-              employeeCode: {
-                contains: employeeFilter,
-                mode: 'insensitive',
-              },
-            },
-          },
-          {
-            employee: {
-              firstName: {
-                contains: employeeFilter,
-                mode: 'insensitive',
-              },
-            },
-          },
-          {
-            employee: {
-              lastName: {
-                contains: employeeFilter,
-                mode: 'insensitive',
-              },
-            },
-          },
-        ],
-      },
+      isNegatedAttendanceOperator(query.employeeFilterOperator)
+        ? { AND: clauses }
+        : { OR: clauses },
     ];
   }
 

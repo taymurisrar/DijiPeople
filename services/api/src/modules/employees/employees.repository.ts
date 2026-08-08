@@ -484,7 +484,7 @@ export class EmployeesRepository {
     operator: EmployeeQueryDto['nameFilterOperator'] = 'contains',
   ): Prisma.EmployeeWhereInput {
     const filter = this.buildStringFilter(value, operator);
-    const clauses = [
+    const clauses: Prisma.EmployeeWhereInput[] = [
       { firstName: filter },
       { lastName: filter },
       { preferredName: filter },
@@ -492,9 +492,33 @@ export class EmployeesRepository {
       { employeeCode: filter },
     ];
 
-    // A negated match across several columns must hold for every column.
-    // Using OR here would match any record where a single other column
-    // happened to differ, which returns almost the whole table.
+    /*
+     * The displayed name is a concatenation, so a multi word value never
+     * matches a single column. Each word is required to match some part of the
+     * name, which makes "Ayesha Khan" find the record that "Ayesha" alone
+     * already found.
+     */
+    const words = value.trim().split(/\s+/).filter(Boolean);
+
+    if (words.length > 1 && !isNegatedOperator(operator)) {
+      const perWord = words.map((word) => {
+        const wordFilter = this.buildStringFilter(
+          word,
+          operator === 'equals' ? 'equals' : 'contains',
+        );
+
+        return {
+          OR: [
+            { firstName: wordFilter },
+            { lastName: wordFilter },
+            { preferredName: wordFilter },
+          ],
+        } satisfies Prisma.EmployeeWhereInput;
+      });
+
+      clauses.push({ AND: perWord });
+    }
+
     return isNegatedOperator(operator) ? { AND: clauses } : { OR: clauses };
   }
 

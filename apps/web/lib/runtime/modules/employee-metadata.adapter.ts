@@ -2554,7 +2554,18 @@ function ensureDefaultView(views: readonly ViewMetadata[]) {
     byLogicalName.set(view.logicalName, view);
   }
 
-  return Array.from(byLogicalName.values());
+  /*
+   * Two sources can describe the same view under different keys, which shows
+   * the user the same entry twice. The later definition wins, so a published
+   * view replaces the built-in one it duplicates.
+   */
+  const byDisplayName = new Map<string, ViewMetadata>();
+
+  for (const view of byLogicalName.values()) {
+    byDisplayName.set(view.displayName.trim().toLowerCase(), view);
+  }
+
+  return Array.from(byDisplayName.values());
 }
 
 function stringValue(value: unknown) {

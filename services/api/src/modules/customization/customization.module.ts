@@ -11,5 +11,6 @@ import { CustomizationService } from './customization.service';
   imports: [PrismaModule, AuthModule],
   controllers: [CustomizationController, CustomizationRuntimeController],
   providers: [CustomizationService, CustomizationAccessGuard],
+  exports: [CustomizationService],
 })
 export class CustomizationModule {}

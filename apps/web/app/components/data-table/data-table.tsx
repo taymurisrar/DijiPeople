@@ -18,6 +18,7 @@ import {
   DataTableFilterState,
   DataTableSortState,
   DataTableProps,
+  VALUELESS_FILTER_OPERATORS,
 } from "./types";
 
 import { filterRows, searchRows, sortRows } from "./utils";
@@ -697,7 +698,8 @@ function ColumnFilterButton<T>({
   const [menuPosition, setMenuPosition] = useState<{
     top: number;
     left: number;
-  }>({ top: 0, left: 0 });
+    maxHeight: number;
+  }>({ top: 0, left: 0, maxHeight: 420 });
 
   /*
    * Measured from the trigger when the menu opens, and nudged back inside the
@@ -709,12 +711,30 @@ function ColumnFilterButton<T>({
 
     const MENU_WIDTH = 288;
     const MARGIN = 8;
+    const GAP = 6;
+
     const left = Math.min(
       Math.max(MARGIN, anchor.left),
       Math.max(MARGIN, window.innerWidth - MENU_WIDTH - MARGIN),
     );
 
-    setMenuPosition({ top: anchor.bottom + 6, left });
+    /*
+     * Open downward when there is room, otherwise upward, and cap the height so
+     * a long value list scrolls inside the menu instead of running off screen
+     * and hiding its own actions.
+     */
+    const spaceBelow = window.innerHeight - anchor.bottom - GAP - MARGIN;
+    const spaceAbove = anchor.top - GAP - MARGIN;
+    const opensDown = spaceBelow >= 260 || spaceBelow >= spaceAbove;
+    const available = Math.max(200, opensDown ? spaceBelow : spaceAbove);
+
+    setMenuPosition({
+      top: opensDown
+        ? anchor.bottom + GAP
+        : Math.max(MARGIN, anchor.top - GAP - Math.min(available, 420)),
+      left,
+      maxHeight: Math.min(available, 420),
+    });
   }
 
   const filterType = column.filterType ?? "text";
@@ -747,6 +767,8 @@ function ColumnFilterButton<T>({
   const [operator, setOperator] = useState<DataTableFilterOperator>(
     filter?.operator ?? getDefaultOperator(column),
   );
+
+  const comparesNothing = VALUELESS_FILTER_OPERATORS.includes(operator);
   const [value, setValue] = useState(filter?.value ?? "");
   const [valueTo, setValueTo] = useState(filter?.valueTo ?? "");
 
@@ -829,10 +851,14 @@ function ColumnFilterButton<T>({
         aria-expanded={open}
         onClick={toggleFilterMenu}
         className={`inline-flex h-7 w-7 items-center justify-center rounded-md transition hover:bg-white hover:text-foreground ${
-          isActive ? "bg-white text-foreground ring-1 ring-border" : ""
+          isActive
+            ? "bg-primary/10 text-primary ring-1 ring-primary/40"
+            : "text-muted"
         }`}
       >
-        <Filter className="h-4 w-4" />
+        <Filter
+          className={`h-4 w-4 ${isActive ? "fill-current" : ""}`}
+        />
       </button>
 
       {open ? (
@@ -843,8 +869,12 @@ function ColumnFilterButton<T>({
            * absolutely positioned menu is clipped. Positioning against the
            * viewport keeps the whole menu, including its actions, reachable.
            */
-          style={menuPosition}
-          className="fixed z-50 w-72 rounded-2xl border border-border bg-white p-3 text-sm text-foreground shadow-xl"
+          style={{
+            top: menuPosition.top,
+            left: menuPosition.left,
+            maxHeight: menuPosition.maxHeight,
+          }}
+          className="fixed z-50 flex w-72 flex-col overflow-y-auto rounded-2xl border border-border bg-white p-3 text-sm text-foreground shadow-xl"
         >
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
@@ -878,8 +908,13 @@ function ColumnFilterButton<T>({
             </select>
           </label>
 
+          {/* "Is empty" and "Has data" compare nothing, so no value is asked for. */}
           <div className="mt-3 grid gap-3">
-            {filterType === "select" || filterType === "multiSelect" ? (
+            {comparesNothing ? (
+              <p className="rounded-xl border border-dashed border-border px-3 py-2 text-xs text-muted">
+                This condition needs no value.
+              </p>
+            ) : filterType === "select" || filterType === "multiSelect" ? (
               <FilterSelectInput
                 multiple={filterType === "multiSelect"}
                 options={column.filterOptions ?? []}
@@ -901,7 +936,7 @@ function ColumnFilterButton<T>({
               />
             )}
 
-            {operator === "between" ? (
+            {operator === "between" && !comparesNothing ? (
               <FilterTextInput
                 label="To"
                 type={

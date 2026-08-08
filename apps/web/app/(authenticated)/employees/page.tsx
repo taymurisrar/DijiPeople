@@ -121,27 +121,12 @@ export default async function EmployeesPage({
     getTableViews("employees"),
   ]);
 
-  const employeeViews = withFallbackViews("employees", publishedViews, [
-    {
-      id: "allEmployees",
-      viewKey: "allEmployees",
-      tableKey: "employees",
-      name: "All Employees",
-      type: "system",
-      isDefault: true,
-      columnsJson: {
-        columns: [
-          { columnKey: "firstName" },
-          { columnKey: "employeeCode" },
-          { columnKey: "employmentStatus" },
-          { columnKey: "managerEmployeeId" },
-          { columnKey: "hireDate" },
-          { columnKey: "email" },
-        ],
-      },
-      sortingJson: [{ columnKey: "firstName", direction: "asc" }],
-    },
-  ]);
+  /*
+   * No local fallback list here. The employee metadata adapter already supplies
+   * the system views, and defining a second "All Employees" under a different
+   * view key made it appear twice in the view selector.
+   */
+  const employeeViews = withFallbackViews("employees", publishedViews, []);
 
   const formatting = {
     dateFormat: resolvedSettings?.system.dateFormat || "MM/dd/yyyy",
@@ -517,9 +502,14 @@ function resolveEmployeeColumnFilters(
 
   for (const spec of specs) {
     const names = [spec.paramKey, ...spec.aliases];
+    // Matched on either part: "Is empty" and "Has data" send an operator with
+    // no value, so keying off the value alone dropped them entirely.
     const nameInUse =
-      names.find((name) => getSearchParam(params[`${name}Filter`])) ??
-      spec.paramKey;
+      names.find(
+        (name) =>
+          getSearchParam(params[`${name}Filter`]) ||
+          getSearchParam(params[`${name}FilterOperator`]),
+      ) ?? spec.paramKey;
 
     const value = getSearchParam(params[`${nameInUse}Filter`]);
     const operator =
@@ -535,7 +525,12 @@ function resolveEmployeeColumnFilters(
     if (!value && !comparesNothing) continue;
 
     tableFilters.push({
-      columnKey: spec.columnKey,
+      /*
+       * The table matches an active filter by its own column key, which is the
+       * entity field it wrote to the URL. Using the endpoint's parameter name
+       * here left the filter applied but its column never marked active.
+       */
+      columnKey: nameInUse === spec.paramKey ? spec.columnKey : nameInUse,
       operator: operator as DataTableFilterState["operator"],
       value,
       valueTo: valueTo || undefined,

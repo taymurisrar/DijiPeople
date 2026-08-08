@@ -1,4 +1,5 @@
 import {
+  Logger,
   BadRequestException,
   ConflictException,
   Injectable,
@@ -22,6 +23,7 @@ import * as bcrypt from 'bcryptjs';
 import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { CustomizationService } from '../customization/customization.service';
 import { normalizeEmail } from '../../common/utils/email.util';
 import { assertValidTenantSlug } from '../../common/utils/slug.util';
 import { generateTenantCode } from '../../common/utils/tenant-code.util';
@@ -53,6 +55,8 @@ import { BillingService } from './billing.service';
 
 @Injectable()
 export class PlatformLifecycleService {
+  private readonly logger = new Logger(PlatformLifecycleService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
@@ -62,6 +66,7 @@ export class PlatformLifecycleService {
     private readonly billingService: BillingService,
     private readonly leadsRepository: LeadsRepository,
     private readonly userInvitationsService: UserInvitationsService,
+    private readonly customizationService: CustomizationService,
   ) {}
 
   getLifecycleOptions() {
@@ -1505,6 +1510,28 @@ export class PlatformLifecycleService {
         invitedUsers,
       };
     });
+
+    /*
+     * Publish the default views and forms so the new tenant runs on its own
+     * customization metadata from day one instead of the web app's fallbacks.
+     * A failure here must not undo a provisioned tenant, so it is reported
+     * rather than thrown.
+     */
+    try {
+      const defaults = await this.customizationService.publishTenantDefaults(
+        provisioning.tenant.id,
+        actor.userId,
+      );
+      this.logger.log(
+        `Default customization for ${provisioning.tenant.slug}: ${JSON.stringify(defaults)}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Default customization publish failed for ${provisioning.tenant.slug}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
 
     await Promise.all(
       provisioning.invitedUsers.map((user) =>

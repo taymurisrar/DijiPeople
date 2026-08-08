@@ -4,10 +4,51 @@ import { createHash } from 'node:crypto';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { StorageService } from '../../common/storage/storage.service';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
-import type { CsvFile } from '../../common/utils/csv.util';
+import { csvCell, type CsvFile } from '../../common/utils/csv.util';
+import { SecurityPrivilege } from '@prisma/client';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import { buildScopedAccessWhere } from '../../common/security/rbac-query-scope';
 import { AttendanceService } from '../attendance/attendance.service';
 import { EmployeesService } from '../employees/employees.service';
 import { DataModuleRegistryService } from './module-registry.service';
+
+/** Entity each module is scoped by, so an export never widens visibility. */
+const MODULE_ENTITY_KEYS: Record<string, string> = {
+  employees: ENTITY_KEYS.EMPLOYEES,
+  attendance: ENTITY_KEYS.ATTENDANCE,
+  leaves: ENTITY_KEYS.LEAVE_REQUESTS,
+};
+
+/** Prisma delegate name for a model, e.g. AttendanceEntry -> attendanceEntry. */
+function delegateName(modelName: string) {
+  return modelName.charAt(0).toLowerCase() + modelName.slice(1);
+}
+
+/** Picks something human readable from an included relation. */
+function relationLabel(value: unknown): string {
+  if (!value || typeof value !== 'object') return '';
+
+  const record = value as Record<string, unknown>;
+  const parts = [record.firstName, record.lastName].filter(
+    (part): part is string => typeof part === 'string' && part.length > 0,
+  );
+
+  if (parts.length) return parts.join(' ');
+
+  for (const key of ['name', 'label', 'title', 'code', 'employeeCode']) {
+    const candidate = record[key];
+    if (typeof candidate === 'string' && candidate) return candidate;
+  }
+
+  return '';
+}
+
+function cellText(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === 'object') return relationLabel(value);
+  return String(value);
+}
 
 /**
  * Produces a module's export file.
@@ -112,6 +153,88 @@ export class ExportExecutionService {
     return this.getExportSummary(currentUser, job.id);
   }
 
+  /**
+   * Exports every field the module exposes, including relation labels.
+   *
+   * The module's own list export is a curated set for reading on screen; a data
+   * export is for moving the record elsewhere, so it carries the full field set
+   * the import template accepts plus the related record each lookup points at.
+   */
+  private async buildCompleteExport(
+    user: AuthenticatedUser,
+    moduleKey: string,
+  ): Promise<CsvFile> {
+    const module = this.registry.getModule(moduleKey);
+    const entityKey = MODULE_ENTITY_KEYS[moduleKey];
+
+    if (!entityKey) {
+      throw new BadRequestException(
+        `${module.label} has no security scope configured for export.`,
+      );
+    }
+
+    const delegate = (
+      this.prisma as unknown as Record<
+        string,
+        {
+          findMany: (args: unknown) => Promise<Array<Record<string, unknown>>>;
+        }
+      >
+    )[delegateName(module.modelName)];
+
+    if (!delegate) {
+      throw new BadRequestException(
+        `${module.label} cannot be exported: no data source.`,
+      );
+    }
+
+    // Relations are included so a lookup column shows a name, not an opaque id.
+    const include: Record<string, boolean> = {};
+
+    for (const relation of this.registry.relationPropertiesFor(
+      module.modelName,
+    )) {
+      include[relation] = true;
+    }
+
+    const rows = await delegate.findMany({
+      where: {
+        AND: [
+          { tenantId: user.tenantId },
+          buildScopedAccessWhere(user, entityKey, SecurityPrivilege.READ, {
+            organizationIdField: null,
+            userIdField: 'userId',
+          }),
+        ],
+      },
+      ...(Object.keys(include).length ? { include } : {}),
+      take: 10_000,
+    });
+
+    const columns = module.importFields.map((field) => field.key);
+    const relationColumns = Object.keys(include);
+    const header = [
+      ...columns,
+      ...relationColumns.map((key) => `${key} (name)`),
+    ];
+
+    const lines = [header.map(csvCell).join(',')];
+
+    for (const row of rows) {
+      const values = [
+        ...columns.map((key) => cellText(row[key])),
+        ...relationColumns.map((key) => relationLabel(row[key])),
+      ];
+
+      lines.push(values.map(csvCell).join(','));
+    }
+
+    return {
+      filename: `${moduleKey}-export.csv`,
+      buffer: Buffer.from(lines.join(String.fromCharCode(10)), 'utf8'),
+    };
+  }
+
   /** Runs a claimed export job and stores the resulting file. */
   async runExport(currentUser: AuthenticatedUser, jobId: string) {
     const job = await this.prisma.dataJob.findFirst({
@@ -133,7 +256,13 @@ export class ExportExecutionService {
     }
 
     const filters = (job.optionsJson ?? {}) as Record<string, unknown>;
-    const file = await producer(currentUser, filters);
+
+    // A complete export is the default; the module's own writer is used only
+    // when a caller asked for the on-screen column set.
+    const file =
+      filters.curated === true
+        ? await producer(currentUser, filters)
+        : await this.buildCompleteExport(currentUser, job.moduleKey);
 
     const stored = await this.storage.saveFile({
       buffer: file.buffer,

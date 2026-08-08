@@ -329,7 +329,8 @@ export class ErrorLogsService implements OnModuleInit, OnModuleDestroy {
 
   private isDatabaseUnavailable(error: unknown) {
     const code = getPrismaErrorCode(error);
-    const message = error instanceof Error ? error.message : String(error ?? '');
+    const message =
+      error instanceof Error ? error.message : String(error ?? '');
     const lowerMessage = message.toLowerCase();
 
     return (

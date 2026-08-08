@@ -210,6 +210,23 @@ export class DataModuleRegistryService {
     );
   }
 
+  /**
+   * Relation properties on a model that hold a single related record.
+   *
+   * Export includes these so a lookup column can show a name instead of an id.
+   * Reading them from the schema avoids guessing a relation name from the
+   * foreign key, which produces names Prisma does not have.
+   */
+  relationPropertiesFor(modelName: string): string[] {
+    const model = loadRuntimeSchema().models[modelName];
+
+    if (!model) return [];
+
+    return Object.entries(model.fields)
+      .filter(([, field]) => Boolean(field.relationModel) && !field.list)
+      .map(([key]) => key);
+  }
+
   getModule(moduleKey: string): DataModuleDescriptor {
     const cached = this.cache.get(moduleKey);
     if (cached) return cached;

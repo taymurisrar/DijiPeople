@@ -57,8 +57,8 @@ describe('partner portal record isolation', () => {
   it('rejects manual Lead creation from the Partner portal', async () => {
     const service = serviceWith({});
 
-    await expect(
-      service.createPartnerLead(actor, {} as never),
-    ).rejects.toThrow('cannot create leads manually');
+    await expect(service.createPartnerLead(actor, {} as never)).rejects.toThrow(
+      'cannot create leads manually',
+    );
   });
 });

@@ -1178,9 +1178,15 @@ function ModuleAgentDesktopWidget({
     setRequestingLocation(true);
     setLocationMessage(null);
 
+    /*
+     * The module segment comes from the widget's own configuration so this
+     * shared renderer stays free of module specific routes.
+     */
+    const moduleSegment = runtime.module.key;
+
     try {
       const response = await fetch(
-        `/api/agent/employees/${encodeURIComponent(recordId)}/location-requests`,
+        `/api/agent/${moduleSegment}/${encodeURIComponent(recordId)}/location-requests`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

@@ -85,6 +85,97 @@ export type LeaveRequestWithRelations = Prisma.LeaveRequestGetPayload<{
   include: typeof leaveRequestInclude;
 }>;
 
+/**
+ * Column filters from the shared data table, applied to the leave request list.
+ *
+ * Keeping the operator semantics identical to the other modules means a
+ * condition behaves the same wherever the user applies it.
+ */
+function buildLeaveTextFilter(
+  value: string,
+  operator: string | undefined,
+): Prisma.StringFilter {
+  const trimmed = value.trim();
+
+  switch (operator) {
+    case 'equals':
+      return { equals: trimmed, mode: 'insensitive' };
+    case 'notEquals':
+      return { not: trimmed, mode: 'insensitive' };
+    case 'startsWith':
+      return { startsWith: trimmed, mode: 'insensitive' };
+    case 'endsWith':
+      return { endsWith: trimmed, mode: 'insensitive' };
+    case 'notContains':
+      return { not: { contains: trimmed } };
+    case 'isEmpty':
+      return { in: [''] };
+    case 'isNotEmpty':
+      return { not: { in: [''] } };
+    default:
+      return { contains: trimmed, mode: 'insensitive' };
+  }
+}
+
+function isNegatedLeaveOperator(operator: string | undefined) {
+  return operator === 'notContains' || operator === 'notEquals';
+}
+
+/** Builds the where fragment for the table's column filters. */
+function buildLeaveColumnFilters(
+  query: LeaveRequestQueryDto,
+): Prisma.LeaveRequestWhereInput {
+  const clauses: Prisma.LeaveRequestWhereInput[] = [];
+
+  if (query.employeeFilter?.trim()) {
+    const filter = buildLeaveTextFilter(
+      query.employeeFilter,
+      query.employeeFilterOperator,
+    );
+    const parts = [
+      { employee: { firstName: filter } },
+      { employee: { lastName: filter } },
+      { employee: { employeeCode: filter } },
+    ];
+
+    clauses.push(
+      isNegatedLeaveOperator(query.employeeFilterOperator)
+        ? { AND: parts }
+        : { OR: parts },
+    );
+  }
+
+  if (query.leaveTypeFilter?.trim()) {
+    clauses.push({
+      leaveType: {
+        name: buildLeaveTextFilter(
+          query.leaveTypeFilter,
+          query.leaveTypeFilterOperator,
+        ),
+      },
+    });
+  }
+
+  if (query.statusFilter?.trim()) {
+    const statuses = query.statusFilter
+      .split(',')
+      .map((value) => value.trim().toUpperCase())
+      .filter((value): value is LeaveRequestStatus =>
+        Object.values(LeaveRequestStatus).includes(value as LeaveRequestStatus),
+      );
+
+    if (statuses.length) {
+      clauses.push(
+        query.statusFilterOperator === 'notEquals'
+          ? { status: { notIn: statuses } }
+          : { status: { in: statuses } },
+      );
+    }
+  }
+
+  return clauses.length ? { AND: clauses } : {};
+}
+
 @Injectable()
 export class LeaveRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -193,6 +284,7 @@ export class LeaveRepository {
         tenantId,
         employeeId,
         ...(query.status ? { status: query.status } : {}),
+        ...buildLeaveColumnFilters(query),
       },
       include: leaveRequestInclude,
       orderBy: [{ createdAt: 'desc' }],
@@ -247,6 +339,7 @@ export class LeaveRepository {
       where: {
         tenantId,
         ...(query.status ? { status: query.status } : {}),
+        ...buildLeaveColumnFilters(query),
       },
       include: leaveRequestInclude,
       orderBy: [{ createdAt: 'desc' }],
@@ -264,6 +357,7 @@ export class LeaveRepository {
         tenantId,
         employeeId: { in: employeeIds },
         ...(query.status ? { status: query.status } : {}),
+        ...buildLeaveColumnFilters(query),
       },
       include: leaveRequestInclude,
       orderBy: [{ createdAt: 'desc' }],

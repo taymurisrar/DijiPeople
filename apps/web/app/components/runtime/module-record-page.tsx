@@ -430,13 +430,30 @@ export function ModuleRecordPage({
               fieldMap: { ownerUserId: "ownerId" },
             });
 
+            /*
+             * A save that fails only marked the fields or wrote an inline
+             * summary, which is easy to miss on a long form. Every module using
+             * this runtime now also gets a toast, matching the success path.
+             */
             if (Object.keys(backendErrors).length) {
               setFieldErrors(backendErrors);
               setTouchedFields(new Set(Object.keys(backendErrors)));
               setValidationSummary(null);
+              setActionNotice({
+                title: "Check the highlighted fields",
+                description: result.message ?? undefined,
+                variant: "error",
+              });
               return;
             }
-            setValidationSummary(result.message ?? "Save failed.");
+
+            const failureMessage = result.message ?? "Save failed.";
+            setValidationSummary(failureMessage);
+            setActionNotice({
+              title: "Not saved",
+              description: failureMessage,
+              variant: "error",
+            });
           }}
           runtime={effectiveRuntime}
         >
@@ -536,6 +553,18 @@ export function ModuleRecordPage({
       setFieldErrors(validation.errors);
       setTouchedFields(new Set(Object.keys(validation.errors)));
       setValidationSummary(null);
+      /*
+       * Field highlighting alone is easy to miss when the offending field is
+       * scrolled out of view, so the block is announced as well.
+       */
+      const fieldCount = Object.keys(validation.errors).length;
+      setActionNotice({
+        title: "Check the highlighted fields",
+        description: `${fieldCount} field${fieldCount === 1 ? "" : "s"} need${
+          fieldCount === 1 ? "s" : ""
+        } attention before saving.`,
+        variant: "error",
+      });
       debugRuntime("Save blocked by runtime validation", {
         commandKey,
         moduleKey: effectiveRuntime.module.key,
