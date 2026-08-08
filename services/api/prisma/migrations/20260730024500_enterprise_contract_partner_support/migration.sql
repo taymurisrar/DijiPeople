@@ -1,53 +1,105 @@
 -- CreateEnum
-CREATE TYPE "ContractType" AS ENUM ('PARTNER_AGREEMENT', 'CUSTOMER_AGREEMENT', 'NDA', 'SERVICE_AGREEMENT', 'ADDENDUM', 'OTHER');
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ContractType') THEN
+    CREATE TYPE "ContractType" AS ENUM ('PARTNER_AGREEMENT', 'CUSTOMER_AGREEMENT', 'NDA', 'SERVICE_AGREEMENT', 'ADDENDUM', 'OTHER');
+  END IF;
+END $$;
 -- CreateEnum
-CREATE TYPE "ContractStatus" AS ENUM ('DRAFT', 'INTERNAL_REVIEW', 'COMMERCIAL_APPROVAL', 'LEGAL_APPROVAL', 'COUNTERPARTY_REVIEW', 'READY_FOR_SIGNATURE', 'SIGNATURE_IN_PROGRESS', 'PARTIALLY_SIGNED', 'FULLY_SIGNED', 'ACTIVE', 'EXPIRING', 'EXPIRED', 'TERMINATED', 'ARCHIVED');
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ContractStatus') THEN
+    CREATE TYPE "ContractStatus" AS ENUM ('DRAFT', 'INTERNAL_REVIEW', 'COMMERCIAL_APPROVAL', 'LEGAL_APPROVAL', 'COUNTERPARTY_REVIEW', 'READY_FOR_SIGNATURE', 'SIGNATURE_IN_PROGRESS', 'PARTIALLY_SIGNED', 'FULLY_SIGNED', 'ACTIVE', 'EXPIRING', 'EXPIRED', 'TERMINATED', 'ARCHIVED');
+  END IF;
+END $$;
 -- CreateEnum
-CREATE TYPE "ContractVersionStatus" AS ENUM ('DRAFT', 'REVIEW', 'APPROVED', 'SENT_FOR_SIGNATURE', 'SIGNED', 'SUPERSEDED');
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ContractVersionStatus') THEN
+    CREATE TYPE "ContractVersionStatus" AS ENUM ('DRAFT', 'REVIEW', 'APPROVED', 'SENT_FOR_SIGNATURE', 'SIGNED', 'SUPERSEDED');
+  END IF;
+END $$;
 -- CreateEnum
-CREATE TYPE "ContractDocumentKind" AS ENUM ('GENERATED_PREVIEW', 'GENERATED_PDF', 'SOURCE_UPLOAD', 'SIGNED_ORIGINAL', 'SIGNED_COPY', 'EVIDENCE_BUNDLE');
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ContractDocumentKind') THEN
+    CREATE TYPE "ContractDocumentKind" AS ENUM ('GENERATED_PREVIEW', 'GENERATED_PDF', 'SOURCE_UPLOAD', 'SIGNED_ORIGINAL', 'SIGNED_COPY', 'EVIDENCE_BUNDLE');
+  END IF;
+END $$;
 -- CreateEnum
-CREATE TYPE "ContractDocumentSource" AS ENUM ('EDITOR', 'TEMPLATE', 'UPLOAD', 'SIGNATURE');
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ContractDocumentSource') THEN
+    CREATE TYPE "ContractDocumentSource" AS ENUM ('EDITOR', 'TEMPLATE', 'UPLOAD', 'SIGNATURE');
+  END IF;
+END $$;
 -- CreateEnum
-CREATE TYPE "PlatformApprovalStatus" AS ENUM ('DRAFT', 'PENDING', 'APPROVED', 'REJECTED', 'RETURNED', 'CANCELLED');
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'PlatformApprovalStatus') THEN
+    CREATE TYPE "PlatformApprovalStatus" AS ENUM ('DRAFT', 'PENDING', 'APPROVED', 'REJECTED', 'RETURNED', 'CANCELLED');
+  END IF;
+END $$;
 -- CreateEnum
-CREATE TYPE "PlatformApprovalStepStatus" AS ENUM ('NOT_STARTED', 'PENDING', 'APPROVED', 'REJECTED', 'RETURNED', 'SKIPPED');
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'PlatformApprovalStepStatus') THEN
+    CREATE TYPE "PlatformApprovalStepStatus" AS ENUM ('NOT_STARTED', 'PENDING', 'APPROVED', 'REJECTED', 'RETURNED', 'SKIPPED');
+  END IF;
+END $$;
 -- CreateEnum
-CREATE TYPE "SignatureRequestStatus" AS ENUM ('DRAFT', 'SENT', 'VIEWED', 'PARTIALLY_SIGNED', 'COMPLETED', 'DECLINED', 'CANCELLED', 'EXPIRED');
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'SignatureRequestStatus') THEN
+    CREATE TYPE "SignatureRequestStatus" AS ENUM ('DRAFT', 'SENT', 'VIEWED', 'PARTIALLY_SIGNED', 'COMPLETED', 'DECLINED', 'CANCELLED', 'EXPIRED');
+  END IF;
+END $$;
 -- CreateEnum
-CREATE TYPE "SignatureRecipientStatus" AS ENUM ('PENDING', 'SENT', 'VIEWED', 'SIGNED', 'DECLINED', 'EXPIRED');
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'SignatureRecipientStatus') THEN
+    CREATE TYPE "SignatureRecipientStatus" AS ENUM ('PENDING', 'SENT', 'VIEWED', 'SIGNED', 'DECLINED', 'EXPIRED');
+  END IF;
+END $$;
 -- CreateEnum
-CREATE TYPE "SignatureMethod" AS ENUM ('TYPED', 'DRAWN', 'UPLOADED');
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'SignatureMethod') THEN
+    CREATE TYPE "SignatureMethod" AS ENUM ('TYPED', 'DRAWN', 'UPLOADED');
+  END IF;
+END $$;
 -- CreateEnum
-CREATE TYPE "PartnerInquiryStatus" AS ENUM ('NEW', 'QUALIFYING', 'QUALIFIED', 'REJECTED', 'CONVERTED');
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'PartnerInquiryStatus') THEN
+    CREATE TYPE "PartnerInquiryStatus" AS ENUM ('NEW', 'QUALIFYING', 'QUALIFIED', 'REJECTED', 'CONVERTED');
+  END IF;
+END $$;
 -- CreateEnum
-CREATE TYPE "PartnerOnboardingStatus" AS ENUM ('INVITED', 'IN_PROGRESS', 'SUBMITTED', 'UNDER_REVIEW', 'CHANGES_REQUESTED', 'APPROVED', 'REJECTED');
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'PartnerOnboardingStatus') THEN
+    CREATE TYPE "PartnerOnboardingStatus" AS ENUM ('INVITED', 'IN_PROGRESS', 'SUBMITTED', 'UNDER_REVIEW', 'CHANGES_REQUESTED', 'APPROVED', 'REJECTED');
+  END IF;
+END $$;
 -- CreateEnum
-CREATE TYPE "PartnerLeadReviewStatus" AS ENUM ('DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'CHANGES_REQUESTED', 'APPROVED', 'REJECTED', 'CONVERTED');
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'PartnerLeadReviewStatus') THEN
+    CREATE TYPE "PartnerLeadReviewStatus" AS ENUM ('DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'CHANGES_REQUESTED', 'APPROVED', 'REJECTED', 'CONVERTED');
+  END IF;
+END $$;
 -- CreateEnum
-CREATE TYPE "SupportCaseStatus" AS ENUM ('NEW', 'TRIAGED', 'ASSIGNED', 'INVESTIGATING', 'WAITING_ON_CUSTOMER', 'WAITING_ON_INTERNAL_TEAM', 'FIX_IN_PROGRESS', 'MONITORING', 'RESOLVED', 'CLOSED', 'REOPENED', 'CANCELLED');
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'SupportCaseStatus') THEN
+    CREATE TYPE "SupportCaseStatus" AS ENUM ('NEW', 'TRIAGED', 'ASSIGNED', 'INVESTIGATING', 'WAITING_ON_CUSTOMER', 'WAITING_ON_INTERNAL_TEAM', 'FIX_IN_PROGRESS', 'MONITORING', 'RESOLVED', 'CLOSED', 'REOPENED', 'CANCELLED');
+  END IF;
+END $$;
 -- CreateEnum
-CREATE TYPE "SupportCasePriority" AS ENUM ('LOW', 'NORMAL', 'HIGH', 'URGENT');
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'SupportCasePriority') THEN
+    CREATE TYPE "SupportCasePriority" AS ENUM ('LOW', 'NORMAL', 'HIGH', 'URGENT');
+  END IF;
+END $$;
 -- CreateEnum
-CREATE TYPE "SupportCaseSeverity" AS ENUM ('S1_CRITICAL', 'S2_HIGH', 'S3_MEDIUM', 'S4_LOW');
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'SupportCaseSeverity') THEN
+    CREATE TYPE "SupportCaseSeverity" AS ENUM ('S1_CRITICAL', 'S2_HIGH', 'S3_MEDIUM', 'S4_LOW');
+  END IF;
+END $$;
 -- CreateEnum
-CREATE TYPE "SupportCaseChannel" AS ENUM ('WEB', 'EMAIL', 'PHONE', 'CHAT', 'MONITORING', 'INTERNAL');
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'SupportCaseChannel') THEN
+    CREATE TYPE "SupportCaseChannel" AS ENUM ('WEB', 'EMAIL', 'PHONE', 'CHAT', 'MONITORING', 'INTERNAL');
+  END IF;
+END $$;
 
 -- AlterEnum
 -- This migration adds more than one value to an enum.
@@ -99,9 +151,8 @@ ALTER TYPE "PartnerStatus" ADD VALUE IF NOT EXISTS 'FULLY_SIGNED';
 ALTER TYPE "PartnerStatus" ADD VALUE IF NOT EXISTS 'APPROVED_FOR_ACTIVATION';
 
 ALTER TYPE "PartnerStatus" ADD VALUE IF NOT EXISTS 'REJECTED';
-
 -- CreateTable
-CREATE TABLE "ContractTemplate" (
+CREATE TABLE IF NOT EXISTS "ContractTemplate" (
     "id" TEXT NOT NULL,
     "key" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -115,9 +166,8 @@ CREATE TABLE "ContractTemplate" (
 
     CONSTRAINT "ContractTemplate_pkey" PRIMARY KEY ("id")
 );
-
 -- CreateTable
-CREATE TABLE "ContractTemplateVersion" (
+CREATE TABLE IF NOT EXISTS "ContractTemplateVersion" (
     "id" TEXT NOT NULL,
     "templateId" TEXT NOT NULL,
     "version" INTEGER NOT NULL,
@@ -133,9 +183,8 @@ CREATE TABLE "ContractTemplateVersion" (
 
     CONSTRAINT "ContractTemplateVersion_pkey" PRIMARY KEY ("id")
 );
-
 -- CreateTable
-CREATE TABLE "Contract" (
+CREATE TABLE IF NOT EXISTS "Contract" (
     "id" TEXT NOT NULL,
     "contractNumber" TEXT NOT NULL,
     "title" TEXT NOT NULL,
@@ -164,9 +213,8 @@ CREATE TABLE "Contract" (
 
     CONSTRAINT "Contract_pkey" PRIMARY KEY ("id")
 );
-
 -- CreateTable
-CREATE TABLE "ContractVersion" (
+CREATE TABLE IF NOT EXISTS "ContractVersion" (
     "id" TEXT NOT NULL,
     "contractId" TEXT NOT NULL,
     "templateVersionId" TEXT,
@@ -187,9 +235,8 @@ CREATE TABLE "ContractVersion" (
 
     CONSTRAINT "ContractVersion_pkey" PRIMARY KEY ("id")
 );
-
 -- CreateTable
-CREATE TABLE "ContractDocument" (
+CREATE TABLE IF NOT EXISTS "ContractDocument" (
     "id" TEXT NOT NULL,
     "contractId" TEXT NOT NULL,
     "contractVersionId" TEXT,
@@ -206,9 +253,8 @@ CREATE TABLE "ContractDocument" (
 
     CONSTRAINT "ContractDocument_pkey" PRIMARY KEY ("id")
 );
-
 -- CreateTable
-CREATE TABLE "ContractPlaceholderValue" (
+CREATE TABLE IF NOT EXISTS "ContractPlaceholderValue" (
     "id" TEXT NOT NULL,
     "contractId" TEXT NOT NULL,
     "key" TEXT NOT NULL,
@@ -220,9 +266,8 @@ CREATE TABLE "ContractPlaceholderValue" (
 
     CONSTRAINT "ContractPlaceholderValue_pkey" PRIMARY KEY ("id")
 );
-
 -- CreateTable
-CREATE TABLE "PlatformApprovalRequest" (
+CREATE TABLE IF NOT EXISTS "PlatformApprovalRequest" (
     "id" TEXT NOT NULL,
     "requestNumber" TEXT NOT NULL,
     "moduleKey" TEXT NOT NULL,
@@ -241,9 +286,8 @@ CREATE TABLE "PlatformApprovalRequest" (
 
     CONSTRAINT "PlatformApprovalRequest_pkey" PRIMARY KEY ("id")
 );
-
 -- CreateTable
-CREATE TABLE "PlatformApprovalStep" (
+CREATE TABLE IF NOT EXISTS "PlatformApprovalStep" (
     "id" TEXT NOT NULL,
     "approvalRequestId" TEXT NOT NULL,
     "stepOrder" INTEGER NOT NULL,
@@ -259,9 +303,8 @@ CREATE TABLE "PlatformApprovalStep" (
 
     CONSTRAINT "PlatformApprovalStep_pkey" PRIMARY KEY ("id")
 );
-
 -- CreateTable
-CREATE TABLE "PlatformApprovalAction" (
+CREATE TABLE IF NOT EXISTS "PlatformApprovalAction" (
     "id" TEXT NOT NULL,
     "approvalRequestId" TEXT NOT NULL,
     "approvalStepId" TEXT,
@@ -273,9 +316,8 @@ CREATE TABLE "PlatformApprovalAction" (
 
     CONSTRAINT "PlatformApprovalAction_pkey" PRIMARY KEY ("id")
 );
-
 -- CreateTable
-CREATE TABLE "SignatureRequest" (
+CREATE TABLE IF NOT EXISTS "SignatureRequest" (
     "id" TEXT NOT NULL,
     "requestNumber" TEXT NOT NULL,
     "contractId" TEXT NOT NULL,
@@ -295,9 +337,8 @@ CREATE TABLE "SignatureRequest" (
 
     CONSTRAINT "SignatureRequest_pkey" PRIMARY KEY ("id")
 );
-
 -- CreateTable
-CREATE TABLE "SignatureRecipient" (
+CREATE TABLE IF NOT EXISTS "SignatureRecipient" (
     "id" TEXT NOT NULL,
     "signatureRequestId" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -316,9 +357,8 @@ CREATE TABLE "SignatureRecipient" (
 
     CONSTRAINT "SignatureRecipient_pkey" PRIMARY KEY ("id")
 );
-
 -- CreateTable
-CREATE TABLE "SignatureEvidence" (
+CREATE TABLE IF NOT EXISTS "SignatureEvidence" (
     "id" TEXT NOT NULL,
     "recipientId" TEXT NOT NULL,
     "method" "SignatureMethod" NOT NULL,
@@ -335,9 +375,8 @@ CREATE TABLE "SignatureEvidence" (
 
     CONSTRAINT "SignatureEvidence_pkey" PRIMARY KEY ("id")
 );
-
 -- CreateTable
-CREATE TABLE "ContractTimeline" (
+CREATE TABLE IF NOT EXISTS "ContractTimeline" (
     "id" TEXT NOT NULL,
     "contractId" TEXT NOT NULL,
     "eventType" TEXT NOT NULL,
@@ -349,9 +388,8 @@ CREATE TABLE "ContractTimeline" (
 
     CONSTRAINT "ContractTimeline_pkey" PRIMARY KEY ("id")
 );
-
 -- CreateTable
-CREATE TABLE "PartnerInquiry" (
+CREATE TABLE IF NOT EXISTS "PartnerInquiry" (
     "id" TEXT NOT NULL,
     "referenceNumber" TEXT NOT NULL,
     "status" "PartnerInquiryStatus" NOT NULL DEFAULT 'NEW',
@@ -374,9 +412,8 @@ CREATE TABLE "PartnerInquiry" (
 
     CONSTRAINT "PartnerInquiry_pkey" PRIMARY KEY ("id")
 );
-
 -- CreateTable
-CREATE TABLE "PartnerOnboardingApplication" (
+CREATE TABLE IF NOT EXISTS "PartnerOnboardingApplication" (
     "id" TEXT NOT NULL,
     "partnerId" TEXT NOT NULL,
     "status" "PartnerOnboardingStatus" NOT NULL DEFAULT 'INVITED',
@@ -392,9 +429,8 @@ CREATE TABLE "PartnerOnboardingApplication" (
 
     CONSTRAINT "PartnerOnboardingApplication_pkey" PRIMARY KEY ("id")
 );
-
 -- CreateTable
-CREATE TABLE "PartnerOnboardingSubmission" (
+CREATE TABLE IF NOT EXISTS "PartnerOnboardingSubmission" (
     "id" TEXT NOT NULL,
     "applicationId" TEXT NOT NULL,
     "version" INTEGER NOT NULL,
@@ -405,9 +441,8 @@ CREATE TABLE "PartnerOnboardingSubmission" (
 
     CONSTRAINT "PartnerOnboardingSubmission_pkey" PRIMARY KEY ("id")
 );
-
 -- CreateTable
-CREATE TABLE "PartnerPortalUser" (
+CREATE TABLE IF NOT EXISTS "PartnerPortalUser" (
     "id" TEXT NOT NULL,
     "partnerId" TEXT NOT NULL,
     "email" TEXT NOT NULL,
@@ -424,9 +459,8 @@ CREATE TABLE "PartnerPortalUser" (
 
     CONSTRAINT "PartnerPortalUser_pkey" PRIMARY KEY ("id")
 );
-
 -- CreateTable
-CREATE TABLE "PartnerLeadReview" (
+CREATE TABLE IF NOT EXISTS "PartnerLeadReview" (
     "id" TEXT NOT NULL,
     "leadId" TEXT NOT NULL,
     "partnerId" TEXT NOT NULL,
@@ -443,9 +477,8 @@ CREATE TABLE "PartnerLeadReview" (
 
     CONSTRAINT "PartnerLeadReview_pkey" PRIMARY KEY ("id")
 );
-
 -- CreateTable
-CREATE TABLE "SupportCase" (
+CREATE TABLE IF NOT EXISTS "SupportCase" (
     "id" TEXT NOT NULL,
     "caseNumber" TEXT NOT NULL,
     "title" TEXT NOT NULL,
@@ -475,9 +508,8 @@ CREATE TABLE "SupportCase" (
 
     CONSTRAINT "SupportCase_pkey" PRIMARY KEY ("id")
 );
-
 -- CreateTable
-CREATE TABLE "SupportCaseTimeline" (
+CREATE TABLE IF NOT EXISTS "SupportCaseTimeline" (
     "id" TEXT NOT NULL,
     "supportCaseId" TEXT NOT NULL,
     "eventType" TEXT NOT NULL,
@@ -489,9 +521,8 @@ CREATE TABLE "SupportCaseTimeline" (
 
     CONSTRAINT "SupportCaseTimeline_pkey" PRIMARY KEY ("id")
 );
-
 -- CreateTable
-CREATE TABLE "SupportCaseCommunication" (
+CREATE TABLE IF NOT EXISTS "SupportCaseCommunication" (
     "id" TEXT NOT NULL,
     "supportCaseId" TEXT NOT NULL,
     "direction" TEXT NOT NULL,
@@ -506,9 +537,8 @@ CREATE TABLE "SupportCaseCommunication" (
 
     CONSTRAINT "SupportCaseCommunication_pkey" PRIMARY KEY ("id")
 );
-
 -- CreateTable
-CREATE TABLE "SupportCaseIncident" (
+CREATE TABLE IF NOT EXISTS "SupportCaseIncident" (
     "id" TEXT NOT NULL,
     "supportCaseId" TEXT NOT NULL,
     "errorLogId" TEXT NOT NULL,
@@ -517,99 +547,192 @@ CREATE TABLE "SupportCaseIncident" (
 
     CONSTRAINT "SupportCaseIncident_pkey" PRIMARY KEY ("id")
 );
-
 -- AddForeignKey
-ALTER TABLE "ContractTemplateVersion" ADD CONSTRAINT "ContractTemplateVersion_templateId_fkey" FOREIGN KEY ("templateId") REFERENCES "ContractTemplate"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ContractTemplateVersion_templateId_fkey') THEN
+    ALTER TABLE "ContractTemplateVersion" ADD CONSTRAINT "ContractTemplateVersion_templateId_fkey" FOREIGN KEY ("templateId") REFERENCES "ContractTemplate"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 -- AddForeignKey
-ALTER TABLE "Contract" ADD CONSTRAINT "Contract_templateId_fkey" FOREIGN KEY ("templateId") REFERENCES "ContractTemplate"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Contract_templateId_fkey') THEN
+    ALTER TABLE "Contract" ADD CONSTRAINT "Contract_templateId_fkey" FOREIGN KEY ("templateId") REFERENCES "ContractTemplate"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 -- AddForeignKey
-ALTER TABLE "Contract" ADD CONSTRAINT "Contract_partnerId_fkey" FOREIGN KEY ("partnerId") REFERENCES "Partner"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Contract_partnerId_fkey') THEN
+    ALTER TABLE "Contract" ADD CONSTRAINT "Contract_partnerId_fkey" FOREIGN KEY ("partnerId") REFERENCES "Partner"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 -- AddForeignKey
-ALTER TABLE "Contract" ADD CONSTRAINT "Contract_customerAccountId_fkey" FOREIGN KEY ("customerAccountId") REFERENCES "CustomerAccount"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Contract_customerAccountId_fkey') THEN
+    ALTER TABLE "Contract" ADD CONSTRAINT "Contract_customerAccountId_fkey" FOREIGN KEY ("customerAccountId") REFERENCES "CustomerAccount"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 -- AddForeignKey
-ALTER TABLE "Contract" ADD CONSTRAINT "Contract_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Contract_tenantId_fkey') THEN
+    ALTER TABLE "Contract" ADD CONSTRAINT "Contract_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 -- AddForeignKey
-ALTER TABLE "ContractVersion" ADD CONSTRAINT "ContractVersion_contractId_fkey" FOREIGN KEY ("contractId") REFERENCES "Contract"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ContractVersion_contractId_fkey') THEN
+    ALTER TABLE "ContractVersion" ADD CONSTRAINT "ContractVersion_contractId_fkey" FOREIGN KEY ("contractId") REFERENCES "Contract"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 -- AddForeignKey
-ALTER TABLE "ContractVersion" ADD CONSTRAINT "ContractVersion_templateVersionId_fkey" FOREIGN KEY ("templateVersionId") REFERENCES "ContractTemplateVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ContractVersion_templateVersionId_fkey') THEN
+    ALTER TABLE "ContractVersion" ADD CONSTRAINT "ContractVersion_templateVersionId_fkey" FOREIGN KEY ("templateVersionId") REFERENCES "ContractTemplateVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 -- AddForeignKey
-ALTER TABLE "ContractDocument" ADD CONSTRAINT "ContractDocument_contractId_fkey" FOREIGN KEY ("contractId") REFERENCES "Contract"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ContractDocument_contractId_fkey') THEN
+    ALTER TABLE "ContractDocument" ADD CONSTRAINT "ContractDocument_contractId_fkey" FOREIGN KEY ("contractId") REFERENCES "Contract"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 -- AddForeignKey
-ALTER TABLE "ContractDocument" ADD CONSTRAINT "ContractDocument_contractVersionId_fkey" FOREIGN KEY ("contractVersionId") REFERENCES "ContractVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ContractDocument_contractVersionId_fkey') THEN
+    ALTER TABLE "ContractDocument" ADD CONSTRAINT "ContractDocument_contractVersionId_fkey" FOREIGN KEY ("contractVersionId") REFERENCES "ContractVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 -- AddForeignKey
-ALTER TABLE "ContractPlaceholderValue" ADD CONSTRAINT "ContractPlaceholderValue_contractId_fkey" FOREIGN KEY ("contractId") REFERENCES "Contract"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ContractPlaceholderValue_contractId_fkey') THEN
+    ALTER TABLE "ContractPlaceholderValue" ADD CONSTRAINT "ContractPlaceholderValue_contractId_fkey" FOREIGN KEY ("contractId") REFERENCES "Contract"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 -- AddForeignKey
-ALTER TABLE "PlatformApprovalRequest" ADD CONSTRAINT "PlatformApprovalRequest_contractId_fkey" FOREIGN KEY ("contractId") REFERENCES "Contract"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'PlatformApprovalRequest_contractId_fkey') THEN
+    ALTER TABLE "PlatformApprovalRequest" ADD CONSTRAINT "PlatformApprovalRequest_contractId_fkey" FOREIGN KEY ("contractId") REFERENCES "Contract"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 -- AddForeignKey
-ALTER TABLE "PlatformApprovalStep" ADD CONSTRAINT "PlatformApprovalStep_approvalRequestId_fkey" FOREIGN KEY ("approvalRequestId") REFERENCES "PlatformApprovalRequest"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'PlatformApprovalStep_approvalRequestId_fkey') THEN
+    ALTER TABLE "PlatformApprovalStep" ADD CONSTRAINT "PlatformApprovalStep_approvalRequestId_fkey" FOREIGN KEY ("approvalRequestId") REFERENCES "PlatformApprovalRequest"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 -- AddForeignKey
-ALTER TABLE "PlatformApprovalAction" ADD CONSTRAINT "PlatformApprovalAction_approvalRequestId_fkey" FOREIGN KEY ("approvalRequestId") REFERENCES "PlatformApprovalRequest"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'PlatformApprovalAction_approvalRequestId_fkey') THEN
+    ALTER TABLE "PlatformApprovalAction" ADD CONSTRAINT "PlatformApprovalAction_approvalRequestId_fkey" FOREIGN KEY ("approvalRequestId") REFERENCES "PlatformApprovalRequest"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 -- AddForeignKey
-ALTER TABLE "PlatformApprovalAction" ADD CONSTRAINT "PlatformApprovalAction_approvalStepId_fkey" FOREIGN KEY ("approvalStepId") REFERENCES "PlatformApprovalStep"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'PlatformApprovalAction_approvalStepId_fkey') THEN
+    ALTER TABLE "PlatformApprovalAction" ADD CONSTRAINT "PlatformApprovalAction_approvalStepId_fkey" FOREIGN KEY ("approvalStepId") REFERENCES "PlatformApprovalStep"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 -- AddForeignKey
-ALTER TABLE "SignatureRequest" ADD CONSTRAINT "SignatureRequest_contractId_fkey" FOREIGN KEY ("contractId") REFERENCES "Contract"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'SignatureRequest_contractId_fkey') THEN
+    ALTER TABLE "SignatureRequest" ADD CONSTRAINT "SignatureRequest_contractId_fkey" FOREIGN KEY ("contractId") REFERENCES "Contract"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 -- AddForeignKey
-ALTER TABLE "SignatureRequest" ADD CONSTRAINT "SignatureRequest_contractVersionId_fkey" FOREIGN KEY ("contractVersionId") REFERENCES "ContractVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'SignatureRequest_contractVersionId_fkey') THEN
+    ALTER TABLE "SignatureRequest" ADD CONSTRAINT "SignatureRequest_contractVersionId_fkey" FOREIGN KEY ("contractVersionId") REFERENCES "ContractVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 -- AddForeignKey
-ALTER TABLE "SignatureRecipient" ADD CONSTRAINT "SignatureRecipient_signatureRequestId_fkey" FOREIGN KEY ("signatureRequestId") REFERENCES "SignatureRequest"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'SignatureRecipient_signatureRequestId_fkey') THEN
+    ALTER TABLE "SignatureRecipient" ADD CONSTRAINT "SignatureRecipient_signatureRequestId_fkey" FOREIGN KEY ("signatureRequestId") REFERENCES "SignatureRequest"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 -- AddForeignKey
-ALTER TABLE "SignatureEvidence" ADD CONSTRAINT "SignatureEvidence_recipientId_fkey" FOREIGN KEY ("recipientId") REFERENCES "SignatureRecipient"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'SignatureEvidence_recipientId_fkey') THEN
+    ALTER TABLE "SignatureEvidence" ADD CONSTRAINT "SignatureEvidence_recipientId_fkey" FOREIGN KEY ("recipientId") REFERENCES "SignatureRecipient"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 -- AddForeignKey
-ALTER TABLE "ContractTimeline" ADD CONSTRAINT "ContractTimeline_contractId_fkey" FOREIGN KEY ("contractId") REFERENCES "Contract"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ContractTimeline_contractId_fkey') THEN
+    ALTER TABLE "ContractTimeline" ADD CONSTRAINT "ContractTimeline_contractId_fkey" FOREIGN KEY ("contractId") REFERENCES "Contract"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 -- AddForeignKey
-ALTER TABLE "PartnerInquiry" ADD CONSTRAINT "PartnerInquiry_partnerId_fkey" FOREIGN KEY ("partnerId") REFERENCES "Partner"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'PartnerInquiry_partnerId_fkey') THEN
+    ALTER TABLE "PartnerInquiry" ADD CONSTRAINT "PartnerInquiry_partnerId_fkey" FOREIGN KEY ("partnerId") REFERENCES "Partner"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 -- AddForeignKey
-ALTER TABLE "PartnerOnboardingApplication" ADD CONSTRAINT "PartnerOnboardingApplication_partnerId_fkey" FOREIGN KEY ("partnerId") REFERENCES "Partner"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'PartnerOnboardingApplication_partnerId_fkey') THEN
+    ALTER TABLE "PartnerOnboardingApplication" ADD CONSTRAINT "PartnerOnboardingApplication_partnerId_fkey" FOREIGN KEY ("partnerId") REFERENCES "Partner"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 -- AddForeignKey
-ALTER TABLE "PartnerOnboardingSubmission" ADD CONSTRAINT "PartnerOnboardingSubmission_applicationId_fkey" FOREIGN KEY ("applicationId") REFERENCES "PartnerOnboardingApplication"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'PartnerOnboardingSubmission_applicationId_fkey') THEN
+    ALTER TABLE "PartnerOnboardingSubmission" ADD CONSTRAINT "PartnerOnboardingSubmission_applicationId_fkey" FOREIGN KEY ("applicationId") REFERENCES "PartnerOnboardingApplication"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 -- AddForeignKey
-ALTER TABLE "PartnerPortalUser" ADD CONSTRAINT "PartnerPortalUser_partnerId_fkey" FOREIGN KEY ("partnerId") REFERENCES "Partner"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'PartnerPortalUser_partnerId_fkey') THEN
+    ALTER TABLE "PartnerPortalUser" ADD CONSTRAINT "PartnerPortalUser_partnerId_fkey" FOREIGN KEY ("partnerId") REFERENCES "Partner"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 -- AddForeignKey
-ALTER TABLE "PartnerLeadReview" ADD CONSTRAINT "PartnerLeadReview_leadId_fkey" FOREIGN KEY ("leadId") REFERENCES "Lead"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'PartnerLeadReview_leadId_fkey') THEN
+    ALTER TABLE "PartnerLeadReview" ADD CONSTRAINT "PartnerLeadReview_leadId_fkey" FOREIGN KEY ("leadId") REFERENCES "Lead"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 -- AddForeignKey
-ALTER TABLE "PartnerLeadReview" ADD CONSTRAINT "PartnerLeadReview_partnerId_fkey" FOREIGN KEY ("partnerId") REFERENCES "Partner"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'PartnerLeadReview_partnerId_fkey') THEN
+    ALTER TABLE "PartnerLeadReview" ADD CONSTRAINT "PartnerLeadReview_partnerId_fkey" FOREIGN KEY ("partnerId") REFERENCES "Partner"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 -- AddForeignKey
-ALTER TABLE "SupportCase" ADD CONSTRAINT "SupportCase_customerAccountId_fkey" FOREIGN KEY ("customerAccountId") REFERENCES "CustomerAccount"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'SupportCase_customerAccountId_fkey') THEN
+    ALTER TABLE "SupportCase" ADD CONSTRAINT "SupportCase_customerAccountId_fkey" FOREIGN KEY ("customerAccountId") REFERENCES "CustomerAccount"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 -- AddForeignKey
-ALTER TABLE "SupportCase" ADD CONSTRAINT "SupportCase_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'SupportCase_tenantId_fkey') THEN
+    ALTER TABLE "SupportCase" ADD CONSTRAINT "SupportCase_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 -- AddForeignKey
-ALTER TABLE "SupportCaseTimeline" ADD CONSTRAINT "SupportCaseTimeline_supportCaseId_fkey" FOREIGN KEY ("supportCaseId") REFERENCES "SupportCase"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'SupportCaseTimeline_supportCaseId_fkey') THEN
+    ALTER TABLE "SupportCaseTimeline" ADD CONSTRAINT "SupportCaseTimeline_supportCaseId_fkey" FOREIGN KEY ("supportCaseId") REFERENCES "SupportCase"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 -- AddForeignKey
-ALTER TABLE "SupportCaseCommunication" ADD CONSTRAINT "SupportCaseCommunication_supportCaseId_fkey" FOREIGN KEY ("supportCaseId") REFERENCES "SupportCase"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'SupportCaseCommunication_supportCaseId_fkey') THEN
+    ALTER TABLE "SupportCaseCommunication" ADD CONSTRAINT "SupportCaseCommunication_supportCaseId_fkey" FOREIGN KEY ("supportCaseId") REFERENCES "SupportCase"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 -- AddForeignKey
-ALTER TABLE "SupportCaseIncident" ADD CONSTRAINT "SupportCaseIncident_supportCaseId_fkey" FOREIGN KEY ("supportCaseId") REFERENCES "SupportCase"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'SupportCaseIncident_supportCaseId_fkey') THEN
+    ALTER TABLE "SupportCaseIncident" ADD CONSTRAINT "SupportCaseIncident_supportCaseId_fkey" FOREIGN KEY ("supportCaseId") REFERENCES "SupportCase"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 -- AddForeignKey
-ALTER TABLE "SupportCaseIncident" ADD CONSTRAINT "SupportCaseIncident_errorLogId_fkey" FOREIGN KEY ("errorLogId") REFERENCES "ErrorLog"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'SupportCaseIncident_errorLogId_fkey') THEN
+    ALTER TABLE "SupportCaseIncident" ADD CONSTRAINT "SupportCaseIncident_errorLogId_fkey" FOREIGN KEY ("errorLogId") REFERENCES "ErrorLog"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
 
 -- Legally significant signed versions, immutable documents, and signature evidence
 -- are protected at the database layer as well as in the application service.
@@ -623,6 +746,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Dropped first: Postgres has no IF NOT EXISTS for triggers, and
+-- this migration may be retried against a database where it landed.
+DROP TRIGGER IF EXISTS contract_version_immutable ON "ContractVersion";
 CREATE TRIGGER contract_version_immutable
 BEFORE UPDATE OR DELETE ON "ContractVersion"
 FOR EACH ROW EXECUTE FUNCTION prevent_locked_contract_version_change();
@@ -637,6 +763,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Dropped first: Postgres has no IF NOT EXISTS for triggers, and
+-- this migration may be retried against a database where it landed.
+DROP TRIGGER IF EXISTS contract_document_immutable ON "ContractDocument";
 CREATE TRIGGER contract_document_immutable
 BEFORE UPDATE OR DELETE ON "ContractDocument"
 FOR EACH ROW EXECUTE FUNCTION prevent_immutable_contract_document_change();
@@ -648,6 +777,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Dropped first: Postgres has no IF NOT EXISTS for triggers, and
+-- this migration may be retried against a database where it landed.
+DROP TRIGGER IF EXISTS signature_evidence_immutable ON "SignatureEvidence";
 CREATE TRIGGER signature_evidence_immutable
 BEFORE UPDATE OR DELETE ON "SignatureEvidence"
 FOR EACH ROW EXECUTE FUNCTION prevent_signature_evidence_change();
