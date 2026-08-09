@@ -1166,6 +1166,68 @@ export const leaveRuntimeSpec: StandardModuleRuntimeSpec = {
       ],
       defaultSort: [{ fieldLogicalName: "startDate", direction: "desc" }],
     },
+    /*
+     * Status views. Two views — mine and everyone's — left the common questions
+     * unanswered: what is waiting on me, and what has already been decided.
+     * Filtering on status rather than adding new endpoints keeps these entirely
+     * declarative.
+     */
+    {
+      logicalName: "leaves.pending",
+      viewId: "00000000-0000-4000-8000-000000000103",
+      displayName: "Pending Approval",
+      columns: [
+        "requestName",
+        "employeeName",
+        "leaveTypeName",
+        "startDate",
+        "endDate",
+        "durationDays",
+        "status",
+      ],
+      filters: [
+        { fieldLogicalName: "status", operator: "eq", value: "PENDING" },
+      ],
+      /* Oldest first: the request waiting longest needs attention first. */
+      defaultSort: [{ fieldLogicalName: "startDate", direction: "asc" }],
+    },
+    {
+      logicalName: "leaves.approved",
+      viewId: "00000000-0000-4000-8000-000000000104",
+      displayName: "Approved Leave",
+      columns: [
+        "requestName",
+        "employeeName",
+        "leaveTypeName",
+        "startDate",
+        "endDate",
+        "durationDays",
+        "status",
+      ],
+      filters: [
+        { fieldLogicalName: "status", operator: "eq", value: "APPROVED" },
+      ],
+      defaultSort: [{ fieldLogicalName: "startDate", direction: "desc" }],
+    },
+    {
+      logicalName: "leaves.rejected",
+      viewId: "00000000-0000-4000-8000-000000000105",
+      displayName: "Rejected Leave",
+      columns: [
+        "requestName",
+        "employeeName",
+        "leaveTypeName",
+        "startDate",
+        "endDate",
+        "durationDays",
+        "reason",
+        "status",
+      ],
+      filters: [
+        { fieldLogicalName: "status", operator: "eq", value: "REJECTED" },
+      ],
+      defaultSort: [{ fieldLogicalName: "startDate", direction: "desc" }],
+    },
   ],
   commands: [
     disabledBusinessCommand("leave.submit", "Submit"),
@@ -1502,7 +1564,7 @@ export const attendanceRuntimeSpec: StandardModuleRuntimeSpec = {
       filters: [
         {
           fieldLogicalName: "status",
-          operator: "equals",
+          operator: "eq",
           value: "MISSED_CHECK_OUT",
         },
       ],
@@ -2846,6 +2908,63 @@ export const approvalRuntimeSpec: StandardModuleRuntimeSpec = {
         "submittedAt",
         "status",
       ],
+    },
+    /*
+     * "Assigned" and "All" both mix decided requests in with live ones, so the
+     * queue never visibly shrinks. These separate what still needs a decision
+     * from what has already had one.
+     */
+    {
+      logicalName: "approvals.pending",
+      viewId: "00000000-0000-4000-8000-000000000403",
+      displayName: "Pending Decision",
+      columns: [
+        "approvalName",
+        "moduleLabel",
+        "requesterName",
+        "assignedToName",
+        "submittedAt",
+        "status",
+      ],
+      filters: [
+        { fieldLogicalName: "status", operator: "eq", value: "PENDING" },
+      ],
+      /* Oldest submission first — the queue reads as a queue. */
+      defaultSort: [{ fieldLogicalName: "submittedAt", direction: "asc" }],
+    },
+    {
+      logicalName: "approvals.approved",
+      viewId: "00000000-0000-4000-8000-000000000404",
+      displayName: "Approved",
+      columns: [
+        "approvalName",
+        "moduleLabel",
+        "requesterName",
+        "assignedToName",
+        "submittedAt",
+        "status",
+      ],
+      filters: [
+        { fieldLogicalName: "status", operator: "eq", value: "APPROVED" },
+      ],
+      defaultSort: [{ fieldLogicalName: "submittedAt", direction: "desc" }],
+    },
+    {
+      logicalName: "approvals.rejected",
+      viewId: "00000000-0000-4000-8000-000000000405",
+      displayName: "Rejected",
+      columns: [
+        "approvalName",
+        "moduleLabel",
+        "requesterName",
+        "assignedToName",
+        "submittedAt",
+        "status",
+      ],
+      filters: [
+        { fieldLogicalName: "status", operator: "eq", value: "REJECTED" },
+      ],
+      defaultSort: [{ fieldLogicalName: "submittedAt", direction: "desc" }],
     },
   ],
   commands: [

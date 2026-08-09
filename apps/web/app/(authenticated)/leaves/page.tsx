@@ -83,9 +83,17 @@ export default async function LeavePage({ searchParams }: LeavesPageProps) {
     spec: visibleSpec,
   });
   const activeView = resolveActiveView(runtime, getSearchParam(params.viewId));
-  const teamView = activeView?.logicalName === "leaves.all";
+  /*
+   * Only "My Leave Requests" is personal; every other view is a team view.
+   *
+   * This used to name `leaves.all` explicitly, so any view added afterwards
+   * silently fell through to the personal endpoint — a "Pending Approval" view
+   * that showed only your own requests, which is the opposite of its purpose.
+   * Inverting the test means a new view is a team view by default.
+   */
+  const isPersonalView = activeView?.logicalName === "leaves.my";
   const endpoint =
-    teamView && canViewTeamLeaves
+    !isPersonalView && canViewTeamLeaves
       ? "/leave-requests/team"
       : "/leave-requests/mine";
   const requests = await apiRequestJson<LeaveRequestRecord[]>(endpoint);

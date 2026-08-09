@@ -2321,7 +2321,26 @@ export class AttendanceService {
   }
 
   async getSelfServiceRuntimeContext(currentUser: AuthenticatedUser) {
-    const employee = await this.getCurrentEmployee(currentUser);
+    /*
+     * An account with no employee record is a normal state, not a bad request.
+     *
+     * Administrator and support logins routinely have no employee of their own,
+     * and the self-service action bar asks for this context on every
+     * authenticated page. Throwing produced a 400 and a logged warning several
+     * times per page load for those users, which buried real validation
+     * failures in noise. The unavailable state is reported in the payload
+     * instead, so the caller can hide the check-in controls and say why.
+     */
+    const employee = await this.employeesRepository.findByUserIdAndTenant(
+      currentUser.tenantId,
+      currentUser.userId,
+    );
+
+    if (!employee) {
+      return this.buildUnavailableSelfServiceContext(
+        'Attendance self-service is unavailable because no employee record is linked to your account.',
+      );
+    }
     const now = new Date();
     const context = await this.resolveSelfServiceContext(
       currentUser,
@@ -2431,6 +2450,8 @@ export class AttendanceService {
         ? this.mapAttendanceEntry(todayAttendance, currentUser)
         : null,
       blockedReason: actionBlockedReason,
+      /* Present on both paths so the client never has to infer it. */
+      selfServiceAvailable: true,
       policy: {
         allowManualAdjustments: policy.allowManualAdjustments,
         officeRequiresWorkSite: policy.requireOfficeLocationForOfficeMode,
@@ -2730,6 +2751,37 @@ export class AttendanceService {
       createdById: currentUser.userId,
       updatedById: currentUser.userId,
     });
+  }
+
+  /**
+   * The same shape as a resolved context, with every action switched off.
+   *
+   * Mirroring the successful payload means the client renders its normal
+   * disabled state and shows `blockedReason`, rather than needing a separate
+   * branch for "this user has no employee record".
+   */
+  private buildUnavailableSelfServiceContext(reason: string) {
+    return {
+      attendanceActionState: 'blocked' as const,
+      attendanceDate: formatBusinessDateKey(new Date()),
+      timezone: 'UTC',
+      allowedModes: [],
+      defaultAttendanceMode: null,
+      defaultOfficeLocationId: null,
+      resolvedShift: null,
+      workSites: [],
+      todayAttendance: null,
+      blockedReason: reason,
+      selfServiceAvailable: false,
+      policy: {
+        allowManualAdjustments: false,
+        officeRequiresWorkSite: false,
+        remoteRequiresLocation: false,
+        hybridRequiresLocation: false,
+        locationCaptureRequired: false,
+        locationRequiredForModes: [],
+      },
+    };
   }
 
   private async getCurrentEmployee(currentUser: AuthenticatedUser) {
