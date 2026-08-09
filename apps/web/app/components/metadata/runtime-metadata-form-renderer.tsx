@@ -29,6 +29,10 @@ import { ModuleRelatedSubgrid } from "@/app/components/runtime/module-related-su
 import { ModuleWidgetRenderer } from "@/app/components/runtime/module-widget-renderer";
 import { ResponsiveRuntimeTabs } from "@/app/components/runtime/responsive-runtime-tabs";
 import { resolveSafeFieldMetadata } from "@/lib/runtime/security-runtime.resolver";
+import {
+  isVisibleByRules,
+  type VisibilityEvaluationContext,
+} from "@/lib/runtime/visibility.resolver";
 import { formatRuntimeFieldValue } from "@/lib/runtime/runtime-value-formatter";
 import {
   columnsFromSectionLayout,
@@ -230,7 +234,25 @@ function RuntimeFormMetadataRenderer({
   const fieldsByName = new Map(
     entity.fields.map((field) => [field.logicalName, field]),
   );
-  const tabs = resolveFormTabs(form);
+  /*
+   * Role and permission gating for tabs. Built from the runtime principal so a
+   * rule written on a tab behaves exactly as one written on a command.
+   */
+  const visibilityContext = useMemo<VisibilityEvaluationContext | undefined>(
+    () =>
+      runtime
+        ? {
+            principal: {
+              roleKeys: runtime.security.principal.roleKeys,
+              permissionKeys: runtime.security.principal.permissionKeys,
+            },
+            record: values,
+          }
+        : undefined,
+    [runtime, values],
+  );
+
+  const tabs = resolveFormTabs(form, visibilityContext);
   const [activeTabKey, setActiveTabKey] = useState(tabs[0]?.tabKey ?? "");
   const [dynamicLookupOptions, setDynamicLookupOptions] = useState<
     Record<string, readonly LookupOption[]>
@@ -254,7 +276,7 @@ function RuntimeFormMetadataRenderer({
     ) ??
     tabs[0] ??
     null;
-  const visibleSections = resolveTabSections(form, activeTab);
+  const visibleSections = resolveTabSections(form, activeTab, visibilityContext);
   return (
     <article className="w-full min-w-0 overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
       {tabs.length > 1 ? (
@@ -526,9 +548,13 @@ function resolveParentBinding(
     : undefined;
 }
 
-function resolveFormTabs(form: FormMetadata): readonly FormTabMetadata[] {
+function resolveFormTabs(
+  form: FormMetadata,
+  visibility?: VisibilityEvaluationContext,
+): readonly FormTabMetadata[] {
   const explicitTabs = (form.tabs ?? [])
     .filter((tab) => tab.isVisible !== false)
+    .filter((tab) => !visibility || isVisibleByRules(tab, visibility))
     .sort((left, right) => left.order - right.order);
 
   if (explicitTabs.length) return explicitTabs;
@@ -548,12 +574,18 @@ function resolveFormTabs(form: FormMetadata): readonly FormTabMetadata[] {
 function resolveTabSections(
   form: FormMetadata,
   activeTab: FormTabMetadata | null,
+  visibility?: VisibilityEvaluationContext,
 ) {
-  if (!activeTab) return form.sections;
+  const visible = (sections: readonly FormSectionMetadata[]) =>
+    visibility
+      ? sections.filter((section) => isVisibleByRules(section, visibility))
+      : sections;
+
+  if (!activeTab) return visible(form.sections);
 
   const sectionIds = new Set(activeTab.sectionIds ?? []);
 
-  return form.sections
+  return visible(form.sections)
     .filter((section) =>
       section.tabKey
         ? section.tabKey === activeTab.tabKey

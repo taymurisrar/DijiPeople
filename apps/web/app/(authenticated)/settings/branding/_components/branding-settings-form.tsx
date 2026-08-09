@@ -679,24 +679,26 @@ export function BrandingSettingsForm({
                 {draftBranding.employeePortalMessage}
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
-                <button
+                {/* Colour samples, not controls: inert so keyboard users do
+                    not tab into buttons that cannot do anything. */}
+                <span
+                  aria-hidden
                   className="rounded-xl px-4 py-2 text-sm font-semibold text-white"
                   style={{ backgroundColor: "var(--dp-primary)" }}
-                  type="button"
                 >
                   Primary action
-                </button>
-                <button
+                </span>
+                <span
+                  aria-hidden
                   className="rounded-xl border px-4 py-2 text-sm font-medium"
                   style={{
                     borderColor:
                       "color-mix(in oklab, var(--dp-text) 20%, white)",
                     color: "var(--dp-text)",
                   }}
-                  type="button"
                 >
                   Secondary action
-                </button>
+                </span>
               </div>
             </div>
 

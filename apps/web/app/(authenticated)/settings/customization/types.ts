@@ -1,3 +1,5 @@
+import type { VisibilityRule } from "@/lib/runtime/visibility.resolver";
+
 export type CustomizationSummary = {
   existingSystemTablesOnly: boolean;
   customTablesEnabled: boolean;
@@ -300,6 +302,11 @@ export type CustomizationColumn = {
   isVisibleInCustomization?: boolean;
   isValidForFormDesigner?: boolean;
   isValidForViewDesigner?: boolean;
+  /*
+   * The column that names a record of this module. A lookup pointing at the
+   * module shows this column's value. At most one column per module sets it.
+   */
+  isPrimaryName?: boolean;
   isReadOnly: boolean;
   lifecycleState?: "draft" | "published" | "deprecated" | "archived";
   maxLength: number | null;
@@ -363,6 +370,14 @@ export type FormLayoutSection = {
   labelVisible?: boolean;
   isVisible?: boolean;
   sequence?: number;
+  /*
+   * Audience rules, evaluated by the same engine that gates commands and
+   * navigation. `isVisible` above is an unconditional on/off for everyone;
+   * these decide who among those who can reach the form actually sees this
+   * section. Both adapters that turn this layout into runtime metadata carry
+   * the rules through, so a rule saved here reaches the renderer.
+   */
+  visibilityRules?: VisibilityRule[];
   fields: FormLayoutField[];
   components?: FormLayoutComponent[];
 };
@@ -386,6 +401,8 @@ export type FormLayoutTab = {
   tabType?: "fields" | "related_module";
   columns?: 1 | 2 | 3 | 4;
   sequence?: number;
+  /* See FormLayoutSection.visibilityRules — same engine, same guarantees. */
+  visibilityRules?: VisibilityRule[];
   sections: FormLayoutSection[];
   relationshipId?: string;
   relatedModuleKey?: string;

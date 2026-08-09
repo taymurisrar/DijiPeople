@@ -408,14 +408,27 @@ export function DataTable<T>({
 
   return (
     <div
-      className={
+      /*
+       * `w-full min-w-0` is applied unconditionally rather than as part of a
+       * default a caller can replace.
+       *
+       * Without `min-w-0` this card cannot shrink below the width of the table
+       * inside it, so a table with a `min-w-[…]` pushes the whole page wider
+       * than the viewport. An ancestor then clips the excess and the horizontal
+       * scrollbar never appears — the table is unreachable rather than
+       * scrollable. Callers passing `className` for looks were silently opting
+       * out of the constraint that makes the scrolling below work.
+       */
+      className={[
+        "w-full min-w-0",
         className ??
-        `w-full min-w-0 overflow-hidden rounded-lg border border-border bg-surface shadow-sm ${
-          preferences?.uiDensity
-            ? `data-table-density-${preferences.uiDensity.toLowerCase()}`
-            : ""
-        }`
-      }
+          "overflow-hidden rounded-lg border border-border bg-surface shadow-sm",
+        preferences?.uiDensity
+          ? `data-table-density-${preferences.uiDensity.toLowerCase()}`
+          : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
     >
       <div className="flex flex-col gap-2 border-b border-border bg-surface-strong px-3 py-2.5 md:flex-row md:items-center md:justify-between">
         <div>
@@ -584,7 +597,7 @@ export function DataTable<T>({
                     onClick={() => onRowClick?.(row)}
                   >
                     {enableSelection ? (
-                      <td className="w-10 px-3 py-2 align-top">
+                      <td className="w-10 px-3 py-2 align-middle">
                         <input
                           type="checkbox"
                           checked={isSelected}
@@ -599,9 +612,20 @@ export function DataTable<T>({
                     {columns.map((column) => (
                       <td
                         key={column.key}
-                        className={`px-3 py-2 align-top ${
-                          column.cellClassName ?? column.className ?? ""
-                        }`}
+                        /*
+                         * The row-actions column keeps its buttons on one line.
+                         * It is the last column and usually holds four or five
+                         * buttons, so when the table is wider than the viewport
+                         * the browser wraps them into a narrow vertical stack
+                         * and every row grows to a couple of hundred pixels.
+                         * The table scrolls horizontally instead, which is the
+                         * behaviour a row of actions actually wants.
+                         */
+                        className={`px-3 py-2 align-middle ${
+                          column.key === "actions"
+                            ? "data-table-actions-cell whitespace-nowrap"
+                            : ""
+                        } ${column.cellClassName ?? column.className ?? ""}`}
                       >
                         {column.render(row)}
                       </td>

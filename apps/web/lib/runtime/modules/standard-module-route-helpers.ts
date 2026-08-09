@@ -150,6 +150,10 @@ function mapPublishedForm(
       order: tab.sequence ?? (tabIndex + 1) * 10,
       type: "fields",
       columns: normalizeColumns(tab.columns ?? form.layoutJson.columns),
+      /* Carried through so a rule saved in the designer reaches the renderer. */
+      ...(tab.visibilityRules?.length
+        ? { visibilityRules: tab.visibilityRules }
+        : {}),
       sectionIds: tab.sections.map((section) => section.id),
     })),
     sections: form.layoutJson.tabs.flatMap((tab, tabIndex) =>
@@ -170,6 +174,9 @@ function mapPublishedForm(
                 ? ("three-column" as const)
                 : ("two-column" as const),
           columns,
+          ...(section.visibilityRules?.length
+            ? { visibilityRules: section.visibilityRules }
+            : {}),
           fields: section.fields.map((field, fieldIndex) => ({
             fieldLogicalName: field.columnKey,
             label: field.label,

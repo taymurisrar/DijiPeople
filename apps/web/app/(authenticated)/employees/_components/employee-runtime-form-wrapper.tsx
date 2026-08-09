@@ -21,6 +21,7 @@ export function EmployeeRuntimeFormWrapper({
   lookupOptions = {},
   mode,
   record,
+  recordTitle,
   runtime,
   tabsSlot,
 }: {
@@ -28,6 +29,8 @@ export function EmployeeRuntimeFormWrapper({
   readonly lookupDisplayValues?: Record<string, string>;
   readonly lookupOptions?: Record<string, readonly LookupOption[]>;
   readonly mode: EmployeeRuntimeFormMode;
+  /* The person's name, resolved server-side where the record definitely has it. */
+  readonly recordTitle?: string;
   readonly record: EmployeeRuntimeFormValues;
   readonly runtime: ModuleRuntimeContext;
   readonly tabsSlot?: ReactNode;
@@ -123,7 +126,7 @@ export function EmployeeRuntimeFormWrapper({
       }}
       runtime={runtimeWithEmployeeCommands}
       tabsSlot={tabsSlot}
-      title={titleByMode[mode]}
+      title={recordTitle ?? titleByMode[mode]}
     />
   );
 }
@@ -185,6 +188,14 @@ const employeeAccountActionCommands: readonly CommandDefinition[] = [
     executionMode: "client",
     handlerKey: "employees.sendInvitation",
     order: 33,
+    /*
+     * Only offered to someone who has a login and has never used it. Once they
+     * have signed in the invitation is meaningless, and "Reset Password" is the
+     * action that actually helps.
+     */
+    visibilityRules: [
+      { operator: "field-equals", fieldLogicalName: "hasNeverLoggedIn", expectedValue: true },
+    ],
   },
 ];
 
@@ -313,8 +324,14 @@ function readNestedString(value: unknown, path: readonly string[]) {
   return readString(current);
 }
 
-const titleByMode: Record<EmployeeRuntimeFormMode, string> = {
-  detail: "Employee",
+/*
+ * Detail is deliberately absent: passing a title there overrides the record
+ * header's name resolution, which is what made every employee page read
+ * "Employee" instead of naming the person. Create and edit have no record to
+ * name yet, so they keep a fixed heading.
+ */
+const titleByMode: Record<EmployeeRuntimeFormMode, string | undefined> = {
+  detail: undefined,
   edit: "Edit Employee",
   new: "New Employee",
 };

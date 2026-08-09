@@ -193,7 +193,7 @@ export function resolveDetailStatusGroupConfig(
   };
 }
 
-function evaluateVisibilityRule(
+export function evaluateVisibilityRule(
   rule: CommandVisibilityRule,
   context: CommandVisibilityContext,
 ) {
@@ -221,6 +221,43 @@ function evaluateVisibilityRuleValue(
         context.principal.permissionKeys,
         rule.permissionKeys ?? [],
       );
+    case "has-role":
+    case "has-any-role":
+      return hasAnyRole(context.principal.roleKeys, rule.roleKeys ?? []);
+    case "not-has-role":
+      return !hasAnyRole(context.principal.roleKeys, rule.roleKeys ?? []);
+    case "in-team":
+      return intersects(context.principal.teamIds, rule.teamIds);
+    case "not-in-team":
+      return !intersects(context.principal.teamIds, rule.teamIds);
+    case "in-department":
+      return intersects(context.principal.departmentIds, rule.departmentIds);
+    case "not-in-department":
+      return !intersects(context.principal.departmentIds, rule.departmentIds);
+    case "in-business-unit":
+      return intersects(
+        context.principal.businessUnitIds,
+        rule.businessUnitIds,
+      );
+    case "not-in-business-unit":
+      return !intersects(
+        context.principal.businessUnitIds,
+        rule.businessUnitIds,
+      );
+    case "in-organization":
+      return intersects(
+        context.principal.organizationIds,
+        rule.organizationIds,
+      );
+    case "not-in-organization":
+      return !intersects(
+        context.principal.organizationIds,
+        rule.organizationIds,
+      );
+    case "has-designation":
+      return intersects(context.principal.designationIds, rule.designationIds);
+    case "not-has-designation":
+      return !intersects(context.principal.designationIds, rule.designationIds);
     case "field-equals":
       return (
         context.record?.[rule.fieldLogicalName ?? ""] === rule.expectedValue
@@ -281,4 +318,41 @@ function hasElevatedRuntimePrincipal(principal: RuntimePrincipal) {
 
 function elevatedRoleValues(values: readonly string[] | undefined) {
   return (values ?? []).map(normalizeRuntimeRole);
+}
+
+/*
+ * Role keys are compared case-insensitively because they are authored by hand
+ * in module specs and in the seed data, and a casing mismatch would silently
+ * hide a surface from everyone rather than fail loudly.
+ *
+ * An empty rule list matches nobody: a rule that names no role is a mistake,
+ * and hiding is the safe direction to fail.
+ */
+function hasAnyRole(
+  principalRoleKeys: readonly string[],
+  requiredRoleKeys: readonly string[],
+) {
+  if (requiredRoleKeys.length === 0) return false;
+
+  const held = new Set(principalRoleKeys.map((key) => key.toLowerCase()));
+  return requiredRoleKeys.some((key) => held.has(key.toLowerCase()));
+}
+
+/*
+ * True when the viewer's placement overlaps the ids the rule names.
+ *
+ * An empty rule list matches nobody, matching the role behaviour: a rule that
+ * names no target is a mistake, and hiding is the safe way to fail. Absent
+ * placement on the principal likewise cannot match, so a surface gated on a
+ * department stays hidden until the placement is actually known.
+ */
+function intersects(
+  held: readonly string[] | undefined,
+  required: readonly string[] | undefined,
+) {
+  if (!required?.length) return false;
+  if (!held?.length) return false;
+
+  const owned = new Set(held);
+  return required.some((id) => owned.has(id));
 }

@@ -28,7 +28,10 @@ import {
 import { DEFAULT_BRANDING_VALUES } from "@/app/components/branding/branding-defaults";
 import { TenantLogo } from "@/app/components/branding/tenant-logo";
 import { BusinessUnitAccessSummary } from "../_lib/business-unit-access";
-import { resolveVisibleDashboardNavItems } from "./navigation";
+import {
+  resolveVisibleDashboardNavItems,
+  type DashboardNavOverride,
+} from "./navigation";
 import { Button } from "@/app/components/ui/button";
 
 type DashboardSidebarProps = {
@@ -43,6 +46,7 @@ type DashboardSidebarProps = {
   businessUnitAccess?: BusinessUnitAccessSummary | null;
   tenantId: string;
   tenantName?: string;
+  navOverrides?: readonly DashboardNavOverride[] | null;
 };
 
 type SidebarNavIconProps = {
@@ -61,6 +65,7 @@ export function DashboardSidebar({
   businessUnitAccess,
   tenantId,
   tenantName,
+  navOverrides,
 }: DashboardSidebarProps) {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -72,6 +77,7 @@ export function DashboardSidebar({
     permissionKeys,
     roleKeys,
     businessUnitAccess,
+    overrides: navOverrides,
   });
 
   return (

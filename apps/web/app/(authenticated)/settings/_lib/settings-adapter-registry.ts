@@ -6680,6 +6680,16 @@ const adapters: readonly SettingsRuntimeAdapter[] = [
     specializedHref: "/settings/customization/modules",
   }),
   adapter({
+    key: "sidebar",
+    label: "Sidebar Designer",
+    serverApiPath: "/navigation/sidebar",
+    fields: [field("name", "Sidebar Entry", "string", { isPrimaryName: true })],
+    mode: "specialized",
+    blocker:
+      "The sidebar is a reorderable layout with per-entry audience rules, not a list of records.",
+    specializedHref: "/settings/customization/sidebar",
+  }),
+  adapter({
     key: "packages",
     label: "Packages",
     serverApiPath: "/customization/packages",
@@ -6940,7 +6950,7 @@ const adapters: readonly SettingsRuntimeAdapter[] = [
     mode: "specialized",
     blocker:
       "Field design is package-layered metadata with dependency validation.",
-    specializedHref: "/settings/customization/columns",
+    specializedHref: "/settings/customization/modules",
   }),
   adapter({
     key: "forms",
@@ -6950,7 +6960,7 @@ const adapters: readonly SettingsRuntimeAdapter[] = [
     mode: "specialized",
     blocker:
       "Form design requires drag/drop sections, tabs, related lists, and Widget placement.",
-    specializedHref: "/settings/customization/forms",
+    specializedHref: "/settings/customization/modules",
   }),
   adapter({
     key: "views",
@@ -6960,7 +6970,7 @@ const adapters: readonly SettingsRuntimeAdapter[] = [
     mode: "specialized",
     blocker:
       "View design requires column ordering, filtering, sorting, and package layering.",
-    specializedHref: "/settings/customization/views",
+    specializedHref: "/settings/customization/modules",
   }),
   adapter({
     key: "action-bars",
@@ -6970,7 +6980,7 @@ const adapters: readonly SettingsRuntimeAdapter[] = [
     mode: "specialized",
     blocker:
       "Action Bars use package-layered metadata and are configured in module context.",
-    specializedHref: "/settings/customization/action-bars",
+    specializedHref: "/settings/customization/modules",
   }),
   adapter({
     key: "widgets",
@@ -6979,7 +6989,7 @@ const adapters: readonly SettingsRuntimeAdapter[] = [
     fields: [field("name", "Widget", "string", { isPrimaryName: true })],
     mode: "specialized",
     blocker: "Registered executable Widgets are reviewed in module context.",
-    specializedHref: "/settings/customization/widgets",
+    specializedHref: "/settings/customization/modules",
   }),
   adapter({
     key: "rules",

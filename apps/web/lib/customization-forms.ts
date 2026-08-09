@@ -1,4 +1,5 @@
 import { apiRequestJson } from "@/lib/server-api";
+import type { VisibilityRule } from "@/lib/runtime/visibility.resolver";
 
 export type RuntimeFormLayoutField = {
   columnKey: string;
@@ -18,6 +19,13 @@ export type RuntimeFormLayoutSection = {
   labelVisible?: boolean;
   isVisible?: boolean;
   sequence?: number;
+  /*
+   * Audience rules authored in the form designer. `isVisible` is an
+   * unconditional switch; these narrow the section to a set of people. Both
+   * adapters that build runtime metadata from this layout pass them straight
+   * to the shared rule engine.
+   */
+  visibilityRules?: VisibilityRule[];
   fields: RuntimeFormLayoutField[];
   components?: RuntimeFormLayoutComponent[];
 };
@@ -42,6 +50,8 @@ export type RuntimeFormLayout = {
     label: string;
     columns?: 1 | 2 | 3 | 4;
     sequence?: number;
+    /* See RuntimeFormLayoutSection.visibilityRules. */
+    visibilityRules?: VisibilityRule[];
     sections: RuntimeFormLayoutSection[];
   }>;
 };

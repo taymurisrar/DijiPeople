@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-export const DEFAULT_FAVICON_HREF = "/favicon.svg";
+export const DEFAULT_FAVICON_HREF = "/favicon.ico";
 
 /**
  * The single source of every favicon href in the app.

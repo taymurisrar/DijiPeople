@@ -18,7 +18,7 @@ import { SessionExpiredDialog } from "@/app/components/feedback/session-expired-
 import { apiErrorEventName, normalizeApiError } from "@/lib/api-error";
 import { BusinessUnitAccessSummary } from "../_lib/business-unit-access";
 
-type AuthenticatedShellUser = {
+export type AuthenticatedShellUser = {
   email: string;
   firstName: string;
   lastName: string;
@@ -55,6 +55,10 @@ type AuthenticatedShellProviderProps = PropsWithChildren<{
   user: AuthenticatedShellUser;
 }>;
 
+type AuthenticatedAccessBoundaryProps = PropsWithChildren<{
+  fallbackUser: AuthenticatedShellUser;
+}>;
+
 type PatchedWindow = Window & {
   __dpOriginalFetch?: typeof window.fetch;
   __dpSessionFetchPatched?: boolean;
@@ -80,6 +84,26 @@ const SESSION_ACTIVITY_THROTTLE_MS =
   ) * 1000;
 const SESSION_WARNING_ENABLED =
   process.env.NEXT_PUBLIC_ENABLE_SESSION_WARNING_MODAL !== "false";
+
+/**
+ * Keeps access-dependent client components renderable when Next.js renders a
+ * nested route segment without its shared authenticated layout. In a normal
+ * render the outer shell user wins, preserving its complete access scope.
+ */
+export function AuthenticatedAccessBoundary({
+  children,
+  fallbackUser,
+}: AuthenticatedAccessBoundaryProps) {
+  const authenticatedShellUser = useContext(AuthenticatedShellContext);
+
+  return (
+    <AuthenticatedShellContext.Provider
+      value={authenticatedShellUser ?? fallbackUser}
+    >
+      {children}
+    </AuthenticatedShellContext.Provider>
+  );
+}
 
 export function AuthenticatedShellProvider({
   children,
@@ -156,7 +180,7 @@ export function AuthenticatedShellProvider({
         currentWindow.__dpFetchPatchConsumers = 0;
       }
     };
-  }, []);
+  }, [user.tenantSlug]);
 
   useEffect(() => {
     if (typeof window === "undefined") {

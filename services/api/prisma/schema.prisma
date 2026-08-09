@@ -1974,6 +1974,7 @@ model Tenant {
   documentLinks                   DocumentLink[]
   tenantSettings                  TenantSetting[]
   organizationSettings            OrganizationSetting[]
+  navigationOverrides             TenantNavigationOverride[]
   dataJobs                        DataJob[]
   dataJobRows                     DataJobRow[]
   dataJobBatches                  DataJobBatch[]
@@ -6411,6 +6412,37 @@ model TenantSetting {
   @@index([tenantId, category])
 }
 
+/// A tenant's changes to one sidebar navigation entry.
+///
+/// The sidebar stays code-defined so a new module reaches every tenant without
+/// a publish step. This table records only the deltas a tenant chose, which is
+/// why every column beyond the identity is nullable or defaulted: a missing row
+/// means "use the code default", and a row with a null column means "use the
+/// code default for that one property".
+///
+/// `itemKey` is the code item's href, which is already unique and stable across
+/// releases. Rows for hrefs that no longer exist are ignored at merge time
+/// rather than deleted, so reverting a product change restores the override.
+model TenantNavigationOverride {
+  id              String   @id @default(uuid())
+  tenantId        String
+  itemKey         String
+  isHidden        Boolean  @default(false)
+  label           String?
+  sortOrder       Int?
+  /// CommandVisibilityRule[] — the same shape the runtime evaluates for tabs,
+  /// form sections and commands, so a rule written here behaves identically.
+  visibilityRules Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  createdById     String?
+  updatedById     String?
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, itemKey])
+  @@index([tenantId])
+}
+
 /// Organization-scoped overrides for tenant settings.
 ///
 /// Mirrors TenantSetting but is keyed by organization, so one tenant can run
@@ -9807,6 +9839,13 @@ model CustomizationColumn {
   isValidForFormDesigner   Boolean                    @default(true)
   isValidForViewDesigner   Boolean                    @default(true)
   isReadOnly               Boolean                    @default(false)
+  /// The column that names a record of this module.
+  ///
+  /// A lookup to this module shows this column's value, and list and detail
+  /// screens use it as the record title. At most one column per table may set
+  /// it — enforced by a partial unique index in the migration, because Prisma
+  /// cannot express "unique where true".
+  isPrimaryName            Boolean                    @default(false)
   maxLength                Int?
   minValue                 Decimal?
   maxValue                 Decimal?

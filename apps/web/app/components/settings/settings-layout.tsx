@@ -29,7 +29,15 @@ export function SettingsLayout({
         </aside>
       ) : null}
 
-      <div className="grid w-full min-w-0 max-w-none flex-1 content-start gap-6">
+      {/*
+       * `grid-cols-[minmax(0,1fr)]` rather than a bare `grid`: a grid column
+       * defaults to `auto`, which sizes to its widest content and refuses to
+       * shrink, so one wide child (a table, a code block) stretches the whole
+       * settings page past the viewport. `min-w-0` on this element does not
+       * help — the constraint has to be on the column track. With this, wide
+       * children stay inside the column and scroll within themselves.
+       */}
+      <div className="grid w-full min-w-0 max-w-none flex-1 grid-cols-[minmax(0,1fr)] content-start gap-6">
         {showHeader ? (
           <header className="rounded-[28px] border border-border bg-surface px-6 py-5 shadow-sm">
             {breadcrumb ? (

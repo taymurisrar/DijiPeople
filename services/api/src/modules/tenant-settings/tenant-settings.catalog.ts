@@ -474,9 +474,9 @@ export const DEFAULT_TENANT_SETTINGS: TenantSettingDefaults = {
     legalCompanyName: '',
     shortBrandName: '',
     brandDescription: '',
-    primaryColor: '#0f766e',
-    secondaryColor: '#115e59',
-    accentColor: '#14b8a6',
+    primaryColor: '#059669',
+    secondaryColor: '#047857',
+    accentColor: '#34D399',
     backgroundColor: '#f8fafc',
     surfaceColor: '#ffffff',
     textColor: '#0f172a',
@@ -484,12 +484,12 @@ export const DEFAULT_TENANT_SETTINGS: TenantSettingDefaults = {
     borderColor: '#e2e8f0',
     sidebarBackgroundColor: '#0f172a',
     sidebarTextColor: '#e5e7eb',
-    sidebarActiveBackgroundColor: '#0f766e',
+    sidebarActiveBackgroundColor: '#059669',
     sidebarActiveTextColor: '#ffffff',
     successColor: '#16a34a',
     warningColor: '#f59e0b',
     dangerColor: '#dc2626',
-    infoColor: '#2563eb',
+    infoColor: '#3b82f6',
     fontFamily: 'INTER',
     themeMode: 'LIGHT',
     density: 'COMFORTABLE',
@@ -514,6 +514,12 @@ export const DEFAULT_TENANT_SETTINGS: TenantSettingDefaults = {
     websiteUrl: '',
     helpCenterUrl: '',
     officeAddress: '',
+    /*
+     * Deliberately empty. This is a white-label platform, so a tenant that has
+     * not uploaded its own artwork must show no logo rather than inherit the
+     * vendor's - otherwise DijiPeople branding appears inside a customer's
+     * workspace. Platform-owned surfaces carry the shipped assets instead.
+     */
     logoUrl: '',
     logoDocumentId: '',
     squareLogoUrl: '',

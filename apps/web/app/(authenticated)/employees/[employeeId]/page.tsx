@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { AccessDeniedState } from "@/app/(authenticated)/_components/access-denied-state";
 import { getSessionUser } from "@/lib/auth";
 import { getTableForms } from "@/lib/customization-forms";
+import { buildVisibilityPlacement } from "@/lib/runtime/visibility-placement";
+import { getCurrentEmployee } from "../../_lib/current-employee";
 import { canManageEmployeeRecord } from "@/lib/employee-profile-access";
 import {
   buildEmployeeRuntimeContext,
@@ -72,6 +74,7 @@ export default async function EmployeeDetailPage({
   }
 
   const runtimeForms = await getTableForms("employees");
+  const { employee: viewerEmployee } = await getCurrentEmployee();
   const employeeRuntimeContext = buildEmployeeRuntimeContext({
     tenant: resolveTenantRuntimeConfig({
       tenantId: employee.tenantId,
@@ -115,6 +118,12 @@ export default async function EmployeeDetailPage({
       email: sessionUser.email,
       roleKeys: sessionUser.roleKeys,
       roles: sessionUser.roles,
+      /*
+       * The viewer's placement, so in-department / in-business-unit rules can
+       * match. Sourced from the signed-in person's own employee record, never
+       * from the record being viewed.
+       */
+      ...buildVisibilityPlacement(viewerEmployee),
       permissionKeys: canManageEmployeeRecord(employee.accessMode)
         ? sessionUser.permissionKeys
         : restrictRuntimePermissionKeysToReadOnly(
@@ -149,6 +158,17 @@ export default async function EmployeeDetailPage({
         })}
         mode="detail"
         record={employeeRuntimeRecord}
+        /*
+         * Named here rather than left to the record header: the runtime record
+         * is a mapped value bag keyed by form field, and it does not carry the
+         * raw name fields the header looks for, so the page fell back to the
+         * entity label and every employee read "Employees".
+         */
+        recordTitle={
+          [employee.firstName, employee.lastName].filter(Boolean).join(" ") ||
+          employee.employeeCode ||
+          undefined
+        }
         runtime={employeeRuntimeContext}
       />
     </main>

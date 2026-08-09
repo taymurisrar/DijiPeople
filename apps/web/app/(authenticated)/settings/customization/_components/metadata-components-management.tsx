@@ -653,21 +653,22 @@ function buildColumns(
         readOnly ? (
           <StatusPill tone="good">Registered</StatusPill>
         ) : (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex items-center gap-1">
             <Button
+              aria-label="Edit component"
               leftIcon={<Edit3 className="h-4 w-4" />}
               onClick={() => openEdit(row)}
-              size="sm"
+              size="icon-sm"
+              title="Edit component"
               type="button"
               variant="secondary"
-            >
-              Edit
-            </Button>
+            />
             <Button
+              aria-label="Deactivate component"
               disabled={row.isSystem || !row.isActive}
               leftIcon={<Trash2 className="h-4 w-4" />}
               onClick={() => deactivateRow(row)}
-              size="sm"
+              size="icon-sm"
               title={
                 row.isSystem
                   ? "System metadata cannot be deleted."
@@ -675,9 +676,7 @@ function buildColumns(
               }
               type="button"
               variant="danger"
-            >
-              Deactivate
-            </Button>
+            />
           </div>
         ),
     },
@@ -879,7 +878,13 @@ function ActionBarEditor({
       <SelectField
         label="Scope"
         onChange={(actionScope) => updateEditor({ actionScope })}
+        /*
+         * "Module" is included because runtime-registered bars are stored with
+         * that scope. Without it the select fell back to another option, so
+         * opening a system bar and saving silently rescoped it.
+         */
         options={[
+          { value: "module", label: "Module" },
           { value: "list", label: "List" },
           { value: "recordRead", label: "Record Read" },
           { value: "recordEdit", label: "Record Edit" },
@@ -1078,20 +1083,48 @@ function optionRows(value: unknown): OptionRow[] {
   });
 }
 
+/*
+ * Action bars registered by the runtime store `actions` as a flat list of
+ * command keys — ["system.new", "record.share", …] — while ones authored here
+ * store an object per action. Reading only the object form left every field in
+ * the editor blank for the system bars, so a bar with twelve commands opened
+ * as twelve empty rows and could not be saved.
+ */
 function actionRows(value: unknown, componentType: MetadataComponentType) {
   if (!Array.isArray(value)) return defaultActionRows(componentType);
   return value.map((item, index) => {
+    if (typeof item === "string") {
+      return {
+        id: `${index}-${item}`,
+        label: commandLabel(item),
+        command: item,
+        group: item.startsWith("record.") ? "Record" : "Primary",
+        icon: "",
+        permissionKey: "",
+        order: String(index * 10),
+      };
+    }
     const record = isRecord(item) ? item : {};
+    const command = stringValue(record.command, "");
     return {
-      id: `${index}-${stringValue(record.command, "action")}`,
-      label: stringValue(record.label, ""),
-      command: stringValue(record.command, ""),
+      id: `${index}-${command || "action"}`,
+      label: stringValue(record.label, "") || commandLabel(command),
+      command,
       group: stringValue(record.group, ""),
       icon: stringValue(record.icon, ""),
       permissionKey: stringValue(record.permissionKey, ""),
       order: String(record.order ?? index * 10),
     };
   });
+}
+
+/* "record.assignOwner" reads as "Assign Owner". */
+function commandLabel(command: string): string {
+  const leaf = command.split(".").pop() ?? command;
+  if (!leaf) return "";
+  return leaf
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/^./, (character) => character.toUpperCase());
 }
 
 function defaultActionRows(componentType: MetadataComponentType): ActionRow[] {

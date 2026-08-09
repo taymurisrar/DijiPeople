@@ -1,8 +1,19 @@
 import { FEATURE_KEYS, PERMISSION_KEYS, ROLE_KEYS } from "@/lib/security-keys";
+import {
+  isVisibleByRules,
+  type VisibilityRule,
+} from "@/lib/runtime/visibility.resolver";
 import { BusinessUnitAccessSummary } from "../_lib/business-unit-access";
 
 export type DashboardNavItem = {
   hiddenForSelfService?: boolean;
+  /*
+   * The same declarative rules used on tabs, form sections, settings nav and
+   * commands, so hiding a sidebar entry from a role, team, department,
+   * business unit, organization or designation is written the same way here as
+   * anywhere else.
+   */
+  visibilityRules?: readonly VisibilityRule[];
   href: string;
   label: string;
   requiredAnyPermissions?: string[];
@@ -134,6 +145,21 @@ export const dashboardNavItems: DashboardNavItem[] = [
   },
 ];
 
+/**
+ * A tenant's saved change to one entry, keyed by that entry's href.
+ *
+ * Only the properties a tenant actually changed are present; anything absent
+ * keeps the code default, which is what lets a new module ship to every tenant
+ * without a customization step.
+ */
+export type DashboardNavOverride = {
+  itemKey: string;
+  isHidden?: boolean;
+  label?: string | null;
+  sortOrder?: number | null;
+  visibilityRules?: readonly VisibilityRule[] | null;
+};
+
 type ResolveVisibleDashboardNavItemsInput = {
   businessUnitAccess?: BusinessUnitAccessSummary | null;
   enabledFeatureKeys: string[] | null;
@@ -141,7 +167,60 @@ type ResolveVisibleDashboardNavItemsInput = {
   isSelfService: boolean;
   permissionKeys: string[];
   roleKeys?: string[];
+  overrides?: readonly DashboardNavOverride[] | null;
 };
+
+/**
+ * Lays a tenant's overrides over the code-defined list.
+ *
+ * Overrides never add entries: one naming an href the code no longer ships is
+ * ignored, so removing a module from the product cannot leave a dead link in a
+ * tenant's sidebar. Order falls back to the code order for anything the tenant
+ * did not explicitly place, so a newly shipped entry lands in its intended slot
+ * rather than at the top.
+ */
+export function applyDashboardNavOverrides(
+  items: readonly DashboardNavItem[],
+  overrides: readonly DashboardNavOverride[] | null | undefined,
+): DashboardNavItem[] {
+  if (!overrides?.length) return [...items];
+
+  const byKey = new Map(overrides.map((entry) => [entry.itemKey, entry]));
+
+  return items
+    .map((item, codeIndex) => {
+      const override = byKey.get(item.href);
+      return { item, override, codeIndex };
+    })
+    .filter(({ override }) => !override?.isHidden)
+    .sort((left, right) => {
+      const leftOrder = left.override?.sortOrder;
+      const rightOrder = right.override?.sortOrder;
+      if (typeof leftOrder === "number" && typeof rightOrder === "number") {
+        return leftOrder - rightOrder || left.codeIndex - right.codeIndex;
+      }
+      /* An explicitly placed entry outranks one left at its code position. */
+      if (typeof leftOrder === "number") return -1;
+      if (typeof rightOrder === "number") return 1;
+      return left.codeIndex - right.codeIndex;
+    })
+    .map(({ item, override }) => {
+      if (!override) return item;
+      return {
+        ...item,
+        label: override.label?.trim() ? override.label.trim() : item.label,
+        /*
+         * Tenant rules replace the code rules rather than adding to them, so an
+         * administrator can widen an entry the product shipped narrow. The
+         * permission and feature checks below are untouched by this and remain
+         * the real access boundary.
+         */
+        visibilityRules: override.visibilityRules?.length
+          ? override.visibilityRules
+          : item.visibilityRules,
+      };
+    });
+}
 
 export function resolveVisibleDashboardNavItems(
   input: ResolveVisibleDashboardNavItemsInput,
@@ -155,7 +234,25 @@ export function resolveVisibleDashboardNavItems(
     !input.isSelfService &&
     (input.roleKeys ?? []).some((roleKey) => privilegedRoleKeys.has(roleKey));
 
-  return dashboardNavItems.flatMap((item) => {
+  const visibility = {
+    principal: {
+      roleKeys: input.roleKeys ?? [],
+      permissionKeys: input.permissionKeys ?? [],
+      businessUnitIds: input.businessUnitAccess?.accessibleBusinessUnitIds,
+    },
+  };
+
+  const items = applyDashboardNavOverrides(dashboardNavItems, input.overrides);
+
+  return items.flatMap((item) => {
+    /*
+     * Checked ahead of the privileged shortcut below: an explicit rule is a
+     * deliberate instruction, and an admin bypass would make it unenforceable.
+     */
+    if (!isVisibleByRules(item, visibility)) {
+      return [];
+    }
+
     if (hasPrivilegedSidebar) {
       return [item];
     }

@@ -60,6 +60,13 @@ export interface RuntimePrincipal {
   readonly permissionKeys: readonly string[];
   readonly teamIds?: readonly string[];
   readonly businessUnitIds?: readonly string[];
+  /*
+   * Where this person sits. Used by the placement visibility operators; absent
+   * placement means those rules cannot match, which hides rather than reveals.
+   */
+  readonly departmentIds?: readonly string[];
+  readonly organizationIds?: readonly string[];
+  readonly designationIds?: readonly string[];
 }
 
 export interface PermissionRequirement {

@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit3, GripVertical, Plus, Trash2 } from "lucide-react";
+import { Edit3, GripVertical, KeyRound, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
 import { DataTable } from "@/app/components/data-table/data-table";
@@ -102,7 +102,18 @@ export function ColumnsManagement({
         sortAccessor: (row) => row.displayName,
         render: (row) => (
           <div>
-            <p className="font-semibold text-foreground">{row.displayName}</p>
+            <p className="flex items-center gap-1.5 font-semibold text-foreground">
+              {row.displayName}
+              {row.isPrimaryName ? (
+                <span
+                  className="inline-flex items-center gap-1 rounded-full border border-accent/20 bg-accent-soft px-1.5 py-0.5 text-[10px] font-semibold text-accent"
+                  title="Lookups to this module display this column's value."
+                >
+                  <KeyRound className="h-3 w-3" />
+                  Primary name
+                </span>
+              ) : null}
+            </p>
             <p className="mt-1 text-xs text-muted">{row.columnKey}</p>
           </div>
         ),
@@ -207,36 +218,80 @@ export function ColumnsManagement({
         key: "actions",
         header: "Actions",
         render: (row) => (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex items-center gap-1">
             <PermissionGate anyOf={["customization.columns.update"]}>
+              {!row.isPrimaryName && canBePrimaryName(row) ? (
+                <Button
+                  aria-label="Set as primary name"
+                  leftIcon={<KeyRound className="h-4 w-4" />}
+                  onClick={() => setPrimaryName(row)}
+                  size="icon-sm"
+                  title="Set as the primary name — lookups to this module will display this column"
+                  type="button"
+                  variant="ghost"
+                />
+              ) : null}
               <Button
+                aria-label="Edit or rename field"
                 leftIcon={<Edit3 className="h-4 w-4" />}
                 onClick={() => openEdit(row)}
-                size="sm"
-                title="Edit field"
+                size="icon-sm"
+                title="Edit or rename field"
                 type="button"
                 variant="secondary"
-              >
-                Edit/Rename
-              </Button>
+              />
             </PermissionGate>
             {!row.isSystem ? (
               <PermissionGate anyOf={["customization.columns.delete"]}>
                 <Button
+                  aria-label="Delete field"
                   leftIcon={<Trash2 className="h-4 w-4" />}
                   onClick={() => setDeleteTarget(row)}
-                  size="sm"
+                  size="icon-sm"
+                  title="Delete field"
                   type="button"
                   variant="danger"
-                >
-                  Delete
-                </Button>
+                />
               </PermissionGate>
             ) : null}
           </div>
         ),
       },
     ];
+
+  /*
+   * Only a column that can actually render a readable label is offered. The
+   * API rejects the rest, so filtering here keeps the button from appearing
+   * where it would only produce an error.
+   */
+  const NAMEABLE_TYPES = ["text", "email", "phone", "url", "select"];
+
+  function canBePrimaryName(column: CustomizationColumn) {
+    return (
+      column.isVisible !== false &&
+      NAMEABLE_TYPES.includes(column.fieldType ?? column.dataType)
+    );
+  }
+
+  async function setPrimaryName(column: CustomizationColumn) {
+    setError(null);
+    const response = await fetch(
+      `/api/customization/tables/${table.tableKey}/columns/${column.columnKey}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isPrimaryName: true }),
+      },
+    );
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => ({}))) as {
+        message?: string;
+      };
+      setError(payload.message ?? "Unable to set the primary name column.");
+      return;
+    }
+    router.refresh();
+  }
 
   function openCreate() {
     setError(null);

@@ -189,29 +189,28 @@ export function ViewsManagement({
       key: "actions",
       header: "Actions",
       render: (row) => (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex items-center gap-1">
           <PermissionGate anyOf={["customization.views.update"]}>
             <Button
+              aria-label="Open designer"
               leftIcon={<Edit3 className="h-4 w-4" />}
               onClick={() => openDesigner(row)}
-              size="sm"
+              size="icon-sm"
               title="Open designer"
               type="button"
               variant="secondary"
-            >
-              Designer
-            </Button>
+            />
             <Button
+              aria-label="Rename or edit view"
               leftIcon={<Pencil className="h-4 w-4" />}
               onClick={() => openEdit(row)}
-              size="sm"
-              title="Edit view"
+              size="icon-sm"
+              title="Rename or edit view"
               type="button"
               variant="ghost"
-            >
-              Rename/Edit
-            </Button>
+            />
             <Button
+              aria-label={row.isHidden ? "Activate view" : "Deactivate view"}
               disabled={!canToggleView(row, views)}
               leftIcon={
                 row.isHidden ? (
@@ -221,40 +220,40 @@ export function ViewsManagement({
                 )
               }
               onClick={() => toggleHidden(row)}
-              size="sm"
+              size="icon-sm"
               title={
                 canToggleView(row, views)
-                  ? "Activate or deactivate this view"
+                  ? row.isHidden
+                    ? "Activate view"
+                    : "Deactivate view"
                   : "Default view cannot be deactivated until another active default exists."
               }
               type="button"
               variant="ghost"
-            >
-              {row.isHidden ? "Activate" : "Deactivate"}
-            </Button>
+            />
             {!row.isDefault ? (
               <Button
+                aria-label="Set as default view"
                 leftIcon={<Star className="h-4 w-4" />}
                 onClick={() => setDefault(row)}
-                size="sm"
+                size="icon-sm"
+                title="Set as default view"
                 type="button"
                 variant="ghost"
-              >
-                Default
-              </Button>
+              />
             ) : null}
           </PermissionGate>
           {row.type !== "system" ? (
             <PermissionGate anyOf={["customization.views.delete"]}>
               <Button
+                aria-label="Delete view"
                 leftIcon={<Trash2 className="h-4 w-4" />}
                 onClick={() => setDeleteTarget(row)}
-                size="sm"
+                size="icon-sm"
+                title="Delete view"
                 type="button"
                 variant="danger"
-              >
-                Delete
-              </Button>
+              />
             </PermissionGate>
           ) : null}
         </div>

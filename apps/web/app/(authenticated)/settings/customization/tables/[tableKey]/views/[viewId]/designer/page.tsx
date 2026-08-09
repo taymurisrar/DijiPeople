@@ -3,6 +3,7 @@ import { apiRequestJson } from "@/lib/server-api";
 import { SettingsShell } from "../../../../../../_components/settings-shell";
 import { requireSettingsPermissions } from "../../../../../../_lib/require-settings-permission";
 import { ViewDesignerWorkspace } from "../../../../../_components/view-designer-workspace";
+import { mergeRuntimeViews } from "../../../../../_lib/runtime-customization-metadata";
 import type {
   CustomizationColumn,
   CustomizationTable,
@@ -32,7 +33,12 @@ export default async function CustomizationViewDesignerRoute({
       `/customization/tables/${tableKey}/views`,
     ),
   ]);
-  const view = views.find(
+  /*
+   * Merged like every list route that links here, so a code-defined view that
+   * has no tenant row yet opens instead of 404ing. See the form designer for
+   * the same reasoning.
+   */
+  const view = mergeRuntimeViews(tableKey, views).find(
     (item) => item.id === viewId || item.viewKey === viewId,
   );
   if (!view) notFound();

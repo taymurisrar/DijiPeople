@@ -3521,10 +3521,17 @@ export class EmployeesService {
             employmentStatus: employee.manager.employmentStatus,
           }
         : null,
+      /*
+       * True when the employee has a login that has never been used, which is
+       * the only situation where sending an invitation makes sense. False when
+       * there is no user account at all, since there is nothing to invite to.
+       */
+      hasNeverLoggedIn: Boolean(employee.user && !employee.user.lastLoginAt),
       user: employee.user
         ? {
             id: employee.user.id,
             email: employee.user.email,
+            lastLoginAt: employee.user.lastLoginAt,
             firstName: employee.user.firstName,
             lastName: employee.user.lastName,
             status: employee.user.status,

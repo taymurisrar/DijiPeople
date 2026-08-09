@@ -57,7 +57,7 @@ type LoginResult =
     };
 
 function resolveWindowIcon() {
-  return resolveAgentAsset("icon.png") ?? undefined;
+  return resolveAgentAsset("app-icon-512x512.png") ?? undefined;
 }
 
 function createLoginWindow() {

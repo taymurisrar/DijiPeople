@@ -20,6 +20,7 @@ import { getCurrentEmployee } from "./_lib/current-employee";
 import { getBusinessUnitAccessSummary } from "./_lib/business-unit-access";
 import { AuthenticatedShellProvider } from "./_components/authenticated-shell-provider";
 import { DashboardSidebar } from "./_components/dashboard-sidebar";
+import type { DashboardNavOverride } from "./_components/navigation";
 import { DashboardTopbar } from "./_components/dashboard-topbar";
 import { ErrorProvider } from "@/app/components/errors/error-provider";
 import { SystemPreferencesProvider } from "./_components/resolved-settings-provider";
@@ -74,6 +75,7 @@ export default async function DashboardLayout({
     resolvedSettings,
     businessUnitAccess,
     timesheetRestriction,
+    navOverrides,
   ] = await Promise.all([
     apiRequestJson<TenantFeaturesResponse>(
       "/tenant-settings/features/availability",
@@ -87,6 +89,14 @@ export default async function DashboardLayout({
     apiRequestJson<TimesheetRestrictionResponse>(
       "/timesheets/access-restriction",
     ).catch(() => ({ item: null })),
+    /*
+     * A failure here falls back to the code-defined sidebar rather than an
+     * empty one: losing a tenant's customization is recoverable, losing all
+     * navigation is not.
+     */
+    apiRequestJson<DashboardNavOverride[]>("/navigation/sidebar").catch(
+      () => [] as DashboardNavOverride[],
+    ),
   ]);
 
   const currentEmployee = currentEmployeeContext.employee;
@@ -162,6 +172,7 @@ export default async function DashboardLayout({
               brandLogoUrl={brandingSettings.logoUrl}
               brandName={brandingSettings.brandName}
               brandTagline={brandingSettings.portalTagline}
+              navOverrides={navOverrides}
             />
 
             <div className="flex min-w-0 flex-1 flex-col gap-6">
@@ -176,11 +187,6 @@ export default async function DashboardLayout({
                 roleLabel={roleLabel}
                 tenantId={user.tenantId}
                 tenantName={effectiveTenantName}
-                tenantLogoUrl={
-                  resolvedSettings?.branding.squareLogoUrl ||
-                  resolvedSettings?.branding.logoUrl ||
-                  null
-                }
               />
 
               <ErrorProvider user={{ roleKeys: user.roleKeys }}>

@@ -1,5 +1,4 @@
 import { UserMenuDropdown } from "./user-menu-dropdown";
-import { TenantLogo } from "@/app/components/branding/tenant-logo";
 import { NotificationBell } from "./notification-bell";
 
 type DashboardTopbarProps = {
@@ -11,7 +10,6 @@ type DashboardTopbarProps = {
   profileHref: string;
   tenantId: string;
   tenantName?: string;
-  tenantLogoUrl?: string | null;
   roleLabel: string;
   canReadInbox?: boolean;
   pageTitle?: string;
@@ -26,7 +24,6 @@ export function DashboardTopbar({
   email,
   profileHref,
   tenantName,
-  tenantLogoUrl,
   roleLabel,
   canReadInbox = false,
   pageTitle = "Dashboard",
@@ -36,16 +33,9 @@ export function DashboardTopbar({
     <header className="rounded-[24px] border border-border/70 bg-white px-4 py-4 shadow-sm sm:px-5 sm:py-5 lg:px-6">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 space-y-1">
-          <div className="flex items-center gap-2">
-            <TenantLogo
-              logoUrl={tenantLogoUrl}
-              name={tenantName || roleLabel}
-              sizeClassName="h-8 w-8"
-            />
-            <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
-              {tenantName || roleLabel}
-            </p>
-          </div>
+          <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted">
+            {tenantName || roleLabel}
+          </p>
           <h1 className="truncate text-lg font-semibold tracking-tight text-foreground sm:text-xl">
             {pageTitle}
           </h1>

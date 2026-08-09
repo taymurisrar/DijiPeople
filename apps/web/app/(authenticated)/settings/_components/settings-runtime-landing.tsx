@@ -1,7 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight, FolderCog, Settings2 } from "lucide-react";
+import {
+  Bell,
+  Blocks,
+  Building2,
+  ChevronRight,
+  FolderCog,
+  Globe2,
+  Palette,
+  ScrollText,
+  ShieldCheck,
+  Users,
+  Wallet,
+  Workflow,
+  type LucideIcon,
+  Settings2,
+} from "lucide-react";
 import { useCurrentUserAccess } from "../../_components/authenticated-shell-provider";
 import type {
   SettingsRuntimeCategory,
@@ -12,6 +27,19 @@ import { canViewSettingsItem } from "../_lib/settings-navigation";
 import { SettingsShell } from "./settings-shell";
 import { AccessDeniedState } from "../../_components/access-denied-state";
 
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  "general-setup": Building2,
+  regional: Globe2,
+  "security-access": ShieldCheck,
+  people: Users,
+  payroll: Wallet,
+  approvals: Workflow,
+  notifications: Bell,
+  customization: Blocks,
+  appearance: Palette,
+  "audit-compliance": ScrollText,
+};
+
 export function SettingsWorkspaceLanding() {
   const { user } = useCurrentUserAccess();
   const categories = resolveVisibleSettingsRuntime(
@@ -19,7 +47,7 @@ export function SettingsWorkspaceLanding() {
     user?.roleKeys ?? [],
   );
   return (
-    <main className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-background px-2 py-4 sm:px-4 lg:px-6">
       <div className="mx-auto w-full max-w-7xl">
         <section className="rounded-[28px] border border-border bg-surface p-7 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
@@ -33,27 +61,42 @@ export function SettingsWorkspaceLanding() {
             reusable setting groups.
           </p>
         </section>
-        <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {categories.map((category) => (
-            <Link
-              key={category.key}
-              href={category.route}
-              className="group rounded-[24px] border border-border bg-surface p-6 shadow-sm transition hover:border-accent/30 hover:shadow-md"
-            >
-              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-accent-soft text-accent">
-                <FolderCog className="h-5 w-5" />
-              </span>
-              <h2 className="mt-5 text-lg font-semibold text-foreground">
-                {category.label}
-              </h2>
-              <p className="mt-2 text-sm leading-6 text-muted">
-                {category.description}
-              </p>
-              <p className="mt-5 text-xs font-semibold uppercase tracking-wide text-accent">
-                {category.groups.length} configuration groups
-              </p>
-            </Link>
-          ))}
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {categories.map((category) => {
+            const Icon = CATEGORY_ICONS[category.key] ?? FolderCog;
+            const groupCount = category.groups.length;
+
+            return (
+              <Link
+                key={category.key}
+                href={category.route}
+                className="group flex items-start gap-3 rounded-2xl border border-border bg-surface p-4 shadow-sm transition hover:border-accent/40 hover:shadow-md"
+              >
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent">
+                  <Icon className="h-[18px] w-[18px]" />
+                </span>
+
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-2">
+                    <h2 className="truncate text-sm font-semibold text-foreground">
+                      {category.label}
+                    </h2>
+                    <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-muted transition group-hover:translate-x-0.5 group-hover:text-accent" />
+                  </span>
+
+                  {/* Clamped so a long description cannot make one card taller
+                      than its neighbours and break the grid rhythm. */}
+                  <span className="mt-1 line-clamp-2 block text-xs leading-5 text-muted">
+                    {category.description}
+                  </span>
+
+                  <span className="mt-2 block text-[11px] font-semibold uppercase tracking-wide text-accent">
+                    {groupCount} {groupCount === 1 ? "group" : "groups"}
+                  </span>
+                </span>
+              </Link>
+            );
+          })}
         </div>
       </div>
     </main>

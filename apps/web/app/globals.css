@@ -115,6 +115,81 @@ html[data-theme="dark"] {
   padding-block: 0.9rem;
 }
 
+/*
+ * Row-action buttons stay on one line.
+ *
+ * Most action cells lay their buttons out with `flex flex-wrap`. In the last
+ * column of a table that is wider than its container, the browser wraps four or
+ * five buttons into a narrow vertical stack and every row in the table grows to
+ * match — which reads as a table full of empty space. Overriding the wrap here
+ * fixes all of them at once; the table scrolls horizontally to reach the
+ * column, which is what a row of actions wants.
+ */
+.data-table-actions-cell > * {
+  flex-wrap: nowrap;
+}
+
+/*
+ * Compact typography for the form designer's side panels.
+ *
+ * The palette and the properties panel are narrow columns of labels and small
+ * inputs sized for full-width settings forms, so at panel width they wrapped,
+ * overflowed sideways, and pushed the canvas — the thing being designed —
+ * into a fraction of the screen. Scoped to these panels rather than changing
+ * the shared form controls, which are correctly sized everywhere else.
+ */
+.dp-designer-panel label,
+.dp-designer-panel p {
+  font-size: 0.6875rem;
+  line-height: 1.15rem;
+}
+
+.dp-designer-panel input[type="text"],
+.dp-designer-panel input:not([type]),
+.dp-designer-panel select,
+.dp-designer-panel textarea {
+  font-size: 0.6875rem;
+  padding-block: 0.3rem;
+}
+
+/* Nothing in a fixed-width panel may widen it; long logical names wrap. */
+.dp-designer-panel {
+  overflow-x: hidden;
+  overflow-wrap: anywhere;
+}
+
+/*
+ * Buttons inside the designer's chrome sit at toolbar scale.
+ *
+ * The shared sizes are built for settings forms, where a 44px control is
+ * right. Repeated across a toolbar and a palette of widget buttons, that
+ * height is most of what made the chrome feel heavy next to the canvas.
+ */
+.dp-designer-panel button,
+.dp-designer-toolbar button,
+.dp-designer-toolbar a[role="button"] {
+  min-height: 1.9rem;
+  height: auto;
+  padding-block: 0.3rem;
+}
+
+/*
+ * Scrollbars are hidden while the areas stay scrollable.
+ *
+ * Worth knowing: this removes the only standing hint that a region scrolls at
+ * all. The panels here are dense enough that the cut-off content is its own
+ * hint, but if a region ever looks complete when it is not, that is why.
+ */
+.dp-scroll-hidden {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* legacy Edge */
+}
+
+.dp-scroll-hidden::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);

@@ -53,6 +53,32 @@ export class CustomizationController {
     return this.customizationService.publish(user);
   }
 
+  /*
+   * Lookup options for a target module: id plus the module's primary name.
+   *
+   * Gated on `customization.read` rather than the target module's own read
+   * permission, because this returns record names and the mapping from a
+   * customization module to its runtime permission does not exist yet. That
+   * keeps it to customization administrators, which is who the designer is
+   * for — a runtime lookup control must not reuse this endpoint until the
+   * per-module check is in place.
+   */
+  @Get('lookup-options/:tableKey')
+  @Permissions('customization.read')
+  listLookupOptions(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('tableKey') tableKey: string,
+    @Query('search') search?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.customizationService.listLookupOptions(
+      user,
+      tableKey,
+      search,
+      limit ? Number.parseInt(limit, 10) || 20 : 20,
+    );
+  }
+
   @Get('published')
   @Permissions('customization.read')
   getPublished(@CurrentUser() user: AuthenticatedUser) {

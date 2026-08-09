@@ -1,3 +1,4 @@
+import type { CommandVisibilityRule } from "./command-runtime.types";
 import type { PermissionRequirement } from "./security-runtime.types";
 
 export type MetadataLifecycleState =
@@ -221,6 +222,11 @@ export interface FormSectionMetadata {
   readonly isCollapsible?: boolean;
   readonly isInitiallyCollapsed?: boolean;
   readonly visibilityRuleKey?: string;
+  /*
+   * Declarative role and permission gating, evaluated by
+   * resolveVisibleByRules. Every rule must pass for the section to render.
+   */
+  readonly visibilityRules?: readonly CommandVisibilityRule[];
 }
 
 export interface FormTabMetadata {
@@ -234,6 +240,8 @@ export interface FormTabMetadata {
   readonly relatedTabKey?: string;
   readonly subgrid?: RelatedSubgridMetadata;
   readonly isVisible?: boolean;
+  /* As FormSectionMetadata: every rule must pass for the tab to render. */
+  readonly visibilityRules?: readonly CommandVisibilityRule[];
   readonly isDisabled?: boolean;
   readonly disabledReason?: string;
 }

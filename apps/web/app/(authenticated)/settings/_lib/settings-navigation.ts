@@ -1,3 +1,8 @@
+import {
+  isVisibleByRules,
+  type VisibilityPrincipal,
+  type VisibilityRule,
+} from "@/lib/runtime/visibility.resolver";
 import { hasAnyPermission } from "@/lib/permissions";
 import { PERMISSION_KEYS, ROLE_KEYS } from "@/lib/security-keys";
 
@@ -14,6 +19,12 @@ export type SettingsNavItem = {
   keywords: readonly string[];
   requiredAnyPermissions?: readonly string[];
   requiredAnyRoles?: readonly string[];
+  /*
+   * The same declarative rules used on tabs, sections and commands. Evaluated
+   * in addition to the simpler fields above, so an item can be limited to a
+   * department or business unit without inventing a role for it.
+   */
+  visibilityRules?: readonly VisibilityRule[];
   hideWhenRestricted?: boolean;
   disabled?: boolean;
 };
@@ -820,6 +831,32 @@ export const settingsNavGroups = [
         ],
       },
       {
+        key: "sidebar",
+        href: "/settings/customization/sidebar",
+        label: "Sidebar Designer",
+        description:
+          "Reorder, rename, hide, and audience-gate the main sidebar. Entries stay product-defined, so new modules still appear automatically.",
+        icon: "panel-left",
+        keywords: [
+          "sidebar",
+          "navigation",
+          "menu",
+          "order",
+          "hide",
+          "rename",
+          "audience",
+        ],
+        requiredAnyPermissions: [
+          NAV_PERMISSION_KEYS.CUSTOMIZATION_READ,
+          PERMISSION_KEYS.CUSTOMIZATION_ACCESS,
+          NAV_PERMISSION_KEYS.SETTINGS_READ,
+        ],
+        requiredAnyRoles: [
+          ROLE_KEYS.GLOBAL_ADMIN,
+          ROLE_KEYS.SYSTEM_CUSTOMIZER,
+        ],
+      },
+      {
         key: "packages",
         href: "/settings/customization/packages",
         label: "Packages",
@@ -997,13 +1034,22 @@ export function canViewSettingsItem(
   permissionKeys: readonly string[] = [],
   roleKeys: readonly string[] = [],
   item: SettingsNavItem,
+  placement?: Omit<VisibilityPrincipal, "roleKeys" | "permissionKeys">,
 ) {
-  return canViewItem(
-    permissionKeys,
-    roleKeys,
-    item.requiredAnyPermissions,
-    item.requiredAnyRoles,
-  );
+  if (
+    !canViewItem(
+      permissionKeys,
+      roleKeys,
+      item.requiredAnyPermissions,
+      item.requiredAnyRoles,
+    )
+  ) {
+    return false;
+  }
+
+  return isVisibleByRules(item, {
+    principal: { ...placement, roleKeys, permissionKeys },
+  });
 }
 
 export function resolveVisibleSettingsGroups(

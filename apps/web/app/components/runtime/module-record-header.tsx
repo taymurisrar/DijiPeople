@@ -30,9 +30,16 @@ export function ModuleRecordHeader({
 }) {
   const [statusOpen, setStatusOpen] = useState(false);
   const statusContainerRef = useRef<HTMLDivElement | null>(null);
+  /*
+   * A record page must name its record. The primary name field is often a
+   * composed value ("fullName", "employeeName") that a given payload may not
+   * carry, and falling straight through to the entity label produced a page
+   * headed "Employee" with no indication of which employee.
+   */
   const recordTitle =
     title ??
     formatValue(record?.[entity.primaryNameField]) ??
+    composeRecordName(record) ??
     entity.displayName;
   const statusSummary = buildRecordStatusSummary(record, statusGroupConfig);
   const hasStatusGroup = Boolean(statusGroupConfig?.enabled);
@@ -121,4 +128,39 @@ export function ModuleRecordHeader({
 function formatValue(value: unknown) {
   if (value === null || value === undefined || value === "") return null;
   return String(value);
+}
+
+/*
+ * Common name shapes, tried in order, before giving up on the entity label.
+ * Deliberately conservative: only fields that unambiguously name a record.
+ */
+const NAME_FIELD_CANDIDATES = [
+  "fullName",
+  "name",
+  "displayName",
+  "title",
+  "preferredName",
+  "employeeName",
+  "code",
+  "employeeCode",
+  "reference",
+];
+
+function composeRecordName(
+  record: Record<string, unknown> | null | undefined,
+): string | undefined {
+  if (!record) return undefined;
+
+  const firstName = formatValue(record.firstName);
+  const lastName = formatValue(record.lastName);
+  if (firstName || lastName) {
+    return [firstName, lastName].filter(Boolean).join(" ");
+  }
+
+  for (const field of NAME_FIELD_CANDIDATES) {
+    const value = formatValue(record[field]);
+    if (value) return value;
+  }
+
+  return undefined;
 }

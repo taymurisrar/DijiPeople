@@ -49,7 +49,7 @@ export default async function DashboardPage({
         <div className="flex flex-col px-2 py-1 gap-4 lg:flex-row lg:items-center rounded-xl bg-surface lg:justify-between">
           <ModuleViewSelector
             mode="dropdown"
-            configureHref="/settings/customization/views"
+            configureHref="/settings/customization/modules"
             activeViewId={selectedView?.key}
             views={dashboardViews}
           />

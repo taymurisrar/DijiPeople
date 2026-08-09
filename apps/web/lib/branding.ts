@@ -206,7 +206,7 @@ export const DEFAULT_BRANDING_SETTINGS: BrandingSettings = {
   termsOfUseUrl: "",
 
   logoUrl: DEFAULT_BRANDING_VALUES.logoUrl,
-  logoDarkUrl: DEFAULT_BRANDING_VALUES.logoUrl,
+  logoDarkUrl: DEFAULT_BRANDING_VALUES.logoDarkUrl,
   faviconUrl: DEFAULT_BRANDING_VALUES.faviconUrl,
   loginHeroImageUrl: "",
   emailHeaderLogoUrl: DEFAULT_BRANDING_VALUES.logoUrl,
@@ -228,7 +228,7 @@ export const DEFAULT_BRANDING_SETTINGS: BrandingSettings = {
   successColor: "#16a34a",
   warningColor: "#f59e0b",
   dangerColor: "#dc2626",
-  infoColor: "#2563eb",
+  infoColor: "#3b82f6",
 
   fontFamily: DEFAULT_BRANDING_VALUES.fontFamily,
   themeMode: "LIGHT",

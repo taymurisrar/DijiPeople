@@ -5,6 +5,7 @@ import {
   Eye,
   EyeOff,
   GripVertical,
+  PencilRuler,
   Plus,
   Save,
   Search,
@@ -36,11 +37,34 @@ import type {
   FormLayoutJson,
   FormLayoutSection,
 } from "../types";
+import {
+  EMPTY_AUDIENCE_OPTIONS,
+  VisibilityRulesEditor,
+  type AudienceOptions,
+} from "@/app/components/runtime/visibility-rules-editor";
+import {
+  isSystemFormComponent,
+  SYSTEM_COMPONENT_CUSTOMIZATION_MESSAGE,
+} from "@/lib/customization/metadata-layering";
+import type { CustomizationPackage } from "../types";
+import { CustomPackagePickerDialog } from "./custom-package-picker-dialog";
 
 type Props = {
   columns: CustomizationColumn[];
   form: CustomizationForm;
   table: CustomizationTable;
+  /*
+   * Roles, teams, departments, business units, organizations and designations
+   * a tab or section can be gated to. Defaulted so an existing caller that has
+   * not been updated still renders, with empty pickers rather than a crash.
+   */
+  audiences?: AudienceOptions;
+  /*
+   * Needed only to own the customization layer this designer creates the first
+   * time a system form is saved. Defaulted so the designer still renders for a
+   * custom form, which needs no layer.
+   */
+  packages?: CustomizationPackage[];
 };
 
 type Selection =
@@ -54,7 +78,13 @@ type DragState =
   | { type: "section"; tabId: string; sectionId: string }
   | null;
 
-export function FormDesignerWorkspace({ columns, form, table }: Props) {
+export function FormDesignerWorkspace({
+  audiences = EMPTY_AUDIENCE_OPTIONS,
+  columns,
+  form,
+  packages = [],
+  table,
+}: Props) {
   const router = useRouter();
   const designerColumns = useMemo(
     () =>
@@ -88,6 +118,26 @@ export function FormDesignerWorkspace({ columns, form, table }: Props) {
   const [paletteTypeFilter, setPaletteTypeFilter] = useState("all");
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /*
+   * Preview swaps the designer chips for the controls the runtime renders, so
+   * the layout can be judged as a form rather than as a list of field names.
+   * Editing affordances are suppressed while it is on — dragging a preview
+   * control would be a click target that looks like data entry.
+   */
+  const [isPreview, setIsPreview] = useState(false);
+
+  /*
+   * A system form is product metadata and is never written to directly. Saving
+   * one creates a tenant-owned customization layer, and that layer needs a
+   * package to own it — so the package is chosen here, at the save, rather than
+   * when the designer opens. Looking at a system form now costs nothing.
+   */
+  const requiresCustomizationLayer = isSystemFormComponent(form);
+  const [selectedPackageId, setSelectedPackageId] = useState(
+    packages.find((item) => item.type === "custom" && !item.isReadOnly)?.id ??
+      "",
+  );
+  const [isChoosingPackage, setIsChoosingPackage] = useState(false);
 
   const usedFieldKeys = new Set(
     layout.tabs.flatMap((tab) =>
@@ -128,7 +178,17 @@ export function FormDesignerWorkspace({ columns, form, table }: Props) {
     setLayout((current) => resequenceLayout(updater(current)));
   }
 
+  /* Save is the first point at which a system form needs a package. */
+  function requestSave() {
+    if (requiresCustomizationLayer) {
+      setIsChoosingPackage(true);
+      return;
+    }
+    void save();
+  }
+
   async function save() {
+    setIsChoosingPackage(false);
     setIsSaving(true);
     setError(null);
     const response = await fetch(
@@ -137,6 +197,9 @@ export function FormDesignerWorkspace({ columns, form, table }: Props) {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          ...(requiresCustomizationLayer
+            ? { packageId: selectedPackageId }
+            : {}),
           name: metadata.name,
           description: metadata.description,
           type: metadata.type,
@@ -159,23 +222,52 @@ export function FormDesignerWorkspace({ columns, form, table }: Props) {
 
   return (
     <div className="grid gap-4">
-      <div className="flex items-center justify-between gap-4 rounded-lg border border-border bg-white px-4 py-2 shadow-sm">
-        <div className="flex min-w-0 items-center gap-2 overflow-x-auto">
+      {/*
+       * Sticky so Save stays reachable: the canvas runs to several thousand
+       * pixels on a real form, and a toolbar that scrolls away means scrolling
+       * back to the top to save.
+       */}
+      <div className="dp-designer-toolbar sticky top-0 z-20 flex items-center justify-between gap-2 rounded-lg border border-border bg-white/95 px-2.5 py-1 shadow-sm backdrop-blur">
+        <div className="dp-scroll-hidden flex min-w-0 items-center gap-2 overflow-x-auto">
           <Button
             href={`/settings/customization/tables/${table.tableKey}/forms`}
             leftIcon={<ArrowLeft className="h-4 w-4" />}
+            size="xs"
             variant="ghost"
           >
             Back
           </Button>
+          <div className="min-w-0 border-l border-border pl-2">
+            <p className="truncate text-sm font-semibold text-foreground">
+              {table.displayName} · {metadata.name}
+            </p>
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
           <Button
             leftIcon={<Save className="h-4 w-4" />}
             loading={isSaving}
             loadingText="Saving..."
-            onClick={save}
+            onClick={requestSave}
+            size="xs"
             type="button"
           >
             Save
+          </Button>
+          <Button
+            leftIcon={
+              isPreview ? (
+                <PencilRuler className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )
+            }
+            onClick={() => setIsPreview((current) => !current)}
+            size="xs"
+            type="button"
+            variant={isPreview ? "primary" : "secondary"}
+          >
+            {isPreview ? "Design" : "Preview"}
           </Button>
           <Button
             onClick={() =>
@@ -184,13 +276,12 @@ export function FormDesignerWorkspace({ columns, form, table }: Props) {
                 isActive: !current.isActive,
               }))
             }
+            size="xs"
             type="button"
             variant="secondary"
           >
             {metadata.isActive ? "Deactivate" : "Activate"}
           </Button>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
           <StatusPill tone={form.isSystem ? "neutral" : "good"}>
             {form.isSystem ? "System" : "Custom"}
           </StatusPill>
@@ -206,13 +297,18 @@ export function FormDesignerWorkspace({ columns, form, table }: Props) {
         </div>
       ) : null}
 
-      <div className="grid min-h-[680px] gap-4 xl:grid-cols-[280px_minmax(0,1fr)_340px]">
-        <aside className="rounded-[20px] border border-border bg-surface p-4 shadow-sm">
-          <p className="text-sm font-semibold text-foreground">Field palette</p>
-          <p className="mt-1 text-xs text-muted">
-            Only form-designer-valid columns are listed.
+      <div className="grid gap-3 xl:grid-cols-[210px_minmax(0,1fr)_270px]">
+        {/*
+         * Both side panels stick and scroll within the viewport. Previously they
+         * shared the canvas's full height, so on a long form the palette and the
+         * properties for the selected element sat thousands of pixels above
+         * whatever was being edited.
+         */}
+        <aside className="dp-designer-panel dp-scroll-hidden min-w-0 rounded-[16px] border border-border bg-surface p-3 shadow-sm xl:sticky xl:top-14 xl:max-h-[calc(100vh-5rem)] xl:overflow-y-auto">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+            Field palette
           </p>
-          <div className="mt-3 grid gap-2">
+          <div className="mt-2 grid gap-1.5">
             <div className="flex items-center gap-2 rounded-md border border-border bg-white px-2 py-1.5">
               <Search className="h-4 w-4 text-muted" />
               <input
@@ -257,41 +353,41 @@ export function FormDesignerWorkspace({ columns, form, table }: Props) {
               value={paletteTypeFilter}
             />
           </div>
-          <div className="mt-4 grid max-h-[520px] gap-1.5 overflow-y-auto pr-1">
+          <div className="mt-3 grid gap-1">
             {paletteFieldGroups
               .flatMap((group) => group.fields)
               .map((column) => (
                 <button
-                  className="rounded-md border border-border bg-white px-2.5 py-2 text-left text-xs transition hover:border-accent/40 hover:bg-accent-soft"
+                  className="min-w-0 rounded-md border border-border bg-white px-2 py-1.5 text-left transition hover:border-accent/40 hover:bg-accent-soft"
                   key={column.columnKey}
                   onClick={() => addField(column.columnKey)}
+                  title={`${column.columnKey} · ${column.fieldType}`}
                   type="button"
                 >
-                  <span className="block font-medium text-foreground">
+                  <span className="block truncate text-[11px] font-medium leading-tight text-foreground">
                     {column.displayName}
                     {column.isSystem ? (
-                      <span className="ml-2 text-xs text-muted">locked</span>
+                      <span className="ml-1.5 font-normal text-muted">
+                        locked
+                      </span>
                     ) : null}
                   </span>
-                  <span className="mt-1 block text-xs text-muted">
+                  <span className="mt-0.5 block truncate text-[10px] leading-tight text-muted">
                     {column.columnKey} · {column.fieldType}
                   </span>
                 </button>
               ))}
             {paletteFields.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-border px-3 py-6 text-sm text-muted">
+              <div className="rounded-lg border border-dashed border-border px-2 py-4 text-[11px] text-muted">
                 No fields match the current palette filters.
               </div>
             ) : null}
           </div>
-          <div className="mt-5 border-t border-border pt-4">
-            <p className="text-sm font-semibold text-foreground">
+          <div className="mt-4 border-t border-border pt-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">
               System Widgets
             </p>
-            <p className="mt-1 text-xs text-muted">
-              Only Widgets supported by this Module are available.
-            </p>
-            <div className="mt-3 grid gap-2">
+            <div className="mt-2 grid gap-1.5">
               {supportedWidgets.map((widget) => {
                 const used = usedWidgetKeys.has(widget.widgetKey);
                 return (
@@ -311,7 +407,7 @@ export function FormDesignerWorkspace({ columns, form, table }: Props) {
                         columnSpan: 1,
                       })
                     }
-                    size="sm"
+                    size="xs"
                     type="button"
                     variant="secondary"
                   >
@@ -321,7 +417,7 @@ export function FormDesignerWorkspace({ columns, form, table }: Props) {
               })}
               <Button
                 disabled
-                size="sm"
+                size="xs"
                 title="Custom Widget execution requires future plugin or code-activity registration."
                 type="button"
                 variant="ghost"
@@ -372,7 +468,7 @@ export function FormDesignerWorkspace({ columns, form, table }: Props) {
                       event.stopPropagation();
                       addSection(tab.id);
                     }}
-                    size="sm"
+                    size="xs"
                     type="button"
                     variant="ghost"
                   >
@@ -445,11 +541,29 @@ export function FormDesignerWorkspace({ columns, form, table }: Props) {
                           const column = columnByKey.get(field.columnKey);
                           return (
                             <FormGridItem
-                              className="rounded-xl border border-border bg-white px-3 py-3"
+                              className={
+                                isPreview
+                                  ? ""
+                                  : "rounded-xl border border-border bg-white px-3 py-3"
+                              }
                               columnSpan={field.columnSpan}
                               key={`${section.id}-${field.columnKey}`}
                               parentColumns={section.columns ?? 2}
                             >
+                            {isPreview ? (
+                              <PreviewField
+                                column={column}
+                                field={field}
+                                onSelect={() =>
+                                  setSelection({
+                                    type: "field",
+                                    tabId: tab.id,
+                                    sectionId: section.id,
+                                    columnKey: field.columnKey,
+                                  })
+                                }
+                              />
+                            ) : (
                             <div
                               draggable
                               onClick={(event) => {
@@ -494,6 +608,7 @@ export function FormDesignerWorkspace({ columns, form, table }: Props) {
                                 <GripVertical className="h-4 w-4 text-muted" />
                               </div>
                             </div>
+                            )}
                             </FormGridItem>
                           );
                         })}
@@ -543,6 +658,7 @@ export function FormDesignerWorkspace({ columns, form, table }: Props) {
         </main>
 
         <PropertiesPanel
+          audiences={audiences}
           columnByKey={columnByKey}
           form={metadata}
           layout={layout}
@@ -552,6 +668,17 @@ export function FormDesignerWorkspace({ columns, form, table }: Props) {
           setSelection={setSelection}
         />
       </div>
+
+      <CustomPackagePickerDialog
+        confirmLabel="Save customization"
+        message={SYSTEM_COMPONENT_CUSTOMIZATION_MESSAGE}
+        onClose={() => setIsChoosingPackage(false)}
+        onConfirm={() => void save()}
+        open={isChoosingPackage}
+        packages={packages}
+        selectedPackageId={selectedPackageId}
+        setSelectedPackageId={setSelectedPackageId}
+      />
     </div>
   );
 
@@ -756,6 +883,7 @@ export function FormDesignerWorkspace({ columns, form, table }: Props) {
 }
 
 function PropertiesPanel({
+  audiences,
   columnByKey,
   form,
   layout,
@@ -764,6 +892,7 @@ function PropertiesPanel({
   selection,
   setSelection,
 }: {
+  audiences: AudienceOptions;
   columnByKey: Map<string, CustomizationColumn>;
   form: {
     name: string;
@@ -810,9 +939,11 @@ function PropertiesPanel({
   const fieldSelection = selection.type === "field" ? selection : null;
 
   return (
-    <aside className="rounded-[20px] border border-border bg-surface p-4 shadow-sm">
-      <p className="text-sm font-semibold text-foreground">Properties</p>
-      <div className="mt-4 grid gap-4">
+    <aside className="dp-designer-panel dp-scroll-hidden min-w-0 rounded-[16px] border border-border bg-surface p-3 shadow-sm xl:sticky xl:top-14 xl:max-h-[calc(100vh-5rem)] xl:overflow-y-auto">
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+        Properties
+      </p>
+      <div className="mt-2 grid gap-2.5">
         {selection.type === "form" ? (
           <>
             <TextField
@@ -869,6 +1000,7 @@ function PropertiesPanel({
               label="Tab label"
               onChange={(label) =>
                 onChangeLayout((current) => ({
+                  ...current,
                   tabs: current.tabs.map((tab) =>
                     tab.id === selectedTab.id ? { ...tab, label } : tab,
                   ),
@@ -886,6 +1018,7 @@ function PropertiesPanel({
               label="Tab columns"
               onChange={(columns) =>
                 onChangeLayout((current) => ({
+                  ...current,
                   tabs: current.tabs.map((tab) =>
                     tab.id === selectedTab.id
                       ? { ...tab, columns: clampColumns(columns) }
@@ -896,10 +1029,27 @@ function PropertiesPanel({
               options={layoutOptions()}
               value={String(selectedTab.columns ?? 1)}
             />
+            <VisibilityRulesEditor
+              audiences={audiences}
+              emptyLabel="visible to everyone who can open this form"
+              onChange={(visibilityRules) =>
+                onChangeLayout((current) => ({
+                  ...current,
+                  tabs: current.tabs.map((tab) =>
+                    tab.id === selectedTab.id
+                      ? { ...tab, visibilityRules }
+                      : tab,
+                  ),
+                }))
+              }
+              rules={selectedTab.visibilityRules ?? []}
+              title="Who sees this tab"
+            />
             <Button
               leftIcon={<Trash2 className="h-4 w-4" />}
               onClick={() => {
                 onChangeLayout((current) => ({
+                  ...current,
                   tabs: current.tabs.filter((tab) => tab.id !== selectedTab.id),
                 }));
                 setSelection({ type: "form" });
@@ -994,6 +1144,25 @@ function PropertiesPanel({
                   },
                 )
               }
+            />
+            {/*
+             * "Visible" above is an unconditional switch for everyone. These
+             * rules narrow it further to an audience, so a section can be shown
+             * only to HR without hiding it from them too.
+             */}
+            <VisibilityRulesEditor
+              audiences={audiences}
+              emptyLabel="visible to everyone who can open this form"
+              onChange={(visibilityRules) =>
+                patchSection(
+                  onChangeLayout,
+                  sectionSelection.tabId,
+                  selectedSection.id,
+                  { visibilityRules },
+                )
+              }
+              rules={selectedSection.visibilityRules ?? []}
+              title="Who sees this section"
             />
           </>
         ) : null}
@@ -1291,6 +1460,7 @@ function patchSection(
   patch: Partial<FormLayoutSection>,
 ) {
   onChangeLayout((current) => ({
+    ...current,
     tabs: current.tabs.map((tab) =>
       tab.id === tabId
         ? {
@@ -1313,6 +1483,7 @@ function patchField(
 ) {
   if (selection.type !== "field") return;
   onChangeLayout((current) => ({
+    ...current,
     tabs: current.tabs.map((tab) =>
       tab.id === selection.tabId
         ? {
@@ -1343,6 +1514,7 @@ function removeField(
 ) {
   if (selection.type !== "field") return;
   onChangeLayout((current) => ({
+    ...current,
     tabs: current.tabs.map((tab) =>
       tab.id === selection.tabId
         ? {
@@ -1361,4 +1533,84 @@ function removeField(
         : tab,
     ),
   }));
+}
+
+/*
+ * A field as the runtime draws it: label above, control below, required marker
+ * where one applies. The control is inert — this is a layout preview, not a
+ * form — but it is sized and shaped like the real one so column spans and
+ * section widths can be judged honestly.
+ */
+function PreviewField({
+  column,
+  field,
+  onSelect,
+}: {
+  column?: CustomizationColumn;
+  field: FormLayoutField;
+  onSelect: () => void;
+}) {
+  const label = field.label || column?.displayName || field.columnKey;
+  const fieldType = column?.fieldType ?? "text";
+  const isHidden = field.isVisible === false;
+
+  return (
+    <div
+      className={`rounded-lg p-1 transition hover:bg-accent-soft/40 ${
+        isHidden ? "opacity-45" : ""
+      }`}
+      onClick={(event) => {
+        event.stopPropagation();
+        onSelect();
+      }}
+      role="presentation"
+    >
+      <p className="mb-1 truncate text-xs font-medium text-foreground">
+        {label}
+        {field.required ? <span className="ml-0.5 text-danger">*</span> : null}
+        {isHidden ? (
+          <span className="ml-1.5 text-[10px] font-normal text-muted">
+            hidden
+          </span>
+        ) : null}
+      </p>
+      <PreviewControl fieldType={fieldType} readOnly={field.readOnly} />
+    </div>
+  );
+}
+
+function PreviewControl({
+  fieldType,
+  readOnly,
+}: {
+  fieldType: string;
+  readOnly?: boolean;
+}) {
+  const shell = `w-full rounded-md border border-border px-2 py-1.5 text-xs ${
+    readOnly ? "bg-surface-strong text-muted" : "bg-white text-muted"
+  }`;
+
+  if (fieldType === "boolean") {
+    return (
+      <span className="inline-flex items-center gap-2 text-xs text-muted">
+        <span className="h-4 w-4 rounded border border-border bg-white" />
+        Yes / No
+      </span>
+    );
+  }
+
+  if (fieldType === "textarea" || fieldType === "multiline") {
+    return <div className={`${shell} h-14`} />;
+  }
+
+  if (fieldType === "select" || fieldType === "lookup") {
+    return (
+      <div className={`${shell} flex items-center justify-between`}>
+        <span>Select…</span>
+        <span aria-hidden>▾</span>
+      </div>
+    );
+  }
+
+  return <div className={`${shell} h-7`} />;
 }

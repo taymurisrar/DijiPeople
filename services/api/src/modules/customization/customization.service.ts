@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { createHash } from 'crypto';
@@ -59,6 +60,7 @@ const UNASSIGNED_DRAFT_PACKAGE_NAME = 'Unassigned Draft Customizations';
 
 @Injectable()
 export class CustomizationService {
+  private readonly logger = new Logger(CustomizationService.name);
   private readonly syncedDefaultSolutionTenants = new Set<string>();
   private readonly defaultSolutionSyncPromises = new Map<
     string,
@@ -2169,6 +2171,25 @@ export class CustomizationService {
       dto.lookupTargetTableKey,
     );
     this.validateValueRules(dto);
+    await this.assertPrimaryNameIsUsable(dto, existing, systemColumn);
+
+    /*
+     * Clearing the flag elsewhere before writing it here keeps the module to a
+     * single primary name. The database enforces the same rule with a partial
+     * unique index, so a concurrent write fails loudly rather than producing a
+     * module with two names.
+     */
+    if (dto.isPrimaryName === true) {
+      await this.prisma.customizationColumn.updateMany({
+        where: {
+          tenantId: currentUser.tenantId,
+          tableId: table.id,
+          isPrimaryName: true,
+          NOT: { columnKey },
+        },
+        data: { isPrimaryName: false },
+      });
+    }
 
     if (systemColumn && !existing) {
       const { component: draftLayer } =
@@ -4647,6 +4668,130 @@ export class CustomizationService {
     return this.findTenantTableOrThrow(tenantId, tableKey);
   }
 
+  /**
+   * Resolves the records a lookup can point at, as id plus display label.
+   *
+   * The label is the target module's primary name column, which is the whole
+   * point of that flag: without it a lookup shows a UUID.
+   *
+   * Two safety properties, both deliberate:
+   *
+   * - `tenantId` is always in the where clause. It is not conditional on the
+   *   model having the field — if a model cannot be filtered by tenant, Prisma
+   *   throws and this returns nothing. Failing closed on an unscoped model is
+   *   the only acceptable direction for a cross-tenant read.
+   * - Only the id and the primary name are selected. No other column of the
+   *   target record is reachable through this path.
+   */
+  async listLookupOptions(
+    currentUser: AuthenticatedUser,
+    tableKey: string,
+    search?: string,
+    limit = 20,
+  ): Promise<Array<{ id: string; label: string }>> {
+    const table = await this.prisma.customizationTable.findUnique({
+      where: {
+        tenantId_tableKey: { tenantId: currentUser.tenantId, tableKey },
+      },
+    });
+    if (!table) {
+      throw new NotFoundException('Lookup target module was not found.');
+    }
+
+    const primary = await this.prisma.customizationColumn.findFirst({
+      where: {
+        tenantId: currentUser.tenantId,
+        tableId: table.id,
+        isPrimaryName: true,
+        isActive: true,
+      },
+    });
+    /*
+     * No primary name means there is nothing readable to show. An empty list
+     * with a clear cause beats a list of identifiers.
+     */
+    if (!primary) return [];
+
+    const delegate = this.resolveLookupDelegate(tableKey);
+    if (!delegate) return [];
+
+    const take = Math.min(Math.max(1, limit), 50);
+    const labelField = primary.columnKey;
+
+    try {
+      const rows = (await delegate.findMany({
+        where: {
+          tenantId: currentUser.tenantId,
+          ...(search?.trim()
+            ? {
+                [labelField]: {
+                  contains: search.trim(),
+                  mode: 'insensitive',
+                },
+              }
+            : {}),
+        },
+        select: { id: true, [labelField]: true },
+        orderBy: { [labelField]: 'asc' },
+        take,
+      })) as Array<Record<string, unknown>>;
+
+      return rows.flatMap((row) => {
+        const id = row.id;
+        const label = row[labelField];
+        if (typeof id !== 'string') return [];
+        return [
+          {
+            id,
+            label:
+              typeof label === 'string' && label.trim() ? label : '(unnamed)',
+          },
+        ];
+      });
+    } catch (error) {
+      /*
+       * Reached when the model has no tenantId, no id, or no column of that
+       * name — all of which mean this module is not safely readable this way.
+       */
+      this.logger.warn(
+        `Lookup options unavailable for ${tableKey}: ${
+          error instanceof Error ? error.message : 'unknown error'
+        }`,
+      );
+      return [];
+    }
+  }
+
+  /*
+   * Module keys are plural camelCase ("businessUnits"); Prisma delegates are
+   * singular camelCase ("businessUnit"). The candidate is verified against the
+   * client rather than trusted, so an unmapped module yields no delegate and
+   * the caller gets an empty list.
+   */
+  private resolveLookupDelegate(tableKey: string): {
+    findMany: (args: unknown) => Promise<unknown>;
+  } | null {
+    const candidates = [
+      tableKey.replace(/ies$/, 'y'),
+      tableKey.replace(/ses$/, 's'),
+      tableKey.replace(/s$/, ''),
+      tableKey,
+    ];
+
+    const client = this.prisma as unknown as Record<string, unknown>;
+    for (const candidate of candidates) {
+      const delegate = client[candidate];
+      if (
+        delegate &&
+        typeof delegate === 'object' &&
+        typeof (delegate as { findMany?: unknown }).findMany === 'function'
+      ) {
+        return delegate as { findMany: (args: unknown) => Promise<unknown> };
+      }
+    }
+    return null;
+  }
+
   private async validateLookupTarget(
     tenantId: string,
     lookupTargetTableKey?: string,
@@ -4669,6 +4814,40 @@ export class CustomizationService {
     if (!existing) {
       throw new BadRequestException(
         'Lookup target table must be an existing customizable table.',
+      );
+    }
+  }
+
+  /**
+   * A primary name has to be able to name something.
+   *
+   * A lookup renders this column's value as the target record's label, so a
+   * boolean, a date or a hidden column would show the user "true" or nothing at
+   * all. Rejecting it here is clearer than letting it save and having every
+   * lookup to the module go blank.
+   */
+  private async assertPrimaryNameIsUsable(
+    dto: { isPrimaryName?: boolean; fieldType?: string; isVisible?: boolean },
+    existing?: { dataType?: string; fieldType?: string } | null,
+    systemColumn?: { dataType?: string } | null,
+  ) {
+    if (dto.isPrimaryName !== true) return;
+
+    const NAMEABLE = ['text', 'email', 'phone', 'url', 'select'];
+    const type =
+      dto.fieldType ??
+      systemColumn?.dataType ??
+      existing?.dataType ??
+      existing?.fieldType;
+
+    if (type && !NAMEABLE.includes(type)) {
+      throw new BadRequestException(
+        `A ${type} column cannot be the primary name. Choose a text, email, phone, URL or choice column.`,
+      );
+    }
+    if (dto.isVisible === false) {
+      throw new BadRequestException(
+        'The primary name column cannot be hidden — lookups display its value.',
       );
     }
   }

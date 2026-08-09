@@ -17,7 +17,10 @@ import {
 import { SectionCard } from "@/app/components/ui/section-card";
 import { StatusPill } from "@/app/components/ui/status-pill";
 import { PermissionGate } from "@/app/(authenticated)/_components/permission-gate";
-import { SYSTEM_COMPONENT_CUSTOMIZATION_MESSAGE } from "@/lib/customization/metadata-layering";
+import {
+  isSystemFormComponent,
+  SYSTEM_COMPONENT_CUSTOMIZATION_MESSAGE,
+} from "@/lib/customization/metadata-layering";
 import {
   CustomizationColumn,
   CustomizationForm,
@@ -63,7 +66,7 @@ export function FormsManagement({
   );
   const [pendingSystemAction, setPendingSystemAction] = useState<null | {
     form: CustomizationForm;
-    action: "edit" | "designer" | "toggle" | "default";
+    action: "edit" | "toggle" | "default";
   }>(null);
   const designerColumns = useMemo(
     () =>
@@ -182,77 +185,83 @@ export function FormsManagement({
     {
       key: "actions",
       header: "Actions",
-      render: (row) => (
-        <div className="flex flex-wrap gap-2">
-          <PermissionGate anyOf={["customization.forms.update"]}>
-            <Button
-              leftIcon={<Edit3 className="h-4 w-4" />}
-              onClick={() => openDesigner(row)}
-              size="sm"
-              title="Open designer"
-              type="button"
-              variant="secondary"
-            >
-              Designer
-            </Button>
-            <Button
-              leftIcon={<Pencil className="h-4 w-4" />}
-              onClick={() => openEdit(row)}
-              size="sm"
-              title="Edit form"
-              type="button"
-              variant="ghost"
-            >
-              Rename/Edit
-            </Button>
-            <Button
-              disabled={!canToggleForm(row, forms)}
-              leftIcon={
-                row.isActive ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )
-              }
-              onClick={() => toggleActive(row)}
-              size="sm"
-              title={
-                canToggleForm(row, forms)
-                  ? "Activate or deactivate this form"
-                  : "Default form cannot be deactivated until another active default exists."
-              }
-              type="button"
-              variant="ghost"
-            >
-              {row.isActive ? "Deactivate" : "Activate"}
-            </Button>
-            {!row.isDefault ? (
+      /*
+       * Icon-only, because five labelled buttons per row made the actions
+       * column wider than everything else in the table combined. Each keeps a
+       * `title` for the hover tooltip and an `aria-label` for screen readers —
+       * an icon button without both is an unlabelled control.
+       */
+      render: (row) => {
+        const toggleLabel = row.isActive ? "Deactivate form" : "Activate form";
+        return (
+          <div className="flex items-center gap-1">
+            <PermissionGate anyOf={["customization.forms.update"]}>
               <Button
-                leftIcon={<Star className="h-4 w-4" />}
-                onClick={() => setDefault(row)}
-                size="sm"
+                aria-label="Open designer"
+                leftIcon={<Edit3 className="h-4 w-4" />}
+                onClick={() => openDesigner(row)}
+                size="icon-sm"
+                title="Open designer"
+                type="button"
+                variant="secondary"
+              />
+              <Button
+                aria-label="Rename or edit form"
+                leftIcon={<Pencil className="h-4 w-4" />}
+                onClick={() => openEdit(row)}
+                size="icon-sm"
+                title="Rename or edit form"
                 type="button"
                 variant="ghost"
-              >
-                Default
-              </Button>
-            ) : null}
-          </PermissionGate>
-          {componentSource(row) !== "System" ? (
-            <PermissionGate anyOf={["customization.forms.delete"]}>
+              />
               <Button
-                leftIcon={<Trash2 className="h-4 w-4" />}
-                onClick={() => setDeleteTarget(row)}
-                size="sm"
+                aria-label={toggleLabel}
+                disabled={!canToggleForm(row, forms)}
+                leftIcon={
+                  row.isActive ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )
+                }
+                onClick={() => toggleActive(row)}
+                size="icon-sm"
+                title={
+                  canToggleForm(row, forms)
+                    ? toggleLabel
+                    : "Default form cannot be deactivated until another active default exists."
+                }
                 type="button"
-                variant="danger"
-              >
-                Delete
-              </Button>
+                variant="ghost"
+              />
+              {!row.isDefault ? (
+                <Button
+                  aria-label="Set as default form"
+                  leftIcon={<Star className="h-4 w-4" />}
+                  onClick={() => setDefault(row)}
+                  size="icon-sm"
+                  title="Set as default form"
+                  type="button"
+                  variant="ghost"
+                />
+              ) : null}
             </PermissionGate>
-          ) : null}
-        </div>
-      ),
+            {componentSource(row) !== "System" ? (
+              <PermissionGate anyOf={["customization.forms.delete"]}>
+                <Button
+                  aria-label="Delete form"
+                  leftIcon={<Trash2 className="h-4 w-4" />}
+                  onClick={() => setDeleteTarget(row)}
+                  size="icon-sm"
+                  title="Delete form"
+                  type="button"
+                  variant="danger"
+                />
+              </PermissionGate>
+            ) : null}
+          </div>
+        );
+      },
     },
   ];
 
@@ -279,12 +288,17 @@ export function FormsManagement({
     setForm(toFormState(record, designerColumns));
   }
 
-  async function openDesigner(record: CustomizationForm) {
+  /*
+   * Opening the designer is a read, so it never creates a customization layer.
+   *
+   * It used to prompt for a package and PATCH the form before navigating, which
+   * meant looking at a system form's layout — and changing nothing — left a
+   * draft in the publish queue. The designer creates the layer on its first
+   * save instead, which is the point at which a package actually has to be
+   * chosen. The other row actions still layer up front because they do mutate.
+   */
+  function openDesigner(record: CustomizationForm) {
     setError(null);
-    if (componentSource(record) === "System") {
-      setPendingSystemAction({ form: record, action: "designer" });
-      return;
-    }
     router.push(
       `/settings/customization/tables/${table.tableKey}/forms/${record.formKey}/designer`,
     );
@@ -455,12 +469,6 @@ export function FormsManagement({
       setIsSaving(false);
       if (current.action === "edit") {
         setForm(toFormState(draft, designerColumns));
-        return;
-      }
-      if (current.action === "designer") {
-        router.push(
-          `/settings/customization/tables/${table.tableKey}/forms/${draft.formKey}/designer`,
-        );
         return;
       }
       router.refresh();
@@ -906,10 +914,7 @@ function validateForm(form: FormState, forms: CustomizationForm[]) {
 }
 
 function componentSource(form: CustomizationForm) {
-  return form.isSystem ||
-    (form.type === "main" && form.formKey.includes("system"))
-    ? "System"
-    : "Custom";
+  return isSystemFormComponent(form) ? "System" : "Custom";
 }
 
 function canToggleForm(

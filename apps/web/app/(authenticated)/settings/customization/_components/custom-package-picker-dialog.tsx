@@ -5,6 +5,7 @@ import { SelectField } from "@/app/components/ui/form-control";
 import type { CustomizationPackage } from "../types";
 
 export function CustomPackagePickerDialog({
+  confirmLabel = "Continue",
   message,
   onClose,
   onConfirm,
@@ -13,6 +14,12 @@ export function CustomPackagePickerDialog({
   selectedPackageId,
   setSelectedPackageId,
 }: {
+  /*
+   * The confirm button says what it is about to do. This dialog always writes
+   * a customization layer, and "Continue" alone read like a navigation step —
+   * which is how people ended up with draft layers they never meant to create.
+   */
+  confirmLabel?: string;
   message: string;
   onClose: () => void;
   onConfirm: () => void;
@@ -40,7 +47,9 @@ export function CustomPackagePickerDialog({
           </h3>
           <p className="mt-1 text-sm leading-6 text-muted">{message}</p>
           <p className="mt-2 text-sm leading-6 text-muted">
-            Leave package blank to use Unassigned Draft Customizations.
+            Leave package blank to use Unassigned Draft Customizations. This
+            creates a draft customization layer that stays unpublished until you
+            publish it.
           </p>
         </div>
 
@@ -66,11 +75,8 @@ export function CustomPackagePickerDialog({
           <Button onClick={onClose} type="button" variant="secondary">
             Cancel
           </Button>
-          <Button
-            onClick={onConfirm}
-            type="button"
-          >
-            Continue
+          <Button onClick={onConfirm} type="button">
+            {confirmLabel}
           </Button>
         </div>
       </div>

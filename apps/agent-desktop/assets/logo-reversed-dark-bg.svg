@@ -1,0 +1,13 @@
+<svg width="520" height="150" viewBox="0 0 520 150" xmlns="http://www.w3.org/2000/svg">
+  <g transform="translate(20,25)">
+    <path d="M22,78 C34,68 40,58 52,54 C64,50 70,38 82,26"
+          fill="none" stroke="#6EE7B7" stroke-width="6" stroke-linecap="round"/>
+    <circle cx="22" cy="78" r="9"  fill="#A7F3D0"/>
+    <circle cx="52" cy="54" r="12" fill="#6EE7B7"/>
+    <circle cx="82" cy="26" r="15" fill="#34D399"/>
+  </g>
+  <text x="150" y="88" font-family="Arial, Helvetica, sans-serif" font-size="46" font-weight="700">
+    <tspan fill="#F9FAFB">Diji</tspan><tspan fill="#6EE7B7">People</tspan>
+  </text>
+  <text x="152" y="118" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="600" letter-spacing="5" fill="#D1D5DB">HRMS</text>
+</svg>

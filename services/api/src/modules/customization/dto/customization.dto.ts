@@ -142,6 +142,15 @@ export class CreateCustomizationColumnDto {
   @IsBoolean()
   isValidForViewDesigner?: boolean;
 
+  /*
+   * Marks this column as the one that names a record. Setting it clears the
+   * flag on the module's other columns, so the "at most one" rule the database
+   * enforces is never reached with two.
+   */
+  @IsOptional()
+  @IsBoolean()
+  isPrimaryName?: boolean;
+
   @IsOptional()
   @IsBoolean()
   isSearchable?: boolean;
@@ -231,6 +240,15 @@ export class UpdateCustomizationColumnDto {
   @IsOptional()
   @IsBoolean()
   isValidForViewDesigner?: boolean;
+
+  /*
+   * Marks this column as the one that names a record. Setting it clears the
+   * flag on the module's other columns, so the "at most one" rule the database
+   * enforces is never reached with two.
+   */
+  @IsOptional()
+  @IsBoolean()
+  isPrimaryName?: boolean;
 
   @IsOptional()
   @IsBoolean()

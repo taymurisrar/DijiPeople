@@ -30,6 +30,7 @@ import { SettingsRuntimeModule } from './modules/settings-runtime/settings-runti
 import { DocumentsModule } from './modules/documents/documents.module';
 import { DataManagementModule } from './modules/data-management/data-management.module';
 import { CustomizationModule } from './modules/customization/customization.module';
+import { NavigationModule } from './modules/navigation/navigation.module';
 import { DataModule } from './modules/data/data.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { EmployeeLevelsModule } from './modules/employee-levels/employee-levels.module';
@@ -92,6 +93,7 @@ import { SupportCasesModule } from './modules/support-cases/support-cases.module
     SettingsRuntimeModule,
     CompensationModule,
     CustomizationModule,
+    NavigationModule,
     DataModule,
     DashboardModule,
     DocumentsModule,

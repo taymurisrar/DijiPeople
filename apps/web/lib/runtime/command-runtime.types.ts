@@ -43,6 +43,30 @@ export type CommandVisibilityOperator =
   | "has-permission"
   | "has-any-permission"
   | "has-all-permissions"
+  /*
+   * Role operators complement the permission ones. A permission answers "may
+   * they do this"; a role answers "is this surface meant for them". Hiding the
+   * Compensation tab from everyone but HR is the second question, and
+   * expressing it as a permission would invent one that guards nothing.
+   */
+  | "has-role"
+  | "has-any-role"
+  | "not-has-role"
+  /*
+   * Placement operators. Each asks whether the viewer sits somewhere in the
+   * organization, so a surface can be shown to one department or hidden from
+   * one business unit without inventing a role for it.
+   */
+  | "in-team"
+  | "in-department"
+  | "in-business-unit"
+  | "in-organization"
+  | "has-designation"
+  | "not-in-team"
+  | "not-in-department"
+  | "not-in-business-unit"
+  | "not-in-organization"
+  | "not-has-designation"
   | "field-equals"
   | "field-not-equals"
   | "field-in"
@@ -53,6 +77,13 @@ export type CommandVisibilityOperator =
 export interface CommandVisibilityRule {
   readonly operator: CommandVisibilityOperator;
   readonly permissionKeys?: readonly string[];
+  readonly roleKeys?: readonly string[];
+  /* Ids for the placement operators above. Any match passes. */
+  readonly teamIds?: readonly string[];
+  readonly departmentIds?: readonly string[];
+  readonly businessUnitIds?: readonly string[];
+  readonly organizationIds?: readonly string[];
+  readonly designationIds?: readonly string[];
   readonly fieldLogicalName?: string;
   readonly expectedValue?: unknown;
   readonly expectedValues?: readonly unknown[];

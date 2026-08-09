@@ -15,6 +15,15 @@ const fraunces = Fraunces({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://dijipeople.com"),
+  icons: {
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icon-only.svg", type: "image/svg+xml" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: "/apple-touch-icon-180x180.png",
+  },
   title: "DijiPeople | HRM SaaS for Growing Operational Teams",
   description:
     "DijiPeople is a US-based HRM SaaS platform for healthcare, IT, recruitment, staffing, and service businesses that need structured people operations.",

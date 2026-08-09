@@ -1,8 +1,9 @@
 "use client";
 
-import { Clipboard, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { ChevronRight, Clipboard } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/app/components/ui/button";
 import { SectionCard } from "@/app/components/ui/section-card";
 import {
@@ -58,7 +59,22 @@ export function TableDetailShell({
   initialTab = "columns",
 }: TableDetailShellProps) {
   const [activeTab, setActiveTab] = useState<TabKey>(initialTab);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const pathname = usePathname();
+  const router = useRouter();
+
+  /*
+   * The tab lives in the URL so a refresh, a bookmark, or a link shared with a
+   * colleague lands on the same tab the sender was looking at. `replace` keeps
+   * one workspace visit as one history entry instead of one per tab click.
+   */
+  const selectTab = useCallback(
+    (tab: TabKey) => {
+      setActiveTab(tab);
+      router.replace(`${pathname}?tab=${tab}`, { scroll: false });
+    },
+    [pathname, router],
+  );
+
   const [metadataCounts, setMetadataCounts] = useState({
     actionBars: 0,
     choiceLists: 0,
@@ -97,107 +113,79 @@ export function TableDetailShell({
   }, [table.tableKey]);
 
   return (
-    <div
-      className={`grid w-full max-w-full gap-4 overflow-x-hidden ${
-        sidebarCollapsed
-          ? "xl:grid-cols-[56px_minmax(0,1fr)]"
-          : "xl:grid-cols-[240px_minmax(0,1fr)]"
-      }`}
-    >
-      <aside className="min-w-0 rounded-lg border border-border bg-surface p-3 shadow-sm">
-        <div className="mb-3 flex items-center justify-between gap-2">
-          {!sidebarCollapsed ? (
-            <div>
-              <p className="text-xs font-semibold uppercase text-muted">
-                Customization
-              </p>
-              <p className="text-sm font-semibold text-foreground">Modules</p>
-            </div>
-          ) : null}
+    /*
+     * No `overflow-x-hidden` here. It used to hide the fact that a wide table
+     * stretched this shell past the viewport: the excess was clipped and
+     * unreachable instead of scrollable. The column track below lets children
+     * shrink, so wide content now scrolls inside its own container.
+     */
+    <div className="grid w-full max-w-full grid-cols-[minmax(0,1fr)] gap-4">
+      <nav
+        aria-label="Breadcrumb"
+        className="flex flex-wrap items-center gap-1 text-xs text-muted"
+      >
+        <Link
+          className="rounded px-1 py-0.5 transition hover:bg-muted/20 hover:text-foreground"
+          href="/settings/customization"
+        >
+          Customization
+        </Link>
+        <ChevronRight aria-hidden className="h-3 w-3" />
+        <Link
+          className="rounded px-1 py-0.5 transition hover:bg-muted/20 hover:text-foreground"
+          href="/settings/customization/modules"
+        >
+          Modules
+        </Link>
+        <ChevronRight aria-hidden className="h-3 w-3" />
+        <span className="font-semibold text-foreground">
+          {table.displayName}
+        </span>
+      </nav>
+
+      <section className="grid gap-3 rounded-lg border border-border bg-surface p-4 shadow-sm md:grid-cols-5">
+        <Metric label="Fields" value={columns.length} />
+        <Metric label="Forms" value={forms.length} />
+        <Metric label="Views" value={views.length} />
+        <Metric
+          label="Metadata"
+          value={
+            metadataCounts.choiceLists +
+            metadataCounts.relationships +
+            metadataCounts.actionBars +
+            metadataCounts.widgets
+          }
+        />
+        <Metric
+          label="Source"
+          value={table.isCustomTable ? "Custom" : "System"}
+        />
+      </section>
+
+      <div
+        aria-label="Module customization areas"
+        className="flex flex-wrap gap-2 rounded-lg border border-border bg-surface p-2 shadow-sm"
+        role="tablist"
+      >
+        {tabs.map((tab) => (
           <button
-            aria-label={
-              sidebarCollapsed
-                ? "Expand customization sidebar"
-                : "Collapse customization sidebar"
-            }
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted transition hover:bg-muted/20 hover:text-foreground"
-            onClick={() => setSidebarCollapsed((current) => !current)}
+            aria-selected={activeTab === tab.key}
+            className={`rounded-md px-3 py-1.5 text-sm font-semibold transition ${
+              activeTab === tab.key
+                ? "bg-accent text-white"
+                : "text-muted hover:bg-accent-soft hover:text-foreground"
+            }`}
+            key={tab.key}
+            onClick={() => selectTab(tab.key)}
+            role="tab"
             type="button"
           >
-            {sidebarCollapsed ? (
-              <PanelLeftOpen className="h-4 w-4" />
-            ) : (
-              <PanelLeftClose className="h-4 w-4" />
-            )}
+            {tab.label}
           </button>
-        </div>
-        {!sidebarCollapsed ? (
-          <nav className="grid gap-1 text-sm">
-            <Link
-              className="rounded-md px-3 py-2 text-muted transition hover:bg-muted/20 hover:text-foreground"
-              href="/settings/customization/tables"
-            >
-              All Modules
-            </Link>
-            {tabs.map((tab) => (
-              <button
-                className={`rounded-md px-3 py-2 text-left font-medium transition ${
-                  activeTab === tab.key
-                    ? "bg-accent text-white"
-                    : "text-muted hover:bg-muted/20 hover:text-foreground"
-                }`}
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                type="button"
-              >
-                {tab.label}
-              </button>
-            ))}
-          </nav>
-        ) : null}
-      </aside>
+        ))}
+      </div>
 
-      <div className="min-w-0 grid gap-4">
-        <section className="grid gap-3 rounded-lg border border-border bg-surface p-4 shadow-sm md:grid-cols-5">
-          <Metric label="Fields" value={columns.length} />
-          <Metric label="Forms" value={forms.length} />
-          <Metric label="Views" value={views.length} />
-          <Metric
-            label="Metadata"
-            value={
-              metadataCounts.choiceLists +
-              metadataCounts.relationships +
-              metadataCounts.actionBars +
-              metadataCounts.widgets
-            }
-          />
-          <Metric
-            label="Source"
-            value={table.isCustomTable ? "Custom" : "System"}
-          />
-        </section>
-
-        <div className="flex flex-wrap gap-2 rounded-lg border border-border bg-surface p-2 shadow-sm">
-          {tabs.map((tab) => (
-            <button
-              className={`rounded-md px-3 py-1.5 text-sm font-semibold transition ${
-                activeTab === tab.key
-                  ? "bg-accent text-white"
-                  : "text-muted hover:bg-accent-soft hover:text-foreground"
-              }`}
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              type="button"
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="text-xs text-muted">
-          Customization &gt; Modules &gt; {table.displayName}
-        </div>
-
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4">
         {activeTab === "columns" ? (
           <ColumnsManagement
             columns={columns}
@@ -269,6 +257,9 @@ export function TableDetailShell({
         ) : null}
         {activeTab === "settings" ? (
           <SettingsTab
+            primaryNameColumn={
+              columns.find((column) => column.isPrimaryName)?.columnKey ?? null
+            }
             counts={{
               actionBars: metadataCounts.actionBars,
               choiceLists: metadataCounts.choiceLists,
@@ -288,8 +279,10 @@ export function TableDetailShell({
 
 function SettingsTab({
   counts,
+  primaryNameColumn,
   table,
 }: {
+  primaryNameColumn: string | null;
   counts: {
     actionBars: number;
     choiceLists: number;
@@ -303,7 +296,7 @@ function SettingsTab({
 }) {
   return (
     <SectionCard
-      description="Module-level metadata controls how this module appears in customization-aware runtime screens. System identity and routes are locked."
+      description="Module-level metadata controls how this module appears in customization-aware runtime screens. System identity and routes are locked. Every value here is read from the module record."
       title="Module Properties"
     >
       <dl className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -329,22 +322,32 @@ function SettingsTab({
           locked
           value={`/settings/customization/tables/${table.tableKey}`}
         />
-        <Meta label="Primary name field" value="Metadata-ready" />
-        <Meta label="Owner required" value="Yes" />
-        <Meta label="Status/Sub Status" value="Enabled" />
-        <Meta label="Timeline" value="Enabled" />
-        <Meta label="Change History" value="Enabled" />
-        <Meta label="Audit" value="Enabled" />
+        <Meta
+          label="Primary name field"
+          value={primaryNameColumn ?? "Not set — set one on the Fields tab"}
+        />
+        <Meta label="Ownership" value={table.ownershipType ?? "Not set"} />
         <Meta label="Icon" value={table.icon ?? "Not set"} />
-        <Meta label="Color" value="Metadata-ready" />
         <Meta
           label="Source"
-          value={table.isCustomTable ? "Custom" : "System"}
+          value={table.source ?? (table.isCustomTable ? "Custom" : "System")}
         />
-        <Meta label="Package" value="Default Package" />
+        <Meta label="Package" value={table.packageName ?? "Default Package"} />
         <Meta
           label="Lifecycle"
-          value={table.isActive ? "Active" : "Inactive"}
+          value={table.lifecycleState ?? (table.isActive ? "active" : "inactive")}
+        />
+        <Meta
+          label="Advanced Find"
+          value={table.isValidForAdvancedFind === false ? "No" : "Yes"}
+        />
+        <Meta
+          label="Form Designer"
+          value={table.isValidForFormDesigner === false ? "No" : "Yes"}
+        />
+        <Meta
+          label="View Designer"
+          value={table.isValidForViewDesigner === false ? "No" : "Yes"}
         />
         <Meta label="Fields" value={String(counts.fields)} />
         <Meta label="Forms" value={String(counts.forms)} />

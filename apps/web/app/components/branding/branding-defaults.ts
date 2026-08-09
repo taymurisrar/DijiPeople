@@ -10,11 +10,17 @@ export const DEFAULT_BRANDING_VALUES = {
   dashboardGreeting: "Welcome back",
   employeePortalMessage:
     "Track your HR workflows, updates, and actions from one place.",
+  /*
+   * The logo stays empty: this is a white-label platform, so a tenant without
+   * its own artwork shows its name rather than the vendor's mark. The favicon
+   * is platform chrome and a tenant can still override it.
+   */
   logoUrl: "",
-  faviconUrl: "",
-  primaryColor: "#0f766e",
-  secondaryColor: "#115e59",
-  accentColor: "#14b8a6",
+  logoDarkUrl: "",
+  faviconUrl: "/favicon.ico",
+  primaryColor: "#059669",
+  secondaryColor: "#047857",
+  accentColor: "#34D399",
   backgroundColor: "#f8fafc",
   surfaceColor: "#ffffff",
   textColor: "#0f172a",

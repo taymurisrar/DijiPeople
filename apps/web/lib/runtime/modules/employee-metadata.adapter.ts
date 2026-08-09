@@ -1,3 +1,4 @@
+import type { CommandVisibilityRule } from "../command-runtime.types";
 import type { RuntimeCustomizationForm } from "../../customization-forms";
 import type { RuntimeCustomizationView } from "../../customization-views";
 import type {
@@ -560,6 +561,10 @@ export function mapEmployeeForms(
         order: tab.sequence ?? tabIndex * 10,
         type: "fields",
         columns: tab.columns ?? form.layoutJson.columns ?? 3,
+        /* Carried through so a rule saved in the designer reaches the renderer. */
+        ...(tab.visibilityRules?.length
+          ? { visibilityRules: tab.visibilityRules }
+          : {}),
         sectionIds: tab.sections.map((section) => section.id),
       })),
       sections: form.layoutJson.tabs.flatMap((tab, tabIndex) =>
@@ -582,6 +587,9 @@ export function mapEmployeeForms(
             columns: normalizeFormColumnCount(
               section.columns ?? tab.columns ?? form.layoutJson.columns ?? 3,
             ),
+            ...(section.visibilityRules?.length
+              ? { visibilityRules: section.visibilityRules }
+              : {}),
             fields: section.fields.map((field, fieldIndex) => {
               const fieldLogicalName = normalizeEmployeeFieldName(
                 field.columnKey,
@@ -680,18 +688,30 @@ function fallbackEmployeeForm(
     formType: "main",
     columns: 3,
     tabs: [
+      /*
+       * Listed in reading order for clarity, but the rendered sequence comes
+       * from each section's own `order` value below - changing this array
+       * alone moves nothing.
+       *
+       * The order is: who they are, how to reach them, what they do, where
+       * they sit, personal detail, then the administrative footer.
+       */
       formFieldTab("summary", "Summary", 10, [
+        // Identity
         "profile-image",
         "basic-information",
-        "employment-information",
-        "timeline",
         "contact-information",
-        "emergency-contact",
+        // Role and placement
+        "employment-information",
         "organization-reporting",
-        "address-information",
+        // Personal detail
         "personal-information",
+        "address-information",
+        "emergency-contact",
         "documents-identification",
+        // Administrative footer
         "system-information",
+        "timeline",
         "reporting-hierarchy",
       ]),
       formRelatedTab(
@@ -699,50 +719,52 @@ function fallbackEmployeeForm(
         "Compensation",
         60,
         "employee_compensation",
+        PAY_DATA_ROLES,
       ),
       formRelatedTab(
         "banking-details",
         "Banking Details",
-        65,
+        70,
         "employee_bank_accounts",
+        PAY_DATA_ROLES,
       ),
-      formRelatedTab("payslips", "Payslips", 66, "employee_payslips"),
+      formRelatedTab("payslips", "Payslips", 80, "employee_payslips"),
       formRelatedTab(
         "project-allocations",
         "Project Allocations",
-        67,
+        90,
         "employee_project_allocations",
       ),
       formRelatedTab(
         "previous-employment",
         "Previous Employment",
-        70,
+        100,
         "employee_previous_employments",
       ),
       formRelatedTab(
         "leave-history",
         "Leave History",
-        110,
+        30,
         "employee_leave_history",
       ),
-      formRelatedTab("attendance", "Attendance", 120, "employee_attendance"),
-      formRelatedTab("timesheets", "Timesheets", 130, "employee_timesheets"),
+      formRelatedTab("attendance", "Attendance", 20, "employee_attendance"),
+      formRelatedTab("timesheets", "Timesheets", 40, "employee_timesheets"),
       formRelatedTab(
         "employee-history",
         "Employee History",
-        140,
+        110,
         "employee_history",
       ),
-      formRelatedTab("documents", "Documents", 150, "employee_documents"),
-      formRelatedTab("education", "Education", 160, "employee_education"),
-      formFieldTab("agent", "Agent", 170, ["agent-desktop"]),
+      formRelatedTab("documents", "Documents", 50, "employee_documents"),
+      formRelatedTab("education", "Education", 120, "employee_education"),
+      formFieldTab("agent", "Agent", 130, ["agent-desktop"]),
     ],
     sections: [
       {
         id: "profile-image",
         tabKey: "summary",
         label: "Profile Image",
-        order: 1,
+        order: 10,
         layout: "single-column",
         columns: 1,
         fields: [],
@@ -759,7 +781,7 @@ function fallbackEmployeeForm(
         id: "basic-information",
         tabKey: "summary",
         label: "Basic Information",
-        order: 10,
+        order: 20,
         layout: "single-column",
         fields: [
           requiredFormField("employeeCode", 10, requiredFields),
@@ -773,7 +795,7 @@ function fallbackEmployeeForm(
         id: "employment-information",
         tabKey: "summary",
         label: "Employment Information",
-        order: 20,
+        order: 40,
         layout: "single-column",
         fields: [
           requiredFormField("employmentStatus", 10, requiredFields),
@@ -792,7 +814,7 @@ function fallbackEmployeeForm(
         id: "organization-reporting",
         tabKey: "summary",
         label: "Organization",
-        order: 30,
+        order: 50,
         layout: "single-column",
         fields: [
           requiredFormField("departmentId", 15, requiredFields),
@@ -809,7 +831,7 @@ function fallbackEmployeeForm(
         id: "contact-information",
         tabKey: "summary",
         label: "Contact Information",
-        order: 40,
+        order: 30,
         layout: "single-column",
         fields: [
           { fieldLogicalName: "workEmail", order: 10 },
@@ -822,7 +844,7 @@ function fallbackEmployeeForm(
         id: "address-information",
         tabKey: "summary",
         label: "Address Information",
-        order: 50,
+        order: 80,
         layout: "single-column",
         fields: [
           { fieldLogicalName: "addressLine1", order: 10 },
@@ -837,7 +859,7 @@ function fallbackEmployeeForm(
         id: "personal-information",
         tabKey: "summary",
         label: "Personal Information",
-        order: 60,
+        order: 70,
         layout: "single-column",
         fields: [
           { fieldLogicalName: "dateOfBirth", order: 10 },
@@ -852,7 +874,7 @@ function fallbackEmployeeForm(
         id: "documents-identification",
         tabKey: "summary",
         label: "Documents / Identification",
-        order: 70,
+        order: 100,
         layout: "single-column",
         fields: [{ fieldLogicalName: "cnic", order: 10 }],
       },
@@ -860,7 +882,7 @@ function fallbackEmployeeForm(
         id: "emergency-contact",
         tabKey: "summary",
         label: "Emergency Contact",
-        order: 80,
+        order: 90,
         layout: "single-column",
         fields: [
           requiredFormField("emergencyContactName", 10, requiredFields),
@@ -877,7 +899,7 @@ function fallbackEmployeeForm(
         id: "system-information",
         tabKey: "summary",
         label: "System Information",
-        order: 90,
+        order: 110,
         layout: "single-column",
         fields: [
           { fieldLogicalName: "userId", order: 10 },
@@ -890,7 +912,7 @@ function fallbackEmployeeForm(
         id: "timeline",
         tabKey: "summary",
         label: "Timeline",
-        order: 95,
+        order: 120,
         layout: "single-column",
         columns: 1,
         fields: [],
@@ -907,7 +929,7 @@ function fallbackEmployeeForm(
         id: "reporting-hierarchy",
         tabKey: "summary",
         label: "Reporting Hierarchy",
-        order: 1000,
+        order: 130,
         layout: "single-column",
         columns: 1,
         columnSpan: 3,
@@ -1077,6 +1099,7 @@ function formFieldTab(
   label: string,
   order: number,
   sectionIds: readonly string[],
+  visibilityRules?: readonly CommandVisibilityRule[],
 ) {
   return {
     id: `employee-form-tab-${tabKey}`,
@@ -1086,6 +1109,7 @@ function formFieldTab(
     type: "fields" as const,
     columns: 3 as const,
     sectionIds,
+    ...(visibilityRules ? { visibilityRules } : {}),
   };
 }
 
@@ -1094,6 +1118,7 @@ function formRelatedTab(
   label: string,
   order: number,
   relationshipName: string,
+  visibilityRules?: readonly CommandVisibilityRule[],
 ) {
   return {
     id: `employee-form-tab-${tabKey}`,
@@ -1103,8 +1128,21 @@ function formRelatedTab(
     type: "related_module" as const,
     relatedTabKey: tabKey,
     subgrid: relatedSubgrid(tabKey, label, relationshipName),
+    ...(visibilityRules ? { visibilityRules } : {}),
   };
 }
+
+/*
+ * Pay data on a colleague's record is not an employee's business. The API still
+ * enforces this independently - hiding a tab is presentation, never the control
+ * that protects the data.
+ */
+const PAY_DATA_ROLES: readonly CommandVisibilityRule[] = [
+  {
+    operator: "has-any-role",
+    roleKeys: ["global-admin", "system-admin", "hr", "payroll-manager"],
+  },
+];
 
 export function resolveEmployeeRuntimeForm(
   forms: readonly FormMetadata[],
