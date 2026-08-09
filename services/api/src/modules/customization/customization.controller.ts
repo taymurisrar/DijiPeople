@@ -283,6 +283,20 @@ export class CustomizationController {
     );
   }
 
+  /*
+   * The pre-flight for an export: what this package references but does not
+   * carry. Separate from the download so the list can be shown and acted on
+   * before anyone takes the file to another tenant.
+   */
+  @Get('packages/:packageId/export-readiness')
+  @Permissions('customization.read')
+  getPackageExportReadiness(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('packageId') packageId: string,
+  ) {
+    return this.customizationService.getPackageExportReadiness(user, packageId);
+  }
+
   @Get('packages/:packageId/export')
   @Permissions('customization.read')
   exportPackage(

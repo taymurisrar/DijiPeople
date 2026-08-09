@@ -2,6 +2,7 @@
 
 import { CSSProperties, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ThemeToggle } from "@/app/(authenticated)/_components/theme-toggle";
 import { useTenantSettings } from "@/app/components/settings/tenant-settings-provider";
 import {
   ConfirmationDialog,
@@ -444,6 +445,22 @@ export function BrandingSettingsForm({
           variant={topAlert.variant}
         />
       ) : null}
+
+      <section className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h3 className="text-2xl font-semibold text-foreground">
+              Appearance
+            </h3>
+            <p className="mt-2 text-sm text-muted">
+              Light or dark for your own account. This is a personal preference
+              on this device — it does not change the theme for other people in
+              the tenant.
+            </p>
+          </div>
+          <ThemeToggle />
+        </div>
+      </section>
 
       <section className="rounded-[24px] border border-border bg-surface p-6 shadow-sm">
         <h3 className="text-2xl font-semibold text-foreground">

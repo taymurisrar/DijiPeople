@@ -3,6 +3,7 @@ import {
   isVisibleByRules,
   type VisibilityRule,
 } from "@/lib/runtime/visibility.resolver";
+import type { VisibilityPlacement } from "@/lib/runtime/visibility-placement";
 import { BusinessUnitAccessSummary } from "../_lib/business-unit-access";
 
 export type DashboardNavItem = {
@@ -168,6 +169,14 @@ type ResolveVisibleDashboardNavItemsInput = {
   permissionKeys: string[];
   roleKeys?: string[];
   overrides?: readonly DashboardNavOverride[] | null;
+  /*
+   * Where the viewer sits in the organization, for the in-team /
+   * in-department / in-business-unit style rules. Without it those operators
+   * have nothing to match against and fail closed, which reads as "the rule
+   * hides this from everyone" rather than "the app never told the rule who
+   * the viewer is".
+   */
+  placement?: VisibilityPlacement | null;
 };
 
 /**
@@ -238,7 +247,15 @@ export function resolveVisibleDashboardNavItems(
     principal: {
       roleKeys: input.roleKeys ?? [],
       permissionKeys: input.permissionKeys ?? [],
-      businessUnitIds: input.businessUnitAccess?.accessibleBusinessUnitIds,
+      ...input.placement,
+      /*
+       * Access-derived business units win over the employee record's single
+       * placement: a manager spanning several units should match a rule about
+       * any of them.
+       */
+      businessUnitIds:
+        input.businessUnitAccess?.accessibleBusinessUnitIds ??
+        input.placement?.businessUnitIds,
     },
   };
 

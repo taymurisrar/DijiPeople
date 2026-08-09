@@ -32,6 +32,7 @@ import {
   resolveVisibleDashboardNavItems,
   type DashboardNavOverride,
 } from "./navigation";
+import type { VisibilityPlacement } from "@/lib/runtime/visibility-placement";
 import { Button } from "@/app/components/ui/button";
 
 type DashboardSidebarProps = {
@@ -47,6 +48,7 @@ type DashboardSidebarProps = {
   tenantId: string;
   tenantName?: string;
   navOverrides?: readonly DashboardNavOverride[] | null;
+  placement?: VisibilityPlacement | null;
 };
 
 type SidebarNavIconProps = {
@@ -66,6 +68,7 @@ export function DashboardSidebar({
   tenantId,
   tenantName,
   navOverrides,
+  placement,
 }: DashboardSidebarProps) {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -78,6 +81,7 @@ export function DashboardSidebar({
     roleKeys,
     businessUnitAccess,
     overrides: navOverrides,
+    placement,
   });
 
   return (
@@ -170,7 +174,7 @@ function SidebarNavItem({
         "focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/20",
         isCollapsed ? "justify-center gap-0" : "gap-3",
         isActive
-          ? "border-accent/30 bg-[color-mix(in_oklab,var(--dp-accent)_14%,white)] text-foreground shadow-sm"
+          ? "border-accent/30 bg-[color-mix(in_oklab,var(--dp-accent)_14%,var(--dp-mix-base))] text-foreground shadow-sm"
           : "border-transparent bg-transparent text-foreground hover:border-border/80 hover:bg-muted/30",
       ].join(" ")}
     >
@@ -183,7 +187,7 @@ function SidebarNavItem({
           "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition",
           isActive
             ? "bg-accent text-white"
-            : "bg-[color-mix(in_oklab,var(--dp-accent)_9%,white)] text-muted-foreground group-hover:bg-white group-hover:text-foreground",
+            : "bg-[color-mix(in_oklab,var(--dp-accent)_9%,var(--dp-mix-base))] text-muted-foreground group-hover:bg-surface-strong group-hover:text-foreground",
         ].join(" ")}
       >
         <Icon className="h-3 w-3" />

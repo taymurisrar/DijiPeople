@@ -1,4 +1,5 @@
 import { apiRequestJson } from "@/lib/server-api";
+import { getAudienceOptions } from "@/lib/runtime/audience-options.server";
 import { SettingsShell } from "../../../_components/settings-shell";
 import { requireSettingsPermissions } from "../../../_lib/require-settings-permission";
 import {
@@ -34,7 +35,7 @@ export default async function CustomizationTableDetailPage({
     "customization.tables.read",
   ]);
 
-  const [table, columns, views, forms, lookupTables, packages] =
+  const [table, columns, views, forms, lookupTables, packages, audiences] =
     await Promise.all([
       apiRequestJson<CustomizationTable>(`/customization/tables/${tableKey}`),
       apiRequestJson<CustomizationColumn[]>(
@@ -48,6 +49,7 @@ export default async function CustomizationTableDetailPage({
       ),
       apiRequestJson<CustomizationTable[]>("/customization/tables"),
       apiRequestJson<CustomizationPackage[]>("/customization/packages"),
+      getAudienceOptions(),
     ]);
   const resolvedForms = mergeRuntimeForms(tableKey, forms);
   const resolvedViews = mergeRuntimeViews(tableKey, views);
@@ -59,6 +61,7 @@ export default async function CustomizationTableDetailPage({
       title={table.pluralDisplayName}
     >
       <TableDetailShell
+        audiences={audiences}
         columns={columns}
         forms={resolvedForms}
         lookupTables={lookupTables}

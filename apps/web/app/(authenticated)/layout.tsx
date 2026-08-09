@@ -21,6 +21,7 @@ import { getBusinessUnitAccessSummary } from "./_lib/business-unit-access";
 import { AuthenticatedShellProvider } from "./_components/authenticated-shell-provider";
 import { DashboardSidebar } from "./_components/dashboard-sidebar";
 import type { DashboardNavOverride } from "./_components/navigation";
+import { buildVisibilityPlacement } from "@/lib/runtime/visibility-placement";
 import { DashboardTopbar } from "./_components/dashboard-topbar";
 import { ErrorProvider } from "@/app/components/errors/error-provider";
 import { SystemPreferencesProvider } from "./_components/resolved-settings-provider";
@@ -173,6 +174,7 @@ export default async function DashboardLayout({
               brandName={brandingSettings.brandName}
               brandTagline={brandingSettings.portalTagline}
               navOverrides={navOverrides}
+              placement={buildVisibilityPlacement(currentEmployee)}
             />
 
             <div className="flex min-w-0 flex-1 flex-col gap-6">

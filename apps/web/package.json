@@ -8,7 +8,9 @@
     "check-types": "next typegen && tsc --noEmit",
     "release": "npm run build",
     "start": "node ../../scripts/next-with-port.mjs start 3001 WEB_PORT",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "jest --config jest.config.js",
+    "test:watch": "jest --config jest.config.js --watch"
   },
   "dependencies": {
     "@repo/config": "*",

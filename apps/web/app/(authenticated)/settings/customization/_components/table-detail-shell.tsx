@@ -13,6 +13,10 @@ import {
   CustomizationTable,
   CustomizationView,
 } from "../types";
+import {
+  EMPTY_AUDIENCE_OPTIONS,
+  type AudienceOptions,
+} from "@/app/components/runtime/visibility-rules-editor";
 import { ColumnsManagement } from "./columns-management";
 import { FormsManagement } from "./forms-management";
 import { MetadataComponentsManagement } from "./metadata-components-management";
@@ -36,6 +40,8 @@ type TableDetailShellProps = {
   lookupTables: CustomizationTable[];
   packages: CustomizationPackage[];
   initialTab?: TabKey;
+  /* Dimensions an action's visibility rules can be written against. */
+  audiences?: AudienceOptions;
 };
 
 const tabs: Array<{ key: TabKey; label: string }> = [
@@ -57,6 +63,7 @@ export function TableDetailShell({
   lookupTables,
   packages,
   initialTab = "columns",
+  audiences = EMPTY_AUDIENCE_OPTIONS,
 }: TableDetailShellProps) {
   const [activeTab, setActiveTab] = useState<TabKey>(initialTab);
   const pathname = usePathname();
@@ -212,6 +219,7 @@ export function TableDetailShell({
         ) : null}
         {activeTab === "choiceLists" ? (
           <MetadataComponentsManagement
+            audiences={audiences}
             componentType="choiceList"
             lookupTables={lookupTables}
             onCountChange={(choiceLists) =>
@@ -223,6 +231,7 @@ export function TableDetailShell({
         ) : null}
         {activeTab === "relationships" ? (
           <MetadataComponentsManagement
+            audiences={audiences}
             componentType="relationship"
             lookupTables={lookupTables}
             onCountChange={(relationships) =>
@@ -234,6 +243,7 @@ export function TableDetailShell({
         ) : null}
         {activeTab === "actionBars" ? (
           <MetadataComponentsManagement
+            audiences={audiences}
             componentType="actionBar"
             lookupTables={lookupTables}
             onCountChange={(actionBars) =>
@@ -245,6 +255,7 @@ export function TableDetailShell({
         ) : null}
         {activeTab === "widgets" ? (
           <MetadataComponentsManagement
+            audiences={audiences}
             componentType="widget"
             lookupTables={lookupTables}
             onCountChange={(widgets) =>

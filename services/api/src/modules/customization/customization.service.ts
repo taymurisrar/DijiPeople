@@ -50,6 +50,7 @@ import {
   UpdateCustomizationViewDto,
 } from './dto/customization.dto';
 import { validatePackageComponentDependencies } from './dependency-validation';
+import { analyzePackageExport } from './package-export-readiness';
 import {
   buildMetadataInvalidationKeys,
   resolveEffectivePackageComponents,
@@ -268,7 +269,101 @@ export class CustomizationService {
       isSystem: false,
       isCustom: true,
     });
+
+    /*
+     * A custom module used to be created with only its table component, so it
+     * opened with no form, no view and no action bar while every system module
+     * had all three. It now starts with the same defaults.
+     */
+    await this.createDefaultModuleComponents(
+      currentUser,
+      table,
+      packageRecord.id,
+    );
+
     return table;
+  }
+
+  /**
+   * Gives a newly created module its starting form, view and action bar.
+   *
+   * A brand-new custom module has no columns yet, so the form and view are
+   * created empty and fill in as fields are added — which is better than
+   * withholding them until then, because the designer has nothing to open
+   * otherwise.
+   */
+  private async createDefaultModuleComponents(
+    currentUser: AuthenticatedUser,
+    table: CustomizationTable,
+    solutionId: string,
+  ) {
+    const form = await this.prisma.customizationForm.create({
+      data: {
+        tenantId: currentUser.tenantId,
+        tableId: table.id,
+        formKey: 'main',
+        name: `${table.displayName} Main Form`,
+        description: `Default form for ${table.displayName}.`,
+        type: CustomizationFormType.main,
+        isDefault: true,
+        isActive: true,
+        isSystem: false,
+        isCustom: true,
+        layoutJson: buildDefaultFormLayout(table, []),
+      },
+    });
+    await this.addDefaultSolutionComponent(currentUser, {
+      solutionId,
+      componentType: 'form',
+      objectId: form.id,
+      objectKey: `${table.tableKey}.${form.formKey}`,
+      tableId: table.id,
+      isSystem: false,
+      isCustom: true,
+    });
+
+    const view = await this.prisma.customizationView.create({
+      data: {
+        tenantId: currentUser.tenantId,
+        tableId: table.id,
+        viewKey: 'active',
+        name: `Active ${table.pluralDisplayName}`,
+        description: `Default active ${table.pluralDisplayName} view.`,
+        type: 'custom',
+        isDefault: true,
+        isHidden: false,
+        isSystem: false,
+        isCustom: true,
+        columnsJson: buildDefaultViewColumns([]),
+        filtersJson: [],
+        sortingJson: buildDefaultViewSorting([]),
+        visibilityScope: 'tenant',
+      },
+    });
+    await this.addDefaultSolutionComponent(currentUser, {
+      solutionId,
+      componentType: 'view',
+      objectId: view.id,
+      objectKey: `${table.tableKey}.${view.viewKey}`,
+      tableId: table.id,
+      isSystem: false,
+      isCustom: true,
+    });
+
+    await this.addDefaultSolutionComponent(currentUser, {
+      solutionId,
+      componentType: 'actionBar',
+      objectId: `custom-action-bar:${table.tableKey}`,
+      objectKey: `${table.tableKey}.system.actionBar`,
+      tableId: table.id,
+      isSystem: false,
+      isCustom: true,
+      metadataJson: {
+        source: 'module-default',
+        scope: 'module',
+        actions: [...DEFAULT_MODULE_ACTION_COMMANDS],
+      },
+    });
   }
 
   async getPublished(currentUser: AuthenticatedUser) {
@@ -1824,6 +1919,25 @@ export class CustomizationService {
       }));
   }
 
+  /**
+   * What a package is missing before it can be imported elsewhere.
+   *
+   * Separate from the export so the designer can show the list first: the
+   * point is to catch a broken package before someone carries it to another
+   * tenant, not to explain the failure afterwards.
+   */
+  async getPackageExportReadiness(
+    currentUser: AuthenticatedUser,
+    packageId: string,
+  ) {
+    const record = await this.findPackageOrThrow(currentUser, packageId);
+    const components = await this.getPackageComponents(currentUser, record.id);
+    return analyzePackageExport({
+      components,
+      systemKeys: SYSTEM_CUSTOMIZATION_TABLES.map((table) => table.tableKey),
+    });
+  }
+
   async exportPackage(currentUser: AuthenticatedUser, packageId: string) {
     const record = await this.findPackageOrThrow(currentUser, packageId);
     if (record.solutionKey === UNASSIGNED_DRAFT_PACKAGE_KEY) {
@@ -1840,7 +1954,17 @@ export class CustomizationService {
       ),
     ];
 
+    /*
+     * Carried in the file rather than only shown in the UI, so whoever imports
+     * it can see what the package assumed was already present.
+     */
+    const readiness = analyzePackageExport({
+      components,
+      systemKeys: SYSTEM_CUSTOMIZATION_TABLES.map((table) => table.tableKey),
+    });
+
     return {
+      readiness,
       manifest: {
         packageId: record.id,
         packageKey: record.solutionKey,
@@ -1857,23 +1981,48 @@ export class CustomizationService {
     };
   }
 
+  /**
+   * Validates an uploaded package and reports everything wrong with it.
+   *
+   * This used to throw on the first problem, which made fixing a bad export a
+   * loop: correct one component, re-upload, meet the next. It now collects the
+   * full list so an administrator can see the whole picture — that list is the
+   * import log, and it is returned whether or not the package is usable.
+   */
   previewPackageImport(dto: PreviewCustomizationPackageImportDto) {
     const manifest = dto.manifest;
+    const errors: Array<{ path: string; message: string }> = [];
+
     const packageKey = manifest.packageKey;
     const version = manifest.version;
     const formatVersion = manifest.formatVersion;
+
     if (typeof packageKey !== 'string' || !packageKey.trim()) {
-      throw new BadRequestException('Package key is required.');
+      errors.push({
+        path: 'manifest.packageKey',
+        message: 'Package key is required.',
+      });
     }
     if (typeof version !== 'string' || !version.trim()) {
-      throw new BadRequestException('Package version is required.');
+      errors.push({
+        path: 'manifest.version',
+        message: 'Package version is required.',
+      });
     }
     if (formatVersion !== '1.0') {
-      throw new BadRequestException('Unsupported package format version.');
+      errors.push({
+        path: 'manifest.formatVersion',
+        message: `Unsupported package format version${
+          typeof formatVersion === 'string' ? ` (${formatVersion})` : ''
+        }. This server reads format 1.0.`,
+      });
     }
-    for (const component of dto.components) {
+
+    dto.components.forEach((component, index) => {
+      const path = `components[${index}]`;
       if (!component || typeof component !== 'object') {
-        throw new BadRequestException('Each component must be an object.');
+        errors.push({ path, message: 'Component must be an object.' });
+        return;
       }
       const record = component as Record<string, unknown>;
       if (
@@ -1882,20 +2031,67 @@ export class CustomizationService {
         typeof record.logicalName !== 'string' &&
         typeof record.objectKey !== 'string'
       ) {
-        throw new BadRequestException(
-          'Each component must include an id, objectId, logicalName, or objectKey.',
-        );
+        errors.push({
+          path,
+          message:
+            'Component must include an id, objectId, logicalName, or objectKey.',
+        });
       }
+    });
+
+    /*
+     * The same completeness check the export side runs, applied to what was
+     * actually uploaded — a package hand-edited after export can be missing
+     * pieces its own manifest claimed.
+     */
+    const readiness = analyzePackageExport({
+      components: dto.components.map((component) => {
+        const record = (component ?? {}) as Record<string, unknown>;
+        return {
+          componentType:
+            typeof record.componentType === 'string'
+              ? record.componentType
+              : 'unknown',
+          objectKey:
+            typeof record.objectKey === 'string'
+              ? record.objectKey
+              : typeof record.logicalName === 'string'
+                ? record.logicalName
+                : String(record.objectId ?? record.id ?? ''),
+          moduleKey:
+            typeof record.moduleKey === 'string' ? record.moduleKey : null,
+          dependencies: Array.isArray(record.dependencies)
+            ? record.dependencies.filter(
+                (entry): entry is string => typeof entry === 'string',
+              )
+            : [],
+        };
+      }),
+      systemKeys: SYSTEM_CUSTOMIZATION_TABLES.map((table) => table.tableKey),
+    });
+
+    const valid = errors.length === 0;
+    if (!valid) {
+      this.logger.warn(
+        `Package import preview rejected: ${errors.length} problem(s) in ${
+          typeof packageKey === 'string' ? packageKey : 'unnamed package'
+        }`,
+      );
     }
 
     return {
-      valid: true,
+      valid,
+      /* The log: every problem found, not only the first. */
+      errors,
+      readiness,
       applySupported: false,
       packageName:
         typeof manifest.displayName === 'string'
           ? manifest.displayName
-          : packageKey,
-      version,
+          : typeof packageKey === 'string'
+            ? packageKey
+            : 'Unnamed package',
+      version: typeof version === 'string' ? version : null,
       publisher:
         typeof manifest.publisher === 'object' && manifest.publisher
           ? manifest.publisher
@@ -1903,10 +2099,14 @@ export class CustomizationService {
       modulesCount: dto.modules.length,
       componentsCount: dto.components.length,
       dependenciesCount: dto.dependencies.length,
-      message:
-        'Package JSON is valid. Applying imported metadata is blocked until publish center and dependency validation are implemented.',
+      message: valid
+        ? 'Package JSON is valid. Applying imported metadata is blocked until publish center and dependency validation are implemented.'
+        : `Package cannot be imported: ${errors.length} problem${
+            errors.length === 1 ? '' : 's'
+          } found.`,
     };
   }
+
 
   async updateTable(
     currentUser: AuthenticatedUser,
@@ -4338,20 +4538,7 @@ export class CustomizationService {
         metadataJson: {
           source: 'runtime-registered',
           scope: 'module',
-          actions: [
-            'system.new',
-            'system.edit',
-            'system.delete',
-            'system.refresh',
-            'record.assignOwner',
-            'record.share',
-            'system.import',
-            'system.export',
-            'system.exportTemplate',
-            'system.back',
-            'system.save',
-            'system.saveAndClose',
-          ],
+          actions: [...DEFAULT_MODULE_ACTION_COMMANDS],
         },
       });
     }
@@ -5297,6 +5484,28 @@ function isDeadlockError(error: unknown) {
 function delay(milliseconds: number) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
+
+/*
+ * The commands every module starts with.
+ *
+ * Shared so a custom module and a system module open with the same action bar.
+ * Stored as command keys because that is the shape the runtime registers and
+ * the designer reads.
+ */
+export const DEFAULT_MODULE_ACTION_COMMANDS = [
+  'system.new',
+  'system.edit',
+  'system.delete',
+  'system.refresh',
+  'record.assignOwner',
+  'record.share',
+  'system.import',
+  'system.export',
+  'system.exportTemplate',
+  'system.back',
+  'system.save',
+  'system.saveAndClose',
+] as const;
 
 function buildDefaultFormLayout(
   table: CustomizationTable,

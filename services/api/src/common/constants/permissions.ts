@@ -2014,6 +2014,9 @@ export const BASE_ROLE_PERMISSION_KEYS: Record<BaseRoleKey, string[]> = {
     'tenant-settings.resolved.read',
     'field-security.read',
     'field-security.manage',
+    'inbox.read',
+    'inbox.markRead',
+    'inbox.dismiss',
   ],
   hr: [
     'dashboard.view',
@@ -2240,6 +2243,9 @@ export const BASE_ROLE_PERMISSION_KEYS: Record<BaseRoleKey, string[]> = {
     'recruitment.create',
     'recruitment.update',
     'recruitment.advance',
+    'inbox.read',
+    'inbox.markRead',
+    'inbox.dismiss',
   ],
   manager: [
     'dashboard.view',

@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit3, Plus, RotateCw, Trash2 } from "lucide-react";
+import { Edit3, GripVertical, Plus, RotateCw, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { DataTable } from "@/app/components/data-table/data-table";
@@ -16,6 +16,19 @@ import {
 import { SectionCard } from "@/app/components/ui/section-card";
 import { StatusPill } from "@/app/components/ui/status-pill";
 import { CustomizationPackage, CustomizationTable } from "../types";
+import {
+  COMMAND_ICON_CHOICES,
+  COMMAND_PLACEMENTS,
+  commandsForPlacement,
+  findCommand,
+  COMMAND_CATALOG,
+} from "@/lib/runtime/command-catalog";
+import {
+  EMPTY_AUDIENCE_OPTIONS,
+  VisibilityRulesEditor,
+  type AudienceOptions,
+} from "@/app/components/runtime/visibility-rules-editor";
+import type { VisibilityRule } from "@/lib/runtime/visibility.resolver";
 
 type MetadataComponentType =
   | "choiceList"
@@ -56,7 +69,11 @@ type ActionRow = {
   group: string;
   icon: string;
   permissionKey: string;
-  order: string;
+  /*
+   * Order is no longer edited. It is the row's position in the list, set by
+   * dragging, so the numbers cannot disagree with what the screen shows.
+   */
+  visibilityRules: VisibilityRule[];
 };
 
 type EditorState = {
@@ -78,20 +95,6 @@ type EditorState = {
   notes: string;
 };
 
-const SYSTEM_ACTIONS = [
-  "New",
-  "Edit",
-  "Delete",
-  "Refresh",
-  "Assign",
-  "Share",
-  "Import",
-  "Export",
-  "Export Template",
-  "Back",
-  "Save",
-  "Save & Close",
-];
 
 const componentConfig: Record<
   MetadataComponentType,
@@ -138,6 +141,7 @@ const componentConfig: Record<
 };
 
 export function MetadataComponentsManagement({
+  audiences = EMPTY_AUDIENCE_OPTIONS,
   componentType,
   lookupTables,
   onCountChange,
@@ -145,6 +149,8 @@ export function MetadataComponentsManagement({
   readOnly = false,
   table,
 }: {
+  /* Dimensions an action's visibility rules can be written against. */
+  audiences?: AudienceOptions;
   componentType: MetadataComponentType;
   lookupTables: CustomizationTable[];
   onCountChange?: (count: number) => void;
@@ -152,6 +158,37 @@ export function MetadataComponentsManagement({
   readOnly?: boolean;
   table: CustomizationTable;
 }) {
+  /*
+   * Permission keys offered on an action, loaded from the tenant rather than
+   * typed. A key that does not exist guards nothing while looking as if it
+   * does — the same trap that had `customization.update` protecting a route no
+   * role could reach.
+   */
+  const [permissionOptions, setPermissionOptions] = useState<string[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadPermissions() {
+      const response = await fetch("/api/permissions?pageSize=500").catch(
+        () => null,
+      );
+      if (!response?.ok) return;
+      const payload = (await response.json().catch(() => null)) as
+        | { items?: Array<{ key?: string }> }
+        | Array<{ key?: string }>
+        | null;
+      const rows = Array.isArray(payload) ? payload : (payload?.items ?? []);
+      const keys = rows
+        .map((row) => row?.key)
+        .filter((key): key is string => Boolean(key))
+        .sort();
+      if (!cancelled) setPermissionOptions(keys);
+    }
+    void loadPermissions();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const config = componentConfig[componentType];
   const router = useRouter();
   const [rows, setRows] = useState<MetadataComponentRow[]>([]);
@@ -476,7 +513,12 @@ export function MetadataComponentsManagement({
               />
             ) : null}
             {componentType === "actionBar" ? (
-              <ActionBarEditor editor={editor} updateEditor={updateEditor} />
+              <ActionBarEditor
+                audiences={audiences}
+                editor={editor}
+                permissionOptions={permissionOptions}
+                updateEditor={updateEditor}
+              />
             ) : null}
 
             <TextAreaField
@@ -859,12 +901,44 @@ function RelationshipEditor({
 }
 
 function ActionBarEditor({
+  audiences,
   editor,
+  permissionOptions,
   updateEditor,
 }: {
+  audiences: AudienceOptions;
   editor: EditorState;
+  permissionOptions: readonly string[];
   updateEditor: (patch: Partial<EditorState>) => void;
 }) {
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+
+  const placement = COMMAND_PLACEMENTS.find(
+    (entry) => entry.key === editor.actionScope,
+  );
+  const available = commandsForPlacement(placement?.key);
+
+  /*
+   * A stored scope this list does not know — "module" on the runtime-registered
+   * bars, or an older "recordRead" — is offered as its own option rather than
+   * dropped. Without it the select falls back to the first entry and merely
+   * opening the dialog and saving would rescope the bar.
+   */
+  const placementOptions = [
+    ...COMMAND_PLACEMENTS.map((entry) => ({
+      value: entry.key as string,
+      label: entry.label,
+    })),
+    ...(editor.actionScope && !placement
+      ? [
+          {
+            value: editor.actionScope,
+            label: `${editor.actionScope} (existing value)`,
+          },
+        ]
+      : []),
+  ];
+
   function updateAction(id: string, patch: Partial<ActionRow>) {
     updateEditor({
       actions: editor.actions.map((row) =>
@@ -873,28 +947,41 @@ function ActionBarEditor({
     });
   }
 
+  function move(from: number, to: number) {
+    if (to < 0 || to >= editor.actions.length || from === to) return;
+    const next = [...editor.actions];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    updateEditor({ actions: next });
+  }
+
   return (
     <div className="grid gap-3 rounded-lg border border-border bg-slate-50 p-3">
-      <SelectField
-        label="Scope"
-        onChange={(actionScope) => updateEditor({ actionScope })}
-        /*
-         * "Module" is included because runtime-registered bars are stored with
-         * that scope. Without it the select fell back to another option, so
-         * opening a system bar and saving silently rescoped it.
-         */
-        options={[
-          { value: "module", label: "Module" },
-          { value: "list", label: "List" },
-          { value: "recordRead", label: "Record Read" },
-          { value: "recordEdit", label: "Record Edit" },
-          { value: "recordCreate", label: "Record Create" },
-          { value: "relatedList", label: "Related List" },
-        ]}
-        value={editor.actionScope}
-      />
+      <div>
+        <SelectField
+          label="Where this bar appears"
+          onChange={(actionScope) => updateEditor({ actionScope })}
+          options={placementOptions}
+          value={editor.actionScope}
+        />
+        {/*
+         * "Scope: recordRead" told an administrator nothing about whether they
+         * were editing the toolbar above a list, the one on an open record, or
+         * the menu that appears once rows are ticked.
+         */}
+        <p className="mt-1 text-xs text-muted">
+          {placement?.description ??
+            "This bar uses a scope set outside the designer. Pick a placement above to describe where it appears, or leave it as it is."}
+        </p>
+      </div>
+
       <div className="flex items-center justify-between gap-2">
-        <p className="text-sm font-semibold text-foreground">Actions</p>
+        <div>
+          <p className="text-sm font-semibold text-foreground">Actions</p>
+          <p className="text-xs text-muted">
+            Drag to reorder — the order here is the order on screen.
+          </p>
+        </div>
         <Button
           onClick={() =>
             updateEditor({
@@ -907,78 +994,255 @@ function ActionBarEditor({
                   group: "",
                   icon: "",
                   permissionKey: "",
-                  order: String((editor.actions.length + 1) * 10),
+                  visibilityRules: [],
                 },
               ],
             })
           }
-          size="sm"
+          size="xs"
           type="button"
           variant="secondary"
         >
           Add action
         </Button>
       </div>
+
       <div className="grid gap-2">
-        {editor.actions.map((row) => (
-          <div
-            className="grid gap-2 rounded-md border border-border bg-white p-2 md:grid-cols-[1fr_1fr_1fr_1fr_1fr_80px_auto]"
-            key={row.id}
-          >
-            <TextField
-              label="Label"
-              onChange={(label) => updateAction(row.id, { label })}
-              value={row.label}
-            />
-            <TextField
-              label="Command"
-              onChange={(command) => updateAction(row.id, { command })}
-              value={row.command}
-            />
-            <TextField
-              label="Group"
-              onChange={(group) => updateAction(row.id, { group })}
-              value={row.group}
-            />
-            <TextField
-              label="Icon key"
-              onChange={(icon) => updateAction(row.id, { icon })}
-              value={row.icon}
-            />
-            <TextField
-              label="Permission"
-              onChange={(permissionKey) =>
-                updateAction(row.id, { permissionKey })
+        {editor.actions.map((row, index) => {
+          const catalogEntry = findCommand(row.command);
+          const isUnknown = Boolean(row.command) && !catalogEntry;
+
+          return (
+            <div
+              className={
+                dragIndex === index
+                  ? "grid gap-2 rounded-lg border border-accent bg-white p-2"
+                  : "grid gap-2 rounded-lg border border-border bg-white p-2"
               }
-              value={row.permissionKey}
-            />
-            <TextField
-              label="Order"
-              onChange={(order) => updateAction(row.id, { order })}
-              value={row.order}
-            />
-            <Button
-              onClick={() =>
-                updateEditor({
-                  actions: editor.actions.filter((item) => item.id !== row.id),
-                })
-              }
-              size="sm"
-              type="button"
-              variant="ghost"
+              draggable
+              key={row.id}
+              onDragEnd={() => setDragIndex(null)}
+              onDragOver={(event) => event.preventDefault()}
+              onDragStart={() => setDragIndex(index)}
+              onDrop={() => {
+                if (dragIndex !== null) move(dragIndex, index);
+                setDragIndex(null);
+              }}
             >
-              Remove
-            </Button>
-          </div>
-        ))}
+              <div className="flex items-center gap-2">
+                <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-muted" />
+                <span className="w-5 shrink-0 text-xs text-muted">
+                  {index + 1}
+                </span>
+
+                <SearchableSelect
+                  ariaLabel="Command"
+                  onChange={(command) => {
+                    const entry = findCommand(command);
+                    updateAction(row.id, {
+                      command,
+                      /* Keep any label the administrator typed themselves. */
+                      label: row.label.trim() || entry?.label || "",
+                      icon: row.icon || entry?.icon || "",
+                    });
+                  }}
+                  options={available.map((entry) => ({
+                    value: entry.key,
+                    label: entry.label,
+                    hint: entry.description,
+                  }))}
+                  placeholder="Choose a command"
+                  value={row.command}
+                />
+
+                <input
+                  aria-label="Button label"
+                  className="w-36 rounded-md border border-border px-2 py-1 text-xs"
+                  onChange={(event) =>
+                    updateAction(row.id, { label: event.target.value })
+                  }
+                  placeholder={catalogEntry?.label ?? "Button label"}
+                  value={row.label}
+                />
+
+                <button
+                  aria-label="Remove action"
+                  className="ml-auto shrink-0 rounded p-1 text-muted transition hover:bg-danger/10 hover:text-danger"
+                  onClick={() =>
+                    updateEditor({
+                      actions: editor.actions.filter(
+                        (item) => item.id !== row.id,
+                      ),
+                    })
+                  }
+                  type="button"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+
+              {isUnknown ? (
+                <p className="rounded-md border border-amber-300 bg-amber-50 px-2 py-1 text-xs text-amber-900">
+                  <code>{row.command}</code> is not a command the runtime
+                  registers — this button would render and do nothing.
+                </p>
+              ) : null}
+
+              <div className="flex flex-wrap items-center gap-2 pl-6">
+                <SearchableSelect
+                  ariaLabel="Icon"
+                  onChange={(icon) => updateAction(row.id, { icon })}
+                  options={COMMAND_ICON_CHOICES.map((name) => ({
+                    value: name,
+                    label: name,
+                  }))}
+                  placeholder="Icon"
+                  value={row.icon}
+                />
+                <SearchableSelect
+                  ariaLabel="Permission"
+                  onChange={(permissionKey) =>
+                    updateAction(row.id, { permissionKey })
+                  }
+                  options={permissionOptions.map((key) => ({
+                    value: key,
+                    label: key,
+                  }))}
+                  placeholder="Permission (optional)"
+                  value={row.permissionKey}
+                />
+                <input
+                  aria-label="Group"
+                  className="w-28 rounded-md border border-border px-2 py-1 text-xs"
+                  onChange={(event) =>
+                    updateAction(row.id, { group: event.target.value })
+                  }
+                  placeholder="Group"
+                  value={row.group}
+                />
+              </div>
+
+              <div className="pl-6">
+                <VisibilityRulesEditor
+                  audiences={audiences}
+                  emptyLabel="everyone who can use this bar"
+                  onChange={(visibilityRules) =>
+                    updateAction(row.id, { visibilityRules })
+                  }
+                  rules={row.visibilityRules}
+                  title="Who sees this button"
+                />
+              </div>
+            </div>
+          );
+        })}
       </div>
-      <p className="text-xs text-muted">
-        Standard system actions: {SYSTEM_ACTIONS.join(", ")}.
-      </p>
     </div>
   );
 }
 
+/*
+ * A select with a filter box. Long option lists — every permission key in the
+ * tenant, every icon — are unusable as a plain dropdown, and these were free
+ * text before, so a typo produced a button that looked configured and did
+ * nothing.
+ */
+function SearchableSelect({
+  ariaLabel,
+  onChange,
+  options,
+  placeholder,
+  value,
+}: {
+  ariaLabel: string;
+  onChange: (value: string) => void;
+  options: ReadonlyArray<{ value: string; label: string; hint?: string }>;
+  placeholder: string;
+  value: string;
+}) {
+  const [query, setQuery] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
+
+  const trimmed = query.trim().toLowerCase();
+  const visible = trimmed
+    ? options.filter(
+        (option) =>
+          option.label.toLowerCase().includes(trimmed) ||
+          option.value.toLowerCase().includes(trimmed),
+      )
+    : options;
+
+  const selected = options.find((option) => option.value === value);
+
+  return (
+    <div className="relative">
+      <button
+        aria-label={ariaLabel}
+        className="w-44 truncate rounded-md border border-border bg-white px-2 py-1 text-left text-xs"
+        onClick={() => setIsOpen((current) => !current)}
+        type="button"
+      >
+        {selected?.label ?? <span className="text-muted">{placeholder}</span>}
+      </button>
+
+      {isOpen ? (
+        <div className="absolute z-30 mt-1 w-64 rounded-lg border border-border bg-white shadow-lg">
+          <input
+            aria-label={"Search " + ariaLabel.toLowerCase()}
+            autoFocus
+            className="w-full border-b border-border px-2 py-1.5 text-xs outline-none"
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={"Search " + ariaLabel.toLowerCase()}
+            value={query}
+          />
+          <div className="max-h-52 overflow-y-auto p-1">
+            {value ? (
+              <button
+                className="w-full rounded px-2 py-1 text-left text-xs text-muted hover:bg-muted/20"
+                onClick={() => {
+                  onChange("");
+                  setIsOpen(false);
+                }}
+                type="button"
+              >
+                Clear
+              </button>
+            ) : null}
+            {visible.length ? (
+              visible.map((option) => (
+                <button
+                  className={
+                    option.value === value
+                      ? "w-full rounded bg-accent-soft px-2 py-1 text-left text-xs font-semibold hover:bg-accent-soft"
+                      : "w-full rounded px-2 py-1 text-left text-xs hover:bg-accent-soft"
+                  }
+                  key={option.value}
+                  onClick={() => {
+                    onChange(option.value);
+                    setIsOpen(false);
+                    setQuery("");
+                  }}
+                  type="button"
+                >
+                  <span className="block truncate text-foreground">
+                    {option.label}
+                  </span>
+                  {option.hint ? (
+                    <span className="block truncate text-[10px] text-muted">
+                      {option.hint}
+                    </span>
+                  ) : null}
+                </button>
+              ))
+            ) : (
+              <p className="px-2 py-2 text-xs text-muted">No matches.</p>
+            )}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
 function buildMetadata(
   editor: EditorState,
   componentType: MetadataComponentType,
@@ -1022,13 +1286,17 @@ function buildMetadata(
     scope: editor.actionScope,
     actions: editor.actions
       .filter((row) => row.label.trim() && row.command.trim())
-      .map((row) => ({
+      .map((row, index) => ({
         label: row.label.trim(),
         command: row.command.trim(),
         group: row.group.trim() || undefined,
         icon: row.icon.trim() || undefined,
         permissionKey: row.permissionKey.trim() || undefined,
-        order: Number(row.order) || 0,
+        /* Position is the order; dragging a row is what changes it. */
+        order: index * 10,
+        visibilityRules: row.visibilityRules.length
+          ? row.visibilityRules
+          : undefined,
       })),
   };
 }
@@ -1096,24 +1364,29 @@ function actionRows(value: unknown, componentType: MetadataComponentType) {
     if (typeof item === "string") {
       return {
         id: `${index}-${item}`,
-        label: commandLabel(item),
+        label: findCommand(item)?.label ?? commandLabel(item),
         command: item,
         group: item.startsWith("record.") ? "Record" : "Primary",
-        icon: "",
+        icon: findCommand(item)?.icon ?? "",
         permissionKey: "",
-        order: String(index * 10),
+        visibilityRules: [],
       };
     }
     const record = isRecord(item) ? item : {};
     const command = stringValue(record.command, "");
     return {
       id: `${index}-${command || "action"}`,
-      label: stringValue(record.label, "") || commandLabel(command),
+      label:
+        stringValue(record.label, "") ||
+        findCommand(command)?.label ||
+        commandLabel(command),
       command,
       group: stringValue(record.group, ""),
-      icon: stringValue(record.icon, ""),
+      icon: stringValue(record.icon, "") || findCommand(command)?.icon || "",
       permissionKey: stringValue(record.permissionKey, ""),
-      order: String(record.order ?? index * 10),
+      visibilityRules: Array.isArray(record.visibilityRules)
+        ? (record.visibilityRules as VisibilityRule[])
+        : [],
     };
   });
 }
@@ -1129,14 +1402,23 @@ function commandLabel(command: string): string {
 
 function defaultActionRows(componentType: MetadataComponentType): ActionRow[] {
   if (componentType !== "actionBar") return [];
-  return ["New", "Edit", "Delete", "Refresh", "Export"].map((label, index) => ({
+  /*
+   * Seeded from the catalog rather than invented labels. The old default
+   * produced commands like `new` and `export`, which the runtime does not
+   * register, so every seeded button was inert.
+   */
+  return COMMAND_CATALOG.filter((entry) =>
+    ["system.new", "system.edit", "system.delete", "system.refresh", "system.export"].includes(
+      entry.key,
+    ),
+  ).map((entry) => ({
     id: crypto.randomUUID(),
-    label,
-    command: toCamelCase(label),
-    group: label === "Export" ? "Data Transfer" : "Primary",
-    icon: "",
+    label: entry.label,
+    command: entry.key,
+    group: entry.key.startsWith("record.") ? "Record" : "Primary",
+    icon: entry.icon,
     permissionKey: "",
-    order: String(index * 10),
+    visibilityRules: [],
   }));
 }
 

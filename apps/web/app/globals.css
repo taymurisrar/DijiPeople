@@ -41,6 +41,13 @@
   --muted: var(--brand-muted-text);
   --sidebar-muted: #586774;
   --danger: var(--color-danger);
+  /*
+   * What brand colours are tinted against. Several components lighten the
+   * accent with `color-mix(..., white)` to make a soft fill; on a dark ground
+   * that produces a pale badge with pale text on it. Naming the base lets the
+   * same expression darken instead of lighten when the theme flips.
+   */
+  --dp-mix-base: #ffffff;
 }
 
 @theme inline {
@@ -96,7 +103,14 @@ html[data-density="spacious"] {
   --density: 1.14;
 }
 
-html[data-theme="dark"] {
+/*
+ * Base dark palette. `.dp-theme-scope` further down re-derives these same
+ * variables from the tenant's brand colours, so this rule alone never took
+ * effect — the dark override that actually wins is at the end of this file,
+ * after that scope and with higher specificity.
+ */
+html[data-theme="dark"],
+[data-theme="dark"] {
   --background: #0f172a;
   --foreground: #e2e8f0;
   --surface: #111827;
@@ -227,6 +241,147 @@ body {
   --surface-strong: var(--dp-surface);
   --border: color-mix(in oklab, var(--dp-text) 16%, white);
   --muted: color-mix(in oklab, var(--dp-text) 58%, white);
+}
+
+/*
+ * Dark mode, applied after the brand scope so it actually wins.
+ *
+ * `.dp-theme-scope` maps the tenant's brand colours onto --background,
+ * --surface and friends. A rule with the same specificity earlier in the file
+ * loses to it on source order, which is why dark mode appeared to do nothing
+ * however it was toggled. These selectors are (0,2,0) and come last.
+ *
+ * Brand hues are kept where they still read on a dark ground — the accent stays
+ * the tenant's colour — while the neutrals that carry legibility are replaced.
+ */
+html[data-theme="dark"],
+html[data-theme="dark"] .dp-theme-scope,
+html[data-theme="dark"] .dp-dashboard-scope,
+html[data-theme="dark"] .dp-sidebar-scope {
+  --dp-mix-base: #111827;
+  --foreground: #e2e8f0;
+  --accent-soft: color-mix(in oklab, var(--dp-primary) 26%, #0f172a);
+  --background: #0f172a;
+  --surface: #111827;
+  --surface-strong: #1f2937;
+  --border: #334155;
+  --muted: #94a3b8;
+  --accent-soft: color-mix(in oklab, var(--dp-primary) 30%, #0f172a);
+}
+
+html[data-theme="dark"] .dp-sidebar-scope {
+  background-color: #111827;
+  color: #e2e8f0;
+}
+
+/*
+ * The dashboard shell paints its own background and card gradients, all mixed
+ * against a literal white. Left alone they show through as pale patches behind
+ * the page content — the light block behind the view selector.
+ */
+html[data-theme="dark"] .dp-employees-scope {
+  background-color: #0f172a;
+}
+
+html[data-theme="dark"] .dp-dashboard-scope {
+  --dp-page-gradient-start: #0f172a;
+  --dp-page-gradient-end: #111827;
+  --dp-card-gradient-start: #111827;
+  --dp-card-gradient-end: color-mix(in oklab, var(--dp-accent) 18%, #0f172a);
+  background-color: #0f172a;
+}
+
+/*
+ * Surfaces painted with a literal white rather than a token. Without this the
+ * cards, inputs and dialogs stay white on a dark page.
+ */
+html[data-theme="dark"] .bg-white {
+  background-color: #111827;
+}
+
+/*
+ * The page gradients are built from white. Left alone they wash the whole
+ * background back to light no matter what the tokens say.
+ */
+html[data-theme="dark"] body {
+  background-image: none;
+  background: #0f172a;
+}
+
+/*
+ * Surfaces and text pinned to literal light values.
+ *
+ * A good deal of this app paints with `bg-white/70`, `bg-slate-50` and
+ * `text-slate-700` rather than the theme tokens. Those ignore the palette
+ * entirely, which is why the first dark render produced light cards with light
+ * text on them — unreadable rather than merely wrong.
+ *
+ * Overriding the utilities here fixes every occurrence at once. The long-term
+ * answer is for those components to use tokens, but that is a wide refactor and
+ * this makes dark mode usable today without touching hundreds of files.
+ */
+html[data-theme="dark"] [class*="bg-white/"] {
+  background-color: rgb(17 24 39 / 0.75);
+}
+
+html[data-theme="dark"] .bg-slate-50,
+html[data-theme="dark"] .bg-slate-100 {
+  background-color: #1f2937;
+}
+
+html[data-theme="dark"] .text-slate-900,
+html[data-theme="dark"] .text-slate-800,
+html[data-theme="dark"] .text-slate-700 {
+  color: #e2e8f0;
+}
+
+html[data-theme="dark"] .text-slate-600,
+html[data-theme="dark"] .text-slate-500 {
+  color: #94a3b8;
+}
+
+/*
+ * Tinted status surfaces — amber warnings, red errors, green confirmations.
+ * At full strength on a dark ground they glare; the text needs lifting to stay
+ * legible against the darkened fill.
+ */
+html[data-theme="dark"] .bg-amber-50 {
+  background-color: rgb(120 53 15 / 0.35);
+}
+
+html[data-theme="dark"] .bg-red-50,
+html[data-theme="dark"] .bg-danger\/5 {
+  background-color: rgb(127 29 29 / 0.35);
+}
+
+html[data-theme="dark"] .bg-emerald-50 {
+  background-color: rgb(6 78 59 / 0.35);
+}
+
+html[data-theme="dark"] .text-amber-900,
+html[data-theme="dark"] .text-amber-800 {
+  color: #fcd34d;
+}
+
+html[data-theme="dark"] .text-red-900,
+html[data-theme="dark"] .text-emerald-900 {
+  color: #e2e8f0;
+}
+
+/*
+ * Inputs and selects carry their own white in several places; without this the
+ * form controls stay light boxes with light text.
+ */
+html[data-theme="dark"] input,
+html[data-theme="dark"] select,
+html[data-theme="dark"] textarea {
+  background-color: #111827;
+  color: #e2e8f0;
+}
+
+html[data-theme="dark"] input::placeholder,
+html[data-theme="dark"] textarea::placeholder {
+  color: #64748b;
 }
 
 .dp-sidebar-scope {

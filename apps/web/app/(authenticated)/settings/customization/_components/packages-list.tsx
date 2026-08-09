@@ -7,8 +7,10 @@ import {
   Plus,
   RefreshCw,
   Trash2,
+  X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import type { ExportGap } from "@/lib/customization/package-export-gap";
 import { FormEvent, useMemo, useState } from "react";
 import { DataTable } from "@/app/components/data-table/data-table";
 import type { DataTableColumn } from "@/app/components/data-table/types";
@@ -44,6 +46,10 @@ export function PackagesList({ initialMessage, packages }: PackagesListProps) {
     null,
   );
   const [error, setError] = useState<string | null>(null);
+  const [exportGaps, setExportGaps] = useState<{
+    packageName: string;
+    gaps: ExportGap[];
+  } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState(initialMessage ?? null);
 
@@ -324,7 +330,41 @@ export function PackagesList({ initialMessage, packages }: PackagesListProps) {
     router.refresh();
   }
 
+  /*
+   * Export runs the completeness check first and stops on a blocking gap.
+   *
+   * A package that downloads cleanly but references metadata it does not carry
+   * fails in the target tenant, normally after the administrator has already
+   * committed to the migration. Better to refuse here and name what is missing.
+   */
   async function exportPackage(record: CustomizationPackage) {
+    setError(null);
+    setExportGaps(null);
+
+    const readinessResponse = await fetch(
+      `/api/customization/packages/${record.id}/export-readiness`,
+    ).catch(() => null);
+
+    if (readinessResponse?.ok) {
+      const readiness = (await readinessResponse.json().catch(() => null)) as
+        | { ready?: boolean; gaps?: ExportGap[] }
+        | null;
+      if (readiness && readiness.ready === false) {
+        setExportGaps({
+          packageName: record.displayName,
+          gaps: readiness.gaps ?? [],
+        });
+        return;
+      }
+      /* Warnings do not block, but they belong on screen before the download. */
+      if (readiness?.gaps?.length) {
+        setExportGaps({
+          packageName: record.displayName,
+          gaps: readiness.gaps,
+        });
+      }
+    }
+
     const response = await fetch(
       `/api/customization/packages/${record.id}/export`,
     );
@@ -336,8 +376,68 @@ export function PackagesList({ initialMessage, packages }: PackagesListProps) {
     downloadJson(data, `${record.packageKey || "package"}.package.json`);
   }
 
+  const blockingGaps = exportGaps?.gaps.filter(
+    (gap) => gap.severity === "error",
+  );
+
   return (
     <div className="grid gap-4">
+      {exportGaps ? (
+        <div
+          className={
+            blockingGaps?.length
+              ? "rounded-lg border border-danger/30 bg-danger/5 p-3"
+              : "rounded-lg border border-amber-300 bg-amber-50 p-3"
+          }
+          role="alert"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-foreground">
+                {blockingGaps?.length
+                  ? `${exportGaps.packageName} is not ready to export`
+                  : `${exportGaps.packageName} exported with warnings`}
+              </p>
+              <p className="mt-1 text-xs text-muted">
+                {blockingGaps?.length
+                  ? "These references are not in the package. Add them, or the import will land incomplete."
+                  : "These dependencies are expected to already exist in the target tenant."}
+              </p>
+            </div>
+            <button
+              aria-label="Dismiss"
+              className="rounded p-1 text-muted transition hover:bg-muted/20"
+              onClick={() => setExportGaps(null)}
+              type="button"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <ul className="mt-2 grid gap-1">
+            {exportGaps.gaps.map((gap) => (
+              <li
+                className="rounded-md border border-border bg-white px-2 py-1.5 text-xs"
+                key={`${gap.componentKey}-${gap.missingKey}`}
+              >
+                <span
+                  className={
+                    gap.severity === "error"
+                      ? "font-semibold text-danger"
+                      : "font-semibold text-amber-700"
+                  }
+                >
+                  {gap.severity === "error" ? "Missing" : "External"}
+                </span>{" "}
+                <code>{gap.missingKey}</code>{" "}
+                <span className="text-muted">
+                  required by {gap.componentType} {gap.componentKey}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface p-3 shadow-sm">
         <div className="flex flex-wrap gap-2">
           <PermissionGate anyOf={["customization.publish"]}>

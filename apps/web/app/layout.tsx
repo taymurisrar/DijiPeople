@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { cache } from "react";
 import { Instrument_Sans, Literata } from "next/font/google";
 import { TenantSettingsProvider } from "./components/settings/tenant-settings-provider";
+import { ThemeApplier } from "./components/theme/theme-applier";
 import { apiRequestJson } from "@/lib/server-api";
 import { getTenantHintFromRequest } from "@/lib/tenant-resolution";
 import {
@@ -58,7 +59,27 @@ export default async function RootLayout({
       style={buildInitialBrandingStyle(publicSettings)}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
+        {/*
+         * Applies the stored theme before the page paints, on every route.
+         *
+         * The toggle component only ran on the page it was mounted on, so a
+         * full page load anywhere else came back light even though the user
+         * had chosen dark. Setting it here makes the theme a property of the
+         * document rather than of one screen.
+         *
+         * Placed as the first child of <body>, not in <head>: Next owns <head>
+         * in the App Router, and browser extensions inject their own scripts
+         * there, which React then tries to reconcile against ours and reports
+         * as a hydration mismatch. It still runs before anything below it
+         * renders, so there is no flash of the wrong theme.
+         */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: THEME_BOOTSTRAP_SCRIPT,
+          }}
+        />
+        <ThemeApplier />
         <TenantSettingsProvider initialPublicSettings={publicSettings}>
           {children}
         </TenantSettingsProvider>
@@ -66,6 +87,27 @@ export default async function RootLayout({
     </html>
   );
 }
+
+/*
+ * Deliberately a string of plain JS rather than an imported module: it has to
+ * execute synchronously in <head>, before React hydrates and before the first
+ * paint. Kept small and defensive — a browser with storage blocked falls back
+ * to the system preference rather than throwing during document parse.
+ */
+const THEME_BOOTSTRAP_SCRIPT = `(function () {
+  try {
+    var stored = window.localStorage.getItem("dijipeople:theme");
+    var choice = stored === "light" || stored === "dark" || stored === "system"
+      ? stored
+      : "system";
+    var resolved = choice === "system"
+      ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+      : choice;
+    document.documentElement.setAttribute("data-theme", resolved);
+  } catch (error) {
+    document.documentElement.setAttribute("data-theme", "light");
+  }
+})();`;
 
 const getPublicSettings = cache(async (tenantSlug: string) => {
   const query = tenantSlug
