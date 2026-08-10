@@ -103,22 +103,6 @@ html[data-density="spacious"] {
   --density: 1.14;
 }
 
-/*
- * Base dark palette. `.dp-theme-scope` further down re-derives these same
- * variables from the tenant's brand colours, so this rule alone never took
- * effect — the dark override that actually wins is at the end of this file,
- * after that scope and with higher specificity.
- */
-html[data-theme="dark"],
-[data-theme="dark"] {
-  --background: #0f172a;
-  --foreground: #e2e8f0;
-  --surface: #111827;
-  --surface-strong: #1f2937;
-  --border: #334155;
-  --muted: #94a3b8;
-}
-
 .data-table-density-compact th,
 .data-table-density-compact td {
   padding-block: 0.45rem;
@@ -254,7 +238,6 @@ body {
  * Brand hues are kept where they still read on a dark ground — the accent stays
  * the tenant's colour — while the neutrals that carry legibility are replaced.
  */
-html[data-theme="dark"],
 html[data-theme="dark"] .dp-theme-scope,
 html[data-theme="dark"] .dp-dashboard-scope,
 html[data-theme="dark"] .dp-sidebar-scope {
@@ -295,7 +278,7 @@ html[data-theme="dark"] .dp-dashboard-scope {
  * Surfaces painted with a literal white rather than a token. Without this the
  * cards, inputs and dialogs stay white on a dark page.
  */
-html[data-theme="dark"] .bg-white {
+html[data-theme="dark"] .dp-theme-scope .bg-white {
   background-color: #111827;
 }
 
@@ -303,7 +286,7 @@ html[data-theme="dark"] .bg-white {
  * The page gradients are built from white. Left alone they wash the whole
  * background back to light no matter what the tokens say.
  */
-html[data-theme="dark"] body {
+html[data-theme="dark"] body:has(.dp-theme-scope) {
   background-image: none;
   background: #0f172a;
 }
@@ -316,27 +299,32 @@ html[data-theme="dark"] body {
  * entirely, which is why the first dark render produced light cards with light
  * text on them — unreadable rather than merely wrong.
  *
- * Overriding the utilities here fixes every occurrence at once. The long-term
- * answer is for those components to use tokens, but that is a wide refactor and
- * this makes dark mode usable today without touching hundreds of files.
+ * Every rule below is scoped to `.dp-theme-scope`, the wrapper the signed-in
+ * app renders inside. Unscoped, they also repainted the login page — a
+ * pre-auth, tenant-branded screen whose appearance belongs to the tenant's
+ * branding, not to whoever last chose dark mode in this browser. Half of it
+ * turned dark while the branded panel stayed light.
+ *
+ * The long-term answer is for those components to use tokens; this makes dark
+ * mode usable today without touching hundreds of files.
  */
-html[data-theme="dark"] [class*="bg-white/"] {
+html[data-theme="dark"] .dp-theme-scope [class*="bg-white/"] {
   background-color: rgb(17 24 39 / 0.75);
 }
 
-html[data-theme="dark"] .bg-slate-50,
-html[data-theme="dark"] .bg-slate-100 {
+html[data-theme="dark"] .dp-theme-scope .bg-slate-50,
+html[data-theme="dark"] .dp-theme-scope .bg-slate-100 {
   background-color: #1f2937;
 }
 
-html[data-theme="dark"] .text-slate-900,
-html[data-theme="dark"] .text-slate-800,
-html[data-theme="dark"] .text-slate-700 {
+html[data-theme="dark"] .dp-theme-scope .text-slate-900,
+html[data-theme="dark"] .dp-theme-scope .text-slate-800,
+html[data-theme="dark"] .dp-theme-scope .text-slate-700 {
   color: #e2e8f0;
 }
 
-html[data-theme="dark"] .text-slate-600,
-html[data-theme="dark"] .text-slate-500 {
+html[data-theme="dark"] .dp-theme-scope .text-slate-600,
+html[data-theme="dark"] .dp-theme-scope .text-slate-500 {
   color: #94a3b8;
 }
 
@@ -345,26 +333,26 @@ html[data-theme="dark"] .text-slate-500 {
  * At full strength on a dark ground they glare; the text needs lifting to stay
  * legible against the darkened fill.
  */
-html[data-theme="dark"] .bg-amber-50 {
+html[data-theme="dark"] .dp-theme-scope .bg-amber-50 {
   background-color: rgb(120 53 15 / 0.35);
 }
 
-html[data-theme="dark"] .bg-red-50,
-html[data-theme="dark"] .bg-danger\/5 {
+html[data-theme="dark"] .dp-theme-scope .bg-red-50,
+html[data-theme="dark"] .dp-theme-scope .bg-danger\/5 {
   background-color: rgb(127 29 29 / 0.35);
 }
 
-html[data-theme="dark"] .bg-emerald-50 {
+html[data-theme="dark"] .dp-theme-scope .bg-emerald-50 {
   background-color: rgb(6 78 59 / 0.35);
 }
 
-html[data-theme="dark"] .text-amber-900,
-html[data-theme="dark"] .text-amber-800 {
+html[data-theme="dark"] .dp-theme-scope .text-amber-900,
+html[data-theme="dark"] .dp-theme-scope .text-amber-800 {
   color: #fcd34d;
 }
 
-html[data-theme="dark"] .text-red-900,
-html[data-theme="dark"] .text-emerald-900 {
+html[data-theme="dark"] .dp-theme-scope .text-red-900,
+html[data-theme="dark"] .dp-theme-scope .text-emerald-900 {
   color: #e2e8f0;
 }
 
@@ -372,15 +360,15 @@ html[data-theme="dark"] .text-emerald-900 {
  * Inputs and selects carry their own white in several places; without this the
  * form controls stay light boxes with light text.
  */
-html[data-theme="dark"] input,
-html[data-theme="dark"] select,
-html[data-theme="dark"] textarea {
+html[data-theme="dark"] .dp-theme-scope input,
+html[data-theme="dark"] .dp-theme-scope select,
+html[data-theme="dark"] .dp-theme-scope textarea {
   background-color: #111827;
   color: #e2e8f0;
 }
 
-html[data-theme="dark"] input::placeholder,
-html[data-theme="dark"] textarea::placeholder {
+html[data-theme="dark"] .dp-theme-scope input::placeholder,
+html[data-theme="dark"] .dp-theme-scope textarea::placeholder {
   color: #64748b;
 }
 
