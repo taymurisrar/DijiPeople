@@ -46,6 +46,7 @@ export class UpdatePlatformSettingsDto {
   @IsOptional() @IsObject() contractSettings?: Record<string, unknown>;
   @IsOptional() @IsObject() partnerSettings?: Record<string, unknown>;
   @IsOptional() @IsObject() customerSettings?: Record<string, unknown>;
+  @IsOptional() @IsObject() tenantProvisioning?: Record<string, unknown>;
   @IsOptional() @IsObject() supportSettings?: Record<string, unknown>;
   @IsOptional() @IsObject() moduleSettings?: Record<string, unknown>;
   @IsOptional() @IsObject() communicationSettings?: Record<string, unknown>;

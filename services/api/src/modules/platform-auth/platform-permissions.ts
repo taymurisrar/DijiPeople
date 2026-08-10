@@ -41,6 +41,10 @@ export type PlatformPermission =
   | 'plans.read'
   | 'settings.read'
   | 'settings.manage'
+  | 'settings.appearance.manage'
+  | 'settings.email.manage'
+  | 'settings.email.credentials'
+  | 'settings.email.test'
   | 'roles.manage'
   | 'platform.demoData.delete';
 
@@ -86,6 +90,10 @@ const ROLE_PERMISSIONS: Record<PlatformUserRole, string[]> = {
     'invoices.read',
     'plans.read',
     'settings.read',
+    'settings.manage',
+    'settings.appearance.manage',
+    'settings.email.manage',
+    'settings.email.test',
   ],
   MEMBER: LEGACY_MEMBER_PERMISSIONS,
   PLATFORM_OPERATIONS: [
@@ -268,7 +276,7 @@ export class PlatformPermissionsGuard implements CanActivate {
   }
 }
 
-function resolvePlatformPermission(
+export function resolvePlatformPermission(
   request: AuthenticatedRequest,
 ): PlatformPermission | null {
   const method = request.method.toUpperCase();
@@ -276,12 +284,25 @@ function resolvePlatformPermission(
   const path = route?.path ? route.path : (request.path ?? request.url);
 
   if (path.includes('admin/demo-data')) return 'platform.demoData.delete';
-  if (method === 'DELETE') return null;
   if (path.includes('dashboard-summary')) return 'dashboard.read';
-  if (path.includes('platform-settings'))
-    return method === 'GET' ? 'settings.read' : 'settings.manage';
+  if (path.includes('platform-email/test-connection'))
+    return 'settings.email.test';
+  if (path.includes('platform-email/test-email')) return 'settings.email.test';
+  if (path.includes('platform-email/templates'))
+    return method === 'GET' ? 'settings.read' : 'settings.email.manage';
+  if (path.includes('platform-email'))
+    return method === 'GET' ? 'settings.read' : 'settings.email.manage';
+  if (path.includes('platform-settings')) {
+    if (method === 'GET') return 'settings.read';
+    if (method === 'PATCH' && isAppearanceOnlyUpdate(request.body))
+      return 'settings.appearance.manage';
+    return 'settings.manage';
+  }
   if (path.includes('billing/diagnostics')) return 'billing.read';
+  if (path.includes('billing/test-stripe-connection')) return 'billing.manage';
   if (path.includes('billing/stripe-webhook-events')) return 'billing.read';
+  if (path.includes('promotions'))
+    return method === 'GET' ? 'billing.read' : 'billing.manage';
   if (path.includes('leads')) return actionFor(method, 'leads');
   if (path.includes('customers')) return actionFor(method, 'customers');
   if (path.includes('customer-onboarding'))
@@ -294,6 +315,14 @@ function resolvePlatformPermission(
   if (path.includes('billing'))
     return method === 'GET' ? 'billing.read' : 'billing.manage';
   return null;
+}
+
+function isAppearanceOnlyUpdate(body: unknown) {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return false;
+  const settingsKeys = Object.keys(body).filter(
+    (key) => !['merge', 'changeReason'].includes(key),
+  );
+  return settingsKeys.length === 1 && settingsKeys[0] === 'branding';
 }
 
 function actionFor(

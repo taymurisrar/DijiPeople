@@ -18,6 +18,9 @@ import {
   InvoiceStatus,
   PaymentStatus,
   Prisma,
+  Promotion,
+  PromotionDuration,
+  PromotionScope,
   StripeEnvironment,
   StripeSyncStatus,
   SubscriptionStatus,
@@ -54,6 +57,7 @@ import {
 import { CreateCustomerOnboardingDto } from './dto/create-customer-onboarding.dto';
 import { CreatePlanDto } from './dto/create-plan.dto';
 import { CreatePlanPriceDto } from './dto/create-plan-price.dto';
+import { CreatePromotionDto, UpdatePromotionDto } from './dto/promotion.dto';
 import { RecordPaymentDto } from './dto/record-payment.dto';
 import { UpdateInvoiceStatusDto } from './dto/update-invoice-status.dto';
 import { UpdatePlanDto } from './dto/update-plan.dto';
@@ -78,6 +82,7 @@ import {
   DEFAULT_PLATFORM_DEFAULTS,
   validatePlatformDefaults,
 } from '../../common/reference-data/platform-reference-data';
+import { validatePlatformBranding } from './platform-appearance-settings';
 import { UserInvitationsService } from '../auth/user-invitations.service';
 import { AuthService } from '../auth/auth.service';
 
@@ -183,6 +188,7 @@ import {
   deriveCheckoutReadiness,
   stripeEnvironmentFromMode,
 } from '../billing/billing-seat-pricing';
+import { validatePromotionTerms } from '../billing/promotion-pricing';
 import {
   CreateTenantAccessUserDto,
   UpdateTenantAccessUserDto,
@@ -255,15 +261,15 @@ export class SuperAdminService {
           ? storedDefaults.currency
           : DEFAULT_PLATFORM_DEFAULTS.reportingCurrency;
 
-    const monthCount = range === '3m' ? 3 : range === '12m' ? 12 : 6;
-    const rangeKey = `${monthCount}m`;
+    const monthCount = range === '30d' ? 1 : range === '3m' ? 3 : range === '12m' ? 12 : 6;
+    const rangeKey = range === '30d' ? '30d' : `${monthCount}m`;
     const rangeStart = new Date();
-    rangeStart.setUTCMonth(rangeStart.getUTCMonth() - (monthCount - 1), 1);
+    if (range === '30d') rangeStart.setUTCDate(rangeStart.getUTCDate() - 29);
+    else rangeStart.setUTCMonth(rangeStart.getUTCMonth() - (monthCount - 1), 1);
     rangeStart.setUTCHours(0, 0, 0, 0);
     const previousRangeStart = new Date(rangeStart);
-    previousRangeStart.setUTCMonth(
-      previousRangeStart.getUTCMonth() - monthCount,
-    );
+    if (range === '30d') previousRangeStart.setUTCDate(previousRangeStart.getUTCDate() - 30);
+    else previousRangeStart.setUTCMonth(previousRangeStart.getUTCMonth() - monthCount);
     const now = new Date();
 
     const [
@@ -655,7 +661,7 @@ export class SuperAdminService {
         ),
       },
       timeRange: rangeKey,
-      timeRangeLabel: `Last ${monthCount} months`,
+      timeRangeLabel: range === '30d' ? 'Last 30 days' : `Last ${monthCount} months`,
       revenueTrend: buildMonthlyTrend(
         rangeStart,
         recentInvoices,
@@ -1299,8 +1305,10 @@ export class SuperAdminService {
     const isSystemAdmin = actor.roleKeys.includes(ROLE_KEYS.SYSTEM_ADMIN);
     const updatesNonSlugField =
       dto.name !== undefined ||
+      dto.displayName !== undefined ||
       dto.legalName !== undefined ||
-      dto.status !== undefined;
+      dto.status !== undefined ||
+      dto.subStatus !== undefined;
 
     if (updatesNonSlugField && !isSystemAdmin) {
       throw new ForbiddenException(
@@ -1319,13 +1327,19 @@ export class SuperAdminService {
       return tx.tenant.update({
         where: { id: tenantId },
         data: {
-          ...(dto.name !== undefined
-            ? { name: dto.name.trim(), displayName: dto.name.trim() }
-            : {}),
+          ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
+          ...(dto.displayName !== undefined
+            ? { displayName: dto.displayName?.trim() || null }
+            : dto.name !== undefined
+              ? { displayName: dto.name.trim() }
+              : {}),
           ...(dto.legalName !== undefined
             ? { legalName: dto.legalName?.trim() || null }
             : {}),
           ...(dto.status !== undefined ? { status: dto.status } : {}),
+          ...(dto.subStatus !== undefined
+            ? { subStatus: dto.subStatus?.trim() || null }
+            : {}),
           updatedById: actor.userId,
         },
       });
@@ -1792,16 +1806,14 @@ export class SuperAdminService {
     let stripeState: Awaited<
       ReturnType<SuperAdminService['prepareStripePlanPrice']>
     > | null = null;
-    if (
-      dto.syncToStripe !== false &&
-      billingModel === BillingModel.PER_SEAT &&
-      billingInterval === BillingInterval.MONTH
-    ) {
+    if (dto.syncToStripe !== false) {
       stripeState = await this.prepareStripePlanPrice({
         plan,
         stripePriceId,
         currency,
         unitAmount: dto.unitAmount,
+        billingModel,
+        billingInterval,
       });
       stripePriceId = stripeState.stripePriceId;
     }
@@ -1913,22 +1925,30 @@ export class SuperAdminService {
       });
       await this.prisma.planPrice.update({
         where: { id: existing.id },
-        data: { isActive: false },
+        data: { isActive: false, effectiveTo: new Date() },
       });
-      return { ...replacement, replacedPlanPriceId: existing.id };
+      const versioned = await this.prisma.planPrice.update({
+        where: { id: replacement.id },
+        data: {
+          version: existing.version + 1,
+          supersedesPriceId: existing.id,
+        },
+        include: { _count: { select: { subscriptions: true } } },
+      });
+      return {
+        ...this.mapPlanPrice(versioned),
+        replacedPlanPriceId: existing.id,
+      };
     }
     const plan = await this.assertPlanExists(planId);
-    const stripeState =
-      (dto.billingModel ?? existing.billingModel) === BillingModel.PER_SEAT &&
-      (dto.billingInterval ?? existing.billingInterval) ===
-        BillingInterval.MONTH
-        ? await this.prepareStripePlanPrice({
-            plan,
-            stripePriceId,
-            currency,
-            unitAmount: dto.unitAmount ?? Number(existing.unitAmount),
-          })
-        : null;
+    const stripeState = await this.prepareStripePlanPrice({
+      plan,
+      stripePriceId,
+      currency,
+      unitAmount: dto.unitAmount ?? Number(existing.unitAmount),
+      billingModel: dto.billingModel ?? existing.billingModel,
+      billingInterval: dto.billingInterval ?? existing.billingInterval,
+    });
 
     await this.assertPlanPriceStripePriceIdUnique({
       stripePriceId,
@@ -2033,6 +2053,278 @@ export class SuperAdminService {
     return this.mapPlanPrice(price);
   }
 
+  async listPromotions() {
+    const promotions = await this.prisma.promotion.findMany({
+      include: {
+        plan: { select: { id: true, name: true } },
+        planPrice: {
+          select: {
+            id: true,
+            currency: true,
+            unitAmount: true,
+            billingInterval: true,
+            billingModel: true,
+          },
+        },
+        customerAccount: { select: { id: true, companyName: true } },
+        subscription: {
+          select: { id: true, tenant: { select: { name: true } } },
+        },
+      },
+      orderBy: [{ isActive: 'desc' }, { updatedAt: 'desc' }],
+    });
+    return promotions.map((promotion) => this.mapPromotion(promotion));
+  }
+
+  async listPromotionTargets(scope?: string) {
+    if (!Object.values(PromotionScope).includes(scope as PromotionScope))
+      throw new BadRequestException('A valid promotion scope is required.');
+    if (scope === PromotionScope.PLAN) {
+      return this.prisma.plan.findMany({
+        select: { id: true, name: true },
+        orderBy: { name: 'asc' },
+      });
+    }
+    if (scope === PromotionScope.PRICE) {
+      const prices = await this.prisma.planPrice.findMany({
+        where: { isActive: true },
+        select: {
+          id: true,
+          currency: true,
+          unitAmount: true,
+          billingInterval: true,
+          billingModel: true,
+          plan: { select: { name: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+      return prices.map((price) => ({
+        id: price.id,
+        name: `${price.plan.name} · ${price.currency} ${Number(price.unitAmount)} · ${price.billingModel === BillingModel.PER_SEAT ? 'per seat' : 'flat'} / ${price.billingInterval === BillingInterval.YEAR ? 'year' : 'month'}`,
+      }));
+    }
+    if (scope === PromotionScope.CUSTOMER) {
+      return this.prisma.customerAccount.findMany({
+        select: { id: true, companyName: true },
+        orderBy: { companyName: 'asc' },
+        take: 250,
+      });
+    }
+    if (scope === PromotionScope.SUBSCRIPTION) {
+      const subscriptions = await this.prisma.subscription.findMany({
+        select: {
+          id: true,
+          tenant: { select: { name: true } },
+          plan: { select: { name: true } },
+        },
+        orderBy: { updatedAt: 'desc' },
+        take: 250,
+      });
+      return subscriptions.map((subscription) => ({
+        id: subscription.id,
+        name: `${subscription.tenant.name} · ${subscription.plan.name}`,
+      }));
+    }
+    return [];
+  }
+
+  async createPromotion(actor: AuthenticatedUser, dto: CreatePromotionDto) {
+    this.validatePromotion(dto);
+    const code = dto.code?.trim().toUpperCase() || null;
+    if (code) {
+      const duplicate = await this.prisma.promotion.findFirst({
+        where: { code: { equals: code, mode: 'insensitive' }, isActive: true },
+        select: { id: true },
+      });
+      if (duplicate)
+        throw new ConflictException('Promotion code is already active.');
+    }
+
+    let promotion = await this.prisma.promotion.create({
+      data: {
+        name: dto.name.trim(),
+        code,
+        discountType: dto.discountType,
+        percentOff:
+          dto.discountType === DiscountType.PERCENTAGE ? dto.percentOff : null,
+        amountOff:
+          dto.discountType === DiscountType.FLAT ? dto.amountOff : null,
+        currency:
+          dto.discountType === DiscountType.FLAT
+            ? dto.currency?.toUpperCase()
+            : null,
+        duration: dto.duration,
+        durationMonths:
+          dto.duration === PromotionDuration.REPEATING
+            ? dto.durationMonths
+            : null,
+        scope: dto.scope ?? PromotionScope.GLOBAL,
+        planId: dto.planId ?? null,
+        planPriceId: dto.planPriceId ?? null,
+        customerAccountId: dto.customerAccountId ?? null,
+        subscriptionId: dto.subscriptionId ?? null,
+        startsAt: dto.startsAt ? new Date(dto.startsAt) : undefined,
+        redeemBy: dto.redeemBy ? new Date(dto.redeemBy) : null,
+        maximumRedemptions: dto.maximumRedemptions ?? null,
+        isActive: dto.isActive ?? true,
+        createdById: actor.userId,
+        updatedById: actor.userId,
+      },
+    });
+
+    if (dto.syncToStripe)
+      promotion = await this.syncPromotionToStripe(promotion.id);
+    await this.auditService.log({
+      tenantId: actor.tenantId,
+      actorUserId: actor.userId,
+      action: 'PROMOTION_CREATED',
+      entityType: 'Promotion',
+      entityId: promotion.id,
+      sourceModule: 'super-admin',
+      afterSnapshot: this.mapPromotion(promotion),
+    });
+    return this.mapPromotion(promotion);
+  }
+
+  async updatePromotion(
+    actor: AuthenticatedUser,
+    promotionId: string,
+    dto: UpdatePromotionDto,
+  ) {
+    const existing = await this.prisma.promotion.findUnique({
+      where: { id: promotionId },
+    });
+    if (!existing) throw new NotFoundException('Promotion not found.');
+
+    const keys = Object.keys(dto).filter((key) => key !== 'syncToStripe');
+    if (keys.every((key) => key === 'isActive')) {
+      const updated = await this.prisma.promotion.update({
+        where: { id: promotionId },
+        data: { isActive: dto.isActive, updatedById: actor.userId },
+      });
+      return this.mapPromotion(updated);
+    }
+
+    const replacement: CreatePromotionDto = {
+      name: dto.name ?? existing.name,
+      code: dto.code === undefined ? existing.code : dto.code,
+      discountType: dto.discountType ?? existing.discountType,
+      percentOff:
+        dto.percentOff === undefined
+          ? existing.percentOff === null
+            ? null
+            : Number(existing.percentOff)
+          : dto.percentOff,
+      amountOff:
+        dto.amountOff === undefined
+          ? existing.amountOff === null
+            ? null
+            : Number(existing.amountOff)
+          : dto.amountOff,
+      currency: dto.currency === undefined ? existing.currency : dto.currency,
+      duration: dto.duration ?? existing.duration,
+      durationMonths:
+        dto.durationMonths === undefined
+          ? existing.durationMonths
+          : dto.durationMonths,
+      scope: dto.scope ?? existing.scope,
+      planId: dto.planId === undefined ? existing.planId : dto.planId,
+      planPriceId:
+        dto.planPriceId === undefined ? existing.planPriceId : dto.planPriceId,
+      customerAccountId:
+        dto.customerAccountId === undefined
+          ? existing.customerAccountId
+          : dto.customerAccountId,
+      subscriptionId:
+        dto.subscriptionId === undefined
+          ? existing.subscriptionId
+          : dto.subscriptionId,
+      startsAt: dto.startsAt ?? existing.startsAt.toISOString(),
+      redeemBy:
+        dto.redeemBy === undefined
+          ? (existing.redeemBy?.toISOString() ?? null)
+          : dto.redeemBy,
+      maximumRedemptions:
+        dto.maximumRedemptions === undefined
+          ? existing.maximumRedemptions
+          : dto.maximumRedemptions,
+      isActive: dto.isActive ?? true,
+      syncToStripe: dto.syncToStripe,
+    };
+    this.validatePromotion(replacement);
+    const created = await this.prisma.$transaction(async (tx) => {
+      await tx.promotion.update({
+        where: { id: existing.id },
+        data: { isActive: false, updatedById: actor.userId },
+      });
+      return tx.promotion.create({
+        data: {
+          name: replacement.name.trim(),
+          code: replacement.code?.trim().toUpperCase() || null,
+          discountType: replacement.discountType,
+          percentOff:
+            replacement.discountType === DiscountType.PERCENTAGE
+              ? replacement.percentOff
+              : null,
+          amountOff:
+            replacement.discountType === DiscountType.FLAT
+              ? replacement.amountOff
+              : null,
+          currency:
+            replacement.discountType === DiscountType.FLAT
+              ? replacement.currency?.toUpperCase()
+              : null,
+          duration: replacement.duration,
+          durationMonths:
+            replacement.duration === PromotionDuration.REPEATING
+              ? replacement.durationMonths
+              : null,
+          scope: replacement.scope,
+          planId: replacement.planId,
+          planPriceId: replacement.planPriceId,
+          customerAccountId: replacement.customerAccountId,
+          subscriptionId: replacement.subscriptionId,
+          startsAt: new Date(replacement.startsAt!),
+          redeemBy: replacement.redeemBy
+            ? new Date(replacement.redeemBy)
+            : null,
+          maximumRedemptions: replacement.maximumRedemptions,
+          isActive: replacement.isActive,
+          version: existing.version + 1,
+          supersedesPromotionId: existing.id,
+          createdById: actor.userId,
+          updatedById: actor.userId,
+        },
+      });
+    });
+    const synced = replacement.syncToStripe
+      ? await this.syncPromotionToStripe(created.id)
+      : created;
+    await this.auditService.log({
+      tenantId: actor.tenantId,
+      actorUserId: actor.userId,
+      action: 'PROMOTION_VERSION_CREATED',
+      entityType: 'Promotion',
+      entityId: synced.id,
+      sourceModule: 'super-admin',
+      beforeSnapshot: this.mapPromotion(existing),
+      afterSnapshot: this.mapPromotion(synced),
+    });
+    return this.mapPromotion(synced);
+  }
+
+  async deactivatePromotion(actor: AuthenticatedUser, promotionId: string) {
+    const existing = await this.prisma.promotion.findUnique({
+      where: { id: promotionId },
+    });
+    if (!existing) throw new NotFoundException('Promotion not found.');
+    const updated = await this.prisma.promotion.update({
+      where: { id: promotionId },
+      data: { isActive: false, updatedById: actor.userId },
+    });
+    return this.mapPromotion(updated);
+  }
+
   async updateTenantSubscription(
     actor: AuthenticatedUser,
     tenantId: string,
@@ -2040,11 +2332,44 @@ export class SuperAdminService {
   ) {
     await this.assertTenantExists(tenantId);
 
+    const selectedPromotion = dto.promotionId
+      ? await this.prisma.promotion.findFirst({
+          where: { id: dto.promotionId, isActive: true },
+        })
+      : null;
+    if (dto.promotionId && !selectedPromotion)
+      throw new BadRequestException('Selected promotion is not available.');
+    if (selectedPromotion) {
+      const context = await this.prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: {
+          customerAccountId: true,
+          subscription: { select: { id: true, planPriceId: true } },
+        },
+      });
+      const applies =
+        selectedPromotion.scope === PromotionScope.GLOBAL ||
+        (selectedPromotion.scope === PromotionScope.PLAN &&
+          selectedPromotion.planId === dto.planId) ||
+        (selectedPromotion.scope === PromotionScope.PRICE &&
+          selectedPromotion.planPriceId ===
+            context?.subscription?.planPriceId) ||
+        (selectedPromotion.scope === PromotionScope.CUSTOMER &&
+          selectedPromotion.customerAccountId === context?.customerAccountId) ||
+        (selectedPromotion.scope === PromotionScope.SUBSCRIPTION &&
+          selectedPromotion.subscriptionId === context?.subscription?.id);
+      if (!applies)
+        throw new BadRequestException(
+          'Selected promotion does not apply to this subscription.',
+        );
+    }
+
     const updated = await this.billingService.createOrUpdateSubscription(
       this.prisma,
       {
         tenantId,
         planId: dto.planId,
+        planPriceId: dto.planPriceId,
         billingCycle: dto.billingCycle ?? BillingCycle.MONTHLY,
         status: dto.status,
         startDate: dto.startDate ? new Date(dto.startDate) : undefined,
@@ -2066,6 +2391,29 @@ export class SuperAdminService {
         actorUserId: actor.userId,
       },
     );
+
+    if (selectedPromotion) {
+      await this.prisma.$transaction([
+        this.prisma.subscriptionPromotion.updateMany({
+          where: { subscriptionId: updated.id, isActive: true },
+          data: { isActive: false, removedAt: new Date() },
+        }),
+        this.prisma.subscriptionPromotion.upsert({
+          where: {
+            subscriptionId_promotionId: {
+              subscriptionId: updated.id,
+              promotionId: selectedPromotion.id,
+            },
+          },
+          create: {
+            subscriptionId: updated.id,
+            promotionId: selectedPromotion.id,
+            createdById: actor.userId,
+          },
+          update: { isActive: true, removedAt: null },
+        }),
+      ]);
+    }
 
     return {
       updatedSubscription: this.mapSubscription(updated),
@@ -2463,6 +2811,19 @@ export class SuperAdminService {
       .verifyConnection()
       .catch(() => null);
 
+    const [lastPriceSync, lastPromotionSync] = await Promise.all([
+      this.prisma.planPrice.findFirst({
+        where: { stripeVerifiedAt: { not: null } },
+        orderBy: { stripeVerifiedAt: 'desc' },
+        select: { stripeVerifiedAt: true },
+      }),
+      this.prisma.promotion.findFirst({
+        where: { stripeSyncStatus: StripeSyncStatus.SYNCED },
+        orderBy: { updatedAt: 'desc' },
+        select: { updatedAt: true },
+      }),
+    ]);
+
     return {
       plansCount,
       activePublicPlansCount,
@@ -2471,11 +2832,19 @@ export class SuperAdminService {
       checkoutReadyPlanPricesCount,
       duplicateCurrencyCycleRisks: duplicateRisks,
       stripeConfigured: Boolean(process.env.STRIPE_SECRET_KEY?.trim()),
+      secretKeyConfigured: this.stripeBillingService.isSecretKeyConfigured(),
+      publishableKeyConfigured:
+        this.stripeBillingService.isPublishableKeyConfigured(),
       enabled: this.stripeBillingService.isSecretKeyConfigured(),
       mode: this.stripeBillingService.getRuntimeMode(),
       stripeAccountId: connection?.accountId ?? null,
       lastVerification: connection?.verifiedAt ?? null,
       webhookConfigured: Boolean(process.env.STRIPE_WEBHOOK_SECRET?.trim()),
+      webhookEndpoint: '/api/billing/stripe/webhook',
+      lastStripeSync:
+        [lastPriceSync?.stripeVerifiedAt, lastPromotionSync?.updatedAt]
+          .filter((value): value is Date => Boolean(value))
+          .sort((a, b) => b.getTime() - a.getTime())[0] ?? null,
       lastSuccessfulWebhook,
       lastFailedWebhook,
       checkoutSuccessUrl:
@@ -2485,6 +2854,18 @@ export class SuperAdminService {
       customerPortalReturnUrl:
         this.configService.get<string>('STRIPE_PORTAL_RETURN_URL') ?? null,
       recentWebhookFailuresCount,
+    };
+  }
+
+  async testStripeConnection() {
+    const connection = await this.stripeBillingService.verifyConnection();
+    return {
+      success: true,
+      accountId: connection.accountId,
+      mode: connection.mode,
+      chargesEnabled: connection.chargesEnabled,
+      payoutsEnabled: connection.payoutsEnabled,
+      verifiedAt: connection.verifiedAt,
     };
   }
 
@@ -2553,6 +2934,7 @@ export class SuperAdminService {
       'contract-settings',
       'partner-settings',
       'customer-settings',
+      'tenant-provisioning',
       'support-settings',
       'module-settings',
       'communication-settings',
@@ -2579,10 +2961,7 @@ export class SuperAdminService {
         prefix: 'INV',
         startSequence: 1,
       },
-      emailProvider: byKey.get('email-provider') ?? {
-        provider: 'placeholder',
-        enabled: false,
-      },
+      emailProvider: publicPlatformEmailSetting(byKey.get('email-provider')),
       branding: byKey.get('branding') ?? {},
       companyProfile: byKey.get('company-profile') ?? {
         companyName: 'DijiPeople',
@@ -2621,6 +3000,11 @@ export class SuperAdminService {
         paymentRequiredForProvisioning: true,
         trainingRequiredForActivation: true,
       },
+      tenantProvisioning: byKey.get('tenant-provisioning') ?? {
+        tenantBaseDomain: 'digipeople.com',
+        defaultProtocol: 'https',
+        wildcardDnsReady: false,
+      },
       supportSettings: byKey.get('support-settings') ?? {
         casePrefix: 'CASE',
         s1ResponseHours: 1,
@@ -2652,6 +3036,12 @@ export class SuperAdminService {
       );
     }
 
+    if (dto.emailProvider) {
+      throw new BadRequestException(
+        'Use the protected Platform Email settings endpoint for email provider changes.',
+      );
+    }
+
     if (dto.platformDefaults) {
       try {
         validatePlatformDefaults({
@@ -2665,12 +3055,15 @@ export class SuperAdminService {
       }
     }
 
+    if (dto.branding) {
+      validatePlatformBranding(dto.branding);
+    }
+
     const payload = {
       'platform-defaults': dto.platformDefaults,
       'public-plan-visibility': dto.publicPlanVisibility,
       'billing-defaults': dto.billingDefaults,
       'invoice-defaults': dto.invoiceDefaults,
-      'email-provider': dto.emailProvider,
       branding: dto.branding,
       'company-profile': dto.companyProfile,
       'feature-catalog': dto.featureCatalog,
@@ -2678,6 +3071,7 @@ export class SuperAdminService {
       'contract-settings': dto.contractSettings,
       'partner-settings': dto.partnerSettings,
       'customer-settings': dto.customerSettings,
+      'tenant-provisioning': dto.tenantProvisioning,
       'support-settings': dto.supportSettings,
       'module-settings': dto.moduleSettings,
       'communication-settings': dto.communicationSettings,
@@ -2729,6 +3123,7 @@ export class SuperAdminService {
     const resolvedFeatures =
       await this.featureAccessService.getResolvedTenantFeatures(tenant.id);
 
+    const primaryDomainRecord = tenant.tenantDomains.find((domain) => domain.isPrimary) ?? null;
     return {
       id: tenant.id,
       tenantCode: tenant.tenantCode,
@@ -2779,16 +3174,31 @@ export class SuperAdminService {
   ) {
     const resolvedFeatures =
       await this.featureAccessService.getResolvedTenantFeatures(tenant.id);
+    const primaryDomainRecord =
+      tenant.tenantDomains.find((domain) => domain.isPrimary) ?? null;
 
     return {
       id: tenant.id,
+      customerAccountId: tenant.customerAccountId,
+      originatingPartnerId: tenant.originatingPartnerId,
+      originatingLeadId: tenant.originatingLeadId,
+      originatingReferralLinkId: tenant.originatingReferralLinkId,
+      referralCodeSnapshot: tenant.referralCodeSnapshot,
+      ownerUserId: tenant.ownerUserId,
       tenantCode: tenant.tenantCode,
       name: tenant.name,
       displayName: tenant.displayName ?? tenant.name,
+      legalName: tenant.legalName,
       slug: tenant.slug,
       status: tenant.status,
+      subStatus: tenant.subStatus,
       createdAt: tenant.createdAt,
       updatedAt: tenant.updatedAt,
+      createdById: tenant.createdById,
+      updatedById: tenant.updatedById,
+      isDemoData: tenant.isDemoData,
+      demoBatchId: tenant.demoBatchId,
+      seedSource: tenant.seedSource,
       customerAccount: tenant.customerAccount
         ? {
             id: tenant.customerAccount.id,
@@ -2845,8 +3255,16 @@ export class SuperAdminService {
         businessUnits: tenant._count.businessUnits,
       },
       code: tenant.tenantCode ?? buildTenantCode(tenant.slug, tenant.id),
-      primaryDomain:
-        tenant.tenantDomains.find((domain) => domain.isPrimary)?.domain ?? null,
+      primaryDomain: primaryDomainRecord?.domain ?? null,
+      domainReadiness: primaryDomainRecord
+        ? {
+            requestedDomain: primaryDomainRecord.domain,
+            resolvedUrl: `https://${primaryDomainRecord.domain}`,
+            verificationStatus: primaryDomainRecord.verificationStatus,
+            sslStatus: primaryDomainRecord.sslStatus,
+            verifiedAt: primaryDomainRecord.verifiedAt,
+          }
+        : null,
       customDomain:
         tenant.tenantDomains.find((domain) => domain.type === 'CUSTOM_DOMAIN')
           ?.domain ?? null,
@@ -2907,6 +3325,7 @@ export class SuperAdminService {
     renewalDate: Date | null;
     autoRenew: boolean;
     stripeSubscriptionId?: string | null;
+    planPrice?: { id: string } | null;
     purchasedSeats?: number;
     stripeQuantity?: number | null;
     seatsLastReconciledAt?: Date | null;
@@ -2932,6 +3351,9 @@ export class SuperAdminService {
       renewalDate: subscription.renewalDate,
       autoRenew: subscription.autoRenew,
       stripeSubscriptionId: subscription.stripeSubscriptionId ?? null,
+      planPrice: subscription.planPrice
+        ? { id: subscription.planPrice.id }
+        : null,
       purchasedSeats: subscription.purchasedSeats ?? 1,
       stripeQuantity: subscription.stripeQuantity ?? null,
       seatsLastReconciledAt: subscription.seatsLastReconciledAt ?? null,
@@ -3484,6 +3906,13 @@ export class SuperAdminService {
   private mapPlan(
     plan: NonNullable<Awaited<ReturnType<PlansRepository['findById']>>>,
   ) {
+    const activePrices = plan.prices.filter((price) => price.isActive);
+    const monthlyPrices = activePrices.filter(
+      (price) => price.billingInterval === BillingInterval.MONTH,
+    );
+    const annualPrices = activePrices.filter(
+      (price) => price.billingInterval === BillingInterval.YEAR,
+    );
     return {
       id: plan.id,
       key: plan.key,
@@ -3495,6 +3924,22 @@ export class SuperAdminService {
       currency: plan.currency,
       sortOrder: plan.sortOrder,
       subscriptionCount: plan._count.subscriptions,
+      subscriptions: plan._count.subscriptions,
+      priceCount: plan.prices.length,
+      featureCount: plan.features.filter((feature) => feature.isEnabled).length,
+      pricingModels:
+        [...new Set(activePrices.map((price) => price.billingModel))]
+          .map((model) =>
+            model === BillingModel.PER_SEAT ? 'Per seat' : 'Flat',
+          )
+          .join(', ') || 'Not configured',
+      monthlyFrom: monthlyPrices.length
+        ? Math.min(...monthlyPrices.map((price) => Number(price.unitAmount)))
+        : null,
+      annualFrom: annualPrices.length
+        ? Math.min(...annualPrices.map((price) => Number(price.unitAmount)))
+        : null,
+      startingCurrency: activePrices[0]?.currency ?? plan.currency,
       prices: plan.prices.map((price) => this.mapPlanPrice(price)),
       features: plan.features
         .filter((feature) => feature.isEnabled)
@@ -3538,6 +3983,9 @@ export class SuperAdminService {
     maximumSeats: number | null;
     includedSeats: number;
     effectiveFrom: Date;
+    effectiveTo: Date | null;
+    version: number;
+    supersedesPriceId: string | null;
     stripeProductId: string | null;
     stripePriceId: string | null;
     stripeEnvironment: StripeEnvironment | null;
@@ -3592,6 +4040,9 @@ export class SuperAdminService {
       maximumSeats: price.maximumSeats,
       includedSeats: price.includedSeats,
       effectiveFrom: price.effectiveFrom,
+      effectiveTo: price.effectiveTo,
+      version: price.version,
+      supersedesPriceId: price.supersedesPriceId,
       stripeProductId: price.stripeProductId,
       stripePriceId: price.stripePriceId,
       stripeEnvironment: price.stripeEnvironment,
@@ -3636,6 +4087,8 @@ export class SuperAdminService {
     stripePriceId: string | null;
     currency: string;
     unitAmount: number;
+    billingModel: BillingModel;
+    billingInterval: BillingInterval;
   }) {
     const product = await this.stripeBillingService.resolveOrCreateProduct({
       stripeProductId: input.plan.stripeProductId,
@@ -3652,18 +4105,21 @@ export class SuperAdminService {
     const stripePriceId =
       input.stripePriceId ??
       (
-        await this.stripeBillingService.createMonthlyPerSeatPrice({
+        await this.stripeBillingService.createRecurringPrice({
           productId: product.id,
           unitAmount: input.unitAmount,
           currency: input.currency,
           planId: input.plan.id,
+          billingModel: input.billingModel,
+          billingInterval: input.billingInterval,
         })
       ).id;
-    const verified = await this.stripeBillingService.verifyMonthlyPerSeatPrice({
+    const verified = await this.stripeBillingService.verifyRecurringPrice({
       stripePriceId,
       expectedProductId: product.id,
       expectedCurrency: input.currency,
       expectedUnitAmount: input.unitAmount,
+      expectedBillingInterval: input.billingInterval,
     });
     return {
       stripeProductId: product.id,
@@ -3679,6 +4135,102 @@ export class SuperAdminService {
       stripeRecurringInterval: verified.recurringInterval,
       stripeVerifiedAt: verified.verifiedAt,
       stripeVerificationError: verified.reasons.join(' ') || null,
+    };
+  }
+
+  private validatePromotion(dto: CreatePromotionDto) {
+    try {
+      validatePromotionTerms(dto);
+    } catch (error) {
+      throw new BadRequestException(
+        error instanceof Error ? error.message : 'Invalid promotion terms.',
+      );
+    }
+
+    const scope = dto.scope ?? PromotionScope.GLOBAL;
+    const targetByScope: Partial<
+      Record<PromotionScope, string | null | undefined>
+    > = {
+      [PromotionScope.PLAN]: dto.planId,
+      [PromotionScope.PRICE]: dto.planPriceId,
+      [PromotionScope.CUSTOMER]: dto.customerAccountId,
+      [PromotionScope.SUBSCRIPTION]: dto.subscriptionId,
+    };
+    if (scope !== PromotionScope.GLOBAL && !targetByScope[scope])
+      throw new BadRequestException(
+        `${scope.toLowerCase()} scope requires its target record.`,
+      );
+  }
+
+  private async syncPromotionToStripe(promotionId: string) {
+    const promotion = await this.prisma.promotion.findUnique({
+      where: { id: promotionId },
+      include: {
+        plan: { select: { stripeProductId: true } },
+        planPrice: { select: { stripeProductId: true } },
+      },
+    });
+    if (!promotion) throw new NotFoundException('Promotion not found.');
+    try {
+      await this.prisma.promotion.update({
+        where: { id: promotion.id },
+        data: {
+          stripeSyncStatus: StripeSyncStatus.PENDING,
+          stripeSyncError: null,
+        },
+      });
+      const stripe = await this.stripeBillingService.createPromotion({
+        promotionId: promotion.id,
+        name: promotion.name,
+        percentOff:
+          promotion.percentOff === null ? null : Number(promotion.percentOff),
+        amountOff:
+          promotion.amountOff === null ? null : Number(promotion.amountOff),
+        currency: promotion.currency,
+        duration: promotion.duration.toLowerCase() as
+          | 'once'
+          | 'repeating'
+          | 'forever',
+        durationMonths: promotion.durationMonths,
+        redeemBy: promotion.redeemBy,
+        maximumRedemptions: promotion.maximumRedemptions,
+        code: promotion.code,
+        productId:
+          promotion.planPrice?.stripeProductId ??
+          promotion.plan?.stripeProductId ??
+          null,
+      });
+      return this.prisma.promotion.update({
+        where: { id: promotion.id },
+        data: {
+          stripeCouponId: stripe.coupon.id,
+          stripePromotionCodeId: stripe.promotionCode?.id ?? null,
+          stripeEnvironment: stripeEnvironmentFromMode(
+            this.stripeBillingService.getRuntimeMode(),
+          ),
+          stripeSyncStatus: StripeSyncStatus.SYNCED,
+          stripeSyncError: null,
+        },
+      });
+    } catch (error) {
+      return this.prisma.promotion.update({
+        where: { id: promotion.id },
+        data: {
+          stripeSyncStatus: StripeSyncStatus.FAILED,
+          stripeSyncError:
+            error instanceof Error ? error.message : 'Stripe sync failed.',
+        },
+      });
+    }
+  }
+
+  private mapPromotion(promotion: Promotion) {
+    return {
+      ...promotion,
+      percentOff:
+        promotion.percentOff === null ? null : Number(promotion.percentOff),
+      amountOff:
+        promotion.amountOff === null ? null : Number(promotion.amountOff),
     };
   }
 
@@ -3963,6 +4515,25 @@ function objectValue(value: unknown): Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : {};
+}
+
+function publicPlatformEmailSetting(value: unknown) {
+  const source = objectValue(value);
+  const smtp = objectValue(source.smtp);
+  return {
+    enabled: source.enabled === true,
+    providerType:
+      source.providerType === 'SMTP' || source.provider === 'smtp'
+        ? 'SMTP'
+        : 'CONSOLE',
+    fromName: stringSetting(source, ['fromName']) ?? 'DijiPeople',
+    fromEmail:
+      stringSetting(source, ['fromEmail']) ?? 'notifications@dijipeople.local',
+    replyToEmail: stringSetting(source, ['replyToEmail']),
+    passwordConfigured: Boolean(
+      stringSetting(smtp, ['password']) ?? stringSetting(source, ['password']),
+    ),
+  };
 }
 
 function stringSetting(

@@ -1,6 +1,8 @@
 "use client";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
+import type { RuntimeLookupOption } from "@/lib/runtime/runtime-lookups";
 type Template = {
   id: string;
   name: string;
@@ -230,6 +232,10 @@ function UploadForm({
   onMessage: (v: string) => void;
   onCreated: (id: string) => void;
 }) {
+  const [contractType, setContractType] = useState("PARTNER_AGREEMENT");
+  const [counterpartyName, setCounterpartyName] = useState("");
+  const relationship = uploadRelationship(contractType);
+
   return (
     <form
       className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3"
@@ -252,6 +258,11 @@ function UploadForm({
       <Select
         name="contractType"
         label="Contract type"
+        value={contractType}
+        onChange={(value) => {
+          setContractType(value);
+          setCounterpartyName("");
+        }}
         options={[
           "PARTNER_AGREEMENT",
           "CUSTOMER_AGREEMENT",
@@ -261,7 +272,29 @@ function UploadForm({
           "OTHER",
         ]}
       />
-      <Input name="counterpartyName" label="Counterparty" required />
+      {relationship ? (
+        <LookupSelect
+          key={relationship.name}
+          name={relationship.name}
+          label={relationship.label}
+          path={relationship.path}
+          createHref={relationship.createHref}
+          createLabel={relationship.createLabel}
+          required
+          onSelect={(option) => setCounterpartyName(option?.label ?? "")}
+        />
+      ) : (
+        <Input
+          name="counterpartyName"
+          label="Counterparty"
+          required
+          value={counterpartyName}
+          onChange={setCounterpartyName}
+        />
+      )}
+      {relationship ? (
+        <input type="hidden" name="counterpartyName" value={counterpartyName} />
+      ) : null}
       <Input name="counterpartyEmail" label="Counterparty email" type="email" />
       <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500 lg:col-span-2">
         Document
@@ -274,7 +307,7 @@ function UploadForm({
         />
       </label>
       <button
-        disabled={disabled}
+        disabled={disabled || Boolean(relationship && !counterpartyName)}
         className="h-11 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white lg:col-start-3"
       >
         Import and create
@@ -288,12 +321,16 @@ function Input({
   required = false,
   type = "text",
   defaultValue,
+  value,
+  onChange,
 }: {
   name: string;
   label: string;
   required?: boolean;
   type?: string;
   defaultValue?: string;
+  value?: string;
+  onChange?: (value: string) => void;
 }) {
   return (
     <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -303,6 +340,8 @@ function Input({
         required={required}
         type={type}
         defaultValue={defaultValue}
+        value={value}
+        onChange={onChange ? (event) => onChange(event.target.value) : undefined}
         className="h-11 rounded-xl border border-slate-200 px-3 text-sm font-normal normal-case tracking-normal"
       />
     </label>
@@ -313,11 +352,15 @@ function Select({
   label: caption,
   options,
   defaultValue,
+  value,
+  onChange,
 }: {
   name: string;
   label: string;
   options: string[];
   defaultValue?: string;
+  value?: string;
+  onChange?: (value: string) => void;
 }) {
   return (
     <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -325,6 +368,8 @@ function Select({
       <select
         name={name}
         defaultValue={defaultValue}
+        value={value}
+        onChange={onChange ? (event) => onChange(event.target.value) : undefined}
         className="h-11 rounded-xl border border-slate-200 px-3 text-sm font-normal normal-case tracking-normal"
       >
         {options.map((option) => (
@@ -336,6 +381,119 @@ function Select({
     </label>
   );
 }
+
+function LookupSelect({
+  name,
+  label: caption,
+  path,
+  createHref,
+  createLabel,
+  required = false,
+  onSelect,
+}: {
+  name: string;
+  label: string;
+  path: string;
+  createHref: string;
+  createLabel: string;
+  required?: boolean;
+  onSelect: (option: RuntimeLookupOption | undefined) => void;
+}) {
+  const [options, setOptions] = useState<RuntimeLookupOption[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch(`/api/platform-runtime/lookups?path=${encodeURIComponent(path)}`, {
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        const payload = (await response.json().catch(() => null)) as {
+          items?: RuntimeLookupOption[];
+          message?: string;
+        } | null;
+        if (!response.ok) {
+          throw new Error(payload?.message ?? `Unable to load ${caption.toLowerCase()}.`);
+        }
+        setOptions(payload?.items ?? []);
+      })
+      .catch((reason: unknown) => {
+        if (reason instanceof DOMException && reason.name === "AbortError") return;
+        setError(
+          reason instanceof Error
+            ? reason.message
+            : `Unable to load ${caption.toLowerCase()}.`,
+        );
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+    return () => controller.abort();
+  }, [caption, path]);
+
+  return (
+    <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <span className="flex items-center justify-between gap-2">
+        <span>{caption}</span>
+        <Link
+          href={createHref}
+          target="_blank"
+          className="text-[11px] normal-case tracking-normal text-[var(--admin-primary)] hover:underline"
+        >
+          {createLabel}
+        </Link>
+      </span>
+      <select
+        name={name}
+        required={required}
+        disabled={loading}
+        defaultValue=""
+        onChange={(event) =>
+          onSelect(options.find((option) => option.value === event.target.value))
+        }
+        className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-normal normal-case tracking-normal disabled:bg-slate-50"
+      >
+        <option value="">
+          {loading ? `Loading ${caption.toLowerCase()}...` : `Select ${caption.toLowerCase()}`}
+        </option>
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+      {error ? (
+        <span className="text-[11px] font-normal normal-case tracking-normal text-rose-600">
+          {error}
+        </span>
+      ) : null}
+    </label>
+  );
+}
+
+function uploadRelationship(contractType: string) {
+  if (contractType === "CUSTOMER_AGREEMENT") {
+    return {
+      name: "customerAccountId",
+      label: "Customer account",
+      path: "/super-admin/customers",
+      createHref: "/customers/new",
+      createLabel: "Create customer",
+    };
+  }
+  if (contractType === "PARTNER_AGREEMENT") {
+    return {
+      name: "partnerId",
+      label: "Partner",
+      path: "/partners",
+      createHref: "/partners/new",
+      createLabel: "Create partner",
+    };
+  }
+  return null;
+}
+
 function label(v: string) {
   return v
     .toLowerCase()

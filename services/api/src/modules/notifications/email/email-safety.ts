@@ -59,6 +59,17 @@ export function maskSensitiveConfiguration(value: unknown): unknown {
   }, {});
 }
 
+export function redactEmailError(value: unknown) {
+  const message = value instanceof Error ? value.message : String(value);
+  return message
+    .replace(/([a-z][a-z0-9+.-]*:\/\/)[^\s/@:]+:[^\s/@]+@/gi, '$1[redacted]@')
+    .replace(
+      /(password|secret|token|api[_-]?key|client[_-]?secret)\s*[=:]\s*[^\s,;]+/gi,
+      '$1=[redacted]',
+    )
+    .slice(0, 1000);
+}
+
 export function mergeConfigurationPreservingMaskedSecrets(
   existing: unknown,
   next: Record<string, unknown>,

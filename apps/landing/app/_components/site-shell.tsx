@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 const navItems = [
   { href: "/", label: "Home" },
@@ -19,12 +20,14 @@ export function SiteHeader() {
     <header className="sticky top-0 z-40 border-b border-border bg-white/88 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <Link className="flex items-center gap-3" href="/">
-          <span className="grid h-9 w-9 place-items-center rounded-xl bg-accent text-sm font-bold text-white">
-            DP
-          </span>
-          <span className="text-base font-semibold text-foreground">
-            DijiPeople
-          </span>
+          <Image
+            src="/logo-primary-horizontal.svg"
+            alt="DijiPeople"
+            width={370}
+            height={100}
+            priority
+            className="h-10 w-auto sm:h-11"
+          />
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
@@ -93,7 +96,13 @@ export function SiteFooter() {
     <footer className="border-t border-border bg-white/80">
       <div className="mx-auto grid max-w-7xl gap-6 px-4 py-10 text-sm text-muted sm:px-6 lg:grid-cols-[1fr_auto] lg:px-8">
         <div>
-          <p className="font-semibold text-foreground">DijiPeople</p>
+          <Image
+            src="/logo-primary-horizontal.svg"
+            alt="DijiPeople"
+            width={370}
+            height={100}
+            className="h-9 w-auto"
+          />
           <p className="mt-2 max-w-2xl leading-6">
             Enterprise SaaS for HR operations, tenant configuration, employee
             lifecycle workflows, and subscription-ready growth.

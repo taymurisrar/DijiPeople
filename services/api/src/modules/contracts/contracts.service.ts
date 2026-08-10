@@ -17,7 +17,18 @@ import {
 import { createHash, randomBytes } from 'crypto';
 import sanitizeHtml from 'sanitize-html';
 import PDFDocument from 'pdfkit';
-import { Document, Packer, Paragraph, TextRun } from 'docx';
+import {
+  Document,
+  HeadingLevel,
+  Packer,
+  Paragraph,
+  Table,
+  TableCell,
+  TableRow,
+  TextRun,
+  WidthType,
+} from 'docx';
+import { DomUtils, parseDocument } from 'htmlparser2';
 import mammoth from 'mammoth';
 import pdfParse from 'pdf-parse';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -28,6 +39,7 @@ import {
   emailPage,
   PlatformCommunicationsService,
 } from '../platform-communications/platform-communications.service';
+import { PlatformEventsService } from '../platform-events/platform-events.service';
 import {
   ApprovalDecisionDto,
   CompleteSignatureDto,
@@ -371,6 +383,7 @@ export class ContractsService {
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
     private readonly communications: PlatformCommunicationsService,
+    private readonly events: PlatformEventsService,
   ) {}
 
   listPlaceholderDefinitions(user: AuthenticatedUser) {
@@ -739,6 +752,24 @@ export class ContractsService {
       );
       return contract;
     });
+    await this.events.record({
+      eventCode: 'AGREEMENT_CREATED',
+      source: 'ADMIN',
+      entityType: 'Contract',
+      entityId: created.id,
+      customerAccountId: dto.customerAccountId,
+      tenantId: dto.tenantId,
+      actorType: 'PLATFORM_USER',
+      actorId: user.userId,
+      route: '/contracts',
+      metadata: {
+        contractNumber: created.contractNumber,
+        contractType: created.contractType,
+        documentSource: created.documentSource,
+        relatedLeadId: dto.relatedLeadId,
+        partnerId: dto.partnerId,
+      },
+    });
     return this.get(user, created.id);
   }
 
@@ -908,6 +939,12 @@ export class ContractsService {
   async update(user: AuthenticatedUser, id: string, dto: UpdateContractDto) {
     this.assertWrite(user);
     const existing = await this.get(user, id);
+    this.validateContractDates({
+      effectiveDate: dto.effectiveDate ?? existing.effectiveDate,
+      expiryDate: dto.expiryDate ?? existing.expiryDate,
+      effectiveFrom: dto.effectiveFrom ?? existing.effectiveFrom,
+      effectiveUntil: dto.effectiveUntil ?? existing.effectiveUntil,
+    });
     if (
       [
         'SIGNATURE_IN_PROGRESS',
@@ -965,6 +1002,15 @@ export class ContractsService {
         ...(dto.agreementCategory !== undefined
           ? { agreementCategory: dto.agreementCategory }
           : {}),
+        ...(dto.lifecycleGatePurpose !== undefined
+          ? { lifecycleGatePurpose: dto.lifecycleGatePurpose }
+          : {}),
+        ...(dto.isGoverningAgreement !== undefined
+          ? { isGoverningAgreement: dto.isGoverningAgreement }
+          : {}),
+        ...(dto.signingMode !== undefined
+          ? { signingMode: dto.signingMode }
+          : {}),
         ...(dto.counterpartyType !== undefined
           ? { counterpartyType: dto.counterpartyType }
           : {}),
@@ -1001,6 +1047,12 @@ export class ContractsService {
         ...(dto.expiryDate !== undefined
           ? { expiryDate: new Date(dto.expiryDate) }
           : {}),
+        ...(dto.effectiveFrom !== undefined
+          ? { effectiveFrom: new Date(dto.effectiveFrom) }
+          : {}),
+        ...(dto.effectiveUntil !== undefined
+          ? { effectiveUntil: new Date(dto.effectiveUntil) }
+          : {}),
         ...(dto.autoRenewal !== undefined
           ? { autoRenewal: dto.autoRenewal }
           : {}),
@@ -1011,6 +1063,18 @@ export class ContractsService {
           ? { terminationNoticeDays: dto.terminationNoticeDays }
           : {}),
         ...(dto.notes !== undefined ? { notes: dto.notes } : {}),
+        ...(dto.amendsContractId !== undefined
+          ? { amendsContractId: dto.amendsContractId }
+          : {}),
+        ...(dto.renewsContractId !== undefined
+          ? { renewsContractId: dto.renewsContractId }
+          : {}),
+        ...(dto.supersedesContractId !== undefined
+          ? { supersedesContractId: dto.supersedesContractId }
+          : {}),
+        ...(dto.subscriptionId !== undefined
+          ? { subscriptionId: dto.subscriptionId }
+          : {}),
         ...(dto.status !== undefined ? { status: dto.status } : {}),
         updatedById: user.userId,
         ...(dto.status === ContractStatus.ACTIVE
@@ -2049,6 +2113,23 @@ export class ContractsService {
         });
       }),
     );
+    await this.events.record({
+      eventCode: 'SIGNATURE_REQUESTED',
+      source: 'ADMIN',
+      entityType: 'Contract',
+      entityId: contractId,
+      customerAccountId: contract.customerAccountId,
+      tenantId: contract.tenantId,
+      actorType: 'PLATFORM_USER',
+      actorId: user.userId,
+      route: `/contracts/${contractId}`,
+      metadata: {
+        signatureRequestId: request.id,
+        requestNumber: request.requestNumber,
+        signingMode: request.signingMode,
+        recipientCount: request.recipients.length,
+      },
+    });
     return {
       ...request,
       signingLinks: tokens.map(({ recipient, token }) => ({
@@ -2330,8 +2411,12 @@ export class ContractsService {
       throw new BadRequestException(
         'An earlier signer must complete their signature first.',
       );
-    if (dto.method === 'TYPED' && !dto.typedName?.trim())
-      throw new BadRequestException('Typed signer name is required.');
+    if (dto.method === 'TYPED' && (dto.typedName?.trim().length ?? 0) < 2)
+      throw new BadRequestException('Enter the signer legal name.');
+    if (dto.method !== 'TYPED' && !dto.signatureDataUrl)
+      throw new BadRequestException(
+        'A drawn or uploaded signature image is required.',
+      );
     let signatureStorageKey: string | undefined;
     let signatureBytes = Buffer.from(dto.typedName?.trim() ?? recipient.name);
     if (dto.signatureDataUrl) {
@@ -2639,6 +2724,23 @@ export class ContractsService {
         ),
       );
     }
+    await this.events.record({
+      eventCode: isFinal ? 'AGREEMENT_FULLY_SIGNED' : 'AGREEMENT_SIGNED',
+      source: 'LANDING',
+      entityType: 'Contract',
+      entityId: recipient.signatureRequest.contractId,
+      customerAccountId: recipient.signatureRequest.contract.customerAccountId,
+      tenantId: recipient.signatureRequest.contract.tenantId,
+      actorType: 'EXTERNAL_SIGNER',
+      actorId: recipient.id,
+      route: '/public/signatures/:token/sign',
+      metadata: {
+        signatureRequestId: recipient.signatureRequestId,
+        method: dto.method,
+        role: recipient.role,
+        completed: isFinal,
+      },
+    });
     return {
       success: true,
       completed: isFinal,
@@ -2777,10 +2879,11 @@ export class ContractsService {
     if (!contract || !contract.versions[0])
       throw new NotFoundException('Contract document was not found.');
     const version = contract.versions[0];
-    let documentText = version.contentText.replace(
+    const documentHtml = version.contentHtml.replace(
       /\{\{\s*signature\.[a-zA-Z0-9_.-]+\s*\}\}/g,
       '[Electronic signature recorded in the signature appendix]',
     );
+    let documentText = '';
     if (immutable) {
       const evidenceRows = await this.prisma.signatureEvidence.findMany({
         where: {
@@ -2846,8 +2949,8 @@ export class ContractsService {
     }
     const buffer =
       format === 'pdf'
-        ? await createPdf(contract.title, documentText)
-        : await createDocx(contract.title, documentText);
+        ? await createPdf(contract.title, documentHtml, documentText)
+        : await createDocx(contract.title, documentHtml, documentText);
     const mimeType =
       format === 'pdf'
         ? 'application/pdf'
@@ -2875,6 +2978,24 @@ export class ContractsService {
         sha256: sha256(buffer),
         isImmutable: immutable,
         uploadedById: user?.userId,
+      },
+    });
+    await this.events.record({
+      eventCode: immutable
+        ? 'SIGNED_AGREEMENT_GENERATED'
+        : 'AGREEMENT_GENERATED',
+      source: 'API',
+      entityType: 'Contract',
+      entityId: contractId,
+      actorType: user ? 'PLATFORM_USER' : 'SYSTEM',
+      actorId: user?.userId,
+      route: `/contracts/${contractId}/generate/${format}`,
+      metadata: {
+        documentId: document.id,
+        format,
+        version: version.version,
+        immutable,
+        sizeBytes: saved.size,
       },
     });
     return { document, buffer };
@@ -3137,13 +3258,30 @@ export class ContractsService {
       throw new BadRequestException(
         'Customer agreement requires a customer account.',
       );
+    this.validateContractDates(dto);
+  }
+
+  private validateContractDates(input: {
+    effectiveDate?: string | Date | null;
+    expiryDate?: string | Date | null;
+    effectiveFrom?: string | Date | null;
+    effectiveUntil?: string | Date | null;
+  }) {
     if (
-      dto.effectiveDate &&
-      dto.expiryDate &&
-      new Date(dto.expiryDate) <= new Date(dto.effectiveDate)
+      input.effectiveDate &&
+      input.expiryDate &&
+      new Date(input.expiryDate) <= new Date(input.effectiveDate)
     )
       throw new BadRequestException(
         'Expiry date must be after the effective date.',
+      );
+    if (
+      input.effectiveFrom &&
+      input.effectiveUntil &&
+      new Date(input.effectiveUntil) < new Date(input.effectiveFrom)
+    )
+      throw new BadRequestException(
+        'Terms effective until must be on or after terms effective from.',
       );
   }
 
@@ -3765,7 +3903,7 @@ function compactStringRecord(values: Record<string, unknown>) {
   );
 }
 
-function decodeSignatureDataUrl(value: string) {
+export function decodeSignatureDataUrl(value: string) {
   const match = value.match(
     /^data:image\/(?:png|jpeg);base64,([A-Za-z0-9+/=]+)$/,
   );
@@ -3776,6 +3914,20 @@ function decodeSignatureDataUrl(value: string) {
   const buffer = Buffer.from(match[1], 'base64');
   if (!buffer.length || buffer.length > 2_000_000)
     throw new BadRequestException('Signature image is empty or exceeds 2 MB.');
+  const isPng =
+    buffer.length >= 8 &&
+    buffer
+      .subarray(0, 8)
+      .equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+  const isJpeg =
+    buffer.length >= 3 &&
+    buffer[0] === 0xff &&
+    buffer[1] === 0xd8 &&
+    buffer[2] === 0xff;
+  if (!isPng && !isJpeg)
+    throw new BadRequestException(
+      'Signature content must be a valid PNG or JPEG image.',
+    );
   return buffer;
 }
 
@@ -3839,7 +3991,84 @@ async function documentToHtml(file: ContractUploadFile) {
     .join('');
 }
 
-async function createPdf(title: string, text: string) {
+type AgreementHtmlNode = {
+  type: string;
+  name?: string;
+  data?: string;
+  attribs?: Record<string, string>;
+  children?: AgreementHtmlNode[];
+};
+
+type AgreementBlock =
+  | { kind: 'paragraph'; text: string; level?: number; quote?: boolean }
+  | {
+      kind: 'list';
+      text: string;
+      depth: number;
+      ordered: boolean;
+      index: number;
+    }
+  | { kind: 'table'; rows: string[][] };
+
+export function extractAgreementDocumentStructure(html: string) {
+  const root = parseDocument(cleanContractHtml(html)) as unknown as {
+    children: AgreementHtmlNode[];
+  };
+  const blocks: AgreementBlock[] = [];
+  const walk = (nodes: AgreementHtmlNode[], listDepth = 0) => {
+    for (const node of nodes) {
+      const name = node.name?.toLowerCase();
+      if (name && /^h[1-4]$/.test(name))
+        blocks.push({
+          kind: 'paragraph',
+          text: nodeText(node),
+          level: Number(name.slice(1)),
+        });
+      else if (name === 'p')
+        blocks.push({ kind: 'paragraph', text: nodeText(node) });
+      else if (name === 'blockquote')
+        blocks.push({ kind: 'paragraph', text: nodeText(node), quote: true });
+      else if (name === 'ul' || name === 'ol') {
+        const items = (node.children ?? []).filter(
+          (child) => child.name?.toLowerCase() === 'li',
+        );
+        items.forEach((item, index) => {
+          const inline = (item.children ?? []).filter(
+            (child) => !['ul', 'ol'].includes(child.name?.toLowerCase() ?? ''),
+          );
+          blocks.push({
+            kind: 'list',
+            text: nodesText(inline),
+            depth: listDepth,
+            ordered: name === 'ol',
+            index: index + 1,
+          });
+          walk(
+            (item.children ?? []).filter((child) =>
+              ['ul', 'ol'].includes(child.name?.toLowerCase() ?? ''),
+            ),
+            listDepth + 1,
+          );
+        });
+      } else if (name === 'table') {
+        const rows = findDescendants(node, 'tr').map((row) =>
+          (row.children ?? [])
+            .filter((cell) => ['td', 'th'].includes(cell.name ?? ''))
+            .map(nodeText),
+        );
+        if (rows.length) blocks.push({ kind: 'table', rows });
+      } else if (name === 'hr')
+        blocks.push({ kind: 'paragraph', text: '────────────────────' });
+      else if (node.children) walk(node.children, listDepth);
+    }
+  };
+  walk(root.children);
+  return blocks.filter(
+    (block) => block.kind === 'table' || block.text.trim().length > 0,
+  );
+}
+
+async function createPdf(title: string, html: string, appendix = '') {
   return new Promise<Buffer>((resolve, reject) => {
     const chunks: Buffer[] = [];
     const document = new PDFDocument({
@@ -3851,30 +4080,146 @@ async function createPdf(title: string, text: string) {
     document.on('error', reject);
     document.on('end', () => resolve(Buffer.concat(chunks)));
     document.fontSize(18).text(title, { align: 'center' }).moveDown(2);
-    document.fontSize(10).text(text, { align: 'justify', lineGap: 4 });
+    for (const block of extractAgreementDocumentStructure(html)) {
+      if (block.kind === 'table') {
+        for (const [rowIndex, row] of block.rows.entries()) {
+          document
+            .font(rowIndex === 0 ? 'Helvetica-Bold' : 'Helvetica')
+            .fontSize(9)
+            .text(row.join('  |  '), { lineGap: 3 });
+          document.moveDown(0.35);
+        }
+        document.moveDown(0.75);
+        continue;
+      }
+      if (block.kind === 'list') {
+        const prefix = block.ordered ? `${block.index}.` : '•';
+        document
+          .font('Helvetica')
+          .fontSize(10)
+          .text(`${'   '.repeat(block.depth)}${prefix} ${block.text}`, {
+            indent: block.depth * 14,
+            lineGap: 3,
+          })
+          .moveDown(0.45);
+        continue;
+      }
+      document
+        .font(block.level ? 'Helvetica-Bold' : 'Helvetica')
+        .fontSize(block.level ? Math.max(11, 19 - block.level * 2) : 10)
+        .text(block.text, {
+          align: block.level ? 'left' : 'justify',
+          indent: block.quote ? 18 : 0,
+          lineGap: 4,
+        })
+        .moveDown(block.level ? 0.8 : 0.6);
+    }
+    if (appendix.trim()) {
+      document.addPage();
+      document.font('Helvetica').fontSize(9).text(appendix, { lineGap: 3 });
+    }
     document.end();
   });
 }
 
-async function createDocx(title: string, text: string) {
+async function createDocx(title: string, html: string, appendix = '') {
+  const children: Array<Paragraph | Table> = [
+    new Paragraph({
+      children: [new TextRun({ text: title, bold: true, size: 32 })],
+      spacing: { after: 400 },
+    }),
+  ];
+  for (const block of extractAgreementDocumentStructure(html)) {
+    if (block.kind === 'table') {
+      children.push(
+        new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          rows: block.rows.map(
+            (row, rowIndex) =>
+              new TableRow({
+                children: row.map(
+                  (cell) =>
+                    new TableCell({
+                      children: [
+                        new Paragraph({
+                          children: [
+                            new TextRun({ text: cell, bold: rowIndex === 0 }),
+                          ],
+                        }),
+                      ],
+                    }),
+                ),
+              }),
+          ),
+        }),
+      );
+      continue;
+    }
+    if (block.kind === 'list') {
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: block.ordered
+                ? `${block.index}. ${block.text}`
+                : block.text,
+            }),
+          ],
+          ...(block.ordered
+            ? {}
+            : { bullet: { level: Math.min(8, block.depth) } }),
+          indent: block.ordered ? { left: 360 * (block.depth + 1) } : undefined,
+          spacing: { after: 100 },
+        }),
+      );
+      continue;
+    }
+    children.push(
+      new Paragraph({
+        children: [new TextRun({ text: block.text, italics: block.quote })],
+        heading:
+          block.level === 1
+            ? HeadingLevel.HEADING_1
+            : block.level === 2
+              ? HeadingLevel.HEADING_2
+              : block.level === 3
+                ? HeadingLevel.HEADING_3
+                : block.level === 4
+                  ? HeadingLevel.HEADING_4
+                  : undefined,
+        indent: block.quote ? { left: 360 } : undefined,
+        spacing: { after: block.level ? 220 : 160 },
+      }),
+    );
+  }
+  if (appendix.trim())
+    children.push(
+      ...appendix
+        .split(/\n+/)
+        .filter(Boolean)
+        .map((text) => new Paragraph({ text, spacing: { after: 120 } })),
+    );
   const document = new Document({
-    sections: [
-      {
-        children: [
-          new Paragraph({
-            children: [new TextRun({ text: title, bold: true, size: 32 })],
-            spacing: { after: 400 },
-          }),
-          ...text
-            .split(/\n+/)
-            .filter(Boolean)
-            .map(
-              (paragraph) =>
-                new Paragraph({ text: paragraph, spacing: { after: 180 } }),
-            ),
-        ],
-      },
-    ],
+    sections: [{ children }],
   });
   return Packer.toBuffer(document);
+}
+
+function nodeText(node: AgreementHtmlNode) {
+  return DomUtils.getText(node as never)
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function nodesText(nodes: AgreementHtmlNode[]) {
+  return nodes.map(nodeText).join(' ').replace(/\s+/g, ' ').trim();
+}
+
+function findDescendants(node: AgreementHtmlNode, name: string) {
+  const matches: AgreementHtmlNode[] = [];
+  for (const child of node.children ?? []) {
+    if (child.name?.toLowerCase() === name) matches.push(child);
+    else matches.push(...findDescendants(child, name));
+  }
+  return matches;
 }

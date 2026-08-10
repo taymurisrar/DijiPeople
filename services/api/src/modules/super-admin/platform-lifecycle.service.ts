@@ -53,6 +53,8 @@ import {
 } from './dto/customer-lifecycle.dto';
 import { ConvertLeadToCustomerDto } from '../leads/dto/admin-lead.dto';
 import { BillingService } from './billing.service';
+import { TenantProvisioningService } from './tenant-provisioning.service';
+import { PlatformEventsService } from '../platform-events/platform-events.service';
 
 @Injectable()
 export class PlatformLifecycleService {
@@ -68,6 +70,8 @@ export class PlatformLifecycleService {
     private readonly leadsRepository: LeadsRepository,
     private readonly userInvitationsService: UserInvitationsService,
     private readonly customizationService: CustomizationService,
+    private readonly tenantProvisioning: TenantProvisioningService,
+    private readonly events: PlatformEventsService,
   ) {}
 
   getLifecycleOptions() {
@@ -248,6 +252,22 @@ export class PlatformLifecycleService {
       entityType: 'Lead',
       entityId: leadId,
       afterSnapshot: { customerId: customer.id },
+    });
+
+    await this.events.record({
+      eventCode: 'LEAD_CONVERTED',
+      source: 'ADMIN',
+      entityType: 'Lead',
+      entityId: leadId,
+      customerAccountId: customer.id,
+      actorType: 'PLATFORM_USER',
+      actorId: actor.userId,
+      route: `/leads/${leadId}`,
+      metadata: {
+        customerId: customer.id,
+        partnerId: lead.partnerId,
+        referralLinkId: lead.partnerReferralLinkId,
+      },
     });
 
     return this.getCustomer(customer.id);
@@ -1329,6 +1349,12 @@ export class PlatformLifecycleService {
           create: buildDefaultTenantBranding(tenantName, primaryOwnerEmail),
         },
       },
+    });
+
+    await this.tenantProvisioning.provisionSystemDomain({
+      tenantId: createdTenant.id,
+      slug: createdTenant.slug,
+      actorId: actor.userId,
     });
 
     await this.permissionsService.bootstrapTenantDefaults(

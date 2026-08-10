@@ -77,10 +77,8 @@ export function deriveCheckoutReadiness(
   if (price.effectiveFrom > now) reasons.push('Price is not effective yet.');
   if (price.unitAmount <= 0) reasons.push('Amount must be greater than zero.');
   if (!price.currency.trim()) reasons.push('Currency is required.');
-  if (price.billingModel !== BillingModel.PER_SEAT)
-    reasons.push('Price is not per-seat.');
-  if (price.billingInterval !== BillingInterval.MONTH)
-    reasons.push('Price is not monthly.');
+  if (![BillingModel.PER_SEAT, BillingModel.FLAT].includes(price.billingModel))
+    reasons.push('Billing model is not supported for checkout.');
   if (!price.stripeProductId) reasons.push('Stripe Product ID is missing.');
   if (!price.stripePriceId) reasons.push('Stripe Price ID is missing.');
   if (price.stripeEnvironment !== expectedEnvironment)
@@ -90,8 +88,10 @@ export function deriveCheckoutReadiness(
   if (!price.stripeActive) reasons.push('Stripe Price is inactive.');
   if (price.stripeUsageType !== 'licensed')
     reasons.push('Stripe usage type must be licensed.');
-  if (price.stripeRecurringInterval !== 'month')
-    reasons.push('Stripe recurring interval must be month.');
+  const expectedInterval =
+    price.billingInterval === BillingInterval.YEAR ? 'year' : 'month';
+  if (price.stripeRecurringInterval !== expectedInterval)
+    reasons.push(`Stripe recurring interval must be ${expectedInterval}.`);
   if (!price.stripeVerifiedAt)
     reasons.push('Stripe Price has not been verified.');
 
@@ -102,14 +102,18 @@ export function stripeEnvironmentFromMode(mode: 'test' | 'live') {
   return mode === 'live' ? StripeEnvironment.LIVE : StripeEnvironment.TEST;
 }
 
-export function buildPerSeatCheckoutLineItem(
+export function buildRecurringCheckoutLineItem(
   stripePriceId: string,
   purchasedSeats: number,
+  billingModel: BillingModel,
 ) {
   if (!stripePriceId) throw new Error('Stripe Price ID is required.');
   if (!Number.isInteger(purchasedSeats) || purchasedSeats < 1)
     throw new Error('Purchased seat quantity must be a positive integer.');
-  return { price: stripePriceId, quantity: purchasedSeats };
+  return {
+    price: stripePriceId,
+    quantity: billingModel === BillingModel.PER_SEAT ? purchasedSeats : 1,
+  };
 }
 
 function roundCurrency(value: number) {

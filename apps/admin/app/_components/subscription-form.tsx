@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { BillingCycleValue, SubscriptionStatusValue } from "@/lib/domain";
 import {
@@ -19,10 +19,40 @@ type SubscriptionPlanOption = {
   monthlyBasePrice?: number;
   annualBasePrice?: number;
   currency?: string;
+  prices?: Array<{
+    id: string;
+    billingCycle: "MONTHLY" | "ANNUAL";
+    billingModel: "FLAT" | "PER_SEAT";
+    billingInterval: "MONTH" | "YEAR";
+    currency: string;
+    unitAmount: number;
+    minimumSeats: number;
+    maximumSeats: number | null;
+    isActive: boolean;
+  }>;
+};
+
+type PromotionOption = {
+  id: string;
+  name: string;
+  code: string | null;
+  discountType: "PERCENTAGE" | "FLAT";
+  percentOff: number | null;
+  amountOff: number | null;
+  currency: string | null;
+  duration: "ONCE" | "REPEATING" | "FOREVER";
+  durationMonths: number | null;
+  scope: "GLOBAL" | "PLAN" | "PRICE" | "CUSTOMER" | "SUBSCRIPTION";
+  planId: string | null;
+  planPriceId: string | null;
+  customerAccountId: string | null;
+  subscriptionId: string | null;
+  isActive: boolean;
 };
 
 type SubscriptionFormProps = {
   tenantId: string;
+  customerAccountId?: string | null;
   plans: SubscriptionPlanOption[];
   currentSubscription: {
     id: string;
@@ -40,11 +70,13 @@ type SubscriptionFormProps = {
     renewalDate: string | null;
     autoRenew: boolean;
     purchasedSeats?: number;
+    planPrice?: { id: string } | null;
   } | null;
 };
 
 export function SubscriptionForm({
   tenantId,
+  customerAccountId,
   plans,
   currentSubscription,
 }: SubscriptionFormProps) {
@@ -83,6 +115,11 @@ export function SubscriptionForm({
   const [purchasedSeats, setPurchasedSeats] = useState(
     currentSubscription?.purchasedSeats ?? 1,
   );
+  const [planPriceId, setPlanPriceId] = useState(
+    currentSubscription?.planPrice?.id ?? "",
+  );
+  const [promotions, setPromotions] = useState<PromotionOption[]>([]);
+  const [promotionId, setPromotionId] = useState("");
   const [startDate, setStartDate] = useState(
     currentSubscription?.startDate?.slice(0, 10) ??
       new Date().toISOString().slice(0, 10),
@@ -98,13 +135,58 @@ export function SubscriptionForm({
     () => plans.find((plan) => plan.id === planId) ?? null,
     [planId, plans],
   );
+  const selectedPrice = useMemo(
+    () =>
+      selectedPlan?.prices?.find((price) => price.id === planPriceId) ?? null,
+    [planPriceId, selectedPlan?.prices],
+  );
+  const availablePromotions = useMemo(
+    () =>
+      promotions.filter(
+        (promotion) =>
+          promotion.isActive &&
+          (promotion.scope === "GLOBAL" ||
+            (promotion.scope === "PLAN" && promotion.planId === planId) ||
+            (promotion.scope === "PRICE" &&
+              promotion.planPriceId === planPriceId) ||
+            (promotion.scope === "CUSTOMER" &&
+              promotion.customerAccountId === customerAccountId) ||
+            (promotion.scope === "SUBSCRIPTION" &&
+              promotion.subscriptionId === currentSubscription?.id)),
+      ),
+    [
+      customerAccountId,
+      currentSubscription?.id,
+      planId,
+      planPriceId,
+      promotions,
+    ],
+  );
+  const selectedPromotion = useMemo(
+    () =>
+      availablePromotions.find((promotion) => promotion.id === promotionId) ??
+      null,
+    [availablePromotions, promotionId],
+  );
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/super-admin/promotions", { signal: controller.signal })
+      .then((response) => (response.ok ? response.json() : []))
+      .then((items: PromotionOption[]) => setPromotions(items))
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, []);
 
   const pricingPreview = useMemo(() => {
-    const basePrice = Number(
-      billingCycle === "ANNUAL" || billingCycle === "Annual"
-        ? (selectedPlan?.annualBasePrice ?? 0)
-        : (selectedPlan?.monthlyBasePrice ?? 0),
-    );
+    const basePrice = selectedPrice
+      ? Number(selectedPrice.unitAmount) *
+        (selectedPrice.billingModel === "PER_SEAT" ? purchasedSeats : 1)
+      : Number(
+          billingCycle === "ANNUAL" || billingCycle === "Annual"
+            ? (selectedPlan?.annualBasePrice ?? 0)
+            : (selectedPlan?.monthlyBasePrice ?? 0),
+        );
     const parsedDiscount = Number(discountValue || 0);
     let discounted = basePrice;
 
@@ -130,6 +212,8 @@ export function SubscriptionForm({
     manualFinalPrice,
     selectedPlan?.annualBasePrice,
     selectedPlan?.monthlyBasePrice,
+    selectedPrice,
+    purchasedSeats,
   ]);
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -151,6 +235,8 @@ export function SubscriptionForm({
           },
           body: JSON.stringify({
             planId,
+            planPriceId: planPriceId || null,
+            promotionId: promotionId || null,
             purchasedSeats,
             status,
             billingCycle,
@@ -206,6 +292,7 @@ export function SubscriptionForm({
             step="1"
             type="number"
             value={purchasedSeats}
+            disabled={selectedPrice?.billingModel === "FLAT"}
             onChange={(event) =>
               setPurchasedSeats(Math.max(1, Number(event.target.value)))
             }
@@ -222,8 +309,17 @@ export function SubscriptionForm({
             value={planId}
             onChange={(event) => {
               setPlanId(event.target.value);
-              setManualFinalPrice("");
               const plan = plans.find((item) => item.id === event.target.value);
+              const nextPrice = plan?.prices?.find((price) => price.isActive);
+              setPlanPriceId(nextPrice?.id ?? "");
+              if (nextPrice) {
+                setBillingCycle(nextPrice.billingCycle);
+                setCurrency(nextPrice.currency);
+                setPurchasedSeats(
+                  Math.max(purchasedSeats, nextPrice.minimumSeats),
+                );
+              }
+              setManualFinalPrice("");
               if (plan?.currency) {
                 setCurrency(plan.currency);
               }
@@ -236,6 +332,42 @@ export function SubscriptionForm({
               </option>
             ))}
           </select>
+        </label>
+
+        <label className="block text-sm font-medium text-slate-700">
+          Price / billing frequency
+          <select
+            value={planPriceId}
+            onChange={(event) => {
+              const price = selectedPlan?.prices?.find(
+                (item) => item.id === event.target.value,
+              );
+              setPlanPriceId(event.target.value);
+              if (price) {
+                setBillingCycle(price.billingCycle);
+                setCurrency(price.currency);
+                setPurchasedSeats(Math.max(purchasedSeats, price.minimumSeats));
+              }
+              setManualFinalPrice("");
+            }}
+            className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--admin-primary)]"
+          >
+            <option value="">Legacy plan base price</option>
+            {selectedPlan?.prices
+              ?.filter((price) => price.isActive)
+              .map((price) => (
+                <option key={price.id} value={price.id}>
+                  {formatEnumLabel(price.billingModel)} ·{" "}
+                  {formatBillingCycle(price.billingCycle)} ·{" "}
+                  {formatCurrency(price.unitAmount, price.currency)}
+                  {price.billingModel === "PER_SEAT" ? " / seat" : ""}
+                </option>
+              ))}
+          </select>
+          <span className="mt-1 block text-xs text-slate-500">
+            The selected price drives currency, interval, pricing model, and
+            Stripe quantity.
+          </span>
         </label>
 
         <label className="block text-sm font-medium text-slate-700">
@@ -292,6 +424,43 @@ export function SubscriptionForm({
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
+        <label className="block text-sm font-medium text-slate-700 lg:col-span-3">
+          Promotion
+          <select
+            value={promotionId}
+            onChange={(event) => {
+              const promotion = availablePromotions.find(
+                (item) => item.id === event.target.value,
+              );
+              setPromotionId(event.target.value);
+              if (promotion) {
+                setDiscountType(promotion.discountType);
+                setDiscountValue(
+                  String(promotion.percentOff ?? promotion.amountOff ?? 0),
+                );
+                setDiscountReason(
+                  `${promotion.name}${promotion.code ? ` (${promotion.code})` : ""}`,
+                );
+                setManualFinalPrice("");
+              }
+            }}
+            className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-[var(--admin-primary)]"
+          >
+            <option value="">No managed promotion</option>
+            {availablePromotions.map((promotion) => (
+              <option key={promotion.id} value={promotion.id}>
+                {promotion.name} ·{" "}
+                {promotion.discountType === "PERCENTAGE"
+                  ? `${promotion.percentOff}%`
+                  : `${promotion.currency} ${promotion.amountOff}`}{" "}
+                ·{" "}
+                {promotion.duration === "REPEATING"
+                  ? `${promotion.durationMonths} months`
+                  : formatEnumLabel(promotion.duration)}
+              </option>
+            ))}
+          </select>
+        </label>
         <label className="block text-sm font-medium text-slate-700">
           Discount type
           <select
@@ -404,6 +573,20 @@ export function SubscriptionForm({
             </div>
           </div>
         </div>
+        {selectedPromotion ? (
+          <p className="mt-3 border-t border-slate-200 pt-3 text-sm text-slate-600">
+            {selectedPromotion.duration === "ONCE"
+              ? "Discount applies to the first invoice only."
+              : selectedPromotion.duration === "FOREVER"
+                ? "Discount applies to every eligible invoice."
+                : selectedPrice?.billingInterval === "YEAR"
+                  ? `Valid for ${selectedPromotion.durationMonths} calendar months; Stripe applies it to the annual invoice, not as monthly instalments.`
+                  : `Discounted for the first ${selectedPromotion.durationMonths} monthly invoices.`}{" "}
+            After the promotion:{" "}
+            {formatCurrency(pricingPreview.basePrice, currency)} /{" "}
+            {selectedPrice?.billingInterval === "YEAR" ? "year" : "month"}.
+          </p>
+        ) : null}
       </div>
 
       {message ? <p className="text-sm text-slate-600">{message}</p> : null}

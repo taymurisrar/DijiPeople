@@ -8,11 +8,13 @@ import type {
   RuntimeViewDefinition,
 } from "./platform-runtime.types";
 import {
+  AGREEMENT_CATEGORY_OPTIONS,
   getRuntimeSchema,
   listRuntimeViewKeys,
   runtimeViewLabel,
   validateRuntimeDefinition,
 } from "@repo/config";
+import { PLATFORM_CURRENCY_OPTIONS } from "@/lib/reference-data/platform-reference-data";
 
 const PLATFORM_OPERATORS = ["PLATFORM_OWNER", "PLATFORM_ADMIN", "SUPER_ADMIN"];
 const ALL_PLATFORM_ROLES = [
@@ -292,6 +294,7 @@ const SUPPORT_STATUSES: RuntimeStatusDefinition[] = [
 ].map(status);
 
 const partnerFields: RuntimeFieldDefinition[] = [
+  { ...field("id", "Partner ID", "text", "system"), readOnly: true },
   { ...field("code", "Partner number", "text", "identity"), readOnly: true },
   field("displayName", "Partner name", "text", "identity", true),
   field("legalName", "Legal name", "text", "identity"),
@@ -338,6 +341,33 @@ const partnerFields: RuntimeFieldDefinition[] = [
     lookupPath: "/platform-users/owner-candidates",
   },
   field("notes", "Internal notes", "longText", "notes"),
+  {
+    ...field("applicationSource", "Application source", "text", "application"),
+    readOnly: true,
+  },
+  {
+    ...field(
+      "applicationSubmittedAt",
+      "Application submitted",
+      "dateTime",
+      "application",
+    ),
+    readOnly: true,
+  },
+  {
+    ...field(
+      "applicationSnapshot",
+      "Application snapshot",
+      "json",
+      "application",
+    ),
+    readOnly: true,
+  },
+  { ...field("createdAt", "Created", "dateTime", "system"), readOnly: true },
+  {
+    ...field("updatedAt", "Last updated", "dateTime", "system"),
+    readOnly: true,
+  },
 ];
 
 const definitions: PlatformModuleDefinition[] = [
@@ -379,16 +409,13 @@ const definitions: PlatformModuleDefinition[] = [
     apiBase: "/super-admin/leads",
     views: views("leads", [
       "all",
-      "new",
-      "contacted",
+      "my-open-leads",
+      "website-leads",
+      "partner-leads",
       "qualified",
-      "unqualified",
+      "awaiting-agreement",
       "converted",
-      "closed-lost",
-      "direct-leads",
-      "partner-referred-leads",
-      "my-assigned-leads",
-      "unassigned-leads",
+      "lost-inactive",
     ]),
     defaultView: "all",
     statuses: LEAD_STATUSES,
@@ -400,40 +427,176 @@ const definitions: PlatformModuleDefinition[] = [
       col("assignedToUser.fullName", "Owner", 170, "lookup"),
       col("createdAt", "Created", 160, "dateTime"),
     ],
-    forms: lifecycleForms("lead", [
-      field("contactFirstName", "First name", "text", "contact", true),
-      field("contactLastName", "Last name", "text", "contact", true),
-      field("companyName", "Company", "text", "company", true),
-      field("workEmail", "Work email", "email", "contact", true),
-      field("industry", "Industry", "text", "company", true),
-      field("companySize", "Company size", "text", "company", true),
-      field("source", "Source", "text", "qualification", true),
-      field("partnerId", "Referral partner", "lookup", "qualification"),
-      field(
-        "status",
-        "Status",
-        "option",
-        "qualification",
-        true,
-        LEAD_STATUSES.map((item) => item.value),
-      ),
-      field("notes", "Notes", "longText", "notes"),
-    ], [
-      "Summary",
-      "Qualification",
-      "Contact and Company",
-      "Attribution",
-      "Activities",
-      "Agreements",
-      "Conversion",
-      "Documents",
-      "Timeline",
-    ], {
-      contact: "contact-and-company",
-      company: "contact-and-company",
-      qualification: "qualification",
-      notes: "activities",
-    }),
+    forms: lifecycleForms(
+      "lead",
+      [
+        field(
+          "companyName",
+          "Company / lead name",
+          "text",
+          "lead-information",
+          true,
+        ),
+        {
+          ...field("fullName", "Contact name", "text", "lead-information"),
+          readOnly: true,
+        },
+        field(
+          "status",
+          "Status",
+          "option",
+          "lead-information",
+          true,
+          LEAD_STATUSES.map((item) => item.value),
+        ),
+        field("subStatus", "Status reason", "text", "lead-information"),
+        {
+          ...field(
+            "assignedToUserId",
+            "Owner",
+            "userLookup",
+            "lead-information",
+          ),
+          lookupPath: "/platform-users/owner-candidates",
+        },
+        field("contactFirstName", "First name", "text", "contact", true),
+        field("contactLastName", "Last name", "text", "contact", true),
+        field("workEmail", "Work email", "email", "contact", true),
+        field("phoneNumber", "Phone", "phone", "contact"),
+        field("companyWebsite", "Company website", "url", "company"),
+        field("industry", "Industry", "text", "company", true),
+        field("companySize", "Company size", "text", "company", true),
+        field(
+          "estimatedEmployeeCount",
+          "Expected employees / seats",
+          "integer",
+          "company",
+        ),
+        field("country", "Country", "text", "company"),
+        field("stateProvince", "State or province", "text", "company"),
+        field("city", "City", "text", "company"),
+        field(
+          "requirementsSummary",
+          "Requirements summary",
+          "longText",
+          "requirement",
+        ),
+        {
+          ...field("message", "Website message", "longText", "requirement"),
+          readOnly: true,
+        },
+        field(
+          "interestedPlan",
+          "Interested product or plan",
+          "text",
+          "commercial",
+        ),
+        field("expectedGoLiveDate", "Expected go-live", "date", "commercial"),
+        field("budgetExpectation", "Budget expectation", "text", "commercial"),
+        field("isQualified", "Qualified", "boolean", "qualification"),
+        field("notes", "Qualification notes", "longText", "qualification"),
+        field("source", "Source", "option", "acquisition", true, [
+          "Website",
+          "Manual Entry",
+          "Sales Outreach",
+          "Referral",
+          "LinkedIn",
+          "Upwork",
+          "Email Inquiry",
+          "WhatsApp Inquiry",
+          "Demo Request",
+          "Partner Referral",
+          "PARTNER_PORTAL",
+          "Existing Customer",
+          "Event / Exhibition",
+          "Support Conversion",
+          "Marketing Campaign",
+          "Other",
+        ]),
+        {
+          ...field("partnerId", "Referral partner", "lookup", "acquisition"),
+          lookupPath: "/partners?pageSize=100",
+        },
+        {
+          ...field(
+            "partnerReferralLinkId",
+            "Referral link",
+            "text",
+            "acquisition",
+          ),
+          readOnly: true,
+        },
+        {
+          ...field(
+            "referralCodeSnapshot",
+            "Referral code",
+            "text",
+            "acquisition",
+          ),
+          readOnly: true,
+        },
+        {
+          ...field("referralSource", "Referral source", "text", "acquisition"),
+          readOnly: true,
+        },
+        {
+          ...field("referredAt", "Referred at", "dateTime", "acquisition"),
+          readOnly: true,
+        },
+        {
+          ...field(
+            "attributionStatus",
+            "Attribution status",
+            "option",
+            "acquisition",
+            false,
+            [
+              "DIRECT",
+              "ATTRIBUTED",
+              "INVALID_CODE",
+              "INACTIVE_PARTNER",
+              "EXPIRED_LINK",
+              "DISABLED_LINK",
+              "CORRECTED",
+            ],
+          ),
+          readOnly: true,
+        },
+        {
+          ...field("convertedAt", "Converted at", "dateTime", "conversion"),
+          readOnly: true,
+        },
+        { ...field("id", "Lead ID", "text", "system"), readOnly: true },
+        {
+          ...field("createdAt", "Received", "dateTime", "system"),
+          readOnly: true,
+        },
+        {
+          ...field("updatedAt", "Last updated", "dateTime", "system"),
+          readOnly: true,
+        },
+      ],
+      [
+        "Summary",
+        "Commercial",
+        "Agreements",
+        "Activities",
+        "Documents",
+        "Timeline",
+        "System",
+      ],
+      {
+        "lead-information": "summary",
+        contact: "summary",
+        company: "summary",
+        requirement: "summary",
+        qualification: "summary",
+        acquisition: "summary",
+        commercial: "commercial",
+        conversion: "commercial",
+        system: "system",
+      },
+    ),
     process: {
       key: "lead-lifecycle",
       stages: [
@@ -444,6 +607,7 @@ const definitions: PlatformModuleDefinition[] = [
           label: "Qualification",
           requiredFields: ["requirementsSummary"],
         },
+        { key: "AGREEMENT", label: "Agreement" },
         { key: "CONVERTED", label: "Conversion" },
       ],
       terminalOutcomes: [
@@ -452,12 +616,65 @@ const definitions: PlatformModuleDefinition[] = [
         { key: "ARCHIVED", label: "Cancelled / Archived", tone: "neutral" },
       ],
     },
+    actions: [
+      { ...STANDARD_LIST_ACTIONS[0]!, label: "New Lead" },
+      STANDARD_LIST_ACTIONS[1]!,
+      STANDARD_LIST_ACTIONS[2]!,
+      STANDARD_LIST_ACTIONS[3]!,
+      {
+        key: "bulk-change-status",
+        label: "Change Status",
+        placement: "secondary",
+        scope: "list",
+        selection: "any",
+      },
+      STANDARD_LIST_ACTIONS[4]!,
+      ...EDIT_RECORD_ACTIONS,
+      {
+        key: "qualify",
+        label: "Qualify",
+        placement: "primary",
+        scope: "record",
+        selection: "none",
+        states: ["NEW", "CONTACTED"],
+      },
+      {
+        key: "disqualify",
+        label: "Disqualify",
+        placement: "overflow",
+        scope: "record",
+        selection: "none",
+        states: ["NEW", "CONTACTED", "QUALIFIED"],
+      },
+      {
+        key: "create-agreement",
+        label: "Create agreement",
+        placement: "secondary",
+        scope: "record",
+        selection: "none",
+        states: ["QUALIFIED"],
+      },
+      {
+        key: "convert",
+        label: "Convert to Customer",
+        placement: "primary",
+        scope: "record",
+        selection: "none",
+        states: ["QUALIFIED"],
+      },
+    ],
     relatedRecords: [
       {
         key: "agreements",
         label: "Lead agreements",
+        tab: "agreements",
+        description:
+          "Pre-sales and customer agreements linked to this opportunity.",
+        emptyTitle: "No lead agreements yet",
+        emptyDescription:
+          "Create an agreement when this qualified opportunity requires one before conversion.",
         module: "contracts",
-        foreignKey: "leadId",
+        foreignKey: "relatedLeadId",
       },
     ],
   }),
@@ -535,7 +752,12 @@ const definitions: PlatformModuleDefinition[] = [
         placement: "overflow",
         scope: "record",
         selection: "none",
-        states: ["INQUIRY", "NEW_INQUIRY", "UNDER_REVIEW", "APPROVED_AWAITING_AGREEMENT"],
+        states: [
+          "INQUIRY",
+          "NEW_INQUIRY",
+          "UNDER_REVIEW",
+          "APPROVED_AWAITING_AGREEMENT",
+        ],
         destructive: true,
         confirmTitle: "Reject this partner application?",
       },
@@ -592,6 +814,10 @@ const definitions: PlatformModuleDefinition[] = [
       {
         key: "leads",
         label: "Attributed leads",
+        tab: "referred-leads",
+        emptyTitle: "No referred leads yet",
+        emptyDescription:
+          "Leads submitted through this partner's referral links will appear here.",
         module: "leads",
         foreignKey: "partnerId",
         columns: [
@@ -603,6 +829,10 @@ const definitions: PlatformModuleDefinition[] = [
       {
         key: "agreements",
         label: "Partner agreements",
+        tab: "agreements",
+        emptyTitle: "No partner agreements yet",
+        emptyDescription:
+          "Create and execute the required partner agreement before activation.",
         module: "contracts",
         foreignKey: "partnerId",
         columns: [
@@ -614,33 +844,39 @@ const definitions: PlatformModuleDefinition[] = [
       {
         key: "referralLinks",
         label: "Referral links",
+        tab: "referral-links",
         foreignKey: "partnerId",
       },
       {
         key: "inquiries",
         label: "Application submissions",
+        tab: "application",
         foreignKey: "partnerId",
       },
       {
         key: "portalUsers",
         label: "Contacts and users",
+        tab: "contacts",
         foreignKey: "partnerId",
       },
       {
         key: "attributedCustomers",
         label: "Converted customers",
+        tab: "customers",
         module: "customers",
         foreignKey: "originatingPartnerId",
       },
       {
         key: "attributedTenants",
         label: "Attributed tenants",
+        tab: "tenants",
         module: "tenants",
         foreignKey: "originatingPartnerId",
       },
       {
         key: "commissions",
         label: "Commissions",
+        tab: "summary",
         module: "commissions",
         foreignKey: "partnerId",
         columns: [
@@ -678,105 +914,279 @@ const definitions: PlatformModuleDefinition[] = [
       "CHURNED",
       "ARCHIVED",
     ].map(status),
-    forms: lifecycleForms("customer", [
-      field("companyName", "Company name", "text", "company", true),
-      field("legalCompanyName", "Legal company name", "text", "company"),
-      field("industry", "Industry", "text", "company"),
-      field("companySize", "Company size", "text", "company"),
-      field("website", "Website", "url", "company"),
-      field(
-        "estimatedEmployeeCount",
-        "Estimated employees",
-        "integer",
-        "company",
-      ),
-      field(
-        "primaryContactFirstName",
-        "Primary contact first name",
-        "text",
-        "contact",
-        true,
-      ),
-      field(
-        "primaryContactLastName",
-        "Primary contact last name",
-        "text",
-        "contact",
-        true,
-      ),
-      field(
-        "primaryContactEmail",
-        "Primary contact email",
-        "email",
-        "contact",
-        true,
-      ),
-      field("primaryContactPhone", "Primary contact phone", "phone", "contact"),
-      field("billingContactEmail", "Billing contact email", "email", "contact"),
-      field("country", "Country", "text", "address", true),
-      field("stateProvince", "State or province", "text", "address"),
-      field("city", "City", "text", "address"),
-      field("addressLine1", "Address line 1", "text", "address"),
-      {
-        ...field("selectedPlanId", "Preferred plan", "lookup", "commercial"),
-        lookupPath: "/super-admin/plans",
-      },
-      field(
-        "preferredBillingCycle",
-        "Billing cycle",
-        "option",
-        "commercial",
-        false,
-        ["MONTHLY", "QUARTERLY", "ANNUAL"],
-      ),
-      {
-        ...field(
-          "assignedToUserId",
-          "Assigned owner",
-          "userLookup",
-          "ownership",
+    forms: lifecycleForms(
+      "customer",
+      [
+        field("companyName", "Company name", "text", "identity", true),
+        field("legalCompanyName", "Legal company name", "text", "identity"),
+        field("status", "Status", "option", "identity", false, [
+          "LEAD",
+          "PROSPECT",
+          "ONBOARDING",
+          "ACTIVE",
+          "SUSPENDED",
+          "CHURNED",
+          "ARCHIVED",
+        ]),
+        field("subStatus", "Status reason", "text", "identity"),
+        field("industry", "Industry", "text", "identity"),
+        field("companySize", "Company size", "text", "identity"),
+        field("website", "Website", "url", "identity"),
+        field(
+          "estimatedEmployeeCount",
+          "Estimated employees",
+          "integer",
+          "identity",
         ),
-        lookupPath: "/platform-users/owner-candidates",
+        field("actualEmployeeCount", "Actual employees", "integer", "identity"),
+        field(
+          "primaryContactFirstName",
+          "Primary contact first name",
+          "text",
+          "contacts",
+          true,
+        ),
+        field(
+          "primaryContactLastName",
+          "Primary contact last name",
+          "text",
+          "contacts",
+          true,
+        ),
+        field(
+          "primaryContactEmail",
+          "Primary contact email",
+          "email",
+          "contacts",
+          true,
+        ),
+        field(
+          "primaryContactPhone",
+          "Primary contact phone",
+          "phone",
+          "contacts",
+        ),
+        field(
+          "contactEmail",
+          "Account contact email",
+          "email",
+          "contacts",
+          true,
+        ),
+        field("contactPhone", "Account contact phone", "phone", "contacts"),
+        field(
+          "billingContactEmail",
+          "Billing contact email",
+          "email",
+          "contacts",
+        ),
+        field("financeContactName", "Finance contact", "text", "contacts"),
+        field("financeContactEmail", "Finance email", "email", "contacts"),
+        field("country", "Country", "text", "address", true),
+        field("stateProvince", "State or province", "text", "address"),
+        field("city", "City", "text", "address"),
+        field("addressLine1", "Address line 1", "text", "address"),
+        field("addressLine2", "Address line 2", "text", "address"),
+        {
+          ...field("selectedPlanId", "Preferred plan", "lookup", "commercial"),
+          lookupPath: "/super-admin/plans",
+        },
+        field(
+          "preferredBillingCycle",
+          "Billing cycle",
+          "option",
+          "commercial",
+          false,
+          ["MONTHLY", "ANNUAL"],
+        ),
+        field("customPricingFlag", "Custom pricing", "boolean", "commercial"),
+        field("discountApproved", "Discount approved", "boolean", "commercial"),
+        {
+          ...field(
+            "assignedToUserId",
+            "Record owner",
+            "userLookup",
+            "ownership",
+          ),
+          lookupPath: "/platform-users/owner-candidates",
+        },
+        {
+          ...field(
+            "accountManagerUserId",
+            "Account manager",
+            "userLookup",
+            "ownership",
+          ),
+          lookupPath: "/platform-users/owner-candidates",
+        },
+        {
+          ...field(
+            "primaryOwnerUserId",
+            "Tenant primary owner",
+            "text",
+            "ownership",
+          ),
+          readOnly: true,
+        },
+        {
+          ...field("leadId", "Source lead", "lookup", "attribution"),
+          lookupPath: "/super-admin/leads?pageSize=100",
+        },
+        {
+          ...field(
+            "originatingPartnerId",
+            "Originating partner",
+            "lookup",
+            "attribution",
+          ),
+          lookupPath: "/partners?pageSize=100",
+          readOnly: true,
+        },
+        {
+          ...field(
+            "originatingReferralLinkId",
+            "Originating referral link",
+            "text",
+            "attribution",
+          ),
+          readOnly: true,
+        },
+        {
+          ...field(
+            "referralCodeSnapshot",
+            "Referral code",
+            "text",
+            "attribution",
+          ),
+          readOnly: true,
+        },
+        {
+          ...field("stripeCustomerId", "Stripe customer ID", "text", "system"),
+          readOnly: true,
+        },
+        {
+          ...field("isDemoData", "Demo data", "boolean", "system"),
+          readOnly: true,
+        },
+        {
+          ...field("demoBatchId", "Demo batch ID", "text", "system"),
+          readOnly: true,
+        },
+        {
+          ...field("seedSource", "Seed source", "text", "system"),
+          readOnly: true,
+        },
+        { ...field("id", "Customer ID", "text", "system"), readOnly: true },
+        {
+          ...field("createdAt", "Created", "dateTime", "system"),
+          readOnly: true,
+        },
+        {
+          ...field("updatedAt", "Last updated", "dateTime", "system"),
+          readOnly: true,
+        },
+      ],
+      [
+        "Summary",
+        "Company and Contacts",
+        "Agreements",
+        "Onboarding",
+        "Tenants",
+        "Subscriptions",
+        "Invoices",
+        "Support",
+        "Timeline",
+        "System",
+      ],
+      {
+        identity: "summary",
+        commercial: "summary",
+        ownership: "summary",
+        contacts: "company-contacts",
+        address: "company-contacts",
+        attribution: "summary",
+        system: "system",
       },
-      field("status", "Status", "option", "ownership", false, [
-        "LEAD",
-        "PROSPECT",
-        "ONBOARDING",
-        "ACTIVE",
-        "SUSPENDED",
-        "CHURNED",
-        "ARCHIVED",
-      ]),
-      field("subStatus", "Sub-status", "text", "ownership"),
-    ], [
-      "Summary",
-      "Company and Contacts",
-      "Agreements",
-      "Onboarding",
-      "Tenants",
-      "Subscriptions",
-      "Invoices",
-      "Support",
-      "Documents",
-      "Timeline",
-    ], {
-      company: "company-and-contacts",
-      contact: "company-and-contacts",
-      address: "company-and-contacts",
-      commercial: "summary",
-      ownership: "summary",
-    }),
-    actions: [...STANDARD_LIST_ACTIONS, ...STANDARD_RECORD_ACTIONS],
+    ),
+    actions: [
+      { ...STANDARD_LIST_ACTIONS[0]!, label: "New Customer" },
+      ...STANDARD_LIST_ACTIONS.slice(1),
+      ...STANDARD_RECORD_ACTIONS,
+      {
+        key: "start-onboarding",
+        label: "Start Onboarding",
+        placement: "primary",
+        scope: "record",
+        selection: "none",
+        states: ["PROSPECT", "ACTIVE"],
+      },
+      {
+        key: "create-agreement",
+        label: "Create agreement",
+        placement: "secondary",
+        scope: "record",
+        selection: "none",
+        states: ["PROSPECT", "ONBOARDING", "ACTIVE"],
+      },
+    ],
     relatedRecords: [
       {
         key: "contracts",
         label: "Customer agreements",
+        tab: "agreements",
+        emptyTitle: "No customer agreements yet",
+        emptyDescription:
+          "Create an agreement to record commercial and service terms for this customer.",
         module: "contracts",
         foreignKey: "customerAccountId",
       },
       {
+        key: "onboardings",
+        label: "Onboarding cycles",
+        tab: "onboarding",
+        module: "customer-onboarding",
+        foreignKey: "customerId",
+        emptyTitle: "No onboarding cycles yet",
+        emptyDescription:
+          "Start onboarding when the commercial prerequisites are complete.",
+      },
+      {
+        key: "tenants",
+        label: "Tenants",
+        tab: "tenants",
+        module: "tenants",
+        foreignKey: "customerAccountId",
+        emptyTitle: "No tenants yet",
+        emptyDescription:
+          "Tenants are provisioned from completed onboarding cycles. A customer can have multiple tenants.",
+      },
+      {
+        key: "subscriptions",
+        label: "Subscriptions",
+        tab: "subscriptions",
+        module: "subscriptions",
+        foreignKey: "customerAccountId",
+        emptyTitle: "No subscriptions yet",
+        emptyDescription:
+          "Subscriptions appear after a tenant has been provisioned.",
+      },
+      {
+        key: "invoices",
+        label: "Invoices",
+        tab: "invoices",
+        module: "invoices",
+        foreignKey: "customerAccountId",
+        emptyTitle: "No invoices yet",
+        emptyDescription:
+          "Invoices across all of this customer's tenants appear here.",
+      },
+      {
         key: "supportCases",
         label: "Support cases",
+        tab: "support",
+        emptyTitle: "No support cases",
+        emptyDescription:
+          "Support requests linked to this customer will appear here.",
         module: "support-cases",
         foreignKey: "customerAccountId",
       },
@@ -837,11 +1247,255 @@ const definitions: PlatformModuleDefinition[] = [
         col("updatedAt", "Updated", 160, "dateTime"),
       ],
     ),
+    statuses: [
+      "NOT_STARTED",
+      "IN_PROGRESS",
+      "AWAITING_CUSTOMER_INPUT",
+      "PENDING_PAYMENT",
+      "READY_FOR_TENANT_CREATION",
+      "COMPLETED",
+      "BLOCKED",
+      "CANCELED",
+    ].map(status),
+    forms: lifecycleForms(
+      "customer-onboarding",
+      [
+        {
+          ...field("customerId", "Customer", "lookup", "record", true),
+          lookupPath: "/super-admin/customers?pageSize=100",
+        },
+        {
+          ...field("leadId", "Source lead", "lookup", "record"),
+          lookupPath: "/super-admin/leads?pageSize=100",
+          readOnly: true,
+        },
+        field("status", "Status", "option", "record", true, [
+          "NOT_STARTED",
+          "IN_PROGRESS",
+          "AWAITING_CUSTOMER_INPUT",
+          "PENDING_PAYMENT",
+          "READY_FOR_TENANT_CREATION",
+          "COMPLETED",
+          "BLOCKED",
+          "CANCELED",
+        ]),
+        field("subStatus", "Status reason", "text", "record"),
+        {
+          ...field(
+            "onboardingOwnerUserId",
+            "Onboarding owner",
+            "userLookup",
+            "record",
+          ),
+          lookupPath: "/platform-users/owner-candidates",
+        },
+        {
+          ...field("selectedPlanId", "Plan", "lookup", "commercial"),
+          lookupPath: "/super-admin/plans",
+        },
+        field("billingCycle", "Billing cycle", "option", "commercial", false, [
+          "MONTHLY",
+          "ANNUAL",
+        ]),
+        field("agreedPrice", "Agreed price", "currency", "commercial"),
+        field("discountType", "Discount type", "option", "commercial", true, [
+          "NONE",
+          "PERCENTAGE",
+          "FLAT",
+        ]),
+        field("discountValue", "Discount value", "decimal", "commercial", true),
+        {
+          ...field(
+            "featureSelectionSummary",
+            "Feature selection",
+            "json",
+            "commercial",
+          ),
+          readOnly: true,
+          description:
+            "Plan feature selections captured for this provisioning cycle.",
+        },
+        field(
+          "contractSigned",
+          "Required agreement verified",
+          "boolean",
+          "readiness",
+        ),
+        field("paymentConfirmed", "Payment confirmed", "boolean", "readiness"),
+        field(
+          "implementationKickoffDone",
+          "Implementation kickoff complete",
+          "boolean",
+          "readiness",
+        ),
+        field("dataReceived", "Customer data received", "boolean", "readiness"),
+        field(
+          "configurationReady",
+          "Configuration ready",
+          "boolean",
+          "readiness",
+        ),
+        field("trainingPlanned", "Training planned", "boolean", "readiness"),
+        field(
+          "plannedTenantSlug",
+          "Planned tenant slug",
+          "text",
+          "tenant-setup",
+          true,
+        ),
+        {
+          ...field("tenantId", "Provisioned tenant", "lookup", "tenant-setup"),
+          lookupPath: "/super-admin/tenants",
+          readOnly: true,
+        },
+        {
+          ...field(
+            "tenantCreated",
+            "Tenant created",
+            "boolean",
+            "tenant-setup",
+          ),
+          readOnly: true,
+        },
+        field(
+          "primaryOwnerFirstName",
+          "Administrator first name",
+          "text",
+          "administrator",
+          true,
+        ),
+        field(
+          "primaryOwnerLastName",
+          "Administrator last name",
+          "text",
+          "administrator",
+          true,
+        ),
+        field(
+          "primaryOwnerWorkEmail",
+          "Administrator work email",
+          "email",
+          "administrator",
+          true,
+        ),
+        field(
+          "primaryOwnerPhone",
+          "Administrator phone",
+          "phone",
+          "administrator",
+        ),
+        field(
+          "createServiceAccount",
+          "Create service account",
+          "boolean",
+          "service-account",
+        ),
+        field(
+          "serviceAccountDisplayName",
+          "Service account name",
+          "text",
+          "service-account",
+        ),
+        field(
+          "serviceAccountEmail",
+          "Service account email",
+          "email",
+          "service-account",
+        ),
+        field(
+          "serviceAccountAssignSystemAdmin",
+          "Assign System Admin",
+          "boolean",
+          "service-account",
+        ),
+        field("notes", "Implementation notes", "longText", "notes"),
+        { ...field("id", "Onboarding ID", "text", "system"), readOnly: true },
+        {
+          ...field("createdAt", "Created", "dateTime", "system"),
+          readOnly: true,
+        },
+        {
+          ...field("updatedAt", "Last updated", "dateTime", "system"),
+          readOnly: true,
+        },
+      ],
+      [
+        "Overview",
+        "Readiness",
+        "Tenant Setup",
+        "Administrator",
+        "Commercial",
+        "Agreements",
+        "Support",
+        "Timeline",
+        "System",
+      ],
+      {
+        record: "overview",
+        readiness: "readiness",
+        "tenant-setup": "tenant-setup",
+        administrator: "administrator",
+        "service-account": "administrator",
+        commercial: "commercial",
+        notes: "overview",
+        system: "system",
+      },
+    ),
+    process: {
+      key: "customer-onboarding-lifecycle",
+      stages: [
+        "NOT_STARTED",
+        "IN_PROGRESS",
+        "AWAITING_CUSTOMER_INPUT",
+        "PENDING_PAYMENT",
+        "READY_FOR_TENANT_CREATION",
+        "COMPLETED",
+      ].map((key) => ({ key, label: title(key) })),
+      terminalOutcomes: [
+        { key: "BLOCKED", label: "Blocked", tone: "danger" },
+        { key: "CANCELED", label: "Canceled", tone: "danger" },
+      ],
+    },
     actions: [
       ...CREATE_LIST_ACTIONS,
+      STANDARD_LIST_ACTIONS[3]!,
       STANDARD_LIST_ACTIONS[4]!,
       ...EDIT_RECORD_ACTIONS,
-      STANDARD_RECORD_ACTIONS[4]!,
+      {
+        key: "create-agreement",
+        label: "Create agreement",
+        placement: "secondary",
+        scope: "record",
+        selection: "none",
+        states: [
+          "NOT_STARTED",
+          "IN_PROGRESS",
+          "AWAITING_CUSTOMER_INPUT",
+          "PENDING_PAYMENT",
+          "READY_FOR_TENANT_CREATION",
+        ],
+      },
+    ],
+    relatedRecords: [
+      {
+        key: "contracts",
+        label: "Required agreements",
+        tab: "agreements",
+        module: "contracts",
+        foreignKey: "customerOnboardingId",
+        emptyTitle: "No onboarding agreements yet",
+        emptyDescription:
+          "Link the required customer agreement before provisioning when policy requires it.",
+      },
+      {
+        key: "supportCases",
+        label: "Implementation support cases",
+        tab: "support",
+        module: "support-cases",
+        foreignKey: "customerOnboardingId",
+        emptyTitle: "No implementation support cases",
+        emptyDescription: "Issues raised during onboarding will appear here.",
+      },
     ],
   }),
   define({
@@ -862,48 +1516,152 @@ const definitions: PlatformModuleDefinition[] = [
         col("createdAt", "Created", 160, "dateTime"),
       ],
     ),
-    forms: lifecycleForms("tenants", [
-      field("name", "Tenant name", "text", "profile", true),
-      field("legalName", "Legal name", "text", "profile"),
-      field("status", "Lifecycle status", "option", "profile", true, [
-        "PROVISIONING",
-        "ACTIVE",
-        "INACTIVE",
-        "SUSPENDED",
-        "ARCHIVED",
-        "CHURNED",
-      ]),
+    statuses: [
+      "ONBOARDING",
+      "PENDING_SETUP",
+      "ACTIVE",
+      "INACTIVE",
+      "SUSPENDED",
+      "ARCHIVED",
+      "CHURNED",
+    ].map(status),
+    forms: lifecycleForms(
+      "tenants",
+      [
+        field("name", "Tenant name", "text", "tenant-information", true),
+        field("displayName", "Display name", "text", "tenant-information"),
+        field("legalName", "Legal name", "text", "tenant-information"),
+        field(
+          "status",
+          "Lifecycle status",
+          "option",
+          "tenant-information",
+          true,
+          [
+            "ONBOARDING",
+            "PENDING_SETUP",
+            "ACTIVE",
+            "INACTIVE",
+            "SUSPENDED",
+            "ARCHIVED",
+            "CHURNED",
+          ],
+        ),
+        field("subStatus", "Status reason", "text", "tenant-information"),
+        {
+          ...field(
+            "customerAccountId",
+            "Customer",
+            "lookup",
+            "tenant-information",
+            true,
+          ),
+          lookupPath: "/super-admin/customers?pageSize=100",
+          readOnly: true,
+        },
+        {
+          ...field("tenantCode", "Tenant code", "text", "tenant-information"),
+          readOnly: true,
+        },
+        {
+          ...field("slug", "Workspace slug", "text", "tenant-information"),
+          readOnly: true,
+        },
+        {
+          ...field(
+            "ownerUserId",
+            "Primary administrator",
+            "text",
+            "primary-admin",
+          ),
+          readOnly: true,
+        },
+        {
+          ...field(
+            "originatingLeadId",
+            "Originating lead",
+            "lookup",
+            "attribution",
+          ),
+          lookupPath: "/super-admin/leads?pageSize=100",
+          readOnly: true,
+        },
+        {
+          ...field(
+            "originatingPartnerId",
+            "Originating partner",
+            "lookup",
+            "attribution",
+          ),
+          lookupPath: "/partners?pageSize=100",
+          readOnly: true,
+        },
+        {
+          ...field(
+            "originatingReferralLinkId",
+            "Originating referral link",
+            "text",
+            "attribution",
+          ),
+          readOnly: true,
+        },
+        {
+          ...field(
+            "referralCodeSnapshot",
+            "Referral code",
+            "text",
+            "attribution",
+          ),
+          readOnly: true,
+        },
+        {
+          ...field("createdAt", "Created", "dateTime", "record-history"),
+          readOnly: true,
+        },
+        {
+          ...field("updatedAt", "Last updated", "dateTime", "record-history"),
+          readOnly: true,
+        },
+        { ...field("id", "Tenant ID", "text", "system"), readOnly: true },
+        {
+          ...field("createdById", "Created by", "text", "system"),
+          readOnly: true,
+        },
+        {
+          ...field("updatedById", "Updated by", "text", "system"),
+          readOnly: true,
+        },
+        {
+          ...field("isDemoData", "Demo data", "boolean", "system"),
+          readOnly: true,
+        },
+        {
+          ...field("demoBatchId", "Demo batch ID", "text", "system"),
+          readOnly: true,
+        },
+        {
+          ...field("seedSource", "Seed source", "text", "system"),
+          readOnly: true,
+        },
+      ],
+      [
+        "Overview",
+        "Configuration",
+        "Access and Security",
+        "Commercial",
+        "Integrations",
+        "Operations",
+        "Timeline",
+        "System",
+      ],
       {
-        ...field("tenantCode", "Tenant code", "text", "identity"),
-        readOnly: true,
+        "tenant-information": "overview",
+        "primary-admin": "overview",
+        attribution: "overview",
+        "record-history": "overview",
+        system: "system",
       },
-      {
-        ...field("slug", "Workspace slug", "text", "identity"),
-        readOnly: true,
-      },
-      { ...field("createdAt", "Created", "dateTime", "dates"), readOnly: true },
-      { ...field("updatedAt", "Updated", "dateTime", "dates"), readOnly: true },
-    ], [
-      "Summary",
-      "Organization",
-      "Provisioning",
-      "Branding",
-      "Domains",
-      "Features",
-      "Users",
-      "Security and SSO",
-      "Subscription",
-      "Billing",
-      "Integrations",
-      "Agreements",
-      "Support",
-      "Documents",
-      "Timeline",
-    ], {
-      profile: "organization",
-      identity: "organization",
-      dates: "summary",
-    }),
+    ),
     actions: [
       STANDARD_LIST_ACTIONS[1]!,
       STANDARD_LIST_ACTIONS[2]!,
@@ -915,25 +1673,109 @@ const definitions: PlatformModuleDefinition[] = [
         scope: "record",
         selection: "none",
       },
+      {
+        key: "open-tenant",
+        label: "Open Tenant",
+        placement: "secondary",
+        scope: "record",
+        selection: "none",
+        states: ["ACTIVE"],
+      },
     ],
     relatedRecords: [
       {
         key: "contracts",
-        label: "Contracts",
+        label: "Agreements and contracts",
+        tab: "commercial",
+        emptyTitle: "No tenant agreements yet",
+        emptyDescription:
+          "Tenant-specific agreements will appear here when linked.",
         module: "contracts",
         foreignKey: "tenantId",
       },
       {
         key: "supportCases",
         label: "Support cases",
+        tab: "operations",
+        emptyTitle: "No support cases",
+        emptyDescription:
+          "Operational support cases for this tenant will appear here.",
         module: "support-cases",
         foreignKey: "tenantId",
       },
       {
         key: "invoices",
         label: "Invoices",
+        tab: "commercial",
+        emptyTitle: "No tenant invoices yet",
+        emptyDescription:
+          "Invoices are created from this tenant's subscription.",
         module: "invoices",
         foreignKey: "tenantId",
+      },
+      {
+        key: "subscription",
+        label: "Subscription and billing",
+        tab: "commercial",
+        module: "subscriptions",
+        foreignKey: "tenantId",
+        emptyTitle: "No subscription yet",
+        emptyDescription:
+          "Provisioning creates the tenant subscription when a plan and billing cycle are ready.",
+      },
+      {
+        key: "users",
+        label: "Users and administrators",
+        tab: "access-security",
+        foreignKey: "tenantId",
+        emptyTitle: "No users yet",
+        emptyDescription:
+          "Tenant administrators and invited users will appear here.",
+      },
+      {
+        key: "tenantDomains",
+        label: "Domains",
+        tab: "configuration",
+        foreignKey: "tenantId",
+        emptyTitle: "No custom domains",
+        emptyDescription:
+          "The tenant currently uses its DijiPeople workspace URL.",
+      },
+      {
+        key: "tenantFeatures",
+        label: "Feature configuration",
+        tab: "configuration",
+        foreignKey: "tenantId",
+        emptyTitle: "No feature overrides",
+        emptyDescription:
+          "Plan defaults apply until a tenant feature override is configured.",
+      },
+      {
+        key: "tenantBranding",
+        label: "Branding",
+        tab: "configuration",
+        foreignKey: "tenantId",
+        emptyTitle: "Default branding is active",
+        emptyDescription:
+          "Branding settings can be managed from Tenant Operations.",
+      },
+      {
+        key: "attendanceIntegrationConfigs",
+        label: "Integrations",
+        tab: "integrations",
+        foreignKey: "tenantId",
+        emptyTitle: "No integrations configured",
+        emptyDescription: "Tenant integration connections will appear here.",
+      },
+      {
+        key: "customerOnboardings",
+        label: "Provisioning history",
+        tab: "operations",
+        module: "customer-onboarding",
+        foreignKey: "tenantId",
+        emptyTitle: "No provisioning history",
+        emptyDescription:
+          "The onboarding cycle used to create this tenant will appear here.",
       },
     ],
   }),
@@ -975,6 +1817,13 @@ const definitions: PlatformModuleDefinition[] = [
     ]),
     statuses: CONTRACT_STATUSES,
     forms: contractForms([
+      { ...field("id", "Agreement ID", "text", "system"), readOnly: true },
+      {
+        ...field("contractNumber", "Agreement number", "text", "identity"),
+        readOnly: true,
+        placeholder: "Generated on save",
+        description: "Generated automatically when the agreement is first saved.",
+      },
       field("title", "Contract title", "text", "identity", true),
       field("contractType", "Contract type", "option", "identity", true, [
         "PARTNER_AGREEMENT",
@@ -996,14 +1845,54 @@ const definitions: PlatformModuleDefinition[] = [
         "TERMINATION",
         "OTHER",
       ]),
-      field("agreementCategory", "Agreement category", "text", "identity"),
+      {
+        ...field("agreementCategory", "Agreement category", "option", "identity"),
+        description:
+          "Optional business context; contract type remains the legal classification.",
+        options: [...AGREEMENT_CATEGORY_OPTIONS],
+      },
+      {
+        ...field("lifecycleGatePurpose", "Lifecycle gate purpose", "text", "identity"),
+        description: "Optional lifecycle gate configured for this agreement, such as customer or partner activation.",
+        maxLength: 120,
+      },
+      field(
+        "isGoverningAgreement",
+        "Governing agreement",
+        "boolean",
+        "identity",
+      ),
+      field("signingMode", "Signing mode", "option", "identity", true, [
+        "SEQUENTIAL",
+        "PARALLEL",
+        "MIXED",
+      ]),
+      {
+        ...field(
+          "status",
+          "Agreement status",
+          "option",
+          "identity",
+          true,
+          CONTRACT_STATUSES.map((item) => item.value),
+        ),
+        readOnly: true,
+        description:
+          "New agreements start in Draft. Use workflow actions to change status after saving.",
+      },
+      {
+        ...field("processStage", "Process stage", "text", "identity"),
+        readOnly: true,
+        description:
+          "Calculated automatically from the agreement workflow and signing progress.",
+      },
       field(
         "counterpartyType",
         "Counterparty type",
         "option",
         "identity",
         false,
-        ["PARTNER", "CUSTOMER", "TENANT", "OTHER"],
+        ["PARTNER", "CUSTOMER", "LEAD", "TENANT", "INDIVIDUAL", "EXTERNAL_ORGANIZATION"],
       ),
       field("documentSource", "Document source", "option", "identity", true, [
         "BLANK",
@@ -1027,12 +1916,12 @@ const definitions: PlatformModuleDefinition[] = [
       {
         ...field("partnerId", "Partner", "lookup", "counterparty"),
         lookupPath: "/partners",
-        visibleWhen: { field: "contractType", equals: "PARTNER_AGREEMENT" },
+        visibleWhen: { field: "counterpartyType", equals: "PARTNER" },
       },
       {
         ...field("customerAccountId", "Customer", "lookup", "counterparty"),
         lookupPath: "/super-admin/customers",
-        visibleWhen: { field: "contractType", equals: "CUSTOMER_AGREEMENT" },
+        visibleWhen: { field: "counterpartyType", equals: "CUSTOMER" },
       },
       {
         ...field(
@@ -1042,15 +1931,17 @@ const definitions: PlatformModuleDefinition[] = [
           "counterparty",
         ),
         lookupPath: "/super-admin/customer-onboarding?pageSize=100",
-        visibleWhen: { field: "contractType", equals: "CUSTOMER_AGREEMENT" },
+        visibleWhen: { field: "counterpartyType", equals: "CUSTOMER" },
       },
       {
         ...field("tenantId", "Tenant", "lookup", "counterparty"),
         lookupPath: "/super-admin/tenants",
+        visibleWhen: { field: "counterpartyType", equals: "TENANT" },
       },
       {
         ...field("relatedLeadId", "Related lead", "lookup", "counterparty"),
         lookupPath: "/super-admin/leads?pageSize=100",
+        visibleWhen: { field: "counterpartyType", equals: "LEAD" },
       },
       {
         ...field(
@@ -1075,31 +1966,29 @@ const definitions: PlatformModuleDefinition[] = [
         lookupPath: "/contracts?pageSize=100",
       },
       field("amendmentNumber", "Amendment number", "integer", "ownership"),
-      field("currencyCode", "Currency", "text", "commercial"),
-      field("contractValue", "Contract value", "currency", "commercial"),
-      field(
-        "commissionPercentage",
-        "Commission percentage",
-        "percentage",
-        "commercial",
-      ),
-      field("commissionBasis", "Commission basis", "text", "commercial"),
+      {
+        ...field("currencyCode", "Currency", "option", "commercial"),
+        options: PLATFORM_CURRENCY_OPTIONS,
+      },
+      { ...field("contractValue", "Contract value", "currency", "commercial"), min: 0 },
+      {
+        ...field("commissionPercentage", "Commission percentage", "percentage", "commercial"),
+        min: 0,
+        max: 100,
+      },
+      {
+        ...field("commissionBasis", "Commission basis", "text", "commercial"),
+        description: "Commercial basis defined by the agreement; no platform option set is configured yet.",
+        maxLength: 120,
+      },
       field("paymentTerms", "Payment terms", "longText", "commercial"),
       field("effectiveDate", "Effective date", "date", "commercial"),
       field("expiryDate", "Expiry date", "date", "commercial"),
+      field("effectiveFrom", "Terms effective from", "date", "commercial"),
+      field("effectiveUntil", "Terms effective until", "date", "commercial"),
       field("autoRenewal", "Auto renewal", "boolean", "commercial"),
-      field(
-        "renewalNoticeDays",
-        "Renewal notice days",
-        "integer",
-        "commercial",
-      ),
-      field(
-        "terminationNoticeDays",
-        "Termination notice days",
-        "integer",
-        "commercial",
-      ),
+      { ...field("renewalNoticeDays", "Renewal notice days", "integer", "commercial"), min: 0 },
+      { ...field("terminationNoticeDays", "Termination notice days", "integer", "commercial"), min: 0 },
       field("governingLaw", "Governing law", "text", "legal"),
       field("jurisdiction", "Jurisdiction", "text", "legal"),
       field(
@@ -1111,6 +2000,77 @@ const definitions: PlatformModuleDefinition[] = [
         ["PUBLIC", "INTERNAL", "CONFIDENTIAL", "RESTRICTED"],
       ),
       field("notes", "Internal notes", "longText", "legal"),
+      {
+        ...field("amendsContractId", "Amends agreement", "lookup", "ownership"),
+        lookupPath: "/contracts?pageSize=100",
+      },
+      {
+        ...field("renewsContractId", "Renews agreement", "lookup", "ownership"),
+        lookupPath: "/contracts?pageSize=100",
+      },
+      {
+        ...field(
+          "supersedesContractId",
+          "Supersedes agreement",
+          "lookup",
+          "ownership",
+        ),
+        lookupPath: "/contracts?pageSize=100",
+      },
+      {
+        ...field("subscriptionId", "Subscription", "lookup", "commercial"),
+        lookupPath: "/super-admin/subscriptions?pageSize=100",
+      },
+      {
+        ...field(
+          "currentVersionNumber",
+          "Current version",
+          "integer",
+          "system",
+        ),
+        readOnly: true,
+      },
+      {
+        ...field("signedAt", "Signed at", "dateTime", "system"),
+        readOnly: true,
+      },
+      {
+        ...field("activatedAt", "Activated at", "dateTime", "system"),
+        readOnly: true,
+      },
+      {
+        ...field("terminatedAt", "Terminated at", "dateTime", "system"),
+        readOnly: true,
+      },
+      {
+        ...field(
+          "terminationReason",
+          "Termination reason",
+          "longText",
+          "system",
+        ),
+        readOnly: true,
+      },
+      {
+        ...field("archivedAt", "Archived at", "dateTime", "system"),
+        readOnly: true,
+      },
+      {
+        ...field("createdById", "Created by", "text", "system"),
+        readOnly: true,
+      },
+      {
+        ...field("updatedById", "Updated by", "text", "system"),
+        readOnly: true,
+      },
+      {
+        ...field("createdAt", "Created", "dateTime", "system"),
+        readOnly: true,
+      },
+      {
+        ...field("updatedAt", "Last updated", "dateTime", "system"),
+        readOnly: true,
+      },
       field(
         "contentHtml",
         "Contract document",
@@ -1141,7 +2101,13 @@ const definitions: PlatformModuleDefinition[] = [
     },
     actions: [
       ...CREATE_LIST_ACTIONS,
-      ...EDIT_RECORD_ACTIONS,
+      STANDARD_RECORD_ACTIONS[0]!,
+      {
+        ...STANDARD_RECORD_ACTIONS[1]!,
+        states: ["DRAFT", "INTERNAL_REVIEW", "COMMERCIAL_APPROVAL", "LEGAL_APPROVAL", "COUNTERPARTY_REVIEW", "APPROVED_FOR_SENDING", "READY_FOR_SIGNATURE", "DECLINED"],
+      },
+      STANDARD_RECORD_ACTIONS[2]!,
+      STANDARD_RECORD_ACTIONS[3]!,
       {
         key: "submit",
         label: "Submit for internal review",
@@ -1211,7 +2177,14 @@ const definitions: PlatformModuleDefinition[] = [
         label: "Create new version",
         scope: "record",
         placement: "overflow",
-        states: ["DRAFT", "INTERNAL_REVIEW", "SENT", "VIEWED", "SIGNATURE_IN_PROGRESS", "PARTIALLY_SIGNED"],
+        states: [
+          "DRAFT",
+          "INTERNAL_REVIEW",
+          "SENT",
+          "VIEWED",
+          "SIGNATURE_IN_PROGRESS",
+          "PARTIALLY_SIGNED",
+        ],
       },
       {
         key: "amend",
@@ -1241,7 +2214,15 @@ const definitions: PlatformModuleDefinition[] = [
         label: "Void",
         scope: "record",
         placement: "overflow",
-        states: ["DRAFT", "INTERNAL_REVIEW", "APPROVED_FOR_SENDING", "SENT", "VIEWED", "SIGNATURE_IN_PROGRESS", "PARTIALLY_SIGNED"],
+        states: [
+          "DRAFT",
+          "INTERNAL_REVIEW",
+          "APPROVED_FOR_SENDING",
+          "SENT",
+          "VIEWED",
+          "SIGNATURE_IN_PROGRESS",
+          "PARTIALLY_SIGNED",
+        ],
         destructive: true,
         confirmTitle: "Void this agreement?",
       },
@@ -1250,37 +2231,47 @@ const definitions: PlatformModuleDefinition[] = [
       {
         key: "signatureRequests",
         label: "Signature requests",
+        tab: "signatures",
+        emptyTitle: "No signature requests yet",
+        emptyDescription:
+          "Send the approved agreement for signature when all parties are ready.",
         module: "signature-requests",
         foreignKey: "contractId",
       },
       {
         key: "documents",
         label: "Contract documents",
+        tab: "document",
         foreignKey: "contractId",
       },
       {
         key: "approvalRequests",
         label: "Approval history",
+        tab: "timeline",
         foreignKey: "contractId",
       },
       {
         key: "parties",
         label: "Parties and signers",
+        tab: "parties",
         foreignKey: "contractId",
       },
       {
         key: "fieldPlacements",
         label: "Placed fields",
+        tab: "fields",
         foreignKey: "contractId",
       },
       {
         key: "relatedRecords",
         label: "Related records",
+        tab: "related",
         foreignKey: "contractId",
       },
       {
         key: "versions",
         label: "Versions",
+        tab: "versions",
         foreignKey: "contractId",
       },
     ],
@@ -1291,7 +2282,7 @@ const definitions: PlatformModuleDefinition[] = [
       "Contract template",
       "Templates",
       "Files",
-      "/contract-templates",
+      "/templates",
       "/contract-templates",
       "agreements",
       [
@@ -1525,13 +2516,39 @@ const definitions: PlatformModuleDefinition[] = [
       ],
     ),
     forms: form("subscriptions", [
-      field("tenantId", "Tenant ID", "text", "subscription"),
-      field("planId", "Plan ID", "text", "subscription"),
-      field("status", "Status", "text", "subscription"),
-      field("billingCycle", "Billing cycle", "text", "subscription"),
+      {
+        ...field("tenantId", "Tenant", "lookup", "subscription", true),
+        lookupPath: "/super-admin/tenants",
+      },
+      {
+        ...field("planId", "Plan", "lookup", "subscription", true),
+        lookupPath: "/super-admin/plans",
+      },
+      {
+        ...field("planPriceId", "Price", "lookup", "subscription"),
+        lookupPath: "/super-admin/promotions/targets?scope=PRICE",
+      },
+      field("status", "Status", "option", "subscription", false, [
+        "TRIALING",
+        "ACTIVE",
+        "PAST_DUE",
+        "CANCELLED",
+        "UNPAID",
+        "INCOMPLETE",
+        "EXPIRED",
+        "PAUSED",
+      ]),
+      field("billingCycle", "Billing cycle", "option", "subscription", false, [
+        "MONTHLY",
+        "ANNUAL",
+      ]),
+      field("purchasedSeats", "Licensed seats", "integer", "subscription", true),
+      field("stripeQuantity", "Stripe quantity", "integer", "subscription"),
       field("currency", "Currency", "text", "commercial"),
       field("basePrice", "Base price", "currency", "commercial"),
       field("finalPrice", "Final price", "currency", "commercial"),
+      field("trialStart", "Trial starts", "dateTime", "dates"),
+      field("trialEnd", "Trial ends", "dateTime", "dates"),
       field("currentPeriodStart", "Period start", "dateTime", "dates"),
       field("currentPeriodEnd", "Period end", "dateTime", "dates"),
     ]),
@@ -1547,8 +2564,18 @@ const definitions: PlatformModuleDefinition[] = [
       "revenue",
       [
         col("name", "Plan", 220),
-        col("isActive", "Active", 130, "status"),
-        col("prices", "Prices", 100, "number"),
+        col("isActive", "Status", 110, "status"),
+        {
+          ...col("monthlyBasePrice", "Monthly base", 150, "currency"),
+          currencyField: "currency",
+        },
+        {
+          ...col("annualBasePrice", "Annual base", 150, "currency"),
+          currencyField: "currency",
+        },
+        col("prices", "Prices", 90, "number"),
+        col("features", "Features", 100, "number"),
+        col("subscriptions", "Subscriptions", 120, "number"),
         col("updatedAt", "Updated", 160, "dateTime"),
       ],
     ),
@@ -1709,9 +2736,35 @@ const definitions: PlatformModuleDefinition[] = [
 const runtimeDefinitionErrors = definitions.flatMap((definition) =>
   validateRuntimeDefinition(definition),
 );
-if (runtimeDefinitionErrors.length) {
+const schemaCoverageModules = new Set<PlatformModuleKey>([
+  "leads",
+  "customers",
+  "customer-onboarding",
+  "tenants",
+  "partners",
+  "contracts",
+]);
+const schemaCoverageErrors = definitions.flatMap((definition) => {
+  if (!schemaCoverageModules.has(definition.key)) return [];
+  const schema = getRuntimeSchema(definition.key);
+  if (!schema) return [`${definition.key}: generated schema is unavailable`];
+  const represented = new Set(
+    definition.forms.flatMap((form) => form.fields.map((item) => item.key)),
+  );
+  return Object.values(schema.fields)
+    .filter((item) => item.readable && item.type !== "relation")
+    .filter((item) => !represented.has(item.key))
+    .map(
+      (item) =>
+        `${definition.key}: schema field ${item.key} is not represented on a record form`,
+    );
+});
+if (runtimeDefinitionErrors.length || schemaCoverageErrors.length) {
   throw new Error(
-    `Platform runtime metadata does not match the generated Prisma registry:\n- ${runtimeDefinitionErrors.join("\n- ")}`,
+    `Platform runtime metadata does not match the generated Prisma registry:\n- ${[
+      ...runtimeDefinitionErrors,
+      ...schemaCoverageErrors,
+    ].join("\n- ")}`,
   );
 }
 
@@ -1894,7 +2947,7 @@ function simple(
     entityType: displayName.replaceAll(" ", ""),
     displayName,
     pluralDisplayName,
-    description: `Manage ${pluralDisplayName.toLowerCase()} through the shared platform runtime.`,
+    description: `Manage ${pluralDisplayName.toLowerCase()} and their business lifecycle.`,
     icon,
     routeBase,
     navigationGroup,
@@ -2069,6 +3122,7 @@ function contractForms(fields: RuntimeFieldDefinition[]) {
     { key: "related", label: "Related Records" },
     { key: "versions", label: "Versions" },
     { key: "timeline", label: "Timeline" },
+    { key: "system", label: "System" },
   ];
   const sectionTabs: Record<string, string> = {
     identity: "overview",
@@ -2077,6 +3131,7 @@ function contractForms(fields: RuntimeFieldDefinition[]) {
     commercial: "overview",
     legal: "overview",
     document: "document",
+    system: "system",
   };
   const sections = [...new Set(fields.map((item) => item.section))].map(
     (section) => ({
@@ -2109,12 +3164,15 @@ function partnerForms(fields: RuntimeFieldDefinition[]) {
     { key: "tenants", label: "Tenants" },
     { key: "documents", label: "Documents" },
     { key: "timeline", label: "Timeline" },
+    { key: "system", label: "System" },
   ];
   const sectionTabs: Record<string, string> = {
     identity: "summary",
     contact: "contacts",
     commercial: "summary",
     notes: "application",
+    application: "application",
+    system: "system",
   };
   const sections = [...new Set(fields.map((item) => item.section))].map(
     (section) => ({

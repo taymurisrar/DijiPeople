@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { PartnerInquiryStatus } from '@prisma/client';
 import type { Request } from 'express';
+import type { RequestWithId } from '../../common/middleware/request-id.middleware';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PublicRateLimitGuard } from '../../common/guards/public-rate-limit.guard';
@@ -35,8 +36,11 @@ import { PartnerExperienceService } from './partner-experience.service';
 export class PublicPartnersController {
   constructor(private readonly service: PartnerExperienceService) {}
   @Post('inquiries')
-  inquiry(@Body() dto: CreatePartnerInquiryDto) {
-    return this.service.submitInquiry(dto);
+  inquiry(
+    @Body() dto: CreatePartnerInquiryDto,
+    @Req() request: RequestWithId,
+  ) {
+    return this.service.submitInquiry(dto, request.requestId);
   }
   @Get('onboarding/:token')
   onboarding(@Param('token') token: string) {

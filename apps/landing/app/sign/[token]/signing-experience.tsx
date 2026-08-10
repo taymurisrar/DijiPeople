@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
 type Session = {
@@ -21,6 +22,7 @@ export function SigningExperience({ token }: { token: string }) {
   const [error, setError] = useState<string | null>(null);
   const [method, setMethod] = useState<Method>("TYPED");
   const [typedName, setTypedName] = useState("");
+  const [typedStyle, setTypedStyle] = useState<"serif" | "script" | "formal">("serif");
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -138,7 +140,7 @@ export function SigningExperience({ token }: { token: string }) {
           </p>
         </header>
         <article
-          className="prose mx-auto my-6 min-h-[800px] max-w-[816px] bg-white px-12 py-10 text-sm leading-7 text-foreground shadow-md"
+          className="prose mx-auto my-4 min-h-[800px] max-w-[816px] bg-white px-5 py-7 text-sm leading-7 text-foreground shadow-md sm:my-6 sm:px-12 sm:py-10"
           dangerouslySetInnerHTML={{ __html: session.document.contentHtml }}
         />
       </section>
@@ -184,16 +186,24 @@ export function SigningExperience({ token }: { token: string }) {
             </div>
             <div className="mt-4">
               {method === "TYPED" ? (
-                <input
-                  value={typedName}
-                  onChange={(event) => setTypedName(event.target.value)}
-                  className="h-16 w-full rounded-xl border border-border px-4 text-center font-serif text-2xl italic text-foreground"
-                  aria-label="Typed signature"
-                />
+                <div className="space-y-2">
+                  <input
+                    value={typedName}
+                    maxLength={200}
+                    onChange={(event) => setTypedName(event.target.value)}
+                    style={{ fontFamily: typedStyle === "script" ? "cursive" : typedStyle === "formal" ? "Georgia, serif" : "ui-serif, Georgia, serif" }}
+                    className="h-16 w-full rounded-xl border border-border px-4 text-center text-2xl italic text-foreground"
+                    aria-label="Typed legal signature name"
+                  />
+                  <select aria-label="Signature style" value={typedStyle} onChange={event => setTypedStyle(event.target.value as typeof typedStyle)} className="h-10 w-full rounded-lg border border-border bg-white px-3 text-sm text-foreground">
+                    <option value="serif">Classic</option><option value="script">Script</option><option value="formal">Formal</option>
+                  </select>
+                  <p className="text-xs text-muted">The entered legal name is retained as text; the style is presentation only.</p>
+                </div>
               ) : method === "DRAWN" ? (
                 <SignatureCanvas onChange={setSignatureDataUrl} />
               ) : (
-                <label className="grid cursor-pointer place-items-center rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted">
+                <label className="grid cursor-pointer place-items-center gap-3 rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted">
                   Upload PNG or JPEG signature
                   <input
                     type="file"
@@ -207,6 +217,7 @@ export function SigningExperience({ token }: { token: string }) {
                       )
                     }
                   />
+                  {signatureDataUrl ? <Image unoptimized src={signatureDataUrl} alt="Uploaded signature preview" width={320} height={96} className="h-24 max-w-full object-contain" /> : null}
                 </label>
               )}
             </div>

@@ -17,7 +17,7 @@ export type ResolvedEmailProvider = {
   fromName: string;
   replyToEmail: string | null;
   configuration: Record<string, unknown>;
-  source: 'tenant' | 'env' | 'dev-fallback';
+  source: 'tenant' | 'platform' | 'env' | 'dev-fallback';
 };
 
 @Injectable()

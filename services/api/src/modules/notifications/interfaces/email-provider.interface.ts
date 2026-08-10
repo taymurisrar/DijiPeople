@@ -30,9 +30,17 @@ export type EmailSendResult = {
   response?: Record<string, unknown> | null;
 };
 
+export type EmailConnectionTestResult = {
+  success: boolean;
+  message: string;
+};
+
 export interface EmailProvider {
   readonly providerType: EmailProviderType;
   send(payload: EmailSendPayload): Promise<EmailSendResult>;
+  testConnection(
+    config: Record<string, unknown>,
+  ): Promise<EmailConnectionTestResult>;
   validateConfig(config: Record<string, unknown>): void;
   maskConfig(config: Record<string, unknown>): Record<string, unknown>;
 }

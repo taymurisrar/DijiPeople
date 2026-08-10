@@ -25,6 +25,7 @@ import {
   PlatformCommunicationsService,
 } from '../platform-communications/platform-communications.service';
 import type { PartnerActor } from './partner-auth.guard';
+import { PlatformEventsService } from '../platform-events/platform-events.service';
 import {
   CreatePartnerInquiryDto,
   CreatePartnerPortalReferralLinkDto,
@@ -43,9 +44,10 @@ export class PartnerExperienceService {
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
     private readonly communications: PlatformCommunicationsService,
+    private readonly events: PlatformEventsService,
   ) {}
 
-  async submitInquiry(dto: CreatePartnerInquiryDto) {
+  async submitInquiry(dto: CreatePartnerInquiryDto, correlationId?: string) {
     if (!dto.consentAccepted)
       throw new BadRequestException('Privacy consent is required.');
     const normalized = partnerApplicationSnapshot(dto);
@@ -182,6 +184,21 @@ export class PartnerExperienceService {
       `${normalized.contactFirstName} ${normalized.contactLastName} submitted a ${dto.type.toLowerCase()} partner application.`,
       inquiry.partnerId!,
     );
+    await this.events.record({
+      eventCode: 'PARTNER_INQUIRY_SUBMITTED',
+      source: 'LANDING',
+      correlationId,
+      entityType: 'PartnerInquiry',
+      entityId: inquiry.id,
+      route: '/public/partners/inquiries',
+      actorType: 'PUBLIC_VISITOR',
+      metadata: {
+        referenceNumber: inquiry.referenceNumber,
+        partnerId: inquiry.partnerId,
+        partnerType: inquiry.type,
+        source: inquiry.source,
+      },
+    });
     return {
       referenceNumber: inquiry.referenceNumber,
       message: 'Thank you. Our partner team will review your inquiry.',
@@ -292,6 +309,20 @@ export class PartnerExperienceService {
       entityType: 'Partner',
       entityId: partner.id,
       requestedById: user.userId,
+    });
+    await this.events.record({
+      eventCode: 'PARTNER_APPROVED',
+      source: 'ADMIN',
+      entityType: 'Partner',
+      entityId: partner.id,
+      actorType: 'PLATFORM_USER',
+      actorId: user.userId,
+      route: `/partner-inquiries/${inquiryId}`,
+      metadata: {
+        inquiryId,
+        agreementRequired: true,
+        onboardingUnlocked: false,
+      },
     });
     return { partner, agreementRequired: true, onboardingUnlocked: false };
   }

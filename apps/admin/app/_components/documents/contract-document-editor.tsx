@@ -117,6 +117,7 @@ export function ContractDocumentEditor({
 }) {
   const [preview, setPreview] = useState(readOnly);
   const [placeholderOpen, setPlaceholderOpen] = useState(false);
+  const [tableOpen, setTableOpen] = useState(false);
   const [placeholderQuery, setPlaceholderQuery] = useState("");
   const [placeholderRegistry, setPlaceholderRegistry] =
     useState<PlaceholderDefinition[]>(defaultPlaceholders);
@@ -187,7 +188,7 @@ export function ContractDocumentEditor({
     editorProps: {
       attributes: {
         class:
-          "contract-editor-content min-h-[520px] px-12 py-10 text-[15px] leading-7 text-slate-800 focus:outline-none",
+          "contract-editor-content min-h-[520px] px-5 py-7 text-[15px] leading-7 text-slate-800 focus:outline-none sm:px-12 sm:py-10",
         spellcheck: "true",
       },
       transformPastedHTML(html) {
@@ -204,8 +205,6 @@ export function ContractDocumentEditor({
   useEffect(() => {
     if (!editor) return;
     editor.setEditable(!readOnly);
-    if (!readOnly) setPreview(false);
-    else setPreview(true);
   }, [editor, readOnly]);
 
   useEffect(() => {
@@ -451,6 +450,29 @@ export function ContractDocumentEditor({
           >
             <Table2 />
           </Tool>
+          {editor.isActive("table") ? (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setTableOpen((current) => !current)}
+                className="inline-flex h-9 items-center rounded-lg border border-slate-200 px-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                Table actions
+              </button>
+              {tableOpen ? (
+                <div className="absolute left-0 top-11 z-40 grid w-48 gap-1 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
+                  <TableAction label="Add row below" onClick={() => editor.chain().focus().addRowAfter().run()} />
+                  <TableAction label="Remove row" onClick={() => editor.chain().focus().deleteRow().run()} />
+                  <TableAction label="Add column right" onClick={() => editor.chain().focus().addColumnAfter().run()} />
+                  <TableAction label="Remove column" onClick={() => editor.chain().focus().deleteColumn().run()} />
+                  <TableAction label="Merge selected cells" disabled={!editor.can().mergeCells()} onClick={() => editor.chain().focus().mergeCells().run()} />
+                  <TableAction label="Split cell" disabled={!editor.can().splitCell()} onClick={() => editor.chain().focus().splitCell().run()} />
+                  <TableAction label="Toggle header row" onClick={() => editor.chain().focus().toggleHeaderRow().run()} />
+                  <TableAction label="Remove table" destructive onClick={() => { editor.chain().focus().deleteTable().run(); setTableOpen(false); }} />
+                </div>
+              ) : null}
+            </div>
+          ) : null}
           <Separator />
           <div className="relative">
             <button
@@ -508,10 +530,10 @@ export function ContractDocumentEditor({
           </button>
         </div>
       ) : null}
-      <div className="mx-auto my-6 min-h-[700px] max-w-[816px] bg-white shadow-[0_10px_35px_rgba(15,23,42,0.10)]">
+      <div className="mx-auto my-3 min-h-[700px] max-w-[816px] overflow-x-auto bg-white shadow-[0_10px_35px_rgba(15,23,42,0.10)] sm:my-6">
         {preview || readOnly ? (
           <article
-            className="contract-editor-content px-12 py-10 text-[15px] leading-7 text-slate-800"
+            className="contract-editor-content px-5 py-7 text-[15px] leading-7 text-slate-800 sm:px-12 sm:py-10"
             dangerouslySetInnerHTML={{ __html: editor.getHTML() }}
           />
         ) : (
@@ -561,4 +583,8 @@ function Tool({
 
 function Separator() {
   return <span className="mx-1 h-6 w-px bg-slate-200" aria-hidden />;
+}
+
+function TableAction({ label, onClick, disabled, destructive = false }: { label: string; onClick: () => void; disabled?: boolean; destructive?: boolean }) {
+  return <button type="button" disabled={disabled} onClick={onClick} className={`rounded-lg px-3 py-2 text-left text-xs font-semibold disabled:opacity-35 ${destructive ? "text-rose-700 hover:bg-rose-50" : "text-slate-700 hover:bg-slate-50"}`}>{label}</button>;
 }

@@ -8,7 +8,8 @@ import type { Prisma } from '@prisma/client';
 import { createHash } from 'node:crypto';
 import sanitizeHtml from 'sanitize-html';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { EmailProviderFactory } from '../notifications/email/email-provider-factory.service';
+import { redactEmailError } from '../notifications/email/email-safety';
+import { PlatformEmailSettingsService } from './platform-email-settings.service';
 
 export type PlatformEmailInput = {
   eventCode: string;
@@ -34,7 +35,7 @@ export class PlatformCommunicationsService
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly providers: EmailProviderFactory,
+    private readonly emailSettings: PlatformEmailSettingsService,
   ) {}
 
   onModuleInit() {
@@ -115,7 +116,7 @@ export class PlatformCommunicationsService
         });
 
     try {
-      const resolved = await this.providers.resolveProvider('platform');
+      const resolved = await this.emailSettings.resolveProvider();
       if (!resolved)
         throw new Error('No platform email provider is configured.');
       const result = await resolved.provider.send({
@@ -129,6 +130,7 @@ export class PlatformCommunicationsService
         fromName: resolved.fromName,
         replyToEmail: resolved.replyToEmail,
         metadata: input.metadata,
+        providerConfiguration: resolved.configuration,
       });
       return this.prisma.platformOutboundEmail.update({
         where: { id: delivery.id },
@@ -145,10 +147,7 @@ export class PlatformCommunicationsService
         },
       });
     } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : 'Platform email delivery failed.';
+      const message = redactEmailError(error);
       this.logger.error(
         `${input.eventCode} email to ${recipient} failed: ${message}`,
       );

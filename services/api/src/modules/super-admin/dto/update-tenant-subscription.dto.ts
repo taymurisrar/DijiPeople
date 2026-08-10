@@ -17,6 +17,14 @@ export class UpdateTenantSubscriptionDto {
   planId!: string;
 
   @IsOptional()
+  @IsUUID()
+  promotionId?: string | null;
+
+  @IsOptional()
+  @IsUUID()
+  planPriceId?: string | null;
+
+  @IsOptional()
   @IsInt()
   @Min(1)
   purchasedSeats?: number;

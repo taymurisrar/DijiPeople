@@ -2,11 +2,16 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { EmailProviderType } from '@prisma/client';
 import { createTransport } from 'nodemailer';
 import type {
+  EmailConnectionTestResult,
   EmailProvider,
   EmailSendPayload,
   EmailSendResult,
 } from '../interfaces/email-provider.interface';
-import { maskSensitiveConfiguration, SECRET_KEY_PATTERN } from './email-safety';
+import {
+  maskSensitiveConfiguration,
+  redactEmailError,
+  SECRET_KEY_PATTERN,
+} from './email-safety';
 
 @Injectable()
 export class ConsoleEmailProvider implements EmailProvider {
@@ -53,6 +58,13 @@ export class ConsoleEmailProvider implements EmailProvider {
 
   validateConfig() {
     return;
+  }
+
+  async testConnection(): Promise<EmailConnectionTestResult> {
+    return {
+      success: true,
+      message: 'Console delivery is available in this server process.',
+    };
   }
 
   maskConfig(config: Record<string, unknown>) {
@@ -157,22 +169,7 @@ export class SmtpEmailProvider implements EmailProvider {
     const config = payload.providerConfiguration ?? {};
     this.validateConfig(config);
 
-    const auth =
-      config.auth && typeof config.auth === 'object'
-        ? (config.auth as { user?: string; pass?: string })
-        : {
-            user: configText(config.username),
-            pass: configText(config.password),
-          };
-
-    const port = Number(config.port);
-    const transport = createTransport({
-      host: configText(config.host),
-      port,
-      // Implicit TLS is port 465; other ports negotiate STARTTLS when offered.
-      secure: config.secure === true || port === 465,
-      auth: { user: auth.user ?? '', pass: auth.pass ?? '' },
-    });
+    const transport = this.createTransport(config);
 
     const from = payload.fromName
       ? `${payload.fromName} <${payload.fromEmail}>`
@@ -203,8 +200,7 @@ export class SmtpEmailProvider implements EmailProvider {
     } catch (error) {
       // Surfaced to the delivery log rather than thrown, so one bad mailbox
       // does not abort the notification that triggered it.
-      const message =
-        error instanceof Error ? error.message : 'SMTP send failed.';
+      const message = redactEmailError(error);
       this.logger.error(`SMTP send failed: ${message}`);
 
       return {
@@ -220,29 +216,74 @@ export class SmtpEmailProvider implements EmailProvider {
 
   validateConfig(config: Record<string, unknown>) {
     const hasHost = typeof config.host === 'string' && config.host.trim();
-    const hasPort =
-      typeof config.port === 'number' ||
-      (typeof config.port === 'string' && config.port.trim());
+    const port = Number(config.port);
+    const hasPort = Number.isInteger(port) && port >= 1 && port <= 65535;
     const auth = config.auth;
     const hasAuthObject = Boolean(
       auth && typeof auth === 'object' && !Array.isArray(auth),
     );
-    const hasUsername = typeof config.username === 'string' && config.username;
-    const hasPassword = typeof config.password === 'string' && config.password;
+    const authEnabled = config.authEnabled !== false;
+    const hasUsername = Boolean(
+      typeof config.username === 'string' && config.username.trim(),
+    );
+    const hasPassword = Boolean(
+      typeof config.password === 'string' && config.password.trim(),
+    );
 
     if (
       !hasHost ||
       !hasPort ||
-      (!hasAuthObject && (!hasUsername || !hasPassword))
+      (authEnabled && !hasAuthObject && (!hasUsername || !hasPassword))
     ) {
       throw new BadRequestException(
-        'SMTP providers require host, port, and either auth or username/password.',
+        'SMTP requires a valid host and port. Username and password are required when authentication is enabled.',
       );
+    }
+  }
+
+  async testConnection(config: Record<string, unknown>) {
+    this.validateConfig(config);
+    const transport = this.createTransport(config);
+    try {
+      await transport.verify();
+      return { success: true, message: 'SMTP connection verified.' };
+    } catch (error) {
+      throw new BadRequestException(
+        `SMTP connection failed: ${redactEmailError(error)}`,
+      );
+    } finally {
+      transport.close();
     }
   }
 
   maskConfig(config: Record<string, unknown>) {
     return maskSensitiveConfiguration(config) as Record<string, unknown>;
+  }
+
+  private createTransport(config: Record<string, unknown>) {
+    const auth =
+      config.auth && typeof config.auth === 'object'
+        ? (config.auth as { user?: string; pass?: string })
+        : {
+            user: configText(config.username),
+            pass: configText(config.password),
+          };
+    const port = Number(config.port);
+    const security = configText(config.security).toUpperCase();
+    const authEnabled = config.authEnabled !== false;
+    return createTransport({
+      host: configText(config.host),
+      port,
+      secure: security === 'TLS' || config.secure === true || port === 465,
+      requireTLS: security === 'STARTTLS',
+      ignoreTLS: security === 'NONE',
+      connectionTimeout: Number(config.connectionTimeoutMs ?? 10000),
+      greetingTimeout: Number(config.connectionTimeoutMs ?? 10000),
+      socketTimeout: Number(config.connectionTimeoutMs ?? 10000),
+      ...(authEnabled
+        ? { auth: { user: auth.user ?? '', pass: auth.pass ?? '' } }
+        : {}),
+    });
   }
 }
 
@@ -257,6 +298,12 @@ export class ApiPlaceholderEmailProvider implements EmailProvider {
   async send(): Promise<EmailSendResult> {
     throw new BadRequestException(
       'API email provider delivery is not implemented yet for this provider.',
+    );
+  }
+
+  async testConnection(): Promise<EmailConnectionTestResult> {
+    throw new BadRequestException(
+      'Connection testing is not implemented for this provider.',
     );
   }
 

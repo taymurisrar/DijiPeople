@@ -33,6 +33,7 @@ import {
 } from '../super-admin/platform-lifecycle.constants';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { PlatformCommunicationsService } from '../platform-communications/platform-communications.service';
+import { PlatformEventsService } from '../platform-events/platform-events.service';
 
 @Injectable()
 export class LeadsService {
@@ -41,9 +42,10 @@ export class LeadsService {
     private readonly auditService: AuditService,
     private readonly prisma: PrismaService,
     private readonly communications: PlatformCommunicationsService,
+    private readonly events: PlatformEventsService,
   ) {}
 
-  async submitLead(dto: SubmitLeadDto) {
+  async submitLead(dto: SubmitLeadDto, correlationId?: string) {
     if (dto.website?.trim()) {
       return { submitted: true };
     }
@@ -101,6 +103,22 @@ export class LeadsService {
       lead.companyName,
       referral.partnerId,
     );
+
+    await this.events.record({
+      eventCode: 'LEAD_SUBMITTED',
+      source: 'LANDING',
+      correlationId,
+      entityType: 'Lead',
+      entityId: lead.id,
+      route: '/public/leads',
+      actorType: 'PUBLIC_VISITOR',
+      metadata: {
+        result: 'created',
+        source: lead.source,
+        attributionStatus: lead.attributionStatus,
+        partnerAttributed: Boolean(referral.partnerId),
+      },
+    });
 
     return {
       submitted: true,
@@ -200,10 +218,11 @@ export class LeadsService {
   }
 
   async listLeads(currentUser: AuthenticatedUser, query: LeadQueryDto) {
-    const requestedQuery =
-      query.viewKey === 'my-assigned-leads'
-        ? { ...query, assignedToUserId: currentUser.platform?.id }
-        : query;
+    const requestedQuery = ['my-assigned-leads', 'my-open-leads'].includes(
+      query.viewKey ?? '',
+    )
+      ? { ...query, assignedToUserId: currentUser.platform?.id }
+      : query;
     const scopedQuery =
       this.isPlatformSuperAdmin(currentUser) || !currentUser.platform?.id
         ? requestedQuery
@@ -269,10 +288,25 @@ export class LeadsService {
     }
     this.assertLeadOwnerAccess(currentUser, lead);
 
-    const convertedCustomer = await this.prisma.customerAccount.findFirst({
-      where: { leadId },
-      select: { id: true, companyName: true, status: true, subStatus: true },
-    });
+    const [convertedCustomer, contracts] = await Promise.all([
+      this.prisma.customerAccount.findFirst({
+        where: { leadId },
+        select: { id: true, companyName: true, status: true, subStatus: true },
+      }),
+      this.prisma.contract.findMany({
+        where: { relatedLeadId: leadId },
+        select: {
+          id: true,
+          contractNumber: true,
+          title: true,
+          contractType: true,
+          status: true,
+          signedAt: true,
+          updatedAt: true,
+        },
+        orderBy: { updatedAt: 'desc' },
+      }),
+    ]);
 
     await this.auditService.log({
       tenantId: currentUser.tenantId,
@@ -282,7 +316,7 @@ export class LeadsService {
       entityId: leadId,
     });
 
-    return { ...lead, convertedCustomer };
+    return { ...lead, convertedCustomer, contracts };
   }
 
   async createLead(currentUser: AuthenticatedUser, dto: CreateAdminLeadDto) {
@@ -465,6 +499,22 @@ export class LeadsService {
       beforeSnapshot: existing,
       afterSnapshot: updated,
     });
+
+    if (dto.status !== undefined && dto.status !== existing.status) {
+      await this.events.record({
+        eventCode:
+          dto.status === LeadStatus.QUALIFIED
+            ? 'LEAD_QUALIFIED'
+            : 'LEAD_STATUS_CHANGED',
+        source: 'ADMIN',
+        entityType: 'Lead',
+        entityId: leadId,
+        actorType: 'PLATFORM_USER',
+        actorId: currentUser.userId,
+        route: `/leads/${leadId}`,
+        metadata: { fromStatus: existing.status, toStatus: dto.status },
+      });
+    }
 
     return updated;
   }

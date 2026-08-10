@@ -12,6 +12,26 @@ export declare const PRODUCTION_APP_URLS: Readonly<{
   api: "https://api.dijipeople.com";
 }>;
 
+export declare const AGREEMENT_CATEGORY_OPTIONS: readonly Readonly<{
+  value:
+    | "PARTNER"
+    | "LEAD_PROSPECT"
+    | "CUSTOMER"
+    | "TENANT_PROVISIONING"
+    | "SUPPORT_SERVICE"
+    | "OTHER";
+  label: string;
+}>[];
+
+export declare const AGREEMENT_CATEGORY_VALUES: readonly (
+  | "PARTNER"
+  | "LEAD_PROSPECT"
+  | "CUSTOMER"
+  | "TENANT_PROVISIONING"
+  | "SUPPORT_SERVICE"
+  | "OTHER"
+)[];
+
 export declare function getAppPort(
   app: "landing" | "web" | "admin" | "api",
   env?: NodeJS.ProcessEnv,

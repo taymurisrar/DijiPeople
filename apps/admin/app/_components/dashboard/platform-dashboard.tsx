@@ -302,6 +302,7 @@ export function PlatformDashboard({
                 }}
                 className="h-10 min-w-32 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold normal-case tracking-normal text-slate-700 shadow-sm"
               >
+                <option value="30d">Last 30 days</option>
                 <option value="3m">Last 3 months</option>
                 <option value="6m">Last 6 months</option>
                 <option value="12m">Last 12 months</option>
@@ -555,7 +556,7 @@ function dashboardContent(view: string, context: DashboardContext) {
       },
       breakdownTitle: "",
       breakdown: {},
-      secondaryTitle: "Tenant health distribution",
+      secondaryTitle: "Tenant status distribution",
       secondary: s.tenantBreakdown,
       queueTitle: "Operational alerts",
       queueDescription:
@@ -1221,15 +1222,17 @@ function addPeriodComparisons(
     metrics: content.metrics.map((metric) => {
       const comparison = byLabel[metric.label];
       if (!comparison) return metric;
-      const direction =
-        comparison.changePercent > 0
-          ? "up"
-          : comparison.changePercent < 0
-            ? "down"
-            : "flat";
+      const trend =
+        comparison.previous === 0
+          ? comparison.current === 0
+            ? "No prior data"
+            : "No prior data for comparison"
+          : comparison.changePercent === 0
+            ? "No change vs previous period"
+            : `${comparison.changePercent > 0 ? "↑" : "↓"} ${Math.abs(comparison.changePercent).toFixed(1)}% vs previous period`;
       return {
         ...metric,
-        trend: `${Math.abs(comparison.changePercent).toFixed(1)}% ${direction} vs previous ${summary.timeRange}`,
+        trend,
       };
     }),
   };

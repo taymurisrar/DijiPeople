@@ -8,6 +8,7 @@ import { AuthModule } from '../auth/auth.module';
 import { BillingModule as StripeBillingModule } from '../billing/billing.module';
 import { PermissionsModule } from '../permissions/permissions.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { PlatformCommunicationsModule } from '../platform-communications/platform-communications.module';
 import { RolesModule } from '../roles/roles.module';
 import { LeadsRepository } from '../leads/leads.repository';
 import { PlatformPermissionsGuard } from '../platform-auth/platform-permissions';
@@ -21,6 +22,7 @@ import { PlatformLifecycleService } from './platform-lifecycle.service';
 import { PlatformOnboardingService } from './platform-onboarding.service';
 import { SuperAdminController } from './super-admin.controller';
 import { SuperAdminService } from './super-admin.service';
+import { TenantProvisioningService } from './tenant-provisioning.service';
 
 @Module({
   imports: [
@@ -32,6 +34,7 @@ import { SuperAdminService } from './super-admin.service';
     UsersModule,
     PermissionsModule,
     NotificationsModule,
+    PlatformCommunicationsModule,
     AuditModule,
     StripeBillingModule,
   ],
@@ -44,11 +47,12 @@ import { SuperAdminService } from './super-admin.service';
     PaymentsService,
     PlatformOnboardingService,
     PlatformLifecycleService,
+    TenantProvisioningService,
     SuperAdminService,
     JwtAuthGuard,
     RolesGuard,
     PlatformPermissionsGuard,
   ],
-  exports: [SuperAdminService],
+  exports: [SuperAdminService, TenantProvisioningService],
 })
 export class SuperAdminModule {}

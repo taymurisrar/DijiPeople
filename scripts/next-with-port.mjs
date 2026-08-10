@@ -1,8 +1,11 @@
 import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import net from "node:net";
+import path from "node:path";
 
-const require = createRequire(import.meta.url);
+const workspaceRequire = createRequire(
+  path.join(process.cwd(), "package.json"),
+);
 const [, , command = "dev", defaultPort = "3000", portEnvKeys = ""] =
   process.argv;
 const scopedPortEnvKeys = portEnvKeys
@@ -75,7 +78,7 @@ if (command === "dev") {
   }
 }
 
-const nextBin = require.resolve("next/dist/bin/next");
+const nextBin = workspaceRequire.resolve("next/dist/bin/next");
 const isDevCommand = command === "dev";
 const forceWebpackDev =
   process.env.NEXT_DEV_BUNDLER?.toLowerCase() !== "turbopack";

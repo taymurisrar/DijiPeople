@@ -40,6 +40,11 @@ export default async function Page({
         <RuntimeRecordRoute
           moduleKey="contracts"
           initialValues={{
+            status: "DRAFT",
+            processStage: "INITIATION",
+            signingMode: "MIXED",
+            documentSource: "BLANK",
+            isGoverningAgreement: false,
             contractType:
               params.contractType ?? template?.contractType ?? "SERVICE_AGREEMENT",
             templateId: template?.id ?? "",

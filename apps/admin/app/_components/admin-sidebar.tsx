@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   Building2,
@@ -19,7 +20,6 @@ import {
   Package,
   PanelLeftClose,
   PanelLeftOpen,
-  ReceiptText,
   RefreshCcw,
   Settings2,
   UsersRound,
@@ -48,71 +48,77 @@ const iconMap = {
   Bug,
 } as const;
 
-const navigationGroups = [
-  "workspace",
-  "customers",
-  "partners",
-  "agreements",
-  "revenue",
-  "support",
-  "system",
-] as const;
-const navigationTitles = {
-  workspace: "Workspace",
-  customers: "Customer Acquisition",
-  partners: "Partners",
-  agreements: "Agreements",
-  revenue: "Revenue",
-  support: "Support",
-  system: "System",
-} as const;
-const navSections = navigationGroups.map((group) => ({
-  title: navigationTitles[group],
-  items: [
-    ...listPlatformModuleDefinitions()
-      .filter(
-        (definition) =>
-          definition.navigationGroup === group &&
-          ![
-            "partner-inquiries",
-            "partner-onboarding",
-            "signature-requests",
-          ].includes(definition.key),
-      )
-      .map((definition) => ({
-        href: definition.routeBase,
-        label: definition.pluralDisplayName,
-        icon:
-          iconMap[definition.icon as keyof typeof iconMap] ?? LayoutDashboard,
-        roleKeys: [
-          ...new Set(definition.views.flatMap((view) => view.roles ?? [])),
-        ],
-        readPermission: definition.permissions.read,
-      })),
-    ...(group === "revenue"
-      ? [
-          {
-            href: "/billing",
-            label: "Billing",
-            icon: ReceiptText,
-            roleKeys: [] as string[],
-            readPermission: "billing.read",
-          },
-        ]
-      : []),
-    ...(group === "system"
-      ? [
-          {
-            href: "/settings",
-            label: "Settings",
-            icon: Settings2,
-            roleKeys: [] as string[],
-            readPermission: "settings.read",
-          },
-        ]
-      : []),
-  ],
-}));
+const modules = listPlatformModuleDefinitions();
+type SidebarItem = {
+  href: string;
+  label: string;
+  icon: (typeof iconMap)[keyof typeof iconMap] | typeof Settings2;
+  roleKeys: string[];
+  readPermission?: string;
+};
+function moduleItem(key: string, label?: string): SidebarItem | null {
+  const definition = modules.find((item) => item.key === key);
+  if (!definition) return null;
+  return {
+    href: definition.routeBase,
+    label: label ?? definition.pluralDisplayName,
+    icon: iconMap[definition.icon as keyof typeof iconMap] ?? LayoutDashboard,
+    roleKeys: [
+      ...new Set(definition.views.flatMap((view) => view.roles ?? [])),
+    ],
+    readPermission: definition.permissions.read,
+  };
+}
+function section(title: string, entries: Array<SidebarItem | null>) {
+  return {
+    title,
+    items: entries.filter((item): item is SidebarItem => Boolean(item)),
+  };
+}
+const navSections = [
+  section("Workspace", [moduleItem("dashboard", "Dashboard")]),
+  section("Growth", [
+    moduleItem("leads"),
+    moduleItem("customers"),
+    moduleItem("customer-onboarding", "Onboarding"),
+  ]),
+  section("Partners", [
+    moduleItem("partners"),
+    moduleItem("partner-inquiries"),
+  ]),
+  section("Agreements", [
+    moduleItem("contracts"),
+    moduleItem("contract-templates", "Templates"),
+  ]),
+  section("Customer Operations", [
+    moduleItem("tenants"),
+    moduleItem("subscriptions"),
+  ]),
+  section("Revenue", [
+    moduleItem("plans"),
+    {
+      href: "/promotions",
+      label: "Promotions",
+      icon: BadgeDollarSign,
+      roleKeys: [],
+      readPermission: "billing.read",
+    },
+    moduleItem("invoices"),
+    moduleItem("payments"),
+    moduleItem("commissions"),
+  ]),
+  section("Support", [moduleItem("support-cases", "Support cases")]),
+  section("Operations", [moduleItem("monitoring-incidents", "Monitoring")]),
+  section("System", [
+    {
+      href: "/settings",
+      label: "Settings",
+      icon: Settings2,
+      roleKeys: [],
+      readPermission: "settings.read",
+    },
+  ]),
+];
 
 type AdminSidebarProps = {
   collapsed: boolean;
@@ -154,8 +160,8 @@ export function AdminSidebar({
 
       <aside
         className={[
-          "fixed inset-y-3 left-3 z-40 flex max-w-[calc(100vw-1.5rem)] flex-col rounded-[28px] border border-slate-200 bg-white shadow-xl transition-[width,transform] duration-200 ease-out",
-          "lg:sticky lg:top-4 lg:inset-auto lg:z-auto lg:h-[calc(100vh-2rem)] lg:shrink-0 lg:shadow-sm",
+          "fixed inset-y-3 left-3 z-40 flex max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-xl transition-[width,transform] duration-200 ease-out",
+          "lg:sticky lg:top-4 lg:inset-auto lg:z-auto lg:h-[calc(100dvh-2rem)] lg:shrink-0 lg:self-start lg:shadow-sm",
           "w-[calc(100vw-1.5rem)] sm:w-80",
           collapsed ? "lg:w-24" : "lg:w-72",
           isOpen ? "translate-x-0" : "-translate-x-[120%] lg:translate-x-0",
@@ -168,14 +174,28 @@ export function AdminSidebar({
           ].join(" ")}
         >
           <div className={collapsed ? "lg:hidden" : ""}>
-            <div className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
-              DijiPeople
-            </div>
-
-            <div className="mt-1 text-lg font-semibold text-slate-950">
+            <Image
+              src="/logo-primary-horizontal.svg"
+              alt="DijiPeople"
+              width={370}
+              height={100}
+              priority
+              className="h-8 w-auto"
+            />
+            <div className="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
               Platform Admin
             </div>
           </div>
+
+          {collapsed ? (
+            <Image
+              src="/logo-stacked.svg"
+              alt="DijiPeople"
+              width={40}
+              height={40}
+              className="hidden h-10 w-10 object-contain lg:block"
+            />
+          ) : null}
 
           <button
             aria-label="Close navigation"
@@ -202,8 +222,7 @@ export function AdminSidebar({
 
         <div
           className={[
-            "flex-1 space-y-6 overflow-x-hidden px-3 py-4",
-            "overflow-y-hidden lg:overflow-y-auto",
+            "min-h-0 flex-1 space-y-6 overflow-x-hidden overflow-y-auto overscroll-contain px-3 py-4",
             "scrollbar-none [-ms-overflow-style:none] [scrollbar-width:none]",
           ].join(" ")}
         >
@@ -272,7 +291,7 @@ export function AdminSidebar({
   );
 }
 
-type NavItem = (typeof navSections)[number]["items"][number];
+type NavItem = SidebarItem;
 
 function canShowNavItem(
   item: NavItem,
@@ -291,10 +310,11 @@ function canShowNavItem(
   ) {
     return true;
   }
+  const readPermission = item.readPermission;
   if (
-    item.readPermission &&
+    readPermission &&
     !permissionKeys.some((permission) =>
-      permissionMatches(permission, item.readPermission),
+      permissionMatches(permission, readPermission),
     )
   )
     return false;

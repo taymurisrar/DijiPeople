@@ -42,6 +42,20 @@ const APP_URL_ENV_KEYS = Object.freeze({
   ],
 });
 
+// Agreement categories are a stable reporting dimension. Contract type remains
+// the legal/document classification used by the agreement workflow.
+const AGREEMENT_CATEGORY_OPTIONS = Object.freeze([
+  Object.freeze({ value: "PARTNER", label: "Partner" }),
+  Object.freeze({ value: "LEAD_PROSPECT", label: "Lead / Prospect" }),
+  Object.freeze({ value: "CUSTOMER", label: "Customer" }),
+  Object.freeze({ value: "TENANT_PROVISIONING", label: "Tenant Provisioning" }),
+  Object.freeze({ value: "SUPPORT_SERVICE", label: "Support / Service" }),
+  Object.freeze({ value: "OTHER", label: "Other" }),
+]);
+const AGREEMENT_CATEGORY_VALUES = Object.freeze(
+  AGREEMENT_CATEGORY_OPTIONS.map((option) => option.value),
+);
+
 function parsePort(value, fallback) {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
@@ -238,6 +252,8 @@ module.exports = {
   isProductionLike,
   requireEnv,
   validateDeploymentEnv,
+  AGREEMENT_CATEGORY_OPTIONS,
+  AGREEMENT_CATEGORY_VALUES,
   SYSTEM_MODULE_CAPABILITIES,
   SYSTEM_WIDGET_REGISTRY,
   listSupportedSystemWidgets,

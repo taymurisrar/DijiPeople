@@ -18,6 +18,32 @@ export const LOGIN_ROUTE = "/login";
 export const DEFAULT_ADMIN_ROUTE = "/tenants";
 export const ACCESS_DENIED_ROUTE = "/access-denied";
 
+const PROTECTED_ADMIN_ROUTE_ROOTS = [
+  "/account-settings",
+  "/billing",
+  "/commissions",
+  "/contract-templates",
+  "/contracts",
+  "/customers",
+  "/invoices",
+  "/leads",
+  "/notifications",
+  "/onboarding",
+  "/partner-inquiries",
+  "/partner-onboarding",
+  "/partners",
+  "/payments",
+  "/plans",
+  "/preferences",
+  "/profile",
+  "/security",
+  "/settings",
+  "/signature-requests",
+  "/subscriptions",
+  "/support",
+  "/tenants",
+] as const;
+
 function normalizePath(pathname: string): string {
   if (!pathname) return "/";
 
@@ -32,29 +58,11 @@ function normalizePath(pathname: string): string {
 
 export function isProtectedAdminRoute(pathname: string): boolean {
   const normalized = normalizePath(pathname);
-
   return (
     normalized === "/" ||
-    normalized === "/tenants" ||
-    normalized.startsWith("/tenants/") ||
-    normalized === "/customers" ||
-    normalized.startsWith("/customers/") ||
-    normalized === "/subscriptions" ||
-    normalized.startsWith("/subscriptions/") ||
-    normalized === "/invoices" ||
-    normalized.startsWith("/invoices/") ||
-    normalized === "/billing" ||
-    normalized.startsWith("/billing/") ||
-    normalized === "/plans" ||
-    normalized.startsWith("/plans/") ||
-    normalized === "/onboarding" ||
-    normalized.startsWith("/onboarding/") ||
-    normalized === "/leads" ||
-    normalized.startsWith("/leads/") ||
-    normalized === "/payments" ||
-    normalized.startsWith("/payments/") ||
-    normalized === "/settings" ||
-    normalized.startsWith("/settings/")
+    PROTECTED_ADMIN_ROUTE_ROOTS.some(
+      (root) => normalized === root || normalized.startsWith(`${root}/`),
+    )
   );
 }
 

@@ -11,6 +11,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { LeadsService } from '../leads/leads.service';
 import {
   CreateAdminLeadDto,
+  ConvertLeadToCustomerDto,
   LeadQueryDto,
   UpdateAdminLeadDto,
 } from '../leads/dto/admin-lead.dto';
@@ -56,6 +57,7 @@ import {
 } from '../platform-auth/platform-permissions';
 import { resolveRuntimeField, resolveRuntimeViewRule } from '@repo/config';
 import { runtimeViewWhere } from './runtime-view-where';
+import { PlatformRuntimeRelationsService } from './platform-runtime-relations.service';
 
 @Injectable()
 export class PlatformRuntimeService {
@@ -69,6 +71,7 @@ export class PlatformRuntimeService {
     private readonly contracts: ContractsService,
     private readonly supportCases: SupportCasesService,
     private readonly partnerExperience: PartnerExperienceService,
+    private readonly relations: PlatformRuntimeRelationsService,
   ) {}
   async list(
     user: AuthenticatedUser,
@@ -589,6 +592,24 @@ export class PlatformRuntimeService {
       );
     if (action === 'assign' && id)
       return this.bulkAssign(user, key, [id], textOrNull(input.ownerId));
+    if (action === 'convert' && id && key === 'leads') {
+      const customer = await this.superAdmin.convertLeadToCustomer(
+        user,
+        id,
+        await dto(
+          ConvertLeadToCustomerDto,
+          input.values && typeof input.values === 'object'
+            ? (input.values as Record<string, unknown>)
+            : {},
+        ),
+      );
+      return {
+        success: true,
+        message:
+          'Lead converted to a customer. Tenant provisioning remains a separate onboarding step.',
+        data: customer,
+      };
+    }
     if (action === 'activate' && id && key === 'partners')
       return this.partnerExperience.activatePartner(user, id);
     if (id && key === 'partners') {
@@ -797,58 +818,17 @@ export class PlatformRuntimeService {
   ) {
     const key = this.key(moduleKey);
     this.assertModuleRead(user, key);
-    const allowed: Partial<Record<PlatformRuntimeModuleKey, string[]>> = {
-      partners: [
-        'leads',
-        'commissions',
-        'agreements',
-        'onboardingApplications',
-        'referralLinks',
-        'inquiries',
-        'portalUsers',
-        'attributedCustomers',
-        'attributedTenants',
-      ],
-      customers: ['contracts', 'onboardings', 'supportCases'],
-      'customer-onboarding': ['contracts', 'supportCases'],
-      tenants: ['contracts', 'supportCases', 'invoices'],
-      contracts: [
-        'versions',
-        'documents',
-        'approvalRequests',
-        'signatureRequests',
-        'parties',
-        'fieldPlacements',
-        'relatedRecords',
-      ],
-      'support-cases': [
-        'childCases',
-        'attachments',
-        'communications',
-        'incidentLinks',
-      ],
-      plans: ['subscriptions', 'selectedByCustomers'],
-    };
-    if (!allowed[key]?.includes(relationshipKey))
-      throw new BadRequestException(
-        'This related-record collection is not available.',
-      );
-    if (key === 'plans') {
-      const records =
-        relationshipKey === 'subscriptions'
-          ? await this.prisma.subscription.findMany({
-              where: { planId: id },
-              include: { tenant: true },
-              orderBy: { updatedAt: 'desc' },
-            })
-          : await this.prisma.customerAccount.findMany({
-              where: { selectedPlanId: id },
-              orderBy: { updatedAt: 'desc' },
-            });
+    this.relations.assertAllowed(key, relationshipKey);
+    const direct = await this.relations.findDirectRecords(
+      key,
+      id,
+      relationshipKey,
+    );
+    if (direct) {
       return paginateRuntimeRecords(
-        records,
+        direct.records,
         positive(query.page, 1),
-        Math.min(positive(query.pageSize, 10), 100),
+        Math.min(positive(query.pageSize, direct.defaultPageSize ?? 25), 100),
         query.search,
       );
     }
@@ -871,6 +851,7 @@ export class PlatformRuntimeService {
       readRuntimeFilters(query.filters),
     );
   }
+
   async validate(
     user: AuthenticatedUser,
     moduleKey: string,
@@ -891,15 +872,21 @@ export class PlatformRuntimeService {
             ? body.mode === 'create'
               ? CreateCustomerDto
               : UpdateCustomerDto
-            : key === 'contracts'
+            : key === 'customer-onboarding'
               ? body.mode === 'create'
-                ? CreateContractDto
-                : UpdateContractDto
-              : key === 'support-cases'
-                ? body.mode === 'create'
-                  ? CreateSupportCaseDto
-                  : UpdateSupportCaseDto
-                : null;
+                ? CreateCustomerOnboardingRecordDto
+                : UpdateCustomerOnboardingDto
+              : key === 'tenants' && body.mode !== 'create'
+                ? UpdateTenantDto
+                : key === 'contracts'
+                  ? body.mode === 'create'
+                    ? CreateContractDto
+                    : UpdateContractDto
+                  : key === 'support-cases'
+                    ? body.mode === 'create'
+                      ? CreateSupportCaseDto
+                      : UpdateSupportCaseDto
+                    : null;
     if (!Class) return { success: true };
     try {
       const validationValues = { ...(body.values ?? {}) };
@@ -1007,7 +994,11 @@ export class PlatformRuntimeService {
         await this.leads.updateLead(
           user,
           id,
-          await dto(UpdateAdminLeadDto, { status, notes: reason ?? undefined }),
+          await dto(UpdateAdminLeadDto, {
+            status,
+            ...(status === 'QUALIFIED' ? { isQualified: true } : {}),
+            ...(reason ? { subStatus: reason, notes: reason } : {}),
+          }),
         ),
       );
     if (key === 'partners') {

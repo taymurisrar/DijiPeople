@@ -3,6 +3,7 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import {
   BillingCycle,
@@ -11,12 +12,15 @@ import {
   InvoiceStatus,
   PaymentMethod,
   PaymentStatus,
+  PlatformEventResult,
+  PlatformEventSource,
   Prisma,
   SubscriptionStatus,
   TenantStatus,
   WebhookProcessingStatus,
 } from '@prisma/client';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { PlatformEventsService } from '../../platform-events/platform-events.service';
 import type { StripeClient, StripeEvent } from '../constants/stripe.constants';
 import { StripeBillingService } from './stripe-billing.service';
 
@@ -108,6 +112,7 @@ export class WebhookService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly stripeBillingService: StripeBillingService,
+    @Optional() private readonly platformEvents?: PlatformEventsService,
   ) {}
 
   async processStripeEvent(event: StripeEvent) {
@@ -117,6 +122,10 @@ export class WebhookService {
       record.processingStatus === WebhookProcessingStatus.PROCESSED ||
       record.processingStatus === WebhookProcessingStatus.IGNORED
     ) {
+      await this.recordWebhookEvent(event, PlatformEventResult.IGNORED, {
+        duplicate: true,
+        processingStatus: record.processingStatus,
+      });
       return {
         duplicate: true,
         id: record.id,
@@ -140,6 +149,12 @@ export class WebhookService {
         },
       });
 
+      await this.recordWebhookEvent(
+        event,
+        handled ? PlatformEventResult.SUCCEEDED : PlatformEventResult.IGNORED,
+        { duplicate: false, processingStatus },
+      );
+
       return {
         duplicate: false,
         id: updated.id,
@@ -155,8 +170,36 @@ export class WebhookService {
         },
       });
 
+      await this.recordWebhookEvent(event, PlatformEventResult.FAILED, {
+        duplicate: false,
+        processingStatus: WebhookProcessingStatus.FAILED,
+        error: getSafeErrorMessage(error),
+      });
+
       throw error;
     }
+  }
+
+  private async recordWebhookEvent(
+    event: StripeEvent,
+    result: PlatformEventResult,
+    metadata: Record<string, unknown>,
+  ) {
+    await this.platformEvents?.record({
+      eventCode: 'STRIPE_WEBHOOK_PROCESSED',
+      source: PlatformEventSource.STRIPE,
+      result,
+      severity: result === PlatformEventResult.FAILED ? 'ERROR' : 'INFO',
+      correlationId: event.id,
+      entityType: 'StripeWebhookEvent',
+      entityId: event.id,
+      route: '/billing/webhooks/stripe',
+      metadata: {
+        stripeEventType: event.type,
+        livemode: event.livemode,
+        ...metadata,
+      },
+    });
   }
 
   async retryStoredEvent(eventRecordId: string) {

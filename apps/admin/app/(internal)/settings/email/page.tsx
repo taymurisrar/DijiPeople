@@ -1,52 +1,81 @@
-import { SettingsFormCard } from "@/app/_components/settings/settings-form-card";
+import { PlatformEmailSettingsWorkspace } from "@/app/_components/settings/platform-email-settings-workspace";
 import { SettingsShell } from "@/app/_components/settings/settings-shell";
+import { apiRequestJson } from "@/lib/server-api";
 
 export default async function EmailProviderSettingsPage() {
+  const [settings, templates, deliveries] = await Promise.all([
+    apiRequestJson<PlatformEmailSettings>("/super-admin/platform-email"),
+    apiRequestJson<{ items: PlatformEmailTemplate[] }>(
+      "/super-admin/platform-email/templates",
+    ),
+    apiRequestJson<{ items: PlatformEmailDelivery[] }>(
+      "/super-admin/platform-email/deliveries?limit=25",
+    ),
+  ]);
+
   return (
     <SettingsShell
-      title="Email provider"
-      description="Configure SMTP delivery, sender identity, email templates, and system notification behavior."
+      title="Platform email"
+      description="Configure secure outbound delivery for DijiPeople platform messages, maintain system templates, and review recent sends."
     >
-      <SettingsFormCard title="SMTP settings">
-        <div className="grid gap-4 md:grid-cols-2">
-          <Field label="SMTP host" value="smtp.example.com" />
-          <Field label="SMTP port" value="587" />
-          <Field label="SMTP username" value="notifications@dijipeople.com" />
-          <Field label="Sender email" value="no-reply@dijipeople.com" />
-          <Field label="Sender name" value="DijiPeople" />
-          <Field label="Delivery mode" value="Production" />
-        </div>
-      </SettingsFormCard>
-
-      <SettingsFormCard title="Email controls">
-        <div className="space-y-3">
-          <Toggle label="Send account activation emails" defaultChecked />
-          <Toggle label="Send password reset emails" defaultChecked />
-          <Toggle label="Send billing notification emails" defaultChecked />
-          <Toggle label="Send onboarding notification emails" defaultChecked />
-        </div>
-      </SettingsFormCard>
+      <PlatformEmailSettingsWorkspace
+        initialSettings={settings}
+        initialTemplates={templates.items}
+        initialDeliveries={deliveries.items}
+      />
     </SettingsShell>
   );
 }
 
-function Field({ label, value }: { label: string; value: string }) {
-  return (
-    <label className="space-y-2">
-      <span className="text-sm font-medium text-slate-900">{label}</span>
-      <input
-        defaultValue={value}
-        className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-slate-500 focus:ring-4 focus:ring-slate-100"
-      />
-    </label>
-  );
-}
+export type PlatformEmailSettings = {
+  enabled: boolean;
+  providerType: "CONSOLE" | "SMTP";
+  fromName: string;
+  fromEmail: string;
+  replyToEmail: string | null;
+  smtpHost: string;
+  smtpPort: number;
+  smtpAuthEnabled: boolean;
+  smtpUsername: string;
+  smtpSecurity: "NONE" | "STARTTLS" | "TLS";
+  connectionTimeoutMs: number;
+  passwordConfigured: boolean;
+  source: "stored" | "default";
+  capabilities: {
+    canManage: boolean;
+    canManageCredentials: boolean;
+    canTest: boolean;
+  };
+};
 
-function Toggle({ label, defaultChecked = false }: { label: string; defaultChecked?: boolean }) {
-  return (
-    <label className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-      <span className="text-sm font-semibold text-slate-950">{label}</span>
-      <input type="checkbox" defaultChecked={defaultChecked} className="h-4 w-4" />
-    </label>
-  );
-}
+export type PlatformEmailTemplate = {
+  id: string;
+  eventCode: string;
+  templateKey: string;
+  name: string;
+  description: string | null;
+  subjectTemplate: string;
+  htmlTemplate: string;
+  textTemplate: string | null;
+  availableVariables: unknown;
+  status: string;
+  version: number;
+  updatedAt: string;
+};
+
+export type PlatformEmailDelivery = {
+  id: string;
+  eventCode: string;
+  recipient: string;
+  subject: string;
+  status: string;
+  providerType: string | null;
+  providerMessageId: string | null;
+  entityType: string | null;
+  entityId: string | null;
+  attemptCount: number;
+  errorMessage: string | null;
+  lastAttemptAt: string | null;
+  sentAt: string | null;
+  createdAt: string;
+};

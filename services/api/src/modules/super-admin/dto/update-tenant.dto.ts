@@ -21,9 +21,21 @@ export class UpdateTenantDto {
   @Transform(trimString)
   @IsString()
   @MaxLength(160)
+  displayName?: string;
+
+  @IsOptional()
+  @Transform(trimString)
+  @IsString()
+  @MaxLength(160)
   legalName?: string;
 
   @IsOptional()
   @IsEnum(TenantStatus)
   status?: TenantStatus;
+
+  @IsOptional()
+  @Transform(trimString)
+  @IsString()
+  @MaxLength(120)
+  subStatus?: string;
 }

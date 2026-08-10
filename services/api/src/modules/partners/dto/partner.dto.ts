@@ -33,6 +33,7 @@ export class PartnerQueryDto {
 export class CreatePartnerDto {
   @IsEnum(PartnerType) type!: PartnerType;
   @IsString() @MaxLength(160) displayName!: string;
+  @IsOptional() @IsString() @MaxLength(160) legalName?: string;
   @IsOptional() @IsString() @MaxLength(160) companyName?: string;
   @IsOptional() @IsString() @MaxLength(100) contactFirstName?: string;
   @IsOptional() @IsString() @MaxLength(100) contactLastName?: string;

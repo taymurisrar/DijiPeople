@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import {
   BillingCycle,
+  BillingModel,
   DiscountType,
   InvoiceStatus,
   PaymentMethod,
@@ -22,6 +23,8 @@ export class BillingService {
 
   async calculateSubscriptionPricing(input: {
     planId: string;
+    planPriceId?: string | null;
+    purchasedSeats?: number;
     billingCycle: BillingCycle;
     discountType?: DiscountType;
     discountValue?: number;
@@ -36,8 +39,40 @@ export class BillingService {
       throw new NotFoundException('Plan not found.');
     }
 
-    const basePrice =
-      input.billingCycle === BillingCycle.ANNUAL
+    const planPrice = input.planPriceId
+      ? await this.prisma.planPrice.findFirst({
+          where: {
+            id: input.planPriceId,
+            planId: input.planId,
+            isActive: true,
+          },
+        })
+      : null;
+    if (input.planPriceId && !planPrice)
+      throw new BadRequestException('Selected plan price is not available.');
+    if (
+      planPrice?.billingModel === BillingModel.PER_SEAT &&
+      (input.purchasedSeats ?? 0) < planPrice.minimumSeats
+    )
+      throw new BadRequestException(
+        `Licensed seats must be at least ${planPrice.minimumSeats}.`,
+      );
+    if (
+      planPrice?.billingModel === BillingModel.PER_SEAT &&
+      planPrice.maximumSeats !== null &&
+      (input.purchasedSeats ?? 0) > planPrice.maximumSeats
+    )
+      throw new BadRequestException(
+        `Licensed seats cannot exceed ${planPrice.maximumSeats}.`,
+      );
+    const billingCycle = planPrice?.billingCycle ?? input.billingCycle;
+    const quantity =
+      planPrice?.billingModel === BillingModel.PER_SEAT
+        ? (input.purchasedSeats ?? 1)
+        : 1;
+    const basePrice = planPrice
+      ? Number(planPrice.unitAmount) * quantity
+      : billingCycle === BillingCycle.ANNUAL
         ? Number(plan.annualBasePrice)
         : Number(plan.monthlyBasePrice);
     const discountType = input.discountType ?? DiscountType.NONE;
@@ -72,11 +107,19 @@ export class BillingService {
 
     return {
       plan,
+      planPrice,
+      billingCycle,
+      billingModel: planPrice?.billingModel ?? BillingModel.FLAT,
+      quantity,
       basePrice,
       discountType,
       discountValue,
       finalPrice,
-      currency: (input.currency ?? plan.currency).toUpperCase(),
+      currency: (
+        planPrice?.currency ??
+        input.currency ??
+        plan.currency
+      ).toUpperCase(),
     };
   }
 
@@ -93,6 +136,7 @@ export class BillingService {
     input: {
       tenantId: string;
       planId: string;
+      planPriceId?: string | null;
       billingCycle: BillingCycle;
       status?: SubscriptionStatus;
       startDate?: Date;
@@ -112,6 +156,8 @@ export class BillingService {
     const startDate = input.startDate ?? new Date();
     const pricing = await this.calculateSubscriptionPricing({
       planId: input.planId,
+      planPriceId: input.planPriceId,
+      purchasedSeats: input.purchasedSeats,
       billingCycle: input.billingCycle,
       discountType: input.discountType,
       discountValue: input.discountValue,
@@ -124,7 +170,8 @@ export class BillingService {
       create: {
         tenantId: input.tenantId,
         planId: input.planId,
-        billingCycle: input.billingCycle,
+        planPriceId: pricing.planPrice?.id,
+        billingCycle: pricing.billingCycle,
         basePrice: pricing.basePrice,
         discountType: pricing.discountType,
         discountValue: pricing.discountValue,
@@ -136,7 +183,7 @@ export class BillingService {
         endDate: input.endDate,
         renewalDate:
           input.renewalDate ??
-          this.resolveRenewalDate(startDate, input.billingCycle),
+          this.resolveRenewalDate(startDate, pricing.billingCycle),
         autoRenew: input.autoRenew ?? true,
         stripeSubscriptionId: input.stripeSubscriptionId,
         purchasedSeats: input.purchasedSeats ?? 1,
@@ -145,7 +192,8 @@ export class BillingService {
       },
       update: {
         planId: input.planId,
-        billingCycle: input.billingCycle,
+        planPriceId: pricing.planPrice?.id,
+        billingCycle: pricing.billingCycle,
         basePrice: pricing.basePrice,
         discountType: pricing.discountType,
         discountValue: pricing.discountValue,
@@ -157,7 +205,7 @@ export class BillingService {
         endDate: input.endDate,
         renewalDate:
           input.renewalDate ??
-          this.resolveRenewalDate(startDate, input.billingCycle),
+          this.resolveRenewalDate(startDate, pricing.billingCycle),
         autoRenew: input.autoRenew,
         stripeSubscriptionId:
           input.stripeSubscriptionId === undefined

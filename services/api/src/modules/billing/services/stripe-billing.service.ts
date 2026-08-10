@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
+import { BillingInterval, BillingModel } from '@prisma/client';
 import {
   STRIPE_CLIENT,
   type StripeClient,
@@ -60,11 +61,13 @@ export class StripeBillingService {
     });
   }
 
-  async createMonthlyPerSeatPrice(input: {
+  async createRecurringPrice(input: {
     productId: string;
     unitAmount: number;
     currency: string;
     planId: string;
+    billingModel: BillingModel;
+    billingInterval: BillingInterval;
   }) {
     if (!Number.isFinite(input.unitAmount) || input.unitAmount <= 0) {
       throw new BadRequestException(
@@ -76,20 +79,25 @@ export class StripeBillingService {
       product: input.productId,
       currency: input.currency.toLowerCase(),
       unit_amount: Math.round(input.unitAmount * 100),
-      recurring: { interval: 'month', usage_type: 'licensed' },
+      recurring: {
+        interval:
+          input.billingInterval === BillingInterval.YEAR ? 'year' : 'month',
+        usage_type: 'licensed',
+      },
       metadata: {
         planId: input.planId,
-        billingModel: 'PER_SEAT',
-        billingInterval: 'MONTH',
+        billingModel: input.billingModel,
+        billingInterval: input.billingInterval,
       },
     });
   }
 
-  async verifyMonthlyPerSeatPrice(input: {
+  async verifyRecurringPrice(input: {
     stripePriceId: string;
     expectedProductId?: string | null;
     expectedCurrency: string;
     expectedUnitAmount: number;
+    expectedBillingInterval: BillingInterval;
   }) {
     const price = await this.stripe.prices.retrieve(input.stripePriceId);
     const productId =
@@ -100,8 +108,10 @@ export class StripeBillingService {
     if (!price.active) reasons.push('Stripe Price is inactive.');
     if (price.type !== 'recurring')
       reasons.push('Stripe Price is not recurring.');
-    if (price.recurring?.interval !== 'month')
-      reasons.push('Stripe Price interval is not monthly.');
+    const expectedInterval =
+      input.expectedBillingInterval === BillingInterval.YEAR ? 'year' : 'month';
+    if (price.recurring?.interval !== expectedInterval)
+      reasons.push(`Stripe Price interval is not ${expectedInterval}.`);
     if (price.recurring?.usage_type !== 'licensed')
       reasons.push('Stripe Price usage type is not licensed.');
     if (price.currency.toUpperCase() !== input.expectedCurrency.toUpperCase())
@@ -129,6 +139,53 @@ export class StripeBillingService {
     };
   }
 
+  async createPromotion(input: {
+    promotionId: string;
+    name: string;
+    percentOff?: number | null;
+    amountOff?: number | null;
+    currency?: string | null;
+    duration: 'once' | 'repeating' | 'forever';
+    durationMonths?: number | null;
+    redeemBy?: Date | null;
+    maximumRedemptions?: number | null;
+    code?: string | null;
+    productId?: string | null;
+  }) {
+    const coupon = await this.stripe.coupons.create({
+      name: input.name,
+      percent_off: input.percentOff ?? undefined,
+      amount_off:
+        input.amountOff == null ? undefined : Math.round(input.amountOff * 100),
+      currency:
+        input.amountOff == null ? undefined : input.currency?.toLowerCase(),
+      duration: input.duration,
+      duration_in_months:
+        input.duration === 'repeating'
+          ? (input.durationMonths ?? undefined)
+          : undefined,
+      redeem_by: input.redeemBy
+        ? Math.floor(input.redeemBy.getTime() / 1000)
+        : undefined,
+      max_redemptions: input.maximumRedemptions ?? undefined,
+      applies_to: input.productId ? { products: [input.productId] } : undefined,
+      metadata: { promotionId: input.promotionId, source: 'dijipeople' },
+    });
+    const promotionCode = input.code
+      ? await this.stripe.promotionCodes.create({
+          promotion: { type: 'coupon', coupon: coupon.id },
+          code: input.code,
+          active: true,
+          expires_at: input.redeemBy
+            ? Math.floor(input.redeemBy.getTime() / 1000)
+            : undefined,
+          max_redemptions: input.maximumRedemptions ?? undefined,
+          metadata: { promotionId: input.promotionId, source: 'dijipeople' },
+        })
+      : null;
+    return { coupon, promotionCode };
+  }
+
   isSecretKeyConfigured() {
     return Boolean(this.configService.get<string>('STRIPE_SECRET_KEY')?.trim());
   }
@@ -136,6 +193,12 @@ export class StripeBillingService {
   isWebhookSecretConfigured() {
     return Boolean(
       this.configService.get<string>('STRIPE_WEBHOOK_SECRET')?.trim(),
+    );
+  }
+
+  isPublishableKeyConfigured() {
+    return Boolean(
+      this.configService.get<string>('STRIPE_PUBLISHABLE_KEY')?.trim(),
     );
   }
 

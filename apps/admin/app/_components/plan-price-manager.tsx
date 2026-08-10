@@ -26,6 +26,9 @@ export type PlanPriceRecord = {
   maximumSeats: number | null;
   includedSeats: number;
   effectiveFrom: string;
+  effectiveTo?: string | null;
+  version?: number;
+  supersedesPriceId?: string | null;
   stripeProductId: string | null;
   stripePriceId: string | null;
   stripeEnvironment: "TEST" | "LIVE" | null;
@@ -46,6 +49,7 @@ type PlanPriceManagerProps = {
 
 type DraftPrice = {
   billingCycle: BillingCycle;
+  billingModel: "PER_SEAT" | "FLAT";
   currency: string;
   unitAmount: string;
   minimumSeats: string;
@@ -57,6 +61,7 @@ type DraftPrice = {
 
 const emptyDraft = (currency: string): DraftPrice => ({
   billingCycle: "MONTHLY",
+  billingModel: "PER_SEAT",
   currency: normalizeCurrencyOption(currency),
   unitAmount: "0",
   minimumSeats: "1",
@@ -92,6 +97,7 @@ export function PlanPriceManager({
     setEditingId(price.id);
     setEditingDraft({
       billingCycle: price.billingCycle,
+      billingModel: price.billingModel,
       currency: price.currency,
       unitAmount: String(price.unitAmount),
       minimumSeats: String(price.minimumSeats),
@@ -198,7 +204,7 @@ export function PlanPriceManager({
       ) : null}
 
       <section className="rounded-[24px] border border-slate-200 bg-slate-50 p-5">
-        <div className="grid gap-4 lg:grid-cols-[150px_120px_160px_minmax(220px,1fr)_110px_auto] lg:items-end">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4 xl:items-end">
           <PriceFields
             draft={draft}
             onChange={setDraft}
@@ -257,7 +263,7 @@ export function PlanPriceManager({
                     return (
                       <article key={price.id} className="p-5">
                         {isEditing && draftValue ? (
-                          <div className="grid gap-4 lg:grid-cols-[150px_120px_160px_minmax(220px,1fr)_110px_auto] lg:items-end">
+                          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4 xl:items-end">
                             <PriceFields
                               draft={draftValue}
                               onChange={setEditingDraft}
@@ -309,10 +315,13 @@ export function PlanPriceManager({
                               <p className="mt-1 font-semibold text-slate-950">
                                 {formatEnum(price.billingCycle)}
                               </p>
+                              <p className="mt-0.5 text-xs text-slate-400">
+                                Version {price.version ?? 1}
+                              </p>
                               <p className="mt-1 text-xs text-slate-500">
                                 {price.billingModel === "PER_SEAT"
-                                  ? `per user/month · minimum ${price.minimumSeats}`
-                                  : "legacy flat price"}
+                                  ? `Per seat · minimum ${price.minimumSeats}`
+                                  : "Flat recurring price"}
                               </p>
                             </div>
                             <div>
@@ -398,7 +407,28 @@ function PriceFields({
   return (
     <>
       <label className="block text-sm font-medium text-slate-700">
-        Billing cycle
+        Pricing model
+        <select
+          value={draft.billingModel}
+          disabled={disabled}
+          onChange={(event) => {
+            const billingModel = event.target.value as DraftPrice["billingModel"];
+            onChange({
+              ...draft,
+              billingModel,
+              minimumSeats: billingModel === "FLAT" ? "1" : draft.minimumSeats,
+              maximumSeats: billingModel === "FLAT" ? "" : draft.maximumSeats,
+              includedSeats: billingModel === "FLAT" ? "0" : draft.includedSeats,
+            });
+          }}
+          className="mt-1.5 h-10 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-[var(--admin-primary)]"
+        >
+          <option value="FLAT">Flat recurring</option>
+          <option value="PER_SEAT">Per seat</option>
+        </select>
+      </label>
+      <label className="block text-sm font-medium text-slate-700">
+        Billing interval
         <select
           value={draft.billingCycle}
           disabled={disabled}
@@ -432,7 +462,9 @@ function PriceFields({
         </select>
       </label>
       <label className="block text-sm font-medium text-slate-700">
-        Price per seat / month
+        {draft.billingModel === "PER_SEAT"
+          ? "Price per seat"
+          : "Recurring amount"}
         <input
           min="0.01"
           step="0.01"
@@ -452,7 +484,7 @@ function PriceFields({
           step="1"
           type="number"
           value={draft.minimumSeats}
-          disabled={disabled}
+          disabled={disabled || draft.billingModel === "FLAT"}
           onChange={(event) =>
             onChange({ ...draft, minimumSeats: event.target.value })
           }
@@ -466,7 +498,7 @@ function PriceFields({
           step="1"
           type="number"
           value={draft.maximumSeats}
-          disabled={disabled}
+          disabled={disabled || draft.billingModel === "FLAT"}
           onChange={(event) =>
             onChange({ ...draft, maximumSeats: event.target.value })
           }
@@ -480,7 +512,7 @@ function PriceFields({
           step="1"
           type="number"
           value={draft.includedSeats}
-          disabled={disabled}
+          disabled={disabled || draft.billingModel === "FLAT"}
           onChange={(event) =>
             onChange({ ...draft, includedSeats: event.target.value })
           }
@@ -589,7 +621,7 @@ function validateDraft(draft: DraftPrice) {
     return "Select a supported currency.";
   }
   if (Number.isNaN(Number(draft.unitAmount)) || Number(draft.unitAmount) <= 0) {
-    return "Price per seat must be greater than zero.";
+    return "Recurring amount must be greater than zero.";
   }
   if (
     !Number.isInteger(Number(draft.minimumSeats)) ||
@@ -615,8 +647,8 @@ function toPayload(draft: DraftPrice) {
     billingCycle: draft.billingCycle,
     currency: draft.currency.toUpperCase(),
     unitAmount: Number(draft.unitAmount),
-    billingModel: "PER_SEAT",
-    billingInterval: "MONTH",
+    billingModel: draft.billingModel,
+    billingInterval: draft.billingCycle === "ANNUAL" ? "YEAR" : "MONTH",
     minimumSeats: Number(draft.minimumSeats),
     maximumSeats: draft.maximumSeats ? Number(draft.maximumSeats) : null,
     includedSeats: Number(draft.includedSeats),

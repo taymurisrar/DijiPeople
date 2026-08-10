@@ -135,6 +135,21 @@ function leadViewWhere(viewKey?: string): Prisma.LeadWhereInput {
   if (viewKey && statuses[viewKey]) return { status: statuses[viewKey] };
   if (viewKey === 'direct-leads') return { partnerId: null };
   if (viewKey === 'partner-referred-leads') return { partnerId: { not: null } };
+  if (viewKey === 'website-leads') return { source: 'Website' };
+  if (viewKey === 'partner-leads') return { partnerId: { not: null } };
+  if (viewKey === 'my-open-leads')
+    return {
+      status: { in: ['NEW', 'CONTACTED', 'QUALIFIED'] },
+    };
+  if (viewKey === 'awaiting-agreement')
+    return {
+      status: 'QUALIFIED',
+      contracts: {
+        none: { status: { in: ['FULLY_SIGNED', 'FULLY_EXECUTED', 'ACTIVE'] } },
+      },
+    };
+  if (viewKey === 'lost-inactive')
+    return { status: { in: ['UNQUALIFIED', 'CLOSED_LOST', 'ARCHIVED'] } };
   if (viewKey === 'unassigned-leads') return { assignedToUserId: null };
   return {};
 }

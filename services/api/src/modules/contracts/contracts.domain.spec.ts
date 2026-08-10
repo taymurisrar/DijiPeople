@@ -1,5 +1,7 @@
 import {
   cleanContractHtml,
+  decodeSignatureDataUrl,
+  extractAgreementDocumentStructure,
   extractContractPlaceholders,
   renderContractPlaceholders,
   validateContractPlaceholderValues,
@@ -16,6 +18,37 @@ describe('contract document domain', () => {
     expect(result).toContain('text-align:center');
     expect(result).toContain('font-size:16px');
     expect(result).toContain('data-page-break="true"');
+  });
+
+  it('preserves headings, nested lists, and table rows for generated files', () => {
+    expect(
+      extractAgreementDocumentStructure(
+        '<h2>Commercial terms</h2><ol><li>First<ul><li>Nested</li></ul></li></ol><table><thead><tr><th>Item</th><th>Value</th></tr></thead><tbody><tr><td>Seats</td><td>25</td></tr></tbody></table>',
+      ),
+    ).toEqual([
+      { kind: 'paragraph', text: 'Commercial terms', level: 2 },
+      { kind: 'list', text: 'First', depth: 0, ordered: true, index: 1 },
+      { kind: 'list', text: 'Nested', depth: 1, ordered: false, index: 1 },
+      {
+        kind: 'table',
+        rows: [
+          ['Item', 'Value'],
+          ['Seats', '25'],
+        ],
+      },
+    ]);
+  });
+
+  it('accepts raster signature bytes and rejects disguised uploads', () => {
+    const png = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 0]);
+    expect(
+      decodeSignatureDataUrl(`data:image/png;base64,${png.toString('base64')}`),
+    ).toEqual(png);
+    expect(() =>
+      decodeSignatureDataUrl(
+        `data:image/png;base64,${Buffer.from('<svg onload="alert(1)"></svg>').toString('base64')}`,
+      ),
+    ).toThrow(/valid PNG or JPEG/i);
   });
 
   it('extracts discoverable typed placeholder keys without duplicates', () => {

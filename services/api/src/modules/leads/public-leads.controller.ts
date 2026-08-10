@@ -1,5 +1,6 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Post, Req } from '@nestjs/common';
 import { Public } from '../../common/decorators/public.decorator';
+import type { RequestWithId } from '../../common/middleware/request-id.middleware';
 import { SubmitLeadDto } from './dto/submit-lead.dto';
 import { LeadsService } from './leads.service';
 
@@ -9,7 +10,7 @@ export class PublicLeadsController {
 
   @Public()
   @Post()
-  submit(@Body() dto: SubmitLeadDto) {
-    return this.leadsService.submitLead(dto);
+  submit(@Body() dto: SubmitLeadDto, @Req() request: RequestWithId) {
+    return this.leadsService.submitLead(dto, request.requestId);
   }
 }

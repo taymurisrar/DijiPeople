@@ -3,10 +3,12 @@ import { getApiBaseUrl } from "../../../lib/api";
 
 export async function POST(request: Request) {
   try {
+    const correlationId = request.headers.get("x-request-id") ?? crypto.randomUUID();
     const response = await fetch(`${getApiBaseUrl()}/public/leads`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "X-Request-Id": correlationId,
       },
       body: JSON.stringify(await request.json()),
       cache: "no-store",
@@ -18,6 +20,7 @@ export async function POST(request: Request) {
       status: response.status,
       headers: {
         "Content-Type": response.headers.get("Content-Type") ?? "application/json",
+        "X-Request-Id": response.headers.get("X-Request-Id") ?? correlationId,
       },
     });
   } catch (error) {

@@ -22,6 +22,7 @@ import {
   formatBillingCycle,
   formatCurrency,
   formatDate,
+  formatEnumLabel,
 } from "@/lib/formatters";
 import { apiRequestJson } from "@/lib/server-api";
 import { isPlatformSuperAdmin } from "@/lib/platform-rbac";
@@ -54,6 +55,13 @@ type TenantDetail = {
   status: TenantStatusValue | string;
   primaryDomain: string | null;
   customDomain: string | null;
+  domainReadiness?: {
+    requestedDomain: string;
+    resolvedUrl: string;
+    verificationStatus: string;
+    sslStatus?: string | null;
+    verifiedAt?: string | null;
+  } | null;
   brandingStatus: string;
   createdAt: string;
   updatedAt: string;
@@ -187,24 +195,31 @@ export default async function TenantDetailPage({
   const activeTab = resolvedSearchParams.tab ?? "overview";
   const isEditing = resolvedSearchParams.edit === "1";
 
-  const [tenant, plans, featureCatalog, customers, auditLogs, accessUsers, invoices] =
-    await Promise.all([
-      apiRequestJson<TenantDetail>(`/super-admin/tenants/${tenantId}`),
-      apiRequestJson<PlanOption[]>("/super-admin/plans"),
-      apiRequestJson<FeatureCatalogItem[]>("/super-admin/feature-catalog"),
-      apiRequestJson<{ items: CustomerOption[] }>(
-        "/super-admin/customers?pageSize=100",
-      ).then((response) => response.items),
-      apiRequestJson<TenantAuditEvent[]>(
-        `/super-admin/tenants/${tenantId}/audit-logs`,
-      ),
-      apiRequestJson<TenantAccessUser[]>(
-        `/super-admin/tenants/${tenantId}/access-users`,
-      ),
-      apiRequestJson<TenantInvoice[]>(
-        `/super-admin/tenants/${tenantId}/invoices`,
-      ),
-    ]);
+  const [
+    tenant,
+    plans,
+    featureCatalog,
+    customers,
+    auditLogs,
+    accessUsers,
+    invoices,
+  ] = await Promise.all([
+    apiRequestJson<TenantDetail>(`/super-admin/tenants/${tenantId}`),
+    apiRequestJson<PlanOption[]>("/super-admin/plans"),
+    apiRequestJson<FeatureCatalogItem[]>("/super-admin/feature-catalog"),
+    apiRequestJson<{ items: CustomerOption[] }>(
+      "/super-admin/customers?pageSize=100",
+    ).then((response) => response.items),
+    apiRequestJson<TenantAuditEvent[]>(
+      `/super-admin/tenants/${tenantId}/audit-logs`,
+    ),
+    apiRequestJson<TenantAccessUser[]>(
+      `/super-admin/tenants/${tenantId}/access-users`,
+    ),
+    apiRequestJson<TenantInvoice[]>(
+      `/super-admin/tenants/${tenantId}/invoices`,
+    ),
+  ]);
 
   const enabledFeatures = getEnabledFeatures(tenant.enabledFeatures);
   const tenantLoginUrl = buildTenantLoginUrl(tenant.slug);
@@ -240,8 +255,7 @@ export default async function TenantDetailPage({
             <Link
               className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold"
               href="/tenants"
-            >
-            </Link>
+            ></Link>
             <Link
               className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold"
               href={`/tenants/${tenantId}?workspace=operations&tab=settings&edit=${isEditing ? "0" : "1"}`}
@@ -331,89 +345,105 @@ export default async function TenantDetailPage({
 
       {activeTab === "overview" ? (
         <section className="grid gap-6 lg:grid-cols-2">
-            <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-              <h2 className="text-lg font-semibold text-slate-950">
-                Tenant snapshot
-              </h2>
+          <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <h2 className="text-lg font-semibold text-slate-950">
+              Tenant snapshot
+            </h2>
 
-              <div className="mt-5 grid gap-4">
+            <div className="mt-5 grid gap-4">
+              <InfoRow
+                label="Tenant status"
+                value={<TenantStatusBadge value={tenant.status} />}
+              />
+              {canSeeFinancials ? (
                 <InfoRow
-                  label="Tenant status"
-                  value={<TenantStatusBadge value={tenant.status} />}
-                />
-                {canSeeFinancials ? (
-                  <InfoRow
-                    label="Subscription status"
-                    value={
-                      tenant.subscription ? (
-                        <TenantStatusBadge value={tenant.subscription.status} />
-                      ) : (
-                        "No subscription"
-                      )
-                    }
-                  />
-                ) : null}
-                {canSeeFinancials ? (
-                  <InfoRow
-                    label="Plan"
-                    value={tenant.subscription?.plan.name ?? "Not assigned"}
-                  />
-                ) : null}
-                <InfoRow
-                  label="Tenant owner"
+                  label="Subscription status"
                   value={
-                    tenant.owner
-                      ? `${tenant.owner.firstName} ${tenant.owner.lastName} (${tenant.owner.email})`
-                      : "Not assigned"
+                    tenant.subscription ? (
+                      <TenantStatusBadge value={tenant.subscription.status} />
+                    ) : (
+                      "No subscription"
+                    )
                   }
                 />
+              ) : null}
+              {canSeeFinancials ? (
                 <InfoRow
-                  label="Owner roles"
-                  value={
-                    tenant.owner?.roles.length
-                      ? tenant.owner.roles.map((role) => role.name).join(", ")
-                      : "Not assigned"
-                  }
+                  label="Plan"
+                  value={tenant.subscription?.plan.name ?? "Not assigned"}
                 />
-                <InfoRow
-                  label="Owner last login"
-                  value={formatDate(tenant.owner?.lastLoginAt)}
-                />
-                <InfoRow
-                  label="Customer email"
-                  value={
-                    tenant.customerAccount?.contactEmail ?? "Not available"
-                  }
-                />
-              </div>
+              ) : null}
+              <InfoRow
+                label="Tenant owner"
+                value={
+                  tenant.owner
+                    ? `${tenant.owner.firstName} ${tenant.owner.lastName} (${tenant.owner.email})`
+                    : "Not assigned"
+                }
+              />
+              <InfoRow
+                label="Owner roles"
+                value={
+                  tenant.owner?.roles.length
+                    ? tenant.owner.roles.map((role) => role.name).join(", ")
+                    : "Not assigned"
+                }
+              />
+              <InfoRow
+                label="Owner last login"
+                value={formatDate(tenant.owner?.lastLoginAt)}
+              />
+              <InfoRow
+                label="Customer email"
+                value={tenant.customerAccount?.contactEmail ?? "Not available"}
+              />
+            </div>
 
-              <div className="mt-5 border-t border-slate-200 pt-4">
-                <TenantOwnerActions tenantId={tenant.id} />
-              </div>
-            </section>
-            <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-              <h2 className="text-lg font-semibold text-slate-950">Platform summary</h2>
-              <dl className="mt-5 grid gap-4">
-                <InfoRow label="Tenant code" value={tenant.tenantCode ?? tenant.code} />
-                <InfoRow label="Created" value={formatDate(tenant.createdAt)} />
-                <InfoRow label="Customer" value={tenant.customerAccount?.companyName ?? "Not linked"} />
-                <InfoRow label="Privileged access" value={`${accessUsers.length} accounts`} />
-                <InfoRow label="Invoices" value={`${invoices.length} records`} />
-              </dl>
-            </section>
+            <div className="mt-5 border-t border-slate-200 pt-4">
+              <TenantOwnerActions tenantId={tenant.id} />
+            </div>
+          </section>
+          <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <h2 className="text-lg font-semibold text-slate-950">
+              Platform summary
+            </h2>
+            <dl className="mt-5 grid gap-4">
+              <InfoRow
+                label="Tenant code"
+                value={tenant.tenantCode ?? tenant.code}
+              />
+              <InfoRow label="Created" value={formatDate(tenant.createdAt)} />
+              <InfoRow
+                label="Customer"
+                value={tenant.customerAccount?.companyName ?? "Not linked"}
+              />
+              <InfoRow
+                label="Privileged access"
+                value={`${accessUsers.length} accounts`}
+              />
+              <InfoRow label="Invoices" value={`${invoices.length} records`} />
+            </dl>
+          </section>
         </section>
       ) : null}
 
       {activeTab === "features" ? (
         <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
           <div className="border-b border-slate-200 pb-5">
-            <h2 className="text-xl font-semibold text-slate-950">Feature access</h2>
+            <h2 className="text-xl font-semibold text-slate-950">
+              Feature access
+            </h2>
             <p className="mt-2 text-sm text-slate-600">
-              Plan defaults and tenant overrides are shown separately so the effective source is clear.
+              Plan defaults and tenant overrides are shown separately so the
+              effective source is clear.
             </p>
           </div>
           <div className="mt-6">
-            <TenantFeatureForm catalog={featureCatalog} features={tenant.enabledFeatures} tenantId={tenant.id} />
+            <TenantFeatureForm
+              catalog={featureCatalog}
+              features={tenant.enabledFeatures}
+              tenantId={tenant.id}
+            />
           </div>
         </section>
       ) : null}
@@ -462,6 +492,18 @@ export default async function TenantDetailPage({
                 <SummaryGridItem
                   label="Primary domain"
                   value={tenant.primaryDomain ?? "Not configured"}
+                />
+                <SummaryGridItem
+                  label="Resolved tenant URL"
+                  value={tenant.domainReadiness?.resolvedUrl ?? "Not configured"}
+                />
+                <SummaryGridItem
+                  label="DNS / proxy readiness"
+                  value={tenant.domainReadiness ? formatEnumLabel(tenant.domainReadiness.verificationStatus) : "Not checked"}
+                />
+                <SummaryGridItem
+                  label="TLS readiness"
+                  value={tenant.domainReadiness?.sslStatus ? formatEnumLabel(tenant.domainReadiness.sslStatus) : "Not checked"}
                 />
                 <SummaryGridItem
                   label="Custom domain"
@@ -553,6 +595,7 @@ export default async function TenantDetailPage({
             </h2>
             <div className="mt-6">
               <SubscriptionForm
+                customerAccountId={tenant.customerAccount?.id}
                 currentSubscription={tenant.subscription}
                 plans={plans}
                 tenantId={tenant.id}
@@ -574,38 +617,38 @@ export default async function TenantDetailPage({
               </h2>
               {tenant.subscription ? (
                 <dl className="mt-6 grid gap-4 sm:grid-cols-2">
-                <SummaryGridItem
-                  label="Plan"
-                  value={tenant.subscription.plan.name}
-                />
-                <SummaryGridItem
-                  label="Status"
-                  value={
-                    <TenantStatusBadge value={tenant.subscription.status} />
-                  }
-                />
-                <SummaryGridItem
-                  label="Billing cycle"
-                  value={formatBillingCycle(tenant.subscription.billingCycle)}
-                />
-                <SummaryGridItem
-                  label="Currency"
-                  value={tenant.subscription.currency}
-                />
-                <SummaryGridItem
-                  label="Base price"
-                  value={formatCurrency(
-                    tenant.subscription.basePrice,
-                    tenant.subscription.currency,
-                  )}
-                />
-                <SummaryGridItem
-                  label="Final price"
-                  value={formatCurrency(
-                    tenant.subscription.finalPrice,
-                    tenant.subscription.currency,
-                  )}
-                />
+                  <SummaryGridItem
+                    label="Plan"
+                    value={tenant.subscription.plan.name}
+                  />
+                  <SummaryGridItem
+                    label="Status"
+                    value={
+                      <TenantStatusBadge value={tenant.subscription.status} />
+                    }
+                  />
+                  <SummaryGridItem
+                    label="Billing cycle"
+                    value={formatBillingCycle(tenant.subscription.billingCycle)}
+                  />
+                  <SummaryGridItem
+                    label="Currency"
+                    value={tenant.subscription.currency}
+                  />
+                  <SummaryGridItem
+                    label="Base price"
+                    value={formatCurrency(
+                      tenant.subscription.basePrice,
+                      tenant.subscription.currency,
+                    )}
+                  />
+                  <SummaryGridItem
+                    label="Final price"
+                    value={formatCurrency(
+                      tenant.subscription.finalPrice,
+                      tenant.subscription.currency,
+                    )}
+                  />
                 </dl>
               ) : (
                 <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm text-slate-600">
@@ -614,7 +657,9 @@ export default async function TenantDetailPage({
               )}
             </section>
             <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-              <h2 className="text-lg font-semibold text-slate-950">Billing relationships</h2>
+              <h2 className="text-lg font-semibold text-slate-950">
+                Billing relationships
+              </h2>
               <div className="mt-5 space-y-5">
                 <TenantCustomerAccountForm
                   customerAccountId={tenant.customerAccount?.id}
@@ -622,7 +667,10 @@ export default async function TenantDetailPage({
                   tenantId={tenant.id}
                 />
                 <div className="border-t border-slate-200 pt-5">
-                  <TenantStatusForm currentStatus={tenant.status} tenantId={tenant.id} />
+                  <TenantStatusForm
+                    currentStatus={tenant.status}
+                    tenantId={tenant.id}
+                  />
                 </div>
               </div>
             </section>
@@ -635,16 +683,22 @@ export default async function TenantDetailPage({
             Users & Access
           </h2>
           <p className="mt-2 text-sm text-slate-600">
-            Platform-managed Global Admins and service accounts only. Employees, HR, ESS, and other business users are managed inside the tenant web app.
+            Platform-managed Global Admins and service accounts only. Employees,
+            HR, ESS, and other business users are managed inside the tenant web
+            app.
           </p>
-          <div className="mt-6"><TenantAccessManager tenantId={tenant.id} users={accessUsers} /></div>
+          <div className="mt-6">
+            <TenantAccessManager tenantId={tenant.id} users={accessUsers} />
+          </div>
         </section>
       ) : null}
 
       {activeTab === "invoices" && canSeeFinancials ? (
         <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-xl font-semibold text-slate-950">Invoices</h2>
-          <p className="mt-2 text-sm text-slate-600">Invoices linked to this tenant and subscription.</p>
+          <p className="mt-2 text-sm text-slate-600">
+            Invoices linked to this tenant and subscription.
+          </p>
           <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200">
             <TenantInvoicesTable invoices={invoices} />
           </div>

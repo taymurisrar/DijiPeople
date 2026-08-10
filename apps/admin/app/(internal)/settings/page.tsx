@@ -1,336 +1,75 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
-import {
-  Building2,
-  Bug,
-  DatabaseBackup,
-  CreditCard,
-  FileText,
-  FileSignature,
-  Handshake,
-  Headphones,
-  Mail,
-  Palette,
-  Search,
-  Settings,
-  ShieldCheck,
-  SlidersHorizontal,
-  Sparkles,
-  Tags,
-  Users,
-  Workflow,
-} from "lucide-react";
+import { ArrowRight, Building2, Bug, CreditCard, DatabaseBackup, FileSignature, Handshake, Headphones, Mail, Palette, Search, Settings, ShieldCheck, SlidersHorizontal, Tags, Users, Workflow } from "lucide-react";
 import { PageHeader } from "@/app/_components/ui/page-header";
-import { SettingsCard } from "@/app/_components/settings/settings-card";
-import { SettingsSection } from "@/app/_components/settings/settings-section";
 import type { SettingsCardProps } from "@/app/_components/settings/settings-card";
 
-type SettingsMenuGroup = {
-  title: string;
-  description: string;
-  items: SettingsCardProps[];
-};
-
-const settingsGroups: SettingsMenuGroup[] = [
-  {
-    title: "Platform",
-    description: "System defaults, features, security, and access control.",
-    items: [
-      {
-        title: "Platform defaults",
-        description:
-          "Country, currency, timezone, locale, and global behavior.",
-        href: "/settings/platform-defaults",
-        icon: Settings,
-        badge: "Core",
-      },
-      {
-        title: "Feature catalog",
-        description: "Modules and capabilities available across the platform.",
-        href: "/settings/features",
-        icon: Sparkles,
-        badge: "Core",
-      },
-      {
-        title: "Security & access",
-        description: "Roles, permissions, admin policies, and access rules.",
-        href: "/settings/security",
-        icon: ShieldCheck,
-        badge: "Recommended",
-      },
-      {
-        title: "Users & access",
-        description:
-          "Manage platform admins, members, roles, and account status.",
-        href: "/settings/users",
-        icon: Users,
-        badge: "Core",
-      },
-      {
-        title: "Monitoring",
-        description: "Platform error logs and operational diagnostics.",
-        href: "/settings/monitoring/error-logs",
-        icon: Bug,
-        badge: "Advanced",
-      },
-      {
-        title: "Demo data",
-        description:
-          "Review, remove, and recreate the tagged client-demo tenant.",
-        href: "/settings/demo-data",
-        icon: DatabaseBackup,
-        badge: "Advanced",
-      },
-    ],
-  },
-  {
-    title: "Lifecycle",
-    description: "Lead, customer, onboarding, and tenant rules.",
-    items: [
-      {
-        title: "Lead definitions",
-        description: "Statuses, sources, qualification, and pipeline rules.",
-        href: "/settings/lead-definitions",
-        icon: Workflow,
-      },
-      {
-        title: "Customer definitions",
-        description: "Lifecycle stages, readiness, and account rules.",
-        href: "/settings/customer-definitions",
-        icon: Users,
-      },
-      {
-        title: "Onboarding definitions",
-        description: "Checklist rules, statuses, and tenant readiness.",
-        href: "/settings/onboarding-definitions",
-        icon: SlidersHorizontal,
-      },
-      {
-        title: "Partner policies",
-        description: "Onboarding, activation, agreements, commissions, and submitted leads.",
-        href: "/settings/partners",
-        icon: Handshake,
-        badge: "Core",
-      },
-      {
-        title: "Customer activation",
-        description: "Agreement, commercial approval, provisioning, and activation gates.",
-        href: "/settings/customers",
-        icon: Users,
-        badge: "Core",
-      },
-    ],
-  },
-  {
-    title: "Commercial",
-    description: "Plans, billing, invoices, and payments.",
-    items: [
-      {
-        title: "Plans & visibility",
-        description: "Plan visibility, commercial options, and defaults.",
-        href: "/settings/plans",
-        icon: Tags,
-        badge: "Core",
-      },
-      {
-        title: "Billing defaults",
-        description: "Billing cycles, taxes, currencies, and payment terms.",
-        href: "/settings/billing",
-        icon: CreditCard,
-      },
-      {
-        title: "Invoice defaults",
-        description: "Numbering, prefixes, due dates, and invoice notes.",
-        href: "/settings/invoices",
-        icon: FileText,
-      },
-      {
-        title: "Contracts & agreements",
-        description: "Templates, approvals, signatures, consent, expiry, and renewal rules.",
-        href: "/settings/contracts",
-        icon: FileSignature,
-        badge: "Core",
-      },
-      {
-        title: "Support case policy",
-        description: "Case numbering, severity targets, SLA, escalation, and closure.",
-        href: "/settings/support",
-        icon: Headphones,
-        badge: "Recommended",
-      },
-    ],
-  },
-  {
-    title: "Branding & communication",
-    description: "Brand identity, email delivery, and company profile.",
-    items: [
-      {
-        title: "Branding",
-        description: "Logo, colors, favicon, and visual identity.",
-        href: "/settings/branding",
-        icon: Palette,
-        badge: "Recommended",
-      },
-      {
-        title: "Email provider",
-        description: "SMTP, sender identity, templates, and delivery rules.",
-        href: "/settings/email",
-        icon: Mail,
-      },
-      {
-        title: "Company profile",
-        description: "Business name, address, and public company details.",
-        href: "/settings/company-profile",
-        icon: Building2,
-      },
-    ],
-  },
+type Group = { title: string; description: string; items: SettingsCardProps[] };
+const groups: Group[] = [
+  { title: "Platform", description: "Global identity and behavior.", items: [
+    { title: "General", description: "Country, currency, timezone, locale, and platform defaults.", href: "/settings/platform-defaults", icon: Settings },
+    { title: "Company profile", description: "Legal and public company identity.", href: "/settings/company-profile", icon: Building2 },
+    { title: "Appearance", description: "Admin colors and supported design tokens.", href: "/settings/appearance", icon: Palette },
+    { title: "Feature catalog", description: "Platform capabilities available to plans and tenants.", href: "/settings/features", icon: SlidersHorizontal },
+  ]},
+  { title: "Customers & Lifecycle", description: "Lead-to-customer and provisioning rules.", items: [
+    { title: "Lead definitions", description: "Sources, qualification, statuses, and pipeline rules.", href: "/settings/lead-definitions", icon: Workflow },
+    { title: "Customer definitions", description: "Lifecycle stages and account readiness.", href: "/settings/customer-definitions", icon: Users },
+    { title: "Onboarding", description: "Readiness and conversion requirements.", href: "/settings/onboarding-definitions", icon: SlidersHorizontal },
+    { title: "Tenant provisioning & domains", description: "Slug, base domain, protocol, wildcard DNS, and proxy readiness.", href: "/settings/tenant-provisioning", icon: Building2 },
+  ]},
+  { title: "Partners", description: "Partner lifecycle and commercial policy.", items: [
+    { title: "Partner policies", description: "Review, activation, agreement, and referral requirements.", href: "/settings/partners", icon: Handshake },
+  ]},
+  { title: "Commercial", description: "Pricing, promotions, billing, and invoices.", items: [
+    { title: "Plans & pricing", description: "Plan visibility and commercial defaults.", href: "/settings/plans", icon: Tags },
+    { title: "Promotions", description: "Versioned discounts and eligibility scopes.", href: "/promotions", icon: Tags },
+    { title: "Billing defaults", description: "Billing cycles, taxes, and payment terms.", href: "/settings/billing", icon: CreditCard },
+    { title: "Invoice defaults", description: "Numbering, due dates, and invoice notes.", href: "/settings/invoices", icon: CreditCard },
+  ]},
+  { title: "Agreements", description: "Agreement, template, approval, and signing rules.", items: [
+    { title: "Agreement rules", description: "Approvals, expiry, consent, and signature methods.", href: "/settings/contracts", icon: FileSignature },
+    { title: "Templates", description: "Reusable versioned agreement documents.", href: "/templates", icon: FileSignature },
+    { title: "Signature requests", description: "Active and completed signing work.", href: "/signature-requests", icon: FileSignature },
+  ]},
+  { title: "Communications", description: "Outbound delivery and notification behavior.", items: [
+    { title: "Email", description: "SMTP/provider configuration, sender identity, and templates.", href: "/settings/email", icon: Mail },
+  ]},
+  { title: "Security", description: "Platform users, roles, and policies.", items: [
+    { title: "Users & access", description: "Platform administrators, roles, and account state.", href: "/settings/users", icon: Users },
+    { title: "Security policies", description: "Authentication and administrative access rules.", href: "/settings/security", icon: ShieldCheck },
+  ]},
+  { title: "Integrations", description: "External service connectivity.", items: [
+    { title: "Stripe", description: "Connection, synchronization, and webhooks.", href: "/settings/integrations/stripe", icon: CreditCard },
+  ]},
+  { title: "Operations", description: "Monitoring, support, and controlled test data.", items: [
+    { title: "Monitoring", description: "Overview, incidents, events, and integrations.", href: "/settings/monitoring", icon: Bug },
+    { title: "Support policy", description: "Case numbering, severity targets, and SLA.", href: "/settings/support", icon: Headphones },
+    { title: "Demo/test data", description: "Manage explicitly tagged local demonstration data.", href: "/settings/demo-data", icon: DatabaseBackup },
+  ]},
 ];
-
-const recommendedSettings = settingsGroups
-  .flatMap((group) =>
-    group.items.map((item) => ({
-      ...item,
-      groupTitle: group.title,
-    })),
-  )
-  .filter((item) => item.badge === "Core" || item.badge === "Recommended");
 
 export default function SettingsPage() {
   const [query, setQuery] = useState("");
-  const visibleGroups = useMemo(() => {
-    const normalized = query.trim().toLowerCase();
-    if (!normalized) return settingsGroups;
-
-    return settingsGroups
-      .map((group) => ({
-        ...group,
-        items: group.items.filter((item) =>
-          [group.title, group.description, item.title, item.description]
-            .join(" ")
-            .toLowerCase()
-            .includes(normalized),
-        ),
-      }))
-      .filter((group) => group.items.length > 0);
+  const [selected, setSelected] = useState(groups[0]!.title);
+  const visible = useMemo(() => {
+    const term = query.trim().toLowerCase();
+    if (!term) return groups;
+    return groups.map(group => ({ ...group, items: group.items.filter(item => `${group.title} ${group.description} ${item.title} ${item.description}`.toLowerCase().includes(term)) })).filter(group => group.items.length);
   }, [query]);
-
-  const visibleRecommended = useMemo(() => {
-    if (!query.trim()) return recommendedSettings;
-    const visibleHrefs = new Set(
-      visibleGroups.flatMap((group) => group.items.map((item) => item.href)),
-    );
-    return recommendedSettings.filter((item) => visibleHrefs.has(item.href));
-  }, [query, visibleGroups]);
-
-  return (
-    <main className="space-y-5">
-      <PageHeader
-        eyebrow="Settings"
-        title="Platform settings"
-        description="Configure global defaults, lifecycle rules, commercial behavior, branding, communication, and security from one clean admin area."
-      />
-
-      <section className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
-        <aside className="space-y-5">
-          <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input
-                placeholder="Search settings..."
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3 pl-9 pr-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[var(--admin-primary)] focus:bg-white focus:ring-4 focus:ring-blue-100/50"
-              />
-            </div>
-
-            <nav className="mt-5 space-y-1">
-              {visibleGroups.map((group) => (
-                <a
-                  key={group.title}
-                  href={`#${toAnchor(group.title)}`}
-                  className="flex items-center justify-between rounded-2xl px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-950"
-                >
-                  <span>{group.title}</span>
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
-                    {group.items.length}
-                  </span>
-                </a>
-              ))}
-            </nav>
-          </div>
-
-          <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(145deg,var(--admin-navigation),var(--admin-primary))] p-5 text-white shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-              Setup health
-            </p>
-
-            <h2 className="mt-3 text-xl font-semibold">Admin readiness</h2>
-
-            <p className="mt-2 text-sm leading-6 text-slate-300">
-              Start with platform defaults, feature catalog, security, and plan
-              visibility before onboarding tenants.
-            </p>
-          </div>
-        </aside>
-
-        <div className="space-y-5">
-          <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                  Recommended
-                </p>
-                <h2 className="mt-2 text-xl font-semibold text-slate-950">
-                  Start here
-                </h2>
-                <p className="mt-1 text-sm text-slate-600">
-                  These settings have the biggest impact on tenant setup and
-                  platform behavior.
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-600">
-                {visibleRecommended.length} priority areas
-              </div>
-            </div>
-
-            <div className="mt-5 grid gap-3 md:grid-cols-2">
-              {visibleRecommended.map((item) => (
-                <SettingsCard key={item.href} {...item} compact />
-              ))}
-            </div>
-          </section>
-
-          {visibleGroups.map((group) => (
-            <SettingsSection
-              key={group.title}
-              title={group.title}
-              description={group.description}
-              items={group.items}
-            />
-          ))}
-
-          {visibleGroups.length === 0 ? (
-            <section className="rounded-[28px] border border-dashed border-slate-300 bg-white p-10 text-center shadow-sm">
-              <h2 className="text-lg font-semibold text-slate-950">No settings found</h2>
-              <p className="mt-2 text-sm text-slate-600">Try a feature name such as currency, theme, security, or invoice.</p>
-              <button type="button" onClick={() => setQuery("")} className="mt-5 rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white">
-                Clear search
-              </button>
-            </section>
-          ) : null}
-        </div>
-      </section>
-    </main>
-  );
-}
-
-function toAnchor(value: string) {
-  return value
-    .toLowerCase()
-    .replaceAll("&", "and")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
+  const active = visible.find(group => group.title === selected) ?? visible[0];
+  return <main className="space-y-5">
+    <PageHeader eyebrow="System" title="Settings" description="Configure platform behavior through a compact category workspace." />
+    <section className="grid min-h-[560px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm lg:grid-cols-[260px_minmax(0,1fr)]">
+      <aside className="border-b border-slate-200 bg-slate-50 p-3 lg:border-b-0 lg:border-r">
+        <div className="relative"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search settings" className="h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm" /></div>
+        <nav className="mt-3 flex gap-1 overflow-x-auto lg:block lg:space-y-1" aria-label="Settings categories">{visible.map(group => <button type="button" key={group.title} onClick={() => setSelected(group.title)} className={`shrink-0 rounded-lg px-3 py-2 text-left text-sm font-semibold lg:block lg:w-full ${active?.title === group.title ? "bg-slate-950 text-white" : "text-slate-700 hover:bg-white"}`}>{group.title}</button>)}</nav>
+      </aside>
+      <div className="p-4 sm:p-6">
+        {active ? <><h2 className="text-xl font-semibold text-slate-950">{active.title}</h2><p className="mt-1 text-sm text-slate-500">{active.description}</p><div className="mt-5 divide-y divide-slate-100 rounded-xl border border-slate-200">{active.items.map(item => { const Icon = item.icon; return <Link key={item.href} href={item.href} className="flex items-center gap-4 p-4 transition hover:bg-slate-50"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-700"><Icon className="h-4 w-4" /></span><span className="min-w-0 flex-1"><span className="block font-semibold text-slate-900">{item.title}</span><span className="mt-0.5 block text-sm text-slate-500">{item.description}</span></span><ArrowRight className="h-4 w-4 shrink-0 text-slate-400" /></Link>; })}</div></> : <div className="grid min-h-72 place-items-center text-center"><div><h2 className="font-semibold text-slate-900">No settings found</h2><button type="button" onClick={() => setQuery("")} className="mt-3 text-sm font-semibold text-[var(--admin-primary)]">Clear search</button></div></div>}
+      </div>
+    </section>
+  </main>;
 }

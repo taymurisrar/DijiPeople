@@ -27,7 +27,7 @@ import { generateTenantCode } from '../../../common/utils/tenant-code.util';
 import { StripeBillingService } from './stripe-billing.service';
 import {
   calculateSeatPricing,
-  buildPerSeatCheckoutLineItem,
+  buildRecurringCheckoutLineItem,
   deriveCheckoutReadiness,
   normalizePurchasedSeats,
   stripeEnvironmentFromMode,
@@ -411,7 +411,11 @@ export class BillingService {
         mode: 'subscription',
         customer: stripeCustomer.id,
         line_items: [
-          buildPerSeatCheckoutLineItem(planPrice.stripePriceId, purchasedSeats),
+          buildRecurringCheckoutLineItem(
+            planPrice.stripePriceId,
+            purchasedSeats,
+            planPrice.billingModel,
+          ),
         ],
         success_url: this.resolvePublicCheckoutUrl(
           '/subscribe/success?session_id={CHECKOUT_SESSION_ID}',
@@ -751,7 +755,11 @@ export class BillingService {
         mode: 'subscription',
         customer: customer.stripeCustomerId,
         line_items: [
-          buildPerSeatCheckoutLineItem(planPrice.stripePriceId, purchasedSeats),
+          buildRecurringCheckoutLineItem(
+            planPrice.stripePriceId,
+            purchasedSeats,
+            planPrice.billingModel,
+          ),
         ],
         success_url: this.resolveCheckoutUrl(
           'STRIPE_CHECKOUT_SUCCESS_URL',
@@ -1077,11 +1085,12 @@ export class BillingService {
 
     try {
       const verified =
-        await this.stripeBillingService.verifyMonthlyPerSeatPrice({
+        await this.stripeBillingService.verifyRecurringPrice({
           stripePriceId: price.stripePriceId,
           expectedProductId: price.stripeProductId,
           expectedCurrency: price.currency,
           expectedUnitAmount: Number(price.unitAmount),
+          expectedBillingInterval: price.billingInterval,
         });
       const environment = verified.livemode
         ? StripeEnvironment.LIVE

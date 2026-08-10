@@ -6,7 +6,7 @@ import {
 } from '@prisma/client';
 import {
   calculateSeatPricing,
-  buildPerSeatCheckoutLineItem,
+  buildRecurringCheckoutLineItem,
   deriveCheckoutReadiness,
 } from './billing-seat-pricing';
 
@@ -61,9 +61,47 @@ describe('per-seat monthly pricing', () => {
   });
 
   it('uses purchased seat quantity as Stripe Checkout quantity', () => {
-    expect(buildPerSeatCheckoutLineItem('price_test', 7)).toEqual({
+    expect(
+      buildRecurringCheckoutLineItem('price_test', 7, BillingModel.PER_SEAT),
+    ).toEqual({
       price: 'price_test',
       quantity: 7,
     });
+  });
+
+  it.each([
+    [BillingModel.FLAT, BillingInterval.MONTH, 'month'],
+    [BillingModel.FLAT, BillingInterval.YEAR, 'year'],
+    [BillingModel.PER_SEAT, BillingInterval.YEAR, 'year'],
+  ])(
+    'supports %s %s recurring checkout',
+    (billingModel, billingInterval, stripeInterval) => {
+      const readiness = deriveCheckoutReadiness(
+        {
+          ...price,
+          billingModel,
+          billingInterval,
+          isActive: true,
+          effectiveFrom: new Date('2026-01-01T00:00:00Z'),
+          stripeProductId: 'prod_test',
+          stripePriceId: 'price_test',
+          stripeEnvironment: StripeEnvironment.TEST,
+          stripeSyncStatus: StripeSyncStatus.SYNCED,
+          stripeActive: true,
+          stripeUsageType: 'licensed',
+          stripeRecurringInterval: stripeInterval,
+          stripeVerifiedAt: new Date('2026-01-01T00:00:00Z'),
+        },
+        StripeEnvironment.TEST,
+        new Date('2026-08-02T00:00:00Z'),
+      );
+      expect(readiness).toEqual({ checkoutReady: true, reasons: [] });
+    },
+  );
+
+  it('always sends a quantity of one for flat prices', () => {
+    expect(
+      buildRecurringCheckoutLineItem('price_flat', 30, BillingModel.FLAT),
+    ).toEqual({ price: 'price_flat', quantity: 1 });
   });
 });

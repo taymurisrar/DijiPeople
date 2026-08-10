@@ -3,6 +3,24 @@
 :root {
   --background: #f8fafc;
   --foreground: #0f172a;
+  --admin-background: #f8fafc;
+  --admin-surface: #ffffff;
+  --admin-border: #e2e8f0;
+  --admin-text: #0f172a;
+  --admin-muted-text: #64748b;
+  --admin-success: #047857;
+  --admin-warning: #b45309;
+  --admin-danger: #be123c;
+  --admin-info: #0369a1;
+  --admin-radius-sm: 0.5rem;
+  --admin-radius-md: 0.75rem;
+  --admin-radius-lg: 1rem;
+  --admin-radius-xl: 1.75rem;
+  --admin-shadow-card: 0 1px 2px rgb(15 23 42 / 0.06);
+  --admin-shadow-floating: 0 20px 45px rgb(15 23 42 / 0.16);
+  --admin-font-ui: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  --admin-font-heading: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  --admin-base-font-size: 16px;
 }
 
 @theme inline {
@@ -12,10 +30,17 @@
   --font-mono: var(--font-geist-mono);
 }
 
+html,
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  background: var(--admin-background);
+  color: var(--admin-text);
+  font-family: var(--admin-font-ui);
+  font-size: var(--admin-base-font-size);
 }
 
 .admin-theme {
@@ -23,8 +48,13 @@ body {
   --admin-accent: #0ea5e9;
   --admin-navigation: #172554;
   --admin-surface-tint: #eff6ff;
+  --admin-primary-hover: color-mix(in srgb, var(--admin-primary) 84%, #000);
   background:
-    radial-gradient(circle at 78% 0%, color-mix(in srgb, var(--admin-accent) 12%, transparent), transparent 34rem),
+    radial-gradient(
+      circle at 78% 0%,
+      color-mix(in srgb, var(--admin-accent) 12%, transparent),
+      transparent 34rem
+    ),
     linear-gradient(180deg, #f8fafc 0%, var(--admin-surface-tint) 100%);
 }
 
@@ -33,7 +63,7 @@ body {
 }
 
 .admin-theme [class~="hover:bg-slate-800"]:hover {
-  background-color: color-mix(in srgb, var(--admin-primary) 84%, #000) !important;
+  background-color: var(--admin-primary-hover) !important;
 }
 
 .admin-theme [class~="text-blue-700"] {

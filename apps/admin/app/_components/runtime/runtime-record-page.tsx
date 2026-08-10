@@ -18,6 +18,7 @@ import type {
   RuntimeRecord,
 } from "@/lib/runtime/platform-runtime.types";
 import { getRuntimeSchema } from "@repo/config";
+import { executeRuntimeRecordAction } from "@/lib/runtime/runtime-record-action-handler";
 import { ModuleActionBar } from "./module-action-bar";
 import {
   PlanPriceManager,
@@ -136,17 +137,36 @@ function RuntimeRecordEditor({
     return { ...record, contentHtml: current?.contentHtml ?? "" };
   }, [moduleKey, record]);
   const form = useRuntimeFormState(runtimeRecord);
-  const formDefinition =
+  const baseFormDefinition =
     definition.forms.find(
       (item) => item.key === (mode === "read" ? "detail" : mode),
     ) ?? definition.forms[0];
+  const formDefinition = useMemo(() => {
+    if (moduleKey !== "contracts" || !baseFormDefinition.tabs) return baseFormDefinition;
+    const hidden = new Set<string>();
+    if (!Array.isArray(runtimeRecord.fieldPlacements) || !runtimeRecord.fieldPlacements.length) hidden.add("fields");
+    if (!Array.isArray(runtimeRecord.relatedRecords) || !runtimeRecord.relatedRecords.length) hidden.add("related");
+    return { ...baseFormDefinition, tabs: baseFormDefinition.tabs.filter(tab => !hidden.has(tab.key)) };
+  }, [baseFormDefinition, moduleKey, runtimeRecord.fieldPlacements, runtimeRecord.relatedRecords]);
+  const [activeTab, setActiveTab] = useState(
+    formDefinition.tabs?.[0]?.key ?? "",
+  );
+
+  async function reloadTimeline() {
+    if (isCreate) return;
+    try {
+      const response = await adapter.getTimeline(record.id);
+      setTimeline(response.items ?? []);
+    } catch {
+      setTimeline([]);
+    }
+  }
 
   useEffect(() => {
     if (isCreate) return;
-    adapter
-      .getTimeline(record.id)
-      .then((response) => setTimeline(response.items ?? []))
-      .catch(() => setTimeline([]));
+    void reloadTimeline();
+    // The adapter and record identity are the timeline data source.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [adapter, isCreate, record.id]);
 
   async function save(close: boolean) {
@@ -159,6 +179,12 @@ function RuntimeRecordEditor({
         .filter(
           (field) =>
             !["timeline", "relatedRecords", "process"].includes(field.type) &&
+            !field.readOnly &&
+            !(
+              field.readOnlyWhen &&
+              form.values[field.readOnlyWhen.field] ===
+                field.readOnlyWhen.equals
+            ) &&
             field.key in form.values &&
             Boolean(
               isCreate
@@ -216,148 +242,21 @@ function RuntimeRecordEditor({
   }
 
   async function handleAction(action: RuntimeActionDefinition) {
-    if (action.key === "back") {
-      router.push(definition.routeBase);
-      return;
-    }
-    if (action.key === "edit") {
-      setMode("edit");
-      return;
-    }
-    if (moduleKey === "tenants" && action.key === "tenant-operations") {
-      router.push(`/tenants/${record.id}?workspace=operations`);
-      return;
-    }
-    if (action.key === "save") return save(false);
-    if (action.key === "save-close") return save(true);
-    if (action.key === "delete") {
-      const result = await adapter.deleteRecord(record.id);
-      if (result.success) router.push(definition.routeBase);
-      return result;
-    }
-    if (moduleKey === "contracts" && action.key === "submit") {
-      const response = await fetch(
-        `/api/contracts/${record.id}/submit-approval`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: "{}",
-        },
-      );
-      const payload = await response.json();
-      if (!response.ok)
-        throw new Error(payload?.message ?? "Unable to submit approval.");
-      await reloadRecord();
-      return { success: true, message: "Contract submitted for approval." };
-    }
-    if (
-      moduleKey === "contracts" &&
-      ["stage-back", "stage-forward"].includes(action.key)
-    ) {
-      const backward = action.key === "stage-back";
-      const reason = backward
-        ? window.prompt("Reason for moving this contract backward")
-        : undefined;
-      if (backward && !reason) return;
-      const response = await fetch(`/api/contracts/${record.id}/transition`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          direction: backward ? "backward" : "forward",
-          reason,
-        }),
-      });
-      const payload = await response.json().catch(() => null);
-      if (!response.ok)
-        throw new Error(payload?.message ?? "Unable to change contract stage.");
-      await reloadRecord();
-      return { success: true, message: "Contract stage updated." };
-    }
-    if (moduleKey === "contracts" && action.key === "generate-document") {
-      const response = await fetch(`/api/contracts/${record.id}/generate/pdf`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: "{}",
-      });
-      if (!response.ok) throw new Error("Unable to generate the contract PDF.");
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = `${String(form.values.contractNumber ?? "contract")}.pdf`;
-      anchor.click();
-      URL.revokeObjectURL(url);
-      return { success: true, message: "Contract PDF generated." };
-    }
-    if (moduleKey === "contracts" && action.key === "send-signature") {
-      setSignatureOpen(true);
-      return;
-    }
-    if (moduleKey === "partners" && action.key === "create-agreement") {
-      router.push(
-        `/contracts/new?partnerId=${encodeURIComponent(record.id)}&contractType=MASTER_PARTNER_AGREEMENT&counterpartyName=${encodeURIComponent(String(form.values.displayName ?? ""))}&counterpartyEmail=${encodeURIComponent(String(form.values.email ?? ""))}`,
-      );
-      return;
-    }
-    if (moduleKey === "contracts" && action.key === "duplicate") {
-      const response = await fetch("/api/contracts/copy", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sourceContractId: record.id,
-          title: `Copy of ${String(form.values.title ?? "contract")}`,
-          counterpartyName: form.values.counterpartyName,
-          counterpartyEmail: form.values.counterpartyEmail || undefined,
-        }),
-      });
-      const payload = await response.json().catch(() => null);
-      if (!response.ok)
-        throw new Error(payload?.message ?? "Unable to duplicate contract.");
-      router.push(`/contracts/${payload.id}`);
-      return { success: true, message: "Contract duplicated." };
-    }
-    if (
-      moduleKey === "contracts" &&
-      ["approve", "reject"].includes(action.key)
-    ) {
-      const requests = Array.isArray(form.values.approvalRequests)
-        ? (form.values.approvalRequests as Array<Record<string, unknown>>)
-        : [];
-      const pending = requests.find((item) => item.status === "PENDING");
-      if (!pending) throw new Error("No pending approval request was found.");
-      const response = await fetch(
-        `/api/platform-approvals/${String(pending.id)}/${action.key}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            comment:
-              action.key === "approve"
-                ? "Approved in Platform Admin."
-                : "Returned for correction from Platform Admin.",
-          }),
-        },
-      );
-      const payload = await response.json();
-      if (!response.ok)
-        throw new Error(
-          payload?.message ?? `Unable to ${action.key} contract.`,
-        );
-      await reloadRecord();
-      return {
-        success: true,
-        message:
-          action.key === "approve"
-            ? "Approval completed."
-            : "Contract returned for correction.",
-      };
-    }
-    if (action.key === "cancel") {
-      form.reset();
-      setMode("read");
-      return;
-    }
-    return adapter.executeAction(action.key, { id: record.id });
+    return executeRuntimeRecordAction({
+      action,
+      moduleKey,
+      record,
+      values: form.values,
+      routeBase: definition.routeBase,
+      adapter,
+      router,
+      save,
+      reloadRecord,
+      resetForm: form.reset,
+      enterEditMode: () => setMode("edit"),
+      leaveEditMode: () => setMode("read"),
+      openSignatureDialog: () => setSignatureOpen(true),
+    });
   }
 
   const title = String(
@@ -373,6 +272,22 @@ function RuntimeRecordEditor({
     (action) =>
       !isCreate || ["save", "save-close", "cancel"].includes(action.key),
   );
+  const relatedRecords =
+    definition.relatedRecords?.filter(
+      (relationship) =>
+        !formDefinition.tabs?.length || relationship.tab === activeTab,
+    ) ?? [];
+  const showTimeline =
+    !formDefinition.tabs?.length ||
+    ["timeline", "activities"].includes(activeTab);
+  const hasFieldsInActiveTab =
+    !formDefinition.tabs?.length ||
+    formDefinition.fields.some((field) => field.tab === activeTab);
+  const hasSpecialPanel =
+    (moduleKey === "customer-onboarding" &&
+      ["overview", "readiness", "agreements"].includes(activeTab)) ||
+    (moduleKey === "contracts" && activeTab === "versions") ||
+    moduleKey === "plans";
 
   return (
     <main className="space-y-5">
@@ -380,16 +295,33 @@ function RuntimeRecordEditor({
         eyebrow={definition.navigationGroup}
         title={title}
         description={
-          isCreate
-            ? `Create a ${definition.displayName.toLowerCase()} using the shared module workflow.`
-            : definition.description
+          isCreate ? (
+            `Create a new ${definition.displayName.toLowerCase()}.`
+          ) : (
+            <RecordHeaderMetadata moduleKey={moduleKey} record={form.values} />
+          )
         }
       />
       {definition.process && !isCreate ? (
         <ProcessBar
-          stages={definition.process.stages}
-          current={String(form.values.processStage ?? form.values.status ?? "")}
+          stages={resolveProcessStages(
+            moduleKey,
+            definition.process.stages,
+            form.values,
+          )}
+          current={resolveProcessStage(moduleKey, form.values)}
         />
+      ) : null}
+      {moduleKey === "contracts" &&
+      !isCreate &&
+      isAgreementLocked(String(form.values.status ?? "")) ? (
+        <section className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-950">
+          <p className="font-semibold">This executed agreement is read-only.</p>
+          <p className="mt-1 text-amber-800">
+            Its signed version, parties, fields, and evidence are immutable. Use
+            Amend or Renew to create a controlled successor agreement.
+          </p>
+        </section>
       ) : null}
       <ModuleActionBar
         actions={actions}
@@ -403,7 +335,9 @@ function RuntimeRecordEditor({
         }}
         onAction={handleAction}
       />
-      {moduleKey === "customer-onboarding" && !isCreate ? (
+      {moduleKey === "customer-onboarding" &&
+      !isCreate &&
+      ["overview", "readiness", "agreements"].includes(activeTab) ? (
         <CustomerAgreementPanel
           record={form.values}
           onComplete={reloadRecord}
@@ -415,7 +349,7 @@ function RuntimeRecordEditor({
           onComplete={reloadRecord}
         />
       ) : null}
-      {moduleKey === "contracts" && !isCreate ? (
+      {moduleKey === "contracts" && !isCreate && activeTab === "versions" ? (
         <ContractVersionHistory
           record={form.values}
           onComplete={reloadRecord}
@@ -429,17 +363,32 @@ function RuntimeRecordEditor({
         errors={errors}
         onChange={form.update}
         onSubmit={() => void save(false)}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
       />
+      {!isCreate &&
+      formDefinition.tabs?.length &&
+      !hasFieldsInActiveTab &&
+      !relatedRecords.length &&
+      !showTimeline &&
+      !hasSpecialPanel ? (
+        <EmptyTabPanel
+          label={
+            formDefinition.tabs.find((tab) => tab.key === activeTab)?.label ??
+            "Related records"
+          }
+        />
+      ) : null}
       {moduleKey === "plans" &&
       !isCreate &&
       Array.isArray(form.values.prices) ? (
-        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 className="text-lg font-semibold text-slate-950">
-            Per-seat monthly pricing
+            Pricing
           </h2>
           <p className="mt-1 text-sm text-slate-600">
-            Create currency-specific licensed Stripe prices. Existing Stripe
-            prices remain immutable for active subscriptions.
+            Configure flat or per-seat monthly and annual prices. Existing
+            Stripe prices remain immutable for active subscriptions.
           </p>
           <div className="mt-5">
             <PlanPriceManager
@@ -450,9 +399,9 @@ function RuntimeRecordEditor({
           </div>
         </section>
       ) : null}
-      {!isCreate && definition.relatedRecords?.length ? (
+      {!isCreate && relatedRecords.length ? (
         <section className="grid gap-5 xl:grid-cols-2">
-          {definition.relatedRecords.map((relationship) => (
+          {relatedRecords.map((relationship) => (
             <RuntimeRelatedRecordsPanel
               key={relationship.key}
               adapter={adapter}
@@ -462,7 +411,20 @@ function RuntimeRecordEditor({
           ))}
         </section>
       ) : null}
-      {!isCreate ? <TimelinePanel items={timeline} /> : null}
+      {!isCreate && showTimeline ? (
+        <TimelinePanel
+          items={timeline}
+          onCreate={async (message) => {
+            const result = await adapter.addTimelineActivity(record.id, {
+              activityType: "NOTE",
+              message,
+            });
+            if (!result.success)
+              throw new Error(result.message ?? "Unable to add activity.");
+            await reloadTimeline();
+          }}
+        />
+      ) : null}
       {signatureOpen ? (
         <SignatureRequestDialog
           contractId={record.id}
@@ -474,6 +436,165 @@ function RuntimeRecordEditor({
       ) : null}
     </main>
   );
+}
+
+function EmptyTabPanel({ label }: { label: string }) {
+  return (
+    <section className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center">
+      <h2 className="text-base font-semibold text-slate-900">
+        No {label.toLowerCase()} yet
+      </h2>
+      <p className="mt-2 text-sm text-slate-500">
+        Business records will appear here when they are added to this record.
+      </p>
+    </section>
+  );
+}
+
+function isAgreementLocked(status: string) {
+  return [
+    "SENT",
+    "VIEWED",
+    "SIGNATURE_IN_PROGRESS",
+    "PARTIALLY_SIGNED",
+    "FULLY_SIGNED",
+    "FULLY_EXECUTED",
+    "ACTIVE",
+    "SUPERSEDED",
+    "TERMINATED",
+    "ARCHIVED",
+  ].includes(status);
+}
+
+function RecordHeaderMetadata({
+  moduleKey,
+  record,
+}: {
+  moduleKey: PlatformModuleKey;
+  record: Record<string, unknown>;
+}) {
+  const owner =
+    readRecordLabel(record.assignedToUser) ??
+    readRecordLabel(record.accountManagerUser) ??
+    readRecordLabel(record.onboardingOwnerUser) ??
+    readRecordLabel(record.owner);
+  const source = String(record.source ?? record.applicationSource ?? "");
+  const customer = readRecordLabel(record.customerAccount ?? record.customer);
+  const convertedCustomer =
+    record.convertedCustomer && typeof record.convertedCustomer === "object"
+      ? (record.convertedCustomer as Record<string, unknown>)
+      : null;
+  type HeaderMetadataItem = {
+    label: string;
+    value: string;
+    href?: string;
+  };
+  const candidateItems: Array<HeaderMetadataItem | null> = [
+    record.status
+      ? { label: "Status", value: formatRecordValue(record.status) }
+      : null,
+    moduleKey === "leads" && source ? { label: "Source", value: source } : null,
+    moduleKey === "leads" && convertedCustomer
+      ? {
+          label: "Customer",
+          value: readRecordLabel(convertedCustomer) ?? "Open customer",
+          href: `/customers/${String(convertedCustomer.id)}`,
+        }
+      : null,
+    customer ? { label: "Customer", value: customer } : null,
+    owner ? { label: "Owner", value: owner } : null,
+    record.createdAt
+      ? {
+          label: moduleKey === "leads" ? "Received" : "Created",
+          value: formatRecordDate(record.createdAt),
+        }
+      : null,
+  ];
+  const items = candidateItems.filter(
+    (item): item is HeaderMetadataItem => item !== null,
+  );
+  return (
+    <span className="flex flex-wrap gap-x-5 gap-y-1">
+      {items.map((item) => (
+        <span key={item.label} className="inline-flex gap-1.5">
+          <span className="font-medium text-slate-500">{item.label}</span>
+          {item.href ? (
+            <Link
+              href={item.href}
+              className="font-semibold text-[var(--admin-primary)] hover:underline"
+            >
+              {item.value}
+            </Link>
+          ) : (
+            <span className="text-slate-800">{item.value}</span>
+          )}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+function resolveProcessStage(
+  moduleKey: PlatformModuleKey,
+  record: Record<string, unknown>,
+) {
+  if (
+    moduleKey === "leads" &&
+    record.status === "QUALIFIED" &&
+    Array.isArray(record.contracts) &&
+    record.contracts.length > 0
+  )
+    return "AGREEMENT";
+  return String(record.processStage ?? record.status ?? "");
+}
+
+function resolveProcessStages(
+  moduleKey: PlatformModuleKey,
+  stages: Array<{ key: string; label: string }>,
+  record: Record<string, unknown>,
+) {
+  if (
+    moduleKey !== "leads" ||
+    (!record.partnerId && record.source !== "Partner Referral")
+  )
+    return stages;
+  return stages.map((stage) =>
+    stage.key === "NEW"
+      ? { ...stage, label: "Referral received" }
+      : stage.key === "QUALIFIED"
+        ? { ...stage, label: "Referral qualified" }
+        : stage,
+  );
+}
+
+function readRecordLabel(value: unknown) {
+  if (!value || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  const fullName = [record.firstName, record.lastName]
+    .filter(Boolean)
+    .join(" ");
+  return (
+    String(
+      record.fullName ??
+        record.displayName ??
+        record.companyName ??
+        record.name ??
+        fullName ??
+        "",
+    ) || null
+  );
+}
+
+function formatRecordValue(value: unknown) {
+  return String(value)
+    .toLowerCase()
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function formatRecordDate(value: unknown) {
+  const date = new Date(String(value));
+  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString();
 }
 
 function CustomerAgreementPanel({
@@ -489,7 +610,7 @@ function CustomerAgreementPanel({
     ? (record.contracts as Array<Record<string, unknown>>)
     : [];
   const signed = contracts.find((item) =>
-    ["FULLY_SIGNED", "ACTIVE"].includes(String(item.status)),
+    ["FULLY_SIGNED", "FULLY_EXECUTED", "ACTIVE"].includes(String(item.status)),
   );
   async function provisionTenant() {
     setProvisioning(true);
@@ -643,6 +764,21 @@ function SupportCaseOperationsPanel({
     if (path === "customer-updates") setCustomerBody("");
     await onComplete();
   }
+  async function changeStatus(status: string, extra: Record<string, unknown> = {}) {
+    setBusy(true);
+    setMessage("");
+    const response = await fetch(`/api/support-cases/${record.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status, ...extra }),
+    });
+    const payload = await response.json().catch(() => null);
+    setBusy(false);
+    if (!response.ok) { setMessage(payload?.message ?? "Unable to change case status."); return; }
+    setMessage(`Case moved to ${status.toLowerCase().replaceAll("_", " ")}.`);
+    await onComplete();
+  }
+  const status = String(record.status ?? "NEW");
   async function upload(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -673,6 +809,14 @@ function SupportCaseOperationsPanel({
           Link sanitized incidents, merge duplicates, preserve evidence, and
           send customer-safe progress updates.
         </p>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2" aria-label="Support case actions">
+        {["NEW", "REOPENED"].includes(status) ? <CaseAction label="Triage" disabled={busy} onClick={() => changeStatus("TRIAGED")} /> : null}
+        {!["RESOLVED", "CLOSED", "CANCELLED"].includes(status) ? <CaseAction label="Escalate" disabled={busy} onClick={() => changeStatus("WAITING_ON_INTERNAL_TEAM", { escalationLevel: "ESCALATED" })} /> : null}
+        {!["RESOLVED", "CLOSED", "CANCELLED"].includes(status) ? <CaseAction label="Request info" disabled={busy} onClick={() => changeStatus("WAITING_ON_CUSTOMER")} /> : null}
+        {!["RESOLVED", "CLOSED", "CANCELLED"].includes(status) ? <CaseAction label="Resolve" disabled={busy} onClick={() => changeStatus("RESOLVED")} primary /> : null}
+        {status === "RESOLVED" ? <CaseAction label="Close" disabled={busy} onClick={() => changeStatus("CLOSED")} primary /> : null}
+        {["RESOLVED", "CLOSED"].includes(status) ? <CaseAction label="Reopen" disabled={busy} onClick={() => changeStatus("REOPENED")} /> : null}
       </div>
       <div className="mt-4 grid gap-3 lg:grid-cols-[0.8fr_1.5fr_auto] lg:items-end">
         <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -780,6 +924,10 @@ function SupportCaseOperationsPanel({
       ) : null}
     </section>
   );
+}
+
+function CaseAction({ label, onClick, disabled, primary = false }: { label: string; onClick: () => void; disabled: boolean; primary?: boolean }) {
+  return <button type="button" disabled={disabled} onClick={onClick} className={`rounded-lg px-3 py-2 text-xs font-semibold disabled:opacity-40 ${primary ? "bg-slate-950 text-white" : "border border-slate-200 text-slate-700"}`}>{label}</button>;
 }
 
 function ContractVersionHistory({
@@ -1123,6 +1271,7 @@ function ProcessBar({
   current: string;
 }) {
   const scroller = useRef<HTMLOListElement>(null);
+  const [hasOverflow, setHasOverflow] = useState(false);
   const active = Math.max(
     0,
     stages.findIndex((stage) => stage.key === current),
@@ -1138,6 +1287,17 @@ function ProcessBar({
         inline: "center",
       });
   }, [current]);
+  useEffect(() => {
+    const element = scroller.current;
+    if (!element) return;
+    const update = () =>
+      setHasOverflow(element.scrollWidth > element.clientWidth + 1);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(element);
+    if (element.firstElementChild) observer.observe(element.firstElementChild);
+    return () => observer.disconnect();
+  }, [stages.length]);
   const scroll = (direction: number) =>
     scroller.current?.scrollBy({
       left: direction * Math.max(240, scroller.current.clientWidth * 0.7),
@@ -1158,24 +1318,26 @@ function ProcessBar({
             review stages.
           </p>
         </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            aria-label="Previous process stages"
-            onClick={() => scroll(-1)}
-            className="rounded-xl border border-slate-200 p-2 text-slate-700"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            aria-label="Next process stages"
-            onClick={() => scroll(1)}
-            className="rounded-xl border border-slate-200 p-2 text-slate-700"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        </div>
+        {hasOverflow ? (
+          <div className="flex gap-2">
+            <button
+              type="button"
+              aria-label="Previous process stages"
+              onClick={() => scroll(-1)}
+              className="rounded-xl border border-slate-200 p-2 text-slate-700"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              aria-label="Next process stages"
+              onClick={() => scroll(1)}
+              className="rounded-xl border border-slate-200 p-2 text-slate-700"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        ) : null}
       </div>
       <ol
         ref={scroller}
@@ -1185,23 +1347,29 @@ function ProcessBar({
           if (event.key === "ArrowRight") scroll(1);
         }}
         onWheel={(event) => {
-          if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
-            event.currentTarget.scrollLeft += event.deltaY;
+          if (!hasOverflow) return;
+          const delta =
+            Math.abs(event.deltaX) > Math.abs(event.deltaY)
+              ? event.deltaX
+              : event.deltaY;
+          if (delta) {
+            event.preventDefault();
+            event.currentTarget.scrollLeft += delta;
           }
         }}
-        className="flex min-w-0 snap-x snap-mandatory items-stretch overflow-x-auto pb-3 [scrollbar-color:var(--admin-primary)_#e2e8f0] [scrollbar-width:auto]"
+        className="flex w-full min-w-0 snap-x snap-mandatory items-stretch overflow-x-auto overscroll-x-contain [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
         aria-label="Business process stages"
       >
         {stages.map((stage, index) => (
           <li
             key={stage.key}
-            className="flex snap-center items-center"
+            className="flex min-w-52 flex-1 snap-center items-center"
             data-process-stage={stage.key}
           >
             <span
               aria-current={index === active ? "step" : undefined}
               aria-label={`${stage.label}: ${stage.blocked ? "blocked" : index < active ? "completed" : index === active ? "current" : "future"}`}
-              className={`min-w-44 rounded-2xl border px-4 py-3 text-left text-xs font-semibold ${stage.blocked ? "border-rose-200 bg-rose-50 text-rose-700" : index < active ? "border-emerald-200 bg-emerald-50 text-emerald-800" : index === active ? "border-transparent bg-[var(--admin-primary)] text-white" : "border-slate-200 bg-slate-50 text-slate-500"}`}
+              className={`min-w-44 flex-1 rounded-2xl border px-4 py-3 text-left text-xs font-semibold ${stage.blocked ? "border-rose-200 bg-rose-50 text-rose-700" : index < active ? "border-emerald-200 bg-emerald-50 text-emerald-800" : index === active ? "border-transparent bg-[var(--admin-primary)] text-white" : "border-slate-200 bg-slate-50 text-slate-500"}`}
             >
               <span className="block">{stage.label}</span>
               {stage.owner ? (
@@ -1217,7 +1385,7 @@ function ProcessBar({
             </span>
             {index < stages.length - 1 ? (
               <span
-                className={`h-px w-8 ${index < active ? "bg-emerald-300" : "bg-slate-200"}`}
+                className={`h-px w-8 shrink-0 ${index < active ? "bg-emerald-300" : "bg-slate-200"}`}
               />
             ) : null}
           </li>
@@ -1237,6 +1405,11 @@ function RuntimeRelatedRecordsPanel({
   relationship: {
     key: string;
     label: string;
+    tab?: string;
+    description?: string;
+    emptyTitle?: string;
+    emptyDescription?: string;
+    createHref?: string;
     module?: PlatformModuleKey;
     foreignKey: string;
     columns?: RuntimeColumnDefinition[];
@@ -1289,13 +1462,34 @@ function RuntimeRelatedRecordsPanel({
   );
   return (
     <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-200 px-5 py-4">
-        <h2 className="text-base font-semibold text-slate-950">
-          {relationship.label}
-        </h2>
-        <p className="mt-1 text-xs text-slate-500">
-          Records linked through the shared module relationship.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
+        <div>
+          <h2 className="text-base font-semibold text-slate-950">
+            {relationship.label}
+          </h2>
+          <p className="mt-1 text-xs text-slate-500">
+            {relationship.description ??
+              `Business records linked to this ${relationship.label.toLowerCase()}.`}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {relationship.createHref ? (
+            <Link
+              href={relationship.createHref}
+              className="rounded-lg bg-slate-950 px-3 py-2 text-xs font-semibold text-white"
+            >
+              Add
+            </Link>
+          ) : null}
+          {target ? (
+            <Link
+              href={target.routeBase}
+              className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700"
+            >
+              View all
+            </Link>
+          ) : null}
+        </div>
       </div>
       {error ? (
         <p className="p-5 text-sm text-rose-700" role="alert">
@@ -1309,8 +1503,13 @@ function RuntimeRelatedRecordsPanel({
           loading={loading}
           loadingRowCount={3}
           compact
-          emptyTitle={`No ${relationship.label.toLowerCase()}`}
-          emptyDescription="Related records will appear here when they are linked."
+          emptyTitle={
+            relationship.emptyTitle ?? `No ${relationship.label.toLowerCase()}`
+          }
+          emptyDescription={
+            relationship.emptyDescription ??
+            `No ${relationship.label.toLowerCase()} are linked to this record.`
+          }
           onRowClick={
             target
               ? (row) => router.push(`${target.routeBase}/${row.id}`)
@@ -1367,16 +1566,117 @@ function relatedValue(record: RuntimeRecord, field: string) {
   return String(value).replaceAll("_", " ");
 }
 
-function TimelinePanel({ items }: { items: Array<Record<string, unknown>> }) {
+function TimelinePanel({
+  items,
+  onCreate,
+}: {
+  items: Array<Record<string, unknown>>;
+  onCreate?: (message: string) => Promise<void>;
+}) {
+  const [filter, setFilter] = useState("");
+  const [direction, setDirection] = useState<"desc" | "asc">("desc");
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const visible = [...items]
+    .filter((item) => {
+      if (!filter.trim()) return true;
+      const term = filter.trim().toLowerCase();
+      return [
+        item.actionLabel,
+        item.action,
+        item.activityType,
+        item.eventType,
+        item.message,
+      ].some((value) =>
+        String(value ?? "")
+          .toLowerCase()
+          .includes(term),
+      );
+    })
+    .sort((left, right) => {
+      const leftTime = new Date(
+        String(left.createdAt ?? left.timestamp ?? left.occurredAt ?? 0),
+      ).getTime();
+      const rightTime = new Date(
+        String(right.createdAt ?? right.timestamp ?? right.occurredAt ?? 0),
+      ).getTime();
+      return direction === "desc" ? rightTime - leftTime : leftTime - rightTime;
+    });
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex items-center gap-2">
-        <Clock3 className="h-4 w-4 text-slate-500" />
-        <h2 className="text-base font-semibold text-slate-950">Timeline</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Clock3 className="h-4 w-4 text-slate-500" />
+          <h2 className="text-base font-semibold text-slate-950">Timeline</h2>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <input
+            aria-label="Filter timeline"
+            value={filter}
+            onChange={(event) => setFilter(event.target.value)}
+            placeholder="Filter activity"
+            className="h-9 rounded-lg border border-slate-200 px-3 text-xs"
+          />
+          <select
+            aria-label="Timeline sort order"
+            value={direction}
+            onChange={(event) =>
+              setDirection(event.target.value as "desc" | "asc")
+            }
+            className="h-9 rounded-lg border border-slate-200 px-2 text-xs"
+          >
+            <option value="desc">Latest first</option>
+            <option value="asc">Oldest first</option>
+          </select>
+        </div>
       </div>
-      {items.length ? (
+      {onCreate ? (
+        <form
+          className="mt-4 flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:flex-row"
+          onSubmit={async (event) => {
+            event.preventDefault();
+            if (!note.trim() || busy) return;
+            setBusy(true);
+            setCreateError(null);
+            try {
+              await onCreate(note.trim());
+              setNote("");
+            } catch (reason) {
+              setCreateError(
+                reason instanceof Error
+                  ? reason.message
+                  : "Unable to add timeline activity.",
+              );
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          <input
+            aria-label="Add a timeline note"
+            value={note}
+            onChange={(event) => setNote(event.target.value)}
+            placeholder="Add a business note"
+            className="h-10 min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 text-sm"
+          />
+          <button
+            type="submit"
+            disabled={busy || !note.trim()}
+            className="h-10 rounded-lg bg-slate-950 px-4 text-xs font-semibold text-white disabled:opacity-40"
+          >
+            {busy ? "Adding…" : "Add note"}
+          </button>
+        </form>
+      ) : null}
+      {createError ? (
+        <p className="mt-2 text-sm text-rose-700" role="alert">
+          {createError}
+        </p>
+      ) : null}
+      {visible.length ? (
         <ol className="mt-4 divide-y divide-slate-100">
-          {items.slice(0, 20).map((item, index) => (
+          {visible.slice(0, 50).map((item, index) => (
             <li key={String(item.id ?? index)} className="py-3">
               <p className="text-sm font-medium text-slate-800">
                 {String(
@@ -1393,10 +1693,23 @@ function TimelinePanel({ items }: { items: Array<Record<string, unknown>> }) {
                 </p>
               ) : null}
               <p className="mt-1 text-xs text-slate-500">
-                {String(
+                {readRecordLabel(item.actorUser ?? item.actor) ??
+                  String(item.actorName ?? item.actorType ?? "System")}
+                {" · "}
+                {formatRecordDate(
                   item.createdAt ?? item.timestamp ?? item.occurredAt ?? "",
                 )}
               </p>
+              {item.recordHref ? (
+                <Link
+                  href={String(item.recordHref)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-1 inline-flex text-xs font-semibold text-[var(--admin-primary)]"
+                >
+                  Open linked record
+                </Link>
+              ) : null}
             </li>
           ))}
         </ol>

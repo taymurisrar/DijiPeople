@@ -28,6 +28,7 @@ import {
   ContractType,
   SignatureMethod,
 } from '@prisma/client';
+import { AGREEMENT_CATEGORY_VALUES } from '@repo/config';
 
 export class ContractQueryDto {
   @IsOptional() @IsString() search?: string;
@@ -128,7 +129,10 @@ export class CreateContractDto {
   @IsOptional() @IsUUID() internalLegalOwnerId?: string;
   @IsOptional() @IsUUID() parentContractId?: string;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) amendmentNumber?: number;
-  @IsOptional() @IsString() @MaxLength(120) agreementCategory?: string;
+  @IsOptional()
+  @IsString()
+  @IsIn(AGREEMENT_CATEGORY_VALUES)
+  agreementCategory?: string;
   @IsOptional() @IsString() @MaxLength(80) counterpartyType?: string;
   @IsOptional()
   @IsEnum(ContractDocumentSource)
@@ -226,7 +230,13 @@ export class UpdateContractDto {
   @IsOptional() @IsUUID() internalLegalOwnerId?: string;
   @IsOptional() @IsUUID() parentContractId?: string;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) amendmentNumber?: number;
-  @IsOptional() @IsString() @MaxLength(120) agreementCategory?: string;
+  @IsOptional()
+  @IsString()
+  @IsIn(AGREEMENT_CATEGORY_VALUES)
+  agreementCategory?: string;
+  @IsOptional() @IsString() @MaxLength(120) lifecycleGatePurpose?: string;
+  @IsOptional() @IsBoolean() isGoverningAgreement?: boolean;
+  @IsOptional() @IsEnum(ContractSigningMode) signingMode?: ContractSigningMode;
   @IsOptional() @IsString() @MaxLength(80) counterpartyType?: string;
   @IsOptional()
   @IsEnum(ContractDocumentSource)
@@ -246,6 +256,8 @@ export class UpdateContractDto {
   @IsOptional() @IsString() @MaxLength(80) confidentialityClass?: string;
   @IsOptional() @IsDateString() effectiveDate?: string;
   @IsOptional() @IsDateString() expiryDate?: string;
+  @IsOptional() @IsDateString() effectiveFrom?: string;
+  @IsOptional() @IsDateString() effectiveUntil?: string;
   @IsOptional() @IsBoolean() autoRenewal?: boolean;
   @IsOptional() @Type(() => Number) @IsInt() @Min(0) renewalNoticeDays?: number;
   @IsOptional()
@@ -254,6 +266,10 @@ export class UpdateContractDto {
   @Min(0)
   terminationNoticeDays?: number;
   @IsOptional() @IsString() @MaxLength(4000) notes?: string;
+  @IsOptional() @IsUUID() amendsContractId?: string;
+  @IsOptional() @IsUUID() renewsContractId?: string;
+  @IsOptional() @IsUUID() supersedesContractId?: string;
+  @IsOptional() @IsUUID() subscriptionId?: string;
   @IsOptional() @IsEnum(ContractStatus) status?: ContractStatus;
 }
 

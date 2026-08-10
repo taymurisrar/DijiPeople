@@ -40,6 +40,7 @@ export type RuntimeFieldType =
   | "file"
   | "documentEditor"
   | "signature"
+  | "json"
   | "timeline"
   | "relatedRecords"
   | "process";
@@ -247,6 +248,11 @@ export type PlatformModuleDefinition = {
   relatedRecords?: Array<{
     key: string;
     label: string;
+    tab?: string;
+    description?: string;
+    emptyTitle?: string;
+    emptyDescription?: string;
+    createHref?: string;
     module?: PlatformModuleKey;
     foreignKey: string;
     columns?: RuntimeColumnDefinition[];

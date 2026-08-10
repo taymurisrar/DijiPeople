@@ -6,6 +6,7 @@ import type {
   RuntimeFormDefinition,
 } from "@/lib/runtime/platform-runtime.types";
 import { ContractDocumentEditor } from "@/app/_components/documents/contract-document-editor";
+import type { RuntimeLookupOption } from "@/lib/runtime/runtime-lookups";
 
 type RuntimeValues = Record<string, unknown>;
 export function RuntimeForm({
@@ -18,6 +19,8 @@ export function RuntimeForm({
   formId,
   onSubmit,
   childrenByField = {},
+  activeTab: controlledActiveTab,
+  onTabChange,
 }: {
   definition: RuntimeFormDefinition;
   values: RuntimeValues;
@@ -28,8 +31,17 @@ export function RuntimeForm({
   formId?: string;
   onSubmit?: () => void;
   childrenByField?: Record<string, React.ReactNode>;
+  activeTab?: string;
+  onTabChange?: (tab: string) => void;
 }) {
-  const [activeTab, setActiveTab] = useState(definition.tabs?.[0]?.key ?? "");
+  const [localActiveTab, setLocalActiveTab] = useState(
+    definition.tabs?.[0]?.key ?? "",
+  );
+  const activeTab = controlledActiveTab ?? localActiveTab;
+  const setActiveTab = (tab: string) => {
+    setLocalActiveTab(tab);
+    onTabChange?.(tab);
+  };
   const visibleSections = definition.sections.filter(
     (section) => !section.tab || section.tab === activeTab,
   );
@@ -40,7 +52,7 @@ export function RuntimeForm({
         event.preventDefault();
         onSubmit?.();
       }}
-      className="space-y-5"
+      className="space-y-4"
     >
       {definition.tabs?.length ? (
         <div className="flex overflow-x-auto rounded-xl border border-slate-200 bg-white p-1">
@@ -69,9 +81,9 @@ export function RuntimeForm({
         return (
           <section
             key={section.key}
-            className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"
+            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
           >
-            <div className="mb-5">
+            <div className="mb-3">
               <h2 className="text-base font-semibold text-slate-950">
                 {section.label}
               </h2>
@@ -82,7 +94,7 @@ export function RuntimeForm({
               ) : null}
             </div>
             <div
-              className={`grid gap-4 ${section.columns === 3 ? "md:grid-cols-2 xl:grid-cols-3" : section.columns === 2 ? "md:grid-cols-2" : "grid-cols-1"}`}
+              className={`grid gap-3 ${section.columns === 3 ? "md:grid-cols-2 xl:grid-cols-3" : section.columns === 2 ? "md:grid-cols-2" : "grid-cols-1"}`}
             >
               {fields.map((field) => (
                 <RuntimeField
@@ -91,6 +103,7 @@ export function RuntimeForm({
                   value={values[field.key]}
                   values={values}
                   error={errors[field.key]}
+                  alignControl={section.columns !== 1}
                   readOnly={
                     mode === "read" ||
                     field.readOnly ||
@@ -113,6 +126,7 @@ function RuntimeField({
   value,
   values,
   error,
+  alignControl,
   readOnly,
   onChange,
   custom,
@@ -121,16 +135,18 @@ function RuntimeField({
   value: unknown;
   values: RuntimeValues;
   error?: string;
+  alignControl: boolean;
   readOnly: boolean;
   onChange: (value: unknown) => void;
   custom?: React.ReactNode;
 }) {
   const required =
-    field.required ||
-    Boolean(
-      field.requiredWhen &&
-      values[field.requiredWhen.field] === field.requiredWhen.equals,
-    );
+    !readOnly &&
+    (field.required ||
+      Boolean(
+        field.requiredWhen &&
+        values[field.requiredWhen.field] === field.requiredWhen.equals,
+      ));
   const span =
     field.columnSpan === 3
       ? "md:col-span-2 xl:col-span-3"
@@ -165,17 +181,19 @@ function RuntimeField({
   return (
     <label
       data-field-key={field.key}
-      className={`grid gap-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 ${span}`}
+      className={`flex flex-col gap-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 ${span}`}
     >
-      <span>
-        {field.label}
-        {required ? <span className="ml-1 text-rose-600">*</span> : null}
-      </span>
-      {field.description ? (
-        <span className="text-[11px] font-normal normal-case tracking-normal text-slate-400">
-          {field.description}
+      <span className={alignControl ? "md:h-14" : undefined}>
+        <span className="block">
+          {field.label}
+          {required ? <span className="ml-1 text-rose-600">*</span> : null}
         </span>
-      ) : null}
+        {field.description ? (
+          <span className="mt-1 block line-clamp-2 text-[11px] font-normal normal-case tracking-normal text-slate-400">
+            {field.description}
+          </span>
+        ) : null}
+      </span>
       <FieldControl
         field={field}
         value={value}
@@ -204,7 +222,7 @@ function FieldControl({
   required: boolean;
   onChange: (value: unknown) => void;
 }) {
-  const className = `min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-normal normal-case tracking-normal text-slate-900 outline-none focus:border-[var(--admin-primary)] focus:ring-2 focus:ring-[var(--admin-primary)]/10 disabled:bg-slate-50 disabled:text-slate-500`;
+  const className = `min-h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-normal normal-case tracking-normal text-slate-900 outline-none focus:border-[var(--admin-primary)] focus:ring-2 focus:ring-[var(--admin-primary)]/10 disabled:bg-slate-50 disabled:text-slate-500`;
   if (field.type === "richText")
     return (
       <ContractDocumentEditor
@@ -227,15 +245,36 @@ function FieldControl({
         onChange={(event) => onChange(event.target.value)}
       />
     );
+  if (field.type === "json")
+    return (
+      <textarea
+        rows={6}
+        className={`${className} py-3 font-mono text-xs`}
+        disabled
+        value={
+          value == null
+            ? ""
+            : typeof value === "string"
+              ? value
+              : JSON.stringify(value, null, 2)
+        }
+        readOnly
+      />
+    );
   if (field.type === "boolean")
     return (
-      <input
-        className="h-5 w-5 rounded border-slate-300"
-        disabled={readOnly}
-        type="checkbox"
-        checked={Boolean(value)}
-        onChange={(event) => onChange(event.target.checked)}
-      />
+      <span
+        className={`flex min-h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-normal normal-case tracking-normal ${readOnly ? "bg-slate-50 text-slate-500" : "bg-white text-slate-700"}`}
+      >
+        <input
+          className="h-4 w-4 rounded border-slate-300 accent-[var(--admin-primary)]"
+          disabled={readOnly}
+          type="checkbox"
+          checked={Boolean(value)}
+          onChange={(event) => onChange(event.target.checked)}
+        />
+        <span>{Boolean(value) ? "Yes" : "No"}</span>
+      </span>
     );
   if (field.type === "option" || field.type === "multiSelect")
     return (
@@ -257,7 +296,9 @@ function FieldControl({
               ? [...event.currentTarget.selectedOptions].map(
                   (option) => option.value,
                 )
-              : event.target.value,
+              : event.target.value === "" && !required
+                ? null
+                : event.target.value,
           )
         }
       >
@@ -444,9 +485,9 @@ function RuntimeLookup({
   required: boolean;
   onChange: (value: unknown) => void;
 }) {
-  const [options, setOptions] = useState<
-    Array<{ value: string; label: string }>
-  >(field.options ?? []);
+  const [options, setOptions] = useState<RuntimeLookupOption[]>(field.options ?? []);
+  const [search, setSearch] = useState("");
+  const [lookupError, setLookupError] = useState<string | null>(null);
   const [loading, setLoading] = useState(Boolean(field.lookupPath));
   useEffect(() => {
     if (!field.lookupPath) return;
@@ -456,32 +497,31 @@ function RuntimeLookup({
       `/api/platform-runtime/lookups?path=${encodeURIComponent(field.lookupPath)}`,
       { signal: controller.signal },
     )
-      .then((response) => response.json())
+      .then(async (response) => {
+        const payload = (await response.json().catch(() => null)) as
+          | { items?: RuntimeLookupOption[]; message?: string }
+          | RuntimeLookupOption[]
+          | null;
+        if (!response.ok) {
+          throw new Error(
+            !Array.isArray(payload) ? payload?.message : "Unable to load lookup.",
+          );
+        }
+        return payload;
+      })
       .then((payload) => {
         if (!active) return;
-        const items = Array.isArray(payload) ? payload : (payload.items ?? []);
-        setOptions(
-          items.map((item: Record<string, unknown>) => ({
-            value: String(item.id ?? item.value ?? ""),
-            label: String(
-              item.fullName ??
-                item.displayName ??
-                item.name ??
-                (item.customer && typeof item.customer === "object"
-                  ? (item.customer as Record<string, unknown>).companyName
-                  : undefined) ??
-                item.companyName ??
-                item.label ??
-                item.email ??
-                item.id ??
-                "",
-            ),
-          })),
-        );
+        const items = Array.isArray(payload) ? payload : (payload?.items ?? []);
+        setOptions(items);
       })
       .catch((error: unknown) => {
         if (isAbortError(error)) return;
         console.error("Runtime lookup failed", error);
+        if (active) {
+          setLookupError(
+            error instanceof Error ? error.message : "Unable to load lookup.",
+          );
+        }
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -491,8 +531,25 @@ function RuntimeLookup({
       controller.abort();
     };
   }, [field.lookupPath]);
+  const normalizedSearch = search.trim().toLocaleLowerCase();
+  const filteredOptions = normalizedSearch
+    ? options.filter((option) =>
+        option.label.toLocaleLowerCase().includes(normalizedSearch),
+      )
+    : options;
   return (
-    <select
+    <div className="space-y-1.5 font-normal normal-case tracking-normal">
+      {!disabled && field.lookupPath ? (
+        <input
+          type="search"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder={`Search ${field.label.toLowerCase()}...`}
+          aria-label={`Search ${field.label}`}
+          className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-900 outline-none focus:border-[var(--admin-primary)] focus:ring-2 focus:ring-[var(--admin-primary)]/10"
+        />
+      ) : null}
+      <select
       className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-normal normal-case tracking-normal"
       disabled={disabled || loading}
       required={required}
@@ -502,12 +559,18 @@ function RuntimeLookup({
       <option value="">
         {loading ? "Loading…" : `Select ${field.label.toLowerCase()}`}
       </option>
-      {options.map((option) => (
+      {filteredOptions.map((option) => (
         <option key={option.value} value={option.value}>
           {option.label}
         </option>
       ))}
-    </select>
+      </select>
+      {lookupError ? (
+        <p className="text-xs text-rose-700" role="alert">
+          {lookupError}
+        </p>
+      ) : null}
+    </div>
   );
 }
 
@@ -559,6 +622,7 @@ export function validateRuntimeValues(
   const errors: Record<string, string> = {};
   for (const field of definition.fields) {
     if (!isVisible(field, values)) continue;
+    if (field.readOnly || isConditionallyReadOnly(field, values)) continue;
     const required =
       field.required ||
       Boolean(
@@ -580,6 +644,30 @@ export function validateRuntimeValues(
       value.length > field.maxLength
     )
       errors[field.key] = `Maximum length is ${field.maxLength}.`;
+    if (typeof value === "number" && field.min !== undefined && value < field.min)
+      errors[field.key] = `Minimum value is ${field.min}.`;
+    if (typeof value === "number" && field.max !== undefined && value > field.max)
+      errors[field.key] = `Maximum value is ${field.max}.`;
   }
+  validateDateOrder(errors, values, "effectiveDate", "expiryDate", "Expiry date must be after the effective date.", true);
+  validateDateOrder(errors, values, "effectiveFrom", "effectiveUntil", "Terms effective until must be on or after terms effective from.");
   return errors;
+}
+
+function validateDateOrder(
+  errors: Record<string, string>,
+  values: RuntimeValues,
+  fromKey: string,
+  untilKey: string,
+  message: string,
+  strictlyAfter = false,
+) {
+  const from = values[fromKey];
+  const until = values[untilKey];
+  if (!from || !until) return;
+  const fromTime = new Date(String(from)).getTime();
+  const untilTime = new Date(String(until)).getTime();
+  if (Number.isNaN(fromTime) || Number.isNaN(untilTime)) return;
+  if (strictlyAfter ? untilTime <= fromTime : untilTime < fromTime)
+    errors[untilKey] = message;
 }

@@ -79,6 +79,20 @@ enum DiscountType {
   FLAT
 }
 
+enum PromotionDuration {
+  ONCE
+  REPEATING
+  FOREVER
+}
+
+enum PromotionScope {
+  GLOBAL
+  PLAN
+  PRICE
+  CUSTOMER
+  SUBSCRIPTION
+}
+
 enum CustomerAccountStatus {
   LEAD
   PROSPECT
@@ -479,6 +493,24 @@ enum SupportCaseChannel {
   CHAT
   MONITORING
   INTERNAL
+}
+
+enum PlatformEventSource {
+  LANDING
+  WEB_APP
+  ADMIN
+  API
+  BACKGROUND
+  STRIPE
+  EMAIL
+  INTEGRATION
+}
+
+enum PlatformEventResult {
+  SUCCEEDED
+  FAILED
+  PENDING
+  IGNORED
 }
 
 enum PartnerCommissionStatus {
@@ -2145,6 +2177,7 @@ model CustomerAccount {
   contracts                  Contract[]
   supportCases               SupportCase[]
   payrollCostAllocationLines PayrollCostAllocationLine[]
+  promotions                 Promotion[]
 
   @@index([status])
   @@index([subStatus])
@@ -3297,6 +3330,7 @@ model Plan {
   subscriptions         Subscription[]
   selectedByCustomers   CustomerAccount[]    @relation("SelectedCustomerPlan")
   selectedByOnboardings CustomerOnboarding[] @relation("SelectedOnboardingPlan")
+  promotions            Promotion[]
 
   @@index([tenantId])
   @@index([isActive, sortOrder])
@@ -3334,6 +3368,9 @@ model PlanPrice {
   maximumSeats            Int?
   includedSeats           Int                @default(0)
   effectiveFrom           DateTime           @default(now())
+  effectiveTo             DateTime?
+  version                 Int                @default(1)
+  supersedesPriceId       String?
   stripeProductId         String?
   stripePriceId           String?            @unique
   stripeEnvironment       StripeEnvironment?
@@ -3348,6 +3385,9 @@ model PlanPrice {
   updatedAt               DateTime           @updatedAt
   plan                    Plan               @relation(fields: [planId], references: [id], onDelete: Cascade)
   subscriptions           Subscription[]
+  promotions             Promotion[]
+  supersedes             PlanPrice?          @relation("PlanPriceVersions", fields: [supersedesPriceId], references: [id], onDelete: SetNull)
+  supersededBy           PlanPrice[]         @relation("PlanPriceVersions")
 
   @@index([planId])
   @@index([billingModel, billingInterval, currency, isActive])
@@ -3355,6 +3395,7 @@ model PlanPrice {
   @@index([stripePriceId])
   @@index([stripeSyncStatus, stripeEnvironment])
   @@index([effectiveFrom, isActive])
+  @@index([supersedesPriceId])
 }
 
 model Subscription {
@@ -3401,6 +3442,8 @@ model Subscription {
   payments                 Payment[]
   supportCases             SupportCase[]
   contracts                Contract[]
+  promotions               Promotion[]
+  promotionApplications    SubscriptionPromotion[]
 
   @@index([status])
   @@index([planId, status])
@@ -3408,6 +3451,71 @@ model Subscription {
   @@index([stripeCustomerId])
   @@index([stripeSubscriptionId])
   @@index([stripeCheckoutSessionId])
+}
+
+model Promotion {
+  id                    String             @id @default(uuid())
+  name                  String
+  code                  String?
+  discountType          DiscountType
+  percentOff            Decimal?           @db.Decimal(5, 2)
+  amountOff             Decimal?           @db.Decimal(12, 2)
+  currency              String?
+  duration              PromotionDuration
+  durationMonths        Int?
+  scope                 PromotionScope     @default(GLOBAL)
+  planId                String?
+  planPriceId           String?
+  customerAccountId     String?
+  subscriptionId        String?
+  startsAt              DateTime           @default(now())
+  redeemBy              DateTime?
+  maximumRedemptions    Int?
+  redemptionCount       Int                @default(0)
+  isActive              Boolean            @default(true)
+  stripeCouponId        String?            @unique
+  stripePromotionCodeId String?            @unique
+  stripeEnvironment     StripeEnvironment?
+  stripeSyncStatus      StripeSyncStatus   @default(NOT_SYNCED)
+  stripeSyncError       String?
+  version               Int                @default(1)
+  supersedesPromotionId String?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+  createdById           String?
+  updatedById           String?
+  plan                  Plan?              @relation(fields: [planId], references: [id], onDelete: SetNull)
+  planPrice             PlanPrice?         @relation(fields: [planPriceId], references: [id], onDelete: SetNull)
+  customerAccount       CustomerAccount?   @relation(fields: [customerAccountId], references: [id], onDelete: SetNull)
+  subscription          Subscription?      @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  supersedes            Promotion?         @relation("PromotionVersions", fields: [supersedesPromotionId], references: [id], onDelete: SetNull)
+  supersededBy          Promotion[]         @relation("PromotionVersions")
+  applications          SubscriptionPromotion[]
+
+  @@index([isActive, startsAt])
+  @@index([code, isActive])
+  @@index([scope, planId, planPriceId])
+  @@index([customerAccountId])
+  @@index([subscriptionId])
+  @@index([supersedesPromotionId])
+  @@index([stripeSyncStatus, stripeEnvironment])
+}
+
+model SubscriptionPromotion {
+  id             String       @id @default(uuid())
+  subscriptionId String
+  promotionId    String
+  appliedAt      DateTime     @default(now())
+  removedAt      DateTime?
+  stripeDiscountId String?
+  isActive       Boolean      @default(true)
+  createdById    String?
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  promotion      Promotion    @relation(fields: [promotionId], references: [id], onDelete: Restrict)
+
+  @@unique([subscriptionId, promotionId])
+  @@index([subscriptionId, isActive])
+  @@index([promotionId])
 }
 
 model User {
@@ -7144,6 +7252,35 @@ model PlatformSetting {
   updatedById String?
 
   @@index([key])
+}
+
+model PlatformEvent {
+  id                String              @id @default(uuid())
+  eventCode         String
+  source            PlatformEventSource
+  result            PlatformEventResult @default(SUCCEEDED)
+  severity          String              @default("INFO")
+  environment       String
+  correlationId     String
+  entityType        String?
+  entityId          String?
+  tenantId          String?
+  customerAccountId String?
+  actorType         String?
+  actorId           String?
+  route             String?
+  metadata          Json?
+  occurredAt        DateTime            @default(now())
+  createdAt         DateTime            @default(now())
+
+  @@index([occurredAt])
+  @@index([eventCode, occurredAt])
+  @@index([source, occurredAt])
+  @@index([result, severity, occurredAt])
+  @@index([correlationId])
+  @@index([tenantId, occurredAt])
+  @@index([customerAccountId, occurredAt])
+  @@index([entityType, entityId])
 }
 
 model Invoice {

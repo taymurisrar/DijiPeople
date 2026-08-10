@@ -12,7 +12,7 @@ export default async function AdminDashboardPage({
 }) {
   const user = await requireSystemAdminUser("/");
   const requestedRange = (await searchParams).range;
-  const range = ["3m", "6m", "12m"].includes(requestedRange ?? "")
+  const range = ["30d", "3m", "6m", "12m"].includes(requestedRange ?? "")
     ? requestedRange
     : "6m";
   const result = await Promise.all([

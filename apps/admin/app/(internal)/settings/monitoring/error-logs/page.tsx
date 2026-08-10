@@ -10,6 +10,7 @@ import { RuntimeViewSelector } from "@/app/_components/runtime/runtime-view-sele
 import { requireSystemAdminUser } from "@/lib/auth";
 import { apiRequestJson } from "@/lib/server-api";
 import { getPlatformModuleDefinition } from "@/lib/runtime/platform-module-registry";
+import { MonitoringNav } from "@/app/_components/monitoring/monitoring-nav";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -50,6 +51,7 @@ export default async function PlatformErrorLogsPage({
         description="Support customers from a sanitized incident queue: trace web, admin, and API failures, record investigation progress, and maintain customer-ready updates."
         actions={<RuntimeViewSelector moduleKey="monitoring-incidents" views={moduleDefinition.views} defaultViewKey={preference.defaultViewKey} roleKeys={[user.role, ...(user.roleKeys ?? [])]} />}
       />
+      <MonitoringNav current="/settings/monitoring/error-logs" />
       <ErrorLogsTable logs={response.items} meta={response.meta} metrics={response.metrics} assignees={assignees} />
     </main>
   );

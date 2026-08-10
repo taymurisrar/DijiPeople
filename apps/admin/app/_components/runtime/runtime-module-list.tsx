@@ -333,6 +333,20 @@ export function RuntimeModuleList({
       setAssignOpen(true);
       return;
     }
+    if (action.key === "bulk-change-status") {
+      const nextStatus = window.prompt("Enter the new status");
+      if (!nextStatus?.trim()) return;
+      await Promise.all(
+        selectedIds.map((id) =>
+          adapter.changeStatus(id, nextStatus.trim().toUpperCase()),
+        ),
+      );
+      setRefreshKey((value) => value + 1);
+      return {
+        success: true,
+        message: `${selectedIds.length} lead(s) updated.`,
+      };
+    }
     return adapter.executeAction(action.key, { ids: selectedIds });
   }
 
@@ -444,25 +458,21 @@ export function RuntimeModuleList({
           </form>
 
           {statusOptions.length ? (
-            <div
-              className="inline-flex overflow-x-auto rounded-xl border border-slate-200 bg-white p-1"
-              role="group"
+            <select
               aria-label="Status filter"
+              value={status ?? ""}
+              onChange={(event) =>
+                updateQuery({ status: event.target.value || null, page: "1" })
+              }
+              className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600"
             >
-              <FilterButton
-                active={!status}
-                label="All"
-                onClick={() => updateQuery({ status: null, page: "1" })}
-              />
+              <option value="">All statuses</option>
               {statusOptions.map((item) => (
-                <FilterButton
-                  key={item.value}
-                  active={status === item.value}
-                  label={item.label}
-                  onClick={() => updateQuery({ status: item.value, page: "1" })}
-                />
+                <option key={item.value} value={item.value}>
+                  {item.label}
+                </option>
               ))}
-            </div>
+            </select>
           ) : null}
 
           <button
@@ -644,7 +654,7 @@ export function RuntimeModuleList({
                     page: "1",
                   })
                 }
-                className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-800"
+                className="inline-flex items-center gap-1 rounded-full border border-[var(--admin-primary)]/20 bg-[var(--admin-primary)]/5 px-2.5 py-1 text-xs font-semibold text-[var(--admin-primary)]"
                 title="Remove filter"
               >
                 {columnLabel(definition.columns, filter.field)}{" "}
@@ -656,7 +666,7 @@ export function RuntimeModuleList({
               <button
                 type="button"
                 onClick={() => updateQuery({ status: null, page: "1" })}
-                className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-800"
+                className="inline-flex items-center gap-1 rounded-full border border-[var(--admin-primary)]/20 bg-[var(--admin-primary)]/5 px-2.5 py-1 text-xs font-semibold text-[var(--admin-primary)]"
               >
                 Status is {formatEnumLabel(status)} <X className="h-3 w-3" />
               </button>
@@ -1026,8 +1036,12 @@ function formatCell(
     return <span className="text-slate-400">—</span>;
   if (format === "status")
     return (
-      <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700">
-        {formatEnumLabel(String(value))}
+      <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${typeof value === "boolean" ? (value ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-slate-50 text-slate-600") : "border-slate-200 bg-slate-50 text-slate-700"}`}>
+        {typeof value === "boolean"
+          ? value
+            ? "Active"
+            : "Inactive"
+          : formatEnumLabel(String(value))}
       </span>
     );
   if (format === "currency") {
@@ -1045,7 +1059,8 @@ function formatCell(
   }
   if (format === "percentage")
     return `${formatNumber(Number(value), { maximumFractionDigits: 2 })}%`;
-  if (format === "number") return formatNumber(Number(value));
+  if (format === "number")
+    return formatNumber(Array.isArray(value) ? value.length : Number(value));
   if (format === "date") return formatDate(String(value));
   if (format === "dateTime")
     return new Intl.DateTimeFormat(locale, {

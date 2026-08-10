@@ -9,6 +9,7 @@ import { SupportCasesModule } from '../support-cases/support-cases.module';
 import { PartnerExperienceModule } from '../partner-experience/partner-experience.module';
 import { PlatformRuntimeController } from './platform-runtime.controller';
 import { PlatformRuntimeService } from './platform-runtime.service';
+import { PlatformRuntimeRelationsService } from './platform-runtime-relations.service';
 
 @Module({
   imports: [
@@ -22,6 +23,6 @@ import { PlatformRuntimeService } from './platform-runtime.service';
     PartnerExperienceModule,
   ],
   controllers: [PlatformRuntimeController],
-  providers: [PlatformRuntimeService],
+  providers: [PlatformRuntimeService, PlatformRuntimeRelationsService],
 })
 export class PlatformRuntimeModule {}

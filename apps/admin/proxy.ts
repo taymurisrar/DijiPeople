@@ -129,7 +129,9 @@ export async function proxy(request: NextRequest) {
         isProtectedRoute: false,
         isAuthRoute: true,
         reason: "exception",
-        hasAccessToken: Boolean(request.cookies.get(ACCESS_TOKEN_COOKIE)?.value),
+        hasAccessToken: Boolean(
+          request.cookies.get(ACCESS_TOKEN_COOKIE)?.value,
+        ),
         hasRefreshToken: Boolean(
           request.cookies.get(REFRESH_TOKEN_COOKIE)?.value,
         ),
@@ -276,7 +278,9 @@ type RefreshResult =
   | { ok: true; accessToken: string; refreshToken: string; sessionId?: string }
   | { ok: false; shouldLogout: boolean };
 
-async function refreshSessionTokens(refreshToken: string): Promise<RefreshResult> {
+async function refreshSessionTokens(
+  refreshToken: string,
+): Promise<RefreshResult> {
   try {
     const response = await fetch(`${getApiBaseUrl()}/auth/refresh`, {
       method: "POST",
@@ -289,12 +293,19 @@ async function refreshSessionTokens(refreshToken: string): Promise<RefreshResult
     });
 
     if (!response.ok) {
-      return { ok: false, shouldLogout: response.status === 401 || response.status === 403 };
+      return {
+        ok: false,
+        shouldLogout: response.status === 401 || response.status === 403,
+      };
     }
 
-    const data = (await response.json().catch(() => null)) as
-      | { tokens?: { accessToken?: unknown; refreshToken?: unknown; sessionId?: unknown } }
-      | null;
+    const data = (await response.json().catch(() => null)) as {
+      tokens?: {
+        accessToken?: unknown;
+        refreshToken?: unknown;
+        sessionId?: unknown;
+      };
+    } | null;
     if (
       typeof data?.tokens?.accessToken !== "string" ||
       typeof data?.tokens?.refreshToken !== "string"
@@ -306,7 +317,10 @@ async function refreshSessionTokens(refreshToken: string): Promise<RefreshResult
       ok: true,
       accessToken: data.tokens.accessToken,
       refreshToken: data.tokens.refreshToken,
-      sessionId: typeof data.tokens.sessionId === "string" ? data.tokens.sessionId : undefined,
+      sessionId:
+        typeof data.tokens.sessionId === "string"
+          ? data.tokens.sessionId
+          : undefined,
     };
   } catch {
     return { ok: false, shouldLogout: false };
@@ -330,7 +344,8 @@ function continueWithRefreshedTokens(
   );
   cookies.set(ACCESS_TOKEN_COOKIE, encodeURIComponent(tokens.accessToken));
   cookies.set(REFRESH_TOKEN_COOKIE, encodeURIComponent(tokens.refreshToken));
-  if (tokens.sessionId) cookies.set(SESSION_COOKIE, encodeURIComponent(tokens.sessionId));
+  if (tokens.sessionId)
+    cookies.set(SESSION_COOKIE, encodeURIComponent(tokens.sessionId));
   requestHeaders.set(
     "cookie",
     Array.from(cookies.entries())
@@ -339,10 +354,25 @@ function continueWithRefreshedTokens(
   );
 
   const response = NextResponse.next({ request: { headers: requestHeaders } });
-  response.cookies.set(ACCESS_TOKEN_COOKIE, tokens.accessToken, { path: "/", httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production" });
-  response.cookies.set(REFRESH_TOKEN_COOKIE, tokens.refreshToken, { path: "/", httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production" });
+  response.cookies.set(ACCESS_TOKEN_COOKIE, tokens.accessToken, {
+    path: "/",
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+  });
+  response.cookies.set(REFRESH_TOKEN_COOKIE, tokens.refreshToken, {
+    path: "/",
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+  });
   if (tokens.sessionId) {
-    response.cookies.set(SESSION_COOKIE, tokens.sessionId, { path: "/", httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production" });
+    response.cookies.set(SESSION_COOKIE, tokens.sessionId, {
+      path: "/",
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    });
   }
   return response;
 }
@@ -364,6 +394,10 @@ function logAuthRedirect(details: AuthRedirectLog) {
 export const config = {
   matcher: [
     "/",
+    "/account-settings/:path*",
+    "/commissions/:path*",
+    "/contract-templates/:path*",
+    "/contracts/:path*",
     "/tenants/:path*",
     "/customers/:path*",
     "/settings/:path*",
@@ -373,7 +407,16 @@ export const config = {
     "/plans/:path*",
     "/onboarding/:path*",
     "/leads/:path*",
+    "/notifications/:path*",
+    "/partner-inquiries/:path*",
+    "/partner-onboarding/:path*",
+    "/partners/:path*",
     "/payments/:path*",
+    "/preferences/:path*",
+    "/profile/:path*",
+    "/security/:path*",
+    "/signature-requests/:path*",
+    "/support/:path*",
     "/login",
   ],
 };

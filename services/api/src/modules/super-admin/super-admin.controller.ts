@@ -38,6 +38,7 @@ import { CreateInvoiceFromSubscriptionDto } from './dto/create-invoice-from-subs
 import { UpdateInvoiceStatusDto } from './dto/update-invoice-status.dto';
 import { UpdatePlanDto } from './dto/update-plan.dto';
 import { UpdatePlanPriceDto } from './dto/update-plan-price.dto';
+import { CreatePromotionDto, UpdatePromotionDto } from './dto/promotion.dto';
 import { UpdatePlatformSettingsDto } from './dto/update-platform-settings.dto';
 import { UpdatePrimaryOwnerDto } from './dto/update-primary-owner.dto';
 import { UpdateTenantCustomerAccountDto } from './dto/update-tenant-customer-account.dto';
@@ -52,12 +53,26 @@ import {
   CreateTenantAccessUserDto,
   UpdateTenantAccessUserDto,
 } from './dto/tenant-access-user.dto';
+import {
+  SendPlatformTestEmailDto,
+  UpdatePlatformEmailSettingsDto,
+  UpdatePlatformEmailTemplateDto,
+} from '../platform-communications/dto/platform-email-settings.dto';
+import {
+  emailPage,
+  PlatformCommunicationsService,
+} from '../platform-communications/platform-communications.service';
+import { PlatformEmailSettingsService } from '../platform-communications/platform-email-settings.service';
 
 @UseGuards(JwtAuthGuard, RolesGuard, PlatformPermissionsGuard)
 @RequireRoles(ROLE_KEYS.SYSTEM_ADMIN, ROLE_KEYS.SYSTEM_CUSTOMIZER)
 @Controller('super-admin')
 export class SuperAdminController {
-  constructor(private readonly superAdminService: SuperAdminService) {}
+  constructor(
+    private readonly superAdminService: SuperAdminService,
+    private readonly platformEmailSettings: PlatformEmailSettingsService,
+    private readonly platformCommunications: PlatformCommunicationsService,
+  ) {}
 
   @Get('dashboard-summary')
   getDashboardSummary(@Query('range') range?: string) {
@@ -570,6 +585,41 @@ export class SuperAdminController {
     return this.superAdminService.deactivatePlanPrice(user, planId, priceId);
   }
 
+  @Get('promotions')
+  listPromotions() {
+    return this.superAdminService.listPromotions();
+  }
+
+  @Get('promotions/targets')
+  listPromotionTargets(@Query('scope') scope?: string) {
+    return this.superAdminService.listPromotionTargets(scope);
+  }
+
+  @Post('promotions')
+  createPromotion(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreatePromotionDto,
+  ) {
+    return this.superAdminService.createPromotion(user, dto);
+  }
+
+  @Patch('promotions/:promotionId')
+  updatePromotion(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('promotionId', new ParseUUIDPipe()) promotionId: string,
+    @Body() dto: UpdatePromotionDto,
+  ) {
+    return this.superAdminService.updatePromotion(user, promotionId, dto);
+  }
+
+  @Delete('promotions/:promotionId')
+  deactivatePromotion(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('promotionId', new ParseUUIDPipe()) promotionId: string,
+  ) {
+    return this.superAdminService.deactivatePromotion(user, promotionId);
+  }
+
   @Post('customers/:customerAccountId/stripe-customer')
   createStripeCustomer(
     @Param('customerAccountId', new ParseUUIDPipe()) customerAccountId: string,
@@ -592,6 +642,11 @@ export class SuperAdminController {
   @Get('billing/diagnostics')
   getBillingDiagnostics() {
     return this.superAdminService.getBillingDiagnostics();
+  }
+
+  @Post('billing/test-stripe-connection')
+  testStripeConnection() {
+    return this.superAdminService.testStripeConnection();
   }
 
   @Get('billing/stripe-webhook-events')
@@ -625,5 +680,82 @@ export class SuperAdminController {
     @Body() dto: UpdatePlatformSettingsDto,
   ) {
     return this.superAdminService.updatePlatformSettings(user, dto);
+  }
+
+  @Get('platform-email')
+  getPlatformEmailSettings(@CurrentUser() user: AuthenticatedUser) {
+    return this.platformEmailSettings.getSettings(user);
+  }
+
+  @Patch('platform-email')
+  updatePlatformEmailSettings(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: UpdatePlatformEmailSettingsDto,
+  ) {
+    return this.platformEmailSettings.updateSettings(user, dto);
+  }
+
+  @Post('platform-email/test-connection')
+  testPlatformEmailConnection(@CurrentUser() user: AuthenticatedUser) {
+    return this.platformEmailSettings.testConnection(user);
+  }
+
+  @Post('platform-email/test-email')
+  async sendPlatformTestEmail(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: SendPlatformTestEmailDto,
+  ) {
+    this.platformEmailSettings.assertCanSendTest(user);
+    const subject =
+      dto.subject?.trim() || 'DijiPeople email configuration test';
+    const message =
+      dto.message?.trim() ||
+      'This message confirms that Platform Admin outbound email is configured correctly.';
+    const delivery = await this.platformCommunications.sendEmail({
+      eventCode: 'PLATFORM_EMAIL_TEST',
+      recipient: dto.recipient,
+      subject,
+      html: emailPage(subject, message),
+      text: message,
+      requestedById: user.userId,
+      metadata: { test: true, correlationId: `test_${Date.now()}` },
+      idempotencyKey: `platform-email-test:${user.userId}:${Date.now()}`,
+    });
+    return {
+      success: delivery.status === 'SENT',
+      deliveryId: delivery.id,
+      status: delivery.status,
+      providerType: delivery.providerType,
+      sentAt: delivery.sentAt,
+      message:
+        delivery.status === 'SENT'
+          ? 'Test email accepted by the configured provider.'
+          : delivery.errorMessage || 'The test email was not delivered.',
+    };
+  }
+
+  @Get('platform-email/deliveries')
+  listPlatformEmailDeliveries(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('limit') limit?: string,
+  ) {
+    return this.platformEmailSettings.listRecentDeliveries(
+      user,
+      Number(limit ?? 25),
+    );
+  }
+
+  @Get('platform-email/templates')
+  listPlatformEmailTemplates(@CurrentUser() user: AuthenticatedUser) {
+    return this.platformEmailSettings.listTemplates(user);
+  }
+
+  @Patch('platform-email/templates/:templateId')
+  updatePlatformEmailTemplate(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('templateId', new ParseUUIDPipe()) templateId: string,
+    @Body() dto: UpdatePlatformEmailTemplateDto,
+  ) {
+    return this.platformEmailSettings.updateTemplate(user, templateId, dto);
   }
 }

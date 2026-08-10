@@ -31,6 +31,7 @@ import { RolesRepository } from '../roles/roles.repository';
 import { UsersRepository } from '../users/users.repository';
 import { BillingService } from './billing.service';
 import { CreateCustomerOnboardingDto } from './dto/create-customer-onboarding.dto';
+import { TenantProvisioningService } from './tenant-provisioning.service';
 
 @Injectable()
 export class PlatformOnboardingService {
@@ -42,6 +43,7 @@ export class PlatformOnboardingService {
     private readonly billingService: BillingService,
     private readonly userInvitationsService: UserInvitationsService,
     private readonly configService: ConfigService,
+    private readonly tenantProvisioning: TenantProvisioningService,
   ) {}
 
   async onboardCustomer(
@@ -303,6 +305,12 @@ export class PlatformOnboardingService {
       ),
     );
 
+    const domain = await this.tenantProvisioning.provisionSystemDomain({
+      tenantId: onboardingResult.tenantId,
+      slug: onboardingResult.tenant.slug,
+      actorId: actor.userId,
+    });
+
     return {
       customerAccountId: onboardingResult.customerAccountId,
       tenantId: onboardingResult.tenantId,
@@ -312,6 +320,7 @@ export class PlatformOnboardingService {
           slug: onboardingResult.tenant.slug,
         }),
         activationUrl: invitations[0]?.activationLink ?? null,
+        tenantUrl: domain.resolvedUrl,
       },
     };
   }

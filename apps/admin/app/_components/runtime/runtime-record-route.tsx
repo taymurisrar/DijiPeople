@@ -1,5 +1,6 @@
 import { RuntimeRecordPage } from "./runtime-record-page";
 import { requireSystemAdminUser } from "@/lib/auth";
+import { getPlatformModuleDefinition } from "@/lib/runtime/platform-module-registry";
 import type { PlatformModuleKey } from "@/lib/runtime/platform-runtime.types";
 
 export async function RuntimeRecordRoute({
@@ -11,7 +12,11 @@ export async function RuntimeRecordRoute({
   recordId?: string;
   initialValues?: Record<string, unknown>;
 }) {
-  const user = await requireSystemAdminUser();
+  const routeBase = getPlatformModuleDefinition(moduleKey).routeBase;
+  const nextPath = recordId
+    ? `${routeBase}/${encodeURIComponent(recordId)}`
+    : `${routeBase}/new`;
+  const user = await requireSystemAdminUser(nextPath);
   return (
     <RuntimeRecordPage
       moduleKey={moduleKey}

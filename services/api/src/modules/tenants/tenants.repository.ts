@@ -103,6 +103,7 @@ export class TenantsRepository {
         subscription: {
           include: {
             plan: true,
+            planPrice: true,
           },
         },
         tenantFeatures: {
@@ -153,6 +154,7 @@ export class TenantsRepository {
         subscription: {
           include: {
             plan: true,
+            planPrice: true,
           },
         },
         tenantFeatures: {
@@ -277,6 +279,7 @@ export class TenantsRepository {
         subscription: {
           include: {
             plan: true,
+            planPrice: true,
           },
         },
         tenantFeatures: {
