@@ -219,6 +219,12 @@ const {
   resolveRuntimeField,
   validateRuntimeDefinition,
 } = require("./platform-runtime-schema");
+const {
+  PLATFORM_MODULE_VIEW_RULES,
+  listRuntimeViewKeys,
+  resolveRuntimeViewRule,
+  runtimeViewLabel,
+} = require("./platform-runtime-views");
 
 module.exports = {
   DEFAULT_LOCAL_PORTS,
@@ -241,4 +247,8 @@ module.exports = {
   getRuntimeSchema,
   resolveRuntimeField,
   validateRuntimeDefinition,
+  PLATFORM_MODULE_VIEW_RULES,
+  listRuntimeViewKeys,
+  resolveRuntimeViewRule,
+  runtimeViewLabel,
 };

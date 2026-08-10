@@ -59,6 +59,16 @@ export class CustomerQueryDto {
   @IsUUID()
   accountManagerUserId?: string;
 
+  /*
+   * The record owner, distinct from the account manager. The platform runtime
+   * grid filters and groups by this, and CustomerAccount has carried the column
+   * all along — it was only ever missing here, which made every runtime request
+   * fail whitelist validation before it reached the query.
+   */
+  @IsOptional()
+  @IsUUID()
+  assignedToUserId?: string;
+
   @IsOptional()
   @IsUUID()
   selectedPlanId?: string;

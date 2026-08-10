@@ -1180,7 +1180,6 @@ function dashboardContent(view: string, context: DashboardContext) {
       actions: [
         ["Open monitoring", "/settings/monitoring/error-logs"],
         ["Open support cases", "/support/cases"],
-        ["Monitoring settings", "/settings/monitoring"],
       ],
       alerts: [
         {

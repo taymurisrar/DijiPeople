@@ -117,3 +117,4 @@ export declare function resolveSystemWidgetAvailability(input: {
 }): SystemWidgetAvailability;
 
 export * from "./platform-runtime-schema";
+export * from "./platform-runtime-views";

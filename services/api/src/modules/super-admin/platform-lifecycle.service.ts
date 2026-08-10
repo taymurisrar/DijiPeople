@@ -33,6 +33,7 @@ import { RolesRepository } from '../roles/roles.repository';
 import { UsersRepository } from '../users/users.repository';
 import { UserInvitationsService } from '../auth/user-invitations.service';
 import { LeadsRepository } from '../leads/leads.repository';
+import { runtimeViewWhere } from '../platform-runtime/runtime-view-where';
 import {
   INDUSTRY_OPTIONS,
   getEntityStageDefinition,
@@ -252,14 +253,21 @@ export class PlatformLifecycleService {
     return this.getCustomer(customer.id);
   }
 
-  async listCustomers(actor: AuthenticatedUser, query: CustomerQueryDto) {
+  async listCustomers(
+    actor: AuthenticatedUser,
+    query: CustomerQueryDto,
+    runtime?: { sort?: Array<{ field: string; direction: 'asc' | 'desc' }> },
+  ) {
     const where = {
-      ...this.platformCustomerOwnerWhere(actor),
+      ...customerViewWhere(query.viewKey, actor.platform?.id),
       ...(query.status ? { status: query.status } : {}),
       ...(query.subStatus ? { subStatus: query.subStatus } : {}),
       ...(query.industry ? { industry: query.industry } : {}),
       ...(query.accountManagerUserId
         ? { accountManagerUserId: query.accountManagerUserId }
+        : {}),
+      ...(query.assignedToUserId
+        ? { assignedToUserId: query.assignedToUserId }
         : {}),
       ...(query.selectedPlanId ? { selectedPlanId: query.selectedPlanId } : {}),
       ...(query.search?.trim()
@@ -286,6 +294,14 @@ export class PlatformLifecycleService {
             ],
           }
         : {}),
+      /*
+       * Spread last on purpose. For anyone below platform-owner this pins
+       * assignedToUserId to their own id, so a hand-crafted request asking for
+       * another owner's records cannot widen what they are allowed to see.
+       * It is an empty object for platform owners, leaving the filters above
+       * to apply as asked.
+       */
+      ...this.platformCustomerOwnerWhere(actor),
     };
 
     const skip = (query.page - 1) * query.pageSize;
@@ -327,7 +343,7 @@ export class PlatformLifecycleService {
             },
           },
         },
-        orderBy: [{ updatedAt: 'desc' }, { companyName: 'asc' }],
+        orderBy: customerRuntimeOrder(runtime?.sort ?? []),
         skip,
         take: query.pageSize,
       }),
@@ -833,17 +849,28 @@ export class PlatformLifecycleService {
     query: CustomerOnboardingQueryDto,
   ) {
     const where = {
-      ...this.platformOnboardingOwnerWhere(actor),
+      /*
+       * The view tabs govern the status filter when one is chosen. Without a
+       * view — a direct API caller — the long-standing default of hiding
+       * finished onboardings still applies, but the "All" tab now means all.
+       */
+      ...runtimeViewWhere(
+        'customer-onboarding',
+        query.viewKey,
+        actor.platform?.id,
+      ),
       ...(query.status
         ? { status: query.status }
-        : {
-            status: {
-              notIn: [
-                CustomerOnboardingStatus.COMPLETED,
-                CustomerOnboardingStatus.CANCELED,
-              ],
-            },
-          }),
+        : query.viewKey
+          ? {}
+          : {
+              status: {
+                notIn: [
+                  CustomerOnboardingStatus.COMPLETED,
+                  CustomerOnboardingStatus.CANCELED,
+                ],
+              },
+            }),
       ...(query.subStatus ? { subStatus: query.subStatus } : {}),
       ...(query.customerId ? { customerId: query.customerId } : {}),
       ...(query.onboardingOwnerUserId
@@ -869,6 +896,8 @@ export class PlatformLifecycleService {
             ],
           }
         : {}),
+      /* Spread last so the personal view cannot widen an owner's own scope. */
+      ...this.platformOnboardingOwnerWhere(actor),
     };
 
     const skip = (query.page - 1) * query.pageSize;
@@ -2169,6 +2198,45 @@ function buildDefaultTenantBranding(
     mutedTextColor: '#64748b',
     fontFamily: 'Inter',
   };
+}
+
+/*
+ * The customers grid ships three view tabs. Until now every one of them
+ * returned the same rows, because viewKey reached this service and was never
+ * read — the tabs looked like filters and behaved like decoration.
+ */
+function customerViewWhere(
+  viewKey: string | undefined,
+  platformUserId: string | undefined,
+): Prisma.CustomerAccountWhereInput {
+  return runtimeViewWhere(
+    'customers',
+    viewKey,
+    platformUserId,
+  ) as Prisma.CustomerAccountWhereInput;
+}
+
+function customerRuntimeOrder(
+  sort: Array<{ field: string; direction: 'asc' | 'desc' }>,
+): Prisma.CustomerAccountOrderByWithRelationInput[] {
+  /*
+   * Restricted to scalars the grid actually exposes. An unknown field falls
+   * back rather than reaching Prisma, which would throw on a bad column.
+   */
+  const supported = new Set([
+    'companyName',
+    'legalCompanyName',
+    'status',
+    'subStatus',
+    'industry',
+    'country',
+    'createdAt',
+    'updatedAt',
+  ]);
+  const result = sort
+    .filter((item) => supported.has(item.field))
+    .map((item) => ({ [item.field]: item.direction }));
+  return result.length ? result : [{ updatedAt: 'desc' }, { companyName: 'asc' }];
 }
 
 function isCompleteCriterionValue(value: unknown) {

@@ -88,7 +88,15 @@ export async function requirePermission(
   const sessionUser = await requireSessionUser(nextPath);
 
   if (!sessionUser.permissionKeys.includes(permissionKey)) {
-    redirect("/403");
+    /*
+     * /403 was never a route, so a permission denial rendered the generic
+     * not-found page — telling the user the page does not exist when it does
+     * and they simply cannot open it. The access-denied screen already exists
+     * and reads the permission it was refused.
+     */
+    redirect(
+      `/access-denied?permission=${encodeURIComponent(permissionKey)}`,
+    );
   }
 
   return sessionUser;
@@ -105,7 +113,9 @@ export async function requireAnyPermission(
   );
 
   if (!hasPermission) {
-    redirect("/403");
+    redirect(
+      `/access-denied?permission=${encodeURIComponent(permissionKeys[0] ?? "")}`,
+    );
   }
 
   return sessionUser;

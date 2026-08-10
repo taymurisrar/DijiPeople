@@ -54,6 +54,7 @@ export class PlatformMonitoringService {
         query.userId ? { userId: query.userId } : {},
         query.severity ? { severity: query.severity } : {},
         query.status ? { supportStatus: query.status } : {},
+        incidentViewWhere(query.viewKey),
         query.category
           ? { errorCode: { contains: query.category, mode: 'insensitive' } }
           : {},
@@ -597,6 +598,24 @@ function readPlatformActor(details: unknown) {
     email: typeof record.email === 'string' ? record.email : null,
     role: typeof record.role === 'string' ? record.role : null,
   };
+}
+
+/*
+ * The incidents grid offers five tabs. Until now listEvents read no view key
+ * at all, so Critical, New, Under investigation and Resolved every one of them
+ * returned the same rows as All.
+ *
+ * Severity is stored as free text rather than an enum, so the critical view
+ * matches the two levels the ingest path writes.
+ */
+function incidentViewWhere(viewKey?: string): Prisma.ErrorLogWhereInput {
+  if (viewKey === 'critical') return { severity: { in: ['ERROR', 'FATAL'] } };
+  /* supportStatus is non-nullable and defaults to NEW, so untriaged rows match. */
+  if (viewKey === 'new') return { supportStatus: 'NEW' };
+  if (viewKey === 'investigating')
+    return { supportStatus: { in: ['INVESTIGATING', 'FIX_IN_PROGRESS'] } };
+  if (viewKey === 'resolved') return { supportStatus: 'RESOLVED' };
+  return {};
 }
 
 const SUPPORT_STATUSES = new Set([

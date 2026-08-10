@@ -670,8 +670,12 @@ export class SuperAdminService {
     };
   }
 
-  listCustomers(actor: AuthenticatedUser, query: CustomerQueryDto) {
-    return this.platformLifecycleService.listCustomers(actor, query);
+  listCustomers(
+    actor: AuthenticatedUser,
+    query: CustomerQueryDto,
+    runtime?: { sort?: Array<{ field: string; direction: 'asc' | 'desc' }> },
+  ) {
+    return this.platformLifecycleService.listCustomers(actor, query, runtime);
   }
 
   getCustomerDetail(actor: AuthenticatedUser, customerAccountId: string) {

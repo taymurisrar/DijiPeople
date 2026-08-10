@@ -29,3 +29,24 @@ services:
       # Set the value in the Render dashboard; never commit it.
       - key: SECRET_ENCRYPTION_KEY
         sync: false
+      # Platform and tenant email both fall back to this provider when no
+      # per-tenant provider row exists. Without it resolveProvider returns null
+      # in production and every outbound email fails — invitations, contract
+      # signature requests, onboarding notices. Set the values in the Render
+      # dashboard; never commit credentials.
+      - key: EMAIL_PROVIDER
+        value: SMTP
+      - key: EMAIL_SMTP_HOST
+        sync: false
+      - key: EMAIL_SMTP_PORT
+        value: "587"
+      - key: EMAIL_SMTP_SECURE
+        value: "false"
+      - key: EMAIL_SMTP_USER
+        sync: false
+      - key: EMAIL_SMTP_PASSWORD
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: EMAIL_FROM_NAME
+        value: DijiPeople

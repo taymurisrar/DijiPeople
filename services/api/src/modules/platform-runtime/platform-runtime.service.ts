@@ -54,7 +54,8 @@ import {
   type PlatformPermission,
   userHasPlatformPermission,
 } from '../platform-auth/platform-permissions';
-import { resolveRuntimeField } from '@repo/config';
+import { resolveRuntimeField, resolveRuntimeViewRule } from '@repo/config';
+import { runtimeViewWhere } from './runtime-view-where';
 
 @Injectable()
 export class PlatformRuntimeService {
@@ -140,6 +141,7 @@ export class PlatformRuntimeService {
           query.viewKey,
           sort,
           filter,
+          { moduleKey: key, platformUserId: user.platform?.id },
         );
       }
       case 'customers':
@@ -155,6 +157,7 @@ export class PlatformRuntimeService {
               stringFilter(filter, 'assignedToUserId') ??
               stringFilter(filter, 'assignedToUser.id'),
           }),
+          { sort },
         );
       case 'customer-onboarding':
         return this.superAdmin.listCustomerOnboardings(
@@ -199,9 +202,16 @@ export class PlatformRuntimeService {
           query.viewKey,
           sort,
           filter,
+          { moduleKey: key, platformUserId: user.platform?.id },
         );
       case 'signature-requests':
-        return this.listSignatureRequests(page, pageSize, query.search);
+        return this.listSignatureRequests(
+          page,
+          pageSize,
+          query.search,
+          query.viewKey,
+          user.platform?.id,
+        );
       case 'support-cases':
         return this.supportCases.list(
           user,
@@ -230,6 +240,7 @@ export class PlatformRuntimeService {
           query.viewKey,
           sort,
           filter,
+          { moduleKey: key, platformUserId: user.platform?.id },
         );
       }
       case 'commissions': {
@@ -245,6 +256,7 @@ export class PlatformRuntimeService {
           query.viewKey,
           sort,
           filter,
+          { moduleKey: key, platformUserId: user.platform?.id },
         );
       }
       case 'tenants':
@@ -256,6 +268,7 @@ export class PlatformRuntimeService {
           query.viewKey,
           sort,
           filter,
+          { moduleKey: key, platformUserId: user.platform?.id },
         );
       case 'subscriptions':
         return paginateRuntimeRecords(
@@ -266,6 +279,7 @@ export class PlatformRuntimeService {
           query.viewKey,
           sort,
           filter,
+          { moduleKey: key, platformUserId: user.platform?.id },
         );
       case 'plans':
         return paginateRuntimeRecords(
@@ -276,6 +290,7 @@ export class PlatformRuntimeService {
           query.viewKey,
           sort,
           filter,
+          { moduleKey: key, platformUserId: user.platform?.id },
         );
       case 'invoices':
         return paginateRuntimeRecords(
@@ -286,6 +301,7 @@ export class PlatformRuntimeService {
           query.viewKey,
           sort,
           filter,
+          { moduleKey: key, platformUserId: user.platform?.id },
         );
       case 'payments':
         return paginateRuntimeRecords(
@@ -296,6 +312,7 @@ export class PlatformRuntimeService {
           query.viewKey,
           sort,
           filter,
+          { moduleKey: key, platformUserId: user.platform?.id },
         );
     }
   }
@@ -1062,9 +1079,13 @@ export class PlatformRuntimeService {
     page: number,
     pageSize: number,
     search?: string,
+    viewKey?: string,
+    platformUserId?: string,
   ) {
-    const where: import('@prisma/client').Prisma.SignatureRequestWhereInput =
-      search
+    const where: import('@prisma/client').Prisma.SignatureRequestWhereInput = {
+      /* Without this the Awaiting-signature and personal tabs showed everything. */
+      ...runtimeViewWhere('signature-requests', viewKey, platformUserId),
+      ...(search
         ? {
             OR: [
               { requestNumber: { contains: search, mode: 'insensitive' } },
@@ -1074,7 +1095,8 @@ export class PlatformRuntimeService {
               },
             ],
           }
-        : {};
+        : {}),
+    };
     const [items, total] = await Promise.all([
       this.prisma.signatureRequest.findMany({
         where,
@@ -1192,7 +1214,18 @@ async function dto<T extends object>(
   Class: new () => T,
   plain: Record<string, unknown>,
 ): Promise<T> {
-  const instance = plainToInstance(Class, plain, {
+  /*
+   * Every branch above offers its module's optional filters by reading them
+   * out of the query string, so a key whose filter was not supplied arrives
+   * here as an explicit undefined. class-validator's forbidNonWhitelisted
+   * rejects on the key alone, not the value — which turned a filter nobody
+   * used into a 400 on every request for that module. Dropping empties makes
+   * the offer optional in fact and not just in name.
+   */
+  const present = Object.fromEntries(
+    Object.entries(plain).filter(([, value]) => value !== undefined),
+  );
+  const instance = plainToInstance(Class, present, {
     enableImplicitConversion: true,
   });
   const errors = await validate(instance, {
@@ -1300,6 +1333,12 @@ export function paginateRuntimeRecords(
     value?: unknown;
     values?: unknown[];
   }> = [],
+  /*
+   * Only the list endpoint supplies this. Related-record sub-grids reuse this
+   * helper for a child collection, where the parent module's view rules would
+   * not apply, so they leave it out and no view filter is imposed.
+   */
+  context: { moduleKey?: string; platformUserId?: string } = {},
 ) {
   let filtered = items as Record<string, unknown>[];
   if (search) {
@@ -1308,10 +1347,32 @@ export function paginateRuntimeRecords(
       JSON.stringify(item).toLowerCase().includes(needle),
     );
   }
-  if (view === 'active')
-    filtered = filtered.filter((item) =>
-      ['ACTIVE', 'TRIALING', 'PAID'].includes(String(item.status)),
-    );
+  /*
+   * Previously this filtered `view === 'active'` against a fixed
+   * ACTIVE/TRIALING/PAID list, which matches almost none of the modules routed
+   * through here — an invoice is never "ACTIVE" — and ignored 'my-records'
+   * entirely, so the tabs all returned the same rows. The rules now come from
+   * the shared registry that both this service and the admin UI read.
+   */
+  const rule = context.moduleKey
+    ? resolveRuntimeViewRule(context.moduleKey, view)
+    : null;
+  if (rule) {
+    const expected = rule.values;
+    filtered = expected
+      ? filtered.filter((item) =>
+          expected.some((value) => value === readPath(item, rule.field)),
+        )
+      : /*
+         * A personal view with no signed-in platform identity must show
+         * nothing, not everything.
+         */
+        filtered.filter(
+          (item) =>
+            Boolean(context.platformUserId) &&
+            readPath(item, rule.field) === context.platformUserId,
+        );
+  }
   if (filters.length)
     filtered = filtered.filter((item) =>
       filters.every((filter) => matchesRuntimeFilter(item, filter)),

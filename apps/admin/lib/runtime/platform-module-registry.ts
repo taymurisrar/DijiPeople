@@ -7,7 +7,12 @@ import type {
   RuntimeStatusDefinition,
   RuntimeViewDefinition,
 } from "./platform-runtime.types";
-import { getRuntimeSchema, validateRuntimeDefinition } from "@repo/config";
+import {
+  getRuntimeSchema,
+  listRuntimeViewKeys,
+  runtimeViewLabel,
+  validateRuntimeDefinition,
+} from "@repo/config";
 
 const PLATFORM_OPERATORS = ["PLATFORM_OWNER", "PLATFORM_ADMIN", "SUPER_ADMIN"];
 const ALL_PLATFORM_ROLES = [
@@ -1894,7 +1899,13 @@ function simple(
     routeBase,
     navigationGroup,
     apiBase,
-    views: views(key, ["all", "active", "my-records"]),
+    /*
+     * Offer only the tabs this module can honour. Handing every module the
+     * same three left several with a personal view filtering on a column their
+     * model does not have, and an "Active" view matching a status they never
+     * use — both rendered as tabs that changed nothing when clicked.
+     */
+    views: views(key, listRuntimeViewKeys(key)),
     defaultView: "all",
     columns,
     permissions: modulePermissions(key),
@@ -1948,14 +1959,23 @@ function modulePermissions(
   };
 }
 function views(module: string, keys: string[]): RuntimeViewDefinition[] {
-  return keys.map((key, index) => ({
-    key,
-    label: title(key),
-    description: `${title(key)} ${module.replaceAll("-", " ")}.`,
-    kind: "system",
-    isSystemDefault: index === 0,
-    roles: ALL_PLATFORM_ROLES,
-  }));
+  const plural = module.replaceAll("-", " ");
+  return keys.map((key, index) => {
+    /*
+     * Shared views carry a label describing what they actually select —
+     * "Outstanding" invoices rather than "Active" ones. Bespoke keys such as
+     * the lead pipeline stages have no rule and keep their titled key.
+     */
+    const label = runtimeViewLabel(module, key) ?? title(key);
+    return {
+      key,
+      label,
+      description: `${label} ${plural}.`,
+      kind: "system" as const,
+      isSystemDefault: index === 0,
+      roles: ALL_PLATFORM_ROLES,
+    };
+  });
 }
 function col(
   fieldName: string,

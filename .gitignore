@@ -125,3 +125,6 @@ services/api/.env.development.example
 /services/api/storage
 uat-runtime-tests/
 /.runtime-logs
+# Screenshots and results written by scripts/uat-admin.js
+uat-out/
+uat-out-prod/
