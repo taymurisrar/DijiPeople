@@ -24,3 +24,8 @@ services:
         sync: false
       - key: AUTH_COOKIE_DOMAIN
         sync: false
+      # Required in production: SecretEncryptionService refuses to start
+      # without it rather than storing integration credentials in plaintext.
+      # Set the value in the Render dashboard; never commit it.
+      - key: SECRET_ENCRYPTION_KEY
+        sync: false
