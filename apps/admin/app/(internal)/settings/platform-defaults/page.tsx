@@ -9,10 +9,16 @@ import { getSessionUser } from "@/lib/auth";
 import { ACCESS_DENIED_ROUTE } from "@/lib/auth-config";
 import { apiRequestJson } from "@/lib/server-api";
 import { redirect } from "next/navigation";
+import { isPlatformSuperAdmin } from "@/lib/platform-rbac";
 
 export default async function PlatformDefaultsPage() {
   const sessionUser = await getSessionUser();
-  if (sessionUser?.role !== "SUPER_ADMIN") {
+  /*
+   * Owner-level access uses the shared helper, not a role-string comparison.
+   * SUPER_ADMIN is the legacy alias for PLATFORM_OWNER and the API grants
+   * `platform.*` to both, so testing the literal locked owners out.
+   */
+  if (!isPlatformSuperAdmin(sessionUser?.role)) {
     redirect(ACCESS_DENIED_ROUTE);
   }
 

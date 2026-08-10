@@ -209,7 +209,8 @@ export default async function TenantDetailPage({
   const enabledFeatures = getEnabledFeatures(tenant.enabledFeatures);
   const tenantLoginUrl = buildTenantLoginUrl(tenant.slug);
   const sessionUser = await getSessionUser();
-  const canEditSlug = sessionUser?.role === "SUPER_ADMIN";
+  /* Owner-level check via the shared helper — see settings pages for why. */
+  const canEditSlug = isPlatformSuperAdmin(sessionUser?.role);
   const canSeeFinancials = isPlatformSuperAdmin(sessionUser?.role);
 
   return (

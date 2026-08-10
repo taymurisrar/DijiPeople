@@ -279,7 +279,16 @@ function canShowNavItem(
   roleKeys: string[],
   permissionKeys: string[],
 ) {
-  if (roleKeys.includes("SUPER_ADMIN") || roleKeys.includes("system-admin")) {
+  /*
+   * PLATFORM_OWNER is the current name for owner-level access; SUPER_ADMIN is
+   * its legacy alias. Listing only the legacy one hid navigation from the very
+   * role that is meant to see everything.
+   */
+  if (
+    roleKeys.includes("PLATFORM_OWNER") ||
+    roleKeys.includes("SUPER_ADMIN") ||
+    roleKeys.includes("system-admin")
+  ) {
     return true;
   }
   if (
