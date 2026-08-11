@@ -147,6 +147,10 @@ export type RuntimeFieldDefinition = {
   hidden?: boolean;
   hideOnCreate?: boolean;
   options?: Array<{ value: string; label: string }>;
+  optionsByFieldValue?: {
+    field: string;
+    values: Record<string, Array<{ value: string; label: string }>>;
+  };
   lookupModule?: PlatformModuleKey;
   lookupPath?: string;
   roles?: string[];

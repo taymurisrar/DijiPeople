@@ -24,8 +24,10 @@ import {
 import { SubmitLeadDto } from './dto/submit-lead.dto';
 import { LeadsRepository } from './leads.repository';
 import {
+  getDefaultSubStatus,
   getEntityStageDefinition,
   getRequiredCriteria,
+  getSubStatusOptions,
   isValidLeadSource,
   isValidSubStatus,
   isValidTransition,
@@ -400,16 +402,22 @@ export class LeadsService {
     }
 
     const nextStatus = dto.status ?? existing.status;
+    const statusChanged =
+      dto.status !== undefined && dto.status !== existing.status;
     const nextSubStatus =
-      dto.subStatus === undefined ? existing.subStatus : dto.subStatus;
+      dto.subStatus !== undefined
+        ? dto.subStatus
+        : statusChanged
+          ? getDefaultSubStatus('lead', nextStatus)
+          : existing.subStatus;
     this.assertLeadSubStatus(nextStatus, nextSubStatus);
     this.assertLeadSource(dto.source);
     const assignedToUserId =
       dto.assignedToUserId === undefined
         ? undefined
         : await this.resolveLeadAssignee(dto.assignedToUserId);
-    if (dto.status !== undefined && dto.status !== existing.status) {
-      this.assertLeadTransition(existing.status, dto.status);
+    if (statusChanged) {
+      this.assertLeadTransition(existing.status, nextStatus);
       this.assertRequiredCriteriaForLead(nextStatus, {
         ...existing,
         ...dto,
@@ -479,8 +487,8 @@ export class LeadsService {
         ? { partnerId: dto.partnerId ?? null }
         : {}),
       ...(dto.status !== undefined ? { status: dto.status } : {}),
-      ...(dto.subStatus !== undefined
-        ? { subStatus: dto.subStatus ?? null }
+      ...(dto.subStatus !== undefined || statusChanged
+        ? { subStatus: nextSubStatus ?? null }
         : {}),
       ...(dto.isQualified !== undefined
         ? { isQualified: dto.isQualified }
@@ -689,9 +697,26 @@ export class LeadsService {
 
   private assertLeadSubStatus(status: LeadStatus, subStatus?: string | null) {
     if (!isValidSubStatus('lead', status, subStatus)) {
-      throw new BadRequestException(
-        'Lead sub-status is not valid for the selected lead status.',
+      const allowedSubStatuses = getSubStatusOptions('lead', status).map(
+        (option) => option.value,
       );
+      throw new BadRequestException({
+        code: 'VALIDATION_FAILED',
+        message: 'Lead sub-status is not valid for the selected lead status.',
+        description:
+          'Select a sub-status that belongs to the selected lead status.',
+        details: {
+          fieldErrors: [
+            {
+              field: 'subStatus',
+              message: `Select one of: ${allowedSubStatuses.join(', ')}.`,
+            },
+          ],
+          selectedStatus: status,
+          submittedSubStatus: subStatus ?? null,
+          allowedSubStatuses,
+        },
+      });
     }
   }
 

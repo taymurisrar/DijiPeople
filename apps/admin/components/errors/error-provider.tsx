@@ -35,7 +35,10 @@ export function ErrorProvider({
     const normalized = normalizeApiError(input);
     const clientGenerated = normalized.traceId.startsWith("client_");
     const nextError = clientGenerated
-      ? { ...normalized, traceId: normalized.traceId.replace(/^client_/, "admin_") }
+      ? {
+          ...normalized,
+          traceId: normalized.traceId.replace(/^client_/, "admin_"),
+        }
       : normalized;
     setError(nextError);
     if (clientGenerated) void persistAdminError(nextError);
@@ -52,12 +55,18 @@ export function ErrorProvider({
   useEffect(() => {
     const handleRuntimeError = (event: ErrorEvent) => {
       if (event.message?.includes("ResizeObserver loop")) return;
-      showError(event.error ?? new Error(event.message || "Admin browser runtime error"));
+      showError(
+        event.error ??
+          new Error(event.message || "Admin browser runtime error"),
+      );
     };
     const handleRejectedPromise = (event: PromiseRejectionEvent) => {
       const reason = event.reason;
-      if (reason instanceof DOMException && reason.name === "AbortError") return;
-      showError(reason ?? new Error("Unhandled admin browser promise rejection"));
+      if (reason instanceof DOMException && reason.name === "AbortError")
+        return;
+      showError(
+        reason ?? new Error("Unhandled admin browser promise rejection"),
+      );
     };
     window.addEventListener("error", handleRuntimeError);
     window.addEventListener("unhandledrejection", handleRejectedPromise);
@@ -80,7 +89,8 @@ export function ErrorProvider({
       if (
         response.ok ||
         !url.includes("/api/") ||
-        url.includes("/api/error-logs/client")
+        url.includes("/api/error-logs/client") ||
+        url.includes("/api/error-logs/")
       )
         return response;
       const data = await response
@@ -130,9 +140,7 @@ function ErrorModal({
   onClose: () => void;
 }) {
   const [isDownloading, setIsDownloading] = useState(false);
-  const canDownload =
-    Boolean(error.traceId) &&
-    (user?.role === "SUPER_ADMIN" || user?.roleKeys?.includes("SUPER_ADMIN"));
+  const canDownload = Boolean(error.traceId && user);
   const primary = isSessionExpiredError(error)
     ? "sign-in"
     : error.statusCode === 404
@@ -173,6 +181,16 @@ function ErrorModal({
           <p>
             <span className="font-semibold">Timestamp:</span> {error.timestamp}
           </p>
+          {error.details !== undefined ? (
+            <details className="rounded-md border border-slate-200 bg-slate-50 p-3">
+              <summary className="cursor-pointer font-semibold text-slate-700">
+                Technical details
+              </summary>
+              <pre className="mt-3 max-h-72 overflow-auto whitespace-pre-wrap break-all text-xs font-normal text-slate-700">
+                {formatJson(error.details)}
+              </pre>
+            </details>
+          ) : null}
         </div>
         <div className="flex flex-wrap justify-end gap-3 border-t border-slate-200 px-6 py-4">
           {canDownload ? (
@@ -216,25 +234,77 @@ function ErrorModal({
 }
 
 async function downloadLog(error: DisplayableError) {
-  const traceResponse = await fetch(
-    `/api/error-logs/${encodeURIComponent(error.traceId)}/download`,
-  );
-  const response = traceResponse.ok
-    ? traceResponse
-    : await fetch("/api/platform/logs/latest-error/download");
-  const blob = response.ok
+  let response: Response | null = null;
+  for (const delayMs of [0, 150, 400]) {
+    if (delayMs) await delay(delayMs);
+    const candidate = await fetch(
+      `/api/error-logs/${encodeURIComponent(error.traceId)}/download`,
+    );
+    if (candidate.ok) {
+      response = candidate;
+      break;
+    }
+  }
+  const blob = response
     ? await response.blob()
-    : new Blob([`${error.errorCode}\n${error.message}\n${error.traceId}`], {
-        type: "text/plain",
-      });
+    : new Blob([formatLocalErrorLog(error)], { type: "text/plain" });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
   anchor.download =
-    readDownloadFileName(response.headers.get("content-disposition")) ??
-    `dijipeople-error-${error.traceId}.txt`;
+    readDownloadFileName(
+      response?.headers.get("content-disposition") ?? null,
+    ) ?? `dijipeople-error-${error.traceId}.txt`;
   anchor.click();
   URL.revokeObjectURL(url);
+}
+
+function formatLocalErrorLog(error: DisplayableError) {
+  return [
+    "DijiPeople HRM Error Log",
+    "========================",
+    "",
+    "Reference ID:",
+    error.traceId,
+    "",
+    "Timestamp:",
+    error.timestamp,
+    "",
+    "Error Code:",
+    error.errorCode,
+    "",
+    "Status Code:",
+    String(error.statusCode),
+    "",
+    "Message:",
+    error.message,
+    "",
+    "Description:",
+    error.description,
+    "",
+    "Request:",
+    `${error.method ?? "N/A"} ${error.path ?? "N/A"}`,
+    "",
+    "Details:",
+    formatJson(error.details),
+    "",
+    "Persistence note:",
+    "The server copy was unavailable, so this file contains the complete error response received by the browser.",
+    "",
+  ].join("\n");
+}
+
+function formatJson(value: unknown) {
+  if (value === undefined || value === null) return "N/A";
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
+}
+
+function delay(milliseconds: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 }
 
 function readDownloadFileName(header: string | null) {

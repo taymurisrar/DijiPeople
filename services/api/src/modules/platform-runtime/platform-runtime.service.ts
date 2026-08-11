@@ -726,6 +726,7 @@ export class PlatformRuntimeService {
         id,
         String(input.status ?? ''),
         textOrNull(input.reason),
+        textOrNull(input.subStatus),
       );
     throw new BadRequestException(
       `Action ${action} is not available for ${key}.`,
@@ -807,6 +808,7 @@ export class PlatformRuntimeService {
       id,
       String(input.stage ?? ''),
       textOrNull(input.reason),
+      textOrNull(input.subStatus),
     );
   }
   async related(
@@ -987,6 +989,7 @@ export class PlatformRuntimeService {
     id: string,
     status: string,
     reason: string | null,
+    subStatus: string | null,
   ) {
     if (!status) throw new BadRequestException('Status is required.');
     if (key === 'leads')
@@ -997,7 +1000,8 @@ export class PlatformRuntimeService {
           await dto(UpdateAdminLeadDto, {
             status,
             ...(status === 'QUALIFIED' ? { isQualified: true } : {}),
-            ...(reason ? { subStatus: reason, notes: reason } : {}),
+            ...(subStatus ? { subStatus } : {}),
+            ...(reason ? { notes: reason } : {}),
           }),
         ),
       );

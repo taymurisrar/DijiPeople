@@ -109,7 +109,33 @@ export function RuntimeForm({
                     field.readOnly ||
                     isConditionallyReadOnly(field, values)
                   }
-                  onChange={(value) => onChange(field.key, value)}
+                  onChange={(value) => {
+                    onChange(field.key, value);
+                    for (const dependentField of definition.fields) {
+                      if (
+                        dependentField.optionsByFieldValue?.field !== field.key
+                      )
+                        continue;
+                      const nextOptions =
+                        dependentField.optionsByFieldValue.values[
+                          String(value ?? "")
+                        ] ?? [];
+                      const currentValue = readRuntimeValue(
+                        values,
+                        dependentField.key,
+                      );
+                      if (
+                        currentValue &&
+                        !nextOptions.some(
+                          (option) => option.value === String(currentValue),
+                        )
+                      )
+                        onChange(
+                          dependentField.key,
+                          nextOptions[0]?.value ?? null,
+                        );
+                    }
+                  }}
                   custom={childrenByField[field.key]}
                 />
               ))}
@@ -188,6 +214,7 @@ function RuntimeField({
       <FieldControl
         field={field}
         value={value}
+        values={values}
         readOnly={readOnly}
         required={required}
         onChange={onChange}
@@ -208,12 +235,14 @@ function RuntimeField({
 function FieldControl({
   field,
   value,
+  values,
   readOnly,
   required,
   onChange,
 }: {
   field: RuntimeFieldDefinition;
   value: unknown;
+  values: RuntimeValues;
   readOnly: boolean;
   required: boolean;
   onChange: (value: unknown) => void;
@@ -276,7 +305,7 @@ function FieldControl({
     return (
       <SearchableSelect
         ariaLabel={field.label}
-        options={field.options ?? []}
+        options={resolveFieldOptions(field, values)}
         disabled={readOnly}
         required={required}
         multiple={field.type === "multiSelect"}
@@ -729,6 +758,15 @@ function isConditionallyReadOnly(
   );
 }
 
+function resolveFieldOptions(
+  field: RuntimeFieldDefinition,
+  values: RuntimeValues,
+) {
+  const dependent = field.optionsByFieldValue;
+  if (!dependent) return field.options ?? [];
+  return dependent.values[String(values[dependent.field] ?? "")] ?? [];
+}
+
 export function useRuntimeFormState(initialValues: RuntimeValues) {
   const [values, setValues] = useState(initialValues);
   const initial = useMemo(() => JSON.stringify(initialValues), [initialValues]);
@@ -780,13 +818,43 @@ export function validateRuntimeValues(
       value.length > field.maxLength
     )
       errors[field.key] = `Maximum length is ${field.maxLength}.`;
-    if (typeof value === "number" && field.min !== undefined && value < field.min)
+    if (
+      field.type === "option" &&
+      typeof value === "string" &&
+      value &&
+      !resolveFieldOptions(field, values).some(
+        (option) => option.value === value,
+      )
+    )
+      errors[field.key] = `Select a valid ${field.label.toLowerCase()}.`;
+    if (
+      typeof value === "number" &&
+      field.min !== undefined &&
+      value < field.min
+    )
       errors[field.key] = `Minimum value is ${field.min}.`;
-    if (typeof value === "number" && field.max !== undefined && value > field.max)
+    if (
+      typeof value === "number" &&
+      field.max !== undefined &&
+      value > field.max
+    )
       errors[field.key] = `Maximum value is ${field.max}.`;
   }
-  validateDateOrder(errors, values, "effectiveDate", "expiryDate", "Expiry date must be after the effective date.", true);
-  validateDateOrder(errors, values, "effectiveFrom", "effectiveUntil", "Terms effective until must be on or after terms effective from.");
+  validateDateOrder(
+    errors,
+    values,
+    "effectiveDate",
+    "expiryDate",
+    "Expiry date must be after the effective date.",
+    true,
+  );
+  validateDateOrder(
+    errors,
+    values,
+    "effectiveFrom",
+    "effectiveUntil",
+    "Terms effective until must be on or after terms effective from.",
+  );
   return errors;
 }
 

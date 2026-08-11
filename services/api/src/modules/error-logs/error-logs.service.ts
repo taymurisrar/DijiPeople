@@ -165,14 +165,13 @@ export class ErrorLogsService implements OnModuleInit, OnModuleDestroy {
 
     let log: Awaited<ReturnType<typeof this.prisma.errorLog.findUnique>>;
     try {
-      log = await this.prisma.errorLog.findUnique({ where: { traceId } });
-      if (!log) {
-        const occurrence = await this.prisma.errorLogOccurrence.findUnique({
-          where: { traceId },
-          include: { incident: true },
-        });
-        log = occurrence?.incident ?? null;
-      }
+      const occurrence = await this.prisma.errorLogOccurrence.findUnique({
+        where: { traceId },
+        include: { incident: true },
+      });
+      log = occurrence
+        ? hydrateOccurrence(occurrence)
+        : await this.prisma.errorLog.findUnique({ where: { traceId } });
     } catch (error) {
       if (this.isErrorLogTableMissing(error)) {
         this.logMissingTableWarning(traceId);
@@ -376,6 +375,27 @@ export class ErrorLogsService implements OnModuleInit, OnModuleDestroy {
       }),
     );
   }
+}
+
+function hydrateOccurrence(
+  occurrence: Prisma.ErrorLogOccurrenceGetPayload<{
+    include: { incident: true };
+  }>,
+) {
+  const diagnostic =
+    occurrence.diagnosticJson &&
+    typeof occurrence.diagnosticJson === 'object' &&
+    !Array.isArray(occurrence.diagnosticJson)
+      ? (occurrence.diagnosticJson as Record<string, unknown>)
+      : {};
+
+  return {
+    ...occurrence.incident,
+    ...diagnostic,
+    traceId: occurrence.traceId,
+    createdAt: occurrence.occurredAt,
+    updatedAt: occurrence.occurredAt,
+  } as typeof occurrence.incident;
 }
 
 function normalizeRole(value: string) {

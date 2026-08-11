@@ -47,7 +47,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     private readonly errorLogsService: ErrorLogsService,
   ) {}
 
-  catch(exception: unknown, host: ArgumentsHost) {
+  async catch(exception: unknown, host: ArgumentsHost) {
     const context = host.switchToHttp();
     const response = context.getResponse<Response>();
     const request = context.getRequest<
@@ -104,7 +104,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       this.logger.warn(JSON.stringify(logContext));
     }
 
-    void this.errorLogsService.persist({
+    await this.errorLogsService.persist({
       traceId,
       errorCode: normalized.errorCode,
       statusCode: normalized.statusCode,

@@ -60,6 +60,46 @@ const COMPANY_SIZE_VALUES = [
   "1001-5000",
   "5000+",
 ];
+const LEAD_SUB_STATUS_VALUES: Record<string, string[]> = {
+  NEW: [
+    "Awaiting response",
+    "Demo requested",
+    "Needs triage",
+    "New website inquiry",
+    "New manual entry",
+  ],
+  CONTACTED: [
+    "Awaiting response",
+    "Discovery scheduled",
+    "Discovery done",
+    "Demo scheduled",
+    "Pricing discussion",
+    "Follow-up required",
+  ],
+  QUALIFIED: [
+    "Commercial review",
+    "Proposal required",
+    "Proposal sent",
+    "Ready for customer conversion",
+    "Follow-up later",
+  ],
+  UNQUALIFIED: [
+    "Not a fit",
+    "Duplicate",
+    "No budget",
+    "Invalid contact",
+    "Outside target market",
+  ],
+  CONVERTED: ["Converted to customer"],
+  CLOSED_LOST: [
+    "No budget",
+    "Lost to competitor",
+    "No decision",
+    "Timeline not aligned",
+    "Follow-up later",
+  ],
+  ARCHIVED: ["Archived"],
+};
 
 const STANDARD_LIST_ACTIONS: RuntimeActionDefinition[] = [
   {
@@ -486,7 +526,19 @@ const definitions: PlatformModuleDefinition[] = [
           true,
           LEAD_STATUSES.map((item) => item.value),
         ),
-        field("subStatus", "Status reason", "text", "lead-information"),
+        {
+          ...field("subStatus", "Status reason", "option", "lead-information"),
+          description: "Options are filtered by the selected lead status.",
+          optionsByFieldValue: {
+            field: "status",
+            values: Object.fromEntries(
+              Object.entries(LEAD_SUB_STATUS_VALUES).map(([status, values]) => [
+                status,
+                values.map((value) => ({ value, label: value })),
+              ]),
+            ),
+          },
+        },
         {
           ...field(
             "assignedToUserId",
@@ -630,13 +682,7 @@ const definitions: PlatformModuleDefinition[] = [
           readOnly: true,
         },
       ],
-      [
-        "Summary",
-        "Commercial",
-        "Agreements",
-        "Activities",
-        "System",
-      ],
+      ["Summary", "Commercial", "Agreements", "Activities", "System"],
       {
         "lead-information": "summary",
         contact: "summary",
@@ -985,7 +1031,14 @@ const definitions: PlatformModuleDefinition[] = [
           "ARCHIVED",
         ]),
         field("subStatus", "Status reason", "text", "identity"),
-        field("industry", "Industry", "option", "identity", false, INDUSTRY_VALUES),
+        field(
+          "industry",
+          "Industry",
+          "option",
+          "identity",
+          false,
+          INDUSTRY_VALUES,
+        ),
         field(
           "companySize",
           "Company size",
@@ -1949,7 +2002,8 @@ const definitions: PlatformModuleDefinition[] = [
         ...field("contractNumber", "Agreement number", "text", "identity"),
         readOnly: true,
         placeholder: "Generated on save",
-        description: "Generated automatically when the agreement is first saved.",
+        description:
+          "Generated automatically when the agreement is first saved.",
       },
       field("title", "Contract title", "text", "identity", true),
       field("contractType", "Contract type", "option", "identity", true, [
@@ -1973,14 +2027,25 @@ const definitions: PlatformModuleDefinition[] = [
         "OTHER",
       ]),
       {
-        ...field("agreementCategory", "Agreement category", "option", "identity"),
+        ...field(
+          "agreementCategory",
+          "Agreement category",
+          "option",
+          "identity",
+        ),
         description:
           "Optional business context; contract type remains the legal classification.",
         options: [...AGREEMENT_CATEGORY_OPTIONS],
       },
       {
-        ...field("lifecycleGatePurpose", "Lifecycle gate purpose", "text", "identity"),
-        description: "Optional lifecycle gate configured for this agreement, such as customer or partner activation.",
+        ...field(
+          "lifecycleGatePurpose",
+          "Lifecycle gate purpose",
+          "text",
+          "identity",
+        ),
+        description:
+          "Optional lifecycle gate configured for this agreement, such as customer or partner activation.",
         maxLength: 120,
       },
       field(
@@ -2019,7 +2084,14 @@ const definitions: PlatformModuleDefinition[] = [
         "option",
         "identity",
         false,
-        ["PARTNER", "CUSTOMER", "LEAD", "TENANT", "INDIVIDUAL", "EXTERNAL_ORGANIZATION"],
+        [
+          "PARTNER",
+          "CUSTOMER",
+          "LEAD",
+          "TENANT",
+          "INDIVIDUAL",
+          "EXTERNAL_ORGANIZATION",
+        ],
       ),
       field("documentSource", "Document source", "option", "identity", true, [
         "BLANK",
@@ -2097,15 +2169,24 @@ const definitions: PlatformModuleDefinition[] = [
         ...field("currencyCode", "Currency", "option", "commercial"),
         options: PLATFORM_CURRENCY_OPTIONS,
       },
-      { ...field("contractValue", "Contract value", "currency", "commercial"), min: 0 },
       {
-        ...field("commissionPercentage", "Commission percentage", "percentage", "commercial"),
+        ...field("contractValue", "Contract value", "currency", "commercial"),
+        min: 0,
+      },
+      {
+        ...field(
+          "commissionPercentage",
+          "Commission percentage",
+          "percentage",
+          "commercial",
+        ),
         min: 0,
         max: 100,
       },
       {
         ...field("commissionBasis", "Commission basis", "text", "commercial"),
-        description: "Commercial basis defined by the agreement; no platform option set is configured yet.",
+        description:
+          "Commercial basis defined by the agreement; no platform option set is configured yet.",
         maxLength: 120,
       },
       field("paymentTerms", "Payment terms", "longText", "commercial"),
@@ -2114,8 +2195,24 @@ const definitions: PlatformModuleDefinition[] = [
       field("effectiveFrom", "Terms effective from", "date", "commercial"),
       field("effectiveUntil", "Terms effective until", "date", "commercial"),
       field("autoRenewal", "Auto renewal", "boolean", "commercial"),
-      { ...field("renewalNoticeDays", "Renewal notice days", "integer", "commercial"), min: 0 },
-      { ...field("terminationNoticeDays", "Termination notice days", "integer", "commercial"), min: 0 },
+      {
+        ...field(
+          "renewalNoticeDays",
+          "Renewal notice days",
+          "integer",
+          "commercial",
+        ),
+        min: 0,
+      },
+      {
+        ...field(
+          "terminationNoticeDays",
+          "Termination notice days",
+          "integer",
+          "commercial",
+        ),
+        min: 0,
+      },
       field("governingLaw", "Governing law", "text", "legal"),
       field("jurisdiction", "Jurisdiction", "text", "legal"),
       field(
@@ -2231,7 +2328,16 @@ const definitions: PlatformModuleDefinition[] = [
       STANDARD_RECORD_ACTIONS[0]!,
       {
         ...STANDARD_RECORD_ACTIONS[1]!,
-        states: ["DRAFT", "INTERNAL_REVIEW", "COMMERCIAL_APPROVAL", "LEGAL_APPROVAL", "COUNTERPARTY_REVIEW", "APPROVED_FOR_SENDING", "READY_FOR_SIGNATURE", "DECLINED"],
+        states: [
+          "DRAFT",
+          "INTERNAL_REVIEW",
+          "COMMERCIAL_APPROVAL",
+          "LEGAL_APPROVAL",
+          "COUNTERPARTY_REVIEW",
+          "APPROVED_FOR_SENDING",
+          "READY_FOR_SIGNATURE",
+          "DECLINED",
+        ],
       },
       STANDARD_RECORD_ACTIONS[2]!,
       STANDARD_RECORD_ACTIONS[3]!,
@@ -2669,7 +2775,13 @@ const definitions: PlatformModuleDefinition[] = [
         "MONTHLY",
         "ANNUAL",
       ]),
-      field("purchasedSeats", "Licensed seats", "integer", "subscription", true),
+      field(
+        "purchasedSeats",
+        "Licensed seats",
+        "integer",
+        "subscription",
+        true,
+      ),
       field("stripeQuantity", "Stripe quantity", "integer", "subscription"),
       field("currency", "Currency", "text", "commercial"),
       field("basePrice", "Base price", "currency", "commercial"),

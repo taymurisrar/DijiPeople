@@ -13,7 +13,14 @@ type DownloadableErrorLog = {
   organizationId?: string | null;
   businessUnitId?: string | null;
   userAgent?: string | null;
+  ipAddress?: string | null;
+  sourceApp?: string | null;
+  environment?: string | null;
+  cause?: unknown;
   details?: unknown;
+  params?: unknown;
+  query?: unknown;
+  requestBody?: unknown;
   stack?: string | null;
 };
 
@@ -53,6 +60,9 @@ export function formatErrorLogText(
     '',
     'Request:',
     `${log.method ?? 'N/A'} ${log.path ?? 'N/A'}`,
+    `Source application: ${log.sourceApp ?? 'N/A'}`,
+    `Environment: ${log.environment ?? 'N/A'}`,
+    `IP address: ${log.ipAddress ?? 'N/A'}`,
     '',
     'User Context:',
     `User ID: ${log.userId ?? 'N/A'}`,
@@ -62,6 +72,18 @@ export function formatErrorLogText(
     '',
     'Details:',
     formatJson(clientDetails.details ?? log.details),
+    '',
+    'Cause:',
+    formatJson(log.cause),
+    '',
+    'Route Parameters:',
+    formatJson(log.params),
+    '',
+    'Query Parameters:',
+    formatJson(log.query),
+    '',
+    'Request Body:',
+    formatJson(log.requestBody),
     '',
     'Stack Trace:',
     stack,
@@ -99,8 +121,13 @@ function readClientDetails(value: unknown) {
   }
 
   const record = value as Record<string, unknown>;
+  const isClientEnvelope =
+    Object.prototype.hasOwnProperty.call(record, 'details') &&
+    ('componentStack' in record ||
+      'browserInfo' in record ||
+      'reportedAt' in record);
   return {
-    details: record.details,
+    details: isClientEnvelope ? record.details : value,
     componentStack:
       typeof record.componentStack === 'string' ? record.componentStack : null,
     browserInfo:

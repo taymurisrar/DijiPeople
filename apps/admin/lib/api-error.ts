@@ -7,35 +7,99 @@ export type StandardApiError = {
   message: string;
   description: string;
   details?: unknown;
+  path?: string;
+  method?: string;
 };
 
-const DEFAULTS: Record<string, Pick<StandardApiError, "statusCode" | "message" | "description">> = {
-  SESSION_EXPIRED: { statusCode: 401, message: "Session expired", description: "Your session has expired. Please sign in again." },
-  AUTH_TOKEN_INVALID: { statusCode: 401, message: "Session expired", description: "Your session has expired. Please sign in again." },
-  ACCESS_DENIED: { statusCode: 403, message: "Access denied", description: "You do not have permission to perform this action." },
-  DATABASE_RECORD_NOT_FOUND: { statusCode: 404, message: "Record not found", description: "The requested record could not be found." },
-  DATABASE_TIMEOUT: { statusCode: 504, message: "Database timeout", description: "The database took too long to respond." },
-  INTEGRATION_FAILED: { statusCode: 502, message: "Integration failed", description: "The external integration request failed." },
-  INTEGRATION_TIMEOUT: { statusCode: 504, message: "Integration timeout", description: "The external integration took too long to respond." },
-  INTEGRATION_UNAVAILABLE: { statusCode: 503, message: "Integration unavailable", description: "The external integration is currently unavailable." },
-  SYSTEM_UNEXPECTED_ERROR: { statusCode: 500, message: "Unexpected error", description: "An unexpected system error occurred." },
+const DEFAULTS: Record<
+  string,
+  Pick<StandardApiError, "statusCode" | "message" | "description">
+> = {
+  SESSION_EXPIRED: {
+    statusCode: 401,
+    message: "Session expired",
+    description: "Your session has expired. Please sign in again.",
+  },
+  AUTH_TOKEN_INVALID: {
+    statusCode: 401,
+    message: "Session expired",
+    description: "Your session has expired. Please sign in again.",
+  },
+  ACCESS_DENIED: {
+    statusCode: 403,
+    message: "Access denied",
+    description: "You do not have permission to perform this action.",
+  },
+  DATABASE_RECORD_NOT_FOUND: {
+    statusCode: 404,
+    message: "Record not found",
+    description: "The requested record could not be found.",
+  },
+  DATABASE_TIMEOUT: {
+    statusCode: 504,
+    message: "Database timeout",
+    description: "The database took too long to respond.",
+  },
+  INTEGRATION_FAILED: {
+    statusCode: 502,
+    message: "Integration failed",
+    description: "The external integration request failed.",
+  },
+  INTEGRATION_TIMEOUT: {
+    statusCode: 504,
+    message: "Integration timeout",
+    description: "The external integration took too long to respond.",
+  },
+  INTEGRATION_UNAVAILABLE: {
+    statusCode: 503,
+    message: "Integration unavailable",
+    description: "The external integration is currently unavailable.",
+  },
+  SYSTEM_UNEXPECTED_ERROR: {
+    statusCode: 500,
+    message: "Unexpected error",
+    description: "An unexpected system error occurred.",
+  },
 };
 
-export function normalizeApiError(input: unknown, status = 500): StandardApiError {
+export function normalizeApiError(
+  input: unknown,
+  status = 500,
+): StandardApiError {
   if (input && typeof input === "object" && !Array.isArray(input)) {
     const record = input as Record<string, unknown>;
-    const nested = record.error && typeof record.error === "object" ? (record.error as Record<string, unknown>) : {};
-    const errorCode = readString(record.errorCode) ?? readString(record.code) ?? readString(nested.code) ?? statusToCode(status);
+    const nested =
+      record.error && typeof record.error === "object"
+        ? (record.error as Record<string, unknown>)
+        : {};
+    const errorCode =
+      readString(record.errorCode) ??
+      readString(record.code) ??
+      readString(nested.code) ??
+      statusToCode(status);
     const defaults = DEFAULTS[errorCode] ?? DEFAULTS.SYSTEM_UNEXPECTED_ERROR;
     return {
       success: false,
-      traceId: readString(record.traceId) ?? readString(nested.traceId) ?? `client_${Date.now()}`,
+      traceId:
+        readString(record.traceId) ??
+        readString(nested.traceId) ??
+        `client_${Date.now()}`,
       timestamp: readString(record.timestamp) ?? new Date().toISOString(),
-      statusCode: typeof record.statusCode === "number" ? record.statusCode : status,
+      statusCode:
+        typeof record.statusCode === "number" ? record.statusCode : status,
       errorCode,
-      message: readString(record.message) ?? readString(nested.message) ?? defaults.message,
-      description: readString(record.description) ?? readString(nested.description) ?? defaults.description,
+      message:
+        readString(record.message) ??
+        readString(nested.message) ??
+        defaults.message,
+      description:
+        readString(record.description) ??
+        readString(nested.description) ??
+        defaults.description,
       details: record.details ?? nested.details,
+      path: readString(record.path) ?? readString(nested.path) ?? undefined,
+      method:
+        readString(record.method) ?? readString(nested.method) ?? undefined,
     };
   }
   const defaults = DEFAULTS.SYSTEM_UNEXPECTED_ERROR;
@@ -54,8 +118,15 @@ export function apiErrorEventName() {
   return "dijipeople:api-error";
 }
 
-export function isSessionExpiredError(error: Pick<StandardApiError, "statusCode" | "errorCode">) {
-  return error.statusCode === 401 || ["SESSION_EXPIRED", "AUTH_TOKEN_INVALID", "AUTH_UNAUTHORIZED"].includes(error.errorCode);
+export function isSessionExpiredError(
+  error: Pick<StandardApiError, "statusCode" | "errorCode">,
+) {
+  return (
+    error.statusCode === 401 ||
+    ["SESSION_EXPIRED", "AUTH_TOKEN_INVALID", "AUTH_UNAUTHORIZED"].includes(
+      error.errorCode,
+    )
+  );
 }
 
 function readString(value: unknown) {

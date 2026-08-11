@@ -1148,6 +1148,13 @@ export function getSubStatusOptions(
   }));
 }
 
+export function getDefaultSubStatus(
+  entity: LifecycleEntity,
+  status: string,
+): string | null {
+  return getSubStatusOptions(entity, status)[0]?.value ?? null;
+}
+
 export function getLifecycleOptions() {
   return {
     lead: {
