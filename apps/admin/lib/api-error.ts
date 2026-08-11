@@ -14,6 +14,10 @@ const DEFAULTS: Record<string, Pick<StandardApiError, "statusCode" | "message" |
   AUTH_TOKEN_INVALID: { statusCode: 401, message: "Session expired", description: "Your session has expired. Please sign in again." },
   ACCESS_DENIED: { statusCode: 403, message: "Access denied", description: "You do not have permission to perform this action." },
   DATABASE_RECORD_NOT_FOUND: { statusCode: 404, message: "Record not found", description: "The requested record could not be found." },
+  DATABASE_TIMEOUT: { statusCode: 504, message: "Database timeout", description: "The database took too long to respond." },
+  INTEGRATION_FAILED: { statusCode: 502, message: "Integration failed", description: "The external integration request failed." },
+  INTEGRATION_TIMEOUT: { statusCode: 504, message: "Integration timeout", description: "The external integration took too long to respond." },
+  INTEGRATION_UNAVAILABLE: { statusCode: 503, message: "Integration unavailable", description: "The external integration is currently unavailable." },
   SYSTEM_UNEXPECTED_ERROR: { statusCode: 500, message: "Unexpected error", description: "An unexpected system error occurred." },
 };
 
@@ -62,5 +66,8 @@ function statusToCode(status: number) {
   if (status === 401) return "SESSION_EXPIRED";
   if (status === 403) return "ACCESS_DENIED";
   if (status === 404) return "DATABASE_RECORD_NOT_FOUND";
+  if (status === 502) return "INTEGRATION_FAILED";
+  if (status === 503) return "INTEGRATION_UNAVAILABLE";
+  if (status === 504) return "INTEGRATION_TIMEOUT";
   return status >= 500 ? "SYSTEM_UNEXPECTED_ERROR" : "VALIDATION_FAILED";
 }

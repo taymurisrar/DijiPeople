@@ -26,12 +26,19 @@ async function forward(request: Request, context: Context, method: string) {
   } catch (error) {
     return NextResponse.json(
       {
+        success: false,
+        errorCode: "INTEGRATION_UNAVAILABLE",
         message:
           error instanceof Error
             ? error.message
             : "Unable to reach platform email settings.",
+        description: "The admin app could not reach the API service.",
+        details: {
+          proxy: "platform-email",
+          reason: error instanceof Error ? error.message : String(error),
+        },
       },
-      { status: 502 },
+      { status: 503 },
     );
   }
 }

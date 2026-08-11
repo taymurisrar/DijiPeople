@@ -153,9 +153,6 @@ export class HttpExceptionFilter implements ExceptionFilter {
       };
     }
 
-    const prismaError = this.mapPrismaError(exception);
-    if (prismaError) return prismaError;
-
     if (exception instanceof HttpException) {
       const statusCode = exception.getStatus();
       const payload = readObject(exception.getResponse());
@@ -178,6 +175,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
         stack: exception.stack,
       };
     }
+
+    const prismaError = this.mapPrismaError(exception);
+    if (prismaError) return prismaError;
 
     const message =
       exception instanceof Error ? exception.message : String(exception);

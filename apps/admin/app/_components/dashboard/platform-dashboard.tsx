@@ -270,9 +270,9 @@ export function PlatformDashboard({
 
   return (
     <main className="space-y-5">
-      <section className="rounded-[28px] border border-slate-200 bg-gradient-to-br from-white via-white to-[var(--admin-surface-tint)] p-5 shadow-sm lg:p-7">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div>
+      <section className="rounded-[28px] border border-slate-200 bg-gradient-to-br from-white via-white to-[var(--admin-surface-tint)] p-5 shadow-sm lg:p-6">
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start">
+          <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--admin-primary)]">
               Live operations workspace
             </p>
@@ -282,8 +282,28 @@ export function PlatformDashboard({
             <p className="mt-2 max-w-3xl text-sm text-slate-600">
               {content.subtitle}
             </p>
+            <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-600">
+              <span className="rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm">
+                Refreshed {new Date(summary.refreshedAt).toLocaleString()}
+              </span>
+              <span className="rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm">
+                {summary.timeRangeLabel}
+              </span>
+              <span className="rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm">
+                Currency {summary.reportingCurrency}
+              </span>
+              <span
+                className={`rounded-full border px-3 py-1.5 font-semibold shadow-sm ${
+                  autoRefresh
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                    : "border-slate-200 bg-white text-slate-600"
+                }`}
+              >
+                Live {autoRefresh ? "on" : "off"}
+              </span>
+            </div>
           </div>
-          <div className="flex flex-wrap items-end gap-2">
+          <div className="grid gap-2 rounded-2xl border border-slate-200 bg-white/85 p-3 shadow-sm sm:grid-cols-[minmax(190px,1fr)_auto_auto_auto] sm:items-end xl:w-[640px]">
             <RuntimeViewSelector
               moduleKey="dashboard"
               views={DASHBOARD_VIEWS}
@@ -311,7 +331,7 @@ export function PlatformDashboard({
             <button
               type="button"
               onClick={() => router.refresh()}
-              className="inline-flex h-[58px] items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
             >
               <RefreshCw className="h-4 w-4" /> Refresh
             </button>
@@ -319,17 +339,12 @@ export function PlatformDashboard({
               type="button"
               aria-pressed={autoRefresh}
               onClick={() => setAutoRefresh((current) => !current)}
-              className={`inline-flex h-[58px] items-center gap-2 rounded-xl border px-4 text-sm font-semibold shadow-sm ${autoRefresh ? "border-[var(--admin-primary)] bg-[var(--admin-surface-tint)] text-[var(--admin-primary)]" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}
+              className={`inline-flex h-10 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-semibold shadow-sm ${autoRefresh ? "border-[var(--admin-primary)] bg-[var(--admin-surface-tint)] text-[var(--admin-primary)]" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}
             >
               <Activity className="h-4 w-4" /> Live {autoRefresh ? "on" : "off"}
             </button>
           </div>
         </div>
-        <p className="mt-4 text-xs text-slate-500">
-          Last refreshed {new Date(summary.refreshedAt).toLocaleString()} ·{" "}
-          {summary.timeRangeLabel} · Reporting currency{" "}
-          {summary.reportingCurrency}
-        </p>
       </section>
 
       <DashboardRuntime widgets={widgets} />

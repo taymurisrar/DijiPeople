@@ -3,6 +3,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { AlertTriangle } from "lucide-react";
 import { sanitizeAdminNextPath } from "@/lib/auth-config";
 
 type LoginResponse = {
@@ -100,14 +101,14 @@ export function AdminLoginForm() {
   }
 
   return (
-    <form className="space-y-5" onSubmit={handleSubmit}>
+    <form className="space-y-4" onSubmit={handleSubmit}>
       {sessionExpired ? (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          <p className="font-semibold">Session expired</p>
-          <p className="mt-1 leading-5">
-            Your session has expired for security reasons. Please sign in again
-            to continue.
-          </p>
+        <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+          <div className="min-w-0">
+            <p className="font-semibold">Session expired</p>
+            <p className="leading-5">Sign in again to continue.</p>
+          </div>
         </div>
       ) : null}
 

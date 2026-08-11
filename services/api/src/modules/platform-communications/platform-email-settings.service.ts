@@ -15,6 +15,7 @@ import {
 } from '../platform-auth/platform-permissions';
 import { EmailProviderFactory } from '../notifications/email/email-provider-factory.service';
 import {
+  maskSensitiveConfiguration,
   redactEmailError,
   sanitizeHtmlTemplate,
 } from '../notifications/email/email-safety';
@@ -26,6 +27,7 @@ import type {
   UpdatePlatformEmailTemplateDto,
 } from './dto/platform-email-settings.dto';
 import { AuditService } from '../audit/audit.service';
+import { AppError } from '../../common/errors/app-error';
 
 const SETTINGS_KEY = 'email-provider';
 
@@ -163,7 +165,42 @@ export class PlatformEmailSettingsService {
     if (!resolved) {
       throw new BadRequestException('No platform email provider is enabled.');
     }
-    return resolved.provider.testConnection(resolved.configuration);
+    try {
+      const result = await resolved.provider.testConnection(
+        resolved.configuration,
+      );
+      return {
+        ...result,
+        providerType: resolved.providerType,
+        source: resolved.source,
+      };
+    } catch (error) {
+      const reason = redactEmailError(error);
+      const isTimeout = /timeout|timed out|etimedout|greeting never received/i.test(
+        reason,
+      );
+      throw new AppError(
+        isTimeout ? 'INTEGRATION_TIMEOUT' : 'INTEGRATION_FAILED',
+        {
+          message: isTimeout
+            ? 'Email provider timeout'
+            : 'Email provider connection failed',
+          description: isTimeout
+            ? 'The email provider took too long to respond.'
+            : 'The email provider connection test failed.',
+          details: {
+            integration: 'platform-email',
+            providerType: resolved.providerType,
+            source: resolved.source,
+            provider: this.describeProviderConfiguration(
+              resolved.configuration,
+            ),
+            reason,
+          },
+          cause: error,
+        },
+      );
+    }
   }
 
   assertCanSendTest(actor: AuthenticatedUser) {
@@ -314,6 +351,17 @@ export class PlatformEmailSettingsService {
       security: settings.smtp.security,
       connectionTimeoutMs: settings.smtp.connectionTimeoutMs,
     };
+  }
+
+  private describeProviderConfiguration(configuration: Record<string, unknown>) {
+    return maskSensitiveConfiguration({
+      host: configuration.host,
+      port: configuration.port,
+      security: configuration.security,
+      authEnabled: configuration.authEnabled,
+      connectionTimeoutMs: configuration.connectionTimeoutMs,
+      username: configuration.username,
+    });
   }
 
   private validate(settings: StoredPlatformEmailSettings) {
