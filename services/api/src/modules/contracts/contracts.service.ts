@@ -22,6 +22,7 @@ import {
   Document,
   HeadingLevel,
   Packer,
+  PageBreak,
   Paragraph,
   Table,
   TableCell,
@@ -837,17 +838,8 @@ export class ContractsService {
     this.assertWrite(user);
     if (!file)
       throw new BadRequestException('A contract document file is required.');
-    const allowed = new Set([
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/pdf',
-      'text/plain',
-      'text/html',
-    ]);
-    if (!allowed.has(file.mimetype))
-      throw new BadRequestException(
-        'Upload a DOCX, PDF, TXT, or HTML document.',
-      );
-    const contentHtml = await documentToHtml(file);
+    assertSupportedContractDocument(file);
+    const { html: contentHtml } = await convertContractDocumentToHtml(file);
     const created = await this.create(user, { ...dto, contentHtml });
     const version = created.versions[0];
     const saved = await this.storage.saveFile({
@@ -889,6 +881,19 @@ export class ContractsService {
       }),
     ]);
     return this.get(user, created.id);
+  }
+
+  async importDocument(user: AuthenticatedUser, file?: ContractUploadFile) {
+    this.assertWrite(user);
+    if (!file) throw new BadRequestException('A document file is required.');
+    assertSupportedContractDocument(file);
+    const converted = await convertContractDocumentToHtml(file);
+    return {
+      fileName: file.originalname,
+      mimeType: file.mimetype,
+      html: converted.html,
+      warnings: converted.warnings,
+    };
   }
 
   async compareVersions(
@@ -3102,7 +3107,7 @@ export class ContractsService {
       include: { customerAccount: true, subscription: true },
     });
     if (!tenant) throw new NotFoundException('Tenant source was not found.');
-        const base = tenant.customerAccount
+    const base = tenant.customerAccount
       ? customerSource(
           tenant.customerAccount,
           tenant.subscription?.currency ?? reportingCurrency,
@@ -3705,18 +3710,25 @@ export function cleanContractHtml(value: string) {
       'td',
       'hr',
       'span',
+      'mark',
+      'img',
       'input',
     ],
     allowedAttributes: {
       a: ['href', 'target', 'rel'],
-      p: ['style'],
-      h1: ['style'],
-      h2: ['style'],
-      h3: ['style'],
-      h4: ['style'],
+      p: ['style', 'data-document-role'],
+      h1: ['style', 'data-document-role'],
+      h2: ['style', 'data-document-role'],
+      h3: ['style', 'data-document-role'],
+      h4: ['style', 'data-document-role'],
+      ol: ['start'],
+      li: ['value'],
+      table: ['style', 'data-document-role'],
       th: ['colspan', 'rowspan', 'style'],
       td: ['colspan', 'rowspan', 'style'],
       span: ['data-placeholder', 'style'],
+      mark: ['style'],
+      img: ['src', 'alt', 'title', 'width', 'height'],
       hr: ['data-page-break', 'class'],
       input: ['type', 'checked', 'disabled'],
     },
@@ -3724,11 +3736,20 @@ export function cleanContractHtml(value: string) {
       '*': {
         'text-align': [/^(left|right|center|justify)$/],
         'font-size': [/^\d{1,2}(px|pt)$/],
-        'line-height': [/^\d(?:\.\d{1,2})?$/],
+        'font-family': [/^[a-z0-9 ,.'"-]{1,100}$/i],
+        'font-weight': [/^(normal|bold|[1-9]00)$/],
+        color: [/^(#[0-9a-f]{3,8}|rgba?\([\d ,.]+\)|[a-z]{3,20})$/i],
+        'background-color': [
+          /^(#[0-9a-f]{3,8}|rgba?\([\d ,.]+\)|[a-z]{3,20})$/i,
+        ],
+        'line-height': [/^(normal|\d(?:\.\d{1,2})?)$/],
         'margin-left': [/^\d{1,3}px$/],
       },
     },
     allowedSchemes: ['http', 'https', 'mailto'],
+    allowedSchemesByTag: {
+      img: ['data', 'http', 'https'],
+    },
     transformTags: {
       a: sanitizeHtml.simpleTransform('a', { rel: 'noopener noreferrer' }),
     },
@@ -3980,28 +4001,254 @@ function customerSource(
   };
 }
 
-async function documentToHtml(file: ContractUploadFile) {
+const CONTRACT_PAGE_BREAK_TOKEN = 'DIJIPEOPLE_DOCUMENT_PAGE_BREAK';
+
+function assertSupportedContractDocument(file: ContractUploadFile) {
+  const allowed = new Set([
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/pdf',
+    'text/plain',
+    'text/html',
+  ]);
+  if (!allowed.has(file.mimetype))
+    throw new BadRequestException('Upload a DOCX, PDF, TXT, or HTML document.');
+}
+
+function preserveMammothPageBreaks(element: unknown): unknown {
+  if (!element || typeof element !== 'object') return element;
+  const record = element as Record<string, unknown>;
+  if (record.type === 'break' && record.breakType === 'page')
+    return { type: 'text', value: CONTRACT_PAGE_BREAK_TOKEN };
+  if (!Array.isArray(record.children)) return element;
+  return {
+    ...record,
+    children: record.children.map(preserveMammothPageBreaks),
+  };
+}
+
+function hasDescendant(node: AgreementHtmlNode, name: string) {
+  return (node.children ?? []).some(
+    (child) => child.name?.toLowerCase() === name || hasDescendant(child, name),
+  );
+}
+
+function setDocumentRole(node: AgreementHtmlNode, role: string) {
+  node.attribs = {
+    ...(node.attribs ?? {}),
+    'data-document-role': role,
+  };
+}
+
+function stripManualListPrefix(node: AgreementHtmlNode) {
+  if (node.type === 'text' && node.data) {
+    const next = node.data.replace(/^\s*\d+[.)]\s+/, '');
+    if (next !== node.data) {
+      node.data = next;
+      return true;
+    }
+  }
+  for (const child of node.children ?? [])
+    if (stripManualListPrefix(child)) return true;
+  return false;
+}
+
+function normalizeManualNumberedLists(nodes: AgreementHtmlNode[]) {
+  let index = 0;
+  while (index < nodes.length) {
+    const first = nodes[index];
+    const match =
+      first.name?.toLowerCase() === 'p'
+        ? nodeText(first).match(/^(\d+)[.)]\s+/)
+        : null;
+    if (!match) {
+      if (first.children) normalizeManualNumberedLists(first.children);
+      index += 1;
+      continue;
+    }
+    const start = Number(match[1]);
+    const paragraphs: AgreementHtmlNode[] = [];
+    let cursor = index;
+    while (cursor < nodes.length) {
+      const candidate = nodes[cursor];
+      const candidateMatch =
+        candidate.name?.toLowerCase() === 'p'
+          ? nodeText(candidate).match(/^(\d+)[.)]\s+/)
+          : null;
+      if (
+        !candidateMatch ||
+        Number(candidateMatch[1]) !== start + paragraphs.length
+      )
+        break;
+      paragraphs.push(candidate);
+      cursor += 1;
+    }
+    if (paragraphs.length < 2) {
+      index += 1;
+      continue;
+    }
+    const items = paragraphs.map((paragraph) => {
+      stripManualListPrefix(paragraph);
+      return {
+        type: 'tag',
+        name: 'li',
+        attribs: {},
+        children: paragraph.children ?? [],
+      } satisfies AgreementHtmlNode;
+    });
+    nodes.splice(index, paragraphs.length, {
+      type: 'tag',
+      name: 'ol',
+      attribs: start === 1 ? {} : { start: String(start) },
+      children: items,
+    });
+    index += 1;
+  }
+}
+
+export function normalizeImportedContractHtml(value: string) {
+  const pageBreakHtml =
+    '<hr data-page-break="true" class="contract-page-break">';
+  const withPageBreaks = value
+    .replaceAll(CONTRACT_PAGE_BREAK_TOKEN, pageBreakHtml)
+    .replace(/<p>\s*<\/p>/gi, '');
+  const root = parseDocument(withPageBreaks) as unknown as {
+    children: AgreementHtmlNode[];
+  };
+  const elements = root.children.filter((node) => node.name);
+  let brandTable: AgreementHtmlNode | undefined;
+
+  for (const table of elements.filter(
+    (node) => node.name?.toLowerCase() === 'table',
+  )) {
+    const rows = findDescendants(table, 'tr');
+    const rowCells = rows.map((row) =>
+      (row.children ?? []).filter((cell) =>
+        ['td', 'th'].includes(cell.name?.toLowerCase() ?? ''),
+      ),
+    );
+    const firstCells = rowCells[0] ?? [];
+    const isFirstMeaningfulElement =
+      elements.find((node) => nodeText(node)) === table;
+    const isBrand =
+      isFirstMeaningfulElement &&
+      rows.length === 1 &&
+      firstCells.length === 1 &&
+      /dijipeople/i.test(nodeText(table));
+    const isMetadata =
+      rows.length >= 2 &&
+      rowCells.every(
+        (cells) => cells.length === 2 && hasDescendant(cells[0], 'strong'),
+      );
+    const isMapRow =
+      rows.length === 1 &&
+      firstCells.length === 2 &&
+      /^\d+$/.test(nodeText(firstCells[0]));
+
+    if (isBrand) {
+      setDocumentRole(table, 'brand');
+      brandTable = table;
+    } else if (isMetadata) setDocumentRole(table, 'metadata');
+    else if (isMapRow) setDocumentRole(table, 'map-row');
+    else if (rows.length === 1 && firstCells.length >= 3)
+      setDocumentRole(table, 'metrics');
+    else if (rows.length === 1 && firstCells.length === 1)
+      setDocumentRole(table, 'callout');
+    else setDocumentRole(table, 'data');
+
+    const firstRowLooksLikeHeader =
+      !isMetadata &&
+      rows.length > 1 &&
+      firstCells.length > 1 &&
+      firstCells.every((cell) => hasDescendant(cell, 'strong'));
+    if (firstRowLooksLikeHeader)
+      firstCells.forEach((cell) => {
+        cell.name = 'th';
+      });
+  }
+
+  if (brandTable) {
+    const brandIndex = elements.indexOf(brandTable);
+    const following = elements
+      .slice(brandIndex + 1)
+      .filter((node) => nodeText(node));
+    const title = following.find(
+      (node) =>
+        node.name?.toLowerCase() === 'p' && hasDescendant(node, 'strong'),
+    );
+    if (title) {
+      title.name = 'h1';
+      setDocumentRole(title, 'cover-title');
+      const titleIndex = following.indexOf(title);
+      const subtitle = following
+        .slice(titleIndex + 1)
+        .find((node) => node.name?.toLowerCase() === 'p');
+      if (subtitle) setDocumentRole(subtitle, 'cover-subtitle');
+    }
+  }
+
+  const walk = (nodes: AgreementHtmlNode[]) => {
+    for (const node of nodes) {
+      if (
+        node.name?.toLowerCase() === 'p' &&
+        node.attribs?.class?.split(/\s+/).includes('small-note')
+      )
+        setDocumentRole(node, 'small-note');
+      if (node.children) walk(node.children);
+    }
+  };
+  walk(root.children);
+  normalizeManualNumberedLists(root.children);
+  return cleanContractHtml(DomUtils.getOuterHTML(root as never));
+}
+
+export async function convertContractDocumentToHtml(file: ContractUploadFile) {
+  assertSupportedContractDocument(file);
   if (
     file.mimetype ===
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
   ) {
-    const converted = await mammoth.convertToHtml({ buffer: file.buffer });
-    return cleanContractHtml(converted.value);
+    const converted = await mammoth.convertToHtml(
+      { buffer: file.buffer },
+      {
+        ignoreEmptyParagraphs: false,
+        styleMap: [
+          'u => u',
+          "p[style-name='Table Text'] => p:fresh",
+          "p[style-name='Small Note'] => p.small-note:fresh",
+        ],
+        transformDocument: preserveMammothPageBreaks,
+      },
+    );
+    return {
+      html: normalizeImportedContractHtml(converted.value),
+      warnings: converted.messages.map((message) => message.message),
+    };
   }
   if (file.mimetype === 'application/pdf') {
     const converted = await pdfParse(file.buffer);
-    return converted.text
-      .split(/\n{2,}/)
-      .map((paragraph) => `<p>${escapeHtml(paragraph.trim())}</p>`)
-      .join('');
+    return {
+      html: converted.text
+        .split(/\n{2,}/)
+        .map((paragraph) => `<p>${escapeHtml(paragraph.trim())}</p>`)
+        .join(''),
+      warnings: [
+        'PDF text was imported without editable source layout. Use DOCX for the best formatting fidelity.',
+      ],
+    };
   }
   if (file.mimetype === 'text/html')
-    return cleanContractHtml(file.buffer.toString('utf8'));
-  return file.buffer
-    .toString('utf8')
-    .split(/\n{2,}/)
-    .map((paragraph) => `<p>${escapeHtml(paragraph.trim())}</p>`)
-    .join('');
+    return {
+      html: cleanContractHtml(file.buffer.toString('utf8')),
+      warnings: [],
+    };
+  return {
+    html: file.buffer
+      .toString('utf8')
+      .split(/\n{2,}/)
+      .map((paragraph) => `<p>${escapeHtml(paragraph.trim())}</p>`)
+      .join(''),
+    warnings: [],
+  };
 }
 
 type AgreementHtmlNode = {
@@ -4014,6 +4261,7 @@ type AgreementHtmlNode = {
 
 type AgreementBlock =
   | { kind: 'paragraph'; text: string; level?: number; quote?: boolean }
+  | { kind: 'pageBreak' }
   | {
       kind: 'list';
       text: string;
@@ -4070,14 +4318,19 @@ export function extractAgreementDocumentStructure(html: string) {
             .map(nodeText),
         );
         if (rows.length) blocks.push({ kind: 'table', rows });
-      } else if (name === 'hr')
-        blocks.push({ kind: 'paragraph', text: '────────────────────' });
-      else if (node.children) walk(node.children, listDepth);
+      } else if (name === 'hr') {
+        if (node.attribs?.['data-page-break'] === 'true')
+          blocks.push({ kind: 'pageBreak' });
+        else blocks.push({ kind: 'paragraph', text: '--------------------' });
+      } else if (node.children) walk(node.children, listDepth);
     }
   };
   walk(root.children);
   return blocks.filter(
-    (block) => block.kind === 'table' || block.text.trim().length > 0,
+    (block) =>
+      block.kind === 'table' ||
+      block.kind === 'pageBreak' ||
+      block.text.trim().length > 0,
   );
 }
 
@@ -4094,6 +4347,10 @@ async function createPdf(title: string, html: string, appendix = '') {
     document.on('end', () => resolve(Buffer.concat(chunks)));
     document.fontSize(18).text(title, { align: 'center' }).moveDown(2);
     for (const block of extractAgreementDocumentStructure(html)) {
+      if (block.kind === 'pageBreak') {
+        document.addPage();
+        continue;
+      }
       if (block.kind === 'table') {
         for (const [rowIndex, row] of block.rows.entries()) {
           document
@@ -4143,6 +4400,10 @@ async function createDocx(title: string, html: string, appendix = '') {
     }),
   ];
   for (const block of extractAgreementDocumentStructure(html)) {
+    if (block.kind === 'pageBreak') {
+      children.push(new Paragraph({ children: [new PageBreak()] }));
+      continue;
+    }
     if (block.kind === 'table') {
       children.push(
         new Table({

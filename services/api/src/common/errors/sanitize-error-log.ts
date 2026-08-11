@@ -4,9 +4,9 @@ const SENSITIVE_KEY_PATTERNS = [
   'secret',
   'cookie',
   'authorization',
-  'auth',
   'apikey',
   'api_key',
+  'pass',
   'connectionstring',
   'database_url',
   'jwt',
@@ -39,5 +39,11 @@ export function sanitizeHeaders(headers: Record<string, unknown>) {
 
 function isSensitiveKey(key: string) {
   const normalized = key.replace(/[-\s.]/g, '_').toLowerCase();
-  return SENSITIVE_KEY_PATTERNS.some((pattern) => normalized.includes(pattern));
+  if (['authenabled', 'smtp_auth_enabled', 'smtpauthenabled'].includes(normalized)) {
+    return false;
+  }
+  return (
+    normalized === 'auth' ||
+    SENSITIVE_KEY_PATTERNS.some((pattern) => normalized.includes(pattern))
+  );
 }

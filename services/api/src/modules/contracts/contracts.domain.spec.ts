@@ -1,11 +1,24 @@
 import {
   cleanContractHtml,
+  convertContractDocumentToHtml,
   decodeSignatureDataUrl,
   extractAgreementDocumentStructure,
   extractContractPlaceholders,
   renderContractPlaceholders,
   validateContractPlaceholderValues,
 } from './contracts.service';
+import {
+  Document,
+  HeadingLevel,
+  ImageRun,
+  Packer,
+  PageBreak,
+  Paragraph,
+  Table,
+  TableCell,
+  TableRow,
+  TextRun,
+} from 'docx';
 
 describe('contract document domain', () => {
   it('sanitizes unsafe content while preserving supported document formatting', () => {
@@ -37,6 +50,102 @@ describe('contract document domain', () => {
         ],
       },
     ]);
+  });
+
+  it('imports DOCX structure, page breaks, table semantics, and images', async () => {
+    const pixel = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+      'base64',
+    );
+    const source = new Document({
+      sections: [
+        {
+          children: [
+            new Table({
+              rows: [
+                new TableRow({
+                  children: [
+                    new TableCell({
+                      children: [
+                        new Paragraph({
+                          children: [
+                            new TextRun({ text: 'DIJIPEOPLE', bold: true }),
+                          ],
+                        }),
+                      ],
+                    }),
+                  ],
+                }),
+              ],
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({ text: 'Customer rollout plan', bold: true }),
+              ],
+            }),
+            new Paragraph({ text: 'Prepared for delivery' }),
+            new Paragraph({
+              text: 'Scope',
+              heading: HeadingLevel.HEADING_1,
+            }),
+            new Paragraph({ text: 'First requirement', bullet: { level: 0 } }),
+            new Paragraph({ text: '1. Prepare the source data' }),
+            new Paragraph({ text: '2. Validate the source data' }),
+            new Table({
+              rows: [
+                new TableRow({
+                  children: ['Item', 'Owner'].map(
+                    (text) =>
+                      new TableCell({
+                        children: [
+                          new Paragraph({
+                            children: [new TextRun({ text, bold: true })],
+                          }),
+                        ],
+                      }),
+                  ),
+                }),
+                new TableRow({
+                  children: ['Configuration', 'HR'].map(
+                    (text) =>
+                      new TableCell({
+                        children: [new Paragraph({ text })],
+                      }),
+                  ),
+                }),
+              ],
+            }),
+            new Paragraph({ children: [new PageBreak()] }),
+            new Paragraph({
+              children: [
+                new ImageRun({
+                  data: pixel,
+                  transformation: { width: 1, height: 1 },
+                  type: 'png',
+                }),
+              ],
+            }),
+          ],
+        },
+      ],
+    });
+    const buffer = await Packer.toBuffer(source);
+    const result = await convertContractDocumentToHtml({
+      buffer,
+      originalname: 'rollout.docx',
+      mimetype:
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      size: buffer.length,
+    });
+
+    expect(result.html).toContain('data-document-role="brand"');
+    expect(result.html).toContain('data-document-role="cover-title"');
+    expect(result.html).toContain('<h1>Scope</h1>');
+    expect(result.html).toContain('<ul>');
+    expect(result.html).toContain('<ol>');
+    expect(result.html).toContain('<th>');
+    expect(result.html).toContain('data-page-break="true"');
+    expect(result.html).toContain('<img src="data:image/png;base64,');
   });
 
   it('accepts raster signature bytes and rejects disguised uploads', () => {

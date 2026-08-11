@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { Extension, Node } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
@@ -10,6 +10,9 @@ import TextAlign from "@tiptap/extension-text-align";
 import { FontSize, LineHeight, TextStyle } from "@tiptap/extension-text-style";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
+import Image from "@tiptap/extension-image";
+import Color from "@tiptap/extension-color";
+import Highlight from "@tiptap/extension-highlight";
 import {
   AlignCenter,
   AlignLeft,
@@ -18,9 +21,11 @@ import {
   Braces,
   Eye,
   FileDown,
+  FileUp,
   Heading1,
   Heading2,
   Italic,
+  ImagePlus,
   Link2,
   List,
   ListOrdered,
@@ -104,6 +109,27 @@ const Indent = Extension.create({
   },
 });
 
+const DocumentRole = Extension.create({
+  name: "documentRole",
+  addGlobalAttributes() {
+    return [
+      {
+        types: ["paragraph", "heading", "table"],
+        attributes: {
+          documentRole: {
+            default: null,
+            parseHTML: (element) => element.getAttribute("data-document-role"),
+            renderHTML: (attributes) =>
+              attributes.documentRole
+                ? { "data-document-role": attributes.documentRole }
+                : {},
+          },
+        },
+      },
+    ];
+  },
+});
+
 export function ContractDocumentEditor({
   value,
   onChange,
@@ -119,6 +145,13 @@ export function ContractDocumentEditor({
   const [placeholderOpen, setPlaceholderOpen] = useState(false);
   const [tableOpen, setTableOpen] = useState(false);
   const [placeholderQuery, setPlaceholderQuery] = useState("");
+  const [importing, setImporting] = useState(false);
+  const [documentMessage, setDocumentMessage] = useState<{
+    tone: "success" | "warning" | "error";
+    text: string;
+  } | null>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const [placeholderRegistry, setPlaceholderRegistry] =
     useState<PlaceholderDefinition[]>(defaultPlaceholders);
   useEffect(() => {
@@ -177,12 +210,16 @@ export function ContractDocumentEditor({
       }),
       TextStyle,
       FontSize,
+      Color,
+      Highlight.configure({ multicolor: true }),
       LineHeight.configure({ types: ["paragraph", "heading"] }),
       TextAlign.configure({ types: ["heading", "paragraph"] }),
       TaskList,
       TaskItem.configure({ nested: true }),
+      Image.configure({ allowBase64: true, inline: false }),
       PageBreak,
       Indent,
+      DocumentRole,
     ],
     content: value || "<p></p>",
     editorProps: {
@@ -192,11 +229,7 @@ export function ContractDocumentEditor({
         spellcheck: "true",
       },
       transformPastedHTML(html) {
-        return html
-          .replace(/<!--\[if[\s\S]*?<!\[endif\]-->/gi, "")
-          .replace(/<(meta|link|style|script)[^>]*>[\s\S]*?<\/\1>/gi, "")
-          .replace(/\s(?:class|lang|dir)=("[^"]*"|'[^']*')/gi, "")
-          .replace(/(?:expression|javascript:|mso-[a-z-]+)\s*:[^;"']*;?/gi, "");
+        return normalizePastedDocumentHtml(html);
       },
     },
     onUpdate: ({ editor: current }) => onChange(current.getHTML()),
@@ -253,6 +286,97 @@ export function ContractDocumentEditor({
       .run();
   }
 
+  async function importDocument(file?: File) {
+    if (!file) return;
+    if (!/\.(docx|pdf|txt|html?)$/i.test(file.name)) {
+      setDocumentMessage({
+        tone: "error",
+        text: "Choose a DOCX, PDF, TXT, or HTML document.",
+      });
+      return;
+    }
+    if (
+      !editor!.isEmpty &&
+      !window.confirm(
+        "Importing this document will replace the current editor content. Continue?",
+      )
+    )
+      return;
+    setImporting(true);
+    setDocumentMessage(null);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const response = await fetch("/api/contracts/import-document", {
+        method: "POST",
+        body: form,
+      });
+      const payload = (await response.json().catch(() => null)) as {
+        html?: string;
+        warnings?: string[];
+        message?: string | string[];
+      } | null;
+      if (!response.ok || !payload?.html) {
+        const message = Array.isArray(payload?.message)
+          ? payload.message.join(", ")
+          : payload?.message;
+        throw new Error(message || "The document could not be imported.");
+      }
+      editor!.commands.setContent(payload.html, { emitUpdate: true });
+      const warning = payload.warnings?.filter(Boolean).join(" ");
+      setDocumentMessage({
+        tone: warning ? "warning" : "success",
+        text: warning
+          ? `${file.name} was imported. ${warning}`
+          : `${file.name} was imported with editable headings, lists, tables, page breaks, colors, and images.`,
+      });
+    } catch (error) {
+      setDocumentMessage({
+        tone: "error",
+        text:
+          error instanceof Error
+            ? error.message
+            : "The document could not be imported.",
+      });
+    } finally {
+      setImporting(false);
+      if (importInputRef.current) importInputRef.current.value = "";
+    }
+  }
+
+  function insertImage(file?: File) {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setDocumentMessage({
+        tone: "error",
+        text: "Choose a PNG, JPEG, GIF, or WebP image.",
+      });
+      return;
+    }
+    if (file.size > 3 * 1024 * 1024) {
+      setDocumentMessage({
+        tone: "error",
+        text: "Images must be 3 MB or smaller.",
+      });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result !== "string") return;
+      editor!
+        .chain()
+        .focus()
+        .setImage({ src: reader.result, alt: file.name })
+        .run();
+      setDocumentMessage({
+        tone: "success",
+        text: `${file.name} was inserted.`,
+      });
+      if (imageInputRef.current) imageInputRef.current.value = "";
+    };
+    reader.readAsDataURL(file);
+  }
+
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 shadow-sm">
       {!readOnly ? (
@@ -274,6 +398,35 @@ export function ContractDocumentEditor({
             disabled={!editor.can().redo()}
           >
             <Redo2 />
+          </Tool>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept=".docx,.pdf,.txt,.html,.htm,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf,text/plain,text/html"
+            className="sr-only"
+            onChange={(event) => void importDocument(event.target.files?.[0])}
+          />
+          <button
+            type="button"
+            onClick={() => importInputRef.current?.click()}
+            disabled={importing}
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60"
+          >
+            <FileUp className="h-4 w-4" />
+            {importing ? "Importing…" : "Import file"}
+          </button>
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/gif,image/webp"
+            className="sr-only"
+            onChange={(event) => insertImage(event.target.files?.[0])}
+          />
+          <Tool
+            label="Insert image"
+            onClick={() => imageInputRef.current?.click()}
+          >
+            <ImagePlus />
           </Tool>
           <select
             aria-label="Font size"
@@ -371,6 +524,44 @@ export function ContractDocumentEditor({
           >
             <Bold />
           </Tool>
+          <label
+            className="relative inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100"
+            title="Text color"
+          >
+            <span className="text-base font-bold underline decoration-2">
+              A
+            </span>
+            <input
+              type="color"
+              aria-label="Text color"
+              defaultValue="#1e293b"
+              onChange={(event) =>
+                editor.chain().focus().setColor(event.target.value).run()
+              }
+              className="absolute inset-0 cursor-pointer opacity-0"
+            />
+          </label>
+          <label
+            className="relative inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100"
+            title="Highlight color"
+          >
+            <span className="rounded bg-amber-200 px-1 text-xs font-bold">
+              A
+            </span>
+            <input
+              type="color"
+              aria-label="Highlight color"
+              defaultValue="#fef3c7"
+              onChange={(event) =>
+                editor
+                  .chain()
+                  .focus()
+                  .setHighlight({ color: event.target.value })
+                  .run()
+              }
+              className="absolute inset-0 cursor-pointer opacity-0"
+            />
+          </label>
           <Tool
             label="Checklist"
             active={editor.isActive("taskList")}
@@ -461,14 +652,48 @@ export function ContractDocumentEditor({
               </button>
               {tableOpen ? (
                 <div className="absolute left-0 top-11 z-40 grid w-48 gap-1 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
-                  <TableAction label="Add row below" onClick={() => editor.chain().focus().addRowAfter().run()} />
-                  <TableAction label="Remove row" onClick={() => editor.chain().focus().deleteRow().run()} />
-                  <TableAction label="Add column right" onClick={() => editor.chain().focus().addColumnAfter().run()} />
-                  <TableAction label="Remove column" onClick={() => editor.chain().focus().deleteColumn().run()} />
-                  <TableAction label="Merge selected cells" disabled={!editor.can().mergeCells()} onClick={() => editor.chain().focus().mergeCells().run()} />
-                  <TableAction label="Split cell" disabled={!editor.can().splitCell()} onClick={() => editor.chain().focus().splitCell().run()} />
-                  <TableAction label="Toggle header row" onClick={() => editor.chain().focus().toggleHeaderRow().run()} />
-                  <TableAction label="Remove table" destructive onClick={() => { editor.chain().focus().deleteTable().run(); setTableOpen(false); }} />
+                  <TableAction
+                    label="Add row below"
+                    onClick={() => editor.chain().focus().addRowAfter().run()}
+                  />
+                  <TableAction
+                    label="Remove row"
+                    onClick={() => editor.chain().focus().deleteRow().run()}
+                  />
+                  <TableAction
+                    label="Add column right"
+                    onClick={() =>
+                      editor.chain().focus().addColumnAfter().run()
+                    }
+                  />
+                  <TableAction
+                    label="Remove column"
+                    onClick={() => editor.chain().focus().deleteColumn().run()}
+                  />
+                  <TableAction
+                    label="Merge selected cells"
+                    disabled={!editor.can().mergeCells()}
+                    onClick={() => editor.chain().focus().mergeCells().run()}
+                  />
+                  <TableAction
+                    label="Split cell"
+                    disabled={!editor.can().splitCell()}
+                    onClick={() => editor.chain().focus().splitCell().run()}
+                  />
+                  <TableAction
+                    label="Toggle header row"
+                    onClick={() =>
+                      editor.chain().focus().toggleHeaderRow().run()
+                    }
+                  />
+                  <TableAction
+                    label="Remove table"
+                    destructive
+                    onClick={() => {
+                      editor.chain().focus().deleteTable().run();
+                      setTableOpen(false);
+                    }}
+                  />
                 </div>
               ) : null}
             </div>
@@ -530,7 +755,21 @@ export function ContractDocumentEditor({
           </button>
         </div>
       ) : null}
-      <div className="mx-auto my-3 min-h-[700px] max-w-[816px] overflow-x-auto bg-white shadow-[0_10px_35px_rgba(15,23,42,0.10)] sm:my-6">
+      {documentMessage ? (
+        <div
+          role={documentMessage.tone === "error" ? "alert" : "status"}
+          className={`border-b px-4 py-2.5 text-xs ${
+            documentMessage.tone === "error"
+              ? "border-rose-200 bg-rose-50 text-rose-700"
+              : documentMessage.tone === "warning"
+                ? "border-amber-200 bg-amber-50 text-amber-800"
+                : "border-emerald-200 bg-emerald-50 text-emerald-700"
+          }`}
+        >
+          {documentMessage.text}
+        </div>
+      ) : null}
+      <div className="contract-document-sheet mx-auto my-3 min-h-[700px] max-w-[816px] overflow-x-auto bg-white shadow-[0_10px_35px_rgba(15,23,42,0.10)] sm:my-6">
         {preview || readOnly ? (
           <article
             className="contract-editor-content px-5 py-7 text-[15px] leading-7 text-slate-800 sm:px-12 sm:py-10"
@@ -543,13 +782,345 @@ export function ContractDocumentEditor({
       {!readOnly ? (
         <div className="flex justify-between border-t border-slate-200 bg-white px-4 py-2 text-[11px] text-slate-500">
           <span>
-            Paste from Microsoft Word or Google Docs; server sanitization is
-            applied on save.
+            Import DOCX for best fidelity. Pasting from Word or Google Docs is
+            normalized automatically.
           </span>
           <span>{editor.getText().length} characters</span>
         </div>
       ) : null}
+      <DocumentEditorStyles />
     </div>
+  );
+}
+
+function normalizePastedDocumentHtml(html: string) {
+  const document = new DOMParser().parseFromString(html, "text/html");
+  const pageBreak = () => {
+    const element = document.createElement("hr");
+    element.setAttribute("data-page-break", "true");
+    element.className = "contract-page-break";
+    return element;
+  };
+
+  document.querySelectorAll<HTMLElement>("p, div").forEach((element) => {
+    const style = element.getAttribute("style") ?? "";
+    if (/page-break-before\s*:\s*(always|page)/i.test(style))
+      element.before(pageBreak());
+    if (/page-break-after\s*:\s*(always|page)/i.test(style))
+      element.after(pageBreak());
+  });
+
+  const wordListParagraphs = Array.from(
+    document.querySelectorAll<HTMLParagraphElement>("p"),
+  ).filter(
+    (paragraph) =>
+      /MsoListParagraph/i.test(paragraph.className) ||
+      /mso-list\s*:/i.test(paragraph.getAttribute("style") ?? ""),
+  );
+  for (const paragraph of wordListParagraphs) {
+    const marker = Array.from(
+      paragraph.querySelectorAll<HTMLElement>("span"),
+    ).find((span) =>
+      /mso-list\s*:\s*ignore/i.test(span.getAttribute("style") ?? ""),
+    );
+    const markerText = marker?.textContent?.trim() ?? "";
+    const tagName = /^\(?\d+[.)]?/.test(markerText) ? "ol" : "ul";
+    marker?.remove();
+    const item = document.createElement("li");
+    while (paragraph.firstChild) item.appendChild(paragraph.firstChild);
+    const previous = paragraph.previousElementSibling;
+    const list =
+      previous?.tagName.toLowerCase() === tagName
+        ? previous
+        : document.createElement(tagName);
+    if (list !== previous) paragraph.before(list);
+    list.appendChild(item);
+    paragraph.remove();
+  }
+
+  document
+    .querySelectorAll("meta, link, style, script, title, xml")
+    .forEach((element) => element.remove());
+  document.querySelectorAll<HTMLElement>("*").forEach((element) => {
+    for (const attribute of Array.from(element.attributes)) {
+      if (
+        /^on/i.test(attribute.name) ||
+        ["class", "lang", "dir", "id"].includes(attribute.name.toLowerCase())
+      )
+        element.removeAttribute(attribute.name);
+    }
+    const safeDeclarations = (element.getAttribute("style") ?? "")
+      .split(";")
+      .map((declaration) => declaration.trim())
+      .filter(Boolean)
+      .map((declaration) => {
+        const separator = declaration.indexOf(":");
+        if (separator < 1) return "";
+        let property = declaration.slice(0, separator).trim().toLowerCase();
+        let value = declaration.slice(separator + 1).trim();
+        if (property === "background" && /^(#|rgb|[a-z])/i.test(value))
+          property = "background-color";
+        if (
+          ![
+            "text-align",
+            "font-size",
+            "font-family",
+            "font-weight",
+            "color",
+            "background-color",
+            "line-height",
+            "margin-left",
+          ].includes(property) ||
+          /(expression|javascript:|url\s*\()/i.test(value)
+        )
+          return "";
+        value = value.replace(/(\d+)\.0(px|pt)\b/gi, "$1$2");
+        return `${property}:${value}`;
+      })
+      .filter(Boolean);
+    if (safeDeclarations.length)
+      element.setAttribute("style", safeDeclarations.join(";"));
+    else element.removeAttribute("style");
+  });
+  return document.body.innerHTML;
+}
+
+function DocumentEditorStyles() {
+  return (
+    <style jsx global>{`
+      .contract-document-sheet {
+        width: min(816px, calc(100% - 24px));
+      }
+      .contract-editor-content {
+        min-height: 1056px;
+        padding: 58px 64px !important;
+        color: #243247;
+        font-family: Inter, Aptos, Arial, sans-serif;
+        font-size: 14px;
+        line-height: 1.55;
+        overflow-wrap: anywhere;
+      }
+      .contract-editor-content > :first-child {
+        margin-top: 0;
+      }
+      .contract-editor-content p {
+        margin: 0 0 0.72em;
+      }
+      .contract-editor-content h1,
+      .contract-editor-content h2,
+      .contract-editor-content h3,
+      .contract-editor-content h4 {
+        break-after: avoid;
+        color: #14213d;
+        font-weight: 750;
+        line-height: 1.18;
+      }
+      .contract-editor-content h1 {
+        margin: 1.45em 0 0.55em;
+        font-size: 23px;
+      }
+      .contract-editor-content h2 {
+        margin: 1.25em 0 0.45em;
+        color: #078b91;
+        font-size: 17px;
+      }
+      .contract-editor-content h3 {
+        margin: 1.1em 0 0.4em;
+        font-size: 15px;
+      }
+      .contract-editor-content h4 {
+        margin: 1em 0 0.35em;
+        font-size: 14px;
+      }
+      .contract-editor-content h1[data-document-role="cover-title"] {
+        max-width: 650px;
+        margin: 28px 0 8px;
+        font-size: 34px;
+        letter-spacing: -0.025em;
+      }
+      .contract-editor-content [data-document-role="cover-subtitle"] {
+        margin-bottom: 20px;
+        color: #078b91;
+        font-size: 16px;
+      }
+      .contract-editor-content ul,
+      .contract-editor-content ol {
+        margin: 0.55em 0 1em;
+        padding-left: 1.55rem;
+      }
+      .contract-editor-content li {
+        margin: 0.22em 0;
+        padding-left: 0.18rem;
+      }
+      .contract-editor-content li::marker {
+        color: #079a83;
+        font-weight: 700;
+      }
+      .contract-editor-content blockquote {
+        margin: 1rem 0;
+        border-left: 4px solid #15b897;
+        background: #eefaf6;
+        padding: 0.85rem 1rem;
+        color: #334155;
+      }
+      .contract-editor-content table {
+        width: 100%;
+        margin: 0.85rem 0 1.15rem;
+        border-collapse: collapse;
+        table-layout: fixed;
+        font-size: 12px;
+        line-height: 1.35;
+      }
+      .contract-editor-content th,
+      .contract-editor-content td {
+        min-width: 1px;
+        border: 1px solid #d9e2ec;
+        padding: 7px 8px;
+        vertical-align: middle;
+        text-align: left;
+      }
+      .contract-editor-content th {
+        background: #14213d;
+        color: #fff;
+        font-weight: 700;
+      }
+      .contract-editor-content
+        table[data-document-role="data"]
+        tbody
+        tr:nth-child(even)
+        td,
+      .contract-editor-content
+        table[data-document-role="data"]
+        > tr:nth-child(even)
+        td {
+        background: #f4f7fa;
+      }
+      .contract-editor-content table[data-document-role="brand"] {
+        margin: 0 0 24px;
+      }
+      .contract-editor-content table[data-document-role="brand"] td {
+        border: 0;
+        background: #14213d;
+        padding: 16px 18px;
+        color: #fff;
+      }
+      .contract-editor-content table[data-document-role="brand"] p {
+        margin: 0.15rem 0;
+      }
+      .contract-editor-content
+        table[data-document-role="metadata"]
+        td:first-child {
+        width: 26%;
+        background: #f1f5f8;
+        color: #14213d;
+        font-weight: 700;
+      }
+      .contract-editor-content table[data-document-role="metrics"] td {
+        border-color: #d8ebe8;
+        background: #edf9f7;
+        text-align: center;
+      }
+      .contract-editor-content table[data-document-role="metrics"] strong {
+        display: block;
+        color: #14213d;
+        font-size: 17px;
+      }
+      .contract-editor-content table[data-document-role="callout"] td {
+        border: 0;
+        border-left: 4px solid #16b898;
+        background: #eefaf6;
+        padding: 10px 12px;
+      }
+      .contract-editor-content table[data-document-role="map-row"] {
+        margin: 0 0 3px;
+      }
+      .contract-editor-content table[data-document-role="map-row"] td {
+        border: 0;
+        background: #f3f6f8;
+        padding: 7px 10px;
+      }
+      .contract-editor-content
+        table[data-document-role="map-row"]
+        td:first-child {
+        width: 42px;
+        background: #078b91;
+        color: #fff;
+        text-align: center;
+      }
+      .contract-editor-content [data-document-role="small-note"] {
+        color: #64748b;
+        font-size: 11px;
+        font-style: italic;
+      }
+      .contract-editor-content img {
+        display: block;
+        max-width: 100%;
+        height: auto;
+        margin: 1rem auto;
+        border-radius: 4px;
+      }
+      .contract-editor-content hr:not([data-page-break="true"]) {
+        margin: 1.5rem 0;
+        border: 0;
+        border-top: 1px solid #cbd5e1;
+      }
+      .contract-editor-content hr[data-page-break="true"] {
+        position: relative;
+        height: 34px;
+        margin: 42px -64px;
+        border: 0;
+        border-top: 1px dashed #94a3b8;
+        border-bottom: 1px dashed #94a3b8;
+        background: #eef2f6;
+      }
+      .contract-editor-content hr[data-page-break="true"]::after {
+        position: absolute;
+        top: 8px;
+        left: 50%;
+        padding: 0 8px;
+        transform: translateX(-50%);
+        background: #eef2f6;
+        color: #64748b;
+        content: "Page break";
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      @media (max-width: 640px) {
+        .contract-editor-content {
+          min-height: 720px;
+          padding: 28px 24px !important;
+        }
+        .contract-editor-content h1[data-document-role="cover-title"] {
+          font-size: 27px;
+        }
+        .contract-editor-content hr[data-page-break="true"] {
+          margin-right: -24px;
+          margin-left: -24px;
+        }
+      }
+      @media print {
+        .contract-document-sheet {
+          width: 100%;
+          max-width: none;
+          box-shadow: none;
+        }
+        .contract-editor-content {
+          min-height: 0;
+          padding: 0 !important;
+        }
+        .contract-editor-content hr[data-page-break="true"] {
+          height: 0;
+          margin: 0;
+          border: 0;
+          break-after: page;
+        }
+        .contract-editor-content hr[data-page-break="true"]::after {
+          content: none;
+        }
+      }
+    `}</style>
   );
 }
 
@@ -585,6 +1156,25 @@ function Separator() {
   return <span className="mx-1 h-6 w-px bg-slate-200" aria-hidden />;
 }
 
-function TableAction({ label, onClick, disabled, destructive = false }: { label: string; onClick: () => void; disabled?: boolean; destructive?: boolean }) {
-  return <button type="button" disabled={disabled} onClick={onClick} className={`rounded-lg px-3 py-2 text-left text-xs font-semibold disabled:opacity-35 ${destructive ? "text-rose-700 hover:bg-rose-50" : "text-slate-700 hover:bg-slate-50"}`}>{label}</button>;
+function TableAction({
+  label,
+  onClick,
+  disabled,
+  destructive = false,
+}: {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  destructive?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className={`rounded-lg px-3 py-2 text-left text-xs font-semibold disabled:opacity-35 ${destructive ? "text-rose-700 hover:bg-rose-50" : "text-slate-700 hover:bg-slate-50"}`}
+    >
+      {label}
+    </button>
+  );
 }

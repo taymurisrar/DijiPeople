@@ -89,6 +89,17 @@ export class ContractsController {
     return this.contracts.createFromUpload(user, dto, file);
   }
 
+  @Post('import-document')
+  @UseInterceptors(
+    FileInterceptor('file', { limits: { fileSize: 10 * 1024 * 1024 } }),
+  )
+  importDocument(
+    @CurrentUser() user: AuthenticatedUser,
+    @UploadedFile() file: ContractUploadFile,
+  ) {
+    return this.contracts.importDocument(user, file);
+  }
+
   @Get('placeholder-definitions')
   placeholderDefinitions(@CurrentUser() user: AuthenticatedUser) {
     return this.contracts.listPlaceholderDefinitions(user);

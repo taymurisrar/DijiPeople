@@ -33,11 +33,12 @@ export function ErrorProvider({
   const [error, setError] = useState<DisplayableError | null>(null);
   const showError = useCallback((input: unknown) => {
     const normalized = normalizeApiError(input);
-    const nextError = normalized.traceId.startsWith("client_")
+    const clientGenerated = normalized.traceId.startsWith("client_");
+    const nextError = clientGenerated
       ? { ...normalized, traceId: normalized.traceId.replace(/^client_/, "admin_") }
       : normalized;
     setError(nextError);
-    if (nextError.traceId.startsWith("admin_")) void persistAdminError(nextError);
+    if (clientGenerated) void persistAdminError(nextError);
   }, []);
   const clearError = useCallback(() => setError(null), []);
 
