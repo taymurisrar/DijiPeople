@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import {
   ContractStatus,
+  ContractType,
   ContractVersionStatus,
   PlatformApprovalStatus,
   PlatformApprovalStepStatus,
@@ -779,9 +780,10 @@ export class ContractsService {
   ) {
     this.assertWrite(user);
     const source = await this.resolveSource(dto.sourceType, dto.sourceId);
+    const contractType = dto.contractType ?? source.defaultContractType;
     return this.create(user, {
       title: dto.title ?? `${source.counterpartyName} services agreement`,
-      contractType: dto.contractType ?? 'CUSTOMER_AGREEMENT',
+      contractType,
       counterpartyName: source.counterpartyName,
       counterpartyEmail: source.counterpartyEmail,
       templateId: dto.templateId,
@@ -789,6 +791,7 @@ export class ContractsService {
       customerAccountId: source.customerAccountId,
       customerOnboardingId: source.customerOnboardingId,
       tenantId: source.tenantId,
+      relatedLeadId: source.relatedLeadId,
       currencyCode: source.currencyCode,
       contractValue: source.contractValue,
       effectiveDate: dto.effectiveDate,
@@ -3051,10 +3054,12 @@ export class ContractsService {
           'customer.industry': lead.industry,
         },
         contractValue: undefined,
+        defaultContractType: ContractType.CUSTOMER_AGREEMENT,
         partnerId: undefined,
         customerAccountId: undefined,
         customerOnboardingId: undefined,
         tenantId: undefined,
+        relatedLeadId: lead.id,
       };
     }
     if (type === 'customer') {
@@ -3097,7 +3102,7 @@ export class ContractsService {
       include: { customerAccount: true, subscription: true },
     });
     if (!tenant) throw new NotFoundException('Tenant source was not found.');
-    const base = tenant.customerAccount
+        const base = tenant.customerAccount
       ? customerSource(
           tenant.customerAccount,
           tenant.subscription?.currency ?? reportingCurrency,
@@ -3111,6 +3116,8 @@ export class ContractsService {
           tenantId: undefined,
           partnerId: undefined,
           contractValue: undefined,
+          defaultContractType: ContractType.SERVICE_AGREEMENT,
+          relatedLeadId: undefined,
           placeholderValues: {},
         };
     return {
@@ -3254,9 +3261,13 @@ export class ContractsService {
       !dto.partnerId
     )
       throw new BadRequestException('Partner agreement requires a partner.');
-    if (dto.contractType === 'CUSTOMER_AGREEMENT' && !dto.customerAccountId)
+    if (
+      dto.contractType === 'CUSTOMER_AGREEMENT' &&
+      !dto.customerAccountId &&
+      !dto.relatedLeadId
+    )
       throw new BadRequestException(
-        'Customer agreement requires a customer account.',
+        'Customer agreement requires a customer account or source lead.',
       );
     this.validateContractDates(dto);
   }
@@ -3955,7 +3966,9 @@ function customerSource(
     customerOnboardingId: undefined,
     tenantId: undefined,
     partnerId: undefined,
+    relatedLeadId: undefined,
     contractValue: undefined,
+    defaultContractType: ContractType.CUSTOMER_AGREEMENT,
     placeholderValues: {
       'customer.companyName': customer.companyName,
       'customer.legalName': customer.legalCompanyName ?? customer.companyName,

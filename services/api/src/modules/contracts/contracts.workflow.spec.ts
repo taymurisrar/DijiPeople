@@ -1,4 +1,5 @@
 import { ContractsService } from './contracts.service';
+import { ContractType } from '@prisma/client';
 
 const platformAdmin = {
   userId: 'user-1',
@@ -11,6 +12,44 @@ const platformAdmin = {
 } as never;
 
 describe('contract and signature workflow guards', () => {
+  it('creates a lead agreement without requiring a customer account and preserves the lead link', async () => {
+    const prisma = {
+      platformSetting: { findUnique: jest.fn().mockResolvedValue(null) },
+      lead: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: '1970264f-8e21-4a05-b8c9-fcfa14deb1fa',
+          companyName: 'Prospective Customer',
+          fullName: 'Primary Contact',
+          workEmail: 'contact@example.test',
+          industry: 'Professional Services',
+        }),
+      },
+    };
+    const service = new ContractsService(
+      prisma as never,
+      {} as never,
+      {} as never,
+    );
+    const create = jest.spyOn(service, 'create').mockResolvedValue({
+      id: 'contract-1',
+    } as never);
+
+    await service.createFromSource(platformAdmin, {
+      sourceType: 'lead',
+      sourceId: '1970264f-8e21-4a05-b8c9-fcfa14deb1fa',
+      contractType: ContractType.CUSTOMER_AGREEMENT,
+    });
+
+    expect(create).toHaveBeenCalledWith(
+      platformAdmin,
+      expect.objectContaining({
+        contractType: 'CUSTOMER_AGREEMENT',
+        customerAccountId: undefined,
+        relatedLeadId: '1970264f-8e21-4a05-b8c9-fcfa14deb1fa',
+      }),
+    );
+  });
+
   it('prevents a new version from mutating a fully signed agreement', async () => {
     const service = new ContractsService({} as never, {} as never, {} as never);
     jest.spyOn(service, 'get').mockResolvedValue({

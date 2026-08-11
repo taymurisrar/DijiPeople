@@ -154,7 +154,6 @@ function SourceForm({
           sourceId: d.get("sourceId"),
           templateId: d.get("templateId") || undefined,
           title: d.get("title") || undefined,
-          contractType: "CUSTOMER_AGREEMENT",
         });
       }}
     >
