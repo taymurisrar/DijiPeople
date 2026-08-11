@@ -142,12 +142,48 @@ function RuntimeRecordEditor({
       (item) => item.key === (mode === "read" ? "detail" : mode),
     ) ?? definition.forms[0];
   const formDefinition = useMemo(() => {
-    if (moduleKey !== "contracts" || !baseFormDefinition.tabs) return baseFormDefinition;
+    if (!baseFormDefinition.tabs) return baseFormDefinition;
     const hidden = new Set<string>();
-    if (!Array.isArray(runtimeRecord.fieldPlacements) || !runtimeRecord.fieldPlacements.length) hidden.add("fields");
-    if (!Array.isArray(runtimeRecord.relatedRecords) || !runtimeRecord.relatedRecords.length) hidden.add("related");
-    return { ...baseFormDefinition, tabs: baseFormDefinition.tabs.filter(tab => !hidden.has(tab.key)) };
-  }, [baseFormDefinition, moduleKey, runtimeRecord.fieldPlacements, runtimeRecord.relatedRecords]);
+    if (moduleKey === "contracts") {
+      if (
+        !Array.isArray(runtimeRecord.fieldPlacements) ||
+        !runtimeRecord.fieldPlacements.length
+      )
+        hidden.add("fields");
+      if (
+        !Array.isArray(runtimeRecord.relatedRecords) ||
+        !runtimeRecord.relatedRecords.length
+      )
+        hidden.add("related");
+    }
+    const tabs = baseFormDefinition.tabs.filter((tab) => {
+      if (hidden.has(tab.key)) return false;
+      const hasFields = baseFormDefinition.fields.some(
+        (field) =>
+          field.tab === tab.key &&
+          !field.hidden &&
+          (!isCreate || !field.hideOnCreate),
+      );
+      const hasRelationship =
+        !isCreate &&
+        definition.relatedRecords?.some(
+          (relationship) => relationship.tab === tab.key,
+        );
+      const hasTimeline =
+        !isCreate && ["timeline", "activities"].includes(tab.key);
+      const hasRuntimePanel =
+        !isCreate && moduleKey === "contracts" && tab.key === "versions";
+      return hasFields || hasRelationship || hasTimeline || hasRuntimePanel;
+    });
+    return { ...baseFormDefinition, tabs };
+  }, [
+    baseFormDefinition,
+    definition.relatedRecords,
+    isCreate,
+    moduleKey,
+    runtimeRecord.fieldPlacements,
+    runtimeRecord.relatedRecords,
+  ]);
   const [activeTab, setActiveTab] = useState(
     formDefinition.tabs?.[0]?.key ?? "",
   );

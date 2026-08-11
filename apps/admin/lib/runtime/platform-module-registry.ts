@@ -34,10 +34,38 @@ const ALL_PLATFORM_ROLES = [
   "READ_ONLY_AUDITOR",
 ];
 
+const INDUSTRY_VALUES = [
+  "Healthcare",
+  "IT / Software",
+  "Recruitment",
+  "Staffing",
+  "Professional Services",
+  "Real Estate",
+  "Construction",
+  "Education",
+  "Retail",
+  "Hospitality",
+  "Manufacturing",
+  "Financial Services",
+  "Government",
+  "Nonprofit",
+  "Other",
+];
+const COMPANY_SIZE_VALUES = [
+  "1-10",
+  "11-50",
+  "51-200",
+  "201-500",
+  "501-1000",
+  "1001-5000",
+  "5000+",
+];
+
 const STANDARD_LIST_ACTIONS: RuntimeActionDefinition[] = [
   {
     key: "new",
     label: "New",
+    icon: "new",
     placement: "primary",
     scope: "list",
     selection: "none",
@@ -45,6 +73,7 @@ const STANDARD_LIST_ACTIONS: RuntimeActionDefinition[] = [
   {
     key: "refresh",
     label: "Refresh",
+    icon: "refresh",
     placement: "secondary",
     scope: "list",
     selection: "none",
@@ -52,6 +81,7 @@ const STANDARD_LIST_ACTIONS: RuntimeActionDefinition[] = [
   {
     key: "export",
     label: "Export",
+    icon: "export",
     placement: "overflow",
     scope: "list",
     selection: "none",
@@ -59,6 +89,7 @@ const STANDARD_LIST_ACTIONS: RuntimeActionDefinition[] = [
   {
     key: "bulk-assign",
     label: "Assign",
+    icon: "approve",
     placement: "secondary",
     scope: "list",
     selection: "any",
@@ -66,6 +97,7 @@ const STANDARD_LIST_ACTIONS: RuntimeActionDefinition[] = [
   {
     key: "bulk-delete",
     label: "Delete",
+    icon: "delete",
     placement: "overflow",
     scope: "list",
     selection: "any",
@@ -79,6 +111,7 @@ const STANDARD_RECORD_ACTIONS: RuntimeActionDefinition[] = [
   {
     key: "back",
     label: "Back",
+    icon: "back",
     placement: "secondary",
     scope: "record",
     selection: "none",
@@ -86,6 +119,7 @@ const STANDARD_RECORD_ACTIONS: RuntimeActionDefinition[] = [
   {
     key: "edit",
     label: "Edit",
+    icon: "edit",
     placement: "secondary",
     scope: "record",
     selection: "none",
@@ -93,6 +127,7 @@ const STANDARD_RECORD_ACTIONS: RuntimeActionDefinition[] = [
   {
     key: "save",
     label: "Save",
+    icon: "save",
     placement: "primary",
     scope: "record",
     selection: "none",
@@ -100,6 +135,7 @@ const STANDARD_RECORD_ACTIONS: RuntimeActionDefinition[] = [
   {
     key: "save-close",
     label: "Save and close",
+    icon: "save",
     placement: "secondary",
     scope: "record",
     selection: "none",
@@ -107,6 +143,7 @@ const STANDARD_RECORD_ACTIONS: RuntimeActionDefinition[] = [
   {
     key: "delete",
     label: "Delete",
+    icon: "delete",
     placement: "overflow",
     scope: "record",
     selection: "none",
@@ -464,8 +501,22 @@ const definitions: PlatformModuleDefinition[] = [
         field("workEmail", "Work email", "email", "contact", true),
         field("phoneNumber", "Phone", "phone", "contact"),
         field("companyWebsite", "Company website", "url", "company"),
-        field("industry", "Industry", "text", "company", true),
-        field("companySize", "Company size", "text", "company", true),
+        field(
+          "industry",
+          "Industry",
+          "option",
+          "company",
+          true,
+          INDUSTRY_VALUES,
+        ),
+        field(
+          "companySize",
+          "Company size",
+          "option",
+          "company",
+          true,
+          COMPANY_SIZE_VALUES,
+        ),
         field(
           "estimatedEmployeeCount",
           "Expected employees / seats",
@@ -525,6 +576,7 @@ const definitions: PlatformModuleDefinition[] = [
             "acquisition",
           ),
           readOnly: true,
+          hideOnCreate: true,
         },
         {
           ...field(
@@ -534,6 +586,7 @@ const definitions: PlatformModuleDefinition[] = [
             "acquisition",
           ),
           readOnly: true,
+          hideOnCreate: true,
         },
         {
           ...field("referralSource", "Referral source", "text", "acquisition"),
@@ -561,6 +614,7 @@ const definitions: PlatformModuleDefinition[] = [
             ],
           ),
           readOnly: true,
+          hideOnCreate: true,
         },
         {
           ...field("convertedAt", "Converted at", "dateTime", "conversion"),
@@ -581,17 +635,15 @@ const definitions: PlatformModuleDefinition[] = [
         "Commercial",
         "Agreements",
         "Activities",
-        "Documents",
-        "Timeline",
         "System",
       ],
       {
         "lead-information": "summary",
         contact: "summary",
-        company: "summary",
-        requirement: "summary",
-        qualification: "summary",
-        acquisition: "summary",
+        company: "commercial",
+        requirement: "commercial",
+        qualification: "commercial",
+        acquisition: "commercial",
         commercial: "commercial",
         conversion: "commercial",
         system: "system",
@@ -633,6 +685,7 @@ const definitions: PlatformModuleDefinition[] = [
       {
         key: "qualify",
         label: "Qualify",
+        icon: "qualify",
         placement: "primary",
         scope: "record",
         selection: "none",
@@ -641,6 +694,7 @@ const definitions: PlatformModuleDefinition[] = [
       {
         key: "disqualify",
         label: "Disqualify",
+        icon: "disqualify",
         placement: "overflow",
         scope: "record",
         selection: "none",
@@ -649,6 +703,7 @@ const definitions: PlatformModuleDefinition[] = [
       {
         key: "create-agreement",
         label: "Create agreement",
+        icon: "agreement",
         placement: "secondary",
         scope: "record",
         selection: "none",
@@ -657,6 +712,7 @@ const definitions: PlatformModuleDefinition[] = [
       {
         key: "convert",
         label: "Convert to Customer",
+        icon: "convert",
         placement: "primary",
         scope: "record",
         selection: "none",
@@ -929,8 +985,15 @@ const definitions: PlatformModuleDefinition[] = [
           "ARCHIVED",
         ]),
         field("subStatus", "Status reason", "text", "identity"),
-        field("industry", "Industry", "text", "identity"),
-        field("companySize", "Company size", "text", "identity"),
+        field("industry", "Industry", "option", "identity", false, INDUSTRY_VALUES),
+        field(
+          "companySize",
+          "Company size",
+          "option",
+          "identity",
+          false,
+          COMPANY_SIZE_VALUES,
+        ),
         field("website", "Website", "url", "identity"),
         field(
           "estimatedEmployeeCount",
@@ -1027,6 +1090,7 @@ const definitions: PlatformModuleDefinition[] = [
             "ownership",
           ),
           readOnly: true,
+          hideOnCreate: true,
         },
         {
           ...field("leadId", "Source lead", "lookup", "attribution"),
@@ -1050,6 +1114,7 @@ const definitions: PlatformModuleDefinition[] = [
             "attribution",
           ),
           readOnly: true,
+          hideOnCreate: true,
         },
         {
           ...field(
@@ -1059,6 +1124,7 @@ const definitions: PlatformModuleDefinition[] = [
             "attribution",
           ),
           readOnly: true,
+          hideOnCreate: true,
         },
         {
           ...field("stripeCustomerId", "Stripe customer ID", "text", "system"),
@@ -1269,6 +1335,66 @@ const definitions: PlatformModuleDefinition[] = [
           lookupPath: "/super-admin/leads?pageSize=100",
           readOnly: true,
         },
+        {
+          ...field(
+            "customer.companyName",
+            "Customer company",
+            "text",
+            "customer-snapshot",
+          ),
+          readOnly: true,
+          hideOnCreate: true,
+        },
+        {
+          ...field(
+            "customer.industry",
+            "Industry",
+            "text",
+            "customer-snapshot",
+          ),
+          readOnly: true,
+          hideOnCreate: true,
+        },
+        {
+          ...field(
+            "customer.companySize",
+            "Company size",
+            "text",
+            "customer-snapshot",
+          ),
+          readOnly: true,
+          hideOnCreate: true,
+        },
+        {
+          ...field(
+            "customer.primaryContactEmail",
+            "Primary contact email",
+            "email",
+            "customer-snapshot",
+          ),
+          readOnly: true,
+          hideOnCreate: true,
+        },
+        {
+          ...field(
+            "customer.primaryContactPhone",
+            "Primary contact phone",
+            "phone",
+            "customer-snapshot",
+          ),
+          readOnly: true,
+          hideOnCreate: true,
+        },
+        {
+          ...field(
+            "customer.country",
+            "Customer country",
+            "text",
+            "customer-snapshot",
+          ),
+          readOnly: true,
+          hideOnCreate: true,
+        },
         field("status", "Status", "option", "record", true, [
           "NOT_STARTED",
           "IN_PROGRESS",
@@ -1432,6 +1558,7 @@ const definitions: PlatformModuleDefinition[] = [
       ],
       {
         record: "overview",
+        "customer-snapshot": "overview",
         readiness: "readiness",
         "tenant-setup": "tenant-setup",
         administrator: "administrator",
@@ -3103,6 +3230,7 @@ function lifecycleForms(
   const tabbedFields = fields.map((item) => ({
     ...item,
     tab: sectionTabs[item.section] ?? defaultTab,
+    hideOnCreate: item.hideOnCreate ?? item.readOnly ?? false,
   }));
   return (["create", "detail", "edit"] as const).map((key) => ({
     key,

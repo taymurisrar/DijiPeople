@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Check, ChevronDown, Search, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   RuntimeFieldDefinition,
   RuntimeFormDefinition,
@@ -73,7 +74,7 @@ export function RuntimeForm({
           (field) =>
             field.section === section.key &&
             (!field.tab || field.tab === activeTab) &&
-            isVisible(field, values) &&
+            isVisible(field, values, mode) &&
             (!field.roles?.length ||
               field.roles.some((role) => roleKeys.includes(role))),
         );
@@ -100,10 +101,9 @@ export function RuntimeForm({
                 <RuntimeField
                   key={field.key}
                   field={field}
-                  value={values[field.key]}
+                  value={readRuntimeValue(values, field.key)}
                   values={values}
                   error={errors[field.key]}
-                  alignControl={section.columns !== 1}
                   readOnly={
                     mode === "read" ||
                     field.readOnly ||
@@ -126,7 +126,6 @@ function RuntimeField({
   value,
   values,
   error,
-  alignControl,
   readOnly,
   onChange,
   custom,
@@ -135,7 +134,6 @@ function RuntimeField({
   value: unknown;
   values: RuntimeValues;
   error?: string;
-  alignControl: boolean;
   readOnly: boolean;
   onChange: (value: unknown) => void;
   custom?: React.ReactNode;
@@ -179,20 +177,13 @@ function RuntimeField({
     );
   }
   return (
-    <label
+    <div
       data-field-key={field.key}
       className={`flex flex-col gap-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 ${span}`}
     >
-      <span className={alignControl ? "md:h-14" : undefined}>
-        <span className="block">
-          {field.label}
-          {required ? <span className="ml-1 text-rose-600">*</span> : null}
-        </span>
-        {field.description ? (
-          <span className="mt-1 block line-clamp-2 text-[11px] font-normal normal-case tracking-normal text-slate-400">
-            {field.description}
-          </span>
-        ) : null}
+      <span className="block min-h-4">
+        {field.label}
+        {required ? <span className="ml-1 text-rose-600">*</span> : null}
       </span>
       <FieldControl
         field={field}
@@ -206,7 +197,12 @@ function RuntimeField({
           {error}
         </span>
       ) : null}
-    </label>
+      {field.description ? (
+        <span className="text-[11px] font-normal leading-4 normal-case tracking-normal text-slate-400">
+          {field.description}
+        </span>
+      ) : null}
+    </div>
   );
 }
 function FieldControl({
@@ -278,11 +274,13 @@ function FieldControl({
     );
   if (field.type === "option" || field.type === "multiSelect")
     return (
-      <select
-        className={className}
+      <SearchableSelect
+        ariaLabel={field.label}
+        options={field.options ?? []}
         disabled={readOnly}
         required={required}
         multiple={field.type === "multiSelect"}
+        placeholder={`Select ${field.label.toLowerCase()}`}
         value={
           field.type === "multiSelect"
             ? Array.isArray(value)
@@ -290,25 +288,8 @@ function FieldControl({
               : []
             : String(value ?? "")
         }
-        onChange={(event) =>
-          onChange(
-            field.type === "multiSelect"
-              ? [...event.currentTarget.selectedOptions].map(
-                  (option) => option.value,
-                )
-              : event.target.value === "" && !required
-                ? null
-                : event.target.value,
-          )
-        }
-      >
-        <option value="">Select {field.label.toLowerCase()}</option>
-        {field.options?.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+        onChange={(next) => onChange(next || (required ? "" : null))}
+      />
     );
   if (field.type.includes("Lookup") || field.type === "lookup")
     return (
@@ -485,8 +466,9 @@ function RuntimeLookup({
   required: boolean;
   onChange: (value: unknown) => void;
 }) {
-  const [options, setOptions] = useState<RuntimeLookupOption[]>(field.options ?? []);
-  const [search, setSearch] = useState("");
+  const [options, setOptions] = useState<RuntimeLookupOption[]>(
+    field.options ?? [],
+  );
   const [lookupError, setLookupError] = useState<string | null>(null);
   const [loading, setLoading] = useState(Boolean(field.lookupPath));
   useEffect(() => {
@@ -504,7 +486,9 @@ function RuntimeLookup({
           | null;
         if (!response.ok) {
           throw new Error(
-            !Array.isArray(payload) ? payload?.message : "Unable to load lookup.",
+            !Array.isArray(payload)
+              ? payload?.message
+              : "Unable to load lookup.",
           );
         }
         return payload;
@@ -531,40 +515,19 @@ function RuntimeLookup({
       controller.abort();
     };
   }, [field.lookupPath]);
-  const normalizedSearch = search.trim().toLocaleLowerCase();
-  const filteredOptions = normalizedSearch
-    ? options.filter((option) =>
-        option.label.toLocaleLowerCase().includes(normalizedSearch),
-      )
-    : options;
   return (
     <div className="space-y-1.5 font-normal normal-case tracking-normal">
-      {!disabled && field.lookupPath ? (
-        <input
-          type="search"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder={`Search ${field.label.toLowerCase()}...`}
-          aria-label={`Search ${field.label}`}
-          className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-900 outline-none focus:border-[var(--admin-primary)] focus:ring-2 focus:ring-[var(--admin-primary)]/10"
-        />
-      ) : null}
-      <select
-      className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-normal normal-case tracking-normal"
-      disabled={disabled || loading}
-      required={required}
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-    >
-      <option value="">
-        {loading ? "Loading…" : `Select ${field.label.toLowerCase()}`}
-      </option>
-      {filteredOptions.map((option) => (
-        <option key={option.value} value={option.value}>
-          {option.label}
-        </option>
-      ))}
-      </select>
+      <SearchableSelect
+        ariaLabel={field.label}
+        options={options}
+        disabled={disabled || loading}
+        required={required}
+        value={value}
+        placeholder={
+          loading ? "Loading..." : `Select ${field.label.toLowerCase()}`
+        }
+        onChange={(next) => onChange(next || (required ? "" : null))}
+      />
       {lookupError ? (
         <p className="text-xs text-rose-700" role="alert">
           {lookupError}
@@ -574,12 +537,185 @@ function RuntimeLookup({
   );
 }
 
+function SearchableSelect({
+  ariaLabel,
+  options,
+  value,
+  placeholder,
+  disabled = false,
+  required = false,
+  multiple = false,
+  onChange,
+}: {
+  ariaLabel: string;
+  options: RuntimeLookupOption[];
+  value: string | string[];
+  placeholder: string;
+  disabled?: boolean;
+  required?: boolean;
+  multiple?: boolean;
+  onChange: (value: string | string[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const selected = Array.isArray(value) ? value : value ? [value] : [];
+  const selectedLabels = selected.map(
+    (item) => options.find((option) => option.value === item)?.label ?? item,
+  );
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  const filtered = normalizedQuery
+    ? options.filter((option) =>
+        `${option.label} ${option.value}`
+          .toLocaleLowerCase()
+          .includes(normalizedQuery),
+      )
+    : options;
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (event: PointerEvent) => {
+      if (rootRef.current?.contains(event.target as Node)) return;
+      setOpen(false);
+      setQuery("");
+    };
+    document.addEventListener("pointerdown", close);
+    return () => document.removeEventListener("pointerdown", close);
+  }, [open]);
+
+  function choose(next: string) {
+    if (multiple) {
+      onChange(
+        selected.includes(next)
+          ? selected.filter((item) => item !== next)
+          : [...selected, next],
+      );
+      return;
+    }
+    onChange(next);
+    setOpen(false);
+    setQuery("");
+  }
+
+  return (
+    <div
+      ref={rootRef}
+      className="relative font-normal normal-case tracking-normal"
+    >
+      <button
+        type="button"
+        aria-label={ariaLabel}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        disabled={disabled}
+        onClick={() => setOpen((current) => !current)}
+        className="flex min-h-10 w-full items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 text-left text-sm text-slate-900 outline-none transition focus:border-[var(--admin-primary)] focus:ring-2 focus:ring-[var(--admin-primary)]/10 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500"
+      >
+        <span
+          className={
+            selectedLabels.length ? "truncate" : "truncate text-slate-400"
+          }
+        >
+          {selectedLabels.length ? selectedLabels.join(", ") : placeholder}
+        </span>
+        <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
+      </button>
+      {open ? (
+        <div className="absolute z-50 mt-1.5 w-full min-w-56 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              autoFocus
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Escape") setOpen(false);
+                if (event.key === "Enter" && filtered[0]) {
+                  event.preventDefault();
+                  choose(filtered[0].value);
+                }
+              }}
+              placeholder={`Search ${ariaLabel.toLowerCase()}...`}
+              className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-8 text-sm text-slate-900 outline-none focus:border-[var(--admin-primary)]"
+            />
+            {query ? (
+              <button
+                type="button"
+                aria-label="Clear search"
+                onClick={() => setQuery("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 hover:bg-slate-200"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            ) : null}
+          </div>
+          <div
+            role="listbox"
+            aria-multiselectable={multiple || undefined}
+            className="mt-1 max-h-64 overflow-y-auto"
+          >
+            {!required && !multiple ? (
+              <button
+                type="button"
+                role="option"
+                aria-selected={!selected.length}
+                onClick={() => choose("")}
+                className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-slate-500 hover:bg-slate-50"
+              >
+                No selection
+                {!selected.length ? <Check className="h-4 w-4" /> : null}
+              </button>
+            ) : null}
+            {filtered.map((option) => {
+              const isSelected = selected.includes(option.value);
+              return (
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={isSelected}
+                  key={option.value}
+                  onClick={() => choose(option.value)}
+                  className="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+                >
+                  <span className="truncate">{option.label}</span>
+                  {isSelected ? (
+                    <Check className="h-4 w-4 shrink-0 text-[var(--admin-primary)]" />
+                  ) : null}
+                </button>
+              );
+            })}
+            {!filtered.length ? (
+              <p className="px-3 py-4 text-center text-sm text-slate-500">
+                No matching options.
+              </p>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function isAbortError(error: unknown) {
   return error instanceof DOMException && error.name === "AbortError";
 }
 
-function isVisible(field: RuntimeFieldDefinition, values: RuntimeValues) {
-  if (field.hidden) return false;
+function readRuntimeValue(values: RuntimeValues, path: string) {
+  if (path in values) return values[path];
+  return path.split(".").reduce<unknown>((current, part) => {
+    if (!current || typeof current !== "object" || Array.isArray(current))
+      return undefined;
+    return (current as Record<string, unknown>)[part];
+  }, values);
+}
+
+function isVisible(
+  field: RuntimeFieldDefinition,
+  values: RuntimeValues,
+  mode?: "create" | "read" | "edit",
+) {
+  if (field.hidden || (mode === "create" && field.hideOnCreate)) return false;
   if (!field.visibleWhen) return true;
   return values[field.visibleWhen.field] === field.visibleWhen.equals;
 }

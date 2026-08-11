@@ -10,7 +10,7 @@ import { JwtService } from '@nestjs/jwt';
 import { PlatformUser, Prisma } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import type { Request, Response } from 'express';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import type { StringValue } from 'ms';
 import { FOUNDATION_PERMISSION_DEFINITIONS } from '../../common/constants/permissions';
 import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
@@ -50,6 +50,7 @@ import { LoginLockoutService } from './login-lockout.service';
 import { PasswordPolicyService } from './password-policy.service';
 import { platformAccessForRole } from '../platform-auth/platform-permissions';
 import { AdminLoginDto } from './dto/admin-login.dto';
+import { PlatformCommunicationsService } from '../platform-communications/platform-communications.service';
 
 type UserWithAccess = Prisma.UserGetPayload<{
   include: {
@@ -129,6 +130,7 @@ export class AuthService {
     private readonly userInvitationsService: UserInvitationsService,
     private readonly authAccessService: AuthAccessService,
     private readonly emailService: EmailService,
+    private readonly platformCommunications: PlatformCommunicationsService,
     private readonly auditService: AuditService,
     private readonly passwordPolicyService: PasswordPolicyService,
     private readonly loginLockoutService: LoginLockoutService,
@@ -274,6 +276,123 @@ export class AuthService {
     ]);
 
     return authResponse;
+  }
+
+  async requestAdminPasswordReset(dto: ForgotPasswordDto) {
+    const email = normalizeEmail(dto.email);
+    const user = await this.prisma.platformUser.findUnique({ where: { email } });
+    const response = {
+      ok: true,
+      message:
+        'If an active admin account exists for this email, a password reset link will be sent.',
+    };
+
+    if (!user || user.status !== 'ACTIVE') return response;
+
+    const passwordVersion = createHash('sha256')
+      .update(user.passwordHash)
+      .digest('hex');
+    const resetToken = this.jwtService.sign(
+      {
+        sub: user.id,
+        type: 'admin-password-reset',
+        authSubjectType: 'platform-user',
+        passwordVersion,
+      },
+      {
+        secret: getClientAccessTokenSecret(this.configService, 'admin'),
+        expiresIn: '1h',
+      },
+    );
+    const resetUrl = `${getAppOrigin('admin', process.env)}/reset-password?token=${encodeURIComponent(resetToken)}`;
+    const displayName = `${user.firstName} ${user.lastName}`.trim() || 'Administrator';
+
+    await this.platformCommunications.sendEmail({
+      eventCode: 'ADMIN_PASSWORD_RESET',
+      recipient: email,
+      subject: 'Reset your DijiPeople Platform Admin password',
+      html: `<p>Hello ${displayName},</p><p>We received a request to reset your DijiPeople Platform Admin password.</p><p><a href="${resetUrl}">Reset admin password</a></p><p>This secure link expires in one hour and can only be used once.</p><p>If you did not request this, you can ignore this email.</p>`,
+      text: `Hello ${displayName},\n\nReset your DijiPeople Platform Admin password: ${resetUrl}\n\nThis secure link expires in one hour and can only be used once.`,
+      entityType: 'PlatformUser',
+      entityId: user.id,
+      requestedById: user.id,
+      metadata: { source: 'admin-forgot-password', expiresIn: '1 hour' },
+      idempotencyKey: `admin-password-reset:${user.id}:${passwordVersion}:${Math.floor(Date.now() / 60_000)}`,
+    });
+
+    return response;
+  }
+
+  async resetAdminPassword(token: string, password: string) {
+    let payload: {
+      sub?: string;
+      type?: string;
+      authSubjectType?: string;
+      passwordVersion?: string;
+    };
+    try {
+      payload = this.jwtService.verify(token, {
+        secret: getClientAccessTokenSecret(this.configService, 'admin'),
+      });
+    } catch {
+      throw new UnauthorizedException(
+        'This admin password reset link is invalid or expired.',
+      );
+    }
+
+    if (
+      payload.type !== 'admin-password-reset' ||
+      payload.authSubjectType !== 'platform-user' ||
+      !payload.sub ||
+      !payload.passwordVersion
+    ) {
+      throw new UnauthorizedException(
+        'This admin password reset link is invalid or expired.',
+      );
+    }
+
+    const user = await this.prisma.platformUser.findUnique({
+      where: { id: payload.sub },
+    });
+    const currentVersion = user
+      ? createHash('sha256').update(user.passwordHash).digest('hex')
+      : '';
+    if (
+      !user ||
+      user.status !== 'ACTIVE' ||
+      currentVersion !== payload.passwordVersion
+    ) {
+      throw new UnauthorizedException(
+        'This admin password reset link is invalid or has already been used.',
+      );
+    }
+
+    await this.passwordPolicyService.assertPasswordMeetsPolicy(
+      'platform',
+      password,
+    );
+    if (await bcrypt.compare(password, user.passwordHash)) {
+      throw new ForbiddenException(
+        'Choose a password that is different from your current password.',
+      );
+    }
+
+    const passwordHash = await bcrypt.hash(password, 12);
+    await this.prisma.$transaction([
+      this.prisma.platformUser.update({
+        where: { id: user.id },
+        data: { passwordHash, updatedById: user.id },
+      }),
+      this.prisma.platformRefreshToken.updateMany({
+        where: { platformUserId: user.id, revokedAt: null },
+        data: { revokedAt: new Date(), updatedById: user.id },
+      }),
+    ]);
+
+    return {
+      ok: true,
+      message: 'Your admin password has been reset. You can now sign in.',
+    };
   }
 
   async refresh(

@@ -15,6 +15,8 @@ export const SESSION_COOKIE =
   process.env.ADMIN_SESSION_COOKIE ??
   `${AUTH_COOKIE_PREFIX}_session_id`;
 export const LOGIN_ROUTE = "/login";
+export const FORGOT_PASSWORD_ROUTE = "/forgot-password";
+export const RESET_PASSWORD_ROUTE = "/reset-password";
 export const DEFAULT_ADMIN_ROUTE = "/tenants";
 export const ACCESS_DENIED_ROUTE = "/access-denied";
 
@@ -67,7 +69,9 @@ export function isProtectedAdminRoute(pathname: string): boolean {
 }
 
 export function isAdminAuthRoute(pathname: string): boolean {
-  return normalizePath(pathname) === LOGIN_ROUTE;
+  return [LOGIN_ROUTE, FORGOT_PASSWORD_ROUTE, RESET_PASSWORD_ROUTE].includes(
+    normalizePath(pathname),
+  );
 }
 
 export function getApiBaseUrl(): string {

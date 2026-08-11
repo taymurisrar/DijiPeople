@@ -23,6 +23,7 @@ import { LoginLockoutService } from './login-lockout.service';
 import { PasswordPolicyService } from './password-policy.service';
 import { AuthService } from './auth.service';
 import { UserInvitationsService } from './user-invitations.service';
+import { PlatformCommunicationsModule } from '../platform-communications/platform-communications.module';
 
 @Global()
 @Module({
@@ -45,6 +46,7 @@ import { UserInvitationsService } from './user-invitations.service';
     AuditModule,
     TenantSettingsModule,
     NotificationsModule,
+    PlatformCommunicationsModule,
   ],
   controllers: [AuthController, AdminAuthController],
   providers: [

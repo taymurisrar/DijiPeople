@@ -5,6 +5,8 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { AuthService } from './auth.service';
 import { AdminLoginDto } from './dto/admin-login.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Controller('admin/auth')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -32,5 +34,17 @@ export class AdminAuthController {
       user: result.user,
       tokens: result.tokens,
     };
+  }
+
+  @Public()
+  @Post('forgot-password')
+  forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.requestAdminPasswordReset(dto);
+  }
+
+  @Public()
+  @Post('reset-password')
+  resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetAdminPassword(dto.token, dto.password);
   }
 }

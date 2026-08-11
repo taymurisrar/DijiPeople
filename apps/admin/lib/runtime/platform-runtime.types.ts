@@ -145,6 +145,7 @@ export type RuntimeFieldDefinition = {
   required?: boolean;
   readOnly?: boolean;
   hidden?: boolean;
+  hideOnCreate?: boolean;
   options?: Array<{ value: string; label: string }>;
   lookupModule?: PlatformModuleKey;
   lookupPath?: string;
@@ -176,6 +177,7 @@ export type RuntimeFormDefinition = {
 export type RuntimeActionDefinition = {
   key: RuntimeActionKey;
   label: string;
+  icon?: string;
   placement?: "primary" | "secondary" | "overflow";
   scope: "list" | "record" | "both";
   permission?: string;

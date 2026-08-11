@@ -8,6 +8,7 @@ import {
   Download,
   Edit3,
   FileSignature,
+  Handshake,
   LoaderCircle,
   MoreHorizontal,
   Plus,
@@ -15,8 +16,10 @@ import {
   Save,
   Send,
   Trash2,
+  UserRoundPlus,
   UserRoundCheck,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import type { RuntimeActionDefinition } from "@/lib/runtime/platform-runtime.types";
 
@@ -148,7 +151,7 @@ export function ModuleActionBar({
                       onClick={() => execute(action)}
                       className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40 ${action.destructive ? "text-rose-700 hover:bg-rose-50" : "text-slate-700 hover:bg-slate-50"}`}
                     >
-                      {iconFor(action.key)}
+                      {iconFor(action)}
                       {action.label}
                     </button>
                   ))}
@@ -236,7 +239,7 @@ function ActionButton({
       {busy ? (
         <LoaderCircle className="h-4 w-4 animate-spin" />
       ) : (
-        iconFor(action.key)
+        iconFor(action)
       )}
       {action.label}
     </button>
@@ -296,32 +299,42 @@ function disabledReason(
     return "No changes to save.";
   return null;
 }
-function iconFor(key: string) {
+const ACTION_ICONS: Record<string, LucideIcon> = {
+  back: ArrowLeft,
+  new: Plus,
+  edit: Edit3,
+  save: Save,
+  delete: Trash2,
+  refresh: RefreshCw,
+  export: Download,
+  send: Send,
+  approve: UserRoundCheck,
+  reject: CircleX,
+  document: FileSignature,
+  qualify: UserRoundCheck,
+  disqualify: CircleX,
+  convert: UserRoundPlus,
+  agreement: Handshake,
+  check: Check,
+};
+
+function iconFor(action: RuntimeActionDefinition) {
+  const semanticIcon = action.icon?.trim().toLowerCase();
+  const key = String(action.key).toLowerCase();
+  const inferredIcon = key.includes("delete")
+    ? "delete"
+    : key.includes("save")
+      ? "save"
+      : key.includes("send") || key.includes("resend")
+        ? "send"
+        : key.includes("agreement")
+          ? "agreement"
+          : key.includes("document")
+            ? "document"
+            : key;
   const Icon =
-    key === "back"
-      ? ArrowLeft
-      : key === "new"
-        ? Plus
-        : key === "edit"
-          ? Edit3
-          : key === "save" || key === "save-close"
-            ? Save
-            : key.includes("delete")
-              ? Trash2
-              : key === "refresh"
-                ? RefreshCw
-                : key === "export"
-                  ? Download
-                  : key === "send" ||
-                      key === "resend" ||
-                      key === "send-signature"
-                    ? Send
-                    : key === "approve" || key === "activate"
-                      ? UserRoundCheck
-                      : key === "reject" || key === "deactivate"
-                        ? CircleX
-                        : key === "generate-document"
-                          ? FileSignature
-                          : Check;
+    (semanticIcon ? ACTION_ICONS[semanticIcon] : undefined) ??
+    ACTION_ICONS[inferredIcon] ??
+    ACTION_ICONS.check!;
   return <Icon className="h-4 w-4" />;
 }

@@ -2,6 +2,7 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { sanitizeAdminNextPath } from "@/lib/auth-config";
 
 type LoginResponse = {
@@ -26,6 +27,7 @@ export function AdminLoginForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const sessionExpired = searchParams.get("reason") === SESSION_EXPIRED_REASON;
+  const passwordReset = searchParams.get("reason") === "password-reset-success";
 
   const nextPath = useMemo(() => {
     return sanitizeAdminNextPath(searchParams.get("next"));
@@ -109,6 +111,12 @@ export function AdminLoginForm() {
         </div>
       ) : null}
 
+      {passwordReset ? (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          Your password was reset successfully. Sign in with your new password.
+        </div>
+      ) : null}
+
       {error ? (
         <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           <p className="font-semibold">Unable to sign in</p>
@@ -136,12 +144,14 @@ export function AdminLoginForm() {
       </div>
 
       <div className="space-y-2">
-        <label
-          htmlFor="admin-password"
-          className="text-sm font-medium text-slate-900"
-        >
-          Password
-        </label>
+        <div className="flex items-center justify-between gap-3">
+          <label htmlFor="admin-password" className="text-sm font-medium text-slate-900">
+            Password
+          </label>
+          <Link className="text-sm font-semibold text-emerald-800 hover:text-emerald-600" href="/forgot-password">
+            Forgot password?
+          </Link>
+        </div>
         <input
           id="admin-password"
           className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-slate-500 focus:ring-4 focus:ring-slate-100 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500"

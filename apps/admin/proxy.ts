@@ -95,7 +95,7 @@ export async function proxy(request: NextRequest) {
       return response;
     }
 
-    if (isAuthRoute && isAuthenticated) {
+    if (pathname === LOGIN_ROUTE && isAuthenticated) {
       const redirectUrl = new URL(DEFAULT_ADMIN_ROUTE, request.url);
       logAuthRedirect({
         pathname,
@@ -418,5 +418,7 @@ export const config = {
     "/signature-requests/:path*",
     "/support/:path*",
     "/login",
+    "/forgot-password",
+    "/reset-password",
   ],
 };

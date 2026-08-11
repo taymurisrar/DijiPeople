@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   KeyRound,
   MailCheck,
+  MailWarning,
   PlugZap,
   RotateCcw,
   Save,
@@ -232,6 +233,20 @@ export function PlatformEmailSettingsWorkspace({
 
           {form.providerType === "SMTP" ? (
             <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+              {form.smtpHost.toLowerCase().includes("sandbox.smtp.mailtrap.io") ? (
+                <div className="mb-5 flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                  <MailWarning className="mt-0.5 h-5 w-5 shrink-0" />
+                  <div>
+                    <p className="font-semibold">Sandbox delivery is active</p>
+                    <p className="mt-1 leading-5 text-amber-800">
+                      Mailtrap Sandbox captures messages in its test inbox; it
+                      does not deliver them to the recipient&apos;s real mailbox.
+                      Use a Mailtrap Sending SMTP credential or another
+                      production relay for external delivery.
+                    </p>
+                  </div>
+                </div>
+              ) : null}
               <div className="flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 text-[var(--admin-primary)]" />
                 <h3 className="text-sm font-semibold text-slate-950">
