@@ -380,10 +380,10 @@ export function ContractDocumentEditor({
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 shadow-sm">
+    <div className="overflow-visible rounded-2xl border border-slate-200 bg-slate-100 shadow-sm">
       {!readOnly ? (
         <div
-          className="sticky top-0 z-20 flex flex-wrap items-center gap-1 border-b border-slate-200 bg-white p-2"
+          className="sticky top-2 z-30 flex flex-wrap items-center gap-1 rounded-t-2xl border-b border-slate-200 bg-white/95 p-2 shadow-sm backdrop-blur"
           role="toolbar"
           aria-label="Document formatting"
         >

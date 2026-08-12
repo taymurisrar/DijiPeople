@@ -7,6 +7,10 @@ import {
   renderContractPlaceholders,
   validateContractPlaceholderValues,
 } from './contracts.service';
+import { CreateContractTemplateDto } from './dto/contracts.dto';
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
+import { ContractType } from '@prisma/client';
 import {
   Document,
   HeadingLevel,
@@ -21,6 +25,21 @@ import {
 } from 'docx';
 
 describe('contract document domain', () => {
+  it('accepts a change summary when the first template version is saved', async () => {
+    const dto = plainToInstance(CreateContractTemplateDto, {
+      key: 'SERVICE_AGREEMENT',
+      name: 'Service agreement',
+      contractType: ContractType.SERVICE_AGREEMENT,
+      title: 'Services',
+      contentHtml: '<h1>Services</h1>',
+      changeSummary: 'Initial approved wording',
+    });
+
+    await expect(
+      validate(dto, { whitelist: true, forbidNonWhitelisted: true }),
+    ).resolves.toHaveLength(0);
+  });
+
   it('sanitizes unsafe content while preserving supported document formatting', () => {
     const result = cleanContractHtml(
       '<script>alert(1)</script><p style="text-align: center; font-size: 16px; position: fixed">Hello</p><a href="javascript:alert(1)">bad</a><hr data-page-break="true">',

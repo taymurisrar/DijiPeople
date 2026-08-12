@@ -12,6 +12,68 @@ const platformAdmin = {
 } as never;
 
 describe('contract and signature workflow guards', () => {
+  it('publishes one current template version and retains version metadata', async () => {
+    const tx = {
+      contractTemplateVersion: {
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+        create: jest.fn().mockResolvedValue({ id: 'version-2', version: 2 }),
+      },
+      contractTemplate: { update: jest.fn().mockResolvedValue({}) },
+    };
+    const prisma = {
+      contractTemplate: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'template-1',
+          lifecycleGatePurpose: 'CUSTOMER_ACTIVATION',
+          versions: [{ version: 1 }],
+        }),
+      },
+      $transaction: jest.fn(async (operation: (client: typeof tx) => unknown) =>
+        operation(tx),
+      ),
+    };
+    const service = new ContractsService(
+      prisma as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+
+    await service.createTemplateVersion(platformAdmin, 'template-1', {
+      title: 'Version two',
+      contentHtml: '<h1>Version two</h1>',
+      changeSummary: 'Restored and revised',
+      publish: true,
+      lifecycleGatePurpose: 'TENANT_ACTIVATION',
+      partyDefinitions: [
+        { role: 'Authorized signatory', required: true, signingOrder: 1 },
+      ],
+      signingConfig: { requiredSignerRoles: ['Authorized signatory'] },
+    });
+
+    expect(tx.contractTemplateVersion.updateMany).toHaveBeenCalledWith({
+      where: { templateId: 'template-1', isPublished: true },
+      data: { isPublished: false, publishedAt: null },
+    });
+    expect(tx.contractTemplateVersion.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          version: 2,
+          changeSummary: 'Restored and revised',
+          isPublished: true,
+          lifecycleGatePurpose: 'TENANT_ACTIVATION',
+        }),
+      }),
+    );
+    expect(tx.contractTemplate.update).toHaveBeenCalledWith({
+      where: { id: 'template-1' },
+      data: {
+        lifecycleGatePurpose: 'TENANT_ACTIVATION',
+        updatedById: 'user-1',
+      },
+    });
+  });
+
   it('creates a lead agreement without requiring a customer account and preserves the lead link', async () => {
     const prisma = {
       platformSetting: { findUnique: jest.fn().mockResolvedValue(null) },

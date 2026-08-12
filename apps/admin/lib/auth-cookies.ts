@@ -23,7 +23,10 @@ export const REFRESH_TOKEN_MAX_AGE_SECONDS = Math.floor(
 
 export function getAuthCookieOptions(
   maxAge: number,
-): Pick<ResponseCookie, "httpOnly" | "sameSite" | "secure" | "path" | "maxAge" | "domain"> {
+): Pick<
+  ResponseCookie,
+  "httpOnly" | "sameSite" | "secure" | "path" | "maxAge" | "domain"
+> {
   const isProduction = process.env.NODE_ENV === "production";
   const domain =
     process.env.ADMIN_COOKIE_DOMAIN ||
@@ -57,6 +60,16 @@ export function getAuthCookieOptions(
     maxAge,
     ...(domain ? { domain } : {}),
   };
+}
+
+export function getSessionAuthCookieOptions(): Omit<
+  ReturnType<typeof getAuthCookieOptions>,
+  "maxAge"
+> {
+  const { maxAge: _maxAge, ...options } = getAuthCookieOptions(
+    ACCESS_TOKEN_MAX_AGE_SECONDS,
+  );
+  return options;
 }
 
 export function getAuthCookieDiagnostics(maxAge: number) {

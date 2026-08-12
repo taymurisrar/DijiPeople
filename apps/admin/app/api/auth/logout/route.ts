@@ -4,6 +4,7 @@ import {
   ACCESS_TOKEN_COOKIE,
   AUTH_APP_CLIENT_ID,
   REFRESH_TOKEN_COOKIE,
+  REMEMBER_ME_COOKIE,
   SESSION_COOKIE,
   getApiBaseUrl,
 } from "@/lib/auth-config";
@@ -47,9 +48,9 @@ export async function POST() {
   cookieStore.set(SESSION_COOKIE, "", {
     ...getClearAuthCookieOptions(),
   });
+  cookieStore.set(REMEMBER_ME_COOKIE, "", {
+    ...getClearAuthCookieOptions(),
+  });
 
-  return NextResponse.json(
-    { ok: true },
-    { status: 200 }
-  );
+  return NextResponse.json({ ok: true }, { status: 200 });
 }

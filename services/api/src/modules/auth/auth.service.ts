@@ -280,7 +280,9 @@ export class AuthService {
 
   async requestAdminPasswordReset(dto: ForgotPasswordDto) {
     const email = normalizeEmail(dto.email);
-    const user = await this.prisma.platformUser.findUnique({ where: { email } });
+    const user = await this.prisma.platformUser.findUnique({
+      where: { email },
+    });
     const response = {
       ok: true,
       message:
@@ -305,7 +307,8 @@ export class AuthService {
       },
     );
     const resetUrl = `${getAppOrigin('admin', process.env)}/reset-password?token=${encodeURIComponent(resetToken)}`;
-    const displayName = `${user.firstName} ${user.lastName}`.trim() || 'Administrator';
+    const displayName =
+      `${user.firstName} ${user.lastName}`.trim() || 'Administrator';
 
     await this.platformCommunications.sendEmail({
       eventCode: 'ADMIN_PASSWORD_RESET',
@@ -1583,11 +1586,15 @@ export class AuthService {
     }
 
     const rotateRefresh = isRefreshRotationEnabled(this.configService);
-    const authResponse = this.buildPlatformAuthResponse(user, false, {
-      clientId,
-      sessionId: payload.sessionId,
-      refreshTokenOverride: rotateRefresh ? undefined : refreshToken,
-    });
+    const authResponse = this.buildPlatformAuthResponse(
+      user,
+      payload.rememberMe ?? false,
+      {
+        clientId,
+        sessionId: payload.sessionId,
+        refreshTokenOverride: rotateRefresh ? undefined : refreshToken,
+      },
+    );
 
     if (rotateRefresh) {
       await this.rotatePlatformRefreshToken(
@@ -1888,6 +1895,7 @@ export class AuthService {
       aud: clientId,
       authSubjectType: 'platform-user',
       platformRole: user.role,
+      rememberMe,
     };
 
     const accessTokenTtl = rememberMe
@@ -1917,6 +1925,7 @@ export class AuthService {
           aud: clientId,
           authSubjectType: 'platform-user',
           platformRole: user.role,
+          rememberMe,
         } satisfies AuthTokenPayload,
         {
           secret: getClientRefreshTokenSecret(this.configService, clientId),
@@ -1950,6 +1959,7 @@ export class AuthService {
         sessionId,
         accessTokenExpiresIn: accessTokenTtl,
         refreshTokenExpiresIn: refreshTokenTtl,
+        rememberMe,
       },
     };
   }

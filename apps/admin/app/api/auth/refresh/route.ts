@@ -4,6 +4,7 @@ import {
   ACCESS_TOKEN_COOKIE,
   AUTH_APP_CLIENT_ID,
   REFRESH_TOKEN_COOKIE,
+  REMEMBER_ME_COOKIE,
   SESSION_COOKIE,
   getApiBaseUrl,
 } from "@/lib/auth-config";
@@ -19,8 +20,9 @@ type JsonRecord = Record<string, unknown>;
 export async function POST() {
   const cookieStore = await cookies();
   const refreshToken = cookieStore.get(REFRESH_TOKEN_COOKIE)?.value;
+  const remembered = cookieStore.get(REMEMBER_ME_COOKIE)?.value === "true";
 
-  if (!refreshToken) {
+  if (!refreshToken || !remembered) {
     return clearSessionResponse();
   }
 
@@ -76,6 +78,11 @@ export async function POST() {
       getAuthCookieOptions(REFRESH_TOKEN_MAX_AGE_SECONDS),
     );
   }
+  nextResponse.cookies.set(
+    REMEMBER_ME_COOKIE,
+    "true",
+    getAuthCookieOptions(REFRESH_TOKEN_MAX_AGE_SECONDS),
+  );
 
   return nextResponse;
 }
@@ -92,5 +99,6 @@ function clearSessionResponse() {
   response.cookies.set(ACCESS_TOKEN_COOKIE, "", getClearAuthCookieOptions());
   response.cookies.set(REFRESH_TOKEN_COOKIE, "", getClearAuthCookieOptions());
   response.cookies.set(SESSION_COOKIE, "", getClearAuthCookieOptions());
+  response.cookies.set(REMEMBER_ME_COOKIE, "", getClearAuthCookieOptions());
   return response;
 }

@@ -61,6 +61,7 @@ export class CreateContractTemplateDto {
   @IsOptional() @IsArray() fieldDefinitions?: Array<Record<string, unknown>>;
   @IsOptional() @IsArray() partyDefinitions?: Array<Record<string, unknown>>;
   @IsOptional() @IsObject() signingConfig?: Record<string, unknown>;
+  @IsOptional() @IsString() @MaxLength(1000) changeSummary?: string;
 }
 
 export class CreateContractTemplateVersionDto {

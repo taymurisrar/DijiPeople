@@ -1,4 +1,7 @@
-import { getApiBaseUrl as getSharedApiBaseUrl, getAppOrigin } from "@repo/config";
+import {
+  getApiBaseUrl as getSharedApiBaseUrl,
+  getAppOrigin,
+} from "@repo/config";
 
 export const AUTH_APP_CLIENT_ID = "admin";
 const AUTH_COOKIE_PREFIX = process.env.AUTH_ADMIN_COOKIE_PREFIX ?? "dp_admin";
@@ -14,6 +17,9 @@ export const SESSION_COOKIE =
   process.env.AUTH_ADMIN_COOKIE_SESSION_NAME ??
   process.env.ADMIN_SESSION_COOKIE ??
   `${AUTH_COOKIE_PREFIX}_session_id`;
+export const REMEMBER_ME_COOKIE =
+  process.env.AUTH_ADMIN_COOKIE_REMEMBER_NAME ??
+  `${AUTH_COOKIE_PREFIX}_remember_me`;
 export const LOGIN_ROUTE = "/login";
 export const FORGOT_PASSWORD_ROUTE = "/forgot-password";
 export const RESET_PASSWORD_ROUTE = "/reset-password";

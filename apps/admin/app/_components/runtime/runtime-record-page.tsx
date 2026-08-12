@@ -474,9 +474,7 @@ function RuntimeRecordEditor({
           counterpartyName={String(form.values.counterpartyName ?? "")}
           counterpartyEmail={String(form.values.counterpartyEmail ?? "")}
           parties={agreementParties(form.values.parties)}
-          allowChangeRequests={
-            form.values.allowChangeRequests !== false
-          }
+          allowChangeRequests={form.values.allowChangeRequests !== false}
           onClose={() => setSignatureOpen(false)}
           onComplete={reloadRecord}
         />
@@ -1709,6 +1707,13 @@ function SignatureRequestDialog({
           payload?.message ?? "Unable to send signature request.",
         );
       await onComplete();
+      const failedDeliveries = Number(payload?.emailDelivery?.failed ?? 0);
+      if (failedDeliveries > 0) {
+        setError(
+          `${failedDeliveries} signature email${failedDeliveries === 1 ? "" : "s"} could not be delivered. The request was created and queued for retry; use the Signature requests tab to resend if needed.`,
+        );
+        return;
+      }
       onClose();
     } catch (reason) {
       setError(
@@ -1741,7 +1746,7 @@ function SignatureRequestDialog({
         <div className="mt-5 space-y-3">
           {recipients.map((recipient, index) => (
             <div
-              key={recipient.partyId ?? index}
+              key={`${recipient.partyId ?? "unassigned"}-${index}`}
               className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-2"
             >
               <DialogField
@@ -1794,6 +1799,41 @@ function SignatureRequestDialog({
                 />{" "}
                 Required signature
               </label>
+              <div className="flex flex-wrap gap-2 sm:col-span-2">
+                {recipient.partyId ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setRecipients((items) => [
+                        ...items.slice(0, index + 1),
+                        {
+                          ...recipient,
+                          name: "",
+                          email: "",
+                        },
+                        ...items.slice(index + 1),
+                      ])
+                    }
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700"
+                  >
+                    Add another signer for this party
+                  </button>
+                ) : null}
+                {recipients.filter((item) => item.partyId === recipient.partyId)
+                  .length > 1 ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setRecipients((items) =>
+                        items.filter((_item, itemIndex) => itemIndex !== index),
+                      )
+                    }
+                    className="rounded-lg border border-rose-200 bg-white px-3 py-2 text-xs font-semibold text-rose-700"
+                  >
+                    Remove signer
+                  </button>
+                ) : null}
+              </div>
             </div>
           ))}
           <div className="grid gap-4 sm:grid-cols-2">

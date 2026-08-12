@@ -2154,12 +2154,7 @@ const definitions: PlatformModuleDefinition[] = [
       ),
       field("counterpartyEmail", "Counterparty email", "email", "counterparty"),
       {
-        ...field(
-          "partnerId",
-          "Partner / referral partner",
-          "lookup",
-          "counterparty",
-        ),
+        ...field("partnerId", "Partner", "lookup", "counterparty"),
         lookupPath: "/partners",
         visibleWhenAny: [
           { field: "counterpartyType", equals: "PARTNER" },
@@ -2170,7 +2165,10 @@ const definitions: PlatformModuleDefinition[] = [
       {
         ...field("customerAccountId", "Customer", "lookup", "counterparty"),
         lookupPath: "/super-admin/customers",
-        visibleWhen: { field: "counterpartyType", equals: "CUSTOMER" },
+        visibleWhenAny: [
+          { field: "counterpartyType", equals: "CUSTOMER" },
+          { field: "customerAccountId", hasValue: true },
+        ],
       },
       {
         ...field(
@@ -2185,12 +2183,18 @@ const definitions: PlatformModuleDefinition[] = [
       {
         ...field("tenantId", "Tenant", "lookup", "counterparty"),
         lookupPath: "/super-admin/tenants",
-        visibleWhen: { field: "counterpartyType", equals: "TENANT" },
+        visibleWhenAny: [
+          { field: "counterpartyType", equals: "TENANT" },
+          { field: "tenantId", hasValue: true },
+        ],
       },
       {
         ...field("relatedLeadId", "Related lead", "lookup", "counterparty"),
         lookupPath: "/super-admin/leads?pageSize=100",
-        visibleWhen: { field: "counterpartyType", equals: "LEAD" },
+        visibleWhenAny: [
+          { field: "counterpartyType", equals: "LEAD" },
+          { field: "relatedLeadId", hasValue: true },
+        ],
       },
       {
         ...field(

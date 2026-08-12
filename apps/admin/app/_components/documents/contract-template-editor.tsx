@@ -24,13 +24,35 @@ type Template = {
     title: string;
     contentHtml: string;
     changeSummary?: string;
+    lifecycleGatePurpose?: string;
+    partyDefinitions?: Array<Record<string, unknown>>;
+    signingConfig?: Record<string, unknown>;
     isPublished: boolean;
     createdAt: string;
   }>;
 };
 
 const moduleDefinition = getPlatformModuleDefinition("contract-templates");
-const contractTypes = ["PARTNER_AGREEMENT","MASTER_PARTNER_AGREEMENT","COMMISSION_ADDENDUM","TERRITORY_ADDENDUM","REFERRAL_ADDENDUM","CUSTOMER_AGREEMENT","MASTER_SERVICES_AGREEMENT","SUBSCRIPTION_AGREEMENT","DATA_PROCESSING_AGREEMENT","SLA","STATEMENT_OF_WORK","NDA","SERVICE_AGREEMENT","ADDENDUM","AMENDMENT","RENEWAL","TERMINATION","OTHER"];
+const contractTypes = [
+  "PARTNER_AGREEMENT",
+  "MASTER_PARTNER_AGREEMENT",
+  "COMMISSION_ADDENDUM",
+  "TERRITORY_ADDENDUM",
+  "REFERRAL_ADDENDUM",
+  "CUSTOMER_AGREEMENT",
+  "MASTER_SERVICES_AGREEMENT",
+  "SUBSCRIPTION_AGREEMENT",
+  "DATA_PROCESSING_AGREEMENT",
+  "SLA",
+  "STATEMENT_OF_WORK",
+  "NDA",
+  "SERVICE_AGREEMENT",
+  "ADDENDUM",
+  "AMENDMENT",
+  "RENEWAL",
+  "TERMINATION",
+  "OTHER",
+];
 
 export function ContractTemplateEditor({
   templateId,
@@ -61,7 +83,9 @@ export function ContractTemplateEditor({
   const [description, setDescription] = useState("");
   const [signingMode, setSigningMode] = useState("MIXED");
   const [lifecycleGatePurpose, setLifecycleGatePurpose] = useState("");
-  const [requiredSignerRoles, setRequiredSignerRoles] = useState("Authorized signatory");
+  const [requiredSignerRoles, setRequiredSignerRoles] = useState(
+    "Authorized signatory",
+  );
   const [title, setTitle] = useState("");
   const [html, setHtml] = useState(
     "<h1>{{contract.title}}</h1><p>This agreement is between {{platform.legalName}} and {{counterparty.name}}.</p>",
@@ -71,8 +95,22 @@ export function ContractTemplateEditor({
   const [dirty, setDirty] = useState(!templateId);
   const [loadError, setLoadError] = useState("");
   const [samplePreview, setSamplePreview] = useState(false);
-  const [placeholderExamples, setPlaceholderExamples] = useState<Record<string, string>>({});
-  const previewHtml = useMemo(() => samplePreview ? html.replace(/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g, (token, key: string) => placeholderExamples[key] || token) : html, [html, placeholderExamples, samplePreview]);
+  const [editingHtmlBeforePreview, setEditingHtmlBeforePreview] = useState<
+    string | null
+  >(null);
+  const [placeholderExamples, setPlaceholderExamples] = useState<
+    Record<string, string>
+  >({});
+  const previewHtml = useMemo(
+    () =>
+      samplePreview
+        ? html.replace(
+            /\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g,
+            (token, key: string) => placeholderExamples[key] || token,
+          )
+        : html,
+    [html, placeholderExamples, samplePreview],
+  );
 
   const load = useCallback(async () => {
     if (!templateId) return;
@@ -93,6 +131,11 @@ export function ContractTemplateEditor({
     const latest = template.versions[0];
     setTitle(latest?.title ?? template.name);
     setHtml(latest?.contentHtml ?? "");
+    setLifecycleGatePurpose(
+      latest?.lifecycleGatePurpose ?? template.lifecycleGatePurpose ?? "",
+    );
+    setRequiredSignerRoles(signerRolesForVersion(latest));
+    setPublish(latest?.isPublished ?? false);
     setSummary("");
     setDirty(false);
     setLoadError("");
@@ -110,7 +153,9 @@ export function ContractTemplateEditor({
       }))
       .then(({ response, data }) => {
         if (!response.ok) {
-          setLoadError(data?.message ?? "Unable to load the contract template.");
+          setLoadError(
+            data?.message ?? "Unable to load the contract template.",
+          );
           return;
         }
         const template = data as Template;
@@ -124,6 +169,11 @@ export function ContractTemplateEditor({
         const latest = template.versions[0];
         setTitle(latest?.title ?? template.name);
         setHtml(latest?.contentHtml ?? "");
+        setLifecycleGatePurpose(
+          latest?.lifecycleGatePurpose ?? template.lifecycleGatePurpose ?? "",
+        );
+        setRequiredSignerRoles(signerRolesForVersion(latest));
+        setPublish(latest?.isPublished ?? false);
         setSummary("");
         setDirty(false);
         setLoadError("");
@@ -137,9 +187,25 @@ export function ContractTemplateEditor({
 
   useEffect(() => {
     const controller = new AbortController();
-    fetch("/api/contracts/placeholder-definitions", { signal: controller.signal })
-      .then(response => response.ok ? response.json() : null)
-      .then((payload: { items?: Array<{ key: string; exampleValue?: string }> } | null) => setPlaceholderExamples(Object.fromEntries((payload?.items ?? []).map(item => [item.key, item.exampleValue ?? ""]))))
+    fetch("/api/contracts/placeholder-definitions", {
+      signal: controller.signal,
+    })
+      .then((response) => (response.ok ? response.json() : null))
+      .then(
+        (
+          payload: {
+            items?: Array<{ key: string; exampleValue?: string }>;
+          } | null,
+        ) =>
+          setPlaceholderExamples(
+            Object.fromEntries(
+              (payload?.items ?? []).map((item) => [
+                item.key,
+                item.exampleValue ?? "",
+              ]),
+            ),
+          ),
+      )
       .catch(() => undefined);
     return () => controller.abort();
   }, []);
@@ -162,11 +228,34 @@ export function ContractTemplateEditor({
     const path = templateId
       ? `/api/contract-templates/${templateId}/versions`
       : "/api/contract-templates";
-    const signerRoles = requiredSignerRoles.split(",").map(value => value.trim()).filter(Boolean);
-    const versionFields = { title, contentHtml: html, changeSummary: summary, publish, lifecycleGatePurpose: lifecycleGatePurpose || undefined, partyDefinitions: signerRoles.map((role, index) => ({ role, signingOrder: index + 1, required: true })), signingConfig: { requiredSignerRoles: signerRoles } };
+    const signerRoles = requiredSignerRoles
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean);
+    const versionFields = {
+      title,
+      contentHtml: html,
+      changeSummary: summary || (templateId ? undefined : "Initial version"),
+      publish,
+      lifecycleGatePurpose: lifecycleGatePurpose || undefined,
+      partyDefinitions: signerRoles.map((role, index) => ({
+        role,
+        signingOrder: index + 1,
+        required: true,
+      })),
+      signingConfig: { requiredSignerRoles: signerRoles },
+    };
     const body = templateId
       ? versionFields
-      : { ...versionFields, key, name, contractType: type, description, signingMode, documentMode: "EDITOR" };
+      : {
+          ...versionFields,
+          key,
+          name,
+          contractType: type,
+          description,
+          signingMode,
+          documentMode: "EDITOR",
+        };
     const response = await fetch(path, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -177,7 +266,7 @@ export function ContractTemplateEditor({
       throw new Error(
         Array.isArray(payload?.message)
           ? payload.message.join(", ")
-          : payload?.message ?? "Unable to save template.",
+          : (payload?.message ?? "Unable to save template."),
       );
     setDirty(false);
     if (!templateId) {
@@ -193,10 +282,28 @@ export function ContractTemplateEditor({
     setDirty(true);
   }
 
+  function toggleSamplePreview() {
+    if (!samplePreview) {
+      setEditingHtmlBeforePreview(html);
+      setSamplePreview(true);
+      return;
+    }
+    if (editingHtmlBeforePreview !== null) setHtml(editingHtmlBeforePreview);
+    setEditingHtmlBeforePreview(null);
+    setSamplePreview(false);
+  }
+
   return (
     <main className="space-y-5">
       <ModuleActionBar
-        actions={moduleDefinition.actions}
+        actions={moduleDefinition.actions.map((action) =>
+          action.key === "save"
+            ? {
+                ...action,
+                label: templateId ? "Create version" : "Save",
+              }
+            : action,
+        )}
         context={{
           scope: "record",
           record: { ...item, status: item.status },
@@ -212,37 +319,69 @@ export function ContractTemplateEditor({
         }
         onAction={async (action) => {
           if (action.key === "back") {
-            if (dirty && !window.confirm("Discard unsaved template changes?")) return;
+            if (dirty && !window.confirm("Discard unsaved template changes?"))
+              return;
             router.push("/templates");
             return;
           }
           if (action.key === "save") return save();
           if (action.key === "duplicate" && templateId) {
-            const response = await fetch(`/api/contract-templates/${templateId}/clone`, { method: "POST" });
+            const response = await fetch(
+              `/api/contract-templates/${templateId}/clone`,
+              { method: "POST" },
+            );
             const payload = await response.json().catch(() => null);
-            if (!response.ok) throw new Error(payload?.message ?? "Unable to clone template.");
+            if (!response.ok)
+              throw new Error(payload?.message ?? "Unable to clone template.");
             router.push(`/templates/${payload.id}`);
-            return { success: true, message: "Template cloned as a new draft." };
+            return {
+              success: true,
+              message: "Template cloned as a new draft.",
+            };
           }
-          if (["activate", "deactivate", "archive"].includes(action.key) && templateId) {
-            const state = action.key === "activate" ? "ACTIVE" : action.key === "deactivate" ? "INACTIVE" : "ARCHIVED";
-            const response = await fetch(`/api/contract-templates/${templateId}/state`, {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ state }),
-            });
+          if (
+            ["activate", "deactivate", "archive"].includes(action.key) &&
+            templateId
+          ) {
+            const state =
+              action.key === "activate"
+                ? "ACTIVE"
+                : action.key === "deactivate"
+                  ? "INACTIVE"
+                  : "ARCHIVED";
+            const response = await fetch(
+              `/api/contract-templates/${templateId}/state`,
+              {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ state }),
+              },
+            );
             const payload = await response.json().catch(() => null);
-            if (!response.ok) throw new Error(payload?.message ?? "Unable to update template state.");
+            if (!response.ok)
+              throw new Error(
+                payload?.message ?? "Unable to update template state.",
+              );
             await load();
-            return { success: true, message: `Template ${state.toLowerCase()}.` };
+            return {
+              success: true,
+              message: `Template ${state.toLowerCase()}.`,
+            };
           }
         }}
       />
 
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--admin-primary)]">Contract templates</p>
-        <h1 className="mt-2 text-2xl font-semibold text-slate-950">{templateId ? name : "New contract template"}</h1>
-        <p className="mt-1 text-sm text-slate-500">Versioned document content, typed placeholders, publishing, and lifecycle controls.</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--admin-primary)]">
+          Contract templates
+        </p>
+        <h1 className="mt-2 text-2xl font-semibold text-slate-950">
+          {templateId ? name : "New contract template"}
+        </h1>
+        <p className="mt-1 text-sm text-slate-500">
+          Versioned document content, typed placeholders, publishing, and
+          lifecycle controls.
+        </p>
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
@@ -250,34 +389,107 @@ export function ContractTemplateEditor({
           <div className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 md:grid-cols-2">
             {!templateId ? (
               <>
-                <Field label="Template key" value={key} onChange={(value) => update(setKey, value)} />
-                <Field label="Template name" value={name} onChange={(value) => update(setName, value)} />
+                <Field
+                  label="Template key"
+                  value={key}
+                  onChange={(value) => update(setKey, value)}
+                />
+                <Field
+                  label="Template name"
+                  value={name}
+                  onChange={(value) => update(setName, value)}
+                />
                 <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Contract type
-                  <select value={type} onChange={(event) => update(setType, event.target.value)} className="h-11 rounded-xl border border-slate-200 px-3 text-sm font-normal normal-case tracking-normal">
-                    {contractTypes.map((value) => <option key={value} value={value}>{formatEnumLabel(value)}</option>)}
+                  <select
+                    value={type}
+                    onChange={(event) => update(setType, event.target.value)}
+                    className="h-11 rounded-xl border border-slate-200 px-3 text-sm font-normal normal-case tracking-normal"
+                  >
+                    {contractTypes.map((value) => (
+                      <option key={value} value={value}>
+                        {formatEnumLabel(value)}
+                      </option>
+                    ))}
                   </select>
                 </label>
-                <Field label="Description" value={description} onChange={(value) => update(setDescription, value)} />
-                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">Signing mode<select value={signingMode} onChange={event => update(setSigningMode, event.target.value)} className="h-11 rounded-xl border border-slate-200 px-3 text-sm font-normal normal-case tracking-normal">{["SEQUENTIAL","PARALLEL","MIXED"].map(value => <option key={value} value={value}>{formatEnumLabel(value)}</option>)}</select></label>
+                <Field
+                  label="Description"
+                  value={description}
+                  onChange={(value) => update(setDescription, value)}
+                />
+                <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Signing mode
+                  <select
+                    value={signingMode}
+                    onChange={(event) =>
+                      update(setSigningMode, event.target.value)
+                    }
+                    className="h-11 rounded-xl border border-slate-200 px-3 text-sm font-normal normal-case tracking-normal"
+                  >
+                    {["SEQUENTIAL", "PARALLEL", "MIXED"].map((value) => (
+                      <option key={value} value={value}>
+                        {formatEnumLabel(value)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
               </>
             ) : null}
-            <Field label="Document title" value={title} onChange={(value) => update(setTitle, value)} />
-            <Field label="Lifecycle gate purpose" value={lifecycleGatePurpose} onChange={(value) => update(setLifecycleGatePurpose, value)} />
-            <Field label="Required signer roles" value={requiredSignerRoles} onChange={(value) => update(setRequiredSignerRoles, value)} />
-            {templateId ? <Field label="Change summary" value={summary} onChange={(value) => update(setSummary, value)} /> : null}
+            <Field
+              label="Document title"
+              value={title}
+              onChange={(value) => update(setTitle, value)}
+            />
+            <Field
+              label="Lifecycle gate purpose"
+              value={lifecycleGatePurpose}
+              onChange={(value) => update(setLifecycleGatePurpose, value)}
+            />
+            <Field
+              label="Required signer roles"
+              value={requiredSignerRoles}
+              onChange={(value) => update(setRequiredSignerRoles, value)}
+            />
+            {templateId ? (
+              <Field
+                label="Change summary"
+                value={summary}
+                onChange={(value) => update(setSummary, value)}
+              />
+            ) : null}
           </div>
-          <div className="flex justify-end"><button type="button" aria-pressed={samplePreview} onClick={() => setSamplePreview(current => !current)} className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">{samplePreview ? "Return to editing" : "Preview sample data"}</button></div>
-          <ContractDocumentEditor value={previewHtml} onChange={(value) => update(setHtml, value)} readOnly={samplePreview} />
+          <div className="flex justify-end">
+            <button
+              type="button"
+              aria-pressed={samplePreview}
+              onClick={toggleSamplePreview}
+              className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700"
+            >
+              {samplePreview ? "Return to editing" : "Preview sample data"}
+            </button>
+          </div>
+          <ContractDocumentEditor
+            value={previewHtml}
+            onChange={(value) => update(setHtml, value)}
+            readOnly={samplePreview}
+          />
           <label className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white p-4 text-sm font-semibold text-slate-700">
-            <input type="checkbox" checked={publish} onChange={(event) => update(setPublish, event.target.checked)} />
+            <input
+              type="checkbox"
+              checked={publish}
+              onChange={(event) => update(setPublish, event.target.checked)}
+            />
             Publish this version
           </label>
         </div>
 
         <aside className="h-fit rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <h2 className="font-semibold text-slate-950">Version history</h2>
-          <p className="mt-1 text-xs leading-5 text-slate-500">Selecting an earlier version restores its content into a new editable draft; the original remains unchanged.</p>
+          <p className="mt-1 text-xs leading-5 text-slate-500">
+            Selecting an earlier version restores its content into a new
+            editable draft; the original remains unchanged.
+          </p>
           <div className="mt-3 space-y-2">
             {item.versions.map((version) => (
               <button
@@ -286,19 +498,42 @@ export function ContractTemplateEditor({
                 onClick={() => {
                   setTitle(version.title);
                   setHtml(version.contentHtml);
+                  setLifecycleGatePurpose(
+                    version.lifecycleGatePurpose ??
+                      item.lifecycleGatePurpose ??
+                      "",
+                  );
+                  setRequiredSignerRoles(signerRolesForVersion(version));
+                  setPublish(version.isPublished);
                   setSummary(`Restored from version ${version.version}`);
+                  setSamplePreview(false);
+                  setEditingHtmlBeforePreview(null);
                   setDirty(true);
                 }}
                 className="w-full rounded-xl border border-slate-200 p-3 text-left hover:bg-slate-50"
               >
                 <span className="flex justify-between text-xs font-semibold">
                   <span>Version {version.version}</span>
-                  <span className={version.isPublished ? "text-emerald-700" : "text-slate-400"}>{version.isPublished ? "Published" : "Draft"}</span>
+                  <span
+                    className={
+                      version.isPublished
+                        ? "text-emerald-700"
+                        : "text-slate-400"
+                    }
+                  >
+                    {version.isPublished ? "Published" : "Draft"}
+                  </span>
                 </span>
-                <span className="mt-1 block text-xs text-slate-500">{new Date(version.createdAt).toLocaleDateString()}</span>
+                <span className="mt-1 block text-xs text-slate-500">
+                  {new Date(version.createdAt).toLocaleDateString()}
+                </span>
               </button>
             ))}
-            {!item.versions.length ? <p className="text-sm text-slate-500">The first version will be created on save.</p> : null}
+            {!item.versions.length ? (
+              <p className="text-sm text-slate-500">
+                The first version will be created on save.
+              </p>
+            ) : null}
           </div>
         </aside>
       </section>
@@ -306,11 +541,46 @@ export function ContractTemplateEditor({
   );
 }
 
-function Field({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+function signerRolesForVersion(
+  version: Template["versions"][number] | undefined,
+) {
+  const configured = version?.signingConfig?.requiredSignerRoles;
+  if (Array.isArray(configured)) {
+    const roles = configured.filter(
+      (role): role is string =>
+        typeof role === "string" && Boolean(role.trim()),
+    );
+    if (roles.length) return roles.join(", ");
+  }
+  if (Array.isArray(version?.partyDefinitions)) {
+    const roles = version.partyDefinitions
+      .map((definition) => definition.role)
+      .filter(
+        (role): role is string =>
+          typeof role === "string" && Boolean(role.trim()),
+      );
+    if (roles.length) return roles.join(", ");
+  }
+  return "Authorized signatory";
+}
+
+function Field({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
   return (
     <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
       {label}
-      <input value={value} onChange={(event) => onChange(event.target.value)} className="h-11 rounded-xl border border-slate-200 px-3 text-sm font-normal normal-case tracking-normal" />
+      <input
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="h-11 rounded-xl border border-slate-200 px-3 text-sm font-normal normal-case tracking-normal"
+      />
     </label>
   );
 }

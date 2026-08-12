@@ -1370,6 +1370,7 @@ export class ContractsService {
             partyDefinitions: dto.partyDefinitions as Prisma.InputJsonValue,
             signingConfig: dto.signingConfig as Prisma.InputJsonValue,
             lifecycleGatePurpose: dto.lifecycleGatePurpose,
+            changeSummary: dto.changeSummary?.trim() || 'Initial version',
             isPublished: dto.publish ?? false,
             publishedAt: dto.publish ? new Date() : null,
             createdById: user.userId,
@@ -1393,25 +1394,42 @@ export class ContractsService {
     if (!template)
       throw new NotFoundException('Contract template was not found.');
     const contentHtml = cleanContractHtml(dto.contentHtml);
-    return this.prisma.contractTemplateVersion.create({
-      data: {
-        templateId,
-        version: (template.versions[0]?.version ?? 0) + 1,
-        title: dto.title,
-        contentHtml,
-        contentText: dto.contentText?.trim() || toPlainText(contentHtml),
-        placeholders: (dto.placeholders ??
-          extractContractPlaceholders(contentHtml)) as Prisma.InputJsonValue,
-        fieldDefinitions: dto.fieldDefinitions as Prisma.InputJsonValue,
-        partyDefinitions: dto.partyDefinitions as Prisma.InputJsonValue,
-        signingConfig: dto.signingConfig as Prisma.InputJsonValue,
-        lifecycleGatePurpose:
-          dto.lifecycleGatePurpose ?? template.lifecycleGatePurpose,
-        changeSummary: dto.changeSummary,
-        isPublished: dto.publish ?? false,
-        publishedAt: dto.publish ? new Date() : null,
-        createdById: user.userId,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      if (dto.publish) {
+        await tx.contractTemplateVersion.updateMany({
+          where: { templateId, isPublished: true },
+          data: { isPublished: false, publishedAt: null },
+        });
+      }
+      const version = await tx.contractTemplateVersion.create({
+        data: {
+          templateId,
+          version: (template.versions[0]?.version ?? 0) + 1,
+          title: dto.title,
+          contentHtml,
+          contentText: dto.contentText?.trim() || toPlainText(contentHtml),
+          placeholders: (dto.placeholders ??
+            extractContractPlaceholders(contentHtml)) as Prisma.InputJsonValue,
+          fieldDefinitions: dto.fieldDefinitions as Prisma.InputJsonValue,
+          partyDefinitions: dto.partyDefinitions as Prisma.InputJsonValue,
+          signingConfig: dto.signingConfig as Prisma.InputJsonValue,
+          lifecycleGatePurpose:
+            dto.lifecycleGatePurpose ?? template.lifecycleGatePurpose,
+          changeSummary: dto.changeSummary?.trim() || null,
+          isPublished: dto.publish ?? false,
+          publishedAt: dto.publish ? new Date() : null,
+          createdById: user.userId,
+        },
+      });
+      await tx.contractTemplate.update({
+        where: { id: templateId },
+        data: {
+          lifecycleGatePurpose:
+            dto.lifecycleGatePurpose ?? template.lifecycleGatePurpose,
+          updatedById: user.userId,
+        },
+      });
+      return version;
     });
   }
 
@@ -2336,8 +2354,8 @@ export class ContractsService {
       }
       return created;
     });
-    await Promise.all(
-      tokens.map(({ recipient, token }) => {
+    const deliveries = await Promise.all(
+      tokens.map(({ recipient, token }, recipientIndex) => {
         const url = buildPublicSiteUrl(`/sign/${token}`);
         return this.communications.sendEmail({
           eventCode: ['PARTNER_AGREEMENT', 'MASTER_PARTNER_AGREEMENT'].includes(
@@ -2367,7 +2385,13 @@ export class ContractsService {
           entityType: 'Contract',
           entityId: contractId,
           requestedById: user.userId,
-          metadata: { requestId: request.id, recipientRole: recipient.role },
+          metadata: {
+            requestId: request.id,
+            recipientRole: recipient.role,
+            recipientIndex,
+            partyId: recipient.partyId ?? null,
+          },
+          idempotencyKey: `signature-request:${request.id}:recipient:${recipientIndex}`,
         });
       }),
     );
@@ -2390,6 +2414,19 @@ export class ContractsService {
     });
     return {
       ...request,
+      emailDelivery: {
+        total: deliveries.length,
+        sent: deliveries.filter((delivery) => delivery.status === 'SENT')
+          .length,
+        failed: deliveries.filter((delivery) =>
+          ['FAILED', 'REJECTED'].includes(delivery.status),
+        ).length,
+        recipients: deliveries.map((delivery) => ({
+          recipient: delivery.recipient,
+          status: delivery.status,
+          errorMessage: delivery.errorMessage,
+        })),
+      },
       signingLinks: tokens.map(({ recipient, token }) => ({
         email: recipient.email,
         token,

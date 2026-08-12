@@ -19,6 +19,7 @@ describe('AuthService', () => {
   beforeEach(() => {
     jwtService = {
       verifyAsync: jest.fn(),
+      sign: jest.fn((payload: unknown) => JSON.stringify(payload)),
     } as unknown as jest.Mocked<JwtService>;
 
     configService = {
@@ -87,6 +88,44 @@ describe('AuthService', () => {
 
     await expect(service.refresh('refresh-token')).rejects.toThrow(
       'This account is not active.',
+    );
+  });
+
+  it('preserves remember-me on platform access and refresh tokens', () => {
+    const buildPlatformAuthResponse = (
+      service as unknown as {
+        buildPlatformAuthResponse: (
+          user: Record<string, unknown>,
+          rememberMe: boolean,
+        ) => { tokens: { rememberMe: boolean; refreshTokenExpiresIn: string } };
+      }
+    ).buildPlatformAuthResponse.bind(service);
+
+    const result = buildPlatformAuthResponse(
+      {
+        id: 'platform-user-1',
+        email: 'owner@example.test',
+        firstName: 'Platform',
+        lastName: 'Owner',
+        role: 'PLATFORM_OWNER',
+        status: 'ACTIVE',
+      },
+      true,
+    );
+
+    expect(result.tokens).toMatchObject({
+      rememberMe: true,
+      refreshTokenExpiresIn: '30d',
+    });
+    expect(jwtService.sign).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ rememberMe: true, tokenUse: 'access' }),
+      expect.any(Object),
+    );
+    expect(jwtService.sign).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ rememberMe: true, tokenUse: 'refresh' }),
+      expect.any(Object),
     );
   });
 });

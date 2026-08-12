@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import {
   ACCESS_TOKEN_COOKIE,
   REFRESH_TOKEN_COOKIE,
+  REMEMBER_ME_COOKIE,
   SESSION_COOKIE,
   DEFAULT_ADMIN_ROUTE,
   LOGIN_ROUTE,
@@ -11,6 +12,10 @@ import {
   isProtectedAdminRoute,
   sanitizeAdminNextPath,
 } from "@/lib/auth-config";
+import {
+  ACCESS_TOKEN_MAX_AGE_SECONDS,
+  REFRESH_TOKEN_MAX_AGE_SECONDS,
+} from "@/lib/auth-cookies";
 
 type JwtValidationResult =
   | { valid: true }
@@ -38,6 +43,8 @@ export async function proxy(request: NextRequest) {
 
     const accessToken = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value;
     const refreshToken = request.cookies.get(REFRESH_TOKEN_COOKIE)?.value;
+    const rememberSession =
+      request.cookies.get(REMEMBER_ME_COOKIE)?.value === "true";
     const validation = validateJwt(accessToken);
     const isAuthenticated = validation.valid;
     const isProtectedRoute = isProtectedAdminRoute(pathname);
@@ -45,6 +52,7 @@ export async function proxy(request: NextRequest) {
 
     if (
       isProtectedRoute &&
+      rememberSession &&
       refreshToken &&
       shouldRefreshForRequest(request) &&
       shouldRefreshAccessToken(accessToken)
@@ -255,6 +263,10 @@ function clearAuthCookies(response: NextResponse): void {
     path: "/",
     maxAge: 0,
   });
+  response.cookies.set(REMEMBER_ME_COOKIE, "", {
+    path: "/",
+    maxAge: 0,
+  });
 }
 
 function shouldRefreshForRequest(request: NextRequest) {
@@ -359,12 +371,14 @@ function continueWithRefreshedTokens(
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
+    maxAge: ACCESS_TOKEN_MAX_AGE_SECONDS,
   });
   response.cookies.set(REFRESH_TOKEN_COOKIE, tokens.refreshToken, {
     path: "/",
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
+    maxAge: REFRESH_TOKEN_MAX_AGE_SECONDS,
   });
   if (tokens.sessionId) {
     response.cookies.set(SESSION_COOKIE, tokens.sessionId, {
@@ -372,8 +386,16 @@ function continueWithRefreshedTokens(
       httpOnly: true,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
+      maxAge: REFRESH_TOKEN_MAX_AGE_SECONDS,
     });
   }
+  response.cookies.set(REMEMBER_ME_COOKIE, "true", {
+    path: "/",
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: REFRESH_TOKEN_MAX_AGE_SECONDS,
+  });
   return response;
 }
 

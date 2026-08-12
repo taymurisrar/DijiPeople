@@ -4,6 +4,8 @@ import { ToastProvider } from "@/app/_components/ui/toast-provider";
 import { ErrorProvider } from "@/components/errors/error-provider";
 import { requireSystemAdminUser } from "@/lib/auth";
 import { apiRequestJson } from "@/lib/server-api";
+import { cookies } from "next/headers";
+import { REMEMBER_ME_COOKIE } from "@/lib/auth-config";
 
 export default async function InternalLayout({
   children,
@@ -11,6 +13,8 @@ export default async function InternalLayout({
   children: React.ReactNode;
 }>) {
   const user = await requireSystemAdminUser("/tenants");
+  const cookieStore = await cookies();
+  const rememberSession = cookieStore.get(REMEMBER_ME_COOKIE)?.value === "true";
   const settings = await apiRequestJson<{
     platformDefaults?: Record<string, string>;
     branding?: Record<string, string>;
@@ -27,6 +31,7 @@ export default async function InternalLayout({
           appearance={settings.branding ?? {}}
         >
           <AdminShell
+            rememberSession={rememberSession}
             user={{
               firstName: user.firstName,
               lastName: user.lastName,

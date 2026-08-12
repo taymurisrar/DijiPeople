@@ -3,6 +3,7 @@ import {
   ACCESS_TOKEN_COOKIE,
   AUTH_APP_CLIENT_ID,
   REFRESH_TOKEN_COOKIE,
+  REMEMBER_ME_COOKIE,
   SESSION_COOKIE,
   getApiBaseUrl,
 } from "@/lib/auth-config";
@@ -10,6 +11,7 @@ import {
   ACCESS_TOKEN_MAX_AGE_SECONDS,
   getAuthCookieDiagnostics,
   getAuthCookieOptions,
+  getSessionAuthCookieOptions,
   REFRESH_TOKEN_MAX_AGE_SECONDS,
 } from "@/lib/auth-cookies";
 
@@ -19,6 +21,7 @@ type TokenPair = {
   accessToken: string;
   refreshToken: string;
   sessionId?: string;
+  rememberMe?: boolean;
 };
 
 type LoginSuccessResponse = JsonRecord & {
@@ -88,16 +91,21 @@ export async function POST(request: Request) {
       },
     });
 
-    let accessCookieOptions: ReturnType<typeof getAuthCookieOptions>;
-    let refreshCookieOptions: ReturnType<typeof getAuthCookieOptions>;
+    let accessCookieOptions:
+      | ReturnType<typeof getAuthCookieOptions>
+      | ReturnType<typeof getSessionAuthCookieOptions>;
+    let refreshCookieOptions:
+      | ReturnType<typeof getAuthCookieOptions>
+      | ReturnType<typeof getSessionAuthCookieOptions>;
 
     try {
-      accessCookieOptions = getAuthCookieOptions(
-        ACCESS_TOKEN_MAX_AGE_SECONDS,
-      );
-      refreshCookieOptions = getAuthCookieOptions(
-        REFRESH_TOKEN_MAX_AGE_SECONDS,
-      );
+      const remembered = data.tokens.rememberMe === true;
+      accessCookieOptions = remembered
+        ? getAuthCookieOptions(ACCESS_TOKEN_MAX_AGE_SECONDS)
+        : getSessionAuthCookieOptions();
+      refreshCookieOptions = remembered
+        ? getAuthCookieOptions(REFRESH_TOKEN_MAX_AGE_SECONDS)
+        : getSessionAuthCookieOptions();
     } catch (error) {
       return NextResponse.json(
         {
@@ -110,7 +118,11 @@ export async function POST(request: Request) {
       );
     }
 
-    nextResponse.cookies.set(ACCESS_TOKEN_COOKIE, data.tokens.accessToken, accessCookieOptions);
+    nextResponse.cookies.set(
+      ACCESS_TOKEN_COOKIE,
+      data.tokens.accessToken,
+      accessCookieOptions,
+    );
 
     nextResponse.cookies.set(
       REFRESH_TOKEN_COOKIE,
@@ -124,6 +136,11 @@ export async function POST(request: Request) {
         refreshCookieOptions,
       );
     }
+    nextResponse.cookies.set(
+      REMEMBER_ME_COOKIE,
+      data.tokens.rememberMe === true ? "true" : "false",
+      refreshCookieOptions,
+    );
 
     console.info("[admin-auth-login-cookies]", {
       cookies: {
