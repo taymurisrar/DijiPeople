@@ -1110,6 +1110,13 @@ const definitions: PlatformModuleDefinition[] = [
         ),
         field("contactPhone", "Account contact phone", "phone", "contacts"),
         field(
+          "registrationNumber",
+          "Registration number",
+          "text",
+          "identity",
+        ),
+        field("taxId", "Tax ID", "text", "identity"),
+        field(
           "billingContactEmail",
           "Billing contact email",
           "email",
@@ -2554,6 +2561,17 @@ const definitions: PlatformModuleDefinition[] = [
         label: "Related records",
         tab: "related",
         foreignKey: "contractId",
+        columns: [
+          { key: "record", field: "displayName", label: "Record", minWidth: 220 },
+          { key: "recordType", field: "recordType", label: "Type" },
+          {
+            key: "relationshipType",
+            field: "relationshipType",
+            label: "Relationship",
+          },
+          { key: "status", field: "status", label: "Status" },
+          { key: "createdAt", field: "createdAt", label: "Linked" },
+        ],
       },
       {
         key: "versions",

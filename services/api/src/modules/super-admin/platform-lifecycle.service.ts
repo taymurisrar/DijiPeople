@@ -170,6 +170,8 @@ export class PlatformLifecycleService {
         data: {
           companyName: dto.companyName?.trim() ?? lead.companyName,
           legalCompanyName: dto.legalCompanyName?.trim() || null,
+          registrationNumber: dto.registrationNumber?.trim() || null,
+          taxId: dto.taxId?.trim() || null,
           primaryContactFirstName:
             dto.primaryContactFirstName?.trim() ||
             lead.contactFirstName ||
@@ -1859,6 +1861,10 @@ export class PlatformLifecycleService {
       ...(dto.legalCompanyName !== undefined
         ? { legalCompanyName: dto.legalCompanyName?.trim() || null }
         : {}),
+      ...(dto.registrationNumber !== undefined
+        ? { registrationNumber: dto.registrationNumber?.trim() || null }
+        : {}),
+      ...(dto.taxId !== undefined ? { taxId: dto.taxId?.trim() || null } : {}),
       ...(dto.primaryContactFirstName !== undefined
         ? {
             primaryContactFirstName:

@@ -2125,6 +2125,8 @@ model CustomerAccount {
   id                         String                      @id @default(uuid())
   companyName                String
   legalCompanyName           String?
+  registrationNumber         String?
+  taxId                      String?
   primaryContactFirstName    String?
   primaryContactLastName     String?
   primaryContactEmail        String?

@@ -425,6 +425,18 @@ export class ConvertLeadToCustomerDto {
   legalCompanyName?: string;
 
   @IsOptional()
+  @Transform(trimString)
+  @IsString()
+  @MaxLength(80)
+  registrationNumber?: string;
+
+  @IsOptional()
+  @Transform(trimString)
+  @IsString()
+  @MaxLength(80)
+  taxId?: string;
+
+  @IsOptional()
   @Transform(normalizeEmail)
   @IsEmail()
   @MaxLength(160)

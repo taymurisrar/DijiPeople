@@ -5073,6 +5073,8 @@ function customerSource(
     id: string;
     companyName: string;
     legalCompanyName: string | null;
+    registrationNumber?: string | null;
+    taxId?: string | null;
     primaryContactFirstName: string | null;
     primaryContactLastName: string | null;
     primaryContactEmail: string | null;
@@ -5124,6 +5126,8 @@ function customerSource(
       'customer.contact.email': contactEmail,
       'customer.address': address,
       ...definedValues({
+        'customer.registrationNumber': customer.registrationNumber,
+        'customer.taxId': customer.taxId,
         'customer.contact.phone':
           customer.primaryContactPhone ?? customer.contactPhone,
         'customer.billingContact.name': customer.financeContactName,

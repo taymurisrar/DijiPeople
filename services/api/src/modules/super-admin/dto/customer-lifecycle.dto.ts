@@ -125,6 +125,18 @@ export class CreateCustomerDto {
   @MaxLength(160)
   legalCompanyName?: string;
 
+  @IsOptional()
+  @Transform(trimString)
+  @IsString()
+  @MaxLength(80)
+  registrationNumber?: string;
+
+  @IsOptional()
+  @Transform(trimString)
+  @IsString()
+  @MaxLength(80)
+  taxId?: string;
+
   @Transform(trimString)
   @IsString()
   @MaxLength(100)
@@ -292,6 +304,18 @@ export class UpdateCustomerDto {
   @IsString()
   @MaxLength(160)
   legalCompanyName?: string;
+
+  @IsOptional()
+  @Transform(trimString)
+  @IsString()
+  @MaxLength(80)
+  registrationNumber?: string;
+
+  @IsOptional()
+  @Transform(trimString)
+  @IsString()
+  @MaxLength(80)
+  taxId?: string;
 
   @IsOptional()
   @Transform(trimString)

@@ -508,6 +508,25 @@ type AgreementParty = {
   signingOrder: number;
 };
 
+/*
+ * The API rejects unknown properties, so a party is narrowed to the editable
+ * fields before it is sent: the record's own `id` travels in the URL, and a
+ * blank email is omitted rather than failing the email format check.
+ */
+function agreementPartyPayload(party: Omit<AgreementParty, "id">) {
+  const email = party.email.trim();
+  return {
+    partyType: party.partyType,
+    role: party.role,
+    name: party.name,
+    isPrimary: party.isPrimary,
+    isSignatory: party.isSignatory,
+    signatureRequired: party.signatureRequired,
+    signingOrder: party.signingOrder,
+    ...(email ? { email } : {}),
+  };
+}
+
 function agreementParties(value: unknown): AgreementParty[] {
   if (!Array.isArray(value)) return [];
   return value
@@ -604,7 +623,9 @@ function ContractPartiesPanel({
       {adding ? (
         <NewPartyForm
           disabled={Boolean(busy)}
-          onSubmit={(party) => request("/parties", "POST", party)}
+          onSubmit={(party) =>
+            request("/parties", "POST", agreementPartyPayload(party))
+          }
         />
       ) : null}
       <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
@@ -708,7 +729,11 @@ function ContractPartiesPanel({
                       disabled={locked || Boolean(busy)}
                       type="button"
                       onClick={() =>
-                        void request(`/parties/${party.id}`, "PATCH", party)
+                        void request(
+                          `/parties/${party.id}`,
+                          "PATCH",
+                          agreementPartyPayload(party),
+                        )
                       }
                       className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold disabled:opacity-40"
                     >
@@ -794,13 +819,14 @@ function NewPartyForm({
   onSubmit,
 }: {
   disabled: boolean;
-  onSubmit: (party: Record<string, unknown>) => Promise<void>;
+  onSubmit: (party: Omit<AgreementParty, "id">) => Promise<void>;
 }) {
-  const [party, setParty] = useState({
+  const [party, setParty] = useState<Omit<AgreementParty, "id">>({
     name: "",
     email: "",
     partyType: "EXTERNAL_ORGANIZATION",
     role: "AUTHORIZED_SIGNATORY",
+    isPrimary: false,
     isSignatory: true,
     signatureRequired: true,
     signingOrder: 1,
