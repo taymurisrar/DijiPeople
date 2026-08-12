@@ -67,6 +67,8 @@ const defaultPlaceholders: PlaceholderDefinition[] = [
   "signature.platform.date",
   "signature.counterparty.name",
   "signature.counterparty.date",
+  "signature.party.primary.name",
+  "signature.party.primary.date",
 ].map((key) => ({
   key,
   label: key.replaceAll(".", " "),
@@ -706,7 +708,7 @@ export function ContractDocumentEditor({
               className="inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100"
             >
               <Braces className="h-4 w-4" />
-              Placeholder
+              Fields & signatures
             </button>
             {placeholderOpen ? (
               <div className="absolute left-0 top-11 z-40 max-h-72 w-72 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
@@ -738,7 +740,7 @@ export function ContractDocumentEditor({
           </div>
           <button
             type="button"
-            onClick={() => window.print()}
+            onClick={() => printContractDocument(editor.getHTML())}
             className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-600 hover:bg-slate-50"
           >
             <FileDown className="h-4 w-4" />
@@ -791,6 +793,32 @@ export function ContractDocumentEditor({
       <DocumentEditorStyles />
     </div>
   );
+}
+
+function printContractDocument(contentHtml: string) {
+  const printWindow = window.open(
+    "",
+    "contract-document-print",
+    "width=1000,height=800",
+  );
+  if (!printWindow) return;
+  printWindow.document.open();
+  printWindow.document
+    .write(`<!doctype html><html><head><meta charset="utf-8"><title>Agreement document</title><style>
+    @page { size: A4; margin: 18mm; }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: #172033; background: #fff; font: 11pt/1.55 Arial, sans-serif; }
+    h1 { font-size: 24pt; line-height: 1.1; } h2 { font-size: 17pt; } h3 { font-size: 13pt; }
+    table { width: 100%; border-collapse: collapse; margin: 12pt 0; break-inside: avoid; }
+    th, td { border: 1px solid #cbd5e1; padding: 7pt; text-align: left; vertical-align: top; }
+    th { background: #eaf8f5; font-weight: 700; }
+    img { max-width: 100%; height: auto; }
+    hr[data-page-break="true"] { height: 0; margin: 0; border: 0; break-after: page; page-break-after: always; }
+    [data-signature-metadata="true"] { display: inline-block; min-width: 240px; padding: 10pt; border: 1px solid #94a3b8; border-radius: 4pt; }
+  </style></head><body>${contentHtml}</body></html>`);
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.setTimeout(() => printWindow.print(), 150);
 }
 
 function normalizePastedDocumentHtml(html: string) {

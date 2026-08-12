@@ -21,6 +21,9 @@ import type {
 
 type Notice = { tone: "success" | "error"; text: string };
 
+const MAX_HTML_TEMPLATE_CHARACTERS = 2_000_000;
+const MAX_TEXT_TEMPLATE_CHARACTERS = 500_000;
+
 export function PlatformEmailSettingsWorkspace({
   initialSettings,
   initialTemplates,
@@ -233,15 +236,17 @@ export function PlatformEmailSettingsWorkspace({
 
           {form.providerType === "SMTP" ? (
             <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-5">
-              {form.smtpHost.toLowerCase().includes("sandbox.smtp.mailtrap.io") ? (
+              {form.smtpHost
+                .toLowerCase()
+                .includes("sandbox.smtp.mailtrap.io") ? (
                 <div className="mb-5 flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
                   <MailWarning className="mt-0.5 h-5 w-5 shrink-0" />
                   <div>
                     <p className="font-semibold">Sandbox delivery is active</p>
                     <p className="mt-1 leading-5 text-amber-800">
                       Mailtrap Sandbox captures messages in its test inbox; it
-                      does not deliver them to the recipient&apos;s real mailbox.
-                      Use a Mailtrap Sending SMTP credential or another
+                      does not deliver them to the recipient&apos;s real
+                      mailbox. Use a Mailtrap Sending SMTP credential or another
                       production relay for external delivery.
                     </p>
                   </div>
@@ -647,9 +652,16 @@ function TemplateManager({
               }
             />
             <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
-              HTML body
+              <span className="flex flex-wrap items-center justify-between gap-2">
+                <span>HTML body</span>
+                <span className="font-normal normal-case tracking-normal text-slate-400">
+                  {draft.htmlTemplate.length.toLocaleString()} /{" "}
+                  {MAX_HTML_TEMPLATE_CHARACTERS.toLocaleString()} characters
+                </span>
+              </span>
               <textarea
                 rows={9}
+                maxLength={MAX_HTML_TEMPLATE_CHARACTERS}
                 value={draft.htmlTemplate}
                 onChange={(event) =>
                   setDraft({ ...draft, htmlTemplate: event.target.value })
@@ -658,9 +670,21 @@ function TemplateManager({
               />
             </label>
             <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Text fallback
+              <span className="flex flex-wrap items-center justify-between gap-2">
+                <span>Text fallback</span>
+                <span className="font-normal normal-case tracking-normal text-slate-400">
+                  {(draft.textTemplate ?? "").length.toLocaleString()} /{" "}
+                  {MAX_TEXT_TEMPLATE_CHARACTERS.toLocaleString()} characters
+                </span>
+              </span>
+              <span className="font-normal normal-case tracking-normal text-slate-500">
+                Plain-text version used by email clients that cannot display
+                HTML and by recipients who prefer plain-text email. Leave it
+                empty to use the workflow&apos;s built-in plain-text message.
+              </span>
               <textarea
                 rows={5}
+                maxLength={MAX_TEXT_TEMPLATE_CHARACTERS}
                 value={draft.textTemplate ?? ""}
                 onChange={(event) =>
                   setDraft({ ...draft, textTemplate: event.target.value })

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type Session = {
   requestNumber: string;
@@ -11,6 +11,7 @@ type Session = {
   contract: { contractNumber: string; title: string; counterpartyName: string };
   document: { title: string; contentHtml: string; sha256: string };
   canSign: boolean;
+  allowRequestChanges: boolean;
   expiresAt: string;
   consentText: string;
   allowedSignatureMethods: Method[];
@@ -22,14 +23,29 @@ export function SigningExperience({ token }: { token: string }) {
   const [error, setError] = useState<string | null>(null);
   const [method, setMethod] = useState<Method>("TYPED");
   const [typedName, setTypedName] = useState("");
-  const [typedStyle, setTypedStyle] = useState<"serif" | "script" | "formal">("serif");
+  const [typedStyle, setTypedStyle] = useState<"serif" | "script" | "formal">(
+    "serif",
+  );
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [complete, setComplete] = useState(false);
-  const [resolution, setResolution] = useState<"signed" | "declined" | "changes" | null>(null);
-  const [reasonMode, setReasonMode] = useState<"decline" | "changes" | null>(null);
+  const [resolution, setResolution] = useState<
+    "signed" | "declined" | "changes" | null
+  >(null);
+  const [reasonMode, setReasonMode] = useState<"decline" | "changes" | null>(
+    null,
+  );
   const [reason, setReason] = useState("");
+  const signingDocumentHtml = useMemo(
+    () =>
+      (session?.document.contentHtml ?? "").replace(
+        /\{\{\s*(signature\.[a-zA-Z0-9_.-]+)\s*\}\}/g,
+        (_token, key: string) =>
+          `<span class="my-2 inline-block min-w-64 rounded-lg border-2 border-dashed border-emerald-300 bg-emerald-50 px-4 py-5 text-center text-xs font-semibold text-emerald-800" data-signature-target="${key}">Signature will be placed here</span>`,
+      ),
+    [session?.document.contentHtml],
+  );
   useEffect(() => {
     fetch(`/api/signatures/${encodeURIComponent(token)}`)
       .then(async (response) => {
@@ -141,7 +157,7 @@ export function SigningExperience({ token }: { token: string }) {
         </header>
         <article
           className="prose mx-auto my-4 min-h-[800px] max-w-[816px] bg-white px-5 py-7 text-sm leading-7 text-foreground shadow-md sm:my-6 sm:px-12 sm:py-10"
-          dangerouslySetInnerHTML={{ __html: session.document.contentHtml }}
+          dangerouslySetInnerHTML={{ __html: signingDocumentHtml }}
         />
       </section>
       <aside className="h-fit rounded-[28px] border border-border bg-white p-6 shadow-md lg:sticky lg:top-24">
@@ -191,14 +207,33 @@ export function SigningExperience({ token }: { token: string }) {
                     value={typedName}
                     maxLength={200}
                     onChange={(event) => setTypedName(event.target.value)}
-                    style={{ fontFamily: typedStyle === "script" ? "cursive" : typedStyle === "formal" ? "Georgia, serif" : "ui-serif, Georgia, serif" }}
+                    style={{
+                      fontFamily:
+                        typedStyle === "script"
+                          ? "cursive"
+                          : typedStyle === "formal"
+                            ? "Georgia, serif"
+                            : "ui-serif, Georgia, serif",
+                    }}
                     className="h-16 w-full rounded-xl border border-border px-4 text-center text-2xl italic text-foreground"
                     aria-label="Typed legal signature name"
                   />
-                  <select aria-label="Signature style" value={typedStyle} onChange={event => setTypedStyle(event.target.value as typeof typedStyle)} className="h-10 w-full rounded-lg border border-border bg-white px-3 text-sm text-foreground">
-                    <option value="serif">Classic</option><option value="script">Script</option><option value="formal">Formal</option>
+                  <select
+                    aria-label="Signature style"
+                    value={typedStyle}
+                    onChange={(event) =>
+                      setTypedStyle(event.target.value as typeof typedStyle)
+                    }
+                    className="h-10 w-full rounded-lg border border-border bg-white px-3 text-sm text-foreground"
+                  >
+                    <option value="serif">Classic</option>
+                    <option value="script">Script</option>
+                    <option value="formal">Formal</option>
                   </select>
-                  <p className="text-xs text-muted">The entered legal name is retained as text; the style is presentation only.</p>
+                  <p className="text-xs text-muted">
+                    The entered legal name is retained as text; the style is
+                    presentation only.
+                  </p>
                 </div>
               ) : method === "DRAWN" ? (
                 <SignatureCanvas onChange={setSignatureDataUrl} />
@@ -217,7 +252,16 @@ export function SigningExperience({ token }: { token: string }) {
                       )
                     }
                   />
-                  {signatureDataUrl ? <Image unoptimized src={signatureDataUrl} alt="Uploaded signature preview" width={320} height={96} className="h-24 max-w-full object-contain" /> : null}
+                  {signatureDataUrl ? (
+                    <Image
+                      unoptimized
+                      src={signatureDataUrl}
+                      alt="Uploaded signature preview"
+                      width={320}
+                      height={96}
+                      className="h-24 max-w-full object-contain"
+                    />
+                  ) : null}
                 </label>
               )}
             </div>
@@ -248,18 +292,20 @@ export function SigningExperience({ token }: { token: string }) {
               {busy ? "Recording signature..." : "Agree and sign"}
             </button>
             <div
-              className="mt-3 grid grid-cols-2 gap-2"
+              className={`mt-3 grid gap-2 ${session.allowRequestChanges ? "grid-cols-2" : "grid-cols-1"}`}
               role="group"
               aria-label="Other signing responses"
             >
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => setReasonMode("changes")}
-                className="rounded-xl border border-border px-3 py-2.5 text-xs font-semibold text-foreground disabled:opacity-40"
-              >
-                Request changes
-              </button>
+              {session.allowRequestChanges ? (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => setReasonMode("changes")}
+                  className="rounded-xl border border-border px-3 py-2.5 text-xs font-semibold text-foreground disabled:opacity-40"
+                >
+                  Request changes
+                </button>
+              ) : null}
               <button
                 type="button"
                 disabled={busy}

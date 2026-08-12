@@ -32,10 +32,10 @@ const member: AuthenticatedUser = {
 describe('PlatformEmailSettingsService', () => {
   function setup(environment = 'test') {
     type UpsertInput = {
-      create: { value: Record<string, unknown> };
-      update: { value: Record<string, unknown> };
+      create: { value: unknown };
+      update: { value: unknown };
     };
-    let stored: Record<string, unknown> | null = null;
+    let stored: unknown = null;
     const validateConfig = jest.fn();
     const testConnection = jest.fn(async () => ({
       success: true,
@@ -154,6 +154,8 @@ describe('PlatformEmailSettingsService', () => {
     await expect(service.testConnection(owner)).resolves.toEqual({
       success: true,
       message: 'SMTP connection verified.',
+      providerType: 'SMTP',
+      source: 'platform',
     });
     expect(testConnection).toHaveBeenCalledWith(
       expect.objectContaining({ password: 'first-secret' }),
@@ -168,6 +170,79 @@ describe('PlatformEmailSettingsService', () => {
         providerType: 'CONSOLE',
       }),
     ).rejects.toThrow('Console email cannot be enabled');
+  });
+
+  it('keeps platform templates separate from tenant email templates', async () => {
+    const { service, prisma } = setup();
+    const result = await service.listTemplates(owner);
+    expect(result.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'platform:CONTRACT_SIGNATURE_REQUEST',
+          eventCode: 'CONTRACT_SIGNATURE_REQUEST',
+        }),
+        expect.objectContaining({
+          id: 'platform:CONTRACT_FULLY_SIGNED',
+          eventCode: 'CONTRACT_FULLY_SIGNED',
+        }),
+      ]),
+    );
+    expect(prisma.emailTemplate.findMany).not.toHaveBeenCalled();
+  });
+
+  it('updates namespaced platform template IDs used by the admin route', async () => {
+    const { service, prisma } = setup();
+    const result = await service.updateTemplate(
+      owner,
+      'platform:CONTRACT_SIGNATURE_REQUEST',
+      {
+        subjectTemplate: 'Please sign {{contractTitle}}',
+        htmlTemplate: '<p>Review {{contractNumber}}</p>',
+        textTemplate: 'Review {{contractNumber}}',
+        enabled: true,
+      },
+    );
+
+    expect(result).toMatchObject({
+      id: 'platform:CONTRACT_SIGNATURE_REQUEST',
+      subjectTemplate: 'Please sign {{contractTitle}}',
+      version: 2,
+    });
+    expect(prisma.platformSetting.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { key: 'platform-email-templates' },
+      }),
+    );
+  });
+
+  it('rejects malformed platform template IDs at the service boundary', async () => {
+    const { service } = setup();
+    await expect(
+      service.updateTemplate(owner, '../tenant-template', {
+        subjectTemplate: 'Subject',
+        htmlTemplate: '<p>Message</p>',
+        enabled: true,
+      }),
+    ).rejects.toThrow('Platform email template ID is invalid.');
+  });
+
+  it('renders platform workflow variables without allowing HTML injection', async () => {
+    const { service } = setup();
+    const rendered = await service.renderTemplate(
+      'CONTRACT_SIGNATURE_REQUEST',
+      { subject: 'Fallback', html: '<p>Fallback</p>' },
+      {
+        recipientName: '<Signer>',
+        contractTitle: 'Services Agreement',
+        contractNumber: 'CON-100',
+        message: 'Please review',
+        signingUrl: 'https://sign.example.test/sign/token',
+        expiresAt: '2026-08-26',
+      },
+    );
+    expect(rendered.subject).toBe('Signature requested: Services Agreement');
+    expect(rendered.html).toContain('&lt;Signer&gt;');
+    expect(rendered.html).toContain('https://sign.example.test/sign/token');
   });
 
   it('redacts credentials from provider failures', () => {

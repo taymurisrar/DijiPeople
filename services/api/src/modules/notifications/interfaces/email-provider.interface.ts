@@ -2,6 +2,12 @@ import { EmailProviderType } from '@prisma/client';
 
 export type EmailAddressList = string | string[] | null | undefined;
 
+export type EmailAttachment = {
+  filename: string;
+  content: Buffer | string;
+  contentType?: string;
+};
+
 export type EmailSendPayload = {
   tenantId: string;
   eventCode: string;
@@ -11,6 +17,7 @@ export type EmailSendPayload = {
   subject: string;
   html: string;
   text?: string | null;
+  attachments?: EmailAttachment[];
   fromEmail: string;
   fromName: string;
   replyToEmail?: string | null;

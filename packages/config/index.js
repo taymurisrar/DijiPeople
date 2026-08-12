@@ -8,10 +8,10 @@ const DEFAULT_LOCAL_PORTS = Object.freeze({
 });
 
 const PRODUCTION_APP_URLS = Object.freeze({
-  landing: "https://diji-people-landing.vercel.app",
-  web: "https://diji-people-web.vercel.app",
-  admin: "https://diji-people-admin.vercel.app",
-  api: "https://dijipeople.onrender.com",
+  landing: "",
+  web: "",
+  admin: "",
+  api: "",
 });
 
 const APP_PORT_ENV_KEYS = Object.freeze({
@@ -104,20 +104,20 @@ function getAppPort(app, env = process.env) {
 
 function getAppOrigin(app, env = process.env) {
   if (app === "api") {
-    return (
-      firstDefined(env, ["API_ORIGIN", "NEXT_PUBLIC_API_ORIGIN"]) ??
-      (isProductionLike(env)
-        ? PRODUCTION_APP_URLS.api
-        : `http://${DEFAULT_LOCAL_HOST}:${getAppPort("api", env)}`)
-    );
+    const configured = firstDefined(env, ["API_ORIGIN", "NEXT_PUBLIC_API_ORIGIN"]);
+    if (configured) return configured;
+    if (isProductionLike(env))
+      throw new Error("API_ORIGIN must be configured in production.");
+    return `http://${DEFAULT_LOCAL_HOST}:${getAppPort("api", env)}`;
   }
 
-  return (
-    firstDefined(env, APP_URL_ENV_KEYS[app]) ??
-    (isProductionLike(env)
-      ? PRODUCTION_APP_URLS[app]
-      : `http://${DEFAULT_LOCAL_HOST}:${getAppPort(app, env)}`)
-  );
+  const configured = firstDefined(env, APP_URL_ENV_KEYS[app]);
+  if (configured) return configured;
+  if (isProductionLike(env))
+    throw new Error(
+      `${APP_URL_ENV_KEYS[app].join(" or ")} must be configured in production.`,
+    );
+  return `http://${DEFAULT_LOCAL_HOST}:${getAppPort(app, env)}`;
 }
 
 function getApiBaseUrl(env = process.env) {

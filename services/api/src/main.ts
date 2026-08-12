@@ -111,6 +111,7 @@ function configureBodyParsing(expressApp: {
   use: (...args: unknown[]) => void;
 }) {
   const stripeWebhookPath = '/api/billing/stripe/webhook';
+  const platformEmailTemplatePath = '/api/super-admin/platform-email/templates';
   const jsonParser = json({ limit: '1mb' });
   const urlencodedParser = urlencoded({ extended: true, limit: '1mb' });
 
@@ -118,9 +119,16 @@ function configureBodyParsing(expressApp: {
     stripeWebhookPath,
     raw({ type: 'application/json', limit: '2mb' }),
   );
+  expressApp.use(
+    platformEmailTemplatePath,
+    json({ type: 'application/json', limit: '10mb' }),
+  );
 
   expressApp.use((req: Request, res: Response, next: NextFunction) => {
-    if (isStripeWebhookRequest(req, stripeWebhookPath)) {
+    if (
+      isStripeWebhookRequest(req, stripeWebhookPath) ||
+      req.originalUrl.startsWith(platformEmailTemplatePath)
+    ) {
       return next();
     }
 

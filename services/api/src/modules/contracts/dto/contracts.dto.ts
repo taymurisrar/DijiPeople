@@ -85,6 +85,22 @@ export class ContractPartyDto {
   @IsOptional() @IsString() @MaxLength(40) phone?: string;
   @IsOptional() @IsString() @MaxLength(120) organizationId?: string;
   @IsOptional() @IsBoolean() isPrimary?: boolean;
+  @IsOptional() @IsBoolean() isSignatory?: boolean;
+  @IsOptional() @IsBoolean() signatureRequired?: boolean;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) signingOrder?: number;
+}
+
+export class UpdateContractPartyDto {
+  @IsOptional() @IsEnum(ContractPartyType) partyType?: ContractPartyType;
+  @IsOptional() @IsEnum(ContractPartyRole) role?: ContractPartyRole;
+  @IsOptional() @IsString() @MaxLength(240) name?: string;
+  @IsOptional() @IsString() @MaxLength(240) legalName?: string;
+  @IsOptional() @IsEmail() email?: string;
+  @IsOptional() @IsString() @MaxLength(40) phone?: string;
+  @IsOptional() @IsString() @MaxLength(120) organizationId?: string;
+  @IsOptional() @IsBoolean() isPrimary?: boolean;
+  @IsOptional() @IsBoolean() isSignatory?: boolean;
+  @IsOptional() @IsBoolean() signatureRequired?: boolean;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) signingOrder?: number;
 }
 
@@ -164,6 +180,7 @@ export class CreateContractDto {
   @IsOptional() @IsObject() placeholderValues?: Record<string, string>;
   @IsOptional() @IsString() @MaxLength(120) lifecycleGatePurpose?: string;
   @IsOptional() @IsBoolean() isGoverningAgreement?: boolean;
+  @IsOptional() @IsBoolean() allowChangeRequests?: boolean;
   @IsOptional() @IsEnum(ContractSigningMode) signingMode?: ContractSigningMode;
   @IsOptional() @IsDateString() effectiveFrom?: string;
   @IsOptional() @IsDateString() effectiveUntil?: string;
@@ -236,6 +253,7 @@ export class UpdateContractDto {
   agreementCategory?: string;
   @IsOptional() @IsString() @MaxLength(120) lifecycleGatePurpose?: string;
   @IsOptional() @IsBoolean() isGoverningAgreement?: boolean;
+  @IsOptional() @IsBoolean() allowChangeRequests?: boolean;
   @IsOptional() @IsEnum(ContractSigningMode) signingMode?: ContractSigningMode;
   @IsOptional() @IsString() @MaxLength(80) counterpartyType?: string;
   @IsOptional()
@@ -309,6 +327,7 @@ export class SendSignatureRequestDto {
   @Type(() => SignatureRecipientDto)
   recipients!: SignatureRecipientDto[];
   @IsOptional() @IsEnum(ContractSigningMode) signingMode?: ContractSigningMode;
+  @IsOptional() @IsBoolean() allowChangeRequests?: boolean;
 }
 
 export class ContractReasonDto {

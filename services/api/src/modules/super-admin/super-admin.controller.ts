@@ -753,7 +753,7 @@ export class SuperAdminController {
   @Patch('platform-email/templates/:templateId')
   updatePlatformEmailTemplate(
     @CurrentUser() user: AuthenticatedUser,
-    @Param('templateId', new ParseUUIDPipe()) templateId: string,
+    @Param('templateId') templateId: string,
     @Body() dto: UpdatePlatformEmailTemplateDto,
   ) {
     return this.platformEmailSettings.updateTemplate(user, templateId, dto);

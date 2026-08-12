@@ -6,10 +6,13 @@ import {
 } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import { createHash } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
 import sanitizeHtml from 'sanitize-html';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { StorageService } from '../../common/storage/storage.service';
 import { redactEmailError } from '../notifications/email/email-safety';
 import { PlatformEmailSettingsService } from './platform-email-settings.service';
+import type { EmailAttachment } from '../notifications/interfaces/email-provider.interface';
 
 export type PlatformEmailInput = {
   eventCode: string;
@@ -17,6 +20,8 @@ export type PlatformEmailInput = {
   subject: string;
   html: string;
   text?: string;
+  attachments?: EmailAttachment[];
+  templateVariables?: Record<string, string | number | null | undefined>;
   entityType?: string;
   entityId?: string;
   requestedById?: string;
@@ -36,6 +41,7 @@ export class PlatformCommunicationsService
   constructor(
     private readonly prisma: PrismaService,
     private readonly emailSettings: PlatformEmailSettingsService,
+    private readonly storage: StorageService,
   ) {}
 
   onModuleInit() {
@@ -50,9 +56,16 @@ export class PlatformCommunicationsService
 
   async sendEmail(input: PlatformEmailInput) {
     const recipient = input.recipient.trim().toLowerCase();
+    const rendered = input.templateVariables
+      ? await this.emailSettings.renderTemplate(
+          input.eventCode,
+          { subject: input.subject, html: input.html, text: input.text },
+          input.templateVariables,
+        )
+      : { subject: input.subject, html: input.html, text: input.text };
     const idempotencyKey =
       input.idempotencyKey ?? this.emailIdempotencyKey(input, recipient);
-    const htmlBody = sanitizeHtml(input.html, {
+    const htmlBody = sanitizeHtml(rendered.html, {
       allowedTags: [
         'p',
         'br',
@@ -103,9 +116,9 @@ export class PlatformCommunicationsService
             eventCode: input.eventCode,
             idempotencyKey,
             recipient,
-            subject: input.subject.trim(),
+            subject: rendered.subject.trim(),
             htmlBody,
-            textBody: input.text,
+            textBody: rendered.text,
             entityType: input.entityType,
             entityId: input.entityId,
             requestedById: input.requestedById,
@@ -123,9 +136,10 @@ export class PlatformCommunicationsService
         tenantId: 'platform',
         eventCode: input.eventCode,
         recipient,
-        subject: input.subject.trim(),
+        subject: rendered.subject.trim(),
         html: htmlBody,
-        text: input.text,
+        text: rendered.text,
+        attachments: input.attachments,
         fromEmail: resolved.fromEmail,
         fromName: resolved.fromName,
         replyToEmail: resolved.replyToEmail,
@@ -175,7 +189,7 @@ export class PlatformCommunicationsService
       take: Math.min(Math.max(limit, 1), 100),
     });
     return Promise.all(
-      due.map((delivery) =>
+      due.map(async (delivery) =>
         this.sendEmail({
           eventCode: delivery.eventCode,
           recipient: delivery.recipient,
@@ -186,10 +200,32 @@ export class PlatformCommunicationsService
           entityId: delivery.entityId ?? undefined,
           requestedById: delivery.requestedById ?? undefined,
           metadata: isRecord(delivery.metadata) ? delivery.metadata : undefined,
+          attachments: await this.retryAttachments(delivery.metadata),
           idempotencyKey: delivery.idempotencyKey,
         }),
       ),
     );
+  }
+
+  private async retryAttachments(metadata: Prisma.JsonValue | null) {
+    if (
+      !isRecord(metadata) ||
+      typeof metadata.attachmentDocumentId !== 'string'
+    )
+      return undefined;
+    const document = await this.prisma.contractDocument.findUnique({
+      where: { id: metadata.attachmentDocumentId },
+      select: { fileName: true, mimeType: true, storageKey: true },
+    });
+    if (!document) return undefined;
+    const stored = await this.storage.openFile(document.storageKey);
+    return [
+      {
+        filename: document.fileName,
+        content: await readFile(stored.absolutePath),
+        contentType: document.mimeType,
+      },
+    ];
   }
 
   private async runRetryCycle() {

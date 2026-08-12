@@ -2483,89 +2483,90 @@ model ContractTemplateVersion {
 }
 
 model Contract {
-  id                    String                     @id @default(uuid())
-  contractNumber        String                     @unique
-  title                 String
-  contractType          ContractType
-  status                ContractStatus             @default(DRAFT)
-  agreementCategory     String?
-  lifecycleGatePurpose  String?
-  isGoverningAgreement  Boolean                    @default(false)
-  signingMode           ContractSigningMode        @default(MIXED)
-  counterpartyType      String?
-  processStage          String?
-  templateId            String?
-  partnerId             String?
-  customerAccountId     String?
-  customerOnboardingId  String?
-  tenantId              String?
-  relatedLeadId         String?
-  ownerPlatformUserId   String?
-  internalLegalOwnerId  String?
-  counterpartyName      String
-  counterpartyEmail     String?
-  documentSource        ContractDocumentSource     @default(BLANK)
-  currencyCode          String?
-  contractValue         Decimal?                   @db.Decimal(14, 2)
-  commissionPercentage  Decimal?                   @db.Decimal(5, 2)
-  commissionBasis       String?
-  paymentTerms          String?
-  governingLaw          String?
-  jurisdiction          String?
-  confidentialityClass  String?
-  effectiveDate         DateTime?
-  expiryDate            DateTime?
-  effectiveFrom         DateTime?
-  effectiveUntil        DateTime?
-  autoRenewal           Boolean                    @default(false)
-  renewalNoticeDays     Int?
-  terminationNoticeDays Int?
-  currentVersionNumber  Int                        @default(0)
-  parentContractId      String?
-  amendsContractId      String?
-  renewsContractId      String?
-  supersedesContractId  String?
-  subscriptionId        String?
-  amendmentNumber       Int?
-  signedAt              DateTime?
-  activatedAt           DateTime?
-  terminatedAt          DateTime?
-  terminationReason     String?
-  archivedAt            DateTime?
-  notes                 String?
-  createdById           String?
-  updatedById           String?
-  createdAt             DateTime                   @default(now())
-  updatedAt             DateTime                   @updatedAt
-  template              ContractTemplate?          @relation(fields: [templateId], references: [id], onDelete: Restrict)
-  partner               Partner?                   @relation(fields: [partnerId], references: [id], onDelete: Restrict)
-  customerAccount       CustomerAccount?           @relation(fields: [customerAccountId], references: [id], onDelete: Restrict)
-  customerOnboarding    CustomerOnboarding?        @relation(fields: [customerOnboardingId], references: [id], onDelete: Restrict)
-  tenant                Tenant?                    @relation(fields: [tenantId], references: [id], onDelete: Restrict)
-  relatedLead           Lead?                      @relation("LeadContracts", fields: [relatedLeadId], references: [id], onDelete: Restrict)
-  ownerPlatformUser     PlatformUser?              @relation("OwnedContracts", fields: [ownerPlatformUserId], references: [id], onDelete: SetNull)
-  internalLegalOwner    PlatformUser?              @relation("LegalOwnedContracts", fields: [internalLegalOwnerId], references: [id], onDelete: SetNull)
-  createdBy             PlatformUser?              @relation("ContractsCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  updatedBy             PlatformUser?              @relation("ContractsUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
-  parentContract        Contract?                  @relation("ContractAmendments", fields: [parentContractId], references: [id], onDelete: Restrict)
-  amendments            Contract[]                 @relation("ContractAmendments")
-  amendsContract        Contract?                  @relation("ContractAmends", fields: [amendsContractId], references: [id], onDelete: Restrict)
-  amendedByContracts    Contract[]                 @relation("ContractAmends")
-  renewsContract        Contract?                  @relation("ContractRenews", fields: [renewsContractId], references: [id], onDelete: Restrict)
-  renewalContracts      Contract[]                 @relation("ContractRenews")
-  supersedesContract    Contract?                  @relation("ContractSupersedes", fields: [supersedesContractId], references: [id], onDelete: Restrict)
-  supersedingContracts  Contract[]                 @relation("ContractSupersedes")
-  subscription          Subscription?              @relation(fields: [subscriptionId], references: [id], onDelete: Restrict)
-  versions              ContractVersion[]
-  documents             ContractDocument[]
-  placeholderValues     ContractPlaceholderValue[]
-  approvalRequests      PlatformApprovalRequest[]
-  signatureRequests     SignatureRequest[]
-  timeline              ContractTimeline[]
-  relatedRecords        ContractRelatedRecord[]
-  parties               ContractParty[]
-  fieldPlacements       ContractFieldPlacement[]
-  supportCases          SupportCase[]
+  id                           String                     @id @default(uuid())
+  contractNumber               String                     @unique
+  title                        String
+  contractType                 ContractType
+  status                       ContractStatus             @default(DRAFT)
+  agreementCategory            String?
+  lifecycleGatePurpose         String?
+  isGoverningAgreement         Boolean                    @default(false)
+  allowChangeRequests          Boolean                    @default(true)
+  signingMode                  ContractSigningMode        @default(MIXED)
+  counterpartyType             String?
+  processStage                 String?
+  templateId                   String?
+  partnerId                    String?
+  customerAccountId            String?
+  customerOnboardingId         String?
+  tenantId                     String?
+  relatedLeadId                String?
+  ownerPlatformUserId          String?
+  internalLegalOwnerId         String?
+  counterpartyName             String
+  counterpartyEmail            String?
+  documentSource               ContractDocumentSource     @default(BLANK)
+  currencyCode                 String?
+  contractValue                Decimal?                   @db.Decimal(14, 2)
+  commissionPercentage         Decimal?                   @db.Decimal(5, 2)
+  commissionBasis              String?
+  paymentTerms                 String?
+  governingLaw                 String?
+  jurisdiction                 String?
+  confidentialityClass         String?
+  effectiveDate                DateTime?
+  expiryDate                   DateTime?
+  effectiveFrom                DateTime?
+  effectiveUntil               DateTime?
+  autoRenewal                  Boolean                    @default(false)
+  renewalNoticeDays            Int?
+  terminationNoticeDays        Int?
+  currentVersionNumber         Int                        @default(0)
+  parentContractId             String?
+  amendsContractId             String?
+  renewsContractId             String?
+  supersedesContractId         String?
+  subscriptionId               String?
+  amendmentNumber              Int?
+  signedAt                     DateTime?
+  activatedAt                  DateTime?
+  terminatedAt                 DateTime?
+  terminationReason            String?
+  archivedAt                   DateTime?
+  notes                        String?
+  createdById                  String?
+  updatedById                  String?
+  createdAt                    DateTime                   @default(now())
+  updatedAt                    DateTime                   @updatedAt
+  template                     ContractTemplate?          @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  partner                      Partner?                   @relation(fields: [partnerId], references: [id], onDelete: Restrict)
+  customerAccount              CustomerAccount?           @relation(fields: [customerAccountId], references: [id], onDelete: Restrict)
+  customerOnboarding           CustomerOnboarding?        @relation(fields: [customerOnboardingId], references: [id], onDelete: Restrict)
+  tenant                       Tenant?                    @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  relatedLead                  Lead?                      @relation("LeadContracts", fields: [relatedLeadId], references: [id], onDelete: Restrict)
+  ownerPlatformUser            PlatformUser?              @relation("OwnedContracts", fields: [ownerPlatformUserId], references: [id], onDelete: SetNull)
+  internalLegalOwner           PlatformUser?              @relation("LegalOwnedContracts", fields: [internalLegalOwnerId], references: [id], onDelete: SetNull)
+  createdBy                    PlatformUser?              @relation("ContractsCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy                    PlatformUser?              @relation("ContractsUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  parentContract               Contract?                  @relation("ContractAmendments", fields: [parentContractId], references: [id], onDelete: Restrict)
+  amendments                   Contract[]                 @relation("ContractAmendments")
+  amendsContract               Contract?                  @relation("ContractAmends", fields: [amendsContractId], references: [id], onDelete: Restrict)
+  amendedByContracts           Contract[]                 @relation("ContractAmends")
+  renewsContract               Contract?                  @relation("ContractRenews", fields: [renewsContractId], references: [id], onDelete: Restrict)
+  renewalContracts             Contract[]                 @relation("ContractRenews")
+  supersedesContract           Contract?                  @relation("ContractSupersedes", fields: [supersedesContractId], references: [id], onDelete: Restrict)
+  supersedingContracts         Contract[]                 @relation("ContractSupersedes")
+  subscription                 Subscription?              @relation(fields: [subscriptionId], references: [id], onDelete: Restrict)
+  versions                     ContractVersion[]
+  documents                    ContractDocument[]
+  placeholderValues            ContractPlaceholderValue[]
+  approvalRequests             PlatformApprovalRequest[]
+  signatureRequests            SignatureRequest[]
+  timeline                     ContractTimeline[]
+  relatedRecords               ContractRelatedRecord[]
+  parties                      ContractParty[]
+  fieldPlacements              ContractFieldPlacement[]
+  supportCases                 SupportCase[]
 
   @@index([contractType, status, createdAt])
   @@index([partnerId, status])
@@ -2674,23 +2675,25 @@ model ContractRelatedRecord {
 }
 
 model ContractParty {
-  id             String               @id @default(uuid())
-  contractId     String
-  partyType      ContractPartyType
-  role           ContractPartyRole
-  name           String
-  legalName      String?
-  email          String?
-  phone          String?
-  organizationId String?
-  isPrimary      Boolean              @default(false)
-  status         String               @default("PENDING")
-  signingOrder   Int                  @default(1)
-  metadata       Json?
-  createdAt      DateTime             @default(now())
-  updatedAt      DateTime             @updatedAt
-  contract       Contract             @relation(fields: [contractId], references: [id], onDelete: Restrict)
-  signers        SignatureRecipient[]
+  id                String               @id @default(uuid())
+  contractId        String
+  partyType         ContractPartyType
+  role              ContractPartyRole
+  name              String
+  legalName         String?
+  email             String?
+  phone             String?
+  organizationId    String?
+  isPrimary         Boolean              @default(false)
+  isSignatory       Boolean              @default(false)
+  signatureRequired Boolean              @default(false)
+  status            String               @default("PENDING")
+  signingOrder      Int                  @default(1)
+  metadata          Json?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  contract          Contract             @relation(fields: [contractId], references: [id], onDelete: Restrict)
+  signers           SignatureRecipient[]
 
   @@index([contractId, signingOrder])
   @@index([contractId, partyType, role])
@@ -2786,30 +2789,31 @@ model PlatformApprovalAction {
 }
 
 model SignatureRequest {
-  id                 String                 @id @default(uuid())
-  requestNumber      String                 @unique
-  contractId         String
-  contractVersionId  String
-  status             SignatureRequestStatus @default(DRAFT)
-  subject            String
-  message            String?
-  signingMode        ContractSigningMode    @default(MIXED)
-  voidReason         String?
-  expiresAt          DateTime?
-  sentAt             DateTime?
-  completedAt        DateTime?
-  cancelledAt        DateTime?
-  signedDocumentId   String?
-  evidenceDocumentId String?
-  createdById        String
-  createdAt          DateTime               @default(now())
-  updatedAt          DateTime               @updatedAt
-  contract           Contract               @relation(fields: [contractId], references: [id], onDelete: Restrict)
-  contractVersion    ContractVersion        @relation(fields: [contractVersionId], references: [id], onDelete: Restrict)
-  signedDocument     ContractDocument?      @relation("SignatureSignedDocument", fields: [signedDocumentId], references: [id], onDelete: Restrict)
-  evidenceDocument   ContractDocument?      @relation("SignatureEvidenceDocument", fields: [evidenceDocumentId], references: [id], onDelete: Restrict)
-  recipients         SignatureRecipient[]
-  events             SignatureEvent[]
+  id                  String                 @id @default(uuid())
+  requestNumber       String                 @unique
+  contractId          String
+  contractVersionId   String
+  status              SignatureRequestStatus @default(DRAFT)
+  subject             String
+  message             String?
+  signingMode         ContractSigningMode    @default(MIXED)
+  allowChangeRequests Boolean                @default(true)
+  voidReason          String?
+  expiresAt           DateTime?
+  sentAt              DateTime?
+  completedAt         DateTime?
+  cancelledAt         DateTime?
+  signedDocumentId    String?
+  evidenceDocumentId  String?
+  createdById         String
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+  contract            Contract               @relation(fields: [contractId], references: [id], onDelete: Restrict)
+  contractVersion     ContractVersion        @relation(fields: [contractVersionId], references: [id], onDelete: Restrict)
+  signedDocument      ContractDocument?      @relation("SignatureSignedDocument", fields: [signedDocumentId], references: [id], onDelete: Restrict)
+  evidenceDocument    ContractDocument?      @relation("SignatureEvidenceDocument", fields: [evidenceDocumentId], references: [id], onDelete: Restrict)
+  recipients          SignatureRecipient[]
+  events              SignatureEvent[]
 
   @@index([contractId, status])
   @@index([contractVersionId])
@@ -3385,9 +3389,9 @@ model PlanPrice {
   updatedAt               DateTime           @updatedAt
   plan                    Plan               @relation(fields: [planId], references: [id], onDelete: Cascade)
   subscriptions           Subscription[]
-  promotions             Promotion[]
-  supersedes             PlanPrice?          @relation("PlanPriceVersions", fields: [supersedesPriceId], references: [id], onDelete: SetNull)
-  supersededBy           PlanPrice[]         @relation("PlanPriceVersions")
+  promotions              Promotion[]
+  supersedes              PlanPrice?         @relation("PlanPriceVersions", fields: [supersedesPriceId], references: [id], onDelete: SetNull)
+  supersededBy            PlanPrice[]        @relation("PlanPriceVersions")
 
   @@index([planId])
   @@index([billingModel, billingInterval, currency, isActive])
@@ -3399,26 +3403,26 @@ model PlanPrice {
 }
 
 model Subscription {
-  id                       String             @id @default(uuid())
-  tenantId                 String             @unique
+  id                       String                  @id @default(uuid())
+  tenantId                 String                  @unique
   planId                   String
   planPriceId              String?
-  billingCycle             BillingCycle       @default(MONTHLY)
-  basePrice                Decimal            @default(0) @db.Decimal(12, 2)
-  discountType             DiscountType       @default(NONE)
-  discountValue            Decimal            @default(0) @db.Decimal(12, 2)
+  billingCycle             BillingCycle            @default(MONTHLY)
+  basePrice                Decimal                 @default(0) @db.Decimal(12, 2)
+  discountType             DiscountType            @default(NONE)
+  discountValue            Decimal                 @default(0) @db.Decimal(12, 2)
   discountReason           String?
-  finalPrice               Decimal            @default(0) @db.Decimal(12, 2)
-  currency                 String             @default("USD")
-  status                   SubscriptionStatus @default(TRIALING)
+  finalPrice               Decimal                 @default(0) @db.Decimal(12, 2)
+  currency                 String                  @default("USD")
+  status                   SubscriptionStatus      @default(TRIALING)
   startDate                DateTime
   endDate                  DateTime?
   renewalDate              DateTime?
-  autoRenew                Boolean            @default(true)
+  autoRenew                Boolean                 @default(true)
   stripeCustomerId         String?
-  stripeSubscriptionId     String?            @unique
+  stripeSubscriptionId     String?                 @unique
   stripeSubscriptionItemId String?
-  purchasedSeats           Int                @default(1)
+  purchasedSeats           Int                     @default(1)
   stripeQuantity           Int?
   seatsLastReconciledAt    DateTime?
   lastStripeEventCreatedAt DateTime?
@@ -3427,17 +3431,17 @@ model Subscription {
   stripeStatus             String?
   currentPeriodStart       DateTime?
   currentPeriodEnd         DateTime?
-  cancelAtPeriodEnd        Boolean            @default(false)
+  cancelAtPeriodEnd        Boolean                 @default(false)
   canceledAt               DateTime?
   trialStart               DateTime?
   trialEnd                 DateTime?
-  createdAt                DateTime           @default(now())
-  updatedAt                DateTime           @updatedAt
+  createdAt                DateTime                @default(now())
+  updatedAt                DateTime                @updatedAt
   createdById              String?
   updatedById              String?
-  tenant                   Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  plan                     Plan               @relation(fields: [planId], references: [id], onDelete: Restrict)
-  planPrice                PlanPrice?         @relation(fields: [planPriceId], references: [id], onDelete: SetNull)
+  tenant                   Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  plan                     Plan                    @relation(fields: [planId], references: [id], onDelete: Restrict)
+  planPrice                PlanPrice?              @relation(fields: [planPriceId], references: [id], onDelete: SetNull)
   invoices                 Invoice[]
   payments                 Payment[]
   supportCases             SupportCase[]
@@ -3454,42 +3458,42 @@ model Subscription {
 }
 
 model Promotion {
-  id                    String             @id @default(uuid())
+  id                    String                  @id @default(uuid())
   name                  String
   code                  String?
   discountType          DiscountType
-  percentOff            Decimal?           @db.Decimal(5, 2)
-  amountOff             Decimal?           @db.Decimal(12, 2)
+  percentOff            Decimal?                @db.Decimal(5, 2)
+  amountOff             Decimal?                @db.Decimal(12, 2)
   currency              String?
   duration              PromotionDuration
   durationMonths        Int?
-  scope                 PromotionScope     @default(GLOBAL)
+  scope                 PromotionScope          @default(GLOBAL)
   planId                String?
   planPriceId           String?
   customerAccountId     String?
   subscriptionId        String?
-  startsAt              DateTime           @default(now())
+  startsAt              DateTime                @default(now())
   redeemBy              DateTime?
   maximumRedemptions    Int?
-  redemptionCount       Int                @default(0)
-  isActive              Boolean            @default(true)
-  stripeCouponId        String?            @unique
-  stripePromotionCodeId String?            @unique
+  redemptionCount       Int                     @default(0)
+  isActive              Boolean                 @default(true)
+  stripeCouponId        String?                 @unique
+  stripePromotionCodeId String?                 @unique
   stripeEnvironment     StripeEnvironment?
-  stripeSyncStatus      StripeSyncStatus   @default(NOT_SYNCED)
+  stripeSyncStatus      StripeSyncStatus        @default(NOT_SYNCED)
   stripeSyncError       String?
-  version               Int                @default(1)
+  version               Int                     @default(1)
   supersedesPromotionId String?
-  createdAt             DateTime           @default(now())
-  updatedAt             DateTime           @updatedAt
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
   createdById           String?
   updatedById           String?
-  plan                  Plan?              @relation(fields: [planId], references: [id], onDelete: SetNull)
-  planPrice             PlanPrice?         @relation(fields: [planPriceId], references: [id], onDelete: SetNull)
-  customerAccount       CustomerAccount?   @relation(fields: [customerAccountId], references: [id], onDelete: SetNull)
-  subscription          Subscription?      @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
-  supersedes            Promotion?         @relation("PromotionVersions", fields: [supersedesPromotionId], references: [id], onDelete: SetNull)
-  supersededBy          Promotion[]         @relation("PromotionVersions")
+  plan                  Plan?                   @relation(fields: [planId], references: [id], onDelete: SetNull)
+  planPrice             PlanPrice?              @relation(fields: [planPriceId], references: [id], onDelete: SetNull)
+  customerAccount       CustomerAccount?        @relation(fields: [customerAccountId], references: [id], onDelete: SetNull)
+  subscription          Subscription?           @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  supersedes            Promotion?              @relation("PromotionVersions", fields: [supersedesPromotionId], references: [id], onDelete: SetNull)
+  supersededBy          Promotion[]             @relation("PromotionVersions")
   applications          SubscriptionPromotion[]
 
   @@index([isActive, startsAt])
@@ -3502,16 +3506,16 @@ model Promotion {
 }
 
 model SubscriptionPromotion {
-  id             String       @id @default(uuid())
-  subscriptionId String
-  promotionId    String
-  appliedAt      DateTime     @default(now())
-  removedAt      DateTime?
+  id               String       @id @default(uuid())
+  subscriptionId   String
+  promotionId      String
+  appliedAt        DateTime     @default(now())
+  removedAt        DateTime?
   stripeDiscountId String?
-  isActive       Boolean      @default(true)
-  createdById    String?
-  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
-  promotion      Promotion    @relation(fields: [promotionId], references: [id], onDelete: Restrict)
+  isActive         Boolean      @default(true)
+  createdById      String?
+  subscription     Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  promotion        Promotion    @relation(fields: [promotionId], references: [id], onDelete: Restrict)
 
   @@unique([subscriptionId, promotionId])
   @@index([subscriptionId, isActive])
@@ -3549,8 +3553,8 @@ model User {
   refreshTokens                  RefreshToken[]
   agentRefreshTokens             AgentRefreshToken[]
   employeeDevices                EmployeeDevice[]
-  agentLocationRequests          AgentLocationRequest[]       @relation("AgentLocationTargetUser")
-  requestedAgentLocations        AgentLocationRequest[]       @relation("AgentLocationRequestedBy")
+  agentLocationRequests          AgentLocationRequest[]        @relation("AgentLocationTargetUser")
+  requestedAgentLocations        AgentLocationRequest[]        @relation("AgentLocationRequestedBy")
   workSessions                   WorkSession[]
   activityEvents                 ActivityEvent[]
   dailyProductivitySummaries     DailyProductivitySummary[]
@@ -6563,17 +6567,17 @@ model TenantNavigationOverride {
 /// so a nullable scope column would silently allow duplicate tenant-level rows
 /// and break the upsert path every settings category depends on.
 model OrganizationSetting {
-  id             String   @id @default(uuid())
+  id             String       @id @default(uuid())
   tenantId       String
   organizationId String
   category       String
   key            String
   value          Json
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
   createdById    String?
   updatedById    String?
-  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant         Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   organization   Organization @relation(fields: [organizationId, tenantId], references: [id, tenantId], onDelete: Cascade)
 
   @@unique([tenantId, organizationId, category, key])
@@ -9590,30 +9594,30 @@ model PolicySnapshot {
 }
 
 model EmployeeDevice {
-  id                String              @id @default(uuid())
-  tenantId          String
-  employeeId        String
-  userId            String
-  deviceFingerprint String
-  deviceName        String
-    os                String
-    platform          String
-    agentVersion      String
-    cameraPermission  String              @default("UNKNOWN")
-    microphonePermission String           @default("UNKNOWN")
-    locationPermission String             @default("UNKNOWN")
-    permissionUpdatedAt DateTime?
-    lastSeenAt        DateTime?
-  isActive          Boolean             @default(true)
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  tenant            Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  employee          Employee            @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  refreshTokens     AgentRefreshToken[]
-  workSessions      WorkSession[]
-  activityEvents    ActivityEvent[]
-  locationRequests  AgentLocationRequest[]
+  id                   String                 @id @default(uuid())
+  tenantId             String
+  employeeId           String
+  userId               String
+  deviceFingerprint    String
+  deviceName           String
+  os                   String
+  platform             String
+  agentVersion         String
+  cameraPermission     String                 @default("UNKNOWN")
+  microphonePermission String                 @default("UNKNOWN")
+  locationPermission   String                 @default("UNKNOWN")
+  permissionUpdatedAt  DateTime?
+  lastSeenAt           DateTime?
+  isActive             Boolean                @default(true)
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  tenant               Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee             Employee               @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  user                 User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshTokens        AgentRefreshToken[]
+  workSessions         WorkSession[]
+  activityEvents       ActivityEvent[]
+  locationRequests     AgentLocationRequest[]
 
   @@unique([tenantId, deviceFingerprint])
   @@index([tenantId, employeeId])
@@ -9768,12 +9772,12 @@ model AgentTrackingSettings {
   heartbeatIntervalSeconds Int       @default(60)
   idleThresholdSeconds     Int       @default(120)
   awayThresholdSeconds     Int       @default(600)
-    captureActiveApp         Boolean   @default(true)
-    captureWindowTitle       Boolean   @default(true)
-    allowCameraAccess        Boolean   @default(false)
-    allowMicrophoneAccess    Boolean   @default(false)
-    allowLocationAccess      Boolean   @default(false)
-    offlineQueueEnabled      Boolean   @default(true)
+  captureActiveApp         Boolean   @default(true)
+  captureWindowTitle       Boolean   @default(true)
+  allowCameraAccess        Boolean   @default(false)
+  allowMicrophoneAccess    Boolean   @default(false)
+  allowLocationAccess      Boolean   @default(false)
+  offlineQueueEnabled      Boolean   @default(true)
   heartbeatBatchSize       Int       @default(10)
   minimumSupportedVersion  String    @default("1.0.0")
   latestVersion            String    @default("1.0.0")
@@ -10196,47 +10200,47 @@ enum DataIssueSeverity {
 
 /// One import or export run for a single module.
 model DataJob {
-  id             String          @id @default(uuid())
-  tenantId       String
-  kind           DataJobKind
-  moduleKey      String
-  status         DataJobStatus   @default(UPLOADED)
-  importMode     DataImportMode?
+  id                String          @id @default(uuid())
+  tenantId          String
+  kind              DataJobKind
+  moduleKey         String
+  status            DataJobStatus   @default(UPLOADED)
+  importMode        DataImportMode?
   /// Blocks accidental duplicate submissions of the same upload.
-  idempotencyKey String
-  name           String?
-  fileName       String?
+  idempotencyKey    String
+  name              String?
+  fileName          String?
   /// StorageService key for the uploaded workbook; never the binary itself.
-  sourceFileKey  String?
-  resultFileKey  String?
-  errorFileKey   String?
-  sheetName      String?
+  sourceFileKey     String?
+  resultFileKey     String?
+  errorFileKey      String?
+  sheetName         String?
   /// Column mapping and cleansing rules actually used, retained for audit.
-  mappingJson    Json?
-  cleansingJson  Json?
-  optionsJson    Json?
-  matchingKey    String?
-  totalRows      Int             @default(0)
-  validRows      Int             @default(0)
-  createdRows    Int             @default(0)
-  updatedRows    Int             @default(0)
-  skippedRows    Int             @default(0)
-  failedRows     Int             @default(0)
-  processedRows  Int             @default(0)
-  batchSize      Int             @default(500)
-  retryCount     Int             @default(0)
-  progressPercent Int            @default(0)
-  failureReason  String?
-  cancelledAt    DateTime?
-  startedAt      DateTime?
-  completedAt    DateTime?
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  mappingJson       Json?
+  cleansingJson     Json?
+  optionsJson       Json?
+  matchingKey       String?
+  totalRows         Int             @default(0)
+  validRows         Int             @default(0)
+  createdRows       Int             @default(0)
+  updatedRows       Int             @default(0)
+  skippedRows       Int             @default(0)
+  failedRows        Int             @default(0)
+  processedRows     Int             @default(0)
+  batchSize         Int             @default(500)
+  retryCount        Int             @default(0)
+  progressPercent   Int             @default(0)
+  failureReason     String?
+  cancelledAt       DateTime?
+  startedAt         DateTime?
+  completedAt       DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
   submittedByUserId String?
-  tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  submittedByUser User?          @relation("DataJobSubmittedBy", fields: [submittedByUserId], references: [id], onDelete: SetNull)
-  rows           DataJobRow[]
-  batches        DataJobBatch[]
+  tenant            Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  submittedByUser   User?           @relation("DataJobSubmittedBy", fields: [submittedByUserId], references: [id], onDelete: SetNull)
+  rows              DataJobRow[]
+  batches           DataJobBatch[]
 
   @@unique([tenantId, kind, idempotencyKey])
   @@index([tenantId, kind, status, createdAt])
@@ -10246,22 +10250,22 @@ model DataJob {
 
 /// Per-row outcome, so errors can be reported and an error file rebuilt.
 model DataJobRow {
-  id            String        @id @default(uuid())
-  tenantId      String
-  jobId         String
-  rowNumber     Int
-  status        DataRowStatus @default(PENDING)
+  id         String        @id @default(uuid())
+  tenantId   String
+  jobId      String
+  rowNumber  Int
+  status     DataRowStatus @default(PENDING)
   /// Raw source values keyed by source column.
-  sourceJson    Json?
+  sourceJson Json?
   /// Values after mapping and cleansing.
-  mappedJson    Json?
+  mappedJson Json?
   /// Identifier of the record created or updated, for traceability.
-  recordId      String?
-  issuesJson    Json?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  job           DataJob       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  recordId   String?
+  issuesJson Json?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  tenant     Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  job        DataJob       @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   @@unique([jobId, rowNumber])
   @@index([tenantId, jobId, status])
@@ -10312,7 +10316,7 @@ model DataMappingProfile {
 /// A tenant-authored rule: when an event happens, run these actions.
 /// Placement and module reach work exactly as they do for email templates.
 model Workflow {
-  id          String             @id @default(uuid())
+  id          String            @id @default(uuid())
   tenantId    String
   scopeKey    String
   /// Null means the workflow applies to every module.
@@ -10320,15 +10324,15 @@ model Workflow {
   name        String
   description String?
   eventCode   String
-  status      WorkflowStatus     @default(DRAFT)
+  status      WorkflowStatus    @default(DRAFT)
   /// Optional [{field, operator, value}] tests evaluated against event context.
   conditions  Json?
   createdBy   String?
   updatedBy   String?
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
-  tenant      Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  event       NotificationEvent  @relation(fields: [eventCode], references: [code], onDelete: Restrict)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  tenant      Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  event       NotificationEvent @relation(fields: [eventCode], references: [code], onDelete: Restrict)
   actions     WorkflowAction[]
   runs        WorkflowRun[]
 

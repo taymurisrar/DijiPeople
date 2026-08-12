@@ -17,6 +17,7 @@ import {
 } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { createHash, randomBytes } from 'crypto';
+import { buildPublicSiteUrl } from '../../common/config/public-site-url.config';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { userHasPlatformPermission } from '../platform-auth/platform-permissions';
@@ -456,7 +457,7 @@ export class PartnerExperienceService {
       });
       return item;
     });
-    const onboardingUrl = `${process.env.PUBLIC_SITE_URL ?? 'http://localhost:3000'}/partners/onboarding/${token}`;
+    const onboardingUrl = buildPublicSiteUrl(`/partners/onboarding/${token}`);
     await this.communications.sendEmail({
       eventCode: 'PARTNER_ONBOARDING_INVITATION',
       recipient: partner.email,
@@ -732,7 +733,9 @@ export class PartnerExperienceService {
         },
       });
     });
-    const activationUrl = `${process.env.PUBLIC_SITE_URL ?? 'http://localhost:3000'}/partners/activate/${invitationToken}`;
+    const activationUrl = buildPublicSiteUrl(
+      `/partners/activate/${invitationToken}`,
+    );
     await this.communications.sendEmail({
       eventCode: 'PARTNER_ACTIVATION_INVITATION',
       recipient: partner.email,

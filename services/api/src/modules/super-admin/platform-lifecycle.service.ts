@@ -230,6 +230,14 @@ export class PlatformLifecycleService {
         select: { id: true },
       });
       if (leadContracts.length) {
+        await tx.contract.updateMany({
+          where: { relatedLeadId: leadId },
+          data: {
+            customerAccountId: createdCustomer.id,
+            counterpartyType: 'CUSTOMER',
+            partnerId: lead.partnerId,
+          },
+        });
         await tx.contractRelatedRecord.createMany({
           data: leadContracts.map((contract) => ({
             contractId: contract.id,
@@ -2262,7 +2270,9 @@ function customerRuntimeOrder(
   const result = sort
     .filter((item) => supported.has(item.field))
     .map((item) => ({ [item.field]: item.direction }));
-  return result.length ? result : [{ updatedAt: 'desc' }, { companyName: 'asc' }];
+  return result.length
+    ? result
+    : [{ updatedAt: 'desc' }, { companyName: 'asc' }];
 }
 
 function isCompleteCriterionValue(value: unknown) {

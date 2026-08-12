@@ -6,10 +6,10 @@ export declare const DEFAULT_LOCAL_PORTS: Readonly<{
 }>;
 
 export declare const PRODUCTION_APP_URLS: Readonly<{
-  landing: "https://dijipeople.com";
-  web: "https://app.dijipeople.com";
-  admin: "https://admin.dijipeople.com";
-  api: "https://api.dijipeople.com";
+  landing: string;
+  web: string;
+  admin: string;
+  api: string;
 }>;
 
 export declare const AGREEMENT_CATEGORY_OPTIONS: readonly Readonly<{

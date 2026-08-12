@@ -146,6 +146,7 @@ export type RuntimeFieldDefinition = {
   readOnly?: boolean;
   hidden?: boolean;
   hideOnCreate?: boolean;
+  hideWhenEmpty?: boolean;
   options?: Array<{ value: string; label: string }>;
   optionsByFieldValue?: {
     field: string;
@@ -158,7 +159,18 @@ export type RuntimeFieldDefinition = {
   min?: number;
   max?: number;
   maxLength?: number;
-  visibleWhen?: { field: string; equals: unknown };
+  visibleWhen?: {
+    field: string;
+    equals?: unknown;
+    in?: unknown[];
+    hasValue?: boolean;
+  };
+  visibleWhenAny?: Array<{
+    field: string;
+    equals?: unknown;
+    in?: unknown[];
+    hasValue?: boolean;
+  }>;
   requiredWhen?: { field: string; equals: unknown };
   readOnlyWhen?: { field: string; equals: unknown };
   acceptedFileTypes?: string[];

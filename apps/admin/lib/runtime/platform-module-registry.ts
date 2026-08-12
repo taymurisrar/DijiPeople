@@ -619,6 +619,14 @@ const definitions: PlatformModuleDefinition[] = [
         {
           ...field("partnerId", "Referral partner", "lookup", "acquisition"),
           lookupPath: "/partners?pageSize=100",
+          visibleWhenAny: [
+            {
+              field: "source",
+              in: ["Partner Referral", "PARTNER_PORTAL"],
+            },
+            { field: "partnerId", hasValue: true },
+          ],
+          hideWhenEmpty: true,
         },
         {
           ...field(
@@ -629,6 +637,9 @@ const definitions: PlatformModuleDefinition[] = [
           ),
           readOnly: true,
           hideOnCreate: true,
+          hidden: true,
+          hideWhenEmpty: true,
+          visibleWhen: { field: "partnerId", hasValue: true },
         },
         {
           ...field(
@@ -639,14 +650,20 @@ const definitions: PlatformModuleDefinition[] = [
           ),
           readOnly: true,
           hideOnCreate: true,
+          hideWhenEmpty: true,
+          visibleWhen: { field: "partnerId", hasValue: true },
         },
         {
           ...field("referralSource", "Referral source", "text", "acquisition"),
           readOnly: true,
+          hideWhenEmpty: true,
+          visibleWhen: { field: "partnerId", hasValue: true },
         },
         {
           ...field("referredAt", "Referred at", "dateTime", "acquisition"),
           readOnly: true,
+          hideWhenEmpty: true,
+          visibleWhen: { field: "partnerId", hasValue: true },
         },
         {
           ...field(
@@ -667,6 +684,8 @@ const definitions: PlatformModuleDefinition[] = [
           ),
           readOnly: true,
           hideOnCreate: true,
+          hideWhenEmpty: true,
+          visibleWhen: { field: "partnerId", hasValue: true },
         },
         {
           ...field("convertedAt", "Converted at", "dateTime", "conversion"),
@@ -1158,6 +1177,7 @@ const definitions: PlatformModuleDefinition[] = [
           ),
           lookupPath: "/partners?pageSize=100",
           readOnly: true,
+          hideWhenEmpty: true,
         },
         {
           ...field(
@@ -1168,6 +1188,9 @@ const definitions: PlatformModuleDefinition[] = [
           ),
           readOnly: true,
           hideOnCreate: true,
+          hidden: true,
+          hideWhenEmpty: true,
+          visibleWhen: { field: "originatingPartnerId", hasValue: true },
         },
         {
           ...field(
@@ -1178,6 +1201,8 @@ const definitions: PlatformModuleDefinition[] = [
           ),
           readOnly: true,
           hideOnCreate: true,
+          hideWhenEmpty: true,
+          visibleWhen: { field: "originatingPartnerId", hasValue: true },
         },
         {
           ...field("stripeCustomerId", "Stripe customer ID", "text", "system"),
@@ -1775,6 +1800,7 @@ const definitions: PlatformModuleDefinition[] = [
           ),
           lookupPath: "/partners?pageSize=100",
           readOnly: true,
+          hideWhenEmpty: true,
         },
         {
           ...field(
@@ -1784,6 +1810,9 @@ const definitions: PlatformModuleDefinition[] = [
             "attribution",
           ),
           readOnly: true,
+          hidden: true,
+          hideWhenEmpty: true,
+          visibleWhen: { field: "originatingPartnerId", hasValue: true },
         },
         {
           ...field(
@@ -1793,6 +1822,8 @@ const definitions: PlatformModuleDefinition[] = [
             "attribution",
           ),
           readOnly: true,
+          hideWhenEmpty: true,
+          visibleWhen: { field: "originatingPartnerId", hasValue: true },
         },
         {
           ...field("createdAt", "Created", "dateTime", "record-history"),
@@ -2054,6 +2085,16 @@ const definitions: PlatformModuleDefinition[] = [
         "boolean",
         "identity",
       ),
+      {
+        ...field(
+          "allowChangeRequests",
+          "Allow signer change requests",
+          "boolean",
+          "identity",
+        ),
+        description:
+          "Lets external signers return the agreement to the platform with a required comment before signing.",
+      },
       field("signingMode", "Signing mode", "option", "identity", true, [
         "SEQUENTIAL",
         "PARALLEL",
@@ -2113,9 +2154,18 @@ const definitions: PlatformModuleDefinition[] = [
       ),
       field("counterpartyEmail", "Counterparty email", "email", "counterparty"),
       {
-        ...field("partnerId", "Partner", "lookup", "counterparty"),
+        ...field(
+          "partnerId",
+          "Partner / referral partner",
+          "lookup",
+          "counterparty",
+        ),
         lookupPath: "/partners",
-        visibleWhen: { field: "counterpartyType", equals: "PARTNER" },
+        visibleWhenAny: [
+          { field: "counterpartyType", equals: "PARTNER" },
+          { field: "partnerId", hasValue: true },
+        ],
+        hideWhenEmpty: true,
       },
       {
         ...field("customerAccountId", "Customer", "lookup", "counterparty"),

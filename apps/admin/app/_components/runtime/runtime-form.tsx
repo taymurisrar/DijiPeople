@@ -745,8 +745,32 @@ function isVisible(
   mode?: "create" | "read" | "edit",
 ) {
   if (field.hidden || (mode === "create" && field.hideOnCreate)) return false;
+  if (
+    mode === "read" &&
+    field.hideWhenEmpty &&
+    (readRuntimeValue(values, field.key) == null ||
+      readRuntimeValue(values, field.key) === "")
+  )
+    return false;
+  if (field.visibleWhenAny?.length)
+    return field.visibleWhenAny.some((condition) =>
+      matchesVisibilityCondition(condition, values),
+    );
   if (!field.visibleWhen) return true;
-  return values[field.visibleWhen.field] === field.visibleWhen.equals;
+  return matchesVisibilityCondition(field.visibleWhen, values);
+}
+
+function matchesVisibilityCondition(
+  condition: NonNullable<RuntimeFieldDefinition["visibleWhen"]>,
+  values: RuntimeValues,
+) {
+  const value = readRuntimeValue(values, condition.field);
+  if (condition.hasValue !== undefined)
+    return condition.hasValue
+      ? value != null && value !== ""
+      : value == null || value === "";
+  if (condition.in) return condition.in.includes(value);
+  return value === condition.equals;
 }
 function isConditionallyReadOnly(
   field: RuntimeFieldDefinition,

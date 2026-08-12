@@ -29,6 +29,7 @@ describe('PlatformCommunicationsService', () => {
       {
         resolveProvider: jest.fn(async () => ({ provider: { send } })),
       } as never,
+      {} as never,
     );
     await service.sendEmail(input);
     expect(create).toHaveBeenCalledWith(
@@ -62,6 +63,7 @@ describe('PlatformCommunicationsService', () => {
       {
         resolveProvider: jest.fn(async () => ({ provider: { send } })),
       } as never,
+      {} as never,
     );
     await expect(service.sendEmail(input)).resolves.toBe(existing);
     expect(send).not.toHaveBeenCalled();
@@ -78,6 +80,7 @@ describe('PlatformCommunicationsService', () => {
         },
       } as never,
       { resolveProvider: jest.fn(async () => null) } as never,
+      {} as never,
     );
     await service.sendEmail(input);
     expect(update).toHaveBeenLastCalledWith(

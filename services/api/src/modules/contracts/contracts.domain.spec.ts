@@ -52,6 +52,22 @@ describe('contract document domain', () => {
     ]);
   });
 
+  it('preserves an embedded signature image at its document placeholder', () => {
+    const pixel = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+      'base64',
+    );
+    const blocks = extractAgreementDocumentStructure(
+      `<p>Signed by:</p><img src="data:image/png;base64,${pixel.toString('base64')}" alt="Signer signature"><p>Verified</p>`,
+    );
+    expect(blocks[1]).toEqual({
+      kind: 'image',
+      data: pixel,
+      imageType: 'png',
+      alt: 'Signer signature',
+    });
+  });
+
   it('imports DOCX structure, page breaks, table semantics, and images', async () => {
     const pixel = Buffer.from(
       'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',

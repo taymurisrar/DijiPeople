@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -40,6 +41,7 @@ import {
   SaveContractVersionDto,
   SendSignatureRequestDto,
   UpdateContractDto,
+  UpdateContractPartyDto,
   UpdateContractTemplateStateDto,
 } from './dto/contracts.dto';
 
@@ -171,6 +173,25 @@ export class ContractsController {
     @Body() dto: ContractPartyDto,
   ) {
     return this.contracts.addParty(user, id, dto);
+  }
+
+  @Patch(':id/parties/:partyId')
+  updateParty(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Param('partyId') partyId: string,
+    @Body() dto: UpdateContractPartyDto,
+  ) {
+    return this.contracts.updateParty(user, id, partyId, dto);
+  }
+
+  @Delete(':id/parties/:partyId')
+  removeParty(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Param('partyId') partyId: string,
+  ) {
+    return this.contracts.removeParty(user, id, partyId);
   }
 
   @Post(':id/field-placements')

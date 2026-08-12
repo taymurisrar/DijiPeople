@@ -185,6 +185,7 @@ export class SmtpEmailProvider implements EmailProvider {
         subject: payload.subject,
         html: payload.html,
         text: payload.text ?? undefined,
+        attachments: payload.attachments,
       });
 
       return {

@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { EmailProviderType, EmailTemplateStatus, Prisma } from '@prisma/client';
+import { EmailProviderType, Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { SecretEncryptionService } from '../../common/security/secret-encryption.service';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -30,6 +30,72 @@ import { AuditService } from '../audit/audit.service';
 import { AppError } from '../../common/errors/app-error';
 
 const SETTINGS_KEY = 'email-provider';
+const TEMPLATE_SETTINGS_KEY = 'platform-email-templates';
+const PLATFORM_TEMPLATE_ID_PATTERN = /^platform:[A-Z][A-Z0-9_]{1,99}$/;
+
+type PlatformTemplate = {
+  id: string;
+  eventCode: string;
+  templateKey: string;
+  name: string;
+  description: string;
+  subjectTemplate: string;
+  htmlTemplate: string;
+  textTemplate: string | null;
+  availableVariables: string[];
+  status: 'ACTIVE' | 'DRAFT';
+  version: number;
+  updatedAt: string;
+};
+
+const PLATFORM_TEMPLATE_DEFAULTS: PlatformTemplate[] = [
+  platformTemplate(
+    'CONTRACT_SIGNATURE_REQUEST',
+    'Agreement signature request',
+    'Invites an agreement party to review and sign the immutable document.',
+    'Signature requested: {{contractTitle}}',
+    '<h1>Signature requested</h1><p>Hello {{recipientName}},</p><p>{{message}}</p><p><a href="{{signingUrl}}"><strong>Review and sign agreement</strong></a></p><p>Agreement: {{contractNumber}}<br>Expires: {{expiresAt}}</p><p>DijiPeople Platform</p>',
+    [
+      'recipientName',
+      'contractTitle',
+      'contractNumber',
+      'message',
+      'signingUrl',
+      'expiresAt',
+    ],
+  ),
+  platformTemplate(
+    'PARTNER_AGREEMENT_SIGNATURE_REQUEST',
+    'Partner agreement signature request',
+    'Invites a partner signatory to review and sign.',
+    'Partner agreement ready to sign: {{contractTitle}}',
+    '<h1>Your partner agreement is ready</h1><p>Hello {{recipientName}},</p><p>{{message}}</p><p><a href="{{signingUrl}}"><strong>Review and sign securely</strong></a></p><p>Agreement: {{contractNumber}}<br>Expires: {{expiresAt}}</p><p>DijiPeople Partnerships</p>',
+    [
+      'recipientName',
+      'contractTitle',
+      'contractNumber',
+      'message',
+      'signingUrl',
+      'expiresAt',
+    ],
+  ),
+  platformTemplate(
+    'CONTRACT_FULLY_SIGNED',
+    'Completed agreement and signed copy',
+    'Confirms completion and accompanies the immutable signed PDF.',
+    'Completed agreement: {{contractNumber}}',
+    '<h1>Agreement completed</h1><p>Hello {{recipientName}},</p><p>{{contractTitle}} has been signed by every required party.</p><p>The immutable signed PDF is attached for your records. Its audit metadata and document fingerprint are embedded in the signed copy.</p><p>Agreement: {{contractNumber}}<br>Completed: {{completedAt}}</p><p>DijiPeople Platform</p>',
+    ['recipientName', 'contractTitle', 'contractNumber', 'completedAt'],
+  ),
+  platformTemplate(
+    'CONTRACT_SIGNATURE_CHANGES_REQUESTED',
+    'Agreement changes requested',
+    'Alerts the platform owner when a signer returns an agreement for revision.',
+    'Changes requested: {{contractNumber}}',
+    '<h1>A signer requested changes</h1><p>{{recipientName}} returned {{contractTitle}} to the platform team.</p><p><strong>Reason</strong><br>{{reason}}</p><p>Agreement: {{contractNumber}}</p><p>DijiPeople Platform</p>',
+    ['recipientName', 'contractTitle', 'contractNumber', 'reason'],
+  ),
+];
 
 type StoredPlatformEmailSettings = {
   enabled: boolean;
@@ -176,9 +242,8 @@ export class PlatformEmailSettingsService {
       };
     } catch (error) {
       const reason = redactEmailError(error);
-      const isTimeout = /timeout|timed out|etimedout|greeting never received/i.test(
-        reason,
-      );
+      const isTimeout =
+        /timeout|timed out|etimedout|greeting never received/i.test(reason);
       throw new AppError(
         isTimeout ? 'INTEGRATION_TIMEOUT' : 'INTEGRATION_FAILED',
         {
@@ -266,25 +331,25 @@ export class PlatformEmailSettingsService {
 
   async listTemplates(actor: AuthenticatedUser) {
     this.assertPermission(actor, 'settings.read');
-    const items = await this.prisma.emailTemplate.findMany({
-      where: { tenantId: null, isSystem: true },
-      orderBy: [{ eventCode: 'asc' }, { templateKey: 'asc' }],
-      select: {
-        id: true,
-        eventCode: true,
-        templateKey: true,
-        name: true,
-        description: true,
-        subjectTemplate: true,
-        htmlTemplate: true,
-        textTemplate: true,
-        availableVariables: true,
-        status: true,
-        version: true,
-        updatedAt: true,
-      },
-    });
-    return { items };
+    return { items: await this.readPlatformTemplates() };
+  }
+
+  async renderTemplate(
+    eventCode: string,
+    fallback: { subject: string; html: string; text?: string },
+    variables: Record<string, string | number | null | undefined>,
+  ) {
+    const template = (await this.readPlatformTemplates()).find(
+      (item) => item.eventCode === eventCode && item.status === 'ACTIVE',
+    );
+    if (!template) return fallback;
+    return {
+      subject: interpolateTemplate(template.subjectTemplate, variables, false),
+      html: interpolateTemplate(template.htmlTemplate, variables, true),
+      text: template.textTemplate
+        ? interpolateTemplate(template.textTemplate, variables, false)
+        : fallback.text,
+    };
   }
 
   async updateTemplate(
@@ -293,29 +358,45 @@ export class PlatformEmailSettingsService {
     dto: UpdatePlatformEmailTemplateDto,
   ) {
     this.assertPermission(actor, 'settings.email.manage');
-    const existing = await this.prisma.emailTemplate.findFirst({
-      where: { id: templateId, tenantId: null, isSystem: true },
-    });
+    if (!PLATFORM_TEMPLATE_ID_PATTERN.test(templateId)) {
+      throw new BadRequestException('Platform email template ID is invalid.');
+    }
+    const templates = await this.readPlatformTemplates();
+    const existing = templates.find((item) => item.id === templateId);
     if (!existing)
-      throw new NotFoundException('System email template not found.');
-    const updated = await this.prisma.emailTemplate.update({
-      where: { id: existing.id },
-      data: {
-        subjectTemplate: dto.subjectTemplate.trim(),
-        htmlTemplate: sanitizeHtmlTemplate(dto.htmlTemplate),
-        textTemplate: dto.textTemplate?.trim() || null,
-        status: dto.enabled
-          ? EmailTemplateStatus.ACTIVE
-          : EmailTemplateStatus.DRAFT,
-        version: { increment: 1 },
-        updatedBy: actor.userId,
+      throw new NotFoundException('Platform email template not found.');
+    const updated: PlatformTemplate = {
+      ...existing,
+      subjectTemplate: dto.subjectTemplate.trim(),
+      htmlTemplate: sanitizeHtmlTemplate(dto.htmlTemplate),
+      textTemplate: dto.textTemplate?.trim() || null,
+      status: dto.enabled ? 'ACTIVE' : 'DRAFT',
+      version: existing.version + 1,
+      updatedAt: new Date().toISOString(),
+    };
+    const next = templates.map((item) =>
+      item.id === templateId ? updated : item,
+    );
+    await this.prisma.platformSetting.upsert({
+      where: { key: TEMPLATE_SETTINGS_KEY },
+      create: {
+        key: TEMPLATE_SETTINGS_KEY,
+        value: next as unknown as Prisma.InputJsonValue,
+        description:
+          'Platform-admin email templates, separate from tenant web-app templates.',
+        createdById: actor.userId,
+        updatedById: actor.userId,
+      },
+      update: {
+        value: next as unknown as Prisma.InputJsonValue,
+        updatedById: actor.userId,
       },
     });
     await this.audit.log({
       tenantId: 'platform',
       actorUserId: actor.userId,
       action: 'PLATFORM_EMAIL_TEMPLATE_UPDATED',
-      entityType: 'EmailTemplate',
+      entityType: 'PlatformEmailTemplate',
       entityId: existing.id,
       beforeSnapshot: {
         templateKey: existing.templateKey,
@@ -329,6 +410,20 @@ export class PlatformEmailSettingsService {
       },
     });
     return updated;
+  }
+
+  private async readPlatformTemplates(): Promise<PlatformTemplate[]> {
+    const row = await this.prisma.platformSetting.findUnique({
+      where: { key: TEMPLATE_SETTINGS_KEY },
+      select: { value: true },
+    });
+    if (!Array.isArray(row?.value))
+      return structuredClone(PLATFORM_TEMPLATE_DEFAULTS);
+    const stored = row.value.filter(isPlatformTemplate);
+    const storedByEvent = new Map(stored.map((item) => [item.eventCode, item]));
+    return PLATFORM_TEMPLATE_DEFAULTS.map(
+      (fallback) => storedByEvent.get(fallback.eventCode) ?? fallback,
+    );
   }
 
   private async readStoredSettings() {
@@ -353,7 +448,9 @@ export class PlatformEmailSettingsService {
     };
   }
 
-  private describeProviderConfiguration(configuration: Record<string, unknown>) {
+  private describeProviderConfiguration(
+    configuration: Record<string, unknown>,
+  ) {
     return maskSensitiveConfiguration({
       host: configuration.host,
       port: configuration.port,
@@ -467,4 +564,60 @@ function number(value: unknown, fallback: number) {
 
 function security(value: unknown): SmtpSecurityMode {
   return value === 'NONE' || value === 'TLS' ? value : 'STARTTLS';
+}
+
+function platformTemplate(
+  eventCode: string,
+  name: string,
+  description: string,
+  subjectTemplate: string,
+  htmlTemplate: string,
+  availableVariables: string[],
+): PlatformTemplate {
+  return {
+    id: `platform:${eventCode}`,
+    eventCode,
+    templateKey: eventCode.toLowerCase(),
+    name,
+    description,
+    subjectTemplate,
+    htmlTemplate,
+    textTemplate: null,
+    availableVariables,
+    status: 'ACTIVE',
+    version: 1,
+    updatedAt: '2026-08-12T00:00:00.000Z',
+  };
+}
+
+function isPlatformTemplate(value: unknown): value is PlatformTemplate {
+  return Boolean(
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.eventCode === 'string' &&
+    typeof value.subjectTemplate === 'string' &&
+    typeof value.htmlTemplate === 'string',
+  );
+}
+
+function interpolateTemplate(
+  template: string,
+  variables: Record<string, string | number | null | undefined>,
+  html: boolean,
+) {
+  return template.replace(
+    /\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g,
+    (_match, key: string) => {
+      const raw = variables[key];
+      const value = raw == null ? '' : String(raw);
+      return html
+        ? value
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#039;')
+        : value.replace(/[\r\n]+/g, ' ');
+    },
+  );
 }

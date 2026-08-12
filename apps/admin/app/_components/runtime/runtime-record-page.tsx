@@ -322,7 +322,8 @@ function RuntimeRecordEditor({
   const hasSpecialPanel =
     (moduleKey === "customer-onboarding" &&
       ["overview", "readiness", "agreements"].includes(activeTab)) ||
-    (moduleKey === "contracts" && activeTab === "versions") ||
+    (moduleKey === "contracts" &&
+      ["parties", "versions"].includes(activeTab)) ||
     moduleKey === "plans";
 
   return (
@@ -391,6 +392,14 @@ function RuntimeRecordEditor({
           onComplete={reloadRecord}
         />
       ) : null}
+      {moduleKey === "contracts" && !isCreate && activeTab === "parties" ? (
+        <ContractPartiesPanel
+          contractId={record.id}
+          parties={agreementParties(form.values.parties)}
+          locked={isAgreementLocked(String(form.values.status ?? ""))}
+          onComplete={reloadRecord}
+        />
+      ) : null}
       <RuntimeForm
         definition={formDefinition}
         values={form.values}
@@ -419,9 +428,7 @@ function RuntimeRecordEditor({
       !isCreate &&
       Array.isArray(form.values.prices) ? (
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-950">
-            Pricing
-          </h2>
+          <h2 className="text-lg font-semibold text-slate-950">Pricing</h2>
           <p className="mt-1 text-sm text-slate-600">
             Configure flat or per-seat monthly and annual prices. Existing
             Stripe prices remain immutable for active subscriptions.
@@ -436,7 +443,7 @@ function RuntimeRecordEditor({
         </section>
       ) : null}
       {!isCreate && relatedRecords.length ? (
-        <section className="grid gap-5 xl:grid-cols-2">
+        <section className="grid gap-5">
           {relatedRecords.map((relationship) => (
             <RuntimeRelatedRecordsPanel
               key={relationship.key}
@@ -466,6 +473,10 @@ function RuntimeRecordEditor({
           contractId={record.id}
           counterpartyName={String(form.values.counterpartyName ?? "")}
           counterpartyEmail={String(form.values.counterpartyEmail ?? "")}
+          parties={agreementParties(form.values.parties)}
+          allowChangeRequests={
+            form.values.allowChangeRequests !== false
+          }
           onClose={() => setSignatureOpen(false)}
           onComplete={reloadRecord}
         />
@@ -484,6 +495,398 @@ function EmptyTabPanel({ label }: { label: string }) {
         Business records will appear here when they are added to this record.
       </p>
     </section>
+  );
+}
+
+type AgreementParty = {
+  id: string;
+  partyType: string;
+  role: string;
+  name: string;
+  email: string;
+  isPrimary: boolean;
+  isSignatory: boolean;
+  signatureRequired: boolean;
+  signingOrder: number;
+};
+
+function agreementParties(value: unknown): AgreementParty[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is Record<string, unknown> =>
+      Boolean(item && typeof item === "object" && !Array.isArray(item)),
+    )
+    .map((item) => ({
+      id: String(item.id ?? ""),
+      partyType: String(item.partyType ?? "EXTERNAL_ORGANIZATION"),
+      role: String(item.role ?? "OTHER"),
+      name: String(item.name ?? ""),
+      email: String(item.email ?? ""),
+      isPrimary: item.isPrimary === true,
+      isSignatory: item.isSignatory === true,
+      signatureRequired: item.signatureRequired === true,
+      signingOrder: Number(item.signingOrder ?? 1),
+    }))
+    .filter((item) => item.id);
+}
+
+function ContractPartiesPanel({
+  contractId,
+  parties,
+  locked,
+  onComplete,
+}: {
+  contractId: string;
+  parties: AgreementParty[];
+  locked: boolean;
+  onComplete: () => Promise<void>;
+}) {
+  const [drafts, setDrafts] = useState(parties);
+  const [adding, setAdding] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => setDrafts(parties), [parties]);
+  const update = (id: string, changes: Partial<AgreementParty>) =>
+    setDrafts((current) =>
+      current.map((party) =>
+        party.id === id ? { ...party, ...changes } : party,
+      ),
+    );
+  async function request(
+    path: string,
+    method: "POST" | "PATCH" | "DELETE",
+    body?: Record<string, unknown>,
+  ) {
+    setBusy(path);
+    setError(null);
+    try {
+      const response = await fetch(`/api/contracts/${contractId}${path}`, {
+        method,
+        headers: body ? { "Content-Type": "application/json" } : undefined,
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok)
+        throw new Error(
+          payload?.message ?? "Unable to update agreement parties.",
+        );
+      await onComplete();
+    } catch (reason) {
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : "Unable to update agreement parties.",
+      );
+    } finally {
+      setBusy(null);
+    }
+  }
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold text-slate-950">
+            Agreement parties
+          </h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Define every party, whether they sign, whether their signature is
+            required, and the signing order.
+          </p>
+        </div>
+        {!locked ? (
+          <button
+            type="button"
+            onClick={() => setAdding((value) => !value)}
+            className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white"
+          >
+            {adding ? "Cancel" : "Add party"}
+          </button>
+        ) : null}
+      </div>
+      {adding ? (
+        <NewPartyForm
+          disabled={Boolean(busy)}
+          onSubmit={(party) => request("/parties", "POST", party)}
+        />
+      ) : null}
+      <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
+        <table className="w-full min-w-[900px] text-left text-sm">
+          <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+            <tr>
+              <th className="p-3">Party</th>
+              <th className="p-3">Type</th>
+              <th className="p-3">Role</th>
+              <th className="p-3">Signatory</th>
+              <th className="p-3">Required</th>
+              <th className="p-3">Order</th>
+              <th className="p-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-200">
+            {drafts.map((party) => (
+              <tr key={party.id}>
+                <td className="p-3">
+                  <input
+                    disabled={locked}
+                    value={party.name}
+                    onChange={(event) =>
+                      update(party.id, { name: event.target.value })
+                    }
+                    className="h-10 w-full min-w-48 rounded-lg border border-slate-200 px-3"
+                  />
+                  <input
+                    disabled={locked}
+                    type="email"
+                    value={party.email}
+                    onChange={(event) =>
+                      update(party.id, { email: event.target.value })
+                    }
+                    placeholder="Email"
+                    className="mt-2 h-9 w-full min-w-48 rounded-lg border border-slate-200 px-3 text-xs"
+                  />
+                </td>
+                <td className="p-3">
+                  <PartySelect
+                    disabled={locked}
+                    value={party.partyType}
+                    options={PARTY_TYPES}
+                    onChange={(partyType) => update(party.id, { partyType })}
+                  />
+                </td>
+                <td className="p-3">
+                  <PartySelect
+                    disabled={locked}
+                    value={party.role}
+                    options={PARTY_ROLES}
+                    onChange={(role) => update(party.id, { role })}
+                  />
+                </td>
+                <td className="p-3">
+                  <input
+                    disabled={locked}
+                    type="checkbox"
+                    checked={party.isSignatory}
+                    onChange={(event) =>
+                      update(party.id, {
+                        isSignatory: event.target.checked,
+                        ...(!event.target.checked
+                          ? { signatureRequired: false }
+                          : {}),
+                      })
+                    }
+                    aria-label={`${party.name} is a signatory`}
+                  />
+                </td>
+                <td className="p-3">
+                  <input
+                    disabled={locked || !party.isSignatory}
+                    type="checkbox"
+                    checked={party.signatureRequired}
+                    onChange={(event) =>
+                      update(party.id, {
+                        signatureRequired: event.target.checked,
+                      })
+                    }
+                    aria-label={`${party.name} signature is required`}
+                  />
+                </td>
+                <td className="p-3">
+                  <input
+                    disabled={locked || !party.isSignatory}
+                    type="number"
+                    min={1}
+                    value={party.signingOrder}
+                    onChange={(event) =>
+                      update(party.id, {
+                        signingOrder: Number(event.target.value),
+                      })
+                    }
+                    className="h-10 w-20 rounded-lg border border-slate-200 px-3"
+                  />
+                </td>
+                <td className="p-3">
+                  <div className="flex justify-end gap-2">
+                    <button
+                      disabled={locked || Boolean(busy)}
+                      type="button"
+                      onClick={() =>
+                        void request(`/parties/${party.id}`, "PATCH", party)
+                      }
+                      className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold disabled:opacity-40"
+                    >
+                      Save
+                    </button>
+                    <button
+                      disabled={locked || Boolean(busy)}
+                      type="button"
+                      onClick={() =>
+                        void request(`/parties/${party.id}`, "DELETE")
+                      }
+                      className="rounded-lg border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700 disabled:opacity-40"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {error ? (
+        <p className="mt-3 text-sm text-rose-700" role="alert">
+          {error}
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
+const PARTY_TYPES = [
+  "PLATFORM",
+  "PARTNER",
+  "CUSTOMER",
+  "LEAD",
+  "TENANT",
+  "INDIVIDUAL",
+  "EXTERNAL_ORGANIZATION",
+];
+const PARTY_ROLES = [
+  "PROVIDER",
+  "PARTNER",
+  "CUSTOMER",
+  "CLIENT",
+  "REFERRER",
+  "AUTHORIZED_SIGNATORY",
+  "WITNESS",
+  "GUARANTOR",
+  "OTHER",
+];
+
+function PartySelect({
+  value,
+  options,
+  disabled,
+  onChange,
+}: {
+  value: string;
+  options: string[];
+  disabled: boolean;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <select
+      disabled={disabled}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      className="h-10 min-w-40 rounded-lg border border-slate-200 bg-white px-3 text-xs"
+    >
+      <option value="">Select</option>
+      {options.map((option) => (
+        <option key={option} value={option}>
+          {option.replaceAll("_", " ")}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+function NewPartyForm({
+  disabled,
+  onSubmit,
+}: {
+  disabled: boolean;
+  onSubmit: (party: Record<string, unknown>) => Promise<void>;
+}) {
+  const [party, setParty] = useState({
+    name: "",
+    email: "",
+    partyType: "EXTERNAL_ORGANIZATION",
+    role: "AUTHORIZED_SIGNATORY",
+    isSignatory: true,
+    signatureRequired: true,
+    signingOrder: 1,
+  });
+  return (
+    <div className="mt-4 grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-2 xl:grid-cols-4">
+      <DialogField
+        label="Party name"
+        value={party.name}
+        onChange={(name) => setParty({ ...party, name })}
+      />
+      <DialogField
+        label="Email"
+        type="email"
+        value={party.email}
+        onChange={(email) => setParty({ ...party, email })}
+      />
+      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <span>Party type</span>
+        <PartySelect
+          disabled={disabled}
+          value={party.partyType}
+          options={PARTY_TYPES}
+          onChange={(partyType) => setParty({ ...party, partyType })}
+        />
+      </label>
+      <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <span>Role</span>
+        <PartySelect
+          disabled={disabled}
+          value={party.role}
+          options={PARTY_ROLES}
+          onChange={(role) => setParty({ ...party, role })}
+        />
+      </label>
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={party.isSignatory}
+          onChange={(event) =>
+            setParty({
+              ...party,
+              isSignatory: event.target.checked,
+              signatureRequired:
+                event.target.checked && party.signatureRequired,
+            })
+          }
+        />{" "}
+        Signatory
+      </label>
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          disabled={!party.isSignatory}
+          type="checkbox"
+          checked={party.signatureRequired}
+          onChange={(event) =>
+            setParty({ ...party, signatureRequired: event.target.checked })
+          }
+        />{" "}
+        Required signature
+      </label>
+      <label className="grid gap-1 text-xs font-semibold uppercase text-slate-500">
+        <span>Signing order</span>
+        <input
+          type="number"
+          min={1}
+          value={party.signingOrder}
+          onChange={(event) =>
+            setParty({ ...party, signingOrder: Number(event.target.value) })
+          }
+          className="h-10 rounded-lg border border-slate-200 px-3"
+        />
+      </label>
+      <button
+        disabled={
+          disabled || !party.name || (party.isSignatory && !party.email)
+        }
+        type="button"
+        onClick={() => void onSubmit(party)}
+        className="h-10 self-end rounded-lg bg-slate-950 px-4 text-sm font-semibold text-white disabled:opacity-40"
+      >
+        Add party
+      </button>
+    </div>
   );
 }
 
@@ -800,7 +1203,10 @@ function SupportCaseOperationsPanel({
     if (path === "customer-updates") setCustomerBody("");
     await onComplete();
   }
-  async function changeStatus(status: string, extra: Record<string, unknown> = {}) {
+  async function changeStatus(
+    status: string,
+    extra: Record<string, unknown> = {},
+  ) {
     setBusy(true);
     setMessage("");
     const response = await fetch(`/api/support-cases/${record.id}`, {
@@ -810,7 +1216,10 @@ function SupportCaseOperationsPanel({
     });
     const payload = await response.json().catch(() => null);
     setBusy(false);
-    if (!response.ok) { setMessage(payload?.message ?? "Unable to change case status."); return; }
+    if (!response.ok) {
+      setMessage(payload?.message ?? "Unable to change case status.");
+      return;
+    }
     setMessage(`Case moved to ${status.toLowerCase().replaceAll("_", " ")}.`);
     await onComplete();
   }
@@ -846,13 +1255,58 @@ function SupportCaseOperationsPanel({
           send customer-safe progress updates.
         </p>
       </div>
-      <div className="mt-4 flex flex-wrap gap-2" aria-label="Support case actions">
-        {["NEW", "REOPENED"].includes(status) ? <CaseAction label="Triage" disabled={busy} onClick={() => changeStatus("TRIAGED")} /> : null}
-        {!["RESOLVED", "CLOSED", "CANCELLED"].includes(status) ? <CaseAction label="Escalate" disabled={busy} onClick={() => changeStatus("WAITING_ON_INTERNAL_TEAM", { escalationLevel: "ESCALATED" })} /> : null}
-        {!["RESOLVED", "CLOSED", "CANCELLED"].includes(status) ? <CaseAction label="Request info" disabled={busy} onClick={() => changeStatus("WAITING_ON_CUSTOMER")} /> : null}
-        {!["RESOLVED", "CLOSED", "CANCELLED"].includes(status) ? <CaseAction label="Resolve" disabled={busy} onClick={() => changeStatus("RESOLVED")} primary /> : null}
-        {status === "RESOLVED" ? <CaseAction label="Close" disabled={busy} onClick={() => changeStatus("CLOSED")} primary /> : null}
-        {["RESOLVED", "CLOSED"].includes(status) ? <CaseAction label="Reopen" disabled={busy} onClick={() => changeStatus("REOPENED")} /> : null}
+      <div
+        className="mt-4 flex flex-wrap gap-2"
+        aria-label="Support case actions"
+      >
+        {["NEW", "REOPENED"].includes(status) ? (
+          <CaseAction
+            label="Triage"
+            disabled={busy}
+            onClick={() => changeStatus("TRIAGED")}
+          />
+        ) : null}
+        {!["RESOLVED", "CLOSED", "CANCELLED"].includes(status) ? (
+          <CaseAction
+            label="Escalate"
+            disabled={busy}
+            onClick={() =>
+              changeStatus("WAITING_ON_INTERNAL_TEAM", {
+                escalationLevel: "ESCALATED",
+              })
+            }
+          />
+        ) : null}
+        {!["RESOLVED", "CLOSED", "CANCELLED"].includes(status) ? (
+          <CaseAction
+            label="Request info"
+            disabled={busy}
+            onClick={() => changeStatus("WAITING_ON_CUSTOMER")}
+          />
+        ) : null}
+        {!["RESOLVED", "CLOSED", "CANCELLED"].includes(status) ? (
+          <CaseAction
+            label="Resolve"
+            disabled={busy}
+            onClick={() => changeStatus("RESOLVED")}
+            primary
+          />
+        ) : null}
+        {status === "RESOLVED" ? (
+          <CaseAction
+            label="Close"
+            disabled={busy}
+            onClick={() => changeStatus("CLOSED")}
+            primary
+          />
+        ) : null}
+        {["RESOLVED", "CLOSED"].includes(status) ? (
+          <CaseAction
+            label="Reopen"
+            disabled={busy}
+            onClick={() => changeStatus("REOPENED")}
+          />
+        ) : null}
       </div>
       <div className="mt-4 grid gap-3 lg:grid-cols-[0.8fr_1.5fr_auto] lg:items-end">
         <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -962,8 +1416,27 @@ function SupportCaseOperationsPanel({
   );
 }
 
-function CaseAction({ label, onClick, disabled, primary = false }: { label: string; onClick: () => void; disabled: boolean; primary?: boolean }) {
-  return <button type="button" disabled={disabled} onClick={onClick} className={`rounded-lg px-3 py-2 text-xs font-semibold disabled:opacity-40 ${primary ? "bg-slate-950 text-white" : "border border-slate-200 text-slate-700"}`}>{label}</button>;
+function CaseAction({
+  label,
+  onClick,
+  disabled,
+  primary = false,
+}: {
+  label: string;
+  onClick: () => void;
+  disabled: boolean;
+  primary?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className={`rounded-lg px-3 py-2 text-xs font-semibold disabled:opacity-40 ${primary ? "bg-slate-950 text-white" : "border border-slate-200 text-slate-700"}`}
+    >
+      {label}
+    </button>
+  );
 }
 
 function ContractVersionHistory({
@@ -1164,18 +1637,51 @@ function SignatureRequestDialog({
   contractId,
   counterpartyName,
   counterpartyEmail,
+  parties,
+  allowChangeRequests,
   onClose,
   onComplete,
 }: {
   contractId: string;
   counterpartyName: string;
   counterpartyEmail: string;
+  parties: AgreementParty[];
+  allowChangeRequests: boolean;
   onClose: () => void;
   onComplete: () => Promise<void>;
 }) {
-  const [name, setName] = useState(counterpartyName);
-  const [email, setEmail] = useState(counterpartyEmail);
-  const [role, setRole] = useState("Authorized signatory");
+  type RecipientDraft = {
+    partyId?: string;
+    name: string;
+    email: string;
+    role: string;
+    signingOrder: number;
+    isRequired: boolean;
+  };
+  const [recipients, setRecipients] = useState<RecipientDraft[]>(() => {
+    const configured = parties
+      .filter((party) => party.isSignatory)
+      .map((party) => ({
+        partyId: party.id,
+        name: party.name,
+        email: party.email,
+        role: party.role.replaceAll("_", " "),
+        signingOrder: party.signingOrder,
+        isRequired: party.signatureRequired,
+      }));
+    return configured.length
+      ? configured
+      : [
+          {
+            partyId: undefined,
+            name: counterpartyName,
+            email: counterpartyEmail,
+            role: "Authorized signatory",
+            signingOrder: 1,
+            isRequired: true,
+          },
+        ];
+  });
   const [subject, setSubject] = useState(
     "Signature requested for your agreement",
   );
@@ -1192,7 +1698,8 @@ function SignatureRequestDialog({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             subject,
-            recipients: [{ name, email, role, signingOrder: 1 }],
+            recipients,
+            allowChangeRequests,
           }),
         },
       );
@@ -1231,20 +1738,75 @@ function SignatureRequestDialog({
           A secure, expiring signing link will be created. Recipients sign the
           immutable current version in order.
         </p>
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
-          <DialogField label="Signer name" value={name} onChange={setName} />
-          <DialogField
-            label="Signer email"
-            value={email}
-            type="email"
-            onChange={setEmail}
-          />
-          <DialogField label="Signer role" value={role} onChange={setRole} />
-          <DialogField
-            label="Email subject"
-            value={subject}
-            onChange={setSubject}
-          />
+        <div className="mt-5 space-y-3">
+          {recipients.map((recipient, index) => (
+            <div
+              key={recipient.partyId ?? index}
+              className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-2"
+            >
+              <DialogField
+                label="Signer name"
+                value={recipient.name}
+                onChange={(name) =>
+                  setRecipients((items) =>
+                    items.map((item, itemIndex) =>
+                      itemIndex === index ? { ...item, name } : item,
+                    ),
+                  )
+                }
+              />
+              <DialogField
+                label="Signer email"
+                value={recipient.email}
+                type="email"
+                onChange={(email) =>
+                  setRecipients((items) =>
+                    items.map((item, itemIndex) =>
+                      itemIndex === index ? { ...item, email } : item,
+                    ),
+                  )
+                }
+              />
+              <DialogField
+                label="Signer role"
+                value={recipient.role}
+                onChange={(role) =>
+                  setRecipients((items) =>
+                    items.map((item, itemIndex) =>
+                      itemIndex === index ? { ...item, role } : item,
+                    ),
+                  )
+                }
+              />
+              <label className="flex items-center gap-2 self-end pb-3 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={recipient.isRequired}
+                  onChange={(event) =>
+                    setRecipients((items) =>
+                      items.map((item, itemIndex) =>
+                        itemIndex === index
+                          ? { ...item, isRequired: event.target.checked }
+                          : item,
+                      ),
+                    )
+                  }
+                />{" "}
+                Required signature
+              </label>
+            </div>
+          ))}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <DialogField
+              label="Email subject"
+              value={subject}
+              onChange={setSubject}
+            />
+            <label className="flex items-center gap-2 self-end pb-3 text-sm text-slate-700">
+              <input type="checkbox" checked={allowChangeRequests} readOnly />{" "}
+              Signers may request changes
+            </label>
+          </div>
         </div>
         {error ? <p className="mt-4 text-sm text-rose-600">{error}</p> : null}
         <div className="mt-6 flex justify-end gap-2">
@@ -1257,7 +1819,12 @@ function SignatureRequestDialog({
           </button>
           <button
             type="button"
-            disabled={busy || !name || !email || !subject}
+            disabled={
+              busy ||
+              !subject ||
+              !recipients.length ||
+              recipients.some((item) => !item.name || !item.email)
+            }
             onClick={() => void send()}
             className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
           >
@@ -1571,13 +2138,14 @@ function relatedFallbackColumns(key: string): RuntimeColumnDefinition[] {
       { key: "createdAt", field: "createdAt", label: "Created" },
     ];
   return [
-    { key: "id", field: "id", label: "Record" },
+    { key: "reference", field: "displayName", label: "Record" },
+    { key: "status", field: "status", label: "Status" },
     { key: "createdAt", field: "createdAt", label: "Created" },
   ];
 }
 
 function relatedValue(record: RuntimeRecord, field: string) {
-  const value = field
+  const resolved = field
     .split(".")
     .reduce<unknown>(
       (current, key) =>
@@ -1586,6 +2154,15 @@ function relatedValue(record: RuntimeRecord, field: string) {
           : undefined,
       record,
     );
+  const value =
+    field === "displayName" && (resolved == null || resolved === "")
+      ? (record.title ??
+        record.name ??
+        record.companyName ??
+        record.contractNumber ??
+        record.requestNumber ??
+        record.fileName)
+      : resolved;
   if (value == null || value === "")
     return <span className="text-slate-400">—</span>;
   if (field.endsWith("At")) {

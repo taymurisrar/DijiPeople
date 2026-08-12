@@ -20,6 +20,9 @@ export type PlatformEmailProviderType =
 export const SMTP_SECURITY_MODES = ['NONE', 'STARTTLS', 'TLS'] as const;
 export type SmtpSecurityMode = (typeof SMTP_SECURITY_MODES)[number];
 
+export const PLATFORM_EMAIL_HTML_MAX_LENGTH = 2_000_000;
+export const PLATFORM_EMAIL_TEXT_MAX_LENGTH = 500_000;
+
 export class UpdatePlatformEmailSettingsDto {
   @IsBoolean()
   enabled!: boolean;
@@ -116,12 +119,12 @@ export class UpdatePlatformEmailTemplateDto {
 
   @IsString()
   @IsNotEmpty()
-  @MaxLength(100000)
+  @MaxLength(PLATFORM_EMAIL_HTML_MAX_LENGTH)
   htmlTemplate!: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(100000)
+  @MaxLength(PLATFORM_EMAIL_TEXT_MAX_LENGTH)
   textTemplate?: string | null;
 
   @IsBoolean()

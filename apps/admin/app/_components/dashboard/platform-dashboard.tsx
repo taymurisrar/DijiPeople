@@ -271,7 +271,7 @@ export function PlatformDashboard({
   return (
     <main className="space-y-5">
       <section className="rounded-[28px] border border-slate-200 bg-gradient-to-br from-white via-white to-[var(--admin-surface-tint)] p-5 shadow-sm lg:p-6">
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start">
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,720px)] xl:items-start">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--admin-primary)]">
               Live operations workspace
@@ -292,18 +292,9 @@ export function PlatformDashboard({
               <span className="rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm">
                 Currency {summary.reportingCurrency}
               </span>
-              <span
-                className={`rounded-full border px-3 py-1.5 font-semibold shadow-sm ${
-                  autoRefresh
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                    : "border-slate-200 bg-white text-slate-600"
-                }`}
-              >
-                Live {autoRefresh ? "on" : "off"}
-              </span>
             </div>
           </div>
-          <div className="grid gap-2 rounded-2xl border border-slate-200 bg-white/85 p-3 shadow-sm sm:grid-cols-[minmax(190px,1fr)_auto_auto_auto] sm:items-end xl:w-[640px]">
+          <div className="grid min-w-0 gap-3 rounded-2xl border border-slate-200 bg-white/85 p-3 shadow-sm sm:grid-cols-2 sm:items-end xl:grid-cols-[minmax(240px,1fr)_minmax(160px,auto)_auto_auto]">
             <RuntimeViewSelector
               moduleKey="dashboard"
               views={DASHBOARD_VIEWS}
@@ -320,7 +311,7 @@ export function PlatformDashboard({
                   next.set("range", event.target.value);
                   router.push(`/?${next.toString()}`);
                 }}
-                className="h-10 min-w-32 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold normal-case tracking-normal text-slate-700 shadow-sm"
+                className="h-10 w-full min-w-0 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold normal-case tracking-normal text-slate-700 shadow-sm"
               >
                 <option value="30d">Last 30 days</option>
                 <option value="3m">Last 3 months</option>

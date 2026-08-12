@@ -16,11 +16,13 @@ import {
   PartnerStatus,
 } from '@prisma/client';
 import { createHash, randomBytes } from 'crypto';
+import { readFile } from 'fs/promises';
 import sanitizeHtml from 'sanitize-html';
 import PDFDocument from 'pdfkit';
 import {
   Document,
   HeadingLevel,
+  ImageRun,
   Packer,
   PageBreak,
   Paragraph,
@@ -34,6 +36,7 @@ import { DomUtils, parseDocument } from 'htmlparser2';
 import mammoth from 'mammoth';
 import pdfParse from 'pdf-parse';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
+import { buildPublicSiteUrl } from '../../common/config/public-site-url.config';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { StorageService } from '../../common/storage/storage.service';
 import { userHasPlatformPermission } from '../platform-auth/platform-permissions';
@@ -56,6 +59,7 @@ import {
   SaveContractVersionDto,
   SendSignatureRequestDto,
   UpdateContractDto,
+  UpdateContractPartyDto,
   ContractQueryDto,
   ContractPartyDto,
   ContractFieldPlacementDto,
@@ -303,6 +307,60 @@ export const CONTRACT_PLACEHOLDER_REGISTRY: ContractPlaceholderDefinition[] = [
     'amal@gulfhorizon.example',
   ),
   placeholder('tenant.name', 'Tenant name', 'TENANT', 'Gulf Horizon'),
+  placeholder('lead.companyName', 'Lead company', 'TEXT', 'Gulf Horizon', {
+    required: false,
+    fallbackBehavior: 'EMPTY',
+  }),
+  placeholder('lead.contactName', 'Lead contact', 'TEXT', 'Amal Hassan', {
+    required: false,
+    fallbackBehavior: 'EMPTY',
+  }),
+  placeholder(
+    'lead.workEmail',
+    'Lead work email',
+    'EMAIL',
+    'amal@example.com',
+    {
+      required: false,
+      fallbackBehavior: 'EMPTY',
+    },
+  ),
+  placeholder('lead.phone', 'Lead phone', 'PHONE', '+966 50 000 0000', {
+    required: false,
+    fallbackBehavior: 'EMPTY',
+  }),
+  placeholder(
+    'lead.website',
+    'Lead company website',
+    'URL',
+    'https://example.com',
+    {
+      required: false,
+      fallbackBehavior: 'EMPTY',
+    },
+  ),
+  placeholder('lead.industry', 'Lead industry', 'TEXT', 'Technology', {
+    required: false,
+    fallbackBehavior: 'EMPTY',
+  }),
+  placeholder('lead.companySize', 'Lead company size', 'TEXT', '51-200', {
+    required: false,
+    fallbackBehavior: 'EMPTY',
+  }),
+  placeholder('lead.country', 'Lead country', 'TEXT', 'Saudi Arabia', {
+    required: false,
+    fallbackBehavior: 'EMPTY',
+  }),
+  placeholder(
+    'lead.requirements',
+    'Lead requirements',
+    'LONG_TEXT',
+    'HR rollout requirements',
+    {
+      required: false,
+      fallbackBehavior: 'EMPTY',
+    },
+  ),
   placeholder(
     'contract.number',
     'Contract number',
@@ -343,6 +401,40 @@ export const CONTRACT_PLACEHOLDER_REGISTRY: ContractPlaceholderDefinition[] = [
     'Net 30 days',
   ),
   placeholder(
+    'contract.governingLaw',
+    'Governing law',
+    'TEXT',
+    'Laws of Saudi Arabia',
+    {
+      required: false,
+      fallbackBehavior: 'EMPTY',
+    },
+  ),
+  placeholder('contract.jurisdiction', 'Jurisdiction', 'TEXT', 'Riyadh', {
+    required: false,
+    fallbackBehavior: 'EMPTY',
+  }),
+  placeholder(
+    'contract.renewalNoticeDays',
+    'Renewal notice days',
+    'INTEGER',
+    '30',
+    {
+      required: false,
+      fallbackBehavior: 'EMPTY',
+    },
+  ),
+  placeholder(
+    'contract.terminationNoticeDays',
+    'Termination notice days',
+    'INTEGER',
+    '30',
+    {
+      required: false,
+      fallbackBehavior: 'EMPTY',
+    },
+  ),
+  placeholder(
     'signature.platform.name',
     'Platform signature',
     'SIGNATURE',
@@ -375,6 +467,20 @@ export const CONTRACT_PLACEHOLDER_REGISTRY: ContractPlaceholderDefinition[] = [
     'Counterparty initials',
     'INITIALS',
     'AH',
+    { required: false },
+  ),
+  placeholder(
+    'signature.party.primary.name',
+    'Primary party signature',
+    'SIGNATURE',
+    'Signed electronically',
+    { required: false },
+  ),
+  placeholder(
+    'signature.party.primary.date',
+    'Primary party signed date',
+    'DATE_TIME',
+    '2026-08-01T14:35:00+03:00',
     { required: false },
   ),
 ];
@@ -522,6 +628,10 @@ export class ContractsService {
       'contract.value': dto.contractValue,
       'contract.commissionPercentage': dto.commissionPercentage,
       'contract.paymentTerms': dto.paymentTerms,
+      'contract.governingLaw': dto.governingLaw,
+      'contract.jurisdiction': dto.jurisdiction,
+      'contract.renewalNoticeDays': dto.renewalNoticeDays,
+      'contract.terminationNoticeDays': dto.terminationNoticeDays,
       'counterparty.name': dto.counterpartyName.trim(),
       'counterparty.email': dto.counterpartyEmail?.trim().toLowerCase(),
       ...(dto.placeholderValues ?? {}),
@@ -548,6 +658,7 @@ export class ContractsService {
           lifecycleGatePurpose:
             dto.lifecycleGatePurpose ?? templateVersion?.lifecycleGatePurpose,
           isGoverningAgreement: dto.isGoverningAgreement ?? false,
+          allowChangeRequests: dto.allowChangeRequests ?? true,
           signingMode: dto.signingMode ?? 'MIXED',
           counterpartyType: dto.counterpartyType,
           processStage: 'INITIATION',
@@ -620,6 +731,8 @@ export class ContractsService {
               name: companyProfile.companyName,
               legalName: companyProfile.legalName,
               isPrimary: true,
+              isSignatory: false,
+              signatureRequired: false,
               signingOrder: 1,
             },
             {
@@ -641,6 +754,8 @@ export class ContractsService {
                 dto.tenantId ??
                 dto.relatedLeadId,
               isPrimary: true,
+              isSignatory: true,
+              signatureRequired: true,
               signingOrder: 2,
             },
           ];
@@ -655,6 +770,10 @@ export class ContractsService {
           phone: party.phone?.trim(),
           organizationId: party.organizationId,
           isPrimary: party.isPrimary ?? false,
+          isSignatory:
+            party.signatureRequired === true || (party.isSignatory ?? false),
+          signatureRequired:
+            party.signatureRequired ?? party.isSignatory ?? false,
           signingOrder: party.signingOrder ?? 1,
         })),
       });
@@ -793,11 +912,14 @@ export class ContractsService {
       customerOnboardingId: source.customerOnboardingId,
       tenantId: source.tenantId,
       relatedLeadId: source.relatedLeadId,
+      counterpartyType: source.counterpartyType,
       currencyCode: source.currencyCode,
       contractValue: source.contractValue,
       effectiveDate: dto.effectiveDate,
       expiryDate: dto.expiryDate,
-      placeholderValues: source.placeholderValues,
+      placeholderValues: compactStringRecord(
+        source.placeholderValues as Record<string, unknown>,
+      ),
     });
   }
 
@@ -1015,6 +1137,9 @@ export class ContractsService {
           : {}),
         ...(dto.isGoverningAgreement !== undefined
           ? { isGoverningAgreement: dto.isGoverningAgreement }
+          : {}),
+        ...(dto.allowChangeRequests !== undefined
+          ? { allowChangeRequests: dto.allowChangeRequests }
           : {}),
         ...(dto.signingMode !== undefined
           ? { signingMode: dto.signingMode }
@@ -1671,6 +1796,9 @@ export class ContractsService {
         phone: dto.phone?.trim(),
         organizationId: dto.organizationId,
         isPrimary: dto.isPrimary ?? false,
+        isSignatory:
+          dto.signatureRequired === true || (dto.isSignatory ?? false),
+        signatureRequired: dto.signatureRequired ?? dto.isSignatory ?? false,
         signingOrder: dto.signingOrder ?? 1,
       },
     });
@@ -1679,6 +1807,82 @@ export class ContractsService {
       user,
       'PARTY_ADDED',
       `${dto.name.trim()} was added as ${dto.role}.`,
+    );
+    return this.get(user, contractId);
+  }
+
+  async updateParty(
+    user: AuthenticatedUser,
+    contractId: string,
+    partyId: string,
+    dto: UpdateContractPartyDto,
+  ) {
+    this.assertWrite(user);
+    const contract = await this.get(user, contractId);
+    this.assertAgreementEditable(contract.status);
+    if (!contract.parties.some((party) => party.id === partyId))
+      throw new NotFoundException('Agreement party was not found.');
+    await this.prisma.contractParty.update({
+      where: { id: partyId },
+      data: {
+        ...(dto.partyType !== undefined ? { partyType: dto.partyType } : {}),
+        ...(dto.role !== undefined ? { role: dto.role } : {}),
+        ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
+        ...(dto.legalName !== undefined
+          ? { legalName: dto.legalName.trim() || null }
+          : {}),
+        ...(dto.email !== undefined
+          ? { email: dto.email.trim().toLowerCase() || null }
+          : {}),
+        ...(dto.phone !== undefined ? { phone: dto.phone.trim() || null } : {}),
+        ...(dto.organizationId !== undefined
+          ? { organizationId: dto.organizationId || null }
+          : {}),
+        ...(dto.isPrimary !== undefined ? { isPrimary: dto.isPrimary } : {}),
+        ...(dto.isSignatory !== undefined
+          ? {
+              isSignatory: dto.isSignatory,
+              ...(!dto.isSignatory ? { signatureRequired: false } : {}),
+            }
+          : {}),
+        ...(dto.signatureRequired !== undefined
+          ? {
+              signatureRequired: dto.signatureRequired,
+              ...(dto.signatureRequired ? { isSignatory: true } : {}),
+            }
+          : {}),
+        ...(dto.signingOrder !== undefined
+          ? { signingOrder: dto.signingOrder }
+          : {}),
+      },
+    });
+    await this.timeline(
+      contractId,
+      user,
+      'PARTY_UPDATED',
+      `${dto.name?.trim() || 'Agreement party'} was updated.`,
+      { partyId },
+    );
+    return this.get(user, contractId);
+  }
+
+  async removeParty(
+    user: AuthenticatedUser,
+    contractId: string,
+    partyId: string,
+  ) {
+    this.assertWrite(user);
+    const contract = await this.get(user, contractId);
+    this.assertAgreementEditable(contract.status);
+    const party = contract.parties.find((item) => item.id === partyId);
+    if (!party) throw new NotFoundException('Agreement party was not found.');
+    await this.prisma.contractParty.delete({ where: { id: partyId } });
+    await this.timeline(
+      contractId,
+      user,
+      'PARTY_REMOVED',
+      `${party.name} was removed from the agreement.`,
+      { partyId },
     );
     return this.get(user, contractId);
   }
@@ -1973,8 +2177,43 @@ export class ContractsService {
       1,
       90,
     );
+    const configuredParties = new Map(
+      contract.parties.map((party) => [party.id, party]),
+    );
+    const requiredPartyIds = contract.parties
+      .filter((party) => party.isSignatory && party.signatureRequired)
+      .map((party) => party.id);
+    const submittedPartyIds = new Set(
+      dto.recipients.map((item) => item.partyId).filter(Boolean),
+    );
+    const missingRequiredParties = requiredPartyIds.filter(
+      (partyId) => !submittedPartyIds.has(partyId),
+    );
+    if (missingRequiredParties.length)
+      throw new BadRequestException(
+        'Every party marked as a required signatory must receive the signature request.',
+      );
+    for (const recipient of dto.recipients) {
+      const party = recipient.partyId
+        ? configuredParties.get(recipient.partyId)
+        : undefined;
+      if (recipient.partyId && !party)
+        throw new BadRequestException(
+          'Every signer party must belong to this agreement.',
+        );
+      if (party && !party.isSignatory)
+        throw new BadRequestException(
+          `${party.name} is not configured as a signatory for this agreement.`,
+        );
+    }
     const tokens = dto.recipients.map((recipient) => ({
-      recipient,
+      recipient: {
+        ...recipient,
+        isRequired: recipient.partyId
+          ? (configuredParties.get(recipient.partyId)?.signatureRequired ??
+            recipient.isRequired)
+          : recipient.isRequired,
+      },
       token: randomBytes(32).toString('base64url'),
     }));
     const partyIds = [
@@ -2019,6 +2258,8 @@ export class ContractsService {
           subject: dto.subject,
           message: dto.message,
           signingMode: dto.signingMode ?? contract.signingMode,
+          allowChangeRequests:
+            dto.allowChangeRequests ?? contract.allowChangeRequests,
           expiresAt: dto.expiresAt
             ? new Date(dto.expiresAt)
             : addDays(new Date(), expiryDays),
@@ -2095,10 +2336,9 @@ export class ContractsService {
       }
       return created;
     });
-    const publicSite = process.env.PUBLIC_SITE_URL ?? 'http://localhost:3000';
     await Promise.all(
       tokens.map(({ recipient, token }) => {
-        const url = `${publicSite}/sign/${token}`;
+        const url = buildPublicSiteUrl(`/sign/${token}`);
         return this.communications.sendEmail({
           eventCode: ['PARTNER_AGREEMENT', 'MASTER_PARTNER_AGREEMENT'].includes(
             contract.contractType,
@@ -2114,6 +2354,16 @@ export class ContractsService {
             { label: 'Review and sign agreement', url },
           ),
           text: `${dto.subject}\n${url}`,
+          templateVariables: {
+            recipientName: recipient.name,
+            contractTitle: contract.title,
+            contractNumber: contract.contractNumber,
+            message:
+              dto.message ||
+              `Please review and sign this agreement. The secure link expires in ${expiryDays} days.`,
+            signingUrl: url,
+            expiresAt: request.expiresAt?.toISOString() ?? '',
+          },
           entityType: 'Contract',
           entityId: contractId,
           requestedById: user.userId,
@@ -2259,7 +2509,7 @@ export class ContractsService {
           recipientId: recipient.id,
           name: recipient.name,
           email: recipient.email,
-          url: `${process.env.PUBLIC_SITE_URL ?? 'http://localhost:3000'}/sign/${token}`,
+          url: buildPublicSiteUrl(`/sign/${token}`),
           deliveryKey: `signature-event:${deliveryEvent.id}`,
         });
       }
@@ -2367,6 +2617,7 @@ export class ContractsService {
         sha256: recipient.signatureRequest.contractVersion.contentSha256,
       },
       canSign: !earlierIncomplete,
+      allowRequestChanges: recipient.signatureRequest.allowChangeRequests,
       expiresAt: recipient.tokenExpiresAt,
       consentText:
         typeof settings.consentText === 'string'
@@ -2715,8 +2966,15 @@ export class ContractsService {
           evidenceDocumentId: evidenceDocument.id,
         },
       });
+      const requiredRecipients = [
+        ...new Map(
+          recipient.signatureRequest.recipients
+            .filter((signer) => signer.isRequired)
+            .map((signer) => [signer.email.toLowerCase(), signer]),
+        ).values(),
+      ];
       await Promise.all(
-        recipient.signatureRequest.recipients.map((signer) =>
+        requiredRecipients.map((signer) =>
           this.communications.sendEmail({
             eventCode: 'CONTRACT_FULLY_SIGNED',
             recipient: signer.email,
@@ -2725,9 +2983,27 @@ export class ContractsService {
               'Agreement completed',
               `${recipient.signatureRequest.contract.title} has been signed by all required parties. The signed record and evidence have been locked.`,
             ),
+            text: `${recipient.signatureRequest.contract.contractNumber} is fully signed. The signed PDF is attached.`,
+            attachments: [
+              {
+                filename: signed.document.fileName,
+                content: signed.buffer,
+                contentType: signed.document.mimeType,
+              },
+            ],
+            templateVariables: {
+              recipientName: signer.name,
+              contractTitle: recipient.signatureRequest.contract.title,
+              contractNumber:
+                recipient.signatureRequest.contract.contractNumber,
+              completedAt: signedAt.toISOString(),
+            },
             entityType: 'Contract',
             entityId: recipient.signatureRequest.contractId,
-            metadata: { requestId: recipient.signatureRequestId },
+            metadata: {
+              requestId: recipient.signatureRequestId,
+              attachmentDocumentId: signed.document.id,
+            },
           }),
         ),
       );
@@ -2819,6 +3095,10 @@ export class ContractsService {
   ) {
     const recipient = await this.findRecipient(token);
     this.assertTokenUsable(recipient);
+    if (!recipient.signatureRequest.allowChangeRequests)
+      throw new BadRequestException(
+        'Change requests are disabled for this agreement.',
+      );
     await this.prisma.$transaction(async (tx) => {
       await tx.signatureRecipient.update({
         where: { id: recipient.id },
@@ -2855,7 +3135,7 @@ export class ContractsService {
           eventType: 'SIGNATURE_CHANGES_REQUESTED',
           actorType: 'SIGNER',
           actorId: recipient.id,
-          message: `${recipient.name} requested document changes.`,
+          message: `${recipient.name} requested document changes: ${dto.reason}`,
           metadata: { reason: dto.reason },
         },
       });
@@ -2887,10 +3167,7 @@ export class ContractsService {
     if (!contract || !contract.versions[0])
       throw new NotFoundException('Contract document was not found.');
     const version = contract.versions[0];
-    const documentHtml = version.contentHtml.replace(
-      /\{\{\s*signature\.[a-zA-Z0-9_.-]+\s*\}\}/g,
-      '[Electronic signature recorded in the signature appendix]',
-    );
+    let documentHtml = version.contentHtml;
     let documentText = '';
     if (immutable) {
       const evidenceRows = await this.prisma.signatureEvidence.findMany({
@@ -2904,7 +3181,13 @@ export class ContractsService {
         },
         include: {
           recipient: {
-            select: { name: true, email: true, role: true, signingOrder: true },
+            select: {
+              name: true,
+              email: true,
+              role: true,
+              signingOrder: true,
+              party: { select: { partyType: true, name: true } },
+            },
           },
         },
         orderBy: { eventSequence: 'asc' },
@@ -2913,6 +3196,42 @@ export class ContractsService {
         throw new BadRequestException(
           'A final signed document requires completed signature evidence.',
         );
+      const signatureImages = new Map<string, string>();
+      await Promise.all(
+        evidenceRows.map(async (evidence) => {
+          if (!evidence.signatureStorageKey) return;
+          const stored = await this.storage.openFile(
+            evidence.signatureStorageKey,
+          );
+          const bytes = await readFile(stored.absolutePath);
+          const mimeType = bytes[0] === 0x89 ? 'image/png' : 'image/jpeg';
+          signatureImages.set(
+            evidence.id,
+            `data:${mimeType};base64,${bytes.toString('base64')}`,
+          );
+        }),
+      );
+      let fallbackIndex = 0;
+      documentHtml = documentHtml.replace(
+        /\{\{\s*(signature\.[a-zA-Z0-9_.-]+)\s*\}\}/g,
+        (_token, key: string) => {
+          const preferred = key.includes('.platform.')
+            ? evidenceRows.find(
+                (item) => item.recipient.party?.partyType === 'PLATFORM',
+              )
+            : key.includes('.counterparty.')
+              ? evidenceRows.find(
+                  (item) => item.recipient.party?.partyType !== 'PLATFORM',
+                )
+              : undefined;
+          const evidence =
+            preferred ?? evidenceRows[fallbackIndex++ % evidenceRows.length];
+          if (key.endsWith('.date'))
+            return escapeHtml(evidence.signedAt.toISOString());
+          const signatureImage = signatureImages.get(evidence.id);
+          return `${signatureImage ? `<img src="${signatureImage}" alt="${escapeHtml(evidence.recipient.name)} signature" width="240" height="80">` : ''}<span data-signature-metadata="true"><strong>${escapeHtml(evidence.typedName || evidence.recipient.name)}</strong><br>${escapeHtml(evidence.method)} signature · ${escapeHtml(evidence.signedAt.toISOString())}<br>Verified · SHA-256 ${escapeHtml(evidence.signatureSha256.slice(0, 20))}…</span>`;
+        },
+      );
       documentText += `\n\nELECTRONIC SIGNATURE APPENDIX\nDocument SHA-256: ${version.contentSha256}\n`;
       for (const evidence of evidenceRows) {
         documentText += [
@@ -2955,6 +3274,10 @@ export class ContractsService {
         documentText += `\n${event.createdAt.toISOString()} — ${event.eventType}: ${event.message}`;
       }
     }
+    documentHtml = documentHtml.replace(
+      /\{\{\s*signature\.[a-zA-Z0-9_.-]+\s*\}\}/g,
+      '<span data-signature-metadata="true">Electronic signature pending</span>',
+    );
     const buffer =
       format === 'pdf'
         ? await createPdf(contract.title, documentHtml, documentText)
@@ -3053,6 +3376,15 @@ export class ContractsService {
         counterpartyEmail: lead.workEmail,
         currencyCode: reportingCurrency,
         placeholderValues: {
+          'lead.companyName': lead.companyName,
+          'lead.contactName': lead.fullName,
+          'lead.workEmail': lead.workEmail,
+          'lead.phone': lead.phoneNumber ?? '',
+          'lead.website': lead.companyWebsite ?? '',
+          'lead.industry': lead.industry,
+          'lead.companySize': lead.companySize,
+          'lead.country': lead.country ?? '',
+          'lead.requirements': lead.requirementsSummary ?? '',
           'customer.companyName': lead.companyName,
           'customer.contactName': lead.fullName,
           'customer.email': lead.workEmail,
@@ -3060,7 +3392,8 @@ export class ContractsService {
         },
         contractValue: undefined,
         defaultContractType: ContractType.CUSTOMER_AGREEMENT,
-        partnerId: undefined,
+        counterpartyType: 'LEAD',
+        partnerId: lead.partnerId ?? undefined,
         customerAccountId: undefined,
         customerOnboardingId: undefined,
         tenantId: undefined,
@@ -3122,12 +3455,14 @@ export class ContractsService {
           partnerId: undefined,
           contractValue: undefined,
           defaultContractType: ContractType.SERVICE_AGREEMENT,
+          counterpartyType: 'TENANT',
           relatedLeadId: undefined,
           placeholderValues: {},
         };
     return {
       ...base,
       tenantId: tenant.id,
+      counterpartyType: 'TENANT',
       contractValue: tenant.subscription
         ? Number(tenant.subscription.finalPrice)
         : undefined,
@@ -3974,6 +4309,7 @@ function customerSource(
     contactEmail: string;
     country: string;
     industry: string | null;
+    originatingPartnerId?: string | null;
   },
   currencyCode: string,
 ) {
@@ -3986,7 +4322,8 @@ function customerSource(
     customerAccountId: customer.id,
     customerOnboardingId: undefined,
     tenantId: undefined,
-    partnerId: undefined,
+    partnerId: customer.originatingPartnerId ?? undefined,
+    counterpartyType: 'CUSTOMER',
     relatedLeadId: undefined,
     contractValue: undefined,
     defaultContractType: ContractType.CUSTOMER_AGREEMENT,
@@ -4262,6 +4599,7 @@ type AgreementHtmlNode = {
 type AgreementBlock =
   | { kind: 'paragraph'; text: string; level?: number; quote?: boolean }
   | { kind: 'pageBreak' }
+  | { kind: 'image'; data: Buffer; imageType: 'png' | 'jpg'; alt: string }
   | {
       kind: 'list';
       text: string;
@@ -4318,6 +4656,15 @@ export function extractAgreementDocumentStructure(html: string) {
             .map(nodeText),
         );
         if (rows.length) blocks.push({ kind: 'table', rows });
+      } else if (name === 'img') {
+        const image = decodeEmbeddedDocumentImage(node.attribs?.src);
+        if (image)
+          blocks.push({
+            kind: 'image',
+            data: image.data,
+            imageType: image.imageType,
+            alt: node.attribs?.alt ?? 'Electronic signature',
+          });
       } else if (name === 'hr') {
         if (node.attribs?.['data-page-break'] === 'true')
           blocks.push({ kind: 'pageBreak' });
@@ -4329,9 +4676,21 @@ export function extractAgreementDocumentStructure(html: string) {
   return blocks.filter(
     (block) =>
       block.kind === 'table' ||
+      block.kind === 'image' ||
       block.kind === 'pageBreak' ||
       block.text.trim().length > 0,
   );
+}
+
+function decodeEmbeddedDocumentImage(value: string | undefined) {
+  const match = value?.match(
+    /^data:image\/(png|jpeg);base64,([A-Za-z0-9+/=]+)$/,
+  );
+  if (!match) return null;
+  return {
+    imageType: match[1] === 'png' ? ('png' as const) : ('jpg' as const),
+    data: Buffer.from(match[2], 'base64'),
+  };
 }
 
 async function createPdf(title: string, html: string, appendix = '') {
@@ -4360,6 +4719,11 @@ async function createPdf(title: string, html: string, appendix = '') {
           document.moveDown(0.35);
         }
         document.moveDown(0.75);
+        continue;
+      }
+      if (block.kind === 'image') {
+        document.image(block.data, { fit: [240, 80] });
+        document.moveDown(0.5);
         continue;
       }
       if (block.kind === 'list') {
@@ -4425,6 +4789,26 @@ async function createDocx(title: string, html: string, appendix = '') {
                 ),
               }),
           ),
+        }),
+      );
+      continue;
+    }
+    if (block.kind === 'image') {
+      children.push(
+        new Paragraph({
+          children: [
+            new ImageRun({
+              data: block.data,
+              type: block.imageType,
+              transformation: { width: 240, height: 80 },
+              altText: {
+                title: block.alt,
+                description: block.alt,
+                name: block.alt,
+              },
+            }),
+          ],
+          spacing: { after: 120 },
         }),
       );
       continue;
