@@ -499,9 +499,7 @@ export async function runSeedConfig() {
   console.log(`Notification rules created/updated: ${ruleCount}`);
   console.log(`Console providers created/updated: ${providerCount}`);
   console.log(`Leave types created/updated: ${leaveTypeCount}`);
-  console.log(
-    `Default approval matrices created: ${approvalMatrixCount}`,
-  );
+  console.log(`Default approval matrices created: ${approvalMatrixCount}`);
   console.log(`Default solution metadata components synced: ${metadataCount}`);
   console.log('Config seed completed successfully.');
 }
@@ -516,6 +514,33 @@ async function seedPlatformOperationalSettings(client: PrismaClient) {
       renewalReminderDays: 90,
       consentText:
         'I agree to sign this document electronically and understand that my electronic signature is legally binding.',
+      /*
+       * Standing agreement terms resolved into contract placeholders. Values
+       * that depend on the actual deployment or signing officer are left blank
+       * for the platform owner to complete under Settings / Agreements.
+       */
+      authorizedSignerName: '',
+      authorizedSignerTitle: 'Authorized Signatory',
+      defaultInitialTerm: '12 months',
+      defaultRenewalTerm: '12 months',
+      defaultLiabilityCap:
+        'Fees paid for the affected service in the preceding 12 months',
+      defaultCurePeriodDays: 30,
+      defaultDataRetentionDays: 90,
+      defaultDataExportPeriodDays: 30,
+      defaultSupportTier: 'Standard',
+      defaultSupportHours: 'Business days, 09:00-18:00',
+      defaultSupportChannels: 'Email and in-app support portal',
+      defaultUptimeTarget: 99.5,
+      defaultBackupFrequency: 'Daily',
+      defaultBackupRetention: '30 days',
+      defaultRecoveryPointObjective: '24 hours',
+      defaultRecoveryTimeObjective: '8 hours',
+      hostingApplicationProvider: '',
+      hostingDatabaseProvider: '',
+      hostingEmailProvider: '',
+      hostingApplicationRegion: '',
+      hostingDatabaseRegion: '',
     },
     'partner-settings': {
       requireSignedAgreementForActivation: true,
@@ -563,12 +588,27 @@ async function seedPlatformOperationalSettings(client: PrismaClient) {
       supportCustomerUpdates: true,
     },
   };
-  for (const [key, value] of Object.entries(settings))
+  /*
+   * Re-seeding introduces newly shipped keys without discarding what a platform
+   * owner configured, so operational settings survive every deployment.
+   */
+  for (const [key, value] of Object.entries(settings)) {
+    const existing = await client.platformSetting.findUnique({
+      where: { key },
+    });
+    const stored =
+      existing?.value &&
+      typeof existing.value === 'object' &&
+      !Array.isArray(existing.value)
+        ? (existing.value as Record<string, unknown>)
+        : {};
+    const merged = { ...value, ...stored } as Prisma.InputJsonValue;
     await client.platformSetting.upsert({
       where: { key },
-      create: { key, value: value as Prisma.InputJsonValue },
-      update: { value: value as Prisma.InputJsonValue },
+      create: { key, value: merged },
+      update: { value: merged },
     });
+  }
 }
 
 async function seedPlatformContractTemplates(client: PrismaClient) {

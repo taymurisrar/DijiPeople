@@ -291,6 +291,8 @@ function formatLocalErrorLog(error: DisplayableError) {
     "Persistence note:",
     "The server copy was unavailable, so this file contains the complete error response received by the browser.",
     "",
+    "--- End of error log ---",
+    "",
   ].join("\n");
 }
 

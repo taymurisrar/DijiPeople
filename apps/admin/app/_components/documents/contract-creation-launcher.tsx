@@ -130,6 +130,29 @@ export function ContractCreationLauncher({
     </section>
   );
 }
+const sourceRecords = [
+  {
+    value: "lead",
+    lookupPath: "/super-admin/leads?pageSize=100",
+    recordPath: "/leads",
+  },
+  {
+    value: "customer",
+    lookupPath: "/super-admin/customers?pageSize=100",
+    recordPath: "/customers",
+  },
+  {
+    value: "onboarding",
+    lookupPath: "/super-admin/customer-onboarding?pageSize=100",
+    recordPath: "/onboarding",
+  },
+  {
+    value: "tenant",
+    lookupPath: "/super-admin/tenants",
+    recordPath: "/tenants",
+  },
+];
+
 function SourceForm({
   disabled,
   templates,
@@ -143,6 +166,15 @@ function SourceForm({
   initialSourceId: string;
   onSubmit: (body: Record<string, unknown>) => void;
 }) {
+  const [sourceType, setSourceType] = useState(
+    sourceRecords.some((item) => item.value === initialSourceType)
+      ? initialSourceType
+      : "customer",
+  );
+  const [sourceId, setSourceId] = useState(initialSourceId);
+  const source =
+    sourceRecords.find((item) => item.value === sourceType) ?? sourceRecords[1];
+
   return (
     <form
       className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-4"
@@ -150,8 +182,8 @@ function SourceForm({
         e.preventDefault();
         const d = new FormData(e.currentTarget);
         onSubmit({
-          sourceType: d.get("sourceType"),
-          sourceId: d.get("sourceId"),
+          sourceType,
+          sourceId,
           templateId: d.get("templateId") || undefined,
           title: d.get("title") || undefined,
         });
@@ -160,14 +192,32 @@ function SourceForm({
       <Select
         name="sourceType"
         label="Source type"
-        options={["lead", "customer", "onboarding", "tenant"]}
-        defaultValue={initialSourceType}
+        options={sourceRecords.map((item) => item.value)}
+        value={sourceType}
+        onChange={(value) => {
+          setSourceType(value);
+          setSourceId("");
+        }}
       />
-      <Input
+      <LookupSelect
+        key={source.value}
         name="sourceId"
-        label="Record ID"
+        label="Record"
+        path={source.lookupPath}
         required
-        defaultValue={initialSourceId}
+        value={sourceId}
+        initialValue={
+          sourceId && sourceId === initialSourceId ? initialSourceId : undefined
+        }
+        onSelect={(option) => setSourceId(option?.value ?? "")}
+        action={
+          sourceId
+            ? {
+                href: `${source.recordPath}/${sourceId}`,
+                label: "Open record",
+              }
+            : undefined
+        }
       />
       <Input name="title" label="Contract title" />
       <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -185,8 +235,8 @@ function SourceForm({
         </select>
       </label>
       <button
-        disabled={disabled}
-        className="h-11 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white md:col-start-2 lg:col-start-4"
+        disabled={disabled || !sourceId}
+        className="h-11 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white disabled:opacity-40 md:col-start-2 lg:col-start-4"
       >
         Create from record
       </button>
@@ -277,8 +327,10 @@ function UploadForm({
           name={relationship.name}
           label={relationship.label}
           path={relationship.path}
-          createHref={relationship.createHref}
-          createLabel={relationship.createLabel}
+          action={{
+            href: relationship.createHref,
+            label: relationship.createLabel,
+          }}
           required
           onSelect={(option) => setCounterpartyName(option?.label ?? "")}
         />
@@ -385,17 +437,21 @@ function LookupSelect({
   name,
   label: caption,
   path,
-  createHref,
-  createLabel,
   required = false,
+  value,
+  initialValue,
+  action,
   onSelect,
 }: {
   name: string;
   label: string;
   path: string;
-  createHref: string;
-  createLabel: string;
   required?: boolean;
+  /** Controlled selection. Omit to let the select manage its own value. */
+  value?: string;
+  /** Preselected record that may fall outside the first page of results. */
+  initialValue?: string;
+  action?: { href: string; label: string; target?: string };
   onSelect: (option: RuntimeLookupOption | undefined) => void;
 }) {
   const [options, setOptions] = useState<RuntimeLookupOption[]>([]);
@@ -431,32 +487,48 @@ function LookupSelect({
     return () => controller.abort();
   }, [caption, path]);
 
+  /*
+   * A record deep-linked into this form can sit outside the first page of
+   * results, so it is kept selectable instead of silently dropping the
+   * preselection.
+   */
+  const selectable =
+    initialValue && !options.some((option) => option.value === initialValue)
+      ? [{ value: initialValue, label: initialValue }, ...options]
+      : options;
+
   return (
     <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
       <span className="flex items-center justify-between gap-2">
         <span>{caption}</span>
-        <Link
-          href={createHref}
-          target="_blank"
-          className="text-[11px] normal-case tracking-normal text-[var(--admin-primary)] hover:underline"
-        >
-          {createLabel}
-        </Link>
+        {action ? (
+          <Link
+            href={action.href}
+            target={action.target ?? "_blank"}
+            className="text-[11px] normal-case tracking-normal text-[var(--admin-primary)] hover:underline"
+          >
+            {action.label}
+          </Link>
+        ) : null}
       </span>
       <select
         name={name}
         required={required}
         disabled={loading}
-        defaultValue=""
+        {...(value === undefined
+          ? { defaultValue: initialValue ?? "" }
+          : { value })}
         onChange={(event) =>
-          onSelect(options.find((option) => option.value === event.target.value))
+          onSelect(
+            selectable.find((option) => option.value === event.target.value),
+          )
         }
         className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-normal normal-case tracking-normal disabled:bg-slate-50"
       >
         <option value="">
           {loading ? `Loading ${caption.toLowerCase()}...` : `Select ${caption.toLowerCase()}`}
         </option>
-        {options.map((option) => (
+        {selectable.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
           </option>

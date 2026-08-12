@@ -8,6 +8,7 @@ import {
   ContractStatus,
   ContractType,
   ContractVersionStatus,
+  DiscountType,
   PlatformApprovalStatus,
   PlatformApprovalStepStatus,
   Prisma,
@@ -125,7 +126,10 @@ export type ContractPlaceholderDataType =
   | 'RICH_TEXT'
   | 'INTEGER'
   | 'DECIMAL'
+  // CURRENCY is a monetary amount. CURRENCY_CODE is the ISO 4217 code itself,
+  // which must never be validated as a number.
   | 'CURRENCY'
+  | 'CURRENCY_CODE'
   | 'PERCENTAGE'
   | 'BOOLEAN'
   | 'DATE'
@@ -188,6 +192,17 @@ function placeholder(
   };
 }
 
+/*
+ * Placeholders that describe optional commercial, provisioning, or service
+ * terms. They resolve when the source record carries the data and render as
+ * empty text when it does not, so an agreement that references them never
+ * blocks approval or signature on data the platform does not hold yet.
+ */
+const optional = {
+  required: false,
+  fallbackBehavior: 'EMPTY',
+} satisfies Partial<ContractPlaceholderDefinition>;
+
 export const CONTRACT_PLACEHOLDER_REGISTRY: ContractPlaceholderDefinition[] = [
   placeholder('platform.name', 'Platform name', 'TEXT', 'DijiPeople'),
   placeholder(
@@ -217,8 +232,26 @@ export const CONTRACT_PLACEHOLDER_REGISTRY: ContractPlaceholderDefinition[] = [
   placeholder(
     'platform.reportingCurrency',
     'Reporting currency',
-    'CURRENCY',
+    'CURRENCY_CODE',
     'SAR',
+  ),
+  placeholder(
+    'platform.registrationNumber',
+    'Platform registration number',
+    'TEXT',
+    'CR-1010203040',
+    optional,
+  ),
+  placeholder('platform.taxId', 'Platform tax ID', 'TEXT', '310000000000003', {
+    ...optional,
+    securityClassification: 'CONFIDENTIAL',
+  }),
+  placeholder(
+    'platform.contact.email',
+    'Platform contact email',
+    'EMAIL',
+    'contracts@dijipeople.com',
+    optional,
   ),
   placeholder('partner.name', 'Partner name', 'PARTNER', 'Northstar Advisory'),
   placeholder(
@@ -306,7 +339,42 @@ export const CONTRACT_PLACEHOLDER_REGISTRY: ContractPlaceholderDefinition[] = [
     'EMAIL',
     'amal@gulfhorizon.example',
   ),
+  placeholder(
+    'customer.contact.phone',
+    'Customer contact phone',
+    'PHONE',
+    '+966 50 000 0000',
+    optional,
+  ),
+  placeholder(
+    'customer.billingContact.name',
+    'Customer billing contact',
+    'TEXT',
+    'Finance Department',
+    optional,
+  ),
+  placeholder(
+    'customer.billingContact.email',
+    'Customer billing email',
+    'EMAIL',
+    'billing@gulfhorizon.example',
+    optional,
+  ),
+  placeholder(
+    'counterparty.name',
+    'Counterparty name',
+    'TEXT',
+    'Gulf Horizon Logistics Company',
+  ),
+  placeholder(
+    'counterparty.email',
+    'Counterparty email',
+    'EMAIL',
+    'amal@gulfhorizon.example',
+    optional,
+  ),
   placeholder('tenant.name', 'Tenant name', 'TENANT', 'Gulf Horizon'),
+  placeholder('tenant.slug', 'Tenant slug', 'TEXT', 'gulf-horizon', optional),
   placeholder('lead.companyName', 'Lead company', 'TEXT', 'Gulf Horizon', {
     required: false,
     fallbackBehavior: 'EMPTY',
@@ -383,7 +451,7 @@ export const CONTRACT_PLACEHOLDER_REGISTRY: ContractPlaceholderDefinition[] = [
   placeholder('contract.expiryDate', 'Expiry date', 'DATE', '2027-07-31', {
     formattingRule: 'locale-date',
   }),
-  placeholder('contract.currency', 'Contract currency', 'CURRENCY', 'SAR'),
+  placeholder('contract.currency', 'Contract currency', 'CURRENCY_CODE', 'SAR'),
   placeholder('contract.value', 'Contract value', 'DECIMAL', '150000.00', {
     formattingRule: 'currency',
   }),
@@ -433,6 +501,386 @@ export const CONTRACT_PLACEHOLDER_REGISTRY: ContractPlaceholderDefinition[] = [
       required: false,
       fallbackBehavior: 'EMPTY',
     },
+  ),
+  placeholder(
+    'contract.autoRenewal',
+    'Auto renewal',
+    'BOOLEAN',
+    'Yes',
+    optional,
+  ),
+  placeholder(
+    'contract.initialTerm',
+    'Initial term',
+    'TEXT',
+    '12 months',
+    optional,
+  ),
+  placeholder(
+    'contract.renewalTerm',
+    'Renewal term',
+    'TEXT',
+    '12 months',
+    optional,
+  ),
+  placeholder(
+    'contract.liabilityCap',
+    'Limitation of liability',
+    'TEXT',
+    'Fees paid in the preceding 12 months',
+    optional,
+  ),
+  placeholder(
+    'contract.curePeriodDays',
+    'Cure period days',
+    'INTEGER',
+    '30',
+    optional,
+  ),
+  placeholder(
+    'contract.dataRetentionDays',
+    'Data retention days',
+    'INTEGER',
+    '90',
+    optional,
+  ),
+  placeholder(
+    'contract.dataExportPeriodDays',
+    'Data export period days',
+    'INTEGER',
+    '30',
+    optional,
+  ),
+  placeholder(
+    'commercial.pricingModel',
+    'Pricing model',
+    'TEXT',
+    'Per licensed user, per month',
+    optional,
+  ),
+  placeholder(
+    'commercial.basePlatformFee',
+    'Base platform fee',
+    'CURRENCY',
+    '2500.00',
+    { ...optional, formattingRule: 'currency' },
+  ),
+  placeholder(
+    'commercial.pricePerUser',
+    'Price per user',
+    'CURRENCY',
+    '18.00',
+    {
+      ...optional,
+      formattingRule: 'currency',
+    },
+  ),
+  placeholder(
+    'commercial.licensedUsers',
+    'Licensed users',
+    'INTEGER',
+    '150',
+    optional,
+  ),
+  placeholder(
+    'commercial.minimumUsers',
+    'Minimum users',
+    'INTEGER',
+    '100',
+    optional,
+  ),
+  placeholder('commercial.discount', 'Discount', 'TEXT', '10%', optional),
+  placeholder(
+    'commercial.implementationFee',
+    'Implementation fee',
+    'CURRENCY',
+    '12000.00',
+    { ...optional, formattingRule: 'currency' },
+  ),
+  placeholder(
+    'commercial.dataMigrationFee',
+    'Data migration fee',
+    'CURRENCY',
+    '4500.00',
+    { ...optional, formattingRule: 'currency' },
+  ),
+  placeholder(
+    'commercial.integrationFee',
+    'Integration fee',
+    'CURRENCY',
+    '6000.00',
+    { ...optional, formattingRule: 'currency' },
+  ),
+  placeholder(
+    'commercial.totalRecurringAmount',
+    'Total recurring amount',
+    'CURRENCY',
+    '5200.00',
+    { ...optional, formattingRule: 'currency' },
+  ),
+  placeholder(
+    'commercial.totalOneTimeAmount',
+    'Total one-time amount',
+    'CURRENCY',
+    '22500.00',
+    { ...optional, formattingRule: 'currency' },
+  ),
+  placeholder('commercial.taxAmount', 'Tax amount', 'CURRENCY', '780.00', {
+    ...optional,
+    formattingRule: 'currency',
+  }),
+  placeholder(
+    'commercial.billingStartDate',
+    'Billing start date',
+    'DATE',
+    '2026-09-01',
+    { ...optional, formattingRule: 'locale-date' },
+  ),
+  placeholder(
+    'commercial.billingStartTrigger',
+    'Billing start trigger',
+    'TEXT',
+    'Tenant provisioning',
+    optional,
+  ),
+  placeholder(
+    'tenant.id',
+    'Tenant ID',
+    'LOOKUP',
+    'a3f1c7e2-0000-4000-8000-000000000000',
+    optional,
+  ),
+  placeholder(
+    'tenant.url',
+    'Tenant URL',
+    'URL',
+    'https://gulf-horizon.dijipeople.com',
+    optional,
+  ),
+  placeholder('tenant.status', 'Tenant status', 'TEXT', 'ACTIVE', optional),
+  placeholder(
+    'tenant.environment',
+    'Tenant environment',
+    'TEXT',
+    'Production',
+    optional,
+  ),
+  placeholder(
+    'tenant.country',
+    'Tenant country',
+    'TEXT',
+    'Saudi Arabia',
+    optional,
+  ),
+  placeholder(
+    'tenant.timeZone',
+    'Tenant time zone',
+    'TEXT',
+    'Asia/Riyadh',
+    optional,
+  ),
+  placeholder('tenant.language', 'Tenant language', 'TEXT', 'en', optional),
+  placeholder(
+    'tenant.currency',
+    'Tenant currency',
+    'CURRENCY_CODE',
+    'SAR',
+    optional,
+  ),
+  placeholder('tenant.planName', 'Tenant plan', 'TEXT', 'Growth', optional),
+  placeholder(
+    'tenant.admin.name',
+    'Tenant administrator',
+    'TEXT',
+    'Amal Hassan',
+    optional,
+  ),
+  placeholder(
+    'tenant.admin.email',
+    'Tenant administrator email',
+    'EMAIL',
+    'amal@gulfhorizon.example',
+    optional,
+  ),
+  placeholder(
+    'tenant.admin.phone',
+    'Tenant administrator phone',
+    'PHONE',
+    '+966 50 000 0000',
+    optional,
+  ),
+  placeholder(
+    'tenant.modules',
+    'Enabled modules',
+    'REPEATING_COLLECTION',
+    '["Employees","Attendance","Payroll"]',
+    optional,
+  ),
+  placeholder(
+    'tenant.storageLimit',
+    'Storage limit',
+    'TEXT',
+    '250 GB',
+    optional,
+  ),
+  placeholder(
+    'tenant.apiLimit',
+    'API limit',
+    'TEXT',
+    '100000 calls / month',
+    optional,
+  ),
+  placeholder(
+    'tenant.provisionedAt',
+    'Tenant provisioned at',
+    'DATE_TIME',
+    '2026-08-01T10:00:00+03:00',
+    optional,
+  ),
+  placeholder(
+    'tenant.activatedAt',
+    'Tenant activated at',
+    'DATE_TIME',
+    '2026-08-05T10:00:00+03:00',
+    optional,
+  ),
+  placeholder(
+    'implementation.dataMigrationRequired',
+    'Data migration required',
+    'BOOLEAN',
+    'Yes',
+    optional,
+  ),
+  placeholder(
+    'implementation.sourceSystem',
+    'Migration source system',
+    'TEXT',
+    'Legacy HR system',
+    optional,
+  ),
+  placeholder(
+    'implementation.estimatedRecords',
+    'Estimated migration records',
+    'INTEGER',
+    '5000',
+    optional,
+  ),
+  placeholder(
+    'implementation.migrationMethod',
+    'Migration method',
+    'TEXT',
+    'Template-based import',
+    optional,
+  ),
+  placeholder(
+    'implementation.scope',
+    'Implementation scope',
+    'LONG_TEXT',
+    'Configuration, data migration, and administrator training.',
+    optional,
+  ),
+  placeholder(
+    'implementation.targetGoLiveDate',
+    'Target go-live date',
+    'DATE',
+    '2026-10-01',
+    { ...optional, formattingRule: 'locale-date' },
+  ),
+  placeholder(
+    'integration.items',
+    'Integrations',
+    'REPEATING_COLLECTION',
+    '[{"name":"Payroll bank file","type":"Export","status":"In scope"}]',
+    optional,
+  ),
+  placeholder('sla.supportTier', 'Support tier', 'TEXT', 'Standard', optional),
+  placeholder(
+    'sla.supportHours',
+    'Support hours',
+    'TEXT',
+    'Sunday to Thursday, 09:00-18:00 AST',
+    optional,
+  ),
+  placeholder(
+    'sla.supportChannels',
+    'Support channels',
+    'TEXT',
+    'Email and in-app support portal',
+    optional,
+  ),
+  placeholder('sla.uptimeTarget', 'Uptime target', 'PERCENTAGE', '99.5', {
+    ...optional,
+    formattingRule: '0.##%',
+  }),
+  placeholder(
+    'sla.backupFrequency',
+    'Backup frequency',
+    'TEXT',
+    'Daily',
+    optional,
+  ),
+  placeholder(
+    'sla.backupRetention',
+    'Backup retention',
+    'TEXT',
+    '30 days',
+    optional,
+  ),
+  placeholder(
+    'sla.rpo',
+    'Recovery point objective',
+    'TEXT',
+    '24 hours',
+    optional,
+  ),
+  placeholder(
+    'sla.rto',
+    'Recovery time objective',
+    'TEXT',
+    '8 hours',
+    optional,
+  ),
+  placeholder(
+    'hosting.applicationProvider',
+    'Application hosting provider',
+    'TEXT',
+    'Render',
+    optional,
+  ),
+  placeholder(
+    'hosting.databaseProvider',
+    'Database hosting provider',
+    'TEXT',
+    'Render PostgreSQL',
+    optional,
+  ),
+  placeholder(
+    'hosting.emailProvider',
+    'Email provider',
+    'TEXT',
+    'SMTP relay',
+    optional,
+  ),
+  placeholder(
+    'hosting.applicationRegion',
+    'Application region',
+    'TEXT',
+    'Frankfurt, Germany',
+    optional,
+  ),
+  placeholder(
+    'hosting.databaseRegion',
+    'Database region',
+    'TEXT',
+    'Frankfurt, Germany',
+    optional,
+  ),
+  placeholder(
+    'serviceOrder.masterAgreementNumber',
+    'Master agreement number',
+    'LOOKUP',
+    'CON-20260730-A13F',
+    optional,
   ),
   placeholder(
     'signature.platform.name',
@@ -603,12 +1051,15 @@ export class ContractsService {
         'The selected template has no published version.',
       );
     }
-    const [reportingCurrency, companyProfile] = await Promise.all([
-      this.reportingCurrency(),
-      this.companyProfile(),
-    ]);
+    const [reportingCurrency, companyProfile, agreementTerms] =
+      await Promise.all([
+        this.reportingCurrency(),
+        this.companyProfile(),
+        this.agreementTermValues(),
+      ]);
     const contractNumber = reference('CON');
     const values = compactStringRecord({
+      ...agreementTerms,
       'platform.name': companyProfile.companyName,
       'platform.legalName': companyProfile.legalName,
       'platform.address': [
@@ -620,6 +1071,17 @@ export class ContractsService {
         .filter(Boolean)
         .join(', '),
       'platform.reportingCurrency': reportingCurrency,
+      ...definedValues({
+        'platform.registrationNumber': companyProfile.registrationNumber,
+        'platform.taxId': companyProfile.taxNumber,
+        'platform.contact.email': companyProfile.supportEmail,
+        'contract.autoRenewal':
+          dto.autoRenewal === undefined
+            ? undefined
+            : dto.autoRenewal
+              ? 'Yes'
+              : 'No',
+      }),
       'contract.number': contractNumber,
       'contract.title': dto.title.trim(),
       'contract.effectiveDate': dto.effectiveDate,
@@ -3448,33 +3910,65 @@ export class ContractsService {
     if (type === 'onboarding') {
       const onboarding = await this.prisma.customerOnboarding.findUnique({
         where: { id },
-        include: { customer: true },
+        include: { customer: true, selectedPlan: true },
       });
       if (!onboarding)
         throw new NotFoundException(
           'Customer onboarding source was not found.',
         );
+      const base = customerSource(onboarding.customer, reportingCurrency);
+      const adminName =
+        `${onboarding.primaryOwnerFirstName} ${onboarding.primaryOwnerLastName}`.trim();
       return {
-        ...customerSource(onboarding.customer, reportingCurrency),
+        ...base,
         customerOnboardingId: onboarding.id,
         tenantId: onboarding.tenantId ?? undefined,
         contractValue: onboarding.agreedPrice
           ? Number(onboarding.agreedPrice)
           : undefined,
         placeholderValues: {
-          ...customerSource(onboarding.customer, reportingCurrency)
-            .placeholderValues,
-          'customer.primarySigner':
-            `${onboarding.primaryOwnerFirstName} ${onboarding.primaryOwnerLastName}`.trim(),
+          ...base.placeholderValues,
+          'customer.primarySigner': adminName,
           'customer.primarySignerEmail': onboarding.primaryOwnerWorkEmail,
           'commercial.billingCycle': onboarding.billingCycle ?? '',
           'commercial.agreedPrice': onboarding.agreedPrice?.toString() ?? '',
+          ...definedValues({
+            'commercial.totalRecurringAmount': onboarding.agreedPrice,
+            'commercial.discount': formatDiscount(
+              onboarding.discountType,
+              onboarding.discountValue,
+              reportingCurrency,
+            ),
+            'tenant.planName': onboarding.selectedPlan?.name,
+            'tenant.admin.name': adminName,
+            'tenant.admin.email': onboarding.primaryOwnerWorkEmail,
+            'tenant.admin.phone': onboarding.primaryOwnerPhone,
+          }),
         },
       };
     }
     const tenant = await this.prisma.tenant.findUnique({
       where: { id },
-      include: { customerAccount: true, subscription: true },
+      include: {
+        customerAccount: true,
+        subscription: { include: { plan: true } },
+        ownerUser: {
+          select: { firstName: true, lastName: true, email: true },
+        },
+        tenantDomains: {
+          orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+          take: 1,
+        },
+        tenantSettings: {
+          where: { category: { in: ['organization', 'system'] } },
+          select: { category: true, key: true, value: true },
+        },
+        tenantFeatures: {
+          where: { isEnabled: true },
+          select: { key: true },
+          orderBy: { key: 'asc' },
+        },
+      },
     });
     if (!tenant) throw new NotFoundException('Tenant source was not found.');
     const base = tenant.customerAccount
@@ -3496,21 +3990,118 @@ export class ContractsService {
           relatedLeadId: undefined,
           placeholderValues: {},
         };
+    const tenantSetting = (category: string, key: string) => {
+      const row = tenant.tenantSettings.find(
+        (item) => item.category === category && item.key === key,
+      );
+      return row?.value === undefined ||
+        row.value === null ||
+        typeof row.value === 'object'
+        ? undefined
+        : String(row.value);
+    };
+    const subscription = tenant.subscription;
+    const tenantCurrency =
+      subscription?.currency ??
+      tenantSetting('organization', 'currency') ??
+      reportingCurrency;
     return {
       ...base,
       tenantId: tenant.id,
       counterpartyType: 'TENANT',
-      contractValue: tenant.subscription
-        ? Number(tenant.subscription.finalPrice)
-        : undefined,
+      contractValue: subscription ? Number(subscription.finalPrice) : undefined,
       placeholderValues: {
         ...base.placeholderValues,
         'tenant.name': tenant.name,
         'tenant.slug': tenant.slug,
-        'commercial.planPrice':
-          tenant.subscription?.finalPrice.toString() ?? '',
+        'commercial.planPrice': subscription?.finalPrice.toString() ?? '',
+        ...definedValues({
+          'tenant.id': tenant.id,
+          'tenant.url': tenantUrl(tenant.tenantDomains[0]?.domain),
+          'tenant.status': tenant.status,
+          'tenant.environment': tenant.isDemoData ? 'Sandbox' : 'Production',
+          'tenant.country':
+            tenantSetting('organization', 'country') ??
+            tenant.customerAccount?.country,
+          'tenant.timeZone':
+            tenantSetting('organization', 'timezone') ??
+            tenantSetting('system', 'defaultTimezone'),
+          'tenant.language':
+            tenantSetting('system', 'defaultLanguage') ??
+            tenantSetting('system', 'locale'),
+          'tenant.currency': tenantCurrency,
+          'tenant.planName': subscription?.plan?.name,
+          'tenant.admin.name': tenant.ownerUser
+            ? `${tenant.ownerUser.firstName} ${tenant.ownerUser.lastName}`.trim()
+            : undefined,
+          'tenant.admin.email': tenant.ownerUser?.email,
+          'tenant.admin.phone':
+            tenant.customerAccount?.primaryContactPhone ??
+            tenant.customerAccount?.contactPhone,
+          'tenant.modules': tenant.tenantFeatures.length
+            ? JSON.stringify(
+                tenant.tenantFeatures.map((feature) => labelize(feature.key)),
+              )
+            : undefined,
+          'tenant.provisionedAt': tenant.createdAt.toISOString(),
+          'tenant.activatedAt':
+            tenant.status === 'ACTIVE'
+              ? subscription?.startDate?.toISOString()
+              : undefined,
+          'commercial.licensedUsers': subscription?.purchasedSeats,
+          'commercial.basePlatformFee': subscription?.basePrice?.toString(),
+          'commercial.totalRecurringAmount':
+            subscription?.finalPrice?.toString(),
+          'commercial.discount': subscription
+            ? formatDiscount(
+                subscription.discountType,
+                subscription.discountValue,
+                tenantCurrency,
+              )
+            : undefined,
+          'commercial.billingStartDate': subscription?.startDate
+            ?.toISOString()
+            .slice(0, 10),
+          'contract.autoRenewal': subscription
+            ? subscription.autoRenew
+              ? 'Yes'
+              : 'No'
+            : undefined,
+        }),
       },
     };
+  }
+
+  /*
+   * Legal, service-level, and hosting terms are platform policy rather than
+   * per-record data, so they are maintained once in contract settings and
+   * resolved into every agreement that references them.
+   */
+  private async agreementTermValues() {
+    const settings = await this.contractSettings();
+    return definedValues({
+      'contract.initialTerm': settings.defaultInitialTerm,
+      'contract.renewalTerm': settings.defaultRenewalTerm,
+      'contract.liabilityCap': settings.defaultLiabilityCap,
+      'contract.curePeriodDays': settings.defaultCurePeriodDays,
+      'contract.dataRetentionDays': settings.defaultDataRetentionDays,
+      'contract.dataExportPeriodDays': settings.defaultDataExportPeriodDays,
+      'sla.supportTier': settings.defaultSupportTier,
+      'sla.supportHours': settings.defaultSupportHours,
+      'sla.supportChannels': settings.defaultSupportChannels,
+      'sla.uptimeTarget': settings.defaultUptimeTarget,
+      'sla.backupFrequency': settings.defaultBackupFrequency,
+      'sla.backupRetention': settings.defaultBackupRetention,
+      'sla.rpo': settings.defaultRecoveryPointObjective,
+      'sla.rto': settings.defaultRecoveryTimeObjective,
+      'hosting.applicationProvider': settings.hostingApplicationProvider,
+      'hosting.databaseProvider': settings.hostingDatabaseProvider,
+      'hosting.emailProvider': settings.hostingEmailProvider,
+      'hosting.applicationRegion': settings.hostingApplicationRegion,
+      'hosting.databaseRegion': settings.hostingDatabaseRegion,
+      'platform.authorizedSigner.name': settings.authorizedSignerName,
+      'platform.authorizedSigner.title': settings.authorizedSignerTitle,
+    });
   }
 
   private async contractSettings() {
@@ -3556,6 +4147,10 @@ export class ContractsService {
       city: text('city'),
       country: text('country'),
       postalCode: text('postalCode'),
+      registrationNumber: text('registrationNumber'),
+      taxNumber: text('taxNumber'),
+      supportEmail: text('supportEmail'),
+      website: text('website'),
     };
   }
 
@@ -4134,8 +4729,24 @@ export function renderContractPlaceholders(
 ) {
   return html.replace(
     /\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g,
-    (match, key: string) =>
-      key in values ? escapeHtml(String(values[key])) : match,
+    (match, key: string) => {
+      const definition = CONTRACT_PLACEHOLDER_REGISTRY.find(
+        (item) => item.key === key,
+      );
+      const value = key in values ? String(values[key]) : '';
+      if (!value.trim()) {
+        /*
+         * An optional term the platform does not hold resolves to nothing rather
+         * than leaving a raw token in the document. Anything declared ERROR or
+         * LEAVE_TOKEN keeps its token so the signature gate can refuse it.
+         */
+        return definition?.fallbackBehavior === 'EMPTY' ? '' : match;
+      }
+      return definition &&
+        ['TABLE', 'REPEATING_COLLECTION'].includes(definition.dataType)
+        ? renderCollectionValue(value)
+        : escapeHtml(value);
+    },
   );
 }
 
@@ -4182,6 +4793,17 @@ export function validateContractPlaceholderValues(
       !Number.isFinite(Number(value))
     )
       errors.push(`${definition.label} must be a number.`);
+    if (definition.dataType === 'CURRENCY_CODE' && !/^[A-Za-z]{3}$/.test(value))
+      errors.push(
+        `${definition.label} must be a three-letter currency code such as USD.`,
+      );
+    if (
+      ['TABLE', 'REPEATING_COLLECTION'].includes(definition.dataType) &&
+      !parseCollectionValue(value)
+    )
+      errors.push(
+        `${definition.label} must be a list of values or a JSON array.`,
+      );
     if (definition.dataType === 'INTEGER' && !Number.isInteger(Number(value)))
       errors.push(`${definition.label} must be a whole number.`);
     if (
@@ -4231,20 +4853,112 @@ function assertValidContractPlaceholderValues(
 
 function inferPlaceholderType(key: string): ContractPlaceholderDataType {
   const normalized = key.toLowerCase();
+  if (normalized.startsWith('signature.')) return 'SIGNATURE';
   if (normalized.includes('email')) return 'EMAIL';
   if (normalized.includes('phone')) return 'PHONE';
   if (normalized.includes('url') || normalized.includes('website'))
     return 'URL';
   if (normalized.includes('address')) return 'ADDRESS';
-  if (normalized.includes('percentage') || normalized.includes('rate'))
-    return 'PERCENTAGE';
+  if (normalized.includes('percentage')) return 'PERCENTAGE';
   if (normalized.endsWith('date')) return 'DATE';
-  if (normalized.includes('datetime') || normalized.endsWith('at'))
+  // `provisionedAt` is a timestamp; `format` and `seat` only end in the same
+  // two letters, so the camel-case boundary is what makes the guess reliable.
+  if (normalized.includes('datetime') || /[a-z]At$/.test(key))
     return 'DATE_TIME';
-  if (normalized.startsWith('signature.')) return 'SIGNATURE';
-  if (normalized.includes('currency') || normalized.includes('amount'))
+  // A currency *code* names the unit, an amount carries a number. Treating the
+  // code as numeric rejects every valid ISO 4217 value.
+  if (/currency(code)?$/.test(normalized)) return 'CURRENCY_CODE';
+  if (
+    normalized.includes('amount') ||
+    normalized.endsWith('fee') ||
+    normalized.endsWith('price')
+  )
     return 'CURRENCY';
   return 'TEXT';
+}
+
+/*
+ * Collection placeholders accept either a JSON array (objects render as a
+ * table, strings as a list) or a newline/semicolon separated list, so an
+ * operator can fill one in by hand without writing JSON. Returns null when the
+ * value is neither.
+ */
+function parseCollectionValue(value: string) {
+  const trimmed = value.trim();
+  if (trimmed.startsWith('[')) {
+    try {
+      const parsed: unknown = JSON.parse(trimmed);
+      return Array.isArray(parsed) ? parsed : null;
+    } catch {
+      return null;
+    }
+  }
+  const items = trimmed
+    .split(/[\n;]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+  return items.length ? items : null;
+}
+
+function renderCollectionValue(value: string) {
+  const items = parseCollectionValue(value);
+  if (!items) return escapeHtml(value);
+
+  const columns = [
+    ...new Set(
+      items.flatMap((item) =>
+        item && typeof item === 'object' && !Array.isArray(item)
+          ? Object.keys(item as Record<string, unknown>)
+          : [],
+      ),
+    ),
+  ];
+  if (!columns.length)
+    return `<ul>${items.map((item) => `<li>${escapeHtml(String(item))}</li>`).join('')}</ul>`;
+
+  const cell = (item: unknown, column: string) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) return '';
+    const raw = (item as Record<string, unknown>)[column];
+    return raw === undefined || raw === null ? '' : escapeHtml(String(raw));
+  };
+  return [
+    '<table><thead><tr>',
+    columns
+      .map((column) => `<th>${escapeHtml(labelize(column))}</th>`)
+      .join(''),
+    '</tr></thead><tbody>',
+    items
+      .map(
+        (item) =>
+          `<tr>${columns.map((column) => `<td>${cell(item, column)}</td>`).join('')}</tr>`,
+      )
+      .join(''),
+    '</tbody></table>',
+  ].join('');
+}
+
+function tenantUrl(domain: string | undefined) {
+  if (!domain) return undefined;
+  return /^https?:\/\//i.test(domain) ? domain : `https://${domain}`;
+}
+
+function formatDiscount(
+  discountType: DiscountType,
+  discountValue: Prisma.Decimal | null,
+  currencyCode: string,
+) {
+  const value = discountValue ? Number(discountValue) : 0;
+  if (discountType === 'NONE' || !value) return undefined;
+  return discountType === 'PERCENTAGE'
+    ? `${value}%`
+    : `${currencyCode} ${value.toFixed(2)}`;
+}
+
+function labelize(value: string) {
+  const spaced = value
+    .replace(/[_-]+/g, ' ')
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2');
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
 
 function toPlainText(html: string) {
@@ -4307,6 +5021,25 @@ function compactStringRecord(values: Record<string, unknown>) {
   );
 }
 
+/*
+ * Like compactStringRecord, but also drops blanks. Optional placeholders are
+ * better left unrecorded than stored as empty rows: they render as nothing
+ * either way, and the contract keeps only the values it actually resolved.
+ */
+function definedValues(values: Record<string, unknown>) {
+  return Object.fromEntries(
+    Object.entries(values)
+      .map(
+        ([key, value]) =>
+          [
+            key,
+            value === undefined || value === null ? '' : String(value).trim(),
+          ] as const,
+      )
+      .filter(([, value]) => value !== ''),
+  );
+}
+
 export function decodeSignatureDataUrl(value: string) {
   const match = value.match(
     /^data:image\/(?:png|jpeg);base64,([A-Za-z0-9+/=]+)$/,
@@ -4343,7 +5076,16 @@ function customerSource(
     primaryContactFirstName: string | null;
     primaryContactLastName: string | null;
     primaryContactEmail: string | null;
+    primaryContactPhone?: string | null;
+    billingContactEmail?: string | null;
+    financeContactName?: string | null;
+    financeContactEmail?: string | null;
     contactEmail: string;
+    contactPhone?: string | null;
+    addressLine1?: string | null;
+    addressLine2?: string | null;
+    city?: string | null;
+    stateProvince?: string | null;
     country: string;
     industry: string | null;
     originatingPartnerId?: string | null;
@@ -4352,9 +5094,19 @@ function customerSource(
 ) {
   const contactName =
     `${customer.primaryContactFirstName ?? ''} ${customer.primaryContactLastName ?? ''}`.trim();
+  const contactEmail = customer.primaryContactEmail ?? customer.contactEmail;
+  const address = [
+    customer.addressLine1,
+    customer.addressLine2,
+    customer.city,
+    customer.stateProvince,
+    customer.country,
+  ]
+    .filter(Boolean)
+    .join(', ');
   return {
     counterpartyName: customer.legalCompanyName ?? customer.companyName,
-    counterpartyEmail: customer.primaryContactEmail ?? customer.contactEmail,
+    counterpartyEmail: contactEmail,
     currencyCode,
     customerAccountId: customer.id,
     customerOnboardingId: undefined,
@@ -4365,10 +5117,26 @@ function customerSource(
     contractValue: undefined,
     defaultContractType: ContractType.CUSTOMER_AGREEMENT,
     placeholderValues: {
-      'customer.companyName': customer.companyName,
+      // Registry keys.
+      'customer.name': customer.companyName,
       'customer.legalName': customer.legalCompanyName ?? customer.companyName,
+      'customer.contact.fullName': contactName,
+      'customer.contact.email': contactEmail,
+      'customer.address': address,
+      ...definedValues({
+        'customer.contact.phone':
+          customer.primaryContactPhone ?? customer.contactPhone,
+        'customer.billingContact.name': customer.financeContactName,
+        'customer.billingContact.email':
+          customer.billingContactEmail ?? customer.financeContactEmail,
+      }),
+      /*
+       * Kept alongside the registry keys because agreements authored before
+       * the registry was aligned still reference these tags.
+       */
+      'customer.companyName': customer.companyName,
       'customer.contactName': contactName,
-      'customer.email': customer.primaryContactEmail ?? customer.contactEmail,
+      'customer.email': contactEmail,
       'customer.country': customer.country,
       'customer.industry': customer.industry ?? '',
     },

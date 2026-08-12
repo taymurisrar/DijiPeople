@@ -95,8 +95,14 @@ export function formatErrorLogText(
     'Browser Info:',
     clientDetails.browserInfo ?? log.userAgent ?? 'N/A',
     '',
+    // A terminator makes a truncated download obvious instead of leaving the
+    // reader guessing whether the file simply ended.
+    ERROR_LOG_TERMINATOR,
+    '',
   ].join('\n');
 }
+
+export const ERROR_LOG_TERMINATOR = '--- End of error log ---';
 
 function toIso(value: Date | string) {
   return value instanceof Date ? value.toISOString() : value;

@@ -117,9 +117,15 @@ export async function proxyApiFileResponse(response: Response) {
 
   copyHeaderIfPresent(response.headers, headers, "content-type");
   copyHeaderIfPresent(response.headers, headers, "content-disposition");
-  copyHeaderIfPresent(response.headers, headers, "content-length");
   copyHeaderIfPresent(response.headers, headers, "cache-control");
 
+  /*
+   * Content-Length is deliberately not forwarded. fetch() transparently decodes
+   * a compressed upstream body, so the upstream header describes the encoded
+   * payload while `body` holds the decoded bytes. Forwarding the smaller value
+   * makes Node stop writing at that byte count and truncates the download
+   * mid-stream. The runtime derives the correct length from the buffer.
+   */
   return new NextResponse(body, {
     status: response.status,
     headers,

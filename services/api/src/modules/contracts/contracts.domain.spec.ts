@@ -235,4 +235,57 @@ describe('contract document domain', () => {
       'Effective date must be a valid date.',
     ]);
   });
+
+  it('accepts an ISO currency code where a currency amount would be rejected', () => {
+    const definitions = extractContractPlaceholders(
+      '<p>{{contract.currency}} {{contract.value}}</p>',
+    );
+    expect(definitions.map((item) => item.dataType)).toEqual([
+      'CURRENCY_CODE',
+      'DECIMAL',
+    ]);
+    expect(
+      validateContractPlaceholderValues(definitions, {
+        'contract.currency': 'USD',
+        'contract.value': '150000.00',
+      }),
+    ).toEqual([]);
+    expect(
+      validateContractPlaceholderValues(definitions, {
+        'contract.currency': 'US Dollars',
+        'contract.value': '150000.00',
+      }),
+    ).toEqual([
+      'Contract currency must be a three-letter currency code such as USD.',
+    ]);
+  });
+
+  it('infers a currency code for undeclared currency tags and an amount for fees', () => {
+    expect(
+      extractContractPlaceholders(
+        '<p>{{order.currency}} {{order.setupFee}} {{order.provisionedAt}}</p>',
+      ).map((item) => item.dataType),
+    ).toEqual(['CURRENCY_CODE', 'CURRENCY', 'DATE_TIME']);
+  });
+
+  it('renders optional placeholders as empty instead of leaking the raw tag', () => {
+    expect(
+      renderContractPlaceholders('<p>Term: {{contract.initialTerm}}.</p>', {}),
+    ).toBe('<p>Term: .</p>');
+  });
+
+  it('renders collection placeholders as a list or a table', () => {
+    expect(
+      renderContractPlaceholders('<p>{{tenant.modules}}</p>', {
+        'tenant.modules': '["Payroll","Attendance"]',
+      }),
+    ).toBe('<p><ul><li>Payroll</li><li>Attendance</li></ul></p>');
+    expect(
+      renderContractPlaceholders('<p>{{integration.items}}</p>', {
+        'integration.items': '[{"name":"Bank file","status":"In scope"}]',
+      }),
+    ).toBe(
+      '<p><table><thead><tr><th>Name</th><th>Status</th></tr></thead><tbody><tr><td>Bank file</td><td>In scope</td></tr></tbody></table></p>',
+    );
+  });
 });

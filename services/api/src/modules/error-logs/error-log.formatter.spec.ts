@@ -1,4 +1,7 @@
-import { formatErrorLogText } from './error-log.formatter';
+import {
+  ERROR_LOG_TERMINATOR,
+  formatErrorLogText,
+} from './error-log.formatter';
 
 describe('formatErrorLogText', () => {
   it('includes persisted client debugging context', () => {
@@ -59,5 +62,6 @@ describe('formatErrorLogText', () => {
     expect(text).toContain('selectedStatus');
     expect(text).toContain('Route Parameters:');
     expect(text).toContain('Request Body:');
+    expect(text.trimEnd().endsWith(ERROR_LOG_TERMINATOR)).toBe(true);
   });
 });

@@ -63,6 +63,8 @@ function buildClientFallbackLog(error: DisplayableError) {
     "Component Stack:",
     error.componentStack ?? "Component stack was not provided by React.",
     "",
+    "--- End of error log ---",
+    "",
   ].join("\n");
 }
 
