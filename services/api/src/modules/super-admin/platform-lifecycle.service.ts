@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import {
   BillingCycle,
+  ContractStatus,
   CustomerAccountStatus,
   CustomerOnboardingStatus,
   DiscountType,
@@ -33,6 +34,7 @@ import { RolesRepository } from '../roles/roles.repository';
 import { UsersRepository } from '../users/users.repository';
 import { UserInvitationsService } from '../auth/user-invitations.service';
 import { LeadsRepository } from '../leads/leads.repository';
+import { EXECUTED_CONTRACT_STATUSES } from '../contracts/governing-agreement';
 import { runtimeViewWhere } from '../platform-runtime/runtime-view-where';
 import {
   INDUSTRY_OPTIONS,
@@ -169,9 +171,13 @@ export class PlatformLifecycleService {
       const createdCustomer = await tx.customerAccount.create({
         data: {
           companyName: dto.companyName?.trim() ?? lead.companyName,
-          legalCompanyName: dto.legalCompanyName?.trim() || null,
-          registrationNumber: dto.registrationNumber?.trim() || null,
-          taxId: dto.taxId?.trim() || null,
+          // The lead's confirmed contracting identity is the default; an
+          // explicit override on the conversion request still wins.
+          legalCompanyName:
+            dto.legalCompanyName?.trim() || lead.legalCompanyName || null,
+          registrationNumber:
+            dto.registrationNumber?.trim() || lead.registrationNumber || null,
+          taxId: dto.taxId?.trim() || lead.taxId || null,
           primaryContactFirstName:
             dto.primaryContactFirstName?.trim() ||
             lead.contactFirstName ||
@@ -187,23 +193,34 @@ export class PlatformLifecycleService {
           contactPhone:
             dto.primaryContactPhone?.trim() || lead.phoneNumber || null,
           billingContactEmail:
-            dto.billingContactEmail?.trim().toLowerCase() || null,
-          financeContactName: dto.financeContactName?.trim() || null,
+            dto.billingContactEmail?.trim().toLowerCase() ||
+            lead.billingContactEmail ||
+            null,
+          financeContactName:
+            dto.financeContactName?.trim() || lead.billingContactName || null,
           financeContactEmail:
-            dto.financeContactEmail?.trim().toLowerCase() || null,
+            dto.financeContactEmail?.trim().toLowerCase() ||
+            lead.billingContactEmail ||
+            null,
           industry: dto.industry?.trim() ?? lead.industry,
           companySize: dto.companySize?.trim() ?? lead.companySize,
-          country: dto.country?.trim() ?? lead.country ?? 'United States',
+          country:
+            dto.country?.trim() ??
+            lead.countryOfRegistration ??
+            lead.country ??
+            'United States',
           stateProvince:
             dto.stateProvince?.trim() || lead.stateProvince || null,
           city: dto.city?.trim() || lead.city || null,
-          addressLine1: dto.addressLine1?.trim() || null,
+          addressLine1:
+            dto.addressLine1?.trim() || lead.registeredAddress || null,
           addressLine2: dto.addressLine2?.trim() || null,
           website: dto.website?.trim() || lead.companyWebsite || null,
           estimatedEmployeeCount:
             dto.estimatedEmployeeCount ?? lead.estimatedEmployeeCount ?? null,
-          selectedPlanId: dto.selectedPlanId ?? null,
-          preferredBillingCycle: dto.preferredBillingCycle ?? null,
+          selectedPlanId: dto.selectedPlanId ?? lead.agreedPlanId ?? null,
+          preferredBillingCycle:
+            dto.preferredBillingCycle ?? lead.billingCycle ?? null,
           customPricingFlag: dto.customPricingFlag ?? false,
           discountApproved: dto.discountApproved ?? false,
           leadId,
@@ -224,6 +241,38 @@ export class PlatformLifecycleService {
           subStatus: dto.leadSubStatus ?? 'Converted to customer',
           isQualified: true,
           convertedAt: new Date(),
+        },
+      });
+
+      /*
+       * The confirmed commercial terms carry into onboarding so the agreed
+       * plan, price and billing cycle survive the handover. The subscription
+       * itself is created later by tenant provisioning, which owns that record.
+       */
+      await tx.customerOnboarding.create({
+        data: {
+          customerId: createdCustomer.id,
+          leadId,
+          selectedPlanId: lead.agreedPlanId,
+          billingCycle: lead.billingCycle,
+          agreedPrice: lead.agreedPrice,
+          agreedSeats: lead.agreedSeats,
+          primaryOwnerFirstName:
+            lead.authorizedSignerName?.split(' ')[0] ||
+            lead.contactFirstName ||
+            createdCustomer.primaryContactFirstName ||
+            createdCustomer.companyName,
+          primaryOwnerLastName:
+            lead.authorizedSignerName?.split(' ').slice(1).join(' ') ||
+            lead.contactLastName ||
+            createdCustomer.primaryContactLastName ||
+            '',
+          primaryOwnerWorkEmail: lead.authorizedSignerEmail ?? lead.workEmail,
+          primaryOwnerPhone: lead.phoneNumber,
+          contractSigned: true,
+          status: CustomerOnboardingStatus.NOT_STARTED,
+          subStatus: 'Agreement executed',
+          notes: lead.requirementsSummary,
         },
       });
 
@@ -279,6 +328,44 @@ export class PlatformLifecycleService {
         referralLinkId: lead.partnerReferralLinkId,
       },
     });
+
+    /*
+     * Recorded separately so the downstream records created by conversion are
+     * traceable on their own, not only as a side effect of LEAD_CONVERTED.
+     */
+    await this.events.record({
+      eventCode: 'CUSTOMER_ONBOARDING_INITIALIZED',
+      source: 'ADMIN',
+      entityType: 'CustomerAccount',
+      entityId: customer.id,
+      customerAccountId: customer.id,
+      actorType: 'PLATFORM_USER',
+      actorId: actor.userId,
+      route: `/customers/${customer.id}`,
+      metadata: {
+        leadId,
+        agreedPlanId: lead.agreedPlanId,
+        agreedSeats: lead.agreedSeats,
+        billingCycle: lead.billingCycle,
+      },
+    });
+
+    const relinked = await this.prisma.contract.findMany({
+      where: { customerAccountId: customer.id, relatedLeadId: leadId },
+      select: { id: true, contractNumber: true },
+    });
+    for (const contract of relinked)
+      await this.events.record({
+        eventCode: 'AGREEMENT_LINKED_TO_CUSTOMER',
+        source: 'ADMIN',
+        entityType: 'Contract',
+        entityId: contract.id,
+        customerAccountId: customer.id,
+        actorType: 'PLATFORM_USER',
+        actorId: actor.userId,
+        route: `/contracts/${contract.id}`,
+        metadata: { leadId, contractNumber: contract.contractNumber },
+      });
 
     return this.getCustomer(customer.id);
   }
@@ -1477,6 +1564,7 @@ export class PlatformLifecycleService {
             (onboarding.agreedPrice
               ? Number(onboarding.agreedPrice)
               : undefined),
+          purchasedSeats: onboarding.agreedSeats ?? undefined,
           actorUserId: actor.userId,
         },
       );
@@ -1664,7 +1752,11 @@ export class PlatformLifecycleService {
     const contracts = await this.prisma.contract.findMany({
       where: {
         contractType: { in: requiredTypes as never[] },
-        status: { in: ['FULLY_EXECUTED', 'FULLY_SIGNED', 'ACTIVE'] },
+        // FULLY_SIGNED is tolerated alongside the shared executed set for
+        // agreements signed before counter-execution was automatic.
+        status: {
+          in: [...EXECUTED_CONTRACT_STATUSES, ContractStatus.FULLY_SIGNED],
+        },
         OR: [
           ...(scope.leadId ? [{ relatedLeadId: scope.leadId }] : []),
           ...(scope.customerId

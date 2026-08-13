@@ -49,6 +49,8 @@ type PlaceholderDefinition = {
   sourceEntity: string;
   required?: boolean;
   exampleValue?: string;
+  group?: string;
+  deprecatedFor?: string;
 };
 
 const defaultPlaceholders: PlaceholderDefinition[] = [
@@ -156,6 +158,9 @@ export function ContractDocumentEditor({
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [placeholderRegistry, setPlaceholderRegistry] =
     useState<PlaceholderDefinition[]>(defaultPlaceholders);
+  const [placeholderGroupOrder, setPlaceholderGroupOrder] = useState<string[]>(
+    [],
+  );
   useEffect(() => {
     if (placeholders !== undefined) return;
     const controller = new AbortController();
@@ -163,9 +168,18 @@ export function ContractDocumentEditor({
       signal: controller.signal,
     })
       .then((response) => (response.ok ? response.json() : null))
-      .then((payload: { items?: PlaceholderDefinition[] } | null) => {
-        if (payload?.items?.length) setPlaceholderRegistry(payload.items);
-      })
+      .then(
+        (
+          payload: {
+            items?: PlaceholderDefinition[];
+            groups?: string[];
+          } | null,
+        ) => {
+          if (payload?.items?.length) setPlaceholderRegistry(payload.items);
+          if (payload?.groups?.length)
+            setPlaceholderGroupOrder(payload.groups);
+        },
+      )
       .catch(() => undefined);
     return () => controller.abort();
   }, [placeholders]);
@@ -185,15 +199,34 @@ export function ContractDocumentEditor({
           ),
     [placeholderRegistry, placeholders],
   );
-  const visiblePlaceholders = useMemo(
-    () =>
-      normalizedPlaceholders.filter((definition) =>
+  /*
+   * Superseded keys stay resolvable for agreements that already use them, but
+   * are never offered when authoring, so the picker only shows the canonical
+   * namespace. Grouping follows the order the API publishes.
+   */
+  const placeholderGroups = useMemo(() => {
+    const matching = normalizedPlaceholders.filter(
+      (definition) =>
+        !definition.deprecatedFor &&
         `${definition.key} ${definition.label} ${definition.dataType}`
           .toLowerCase()
           .includes(placeholderQuery.toLowerCase()),
-      ),
-    [placeholderQuery, normalizedPlaceholders],
-  );
+    );
+    const byGroup = new Map<string, PlaceholderDefinition[]>();
+    for (const definition of matching) {
+      const group = definition.group ?? "Other";
+      byGroup.set(group, [...(byGroup.get(group) ?? []), definition]);
+    }
+    const ordered = [...byGroup.keys()].sort(
+      (first, second) =>
+        groupRank(first, placeholderGroupOrder) -
+        groupRank(second, placeholderGroupOrder),
+    );
+    return ordered.map((group) => ({
+      group,
+      items: byGroup.get(group) ?? [],
+    }));
+  }, [placeholderQuery, normalizedPlaceholders, placeholderGroupOrder]);
   const editor = useEditor({
     immediatelyRender: false,
     editable: !readOnly,
@@ -718,23 +751,35 @@ export function ContractDocumentEditor({
                   placeholder="Search typed fields"
                   className="mb-1 h-9 w-full rounded-lg border border-slate-200 px-2 text-xs"
                 />
-                {visiblePlaceholders.map((definition) => (
-                  <button
-                    type="button"
-                    key={definition.key}
-                    onClick={() => insertPlaceholder(definition.key)}
-                    title={definition.description}
-                    className="block w-full rounded-lg px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
-                  >
-                    <span className="flex items-center justify-between gap-2 font-semibold">
-                      <span>{definition.label}</span>
-                      <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[9px] text-slate-500">
-                        {definition.dataType.replaceAll("_", " ")}
-                      </span>
-                    </span>
-                    <span className="mt-0.5 block font-mono text-[10px] text-slate-500">{`{{${definition.key}}}`}</span>
-                  </button>
+                {placeholderGroups.map(({ group, items }) => (
+                  <div key={group}>
+                    <p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                      {group}
+                    </p>
+                    {items.map((definition) => (
+                      <button
+                        type="button"
+                        key={definition.key}
+                        onClick={() => insertPlaceholder(definition.key)}
+                        title={definition.description}
+                        className="block w-full rounded-lg px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
+                      >
+                        <span className="flex items-center justify-between gap-2 font-semibold">
+                          <span>{definition.label}</span>
+                          <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[9px] text-slate-500">
+                            {definition.dataType.replaceAll("_", " ")}
+                          </span>
+                        </span>
+                        <span className="mt-0.5 block font-mono text-[10px] text-slate-500">{`{{${definition.key}}}`}</span>
+                      </button>
+                    ))}
+                  </div>
                 ))}
+                {placeholderGroups.length === 0 ? (
+                  <p className="px-3 py-4 text-center text-xs text-slate-500">
+                    No fields match this search.
+                  </p>
+                ) : null}
               </div>
             ) : null}
           </div>
@@ -1205,4 +1250,9 @@ function TableAction({
       {label}
     </button>
   );
+}
+
+function groupRank(group: string, order: string[]) {
+  const index = order.indexOf(group);
+  return index === -1 ? order.length : index;
 }

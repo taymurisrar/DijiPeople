@@ -18,6 +18,7 @@ import {
   BulkAssignLeadsDto,
   CorrectLeadAttributionDto,
   CreateAdminLeadDto,
+  LeadContractingTermsDto,
   LeadQueryDto,
   UpdateAdminLeadDto,
 } from './dto/admin-lead.dto';
@@ -36,6 +37,11 @@ import {
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { PlatformCommunicationsService } from '../platform-communications/platform-communications.service';
 import { PlatformEventsService } from '../platform-events/platform-events.service';
+import {
+  executedGoverningAgreementWhere,
+  GOVERNING_AGREEMENT_REQUIRED_MESSAGE,
+  leadAgreementScope,
+} from '../contracts/governing-agreement';
 
 @Injectable()
 export class LeadsService {
@@ -360,6 +366,7 @@ export class LeadsService {
       subStatus: dto.subStatus ?? null,
       isQualified:
         dto.isQualified ?? (dto.status === LeadStatus.QUALIFIED ? true : false),
+      ...definedOnly(leadContractingData(dto)),
     });
 
     await this.auditService.log({
@@ -422,6 +429,8 @@ export class LeadsService {
         ...existing,
         ...dto,
       });
+      if (nextStatus === LeadStatus.CONVERTED)
+        await this.assertGoverningAgreementExecuted(leadId);
     }
 
     const updated = await this.leadsRepository.update(leadId, {
@@ -496,6 +505,7 @@ export class LeadsService {
       ...(nextStatus === LeadStatus.CONVERTED
         ? { convertedAt: new Date() }
         : {}),
+      ...definedOnly(leadContractingData(dto)),
     });
 
     await this.auditService.log({
@@ -819,6 +829,42 @@ export class LeadsService {
     }
   }
 
+  /*
+   * The authoritative Contract record decides whether the lead may convert, not
+   * a flag on the lead. Records the refusal so a blocked conversion is visible
+   * in the lead's own event history.
+   */
+  private async assertGoverningAgreementExecuted(leadId: string) {
+    const executed = await this.prisma.contract.findFirst({
+      where: executedGoverningAgreementWhere(leadAgreementScope(leadId)),
+      select: { id: true },
+    });
+    if (executed) return;
+
+    await this.events.record({
+      eventCode: 'LEAD_CONVERSION_BLOCKED',
+      source: 'ADMIN',
+      entityType: 'Lead',
+      entityId: leadId,
+      actorType: 'PLATFORM_USER',
+      route: '/leads',
+      result: 'FAILED',
+      metadata: { reason: 'GOVERNING_AGREEMENT_NOT_EXECUTED' },
+    });
+    throw new BadRequestException({
+      code: 'VALIDATION_FAILED',
+      message: GOVERNING_AGREEMENT_REQUIRED_MESSAGE,
+      details: {
+        fieldErrors: [
+          {
+            field: 'status',
+            message: GOVERNING_AGREEMENT_REQUIRED_MESSAGE,
+          },
+        ],
+      },
+    });
+  }
+
   private assertRequiredCriteriaForLead(
     status: LeadStatus,
     record: Record<string, unknown>,
@@ -853,4 +899,39 @@ function escapeEmailHtml(value: string) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#039;');
+}
+
+/*
+ * Contracting fields map identically on create and update, so the shape is
+ * built once. `undefined` keys are dropped by the caller on update so an
+ * untouched field is never cleared.
+ */
+function leadContractingData(dto: LeadContractingTermsDto) {
+  return {
+    legalCompanyName: dto.legalCompanyName,
+    registrationNumber: dto.registrationNumber,
+    registeredAddress: dto.registeredAddress,
+    countryOfRegistration: dto.countryOfRegistration,
+    taxId: dto.taxId,
+    authorizedSignerName: dto.authorizedSignerName,
+    authorizedSignerTitle: dto.authorizedSignerTitle,
+    authorizedSignerEmail: dto.authorizedSignerEmail,
+    billingContactName: dto.billingContactName,
+    billingContactEmail: dto.billingContactEmail,
+    agreedPlanId: dto.agreedPlanId,
+    agreedSeats: dto.agreedSeats,
+    agreedPrice: dto.agreedPrice,
+    billingCycle: dto.billingCycle,
+    subscriptionTerm: dto.subscriptionTerm,
+    paymentTerms: dto.paymentTerms,
+    proposedEffectiveDate: dto.proposedEffectiveDate
+      ? new Date(dto.proposedEffectiveDate)
+      : dto.proposedEffectiveDate,
+  };
+}
+
+function definedOnly<T extends Record<string, unknown>>(values: T) {
+  return Object.fromEntries(
+    Object.entries(values).filter(([, value]) => value !== undefined),
+  ) as Partial<T>;
 }

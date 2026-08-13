@@ -107,6 +107,7 @@ enum LeadStatus {
   NEW
   CONTACTED
   QUALIFIED
+  AGREEMENT
   UNQUALIFIED
   CONVERTED
   CLOSED_LOST
@@ -2261,6 +2262,29 @@ model Lead {
   budgetExpectation      String?
   requirementsSummary    String?
   notes                  String?
+  // Contracting identity. `country` above is the operating country captured at
+  // capture time; `countryOfRegistration` is the legal jurisdiction the entity
+  // contracts under, which is frequently different.
+  legalCompanyName       String?
+  registrationNumber     String?
+  registeredAddress      String?
+  countryOfRegistration  String?
+  taxId                  String?
+  authorizedSignerName   String?
+  authorizedSignerTitle  String?
+  authorizedSignerEmail  String?
+  billingContactName     String?
+  billingContactEmail    String?
+  // Confirmed commercial terms. The discovery fields above (interestedPlan,
+  // estimatedEmployeeCount, budgetExpectation, expectedGoLiveDate) stay as
+  // captured; these carry what both sides actually agreed to.
+  agreedPlanId           String?
+  agreedSeats            Int?
+  agreedPrice            Decimal?                    @db.Decimal(12, 2)
+  billingCycle           BillingCycle?
+  subscriptionTerm       String?
+  paymentTerms           String?
+  proposedEffectiveDate  DateTime?
   assignedToUserId       String?
   partnerId              String?
   partnerReferralLinkId  String?
@@ -2278,6 +2302,7 @@ model Lead {
   createdAt              DateTime                    @default(now())
   updatedAt              DateTime                    @updatedAt
   assignedToUser         PlatformUser?               @relation("AssignedLeads", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+  agreedPlan             Plan?                       @relation("AgreedLeadPlan", fields: [agreedPlanId], references: [id], onDelete: SetNull)
   partner                Partner?                    @relation(fields: [partnerId], references: [id], onDelete: SetNull)
   partnerReferralLink    PartnerReferralLink?        @relation(fields: [partnerReferralLinkId], references: [id], onDelete: SetNull)
   convertedCustomers     CustomerAccount[]           @relation("LeadToCustomer")
@@ -2296,6 +2321,7 @@ model Lead {
   @@index([partnerId])
   @@index([partnerReferralLinkId])
   @@index([attributionStatus, referredAt])
+  @@index([agreedPlanId])
 }
 
 model Partner {
@@ -3221,6 +3247,7 @@ model CustomerOnboarding {
   plannedTenantSlug               String?
   billingCycle                    BillingCycle?
   agreedPrice                     Decimal?                 @db.Decimal(12, 2)
+  agreedSeats                     Int?
   discountType                    DiscountType             @default(NONE)
   discountValue                   Decimal                  @default(0) @db.Decimal(12, 2)
   featureSelectionSummary         Json?
@@ -3336,6 +3363,7 @@ model Plan {
   subscriptions         Subscription[]
   selectedByCustomers   CustomerAccount[]    @relation("SelectedCustomerPlan")
   selectedByOnboardings CustomerOnboarding[] @relation("SelectedOnboardingPlan")
+  agreedByLeads         Lead[]               @relation("AgreedLeadPlan")
   promotions            Promotion[]
 
   @@index([tenantId])

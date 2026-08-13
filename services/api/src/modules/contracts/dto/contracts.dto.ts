@@ -211,6 +211,7 @@ export class CreateContractFromSourceDto {
   @IsOptional() @IsUUID() templateId?: string;
   @IsOptional() @IsString() @MaxLength(240) title?: string;
   @IsOptional() @IsEnum(ContractType) contractType?: ContractType;
+  @IsOptional() @IsString() @MaxLength(120) lifecycleGatePurpose?: string;
   @IsOptional() @IsDateString() effectiveDate?: string;
   @IsOptional() @IsDateString() expiryDate?: string;
 }

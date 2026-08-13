@@ -34,6 +34,7 @@ function setup(referral: unknown) {
     {} as never,
     prisma as never,
     { sendEmail: jest.fn() } as never,
+    { record: jest.fn() } as never,
   );
   return { service, create, tx };
 }

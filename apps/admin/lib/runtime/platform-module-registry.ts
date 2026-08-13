@@ -687,6 +687,105 @@ const definitions: PlatformModuleDefinition[] = [
           hideWhenEmpty: true,
           visibleWhen: { field: "partnerId", hasValue: true },
         },
+        /*
+         * Contracting and commercial confirmation. These stay optional while a
+         * lead is New or Contacted; the Agreement lifecycle stage is what makes
+         * them mandatory, and the server reports exactly which are missing.
+         */
+        field(
+          "legalCompanyName",
+          "Legal company name",
+          "text",
+          "legal-entity",
+        ),
+        field(
+          "registrationNumber",
+          "Registration number",
+          "text",
+          "legal-entity",
+        ),
+        field(
+          "registeredAddress",
+          "Registered address",
+          "longText",
+          "legal-entity",
+        ),
+        field(
+          "countryOfRegistration",
+          "Country of registration",
+          "text",
+          "legal-entity",
+        ),
+        field("taxId", "Tax / VAT number", "text", "legal-entity"),
+        field(
+          "authorizedSignerName",
+          "Authorized signatory",
+          "text",
+          "authorized-signatory",
+        ),
+        field(
+          "authorizedSignerTitle",
+          "Job title",
+          "text",
+          "authorized-signatory",
+        ),
+        field(
+          "authorizedSignerEmail",
+          "Signatory email",
+          "email",
+          "authorized-signatory",
+        ),
+        {
+          ...field(
+            "agreedPlanId",
+            "Selected plan",
+            "lookup",
+            "commercial-confirmation",
+          ),
+          lookupPath: "/super-admin/plans",
+        },
+        field(
+          "agreedSeats",
+          "Agreed seats",
+          "integer",
+          "commercial-confirmation",
+        ),
+        field(
+          "agreedPrice",
+          "Agreed price",
+          "currency",
+          "commercial-confirmation",
+        ),
+        field(
+          "billingCycle",
+          "Billing cycle",
+          "option",
+          "commercial-confirmation",
+          false,
+          ["MONTHLY", "ANNUAL"],
+        ),
+        field(
+          "subscriptionTerm",
+          "Subscription term",
+          "option",
+          "commercial-confirmation",
+          false,
+          ["Month-to-month", "12 months", "24 months", "36 months"],
+        ),
+        field(
+          "paymentTerms",
+          "Payment terms",
+          "text",
+          "commercial-confirmation",
+        ),
+        field(
+          "proposedEffectiveDate",
+          "Proposed effective date",
+          "date",
+          "commercial-confirmation",
+        ),
+        field("billingContactName", "Billing contact", "text", "billing"),
+        field("billingContactEmail", "Billing email", "email", "billing"),
         {
           ...field("convertedAt", "Converted at", "dateTime", "conversion"),
           readOnly: true,
@@ -710,6 +809,10 @@ const definitions: PlatformModuleDefinition[] = [
         qualification: "commercial",
         acquisition: "commercial",
         commercial: "commercial",
+        "legal-entity": "commercial",
+        "authorized-signatory": "commercial",
+        "commercial-confirmation": "commercial",
+        billing: "commercial",
         conversion: "commercial",
         system: "system",
       },

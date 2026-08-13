@@ -611,6 +611,62 @@ async function seedPlatformOperationalSettings(client: PrismaClient) {
   }
 }
 
+/*
+ * The two governing documents of the customer lifecycle. Written against the
+ * canonical placeholder namespace so both resolve from a lead before
+ * conversion (agreement) and from customer/onboarding/tenant after it (order).
+ */
+const SAAS_SUBSCRIPTION_AGREEMENT_HTML = [
+  '<h1>DijiPeople SaaS Subscription &amp; Services Agreement</h1>',
+  '<p>Agreement {{contract.number}} &mdash; {{contract.title}}</p>',
+  '<p>Effective {{contract.effectiveDate}} until {{contract.expiryDate}}. All amounts are stated in {{contract.currency}}.</p>',
+  '<h2>1. Parties</h2>',
+  '<p><strong>Provider:</strong> {{platform.legalName}} ({{platform.name}}), {{platform.address}}.</p>',
+  '<p><strong>Customer:</strong> {{customer.legalName}} trading as {{customer.companyName}}, registration number {{customer.registrationNumber}}, tax registration {{customer.taxId}}, registered at {{customer.address}}, {{customer.country}}.</p>',
+  '<h2>2. Contacts</h2>',
+  '<p>Customer contact: {{customer.contact.fullName}}, {{customer.contact.email}}, {{customer.contact.phone}}.</p>',
+  '<p>Authorized signatory: {{customer.primarySigner.name}}, {{customer.primarySigner.title}}, {{customer.primarySigner.email}}.</p>',
+  '<h2>3. Subscription and commercial terms</h2>',
+  '<p>Plan: {{commercial.planName}} for {{commercial.licensedUsers}} licensed users at {{commercial.agreedPrice}} per {{commercial.billingCycle}} billing period.</p>',
+  '<p>Subscription term: {{commercial.subscriptionTerm}}. Payment terms: {{contract.paymentTerms}}.</p>',
+  '<h2>4. Term, renewal and termination</h2>',
+  '<p>Renewal notice period: {{contract.renewalNoticeDays}} days. Termination notice period: {{contract.terminationNoticeDays}} days.</p>',
+  '<h2>5. Governing law</h2>',
+  '<p>This agreement is governed by {{contract.governingLaw}} and subject to the exclusive jurisdiction of {{contract.jurisdiction}}.</p>',
+  '<h2>6. Signatures</h2>',
+  '<p>For {{platform.legalName}}: {{platform.authorizedSigner.name}}, {{platform.authorizedSigner.title}}</p>',
+  '<p>{{signature.platform.name}} &mdash; {{signature.platform.date}}</p>',
+  '<p>For {{customer.legalName}}: {{customer.primarySigner.name}}, {{customer.primarySigner.title}}</p>',
+  '<p>{{signature.counterparty.name}} &mdash; {{signature.counterparty.date}}</p>',
+].join('');
+
+const TENANT_SERVICE_ORDER_HTML = [
+  '<h1>DijiPeople Tenant Provisioning &amp; Service Order</h1>',
+  '<p>Service order {{contract.number}} issued under master agreement {{serviceOrder.masterAgreementNumber}}.</p>',
+  '<p>Customer: {{customer.legalName}} ({{customer.companyName}}), {{customer.address}}, {{customer.country}}.</p>',
+  '<h2>1. Tenant</h2>',
+  '<p>Tenant {{tenant.name}} ({{tenant.id}}), accessible at {{tenant.url}} in the {{tenant.environment}} environment.</p>',
+  '<p>Configuration: country {{tenant.country}}, time zone {{tenant.timeZone}}, language {{tenant.language}}, currency {{tenant.currency}}.</p>',
+  '<p>Initial administrator: {{tenant.admin.name}}, {{tenant.admin.email}}, {{tenant.admin.phone}}.</p>',
+  '<h2>2. Enabled modules</h2>',
+  '<p>{{tenant.modules}}</p>',
+  '<h2>3. Implementation</h2>',
+  '<p>Scope: {{implementation.scope}}</p>',
+  '<p>Target go-live: {{implementation.targetGoLiveDate}}. Data migration required: {{implementation.dataMigrationRequired}}.</p>',
+  '<p>Source system: {{implementation.sourceSystem}}. Estimated records: {{implementation.estimatedRecords}}. Method: {{implementation.migrationMethod}}.</p>',
+  '<h2>4. Integrations</h2>',
+  '<p>{{integration.items}}</p>',
+  '<h2>5. Hosting</h2>',
+  '<p>Application: {{hosting.applicationProvider}} ({{hosting.applicationRegion}}). Database: {{hosting.databaseProvider}} ({{hosting.databaseRegion}}). Email: {{hosting.emailProvider}}.</p>',
+  '<h2>6. Support and service levels</h2>',
+  '<p>Support tier {{sla.supportTier}}, {{sla.supportHours}}, via {{sla.supportChannels}}. Uptime target {{sla.uptimeTarget}}.</p>',
+  '<h2>7. Billing</h2>',
+  '<p>Billing starts {{commercial.billingStartDate}} on {{commercial.billingStartTrigger}}.</p>',
+  '<h2>8. Signatures</h2>',
+  '<p>{{signature.platform.name}} &mdash; {{signature.platform.date}}</p>',
+  '<p>{{signature.counterparty.name}} &mdash; {{signature.counterparty.date}}</p>',
+].join('');
+
 async function seedPlatformContractTemplates(client: PrismaClient) {
   const templates = [
     {
@@ -623,11 +679,17 @@ async function seedPlatformContractTemplates(client: PrismaClient) {
     },
     {
       key: 'CUSTOMER_SERVICE_STANDARD',
-      name: 'Standard Customer Subscription Agreement',
+      name: 'DijiPeople SaaS Subscription & Services Agreement',
       contractType: 'SUBSCRIPTION_AGREEMENT' as const,
-      title: 'DijiPeople Customer Subscription Agreement',
-      contentHtml:
-        '<h1>Customer Subscription Agreement</h1><p>This agreement is between {{platform.legalName}} and {{customer.legalName}}.</p><h2>Subscription</h2><p>Plan: {{subscription.planName}} for {{subscription.purchasedSeats}} seats at {{subscription.pricePerSeat}} per seat monthly.</p><p>Estimated monthly charge: {{subscription.estimatedMonthlyCharge}}.</p>',
+      title: 'DijiPeople SaaS Subscription & Services Agreement',
+      contentHtml: SAAS_SUBSCRIPTION_AGREEMENT_HTML,
+    },
+    {
+      key: 'TENANT_PROVISIONING_SERVICE_ORDER',
+      name: 'DijiPeople Tenant Provisioning & Service Order',
+      contractType: 'SERVICE_AGREEMENT' as const,
+      title: 'DijiPeople Tenant Provisioning & Service Order',
+      contentHtml: TENANT_SERVICE_ORDER_HTML,
     },
     {
       key: 'PARTNER_COMPANY_STANDARD',
@@ -679,6 +741,13 @@ async function seedPlatformContractTemplates(client: PrismaClient) {
     },
   ];
   for (const item of templates) {
+    const lifecycleGatePurpose = item.contractType.includes('PARTNER')
+      ? 'PARTNER_ONBOARDING'
+      : item.contractType === 'SUBSCRIPTION_AGREEMENT'
+        ? 'LEAD_TO_CUSTOMER'
+        : item.key === 'TENANT_PROVISIONING_SERVICE_ORDER'
+          ? 'TENANT_PROVISIONING'
+          : null;
     const template = await client.contractTemplate.upsert({
       where: {
         key_contractType: {
@@ -691,15 +760,11 @@ async function seedPlatformContractTemplates(client: PrismaClient) {
         name: item.name,
         contractType: item.contractType,
         description: 'System-maintained enterprise agreement template.',
-        lifecycleGatePurpose: item.contractType.includes('PARTNER')
-          ? 'PARTNER_ONBOARDING'
-          : item.contractType === 'SUBSCRIPTION_AGREEMENT'
-            ? 'LEAD_TO_CUSTOMER'
-            : null,
+        lifecycleGatePurpose,
         documentMode: 'EDITOR',
         signingMode: 'MIXED',
       },
-      update: { name: item.name, isActive: true },
+      update: { name: item.name, isActive: true, lifecycleGatePurpose },
     });
     await client.contractTemplateVersion.upsert({
       where: { templateId_version: { templateId: template.id, version: 1 } },
@@ -731,13 +796,23 @@ async function seedPlatformContractTemplates(client: PrismaClient) {
           mode: 'MIXED',
           requiredSignatures: true,
         } as Prisma.InputJsonValue,
-        lifecycleGatePurpose: item.contractType.includes('PARTNER')
-          ? 'PARTNER_ONBOARDING'
-          : item.contractType === 'SUBSCRIPTION_AGREEMENT'
-            ? 'LEAD_TO_CUSTOMER'
-            : null,
+        lifecycleGatePurpose,
       },
-      update: {},
+      /*
+       * Version 1 of a system template is refreshed on every seed so
+       * placeholder-namespace changes reach existing installs. Operator edits
+       * are unaffected: editing a template publishes a new version rather than
+       * rewriting version 1.
+       */
+      update: {
+        title: item.title,
+        contentHtml: item.contentHtml,
+        contentText: item.contentHtml.replace(/<[^>]+>/g, ' '),
+        placeholders: [...item.contentHtml.matchAll(/\{\{([^}]+)\}\}/g)].map(
+          (match) => ({ key: match[1] }),
+        ) as Prisma.InputJsonValue,
+        lifecycleGatePurpose,
+      },
     });
   }
 }

@@ -6,6 +6,7 @@ import {
   IsEmail,
   IsEnum,
   IsInt,
+  IsNumber,
   IsOptional,
   IsString,
   IsUUID,
@@ -128,7 +129,112 @@ export class LeadQueryDto {
   fields?: string;
 }
 
-export class CreateAdminLeadDto {
+/*
+ * Contracting identity, signatory, billing contact and confirmed commercial
+ * terms. Shared by create and update so the lead carries everything the
+ * customer agreement needs before a customer record exists. All optional here;
+ * the Agreement lifecycle stage is what makes them mandatory.
+ */
+export class LeadContractingTermsDto {
+  @IsOptional()
+  @Transform(trimString)
+  @IsString()
+  @MaxLength(160)
+  legalCompanyName?: string;
+
+  @IsOptional()
+  @Transform(trimString)
+  @IsString()
+  @MaxLength(80)
+  registrationNumber?: string;
+
+  @IsOptional()
+  @Transform(trimString)
+  @IsString()
+  @MaxLength(400)
+  registeredAddress?: string;
+
+  @IsOptional()
+  @Transform(trimString)
+  @IsString()
+  @MaxLength(120)
+  countryOfRegistration?: string;
+
+  @IsOptional()
+  @Transform(trimString)
+  @IsString()
+  @MaxLength(80)
+  taxId?: string;
+
+  @IsOptional()
+  @Transform(trimString)
+  @IsString()
+  @MaxLength(160)
+  authorizedSignerName?: string;
+
+  @IsOptional()
+  @Transform(trimString)
+  @IsString()
+  @MaxLength(120)
+  authorizedSignerTitle?: string;
+
+  @IsOptional()
+  @Transform(normalizeEmail)
+  @IsEmail()
+  @MaxLength(160)
+  authorizedSignerEmail?: string;
+
+  @IsOptional()
+  @Transform(trimString)
+  @IsString()
+  @MaxLength(160)
+  billingContactName?: string;
+
+  @IsOptional()
+  @Transform(normalizeEmail)
+  @IsEmail()
+  @MaxLength(160)
+  billingContactEmail?: string;
+
+  @IsOptional()
+  @IsUUID()
+  agreedPlanId?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(1000000)
+  agreedSeats?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  agreedPrice?: number;
+
+  @IsOptional()
+  @IsEnum(BillingCycle)
+  billingCycle?: BillingCycle;
+
+  @IsOptional()
+  @Transform(trimString)
+  @IsString()
+  @MaxLength(120)
+  subscriptionTerm?: string;
+
+  @IsOptional()
+  @Transform(trimString)
+  @IsString()
+  @MaxLength(240)
+  paymentTerms?: string;
+
+  @IsOptional()
+  @IsDateString()
+  proposedEffectiveDate?: string;
+}
+
+export class CreateAdminLeadDto extends LeadContractingTermsDto {
   @Transform(trimString)
   @IsString()
   @MaxLength(100)
@@ -251,7 +357,7 @@ export class CreateAdminLeadDto {
   isQualified?: boolean;
 }
 
-export class UpdateAdminLeadDto {
+export class UpdateAdminLeadDto extends LeadContractingTermsDto {
   @IsOptional()
   @Transform(trimString)
   @IsString()

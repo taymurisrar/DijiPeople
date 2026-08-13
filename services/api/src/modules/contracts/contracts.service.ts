@@ -39,6 +39,11 @@ import pdfParse from 'pdf-parse';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { buildPublicSiteUrl } from '../../common/config/public-site-url.config';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import {
+  customerAgreementScope,
+  executedGoverningAgreementWhere,
+  TENANT_ORDER_AGREEMENT_REQUIRED_MESSAGE,
+} from './governing-agreement';
 import { StorageService } from '../../common/storage/storage.service';
 import { userHasPlatformPermission } from '../platform-auth/platform-permissions';
 import {
@@ -113,6 +118,28 @@ const contractInclude = {
   timeline: { orderBy: { createdAt: 'desc' as const }, take: 100 },
 } satisfies Prisma.ContractInclude;
 
+/*
+ * What a lead, customer, onboarding or tenant contributes to a new agreement:
+ * the counterparty, the relationships to carry onto the contract, and the
+ * placeholder values that record already knows.
+ */
+export type ResolvedContractSource = {
+  counterpartyName: string;
+  counterpartyEmail?: string;
+  currencyCode: string;
+  contractValue?: number;
+  effectiveDate?: string;
+  paymentTerms?: string;
+  defaultContractType: ContractType;
+  counterpartyType: string;
+  partnerId?: string;
+  customerAccountId?: string;
+  customerOnboardingId?: string;
+  tenantId?: string;
+  relatedLeadId?: string;
+  placeholderValues: Record<string, unknown>;
+};
+
 export type ContractUploadFile = {
   buffer: Buffer;
   originalname: string;
@@ -164,7 +191,40 @@ export type ContractPlaceholderDefinition = {
   securityClassification: 'PUBLIC' | 'INTERNAL' | 'CONFIDENTIAL';
   allowedContractTypes: string[];
   exampleValue: string;
+  /*
+   * Set on a superseded key. The placeholder still resolves so agreements
+   * authored against the old namespace keep rendering, but it is not offered
+   * as a choice when authoring new templates.
+   */
+  deprecatedFor?: string;
 };
+
+/*
+ * Legacy key -> canonical key. Resolvers only ever produce canonical values;
+ * the legacy keys are backfilled from them at render time so no caller has to
+ * remember to emit both.
+ */
+export const DEPRECATED_PLACEHOLDER_ALIASES: Record<string, string> = {
+  'customer.name': 'customer.companyName',
+  'customer.contactName': 'customer.contact.fullName',
+  'customer.email': 'customer.contact.email',
+  'customer.primarySigner': 'customer.primarySigner.name',
+  'customer.primarySignerEmail': 'customer.primarySigner.email',
+  'commercial.planPrice': 'commercial.agreedPrice',
+};
+
+export function applyDeprecatedPlaceholderAliases(
+  values: Record<string, string>,
+) {
+  const result = { ...values };
+  for (const [legacy, canonical] of Object.entries(
+    DEPRECATED_PLACEHOLDER_ALIASES,
+  )) {
+    if (result[legacy] === undefined && result[canonical] !== undefined)
+      result[legacy] = result[canonical];
+  }
+  return result;
+}
 
 function placeholder(
   key: string,
@@ -202,6 +262,24 @@ const optional = {
   required: false,
   fallbackBehavior: 'EMPTY',
 } satisfies Partial<ContractPlaceholderDefinition>;
+
+/*
+ * A superseded key kept registered so agreements written against the old
+ * namespace still validate and render. Its value is backfilled from the
+ * canonical key, so it is never required and never offered when authoring.
+ */
+function deprecated(
+  key: string,
+  label: string,
+  dataType: ContractPlaceholderDataType,
+): ContractPlaceholderDefinition {
+  const canonical = DEPRECATED_PLACEHOLDER_ALIASES[key];
+  return placeholder(key, label, dataType, `Same as ${canonical}`, {
+    ...optional,
+    deprecatedFor: canonical,
+    description: `Superseded by ${canonical}. Resolved from it for existing templates.`,
+  });
+}
 
 export const CONTRACT_PLACEHOLDER_REGISTRY: ContractPlaceholderDefinition[] = [
   placeholder('platform.name', 'Platform name', 'TEXT', 'DijiPeople'),
@@ -301,7 +379,7 @@ export const CONTRACT_PLACEHOLDER_REGISTRY: ContractPlaceholderDefinition[] = [
     { formattingRule: '0.##%' },
   ),
   placeholder(
-    'customer.name',
+    'customer.companyName',
     'Customer name',
     'CUSTOMER',
     'Gulf Horizon Logistics',
@@ -360,6 +438,68 @@ export const CONTRACT_PLACEHOLDER_REGISTRY: ContractPlaceholderDefinition[] = [
     'billing@gulfhorizon.example',
     optional,
   ),
+  placeholder('customer.country', 'Customer country', 'TEXT', 'Saudi Arabia'),
+  placeholder(
+    'customer.industry',
+    'Customer industry',
+    'TEXT',
+    'Logistics',
+    optional,
+  ),
+  placeholder(
+    'customer.primarySigner.name',
+    'Customer authorized signatory',
+    'TEXT',
+    'Amal Hassan',
+  ),
+  placeholder(
+    'customer.primarySigner.title',
+    'Customer signatory title',
+    'TEXT',
+    'Chief Operating Officer',
+  ),
+  placeholder(
+    'customer.primarySigner.email',
+    'Customer signatory email',
+    'EMAIL',
+    'amal@gulfhorizon.example',
+  ),
+  deprecated('customer.name', 'Customer name (legacy)', 'CUSTOMER'),
+  deprecated('customer.contactName', 'Customer contact (legacy)', 'TEXT'),
+  deprecated('customer.email', 'Customer email (legacy)', 'EMAIL'),
+  deprecated('customer.primarySigner', 'Primary signer (legacy)', 'TEXT'),
+  deprecated(
+    'customer.primarySignerEmail',
+    'Primary signer email (legacy)',
+    'EMAIL',
+  ),
+  placeholder('commercial.planName', 'Agreed plan', 'TEXT', 'Growth', optional),
+  placeholder(
+    'commercial.planId',
+    'Agreed plan ID',
+    'LOOKUP',
+    'a3f1c7e2-0000-4000-8000-000000000000',
+    optional,
+  ),
+  placeholder('commercial.agreedPrice', 'Agreed price', 'CURRENCY', '2500.00', {
+    ...optional,
+    formattingRule: 'currency',
+  }),
+  placeholder(
+    'commercial.billingCycle',
+    'Billing cycle',
+    'TEXT',
+    'MONTHLY',
+    optional,
+  ),
+  placeholder(
+    'commercial.subscriptionTerm',
+    'Subscription term',
+    'TEXT',
+    '12 months',
+    optional,
+  ),
+  deprecated('commercial.planPrice', 'Plan price (legacy)', 'CURRENCY'),
   placeholder(
     'counterparty.name',
     'Counterparty name',
@@ -944,7 +1084,13 @@ export class ContractsService {
 
   listPlaceholderDefinitions(user: AuthenticatedUser) {
     this.assertPlatform(user);
-    return { items: CONTRACT_PLACEHOLDER_REGISTRY };
+    return {
+      items: CONTRACT_PLACEHOLDER_REGISTRY.map((item) => ({
+        ...item,
+        group: placeholderGroup(item.key),
+      })),
+      groups: PLACEHOLDER_GROUP_ORDER,
+    };
   }
 
   async list(
@@ -1363,6 +1509,11 @@ export class ContractsService {
     this.assertWrite(user);
     const source = await this.resolveSource(dto.sourceType, dto.sourceId);
     const contractType = dto.contractType ?? source.defaultContractType;
+    const masterAgreement = await this.assertTenantServiceOrderEligible(
+      contractType,
+      dto.lifecycleGatePurpose,
+      source,
+    );
     return this.create(user, {
       title: dto.title ?? `${source.counterpartyName} services agreement`,
       contractType,
@@ -1377,12 +1528,56 @@ export class ContractsService {
       counterpartyType: source.counterpartyType,
       currencyCode: source.currencyCode,
       contractValue: source.contractValue,
-      effectiveDate: dto.effectiveDate,
+      // An explicit request wins; otherwise the source's own agreed terms do.
+      effectiveDate: dto.effectiveDate ?? source.effectiveDate,
       expiryDate: dto.expiryDate,
-      placeholderValues: compactStringRecord(
-        source.placeholderValues as Record<string, unknown>,
-      ),
+      paymentTerms: source.paymentTerms,
+      lifecycleGatePurpose: dto.lifecycleGatePurpose,
+      placeholderValues: compactStringRecord({
+        ...source.placeholderValues,
+        ...(masterAgreement
+          ? {
+              'serviceOrder.masterAgreementNumber':
+                masterAgreement.contractNumber,
+            }
+          : {}),
+      }),
     });
+  }
+
+  /*
+   * A tenant provisioning service order is issued against a customer that has
+   * already signed the agreement governing it. A raw lead has no customer to
+   * provision for, and an unsigned customer has nothing to provision under, so
+   * both are refused here rather than at the point the document is sent.
+   * Returns the governing agreement so its number can fill the service order.
+   */
+  private async assertTenantServiceOrderEligible(
+    contractType: ContractType,
+    lifecycleGatePurpose: string | undefined,
+    source: ResolvedContractSource,
+  ) {
+    const isServiceOrder =
+      lifecycleGatePurpose === TENANT_PROVISIONING_GATE ||
+      (contractType === ContractType.SERVICE_AGREEMENT &&
+        Boolean(source.tenantId ?? source.customerOnboardingId));
+    if (!isServiceOrder) return null;
+
+    if (!source.customerAccountId)
+      throw new BadRequestException(
+        'A tenant provisioning service order requires a converted customer. Convert the lead first.',
+      );
+
+    const governing = await this.prisma.contract.findFirst({
+      where: executedGoverningAgreementWhere(
+        customerAgreementScope(source.customerAccountId),
+      ),
+      select: { id: true, contractNumber: true },
+      orderBy: { signedAt: 'desc' },
+    });
+    if (!governing)
+      throw new BadRequestException(TENANT_ORDER_AGREEMENT_REQUIRED_MESSAGE);
+    return governing;
   }
 
   async copy(user: AuthenticatedUser, dto: CopyContractDto) {
@@ -3851,7 +4046,7 @@ export class ContractsService {
   private async resolveSource(
     type: CreateContractFromSourceDto['sourceType'],
     id: string,
-  ) {
+  ): Promise<ResolvedContractSource> {
     const defaults = await this.prisma.platformSetting.findUnique({
       where: { key: 'platform-defaults' },
     });
@@ -3868,13 +4063,25 @@ export class ContractsService {
           ? setting.currency
           : 'USD';
     if (type === 'lead') {
-      const lead = await this.prisma.lead.findUnique({ where: { id } });
+      const lead = await this.prisma.lead.findUnique({
+        where: { id },
+        include: { agreedPlan: true },
+      });
       if (!lead) throw new NotFoundException('Lead source was not found.');
+      const address = [lead.registeredAddress, lead.city, lead.stateProvince]
+        .filter(Boolean)
+        .join(', ');
       return {
-        counterpartyName: lead.companyName,
-        counterpartyEmail: lead.workEmail,
-        currencyCode: reportingCurrency,
+        counterpartyName: lead.legalCompanyName ?? lead.companyName,
+        counterpartyEmail: lead.authorizedSignerEmail ?? lead.workEmail,
+        currencyCode: lead.agreedPlan?.currency ?? reportingCurrency,
         placeholderValues: {
+          /*
+           * A lead is the counterparty of the customer agreement before any
+           * customer record exists, so it resolves the canonical customer.*
+           * and commercial.* namespaces directly. The lead.* tags stay for
+           * lead-specific documents.
+           */
           'lead.companyName': lead.companyName,
           'lead.contactName': lead.fullName,
           'lead.workEmail': lead.workEmail,
@@ -3885,12 +4092,34 @@ export class ContractsService {
           'lead.country': lead.country ?? '',
           'lead.requirements': lead.requirementsSummary ?? '',
           'customer.companyName': lead.companyName,
-          'customer.contactName': lead.fullName,
-          'customer.email': lead.workEmail,
+          'customer.legalName': lead.legalCompanyName ?? lead.companyName,
+          'customer.contact.fullName': lead.fullName,
+          'customer.contact.email': lead.workEmail,
           'customer.industry': lead.industry,
+          'customer.country': lead.countryOfRegistration ?? lead.country ?? '',
+          ...definedValues({
+            'customer.registrationNumber': lead.registrationNumber,
+            'customer.taxId': lead.taxId,
+            'customer.address': address,
+            'customer.contact.phone': lead.phoneNumber,
+            'customer.primarySigner.name': lead.authorizedSignerName,
+            'customer.primarySigner.title': lead.authorizedSignerTitle,
+            'customer.primarySigner.email': lead.authorizedSignerEmail,
+            'customer.billingContact.name': lead.billingContactName,
+            'customer.billingContact.email': lead.billingContactEmail,
+            'commercial.planName': lead.agreedPlan?.name,
+            'commercial.planId': lead.agreedPlanId,
+            'commercial.licensedUsers': lead.agreedSeats,
+            'commercial.agreedPrice': lead.agreedPrice?.toString(),
+            'commercial.billingCycle': lead.billingCycle,
+            'commercial.subscriptionTerm': lead.subscriptionTerm,
+            'contract.paymentTerms': lead.paymentTerms,
+          }),
         },
-        contractValue: undefined,
-        defaultContractType: ContractType.CUSTOMER_AGREEMENT,
+        contractValue: lead.agreedPrice ? Number(lead.agreedPrice) : undefined,
+        effectiveDate: lead.proposedEffectiveDate?.toISOString(),
+        paymentTerms: lead.paymentTerms ?? undefined,
+        defaultContractType: ContractType.SUBSCRIPTION_AGREEMENT,
         counterpartyType: 'LEAD',
         partnerId: lead.partnerId ?? undefined,
         customerAccountId: undefined,
@@ -4725,8 +4954,9 @@ export function cleanContractHtml(value: string) {
 
 export function renderContractPlaceholders(
   html: string,
-  values: Record<string, string>,
+  rawValues: Record<string, string>,
 ) {
+  const values = applyDeprecatedPlaceholderAliases(rawValues);
   return html.replace(
     /\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g,
     (match, key: string) => {
@@ -4774,9 +5004,10 @@ export function extractContractPlaceholders(html: string) {
 
 export function validateContractPlaceholderValues(
   definitions: ContractPlaceholderDefinition[],
-  values: Record<string, string>,
+  rawValues: Record<string, string>,
   requireRequired = false,
 ) {
+  const values = applyDeprecatedPlaceholderAliases(rawValues);
   const errors: string[] = [];
   for (const definition of definitions) {
     const raw = values[definition.key];
@@ -5119,12 +5350,13 @@ function customerSource(
     contractValue: undefined,
     defaultContractType: ContractType.CUSTOMER_AGREEMENT,
     placeholderValues: {
-      // Registry keys.
-      'customer.name': customer.companyName,
+      'customer.companyName': customer.companyName,
       'customer.legalName': customer.legalCompanyName ?? customer.companyName,
       'customer.contact.fullName': contactName,
       'customer.contact.email': contactEmail,
       'customer.address': address,
+      'customer.country': customer.country,
+      'customer.industry': customer.industry ?? '',
       ...definedValues({
         'customer.registrationNumber': customer.registrationNumber,
         'customer.taxId': customer.taxId,
@@ -5134,17 +5366,53 @@ function customerSource(
         'customer.billingContact.email':
           customer.billingContactEmail ?? customer.financeContactEmail,
       }),
-      /*
-       * Kept alongside the registry keys because agreements authored before
-       * the registry was aligned still reference these tags.
-       */
-      'customer.companyName': customer.companyName,
-      'customer.contactName': contactName,
-      'customer.email': contactEmail,
-      'customer.country': customer.country,
-      'customer.industry': customer.industry ?? '',
     },
   };
+}
+
+export const TENANT_PROVISIONING_GATE = 'TENANT_PROVISIONING';
+
+/*
+ * The order the Fields & Signatures picker lists placeholder groups in. Driven
+ * from the key's own namespace so a newly registered placeholder lands in the
+ * right group without a second registration step.
+ */
+export const PLACEHOLDER_GROUP_ORDER = [
+  'Platform',
+  'Partner',
+  'Lead',
+  'Customer',
+  'Commercial',
+  'Contract',
+  'Service order',
+  'Tenant',
+  'Implementation',
+  'Integration',
+  'Hosting',
+  'SLA',
+  'Signatures',
+  'Other',
+] as const;
+
+const PLACEHOLDER_GROUP_BY_NAMESPACE: Record<string, string> = {
+  platform: 'Platform',
+  partner: 'Partner',
+  lead: 'Lead',
+  customer: 'Customer',
+  counterparty: 'Customer',
+  commercial: 'Commercial',
+  contract: 'Contract',
+  serviceOrder: 'Service order',
+  tenant: 'Tenant',
+  implementation: 'Implementation',
+  integration: 'Integration',
+  hosting: 'Hosting',
+  sla: 'SLA',
+  signature: 'Signatures',
+};
+
+export function placeholderGroup(key: string) {
+  return PLACEHOLDER_GROUP_BY_NAMESPACE[key.split('.')[0]] ?? 'Other';
 }
 
 const CONTRACT_PAGE_BREAK_TOKEN = 'DIJIPEOPLE_DOCUMENT_PAGE_BREAK';
