@@ -25,6 +25,7 @@ import {
   ApprovalDecisionDto,
   CompleteSignatureDto,
   CopyContractDto,
+  SaveDocumentFieldsDto,
   ContractQueryDto,
   ContractStageTransitionDto,
   ContractPartyDto,
@@ -110,6 +111,23 @@ export class ContractsController {
   @Get(':id')
   get(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
     return this.contracts.get(user, id);
+  }
+
+  @Get(':id/document-fields')
+  documentFields(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ) {
+    return this.contracts.documentFields(user, id);
+  }
+
+  @Patch(':id/document-fields')
+  saveDocumentFields(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() dto: SaveDocumentFieldsDto,
+  ) {
+    return this.contracts.saveDocumentFields(user, id, dto.values);
   }
 
   @Patch(':id')

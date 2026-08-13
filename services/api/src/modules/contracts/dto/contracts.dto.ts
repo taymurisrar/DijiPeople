@@ -360,3 +360,11 @@ export class DeclineSignatureDto {
 export class RequestSignatureChangesDto {
   @IsString() @MaxLength(2000) reason!: string;
 }
+
+export class SaveDocumentFieldsDto {
+  /*
+   * Free-form because the accepted keys are whatever the current document
+   * references; the service validates each against its placeholder definition.
+   */
+  @IsObject() values!: Record<string, string>;
+}

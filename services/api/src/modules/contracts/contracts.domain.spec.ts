@@ -5,6 +5,7 @@ import {
   extractAgreementDocumentStructure,
   extractContractPlaceholders,
   renderContractPlaceholders,
+  signaturePlaceholderValues,
   validateContractPlaceholderValues,
 } from './contracts.service';
 import { CreateContractTemplateDto } from './dto/contracts.dto';
@@ -287,5 +288,46 @@ describe('contract document domain', () => {
     ).toBe(
       '<p><table><thead><tr><th>Name</th><th>Status</th></tr></thead><tbody><tr><td>Bank file</td><td>In scope</td></tr></tbody></table></p>',
     );
+  });
+
+  it('shows a drawn signature as the mark and a typed one as a signature', () => {
+    const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUg==';
+    expect(
+      renderContractPlaceholders('<p>{{signature.counterparty.name}}</p>', {
+        'signature.counterparty.name': png,
+      }),
+    ).toBe(`<p><img src="${png}" alt="Signature" width="240" height="80"></p>`);
+    expect(
+      renderContractPlaceholders('<p>{{signature.platform.name}}</p>', {
+        'signature.platform.name': 'Taimur Israr',
+      }),
+    ).toContain('Taimur Israr');
+  });
+
+  it('routes each signer to the slot their party fills', () => {
+    const signedAt = new Date('2026-08-13T10:00:00.000Z');
+    expect(
+      signaturePlaceholderValues(
+        'PLATFORM',
+        'Taimur Israr',
+        undefined,
+        signedAt,
+      ),
+    ).toEqual({
+      'signature.platform.name': 'Taimur Israr',
+      'signature.platform.date': '2026-08-13T10:00:00.000Z',
+    });
+    expect(
+      signaturePlaceholderValues(
+        'CUSTOMER',
+        'Amal Hassan',
+        'data:image/png;base64,AA==',
+        signedAt,
+      ),
+    ).toEqual({
+      'signature.counterparty.name': 'data:image/png;base64,AA==',
+      'signature.counterparty.date': '2026-08-13T10:00:00.000Z',
+      'signature.counterparty.initials': 'AH',
+    });
   });
 });

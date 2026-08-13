@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Clock3 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -126,16 +126,30 @@ function RuntimeRecordEditor({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [timeline, setTimeline] = useState<Array<Record<string, unknown>>>([]);
   const [signatureOpen, setSignatureOpen] = useState(false);
-  const runtimeRecord = useMemo(() => {
-    if (moduleKey !== "contracts" || !Array.isArray(record.versions))
-      return record;
-    const versions = record.versions as Array<Record<string, unknown>>;
-    const current =
-      versions.find(
-        (item) => Number(item.version) === Number(record.currentVersionNumber),
-      ) ?? versions[0];
-    return { ...record, contentHtml: current?.contentHtml ?? "" };
-  }, [moduleKey, record]);
+  /*
+   * A contract's document lives on its current version, not on the contract
+   * row. Every place that seeds the form from a server record has to apply the
+   * same mapping, or saving blanks the editor and drops the values the form is
+   * showing.
+   */
+  const withContractDocument = useCallback(
+    (item: Record<string, unknown>) => {
+      if (moduleKey !== "contracts" || !Array.isArray(item.versions))
+        return item;
+      const versions = item.versions as Array<Record<string, unknown>>;
+      const current =
+        versions.find(
+          (entry) =>
+            Number(entry.version) === Number(item.currentVersionNumber),
+        ) ?? versions[0];
+      return { ...item, contentHtml: current?.contentHtml ?? "" };
+    },
+    [moduleKey],
+  );
+  const runtimeRecord = useMemo(
+    () => withContractDocument(record),
+    [record, withContractDocument],
+  );
   const form = useRuntimeFormState(runtimeRecord);
   const baseFormDefinition =
     definition.forms.find(
@@ -252,7 +266,7 @@ function RuntimeRecordEditor({
     else if (isCreate)
       router.replace(`${definition.routeBase}/${response.item.id}`);
     else {
-      form.setValues(response.item);
+      form.setValues(withContractDocument(response.item));
       setMode("read");
     }
     return { success: true, message: `${definition.displayName} saved.` };
@@ -262,19 +276,13 @@ function RuntimeRecordEditor({
     if (isCreate) return;
     const response = await adapter.getRecord(record.id);
     const next = response.item;
-    if (moduleKey === "contracts" && Array.isArray(next.versions)) {
-      const versions = next.versions as Array<Record<string, unknown>>;
-      const current =
-        versions.find(
-          (item) => Number(item.version) === Number(next.currentVersionNumber),
-        ) ?? versions[0];
-      form.setValues({ ...next, contentHtml: current?.contentHtml ?? "" });
+    form.setValues(withContractDocument(next));
+    if (moduleKey === "contracts")
       setTimeline(
         Array.isArray(next.timeline)
           ? (next.timeline as Array<Record<string, unknown>>)
           : [],
       );
-    } else form.setValues(next);
   }
 
   async function handleAction(action: RuntimeActionDefinition) {
@@ -411,6 +419,13 @@ function RuntimeRecordEditor({
         activeTab={activeTab}
         onTabChange={setActiveTab}
       />
+      {moduleKey === "contracts" && !isCreate && activeTab === "document" ? (
+        <ContractDocumentFieldsPanel
+          contractId={record.id}
+          locked={isAgreementLocked(String(form.values.status ?? ""))}
+          onComplete={reloadRecord}
+        />
+      ) : null}
       {!isCreate &&
       formDefinition.tabs?.length &&
       !hasFieldsInActiveTab &&
@@ -545,6 +560,245 @@ function agreementParties(value: unknown): AgreementParty[] {
       signingOrder: Number(item.signingOrder ?? 1),
     }))
     .filter((item) => item.id);
+}
+
+type DocumentField = {
+  key: string;
+  label: string;
+  description?: string;
+  dataType: string;
+  required: boolean;
+  group: string;
+  exampleValue?: string;
+  source: string | null;
+  editable: boolean;
+  value: string;
+};
+
+/*
+ * Every tag the current document references, with what it resolves to today.
+ * Terms that mirror a contract field are shown read-only and edited there;
+ * everything else — the platform signer title, service levels, implementation
+ * scope — is filled in here rather than discovered as an error at approval.
+ */
+function ContractDocumentFieldsPanel({
+  contractId,
+  locked,
+  onComplete,
+}: {
+  contractId: string;
+  locked: boolean;
+  onComplete: () => Promise<void>;
+}) {
+  const [fields, setFields] = useState<DocumentField[]>([]);
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<{
+    tone: "success" | "error";
+    text: string;
+  } | null>(null);
+  const [showResolved, setShowResolved] = useState(false);
+  const [resolvedHtml, setResolvedHtml] = useState("");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(
+        `/api/contracts/${contractId}/document-fields`,
+      );
+      const payload = (await response.json().catch(() => null)) as {
+        items?: DocumentField[];
+        resolvedHtml?: string;
+        message?: string;
+      } | null;
+      if (!response.ok)
+        throw new Error(payload?.message ?? "Unable to load document fields.");
+      setFields(payload?.items ?? []);
+      setResolvedHtml(payload?.resolvedHtml ?? "");
+      setDrafts({});
+    } catch (reason) {
+      setMessage({
+        tone: "error",
+        text:
+          reason instanceof Error
+            ? reason.message
+            : "Unable to load document fields.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [contractId]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  async function save() {
+    setBusy(true);
+    setMessage(null);
+    try {
+      const response = await fetch(
+        `/api/contracts/${contractId}/document-fields`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ values: drafts }),
+        },
+      );
+      const payload = (await response.json().catch(() => null)) as {
+        items?: DocumentField[];
+        resolvedHtml?: string;
+        message?: string | string[];
+      } | null;
+      if (!response.ok)
+        throw new Error(
+          Array.isArray(payload?.message)
+            ? payload.message.join(", ")
+            : (payload?.message ?? "Unable to save document fields."),
+        );
+      setFields(payload?.items ?? []);
+      setResolvedHtml(payload?.resolvedHtml ?? "");
+      setDrafts({});
+      setMessage({ tone: "success", text: "Document fields saved." });
+      await onComplete();
+    } catch (reason) {
+      setMessage({
+        tone: "error",
+        text:
+          reason instanceof Error
+            ? reason.message
+            : "Unable to save document fields.",
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const missing = fields.filter(
+    (field) => field.required && !(drafts[field.key] ?? field.value).trim(),
+  );
+  const groups = [...new Set(fields.map((field) => field.group))];
+  const dirty = Object.keys(drafts).length > 0;
+
+  if (!loading && !fields.length) return null;
+
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold text-slate-950">
+            Document fields
+          </h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Values merged into this document when it is generated or sent for
+            signature.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowResolved((current) => !current)}
+            className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700"
+          >
+            {showResolved ? "Hide preview" : "Preview merged"}
+          </button>
+          {!locked ? (
+            <button
+              type="button"
+              disabled={busy || !dirty}
+              onClick={() => void save()}
+              className="rounded-lg bg-slate-950 px-3 py-2 text-xs font-semibold text-white disabled:opacity-40"
+            >
+              {busy ? "Saving…" : "Save fields"}
+            </button>
+          ) : null}
+        </div>
+      </div>
+      {message ? (
+        <p
+          role="alert"
+          className={`mt-3 rounded-lg p-3 text-sm ${message.tone === "error" ? "bg-rose-50 text-rose-700" : "bg-emerald-50 text-emerald-700"}`}
+        >
+          {message.text}
+        </p>
+      ) : null}
+      {missing.length ? (
+        <p className="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
+          {missing.length} required field
+          {missing.length === 1 ? "" : "s"} still empty:{" "}
+          {missing.map((field) => field.label).join(", ")}.
+        </p>
+      ) : null}
+      {loading ? (
+        <p className="mt-4 text-sm text-slate-500">Loading document fields…</p>
+      ) : (
+        groups.map((group) => (
+          <div key={group} className="mt-4">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+              {group}
+            </p>
+            <div className="mt-2 grid gap-3 md:grid-cols-2">
+              {fields
+                .filter((field) => field.group === group)
+                .map((field) => {
+                  const current = drafts[field.key] ?? field.value;
+                  const empty = !current.trim();
+                  return (
+                    <label
+                      key={field.key}
+                      className="grid gap-1 text-xs font-semibold text-slate-600"
+                    >
+                      <span className="flex items-center justify-between gap-2">
+                        <span>
+                          {field.label}
+                          {field.required ? (
+                            <span className="ml-1 text-rose-600">*</span>
+                          ) : null}
+                        </span>
+                        <span className="font-mono text-[10px] font-normal text-slate-400">
+                          {`{{${field.key}}}`}
+                        </span>
+                      </span>
+                      <input
+                        value={current}
+                        disabled={locked || !field.editable}
+                        placeholder={field.exampleValue}
+                        onChange={(event) =>
+                          setDrafts((entries) => ({
+                            ...entries,
+                            [field.key]: event.target.value,
+                          }))
+                        }
+                        className={`h-10 rounded-lg border px-3 text-sm font-normal text-slate-900 disabled:bg-slate-50 disabled:text-slate-500 ${
+                          field.required && empty
+                            ? "border-amber-300"
+                            : "border-slate-200"
+                        }`}
+                      />
+                      <span className="text-[11px] font-normal text-slate-400">
+                        {field.editable
+                          ? (field.description ?? field.dataType)
+                          : field.source === "signature"
+                            ? "Captured when the document is signed."
+                            : "Set from the agreement fields above."}
+                      </span>
+                    </label>
+                  );
+                })}
+            </div>
+          </div>
+        ))
+      )}
+      {showResolved ? (
+        <div
+          className="prose mt-4 max-w-none rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm"
+          // Server-rendered from the sanitized document with escaped values.
+          dangerouslySetInnerHTML={{ __html: resolvedHtml }}
+        />
+      ) : null}
+    </section>
+  );
 }
 
 function ContractPartiesPanel({

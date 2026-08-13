@@ -851,18 +851,49 @@ export function validateRuntimeValues(
       )
     )
       errors[field.key] = `Select a valid ${field.label.toLowerCase()}.`;
-    if (
-      typeof value === "number" &&
-      field.min !== undefined &&
-      value < field.min
-    )
-      errors[field.key] = `Minimum value is ${field.min}.`;
-    if (
-      typeof value === "number" &&
-      field.max !== undefined &&
-      value > field.max
-    )
-      errors[field.key] = `Maximum value is ${field.max}.`;
+    /*
+     * Number inputs hand back strings, so bounds were only ever checked on the
+     * few fields that happened to already hold a number. Parsing first means a
+     * typed value is checked the same way a preset one is.
+     */
+    const numeric =
+      ["integer", "decimal", "currency", "percentage"].includes(field.type) &&
+      value !== "" &&
+      value !== null &&
+      value !== undefined
+        ? Number(value)
+        : null;
+    if (numeric !== null && !Number.isFinite(numeric))
+      errors[field.key] = "Enter a number.";
+    else if (numeric !== null) {
+      if (field.type === "integer" && !Number.isInteger(numeric))
+        errors[field.key] = "Enter a whole number.";
+      else if (field.min !== undefined && numeric < field.min)
+        errors[field.key] = `Minimum value is ${field.min}.`;
+      else if (field.max !== undefined && numeric > field.max)
+        errors[field.key] = `Maximum value is ${field.max}.`;
+      else if (field.type === "percentage" && (numeric < 0 || numeric > 100))
+        errors[field.key] = "Enter a percentage between 0 and 100.";
+      else if (
+        ["currency", "decimal"].includes(field.type) &&
+        numeric < 0 &&
+        field.min === undefined
+      )
+        errors[field.key] = "Enter an amount of zero or more.";
+    }
+    if (typeof value === "string" && value.trim()) {
+      if (field.type === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))
+        errors[field.key] = "Enter a valid email address.";
+      if (field.type === "url" && !/^https?:\/\/[^\s.]+\.\S+$/i.test(value))
+        errors[field.key] = "Enter a URL starting with http:// or https://.";
+      if (field.type === "phone" && !/^[+()\-.\s0-9]{7,40}$/.test(value))
+        errors[field.key] = "Enter a valid phone number.";
+      if (
+        ["date", "dateTime"].includes(field.type) &&
+        Number.isNaN(new Date(value).getTime())
+      )
+        errors[field.key] = "Enter a valid date.";
+    }
   }
   validateDateOrder(
     errors,

@@ -1878,6 +1878,7 @@ export class ContractsService {
           : {}),
       },
     });
+    await this.syncDerivedPlaceholderValues(id, user.userId);
     await this.timeline(
       id,
       user,
@@ -1886,6 +1887,231 @@ export class ContractsService {
       dto as unknown as Record<string, unknown>,
     );
     return this.get(user, id);
+  }
+
+  /*
+   * Placeholder values were only written when the contract was created, so
+   * editing a term afterwards left the document snapshot stale: the field said
+   * "Net 30" while {{contract.paymentTerms}} was still empty and the approval
+   * gate kept reporting it as missing. The columns are the source of truth for
+   * contract.* and are always re-derived here. Platform values only fill a gap,
+   * so a per-contract override entered by hand survives.
+   */
+  private async syncDerivedPlaceholderValues(
+    contractId: string,
+    actorId: string,
+  ) {
+    const contract = await this.prisma.contract.findUnique({
+      where: { id: contractId },
+      select: {
+        contractNumber: true,
+        title: true,
+        effectiveDate: true,
+        expiryDate: true,
+        currencyCode: true,
+        contractValue: true,
+        commissionPercentage: true,
+        paymentTerms: true,
+        governingLaw: true,
+        jurisdiction: true,
+        renewalNoticeDays: true,
+        terminationNoticeDays: true,
+        autoRenewal: true,
+        counterpartyName: true,
+        counterpartyEmail: true,
+      },
+    });
+    if (!contract) return;
+
+    const [reportingCurrency, companyProfile, agreementTerms, existing] =
+      await Promise.all([
+        this.reportingCurrency(),
+        this.companyProfile(),
+        this.agreementTermValues(),
+        this.prisma.contractPlaceholderValue.findMany({
+          where: { contractId },
+          select: { key: true, value: true },
+        }),
+      ]);
+    const current = new Map(existing.map((row) => [row.key, row.value]));
+
+    const authoritative = definedValues({
+      'contract.number': contract.contractNumber,
+      'contract.title': contract.title,
+      'contract.effectiveDate': contract.effectiveDate
+        ?.toISOString()
+        .slice(0, 10),
+      'contract.expiryDate': contract.expiryDate?.toISOString().slice(0, 10),
+      'contract.currency': contract.currencyCode,
+      'contract.value': contract.contractValue?.toString(),
+      'contract.commissionPercentage':
+        contract.commissionPercentage?.toString(),
+      'contract.paymentTerms': contract.paymentTerms,
+      'contract.governingLaw': contract.governingLaw,
+      'contract.jurisdiction': contract.jurisdiction,
+      'contract.renewalNoticeDays': contract.renewalNoticeDays,
+      'contract.terminationNoticeDays': contract.terminationNoticeDays,
+      'contract.autoRenewal': contract.autoRenewal ? 'Yes' : 'No',
+      'counterparty.name': contract.counterpartyName,
+      'counterparty.email': contract.counterpartyEmail,
+    });
+    const gapFilling = definedValues({
+      ...agreementTerms,
+      'platform.name': companyProfile.companyName,
+      'platform.legalName': companyProfile.legalName,
+      'platform.address': [
+        companyProfile.streetAddress,
+        companyProfile.city,
+        companyProfile.country,
+        companyProfile.postalCode,
+      ]
+        .filter(Boolean)
+        .join(', '),
+      'platform.reportingCurrency': reportingCurrency,
+      'platform.registrationNumber': companyProfile.registrationNumber,
+      'platform.taxId': companyProfile.taxNumber,
+      'platform.contact.email': companyProfile.supportEmail,
+    });
+
+    const next = {
+      ...Object.fromEntries(
+        Object.entries(gapFilling).filter(([key]) => !current.get(key)?.trim()),
+      ),
+      ...authoritative,
+    };
+    const changed = Object.entries(next).filter(
+      ([key, value]) => current.get(key) !== value,
+    );
+    if (!changed.length) return;
+
+    await this.prisma.$transaction(
+      changed.map(([key, value]) =>
+        this.prisma.contractPlaceholderValue.upsert({
+          where: { contractId_key: { contractId, key } },
+          create: {
+            contractId,
+            key,
+            value,
+            source: 'derived',
+            updatedById: actorId,
+          },
+          update: { value, source: 'derived', updatedById: actorId },
+        }),
+      ),
+    );
+  }
+
+  /*
+   * Everything the current document references, with the value it currently
+   * resolves to and where that value came from. This is what lets an operator
+   * see that {{platform.authorizedSigner.title}} is empty and fill it, instead
+   * of only being told at approval that it is required.
+   */
+  async documentFields(user: AuthenticatedUser, contractId: string) {
+    this.assertPlatform(user);
+    const contract = await this.get(user, contractId);
+    const version = contract.versions.find(
+      (item) => item.version === contract.currentVersionNumber,
+    );
+    const values = Object.fromEntries(
+      contract.placeholderValues.map((item) => [item.key, item.value]),
+    );
+    const sources = new Map(
+      contract.placeholderValues.map((item) => [item.key, item.source]),
+    );
+    const definitions = version
+      ? extractContractPlaceholders(version.contentHtml)
+      : [];
+    const resolved = applyDeprecatedPlaceholderAliases(values);
+    return {
+      items: definitions.map((definition) => ({
+        key: definition.key,
+        label: definition.label,
+        description: definition.description,
+        dataType: definition.dataType,
+        required: definition.required,
+        group: placeholderGroup(definition.key),
+        exampleValue: definition.exampleValue,
+        source: sources.get(definition.key) ?? null,
+        /*
+         * Signature marks are produced by signing, never typed in here, and a
+         * derived value is owned by the contract field it mirrors.
+         */
+        editable:
+          !['SIGNATURE', 'INITIALS'].includes(definition.dataType) &&
+          sources.get(definition.key) !== 'derived',
+        value: resolved[definition.key] ?? '',
+      })),
+      previewHtml: version
+        ? renderContractPlaceholders(version.contentHtml, {
+            ...Object.fromEntries(
+              definitions.map((definition) => [
+                definition.key,
+                definition.exampleValue,
+              ]),
+            ),
+            ...resolved,
+          })
+        : '',
+      resolvedHtml: version
+        ? renderContractPlaceholders(version.contentHtml, resolved)
+        : '',
+    };
+  }
+
+  async saveDocumentFields(
+    user: AuthenticatedUser,
+    contractId: string,
+    values: Record<string, string>,
+  ) {
+    this.assertWrite(user);
+    const contract = await this.get(user, contractId);
+    const version = contract.versions.find(
+      (item) => item.version === contract.currentVersionNumber,
+    );
+    if (!version)
+      throw new BadRequestException('Create a contract version first.');
+    const definitions = extractContractPlaceholders(version.contentHtml);
+    const allowed = new Map(
+      definitions
+        .filter(
+          (definition) =>
+            !['SIGNATURE', 'INITIALS'].includes(definition.dataType),
+        )
+        .map((definition) => [definition.key, definition]),
+    );
+    const entries = Object.entries(values).filter(([key]) => allowed.has(key));
+    if (!entries.length)
+      throw new BadRequestException(
+        'No editable document fields were supplied.',
+      );
+    assertValidContractPlaceholderValues(
+      entries.map(([key]) => allowed.get(key)!),
+      Object.fromEntries(entries),
+    );
+    await this.prisma.$transaction(
+      entries.map(([key, value]) =>
+        this.prisma.contractPlaceholderValue.upsert({
+          where: { contractId_key: { contractId, key } },
+          create: {
+            contractId,
+            key,
+            value,
+            source: 'manual',
+            updatedById: user.userId,
+          },
+          update: { value, source: 'manual', updatedById: user.userId },
+        }),
+      ),
+    );
+    await this.timeline(
+      contractId,
+      user,
+      'DOCUMENT_FIELDS_UPDATED',
+      `${entries.length} document field(s) were updated.`,
+      { keys: entries.map(([key]) => key) },
+    );
+    return this.documentFields(user, contractId);
   }
 
   async saveVersion(
@@ -3460,6 +3686,36 @@ export class ContractsService {
           verificationMethod: 'SECURE_TOKEN',
         },
       });
+      /*
+       * The signature is recorded as a placeholder value so the agreement reads
+       * as signed everywhere it is rendered, not only in the generated PDF.
+       * The stored version HTML is never rewritten: evidence hashes anchor to
+       * its content, so the signature is applied at render time instead.
+       */
+      for (const [key, value] of Object.entries(
+        signaturePlaceholderValues(
+          recipient.party?.partyType ?? null,
+          dto.typedName?.trim() || recipient.name,
+          dto.signatureDataUrl,
+          signedAt,
+        ),
+      )) {
+        await tx.contractPlaceholderValue.upsert({
+          where: {
+            contractId_key: {
+              contractId: recipient.signatureRequest.contractId,
+              key,
+            },
+          },
+          create: {
+            contractId: recipient.signatureRequest.contractId,
+            key,
+            value,
+            source: 'signature',
+          },
+          update: { value, source: 'signature' },
+        });
+      }
       await this.signatureEventTx(tx, {
         signatureRequestId: recipient.signatureRequestId,
         recipientId: recipient.id,
@@ -4411,6 +4667,8 @@ export class ContractsService {
     const recipient = await this.prisma.signatureRecipient.findUnique({
       where: { accessTokenHash: sha256(token) },
       include: {
+        // The party decides which signature slot the mark fills.
+        party: { select: { partyType: true } },
         signatureRequest: {
           include: { contract: true, contractVersion: true, recipients: true },
         },
@@ -4972,10 +5230,14 @@ export function renderContractPlaceholders(
          */
         return definition?.fallbackBehavior === 'EMPTY' ? '' : match;
       }
-      return definition &&
+      if (
+        definition &&
         ['TABLE', 'REPEATING_COLLECTION'].includes(definition.dataType)
-        ? renderCollectionValue(value)
-        : escapeHtml(value);
+      )
+        return renderCollectionValue(value);
+      if (definition && ['SIGNATURE', 'INITIALS'].includes(definition.dataType))
+        return renderSignatureValue(value);
+      return escapeHtml(value);
     },
   );
 }
@@ -5129,6 +5391,18 @@ function parseCollectionValue(value: string) {
     .map((item) => item.trim())
     .filter(Boolean);
   return items.length ? items : null;
+}
+
+/*
+ * A drawn or uploaded signature is stored as an image data URL and shown as the
+ * mark itself; a typed one is shown in a signature face so it reads as a
+ * signature rather than as ordinary body text.
+ */
+function renderSignatureValue(value: string) {
+  const trimmed = value.trim();
+  if (/^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(trimmed))
+    return `<img src="${trimmed}" alt="Signature" width="240" height="80">`;
+  return `<span data-document-role="signature" style="font-family: 'Segoe Script', 'Brush Script MT', cursive; font-size: 18px">${escapeHtml(trimmed)}</span>`;
 }
 
 function renderCollectionValue(value: string) {
@@ -5371,6 +5645,33 @@ function customerSource(
 }
 
 export const TENANT_PROVISIONING_GATE = 'TENANT_PROVISIONING';
+
+/*
+ * Whichever way a signer chose to sign, the result lands in the same two
+ * placeholders: the mark itself and the moment it was made. A drawn or uploaded
+ * signature keeps its image; a typed one keeps the legal name it was typed as.
+ */
+export function signaturePlaceholderValues(
+  partyType: string | null,
+  signerName: string,
+  signatureDataUrl: string | undefined,
+  signedAt: Date,
+) {
+  const slot = partyType === 'PLATFORM' ? 'platform' : 'counterparty';
+  const initials = signerName
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part[0]?.toUpperCase() ?? '')
+    .join('')
+    .slice(0, 4);
+  return {
+    [`signature.${slot}.name`]: signatureDataUrl ?? signerName,
+    [`signature.${slot}.date`]: signedAt.toISOString(),
+    ...(slot === 'counterparty'
+      ? { 'signature.counterparty.initials': initials }
+      : {}),
+  };
+}
 
 /*
  * The order the Fields & Signatures picker lists placeholder groups in. Driven
