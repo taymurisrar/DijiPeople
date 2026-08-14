@@ -1,0 +1,23 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v8.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v8.0": {
+      "DijiPeople.Gateway.FakeWorker/1.0.0": {
+        "runtime": {
+          "DijiPeople.Gateway.FakeWorker.dll": {}
+        }
+      }
+    }
+  },
+  "libraries": {
+    "DijiPeople.Gateway.FakeWorker/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}
