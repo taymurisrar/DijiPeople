@@ -1,5 +1,18 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { relative, resolve } from 'node:path';
+import { RequestMethod } from '@nestjs/common';
+import {
+  GUARDS_METADATA,
+  METHOD_METADATA,
+  PATH_METADATA,
+} from '@nestjs/common/constants';
+import { Reflector } from '@nestjs/core';
+import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
+import {
+  REQUIRED_PERMISSIONS_KEY,
+  REQUIRED_RBAC_PERMISSIONS_KEY,
+} from '../decorators/require-permissions.decorator';
+import { PermissionsGuard } from '../guards/permissions.guard';
 import { PERMISSION_KEYS } from './permissions';
 import {
   MISC_PERMISSION_KEYS,
@@ -210,4 +223,254 @@ describe('wiring invariants', () => {
 
     expect({ unsupported }).toEqual({ unsupported: [] });
   });
+});
+
+/*
+ * The dual-permission invariant.
+ *
+ * DijiPeople authorizes an endpoint through two decorator families at once, and
+ * PermissionsGuard reads both metadata keys on every request:
+ *
+ *   @Permissions('employees.read')                     -> REQUIRED_PERMISSIONS_KEY
+ *   @RequirePermission(ENTITY_KEYS.EMPLOYEES, 'read')  -> REQUIRED_RBAC_PERMISSIONS_KEY
+ *
+ * The guard treats an *absent* family as satisfied rather than denied. Read it
+ * again: `hasRbacPermission` is true when no matrix privilege is declared, and
+ * `hasAllPermissions` is vacuously true when no legacy key is declared. So a
+ * handler carrying only one family is still authorized — on one axis only, and
+ * silently. Nothing fails, nothing logs, and the endpoint looks decorated.
+ *
+ * The matrix axis is the one carrying SecurityAccessLevel, which is what
+ * resolveEffectiveAccessLevel() and buildScopedAccessWhere() consume to scope
+ * rows. An endpoint with no matrix privilege therefore has no endpoint-level
+ * counterpart to its row-level scoping, which is why this is worth an invariant
+ * rather than a convention.
+ *
+ * This reads the metadata the guard reads, via the same Reflector and the same
+ * resolution order, rather than grepping decorator text. A regex would be fooled
+ * by a commented-out decorator, by the aliases (@RequirePermissions is
+ * @Permissions; @RequireAnyPermission writes the same key as @RequirePermission)
+ * and by controller-level declarations.
+ */
+
+type RouteHandler = {
+  controller: string;
+  handler: string;
+  httpMethod: string;
+  route: string;
+  file: string;
+  guards: unknown[];
+  target: object;
+  controllerClass: object;
+};
+
+/*
+ * Guard identity, never guard name. PlatformPermissionsGuard ends in
+ * "PermissionsGuard" but is an unrelated authorization system: it derives a
+ * permission from the request path, reads neither metadata key, and returns true
+ * outright when the caller has no platform role. A name or substring comparison
+ * would pull every platform-admin handler into this invariant's scope and report
+ * all of them as violations.
+ */
+function usesPermissionsGuard(guards: unknown[]) {
+  return guards.some(
+    (guard) => guard === PermissionsGuard || guard instanceof PermissionsGuard,
+  );
+}
+
+/** Nest accepts a single path or an array of them on @Controller and @Get. */
+function firstPath(value: string | string[] | undefined) {
+  if (Array.isArray(value)) return value[0] ?? '';
+  return value ?? '';
+}
+
+async function collectRouteHandlers(): Promise<RouteHandler[]> {
+  const files = walk(resolve(process.cwd(), 'src'), /\.controller\.ts$/);
+  const handlers: RouteHandler[] = [];
+
+  for (const file of files) {
+    const loaded = (await import(file)) as Record<string, unknown>;
+
+    for (const exported of Object.values(loaded)) {
+      // @Controller() is what makes a class a routing surface.
+      if (typeof exported !== 'function') continue;
+      const controllerPath = Reflect.getMetadata(PATH_METADATA, exported) as
+        | string
+        | string[]
+        | undefined;
+      if (controllerPath === undefined) continue;
+
+      const controllerGuards: unknown[] =
+        (Reflect.getMetadata(GUARDS_METADATA, exported) as unknown[]) ?? [];
+
+      /*
+       * The prototype chain, not just own properties. No controller extends a
+       * base class today; if one ever does, its inherited routes must not
+       * silently escape this check.
+       */
+      const seen = new Set<string>();
+      let proto: object | null = exported.prototype as object | null;
+
+      while (proto && proto !== Object.prototype) {
+        for (const name of Object.getOwnPropertyNames(proto)) {
+          if (name === 'constructor' || seen.has(name)) continue;
+
+          // Read the descriptor so a getter is not invoked by the lookup.
+          const target = Object.getOwnPropertyDescriptor(proto, name)?.value as
+            | object
+            | undefined;
+          if (typeof target !== 'function') continue;
+
+          const httpMethod = Reflect.getMetadata(METHOD_METADATA, target) as
+            | number
+            | undefined;
+          if (httpMethod === undefined) continue;
+          seen.add(name);
+
+          const methodGuards: unknown[] =
+            (Reflect.getMetadata(GUARDS_METADATA, target) as unknown[]) ?? [];
+          const handlerPath = Reflect.getMetadata(PATH_METADATA, target) as
+            | string
+            | string[]
+            | undefined;
+
+          handlers.push({
+            controller: exported.name,
+            handler: name,
+            httpMethod: RequestMethod[httpMethod] ?? String(httpMethod),
+            route: `/${firstPath(controllerPath)}/${firstPath(handlerPath)}`
+              .replace(/\/+/g, '/')
+              .replace(/(.)\/$/, '$1'),
+            file: relative(process.cwd(), file).replace(/\\/g, '/'),
+            // Nest applies controller-level and method-level guards together.
+            guards: [...controllerGuards, ...methodGuards],
+            target,
+            controllerClass: exported,
+          });
+        }
+
+        proto = Object.getPrototypeOf(proto) as object | null;
+      }
+    }
+  }
+
+  return handlers;
+}
+
+describe('permission wiring invariants', () => {
+  it('every guarded, non-public endpoint declares both permission systems', async () => {
+    const reflector = new Reflector();
+    const handlers = await collectRouteHandlers();
+
+    // A regression here means controllers stopped being discovered at all.
+    expect(handlers.length).toBeGreaterThan(500);
+
+    const skippedPublic: string[] = [];
+    const skippedUnguarded = new Map<string, number>();
+    const violations: string[] = [];
+    let compliant = 0;
+
+    for (const handler of handlers) {
+      const lookup = [handler.target, handler.controllerClass] as Parameters<
+        Reflector['getAllAndOverride']
+      >[1];
+
+      /*
+       * getAllAndOverride, matching PermissionsGuard exactly: handler metadata
+       * overrides controller metadata, it does not merge with it. A handler that
+       * declares its own @Permissions replaces the controller's entirely.
+       */
+      const isPublic = reflector.getAllAndOverride<boolean>(
+        IS_PUBLIC_KEY,
+        lookup,
+      );
+      if (isPublic === true) {
+        skippedPublic.push(`${handler.controller}.${handler.handler}`);
+        continue;
+      }
+
+      /*
+       * Only PermissionsGuard reads these two keys, so only handlers it protects
+       * can be held to the rule. Handlers behind JwtAuthGuard alone, the platform
+       * guard, the gateway guard or the partner guard are counted and reported
+       * below rather than judged here — they are a separate question, not a
+       * silent exemption.
+       */
+      if (!usesPermissionsGuard(handler.guards)) {
+        const key =
+          (handler.guards as { name?: string }[])
+            .map((guard) => guard?.name ?? 'anonymous')
+            .join('+') || '(no guards)';
+        skippedUnguarded.set(key, (skippedUnguarded.get(key) ?? 0) + 1);
+        continue;
+      }
+
+      const legacy = reflector.getAllAndOverride<string[]>(
+        REQUIRED_PERMISSIONS_KEY,
+        lookup,
+      );
+      const matrix = reflector.getAllAndOverride<unknown[]>(
+        REQUIRED_RBAC_PERMISSIONS_KEY,
+        lookup,
+      );
+
+      // An empty array declares nothing, and the guard treats it as satisfied.
+      const missing: string[] = [];
+      if (!Array.isArray(legacy) || legacy.length === 0) {
+        missing.push('@Permissions');
+      }
+      if (!Array.isArray(matrix) || matrix.length === 0) {
+        missing.push('@RequirePermission');
+      }
+
+      if (missing.length === 0) {
+        compliant += 1;
+        continue;
+      }
+
+      violations.push(
+        `${handler.controller}.${handler.handler} [${handler.httpMethod} ${handler.route}] ` +
+          `missing: ${missing.join(', ')} (${handler.file})`,
+      );
+    }
+
+    violations.sort();
+
+    /*
+     * Jest truncates a long diff, and the inventory is the point of this test,
+     * so it is written out in full before the assertion rather than left to the
+     * reporter.
+     */
+    if (violations.length > 0) {
+      const byMissing = (label: string) =>
+        violations.filter((line) => line.includes(`missing: ${label} (`))
+          .length;
+
+      console.error(
+        [
+          '',
+          'DUAL-PERMISSION INVARIANT — violation inventory',
+          `  total route handlers        : ${handlers.length}`,
+          `  public handlers skipped     : ${skippedPublic.length}`,
+          `  not behind PermissionsGuard : ${[...skippedUnguarded.values()].reduce((a, b) => a + b, 0)}`,
+          ...[...skippedUnguarded.entries()]
+            .sort((a, b) => b[1] - a[1])
+            .map(
+              ([key, count]) => `      ${String(count).padStart(4)}  ${key}`,
+            ),
+          `  in scope                    : ${compliant + violations.length}`,
+          `  compliant                   : ${compliant}`,
+          `  violations                  : ${violations.length}`,
+          `      missing @Permissions only        : ${byMissing('@Permissions')}`,
+          `      missing @RequirePermission only  : ${byMissing('@RequirePermission')}`,
+          `      missing both                     : ${byMissing('@Permissions, @RequirePermission')}`,
+          '',
+          ...violations,
+          '',
+        ].join('\n'),
+      );
+    }
+
+    expect({ violations }).toEqual({ violations: [] });
+  }, 600_000);
 });

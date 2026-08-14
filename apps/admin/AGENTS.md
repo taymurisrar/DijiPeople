@@ -1,165 +1,146 @@
-# AGENTS.md
+# AGENTS.md — `apps/admin` (platform admin)
 
-## Project
-DijiPeople is a multi-tenant SaaS HRM platform for small to medium businesses, clinics, and hospitals in the US.
+Scope-specific rules for the DijiPeople internal SaaS operations console. Read
+the root [`AGENTS.md`](../../AGENTS.md) first; this file does not repeat it.
 
-This product is being built as a configurable SaaS platform, not as a one-off custom client solution.
+> **Note:** this file previously contained a copy of the platform-wide rules,
+> including a scope statement that said modules such as payroll, attendance and
+> recruitment should not be built yet. That is no longer true. Platform-wide
+> rules now live in the root [`AGENTS.md`](../../AGENTS.md).
 
-## Product goals
-- Single codebase serving multiple tenants
-- Strong tenant isolation
-- Configurable modules, roles, permissions, policies, and workflows
-- Scalable and reliable architecture
-- Clean, maintainable, production-grade code
-- Modular monolith first, not microservices
+---
 
-## Tech stack
-- Monorepo: Turborepo
-- Frontend: Next.js App Router + TypeScript + Tailwind CSS
-- Backend: NestJS + TypeScript
-- Database: PostgreSQL + Prisma
-- Auth: JWT access token + refresh token
-- Queue/jobs: Redis + BullMQ later
-- Billing: Stripe later
-- Storage: S3 or Cloudflare R2 later
-- Monitoring: Sentry later
+## What this app is
 
-## Repository structure
-- apps/web -> tenant-facing application
-- apps/admin -> super admin SaaS control panel
-- services/api -> backend API
-- packages/database -> shared database and prisma-related code
-- packages/types -> shared TypeScript types
-- packages/utils -> shared utility functions
-- packages/config -> shared configuration
-- packages/ui -> shared UI components
+Next.js **App Router**, TypeScript, Tailwind CSS v4, port **3002**. This is
+DijiPeople's own control plane — **not** a tenant surface. Its users are
+platform users (`PlatformUser`, `authSubjectType: 'platform-user'`), not tenant
+users.
 
-## Architecture rules
-- Build a modular monolith, not microservices
-- Keep backend modules isolated and cohesive
-- Prefer explicit business-oriented naming
-- Avoid premature abstraction
-- Avoid tutorial-style code
-- Code must be production-oriented and extensible
-- Do not hardcode client-specific behavior
-- Prefer configuration-driven design for anything tenant-specific
+**This app is the highest-blast-radius surface in the product.** Its endpoints
+legitimately read across tenants. Every change here needs to be evaluated for
+whether it could leak one tenant's data into a view another party can reach, or
+mutate a tenant without authority.
 
-## Multi-tenant rules
-- Every tenant-owned entity must include `tenantId`
-- All queries for tenant-owned data must enforce tenant scoping
-- Never allow cross-tenant reads or writes
-- Tenant creation and first admin user creation should be transactional
-- Design for one user belonging to one tenant for now
-- Future support for multi-tenant users can be added later if needed
+```
+app/
+  (internal)/   authenticated console: leads, partners, customers, tenants,
+                contracts, contract-templates, signature-requests, support,
+                plans, subscriptions, invoices, payments, promotions,
+                commissions, onboarding, partner-inquiries, notifications,
+                templates, settings, security, preferences, profile
+  login/ forgot-password/ reset-password/ access-denied/
+  api/          Next route handlers — thin proxies to services/api
+  _components/  shared components (see below)
+lib/            auth, platform RBAC, server-api, formatters, runtime registry
+```
 
-## Core backend foundation scope
-Current priority is only the platform foundation, not full HR modules.
+---
 
-Build these first:
-1. Tenant entity
-2. User entity
-3. Auth (signup, login, refresh token)
-4. Role + permission system
+## Reuse before you build
 
-Do not build advanced modules yet like:
-- payroll
-- recruitment
-- attendance
-- leave
-- performance
-- analytics
-unless explicitly requested later
+| Need | Use |
+|---|---|
+| **Any production table** | **`ProDataTable`** — `app/_components/crm/data-table.tsx` |
+| List page | `app/_components/runtime/runtime-module-page.tsx`, `runtime-module-list.tsx` |
+| Record page | `runtime-record-route.tsx`, `runtime-record-page.tsx`, `runtime-form.tsx` |
+| Commands | `module-action-bar.tsx` |
+| Views | `runtime-view-selector.tsx` (includes user-pinned default) |
+| Shell / nav | `admin-shell.tsx`, `admin-sidebar.tsx`, `admin-topbar.tsx`, `admin-ui.tsx` |
+| Dashboard widgets | `app/_components/dashboard/` + the dashboard widget registry |
+| Formatting | `lib/formatters.ts`, `lib/platform-formatters.ts`, `lib/platform-appearance.ts` |
 
-## Data modeling rules
-- Use PostgreSQL-friendly schema design
-- Use Prisma for schema and migrations
-- Include `id`, `createdAt`, `updatedAt` on all primary entities
-- Include `tenantId` on all tenant-owned entities
-- Add indexes and unique constraints where sensible
-- Store passwords hashed
-- Store refresh tokens hashed, never plain text
-- Use explicit relation names where needed to avoid ambiguity
-- Keep schema ready for future expansion into employee, leave, attendance, payroll, and recruitment modules
+`ProDataTable` is the required table for every production Platform Admin screen —
+this is stated in
+[`docs/platform-admin-runtime-and-workflows.md`](../../docs/platform-admin-runtime-and-workflows.md).
+Do not add a second table implementation.
 
-## Auth rules
-- Use JWT access and refresh token flow
-- Passwords must be hashed securely
-- Refresh tokens should be persisted hashed
-- Auth payload should include at least:
-  - userId
-  - tenantId
-  - email
-- Protected routes must use guards
-- Add a current-user decorator for authenticated requests
+---
 
-## RBAC rules
-- Use proper RBAC with:
-  - Role
-  - Permission
-  - UserRole
-  - RolePermission
-- Do not use simplistic `isAdmin`-style authorization
-- Prefer permission-based checks over role-only checks
-- Permission naming should follow a consistent convention:
-  - users.read
-  - users.create
-  - users.update
-  - users.delete
-  - roles.read
-  - roles.assign
-  - employees.read
-  - leaves.approve
+## The platform runtime
 
-## NestJS coding rules
-- Organize code under `src/modules`
-- Use DTOs with class-validator and class-transformer
-- Use guards for auth and permission checks
-- Keep controllers thin
-- Keep services focused on business logic
-- Keep persistence concerns separate and clean
-- Use transactions when multiple dependent writes must succeed together
-- Add common utilities, decorators, and guards under `src/common`
+Platform Admin is metadata-driven in the same spirit as `apps/web`, with its own
+registry:
 
-## Frontend rules
-After backend foundation is complete, build:
-1. Login page
-2. Protected routes
-3. Basic dashboard shell
+- Client contract: the platform module registry under `lib/runtime/`.
+- Server adapter **and authorization boundary**: the API `platform-runtime`
+  module (`PlatformRuntimeService`).
+- The runtime resolves views, fields, actions, filters, sorting, related
+  records, timelines, validation and persistence through module-owned services.
+  **It does not maintain a second CRUD data source — do not create one.**
+- The generated runtime schema lives in
+  `packages/config/platform-runtime-schema.generated.json` and is produced by
+  `npm run generate:runtime-schema`. It is validated by
+  `npm run test:runtime-schema`, which asserts that every registered module's
+  fields exist in Prisma and that sensitive/system-managed fields are neither
+  writable nor exportable. **Regenerate and re-run that test after changing a
+  platform runtime module or the Prisma models it exposes.**
 
-Frontend rules:
-- Use Next.js App Router
-- Keep UI clean and minimal at first
-- Do not overbuild design
-- Focus on auth flow and app shell before feature pages
-- Keep structure extensible for future modules
+Module-specific panels extend the record runtime only where a governed workflow
+needs extra interaction — contract versions and signing, customer agreement
+creation, support activities, tenant operations. They still go through the
+normal service/API layer.
 
-## Coding standards
-- Use strict TypeScript
-- Keep naming consistent
-- Prefer simple, readable code
-- Add comments only where they add value
-- Do not leave dead code
-- Avoid duplication
-- Keep changes scoped to the current task
-- Explain what files are added or changed when completing tasks
+---
 
-## Implementation workflow
-When working on a task:
-1. Understand current scope
-2. Make only the requested changes
-3. Preserve architecture consistency
-4. Keep changes easy to extend later
-5. Avoid introducing unrelated features
-6. Summarize what changed and why
+## Platform authorization
 
-## Current success criteria
-Phase 1 is successful when:
-- Prisma schema exists for tenant/user/auth/rbac foundation
-- Migration runs successfully
-- Tenant signup creates tenant + first admin user
-- Login returns access + refresh tokens
-- Refresh flow works
-- Auth guard works
-- RBAC foundation works
-- Frontend login page works
-- Protected dashboard route works
+- Platform users authenticate through the API `platform-auth` module with the
+  `admin` auth client id; `JwtAuthGuard` routes them to
+  `loadPlatformAccessContext` and populates `user.platform`
+  (`{ id, role, status }` with `PlatformUserRole` / `PlatformUserStatus`).
+- **Client-side role logic lives in `lib/platform-rbac.ts` and is covered by
+  `lib/platform-rbac.spec.ts`.** That spec exists because raw string comparisons
+  like `role !== "SUPER_ADMIN"` compiled fine while silently locking out
+  `PLATFORM_OWNER` across five call sites. Add role checks through the helpers
+  in that file and extend the spec — never inline a role string comparison.
+- Platform role gating in the UI is a usability affordance. The API is the
+  authority. Every platform action must be enforced server-side in the
+  `super-admin` / `platform-*` modules.
+- Any screen that displays tenant data must display **which tenant** it belongs
+  to. Silent cross-tenant aggregation without tenant attribution is a defect.
+
+---
+
+## Data access
+
+- Server components call the API through `lib/server-api.ts` (cookies,
+  `x-auth-client-id: admin`, refresh on 401, normalised errors via
+  `lib/api-error.ts`).
+- Route handlers under `app/api/` are thin proxies. No business logic, **no
+  authorization decisions**, no tenant selection logic beyond forwarding.
+- Tenant addressing helpers: `lib/tenant-slug.ts`, `lib/tenant-url.ts`,
+  `lib/domain.ts`.
+
+---
+
+## UI requirements
+
+- Loading, error, empty and access-denied states are mandatory. Use
+  `global-error.tsx`, `not-found.tsx`, `/access-denied` and the shared runtime
+  states.
+- Money, dates and percentages go through `lib/formatters.ts` /
+  `lib/platform-formatters.ts`. Invoices and payments are financial records —
+  never format currency ad hoc, never round in the UI.
+- Platform branding comes from `platform-appearance.ts` /
+  `platform-branding-form.tsx` / `platform-defaults-provider.tsx`. Do not
+  hardcode colours or product names.
+- Destructive platform operations (suspend tenant, cancel subscription, reset
+  demo data, delete records) require an explicit confirmation step and must be
+  audited server-side.
+
+---
+
+## Testing
+
+```bash
+npm --workspace admin run test         # jest, node environment
+npm --workspace admin run check-types  # next typegen && tsc --noEmit
+npm --workspace admin run lint
+npm run test:runtime-schema            # from repo root, after runtime changes
+```
+
+`jest.config.js` is scoped to **pure logic** — RBAC helpers and the module
+registry. jsdom is not installed, so no rendering tests. `*.spec.ts` only. Path
+alias `@/*` maps to the app root. Existing examples: `lib/platform-rbac.spec.ts`,
+`lib/auth-config.spec.ts`, `lib/platform-appearance.spec.ts`.
