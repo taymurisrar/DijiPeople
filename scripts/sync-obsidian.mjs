@@ -47,21 +47,26 @@ const DEFAULT_MAPPINGS = [
 
 function loadConfig() {
   if (!existsSync(CONFIG_PATH)) {
-    console.error(
+    /*
+     * Absent config is not an error: most checkouts have no vault, and an
+     * agent chaining this after a deployment must not have the chain abort
+     * because documentation sync was never configured. Exit 0 with the token
+     * the framework expects. Genuine misconfiguration below still exits 1.
+     */
+    console.log(
       [
+        'OBSIDIAN_SYNC = SKIPPED_NO_LOCAL_CONFIG',
         '',
-        `No config found at ${relative(REPO_ROOT, CONFIG_PATH)}`,
+        `No config at ${relative(REPO_ROOT, CONFIG_PATH)} — nothing to sync.`,
         '',
-        'Create it by copying the committed example:',
-        '',
+        'To enable:',
         '  cp .obsidian-sync.example.json .obsidian-sync.local.json',
         '',
-        'then set "vaultPath" to your vault. The .local.json file is gitignored',
-        'so your path never reaches the repository.',
-        '',
+        'then set "vaultPath". The .local.json file is gitignored, so your path',
+        'never reaches the repository.',
       ].join('\n'),
     );
-    process.exit(1);
+    process.exit(0);
   }
 
   const config = JSON.parse(readFileSync(CONFIG_PATH, 'utf8'));
