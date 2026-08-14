@@ -257,6 +257,17 @@ jobs:
       # plaintext (it only throws in production), so the three integration
       # suites would exercise a path that never runs in a real environment.
       SECRET_ENCRYPTION_KEY: ci-test-only-encryption-key-not-a-secret-000000
+      # Booting AppModule constructs StripeBillingService, which throws unless
+      # all three are present — the first CI run failed every AppModule-based
+      # suite on "STRIPE_SECRET_KEY is required for Stripe billing."
+      #
+      # These are fake and unusable: no test makes a Stripe call. The key must
+      # still start with `sk_test_`, because assertSecretMatchesMode rejects a
+      # non-test key when STRIPE_MODE=test — a guard worth keeping honest even
+      # in CI.
+      STRIPE_MODE: test
+      STRIPE_SECRET_KEY: sk_test_ci_placeholder_not_a_real_key
+      STRIPE_API_VERSION: '2024-06-20'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -267,6 +278,16 @@ jobs:
       - run: node scripts/assert-test-database.mjs
       - name: Prepare the database
         run: node scripts/verify-database.mjs
+      - name: Seed demo data
+        # `permission-propagation` and `platform-workflows` call
+        # `customerAccount.findFirstOrThrow()` — a Tenant cannot exist without a
+        # CustomerAccount (required FK, onDelete: Restrict), and seed:config does
+        # not create one. seed:demo does.
+        #
+        # This is the one pre-existing-data dependency in the suite set. Tests
+        # written from here on should build their own via test/helpers/db-fixtures.ts
+        # rather than growing this dependency.
+        run: npm --workspace api run seed:demo
       - name: Run database-backed e2e suites
         id: e2e
         run: |

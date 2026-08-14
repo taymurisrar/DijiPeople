@@ -1,6 +1,21 @@
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 
 import { DbFixtures, describeWithDatabase } from './helpers/db-fixtures';
+
+/**
+ * This repository drives Prisma through `@prisma/adapter-pg`, so a bare
+ * `new PrismaClient()` throws `PrismaClientInitializationError` — the client
+ * requires the adapter it was generated for. `PrismaService` does exactly this;
+ * a database-backed test outside Nest has to do it too.
+ */
+function createTestPrismaClient(): PrismaClient {
+  const connectionString = process.env.DATABASE_URL?.trim();
+  if (!connectionString) {
+    throw new Error('DATABASE_URL is required for database-backed tests.');
+  }
+  return new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
+}
 
 /**
  * The reusable database-backed pattern for tenant isolation and constraint
@@ -27,7 +42,7 @@ import { DbFixtures, describeWithDatabase } from './helpers/db-fixtures';
 describeWithDatabase()('Tenant isolation and constraint pattern (DB-backed)', () => {
   jest.setTimeout(120_000);
 
-  const prisma = new PrismaClient();
+  const prisma = createTestPrismaClient();
   const fixtures = new DbFixtures(prisma, 'isolation-pattern');
 
   let tenantA: Awaited<ReturnType<DbFixtures['createTenant']>>;

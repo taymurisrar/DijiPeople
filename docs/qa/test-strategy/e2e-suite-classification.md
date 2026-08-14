@@ -4,13 +4,30 @@ The nine `*.e2e-spec.ts` suites under `services/api/test/`, classified so the
 `database-e2e-report` job can be promoted to a required gate deliberately rather
 than hopefully.
 
-> **This classification is static.** It was derived by reading the suites, not by
-> running them — at the time of writing no database was reachable from the
-> development environment. Every row is a **prediction**, and the first CI run of
-> `database-e2e-report` is what turns it into evidence. Update this file with
-> observed results; do not leave predictions standing once facts exist.
+> **First CI run: every suite failed.** The static classification below was
+> wrong in one specific way, and the run is what proved it. Both root causes
+> were environment, not product — recorded here because the mistake generalises:
+> *reading a suite tells you what it creates; only running it tells you what it
+> needs.*
 
-**Classified:** 2026-08-14, against commit `0b4d90e`.
+**Classified:** 2026-08-14 (static), against `0b4d90e`.
+**First observed run:** GitHub Actions run `31840528309`, SHA `f35d696` —
+10 suites failed, 190 tests failed, 0 passed.
+
+## What the first run revealed
+
+| Root cause | Suites affected | Fix |
+|---|---|---|
+| `STRIPE_SECRET_KEY is required for Stripe billing.` — booting `AppModule` constructs `StripeBillingService`, which throws at construction | all 8 that boot `AppModule` | `STRIPE_MODE`, `STRIPE_SECRET_KEY` (`sk_test_` prefix enforced), `STRIPE_API_VERSION` added to the job. Synthetic; no test calls Stripe |
+| `customerAccount.findFirstOrThrow()` found nothing — a Tenant needs a CustomerAccount, and `seed:config` does not create one | `permission-propagation`, `platform-workflows` | `seed:demo` added after migration |
+| `PrismaClientInitializationError` — a bare `new PrismaClient()` is invalid in a repository using `@prisma/adapter-pg` | `tenant-isolation-pattern` (mine) | Construct with `new PrismaPg({ connectionString })`, mirroring `PrismaService` |
+
+The audit that produced the static classification checked
+`env.validation.ts` and concluded only `DATABASE_URL` was required under
+`NODE_ENV=test`. That was true of the *validation module* and false of the
+*application*: a provider can throw at construction without ever being
+registered as a required environment variable. **Env validation is not the same
+question as "what does booting need".**
 
 ---
 
@@ -28,14 +45,16 @@ than hopefully.
 | `gateway-runtime` | 27 | **NEEDS_ENVIRONMENT** | Same credential-encryption dependency |
 | `platform-workflows` | 5 | **NEEDS_TEST_DATA** | Seeds itself through the public endpoint `/public/partners/onboarding/seed-horizon-onboarding`, and has **no `deleteMany` cleanup**. Safe in an ephemeral database; would leak in a reused one |
 
-**Totals:** 190 tests across 9 suites. 5 `READY`, 3 `NEEDS_ENVIRONMENT`,
-1 `NEEDS_TEST_DATA`. **None classified `FLAKY`, `BROKEN` or `STALE`** — no
-skipped tests, no `TODO`/`FIXME` markers, and every suite reads as maintained.
+**Totals:** 190 tests across 9 suites (10 including `tenant-isolation-pattern`).
+**None classified `FLAKY`, `BROKEN` or `STALE`** — no skipped tests, no
+`TODO`/`FIXME` markers, and every suite reads as maintained.
 
-The `NEEDS_ENVIRONMENT` requirement is already satisfied: the
-`database-e2e-report` job sets a synthetic `SECRET_ENCRYPTION_KEY`. They are
-listed separately because that dependency is invisible in the suite itself and
-would silently degrade if the variable were dropped.
+**Corrected after the first run:** every suite that boots `AppModule` is
+`NEEDS_ENVIRONMENT`, not `READY` — the Stripe dependency is invisible in the
+suite source and only appears when the module graph is instantiated. The table
+above records what each suite *creates and cleans up*, which is still accurate
+and still the reason this was cheap to enable; it does not record what booting
+the application requires.
 
 **Nothing was deleted.** A suite that cannot run today is a suite waiting for
 infrastructure, not dead code.
