@@ -15,6 +15,7 @@
  *   node scripts/validate-framework.mjs
  */
 
+import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -149,10 +150,27 @@ check('known bug patterns exist', patterns.length > 0, `found ${patterns.length}
 
 // ------------------------------------------------------------------- secrets
 
+/*
+ * The file existing locally is normal and desired — that is how a developer
+ * enables Obsidian sync. What must never happen is it being *tracked*, because
+ * it holds a personal absolute path. Check tracking, not existence.
+ */
+function isTrackedByGit(relativePath) {
+  try {
+    execFileSync('git', ['ls-files', '--error-unmatch', relativePath], {
+      cwd: ROOT,
+      stdio: 'ignore',
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 check(
-  'local Obsidian config is not committed',
-  !existsSync(join(ROOT, '.obsidian-sync.local.json')),
-  'contains a personal path and must stay gitignored',
+  'local Obsidian config is not tracked by git',
+  !isTrackedByGit('.obsidian-sync.local.json'),
+  'it holds a personal path — keep it gitignored',
 );
 
 check(
