@@ -279,10 +279,12 @@ npm --workspace api run lint
 npm --workspace api run format
 ```
 
-Existing e2e specs at this baseline: `test/app.e2e-spec.ts` and
-`test/platform-workflows.e2e-spec.ts`. **List `services/api/test/` rather than
-assuming which suites exist** — this set changes with in-flight work, and
-instruction files have cited suites that were never committed.
+Existing e2e specs (9 at commit 78716c4): `app`, `attendance-engine`,
+`attendance-integrations-http`, `attendance-integrations-isolation`,
+`attendance-operational`, `attendance-review`, `gateway-runtime`,
+`permission-propagation`, `platform-workflows`. **List `services/api/test/`
+rather than assuming** — the set changes with in-flight work, and these suites
+may require a live database.
 
 Invariant specs that must stay green when you touch wiring or permissions:
 `common/constants/wiring-invariants.spec.ts`,

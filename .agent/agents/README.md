@@ -21,6 +21,8 @@ Full orchestration:
 | **Integration** | [integration.md](integration.md) | Yes | Connectors, gateway contract, webhooks, queues, idempotency |
 | **QA** | [qa.md](qa.md) | Tests only | Scenario design, execution, QA runs, regression register |
 | **Reviewer** | [reviewer.md](reviewer.md) | **No** | Independent technical and security assessment |
+| **Integrator** | [integrator.md](integrator.md) | Git only | Branches, worktrees, conflict resolution, merges, cleanup |
+| **Release / DevOps** | [release-devops.md](release-devops.md) | Config/infra only | Readiness, environments, deployment, rollback, smoke, release records |
 
 ---
 
@@ -63,6 +65,8 @@ documentation nobody reads and hides the roles that mattered.
 | Device/gateway/webhook work | Architect → Integration → QA → Reviewer |
 | Authorization change | Architect → Backend/API (+ `authorization-dry-run`) → QA → Reviewer |
 | Copy or styling fix | Frontend → Reviewer |
+| Merging any task | + Integrator |
+| Anything reaching an environment | + Release/DevOps |
 
 UI/UX is invoked when there is a genuine experience decision — not for adding a
 field to an existing runtime spec.

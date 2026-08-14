@@ -196,6 +196,34 @@ REGRESSION_ENTRIES_IN_SCOPE:
   - REG-nnn — <one line>
 ```
 
+
+### Integration and deployment fields
+
+Plans that will be merged or deployed also carry:
+
+```markdown
+TARGET_BRANCH:            main | develop | <other>
+TARGET_ENVIRONMENT:       LOCAL | PRODUCTION   (staging does not exist yet)
+DEPLOYMENT_REQUIRED:      yes | no
+DEPLOYMENT_COMPONENTS:    api | web | admin | landing | agent-desktop | gateway
+DEPLOYMENT_ORDER:         e.g. database -> api -> web
+ROLLBACK_CLASS:           CODE_ONLY | CONFIG | DATABASE_ADDITIVE |
+                          DATABASE_DESTRUCTIVE | DATA_MIGRATION |
+                          EXTERNAL_INTEGRATION | MULTI_COMPONENT_CONTRACT
+INTEGRATOR_REQUIRED:      yes | no
+RELEASE_DEVOPS_REQUIRED:  yes | no
+POST_DEPLOY_QA_REQUIRED:  yes | no
+MERGE_STRATEGY:           merge --no-ff | rebase   (never force push)
+KNOWN_CONCURRENT_WORK:    branches or worktrees touching the same files
+ENVIRONMENT_DEPENDENCIES: new or changed env vars, and where they must be
+                          registered (turbo.json globalEnv, render.yaml,
+                          docs/environment-variables.md, .env.example)
+```
+
+`ROLLBACK_CLASS` is decided during planning, not after something breaks. A plan
+proposing a destructive migration must say so here, because that single field
+determines whether the release can be undone at all.
+
 `SINGLE_WRITER_FILES` is not advisory. Any task touching one of these is
 `DEPENDENCY_BLOCKED` for every other task, by definition:
 

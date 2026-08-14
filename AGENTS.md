@@ -37,30 +37,25 @@ Three authenticated surfaces plus one public one:
 
 ### Domains actually implemented
 
-**60 modules** under `services/api/src/modules/`, as committed at this baseline.
+**63 modules** under `services/api/src/modules/`, verified at commit 78716c4.
 
 | Area | Modules |
 |---|---|
 | People | `employees`, `employee-levels`, `employment-types`, `users`, `teams`, `organization` |
-| Time | `attendance`, `timesheets`, `leave` |
+| Time | `attendance`, `attendance-engine`, `attendance-integrations`, `timesheets`, `leave` |
 | Pay | `payroll`, `payslips`, `pay-components`, `compensation`, `tax-rules`, `loans`, `claims`, `benefits`, `business-trips`, `time-payroll` |
 | Talent | `recruitment`, `onboarding`, `projects`, `documents`, `policies` |
 | Governance | `approvals`, `workflows`, `sla`, `audit`, `error-logs`, `permissions`, `roles` |
 | Commercial | `leads`, `partners`, `partner-experience`, `contracts`, `support-cases`, `billing`, `super-admin` (customers, plans, subscriptions, invoices, payments, tenant provisioning) |
 | Configuration | `tenant-settings`, `settings-runtime`, `customization`, `lookups`, `views`, `navigation`, `data`, `platform-runtime` |
-| Platform ops | `platform-auth`, `platform-users`, `platform-events`, `platform-monitoring`, `platform-communications`, `tenants`, `demo-data`, `data-management`, `agent`, `dashboard`, `inbox`, `reports` |
+| Platform ops | `platform-auth`, `platform-users`, `platform-events`, `platform-monitoring`, `platform-communications`, `app-releases`, `tenants`, `demo-data`, `data-management`, `agent`, `dashboard`, `inbox`, `reports` |
 
-> **Work in flight, not in this branch.** At the time this baseline was written
-> the primary checkout also contained substantial **uncommitted** work that is
-> *not* part of any commit: the `attendance-engine`, `attendance-integrations`
-> and `app-releases` API modules, a **.NET on-premise integration gateway** in
-> `gateway/`, a ZKTeco device proof-of-concept in `tools/`, and a larger
-> `schema.prisma`.
->
-> Do not assume those exist. Check the branch you are on. If you are working in
-> a worktree cut from this baseline, they are absent — and an instruction file
-> that claimed otherwise is exactly the failure mode this framework exists to
-> prevent.
+> **Verify counts on your branch.** The figures above were measured at commit
+> 78716c4, after the attendance-engine, attendance-integrations, app-releases,
+> `gateway/` and `tools/` work was committed. This repository moves quickly, and
+> instruction files here have previously described an uncommitted working tree
+> rather than a commit. Re-derive a number rather than trusting it if your
+> branch differs — see the `doc-code-drift` bug pattern.
 
 ---
 
@@ -80,8 +75,8 @@ packages/
   ui/             @repo/ui — button/card/code only; NOT the design system
   eslint-config/  shared ESLint config
   typescript-config/ shared tsconfig bases
-gateway/          .NET solution — NOT COMMITTED at this baseline
-tools/            device POC — NOT COMMITTED at this baseline
+gateway/          .NET on-premise integration gateway (DijiPeople.Gateway.sln)
+tools/zkteco-poc/ ZKTeco device POC + .NET worker
 scripts/          repo-level node scripts (ports, smoke tests, codegen)
 docs/             repository documentation (see docs/README.md)
 ```
@@ -184,8 +179,8 @@ Node `22.x`, npm `11.x`, npm workspaces + Turborepo.
 ## Database / Prisma
 
 Prisma **7.8** with `@prisma/adapter-pg` against PostgreSQL. Single schema file:
-`services/api/prisma/schema.prisma` — **10,436 lines, 266 models, 222 enums**,
-with **183** migrations in `services/api/prisma/migrations/`. Prisma is configured
+`services/api/prisma/schema.prisma` — **11,802 lines, 285 models, 255 enums**,
+with **191** migrations in `services/api/prisma/migrations/`. Prisma is configured
 by `services/api/prisma.config.ts` — every Prisma CLI call in this repo passes
 `--config prisma.config.ts`.
 
@@ -197,14 +192,14 @@ Summary:
   relation on tenant-owned models. `PascalCase` models, `camelCase` fields,
   `SCREAMING_SNAKE_CASE` enum members. No `@@map` — Prisma names are the table
   names.
-- **Relations**: explicit `onDelete` on every relation (381 use `Cascade`).
+- **Relations**: explicit `onDelete` on every relation (424 use `Cascade`).
   Named relations where two relations connect the same pair of models.
 - **Migrations**: timestamped directories, created with
   `npm run prisma:migrate:dev` locally. **Never hand-edit an applied migration.
   Never delete one. Never run `migrate reset` or `db push` against a shared
   database.** Deployment applies them via `npm run prisma:migrate:deploy`
   (wrapped by `npm run release:api`).
-- **Indexes**: 992 `@@index` and 192 `@@unique` exist. Index every foreign key
+- **Indexes**: 1,080 `@@index` and 210 `@@unique` exist. Index every foreign key
   you filter on and every `(tenantId, <filter column>)` pair a list screen sorts
   or filters by.
 - **Soft delete is not universal.** Only a handful of models carry `isDeleted`
@@ -398,9 +393,9 @@ Seeds and release: `npm run seed:config`, `seed:admin`, `seed:demo`,
   `payroll-operations.service.spec.ts`.
 - Changes to permissions, tenant scoping or cross-module wiring should extend
   the existing invariant tests (`common/constants/wiring-invariants.spec.ts`,
-  `rbac-matrix.*.spec.ts`). The e2e suites present at this baseline are
-  `test/app.e2e-spec.ts` and `test/platform-workflows.e2e-spec.ts` — list the
-  directory rather than assuming which exist.
+  `rbac-matrix.*.spec.ts`, `test/permission-propagation.e2e-spec.ts`,
+  `test/attendance-integrations-isolation.e2e-spec.ts`). List `services/api/test/`
+  rather than assuming which suites exist — the set changes with in-flight work.
 - **Never report work complete while a relevant validation is failing or was not
   run.** Say exactly which commands were run, which passed, which failed, and
   which were skipped and why. A pre-existing failure must be identified as
