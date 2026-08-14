@@ -11,13 +11,15 @@ review and the QA run.
 
 ## Trigger
 
-Run after a task reaches all three of:
+Run after the task **has merged** — not merely after it was written. The
+completion contract orders it that way deliberately: knowledge must describe the
+code that actually landed, and Obsidian then publishes what was captured.
 
 ```
-IMPLEMENTATION COMPLETE
-REVIEW COMPLETE
-QA COMPLETE
+IMPLEMENTATION COMPLETE → REVIEW COMPLETE → QA COMPLETE → MERGED → capture
 ```
+
+See [`../context/task-completion-contract.md`](../context/task-completion-contract.md).
 
 Skip entirely for copy changes, styling fixes and comment edits. Capturing those
 produces noise that buries the knowledge that matters.
