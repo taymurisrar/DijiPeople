@@ -1702,10 +1702,18 @@ export class AttendanceService {
     currentUser: AuthenticatedUser,
   ): Promise<Prisma.AttendanceCorrectionRequestWhereInput> {
     const permissions = new Set(currentUser.permissionKeys);
+
+    /*
+     * `readTeam` used to sit in this branch and return an unrestricted where,
+     * which made it a synonym for `manage`: every holder read every correction
+     * request in the tenant. Team is the caller's direct reports, which is what
+     * the fallback below already expresses, so `readTeam` simply falls through
+     * to it now. Tenant-wide stays with `manage` and the tenant attendance
+     * managers.
+     */
     if (
       this.canManageTenantAttendance(currentUser) ||
-      permissions.has('attendance.correction.manage') ||
-      permissions.has('attendance.correction.readTeam')
+      permissions.has('attendance.correction.manage')
     ) {
       return {};
     }
@@ -1721,10 +1729,10 @@ export class AttendanceService {
   private async teamCorrectionScope(
     currentUser: AuthenticatedUser,
   ): Promise<Prisma.AttendanceCorrectionRequestWhereInput> {
+    // Same correction as correctionRelevantScope: `readTeam` is not tenant-wide.
     if (
       this.canManageTenantAttendance(currentUser) ||
-      currentUser.permissionKeys.includes('attendance.correction.manage') ||
-      currentUser.permissionKeys.includes('attendance.correction.readTeam')
+      currentUser.permissionKeys.includes('attendance.correction.manage')
     ) {
       return {};
     }
@@ -1786,6 +1794,28 @@ export class AttendanceService {
     request: AttendanceCorrectionWithRelations,
     action: 'approve' | 'reject',
   ) {
+    /*
+     * Nobody may action their own request, which is the same rule leave already
+     * applies in canOverrideLeaveDecision. It is checked before any permission
+     * or role path because it is not a capability question: holding
+     * attendance.correction.approve is what the manager role grants, so without
+     * this a manager could file a correction rewriting their own attendance and
+     * overtime and immediately approve it.
+     *
+     * Both identities are barred. requestedByUserId covers the submitter,
+     * including a proxy submission filed on someone else's behalf, and
+     * employee.userId covers the person whose attendance would change, so a
+     * correction cannot be waved through by either party to it.
+     */
+    if (
+      request.requestedByUserId === currentUser.userId ||
+      request.employee.userId === currentUser.userId
+    ) {
+      throw new ForbiddenException(
+        'You cannot approve or reject your own attendance correction request.',
+      );
+    }
+
     if (this.canActionAttendanceCorrection(currentUser, request, action)) {
       return;
     }
