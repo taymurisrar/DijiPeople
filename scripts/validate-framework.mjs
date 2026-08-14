@@ -134,9 +134,14 @@ const REQUIRED_PATHS = [
   'docs/development/git-worktrees.md',
   'docs/development/obsidian-workflow.md',
   'docs/development/final-report-template.md',
+  'docs/development/agent-tooling-matrix.md',
+  '.agent/context/knowledge-architecture.md',
+  '.agent/skills/process-user-feedback.md',
+  '.agent/skills/retrieve-relevant-knowledge.md',
   'scripts/sync-obsidian.mjs',
   'scripts/new-qa-run.mjs',
   'scripts/finalize-agent-task.mjs',
+  'scripts/retrieve-knowledge.mjs',
   '.obsidian-sync.example.json',
 ];
 
@@ -382,6 +387,165 @@ if (existsSync(join(ROOT, '.agent/agents/integrator.md'))) {
   );
 }
 
+// ------------------------------------------------------- learning capability
+
+/*
+ * The framework compounds only if lessons survive the session that produced
+ * them. These checks verify the machinery is present and wired. They are
+ * deliberately structural: prose quality is not mechanically checkable, and
+ * pretending otherwise yields checks that pass while meaning nothing.
+ */
+
+const KNOWLEDGE_ARCH = '.agent/context/knowledge-architecture.md';
+const knowledgeArchExists = existsSync(join(ROOT, KNOWLEDGE_ARCH));
+check('knowledge architecture context present', knowledgeArchExists, KNOWLEDGE_ARCH);
+
+if (knowledgeArchExists) {
+  const body = read(KNOWLEDGE_ARCH);
+  for (const system of ['Git', 'CI', 'QA', '.agent/context', 'docs/knowledge', 'Obsidian']) {
+    check(`knowledge architecture defines the role of ${system}`, body.includes(system));
+  }
+  check(
+    'knowledge architecture states code outranks Obsidian',
+    /implementation truth/i.test(body),
+    'the repository-vs-Obsidian authority rule must be explicit',
+  );
+  for (const classification of [
+    'EXPECTED_CHANGE',
+    'STALE_NOTE',
+    'UNIMPLEMENTED_REQUIREMENT',
+    'UNCLEAR_CONFLICT',
+  ]) {
+    check(`knowledge architecture defines ${classification}`, body.includes(classification));
+  }
+  check(
+    'knowledge architecture forbids bulk-loading the vault',
+    /entire vault|whole vault/i.test(body),
+  );
+  check('knowledge architecture defines OBSIDIAN_CONTEXT', body.includes('OBSIDIAN_CONTEXT'));
+}
+
+const FEEDBACK_CLASSES = [
+  'TASK_SPECIFIC',
+  'BUG_REGRESSION',
+  'DOMAIN_RULE',
+  'ARCHITECTURE_RULE',
+  'UI_UX_RULE',
+  'SECURITY_RULE',
+  'PROCESS_RULE',
+  'DOCUMENTATION_RULE',
+  'NOT_DURABLE',
+];
+
+const FEEDBACK_SKILL = '.agent/skills/process-user-feedback.md';
+if (existsSync(join(ROOT, FEEDBACK_SKILL))) {
+  const body = read(FEEDBACK_SKILL);
+  for (const cls of FEEDBACK_CLASSES) {
+    check(`feedback skill classifies ${cls}`, body.includes(cls));
+  }
+} else {
+  check('user feedback skill present', false, FEEDBACK_SKILL);
+}
+
+if (contractExists) {
+  const contract = read(CONTRACT);
+  check(
+    'contract requires FEEDBACK_PROMOTION_STATUS',
+    contract.includes('FEEDBACK_PROMOTION_STATUS'),
+  );
+  check('contract declares USER_FEEDBACK_CLASS', contract.includes('USER_FEEDBACK_CLASS'));
+  /*
+   * Ordering matters: a capture that runs before corrections are promoted
+   * records the work and loses the lesson.
+   */
+  check(
+    'contract promotes feedback before knowledge capture completes',
+    contract.indexOf('FEEDBACK_PROMOTION_STATUS') < contract.indexOf('KNOWLEDGE_CAPTURE_STATUS'),
+  );
+}
+
+if (existsSync(join(ROOT, 'docs/qa/README.md'))) {
+  const qaReadme = read('docs/qa/README.md');
+  check('QA documents the user-reported bug learning loop', /USER REPORTS BUG/i.test(qaReadme));
+  check('QA requires root cause over symptom', /root cause/i.test(qaReadme));
+  check(
+    'QA requires proving a regression fails without the fix',
+    /fails? without the fix|before the fix/i.test(qaReadme),
+  );
+}
+
+if (existsSync(join(ROOT, '.agent/agents/qa.md'))) {
+  const qa = read('.agent/agents/qa.md');
+  check('QA loads previous QA runs', /previous QA runs/i.test(qa));
+  check(
+    'QA does not rerun every historical test',
+    /[Dd]o not rerun every|[Ss]elect by affected module/i.test(qa),
+  );
+  for (const type of ['UNIT', 'INTEGRATION', 'BROWSER_E2E', 'DEPLOYMENT_SMOKE']) {
+    check(`QA names the ${type} test type`, qa.includes(type));
+  }
+  check('QA records blocked database testing', qa.includes('BLOCKED_INFRASTRUCTURE'));
+}
+
+if (existsSync(join(ROOT, '.agent/agents/architect.md'))) {
+  const architect = read('.agent/agents/architect.md');
+  check(
+    'architect declares RELEVANT_KNOWLEDGE_RETRIEVAL',
+    architect.includes('RELEVANT_KNOWLEDGE_RETRIEVAL'),
+  );
+  check('architect asks whether this was already learned', /already learned/i.test(architect));
+}
+
+if (existsSync(join(ROOT, '.agent/agents/reviewer.md'))) {
+  const reviewer = read('.agent/agents/reviewer.md');
+  check('reviewer checks for reintroduced bug patterns', /reintroduce/i.test(reviewer));
+  check('reviewer checks for undone user corrections', /user correction/i.test(reviewer));
+  check('reviewer raises severity for repeated mistakes', /[Rr]aise the severity/i.test(reviewer));
+}
+
+if (existsSync(join(ROOT, '.agent/agents/integrator.md'))) {
+  check(
+    'integrator declares REMOTE_CI_ACCESS',
+    read('.agent/agents/integrator.md').includes('REMOTE_CI_ACCESS'),
+  );
+}
+
+const MATRIX = 'docs/development/agent-tooling-matrix.md';
+if (existsSync(join(ROOT, MATRIX))) {
+  const matrix = read(MATRIX);
+  for (const capability of [
+    'GIT',
+    'REMOTE_GIT',
+    'CI_READ',
+    'CI_TRIGGER',
+    'PR_MANAGEMENT',
+    'BROWSER_AUTOMATION',
+    'TEST_DATABASE',
+    'DEPLOYMENT_API',
+    'LOG_ACCESS',
+    'MONITORING',
+    'OBSIDIAN_READ',
+    'OBSIDIAN_WRITE_SYNC',
+  ]) {
+    check(`tooling matrix tracks ${capability}`, matrix.includes(capability));
+  }
+} else {
+  check('agent tooling matrix present', false, MATRIX);
+}
+
+if (existsSync(join(ROOT, '.agent/context/testing-architecture.md'))) {
+  const testing = read('.agent/context/testing-architecture.md');
+  check(
+    'testing architecture forbids production as a test database',
+    /[Nn]ever.{0,60}production database/s.test(testing),
+  );
+  check(
+    'testing architecture ranks isolated database options',
+    /[Ee]phemeral PostgreSQL/.test(testing),
+  );
+  check('testing architecture states browser tooling status', /BROWSER_E2E/.test(testing));
+}
+
 // Every role and orchestration document that can declare a task finished must
 // point at the contract, or it will keep declaring it its own way.
 const CONTRACT_REFERENCES = [
@@ -523,6 +687,7 @@ for (const script of [
   'scripts/sync-obsidian.mjs',
   'scripts/new-qa-run.mjs',
   'scripts/finalize-agent-task.mjs',
+  'scripts/retrieve-knowledge.mjs',
 ]) {
   if (!existsSync(join(ROOT, script))) continue;
   const body = read(script);

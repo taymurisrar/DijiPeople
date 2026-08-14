@@ -11,6 +11,7 @@ and states what a specialist must verify before changing that layer.
 
 | File | Primary readers |
 |---|---|
+| [`knowledge-architecture.md`](knowledge-architecture.md) | **Everyone — which knowledge system answers which question** |
 | [`task-completion-contract.md`](task-completion-contract.md) | **Everyone — defines when a task may be called complete** |
 | [`system-overview.md`](system-overview.md) | Everyone |
 | [`repo-map.md`](repo-map.md) | Everyone |

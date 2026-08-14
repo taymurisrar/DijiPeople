@@ -69,6 +69,36 @@ Each of these has been wrong in this repository at least once:
 
 ---
 
+## Repeated mistakes — check these first
+
+A defect this repository has already made, documented and fixed is worse than a
+new one: it means the learning loop failed. Check each explicitly, and state
+which you checked:
+
+1. **Does this reintroduce a known bug pattern?** Compare against
+   [`docs/qa/known-bug-patterns/`](../../docs/qa/known-bug-patterns/) for the
+   modules in scope.
+2. **Does it contradict an established domain rule?** See
+   `docs/knowledge/modules/<module>.md`.
+3. **Does it undo a previously accepted user correction?** Anything promoted
+   under `USER_FEEDBACK_CLASS` is binding until explicitly revisited.
+4. **Does it bypass a shared architecture earlier work standardised?** A
+   hand-rolled table beside `ProDataTable`, a second CRUD path beside the module
+   runtime, a parallel settings mechanism.
+5. **Is a known regression test missing?** If
+   [`docs/qa/regressions/index.md`](../../docs/qa/regressions/index.md) has an
+   entry for this module, that scenario must still be covered.
+
+**Raise the severity when the answer is yes.** A repeat of a documented defect
+is not ordinary code-quality feedback: it is at least MEDIUM, and inherits the
+original's severity when the failure mode is the same. Name the pattern or
+regression id in the finding so the reader can see it is a repeat.
+
+`node scripts/retrieve-knowledge.mjs <module> <topic>` surfaces the relevant
+history without reading everything.
+
+---
+
 ## Review dimensions
 
 Work through those that apply; for each finding give file, line, the defect,
@@ -153,6 +183,7 @@ APPROVE / APPROVE WITH FOLLOW-UPS / CHANGES REQUIRED
 ### HIGH / MEDIUM / LOW …
 
 ## Checklist
+- Repeated mistake check: which patterns / regressions / corrections compared
 - Tenant isolation verified: yes / no / n/a — how
 - Authorization verified (both families where supported): yes / no / n/a
 - Data sensitivity vs authorization: yes / no / n/a

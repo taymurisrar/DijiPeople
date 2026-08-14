@@ -195,6 +195,30 @@ Never imply CI ran when it did not.
 `node scripts/finalize-agent-task.mjs` classifies the target and prints
 `MERGE_AUTHORIZATION` — but it only ever reports. The Integrator decides.
 
+### Tool access required for full autonomy
+
+| Capability | Needed for |
+|---|---|
+| Git transport | Everything |
+| Remote SHA reading | Verifying a push actually landed |
+| **CI verdict reading** | **Merging into a shared target** |
+| Branch / PR status | Reporting, and PR flow |
+| Protected branch state | Knowing which rules the platform itself enforces |
+
+**Either `gh` or the GitHub API satisfies the CI requirement — neither is needed
+alongside the other.**
+
+If neither can read a verdict, record:
+
+```
+REMOTE_CI_ACCESS = BLOCKED
+```
+
+and the shared-target gate stays blocking. **Do not bypass it**, and do not
+substitute a local run. The current environment status lives in
+[`../../docs/development/agent-tooling-matrix.md`](../../docs/development/agent-tooling-matrix.md),
+where `CI_READ` is the single capability whose absence blocks task completion.
+
 The two report-only checks — `security-invariant-report` and `lint-api-report`
 — are known baselines and do **not** block a merge. See
 [`docs/development/ci.md`](../../docs/development/ci.md).

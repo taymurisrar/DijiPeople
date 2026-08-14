@@ -14,6 +14,8 @@ Always read:
 - [`.agent/context/task-completion-contract.md`](../context/task-completion-contract.md)
   — the lifecycle the plan must schedule through to finalization, not to
   implementation
+- [`.agent/context/knowledge-architecture.md`](../context/knowledge-architecture.md)
+  — which knowledge system answers which question, and what outranks what
 - [`.agent/context/system-overview.md`](../context/system-overview.md)
 - [`.agent/context/repo-map.md`](../context/repo-map.md)
 - [`.agent/context/testing-architecture.md`](../context/testing-architecture.md)
@@ -36,6 +38,70 @@ Context files orient you; they do not answer the question. After reading them,
 inspect the current source for the specific modules, routes, models, registries
 and components in scope. Every claim in the plan must trace to something you
 read in this repository, at this commit.
+
+---
+
+## Step 0 — `RELEVANT_KNOWLEDGE_RETRIEVAL`
+
+**Before planning anything non-trivial**, establish what has already been
+learned about this kind of change. Skipping this is how a plan re-proposes an
+approach that was already tried and reverted.
+
+First name the scope:
+
+- **primary module**
+- **related modules**
+- **affected architecture domains**
+- **likely regression categories**
+- **relevant client / product context**
+
+Then retrieve **only** what those terms touch:
+
+```bash
+node scripts/retrieve-knowledge.mjs <module> <feature> <topic>
+```
+
+It searches repository knowledge and — when configured and readable — the
+Obsidian vault, ranked by relevance and deduplicated against generated copies.
+Authority order, where later never overrides earlier:
+
+1. `AGENTS.md` and nested `AGENTS.md`
+2. `.agent/context/*`
+3. **the current source code**
+4. `docs/qa/regressions/index.md`
+5. `docs/qa/known-bug-patterns/`
+6. `docs/knowledge/*`
+7. relevant Obsidian notes
+
+**Never read the entire vault** — see
+[`../context/knowledge-architecture.md`](../context/knowledge-architecture.md).
+If it is unreadable, set `OBSIDIAN_CONTEXT = UNAVAILABLE`, continue on
+repository knowledge, and say so. It never blocks the work.
+
+### The question this step exists to answer
+
+> **"Have we already learned something about this type of change?"**
+
+Answer it explicitly in the plan, drawing on:
+
+- known regressions for the affected modules
+- **previous user corrections** that were promoted into knowledge
+- related ADRs and decisions
+- relevant client feedback and requirements
+- **previous implementations that failed or were reverted**
+
+"Nothing found" is a valid answer — but only after looking, and say so.
+
+### When Obsidian disagrees with the code
+
+Obsidian carries intent and history; **the code is implementation truth**.
+Classify the discrepancy rather than resolving it silently:
+
+`EXPECTED_CHANGE` · `STALE_NOTE` · `UNIMPLEMENTED_REQUIREMENT` ·
+`UNCLEAR_CONFLICT`
+
+Never change code merely because a note says otherwise. An `UNCLEAR_CONFLICT` is
+a question for the user, not a judgement call.
 
 ## Staleness Rule
 

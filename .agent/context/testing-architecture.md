@@ -23,6 +23,45 @@ Two consequences, both load-bearing:
   `ASSUMED_PASS` is not a permitted value — see
   [`task-completion-contract.md`](task-completion-contract.md).
 
+### Test types, and what actually exists
+
+| Type | Tooling | Status |
+|---|---|---|
+| `UNIT` | jest (api, web, admin) | **Available** |
+| `INTEGRATION` | jest + a real database | **Blocked** — no isolated database reachable |
+| `API` | supertest; 9 `*.e2e-spec.ts` under `services/api/test/` | **Blocked** — the suites need a live database |
+| `BROWSER_E2E` | — | **Not installed** — no Playwright, Cypress or Puppeteer in any workspace |
+| `MANUAL_VISUAL` | a human | Available |
+| `DEPLOYMENT_SMOKE` | `scripts/smoke-deployment.mjs`, `docs/deployment/smoke-tests.md` | Available against a reachable environment |
+
+Verified at this commit: no browser-automation dependency exists in any
+`package.json`, and web/admin jest run in a **node** environment with no jsdom,
+so component *rendering* cannot be tested either. Extract the logic and test
+that.
+
+### Isolated test databases
+
+Integration, e2e and migration tests must **never** depend on the production
+database. Preference order:
+
+1. **Ephemeral PostgreSQL container** — created per run, destroyed after
+2. **Dedicated CI test database** — isolated and resettable
+3. **Isolated Neon branch or database** — the managed provider already in use
+4. **Local isolated database** — a developer's own, not shared
+
+**Never** the production database, and never a shared staging database for
+anything destructive. A read-only, explicitly non-destructive check against
+shared staging is the only exception, and must be labelled as one.
+
+CI sets `DATABASE_URL` to a placeholder it never connects to — Prisma requires
+the variable for `generate` and `validate`, and neither dials out. That is why
+no test in CI touches a database today.
+
+When no isolated database is reachable, record
+`DB_E2E = BLOCKED_INFRASTRUCTURE` and state which scenarios that leaves
+unproven. It is not a pass. Do not make database e2e mandatory before the
+infrastructure exists.
+
 ### API unit tests
 
 Jest config lives **inline in `services/api/package.json`** under the `"jest"`

@@ -450,18 +450,43 @@ Completion is defined by
 which `scripts/validate-framework.mjs` enforces. Every field must be resolved:
 
 ```
-IMPLEMENTATION_STATUS          REMOTE_CI_STATUS               OBSIDIAN_SYNC_STATUS
-LOCAL_VALIDATION_STATUS        MERGE_STATUS                   CLEANUP_STATUS
-QA_STATUS                      POST_MERGE_VALIDATION_STATUS
-REVIEW_STATUS                  KNOWLEDGE_CAPTURE_STATUS
+IMPLEMENTATION_STATUS          REMOTE_CI_STATUS               FEEDBACK_PROMOTION_STATUS
+LOCAL_VALIDATION_STATUS        MERGE_STATUS                   KNOWLEDGE_CAPTURE_STATUS
+QA_STATUS                      POST_MERGE_VALIDATION_STATUS   OBSIDIAN_SYNC_STATUS
+REVIEW_STATUS                                                 CLEANUP_STATUS
 ```
 
 Resolved means `PASS`, `DONE`, `NOT_REQUIRED` (with a reason),
 `BLOCKED_<REASON>` or `FAILED`. **Never `ASSUMED_PASS`; never omitted.**
 
-A prompt beginning `DijiPeople Task:` requests the whole lifecycle — Git
-finalization and knowledge sync included. Nobody should have to add "push it",
-"merge it", "sync Obsidian" or "clean the worktree".
+A prompt beginning `DijiPeople Task:` requests the whole lifecycle — historical
+knowledge retrieval, regression awareness, durable handling of your corrections,
+Git finalization and knowledge sync included. Nobody should have to add "push
+it", "merge it", "sync Obsidian", "clean the worktree", "remember this", "don't
+make this mistake again" or "check previous bugs".
+
+### Knowledge systems
+
+Each answers exactly one question — see
+[`.agent/context/knowledge-architecture.md`](.agent/context/knowledge-architecture.md):
+
+| System | Answers |
+|---|---|
+| **Git** | What changed? |
+| **CI** | Did this commit pass automated validation? |
+| **QA runs** | What behaviour was actually tested? |
+| **`.agent/context/*`** | How does DijiPeople currently work? |
+| **`docs/knowledge/*`** | What did we learn, in a Git-tracked form? |
+| **Obsidian** | Why does it work this way, and what happened before? |
+
+**Obsidian carries intent and history; the code is implementation truth.** Never
+change code because a note disagrees — classify the discrepancy and report it.
+Retrieve selectively with `node scripts/retrieve-knowledge.mjs <terms>`; never
+bulk-load the vault.
+
+**Your corrections are durable.** Each is classified under `USER_FEEDBACK_CLASS`
+and promoted into tests, knowledge, ADRs, agent instructions or validation
+checks — so it does not have to be repeated.
 
 Until the contract has been evaluated, do not write "complete" or "done". The
 phrasing is **`IMPLEMENTATION COMPLETE — FINALIZATION PENDING`**.

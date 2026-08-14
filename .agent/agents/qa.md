@@ -55,6 +55,51 @@ context update.
 
 ---
 
+## 0. Learn from history first
+
+Before designing scenarios, retrieve what has already gone wrong here:
+
+```bash
+node scripts/retrieve-knowledge.mjs <module> <feature>
+```
+
+Load, **for the modules in scope only**:
+
+- **previous QA runs** (`docs/qa/runs/`) — what was covered, and what was not
+- **regression entries** (`docs/qa/regressions/index.md`)
+- **known bug patterns** (`docs/qa/known-bug-patterns/`)
+- **related failures** in adjacent modules sharing the same abstraction
+- **promoted user corrections** — a `BUG_REGRESSION` or `DOMAIN_RULE` correction
+  is a scenario waiting to be written
+
+**Do not rerun every historical test for every task.** Select by affected module
+and risk. A regression suite that runs everything every time gets skipped when
+it is slow, which is worse than a smaller one that always runs.
+
+Include historical regressions **where the change plausibly touches them**, and
+say in the run which you considered and deliberately excluded.
+
+---
+
+## Test types
+
+Name the type of every scenario. Different types prove different things, and
+conflating them is how "tested" comes to mean less than it sounds:
+
+| Type | Proves | Status in this repository |
+|---|---|---|
+| `UNIT` | A function or service behaves in isolation | Available — jest |
+| `INTEGRATION` | Modules work together against real infrastructure | Needs a database — see [`../context/testing-architecture.md`](../context/testing-architecture.md) |
+| `API` | The HTTP contract behaves, authorization included | supertest; the 9 e2e suites need a live DB |
+| `BROWSER_E2E` | A real user flow works in a real browser | **Not available** — no browser tooling installed |
+| `MANUAL_VISUAL` | A human looked at it | Always available; always say when it is all you did |
+| `DEPLOYMENT_SMOKE` | The deployed system responds | [`../../docs/deployment/smoke-tests.md`](../../docs/deployment/smoke-tests.md) |
+
+An unavailable type is recorded as a Known Limitation **with its blocker** —
+never silently omitted, and never phrased so it reads as having run.
+
+---
+
 ## 1. Test design
 
 Derive scenarios from the requirement and the risk areas, not from the diff.
@@ -140,6 +185,43 @@ Verdict is one of:
   explicitly (no live DB, manual check only, scenario not reachable in this
   environment)
 - **FAIL** — a scenario failed, or coverage was not achievable
+
+## 3a. Browser QA, when it becomes available
+
+**Status: no browser automation exists in this repository** — no Playwright, no
+Cypress, no Puppeteer, in any workspace. Web and admin jest run in a node
+environment with no jsdom, so component rendering is not testable either. For UI
+work today, `BROWSER_E2E` is `BLOCKED_INFRASTRUCTURE`, and that goes in Known
+Limitations.
+
+When browser automation is introduced, prefer it for UI tasks, covering — where
+applicable:
+
+route loading · authentication · role-based UI · navigation · tabs · forms ·
+field types · required and read-only · lookups · option sets · validation ·
+empty states · loading states · API failures · responsive behaviour · dialogs
+and drawers · unsaved changes · runtime-generated modules ·
+accessibility-critical keyboard behaviour · regression scenarios
+
+Capture a trace, screenshot or video **only when it adds evidence**. Artifacts
+on every run become noise nobody opens, and bury the one recording that mattered.
+
+## 3b. Database-dependent testing
+
+Integration, e2e and migration tests must run against an **isolated** database.
+Preference order and the current blocker are in
+[`../context/testing-architecture.md`](../context/testing-architecture.md).
+
+**Never** run tests against the production database, and never run destructive
+tests against shared staging.
+
+When no isolated database is reachable, record `DB_E2E = BLOCKED_INFRASTRUCTURE`
+and state plainly which scenarios that leaves unproven. It is not a pass.
+
+For schema or migration work, QA and the Database agent jointly verify: clean
+migration · migration from the previous schema state · seed compatibility ·
+rollback or forward-fix assumptions · tenant isolation · constraints · indexes
+where relevant · destructive operations · representative data compatibility.
 
 ## 4. Bug learning loop
 
