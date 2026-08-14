@@ -16,9 +16,9 @@ property of the environment, not the repository.
 |---|---|---|---|---|---|
 | `GIT` | **AVAILABLE** | `git` 2.45.2 | Integrator | — | Yes — nothing works without it |
 | `REMOTE_GIT` | **AVAILABLE** | `git` over HTTPS; fetch and push verified against `origin` | Integrator | Local-only completion, if policy allows | Yes for shared work |
-| `CI_READ` | **BLOCKED_ACCESS** | none — no `gh`, `api.github.com` returns HTTP 000 | Integrator | Local gates, and **the shared-target merge gate blocks** | **Yes** — blocks merging to shared branches |
+| `CI_READ` | **AVAILABLE** | `gh` 2.97.0, authenticated (keyring), scopes `repo` · `workflow` · `read:org` · `gist`. **Not on `PATH`** — see below | Integrator | — | No longer blocking |
 | `CI_TRIGGER` | **AVAILABLE** | pushing any branch triggers `.github/workflows/ci.yml` | Integrator | — | No |
-| `PR_MANAGEMENT` | **UNAVAILABLE** | none — no `gh` | Integrator | Push the branch; a human opens the PR | No |
+| `PR_MANAGEMENT` | **AVAILABLE** | `gh pr` — list verified; create/update permitted by the `repo` scope and ADMIN repository permission | Integrator | Push the branch; a human opens the PR | No |
 | `BROWSER_AUTOMATION` | **UNAVAILABLE** | none installed in any workspace | QA | `MANUAL_VISUAL`, plus logic extracted and unit-tested | No — recorded as a Known Limitation |
 | `TEST_DATABASE` | **PARTIAL** — CI yes, local no | CI: ephemeral `postgres:16-alpine` service container (`database-migration` required, `database-e2e-report` report-only). Local: nothing — no Docker, no `psql` | Database, QA | Locally, unit tests with mocked Prisma; CI performs the authoritative verification | Yes for schema/migration work, via `DB_CI_STATUS` |
 | `DEPLOYMENT_API` | **UNAVAILABLE** | none — no Render CLI; Render auto-deploys from `main` | Release/DevOps | Prepare and report `DEPLOYMENT_EXECUTION = BLOCKED_BY_ACCESS` | No — but no agent deployment either |
@@ -54,9 +54,28 @@ is honest and expected — it is not a failure, and it is not a pass either.
 
 ---
 
-## The one that blocks
+## `gh` is installed but not on `PATH`
 
-**`CI_READ`.** Everything else degrades gracefully — a missing browser is a
+Verified 2026-08-15: `gh.exe` lives at `C:\Program Files\GitHub CLI\gh.exe` and
+is **not** on the `PATH` of either shell — both were started before the install,
+so they never picked it up. `command -v gh` fails in Git Bash and PowerShell
+alike, which reads exactly like "not installed".
+
+Invoke it by full path until the shells are restarted:
+
+```powershell
+& "C:\Program Files\GitHub CLI\gh.exe" run list --repo taymurisrar/DijiPeople
+```
+
+**`scripts/finalize-agent-task.mjs` still reports `CI_READ` as
+`BLOCKED_BY_ACCESS`** for this reason — it probes `gh --version` through the
+`PATH`. The capability is real; the probe is looking in the wrong place. Fixing
+the probe to fall back to the known install location is the obvious follow-up.
+
+## Previously the one that blocked — now resolved
+
+**`CI_READ` was the single blocking gap** and is now available. Everything else
+degrades gracefully — a missing browser is a
 stated limitation, a missing database is a recorded blocker, absent monitoring
 is a gap in the report. An unreadable CI verdict *stops merges into shared
 branches*, by design, under
@@ -64,22 +83,25 @@ branches*, by design, under
 
 Either capability resolves it; **neither is required alongside the other**:
 
-- **`gh` CLI** — authenticated, `gh run list` / `gh pr checks` readable, or
+- **`gh` CLI** — authenticated, `gh run list` / `gh pr checks` readable ✅, or
 - **GitHub API reachability** — HTTPS to `api.github.com` plus a token with
-  `repo` scope
+  `repo` scope (still blocked from this sandbox: `curl` returns HTTP 000)
 
-Until one exists, `REMOTE_CI_ACCESS = BLOCKED` and the gate holds. **Do not
-bypass it.** The gate is the control; its inconvenience is the point.
+The `gh` route is satisfied, so `REMOTE_CI_ACCESS = AVAILABLE`. Direct HTTP
+remains blocked — `gh` reaches GitHub through its own transport, the same way
+`git` always could.
 
 ---
 
 ## Audit summary
 
+Re-audited 2026-08-15 after `gh` was installed.
+
 | Question | Answer |
 |---|---|
-| **AVAILABLE NOW** | `git`, remote git, CI triggering, Obsidian read + write sync, `dotnet` (gateway), Node 22 / npm 11 |
-| **CONFIGURATION NEEDED** | `CI_READ` — install `gh` or open API access. This is the only blocking gap |
-| **RECOMMENDED NEXT** | An ephemeral PostgreSQL for integration and migration testing; then browser automation for the runtime-driven UI |
+| **AVAILABLE NOW** | `git`, remote git, CI triggering, **CI read**, **PR management**, Obsidian read + write sync, `dotnet` (gateway), Node 22 / npm 11, ephemeral PostgreSQL **in CI** |
+| **CONFIGURATION NEEDED** | Put `gh` on the shell `PATH` (restart the shells), and teach `finalize-agent-task.mjs` to find it. Branch protection still needs a repository admin |
+| **RECOMMENDED NEXT** | Browser automation for the runtime-driven UI — now the largest remaining verification gap |
 | **NOT NEEDED** | Kubernetes tooling, extra cloud CLIs, an observability platform, a second CI system |
 
 Nothing was installed during this audit. Adding Playwright, Docker or a
