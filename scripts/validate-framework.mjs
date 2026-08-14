@@ -533,6 +533,104 @@ if (existsSync(join(ROOT, MATRIX))) {
   check('agent tooling matrix present', false, MATRIX);
 }
 
+// -------------------------------------------------- database test capability
+
+/*
+ * Database work is the one area where mocked evidence looks identical to real
+ * evidence: a mocked Prisma returns whatever it was told, so it can "prove" a
+ * foreign key the schema does not have. These checks verify the real-database
+ * path exists, and that nothing has quietly re-permitted testing against
+ * production.
+ */
+
+const DB_GUARD = 'scripts/assert-test-database.mjs';
+const DB_VERIFY = 'scripts/verify-database.mjs';
+
+check('test-database guard present', existsSync(join(ROOT, DB_GUARD)), DB_GUARD);
+check('database verification script present', existsSync(join(ROOT, DB_VERIFY)), DB_VERIFY);
+
+if (existsSync(join(ROOT, DB_GUARD))) {
+  const guard = read(DB_GUARD);
+  // An allowlist fails closed for unknown hosts; a denylist fails open.
+  check('guard requires a local or CI-service host', /LOCAL_HOSTS|localhost/.test(guard));
+  check('guard rejects managed providers', /neon\.tech/.test(guard) && /render\.com/.test(guard));
+  check('guard rejects production-like database names', /production/.test(guard));
+}
+
+if (existsSync(join(ROOT, DB_VERIFY))) {
+  const verify = read(DB_VERIFY);
+  check('verification uses migrate deploy', /prisma:migrate:deploy/.test(verify));
+  check('verification asserts the target is disposable first', /assert-test-database/.test(verify));
+  check('verification checks migrate status', /prisma:migrate:status/.test(verify));
+  check('verification runs the seed configuration', /seed:config/.test(verify));
+}
+
+const CI_WORKFLOW = '.github/workflows/ci.yml';
+if (existsSync(join(ROOT, CI_WORKFLOW))) {
+  const ci = read(CI_WORKFLOW);
+  check('CI declares a database migration job', /^\s{2}database-migration:/m.test(ci));
+  check('CI runs an ephemeral postgres service', /image:\s*postgres:/.test(ci));
+  check(
+    'the database migration job is inside the required gate',
+    /needs:[\s\S]{0,260}database-migration[\s\S]{0,60}build/.test(ci),
+    'a database gate outside ci-required blocks nothing',
+  );
+  check(
+    'no CI database job points at a managed provider',
+    !/DATABASE_URL:.*(neon\.tech|render\.com|amazonaws|supabase)/.test(ci),
+  );
+  check('CI asserts the test database before migrating', /assert-test-database/.test(ci));
+  check(
+    'CI never runs prisma migrate dev',
+    !/migrate:dev|migrate dev/.test(ci.replace(/^\s*#.*$/gm, '')),
+    '`migrate dev` is interactive, can author migrations, and can reset the database',
+  );
+}
+
+if (existsSync(join(ROOT, '.agent/agents/database.md'))) {
+  const db = read('.agent/agents/database.md');
+  for (const field of [
+    'MIGRATION_STATIC_REVIEW',
+    'FRESH_DB_MIGRATION',
+    'DATABASE_INTEGRATION_TEST',
+    'SEED_VALIDATION',
+    'ROLLBACK_CLASSIFICATION',
+    'DATA_COMPATIBILITY_CHECK',
+  ]) {
+    check(`database agent requires ${field}`, db.includes(field));
+  }
+  check('database agent declares DB_VALIDATION blocking', db.includes('DB_VALIDATION'));
+  check(
+    'database agent forbids production as a test target',
+    /[Nn]ever.{0,80}production/s.test(db),
+  );
+}
+
+if (existsSync(join(ROOT, '.agent/agents/integrator.md'))) {
+  const integrator = read('.agent/agents/integrator.md');
+  check('integrator declares DB_CI_STATUS', integrator.includes('DB_CI_STATUS'));
+  check(
+    'integrator names the schema files that trigger the DB gate',
+    /schema\.prisma/.test(integrator),
+  );
+}
+
+if (existsSync(join(ROOT, '.agent/agents/qa.md'))) {
+  const qaDb = read('.agent/agents/qa.md');
+  for (const cls of [
+    'MIGRATION_FAILURE',
+    'SEED_FAILURE',
+    'CONSTRAINT_FAILURE',
+    'E2E_PRODUCT_FAILURE',
+    'TEST_INFRA_FAILURE',
+    'TENANT_ISOLATION_FAILURE',
+    'DATA_CLEANUP_FAILURE',
+  ]) {
+    check(`QA classifies ${cls}`, qaDb.includes(cls));
+  }
+  check('QA forbids recording credentials', /[Nn]ever record a connection string/.test(qaDb));
+}
+
 if (existsSync(join(ROOT, '.agent/context/testing-architecture.md'))) {
   const testing = read('.agent/context/testing-architecture.md');
   check(

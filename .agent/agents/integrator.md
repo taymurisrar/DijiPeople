@@ -195,6 +195,38 @@ Never imply CI ran when it did not.
 `node scripts/finalize-agent-task.mjs` classifies the target and prints
 `MERGE_AUTHORIZATION` — but it only ever reports. The Integrator decides.
 
+### The database gate
+
+When a change touches any of:
+
+- `services/api/prisma/schema.prisma`
+- `services/api/prisma/migrations/**`
+- database constraints — foreign keys, uniques, composite keys
+- seed behaviour (`seed-config.ts`, `verify-seed-config.ts`, other seeds)
+
+then merging into a shared target additionally requires:
+
+```
+DB_CI_STATUS = PASS      (the `database-migration` job)
+```
+
+That job applies the **entire committed migration history to an empty
+PostgreSQL**, confirms the schema fully migrated, then runs `seed:config` and
+`seed:verify`. It sits inside `ci-required`, so a red database gate already
+blocks the aggregate check — `DB_CI_STATUS` names it explicitly because "CI was
+green" is not a specific enough claim for a schema change.
+
+`database-e2e-report` is **report-only** and does not block. Promotion criteria
+are in the workflow and in
+[`../../docs/development/ci.md`](../../docs/development/ci.md).
+
+Where the change touches none of the above: `DB_CI_STATUS = NOT_REQUIRED`, with
+that reason stated.
+
+**Never weaken a migration to make the gate green.** A failing
+`database-migration` job means the committed history does not apply to a fresh
+database — which is exactly what a new deployment does.
+
 ### Tool access required for full autonomy
 
 | Capability | Needed for |

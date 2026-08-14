@@ -36,8 +36,10 @@ production or staging credentials exist in the workflow.
 | `test-web` | `npm --workspace web run test` | ✅ |
 | `test-admin` | `npm --workspace admin run test` | ✅ |
 | `test-runtime` | `npm run test:runtime-schema` | ✅ |
+| `database-migration` | Ephemeral PostgreSQL → `node scripts/verify-database.mjs` | ✅ |
 | `build` | `npm run build` (needs typecheck + test-api) | ✅ |
-| `ci-required` | Aggregates the eight above | ✅ **the one to require** |
+| `ci-required` | Aggregates the nine above | ✅ **the one to require** |
+| `database-e2e-report` | The 9 e2e suites against an ephemeral PostgreSQL | ❌ report only |
 | `lint-api-report` | `npx eslint` in services/api | ❌ report only |
 | `security-invariant-report` | Dual-permission wiring invariant | ❌ report only |
 
@@ -46,6 +48,61 @@ agent framework fails in seconds rather than minutes.
 
 `build` is gated behind `typecheck` and `test-api` because it is the slowest job
 (~6 minutes locally) — an obvious break should fail fast.
+
+---
+
+## The database jobs
+
+Both use a `postgres:16-alpine` **service container**: created fresh for the
+job, reachable only from it, destroyed with the runner. Nothing persists, so
+there is no cleanup step to forget and no shared state between runs. Service
+containers are per-job, so the two databases cannot collide.
+
+Credentials are synthetic (`ci` / `ci`) and deliberately **not** repository
+secrets — storing them as secrets would imply they protect something.
+
+**`database-migration` (required)** proves what a developer's machine cannot: a
+developer database already holds the schema, so a broken migration history still
+appears to work locally. Applying the whole history to an *empty* database is
+the only thing that tests the history itself.
+
+```
+assert the target is disposable   scripts/assert-test-database.mjs
+  → prisma generate
+  → prisma migrate deploy          never `migrate dev` in CI
+  → prisma migrate status          must report fully applied
+  → seed:config → seed:verify
+```
+
+**`database-e2e-report` (report only)** runs the nine e2e suites against a
+second ephemeral database. It is not required **yet** because those suites have
+never run in CI and have not been observed passing here — requiring them on
+arrival risks a permanently red gate, which trains people to ignore CI.
+
+**Promotion criteria** — move it into `ci-required` when all hold:
+
+1. every suite classified `READY` passes three consecutive runs
+2. suites needing fixtures or environment are fixed, or quarantined by name with
+   the reason recorded in `docs/qa/`
+3. total runtime stays under ~10 minutes
+
+### Database failure classification
+
+`MIGRATION_FAILURE` · `SEED_FAILURE` · `CONSTRAINT_FAILURE` ·
+`E2E_PRODUCT_FAILURE` · `TEST_INFRA_FAILURE` · `TENANT_ISOLATION_FAILURE` ·
+`DATA_CLEANUP_FAILURE`
+
+**Only `TEST_INFRA_FAILURE` may be retried.** A migration that fails
+intermittently has a real ordering problem, and retrying hides it. Never weaken
+a migration to make the gate green.
+
+### Not yet automated
+
+**Upgrade-from-previous-schema.** `database-migration` proves a *new*
+installation works; it does not prove an *existing* database upgrades cleanly,
+which is the case that actually breaks. The manual procedure is in
+[`../../.agent/agents/database.md`](../../.agent/agents/database.md); automating
+it is the next step for this job.
 
 ---
 
