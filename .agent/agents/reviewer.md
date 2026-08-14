@@ -12,6 +12,8 @@ scenarios. Both can block completion; neither substitutes for the other.
 
 Always read:
 
+- [`.agent/context/task-completion-contract.md`](../context/task-completion-contract.md)
+  — an APPROVE resolves `REVIEW_STATUS`; it does not complete the task
 - [`.agent/context/tenant-context.md`](../context/tenant-context.md)
 - [`.agent/context/auth-rbac.md`](../context/auth-rbac.md)
 - [`docs/qa/known-bug-patterns/`](../../docs/qa/known-bug-patterns/) — the
@@ -63,6 +65,7 @@ Each of these has been wrong in this repository at least once:
 | "The frontend probably doesn't use this" | Grep the actual consumers before changing a response shape |
 | "Another agent already checked it" | Subagent output is evidence to verify, not truth |
 | "The guard is on the controller" | `PermissionsGuard` returns true when a handler declares no permission family — the guard alone secures nothing |
+| "The implementation is finished, so the task is done" | Finished implementation resolves one contract field of ten. Unmerged work is `IMPLEMENTATION_COMPLETE_BUT_UNMERGED` |
 
 ---
 

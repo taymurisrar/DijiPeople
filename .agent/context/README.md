@@ -11,6 +11,7 @@ and states what a specialist must verify before changing that layer.
 
 | File | Primary readers |
 |---|---|
+| [`task-completion-contract.md`](task-completion-contract.md) | **Everyone — defines when a task may be called complete** |
 | [`system-overview.md`](system-overview.md) | Everyone |
 | [`repo-map.md`](repo-map.md) | Everyone |
 | [`backend-architecture.md`](backend-architecture.md) | Backend/API, Architect |

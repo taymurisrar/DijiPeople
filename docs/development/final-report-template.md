@@ -112,3 +112,40 @@ Explicitly out of scope, so nobody assumes it was handled.
 ## Recommended Next Step
 
 **One** recommendation, justified by impact — not a list.
+
+## Task Finalization
+
+**Mandatory.** Every substantial task ends with this block. It is what makes the
+difference between "the code is written" and "the work landed" visible at a
+glance, and `scripts/validate-framework.mjs` fails if this section is removed.
+
+Generate the facts with `node scripts/finalize-agent-task.mjs`, then evaluate
+them against
+[`.agent/context/task-completion-contract.md`](../../.agent/context/task-completion-contract.md).
+
+```
+TASK_STATUS:
+TARGET_BRANCH:
+TASK_BRANCH:
+BASE_SHA:
+FINAL_TASK_SHA:
+MERGE_SHA:
+FINAL_TARGET_SHA:
+REMOTE_PUSH:
+REMOTE_CI:
+POST_MERGE_VALIDATION:
+QA_REPORT:
+KNOWLEDGE_CAPTURE:
+OBSIDIAN_SYNC:
+WORKTREE_CLEANUP:
+BRANCH_CLEANUP:
+```
+
+**If any field is unresolved, explain why** — in the field itself, not in a
+footnote. An unresolved field is a legitimate outcome; an omitted one is a false
+report.
+
+`TASK_STATUS` is one of `COMPLETE`, `COMPLETE_WITH_UNVERIFIED_CI`,
+`COMPLETE_WITH_DOCUMENTATION_WARNING`, `IMPLEMENTATION_COMPLETE_BUT_UNMERGED`,
+`BLOCKED_FINALIZATION`, `BLOCKED` or `FAILED`. It is never asserted before the
+contract has been evaluated.

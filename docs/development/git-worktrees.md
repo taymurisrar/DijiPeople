@@ -243,9 +243,14 @@ Therefore:
 6. The `INTEGRATION` task lands last, on one branch, and runs the full
    validation set before the PR is opened.
 7. Open a PR into `main` (or `develop`, if the team is running a release branch
-   for that work). Because there is no CI, **the PR description must state which
-   validation commands were run and their results.**
-8. After merge: remove the worktree, delete the branch, `git worktree prune`.
+   for that work). CI runs the `CI required gate` check on the pushed commit.
+   **The PR description must still state which local validation commands were
+   run and their results**, because CI does not cover e2e, migration application
+   or the .NET gateway — see [`ci.md`](ci.md).
+8. After merge: validate the merged SHA, capture knowledge, sync Obsidian, then
+   remove the worktree, delete the branch and `git worktree prune`. The full
+   sequence is in
+   [`../../.agent/context/task-completion-contract.md`](../../.agent/context/task-completion-contract.md).
 
 ---
 
