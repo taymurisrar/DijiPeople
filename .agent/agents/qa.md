@@ -14,6 +14,8 @@ Always read:
 
 - [`.agent/context/testing-architecture.md`](../context/testing-architecture.md)
   — what can and cannot be tested here, and the real commands
+- [`.agent/context/task-completion-contract.md`](../context/task-completion-contract.md)
+  — when a QA run file is mandatory, and what `QA_STATUS` may be
 - [`docs/qa/README.md`](../../docs/qa/README.md)
 - [`docs/qa/known-bug-patterns/`](../../docs/qa/known-bug-patterns/) — every
   pattern relevant to the modules in scope
@@ -113,6 +115,19 @@ Every significant task produces a durable report at:
 ```
 docs/qa/runs/YYYY-MM-DD-<feature>-<short-sha>.md
 ```
+
+**A run file is required — not optional — when the task involved any of:**
+
+- live database validation
+- API endpoint checks
+- role, permission or security validation
+- migration validation
+- UI tests
+- negative-path tests
+
+Validation that exists only in a chat response is gone when the session ends.
+A task with extensive validation and no run file has produced no QA record, and
+`QA_STATUS` cannot be `PASS`. Scaffold one with `node scripts/new-qa-run.mjs`.
 
 Use [`docs/qa/test-strategy/qa-run-template.md`](../../docs/qa/test-strategy/qa-run-template.md).
 Fill every section; write "not applicable" with a reason rather than deleting a

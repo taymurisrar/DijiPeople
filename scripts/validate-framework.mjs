@@ -133,8 +133,10 @@ const REQUIRED_PATHS = [
   'docs/development/agent-orchestration.md',
   'docs/development/git-worktrees.md',
   'docs/development/obsidian-workflow.md',
+  'docs/development/final-report-template.md',
   'scripts/sync-obsidian.mjs',
   'scripts/new-qa-run.mjs',
+  'scripts/finalize-agent-task.mjs',
   '.obsidian-sync.example.json',
 ];
 
@@ -147,6 +149,190 @@ const patterns = markdownFilesIn('docs/qa/known-bug-patterns').filter(
   (f) => !f.endsWith('README.md'),
 );
 check('known bug patterns exist', patterns.length > 0, `found ${patterns.length}`);
+
+// ------------------------------------------------------ task completion contract
+
+/*
+ * These checks exist because the framework's definition of done once ended at
+ * "implementation + review + QA", and a completed task was therefore allowed to
+ * report success while a new API module, a migration and ten deleted components
+ * sat uncommitted in a working tree.
+ *
+ * Documenting the fix is not enough — the previous wording was also documented.
+ * If the contract is deleted, hollowed out, unreferenced, or its post-merge
+ * ordering is scrambled, this fails.
+ */
+
+const CONTRACT = '.agent/context/task-completion-contract.md';
+const contractExists = existsSync(join(ROOT, CONTRACT));
+check('task completion contract present', contractExists, CONTRACT);
+
+const REQUIRED_COMPLETION_FIELDS = [
+  'IMPLEMENTATION_STATUS',
+  'LOCAL_VALIDATION_STATUS',
+  'QA_STATUS',
+  'REVIEW_STATUS',
+  'REMOTE_CI_STATUS',
+  'MERGE_STATUS',
+  'POST_MERGE_VALIDATION_STATUS',
+  'KNOWLEDGE_CAPTURE_STATUS',
+  'OBSIDIAN_SYNC_STATUS',
+  'CLEANUP_STATUS',
+];
+
+const REQUIRED_TASK_STATES = [
+  'RECEIVED',
+  'ANALYZING',
+  'PLANNED',
+  'IMPLEMENTING',
+  'VALIDATING',
+  'QA',
+  'REVIEW',
+  'INTEGRATING',
+  'WAITING_FOR_CI',
+  'MERGING',
+  'POST_MERGE_VALIDATION',
+  'CAPTURING_KNOWLEDGE',
+  'SYNCING_OBSIDIAN',
+  'CLEANING_UP',
+  'COMPLETE',
+  'BLOCKED',
+  'FAILED',
+];
+
+if (contractExists) {
+  const contract = read(CONTRACT);
+
+  for (const field of REQUIRED_COMPLETION_FIELDS) {
+    check(`contract declares ${field}`, contract.includes(field));
+  }
+
+  for (const state of REQUIRED_TASK_STATES) {
+    check(`contract declares state ${state}`, contract.includes(state));
+  }
+
+  // The qualified terminal states are the whole point: without them an agent
+  // rounds a blocked finalization up to "complete".
+  for (const state of [
+    'BLOCKED_FINALIZATION',
+    'IMPLEMENTATION_COMPLETE_BUT_UNMERGED',
+    'COMPLETE_WITH_DOCUMENTATION_WARNING',
+    'SKIPPED_NO_LOCAL_CONFIG',
+  ]) {
+    check(`contract declares outcome ${state}`, contract.includes(state));
+  }
+
+  check(
+    'contract forbids ASSUMED_PASS',
+    /ASSUMED_PASS/.test(contract) && /forbidden|not a value|Not allowed/i.test(contract),
+    'the prohibition must be stated, not merely implied by omission',
+  );
+
+  check(
+    'contract requires the finalization-pending phrasing',
+    contract.includes('IMPLEMENTATION COMPLETE — FINALIZATION PENDING'),
+  );
+
+  /*
+   * Ordering is a correctness property, not prose. Knowledge must describe the
+   * code that actually landed, and Obsidian must publish captured knowledge —
+   * so the first mention of each phase has to appear in lifecycle order.
+   */
+  const ORDERED_PHASES = [
+    'MERGE',
+    'POST_MERGE_VALIDATION',
+    'KNOWLEDGE CAPTURE',
+    'OBSIDIAN SYNC',
+    'CLEANUP',
+  ];
+  const positions = ORDERED_PHASES.map((phase) => contract.indexOf(phase));
+  check(
+    'contract lifecycle names every ordered phase',
+    positions.every((p) => p !== -1),
+    ORDERED_PHASES.filter((_, i) => positions[i] === -1).join(', ') || '',
+  );
+  check(
+    'contract orders merge → post-merge validation → knowledge → Obsidian → cleanup',
+    positions.every((p, i) => i === 0 || (p !== -1 && p > positions[i - 1])),
+    'knowledge must be captured after the merge, and synced after being captured',
+  );
+}
+
+// Every role and orchestration document that can declare a task finished must
+// point at the contract, or it will keep declaring it its own way.
+const CONTRACT_REFERENCES = [
+  'AGENTS.md',
+  '.agent/agents/README.md',
+  '.agent/agents/architect.md',
+  '.agent/agents/qa.md',
+  '.agent/agents/reviewer.md',
+  '.agent/agents/integrator.md',
+  '.agent/agents/release-devops.md',
+  'docs/development/agent-orchestration.md',
+];
+
+for (const file of CONTRACT_REFERENCES) {
+  if (!existsSync(join(ROOT, file))) continue;
+  check(
+    `${file} references the task completion contract`,
+    read(file).includes('task-completion-contract'),
+  );
+}
+
+/*
+ * The specific regression: a document asserting when a task is complete, while
+ * listing fewer gates than the contract. The old sentence — "complete only when
+ * IMPLEMENTATION, REVIEW and QA are all complete" — is exactly this shape.
+ */
+const COMPLETENESS_CLAIM = /(?:task is complete|complete only when|is complete only)/gi;
+
+for (const file of ['AGENTS.md', '.agent/agents/README.md', 'docs/development/agent-orchestration.md']) {
+  if (!existsSync(join(ROOT, file))) continue;
+  const body = read(file);
+
+  for (const match of body.matchAll(COMPLETENESS_CLAIM)) {
+    /*
+     * Check the CLAIM, not the file. An earlier version of this asserted only
+     * that the file mentioned all ten fields somewhere — which a compliant file
+     * always does, so appending "a task is complete when implementation, review
+     * and QA are done" passed cleanly. The window is what makes the claim
+     * itself accountable.
+     */
+    const window = body.slice(match.index, match.index + 600);
+    const namesFields = REQUIRED_COMPLETION_FIELDS.filter((f) => window.includes(f)).length;
+    check(
+      `${file} completeness claim at offset ${match.index} defers to the contract`,
+      namesFields >= 5 || window.includes('task-completion-contract'),
+      'a claim about task completeness must enumerate the contract fields or link the contract',
+    );
+  }
+}
+
+// The final report is where finalization becomes visible to a human.
+const REPORT_TEMPLATE = 'docs/development/final-report-template.md';
+if (existsSync(join(ROOT, REPORT_TEMPLATE))) {
+  const template = read(REPORT_TEMPLATE);
+  check('report template has a Task Finalization section', template.includes('## Task Finalization'));
+  for (const field of [
+    'TASK_STATUS',
+    'TARGET_BRANCH',
+    'TASK_BRANCH',
+    'BASE_SHA',
+    'FINAL_TASK_SHA',
+    'MERGE_SHA',
+    'FINAL_TARGET_SHA',
+    'REMOTE_PUSH',
+    'REMOTE_CI',
+    'POST_MERGE_VALIDATION',
+    'QA_REPORT',
+    'KNOWLEDGE_CAPTURE',
+    'OBSIDIAN_SYNC',
+    'WORKTREE_CLEANUP',
+    'BRANCH_CLEANUP',
+  ]) {
+    check(`report template requires ${field}`, template.includes(field));
+  }
+}
 
 // ------------------------------------------------------------------- secrets
 
@@ -207,7 +393,11 @@ for (const file of [
 
 // -------------------------------------------------------------- script syntax
 
-for (const script of ['scripts/sync-obsidian.mjs', 'scripts/new-qa-run.mjs']) {
+for (const script of [
+  'scripts/sync-obsidian.mjs',
+  'scripts/new-qa-run.mjs',
+  'scripts/finalize-agent-task.mjs',
+]) {
   if (!existsSync(join(ROOT, script))) continue;
   const body = read(script);
   // Cheap structural sanity: these are ES modules and must not have been

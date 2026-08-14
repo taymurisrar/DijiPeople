@@ -40,13 +40,23 @@ it exists to provide.
 - **Reviewer does not edit.** A reviewer that fixes what it finds is no longer
   independent.
 
-A task is complete only when all three are true:
+All three finishing means the **work** is sound. It does not mean the **task**
+is finished — that is defined by
+[`.agent/context/task-completion-contract.md`](../context/task-completion-contract.md),
+which additionally requires merge, post-merge validation, knowledge capture,
+Obsidian sync and cleanup:
 
 ```
-IMPLEMENTATION COMPLETE
-REVIEW COMPLETE
-QA COMPLETE
+IMPLEMENTATION_STATUS          REMOTE_CI_STATUS               OBSIDIAN_SYNC_STATUS
+LOCAL_VALIDATION_STATUS        MERGE_STATUS                   CLEANUP_STATUS
+QA_STATUS                      POST_MERGE_VALIDATION_STATUS
+REVIEW_STATUS                  KNOWLEDGE_CAPTURE_STATUS
 ```
+
+> This document used to stop at the first three. That wording is precisely what
+> allowed a finished tenant control-plane implementation — a new API module, a
+> migration, ten replaced components — to be reported as complete while it sat
+> uncommitted in a working tree.
 
 ---
 
@@ -65,7 +75,7 @@ documentation nobody reads and hides the roles that mattered.
 | Device/gateway/webhook work | Architect → Integration → QA → Reviewer |
 | Authorization change | Architect → Backend/API (+ `authorization-dry-run`) → QA → Reviewer |
 | Copy or styling fix | Frontend → Reviewer |
-| Merging any task | + Integrator |
+| **Any task that modified tracked files** | **+ Integrator — mandatory, not on request** |
 | Anything reaching an environment | + Release/DevOps |
 
 UI/UX is invoked when there is a genuine experience decision — not for adding a
@@ -79,13 +89,19 @@ field to an existing runtime spec.
 Request
   → Architect (plan, agent selection, task classification)
   → specialists implement on agent/<feature>-<scope> branches
+  → local validation
   → QA (independent scenarios, documented run)
   → Reviewer (independent findings)
-  → Integration (single owner, combined validation)
+  → Integrator (push, CI verdict, conflict classification, merge)
+  → post-merge validation against the merged SHA
   → Knowledge capture → docs/knowledge/
   → Obsidian sync
-  → Final report
+  → worktree and branch cleanup
+  → Final report, ending in ## Task Finalization
 ```
+
+Every phase from the Integrator onwards is **mandatory for any task that
+modified Git-tracked files**, and runs without being asked for.
 
 ---
 
@@ -115,5 +131,6 @@ worse than none — which is exactly what happened to the duplicated
 `apps/*/AGENTS.md` files this framework replaced.
 
 Candidates deliberately **not** created yet: security specialist (the Reviewer
-carries the security checklist), DevOps (no CI exists), knowledge-writer
-(implemented as a Skill instead).
+carries the security checklist) and knowledge-writer (implemented as a Skill
+instead). DevOps was on this list while no CI existed; it is now the
+Release/DevOps role above.

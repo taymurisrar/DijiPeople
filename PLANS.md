@@ -210,7 +210,7 @@ DEPLOYMENT_ORDER:         e.g. database -> api -> web
 ROLLBACK_CLASS:           CODE_ONLY | CONFIG | DATABASE_ADDITIVE |
                           DATABASE_DESTRUCTIVE | DATA_MIGRATION |
                           EXTERNAL_INTEGRATION | MULTI_COMPONENT_CONTRACT
-INTEGRATOR_REQUIRED:      yes | no
+INTEGRATOR_REQUIRED:      yes   (mandatory for ANY task modifying tracked files)
 RELEASE_DEVOPS_REQUIRED:  yes | no
 POST_DEPLOY_QA_REQUIRED:  yes | no
 MERGE_STRATEGY:           merge --no-ff | rebase   (never force push)
@@ -223,6 +223,12 @@ ENVIRONMENT_DEPENDENCIES: new or changed env vars, and where they must be
 `ROLLBACK_CLASS` is decided during planning, not after something breaks. A plan
 proposing a destructive migration must say so here, because that single field
 determines whether the release can be undone at all.
+
+`INTEGRATOR_REQUIRED` is **not a judgement call**. Any plan whose execution will
+modify a Git-tracked file sets it to `yes`, whether or not the request mentioned
+Git. A plan that leaves it `no` is asserting the work will never be committed.
+See
+[`.agent/context/task-completion-contract.md`](.agent/context/task-completion-contract.md).
 
 `SINGLE_WRITER_FILES` is not advisory. Any task touching one of these is
 `DEPENDENCY_BLOCKED` for every other task, by definition:

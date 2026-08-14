@@ -64,13 +64,52 @@ CLEANUP ────── remove temporary worktrees, delete merged local branc
 FINAL REPORT ─ docs/development/final-report-template.md
 ```
 
-A task is complete only when **IMPLEMENTATION**, **REVIEW** and **QA** are all
-complete. Any of the three can block.
-
 Integration and release are separate stages with their own gates — see
 [`.agent/agents/integrator.md`](../../.agent/agents/integrator.md) and
 [`.agent/agents/release-devops.md`](../../.agent/agents/release-devops.md).
 Neither runs on a task whose QA verdict is FAIL.
+
+---
+
+## What `DijiPeople Task:` means
+
+A prompt beginning `DijiPeople Task:` requests the **complete engineering
+lifecycle**, Git finalization and knowledge synchronisation included. The user
+should never have to append "push it", "merge it", "sync Obsidian" or "clean the
+worktree" — those are phases of the task, not extras to be requested.
+
+The Integrator runs because the task **modified Git-tracked files**, never
+because the prompt asked for Git operations.
+
+## Completion is defined by the contract
+
+Implementation, review and QA finishing is **not** completion. It once was, and
+the result was a task that reported success while a new API module, a migration
+and ten deleted components sat uncommitted in a working tree. The capability was
+never missing — the definition of done simply ended before finalization began.
+
+Completion is now defined by
+[`.agent/context/task-completion-contract.md`](../../.agent/context/task-completion-contract.md),
+enforced by `scripts/validate-framework.mjs`. A task is complete only when every
+one of these is resolved:
+
+```
+IMPLEMENTATION_STATUS          REMOTE_CI_STATUS               OBSIDIAN_SYNC_STATUS
+LOCAL_VALIDATION_STATUS        MERGE_STATUS                   CLEANUP_STATUS
+QA_STATUS                      POST_MERGE_VALIDATION_STATUS
+REVIEW_STATUS                  KNOWLEDGE_CAPTURE_STATUS
+```
+
+Resolved means `PASS`, `DONE`, `NOT_REQUIRED` (with a stated reason),
+`BLOCKED_<REASON>` or `FAILED`. Never `ASSUMED_PASS`, and never omitted.
+
+Until the contract has been evaluated, the phrasing is
+**`IMPLEMENTATION COMPLETE — FINALIZATION PENDING`** — not "done".
+
+Run `node scripts/finalize-agent-task.mjs` to collect the finalization facts:
+SHAs, push parity verified against the remote refs, CI observability, QA and
+knowledge presence, Obsidian sync, and cleanup candidates. It reports; it never
+merges, pushes or deletes.
 
 ---
 

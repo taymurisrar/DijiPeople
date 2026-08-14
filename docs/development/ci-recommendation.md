@@ -1,22 +1,22 @@
-# CI Recommendation
+# CI Roadmap
 
-**Status: recommendation only. No CI has been implemented.**
+**Status: Phase 1 implemented.** This document is now the roadmap for what CI
+does *not* yet cover — it is no longer a proposal for CI itself.
 
-There is no `.github/` directory in this repository. That was verified, not
-assumed. Nothing runs lint, typecheck or tests automatically on push or pull
-request — every validation this framework describes runs only because a human or
-an agent chooses to run it.
+What shipped is described in [`ci.md`](ci.md): `.github/workflows/ci.yml`, eight
+required jobs aggregated behind a single `CI required gate` check, and two
+non-gating known baselines with written promotion paths.
 
-CI was deliberately **not** built as part of the framework task. Introducing it
-changes the development process for everyone, needs a decision about where it
-runs and who pays for it, and would have meant committing workflow files that
-nobody had agreed to. That is its own decision, with its own ExecPlan.
+What remains is below: the checks deliberately left out of Phase 1 — e2e against
+an ephemeral database, migration application, the .NET gateway, Electron
+packaging — and the conditions under which each should be added.
 
 ---
 
-## Why it matters here more than usual
+## Why it mattered here more than usual
 
-Three properties of this repository make the absence expensive:
+Three properties of this repository made the absence expensive, and they are the
+same three that make the remaining gaps worth closing:
 
 1. **Uneven test coverage.** Defect classes that actually ship here — a missing
    tenant filter, a half-declared permission, a fail-open scope — were invisible

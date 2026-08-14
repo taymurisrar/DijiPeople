@@ -11,6 +11,9 @@ explicit statement of which specialist agents the work actually needs.
 
 Always read:
 
+- [`.agent/context/task-completion-contract.md`](../context/task-completion-contract.md)
+  — the lifecycle the plan must schedule through to finalization, not to
+  implementation
 - [`.agent/context/system-overview.md`](../context/system-overview.md)
 - [`.agent/context/repo-map.md`](../context/repo-map.md)
 - [`.agent/context/testing-architecture.md`](../context/testing-architecture.md)
@@ -140,6 +143,17 @@ Rank them. Always assess, for this repository:
 State what QA must prove, not just which tests to run: the scenarios, the roles,
 the tenant-isolation cases, the regression entries to re-check. QA designs its
 own scenarios, but the plan states the risk areas it must cover.
+
+### 10. Finalization planning
+The plan runs to a landed change, not to a written one. State the
+`TARGET_BRANCH`, the merge strategy, whether post-merge validation needs
+anything beyond the standard set, and which knowledge categories the task is
+likely to produce.
+
+`INTEGRATOR_REQUIRED` is **yes** for any task that will modify Git-tracked
+files. Marking it `no` because the request did not mention Git is the planning
+error that produced
+[`../context/task-completion-contract.md`](../context/task-completion-contract.md).
 
 ---
 

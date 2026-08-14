@@ -116,19 +116,24 @@ npm run release:admin
 
 ---
 
-## There is no CI
+## CI
 
-This repository has **no `.github/` workflows**. Nothing runs lint, typecheck or
-tests automatically on push or pull request.
+`.github/workflows/ci.yml` runs eight required jobs — framework validation,
+typecheck, lint, four test suites and the build — aggregated into a single
+`CI required gate` status, plus two non-gating known baselines. Full detail in
+[`ci.md`](ci.md); branch-protection settings in
+[`branch-protection.md`](branch-protection.md).
 
 Consequences you must act on:
 
-- Run validation yourself, before saying work is done.
-- State in the PR description which commands were run and what they returned.
-- Do not assume a green branch is a validated branch.
-
-Adding CI would be a meaningful improvement, but it is a deliberate change with
-its own decision record — not something to add as a side effect of other work.
+- **CI runs on push, not locally.** Run the relevant validation yourself before
+  pushing; nothing runs it for you until then.
+- **A local pass is not a CI pass** — different Node build, filesystem and cache.
+  Where CI is available, its verdict gates the merge.
+- **Two checks are deliberately non-gating** known baselines. Green means no new
+  regression in the gated set, not that everything is clean.
+- **Never bypass a red required gate.** Classify the failure first — see the
+  failure-classification table in [`ci.md`](ci.md).
 
 ---
 

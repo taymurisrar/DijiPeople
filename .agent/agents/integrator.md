@@ -5,10 +5,18 @@ Owns Git: branches, worktrees, conflict resolution, merges, cleanup.
 The Integrator owns **mechanics, not meaning**. It never decides what the
 product should do. When a conflict encodes a product decision, it stops.
 
+**The Integrator is mandatory for every substantial task that modifies
+Git-tracked files.** It runs because tracked files changed — never because the
+prompt asked for Git operations. A task whose implementation is finished and
+whose Integrator never ran is not a completed task; it is
+`IMPLEMENTATION_COMPLETE_BUT_UNMERGED` at best.
+
 ---
 
 ## Required Context
 
+- [`.agent/context/task-completion-contract.md`](../context/task-completion-contract.md)
+  — **the authority on when a task may be called complete**
 - [`.agent/context/repo-map.md`](../context/repo-map.md)
 - [`.agent/context/testing-architecture.md`](../context/testing-architecture.md)
 - [`docs/development/git-worktrees.md`](../../docs/development/git-worktrees.md)
@@ -169,6 +177,10 @@ DEPLOYMENT_READINESS >= READY_FOR_STAGING
 **Implementation being complete is not sufficient.** A QA FAIL or an unresolved
 CRITICAL blocks the merge regardless of how finished the code looks.
 
+Equally, **a merge is not completion.** The merge satisfies `MERGE_STATUS`; six
+other contract fields remain. See
+[`../context/task-completion-contract.md`](../context/task-completion-contract.md).
+
 ---
 
 ## Standard lifecycle
@@ -185,6 +197,65 @@ CRITICAL blocks the merge regardless of how finished the code looks.
 10. Knowledge capture; Obsidian sync if configured.
 11. Remove clean temporary worktrees; delete merged local branches.
 12. Leave remote branches per repository policy.
+
+---
+
+## Task-end finalization — always runs
+
+At the end of every task that touched tracked files, work this sequence. Steps
+that do not apply are recorded as `NOT_REQUIRED` with a reason; none is skipped
+in silence.
+
+1. **Inspect** the current task branch and worktree.
+2. **Verify every task change is committed** — an uncommitted file at this point
+   is the exact failure this sequence exists to catch.
+3. **Identify the target branch** (the plan's `TARGET_BRANCH`, else `main`).
+4. **Fetch the remote**, if one exists.
+5. **Compare against the target** — divergence, ahead/behind, conflicts.
+6. **Reconcile target divergence** by rebasing or merging the target in, then
+   re-validate. Never merge stale work on a stale green.
+7. **Push the task branch** when a remote is configured.
+8. **Wait for required CI**, when it is configured and observable.
+9. **Merge automatically** once every gate passes.
+10. **Push the target branch**, where policy allows.
+11. **Validate the merged SHA** — see post-merge validation in the contract.
+12. **Clean the task worktree**, verifying it is clean first.
+13. **Delete safely merged local task branches**, where policy permits.
+14. **Report every SHA**: base, final task, merge, final target, and both remote
+    refs.
+
+`node scripts/finalize-agent-task.mjs` collects the facts for steps 1–5 and
+11–14 in one pass. It reports only — it never merges, pushes or deletes, because
+a script that acts on a checklist acts on a wrong checklist just as readily.
+
+### Remote rules
+
+If a remote exists, **do not stop after local commits.** Attempt fetch, push,
+CI observation, merge and target push in that order.
+
+When authentication, network or policy blocks any of them, record:
+
+```
+GIT_FINALIZATION = BLOCKED_BY_ACCESS
+```
+
+with the **exact command that was blocked and its output**, and set
+`TASK_STATUS = BLOCKED_FINALIZATION`. Do not call the task complete.
+
+Local-only completion is legitimate **only** when no remote exists or repository
+policy declares a local-only workflow. A remote that exists while push was never
+attempted is a framework failure, not a local-only task.
+
+### Push is verified, never inferred
+
+Git's output is reassuring even when it should not be. Compare the refs:
+
+```bash
+git rev-parse <task-branch>        vs   git rev-parse origin/<task-branch>
+git rev-parse <target>             vs   git rev-parse origin/<target>
+```
+
+A push whose remote SHA was never read is `BLOCKED_<REASON>`, not `DONE`.
 
 ---
 

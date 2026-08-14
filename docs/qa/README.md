@@ -78,6 +78,26 @@ decoration.
 The Architect states `QA_REQUIRED` in the plan. When in doubt, run it — an
 unnecessary QA run costs minutes; a missing one costs an incident.
 
+### A run **file** is required whenever validation actually happened
+
+Independently of the table above, write a file under `docs/qa/runs/` if the task
+involved any of:
+
+- live database validation
+- API endpoint checks
+- role, permission or security validation
+- migration validation
+- UI tests
+- negative-path tests
+
+**Validation reported only in a chat response is not a QA record** — it is gone
+when the session ends, and the next agent working the same module has nothing to
+read. A task with extensive validation and no run file cannot record
+`QA_STATUS = PASS` under
+[`.agent/context/task-completion-contract.md`](../../.agent/context/task-completion-contract.md).
+
+Scaffold one with `node scripts/new-qa-run.mjs`.
+
 ---
 
 ## Filenames
