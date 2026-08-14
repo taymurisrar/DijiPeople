@@ -8,6 +8,7 @@ import {
   UseGuards,
   BadRequestException,
 } from '@nestjs/common';
+import { PERMISSION_KEYS } from '../../common/constants/permissions';
 import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import {
@@ -130,9 +131,39 @@ export class TenantSettingsController {
     return this.service.getTenantFeatures(user.tenantId);
   }
 
+  /*
+   * The application's own view of which features are switched on. Every
+   * authenticated user needs it: the authenticated layout fetches this on each
+   * page and passes enabledKeys down to decide what the navigation renders.
+   *
+   * It declared no permission at all, which made it an unguarded alias for
+   * GET /tenant-settings/features above -- PermissionsGuard returns true
+   * outright when a handler declares neither permission family, so the same
+   * payload was readable without settings.read.
+   *
+   * settings.read is deliberately not used here. The seeded employee role does
+   * not hold it, so requiring it would return 403 to every ordinary user on
+   * every page load and silently blank out feature-gated navigation.
+   * tenant-settings.resolved.read is the key that already exists for exactly
+   * this purpose -- resolved tenant configuration for ordinary application
+   * users -- and is seeded to employee, manager, hr and recruiter, as well as
+   * being a foundation permission so elevated roles and the tenant owner hold
+   * it too. It had no call sites until now.
+   *
+   * The subscription block is dropped rather than forwarded. It carries
+   * finalPrice, currency and billingCycle -- what the tenant pays DijiPeople --
+   * which the settings screen behind GET /tenant-settings/features may show to
+   * a settings administrator, but which no ordinary employee needs to render a
+   * menu. The layout reads only enabledKeys.
+   */
   @Get('features/availability')
+  @Permissions(PERMISSION_KEYS.TENANT_SETTINGS_RESOLVED_READ)
   async getFeatureAvailability(@CurrentUser() user: AuthenticatedUser) {
-    return this.service.getTenantFeatures(user.tenantId);
+    const { items, enabledKeys } = await this.service.getTenantFeatures(
+      user.tenantId,
+    );
+
+    return { items, enabledKeys };
   }
 
   @Patch('features')
