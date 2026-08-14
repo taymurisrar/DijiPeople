@@ -53,7 +53,8 @@ Each of these has been wrong in this repository at least once:
 
 | Claim | Why it is not sufficient |
 |---|---|
-| "The tests pass, so it's correct" | Coverage is uneven and there is no CI; the defect classes that matter here are largely invisible to current tests |
+| "The tests pass, so it's correct" | Coverage is uneven; the defect classes that matter here are largely invisible to current tests. CI now exists, but a green pipeline proves the suites ran, not that the design is sound |
+| "CI is green" | Two checks are non-gating known baselines. Green means no *new* regression in the gated set — not that the change is correct |
 | "A sibling controller does it this way" | The sibling may itself be non-compliant — verify the sibling before copying it |
 | "`tenantId` is included, so it's scoped" | **Tenant filtering is not authorization.** Being in the tenant is not authority to act on the record |
 | "There is an `assertX` method" | Read its body. A name is not behaviour |

@@ -31,8 +31,17 @@ QA ─────────── independent scenarios, documented run in do
 REVIEWER ───── independent findings, CRITICAL → LOW, read-only
      │
      ▼
+PUSH ───────── task branch pushed to origin (when a remote is available)
+     │
+     ▼
+CI ─────────── GitHub Actions: 8 required jobs + 2 report-only baselines
+     │          red required gate → STOP, classify, fix. Never bypass.
+     ▼
 INTEGRATOR ─── classifies every conflict, resolves TYPE 1-2, escalates 3-9
-     │          merges only when every gate passes
+     │          merges only when every gate passes, CI included
+     ▼
+POST-MERGE CI  re-runs on the target branch after the merge lands
+     │
      ▼
 INTEGRATED QA  validation on the merged result, not the branches
      │
@@ -57,6 +66,61 @@ FINAL REPORT ─ docs/development/final-report-template.md
 
 A task is complete only when **IMPLEMENTATION**, **REVIEW** and **QA** are all
 complete. Any of the three can block.
+
+Integration and release are separate stages with their own gates — see
+[`.agent/agents/integrator.md`](../../.agent/agents/integrator.md) and
+[`.agent/agents/release-devops.md`](../../.agent/agents/release-devops.md).
+Neither runs on a task whose QA verdict is FAIL.
+
+---
+
+## CI in the loop
+
+CI is a machine-enforced participant, not a self-report. When a remote is
+available the Integrator pushes the task branch, waits for the
+`CI required gate` check, and merges only if it passed **on that commit**.
+
+- **Red required gate → STOP.** Classify the failure first
+  (`DETERMINISTIC_FAILURE`, `ENVIRONMENT_FAILURE`, `FLAKY_TEST`,
+  `KNOWN_BASELINE`, `EXTERNAL_DEPENDENCY_FAILURE`). Only the last justifies an
+  automatic retry.
+- **No remote, or CI cannot run** → report `REMOTE_CI = UNAVAILABLE`, fall back
+  to local gates, and say so explicitly. Never imply CI ran when it did not.
+- **`security-invariant-report` and `lint-api-report` are non-gating** known
+  baselines — see [`ci.md`](ci.md).
+- **Branch advanced while CI ran** → the run is against a stale base. Rebase or
+  merge the target in, push, and let CI re-run. Do not merge on a green run
+  against an older base; branch protection can enforce this with "require
+  branches to be up to date".
+- **Post-merge CI fails** → treat it as an incident on the target branch, not a
+  task-branch problem. Fix forward or revert the merge; do not start new work on
+  a red target.
+
+---
+
+## Git and deployment autonomy
+
+The user should not normally need to ask for a branch, a worktree, a commit, a
+push, a merge, a readiness check or a cleanup. The orchestration decides:
+
+- **Substantial task** → isolated worktree + `agent/<task>` branch, by default.
+- **Trivial safe change** (copy, comment, docs) → a simpler path is permitted.
+- **Pushing task branches and reading CI** → Integrator, automatically, when a
+  remote and credentials exist.
+- **Merging** → Integrator, once every gate passes, CI included.
+- **Cleanup** → temporary worktrees removed, merged *local* branches deleted;
+  remote branches left per repository policy.
+- **Deployment readiness, ordering, smoke checks and release records** →
+  Release/DevOps.
+
+Never automatic, under any circumstances: force-pushing a shared branch,
+overwriting remote history, deleting an unmerged remote branch, bypassing a
+required check, or merging while required CI is red.
+
+Still requires a human: approving the ExecPlan, accepting a `PASS WITH RISKS`
+QA verdict, and production deployment — which this repository does not yet
+authorise agents to perform (see
+[`../deployment/README.md`](../deployment/README.md)).
 
 ---
 
