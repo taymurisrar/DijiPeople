@@ -69,8 +69,12 @@ const body = template
     `| Environment | working tree ${dirty ? 'DIRTY — record why' : 'clean'}; DB availability: TODO; external services: TODO |`,
   );
 
-// The template's own usage note is guidance for the author, not part of a run.
-const cleaned = body.replace(/^> Copy to[\s\S]*?section is not considered"\.\n\n/m, '');
+/*
+ * Strip the template's own usage note — it is guidance for whoever starts a
+ * run, not part of the record. Matches the leading blockquote block: every
+ * line from the first '>' until the first blank line that follows it.
+ */
+const cleaned = body.replace(/^>.*(?:\r?\n>.*)*\r?\n\r?\n/m, '');
 
 mkdirSync(dirname(target), { recursive: true });
 writeFileSync(target, cleaned);

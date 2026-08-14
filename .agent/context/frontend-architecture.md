@@ -297,8 +297,10 @@ Actual frontend tests: **9 files, all `.spec.ts`.** Web (5):
 
 ## Known exceptions
 
-- **`X-DijiPeople-App` is documentation-only fiction** — five doc files assert a
-  header that does not exist in code.
+- **The auth client header is `X-DijiPeople-App`**, not `x-auth-client-id`. The
+  latter appeared in five documents and zero lines of code; those documents have
+  since been corrected. The API reads `x-dijipeople-app`, falling back to
+  `x-dijipeople-client` then `x-client-id`.
 - **`middleware.ts` does not exist**; it is `proxy.ts`. Landing has none.
 - **`api/teams/route.ts:12-14` fails open** — 200 with an empty list instead of
   403, so callers cannot distinguish "none" from "forbidden".
