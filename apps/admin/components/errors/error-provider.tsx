@@ -20,6 +20,9 @@ import type { PlatformRole } from "@/lib/platform-rbac";
 type DisplayableError = StandardApiError;
 type User = { role?: PlatformRole; roleKeys?: string[] };
 
+// Sign-out is a GET navigation, so /api/auth/logout must keep exporting GET.
+const SIGN_IN_AGAIN_HREF = "/api/auth/logout?reason=session-expired";
+
 const ErrorContext = createContext<{
   error: DisplayableError | null;
   showError: (error: unknown) => void;
@@ -146,6 +149,18 @@ function ErrorModal({
     : error.statusCode === 404
       ? "go-back"
       : "close";
+  // Resolved in an effect because `window` is unavailable while this client
+  // component is rendered on the server; the base href stays valid until then.
+  const [signInHref, setSignInHref] = useState(SIGN_IN_AGAIN_HREF);
+
+  useEffect(() => {
+    if (primary !== "sign-in") return;
+    setSignInHref(
+      `${SIGN_IN_AGAIN_HREF}&next=${encodeURIComponent(
+        `${window.location.pathname}${window.location.search}`,
+      )}`,
+    );
+  }, [primary]);
   async function handleDownload() {
     setIsDownloading(true);
     try {
@@ -213,7 +228,7 @@ function ErrorModal({
           {primary === "sign-in" ? (
             <a
               className="rounded-md bg-slate-950 px-4 py-2 text-sm font-semibold text-white"
-              href="/api/auth/logout?reason=session-expired"
+              href={signInHref}
             >
               Sign in again
             </a>
