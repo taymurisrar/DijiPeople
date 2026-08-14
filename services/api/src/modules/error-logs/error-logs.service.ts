@@ -183,12 +183,31 @@ export class ErrorLogsService implements OnModuleInit, OnModuleDestroy {
 
     if (!log) return null;
 
-    if (this.isSupportUser(user)) {
+    /*
+     * The support roles checked below are *tenant* roles, not platform ones: a
+     * system-admin belongs to exactly one tenant. This branch previously
+     * returned the log on role alone, so anyone holding a support role who
+     * learned a traceId from another tenant could read that tenant's log,
+     * including its request details and path. The owner branch underneath
+     * always compared tenantId; the support branch should have done the same.
+     *
+     * Both branches return null rather than throwing, so a foreign traceId
+     * stays indistinguishable from one that does not exist.
+     *
+     * Logs with no tenantId are platform-scope records (a failed sign-in that
+     * never resolved a tenant, for example). Their existing visibility is left
+     * unchanged so this remains a fix for the cross-tenant leak rather than a
+     * wider behaviour change.
+     */
+    const belongsToCallerTenant =
+      !log.tenantId || log.tenantId === user.tenantId;
+
+    if (belongsToCallerTenant && this.isSupportUser(user)) {
       return log;
     }
 
     if (
-      (!log.tenantId || log.tenantId === user.tenantId) &&
+      belongsToCallerTenant &&
       Boolean(log.userId) &&
       log.userId === user.userId
     ) {
