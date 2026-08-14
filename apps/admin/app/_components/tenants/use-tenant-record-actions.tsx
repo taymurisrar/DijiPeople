@@ -11,6 +11,7 @@ import {
 } from "./tenant-panel-ui";
 import { ReadinessCard } from "./tenant-overview-panel";
 import {
+  describeError,
   tenantRequest,
   type TenantReadiness,
 } from "./tenant-control-plane.client";
@@ -266,9 +267,10 @@ function LifecycleDialog({
                 await onDone();
               } catch (reason_) {
                 setError(
-                  reason_ instanceof Error
-                    ? reason_.message
-                    : "The lifecycle change could not be completed.",
+                  describeError(
+                    reason_,
+                    "The lifecycle change could not be completed.",
+                  ),
                 );
               } finally {
                 setBusy(false);

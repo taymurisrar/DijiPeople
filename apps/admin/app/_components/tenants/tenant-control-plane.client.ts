@@ -435,13 +435,31 @@ export type TenantErasurePreflight = {
   retained: { contracts: number; supportCases: number };
 };
 
+/**
+ * An API failure with the context needed to chase it.
+ *
+ * The API's error envelope already carries a trace id, an error code and a
+ * support reference; reducing it to `message` on the way in threw away the only
+ * things that let someone find the corresponding server log. Everything is kept
+ * here, and `describe()` renders the part an operator should quote.
+ */
 export class TenantControlPlaneError extends Error {
   constructor(
     message: string,
     readonly status: number,
+    readonly traceId?: string,
+    readonly errorCode?: string,
+    readonly description?: string,
+    readonly fieldErrors?: Array<{ field?: string; message: string }>,
   ) {
     super(message);
     this.name = "TenantControlPlaneError";
+  }
+
+  /** The message plus its reference, for display next to a failed action. */
+  describe() {
+    const reference = this.traceId ? ` (reference ${this.traceId})` : "";
+    return `${this.message}${reference}`;
   }
 }
 
@@ -462,11 +480,51 @@ export async function tenantRequest<T>(
   );
   const payload: unknown = await response.json().catch(() => null);
   if (!response.ok) {
-    const message =
-      payload && typeof payload === "object" && "message" in payload
-        ? String((payload as { message: unknown }).message)
+    const envelope = (payload ?? {}) as {
+      message?: unknown;
+      traceId?: unknown;
+      errorCode?: unknown;
+      description?: unknown;
+      fieldErrors?: Array<{ field?: string; message: string }>;
+      support?: { reference?: unknown };
+    };
+    /*
+     * The global validation pipe returns `message` as an array of field errors.
+     * Joining them keeps every failed rule visible instead of showing "[object
+     * Object]" or only the first one.
+     */
+    const message = Array.isArray(envelope.message)
+      ? (envelope.message as string[]).join(" ")
+      : typeof envelope.message === "string" && envelope.message
+        ? envelope.message
         : "The tenant control plane request failed.";
-    throw new TenantControlPlaneError(message, response.status);
+    const error = new TenantControlPlaneError(
+      message,
+      response.status,
+      typeof envelope.traceId === "string"
+        ? envelope.traceId
+        : typeof envelope.support?.reference === "string"
+          ? envelope.support.reference
+          : undefined,
+      typeof envelope.errorCode === "string" ? envelope.errorCode : undefined,
+      typeof envelope.description === "string"
+        ? envelope.description
+        : undefined,
+      envelope.fieldErrors,
+    );
+    /*
+     * Also logged client-side. A failed control-plane action is rare and
+     * consequential, and the browser console is where a developer looks first.
+     */
+    console.error("Tenant control plane request failed", {
+      path,
+      method: init?.method ?? "GET",
+      status: response.status,
+      errorCode: error.errorCode,
+      traceId: error.traceId,
+      message: error.message,
+    });
+    throw error;
   }
   return payload as T;
 }
@@ -507,11 +565,7 @@ export function useTenantResource<T>(
       })
       .catch((reason: unknown) => {
         if (!active) return;
-        setError(
-          reason instanceof Error
-            ? reason.message
-            : "Unable to load this section.",
-        );
+        setError(describeError(reason, "Unable to load this section."));
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -526,4 +580,14 @@ export function useTenantResource<T>(
     setReloadToken((token) => token + 1);
   }, []);
   return { data, loading, error, reload, setData };
+}
+
+/**
+ * One place that turns any thrown value into text worth showing, including the
+ * trace reference when the API supplied one.
+ */
+export function describeError(reason: unknown, fallback: string) {
+  if (reason instanceof TenantControlPlaneError) return reason.describe();
+  if (reason instanceof Error) return reason.message;
+  return fallback;
 }

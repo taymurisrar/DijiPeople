@@ -20,6 +20,7 @@ import {
   relativeTime,
 } from "./tenant-panel-ui";
 import {
+  describeError,
   tenantRequest,
   useTenantResource,
   type TenantApp,
@@ -127,10 +128,7 @@ function TenantModulesSection({ tenantId }: { tenantId: string }) {
     } catch (reason) {
       setMessage({
         tone: "error",
-        text:
-          reason instanceof Error
-            ? reason.message
-            : "The module override could not be saved.",
+        text: describeError(reason, "The module override could not be saved."),
       });
     } finally {
       setBusyKey(null);
@@ -629,9 +627,7 @@ function ManageAppDialog({
                 onSaved(next);
               } catch (reason) {
                 setError(
-                  reason instanceof Error
-                    ? reason.message
-                    : "The app policy could not be saved.",
+                  describeError(reason, "The app policy could not be saved."),
                 );
               } finally {
                 setBusy(false);

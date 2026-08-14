@@ -185,10 +185,50 @@ describe('TenantErasureService', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           status: 'FAILED',
-          failureMessage: 'deadlock detected',
+          failureMessage: expect.stringContaining('deadlock detected'),
         }),
       }),
     );
+  });
+
+  /*
+   * A rolled-back erasure used to surface a bare Postgres constraint name, which
+   * is true and unusable. The diagnosis has to name what a person should do next.
+   */
+  it('explains a referential failure instead of quoting Postgres at the operator', async () => {
+    const { service, prisma } = build();
+    prisma.$transaction.mockRejectedValue(
+      new Error(
+        'update or delete on table "ErrorLog" violates RESTRICT setting of foreign key constraint "SupportCaseIncident_errorLogId_fkey" on table "SupportCaseIncident"',
+      ),
+    );
+
+    await expect(
+      service.erase(admin, 'tenant-1', validRequest),
+    ).rejects.toThrow(/still references data being erased/);
+
+    const update = prisma.tenantErasureReceipt.update.mock.calls.at(-1)![0] as {
+      data: { erasedRecordCounts: Record<string, unknown> };
+    };
+    expect(update.data.erasedRecordCounts).toEqual(
+      expect.objectContaining({
+        constraint: 'SupportCaseIncident_errorLogId_fkey',
+        failedAtPhase: expect.any(String),
+      }),
+    );
+  });
+
+  it('names the table still holding a reference so the plan can be corrected', async () => {
+    const { service, prisma } = build();
+    prisma.$transaction.mockRejectedValue(
+      new Error(
+        'update or delete on table "Invoice" violates foreign key constraint "SupportCase_invoiceId_fkey" on table "SupportCase"',
+      ),
+    );
+
+    await expect(
+      service.erase(admin, 'tenant-1', validRequest),
+    ).rejects.toThrow(/SupportCase/);
   });
 
   it('writes a receipt that names the tenant, actor and reason before deleting', async () => {

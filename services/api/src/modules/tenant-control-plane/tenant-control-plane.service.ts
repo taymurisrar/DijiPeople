@@ -21,7 +21,10 @@ import { TenantAccessService } from './tenant-access.service';
 import { TenantAppsService } from './tenant-apps.service';
 import { TenantModulesService } from './tenant-modules.service';
 import { TenantOperationsService } from './tenant-operations.service';
-import type { ChangeTenantStatusDto } from './dto/tenant-control-plane.dto';
+import type {
+  CancelTenantSubscriptionDto,
+  ChangeTenantStatusDto,
+} from './dto/tenant-control-plane.dto';
 
 export type TenantReadinessSeverity = 'OK' | 'WARNING' | 'BLOCKER';
 
@@ -336,6 +339,127 @@ export class TenantControlPlaneService {
         amountDue:
           invoice.amountDue === null ? null : Number(invoice.amountDue),
       })),
+    };
+  }
+
+  /**
+   * Cancel a tenant's subscription.
+   *
+   * This exists as its own operation because it is a prerequisite for
+   * decommissioning and erasure, and the only route to it was a general
+   * subscription editor that also demanded a plan and a price — which made
+   * "cancel the subscription so I can retire this tenant" effectively
+   * unreachable.
+   *
+   * Local cancellation stops DijiPeople billing this tenant. It does **not**
+   * cancel anything in Stripe: this codebase receives Stripe subscription state
+   * through webhooks and has no server-initiated cancel call, so claiming
+   * otherwise would be a lie the customer's card would disprove. When the
+   * subscription is Stripe-backed the caller has to acknowledge that explicitly,
+   * and the response says what still has to happen.
+   */
+  async cancelSubscription(
+    user: AuthenticatedUser,
+    tenantId: string,
+    dto: CancelTenantSubscriptionDto,
+  ) {
+    assertTenantPlatformAccess(user, 'billing.manage');
+    const tenant = await loadTenantOrThrow(this.prisma, tenantId);
+
+    const subscription = await this.prisma.subscription.findUnique({
+      where: { tenantId: tenant.id },
+      include: { plan: { select: { id: true, key: true, name: true } } },
+    });
+    if (!subscription) {
+      throw new NotFoundException(
+        'This tenant has no subscription to cancel.',
+      );
+    }
+    if (
+      subscription.status === SubscriptionStatus.CANCELLED ||
+      subscription.status === SubscriptionStatus.CANCELED
+    ) {
+      throw new BadRequestException(
+        'This subscription is already cancelled.',
+      );
+    }
+    if (
+      subscription.stripeSubscriptionId &&
+      dto.acknowledgeStripeSubscription !== true
+    ) {
+      throw new BadRequestException(
+        'This subscription is billed through Stripe. Cancelling here stops DijiPeople billing but does not cancel the Stripe subscription — acknowledge that, then cancel it in Stripe as well.',
+      );
+    }
+
+    const effectiveAt = dto.effectiveAt ? new Date(dto.effectiveAt) : new Date();
+    const updated = await this.prisma.subscription.update({
+      where: { id: subscription.id },
+      data: {
+        status: SubscriptionStatus.CANCELLED,
+        endDate: effectiveAt,
+        canceledAt: effectiveAt,
+        autoRenew: false,
+        renewalDate: null,
+        updatedById: user.userId,
+      },
+      include: { plan: { select: { id: true, key: true, name: true } } },
+    });
+
+    const actor = await resolvePlatformActor(this.prisma, user);
+    await this.auditService.log({
+      tenantId: tenant.id,
+      actorUserId: user.userId,
+      action: 'TENANT_SUBSCRIPTION_CANCELLED',
+      entityType: 'Subscription',
+      entityId: subscription.id,
+      sourceModule: 'tenant-control-plane',
+      beforeSnapshot: {
+        status: subscription.status,
+        endDate: subscription.endDate,
+        autoRenew: subscription.autoRenew,
+      },
+      afterSnapshot: {
+        status: updated.status,
+        endDate: updated.endDate,
+        reason: dto.reason,
+        stripeSubscriptionId: subscription.stripeSubscriptionId,
+      },
+    });
+    await this.events.record({
+      eventCode: 'TENANT_SUBSCRIPTION_CANCELLED',
+      source: 'API',
+      severity: 'WARNING',
+      entityType: 'Subscription',
+      entityId: subscription.id,
+      tenantId: tenant.id,
+      customerAccountId: tenant.customerAccountId,
+      actorType: 'PLATFORM_USER',
+      actorId: actor.id,
+      route: '/platform/tenants/:tenantId/subscription/cancel',
+      metadata: {
+        actorName: actor.name,
+        plan: subscription.plan.name,
+        reason: dto.reason,
+        stripeBacked: Boolean(subscription.stripeSubscriptionId),
+      },
+    });
+
+    return {
+      success: true,
+      message: subscription.stripeSubscriptionId
+        ? `${subscription.plan.name} cancelled in DijiPeople. Cancel the Stripe subscription (${subscription.stripeSubscriptionId}) to stop charging the customer.`
+        : `${subscription.plan.name} cancelled.`,
+      requiresStripeAction: Boolean(subscription.stripeSubscriptionId),
+      stripeSubscriptionId: subscription.stripeSubscriptionId,
+      subscription: {
+        id: updated.id,
+        plan: updated.plan,
+        status: updated.status,
+        endDate: updated.endDate,
+        canceledAt: updated.canceledAt,
+        autoRenew: updated.autoRenew,
+      },
     };
   }
 

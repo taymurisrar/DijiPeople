@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import {
   TENANT_ERASURE_DELETE_ORDER,
   TENANT_ERASURE_DETACHED_MODELS,
+  TENANT_ERASURE_LINK_CLEANUPS,
   TENANT_ERASURE_PRESERVED_MODELS,
   TENANT_ERASURE_SELF_REFERENCES,
 } from './tenant-erasure.constants';
@@ -30,7 +31,7 @@ describe('tenant erasure order', () => {
   );
   const excluded = new Set([
     'Tenant',
-    ...TENANT_ERASURE_DETACHED_MODELS.map(pascalCase),
+    ...TENANT_ERASURE_DETACHED_MODELS.map((entry) => pascalCase(entry.model)),
     ...TENANT_ERASURE_PRESERVED_MODELS.map(pascalCase),
   ]);
   const expected = [...tenantOwned].filter((name) => !excluded.has(name));
@@ -103,11 +104,86 @@ describe('tenant erasure order', () => {
   });
 
   it('detaches the legal and support trail rather than deleting it', () => {
-    expect([...TENANT_ERASURE_DETACHED_MODELS]).toEqual(
+    expect(TENANT_ERASURE_DETACHED_MODELS.map((entry) => entry.model)).toEqual(
       expect.arrayContaining(['contract', 'supportCase', 'customerOnboarding']),
     );
-    for (const model of TENANT_ERASURE_DETACHED_MODELS) {
-      expect(TENANT_ERASURE_DELETE_ORDER).not.toContain(model);
+    for (const entry of TENANT_ERASURE_DETACHED_MODELS) {
+      expect(TENANT_ERASURE_DELETE_ORDER).not.toContain(entry.model);
+    }
+  });
+
+  /*
+   * The regression this guards. A row that survives erasure can still hold a
+   * blocking foreign key *into* the delete set — a support case pointing at an
+   * invoice, or an incident link pointing at an error log. Postgres refuses the
+   * delete, the whole transaction rolls back, and the tenant cannot be erased at
+   * all. Ordering the delete set correctly does not help, because the offending
+   * row is not in it.
+   */
+  it('clears or removes every blocking reference into the delete set', () => {
+    const deleteSet = new Set(TENANT_ERASURE_DELETE_ORDER.map(pascalCase));
+    const clearedByModel = new Map(
+      TENANT_ERASURE_DETACHED_MODELS.map((entry) => [
+        pascalCase(entry.model),
+        new Set(entry.clearFields),
+      ]),
+    );
+    const cleanedUp = new Set(
+      TENANT_ERASURE_LINK_CLEANUPS.map((entry) => pascalCase(entry.model)),
+    );
+
+    const uncovered: string[] = [];
+    for (const [model, body] of models) {
+      if (deleteSet.has(model)) continue;
+      for (const line of body) {
+        const relation = parseOwningRelation(line);
+        if (!relation || !isBlocking(relation.mode)) continue;
+        if (!deleteSet.has(relation.target)) continue;
+
+        const covered = relation.fields.every(
+          (field) =>
+            clearedByModel.get(model)?.has(field) || cleanedUp.has(model),
+        );
+        if (!covered) {
+          uncovered.push(`${model}.${relation.fields.join('+')} -> ${relation.target}`);
+        }
+      }
+    }
+
+    expect(uncovered).toEqual([]);
+  });
+
+  it('only nulls a reference that is actually nullable', () => {
+    const notNullable: string[] = [];
+    for (const entry of TENANT_ERASURE_DETACHED_MODELS) {
+      const body = models.get(pascalCase(entry.model)) ?? [];
+      for (const field of entry.clearFields) {
+        const declared = body.find((line) =>
+          new RegExp(`^\\s+${field}\\s+\\w+`).test(line),
+        );
+        if (!declared || !/^\s+\w+\s+\w+\?/.test(declared)) {
+          notNullable.push(`${entry.model}.${field}`);
+        }
+      }
+    }
+    expect(notNullable).toEqual([]);
+  });
+
+  it('scopes every link cleanup through a relation to the tenant', () => {
+    for (const entry of TENANT_ERASURE_LINK_CLEANUPS) {
+      const body = models.get(pascalCase(entry.model)) ?? [];
+      expect(body.length).toBeGreaterThan(0);
+      /* The relation named must exist, or the tenant-scoped where cannot work. */
+      expect(
+        body.some((line) =>
+          new RegExp(`^\\s+${entry.relation}\\s+\\w+`).test(line),
+        ),
+      ).toBe(true);
+      /* And the link row must not carry a tenantId of its own, or it would
+         already be in the delete set and need no special handling. */
+      expect(body.some((line) => /^\s+tenantId\s+String/.test(line))).toBe(
+        false,
+      );
     }
   });
 });

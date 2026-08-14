@@ -12,6 +12,7 @@ import {
   dialogInputClass,
 } from "./tenant-panel-ui";
 import {
+  describeError,
   tenantRequest,
   useTenantResource,
   type TenantErasurePreflight,
@@ -87,9 +88,7 @@ export function TenantEraseDialog({
                 router.push("/tenants");
               } catch (reason_) {
                 setFailure(
-                  reason_ instanceof Error
-                    ? reason_.message
-                    : "The erasure could not be completed.",
+                  describeError(reason_, "The erasure could not be completed."),
                 );
               } finally {
                 setBusy(false);

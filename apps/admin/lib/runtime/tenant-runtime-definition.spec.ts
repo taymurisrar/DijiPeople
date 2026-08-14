@@ -164,6 +164,36 @@ describe("tenant runtime definition", () => {
       expect.arrayContaining(["back", "edit", "save", "save-close"]),
     );
   });
+
+  /*
+   * The list and the record share one action set, and an action set written for
+   * the record page leaves the list with an empty command bar. This asserts the
+   * list scope is populated, which is the shape of the regression.
+   */
+  it("gives the tenant list a command bar", () => {
+    const listActions = definition.actions.filter(
+      (action) => action.scope === "list" || action.scope === "both",
+    );
+    expect(listActions.length).toBeGreaterThan(0);
+    expect(listActions.map((action) => action.key)).toEqual(
+      expect.arrayContaining(["refresh", "export"]),
+    );
+  });
+
+  it("offers Open Tenant from the list only when exactly one row is selected", () => {
+    const open = definition.actions.find(
+      (action) => action.key === "open-tenant-list",
+    )!;
+    expect(open.scope).toBe("list");
+    expect(open.selection).toBe("one");
+  });
+
+  it("does not offer New, because provisioning creates tenants", () => {
+    const listActions = definition.actions.filter(
+      (action) => action.scope === "list",
+    );
+    expect(listActions.map((action) => action.key)).not.toContain("new");
+  });
 });
 
 describe("tenant status vocabulary", () => {

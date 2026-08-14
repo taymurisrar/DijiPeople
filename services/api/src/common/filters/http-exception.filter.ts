@@ -87,6 +87,17 @@ export class HttpExceptionFilter implements ExceptionFilter {
       contract.stack = normalized.stack;
     }
 
+    /*
+     * What someone actually needs to chase a failure: which handler, on whose
+     * behalf, against which record.
+     *
+     * `tenantId` here is the *caller's* tenant, which on a Platform Admin route
+     * is the platform itself — so a failure operating on a customer's tenant used
+     * to log the wrong tenant and no way to tell which one was meant. The route
+     * parameters carry the record being acted on, so they are logged separately
+     * and explicitly.
+     */
+    const routeContext = readRouteContext(request);
     const logContext = {
       traceId,
       method: request.method,
@@ -95,7 +106,12 @@ export class HttpExceptionFilter implements ExceptionFilter {
       errorCode: normalized.errorCode,
       severity: normalized.severity,
       userId: request.user?.userId,
-      tenantId: request.user?.tenantId,
+      callerTenantId: request.user?.tenantId,
+      platformUserId: request.user?.platform?.id,
+      platformRole: request.user?.platform?.role,
+      appClientId: request.user?.appClientId,
+      sessionId: request.user?.sessionId,
+      ...routeContext,
     };
 
     if (normalized.statusCode >= 500) {
@@ -381,6 +397,28 @@ function enrichErrorDetails(details: unknown, user?: AuthenticatedUser) {
       sessionId: user.sessionId,
       appClientId: user.appClientId,
     },
+  };
+}
+
+/**
+ * The record a request was acting on, taken from its route parameters.
+ *
+ * `targetTenantId` is called out by name because it is the question asked first
+ * about any Platform Admin failure and the one the caller's own `tenantId`
+ * cannot answer.
+ */
+function readRouteContext(request: {
+  params?: Record<string, unknown>;
+}): Record<string, unknown> {
+  const params = request.params ?? {};
+  const entries = Object.entries(params).filter(
+    ([, value]) => typeof value === 'string' && value.length > 0,
+  );
+  if (!entries.length) return {};
+  const targetTenantId = params.tenantId;
+  return {
+    ...(typeof targetTenantId === 'string' ? { targetTenantId } : {}),
+    routeParams: Object.fromEntries(entries),
   };
 }
 

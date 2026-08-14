@@ -39,6 +39,7 @@ import type {
 } from "@/lib/runtime/platform-runtime.types";
 import { ModuleActionBar } from "./module-action-bar";
 import { RuntimeViewSelector } from "./runtime-view-selector";
+import { buildTenantLoginUrl } from "@/lib/tenant-url";
 
 type Operator = {
   id: string;
@@ -323,6 +324,22 @@ export function RuntimeModuleList({
       const result = await adapter.bulkDelete(selectedIds);
       setRefreshKey((value) => value + 1);
       return result;
+    }
+    /*
+     * Opening the selected tenant's own workspace, rather than its record. The
+     * slug is already on the loaded row, so this needs no extra request.
+     */
+    if (action.key === "open-tenant-list") {
+      const selected = data.items.find((row) => row.id === selectedIds[0]);
+      const slug = String(selected?.slug ?? "");
+      if (!slug) {
+        return {
+          success: false,
+          message: "This tenant has no workspace slug yet.",
+        };
+      }
+      window.open(buildTenantLoginUrl(slug), "_blank", "noopener,noreferrer");
+      return { success: true, message: "Tenant workspace opened." };
     }
     if (action.key === "bulk-assign") {
       const response = await fetch("/api/platform-runtime/lookups?type=owners");

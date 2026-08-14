@@ -17,15 +17,60 @@
  * list cannot silently drift out of date.
  */
 
-/** Detached rather than deleted: tenantId is set to null and the row survives. */
-export const TENANT_ERASURE_DETACHED_MODELS = [
-  /* Legal record of what was agreed. Outlives the workspace it described. */
-  'contract',
-  /* Support history, including cases raised by people who no longer exist. */
-  'supportCase',
-  /* The commercial onboarding cycle that produced the tenant. */
-  'customerOnboarding',
-] as const;
+/**
+ * Detached rather than deleted: `tenantId` is set to null and the row survives.
+ *
+ * `clearFields` is the part that is easy to miss and fatal when missed. A
+ * retained row does not only point at the tenant — it can also point at rows the
+ * erasure is about to delete, and those foreign keys are `Restrict` too. A
+ * support case that referenced an invoice kept that invoice alive, and the whole
+ * transaction rolled back with a constraint name and no explanation. Detaching
+ * clears both in one statement, while the row can still be found by `tenantId`.
+ */
+export const TENANT_ERASURE_DETACHED_MODELS: Array<{
+  model: string;
+  clearFields: string[];
+}> = [
+  {
+    /* Legal record of what was agreed. Outlives the workspace it described. */
+    model: 'contract',
+    clearFields: ['subscriptionId'],
+  },
+  {
+    /* Support history, including cases raised by people who no longer exist. */
+    model: 'supportCase',
+    clearFields: ['subscriptionId', 'invoiceId'],
+  },
+  {
+    /* The commercial onboarding cycle that produced the tenant. */
+    model: 'customerOnboarding',
+    clearFields: [],
+  },
+];
+
+/**
+ * Link rows that point into the delete set with a NOT NULL foreign key.
+ *
+ * These cannot be detached — there is no null to write — so the link itself is
+ * removed. `relation` is the path from the link row to its tenant-owned parent,
+ * which is how the delete stays tenant-scoped without the link row carrying a
+ * `tenantId` of its own.
+ *
+ * `SupportCaseIncident` joins a support case to the error log that caused it.
+ * The support case is kept; the error log is tenant content and goes; the join
+ * between them cannot outlive one of its two ends.
+ */
+export const TENANT_ERASURE_LINK_CLEANUPS: Array<{
+  model: string;
+  relation: string;
+  note: string;
+}> = [
+  {
+    model: 'supportCaseIncident',
+    relation: 'errorLog',
+    note: 'Links a retained support case to a tenant error log that is being erased.',
+  },
+];
 
 /**
  * Deliberately untouched. These carry a `tenantId` column but sit on the

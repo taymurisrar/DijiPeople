@@ -163,15 +163,45 @@ fails if a new model is missing or misplaced, so the list cannot silently rot.
 What happens, in order, inside one transaction:
 
 1. **Detach and keep** — `Contract`, `SupportCase` and `CustomerOnboarding` have
-   their `tenantId` set to null. The legal and support trail outlives the
-   workspace it described.
-2. **Null blocking self-references** — four models carry a self-referencing
+   their `tenantId` set to null, *and* their references into the delete set
+   cleared (`Contract.subscriptionId`, `SupportCase.subscriptionId`,
+   `SupportCase.invoiceId`). The legal and support trail outlives the workspace
+   it described.
+2. **Remove link rows that cannot be detached** — `SupportCaseIncident` joins a
+   retained support case to a tenant error log with a NOT NULL foreign key. There
+   is no null to write, so the join goes; it is scoped through its `errorLog`
+   relation so the delete stays tenant-scoped.
+3. **Null blocking self-references** — four models carry a self-referencing
    `Restrict` foreign key that would block a single-statement delete of their own
    table.
-3. **Delete in dependency order** — every remaining tenant-owned model.
-4. **Delete the tenant row.**
+4. **Delete in dependency order** — every remaining tenant-owned model.
+5. **Delete the tenant row.**
 
 Because it is one transaction, a failure erases nothing.
+
+> **The failure mode steps 1 and 2 exist for.** Ordering the delete set is not
+> enough. A row that *survives* erasure can still hold a blocking foreign key
+> **into** the delete set, and that row is not in the set to be ordered. A
+> support case pointing at an invoice kept the invoice alive and rolled the whole
+> transaction back with nothing but a constraint name. The spec re-derives every
+> such inbound reference from `schema.prisma` and fails if one is not covered by
+> a `clearFields` entry or a link cleanup.
+
+When an erasure does fail, the receipt and the log record the phase, the model
+being processed, the constraint name, the Prisma error code and how far the run
+had got — and the operator is told that something outside the tenant still
+references data being erased, rather than being handed raw Postgres text.
+
+**Cancelling first.** A live subscription blocks erasure, so
+`POST /platform/tenants/:id/subscription/cancel` exists as its own operation with
+its own reason. It was previously reachable only through the general subscription
+editor, which also required a plan and a price — which made cancellation, and
+therefore erasure and decommissioning, effectively unavailable. Cancelling sets
+`CANCELLED`, ends the term, stops auto-renewal and records the reason. It does
+**not** cancel anything in Stripe: this codebase receives Stripe subscription
+state through webhooks and has no server-initiated cancel call, so a Stripe-backed
+subscription requires an explicit acknowledgement and the response says what still
+has to be done in Stripe.
 
 **Safeguards.** Authorization plus an elevated platform role; a written reason;
 the tenant's exact name typed; the literal phrase `ERASE TENANT`; an explicit

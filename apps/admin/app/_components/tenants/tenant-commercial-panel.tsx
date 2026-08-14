@@ -12,13 +12,19 @@ import { formatCurrency, formatDate, formatEnumLabel } from "@/lib/formatters";
 import { TenantStatusBadge } from "@/app/_components/tenant-status-badge";
 import {
   DefinitionList,
+  DialogField,
+  PanelButton,
   PanelCard,
+  PanelDialog,
   PanelEmptyState,
   PanelError,
   PanelLoading,
   StatePill,
+  dialogInputClass,
 } from "./tenant-panel-ui";
 import {
+  describeError,
+  tenantRequest,
   useTenantResource,
   type TenantCommercialView,
 } from "./tenant-control-plane.client";
@@ -45,6 +51,11 @@ type Invoice = TenantCommercialView["invoices"][number];
 export function TenantCommercialPanel({ tenantId }: { tenantId: string }) {
   const { data, loading, error, reload } =
     useTenantResource<TenantCommercialView>(tenantId, "/commercial");
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [notice, setNotice] = useState<{
+    tone: "success" | "error";
+    text: string;
+  } | null>(null);
 
   if (loading && !data)
     return (
@@ -64,19 +75,52 @@ export function TenantCommercialPanel({ tenantId }: { tenantId: string }) {
     JSON.stringify([{ field: "tenantId", operator: "eq", value: tenantId }]),
   );
 
+  const isCancelled = ["CANCELLED", "CANCELED", "EXPIRED"].includes(
+    data.subscription?.status ?? "",
+  );
+
   return (
     <div className="space-y-5">
+      {notice ? (
+        <p
+          role="status"
+          className={`rounded-xl border px-4 py-3 text-sm ${
+            notice.tone === "error"
+              ? "border-rose-200 bg-rose-50 text-rose-800"
+              : "border-emerald-200 bg-emerald-50 text-emerald-800"
+          }`}
+        >
+          {notice.text}
+        </p>
+      ) : null}
       <PanelCard
         title="Subscription"
         description="The commercial agreement this workspace runs under."
         actions={
           data.subscription ? (
-            <Link
-              href={`/subscriptions/${data.subscription.id}`}
-              className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-            >
-              Open subscription
-            </Link>
+            <div className="flex flex-wrap gap-2">
+              {/*
+                Cancelling is its own action rather than a status field buried in
+                the subscription editor: it ends billing and it is the gate in
+                front of decommissioning and erasure.
+              */}
+              <PanelButton
+                variant="danger"
+                disabled={isCancelled}
+                title={
+                  isCancelled ? "This subscription is already cancelled." : undefined
+                }
+                onClick={() => setCancelOpen(true)}
+              >
+                Cancel subscription
+              </PanelButton>
+              <Link
+                href={`/subscriptions/${data.subscription.id}`}
+                className="inline-flex h-9 items-center rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                Open subscription
+              </Link>
+            </div>
           ) : null
         }
       >
@@ -164,6 +208,19 @@ export function TenantCommercialPanel({ tenantId }: { tenantId: string }) {
         subscription={data.subscription}
       />
 
+      {cancelOpen && data.subscription ? (
+        <CancelSubscriptionDialog
+          tenantId={tenantId}
+          planName={data.subscription.plan.name}
+          onClose={() => setCancelOpen(false)}
+          onDone={(message) => {
+            setNotice({ tone: "success", text: message });
+            setCancelOpen(false);
+            reload();
+          }}
+        />
+      ) : null}
+
       <PanelCard
         title="Agreements"
         description="Contracts linked to this tenant."
@@ -218,6 +275,124 @@ export function TenantCommercialPanel({ tenantId }: { tenantId: string }) {
         )}
       </PanelCard>
     </div>
+  );
+}
+
+/**
+ * Cancellation asks for a reason and, when Stripe is billing the customer, an
+ * explicit acknowledgement that cancelling here does not stop Stripe. Saying so
+ * up front is the difference between a retired tenant and a customer who is
+ * still being charged.
+ */
+function CancelSubscriptionDialog({
+  tenantId,
+  planName,
+  onClose,
+  onDone,
+}: {
+  tenantId: string;
+  planName: string;
+  onClose: () => void;
+  onDone: (message: string) => void;
+}) {
+  const [reason, setReason] = useState("");
+  const [acknowledgeStripe, setAcknowledgeStripe] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [needsStripeAcknowledgement, setNeedsStripeAcknowledgement] =
+    useState(false);
+
+  return (
+    <PanelDialog
+      title={`Cancel ${planName}?`}
+      description="Billing stops and the subscription moves to Cancelled. Invoices and payment history are preserved. This is a prerequisite for decommissioning or erasing the tenant."
+      tone="danger"
+      onClose={onClose}
+      footer={
+        <>
+          <PanelButton onClick={onClose}>Keep subscription</PanelButton>
+          <PanelButton
+            variant="danger"
+            busy={busy}
+            disabled={
+              reason.trim().length < 3 ||
+              (needsStripeAcknowledgement && !acknowledgeStripe)
+            }
+            onClick={async () => {
+              setBusy(true);
+              setError(null);
+              try {
+                const result = await tenantRequest<{
+                  message: string;
+                  requiresStripeAction: boolean;
+                }>(tenantId, "/subscription/cancel", {
+                  method: "POST",
+                  body: JSON.stringify({
+                    reason: reason.trim(),
+                    acknowledgeStripeSubscription: acknowledgeStripe,
+                  }),
+                });
+                onDone(result.message);
+              } catch (reason_) {
+                const message = describeError(
+                  reason_,
+                  "The subscription could not be cancelled.",
+                );
+                /*
+                 * The API refuses a Stripe-backed cancellation until it is
+                 * acknowledged. Surface the checkbox rather than leaving the
+                 * operator to re-read the error and guess.
+                 */
+                if (message.includes("Stripe")) {
+                  setNeedsStripeAcknowledgement(true);
+                }
+                setError(message);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            Cancel subscription
+          </PanelButton>
+        </>
+      }
+    >
+      <DialogField
+        label="Reason"
+        required
+        hint="Recorded on the tenant timeline and in the platform audit log."
+      >
+        <textarea
+          rows={3}
+          className={`${dialogInputClass} h-auto py-2`}
+          value={reason}
+          onChange={(event) => setReason(event.target.value)}
+          placeholder="Contract terminated effective end of term."
+        />
+      </DialogField>
+      {needsStripeAcknowledgement ? (
+        <label className="mt-3 flex items-start gap-2 text-sm text-slate-800">
+          <input
+            type="checkbox"
+            className="mt-0.5 h-4 w-4 accent-rose-600"
+            checked={acknowledgeStripe}
+            onChange={(event) => setAcknowledgeStripe(event.target.checked)}
+          />
+          <span>
+            I understand this subscription is billed through Stripe, and that it
+            must also be cancelled in Stripe to stop charging the customer.
+          </span>
+        </label>
+      ) : null}
+      {error ? (
+        <p
+          role="alert"
+          className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800"
+        >
+          {error}
+        </p>
+      ) : null}
+    </PanelDialog>
   );
 }
 

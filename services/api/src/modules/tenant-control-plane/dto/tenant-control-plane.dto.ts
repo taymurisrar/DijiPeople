@@ -8,6 +8,7 @@ import {
   ArrayMaxSize,
   IsArray,
   IsBoolean,
+  IsDateString,
   IsEmail,
   IsEnum,
   IsIn,
@@ -172,6 +173,37 @@ export class UpdateTenantAppDto {
   @IsString()
   @MaxLength(500)
   notes?: string | null;
+}
+
+/**
+ * Cancelling a tenant subscription.
+ *
+ * Deliberately its own operation rather than a status field on the general
+ * subscription editor: cancellation ends billing, is a precondition for
+ * decommissioning and erasure, and needs a reason on the record. Reaching it
+ * through a form that also requires a plan and a price is how it ended up
+ * effectively unavailable.
+ */
+export class CancelTenantSubscriptionDto {
+  @Transform(trimmed)
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(500)
+  reason!: string;
+
+  /**
+   * A Stripe-backed subscription keeps billing in Stripe until it is cancelled
+   * there too. The caller has to acknowledge that rather than be told the
+   * customer stopped being charged when they did not.
+   */
+  @IsOptional()
+  @IsBoolean()
+  acknowledgeStripeSubscription?: boolean;
+
+  /** Defaults to now. Set it to end the term on a future date instead. */
+  @IsOptional()
+  @IsDateString()
+  effectiveAt?: string;
 }
 
 export class RetryTenantProvisioningDto {

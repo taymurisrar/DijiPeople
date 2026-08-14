@@ -20,6 +20,7 @@ import { TenantErasureService } from './tenant-erasure.service';
 import { TenantModulesService } from './tenant-modules.service';
 import { TenantOperationsService } from './tenant-operations.service';
 import {
+  CancelTenantSubscriptionDto,
   ChangeTenantStatusDto,
   CreateTenantIdentityDto,
   DeleteTenantIdentityDto,
@@ -107,6 +108,15 @@ export class TenantControlPlaneController {
     @Body() dto: ChangeTenantStatusDto,
   ) {
     return this.controlPlane.changeStatus(user, tenantId, dto);
+  }
+
+  @Post(':tenantId/subscription/cancel')
+  cancelSubscription(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('tenantId', new ParseUUIDPipe()) tenantId: string,
+    @Body() dto: CancelTenantSubscriptionDto,
+  ) {
+    return this.controlPlane.cancelSubscription(user, tenantId, dto);
   }
 
   @Get(':tenantId/access')

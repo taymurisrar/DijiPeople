@@ -20,6 +20,7 @@ import {
   relativeTime,
 } from "./tenant-panel-ui";
 import {
+  describeError,
   tenantRequest,
   useTenantResource,
   type TenantOperationsView,
@@ -86,10 +87,7 @@ export function TenantOperationsPanel({
     } catch (reason) {
       setMessage({
         tone: "error",
-        text:
-          reason instanceof Error
-            ? reason.message
-            : "The provisioning retry failed.",
+        text: describeError(reason, "The provisioning retry failed."),
       });
       reload();
     } finally {

@@ -19,6 +19,7 @@ import {
   relativeTime,
 } from "./tenant-panel-ui";
 import {
+  describeError,
   tenantRequest,
   useTenantResource,
   type TenantAccessView,
@@ -152,10 +153,7 @@ export function TenantAccessPanel({
       } catch (reason) {
         setNotice({
           tone: "error",
-          text:
-            reason instanceof Error
-              ? reason.message
-              : "The action could not be completed.",
+          text: describeError(reason, "The action could not be completed."),
         });
         throw reason;
       }

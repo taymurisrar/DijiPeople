@@ -262,10 +262,27 @@ const TENANT_STATUSES: RuntimeStatusDefinition[] = TENANT_STATUS_VALUES.map(
  * re-checks every transition, so hiding a button is never the control.
  */
 const TENANT_RECORD_ACTIONS: RuntimeActionDefinition[] = [
+  /*
+   * List-scope actions come first. They are easy to forget when a module's
+   * action set is written for its record page — and forgetting them leaves the
+   * list screen with an empty command bar, which is what happened here. A tenant
+   * is never created from this list (provisioning creates it from a completed
+   * onboarding), so New is deliberately absent while Refresh and Export are not.
+   */
+  STANDARD_LIST_ACTIONS[1]!,
+  STANDARD_LIST_ACTIONS[2]!,
   STANDARD_RECORD_ACTIONS[0]!,
   STANDARD_RECORD_ACTIONS[1]!,
   STANDARD_RECORD_ACTIONS[2]!,
   STANDARD_RECORD_ACTIONS[3]!,
+  {
+    key: "open-tenant-list",
+    label: "Open Tenant",
+    icon: "external",
+    placement: "secondary",
+    scope: "list",
+    selection: "one",
+  },
   {
     key: "open-tenant",
     label: "Open Tenant",
