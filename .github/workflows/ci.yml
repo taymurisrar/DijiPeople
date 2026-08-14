@@ -166,6 +166,133 @@ jobs:
         # exportable. Cheap, and a real security contract.
         run: npm run test:runtime-schema
 
+  database-migration:
+    name: Database migration gate
+    runs-on: ubuntu-latest
+    # THE database gate. Proves the committed migration history applies to an
+    # empty PostgreSQL and reaches the expected schema, then that the
+    # production-safe seed configuration applies and verifies.
+    #
+    # Why this deserves its own job: a developer's database already holds the
+    # schema, so a broken migration history still "works" locally. Only applying
+    # the whole history to nothing tests the history itself.
+    services:
+      postgres:
+        # Ephemeral by construction: created for this job, destroyed with the
+        # runner. Nothing persists, so no cleanup step can be forgotten.
+        image: postgres:16-alpine
+        env:
+          # Synthetic throwaway credentials, deliberately NOT repository secrets
+          # — storing them as secrets would imply they protect something.
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: dijipeople_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci -d dijipeople_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      # Overrides the workflow-level placeholder. Localhost, and named so
+      # scripts/assert-test-database.mjs recognises it as disposable.
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/dijipeople_test
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: npm
+      - run: npm ci
+      - name: Refuse to run against a non-disposable database
+        # Runs before anything destructive. Allowlist-shaped, so an unrecognised
+        # host fails closed rather than open.
+        run: node scripts/assert-test-database.mjs
+      - name: Migrate an empty database and verify the seed configuration
+        # generate -> migrate deploy -> migrate status -> seed:config -> seed:verify
+        # Never `migrate dev`: it is interactive, can author new migrations, and
+        # can reset the database.
+        run: node scripts/verify-database.mjs
+
+  database-e2e-report:
+    name: Database e2e (report only — NOT a gate)
+    runs-on: ubuntu-latest
+    needs: [database-migration]
+    # The 9 e2e suites have never run in CI and have not been observed passing
+    # against a fresh database. Requiring them on arrival risks a permanently
+    # red gate, which trains people to ignore CI — the exact failure the
+    # pipeline exists to prevent.
+    #
+    # PROMOTION CRITERIA — move into `ci-required` when all hold:
+    #   1. Every suite classified READY passes three consecutive runs.
+    #   2. Suites needing fixtures or environment are fixed, or quarantined by
+    #      name with the reason recorded in docs/qa/.
+    #   3. Total runtime stays under ~10 minutes.
+    # Classification: docs/qa/test-strategy/e2e-suite-classification.md
+    continue-on-error: true
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: dijipeople_e2e_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci -d dijipeople_e2e_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      # A DIFFERENT database name from the migration job. Service containers are
+      # per-job so they cannot collide today, but naming them apart makes a
+      # future change that shares one service obvious rather than silent.
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/dijipeople_e2e_test
+      NODE_ENV: test
+      # Synthetic, test-only, deliberately not a repository secret. Without it
+      # SecretEncryptionService warns and stores integration credentials in
+      # plaintext (it only throws in production), so the three integration
+      # suites would exercise a path that never runs in a real environment.
+      SECRET_ENCRYPTION_KEY: ci-test-only-encryption-key-not-a-secret-000000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: npm
+      - run: npm ci
+      - run: node scripts/assert-test-database.mjs
+      - name: Prepare the database
+        run: node scripts/verify-database.mjs
+      - name: Run database-backed e2e suites
+        id: e2e
+        run: |
+          set +e
+          npm --workspace api run test:e2e 2>&1 | tee e2e-report.txt
+          echo "exit_code=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+      - name: Summarise
+        if: always()
+        run: |
+          {
+            echo "### Database e2e — baseline report"
+            echo ""
+            echo "Non-blocking. Promoted per the criteria in this workflow."
+            echo ""
+            echo '```'
+            grep -E "Tests:|Test Suites:|✕|Cannot find|timeout" e2e-report.txt | head -60 || echo "no summary lines found"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: database-e2e-report
+          path: e2e-report.txt
+          retention-days: 30
+
   build:
     name: Build
     runs-on: ubuntu-latest
@@ -266,7 +393,8 @@ jobs:
     # Single aggregate status the Integrator and branch protection can key on,
     # so adding a job later does not require reconfiguring the merge policy.
     # security-invariant-report is deliberately absent from `needs`.
-    needs: [validate, typecheck, lint, test-api, test-web, test-admin, test-runtime, build]
+    needs:
+      [validate, typecheck, lint, test-api, test-web, test-admin, test-runtime, database-migration, build]
     if: always()
     steps:
       - name: Verify all required jobs passed

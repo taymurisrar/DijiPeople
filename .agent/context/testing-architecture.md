@@ -53,9 +53,41 @@ database. Preference order:
 anything destructive. A read-only, explicitly non-destructive check against
 shared staging is the only exception, and must be labelled as one.
 
-CI sets `DATABASE_URL` to a placeholder it never connects to — Prisma requires
-the variable for `generate` and `validate`, and neither dials out. That is why
-no test in CI touches a database today.
+**CI now provides an ephemeral PostgreSQL.** Two jobs run a
+`postgres:16-alpine` service container, created fresh for the job and destroyed
+with the runner — nothing persists, so no cleanup step can be forgotten:
+
+| Job | Database | Gating |
+|---|---|---|
+| `database-migration` | `dijipeople_test` | **Required** — inside `ci-required` |
+| `database-e2e-report` | `dijipeople_e2e_test` | Report-only, with written promotion criteria |
+
+`database-migration` runs `node scripts/verify-database.mjs`: assert the target
+is disposable → `prisma generate` → **`prisma migrate deploy`** → `migrate
+status` → `seed:config` → `seed:verify`.
+
+**`prisma migrate dev` is never used in CI.** It is interactive, can author new
+migrations, and can reset the database — none of which belong in a verification
+of the committed history.
+
+Service containers are **per job**, so the two databases cannot collide and
+concurrent runs never share state. They are named differently regardless, so a
+future change that did share one service would be obvious rather than silent.
+
+Jobs outside those two still set `DATABASE_URL` to a placeholder they never
+connect to: Prisma requires the variable for `generate` and `validate`, and
+neither dials out.
+
+`scripts/assert-test-database.mjs` runs before anything destructive and refuses
+any target that is not demonstrably disposable. It is allowlist-shaped — an
+unrecognised host fails closed — and rejects managed providers, production-ish
+database names, and names carrying no test marker. It never prints the
+connection string.
+
+**Locally there is still no database** on this workstation (no Docker, no
+`psql`), and that is expected: CI is the authoritative database environment, and
+developer laptops are not required to run PostgreSQL. See
+[`../../docs/development/agent-tooling-matrix.md`](../../docs/development/agent-tooling-matrix.md).
 
 When no isolated database is reachable, record
 `DB_E2E = BLOCKED_INFRASTRUCTURE` and state which scenarios that leaves

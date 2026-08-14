@@ -20,7 +20,7 @@ property of the environment, not the repository.
 | `CI_TRIGGER` | **AVAILABLE** | pushing any branch triggers `.github/workflows/ci.yml` | Integrator | — | No |
 | `PR_MANAGEMENT` | **UNAVAILABLE** | none — no `gh` | Integrator | Push the branch; a human opens the PR | No |
 | `BROWSER_AUTOMATION` | **UNAVAILABLE** | none installed in any workspace | QA | `MANUAL_VISUAL`, plus logic extracted and unit-tested | No — recorded as a Known Limitation |
-| `TEST_DATABASE` | **UNAVAILABLE** | no Docker, no `psql`; the 9 e2e suites need a live DB | Database, QA | Unit tests with mocked Prisma | No — recorded as `DB_E2E = BLOCKED_INFRASTRUCTURE` |
+| `TEST_DATABASE` | **PARTIAL** — CI yes, local no | CI: ephemeral `postgres:16-alpine` service container (`database-migration` required, `database-e2e-report` report-only). Local: nothing — no Docker, no `psql` | Database, QA | Locally, unit tests with mocked Prisma; CI performs the authoritative verification | Yes for schema/migration work, via `DB_CI_STATUS` |
 | `DEPLOYMENT_API` | **UNAVAILABLE** | none — no Render CLI; Render auto-deploys from `main` | Release/DevOps | Prepare and report `DEPLOYMENT_EXECUTION = BLOCKED_BY_ACCESS` | No — but no agent deployment either |
 | `LOG_ACCESS` | **UNAVAILABLE** | none — Render logs are console-only | Release/DevOps | Ask the user to paste logs | No |
 | `MONITORING` | **UNAVAILABLE** | no Sentry / Datadog / OpenTelemetry / Prometheus anywhere | Release/DevOps | `/api/health` if the environment is reachable | No |
@@ -30,6 +30,27 @@ property of the environment, not the repository.
 Status values: `AVAILABLE` · `PARTIAL` · `UNAVAILABLE` · `BLOCKED_ACCESS`.
 `UNAVAILABLE` means the tool is absent; `BLOCKED_ACCESS` means it exists but
 this environment cannot reach it.
+
+### `TEST_DATABASE` — local versus CI
+
+The split is deliberate, and **developer laptops are not required to run
+PostgreSQL**:
+
+| Environment | Capability |
+|---|---|
+| **CI (authoritative)** | Ephemeral `postgres:16-alpine` per job, created fresh, destroyed with the runner. Runs the full migration history against an empty database, plus seed verification |
+| **Local (this workstation)** | None. No Docker, no `psql`. Migration correctness cannot be verified here at all |
+
+So the local agent flow for a schema change is:
+
+1. run every non-DB validation locally (typecheck, unit tests, lint, framework)
+2. push the task branch — always permitted
+3. let CI's ephemeral database perform the authoritative verification
+4. read `DB_CI_STATUS` from the `database-migration` job
+5. **block the merge until it passes**
+
+Locally, a schema change reports `DB_VALIDATION = BLOCKED_INFRASTRUCTURE`. That
+is honest and expected — it is not a failure, and it is not a pass either.
 
 ---
 

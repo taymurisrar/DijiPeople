@@ -218,6 +218,53 @@ tests against shared staging.
 When no isolated database is reachable, record `DB_E2E = BLOCKED_INFRASTRUCTURE`
 and state plainly which scenarios that leaves unproven. It is not a pass.
 
+**A DB-backed change requires real database validation.** Schema, migration,
+constraint, tenant-scoping and seed changes cannot be signed off against mocked
+Prisma: a mock returns what it was told to return, so it can "prove" a foreign
+key the schema does not actually have.
+
+The QA run records, for any database-backed validation:
+
+| Field | Example |
+|---|---|
+| Database type | ephemeral PostgreSQL 16 service container (CI) |
+| Ephemeral identifier | `dijipeople_e2e_test`, `database-e2e-report` job |
+| Migration command | `node scripts/verify-database.mjs` |
+| Seed command | `seed:config` then `seed:verify` |
+| E2E suites | which ran, which were skipped, and why |
+| Test counts | suites / tests / passed / failed / skipped |
+| Failures | classified — see below |
+| Cleanup | fixtures removed, or database discarded with the runner |
+| Destructive scenarios | executed or not, and against what |
+
+**Never record a connection string, password or token.** Host and database name
+are enough to debug; the credential is not. `scripts/assert-test-database.mjs`
+follows the same rule in its own output.
+
+### Classifying a database failure
+
+| Class | Meaning | Auto-retry? |
+|---|---|---|
+| `MIGRATION_FAILURE` | The history did not apply, or left the schema unmigrated | **No** |
+| `SEED_FAILURE` | `seed:config` or `seed:verify` failed | **No** |
+| `CONSTRAINT_FAILURE` | An FK, unique or check constraint behaved unexpectedly | **No** |
+| `E2E_PRODUCT_FAILURE` | The product is wrong — a real defect | **No** |
+| `TEST_INFRA_FAILURE` | Database unreachable, or the harness broke | Retry is legitimate here |
+| `TENANT_ISOLATION_FAILURE` | One tenant reached another's data | **No — escalate immediately** |
+| `DATA_CLEANUP_FAILURE` | Fixtures leaked between runs | **No** |
+
+Only `TEST_INFRA_FAILURE` justifies re-running. A migration that fails
+intermittently has a real ordering problem, and retrying hides it. A
+`TENANT_ISOLATION_FAILURE` is never assumed to be a test bug.
+
+### The reusable pattern
+
+`services/api/test/helpers/db-fixtures.ts` and
+`services/api/test/tenant-isolation-pattern.e2e-spec.ts` are the shape
+module-specific isolation tests copy: two fixture tenants, a write under one, a
+scoped read and a scoped write from the other, then cleanup. Fixtures carry a
+per-run id so a failed run that skipped cleanup cannot collide with the next.
+
 For schema or migration work, QA and the Database agent jointly verify: clean
 migration · migration from the previous schema state · seed compatibility ·
 rollback or forward-fix assumptions · tenant isolation · constraints · indexes

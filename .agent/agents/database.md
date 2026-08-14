@@ -152,6 +152,75 @@ isolated database is reachable, record `DB_E2E = BLOCKED_INFRASTRUCTURE`, state
 which checks above are therefore unproven, and do not call the migration
 verified.
 
+## Migration review contract
+
+Every migration task resolves all six. None may be assumed:
+
+```
+MIGRATION_STATIC_REVIEW     the generated SQL read line by line
+FRESH_DB_MIGRATION          the full history applied to an EMPTY database
+DATABASE_INTEGRATION_TEST   behaviour exercised against real constraints
+SEED_VALIDATION             seed:config applies, seed:verify passes
+ROLLBACK_CLASSIFICATION     CODE_ONLY | DATABASE_ADDITIVE | DESTRUCTIVE | …
+DATA_COMPATIBILITY_CHECK    existing rows survive the new code
+```
+
+`FRESH_DB_MIGRATION` is the one a developer database cannot give you: it already
+holds the schema, so a broken history still appears to work locally. CI runs it
+on every push via the `database-migration` job.
+
+```bash
+node scripts/verify-database.mjs     # against an ephemeral database only
+```
+
+**If a required capability is unavailable, do not claim verification.** Record:
+
+```
+DB_VALIDATION = BLOCKED_INFRASTRUCTURE
+```
+
+and name which of the six are unproven. "The migration looks correct" is a
+static review and should say so — it is not `FRESH_DB_MIGRATION`.
+
+## Upgrade-from-previous-state testing
+
+`FRESH_DB_MIGRATION` proves a *new* installation works. It says nothing about
+the case that actually breaks in production: an **existing** database moving to
+the new schema.
+
+Until dedicated tooling exists, prove it by hand against an ephemeral database:
+
+```bash
+git stash                                        # or check out the previous SHA
+node scripts/verify-database.mjs                 # migrate to the OLD schema
+# insert representative rows for the models the migration touches
+git stash pop                                    # restore the new migration
+npm --workspace api run prisma:migrate:deploy
+npm --workspace api run prisma:migrate:status    # must report fully applied
+# then assert the representative rows survived and are correct
+```
+
+Record the result under `DATA_COMPATIBILITY_CHECK`. Automating this is a known
+gap — see [`../../docs/development/ci.md`](../../docs/development/ci.md).
+
+## Destructive workflows
+
+A destructive workflow — tenant erasure, a data-migration backfill, a
+contract-phase column drop — is **never first exercised against production, or
+against shared staging.** The strategy:
+
+```
+isolated ephemeral database
+  → seed a realistic relational graph (DbFixtures, not seed:demo)
+  → execute the workflow
+  → verify what was deleted AND what was deliberately preserved
+  → inject a failure mid-way and verify the transaction rolled back entirely
+```
+
+The last step is the one that matters. A destructive workflow that half-succeeds
+is worse than one that fails outright, and only a forced-failure test proves it
+cannot.
+
 ---
 
 ## Definition of done
