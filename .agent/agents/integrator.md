@@ -145,7 +145,8 @@ Merge into the target branch only when **all** hold:
 
 ```
 IMPLEMENTATION        = COMPLETE
-CI_REQUIRED_JOBS      = PASS   (the `CI required gate` check)
+SHARED_TARGET         = classified (true | false)
+CI_REQUIRED_JOBS      = PASS   (the `CI required gate` check, on the exact SHA)
 QA                    = PASS  (or PASS_WITH_RISKS, explicitly accepted)
 REVIEWER_CRITICAL     = 0
 REVIEWER_HIGH_BLOCKERS= 0
@@ -160,9 +161,39 @@ the task branch and read the actual result of the `CI required gate` check
 before merging. "Tests passed locally" is not a substitute — local runs use a
 different Node version, filesystem and cache.
 
-If no remote exists or CI cannot run, report `REMOTE_CI = UNAVAILABLE`, fall
-back to local gates, and **say so explicitly**. Never imply CI ran when it did
-not.
+### The shared-target CI gate
+
+When CI is configured **and** `SHARED_TARGET = true` (`main`, `develop`,
+`release/*`, `production`, `staging`, or anything policy marks protected):
+
+```
+MERGE requires REMOTE_CI_STATUS = PASS
+```
+
+`BLOCKED_BY_ACCESS`, `UNAVAILABLE`, `UNKNOWN`, `PENDING`, `FAILED` and the
+non-value `ASSUMED_PASS` **do not authorise a merge**, no matter how green the
+local run was.
+
+If the verdict cannot be read:
+
+- **Push the task branch anyway** — always allowed; it starts CI and preserves
+  the work.
+- **Do not merge. Do not push the target.**
+- Record `MERGE_STATUS = BLOCKED_CI_UNVERIFIED` and
+  `TASK_STATUS = BLOCKED_FINALIZATION`, naming the exact command that failed and
+  the SHA whose verdict is needed.
+
+> This gate exists because a task merged and pushed `main` on
+> `REMOTE_CI_STATUS = BLOCKED_BY_ACCESS`. Local gates were green and nothing
+> broke — but the merge was authorised by inference, on a branch other people
+> pull from.
+
+Where `SHARED_TARGET = false`, or no CI is configured, report
+`REMOTE_CI = UNAVAILABLE`, fall back to local gates, and **say so explicitly**.
+Never imply CI ran when it did not.
+
+`node scripts/finalize-agent-task.mjs` classifies the target and prints
+`MERGE_AUTHORIZATION` — but it only ever reports. The Integrator decides.
 
 The two report-only checks — `security-invariant-report` and `lint-api-report`
 — are known baselines and do **not** block a merge. See

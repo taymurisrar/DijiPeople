@@ -123,8 +123,16 @@ available the Integrator pushes the task branch, waits for the
   (`DETERMINISTIC_FAILURE`, `ENVIRONMENT_FAILURE`, `FLAKY_TEST`,
   `KNOWN_BASELINE`, `EXTERNAL_DEPENDENCY_FAILURE`). Only the last justifies an
   automatic retry.
+- **Shared target + unreadable verdict → STOP.** For `main`, `develop`,
+  `release/*`, `production`, or anything policy marks protected, a merge requires
+  `REMOTE_CI_STATUS = PASS` on the exact SHA. `BLOCKED_BY_ACCESS`, `UNAVAILABLE`,
+  `UNKNOWN`, `PENDING` and `FAILED` do not authorise one, however green the local
+  run was. Push the task branch — always allowed — then record
+  `MERGE_STATUS = BLOCKED_CI_UNVERIFIED` and
+  `TASK_STATUS = BLOCKED_FINALIZATION`, and leave the target untouched.
 - **No remote, or CI cannot run** → report `REMOTE_CI = UNAVAILABLE`, fall back
-  to local gates, and say so explicitly. Never imply CI ran when it did not.
+  to local gates where the target is not shared, and say so explicitly. Never
+  imply CI ran when it did not.
 - **`security-invariant-report` and `lint-api-report` are non-gating** known
   baselines — see [`ci.md`](ci.md).
 - **Branch advanced while CI ran** → the run is against a stale base. Rebase or
@@ -145,8 +153,10 @@ push, a merge, a readiness check or a cleanup. The orchestration decides:
 - **Substantial task** → isolated worktree + `agent/<task>` branch, by default.
 - **Trivial safe change** (copy, comment, docs) → a simpler path is permitted.
 - **Pushing task branches and reading CI** → Integrator, automatically, when a
-  remote and credentials exist.
-- **Merging** → Integrator, once every gate passes, CI included.
+  remote and credentials exist. Pushing the **task branch** stays allowed even
+  when the CI verdict cannot be read — it starts CI and preserves the work.
+- **Merging** → Integrator, once every gate passes, CI included. Into a shared
+  target, only on a verified CI `PASS`.
 - **Cleanup** → temporary worktrees removed, merged *local* branches deleted;
   remote branches left per repository policy.
 - **Deployment readiness, ordering, smoke checks and release records** →
@@ -154,7 +164,8 @@ push, a merge, a readiness check or a cleanup. The orchestration decides:
 
 Never automatic, under any circumstances: force-pushing a shared branch,
 overwriting remote history, deleting an unmerged remote branch, bypassing a
-required check, or merging while required CI is red.
+required check, merging while required CI is red, or **merging into a shared
+target on anything other than a verified CI `PASS`**.
 
 Still requires a human: approving the ExecPlan, accepting a `PASS WITH RISKS`
 QA verdict, and production deployment — which this repository does not yet

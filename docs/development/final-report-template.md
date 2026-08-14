@@ -126,6 +126,7 @@ them against
 ```
 TASK_STATUS:
 TARGET_BRANCH:
+SHARED_TARGET:
 TASK_BRANCH:
 BASE_SHA:
 FINAL_TASK_SHA:
@@ -133,6 +134,7 @@ MERGE_SHA:
 FINAL_TARGET_SHA:
 REMOTE_PUSH:
 REMOTE_CI:
+MERGE_AUTHORIZATION:
 POST_MERGE_VALIDATION:
 QA_REPORT:
 KNOWLEDGE_CAPTURE:
@@ -145,7 +147,13 @@ BRANCH_CLEANUP:
 footnote. An unresolved field is a legitimate outcome; an omitted one is a false
 report.
 
-`TASK_STATUS` is one of `COMPLETE`, `COMPLETE_WITH_UNVERIFIED_CI`,
-`COMPLETE_WITH_DOCUMENTATION_WARNING`, `IMPLEMENTATION_COMPLETE_BUT_UNMERGED`,
-`BLOCKED_FINALIZATION`, `BLOCKED` or `FAILED`. It is never asserted before the
-contract has been evaluated.
+`SHARED_TARGET` and `MERGE_AUTHORIZATION` are what make the CI gate auditable
+after the fact. Where `SHARED_TARGET: true`, `MERGE_AUTHORIZATION` must read
+`AUTHORIZED` and name the SHA whose CI verdict was read. Anything else means the
+merge should not have happened — which is only discoverable later if the report
+recorded it.
+
+`TASK_STATUS` is one of `COMPLETE`, `COMPLETE_WITH_UNVERIFIED_CI` (never for a
+shared merge), `COMPLETE_WITH_DOCUMENTATION_WARNING`,
+`IMPLEMENTATION_COMPLETE_BUT_UNMERGED`, `BLOCKED_FINALIZATION`, `BLOCKED` or
+`FAILED`. It is never asserted before the contract has been evaluated.

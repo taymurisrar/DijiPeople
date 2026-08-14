@@ -55,7 +55,7 @@ function flagValue(name) {
   return value;
 }
 
-const VALUE_FLAGS = ['--task-branch', '--target', '--base'];
+const VALUE_FLAGS = ['--task-branch', '--target', '--base', '--ci-status', '--ci-sha'];
 const BOOLEAN_FLAGS = ['--no-sync', '--json'];
 
 const NO_SYNC = argv.includes('--no-sync');
@@ -222,19 +222,103 @@ try {
   ghAvailable = false;
 }
 
-report.REMOTE_CI = !ciConfigured
-  ? 'UNAVAILABLE — no .github/workflows/ci.yml'
-  : !hasRemote
-    ? 'UNAVAILABLE — no remote'
-    : ghAvailable
-      ? 'OBSERVABLE — read the `CI required gate` check for the pushed SHA'
-      : 'BLOCKED_BY_ACCESS — no `gh` CLI; a verdict cannot be read from here';
+/*
+ * Two different questions, deliberately kept apart:
+ *   - can a verdict be read from here?      (detected)
+ *   - what did the verdict say?             (supplied via --ci-status)
+ *
+ * The script can answer the first and never the second. Only the Integrator,
+ * having actually read the `CI required gate` check, supplies the verdict — and
+ * for PASS it must also name the SHA it read, which is verified against the
+ * branch head. A pass on an earlier commit is a pass about different code.
+ */
+const CI_VALUES = [
+  'PASS',
+  'FAILED',
+  'PENDING',
+  'UNKNOWN',
+  'BLOCKED_BY_ACCESS',
+  'UNAVAILABLE',
+  'NOT_REQUIRED',
+];
+
+const suppliedCi = flagValue('--ci-status');
+if (suppliedCi && !CI_VALUES.includes(suppliedCi)) {
+  console.error(`--ci-status must be one of: ${CI_VALUES.join(', ')}`);
+  if (/ASSUMED/i.test(suppliedCi)) {
+    console.error('ASSUMED_PASS is not a value. An unread verdict is BLOCKED_BY_ACCESS.');
+  }
+  process.exit(2);
+}
+
+const detectedCi = !ciConfigured || !hasRemote
+  ? 'UNAVAILABLE'
+  : ghAvailable
+    ? 'OBSERVABLE'
+    : 'BLOCKED_BY_ACCESS';
+
+let ciState = suppliedCi ?? detectedCi;
+let ciNote = suppliedCi ? 'supplied by the Integrator' : 'detected';
+
+// A supplied PASS is only meaningful for the SHA actually being merged.
+if (suppliedCi === 'PASS') {
+  const ciSha = flagValue('--ci-sha');
+  if (!ciSha) {
+    console.error('--ci-status PASS requires --ci-sha <sha> — the commit whose check was read');
+    process.exit(2);
+  }
+  const resolved = shaOf(ciSha);
+  if (!resolved || resolved !== taskSha) {
+    ciState = 'UNKNOWN';
+    ciNote = `PASS rejected — --ci-sha ${ciSha} does not resolve to the task branch head ${short(taskSha)}`;
+  }
+}
+
+report.REMOTE_CI = {
+  UNAVAILABLE: ciConfigured ? 'UNAVAILABLE — no remote' : 'UNAVAILABLE — no .github/workflows/ci.yml',
+  OBSERVABLE: 'OBSERVABLE — a verdict can be read, but none was supplied (--ci-status)',
+  BLOCKED_BY_ACCESS: 'BLOCKED_BY_ACCESS — no `gh` CLI; a verdict cannot be read from here',
+  PASS: `PASS — ${ciNote}`,
+  FAILED: `FAILED — ${ciNote}`,
+  PENDING: `PENDING — ${ciNote}`,
+  UNKNOWN: `UNKNOWN — ${ciNote}`,
+  NOT_REQUIRED: `NOT_REQUIRED — ${ciNote}`,
+}[ciState];
+
+// ----------------------------------------------------- shared-target CI gate
 
 /*
- * Deliberately not unresolved: an unreadable CI verdict is a documented,
- * reportable outcome (COMPLETE_WITH_UNVERIFIED_CI). What is forbidden is
- * recording it as a pass, which no code path here can produce.
+ * A task merged and pushed `main` while its CI verdict was unreadable. Local
+ * gates were green and nothing broke, but the merge was authorised by
+ * inference — on a branch other people pull from.
+ *
+ * Unknown branch names default to SHARED. Wrongly treating a private branch as
+ * shared costs one blocked merge; the reverse puts unverified code on a branch
+ * a team builds from.
  */
+const PRIVATE_BRANCH = /^(agent|chore)\//;
+const EXPLICITLY_SHARED = /^(main|master|develop|production|staging|release\/)/;
+
+const sharedTarget = EXPLICITLY_SHARED.test(TARGET_BRANCH) || !PRIVATE_BRANCH.test(TARGET_BRANCH);
+report.SHARED_TARGET = sharedTarget;
+
+if (ciState === 'UNAVAILABLE') {
+  report.MERGE_AUTHORIZATION = 'LOCAL_POLICY — no remote CI configured; local gates govern';
+} else if (!sharedTarget) {
+  report.MERGE_AUTHORIZATION = `LOCAL_POLICY — ${TARGET_BRANCH} is not a shared target; still record the CI status honestly`;
+} else if (ciState === 'PASS') {
+  report.MERGE_AUTHORIZATION = `AUTHORIZED — verified CI PASS on ${short(taskSha)} for shared target ${TARGET_BRANCH}`;
+} else {
+  /*
+   * Everything that is not a verified PASS lands here: FAILED, PENDING,
+   * UNKNOWN, BLOCKED_BY_ACCESS, and the OBSERVABLE-but-unsupplied case. One
+   * branch, so no future value can quietly acquire permission by omission.
+   */
+  report.MERGE_AUTHORIZATION = `BLOCKED_CI_UNVERIFIED — ${TARGET_BRANCH} is shared and CI is ${ciState}. Push the task branch; do NOT merge or push the target`;
+  unresolved.push(
+    `MERGE_AUTHORIZATION — ${TARGET_BRANCH} is a shared target and CI is ${ciState}, not PASS; merge is not authorised`,
+  );
+}
 
 // --- QA, knowledge, Obsidian
 
@@ -345,6 +429,8 @@ if (AS_JSON) {
   line('FINAL_TARGET_SHA', report.FINAL_TARGET_SHA ?? 'unresolved');
   line('REMOTE_PUSH', report.REMOTE_PUSH);
   line('REMOTE_CI', report.REMOTE_CI);
+  line('SHARED_TARGET', String(report.SHARED_TARGET));
+  line('MERGE_AUTHORIZATION', report.MERGE_AUTHORIZATION);
   line('POST_MERGE_VALIDATION', '<record the commands actually run against the merged SHA>');
   line('QA_REPORT', report.QA_REPORT);
   line('KNOWLEDGE_CAPTURE', report.KNOWLEDGE_CAPTURE);

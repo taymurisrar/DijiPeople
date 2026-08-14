@@ -134,9 +134,43 @@ explicitly — never leave it silently re-running.
 | **Specialist agent** | Owns failures caused by its implementation |
 | **QA** | Interprets test and regression failures; classifies flakiness |
 | **Reviewer** | Decides whether a failure reveals an architecture or security problem |
-| **Integrator** | **Does not merge while required CI is red** |
+| **Integrator** | **Does not merge while required CI is red — and never merges into a shared target without a verified PASS** |
 | **Release/DevOps** | **Does not promote a release while required CI is red** |
 
 "Tests passed locally" is **not** a substitute for CI when CI is available and
 has not passed. Local runs use a different Node version, a different filesystem
 and a warm cache.
+
+---
+
+## The shared-target merge gate
+
+Where the target is shared — `main`, `develop`, `release/*`, `production`,
+`staging`, or anything policy marks protected — and CI is configured:
+
+```
+MERGE requires REMOTE_CI_STATUS = PASS, read on the exact SHA
+```
+
+Nothing else authorises it: not `BLOCKED_BY_ACCESS`, not `UNAVAILABLE`, not
+`UNKNOWN`, not `PENDING`, not `FAILED`, and certainly not `ASSUMED_PASS`, which
+is not a value at all.
+
+When the verdict cannot be read: **push the task branch** — always allowed, it
+starts CI and preserves the work — then stop with
+`MERGE_STATUS = BLOCKED_CI_UNVERIFIED` and
+`TASK_STATUS = BLOCKED_FINALIZATION`. Do not push the target.
+
+> This exists because a task merged and pushed `main` on
+> `REMOTE_CI_STATUS = BLOCKED_BY_ACCESS`. Local gates were green and nothing
+> broke — but the merge was authorised by inference, on a branch other people
+> pull from.
+
+Full rule:
+[`.agent/context/task-completion-contract.md`](../../.agent/context/task-completion-contract.md).
+
+**Branch protection is the enforcement half of this** — see
+[`branch-protection.md`](branch-protection.md). Framework rules constrain agent
+behaviour; branch protection constrains everyone, including humans, other Git
+clients and direct pushes. Both are required, and this repository currently has
+only the first.

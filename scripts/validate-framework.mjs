@@ -256,6 +256,130 @@ if (contractExists) {
     positions.every((p, i) => i === 0 || (p !== -1 && p > positions[i - 1])),
     'knowledge must be captured after the merge, and synced after being captured',
   );
+
+  /*
+   * The shared-target CI gate.
+   *
+   * A task merged and pushed `main` on REMOTE_CI_STATUS = BLOCKED_BY_ACCESS.
+   * Local gates were green and nothing broke, but the merge was authorised by
+   * inference on a branch other people pull from. These checks make it a
+   * validation failure for the documentation to permit that again.
+   */
+  check('contract classifies SHARED_TARGET', contract.includes('SHARED_TARGET'));
+  check('contract defines BLOCKED_CI_UNVERIFIED', contract.includes('BLOCKED_CI_UNVERIFIED'));
+
+  /*
+   * Parse the authorization column rather than trusting that the values are
+   * merely mentioned. Every non-PASS value must be marked as not authorising a
+   * shared merge; only PASS may say Yes.
+   */
+  const NON_AUTHORIZING_CI = [
+    'FAILED',
+    'PENDING',
+    'UNKNOWN',
+    'BLOCKED_BY_ACCESS',
+    'UNAVAILABLE',
+    'NOT_REQUIRED',
+  ];
+
+  /*
+   * Scope to the CI authorization table. Several tables in this document share
+   * the `| \`VALUE\` |` row shape, and matching the first one found reads the
+   * wrong column entirely.
+   */
+  const ciTableStart = contract.indexOf('| `REMOTE_CI_STATUS` | Meaning | Authorises a shared merge?');
+  check(
+    'contract has a CI authorization table',
+    ciTableStart !== -1,
+    'expected a table with an "Authorises a shared merge?" column',
+  );
+
+  const ciTable = ciTableStart === -1 ? '' : contract.slice(ciTableStart).split(/\r?\n\r?\n/)[0];
+  const ciRow = (value) =>
+    ciTable
+      .split(/\r?\n/)
+      .find((line) => new RegExp(`^\\|\\s*\`${value}\`\\s*\\|`).test(line));
+  const lastCellOf = (row) => row.split('|').filter((c) => c.trim()).pop().trim();
+
+  for (const value of NON_AUTHORIZING_CI) {
+    const row = ciRow(value);
+    check(
+      `contract's CI table rules on ${value}`,
+      Boolean(row),
+      'the value must appear as a row in the authorization table',
+    );
+    if (row) {
+      check(
+        `contract denies shared merge on CI ${value}`,
+        /^no$/i.test(lastCellOf(row)),
+        `authorization column reads "${lastCellOf(row)}" — only PASS may authorise`,
+      );
+    }
+  }
+
+  const passRow = ciRow('PASS');
+  check(
+    "contract's CI table authorises PASS",
+    Boolean(passRow) && /yes/i.test(lastCellOf(passRow)),
+    'PASS must be the value that authorises a shared merge',
+  );
+
+  // COMPLETE_WITH_UNVERIFIED_CI must be explicitly barred from shared merges.
+  const unverifiedRow = contract
+    .split(/\r?\n/)
+    .find((line) => line.includes('`COMPLETE_WITH_UNVERIFIED_CI`') && line.startsWith('|'));
+  check(
+    'COMPLETE_WITH_UNVERIFIED_CI is barred from shared integration',
+    Boolean(unverifiedRow) && /never/i.test(unverifiedRow) && /shared/i.test(unverifiedRow),
+    'the state must say it never applies to work integrated into a shared branch',
+  );
+}
+
+/*
+ * Denylist for the specific permissive constructions this gate replaced. The
+ * table checks above prove the right rule is stated; these prove the old one is
+ * not still sitting somewhere else contradicting it.
+ */
+const PERMISSIVE_CI_PHRASINGS = [
+  /[Mm]erging on local gates alone is permitted/,
+  /BLOCKED_BY_ACCESS[^.\n]{0,160}\b(?:permits?|allows?|authoris\w*|authoriz\w*)\b[^.\n]{0,60}merge/i,
+  /COMPLETE_WITH_UNVERIFIED_CI[^.\n]{0,160}\bshared\b[^.\n]{0,80}\b(?:merge|permitted|allowed)\b/i,
+  /cap the task at\s+`?COMPLETE_WITH_UNVERIFIED_CI/i,
+];
+
+for (const file of [
+  '.agent/context/task-completion-contract.md',
+  '.agent/agents/integrator.md',
+  '.agent/agents/release-devops.md',
+  'docs/development/agent-orchestration.md',
+  'docs/development/ci.md',
+  'AGENTS.md',
+]) {
+  if (!existsSync(join(ROOT, file))) continue;
+  const body = read(file);
+  for (const pattern of PERMISSIVE_CI_PHRASINGS) {
+    check(
+      `${file} does not permit merging a shared target on an unverified CI verdict`,
+      !pattern.test(body),
+      `matched ${pattern}`,
+    );
+  }
+}
+
+// The Integrator is the role that actually performs the merge.
+if (existsSync(join(ROOT, '.agent/agents/integrator.md'))) {
+  const integrator = read('.agent/agents/integrator.md');
+  check('integrator classifies SHARED_TARGET', integrator.includes('SHARED_TARGET'));
+  check('integrator declares BLOCKED_CI_UNVERIFIED', integrator.includes('BLOCKED_CI_UNVERIFIED'));
+  check(
+    'integrator requires a CI PASS for shared targets',
+    /MERGE requires REMOTE_CI_STATUS = PASS/.test(integrator),
+  );
+  check(
+    'integrator still permits pushing the task branch when CI is unreadable',
+    /[Pp]ush the task branch anyway|always allowed/.test(integrator),
+    'blocking the push too would lose the work and never start CI',
+  );
 }
 
 // Every role and orchestration document that can declare a task finished must
@@ -323,6 +447,8 @@ if (existsSync(join(ROOT, REPORT_TEMPLATE))) {
     'FINAL_TARGET_SHA',
     'REMOTE_PUSH',
     'REMOTE_CI',
+    'SHARED_TARGET',
+    'MERGE_AUTHORIZATION',
     'POST_MERGE_VALIDATION',
     'QA_REPORT',
     'KNOWLEDGE_CAPTURE',

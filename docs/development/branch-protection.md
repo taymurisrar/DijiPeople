@@ -1,10 +1,30 @@
 # Branch Protection — recommended settings for `main`
 
-**Status: recommendation.** These settings were **not** applied — configuring
-them requires GitHub repository admin access, which this environment does not
-have. Enable them in the repository settings.
+**Status: recommendation, and the missing half of a two-layer control.** These
+settings were **not** applied — configuring them requires GitHub repository
+admin access, which this environment does not have. Enable them in the
+repository settings.
 
 Remote: `https://github.com/taymurisrar/DijiPeople.git`
+
+---
+
+## Why both layers are required
+
+The framework now refuses to merge into a shared target without a verified CI
+`PASS` — see
+[`../../.agent/context/task-completion-contract.md`](../../.agent/context/task-completion-contract.md).
+That constrains **agents that follow their instructions**. It does nothing about:
+
+- a human pushing straight to `main`
+- a different Git client, or tooling that never loads the framework
+- an agent that ignores its instructions
+- an ordinary mistake made in a hurry
+
+Branch protection is the layer that cannot be argued with. **Neither layer
+substitutes for the other**, and this repository currently has only the
+framework half — which is exactly the gap that let a merge land on `main` with
+an unread CI verdict.
 
 ---
 
