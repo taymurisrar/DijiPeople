@@ -12,6 +12,24 @@ datasource db {
   provider = "postgresql"
 }
 
+/// Tenant lifecycle.
+///
+/// The first seven members are the original set and keep their meaning; the
+/// four below them were added when Platform Admin became the tenant control
+/// plane and needed to tell "being built" apart from "built but not signed
+/// off", and "being retired" apart from "already archived". Nothing rewrites an
+/// existing row: a tenant that was ONBOARDING before is still ONBOARDING.
+///
+///   ONBOARDING          record exists, agreement/commercials not complete
+///   PENDING_SETUP       provisioned, tenant-side configuration still required
+///   PROVISIONING        a provisioning run is in flight
+///   PROVISIONING_FAILED a provisioning run failed and is retryable
+///   ACTIVE              live
+///   SUSPENDED           reversible platform-imposed block
+///   INACTIVE            dormant, no platform block
+///   DECOMMISSIONING     retirement in progress
+///   DECOMMISSIONED      retired; data still present
+///   ARCHIVED / CHURNED  historical terminal states
 enum TenantStatus {
   ONBOARDING
   PENDING_SETUP
@@ -20,6 +38,37 @@ enum TenantStatus {
   SUSPENDED
   ARCHIVED
   CHURNED
+  PROVISIONING
+  PROVISIONING_FAILED
+  DECOMMISSIONING
+  DECOMMISSIONED
+}
+
+enum TenantProvisioningRunStatus {
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+enum TenantProvisioningStepStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+  SKIPPED
+}
+
+enum TenantAppUpdatePolicy {
+  AUTOMATIC
+  MANUAL
+  PINNED
+}
+
+enum TenantErasureStatus {
+  REQUESTED
+  IN_PROGRESS
+  COMPLETED
+  FAILED
 }
 
 enum TenantDomainType {
@@ -2084,6 +2133,9 @@ model Tenant {
   deviceProvisioningJobs          DeviceProvisioningJob[]
   rawAttendanceEvents             RawAttendanceEvent[]
   integrationRuns                 IntegrationRun[]
+  provisioningRuns                TenantProvisioningRun[]
+  provisioningSteps               TenantProvisioningStep[]
+  appAssignments                  TenantAppAssignment[]
   ownerUser                       User?                            @relation("TenantOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
 
   @@index([status])
@@ -2146,6 +2198,138 @@ model TenantDomain {
   @@index([tenantId])
   @@index([tenantId, type, isPrimary])
   @@index([verificationStatus])
+}
+
+/// One attempt at provisioning a tenant.
+///
+/// Provisioning was previously only observable through PlatformEvent rows, which
+/// record that something happened but not which step of the sequence it was, how
+/// long it took, or whether the remainder can safely be re-run. Operations needs
+/// all three to answer "did provisioning succeed, and can I retry it?" — so the
+/// run and its steps are first-class rows.
+model TenantProvisioningRun {
+  id             String                      @id @default(uuid())
+  tenantId       String
+  /// ONBOARDING for the original run, RETRY for an operator-initiated re-run.
+  trigger        String                      @default("ONBOARDING")
+  attempt        Int                         @default(1)
+  status         TenantProvisioningRunStatus @default(RUNNING)
+  startedAt      DateTime                    @default(now())
+  completedAt    DateTime?
+  durationMs     Int?
+  failedStepKey  String?
+  message        String?
+  correlationId  String?
+  requestedById  String?
+  createdAt      DateTime                    @default(now())
+  updatedAt      DateTime                    @updatedAt
+  tenant         Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  steps          TenantProvisioningStep[]
+
+  @@index([tenantId])
+  @@index([tenantId, startedAt])
+  @@index([status])
+}
+
+/// One step of a provisioning run.
+///
+/// `isRetryable` is the step's own property, not the run's: re-running domain
+/// provisioning or a customization publish is idempotent, whereas re-running the
+/// identity/billing transaction would double-create. A retry replays only the
+/// steps that declare themselves safe.
+model TenantProvisioningStep {
+  id          String                       @id @default(uuid())
+  tenantId    String
+  runId       String
+  key         String
+  label       String
+  sequence    Int
+  status      TenantProvisioningStepStatus @default(PENDING)
+  isRetryable Boolean                      @default(false)
+  startedAt   DateTime?
+  completedAt DateTime?
+  durationMs  Int?
+  message     String?
+  createdAt   DateTime                     @default(now())
+  updatedAt   DateTime                     @updatedAt
+  tenant      Tenant                       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  run         TenantProvisioningRun        @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, key])
+  @@index([tenantId])
+  @@index([runId, sequence])
+}
+
+/// Which DijiPeople applications a tenant is entitled to run, on which release
+/// channel, and how their updates are governed.
+///
+/// ApplicationRelease is the global artefact catalogue and stays global. This is
+/// the per-tenant policy on top of it, so a production tenant can sit on STABLE
+/// while a pilot tenant previews the next agent build.
+model TenantAppAssignment {
+  id                String                    @id @default(uuid())
+  tenantId          String
+  /// Matches ApplicationRelease.appKey.
+  appKey            String
+  isEnabled         Boolean                   @default(true)
+  channel           ApplicationReleaseChannel @default(STABLE)
+  updatePolicy      TenantAppUpdatePolicy     @default(AUTOMATIC)
+  /// Set when updatePolicy is PINNED: the exact release this tenant must run.
+  assignedReleaseId String?
+  /// Version floor enforced for this tenant regardless of update policy.
+  minimumVersion    String?
+  notes             String?
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+  createdById       String?
+  updatedById       String?
+  tenant            Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  assignedRelease   ApplicationRelease?       @relation(fields: [assignedReleaseId], references: [id], onDelete: SetNull)
+
+  @@unique([tenantId, appKey])
+  @@index([tenantId])
+  @@index([appKey])
+}
+
+/// Immutable proof that a tenant erasure was requested and what became of it.
+///
+/// Deliberately has NO relation to Tenant. Erasure destroys the tenant row and
+/// everything cascading from it, including that tenant's own audit log — a
+/// receipt joined to the tenant would be destroyed alongside the thing it exists
+/// to evidence. It holds identifiers, actors, reason and outcome counts only:
+/// never tenant HR or business content.
+model TenantErasureReceipt {
+  id                   String              @id @default(uuid())
+  /// Plain column, not a foreign key. The tenant it names no longer exists.
+  tenantId             String
+  tenantName           String
+  tenantSlug           String
+  tenantCode           String?
+  customerAccountId    String?
+  customerName         String?
+  reason               String
+  status               TenantErasureStatus @default(REQUESTED)
+  requestedById        String?
+  requestedByName      String?
+  requestedByEmail     String?
+  executedById         String?
+  executedByName       String?
+  requestedAt          DateTime            @default(now())
+  startedAt            DateTime?
+  completedAt          DateTime?
+  durationMs           Int?
+  /// Row counts per model, for evidence. Counts only — never row content.
+  erasedRecordCounts   Json?
+  /// Records deliberately detached and kept (agreements, support history).
+  retainedRecordCounts Json?
+  failureMessage       String?
+  correlationId        String?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  @@index([tenantId])
+  @@index([status, requestedAt])
+  @@index([customerAccountId])
 }
 
 model CustomerAccount {
@@ -3588,6 +3772,10 @@ model User {
   passwordHash                   String
   status                         UserStatus                    @default(ACTIVE)
   isServiceAccount               Boolean                       @default(false)
+  /// What a machine identity is for — "Attendance gateway", "Payroll export".
+  /// Only meaningful when isServiceAccount is true; a human account describes
+  /// itself by name.
+  serviceAccountPurpose          String?
   preferencesJson                Json?
   lastLoginAt                    DateTime?
   /// Brute-force protection. Counts consecutive failures; cleared on success.
@@ -11482,6 +11670,7 @@ model ApplicationRelease {
   updatedAt               DateTime                  @updatedAt
   createdById             String?
   updatedById             String?
+  tenantAssignments       TenantAppAssignment[]
 
   @@unique([appKey, version, platform, architecture, channel])
   @@index([appKey, isActive])

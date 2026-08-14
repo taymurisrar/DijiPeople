@@ -7,6 +7,7 @@ import { SuperAdminModule } from '../super-admin/super-admin.module';
 import { ContractsModule } from '../contracts/contracts.module';
 import { SupportCasesModule } from '../support-cases/support-cases.module';
 import { PartnerExperienceModule } from '../partner-experience/partner-experience.module';
+import { TenantControlPlaneModule } from '../tenant-control-plane/tenant-control-plane.module';
 import { PlatformRuntimeController } from './platform-runtime.controller';
 import { PlatformRuntimeService } from './platform-runtime.service';
 import { PlatformRuntimeRelationsService } from './platform-runtime-relations.service';
@@ -21,6 +22,7 @@ import { PlatformRuntimeRelationsService } from './platform-runtime-relations.se
     ContractsModule,
     SupportCasesModule,
     PartnerExperienceModule,
+    TenantControlPlaneModule,
   ],
   controllers: [PlatformRuntimeController],
   providers: [PlatformRuntimeService, PlatformRuntimeRelationsService],

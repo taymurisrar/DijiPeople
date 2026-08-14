@@ -9,9 +9,13 @@ export type SubscriptionStatusValue =
 export type TenantStatusValue =
   | "PENDING_SETUP"
   | "ONBOARDING"
+  | "PROVISIONING"
+  | "PROVISIONING_FAILED"
   | "ACTIVE"
   | "INACTIVE"
   | "SUSPENDED"
+  | "DECOMMISSIONING"
+  | "DECOMMISSIONED"
   | "ARCHIVED"
   | "CHURNED";
 
@@ -56,9 +60,13 @@ export function toTenantStatus(value: string): TenantStatusValue {
   if (
     normalized === "ONBOARDING" ||
     normalized === "PENDING_SETUP" ||
+    normalized === "PROVISIONING" ||
+    normalized === "PROVISIONING_FAILED" ||
     normalized === "ACTIVE" ||
     normalized === "INACTIVE" ||
     normalized === "SUSPENDED" ||
+    normalized === "DECOMMISSIONING" ||
+    normalized === "DECOMMISSIONED" ||
     normalized === "ARCHIVED" ||
     normalized === "CHURNED"
   ) {
@@ -84,11 +92,15 @@ export const SubscriptionStatusLabels: Record<
 };
 
 export const TenantStatusLabels: Record<TenantStatusValue, string> = {
-  PENDING_SETUP: "Pending setup",
   ONBOARDING: "Onboarding",
+  PENDING_SETUP: "Configuration required",
+  PROVISIONING: "Provisioning",
+  PROVISIONING_FAILED: "Provisioning failed",
   ACTIVE: "Active",
-  INACTIVE: "Inactive",
   SUSPENDED: "Suspended",
+  INACTIVE: "Inactive",
+  DECOMMISSIONING: "Decommissioning",
+  DECOMMISSIONED: "Decommissioned",
   ARCHIVED: "Archived",
   CHURNED: "Churned",
 };
