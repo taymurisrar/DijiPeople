@@ -331,7 +331,17 @@ if (AS_JSON) {
   line('TASK_BRANCH', report.TASK_BRANCH);
   line('BASE_SHA', report.BASE_SHA ?? 'unresolved');
   line('FINAL_TASK_SHA', report.FINAL_TASK_SHA ?? 'unresolved');
-  line('MERGE_SHA', report.MERGE_STATUS === 'DONE' ? report.FINAL_TARGET_SHA : 'not merged');
+  // Distinguish "not merged" from "no merge was needed" — reporting the second
+  // as the first is exactly the kind of misleading finalization line this tool
+  // exists to prevent.
+  line(
+    'MERGE_SHA',
+    report.MERGE_STATUS === 'DONE'
+      ? report.FINAL_TARGET_SHA
+      : report.MERGE_STATUS.startsWith('NOT_REQUIRED')
+        ? report.MERGE_STATUS
+        : 'not merged',
+  );
   line('FINAL_TARGET_SHA', report.FINAL_TARGET_SHA ?? 'unresolved');
   line('REMOTE_PUSH', report.REMOTE_PUSH);
   line('REMOTE_CI', report.REMOTE_CI);
