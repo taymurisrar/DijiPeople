@@ -33,6 +33,13 @@ produces noise that buries the knowledge that matters.
 
 ## Steps
 
+### 0. Promote user corrections first
+If the user corrected anything during the task, run
+[`process-user-feedback`](process-user-feedback.md) **before** capturing. A
+correction is usually the most valuable thing the task produced, and a capture
+that omits it records the work while losing the lesson. Resolves
+`FEEDBACK_PROMOTION_STATUS`.
+
 ### 1. Classify what was learned
 Assign every candidate item to exactly one category. Anything that fits none is
 implementation noise — discard it.
@@ -86,6 +93,22 @@ into the vault's `Generated/` folders. See
 - Zero or more ADRs, bug patterns, regression entries
 - Zero or more context files corrected, with refreshed verification metadata
 - A one-line summary of what was captured, for the final report
+
+## Reject noise
+
+Capture is only valuable if it stays worth reading. **Reject**:
+
+- temporary debugging steps
+- one-off console output
+- facts trivially findable in source — "`EmployeesService` has a `findByTenant`
+  method"
+- **large diffs pasted into notes** — that is what Git is for, and pasted code
+  goes stale silently (`doc-code-drift`)
+- redundant test logs
+- speculative assumptions not verified against the repository
+
+The test: **would a future agent make a worse decision without this?** If not,
+it is noise, and adding it makes the surrounding knowledge harder to find.
 
 ## Stop conditions
 

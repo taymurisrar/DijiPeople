@@ -60,6 +60,48 @@ Step 3 is the one most often skipped and the one that matters most. A regression
 test that passes both with and without the fix is not a regression test; it is
 decoration.
 
+### The full loop, from a user-reported bug
+
+The version above starts at "QA finds a defect". When the **user** reports one,
+the loop is longer and every stage is standard behaviour, not a special request:
+
+```
+USER REPORTS BUG
+   ↓  Architect reproduces and understands it (not just the symptom)
+   ↓  QA defines the failing scenario
+   ↓  Regression proves the failure BEFORE the fix exists
+   ↓  Specialist fixes the ROOT CAUSE
+   ↓  QA proves the fix
+   ↓  Reviewer checks whether it generalises
+   ↓  Bug classified (USER_FEEDBACK_CLASS = BUG_REGRESSION)
+   ↓  Regression register updated
+   ↓  Known bug pattern updated if reusable
+   ↓  Knowledge captured
+   ↓  Obsidian synced
+   ↓  Future Architect / QA / Reviewer load it automatically
+```
+
+The user should never have to say "don't make this mistake again" — the loop is
+what makes that unnecessary.
+
+### Root cause over symptom
+
+For any bug task, do **not** patch only the visible failure. Establish:
+
+- the **immediate failure** — what the user saw
+- the **root cause** — why it happened
+- whether that root cause **affects other modules**
+- whether a **shared abstraction is wrong** rather than one call site
+- whether the regression test should be **generic or module-specific**
+
+**If the root cause is in shared code, fix it there** — and QA must then test at
+least one *additional* affected path where practical. A shared fix verified on
+only the reported path is a shared fix that was never really verified.
+
+> This repository has already produced this shape: `readTeam` meaning
+> "tenant-wide" was not an approvals bug, it was a scope-resolution bug that
+> surfaced in approvals and attendance both.
+
 ---
 
 ## When a QA run is required

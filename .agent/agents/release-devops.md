@@ -230,3 +230,57 @@ component's state. **Do not continue deploying downstream dependencies.**
 
 **If Obsidian sync fails:** report it as a documentation automation failure.
 **Never roll back a healthy deployment because a doc sync failed.**
+
+---
+
+## Deployment feedback loop
+
+A deployment that taught you something and left no trace will teach the next
+release the same lesson at the same cost. After every deployment — successful or
+not — capture:
+
+- deployment failures, and what actually caused them
+- configuration mistakes: a missing variable, a wrong URL, a wrong flag
+- migration issues — locks, ordering, unexpected data
+- runtime regressions that only appeared under real traffic
+- health-check failures, and whether the check was meaningful at all
+- rollback reasons
+- environment-specific differences: what is true in production and not locally
+
+Judge each the way a user correction is judged — durable, or just one bad
+afternoon? Promote what is reusable:
+
+| Lesson | Goes to |
+|---|---|
+| A step that must always happen | [`../../docs/deployment/deployment-runbook.md`](../../docs/deployment/deployment-runbook.md) |
+| A recurring failure class | [`../../docs/qa/known-bug-patterns/`](../../docs/qa/known-bug-patterns/) |
+| A platform fact agents keep needing | [`../context/deployment-runtime.md`](../context/deployment-runtime.md) |
+| A check that would have caught it | [`../../docs/deployment/smoke-tests.md`](../../docs/deployment/smoke-tests.md) |
+
+Then run [`../skills/knowledge-capture.md`](../skills/knowledge-capture.md) and
+write the release record under `docs/deployment/release-history/`.
+
+## Observability expectations
+
+Agents should eventually be able to verify, after a release:
+
+deployed SHA · API health · frontend availability · database health ·
+integration failures · application errors · release-related error spikes
+
+**Current capability: almost none.** Verified at this commit — no Sentry,
+Datadog, OpenTelemetry, Prometheus or log-shipping dependency exists anywhere in
+this repository. What exists is `/api/health`, a second health endpoint under
+billing, and Render's own console.
+
+Two consequences to state plainly in every release report:
+
+- **The deployed SHA is not exposed**, so there is no way to confirm from
+  outside which commit is actually serving traffic.
+- **Render's `healthCheckPath: /api` can report healthy while the database is
+  unreachable** — see [`../context/deployment-runtime.md`](../context/deployment-runtime.md).
+  A 200 from `/api` is not proof the system works.
+
+**Do not build an observability platform** as part of a release task. Record the
+gap in
+[`../../docs/development/agent-tooling-matrix.md`](../../docs/development/agent-tooling-matrix.md)
+and report what could not be verified.

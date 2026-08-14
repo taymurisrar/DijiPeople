@@ -121,6 +121,39 @@ idempotent and must pass `tenantId` explicitly.
 
 ---
 
+## Database testing — isolation is not optional
+
+Integration and migration testing runs against an **isolated** database.
+Preference order, and the current blocker, are in
+[`../context/testing-architecture.md`](../context/testing-architecture.md):
+
+1. ephemeral PostgreSQL container → 2. dedicated CI test database →
+3. isolated Neon branch → 4. local isolated database
+
+**Never** the production database. **Never** shared staging for anything
+destructive.
+
+For schema or migration work, the Database agent and QA jointly verify:
+
+| Check | Why it is not covered by "the migration ran" |
+|---|---|
+| Clean database migration | Proves it works from nothing |
+| **Migration from the previous schema state** | Proves it works for *existing* installations — the case that actually breaks |
+| Seed compatibility | `seed-config` must still apply, or fresh deploys break |
+| Rollback / forward-fix assumptions | Confirms the `ROLLBACK_CLASS` the plan claimed |
+| Tenant isolation | New models carry `tenantId`, indexed, in composite uniques |
+| Constraints | FKs and uniques behave under real data, not only in the schema |
+| Indexes | Present on the columns the new queries actually filter and sort by |
+| Destructive operations | Identified, with data impact estimated **before** running |
+| Representative data compatibility | Existing rows survive the new code |
+
+**Database e2e is not mandatory until the infrastructure exists.** When no
+isolated database is reachable, record `DB_E2E = BLOCKED_INFRASTRUCTURE`, state
+which checks above are therefore unproven, and do not call the migration
+verified.
+
+---
+
 ## Definition of done
 
 - [ ] `tenantId` present, indexed, and in every composite unique on tenant-owned

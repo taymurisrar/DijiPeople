@@ -74,9 +74,21 @@ Neither runs on a task whose QA verdict is FAIL.
 ## What `DijiPeople Task:` means
 
 A prompt beginning `DijiPeople Task:` requests the **complete engineering
-lifecycle**, Git finalization and knowledge synchronisation included. The user
-should never have to append "push it", "merge it", "sync Obsidian" or "clean the
-worktree" — those are phases of the task, not extras to be requested.
+lifecycle**. It implicitly means all of:
+
+- **retrieve relevant historical knowledge** before planning
+  (`RELEVANT_KNOWLEDGE_RETRIEVAL` — see
+  [`../../.agent/context/knowledge-architecture.md`](../../.agent/context/knowledge-architecture.md))
+- **inspect known regressions** for the affected modules
+- **process user corrections durably** (`USER_FEEDBACK_CLASS`)
+- **use browser QA** when relevant and available
+- **use isolated-database QA** when relevant and available
+- **use the CI and Git gates**
+- **capture new lessons**, then **sync knowledge**
+
+The user should never have to append "push it", "merge it", "sync Obsidian",
+"clean the worktree", "remember this", "don't make this mistake again", "check
+previous bugs" or "look at Obsidian". Those are phases of the task, not extras.
 
 The Integrator runs because the task **modified Git-tracked files**, never
 because the prompt asked for Git operations.

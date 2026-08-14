@@ -223,10 +223,17 @@ REVIEW_STATUS
 REMOTE_CI_STATUS
 MERGE_STATUS
 POST_MERGE_VALIDATION_STATUS
+FEEDBACK_PROMOTION_STATUS
 KNOWLEDGE_CAPTURE_STATUS
 OBSIDIAN_SYNC_STATUS
 CLEANUP_STATUS
 ```
+
+`FEEDBACK_PROMOTION_STATUS` is evaluated **before** knowledge capture finishes.
+A correction the user made during the task is often the most valuable thing the
+task produced; capturing knowledge without it loses exactly that. Allowed
+values: `DONE`, `NOT_REQUIRED` (with a reason), `BLOCKED`. See
+[User corrections become durable behaviour](#user-corrections-become-durable-behaviour).
 
 ### Allowed values
 
@@ -255,6 +262,7 @@ agent cannot evaluate is `BLOCKED_<REASON>`, which is honest and visible.
 | `REMOTE_CI_STATUS` | No remote exists, or no CI is configured |
 | `MERGE_STATUS` | The task never modified Git-tracked files |
 | `POST_MERGE_VALIDATION_STATUS` | Nothing merged |
+| `FEEDBACK_PROMOTION_STATUS` | No user correction occurred, or every correction classified `NOT_DURABLE` |
 | `KNOWLEDGE_CAPTURE_STATUS` | Nothing durable was learned — an explicitly valid outcome |
 | `OBSIDIAN_SYNC_STATUS` | Use `SKIPPED_NO_LOCAL_CONFIG`, not `NOT_REQUIRED` |
 | `CLEANUP_STATUS` | No temporary worktree or branch was created |
@@ -408,6 +416,39 @@ lessons, and write to `docs/knowledge/`.
 
 Nothing durable is a valid outcome — record `KNOWLEDGE_CAPTURE_STATUS =
 NOT_REQUIRED` with that reason. Silently skipping it is not.
+
+## User corrections become durable behaviour
+
+A correction made in chat changes one task. A correction that is **classified
+and promoted** changes every future task. Without this step the user has to
+repeat themselves, which is the clearest possible signal that the system is not
+learning.
+
+Every substantial correction gets a `USER_FEEDBACK_CLASS`:
+
+| Class | Promote into |
+|---|---|
+| `TASK_SPECIFIC` | Nothing global — unless it has clear future value |
+| `BUG_REGRESSION` | Regression test · `docs/qa/regressions/index.md` · a bug pattern if generalisable · QA scenarios |
+| `DOMAIN_RULE` | `docs/knowledge/modules/<module>.md` · requirements · context where agent behaviour depends on it |
+| `ARCHITECTURE_RULE` | An ADR in `docs/decisions/` · the architecture context · relevant agent instructions |
+| `UI_UX_RULE` | UI/UX knowledge · module knowledge · regression scenarios where testable |
+| `SECURITY_RULE` | A security bug pattern · Reviewer and QA expectations · context or ADR |
+| `PROCESS_RULE` | `AGENTS.md` · orchestration · the QA / Integrator / Release process |
+| `DOCUMENTATION_RULE` | Only the specific documentation source that was wrong |
+| `NOT_DURABLE` | Nothing. Recording it would be noise |
+
+**Classify honestly.** Marking a real architectural correction `TASK_SPECIFIC`
+is how the same mistake returns in three weeks. Marking a passing preference
+`ARCHITECTURE_RULE` is how the framework fills with rules nobody agreed to.
+
+Run the [`process-user-feedback`](../skills/process-user-feedback.md) Skill and
+record `FEEDBACK_PROMOTION_STATUS`.
+
+> Worked example. The user said pushing `main` on an unread CI verdict was not
+> acceptable. That is `PROCESS_RULE`, not `TASK_SPECIFIC` — it promoted into the
+> shared-target CI gate above, the Integrator's merge gates, and
+> `validate-framework.mjs`. No future agent needs to be told again.
 
 ## QA output must be durable
 

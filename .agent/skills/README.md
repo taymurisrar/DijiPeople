@@ -11,6 +11,8 @@ judgement, and role behaviour is never encoded inside a Skill.
 |---|---|---|
 | [`authorization-dry-run.md`](authorization-dry-run.md) | Backend/API, Architect | **Ready** — proven across four remediation batches |
 | [`knowledge-capture.md`](knowledge-capture.md) | Knowledge Writer step | **Ready** — mechanical extraction, no judgement encoded |
+| [`retrieve-relevant-knowledge.md`](retrieve-relevant-knowledge.md) | Architect, QA, Reviewer | **Ready** — backed by `scripts/retrieve-knowledge.mjs`, so every agent gets the same ranked answer for the same terms |
+| [`process-user-feedback.md`](process-user-feedback.md) | Architect, Knowledge Capture | **Ready** — a fixed classification table with exactly one real judgement |
 
 ## Deliberately not created yet
 
@@ -22,10 +24,12 @@ Assessed against real usage, not speculation:
 | `review-api-data-sensitivity` | **Needs more pilots** | Only two instances observed (compensation, subscription pricing). One more and the pattern is stable enough |
 | `create-prisma-entity` | **Defer** | Conventions are well documented in `services/api/prisma/AGENTS.md`, and mistakes are permanent — human review matters more than automation here |
 | `create-module-screen` | **Defer** | The runtime registration path was found to contain unused scaffolding; encode it only once the real path is stable |
-| `qa-regression-review` | **Defer** | The regression register has 7 entries. Automate reading it when it has enough entries that reading is a chore |
+| `qa-regression-review` | **Defer** | The register has 7 entries — verified, not assumed. `retrieve-relevant-knowledge` already surfaces the relevant ones; a dedicated Skill adds a step without adding a decision. Revisit when reading the register is genuinely a chore |
+| `qa-browser-regression` | **Blocked, not deferred** | No browser automation exists in any workspace — no Playwright, Cypress or Puppeteer. Writing this Skill now would document a procedure nobody can run, which is worse than not having it. Create it **with** the tooling, not before |
 
 A Skill that encodes a convention which then changes is a stale instruction with
-extra steps. Two proven Skills beat ten speculative ones.
+extra steps. Four proven Skills beat ten speculative ones — and a Skill for a
+capability the environment does not have is not a Skill, it is fiction.
 
 ## Skill contract
 
