@@ -8,9 +8,16 @@ import { getAppOrigin } from '@repo/config';
 import { extname } from 'path';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { Prisma } from '@prisma/client';
+import {
+  Prisma,
+  SecurityAccessLevel,
+  SecurityPrivilege,
+} from '@prisma/client';
 import { normalizeEmail } from '../../common/utils/email.util';
 import { getAccessTokenSecret } from '../../common/config/auth.config';
+import { PERMISSION_KEYS } from '../../common/constants/permissions';
+import { ENTITY_KEYS } from '../../common/constants/rbac-matrix';
+import { resolveEffectiveAccessLevel } from '../../common/security/rbac-query-scope';
 import { canManageEmployeeAccountActions } from '../../common/security/employee-account-actions';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -52,6 +59,35 @@ const ALLOWED_PROFILE_IMAGE_TYPES = new Set([
   'image/png',
   'image/webp',
 ]);
+
+/*
+ * Named explicitly rather than letting findFirst return the whole row. The
+ * model carries bank account number, IBAN, routing number and tax identifier,
+ * so a column added to it later must be published deliberately rather than by
+ * default.
+ */
+const employeeCompensationSelect = {
+  id: true,
+  tenantId: true,
+  employeeId: true,
+  basicSalary: true,
+  payFrequency: true,
+  effectiveDate: true,
+  endDate: true,
+  currency: true,
+  payrollStatus: true,
+  payrollGroup: true,
+  paymentMode: true,
+  bankName: true,
+  bankAccountTitle: true,
+  bankAccountNumber: true,
+  bankIban: true,
+  bankRoutingNumber: true,
+  taxIdentifier: true,
+  notes: true,
+  createdAt: true,
+  updatedAt: true,
+} satisfies Prisma.EmployeeCompensationSelect;
 
 @Injectable()
 export class EmployeeProfilesService {
@@ -565,17 +601,77 @@ export class EmployeeProfilesService {
     );
   }
 
+  /*
+   * Being allowed to read an employee record is not the same as being allowed
+   * to see what that person is paid.
+   *
+   * This gate previously did not exist: the caller only had to pass
+   * assertEmployeeAccess, the employee-record read check. Reporting managers
+   * clear that check for their whole reporting subtree without holding any
+   * compensation or payroll permission, so every manager could read their
+   * reports' salary, bank account number, IBAN, routing number and tax
+   * identifier. The write side of the same resource has always required
+   * payroll.write, so read and write were asymmetric.
+   *
+   * Both halves of the permission model are consulted, because a role may carry
+   * the compensation privilege in the matrix without the legacy key.
+   * resolveEffectiveAccessLevel also returns TENANT for elevated tenant roles,
+   * so those keep their existing reach.
+   */
+  private canViewCompensation(
+    currentUser: AuthenticatedUser,
+    accessMode: Awaited<
+      ReturnType<EmployeeAccessService['getEmployeeRecordAccess']>
+    >,
+  ) {
+    // Your own pay and your own bank details are yours to see.
+    if (accessMode === 'SELF') return true;
+
+    const permissions = new Set(currentUser.permissionKeys ?? []);
+    if (
+      permissions.has(PERMISSION_KEYS.COMPENSATION_READ) ||
+      permissions.has(PERMISSION_KEYS.COMPENSATION_MANAGE) ||
+      permissions.has(PERMISSION_KEYS.PAYROLL_READ)
+    ) {
+      return true;
+    }
+
+    return (
+      resolveEffectiveAccessLevel(
+        currentUser,
+        ENTITY_KEYS.COMPENSATION,
+        SecurityPrivilege.READ,
+      ) !== SecurityAccessLevel.NONE
+    );
+  }
+
   async getCurrentCompensation(
     currentUser: AuthenticatedUser,
     employeeId: string,
   ) {
     await this.assertEmployeeAccess(currentUser, employeeId);
+
+    const accessMode = await this.employeeAccessService.getEmployeeRecordAccess(
+      currentUser,
+      employeeId,
+    );
+
+    /*
+     * Null is also what an employee with no compensation record returns, so a
+     * caller cannot tell the two apart and no existence is disclosed.
+     */
+    if (!this.canViewCompensation(currentUser, accessMode)) {
+      return null;
+    }
+
     const compensation = await this.prisma.employeeCompensation.findFirst({
       where: {
         tenantId: currentUser.tenantId,
         employeeId,
       },
       orderBy: [{ effectiveDate: 'desc' }, { createdAt: 'desc' }],
+      // Explicit, so a column added to the model later is not published by default.
+      select: employeeCompensationSelect,
     });
 
     return compensation
