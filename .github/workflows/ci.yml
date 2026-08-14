@@ -1,0 +1,282 @@
+name: CI
+
+# First CI pipeline for DijiPeople. Deliberately limited to checks that are
+# deterministic and need no production credentials.
+#
+# Two rules this file exists to enforce mechanically:
+#   1. CI never mutates the checkout. The repository's own `npm run lint` runs
+#      `eslint --fix` in services/api, so it is NOT used here — ESLint is
+#      invoked directly in check-only mode.
+#   2. CI never touches a real database. Prisma needs DATABASE_URL to be set
+#      because prisma.config.ts resolves the datasource eagerly, but neither
+#      `generate` nor `validate` connects. A placeholder is therefore safe and
+#      is used everywhere.
+#
+# Phase 2 candidates (e2e, gateway, electron, migration-against-ephemeral-db)
+# are documented in docs/development/ci-recommendation.md.
+
+on:
+  # All branches, not just main/develop. The Integrator pushes an
+  # agent/<task> branch and needs a CI result before it opens or merges
+  # anything — waiting for a PR to exist would break that flow.
+  push:
+    branches: ['**']
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+concurrency:
+  # A newer push to the same ref supersedes an in-flight run. main is excluded
+  # so post-merge runs are never cancelled — those are the ones a release
+  # decision depends on.
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+env:
+  # Placeholder. Prisma requires the variable; it does not connect.
+  DATABASE_URL: postgresql://ci:ci@localhost:5432/ci_placeholder
+  NODE_VERSION: '22.x'
+
+jobs:
+  validate:
+    name: Framework validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+      # No dependencies needed — this job is pure repository-structure checks
+      # and is the fastest signal that something is structurally wrong.
+      - name: Validate agent framework
+        run: node scripts/validate-framework.mjs
+
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: npm
+      - run: npm ci
+      - name: Generate Prisma client
+        run: npm run prisma:generate
+      - name: Validate Prisma schema
+        run: npm run prisma:validate
+      - run: npm run typecheck
+
+  lint:
+    name: Lint (check only)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: npm
+      - run: npm ci
+      - name: Generate Prisma client
+        # ESLint's type-aware rules resolve @prisma/client types.
+        run: npm run prisma:generate
+      # services/api is NOT linted here — it carries 2 pre-existing errors on
+      # main and runs in the non-blocking lint-api-report job instead. See that
+      # job for the promotion path.
+      - name: ESLint — apps/web
+        working-directory: apps/web
+        run: npx eslint
+      - name: ESLint — apps/admin
+        working-directory: apps/admin
+        run: npx eslint
+      - name: ESLint — apps/landing
+        working-directory: apps/landing
+        run: npx eslint
+      - name: Fail if lint modified the checkout
+        # Defence in depth: if any lint step ever regains --fix, this catches it
+        # rather than letting CI silently "pass" against rewritten files.
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::Lint modified tracked files. CI must never mutate the checkout."
+            git --no-pager diff --stat
+            exit 1
+          fi
+
+  test-api:
+    name: API tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: npm
+      - run: npm ci
+      - run: npm run prisma:generate
+      - name: API unit tests
+        # Excludes exactly one test by NAME — the dual-permission wiring
+        # invariant, a known baseline failure reported by the non-blocking job
+        # below.
+        #
+        # Excluding it by *path* would have been easier and wrong: the same file
+        # holds four other wiring invariants that currently pass (permissions
+        # granted to a role, settings menu wiring, filter operators). Dropping
+        # the file would silently stop gating those too. The negative lookahead
+        # keeps all four in this required gate.
+        run: >
+          npm --workspace api run test --
+          --testNamePattern "^(?!.*declares both permission systems).*$"
+
+  test-web:
+    name: Web tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: npm
+      - run: npm ci
+      - run: npm --workspace web run test
+
+  test-admin:
+    name: Admin tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: npm
+      - run: npm ci
+      - run: npm --workspace admin run test
+
+  test-runtime:
+    name: Runtime schema tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: npm
+      - run: npm ci
+      - name: Platform runtime schema contract
+        # Guards sensitive/system-managed fields from becoming writable or
+        # exportable. Cheap, and a real security contract.
+        run: npm run test:runtime-schema
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    # Slowest job. Gated behind the fast signals so an obvious break fails in
+    # ~2 minutes instead of ~10.
+    needs: [typecheck, test-api]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: npm
+      - run: npm ci
+      - run: npm run prisma:generate
+      - name: Monorepo build
+        run: npm run build
+
+  lint-api-report:
+    name: Lint services/api (report only — NOT a gate)
+    runs-on: ubuntu-latest
+    # services/api has 2 pre-existing ESLint errors on main, both
+    # @typescript-eslint/unbound-method in
+    # src/modules/auth/auth.service.spec.ts (lines 120 and 125), alongside ~815
+    # warnings.
+    #
+    # Gating on it today would make CI red on arrival for reasons unrelated to
+    # any incoming change, which trains people to ignore or bypass it.
+    #
+    # Promotion path: fix those two errors, then move this step into the
+    # required `lint` job. The rule is not disabled and nothing is suppressed —
+    # the check runs in full here every time.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: npm
+      - run: npm ci
+      - run: npm run prisma:generate
+      - name: ESLint — services/api (check only, never --fix)
+        working-directory: services/api
+        run: npx eslint "{src,test}/**/*.ts" --max-warnings=10000
+
+  security-invariant-report:
+    name: Security invariant (report only — NOT a gate)
+    runs-on: ubuntu-latest
+    # Runs the dual-permission wiring invariant and reports its inventory
+    # WITHOUT blocking the pipeline.
+    #
+    # Why it does not gate: the invariant currently fails against a large,
+    # pre-existing inventory of handlers declaring only one of the two
+    # permission families. Gating on it would block every unrelated PR on
+    # accumulated debt, which trains people to bypass CI.
+    #
+    # The invariant is NOT weakened, skipped or edited. It runs in full here,
+    # its output is uploaded, and the intent is to promote this job to a
+    # required gate once the inventory reaches zero. Progress is tracked in
+    # docs/qa/regressions/index.md and docs/development/ci-recommendation.md.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: npm
+      - run: npm ci
+      - run: npm run prisma:generate
+      - name: Dual-permission wiring invariant
+        id: invariant
+        run: |
+          set +e
+          npm --workspace api run test -- --testPathPatterns "wiring-invariants" 2>&1 | tee invariant-report.txt
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+      - name: Summarise inventory
+        if: always()
+        run: |
+          {
+            echo "### Dual-permission invariant — baseline report"
+            echo ""
+            echo "Non-blocking. Promoted to a required gate when violations reach 0."
+            echo ""
+            echo '```'
+            grep -E "total route handlers|public handlers|not behind|in scope|compliant|violations|missing @" invariant-report.txt || echo "inventory not found in output"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-invariant-report
+          path: invariant-report.txt
+          retention-days: 30
+
+  ci-required:
+    name: CI required gate
+    runs-on: ubuntu-latest
+    # Single aggregate status the Integrator and branch protection can key on,
+    # so adding a job later does not require reconfiguring the merge policy.
+    # security-invariant-report is deliberately absent from `needs`.
+    needs: [validate, typecheck, lint, test-api, test-web, test-admin, test-runtime, build]
+    if: always()
+    steps:
+      - name: Verify all required jobs passed
+        run: |
+          results='${{ join(needs.*.result, ' ') }}'
+          echo "Required job results: $results"
+          for r in $results; do
+            if [ "$r" != "success" ]; then
+              echo "::error::A required job did not succeed ($r). Merge is blocked."
+              exit 1
+            fi
+          done
+          echo "All required jobs passed."

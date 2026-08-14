@@ -44,6 +44,25 @@ they disagree, inspect the platform and report the drift.
 | **READY_FOR_STAGING** | All gates pass for a non-production environment |
 | **READY_FOR_PRODUCTION** | Everything below holds |
 
+Readiness is computed from six inputs, all recorded in the release report:
+
+```
+SOURCE_SHA        the exact commit being released
+CI_STATUS         PASS | FAIL | UNAVAILABLE   (the `CI required gate` check)
+QA_STATUS         PASS | PASS_WITH_RISKS | FAIL
+REVIEW_STATUS     0 CRITICAL, 0 HIGH blockers, or the blockers listed
+MIGRATION_STATUS  none | additive | destructive, with rollback class
+CONFIG_STATUS     required env vars verified present in the target
+```
+
+**`CI_STATUS = PASS` is required before `READY_FOR_PRODUCTION`.** There is no
+emergency bypass, and none should be invented ad hoc — if one is ever needed it
+belongs in written repository policy, not in a judgement call during an
+incident.
+
+If CI cannot run at all, `CI_STATUS = UNAVAILABLE`, which caps readiness at
+`READY_WITH_RISKS` and must be stated explicitly in the release report.
+
 `READY_FOR_PRODUCTION` requires **all** of:
 
 - clean build of every affected component

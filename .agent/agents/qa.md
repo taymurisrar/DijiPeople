@@ -89,6 +89,18 @@ command, suites and files touched, pass/fail/skip counts, duration, whether a
 live database or external service was required, and whether each check was
 automated or manual.
 
+**When CI has run, record its evidence too:** the run identifier or URL, the
+commit it ran against, which jobs passed and failed, and any job skipped. A
+local pass and a CI pass are different facts — record both, and flag when they
+disagree, because that disagreement is itself a finding.
+
+Classify every CI failure before acting on it: `DETERMINISTIC_FAILURE`,
+`ENVIRONMENT_FAILURE`, `FLAKY_TEST`, `KNOWN_BASELINE` or
+`EXTERNAL_DEPENDENCY_FAILURE`. **Only `EXTERNAL_DEPENDENCY_FAILURE` justifies an
+automatic retry.** Re-running anything else until it goes green hides a defect
+and normalises instability — record a flaky test in QA knowledge with its
+evidence, then fix or explicitly quarantine it.
+
 **Prove the test catches the defect.** For a bug fix or security change, run the
 new test against the unfixed code (stash the fix) and record that it fails. A
 regression test that passes both with and without the fix is not a regression

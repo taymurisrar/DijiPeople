@@ -137,6 +137,7 @@ Merge into the target branch only when **all** hold:
 
 ```
 IMPLEMENTATION        = COMPLETE
+CI_REQUIRED_JOBS      = PASS   (the `CI required gate` check)
 QA                    = PASS  (or PASS_WITH_RISKS, explicitly accepted)
 REVIEWER_CRITICAL     = 0
 REVIEWER_HIGH_BLOCKERS= 0
@@ -145,6 +146,19 @@ TARGET_BRANCH_STATE   = VERIFIED   (fetched and inspected, not assumed)
 GIT_CONFLICTS         = RESOLVED
 KNOWLEDGE_CAPTURE     = COMPLETE or NON_BLOCKING_FAILURE_REPORTED
 ```
+
+**CI is machine-enforced, not self-reported.** When a remote is available, push
+the task branch and read the actual result of the `CI required gate` check
+before merging. "Tests passed locally" is not a substitute — local runs use a
+different Node version, filesystem and cache.
+
+If no remote exists or CI cannot run, report `REMOTE_CI = UNAVAILABLE`, fall
+back to local gates, and **say so explicitly**. Never imply CI ran when it did
+not.
+
+The two report-only checks — `security-invariant-report` and `lint-api-report`
+— are known baselines and do **not** block a merge. See
+[`docs/development/ci.md`](../../docs/development/ci.md).
 
 For production-affecting work, additionally:
 
