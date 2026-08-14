@@ -1,8 +1,8 @@
 # Testing Architecture
 
 > **Last verified:** 2026-08-14
-> **Verified against commit:** 8682dc1
-> **Key source files:** services/api/package.json, services/api/tsconfig.json, services/api/tsconfig.build.json, services/api/test/jest-e2e.json, services/api/src/common/constants/wiring-invariants.spec.ts, apps/web/jest.config.js, apps/admin/jest.config.js, package.json, turbo.json, packages/config/platform-runtime-schema.test.js
+> **Verified against commit:** aa35b74
+> **Key source files:** .github/workflows/ci.yml, services/api/package.json, services/api/tsconfig.json, services/api/tsconfig.build.json, services/api/test/jest-e2e.json, services/api/src/common/constants/wiring-invariants.spec.ts, apps/web/jest.config.js, apps/admin/jest.config.js, package.json, turbo.json, packages/config/platform-runtime-schema.test.js
 >
 > This document describes the repository, it is not authority over it. If the
 > code disagrees, the code is current truth — report the discrepancy and
@@ -10,8 +10,18 @@
 
 ## CURRENT
 
-**There is no CI.** No `.github/` directory exists. Nothing runs any of these
-commands for you. If you skip a check, it is not run.
+**CI exists** at `.github/workflows/ci.yml`: eight required jobs aggregated into
+a single `CI required gate` check, plus two non-gating known baselines. See
+[`../../docs/development/ci.md`](../../docs/development/ci.md).
+
+Two consequences, both load-bearing:
+
+- **CI runs on push, not on your machine.** Nothing runs these commands locally
+  for you. A check you skip locally is not run until you push.
+- **A local pass is not a CI pass.** CI uses a different Node build, filesystem
+  and cache. Where CI is available its verdict is what gates a merge, and
+  `ASSUMED_PASS` is not a permitted value — see
+  [`task-completion-contract.md`](task-completion-contract.md).
 
 ### API unit tests
 

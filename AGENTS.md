@@ -386,8 +386,10 @@ Seeds and release: `npm run seed:config`, `seed:admin`, `seed:demo`,
 - Run the validation that is **relevant to what you changed**, plus a repository
   typecheck for anything crossing a workspace boundary. A full `npm run build`
   is slow (`--concurrency=1`); run it when you changed build inputs.
-- **There is no CI in this repository** (no `.github/` workflows). Nothing runs
-  these for you. If you skip them, they are not run.
+- **CI exists** — `.github/workflows/ci.yml`, eight required jobs behind a single
+  `CI required gate` check ([`docs/development/ci.md`](docs/development/ci.md)).
+  It runs on push, not locally: nothing runs these commands for you before you
+  push, and a local pass is not a CI pass.
 - New backend business logic gets a colocated `*.spec.ts`. Follow the existing
   patterns — see `attendance.service.spec.ts`, `rbac-matrix.spec.ts`,
   `payroll-operations.service.spec.ts`.
@@ -429,19 +431,61 @@ straight to step 6.
 7. **Review** your own diff against the [Security](#security) checklist before
    handing off.
 8. **Test** — run the relevant commands above and report the results honestly.
-9. **Summarize**: files changed and why, decisions made, assumptions, risks,
-   unresolved issues, follow-up work.
+9. **Finalize** — commit, push, obtain a CI verdict, merge, validate the merged
+   SHA, capture knowledge, sync Obsidian, clean up. Mandatory for any task that
+   modified tracked files. See
+   [Task Completion](#task-completion) below.
+10. **Summarize**: files changed and why, decisions made, assumptions, risks,
+    unresolved issues, follow-up work, and the `## Task Finalization` block.
+
+---
+
+## Task Completion
+
+**A task is not complete when the code is written.** Implementation, tests, QA
+and review all passing means the *work* is sound — not that it landed.
+
+Completion is defined by
+[`.agent/context/task-completion-contract.md`](.agent/context/task-completion-contract.md),
+which `scripts/validate-framework.mjs` enforces. Every field must be resolved:
+
+```
+IMPLEMENTATION_STATUS          REMOTE_CI_STATUS               OBSIDIAN_SYNC_STATUS
+LOCAL_VALIDATION_STATUS        MERGE_STATUS                   CLEANUP_STATUS
+QA_STATUS                      POST_MERGE_VALIDATION_STATUS
+REVIEW_STATUS                  KNOWLEDGE_CAPTURE_STATUS
+```
+
+Resolved means `PASS`, `DONE`, `NOT_REQUIRED` (with a reason),
+`BLOCKED_<REASON>` or `FAILED`. **Never `ASSUMED_PASS`; never omitted.**
+
+A prompt beginning `DijiPeople Task:` requests the whole lifecycle — Git
+finalization and knowledge sync included. Nobody should have to add "push it",
+"merge it", "sync Obsidian" or "clean the worktree".
+
+Until the contract has been evaluated, do not write "complete" or "done". The
+phrasing is **`IMPLEMENTATION COMPLETE — FINALIZATION PENDING`**.
+
+Collect the facts with `node scripts/finalize-agent-task.mjs`.
 
 ---
 
 ## Working Agreements
 
-- **Do not commit or push unless asked.** Do not work directly on `main`; see
+- **Commit, push and merge your own task's work — that is the Integrator's job,
+  and it is mandatory, not on request.** Do not work directly on `main`; see
   [`docs/development/git-worktrees.md`](docs/development/git-worktrees.md).
   Branch naming: `agent/<feature>-<scope>`.
+  > This bullet used to read "do not commit or push unless asked". Because this
+  > file outranks every role document, that single line quietly disabled the
+  > Integrator: a completed tenant control-plane implementation — new API
+  > module, migration, ten replaced components — was reported as finished while
+  > entirely uncommitted. Committing *your task's* output is now required;
+  > touching anything else still is not.
 - The working tree may already contain unrelated in-flight changes. Check
   `git status` before you start and never revert, stage or commit files you did
-  not touch.
+  not touch. **Other people's uncommitted work remains untouchable** — if the
+  primary checkout is dirty with work that is not yours, use another worktree.
 - Do not add dependencies without justification; prefer what is already
   installed.
 - Do not reformat files you are not otherwise changing.

@@ -11,6 +11,8 @@ pass.
 
 ## Required Context
 
+- [`.agent/context/task-completion-contract.md`](../context/task-completion-contract.md)
+  — a release never begins on a task whose finalization is unresolved
 - [`.agent/context/deployment-runtime.md`](../context/deployment-runtime.md)
 - [`.agent/context/testing-architecture.md`](../context/testing-architecture.md)
 - [`.agent/context/database-prisma.md`](../context/database-prisma.md)
@@ -99,7 +101,10 @@ A report that only shows the happy path is not a record.
 ## Pre-deployment gates
 
 **Git** — target SHA known; working tree clean; the deployed SHA reproducible;
-branch/tag policy satisfied.
+branch/tag policy satisfied. **The source task's finalization is resolved** —
+a release built from `BLOCKED_FINALIZATION` or
+`IMPLEMENTATION_COMPLETE_BUT_UNMERGED` work is a release of something that is
+not in the target branch.
 
 **Architecture** — affected components identified; dependency order known.
 
