@@ -32,4 +32,5 @@ pattern. New patterns come out of the bug learning loop in
 | [duplicate-route-bypass](duplicate-route-bypass.md) | Security | tenant-settings feature availability |
 | [defined-but-unwired-permission](defined-but-unwired-permission.md) | Security | `organization.manage`, `tenant-settings.resolved.read` |
 | [ui-permission-backend-mismatch](ui-permission-backend-mismatch.md) | UX / Security | Organization settings screens |
+| [route-method-mismatch](route-method-mismatch.md) | UX / Availability | Admin session-expired sign-in link |
 | [doc-code-drift](doc-code-drift.md) | Process | This framework's own AGENTS.md |

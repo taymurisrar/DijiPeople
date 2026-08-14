@@ -111,3 +111,15 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Scenario** | An authenticated user without `tenant-settings.resolved.read` → 403; the four ordinary roles still succeed; the response contains no `subscription` block; the two routes remain on deliberately different keys. |
 | **Fixed** | 2026-08-14, branch `agent/authz-feature-availability` |
 | **Active** | yes |
+
+### REG-008 — Session-expired "Sign in again" returned 405
+
+| | |
+|---|---|
+| **Bug class** | `route-method-mismatch` |
+| **Module** | `apps/admin/app/api/auth/logout`, `apps/admin/components/errors/error-provider.tsx` |
+| **Root cause** | The session-expired modal offers "Sign in again" as an `<a href>` to `/api/auth/logout?reason=session-expired`, which is a GET, but the route exported only `POST`. Next answered 405 and the browser rendered its own error page — outside the app, so no `error.tsx` and no route back to `/login`. `apps/web` already exported both methods, so the identical flow worked on the tenant product and hid the admin gap. Two latent failures sat on the same path: revocation was gated on the refresh cookie alone, so a "sign out" could leave the platform session live server-side; and `getClearAuthCookieOptions()` was unguarded, so a rejected cookie configuration (an `ADMIN_COOKIE_DOMAIN` on the `.vercel.app` host) would have turned sign-out into a 500. |
+| **Regression test** | `apps/admin/app/api/auth/logout/logout-route.spec.ts` |
+| **Scenario** | Expire the admin session, trigger the error modal, click "Sign in again" → 307 to `/login?reason=session-expired&next=…`, the login page renders the "Session expired" notice, and all four auth cookies come back expired. The topbar sign-out still returns 200. An off-site or protocol-relative `next` collapses to `/tenants`. |
+| **Fixed** | 2026-08-15, branch `agent/admin-session-expired-logout-auth` |
+| **Active** | yes |
