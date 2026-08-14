@@ -8,7 +8,8 @@ visible in a diff and reversible with `git checkout`, instead of landing silentl
 in personal notes.
 
 Written by the [`knowledge-capture`](../../.agent/skills/knowledge-capture.md)
-Skill after a task reaches IMPLEMENTATION / REVIEW / QA complete.
+Skill after a task has merged — see the ordering in
+[`../../.agent/context/task-completion-contract.md`](../../.agent/context/task-completion-contract.md).
 Published by `node scripts/sync-obsidian.mjs`.
 
 ---
