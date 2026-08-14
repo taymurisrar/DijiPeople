@@ -170,6 +170,53 @@ no unrelated changes in the diff.
 
 ---
 
+## Plan header block
+
+Every ExecPlan opens with this block, so the orchestration decisions are visible
+before the prose:
+
+```markdown
+CONTEXT_FILES_REQUIRED:
+  - .agent/context/<file>.md          (one line per file the work depends on)
+
+SPECIALIST_AGENTS_REQUIRED:
+  - <agent>                            — <why>
+DELIBERATELY_NOT_USED:
+  - <agent>                            — <why not>
+
+SINGLE_WRITER_FILES:
+  - <path>                             (or "none")
+
+QA_REQUIRED: yes | no                  (see docs/qa/README.md for the trigger table)
+
+KNOWN_BUG_PATTERNS_IN_SCOPE:
+  - docs/qa/known-bug-patterns/<pattern>.md
+
+REGRESSION_ENTRIES_IN_SCOPE:
+  - REG-nnn — <one line>
+```
+
+`SINGLE_WRITER_FILES` is not advisory. Any task touching one of these is
+`DEPENDENCY_BLOCKED` for every other task, by definition:
+
+- `services/api/prisma/schema.prisma`
+- `services/api/prisma/migrations/**`
+- `services/api/src/common/constants/permissions.ts`
+- `services/api/src/common/constants/rbac-matrix.ts`
+- `services/api/src/app.module.ts`
+- `services/api/src/common/guards/**`
+- `packages/config/platform-runtime-schema.generated.json`
+- `apps/web/lib/security-keys.ts`
+
+## Evidence labelling
+
+Material conclusions in the plan carry **FACT**, **INFERENCE** or **PROPOSAL**,
+each FACT citing a real path. An unlabelled assertion is a defect — the label is
+what tells a reviewer which statements to re-check. See
+[`.agent/agents/architect.md`](.agent/agents/architect.md).
+
+---
+
 ## Task classification
 
 Every implementation task in a plan carries exactly one label.

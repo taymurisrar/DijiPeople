@@ -27,7 +27,7 @@ declared rather than written. Design contract:
 
 | File | Role |
 |---|---|
-| `module-registry.ts` | Which modules exist |
+| `module-registry.ts` | **Unused scaffolding** — `registerModule` has no production callers. The real declaration point is `modules/standard-module-specs.ts` |
 | `module-runtime.resolver.ts` / `module-runtime.types.ts` | Resolves a module's runtime shape |
 | `metadata-registry.ts`, `metadata-runtime.resolver.ts` | Field and entity metadata |
 | `metadata-layer-resolver.ts` | Layered metadata: system → tenant → user |
@@ -55,7 +55,10 @@ declared rather than written. Design contract:
 
 1. Add or extend a spec in `lib/runtime/modules/standard-module-specs.ts`.
 2. Add a data adapter only if the standard adapter cannot serve it.
-3. Register in `module-registry.ts` (and `command-registry.ts` if it has
+3. Declare the module in `modules/standard-module-specs.ts` — verified as the
+   real declaration point. (`module-registry.ts`, `metadata-registry.ts` and
+   `command-registry.ts` exist but have no production callers; registering
+   there alone is a no-op. Verify before relying on any of them.) If it has
    commands).
 4. Render `StandardModuleListPage` / `StandardModuleRecordPage` from the route.
 5. Add navigation in `app/(authenticated)/_components/navigation.ts` and extend
@@ -164,7 +167,7 @@ empty state is a review failure.
 ## Data access
 
 - Server components and server actions → `apps/web/lib/server-api.ts` (admin
-  has its own). It attaches auth cookies and `x-auth-client-id`, refreshes on
+  has its own). It attaches auth cookies and `X-DijiPeople-App`, refreshes on
   401 and rewrites cookies, and normalises errors via `lib/api-error.ts`.
 - Route handlers under `app/api/` proxy so the browser never contacts the API
   origin directly. **They contain no business logic and make no authorization or

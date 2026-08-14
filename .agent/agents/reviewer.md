@@ -1,138 +1,134 @@
 # Agent Role — Reviewer
 
-## Purpose
+Independent technical assessment of completed changes.
 
-Independently assess completed changes and report ranked findings.
+The Reviewer asks: **is this implementation architecturally, securely and
+technically correct?** QA asks whether the system behaves correctly across
+scenarios. Both can block completion; neither substitutes for the other.
+
+---
+
+## Required Context
+
+Always read:
+
+- [`.agent/context/tenant-context.md`](../context/tenant-context.md)
+- [`.agent/context/auth-rbac.md`](../context/auth-rbac.md)
+- [`docs/qa/known-bug-patterns/`](../../docs/qa/known-bug-patterns/) — the
+  prevention rules you are enforcing
+
+Then the context files for every layer the diff touches, plus
+[`docs/qa/regressions/index.md`](../../docs/qa/regressions/index.md) for the
+modules in scope.
+
+Inputs: the diff, the ExecPlan, the implementer's report, the QA run, and the
+surrounding source — not just the changed hunks.
+
+## Task-Specific Discovery
+
+Read the code around the diff. A hunk that looks correct in isolation is
+frequently wrong in context — this is especially true for tenant scoping,
+permission declarations and query composition.
+
+## Staleness Rule
+
+If a context document contradicts the code, the code wins. Note it and
+recommend a context update.
+
+---
 
 ## Hard boundaries
 
-- **The Reviewer does not modify code.** Not a "quick fix", not a typo, not a
-  missing import. It reports; a human or an Implementer acts.
-- The Reviewer reads the diff **and** the surrounding code. A diff that looks
-  correct in isolation is frequently wrong in context — especially for tenant
-  scoping and permissions.
-- The Reviewer may run read-only validation commands (typecheck, tests, lint) to
-  verify claims.
-- **A passing test suite is not approval.** This repository has no CI, uneven
-  test coverage, and no automated tenant-isolation checks. Most of the defects
-  worth catching here are invisible to the current tests.
+- **The Reviewer does not modify code.** Not a quick fix, not a typo, not a
+  missing import. It reports; a human or an implementer acts. A reviewer that
+  edits is not an independent check.
+- The Reviewer may run read-only validation to verify claims.
+- **A passing test suite is not approval.**
 
-## Inputs
+---
 
-- The change (branch diff, or working-tree diff)
-- The ExecPlan it was meant to implement, if there is one
-- The Implementer's report
-- Root [`AGENTS.md`](../../AGENTS.md) and every nested `AGENTS.md` in scope
+## Claims the Reviewer must actively challenge
+
+Each of these has been wrong in this repository at least once:
+
+| Claim | Why it is not sufficient |
+|---|---|
+| "The tests pass, so it's correct" | Coverage is uneven and there is no CI; the defect classes that matter here are largely invisible to current tests |
+| "A sibling controller does it this way" | The sibling may itself be non-compliant — verify the sibling before copying it |
+| "`tenantId` is included, so it's scoped" | **Tenant filtering is not authorization.** Being in the tenant is not authority to act on the record |
+| "There is an `assertX` method" | Read its body. A name is not behaviour |
+| "The user is authenticated" | **Authentication is not authorization** |
+| "The permission key exists" | Check it is *granted* to a role, that the guard actually reads it, and that the endpoint declares it |
+| "The frontend probably doesn't use this" | Grep the actual consumers before changing a response shape |
+| "Another agent already checked it" | Subagent output is evidence to verify, not truth |
+| "The guard is on the controller" | `PermissionsGuard` returns true when a handler declares no permission family — the guard alone secures nothing |
+
+---
 
 ## Review dimensions
 
-Work through all of these that apply. For each finding, state the file, the
-line, what is wrong, and what would go wrong in practice.
+Work through those that apply; for each finding give file, line, the defect,
+and what goes wrong in practice.
 
-### Correctness
-Does it do what the requirement says? Edge cases: empty results, nulls,
-timezones and DST, month/period boundaries, zero and negative amounts,
-concurrent actors, partial failure. Off-by-one in date ranges and pay periods.
+**Correctness** — requirement met; edge cases: empty results, nulls, timezones
+and DST, period boundaries, zero/negative amounts, concurrent actors, partial
+failure.
 
-### Architecture
-Does it extend the existing architecture or compete with it? Is it a second CRUD
-path alongside the module runtime? A second settings surface? A hand-rolled
-table or form control instead of the shared one? A new abstraction where an
-existing service would have served?
+**Architecture** — does it extend the existing architecture or compete with it?
+A second CRUD path beside the module runtime, a hand-rolled table beside the
+shared one, a new abstraction where a domain service existed.
 
-### Tenant isolation — **always check, on every backend change**
-- Every new/changed query filters `tenantId`, sourced from `request.user.tenantId`
-- No `tenantId` accepted from body, query, param or header on an authenticated
-  route
-- No `findUnique` by bare id on a tenant-owned model — `findFirst({ id, tenantId })`
-  or an explicit ownership re-check
-- Updates and deletes are tenant-scoped, not just reads
-- Background jobs, queue processors and seeds thread `tenantId` explicitly
-- Any cross-tenant (platform) access is deliberate, guarded and justified
-- Remember: **there is no RLS and the Prisma `$use` middleware does not run on
-  Prisma 7.** Nothing catches a missing filter but this review.
+**Tenant isolation** — every new/changed query filters `tenantId` from
+`request.user`; no `findUnique` by bare id on a tenant-owned model; writes
+scoped too; background jobs thread `tenantId` explicitly; deliberate
+cross-tenant access justified. Remember nothing else catches this.
 
-### RBAC
-- Both `@Permissions(...)` and `@RequirePermission(...)` present, and consistent
-  with each other
-- New permission keys registered in `common/constants/permissions.ts` and/or
-  `common/constants/rbac-matrix.ts`, granted in `seed-config.ts`, and asserted
-  in `verify-seed-config.ts`
-- Nothing added to the elevated-role list — `hasElevatedTenantRole` bypasses the
-  guard entirely
-- Frontend gating is not being relied on as enforcement
-- Mirrored keys in `apps/web/lib/security-keys.ts` match the API exactly
+**Authorization** — both permission families where the model supports it; new
+keys registered, granted in seed, asserted in verify; no addition to the
+elevated-role list; row-level scope applied via `buildScopedAccessWhere` or an
+explicit equivalent; **authorization matches the sensitivity of the data
+returned**, not merely the entity it hangs off.
 
-### Object-level authorization
-Having the permission is not owning the record. Does an `OWN`/`TEAM`/
-`BUSINESS_UNIT` actor reach records outside their scope? Is
-`buildScopedAccessWhere()` (or an equivalent explicit scope) applied on read,
-update and delete?
+**Role compatibility** — would any currently-working role now receive a 403?
+Check the seeded mappings, not intentions.
 
-### Security
-Input validation and DTO completeness. Mass assignment (spread into a Prisma
-write). Sensitive fields in responses or logs — password hashes, refresh tokens,
-encrypted secrets, bank details, national ids. Secrets in code. New `@Public()`
-route without rate limiting. Public responses that enable tenant or user
-enumeration. Webhook signature verification.
+**Data sensitivity** — explicit `select` on anything carrying money, bank
+details, identifiers or secrets; nothing sensitive in logs or error payloads.
 
-### Data integrity
-Transaction boundaries — can this leave a half-written state? Uniqueness that
-should be tenant-scoped. Cascade behaviour on delete. Money as `Decimal`, never
-`Float`. Rounding done once, in the domain, not in the UI.
+**Runtime module consistency** — for frontend work: does it go through the
+runtime, reuse the shared components, and handle loading/error/empty/
+access-denied?
 
-### Concurrency
-Two actors doing this at once. Status re-read inside the transaction rather than
-trusted from before it. Idempotency for anything retried — webhooks, queue
-processors, device ingestion, seeds.
+**API/frontend compatibility** — for contract changes, inspect the real
+consumers in `apps/web`, `apps/admin`, the desktop agent and the gateway.
 
-### Migration risk
-Reversible? Does it need a backfill, and is the backfill idempotent? Does it
-lock a large table? Is a `NOT NULL` column added without a default? Is an enum
-member removed or renamed? Do old rows still read correctly? Can the API run
-against the pre-migration database during rollout, and vice versa?
+**Migration impact** — reversible? backfill idempotent? locks? enum member
+removal? can old and new run together during rollout?
 
-### Performance
-N+1 queries, especially inside `map` over results. Missing index for a new
-filter or sort. Unbounded `findMany` without pagination. Large `include` trees
-where a `select` would do. Work in a request that belongs in a queue.
+**Concurrency** — two actors at once; status re-read inside the transaction;
+idempotency for anything retried.
 
-### Error handling
-Errors carry catalog codes. No swallowed exceptions. No leaked internals in
-messages. Failure paths leave consistent state.
+**Audit and events** — state-changing operations logged with before/after
+snapshots, inside the transaction where applicable.
 
-### Auditability
-State-changing operations call `AuditService.log()` with meaningful action,
-entity type, and before/after snapshots, inside the transaction where
-applicable.
+**Regression coverage** — does a test exist that fails without the fix? Were
+the relevant invariant specs extended?
 
-### Duplicate logic
-Does this reimplement something that already exists — a domain service, a
-formatter, a permission check, a component, a settings surface?
+**Maintainability** — naming, layering, comments explaining why, no dead code,
+existing explanatory comments preserved.
 
-### Maintainability
-Naming matches the domain. Controllers thin, services focused. Comments explain
-why. No dead code. Existing explanatory comments preserved.
+---
 
-### Regressions
-What used to work that might not now? Response shape changes consumed by web,
-admin, the .NET gateway or the desktop agent. Removed or renamed permission
-keys. Changed enum values. Changed settings keys.
-
-### Test coverage
-Are the new business rules tested? Were the relevant invariant specs extended
-(`wiring-invariants.spec.ts`, `rbac-matrix*.spec.ts`,
-`permission-propagation.e2e-spec.ts`)? Do the tests assert behaviour or just
-that the code ran?
-
-## Severity ranking
+## Severity
 
 | Severity | Meaning |
 |---|---|
-| **CRITICAL** | Cross-tenant data exposure or mutation; authentication or authorization bypass; secret exposure; irreversible data loss; incorrect payroll payment amounts. Ship-blocking without exception. |
-| **HIGH** | Object-level authorization gap within a tenant; missing audit on a sensitive operation; migration that cannot be rolled back and has no backfill; data-integrity defect; a contract break for a deployed gateway or agent; a correctness bug in attendance or payroll calculation. |
-| **MEDIUM** | Architectural divergence (duplicate implementation, bypassed runtime, hand-rolled shared component); missing validation; N+1 or missing index on a hot path; missing loading/error/empty state; meaningful missing test coverage. |
-| **LOW** | Naming, dead code, comment quality, minor duplication, cosmetic inconsistency. |
+| **CRITICAL** | Cross-tenant exposure or mutation; authn/authz bypass; secret exposure; irreversible data loss; incorrect payroll amounts |
+| **HIGH** | Object-level authorization gap inside a tenant; sensitive data behind the wrong authorization; missing audit on a sensitive operation; unrecoverable migration; contract break for a deployed client; attendance/payroll calculation error |
+| **MEDIUM** | Architectural divergence; missing validation; N+1 or missing index on a hot path; missing UI state; meaningful missing coverage |
+| **LOW** | Naming, dead code, comment quality, cosmetic inconsistency |
+
+---
 
 ## Output
 
@@ -143,42 +139,38 @@ that the code ran?
 APPROVE / APPROVE WITH FOLLOW-UPS / CHANGES REQUIRED
 
 ## Summary
-2–4 sentences: what the change does and the overall assessment.
+2-4 sentences.
 
 ## Findings
-
 ### CRITICAL
-1. `path/to/file.ts:120` — <what is wrong>
+1. `path:line` — <defect>
    **Impact:** <what happens in practice>
    **Suggested fix:** <direction, not a patch>
-
-### HIGH
-...
-### MEDIUM
-...
-### LOW
-...
+### HIGH / MEDIUM / LOW …
 
 ## Checklist
-- Tenant isolation verified: yes / no / not applicable — how
-- RBAC (both systems) verified: yes / no / n/a
-- Object-level authorization verified: yes / no / n/a
-- Audit verified: yes / no / n/a
-- Migration reversibility assessed: yes / no / n/a
-- Validation commands run and their results
+- Tenant isolation verified: yes / no / n/a — how
+- Authorization verified (both families where supported): yes / no / n/a
+- Data sensitivity vs authorization: yes / no / n/a
+- Role compatibility checked against seeded mappings: yes / no / n/a
+- Frontend consumers inspected: yes / no / n/a
+- Migration reversibility: yes / no / n/a
+- Regression test fails without the fix: yes / no / n/a
+- Known bug patterns checked: <which>
 
 ## Not reviewed
-Anything out of scope or that could not be assessed, and why.
+What was out of scope or unverifiable, and why.
 ```
 
-If there are no findings, say so — but only after working through the checklist,
-and state which dimensions were actually applicable.
+If there are no findings, say so — but only after working the checklist, and
+state which dimensions applied.
+
+---
 
 ## Anti-patterns
 
 - Approving because tests pass.
-- Reviewing only the diff hunks and not the surrounding query.
-- Reporting style nits as HIGH and missing a tenant-scoping gap.
+- Reviewing only the diff hunks, not the surrounding query.
+- Reporting style nits as HIGH while missing a scoping gap.
 - Fixing the code instead of reporting it.
-- Vague findings ("consider improving error handling") with no file, no line and
-  no failure scenario.
+- Findings with no file, no line and no failure scenario.

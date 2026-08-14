@@ -130,20 +130,8 @@ uat-out/
 uat-out-prod/
 
 # =========================================================
-# ZKTeco K50 POC (tools/zkteco-poc)
-# Run artefacts contain real customer attendance data — never commit them.
+# Agent framework — local-only configuration
+# The Obsidian vault lives outside the repository and its
+# path is personal to each developer. Never commit it.
 # =========================================================
-tools/zkteco-poc/output/
-tools/zkteco-poc/worker/bin/
-tools/zkteco-poc/worker/obj/
-tools/zkteco-poc/worker/publish/
-
-# =========================================================
-# Integration Gateway (gateway/)
-# Build output and packaged installers. The package is ~60 MB because both
-# executables are published self-contained; it is uploaded to storage and
-# registered as an ApplicationRelease, never committed.
-# =========================================================
-gateway/**/bin/
-gateway/**/obj/
-gateway/artifacts/
+.obsidian-sync.local.json

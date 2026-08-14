@@ -105,7 +105,7 @@ normal service/API layer.
 ## Data access
 
 - Server components call the API through `lib/server-api.ts` (cookies,
-  `x-auth-client-id: admin`, refresh on 401, normalised errors via
+  `X-DijiPeople-App: admin`, refresh on 401, normalised errors via
   `lib/api-error.ts`).
 - Route handlers under `app/api/` are thin proxies. No business logic, **no
   authorization decisions**, no tenant selection logic beyond forwarding.

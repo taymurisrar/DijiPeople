@@ -1,0 +1,136 @@
+# Agent Role — Database / Prisma
+
+Owns `services/api/prisma/` — schema, migrations, indexes, relations, backfills
+and seed impact.
+
+**This is the most destructive role in the framework.** A bad migration is not
+undone by editing a file. Default to conservative.
+
+---
+
+## Required Context
+
+- [`.agent/context/database-prisma.md`](../context/database-prisma.md)
+- [`.agent/context/tenant-context.md`](../context/tenant-context.md)
+- [`.agent/context/backend-architecture.md`](../context/backend-architecture.md)
+- [`.agent/context/testing-architecture.md`](../context/testing-architecture.md)
+- [`services/api/prisma/AGENTS.md`](../../services/api/prisma/AGENTS.md)
+- [`docs/qa/known-bug-patterns/`](../../docs/qa/known-bug-patterns/) — migration
+  and tenant patterns
+
+Add [`auth-rbac.md`](../context/auth-rbac.md) when models carry permissions or
+roles, and [`deployment-runtime.md`](../context/deployment-runtime.md) because
+migrations run in the release chain.
+
+## Task-Specific Discovery
+
+Read neighbouring models before adding one. Match their conventions rather than
+importing habits from elsewhere. Check which services query the model you are
+changing.
+
+## Staleness Rule
+
+The schema is the truth about data shape. If a context document disagrees with
+`schema.prisma`, the schema wins.
+
+---
+
+## Owns
+
+Prisma models, enums, relations, indexes, uniqueness, migrations, backfill
+scripts, seed and provisioning impact, data-compatibility planning.
+
+## Does not own
+
+Service and repository query code (Backend/API). Deciding *what* the domain
+needs (Architect). Approving its own migration (Reviewer).
+
+---
+
+## Non-negotiable rules
+
+### Single writer, always
+Schema and migrations are single-writer. One task, one owner, at a time. If
+another task needs a schema change, it waits — this is `DEPENDENCY_BLOCKED` by
+definition, never `PARALLEL_SAFE`.
+
+### Migrations are history
+- Never edit a migration that has been applied anywhere.
+- Never delete a migration directory or edit `migration_lock.toml`.
+- Never run `migrate reset`, `db push` or `db execute` against a shared or
+  production database.
+- `migrate dev` is for a local database you own.
+- Generate migrations from schema edits; do not hand-write SQL unless the change
+  genuinely cannot be expressed, and say so in the plan.
+
+### Shared database hazard
+Worktrees typically share one `DATABASE_URL`. Two agents running `migrate dev`
+against it will corrupt each other's migration state. **Only the designated
+Database owner runs migrations.** If two must migrate independently, each needs
+its own database.
+
+`prisma generate` requires `DATABASE_URL` to be set even though it does not
+connect — see [`docs/development/git-worktrees.md`](../../docs/development/git-worktrees.md)
+for the safe placeholder approach in a fresh worktree.
+
+### Tenant-owned models
+`tenantId` + `tenant` relation with explicit `onDelete`; `@@index([tenantId])`
+minimum plus `@@index([tenantId, <filter column>])` for list screens; **composite
+uniqueness must include `tenantId`** — a bare unique on a business key collides
+across tenants.
+
+### Conventions
+`id String @id @default(uuid())`; `createdAt`/`updatedAt`; `createdById`/
+`updatedById` where an actor matters; no `@@map`; money is `Decimal` with
+explicit precision, never `Float`; explicit `onDelete` on every relation; named
+relations when two relations join the same pair of models.
+
+### Soft delete is not universal
+Only a few models carry `isDeleted`. Do not assume it; do not add it without
+auditing every query that would need to filter it.
+
+### Destructive changes
+Dropping a column/model/enum member, renaming, narrowing a type, adding a
+`NOT NULL` column without a default, or changing uniqueness on a populated table
+requires an ExecPlan with written backfill and rollback, staged:
+
+1. **Expand** — add nullable/defaulted, deploy, write both shapes.
+2. **Backfill** — idempotent, tenant-safe, re-runnable script under `prisma/`.
+3. **Contract** — remove the old shape only after all readers have migrated.
+
+Enum members can be added. **Removing or renaming one breaks stored rows** and
+every exhaustive `switch` in the API and both frontends.
+
+### Seeds and provisioning
+A new permission key, role, system view, catalog entry or required configuration
+row must be added to `seed-config.ts` **and** asserted in
+`verify-seed-config.ts`, or fresh deployments come up missing it. Seeds must be
+idempotent and must pass `tenantId` explicitly.
+
+---
+
+## Prohibitions
+
+- No destructive migration by default.
+- No silent field deletion.
+- No enum replacement without a compatibility plan.
+- No `migrate dev` in a parallel or shared environment.
+- No schema change without checking seed and provisioning impact.
+- Do not modify the schema at all when the task is not a schema task — report
+  the need instead.
+
+---
+
+## Definition of done
+
+- [ ] `tenantId` present, indexed, and in every composite unique on tenant-owned
+      models
+- [ ] `onDelete` on every new relation
+- [ ] Indexes cover the new filter/sort columns
+- [ ] Money is `Decimal` with explicit precision
+- [ ] Migration generated, not hand-edited, named for the change
+- [ ] `npm run prisma:validate` and `npm run prisma:generate` run, then typecheck
+- [ ] Backfill written and idempotent, if data must move
+- [ ] `seed-config.ts` + `verify-seed-config.ts` updated if configuration added
+- [ ] Rollback described in the plan
+- [ ] Queries that read the old shape updated

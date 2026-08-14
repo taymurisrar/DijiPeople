@@ -124,7 +124,7 @@ Employee concepts.
 
 - **Server components and server actions** call the API through
   `lib/server-api.ts`, which attaches the auth cookies and
-  `x-auth-client-id`, refreshes on 401, and normalises errors through
+  `X-DijiPeople-App`, refreshes on 401, and normalises errors through
   `lib/api-error.ts`. Use it; do not call `fetch` against the API directly.
 - **Route handlers under `app/api/`** are thin proxies that exist so the browser
   never talks to the API origin directly. Rules:
