@@ -58,6 +58,7 @@ import {
 import { resolveRuntimeField, resolveRuntimeViewRule } from '@repo/config';
 import { runtimeViewWhere } from './runtime-view-where';
 import { PlatformRuntimeRelationsService } from './platform-runtime-relations.service';
+import { TenantControlPlaneService } from '../tenant-control-plane/tenant-control-plane.service';
 
 @Injectable()
 export class PlatformRuntimeService {
@@ -72,6 +73,7 @@ export class PlatformRuntimeService {
     private readonly supportCases: SupportCasesService,
     private readonly partnerExperience: PartnerExperienceService,
     private readonly relations: PlatformRuntimeRelationsService,
+    private readonly tenantControlPlane: TenantControlPlaneService,
   ) {}
   async list(
     user: AuthenticatedUser,
@@ -747,6 +749,15 @@ export class PlatformRuntimeService {
       const supportCase = await this.supportCases.get(user, id);
       return { items: supportCase.timeline };
     }
+    /*
+     * A tenant's audit rows are written under that tenant's own id, not under
+     * the platform operator's. Reading them with `user.tenantId` matched
+     * nothing, which is why the Tenant timeline came back empty however much
+     * had happened to the record.
+     */
+    if (key === 'tenants') {
+      return this.tenantControlPlane.timeline(user, id);
+    }
     return this.audit.listRecordTimeline({
       tenantId: user.tenantId,
       entityType: entityType(key),
@@ -770,7 +781,8 @@ export class PlatformRuntimeService {
       return { success: true, message: 'Timeline activity added.' };
     }
     await this.audit.log({
-      tenantId: user.tenantId,
+      /* Same reason as the read path: the note belongs to the tenant's history. */
+      tenantId: key === 'tenants' ? id : user.tenantId,
       actorUserId: user.userId,
       action: 'TIMELINE_ACTIVITY_ADDED',
       entityType: entityType(key),

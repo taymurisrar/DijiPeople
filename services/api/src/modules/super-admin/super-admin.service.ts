@@ -935,7 +935,12 @@ export class SuperAdminService {
       afterSnapshot: { status: dto.status },
     });
 
-    return this.mapTenantDetail(updatedTenant);
+    /*
+     * Re-read rather than mapping the update's return value: the detail shape
+     * carries relations the bare update does not select, and returning a
+     * half-populated record here is how the caller ends up rendering blanks.
+     */
+    return this.getTenantDetail(updatedTenant.id);
   }
 
   async listTenantAuditLogs(tenantId: string) {
@@ -3183,6 +3188,16 @@ export class SuperAdminService {
       await this.featureAccessService.getResolvedTenantFeatures(tenant.id);
     const primaryDomainRecord =
       tenant.tenantDomains.find((domain) => domain.isPrimary) ?? null;
+    /*
+     * `createdById` and `updatedById` can name a tenant user or a platform
+     * operator, and the record page has to show a person either way. Resolving
+     * both here is cheaper than the record page making a lookup call per id, and
+     * it is the only reason those columns can render as names rather than UUIDs.
+     */
+    const actorNames = await this.resolveTenantActorNames([
+      tenant.createdById,
+      tenant.updatedById,
+    ]);
 
     return {
       id: tenant.id,
@@ -3203,9 +3218,31 @@ export class SuperAdminService {
       updatedAt: tenant.updatedAt,
       createdById: tenant.createdById,
       updatedById: tenant.updatedById,
+      createdByName: tenant.createdById
+        ? (actorNames.get(tenant.createdById) ?? null)
+        : null,
+      updatedByName: tenant.updatedById
+        ? (actorNames.get(tenant.updatedById) ?? null)
+        : null,
       isDemoData: tenant.isDemoData,
       demoBatchId: tenant.demoBatchId,
       seedSource: tenant.seedSource,
+      originatingLead: tenant.originatingLead
+        ? {
+            id: tenant.originatingLead.id,
+            label:
+              tenant.originatingLead.companyName ||
+              tenant.originatingLead.fullName,
+            status: tenant.originatingLead.status,
+          }
+        : null,
+      originatingPartner: tenant.originatingPartner
+        ? {
+            id: tenant.originatingPartner.id,
+            label: tenant.originatingPartner.displayName,
+            status: tenant.originatingPartner.status,
+          }
+        : null,
       customerAccount: tenant.customerAccount
         ? {
             id: tenant.customerAccount.id,
@@ -3226,6 +3263,9 @@ export class SuperAdminService {
             id: tenant.ownerUser.id,
             firstName: tenant.ownerUser.firstName,
             lastName: tenant.ownerUser.lastName,
+            fullName:
+              `${tenant.ownerUser.firstName} ${tenant.ownerUser.lastName}`.trim() ||
+              tenant.ownerUser.email,
             email: tenant.ownerUser.email,
             status: tenant.ownerUser.status,
             isServiceAccount: tenant.ownerUser.isServiceAccount,
@@ -4280,6 +4320,30 @@ export class SuperAdminService {
     if (duplicateStripePrice) {
       throw new ConflictException('Stripe Price ID is already assigned.');
     }
+  }
+
+  /** Names for actor ids that may belong to either identity table. */
+  private async resolveTenantActorNames(ids: Array<string | null>) {
+    const unique = [...new Set(ids.filter((id): id is string => Boolean(id)))];
+    const names = new Map<string, string>();
+    if (!unique.length) return names;
+    const [tenantActors, platformActors] = await Promise.all([
+      this.prisma.user.findMany({
+        where: { id: { in: unique } },
+        select: { id: true, firstName: true, lastName: true, email: true },
+      }),
+      this.prisma.platformUser.findMany({
+        where: { id: { in: unique } },
+        select: { id: true, firstName: true, lastName: true, email: true },
+      }),
+    ]);
+    for (const actor of [...tenantActors, ...platformActors]) {
+      names.set(
+        actor.id,
+        `${actor.firstName} ${actor.lastName}`.trim() || actor.email,
+      );
+    }
+    return names;
   }
 
   private async assertTenantExists(tenantId: string) {

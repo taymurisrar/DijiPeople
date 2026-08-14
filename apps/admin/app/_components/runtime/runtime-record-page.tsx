@@ -29,6 +29,19 @@ import {
   useRuntimeFormState,
   validateRuntimeValues,
 } from "./runtime-form";
+import { TenantRecordHeader } from "@/app/_components/tenants/tenant-record-header";
+import { TenantOverviewPanel } from "@/app/_components/tenants/tenant-overview-panel";
+import { TenantConfigurationPanel } from "@/app/_components/tenants/tenant-configuration-panel";
+import { TenantAccessPanel } from "@/app/_components/tenants/tenant-access-panel";
+import { TenantCommercialPanel } from "@/app/_components/tenants/tenant-commercial-panel";
+import { TenantAppsModulesPanel } from "@/app/_components/tenants/tenant-apps-modules-panel";
+import { TenantOperationsPanel } from "@/app/_components/tenants/tenant-operations-panel";
+import { TenantTimelinePanel } from "@/app/_components/tenants/tenant-timeline-panel";
+import { TenantSystemPanel } from "@/app/_components/tenants/tenant-system-panel";
+import {
+  TENANT_PANEL_TABS,
+  useTenantRecordActions,
+} from "@/app/_components/tenants/use-tenant-record-actions";
 
 export function RuntimeRecordPage({
   moduleKey,
@@ -127,6 +140,13 @@ function RuntimeRecordEditor({
   const [timeline, setTimeline] = useState<Array<Record<string, unknown>>>([]);
   const [signatureOpen, setSignatureOpen] = useState(false);
   /*
+   * Tenant lifecycle and access actions live in the tab panels that own the
+   * data they change. The action bar only asks for them; this hook routes the
+   * request to the right panel and keeps the state-based visibility rules and
+   * the confirmation prompts in one place.
+   */
+  const tenant = useTenantRecordActions(moduleKey === "tenants" ? record.id : null);
+  /*
    * A contract's document lives on its current version, not on the contract
    * row. Every place that seeds the form from a server record has to apply the
    * same mapping, or saving blanks the editor and drops the values the form is
@@ -186,7 +206,9 @@ function RuntimeRecordEditor({
       const hasTimeline =
         !isCreate && ["timeline", "activities"].includes(tab.key);
       const hasRuntimePanel =
-        !isCreate && moduleKey === "contracts" && tab.key === "versions";
+        !isCreate &&
+        ((moduleKey === "contracts" && tab.key === "versions") ||
+          (moduleKey === "tenants" && TENANT_PANEL_TABS.includes(tab.key)));
       return hasFields || hasRelationship || hasTimeline || hasRuntimePanel;
     });
     return { ...baseFormDefinition, tabs };
@@ -286,6 +308,14 @@ function RuntimeRecordEditor({
   }
 
   async function handleAction(action: RuntimeActionDefinition) {
+    if (moduleKey === "tenants") {
+      const handled = await tenant.handleAction(action, {
+        record: form.values,
+        goToTab: setActiveTab,
+        reloadRecord,
+      });
+      if (handled) return handled.result;
+    }
     return executeRuntimeRecordAction({
       action,
       moduleKey,
@@ -332,21 +362,26 @@ function RuntimeRecordEditor({
       ["overview", "readiness", "agreements"].includes(activeTab)) ||
     (moduleKey === "contracts" &&
       ["parties", "versions"].includes(activeTab)) ||
+    (moduleKey === "tenants" && TENANT_PANEL_TABS.includes(activeTab)) ||
     moduleKey === "plans";
 
   return (
     <main className="space-y-5">
-      <PageHeader
-        eyebrow={definition.navigationGroup}
-        title={title}
-        description={
-          isCreate ? (
-            `Create a new ${definition.displayName.toLowerCase()}.`
-          ) : (
-            <RecordHeaderMetadata moduleKey={moduleKey} record={form.values} />
-          )
-        }
-      />
+      {moduleKey === "tenants" && !isCreate ? (
+        <TenantRecordHeader record={form.values} />
+      ) : (
+        <PageHeader
+          eyebrow={definition.navigationGroup}
+          title={title}
+          description={
+            isCreate ? (
+              `Create a new ${definition.displayName.toLowerCase()}.`
+            ) : (
+              <RecordHeaderMetadata moduleKey={moduleKey} record={form.values} />
+            )
+          }
+        />
+      )}
       {definition.process && !isCreate ? (
         <ProcessBar
           stages={resolveProcessStages(
@@ -469,7 +504,51 @@ function RuntimeRecordEditor({
           ))}
         </section>
       ) : null}
-      {!isCreate && showTimeline ? (
+      {moduleKey === "tenants" && !isCreate ? (
+        <>
+          {activeTab === "overview" ? (
+            <TenantOverviewPanel
+              tenantId={record.id}
+              onNavigateTab={setActiveTab}
+            />
+          ) : null}
+          {activeTab === "configuration" ? (
+            <TenantConfigurationPanel tenantId={record.id} />
+          ) : null}
+          {activeTab === "access-security" ? (
+            <TenantAccessPanel
+              tenantId={record.id}
+              requestedAction={tenant.accessRequest}
+              onRequestHandled={tenant.clearAccessRequest}
+            />
+          ) : null}
+          {activeTab === "commercial" ? (
+            <TenantCommercialPanel tenantId={record.id} />
+          ) : null}
+          {activeTab === "apps-modules" ? (
+            <TenantAppsModulesPanel tenantId={record.id} />
+          ) : null}
+          {activeTab === "operations" ? (
+            <TenantOperationsPanel
+              tenantId={record.id}
+              retryRequested={tenant.retryRequested}
+              onRetryHandled={tenant.clearRetryRequest}
+            />
+          ) : null}
+          {activeTab === "timeline" ? (
+            <TenantTimelinePanel tenantId={record.id} />
+          ) : null}
+          {activeTab === "system" ? (
+            <TenantSystemPanel
+              tenantId={record.id}
+              eraseRequested={tenant.eraseRequested}
+              onEraseHandled={tenant.clearEraseRequest}
+            />
+          ) : null}
+          {tenant.dialog}
+        </>
+      ) : null}
+      {!isCreate && showTimeline && moduleKey !== "tenants" ? (
         <TimelinePanel
           items={timeline}
           onCreate={async (message) => {
@@ -502,10 +581,10 @@ function EmptyTabPanel({ label }: { label: string }) {
   return (
     <section className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center">
       <h2 className="text-base font-semibold text-slate-900">
-        No {label.toLowerCase()} yet
+        Nothing to show in {label}
       </h2>
       <p className="mt-2 text-sm text-slate-500">
-        Business records will appear here when they are added to this record.
+        This tab has no configured fields or linked records for this record yet.
       </p>
     </section>
   );
@@ -2390,10 +2469,11 @@ function RuntimeRelatedRecordsPanel({
           <h2 className="text-base font-semibold text-slate-950">
             {relationship.label}
           </h2>
-          <p className="mt-1 text-xs text-slate-500">
-            {relationship.description ??
-              `Business records linked to this ${relationship.label.toLowerCase()}.`}
-          </p>
+          {relationship.description ? (
+            <p className="mt-1 text-xs text-slate-500">
+              {relationship.description}
+            </p>
+          ) : null}
         </div>
         <div className="flex items-center gap-2">
           {relationship.createHref ? (
@@ -2405,8 +2485,22 @@ function RuntimeRelatedRecordsPanel({
             </Link>
           ) : null}
           {target ? (
+            /*
+             * "View all" carries the relationship's own foreign key through to
+             * the target list, so it opens that module already filtered to this
+             * record instead of dropping the operator into every row in the
+             * platform.
+             */
             <Link
-              href={target.routeBase}
+              href={`${target.routeBase}?filters=${encodeURIComponent(
+                JSON.stringify([
+                  {
+                    field: relationship.foreignKey,
+                    operator: "eq",
+                    value: recordId,
+                  },
+                ]),
+              )}`}
               className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700"
             >
               View all
@@ -2431,7 +2525,7 @@ function RuntimeRelatedRecordsPanel({
           }
           emptyDescription={
             relationship.emptyDescription ??
-            `No ${relationship.label.toLowerCase()} are linked to this record.`
+            `Nothing has been linked to this record yet.`
           }
           onRowClick={
             target
@@ -2485,18 +2579,22 @@ function relatedValue(record: RuntimeRecord, field: string) {
       : resolved;
   if (value == null || value === "")
     return <span className="text-slate-400">—</span>;
-  if (field.endsWith("At")) {
+  if (field.endsWith("At") || field.endsWith("Date")) {
     const date = new Date(String(value));
     if (!Number.isNaN(date.getTime())) return date.toLocaleString();
   }
-  if (typeof value === "object")
-    return String(
-      (value as Record<string, unknown>).displayName ??
-        (value as Record<string, unknown>).name ??
-        (value as Record<string, unknown>).title ??
-        "—",
-    );
-  return String(value).replaceAll("_", " ");
+  /*
+   * A related row often carries the whole relation object rather than a label.
+   * Falling straight to "—" is what made user columns read as a dash next to a
+   * status and a date — the name was there, one level down.
+   */
+  if (typeof value === "object") {
+    const label = readRecordLabel(value);
+    return label ?? <span className="text-slate-400">—</span>;
+  }
+  const text = String(value);
+  /* SCREAMING_SNAKE only ever comes from an enum column. */
+  return /^[A-Z][A-Z0-9_]*$/.test(text) ? formatRecordValue(text) : text;
 }
 
 function TimelinePanel({

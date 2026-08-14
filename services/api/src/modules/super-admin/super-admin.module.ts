@@ -14,6 +14,7 @@ import { LeadsRepository } from '../leads/leads.repository';
 import { PlatformPermissionsGuard } from '../platform-auth/platform-permissions';
 import { TenantSettingsModule } from '../tenant-settings/tenant-settings.module';
 import { TenantsRepository } from '../tenants/tenants.repository';
+import { TenantProvisioningRunModule } from '../tenant-control-plane/tenant-provisioning-run.service';
 import { UsersModule } from '../users/users.module';
 import { BillingService } from './billing.service';
 import { PaymentsService } from './payments.service';
@@ -37,6 +38,7 @@ import { TenantProvisioningService } from './tenant-provisioning.service';
     PlatformCommunicationsModule,
     AuditModule,
     StripeBillingModule,
+    TenantProvisioningRunModule,
   ],
   controllers: [SuperAdminController],
   providers: [

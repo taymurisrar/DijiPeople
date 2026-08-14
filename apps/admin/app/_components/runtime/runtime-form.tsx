@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Check, ChevronDown, Search, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type {
@@ -211,14 +212,26 @@ function RuntimeField({
         {field.label}
         {required ? <span className="ml-1 text-rose-600">*</span> : null}
       </span>
-      <FieldControl
-        field={field}
-        value={value}
-        values={values}
-        readOnly={readOnly}
-        required={required}
-        onChange={onChange}
-      />
+      {/*
+        A value nobody can change is not a form control. Rendering read-only
+        fields as inputs is what produced every one of the field defects on this
+        screen at once: an ISO timestamp in a `datetime-local` input is rejected
+        and shows blank, a lookup select whose options have not loaded falls back
+        to its raw id, and an enum with no option list prints ACTIVE. Displaying
+        the value instead fixes all of them in one place.
+      */}
+      {readOnly ? (
+        <FieldDisplay field={field} value={value} values={values} />
+      ) : (
+        <FieldControl
+          field={field}
+          value={value}
+          values={values}
+          readOnly={readOnly}
+          required={required}
+          onChange={onChange}
+        />
+      )}
       {error ? (
         <span className="text-xs font-normal normal-case tracking-normal text-rose-600">
           {error}
@@ -232,6 +245,279 @@ function RuntimeField({
     </div>
   );
 }
+/**
+ * Read-only presentation of one field.
+ *
+ * The resolution order for a foreign key is deliberate: explicit presentation
+ * metadata first, then the relation object the API already embedded alongside
+ * the id, then a matching option, and only then a truncated id with the full
+ * value available on hover. A raw UUID is the last resort, never the default.
+ */
+function FieldDisplay({
+  field,
+  value,
+  values,
+}: {
+  field: RuntimeFieldDefinition;
+  value: unknown;
+  values: RuntimeValues;
+}) {
+  const base =
+    "min-h-10 rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900";
+
+  /*
+   * Explicit presentation metadata wins for every field type, not just lookups.
+   * `createdById` is a plain string column in the schema, but the record also
+   * carries `createdByName`; without this the System tab could only ever print
+   * the UUID.
+   */
+  const explicitLabel = field.displayValueField
+    ? readRuntimeValue(values, field.displayValueField)
+    : undefined;
+  if (typeof explicitLabel === "string" && explicitLabel.trim()) {
+    const href = resolveDisplayHref(field, values);
+    return (
+      <span className={base}>
+        {href ? (
+          <Link
+            href={href}
+            className="font-medium text-[var(--admin-primary)] hover:underline"
+          >
+            {explicitLabel}
+          </Link>
+        ) : (
+          explicitLabel
+        )}
+      </span>
+    );
+  }
+
+  if (field.type === "boolean") {
+    return (
+      <span className={base}>{value === true ? "Yes" : value === false ? "No" : "—"}</span>
+    );
+  }
+
+  if (isLookupField(field)) {
+    const label = resolveLookupLabel(field, value, values);
+    if (!label) return <span className={`${base} text-slate-400`}>Not set</span>;
+    const href = resolveDisplayHref(field, values);
+    return (
+      <span className={base}>
+        {href ? (
+          <Link
+            href={href}
+            className="font-medium text-[var(--admin-primary)] hover:underline"
+          >
+            {label}
+          </Link>
+        ) : (
+          label
+        )}
+      </span>
+    );
+  }
+
+  if (value === null || value === undefined || value === "") {
+    return <span className={`${base} text-slate-400`}>Not set</span>;
+  }
+
+  if (field.renderAs === "status" || field.type === "option") {
+    const label =
+      field.options?.find((option) => option.value === String(value))?.label ??
+      titleCase(String(value));
+    return field.renderAs === "status" ? (
+      <span className="inline-flex w-fit rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold normal-case tracking-normal text-slate-700">
+        {label}
+      </span>
+    ) : (
+      <span className={base}>{label}</span>
+    );
+  }
+
+  if (field.type === "multiSelect" && Array.isArray(value)) {
+    return (
+      <span className={base}>
+        {value
+          .map(
+            (item) =>
+              field.options?.find((option) => option.value === String(item))
+                ?.label ?? titleCase(String(item)),
+          )
+          .join(", ")}
+      </span>
+    );
+  }
+
+  if (field.type === "date" || field.type === "dateTime") {
+    const date = new Date(String(value));
+    return (
+      <span className={base}>
+        {Number.isNaN(date.getTime())
+          ? String(value)
+          : new Intl.DateTimeFormat("en-US", {
+              dateStyle: "medium",
+              ...(field.type === "dateTime" ? { timeStyle: "short" } : {}),
+            }).format(date)}
+      </span>
+    );
+  }
+
+  if (["integer", "decimal", "currency", "percentage"].includes(field.type)) {
+    const numeric = Number(value);
+    if (Number.isFinite(numeric)) {
+      return (
+        <span className={base}>
+          {field.type === "percentage"
+            ? `${new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(numeric)}%`
+            : new Intl.NumberFormat("en-US", {
+                minimumFractionDigits: field.type === "currency" ? 2 : 0,
+                maximumFractionDigits: 2,
+              }).format(numeric)}
+        </span>
+      );
+    }
+  }
+
+  if (field.type === "url" || field.type === "email") {
+    const href =
+      field.type === "email" ? `mailto:${String(value)}` : String(value);
+    return (
+      <span className={base}>
+        <a
+          href={href}
+          target={field.type === "url" ? "_blank" : undefined}
+          rel={field.type === "url" ? "noreferrer" : undefined}
+          className="font-medium text-[var(--admin-primary)] hover:underline"
+        >
+          {String(value)}
+        </a>
+      </span>
+    );
+  }
+
+  if (field.type === "json") {
+    return (
+      <pre className={`${base} max-h-48 overflow-auto font-mono text-xs`}>
+        {typeof value === "string" ? value : JSON.stringify(value, null, 2)}
+      </pre>
+    );
+  }
+
+  if (field.renderAs === "identifier" || field.renderAs === "code") {
+    return <IdentifierValue value={String(value)} />;
+  }
+
+  return <span className={base}>{String(value)}</span>;
+}
+
+/**
+ * A technical identifier, shown in full but never in place of a business label.
+ * The copy control exists because the reason to show an id at all is to paste it
+ * somewhere, and selecting monospace text in a table cell is fiddly.
+ */
+function IdentifierValue({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <span className="flex min-h-10 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2">
+      <code
+        title={value}
+        className="min-w-0 flex-1 truncate font-mono text-xs font-normal normal-case tracking-normal text-slate-700"
+      >
+        {value}
+      </code>
+      <button
+        type="button"
+        aria-label={`Copy ${value}`}
+        onClick={() => {
+          void navigator.clipboard?.writeText(value);
+          setCopied(true);
+          window.setTimeout(() => setCopied(false), 1500);
+        }}
+        className="shrink-0 rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-600 hover:bg-slate-50"
+      >
+        {copied ? "Copied" : "Copy"}
+      </button>
+    </span>
+  );
+}
+
+function resolveLookupLabel(
+  field: RuntimeFieldDefinition,
+  value: unknown,
+  values: RuntimeValues,
+) {
+  if (field.displayValueField) {
+    const explicit = readRuntimeValue(values, field.displayValueField);
+    if (typeof explicit === "string" && explicit.trim()) return explicit;
+  }
+  /*
+   * `customerAccountId` is served alongside a `customerAccount` object. Reading
+   * it means the common case needs no per-field configuration at all.
+   */
+  const relationKey = field.key.replace(/Id$/, "");
+  const relation = relationKey !== field.key ? values[relationKey] : undefined;
+  const relationLabel = readRelationLabel(relation);
+  if (relationLabel) return relationLabel;
+
+  if (!value) return null;
+  const option = field.options?.find(
+    (candidate) => candidate.value === String(value),
+  );
+  if (option) return option.label;
+  return null;
+}
+
+function readRelationLabel(relation: unknown) {
+  if (!relation || typeof relation !== "object" || Array.isArray(relation))
+    return null;
+  const record = relation as Record<string, unknown>;
+  const candidates = [
+    record.label,
+    record.displayName,
+    record.companyName,
+    record.name,
+    record.fullName,
+    record.title,
+    [record.firstName, record.lastName].filter(Boolean).join(" ") || undefined,
+    record.email,
+  ];
+  const found = candidates.find(
+    (candidate) => typeof candidate === "string" && candidate.trim(),
+  );
+  return found ? String(found) : null;
+}
+
+function resolveDisplayHref(
+  field: RuntimeFieldDefinition,
+  values: RuntimeValues,
+) {
+  if (!field.displayHref) return null;
+  let resolved = field.displayHref;
+  let missing = false;
+  resolved = resolved.replace(/\{([^}]+)\}/g, (_match, token: string) => {
+    const replacement = readRuntimeValue(values, token);
+    if (replacement === null || replacement === undefined || replacement === "") {
+      missing = true;
+      return "";
+    }
+    return encodeURIComponent(String(replacement));
+  });
+  return missing ? null : resolved;
+}
+
+function isLookupField(field: RuntimeFieldDefinition) {
+  return field.type === "lookup" || field.type.includes("Lookup");
+}
+
+function titleCase(value: string) {
+  return value
+    .toLowerCase()
+    .replaceAll("_", " ")
+    .replaceAll("-", " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
 function FieldControl({
   field,
   value,
@@ -325,6 +611,7 @@ function FieldControl({
       <RuntimeLookup
         field={field}
         value={String(value ?? "")}
+        values={values}
         disabled={readOnly}
         required={required}
         onChange={onChange}
@@ -391,7 +678,17 @@ function FieldControl({
             : "any"
       }
       placeholder={field.placeholder}
-      value={String(value ?? "")}
+      /*
+       * `date` and `datetime-local` inputs accept only `yyyy-MM-dd` and
+       * `yyyy-MM-ddTHH:mm`. Handing them the ISO string the API returns makes
+       * the browser reject the value and render an empty control, which is what
+       * made Created and Updated look blank on records that had both.
+       */
+      value={
+        field.type === "date" || field.type === "dateTime"
+          ? toDateInputValue(value, field.type)
+          : String(value ?? "")
+      }
       onChange={(event) =>
         onChange(
           type === "number"
@@ -403,6 +700,17 @@ function FieldControl({
       }
     />
   );
+}
+
+function toDateInputValue(value: unknown, type: "date" | "dateTime") {
+  if (value === null || value === undefined || value === "") return "";
+  const date = new Date(String(value));
+  if (Number.isNaN(date.getTime())) return "";
+  const pad = (part: number) => String(part).padStart(2, "0");
+  const day = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  return type === "date"
+    ? day
+    : `${day}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 function RuntimeFileInput({
   field,
@@ -485,12 +793,14 @@ function RuntimeFileInput({
 function RuntimeLookup({
   field,
   value,
+  values,
   disabled,
   required,
   onChange,
 }: {
   field: RuntimeFieldDefinition;
   value: string;
+  values: RuntimeValues;
   disabled: boolean;
   required: boolean;
   onChange: (value: unknown) => void;
@@ -500,6 +810,24 @@ function RuntimeLookup({
   );
   const [lookupError, setLookupError] = useState<string | null>(null);
   const [loading, setLoading] = useState(Boolean(field.lookupPath));
+  /*
+   * The selected record's label is already on the record, so the control shows
+   * it from the first paint. Without this the picker printed the raw id until
+   * the option list arrived — and kept printing it whenever the record was not
+   * inside the first page of options.
+   */
+  const currentOption = useMemo(() => {
+    const label = resolveLookupLabel(field, value, values);
+    return value && label ? { value, label } : undefined;
+  }, [field, value, values]);
+  const resolvedOptions = useMemo(
+    () =>
+      currentOption &&
+      !options.some((option) => option.value === currentOption.value)
+        ? [currentOption, ...options]
+        : options,
+    [currentOption, options],
+  );
   useEffect(() => {
     if (!field.lookupPath) return;
     const controller = new AbortController();
@@ -548,12 +876,19 @@ function RuntimeLookup({
     <div className="space-y-1.5 font-normal normal-case tracking-normal">
       <SearchableSelect
         ariaLabel={field.label}
-        options={options}
-        disabled={disabled || loading}
+        options={resolvedOptions}
+        /*
+         * The control stays usable while options load. Disabling it turned a
+         * one-second fetch into a field that read "Loading..." indefinitely
+         * whenever the fetch failed.
+         */
+        disabled={disabled}
         required={required}
         value={value}
         placeholder={
-          loading ? "Loading..." : `Select ${field.label.toLowerCase()}`
+          loading && !resolvedOptions.length
+            ? "Loading options…"
+            : `Select ${field.label.toLowerCase()}`
         }
         onChange={(next) => onChange(next || (required ? "" : null))}
       />

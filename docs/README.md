@@ -41,6 +41,7 @@ Implementation-facing architecture. How the system is actually built.
 | [`frontend.md`](architecture/frontend.md) | Next.js apps, module runtime, settings runtime |
 | [`database.md`](architecture/database.md) | Prisma conventions, migrations, seeds |
 | [`module-runtime-overhaul.md`](architecture/module-runtime-overhaul.md) | Metadata-driven module runtime (pre-existing, authoritative) |
+| [`tenant-control-plane.md`](architecture/tenant-control-plane.md) | Platform Admin's control plane over a tenant: lifecycle, access, modules, apps, provisioning runs and erasure |
 | [`settings-and-branding.md`](architecture/settings-and-branding.md) | Settings and branding contract (pre-existing, **canonical**) |
 | [`tenant-settings-attendance-runtime.md`](architecture/tenant-settings-attendance-runtime.md) | Settings/attendance runtime companion (pre-existing) |
 

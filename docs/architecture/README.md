@@ -16,6 +16,7 @@ so rather than guessing.
 | [`backend.md`](backend.md) | NestJS structure, module conventions, request lifecycle, errors, transactions |
 | [`frontend.md`](frontend.md) | The three Next.js apps, module runtime, settings runtime, shared components |
 | [`database.md`](database.md) | Prisma setup, schema conventions, migrations, seeds |
+| [`tenant-control-plane.md`](tenant-control-plane.md) | Platform Admin's control plane over a tenant: lifecycle, access identities, module entitlement, apps, provisioning runs, erasure |
 
 ## Pre-existing design contracts
 

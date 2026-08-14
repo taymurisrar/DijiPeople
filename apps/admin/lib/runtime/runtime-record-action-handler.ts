@@ -1,6 +1,5 @@
 "use client";
 
-import { buildTenantLoginUrl } from "@/lib/tenant-url";
 import type { createHttpModuleRuntimeAdapter } from "./http-module-runtime-adapter";
 import type {
   PlatformModuleKey,
@@ -54,18 +53,6 @@ export async function executeRuntimeRecordAction(input: {
     const result = await adapter.deleteRecord(record.id);
     if (result.success) router.push(routeBase);
     return result;
-  }
-
-  if (moduleKey === "tenants" && action.key === "tenant-operations") {
-    return router.push(`/tenants/${record.id}?workspace=operations`);
-  }
-  if (moduleKey === "tenants" && action.key === "open-tenant") {
-    window.open(
-      buildTenantLoginUrl(String(values.slug ?? "")),
-      "_blank",
-      "noopener,noreferrer",
-    );
-    return { success: true, message: "Tenant workspace opened." };
   }
 
   if (action.key === "create-agreement") {

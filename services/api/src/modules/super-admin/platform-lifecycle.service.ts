@@ -57,6 +57,7 @@ import { ConvertLeadToCustomerDto } from '../leads/dto/admin-lead.dto';
 import { BillingService } from './billing.service';
 import { TenantProvisioningService } from './tenant-provisioning.service';
 import { PlatformEventsService } from '../platform-events/platform-events.service';
+import { TenantProvisioningRunService } from '../tenant-control-plane/tenant-provisioning-run.service';
 
 @Injectable()
 export class PlatformLifecycleService {
@@ -74,6 +75,7 @@ export class PlatformLifecycleService {
     private readonly customizationService: CustomizationService,
     private readonly tenantProvisioning: TenantProvisioningService,
     private readonly events: PlatformEventsService,
+    private readonly provisioningRuns: TenantProvisioningRunService,
   ) {}
 
   getLifecycleOptions() {
@@ -1438,8 +1440,14 @@ export class PlatformLifecycleService {
         name: tenantName,
         displayName: tenantName,
         slug,
-        status: TenantStatus.ONBOARDING,
-        subStatus: 'Provisioning',
+        /*
+         * PROVISIONING says what is actually happening. Before the lifecycle
+         * was extended this sat in ONBOARDING with a free-text sub-status, so a
+         * tenant halfway through provisioning and a tenant waiting on paperwork
+         * were indistinguishable to whoever had to operate them.
+         */
+        status: TenantStatus.PROVISIONING,
+        subStatus: 'Provisioning in progress',
         createdById: actor.userId,
         updatedById: actor.userId,
         tenantBranding: {
@@ -1448,228 +1456,277 @@ export class PlatformLifecycleService {
       },
     });
 
-    await this.tenantProvisioning.provisionSystemDomain({
+    /*
+     * From here every phase is recorded as a step, so Operations can answer
+     * "where did it stop, and can I safely re-run it?" without reading logs.
+     */
+    const run = await this.provisioningRuns.start({
       tenantId: createdTenant.id,
-      slug: createdTenant.slug,
-      actorId: actor.userId,
+      trigger: 'ONBOARDING',
+      requestedById: actor.platform?.id ?? actor.userId,
     });
-
-    await this.permissionsService.bootstrapTenantDefaults(
-      createdTenant.id,
-      this.prisma,
-      actor.userId,
+    await this.provisioningRuns.stepSucceeded(
+      run?.id,
+      'tenant-record',
+      `Tenant ${createdTenant.slug} created.`,
     );
 
-    const provisioning = await this.prisma.$transaction(async (tx) => {
-      const tenantGlobalAdminRole =
-        await this.rolesRepository.findByKeyAndTenant(
-          createdTenant.id,
-          ROLE_KEYS.GLOBAL_ADMIN,
-          tx,
-        );
-      const tenantSystemAdminRole =
-        await this.rolesRepository.findByKeyAndTenant(
-          createdTenant.id,
-          ROLE_KEYS.SYSTEM_ADMIN,
-          tx,
-        );
-
-      if (!tenantGlobalAdminRole || !tenantSystemAdminRole) {
-        throw new ConflictException(
-          'Tenant administrator roles could not be provisioned.',
-        );
+    const runStep = async <T>(key: string, work: () => Promise<T>) => {
+      await this.provisioningRuns.stepStarted(run?.id, key);
+      try {
+        const outcome = await work();
+        await this.provisioningRuns.stepSucceeded(run?.id, key);
+        return outcome;
+      } catch (error) {
+        const detail =
+          error instanceof Error ? error.message : 'Provisioning step failed.';
+        await this.provisioningRuns.stepFailed(run?.id, key, detail);
+        await this.provisioningRuns.finish(run?.id, {
+          status: 'FAILED',
+          failedStepKey: key,
+          message: detail,
+        });
+        await this.prisma.tenant.update({
+          where: { id: createdTenant.id },
+          data: {
+            status: TenantStatus.PROVISIONING_FAILED,
+            subStatus: `Failed at ${key}`,
+            updatedById: actor.userId,
+          },
+        });
+        throw error;
       }
+    };
 
-      const passwordHash = await bcrypt.hash(
-        `provision-${createdTenant.id}-${Date.now()}`,
-        12,
-      );
+    await runStep('workspace-domain', () =>
+      this.tenantProvisioning.provisionSystemDomain({
+        tenantId: createdTenant.id,
+        slug: createdTenant.slug,
+        actorId: actor.userId,
+      }),
+    );
 
-      const primaryOwnerUser = await this.usersRepository.create(
-        {
-          tenantId: createdTenant.id,
-          firstName: onboarding.primaryOwnerFirstName.trim(),
-          lastName: onboarding.primaryOwnerLastName.trim() || 'Owner',
-          email: primaryOwnerEmail,
-          passwordHash,
-          status: UserStatus.INVITED,
-          createdById: actor.userId,
-          updatedById: actor.userId,
-        },
-        tx,
-      );
+    await runStep('rbac-defaults', () =>
+      this.permissionsService.bootstrapTenantDefaults(
+        createdTenant.id,
+        this.prisma,
+        actor.userId,
+      ),
+    );
 
-      const serviceAccountUser = serviceAccountEmail
-        ? await this.usersRepository.create(
+    const provisioning = await runStep('identities-and-billing', () =>
+      this.prisma.$transaction(async (tx) => {
+        const tenantGlobalAdminRole =
+          await this.rolesRepository.findByKeyAndTenant(
+            createdTenant.id,
+            ROLE_KEYS.GLOBAL_ADMIN,
+            tx,
+          );
+        const tenantSystemAdminRole =
+          await this.rolesRepository.findByKeyAndTenant(
+            createdTenant.id,
+            ROLE_KEYS.SYSTEM_ADMIN,
+            tx,
+          );
+
+        if (!tenantGlobalAdminRole || !tenantSystemAdminRole) {
+          throw new ConflictException(
+            'Tenant administrator roles could not be provisioned.',
+          );
+        }
+
+        const passwordHash = await bcrypt.hash(
+          `provision-${createdTenant.id}-${Date.now()}`,
+          12,
+        );
+
+        const primaryOwnerUser = await this.usersRepository.create(
+          {
+            tenantId: createdTenant.id,
+            firstName: onboarding.primaryOwnerFirstName.trim(),
+            lastName: onboarding.primaryOwnerLastName.trim() || 'Owner',
+            email: primaryOwnerEmail,
+            passwordHash,
+            status: UserStatus.INVITED,
+            createdById: actor.userId,
+            updatedById: actor.userId,
+          },
+          tx,
+        );
+
+        const serviceAccountUser = serviceAccountEmail
+          ? await this.usersRepository.create(
+              {
+                tenantId: createdTenant.id,
+                firstName:
+                  dto.serviceAccountDisplayName?.trim() ||
+                  dto.serviceAccountName?.trim() ||
+                  onboarding.serviceAccountDisplayName?.trim() ||
+                  'Configuration',
+                lastName: 'Service Account',
+                email: serviceAccountEmail,
+                passwordHash,
+                status: UserStatus.INVITED,
+                isServiceAccount: true,
+                createdById: actor.userId,
+                updatedById: actor.userId,
+              },
+              tx,
+            )
+          : null;
+
+        await tx.userRole.createMany({
+          data: [
             {
               tenantId: createdTenant.id,
-              firstName:
-                dto.serviceAccountDisplayName?.trim() ||
-                dto.serviceAccountName?.trim() ||
-                onboarding.serviceAccountDisplayName?.trim() ||
-                'Configuration',
-              lastName: 'Service Account',
-              email: serviceAccountEmail,
-              passwordHash,
-              status: UserStatus.INVITED,
-              isServiceAccount: true,
+              userId: primaryOwnerUser.id,
+              roleId: tenantGlobalAdminRole.id,
+              createdById: actor.userId,
+            },
+            ...(serviceAccountUser && assignServiceAccountSystemAdminRole
+              ? [
+                  {
+                    tenantId: createdTenant.id,
+                    userId: serviceAccountUser.id,
+                    roleId: tenantSystemAdminRole.id,
+                    createdById: actor.userId,
+                  },
+                ]
+              : []),
+          ],
+          skipDuplicates: true,
+        });
+
+        await tx.tenant.update({
+          where: { id: createdTenant.id },
+          data: {
+            ownerUserId: primaryOwnerUser.id,
+            updatedById: actor.userId,
+          },
+        });
+
+        const subscription =
+          await this.billingService.createOrUpdateSubscription(tx, {
+            tenantId: createdTenant.id,
+            planId: selectedPlanId,
+            billingCycle,
+            status: SubscriptionStatus.ACTIVE,
+            discountType: onboarding.discountType,
+            discountValue: Number(onboarding.discountValue),
+            manualFinalPrice:
+              dto.manualFinalPrice ??
+              (onboarding.agreedPrice
+                ? Number(onboarding.agreedPrice)
+                : undefined),
+            purchasedSeats: onboarding.agreedSeats ?? undefined,
+            actorUserId: actor.userId,
+          });
+
+        const selectedFeatureOverrides = Array.isArray(
+          onboarding.featureSelectionSummary,
+        )
+          ? onboarding.featureSelectionSummary
+          : [];
+
+        for (const feature of selectedFeatureOverrides as Array<{
+          key?: string;
+          isEnabled?: boolean;
+        }>) {
+          if (!feature.key) {
+            continue;
+          }
+
+          await tx.tenantFeature.upsert({
+            where: {
+              tenantId_key: {
+                tenantId: createdTenant.id,
+                key: feature.key,
+              },
+            },
+            create: {
+              tenantId: createdTenant.id,
+              key: feature.key,
+              isEnabled: feature.isEnabled ?? true,
+              source: TenantFeatureSource.MANUAL,
               createdById: actor.userId,
               updatedById: actor.userId,
             },
-            tx,
-          )
-        : null;
-
-      await tx.userRole.createMany({
-        data: [
-          {
-            tenantId: createdTenant.id,
-            userId: primaryOwnerUser.id,
-            roleId: tenantGlobalAdminRole.id,
-            createdById: actor.userId,
-          },
-          ...(serviceAccountUser && assignServiceAccountSystemAdminRole
-            ? [
-                {
-                  tenantId: createdTenant.id,
-                  userId: serviceAccountUser.id,
-                  roleId: tenantSystemAdminRole.id,
-                  createdById: actor.userId,
-                },
-              ]
-            : []),
-        ],
-        skipDuplicates: true,
-      });
-
-      await tx.tenant.update({
-        where: { id: createdTenant.id },
-        data: {
-          ownerUserId: primaryOwnerUser.id,
-          updatedById: actor.userId,
-        },
-      });
-
-      const subscription = await this.billingService.createOrUpdateSubscription(
-        tx,
-        {
-          tenantId: createdTenant.id,
-          planId: selectedPlanId,
-          billingCycle,
-          status: SubscriptionStatus.ACTIVE,
-          discountType: onboarding.discountType,
-          discountValue: Number(onboarding.discountValue),
-          manualFinalPrice:
-            dto.manualFinalPrice ??
-            (onboarding.agreedPrice
-              ? Number(onboarding.agreedPrice)
-              : undefined),
-          purchasedSeats: onboarding.agreedSeats ?? undefined,
-          actorUserId: actor.userId,
-        },
-      );
-
-      const selectedFeatureOverrides = Array.isArray(
-        onboarding.featureSelectionSummary,
-      )
-        ? onboarding.featureSelectionSummary
-        : [];
-
-      for (const feature of selectedFeatureOverrides as Array<{
-        key?: string;
-        isEnabled?: boolean;
-      }>) {
-        if (!feature.key) {
-          continue;
+            update: {
+              isEnabled: feature.isEnabled ?? true,
+              source: TenantFeatureSource.MANUAL,
+              updatedById: actor.userId,
+            },
+          });
         }
 
-        await tx.tenantFeature.upsert({
-          where: {
-            tenantId_key: {
-              tenantId: createdTenant.id,
-              key: feature.key,
-            },
+        await tx.customerAccount.update({
+          where: { id: onboarding.customerId },
+          data: {
+            primaryOwnerUserId: primaryOwnerUser.id,
+            selectedPlanId,
+            preferredBillingCycle: billingCycle,
+            status: CustomerAccountStatus.ACTIVE,
+            subStatus: 'Live',
           },
-          create: {
+        });
+
+        await tx.customerOnboarding.update({
+          where: { id: onboardingId },
+          data: {
             tenantId: createdTenant.id,
-            key: feature.key,
-            isEnabled: feature.isEnabled ?? true,
-            source: TenantFeatureSource.MANUAL,
-            createdById: actor.userId,
-            updatedById: actor.userId,
-          },
-          update: {
-            isEnabled: feature.isEnabled ?? true,
-            source: TenantFeatureSource.MANUAL,
-            updatedById: actor.userId,
+            tenantCreated: true,
+            status: CustomerOnboardingStatus.COMPLETED,
+            subStatus: 'Tenant created',
+            createServiceAccount: shouldCreateServiceAccount,
+            serviceAccountEmail,
+            serviceAccountDisplayName:
+              dto.serviceAccountDisplayName ??
+              onboarding.serviceAccountDisplayName ??
+              null,
+            serviceAccountAssignSystemAdmin:
+              assignServiceAccountSystemAdminRole,
           },
         });
-      }
 
-      await tx.customerAccount.update({
-        where: { id: onboarding.customerId },
-        data: {
-          primaryOwnerUserId: primaryOwnerUser.id,
-          selectedPlanId,
-          preferredBillingCycle: billingCycle,
-          status: CustomerAccountStatus.ACTIVE,
-          subStatus: 'Live',
-        },
-      });
-
-      await tx.customerOnboarding.update({
-        where: { id: onboardingId },
-        data: {
+        await this.billingService.createInvoice(tx, {
           tenantId: createdTenant.id,
-          tenantCreated: true,
-          status: CustomerOnboardingStatus.COMPLETED,
-          subStatus: 'Tenant created',
-          createServiceAccount: shouldCreateServiceAccount,
-          serviceAccountEmail,
-          serviceAccountDisplayName:
-            dto.serviceAccountDisplayName ??
-            onboarding.serviceAccountDisplayName ??
-            null,
-          serviceAccountAssignSystemAdmin: assignServiceAccountSystemAdminRole,
-        },
-      });
-
-      await this.billingService.createInvoice(tx, {
-        tenantId: createdTenant.id,
-        subscriptionId: subscription.id,
-        amount: Number(subscription.finalPrice),
-        currency: subscription.currency,
-        actorUserId: actor.userId,
-      });
-
-      const invitedUsers = [
-        {
-          userId: primaryOwnerUser.id,
-          email: primaryOwnerEmail,
-          fullName: `${primaryOwnerUser.firstName} ${primaryOwnerUser.lastName}`,
-        },
-      ];
-
-      if (serviceAccountUser) {
-        invitedUsers.push({
-          userId: serviceAccountUser.id,
-          email: serviceAccountUser.email,
-          fullName: `${serviceAccountUser.firstName} ${serviceAccountUser.lastName}`,
+          subscriptionId: subscription.id,
+          amount: Number(subscription.finalPrice),
+          currency: subscription.currency,
+          actorUserId: actor.userId,
         });
-      }
 
-      return {
-        tenant: createdTenant,
-        invitedUsers,
-      };
-    });
+        const invitedUsers = [
+          {
+            userId: primaryOwnerUser.id,
+            email: primaryOwnerEmail,
+            fullName: `${primaryOwnerUser.firstName} ${primaryOwnerUser.lastName}`,
+          },
+        ];
+
+        if (serviceAccountUser) {
+          invitedUsers.push({
+            userId: serviceAccountUser.id,
+            email: serviceAccountUser.email,
+            fullName: `${serviceAccountUser.firstName} ${serviceAccountUser.lastName}`,
+          });
+        }
+
+        return {
+          tenant: createdTenant,
+          invitedUsers,
+        };
+      }),
+    );
 
     /*
      * Publish the default views and forms so the new tenant runs on its own
      * customization metadata from day one instead of the web app's fallbacks.
-     * A failure here must not undo a provisioned tenant, so it is reported
-     * rather than thrown.
+     * A failure here must not undo a provisioned tenant, so it is recorded on
+     * the run as a failed but retryable step rather than thrown.
      */
+    await this.provisioningRuns.stepStarted(run?.id, 'customization-defaults');
+    let customizationFailure: string | null = null;
     try {
       const defaults = await this.customizationService.publishTenantDefaults(
         provisioning.tenant.id,
@@ -1678,14 +1735,24 @@ export class PlatformLifecycleService {
       this.logger.log(
         `Default customization for ${provisioning.tenant.slug}: ${JSON.stringify(defaults)}`,
       );
+      await this.provisioningRuns.stepSucceeded(
+        run?.id,
+        'customization-defaults',
+      );
     } catch (error) {
+      customizationFailure =
+        error instanceof Error ? error.message : String(error);
       this.logger.error(
-        `Default customization publish failed for ${provisioning.tenant.slug}: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
+        `Default customization publish failed for ${provisioning.tenant.slug}: ${customizationFailure}`,
+      );
+      await this.provisioningRuns.stepFailed(
+        run?.id,
+        'customization-defaults',
+        customizationFailure,
       );
     }
 
+    await this.provisioningRuns.stepStarted(run?.id, 'invitations');
     await Promise.all(
       provisioning.invitedUsers.map((user) =>
         this.userInvitationsService.issueInvitation({
@@ -1697,6 +1764,36 @@ export class PlatformLifecycleService {
         }),
       ),
     );
+    await this.provisioningRuns.stepSucceeded(run?.id, 'invitations');
+
+    await this.provisioningRuns.finish(
+      run?.id,
+      customizationFailure
+        ? {
+            status: 'FAILED',
+            failedStepKey: 'customization-defaults',
+            message: customizationFailure,
+          }
+        : { status: 'SUCCEEDED' },
+    );
+
+    /*
+     * The workspace now exists and is addressable, but provisioning does not
+     * activate it: activation is the point at which DijiPeople declares it
+     * ready for its customer, and that stays an operator decision.
+     */
+    await this.prisma.tenant.update({
+      where: { id: provisioning.tenant.id },
+      data: {
+        status: customizationFailure
+          ? TenantStatus.PROVISIONING_FAILED
+          : TenantStatus.PENDING_SETUP,
+        subStatus: customizationFailure
+          ? 'Failed at customization-defaults'
+          : 'Configuration required',
+        updatedById: actor.userId,
+      },
+    });
 
     await this.auditService.log({
       tenantId: actor.tenantId,

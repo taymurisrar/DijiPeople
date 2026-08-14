@@ -54,6 +54,17 @@ export class TenantsRepository {
         customerAccount: true,
         tenantBranding: true,
         tenantDomains: true,
+        /*
+         * Attribution is shown as a business label on the tenant record, so the
+         * lead and partner travel with it. Returning only the foreign keys is
+         * what forced the record page to render them as raw ids.
+         */
+        originatingLead: {
+          select: { id: true, companyName: true, fullName: true, status: true },
+        },
+        originatingPartner: {
+          select: { id: true, displayName: true, status: true },
+        },
         ownerUser: {
           select: {
             id: true,

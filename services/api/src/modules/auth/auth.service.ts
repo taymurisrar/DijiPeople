@@ -153,6 +153,19 @@ export class AuthService {
     const tenantStatus = String(user.tenant.status).toUpperCase();
 
     if (user.status !== 'ACTIVE' || tenantStatus !== 'ACTIVE') {
+      /*
+       * A suspended workspace is a deliberate platform decision, not a broken
+       * credential. Telling its administrator "this account is not active" sends
+       * them to reset a password that is fine; naming the suspension sends them
+       * to the person who can lift it. The distinction is only ever drawn for a
+       * caller who already proved they hold valid credentials — an unauthenticated
+       * probe still gets the generic failure from `validateCredentials`.
+       */
+      const tenantSuspended =
+        user.status === 'ACTIVE' &&
+        ['SUSPENDED', 'DECOMMISSIONING', 'DECOMMISSIONED'].includes(
+          tenantStatus,
+        );
       await this.logTenantAuthEvent({
         tenantId: user.tenantId,
         actorUserId: user.id,
@@ -160,11 +173,17 @@ export class AuthService {
         entityId: user.id,
         email: user.email,
         result: 'FAILED',
-        failureReason: 'ACCOUNT_OR_TENANT_INACTIVE',
+        failureReason: tenantSuspended
+          ? 'TENANT_SUSPENDED'
+          : 'ACCOUNT_OR_TENANT_INACTIVE',
         clientId,
         req,
       });
-      throw new UnauthorizedException('This account is not active.');
+      throw new UnauthorizedException(
+        tenantSuspended
+          ? 'This workspace has been suspended by DijiPeople. Contact DijiPeople support to restore access.'
+          : 'This account is not active.',
+      );
     }
 
     /*

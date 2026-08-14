@@ -208,6 +208,183 @@ const EDIT_RECORD_ACTIONS: RuntimeActionDefinition[] = [
   STANDARD_RECORD_ACTIONS[3]!,
 ];
 
+/**
+ * Tenant lifecycle, mirroring the `TenantStatus` enum and the transition map the
+ * API enforces. Tone is what tells an operator at a glance whether a workspace
+ * is live, being worked on, or stopped.
+ */
+const TENANT_STATUS_VALUES = [
+  "ONBOARDING",
+  "PENDING_SETUP",
+  "PROVISIONING",
+  "PROVISIONING_FAILED",
+  "ACTIVE",
+  "SUSPENDED",
+  "INACTIVE",
+  "DECOMMISSIONING",
+  "DECOMMISSIONED",
+  "ARCHIVED",
+  "CHURNED",
+];
+
+const TENANT_STATUS_TONES: Record<
+  string,
+  RuntimeStatusDefinition["tone"]
+> = {
+  ONBOARDING: "neutral",
+  PENDING_SETUP: "warning",
+  PROVISIONING: "info",
+  PROVISIONING_FAILED: "danger",
+  ACTIVE: "success",
+  SUSPENDED: "danger",
+  INACTIVE: "neutral",
+  DECOMMISSIONING: "warning",
+  DECOMMISSIONED: "neutral",
+  ARCHIVED: "neutral",
+  CHURNED: "neutral",
+};
+
+const TENANT_STATUSES: RuntimeStatusDefinition[] = TENANT_STATUS_VALUES.map(
+  (value) => ({
+    value,
+    label: title(value),
+    tone: TENANT_STATUS_TONES[value] ?? "neutral",
+    terminal: ["ARCHIVED", "CHURNED", "DECOMMISSIONED"].includes(value),
+  }),
+);
+
+/**
+ * The tenant record action bar.
+ *
+ * Ordinary record actions stay where an operator expects them; everything that
+ * changes the workspace's state sits behind one Actions menu and declares the
+ * lifecycle states it is valid in. `states` is a usability filter only — the API
+ * re-checks every transition, so hiding a button is never the control.
+ */
+const TENANT_RECORD_ACTIONS: RuntimeActionDefinition[] = [
+  STANDARD_RECORD_ACTIONS[0]!,
+  STANDARD_RECORD_ACTIONS[1]!,
+  STANDARD_RECORD_ACTIONS[2]!,
+  STANDARD_RECORD_ACTIONS[3]!,
+  {
+    key: "open-tenant",
+    label: "Open Tenant",
+    icon: "external",
+    placement: "primary",
+    scope: "record",
+    selection: "none",
+    states: ["ACTIVE"],
+  },
+  {
+    key: "validate-tenant",
+    label: "Validate Tenant",
+    icon: "check",
+    placement: "overflow",
+    scope: "record",
+    selection: "none",
+  },
+  {
+    key: "suspend-tenant",
+    label: "Suspend Tenant",
+    icon: "reject",
+    placement: "overflow",
+    scope: "record",
+    selection: "none",
+    states: ["ACTIVE", "PENDING_SETUP", "INACTIVE"],
+    destructive: true,
+    confirmTitle: "Suspend this tenant?",
+    confirmDescription:
+      "Tenant users lose access immediately and live sessions are revoked. Data, subscription and history are preserved, and the tenant can be reactivated.",
+  },
+  {
+    key: "reactivate-tenant",
+    label: "Reactivate Tenant",
+    icon: "approve",
+    placement: "overflow",
+    scope: "record",
+    selection: "none",
+    states: ["SUSPENDED", "INACTIVE", "DECOMMISSIONING"],
+  },
+  {
+    key: "activate-tenant",
+    label: "Activate Tenant",
+    icon: "approve",
+    placement: "overflow",
+    scope: "record",
+    selection: "none",
+    states: ["PENDING_SETUP", "ONBOARDING"],
+  },
+  {
+    key: "decommission-tenant",
+    label: "Start Decommissioning",
+    icon: "reject",
+    placement: "overflow",
+    scope: "record",
+    selection: "none",
+    states: ["ACTIVE", "SUSPENDED", "INACTIVE"],
+    destructive: true,
+    confirmTitle: "Start decommissioning this tenant?",
+    confirmDescription:
+      "The workspace is retired according to the termination process. Data is preserved; this is not erasure.",
+  },
+  {
+    key: "create-tenant-owner",
+    label: "Create Tenant Owner",
+    icon: "new",
+    placement: "overflow",
+    scope: "record",
+    selection: "none",
+  },
+  {
+    key: "create-service-account",
+    label: "Create Service Account",
+    icon: "new",
+    placement: "overflow",
+    scope: "record",
+    selection: "none",
+  },
+  {
+    key: "retry-provisioning",
+    label: "Retry Provisioning",
+    icon: "refresh",
+    placement: "overflow",
+    scope: "record",
+    selection: "none",
+    states: [
+      "PROVISIONING",
+      "PROVISIONING_FAILED",
+      "ONBOARDING",
+      "PENDING_SETUP",
+    ],
+  },
+  {
+    key: "refresh-tenant",
+    label: "Refresh Tenant State",
+    icon: "refresh",
+    placement: "overflow",
+    scope: "record",
+    selection: "none",
+  },
+  {
+    key: "erase-tenant",
+    label: "Erase Tenant",
+    icon: "delete",
+    placement: "overflow",
+    scope: "record",
+    selection: "none",
+    states: [
+      "SUSPENDED",
+      "INACTIVE",
+      "DECOMMISSIONING",
+      "DECOMMISSIONED",
+      "ARCHIVED",
+      "CHURNED",
+      "PROVISIONING_FAILED",
+    ],
+    destructive: true,
+  },
+];
+
 export const DASHBOARD_VIEWS: RuntimeViewDefinition[] = [
   {
     key: "executive",
@@ -1823,92 +2000,104 @@ const definitions: PlatformModuleDefinition[] = [
       "/super-admin/tenants",
       "customers",
       [
-        col("name", "Tenant", 220),
+        col("displayName", "Tenant", 220),
         col("customerAccount.companyName", "Customer", 210, "lookup"),
-        col("status", "Status", 130, "status"),
-        col("subscription.status", "Subscription", 150, "status"),
+        col("status", "Status", 150, "status"),
         col("subscription.plan.name", "Plan", 150, "lookup"),
+        col("subscription.status", "Subscription", 150, "status"),
         col("createdAt", "Created", 160, "dateTime"),
       ],
     ),
-    statuses: [
-      "ONBOARDING",
-      "PENDING_SETUP",
-      "ACTIVE",
-      "INACTIVE",
-      "SUSPENDED",
-      "ARCHIVED",
-      "CHURNED",
-    ].map(status),
+    statuses: TENANT_STATUSES,
     forms: lifecycleForms(
       "tenants",
       [
-        field("name", "Tenant name", "text", "tenant-information", true),
-        field("displayName", "Display name", "text", "tenant-information"),
-        field("legalName", "Legal name", "text", "tenant-information"),
-        field(
-          "status",
-          "Lifecycle status",
-          "option",
-          "tenant-information",
-          true,
-          [
-            "ONBOARDING",
-            "PENDING_SETUP",
-            "ACTIVE",
-            "INACTIVE",
-            "SUSPENDED",
-            "ARCHIVED",
-            "CHURNED",
-          ],
-        ),
-        field("subStatus", "Status reason", "text", "tenant-information"),
+        /*
+         * Overview, Access & Security, Commercial, Apps & Modules and Operations
+         * are rendered by their own panels rather than by form fields. A tenant
+         * is a running workspace, and a list of columns is the wrong way to ask
+         * whether it is healthy. Only the tabs that genuinely edit or display
+         * record columns declare fields here.
+         */
+        field("name", "Tenant name", "text", "workspace", true),
+        field("displayName", "Display name", "text", "workspace"),
+        field("legalName", "Legal name", "text", "workspace"),
+        {
+          ...field("tenantCode", "Tenant code", "text", "workspace"),
+          readOnly: true,
+          description:
+            "Issued at provisioning and printed on invoices. Not editable.",
+        },
+        {
+          ...field("slug", "Workspace slug", "text", "workspace"),
+          readOnly: true,
+          description:
+            "Fixed once the workspace is addressable — it is in every workspace URL, agent configuration and gateway pairing.",
+        },
+        {
+          ...field(
+            "status",
+            "Lifecycle status",
+            "option",
+            "workspace",
+            true,
+            TENANT_STATUS_VALUES,
+          ),
+          readOnly: true,
+          renderAs: "status" as const,
+          description:
+            "Changed through the Actions menu so every transition carries a reason and is audited.",
+        },
+        {
+          ...field("subStatus", "Status reason", "text", "workspace"),
+          readOnly: true,
+        },
         {
           ...field(
             "customerAccountId",
             "Customer",
             "lookup",
-            "tenant-information",
+            "customer-relationship",
             true,
           ),
           lookupPath: "/super-admin/customers?pageSize=100",
           readOnly: true,
-        },
-        {
-          ...field("tenantCode", "Tenant code", "text", "tenant-information"),
-          readOnly: true,
-        },
-        {
-          ...field("slug", "Workspace slug", "text", "tenant-information"),
-          readOnly: true,
-        },
-        {
-          ...field(
-            "ownerUserId",
-            "Primary administrator",
-            "text",
-            "primary-admin",
-          ),
-          readOnly: true,
+          displayValueField: "customerAccount.companyName",
+          displayHref: "/customers/{customerAccountId}",
         },
         {
           ...field(
             "originatingLeadId",
             "Originating lead",
             "lookup",
-            "attribution",
+            "customer-relationship",
           ),
           lookupPath: "/super-admin/leads?pageSize=100",
           readOnly: true,
+          hideWhenEmpty: true,
+          displayValueField: "originatingLead.label",
+          displayHref: "/leads/{originatingLeadId}",
         },
         {
           ...field(
             "originatingPartnerId",
             "Originating partner",
             "lookup",
-            "attribution",
+            "customer-relationship",
           ),
           lookupPath: "/partners?pageSize=100",
+          readOnly: true,
+          hideWhenEmpty: true,
+          displayValueField: "originatingPartner.label",
+          displayHref: "/partners/{originatingPartnerId}",
+        },
+        {
+          ...field(
+            "referralCodeSnapshot",
+            "Referral code",
+            "text",
+            "customer-relationship",
+          ),
           readOnly: true,
           hideWhenEmpty: true,
         },
@@ -1917,188 +2106,85 @@ const definitions: PlatformModuleDefinition[] = [
             "originatingReferralLinkId",
             "Originating referral link",
             "text",
-            "attribution",
+            "customer-relationship",
           ),
           readOnly: true,
-          hidden: true,
           hideWhenEmpty: true,
+          renderAs: "identifier" as const,
           visibleWhen: { field: "originatingPartnerId", hasValue: true },
         },
         {
-          ...field(
-            "referralCodeSnapshot",
-            "Referral code",
-            "text",
-            "attribution",
-          ),
+          ...field("id", "Tenant ID", "text", "identifiers"),
           readOnly: true,
-          hideWhenEmpty: true,
-          visibleWhen: { field: "originatingPartnerId", hasValue: true },
+          renderAs: "identifier" as const,
+        },
+        {
+          ...field("ownerUserId", "Primary Tenant Owner", "text", "identifiers"),
+          readOnly: true,
+          displayValueField: "owner.fullName",
+          description: "Managed from Access & Security.",
         },
         {
           ...field("createdAt", "Created", "dateTime", "record-history"),
           readOnly: true,
         },
         {
+          ...field("createdById", "Created by", "text", "record-history"),
+          readOnly: true,
+          displayValueField: "createdByName",
+        },
+        {
           ...field("updatedAt", "Last updated", "dateTime", "record-history"),
           readOnly: true,
         },
-        { ...field("id", "Tenant ID", "text", "system"), readOnly: true },
         {
-          ...field("createdById", "Created by", "text", "system"),
+          ...field("updatedById", "Updated by", "text", "record-history"),
+          readOnly: true,
+          displayValueField: "updatedByName",
+        },
+        {
+          ...field("isDemoData", "Demo data", "boolean", "provenance"),
           readOnly: true,
         },
         {
-          ...field("updatedById", "Updated by", "text", "system"),
+          ...field("demoBatchId", "Demo batch ID", "text", "provenance"),
           readOnly: true,
+          hideWhenEmpty: true,
+          renderAs: "identifier" as const,
         },
         {
-          ...field("isDemoData", "Demo data", "boolean", "system"),
+          ...field("seedSource", "Seed source", "text", "provenance"),
           readOnly: true,
-        },
-        {
-          ...field("demoBatchId", "Demo batch ID", "text", "system"),
-          readOnly: true,
-        },
-        {
-          ...field("seedSource", "Seed source", "text", "system"),
-          readOnly: true,
+          hideWhenEmpty: true,
         },
       ],
       [
         "Overview",
         "Configuration",
-        "Access and Security",
+        "Access & Security",
         "Commercial",
-        "Integrations",
+        "Apps & Modules",
         "Operations",
         "Timeline",
         "System",
       ],
       {
-        "tenant-information": "overview",
-        "primary-admin": "overview",
-        attribution: "overview",
-        "record-history": "overview",
-        system: "system",
+        workspace: "configuration",
+        "customer-relationship": "configuration",
+        identifiers: "system",
+        "record-history": "system",
+        provenance: "system",
       },
     ),
-    actions: [
-      STANDARD_LIST_ACTIONS[1]!,
-      STANDARD_LIST_ACTIONS[2]!,
-      ...EDIT_RECORD_ACTIONS,
-      {
-        key: "tenant-operations",
-        label: "Tenant operations",
-        placement: "primary",
-        scope: "record",
-        selection: "none",
-      },
-      {
-        key: "open-tenant",
-        label: "Open Tenant",
-        placement: "secondary",
-        scope: "record",
-        selection: "none",
-        states: ["ACTIVE"],
-      },
-    ],
-    relatedRecords: [
-      {
-        key: "contracts",
-        label: "Agreements and contracts",
-        tab: "commercial",
-        emptyTitle: "No tenant agreements yet",
-        emptyDescription:
-          "Tenant-specific agreements will appear here when linked.",
-        module: "contracts",
-        foreignKey: "tenantId",
-      },
-      {
-        key: "supportCases",
-        label: "Support cases",
-        tab: "operations",
-        emptyTitle: "No support cases",
-        emptyDescription:
-          "Operational support cases for this tenant will appear here.",
-        module: "support-cases",
-        foreignKey: "tenantId",
-      },
-      {
-        key: "invoices",
-        label: "Invoices",
-        tab: "commercial",
-        emptyTitle: "No tenant invoices yet",
-        emptyDescription:
-          "Invoices are created from this tenant's subscription.",
-        module: "invoices",
-        foreignKey: "tenantId",
-      },
-      {
-        key: "subscription",
-        label: "Subscription and billing",
-        tab: "commercial",
-        module: "subscriptions",
-        foreignKey: "tenantId",
-        emptyTitle: "No subscription yet",
-        emptyDescription:
-          "Provisioning creates the tenant subscription when a plan and billing cycle are ready.",
-      },
-      {
-        key: "users",
-        label: "Users and administrators",
-        tab: "access-security",
-        foreignKey: "tenantId",
-        emptyTitle: "No users yet",
-        emptyDescription:
-          "Tenant administrators and invited users will appear here.",
-      },
-      {
-        key: "tenantDomains",
-        label: "Domains",
-        tab: "configuration",
-        foreignKey: "tenantId",
-        emptyTitle: "No custom domains",
-        emptyDescription:
-          "The tenant currently uses its DijiPeople workspace URL.",
-      },
-      {
-        key: "tenantFeatures",
-        label: "Feature configuration",
-        tab: "configuration",
-        foreignKey: "tenantId",
-        emptyTitle: "No feature overrides",
-        emptyDescription:
-          "Plan defaults apply until a tenant feature override is configured.",
-      },
-      {
-        key: "tenantBranding",
-        label: "Branding",
-        tab: "configuration",
-        foreignKey: "tenantId",
-        emptyTitle: "Default branding is active",
-        emptyDescription:
-          "Branding settings can be managed from Tenant Operations.",
-      },
-      {
-        key: "attendanceIntegrationConfigs",
-        label: "Integrations",
-        tab: "integrations",
-        foreignKey: "tenantId",
-        emptyTitle: "No integrations configured",
-        emptyDescription: "Tenant integration connections will appear here.",
-      },
-      {
-        key: "customerOnboardings",
-        label: "Provisioning history",
-        tab: "operations",
-        module: "customer-onboarding",
-        foreignKey: "tenantId",
-        emptyTitle: "No provisioning history",
-        emptyDescription:
-          "The onboarding cycle used to create this tenant will appear here.",
-      },
-    ],
+    actions: TENANT_RECORD_ACTIONS,
+    /*
+     * Commercial and Operations render agreements, invoices and support cases in
+     * their own panels, so the generic related-record tables are not repeated
+     * here. Branding and the tenant Integrations table are gone on purpose:
+     * branding belongs to the tenant application, and integration configuration
+     * now lives under the module it belongs to in Apps & Modules.
+     */
+    relatedRecords: [],
   }),
   define({
     ...simple(
@@ -3501,8 +3587,18 @@ function lifecycleForms(
   labels: string[],
   sectionTabs: Record<string, string>,
 ) {
+  /*
+   * "Access & Security" and "Access and Security" have to produce the same tab
+   * key, because the key is what section placement is written against. Slugging
+   * the label rather than doing two targeted replacements means the displayed
+   * wording can change without silently orphaning every section on that tab.
+   */
   const tabs = labels.map((label) => ({
-    key: label.toLowerCase().replaceAll(" and ", "-").replaceAll(" ", "-"),
+    key: label
+      .toLowerCase()
+      .replace(/\s*&\s*|\s+and\s+/g, "-")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, ""),
     label,
   }));
   const defaultTab = tabs[0]?.key ?? "summary";

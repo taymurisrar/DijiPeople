@@ -154,6 +154,24 @@ export type RuntimeFieldDefinition = {
   };
   lookupModule?: PlatformModuleKey;
   lookupPath?: string;
+  /**
+   * Business presentation metadata: where the human-readable label for this
+   * value lives on the record. Schema tells the runtime that `customerAccountId`
+   * is a required string; only this says it should read as "Maseer Group".
+   * Dot paths are resolved against the loaded record.
+   */
+  displayValueField?: string;
+  /**
+   * Link template for the resolved display value. `{field}` placeholders are
+   * substituted from the record, e.g. `/customers/{customerAccountId}`.
+   */
+  displayHref?: string;
+  /**
+   * How the read-only value should be drawn. `status` renders the shared status
+   * pill; `identifier` renders a copyable technical id, which is what the System
+   * tab wants and what a business field must never be.
+   */
+  renderAs?: "status" | "identifier" | "code";
   roles?: string[];
   columnSpan?: 1 | 2 | 3;
   min?: number;
