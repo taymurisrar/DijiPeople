@@ -124,7 +124,7 @@ weaken the restriction.
 `apps/web/lib/server-api.ts` (and the admin equivalent):
 
 - Reads the auth cookies from the incoming request.
-- Sends `x-auth-client-id` so the API selects the right secret and session table.
+- Sends `X-DijiPeople-App` so the API selects the right secret and session table.
 - On 401, attempts a refresh and re-issues the request, then rewrites the
   cookies from the refreshed tokens.
 - Normalises API errors through `lib/api-error.ts` so the standard error

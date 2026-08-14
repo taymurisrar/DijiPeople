@@ -128,3 +128,10 @@ uat-runtime-tests/
 # Screenshots and results written by scripts/uat-admin.js
 uat-out/
 uat-out-prod/
+
+# =========================================================
+# Agent framework — local-only configuration
+# The Obsidian vault lives outside the repository and its
+# path is personal to each developer. Never commit it.
+# =========================================================
+.obsidian-sync.local.json

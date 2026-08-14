@@ -37,21 +37,30 @@ Three authenticated surfaces plus one public one:
 
 ### Domains actually implemented
 
-Each is a module under `services/api/src/modules/`.
+**60 modules** under `services/api/src/modules/`, as committed at this baseline.
 
 | Area | Modules |
 |---|---|
 | People | `employees`, `employee-levels`, `employment-types`, `users`, `teams`, `organization` |
-| Time | `attendance`, `attendance-engine`, `attendance-integrations`, `timesheets`, `leave` |
+| Time | `attendance`, `timesheets`, `leave` |
 | Pay | `payroll`, `payslips`, `pay-components`, `compensation`, `tax-rules`, `loans`, `claims`, `benefits`, `business-trips`, `time-payroll` |
 | Talent | `recruitment`, `onboarding`, `projects`, `documents`, `policies` |
 | Governance | `approvals`, `workflows`, `sla`, `audit`, `error-logs`, `permissions`, `roles` |
 | Commercial | `leads`, `partners`, `partner-experience`, `contracts`, `support-cases`, `billing`, `super-admin` (customers, plans, subscriptions, invoices, payments, tenant provisioning) |
 | Configuration | `tenant-settings`, `settings-runtime`, `customization`, `lookups`, `views`, `navigation`, `data`, `platform-runtime` |
-| Platform ops | `platform-auth`, `platform-users`, `platform-events`, `platform-monitoring`, `platform-communications`, `app-releases`, `tenants`, `demo-data`, `data-management` |
+| Platform ops | `platform-auth`, `platform-users`, `platform-events`, `platform-monitoring`, `platform-communications`, `tenants`, `demo-data`, `data-management`, `agent`, `dashboard`, `inbox`, `reports` |
 
-There is also a **.NET on-premise integration gateway** in `gateway/` and a
-ZKTeco device proof-of-concept in `tools/zkteco-poc/`.
+> **Work in flight, not in this branch.** At the time this baseline was written
+> the primary checkout also contained substantial **uncommitted** work that is
+> *not* part of any commit: the `attendance-engine`, `attendance-integrations`
+> and `app-releases` API modules, a **.NET on-premise integration gateway** in
+> `gateway/`, a ZKTeco device proof-of-concept in `tools/`, and a larger
+> `schema.prisma`.
+>
+> Do not assume those exist. Check the branch you are on. If you are working in
+> a worktree cut from this baseline, they are absent — and an instruction file
+> that claimed otherwise is exactly the failure mode this framework exists to
+> prevent.
 
 ---
 
@@ -71,8 +80,8 @@ packages/
   ui/             @repo/ui — button/card/code only; NOT the design system
   eslint-config/  shared ESLint config
   typescript-config/ shared tsconfig bases
-gateway/          .NET solution (DijiPeople.Gateway.sln)
-tools/zkteco-poc/ device POC + .NET worker
+gateway/          .NET solution — NOT COMMITTED at this baseline
+tools/            device POC — NOT COMMITTED at this baseline
 scripts/          repo-level node scripts (ports, smoke tests, codegen)
 docs/             repository documentation (see docs/README.md)
 ```
@@ -175,8 +184,8 @@ Node `22.x`, npm `11.x`, npm workspaces + Turborepo.
 ## Database / Prisma
 
 Prisma **7.8** with `@prisma/adapter-pg` against PostgreSQL. Single schema file:
-`services/api/prisma/schema.prisma` — **~11,800 lines, 285 models, 255 enums**,
-with `191` migrations in `services/api/prisma/migrations/`. Prisma is configured
+`services/api/prisma/schema.prisma` — **10,436 lines, 266 models, 222 enums**,
+with **183** migrations in `services/api/prisma/migrations/`. Prisma is configured
 by `services/api/prisma.config.ts` — every Prisma CLI call in this repo passes
 `--config prisma.config.ts`.
 
@@ -188,14 +197,14 @@ Summary:
   relation on tenant-owned models. `PascalCase` models, `camelCase` fields,
   `SCREAMING_SNAKE_CASE` enum members. No `@@map` — Prisma names are the table
   names.
-- **Relations**: explicit `onDelete` on every relation (424 use `Cascade`).
+- **Relations**: explicit `onDelete` on every relation (381 use `Cascade`).
   Named relations where two relations connect the same pair of models.
 - **Migrations**: timestamped directories, created with
   `npm run prisma:migrate:dev` locally. **Never hand-edit an applied migration.
   Never delete one. Never run `migrate reset` or `db push` against a shared
   database.** Deployment applies them via `npm run prisma:migrate:deploy`
   (wrapped by `npm run release:api`).
-- **Indexes**: 1,076 `@@index` and 210 `@@unique` exist. Index every foreign key
+- **Indexes**: 992 `@@index` and 192 `@@unique` exist. Index every foreign key
   you filter on and every `(tenantId, <filter column>)` pair a list screen sorts
   or filters by.
 - **Soft delete is not universal.** Only a handful of models carry `isDeleted`
@@ -236,8 +245,11 @@ Full rules: [`services/api/AGENTS.md`](services/api/AGENTS.md). Summary:
   `fieldErrors`, `support`) and records the failure through `ErrorLogsService`.
   Do not invent ad-hoc error shapes; add a catalog entry instead.
 - **Auth**: `@UseGuards(JwtAuthGuard, PermissionsGuard)` at the controller.
-  `@Public()` only for genuinely unauthenticated routes — there are currently
-  four (`public-billing`, `stripe-webhook`, `public-leads`, `public-tenants`).
+  `@Public()` marks a genuinely unauthenticated route. At this baseline there
+  are **24 `@Public()` handlers across 10 controllers**, including partially
+  public controllers such as `auth`, `agent`, `tenants` and `tenant-settings`
+  where most handlers are guarded and a few are not. Count them on your branch;
+  never assume a controller is uniformly public or uniformly guarded.
 - **Permissions**: DijiPeople runs **two permission systems at once** and
   `PermissionsGuard` requires *all* declared legacy keys **and** *at least one*
   matrix privilege. Both decorators are normally required:
@@ -256,8 +268,10 @@ Full rules: [`services/api/AGENTS.md`](services/api/AGENTS.md). Summary:
 - **Events / notifications**: platform-side events via `PlatformEventsService`;
   tenant notifications via the `notifications` module (catalog → orchestrator →
   queue → processor). Do not send email directly from a domain service.
-- **Integrations**: `attendance-integrations/` (connectors, devices, gateways,
-  ingestion, mapping, provisioning, work-sites) and `billing/` (Stripe).
+- **Integrations**: `billing/` (Stripe) at this baseline. The
+  `attendance-integrations` module and the `gateway/` .NET solution exist only
+  in the uncommitted work noted in Product Context — verify presence on your
+  branch before planning against them.
   Third-party credentials go through `SecretEncryptionService` —
   `SECRET_ENCRYPTION_KEY` is mandatory in production.
 
@@ -297,7 +311,7 @@ Full rules: [`apps/web/AGENTS.md`](apps/web/AGENTS.md) and
   the existing `loading.tsx` / `error.tsx` conventions and the shared
   `EmptyState` / `ModuleEmptyState` components.
 - **Server calls**: `apps/web/lib/server-api.ts` (and the admin equivalent)
-  handle cookie auth, the `x-auth-client-id` header, refresh-on-401 and error
+  handle cookie auth, the `X-DijiPeople-App` header, refresh-on-401 and error
   normalisation. Route handlers under `app/api/` are thin proxies — **never
   re-implement an authorization or tenant decision there**; the API is the
   authority.
@@ -384,8 +398,9 @@ Seeds and release: `npm run seed:config`, `seed:admin`, `seed:demo`,
   `payroll-operations.service.spec.ts`.
 - Changes to permissions, tenant scoping or cross-module wiring should extend
   the existing invariant tests (`common/constants/wiring-invariants.spec.ts`,
-  `rbac-matrix.*.spec.ts`, `test/permission-propagation.e2e-spec.ts`,
-  `test/attendance-integrations-isolation.e2e-spec.ts`).
+  `rbac-matrix.*.spec.ts`). The e2e suites present at this baseline are
+  `test/app.e2e-spec.ts` and `test/platform-workflows.e2e-spec.ts` — list the
+  directory rather than assuming which exist.
 - **Never report work complete while a relevant validation is failing or was not
   run.** Say exactly which commands were run, which passed, which failed, and
   which were skipped and why. A pre-existing failure must be identified as

@@ -1,83 +1,115 @@
 # Agent Roles
 
-Role instructions for AI agents working on DijiPeople. These are **role
-definitions**, not runtime configuration — load the relevant file as the agent's
-instructions alongside the repository's [`AGENTS.md`](../../AGENTS.md) files.
+Role definitions for AI agents working on DijiPeople. Load the relevant file as
+the agent's instructions alongside the repository's `AGENTS.md` files and the
+`.agent/context/` documents each role requires.
 
-## Current roles
+Full orchestration:
+[`docs/development/agent-orchestration.md`](../../docs/development/agent-orchestration.md).
 
-| Role | File | Writes code? | Purpose |
+---
+
+## The roles
+
+| Role | File | Writes code? | Owns |
 |---|---|---|---|
-| **Architect** | [`architect.md`](architect.md) | No | Requirements → verified ExecPlan |
-| **Implementer** | [`implementer.md`](implementer.md) | Yes, one bounded task | Execute a single plan task |
-| **Reviewer** | [`reviewer.md`](reviewer.md) | **No** | Independent ranked review |
+| **Architect** | [architect.md](architect.md) | No | Requirement → verified ExecPlan, agent selection, task classification |
+| **Backend / API** | [backend-api.md](backend-api.md) | Yes | NestJS controllers, services, DTOs, authorization wiring, audit |
+| **Frontend** | [frontend.md](frontend.md) | Yes | Next.js routes, runtime specs/adapters, components, UI states |
+| **UI/UX** | [ui-ux.md](ui-ux.md) | **No** (read-only by default) | Experience specification and acceptance criteria |
+| **Database** | [database.md](database.md) | Yes, single-writer | Prisma schema, migrations, indexes, backfills, seed impact |
+| **Integration** | [integration.md](integration.md) | Yes | Connectors, gateway contract, webhooks, queues, idempotency |
+| **QA** | [qa.md](qa.md) | Tests only | Scenario design, execution, QA runs, regression register |
+| **Reviewer** | [reviewer.md](reviewer.md) | **No** | Independent technical and security assessment |
 
-Deliberately small. Three roles cover the whole loop, and a small set is easier
-to keep accurate than a large one that drifts out of sync with the codebase.
+---
+
+## Separation of duties
+
+Three separations carry the framework. Collapsing any of them removes the check
+it exists to provide.
+
+- **Architect plans; specialists implement.** An implementer that re-plans
+  mid-task loses the verification the plan encoded.
+- **QA ≠ Reviewer.** QA asks *does it behave correctly across scenarios?*
+  Reviewer asks *is it architecturally, securely and technically correct?* A
+  green suite is not architectural approval; a clean read is not scenario
+  coverage. **Both can block.**
+- **Reviewer does not edit.** A reviewer that fixes what it finds is no longer
+  independent.
+
+A task is complete only when all three are true:
+
+```
+IMPLEMENTATION COMPLETE
+REVIEW COMPLETE
+QA COMPLETE
+```
+
+---
+
+## Choosing agents
+
+The Architect names the specialists a task actually needs and states which are
+deliberately unused. **Do not invoke every role for every task** — that produces
+documentation nobody reads and hides the roles that mattered.
+
+| Change | Typically needs |
+|---|---|
+| Backend bug fix, one module | Backend/API → QA → Reviewer |
+| New API endpoint | Architect → Backend/API → QA → Reviewer |
+| Schema change + API | Architect → Database → Backend/API → QA → Reviewer |
+| New product screen | Architect → (UI/UX) → Frontend → QA → Reviewer |
+| Device/gateway/webhook work | Architect → Integration → QA → Reviewer |
+| Authorization change | Architect → Backend/API (+ `authorization-dry-run`) → QA → Reviewer |
+| Copy or styling fix | Frontend → Reviewer |
+
+UI/UX is invoked when there is a genuine experience decision — not for adding a
+field to an existing runtime spec.
+
+---
 
 ## The loop
 
 ```
-Requirement
-    │
-    ▼
-ARCHITECT ── ExecPlan (PLANS.md) ──▶ human approval
-    │
-    ▼
-IMPLEMENTER × N   one task each, on its own agent/<feature>-<scope> branch
-    │             PARALLEL_SAFE tasks may run concurrently
-    │             DEPENDENCY_BLOCKED tasks wait
-    ▼
-INTEGRATION       one agent, one branch, joins the pieces
-    │
-    ▼
-REVIEWER ── ranked findings ──▶ human decision ──▶ merge
+Request
+  → Architect (plan, agent selection, task classification)
+  → specialists implement on agent/<feature>-<scope> branches
+  → QA (independent scenarios, documented run)
+  → Reviewer (independent findings)
+  → Integration (single owner, combined validation)
+  → Knowledge capture → docs/knowledge/
+  → Obsidian sync
+  → Final report
 ```
 
-The Reviewer never fixes what it finds; findings go back to an Implementer or a
-human. This separation is the point — a reviewer that edits is not an
-independent check.
+---
 
-## Which role to use
+## Context is mandatory
 
-- Requirement is vague, or the change touches schema, permissions, payroll,
-  attendance, provisioning or integrations → **Architect first**, always.
-- Plan exists and is approved → **Implementer**, one task at a time.
-- Change is complete → **Reviewer**, before merge.
-- Small, local, low-risk fix with no schema/permission/contract impact →
-  Implementer directly, then Reviewer.
+Every role lists **Required Context** — `.agent/context/*` files it must read
+before working. Those documents describe the repository; they are never
+authority over it. When code and context disagree, **the code is current
+truth**: follow the code, report the discrepancy, and update or flag the context
+file.
 
-## Temporary specialist agents
+---
 
-Once this three-role workflow is stable, temporary specialists can be spun up
-**for a specific piece of work and then discarded**. They are not permanent
-roles and no files for them exist yet, deliberately — an unused role file rots.
+## Skills vs agents
 
-A specialist is worth creating when a task needs deep, narrow context that would
-bloat the general Implementer's instructions:
+**Agents** define ownership and judgement. **Skills** define repeatable
+procedures an agent invokes. A Skill never replaces a role's judgement — see
+[`.agent/skills/README.md`](../skills/README.md).
 
-| Specialist | Introduce when | Would own |
-|---|---|---|
-| **Database** | A migration with a backfill, a destructive change, or index/performance work on `schema.prisma` | Schema design, migration staging (expand/backfill/contract), indexes, seed and `verify-seed-config` updates. Single-writer on `schema.prisma` and `prisma/migrations/`. |
-| **Backend** | A multi-module API feature with non-trivial transactions or domain rules | NestJS modules, services, repositories, DTOs, transactions, audit wiring, API contracts. |
-| **Frontend** | A module runtime or settings runtime surface with real UX depth | Runtime specs and adapters, shared component reuse, states, responsiveness, accessibility. |
-| **QA** | A feature whose correctness is hard to see in a diff — payroll, attendance reconciliation, approvals | Test strategy, spec authoring, e2e coverage, edge-case enumeration, manual verification scripts. |
-| **Integrations** | Device connector, gateway contract, Stripe or email provider work | Connector registry, gateway runtime contract, webhook idempotency and signature verification, credential encryption, backward compatibility for deployed gateways and agents. |
-| **Security** | Auth, session, RBAC or public-surface changes; or a periodic audit | Threat modelling, tenant-isolation audit, permission-matrix consistency, secret handling, public endpoint hardening. |
+---
 
-Rules for specialists:
+## Adding a role
 
-1. **Do not create one until a real task needs it.** No speculative roles.
-2. A specialist file is a *delta* on `implementer.md` (or `reviewer.md`) — it
-   states the extra context and extra checks, not a full restatement.
-3. Specialists still obey `AGENTS.md`, `PLANS.md` and the single-writer rules.
-4. When the work is done, either delete the file or promote it to a permanent
-   role with a note in [`docs/decisions/`](../../docs/decisions/) explaining
-   why.
+Only when a real task repeatedly needs context that would bloat an existing
+role. A speculative role file rots, and a confidently wrong instruction file is
+worse than none — which is exactly what happened to the duplicated
+`apps/*/AGENTS.md` files this framework replaced.
 
-## Keeping these accurate
-
-These files describe the repository as it is. When the repository changes in a
-way that makes a statement here wrong, fix it in the same change. A role file
-that confidently states something false is worse than no role file — that is
-exactly what happened with the previous duplicated `apps/*/AGENTS.md`.
+Candidates deliberately **not** created yet: security specialist (the Reviewer
+carries the security checklist), DevOps (no CI exists), knowledge-writer
+(implemented as a Skill instead).

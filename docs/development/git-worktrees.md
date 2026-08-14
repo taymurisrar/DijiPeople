@@ -33,6 +33,39 @@ artefacts, without touching the main checkout.
 
 ---
 
+## Baseline requirement (learned the hard way)
+
+**A worktree inherits Git commits, not another checkout's uncommitted files.**
+
+This framework — `AGENTS.md`, `PLANS.md`, `.agent/`, the architecture notes —
+existed only as *untracked* files in one working tree for its first several
+sessions. Every worktree cut from `HEAD` in that period therefore contained
+**none of it**. Agents working in those worktrees followed the rules only
+because the files happened to sit in the operator's context window; a fresh
+Codex session in the same directory would have had nothing to read.
+
+Before starting feature work, confirm the framework is present on the branch you
+cut from:
+
+```bash
+ls AGENTS.md PLANS.md .agent/agents .agent/context
+```
+
+If any are missing, the base branch predates the framework baseline. Rebase onto
+a branch that contains it rather than working blind.
+
+## Strategy
+
+Default: **one substantial task → one isolated worktree → multiple logical
+commits.** Use per-issue branches inside that worktree only when the diffs must
+be reviewed independently.
+
+Use multiple worktrees only for genuinely parallel-safe work — each costs a full
+`npm install` plus `prisma generate`, which is not free in a monorepo this size.
+Do not create a branch per tiny issue automatically.
+
+---
+
 ## Branch naming
 
 ```
@@ -153,6 +186,24 @@ Copy the ones the task needs:
 ```bash
 cp "d:/My Work/hrm-dijipeople/DijiPeople/services/api/.env" ../dijipeople-overtime-api/services/api/.env
 ```
+
+### `prisma generate` needs `DATABASE_URL` even though it does not connect
+
+Verified: `prisma.config.ts` resolves the datasource url eagerly, so codegen in
+a fresh worktree fails with
+`PrismaConfigEnvError: Cannot resolve environment variable: DATABASE_URL`.
+
+For codegen only, a placeholder is sufficient and avoids copying real
+credentials into another directory:
+
+```bash
+cd services/api
+DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder" \
+  npx prisma generate --config prisma.config.ts
+```
+
+Never commit a real connection string. Anything that actually reaches the
+database — migrations, seeds, e2e suites — needs the real value.
 
 Critical caution: **every worktree points at the same `DATABASE_URL` by
 default.** That means:

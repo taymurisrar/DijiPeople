@@ -1,0 +1,119 @@
+# QA System
+
+QA in DijiPeople is a first-class engineering role, not a step at the end.
+
+It exists because the defects this repository actually produces — a missing
+`tenantId` filter, a permission declared in one family and not the other, a
+scope that fails open, sensitive fields behind the wrong authorization — are
+**invisible to a passing test suite**. Every one of those shipped past green
+tests before the framework existed.
+
+Role definition: [`.agent/agents/qa.md`](../../.agent/agents/qa.md).
+
+---
+
+## Structure
+
+```
+docs/qa/
+├── README.md                  this file — the loop
+├── runs/                      one file per QA execution, timestamped history
+├── regressions/index.md       the regression register: what broke, and the test that guards it
+├── known-bug-patterns/        defect classes this repository produces, with prevention rules
+└── test-strategy/             templates and standing guidance
+```
+
+**Runs are history** — timestamped, never edited after the fact.
+**Regressions and patterns are evergreen** — updated in place as knowledge
+improves.
+
+---
+
+## The bug learning loop
+
+This is what makes the system stronger over time rather than merely busy. It is
+**mandatory for material defects** — not for typos.
+
+```
+QA finds a defect
+   │
+   ├─ 1. Record it in the QA run (docs/qa/runs/…)
+   │
+   ├─ 2. Classify against docs/qa/known-bug-patterns/
+   │        matches an existing pattern → note which
+   │        genuinely new class        → propose a new pattern file
+   │
+   ├─ 3. Ensure a regression test exists
+   │        and PROVE it fails without the fix
+   │
+   ├─ 4. Add an entry to docs/qa/regressions/index.md
+   │
+   ├─ 5. Update the pattern's prevention rule if the defect taught us something
+   │
+   └─ 6. Feed it forward:
+            Reviewer  → enforces the prevention rule
+            Architect → reads relevant patterns during planning
+            QA        → reads relevant regression entries before testing
+```
+
+Step 3 is the one most often skipped and the one that matters most. A regression
+test that passes both with and without the fix is not a regression test; it is
+decoration.
+
+---
+
+## When a QA run is required
+
+| Change | QA run required? |
+|---|---|
+| Authorization, permissions, tenant scoping | **Yes, always** |
+| Payroll, attendance, timesheet or approval logic | **Yes, always** |
+| Schema change or migration | **Yes, always** |
+| Integration / gateway / webhook | **Yes, always** |
+| New API endpoint or contract change | **Yes** |
+| New product screen | **Yes** |
+| Localised bug fix with a regression test | Short-form run |
+| Copy, styling, comment, docs | No |
+
+The Architect states `QA_REQUIRED` in the plan. When in doubt, run it — an
+unnecessary QA run costs minutes; a missing one costs an incident.
+
+---
+
+## Filenames
+
+```
+docs/qa/runs/YYYY-MM-DD-<feature-slug>-<short-sha>.md
+```
+
+e.g. `docs/qa/runs/2026-08-14-compensation-authorization-13e720e.md`
+
+The short SHA ties the run to the exact code tested. A run without a commit is
+not reproducible and is not evidence.
+
+Helper: `node scripts/new-qa-run.mjs <feature-slug>` scaffolds the file with
+metadata filled in from git.
+
+---
+
+## Verdicts
+
+| Verdict | Meaning |
+|---|---|
+| **PASS** | Scenarios designed and executed, all passed, no outstanding known risk |
+| **PASS WITH RISKS** | Passed, but with limitations stated explicitly — no live DB, manual only, a scenario unreachable in this environment |
+| **FAIL** | A scenario failed, or required coverage was not achievable |
+
+"PASS WITH RISKS" is a legitimate and common outcome in this repository, because
+e2e suites need a live database that agent environments often lack. **Use it
+honestly rather than reporting a PASS you did not earn.**
+
+---
+
+## What QA must never do
+
+- Report "tested" without a scenario table.
+- Report a pass for a suite that was skipped or could not run.
+- Decide expected behaviour after seeing the output.
+- Skip the regression register for the module under test.
+- Approve architecture — that is the Reviewer's call.
