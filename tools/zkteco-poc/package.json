@@ -1,0 +1,32 @@
+{
+  "name": "zkteco-poc",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Isolated read-only proof of concept for the ZKTeco K50 attendance device, using the validated zkemkeeper.ZKEM.1 COM path through an x86 worker. Not part of the DijiPeople npm workspaces and not wired into any production module.",
+  "license": "UNLICENSED",
+  "scripts": {
+    "check-types": "tsc --noEmit -p tsconfig.json",
+    "build": "tsc -p tsconfig.json",
+    "worker:build": "dotnet build worker/DijiPeople.ZkTeco.Worker.csproj -c Release",
+    "worker:publish": "dotnet publish worker/DijiPeople.ZkTeco.Worker.csproj -c Release -r win-x86 --self-contained true -o worker/publish",
+    "cli": "ts-node --project tsconfig.json src/index.ts",
+    "test": "ts-node --project tsconfig.json src/index.ts test",
+    "device-info": "ts-node --project tsconfig.json src/index.ts device-info",
+    "users": "ts-node --project tsconfig.json src/index.ts users",
+    "attendance": "ts-node --project tsconfig.json src/index.ts attendance",
+    "capabilities": "ts-node --project tsconfig.json src/index.ts capabilities",
+    "poc": "ts-node --project tsconfig.json src/index.ts poc",
+    "poc:mock": "ts-node --project tsconfig.json src/index.ts poc --host 192.168.18.53 --worker-path src/fixtures/mock-worker.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

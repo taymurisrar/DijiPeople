@@ -145,9 +145,9 @@ describe('platform runtime module query payloads', () => {
       whitelist: true,
       forbidNonWhitelisted: true,
     });
-    expect(errors.flatMap((error) => Object.values(error.constraints ?? {}))).toEqual(
-      [],
-    );
+    expect(
+      errors.flatMap((error) => Object.values(error.constraints ?? {})),
+    ).toEqual([]);
   });
 
   it('accepts an owner filter on customers rather than rejecting it', async () => {

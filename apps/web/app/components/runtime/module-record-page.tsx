@@ -11,6 +11,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   RuntimeMetadataFormRenderer,
   type FieldValueMap,
+  type RuntimeTabContent,
 } from "@/app/components/metadata/runtime-metadata-form-renderer";
 import { SideToast } from "@/app/components/notifications";
 import type { LookupOption } from "@/app/components/ui/form-control";
@@ -70,6 +71,7 @@ export function ModuleRecordPage({
   recordId,
   runtime,
   tabContent,
+  sectionContent,
   tabsSlot,
   title,
   deriveValuesOnChange,
@@ -85,7 +87,8 @@ export function ModuleRecordPage({
   readonly record: RuntimeRecordData;
   readonly recordId?: string;
   readonly runtime: ModuleRuntimeContext;
-  readonly tabContent?: Readonly<Record<string, ReactNode>>;
+  readonly tabContent?: Readonly<Record<string, RuntimeTabContent>>;
+  readonly sectionContent?: Readonly<Record<string, RuntimeTabContent>>;
   readonly tabsSlot?: ReactNode;
   readonly title?: string;
   readonly deriveValuesOnChange?: (input: {
@@ -505,6 +508,7 @@ export function ModuleRecordPage({
                           effectiveRuntime.metadata.entity,
                         )}
                         tabContent={tabContent}
+                        sectionContent={sectionContent}
                       />
                     ) : (
                       <div className="rounded-lg border border-dashed border-border p-6 text-sm text-muted">

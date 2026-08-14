@@ -36,10 +36,7 @@ import { PartnerExperienceService } from './partner-experience.service';
 export class PublicPartnersController {
   constructor(private readonly service: PartnerExperienceService) {}
   @Post('inquiries')
-  inquiry(
-    @Body() dto: CreatePartnerInquiryDto,
-    @Req() request: RequestWithId,
-  ) {
+  inquiry(@Body() dto: CreatePartnerInquiryDto, @Req() request: RequestWithId) {
     return this.service.submitInquiry(dto, request.requestId);
   }
   @Get('onboarding/:token')

@@ -8,6 +8,7 @@ import {
 import { attendanceRuntimeSpec } from "@/lib/runtime/modules/standard-module-specs";
 import { apiRequestJson } from "@/lib/server-api";
 import { ApiRequestError } from "@/lib/server-api";
+import { AttendanceDayPanel } from "../_components/attendance-day-panel";
 import type { AttendanceEntryRecord } from "../types";
 
 type PageProps = {
@@ -70,8 +71,31 @@ export default async function AttendanceRecordPage({
         spec={attendanceRuntimeSpec}
         title={String(runtimeRecord.entryName ?? "Attendance Entry")}
       />
+      {/*
+        Appended below the existing record rather than replacing any of it. The
+        page above shows the day's single check-in and check-out, which is the
+        whole truth for most days; this shows the individual work periods behind
+        it, which is the only way a hybrid day makes sense.
+      */}
+      <AttendanceDayPanel
+        date={attendanceDateKey(record)}
+        employeeId={record.employeeId}
+      />
     </main>
   );
+}
+
+/**
+ * The attendance date this record belongs to, as YYYY-MM-DD.
+ *
+ * Taken from the record's own date rather than from the check-in time: on an
+ * overnight shift those are different days, and the reconciled day is keyed on
+ * the former.
+ */
+function attendanceDateKey(record: AttendanceEntryRecord): string {
+  const value = record.date ?? record.checkInAt ?? record.checkIn;
+  if (!value) return "";
+  return String(value).slice(0, 10);
 }
 
 function toAttendanceRuntimeRecord(record: AttendanceEntryRecord) {

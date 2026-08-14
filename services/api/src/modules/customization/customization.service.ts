@@ -2107,7 +2107,6 @@ export class CustomizationService {
     };
   }
 
-
   async updateTable(
     currentUser: AuthenticatedUser,
     tableKey: string,

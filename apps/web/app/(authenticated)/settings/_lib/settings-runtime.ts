@@ -67,6 +67,17 @@ const categoryDefinitions = {
     "People Configuration",
     "Employee defaults, work configuration, attendance, leave, and documents.",
   ],
+  /*
+   * Its own category rather than a group under General Setup, where these eight
+   * items were half of everything on the page. None of them is tenant identity,
+   * organization structure or a product module — they are the plumbing that
+   * carries attendance in from hardware, and they belong together under a name
+   * that says so.
+   */
+  integrations: [
+    "Integrations",
+    "Attendance terminals, on-premise gateways, employee mapping, and installers.",
+  ],
   payroll: [
     "Payroll & Finance",
     "Payroll, compensation, claims, tax, benefits, and accounting configuration.",
@@ -213,6 +224,50 @@ const itemPlacement: Record<
   features: ["general-setup", "modules", "Apps & Modules"],
   recruitment: ["general-setup", "modules", "Apps & Modules"],
   "desktop-agent": ["general-setup", "modules", "Apps & Modules"],
+  /*
+   * Group keys here are deliberately not equal to any item key in this category.
+   * A group whose key matches an item's route key resolves to the same two
+   * segment URL as that item, and `[category]/[settingGroup]` resolves items
+   * before groups — so the group's own landing page would redirect into one of
+   * its children and never be reachable.
+   */
+  "attendance-integrations-overview": [
+    "integrations",
+    "attendance-capture",
+    "Attendance Capture",
+  ],
+  "attendance-integrations": [
+    "integrations",
+    "attendance-capture",
+    "Attendance Capture",
+  ],
+  "attendance-devices": [
+    "integrations",
+    "attendance-capture",
+    "Attendance Capture",
+  ],
+  "attendance-employee-mapping": [
+    "integrations",
+    "attendance-capture",
+    "Attendance Capture",
+  ],
+  "attendance-provisioning": [
+    "integrations",
+    "attendance-capture",
+    "Attendance Capture",
+  ],
+  "attendance-sync-history": [
+    "integrations",
+    "attendance-capture",
+    "Attendance Capture",
+  ],
+  // The on-premise side: what runs inside the customer network, and how to get it.
+  "attendance-gateways": [
+    "integrations",
+    "on-premise",
+    "Gateways & Installers",
+  ],
+  "apps-downloads": ["integrations", "on-premise", "Gateways & Installers"],
 };
 
 const routeKeys: Record<string, string> = {
@@ -237,6 +292,17 @@ const routeKeys: Record<string, string> = {
 const implementationRoutes: Record<string, string> = {
   "payroll-settings": "/settings/payroll/configuration/payroll-settings",
   notifications: "/settings/notifications/rules",
+  // Purpose-built pages, so the runtime's derived category/group route does not
+  // describe them. These are the URLs that actually answer.
+  "attendance-integrations-overview": "/settings/integrations/attendance",
+  "attendance-integrations":
+    "/settings/integrations/attendance/integrations",
+  "attendance-devices": "/settings/integrations/attendance/devices",
+  "attendance-employee-mapping": "/settings/integrations/attendance/mapping",
+  "attendance-provisioning": "/settings/integrations/attendance/provisioning",
+  "attendance-gateways": "/settings/integrations/attendance/gateways",
+  "attendance-sync-history": "/settings/integrations/attendance/sync-history",
+  "apps-downloads": "/settings/apps",
 };
 
 const timelineItems = new Set([
@@ -448,10 +514,21 @@ export const settingsRuntimeItems: readonly SettingsRuntimeItem[] = [
    * (".../templates/templates"), which collides with that group's record detail
    * route and renders not-found. The concise form is the real page.
    */
-  const route =
+  const derivedRoute =
     group === itemRouteKey
       ? conciseRoute
       : `/settings/${category}/${group}/${itemRouteKey}`;
+  /*
+   * A purpose-built page wins over the derived one.
+   *
+   * The derived route describes where the GENERIC runtime would serve an item
+   * from its adapter. Items in DEDICATED_PAGE_KEYS have no adapter — they are
+   * answered by a real page at a different URL — so linking them to the derived
+   * route sent every attendance integration link to a runtime list with nothing
+   * behind it. Landing cards and navigation both render `route`, which is why
+   * having the real URL only in `legacyRoute` made those links go nowhere.
+   */
+  const route = implementationRoutes[item.key] ?? derivedRoute;
   const adapter = getSettingsAdapter(item.key);
   const isReadOnly = adapter?.mode === "read-only";
   const isSpecialized = adapter?.mode === "specialized";
@@ -511,7 +588,23 @@ export const settingsRuntimeItems: readonly SettingsRuntimeItem[] = [
  *
  * Adding a key here is a promise that a physical route exists for it.
  */
-const DEDICATED_PAGE_KEYS = new Set<string>(["workflow-templates"]);
+export const DEDICATED_PAGE_KEYS = new Set<string>([
+  "workflow-templates",
+  /*
+   * Attendance integrations. These are purpose-built pages: an integration is
+   * set up through a connector-driven wizard and carries lifecycle actions and
+   * a readiness panel, none of which the generic name/code/JSON adapter can
+   * express. Both routes exist under settings/integrations/attendance.
+   */
+  "attendance-integrations-overview",
+  "attendance-integrations",
+  "attendance-devices",
+  "attendance-employee-mapping",
+  "attendance-provisioning",
+  "attendance-gateways",
+  "attendance-sync-history",
+  "apps-downloads",
+]);
 
 const missingAdapterKeys = settingsRuntimeItems
   .filter(

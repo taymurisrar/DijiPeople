@@ -999,6 +999,26 @@ export const SYSTEM_ROLE_MISC_PERMISSIONS: Record<SystemRoleKey, string[]> = {
     'approval-matrices.delete',
     'attendance.correction.manage',
     'attendance.integration.manage',
+    // Attendance Integration Platform. HR owns the Settings > Integrations
+    // area, so it gets the full read/manage pair for everything inside it —
+    // including gateways, because an integration that needs a local gateway
+    // dead-ends if the role that configures it cannot create one.
+    //
+    // `appDownloads.manage` is deliberately absent: publishing a DijiPeople
+    // application release is a platform action, not a tenant one. Global
+    // Administrator and System Administrator reach everything regardless, via
+    // hasElevatedTenantRole.
+    'integrations.read',
+    'integrations.manage',
+    'attendanceDevices.read',
+    'attendanceDevices.manage',
+    'attendanceMappings.read',
+    'attendanceMappings.manage',
+    'attendanceProvisioning.read',
+    'attendanceProvisioning.manage',
+    'gateways.read',
+    'gateways.manage',
+    'appDownloads.read',
     'leave-requests.cancel',
     // HR owns the People and Leave configuration screens. These endpoint
     // permissions existed but were granted to no role, so the pages they back

@@ -1,6 +1,14 @@
+import {
+  AttendanceMethod,
+  WorkSiteDevicePolicy,
+  WorkSiteWebAttendancePolicy,
+} from '@prisma/client';
 import { Transform } from 'class-transformer';
 import {
+  IsArray,
   IsBoolean,
+  IsDateString,
+  IsEnum,
   IsInt,
   IsLatitude,
   IsLongitude,
@@ -20,6 +28,31 @@ function emptyStringToUndefined({ value }: { value: unknown }) {
 
   const trimmed = value.trim();
   return trimmed.length === 0 ? undefined : trimmed;
+}
+
+/** Empty string means "clear this override", which is null, not undefined. */
+function emptyStringToNull({ value }: { value: unknown }) {
+  if (value === null) return null;
+  if (typeof value !== 'string') return value;
+  return value.trim().length === 0 ? null : value.trim();
+}
+
+/**
+ * Numeric override that can be cleared.
+ *
+ * `@Type(() => Number)` cannot be used alongside the empty-string handling:
+ * it turns "" into 0 before the transform runs, and 0 then fails @Min(1)
+ * instead of clearing the override. So the conversion happens here.
+ */
+function emptyStringToNullableInt({ value }: { value: unknown }) {
+  if (value === null) return null;
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (trimmed.length === 0) return null;
+    const parsed = Number(trimmed);
+    return Number.isNaN(parsed) ? value : parsed;
+  }
+  return value;
 }
 
 export class CreateLocationDto {
@@ -102,4 +135,54 @@ export class CreateLocationDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  /*
+   * Work site attendance configuration.
+   *
+   * Every field here is nullable on the model and null carries meaning: it is
+   * "inherit the tenant setting", not "off". So these accept an explicit null
+   * (and an empty string, which the settings form sends when a field is
+   * cleared) and translate it to null rather than dropping it — otherwise an
+   * administrator could never undo a work site override once set.
+   */
+  @IsOptional()
+  @Transform(emptyStringToNull)
+  @IsBoolean()
+  attendanceEnabled?: boolean | null;
+
+  @IsOptional()
+  @Transform(emptyStringToNullableInt)
+  @IsInt()
+  @Min(1)
+  maximumAccuracyMeters?: number | null;
+
+  @IsOptional()
+  @IsArray()
+  @IsEnum(AttendanceMethod, { each: true })
+  allowedAttendanceMethods?: AttendanceMethod[];
+
+  @IsOptional()
+  @Transform(emptyStringToNull)
+  @IsEnum(WorkSiteWebAttendancePolicy)
+  webAttendancePolicy?: WorkSiteWebAttendancePolicy | null;
+
+  @IsOptional()
+  @Transform(emptyStringToNull)
+  @IsEnum(WorkSiteDevicePolicy)
+  devicePolicy?: WorkSiteDevicePolicy | null;
+
+  @IsOptional()
+  @Transform(emptyStringToNull)
+  @IsBoolean()
+  webFallbackEnabled?: boolean | null;
+
+  @IsOptional()
+  @Transform(emptyStringToNull)
+  @IsDateString()
+  validFrom?: string | null;
+
+  @IsOptional()
+  @Transform(emptyStringToNull)
+  @IsDateString()
+  validTo?: string | null;
 }

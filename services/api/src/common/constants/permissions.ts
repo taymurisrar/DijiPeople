@@ -62,8 +62,24 @@ export const PERMISSION_KEYS = {
   ATTENDANCE_CORRECTION_CANCEL: 'attendance.correction.cancel',
   ATTENDANCE_CORRECTION_MANAGE: 'attendance.correction.manage',
   ATTENDANCE_MANAGE: 'attendance.manage',
+  ATTENDANCE_LOCATION_EVIDENCE_READ: 'attendance.locationEvidence.read',
   AGENT_SETTINGS_READ: 'agent.settings.read',
   AGENT_SETTINGS_MANAGE: 'agent.settings.manage',
+
+  // Attendance Integration Platform. `integrations.manage` already existed and
+  // is reused as the umbrella manage permission rather than being duplicated.
+  INTEGRATIONS_READ: 'integrations.read',
+  ATTENDANCE_DEVICES_READ: 'attendanceDevices.read',
+  ATTENDANCE_DEVICES_MANAGE: 'attendanceDevices.manage',
+  ATTENDANCE_MAPPINGS_READ: 'attendanceMappings.read',
+  ATTENDANCE_MAPPINGS_MANAGE: 'attendanceMappings.manage',
+  ATTENDANCE_PROVISIONING_READ: 'attendanceProvisioning.read',
+  ATTENDANCE_PROVISIONING_MANAGE: 'attendanceProvisioning.manage',
+  GATEWAYS_READ: 'gateways.read',
+  GATEWAYS_MANAGE: 'gateways.manage',
+  APP_DOWNLOADS_READ: 'appDownloads.read',
+  APP_DOWNLOADS_MANAGE: 'appDownloads.manage',
+
   TIMESHEETS_READ: 'timesheets.read',
   TIMESHEETS_READ_ALL: 'timesheets.read.all',
   TIMESHEETS_READ_TEAM: 'timesheets.read.team',
@@ -974,6 +990,12 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
       'View attendance records across the tenant or authorized business-unit scope.',
   },
   {
+    key: 'attendance.locationEvidence.read',
+    name: 'Read attendance location evidence',
+    description:
+      'View the exact coordinates captured when a web or mobile attendance action was accepted or refused. Deliberately separate from reading attendance: the business result is what most people need, and precise employee locations should be seen by as few as possible.',
+  },
+  {
     key: 'attendance.create',
     name: 'Create attendance',
     description: 'Create attendance entries or imports.',
@@ -1022,6 +1044,69 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     name: 'Manage attendance integrations',
     description:
       'Configure attendance machine, API, webhook, and import source settings.',
+  },
+  {
+    key: PERMISSION_KEYS.INTEGRATIONS_READ,
+    name: 'View integrations',
+    description: 'View configured integrations and their connection status.',
+  },
+  {
+    key: PERMISSION_KEYS.ATTENDANCE_DEVICES_READ,
+    name: 'View attendance devices',
+    description:
+      'View attendance terminals, the work sites they serve, and their health.',
+  },
+  {
+    key: PERMISSION_KEYS.ATTENDANCE_DEVICES_MANAGE,
+    name: 'Manage attendance devices',
+    description:
+      'Add, configure, enable and disable attendance terminals at work sites.',
+  },
+  {
+    key: PERMISSION_KEYS.ATTENDANCE_MAPPINGS_READ,
+    name: 'View employee device mapping',
+    description: 'View how device users are matched to DijiPeople employees.',
+  },
+  {
+    key: PERMISSION_KEYS.ATTENDANCE_MAPPINGS_MANAGE,
+    name: 'Manage employee device mapping',
+    description:
+      'Match, re-match, ignore and resolve conflicts between device users and employees.',
+  },
+  {
+    key: PERMISSION_KEYS.ATTENDANCE_PROVISIONING_READ,
+    name: 'View device provisioning',
+    description:
+      'View the status of employee records being sent to attendance devices.',
+  },
+  {
+    key: PERMISSION_KEYS.ATTENDANCE_PROVISIONING_MANAGE,
+    name: 'Manage device provisioning',
+    description:
+      'Retry, cancel and re-request employee provisioning on attendance devices.',
+  },
+  {
+    key: PERMISSION_KEYS.GATEWAYS_READ,
+    name: 'View gateways',
+    description:
+      'View on-premise gateways, their status and last contact time.',
+  },
+  {
+    key: PERMISSION_KEYS.GATEWAYS_MANAGE,
+    name: 'Manage gateways',
+    description:
+      'Create gateways, issue pairing codes, and revoke gateway access.',
+  },
+  {
+    key: PERMISSION_KEYS.APP_DOWNLOADS_READ,
+    name: 'View apps and downloads',
+    description: 'Browse and download DijiPeople applications and utilities.',
+  },
+  {
+    key: PERMISSION_KEYS.APP_DOWNLOADS_MANAGE,
+    name: 'Manage apps and downloads',
+    description:
+      'Publish, update and retire downloadable DijiPeople application releases.',
   },
   {
     key: PERMISSION_KEYS.ATTENDANCE_CORRECTION_READ,
@@ -1912,7 +1997,11 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
   },
   {
     key: 'customization.view.manage',
-    name: 'Manage customization views',
+    // Distinct from 'customization.views.manage' ("Manage customization
+    // views"). Permission carries @@unique([tenantId, name]), so two
+    // definitions sharing a name meant createMany(skipDuplicates) silently
+    // dropped the second — this key was never created in any tenant.
+    name: 'Manage table views',
     description:
       'Create, update, activate, deactivate, and delete table views.',
   },
@@ -1938,7 +2027,9 @@ export const FOUNDATION_PERMISSION_DEFINITIONS: PermissionDefinition[] = [
   },
   {
     key: 'customization.form.manage',
-    name: 'Manage customization forms',
+    // See the note on 'customization.view.manage' above: the duplicate display
+    // name kept this permission out of every tenant.
+    name: 'Manage table forms',
     description:
       'Create, update, activate, deactivate, and delete table forms.',
   },
@@ -2141,6 +2232,21 @@ export const BASE_ROLE_PERMISSION_KEYS: Record<BaseRoleKey, string[]> = {
     'attendance.correction.manage',
     'agent.settings.read',
     'agent.settings.manage',
+    // Attendance Integration Platform. Kept in step with
+    // SYSTEM_ROLE_MISC_PERMISSIONS in rbac-matrix.ts, which is what
+    // PermissionBootstrapService actually reads; this list is asserted against
+    // the permission catalogue by wiring-invariants.spec.ts.
+    'integrations.read',
+    'integrations.manage',
+    'attendanceDevices.read',
+    'attendanceDevices.manage',
+    'attendanceMappings.read',
+    'attendanceMappings.manage',
+    'attendanceProvisioning.read',
+    'attendanceProvisioning.manage',
+    'gateways.read',
+    'gateways.manage',
+    'appDownloads.read',
     'timesheets.read',
     'timesheets.read.all',
     'timesheets.read.team',

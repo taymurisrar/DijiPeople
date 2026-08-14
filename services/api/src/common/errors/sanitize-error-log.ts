@@ -39,7 +39,9 @@ export function sanitizeHeaders(headers: Record<string, unknown>) {
 
 function isSensitiveKey(key: string) {
   const normalized = key.replace(/[-\s.]/g, '_').toLowerCase();
-  if (['authenabled', 'smtp_auth_enabled', 'smtpauthenabled'].includes(normalized)) {
+  if (
+    ['authenabled', 'smtp_auth_enabled', 'smtpauthenabled'].includes(normalized)
+  ) {
     return false;
   }
   return (

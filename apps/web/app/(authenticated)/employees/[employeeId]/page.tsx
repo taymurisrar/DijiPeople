@@ -15,8 +15,11 @@ import {
   restrictRuntimePermissionKeysToReadOnly,
 } from "@/lib/runtime";
 import { ApiRequestError, apiRequestJson } from "@/lib/server-api";
+import { PERMISSION_KEYS } from "@/lib/security-keys";
 import type { FieldSecurityRule } from "@/lib/runtime/security-runtime.types";
 import { TenantResolvedSettingsResponse } from "../../settings/types";
+import type { EmployeeWorkSitesResponse } from "../../settings/integrations/attendance/_lib/types";
+import { EmployeeWorkSites } from "../_components/employee-work-sites";
 import type { EmployeeProfile } from "../types";
 
 type EmployeeDetailPageProps = {
@@ -148,6 +151,39 @@ export default async function EmployeeDetailPage({
   const { EmployeeRuntimeFormWrapper } =
     await import("../_components/employee-runtime-form-wrapper");
 
+  /*
+   * Authorised work sites are an attendance concern, not an employee field, so
+   * they hang off their own permissions and their own endpoint. A viewer
+   * without them simply does not see the panel; the employee record still
+   * renders in full.
+   */
+  const canReadWorkSites = sessionUser.permissionKeys.includes(
+    PERMISSION_KEYS.ATTENDANCE_DEVICES_READ,
+  );
+  const canManageWorkSites =
+    canManageEmployeeRecord(employee.accessMode) &&
+    sessionUser.permissionKeys.includes(
+      PERMISSION_KEYS.ATTENDANCE_DEVICES_MANAGE,
+    );
+
+  const [workSites, locations] = canReadWorkSites
+    ? await Promise.all([
+        apiRequestJson<EmployeeWorkSitesResponse>(
+          `/integrations/attendance/employees/${employeeId}/work-sites`,
+        ).catch(() => null),
+        canManageWorkSites
+          ? apiRequestJson<
+              | { items?: Array<{ id: string; name: string; isActive: boolean }> }
+              | Array<{ id: string; name: string; isActive: boolean }>
+            >("/locations").catch(() => ({ items: [] }))
+          : Promise.resolve({ items: [] }),
+      ])
+    : [null, { items: [] }];
+
+  const locationOptions = Array.isArray(locations)
+    ? locations
+    : (locations.items ?? []);
+
   return (
     <main className="dp-theme-scope dp-employees-scope grid gap-6">
       <EmployeeRuntimeFormWrapper
@@ -171,6 +207,15 @@ export default async function EmployeeDetailPage({
         }
         runtime={employeeRuntimeContext}
       />
+
+      {workSites ? (
+        <EmployeeWorkSites
+          canManage={canManageWorkSites}
+          data={workSites}
+          employeeId={employee.id}
+          locations={locationOptions}
+        />
+      ) : null}
     </main>
   );
 }

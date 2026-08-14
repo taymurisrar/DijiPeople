@@ -1084,14 +1084,13 @@ export class BillingService {
     }
 
     try {
-      const verified =
-        await this.stripeBillingService.verifyRecurringPrice({
-          stripePriceId: price.stripePriceId,
-          expectedProductId: price.stripeProductId,
-          expectedCurrency: price.currency,
-          expectedUnitAmount: Number(price.unitAmount),
-          expectedBillingInterval: price.billingInterval,
-        });
+      const verified = await this.stripeBillingService.verifyRecurringPrice({
+        stripePriceId: price.stripePriceId,
+        expectedProductId: price.stripeProductId,
+        expectedCurrency: price.currency,
+        expectedUnitAmount: Number(price.unitAmount),
+        expectedBillingInterval: price.billingInterval,
+      });
       const environment = verified.livemode
         ? StripeEnvironment.LIVE
         : StripeEnvironment.TEST;

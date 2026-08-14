@@ -40,7 +40,8 @@
     "invoice:sample-pdf": "ts-node src/modules/super-admin/invoice-pdf.sample.ts",
     "seed:all": "npm run seed:admin && npm run seed:config && npm run seed:platform-workflows && npm run seed:demo",
     "release": "npm run prisma:migrate:deploy && npm run seed:config && npm run seed:verify && npm run seed:admin",
-    "backfill:default-views": "ts-node prisma/backfill-default-views.ts"
+    "backfill:default-views": "ts-node prisma/backfill-default-views.ts",
+    "backfill:attendance": "ts-node prisma/backfill-attendance.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

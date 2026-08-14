@@ -4,10 +4,12 @@ import {
   ApprovalAssignmentStatus,
   ApprovalRequestStatus,
   AttendanceCorrectionStatus,
+  AttendanceCorrectionType,
   AttendanceEntrySource,
   AttendanceEntryStatus,
   EmployeeWorkMode,
   AttendanceImportBatchStatus,
+  AttendanceMethod,
   AttendanceMode,
   GenericApprovalStepStatus,
   LeaveRequestStatus,
@@ -20,6 +22,9 @@ import {
 } from '@prisma/client';
 import {
   BadRequestException,
+  Inject,
+  Logger,
+  forwardRef,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -45,6 +50,23 @@ import {
   AttendanceEntryWithRelations,
   AttendanceRepository,
 } from './attendance.repository';
+import {
+  addUtcDays,
+  businessDateAtUtcMidnight,
+  combineDateAndTimeInTimezone,
+  differenceInMinutes,
+  formatBusinessDateKey,
+  isOvernightShift,
+  isWithinOvernightShiftCarryover,
+  minutesFromTime,
+  resolveShiftWindow,
+  toWeekday,
+} from './attendance-time.util';
+import {
+  AttendanceWebAttendanceService,
+  type WebAttendanceDecision,
+} from '../attendance-engine/attendance-web-attendance.service';
+import { AttendanceReconciliationQueueService } from '../attendance-engine/attendance-reconciliation-queue.service';
 import { AttendanceCorrectionActionDto } from './dto/attendance-correction-action.dto';
 import { AttendanceCorrectionQueryDto } from './dto/attendance-correction-query.dto';
 import { AttendanceQueryDto } from './dto/attendance-query.dto';
@@ -160,6 +182,12 @@ type AttendanceCorrectionWithRelations =
 
 @Injectable()
 export class AttendanceService {
+  /**
+   * Static so the evidence-recording path can report a failure without changing
+   * the constructor every existing test already builds.
+   */
+  private static readonly logger = new Logger(AttendanceService.name);
+
   constructor(
     private readonly attendanceRepository: AttendanceRepository,
     private readonly employeesRepository: EmployeesRepository,
@@ -168,6 +196,10 @@ export class AttendanceService {
     private readonly auditService: AuditService,
     private readonly notificationsService: NotificationsService,
     private readonly prisma: PrismaService,
+    @Inject(forwardRef(() => AttendanceWebAttendanceService))
+    private readonly webAttendance: AttendanceWebAttendanceService,
+    @Inject(forwardRef(() => AttendanceReconciliationQueueService))
+    private readonly reconciliationQueue: AttendanceReconciliationQueueService,
   ) {}
 
   async checkIn(currentUser: AuthenticatedUser, dto: CheckInDto) {
@@ -246,12 +278,49 @@ export class AttendanceService {
       );
     }
 
-    const attendanceMode = dto.attendanceMode;
+    // THE SERVER DECIDES THE WORK MODE, not the browser.
+    //
+    // `dto.attendanceMode` is retained for backward compatibility with existing
+    // clients, but it is a hint and nothing more. Whether the employee is inside
+    // an authorised work site, whether that site requires a device, and whether
+    // their work arrangement permits remote work are all decided from the
+    // reported coordinates on the server. A client-asserted mode would make the
+    // office-device rule a suggestion anyone could opt out of.
+    const webDecision = await this.evaluateWebAttendance(
+      currentUser,
+      employee.id,
+      dto,
+      now,
+      'CHECK_IN',
+      context.attendanceDate,
+    );
+
+    /*
+     * The mode is derived, never chosen by the caller.
+     *
+     * With a position — which every current client sends, unconditionally — the
+     * geofence decision is the answer and the client's opinion is discarded.
+     * That is what makes the office-device rule enforceable: a browser can no
+     * longer declare itself REMOTE while standing in a device-required office.
+     *
+     * Without a position the server falls back to the employee's own configured
+     * arrangement, which is still a server-held fact. `dto.attendanceMode` is
+     * consulted last and only when the server genuinely has no opinion — an
+     * employee with no work mode recorded, reached by an older client. Dropping
+     * it outright would silently force those tenants to OFFICE.
+     */
+    const attendanceMode = webDecision
+      ? toAttendanceMode(webDecision.workMode)
+      : employee.workMode
+        ? toAttendanceMode(employee.workMode)
+        : (dto.attendanceMode ?? AttendanceMode.OFFICE);
     const officeLocation = await this.validateModeAndLocation(
       currentUser.tenantId,
       attendanceMode,
       policy,
-      dto.officeLocationId,
+      // The work site the geofence resolved wins over whatever the client named:
+      // a browser must not be able to claim attendance at an office it is not at.
+      webDecision?.workSiteId ?? dto.officeLocationId,
       dto.remoteLatitude,
       dto.remoteLongitude,
       false,
@@ -350,6 +419,15 @@ export class AttendanceService {
       );
     }
 
+    await this.recordSelfServiceEvidence(
+      currentUser,
+      employee.id,
+      'CHECK_IN',
+      now,
+      webDecision,
+      { attendanceDate: context.attendanceDate, timezone: context.timezone },
+    );
+
     return this.mapAttendanceEntry(entry, currentUser);
   }
 
@@ -418,6 +496,18 @@ export class AttendanceService {
             employee.id,
             existing.date,
           );
+    // The same server-side evaluation as check-in. A remote employee finishing
+    // their day from home and one standing in a device-required office are
+    // different situations, and the browser is not the thing that decides which.
+    const webDecision = await this.evaluateWebAttendance(
+      currentUser,
+      employee.id,
+      dto,
+      now,
+      'CHECK_OUT',
+      attendanceContext.attendanceDate,
+    );
+
     const lateCheckOut = resolveLateCheckOut(
       existing.workSchedule ?? attendanceContext.workSchedule,
       policy,
@@ -483,6 +573,18 @@ export class AttendanceService {
         workSummary: updated.workSummary,
       },
     });
+
+    await this.recordSelfServiceEvidence(
+      currentUser,
+      employee.id,
+      'CHECK_OUT',
+      now,
+      webDecision,
+      {
+        attendanceDate: attendanceContext.attendanceDate,
+        timezone: attendanceContext.timezone,
+      },
+    );
 
     return this.mapAttendanceEntry(updated, currentUser);
   }
@@ -638,11 +740,46 @@ export class AttendanceService {
       ? new Date(dto.requestedCheckOutAtUtc)
       : null;
 
-    if (!requestedCheckInAtUtc && !requestedCheckOutAtUtc) {
+    const isOvertimeApproval =
+      dto.correctionType === AttendanceCorrectionType.OVERTIME_APPROVAL;
+
+    if (isOvertimeApproval) {
+      // Approving overtime does not change WHEN someone worked, so it takes
+      // minutes rather than timestamps.
+      if (!dto.requestedOvertimeMinutes) {
+        throw new BadRequestException(
+          'The number of overtime minutes is required for an overtime approval request.',
+        );
+      }
+    } else if (!requestedCheckInAtUtc && !requestedCheckOutAtUtc) {
       throw new BadRequestException(
         'A requested check-in or check-out timestamp is required.',
       );
     }
+
+    // HYBRID describes a whole day made of differing sessions, so it is
+    // meaningless as the mode of a single correction.
+    if (dto.requestedWorkMode === EmployeeWorkMode.HYBRID) {
+      throw new BadRequestException(
+        'Hybrid is how a whole day is described, not a single work period. Request office, remote or field.',
+      );
+    }
+
+    if (dto.requestedWorkSiteId) {
+      const workSite = await this.prisma.location.findFirst({
+        where: { id: dto.requestedWorkSiteId, tenantId: currentUser.tenantId },
+        select: { id: true },
+      });
+      if (!workSite) {
+        throw new BadRequestException('That work site could not be found.');
+      }
+    }
+
+    // The day being corrected: explicit where given, else the entry it points
+    // at. A wholly missing day has no entry, which is the case this covers.
+    const attendanceDate = dto.attendanceDate
+      ? new Date(`${dto.attendanceDate}T00:00:00.000Z`)
+      : (attendanceEntry?.date ?? null);
 
     if (
       requestedCheckInAtUtc &&
@@ -669,7 +806,15 @@ export class AttendanceService {
         originalCheckOutAtUtc: attendanceEntry?.checkOut ?? null,
         requestedCheckInAtUtc,
         requestedCheckOutAtUtc,
+        attendanceDate,
+        requestedWorkMode: dto.requestedWorkMode ?? null,
+        requestedWorkSiteId: dto.requestedWorkSiteId ?? null,
+        requestedOvertimeMinutes: dto.requestedOvertimeMinutes ?? null,
+        isWebFallback: Boolean(dto.fallbackReason),
+        fallbackReason: normalizeOptionalText(dto.fallbackReason),
         reason: dto.reason.trim(),
+        // Always pending, whatever the client sent. Approval state is never a
+        // field a requester supplies.
         status: AttendanceCorrectionStatus.PENDING_APPROVAL,
         submittedAtUtc: now,
       },
@@ -810,10 +955,20 @@ export class AttendanceService {
       date: entry.date,
       checkIn: entry.checkIn,
       checkOut: entry.checkOut,
+      // The reconciled figure wins where the engine produced one.
+      //
+      // checkOut minus checkIn is not worked time on a day with more than one
+      // session: an employee in the office 08:05-12:30 and working remotely
+      // 14:00-18:05 worked 8h30m, while the subtraction reports 10h. That
+      // difference would flow straight into timesheets and payroll. Legacy rows
+      // the engine has never touched keep the original calculation, which is
+      // correct for the single-session days they describe.
       hours:
-        entry.checkIn && entry.checkOut
-          ? validDailyAttendanceHours(entry.checkIn, entry.checkOut)
-          : 0,
+        entry.workedMinutes !== null && entry.workedMinutes !== undefined
+          ? round2(entry.workedMinutes / 60)
+          : entry.checkIn && entry.checkOut
+            ? validDailyAttendanceHours(entry.checkIn, entry.checkOut)
+            : 0,
       status: entry.status,
       mode: entry.attendanceMode,
       workScheduleId: entry.workScheduleId,
@@ -1345,9 +1500,64 @@ export class AttendanceService {
       afterSnapshot: { status: updated.status, actionComment: dto.comment },
     });
 
+    // An approved correction becomes an INPUT to reconciliation, which then
+    // rebuilds the day. Nothing here writes an AttendanceDay directly: that
+    // would produce a day the engine did not derive, and the next
+    // reconciliation would silently disagree with it.
+    await this.queueCorrectionReconciliation(currentUser, updated);
+
     return {
       item: await this.mapCorrectionRequest(currentUser, updated, true),
     };
+  }
+
+  /**
+   * Queues the corrected day for rebuilding.
+   *
+   * Rejections queue too: the day may have been reconciled while the request
+   * was pending, and letting the engine decide again is cheaper and safer than
+   * reasoning about whether it needs to.
+   */
+  private async queueCorrectionReconciliation(
+    currentUser: AuthenticatedUser,
+    request: {
+      employeeId: string;
+      attendanceDate: Date | null;
+      attendanceEntryId: string | null;
+    },
+  ): Promise<void> {
+    let attendanceDate = request.attendanceDate;
+
+    if (!attendanceDate && request.attendanceEntryId) {
+      const entry = await this.prisma.attendanceEntry.findFirst({
+        where: {
+          id: request.attendanceEntryId,
+          tenantId: currentUser.tenantId,
+        },
+        select: { date: true },
+      });
+      attendanceDate = entry?.date ?? null;
+    }
+
+    if (!attendanceDate) return;
+
+    try {
+      await this.reconciliationQueue.enqueue({
+        tenantId: currentUser.tenantId,
+        employeeId: request.employeeId,
+        attendanceDate,
+        reason: 'ATTENDANCE_CORRECTION_ACTIONED',
+        requestedById: currentUser.userId,
+      });
+    } catch (error) {
+      // The approval is committed and audited; a failed queue write must not
+      // undo it. The day is rebuilt by the next punch or an explicit request.
+      AttendanceService.logger.error(
+        `Reconciliation could not be queued after a correction was actioned: ${
+          error instanceof Error ? error.message : 'unknown error'
+        }`,
+      );
+    }
   }
 
   private async applyApprovedCorrection(
@@ -2862,6 +3072,151 @@ export class AttendanceService {
     return [];
   }
 
+  /**
+   * Applies the server-side geofence and work-mode rules to a self-service punch.
+   *
+   * Returns null when no usable coordinates were supplied — the existing location
+   * policy already decides whether that is acceptable, and duplicating that
+   * judgement here would give two answers to one question.
+   *
+   * A refusal is thrown as a business error carrying a stable reason code, so the
+   * UI can offer the right next step: "use the reader" is a different situation
+   * from "ask your manager", and both are different from "request web attendance".
+   */
+  private async evaluateWebAttendance(
+    currentUser: AuthenticatedUser,
+    employeeId: string,
+    dto: CheckInDto | CheckOutDto,
+    now: Date,
+    action: 'CHECK_IN' | 'CHECK_OUT',
+    attendanceDate: Date,
+  ): Promise<WebAttendanceDecision | null> {
+    const latitude = firstFiniteNumber(
+      dto.locationLatitude,
+      dto.remoteLatitude,
+    );
+    const longitude = firstFiniteNumber(
+      dto.locationLongitude,
+      dto.remoteLongitude,
+    );
+
+    if (latitude === undefined || longitude === undefined) {
+      return null;
+    }
+
+    const decision = await this.webAttendance.evaluate({
+      tenantId: currentUser.tenantId,
+      employeeId,
+      position: {
+        latitude,
+        longitude,
+        accuracyMeters:
+          firstFiniteNumber(dto.locationAccuracyMeters, dto.locationAccuracy) ??
+          null,
+        capturedAt: now,
+      },
+      // The channel, not the arrangement. The decision returns the work mode.
+      captureMethod: AttendanceMethod.WEB,
+      at: now,
+    });
+
+    // Recorded whichever way the decision went, and BEFORE the refusal is
+    // thrown. An employee who was told to use the reader otherwise leaves no
+    // trace that they tried, which is exactly the evidence a disputed
+    // attendance claim needs.
+    await this.webAttendance.recordLocationEvidence({
+      tenantId: currentUser.tenantId,
+      employeeId,
+      attendanceDate,
+      action,
+      captureSource: 'WEB',
+      position: {
+        latitude,
+        longitude,
+        accuracyMeters:
+          firstFiniteNumber(dto.locationAccuracyMeters, dto.locationAccuracy) ??
+          null,
+        capturedAt: now,
+      },
+      decision,
+      ipAddress: normalizeOptionalText(dto.ipAddress),
+      userAgent: normalizeOptionalText(dto.userAgent),
+    });
+
+    if (decision.outcome === 'ALLOW') {
+      return decision;
+    }
+
+    // 422 rather than 403: the request is well-formed and the employee is
+    // permitted to record attendance — this particular way of recording it, from
+    // this particular place, is what cannot be processed.
+    throw new UnprocessableEntityException({
+      code: decision.reasonCode,
+      errorCode: decision.reasonCode,
+      severity: 'WARNING',
+      message: decision.message,
+      // Lets the UI show "Request Web Attendance" only where a fallback path
+      // genuinely exists, rather than offering it and having it refused.
+      fallbackAvailable: decision.outcome === 'REQUIRE_FALLBACK_REQUEST',
+      workSite: decision.workSiteName,
+      distanceMeters: decision.evidence.distanceMeters,
+      /*
+       * The two numbers a poor-GPS refusal is actually about. Without them the
+       * employee is told their location "could not be verified accurately
+       * enough" and has no way to know whether they were close or nowhere near,
+       * so the UI cannot say "1,240 m reported, 100 m required" and they cannot
+       * judge whether moving to a window would help.
+       */
+      accuracyMeters: decision.evidence.accuracyMeters,
+      requiredAccuracyMeters: decision.evidence.accuracyLimitMeters,
+      geofenceRadiusMeters: decision.evidence.geofenceRadiusMeters,
+    });
+  }
+
+  /**
+   * Records an accepted self-service punch as raw evidence and queues
+   * reconciliation.
+   *
+   * Web punches must flow through the same pipeline as device punches. Writing
+   * only the AttendanceEntry would leave the engine with nothing to reconcile,
+   * and a hybrid day cannot be built at all unless the device punches and the web
+   * punches arrive in one ordered stream.
+   *
+   * Best effort by design: the attendance record is already committed, and
+   * failing the employee's check-in because a queue write failed would punish
+   * them for an internal problem. The gap is recoverable — the next punch or an
+   * explicit reconciliation request rebuilds the day.
+   */
+  private async recordSelfServiceEvidence(
+    currentUser: AuthenticatedUser,
+    employeeId: string,
+    direction: 'CHECK_IN' | 'CHECK_OUT',
+    occurredAt: Date,
+    decision: WebAttendanceDecision | null,
+    context: { attendanceDate: Date; timezone: string },
+  ): Promise<void> {
+    if (!decision) return;
+
+    try {
+      await this.webAttendance.recordWebPunch({
+        tenantId: currentUser.tenantId,
+        employeeId,
+        direction,
+        occurredAt,
+        decision,
+        timezone: context.timezone,
+        attendanceDate: context.attendanceDate,
+        captureSource: 'WEB',
+      });
+    } catch (error) {
+      AttendanceService.logger.error(
+        `Self-service ${direction} evidence could not be recorded for employee ${employeeId}: ${
+          error instanceof Error ? error.message : 'unknown error'
+        }`,
+      );
+    }
+  }
+
   private async resolveSelfServiceContext(
     currentUser: AuthenticatedUser,
     employeeId: string,
@@ -3820,92 +4175,6 @@ function parseBusinessDateInput(value: string) {
   return parsed;
 }
 
-function combineDateAndTimeInTimezone(
-  businessDate: Date,
-  time: string,
-  timezone: string,
-) {
-  const [year, month, day] = businessDate
-    .toISOString()
-    .slice(0, 10)
-    .split('-')
-    .map(Number);
-  const [hours, minutes] = time.split(':').map(Number);
-  const intendedUtc = Date.UTC(year, month - 1, day, hours, minutes);
-  let candidate = new Date(intendedUtc);
-
-  for (let iteration = 0; iteration < 2; iteration += 1) {
-    const parts = new Intl.DateTimeFormat('en-CA', {
-      timeZone: timezone,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      hourCycle: 'h23',
-    }).formatToParts(candidate);
-    const read = (type: Intl.DateTimeFormatPartTypes) =>
-      Number(parts.find((part) => part.type === type)?.value);
-    const representedUtc = Date.UTC(
-      read('year'),
-      read('month') - 1,
-      read('day'),
-      read('hour'),
-      read('minute'),
-    );
-    candidate = new Date(candidate.getTime() + intendedUtc - representedUtc);
-  }
-
-  return candidate;
-}
-
-function resolveShiftWindow(
-  businessDate: Date,
-  shift: { startTime: string; endTime: string },
-  timezone: string,
-) {
-  const startAt = combineDateAndTimeInTimezone(
-    businessDate,
-    shift.startTime,
-    timezone,
-  );
-  let endAt = combineDateAndTimeInTimezone(
-    businessDate,
-    shift.endTime,
-    timezone,
-  );
-
-  if (endAt <= startAt) {
-    endAt = addUtcDays(endAt, 1);
-  }
-
-  return { startAt, endAt };
-}
-
-function isWithinOvernightShiftCarryover(
-  value: Date,
-  businessDate: Date,
-  shift: { startTime: string; endTime: string; isNightShift?: boolean },
-  timezone: string,
-) {
-  if (!isOvernightShift(shift)) return false;
-
-  const { startAt, endAt } = resolveShiftWindow(businessDate, shift, timezone);
-  const carryoverEnd = new Date(endAt.getTime() + 12 * 60 * 60 * 1000);
-
-  return value >= startAt && value <= carryoverEnd;
-}
-
-function isOvernightShift(shift: {
-  startTime: string;
-  endTime: string;
-  isNightShift?: boolean;
-}) {
-  if (shift.isNightShift) return true;
-
-  return minutesFromTime(shift.endTime) <= minutesFromTime(shift.startTime);
-}
-
 function isCompletedBeforeCurrentShiftWindow(
   entry: Pick<
     AttendanceEntryWithRelations,
@@ -3929,21 +4198,6 @@ function isCompletedBeforeCurrentShiftWindow(
     entry.checkIn < context.shiftStartAt &&
     entry.checkOut < context.shiftStartAt
   );
-}
-
-function minutesFromTime(value: string) {
-  const [hours, minutes] = value.split(':').map(Number);
-  return hours * 60 + minutes;
-}
-
-function addUtcDays(value: Date, days: number) {
-  const next = new Date(value);
-  next.setUTCDate(next.getUTCDate() + days);
-  return next;
-}
-
-function differenceInMinutes(later: Date, earlier: Date) {
-  return Math.round((later.getTime() - earlier.getTime()) / 60_000);
 }
 
 function resolveLateCheckIn(
@@ -4017,18 +4271,29 @@ function resolveLateCheckOut(
   };
 }
 
-function toWeekday(date: Date): WorkWeekday {
-  const days: WorkWeekday[] = [
-    WorkWeekday.SUNDAY,
-    WorkWeekday.MONDAY,
-    WorkWeekday.TUESDAY,
-    WorkWeekday.WEDNESDAY,
-    WorkWeekday.THURSDAY,
-    WorkWeekday.FRIDAY,
-    WorkWeekday.SATURDAY,
-  ];
+/**
+ * Translates the engine's work mode onto the legacy AttendanceMode column.
+ *
+ * FIELD folds to OFFICE because AttendanceMode has no field value and a field
+ * visit is on-site presence for this column's purposes. The precise mode is not
+ * lost: AttendanceDay and each session keep the real EmployeeWorkMode.
+ */
+function toAttendanceMode(workMode: EmployeeWorkMode): AttendanceMode {
+  switch (workMode) {
+    case EmployeeWorkMode.REMOTE:
+      return AttendanceMode.REMOTE;
+    case EmployeeWorkMode.HYBRID:
+      return AttendanceMode.HYBRID;
+    case EmployeeWorkMode.FIELD:
+    case EmployeeWorkMode.OFFICE:
+    default:
+      return AttendanceMode.OFFICE;
+  }
+}
 
-  return days[date.getDay()];
+/** Two decimal places, matching how attendance hours are reported elsewhere. */
+function round2(value: number): number {
+  return Math.round(value * 100) / 100;
 }
 
 function mergeNotes(existing: string | null | undefined, incoming?: string) {
@@ -4401,24 +4666,6 @@ function formatOfficeLocation(
   return [location.name, location.city, location.state, location.country]
     .filter(Boolean)
     .join(', ');
-}
-
-function businessDateAtUtcMidnight(value: Date, timezone: string) {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: timezone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(value);
-  const year = Number(parts.find((part) => part.type === 'year')?.value);
-  const month = Number(parts.find((part) => part.type === 'month')?.value);
-  const day = Number(parts.find((part) => part.type === 'day')?.value);
-
-  return new Date(Date.UTC(year, month - 1, day));
-}
-
-function formatBusinessDateKey(value: Date) {
-  return value.toISOString().slice(0, 10);
 }
 
 function parseLocationCapturedAt(value: string | undefined, fallback: Date) {

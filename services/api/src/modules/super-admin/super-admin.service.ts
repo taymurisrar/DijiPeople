@@ -261,15 +261,20 @@ export class SuperAdminService {
           ? storedDefaults.currency
           : DEFAULT_PLATFORM_DEFAULTS.reportingCurrency;
 
-    const monthCount = range === '30d' ? 1 : range === '3m' ? 3 : range === '12m' ? 12 : 6;
+    const monthCount =
+      range === '30d' ? 1 : range === '3m' ? 3 : range === '12m' ? 12 : 6;
     const rangeKey = range === '30d' ? '30d' : `${monthCount}m`;
     const rangeStart = new Date();
     if (range === '30d') rangeStart.setUTCDate(rangeStart.getUTCDate() - 29);
     else rangeStart.setUTCMonth(rangeStart.getUTCMonth() - (monthCount - 1), 1);
     rangeStart.setUTCHours(0, 0, 0, 0);
     const previousRangeStart = new Date(rangeStart);
-    if (range === '30d') previousRangeStart.setUTCDate(previousRangeStart.getUTCDate() - 30);
-    else previousRangeStart.setUTCMonth(previousRangeStart.getUTCMonth() - monthCount);
+    if (range === '30d')
+      previousRangeStart.setUTCDate(previousRangeStart.getUTCDate() - 30);
+    else
+      previousRangeStart.setUTCMonth(
+        previousRangeStart.getUTCMonth() - monthCount,
+      );
     const now = new Date();
 
     const [
@@ -661,7 +666,8 @@ export class SuperAdminService {
         ),
       },
       timeRange: rangeKey,
-      timeRangeLabel: range === '30d' ? 'Last 30 days' : `Last ${monthCount} months`,
+      timeRangeLabel:
+        range === '30d' ? 'Last 30 days' : `Last ${monthCount} months`,
       revenueTrend: buildMonthlyTrend(
         rangeStart,
         recentInvoices,
@@ -3123,7 +3129,8 @@ export class SuperAdminService {
     const resolvedFeatures =
       await this.featureAccessService.getResolvedTenantFeatures(tenant.id);
 
-    const primaryDomainRecord = tenant.tenantDomains.find((domain) => domain.isPrimary) ?? null;
+    const primaryDomainRecord =
+      tenant.tenantDomains.find((domain) => domain.isPrimary) ?? null;
     return {
       id: tenant.id,
       tenantCode: tenant.tenantCode,

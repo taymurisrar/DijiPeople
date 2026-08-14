@@ -53,6 +53,26 @@ export type FieldValueMap = Record<
   | undefined
 >;
 
+/**
+ * What a purpose-built tab body gets to work with.
+ *
+ * Some records need a control the generic field renderer cannot express — a
+ * map, an inheritance switch, a readiness panel. Passing a render function
+ * rather than a finished node lets those controls read and write the SAME draft
+ * values every other field uses, so the record still has one save flow and one
+ * validation pass. A plain ReactNode is still accepted for static panels.
+ */
+export type RuntimeTabContentContext = {
+  readonly values: FieldValueMap;
+  readonly mode: "detail" | "edit" | "new";
+  readonly fieldErrors: Record<string, readonly string[]>;
+  readonly onValuesChange?: (values: FieldValueMap) => void;
+};
+
+export type RuntimeTabContent =
+  | ReactNode
+  | ((context: RuntimeTabContentContext) => ReactNode);
+
 type ValuesChangeDeriver = (input: {
   readonly changedField: FieldMetadata;
   readonly lookupOptions: Record<string, readonly LookupOption[]>;
@@ -88,7 +108,8 @@ type RuntimeFormRendererProps = {
   readonly resolveFieldEditable?: FieldEditabilityResolver;
   readonly runtime?: ModuleRuntimeContext;
   readonly values: FieldValueMap;
-  readonly tabContent?: Readonly<Record<string, ReactNode>>;
+  readonly tabContent?: Readonly<Record<string, RuntimeTabContent>>;
+  readonly sectionContent?: Readonly<Record<string, RuntimeTabContent>>;
 };
 
 type RuntimeMetadataFormRendererProps =
@@ -130,6 +151,7 @@ export function RuntimeMetadataFormRenderer(
         runtime={props.runtime}
         values={props.values}
         tabContent={props.tabContent}
+        sectionContent={props.sectionContent}
       />
     );
   }
@@ -213,6 +235,7 @@ function RuntimeFormMetadataRenderer({
   resolveFieldEditable,
   runtime,
   tabContent,
+  sectionContent,
   touchedFields,
   values,
 }: {
@@ -229,7 +252,8 @@ function RuntimeFormMetadataRenderer({
   readonly resolveFieldEditable?: FieldEditabilityResolver;
   readonly runtime?: ModuleRuntimeContext;
   readonly values: FieldValueMap;
-  readonly tabContent?: Readonly<Record<string, ReactNode>>;
+  readonly tabContent?: Readonly<Record<string, RuntimeTabContent>>;
+  readonly sectionContent?: Readonly<Record<string, RuntimeTabContent>>;
 }) {
   const fieldsByName = new Map(
     entity.fields.map((field) => [field.logicalName, field]),
@@ -291,7 +315,12 @@ function RuntimeFormMetadataRenderer({
 
       <div className="min-w-0 p-5">
         {activeTab && tabContent?.[activeTab.tabKey] ? (
-          tabContent[activeTab.tabKey]
+          renderTabContent(tabContent[activeTab.tabKey], {
+            values,
+            mode,
+            fieldErrors,
+            onValuesChange,
+          })
         ) : activeTab?.type === "related_module" ? (
           activeTab.subgrid ? (
             <ModuleRelatedSubgrid
@@ -357,6 +386,7 @@ function RuntimeFormMetadataRenderer({
             deriveValuesOnChange={deriveValuesOnChange}
             resolveFieldEditable={resolveFieldEditable}
             runtime={runtime}
+            sectionContent={sectionContent}
             sections={visibleSections}
             touchedFields={touchedFields}
             values={values}
@@ -365,6 +395,13 @@ function RuntimeFormMetadataRenderer({
       </div>
     </article>
   );
+}
+
+function renderTabContent(
+  content: RuntimeTabContent,
+  context: RuntimeTabContentContext,
+): ReactNode {
+  return typeof content === "function" ? content(context) : content;
 }
 
 function RuntimeSectionColumns({
@@ -611,6 +648,7 @@ function RuntimeSection({
   resolveFieldEditable,
   runtime,
   section,
+  sectionContent,
   allowedWidgetComponentIds,
   touchedFields,
   values,
@@ -637,6 +675,7 @@ function RuntimeSection({
   readonly resolveFieldEditable?: FieldEditabilityResolver;
   readonly runtime?: ModuleRuntimeContext;
   readonly section: FormSectionMetadata;
+  readonly sectionContent?: Readonly<Record<string, RuntimeTabContent>>;
   readonly allowedWidgetComponentIds: ReadonlySet<string>;
   readonly touchedFields?: ReadonlySet<string>;
   readonly values: FieldValueMap;
@@ -784,6 +823,31 @@ function RuntimeSection({
     values,
     visibleFields,
   ]);
+
+  /*
+   * A section the caller renders itself. Used where a control cannot be
+   * expressed as a grid of fields — a map, an inheritance switch — while the
+   * rest of the form stays metadata driven. It receives the same draft values
+   * and change handler, so the record keeps ONE save flow.
+   */
+  const customContent = sectionContent?.[section.id];
+  if (customContent !== undefined) {
+    return (
+      <section className="grid gap-4">
+        {section.label ? (
+          <h4 className="text-base font-semibold text-foreground">
+            {section.label}
+          </h4>
+        ) : null}
+        {renderTabContent(customContent, {
+          values,
+          mode,
+          fieldErrors,
+          onValuesChange,
+        })}
+      </section>
+    );
+  }
 
   if (visibleFields.length === 0 && visibleComponents.length === 0) return null;
 

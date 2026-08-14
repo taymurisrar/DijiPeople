@@ -26,7 +26,9 @@ function createService(options: {
   primaryNameColumn?: string | null;
   employeeFindMany?: jest.Mock;
 }) {
-  const findMany = options.employeeFindMany ?? jest.fn((_args: unknown) => Promise.resolve([] as unknown[]));
+  const findMany =
+    options.employeeFindMany ??
+    jest.fn((_args: unknown) => Promise.resolve([] as unknown[]));
 
   const prisma = {
     customizationTable: {
@@ -54,7 +56,9 @@ function createService(options: {
 
 describe('CustomizationService.listLookupOptions', () => {
   it('always filters by the caller tenant', async () => {
-    const findMany = jest.fn((_args: unknown) => Promise.resolve([] as unknown[]));
+    const findMany = jest.fn((_args: unknown) =>
+      Promise.resolve([] as unknown[]),
+    );
     const { service } = createService({ employeeFindMany: findMany });
 
     await service.listLookupOptions(USER, 'employees');
@@ -64,7 +68,9 @@ describe('CustomizationService.listLookupOptions', () => {
   });
 
   it('selects only the id and the primary name', async () => {
-    const findMany = jest.fn((_args: unknown) => Promise.resolve([] as unknown[]));
+    const findMany = jest.fn((_args: unknown) =>
+      Promise.resolve([] as unknown[]),
+    );
     const { service } = createService({
       employeeFindMany: findMany,
       primaryNameColumn: 'firstName',
@@ -89,7 +95,9 @@ describe('CustomizationService.listLookupOptions', () => {
   });
 
   it('returns nothing when the module has no primary name', async () => {
-    const findMany = jest.fn((_args: unknown) => Promise.resolve([] as unknown[]));
+    const findMany = jest.fn((_args: unknown) =>
+      Promise.resolve([] as unknown[]),
+    );
     const { service } = createService({
       employeeFindMany: findMany,
       primaryNameColumn: null,
@@ -119,7 +127,9 @@ describe('CustomizationService.listLookupOptions', () => {
   });
 
   it('caps the page size so a lookup cannot pull a whole module', async () => {
-    const findMany = jest.fn((_args: unknown) => Promise.resolve([] as unknown[]));
+    const findMany = jest.fn((_args: unknown) =>
+      Promise.resolve([] as unknown[]),
+    );
     const { service } = createService({ employeeFindMany: findMany });
 
     await service.listLookupOptions(USER, 'employees', undefined, 5000);
@@ -129,7 +139,9 @@ describe('CustomizationService.listLookupOptions', () => {
   });
 
   it('applies a search against the primary name only', async () => {
-    const findMany = jest.fn((_args: unknown) => Promise.resolve([] as unknown[]));
+    const findMany = jest.fn((_args: unknown) =>
+      Promise.resolve([] as unknown[]),
+    );
     const { service } = createService({ employeeFindMany: findMany });
 
     await service.listLookupOptions(USER, 'employees', ' ada ');

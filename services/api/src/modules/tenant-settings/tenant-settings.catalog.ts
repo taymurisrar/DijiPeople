@@ -146,6 +146,86 @@ export const DEFAULT_TENANT_SETTINGS: TenantSettingDefaults = {
     maximumCorrectionAgeDays: 30,
     detectMockLocation: true,
     rejectMockLocation: false,
+
+    // --- Attendance Integration Platform -----------------------------------
+    // Added to the existing attendance category rather than a new one, so these
+    // resolve through the same tenant -> organization override chain as every
+    // other setting instead of a parallel configuration system.
+    //
+    // Two settings the platform needs already exist above and are reused rather
+    // than duplicated:
+    //   Maximum Accepted GPS Accuracy -> maxAllowedAccuracyMeters
+    //   Default Geofence Radius       -> maximumAllowedDistanceMeters
+    integrationEnabled: false,
+    defaultSyncMode: 'POLL',
+    defaultDevicePollIntervalMinutes: 30,
+    /// Floor for connectors that re-read the whole history on every poll. A
+    /// connector may declare a higher minimum; the stricter of the two wins.
+    minimumLegacyPollIntervalMinutes: 15,
+    /// Terminals keep their own clock and DijiPeople never sets it. Drift is
+    /// reported as a health signal so an operator can correct the device before
+    /// punch timestamps become untrustworthy.
+    deviceClockDriftWarningSeconds: 60,
+    deviceClockDriftCriticalSeconds: 300,
+    /// Gateway runtime cadence. Sent to the gateway with its configuration so a
+    /// tenant can slow a chatty install down without redeploying the service.
+    gatewayHeartbeatIntervalSeconds: 60,
+    gatewayConfigRefreshSeconds: 300,
+    /// Punches per upload request. The ingestion endpoint accepts up to 5000;
+    /// the gateway default stays well under it so one failure retries cheaply.
+    gatewayUploadBatchSize: 500,
+    webAttendancePolicy: 'ALLOWED',
+    officeWebAttendancePolicy: 'ALLOWED',
+    webFallbackPolicy: 'ALLOW_WHEN_DEVICE_UNAVAILABLE',
+    deviceProvisioningEnabled: false,
+    automaticEmployeeProvisioning: false,
+    automaticEmployeeDeactivation: false,
+    provisioningMaxRetries: 3,
+    provisioningRetryIntervalMinutes: 15,
+    /// How to treat a device punch and a web punch covering the same period.
+    attendanceConflictPolicy: 'PREFER_DEVICE',
+    /// Hybrid is a derived daily outcome, never a raw event classification.
+    hybridAttendancePolicy: 'DERIVE_FROM_SESSIONS',
+
+    // --- Attendance Engine (reconciliation) --------------------------------
+    // Each of these is consumed by the reconciliation engine. Nothing
+    // speculative: a setting with no reader is a setting nobody can trust.
+    //
+    /// The engine only reconciles days on or after this date. Existing tenants
+    /// carry years of AttendanceEntry rows with no raw events behind them, and
+    /// rebuilding those would replace real history with an empty calculation.
+    attendanceEngineEffectiveFrom: '',
+    /// Two punches on the same reader this close together are one intent. Every
+    /// raw event is still stored; only session building ignores the repeat.
+    semanticDuplicateWindowSeconds: 30,
+    /// What happens when a new work period starts before the previous one closed.
+    /// The default keeps both facts and asks a human, because "they forgot to
+    /// check out" and "the reader fired twice" need different corrections.
+    workModeTransitionPolicy: 'CREATE_EXCEPTION',
+    /// Close an unterminated session at the scheduled shift end. Off by default:
+    /// an invented check-out is indistinguishable downstream from a real one,
+    /// and it is paid.
+    autoCloseMissingCheckoutAtShiftEnd: false,
+    /// A work period that starts at one authorised site and ends at another.
+    crossSiteAttendancePolicy: 'WARNING',
+    /// How to read devices that do not reliably report direction. ALTERNATING
+    /// needs no vendor code mapping, which is why it is the default.
+    defaultPunchDirectionStrategy: 'ALTERNATING',
+    /// Whether the gap between two work periods is an unpaid break. Off by
+    /// default: a gap may be lunch, or travel between sites on work time.
+    treatSessionGapsAsBreaks: false,
+    /// Extra time below this is not proposed as overtime at all.
+    overtimeMinimumMinutes: 30,
+    /// Flags attendance recorded in two places too far apart to have travelled
+    /// between. A risk signal for review only: it never rejects attendance,
+    /// alters sessions or reduces worked time.
+    impossibleTravelDetectionEnabled: true,
+    /// Below this separation nothing is flagged, so GPS noise between two nearby
+    /// readings cannot manufacture an alert.
+    impossibleTravelMinimumDistanceKm: 100,
+    /// Above this implied average speed the movement is treated as implausible.
+    /// Set beyond a commercial airliner so ordinary travel never trips it.
+    impossibleTravelMaximumSpeedKph: 500,
   },
   timesheets: {
     enableTimesheetModule: true,

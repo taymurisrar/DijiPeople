@@ -1,0 +1,65 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    DijiPeople Integration Gateway host.
+
+    ARCHITECTURE. This is x64 and stays x64. The ZKTeco legacy connector needs a
+    32-bit COM component, but that is one connector's problem, not the gateway's:
+    it is isolated behind a child process (tools/zkteco-poc/worker, published
+    win-x86). Making the whole host x86 to satisfy one legacy adapter would tax
+    every future connector with a constraint none of them share.
+
+    SELF-CONTAINED. The customer machine gets one folder and a service. No .NET
+    runtime, no Node.js, no npm, no Git and no DijiPeople source is installed.
+    Not single-file: the package deliberately ships as a readable folder so a
+    support engineer can see the worker binary sitting beside the host.
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <AssemblyName>DijiPeople.Gateway</AssemblyName>
+    <RootNamespace>DijiPeople.Gateway</RootNamespace>
+
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishTrimmed>false</PublishTrimmed>
+
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+
+    <Version>2.0.0</Version>
+    <AssemblyVersion>2.0.0.0</AssemblyVersion>
+    <FileVersion>2.0.0.0</FileVersion>
+    <Product>DijiPeople Integration Gateway</Product>
+    <Company>DijiPeople</Company>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Local durable store. Nothing here is a cache: a punch that reached this
+         database and not yet the cloud must survive a reboot. -->
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.11" />
+    <!-- Windows Service lifetime, so the gateway runs with no logged-in user. -->
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.1" />
+    <!-- DPAPI. The service credential never touches disk unencrypted. -->
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
+    <!-- Size-limited rolling log files, so logs cannot grow without bound on a
+         machine nobody is watching. -->
+    <PackageReference Include="Serilog.Extensions.Hosting" Version="8.0.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="DijiPeople.Gateway.Tests" />
+  </ItemGroup>
+
+</Project>

@@ -734,6 +734,7 @@ enum EmployeeWorkMode {
   OFFICE
   REMOTE
   HYBRID
+  FIELD
 }
 
 enum EmployeeContractType {
@@ -869,6 +870,13 @@ enum AttendanceCorrectionType {
   ABSENCE_CORRECTION
   TIME_ADJUSTMENT
   MANUAL_CORRECTION
+  /// Approving time already worked as payable overtime.
+  ///
+  /// Carried here rather than in a second request model: this system has no
+  /// overtime request of its own (OvertimePolicy is calculation configuration,
+  /// and TimePayrollInput sits downstream of attendance), and this is the
+  /// existing attendance approval vehicle with its own permissions, UI and audit.
+  OVERTIME_APPROVAL
 }
 
 enum AttendanceCorrectionStatus {
@@ -1922,6 +1930,11 @@ model Tenant {
   shiftTemplates                  ShiftTemplate[]
   employeeScheduleAssignments     EmployeeScheduleAssignment[]
   attendanceEntries               AttendanceEntry[]
+  attendanceDays                  AttendanceDay[]
+  attendanceSessions              AttendanceSession[]
+  attendanceExceptions            AttendanceException[]
+  attendanceReconciliationJobs    AttendanceReconciliationJob[]
+  attendanceLocationEvidence      AttendanceLocationEvidence[]
   attendancePolicy                AttendancePolicy?
   attendanceImportBatches         AttendanceImportBatch[]
   attendanceIntegrationConfigs    AttendanceIntegrationConfig[]
@@ -2058,6 +2071,19 @@ model Tenant {
   documentTypes                   DocumentType[]
   documentCategories              DocumentCategory[]
   relationTypes                   RelationType[]
+  integrationGateways             IntegrationGateway[]
+  integrationGatewayPairingCodes  IntegrationGatewayPairingCode[]
+  integrationGatewayCredentials   IntegrationGatewayCredential[]
+  attendanceSyncPolicies          AttendanceSyncPolicy[]
+  attendanceIntegrations          AttendanceIntegration[]
+  attendanceDevices               AttendanceDevice[]
+  attendanceDeviceScopes          AttendanceDeviceScope[]
+  employeeWorkSites               EmployeeWorkSite[]
+  employeeExternalIdentities      EmployeeExternalIdentity[]
+  externalDeviceUsers             ExternalDeviceUser[]
+  deviceProvisioningJobs          DeviceProvisioningJob[]
+  rawAttendanceEvents             RawAttendanceEvent[]
+  integrationRuns                 IntegrationRun[]
   ownerUser                       User?                            @relation("TenantOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
 
   @@index([status])
@@ -2511,90 +2537,90 @@ model ContractTemplateVersion {
 }
 
 model Contract {
-  id                           String                     @id @default(uuid())
-  contractNumber               String                     @unique
-  title                        String
-  contractType                 ContractType
-  status                       ContractStatus             @default(DRAFT)
-  agreementCategory            String?
-  lifecycleGatePurpose         String?
-  isGoverningAgreement         Boolean                    @default(false)
-  allowChangeRequests          Boolean                    @default(true)
-  signingMode                  ContractSigningMode        @default(MIXED)
-  counterpartyType             String?
-  processStage                 String?
-  templateId                   String?
-  partnerId                    String?
-  customerAccountId            String?
-  customerOnboardingId         String?
-  tenantId                     String?
-  relatedLeadId                String?
-  ownerPlatformUserId          String?
-  internalLegalOwnerId         String?
-  counterpartyName             String
-  counterpartyEmail            String?
-  documentSource               ContractDocumentSource     @default(BLANK)
-  currencyCode                 String?
-  contractValue                Decimal?                   @db.Decimal(14, 2)
-  commissionPercentage         Decimal?                   @db.Decimal(5, 2)
-  commissionBasis              String?
-  paymentTerms                 String?
-  governingLaw                 String?
-  jurisdiction                 String?
-  confidentialityClass         String?
-  effectiveDate                DateTime?
-  expiryDate                   DateTime?
-  effectiveFrom                DateTime?
-  effectiveUntil               DateTime?
-  autoRenewal                  Boolean                    @default(false)
-  renewalNoticeDays            Int?
-  terminationNoticeDays        Int?
-  currentVersionNumber         Int                        @default(0)
-  parentContractId             String?
-  amendsContractId             String?
-  renewsContractId             String?
-  supersedesContractId         String?
-  subscriptionId               String?
-  amendmentNumber              Int?
-  signedAt                     DateTime?
-  activatedAt                  DateTime?
-  terminatedAt                 DateTime?
-  terminationReason            String?
-  archivedAt                   DateTime?
-  notes                        String?
-  createdById                  String?
-  updatedById                  String?
-  createdAt                    DateTime                   @default(now())
-  updatedAt                    DateTime                   @updatedAt
-  template                     ContractTemplate?          @relation(fields: [templateId], references: [id], onDelete: Restrict)
-  partner                      Partner?                   @relation(fields: [partnerId], references: [id], onDelete: Restrict)
-  customerAccount              CustomerAccount?           @relation(fields: [customerAccountId], references: [id], onDelete: Restrict)
-  customerOnboarding           CustomerOnboarding?        @relation(fields: [customerOnboardingId], references: [id], onDelete: Restrict)
-  tenant                       Tenant?                    @relation(fields: [tenantId], references: [id], onDelete: Restrict)
-  relatedLead                  Lead?                      @relation("LeadContracts", fields: [relatedLeadId], references: [id], onDelete: Restrict)
-  ownerPlatformUser            PlatformUser?              @relation("OwnedContracts", fields: [ownerPlatformUserId], references: [id], onDelete: SetNull)
-  internalLegalOwner           PlatformUser?              @relation("LegalOwnedContracts", fields: [internalLegalOwnerId], references: [id], onDelete: SetNull)
-  createdBy                    PlatformUser?              @relation("ContractsCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  updatedBy                    PlatformUser?              @relation("ContractsUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
-  parentContract               Contract?                  @relation("ContractAmendments", fields: [parentContractId], references: [id], onDelete: Restrict)
-  amendments                   Contract[]                 @relation("ContractAmendments")
-  amendsContract               Contract?                  @relation("ContractAmends", fields: [amendsContractId], references: [id], onDelete: Restrict)
-  amendedByContracts           Contract[]                 @relation("ContractAmends")
-  renewsContract               Contract?                  @relation("ContractRenews", fields: [renewsContractId], references: [id], onDelete: Restrict)
-  renewalContracts             Contract[]                 @relation("ContractRenews")
-  supersedesContract           Contract?                  @relation("ContractSupersedes", fields: [supersedesContractId], references: [id], onDelete: Restrict)
-  supersedingContracts         Contract[]                 @relation("ContractSupersedes")
-  subscription                 Subscription?              @relation(fields: [subscriptionId], references: [id], onDelete: Restrict)
-  versions                     ContractVersion[]
-  documents                    ContractDocument[]
-  placeholderValues            ContractPlaceholderValue[]
-  approvalRequests             PlatformApprovalRequest[]
-  signatureRequests            SignatureRequest[]
-  timeline                     ContractTimeline[]
-  relatedRecords               ContractRelatedRecord[]
-  parties                      ContractParty[]
-  fieldPlacements              ContractFieldPlacement[]
-  supportCases                 SupportCase[]
+  id                    String                     @id @default(uuid())
+  contractNumber        String                     @unique
+  title                 String
+  contractType          ContractType
+  status                ContractStatus             @default(DRAFT)
+  agreementCategory     String?
+  lifecycleGatePurpose  String?
+  isGoverningAgreement  Boolean                    @default(false)
+  allowChangeRequests   Boolean                    @default(true)
+  signingMode           ContractSigningMode        @default(MIXED)
+  counterpartyType      String?
+  processStage          String?
+  templateId            String?
+  partnerId             String?
+  customerAccountId     String?
+  customerOnboardingId  String?
+  tenantId              String?
+  relatedLeadId         String?
+  ownerPlatformUserId   String?
+  internalLegalOwnerId  String?
+  counterpartyName      String
+  counterpartyEmail     String?
+  documentSource        ContractDocumentSource     @default(BLANK)
+  currencyCode          String?
+  contractValue         Decimal?                   @db.Decimal(14, 2)
+  commissionPercentage  Decimal?                   @db.Decimal(5, 2)
+  commissionBasis       String?
+  paymentTerms          String?
+  governingLaw          String?
+  jurisdiction          String?
+  confidentialityClass  String?
+  effectiveDate         DateTime?
+  expiryDate            DateTime?
+  effectiveFrom         DateTime?
+  effectiveUntil        DateTime?
+  autoRenewal           Boolean                    @default(false)
+  renewalNoticeDays     Int?
+  terminationNoticeDays Int?
+  currentVersionNumber  Int                        @default(0)
+  parentContractId      String?
+  amendsContractId      String?
+  renewsContractId      String?
+  supersedesContractId  String?
+  subscriptionId        String?
+  amendmentNumber       Int?
+  signedAt              DateTime?
+  activatedAt           DateTime?
+  terminatedAt          DateTime?
+  terminationReason     String?
+  archivedAt            DateTime?
+  notes                 String?
+  createdById           String?
+  updatedById           String?
+  createdAt             DateTime                   @default(now())
+  updatedAt             DateTime                   @updatedAt
+  template              ContractTemplate?          @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  partner               Partner?                   @relation(fields: [partnerId], references: [id], onDelete: Restrict)
+  customerAccount       CustomerAccount?           @relation(fields: [customerAccountId], references: [id], onDelete: Restrict)
+  customerOnboarding    CustomerOnboarding?        @relation(fields: [customerOnboardingId], references: [id], onDelete: Restrict)
+  tenant                Tenant?                    @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  relatedLead           Lead?                      @relation("LeadContracts", fields: [relatedLeadId], references: [id], onDelete: Restrict)
+  ownerPlatformUser     PlatformUser?              @relation("OwnedContracts", fields: [ownerPlatformUserId], references: [id], onDelete: SetNull)
+  internalLegalOwner    PlatformUser?              @relation("LegalOwnedContracts", fields: [internalLegalOwnerId], references: [id], onDelete: SetNull)
+  createdBy             PlatformUser?              @relation("ContractsCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy             PlatformUser?              @relation("ContractsUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  parentContract        Contract?                  @relation("ContractAmendments", fields: [parentContractId], references: [id], onDelete: Restrict)
+  amendments            Contract[]                 @relation("ContractAmendments")
+  amendsContract        Contract?                  @relation("ContractAmends", fields: [amendsContractId], references: [id], onDelete: Restrict)
+  amendedByContracts    Contract[]                 @relation("ContractAmends")
+  renewsContract        Contract?                  @relation("ContractRenews", fields: [renewsContractId], references: [id], onDelete: Restrict)
+  renewalContracts      Contract[]                 @relation("ContractRenews")
+  supersedesContract    Contract?                  @relation("ContractSupersedes", fields: [supersedesContractId], references: [id], onDelete: Restrict)
+  supersedingContracts  Contract[]                 @relation("ContractSupersedes")
+  subscription          Subscription?              @relation(fields: [subscriptionId], references: [id], onDelete: Restrict)
+  versions              ContractVersion[]
+  documents             ContractDocument[]
+  placeholderValues     ContractPlaceholderValue[]
+  approvalRequests      PlatformApprovalRequest[]
+  signatureRequests     SignatureRequest[]
+  timeline              ContractTimeline[]
+  relatedRecords        ContractRelatedRecord[]
+  parties               ContractParty[]
+  fieldPlacements       ContractFieldPlacement[]
+  supportCases          SupportCase[]
 
   @@index([contractType, status, createdAt])
   @@index([partnerId, status])
@@ -3720,6 +3746,8 @@ model Organization {
   benefitPolicies            BenefitPolicy[]
   salaryPackageRules         SalaryPackageRule[]
   settings                   OrganizationSetting[]
+  locations                  Location[]
+  attendanceDeviceScopes     AttendanceDeviceScope[]
 
   @@unique([id, tenantId])
   @@unique([tenantId, code])
@@ -3783,6 +3811,8 @@ model BusinessUnit {
   approvalMatrices           ApprovalMatrix[]
   benefitPolicies            BenefitPolicy[]
   salaryPackageRules         SalaryPackageRule[]
+  locations                  Location[]
+  attendanceDeviceScopes     AttendanceDeviceScope[]
 
   @@unique([id, tenantId])
   @@unique([tenantId, code])
@@ -3949,29 +3979,39 @@ model RoleMiscPermission {
 }
 
 model Team {
-  id                    String                    @id @default(uuid())
-  tenantId              String
-  name                  String
-  key                   String
-  description           String?
-  teamType              TeamType                  @default(ACCESS)
-  businessUnitId        String?
-  departmentId          String?
-  ownerUserId           String?
-  isSystem              Boolean                   @default(false)
-  isActive              Boolean                   @default(true)
-  createdAt             DateTime                  @default(now())
-  updatedAt             DateTime                  @updatedAt
-  createdById           String?
-  updatedById           String?
-  tenant                Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  businessUnit          BusinessUnit?             @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
-  department            Department?               @relation(fields: [departmentId, tenantId], references: [id, tenantId], onDelete: Restrict)
-  ownerUser             User?                     @relation("OwnedTeams", fields: [ownerUserId], references: [id], onDelete: SetNull)
-  employees             Employee[]
-  members               TeamMember[]
-  teamRoles             TeamRole[]
-  fieldSecurityPolicies FieldSecurityPolicyTeam[]
+  id                     String                    @id @default(uuid())
+  tenantId               String
+  name                   String
+  key                    String
+  description            String?
+  teamType               TeamType                  @default(ACCESS)
+  businessUnitId         String?
+  departmentId           String?
+  /// Team-level work schedule and calendar.
+  ///
+  /// A single office holds teams that work different hours — Finance 09:00-18:00,
+  /// Support on a 24/7 rotation — which is exactly why schedule resolution runs
+  /// down the organizational hierarchy and not through the Work Site.
+  defaultWorkScheduleId  String?
+  holidayCalendarId      String?
+  ownerUserId            String?
+  isSystem               Boolean                   @default(false)
+  isActive               Boolean                   @default(true)
+  createdAt              DateTime                  @default(now())
+  updatedAt              DateTime                  @updatedAt
+  createdById            String?
+  updatedById            String?
+  tenant                 Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  businessUnit           BusinessUnit?             @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  department             Department?               @relation(fields: [departmentId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  ownerUser              User?                     @relation("OwnedTeams", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  defaultWorkSchedule    WorkSchedule?             @relation("TeamDefaultWorkSchedule", fields: [defaultWorkScheduleId], references: [id], onDelete: SetNull)
+  holidayCalendar        HolidayCalendar?          @relation("TeamHolidayCalendar", fields: [holidayCalendarId], references: [id], onDelete: SetNull)
+  employees              Employee[]
+  members                TeamMember[]
+  teamRoles              TeamRole[]
+  fieldSecurityPolicies  FieldSecurityPolicyTeam[]
+  attendanceDeviceScopes AttendanceDeviceScope[]
 
   @@unique([tenantId, key])
   @@unique([tenantId, name])
@@ -3980,6 +4020,8 @@ model Team {
   @@index([tenantId, businessUnitId])
   @@index([tenantId, departmentId])
   @@index([tenantId, isActive])
+  @@index([tenantId, defaultWorkScheduleId])
+  @@index([tenantId, holidayCalendarId])
 }
 
 model TeamMember {
@@ -4146,6 +4188,10 @@ model Employee {
   employeeLevelId                String?
   locationId                     String?
   defaultWorkScheduleId          String?
+  /// Employee-level work calendar. The most specific layer of the calendar
+  /// hierarchy: Employee -> Team -> Department -> Business Unit -> Organization
+  /// -> Tenant default. Work Site deliberately does not participate.
+  holidayCalendarId              String?
   officialJoiningLocationId      String?
   managerEmployeeId              String?
   userId                         String?                       @unique
@@ -4193,6 +4239,7 @@ model Employee {
   employmentTypeRef              EmploymentType?               @relation(fields: [employmentTypeId, tenantId], references: [id, tenantId], onDelete: Restrict)
   location                       Location?                     @relation(fields: [locationId], references: [id], onDelete: SetNull)
   defaultWorkSchedule            WorkSchedule?                 @relation("EmployeeDefaultWorkSchedule", fields: [defaultWorkScheduleId], references: [id], onDelete: SetNull)
+  holidayCalendar                HolidayCalendar?              @relation("EmployeeHolidayCalendar", fields: [holidayCalendarId], references: [id], onDelete: SetNull)
   officialJoiningLocation        Location?                     @relation("EmployeeOfficialJoiningLocation", fields: [officialJoiningLocationId], references: [id], onDelete: SetNull)
   manager                        Employee?                     @relation("EmployeeManager", fields: [managerEmployeeId], references: [id], onDelete: SetNull)
   sourceCandidate                Candidate?                    @relation("CandidateDraftEmployees", fields: [sourceCandidateId], references: [id], onDelete: SetNull)
@@ -4216,6 +4263,11 @@ model Employee {
   businessTrips                  BusinessTrip[]
   timePayrollInputs              TimePayrollInput[]
   attendanceEntries              AttendanceEntry[]
+  attendanceDays                 AttendanceDay[]
+  attendanceSessions             AttendanceSession[]
+  attendanceExceptions           AttendanceException[]
+  attendanceReconciliationJobs   AttendanceReconciliationJob[]
+  attendanceLocationEvidence     AttendanceLocationEvidence[]
   attendanceCorrectionRequests   AttendanceCorrectionRequest[]
   workScheduleAssignments        EmployeeScheduleAssignment[]
   timesheets                     Timesheet[]
@@ -4252,6 +4304,12 @@ model Employee {
   previousEmployments            EmployeePreviousEmployment[]
   benefitAssignments             EmployeeBenefitAssignment[]
   taxProfiles                    EmployeeTaxProfile[]
+  workSiteAssignments            EmployeeWorkSite[]
+  externalIdentities             EmployeeExternalIdentity[]
+  mappedExternalDeviceUsers      ExternalDeviceUser[]
+  deviceProvisioningJobs         DeviceProvisioningJob[]
+  rawAttendanceEvents            RawAttendanceEvent[]
+  attendanceDeviceScopes         AttendanceDeviceScope[]
 
   @@unique([id, tenantId])
   @@unique([tenantId, employeeCode])
@@ -4271,6 +4329,7 @@ model Employee {
   @@index([tenantId, employmentTypeId])
   @@index([tenantId, employmentStatus])
   @@index([tenantId, defaultWorkScheduleId])
+  @@index([tenantId, holidayCalendarId])
   @@index([tenantId, nationalityCountryId])
   @@index([tenantId, lastName, firstName])
   @@index([tenantId, managerEmployeeId])
@@ -4417,35 +4476,40 @@ model EmployeePreviousEmployment {
 }
 
 model Department {
-  id                    String              @id @default(uuid())
-  tenantId              String
-  businessUnitId        String?
-  name                  String
-  code                  String?
-  description           String?
-  defaultWorkScheduleId String?
-  headEmployeeId        String?
-  ownerUserId           String?
-  status                String              @default("ACTIVE")
-  subStatus             String              @default("OPERATIONAL")
-  isActive              Boolean             @default(true)
-  createdAt             DateTime            @default(now())
-  updatedAt             DateTime            @updatedAt
-  createdById           String?
-  updatedById           String?
-  tenant                Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  businessUnit          BusinessUnit?       @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
-  headEmployee          Employee?           @relation("DepartmentHead", fields: [headEmployeeId], references: [id], onDelete: SetNull)
-  ownerUser             User?               @relation("OwnedDepartments", fields: [ownerUserId], references: [id], onDelete: SetNull)
-  createdBy             User?               @relation("DepartmentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  updatedBy             User?               @relation("DepartmentUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
-  defaultWorkSchedule   WorkSchedule?       @relation("DepartmentDefaultWorkSchedule", fields: [defaultWorkScheduleId], references: [id], onDelete: SetNull)
-  employees             Employee[]
-  teams                 Team[]
-  holidays              Holiday[]
-  approvalMatrices      ApprovalMatrix[]
-  benefitPolicies       BenefitPolicy[]
-  salaryPackageRules    SalaryPackageRule[]
+  id                     String                  @id @default(uuid())
+  tenantId               String
+  businessUnitId         String?
+  name                   String
+  code                   String?
+  description            String?
+  defaultWorkScheduleId  String?
+  /// Department-level work calendar. Sits below Team and above Business Unit
+  /// in the calendar hierarchy.
+  holidayCalendarId      String?
+  headEmployeeId         String?
+  ownerUserId            String?
+  status                 String                  @default("ACTIVE")
+  subStatus              String                  @default("OPERATIONAL")
+  isActive               Boolean                 @default(true)
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  createdById            String?
+  updatedById            String?
+  tenant                 Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  businessUnit           BusinessUnit?           @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  headEmployee           Employee?               @relation("DepartmentHead", fields: [headEmployeeId], references: [id], onDelete: SetNull)
+  ownerUser              User?                   @relation("OwnedDepartments", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  createdBy              User?                   @relation("DepartmentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy              User?                   @relation("DepartmentUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  defaultWorkSchedule    WorkSchedule?           @relation("DepartmentDefaultWorkSchedule", fields: [defaultWorkScheduleId], references: [id], onDelete: SetNull)
+  holidayCalendar        HolidayCalendar?        @relation("DepartmentHolidayCalendar", fields: [holidayCalendarId], references: [id], onDelete: SetNull)
+  employees              Employee[]
+  teams                  Team[]
+  holidays               Holiday[]
+  approvalMatrices       ApprovalMatrix[]
+  benefitPolicies        BenefitPolicy[]
+  salaryPackageRules     SalaryPackageRule[]
+  attendanceDeviceScopes AttendanceDeviceScope[]
 
   @@unique([id, tenantId])
   @@unique([tenantId, name])
@@ -4458,6 +4522,7 @@ model Department {
   @@index([tenantId, headEmployeeId])
   @@index([tenantId, isActive])
   @@index([tenantId, defaultWorkScheduleId])
+  @@index([tenantId, holidayCalendarId])
 }
 
 model Designation {
@@ -4482,11 +4547,21 @@ model Designation {
   @@index([tenantId, isActive])
 }
 
+/// A physical place where employees work. The product surfaces this as
+/// "Work Site" (see settings/work-sites, which redirects here).
+///
+/// Attendance-specific configuration lives directly on this model as explicit
+/// columns rather than through an inherited override chain: tenant setting
+/// overrides in this system are scoped to Organization only (TenantSetting ->
+/// OrganizationSetting), so a site-level override has to be modelled explicitly.
+/// A null attendance column means "fall back to the tenant setting".
 model Location {
-  id                       String            @id @default(uuid())
+  id                       String                       @id @default(uuid())
   tenantId                 String
   name                     String
   code                     String?
+  organizationId           String?
+  businessUnitId           String?
   addressLine1             String?
   addressLine2             String?
   city                     String
@@ -4497,22 +4572,50 @@ model Location {
   latitude                 Float?
   longitude                Float?
   allowedRadiusMeters      Int?
+  /// Reject a web/mobile punch whose reported GPS accuracy is worse than this.
+  maximumAccuracyMeters    Int?
+  /// null = inherit the tenant's Attendance Integration Enabled setting.
+  attendanceEnabled        Boolean?
+  /// Empty means "inherit the tenant default"; otherwise the allowed methods.
+  allowedAttendanceMethods AttendanceMethod[]
+  webAttendancePolicy      WorkSiteWebAttendancePolicy?
+  devicePolicy             WorkSiteDevicePolicy?
+  /// null = inherit the tenant's Web Fallback Policy setting.
+  webFallbackEnabled       Boolean?
+  validFrom                DateTime?
+  validTo                  DateTime?
+  /// DEPRECATED as an attendance input.
+  ///
+  /// A Work Site is a physical place, not a schedule authority: one office holds
+  /// teams on different hours and employees on different regional calendars.
+  /// Schedule and calendar now resolve down the organizational hierarchy
+  /// (Employee -> Team -> Department -> Business Unit -> Organization -> Tenant).
+  /// These two columns are retained so existing tenant data is preserved for a
+  /// later compatibility review; nothing reads them for attendance resolution.
   defaultWorkScheduleId    String?
   holidayCalendarId        String?
-  isActive                 Boolean           @default(true)
-  createdAt                DateTime          @default(now())
-  updatedAt                DateTime          @updatedAt
+  isActive                 Boolean                      @default(true)
+  createdAt                DateTime                     @default(now())
+  updatedAt                DateTime                     @updatedAt
   createdById              String?
   updatedById              String?
-  tenant                   Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  defaultWorkSchedule      WorkSchedule?     @relation("LocationDefaultWorkSchedule", fields: [defaultWorkScheduleId], references: [id], onDelete: SetNull)
-  holidayCalendar          HolidayCalendar?  @relation(fields: [holidayCalendarId], references: [id], onDelete: SetNull)
+  tenant                   Tenant                       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  organization             Organization?                @relation(fields: [organizationId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  businessUnit             BusinessUnit?                @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  defaultWorkSchedule      WorkSchedule?                @relation("LocationDefaultWorkSchedule", fields: [defaultWorkScheduleId], references: [id], onDelete: SetNull)
+  holidayCalendar          HolidayCalendar?             @relation(fields: [holidayCalendarId], references: [id], onDelete: SetNull)
   employees                Employee[]
-  officialJoiningEmployees Employee[]        @relation("EmployeeOfficialJoiningLocation")
-  attendanceEntries        AttendanceEntry[] @relation("AttendanceOfficeLocation")
+  officialJoiningEmployees Employee[]                   @relation("EmployeeOfficialJoiningLocation")
+  attendanceEntries        AttendanceEntry[]            @relation("AttendanceOfficeLocation")
   holidays                 Holiday[]
   payrollRegions           PayrollRegion[]
   benefitPolicies          BenefitPolicy[]
+  attendanceDevices        AttendanceDevice[]
+  employeeWorkSites        EmployeeWorkSite[]
+  rawAttendanceEvents      RawAttendanceEvent[]
+  attendanceSessions       AttendanceSession[]
+  attendanceExceptions     AttendanceException[]
+  locationEvidence         AttendanceLocationEvidence[]
 
   @@unique([tenantId, name])
   @@unique([tenantId, code])
@@ -4520,6 +4623,9 @@ model Location {
   @@index([tenantId, isActive])
   @@index([tenantId, defaultWorkScheduleId])
   @@index([tenantId, holidayCalendarId])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, businessUnitId])
+  @@index([tenantId, attendanceEnabled])
 }
 
 model EmergencyContact {
@@ -4906,8 +5012,10 @@ model WorkSchedule {
   employeeAssignments  EmployeeScheduleAssignment[]
   defaultEmployees     Employee[]                   @relation("EmployeeDefaultWorkSchedule")
   defaultDepartments   Department[]                 @relation("DepartmentDefaultWorkSchedule")
+  defaultTeams         Team[]                       @relation("TeamDefaultWorkSchedule")
   defaultLocations     Location[]                   @relation("LocationDefaultWorkSchedule")
   attendanceEntries    AttendanceEntry[]
+  attendanceDays       AttendanceDay[]
   configuredProjects   Project[]                    @relation("ProjectWorkSchedule")
   payrollRegions       PayrollRegion[]
 
@@ -4973,6 +5081,7 @@ model ShiftTemplate {
   workSchedule          WorkSchedule?       @relation(fields: [workScheduleId], references: [id], onDelete: Cascade)
   scheduleDays          WorkScheduleDay[]
   attendanceEntries     AttendanceEntry[]
+  attendanceDays        AttendanceDay[]
 
   @@unique([tenantId, code])
   @@index([tenantId, workScheduleId])
@@ -5053,6 +5162,19 @@ model AttendanceEntry {
   lateCheckInMinutes               Int?
   lateCheckOutMinutes              Int?
   machineDeviceId                  String?
+  /// Written by the reconciliation engine.
+  ///
+  /// checkOut - checkIn is not worked time on a day with more than one session:
+  /// office 08:05-12:30 plus remote 14:00-18:05 is 8h30m of work, not the 10h
+  /// that subtraction would report to timesheets and payroll. Null on legacy rows
+  /// the engine has never touched, where the old computation still applies.
+  workedMinutes                    Int?
+  sessionCount                     Int?
+  derivedWorkMode                  EmployeeWorkMode?
+  /// True once the engine owns this row. Legacy self-service, manual and imported
+  /// rows keep their existing behaviour until the engine reconciles their day.
+  reconciled                       Boolean                       @default(false)
+  lastReconciledAt                 DateTime?
   createdAt                        DateTime                      @default(now())
   updatedAt                        DateTime                      @updatedAt
   createdById                      String?
@@ -5064,6 +5186,7 @@ model AttendanceEntry {
   officeLocation                   Location?                     @relation("AttendanceOfficeLocation", fields: [officeLocationId], references: [id], onDelete: SetNull)
   importedBatch                    AttendanceImportBatch?        @relation(fields: [importedBatchId], references: [id], onDelete: SetNull)
   correctionRequests               AttendanceCorrectionRequest[]
+  attendanceDay                    AttendanceDay?
 
   @@unique([tenantId, employeeId, date])
   @@index([tenantId])
@@ -5095,6 +5218,23 @@ model AttendanceCorrectionRequest {
   rejectedAtUtc          DateTime?
   actionedByUserId       String?
   actionComment          String?
+  /// The work day this correction is about.
+  ///
+  /// Added because a correction for a day with no AttendanceEntry — a wholly
+  /// missing day — previously had nowhere to say which day it meant.
+  attendanceDate         DateTime?
+  requestedWorkMode      EmployeeWorkMode?
+  requestedWorkSiteId    String?
+  /// Minutes of overtime being approved. Separate from the requested times:
+  /// approving overtime does not change WHEN someone worked, it changes whether
+  /// time already worked is payable.
+  requestedOvertimeMinutes Int?
+  /// Set when the request was raised to clear a specific detected exception.
+  attendanceExceptionId  String?
+  /// An in-office web punch accepted under the fallback policy, rather than an
+  /// ordinary unrestricted web punch.
+  isWebFallback          Boolean                    @default(false)
+  fallbackReason         String?
   createdAtUtc           DateTime                   @default(now())
   updatedAtUtc           DateTime                   @updatedAt
   tenant                 Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -5102,8 +5242,10 @@ model AttendanceCorrectionRequest {
   employee               Employee                   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   requestedByUser        User                       @relation("AttendanceCorrectionRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict)
   actionedByUser         User?                      @relation("AttendanceCorrectionActionedBy", fields: [actionedByUserId], references: [id], onDelete: SetNull)
+  attendanceExceptions   AttendanceException[]
 
   @@unique([tenantId, requestNumber])
+  @@index([tenantId, attendanceDate])
   @@index([tenantId])
   @@index([tenantId, employeeId])
   @@index([tenantId, requestedByUserId])
@@ -5220,6 +5362,9 @@ model HolidayCalendar {
   payrollRegions     PayrollRegion[]
   workSchedules      WorkSchedule[]
   locations          Location[]
+  defaultEmployees   Employee[]                  @relation("EmployeeHolidayCalendar")
+  defaultDepartments Department[]                @relation("DepartmentHolidayCalendar")
+  defaultTeams       Team[]                      @relation("TeamHolidayCalendar")
 
   @@unique([tenantId, code])
   @@unique([tenantId, name])
@@ -10433,4 +10578,1225 @@ model PasswordHistory {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
+}
+
+// ============================================================================
+// Attendance Integration Platform — Phase 1 foundation
+//
+// Establishes the vendor-neutral domain that later phases plug into:
+//
+//   Attendance Source -> RawAttendanceEvent -> Employee Identity Resolution
+//     -> (Phase 3) Attendance Session -> Reconciliation -> Attendance Day
+//
+// Devices never write calculated attendance. They produce RawAttendanceEvent
+// rows only; AttendanceEntry stays owned by the existing attendance module.
+//
+// The physical place an employee works is the existing `Location` model, which
+// the product already surfaces as "Work Site". It is extended rather than
+// duplicated. Likewise `EmployeeWorkMode` is reused rather than redefined.
+//
+// `AttendanceIntegrationConfig` is intentionally left untouched: it still backs
+// the current attendance module. Phase 2 backfills from it and deprecates it.
+// ============================================================================
+
+enum AttendanceProvider {
+  ZKTECO
+  HIKVISION
+  SUPREMA
+  GENERIC_REST
+  GENERIC_DATABASE
+  GENERIC_FILE
+  CUSTOM
+}
+
+/// How DijiPeople reaches the source, independent of who makes the device.
+enum AttendanceConnectionMode {
+  LOCAL_GATEWAY
+  DEVICE_PUSH
+  CLOUD_API
+  VENDOR_SERVER
+  DATABASE
+  FILE_IMPORT
+}
+
+/// Administrative lifecycle of an integration.
+///
+/// UNVERIFIED sits between DRAFT and ACTIVE on purpose: it means the connector
+/// configuration is schema-valid but nothing has proved it reaches a device.
+/// Collapsing it into ACTIVE would let "we saved the form" masquerade as
+/// "this works".
+enum AttendanceIntegrationStatus {
+  DRAFT
+  UNVERIFIED
+  ACTIVE
+  DISABLED
+  ERROR
+}
+
+enum AttendanceDeviceStatus {
+  PENDING
+  ACTIVE
+  DISABLED
+  DECOMMISSIONED
+}
+
+enum AttendanceDeviceHealth {
+  UNKNOWN
+  HEALTHY
+  DEGRADED
+  UNREACHABLE
+}
+
+/// Whether a gateway has actually reached this terminal and what it found.
+///
+/// Deliberately separate from `AttendanceDeviceHealth`: health is a rolling
+/// operational signal that flips with every poll, verification is a deliberate
+/// identity check whose last outcome an operator needs to keep seeing.
+/// SERIAL_MISMATCH is its own state rather than a FAILED variant because a
+/// terminal that answers with the wrong serial is reachable but wrong, which is
+/// a configuration problem rather than a connectivity one.
+enum AttendanceDeviceVerificationStatus {
+  UNVERIFIED
+  VERIFIED
+  FAILED
+  SERIAL_MISMATCH
+}
+
+/// Whether a terminal records entry, exit, or infers both from punch state.
+/// Not every device reports reliable punch state, so this is configured rather
+/// than assumed.
+enum AttendanceDeviceDirectionMode {
+  BOTH
+  ENTRY
+  EXIT
+}
+
+enum AttendanceDeviceScopeType {
+  TENANT
+  ORGANIZATION
+  BUSINESS_UNIT
+  DEPARTMENT
+  TEAM
+  EMPLOYEE
+}
+
+enum AttendanceSyncMode {
+  PUSH
+  POLL
+  MANUAL
+}
+
+enum AttendanceSyncIntervalUnit {
+  MINUTES
+  HOURS
+  DAYS
+}
+
+/// Ways an employee may record attendance at a work site.
+enum AttendanceMethod {
+  DEVICE
+  WEB
+  MOBILE
+  MANUAL
+}
+
+enum WorkSiteWebAttendancePolicy {
+  ALLOWED
+  DISALLOWED
+  FALLBACK_ONLY
+}
+
+enum WorkSiteDevicePolicy {
+  DEVICE_REQUIRED
+  DEVICE_PREFERRED
+  DEVICE_OPTIONAL
+}
+
+/// One continuous work period. CONFLICT is kept distinct from INCOMPLETE: an
+/// incomplete session is missing evidence, a conflicting one has evidence that
+/// contradicts itself, and the two need different human responses.
+enum AttendanceSessionStatus {
+  OPEN
+  CLOSED
+  INCOMPLETE
+  CONFLICT
+  CANCELLED
+  ADJUSTED
+}
+
+/// Outcome of a reconciled day. PENDING means the engine has evidence it has not
+/// finished processing — the UI must not present it as a result yet.
+enum AttendanceDayStatus {
+  PENDING
+  PRESENT
+  PARTIAL
+  ABSENT
+  ON_LEAVE
+  HOLIDAY
+  WEEKEND
+  OFF_DAY
+  NEEDS_REVIEW
+}
+
+/// Structured, not free text: the exception workspace filters on these and each
+/// type implies a different resolution action.
+enum AttendanceExceptionType {
+  MISSING_CHECKIN
+  MISSING_CHECKOUT
+  OVERLAPPING_SESSION
+  UNKNOWN_PUNCH_DIRECTION
+  UNAUTHORIZED_WORK_SITE
+  ATTENDANCE_DURING_LEAVE
+  WORK_MODE_POLICY_CONFLICT
+  GEOFENCE_FAILURE
+  GPS_ACCURACY_FAILURE
+  DEVICE_CLOCK_WARNING
+  LATE_ARRIVING_EVENT
+  LOCKED_PERIOD_EVENT
+  CROSS_SITE_SESSION
+  DUPLICATE_SEMANTIC_PUNCH
+  ATTENDANCE_OUTSIDE_EMPLOYMENT
+  HOLIDAY_WORK
+  WEEKEND_WORK
+  IMPOSSIBLE_TRAVEL
+}
+
+enum AttendanceExceptionStatus {
+  OPEN
+  RESOLVED
+  IGNORED
+  APPROVED
+  REJECTED
+}
+
+/// BLOCKING stops a day being treated as a finished result; WARNING and INFO do
+/// not. Severity is a property of the type, not of who is looking at it.
+enum AttendanceExceptionSeverity {
+  INFO
+  WARNING
+  BLOCKING
+}
+
+enum AttendanceReconciliationJobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  SKIPPED
+}
+
+enum EmployeeWorkSiteStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum ExternalIdentityStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+  CONFLICT
+}
+
+/// Mapping state of a user discovered on a device.
+enum ExternalUserMappingStatus {
+  MATCHED
+  UNMATCHED
+  IGNORED
+  CONFLICT
+  INACTIVE
+}
+
+/// DELETE_USER is deliberately absent: terminations disable on the device and
+/// retain history rather than erasing it.
+enum DeviceProvisioningOperation {
+  CREATE_USER
+  UPDATE_USER
+  ENABLE_USER
+  DISABLE_USER
+}
+
+enum DeviceProvisioningStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  RETRYING
+  CANCELLED
+}
+
+enum RawAttendanceCaptureSource {
+  DEVICE
+  WEB
+  MOBILE
+  MANUAL
+  API
+  FILE
+}
+
+enum RawAttendanceMappingStatus {
+  MAPPED
+  UNMAPPED
+  CONFLICT
+  IGNORED
+}
+
+enum RawAttendanceProcessingStatus {
+  PENDING
+  PROCESSED
+  SKIPPED
+  FAILED
+}
+
+enum IntegrationRunType {
+  ATTENDANCE_PULL
+  USER_DISCOVERY
+  USER_PROVISION
+  HEALTH_CHECK
+  MANUAL_SYNC
+}
+
+enum IntegrationRunStatus {
+  RUNNING
+  SUCCEEDED
+  PARTIAL
+  FAILED
+  CANCELLED
+}
+
+enum IntegrationGatewayStatus {
+  PENDING
+  ONLINE
+  OFFLINE
+  DEGRADED
+  REVOKED
+}
+
+enum ApplicationPlatform {
+  WINDOWS
+  MACOS
+  LINUX
+}
+
+enum ApplicationArchitecture {
+  X64
+  X86
+  ARM64
+}
+
+enum ApplicationReleaseChannel {
+  STABLE
+  BETA
+  INTERNAL
+}
+
+/// A named on-premise agent that reaches devices DijiPeople cannot reach from
+/// the cloud. A tenant may run several (head office, warehouse, branch).
+///
+/// Phase 1 models the domain only. The Windows service itself, its heartbeat
+/// loop and its offline queue are Phase 2.
+model IntegrationGateway {
+  id              String                          @id @default(uuid())
+  tenantId        String
+  name            String
+  code            String?
+  description     String?
+  status          IntegrationGatewayStatus        @default(PENDING)
+  version         String?
+  platform        String?
+  architecture    String?
+  /// Capability flags the gateway reported at registration.
+  capabilities    Json?
+  lastHeartbeatAt DateTime?
+  lastIpAddress   String?
+  lastSyncAt      DateTime?
+  /// Queue telemetry from the gateway's last heartbeat. Counts and ages only —
+  /// the queued punches themselves stay on the customer machine until they are
+  /// ingested through the normal attendance endpoint.
+  pendingQueueCount      Int?
+  oldestPendingEventAt   DateTime?
+  lastSuccessfulUploadAt DateTime?
+  deviceCountOnline      Int?
+  deviceCountUnreachable Int?
+  /// Stable id the gateway generated at install. Lets a re-paired reinstall be
+  /// told apart from the same installation reconnecting.
+  installationId  String?
+  registeredAt    DateTime?
+  revokedAt       DateTime?
+  revokedReason   String?
+  createdAt       DateTime                        @default(now())
+  updatedAt       DateTime                        @updatedAt
+  createdById     String?
+  updatedById     String?
+  tenant          Tenant                          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  pairingCodes    IntegrationGatewayPairingCode[]
+  credentials     IntegrationGatewayCredential[]
+  integrations    AttendanceIntegration[]
+  devices         AttendanceDevice[]
+  runs            IntegrationRun[]
+
+  @@unique([tenantId, name])
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, lastHeartbeatAt])
+}
+
+/// Short-lived, single-use pairing code exchanged for a gateway service
+/// identity. Only the hash is stored, so a database read cannot reveal a code
+/// that is still live. User passwords are never used for gateway auth.
+model IntegrationGatewayPairingCode {
+  id            String             @id @default(uuid())
+  tenantId      String
+  gatewayId     String
+  /// SHA-256 of the issued code. The plaintext is shown once, at creation.
+  codeHash      String             @unique
+  /// Non-secret prefix so an admin can tell two outstanding codes apart.
+  codeHint      String
+  expiresAt     DateTime
+  consumedAt    DateTime?
+  consumedIp    String?
+  /// Failed redemption attempts against this code. A code is burned after
+  /// `maxAttempts`, so a stolen or guessed prefix cannot be brute-forced.
+  attemptCount  Int                @default(0)
+  maxAttempts   Int                @default(10)
+  lastAttemptAt DateTime?
+  revokedAt     DateTime?
+  createdAt     DateTime           @default(now())
+  createdById   String?
+  tenant        Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  gateway       IntegrationGateway @relation(fields: [gatewayId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, gatewayId])
+  @@index([expiresAt])
+}
+
+/// Reusable synchronisation schedule.
+///
+/// Deliberately not a bare `syncEveryMinutes`: connectors declare recommended
+/// and minimum intervals, and the legacy ZKTeco adapter re-reads the device's
+/// entire history on every poll, so an accidental 10-second schedule has to be
+/// impossible to configure.
+model AttendanceSyncPolicy {
+  id                 String                     @id @default(uuid())
+  tenantId           String
+  name               String
+  code               String?
+  description        String?
+  mode               AttendanceSyncMode         @default(POLL)
+  intervalValue      Int?
+  intervalUnit       AttendanceSyncIntervalUnit @default(MINUTES)
+  /// Optional daily window, e.g. only poll between 06:00 and 22:00. "HH:mm".
+  activeWindowStart  String?
+  activeWindowEnd    String?
+  timezone           String?
+  maxConcurrency     Int                        @default(1)
+  retryIntervalValue Int?
+  retryIntervalUnit  AttendanceSyncIntervalUnit @default(MINUTES)
+  maxRetries         Int                        @default(3)
+  /// Spreads simultaneous polls so many devices do not wake at the same instant.
+  jitterSeconds      Int                        @default(0)
+  isActive           Boolean                    @default(true)
+  isSystemDefault    Boolean                    @default(false)
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+  createdById        String?
+  updatedById        String?
+  tenant             Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  integrations       AttendanceIntegration[]
+  devices            AttendanceDevice[]
+
+  @@unique([tenantId, name])
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([tenantId, isActive])
+}
+
+/// One configured attendance source for a tenant.
+///
+/// Provider-specific values live in `configuration` (non-secret) and
+/// `encryptedConfiguration` (secret, via SecretEncryptionService) rather than as
+/// vendor columns, so adding Hikvision or Suprema needs no schema change.
+model AttendanceIntegration {
+  id                     String                      @id @default(uuid())
+  tenantId               String
+  name                   String
+  code                   String?
+  description            String?
+  provider               AttendanceProvider
+  /// Connector definition key from the connector registry, e.g. zkteco-legacy-tcp.
+  connectorType          String
+  connectionMode         AttendanceConnectionMode
+  status                 AttendanceIntegrationStatus @default(DRAFT)
+  isActive               Boolean                     @default(true)
+  syncPolicyId           String?
+  gatewayId              String?
+  /// Non-secret connector configuration, shaped by the connector's schema.
+  configuration          Json?
+  /// Secret connector configuration, encrypted at rest. Never returned to the
+  /// browser, never logged, never included in audit detail.
+  encryptedConfiguration String?
+  lastSyncAt             DateTime?
+  lastSuccessfulSyncAt   DateTime?
+  lastErrorAt            DateTime?
+  lastErrorCode          String?
+  lastError              String?
+  createdAt              DateTime                    @default(now())
+  updatedAt              DateTime                    @updatedAt
+  createdById            String?
+  updatedById            String?
+  tenant                 Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  syncPolicy             AttendanceSyncPolicy?       @relation(fields: [syncPolicyId], references: [id], onDelete: SetNull)
+  gateway                IntegrationGateway?         @relation(fields: [gatewayId], references: [id], onDelete: SetNull)
+  devices                AttendanceDevice[]
+  externalIdentities     EmployeeExternalIdentity[]
+  externalUsers          ExternalDeviceUser[]
+  rawEvents              RawAttendanceEvent[]
+  runs                   IntegrationRun[]
+
+  @@unique([tenantId, name])
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, provider])
+  @@index([tenantId, gatewayId])
+  @@index([tenantId, syncPolicyId])
+}
+
+/// A physical terminal. Many devices may sit at one work site, and one tenant
+/// may mix manufacturers across sites without the attendance module changing.
+model AttendanceDevice {
+  id                   String                        @id @default(uuid())
+  tenantId             String
+  integrationId        String
+  name                 String
+  code                 String?
+  provider             AttendanceProvider
+  model                String?
+  serialNumber         String?
+  macAddress           String?
+  firmwareVersion      String?
+  /// The work site this terminal physically stands at (existing Location model).
+  locationId           String?
+  gatewayId            String?
+  host                 String?
+  port                 Int?
+  machineNumber        Int?
+  timezone             String?
+  directionMode        AttendanceDeviceDirectionMode @default(BOTH)
+  status               AttendanceDeviceStatus        @default(PENDING)
+  isEnabled            Boolean                       @default(true)
+  healthStatus         AttendanceDeviceHealth        @default(UNKNOWN)
+  healthMessage        String?
+  lastSeenAt           DateTime?
+  lastSyncAt           DateTime?
+  lastSuccessfulSyncAt DateTime?
+  /// Live verification outcome reported by the gateway runtime.
+  verificationStatus        AttendanceDeviceVerificationStatus @default(UNVERIFIED)
+  lastVerifiedAt            DateTime?
+  lastVerificationError     String?
+  lastVerificationLatencyMs Int?
+  /// The serial the terminal actually reported. Kept apart from `serialNumber`,
+  /// which is what the administrator configured — a difference between the two
+  /// is the whole point of the check and must not be silently overwritten.
+  actualSerialNumber        String?
+  /// Device wall clock as reported, "YYYY-MM-DDTHH:mm:ss". No offset is implied.
+  lastDeviceTimeLocal       String?
+  lastClockDriftSeconds     Int?
+  /// Manual "sync now". The gateway compares the request timestamp with what it
+  /// has already acknowledged, so a missed poll cannot lose the request and a
+  /// repeated click cannot queue a second sync.
+  syncRequestedAt           DateTime?
+  syncRequestedById         String?
+  syncRequestAcknowledgedAt DateTime?
+  /// Optional per-device schedule; falls back to the integration's policy.
+  syncPolicyId         String?
+  /// Non-secret device configuration.
+  configuration        Json?
+  /// Capabilities as reported or resolved for this specific unit.
+  capabilities         Json?
+  createdAt            DateTime                      @default(now())
+  updatedAt            DateTime                      @updatedAt
+  createdById          String?
+  updatedById          String?
+  tenant               Tenant                        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  integration          AttendanceIntegration         @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  location             Location?                     @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  gateway              IntegrationGateway?           @relation(fields: [gatewayId], references: [id], onDelete: SetNull)
+  syncPolicy           AttendanceSyncPolicy?         @relation(fields: [syncPolicyId], references: [id], onDelete: SetNull)
+  scopes               AttendanceDeviceScope[]
+  externalIdentities   EmployeeExternalIdentity[]
+  externalUsers        ExternalDeviceUser[]
+  provisioningJobs     DeviceProvisioningJob[]
+  rawEvents            RawAttendanceEvent[]
+  runs                 IntegrationRun[]
+
+  @@unique([tenantId, name])
+  @@unique([tenantId, code])
+  @@unique([tenantId, integrationId, serialNumber])
+  @@index([tenantId])
+  @@index([tenantId, integrationId])
+  @@index([tenantId, locationId])
+  @@index([tenantId, gatewayId])
+  @@index([tenantId, status, isEnabled])
+  @@index([tenantId, healthStatus])
+  @@index([tenantId, verificationStatus])
+  @@index([tenantId, gatewayId, syncRequestedAt])
+}
+
+/// Optional eligibility restriction on a device.
+///
+/// The DEFAULT model is physical: an employee authorised for a work site may use
+/// any enabled device at that site. These rows are the exception mechanism, which
+/// is why scope lives here rather than as a departmentId column on the device.
+model AttendanceDeviceScope {
+  id             String                    @id @default(uuid())
+  tenantId       String
+  deviceId       String
+  scopeType      AttendanceDeviceScopeType
+  organizationId String?
+  businessUnitId String?
+  departmentId   String?
+  teamId         String?
+  employeeId     String?
+  /// false turns the row into an explicit exclusion.
+  isAllowed      Boolean                   @default(true)
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+  createdById    String?
+  updatedById    String?
+  tenant         Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  device         AttendanceDevice          @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  organization   Organization?             @relation(fields: [organizationId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  businessUnit   BusinessUnit?             @relation(fields: [businessUnitId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  department     Department?               @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  team           Team?                     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  employee       Employee?                 @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, deviceId])
+  @@index([tenantId, scopeType])
+  @@index([tenantId, organizationId])
+  @@index([tenantId, businessUnitId])
+  @@index([tenantId, departmentId])
+  @@index([tenantId, teamId])
+  @@index([tenantId, employeeId])
+}
+
+/// Which work sites an employee may attend at.
+///
+/// Employee.locationId stays the primary/home site for backward compatibility;
+/// these rows add the many-to-many capability without breaking anything that
+/// already reads that column.
+model EmployeeWorkSite {
+  id          String                 @id @default(uuid())
+  tenantId    String
+  employeeId  String
+  locationId  String
+  isPrimary   Boolean                @default(false)
+  status      EmployeeWorkSiteStatus @default(ACTIVE)
+  validFrom   DateTime?
+  validTo     DateTime?
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  createdById String?
+  updatedById String?
+  tenant      Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee    Employee               @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  location    Location               @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, employeeId, locationId])
+  @@index([tenantId, employeeId])
+  @@index([tenantId, locationId])
+  @@index([tenantId, status])
+}
+
+/// Links a DijiPeople employee to their identity on an external source.
+///
+/// Deliberately provider-neutral: external user id 25 on one device is not the
+/// same person as 25 on another, so uniqueness is scoped to the integration and,
+/// where relevant, the specific device.
+model EmployeeExternalIdentity {
+  id                   String                 @id @default(uuid())
+  tenantId             String
+  employeeId           String
+  provider             AttendanceProvider
+  integrationId        String
+  deviceId             String?
+  externalUserId       String
+  externalEmployeeCode String?
+  externalName         String?
+  status               ExternalIdentityStatus @default(ACTIVE)
+  validFrom            DateTime?
+  validTo              DateTime?
+  /// How the link was established (auto-match rule, manual, provisioning).
+  mappingSource        String?
+  metadata             Json?
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  createdById          String?
+  updatedById          String?
+  tenant               Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee             Employee               @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  integration          AttendanceIntegration  @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  device               AttendanceDevice?      @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, integrationId, deviceId, externalUserId])
+  @@index([tenantId, employeeId])
+  @@index([tenantId, integrationId])
+  @@index([tenantId, deviceId])
+  @@index([tenantId, status])
+  @@index([tenantId, externalUserId])
+}
+
+/// A user discovered on a device, before or independently of mapping.
+///
+/// Devices usually contain users that predate the integration, so discovery is
+/// stored first and mapped second. Unmapped users never block ingestion.
+model ExternalDeviceUser {
+  id                   String                    @id @default(uuid())
+  tenantId             String
+  integrationId        String
+  deviceId             String?
+  provider             AttendanceProvider
+  externalUserId       String
+  externalName         String?
+  externalEmployeeCode String?
+  /// Raw privilege value as reported. Semantics are vendor-specific and are not
+  /// interpreted here.
+  privilegeRaw         Int?
+  isEnabledOnDevice    Boolean?
+  mappingStatus        ExternalUserMappingStatus @default(UNMATCHED)
+  mappedEmployeeId     String?
+  /// Why the auto-matcher reached its conclusion, for the mapping UI.
+  matchReason          String?
+  conflictReason       String?
+  firstSeenAt          DateTime                  @default(now())
+  lastSeenAt           DateTime?
+  metadata             Json?
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
+  createdById          String?
+  updatedById          String?
+  tenant               Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  integration          AttendanceIntegration     @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  device               AttendanceDevice?         @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  mappedEmployee       Employee?                 @relation(fields: [mappedEmployeeId], references: [id], onDelete: SetNull)
+
+  @@unique([tenantId, integrationId, deviceId, externalUserId])
+  @@index([tenantId, integrationId])
+  @@index([tenantId, deviceId])
+  @@index([tenantId, mappingStatus])
+  @@index([tenantId, mappedEmployeeId])
+}
+
+/// One queued write of employee identity to one device.
+///
+/// Jobs are per device, so an employee targeting three devices produces three
+/// rows and a partial outcome (2 of 3 devices) is representable and retryable.
+model DeviceProvisioningJob {
+  id                   String                      @id @default(uuid())
+  tenantId             String
+  employeeId           String
+  deviceId             String
+  operation            DeviceProvisioningOperation
+  status               DeviceProvisioningStatus    @default(PENDING)
+  attemptCount         Int                         @default(0)
+  maxAttempts          Int                         @default(3)
+  nextRetryAt          DateTime?
+  requestedAt          DateTime                    @default(now())
+  startedAt            DateTime?
+  completedAt          DateTime?
+  errorCode            String?
+  errorMessage         String?
+  resultExternalUserId String?
+  /// Server-side claim/lease. A gateway takes a job by winning a conditional
+  /// UPDATE; the lease is what lets an abandoned job be retried after a gateway
+  /// crash without ever letting two gateways write the same change to one
+  /// terminal. Gateway-local state alone could not provide either guarantee.
+  claimedByGatewayId   String?
+  claimedAt            DateTime?
+  leaseExpiresAt       DateTime?
+  /// Groups the jobs produced by one triggering action across several devices.
+  correlationId        String?
+  /// Non-secret payload actually sent. Never contains biometric data or PINs.
+  payload              Json?
+  createdAt            DateTime                    @default(now())
+  updatedAt            DateTime                    @updatedAt
+  createdById          String?
+  updatedById          String?
+  tenant               Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee             Employee                    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  device               AttendanceDevice            @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status])
+  @@index([tenantId, employeeId])
+  @@index([tenantId, deviceId])
+  @@index([tenantId, correlationId])
+  @@index([tenantId, status, nextRetryAt])
+  @@index([tenantId, claimedByGatewayId])
+  @@index([status, leaseExpiresAt])
+}
+
+/// An immutable punch exactly as the source reported it.
+///
+/// Nothing here is interpreted: verification mode, punch state and work code are
+/// stored as raw vendor integers because their meaning is device- and
+/// firmware-specific. Present/Absent/Late/Overtime are derived later by the
+/// reconciliation engine, never written here.
+///
+/// Timestamps are device-local wall clock with no implied timezone;
+/// occurredAtUtc is only populated once a timezone has been resolved.
+model RawAttendanceEvent {
+  id                  String                        @id @default(uuid())
+  tenantId            String
+  integrationId       String?
+  deviceId            String?
+  provider            AttendanceProvider?
+  /// Vendor transaction id when the source exposes a stable one. The tested
+  /// ZKTeco K50 does not, which is why eventFingerprint exists.
+  externalEventId     String?
+  externalUserId      String?
+  employeeId          String?
+  /// Device wall clock, YYYY-MM-DDTHH:mm:ss. No offset is implied.
+  occurredAtLocal     String
+  occurredAtUtc       DateTime?
+  deviceTimezone      String?
+  verificationModeRaw Int?
+  punchStateRaw       Int?
+  workCodeRaw         Int?
+  captureSource       RawAttendanceCaptureSource
+  /// Reuses EmployeeWorkMode. DEVICE captures default to OFFICE because a
+  /// physical terminal punch is by definition an on-site presence. HYBRID is a
+  /// derived daily outcome and is never written to a raw event.
+  workMode            EmployeeWorkMode?
+  locationId          String?
+  /// SHA-256 over the identifying fields; the deduplication key when the source
+  /// has no stable transaction id.
+  eventFingerprint    String
+  /// Non-null source identity that scopes the uniqueness constraint.
+  ///
+  /// The fingerprint alone is not safe to key on. Slice 1 keyed uniqueness on
+  /// (tenantId, captureSource, eventFingerprint), which silently assumes every
+  /// connector folds device identity into its hash. The ZKTeco adapter does
+  /// (the serial is part of the hash), but nothing enforces it: a connector that
+  /// hashed only user + timestamp + punch fields would make two devices'
+  /// legitimate simultaneous punches collide, and the second would be dropped as
+  /// a duplicate — silent data loss.
+  ///
+  /// The ingestion service derives this server-side ("device:<id>",
+  /// "integration:<id>", "tenant") so source identity is always part of the key
+  /// no matter what the connector hashed.
+  dedupeScopeKey      String
+  mappingStatus       RawAttendanceMappingStatus    @default(UNMAPPED)
+  processingStatus    RawAttendanceProcessingStatus @default(PENDING)
+  processedAt         DateTime?
+  processingError     String?
+  receivedAt          DateTime                      @default(now())
+  /// Sanitised source payload. Never contains biometric data or credentials.
+  rawPayload          Json?
+  createdAt           DateTime                      @default(now())
+  tenant              Tenant                        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  integration         AttendanceIntegration?        @relation(fields: [integrationId], references: [id], onDelete: SetNull)
+  device              AttendanceDevice?             @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  employee            Employee?                     @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  location            Location?                     @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  sessionStarts        AttendanceSession[]          @relation("SessionStartEvent")
+  sessionEnds          AttendanceSession[]          @relation("SessionEndEvent")
+  attendanceExceptions AttendanceException[]
+  locationEvidence     AttendanceLocationEvidence[]
+
+  @@unique([tenantId, dedupeScopeKey, eventFingerprint])
+  @@unique([tenantId, integrationId, externalEventId])
+  @@index([tenantId, occurredAtLocal])
+  @@index([tenantId, deviceId, occurredAtLocal])
+  @@index([tenantId, employeeId, occurredAtLocal])
+  @@index([tenantId, processingStatus])
+  @@index([tenantId, mappingStatus])
+  @@index([tenantId, externalUserId])
+}
+
+/// One execution of an integration operation. Operational telemetry, not an
+/// employee-facing record, so it is kept out of the employee timeline.
+model IntegrationRun {
+  id               String                @id @default(uuid())
+  tenantId         String
+  integrationId    String
+  gatewayId        String?
+  deviceId         String?
+  runType          IntegrationRunType
+  status           IntegrationRunStatus  @default(RUNNING)
+  startedAt        DateTime              @default(now())
+  completedAt      DateTime?
+  durationMs       Int?
+  recordsRead      Int                   @default(0)
+  recordsNew       Int                   @default(0)
+  recordsDuplicate Int                   @default(0)
+  recordsMapped    Int                   @default(0)
+  recordsUnmapped  Int                   @default(0)
+  recordsFailed    Int                   @default(0)
+  errorCode        String?
+  errorMessage     String?
+  /// Correlates a run with the jobs or gateway request that triggered it.
+  correlationId    String?
+  triggeredById    String?
+  createdAt        DateTime              @default(now())
+  tenant           Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  integration      AttendanceIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  gateway          IntegrationGateway?   @relation(fields: [gatewayId], references: [id], onDelete: SetNull)
+  device           AttendanceDevice?     @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, integrationId, startedAt])
+  @@index([tenantId, deviceId, startedAt])
+  @@index([tenantId, status])
+  @@index([tenantId, runType])
+  @@index([tenantId, correlationId])
+}
+
+/// A downloadable DijiPeople client application or utility.
+///
+/// Product artefacts, not tenant data, so releases are global and access is
+/// governed by permission rather than tenancy. Deliberately generic: the gateway
+/// installer, the desktop agent and support utilities all live here.
+model ApplicationRelease {
+  id                      String                    @id @default(uuid())
+  appKey                  String
+  name                    String
+  description             String?
+  version                 String
+  platform                ApplicationPlatform
+  architecture            ApplicationArchitecture
+  channel                 ApplicationReleaseChannel @default(STABLE)
+  /// Storage reference resolved through StorageService; never a hard-coded URL.
+  storageKey              String?
+  /// Absolute URL for artefacts hosted outside DijiPeople storage.
+  externalUrl             String?
+  fileName                String?
+  fileSizeBytes           Int?
+  checksumSha256          String?
+  minimumSupportedVersion String?
+  releaseNotes            String?
+  /// Permission a user must hold to download this artefact.
+  requiredPermission      String?
+  isActive                Boolean                   @default(true)
+  publishedAt             DateTime?
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @updatedAt
+  createdById             String?
+  updatedById             String?
+
+  @@unique([appKey, version, platform, architecture, channel])
+  @@index([appKey, isActive])
+  @@index([appKey, channel, publishedAt])
+}
+
+/// A service credential belonging to one gateway.
+///
+/// Modelled as its own table rather than a column on IntegrationGateway so a
+/// gateway can hold several rows: that is what makes rotation possible (issue
+/// the new one, let the old overlap, then revoke) and what keeps a revoked
+/// credential's record for audit instead of overwriting it.
+///
+/// Only the SHA-256 of the secret is stored. The plaintext is returned exactly
+/// once, at registration, and cannot be recovered afterwards — a database read
+/// must not yield a working credential. This is a machine identity: no user
+/// password is involved anywhere in the gateway auth path.
+model IntegrationGatewayCredential {
+  id            String             @id @default(uuid())
+  tenantId      String
+  gatewayId     String
+  /// SHA-256 of the issued secret. Unique so a hash collision cannot alias.
+  secretHash    String             @unique
+  /// Non-secret leading segment, shown in the UI to identify which credential
+  /// a gateway is presenting without revealing it.
+  tokenPrefix   String
+  label         String?
+  expiresAt     DateTime?
+  lastUsedAt    DateTime?
+  lastIpAddress String?
+  revokedAt     DateTime?
+  revokedReason String?
+  createdAt     DateTime           @default(now())
+  createdById   String?
+  tenant        Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  gateway       IntegrationGateway @relation(fields: [gatewayId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, gatewayId])
+  @@index([gatewayId, revokedAt])
+  @@index([tenantId, revokedAt])
+}
+
+/// The reconciled attendance outcome for one employee on one WORK day.
+///
+/// WHY THIS EXISTS ALONGSIDE AttendanceEntry. AttendanceEntry is the public daily
+/// record — the dashboard, reports, timesheets, payroll preparation, the inbox
+/// and every export read it, and it stays. But it holds exactly one checkIn and
+/// one checkOut, so it structurally cannot describe a day worked in the office
+/// until 12:30 and remotely from 14:00. AttendanceDay is the reconciled record
+/// that can, and the reconciler projects its result back onto AttendanceEntry so
+/// nothing downstream has to change.
+///
+/// The boundary is deliberate and one-directional:
+///   RawAttendanceEvent -> AttendanceSession -> AttendanceDay -> AttendanceEntry
+/// AttendanceDay is authoritative for anything it has reconciled; AttendanceEntry
+/// remains authoritative for legacy rows the engine has never touched
+/// (reconciled = false), which is what lets a tenant adopt the engine without a
+/// retroactive rebuild of its history.
+model AttendanceDay {
+  id                      String                @id @default(uuid())
+  tenantId                String
+  employeeId              String
+  /// The SHIFT workday. An overnight 21:00->06:00 shift produces ONE row whose
+  /// punches straddle midnight, so this is not always the calendar date the
+  /// punches carry.
+  attendanceDate          DateTime
+  workScheduleId          String?
+  shiftTemplateId         String?
+  /// 1:1 projection target; the explicit seam between the two models.
+  attendanceEntryId       String?               @unique
+  status                  AttendanceDayStatus   @default(PENDING)
+  timezone                String?
+  scheduledMinutes        Int                   @default(0)
+  workedMinutes           Int                   @default(0)
+  officeMinutes           Int                   @default(0)
+  remoteMinutes           Int                   @default(0)
+  fieldMinutes            Int                   @default(0)
+  breakMinutes            Int                   @default(0)
+  lateMinutes             Int                   @default(0)
+  earlyDepartureMinutes   Int                   @default(0)
+  /// Arriving before the shift starts is not overtime. Tracked separately so a
+  /// policy can decide, rather than being silently folded into extra time.
+  earlyArrivalMinutes     Int                   @default(0)
+  /// Time worked beyond schedule. NOT payable overtime — that requires approval,
+  /// which is why the two are different columns.
+  extraMinutes            Int                   @default(0)
+  approvedOvertimeMinutes Int                   @default(0)
+  firstCheckInAt          DateTime?
+  lastCheckOutAt          DateTime?
+  /// Derived from the sessions actually worked. HYBRID is only ever produced
+  /// here, never asserted by a client or stored on a raw event.
+  derivedWorkMode         EmployeeWorkMode?
+  sessionCount            Int                   @default(0)
+  openExceptionCount      Int                   @default(0)
+  isHoliday               Boolean               @default(false)
+  isWeekend               Boolean               @default(false)
+  isOffDay                Boolean               @default(false)
+  onLeave                 Boolean               @default(false)
+  leaveMinutes            Int                   @default(0)
+  /// Once locked, reconciliation will not change derived state. Late events still
+  /// persist as raw evidence and raise an exception instead.
+  locked                  Boolean               @default(false)
+  lockedAt                DateTime?
+  lockReason              String?
+  lockedById              String?
+  /// Which build of the engine produced these numbers.
+  reconciliationVersion   Int                   @default(1)
+  lastReconciledAt        DateTime?
+  createdAt               DateTime              @default(now())
+  updatedAt               DateTime              @updatedAt
+  tenant                  Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee                Employee              @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  workSchedule            WorkSchedule?         @relation(fields: [workScheduleId], references: [id], onDelete: SetNull)
+  shiftTemplate           ShiftTemplate?        @relation(fields: [shiftTemplateId], references: [id], onDelete: SetNull)
+  attendanceEntry         AttendanceEntry?      @relation(fields: [attendanceEntryId], references: [id], onDelete: SetNull)
+  sessions                AttendanceSession[]
+  exceptions              AttendanceException[]
+  locationEvidence        AttendanceLocationEvidence[]
+
+  @@unique([tenantId, employeeId, attendanceDate])
+  @@index([tenantId, attendanceDate])
+  @@index([tenantId, status])
+  @@index([tenantId, locked])
+  @@index([tenantId, openExceptionCount])
+}
+
+/// One continuous work period. A day may hold several.
+///
+/// workMode is OFFICE, REMOTE or FIELD — never HYBRID. Hybrid describes a day
+/// made of sessions in different modes and is meaningless for a single period.
+model AttendanceSession {
+  id                  String                      @id @default(uuid())
+  tenantId            String
+  employeeId          String
+  attendanceDayId     String
+  /// Ordinal within the day. With attendanceDayId this is the natural key, so a
+  /// reconciliation rerun updates the same rows instead of appending new ones.
+  sequence            Int
+  startedAt           DateTime
+  endedAt             DateTime?
+  startSource         RawAttendanceCaptureSource
+  endSource           RawAttendanceCaptureSource?
+  startRawEventId     String?
+  endRawEventId       String?
+  workMode            EmployeeWorkMode            @default(OFFICE)
+  workSiteId          String?
+  startDeviceId       String?
+  endDeviceId         String?
+  status              AttendanceSessionStatus     @default(CLOSED)
+  durationMinutes     Int?
+  isAdjusted          Boolean                     @default(false)
+  adjustmentSource    String?
+  adjustmentRequestId String?
+  isBreak             Boolean                     @default(false)
+  notes               String?
+  createdAt           DateTime                    @default(now())
+  updatedAt           DateTime                    @updatedAt
+  tenant              Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee            Employee                    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  attendanceDay       AttendanceDay               @relation(fields: [attendanceDayId], references: [id], onDelete: Cascade)
+  workSite            Location?                   @relation(fields: [workSiteId], references: [id], onDelete: SetNull)
+  startRawEvent       RawAttendanceEvent?         @relation("SessionStartEvent", fields: [startRawEventId], references: [id], onDelete: SetNull)
+  endRawEvent         RawAttendanceEvent?         @relation("SessionEndEvent", fields: [endRawEventId], references: [id], onDelete: SetNull)
+
+  @@unique([attendanceDayId, sequence])
+  @@index([tenantId, employeeId, startedAt])
+  @@index([tenantId, workSiteId])
+  @@index([tenantId, status])
+}
+
+/// Something the engine could not resolve on its own.
+///
+/// Exceptions are never deleted when they stop applying — they are RESOLVED with
+/// a reason and a timestamp, because "this day once had a missing checkout" is
+/// part of the audit trail for the attendance that was eventually paid.
+model AttendanceException {
+  id                  String                       @id @default(uuid())
+  tenantId            String
+  employeeId          String
+  attendanceDayId     String?
+  attendanceDate      DateTime
+  type                AttendanceExceptionType
+  status              AttendanceExceptionStatus    @default(OPEN)
+  severity            AttendanceExceptionSeverity  @default(WARNING)
+  /// Stable hash of (type + what it is about). Re-running reconciliation updates
+  /// the same row rather than stacking a duplicate on every cycle.
+  dedupeKey           String
+  message             String
+  /// Structured context the workspace filters and acts on.
+  detail              Json?
+  rawEventId          String?
+  sessionId           String?
+  workSiteId          String?
+  deviceId            String?
+  detectedAt          DateTime                     @default(now())
+  resolvedAt          DateTime?
+  resolvedById        String?
+  resolutionNote      String?
+  /// Whether a human decided, or reconciliation found the condition gone.
+  resolutionSource    String?
+  correctionRequestId String?
+  createdAt           DateTime                     @default(now())
+  updatedAt           DateTime                     @updatedAt
+  tenant              Tenant                       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee            Employee                     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  attendanceDay       AttendanceDay?               @relation(fields: [attendanceDayId], references: [id], onDelete: SetNull)
+  rawEvent            RawAttendanceEvent?          @relation(fields: [rawEventId], references: [id], onDelete: SetNull)
+  workSite            Location?                    @relation(fields: [workSiteId], references: [id], onDelete: SetNull)
+  correctionRequest   AttendanceCorrectionRequest? @relation(fields: [correctionRequestId], references: [id], onDelete: SetNull)
+
+  @@unique([tenantId, dedupeKey])
+  @@index([tenantId, status, type])
+  @@index([tenantId, employeeId, attendanceDate])
+  @@index([tenantId, attendanceDayId])
+  @@index([tenantId, attendanceDate, status])
+}
+
+/// Queued reconciliation work.
+///
+/// Reconciliation is deliberately NOT run inside the gateway ingestion request: a
+/// device uploading 500 punches must not wait on shift, leave and overtime
+/// calculation for 40 employees, and a slow response there costs a retry of the
+/// whole batch.
+model AttendanceReconciliationJob {
+  id             String                            @id @default(uuid())
+  tenantId       String
+  employeeId     String
+  attendanceDate DateTime
+  reason         String
+  status         AttendanceReconciliationJobStatus @default(PENDING)
+  attemptCount   Int                               @default(0)
+  maxAttempts    Int                               @default(5)
+  nextAttemptAt  DateTime?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  lastError      String?
+  requestedById  String?
+  createdAt      DateTime                          @default(now())
+  updatedAt      DateTime                          @updatedAt
+  tenant         Tenant                            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee       Employee                          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  // "At most one outstanding job per employee/day" is a PARTIAL unique index over
+  // PENDING/RUNNING only, created in the migration. Prisma cannot express a
+  // filtered unique index, so it is deliberately absent here and the enqueue path
+  // is written to tolerate the constraint firing.
+  @@index([status, nextAttemptAt])
+  @@index([tenantId, status])
+  @@index([tenantId, employeeId, attendanceDate])
+}
+
+/// Why one location-validated attendance action was accepted or refused.
+///
+/// WHY THIS IS ITS OWN MODEL. Coordinates were already persisted on
+/// AttendanceEntry, and they stay there — this does not duplicate them for the
+/// sake of it. What was missing is the DECISION: which work site matched, how
+/// far away the person was, and — critically — the radius and accuracy limit
+/// that applied at that moment. Those last two are configuration that changes,
+/// so without recording them a past decision can only be re-guessed against
+/// today's settings, not explained.
+///
+/// It is a separate table rather than more columns on AttendanceEntry because
+/// that record is read by the dashboard, reports, exports, timesheets and
+/// payroll preparation. Precise coordinates should have the narrowest practical
+/// permission, and the cheapest way to guarantee that is to keep them out of the
+/// row everything already selects.
+///
+/// A day can hold several of these: a check-in, a check-out, and more of each on
+/// a hybrid day, plus refused attempts — which are kept deliberately, because
+/// "the system said no and here is why" is exactly what a disputed attendance
+/// claim needs.
+model AttendanceLocationEvidence {
+  id                           String              @id @default(uuid())
+  tenantId                     String
+  employeeId                   String
+  /// The work day this decision belongs to.
+  attendanceDate               DateTime
+  /// When the device reported the position, not when the server processed it.
+  capturedAt                   DateTime
+  /// CHECK_IN or CHECK_OUT.
+  action                       String
+  /// WEB or MOBILE. Device punches carry no coordinates to evaluate.
+  captureSource                String
+
+  /// The reported position. RESTRICTED — see the class remarks.
+  latitude                     Decimal?            @db.Decimal(10, 7)
+  longitude                    Decimal?            @db.Decimal(10, 7)
+  accuracyMeters               Int?
+
+  /// The decision, and the policy it was measured against.
+  matchedWorkSiteId            String?
+  distanceMeters               Int?
+  insideGeofence               Boolean?
+  geofenceRadiusMeters         Int?
+  effectiveAccuracyLimitMeters Int?
+
+  /// ALLOW, BLOCK or REQUIRE_FALLBACK_REQUEST, and the stable reason code.
+  outcome                      String
+  reasonCode                   String
+  resolvedWorkMode             EmployeeWorkMode?
+
+  ipAddress                    String?
+  userAgent                    String?
+
+  rawEventId                   String?
+  attendanceDayId              String?
+  createdAt                    DateTime            @default(now())
+  tenant                       Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  employee                     Employee            @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  matchedWorkSite              Location?           @relation(fields: [matchedWorkSiteId], references: [id], onDelete: SetNull)
+  rawEvent                     RawAttendanceEvent? @relation(fields: [rawEventId], references: [id], onDelete: SetNull)
+  attendanceDay                AttendanceDay?      @relation(fields: [attendanceDayId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, employeeId, attendanceDate])
+  @@index([tenantId, attendanceDayId])
+  @@index([tenantId, outcome])
+  @@index([tenantId, employeeId, capturedAt])
 }

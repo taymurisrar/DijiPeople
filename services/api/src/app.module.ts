@@ -15,6 +15,9 @@ import { PrismaModule } from './common/prisma/prisma.module';
 import { RequestContextModule } from './common/request-context/request-context.module';
 import { StorageModule } from './common/storage/storage.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
+import { AttendanceIntegrationsModule } from './modules/attendance-integrations/attendance-integrations.module';
+import { AttendanceEngineModule } from './modules/attendance-engine/attendance-engine.module';
+import { AppReleasesModule } from './modules/app-releases/app-releases.module';
 import { ApprovalsModule } from './modules/approvals/approvals.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -81,6 +84,9 @@ import { SupportCasesModule } from './modules/support-cases/support-cases.module
     RequestContextModule,
     StorageModule,
     AttendanceModule,
+    AttendanceIntegrationsModule,
+    AttendanceEngineModule,
+    AppReleasesModule,
     ApprovalsModule,
     AgentModule,
     AuditModule,

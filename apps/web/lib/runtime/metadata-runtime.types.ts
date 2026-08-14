@@ -212,6 +212,14 @@ export interface FormSectionMetadata {
   readonly id: string;
   readonly tabKey?: string;
   readonly label: string;
+  /*
+   * What the TAB should be called, when that differs from this section's own
+   * heading. Tab labels are otherwise taken from the first section on the tab,
+   * which breaks down for a tab that groups several unrelated sections: naming
+   * such a tab forced its first section to carry the group's name as a heading.
+   * Only the first section on a tab is consulted.
+   */
+  readonly tabLabel?: string;
   readonly order: number;
   readonly layout: FormSectionLayout;
   readonly columns?: FormColumnCount;

@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { ApiRequestError, apiRequestJson } from "@/lib/server-api";
 import { getSessionUser } from "@/lib/auth";
 import { hasElevatedTenantRole } from "@/lib/elevated-roles";
@@ -178,6 +180,23 @@ export default async function TeamAttendancePage({
             currentView={view}
             queryString={queryString}
           />
+          {/*
+            The reconciled side of the same days. Kept as links from here rather
+            than as another grid on this page: this workspace manages attendance
+            records, and those two review what the engine derived from them.
+          */}
+          <Link
+            className="rounded-2xl border border-border px-5 py-3 text-sm font-medium text-muted transition hover:border-accent/30 hover:text-foreground"
+            href="/attendance/daily"
+          >
+            Daily review
+          </Link>
+          <Link
+            className="rounded-2xl border border-border px-5 py-3 text-sm font-medium text-muted transition hover:border-accent/30 hover:text-foreground"
+            href="/attendance/exceptions"
+          >
+            Exceptions
+          </Link>
           {canExportAttendance ? (
             <a
               className="rounded-2xl border border-border px-5 py-3 text-sm font-medium text-muted transition hover:border-accent/30 hover:text-foreground"

@@ -11,6 +11,11 @@ import {
 import { AttendanceService } from './attendance.service';
 
 describe('AttendanceService', () => {
+  let webAttendanceService: {
+    evaluate: jest.Mock;
+    recordWebPunch: jest.Mock;
+    recordLocationEvidence: jest.Mock;
+  };
   let service: AttendanceService;
   let attendanceRepository: {
     findOpenAttendanceEntry: jest.Mock;
@@ -276,6 +281,33 @@ describe('AttendanceService', () => {
       leaveRequest: { findFirst: jest.fn().mockResolvedValue(null) },
     };
 
+    // Allows every punch by default so these tests keep exercising the existing
+    // location-capture and shift rules. The geofence and work-mode decisions the
+    // real service makes have their own suites, where the outcome is the subject
+    // rather than a precondition.
+    webAttendanceService = {
+      evaluate: jest.fn().mockResolvedValue({
+        outcome: 'ALLOW',
+        workMode: 'OFFICE',
+        workSiteId: 'location-1',
+        workSiteName: 'Head office',
+        reasonCode: 'OFFICE_WEB_ALLOWED',
+        message: null,
+        evidence: {
+          insideGeofence: true,
+          distanceMeters: 10,
+          accuracyMeters: 12,
+          accuracyLimitMeters: 100,
+          geofenceRadiusMeters: 100,
+          nearestWorkSiteId: null,
+          nearestWorkSiteName: null,
+          evaluatedAt: new Date().toISOString(),
+        },
+      }),
+      recordWebPunch: jest.fn().mockResolvedValue(undefined),
+      recordLocationEvidence: jest.fn().mockResolvedValue(undefined),
+    };
+
     service = new AttendanceService(
       attendanceRepository as never,
       employeesRepository as never,
@@ -284,6 +316,11 @@ describe('AttendanceService', () => {
       auditService as never,
       notificationsService as never,
       prisma as never,
+      webAttendanceService as never,
+      {
+        enqueue: jest.fn().mockResolvedValue(undefined),
+        enqueueMany: jest.fn().mockResolvedValue(undefined),
+      } as never,
     );
   });
 
@@ -467,6 +504,25 @@ describe('AttendanceService', () => {
 
   it('captures Hybrid check-in coordinates, accuracy, and timestamp', async () => {
     const capturedAt = new Date().toISOString();
+    webAttendanceService.evaluate.mockResolvedValueOnce({
+      outcome: 'ALLOW',
+      workMode: 'REMOTE',
+      workSiteId: null,
+      workSiteName: null,
+      reasonCode: 'REMOTE_WORK_ALLOWED',
+      message: null,
+      evidence: {
+        insideGeofence: false,
+        distanceMeters: 4200,
+        accuracyMeters: 12,
+        accuracyLimitMeters: 100,
+        geofenceRadiusMeters: 100,
+        nearestWorkSiteId: 'location-1',
+        nearestWorkSiteName: 'Head office',
+        evaluatedAt: new Date().toISOString(),
+      },
+    });
+
     await service.checkIn(currentUser, {
       attendanceMode: AttendanceMode.HYBRID,
       remoteLatitude: 24.7136,
@@ -488,6 +544,25 @@ describe('AttendanceService', () => {
   });
 
   it('rejects a stale device location capture', async () => {
+    webAttendanceService.evaluate.mockResolvedValueOnce({
+      outcome: 'ALLOW',
+      workMode: 'REMOTE',
+      workSiteId: null,
+      workSiteName: null,
+      reasonCode: 'REMOTE_WORK_ALLOWED',
+      message: null,
+      evidence: {
+        insideGeofence: false,
+        distanceMeters: 4200,
+        accuracyMeters: 12,
+        accuracyLimitMeters: 100,
+        geofenceRadiusMeters: 100,
+        nearestWorkSiteId: 'location-1',
+        nearestWorkSiteName: 'Head office',
+        evaluatedAt: new Date().toISOString(),
+      },
+    });
+
     await expect(
       service.checkIn(currentUser, {
         attendanceMode: AttendanceMode.REMOTE,

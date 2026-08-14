@@ -658,7 +658,9 @@ function buildConfiguredFieldTabs(
       ? Math.min(existing.order, section.order)
       : section.order;
     tabs.set(tabKey, {
-      label: existing?.label ?? labelForConfiguredTab(tabKey, section.label),
+      label:
+        existing?.label ??
+        labelForConfiguredTab(tabKey, section.tabLabel ?? section.label),
       order: nextOrder,
       sectionIds: [...(existing?.sectionIds ?? []), section.id],
     });

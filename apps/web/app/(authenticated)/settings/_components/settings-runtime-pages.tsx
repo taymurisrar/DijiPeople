@@ -29,6 +29,8 @@ import {
   TaxSlabManager,
 } from "./payroll-configuration-tools";
 import { TimesheetPolicyManager } from "./timesheet-policy-manager";
+import { WorkSiteRecordPage } from "./work-site/work-site-record-page";
+import type { WorkSiteReadinessPayload } from "../_lib/work-site-configuration";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -254,6 +256,30 @@ export async function SettingsRuntimeRecord({
           ? primaryName
           : fallbackTitle;
 
+  /*
+   * Work sites get a purpose-built record page. It renders the same runtime
+   * record page and the same API, and only substitutes bodies for the sections
+   * a field grid cannot express — the map, the inheritance switches, readiness.
+   */
+  if (adapter.key === "locations") {
+    const readiness = recordId ? await loadWorkSiteReadiness(recordId) : null;
+    return (
+      <SettingsShell title={title} description={item.description}>
+        <WorkSiteRecordPage
+          activeForm={activeForm}
+          mode={mode}
+          readiness={readiness?.payload ?? null}
+          readinessError={readiness?.error ?? null}
+          record={record}
+          recordId={recordId}
+          runtime={runtime}
+          spec={spec}
+          title={title}
+        />
+      </SettingsShell>
+    );
+  }
+
   return (
     <SettingsShell title={title} description={item.description}>
       <StandardModuleRecordPage
@@ -269,6 +295,30 @@ export async function SettingsRuntimeRecord({
       />
     </SettingsShell>
   );
+}
+
+/**
+ * Operational context for a work site.
+ *
+ * Failure is not fatal: the configuration form must stay usable when the
+ * readiness read is unavailable, so the error is surfaced in the summary card
+ * rather than taking the page down.
+ */
+async function loadWorkSiteReadiness(recordId: string) {
+  try {
+    const payload = await apiRequestJson<WorkSiteReadinessPayload>(
+      `/integrations/attendance/work-sites/${encodeURIComponent(recordId)}/readiness`,
+    );
+    return { payload, error: null };
+  } catch (error) {
+    return {
+      payload: null,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Operational summary could not be loaded for this work site.",
+    };
+  }
 }
 
 async function loadSettingsRecordResponse(

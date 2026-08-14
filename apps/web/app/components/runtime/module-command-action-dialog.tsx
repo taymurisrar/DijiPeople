@@ -14,6 +14,7 @@ import {
   type LocationCaptureResult,
 } from "@/lib/location/location-capture";
 import type { CommandPayloadSchema } from "@/lib/runtime/command-payload-schema";
+import { commandContextSubtitle } from "@/lib/runtime/command-context-labels";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -148,10 +149,8 @@ export function ModuleCommandActionDialog({
             <h2 className="text-lg font-semibold text-foreground">
               {schema.title}
             </h2>
-            {readString(context, "resolvedShift.name") ? (
-              <p className="mt-1 text-xs text-muted">
-                Shift: {readString(context, "resolvedShift.name")}
-              </p>
+            {contextSubtitle(context) ? (
+              <p className="mt-1 text-xs text-muted">{contextSubtitle(context)}</p>
             ) : null}
           </div>
           <button
@@ -243,7 +242,7 @@ export function ModuleCommandActionDialog({
           {error ? <p className="text-sm text-danger">{error}</p> : null}
           <div className="flex justify-end gap-2">
             <button
-              className="rounded-md border border-border px-4 py-2 text-sm font-medium"
+              className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground"
               onClick={onCancel}
               type="button"
             >
@@ -257,7 +256,13 @@ export function ModuleCommandActionDialog({
               onClick={() => void submit()}
               type="button"
             >
-              {loading ? "Working..." : schema.submitLabel}
+              {/*
+               * Falls back to the command title rather than rendering an empty
+               * button. A schema with no `submitLabel` produced a blank, fully
+               * clickable control beside Cancel - an invisible actionable button
+               * is worse than a generically labelled one.
+               */}
+              {loading ? "Working..." : schema.submitLabel || schema.title || "Confirm"}
             </button>
           </div>
         </div>
@@ -348,6 +353,19 @@ function requiresGeolocation(
   context: JsonRecord,
 ) {
   if (!schema.geolocation) return false;
+
+  /*
+   * `always` exists because the old rule was circular: it captured a position
+   * only when the work mode said REMOTE, while the work mode is precisely what
+   * the position is needed to decide. An office employee therefore checked in
+   * with no coordinates at all, and the server had nothing to test the
+   * device-required rule against.
+   */
+  if (schema.geolocation.always) return true;
+
+  const requiredWhen = schema.geolocation.requiredWhen;
+  if (!requiredWhen) return false;
+
   const mode =
     values.attendanceMode ||
     readString(context, "todayAttendance.attendanceMode") ||
@@ -359,6 +377,19 @@ function requiresGeolocation(
       : readBoolean(context, "policy.captureLocationOnCheckOut", false);
 
   return Boolean(commandRequiresCapture && mode && modes.includes(mode));
+}
+
+/**
+ * The context line, built from the labelling rules in
+ * `lib/runtime/command-context-labels.ts`. A shift is only ever called a shift.
+ */
+function contextSubtitle(context: JsonRecord) {
+  return commandContextSubtitle({
+    shiftName: readString(context, "resolvedShift.name"),
+    workSiteName:
+      readString(context, "todayAttendance.officeLocation.name") ||
+      readString(context, "primaryWorkSite.name"),
+  });
 }
 
 function readPath(source: JsonRecord, path: string): unknown {

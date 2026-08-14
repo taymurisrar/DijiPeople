@@ -71,12 +71,152 @@ export type AttendanceSettingsResolved = {
   locationRetryAttempts: number;
   highAccuracyLocation: boolean;
   maxAllowedAccuracyMeters: number | null;
+  /// Default geofence radius. Already in the settings catalogue and already
+  /// labelled "Default Geofence Radius"; surfaced here so the attendance engine
+  /// reads the tenant's configured value instead of carrying its own constant.
+  maximumAllowedDistanceMeters: number;
   captureLocationOnCheckIn: boolean;
   captureLocationOnCheckOut: boolean;
   storeIpAddress: boolean;
   storeUserAgent: boolean;
   standardWorkHoursPerDay: number;
+
+  // --- Attendance Integration Platform -------------------------------------
+  /// Master switch. Everything below is inert while this is false.
+  integrationEnabled: boolean;
+  defaultSyncMode: AttendanceSyncModeSetting;
+  defaultDevicePollIntervalMinutes: number;
+  /// Tenant-level floor. A connector may declare a stricter one; the larger of
+  /// the two is what the scheduler must honour.
+  minimumLegacyPollIntervalMinutes: number;
+  /// Device clock drift thresholds. Reported, never corrected — DijiPeople does
+  /// not set a customer terminal's clock.
+  deviceClockDriftWarningSeconds: number;
+  deviceClockDriftCriticalSeconds: number;
+  /// Gateway runtime cadence, delivered with the gateway's configuration.
+  gatewayHeartbeatIntervalSeconds: number;
+  gatewayConfigRefreshSeconds: number;
+  gatewayUploadBatchSize: number;
+  webAttendancePolicy: WebAttendancePolicySetting;
+  officeWebAttendancePolicy: WebAttendancePolicySetting;
+  webFallbackPolicy: WebFallbackPolicySetting;
+  deviceProvisioningEnabled: boolean;
+  automaticEmployeeProvisioning: boolean;
+  automaticEmployeeDeactivation: boolean;
+  provisioningMaxRetries: number;
+  provisioningRetryIntervalMinutes: number;
+  attendanceConflictPolicy: AttendanceConflictPolicySetting;
+  hybridAttendancePolicy: HybridAttendancePolicySetting;
+
+  // --- Attendance Engine (reconciliation) ----------------------------------
+  /// Empty string means the engine has no cutover date and reconciles anything
+  /// it is asked to. Parsed by the engine, not here, so an unparseable value is
+  /// reported where it can be acted on.
+  attendanceEngineEffectiveFrom: string;
+  semanticDuplicateWindowSeconds: number;
+  workModeTransitionPolicy: WorkModeTransitionPolicySetting;
+  autoCloseMissingCheckoutAtShiftEnd: boolean;
+  crossSiteAttendancePolicy: CrossSiteAttendancePolicySetting;
+  defaultPunchDirectionStrategy: PunchDirectionStrategySetting;
+  treatSessionGapsAsBreaks: boolean;
+  overtimeMinimumMinutes: number;
+  impossibleTravelDetectionEnabled: boolean;
+  impossibleTravelMinimumDistanceKm: number;
+  impossibleTravelMaximumSpeedKph: number;
 };
+
+export type WorkModeTransitionPolicySetting =
+  | 'REQUIRE_EXPLICIT_CHECKOUT'
+  | 'AUTO_CLOSE_PREVIOUS'
+  | 'CREATE_EXCEPTION';
+
+export type CrossSiteAttendancePolicySetting =
+  | 'ALLOWED'
+  | 'WARNING'
+  | 'APPROVAL_REQUIRED'
+  | 'BLOCKED';
+
+export type PunchDirectionStrategySetting =
+  | 'DEVICE_STATE'
+  | 'DEVICE_DIRECTION'
+  | 'ALTERNATING'
+  | 'FIRST_IN_LAST_OUT'
+  | 'RULE_ENGINE';
+
+const WORK_MODE_TRANSITION_POLICIES = [
+  'REQUIRE_EXPLICIT_CHECKOUT',
+  'AUTO_CLOSE_PREVIOUS',
+  'CREATE_EXCEPTION',
+] as const;
+
+const CROSS_SITE_ATTENDANCE_POLICIES = [
+  'ALLOWED',
+  'WARNING',
+  'APPROVAL_REQUIRED',
+  'BLOCKED',
+] as const;
+
+const PUNCH_DIRECTION_STRATEGIES = [
+  'DEVICE_STATE',
+  'DEVICE_DIRECTION',
+  'ALTERNATING',
+  'FIRST_IN_LAST_OUT',
+  'RULE_ENGINE',
+] as const;
+
+export type AttendanceSyncModeSetting = 'PUSH' | 'POLL' | 'MANUAL';
+
+export type WebAttendancePolicySetting =
+  | 'ALLOWED'
+  | 'DISALLOWED'
+  | 'FALLBACK_ONLY';
+
+export type WebFallbackPolicySetting =
+  | 'ALLOW_WHEN_DEVICE_UNAVAILABLE'
+  | 'NEVER'
+  | 'ALWAYS';
+
+export type AttendanceConflictPolicySetting =
+  | 'PREFER_DEVICE'
+  | 'PREFER_WEB'
+  | 'PREFER_EARLIEST'
+  | 'FLAG_FOR_REVIEW';
+
+export type HybridAttendancePolicySetting =
+  | 'DERIVE_FROM_SESSIONS'
+  | 'REQUIRE_DEVICE_FOR_OFFICE'
+  | 'DISABLED';
+
+const ATTENDANCE_SYNC_MODES = [
+  'PUSH',
+  'POLL',
+  'MANUAL',
+] as const satisfies readonly AttendanceSyncModeSetting[];
+
+const WEB_ATTENDANCE_POLICIES = [
+  'ALLOWED',
+  'DISALLOWED',
+  'FALLBACK_ONLY',
+] as const satisfies readonly WebAttendancePolicySetting[];
+
+const WEB_FALLBACK_POLICIES = [
+  'ALLOW_WHEN_DEVICE_UNAVAILABLE',
+  'NEVER',
+  'ALWAYS',
+] as const satisfies readonly WebFallbackPolicySetting[];
+
+const ATTENDANCE_CONFLICT_POLICIES = [
+  'PREFER_DEVICE',
+  'PREFER_WEB',
+  'PREFER_EARLIEST',
+  'FLAG_FOR_REVIEW',
+] as const satisfies readonly AttendanceConflictPolicySetting[];
+
+const HYBRID_ATTENDANCE_POLICIES = [
+  'DERIVE_FROM_SESSIONS',
+  'REQUIRE_DEVICE_FOR_OFFICE',
+  'DISABLED',
+] as const satisfies readonly HybridAttendancePolicySetting[];
 
 export type TimesheetSettingsResolved = {
   timesheetPeriodType: 'monthly' | 'weekly' | 'biweekly';
@@ -537,6 +677,14 @@ export class TenantSettingsResolverService {
         category.maxAllowedAccuracyMeters === ''
           ? null
           : numberValue(category.maxAllowedAccuracyMeters, 0, 0, 100000),
+      // Floored at 5m: below that a geofence is a point and nobody could ever
+      // register as inside it.
+      maximumAllowedDistanceMeters: numberValue(
+        category.maximumAllowedDistanceMeters,
+        100,
+        5,
+        100000,
+      ),
       captureLocationOnCheckIn: booleanValue(
         category.captureLocationOnCheckIn,
         locationCaptureRequired,
@@ -552,6 +700,173 @@ export class TenantSettingsResolverService {
         8,
         1,
         24,
+      ),
+
+      // --- Attendance Integration Platform ---------------------------------
+      integrationEnabled: booleanValue(category.integrationEnabled, false),
+      defaultSyncMode: enumStringValue(
+        category.defaultSyncMode,
+        ATTENDANCE_SYNC_MODES,
+        'POLL',
+      ),
+      // The lower bound is 5 rather than 1: no supported connector benefits
+      // from sub-5-minute polling, and the per-connector floor clamps further.
+      defaultDevicePollIntervalMinutes: numberValue(
+        category.defaultDevicePollIntervalMinutes,
+        30,
+        5,
+        10080,
+      ),
+      minimumLegacyPollIntervalMinutes: numberValue(
+        category.minimumLegacyPollIntervalMinutes,
+        15,
+        5,
+        10080,
+      ),
+      deviceClockDriftWarningSeconds: numberValue(
+        category.deviceClockDriftWarningSeconds,
+        60,
+        5,
+        86400,
+      ),
+      deviceClockDriftCriticalSeconds: numberValue(
+        category.deviceClockDriftCriticalSeconds,
+        300,
+        5,
+        86400,
+      ),
+      // Floor of 15s: a faster heartbeat tells the server nothing new and only
+      // multiplies requests from every gateway a tenant runs.
+      gatewayHeartbeatIntervalSeconds: numberValue(
+        category.gatewayHeartbeatIntervalSeconds,
+        60,
+        15,
+        3600,
+      ),
+      gatewayConfigRefreshSeconds: numberValue(
+        category.gatewayConfigRefreshSeconds,
+        300,
+        30,
+        86400,
+      ),
+      // Capped at the ingestion endpoint's own per-request limit, so a tenant
+      // cannot configure a batch the server would reject outright.
+      gatewayUploadBatchSize: numberValue(
+        category.gatewayUploadBatchSize,
+        500,
+        25,
+        5000,
+      ),
+      webAttendancePolicy: enumStringValue(
+        category.webAttendancePolicy,
+        WEB_ATTENDANCE_POLICIES,
+        'ALLOWED',
+      ),
+      officeWebAttendancePolicy: enumStringValue(
+        category.officeWebAttendancePolicy,
+        WEB_ATTENDANCE_POLICIES,
+        'ALLOWED',
+      ),
+      webFallbackPolicy: enumStringValue(
+        category.webFallbackPolicy,
+        WEB_FALLBACK_POLICIES,
+        'ALLOW_WHEN_DEVICE_UNAVAILABLE',
+      ),
+      deviceProvisioningEnabled: booleanValue(
+        category.deviceProvisioningEnabled,
+        false,
+      ),
+      automaticEmployeeProvisioning: booleanValue(
+        category.automaticEmployeeProvisioning,
+        false,
+      ),
+      automaticEmployeeDeactivation: booleanValue(
+        category.automaticEmployeeDeactivation,
+        false,
+      ),
+      provisioningMaxRetries: numberValue(
+        category.provisioningMaxRetries,
+        3,
+        0,
+        10,
+      ),
+      provisioningRetryIntervalMinutes: numberValue(
+        category.provisioningRetryIntervalMinutes,
+        15,
+        1,
+        1440,
+      ),
+
+      // --- Attendance Engine (reconciliation) ------------------------------
+      attendanceEngineEffectiveFrom: stringValue(
+        category.attendanceEngineEffectiveFrom,
+        '',
+      ),
+      // Zero disables semantic de-duplication entirely, which is a legitimate
+      // choice for a source that never double-fires.
+      semanticDuplicateWindowSeconds: numberValue(
+        category.semanticDuplicateWindowSeconds,
+        30,
+        0,
+        3600,
+      ),
+      workModeTransitionPolicy: enumStringValue(
+        category.workModeTransitionPolicy,
+        WORK_MODE_TRANSITION_POLICIES,
+        'CREATE_EXCEPTION',
+      ),
+      autoCloseMissingCheckoutAtShiftEnd: booleanValue(
+        category.autoCloseMissingCheckoutAtShiftEnd,
+        false,
+      ),
+      crossSiteAttendancePolicy: enumStringValue(
+        category.crossSiteAttendancePolicy,
+        CROSS_SITE_ATTENDANCE_POLICIES,
+        'WARNING',
+      ),
+      defaultPunchDirectionStrategy: enumStringValue(
+        category.defaultPunchDirectionStrategy,
+        PUNCH_DIRECTION_STRATEGIES,
+        'ALTERNATING',
+      ),
+      treatSessionGapsAsBreaks: booleanValue(
+        category.treatSessionGapsAsBreaks,
+        false,
+      ),
+      overtimeMinimumMinutes: numberValue(
+        category.overtimeMinimumMinutes,
+        30,
+        0,
+        1440,
+      ),
+      impossibleTravelDetectionEnabled: booleanValue(
+        category.impossibleTravelDetectionEnabled,
+        true,
+      ),
+      // Floored at 1km: a smaller threshold would turn ordinary GPS scatter into
+      // a stream of alerts nobody would keep reading.
+      impossibleTravelMinimumDistanceKm: numberValue(
+        category.impossibleTravelMinimumDistanceKm,
+        100,
+        1,
+        20000,
+      ),
+      // Floored at 50kph so the setting cannot be tuned down to flag a car.
+      impossibleTravelMaximumSpeedKph: numberValue(
+        category.impossibleTravelMaximumSpeedKph,
+        500,
+        50,
+        5000,
+      ),
+      attendanceConflictPolicy: enumStringValue(
+        category.attendanceConflictPolicy,
+        ATTENDANCE_CONFLICT_POLICIES,
+        'PREFER_DEVICE',
+      ),
+      hybridAttendancePolicy: enumStringValue(
+        category.hybridAttendancePolicy,
+        HYBRID_ATTENDANCE_POLICIES,
+        'DERIVE_FROM_SESSIONS',
       ),
     };
   }

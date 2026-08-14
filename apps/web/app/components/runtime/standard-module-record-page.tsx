@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { ModuleRecordPage } from "./module-record-page";
 import type { LookupOption } from "@/app/components/ui/form-control";
+import type { RuntimeTabContent } from "@/app/components/metadata/runtime-metadata-form-renderer";
 import type {
   FieldMetadata,
   FormMetadata,
@@ -25,12 +26,17 @@ export function StandardModuleRecordPage({
   spec,
   formSlot,
   tabContent,
+  sectionContent,
+  tabsSlot,
   title,
   dataAdapter,
 }: {
   readonly activeForm: FormMetadata | null;
   readonly formSlot?: ReactNode;
-  readonly tabContent?: Readonly<Record<string, ReactNode>>;
+  readonly tabContent?: Readonly<Record<string, RuntimeTabContent>>;
+  readonly sectionContent?: Readonly<Record<string, RuntimeTabContent>>;
+  /** Rendered between the record header and the form, on every tab. */
+  readonly tabsSlot?: ReactNode;
   readonly lookupDisplayValues?: Record<string, string>;
   readonly lookupOptions?: Record<string, readonly LookupOption[]>;
   readonly mode: "create" | "read" | "edit";
@@ -59,6 +65,8 @@ export function StandardModuleRecordPage({
       recordId={recordId}
       runtime={runtime}
       tabContent={tabContent}
+      sectionContent={sectionContent}
+      tabsSlot={tabsSlot}
       title={title}
     />
   );

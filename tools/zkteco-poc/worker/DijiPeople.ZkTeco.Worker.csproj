@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    DijiPeople ZKTeco legacy worker.
+
+    zkemkeeper is registered ONLY as a 32-bit COM component
+    (HKCR\WOW6432Node\CLSID\{00853A19-BD51-419B-9269-2DABE57EB61F} ->
+    C:\Windows\SysWOW64\zkemkeeper.dll), so any process that touches it must be
+    x86. A 64-bit process fails with 0x80040154 "Class not registered".
+
+    x86 is pinned three ways so it cannot silently drift:
+      1. Platforms/PlatformTarget  -> the compiled assembly is x86, not AnyCPU
+      2. RuntimeIdentifier win-x86 -> the published apphost and runtime are x86
+      3. a runtime assertion in Program.cs refuses to run in a 64-bit process
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <AssemblyName>DijiPeople.ZkTeco.Worker</AssemblyName>
+    <RootNamespace>DijiPeople.ZkTeco.Worker</RootNamespace>
+
+    <Platforms>x86</Platforms>
+    <PlatformTarget>x86</PlatformTarget>
+    <RuntimeIdentifier>win-x86</RuntimeIdentifier>
+
+    <!-- Self-contained so the customer's Windows 11 laptop needs no .NET install. -->
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <!-- Trimming would strip the reflection/COM interop this worker depends on. -->
+    <PublishTrimmed>false</PublishTrimmed>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+</Project>

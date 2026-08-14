@@ -128,3 +128,22 @@ uat-runtime-tests/
 # Screenshots and results written by scripts/uat-admin.js
 uat-out/
 uat-out-prod/
+
+# =========================================================
+# ZKTeco K50 POC (tools/zkteco-poc)
+# Run artefacts contain real customer attendance data — never commit them.
+# =========================================================
+tools/zkteco-poc/output/
+tools/zkteco-poc/worker/bin/
+tools/zkteco-poc/worker/obj/
+tools/zkteco-poc/worker/publish/
+
+# =========================================================
+# Integration Gateway (gateway/)
+# Build output and packaged installers. The package is ~60 MB because both
+# executables are published self-contained; it is uploaded to storage and
+# registered as an ApplicationRelease, never committed.
+# =========================================================
+gateway/**/bin/
+gateway/**/obj/
+gateway/artifacts/

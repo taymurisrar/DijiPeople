@@ -723,7 +723,275 @@ const legacyAttendanceSettingsSections: SettingsSectionConfig[] = [
       },
     ],
   },
+  {
+    title: "Attendance Integration",
+    description:
+      "How DijiPeople connects to attendance devices, how often it collects attendance, and what happens to employees on those devices.",
+    fields: [
+      {
+        category: "attendance",
+        key: "integrationEnabled",
+        label: "Attendance integration enabled",
+        type: "checkbox",
+        description:
+          "Master switch. While this is off, no attendance source is polled and no provisioning is planned.",
+      },
+      {
+        category: "attendance",
+        key: "defaultSyncMode",
+        label: "Default sync mode",
+        type: "select",
+        options: [
+          { label: "Scheduled polling", value: "POLL" },
+          { label: "Device push", value: "PUSH" },
+          { label: "Manual only", value: "MANUAL" },
+        ],
+      },
+      {
+        category: "attendance",
+        key: "defaultDevicePollIntervalMinutes",
+        label: "Default poll interval (minutes)",
+        type: "number",
+        description:
+          "Used when a new sync schedule does not specify its own interval. Five minutes is the lowest useful value.",
+      },
+      {
+        category: "attendance",
+        key: "minimumLegacyPollIntervalMinutes",
+        label: "Minimum poll interval for legacy devices (minutes)",
+        type: "number",
+        description:
+          "A floor for connectors that re-read the whole history on every poll. A connector may declare a stricter minimum; the stricter of the two applies.",
+      },
+      {
+        category: "attendance",
+        key: "deviceClockDriftWarningSeconds",
+        label: "Device clock drift warning (seconds)",
+        type: "number",
+        description:
+          "A terminal whose clock differs from DijiPeople by more than this is flagged. DijiPeople reports drift and never changes a device's clock.",
+      },
+      {
+        category: "attendance",
+        key: "deviceClockDriftCriticalSeconds",
+        label: "Device clock drift critical (seconds)",
+        type: "number",
+        description:
+          "Drift beyond this marks the device unhealthy, because punch timestamps can no longer be trusted to the minute.",
+      },
+      {
+        category: "attendance",
+        key: "gatewayHeartbeatIntervalSeconds",
+        label: "Gateway heartbeat interval (seconds)",
+        type: "number",
+        description:
+          "How often an installed gateway reports that it is alive. Applied at the gateway's next configuration refresh; no reinstall is needed.",
+      },
+      {
+        category: "attendance",
+        key: "gatewayConfigRefreshSeconds",
+        label: "Gateway configuration refresh (seconds)",
+        type: "number",
+        description:
+          "How often a gateway collects device and schedule changes made here. Shorter means changes reach the terminal sooner.",
+      },
+      {
+        category: "attendance",
+        key: "gatewayUploadBatchSize",
+        label: "Gateway upload batch size",
+        type: "number",
+        description:
+          "Punches per upload request. Smaller batches retry more cheaply after a network failure.",
+      },
+      {
+        category: "attendance",
+        key: "attendanceEngineEffectiveFrom",
+        label: "Reconcile attendance from (date)",
+        type: "text",
+        description:
+          "Attendance before this date is left exactly as it is. Set this when you start collecting attendance through DijiPeople, so existing records are not recalculated from evidence that was never captured. Leave blank to reconcile any day. Format YYYY-MM-DD.",
+      },
+      {
+        category: "attendance",
+        key: "workModeTransitionPolicy",
+        label: "When a new work period starts before the last one ended",
+        type: "select",
+        options: [
+          { label: "Record it and ask someone to review", value: "CREATE_EXCEPTION" },
+          {
+            label: "Refuse the new period until the previous one is closed",
+            value: "REQUIRE_EXPLICIT_CHECKOUT",
+          },
+          { label: "Close the previous period automatically", value: "AUTO_CLOSE_PREVIOUS" },
+        ],
+        description:
+          "Someone forgetting to check out and a reader firing twice look identical to DijiPeople but need different corrections, so the default keeps both facts and asks a person.",
+      },
+      {
+        category: "attendance",
+        key: "autoCloseMissingCheckoutAtShiftEnd",
+        label: "Close a missing check-out at the scheduled shift end",
+        type: "checkbox",
+        description:
+          "Off by default. A check-out DijiPeople invented cannot be told apart from a real one afterwards, and it is paid.",
+      },
+      {
+        category: "attendance",
+        key: "crossSiteAttendancePolicy",
+        label: "Work period that starts and ends at different work sites",
+        type: "select",
+        options: [
+          { label: "Record it and flag it", value: "WARNING" },
+          { label: "Allow it without comment", value: "ALLOWED" },
+          { label: "Require approval", value: "APPROVAL_REQUIRED" },
+          { label: "Record it but mark it unresolved", value: "BLOCKED" },
+        ],
+      },
+      {
+        category: "attendance",
+        key: "defaultPunchDirectionStrategy",
+        label: "How to read devices that do not report in or out",
+        type: "select",
+        options: [
+          { label: "Alternate in and out through the day", value: "ALTERNATING" },
+          { label: "First punch in, last punch out", value: "FIRST_IN_LAST_OUT" },
+          { label: "Use the device's configured direction", value: "DEVICE_DIRECTION" },
+          { label: "Use the device's own in/out codes", value: "DEVICE_STATE" },
+          { label: "Alternate, guided by the shift times", value: "RULE_ENGINE" },
+        ],
+        description:
+          "Many terminals record only that a card was presented. Using the device's own codes requires a verified code table for that model; without one DijiPeople will not guess.",
+      },
+      {
+        category: "attendance",
+        key: "semanticDuplicateWindowSeconds",
+        label: "Ignore repeated punches within (seconds)",
+        type: "number",
+        description:
+          "Two punches on the same reader this close together are treated as one. Every punch is still stored; only the work periods ignore the repeat.",
+      },
+      {
+        category: "attendance",
+        key: "treatSessionGapsAsBreaks",
+        label: "Treat gaps between work periods as breaks",
+        type: "checkbox",
+        description:
+          "Off by default. A gap may be lunch, or travel between sites on work time, and only you know which.",
+      },
+      {
+        category: "attendance",
+        key: "overtimeMinimumMinutes",
+        label: "Minimum extra time before overtime is proposed (minutes)",
+        type: "number",
+        description:
+          "Time worked beyond the schedule is recorded but is not payable overtime until it is approved.",
+      },
+      {
+        category: "attendance",
+        key: "webAttendancePolicy",
+        label: "Web attendance",
+        type: "select",
+        options: [
+          { label: "Allowed", value: "ALLOWED" },
+          { label: "Not allowed", value: "DISALLOWED" },
+          { label: "Only as a fallback", value: "FALLBACK_ONLY" },
+        ],
+      },
+      {
+        category: "attendance",
+        key: "officeWebAttendancePolicy",
+        label: "Web attendance at office work sites",
+        type: "select",
+        options: [
+          { label: "Allowed", value: "ALLOWED" },
+          { label: "Not allowed", value: "DISALLOWED" },
+          { label: "Only as a fallback", value: "FALLBACK_ONLY" },
+        ],
+        description:
+          "Individual work sites can override this on the work site record.",
+      },
+      {
+        category: "attendance",
+        key: "webFallbackPolicy",
+        label: "Web fallback",
+        type: "select",
+        options: [
+          {
+            label: "Allow when no device is available",
+            value: "ALLOW_WHEN_DEVICE_UNAVAILABLE",
+          },
+          { label: "Never", value: "NEVER" },
+          { label: "Always", value: "ALWAYS" },
+        ],
+      },
+      {
+        category: "attendance",
+        key: "deviceProvisioningEnabled",
+        label: "Device provisioning enabled",
+        type: "checkbox",
+        description:
+          "Allows employee records to be sent to attendance devices at all.",
+      },
+      {
+        category: "attendance",
+        key: "automaticEmployeeProvisioning",
+        label: "Automatic employee provisioning",
+        type: "checkbox",
+        description:
+          "Queue employees onto devices automatically when they are activated. Only connectors validated for unattended writes are used.",
+      },
+      {
+        category: "attendance",
+        key: "automaticEmployeeDeactivation",
+        label: "Automatic employee deactivation",
+        type: "checkbox",
+        description:
+          "Disable an employee on their devices when they leave. Records are disabled rather than deleted.",
+      },
+      {
+        category: "attendance",
+        key: "provisioningMaxRetries",
+        label: "Provisioning retry attempts",
+        type: "number",
+      },
+      {
+        category: "attendance",
+        key: "provisioningRetryIntervalMinutes",
+        label: "Provisioning retry interval (minutes)",
+        type: "number",
+      },
+      {
+        category: "attendance",
+        key: "attendanceConflictPolicy",
+        label: "When device and web attendance disagree",
+        type: "select",
+        options: [
+          { label: "Prefer the device record", value: "PREFER_DEVICE" },
+          { label: "Prefer the web record", value: "PREFER_WEB" },
+          { label: "Prefer the earliest", value: "PREFER_EARLIEST" },
+          { label: "Flag for review", value: "FLAG_FOR_REVIEW" },
+        ],
+      },
+      {
+        category: "attendance",
+        key: "hybridAttendancePolicy",
+        label: "Hybrid attendance",
+        type: "select",
+        options: [
+          { label: "Derive from the day's sessions", value: "DERIVE_FROM_SESSIONS" },
+          {
+            label: "Require a device punch for office days",
+            value: "REQUIRE_DEVICE_FOR_OFFICE",
+          },
+          { label: "Disabled", value: "DISABLED" },
+        ],
+        description:
+          "Applied by the attendance engine in a later phase; configured here so the policy is set in advance.",
+      },
+    ],
+  },
 ];
+
 
 const payrollValidationOptions = [
   { label: "Ignore", value: "IGNORE" },

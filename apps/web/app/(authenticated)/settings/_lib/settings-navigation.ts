@@ -67,6 +67,13 @@ const NAV_PERMISSION_KEYS = {
 
   PAYROLL_SETTINGS_READ: "payroll.settings.read",
 
+  INTEGRATIONS_READ: "integrations.read",
+  ATTENDANCE_DEVICES_READ: "attendanceDevices.read",
+  ATTENDANCE_MAPPINGS_READ: "attendanceMappings.read",
+  ATTENDANCE_PROVISIONING_READ: "attendanceProvisioning.read",
+  GATEWAYS_READ: "gateways.read",
+  APP_DOWNLOADS_READ: "appDownloads.read",
+
   CUSTOMIZATION_READ: "customization.read",
   CUSTOMIZATION_TABLES_READ: "customization.tables.read",
   CUSTOMIZATION_COLUMNS_READ: "customization.columns.read",
@@ -897,6 +904,159 @@ export const settingsNavGroups = [
         requiredAnyRoles: [
           ROLE_KEYS.GLOBAL_ADMIN,
           ROLE_KEYS.SYSTEM_CUSTOMIZER,
+        ],
+      },
+    ],
+  },
+  {
+    key: "integrations",
+    label: "Integrations",
+    summary:
+      "Connect DijiPeople to attendance devices and other external systems.",
+    icon: "plug",
+    items: [
+      {
+        key: "attendance-integrations-overview",
+        href: "/settings/integrations/attendance",
+        label: "Attendance Overview",
+        shortLabel: "Overview",
+        description:
+          "See how your attendance integrations are configured and what still needs attention.",
+        icon: "gauge",
+        badge: "New",
+        keywords: [
+          "attendance",
+          "integration",
+          "device",
+          "biometric",
+          "terminal",
+          "overview",
+        ],
+        requiredAnyPermissions: [
+          NAV_PERMISSION_KEYS.INTEGRATIONS_READ,
+          PERMISSION_KEYS.INTEGRATIONS_MANAGE,
+        ],
+      },
+      {
+        key: "attendance-integrations",
+        href: "/settings/integrations/attendance/integrations",
+        label: "Attendance Integrations",
+        shortLabel: "Integrations",
+        description:
+          "Connect attendance terminals and attendance platforms, and manage their configuration.",
+        icon: "plug-zap",
+        badge: "New",
+        keywords: [
+          "attendance integration",
+          "zkteco",
+          "terminal",
+          "connector",
+          "gateway",
+          "sync",
+        ],
+        requiredAnyPermissions: [
+          NAV_PERMISSION_KEYS.INTEGRATIONS_READ,
+          PERMISSION_KEYS.INTEGRATIONS_MANAGE,
+        ],
+      },
+      {
+        key: "attendance-devices",
+        href: "/settings/integrations/attendance/devices",
+        label: "Attendance Devices",
+        shortLabel: "Devices",
+        description:
+          "Attendance terminals, the work sites they serve, and which employees may use them.",
+        icon: "fingerprint",
+        badge: "New",
+        keywords: ["device", "terminal", "reader", "biometric", "work site"],
+        requiredAnyPermissions: [
+          NAV_PERMISSION_KEYS.ATTENDANCE_DEVICES_READ,
+          PERMISSION_KEYS.ATTENDANCE_DEVICES_MANAGE,
+        ],
+      },
+      {
+        key: "attendance-employee-mapping",
+        href: "/settings/integrations/attendance/mapping",
+        label: "Employee Mapping",
+        shortLabel: "Mapping",
+        description:
+          "Match users found on your attendance devices to DijiPeople employees.",
+        icon: "users-round",
+        badge: "New",
+        keywords: ["mapping", "external user", "match", "device user"],
+        requiredAnyPermissions: [
+          NAV_PERMISSION_KEYS.ATTENDANCE_MAPPINGS_READ,
+          PERMISSION_KEYS.ATTENDANCE_MAPPINGS_MANAGE,
+        ],
+      },
+      {
+        key: "attendance-provisioning",
+        href: "/settings/integrations/attendance/provisioning",
+        label: "Device Provisioning",
+        shortLabel: "Provisioning",
+        description:
+          "Track employee records being sent to attendance devices, and retry anything that failed.",
+        icon: "list-checks",
+        badge: "New",
+        keywords: ["provisioning", "enrolment", "device user", "retry"],
+        requiredAnyPermissions: [
+          NAV_PERMISSION_KEYS.ATTENDANCE_PROVISIONING_READ,
+          PERMISSION_KEYS.ATTENDANCE_PROVISIONING_MANAGE,
+        ],
+      },
+      {
+        key: "attendance-gateways",
+        href: "/settings/integrations/attendance/gateways",
+        label: "Integration Gateways",
+        shortLabel: "Gateways",
+        description:
+          "On-premise gateways that let DijiPeople reach devices inside your network.",
+        icon: "server",
+        badge: "New",
+        keywords: ["gateway", "on premise", "pairing", "local network"],
+        requiredAnyPermissions: [
+          NAV_PERMISSION_KEYS.GATEWAYS_READ,
+          PERMISSION_KEYS.GATEWAYS_MANAGE,
+        ],
+      },
+      {
+        key: "attendance-sync-history",
+        href: "/settings/integrations/attendance/sync-history",
+        label: "Sync History",
+        shortLabel: "Sync History",
+        description:
+          "Every synchronisation run, what it collected, and anything that failed.",
+        icon: "history",
+        badge: "New",
+        keywords: ["sync", "history", "run", "log", "records"],
+        requiredAnyPermissions: [
+          NAV_PERMISSION_KEYS.INTEGRATIONS_READ,
+          PERMISSION_KEYS.INTEGRATIONS_MANAGE,
+        ],
+      },
+      {
+        // The gateway installer lives here, so the page belongs beside the
+        // integrations that need it. It had no navigation entry at all before.
+        key: "apps-downloads",
+        href: "/settings/apps",
+        label: "Apps & Downloads",
+        shortLabel: "Downloads",
+        description:
+          "Installers for the gateway and other DijiPeople applications available to your organisation.",
+        icon: "download",
+        badge: "New",
+        keywords: [
+          "download",
+          "installer",
+          "gateway",
+          "agent",
+          "app",
+          "setup",
+        ],
+        requiredAnyPermissions: [
+          NAV_PERMISSION_KEYS.APP_DOWNLOADS_READ,
+          PERMISSION_KEYS.AGENT_SETTINGS_READ,
+          PERMISSION_KEYS.AGENT_SETTINGS_MANAGE,
         ],
       },
     ],

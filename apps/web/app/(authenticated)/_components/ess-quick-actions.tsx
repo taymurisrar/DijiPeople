@@ -186,20 +186,16 @@ async function buildAttendanceActionPayload(action: "check-in" | "check-out") {
   })
     .then((response) => (response.ok ? response.json() : null))
     .catch(() => null);
-  const allowedModes = Array.isArray(context?.allowedModes)
-    ? (context.allowedModes as string[])
-    : [];
-  const configuredDefault =
-    typeof context?.defaultAttendanceMode === "string"
-      ? context.defaultAttendanceMode
-      : "";
-  const attendanceMode = allowedModes.includes(configuredDefault)
-    ? configuredDefault
-    : allowedModes.includes("OFFICE")
-      ? "OFFICE"
-      : allowedModes.includes("REMOTE")
-        ? "REMOTE"
-        : "HYBRID";
+  /*
+   * No work mode is sent, and no work site is named.
+   *
+   * This used to pick a mode from the tenant's allowed list and, for OFFICE,
+   * attach the first work site it could find — a guess made in the browser about
+   * where the employee was standing. The server derives both from the reported
+   * position: which authorised site the geofence matches, whether that site
+   * requires a device, and whether the employee's arrangement permits remote
+   * work. A client-chosen mode would make the office-device rule optional.
+   */
   const location = await captureAttendanceLocation({
     timeoutSeconds: readNumber(context?.policy?.locationTimeoutSeconds, 15),
     retryAttempts: readNumber(context?.policy?.locationRetryAttempts, 2),
@@ -220,9 +216,6 @@ async function buildAttendanceActionPayload(action: "check-in" | "check-out") {
   }
 
   return {
-    attendanceMode,
-    officeLocationId:
-      attendanceMode === "OFFICE" ? context?.workSites?.[0]?.id : undefined,
     ...locationPayload,
     checkInAddressText: location.addressText,
   };

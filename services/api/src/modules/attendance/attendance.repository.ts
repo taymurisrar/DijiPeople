@@ -1,5 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import {
+  calendarCandidates,
+  organizationalScopes,
+  scheduleCandidates,
+  type EmployeeHierarchy,
+  type WorkConfigurationSource,
+} from './work-configuration-hierarchy';
+import {
   AttendanceEntrySource,
   AttendanceEntryStatus,
   AttendanceMode,
@@ -186,6 +193,25 @@ export class AttendanceRepository {
     });
   }
 
+  /**
+   * The work schedule and work calendar that apply to an employee on a date.
+   *
+   * PRECEDENCE runs down the organizational hierarchy, most specific first:
+   *
+   *   Employee assignment -> Employee default -> Team -> Department
+   *   -> Business Unit scope -> Organization scope -> Tenant default
+   *
+   * THE WORK SITE IS NOT CONSULTED. It used to sit between Department and the
+   * tenant default, which meant one Karachi office imposed a single pattern on
+   * a Finance team working 09:00-18:00 and a Support team on a 24/7 rotation.
+   * A Work Site is a physical place; who works when is an organizational fact.
+   * `Location.defaultWorkScheduleId` and `Location.holidayCalendarId` still
+   * exist so tenant data is preserved, but nothing here reads them.
+   *
+   * The order itself lives in `work-configuration-hierarchy.ts` so it can be
+   * asserted without a database, and so the schedule and the calendar cannot
+   * drift into two different orders.
+   */
   async resolveEmployeeWorkConfiguration(
     tenantId: string,
     employeeId: string,
@@ -197,16 +223,18 @@ export class AttendanceRepository {
       where: { tenantId, id: employeeId, isDeleted: false },
       select: {
         id: true,
+        organizationId: true,
         businessUnitId: true,
         departmentId: true,
+        teamId: true,
         locationId: true,
         defaultWorkScheduleId: true,
-        department: { select: { defaultWorkScheduleId: true } },
-        location: {
-          select: {
-            defaultWorkScheduleId: true,
-            holidayCalendarId: true,
-          },
+        holidayCalendarId: true,
+        team: {
+          select: { defaultWorkScheduleId: true, holidayCalendarId: true },
+        },
+        department: {
+          select: { defaultWorkScheduleId: true, holidayCalendarId: true },
         },
       },
     });
@@ -240,20 +268,26 @@ export class AttendanceRepository {
       orderBy: [{ effectiveFrom: 'desc' }, { createdAt: 'desc' }],
     });
 
-    const candidates = [
-      { id: override?.workScheduleId, source: 'EMPLOYEE_OVERRIDE' },
-      { id: employee.defaultWorkScheduleId, source: 'EMPLOYEE_DEFAULT' },
-      {
-        id: employee.department?.defaultWorkScheduleId,
-        source: 'DEPARTMENT_DEFAULT',
-      },
-      {
-        id: employee.location?.defaultWorkScheduleId,
-        source: 'WORK_SITE_DEFAULT',
-      },
-    ].filter((candidate): candidate is { id: string; source: string } =>
-      Boolean(candidate.id),
-    );
+    const hierarchy: EmployeeHierarchy = {
+      teamId: employee.teamId,
+      departmentId: employee.departmentId,
+      businessUnitId: employee.businessUnitId,
+      organizationId: employee.organizationId,
+    };
+    const effectiveWindow = {
+      OR: [
+        { effectiveStartDate: null },
+        { effectiveStartDate: { lte: effectiveDate } },
+      ],
+      AND: [
+        {
+          OR: [
+            { effectiveEndDate: null },
+            { effectiveEndDate: { gte: effectiveDate } },
+          ],
+        },
+      ],
+    };
 
     const findActiveSchedule = (workScheduleId: string) =>
       db.workSchedule.findFirst({
@@ -262,34 +296,57 @@ export class AttendanceRepository {
           id: workScheduleId,
           isActive: true,
           status: 'ACTIVE',
-          OR: [
-            { effectiveStartDate: null },
-            { effectiveStartDate: { lte: effectiveDate } },
-          ],
-          AND: [
-            {
-              OR: [
-                { effectiveEndDate: null },
-                { effectiveEndDate: { gte: effectiveDate } },
-              ],
-            },
-          ],
+          ...effectiveWindow,
         },
         include: {
-          days: {
-            where: { dayOfWeek },
-            include: { shiftTemplate: true },
-          },
+          days: { where: { dayOfWeek }, include: { shiftTemplate: true } },
         },
       });
 
-    let source = 'TENANT_DEFAULT';
+    let source: WorkConfigurationSource = 'TENANT_DEFAULT';
     let workSchedule: Awaited<ReturnType<typeof findActiveSchedule>> = null;
-    for (const candidate of candidates) {
+
+    for (const candidate of scheduleCandidates({
+      assignmentScheduleId: override?.workScheduleId,
+      employeeScheduleId: employee.defaultWorkScheduleId,
+      teamScheduleId: employee.team?.defaultWorkScheduleId,
+      departmentScheduleId: employee.department?.defaultWorkScheduleId,
+    })) {
       workSchedule = await findActiveSchedule(candidate.id);
       if (workSchedule) {
         source = candidate.source;
         break;
+      }
+    }
+
+    /*
+     * Business Unit and Organization carry no schedule pointer of their own.
+     * They are resolved from the schedule's own scope columns, which the model
+     * already has - a second pointer saying the same thing would be a second
+     * source of truth. `isDefault` breaks a tie within a scope so two schedules
+     * scoped to the same unit resolve deterministically.
+     */
+    if (!workSchedule) {
+      for (const scope of organizationalScopes(hierarchy)) {
+        workSchedule = await db.workSchedule.findFirst({
+          where: {
+            tenantId,
+            isActive: true,
+            status: 'ACTIVE',
+            ...(scope.businessUnitId
+              ? { businessUnitId: scope.businessUnitId }
+              : { businessUnitId: null, organizationId: scope.organizationId }),
+            ...effectiveWindow,
+          },
+          include: {
+            days: { where: { dayOfWeek }, include: { shiftTemplate: true } },
+          },
+          orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }],
+        });
+        if (workSchedule) {
+          source = scope.source;
+          break;
+        }
       }
     }
 
@@ -299,38 +356,136 @@ export class AttendanceRepository {
         isDefault: true,
         isActive: true,
         status: 'ACTIVE',
-        OR: [
-          { effectiveStartDate: null },
-          { effectiveStartDate: { lte: effectiveDate } },
-        ],
-        AND: [
-          {
-            OR: [
-              { effectiveEndDate: null },
-              { effectiveEndDate: { gte: effectiveDate } },
-            ],
-          },
-        ],
+        ...effectiveWindow,
       },
       include: {
-        days: {
-          where: { dayOfWeek },
-          include: { shiftTemplate: true },
-        },
+        days: { where: { dayOfWeek }, include: { shiftTemplate: true } },
       },
       orderBy: [{ createdAt: 'asc' }],
     });
+
+    const calendar = await this.resolveEmployeeHolidayCalendarId(
+      tenantId,
+      {
+        employeeCalendarId: employee.holidayCalendarId,
+        teamCalendarId: employee.team?.holidayCalendarId,
+        departmentCalendarId: employee.department?.holidayCalendarId,
+      },
+      hierarchy,
+      workSchedule?.holidayCalendarId ?? null,
+      effectiveDate,
+      db,
+    );
 
     return {
       employee,
       source,
       workSchedule,
       scheduleDay: workSchedule?.days[0] ?? null,
-      holidayCalendarId:
-        employee.location?.holidayCalendarId ??
-        workSchedule?.holidayCalendarId ??
-        null,
+      holidayCalendarId: calendar.holidayCalendarId,
+      holidayCalendarSource: calendar.source,
     };
+  }
+
+  /**
+   * The work calendar that applies to an employee, by the same precedence.
+   *
+   * The Work Site is deliberately absent: it used to win outright, so a Karachi
+   * office forced its Pakistan calendar onto an employee who follows a UAE one.
+   *
+   * The owning schedule's calendar sits below every organizational layer but
+   * above the tenant default - a schedule naming a calendar describes the
+   * pattern it belongs to, which is more specific than "whatever the tenant
+   * uses" and less specific than a statement made about this person.
+   */
+  private async resolveEmployeeHolidayCalendarId(
+    tenantId: string,
+    assigned: {
+      employeeCalendarId?: string | null;
+      teamCalendarId?: string | null;
+      departmentCalendarId?: string | null;
+    },
+    hierarchy: EmployeeHierarchy,
+    workScheduleCalendarId: string | null,
+    effectiveDate: Date,
+    db: PrismaDb,
+  ): Promise<{
+    holidayCalendarId: string | null;
+    source: WorkConfigurationSource | null;
+  }> {
+    const effectiveWindow = {
+      OR: [
+        { effectiveStartDate: null },
+        { effectiveStartDate: { lte: effectiveDate } },
+      ],
+      AND: [
+        {
+          OR: [
+            { effectiveEndDate: null },
+            { effectiveEndDate: { gte: effectiveDate } },
+          ],
+        },
+      ],
+    };
+
+    const findActiveCalendar = (holidayCalendarId: string) =>
+      db.holidayCalendar.findFirst({
+        where: {
+          tenantId,
+          id: holidayCalendarId,
+          status: 'ACTIVE',
+          ...effectiveWindow,
+        },
+        select: { id: true },
+      });
+
+    for (const candidate of calendarCandidates(assigned)) {
+      const found = await findActiveCalendar(candidate.id);
+      if (found) {
+        return { holidayCalendarId: found.id, source: candidate.source };
+      }
+    }
+
+    for (const scope of organizationalScopes(hierarchy)) {
+      const scoped = await db.holidayCalendar.findFirst({
+        where: {
+          tenantId,
+          status: 'ACTIVE',
+          ...(scope.businessUnitId
+            ? { businessUnitId: scope.businessUnitId }
+            : { businessUnitId: null, organizationId: scope.organizationId }),
+          ...effectiveWindow,
+        },
+        select: { id: true },
+        orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }],
+      });
+      if (scoped) return { holidayCalendarId: scoped.id, source: scope.source };
+    }
+
+    if (workScheduleCalendarId) {
+      const scheduleCalendar = await findActiveCalendar(workScheduleCalendarId);
+      if (scheduleCalendar) {
+        return {
+          holidayCalendarId: scheduleCalendar.id,
+          source: 'WORK_SCHEDULE_CALENDAR',
+        };
+      }
+    }
+
+    const tenantDefault = await db.holidayCalendar.findFirst({
+      where: {
+        tenantId,
+        isDefault: true,
+        status: 'ACTIVE',
+        ...effectiveWindow,
+      },
+      select: { id: true },
+      orderBy: [{ createdAt: 'asc' }],
+    });
+
+    return tenantDefault
+      ? { holidayCalendarId: tenantDefault.id, source: 'TENANT_DEFAULT' }
+      : { holidayCalendarId: null, source: null };
   }
 
   findHolidayForEmployeeDate(

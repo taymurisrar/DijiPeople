@@ -1038,6 +1038,17 @@ export class OrganizationService {
         latitude: dto.latitude,
         longitude: dto.longitude,
         allowedRadiusMeters: dto.allowedRadiusMeters,
+        // Attendance configuration. Left undefined when not supplied so the
+        // column keeps its null default, which means "inherit the tenant
+        // setting" rather than "disabled".
+        attendanceEnabled: dto.attendanceEnabled ?? undefined,
+        maximumAccuracyMeters: dto.maximumAccuracyMeters ?? undefined,
+        allowedAttendanceMethods: dto.allowedAttendanceMethods,
+        webAttendancePolicy: dto.webAttendancePolicy ?? undefined,
+        devicePolicy: dto.devicePolicy ?? undefined,
+        webFallbackEnabled: dto.webFallbackEnabled ?? undefined,
+        validFrom: dto.validFrom ? new Date(dto.validFrom) : undefined,
+        validTo: dto.validTo ? new Date(dto.validTo) : undefined,
         defaultWorkScheduleId: dto.defaultWorkScheduleId,
         holidayCalendarId: dto.holidayCalendarId,
         isActive: dto.isActive ?? true,
@@ -1086,6 +1097,38 @@ export class OrganizationService {
         ...(dto.longitude !== undefined ? { longitude: dto.longitude } : {}),
         ...(dto.allowedRadiusMeters !== undefined
           ? { allowedRadiusMeters: dto.allowedRadiusMeters }
+          : {}),
+        /*
+         * Attendance configuration.
+         *
+         * An explicit null is a real instruction here — it clears the work site
+         * override so the tenant setting applies again — so null is written
+         * through rather than coalesced away. Only `undefined` (the field was
+         * not part of the request) leaves the stored value alone.
+         */
+        ...(dto.attendanceEnabled !== undefined
+          ? { attendanceEnabled: dto.attendanceEnabled }
+          : {}),
+        ...(dto.maximumAccuracyMeters !== undefined
+          ? { maximumAccuracyMeters: dto.maximumAccuracyMeters }
+          : {}),
+        ...(dto.allowedAttendanceMethods !== undefined
+          ? { allowedAttendanceMethods: dto.allowedAttendanceMethods }
+          : {}),
+        ...(dto.webAttendancePolicy !== undefined
+          ? { webAttendancePolicy: dto.webAttendancePolicy }
+          : {}),
+        ...(dto.devicePolicy !== undefined
+          ? { devicePolicy: dto.devicePolicy }
+          : {}),
+        ...(dto.webFallbackEnabled !== undefined
+          ? { webFallbackEnabled: dto.webFallbackEnabled }
+          : {}),
+        ...(dto.validFrom !== undefined
+          ? { validFrom: dto.validFrom ? new Date(dto.validFrom) : null }
+          : {}),
+        ...(dto.validTo !== undefined
+          ? { validTo: dto.validTo ? new Date(dto.validTo) : null }
           : {}),
         ...(dto.defaultWorkScheduleId !== undefined
           ? { defaultWorkScheduleId: dto.defaultWorkScheduleId ?? null }

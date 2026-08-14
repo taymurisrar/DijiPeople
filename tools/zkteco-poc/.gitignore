@@ -1,0 +1,15 @@
+# POC run artefacts — contain real customer attendance data. Never commit.
+output/
+
+# TypeScript build output
+dist/
+
+# .NET worker build output
+worker/bin/
+worker/obj/
+worker/publish/
+
+# Local device configuration
+.env
+
+*.log

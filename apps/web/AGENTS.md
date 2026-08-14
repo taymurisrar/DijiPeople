@@ -1,165 +1,200 @@
-# AGENTS.md
+# AGENTS.md — `apps/web` (tenant product)
 
-## Project
-DijiPeople is a multi-tenant SaaS HRM platform for small to medium businesses, clinics, and hospitals in the US.
+Scope-specific rules for the authenticated tenant-facing application. Read the
+root [`AGENTS.md`](../../AGENTS.md) first; this file does not repeat it.
 
-This product is being built as a configurable SaaS platform, not as a one-off custom client solution.
+> **Note:** this file previously contained a copy of the platform-wide rules,
+> including a scope statement that said modules such as payroll, attendance,
+> leave and recruitment should not be built yet. That is no longer true — those
+> modules are implemented and in active use. Platform-wide rules now live in the
+> root [`AGENTS.md`](../../AGENTS.md).
 
-## Product goals
-- Single codebase serving multiple tenants
-- Strong tenant isolation
-- Configurable modules, roles, permissions, policies, and workflows
-- Scalable and reliable architecture
-- Clean, maintainable, production-grade code
-- Modular monolith first, not microservices
+---
 
-## Tech stack
-- Monorepo: Turborepo
-- Frontend: Next.js App Router + TypeScript + Tailwind CSS
-- Backend: NestJS + TypeScript
-- Database: PostgreSQL + Prisma
-- Auth: JWT access token + refresh token
-- Queue/jobs: Redis + BullMQ later
-- Billing: Stripe later
-- Storage: S3 or Cloudflare R2 later
-- Monitoring: Sentry later
+## What this app is
 
-## Repository structure
-- apps/web -> tenant-facing application
-- apps/admin -> super admin SaaS control panel
-- services/api -> backend API
-- packages/database -> shared database and prisma-related code
-- packages/types -> shared TypeScript types
-- packages/utils -> shared utility functions
-- packages/config -> shared configuration
-- packages/ui -> shared UI components
+Next.js **App Router**, TypeScript, Tailwind CSS v4, port **3001**. It is the
+product tenant users log into: employees, managers, HR, payroll and tenant
+administrators. It talks to `services/api` and owns no business rules of its
+own.
 
-## Architecture rules
-- Build a modular monolith, not microservices
-- Keep backend modules isolated and cohesive
-- Prefer explicit business-oriented naming
-- Avoid premature abstraction
-- Avoid tutorial-style code
-- Code must be production-oriented and extensible
-- Do not hardcode client-specific behavior
-- Prefer configuration-driven design for anything tenant-specific
+```
+app/
+  (authenticated)/    product routes; per-domain folders + _components / _lib
+  (public)/           unauthenticated product routes
+  activate-account/   account activation flow
+  partner/            partner-facing experience
+  t/                  tenant-resolved entry routes
+  api/                Next route handlers — thin proxies to services/api
+  components/         shared components (see below)
+  dashboard/          dashboard entry
+lib/                  client/server helpers, runtime registries, auth, tenant
+```
 
-## Multi-tenant rules
-- Every tenant-owned entity must include `tenantId`
-- All queries for tenant-owned data must enforce tenant scoping
-- Never allow cross-tenant reads or writes
-- Tenant creation and first admin user creation should be transactional
-- Design for one user belonging to one tenant for now
-- Future support for multi-tenant users can be added later if needed
+---
 
-## Core backend foundation scope
-Current priority is only the platform foundation, not full HR modules.
+## Reuse before you build
 
-Build these first:
-1. Tenant entity
-2. User entity
-3. Auth (signup, login, refresh token)
-4. Role + permission system
+Search these first. A hand-rolled table, form control, empty state or dialog is
+a review failure.
 
-Do not build advanced modules yet like:
-- payroll
-- recruitment
-- attendance
-- leave
-- performance
-- analytics
-unless explicitly requested later
+| Need | Use |
+|---|---|
+| Table | `app/components/data-table/` (`data-table.tsx`, `data-table-toolbar.tsx`, `data-table-pagination.tsx`) or `app/components/runtime/module-data-table.tsx` inside the runtime |
+| List page | `app/components/runtime/standard-module-list-page.tsx`, `module-list-page.tsx`, `module-list-shell.tsx` |
+| Record page | `app/components/runtime/standard-module-record-page.tsx`, `module-record-page.tsx`, `module-detail-shell.tsx`, `module-record-header.tsx` |
+| Form fields | `app/components/metadata/runtime-metadata-form-renderer.tsx`, `form-layout-grid.tsx`, `app/components/ui/form-control.tsx` |
+| Buttons / cards / status / empty | `app/components/ui/` — `button.tsx`, `section-card.tsx`, `status-pill.tsx`, `empty-state.tsx`; runtime variant `module-empty-state.tsx` |
+| Commands / action bar | `app/components/runtime/module-command-bar.tsx`, `module-command-action-dialog.tsx`, `lib/runtime/command-registry.ts` |
+| Views / view selector | `app/components/views/`, `app/components/view-selector/`, `module-view-selector.tsx` |
+| Related records | `module-related-tabs.tsx`, `module-related-subgrid.tsx` |
+| Permission gating | `app/(authenticated)/_components/permission-gate.tsx` |
+| Notifications | `app/components/notifications/`, `notification-bell.tsx` |
+| Branding / theme | `app/components/branding/`, `app/components/theme/`, `tenant-runtime-style-provider.tsx` |
+| Errors | `app/components/errors/`, route-level `error.tsx`, `global-error.tsx` |
 
-## Data modeling rules
-- Use PostgreSQL-friendly schema design
-- Use Prisma for schema and migrations
-- Include `id`, `createdAt`, `updatedAt` on all primary entities
-- Include `tenantId` on all tenant-owned entities
-- Add indexes and unique constraints where sensible
-- Store passwords hashed
-- Store refresh tokens hashed, never plain text
-- Use explicit relation names where needed to avoid ambiguity
-- Keep schema ready for future expansion into employee, leave, attendance, payroll, and recruitment modules
+`packages/ui` (`@repo/ui`) contains only `button`, `card` and `code`. **It is not
+this app's design system.** Do not migrate components into it without an ADR.
 
-## Auth rules
-- Use JWT access and refresh token flow
-- Passwords must be hashed securely
-- Refresh tokens should be persisted hashed
-- Auth payload should include at least:
-  - userId
-  - tenantId
-  - email
-- Protected routes must use guards
-- Add a current-user decorator for authenticated requests
+---
 
-## RBAC rules
-- Use proper RBAC with:
-  - Role
-  - Permission
-  - UserRole
-  - RolePermission
-- Do not use simplistic `isAdmin`-style authorization
-- Prefer permission-based checks over role-only checks
-- Permission naming should follow a consistent convention:
-  - users.read
-  - users.create
-  - users.update
-  - users.delete
-  - roles.read
-  - roles.assign
-  - employees.read
-  - leaves.approve
+## The module runtime is the default way to build a screen
 
-## NestJS coding rules
-- Organize code under `src/modules`
-- Use DTOs with class-validator and class-transformer
-- Use guards for auth and permission checks
-- Keep controllers thin
-- Keep services focused on business logic
-- Keep persistence concerns separate and clean
-- Use transactions when multiple dependent writes must succeed together
-- Add common utilities, decorators, and guards under `src/common`
+New tenant-product modules are **declared, not hand-written**. The pieces:
 
-## Frontend rules
-After backend foundation is complete, build:
-1. Login page
-2. Protected routes
-3. Basic dashboard shell
+```
+lib/runtime/
+  module-registry.ts            which modules exist
+  module-runtime.resolver.ts    resolves a module's runtime shape
+  metadata-registry.ts          field/entity metadata
+  metadata-layer-resolver.ts    layered metadata (system → tenant → user)
+  command-registry.ts           commands available on lists/records
+  command-execution.service.ts  how a command runs
+  modules/
+    standard-module-specs.ts        declarative specs for standard modules
+    standard-module-data.adapter.ts generic data adapter
+    standard-module-runtime.ts      shared runtime wiring
+    <domain>.adapter.ts             per-domain data/metadata adapters
+```
 
-Frontend rules:
-- Use Next.js App Router
-- Keep UI clean and minimal at first
-- Do not overbuild design
-- Focus on auth flow and app shell before feature pages
-- Keep structure extensible for future modules
+Workflow for a new module screen:
 
-## Coding standards
-- Use strict TypeScript
-- Keep naming consistent
-- Prefer simple, readable code
-- Add comments only where they add value
-- Do not leave dead code
-- Avoid duplication
-- Keep changes scoped to the current task
-- Explain what files are added or changed when completing tasks
+1. Add or extend the spec in `lib/runtime/modules/standard-module-specs.ts`.
+2. Add a data adapter only if the standard adapter cannot serve it.
+3. Register in `module-registry.ts` and, if it needs commands, in
+   `command-registry.ts`.
+4. Route file renders `StandardModuleListPage` / `StandardModuleRecordPage`.
+5. Add navigation in `app/(authenticated)/_components/navigation.ts` (and extend
+   `navigation.spec.ts`).
 
-## Implementation workflow
-When working on a task:
-1. Understand current scope
-2. Make only the requested changes
-3. Preserve architecture consistency
-4. Keep changes easy to extend later
-5. Avoid introducing unrelated features
-6. Summarize what changed and why
+Write a bespoke page **only** when the runtime genuinely cannot express the
+requirement, and state that explicitly in the plan. Do not create a second CRUD
+data path alongside the runtime — that is the specific failure mode
+[`docs/architecture/module-runtime-overhaul.md`](../../docs/architecture/module-runtime-overhaul.md)
+exists to prevent.
 
-## Current success criteria
-Phase 1 is successful when:
-- Prisma schema exists for tenant/user/auth/rbac foundation
-- Migration runs successfully
-- Tenant signup creates tenant + first admin user
-- Login returns access + refresh tokens
-- Refresh flow works
-- Auth guard works
-- RBAC foundation works
-- Frontend login page works
-- Protected dashboard route works
+---
+
+## Settings
+
+Settings screens go through the settings runtime, not bespoke pages:
+
+```
+app/(authenticated)/settings/_lib/
+  settings-navigation.ts          category → group → item catalog
+  settings-page-config.ts         page shape
+  settings-adapter-registry.ts    which adapter serves which item
+  settings-runtime.ts             runtime resolution
+  require-settings-permission.ts  server-side permission assertion
+```
+
+Backed by the API `settings-runtime` and `tenant-settings` modules.
+[`docs/architecture/settings-and-branding.md`](../../docs/architecture/settings-and-branding.md)
+is the **canonical contract** for settings ownership, information architecture,
+the User/Employee boundary, work-configuration records and attendance schedule
+resolution precedence. Read it before adding a settings surface. Do not
+introduce parallel Shift, Work Schedule, Work Calendar, Holiday, User or
+Employee concepts.
+
+`Location` is the canonical Work Site record — do not create a second one.
+
+---
+
+## Data access
+
+- **Server components and server actions** call the API through
+  `lib/server-api.ts`, which attaches the auth cookies and
+  `x-auth-client-id`, refreshes on 401, and normalises errors through
+  `lib/api-error.ts`. Use it; do not call `fetch` against the API directly.
+- **Route handlers under `app/api/`** are thin proxies that exist so the browser
+  never talks to the API origin directly. Rules:
+  - No business logic.
+  - **No authorization decisions.** Never decide "this user may do X" here. The
+    API is the only authority. A proxy that filters or permits is a second
+    source of truth and a security hole.
+  - No tenant resolution beyond forwarding what the request already carries.
+  - Forward the API's error contract through rather than flattening it.
+- Tenant resolution helpers live in `lib/tenant-resolution.ts`,
+  `lib/tenant-url.ts`, `lib/tenant/`. Reserved host labels are enumerated in
+  `RESERVED_HOST_LABELS` — extend that set rather than special-casing hosts.
+
+---
+
+## Permissions in the UI
+
+- `lib/permissions.ts` and `lib/security-keys.ts` hold role and permission keys.
+  **`lib/security-keys.ts` is a hand-maintained mirror of the API's
+  `common/constants/permissions.ts` and `rbac-matrix.ts`. There is no
+  generator.** When you add a key here, copy it exactly, and only add what the
+  UI actually needs.
+- `PermissionGate`, navigation visibility and disabled controls are **usability
+  affordances only**. Every gated action must be independently enforced by the
+  API. Never treat a hidden button as a security control.
+- Elevated-role helpers live in `lib/elevated-roles.ts` and mirror the API's
+  elevated tenant roles. Keep them in sync when the API list changes.
+
+---
+
+## UI requirements
+
+- **Loading, error and empty states are mandatory** for every data surface. Use
+  the route-level `loading.tsx` / `error.tsx` conventions already present under
+  `(authenticated)/`, and the shared `EmptyState` / `ModuleEmptyState`
+  components. `module-refresh-overlay.tsx` covers in-place refresh.
+- **Access denied** uses `access-denied-state.tsx` /
+  `module-access-denied-state.tsx` and the `/access-denied` route — not a blank
+  page or a thrown error.
+- **Responsive**: Tailwind v4. Every screen must work at tablet and mobile
+  widths. The runtime shells and `responsive-runtime-tabs.tsx` handle the common
+  breakpoints — reuse them rather than adding new breakpoint logic.
+- **Theming**: colours come from tenant CSS variables
+  (`tenant-runtime-css-variables.ts`, `tenant-runtime-style-provider.tsx`,
+  `lib/theme.ts`). Do not hardcode brand colours; do not bypass the theme
+  toggle.
+- **Formatting**: dates, numbers and currency go through
+  `lib/date-format.ts` / `lib/formatting-context.ts` so tenant regional settings
+  apply. Never call `toLocaleDateString` ad hoc.
+- **Accessibility**: every control labelled; dialogs focus-trapped and
+  dismissible with Escape; tables keyboard-navigable; status conveyed by text as
+  well as colour (`StatusPill` already does this); images have alt text.
+
+---
+
+## Testing
+
+```bash
+npm --workspace web run test         # jest, node environment
+npm --workspace web run check-types  # next typegen && tsc --noEmit
+npm --workspace web run lint
+```
+
+`jest.config.js` is deliberately scoped to **pure logic**: resolvers, merges,
+catalogs, registries — `*.spec.ts` only, `testEnvironment: "node"`. jsdom and a
+rendering library are **not installed**, so do not write component render tests
+here; extract the logic and test that instead. Existing examples:
+`lib/runtime/command-catalog.spec.ts`,
+`lib/runtime/modules/standard-module-views.spec.ts`,
+`app/(authenticated)/_components/navigation.spec.ts`,
+`app/(authenticated)/settings/_lib/settings-runtime.spec.ts`.
+
+Path alias `@/*` maps to the app root.

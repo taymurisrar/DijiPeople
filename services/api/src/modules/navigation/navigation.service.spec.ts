@@ -93,7 +93,9 @@ describe('NavigationService', () => {
       'gated',
       {
         itemKey: '/reports',
-        visibilityRules: [{ operator: 'has-any-role' as const, roleKeys: ['hr'] }],
+        visibilityRules: [
+          { operator: 'has-any-role' as const, roleKeys: ['hr'] },
+        ],
       },
     ],
   ])('stores an override that %s', async (_label, item) => {

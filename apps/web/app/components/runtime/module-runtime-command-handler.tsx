@@ -3,13 +3,29 @@
 import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { ConfirmationDialog } from "@/app/components/notifications";
-import { apiErrorEventName } from "@/lib/api-error";
+import {
+  apiErrorEventName,
+  INLINE_ERROR_HANDLING_HEADERS,
+} from "@/lib/api-error";
 import {
   buildAdapterCommandHandlers,
   executeRuntimeCommand,
   type RuntimeCommandExecutionResult,
 } from "@/lib/runtime";
-import { getCommandPayloadSchema } from "@/lib/runtime/command-payload-schema";
+import {
+  getCommandPayloadSchema,
+  type CommandPayloadSchema,
+} from "@/lib/runtime/command-payload-schema";
+import {
+  classifyAttendanceFailure,
+  classifyLocationCaptureFailure,
+  type AttendanceOutcome,
+} from "@/lib/attendance/attendance-outcome";
+import {
+  buildLocationPayload,
+  captureDeviceLocation,
+} from "@/lib/location/location-capture";
+import { AttendanceActionFeedback } from "./attendance-action-feedback";
 import { debugRuntime } from "@/lib/runtime/runtime-debug";
 import type { CommandDefinition } from "@/lib/runtime/command-runtime.types";
 import type {
@@ -77,6 +93,20 @@ export function ModuleRuntimeCommandHandler({
     readonly ModuleOwnerOption[]
   >([]);
   const [shareLink, setShareLink] = useState("");
+  /*
+   * The one-click attendance flow. `busyLabel` narrates the location capture,
+   * `outcome` holds the contextual answer that replaced the technical error
+   * dialog for expected refusals, and `retry` re-runs the exact same attempt.
+   */
+  const [attendanceBusyLabel, setAttendanceBusyLabel] = useState<string | null>(
+    null,
+  );
+  const [attendanceOutcome, setAttendanceOutcome] =
+    useState<AttendanceOutcome | null>(null);
+  const [attendanceRetry, setAttendanceRetry] = useState<(() => void) | null>(
+    null,
+  );
+
   const [actionContext, setActionContext] = useState<{
     readonly command: CommandDefinition;
     readonly context: RuntimeCommandEventContext;
@@ -172,6 +202,16 @@ export function ModuleRuntimeCommandHandler({
     }
 
     if (command.payloadSchemaKey) {
+      const schema = getCommandPayloadSchema(command.payloadSchemaKey);
+      /*
+       * A schema with nothing to ask opens no drawer. Check-in used to present a
+       * form whose only required field was the one claim the server must decide
+       * for itself, so the employee's answer was collected and then discarded.
+       */
+      if (schema?.autoSubmit) {
+        await runAutoSubmitCommand(command.key, context, schema);
+        return;
+      }
       setActionContext({ command, context });
       return;
     }
@@ -268,7 +308,22 @@ export function ModuleRuntimeCommandHandler({
     onResult?.(result);
 
     if (result.status === "failure" && !hasFieldValidationErrors(result.data)) {
-      dispatchCommandFailure(result, runtime);
+      /*
+       * Expected attendance outcomes are answered in place; only genuine
+       * defects reach the platform's technical dialog. Routing a
+       * device-required refusal into that dialog showed an employee
+       * "ERROR VALIDATION_FAILED", a reference id and a log download for the
+       * system working exactly as configured.
+       */
+      const outcome = isAttendanceCommand(result.command?.key)
+        ? classifyAttendanceFailure(readCommandFailureError(result))
+        : null;
+
+      if (outcome && !outcome.useTechnicalErrorModal) {
+        setAttendanceOutcome(outcome);
+      } else {
+        dispatchCommandFailure(result, runtime);
+      }
     }
 
     if (
@@ -282,6 +337,62 @@ export function ModuleRuntimeCommandHandler({
       if (isSafeModuleHref(result.href, runtime.module.routeBase)) {
         router.push(result.href);
       }
+    }
+  }
+
+  /**
+   * Runs a command whose payload the client assembles by itself.
+   *
+   * The position is captured on every attempt, unconditionally, because whether
+   * the employee is inside a work site is exactly what the server needs in order
+   * to decide the work mode — the old rule captured a position only once the
+   * mode was already known, which could never be true on the first punch.
+   */
+  async function runAutoSubmitCommand(
+    commandKey: string,
+    context: RuntimeCommandEventContext,
+    schema: CommandPayloadSchema,
+  ) {
+    const attempt = () => void runAutoSubmitCommand(commandKey, context, schema);
+    setAttendanceOutcome(null);
+    setAttendanceRetry(null);
+
+    if (!schema.geolocation) {
+      await executeCommand(commandKey, { ...context, value: {} });
+      return;
+    }
+
+    setAttendanceBusyLabel("Checking your location…");
+    try {
+      const policy = await loadCommandPolicy(schema.contextPath);
+      const location = await captureDeviceLocation({
+        timeoutSeconds: policy.timeoutSeconds,
+        highAccuracy: policy.highAccuracy,
+      });
+
+      if (!location.ok) {
+        setAttendanceOutcome(
+          classifyLocationCaptureFailure({
+            reason: location.reason,
+            message: location.message,
+          }),
+        );
+        setAttendanceRetry(() => attempt);
+        return;
+      }
+
+      await executeCommand(commandKey, {
+        ...context,
+        value: buildLocationPayload(location, {
+          userAgent:
+            policy.storeUserAgent && typeof navigator !== "undefined"
+              ? navigator.userAgent
+              : undefined,
+        }),
+      });
+      setAttendanceRetry(() => attempt);
+    } finally {
+      setAttendanceBusyLabel(null);
     }
   }
 
@@ -388,6 +499,22 @@ export function ModuleRuntimeCommandHandler({
           actionContext?.command.payloadSchemaKey,
         )}
       />
+      <AttendanceActionFeedback
+        busyLabel={attendanceBusyLabel}
+        onDismiss={() => {
+          setAttendanceOutcome(null);
+          setAttendanceRetry(null);
+        }}
+        onRetry={
+          attendanceRetry
+            ? () => {
+                setAttendanceOutcome(null);
+                attendanceRetry();
+              }
+            : undefined
+        }
+        outcome={attendanceOutcome}
+      />
       <ModuleShareDialog
         link={shareLink}
         onClose={() => setShareLink("")}
@@ -471,6 +598,58 @@ function currentOwnerId(
   if (!ownerField) return "";
   const value = record?.[ownerField];
   return typeof value === "string" ? value : "";
+}
+
+/** Commands whose refusals are business answers rather than defects. */
+function isAttendanceCommand(commandKey: string | undefined) {
+  return (
+    commandKey === "attendance.checkIn" || commandKey === "attendance.checkOut"
+  );
+}
+
+/**
+ * Location-capture policy for this command.
+ *
+ * Best effort by design: the timeouts are a tuning detail, and failing the whole
+ * check-in because a context fetch was slow would be a worse outcome than
+ * capturing with the defaults.
+ */
+async function loadCommandPolicy(contextPath: string | undefined) {
+  const defaults = {
+    timeoutSeconds: 15,
+    highAccuracy: true,
+    storeUserAgent: false,
+  };
+  if (!contextPath) return defaults;
+
+  try {
+    const response = await fetch(contextPath, {
+      cache: "no-store",
+      headers: { ...INLINE_ERROR_HANDLING_HEADERS },
+    });
+    if (!response.ok) return defaults;
+    const payload = (await response.json()) as {
+      policy?: {
+        locationTimeoutSeconds?: unknown;
+        highAccuracyLocation?: unknown;
+        storeUserAgent?: unknown;
+      };
+    };
+    const policy = payload.policy ?? {};
+    return {
+      timeoutSeconds:
+        typeof policy.locationTimeoutSeconds === "number"
+          ? policy.locationTimeoutSeconds
+          : defaults.timeoutSeconds,
+      highAccuracy:
+        typeof policy.highAccuracyLocation === "boolean"
+          ? policy.highAccuracyLocation
+          : defaults.highAccuracy,
+      storeUserAgent: policy.storeUserAgent === true,
+    };
+  } catch {
+    return defaults;
+  }
 }
 
 function dispatchCommandFailure(

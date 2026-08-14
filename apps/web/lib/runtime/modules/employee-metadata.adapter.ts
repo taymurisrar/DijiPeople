@@ -45,6 +45,9 @@ const WORK_MODE_OPTIONS: readonly OptionSetValueMetadata[] = [
   { value: "OFFICE", label: "Office" },
   { value: "REMOTE", label: "Remote" },
   { value: "HYBRID", label: "Hybrid" },
+  // Someone who works away from any fixed work site — field engineers, drivers,
+  // visiting carers. Present on EmployeeWorkMode but previously unselectable.
+  { value: "FIELD", label: "Field" },
 ];
 
 const CONTRACT_TYPE_OPTIONS: readonly OptionSetValueMetadata[] = [
@@ -2500,7 +2503,7 @@ function employeeFormRequirementLevel(
     : ("none" as const);
 }
 
-const employeeOptionSets: Record<string, readonly OptionSetValueMetadata[]> = {
+export const employeeOptionSets: Record<string, readonly OptionSetValueMetadata[]> = {
   employmentStatus: EMPLOYEE_STATUS_OPTIONS,
   employeeType: EMPLOYEE_TYPE_OPTIONS,
   workMode: WORK_MODE_OPTIONS,

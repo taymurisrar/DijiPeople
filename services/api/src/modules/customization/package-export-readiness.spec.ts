@@ -10,7 +10,11 @@ describe('analyzePackageExport', () => {
   it('is ready when every dependency is carried in the package', () => {
     const result = analyzePackageExport({
       components: [
-        { componentType: 'table', objectKey: 'projects', moduleKey: 'projects' },
+        {
+          componentType: 'table',
+          objectKey: 'projects',
+          moduleKey: 'projects',
+        },
         {
           componentType: 'column',
           objectKey: 'projects.ownerId',

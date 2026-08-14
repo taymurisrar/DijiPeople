@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "lib": ["ES2022"],
+    "outDir": "dist",
+    "rootDir": "src",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": false,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "declaration": false,
+    "sourceMap": true,
+    "types": ["node"]
+  },
+  "ts-node": {
+    // Load the tsconfig's `include` set, so any ambient .d.ts added later is
+    // picked up by ts-node the same way `tsc` picks it up.
+    "files": true
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist", "output"]
+}

@@ -16,6 +16,10 @@ import {
   timesheetSettingsSections,
 } from "./settings-page-config";
 import { organizationSettingsSections } from "./organization-settings-config";
+import {
+  WORK_SITE_SECTION_IDS,
+  WORK_SITE_TAB_KEYS,
+} from "./work-site-form-sections";
 
 export type SettingsAdapterMode =
   | "crud"
@@ -228,6 +232,126 @@ function formSectionLayout(
   if (columns === 3) return "three-column";
   if (columns === 4) return "four-column";
   return "two-column";
+}
+
+/**
+ * The Work Site form, grouped the way a work site is actually set up.
+ *
+ * Sections marked "purpose-built" carry no fields: their bodies are supplied by
+ * WorkSiteRecordPage, because a map, an inheritance switch and a readiness panel
+ * cannot be expressed as a grid of metadata fields. They still live in the form
+ * metadata so tab order, visibility and the record's single save flow stay the
+ * runtime's job rather than a parallel implementation.
+ */
+function workSiteFormSections(): readonly FormSectionMetadata[] {
+  const purposeBuilt = (
+    id: string,
+    label: string,
+    tabKey: string,
+    order: number,
+    tabLabel?: string,
+  ): FormSectionMetadata => ({
+    id,
+    tabKey,
+    label,
+    tabLabel,
+    order,
+    layout: "single-column",
+    columns: 1,
+    // Every Work Site section is full width: the form is a sequence of
+    // decisions, and a map or a policy switch beside a half-width field column
+    // reads as two unrelated forms.
+    columnSpan: 2,
+    fields: [],
+  });
+
+  return [
+    /*
+     * The operational summary lives INSIDE the Summary tab, not above the tabs.
+     * Pinning it above meant every tab carried a block the Summary tab then
+     * repeated in full — the same facts twice on one screen.
+     */
+    purposeBuilt(
+      WORK_SITE_SECTION_IDS.overview,
+      "Summary",
+      WORK_SITE_TAB_KEYS.general,
+      10,
+    ),
+    formSection({
+      id: WORK_SITE_SECTION_IDS.general,
+      label: "General Information",
+      order: 20,
+      tabKey: WORK_SITE_TAB_KEYS.general,
+      columns: 2,
+      columnSpan: 2,
+      fields: [{ key: "name", required: true }, "code", "description", "isActive"],
+    }),
+    formSection({
+      id: WORK_SITE_SECTION_IDS.address,
+      label: "Location & Geofence",
+      order: 30,
+      tabKey: WORK_SITE_TAB_KEYS.location,
+      columns: 2,
+      columnSpan: 2,
+      fields: [
+        "addressLine1",
+        "addressLine2",
+        { key: "city", required: true },
+        { key: "state", required: true },
+        { key: "country", required: true },
+        "zipCode",
+        "timezone",
+      ],
+    }),
+    purposeBuilt(
+      WORK_SITE_SECTION_IDS.geofence,
+      "Map, pin and geofence radius",
+      WORK_SITE_TAB_KEYS.location,
+      40,
+    ),
+    purposeBuilt(
+      WORK_SITE_SECTION_IDS.accuracy,
+      "Location Accuracy Requirement",
+      WORK_SITE_TAB_KEYS.location,
+      50,
+    ),
+    purposeBuilt(
+      WORK_SITE_SECTION_IDS.testLocation,
+      "Test this location",
+      WORK_SITE_TAB_KEYS.location,
+      60,
+    ),
+    purposeBuilt(
+      WORK_SITE_SECTION_IDS.attendancePolicy,
+      "Attendance Policy",
+      WORK_SITE_TAB_KEYS.attendance,
+      70,
+    ),
+    purposeBuilt(
+      WORK_SITE_SECTION_IDS.related,
+      "Related Records",
+      WORK_SITE_TAB_KEYS.related,
+      80,
+    ),
+    /*
+     * "More" groups the two sections an administrator visits rarely. Its own
+     * label is carried by `tabLabel` so the first section can keep the heading
+     * that describes it rather than the group.
+     */
+    purposeBuilt(
+      WORK_SITE_SECTION_IDS.effectivePeriod,
+      "Configuration Effective Period",
+      WORK_SITE_TAB_KEYS.more,
+      90,
+      "More",
+    ),
+    purposeBuilt(
+      WORK_SITE_SECTION_IDS.advanced,
+      "Advanced",
+      WORK_SITE_TAB_KEYS.more,
+      100,
+    ),
+  ];
 }
 
 function adapter(input: {
@@ -2124,21 +2248,63 @@ const adapters: readonly SettingsRuntimeAdapter[] = [
     fields: [
       ...namedCatalogFields,
       field("addressLine1", "Address", "multiline-string"),
+      field("addressLine2", "Address line 2"),
       field("city", "City"),
       field("state", "Region"),
       field("country", "Country", "lookup"),
+      field("zipCode", "Postal code"),
       field("timezone", "Timezone", "lookup"),
       field("latitude", "Latitude", "decimal"),
       field("longitude", "Longitude", "decimal"),
-      field("allowedRadiusMeters", "Allowed Radius (m)", "number"),
-      field("defaultWorkScheduleId", "Default Work Schedule", "lookup"),
-      field("holidayCalendarId", "Work Calendar", "lookup"),
+      field("allowedRadiusMeters", "Geofence Radius (m)", "number"),
+      /*
+       * `defaultWorkScheduleId` and `holidayCalendarId` are deliberately absent.
+       * The columns still exist so tenant data is preserved, but a Work Site is
+       * a physical place and does not decide who works when: schedule and
+       * calendar resolve down the organizational hierarchy (Employee -> Team ->
+       * Department -> Business Unit -> Organization -> Tenant). Listing them
+       * here would put an authority on this page that the engine no longer
+       * honours.
+       */
+      /*
+       * Attendance configuration for this work site.
+       *
+       * These columns are nullable on purpose: empty means "use the tenant
+       * setting". They are rendered by the purpose-built Attendance Policy
+       * section rather than as generic fields, which is what lets the page show
+       * an explicit "Use tenant setting" choice alongside the value the tenant
+       * currently resolves to. The specs stay here so validation, views,
+       * import/export and the API payload continue to know these columns.
+       */
+      field("maximumAccuracyMeters", "Location Accuracy Requirement (m)", "number"),
+      field("attendanceEnabled", "Attendance Enabled", "boolean"),
+      field("allowedAttendanceMethods", "Allowed Attendance Methods", "multi-optionset", {
+        options: choices("DEVICE", "WEB", "MOBILE", "MANUAL"),
+      }),
+      field("webAttendancePolicy", "Web Attendance", "optionset", {
+        options: choices("ALLOWED", "DISALLOWED", "FALLBACK_ONLY"),
+      }),
+      field("devicePolicy", "Office Device Requirement", "optionset", {
+        options: choices(
+          "DEVICE_REQUIRED",
+          "DEVICE_PREFERRED",
+          "DEVICE_OPTIONAL",
+        ),
+      }),
+      field("webFallbackEnabled", "Web Fallback", "boolean"),
+      field("validFrom", "Valid From", "date"),
+      field("validTo", "Valid To", "date"),
     ],
+    formSections: workSiteFormSections(),
+    /*
+     * Pinned rather than derived. The default takes the first six fields, which
+     * now begin with two address lines — a list of work sites is more useful
+     * keyed on where and when than on street detail.
+     */
+    columns: ["name", "code", "city", "country", "timezone", "isActive"],
     lookupSources: {
       country: "/api/lookups/countries",
       timezone: "/api/configuration/timezones",
-      defaultWorkScheduleId: "/api/work-schedules",
-      holidayCalendarId: "/api/holiday-calendars",
     },
     permissions: {
       read: "locations.read",

@@ -31,7 +31,18 @@
     "seed:payroll-flow": "npm --workspace api run seed:payroll-flow",
     "seed:platform-workflows": "npm --workspace api run seed:platform-workflows",
     "seed:all": "npm --workspace api run seed:all",
-    "smoke:deployment": "node scripts/smoke-deployment.mjs"
+    "smoke:deployment": "node scripts/smoke-deployment.mjs",
+    "gateway:build": "dotnet build gateway/DijiPeople.Gateway.sln -c Release",
+    "gateway:test": "dotnet test gateway/DijiPeople.Gateway.sln -c Release",
+    "gateway:package": "pwsh gateway/packaging/publish.ps1",
+    "zkteco:install": "npm --prefix tools/zkteco-poc install",
+    "zkteco:worker:publish": "npm --prefix tools/zkteco-poc run worker:publish",
+    "zkteco:test": "npm --prefix tools/zkteco-poc run test",
+    "zkteco:device-info": "npm --prefix tools/zkteco-poc run device-info",
+    "zkteco:users": "npm --prefix tools/zkteco-poc run users",
+    "zkteco:attendance": "npm --prefix tools/zkteco-poc run attendance",
+    "zkteco:capabilities": "npm --prefix tools/zkteco-poc run capabilities",
+    "zkteco:poc": "npm --prefix tools/zkteco-poc run poc"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

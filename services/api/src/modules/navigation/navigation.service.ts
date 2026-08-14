@@ -99,9 +99,9 @@ export class NavigationService {
 function isMeaningfulOverride(item: SidebarNavigationOverrideDto): boolean {
   return Boolean(
     item.isHidden ||
-      item.label?.trim() ||
-      typeof item.sortOrder === 'number' ||
-      item.visibilityRules?.length,
+    item.label?.trim() ||
+    typeof item.sortOrder === 'number' ||
+    item.visibilityRules?.length,
   );
 }
 
