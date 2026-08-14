@@ -14,17 +14,16 @@ Parallelism rules: [`parallel-work.md`](parallel-work.md).
 User request
      │
      ▼
-ARCHITECT ──── loads .agent/context/*, known bug patterns, regression register
-     │         produces ExecPlan: FACT / INFERENCE / PROPOSAL
-     │         classifies tasks, names required specialists, plans branches
+ARCHITECT ──── loads .agent/context/*, bug patterns, regression register
+     │         ExecPlan: FACT / INFERENCE / PROPOSAL
+     │         classifies tasks, names specialists, plans branches
      ▼
    human approval of the plan
      │
      ▼
 SPECIALISTS ── Backend/API · Frontend · UI/UX · Database · Integration
      │          one bounded task each, on agent/<feature>-<scope>
-     │          PARALLEL_SAFE tasks may run concurrently
-     │          DEPENDENCY_BLOCKED tasks wait
+     │          PARALLEL_SAFE concurrent · DEPENDENCY_BLOCKED waits
      ▼
 QA ─────────── independent scenarios, documented run in docs/qa/runs/
      │
@@ -32,16 +31,25 @@ QA ─────────── independent scenarios, documented run in do
 REVIEWER ───── independent findings, CRITICAL → LOW, read-only
      │
      ▼
-INTEGRATION ── single owner merges, re-runs combined validation
+INTEGRATOR ─── classifies every conflict, resolves TYPE 1-2, escalates 3-9
+     │          merges only when every gate passes
+     ▼
+INTEGRATED QA  validation on the merged result, not the branches
      │
      ▼
-FINAL QA ───── on the integrated result, not the individual branches
+RELEASE/DEVOPS readiness gates, environment revalidation, deploy order
+     │          deploys where credentials and policy allow
+     ▼
+DEPLOYMENT QA  smoke tests, health checks, deployment QA run
      │
      ▼
 KNOWLEDGE ──── knowledge-capture Skill → docs/knowledge/
      │
      ▼
-OBSIDIAN ───── node scripts/sync-obsidian.mjs
+OBSIDIAN ───── node scripts/sync-obsidian.mjs (non-blocking)
+     │
+     ▼
+CLEANUP ────── remove temporary worktrees, delete merged local branches
      │
      ▼
 FINAL REPORT ─ docs/development/final-report-template.md

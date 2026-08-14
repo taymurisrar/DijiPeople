@@ -106,6 +106,23 @@ Properties, by design:
   **Hand-written notes outside `Generated/` are never touched.**
 - **Markdown only** — no other file type leaves the repository.
 
+## 5a. Automatic sync, and its failure contract
+
+After a successful task integration or deployment, agents run the sync
+automatically **if** `.obsidian-sync.local.json` exists.
+
+Report one of:
+
+| Token | Meaning |
+|---|---|
+| `OBSIDIAN_SYNC = SYNCED` | Ran, files published |
+| `OBSIDIAN_SYNC = SKIPPED_NO_LOCAL_CONFIG` | No local config — **not a failure** |
+| `OBSIDIAN_SYNC = FAILED` | Ran and errored — report the reason |
+
+**A sync failure never blocks or reverses engineering work.** Documentation
+automation is downstream of the code being correct. Never roll back a healthy
+deployment because a note did not copy.
+
 ## 6. Feedback loop
 
 Future agents read repository context (`.agent/context/`, `docs/`) plus the
