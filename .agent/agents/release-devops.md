@@ -65,6 +65,12 @@ incident.
 If CI cannot run at all, `CI_STATUS = UNAVAILABLE`, which caps readiness at
 `READY_WITH_RISKS` and must be stated explicitly in the release report.
 
+The same verdict must also have authorised the **merge** that put this code on
+the branch. A shared branch whose last merge recorded
+`MERGE_AUTHORIZATION = BLOCKED_CI_UNVERIFIED` is carrying code that no CI run
+ever approved before it landed — see
+[`../context/task-completion-contract.md`](../context/task-completion-contract.md).
+
 `READY_FOR_PRODUCTION` requires **all** of:
 
 - clean build of every affected component

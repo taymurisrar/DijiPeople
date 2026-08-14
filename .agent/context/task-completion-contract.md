@@ -111,11 +111,101 @@ them is what stops an agent rounding them up to "complete".
 | State | Meaning |
 |---|---|
 | `COMPLETE` | Every contract field is `PASS`, `DONE` or `NOT_REQUIRED` |
-| `COMPLETE_WITH_UNVERIFIED_CI` | Everything landed, but `REMOTE_CI_STATUS` was `BLOCKED_BY_ACCESS` or `UNAVAILABLE`. Local gates carried the merge, and the report says so |
+| `COMPLETE_WITH_UNVERIFIED_CI` | **Narrow.** Only where remote CI genuinely does not apply — `SHARED_TARGET = false`, or no CI configured, or a documented local-only policy. **Never** for work integrated into a shared branch. See [Shared targets](#shared-targets-and-the-ci-merge-gate) |
 | `COMPLETE_WITH_DOCUMENTATION_WARNING` | Code, Git and validation all succeeded; `OBSIDIAN_SYNC_STATUS = FAILED`. Documentation automation is non-blocking |
 | `IMPLEMENTATION_COMPLETE_BUT_UNMERGED` | Implementation and validation passed; the work is committed on a task branch that has not merged |
-| `BLOCKED_FINALIZATION` | Implementation is done but a finalization step is blocked — typically push or merge access. **Not** a form of complete |
+| `BLOCKED_FINALIZATION` | Implementation is done but a finalization step is blocked — push access, merge access, or **an unreadable CI verdict on a shared target**. **Not** a form of complete |
 | `BLOCKED` / `FAILED` | Blocked awaiting something external, or a gate failed outright |
+
+---
+
+## Shared targets and the CI merge gate
+
+A task merged into `main` while its CI verdict was unreadable. Local gates were
+green and nothing broke, but the merge was authorised by *inference* — the exact
+substitution this contract forbids everywhere else. On a branch other people
+pull from, that is not an acceptable risk to take on their behalf.
+
+### `SHARED_TARGET`
+
+Every plan and every finalization report classifies its target branch:
+
+```
+SHARED_TARGET = true | false
+```
+
+**`true` by default** — other people's work depends on it:
+
+- `main`, `master`
+- `develop`, when used collaboratively
+- `release/*`
+- `production`, `staging`
+- any branch repository policy marks protected or shared
+
+**`false`** — the branch belongs to this task:
+
+- `agent/*`, `chore/*`
+- a personal `feature/*` branch nobody else pulls from
+
+When uncertain, it is `true`. The cost of wrongly treating a private branch as
+shared is one blocked merge; the cost of the reverse is unverified code on a
+branch a team builds from.
+
+### The rule
+
+When remote CI is configured **and** `SHARED_TARGET = true`:
+
+```
+MERGE requires REMOTE_CI_STATUS = PASS
+```
+
+Nothing else authorises it. Specifically, **none** of these permit a merge into
+a shared target:
+
+| Value | Why it does not authorise |
+|---|---|
+| `BLOCKED_BY_ACCESS` | CI ran; nobody read it. An unread result is not a pass |
+| `UNAVAILABLE` | No verdict exists |
+| `UNKNOWN` | Same, stated less precisely |
+| `PENDING` | Still running — a verdict that has not happened yet |
+| `FAILED` | It ran and failed |
+| `ASSUMED_PASS` | Not a value at all |
+
+Local validation passing does **not** substitute. That is what happened the last
+time, and it is why this section exists.
+
+### What to do when CI cannot be read
+
+Push the task branch — always. That starts CI, preserves the work on the remote,
+and costs nothing. Then stop:
+
+```
+MERGE_STATUS   = BLOCKED_CI_UNVERIFIED
+TASK_STATUS    = BLOCKED_FINALIZATION
+```
+
+- **Do not merge.**
+- **Do not push the target branch.**
+- Report the exact command that could not be run, and the SHA whose verdict is
+  needed.
+
+The work is safe on its pushed branch. A human — or a later agent with CI
+access — reads the verdict and completes the merge. Nothing is lost, and
+nothing unverified reaches a branch other people pull from.
+
+### When the gate does not apply
+
+| Situation | Flow |
+|---|---|
+| No remote CI configured | `REMOTE_CI_STATUS = UNAVAILABLE`; repository policy determines the local flow, and local gates carry the merge |
+| `SHARED_TARGET = false` | Local integration may proceed where policy permits; record the CI status honestly regardless |
+| Documented local-only repository policy | Follow it, and cite it in the report |
+
+**Branch protection is the other half of this.** These rules govern agent
+behaviour; branch protection governs everyone — humans, other Git clients,
+direct pushes, and agents that ignore their instructions. Neither replaces the
+other, and this repository currently has only the first. See
+[`../../docs/development/branch-protection.md`](../../docs/development/branch-protection.md).
 
 ---
 
@@ -145,7 +235,7 @@ CLEANUP_STATUS
 | `PASS` | The gate ran and passed |
 | `DONE` | A non-gate action completed (a merge, a sync, a cleanup) |
 | `NOT_REQUIRED` | Genuinely inapplicable — **with a stated reason** |
-| `BLOCKED_<REASON>` | Attempted and prevented, e.g. `BLOCKED_BY_ACCESS`, `BLOCKED_BY_POLICY`, `BLOCKED_BY_CONFLICT` |
+| `BLOCKED_<REASON>` | Attempted and prevented, e.g. `BLOCKED_BY_ACCESS`, `BLOCKED_BY_POLICY`, `BLOCKED_BY_CONFLICT`, `BLOCKED_CI_UNVERIFIED` |
 | `FAILED` | Ran and failed |
 
 `SKIPPED_NO_LOCAL_CONFIG` is additionally allowed for `OBSIDIAN_SYNC_STATUS`.
@@ -183,13 +273,34 @@ prompt happened to ask for Git operations. A user should never need to append
 
 ### If a remote exists
 
-Do not stop after local commits. Attempt, in order:
+Do not stop after local commits. The safe autonomous flow is:
 
-1. `git fetch`
-2. push the task branch
-3. observe required CI
-4. merge into the target branch
-5. push the target branch
+```
+task branch → local validation → QA → Reviewer
+  → push task branch          ← always allowed, even with no CI-read access
+  → wait for / read remote CI
+  → CI PASS                   ← required when SHARED_TARGET = true
+  → fetch and re-verify the target
+  → merge
+  → push target
+  → post-merge CI / validation
+  → knowledge capture → Obsidian sync → cleanup
+  → COMPLETE
+```
+
+**Pushing the task branch is always permitted**, including when the CI verdict
+cannot be read. It starts CI, preserves the work remotely, and endangers
+nothing.
+
+**Merging and pushing a shared target are not.** If CI cannot be read:
+
+```
+task branch stays safely pushed
+  → no merge
+  → no target push
+  → MERGE_STATUS = BLOCKED_CI_UNVERIFIED
+  → TASK_STATUS  = BLOCKED_FINALIZATION
+```
 
 If any step is blocked by authentication, network or policy, record:
 
@@ -228,20 +339,28 @@ pushed commit before an automatic merge.
 
 | `REMOTE_CI_STATUS` | Meaning |
 |---|---|
-| `PASS` | The `CI required gate` check succeeded **on this commit** |
-| `FAILED` | It ran and failed — classify per `docs/development/ci.md` before acting |
-| `BLOCKED_BY_ACCESS` | CI exists but its verdict is unreadable from here (no `gh`, no API reachability) |
-| `UNAVAILABLE` | No remote, or no CI configured |
-| `NOT_REQUIRED` | The task modified nothing CI covers |
+| `REMOTE_CI_STATUS` | Meaning | Authorises a shared merge? |
+|---|---|---|
+| `PASS` | The `CI required gate` check succeeded **on this commit** | **Yes — only this** |
+| `FAILED` | It ran and failed — classify per `docs/development/ci.md` before acting | No |
+| `PENDING` | Still running; no verdict yet. Wait, or stop | No |
+| `BLOCKED_BY_ACCESS` | CI exists but its verdict is unreadable from here (no `gh`, no API reachability) | No |
+| `UNKNOWN` | State could not be determined at all | No |
+| `UNAVAILABLE` | No remote, or no CI configured | No |
+| `NOT_REQUIRED` | The task modified nothing CI covers | No |
 
 **`ASSUMED_PASS` is forbidden.** Local tests do not substitute for remote CI when
 remote CI is available — a local run uses a different Node build, filesystem and
 cache.
 
-`BLOCKED_BY_ACCESS` and `UNAVAILABLE` cap the task at
-`COMPLETE_WITH_UNVERIFIED_CI`. Merging on local gates alone is permitted in that
-case **only if** local validation passed and the report states plainly that no
-CI verdict was read.
+`PASS` must be read **on the exact SHA being merged**. A verdict from an earlier
+commit on the same branch is a verdict about different code.
+
+Where `SHARED_TARGET = true`, anything other than `PASS` yields
+`MERGE_STATUS = BLOCKED_CI_UNVERIFIED` and `TASK_STATUS = BLOCKED_FINALIZATION`
+— see [Shared targets](#shared-targets-and-the-ci-merge-gate). Where
+`SHARED_TARGET = false`, or no CI is configured, local gates may carry the
+integration and the report states plainly that no CI verdict was read.
 
 ---
 
