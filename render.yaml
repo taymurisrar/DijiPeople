@@ -28,6 +28,23 @@ services:
         sync: false
       - key: AUTH_COOKIE_DOMAIN
         sync: false
+      # Workspace routing. These decide which tenant a hostname resolves to and
+      # must match the values set on apps/web and apps/admin — a deployment
+      # where the API and the web proxy disagree about the base domain routes
+      # requests to nothing. See
+      # docs/architecture/workspace-routing-and-domains.md.
+      - key: PLATFORM_ENVIRONMENT
+        value: production
+      - key: PUBLIC_BASE_DOMAIN
+        sync: false
+      - key: TENANT_BASE_DOMAIN
+        sync: false
+      # Render terminates TLS in front of the service, so the browser's
+      # hostname arrives in X-Forwarded-Host. Only set this where a proxy is
+      # genuinely in front: on a directly reachable API it would let any caller
+      # name any workspace.
+      - key: TRUST_PROXY_HEADERS
+        value: "true"
       # Required in production: SecretEncryptionService refuses to start
       # without it rather than storing integration credentials in plaintext.
       # Set the value in the Render dashboard; never commit it.

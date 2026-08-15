@@ -11,6 +11,7 @@ import * as bcrypt from 'bcryptjs';
 import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { buildTenantActivationUrl } from '../../common/config/tenant-url.config';
+import { TenantDomainService } from '../tenant-domains/tenant-domain.service';
 import { normalizeEmail } from '../../common/utils/email.util';
 import { AuditService } from '../audit/audit.service';
 import { EmailService } from '../notifications/email/email.service';
@@ -30,6 +31,7 @@ export class UserInvitationsService {
     private readonly usersRepository: UsersRepository,
     private readonly auditService: AuditService,
     private readonly passwordPolicyService: PasswordPolicyService,
+    private readonly tenantDomains: TenantDomainService,
   ) {}
 
   async issueInvitation(input: {
@@ -67,9 +69,10 @@ export class UserInvitationsService {
       where: { id: input.tenantId },
       select: { slug: true },
     });
-    const activationLink = this.buildActivationLink(
+    const activationLink = await this.buildActivationLink(
       rawToken,
       tenant?.slug ?? '',
+      input.tenantId,
     );
     let deliveryMode: 'log' | 'disabled' | 'sent' = 'disabled';
     let deliveryStatus: string | null = null;
@@ -313,7 +316,34 @@ export class UserInvitationsService {
     return safeHours * 60 * 60 * 1000;
   }
 
-  private buildActivationLink(rawToken: string, tenantSlug: string) {
+  /**
+   * Where an invited person should go to set up their account.
+   *
+   * Prefers the tenant's actual primary workspace hostname, taken from the
+   * domain service, so an invitation always points at the address that workspace
+   * really answers on — including a verified custom domain. The slug-based
+   * builder remains the fallback for callers that have no tenant id and for
+   * local development.
+   */
+  private async buildActivationLink(
+    rawToken: string,
+    tenantSlug: string,
+    tenantId?: string,
+  ) {
+    if (tenantId) {
+      try {
+        const workspaceUrl = await this.tenantDomains.getWorkspaceUrl(
+          tenantId,
+          '/activate',
+        );
+        const url = new URL(workspaceUrl);
+        url.searchParams.set('token', rawToken);
+        return url.toString();
+      } catch {
+        /* Fall through to the slug-based builder rather than fail the invite. */
+      }
+    }
+
     if (tenantSlug.trim()) {
       return buildTenantActivationUrl(this.configService, {
         slug: tenantSlug,

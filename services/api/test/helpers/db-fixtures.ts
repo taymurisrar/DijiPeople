@@ -25,13 +25,14 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import type { PrismaClient } from '@prisma/client';
+import type { PrismaClient, TenantEnvironmentType } from '@prisma/client';
 
 export interface FixtureTenant {
   id: string;
   name: string;
   slug: string;
   customerAccountId: string;
+  environmentType: TenantEnvironmentType;
 }
 
 export class DbFixtures {
@@ -68,26 +69,50 @@ export class DbFixtures {
    * tests pass for reasons they never state, and hides which fields the
    * behaviour under test actually depends on.
    */
-  async createTenant(suffix = 'tenant'): Promise<FixtureTenant> {
+  async createTenant(
+    suffix = 'tenant',
+    options: {
+      /**
+       * Reuse an existing customer account, so several environments of the same
+       * customer can be created. Without this every fixture tenant gets its own
+       * account and "same customer, different environment" cannot be expressed.
+       */
+      customerAccountId?: string;
+      environmentType?: TenantEnvironmentType;
+    } = {},
+  ): Promise<FixtureTenant> {
     const name = this.name(suffix);
 
-    const account = await this.prisma.customerAccount.create({
-      data: {
-        companyName: name,
-        contactEmail: `${name}@example.invalid`,
-        country: 'AE',
-      },
-      select: { id: true },
-    });
-    this.customerAccountIds.push(account.id);
+    let customerAccountId = options.customerAccountId;
+    if (!customerAccountId) {
+      const account = await this.prisma.customerAccount.create({
+        data: {
+          companyName: name,
+          contactEmail: `${name}@example.invalid`,
+          country: 'AE',
+        },
+        select: { id: true },
+      });
+      this.customerAccountIds.push(account.id);
+      customerAccountId = account.id;
+    }
 
     const tenant = await this.prisma.tenant.create({
       data: {
         name,
         slug: name.toLowerCase(),
-        customerAccountId: account.id,
+        customerAccountId,
+        ...(options.environmentType
+          ? { environmentType: options.environmentType }
+          : {}),
       },
-      select: { id: true, name: true, slug: true, customerAccountId: true },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        customerAccountId: true,
+        environmentType: true,
+      },
     });
     this.tenantIds.push(tenant.id);
     return tenant;
@@ -122,11 +147,14 @@ export class DbFixtures {
     this.customerAccountIds.length = 0;
   }
 
-  private async tryDelete(model: string, id: string, remove: () => Promise<unknown>): Promise<void> {
+  private async tryDelete(
+    model: string,
+    id: string,
+    remove: () => Promise<unknown>,
+  ): Promise<void> {
     try {
       await remove();
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.warn(
         `[db-fixtures] cleanup left ${model} ${id} behind: ${
           error instanceof Error ? error.message : String(error)

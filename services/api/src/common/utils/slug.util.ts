@@ -1,46 +1,19 @@
 import { BadRequestException } from '@nestjs/common';
+import {
+  RESERVED_HOST_LABELS,
+  isValidWorkspaceSlugFormat,
+  suggestWorkspaceSlug,
+} from '@repo/config';
 
-export const RESERVED_TENANT_SLUGS = new Set([
-  'admin',
-  'api',
-  'app',
-  'auth',
-  'callback',
-  'cdn',
-  'dashboard',
-  'email',
-  'smtp',
-  'mail',
-  'login',
-  'logout',
-  'oauth',
-  'register',
-  'settings',
-  'signup',
-  'assets',
-  'static',
-  'status',
-  'health',
-  'public',
-  'private',
-  'security',
-  'sso',
-  'www',
-  'dijipeople',
-  'tenant',
-  'tenants',
-  'system',
-  'platform',
-  'portal',
-  'support',
-  'help',
-  'docs',
-  'billing',
-  'account',
-  'accounts',
-  'root',
-  'superadmin',
-]);
+/**
+ * Reserved workspace slugs.
+ *
+ * Derived from the platform's reserved host labels rather than listed again
+ * here: a slug becomes a hostname label, so anything the host parser refuses to
+ * treat as a workspace must also be refused as a slug. Keeping two lists in
+ * step by hand is how a tenant ends up owning `api.dijipeople.com`.
+ */
+export const RESERVED_TENANT_SLUGS = new Set<string>(RESERVED_HOST_LABELS);
 
 const TENANT_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
@@ -74,10 +47,10 @@ export function assertValidTenantSlug(value: string) {
     );
   }
 
-  if (slug.length < 3 || slug.length > 63) {
+  if (slug.length < 3 || slug.length > 50) {
     throw tenantSlugError(
       'TENANT_SLUG_INVALID_LENGTH',
-      'Tenant slug must be between 3 and 63 characters.',
+      'Workspace slug must be between 3 and 50 characters.',
       slug,
     );
   }
@@ -110,12 +83,12 @@ export function assertValidTenantSlug(value: string) {
 }
 
 export function suggestTenantSlug(value: string) {
-  return normalizeTenantSlug(value)
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/-{2,}/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 63)
-    .replace(/-+$/g, '');
+  return suggestWorkspaceSlug(value);
+}
+
+/** Format check without throwing, for "is this slug usable?" callers. */
+export function isTenantSlugFormatValid(value: string) {
+  return isValidWorkspaceSlugFormat(value);
 }
 
 function tenantSlugError(

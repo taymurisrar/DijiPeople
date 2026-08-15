@@ -254,4 +254,28 @@ export class EraseTenantDto {
   acknowledgeOutstandingBilling?: boolean;
 }
 
+export class AddTenantCustomDomainDto {
+  @Transform(trimmed)
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(253)
+  hostname!: string;
+}
+
+export class TenantDomainActionDto {
+  @Transform(trimmed)
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  reason?: string;
+}
+
+export class ValidateWorkspaceSlugDto {
+  @Transform(trimmed)
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(50)
+  slug!: string;
+}
+
 export const ERASE_TENANT_CONFIRMATION_PHRASE = 'ERASE TENANT';

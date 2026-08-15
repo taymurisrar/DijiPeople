@@ -123,3 +123,51 @@ Do not add a typo. Add engineering lessons that could plausibly recur.
 | **Scenario** | Expire the admin session, trigger the error modal, click "Sign in again" → 307 to `/login?reason=session-expired&next=…`, the login page renders the "Session expired" notice, and all four auth cookies come back expired. The topbar sign-out still returns 200. An off-site or protocol-relative `next` collapses to `/tenants`. |
 | **Fixed** | 2026-08-15, branch `agent/admin-session-expired-logout-auth` |
 | **Active** | yes |
+
+### REG-009 — Signed agreement editable, defeating the lead-conversion gate
+
+| | |
+|---|---|
+| **Bug class** | `divergent-duplicate-guard` |
+| **Module** | `services/api/src/modules/contracts` |
+| **Root cause** | `ContractsService.update()` carried its own inline copy of the blocked-status list and it had drifted from the shared `assertAgreementEditable`: `SENT`, `VIEWED`, `FULLY_EXECUTED`, `SUPERSEDED` and `TERMINATED` were missing. A `FULLY_EXECUTED` agreement was therefore freely mutable via `PATCH /contracts/:id`, including `relatedLeadId`, `customerAccountId`, `contractType` and `isGoverningAgreement`. Because `assertGoverningAgreementExecuted` decides lead conversion by matching contracts on exactly those columns, one edit moved the gate. |
+| **Regression test** | `services/api/src/modules/contracts/contracts.agreement-immutability.spec.ts` |
+| **Scenario** | `PATCH /contracts/:id {relatedLeadId: <another lead>}` on a `FULLY_EXECUTED` agreement → 4xx and no write. Repeat for `customerAccountId` and for each of the five drifted statuses. Drafts through `APPROVED_FOR_SENDING` stay editable. |
+| **Fixed** | 2026-08-15, branch `agent/qa-commercial-onboarding-e2e` |
+| **Active** | yes |
+
+### REG-010 — Onboarding created by lead conversion was born un-editable
+
+| | |
+|---|---|
+| **Bug class** | `unvalidated-seed-state` |
+| **Module** | `services/api/src/modules/super-admin` |
+| **Root cause** | `convertLeadToCustomer` seeded `CustomerOnboarding` with `status: NOT_STARTED` and `subStatus: 'Agreement executed'`, a pair absent from `CUSTOMER_ONBOARDING_SUB_STATUS_OPTIONS[NOT_STARTED]` (`['Awaiting kickoff','Kickoff scheduled']`). `updateCustomerOnboarding` validates the effective sub-status on every call, so every later PATCH — including notes-only — returned 400 until the caller also sent a status change. |
+| **Regression test** | `services/api/src/modules/super-admin/platform-lifecycle.onboarding-seed.spec.ts` |
+| **Scenario** | Convert a qualified lead with an executed agreement → the seeded onboarding's sub-status is valid for its status, and `PATCH /super-admin/customer-onboarding/:id {notes}` returns 200. Every `CustomerOnboardingStatus` has a valid default sub-status. |
+| **Fixed** | 2026-08-15, branch `agent/qa-commercial-onboarding-e2e` |
+| **Active** | yes |
+
+### REG-011 — Public lead endpoint had no rate limiting
+
+| | |
+|---|---|
+| **Bug class** | `authorization-missing` (guard omitted on a public surface) |
+| **Module** | `services/api/src/modules/leads` |
+| **Root cause** | `PublicLeadsController` carried `@Public()` but no `PublicRateLimitGuard`, the only public surface in the codebase without it. Each accepted submission also emails every active platform user in the sales/admin roles, so the endpoint was both an unbounded `Lead` growth vector and an outbound email amplifier. 25/25 rapid anonymous submissions were accepted while the same burst against `/public/partners/inquiries` was throttled. |
+| **Regression test** | `services/api/src/modules/leads/public-leads.rate-limit.spec.ts` |
+| **Scenario** | `PublicLeadsController`'s guard metadata is exactly `[PublicRateLimitGuard]` — present, and never joined by an auth guard that would break the public funnel. |
+| **Fixed** | 2026-08-15, branch `agent/qa-commercial-onboarding-e2e` |
+| **Active** | yes |
+
+### REG-012 — No tenant that failed provisioning could be retried
+
+| | |
+|---|---|
+| **Bug class** | `declared-but-unwired-step` |
+| **Module** | `services/api/src/modules/tenant-control-plane` |
+| **Root cause** | `TENANT_PROVISIONING_STEPS` declared `workspace-slug-reserved` and `workspace-routing-verified` as `isRetryable: true`, but `TenantOperationsService.runRetryableStep` had no branch for either and fell through to `Step ${key} cannot be replayed automatically.` Retry replays retryable steps in catalogue order and `workspace-slug-reserved` is the first, so every retry died on its first step and left the tenant in `PROVISIONING_FAILED` — permanently, retry being the only recovery path — while the admin UI kept offering the button. |
+| **Regression test** | `services/api/src/modules/tenant-control-plane/tenant-provisioning-retry.spec.ts` |
+| **Scenario** | Every step `TENANT_PROVISIONING_STEPS` marks `isRetryable` resolves through `runRetryableStep` without throwing; an unknown key still throws; `workspace-routing-verified` fails when the hostname resolves to a different tenant. |
+| **Fixed** | 2026-08-15, branch `agent/qa-commercial-onboarding-e2e` |
+| **Active** | yes |

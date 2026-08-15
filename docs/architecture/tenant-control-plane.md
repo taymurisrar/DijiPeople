@@ -187,6 +187,17 @@ Because it is one transaction, a failure erases nothing.
 > such inbound reference from `schema.prisma` and fails if one is not covered by
 > a `clearFields` entry or a link cleanup.
 
+**When the response goes missing.** Erasure is one long transaction behind the
+admin app's proxy, so a 502, a 504 or a dropped connection can arrive *after* the
+work has committed. The UI therefore never treats a transport failure as a
+failed erasure: it reads the receipt, which is written before anything is deleted
+and outlives the tenant, and reports which of three situations the operator is
+actually in — it completed, it failed for a stated reason, or it never started
+and is safe to retry. The admin proxy also distinguishes "the API could not be
+reached" from "the API said no", and names the path, method and API base URL in
+both cases, because a bare `Bad Gateway` with no trace id is indistinguishable
+from any other outage.
+
 When an erasure does fail, the receipt and the log record the phase, the model
 being processed, the constraint name, the Prisma error code and how far the run
 had got — and the operator is told that something outside the tenant still

@@ -145,7 +145,9 @@ describe('tenant erasure order', () => {
             clearedByModel.get(model)?.has(field) || cleanedUp.has(model),
         );
         if (!covered) {
-          uncovered.push(`${model}.${relation.fields.join('+')} -> ${relation.target}`);
+          uncovered.push(
+            `${model}.${relation.fields.join('+')} -> ${relation.target}`,
+          );
         }
       }
     }

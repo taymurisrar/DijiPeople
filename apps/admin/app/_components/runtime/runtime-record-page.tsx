@@ -1393,6 +1393,55 @@ function formatRecordDate(value: unknown) {
   return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString();
 }
 
+type WorkspacePreview = {
+  slug: string;
+  available: boolean;
+  hostname: string | null;
+  url: string | null;
+  reason: string | null;
+};
+
+/**
+ * Ask the API what URL a slug would produce and whether it can be issued.
+ *
+ * The answer is deliberately not computed here. Availability depends on the
+ * tenant table, the domain table and the reserved-label rules, and a second
+ * implementation in the browser would eventually disagree with the one that
+ * actually decides at provisioning time.
+ */
+function useWorkspacePreview(slug: string) {
+  /*
+   * The answer is stored with the slug it answers for, so a result arriving
+   * after the slug changed is discarded on read rather than cleared by a
+   * synchronous state write inside the effect — which would cascade a render
+   * for no behavioural gain.
+   */
+  const [answer, setAnswer] = useState<{
+    slug: string;
+    preview: WorkspacePreview | null;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!slug) return;
+    let active = true;
+    fetch(
+      `/api/super-admin/tenant-slug/availability?slug=${encodeURIComponent(slug)}`,
+    )
+      .then((response) => (response.ok ? response.json() : null))
+      .then((preview: WorkspacePreview | null) => {
+        if (active) setAnswer({ slug, preview });
+      })
+      .catch(() => {
+        if (active) setAnswer({ slug, preview: null });
+      });
+    return () => {
+      active = false;
+    };
+  }, [slug]);
+
+  return slug && answer?.slug === slug ? answer.preview : null;
+}
+
 function CustomerAgreementPanel({
   record,
   onComplete,
@@ -1402,6 +1451,9 @@ function CustomerAgreementPanel({
 }) {
   const [provisioning, setProvisioning] = useState(false);
   const [provisionMessage, setProvisionMessage] = useState("");
+  const [environmentType, setEnvironmentType] = useState("PRODUCTION");
+  const plannedSlug = String(record.plannedTenantSlug ?? "");
+  const workspace = useWorkspacePreview(plannedSlug);
   const contracts = Array.isArray(record.contracts)
     ? (record.contracts as Array<Record<string, unknown>>)
     : [];
@@ -1421,7 +1473,8 @@ function CustomerAgreementPanel({
           tenantName: String(
             customer?.companyName ?? record.customerName ?? "Customer",
           ),
-          slug: String(record.plannedTenantSlug ?? ""),
+          slug: plannedSlug,
+          environmentType,
           planId: String(record.selectedPlanId ?? ""),
           billingCycle: String(record.billingCycle ?? "MONTHLY"),
           createServiceAccount: Boolean(record.createServiceAccount),
@@ -1475,8 +1528,9 @@ function CustomerAgreementPanel({
               disabled={
                 provisioning ||
                 !signed ||
-                !record.plannedTenantSlug ||
-                !record.selectedPlanId
+                !plannedSlug ||
+                !record.selectedPlanId ||
+                workspace?.available === false
               }
               onClick={() => void provisionTenant()}
               className="w-fit rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
@@ -1486,6 +1540,52 @@ function CustomerAgreementPanel({
           )}
         </div>
       </div>
+      {!record.tenantId ? (
+        <div className="mt-3 grid gap-3 rounded-xl border border-blue-200 bg-white p-3 sm:grid-cols-2">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Workspace address
+            </p>
+            {!plannedSlug ? (
+              <p className="mt-1 text-xs text-slate-500">
+                Set a planned workspace slug on this record first.
+              </p>
+            ) : workspace === null ? (
+              <p className="mt-1 text-xs text-slate-500">Checking {plannedSlug}…</p>
+            ) : workspace.available ? (
+              <>
+                <p className="mt-1 break-all text-sm font-semibold text-slate-900">
+                  {workspace.url ?? `${plannedSlug} (no base domain configured)`}
+                </p>
+                <p className="mt-0.5 text-xs text-emerald-700">
+                  Available. This becomes the workspace&apos;s permanent address.
+                </p>
+              </>
+            ) : (
+              <p className="mt-1 text-xs font-semibold text-rose-700">
+                {workspace.reason ?? "This slug cannot be used."}
+              </p>
+            )}
+          </div>
+          <label className="grid gap-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Environment
+            <select
+              value={environmentType}
+              onChange={(event) => setEnvironmentType(event.target.value)}
+              className="h-10 rounded-xl border border-slate-200 px-3 text-sm font-normal normal-case tracking-normal text-slate-900"
+            >
+              <option value="PRODUCTION">Production</option>
+              <option value="UAT">UAT</option>
+              <option value="SANDBOX">Sandbox</option>
+              <option value="DEVELOPMENT">Development</option>
+            </select>
+            <span className="font-normal normal-case tracking-normal text-slate-500">
+              Each environment is a separate workspace with its own data and its
+              own address. This cannot be changed afterwards.
+            </span>
+          </label>
+        </div>
+      ) : null}
       <div className="mt-3 flex flex-wrap gap-2">
         {contracts.map((contract) => (
           <Link

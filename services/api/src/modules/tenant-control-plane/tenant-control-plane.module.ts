@@ -17,6 +17,8 @@ import { TenantErasureService } from './tenant-erasure.service';
 import { TenantModulesService } from './tenant-modules.service';
 import { TenantOperationsService } from './tenant-operations.service';
 import { TenantProvisioningRunModule } from './tenant-provisioning-run.service';
+import { TenantDomainsModule } from '../tenant-domains/tenant-domains.module';
+import { TenantDomainsAdminService } from './tenant-domains-admin.service';
 
 /**
  * Platform Admin's control plane over one tenant workspace.
@@ -39,6 +41,7 @@ import { TenantProvisioningRunModule } from './tenant-provisioning-run.service';
     SuperAdminModule,
     TenantSettingsModule,
     TenantProvisioningRunModule,
+    TenantDomainsModule,
   ],
   controllers: [TenantControlPlaneController],
   providers: [
@@ -48,6 +51,7 @@ import { TenantProvisioningRunModule } from './tenant-provisioning-run.service';
     TenantAppsService,
     TenantOperationsService,
     TenantErasureService,
+    TenantDomainsAdminService,
     JwtAuthGuard,
   ],
   exports: [
@@ -57,6 +61,7 @@ import { TenantProvisioningRunModule } from './tenant-provisioning-run.service';
     TenantAppsService,
     TenantOperationsService,
     TenantErasureService,
+    TenantDomainsAdminService,
   ],
 })
 export class TenantControlPlaneModule {}

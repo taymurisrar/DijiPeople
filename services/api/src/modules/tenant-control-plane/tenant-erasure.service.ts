@@ -381,7 +381,9 @@ export class TenantErasureService {
         where: { tenantId },
         data: {
           tenantId: null,
-          ...Object.fromEntries(entry.clearFields.map((field) => [field, null])),
+          ...Object.fromEntries(
+            entry.clearFields.map((field) => [field, null]),
+          ),
         },
       });
       retained[entry.model] = result.count;
@@ -561,9 +563,9 @@ export class TenantErasureService {
 }
 
 function delegateFor(tx: Prisma.TransactionClient, model: string) {
-  const delegate = tx[
-    model as keyof Prisma.TransactionClient
-  ] as unknown as DeleteManyDelegate | undefined;
+  const delegate = tx[model as keyof Prisma.TransactionClient] as unknown as
+    | DeleteManyDelegate
+    | undefined;
   if (!delegate?.deleteMany) {
     throw new Error(
       `The erasure plan names "${model}", which is not a Prisma model on this client. The plan and the schema have diverged.`,

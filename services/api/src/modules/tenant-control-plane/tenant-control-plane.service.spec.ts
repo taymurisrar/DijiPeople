@@ -48,11 +48,12 @@ function build(tenantStatus: TenantStatus = TenantStatus.ACTIVE) {
   const service = new TenantControlPlaneService(
     prisma as never,
     access as never,
-    {} as never,
-    {} as never,
-    {} as never,
-    { log: jest.fn() } as never,
-    { record: jest.fn() } as never,
+    {} as never, // modules
+    {} as never, // apps
+    {} as never, // operations
+    {} as never, // domains
+    { log: jest.fn() } as never, // audit
+    { record: jest.fn() } as never, // platform events
   );
   jest.spyOn(service, 'overview').mockResolvedValue({} as never);
   return { service, prisma, access };

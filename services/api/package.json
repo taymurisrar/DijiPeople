@@ -41,7 +41,8 @@
     "seed:all": "npm run seed:admin && npm run seed:config && npm run seed:platform-workflows && npm run seed:demo",
     "release": "npm run prisma:migrate:deploy && npm run seed:config && npm run seed:verify && npm run seed:admin",
     "backfill:default-views": "ts-node prisma/backfill-default-views.ts",
-    "backfill:attendance": "ts-node prisma/backfill-attendance.ts"
+    "backfill:attendance": "ts-node prisma/backfill-attendance.ts",
+    "backfill:workspace-domains": "ts-node prisma/backfill-workspace-domains.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

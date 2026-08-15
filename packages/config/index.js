@@ -239,6 +239,22 @@ const {
   resolveRuntimeViewRule,
   runtimeViewLabel,
 } = require("./platform-runtime-views");
+const {
+  PLATFORM_ENVIRONMENTS,
+  RESERVED_HOST_LABELS,
+  buildWorkspaceHostname,
+  buildWorkspaceUrl,
+  getPlatformDomainConfig,
+  getPlatformHostnames,
+  isPlatformHostname,
+  isReservedHostLabel,
+  isValidWorkspaceSlugFormat,
+  isWorkspaceDiscoveryHostname,
+  normalizeHostname,
+  parseWorkspaceHostname,
+  resolvePlatformEnvironment,
+  suggestWorkspaceSlug,
+} = require("./platform-domains");
 
 module.exports = {
   DEFAULT_LOCAL_PORTS,
@@ -267,4 +283,18 @@ module.exports = {
   listRuntimeViewKeys,
   resolveRuntimeViewRule,
   runtimeViewLabel,
+  PLATFORM_ENVIRONMENTS,
+  RESERVED_HOST_LABELS,
+  buildWorkspaceHostname,
+  buildWorkspaceUrl,
+  getPlatformDomainConfig,
+  getPlatformHostnames,
+  isPlatformHostname,
+  isReservedHostLabel,
+  isValidWorkspaceSlugFormat,
+  isWorkspaceDiscoveryHostname,
+  normalizeHostname,
+  parseWorkspaceHostname,
+  resolvePlatformEnvironment,
+  suggestWorkspaceSlug,
 };

@@ -11,6 +11,7 @@ import { CustomizationService } from '../customization/customization.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { PlatformEventsService } from '../platform-events/platform-events.service';
 import { TenantProvisioningService } from '../super-admin/tenant-provisioning.service';
+import { TenantDomainService } from '../tenant-domains/tenant-domain.service';
 import {
   assertTenantPlatformAccess,
   loadTenantOrThrow,
@@ -43,6 +44,7 @@ export class TenantOperationsService {
     private readonly customization: CustomizationService,
     private readonly auditService: AuditService,
     private readonly events: PlatformEventsService,
+    private readonly tenantDomains: TenantDomainService,
   ) {}
 
   async overview(user: AuthenticatedUser, tenantId: string) {
@@ -336,6 +338,37 @@ export class TenantOperationsService {
       await this.customization.publishTenantDefaults(tenantId, actorUserId);
       return;
     }
+    if (key === 'workspace-slug-reserved') {
+      /*
+       * The slug is written onto the Tenant row by the tenant-record step, so by
+       * the time a retry runs the reservation either exists or the tenant does
+       * not. Re-asserting it is a read, not a write.
+       */
+      const tenant = await this.prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: { slug: true },
+      });
+      if (!tenant?.slug) {
+        throw new Error('Tenant has no workspace slug to reserve.');
+      }
+      return;
+    }
+    if (key === 'workspace-routing-verified') {
+      /*
+       * Mirrors the forward path: prove the primary hostname resolves back to
+       * this tenant before anyone is invited to it. A routing check against the
+       * resolver the web app uses, not a DNS probe.
+       */
+      const primary = await this.tenantDomains.getPrimaryDomain(tenantId);
+      if (!primary) {
+        throw new Error('No primary workspace hostname exists for this tenant.');
+      }
+      const resolved = await this.tenantDomains.resolveHostname(primary.domain);
+      if (resolved?.tenantId !== tenantId) {
+        throw new Error(`${primary.domain} does not resolve back to this tenant.`);
+      }
+      return;
+    }
     if (key === 'invitations') {
       /*
        * Invitations are re-issued from the access surface, one identity at a
@@ -345,6 +378,15 @@ export class TenantOperationsService {
        */
       return;
     }
+    /*
+     * Every step the catalogue marks isRetryable must have a branch above.
+     * When workspace-slug-reserved and workspace-routing-verified were added to
+     * TENANT_PROVISIONING_STEPS as retryable but not wired in here, retry always
+     * died on the first of them — so no tenant that failed provisioning could be
+     * recovered through the operations surface at all, while the UI kept
+     * offering the button. tenant-provisioning-retry.spec.ts pins the catalogue
+     * and this switch together.
+     */
     throw new Error(`Step ${key} cannot be replayed automatically.`);
   }
 

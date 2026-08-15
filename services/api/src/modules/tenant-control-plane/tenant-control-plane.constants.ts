@@ -99,24 +99,32 @@ export const TENANT_PROVISIONING_STEPS: TenantProvisioningStepDefinition[] = [
     description: 'Create the tenant row, code and default branding.',
   },
   {
-    key: 'workspace-domain',
-    label: 'Workspace domain',
+    key: 'workspace-slug-reserved',
+    label: 'Workspace slug reserved',
     sequence: 2,
     isRetryable: true,
     description:
-      'Reserve the workspace subdomain and record DNS/TLS readiness.',
+      'Confirm the workspace slug is well formed, unreserved and globally unique.',
+  },
+  {
+    key: 'workspace-domain',
+    label: 'System domain created',
+    sequence: 3,
+    isRetryable: true,
+    description:
+      'Issue the workspace subdomain under the platform wildcard and make it primary.',
   },
   {
     key: 'rbac-defaults',
     label: 'Roles and permissions',
-    sequence: 3,
+    sequence: 4,
     isRetryable: true,
     description: 'Bootstrap the tenant role set and permission matrix.',
   },
   {
     key: 'identities-and-billing',
     label: 'Owner, service account and subscription',
-    sequence: 4,
+    sequence: 5,
     isRetryable: false,
     description:
       'Create the tenant owner, optional service account, subscription and first invoice.',
@@ -124,16 +132,25 @@ export const TENANT_PROVISIONING_STEPS: TenantProvisioningStepDefinition[] = [
   {
     key: 'customization-defaults',
     label: 'Default views and forms',
-    sequence: 5,
+    sequence: 6,
     isRetryable: true,
     description: 'Publish the tenant customization defaults.',
   },
   {
-    key: 'invitations',
-    label: 'Activation invitations',
-    sequence: 6,
+    key: 'workspace-routing-verified',
+    label: 'Workspace routing verified',
+    sequence: 7,
     isRetryable: true,
-    description: 'Issue activation invitations to the provisioned identities.',
+    description:
+      'Confirm the workspace hostname resolves to this tenant through the domain resolver.',
+  },
+  {
+    key: 'invitations',
+    label: 'Owner invitation sent',
+    sequence: 8,
+    isRetryable: true,
+    description:
+      'Issue activation invitations, addressed to the workspace URL.',
   },
 ];
 

@@ -19,6 +19,7 @@ import {
   CustomerAccountStatus,
   CustomerOnboardingStatus,
   DiscountType,
+  TenantEnvironmentType,
 } from '@prisma/client';
 
 const phoneRegex = /^[+()\-.\s0-9]{7,40}$/;
@@ -842,6 +843,16 @@ export class CreateTenantFromOnboardingDto {
   @IsOptional()
   @IsUUID()
   planId?: string;
+
+  /*
+   * Which of the customer's workspaces this is. Optional and defaulting to
+   * PRODUCTION so every existing caller keeps its current meaning; a UAT or
+   * sandbox workspace is a separate tenant with its own data, never a flag on a
+   * shared one.
+   */
+  @IsOptional()
+  @IsEnum(TenantEnvironmentType)
+  environmentType?: TenantEnvironmentType;
 
   @IsOptional()
   @IsEnum(BillingCycle)
