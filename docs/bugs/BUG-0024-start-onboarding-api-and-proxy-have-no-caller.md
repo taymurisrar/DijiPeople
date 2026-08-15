@@ -11,7 +11,7 @@ DetectedDate: 2026-08-15
 DetectedInSha: 7bbab3d
 AffectedModules: [apps/admin, services/api/src/modules/super-admin]
 OwnerAgent: frontend
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: docs/qa/runs/2026-08-15-commercial-onboarding-e2e-7bbab3d.md
 RegressionId:
 RelatedBacklogItem:
@@ -110,3 +110,5 @@ Not applicable.
 
 - 2026-08-15 — found during the commercial onboarding E2E UI/UX assessment.
 - 2026-08-15 — re-verified against `main` `ad8f77f` and recorded as OPEN.
+
+- 2026-08-15 — Architect triage: FIX_NOW. The product question the record poses is already answered by the code: `convertLeadToCustomer` creates the onboarding in the primary journey and the record action navigates to `/onboarding/new`, so the navigation-first form is what the product does. The direct-action endpoint and its proxy are dead and should be removed. Small, and it removes an API surface a reader would reasonably assume is live.

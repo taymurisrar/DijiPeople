@@ -28,6 +28,13 @@ describe('tenant provisioning retry step coverage', () => {
         tenantId: string,
         slug: string,
         actorUserId: string,
+        recovery?: {
+          createdIdentities: Array<{
+            userId: string;
+            email: string;
+            fullName: string;
+          }>;
+        },
       ) => Promise<void>;
     }
   ).runRetryableStep;
@@ -51,6 +58,25 @@ describe('tenant provisioning retry step coverage', () => {
         .mockResolvedValue({ domain: 'acme.example.test' }),
       resolveHostname: jest.fn().mockResolvedValue({ tenantId: 'tenant-1' }),
     },
+    identitiesProvisioning: {
+      findOnboardingForTenant: jest.fn().mockResolvedValue({
+        id: 'onboarding-1',
+        selectedPlanId: 'plan-1',
+        billingCycle: 'MONTHLY',
+        createServiceAccount: false,
+        serviceAccountEmail: null,
+        serviceAccountDisplayName: null,
+        serviceAccountAssignSystemAdmin: true,
+        customer: {
+          selectedPlanId: 'plan-1',
+          preferredBillingCycle: 'MONTHLY',
+        },
+      }),
+      ensureIdentitiesAndBilling: jest
+        .fn()
+        .mockResolvedValue({ identities: [], createdIdentities: [] }),
+    },
+    userInvitations: { issueInvitation: jest.fn().mockResolvedValue({}) },
   };
 
   const retryableKeys = TENANT_PROVISIONING_STEPS.filter(
@@ -71,6 +97,120 @@ describe('tenant provisioning retry step coverage', () => {
         'actor-1',
       ),
     ).resolves.toBeUndefined();
+  });
+
+  /*
+   * REG — BUG-0015. `identities-and-billing` was isRetryable: false, and it is
+   * the only step that creates the business unit, the owner and the
+   * subscription. A tenant that failed at or before it therefore had no owner,
+   * `POST /access` refused to add one to a tenant with no business unit, and
+   * activation was blocked for ever — while retry reported SUCCEEDED.
+   */
+  it('declares identities-and-billing retryable', () => {
+    expect(retryableKeys).toContain('identities-and-billing');
+  });
+
+  it('replays identities-and-billing through the re-entrant service', async () => {
+    const created = [
+      { userId: 'user-1', email: 'ada@acme.test', fullName: 'Ada Lovelace' },
+    ];
+    const recovering = {
+      ...context,
+      identitiesProvisioning: {
+        ...context.identitiesProvisioning,
+        ensureIdentitiesAndBilling: jest
+          .fn()
+          .mockResolvedValue({ identities: created, createdIdentities: created }),
+      },
+    };
+    const recovery = { createdIdentities: [] as typeof created };
+
+    await runRetryableStep.call(
+      recovering as never,
+      'identities-and-billing',
+      'tenant-1',
+      'acme',
+      'actor-1',
+      recovery as never,
+    );
+
+    expect(
+      recovering.identitiesProvisioning.ensureIdentitiesAndBilling,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({ tenantId: 'tenant-1', planId: 'plan-1' }),
+    );
+    /* Handed to the invitations step, which is the only reason it is collected. */
+    expect(recovery.createdIdentities).toEqual(created);
+  });
+
+  it('refuses to replay identities-and-billing with no onboarding record', () => {
+    /*
+     * Without the onboarding record there is no owner name, no plan and no
+     * billing cycle — nothing to reconstruct the tenant from. Failing loudly
+     * beats writing a tenant owner nobody chose.
+     */
+    const orphaned = {
+      ...context,
+      identitiesProvisioning: {
+        ...context.identitiesProvisioning,
+        findOnboardingForTenant: jest.fn().mockResolvedValue(null),
+      },
+    };
+    return expect(
+      runRetryableStep.call(
+        orphaned as never,
+        'identities-and-billing',
+        'tenant-1',
+        'acme',
+        'actor-1',
+      ),
+    ).rejects.toThrow('No onboarding record');
+  });
+
+  it('invites only the identities this recovery created', async () => {
+    const created = [
+      { userId: 'user-1', email: 'ada@acme.test', fullName: 'Ada Lovelace' },
+    ];
+    const inviting = {
+      ...context,
+      userInvitations: { issueInvitation: jest.fn().mockResolvedValue({}) },
+    };
+
+    await runRetryableStep.call(
+      inviting as never,
+      'invitations',
+      'tenant-1',
+      'acme',
+      'actor-1',
+      { createdIdentities: created } as never,
+    );
+
+    expect(inviting.userInvitations.issueInvitation).toHaveBeenCalledTimes(1);
+    expect(inviting.userInvitations.issueInvitation).toHaveBeenCalledWith(
+      expect.objectContaining({ email: 'ada@acme.test', tenantId: 'tenant-1' }),
+    );
+  });
+
+  it('mails nobody when a retry created no identity', async () => {
+    /*
+     * The reason this step used to do nothing at all. Replaying invitations
+     * wholesale would re-mail every provisioned account on every retry.
+     */
+    const inviting = {
+      ...context,
+      userInvitations: { issueInvitation: jest.fn().mockResolvedValue({}) },
+    };
+
+    await runRetryableStep.call(
+      inviting as never,
+      'invitations',
+      'tenant-1',
+      'acme',
+      'actor-1',
+      { createdIdentities: [] } as never,
+    );
+
+    expect(inviting.userInvitations.issueInvitation).not.toHaveBeenCalled();
   });
 
   it('names the two steps whose absence broke every retry', () => {

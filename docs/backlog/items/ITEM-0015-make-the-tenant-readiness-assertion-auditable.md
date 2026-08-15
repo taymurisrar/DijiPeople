@@ -3,13 +3,13 @@ ID: ITEM-0015
 aliases: [ITEM-0015]
 Title: Make the tenant readiness() authorization assertion auditable
 Type: FOLLOW_UP
-Status: TRIAGE_REQUIRED
+Status: READY
 Priority: P3
 Severity: LOW
 AffectedModules: [services/api/src/modules/tenant-control-plane]
 Source: QA_RUN
 OwnerAgent: backend-api
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 CreatedAt: 2026-08-15
 UpdatedAt: 2026-08-15
 RelatedBug:
@@ -79,3 +79,5 @@ architecture [[rbac|RBAC]], [[multi-tenancy|Multi-Tenancy]].
 
 - 2026-08-14 — raised as follow-up 3 of the tenant-control-plane QA run.
 - 2026-08-15 — imported as a durable backlog item.
+
+- 2026-08-15 — Architect triage: FIX_NOW. One line for the inline assertion, and the record is right that the generalised form — a coverage test asserting that every public control-plane service method authorizes — is the version worth building, since this module authorizes inside services rather than through decorators.

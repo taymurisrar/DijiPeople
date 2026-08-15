@@ -3,13 +3,13 @@ ID: ITEM-0006
 aliases: [ITEM-0006]
 Title: ADR needed — one source of truth for the tenant base domain
 Type: ARCHITECTURE
-Status: TRIAGE_REQUIRED
+Status: READY
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [packages/config, services/api, apps/web, apps/admin, apps/landing]
 Source: QA_RUN
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: PLAN_REQUIRED
 CreatedAt: 2026-08-15
 UpdatedAt: 2026-08-15
 RelatedBug: BUG-0017
@@ -78,3 +78,5 @@ requirement [[requirement-tenant-workspace-domains|Tenant Workspace Domains]] ·
 
 - 2026-08-15 — split out from BUG-0017 so the decision is tracked separately
   from the defect it must resolve.
+
+- 2026-08-15 — Architect triage: PLAN_REQUIRED. This one genuinely is an architecture decision and not a defect: a frontend has no Prisma client, so it cannot read a PlatformSetting, and any answer changes four deployables. The ADR is the work item. It blocks BUG-0017 and nothing else.

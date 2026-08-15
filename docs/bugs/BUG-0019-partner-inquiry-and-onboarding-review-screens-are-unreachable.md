@@ -11,7 +11,7 @@ DetectedDate: 2026-08-15
 DetectedInSha: 7bbab3d
 AffectedModules: [apps/admin]
 OwnerAgent: frontend
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: PLAN_REQUIRED
 QAReport: docs/qa/runs/2026-08-15-commercial-onboarding-e2e-7bbab3d.md
 RegressionId:
 RelatedBacklogItem:
@@ -121,3 +121,5 @@ a browser.
 - 2026-08-15 — found during the commercial onboarding E2E UI/UX assessment.
 - 2026-08-15 — re-verified against `main` `ad8f77f` and recorded as OPEN,
   awaiting Architect triage.
+
+- 2026-08-15 — Architect triage: PLAN_REQUIRED. The sequencing dependency on BUG-0016 is now discharged — the review endpoint refuses illegal transitions, so making the screens reachable no longer exposes an ungoverned endpoint. The fix itself is not a navigation tweak: the `partner-inquiries` runtime view is bound to **Partner** rows and must be re-pointed at `PartnerInquiry`, which changes what its columns, filters and row actions mean. That is a runtime-registry change with three consumers and warrants a plan. Browser scenario B4 now carries the reachability assertion, marked `fixme`, so the gap appears in every report instead of being absent.

@@ -3,13 +3,13 @@ ID: ITEM-0004
 aliases: [ITEM-0004]
 Title: Tenant activation to ACTIVE has never been reached in any test
 Type: TEST_GAP
-Status: BLOCKED
+Status: READY
 Priority: P1
 Severity: HIGH
 AffectedModules: [services/api/src/modules/tenant-control-plane]
 Source: QA_RUN
 OwnerAgent: qa
-ArchitectDisposition: BLOCKED_EXTERNAL
+ArchitectDisposition: FIX_NOW
 CreatedAt: 2026-08-15
 UpdatedAt: 2026-08-15
 RelatedBug: BUG-0015
@@ -74,3 +74,5 @@ requirement [[requirement-commercial-onboarding|Commercial Onboarding]].
 ## History
 
 - 2026-08-15 — imported from the commercial onboarding E2E's Known Limitations.
+
+- 2026-08-15 — Unblocked. `BlockedBy: BUG-0015` is discharged — the identity step is idempotent and retryable, a retry converges, and a run may no longer report SUCCEEDED while the tenant lacks an owner. Reaching ACTIVE in a recorded run is now ordinary work rather than an obstacle. It remains unreached: this task proved the recovery anchors against a real database and the journey as far as the tenant operations surface in a browser, not a successful activation.

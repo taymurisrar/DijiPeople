@@ -3,13 +3,13 @@ ID: ITEM-0012
 aliases: [ITEM-0012]
 Title: Cross-check app/api route methods against the hrefs that target them
 Type: TEST_GAP
-Status: TRIAGE_REQUIRED
+Status: READY
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [apps/web, apps/admin]
 Source: QA_RUN
 OwnerAgent: frontend
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 CreatedAt: 2026-08-15
 UpdatedAt: 2026-08-15
 RelatedBug: BUG-0008
@@ -74,3 +74,5 @@ modules [[platform-admin|Platform Admin]], [[tenant-application|Tenant Applicati
 ## History
 
 - 2026-08-15 — imported from the admin session-expired QA run's follow-up.
+
+- 2026-08-15 — Architect triage: FIX_NOW. The class already produced one production incident (BUG-0008), the audit that caught it was done by grep and was predicted to drift, and the same walk answers BUG-0024. It runs in the jest node environment, so it is unaffected by the jsdom gap and independent of the new browser suite.

@@ -82,9 +82,13 @@ export type TenantProvisioningStepDefinition = {
   label: string;
   sequence: number;
   /**
-   * Whether replaying this step on its own is safe. Domain provisioning and the
-   * customization publish are upserts; the identity/billing transaction is not,
-   * so a retry must never re-run it.
+   * Whether replaying this step on its own is safe.
+   *
+   * Every step except `tenant-record` is anchored on something the database
+   * already makes unique, so replaying it converges rather than duplicating.
+   * `tenant-record` stays non-retryable because by the time a retry runs the
+   * tenant row is the thing being retried — re-creating it would produce a
+   * rival workspace, not a repaired one.
    */
   isRetryable: boolean;
   description: string;
@@ -125,7 +129,20 @@ export const TENANT_PROVISIONING_STEPS: TenantProvisioningStepDefinition[] = [
     key: 'identities-and-billing',
     label: 'Owner, service account and subscription',
     sequence: 5,
-    isRetryable: false,
+    /*
+     * Was false, and that made every tenant failing at or before it permanently
+     * unrecoverable: this is the only step that creates the business unit, the
+     * owner and the subscription, and `POST /access` refuses to add an owner to
+     * a tenant with no business unit. Retry skipped it, reported SUCCEEDED and
+     * left a tenant that could never be activated — BUG-0015.
+     *
+     * `TenantIdentitiesProvisioningService` now find-or-creates against
+     * `User @@unique([tenantId, email])`, upserts the subscription on
+     * `Subscription.tenantId @unique`, and raises the first invoice only when
+     * the subscription has none. A replay adds no second owner, no second
+     * subscription and no second invoice.
+     */
+    isRetryable: true,
     description:
       'Create the tenant owner, optional service account, subscription and first invoice.',
   },

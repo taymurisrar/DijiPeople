@@ -3,13 +3,13 @@ ID: ITEM-0002
 aliases: [ITEM-0002]
 Title: No harness exists for testing against a running API with real sessions
 Type: TEST_GAP
-Status: TRIAGE_REQUIRED
+Status: READY
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [services/api, apps/admin]
 Source: QA_RUN
 OwnerAgent: qa
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 CreatedAt: 2026-08-15
 UpdatedAt: 2026-08-15
 RelatedBug: BUG-0009
@@ -75,3 +75,5 @@ Needs an isolated database, which CI already provides via the
 ## History
 
 - 2026-08-15 — imported from the admin session-expired QA run's follow-ups.
+
+- 2026-08-15 — Architect triage: FIX_NOW. The blocker this item described has gone — the browser suite holds a real admin session through a real login, and `test/helpers/db-fixtures.ts` plus the DB-backed suites cover database assertions. What is left is narrow and worth doing: the two named follow-ups that would move BUG-0009 and BUG-0010 from FIXED to VERIFIED on evidence rather than on reading.

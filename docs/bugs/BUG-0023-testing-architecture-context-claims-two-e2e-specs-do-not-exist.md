@@ -2,7 +2,7 @@
 ID: BUG-0023
 aliases: [BUG-0023]
 Title: The testing-architecture context claims two e2e specs do not exist
-Status: OPEN
+Status: FIXED
 Severity: LOW
 Priority: P3
 Type: DOCUMENTATION
@@ -19,7 +19,7 @@ RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-15
 UpdatedAt: 2026-08-15
-ResolvedAt:
+ResolvedAt: 2026-08-15
 ---
 
 # BUG-0023 — The testing-architecture context claims two e2e specs do not exist
@@ -125,3 +125,5 @@ Not applicable — verified by reading the file and the directory.
 - 2026-08-15 — recorded by the commercial onboarding E2E under the staleness
   rule; the tooling won and the run proceeded.
 - 2026-08-15 — re-verified against `main` `ad8f77f` and given a durable record.
+
+- 2026-08-15 — Fixed. `testing-architecture.md` no longer claims the two e2e specs are absent, its `Last verified` metadata names `b2ba383`, and the database claim is reworded as machine-specific rather than absolute — a local PostgreSQL was in fact present, and this task ran both a DB-backed suite and a browser suite against a disposable database on it. The generalisable guard remains ITEM-0011.

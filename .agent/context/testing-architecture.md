@@ -1,7 +1,7 @@
 # Testing Architecture
 
-> **Last verified:** 2026-08-14
-> **Verified against commit:** aa35b74
+> **Last verified:** 2026-08-15
+> **Verified against commit:** b2ba383
 > **Key source files:** .github/workflows/ci.yml, services/api/package.json, services/api/tsconfig.json, services/api/tsconfig.build.json, services/api/test/jest-e2e.json, services/api/src/common/constants/wiring-invariants.spec.ts, apps/web/jest.config.js, apps/admin/jest.config.js, package.json, turbo.json, packages/config/platform-runtime-schema.test.js
 >
 > This document describes the repository, it is not authority over it. If the
@@ -84,9 +84,18 @@ unrecognised host fails closed — and rejects managed providers, production-ish
 database names, and names carrying no test marker. It never prints the
 connection string.
 
-**Locally there is still no database** on this workstation (no Docker, no
-`psql`), and that is expected: CI is the authoritative database environment, and
-developer laptops are not required to run PostgreSQL. See
+**Do not assume whether a local database exists — check.** This paragraph used
+to assert flatly that there was none on this workstation. A local PostgreSQL was
+in fact present, and both the commercial-onboarding E2E and the provisioning
+recovery suite have since run against it. The claim is a property of a machine,
+not of the repository, so establish it per machine: probe `DATABASE_URL`, and
+create a **disposable** database rather than borrowing a developer's working one
+— `scripts/assert-test-database.mjs` exists to refuse the latter. Note that
+`psql` may be absent even where the server is running; `pg` is a dependency
+already installed and connects fine.
+
+CI remains the authoritative database environment, and developer laptops are not
+required to run PostgreSQL. See
 [`../../docs/development/agent-tooling-matrix.md`](../../docs/development/agent-tooling-matrix.md).
 
 When no isolated database is reachable, record
@@ -114,7 +123,7 @@ Only `src/**` is discovered; `services/api/test/` is invisible to
 
 ### API e2e tests
 
-`services/api/test/` contains `app.e2e-spec.ts`, `platform-workflows.e2e-spec.ts`,
+`services/api/test/` contains **13 `*.e2e-spec.ts` suites**, plus
 `sanitize-html.e2e-mock.ts` (a module mock, not a test) and `jest-e2e.json`
 (`rootDir: "."`, `testRegex: ".e2e-spec.ts$"`, `testEnvironment: "node"`, ts-jest
 with **`diagnostics: false`**, `moduleNameMapper` remapping `sanitize-html` to
@@ -125,8 +134,14 @@ Run with `npm --workspace api run test:e2e`. These boot the Nest application and
 demands it and Prisma connects on module init. Do not assume they pass in a bare
 checkout.
 
-Root `AGENTS.md` references `test/permission-propagation.e2e-spec.ts` and
-`test/attendance-integrations-isolation.e2e-spec.ts` — **neither exists.**
+**List the directory rather than trusting any list of it, including this one.**
+The set changes with in-flight work, and this paragraph previously asserted that
+`test/permission-propagation.e2e-spec.ts` and
+`test/attendance-integrations-isolation.e2e-spec.ts` — both referenced by root
+`AGENTS.md` — did not exist. Both do, and had for some time; nothing failed when
+the claim went stale, which is exactly why it survived. See
+[`../../docs/bugs/BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist.md`](../../docs/bugs/BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist.md)
+and the bug pattern `doc-code-drift`.
 
 ### The typecheck blind spot (highest-value fact in this document)
 

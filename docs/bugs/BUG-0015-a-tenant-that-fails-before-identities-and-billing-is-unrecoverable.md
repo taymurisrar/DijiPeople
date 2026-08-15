@@ -2,7 +2,7 @@
 ID: BUG-0015
 aliases: [BUG-0015]
 Title: A tenant that fails before identities-and-billing is permanently unrecoverable
-Status: OPEN
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: STATE_MACHINE
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-15
 DetectedInSha: 7bbab3d
 AffectedModules: [services/api/src/modules/tenant-control-plane]
 OwnerAgent: backend-api
-ArchitectDisposition: PLAN_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: docs/qa/runs/2026-08-15-commercial-onboarding-e2e-7bbab3d.md
-RegressionId:
+RegressionId: REG-013
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-15
 UpdatedAt: 2026-08-15
-ResolvedAt:
+ResolvedAt: 2026-08-15
 ---
 
 # BUG-0015 — A tenant that fails before identities-and-billing is permanently unrecoverable
@@ -138,3 +138,5 @@ test — see [[ITEM-0004]].
 - 2026-08-15 — found during the commercial onboarding E2E; not fixed there
   because it warrants an ExecPlan.
 - 2026-08-15 — re-verified against `main` `ad8f77f` and recorded as OPEN.
+
+- 2026-08-15 — Architect triage: FIX_NOW rather than PLAN_REQUIRED. The ExecPlan the record asked for was scoped to a schema change for invoice idempotency; the natural anchors turned out to already exist — `User @@unique([tenantId, email])`, `Subscription.tenantId @unique`, `UserRole @@unique([userId, roleId])`, `TenantFeature @@unique([tenantId, key])` — and the invoice anchors on "this subscription already has one", so no migration is needed and the change is bounded. Fixed by extracting `TenantIdentitiesProvisioningService`, marking the step retryable, linking the onboarding to the tenant before anything can fail so a half-built tenant is recoverable, and adding a convergence assertion so a retry may not report SUCCEEDED while the tenant still lacks a business unit, an owner or a subscription.

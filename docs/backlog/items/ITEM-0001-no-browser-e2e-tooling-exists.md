@@ -3,13 +3,13 @@ ID: ITEM-0001
 aliases: [ITEM-0001]
 Title: No browser E2E tooling exists in any workspace
 Type: TEST_GAP
-Status: BLOCKED
+Status: DONE
 Priority: P1
 Severity: HIGH
 AffectedModules: [apps/web, apps/admin, apps/landing]
 Source: QA_RUN
 OwnerAgent: qa
-ArchitectDisposition: BLOCKED_EXTERNAL
+ArchitectDisposition: DONE
 CreatedAt: 2026-08-15
 UpdatedAt: 2026-08-15
 RelatedBug: BUG-0019
@@ -78,3 +78,5 @@ architecture note [[qa-and-ci-architecture|QA and CI Architecture]].
 ## History
 
 - 2026-08-15 — imported from the standing Known Limitations of three QA runs.
+
+- 2026-08-15 — Resolved. Playwright is installed in a dedicated `e2e` workspace covering landing and admin; nine browser scenarios across both commercial journeys run green against a live API and a disposable PostgreSQL. The decision record this item asked for is `docs/development/browser-e2e.md`, which states the tool choice, the report-only CI mode and its promotion criteria. `BROWSER_E2E` is no longer BLOCKED_INFRASTRUCTURE.

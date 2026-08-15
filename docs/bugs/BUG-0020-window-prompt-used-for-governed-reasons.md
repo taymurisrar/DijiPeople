@@ -11,7 +11,7 @@ DetectedDate: 2026-08-15
 DetectedInSha: 7bbab3d
 AffectedModules: [apps/admin, apps/web]
 OwnerAgent: frontend
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: PLAN_REQUIRED
 QAReport: docs/qa/runs/2026-08-15-commercial-onboarding-e2e-7bbab3d.md
 RegressionId:
 RelatedBacklogItem:
@@ -119,3 +119,5 @@ Not applicable.
   (2 call sites reported).
 - 2026-08-15 — re-verified against `main` `ad8f77f`; scope widened to 9 call
   sites across both apps, including payroll reversal.
+
+- 2026-08-15 — Architect triage: PLAN_REQUIRED, not FIX_NOW. Nine call sites, and the record is right that they are not one find-and-replace — each replacement needs its own validation rules, and two of them collect payroll reversal reason and reversal date, where an unvalidated free-text date is a data-quality risk rather than a styling one. Sequence the payroll pair first. The cheap guard the record proposes — a lint rule banning `window.prompt` under `apps/**` — should land with the first batch so the count cannot grow while the rest is outstanding.

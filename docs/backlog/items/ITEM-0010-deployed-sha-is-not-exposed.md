@@ -9,7 +9,7 @@ Severity: MEDIUM
 AffectedModules: [services/api]
 Source: DEPLOYMENT
 OwnerAgent: release-devops
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 CreatedAt: 2026-08-15
 UpdatedAt: 2026-08-15
 RelatedBug:
@@ -77,3 +77,5 @@ architecture [[deployment-architecture|Deployment Architecture]] · `docs/deploy
 ## History
 
 - 2026-08-15 — imported from the Release/DevOps observability gap.
+
+- 2026-08-15 — Architect triage: FIX_NOW. Small, additive, no new dependency, and it is the fact every post-deployment question depends on. The env var must be registered in all four places AGENTS.md names — `packages/config` validation, `turbo.json` globalEnv, `render.yaml` and `docs/environment-variables.md` — or it will be silently absent in production, which is the failure mode that makes an observability signal worse than none.

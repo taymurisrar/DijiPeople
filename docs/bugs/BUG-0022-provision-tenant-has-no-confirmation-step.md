@@ -11,7 +11,7 @@ DetectedDate: 2026-08-15
 DetectedInSha: 7bbab3d
 AffectedModules: [apps/admin, services/api/src/modules/tenant-control-plane]
 OwnerAgent: frontend
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: docs/qa/runs/2026-08-15-commercial-onboarding-e2e-7bbab3d.md
 RegressionId:
 RelatedBacklogItem:
@@ -113,3 +113,5 @@ Not applicable.
 
 - 2026-08-15 — found during the commercial onboarding E2E UI/UX assessment.
 - 2026-08-15 — recorded as OPEN, awaiting Architect triage.
+
+- 2026-08-15 — Architect triage: FIX_NOW, with the worst half already mitigated. The BUG-0015 work links `CustomerOnboarding.tenantId` to the tenant immediately after the tenant row is created, so a repeat provisioning request now returns the existing tenant through the pre-existing `alreadyExists` branch instead of creating a rival one — the duplicate-tenant hazard this record is mostly about. What remains is the confirmation dialog and an explicit client idempotency key, both bounded.

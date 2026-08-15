@@ -3,13 +3,13 @@ ID: ITEM-0009
 aliases: [ITEM-0009]
 Title: No observability platform exists, so a release cannot be verified from outside
 Type: INFRA
-Status: TRIAGE_REQUIRED
+Status: DEFERRED
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [services/api, apps/web, apps/admin]
 Source: DEPLOYMENT
 OwnerAgent: release-devops
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: DEFER
 CreatedAt: 2026-08-15
 UpdatedAt: 2026-08-15
 RelatedBug:
@@ -79,3 +79,5 @@ where the gap is recorded as a capability.
 
 - 2026-08-15 — imported from the standing observability gap recorded in the
   Release/DevOps role and the deployment-runtime context.
+
+- 2026-08-15 — Architect triage: DEFER, with the reason stated rather than implied. Not blocked and not unimportant — but this item is a container for three ordered steps, the first of which (ITEM-0010) is independently valuable, much smaller and now FIX_NOW. Adding an error-aggregation dependency to four deployables needs its own ADR, and doing it before the deployed SHA is even observable would be building the roof first. Revisit once ITEM-0010 lands and the health check touches the database.

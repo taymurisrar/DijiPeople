@@ -9,7 +9,7 @@ Severity: MEDIUM
 AffectedModules: [services/api]
 Source: QA_RUN
 OwnerAgent: backend-api
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 CreatedAt: 2026-08-15
 UpdatedAt: 2026-08-15
 RelatedBug: BUG-0013
@@ -74,3 +74,5 @@ coverage test added for [[BUG-0006]].
 ## History
 
 - 2026-08-15 — raised as the generalisable half of BUG-0013.
+
+- 2026-08-15 — Architect triage: FIX_NOW. `wiring-invariants.spec.ts` is the established home and the shape is proven. Pin the rule rather than the instance, and carry a documented exemption list so a genuine exception is visible rather than silently absent.

@@ -321,6 +321,22 @@ export class PartnersService {
       throw new BadRequestException(
         'Activate partners through the governed activation action after onboarding and agreement verification.',
       );
+    /*
+     * The mirror of the guard above, which was missing. Entering ACTIVE was
+     * governed; leaving it was not, so a generic PATCH could take a live
+     * partner — signed agreement, working referral link — straight to
+     * REJECTED or TERMINATED with no timeline entry and no from-set check,
+     * bypassing `partnerTransition` entirely. Suspension, deactivation and
+     * reactivation already have governed actions that record why.
+     */
+    if (
+      existing.status === PartnerStatus.ACTIVE &&
+      dto.status !== undefined &&
+      dto.status !== PartnerStatus.ACTIVE
+    )
+      throw new BadRequestException(
+        'A live partner’s status is changed through the governed lifecycle actions — suspend, deactivate or reactivate — so the reason is recorded.',
+      );
     await this.validateOwner(dto.assignedToUserId);
     return normalizePartner(
       await this.prisma.partner.update({

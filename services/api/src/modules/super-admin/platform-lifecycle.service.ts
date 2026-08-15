@@ -15,13 +15,10 @@ import {
   PlatformUserRole,
   PlatformUserStatus,
   Prisma,
-  SubscriptionStatus,
   TenantEnvironmentType,
-  TenantFeatureSource,
   TenantStatus,
   UserStatus,
 } from '@prisma/client';
-import * as bcrypt from 'bcryptjs';
 import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -31,8 +28,6 @@ import { assertValidTenantSlug } from '../../common/utils/slug.util';
 import { generateTenantCode } from '../../common/utils/tenant-code.util';
 import { AuditService } from '../audit/audit.service';
 import { PermissionsService } from '../permissions/permissions.service';
-import { RolesRepository } from '../roles/roles.repository';
-import { UsersRepository } from '../users/users.repository';
 import { UserInvitationsService } from '../auth/user-invitations.service';
 import { LeadsRepository } from '../leads/leads.repository';
 import { EXECUTED_CONTRACT_STATUSES } from '../contracts/governing-agreement';
@@ -56,8 +51,8 @@ import {
   UpdateCustomerOnboardingDto,
 } from './dto/customer-lifecycle.dto';
 import { ConvertLeadToCustomerDto } from '../leads/dto/admin-lead.dto';
-import { BillingService } from './billing.service';
 import { TenantProvisioningService } from './tenant-provisioning.service';
+import { TenantIdentitiesProvisioningService } from './tenant-identities-provisioning.service';
 import { PlatformEventsService } from '../platform-events/platform-events.service';
 import { TenantProvisioningRunService } from '../tenant-control-plane/tenant-provisioning-run.service';
 import { TenantDomainService } from '../tenant-domains/tenant-domain.service';
@@ -69,10 +64,7 @@ export class PlatformLifecycleService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
-    private readonly usersRepository: UsersRepository,
-    private readonly rolesRepository: RolesRepository,
     private readonly permissionsService: PermissionsService,
-    private readonly billingService: BillingService,
     private readonly leadsRepository: LeadsRepository,
     private readonly userInvitationsService: UserInvitationsService,
     private readonly customizationService: CustomizationService,
@@ -80,6 +72,7 @@ export class PlatformLifecycleService {
     private readonly events: PlatformEventsService,
     private readonly provisioningRuns: TenantProvisioningRunService,
     private readonly tenantDomains: TenantDomainService,
+    private readonly identitiesProvisioning: TenantIdentitiesProvisioningService,
   ) {}
 
   getLifecycleOptions() {
@@ -1479,6 +1472,25 @@ export class PlatformLifecycleService {
     });
 
     /*
+     * Link the onboarding to the tenant before anything else can fail.
+     *
+     * This link used to be written inside the identity transaction, which meant
+     * a tenant whose provisioning died before that point had no discoverable
+     * onboarding record — nothing to recover it from — while `onboarding.tenantId`
+     * stayed null and let an operator provision a *second* tenant for the same
+     * customer. Writing it here makes the half-built tenant addressable by the
+     * retry path and makes a repeat provisioning request return the existing
+     * tenant instead of creating a rival one.
+     *
+     * `tenantCreated` deliberately stays false: the tenant row exists, the
+     * tenant does not yet.
+     */
+    await this.prisma.customerOnboarding.update({
+      where: { id: onboardingId },
+      data: { tenantId: createdTenant.id },
+    });
+
+    /*
      * From here every phase is recorded as a step, so Operations can answer
      * "where did it stop, and can I safely re-run it?" without reading logs.
      */
@@ -1548,210 +1560,32 @@ export class PlatformLifecycleService {
       ),
     );
 
-    const provisioning = await runStep('identities-and-billing', () =>
-      this.prisma.$transaction(async (tx) => {
-        const tenantGlobalAdminRole =
-          await this.rolesRepository.findByKeyAndTenant(
-            createdTenant.id,
-            ROLE_KEYS.GLOBAL_ADMIN,
-            tx,
-          );
-        const tenantSystemAdminRole =
-          await this.rolesRepository.findByKeyAndTenant(
-            createdTenant.id,
-            ROLE_KEYS.SYSTEM_ADMIN,
-            tx,
-          );
-
-        if (!tenantGlobalAdminRole || !tenantSystemAdminRole) {
-          throw new ConflictException(
-            'Tenant administrator roles could not be provisioned.',
-          );
-        }
-
-        const passwordHash = await bcrypt.hash(
-          `provision-${createdTenant.id}-${Date.now()}`,
-          12,
-        );
-
-        const primaryOwnerUser = await this.usersRepository.create(
-          {
-            tenantId: createdTenant.id,
-            firstName: onboarding.primaryOwnerFirstName.trim(),
-            lastName: onboarding.primaryOwnerLastName.trim() || 'Owner',
-            email: primaryOwnerEmail,
-            passwordHash,
-            status: UserStatus.INVITED,
-            createdById: actor.userId,
-            updatedById: actor.userId,
-          },
-          tx,
-        );
-
-        const serviceAccountUser = serviceAccountEmail
-          ? await this.usersRepository.create(
-              {
-                tenantId: createdTenant.id,
-                firstName:
-                  dto.serviceAccountDisplayName?.trim() ||
-                  dto.serviceAccountName?.trim() ||
-                  onboarding.serviceAccountDisplayName?.trim() ||
-                  'Configuration',
-                lastName: 'Service Account',
-                email: serviceAccountEmail,
-                passwordHash,
-                status: UserStatus.INVITED,
-                isServiceAccount: true,
-                createdById: actor.userId,
-                updatedById: actor.userId,
-              },
-              tx,
-            )
-          : null;
-
-        await tx.userRole.createMany({
-          data: [
-            {
-              tenantId: createdTenant.id,
-              userId: primaryOwnerUser.id,
-              roleId: tenantGlobalAdminRole.id,
-              createdById: actor.userId,
-            },
-            ...(serviceAccountUser && assignServiceAccountSystemAdminRole
-              ? [
-                  {
-                    tenantId: createdTenant.id,
-                    userId: serviceAccountUser.id,
-                    roleId: tenantSystemAdminRole.id,
-                    createdById: actor.userId,
-                  },
-                ]
-              : []),
-          ],
-          skipDuplicates: true,
-        });
-
-        await tx.tenant.update({
-          where: { id: createdTenant.id },
-          data: {
-            ownerUserId: primaryOwnerUser.id,
-            updatedById: actor.userId,
-          },
-        });
-
-        const subscription =
-          await this.billingService.createOrUpdateSubscription(tx, {
-            tenantId: createdTenant.id,
-            planId: selectedPlanId,
-            billingCycle,
-            status: SubscriptionStatus.ACTIVE,
-            discountType: onboarding.discountType,
-            discountValue: Number(onboarding.discountValue),
-            manualFinalPrice:
-              dto.manualFinalPrice ??
-              (onboarding.agreedPrice
-                ? Number(onboarding.agreedPrice)
-                : undefined),
-            purchasedSeats: onboarding.agreedSeats ?? undefined,
-            actorUserId: actor.userId,
-          });
-
-        const selectedFeatureOverrides = Array.isArray(
-          onboarding.featureSelectionSummary,
-        )
-          ? onboarding.featureSelectionSummary
-          : [];
-
-        for (const feature of selectedFeatureOverrides as Array<{
-          key?: string;
-          isEnabled?: boolean;
-        }>) {
-          if (!feature.key) {
-            continue;
-          }
-
-          await tx.tenantFeature.upsert({
-            where: {
-              tenantId_key: {
-                tenantId: createdTenant.id,
-                key: feature.key,
-              },
-            },
-            create: {
-              tenantId: createdTenant.id,
-              key: feature.key,
-              isEnabled: feature.isEnabled ?? true,
-              source: TenantFeatureSource.MANUAL,
-              createdById: actor.userId,
-              updatedById: actor.userId,
-            },
-            update: {
-              isEnabled: feature.isEnabled ?? true,
-              source: TenantFeatureSource.MANUAL,
-              updatedById: actor.userId,
-            },
-          });
-        }
-
-        await tx.customerAccount.update({
-          where: { id: onboarding.customerId },
-          data: {
-            primaryOwnerUserId: primaryOwnerUser.id,
-            selectedPlanId,
-            preferredBillingCycle: billingCycle,
-            status: CustomerAccountStatus.ACTIVE,
-            subStatus: 'Live',
-          },
-        });
-
-        await tx.customerOnboarding.update({
-          where: { id: onboardingId },
-          data: {
-            tenantId: createdTenant.id,
-            tenantCreated: true,
-            status: CustomerOnboardingStatus.COMPLETED,
-            subStatus: 'Tenant created',
-            createServiceAccount: shouldCreateServiceAccount,
-            serviceAccountEmail,
-            serviceAccountDisplayName:
-              dto.serviceAccountDisplayName ??
-              onboarding.serviceAccountDisplayName ??
-              null,
-            serviceAccountAssignSystemAdmin:
-              assignServiceAccountSystemAdminRole,
-          },
-        });
-
-        await this.billingService.createInvoice(tx, {
+    /*
+     * One re-entrant call. Every write inside it is anchored on a database
+     * uniqueness constraint, so replaying the step converges instead of
+     * producing a second owner, subscription or invoice — which is what made
+     * it safe to declare retryable and is the whole of BUG-0015's fix.
+     */
+    const provisioning = await runStep('identities-and-billing', async () => {
+      const outcome = await this.identitiesProvisioning.ensureIdentitiesAndBilling(
+        {
           tenantId: createdTenant.id,
-          subscriptionId: subscription.id,
-          amount: Number(subscription.finalPrice),
-          currency: subscription.currency,
+          onboardingId,
           actorUserId: actor.userId,
-        });
-
-        const invitedUsers = [
-          {
-            userId: primaryOwnerUser.id,
-            email: primaryOwnerEmail,
-            fullName: `${primaryOwnerUser.firstName} ${primaryOwnerUser.lastName}`,
-          },
-        ];
-
-        if (serviceAccountUser) {
-          invitedUsers.push({
-            userId: serviceAccountUser.id,
-            email: serviceAccountUser.email,
-            fullName: `${serviceAccountUser.firstName} ${serviceAccountUser.lastName}`,
-          });
-        }
-
-        return {
-          tenant: createdTenant,
-          invitedUsers,
-        };
-      }),
-    );
+          planId: selectedPlanId,
+          billingCycle,
+          createServiceAccount: shouldCreateServiceAccount,
+          serviceAccountEmail,
+          serviceAccountDisplayName:
+            dto.serviceAccountDisplayName ??
+            onboarding.serviceAccountDisplayName ??
+            null,
+          assignServiceAccountSystemAdminRole,
+          manualFinalPrice: dto.manualFinalPrice,
+        },
+      );
+      return { tenant: createdTenant, invitedUsers: outcome.identities };
+    });
 
     /*
      * Publish the default views and forms so the new tenant runs on its own
