@@ -117,6 +117,25 @@ SMTP_FROM_EMAIL=no-reply@example.com
 SMTP_FROM_NAME=DijiPeople
 ```
 
+## Application release publishing
+
+Read by `services/api` (the publisher endpoint) and by
+`scripts/publish-release.mjs` (the CLI). See
+[`docs/development/release-publishing.md`](development/release-publishing.md).
+
+| Variable | Where | Required | Meaning |
+|---|---|---|---|
+| `RELEASE_PUBLISH_TOKEN` | API | only where publishing is allowed | The machine credential `ReleasePublishTokenGuard` checks. **Unset means publishing is disabled on that environment** — the guard fails closed, which is the intended default for any environment nobody publishes to. Minimum 32 characters. |
+| `RELEASE_ARTIFACT_MAX_BYTES` | API | optional | Ceiling for one release artefact. Defaults to 536870912 (512 MB). Deliberately separate from `FILE_UPLOAD_MAX_BYTES`, which governs tenant document uploads and must stay small. |
+| `DIJIPEOPLE_RELEASE_TOKEN` | CLI / CI | yes, to publish | The value of the target environment's `RELEASE_PUBLISH_TOKEN`. Never passed as a command-line flag — a flag lands in shell history and in CI logs. |
+| `DIJIPEOPLE_RELEASE_API_URL` | CLI / CI | optional | API base URL to publish to, including `/api`. Defaults to `http://localhost:4000/api`. |
+
+Rotation is a two-step: set the new `RELEASE_PUBLISH_TOKEN` on the environment,
+then update `DIJIPEOPLE_RELEASE_TOKEN` wherever publishing runs from. No release
+record refers to the credential — only the first 12 characters of its SHA-256
+appear in the platform audit trail — so rotating one breaks nothing already
+published.
+
 ## Web: Vercel
 
 ```env

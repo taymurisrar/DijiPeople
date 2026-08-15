@@ -170,6 +170,11 @@ jobs:
         # are the suffix-confusion and reserved-label cases that would otherwise
         # hand one customer another customer's workspace.
         run: npm run test:platform-domains
+      - name: Release publisher rules
+        # Version reconciliation and the production confirmation rule. Both
+        # decide what reaches customers, and neither is exercised by any other
+        # suite, so a break here would otherwise only surface during a release.
+        run: npm run test:release-cli
 
   database-migration:
     name: Database migration gate

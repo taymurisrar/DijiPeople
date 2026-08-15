@@ -118,8 +118,25 @@ if (-not (Test-Path (Join-Path $staging 'hostfxr.dll'))) {
     throw 'The gateway host does not look self-contained: hostfxr.dll is missing from the output.'
 }
 
+# --- version ----------------------------------------------------------------
+#
+# The csproj <Version> is the single source. The built executable is asked too
+# and the two must agree: a mismatch means a stale binary is being packaged, and
+# publishing it would attach one version's metadata to another version's bytes.
+
+$csprojVersion = ([xml](Get-Content -Path $hostProject)).SelectSingleNode('//Version').InnerText.Trim()
+$binaryVersion = (& $hostExe version).Split(' ')[0]
+
+# .NET reports a three-part version from a four-part AssemblyVersion, so the
+# trailing .0 is expected and is not a disagreement.
+$normalizedBinary = $binaryVersion -replace '^(\d+\.\d+\.\d+)\.0$', '$1'
+
+if ($normalizedBinary -ne $csprojVersion) {
+    throw "Version mismatch: the project declares $csprojVersion but the built executable reports $binaryVersion. Rebuild before packaging."
+}
+
 if (-not $Version) {
-    $Version = (& $hostExe version).Split(' ')[0]
+    $Version = $csprojVersion
 }
 
 Write-Host ''
@@ -169,6 +186,8 @@ Write-Host "  Size      $([math]::Round($size / 1MB, 1)) MB"
 Write-Host "  SHA-256   $hash"
 Write-Host "  Metadata  $metadataPath"
 Write-Host ''
-Write-Host 'Next: upload the zip to DijiPeople storage, then register it with'
-Write-Host '  POST /app-releases   (permission: appDownloads.manage)'
-Write-Host 'using the metadata above plus the returned storageKey.'
+Write-Host 'Next: publish it. No manual upload and no manual database row —'
+Write-Host '  npm run release:gateway -- --channel beta --dry-run'
+Write-Host '  npm run release:gateway -- --channel beta'
+Write-Host 'The publisher uploads this artefact, registers the ApplicationRelease'
+Write-Host 'and verifies the result in one step.'
