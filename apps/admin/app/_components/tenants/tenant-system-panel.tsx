@@ -157,10 +157,44 @@ export function TenantSystemPanel({
                     ? ` · completed ${formatDateTime(receipt.completedAt)}`
                     : ""}
                 </p>
+                {/*
+                  The reference the operator is given when an erasure fails is
+                  the receipt id, so it has to be readable here — otherwise the
+                  only way to match a reported failure to its diagnosis is a
+                  database query.
+                */}
+                <p className="mt-1 break-all font-mono text-[11px] text-slate-400">
+                  {receipt.id}
+                </p>
                 {receipt.failureMessage ? (
                   <p className="mt-1 text-xs text-rose-700">
                     {receipt.failureMessage}
                   </p>
+                ) : null}
+                {receipt.status === "FAILED" &&
+                receipt.erasedRecordCounts ? (
+                  <dl className="mt-2 grid gap-1 rounded-lg bg-rose-50 p-3 text-[11px] text-rose-900">
+                    {(
+                      [
+                        ["Failed at phase", "failedAtPhase"],
+                        ["Failed at model", "failedAtModel"],
+                        ["Constraint", "constraint"],
+                        ["Driver code", "prismaCode"],
+                        ["Models processed", "modelsProcessed"],
+                      ] as const
+                    ).map(([label, key]) => {
+                      const value = receipt.erasedRecordCounts?.[key];
+                      if (value === null || value === undefined) return null;
+                      return (
+                        <div key={key} className="flex flex-wrap gap-2">
+                          <dt className="font-semibold">{label}</dt>
+                          <dd className="break-all font-mono">
+                            {String(value)}
+                          </dd>
+                        </div>
+                      );
+                    })}
+                  </dl>
                 ) : null}
               </li>
             ))}

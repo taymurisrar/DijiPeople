@@ -155,6 +155,114 @@ describe('tenant erasure order', () => {
     expect(uncovered).toEqual([]);
   });
 
+  /*
+   * The regression that took production down, and the reason the check above is
+   * not sufficient on its own.
+   *
+   * Ordering by blocking edges alone assumes `Cascade` imposes no constraint.
+   * It does. Deleting a row cascades into its children, and each child's own
+   * inbound RESTRICT edges are checked *during that delete* — PostgreSQL
+   * enforces RESTRICT immediately and does not care that the referencing rows
+   * are scheduled for deletion three statements later.
+   *
+   * Concretely: `Payslip -> PayrollRunEmployee` is Restrict, and
+   * `PayrollRunEmployee` cascades from `PayrollRun` and `PayrollPeriod`.
+   * Nothing references `PayrollPeriod` directly, so every direct-edge check
+   * passed — and any tenant holding one payslip could not be erased at all.
+   *
+   * So the invariant is: before deleting model M, everything that blocks
+   * anything M cascades into must already be gone.
+   */
+  it('deletes a blocker before any model whose cascade would reach what it blocks', () => {
+    const position = new Map(
+      TENANT_ERASURE_DELETE_ORDER.map((name, index) => [
+        pascalCase(name),
+        index,
+      ]),
+    );
+
+    /* parent -> models deleted as a consequence of deleting it */
+    const cascadeChildren = new Map<string, string[]>();
+    /* target -> references that can refuse its deletion */
+    const blockingInbound = new Map<
+      string,
+      Array<{ from: string; fields: string[] }>
+    >();
+
+    for (const [model, body] of models) {
+      for (const line of body) {
+        const relation = parseOwningRelation(line);
+        if (!relation) continue;
+        if (relation.mode === 'Cascade') {
+          const list = cascadeChildren.get(relation.target) ?? [];
+          list.push(model);
+          cascadeChildren.set(relation.target, list);
+        }
+        if (isBlocking(relation.mode)) {
+          const list = blockingInbound.get(relation.target) ?? [];
+          list.push({ from: model, fields: relation.fields });
+          blockingInbound.set(relation.target, list);
+        }
+      }
+    }
+
+    const cascadeClosure = (root: string) => {
+      const reached = new Set<string>();
+      const stack = [root];
+      while (stack.length) {
+        const node = stack.pop()!;
+        for (const child of cascadeChildren.get(node) ?? []) {
+          /*
+           * The Tenant row is deleted last, once every table is empty, so its
+           * own cascade cannot block anything.
+           */
+          if (child === 'Tenant' || reached.has(child)) continue;
+          reached.add(child);
+          stack.push(child);
+        }
+      }
+      return reached;
+    };
+
+    /* A reference already neutralised by the detach or link-cleanup phase. */
+    const clearedByModel = new Map(
+      TENANT_ERASURE_DETACHED_MODELS.map((entry) => [
+        pascalCase(entry.model),
+        new Set(entry.clearFields),
+      ]),
+    );
+    const cleanedUp = new Set(
+      TENANT_ERASURE_LINK_CLEANUPS.map((entry) => pascalCase(entry.model)),
+    );
+    const neutralised = (from: string, fields: string[]) =>
+      cleanedUp.has(from) ||
+      fields.every((field) => clearedByModel.get(from)?.has(field));
+
+    const violations: string[] = [];
+    for (const [model, index] of position) {
+      for (const cascaded of cascadeClosure(model)) {
+        for (const reference of blockingInbound.get(cascaded) ?? []) {
+          /* Self-references are nulled in their own phase beforehand. */
+          if (reference.from === cascaded) continue;
+          if (neutralised(reference.from, reference.fields)) continue;
+
+          const blockerIndex = position.get(reference.from);
+          const stillPresent =
+            blockerIndex === undefined || blockerIndex > index;
+          if (stillPresent) {
+            violations.push(
+              `deleting ${model} (#${index}) cascades into ${cascaded}, ` +
+                `which ${reference.from}.${reference.fields.join('+')} still blocks ` +
+                `(${blockerIndex === undefined ? 'never deleted' : `#${blockerIndex}`})`,
+            );
+          }
+        }
+      }
+    }
+
+    expect(violations).toEqual([]);
+  });
+
   it('only nulls a reference that is actually nullable', () => {
     const notNullable: string[] = [];
     for (const entry of TENANT_ERASURE_DETACHED_MODELS) {

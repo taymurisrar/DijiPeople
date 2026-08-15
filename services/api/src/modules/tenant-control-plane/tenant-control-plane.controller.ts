@@ -320,6 +320,18 @@ export class TenantControlPlaneController {
     return this.erasure.preflight(user, tenantId);
   }
 
+  /*
+   * POST because it is expensive and takes row locks, not because it mutates.
+   * The transaction it runs is unconditionally rolled back.
+   */
+  @Post(':tenantId/erasure-dry-run')
+  erasureDryRun(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('tenantId', new ParseUUIDPipe()) tenantId: string,
+  ) {
+    return this.erasure.diagnose(user, tenantId);
+  }
+
   @Post(':tenantId/erase')
   erase(
     @CurrentUser() user: AuthenticatedUser,

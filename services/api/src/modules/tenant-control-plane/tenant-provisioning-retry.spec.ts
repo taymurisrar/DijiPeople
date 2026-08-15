@@ -40,11 +40,15 @@ describe('tenant provisioning retry step coverage', () => {
     prisma: {
       tenant: { findUnique: jest.fn().mockResolvedValue({ slug: 'acme' }) },
     },
-    tenantProvisioning: { provisionSystemDomain: jest.fn().mockResolvedValue({}) },
+    tenantProvisioning: {
+      provisionSystemDomain: jest.fn().mockResolvedValue({}),
+    },
     permissions: { bootstrapTenantDefaults: jest.fn().mockResolvedValue({}) },
     customization: { publishTenantDefaults: jest.fn().mockResolvedValue({}) },
     tenantDomains: {
-      getPrimaryDomain: jest.fn().mockResolvedValue({ domain: 'acme.example.test' }),
+      getPrimaryDomain: jest
+        .fn()
+        .mockResolvedValue({ domain: 'acme.example.test' }),
       resolveHostname: jest.fn().mockResolvedValue({ tenantId: 'tenant-1' }),
     },
   };
@@ -57,14 +61,17 @@ describe('tenant provisioning retry step coverage', () => {
     expect(retryableKeys.length).toBeGreaterThan(0);
   });
 
-  it.each(retryableKeys)(
-    'can replay the retryable step %s',
-    async (key) => {
-      await expect(
-        runRetryableStep.call(context as never, key, 'tenant-1', 'acme', 'actor-1'),
-      ).resolves.toBeUndefined();
-    },
-  );
+  it.each(retryableKeys)('can replay the retryable step %s', async (key) => {
+    await expect(
+      runRetryableStep.call(
+        context as never,
+        key,
+        'tenant-1',
+        'acme',
+        'actor-1',
+      ),
+    ).resolves.toBeUndefined();
+  });
 
   it('names the two steps whose absence broke every retry', () => {
     /*
@@ -95,8 +102,12 @@ describe('tenant provisioning retry step coverage', () => {
     const hijacked = {
       ...context,
       tenantDomains: {
-        getPrimaryDomain: jest.fn().mockResolvedValue({ domain: 'acme.example.test' }),
-        resolveHostname: jest.fn().mockResolvedValue({ tenantId: 'someone-else' }),
+        getPrimaryDomain: jest
+          .fn()
+          .mockResolvedValue({ domain: 'acme.example.test' }),
+        resolveHostname: jest
+          .fn()
+          .mockResolvedValue({ tenantId: 'someone-else' }),
       },
     };
     return expect(

@@ -180,6 +180,9 @@ export function TenantEraseDialog({
             </div>
           ) : null}
 
+          <ErasureDryRun tenantId={tenantId} />
+
+
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-xl border border-slate-200 p-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -304,6 +307,123 @@ export function TenantEraseDialog({
         </div>
       ) : null}
     </PanelDialog>
+  );
+}
+
+type DryRunResult = {
+  wouldSucceed: boolean;
+  durationMs: number;
+  summary: string;
+  blocker: {
+    phase: string;
+    model: string | null;
+    constraint: string | null;
+    blockedBy: string | null;
+    prismaCode: string | null;
+    modelsProcessed: number;
+    detail: string;
+  } | null;
+};
+
+/**
+ * Ask what would happen, before doing the thing that cannot be undone.
+ *
+ * A refused erasure reports the first constraint that fired and then the
+ * transaction is gone, so a failure used to leave the operator choosing between
+ * reading production logs and retrying an irreversible operation to see whether
+ * it fails differently. This runs the identical sequence and rolls it back.
+ */
+function ErasureDryRun({ tenantId }: { tenantId: string }) {
+  const [result, setResult] = useState<DryRunResult | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-slate-900">
+            Check what would block this erasure
+          </p>
+          <p className="mt-0.5 text-xs text-slate-500">
+            Runs the full erasure inside a transaction that is always rolled
+            back. Nothing is deleted. On a large tenant this can take a minute
+            and holds row locks while it runs.
+          </p>
+        </div>
+        <PanelButton
+          busy={busy}
+          onClick={async () => {
+            setBusy(true);
+            setError(null);
+            setResult(null);
+            try {
+              setResult(
+                await tenantRequest<DryRunResult>(
+                  tenantId,
+                  "/erasure-dry-run",
+                  { method: "POST", body: JSON.stringify({}) },
+                ),
+              );
+            } catch (reason) {
+              setError(
+                describeError(reason, "The dry run could not be completed."),
+              );
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          Run check
+        </PanelButton>
+      </div>
+
+      {error ? (
+        <p
+          role="alert"
+          className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800"
+        >
+          {error}
+        </p>
+      ) : null}
+
+      {result ? (
+        <div
+          className={`mt-3 rounded-lg border px-3 py-2 text-sm ${
+            result.wouldSucceed
+              ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+              : "border-amber-200 bg-amber-50 text-amber-900"
+          }`}
+        >
+          <p className="font-medium">{result.summary}</p>
+          {result.blocker ? (
+            <dl className="mt-2 grid gap-1 text-xs">
+              <Detail label="Phase" value={result.blocker.phase} />
+              <Detail label="Model" value={result.blocker.model} />
+              <Detail label="Constraint" value={result.blocker.constraint} />
+              <Detail label="Referencing table" value={result.blocker.blockedBy} />
+              <Detail label="Driver code" value={result.blocker.prismaCode} />
+              <div className="mt-1">
+                <dt className="font-semibold">Raw</dt>
+                <dd className="mt-0.5 break-all font-mono text-[11px] leading-4">
+                  {result.blocker.detail}
+                </dd>
+              </div>
+            </dl>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function Detail({ label, value }: { label: string; value: string | null }) {
+  if (!value) return null;
+  return (
+    <div className="flex flex-wrap gap-2">
+      <dt className="font-semibold">{label}</dt>
+      <dd className="break-all font-mono">{value}</dd>
+    </div>
   );
 }
 
