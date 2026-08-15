@@ -8,7 +8,7 @@
 | | |
 |---|---|
 | Open CRITICAL | **0** |
-| Open HIGH | **3** |
+| Open HIGH | **2** |
 | Open total | 21 |
 | Blocked | 2 |
 | Awaiting a product decision | 3 |
@@ -26,7 +26,6 @@ _None. Nothing open at CRITICAL._
 |---|---|---|---|---|---|---|
 | [[BUG-0015-a-tenant-that-fails-before-identities-and-billing-is-unrecoverable|BUG-0015]] | A tenant that fails before identities-and-billing is permanently unrecoverable | STATE_MACHINE | HIGH | OPEN | api:tenant-control-plane | PLAN_REQUIRED |
 | [[BUG-0019-partner-inquiry-and-onboarding-review-screens-are-unreachable|BUG-0019]] | Partner inquiry and onboarding review screens have no inbound link | UX | HIGH | OPEN | apps/admin | TRIAGE_REQUIRED |
-| [[ITEM-0003-tenant-erasure-never-exercised-against-a-database|ITEM-0003]] | Tenant erasure has never been exercised against a database | TEST_GAP | HIGH | TRIAGE_REQUIRED | api:tenant-control-plane | TRIAGE_REQUIRED |
 
 ## Product Decisions Needed
 
@@ -47,8 +46,8 @@ _None. Nothing open at CRITICAL._
 
 | ID | Title | Type | Severity | Status | Affected | Architect |
 |---|---|---|---|---|---|---|
-| [[ITEM-0003-tenant-erasure-never-exercised-against-a-database|ITEM-0003]] | Tenant erasure has never been exercised against a database | TEST_GAP | HIGH | TRIAGE_REQUIRED | api:tenant-control-plane | TRIAGE_REQUIRED |
 | [[ITEM-0002-no-live-api-session-test-harness|ITEM-0002]] | No harness exists for testing against a running API with real sessions | TEST_GAP | MEDIUM | TRIAGE_REQUIRED | services/api, apps/admin | TRIAGE_REQUIRED |
+| [[ITEM-0003-tenant-erasure-never-exercised-against-a-database|ITEM-0003]] | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | TRIAGE_REQUIRED | api:tenant-control-plane | TRIAGE_REQUIRED |
 | [[ITEM-0012-cross-check-route-methods-against-their-callers|ITEM-0012]] | Cross-check app/api route methods against the hrefs that target them | TEST_GAP | MEDIUM | TRIAGE_REQUIRED | apps/web, apps/admin | TRIAGE_REQUIRED |
 | [[ITEM-0013-assert-every-public-controller-is-rate-limited|ITEM-0013]] | Assert mechanically that every @Public() controller carries the rate-limit guard | TEST_GAP | MEDIUM | READY | services/api | TRIAGE_REQUIRED |
 
@@ -110,6 +109,7 @@ _None. Nothing has been deployed through the release process._
 | [[BUG-0021-landing-contact-form-fabricates-lead-data|BUG-0021]] | The landing contact form fabricates lead data and has no honeypot | DATA_INTEGRITY | MEDIUM | OPEN | apps/landing, api:leads | TRIAGE_REQUIRED |
 | [[BUG-0022-provision-tenant-has-no-confirmation-step|BUG-0022]] | "Provision tenant" has no confirmation step and no idempotency key | UX | MEDIUM | OPEN | apps/admin, api:tenant-control-plane | TRIAGE_REQUIRED |
 | [[ITEM-0002-no-live-api-session-test-harness|ITEM-0002]] | No harness exists for testing against a running API with real sessions | TEST_GAP | MEDIUM | TRIAGE_REQUIRED | services/api, apps/admin | TRIAGE_REQUIRED |
+| [[ITEM-0003-tenant-erasure-never-exercised-against-a-database|ITEM-0003]] | Tenant erasure has no cross-tenant survival assertion | TEST_GAP | MEDIUM | TRIAGE_REQUIRED | api:tenant-control-plane | TRIAGE_REQUIRED |
 | [[ITEM-0005-customeraccount-leadid-has-no-unique-constraint|ITEM-0005]] | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | TRIAGE_REQUIRED | services/api/prisma, api:super-admin | TRIAGE_REQUIRED |
 | [[ITEM-0006-adr-one-source-of-truth-for-the-tenant-base-domain|ITEM-0006]] | ADR needed — one source of truth for the tenant base domain | ARCHITECTURE | MEDIUM | TRIAGE_REQUIRED | pkg:config, services/api, apps/web, apps/admin, apps/landing | TRIAGE_REQUIRED |
 | [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | TRIAGE_REQUIRED | services/api, apps/web, apps/admin | TRIAGE_REQUIRED |

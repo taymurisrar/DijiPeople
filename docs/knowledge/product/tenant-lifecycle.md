@@ -37,11 +37,14 @@ stays BLOCKED forever** — [[BUG-0015]].
 
 ## Erasure
 
-The most destructive operation in the platform, and it has **unit tests only**.
-It has never been run against a real database, in any form: [[ITEM-0003]].
+The most destructive operation in the platform. As of `3c759ce` it **is**
+exercised against a real PostgreSQL — the delete order is proven, including the
+payslip cascade that had made every tenant holding a single payslip permanently
+un-erasable, and the dry run is proven non-destructive and repeatable.
 
-For an irreversible operation the assertion that matters is not "the tenant is
-gone" but "**the other tenant is untouched**".
+What is still missing is the assertion that matters most for an irreversible
+cross-tenant operation: not "the tenant is gone" but "**the other tenant is
+untouched**". [[ITEM-0003]].
 
 ## Where a tenant lives
 

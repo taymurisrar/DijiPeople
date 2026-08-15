@@ -1,11 +1,11 @@
 ---
 ID: ITEM-0003
 aliases: [ITEM-0003]
-Title: Tenant erasure has never been exercised against a database
+Title: Tenant erasure has no cross-tenant survival assertion
 Type: TEST_GAP
 Status: TRIAGE_REQUIRED
-Priority: P1
-Severity: HIGH
+Priority: P2
+Severity: MEDIUM
 AffectedModules: [services/api/src/modules/tenant-control-plane]
 Source: QA_RUN
 OwnerAgent: qa
@@ -20,47 +20,68 @@ TargetMilestone:
 BlockedBy:
 ---
 
-# ITEM-0003 — Tenant erasure has never been exercised against a database
+# ITEM-0003 — Tenant erasure has no cross-tenant survival assertion
+
+> **Reduced in scope on 2026-08-15.** The original item — "erasure has never been
+> exercised against a database" — was **resolved** by the tenant-erasure work
+> merged as `3c759ce`, which added two DB-backed suites. What remains is the
+> half those suites do not cover.
 
 ## Summary
 
-Tenant erasure is the most destructive operation in the platform control plane
-and has **unit tests only**. It has never been run against a real database, in
-any form.
+Tenant erasure is now exercised against a real PostgreSQL:
+`services/api/test/tenant-erasure-order.e2e-spec.ts` and
+`tenant-erasure-dry-run.e2e-spec.ts`, both under `describeWithDatabase()`.
+
+They prove the **delete order** is correct — including the
+`Payslip → PayrollRunEmployee → PayrollRun → PayrollPeriod` cascade that made
+every tenant holding a single payslip permanently un-erasable — and that the dry
+run is non-destructive and repeatable.
+
+They do **not** prove that erasing one tenant leaves another intact.
 
 ## Why It Matters
 
-An irreversible operation verified by mocked Prisma is verified against whatever
-the mock was told to return. A mock can "prove" a cascade that the schema does
-not have, or a deletion order that a real foreign key would reject. The QA run
-that recorded this said so in as many words and made it its first follow-up.
+For an irreversible cross-tenant operation, the assertion that matters most is
+not "the tenant is gone" but **"the other tenant is untouched"**. Erasure walks a
+delete order across ~285 models; a single missing `tenantId` predicate in that
+walk deletes a neighbour's rows, and no existing assertion would notice.
+
+The current suites both operate on a single fixture tenant. One of them creates
+a second tenant (`scratch.createTenant('blocked')`), but only to prove a
+`RESTRICT` refusal — it never asserts that tenant's rows survive an erasure of
+the first.
 
 ## Evidence
 
-`docs/qa/runs/2026-08-14-tenant-control-plane-ba1e818.md`, Known Limitations:
-"Tenant erasure was never exercised, in any form. It is the most destructive
-operation in the module and has unit tests only." Follow-up 1: "Exercise tenant
-erasure against a disposable database before it is used in anger."
+- `services/api/test/tenant-erasure-order.e2e-spec.ts:169-196` — asserts the
+  erased tenant and its rows are gone; no surviving-neighbour assertion.
+- `services/api/test/tenant-erasure-dry-run.e2e-spec.ts:82-108` — dry-run
+  behaviour only.
+- Original source: `docs/qa/runs/2026-08-14-tenant-control-plane-ba1e818.md`,
+  follow-up 1.
 
 ## Proposed Approach
 
-Run erasure against the CI ephemeral PostgreSQL — the same service the
-`database-migration` job already stands up — using the two-fixture-tenant shape
-of `services/api/test/tenant-isolation-pattern.e2e-spec.ts`. The assertion that
-matters is not "the tenant is gone" but **"the other tenant is untouched"**.
+Extend the existing DB-backed suite with the two-fixture-tenant shape of
+`services/api/test/tenant-isolation-pattern.e2e-spec.ts`: seed two tenants with
+comparable data, erase one, and assert the second is **complete**, model by
+model, across the erasure plan.
 
-`scripts/assert-test-database.mjs` must gate it. This is the one test in the
-repository where a wrong `DATABASE_URL` is unrecoverable.
+The plan is already enumerated as `TENANT_ERASURE_DELETE_ORDER`, so the
+assertion can be driven from it rather than hand-listed — which also means a
+model added to the plan later is covered automatically.
 
 ## Acceptance Criteria
 
-Erasure runs against a disposable database, deletes exactly one tenant's rows,
-leaves a second fixture tenant complete, and the suite refuses to run against any
-host `assert-test-database.mjs` does not recognise as disposable.
+Erasing tenant A leaves tenant B's row count unchanged for **every** model named
+in `TENANT_ERASURE_DELETE_ORDER`, `TENANT_ERASURE_DETACHED_MODELS` and
+`TENANT_ERASURE_LINK_CLEANUPS`.
 
 ## Dependencies
 
-None — the ephemeral database capability already exists in CI.
+None. The DB-backed harness, the fixtures and the CI ephemeral PostgreSQL all
+exist now.
 
 ## Related Items
 
@@ -71,3 +92,7 @@ Module [[tenant-control-plane|Tenant Control Plane]] · architecture [[multi-ten
 
 - 2026-08-14 — raised as follow-up 1 of the tenant-control-plane QA run.
 - 2026-08-15 — imported as a durable backlog item.
+
+- 2026-08-15 — reduced in scope: the DB-backed erasure suites merged as
+  `3c759ce` resolved the original gap. What remains is the cross-tenant
+  survival assertion.

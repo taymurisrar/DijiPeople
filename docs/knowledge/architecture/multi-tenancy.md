@@ -62,8 +62,11 @@ mechanical support.** Read this before writing any query.
 
 Pattern: [[tenant-filter-missing]].
 
-Untested: [[ITEM-0003]] — tenant erasure, the most destructive operation in the
-platform, has never been run against a real database.
+Partially untested: tenant erasure is now exercised against a real PostgreSQL
+(`tenant-erasure-order.e2e-spec.ts`, `tenant-erasure-dry-run.e2e-spec.ts`), but
+nothing yet asserts that erasing one tenant leaves another **intact** —
+[[ITEM-0003]]. For a delete walk across ~285 models, that is the assertion a
+missing `tenantId` predicate would fail.
 
 ## Related
 
