@@ -34,22 +34,48 @@
  * retained row does not only point at the tenant — it can also point at rows the
  * erasure is about to delete, and those foreign keys are `Restrict` too. A
  * support case that referenced an invoice kept that invoice alive, and the whole
- * transaction rolled back with a constraint name and no explanation. Detaching
- * clears both in one statement, while the row can still be found by `tenantId`.
+ * transaction rolled back with a constraint name and no explanation.
+ *
+ * WHY EACH FIELD NAMES A RELATION. Clearing these on the tenant's own rows is
+ * not enough, and assuming otherwise is what broke production a second time.
+ * `Contract.tenantId` and `SupportCase.tenantId` are both **nullable**: an
+ * agreement is created against the customer during onboarding, before any tenant
+ * exists, and is linked to the subscription later — so it can hold
+ * `subscriptionId` while its own `tenantId` is null or names a sibling
+ * environment. A statement scoped by `where: { tenantId }` never sees that row,
+ * it keeps the subscription alive, and the erasure fails on
+ * `Contract_subscriptionId_fkey` with the tenant untouched.
+ *
+ * So the pointer is cleared by where it *points* — `where: { subscription: {
+ * tenantId } }` — regardless of which tenant, or no tenant, owns the row holding
+ * it. Anything referencing a row that is about to cease to exist has to let go
+ * of it, whoever it belongs to.
  */
 export const TENANT_ERASURE_DETACHED_MODELS: Array<{
   model: string;
-  clearFields: string[];
+  clearFields: Array<{
+    /** The foreign key column to null. */
+    field: string;
+    /**
+     * The relation that column points along. Its `tenantId` identifies the rows
+     * being erased, which is what makes the clear reach every referencing row
+     * rather than only the tenant's own.
+     */
+    via: string;
+  }>;
 }> = [
   {
     /* Legal record of what was agreed. Outlives the workspace it described. */
     model: 'contract',
-    clearFields: ['subscriptionId'],
+    clearFields: [{ field: 'subscriptionId', via: 'subscription' }],
   },
   {
     /* Support history, including cases raised by people who no longer exist. */
     model: 'supportCase',
-    clearFields: ['subscriptionId', 'invoiceId'],
+    clearFields: [
+      { field: 'subscriptionId', via: 'subscription' },
+      { field: 'invoiceId', via: 'invoice' },
+    ],
   },
   {
     /* The commercial onboarding cycle that produced the tenant. */

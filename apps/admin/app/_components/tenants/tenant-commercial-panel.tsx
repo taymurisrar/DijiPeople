@@ -129,7 +129,29 @@ export function TenantCommercialPanel({ tenantId }: { tenantId: string }) {
             <DefinitionList
               columns={3}
               items={[
-                { label: "Plan", value: data.subscription.plan.name },
+                {
+                  label: "Plan",
+                  /* Names a record, so it opens it — like every other reference here. */
+                  value: (
+                    <Link
+                      href={`/plans/${data.subscription.plan.id}`}
+                      className="font-medium text-[var(--admin-primary)] hover:underline"
+                    >
+                      {data.subscription.plan.name}
+                    </Link>
+                  ),
+                },
+                {
+                  label: "Subscription",
+                  value: (
+                    <Link
+                      href={`/subscriptions/${data.subscription.id}`}
+                      className="font-medium text-[var(--admin-primary)] hover:underline"
+                    >
+                      Open subscription
+                    </Link>
+                  ),
+                },
                 {
                   label: "Status",
                   value: <TenantStatusBadge value={data.subscription.status} />,

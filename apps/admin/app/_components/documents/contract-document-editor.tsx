@@ -416,7 +416,7 @@ export function ContractDocumentEditor({
     <div className="overflow-visible rounded-2xl border border-slate-200 bg-slate-100 shadow-sm">
       {!readOnly ? (
         <div
-          className="sticky top-2 z-30 flex flex-wrap items-center gap-1 rounded-t-2xl border-b border-slate-200 bg-white/95 p-2 shadow-sm backdrop-blur"
+          className="sticky top-2 z-10 flex flex-wrap items-center gap-1 rounded-t-2xl border-b border-slate-200 bg-white/95 p-2 shadow-sm backdrop-blur"
           role="toolbar"
           aria-label="Document formatting"
         >
@@ -686,7 +686,7 @@ export function ContractDocumentEditor({
                 Table actions
               </button>
               {tableOpen ? (
-                <div className="absolute left-0 top-11 z-40 grid w-48 gap-1 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
+                <div className="absolute left-0 top-11 z-20 grid w-48 gap-1 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
                   <TableAction
                     label="Add row below"
                     onClick={() => editor.chain().focus().addRowAfter().run()}
@@ -744,7 +744,7 @@ export function ContractDocumentEditor({
               Fields & signatures
             </button>
             {placeholderOpen ? (
-              <div className="absolute left-0 top-11 z-40 max-h-72 w-72 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
+              <div className="absolute left-0 top-11 z-20 max-h-72 w-72 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
                 <input
                   value={placeholderQuery}
                   onChange={(event) => setPlaceholderQuery(event.target.value)}

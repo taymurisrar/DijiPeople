@@ -143,7 +143,7 @@ export function RuntimeViewSelector({
       {open ? (
         <div
           role="menu"
-          className="absolute left-0 top-[calc(100%+8px)] z-50 w-[min(400px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl"
+          className="absolute left-0 top-[calc(100%+8px)] z-20 w-[min(400px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl"
         >
           <div className="border-b border-slate-100 bg-slate-50 px-4 py-3">
             <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">

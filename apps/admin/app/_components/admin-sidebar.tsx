@@ -152,7 +152,12 @@ export function AdminSidebar({
       {isOpen ? (
         <button
           aria-label="Close navigation overlay"
-          className="fixed inset-0 z-30 bg-slate-950/40 backdrop-blur-[1px] lg:hidden"
+          /*
+           * Above the topbar (z-30), which is now genuinely positioned. At the
+           * same z-index the topbar would win on DOM order and stay bright
+           * above the dimmed page while the drawer was open.
+           */
+          className="fixed inset-0 z-40 bg-slate-950/40 backdrop-blur-[1px] lg:hidden"
           onClick={onClose}
           type="button"
         />
@@ -160,7 +165,7 @@ export function AdminSidebar({
 
       <aside
         className={[
-          "fixed inset-y-3 left-3 z-40 flex max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-xl transition-[width,transform] duration-200 ease-out",
+          "fixed inset-y-3 left-3 z-50 flex max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-xl transition-[width,transform] duration-200 ease-out",
           "lg:sticky lg:top-4 lg:inset-auto lg:z-auto lg:h-[calc(100dvh-2rem)] lg:shrink-0 lg:self-start lg:shadow-sm",
           "w-[calc(100vw-1.5rem)] sm:w-80",
           collapsed ? "lg:w-24" : "lg:w-72",

@@ -23,6 +23,7 @@ import {
   PlatformModulePreferenceQueryDto,
   UpdatePlatformModulePreferenceDto,
 } from './dto/platform-module-preference.dto';
+import { ChangePlatformPasswordDto } from './dto/platform-password.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('platform-users')
@@ -37,6 +38,23 @@ export class PlatformUsersController {
   @Get('owner-candidates')
   listOwnerCandidates(@CurrentUser() user: AuthenticatedUser) {
     return this.platformUsersService.listOwnerCandidates(user);
+  }
+
+  /*
+   * `me` routes only. Neither takes a user id, so neither can be pointed at
+   * another platform account.
+   */
+  @Get('me/security')
+  getMySecurity(@CurrentUser() user: AuthenticatedUser) {
+    return this.platformUsersService.getSecurityOverview(user);
+  }
+
+  @Post('me/password')
+  changeMyPassword(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: ChangePlatformPasswordDto,
+  ) {
+    return this.platformUsersService.changeOwnPassword(user, dto);
   }
 
   @Get('me/preferences')

@@ -38,6 +38,7 @@ export default async function InternalLayout({
               email: user.email,
               roleKeys: user.roleKeys,
               permissionKeys: user.permissionKeys,
+              role: user.role,
             }}
           >
             {children}

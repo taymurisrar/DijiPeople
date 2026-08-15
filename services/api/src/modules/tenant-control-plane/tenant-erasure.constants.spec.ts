@@ -125,7 +125,7 @@ describe('tenant erasure order', () => {
     const clearedByModel = new Map(
       TENANT_ERASURE_DETACHED_MODELS.map((entry) => [
         pascalCase(entry.model),
-        new Set(entry.clearFields),
+        new Set(entry.clearFields.map((clear) => clear.field)),
       ]),
     );
     const cleanedUp = new Set(
@@ -228,7 +228,7 @@ describe('tenant erasure order', () => {
     const clearedByModel = new Map(
       TENANT_ERASURE_DETACHED_MODELS.map((entry) => [
         pascalCase(entry.model),
-        new Set(entry.clearFields),
+        new Set(entry.clearFields.map((clear) => clear.field)),
       ]),
     );
     const cleanedUp = new Set(
@@ -267,7 +267,7 @@ describe('tenant erasure order', () => {
     const notNullable: string[] = [];
     for (const entry of TENANT_ERASURE_DETACHED_MODELS) {
       const body = models.get(pascalCase(entry.model)) ?? [];
-      for (const field of entry.clearFields) {
+      for (const { field } of entry.clearFields) {
         const declared = body.find((line) =>
           new RegExp(`^\\s+${field}\\s+\\w+`).test(line),
         );
@@ -277,6 +277,92 @@ describe('tenant erasure order', () => {
       }
     }
     expect(notNullable).toEqual([]);
+  });
+
+  /*
+   * The second production failure, and the gap the check above could not see.
+   *
+   * Declaring a field as cleared says nothing about whether the clearing
+   * statement reaches every row holding it. The detach was scoped by
+   * `where: { tenantId }`, and both `Contract.tenantId` and
+   * `SupportCase.tenantId` are nullable — an agreement raised against the
+   * customer during onboarding holds `subscriptionId` while carrying no tenant
+   * of its own. That row was never matched, it kept the subscription alive, and
+   * the erasure died on `Contract_subscriptionId_fkey` having deleted nothing.
+   *
+   * So each cleared field names the relation it points along, and the detach
+   * clears by where the pointer *goes* rather than by who holds it.
+   */
+  it('clears each detached reference along its relation, not by the holder tenant', () => {
+    const problems: string[] = [];
+
+    for (const entry of TENANT_ERASURE_DETACHED_MODELS) {
+      const model = pascalCase(entry.model);
+      const body = models.get(model) ?? [];
+
+      for (const { field, via } of entry.clearFields) {
+        /* The relation must exist, or the where clause matches nothing. */
+        const relationLine = body.find((line) =>
+          new RegExp(`^\\s+${via}\\s+\\w+`).test(line),
+        );
+        if (!relationLine) {
+          problems.push(`${model}.${via} is not a relation on ${model}`);
+          continue;
+        }
+
+        /* And it must be the relation that owns the column being cleared. */
+        const relation = parseOwningRelation(relationLine);
+        if (!relation || !relation.fields.includes(field)) {
+          problems.push(
+            `${model}.${via} does not own ${field}; clearing along it would miss rows`,
+          );
+          continue;
+        }
+
+        /*
+         * The target has to be in the delete set. Clearing a pointer to
+         * something that survives erasure is pointless churn on a retained row.
+         */
+        if (
+          !TENANT_ERASURE_DELETE_ORDER.map(pascalCase).includes(relation.target)
+        ) {
+          problems.push(
+            `${model}.${field} points at ${relation.target}, which is not erased`,
+          );
+        }
+      }
+    }
+
+    expect(problems).toEqual([]);
+  });
+
+  it('declares a relation-scoped clear for every nullable-tenant holder', () => {
+    /*
+     * A detached model whose own `tenantId` is nullable cannot be reached
+     * reliably by a tenant-scoped statement, so every blocking reference it
+     * holds into the delete set must be cleared along its relation.
+     */
+    const deleteSet = new Set(TENANT_ERASURE_DELETE_ORDER.map(pascalCase));
+    const missing: string[] = [];
+
+    for (const entry of TENANT_ERASURE_DETACHED_MODELS) {
+      const model = pascalCase(entry.model);
+      const body = models.get(model) ?? [];
+      const declared = new Set(entry.clearFields.map((clear) => clear.field));
+
+      for (const line of body) {
+        const relation = parseOwningRelation(line);
+        if (!relation || !isBlocking(relation.mode)) continue;
+        if (!deleteSet.has(relation.target)) continue;
+        for (const field of relation.fields) {
+          if (!declared.has(field)) {
+            missing.push(`${model}.${field} -> ${relation.target}`);
+          }
+        }
+      }
+    }
+
+    expect(missing).toEqual([]);
   });
 
   it('scopes every link cleanup through a relation to the tenant', () => {

@@ -125,6 +125,15 @@ export type RuntimeColumnDefinition = {
   format?: RuntimeColumnFormat;
   currencyField?: string;
   lookupLabelField?: string;
+  /**
+   * Makes the cell open the record it names.
+   *
+   * `field` holds the label — `customerAccount.companyName` — which is what a
+   * person reads and not what addresses the record, so the id is named
+   * separately. Without this a list showed the customer's name as text and the
+   * only way to reach that customer was to go and search for them.
+   */
+  link?: { route: string; idField: string };
   width?: number;
   minWidth?: number;
   maxWidth?: number;

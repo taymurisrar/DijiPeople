@@ -16,13 +16,15 @@ import {
 } from "lucide-react";
 import { usePlatformDefaults } from "./platform-defaults-provider";
 import { formatPlatformDate } from "@/lib/platform-formatters";
+import { formatPlatformRole, type PlatformRole } from "@/lib/platform-rbac";
 
 type AdminTopbarProps = {
   firstName: string;
   lastName: string;
   email: string;
   onMenuToggle: () => void;
-  roleKeys?: string[];
+  /** The platform role itself. Guard aliases are not shown to people. */
+  role?: PlatformRole;
 };
 
 type TopbarAction = {
@@ -43,7 +45,7 @@ export function AdminTopbar({
   lastName,
   email,
   onMenuToggle,
-  roleKeys = [],
+  role,
 }: AdminTopbarProps) {
   const { defaults } = usePlatformDefaults();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -69,6 +71,8 @@ export function AdminTopbar({
   const currentDate = useMemo(() => {
     return formatPlatformDate(new Date(), defaults);
   }, [defaults]);
+
+  const roleLabel = role ? formatPlatformRole(role) : "";
 
   const profileActions: TopbarAction[] = [
     {
@@ -153,7 +157,17 @@ export function AdminTopbar({
   }, [searchOpen]);
 
   return (
-    <header className="top-4 z-30 rounded-[28px] border border-slate-200/80 bg-white/95 px-4 py-4 shadow-sm backdrop-blur-xl sm:px-5">
+    /*
+     * `relative` is what makes the z-index real.
+     *
+     * This was `top-4 z-30` on a statically positioned element, where both are
+     * inert: `top` needs a position, and `z-index` needs one too. So the header
+     * sat at z-auto while the page below it contained genuinely positioned
+     * elements — the data table's `sticky` header row and pagination bar — which
+     * painted straight through the open profile menu. Half the menu was covered
+     * by the table behind it, and "Account settings" was invisible entirely.
+     */
+    <header className="relative z-30 rounded-[28px] border border-slate-200/80 bg-white/95 px-4 py-4 shadow-sm backdrop-blur-xl sm:px-5">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex min-w-0 items-start gap-3">
           <button
@@ -257,7 +271,7 @@ export function AdminTopbar({
               {menuOpen && (
                 <div
                   role="menu"
-                  className="absolute right-0 mt-2 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-900/10"
+                  className="absolute right-0 z-50 mt-2 max-h-[calc(100vh-7rem)] w-[min(22rem,calc(100vw-2rem))] overflow-y-auto overscroll-contain rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-900/10"
                 >
                   <div className="border-b border-slate-100 bg-slate-50/80 px-4 py-4">
                     <div className="flex items-center gap-3">
@@ -272,9 +286,16 @@ export function AdminTopbar({
                         <p className="truncate text-xs text-slate-500">
                           {email || "No email available"}
                         </p>
-                        {roleKeys.length ? (
-                          <p className="mt-1 truncate text-xs text-slate-400">
-                            {roleKeys.join(", ")}
+                        {/*
+                          One role, named once. This printed the raw guard
+                          alias list — "PLATFORM_OWNER, platform-owner,
+                          SUPER_ADMIN, system-admin" — which reads as four
+                          roles and is what a guard checks, not what a person
+                          holds.
+                        */}
+                        {roleLabel ? (
+                          <p className="mt-1 truncate text-xs text-slate-500">
+                            {roleLabel}
                           </p>
                         ) : null}
                       </div>

@@ -252,7 +252,12 @@ export function ProDataTable<T>({
         <thead
           className={clsx(
             "bg-slate-50 text-slate-500",
-            stickyHeader ? "sticky top-0 z-20" : "",
+            /*
+             * Only has to beat the rows beneath it. It used to sit at z-20,
+             * which also put it above the application shell — see the pagination
+             * bar below for what that cost.
+             */
+            stickyHeader ? "sticky top-0 z-10" : "",
             headerClassName,
           )}
         >
@@ -563,8 +568,14 @@ function DataTablePaginationFooter({
     <div
       className={clsx(
         "flex items-center justify-between gap-4 border-t border-slate-200 bg-white px-4 py-3 text-sm text-slate-600",
+        /*
+         * z-10, not z-30. At z-30 this bar out-stacked the application shell and
+         * painted over an open profile menu — a table paginator drawn on top of
+         * the navigation. It only ever needs to sit above the rows it scrolls
+         * over.
+         */
         sticky &&
-          "sticky bottom-0 z-30 shadow-[0_-8px_24px_rgba(15,23,42,0.08)]",
+          "sticky bottom-0 z-10 shadow-[0_-8px_24px_rgba(15,23,42,0.08)]",
       )}
     >
       <span>

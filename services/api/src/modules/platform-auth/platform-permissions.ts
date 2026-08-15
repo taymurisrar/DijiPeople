@@ -218,19 +218,40 @@ const ROLE_PERMISSIONS: Record<PlatformUserRole, string[]> = {
   ],
 };
 
+/**
+ * The guard aliases a platform role satisfies.
+ *
+ * WHAT THIS LIST IS. Guards across the codebase check role *keys*, and they were
+ * not written against one convention: some compare the enum member
+ * (`PLATFORM_OWNER`), some the kebab slug (`platform-owner`), and the tenant-side
+ * guards predate platform roles entirely and look for `system-admin` or
+ * `system-customizer`. So one role has to answer to several names.
+ *
+ * WHAT IT IS NOT. It is not a list of roles a person holds, and it must never be
+ * rendered as one — "PLATFORM_OWNER, platform-owner, SUPER_ADMIN, system-admin"
+ * reads as four roles when it describes one. Show `PlatformUser.role` instead;
+ * `formatPlatformRole` in the admin app renders it.
+ *
+ * Deduplicated at source: this previously emitted `key` twice for every
+ * non-elevated role that was not MEMBER, and `SUPER_ADMIN` twice for the
+ * SUPER_ADMIN role itself.
+ */
 export function platformAccessForRole(role: PlatformUserRole): PlatformAccess {
   const key = role.toLowerCase().replaceAll('_', '-');
   const elevated =
     role === PlatformUserRole.SUPER_ADMIN ||
     role === PlatformUserRole.PLATFORM_OWNER;
+
+  const aliases = [
+    role as string,
+    key,
+    ...(elevated ? ['SUPER_ADMIN', 'system-admin'] : []),
+    ...(role === PlatformUserRole.MEMBER ? ['system-customizer'] : []),
+  ];
+
   return {
-    roleKeys: elevated
-      ? [role, key, 'SUPER_ADMIN', 'system-admin']
-      : [
-          role,
-          key,
-          role === PlatformUserRole.MEMBER ? 'system-customizer' : key,
-        ],
+    /* Order is preserved so the actual role stays first. */
+    roleKeys: [...new Set(aliases)],
     permissionKeys: [...ROLE_PERMISSIONS[role]],
   };
 }

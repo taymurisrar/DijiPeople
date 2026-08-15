@@ -271,12 +271,20 @@ export function PlatformDashboard({
   return (
     <main className="space-y-5">
       <section className="rounded-[28px] border border-slate-200 bg-gradient-to-br from-white via-white to-[var(--admin-surface-tint)] p-5 shadow-sm lg:p-6">
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,720px)] xl:items-start">
+        {/*
+          Split at 2xl, not xl, and cap the control panel at 560px.
+          `xl` is 1280px, and at 1280 the shell has already spent ~288px on the
+          sidebar plus padding — so a 720px control column left the heading
+          column about 215px wide. "Executive overview" wrapped onto two lines
+          and the description became a vertical ribbon. Below 2xl the two blocks
+          stack, which is the only honest layout at that width.
+        */}
+        <div className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_minmax(0,560px)] 2xl:items-start">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--admin-primary)]">
               Live operations workspace
             </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
               {content.title}
             </h1>
             <p className="mt-2 max-w-3xl text-sm text-slate-600">
@@ -294,7 +302,7 @@ export function PlatformDashboard({
               </span>
             </div>
           </div>
-          <div className="grid min-w-0 gap-3 rounded-2xl border border-slate-200 bg-white/85 p-3 shadow-sm sm:grid-cols-2 sm:items-end xl:grid-cols-[minmax(240px,1fr)_minmax(160px,auto)_auto_auto]">
+          <div className="grid min-w-0 gap-3 rounded-2xl border border-slate-200 bg-white/85 p-3 shadow-sm sm:grid-cols-2 sm:items-end xl:grid-cols-[minmax(220px,1fr)_minmax(150px,auto)_auto_auto]">
             <RuntimeViewSelector
               moduleKey="dashboard"
               views={DASHBOARD_VIEWS}

@@ -12,6 +12,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { resolveRuntimeField } from "@repo/config";
 import {
@@ -401,6 +402,7 @@ export function RuntimeModuleList({
               column.currencyField,
               defaults.reportingCurrency,
               defaults.locale,
+              column.link,
             ),
         })),
     [
@@ -537,7 +539,7 @@ export function RuntimeModuleList({
               Columns
             </button>
             {columnsOpen ? (
-              <div className="absolute right-0 top-12 z-40 w-64 rounded-xl border border-slate-200 bg-white p-2 shadow-xl">
+              <div className="absolute right-0 top-12 z-20 w-64 rounded-xl border border-slate-200 bg-white p-2 shadow-xl">
                 <p className="px-2 pb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                   Visibility and order
                 </p>
@@ -1047,10 +1049,31 @@ function formatCell(
   currencyField: string | undefined,
   reportingCurrency: string,
   locale: string,
+  link?: RuntimeColumnDefinition["link"],
 ) {
   const value = readPath(record, field);
   if (value == null || value === "")
     return <span className="text-slate-400">—</span>;
+
+  /*
+   * A named record is a place you can go. Checked before the format branches so
+   * it applies whatever the cell is formatted as, and skipped when the id is
+   * missing rather than linking to `/customers/undefined`.
+   */
+  if (link) {
+    const id = readPath(record, link.idField);
+    if (id !== null && id !== undefined && String(id).trim()) {
+      return (
+        <Link
+          href={`${link.route}/${encodeURIComponent(String(id))}`}
+          onClick={(event) => event.stopPropagation()}
+          className="font-medium text-[var(--admin-primary)] hover:underline"
+        >
+          {String(value)}
+        </Link>
+      );
+    }
+  }
   if (format === "status")
     return (
       <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${typeof value === "boolean" ? (value ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-slate-50 text-slate-600") : "border-slate-200 bg-slate-50 text-slate-700"}`}>

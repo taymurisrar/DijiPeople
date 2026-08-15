@@ -9,6 +9,7 @@ import type {
 } from "@/lib/runtime/platform-runtime.types";
 import { ContractDocumentEditor } from "@/app/_components/documents/contract-document-editor";
 import type { RuntimeLookupOption } from "@/lib/runtime/runtime-lookups";
+import { buildLookupRecordHref } from "@/lib/runtime/lookup-record-href";
 
 type RuntimeValues = Record<string, unknown>;
 export function RuntimeForm({
@@ -275,7 +276,7 @@ function FieldDisplay({
     ? readRuntimeValue(values, field.displayValueField)
     : undefined;
   if (typeof explicitLabel === "string" && explicitLabel.trim()) {
-    const href = resolveDisplayHref(field, values);
+    const href = resolveDisplayHref(field, values, value);
     return (
       <span className={base}>
         {href ? (
@@ -301,7 +302,7 @@ function FieldDisplay({
   if (isLookupField(field)) {
     const label = resolveLookupLabel(field, value, values);
     if (!label) return <span className={`${base} text-slate-400`}>Not set</span>;
-    const href = resolveDisplayHref(field, values);
+    const href = resolveDisplayHref(field, values, value);
     return (
       <span className={base}>
         {href ? (
@@ -488,22 +489,42 @@ function readRelationLabel(relation: unknown) {
   return found ? String(found) : null;
 }
 
+/**
+ * Where a displayed value should link to.
+ *
+ * An explicit `displayHref` template wins, because some fields point somewhere
+ * the lookup collection does not imply. Otherwise the target is derived from the
+ * lookup's own collection, so a resolved lookup is clickable by default rather
+ * than only when someone remembered to add a template — three fields in the
+ * whole registry had one, which left every other lookup rendering the record's
+ * name as inert text.
+ */
 function resolveDisplayHref(
   field: RuntimeFieldDefinition,
   values: RuntimeValues,
+  value?: unknown,
 ) {
-  if (!field.displayHref) return null;
-  let resolved = field.displayHref;
-  let missing = false;
-  resolved = resolved.replace(/\{([^}]+)\}/g, (_match, token: string) => {
-    const replacement = readRuntimeValue(values, token);
-    if (replacement === null || replacement === undefined || replacement === "") {
-      missing = true;
-      return "";
-    }
-    return encodeURIComponent(String(replacement));
-  });
-  return missing ? null : resolved;
+  if (field.displayHref) {
+    let resolved = field.displayHref;
+    let missing = false;
+    resolved = resolved.replace(/\{([^}]+)\}/g, (_match, token: string) => {
+      const replacement = readRuntimeValue(values, token);
+      if (
+        replacement === null ||
+        replacement === undefined ||
+        replacement === ""
+      ) {
+        missing = true;
+        return "";
+      }
+      return encodeURIComponent(String(replacement));
+    });
+    return missing ? null : resolved;
+  }
+
+  /* The id addresses the record; the label is only what a person reads. */
+  const id = value ?? readRuntimeValue(values, field.key);
+  return buildLookupRecordHref(field, id);
 }
 
 function isLookupField(field: RuntimeFieldDefinition) {
@@ -985,7 +1006,7 @@ function SearchableSelect({
         <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
       </button>
       {open ? (
-        <div className="absolute z-50 mt-1.5 w-full min-w-56 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
+        <div className="absolute z-20 mt-1.5 w-full min-w-56 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input

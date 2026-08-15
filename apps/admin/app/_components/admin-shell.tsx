@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { AdminSidebar } from "./admin-sidebar";
 import { AdminTopbar } from "./admin-topbar";
 import { usePlatformDefaults } from "./platform-defaults-provider";
+import type { PlatformRole } from "@/lib/platform-rbac";
 
 type AdminShellProps = {
   rememberSession: boolean;
@@ -11,8 +12,10 @@ type AdminShellProps = {
     firstName: string;
     lastName: string;
     email: string;
+    /* Navigation gating still uses the alias list; display uses `role`. */
     roleKeys?: string[];
     permissionKeys?: string[];
+    role?: PlatformRole;
   };
   children: React.ReactNode;
 };
@@ -119,7 +122,7 @@ export function AdminShell({
             firstName={user.firstName}
             lastName={user.lastName}
             onMenuToggle={() => setSidebarOpen((current) => !current)}
-            roleKeys={user.roleKeys}
+            role={user.role}
           />
 
           <div className="min-w-0 overflow-x-hidden">{children}</div>

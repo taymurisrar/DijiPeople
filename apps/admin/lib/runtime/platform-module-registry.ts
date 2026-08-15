@@ -2018,9 +2018,20 @@ const definitions: PlatformModuleDefinition[] = [
       "customers",
       [
         col("displayName", "Tenant", 220),
-        col("customerAccount.companyName", "Customer", 210, "lookup"),
+        /*
+         * Every lookup on this module opens the record it names. These two read
+         * as a customer and a plan and used to be plain text, so the only way to
+         * reach either was to leave the tenant list and search for them.
+         */
+        col("customerAccount.companyName", "Customer", 210, "lookup", {
+          route: "/customers",
+          idField: "customerAccount.id",
+        }),
         col("status", "Status", 150, "status"),
-        col("subscription.plan.name", "Plan", 150, "lookup"),
+        col("subscription.plan.name", "Plan", 150, "lookup", {
+          route: "/plans",
+          idField: "subscription.plan.id",
+        }),
         col("subscription.status", "Subscription", 150, "status"),
         col("createdAt", "Created", 160, "dateTime"),
       ],
@@ -3566,6 +3577,12 @@ function col(
   label: string,
   width = 160,
   format: RuntimeColumnDefinition["format"] = "text",
+  /**
+   * Makes the cell open the record it names. `fieldName` holds the label, so
+   * the id has to be given separately — a column showing a customer's name has
+   * no way to address that customer otherwise.
+   */
+  link?: RuntimeColumnDefinition["link"],
 ) {
   return {
     key: fieldName,
@@ -3578,6 +3595,7 @@ function col(
     sortable: true,
     filterable: true,
     visible: true,
+    ...(link ? { link } : {}),
   } as const;
 }
 function field(

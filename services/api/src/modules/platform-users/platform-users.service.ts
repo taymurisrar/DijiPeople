@@ -15,6 +15,8 @@ import {
 } from './dto/platform-user.dto';
 import { UpdatePlatformPreferencesDto } from './dto/platform-preferences.dto';
 import { UpdatePlatformModulePreferenceDto } from './dto/platform-module-preference.dto';
+import { ChangePlatformPasswordDto } from './dto/platform-password.dto';
+import { platformAccessForRole } from '../platform-auth/platform-permissions';
 import { resolveRuntimeField } from '@repo/config';
 
 @Injectable()
@@ -106,6 +108,219 @@ export class PlatformUsersService {
     });
 
     return { userId: user.id, id: user.id };
+  }
+
+  /**
+   * The signed-in platform user's own security posture.
+   *
+   * Read-only, and scoped to the actor — there is no `userId` parameter, so no
+   * request can ask about somebody else's sessions.
+   */
+  async getSecurityOverview(actor: AuthenticatedUser) {
+    this.assertPlatformUser(actor);
+    const platformUserId = actor.platform!.id;
+
+    const [user, sessions] = await Promise.all([
+      this.prisma.platformUser.findUniqueOrThrow({
+        where: { id: platformUserId },
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          role: true,
+          status: true,
+          lastActiveAt: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      }),
+      this.prisma.platformRefreshToken.findMany({
+        where: {
+          platformUserId,
+          revokedAt: null,
+          expiresAt: { gt: new Date() },
+        },
+        orderBy: { lastUsedAt: 'desc' },
+        take: 20,
+        select: {
+          id: true,
+          sessionId: true,
+          appClientId: true,
+          createdAt: true,
+          lastUsedAt: true,
+          lastActivityAt: true,
+          expiresAt: true,
+          userAgent: true,
+          ipAddress: true,
+        },
+      }),
+    ]);
+
+    const access = platformAccessForRole(user.role);
+
+    return {
+      account: {
+        id: user.id,
+        email: user.email,
+        name: `${user.firstName} ${user.lastName}`.trim() || user.email,
+        role: user.role,
+        status: user.status,
+        lastActiveAt: user.lastActiveAt,
+        createdAt: user.createdAt,
+      },
+      /*
+       * The role, and separately the aliases guards check for. Merging them is
+       * how the Security page ended up listing one role four times.
+       */
+      access: {
+        role: user.role,
+        guardAliases: access.roleKeys,
+        permissionKeys: access.permissionKeys,
+        permissionCount: access.permissionKeys.length,
+      },
+      sessions: {
+        activeCount: sessions.length,
+        /*
+         * The current session is marked rather than hidden, so "sign out
+         * everywhere else" can say exactly what it will end.
+         */
+        items: sessions.map((session) => ({
+          id: session.id,
+          sessionId: session.sessionId,
+          appClientId: session.appClientId,
+          isCurrent: Boolean(
+            actor.sessionId && session.sessionId === actor.sessionId,
+          ),
+          createdAt: session.createdAt,
+          lastUsedAt: session.lastUsedAt ?? session.lastActivityAt,
+          expiresAt: session.expiresAt,
+          userAgent: session.userAgent,
+          /* Truncated: enough to recognise a session, not to geolocate it. */
+          ipAddress: session.ipAddress,
+        })),
+      },
+    };
+  }
+
+  /**
+   * Change the signed-in platform user's own password.
+   *
+   * Only ever the actor's own: there is no target-user parameter, so this cannot
+   * become a way to take over another platform account. Resetting somebody
+   * else's password is a separate, auditable administrative action.
+   */
+  async changeOwnPassword(
+    actor: AuthenticatedUser,
+    dto: ChangePlatformPasswordDto,
+  ) {
+    this.assertPlatformUser(actor);
+    const platformUserId = actor.platform!.id;
+
+    const user = await this.prisma.platformUser.findUniqueOrThrow({
+      where: { id: platformUserId },
+      select: { id: true, email: true, passwordHash: true, role: true },
+    });
+
+    const currentMatches = await bcrypt.compare(
+      dto.currentPassword,
+      user.passwordHash,
+    );
+    if (!currentMatches) {
+      /*
+       * Recorded even though it failed. A run of these against a live admin
+       * session is the signature of an unattended workstation or a stolen
+       * cookie, and it is invisible if only successes are written.
+       */
+      await this.prisma.platformAuditLog.create({
+        data: {
+          platformActorUserId: platformUserId,
+          action: 'PLATFORM_USER_PASSWORD_CHANGE_FAILED',
+          entityType: 'PlatformUser',
+          entityId: platformUserId,
+          sourceModule: 'platform-users',
+          afterSnapshot: { reason: 'CURRENT_PASSWORD_MISMATCH' },
+        },
+      });
+      throw new BadRequestException({
+        code: 'CURRENT_PASSWORD_INVALID',
+        message: 'Your current password is not correct.',
+      });
+    }
+
+    if (dto.currentPassword === dto.newPassword) {
+      throw new BadRequestException({
+        code: 'PASSWORD_UNCHANGED',
+        message: 'The new password must be different from the current one.',
+      });
+    }
+
+    /* Rejects a "new" password that is the current one under a different case. */
+    const reusesExisting = await bcrypt.compare(
+      dto.newPassword,
+      user.passwordHash,
+    );
+    if (reusesExisting) {
+      throw new BadRequestException({
+        code: 'PASSWORD_UNCHANGED',
+        message: 'The new password must be different from the current one.',
+      });
+    }
+
+    const passwordHash = await bcrypt.hash(dto.newPassword, 10);
+    const signOutOthers = dto.signOutOtherSessions !== false;
+
+    const revokedSessions = await this.prisma.$transaction(async (tx) => {
+      await tx.platformUser.update({
+        where: { id: platformUserId },
+        data: { passwordHash, updatedById: platformUserId },
+      });
+
+      if (!signOutOthers) return 0;
+
+      /*
+       * Every other live session is revoked in the same transaction as the
+       * password write. Doing it afterwards leaves a window in which the old
+       * credential is gone but the sessions it created are still usable.
+       *
+       * The current session is kept so the person is not signed out of the page
+       * they are standing on; `sessionId` comes from the verified token.
+       */
+      const result = await tx.platformRefreshToken.updateMany({
+        where: {
+          platformUserId,
+          revokedAt: null,
+          ...(actor.sessionId ? { NOT: { sessionId: actor.sessionId } } : {}),
+        },
+        data: { revokedAt: new Date() },
+      });
+      return result.count;
+    });
+
+    await this.prisma.platformAuditLog.create({
+      data: {
+        platformActorUserId: platformUserId,
+        action: 'PLATFORM_USER_PASSWORD_CHANGED',
+        entityType: 'PlatformUser',
+        entityId: platformUserId,
+        sourceModule: 'platform-users',
+        /* No password material, current or new, in either snapshot. */
+        afterSnapshot: {
+          signedOutOtherSessions: signOutOthers,
+          revokedSessions,
+        },
+      },
+    });
+
+    return {
+      success: true,
+      revokedSessions,
+      message: signOutOthers
+        ? `Password updated. ${revokedSessions} other session${
+            revokedSessions === 1 ? '' : 's'
+          } signed out.`
+        : 'Password updated.',
+    };
   }
 
   async getPreferences(actor: AuthenticatedUser) {

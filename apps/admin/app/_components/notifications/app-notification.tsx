@@ -82,7 +82,7 @@ export function StickyNotification({
   if (dismissed) return null;
 
   return (
-    <div className="sticky top-3 z-30">
+    <div className="sticky top-3 z-20">
       <AppNotification
         {...props}
         dismissible

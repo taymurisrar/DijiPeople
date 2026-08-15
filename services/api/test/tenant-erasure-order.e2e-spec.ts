@@ -133,10 +133,17 @@ describeWithDatabase()('Tenant erasure delete order (DB-backed)', () => {
             data: {
               tenantId: null,
               ...Object.fromEntries(
-                entry.clearFields.map((field) => [field, null]),
+                entry.clearFields.map(({ field }) => [field, null]),
               ),
             },
           });
+          /* The relation-scoped release — see TenantErasureService.eraseWithin. */
+          for (const { field, via } of entry.clearFields) {
+            await client[entry.model].updateMany({
+              where: { [via]: { tenantId } },
+              data: { [field]: null },
+            });
+          }
         }
         for (const entry of TENANT_ERASURE_LINK_CLEANUPS) {
           await client[entry.model].deleteMany({
@@ -231,6 +238,67 @@ describeWithDatabase()('Tenant erasure delete order (DB-backed)', () => {
       }),
     ).resolves.toBeTruthy();
 
+    await scratch.cleanup();
+  });
+
+  /**
+   * The production failure, reproduced.
+   *
+   * `Contract.tenantId` is nullable: an agreement is raised against the customer
+   * during onboarding, before any tenant exists, and is linked to the
+   * subscription later. It can therefore hold `subscriptionId` while carrying no
+   * tenant of its own — and the detach phase, scoped by `where: { tenantId }`,
+   * never saw it. The contract kept the subscription alive and the erasure
+   * failed on `Contract_subscriptionId_fkey` with nothing deleted.
+   *
+   * This is not reproducible with a mock: the whole mechanism is a real RESTRICT
+   * on a real row that the tenant-scoped statement does not match.
+   */
+  it('erases a tenant whose subscription is referenced by a contract that has no tenant', async () => {
+    const scratch = new DbFixtures(prisma, 'erasure-orphan-contract');
+    const owner = await scratch.createTenant('subscribed');
+    const suffix = scratch.runId.slice(0, 8);
+
+    const plan = await prisma.plan.create({
+      data: { key: `plan-${suffix}`, name: `Plan ${suffix}` },
+    });
+    const subscription = await prisma.subscription.create({
+      data: {
+        tenantId: owner.id,
+        planId: plan.id,
+        startDate: new Date('2026-01-01'),
+      },
+    });
+    const contract = await prisma.contract.create({
+      data: {
+        contractNumber: `AGR-${suffix}`,
+        title: 'Customer agreement raised before the tenant existed',
+        contractType: 'CUSTOMER_AGREEMENT',
+        counterpartyName: 'Test Customer',
+        customerAccountId: owner.customerAccountId,
+        /* The whole point: no tenant, but it holds the subscription. */
+        tenantId: null,
+        subscriptionId: subscription.id,
+      },
+    });
+
+    await runErasureSequence(owner.id);
+
+    const [erasedTenant, survivingContract, erasedSubscription] =
+      await Promise.all([
+        prisma.tenant.findUnique({ where: { id: owner.id } }),
+        prisma.contract.findUnique({ where: { id: contract.id } }),
+        prisma.subscription.findUnique({ where: { id: subscription.id } }),
+      ]);
+
+    expect(erasedTenant).toBeNull();
+    expect(erasedSubscription).toBeNull();
+    /* The agreement is retained — detached, not destroyed. */
+    expect(survivingContract).not.toBeNull();
+    expect(survivingContract?.subscriptionId).toBeNull();
+
+    await prisma.contract.delete({ where: { id: contract.id } });
+    await prisma.plan.delete({ where: { id: plan.id } });
     await scratch.cleanup();
   });
 

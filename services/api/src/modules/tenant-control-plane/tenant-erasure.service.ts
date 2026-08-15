@@ -482,16 +482,38 @@ export class TenantErasureService {
       progress.phase = 'detach';
       progress.model = entry.model;
       const delegate = delegateFor(tx, entry.model);
+
+      /*
+       * Two statements, and the second is the one that matters.
+       *
+       * The first detaches the tenant's own rows. The second releases every
+       * reference *into* the delete set no matter who holds it — `Contract` and
+       * `SupportCase` both have a nullable `tenantId`, so an agreement created
+       * against the customer before this tenant existed can point at its
+       * subscription while carrying no tenant of its own. Scoping only by
+       * `tenantId` left exactly that row holding the subscription alive, and the
+       * erasure failed on `Contract_subscriptionId_fkey` having deleted nothing.
+       */
       const result = await delegate.updateMany({
         where: { tenantId },
         data: {
           tenantId: null,
           ...Object.fromEntries(
-            entry.clearFields.map((field) => [field, null]),
+            entry.clearFields.map(({ field }) => [field, null]),
           ),
         },
       });
       retained[entry.model] = result.count;
+
+      for (const { field, via } of entry.clearFields) {
+        const released = await delegate.updateMany({
+          where: { [via]: { tenantId } },
+          data: { [field]: null },
+        });
+        if (released.count > 0) {
+          retained[`${entry.model}:${field}Released`] = released.count;
+        }
+      }
     }
 
     for (const entry of TENANT_ERASURE_LINK_CLEANUPS) {

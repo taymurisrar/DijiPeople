@@ -111,7 +111,12 @@ export function ModuleActionBar({
   return (
     <>
       <div
-        className={`sticky top-0 z-30 flex min-h-14 flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/95 px-3 py-2 shadow-sm backdrop-blur ${className ?? ""}`}
+        /*
+         * z-10: above the page it scrolls over, below the application shell.
+         * At z-30 it tied with the topbar and won on DOM order, so an open
+         * profile menu was sliced in half by the command bar behind it.
+         */
+        className={`sticky top-0 z-10 flex min-h-14 flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/95 px-3 py-2 shadow-sm backdrop-blur ${className ?? ""}`}
       >
         <div className="flex flex-wrap items-center gap-1.5">
           {primary.map((action) => (
@@ -139,7 +144,7 @@ export function ModuleActionBar({
               {overflowOpen ? (
                 <div
                   role="menu"
-                  className="absolute left-0 top-[calc(100%+6px)] z-50 min-w-56 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl"
+                  className="absolute left-0 top-[calc(100%+6px)] z-20 min-w-56 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl"
                 >
                   {overflow.map((action) => (
                     <button
