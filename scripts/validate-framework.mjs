@@ -16,8 +16,18 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -786,13 +796,478 @@ for (const script of [
   'scripts/new-qa-run.mjs',
   'scripts/finalize-agent-task.mjs',
   'scripts/retrieve-knowledge.mjs',
+  'scripts/rebuild-backlog.mjs',
+  'scripts/new-bug.mjs',
+  'scripts/new-backlog-item.mjs',
+  'scripts/new-engineering-history.mjs',
+  'scripts/generate-dashboards.mjs',
+  'scripts/lib/backlog-records.mjs',
+  'scripts/lib/obsidian-mappings.mjs',
 ]) {
   if (!existsSync(join(ROOT, script))) continue;
   const body = read(script);
   // Cheap structural sanity: these are ES modules and must not have been
   // truncated. Full parsing happens when CI actually runs them.
-  check(`${script} is an ES module`, body.includes('import '));
+  check(`${script} is an ES module`, body.includes('import ') || body.includes('export '));
   check(`${script} is not truncated`, body.trimEnd().length > 200);
+}
+
+// ------------------------------------------- bug, backlog and history systems
+
+/*
+ * These exist because a QA finding that lives only in a chat report is lost
+ * when the session ends, and the next agent working the same module has nothing
+ * to read. The systems below are what make a finding durable; if any of them is
+ * deleted or hollowed out, the learning loop silently reverts to prose.
+ */
+
+const RECORD_SYSTEM_PATHS = [
+  'docs/bugs/README.md',
+  'docs/backlog/README.md',
+  'docs/backlog/index.md',
+  'docs/backlog/open.md',
+  'docs/backlog/blocked.md',
+  'docs/backlog/deferred.md',
+  'docs/backlog/product-decisions.md',
+  'docs/backlog/completed.md',
+  'docs/backlog/items',
+  'docs/engineering-history/README.md',
+  'docs/engineering-history/tasks',
+  'docs/deployment/release-history/README.md',
+  'scripts/rebuild-backlog.mjs',
+  'scripts/new-bug.mjs',
+  'scripts/new-backlog-item.mjs',
+  'scripts/new-engineering-history.mjs',
+  'scripts/generate-dashboards.mjs',
+  'scripts/lib/backlog-records.mjs',
+  'scripts/lib/obsidian-mappings.mjs',
+];
+
+for (const path of RECORD_SYSTEM_PATHS) {
+  check(`required path present: ${path}`, existsSync(join(ROOT, path)));
+}
+
+// A bug system with no records is a folder, not a system.
+const bugRecords = markdownFilesIn('docs/bugs').filter((f) => !f.endsWith('README.md'));
+check('bug records exist', bugRecords.length > 0, `found ${bugRecords.length}`);
+check(
+  'bug record filenames carry their id',
+  bugRecords.every((f) => /\/BUG-\d{4}-/.test(f)),
+  'a record whose filename and ID can drift is a record you cannot find',
+);
+
+/*
+ * The generated indexes must be **current**, not merely present. A stale index
+ * is worse than none: people trust it, and it is wrong in the direction of
+ * "nothing is outstanding".
+ */
+function runScript(relative, args = []) {
+  try {
+    execFileSync(process.execPath, [join(ROOT, relative), ...args], {
+      cwd: ROOT,
+      stdio: 'pipe',
+    });
+    return { ok: true, output: '' };
+  } catch (error) {
+    return { ok: false, output: String(error.stdout ?? '') + String(error.stderr ?? '') };
+  }
+}
+
+if (existsSync(join(ROOT, 'scripts/rebuild-backlog.mjs'))) {
+  const result = runScript('scripts/rebuild-backlog.mjs', ['--check']);
+  check(
+    'backlog records are valid and the indexes are current',
+    result.ok,
+    result.output.split('\n').filter(Boolean).slice(0, 6).join(' | '),
+  );
+}
+
+if (existsSync(join(ROOT, 'scripts/generate-dashboards.mjs'))) {
+  const result = runScript('scripts/generate-dashboards.mjs', ['--check']);
+  check(
+    'Obsidian dashboards are current',
+    result.ok,
+    result.output.split('\n').filter(Boolean).slice(0, 4).join(' | '),
+  );
+}
+
+/*
+ * Behavioural, not structural: build a throwaway record tree and confirm the
+ * loader actually rejects a duplicate id and a malformed record. Asserting that
+ * the source *mentions* those checks would pass just as happily after somebody
+ * commented them out.
+ */
+if (existsSync(join(ROOT, 'scripts/lib/backlog-records.mjs'))) {
+  const { loadRecords } = await import('./lib/backlog-records.mjs');
+
+  const sandbox = mkdtempSync(join(tmpdir(), 'dijipeople-framework-'));
+  const bugDir = join(sandbox, 'docs/bugs');
+  mkdirSync(bugDir, { recursive: true });
+
+  const valid = (id) =>
+    [
+      '---',
+      `ID: ${id}`,
+      'Title: probe',
+      'Status: OPEN',
+      'Severity: LOW',
+      'Priority: P3',
+      'Type: BUG',
+      'Source: QA_RUN',
+      'DetectedDate: 2026-01-01',
+      'DetectedInSha: 0000000',
+      'AffectedModules: []',
+      'OwnerAgent: qa',
+      'ArchitectDisposition: TRIAGE_REQUIRED',
+      'QAReport:',
+      'RegressionId:',
+      'RelatedBacklogItem:',
+      'RelatedDecision:',
+      'RelatedImplementation:',
+      'CreatedAt: 2026-01-01',
+      'UpdatedAt: 2026-01-01',
+      'ResolvedAt:',
+      '---',
+      '',
+      '# probe',
+      '',
+    ].join('\n');
+
+  writeFileSync(join(bugDir, 'BUG-9001-probe-a.md'), valid('BUG-9001'));
+  check('a well-formed record set loads cleanly', loadRecords(sandbox).errors.length === 0);
+
+  // Same id, different filename — the collision two agents can create.
+  writeFileSync(join(bugDir, 'BUG-9001-probe-b.md'), valid('BUG-9001'));
+  check(
+    'duplicate record ids are rejected',
+    loadRecords(sandbox).errors.some((e) => /duplicate id BUG-9001/.test(e)),
+  );
+  rmSync(join(bugDir, 'BUG-9001-probe-b.md'));
+
+  writeFileSync(
+    join(bugDir, 'BUG-9002-probe-malformed.md'),
+    ['---', 'ID: BUG-9002', 'Title: probe', 'Status: WIBBLE', 'Severity: URGENT', '---', '', '# probe', ''].join('\n'),
+  );
+  const malformed = loadRecords(sandbox).errors;
+  check(
+    'an unknown Status is rejected',
+    malformed.some((e) => /Status = "WIBBLE"/.test(e)),
+  );
+  check(
+    'an unknown Severity is rejected',
+    malformed.some((e) => /Severity = "URGENT"/.test(e)),
+  );
+  check(
+    'missing required fields are rejected',
+    malformed.some((e) => /missing required field/.test(e)),
+  );
+
+  // A record whose filename does not carry its id cannot be found by id.
+  rmSync(join(bugDir, 'BUG-9002-probe-malformed.md'));
+  writeFileSync(join(bugDir, 'BUG-9003-wrong-name.md'), valid('BUG-9004'));
+  check(
+    'an id that disagrees with its filename is rejected',
+    loadRecords(sandbox).errors.some((e) => /filename must start with/.test(e)),
+  );
+
+  rmSync(sandbox, { recursive: true, force: true });
+}
+
+// ------------------------------------------------ the finding-classification loop
+
+if (contractExists) {
+  const contract = read(CONTRACT);
+  for (const field of [
+    'QA_FINDINGS_CLASSIFIED_STATUS',
+    'BUG_RECORD_STATUS',
+    'ARCHITECT_TRIAGE_STATUS',
+    'BACKLOG_UPDATE_STATUS',
+    'ENGINEERING_HISTORY_STATUS',
+  ]) {
+    check(`contract requires ${field}`, contract.includes(field));
+  }
+  /*
+   * Prose wraps and carries backticks, so these patterns tolerate whitespace
+   * and markup between words. Matching a contiguous sentence fails the moment
+   * somebody reflows a paragraph, which teaches agents to fight the validator
+   * rather than to keep the rule.
+   */
+  check(
+    'contract forbids PASS while findings are unclassified',
+    /is\s+not\s+permitted\s+while|zero\s+unclassified\s+findings/i.test(contract),
+  );
+  check(
+    'contract keeps triage away from QA and the implementing specialist',
+    /cannot\s+be\s+resolved\s+by\s+QA\s+or\s+by\s+the\s+implementing\s+\W*specialist/i.test(contract),
+  );
+}
+
+if (existsSync(join(ROOT, '.agent/agents/qa.md'))) {
+  const qa = read('.agent/agents/qa.md');
+  check('QA creates durable bug records', qa.includes('scripts/new-bug.mjs'));
+  check('QA checks the backlog before filing', qa.includes('docs/backlog/open.md'));
+  for (const disposition of [
+    'FIXED',
+    'OPEN',
+    'DEFERRED',
+    'BLOCKED',
+    'PRODUCT_DECISION',
+    'ACCEPTED_RISK',
+    'NOT_A_BUG',
+    'DUPLICATE',
+  ]) {
+    check(`QA names the ${disposition} disposition`, qa.includes(disposition));
+  }
+  check(
+    'QA may not pass with unclassified findings',
+    /zero unclassified findings/i.test(qa),
+  );
+  check(
+    'QA does not own prioritisation',
+    /does \*\*not\*\* prioritise|not responsible for product prioritisation|does \*\*not\*\* set/i.test(qa),
+  );
+}
+
+if (existsSync(join(ROOT, '.agent/agents/architect.md'))) {
+  const architect = read('.agent/agents/architect.md');
+  check('architect declares BACKLOG_PRECHECK', architect.includes('BACKLOG_PRECHECK'));
+  check(
+    'architect declares BACKLOG_POST_QA_TRIAGE',
+    architect.includes('BACKLOG_POST_QA_TRIAGE'),
+  );
+  for (const block of [
+    'KNOWN_ISSUES_TO_AVOID',
+    'RELATED_OPEN_BACKLOG',
+    'RELATED_REGRESSIONS',
+    'RELATED_PRODUCT_DECISIONS',
+  ]) {
+    check(`architect produces ${block}`, architect.includes(block));
+  }
+  for (const disposition of [
+    'FIX_NOW',
+    'PLAN_REQUIRED',
+    'DEFER',
+    'PRODUCT_DECISION',
+    'BLOCKED_EXTERNAL',
+    'ACCEPTED_RISK',
+  ]) {
+    check(`architect can classify ${disposition}`, architect.includes(disposition));
+  }
+  check(
+    'architect may never silently defer a CRITICAL',
+    /never\*{0,2} be silently deferred|Deferring a CRITICAL/i.test(architect),
+  );
+}
+
+/*
+ * Specialists must retrieve the relevant defect history before writing code.
+ * A defect already recorded and then reintroduced means the whole loop failed,
+ * which is worse than the defect.
+ */
+for (const agent of ['backend-api', 'frontend', 'database', 'integration', 'ui-ux']) {
+  const path = `.agent/agents/${agent}.md`;
+  if (!existsSync(join(ROOT, path))) continue;
+  const body = read(path);
+  check(`${agent} produces KNOWN_MISTAKES_TO_AVOID`, body.includes('KNOWN_MISTAKES_TO_AVOID'));
+  check(`${agent} retrieves open bug records`, body.includes('docs/bugs'));
+  check(`${agent} retrieves related backlog items`, body.includes('docs/backlog'));
+  check(
+    `${agent} states that a recorded defect is not new information`,
+    /not new information|REPEATED_REGRESSION/i.test(body),
+  );
+}
+
+if (existsSync(join(ROOT, '.agent/agents/reviewer.md'))) {
+  const reviewer = read('.agent/agents/reviewer.md');
+  check('reviewer flags REPEATED_REGRESSION', reviewer.includes('REPEATED_REGRESSION'));
+  check('reviewer compares against existing bug records', reviewer.includes('docs/bugs'));
+  check('reviewer checks open backlog records', reviewer.includes('docs/backlog/open.md'));
+  check(
+    'reviewer catches findings QA did not classify',
+    /QA did not classify/i.test(reviewer),
+  );
+}
+
+if (existsSync(join(ROOT, '.agent/agents/integrator.md'))) {
+  const integrator = read('.agent/agents/integrator.md');
+  check(
+    'integrator owns the engineering-history record',
+    integrator.includes('docs/engineering-history'),
+  );
+  check(
+    'integrator records conflict resolutions, not just conflicts',
+    /Conflict Resolutions/i.test(integrator),
+  );
+  check(
+    'integrator separates Git history from deployed state',
+    /not deployed state|documents deployed state/i.test(integrator),
+  );
+}
+
+if (existsSync(join(ROOT, '.agent/agents/release-devops.md'))) {
+  const release = read('.agent/agents/release-devops.md');
+  check(
+    'release records live under release-history',
+    release.includes('docs/deployment/release-history'),
+  );
+  check(
+    'release records reference bugs and backlog',
+    /Backlog\/Bug References/i.test(release),
+  );
+  check(
+    'release outcomes may only be populated by real evidence',
+    /NOT_OBSERVED|Only real evidence/i.test(release),
+  );
+}
+
+// ------------------------------------------------------ Obsidian publication
+
+const MAPPINGS = 'scripts/lib/obsidian-mappings.mjs';
+if (existsSync(join(ROOT, MAPPINGS))) {
+  const mappings = read(MAPPINGS);
+  for (const source of [
+    'docs/bugs',
+    'docs/backlog',
+    'docs/engineering-history/tasks',
+    'docs/deployment/release-history',
+    'docs/knowledge/dashboards',
+    'docs/knowledge/product',
+    'docs/knowledge/architecture',
+    'docs/knowledge/modules',
+    'docs/knowledge/requirements',
+    'docs/knowledge/decisions',
+    'docs/qa/runs',
+    'docs/qa/regressions',
+    'docs/qa/known-bug-patterns',
+  ]) {
+    check(`Obsidian sync maps ${source}`, mappings.includes(`'${source}'`));
+  }
+  check(
+    'the empty-note policy exists',
+    /hasMeaningfulContent/.test(mappings) && /meaningfulContent/.test(mappings),
+    'a generated note with no content fills a folder and answers a search with silence',
+  );
+  check(
+    'config mappings add to the defaults rather than replacing them',
+    /resolveMappings/.test(mappings) && /replaceMappings/.test(mappings),
+    'a stale local config must not be able to un-publish knowledge',
+  );
+}
+
+if (existsSync(join(ROOT, 'scripts/sync-obsidian.mjs'))) {
+  const sync = read('scripts/sync-obsidian.mjs');
+  check('sync applies the empty-note policy', sync.includes('hasMeaningfulContent'));
+  check('sync reports what it would create, update and skip', sync.includes('NOTES_SKIPPED_NO_EVIDENCE'));
+  check('sync states that manual notes are untouched', sync.includes('MANUAL_NOTES_UNTOUCHED'));
+  check(
+    'sync writes only into mapped agent-owned folders',
+    /writes only into the mapped/i.test(sync),
+  );
+}
+
+if (existsSync(join(ROOT, 'scripts/retrieve-knowledge.mjs'))) {
+  const retrieve = read('scripts/retrieve-knowledge.mjs');
+  check('retrieval searches bug records', retrieve.includes("'docs/bugs'"));
+  check('retrieval searches the backlog', retrieve.includes("'docs/backlog/items'"));
+  check('retrieval excludes empty bootstrap notes', retrieve.includes('hasMeaningfulContent'));
+  check('retrieval excludes templates and folder READMEs', /isScaffolding/.test(retrieve));
+  check(
+    'retrieval derives its exclusions from the shared mapping table',
+    retrieve.includes('agentOwnedVaultPaths'),
+    'deriving them from the local config silently disabled the dedup once already',
+  );
+}
+
+if (existsSync(join(ROOT, KNOWLEDGE_ARCH))) {
+  const body = read(KNOWLEDGE_ARCH);
+  check('knowledge architecture documents the bug system', body.includes('docs/bugs'));
+  check('knowledge architecture documents the backlog', body.includes('docs/backlog'));
+  check(
+    'knowledge architecture documents engineering history',
+    body.includes('docs/engineering-history'),
+  );
+  check(
+    'knowledge architecture states manual notes are user-owned',
+    /User-owned|user-owned/.test(body) && /never write/i.test(body),
+  );
+  check(
+    'knowledge architecture keeps bug records out of the context layer',
+    /Do not copy bug records into/i.test(body),
+    'specialists retrieve them dynamically; the context layer is the fast path',
+  );
+}
+
+const DASHBOARD_DIR = 'docs/knowledge/dashboards';
+for (const dashboard of [
+  `${DASHBOARD_DIR}/DijiPeople Engineering Dashboard.md`,
+  `${DASHBOARD_DIR}/DijiPeople Product Dashboard.md`,
+]) {
+  const exists = existsSync(join(ROOT, dashboard));
+  check(`dashboard present: ${dashboard}`, exists);
+  if (!exists) continue;
+  const body = read(dashboard);
+  check(
+    `${dashboard} declares itself generated`,
+    /Generated file — do not edit by hand/.test(body),
+  );
+}
+
+if (existsSync(join(ROOT, `${DASHBOARD_DIR}/DijiPeople Engineering Dashboard.md`))) {
+  const body = read(`${DASHBOARD_DIR}/DijiPeople Engineering Dashboard.md`);
+  for (const section of [
+    'Open Critical Bugs',
+    'Open High Bugs',
+    'Product Decisions Needed',
+    'Blocked Items',
+    'Current Test Gaps',
+    'Current Infrastructure Gaps',
+    'Recently Fixed Bugs',
+    'Recent QA Runs',
+    'Recent Implementations',
+    'Recent Releases',
+    'Active / Recent Backlog',
+    'Key Architecture Decisions',
+    'Knowledge Health',
+  ]) {
+    check(`engineering dashboard has the ${section} section`, body.includes(`## ${section}`));
+  }
+}
+
+/*
+ * Graph quality, as a warning rather than a failure. An unresolved wikilink is
+ * often deliberate — it marks a note worth writing — so failing on it would
+ * push agents towards writing hollow notes to satisfy a link, which is exactly
+ * what the empty-note policy exists to prevent.
+ */
+{
+  const noteNames = new Set();
+  for (const dir of ['docs', '.agent']) {
+    for (const file of markdownFilesIn(dir)) {
+      noteNames.add(basename(file, '.md').toLowerCase());
+    }
+  }
+
+  const unresolved = new Map();
+  for (const dir of ['docs/bugs', 'docs/backlog/items', 'docs/knowledge']) {
+    for (const file of markdownFilesIn(dir)) {
+      for (const match of read(file).matchAll(/\[\[([^\]|#]+)(?:\|[^\]]*)?\]\]/g)) {
+        const target = match[1].trim().toLowerCase();
+        // Record ids resolve through the `aliases:` frontmatter in the vault.
+        if (/^(bug|item)-\d{4}$/.test(target)) continue;
+        if (noteNames.has(target)) continue;
+        unresolved.set(target, (unresolved.get(target) ?? 0) + 1);
+      }
+    }
+  }
+
+  checks += 1;
+  if (unresolved.size) {
+    const worst = [...unresolved.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
+    warn(
+      `${unresolved.size} unresolved wikilink target(s) — ` +
+        worst.map(([t, n]) => `${t} (${n})`).join(', '),
+    );
+  }
 }
 
 // ------------------------------------------------------------------- reporting

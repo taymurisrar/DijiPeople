@@ -1,0 +1,108 @@
+---
+ID: BUG-0008
+aliases: [BUG-0008]
+Title: Session-expired "Sign in again" returned 405 and stranded admin operators
+Status: VERIFIED
+Severity: HIGH
+Priority: P1
+Type: BUG
+Source: USER_REPORT
+DetectedDate: 2026-08-15
+DetectedInSha: cbc2db8
+AffectedModules: [apps/admin/app/api/auth/logout, apps/admin/components/errors]
+OwnerAgent: frontend
+ArchitectDisposition: DONE
+QAReport: docs/qa/runs/2026-08-14-admin-session-expired-logout-cbc2db8.md
+RegressionId: REG-008
+RelatedBacklogItem: ITEM-0012
+RelatedDecision:
+RelatedImplementation:
+CreatedAt: 2026-08-15
+UpdatedAt: 2026-08-15
+ResolvedAt: 2026-08-15
+---
+
+# BUG-0008 — Session-expired "Sign in again" returned 405 and stranded admin operators
+
+## Summary
+
+The admin session-expired modal offers "Sign in again" as an `<a href>` to
+`/api/auth/logout?reason=session-expired` — a GET — but the route exported only
+`POST`. Next answered 405 and the browser rendered its own error page, outside
+the app, so there was no `error.tsx` and no route back to `/login`.
+
+## Expected Behavior
+
+Clicking "Sign in again" clears the session and lands on `/login` with a
+session-expired notice.
+
+## Actual Behavior
+
+405, a browser error page, and an operator with no way back into the product
+short of editing the URL.
+
+## Reproduction
+
+Expire the admin session, trigger the error modal, click "Sign in again". See
+the run's scenario table for the full chain.
+
+## Evidence
+
+[QA run 2026-08-14-admin-session-expired-logout-cbc2db8](../qa/runs/2026-08-14-admin-session-expired-logout-cbc2db8.md),
+`apps/admin/app/api/auth/logout/logout-route.spec.ts`.
+
+## Root Cause
+
+An `href` and a route handler that disagreed about the HTTP method, with nothing
+cross-checking them. `apps/web` already exported both methods, so the identical
+flow worked on the tenant product and **hid the admin gap** — the two apps
+diverged silently.
+
+## Impact
+
+Every admin operator whose session expired. Reproduced in production.
+
+## Affected Areas
+
+`apps/admin/app/api/auth/logout`, `apps/admin/components/errors/error-provider.tsx`.
+
+## Proposed Resolution
+
+Resolved: export GET alongside POST, and collapse an off-site or
+protocol-relative `next` to `/tenants`.
+
+## Acceptance Criteria
+
+The link 307s to `/login?reason=session-expired&next=…`, the login page renders
+the notice, all four auth cookies come back expired, and the pre-existing POST
+caller still returns 200.
+
+## Regression Coverage
+
+[REG-008](../qa/regressions/index.md) — `logout-route.spec.ts`, proven to fail
+against the pre-fix route.
+
+## Dependencies
+
+The generalised guard against this class is tracked as [[ITEM-0012]].
+
+## Related Items
+
+Bug pattern [[route-method-mismatch]]. Module [[platform-admin|Platform Admin]].
+Two secondary defects were found auditing the same path and fixed in the same
+change: [[BUG-0009-session-revocation-depended-on-the-refresh-cookie]] and
+[[BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500]].
+
+## Resolution
+
+Fixed 2026-08-15 on branch `agent/admin-session-expired-logout-auth`.
+
+## QA Retest
+
+QA run above: reproduced, fixed and re-verified end to end including the
+redirect chain and cookie expiry. Both CI runs passed their required gate.
+
+## History
+
+- 2026-08-15 — reported by the user, reproduced, fixed, REG-008 added.
+- 2026-08-15 — imported into the durable bug system.

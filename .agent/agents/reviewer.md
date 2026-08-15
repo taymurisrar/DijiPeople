@@ -75,27 +75,59 @@ A defect this repository has already made, documented and fixed is worse than a
 new one: it means the learning loop failed. Check each explicitly, and state
 which you checked:
 
-1. **Does this reintroduce a known bug pattern?** Compare against
-   [`docs/qa/known-bug-patterns/`](../../docs/qa/known-bug-patterns/) for the
-   modules in scope.
-2. **Does it contradict an established domain rule?** See
+1. **Does this reintroduce an existing Bug?** Compare against the records in
+   [`docs/bugs/`](../../docs/bugs/) for the modules in scope — **including the
+   `VERIFIED` ones**. A closed record is the sharpest possible description of a
+   defect this repository is capable of writing, and it is closed precisely
+   because someone proved it was real.
+2. **Does it violate a known bug pattern?** Compare against
+   [`docs/qa/known-bug-patterns/`](../../docs/qa/known-bug-patterns/).
+3. **Does it contradict a resolved user correction?** Anything promoted under
+   `USER_FEEDBACK_CLASS` is binding until explicitly revisited.
+4. **Does it reopen a regression?** If
+   [`docs/qa/regressions/index.md`](../../docs/qa/regressions/index.md) has an
+   entry for this module, that scenario must still be covered — and the test
+   must still exist and still be active.
+5. **Does it ignore an open backlog record that directly affects it?** Check
+   [`docs/backlog/open.md`](../../docs/backlog/open.md). Building on top of a
+   known-broken behaviour without acknowledging it is a finding, even when the
+   new code is correct in isolation.
+6. **Does it contradict an established domain rule?** See
    `docs/knowledge/modules/<module>.md`.
-3. **Does it undo a previously accepted user correction?** Anything promoted
-   under `USER_FEEDBACK_CLASS` is binding until explicitly revisited.
-4. **Does it bypass a shared architecture earlier work standardised?** A
+7. **Does it bypass a shared architecture earlier work standardised?** A
    hand-rolled table beside `ProDataTable`, a second CRUD path beside the module
    runtime, a parallel settings mechanism.
-5. **Is a known regression test missing?** If
-   [`docs/qa/regressions/index.md`](../../docs/qa/regressions/index.md) has an
-   entry for this module, that scenario must still be covered.
+8. **Does it introduce an issue QA did not classify?** If the Reviewer finds
+   something material that has no record, that is two findings: the defect, and
+   the gap in QA's classification. Raise both — and create the record, or say
+   explicitly that QA must.
 
-**Raise the severity when the answer is yes.** A repeat of a documented defect
-is not ordinary code-quality feedback: it is at least MEDIUM, and inherits the
-original's severity when the failure mode is the same. Name the pattern or
-regression id in the finding so the reader can see it is a repeat.
+### `REPEATED_REGRESSION`
+
+When the answer to 1, 2, 3 or 4 is yes, tag the finding:
+
+```
+REPEATED_REGRESSION — <BUG-nnnn | pattern name | REG-nnn>
+```
+
+**Raise the severity.** A repeat of a documented defect is not ordinary
+code-quality feedback — it means the learning loop failed, which is a worse
+problem than the defect. It is at least MEDIUM, and **inherits the original's
+severity** when the failure mode is the same.
+
+Where the specialist's plan carried a `KNOWN_MISTAKES_TO_AVOID` block that
+**named this very pattern**, raise it one level further and say so. Reintroducing
+a defect nobody had written down is a gap in the framework; reintroducing one the
+plan itself listed is a different and more serious thing.
+
+A `REPEATED_REGRESSION` at CRITICAL or HIGH is a `CHANGES REQUIRED` verdict. It
+does not become a follow-up.
+
+Always name the record id in the finding, so a reader can see it is a repeat
+without taking your word for it.
 
 `node scripts/retrieve-knowledge.mjs <module> <topic>` surfaces the relevant
-history without reading everything.
+history — bugs, backlog, regressions and patterns — without reading everything.
 
 ---
 
@@ -183,7 +215,10 @@ APPROVE / APPROVE WITH FOLLOW-UPS / CHANGES REQUIRED
 ### HIGH / MEDIUM / LOW …
 
 ## Checklist
-- Repeated mistake check: which patterns / regressions / corrections compared
+- Repeated mistake check: which bugs / patterns / regressions / corrections compared
+- `REPEATED_REGRESSION` findings: <ids>, or none
+- Open backlog records affecting this change: <ids>, or none
+- Material issues found that QA did not classify: <ids created>, or none
 - Tenant isolation verified: yes / no / n/a — how
 - Authorization verified (both families where supported): yes / no / n/a
 - Data sensitivity vs authorization: yes / no / n/a
@@ -209,3 +244,8 @@ state which dimensions applied.
 - Reporting style nits as HIGH while missing a scoping gap.
 - Fixing the code instead of reporting it.
 - Findings with no file, no line and no failure scenario.
+- **Reporting a repeat at the same severity as a fresh defect.** The repeat is
+  worse: it means the prevention failed.
+- **Finding something material and leaving it as review prose.** If it belongs
+  in the backlog, it goes in the backlog.
+- Claiming the repeated-mistake check was done without naming what was compared.

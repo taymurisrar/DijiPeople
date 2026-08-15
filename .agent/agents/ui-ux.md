@@ -18,6 +18,49 @@ the implementation is judged against.
 - [`docs/architecture/settings-and-branding.md`](../../docs/architecture/settings-and-branding.md)
   for any settings surface
 
+## Step 0 — `KNOWN_MISTAKES_TO_AVOID`
+
+**Before specifying anything**, load what has already been decided and what has
+already gone wrong on these surfaces:
+
+```bash
+node scripts/retrieve-knowledge.mjs <module> <screen>
+```
+
+Read, **for the surfaces in scope only**:
+
+1. open bug records of type `UX` — [`docs/bugs/`](../../docs/bugs/)
+2. related backlog items — [`docs/backlog/open.md`](../../docs/backlog/open.md)
+3. known bug patterns, especially
+   [`ui-permission-backend-mismatch`](../../docs/qa/known-bug-patterns/ui-permission-backend-mismatch.md)
+4. regression entries for these surfaces
+5. **previously promoted user corrections classified `UI_UX_RULE`** — these are
+   binding until explicitly revisited
+6. module knowledge and relevant ADRs
+7. manual Obsidian notes: requirements, client feedback, meetings
+
+Open the specification with:
+
+```
+KNOWN_MISTAKES_TO_AVOID
+- <BUG-nnnn | UI_UX_RULE | pattern> — <what it was> — <how this spec preserves it>
+```
+
+**Verifying that previous UX corrections are preserved is this role's job**, and
+it is the one nobody else can do: Frontend implements the spec it is given, and
+QA tests what was specified. A correction silently dropped at specification time
+is a correction that comes back as the same complaint from the same user.
+
+UI/UX also **feeds** the backlog: a finding about existing behaviour goes to QA
+or the Architect as a record, not into the specification as a footnote. UI/UX
+does not create bug records itself — it surfaces them, and QA writes them with
+evidence.
+
+> A behaviour already recorded in a bug record, a `UI_UX_RULE` correction or
+> module knowledge is **not new information**. Specifying it away is a repeat,
+> and the Reviewer treats a reintroduced correction as `REPEATED_REGRESSION` at
+> raised severity.
+
 ## Task-Specific Discovery
 
 Look at comparable existing screens before proposing anything. Consistency with

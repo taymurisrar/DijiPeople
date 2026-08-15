@@ -23,6 +23,12 @@ import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import {
+  resolveMappings,
+  agentOwnedVaultPaths,
+  hasMeaningfulContent,
+} from './lib/obsidian-mappings.mjs';
+
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 const argv = process.argv.slice(2);
@@ -86,6 +92,14 @@ function score(file, body) {
   return matched.length > 1 ? total * matched.length : total;
 }
 
+/*
+ * A note with a title, headings and nothing under them is not knowledge — it is
+ * a filename. Bootstrap scaffolding matched generic terms and pushed real notes
+ * below the relevance threshold, so an empty vault could out-rank the
+ * repository. Same policy as the sync, from the same module.
+ */
+const hasSubstance = (body) => hasMeaningfulContent(body);
+
 function collect(label, dir, { authority }) {
   const files = markdownFilesIn(dir);
   const hits = [];
@@ -96,6 +110,7 @@ function collect(label, dir, { authority }) {
     } catch {
       continue;
     }
+    if (!hasSubstance(body)) continue;
     const value = score(file, body);
     if (!value) continue;
     const heading = (body.match(/^#\s+(.+)$/m) ?? [])[1] ?? '';
@@ -113,10 +128,21 @@ function collect(label, dir, { authority }) {
 // ------------------------------------------------------------- repository
 
 const REPO_SOURCES = [
+  /*
+   * Bugs and backlog sit at high authority deliberately. They are the answer to
+   * "what is already known to be wrong here", which is the question a
+   * specialist's KNOWN_MISTAKES_TO_AVOID block and the Architect's
+   * BACKLOG_PRECHECK both exist to ask — and the one most expensive to get
+   * wrong, because getting it wrong means writing a defect somebody already
+   * documented.
+   */
+  ['open bugs', 'docs/bugs', 3],
+  ['backlog', 'docs/backlog/items', 3],
   ['regression register', 'docs/qa/regressions', 4],
   ['known bug patterns', 'docs/qa/known-bug-patterns', 5],
   ['QA runs', 'docs/qa/runs', 5],
   ['knowledge', 'docs/knowledge', 6],
+  ['engineering history', 'docs/engineering-history/tasks', 6],
   ['agent context', '.agent/context', 2],
   ['architecture docs', 'docs/architecture', 6],
   ['decisions', 'docs/decisions', 6],
@@ -140,7 +166,8 @@ const configPath = join(ROOT, '.obsidian-sync.local.json');
 
 if (existsSync(configPath)) {
   try {
-    const { vaultPath, mappings = [] } = JSON.parse(readFileSync(configPath, 'utf8'));
+    const config = JSON.parse(readFileSync(configPath, 'utf8'));
+    const { vaultPath } = config;
     if (!vaultPath) {
       obsidianDetail = 'config has no vaultPath';
     } else if (!existsSync(vaultPath)) {
@@ -154,14 +181,15 @@ if (existsSync(configPath)) {
        * above, at higher authority. Returning both double-counts one fact and
        * makes the vault look more informative than it is.
        *
-       * The exclusions are derived from the sync mappings rather than guessed:
-       * an earlier version filtered only on "/Generated/", and the QA mappings
-       * (11 - Agent Knowledge/QA/Runs, …) carry no such segment, so every QA
-       * note came back twice.
+       * The exclusions come from the SHARED mapping table, not from the local
+       * config. Two earlier versions of this got it wrong in two different
+       * ways: one filtered only on "/Generated/", and the QA mappings
+       * (11 - Agent Knowledge/QA/Runs, …) carry no such segment; the next read
+       * `config.mappings`, so a config that omitted the key — which is now the
+       * recommended form — excluded nothing. Both times every QA note came back
+       * twice, once from the repository and once from its own copy.
        */
-      const agentOwned = mappings
-        .map((m) => String(m.to ?? '').replace(/[\\/]+$/, '').toLowerCase())
-        .filter(Boolean);
+      const agentOwned = agentOwnedVaultPaths(resolveMappings(config).mappings);
 
       const isAgentOwned = (p) => {
         const norm = p.replace(/\\/g, '/').toLowerCase();
@@ -179,7 +207,12 @@ if (existsSync(configPath)) {
        */
       const isScaffolding = (p) => {
         const norm = p.replace(/\\/g, '/');
-        return /\/99 - Templates\//i.test(norm) || /\/README\.md$/i.test(norm);
+        return (
+          /\/99 - Templates\//i.test(norm) ||
+          /\/README\.md$/i.test(norm) ||
+          /\/(Module|Architecture Decision|Architecture) Index\.md$/i.test(norm) ||
+          /\/DijiPeople\.md$/i.test(norm)
+        );
       };
 
       results.push(
@@ -245,6 +278,8 @@ if (AS_JSON) {
     }
   }
 
-  console.log('\nAuthority order: AGENTS.md → .agent/context → SOURCE CODE → QA → knowledge → Obsidian.');
+  console.log('\nAuthority order: AGENTS.md → .agent/context → SOURCE CODE → bugs/backlog → QA → knowledge → Obsidian.');
   console.log('Obsidian carries intent and history. The code is implementation truth.');
+  console.log('A hit under docs/bugs or docs/backlog is something already known to be wrong');
+  console.log('or outstanding here — read it before writing code, not after review.');
 }

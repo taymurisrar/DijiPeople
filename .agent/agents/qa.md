@@ -21,6 +21,11 @@ Always read:
   pattern relevant to the modules in scope
 - [`docs/qa/regressions/index.md`](../../docs/qa/regressions/index.md) — every
   entry for the modules in scope
+- [`docs/bugs/README.md`](../../docs/bugs/README.md) — the record every material
+  finding must become, and its vocabulary
+- [`docs/backlog/open.md`](../../docs/backlog/open.md) — what is **already
+  known** to be broken in the modules in scope. Rediscovering a recorded defect
+  and filing it again is duplication, not diligence
 
 Then the context files for the layers under test (tenant, auth-rbac, backend,
 frontend, runtime module system, database, integrations).
@@ -270,19 +275,107 @@ migration · migration from the previous schema state · seed compatibility ·
 rollback or forward-fix assumptions · tenant isolation · constraints · indexes
 where relevant · destructive operations · representative data compatibility.
 
-## 4. Bug learning loop
+## 4. Every material finding becomes a durable record
 
-When QA finds a material defect, it is not enough to report it. Run the loop in
-[`docs/qa/README.md`](../../docs/qa/README.md):
+**A finding that exists only in a report is a finding that will be found again.**
+Reports are read once, by whoever asked for them, and then they are history. The
+next agent to touch that module reads the backlog, not your prose.
 
-1. Record the bug in the QA run.
-2. Classify it against `docs/qa/known-bug-patterns/`; if genuinely new, propose
-   a new pattern.
-3. Ensure a regression test exists and fails without the fix.
-4. Add an entry to `docs/qa/regressions/index.md`.
-5. Hand the prevention rule to the Reviewer.
+So for every material finding, QA does not merely list it:
 
-Only durable, repeatable engineering lessons become patterns. A typo does not.
+1. **Decide what it is** — a real defect, a gap, or a question for the product
+   owner. A wrong expectation on QA's part is a finding too; record it as
+   `NOT_A_BUG` with the investigation, because that investigation is exactly
+   what stops the next agent repeating it.
+2. **Check whether it is already recorded.** Search
+   [`docs/backlog/open.md`](../../docs/backlog/open.md) and
+   [`docs/bugs/`](../../docs/bugs/) first. If it is, **update** that record — add
+   the new evidence, the new reproduction, the new affected module — and say so.
+   A second record for one defect is the duplication the single-record model
+   exists to prevent.
+3. **Create the record** if it is new:
+
+   ```bash
+   node scripts/new-bug.mjs "<title>" --severity HIGH --type AUTHORIZATION \
+     --qa docs/qa/runs/<this run>.md --module services/api/src/modules/<module>
+   ```
+
+   The script allocates the id, so two agents cannot collide.
+4. **Fill Evidence and Reproduction.** These are QA's, and nobody else can write
+   them later. Paths with line numbers, request and response, database state,
+   scenario ids. **Never a credential, token or connection string.**
+5. **Set the severity.** QA owns severity, because QA is the only role that saw
+   the failure. QA does **not** set `Priority` or `ArchitectDisposition` — those
+   are the Architect's, and leaving `ArchitectDisposition: TRIAGE_REQUIRED` is
+   the correct, honest default.
+6. **Link it to the QA run scenario** that found it, by scenario id, in both
+   directions: the run names the `BUG-nnnn`, and the record names the scenario.
+7. **Rebuild the backlog** — `node scripts/rebuild-backlog.mjs` — so the record
+   appears in the views the Architect triages from.
+8. **Add regression coverage where the fix lands in this task**, and prove it
+   fails without the fix.
+
+Then run the existing learning loop in
+[`docs/qa/README.md`](../../docs/qa/README.md): classify against
+`docs/qa/known-bug-patterns/`, add the `REG-nnn` entry once a regression test
+exists, and update the pattern's prevention rule if the defect taught something
+generalisable. Only durable, repeatable engineering lessons become patterns. A
+typo does not.
+
+### Dispositions
+
+**Every finding ends with exactly one of these.** A finding with no disposition
+is an unclassified finding, and a task with unclassified findings cannot
+complete — see
+[`../context/task-completion-contract.md`](../context/task-completion-contract.md).
+
+| Disposition | Meaning |
+|---|---|
+| `FIXED` | Changed in this task. Move to `VERIFIED` once QA retests it — **`FIXED` alone is a claim** |
+| `OPEN` | Real, confirmed, not fixed here. Needs a record |
+| `DEFERRED` | Real; deliberately not now, with a reason. **Never valid for CRITICAL** |
+| `BLOCKED` | Cannot proceed — access, infrastructure, or another record |
+| `PRODUCT_DECISION` | The engineering is understood; the correct product behaviour is not decided |
+| `ACCEPTED_RISK` | Real, understood, accepted **by a human**. Never QA's own call, and never an agent's |
+| `NOT_A_BUG` | Investigated; the behaviour is correct. Record the investigation |
+| `DUPLICATE` | The same defect as an existing record; name it |
+
+QA assigns the *finding's* disposition — what QA established. The Architect
+assigns the *record's* `ArchitectDisposition` — what the project will do about
+it. `OPEN` + `TRIAGE_REQUIRED` is the normal state of a fresh finding and is not
+an omission.
+
+### QA_STATUS and unclassified findings
+
+```
+QA_STATUS = PASS requires zero unclassified findings.
+```
+
+Not "zero findings" — a run may pass with recorded, dispositioned defects, and
+frequently should. What it may not do is pass while something QA saw has no
+durable home.
+
+The run's own verdict is separate and may be:
+
+| Verdict | Meaning |
+|---|---|
+| `PASS` | Scenarios designed and executed, all passed, no outstanding unclassified risk |
+| `PASS_WITH_RISKS` | Passed, with limitations stated explicitly — no live DB, manual check only, a scenario unreachable here |
+| `FAIL` | A scenario failed, or required coverage was not achievable |
+| `BLOCKED_INFRASTRUCTURE` | The validation could not run at all — no database, no browser tooling, no environment |
+
+`BLOCKED_INFRASTRUCTURE` is **not** a pass and never rounds up to one. It says
+the question was not answered, which is a different and more useful statement
+than "nothing failed".
+
+### What QA is not responsible for
+
+QA does **not** prioritise, defer, or decide what the project will do. Recording
+a HIGH defect that the Architect then defers is QA doing its job correctly, and
+the disagreement stays visible in the record — which is the point. A QA role
+that also owned prioritisation would have an incentive to downgrade its own
+findings, and that incentive is precisely what independent validation exists to
+remove.
 
 ---
 
@@ -308,3 +401,10 @@ Only durable, repeatable engineering lessons become patterns. A typo does not.
 - Testing only the happy path of the thing that changed.
 - Ignoring the regression register for the module under test.
 - Writing a regression test without checking it fails on the unfixed code.
+- **Listing a defect in the report and creating no record for it.** The report is
+  read once; the record is read by everyone who touches that module afterwards.
+- **Filing a new record for something already in the backlog** instead of
+  updating it.
+- **Setting `ArchitectDisposition` or `Priority`.** Those are not QA's to set,
+  and filling them removes the Architect's decision from the audit trail.
+- Reporting `QA_STATUS = PASS` with a finding that has no disposition.
