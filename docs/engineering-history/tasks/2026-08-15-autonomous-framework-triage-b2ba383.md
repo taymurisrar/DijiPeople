@@ -103,15 +103,49 @@ nobody chose, in code, silently.
 
 | | |
 |---|---|
-| **CI Run ID** | TODO_CI_RUN |
-| **CI Result** | TODO_CI_RESULT |
+| **CI Run ID** | `31909518722` on `93975c9` (PR #4), `31912199154` on `0f029b1` (PR #5), `31909901730` post-merge on `a654c58` |
+| **CI Result** | **PASS** — `CI required gate` green on the exact SHA of each merge. One earlier run failed on `572a3b8` and is left in the history deliberately: framework validation caught a stale Engineering Dashboard, because the dashboard was generated *before* the engineering-history record it counts. Local validation had passed against the same stale pair, so CI caught something the local run structurally could not. |
 
 A verdict must be read **on the exact SHA being merged**. A verdict from an
 earlier commit on the same branch is a verdict about different code.
 
 ## Post-Merge Validation
 
-TODO_POST_MERGE
+Run against the merged SHAs, not the branch.
+
+**After PR #4 (`a654c58`)**
+
+| Check | Result |
+|---|---|
+| `node scripts/validate-framework.mjs` | PASS — 503 checks |
+| `node scripts/rebuild-backlog.mjs --check` | PASS — 41 records, 0 structural errors |
+| `npm --workspace api run test` (CI gate's name exclusion) | PASS — 145 suites, 974 tests |
+| `npm run typecheck` | PASS — 8/8 workspaces |
+| Post-merge CI on `main` | `CI required gate` **PASS** |
+
+**After PR #5 (`703c4e3`, final)**
+
+| Check | Result |
+|---|---|
+| `node scripts/validate-framework.mjs` | PASS — 503 checks |
+| `node scripts/rebuild-backlog.mjs --check` | PASS — 41 records, 0 structural errors |
+| `npm --workspace api run test` (CI gate's name exclusion) | PASS — **1016 tests** (the count rose because PR #6 from another session landed on `main` between the two merges) |
+| `npm run typecheck` | PASS — 8/8 workspaces |
+
+**Known baseline, verified unchanged.** The dual-permission wiring invariant
+still fails, and its inventory is **identical** to the pre-task baseline —
+1560 violation lines, measured on `b2ba383` and on this branch. It is excluded
+by name from the required gate.
+
+**A baseline this task did briefly break, and then repaired.** The report-only
+`services/api` lint job went from **9 errors / 846 warnings** at `b2ba383` to
+**269 errors / 851 warnings** at `a654c58` — 260 prettier violations, all in
+files this task added, caused by writing them with LF on a Windows checkout that
+normalises to CRLF. Local measurement could not see it clearly because the same
+normalisation contaminated the local baseline too; CI on Linux was the only
+honest measurement. PR #5 restored it to **9 errors / 846 warnings** — byte-identical
+to the baseline. Recorded rather than absorbed, because absorbing it is how a
+baseline stops meaning anything.
 
 ## Release / Deployment Impact
 
@@ -183,8 +217,43 @@ Recorded here as a deliberate omission rather than an oversight.
 
 ## Obsidian Sync
 
-TODO_OBSIDIAN
+**`OBSIDIAN_SYNC = SKIPPED_NO_LOCAL_CONFIG`.**
+
+`node scripts/sync-obsidian.mjs` ran and reported no `.obsidian-sync.local.json`
+on this machine, so there is no vault path to publish into. The file is
+gitignored by design — a vault path is per-machine and must never reach the
+repository — so this is an environment gap, not a failure, and not something a
+task can resolve on the owner's behalf.
+
+What the sync *would* publish is committed and current: both generated
+dashboards were regenerated and validated (`Obsidian dashboards are current`
+passes in framework validation), and every record this task touched carries the
+`aliases` frontmatter and `[[wikilink]]` references the vault resolves. Running
+the sync on a machine with a configured vault will pick all of it up with no
+further work.
+
+Note counts are therefore not reported: reporting them would mean claiming an
+observation that was never made.
 
 ## Cleanup
 
-TODO_CLEANUP
+Worktree `D:/My Work/hrm-dijipeople/dijipeople-autoframework` removed and
+pruned; local branches `agent/autonomous-framework-triage` and
+`agent/autonomous-framework-lint-followup` deleted after both merged.
+
+Remote branches were **kept**, not deleted — `main` is now protected with
+`enforce_admins`, and both PRs are the audit trail for changes that include the
+protection itself.
+
+Two things were deliberately left alone throughout:
+
+- the primary checkout's uncommitted `gateway/obj` build artefacts, which belong
+  to someone else's in-flight work — all work happened in a separate worktree so
+  none of it could be staged;
+- the `dijipeople-authz-batch0` worktree on `agent/authz-feature-availability`.
+
+The disposable local database `dijipeople_test` created for the browser and
+DB-backed suites is left in place: it holds only synthetic fixture data, it is
+named so `assert-test-database.mjs` recognises it as disposable, and dropping it
+would make the next run pay the full migrate-and-seed cost again. The
+developer's working `dijipeople` database was never touched.

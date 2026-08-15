@@ -1,11 +1,51 @@
-# Branch Protection — recommended settings for `main`
+# Branch Protection on `main`
 
-**Status: recommendation, and the missing half of a two-layer control.** These
-settings were **not** applied — configuring them requires GitHub repository
-admin access, which this environment does not have. Enable them in the
-repository settings.
+> **Status: APPLIED on 2026-08-15** and verified by reading the protection
+> object back from the GitHub API. This file used to say the settings were *not*
+> applied "because configuring them requires repository admin access, which this
+> environment does not have" — that had become false: the credential in use is a
+> repository admin. The claim was never re-checked, which is the same
+> `doc-code-drift` shape as [`BUG-0023`](../bugs/BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist.md).
+> **Re-derive access before believing any statement in this file about what
+> cannot be done.**
 
 Remote: `https://github.com/taymurisrar/DijiPeople.git`
+
+## What is actually configured
+
+| Setting | Applied |
+|---|---|
+| Require a pull request before merging | **on** |
+| Required approving reviews | **0** — see below |
+| Dismiss stale approvals on new commits | **on** |
+| Require status checks to pass | **on** |
+| Required check | `CI required gate` |
+| Require branches to be up to date before merging | **on** |
+| Require conversation resolution | **on** |
+| Enforce for administrators | **on** |
+| Allow force pushes | **off** |
+| Allow deletions | **off** |
+
+**Required approvals is 0, not the 1 recommended below.** GitHub does not permit
+self-approval and this repository has a single maintainer, so requiring an
+approval nobody can give would block every merge. `enforce_admins` is on, so the
+CI gate itself is not bypassable — which is the property that actually matters.
+Raise approvals to 1 the moment a second reviewer exists; it is a team-size
+decision, tracked as an owner decision on
+[`ITEM-0016`](../backlog/items/ITEM-0016-product-decision-partner-onboarding-review-re-opening-and-po.md).
+
+**"Require branches to be up to date" is not free, and that is the point.** It
+fired within an hour of being applied: PR #5 was refused because another session
+merged PR #6 onto `main` while #5 was in review. The branch had to merge `main`
+and re-run CI before it could land — which is exactly the "green on a stale base
+proves nothing" scenario this setting exists to prevent, enforced by the
+platform instead of by discipline.
+
+Verify at any time with:
+
+```bash
+gh api repos/taymurisrar/DijiPeople/branches/main/protection
+```
 
 ---
 
@@ -111,12 +151,11 @@ product test code.
 
 ---
 
-## What cannot be configured from here
+## What still needs manual setup
 
-Repository settings are not modifiable through this environment. Also requiring
-manual setup:
+Branch protection **is** configurable from here and has been applied — see the
+top of this file. What remains:
 
-- Branch protection itself (the table above)
 - Any repository or environment secrets CI may need later (none are needed by
   the current workflow — it uses only a placeholder `DATABASE_URL`)
 - Deployment environments and their protection rules, if you later add a
