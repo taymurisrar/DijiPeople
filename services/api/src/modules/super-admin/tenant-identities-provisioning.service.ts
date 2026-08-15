@@ -52,7 +52,9 @@ import { BillingService } from './billing.service';
  */
 @Injectable()
 export class TenantIdentitiesProvisioningService {
-  private readonly logger = new Logger(TenantIdentitiesProvisioningService.name);
+  private readonly logger = new Logger(
+    TenantIdentitiesProvisioningService.name,
+  );
 
   constructor(
     private readonly prisma: PrismaService,
@@ -72,7 +74,10 @@ export class TenantIdentitiesProvisioningService {
   async findOnboardingForTenant(tenantId: string) {
     const linked = await this.prisma.customerOnboarding.findFirst({
       where: { tenantId },
-      include: { customer: true, selectedPlan: { include: { features: true } } },
+      include: {
+        customer: true,
+        selectedPlan: { include: { features: true } },
+      },
     });
     if (linked) return linked;
 
@@ -84,7 +89,10 @@ export class TenantIdentitiesProvisioningService {
 
     return this.prisma.customerOnboarding.findFirst({
       where: { customerId: tenant.customerAccountId },
-      include: { customer: true, selectedPlan: { include: { features: true } } },
+      include: {
+        customer: true,
+        selectedPlan: { include: { features: true } },
+      },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -213,7 +221,9 @@ export class TenantIdentitiesProvisioningService {
           discountValue: Number(onboarding.discountValue),
           manualFinalPrice:
             input.manualFinalPrice ??
-            (onboarding.agreedPrice ? Number(onboarding.agreedPrice) : undefined),
+            (onboarding.agreedPrice
+              ? Number(onboarding.agreedPrice)
+              : undefined),
           purchasedSeats: onboarding.agreedSeats ?? undefined,
           actorUserId: input.actorUserId,
         },
@@ -356,7 +366,9 @@ export class TenantIdentitiesProvisioningService {
     },
   ) {
     const existing = await tx.user.findUnique({
-      where: { tenantId_email: { tenantId: input.tenantId, email: input.email } },
+      where: {
+        tenantId_email: { tenantId: input.tenantId, email: input.email },
+      },
     });
     if (existing) {
       this.logger.log(

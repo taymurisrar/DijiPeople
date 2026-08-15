@@ -17,7 +17,6 @@ import {
   Prisma,
   TenantEnvironmentType,
   TenantStatus,
-  UserStatus,
 } from '@prisma/client';
 import { ROLE_KEYS } from '../../common/constants/rbac-matrix';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -1567,8 +1566,8 @@ export class PlatformLifecycleService {
      * it safe to declare retryable and is the whole of BUG-0015's fix.
      */
     const provisioning = await runStep('identities-and-billing', async () => {
-      const outcome = await this.identitiesProvisioning.ensureIdentitiesAndBilling(
-        {
+      const outcome =
+        await this.identitiesProvisioning.ensureIdentitiesAndBilling({
           tenantId: createdTenant.id,
           onboardingId,
           actorUserId: actor.userId,
@@ -1582,8 +1581,7 @@ export class PlatformLifecycleService {
             null,
           assignServiceAccountSystemAdminRole,
           manualFinalPrice: dto.manualFinalPrice,
-        },
-      );
+        });
       return { tenant: createdTenant, invitedUsers: outcome.identities };
     });
 

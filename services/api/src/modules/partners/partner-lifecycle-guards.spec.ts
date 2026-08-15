@@ -26,7 +26,9 @@ describe('partner lifecycle guards on the generic update', () => {
    * fail loudly if a future edit starts writing before checking.
    */
   const contextFor = (status: PartnerStatus) => ({
-    get: jest.fn().mockResolvedValue({ id: 'partner-1', status, currencyCode: 'USD' }),
+    get: jest
+      .fn()
+      .mockResolvedValue({ id: 'partner-1', status, currencyCode: 'USD' }),
     validateOwner: jest.fn().mockResolvedValue(undefined),
     prisma: {
       partner: { update: jest.fn().mockResolvedValue({}) },
@@ -48,13 +50,16 @@ describe('partner lifecycle guards on the generic update', () => {
     PartnerStatus.TERMINATED,
     PartnerStatus.SUSPENDED,
     PartnerStatus.INACTIVE,
-  ])('refuses to move a live partner to %s through the generic update', async (status) => {
-    const context = contextFor(PartnerStatus.ACTIVE);
-    await expect(
-      update.call(context as never, 'partner-1', { status } as never),
-    ).rejects.toThrow(BadRequestException);
-    expect(context.prisma.partner.update).not.toHaveBeenCalled();
-  });
+  ])(
+    'refuses to move a live partner to %s through the generic update',
+    async (status) => {
+      const context = contextFor(PartnerStatus.ACTIVE);
+      await expect(
+        update.call(context as never, 'partner-1', { status } as never),
+      ).rejects.toThrow(BadRequestException);
+      expect(context.prisma.partner.update).not.toHaveBeenCalled();
+    },
+  );
 
   it('names the governed actions so the refusal is actionable', async () => {
     const context = contextFor(PartnerStatus.ACTIVE);
