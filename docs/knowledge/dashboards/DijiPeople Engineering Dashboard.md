@@ -84,6 +84,7 @@ _None._
 ## Recent QA Runs
 
 - [[2026-08-15-commercial-onboarding-e2e-7bbab3d|QA Run — Commercial onboarding lifecycle E2E (website lead and partner journeys)]]
+- [[2026-08-15-browser-e2e-and-provisioning-recovery-572a3b8|QA Run — First browser E2E, and provisioning recovery against a real database]]
 - [[2026-08-14-tenant-control-plane-ba1e818|QA Run — tenant-control-plane]]
 - [[2026-08-14-admin-session-expired-logout-cbc2db8|QA Run — admin-session-expired-logout]]
 
@@ -95,6 +96,7 @@ _None._
 ## Recent Engineering History
 
 - [[2026-08-15-knowledge-backlog-framework-986ab10|Engineering History — Operational knowledge-management layer]]
+- [[2026-08-15-autonomous-framework-triage-b2ba383|Engineering History — Autonomous framework triage, provisioning recovery and browser E2E]]
 
 ## Recent Releases
 
@@ -138,8 +140,8 @@ _None. Nothing has been deployed through the release process._
 | Bug records | 25 |
 | Backlog items | 16 |
 | Known bug patterns | 17 |
-| QA runs | 3 |
-| Engineering history records | 1 |
+| QA runs | 4 |
+| Engineering history records | 2 |
 | Release records | 0 |
 | Module notes | 19 |
 | Architecture notes | 12 |
