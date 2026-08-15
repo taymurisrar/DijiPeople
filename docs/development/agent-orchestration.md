@@ -14,22 +14,38 @@ Parallelism rules: [`parallel-work.md`](parallel-work.md).
 User request
      │
      ▼
-ARCHITECT ──── loads .agent/context/*, bug patterns, regression register
-     │         ExecPlan: FACT / INFERENCE / PROPOSAL
-     │         classifies tasks, names specialists, plans branches
+RETRIEVAL ──── node scripts/retrieve-knowledge.mjs <terms>
+     │          relevant history only — never the whole vault
+     ▼
+ARCHITECT ──── BACKLOG_PRECHECK: open bugs, backlog, regressions,
+     │          patterns, product decisions, prior user corrections
+     │          → KNOWN_ISSUES_TO_AVOID · RELATED_OPEN_BACKLOG
+     │            RELATED_REGRESSIONS · RELATED_PRODUCT_DECISIONS
+     │          ExecPlan: FACT / INFERENCE / PROPOSAL
      ▼
    human approval of the plan
      │
      ▼
 SPECIALISTS ── Backend/API · Frontend · UI/UX · Database · Integration
-     │          one bounded task each, on agent/<feature>-<scope>
+     │          each opens with KNOWN_MISTAKES_TO_AVOID
      │          PARALLEL_SAFE concurrent · DEPENDENCY_BLOCKED waits
      ▼
 QA ─────────── independent scenarios, documented run in docs/qa/runs/
      │
      ▼
-REVIEWER ───── independent findings, CRITICAL → LOW, read-only
+FINDING ────── every material finding → docs/bugs/BUG-nnnn (or an update)
+EXTRACTION    evidence · reproduction · severity · linked scenario id
+     │         node scripts/rebuild-backlog.mjs
+     ▼
+TRIAGE ─────── Architect: BACKLOG_POST_QA_TRIAGE
+     │          FIX_NOW / PLAN_REQUIRED / DEFER /
+     │          PRODUCT_DECISION / BLOCKED_EXTERNAL / ACCEPTED_RISK
+     ▼
+QA RETEST ──── verifies fixes; regression proven to fail without them
      │
+     ▼
+REVIEWER ───── independent findings, CRITICAL → LOW, read-only
+     │          REPEATED_REGRESSION checks against bugs/patterns/corrections
      ▼
 PUSH ───────── task branch pushed to origin (when a remote is available)
      │
@@ -46,23 +62,34 @@ POST-MERGE CI  re-runs on the target branch after the merge lands
 INTEGRATED QA  validation on the merged result, not the branches
      │
      ▼
+HISTORY ────── docs/engineering-history/tasks/ — branches, conflicts,
+     │          resolutions, merge SHA, CI run. Integrator owns it.
+     ▼
 RELEASE/DEVOPS readiness gates, environment revalidation, deploy order
      │          deploys where credentials and policy allow
      ▼
 DEPLOYMENT QA  smoke tests, health checks, deployment QA run
-     │
+     │          → docs/deployment/release-history/ (deployed state)
      ▼
 KNOWLEDGE ──── knowledge-capture Skill → docs/knowledge/
      │
      ▼
-OBSIDIAN ───── node scripts/sync-obsidian.mjs (non-blocking)
+BACKLOG ────── node scripts/rebuild-backlog.mjs (indexes reflect reality)
      │
+     ▼
+OBSIDIAN ───── node scripts/generate-dashboards.mjs
+     │          node scripts/sync-obsidian.mjs (non-blocking)
      ▼
 CLEANUP ────── remove temporary worktrees, delete merged local branches
      │
      ▼
 FINAL REPORT ─ docs/development/final-report-template.md
 ```
+
+**No material QA finding may exist only in a chat report**, and no substantial
+task may complete while a finding it produced is unclassified. Those two rules
+are enforced by `QA_FINDINGS_CLASSIFIED_STATUS`, `BUG_RECORD_STATUS`,
+`ARCHITECT_TRIAGE_STATUS` and `BACKLOG_UPDATE_STATUS` in the completion contract.
 
 Integration and release are separate stages with their own gates — see
 [`.agent/agents/integrator.md`](../../.agent/agents/integrator.md) and
@@ -79,6 +106,10 @@ lifecycle**. It implicitly means all of:
 - **retrieve relevant historical knowledge** before planning
   (`RELEVANT_KNOWLEDGE_RETRIEVAL` — see
   [`../../.agent/context/knowledge-architecture.md`](../../.agent/context/knowledge-architecture.md))
+- **review the backlog and open bugs** for the affected modules
+  (`BACKLOG_PRECHECK`), and **triage every new finding afterwards**
+  (`BACKLOG_POST_QA_TRIAGE`)
+- **turn every material QA finding into a durable record** under `docs/bugs/`
 - **inspect known regressions** for the affected modules
 - **process user corrections durably** (`USER_FEEDBACK_CLASS`)
 - **use browser QA** when relevant and available
@@ -106,10 +137,13 @@ enforced by `scripts/validate-framework.mjs`. A task is complete only when every
 one of these is resolved:
 
 ```
-IMPLEMENTATION_STATUS          REMOTE_CI_STATUS               OBSIDIAN_SYNC_STATUS
-LOCAL_VALIDATION_STATUS        MERGE_STATUS                   CLEANUP_STATUS
-QA_STATUS                      POST_MERGE_VALIDATION_STATUS
-REVIEW_STATUS                  KNOWLEDGE_CAPTURE_STATUS
+IMPLEMENTATION_STATUS           REVIEW_STATUS                 ENGINEERING_HISTORY_STATUS
+LOCAL_VALIDATION_STATUS         REMOTE_CI_STATUS              FEEDBACK_PROMOTION_STATUS
+QA_STATUS                       MERGE_STATUS                  KNOWLEDGE_CAPTURE_STATUS
+QA_FINDINGS_CLASSIFIED_STATUS   POST_MERGE_VALIDATION_STATUS  OBSIDIAN_SYNC_STATUS
+BUG_RECORD_STATUS                                             CLEANUP_STATUS
+ARCHITECT_TRIAGE_STATUS
+BACKLOG_UPDATE_STATUS
 ```
 
 Resolved means `PASS`, `DONE`, `NOT_REQUIRED` (with a stated reason),

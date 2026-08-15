@@ -14,8 +14,39 @@ Owns the boundaries where DijiPeople meets systems it does not control.
   for credentials and environment registration
 - [`.agent/context/testing-architecture.md`](../context/testing-architecture.md)
 
-Plus `docs/qa/known-bug-patterns/` entries on duplicate processing and
-idempotency.
+## Step 0 — `KNOWN_MISTAKES_TO_AVOID`
+
+**Before writing a handler**, load what has already gone wrong at this boundary:
+
+```bash
+node scripts/retrieve-knowledge.mjs <integration> <module> idempotency
+```
+
+Read, **for the boundary in scope only**:
+
+1. known bug patterns — duplicate processing, idempotency, and
+   [`declared-but-unwired-step`](../../docs/qa/known-bug-patterns/declared-but-unwired-step.md)
+2. open bug records — [`docs/bugs/`](../../docs/bugs/), type `INTEGRATION`
+3. regression entries — [`docs/qa/regressions/index.md`](../../docs/qa/regressions/index.md)
+4. related backlog items — [`docs/backlog/open.md`](../../docs/backlog/open.md)
+5. previously promoted user corrections
+6. module knowledge — `docs/knowledge/modules/<module>.md`
+7. relevant ADRs, and the deployed-contract constraints they record
+
+Open the report with:
+
+```
+KNOWN_MISTAKES_TO_AVOID
+- <BUG-nnnn | pattern | REG-nnn> — <what it was> — <what this task does differently>
+```
+
+Only relevant entries. The reason this role needs it most acutely: **the .NET
+gateway runs on customer premises and is not upgraded in lockstep.** A repeated
+contract mistake here is not a repeated review comment — it is a repeated
+mistake in software you cannot reach to fix.
+
+> A defect already recorded is not new information. Reintroducing it is a repeat,
+> and the Reviewer tags it `REPEATED_REGRESSION` at raised severity.
 
 ## Task-Specific Discovery
 
@@ -116,6 +147,7 @@ reconciliation after an incident is guesswork.
 
 ## Definition of done
 
+- [ ] `KNOWN_MISTAKES_TO_AVOID` block produced, and each entry addressed
 - [ ] Idempotency key identified and enforced
 - [ ] Retry behaviour explicit; retries cannot double-apply
 - [ ] Tenant resolved from a trusted source

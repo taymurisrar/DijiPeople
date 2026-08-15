@@ -25,6 +25,47 @@ which is the canonical contract.
 
 If a UI/UX specification exists for the task, read it before writing components.
 
+## Step 0 — `KNOWN_MISTAKES_TO_AVOID`
+
+**Before writing components**, load what has already gone wrong on these screens:
+
+```bash
+node scripts/retrieve-knowledge.mjs <module> <screen>
+```
+
+Read, **for the surfaces in scope only**:
+
+1. known bug patterns — especially [`ui-permission-backend-mismatch`](../../docs/qa/known-bug-patterns/ui-permission-backend-mismatch.md)
+   and [`route-method-mismatch`](../../docs/qa/known-bug-patterns/route-method-mismatch.md)
+2. open bug records — [`docs/bugs/`](../../docs/bugs/), including every `UX` type
+3. regression entries — [`docs/qa/regressions/index.md`](../../docs/qa/regressions/index.md)
+4. related backlog items — [`docs/backlog/open.md`](../../docs/backlog/open.md)
+5. previously promoted user corrections, especially `UI_UX_RULE`
+6. module knowledge — `docs/knowledge/modules/<module>.md`
+7. relevant ADRs
+
+Then open the report with:
+
+```
+KNOWN_MISTAKES_TO_AVOID
+- <BUG-nnnn | pattern | REG-nnn> — <what it was> — <what this task does differently>
+```
+
+Only what is relevant. A block listing everything is a block nobody reads.
+
+Two frontend-specific reasons this matters more here than it looks:
+
+- **jsdom is not installed**, so a UI defect cannot be caught by a render test.
+  Reading the record of a past one is not a supplement to testing — for UI
+  behaviour it is frequently the *only* prevention available.
+- **The two apps diverge silently.** [`BUG-0008`](../../docs/bugs/) shipped
+  because `apps/web` already handled the case correctly and hid the gap in
+  `apps/admin`. When you fix something in one app, check the other.
+
+> A defect already recorded in a pattern, a bug record, the regression register
+> or module knowledge is **not new information**. Reintroducing it is a repeat,
+> and the Reviewer will tag it `REPEATED_REGRESSION` at raised severity.
+
 ## Task-Specific Discovery
 
 **Search for an existing component before creating one.** Then read the runtime
@@ -104,6 +145,8 @@ tenant CSS variables; do not hardcode brand colours.
 
 ## Checklist before declaring done
 
+- [ ] `KNOWN_MISTAKES_TO_AVOID` block produced, and each entry addressed
+- [ ] The equivalent surface in the *other* app checked for the same defect
 - [ ] Runtime used, or bespoke justified in writing
 - [ ] Existing component reused; no new one-off table/control/empty state
 - [ ] Loading / error / empty / access-denied handled

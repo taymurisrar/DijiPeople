@@ -1,15 +1,5 @@
 {
-  "_comment": "Copy to .obsidian-sync.local.json (gitignored) and set vaultPath. Omit 'mappings' to use the defaults in scripts/sync-obsidian.mjs.",
+  "_comment": "Copy to .obsidian-sync.local.json (gitignored) and set vaultPath. Any 'mappings' you add are MERGED with the defaults in scripts/sync-obsidian.mjs, so a config written today keeps receiving mappings added later. Set \"replaceMappings\": true only if you want an exact set, and accept that new default mappings will then never reach your vault.",
   "vaultPath": "<absolute path to your Obsidian vault, e.g. D:\\\\My Work\\\\hrm-dijipeople\\\\DijiPeople-Vault>",
-  "mappings": [
-    { "from": "docs/knowledge/modules", "to": "03 - Modules/Generated" },
-    { "from": "docs/knowledge/decisions", "to": "05 - Decisions/Generated" },
-    { "from": "docs/knowledge/implementations", "to": "06 - Implementation Plans/Generated" },
-    { "from": "docs/knowledge/releases", "to": "08 - Releases/Generated" },
-    { "from": "docs/knowledge/regressions", "to": "11 - Agent Knowledge/Regressions/Generated" },
-    { "from": "docs/qa/runs", "to": "11 - Agent Knowledge/QA/Runs" },
-    { "from": "docs/qa/regressions", "to": "11 - Agent Knowledge/QA/Regressions" },
-    { "from": "docs/qa/known-bug-patterns", "to": "11 - Agent Knowledge/QA/Bug Patterns" },
-    { "from": "docs/qa/test-strategy", "to": "11 - Agent Knowledge/QA/Test Strategy" }
-  ]
+  "mappings": []
 }

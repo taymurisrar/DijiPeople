@@ -1,0 +1,115 @@
+---
+ID: BUG-0011
+aliases: [BUG-0011]
+Title: Signed agreements were editable, defeating the lead-conversion gate
+Status: VERIFIED
+Severity: HIGH
+Priority: P1
+Type: STATE_MACHINE
+Source: QA_RUN
+DetectedDate: 2026-08-15
+DetectedInSha: 7bbab3d
+AffectedModules: [services/api/src/modules/contracts]
+OwnerAgent: backend-api
+ArchitectDisposition: DONE
+QAReport: docs/qa/runs/2026-08-15-commercial-onboarding-e2e-7bbab3d.md
+RegressionId: REG-009
+RelatedBacklogItem:
+RelatedDecision:
+RelatedImplementation:
+CreatedAt: 2026-08-15
+UpdatedAt: 2026-08-15
+ResolvedAt: 2026-08-15
+---
+
+# BUG-0011 — Signed agreements were editable, defeating the lead-conversion gate
+
+## Summary
+
+`ContractsService.update()` carried its own inline copy of the blocked-status
+list, and it had drifted from the shared `assertAgreementEditable`: `SENT`,
+`VIEWED`, `FULLY_EXECUTED`, `SUPERSEDED` and `TERMINATED` were all missing. A
+fully executed agreement was therefore freely mutable through
+`PATCH /contracts/:id`.
+
+## Expected Behavior
+
+Once an agreement is executed it is immutable. Everything downstream — the
+conversion gate, the signature evidence chain, the commercial record — assumes
+that.
+
+## Actual Behavior
+
+`PATCH /contracts/:id` returned 200 on a `FULLY_EXECUTED` agreement, including
+for `relatedLeadId`, `customerAccountId`, `contractType` and
+`isGoverningAgreement`. Also mutable: `title`, `tenantId`, `partnerId`,
+`counterpartyName`/`Email`.
+
+## Reproduction
+
+Scenario A5.21 and BUG02.06 in the QA run: `PATCH /contracts/:id` with
+`{relatedLeadId: <another lead>}` on an executed agreement → 200. The victim
+lead, which had never had an agreement, then converted successfully.
+
+## Evidence
+
+QA run, scenario table and the Bugs Found section; CustomerAccount `3d19486b`
+was created purely by re-pointing an existing executed agreement.
+`services/api/src/modules/contracts/contracts.agreement-immutability.spec.ts`.
+
+## Root Cause
+
+**Two copies of one rule, one of which drifted.** `assertGoverningAgreementExecuted`
+decides lead conversion by matching contracts on `relatedLeadId` +
+`contractType` + status — so anything able to mutate those columns can move the
+gate. The immutability rule was the only thing holding the gate still, and it
+existed twice.
+
+## Impact
+
+A commercial control bypass: a lead could be converted into a paying customer
+account without ever having a signed agreement, by editing somebody else's.
+
+## Affected Areas
+
+`services/api/src/modules/contracts`, lead conversion in `super-admin`, and any
+consumer of governing-agreement state.
+
+## Proposed Resolution
+
+Resolved: `update()` delegates to `assertAgreementEditable`. One list.
+
+## Acceptance Criteria
+
+`PATCH` on a `FULLY_EXECUTED` agreement is refused with no write, for
+`relatedLeadId`, `customerAccountId` and each of the five drifted statuses.
+Drafts through `APPROVED_FOR_SENDING` remain editable.
+
+## Regression Coverage
+
+[REG-009](../qa/regressions/index.md) — 19 assertions; **7 fail** against the
+unfixed code (5 drifted statuses plus both retarget cases).
+
+## Dependencies
+
+None.
+
+## Related Items
+
+Bug pattern [[divergent-duplicate-guard]]. Modules [[contracts-and-agreements|Contracts and Agreements]],
+[[leads|Leads]], [[customers|Customers]]. Requirement [[requirement-lead-conversion|Lead Conversion]].
+
+## Resolution
+
+Fixed 2026-08-15 on branch `agent/qa-commercial-onboarding-e2e`.
+
+## QA Retest
+
+FIX1.01–04 PASS. One residual risk recorded in the run: if any workflow
+legitimately reassigns an internal owner on an executed contract it now needs a
+governed action. No such caller was found in the frontends.
+
+## History
+
+- 2026-08-15 — found during the commercial onboarding E2E, fixed, REG-009 added.
+- 2026-08-15 — imported into the durable bug system.

@@ -22,6 +22,42 @@ Add [`auth-rbac.md`](../context/auth-rbac.md) when models carry permissions or
 roles, and [`deployment-runtime.md`](../context/deployment-runtime.md) because
 migrations run in the release chain.
 
+## Step 0 — `KNOWN_MISTAKES_TO_AVOID`
+
+**Before touching the schema**, load what has already gone wrong here:
+
+```bash
+node scripts/retrieve-knowledge.mjs <model> <module> migration
+```
+
+Read, **for the models and modules in scope only**:
+
+1. known bug patterns — migration, seed and tenant classes, especially
+   [`unvalidated-seed-state`](../../docs/qa/known-bug-patterns/unvalidated-seed-state.md)
+   and [`tenant-filter-missing`](../../docs/qa/known-bug-patterns/tenant-filter-missing.md)
+2. open bug records — [`docs/bugs/`](../../docs/bugs/), types `DATABASE`,
+   `DATA_INTEGRITY` and `TENANT_ISOLATION`
+3. regression entries — [`docs/qa/regressions/index.md`](../../docs/qa/regressions/index.md)
+4. related backlog items — [`docs/backlog/open.md`](../../docs/backlog/open.md),
+   including any `DATA_MIGRATION` item touching these tables
+5. previously promoted user corrections
+6. module knowledge — `docs/knowledge/modules/<module>.md`
+7. relevant ADRs
+
+Open the report with:
+
+```
+KNOWN_MISTAKES_TO_AVOID
+- <BUG-nnnn | pattern | REG-nnn> — <what it was> — <what this task does differently>
+```
+
+Only relevant entries. This role has the strongest reason of any to do it
+honestly: **a repeated defect in a migration is not re-fixable by editing a
+file.** Everywhere else a repeat costs a review cycle; here it can cost data.
+
+> A defect already recorded is not new information. Reintroducing it is a repeat,
+> and the Reviewer tags it `REPEATED_REGRESSION` at raised severity.
+
 ## Task-Specific Discovery
 
 Read neighbouring models before adding one. Match their conventions rather than

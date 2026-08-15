@@ -1,0 +1,167 @@
+# DijiPeople Engineering Dashboard
+
+> **Generated file — do not edit by hand.** Rebuild with `node scripts/generate-dashboards.mjs`,
+> then publish with `node scripts/sync-obsidian.mjs`. Edits made in the vault are lost on the next sync.
+
+## At a glance
+
+| | |
+|---|---|
+| Open CRITICAL | **0** |
+| Open HIGH | **3** |
+| Open total | 21 |
+| Blocked | 2 |
+| Awaiting a product decision | 3 |
+| Deferred | 1 |
+| Completed | 12 |
+| Awaiting Architect triage | 16 |
+
+## Open Critical Bugs
+
+_None. Nothing open at CRITICAL._
+
+## Open High Bugs
+
+| ID | Title | Type | Severity | Status | Affected | Architect |
+|---|---|---|---|---|---|---|
+| [[BUG-0015-a-tenant-that-fails-before-identities-and-billing-is-unrecoverable|BUG-0015]] | A tenant that fails before identities-and-billing is permanently unrecoverable | STATE_MACHINE | HIGH | OPEN | api:tenant-control-plane | PLAN_REQUIRED |
+| [[BUG-0019-partner-inquiry-and-onboarding-review-screens-are-unreachable|BUG-0019]] | Partner inquiry and onboarding review screens have no inbound link | UX | HIGH | OPEN | apps/admin | TRIAGE_REQUIRED |
+| [[ITEM-0003-tenant-erasure-never-exercised-against-a-database|ITEM-0003]] | Tenant erasure has never been exercised against a database | TEST_GAP | HIGH | TRIAGE_REQUIRED | api:tenant-control-plane | TRIAGE_REQUIRED |
+
+## Product Decisions Needed
+
+| ID | Title | Type | Severity | Status | Affected | Architect |
+|---|---|---|---|---|---|---|
+| [[BUG-0016-partner-onboarding-review-has-no-state-machine|BUG-0016]] | Partner onboarding review has no state machine | STATE_MACHINE | HIGH | PRODUCT_DECISION | api:partner-experience | PRODUCT_DECISION |
+| [[ITEM-0007-should-duplicate-website-leads-be-deduplicated|ITEM-0007]] | Product decision — should duplicate website leads be deduplicated? | PRODUCT_DECISION | LOW | PRODUCT_DECISION | api:leads, apps/landing | PRODUCT_DECISION |
+| [[ITEM-0008-customeraccount-has-no-origin-channel|ITEM-0008]] | Product decision — CustomerAccount carries no origin channel | PRODUCT_DECISION | LOW | PRODUCT_DECISION | services/api/prisma, api:super-admin | PRODUCT_DECISION |
+
+## Blocked Items
+
+| ID | Title | Type | Severity | Status | Affected | Architect |
+|---|---|---|---|---|---|---|
+| [[ITEM-0001-no-browser-e2e-tooling-exists|ITEM-0001]] | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | BLOCKED | apps/web, apps/admin, apps/landing | BLOCKED_EXTERNAL |
+| [[ITEM-0004-tenant-activation-never-proven-end-to-end|ITEM-0004]] | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | BLOCKED | api:tenant-control-plane | BLOCKED_EXTERNAL |
+
+## Current Test Gaps
+
+| ID | Title | Type | Severity | Status | Affected | Architect |
+|---|---|---|---|---|---|---|
+| [[ITEM-0003-tenant-erasure-never-exercised-against-a-database|ITEM-0003]] | Tenant erasure has never been exercised against a database | TEST_GAP | HIGH | TRIAGE_REQUIRED | api:tenant-control-plane | TRIAGE_REQUIRED |
+| [[ITEM-0002-no-live-api-session-test-harness|ITEM-0002]] | No harness exists for testing against a running API with real sessions | TEST_GAP | MEDIUM | TRIAGE_REQUIRED | services/api, apps/admin | TRIAGE_REQUIRED |
+| [[ITEM-0012-cross-check-route-methods-against-their-callers|ITEM-0012]] | Cross-check app/api route methods against the hrefs that target them | TEST_GAP | MEDIUM | TRIAGE_REQUIRED | apps/web, apps/admin | TRIAGE_REQUIRED |
+| [[ITEM-0013-assert-every-public-controller-is-rate-limited|ITEM-0013]] | Assert mechanically that every @Public() controller carries the rate-limit guard | TEST_GAP | MEDIUM | READY | services/api | TRIAGE_REQUIRED |
+
+## Current Infrastructure Gaps
+
+| ID | Title | Type | Severity | Status | Affected | Architect |
+|---|---|---|---|---|---|---|
+| [[BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500|BUG-0010]] | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | FIXED | app:admin | FIX_NOW |
+| [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | TRIAGE_REQUIRED | services/api, apps/web, apps/admin | TRIAGE_REQUIRED |
+| [[ITEM-0010-deployed-sha-is-not-exposed|ITEM-0010]] | The running system does not expose its deployed SHA | INFRA | MEDIUM | READY | services/api | TRIAGE_REQUIRED |
+| [[ITEM-0014-branch-protection-is-not-configured|ITEM-0014]] | Branch protection is not configured on the remote | INFRA | MEDIUM | TRIAGE_REQUIRED | .github | TRIAGE_REQUIRED |
+
+## Recently Fixed Bugs
+
+| ID | Title | Type | Severity | Status | Affected | Architect |
+|---|---|---|---|---|---|---|
+| [[BUG-0005-cross-tenant-error-log-read-via-support-role|BUG-0005]] | A support-role user could read another tenant's error log | TENANT_ISOLATION | CRITICAL | VERIFIED | api:error-logs | DONE |
+| [[BUG-0006-organization-structure-mutable-by-any-authenticated-user|BUG-0006]] | Organization and business-unit structure was mutable by any authenticated user | AUTHORIZATION | CRITICAL | VERIFIED | api:organization | DONE |
+| [[BUG-0001-compensation-and-bank-data-behind-employee-record-read|BUG-0001]] | Compensation and bank data returned behind an employee-record read | AUTHORIZATION | HIGH | VERIFIED | api:employees | DONE |
+| [[BUG-0002-self-approval-of-attendance-corrections|BUG-0002]] | A manager could file and approve their own attendance correction | AUTHORIZATION | HIGH | VERIFIED | api:attendance | DONE |
+| [[BUG-0003-readteam-granted-tenant-wide-visibility|BUG-0003]] | readTeam permissions granted tenant-wide visibility | AUTHORIZATION | HIGH | VERIFIED | api:attendance, api:approvals | DONE |
+| [[BUG-0004-search-filter-overwrote-the-access-scope|BUG-0004]] | A search filter silently overwrote the access scope | AUTHORIZATION | HIGH | VERIFIED | api:approvals | DONE |
+| [[BUG-0007-unguarded-duplicate-of-a-permission-gated-route|BUG-0007]] | An unguarded duplicate route aliased a permission-gated one | AUTHORIZATION | HIGH | VERIFIED | api:tenant-settings | DONE |
+| [[BUG-0008-session-expired-sign-in-again-returned-405|BUG-0008]] | Session-expired "Sign in again" returned 405 and stranded admin operators | BUG | HIGH | VERIFIED | app:admin, app:admin | DONE |
+| [[BUG-0011-signed-agreement-editable-defeating-the-lead-conversion-gate|BUG-0011]] | Signed agreements were editable, defeating the lead-conversion gate | STATE_MACHINE | HIGH | VERIFIED | api:contracts | DONE |
+| [[BUG-0012-onboarding-created-by-lead-conversion-was-born-uneditable|BUG-0012]] | Every onboarding created by lead conversion was born un-editable | STATE_MACHINE | HIGH | VERIFIED | api:super-admin | DONE |
+| [[BUG-0014-no-tenant-that-failed-provisioning-could-be-retried|BUG-0014]] | No tenant that failed provisioning could be retried | STATE_MACHINE | HIGH | VERIFIED | api:tenant-control-plane | DONE |
+| [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | FIXED | app:admin, api:auth | FIX_NOW |
+| [[BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500|BUG-0010]] | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | FIXED | app:admin | FIX_NOW |
+| [[BUG-0013-public-lead-endpoint-had-no-rate-limiting|BUG-0013]] | The public lead endpoint had no rate limiting | SECURITY | MEDIUM | VERIFIED | api:leads | DONE |
+
+## Recent QA Runs
+
+- [[2026-08-15-commercial-onboarding-e2e-7bbab3d|QA Run — Commercial onboarding lifecycle E2E (website lead and partner journeys)]]
+- [[2026-08-14-tenant-control-plane-ba1e818|QA Run — tenant-control-plane]]
+- [[2026-08-14-admin-session-expired-logout-cbc2db8|QA Run — admin-session-expired-logout]]
+
+## Recent Implementations
+
+- [[2026-08-15-database-ci-and-gh-access|Database CI, GitHub access, and the first four framework merges]]
+- [[2026-08-14-tenant-control-plane|Tenant Control Plane]]
+
+## Recent Engineering History
+
+_None yet — records begin with the next task._
+
+## Recent Releases
+
+_None. Nothing has been deployed through the release process._
+
+## Active / Recent Backlog
+
+| ID | Title | Type | Severity | Status | Affected | Architect |
+|---|---|---|---|---|---|---|
+| [[BUG-0009-session-revocation-depended-on-the-refresh-cookie|BUG-0009]] | Server-side session revocation depended on the refresh cookie surviving | SECURITY | MEDIUM | FIXED | app:admin, api:auth | FIX_NOW |
+| [[BUG-0010-unguarded-cookie-options-could-turn-sign-out-into-a-500|BUG-0010]] | Unguarded cookie options could turn admin sign-out into a 500 | INFRA | MEDIUM | FIXED | app:admin | FIX_NOW |
+| [[BUG-0017-tenant-base-domain-setting-does-not-drive-hostname-issuance|BUG-0017]] | The admin-editable tenant base domain does not drive hostname issuance | INTEGRATION | MEDIUM | OPEN | pkg:config, api:tenant-control-plane | PLAN_REQUIRED |
+| [[BUG-0020-window-prompt-used-for-governed-reasons|BUG-0020]] | window.prompt collects governed reasons instead of the design system dialog | UX | MEDIUM | OPEN | apps/admin, apps/web | TRIAGE_REQUIRED |
+| [[BUG-0021-landing-contact-form-fabricates-lead-data|BUG-0021]] | The landing contact form fabricates lead data and has no honeypot | DATA_INTEGRITY | MEDIUM | OPEN | apps/landing, api:leads | TRIAGE_REQUIRED |
+| [[BUG-0022-provision-tenant-has-no-confirmation-step|BUG-0022]] | "Provision tenant" has no confirmation step and no idempotency key | UX | MEDIUM | OPEN | apps/admin, api:tenant-control-plane | TRIAGE_REQUIRED |
+| [[ITEM-0002-no-live-api-session-test-harness|ITEM-0002]] | No harness exists for testing against a running API with real sessions | TEST_GAP | MEDIUM | TRIAGE_REQUIRED | services/api, apps/admin | TRIAGE_REQUIRED |
+| [[ITEM-0005-customeraccount-leadid-has-no-unique-constraint|ITEM-0005]] | CustomerAccount.leadId has no unique constraint, so double conversion is unprevented | TECH_DEBT | MEDIUM | TRIAGE_REQUIRED | services/api/prisma, api:super-admin | TRIAGE_REQUIRED |
+| [[ITEM-0006-adr-one-source-of-truth-for-the-tenant-base-domain|ITEM-0006]] | ADR needed — one source of truth for the tenant base domain | ARCHITECTURE | MEDIUM | TRIAGE_REQUIRED | pkg:config, services/api, apps/web, apps/admin, apps/landing | TRIAGE_REQUIRED |
+| [[ITEM-0009-no-observability-platform-exists|ITEM-0009]] | No observability platform exists, so a release cannot be verified from outside | INFRA | MEDIUM | TRIAGE_REQUIRED | services/api, apps/web, apps/admin | TRIAGE_REQUIRED |
+| [[ITEM-0010-deployed-sha-is-not-exposed|ITEM-0010]] | The running system does not expose its deployed SHA | INFRA | MEDIUM | READY | services/api | TRIAGE_REQUIRED |
+| [[ITEM-0012-cross-check-route-methods-against-their-callers|ITEM-0012]] | Cross-check app/api route methods against the hrefs that target them | TEST_GAP | MEDIUM | TRIAGE_REQUIRED | apps/web, apps/admin | TRIAGE_REQUIRED |
+| [[ITEM-0013-assert-every-public-controller-is-rate-limited|ITEM-0013]] | Assert mechanically that every @Public() controller carries the rate-limit guard | TEST_GAP | MEDIUM | READY | services/api | TRIAGE_REQUIRED |
+| [[ITEM-0014-branch-protection-is-not-configured|ITEM-0014]] | Branch protection is not configured on the remote | INFRA | MEDIUM | TRIAGE_REQUIRED | .github | TRIAGE_REQUIRED |
+| [[BUG-0023-testing-architecture-context-claims-two-e2e-specs-do-not-exist|BUG-0023]] | The testing-architecture context claims two e2e specs do not exist | DOCUMENTATION | LOW | OPEN | .agent/context | FIX_NOW |
+| [[BUG-0024-start-onboarding-api-and-proxy-have-no-caller|BUG-0024]] | The start-onboarding API endpoint and its proxy have no caller | BUG | LOW | OPEN | apps/admin, api:super-admin | TRIAGE_REQUIRED |
+| [[ITEM-0011-framework-validation-should-catch-absence-claims|ITEM-0011]] | Framework validation should catch false absence claims in context documents | TECH_DEBT | LOW | TRIAGE_REQUIRED | .agent/context, scripts | TRIAGE_REQUIRED |
+| [[ITEM-0015-make-the-tenant-readiness-assertion-auditable|ITEM-0015]] | Make the tenant readiness() authorization assertion auditable | FOLLOW_UP | LOW | TRIAGE_REQUIRED | api:tenant-control-plane | TRIAGE_REQUIRED |
+
+## Key Architecture Decisions
+
+- [[ADR-0001-ai-agent-workflow|ADR-0001 — AI-assisted engineering workflow for DijiPeople]]
+- [[decision-a-bug-record-is-its-own-backlog-item|Decision — A bug record **is** its own backlog item]]
+- [[decision-ci-verdict-gates-shared-merges|Decision — A shared-target merge requires a read CI verdict on the exact SHA]]
+- [[decision-platform-admin-is-a-separate-identity|Decision — Platform admin is a separate identity, not an elevated tenant user]]
+- [[decision-tenantid-is-the-isolation-identity|Decision — `tenantId` is the isolation identity, enforced by convention]]
+
+## Knowledge Health
+
+| Knowledge | Count |
+|---|---|
+| Bug records | 24 |
+| Backlog items | 15 |
+| Known bug patterns | 17 |
+| QA runs | 3 |
+| Engineering history records | 0 |
+| Release records | 0 |
+| Module notes | 19 |
+| Architecture notes | 12 |
+| Decision notes (ADR + generated) | 5 |
+| Implementation records | 2 |
+
+**Awaiting Architect triage: 16.** A record nobody has
+triaged is work nobody has decided about — the number that should stay near
+zero between tasks.
+
+**No release records exist.** Nothing has been deployed through the release process yet; this is a true statement about the repository, not a gap in the dashboard.
+**No engineering-history records exist yet.** The system was introduced with this framework; records accumulate from the next task onwards.
+
+## How this is maintained
+
+Regenerate with:
+
+```bash
+node scripts/rebuild-backlog.mjs
+node scripts/generate-dashboards.mjs
+node scripts/sync-obsidian.mjs
+```
+
+Every count above is derived from the records at generation time. Nothing
+here is maintained by hand, and editing this note in the vault only means
+losing the edit on the next sync — change the record instead.

@@ -360,6 +360,16 @@ npm run prisma:validate      # prisma validate --config prisma.config.ts
 npm run prisma:generate
 npm run prisma:migrate:status
 npm run smoke:deployment     # scripts/smoke-deployment.mjs
+
+npm run validate:framework   # structural validation of the agent framework
+npm run backlog:check        # records valid, indexes current — fails on drift
+npm run backlog:rebuild      # regenerate every backlog index
+npm run backlog:new-bug -- "<title>" --severity HIGH --type AUTHORIZATION
+npm run backlog:new-item -- "<title>" --type TEST_GAP
+npm run knowledge:retrieve -- <module> <feature>
+npm run knowledge:dashboards # regenerate the two Obsidian dashboards
+npm run knowledge:sync       # publish into the vault (needs a local config)
+npm run history:new -- <task-slug>
 ```
 
 Per workspace:
@@ -412,6 +422,14 @@ auth/permission change, payroll or attendance logic, provisioning, integration,
 or a large refactor — follow this order. Small, local, single-file fixes may go
 straight to step 6.
 
+0. **Find out what is already known to be wrong here.**
+   `node scripts/retrieve-knowledge.mjs <module> <feature>` surfaces the open
+   bug records, backlog items, regressions and bug patterns for the modules in
+   scope. Every specialist opens its report with a `KNOWN_MISTAKES_TO_AVOID`
+   block listing the relevant ones — **only** the relevant ones.
+   A defect already recorded in `docs/bugs/`, the regression register, a bug
+   pattern or module knowledge is **not new information**; reintroducing it is a
+   repeat, and the Reviewer raises its severity accordingly.
 1. **Inspect the existing implementation.** Read the module, its service,
    repository, DTOs, specs and the frontend that consumes it. Read the relevant
    documents in `docs/architecture/`.
@@ -450,10 +468,13 @@ Completion is defined by
 which `scripts/validate-framework.mjs` enforces. Every field must be resolved:
 
 ```
-IMPLEMENTATION_STATUS          REMOTE_CI_STATUS               FEEDBACK_PROMOTION_STATUS
-LOCAL_VALIDATION_STATUS        MERGE_STATUS                   KNOWLEDGE_CAPTURE_STATUS
-QA_STATUS                      POST_MERGE_VALIDATION_STATUS   OBSIDIAN_SYNC_STATUS
-REVIEW_STATUS                                                 CLEANUP_STATUS
+IMPLEMENTATION_STATUS           REVIEW_STATUS                 ENGINEERING_HISTORY_STATUS
+LOCAL_VALIDATION_STATUS         REMOTE_CI_STATUS              FEEDBACK_PROMOTION_STATUS
+QA_STATUS                       MERGE_STATUS                  KNOWLEDGE_CAPTURE_STATUS
+QA_FINDINGS_CLASSIFIED_STATUS   POST_MERGE_VALIDATION_STATUS  OBSIDIAN_SYNC_STATUS
+BUG_RECORD_STATUS                                             CLEANUP_STATUS
+ARCHITECT_TRIAGE_STATUS
+BACKLOG_UPDATE_STATUS
 ```
 
 Resolved means `PASS`, `DONE`, `NOT_REQUIRED` (with a reason),
@@ -465,6 +486,32 @@ Git finalization and knowledge sync included. Nobody should have to add "push
 it", "merge it", "sync Obsidian", "clean the worktree", "remember this", "don't
 make this mistake again" or "check previous bugs".
 
+### No finding may exist only in a report
+
+**Every material QA finding becomes a durable record** under
+[`docs/bugs/`](docs/bugs/) — evidence, reproduction, severity — and appears in
+the backlog automatically. The Architect then triages it: `FIX_NOW`,
+`PLAN_REQUIRED`, `DEFER`, `PRODUCT_DECISION`, `BLOCKED_EXTERNAL` or
+`ACCEPTED_RISK`.
+
+```
+QA finds an issue → BUG record → backlog → Architect triage
+  → fix / plan / defer / decision → QA retest → regression → knowledge
+  → a future agent retrieves the lesson before writing the same defect
+```
+
+A substantial task **cannot complete** while a finding it produced is
+unclassified, or while a record it created is still `TRIAGE_REQUIRED`.
+
+Two boundaries hold this together: **QA does not prioritise, and specialists do
+not triage.** QA establishes what is true; the Architect decides what the
+project does about it.
+
+Bug records and backlog indexes are Git-tracked and **generated** —
+`node scripts/rebuild-backlog.mjs` rebuilds every index; nothing is maintained
+by hand. See [`docs/bugs/README.md`](docs/bugs/README.md) and
+[`docs/backlog/README.md`](docs/backlog/README.md).
+
 ### Knowledge systems
 
 Each answers exactly one question — see
@@ -475,6 +522,9 @@ Each answers exactly one question — see
 | **Git** | What changed? |
 | **CI** | Did this commit pass automated validation? |
 | **QA runs** | What behaviour was actually tested? |
+| **`docs/bugs/*`** | What is wrong, and what state is that in? |
+| **`docs/backlog/*`** | What is outstanding, and what did we decide? |
+| **`docs/engineering-history/*`** | How did a task run, start to finish? |
 | **`.agent/context/*`** | How does DijiPeople currently work? |
 | **`docs/knowledge/*`** | What did we learn, in a Git-tracked form? |
 | **Obsidian** | Why does it work this way, and what happened before? |
