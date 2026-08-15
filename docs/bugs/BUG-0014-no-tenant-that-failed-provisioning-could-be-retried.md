@@ -1,0 +1,116 @@
+---
+ID: BUG-0014
+aliases: [BUG-0014]
+Title: No tenant that failed provisioning could be retried
+Status: VERIFIED
+Severity: HIGH
+Priority: P1
+Type: STATE_MACHINE
+Source: QA_RUN
+DetectedDate: 2026-08-15
+DetectedInSha: 7bbab3d
+AffectedModules: [services/api/src/modules/tenant-control-plane]
+OwnerAgent: backend-api
+ArchitectDisposition: DONE
+QAReport: docs/qa/runs/2026-08-15-commercial-onboarding-e2e-7bbab3d.md
+RegressionId: REG-012
+RelatedBacklogItem:
+RelatedDecision:
+RelatedImplementation: docs/knowledge/implementations/2026-08-14-tenant-control-plane.md
+CreatedAt: 2026-08-15
+UpdatedAt: 2026-08-15
+ResolvedAt: 2026-08-15
+---
+
+# BUG-0014 — No tenant that failed provisioning could be retried
+
+## Summary
+
+`TENANT_PROVISIONING_STEPS` declared `workspace-slug-reserved` and
+`workspace-routing-verified` as `isRetryable: true`, but
+`TenantOperationsService.runRetryableStep` had no branch for either and fell
+through to `Step ${key} cannot be replayed automatically.`
+
+## Expected Behavior
+
+Retry replays every step the catalogue marks retryable, in order, and recovers
+the tenant.
+
+## Actual Behavior
+
+Retry replays retryable steps in catalogue order and `workspace-slug-reserved` is
+the first — so **every** retry died on its first step, wrote a FAILED run, and
+left the tenant in `PROVISIONING_FAILED`. Permanently, retry being the only
+recovery path. The admin UI kept offering the button.
+
+## Reproduction
+
+Scenario A10.10: fail a provisioning run, then retry it.
+
+## Evidence
+
+QA run BUG-04;
+`services/api/src/modules/tenant-control-plane/tenant-provisioning-retry.spec.ts`.
+
+## Root Cause
+
+**A capability declared in a catalogue and never wired into the code that reads
+it.** The catalogue and the switch were two sources of truth for "which steps can
+replay", with nothing pinning them together.
+
+## Impact
+
+Every tenant whose provisioning failed for any reason was unrecoverable through
+the supported surface. Combined with a UI that kept offering retry, an operator
+had no way to tell a recoverable failure from a permanent one.
+
+## Affected Areas
+
+`services/api/src/modules/tenant-control-plane`, and the admin operations panel.
+
+## Proposed Resolution
+
+Resolved: both steps implemented, mirroring the forward path.
+`workspace-routing-verified` re-resolves the primary hostname and asserts it maps
+back to this tenant.
+
+## Acceptance Criteria
+
+Every step `TENANT_PROVISIONING_STEPS` marks `isRetryable` resolves through
+`runRetryableStep` without throwing; an unknown key still throws;
+`workspace-routing-verified` fails when the hostname resolves to a different
+tenant.
+
+## Regression Coverage
+
+[REG-012](../qa/regressions/index.md) — 10 assertions, 3 fail without the fix.
+The catalogue and the switch are now pinned together by the spec, so a future
+step declared retryable and left unwired fails the test rather than production.
+
+## Dependencies
+
+None.
+
+## Related Items
+
+Bug pattern [[declared-but-unwired-step]]. Modules [[tenant-control-plane|Tenant Control Plane]],
+[[tenant-provisioning|Tenant Provisioning]].
+Requirement [[requirement-tenant-workspace-domains|Tenant Workspace Domains]].
+
+**Fixing this exposed [[BUG-0015-a-tenant-that-fails-before-identities-and-billing-is-unrecoverable]]**:
+retry now reports SUCCEEDED and moves the tenant to `PENDING_SETUP` while it may
+still be permanently unusable.
+
+## Resolution
+
+Fixed 2026-08-15 on branch `agent/qa-commercial-onboarding-e2e`.
+
+## QA Retest
+
+FIX4.01–03 PASS — the stuck tenant recovered to `PENDING_SETUP` with all 8 steps
+resolved.
+
+## History
+
+- 2026-08-15 — found during the commercial onboarding E2E, fixed, REG-012 added.
+- 2026-08-15 — imported into the durable bug system.

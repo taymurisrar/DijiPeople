@@ -217,8 +217,51 @@ be enabled first is documented in
 2. Smoke scenarios from [`docs/deployment/smoke-tests.md`](../../docs/deployment/smoke-tests.md).
 3. Logs and monitoring observation.
 4. A deployment QA run under `docs/qa/runs/` with the environment in the name.
-5. A release record under `docs/deployment/release-history/`.
+5. **A release record under [`docs/deployment/release-history/`](../../docs/deployment/release-history/)** — see below.
 6. Obsidian sync if configured.
+
+### The release record
+
+Mandatory for **every actual deployment**, successful or not. Copy
+[`docs/deployment/release-report-template.md`](../../docs/deployment/release-report-template.md)
+to `release-history/YYYY-MM-DD-<environment>-<short-sha>.md` and fill every
+field:
+
+```
+Environment · Date · Release SHA · Source Branch · Components ·
+Migration Status · Configuration Status · Deployment Sequence ·
+Smoke Test Results · Monitoring/Health Results · Incidents ·
+Rollback Classification · Rollback Result ·
+QA Report · Backlog/Bug References · Engineering History · Final Verdict
+```
+
+Two rules that decide whether the record is worth having:
+
+- **Only real evidence populates an outcome.** Nothing in Smoke Test Results,
+  Monitoring or Final Verdict may be written before the deployment ran. A record
+  pre-filled with expected results is a plan wearing a record's filename, and it
+  will be read later as evidence. Where a check could not be run, write
+  `NOT_OBSERVED — <reason>`.
+- **State what could not be verified.** The deployed SHA is not exposed by the
+  running system, and Render's `healthCheckPath: /api` can report healthy while
+  the database is unreachable. Both belong in every record until
+  [`ITEM-0010`](../../docs/backlog/items/ITEM-0010-deployed-sha-is-not-exposed.md)
+  and [`ITEM-0009`](../../docs/backlog/items/ITEM-0009-no-observability-platform-exists.md)
+  are closed.
+
+**Backlog/Bug References** names every `BUG-nnnn` the release resolves, every
+`ITEM-nnnn` it advances, and — the column that matters — every **known open
+record it ships alongside**. Shipping with a known HIGH open is a decision, and
+it should be visible as one rather than discovered afterwards. Cross-check
+[`docs/backlog/open.md`](../../docs/backlog/open.md) for the modules in the
+release.
+
+**Release/DevOps documents deployed state; the Integrator documents Git
+history.** The engineering-history record under
+[`docs/engineering-history/tasks/`](../../docs/engineering-history/tasks/) answers
+how the work reached the branch; this record answers what is running and whether
+it worked. Link them. Do not write one in place of the other, and never infer a
+deployed state from a merge.
 
 **If smoke tests fail:** stop release progression. Classify as `APP_FAILURE`,
 `CONFIG_FAILURE`, `DEPENDENCY_FAILURE`, `MIGRATION_FAILURE` or

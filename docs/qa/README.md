@@ -27,6 +27,20 @@ docs/qa/
 **Regressions and patterns are evergreen** — updated in place as knowledge
 improves.
 
+### And, outside this folder
+
+```
+docs/bugs/          one record per defect: evidence, severity, status, resolution
+docs/backlog/       what is outstanding and what was decided — indexes generated
+```
+
+A QA run records **what was tested**. A bug record records **what is wrong and
+what is being done about it**, and it is the one a future agent reads before
+touching that module. Every material finding produces both.
+
+They are not alternatives, and neither is optional. See
+[`../bugs/README.md`](../bugs/README.md).
+
 ---
 
 ## The bug learning loop
@@ -36,6 +50,12 @@ This is what makes the system stronger over time rather than merely busy. It is
 
 ```
 QA finds a defect
+   │
+   ├─ 0. Create a durable record — docs/bugs/BUG-nnnn
+   │        node scripts/new-bug.mjs "<title>" --severity … --type …
+   │        evidence, reproduction, severity, linked QA scenario id
+   │        (already recorded? UPDATE that record instead)
+   │        then: node scripts/rebuild-backlog.mjs
    │
    ├─ 1. Record it in the QA run (docs/qa/runs/…)
    │
@@ -50,11 +70,20 @@ QA finds a defect
    │
    ├─ 5. Update the pattern's prevention rule if the defect taught us something
    │
-   └─ 6. Feed it forward:
-            Reviewer  → enforces the prevention rule
-            Architect → reads relevant patterns during planning
-            QA        → reads relevant regression entries before testing
+   ├─ 6. Feed it forward:
+   │        Architect → triages the record (BACKLOG_POST_QA_TRIAGE) and owns
+   │                    its priority and disposition. QA never sets those.
+   │        Reviewer  → enforces the prevention rule; tags a repeat
+   │                    REPEATED_REGRESSION at raised severity
+   │        Specialists → load it as KNOWN_MISTAKES_TO_AVOID before coding
+   │
+   └─ 7. Close the loop on retest:
+            Status FIXED → VERIFIED, ResolvedAt set, RegressionId linked
 ```
+
+Step 0 is what stops a finding evaporating with the session. **A defect listed
+only in a report will be found again**, at full cost, by someone who had no way
+to know it was already known.
 
 Step 3 is the one most often skipped and the one that matters most. A regression
 test that passes both with and without the fix is not a regression test; it is

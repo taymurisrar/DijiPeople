@@ -1,0 +1,109 @@
+---
+ID: BUG-0018
+aliases: [BUG-0018]
+Title: Bulk lead delete is unreachable for every role, including SUPER_ADMIN
+Status: DEFERRED
+Severity: LOW
+Priority: P3
+Type: AUTHORIZATION
+Source: QA_RUN
+DetectedDate: 2026-08-15
+DetectedInSha: 7bbab3d
+AffectedModules: [services/api/src/modules/platform-auth, services/api/src/modules/super-admin]
+OwnerAgent: backend-api
+ArchitectDisposition: DEFER
+QAReport: docs/qa/runs/2026-08-15-commercial-onboarding-e2e-7bbab3d.md
+RegressionId:
+RelatedBacklogItem:
+RelatedDecision:
+RelatedImplementation:
+CreatedAt: 2026-08-15
+UpdatedAt: 2026-08-15
+ResolvedAt:
+---
+
+# BUG-0018 — Bulk lead delete is unreachable for every role, including SUPER_ADMIN
+
+## Summary
+
+`resolvePlatformPermission` maps `GET`, `POST`, `PATCH` and `PUT` to
+`<domain>.read` / `.create` / `.update`, and has **no `DELETE` mapping**. The
+permission resolves to nothing and `PlatformPermissionsGuard` throws, so
+`DELETE /api/super-admin/leads` answers 403 for every role.
+
+## Expected Behavior
+
+Either the route works for a role that should hold it, or it does not exist.
+
+## Actual Behavior
+
+403 for every caller including `SUPER_ADMIN`. The route is dead.
+
+## Reproduction
+
+Scenario C5.03: `DELETE /api/super-admin/leads` as a platform super admin.
+
+## Evidence
+
+QA run BUG-08. Verified still present at `main` `ad8f77f`:
+`services/api/src/modules/platform-auth/platform-permissions.ts:332-334` maps
+GET / POST / PATCH / PUT and falls through for DELETE.
+
+## Root Cause
+
+A method-to-permission mapping with no exhaustiveness check. Any future `DELETE`
+route on the platform surface will be dead in exactly the same way, silently.
+
+## Impact
+
+Functional and UX only. It **fails closed**, so this is not a security defect —
+which is why it is LOW rather than the HIGH its "authorization" type might
+suggest.
+
+## Affected Areas
+
+`services/api/src/modules/platform-auth` (the resolver, shared by the whole
+platform surface), and `super-admin` lead bulk actions.
+
+## Proposed Resolution
+
+Decide first whether bulk lead delete should exist at all — deleting leads
+destroys commercial attribution history. If it should, add a `DELETE` mapping
+and an exhaustiveness check so the next `DELETE` route is not dead too. If it
+should not, remove the route.
+
+## Acceptance Criteria
+
+Either the route is removed, or a role holding `<domain>.delete` succeeds and a
+role without it gets 403, with a test that fails when a method has no mapping.
+
+## Regression Coverage
+
+**None.** `services/api/src/modules/platform-auth/platform-permissions.spec.ts`
+exists and would be the place for it.
+
+## Dependencies
+
+None.
+
+## Related Items
+
+Bug pattern [[defined-but-unwired-permission]]. Modules [[leads|Leads]],
+[[platform-admin|Platform Admin]]. Same declared-but-unwired shape as
+[[BUG-0014-no-tenant-that-failed-provisioning-could-be-retried]], on a smaller
+surface.
+
+## Resolution
+
+Not resolved. Deferred: fails closed, no user is currently blocked from work
+they can do another way, and the fix should follow a decision about whether the
+capability is wanted.
+
+## QA Retest
+
+Not applicable.
+
+## History
+
+- 2026-08-15 — found during the commercial onboarding E2E.
+- 2026-08-15 — re-verified against `main` `ad8f77f`; deferred with a reason.

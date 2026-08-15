@@ -20,8 +20,45 @@ Add [`database-prisma.md`](../context/database-prisma.md) if queries change and
 [`integration-patterns.md`](../context/integration-patterns.md) for external
 systems.
 
-Also: [`services/api/AGENTS.md`](../../services/api/AGENTS.md), the relevant
-`docs/qa/known-bug-patterns/`, and regression entries for the module.
+Also: [`services/api/AGENTS.md`](../../services/api/AGENTS.md).
+
+## Step 0 — `KNOWN_MISTAKES_TO_AVOID`
+
+**Before writing code**, load what has already gone wrong in this ground:
+
+```bash
+node scripts/retrieve-knowledge.mjs <module> <feature>
+```
+
+Read, **for the modules in scope only**:
+
+1. known bug patterns — [`docs/qa/known-bug-patterns/`](../../docs/qa/known-bug-patterns/)
+2. open bug records — [`docs/bugs/`](../../docs/bugs/), and the `VERIFIED` ones
+   for these modules
+3. regression register entries — [`docs/qa/regressions/index.md`](../../docs/qa/regressions/index.md)
+4. related backlog items — [`docs/backlog/open.md`](../../docs/backlog/open.md)
+5. previously promoted user corrections (`USER_FEEDBACK_CLASS`)
+6. module knowledge — `docs/knowledge/modules/<module>.md`
+7. relevant ADRs — [`docs/decisions/`](../../docs/decisions/)
+
+Then open the implementation report with the block:
+
+```
+KNOWN_MISTAKES_TO_AVOID
+- <BUG-nnnn | pattern | REG-nnn> — <what it was> — <what this task will do differently>
+```
+
+**Only relevant items.** Three entries a reader acts on beat thirty nobody
+finishes. A block containing the whole repository history is the same as an empty
+one, and both mean the step was skipped.
+
+"Nothing relevant found" is valid — after looking, and say so.
+
+> **A known historical defect is not new information.** If it is already in a
+> pattern, a bug record, the regression register, module knowledge or an ADR,
+> then reintroducing it is a repeat, not a discovery. The Reviewer will tag it
+> `REPEATED_REGRESSION` and **raise the severity** — further still if this block
+> named the pattern and the code did it anyway.
 
 ## Task-Specific Discovery
 
@@ -133,6 +170,7 @@ computed money.
 
 ## Definition of done
 
+- `KNOWN_MISTAKES_TO_AVOID` block produced, and each entry addressed
 - Endpoint authorization declared and dry-run recorded
 - Row-level scope applied
 - Tenant scoping on every new query, including writes

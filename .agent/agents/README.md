@@ -40,23 +40,64 @@ it exists to provide.
 - **Reviewer does not edit.** A reviewer that fixes what it finds is no longer
   independent.
 
-All three finishing means the **work** is sound. It does not mean the **task**
-is finished — that is defined by
+A fourth separation was added with the durable bug and backlog systems:
+
+- **QA establishes what is true; the Architect decides what happens about it.**
+  QA owns evidence, reproduction and severity. The Architect owns priority and
+  `ArchitectDisposition`. A QA role that also prioritised would have an incentive
+  to downgrade its own findings; a developer who could defer would have an
+  incentive to defer the bug they would otherwise fix. Neither incentive exists
+  while the two roles are apart.
+
+All finishing means the **work** is sound. It does not mean the **task** is
+finished — that is defined by
 [`.agent/context/task-completion-contract.md`](../context/task-completion-contract.md),
-which additionally requires merge, post-merge validation, knowledge capture,
-Obsidian sync and cleanup:
+which additionally requires finding classification, triage, merge, post-merge
+validation, engineering history, knowledge capture, Obsidian sync and cleanup:
 
 ```
-IMPLEMENTATION_STATUS          REMOTE_CI_STATUS               OBSIDIAN_SYNC_STATUS
-LOCAL_VALIDATION_STATUS        MERGE_STATUS                   CLEANUP_STATUS
-QA_STATUS                      POST_MERGE_VALIDATION_STATUS
-REVIEW_STATUS                  KNOWLEDGE_CAPTURE_STATUS
+IMPLEMENTATION_STATUS           REVIEW_STATUS                 ENGINEERING_HISTORY_STATUS
+LOCAL_VALIDATION_STATUS         REMOTE_CI_STATUS              FEEDBACK_PROMOTION_STATUS
+QA_STATUS                       MERGE_STATUS                  KNOWLEDGE_CAPTURE_STATUS
+QA_FINDINGS_CLASSIFIED_STATUS   POST_MERGE_VALIDATION_STATUS  OBSIDIAN_SYNC_STATUS
+BUG_RECORD_STATUS                                             CLEANUP_STATUS
+ARCHITECT_TRIAGE_STATUS
+BACKLOG_UPDATE_STATUS
 ```
 
-> This document used to stop at the first three. That wording is precisely what
-> allowed a finished tenant control-plane implementation — a new API module, a
-> migration, ten replaced components — to be reported as complete while it sat
-> uncommitted in a working tree.
+> This document used to stop at implementation, review and QA. That wording is
+> precisely what allowed a finished tenant control-plane implementation — a new
+> API module, a migration, ten replaced components — to be reported as complete
+> while it sat uncommitted in a working tree.
+
+---
+
+## Ownership of the durable records
+
+Each record type has exactly one owning role. Shared ownership of a record means
+nobody maintains it.
+
+| Record | Owner | Contributors |
+|---|---|---|
+| [`docs/bugs/BUG-nnnn`](../../docs/bugs/) | **QA** — evidence, reproduction, severity, status | Architect sets `Priority` and `ArchitectDisposition`; specialists fill Resolution |
+| [`docs/backlog/items/ITEM-nnnn`](../../docs/backlog/items/) | **Architect** | Anyone may raise one; the Architect triages |
+| [`docs/backlog/*.md`](../../docs/backlog/) indexes | **generated** — `scripts/rebuild-backlog.mjs` | Nobody edits these by hand |
+| [`docs/qa/runs/`](../../docs/qa/runs/) | **QA** | — |
+| [`docs/qa/regressions/index.md`](../../docs/qa/regressions/index.md) | **QA** | — |
+| [`docs/qa/known-bug-patterns/`](../../docs/qa/known-bug-patterns/) | **QA** | Reviewer proposes; Architect confirms generality |
+| [`docs/engineering-history/tasks/`](../../docs/engineering-history/tasks/) | **Integrator** — branches, conflicts, merge, SHAs, CI | QA supplies run and bug ids; Architect supplies plan and agents |
+| [`docs/deployment/release-history/`](../../docs/deployment/release-history/) | **Release / DevOps** | QA supplies the deployment run |
+| [`docs/knowledge/`](../../docs/knowledge/) | **Knowledge Capture** Skill | Every role feeds it |
+| Obsidian `Generated/` folders | **`scripts/sync-obsidian.mjs`** — the only writer | — |
+| Obsidian everything else | **the user** | Agents read; agents never write |
+
+Two boundaries worth stating plainly, because they are the ones most easily
+collapsed:
+
+- **The Integrator documents Git history; Release/DevOps documents deployed
+  state.** A merge commit is not evidence that code is running.
+- **QA does not prioritise; specialists do not triage.** See the fourth
+  separation above.
 
 ---
 
@@ -87,15 +128,23 @@ field to an existing runtime spec.
 
 ```
 Request
-  → Architect (plan, agent selection, task classification)
-  → specialists implement on agent/<feature>-<scope> branches
+  → relevant knowledge retrieval
+  → Architect: BACKLOG_PRECHECK, then plan, agent selection, classification
+  → specialists implement on agent/<feature>-<scope> branches,
+      each opening with KNOWN_MISTAKES_TO_AVOID
   → local validation
   → QA (independent scenarios, documented run)
-  → Reviewer (independent findings)
+  → QA finding extraction → BUG-nnnn records → backlog rebuild
+  → Architect: BACKLOG_POST_QA_TRIAGE
+      → FIX_NOW / PLAN_REQUIRED / DEFER / PRODUCT_DECISION / BLOCKED_EXTERNAL
+  → QA retest
+  → Reviewer (independent findings, REPEATED_REGRESSION checks)
   → Integrator (push, CI verdict, conflict classification, merge)
   → post-merge validation against the merged SHA
+  → engineering history record → docs/engineering-history/tasks/
   → Knowledge capture → docs/knowledge/
-  → Obsidian sync
+  → backlog rebuild
+  → Obsidian sync (records, knowledge, dashboards)
   → worktree and branch cleanup
   → Final report, ending in ## Task Finalization
 ```

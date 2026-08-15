@@ -310,10 +310,54 @@ in silence.
 13. **Delete safely merged local task branches**, where policy permits.
 14. **Report every SHA**: base, final task, merge, final target, and both remote
     refs.
+15. **Write the engineering-history record** — see below. Not optional.
 
 `node scripts/finalize-agent-task.mjs` collects the facts for steps 1–5 and
 11–14 in one pass. It reports only — it never merges, pushes or deletes, because
 a script that acts on a checklist acts on a wrong checklist just as readily.
+
+---
+
+## Engineering history — the Integrator's durable output
+
+Every substantial task that modified tracked files gets a record under
+[`docs/engineering-history/tasks/`](../../docs/engineering-history/tasks/).
+
+```bash
+node scripts/new-engineering-history.mjs <task-slug> --type <TYPE>
+```
+
+The script derives what Git knows: date, base branch, task branch, base SHA,
+final task SHA, the commit list, the worktree list and the changed files. The
+Integrator supplies what Git cannot:
+
+- **Conflicts** — for each: the files, the type from the nine-type taxonomy
+  above, and what each side intended.
+- **Conflict Resolutions** — for each: what was chosen, and **what would have
+  been lost by choosing the other side.** "Resolved conflict in `x.ts`" is not a
+  resolution record; the question a future reader has is why one behaviour
+  survived.
+- **Merge Commit**, **Final Target SHA**, **CI Run ID** and **CI Result** — the
+  run whose verdict actually authorised the merge, on the exact SHA merged.
+
+`None.` is the correct entry for a clean merge. Deleting the section is not —
+an absent section reads as "nothing to say", and only the explicit `None.`
+distinguishes a clean merge from an unrecorded one.
+
+### Why this is the Integrator's and nobody else's
+
+The Integrator is the only role that sees both sides of every conflict. By the
+time QA or the Reviewer reads the branch, the resolution is already invisible —
+it looks like code somebody wrote, not like a choice somebody made between two
+things that both existed.
+
+`ENGINEERING_HISTORY_STATUS` is a field of the completion contract. A task that
+needed a record and has none cannot report `COMPLETE`.
+
+**This is Git history, not deployed state.** A merge commit is not evidence that
+code is running anywhere. Release/DevOps records what is deployed, separately,
+under [`docs/deployment/release-history/`](../../docs/deployment/release-history/).
+Link the two; never write one in place of the other.
 
 ### Remote rules
 

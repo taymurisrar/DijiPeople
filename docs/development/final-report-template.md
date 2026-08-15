@@ -77,8 +77,27 @@ was accepted as a follow-up rather than fixed.
 
 ## Bugs Found
 
-| ID | Severity | Bug pattern | Regression entry |
+| Bug ID | Severity | Disposition | Architect triage | Bug pattern | Regression entry |
+|---|---|---|---|---|---|
+
+Every row must have a `BUG-nnnn` under `docs/bugs/`. **A defect listed here with
+no record is a defect that will be found again** — the report is read once; the
+record is read by everyone who touches that module afterwards.
+
+`Disposition` is QA's (`FIXED` / `OPEN` / `DEFERRED` / `BLOCKED` /
+`PRODUCT_DECISION` / `ACCEPTED_RISK` / `NOT_A_BUG` / `DUPLICATE`).
+`Architect triage` is the Architect's (`FIX_NOW` / `PLAN_REQUIRED` / `DEFER` /
+`PRODUCT_DECISION` / `BLOCKED_EXTERNAL` / `ACCEPTED_RISK` / `DUPLICATE` /
+`NOT_A_BUG` / `DONE`). Neither role fills the other's column.
+
+## Backlog Changes
+
+| ID | Title | Before → After | Why |
 |---|---|---|---|
+
+Records created, advanced or closed by this task, bugs included. State the
+counts `node scripts/rebuild-backlog.mjs` reported, and confirm the indexes were
+regenerated.
 
 ## Regression Coverage
 
@@ -134,11 +153,18 @@ MERGE_SHA:
 FINAL_TARGET_SHA:
 REMOTE_PUSH:
 REMOTE_CI:
+CI_RUN_ID:
 MERGE_AUTHORIZATION:
 POST_MERGE_VALIDATION:
 QA_REPORT:
+QA_FINDINGS_CLASSIFIED:
+BUG_RECORD_STATUS:
+ARCHITECT_TRIAGE_STATUS:
+BACKLOG_UPDATE_STATUS:
+ENGINEERING_HISTORY:
 KNOWLEDGE_CAPTURE:
 OBSIDIAN_SYNC:
+DASHBOARD_STATUS:
 WORKTREE_CLEANUP:
 BRANCH_CLEANUP:
 ```

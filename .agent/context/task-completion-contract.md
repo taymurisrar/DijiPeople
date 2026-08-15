@@ -1,8 +1,8 @@
 # Task Completion Contract
 
-> **Last verified:** 2026-08-14
-> **Verified against commit:** aa35b74
-> **Key source files:** scripts/validate-framework.mjs, scripts/finalize-agent-task.mjs, .agent/agents/integrator.md, docs/development/agent-orchestration.md, docs/development/final-report-template.md
+> **Last verified:** 2026-08-15
+> **Verified against commit:** ad8f77f
+> **Key source files:** scripts/validate-framework.mjs, scripts/finalize-agent-task.mjs, scripts/rebuild-backlog.mjs, .agent/agents/integrator.md, .agent/agents/architect.md, .agent/agents/qa.md, docs/bugs/README.md, docs/backlog/README.md, docs/engineering-history/README.md, docs/development/agent-orchestration.md, docs/development/final-report-template.md
 >
 > This document describes the repository, it is not authority over it. If the
 > code disagrees, the code is current truth — report the discrepancy and
@@ -41,15 +41,25 @@ but they are never skipped silently.
 ```
 REQUEST
   ↓
-ARCHITECT
+RELEVANT KNOWLEDGE RETRIEVAL
   ↓
-SPECIALIST IMPLEMENTATION
+ARCHITECT  ──────────────────────  BACKLOG_PRECHECK
+  ↓
+SPECIALIST IMPLEMENTATION  ───────  KNOWN_MISTAKES_TO_AVOID
   ↓
 LOCAL VALIDATION
   ↓
 QA
   ↓
-REVIEWER
+QA FINDING EXTRACTION  ───────────  BUG RECORDS + BACKLOG UPDATE
+  ↓
+ARCHITECT TRIAGE  ────────────────  BACKLOG_POST_QA_TRIAGE
+  ↓
+FIX / PLAN / DEFER / PRODUCT DECISION / BLOCK
+  ↓
+QA RETEST
+  ↓
+REVIEWER  ────────────────────────  REPEATED_REGRESSION CHECK
   ↓
 INTEGRATOR
   ↓
@@ -59,7 +69,11 @@ MERGE
   ↓
 POST_MERGE_VALIDATION
   ↓
+ENGINEERING HISTORY RECORD
+  ↓
 KNOWLEDGE CAPTURE
+  ↓
+BACKLOG REBUILD
   ↓
 OBSIDIAN SYNC
   ↓
@@ -67,6 +81,11 @@ CLEANUP
   ↓
 FINAL REPORT
 ```
+
+The loop between QA and the Reviewer is not optional decoration. **No material
+QA finding may exist only inside a chat report**, and no substantial task may
+complete while a finding it produced is still unclassified. Those two rules are
+what turn a QA run from a report into a system that gets stronger.
 
 **No phase before FINAL REPORT may declare the overall task complete.** An agent
 that finishes implementation has finished *its* phase, not the task.
@@ -219,15 +238,47 @@ was omitted, and not that it was assumed.
 IMPLEMENTATION_STATUS
 LOCAL_VALIDATION_STATUS
 QA_STATUS
+QA_FINDINGS_CLASSIFIED_STATUS
+BUG_RECORD_STATUS
+ARCHITECT_TRIAGE_STATUS
+BACKLOG_UPDATE_STATUS
 REVIEW_STATUS
 REMOTE_CI_STATUS
 MERGE_STATUS
 POST_MERGE_VALIDATION_STATUS
+ENGINEERING_HISTORY_STATUS
 FEEDBACK_PROMOTION_STATUS
 KNOWLEDGE_CAPTURE_STATUS
 OBSIDIAN_SYNC_STATUS
 CLEANUP_STATUS
 ```
+
+### The finding-classification gates
+
+Four of these are new, and they exist for one reason: **a QA finding that lives
+only in a report is lost when the session ends.** The next agent to touch that
+module reads the backlog, not your prose — so a defect nobody recorded is a
+defect that gets found again, at full cost, by someone who had no way to know.
+
+| Field | Resolved when | May be `NOT_REQUIRED` when |
+|---|---|---|
+| `QA_FINDINGS_CLASSIFIED_STATUS` | **Every** material QA finding carries exactly one disposition: `FIXED`, `OPEN`, `DEFERRED`, `BLOCKED`, `PRODUCT_DECISION`, `ACCEPTED_RISK`, `NOT_A_BUG`, `DUPLICATE` | QA produced no findings, or `QA_STATUS = NOT_REQUIRED` |
+| `BUG_RECORD_STATUS` | Every finding needing a durable record has one under `docs/bugs/`, with evidence and reproduction — or an existing record was updated | No finding required a record; state which findings were considered and why not |
+| `ARCHITECT_TRIAGE_STATUS` | No record produced by this task is still `ArchitectDisposition: TRIAGE_REQUIRED` | No new records |
+| `BACKLOG_UPDATE_STATUS` | `node scripts/rebuild-backlog.mjs` ran clean and the indexes are current | The task created and changed no record |
+| `ENGINEERING_HISTORY_STATUS` | A record exists under `docs/engineering-history/tasks/` with no unresolved TODO | The task modified no Git-tracked files |
+
+**`QA_STATUS = PASS` is not permitted while `QA_FINDINGS_CLASSIFIED_STATUS` is
+unresolved.** A run may pass with recorded, dispositioned defects — frequently it
+should. What it may not do is pass while something QA saw has nowhere to live.
+
+**`ARCHITECT_TRIAGE_STATUS` cannot be resolved by QA or by the implementing
+specialist.** QA establishes what is true; the Architect decides what the project
+does about it. Collapsing those two roles gives the person who found the defect,
+or the person who would have to fix it, authority over whether it counts.
+
+A `CRITICAL` finding left `DEFERRED` never resolves this field. See the severity
+rules in [`../agents/architect.md`](../agents/architect.md).
 
 `FEEDBACK_PROMOTION_STATUS` is evaluated **before** knowledge capture finishes.
 A correction the user made during the task is often the most valuable thing the
@@ -263,6 +314,11 @@ agent cannot evaluate is `BLOCKED_<REASON>`, which is honest and visible.
 | `MERGE_STATUS` | The task never modified Git-tracked files |
 | `POST_MERGE_VALIDATION_STATUS` | Nothing merged |
 | `FEEDBACK_PROMOTION_STATUS` | No user correction occurred, or every correction classified `NOT_DURABLE` |
+| `ENGINEERING_HISTORY_STATUS` | The task modified no Git-tracked files |
+| `QA_FINDINGS_CLASSIFIED_STATUS` | QA produced no findings |
+| `BUG_RECORD_STATUS` | No finding required a durable record — name the findings considered |
+| `ARCHITECT_TRIAGE_STATUS` | No new records were produced |
+| `BACKLOG_UPDATE_STATUS` | No record was created or changed |
 | `KNOWLEDGE_CAPTURE_STATUS` | Nothing durable was learned — an explicitly valid outcome |
 | `OBSIDIAN_SYNC_STATUS` | Use `SKIPPED_NO_LOCAL_CONFIG`, not `NOT_REQUIRED` |
 | `CLEANUP_STATUS` | No temporary worktree or branch was created |
@@ -457,6 +513,35 @@ QA run file under `docs/qa/runs/` is **required** when a task involves any of:
 live database validation, API endpoint checks, role or security validation,
 migration validation, UI tests, or negative-path tests. See
 [`../../docs/qa/README.md`](../../docs/qa/README.md).
+
+The run file is necessary and **not sufficient**. A run records what was tested;
+a bug record records what is wrong and what is being done about it, and it is the
+one a future agent reads before touching the module. Every material finding gets
+both — see [`../agents/qa.md`](../agents/qa.md) and
+[`../../docs/bugs/README.md`](../../docs/bugs/README.md).
+
+## The bug learning loop is part of completion
+
+```
+QA finds a material issue
+   ↓ a BUG record is created (or an existing one updated) with evidence
+   ↓ it appears in the backlog automatically — rebuild-backlog.mjs
+   ↓ the Architect triages: FIX_NOW / PLAN_REQUIRED / DEFER /
+   ↓                        PRODUCT_DECISION / BLOCKED_EXTERNAL / ACCEPTED_RISK
+   ↓ a specialist fixes the ROOT CAUSE, or the record moves to a decision state
+   ↓ QA proves the regression FAILS without the fix
+   ↓ QA verifies the fix → Status VERIFIED, ResolvedAt set
+   ↓ the regression register gains its REG-nnn entry
+   ↓ the known bug pattern is updated where the failure mode generalises
+   ↓ knowledge capture · Obsidian sync
+   ↓ a future agent retrieves the lesson before writing the same defect
+```
+
+Every arrow is somebody's stated responsibility —
+[`qa.md`](../agents/qa.md), [`architect.md`](../agents/architect.md),
+[`reviewer.md`](../agents/reviewer.md), the specialist roles' `Step 0`, and this
+contract. The loop is not advice; the four classification fields above are what
+make skipping a step visible.
 
 ## Obsidian sync runs automatically
 

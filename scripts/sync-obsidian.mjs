@@ -3,11 +3,13 @@
  * Publish repository knowledge into an Obsidian vault.
  *
  * The repository is the controlled source; the vault is a consumer. Agents
- * write to docs/knowledge and docs/qa, never into the vault directly, so a
- * bad generation can be reviewed in a diff before it reaches anyone's notes.
+ * write to docs/knowledge, docs/qa, docs/bugs, docs/backlog and
+ * docs/engineering-history — never into the vault directly — so a bad
+ * generation can be reviewed in a diff before it reaches anyone's notes.
  *
- * Everything lands under a `Generated/` subfolder of each destination. Notes
- * outside `Generated/` are hand-maintained and are never touched.
+ * Everything lands under a `Generated/` subfolder of each destination, or the
+ * agent-owned `11 - Agent Knowledge/QA/**`. Notes anywhere else are
+ * hand-maintained and are never touched.
  *
  * Node .mjs rather than PowerShell because every other script in this repo is
  * .mjs — see scripts/. Cross-platform comes free.
@@ -16,8 +18,10 @@
  */
 
 import { readFileSync, existsSync, mkdirSync, readdirSync, statSync, copyFileSync } from 'node:fs';
-import { join, resolve, relative, dirname } from 'node:path';
+import { join, resolve, relative, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { resolveMappings, hasMeaningfulContent } from './lib/obsidian-mappings.mjs';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -30,20 +34,11 @@ const CONFIG_PATH = resolve(
 );
 
 /*
- * Destinations are relative to the vault root and always end in Generated/, so
- * a sync can never overwrite a note a human wrote.
+ * The mapping table lives in scripts/lib/obsidian-mappings.mjs, shared with
+ * scripts/retrieve-knowledge.mjs. Retrieval must exclude exactly the folders
+ * this script writes — when the two derived that list separately, one of them
+ * was wrong and every QA run came back twice.
  */
-const DEFAULT_MAPPINGS = [
-  { from: 'docs/knowledge/modules', to: '03 - Modules/Generated' },
-  { from: 'docs/knowledge/decisions', to: '05 - Decisions/Generated' },
-  { from: 'docs/knowledge/implementations', to: '06 - Implementation Plans/Generated' },
-  { from: 'docs/knowledge/releases', to: '08 - Releases/Generated' },
-  { from: 'docs/knowledge/regressions', to: '11 - Agent Knowledge/Regressions/Generated' },
-  { from: 'docs/qa/runs', to: '11 - Agent Knowledge/QA/Runs' },
-  { from: 'docs/qa/regressions', to: '11 - Agent Knowledge/QA/Regressions' },
-  { from: 'docs/qa/known-bug-patterns', to: '11 - Agent Knowledge/QA/Bug Patterns' },
-  { from: 'docs/qa/test-strategy', to: '11 - Agent Knowledge/QA/Test Strategy' },
-];
 
 function loadConfig() {
   if (!existsSync(CONFIG_PATH)) {
@@ -80,10 +75,17 @@ function loadConfig() {
     process.exit(1);
   }
 
-  return {
-    vaultPath: config.vaultPath,
-    mappings: config.mappings?.length ? config.mappings : DEFAULT_MAPPINGS,
-  };
+  /*
+   * Config mappings ADD to the defaults; they do not replace them.
+   *
+   * The previous behaviour was replace-on-present, and it had exactly the
+   * failure you would expect: a local config pins the mappings that existed
+   * when it was written, so every mapping added afterwards silently never syncs
+   * — for the one person who actually configured a vault. A stale local file
+   * must not be able to un-publish knowledge.
+   */
+  const { mappings, mode } = resolveMappings(config);
+  return { vaultPath: config.vaultPath, mappings, mode };
 }
 
 /** Markdown files only. Never copies anything else out of the repository. */
@@ -100,16 +102,31 @@ function markdownFilesIn(dir) {
   return out;
 }
 
+/**
+ * A generated note must carry real content — see the empty-note policy in
+ * scripts/lib/obsidian-mappings.mjs. Folder READMEs face a lower bar but still
+ * may not be hollow: explaining a folder is a legitimate job.
+ */
+function isPublishable(file, body) {
+  const minimumWords = /^README\.md$/i.test(basename(file)) ? 20 : 40;
+  return hasMeaningfulContent(body, { minimumWords });
+}
+
 function main() {
-  const { vaultPath, mappings } = loadConfig();
+  const { vaultPath, mappings, mode } = loadConfig();
 
   console.log(`Vault:  ${vaultPath}`);
   console.log(`Mode:   ${DRY_RUN ? 'dry run — nothing will be written' : 'write'}`);
+  console.log(
+    `Config: mappings ${mode === 'replace' ? 'replaced by' : 'merged with'} local config — ${mappings.length} total`,
+  );
   console.log('');
 
-  let copied = 0;
+  const created = [];
+  const updated = [];
+  const skippedNoEvidence = [];
   let unchanged = 0;
-  let skipped = 0;
+  let emptyMappings = 0;
 
   for (const mapping of mappings) {
     const sourceDir = resolve(REPO_ROOT, mapping.from);
@@ -117,7 +134,7 @@ function main() {
     const files = markdownFilesIn(sourceDir);
 
     if (files.length === 0) {
-      skipped += 1;
+      emptyMappings += 1;
       console.log(`  --  ${mapping.from} → ${mapping.to} (nothing to sync)`);
       continue;
     }
@@ -131,11 +148,16 @@ function main() {
        */
       const relativePath = relative(sourceDir, file);
       const target = join(targetDir, relativePath);
-
       const source = readFileSync(file, 'utf8');
-      const identical = existsSync(target) && readFileSync(target, 'utf8') === source;
+      const label = `${mapping.from}/${relativePath}`.replace(/\\/g, '/');
 
-      if (identical) {
+      if (!isPublishable(file, source)) {
+        skippedNoEvidence.push(label);
+        continue;
+      }
+
+      const exists = existsSync(target);
+      if (exists && readFileSync(target, 'utf8') === source) {
         unchanged += 1;
         continue;
       }
@@ -145,14 +167,45 @@ function main() {
         copyFileSync(file, target);
       }
 
-      copied += 1;
-      console.log(`  ${DRY_RUN ? 'would copy' : 'copied'}  ${mapping.from}/${relativePath}`);
+      (exists ? updated : created).push(label);
     }
   }
 
+  /*
+   * The population report.
+   *
+   * Half the point of a one-time knowledge bootstrap is that it is reviewable
+   * BEFORE it lands in someone's notes, so --dry-run has to say exactly what it
+   * would do — not merely how many files.
+   */
+  const section = (label, entries) => {
+    console.log(`${label}: ${entries.length}`);
+    for (const entry of entries) console.log(`    ${entry}`);
+    if (entries.length) console.log('');
+  };
+
+  section(DRY_RUN ? 'NOTES_TO_CREATE' : 'NOTES_CREATED', created);
+  section(DRY_RUN ? 'NOTES_TO_UPDATE' : 'NOTES_UPDATED', updated);
+  section('NOTES_SKIPPED_NO_EVIDENCE', skippedNoEvidence);
+
+  console.log(`NOTES_ALREADY_CURRENT: ${unchanged}`);
+  console.log(`MAPPINGS_WITH_NO_SOURCE: ${emptyMappings}`);
+  console.log('MANUAL_NOTES_UNTOUCHED: all — this script writes only into the mapped');
+  console.log('                        agent-owned folders and reads nothing else.');
   console.log('');
-  console.log(`${DRY_RUN ? 'Would write' : 'Wrote'} ${copied} file(s); ${unchanged} already current; ${skipped} mapping(s) empty.`);
-  console.log('Notes outside Generated/ folders were not touched.');
+
+  if (skippedNoEvidence.length) {
+    console.log('Skipped notes carried no meaningful content beyond a title and headings.');
+    console.log('That is the empty-note policy working, not a failure: a generated note');
+    console.log('with nothing in it fills a folder and answers a search with silence.');
+    console.log('');
+  }
+
+  console.log(
+    `${DRY_RUN ? 'Would write' : 'Wrote'} ${created.length + updated.length} file(s); ` +
+      `${unchanged} already current; ${skippedNoEvidence.length} skipped as empty.`,
+  );
+  console.log('Notes outside the mapped agent-owned folders were not touched.');
 }
 
 main();
