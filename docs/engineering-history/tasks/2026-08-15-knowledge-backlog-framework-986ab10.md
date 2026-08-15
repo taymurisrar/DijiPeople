@@ -17,8 +17,8 @@
 | **Base SHA** | `3c759ce1c7de6f855b7dbfbf03c17cca4ee512c8` |
 | **Final Task SHA** | `986ab10a14f9641c2160677ec87a0bd97beceac6` |
 | **Target Branch** | `main` |
-| **Merge Commit** | PENDING — filled by the Integrator after the merge |
-| **Final Target SHA** | PENDING — filled after the target is pushed |
+| **Merge Commit** | `827701eb5ed035c7cae1bf8bf88a55bfdc0d689d` — PR #2, merge commit |
+| **Final Target SHA** | `827701eb5ed035c7cae1bf8bf88a55bfdc0d689d` at merge time. `origin/main` has since advanced to `ee9828b` (`41c24f5` tenant erasure fixes, pushed by the repository owner); this merge is an ancestor of it. |
 
 ### Commits
 
@@ -213,8 +213,8 @@ lost:** the record's credibility, in the first place anyone looks.
 
 | | |
 |---|---|
-| **CI Run ID** | PENDING — read on the exact SHA being merged, per the shared-target gate |
-| **CI Result** | PENDING |
+| **CI Run ID** | `31887909562` on `d016622` (pre-merge, authorised the merge) · `31888341970` on `827701e` (post-merge, on `main`) |
+| **CI Result** | **PASS** — `CI required gate` succeeded on both. `Lint services/api` reported failure on both; it is a documented non-gating known baseline per `docs/development/ci.md`, and it also fails on the preceding commits on `main`. |
 
 A verdict must be read **on the exact SHA being merged**. A verdict from an
 earlier commit on the same branch is a verdict about different code.
@@ -234,8 +234,21 @@ sufficient; the other two are listed because a failure in either is reported
 through a single aggregated check and the distinction matters when diagnosing.
 
 Tests that passed on the task branch prove the branch, not the integrated
-result — and this branch merged `origin/main` in, so the branch run is against
-the integrated tree. It must still be repeated on the merge commit.
+result — and this branch merged `origin/main` in, so the branch run was already
+against the integrated tree. It was repeated on the merge commit regardless.
+
+**Executed against `827701e`:**
+
+| Command | Result |
+|---|---|
+| `node scripts/validate-framework.mjs` | PASS — 503 checks, 0 warnings |
+| `node scripts/rebuild-backlog.mjs --check` | PASS — 39 records, 0 structural errors, indexes current |
+| `node scripts/generate-dashboards.mjs --check` | PASS — dashboards current |
+| `node scripts/retrieve-knowledge.mjs partner onboarding` | PASS — bug records rank above knowledge notes, no duplicated vault copies |
+| Remote CI on `827701e` (run `31888341970`) | PASS — `CI required gate` green |
+
+`npm run build`, `npm run typecheck` and the workspace test suites were not run
+locally: no build input changed, and CI ran all of them on the merge commit.
 
 ## Release / Deployment Impact
 
@@ -268,9 +281,16 @@ prevent.
 
 ## Obsidian Sync
 
-Run after the merge, per the ordering in the completion contract. Dry run before
-committing reported 102 notes to write, 22 already current and 5 skipped by the
-empty-note policy (stub folder READMEs under `docs/knowledge/`).
+**Ran after the merge**, per the ordering in the completion contract: knowledge
+is captured from the code that landed, and Obsidian publishes what was captured.
+
+`node scripts/sync-obsidian.mjs` → **103 written, 22 already current, 5 skipped
+as empty**, 0 mappings without a source. The vault went from 52 notes to 148.
+Manual notes were untouched — the script writes only into the mapped agent-owned
+folders and reads nothing else.
+
+The 5 skips were stub folder READMEs under `docs/knowledge/`, correctly withheld
+by the empty-note policy.
 
 Folders receiving content for the first time: `00 - Home/Generated`,
 `00 - Home/Generated/Backlog`, `01 - Product/Generated`,
