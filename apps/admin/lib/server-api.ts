@@ -93,7 +93,22 @@ export async function apiRequestJson<T>(path: string, init?: RequestInit) {
   return data as T;
 }
 
-export async function proxyApiJsonResponse(response: Response) {
+/**
+ * Forward an API response, and never turn a failure into a contextless one.
+ *
+ * The API always answers with the standard error envelope, so the usual case is
+ * a straight pass-through. What matters is the other case: when the upstream
+ * replies with no body — it is restarting, or a gateway in front of it answered
+ * instead — this used to emit `{ message: "Bad Gateway" }`. The browser then had
+ * a 502 with no trace id, no path and no method, which is exactly as much as
+ * "something went wrong" and cost a round trip with a downloaded log file to
+ * diagnose. A synthesised envelope keeps the shape the client already
+ * understands and names the request that failed.
+ */
+export async function proxyApiJsonResponse(
+  response: Response,
+  context?: { path?: string; method?: string },
+) {
   const rawBody = await response.text();
   const data = rawBody ? safeParseJson(rawBody) : null;
 
@@ -101,14 +116,90 @@ export async function proxyApiJsonResponse(response: Response) {
     return NextResponse.json(data, { status: response.status });
   }
 
+  if (response.ok) {
+    return NextResponse.json(
+      { message: "Request succeeded without a JSON body." },
+      { status: response.status },
+    );
+  }
+
   return NextResponse.json(
-    {
-      message: response.ok
-        ? "Request succeeded without a JSON body."
-        : response.statusText || "Request failed.",
-    },
+    buildProxyErrorEnvelope({
+      status: response.status,
+      message: `The API returned ${response.status}${
+        response.statusText ? ` ${response.statusText}` : ""
+      } with no response body.`,
+      description:
+        response.status >= 502
+          ? "The API did not answer. It may be restarting, or a gateway in front of it responded instead."
+          : "The API rejected the request without explaining why.",
+      context,
+      upstreamStatus: response.status,
+    }),
     { status: response.status },
   );
+}
+
+/**
+ * The envelope for a failure that never reached the API at all.
+ *
+ * Distinguishing "could not reach the API" from "the API said no" is the whole
+ * point: they have different causes and different fixes, and collapsing both
+ * into a bare 502 tells the operator neither.
+ */
+export function proxyUnreachableResponse(
+  error: unknown,
+  context?: { path?: string; method?: string },
+) {
+  const cause = error instanceof Error ? error.message : String(error);
+  return NextResponse.json(
+    buildProxyErrorEnvelope({
+      status: 502,
+      message: `The DijiPeople API could not be reached (${cause}).`,
+      description:
+        "The request never reached the API. Check that the API service is running and reachable from the admin app.",
+      context,
+      cause,
+    }),
+    { status: 502 },
+  );
+}
+
+function buildProxyErrorEnvelope(input: {
+  status: number;
+  message: string;
+  description: string;
+  context?: { path?: string; method?: string };
+  upstreamStatus?: number;
+  cause?: string;
+}) {
+  const traceId = createRequestId();
+  return {
+    success: false as const,
+    /*
+     * Prefixed like a server trace id so it reads as a real reference. It is
+     * generated here because the request produced no server-side trace to quote.
+     */
+    traceId,
+    timestamp: new Date().toISOString(),
+    statusCode: input.status,
+    errorCode: input.status === 504 ? "INTEGRATION_TIMEOUT" : "INTEGRATION_FAILED",
+    message: input.message,
+    description: input.description,
+    path: input.context?.path,
+    method: input.context?.method,
+    details: {
+      origin: "admin-proxy",
+      apiBaseUrl: getApiBaseUrl(),
+      upstreamStatus: input.upstreamStatus,
+      cause: input.cause,
+    },
+    support: {
+      reference: traceId,
+      message:
+        "Quote this reference. It identifies the admin request; the API has no matching log because it did not answer.",
+    },
+  };
 }
 
 export async function proxyApiFileResponse(response: Response) {

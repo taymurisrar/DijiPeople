@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  HttpException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -41,6 +42,7 @@ import { FeatureAccessService } from '../tenant-settings/feature-access.service'
 import { TenantSettingsResolverService } from '../tenant-settings/tenant-settings-resolver.service';
 import { TENANT_FEATURE_DEFINITIONS } from '../tenant-settings/tenant-settings.catalog';
 import { TenantsRepository } from '../tenants/tenants.repository';
+import { TenantDomainService } from '../tenant-domains/tenant-domain.service';
 import { AuditService } from '../audit/audit.service';
 import { BillingService } from './billing.service';
 import {
@@ -222,6 +224,7 @@ export class SuperAdminService {
     private readonly auditService: AuditService,
     private readonly webhookService: WebhookService,
     private readonly stripeBillingService: StripeBillingService,
+    private readonly tenantDomains: TenantDomainService,
   ) {}
 
   getLifecycleOptions() {
@@ -812,19 +815,55 @@ export class SuperAdminService {
     );
   }
 
+  /**
+   * Whether a proposed workspace slug can actually be issued, and what URL it
+   * would produce.
+   *
+   * This used to check only `Tenant.slug`. That is not the whole question: the
+   * slug becomes a hostname label, so the hostname it would occupy has to be
+   * free too — a custom domain could already hold it — and the reserved-label
+   * rules apply. `TenantDomainService.validateSlug` owns all of that, so this
+   * asks it rather than re-deriving a weaker version of the same answer.
+   */
   async checkTenantSlugAvailability(slug: string, excludeTenantId?: string) {
-    const normalizedSlug = assertValidTenantSlug(slug);
-    const existing = excludeTenantId
-      ? await this.tenantsRepository.findBySlugExcludingId(
-          normalizedSlug,
-          excludeTenantId,
-        )
-      : await this.tenantsRepository.findBySlug(normalizedSlug);
-
-    return {
-      slug: normalizedSlug,
-      available: !existing,
-    };
+    try {
+      const result = await this.tenantDomains.validateSlug(slug, {
+        excludeTenantId,
+      });
+      return {
+        slug: result.slug,
+        available: true,
+        hostname: result.hostname,
+        url: result.url,
+        reason: null,
+      };
+    } catch (error) {
+      /*
+       * A rejected slug is a normal answer to "is this available", not a
+       * failure — the caller is a live availability check on a form field. The
+       * reason is passed through so the form can say *why*, which is the
+       * difference between "already taken" and "that word is reserved".
+       */
+      if (error instanceof HttpException) {
+        const response = error.getResponse();
+        const details =
+          typeof response === 'object' && response
+            ? (response as { message?: unknown; code?: unknown })
+            : {};
+        return {
+          slug: normalizeTenantSlug(slug ?? ''),
+          available: false,
+          hostname: null,
+          url: null,
+          reason:
+            typeof details.message === 'string'
+              ? details.message
+              : 'This workspace slug cannot be used.',
+          code: typeof details.code === 'string' ? details.code : undefined,
+        };
+      }
+      throw error;
+    }
   }
 
   async getTenantDetail(tenantId: string) {
@@ -3011,9 +3050,13 @@ export class SuperAdminService {
         paymentRequiredForProvisioning: true,
         trainingRequiredForActivation: true,
       },
+      /*
+       * The base domain and protocol are no longer part of this setting. They
+       * are resolved from configuration by `getPlatformDomainConfig`, because
+       * the hostname router runs at the edge with no database access and both
+       * must agree. Only the operator's DNS-readiness assertion lives here.
+       */
       tenantProvisioning: byKey.get('tenant-provisioning') ?? {
-        tenantBaseDomain: 'digipeople.com',
-        defaultProtocol: 'https',
         wildcardDnsReady: false,
       },
       supportSettings: byKey.get('support-settings') ?? {

@@ -17,6 +17,7 @@
     "check-types": "turbo run check-types",
     "generate:runtime-schema": "node scripts/generate-platform-runtime-schema.mjs",
     "test:runtime-schema": "node --test packages/config/platform-runtime-schema.test.js",
+    "test:platform-domains": "node --test packages/config/platform-domains.test.js",
     "prisma:validate": "npm --workspace api run prisma:validate",
     "prisma:generate": "npm --workspace api run prisma:generate",
     "prisma:migrate:status": "npm --workspace api run prisma:migrate:status",

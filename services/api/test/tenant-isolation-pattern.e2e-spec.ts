@@ -39,125 +39,144 @@ function createTestPrismaClient(): PrismaClient {
  *   4. assert a tenant-B-scoped write cannot mutate it
  *   5. clean up in afterAll
  */
-describeWithDatabase()('Tenant isolation and constraint pattern (DB-backed)', () => {
-  jest.setTimeout(120_000);
+describeWithDatabase()(
+  'Tenant isolation and constraint pattern (DB-backed)',
+  () => {
+    jest.setTimeout(120_000);
 
-  const prisma = createTestPrismaClient();
-  const fixtures = new DbFixtures(prisma, 'isolation-pattern');
+    const prisma = createTestPrismaClient();
+    const fixtures = new DbFixtures(prisma, 'isolation-pattern');
 
-  let tenantA: Awaited<ReturnType<DbFixtures['createTenant']>>;
-  let tenantB: Awaited<ReturnType<DbFixtures['createTenant']>>;
+    let tenantA: Awaited<ReturnType<DbFixtures['createTenant']>>;
+    let tenantB: Awaited<ReturnType<DbFixtures['createTenant']>>;
 
-  beforeAll(async () => {
-    await prisma.$connect();
-    tenantA = await fixtures.createTenant('a');
-    tenantB = await fixtures.createTenant('b');
-  });
-
-  afterAll(async () => {
-    await fixtures.cleanup();
-    await prisma.$disconnect();
-  });
-
-  describe('tenant scoping', () => {
-    it('creates two genuinely distinct tenants', () => {
-      expect(tenantA.id).not.toEqual(tenantB.id);
-      expect(tenantA.customerAccountId).not.toEqual(tenantB.customerAccountId);
+    beforeAll(async () => {
+      await prisma.$connect();
+      tenantA = await fixtures.createTenant('a');
+      tenantB = await fixtures.createTenant('b');
     });
 
-    it('does not return tenant A rows to a tenant-B-scoped query', async () => {
-      const role = await prisma.role.create({
-        data: {
-          tenantId: tenantA.id,
-          key: fixtures.name('role-a'),
-          name: 'Isolation probe',
-        },
-        select: { id: true },
-      });
-
-      // The scoped read every service is supposed to perform.
-      const asTenantB = await prisma.role.findFirst({
-        where: { id: role.id, tenantId: tenantB.id },
-      });
-      expect(asTenantB).toBeNull();
-
-      // Same row, correct tenant — proves the row exists and the null above is
-      // isolation rather than a missing record.
-      const asTenantA = await prisma.role.findFirst({
-        where: { id: role.id, tenantId: tenantA.id },
-      });
-      expect(asTenantA).not.toBeNull();
+    afterAll(async () => {
+      await fixtures.cleanup();
+      await prisma.$disconnect();
     });
 
-    it('does not let a tenant-B-scoped write mutate tenant A data', async () => {
-      const role = await prisma.role.create({
-        data: {
-          tenantId: tenantA.id,
-          key: fixtures.name('role-write'),
-          name: 'Original',
-        },
-        select: { id: true },
+    describe('tenant scoping', () => {
+      it('creates two genuinely distinct tenants', () => {
+        expect(tenantA.id).not.toEqual(tenantB.id);
+        expect(tenantA.customerAccountId).not.toEqual(
+          tenantB.customerAccountId,
+        );
       });
 
-      const result = await prisma.role.updateMany({
-        where: { id: role.id, tenantId: tenantB.id },
-        data: { name: 'Mutated by the wrong tenant' },
+      it('does not return tenant A rows to a tenant-B-scoped query', async () => {
+        const role = await prisma.role.create({
+          data: {
+            tenantId: tenantA.id,
+            key: fixtures.name('role-a'),
+            name: 'Isolation probe',
+          },
+          select: { id: true },
+        });
+
+        // The scoped read every service is supposed to perform.
+        const asTenantB = await prisma.role.findFirst({
+          where: { id: role.id, tenantId: tenantB.id },
+        });
+        expect(asTenantB).toBeNull();
+
+        // Same row, correct tenant — proves the row exists and the null above is
+        // isolation rather than a missing record.
+        const asTenantA = await prisma.role.findFirst({
+          where: { id: role.id, tenantId: tenantA.id },
+        });
+        expect(asTenantA).not.toBeNull();
       });
 
-      expect(result.count).toBe(0);
+      it('does not let a tenant-B-scoped write mutate tenant A data', async () => {
+        const role = await prisma.role.create({
+          data: {
+            tenantId: tenantA.id,
+            key: fixtures.name('role-write'),
+            name: 'Original',
+          },
+          select: { id: true },
+        });
 
-      const unchanged = await prisma.role.findUniqueOrThrow({ where: { id: role.id } });
-      expect(unchanged.name).toBe('Original');
-    });
-  });
+        const result = await prisma.role.updateMany({
+          where: { id: role.id, tenantId: tenantB.id },
+          data: { name: 'Mutated by the wrong tenant' },
+        });
 
-  describe('database constraints', () => {
-    it('enforces RESTRICT: a customer account cannot be deleted while a tenant references it', async () => {
-      await expect(
-        prisma.customerAccount.delete({ where: { id: tenantA.customerAccountId } }),
-      ).rejects.toThrow();
+        expect(result.count).toBe(0);
 
-      // Still there — the constraint blocked the delete rather than cascading.
-      const account = await prisma.customerAccount.findUnique({
-        where: { id: tenantA.customerAccountId },
+        const unchanged = await prisma.role.findUniqueOrThrow({
+          where: { id: role.id },
+        });
+        expect(unchanged.name).toBe('Original');
       });
-      expect(account).not.toBeNull();
     });
 
-    it('enforces a composite unique constraint scoped by tenant', async () => {
-      const key = fixtures.name('dup-key');
+    describe('database constraints', () => {
+      it('enforces RESTRICT: a customer account cannot be deleted while a tenant references it', async () => {
+        await expect(
+          prisma.customerAccount.delete({
+            where: { id: tenantA.customerAccountId },
+          }),
+        ).rejects.toThrow();
 
-      await prisma.role.create({ data: { tenantId: tenantA.id, key, name: 'First' } });
-
-      // Same key, same tenant → rejected.
-      await expect(
-        prisma.role.create({ data: { tenantId: tenantA.id, key, name: 'Duplicate' } }),
-      ).rejects.toThrow();
-
-      // Same key, DIFFERENT tenant → allowed. This is the property that makes
-      // the uniqueness tenant-scoped rather than global, and the one a bare
-      // unique constraint would silently break.
-      const other = await prisma.role.create({
-        data: { tenantId: tenantB.id, key, name: 'Same key, other tenant' },
+        // Still there — the constraint blocked the delete rather than cascading.
+        const account = await prisma.customerAccount.findUnique({
+          where: { id: tenantA.customerAccountId },
+        });
+        expect(account).not.toBeNull();
       });
-      expect(other.id).toBeTruthy();
+
+      it('enforces a composite unique constraint scoped by tenant', async () => {
+        const key = fixtures.name('dup-key');
+
+        await prisma.role.create({
+          data: { tenantId: tenantA.id, key, name: 'First' },
+        });
+
+        // Same key, same tenant → rejected.
+        await expect(
+          prisma.role.create({
+            data: { tenantId: tenantA.id, key, name: 'Duplicate' },
+          }),
+        ).rejects.toThrow();
+
+        // Same key, DIFFERENT tenant → allowed. This is the property that makes
+        // the uniqueness tenant-scoped rather than global, and the one a bare
+        // unique constraint would silently break.
+        const other = await prisma.role.create({
+          data: { tenantId: tenantB.id, key, name: 'Same key, other tenant' },
+        });
+        expect(other.id).toBeTruthy();
+      });
+
+      it('rolls the whole transaction back when one statement fails', async () => {
+        const key = fixtures.name('tx-role');
+
+        await expect(
+          prisma.$transaction(async (tx) => {
+            await tx.role.create({
+              data: { tenantId: tenantA.id, key, name: 'In transaction' },
+            });
+            // Same key in the same tenant — violates the composite unique above.
+            await tx.role.create({
+              data: { tenantId: tenantA.id, key, name: 'Conflicts' },
+            });
+          }),
+        ).rejects.toThrow();
+
+        // The first insert must not have survived. This is the property that
+        // makes tenant erasure safe: one transaction, so a failure erases nothing.
+        const survivors = await prisma.role.findMany({
+          where: { tenantId: tenantA.id, key },
+        });
+        expect(survivors).toHaveLength(0);
+      });
     });
-
-    it('rolls the whole transaction back when one statement fails', async () => {
-      const key = fixtures.name('tx-role');
-
-      await expect(
-        prisma.$transaction(async (tx) => {
-          await tx.role.create({ data: { tenantId: tenantA.id, key, name: 'In transaction' } });
-          // Same key in the same tenant — violates the composite unique above.
-          await tx.role.create({ data: { tenantId: tenantA.id, key, name: 'Conflicts' } });
-        }),
-      ).rejects.toThrow();
-
-      // The first insert must not have survived. This is the property that
-      // makes tenant erasure safe: one transaction, so a failure erases nothing.
-      const survivors = await prisma.role.findMany({ where: { tenantId: tenantA.id, key } });
-      expect(survivors).toHaveLength(0);
-    });
-  });
-});
+  },
+);

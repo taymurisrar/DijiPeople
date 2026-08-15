@@ -72,6 +72,25 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   const expressApp = app.getHttpAdapter().getInstance() as unknown as Express;
+
+  /*
+   * Whether `X-Forwarded-*` can be believed.
+   *
+   * Workspace routing reads the hostname a request arrived on, so this is a
+   * security setting, not a cosmetic one: trusting forwarded headers when the
+   * API is directly reachable would let a caller name any host it likes. It is
+   * therefore off unless the deployment states there is a proxy in front — set
+   * explicitly with TRUST_PROXY_HEADERS, or inferred from the hosting platform.
+   * See `modules/tenant-domains/request-hostname.ts`.
+   */
+  const trustProxy = resolveTrustProxySetting(process.env);
+  if (trustProxy) {
+    (expressApp as unknown as { set(key: string, value: unknown): void }).set(
+      'trust proxy',
+      trustProxy,
+    );
+  }
+
   const healthPayload = () => getRuntimeHealthPayload(process.env);
   expressApp.get('/', (_req, res) => res.json(healthPayload()));
   expressApp.get('/api', (_req, res) => res.json(healthPayload()));
@@ -106,6 +125,24 @@ async function bootstrap() {
 }
 
 void bootstrap();
+
+/**
+ * How many proxy hops to trust, or false for none.
+ *
+ * Render and Vercel both terminate TLS and forward, so one hop is correct
+ * there. Anything else has to say so explicitly rather than be guessed at.
+ */
+function resolveTrustProxySetting(env: NodeJS.ProcessEnv): number | false {
+  const configured = env.TRUST_PROXY_HEADERS?.trim().toLowerCase();
+  if (configured) {
+    if (['0', 'false', 'no', 'off'].includes(configured)) return false;
+    const hops = Number(configured);
+    if (Number.isInteger(hops) && hops > 0) return hops;
+    if (['1', 'true', 'yes', 'on'].includes(configured)) return 1;
+    return false;
+  }
+  return env.RENDER === 'true' || env.VERCEL === '1' ? 1 : false;
+}
 
 function configureBodyParsing(expressApp: {
   use: (...args: unknown[]) => void;

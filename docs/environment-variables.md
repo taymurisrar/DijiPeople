@@ -9,6 +9,40 @@ Environment is app-scoped. Do not share cookies, JWT secrets, or app origins bet
 - Store production database and JWT secrets only in Render/Vercel environment variables.
 - Do not commit `.env` files containing real secrets.
 
+## Workspace routing
+
+These decide which tenant a hostname resolves to, so they must be set to the
+**same values** on every surface that resolves one — `services/api`,
+`apps/web` and `apps/admin`. A deployment where the API and the web proxy
+disagree about the base domain will route requests to nothing.
+
+They are read by `packages/config/platform-domains.js`, which is the only place
+that parses or builds a hostname. See
+[`docs/architecture/workspace-routing-and-domains.md`](architecture/workspace-routing-and-domains.md)
+for the full production checklist.
+
+| Variable | Required | Meaning |
+|---|---|---|
+| `PLATFORM_ENVIRONMENT` | **yes** | `production`, `staging` or `development`. Set explicitly — never rely on `NODE_ENV`, because the development branch is what enables the default-tenant fallback. |
+| `PUBLIC_BASE_DOMAIN` | production | The apex the platform hostnames derive from, e.g. `dijipeople.com`. Defaults to the built-in base domain in production only. |
+| `TENANT_BASE_DOMAIN` | production | The apex workspace subdomains live under. Defaults to `PUBLIC_BASE_DOMAIN`. Configured separately so workspaces can use a different apex than the marketing site. |
+| `APP_HOST` | optional | Global sign-in / workspace discovery host. Derived as `app.<PUBLIC_BASE_DOMAIN>` when unset. |
+| `ADMIN_HOST` | optional | Platform admin host. Derived as `admin.<PUBLIC_BASE_DOMAIN>`. |
+| `API_HOST` | optional | API host. Derived as `api.<PUBLIC_BASE_DOMAIN>`. |
+| `LANDING_HOST` | optional | Marketing host. Defaults to the apex. |
+| `TRUST_PROXY_HEADERS` | API, when behind a proxy | `true` only when a proxy in front of the API sets `X-Forwarded-Host`/`Forwarded`. **Setting this on a directly reachable API lets any caller name any workspace.** |
+| `DEFAULT_TENANT_SLUG` | development only | Local fallback workspace when the hostname names none. **Must not be set in production or staging** — it is ignored there, but leaving it set is misleading. |
+| `TENANT_SLUG_RESERVED_WORDS` | optional | Extra comma-separated slugs to reserve, on top of `RESERVED_HOST_LABELS`. |
+
+Each variable also has a `NEXT_PUBLIC_`-prefixed alias for the Next.js apps, plus
+the legacy aliases `NEXT_PUBLIC_TENANT_ROOT_DOMAIN`, `WEB_APP_PROD_ROOT_DOMAIN`
+and `NEXT_PUBLIC_WEB_ROOT_DOMAIN` for the tenant base domain.
+
+> Wildcard DNS readiness is **not** an environment variable. It is a platform
+> setting an operator asserts in Platform Admin → Settings → Tenant provisioning
+> once DNS, proxy routing and TLS are genuinely live. Until it is set, new
+> workspace subdomains stay `PENDING` and tenants cannot be activated.
+
 ## API: Render
 
 Required production values:

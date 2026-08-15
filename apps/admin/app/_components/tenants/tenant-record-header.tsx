@@ -27,6 +27,8 @@ export function TenantRecordHeader({
   const plan = asRecord(subscription?.plan);
   const workspaceDomain =
     typeof record.primaryDomain === "string" ? record.primaryDomain : null;
+  const environmentType =
+    typeof record.environmentType === "string" ? record.environmentType : null;
   const createdAt =
     typeof record.createdAt === "string" ? record.createdAt : null;
 
@@ -38,6 +40,23 @@ export function TenantRecordHeader({
       <div className="mt-1.5 flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-semibold text-slate-950">{displayName}</h1>
         {status ? <TenantStatusBadge value={status} /> : null}
+        {environmentType ? (
+          /*
+           * Always rendered, including for PRODUCTION. A badge that only appears
+           * on non-production makes "no badge" ambiguous — unlabelled and
+           * production look identical — and this header sits above suspend,
+           * cancel and erase.
+           */
+          <span
+            className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+              environmentType === "PRODUCTION"
+                ? "bg-slate-100 text-slate-700"
+                : "bg-amber-100 text-amber-900"
+            }`}
+          >
+            {formatEnumLabel(environmentType)}
+          </span>
+        ) : null}
       </div>
 
       <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-600">

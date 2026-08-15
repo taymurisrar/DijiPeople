@@ -28,6 +28,8 @@ import { SystemPreferencesProvider } from "./_components/resolved-settings-provi
 import { NotificationPopupProvider } from "./_components/notification-popup-provider";
 import { resolveRouteTitle } from "@/lib/tenant-branding-client";
 import { buildFaviconMetadata } from "@/lib/favicon-metadata";
+import { WorkspaceEnvironmentBanner } from "@/app/components/workspace-environment-banner";
+import { assertSessionMatchesWorkspace } from "@/lib/workspace-context";
 
 const getResolvedTenantSettings = cache(() =>
   apiRequestJson<TenantResolvedSettingsResponse>(
@@ -65,6 +67,18 @@ export default async function DashboardLayout({
 
   if (!user) {
     redirect(LOGIN_ROUTE);
+  }
+
+  /*
+   * A session proves who someone is, never which workspace they may open. A
+   * valid session presented on another customer's hostname is refused here,
+   * before any tenant data is fetched — the API would scope its reads to the
+   * session's own tenant anyway, but rendering another customer's workspace
+   * chrome around them is itself the leak.
+   */
+  const wrongWorkspaceRoute = await assertSessionMatchesWorkspace(user.tenantId);
+  if (wrongWorkspaceRoute) {
+    redirect(wrongWorkspaceRoute);
   }
 
   const roleLabel = user.roleKeys?.[0] ?? "Tenant User";
@@ -151,6 +165,12 @@ export default async function DashboardLayout({
           businessUnitAccess,
         }}
       >
+        {/*
+          Non-production workspaces are marked before anything else renders, so
+          the marker is visible on every screen rather than only where someone
+          remembered to add it.
+        */}
+        <WorkspaceEnvironmentBanner />
         <div
           className="dp-theme-scope min-h-screen bg-background py-2 md:py-4"
           data-theme={

@@ -45,12 +45,13 @@ function build(subscription: Record<string, unknown> | null) {
   };
   const service = new TenantControlPlaneService(
     prisma as never,
-    {} as never,
-    {} as never,
-    {} as never,
-    {} as never,
-    { log: jest.fn() } as never,
-    { record: jest.fn() } as never,
+    {} as never, // access
+    {} as never, // modules
+    {} as never, // apps
+    {} as never, // operations
+    {} as never, // domains
+    { log: jest.fn() } as never, // audit
+    { record: jest.fn() } as never, // platform events
   );
   return { service, prisma };
 }

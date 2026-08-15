@@ -12,6 +12,19 @@ import {
 import { sanitizeLocalNextPath, toCanonicalPath } from "@/lib/routes";
 import { getTenantHintFromRequest } from "@/lib/tenant-resolution";
 import { buildTenantLoginUrl } from "@/lib/tenant-url";
+import {
+  WORKSPACE_HEADER,
+  resolveWorkspaceRoute,
+} from "@/lib/workspace-context";
+import {
+  WORKSPACE_STATE_PATH_PREFIX,
+  WORKSPACE_STATE_ROUTES,
+  classifyHostname,
+  getDevelopmentFallbackWorkspaceSlug,
+  getLocalWorkspaceSlug,
+  isDevelopmentWorkspaceFallbackAllowed,
+} from "@/lib/workspace-routing";
+import type { WorkspaceRoute } from "@/lib/workspace-routing";
 
 const ACCESS_TOKEN_REFRESH_BUFFER_SECONDS = 5 * 60;
 
@@ -35,6 +48,63 @@ type RefreshSessionResult =
 
 export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
+
+  /*
+   * Workspace routing happens before anything else, because which workspace this
+   * request belongs to decides whether there is anything to render at all. One
+   * deployment serves every tenant hostname; this is what makes that safe.
+   */
+  const workspace = await resolveWorkspaceForRequest(request);
+
+  if (workspace.redirectTo) {
+    /* 308: the address moved permanently and the method must be preserved. */
+    return NextResponse.redirect(workspace.redirectTo, 308);
+  }
+
+  if (workspace.stateRoute && !pathname.startsWith(WORKSPACE_STATE_PATH_PREFIX)) {
+    const url = request.nextUrl.clone();
+    url.pathname = workspace.stateRoute;
+    url.search = "";
+    /*
+     * Rewritten rather than redirected: the visitor stays on the hostname they
+     * typed, which is what makes "workspace not found" readable rather than a
+     * bounce to somewhere they did not ask for.
+     */
+    return NextResponse.rewrite(url, {
+      request: { headers: workspaceHeaders(request, workspace.route) },
+    });
+  }
+
+  /*
+   * The generic login host has no workspace of its own. A signed-in visitor is
+   * sent to workspace discovery, which forwards them to the workspace they
+   * belong to rather than making them sign in again.
+   */
+  if (
+    workspace.isDiscoveryHost &&
+    !pathname.startsWith(WORKSPACE_STATE_PATH_PREFIX)
+  ) {
+    const hasSession =
+      Boolean(request.cookies.get(ACCESS_TOKEN_COOKIE)?.value) ||
+      Boolean(request.cookies.get(REFRESH_TOKEN_COOKIE)?.value);
+    if (hasSession && pathname !== LOGIN_ROUTE) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/workspace/choose";
+      url.search = "";
+      return NextResponse.redirect(url);
+    }
+  }
+
+  /*
+   * Once a workspace state page is being served, let it render — re-entering the
+   * rewrite on its own path would loop.
+   */
+  if (pathname.startsWith(WORKSPACE_STATE_PATH_PREFIX)) {
+    return NextResponse.next({
+      request: { headers: workspaceHeaders(request, workspace.route) },
+    });
+  }
+
   const accessToken = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value;
   const refreshToken = request.cookies.get(REFRESH_TOKEN_COOKIE)?.value;
   const hasSessionCookie = Boolean(accessToken) || Boolean(refreshToken);
@@ -67,9 +137,158 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  const requestHeaders = new Headers(request.headers);
+  const requestHeaders = workspaceHeaders(request, workspace.route);
   requestHeaders.set("x-dijipeople-pathname", pathname);
   return NextResponse.next({ request: { headers: requestHeaders } });
+}
+
+type WorkspaceDecision = {
+  route: WorkspaceRoute | null;
+  stateRoute: string | null;
+  redirectTo: URL | null;
+  isDiscoveryHost: boolean;
+};
+
+/**
+ * Decide what this hostname means.
+ *
+ * Structural checks first so the common case costs nothing, then one resolution
+ * call for anything that could be a workspace. An unknown hostname is refused
+ * outside development — never resolved to a default tenant.
+ */
+async function resolveWorkspaceForRequest(
+  request: NextRequest,
+): Promise<WorkspaceDecision> {
+  const classification = classifyHostname(
+    request.headers.get("x-forwarded-host") ?? request.headers.get("host"),
+  );
+
+  if (classification.kind === "INVALID") {
+    return {
+      route: null,
+      stateRoute: WORKSPACE_STATE_ROUTES.NOT_FOUND,
+      redirectTo: null,
+      isDiscoveryHost: false,
+    };
+  }
+
+  /*
+   * The discovery host has no workspace of its own; it exists to send a signed-in
+   * user to theirs. Its pages handle that themselves.
+   */
+  if (classification.kind === "DISCOVERY") {
+    return {
+      route: null,
+      stateRoute: null,
+      redirectTo: null,
+      isDiscoveryHost: true,
+    };
+  }
+
+  if (classification.kind === "LOCAL") {
+    const localSlug =
+      getLocalWorkspaceSlug(classification.hostname) ||
+      getDevelopmentFallbackWorkspaceSlug();
+    if (!localSlug) {
+      /*
+       * A bare localhost origin with no configured development workspace is a
+       * developer setup question, not a customer-facing state — the app renders
+       * normally and the existing tenant hint mechanism applies.
+       */
+      return {
+        route: null,
+        stateRoute: null,
+        redirectTo: null,
+        isDiscoveryHost: false,
+      };
+    }
+    return {
+      route: {
+        outcome: "WORKSPACE",
+        hostname: classification.hostname,
+        workspace: {
+          tenantId: "",
+          name: localSlug,
+          slug: localSlug,
+          status: "ACTIVE",
+          environmentType: "DEVELOPMENT",
+          isPrimaryHost: true,
+        },
+        redirectToUrl: null,
+        message: "Local development workspace.",
+      },
+      stateRoute: null,
+      redirectTo: null,
+      isDiscoveryHost: false,
+    };
+  }
+
+  const route = await resolveWorkspaceRoute(classification.hostname);
+
+  if (!route) {
+    /*
+     * The API could not answer. In development that is usually a service that is
+     * not running, and blocking every page behind it makes local work
+     * impossible; anywhere else, serving a workspace we could not confirm is
+     * exactly the guess this architecture exists to prevent.
+     */
+    if (isDevelopmentWorkspaceFallbackAllowed()) {
+      return {
+        route: null,
+        stateRoute: null,
+        redirectTo: null,
+        isDiscoveryHost: false,
+      };
+    }
+    return {
+      route: null,
+      stateRoute: WORKSPACE_STATE_ROUTES.NOT_FOUND,
+      redirectTo: null,
+      isDiscoveryHost: false,
+    };
+  }
+
+  if (route.outcome === "REDIRECT" && route.redirectToUrl) {
+    const target = new URL(request.nextUrl.pathname + request.nextUrl.search, route.redirectToUrl);
+    /* Never redirect to the host we are already on. */
+    if (target.hostname !== classification.hostname) {
+      return {
+        route,
+        stateRoute: null,
+        redirectTo: target,
+        isDiscoveryHost: false,
+      };
+    }
+  }
+
+  const stateRoute = WORKSPACE_STATE_ROUTES[route.outcome] ?? null;
+  return { route, stateRoute, redirectTo: null, isDiscoveryHost: false };
+}
+
+/**
+ * Pass the resolved workspace to the render.
+ *
+ * Set unconditionally — including deleted when there is no workspace — so a
+ * request cannot smuggle in a workspace identity through these headers.
+ */
+function workspaceHeaders(request: NextRequest, route: WorkspaceRoute | null) {
+  const headers = new Headers(request.headers);
+  for (const header of Object.values(WORKSPACE_HEADER)) {
+    headers.delete(header);
+  }
+  if (!route) return headers;
+
+  headers.set(WORKSPACE_HEADER.outcome, route.outcome);
+  headers.set(WORKSPACE_HEADER.hostname, route.hostname);
+  if (route.workspace) {
+    if (route.workspace.tenantId) {
+      headers.set(WORKSPACE_HEADER.tenantId, route.workspace.tenantId);
+    }
+    headers.set(WORKSPACE_HEADER.slug, route.workspace.slug);
+    headers.set(WORKSPACE_HEADER.name, route.workspace.name);
+    headers.set(WORKSPACE_HEADER.environment, route.workspace.environmentType);
+  }
+  return headers;
 }
 
 export const config = {

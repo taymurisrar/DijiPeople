@@ -1732,19 +1732,20 @@ export class ContractsService {
       effectiveFrom: dto.effectiveFrom ?? existing.effectiveFrom,
       effectiveUntil: dto.effectiveUntil ?? existing.effectiveUntil,
     });
-    if (
-      [
-        'SIGNATURE_IN_PROGRESS',
-        'PARTIALLY_SIGNED',
-        'FULLY_SIGNED',
-        'ACTIVE',
-        'ARCHIVED',
-      ].includes(existing.status)
-    ) {
-      throw new BadRequestException(
-        'Contract terms in signing or signed state must be changed through cancellation, a new version, or an amendment.',
-      );
-    }
+    /*
+     * Immutability is decided by assertAgreementEditable and nowhere else.
+     *
+     * This used to carry its own inline copy of the blocked-status list, and it
+     * had drifted: SENT, VIEWED, FULLY_EXECUTED, SUPERSEDED and TERMINATED were
+     * missing. That left a fully executed agreement freely editable through
+     * PATCH — including relatedLeadId and customerAccountId. Because the lead
+     * conversion gate (assertGoverningAgreementExecuted) matches contracts by
+     * those very columns, one PATCH could re-point a signed agreement at a
+     * different lead and convert it to a customer that never had an agreement.
+     * Two lists expressing one invariant is what allowed that, so there is now
+     * one list.
+     */
+    this.assertAgreementEditable(existing.status);
     if (dto.status !== undefined && dto.status !== existing.status)
       throw new BadRequestException(
         'Contract status changes must use the governed process, approval, signature, activation, or termination action.',

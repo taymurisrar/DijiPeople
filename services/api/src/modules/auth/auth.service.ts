@@ -51,6 +51,7 @@ import { PasswordPolicyService } from './password-policy.service';
 import { platformAccessForRole } from '../platform-auth/platform-permissions';
 import { AdminLoginDto } from './dto/admin-login.dto';
 import { PlatformCommunicationsService } from '../platform-communications/platform-communications.service';
+import { TenantDomainService } from '../tenant-domains/tenant-domain.service';
 
 type UserWithAccess = Prisma.UserGetPayload<{
   include: {
@@ -134,7 +135,37 @@ export class AuthService {
     private readonly auditService: AuditService,
     private readonly passwordPolicyService: PasswordPolicyService,
     private readonly loginLockoutService: LoginLockoutService,
+    private readonly tenantDomains: TenantDomainService,
   ) {}
+
+  /**
+   * A password-reset link that lands back in the workspace the user came from.
+   *
+   * The workspace hostname is resolved from the subject's own tenant, so the
+   * link cannot be pointed at a different workspace by anything in the request.
+   * If the domain service cannot answer, the configured base URL is used rather
+   * than failing the reset.
+   */
+  private async buildWorkspaceResetUrl(
+    tenantId: string,
+    tenantSlug: string,
+    resetToken: string,
+  ) {
+    try {
+      const workspaceUrl = await this.tenantDomains.getWorkspaceUrl(
+        tenantId,
+        '/reset-password',
+      );
+      const url = new URL(workspaceUrl);
+      url.searchParams.set('token', resetToken);
+      return url.toString();
+    } catch {
+      const baseUrl =
+        this.configService.get<string>('PASSWORD_RESET_LINK_BASE_URL') ??
+        `${getAppOrigin('web', process.env)}/reset-password`;
+      return `${baseUrl}?tenant=${encodeURIComponent(tenantSlug)}&token=${encodeURIComponent(resetToken)}`;
+    }
+  }
 
   async signup(dto: SignupDto) {
     return this.tenantsService.signup({
@@ -688,12 +719,16 @@ export class AuthService {
         expiresIn: '1d',
       },
     );
-    const baseUrl =
-      this.configService.get<string>('PASSWORD_RESET_LINK_BASE_URL') ??
-      `${getAppOrigin('web', process.env)}/reset-password`;
-    const resetUrl = `${baseUrl}?tenant=${encodeURIComponent(
+    /*
+     * A user who entered through their workspace hostname is sent back to it.
+     * The tenant comes from the reset subject's own record, never from the
+     * request, so the link cannot be steered at another workspace.
+     */
+    const resetUrl = await this.buildWorkspaceResetUrl(
+      user.tenant.id,
       user.tenant.slug,
-    )}&token=${encodeURIComponent(resetToken)}`;
+      resetToken,
+    );
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
     const recipientName = `${user.firstName} ${user.lastName}`.trim() || email;
 
@@ -843,7 +878,7 @@ export class AuthService {
       email: string;
       firstName: string;
       lastName: string;
-      tenant: { name: string; slug: string };
+      tenant: { id: string; name: string; slug: string };
       employee?: { id: string } | null;
     };
     requestedByUserId: string;
@@ -860,12 +895,11 @@ export class AuthService {
         expiresIn: '1d',
       },
     );
-    const baseUrl =
-      this.configService.get<string>('PASSWORD_RESET_LINK_BASE_URL') ??
-      `${getAppOrigin('web', process.env)}/reset-password`;
-    const resetUrl = `${baseUrl}?tenant=${encodeURIComponent(
+    const resetUrl = await this.buildWorkspaceResetUrl(
+      input.user.tenant.id,
       input.user.tenant.slug,
-    )}&token=${encodeURIComponent(resetToken)}`;
+      resetToken,
+    );
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
     const recipientName =
       `${input.user.firstName} ${input.user.lastName}`.trim() ||

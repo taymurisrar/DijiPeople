@@ -5,6 +5,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import {
+  PLATFORM_ENVIRONMENTS,
+  resolvePlatformEnvironment,
+} from '@repo/config';
 import { Prisma, TenantStatus } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { StorageService } from '../../common/storage/storage.service';
@@ -508,8 +512,18 @@ function extractDocumentIdFromProtectedUrl(value?: string | null) {
   return match?.[1] ?? '';
 }
 
+/**
+ * Whether a development-only convenience may apply.
+ *
+ * Reads the platform environment rather than NODE_ENV alone: a staging deploy
+ * built with NODE_ENV unset would otherwise qualify as "local development" and
+ * serve a fabricated tenant. Only true development does.
+ */
 function isLocalDevelopment() {
-  return process.env.NODE_ENV !== 'production';
+  return (
+    resolvePlatformEnvironment(process.env) ===
+    PLATFORM_ENVIRONMENTS.DEVELOPMENT
+  );
 }
 
 function isDatabaseUnavailable(error: unknown) {

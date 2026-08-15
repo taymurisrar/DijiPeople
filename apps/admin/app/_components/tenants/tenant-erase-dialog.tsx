@@ -13,6 +13,8 @@ import {
 } from "./tenant-panel-ui";
 import {
   describeError,
+  isTransportFailure,
+  reconcileWithErasureReceipt,
   tenantRequest,
   useTenantResource,
   type TenantErasurePreflight,
@@ -87,9 +89,30 @@ export function TenantEraseDialog({
                 });
                 router.push("/tenants");
               } catch (reason_) {
-                setFailure(
-                  describeError(reason_, "The erasure could not be completed."),
-                );
+                /*
+                 * A lost response is not the same as a failure. Erasure runs in
+                 * one long transaction behind a proxy, so a 502 or a dropped
+                 * connection can arrive after the work has already committed —
+                 * and telling the operator it failed when the tenant is gone is
+                 * worse than telling them nothing. The receipt is written before
+                 * anything is deleted and survives the tenant, so it is the only
+                 * thing that can answer what actually happened.
+                 */
+                if (isTransportFailure(reason_)) {
+                  const outcome = await reconcileWithErasureReceipt(tenantId);
+                  if (outcome.erased) {
+                    router.push("/tenants");
+                    return;
+                  }
+                  setFailure(outcome.message);
+                } else {
+                  setFailure(
+                    describeError(
+                      reason_,
+                      "The erasure could not be completed.",
+                    ),
+                  );
+                }
               } finally {
                 setBusy(false);
               }
@@ -283,3 +306,4 @@ export function TenantEraseDialog({
     </PanelDialog>
   );
 }
+

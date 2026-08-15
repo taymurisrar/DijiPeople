@@ -16,6 +16,7 @@ import {
   PlatformUserStatus,
   Prisma,
   SubscriptionStatus,
+  TenantEnvironmentType,
   TenantFeatureSource,
   TenantStatus,
   UserStatus,
@@ -38,6 +39,7 @@ import { EXECUTED_CONTRACT_STATUSES } from '../contracts/governing-agreement';
 import { runtimeViewWhere } from '../platform-runtime/runtime-view-where';
 import {
   INDUSTRY_OPTIONS,
+  getDefaultSubStatus,
   getEntityStageDefinition,
   getLifecycleOptions,
   getRequiredCriteria,
@@ -58,6 +60,7 @@ import { BillingService } from './billing.service';
 import { TenantProvisioningService } from './tenant-provisioning.service';
 import { PlatformEventsService } from '../platform-events/platform-events.service';
 import { TenantProvisioningRunService } from '../tenant-control-plane/tenant-provisioning-run.service';
+import { TenantDomainService } from '../tenant-domains/tenant-domain.service';
 
 @Injectable()
 export class PlatformLifecycleService {
@@ -76,6 +79,7 @@ export class PlatformLifecycleService {
     private readonly tenantProvisioning: TenantProvisioningService,
     private readonly events: PlatformEventsService,
     private readonly provisioningRuns: TenantProvisioningRunService,
+    private readonly tenantDomains: TenantDomainService,
   ) {}
 
   getLifecycleOptions() {
@@ -273,7 +277,20 @@ export class PlatformLifecycleService {
           primaryOwnerPhone: lead.phoneNumber,
           contractSigned: true,
           status: CustomerOnboardingStatus.NOT_STARTED,
-          subStatus: 'Agreement executed',
+          /*
+           * Must be one of CUSTOMER_ONBOARDING_SUB_STATUS_OPTIONS[NOT_STARTED].
+           * This seeded 'Agreement executed', which is not in that list, so
+           * assertCustomerSubStatus rejected every later PATCH — including a
+           * notes-only edit — and the onboarding created by conversion could
+           * not be progressed at all without also changing status in the same
+           * request. The executed agreement is already recorded by
+           * contractSigned above, so the sub-status does not need to restate it.
+           */
+          subStatus:
+            getDefaultSubStatus(
+              'customerOnboarding',
+              CustomerOnboardingStatus.NOT_STARTED,
+            ) ?? undefined,
           notes: lead.requirementsSummary,
         },
       });
@@ -1385,18 +1402,15 @@ export class PlatformLifecycleService {
     const tenantName =
       dto.tenantName?.trim() || onboarding.customer.companyName;
 
-    const slug = assertValidTenantSlug(
+    /*
+     * Slug and hostname are reserved together. Checking only the tenant table
+     * would let a slug through whose hostname another tenant already holds —
+     * the provisioning would then fail after creating the tenant row.
+     */
+    const reservation = await this.tenantDomains.validateSlug(
       dto.slug ?? onboarding.plannedTenantSlug ?? '',
     );
-
-    const existingTenant = await this.prisma.tenant.findUnique({
-      where: { slug },
-      select: { id: true },
-    });
-
-    if (existingTenant) {
-      throw new ConflictException('Tenant slug is already in use.');
-    }
+    const slug = reservation.slug;
 
     const shouldCreateServiceAccount =
       dto.createServiceAccount ??
@@ -1441,6 +1455,14 @@ export class PlatformLifecycleService {
         displayName: tenantName,
         slug,
         /*
+         * Fixed at creation. Promoting a UAT workspace to production by
+         * relabelling it would reclassify live test data rather than move
+         * anything, so the environment a tenant is created as is the one it
+         * stays.
+         */
+        environmentType:
+          dto.environmentType ?? TenantEnvironmentType.PRODUCTION,
+        /*
          * PROVISIONING says what is actually happening. Before the lifecycle
          * was extended this sat in ONBOARDING with a free-text sub-status, so a
          * tenant halfway through provisioning and a tenant waiting on paperwork
@@ -1469,6 +1491,11 @@ export class PlatformLifecycleService {
       run?.id,
       'tenant-record',
       `Tenant ${createdTenant.slug} created.`,
+    );
+    await this.provisioningRuns.stepSucceeded(
+      run?.id,
+      'workspace-slug-reserved',
+      `Workspace slug "${slug}" reserved for ${reservation.hostname || 'the local development origin'}.`,
     );
 
     const runStep = async <T>(key: string, work: () => Promise<T>) => {
@@ -1499,6 +1526,13 @@ export class PlatformLifecycleService {
     };
 
     await runStep('workspace-domain', () =>
+      /*
+       * One call. `provisionSystemDomain` now delegates the hostname decision to
+       * the domain service — which owns the rules, including whether the
+       * platform wildcard is ready, since a workspace must not be marked
+       * verified on a hostname that does not resolve — and adds the platform
+       * event. Calling both would do the work twice.
+       */
       this.tenantProvisioning.provisionSystemDomain({
         tenantId: createdTenant.id,
         slug: createdTenant.slug,
@@ -1752,6 +1786,49 @@ export class PlatformLifecycleService {
       );
     }
 
+    /*
+     * Prove the workspace hostname actually resolves back to this tenant before
+     * anyone is invited to it. This is a routing check against the resolver the
+     * web app uses — not a DNS probe, which the platform does not perform.
+     */
+    await this.provisioningRuns.stepStarted(
+      run?.id,
+      'workspace-routing-verified',
+    );
+    let routingFailure: string | null = null;
+    try {
+      const primary = await this.tenantDomains.getPrimaryDomain(
+        provisioning.tenant.id,
+      );
+      if (!primary) {
+        throw new Error(
+          'No primary workspace hostname exists for this tenant.',
+        );
+      }
+      const resolved = await this.tenantDomains.resolveHostname(primary.domain);
+      if (resolved?.tenantId !== provisioning.tenant.id) {
+        throw new Error(
+          `${primary.domain} does not resolve back to this tenant.`,
+        );
+      }
+      await this.provisioningRuns.stepSucceeded(
+        run?.id,
+        'workspace-routing-verified',
+        `${primary.domain} resolves to this workspace.`,
+      );
+    } catch (error) {
+      routingFailure =
+        error instanceof Error ? error.message : 'Workspace routing failed.';
+      await this.provisioningRuns.stepFailed(
+        run?.id,
+        'workspace-routing-verified',
+        routingFailure,
+      );
+      this.logger.error(
+        `Workspace routing verification failed for ${provisioning.tenant.slug}: ${routingFailure}`,
+      );
+    }
+
     await this.provisioningRuns.stepStarted(run?.id, 'invitations');
     await Promise.all(
       provisioning.invitedUsers.map((user) =>
@@ -1766,15 +1843,23 @@ export class PlatformLifecycleService {
     );
     await this.provisioningRuns.stepSucceeded(run?.id, 'invitations');
 
-    await this.provisioningRuns.finish(
-      run?.id,
-      customizationFailure
+    const provisioningFailure = routingFailure
+      ? {
+          status: 'FAILED' as const,
+          failedStepKey: 'workspace-routing-verified',
+          message: routingFailure,
+        }
+      : customizationFailure
         ? {
-            status: 'FAILED',
+            status: 'FAILED' as const,
             failedStepKey: 'customization-defaults',
             message: customizationFailure,
           }
-        : { status: 'SUCCEEDED' },
+        : null;
+
+    await this.provisioningRuns.finish(
+      run?.id,
+      provisioningFailure ?? { status: 'SUCCEEDED' },
     );
 
     /*
@@ -1785,11 +1870,11 @@ export class PlatformLifecycleService {
     await this.prisma.tenant.update({
       where: { id: provisioning.tenant.id },
       data: {
-        status: customizationFailure
+        status: provisioningFailure
           ? TenantStatus.PROVISIONING_FAILED
           : TenantStatus.PENDING_SETUP,
-        subStatus: customizationFailure
-          ? 'Failed at customization-defaults'
+        subStatus: provisioningFailure
+          ? `Failed at ${provisioningFailure.failedStepKey}`
           : 'Configuration required',
         updatedById: actor.userId,
       },

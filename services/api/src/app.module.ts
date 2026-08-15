@@ -73,6 +73,7 @@ import { DemoDataModule } from './modules/demo-data/demo-data.module';
 import { PartnersModule } from './modules/partners/partners.module';
 import { PlatformRuntimeModule } from './modules/platform-runtime/platform-runtime.module';
 import { TenantControlPlaneModule } from './modules/tenant-control-plane/tenant-control-plane.module';
+import { TenantDomainsModule } from './modules/tenant-domains/tenant-domains.module';
 import { ContractsModule } from './modules/contracts/contracts.module';
 import { PartnerExperienceModule } from './modules/partner-experience/partner-experience.module';
 import { SupportCasesModule } from './modules/support-cases/support-cases.module';
@@ -145,6 +146,7 @@ import { SupportCasesModule } from './modules/support-cases/support-cases.module
     PartnerExperienceModule,
     SupportCasesModule,
     PlatformRuntimeModule,
+    TenantDomainsModule,
     TenantControlPlaneModule,
   ],
   controllers: [AppController],

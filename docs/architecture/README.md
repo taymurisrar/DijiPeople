@@ -17,6 +17,7 @@ so rather than guessing.
 | [`frontend.md`](frontend.md) | The three Next.js apps, module runtime, settings runtime, shared components |
 | [`database.md`](database.md) | Prisma setup, schema conventions, migrations, seeds |
 | [`tenant-control-plane.md`](tenant-control-plane.md) | Platform Admin's control plane over a tenant: lifecycle, access identities, module entitlement, apps, provisioning runs, erasure |
+| [`workspace-routing-and-domains.md`](workspace-routing-and-domains.md) | **Canonical** for hostname → tenant routing, workspace slugs, custom domains, environments, and the production DNS/TLS checklist |
 
 ## Pre-existing design contracts
 
@@ -34,7 +35,9 @@ and the snapshot is a bug to fix.
 ## Reading order for a new agent
 
 1. [`backend.md`](backend.md) — how the API is shaped
-2. [`tenancy.md`](tenancy.md) — the invariant that matters most
+2. [`tenancy.md`](tenancy.md) — the invariant that matters most, then
+   [`workspace-routing-and-domains.md`](workspace-routing-and-domains.md) for how
+   a request becomes a tenant in the first place
 3. [`rbac.md`](rbac.md) — how authorization actually works
 4. [`database.md`](database.md) — before touching the schema
 5. [`frontend.md`](frontend.md) — before touching a screen

@@ -21,6 +21,7 @@ import { TenantAccessService } from './tenant-access.service';
 import { TenantAppsService } from './tenant-apps.service';
 import { TenantModulesService } from './tenant-modules.service';
 import { TenantOperationsService } from './tenant-operations.service';
+import { TenantDomainService } from '../tenant-domains/tenant-domain.service';
 import type {
   CancelTenantSubscriptionDto,
   ChangeTenantStatusDto,
@@ -50,6 +51,7 @@ export class TenantControlPlaneService {
     private readonly modules: TenantModulesService,
     private readonly apps: TenantAppsService,
     private readonly operations: TenantOperationsService,
+    private readonly domains: TenantDomainService,
     private readonly auditService: AuditService,
     private readonly events: PlatformEventsService,
   ) {}
@@ -83,11 +85,13 @@ export class TenantControlPlaneService {
       ]);
 
     const primaryDomain = domains.find((item) => item.isPrimary) ?? null;
+    const routing = await this.domains.getPlatformRoutingStatus();
     const readiness = this.buildReadiness({
       tenant,
       activeOwnerCount: access.activeOwnerCount,
       subscriptionStatus: tenant.subscription?.status ?? null,
       primaryDomain,
+      wildcardDnsConfigured: routing.wildcardDnsConfigured,
       enabledModuleCount: modules.enabledCount,
       updatesAvailable: apps.updatesAvailable,
       provisioningStatus: operations.provisioning.status,
@@ -104,13 +108,17 @@ export class TenantControlPlaneService {
         tenantAccessBlocked: TENANT_ACCESS_BLOCKED_STATUSES.includes(
           tenant.status,
         ),
+        environmentType: tenant.environmentType,
         workspace: {
           slug: tenant.slug,
           url: primaryDomain ? `https://${primaryDomain.domain}` : null,
           domain: primaryDomain?.domain ?? null,
+          domainType: primaryDomain?.type ?? null,
           verificationStatus: primaryDomain?.verificationStatus ?? null,
-          sslStatus: primaryDomain?.sslStatus ?? null,
+          tlsStatus: primaryDomain?.tlsStatus ?? null,
           verifiedAt: primaryDomain?.verifiedAt ?? null,
+          wildcardDnsConfigured: routing.wildcardDnsConfigured,
+          tenantBaseDomain: routing.tenantBaseDomain,
         },
         subscription: tenant.subscription,
         owners: {
@@ -163,6 +171,20 @@ export class TenantControlPlaneService {
     const [domains, settings] = await Promise.all([
       this.prisma.tenantDomain.findMany({
         where: { tenantId: tenant.id },
+        /*
+         * Explicitly projected. The row also carries `verificationToken`, which
+         * belongs only to the Domains surface that has to display it — the
+         * configuration payload has no use for it and should not carry it.
+         */
+        select: {
+          id: true,
+          domain: true,
+          type: true,
+          isPrimary: true,
+          verificationStatus: true,
+          tlsStatus: true,
+          verifiedAt: true,
+        },
         orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
       }),
       this.prisma.tenantSetting.findMany({
@@ -192,6 +214,8 @@ export class TenantControlPlaneService {
         slug: tenant.slug,
         status: tenant.status,
         subStatus: tenant.subStatus,
+        environmentType: tenant.environmentType,
+        environmentGroupName: tenant.environmentGroupName,
         domains,
         workspaceUrl: domains.find((item) => item.isPrimary)
           ? `https://${domains.find((item) => item.isPrimary)!.domain}`
@@ -371,17 +395,13 @@ export class TenantControlPlaneService {
       include: { plan: { select: { id: true, key: true, name: true } } },
     });
     if (!subscription) {
-      throw new NotFoundException(
-        'This tenant has no subscription to cancel.',
-      );
+      throw new NotFoundException('This tenant has no subscription to cancel.');
     }
     if (
       subscription.status === SubscriptionStatus.CANCELLED ||
       subscription.status === SubscriptionStatus.CANCELED
     ) {
-      throw new BadRequestException(
-        'This subscription is already cancelled.',
-      );
+      throw new BadRequestException('This subscription is already cancelled.');
     }
     if (
       subscription.stripeSubscriptionId &&
@@ -392,7 +412,9 @@ export class TenantControlPlaneService {
       );
     }
 
-    const effectiveAt = dto.effectiveAt ? new Date(dto.effectiveAt) : new Date();
+    const effectiveAt = dto.effectiveAt
+      ? new Date(dto.effectiveAt)
+      : new Date();
     const updated = await this.prisma.subscription.update({
       where: { id: subscription.id },
       data: {
@@ -499,6 +521,27 @@ export class TenantControlPlaneService {
       if (activeOwners === 0) {
         throw new BadRequestException(
           'This tenant has no active Tenant Owner. Create or activate one before making the tenant active.',
+        );
+      }
+
+      /*
+       * Activating a workspace nobody can reach produces a tenant whose owner is
+       * told it is live and finds nothing at the address. The routing checks are
+       * therefore part of the activation gate, not just of the readiness report.
+       */
+      const readiness = await this.readiness(user, tenant.id);
+      const routingBlockers = readiness.checks.filter(
+        (check) =>
+          check.severity === 'BLOCKER' &&
+          ['workspace-slug', 'workspace-domain', 'workspace-routing'].includes(
+            check.key,
+          ),
+      );
+      if (routingBlockers.length) {
+        throw new BadRequestException(
+          `This workspace is not reachable yet. ${routingBlockers
+            .map((check) => check.message)
+            .join(' ')}`,
         );
       }
     }
@@ -701,6 +744,7 @@ export class TenantControlPlaneService {
         originatingPartner: {
           select: { id: true, displayName: true, status: true },
         },
+        environmentGroup: { select: { id: true, name: true } },
         ownerUser: {
           select: {
             id: true,
@@ -745,6 +789,9 @@ export class TenantControlPlaneService {
       tenantCode: tenant.tenantCode,
       status: tenant.status,
       subStatus: tenant.subStatus,
+      environmentType: tenant.environmentType,
+      environmentGroupId: tenant.environmentGroupId,
+      environmentGroupName: tenant.environmentGroup?.name ?? null,
       customerAccountId: tenant.customerAccountId,
       customerAccount: tenant.customerAccount
         ? {
@@ -831,6 +878,8 @@ export class TenantControlPlaneService {
       title: tenant.displayName,
       status: tenant.status,
       statusReason: tenant.subStatus,
+      environmentType: tenant.environmentType,
+      environmentGroupName: tenant.environmentGroupName,
       plan: tenant.subscription?.plan.name ?? null,
       billingCycle: tenant.subscription?.billingCycle ?? null,
       customer: tenant.customerAccount
@@ -856,9 +905,11 @@ export class TenantControlPlaneService {
     subscriptionStatus: SubscriptionStatus | null;
     primaryDomain: {
       domain: string;
+      type: string;
       verificationStatus: string;
-      sslStatus: string | null;
+      tlsStatus: string;
     } | null;
+    wildcardDnsConfigured: boolean;
     enabledModuleCount: number;
     updatesAvailable: number;
     provisioningStatus: string | null;
@@ -927,27 +978,81 @@ export class TenantControlPlaneService {
     );
 
     checks.push(
+      input.tenant.slug
+        ? {
+            key: 'workspace-slug',
+            label: 'Workspace slug',
+            severity: 'OK',
+            message: `Workspace slug is "${input.tenant.slug}".`,
+          }
+        : {
+            key: 'workspace-slug',
+            label: 'Workspace slug',
+            severity: 'BLOCKER',
+            message:
+              'This tenant has no workspace slug, so no address can be issued.',
+          },
+    );
+
+    checks.push(
       !input.primaryDomain
         ? {
-            key: 'workspace',
-            label: 'Workspace address',
+            key: 'workspace-domain',
+            label: 'Primary workspace address',
             severity: 'BLOCKER',
-            message: 'No workspace domain has been provisioned.',
+            message: 'No primary workspace hostname has been created.',
           }
-        : input.primaryDomain.verificationStatus === 'VERIFIED'
+        : {
+            key: 'workspace-domain',
+            label: 'Primary workspace address',
+            severity: 'OK',
+            message: `${input.primaryDomain.domain} is the primary address.`,
+          },
+    );
+
+    /*
+     * Deliberately worded as a statement about the PLATFORM, not the tenant.
+     * Nothing here probes DNS or inspects a certificate, so calling it "tenant
+     * DNS verified" would be a claim the platform cannot support. A system
+     * subdomain is reachable because the wildcard record and wildcard
+     * certificate exist — that is the fact being reported.
+     */
+    if (input.primaryDomain?.type === 'SYSTEM_SUBDOMAIN') {
+      checks.push(
+        input.wildcardDnsConfigured
           ? {
-              key: 'workspace',
-              label: 'Workspace address',
+              key: 'workspace-routing',
+              label: 'Workspace routing',
               severity: 'OK',
-              message: `${input.primaryDomain.domain} is verified.`,
+              message:
+                'Platform wildcard DNS and TLS are configured for the tenant base domain.',
             }
           : {
-              key: 'workspace',
-              label: 'Workspace address',
-              severity: 'WARNING',
-              message: `${input.primaryDomain.domain} is ${humanize(input.primaryDomain.verificationStatus)}; DNS or TLS is not confirmed.`,
+              key: 'workspace-routing',
+              label: 'Workspace routing',
+              severity: 'BLOCKER',
+              message:
+                'Platform wildcard DNS is not marked configured, so system workspace hostnames will not resolve. Confirm it in tenant provisioning settings.',
             },
-    );
+      );
+    } else if (input.primaryDomain) {
+      checks.push(
+        input.primaryDomain.verificationStatus === 'VERIFIED' &&
+          input.primaryDomain.tlsStatus === 'ACTIVE'
+          ? {
+              key: 'workspace-routing',
+              label: 'Workspace routing',
+              severity: 'OK',
+              message: `${input.primaryDomain.domain} is verified with active TLS.`,
+            }
+          : {
+              key: 'workspace-routing',
+              label: 'Workspace routing',
+              severity: 'BLOCKER',
+              message: `${input.primaryDomain.domain} is ${humanize(input.primaryDomain.verificationStatus)} with TLS ${humanize(input.primaryDomain.tlsStatus)}. A custom primary domain must be verified before the workspace is reachable.`,
+            },
+      );
+    }
 
     checks.push(
       input.activeOwnerCount > 0

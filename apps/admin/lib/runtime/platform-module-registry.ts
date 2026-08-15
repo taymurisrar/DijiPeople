@@ -2071,6 +2071,20 @@ const definitions: PlatformModuleDefinition[] = [
         },
         {
           ...field(
+            "environmentType",
+            "Environment",
+            "option",
+            "workspace",
+            true,
+            ["PRODUCTION", "UAT", "SANDBOX", "DEVELOPMENT"],
+          ),
+          readOnly: true,
+          renderAs: "status" as const,
+          description:
+            "Which of the customer's workspaces this is. Fixed after activation — promoting UAT to production by relabelling would reclassify live data rather than move it.",
+        },
+        {
+          ...field(
             "customerAccountId",
             "Customer",
             "lookup",

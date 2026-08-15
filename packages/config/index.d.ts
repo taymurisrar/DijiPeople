@@ -138,3 +138,4 @@ export declare function resolveSystemWidgetAvailability(input: {
 
 export * from "./platform-runtime-schema";
 export * from "./platform-runtime-views";
+export * from "./platform-domains";

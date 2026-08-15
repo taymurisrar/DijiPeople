@@ -351,6 +351,8 @@ export type TenantConfigurationView = {
     slug: string;
     status: string;
     subStatus: string | null;
+    environmentType: string;
+    environmentGroupName: string | null;
     workspaceUrl: string | null;
     editableFields: string[];
     domains: Array<{
@@ -359,7 +361,7 @@ export type TenantConfigurationView = {
       type: string;
       isPrimary: boolean;
       verificationStatus: string;
-      sslStatus: string | null;
+      tlsStatus: string | null;
       verifiedAt: string | null;
     }>;
   };
@@ -586,8 +588,96 @@ export function useTenantResource<T>(
  * One place that turns any thrown value into text worth showing, including the
  * trace reference when the API supplied one.
  */
+/**
+ * Erasure receipts for one tenant, read without addressing the tenant itself.
+ *
+ * Deliberately not routed through `tenantRequest`: after a successful erasure
+ * the tenant no longer exists, and the receipt is the only record that can say
+ * what happened. It is the authority the UI reconciles against when a response
+ * goes missing.
+ */
+export async function fetchErasureReceipts(tenantId: string) {
+  const response = await fetch(
+    `/api/platform/tenants/erasure-receipts?tenantId=${encodeURIComponent(tenantId)}`,
+  );
+  if (!response.ok) return null;
+  const payload: unknown = await response.json().catch(() => null);
+  return Array.isArray(payload)
+    ? (payload as Array<{
+        id: string;
+        status: "REQUESTED" | "IN_PROGRESS" | "COMPLETED" | "FAILED";
+        failureMessage: string | null;
+        requestedAt: string;
+      }>)
+    : null;
+}
+
+/**
+ * Whether a failure means "the request never got an answer" rather than "the
+ * server said no". Only the former leaves the outcome genuinely unknown.
+ */
+export function isTransportFailure(reason: unknown) {
+  if (reason instanceof TenantControlPlaneError) {
+    return [502, 503, 504].includes(reason.status);
+  }
+  return reason instanceof TypeError;
+}
+
 export function describeError(reason: unknown, fallback: string) {
   if (reason instanceof TenantControlPlaneError) return reason.describe();
   if (reason instanceof Error) return reason.message;
   return fallback;
+}
+
+export type ErasureReconciliation = { erased: boolean; message: string };
+
+/**
+ * Ask the receipt what happened when the response did not arrive.
+ *
+ * Erasure runs in one long transaction behind a proxy, so a 502 or a dropped
+ * connection can arrive after the work has already committed. Reporting that as
+ * a failure when the tenant is gone is worse than reporting nothing. The receipt
+ * is written before anything is deleted and outlives the tenant, so it is the
+ * only thing that can distinguish the three situations an operator can be in:
+ * it worked, it failed for a stated reason, or it never started.
+ */
+export async function reconcileWithErasureReceipt(
+  tenantId: string,
+): Promise<ErasureReconciliation> {
+  const receipts = await fetchErasureReceipts(tenantId).catch(() => null);
+  if (!receipts) {
+    return {
+      erased: false,
+      message:
+        "The API did not answer, and the erasure receipts could not be read either. Check that the API is running, then re-open this dialog — the receipt will show whether the erasure ran.",
+    };
+  }
+
+  const latest = receipts[0];
+  if (!latest) {
+    return {
+      erased: false,
+      message:
+        "The API did not answer and no erasure was recorded, so nothing was deleted. This is safe to retry once the API is reachable.",
+    };
+  }
+  if (latest.status === "COMPLETED") {
+    return {
+      erased: true,
+      message: "The erasure completed. The tenant no longer exists.",
+    };
+  }
+  if (latest.status === "FAILED") {
+    return {
+      erased: false,
+      message: `The erasure failed and nothing was deleted: ${
+        latest.failureMessage ?? "no reason was recorded"
+      }`,
+    };
+  }
+  return {
+    erased: false,
+    message:
+      "The erasure is still running. Re-open this dialog in a moment; the receipt will show the outcome.",
+  };
 }

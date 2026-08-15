@@ -1,7 +1,8 @@
-import { ConflictException, Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Injectable } from '@nestjs/common';
+import { getPlatformDomainConfig } from '@repo/config';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { PlatformEventsService } from '../platform-events/platform-events.service';
+import { TenantDomainService } from '../tenant-domains/tenant-domain.service';
 
 type TenantProvisioningSettings = {
   tenantBaseDomain: string;
@@ -9,11 +10,27 @@ type TenantProvisioningSettings = {
   wildcardDnsReady: boolean;
 };
 
+/**
+ * Onboarding's entry point into workspace addressing.
+ *
+ * This service used to build the hostname itself — `${slug}.${storedBaseDomain}`
+ * with its own reserved-label rules (none) and its own base domain read from a
+ * platform setting. That is a second source of truth for where a tenant lives:
+ * the setting could name one base domain while the request router matched
+ * another, and nothing would report the divergence. It now delegates every
+ * hostname decision to `TenantDomainService` and keeps only what is genuinely
+ * its own — the provisioning event and the resolved URL it returns to callers.
+ *
+ * `wildcardDnsReady` stays in the database because it is an operational fact an
+ * operator asserts once DNS, proxy and TLS are actually live. `tenantBaseDomain`
+ * does not, because the edge router resolves hostnames with no database access
+ * and must read it from configuration.
+ */
 @Injectable()
 export class TenantProvisioningService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly config: ConfigService,
+    private readonly domains: TenantDomainService,
     private readonly events: PlatformEventsService,
   ) {}
 
@@ -25,19 +42,10 @@ export class TenantProvisioningService {
       row?.value && typeof row.value === 'object' && !Array.isArray(row.value)
         ? (row.value as Record<string, unknown>)
         : {};
-    const configuredDomain = String(
-      stored.tenantBaseDomain ??
-        this.config.get<string>('TENANT_BASE_DOMAIN') ??
-        'digipeople.com',
-    )
-      .trim()
-      .toLowerCase()
-      .replace(/^https?:\/\//, '')
-      .replace(/^\*\./, '')
-      .replace(/\/$/, '');
+    const config = getPlatformDomainConfig();
     return {
-      tenantBaseDomain: configuredDomain,
-      defaultProtocol: stored.defaultProtocol === 'http' ? 'http' : 'https',
+      tenantBaseDomain: config.tenantBaseDomain,
+      defaultProtocol: config.protocol === 'http' ? 'http' : 'https',
       wildcardDnsReady: stored.wildcardDnsReady === true,
     };
   }
@@ -49,39 +57,12 @@ export class TenantProvisioningService {
     correlationId?: string | null;
   }) {
     const settings = await this.settings();
-    const domain = `${input.slug}.${settings.tenantBaseDomain}`;
-    const existing = await this.prisma.tenantDomain.findUnique({
-      where: { domain },
+    const tenantDomain = await this.domains.createSystemDomain({
+      tenantId: input.tenantId,
+      slug: input.slug,
+      actorUserId: input.actorId ?? null,
     });
-    if (existing && existing.tenantId !== input.tenantId)
-      throw new ConflictException(
-        `The requested tenant domain ${domain} is already assigned.`,
-      );
-    const tenantDomain = existing
-      ? await this.prisma.tenantDomain.update({
-          where: { domain },
-          data: {
-            isPrimary: true,
-            verificationStatus: settings.wildcardDnsReady
-              ? 'VERIFIED'
-              : 'PENDING',
-            verifiedAt: settings.wildcardDnsReady ? new Date() : null,
-            sslStatus: settings.wildcardDnsReady ? 'ACTIVE' : 'PENDING',
-          },
-        })
-      : await this.prisma.tenantDomain.create({
-          data: {
-            tenantId: input.tenantId,
-            domain,
-            type: 'SYSTEM_SUBDOMAIN',
-            isPrimary: true,
-            verificationStatus: settings.wildcardDnsReady
-              ? 'VERIFIED'
-              : 'PENDING',
-            verifiedAt: settings.wildcardDnsReady ? new Date() : null,
-            sslStatus: settings.wildcardDnsReady ? 'ACTIVE' : 'PENDING',
-          },
-        });
+
     await this.events.record({
       eventCode: 'TENANT_PROVISIONING_REQUESTED',
       source: 'API',
@@ -94,15 +75,16 @@ export class TenantProvisioningService {
       actorId: input.actorId,
       route: '/super-admin/customer-onboarding/:id/create-tenant',
       metadata: {
-        requestedDomain: domain,
-        resolvedUrl: `${settings.defaultProtocol}://${domain}`,
+        requestedDomain: tenantDomain.domain,
+        resolvedUrl: `${settings.defaultProtocol}://${tenantDomain.domain}`,
         wildcardDnsReady: settings.wildcardDnsReady,
         verificationStatus: tenantDomain.verificationStatus,
       },
     });
+
     return {
       ...tenantDomain,
-      resolvedUrl: `${settings.defaultProtocol}://${domain}`,
+      resolvedUrl: `${settings.defaultProtocol}://${tenantDomain.domain}`,
       wildcardDnsReady: settings.wildcardDnsReady,
     };
   }

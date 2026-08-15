@@ -19,13 +19,16 @@ import { TenantControlPlaneService } from './tenant-control-plane.service';
 import { TenantErasureService } from './tenant-erasure.service';
 import { TenantModulesService } from './tenant-modules.service';
 import { TenantOperationsService } from './tenant-operations.service';
+import { TenantDomainsAdminService } from './tenant-domains-admin.service';
 import {
+  AddTenantCustomDomainDto,
   CancelTenantSubscriptionDto,
   ChangeTenantStatusDto,
   CreateTenantIdentityDto,
   DeleteTenantIdentityDto,
   EraseTenantDto,
   RetryTenantProvisioningDto,
+  TenantDomainActionDto,
   TransferTenantOwnershipDto,
   UpdateTenantAppDto,
   UpdateTenantIdentityDto,
@@ -51,7 +54,54 @@ export class TenantControlPlaneController {
     private readonly apps: TenantAppsService,
     private readonly operations: TenantOperationsService,
     private readonly erasure: TenantErasureService,
+    private readonly domains: TenantDomainsAdminService,
   ) {}
+
+  @Get(':tenantId/domains')
+  listDomains(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('tenantId', new ParseUUIDPipe()) tenantId: string,
+  ) {
+    return this.domains.list(user, tenantId);
+  }
+
+  @Post(':tenantId/domains')
+  addDomain(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('tenantId', new ParseUUIDPipe()) tenantId: string,
+    @Body() dto: AddTenantCustomDomainDto,
+  ) {
+    return this.domains.addCustomDomain(user, tenantId, dto);
+  }
+
+  @Post(':tenantId/domains/:domainId/primary')
+  setPrimaryDomain(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('tenantId', new ParseUUIDPipe()) tenantId: string,
+    @Param('domainId', new ParseUUIDPipe()) domainId: string,
+    @Body() dto: TenantDomainActionDto,
+  ) {
+    return this.domains.setPrimary(user, tenantId, domainId, dto);
+  }
+
+  @Post(':tenantId/domains/:domainId/verify')
+  verifyDomain(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('tenantId', new ParseUUIDPipe()) tenantId: string,
+    @Param('domainId', new ParseUUIDPipe()) domainId: string,
+  ) {
+    return this.domains.verify(user, tenantId, domainId);
+  }
+
+  @Post(':tenantId/domains/:domainId/disable')
+  disableDomain(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('tenantId', new ParseUUIDPipe()) tenantId: string,
+    @Param('domainId', new ParseUUIDPipe()) domainId: string,
+    @Body() dto: TenantDomainActionDto,
+  ) {
+    return this.domains.disable(user, tenantId, domainId, dto);
+  }
 
   @Get(':tenantId/overview')
   overview(

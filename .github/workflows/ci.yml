@@ -165,6 +165,11 @@ jobs:
         # Guards sensitive/system-managed fields from becoming writable or
         # exportable. Cheap, and a real security contract.
         run: npm run test:runtime-schema
+      - name: Workspace hostname rules
+        # The hostname parser decides which tenant a request belongs to. These
+        # are the suffix-confusion and reserved-label cases that would otherwise
+        # hand one customer another customer's workspace.
+        run: npm run test:platform-domains
 
   database-migration:
     name: Database migration gate

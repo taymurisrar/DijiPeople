@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  ProDataTable,
-  type ProDataTableColumn,
-} from "@/app/_components/crm/data-table";
-import { formatDate, formatEnumLabel } from "@/lib/formatters";
+import { formatEnumLabel } from "@/lib/formatters";
 import {
   DefinitionList,
   PanelCard,
@@ -17,8 +13,7 @@ import {
   useTenantResource,
   type TenantConfigurationView,
 } from "./tenant-control-plane.client";
-
-type Domain = TenantConfigurationView["workspace"]["domains"][number];
+import { TenantDomainsPanel } from "./tenant-domains-panel";
 
 /**
  * Configuration — the workspace itself, not the HRM inside it.
@@ -75,6 +70,22 @@ export function TenantConfigurationPanel({ tenantId }: { tenantId: string }) {
               ),
             },
             {
+              label: "Environment",
+              value: (
+                <StatePill
+                  value={formatEnumLabel(data.workspace.environmentType)}
+                  tone={
+                    data.workspace.environmentType === "PRODUCTION"
+                      ? "success"
+                      : "warning"
+                  }
+                />
+              ),
+              hint: data.workspace.environmentGroupName
+                ? `Part of the "${data.workspace.environmentGroupName}" environment group.`
+                : "Which of the customer's workspaces this is. Each environment is a separate tenant with its own data.",
+            },
+            {
               label: "Editable after provisioning",
               value: data.workspace.editableFields
                 .map((entry) => formatEnumLabel(entry))
@@ -83,22 +94,14 @@ export function TenantConfigurationPanel({ tenantId }: { tenantId: string }) {
             },
           ]}
         />
-        <div className="mt-5">
-          {data.workspace.domains.length ? (
-            <ProDataTable
-              rows={data.workspace.domains}
-              rowKey={(row) => row.id}
-              compact
-              columns={domainColumns}
-            />
-          ) : (
-            <PanelEmptyState
-              title="No workspace domain has been reserved."
-              description="Provisioning reserves the workspace subdomain. Retry provisioning from Operations if this is unexpected."
-            />
-          )}
-        </div>
       </PanelCard>
+
+      {/*
+        The Domains surface owns its own request and mutations. It is not a
+        second copy of the read-only list that used to sit above — that list was
+        replaced, so there is one place a hostname is read and changed.
+      */}
+      <TenantDomainsPanel tenantId={tenantId} />
 
       <PanelCard
         title="Localization"
@@ -122,68 +125,3 @@ export function TenantConfigurationPanel({ tenantId }: { tenantId: string }) {
     </div>
   );
 }
-
-const domainColumns: ProDataTableColumn<Domain>[] = [
-  {
-    key: "domain",
-    header: "Domain",
-    minWidth: 220,
-    render: (row) => (
-      <span className="break-all font-medium text-slate-900">{row.domain}</span>
-    ),
-  },
-  {
-    key: "type",
-    header: "Type",
-    minWidth: 160,
-    render: (row) => formatEnumLabel(row.type),
-  },
-  {
-    key: "isPrimary",
-    header: "Primary",
-    minWidth: 110,
-    render: (row) =>
-      row.isPrimary ? (
-        <StatePill value="Primary" tone="success" />
-      ) : (
-        <span className="text-xs text-slate-500">Secondary</span>
-      ),
-  },
-  {
-    key: "verificationStatus",
-    header: "DNS",
-    minWidth: 130,
-    render: (row) => (
-      <StatePill
-        value={row.verificationStatus}
-        tone={
-          row.verificationStatus === "VERIFIED"
-            ? "success"
-            : row.verificationStatus === "FAILED"
-              ? "danger"
-              : "warning"
-        }
-      />
-    ),
-  },
-  {
-    key: "sslStatus",
-    header: "TLS",
-    minWidth: 130,
-    render: (row) =>
-      row.sslStatus ? (
-        <StatePill
-          value={row.sslStatus}
-          tone={row.sslStatus === "ACTIVE" ? "success" : "warning"}
-        />
-      ) : (
-        <span className="text-xs text-slate-500">Not checked</span>
-      ),
-  },
-  {
-    key: "verifiedAt",
-    header: "Verified",
-    minWidth: 140,
-    render: (row) => (row.verifiedAt ? formatDate(row.verifiedAt) : "—"),
-  },
-];

@@ -80,6 +80,32 @@ enum TenantDomainVerificationStatus {
   PENDING
   VERIFIED
   FAILED
+  DISABLED
+}
+
+/// TLS state for one tenant hostname.
+///
+/// SYSTEM subdomains are covered by the platform wildcard certificate and are
+/// NOT_REQUIRED — there is no per-tenant certificate to issue. A CUSTOM domain
+/// needs its own, which is what the other members track.
+enum TenantDomainTlsStatus {
+  NOT_REQUIRED
+  PENDING
+  ACTIVE
+  FAILED
+}
+
+/// Which of a customer's workspaces this tenant is.
+///
+/// This is the CUSTOMER's environment, not DijiPeople's. `maseer-uat` is a UAT
+/// workspace running on DijiPeople's production platform; a tenant on
+/// DijiPeople's staging platform is a different thing entirely and is expressed
+/// by the deployment, not by this field.
+enum TenantEnvironmentType {
+  PRODUCTION
+  UAT
+  SANDBOX
+  DEVELOPMENT
 }
 
 enum SubscriptionStatus {
@@ -1896,7 +1922,17 @@ model Tenant {
   name                            String
   displayName                     String?
   legalName                       String?
+  /// The workspace slug. Globally unique, and the label in front of the tenant
+  /// base domain: `maseer` becomes `maseer.dijipeople.com`. It is an address,
+  /// not an identity — every data access is scoped by `id`, never by this.
   slug                            String                           @unique
+  /// Which of the customer's workspaces this is. Defaults to PRODUCTION so every
+  /// existing tenant keeps the only meaning it could have had.
+  environmentType                 TenantEnvironmentType            @default(PRODUCTION)
+  /// Groups a customer's workspaces (production, UAT, sandbox) as one family.
+  /// Informational only: no data, permission or configuration is inherited
+  /// across the group, which is why this is not a `parentTenantId`.
+  environmentGroupId              String?
   status                          TenantStatus                     @default(ACTIVE)
   subStatus                       String?
   createdAt                       DateTime                         @default(now())
@@ -2136,6 +2172,7 @@ model Tenant {
   provisioningRuns                TenantProvisioningRun[]
   provisioningSteps               TenantProvisioningStep[]
   appAssignments                  TenantAppAssignment[]
+  environmentGroup                TenantEnvironmentGroup?          @relation(fields: [environmentGroupId], references: [id], onDelete: SetNull)
   ownerUser                       User?                            @relation("TenantOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
 
   @@index([status])
@@ -2148,6 +2185,9 @@ model Tenant {
   @@index([ownerUserId])
   @@index([isDemoData])
   @@index([demoBatchId])
+  @@index([environmentType])
+  @@index([environmentGroupId])
+  @@index([customerAccountId, environmentType])
 }
 
 model TenantBranding {
@@ -2182,22 +2222,64 @@ model TenantBranding {
   @@index([tenantId])
 }
 
+/// A hostname that points at one workspace.
+///
+/// Globally unique, so two tenants can never claim the same hostname — that
+/// uniqueness is the whole security property, because hostname is what the
+/// request arrives with and everything downstream trusts the tenant it resolves
+/// to.
 model TenantDomain {
   id                 String                         @id @default(uuid())
   tenantId           String
+  /// Normalised: lowercase, no port, no trailing dot.
   domain             String                         @unique
   type               TenantDomainType               @default(SYSTEM_SUBDOMAIN)
   isPrimary          Boolean                        @default(false)
   verificationStatus TenantDomainVerificationStatus @default(PENDING)
   verifiedAt         DateTime?
+  /// Legacy free-text TLS note. Superseded by `tlsStatus`; kept so the column's
+  /// existing values are not destroyed by this change.
   sslStatus          String?
+  tlsStatus          TenantDomainTlsStatus          @default(NOT_REQUIRED)
+  /// Proof-of-control challenge for a CUSTOM domain. The customer publishes it
+  /// as a DNS TXT record. Never issued for a SYSTEM subdomain, which DijiPeople
+  /// already controls.
+  verificationToken  String?
+  verificationTokenIssuedAt DateTime?
+  lastVerificationAttemptAt DateTime?
+  verificationFailureReason String?
+  disabledAt         DateTime?
   createdAt          DateTime                       @default(now())
   updatedAt          DateTime                       @updatedAt
+  createdById        String?
+  updatedById        String?
   tenant             Tenant                         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([tenantId, type, isPrimary])
+  @@index([tenantId, isPrimary])
   @@index([verificationStatus])
+}
+
+/// A customer's family of workspaces — production, UAT, sandbox.
+///
+/// Purely organisational. It exists so Platform Admin can say "these three are
+/// the same product for the same customer" without implying that any of them can
+/// see another's data. Nothing is inherited through this relation.
+model TenantEnvironmentGroup {
+  id                String          @id @default(uuid())
+  customerAccountId String
+  name              String
+  description       String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  createdById       String?
+  updatedById       String?
+  customerAccount   CustomerAccount @relation(fields: [customerAccountId], references: [id], onDelete: Cascade)
+  tenants           Tenant[]
+
+  @@unique([customerAccountId, name])
+  @@index([customerAccountId])
 }
 
 /// One attempt at provisioning a tenant.
@@ -2386,6 +2468,7 @@ model CustomerAccount {
   originatingReferralLink    PartnerReferralLink?        @relation("ReferralLinkCustomers", fields: [originatingReferralLinkId], references: [id], onDelete: SetNull)
   contacts                   CustomerContact[]
   notes                      CustomerNote[]
+  environmentGroups          TenantEnvironmentGroup[]
   onboardings                CustomerOnboarding[]
   contracts                  Contract[]
   supportCases               SupportCase[]
