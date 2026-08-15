@@ -1,0 +1,174 @@
+name: Publish application release
+
+# Publishing is ALWAYS a decision, never a consequence.
+#
+# This workflow is workflow_dispatch only. It is deliberately not triggered by a
+# push, a tag or a merge to main: "the tests passed" is not the same statement
+# as "ship this build to customers", and a pipeline that conflates them will
+# eventually publish something nobody chose to publish.
+#
+# Production is protected twice over:
+#   1. `environment:` below resolves to `release-production` for a production
+#      run, so GitHub's environment protection rules (required reviewers, wait
+#      timer, restricted branches) apply before the job starts.
+#   2. The credential and the API URL are environment secrets, so a run that has
+#      not been approved for production cannot read production's token.
+#
+# The API refuses the publish a third time if the environment named here does
+# not match the environment it is actually running as.
+
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: Application to publish
+        required: true
+        type: choice
+        options:
+          - integration-gateway
+          - agent-desktop
+          - zkteco-diagnostic
+      channel:
+        description: Release channel
+        required: true
+        type: choice
+        options:
+          - internal
+          - beta
+          - stable
+      environment:
+        description: Platform environment to publish to
+        required: true
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+      version:
+        description: >-
+          Version to publish. Leave blank to use the application's canonical
+          version source (recommended — a typed version can disagree with it).
+        required: false
+        type: string
+      promote:
+        description: >-
+          Promote an already-published artefact into the channel above instead
+          of building and uploading a new one.
+        required: false
+        default: false
+        type: boolean
+      dry_run:
+        description: Validate, package and checksum only. Upload nothing.
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  # One publish at a time per app and environment. Two concurrent runs of the
+  # same version would race on the duplicate check.
+  group: release-${{ inputs.app }}-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: ${{ inputs.app }} -> ${{ inputs.channel }} (${{ inputs.environment }})
+    # Windows because the gateway package is a Windows self-contained .NET
+    # publish driven by PowerShell. A promotion needs no build, but keeping one
+    # runner keeps the workflow single-path.
+    runs-on: windows-latest
+    environment: release-${{ inputs.environment }}
+
+    env:
+      DIJIPEOPLE_RELEASE_TOKEN: ${{ secrets.DIJIPEOPLE_RELEASE_TOKEN }}
+      DIJIPEOPLE_RELEASE_API_URL: ${{ secrets.DIJIPEOPLE_RELEASE_API_URL }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: npm
+
+      - uses: actions/setup-dotnet@v4
+        if: ${{ inputs.promote != true }}
+        with:
+          dotnet-version: '8.0.x'
+
+      - run: npm ci
+
+      - name: Refuse to run without a credential
+        shell: bash
+        run: |
+          if [ -z "$DIJIPEOPLE_RELEASE_TOKEN" ]; then
+            echo "::error::DIJIPEOPLE_RELEASE_TOKEN is not configured for the release-${{ inputs.environment }} environment."
+            exit 1
+          fi
+          if [ -z "$DIJIPEOPLE_RELEASE_API_URL" ]; then
+            echo "::error::DIJIPEOPLE_RELEASE_API_URL is not configured for the release-${{ inputs.environment }} environment."
+            exit 1
+          fi
+
+      - name: Verify the publisher's own rules still hold
+        # Cheap, and it runs before anything is built: if the version
+        # reconciliation or confirmation rules are broken, that must stop the
+        # publish rather than be discovered by publishing.
+        run: npm run test:release-cli
+
+      - name: Dry run
+        # Always runs, including immediately before a real publish. It packages,
+        # reconciles the version and checksums the artefact without uploading,
+        # so a version disagreement fails here rather than half-way through.
+        if: ${{ inputs.promote != true }}
+        run: >-
+          npm run release:app --
+          --app ${{ inputs.app }}
+          --channel ${{ inputs.channel }}
+          --environment ${{ inputs.environment }}
+          ${{ inputs.version && format('--version {0}', inputs.version) || '' }}
+          --dry-run
+
+      - name: Publish
+        if: ${{ inputs.promote != true && inputs.dry_run != true }}
+        # --no-build: the dry run above already produced the package. Rebuilding
+        # would publish a different binary than the one just validated.
+        # --yes: this is CI, there is no terminal to confirm on, and the
+        # approval already happened at the GitHub environment gate.
+        run: >-
+          npm run release:app --
+          --app ${{ inputs.app }}
+          --channel ${{ inputs.channel }}
+          --environment ${{ inputs.environment }}
+          ${{ inputs.version && format('--version {0}', inputs.version) || '' }}
+          --no-build
+          --yes
+
+      - name: Promote
+        if: ${{ inputs.promote == true }}
+        run: >-
+          npm run release:promote --
+          --app ${{ inputs.app }}
+          --to ${{ inputs.channel }}
+          --environment ${{ inputs.environment }}
+          ${{ inputs.version && format('--version {0}', inputs.version) || '' }}
+          ${{ inputs.dry_run == true && '--dry-run' || '--yes' }}
+
+      - name: Summarise
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "### Release publish"
+            echo ""
+            echo "| Field | Value |"
+            echo "|---|---|"
+            echo "| App | ${{ inputs.app }} |"
+            echo "| Channel | ${{ inputs.channel }} |"
+            echo "| Environment | ${{ inputs.environment }} |"
+            echo "| Version | ${{ inputs.version || 'canonical source' }} |"
+            echo "| Mode | ${{ inputs.promote == true && 'promote' || 'publish' }}${{ inputs.dry_run == true && ' (dry run)' || '' }} |"
+            echo "| Actor | ${{ github.actor }} |"
+            echo ""
+            echo "Publishing does not assign the release to any tenant."
+            echo "TenantAppAssignment decides which tenants become eligible."
+          } >> "$GITHUB_STEP_SUMMARY"
