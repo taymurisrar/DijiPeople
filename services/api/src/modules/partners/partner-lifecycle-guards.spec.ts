@@ -17,7 +17,19 @@ import { PartnersService } from './partners.service';
  * edit "simplify" the guard by dropping the original.
  */
 describe('partner lifecycle guards on the generic update', () => {
-  const update = PartnersService.prototype.update;
+  /*
+   * Taken off the prototype through a structural cast, the same shape
+   * `tenant-provisioning-retry.spec.ts` uses. Reading the method directly trips
+   * `@typescript-eslint/unbound-method` — correctly, since the method does use
+   * `this` — and the cast states the intent instead of suppressing the rule:
+   * the guards are being exercised against a deliberately minimal `this`.
+   */
+  const { update } = PartnersService.prototype as unknown as {
+    update: (
+      id: string,
+      dto: { status?: PartnerStatus; displayName?: string },
+    ) => Promise<unknown>;
+  };
 
   /**
    * `update()` reads the current partner through `this.get(id)` and then
@@ -77,9 +89,13 @@ describe('partner lifecycle guards on the generic update', () => {
      * governance would go with it.
      */
     const context = contextFor(PartnerStatus.ACTIVE);
-    await update
-      .call(context as never, 'partner-1', { displayName: 'Renamed' } as never)
-      .catch(() => undefined);
+    try {
+      await update.call(context as never, 'partner-1', {
+        displayName: 'Renamed',
+      });
+    } catch {
+      /* The write collaborator is a stub; only the guard is under test. */
+    }
     expect(context.validateOwner).toHaveBeenCalled();
   });
 
@@ -90,11 +106,13 @@ describe('partner lifecycle guards on the generic update', () => {
      * of governance, which is why the guard is scoped to leaving ACTIVE.
      */
     const context = contextFor(PartnerStatus.DRAFT);
-    await update
-      .call(context as never, 'partner-1', {
+    try {
+      await update.call(context as never, 'partner-1', {
         status: PartnerStatus.INQUIRY,
-      } as never)
-      .catch(() => undefined);
+      });
+    } catch {
+      /* The write collaborator is a stub; only the guard is under test. */
+    }
     expect(context.validateOwner).toHaveBeenCalled();
   });
 });
