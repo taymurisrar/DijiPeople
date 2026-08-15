@@ -1,5 +1,5 @@
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
-import { TenantStatus } from '@prisma/client';
+import { Prisma, TenantStatus } from '@prisma/client';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { TenantErasureService } from './tenant-erasure.service';
 import { ERASE_TENANT_CONFIRMATION_PHRASE } from './dto/tenant-control-plane.dto';
@@ -71,6 +71,25 @@ function build(overrides: Record<string, unknown> = {}) {
     { record: jest.fn() } as never,
   );
   return { service, prisma };
+}
+
+/**
+ * A transaction client that answers every model the erasure plan names, so the
+ * dry run can run the real sequence end to end without a database.
+ */
+function transactionClientStub() {
+  const delegate = {
+    deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+    updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+    count: jest.fn().mockResolvedValue(0),
+  };
+  return new Proxy(
+    { tenant: { ...delegate, delete: jest.fn().mockResolvedValue({}) } },
+    {
+      get: (target: Record<string, unknown>, key: string) =>
+        target[key] ?? delegate,
+    },
+  );
 }
 
 const validRequest = {
@@ -231,6 +250,67 @@ describe('TenantErasureService', () => {
     ).rejects.toThrow(/SupportCase/);
   });
 
+  /*
+   * The production report this suite failed to anticipate. The message that
+   * reached the operator was "A record outside this tenant still references data
+   * being erased" with no constraint and no table — because the diagnosis only
+   * matched PostgreSQL's double-quoted phrasing, while the failure came from
+   * Prisma, which uses backticks and puts the name in `meta`.
+   */
+  it('names the constraint when Prisma reports P2003 rather than PostgreSQL', async () => {
+    const { service, prisma } = build();
+    const prismaError = new Prisma.PrismaClientKnownRequestError(
+      'Foreign key constraint violated on the constraint: `Payslip_payrollRunEmployeeId_fkey`',
+      {
+        code: 'P2003',
+        clientVersion: '7.8.0',
+        meta: {
+          modelName: 'PayrollRunEmployee',
+          field_name: 'Payslip_payrollRunEmployeeId_fkey (index)',
+        },
+      },
+    );
+    prisma.$transaction.mockRejectedValue(prismaError);
+
+    await expect(
+      service.erase(admin, 'tenant-1', validRequest),
+    ).rejects.toThrow(/Payslip_payrollRunEmployeeId_fkey/);
+
+    const update = prisma.tenantErasureReceipt.update.mock.calls.at(-1)![0] as {
+      data: { erasedRecordCounts: Record<string, unknown> };
+    };
+    expect(update.data.erasedRecordCounts).toEqual(
+      expect.objectContaining({
+        constraint: 'Payslip_payrollRunEmployeeId_fkey (index)',
+        prismaCode: 'P2003',
+      }),
+    );
+  });
+
+  it('still says which phase and model failed when nothing names the constraint', async () => {
+    /*
+     * Even a driver error that identifies nothing must leave the operator with
+     * somewhere to look. The phase and model are always known here, and on their
+     * own they point at the entry in the erasure plan.
+     */
+    const { service, prisma } = build();
+    prisma.$transaction.mockImplementation(async (work: unknown) => {
+      /* Run far enough to set the progress marker, then fail opaquely. */
+      await (work as (tx: unknown) => Promise<unknown>)({
+        contract: { updateMany: jest.fn().mockResolvedValue({ count: 0 }) },
+      }).catch(() => undefined);
+      const opaque = new Prisma.PrismaClientKnownRequestError(
+        'Foreign key constraint violated',
+        { code: 'P2003', clientVersion: '7.8.0' },
+      );
+      throw opaque;
+    });
+
+    await expect(
+      service.erase(admin, 'tenant-1', validRequest),
+    ).rejects.toThrow(/Failed while/);
+  });
+
   it('writes a receipt that names the tenant, actor and reason before deleting', async () => {
     const { service, prisma } = build();
     prisma.$transaction.mockResolvedValue({
@@ -261,6 +341,66 @@ describe('TenantErasureService', () => {
         }),
       }),
     );
+  });
+
+  describe('diagnose (dry run)', () => {
+    it('never commits, even when the whole sequence succeeds', async () => {
+      /*
+       * The property that makes this safe to offer next to an irreversible
+       * button: the transaction callback must always end by throwing, so there
+       * is no path on which the deletes are kept.
+       */
+      const { service, prisma } = build();
+      let threw = false;
+      prisma.$transaction.mockImplementation(async (work: unknown) => {
+        try {
+          await (work as (tx: unknown) => Promise<unknown>)(
+            transactionClientStub(),
+          );
+        } catch (error) {
+          threw = true;
+          throw error;
+        }
+        throw new Error('the dry run returned instead of rolling back');
+      });
+
+      const result = await service.diagnose(admin, 'tenant-1');
+
+      expect(threw).toBe(true);
+      expect(result.wouldSucceed).toBe(true);
+      expect(result.blocker).toBeNull();
+      expect(prisma.tenantErasureReceipt.create).not.toHaveBeenCalled();
+    });
+
+    it('reports the phase, model and constraint that would refuse', async () => {
+      const { service, prisma } = build();
+      prisma.$transaction.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError(
+          'Foreign key constraint violated on the constraint: `Payslip_payrollRunEmployeeId_fkey`',
+          { code: 'P2003', clientVersion: '7.8.0' },
+        ),
+      );
+
+      const result = await service.diagnose(admin, 'tenant-1');
+
+      expect(result.wouldSucceed).toBe(false);
+      expect(result.blocker).toEqual(
+        expect.objectContaining({
+          constraint: 'Payslip_payrollRunEmployeeId_fkey',
+          prismaCode: 'P2003',
+          phase: expect.any(String),
+        }),
+      );
+      /* A dry run is a question, not an event — it writes no receipt. */
+      expect(prisma.tenantErasureReceipt.create).not.toHaveBeenCalled();
+    });
+
+    it('requires the same elevated platform role as the erasure itself', async () => {
+      const { service } = build();
+      await expect(
+        service.diagnose(operator, 'tenant-1'),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+    });
   });
 
   it('reports blockers, impact and what survives before anything is typed', async () => {

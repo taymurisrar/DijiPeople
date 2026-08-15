@@ -88,7 +88,9 @@ describe('CustomerOnboarding seeded by lead conversion', () => {
     'every %s onboarding status has a valid default sub-status',
     (status) => {
       const fallback = getDefaultSubStatus('customerOnboarding', status);
-      expect(CUSTOMER_ONBOARDING_SUB_STATUS_OPTIONS[status].length).toBeGreaterThan(0);
+      expect(
+        CUSTOMER_ONBOARDING_SUB_STATUS_OPTIONS[status].length,
+      ).toBeGreaterThan(0);
       expect(fallback).not.toBeNull();
       expect(
         isValidCustomerOnboardingSubStatus(status, fallback as string),

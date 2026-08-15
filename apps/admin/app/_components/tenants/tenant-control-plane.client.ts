@@ -410,6 +410,13 @@ export type TenantSystemView = {
     requestedAt: string;
     completedAt: string | null;
     failureMessage: string | null;
+    /*
+     * On a FAILED receipt this holds the diagnosis rather than counts — the
+     * phase, model and constraint that refused. It is the only surviving record
+     * of why an erasure did not run, and the error shown at the time did not
+     * always name any of it.
+     */
+    erasedRecordCounts: Record<string, unknown> | null;
   }>;
 };
 

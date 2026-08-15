@@ -9,12 +9,22 @@
  * then removing the tenant row is what actually works.
  *
  * HOW THE ORDER WAS DERIVED. Topological sort over every model carrying a
- * `tenantId`, using only the foreign keys that can block a delete — `Restrict`,
+ * `tenantId`, using the foreign keys that can block a delete — `Restrict`,
  * `NoAction`, and required relations with no explicit `onDelete` (which Prisma
- * defaults to `Restrict`). `Cascade` and `SetNull` edges impose no ordering.
- * The sort has no cycles; `tenant-erasure.constants.spec.ts` re-derives it from
- * `schema.prisma` and fails if a new model is missing or misplaced, so this
- * list cannot silently drift out of date.
+ * defaults to `Restrict`). `SetNull` edges impose no ordering.
+ *
+ * `Cascade` EDGES DO IMPOSE ORDERING, contrary to what this comment used to
+ * claim. Deleting a row cascades into its children, and each child's own
+ * inbound RESTRICT edges fire during that delete. `Payslip -> PayrollRunEmployee`
+ * is Restrict and `PayrollRunEmployee` cascades from `PayrollRun`, so deleting a
+ * payroll run was refused by a payslip that nothing had deleted yet — while every
+ * direct-edge check passed, because nothing references `PayrollRun` directly.
+ * Any tenant with one payslip could not be erased at all. The order must
+ * therefore account for what a delete cascades *into*.
+ *
+ * The sort has no cycles; `tenant-erasure.constants.spec.ts` re-derives both
+ * rules from `schema.prisma` and fails if a new model is missing or misplaced,
+ * so this list cannot silently drift out of date.
  */
 
 /**
@@ -238,15 +248,31 @@ export const TENANT_ERASURE_DELETE_ORDER: string[] = [
   'payrollJournalEntry',
   'payrollJournalEntryLine',
   'payrollPaymentLine',
+  /*
+   * OUT OF ALPHABETICAL ORDER ON PURPOSE — do not "tidy" these three back.
+   *
+   * `Payslip.payrollRunEmployeeId -> PayrollRunEmployee` is Restrict, and
+   * `PayrollRunEmployee` is reached by CASCADE from both `PayrollRun` and
+   * `PayrollPeriod`. Deleting a payroll period therefore cascades into
+   * `PayrollRunEmployee`, and PostgreSQL checks that RESTRICT immediately —
+   * it does not care that the payslips are about to be deleted a few
+   * statements later. Any tenant with a single payslip could not be erased at
+   * all; the whole transaction rolled back at `payrollPeriod`.
+   *
+   * Ordering by blocking edges alone cannot see this, because nothing
+   * references `PayrollPeriod` directly. The order has to account for what a
+   * delete cascades *into*, which is what
+   * `tenant-erasure.constants.spec.ts` now re-derives.
+   */
+  'payslipEventLog',
+  'payslipLineItem',
+  'payslip',
   'payrollPeriod',
   'payrollPostingRule',
   'payrollRecord',
   'payrollRegion',
   'payrollRun',
   'payrollRunLineItem',
-  'payslip',
-  'payslipEventLog',
-  'payslipLineItem',
   'permission',
   'planFeature',
   'policyAssignment',

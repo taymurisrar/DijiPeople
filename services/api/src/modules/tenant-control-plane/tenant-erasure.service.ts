@@ -44,6 +44,24 @@ type ErasureProgress = {
   rowsDeleted: number;
 };
 
+/**
+ * Carries a successful dry run out through the only exit that rolls back.
+ *
+ * Not an error condition — it is how the transaction is discarded. Returning a
+ * value would commit, and a boolean guard could be edited into one.
+ */
+class ErasureDryRunComplete extends Error {
+  constructor(
+    readonly counts: {
+      erased: Record<string, number>;
+      retained: Record<string, number>;
+    },
+  ) {
+    super('Erasure dry run completed; rolling back.');
+    this.name = 'ErasureDryRunComplete';
+  }
+}
+
 type DeleteManyDelegate = {
   deleteMany(args: {
     where: Record<string, unknown>;
@@ -349,6 +367,93 @@ export class TenantErasureService {
     }
   }
 
+  /**
+   * Run the whole erasure and throw it away.
+   *
+   * WHY THIS EXISTS. A refused erasure reports one constraint — the first one
+   * that fired — and nothing else, because the transaction is gone. Whoever is
+   * holding a failed receipt then has a choice between reading production logs
+   * and trying the irreversible operation again to see if it fails differently.
+   * This executes the identical sequence inside a transaction that is
+   * unconditionally rolled back, so the question "what would stop this?" can be
+   * answered without risking the answer "nothing, it worked".
+   *
+   * It is genuinely non-destructive: the rollback is triggered by throwing after
+   * the sequence completes, so there is no path on which it commits. It does
+   * take row locks for its duration, which is why it is a deliberate action
+   * rather than part of preflight.
+   */
+  async diagnose(user: AuthenticatedUser, tenantId: string) {
+    assertTenantPlatformAccess(user, 'tenants.update');
+    assertPlatformAdministrator(user);
+    const tenant = await loadTenantOrThrow(this.prisma, tenantId);
+
+    const progress: ErasureProgress = {
+      phase: 'detach',
+      model: null,
+      modelsProcessed: 0,
+      rowsDeleted: 0,
+    };
+    const startedAt = Date.now();
+
+    try {
+      await this.prisma.$transaction(
+        async (tx) => {
+          const counts = await this.eraseWithin(tx, tenant.id, progress);
+          /*
+           * The sequence succeeded. Throwing is what discards it — a sentinel
+           * rather than a flag, so no future edit can accidentally take a path
+           * that commits.
+           */
+          throw new ErasureDryRunComplete(counts);
+        },
+        { timeout: 120_000 },
+      );
+    } catch (error) {
+      if (error instanceof ErasureDryRunComplete) {
+        const rows = Object.values(error.counts.erased).reduce(
+          (sum, value) => sum + value,
+          0,
+        );
+        return {
+          wouldSucceed: true,
+          durationMs: Date.now() - startedAt,
+          summary: `The erasure would remove ${rows} row${rows === 1 ? '' : 's'} across ${Object.keys(error.counts.erased).length} tables. Nothing was deleted by this check.`,
+          erasedRecordCounts: error.counts.erased,
+          retainedRecordCounts: error.counts.retained,
+          blocker: null,
+        };
+      }
+
+      const diagnosis = diagnoseErasureFailure(error, progress);
+      this.logger.warn(
+        `Erasure dry run for ${tenant.slug} (${tenant.id}) found a blocker: ${diagnosis.summary}`,
+      );
+      return {
+        wouldSucceed: false,
+        durationMs: Date.now() - startedAt,
+        summary: diagnosis.operatorMessage,
+        erasedRecordCounts: null,
+        retainedRecordCounts: null,
+        blocker: {
+          phase: diagnosis.phase,
+          model: diagnosis.model,
+          constraint: diagnosis.constraint,
+          blockedBy: diagnosis.blockedBy,
+          prismaCode: diagnosis.prismaCode,
+          modelsProcessed: progress.modelsProcessed,
+          /* The raw driver message, for a bug report that needs no guesswork. */
+          detail: diagnosis.summary.slice(0, 2000),
+        },
+      };
+    }
+
+    /* Unreachable: the transaction either throws the sentinel or fails. */
+    throw new BadRequestException(
+      'The erasure dry run ended without a result. Nothing was deleted.',
+    );
+  }
+
   /** Erasure receipts, including for tenants that no longer exist. */
   async listReceipts(user: AuthenticatedUser, tenantId?: string) {
     assertTenantPlatformAccess(user, 'tenants.read');
@@ -585,26 +690,82 @@ function delegateFor(tx: Prisma.TransactionClient, model: string) {
 function diagnoseErasureFailure(error: unknown, progress: ErasureProgress) {
   const raw =
     error instanceof Error ? error.message : String(error ?? 'Unknown error');
-  const prismaCode =
-    error instanceof Prisma.PrismaClientKnownRequestError ? error.code : null;
+  const known =
+    error instanceof Prisma.PrismaClientKnownRequestError ? error : null;
+  const prismaCode = known?.code ?? null;
+
+  /*
+   * The constraint has to be read from `meta` first.
+   *
+   * A production erasure failed with "A record outside this tenant still
+   * references data being erased" and named nothing — no constraint, no table —
+   * which is unactionable. The reason: this only matched double quotes, which is
+   * how *PostgreSQL* phrases it, while the error actually came from Prisma,
+   * which reports P2003 as
+   *   Foreign key constraint violated on the constraint: `Payslip_x_fkey`
+   * in backticks, with the name also in `error.meta`. Every quoting style is
+   * now covered, and `meta` — which needs no parsing at all — is preferred.
+   */
+  const meta = (known?.meta ?? {}) as {
+    constraint?: unknown;
+    field_name?: unknown;
+    modelName?: unknown;
+    target?: unknown;
+  };
+  const fromMeta = (value: unknown): string | null => {
+    if (typeof value === 'string' && value.trim()) return value.trim();
+    if (
+      value &&
+      typeof value === 'object' &&
+      'fields' in value &&
+      Array.isArray((value as { fields: unknown[] }).fields)
+    ) {
+      return (value as { fields: unknown[] }).fields.join('+');
+    }
+    return null;
+  };
+
   const constraint =
-    /foreign key constraint "([^"]+)"/.exec(raw)?.[1] ??
-    /constraint "([^"]+)"/.exec(raw)?.[1] ??
+    fromMeta(meta.constraint) ??
+    fromMeta(meta.field_name) ??
+    fromMeta(meta.target) ??
+    /(?:foreign key )?constraint:?\s*[`"']([^`"']+)[`"']/i.exec(raw)?.[1] ??
     null;
-  const referencingTable = /on table "([^"]+)"/g;
-  const tables = [...raw.matchAll(referencingTable)].map((match) => match[1]);
-  const blockedBy = tables.length > 1 ? tables[tables.length - 1] : null;
+
+  const tables = [...raw.matchAll(/on table [`"']([^`"']+)[`"']/g)].map(
+    (match) => match[1],
+  );
+  const blockedBy =
+    (tables.length > 1 ? tables[tables.length - 1] : null) ??
+    fromMeta(meta.modelName);
 
   const isReferential =
     prismaCode === 'P2003' ||
+    prismaCode === 'P2014' ||
     raw.includes('violates RESTRICT') ||
     raw.includes('violates foreign key constraint');
 
+  /*
+   * The phase and model are always known, whatever the driver reported, and on
+   * their own they are enough to find the fault — "failed while deleting
+   * payrollPeriod" points straight at the entry in the erasure plan. They used
+   * to be recorded only on the receipt, so the person reading the error had the
+   * one detail that was never actionable and none of the ones that were.
+   */
+  const where = `Failed while ${PHASE_VERB[progress.phase]} ${
+    progress.model ?? 'an unknown model'
+  }.`;
+
+  const identified = [
+    constraint ? `constraint ${constraint}` : null,
+    blockedBy ? `table ${blockedBy}` : null,
+  ].filter(Boolean);
+
   const operatorMessage = isReferential
-    ? `A record outside this tenant still references data being erased${
-        blockedBy ? ` (${blockedBy})` : ''
-      }${constraint ? ` via ${constraint}` : ''}. Nothing was deleted. Report this reference so the erasure plan can be corrected.`
-    : `${raw.slice(0, 300)} Nothing was deleted.`;
+    ? `${where} A record that is not being erased still references data being erased` +
+      `${identified.length ? ` (${identified.join(', ')})` : ''}. ` +
+      'Nothing was deleted. Report this reference so the erasure plan can be corrected.'
+    : `${where} ${raw.slice(0, 300)} Nothing was deleted.`;
 
   return {
     summary: `${raw} [phase=${progress.phase} model=${progress.model ?? 'n/a'}]`,
@@ -617,3 +778,12 @@ function diagnoseErasureFailure(error: unknown, progress: ErasureProgress) {
     stack: error instanceof Error ? error.stack : undefined,
   };
 }
+
+/** Reads as a sentence in the operator message, e.g. "failed while deleting X". */
+const PHASE_VERB: Record<ErasureProgress['phase'], string> = {
+  detach: 'detaching',
+  'link-cleanup': 'removing links from',
+  'self-reference': 'clearing self-references on',
+  delete: 'deleting',
+  tenant: 'deleting the tenant row after clearing',
+};

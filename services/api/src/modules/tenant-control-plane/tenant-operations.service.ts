@@ -361,11 +361,15 @@ export class TenantOperationsService {
        */
       const primary = await this.tenantDomains.getPrimaryDomain(tenantId);
       if (!primary) {
-        throw new Error('No primary workspace hostname exists for this tenant.');
+        throw new Error(
+          'No primary workspace hostname exists for this tenant.',
+        );
       }
       const resolved = await this.tenantDomains.resolveHostname(primary.domain);
       if (resolved?.tenantId !== tenantId) {
-        throw new Error(`${primary.domain} does not resolve back to this tenant.`);
+        throw new Error(
+          `${primary.domain} does not resolve back to this tenant.`,
+        );
       }
       return;
     }
