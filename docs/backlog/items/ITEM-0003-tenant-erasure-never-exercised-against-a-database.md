@@ -3,13 +3,13 @@ ID: ITEM-0003
 aliases: [ITEM-0003]
 Title: Tenant erasure has no cross-tenant survival assertion
 Type: TEST_GAP
-Status: TRIAGE_REQUIRED
+Status: READY
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [services/api/src/modules/tenant-control-plane]
 Source: QA_RUN
 OwnerAgent: qa
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 CreatedAt: 2026-08-15
 UpdatedAt: 2026-08-15
 RelatedBug:
@@ -96,3 +96,5 @@ Module [[tenant-control-plane|Tenant Control Plane]] · architecture [[multi-ten
 - 2026-08-15 — reduced in scope: the DB-backed erasure suites merged as
   `3c759ce` resolved the original gap. What remains is the cross-tenant
   survival assertion.
+
+- 2026-08-15 — Architect triage: FIX_NOW. Bounded, no dependencies, and the assertion can be driven from `TENANT_ERASURE_DELETE_ORDER` so a model added later is covered automatically. For an irreversible cross-tenant operation this is the assertion that matters most.

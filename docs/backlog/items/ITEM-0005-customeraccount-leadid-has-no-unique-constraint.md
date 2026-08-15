@@ -3,13 +3,13 @@ ID: ITEM-0005
 aliases: [ITEM-0005]
 Title: CustomerAccount.leadId has no unique constraint, so double conversion is unprevented
 Type: TECH_DEBT
-Status: TRIAGE_REQUIRED
+Status: READY
 Priority: P2
 Severity: MEDIUM
 AffectedModules: [services/api/prisma, services/api/src/modules/super-admin]
 Source: QA_RUN
 OwnerAgent: database
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: PLAN_REQUIRED
 CreatedAt: 2026-08-15
 UpdatedAt: 2026-08-15
 RelatedBug:
@@ -79,3 +79,5 @@ requirement [[requirement-lead-conversion|Lead Conversion]] · [[BUG-0012]] (the
 ## History
 
 - 2026-08-15 — imported from the commercial onboarding E2E's residual risks.
+
+- 2026-08-15 — Architect triage: PLAN_REQUIRED, as the record itself argues. Adding `@@unique([leadId])` can fail on existing data, so it needs a duplicate check and a backfill decision before the constraint is added — expand, verify, contract. That is the change class PLANS.md names, and the plan is cheap compared with a migration that fails on a customer database.

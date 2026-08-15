@@ -11,7 +11,4 @@ loses the difference between a queue and an obstacle.
 
 ## Blocked records
 
-| ID | Title | Type | Severity | Priority | Status | Affected | Architect |
-|---|---|---|---|---|---|---|---|
-| [ITEM-0001](../../docs/backlog/items/ITEM-0001-no-browser-e2e-tooling-exists.md) | No browser E2E tooling exists in any workspace | TEST_GAP | HIGH | P1 | BLOCKED | apps/web, apps/admin, apps/landing | BLOCKED_EXTERNAL |
-| [ITEM-0004](../../docs/backlog/items/ITEM-0004-tenant-activation-never-proven-end-to-end.md) | Tenant activation to ACTIVE has never been reached in any test | TEST_GAP | HIGH | P1 | BLOCKED | api:tenant-control-plane | BLOCKED_EXTERNAL |
+_None._

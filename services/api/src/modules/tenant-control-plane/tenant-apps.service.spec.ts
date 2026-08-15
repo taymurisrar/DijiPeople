@@ -62,18 +62,31 @@ describe('gateway heartbeat health', () => {
 });
 
 describe('provisioning step definitions', () => {
-  it('never marks the identity and billing step as retryable', () => {
-    const step = TENANT_PROVISIONING_STEPS.find(
-      (item) => item.key === 'identities-and-billing',
-    );
-    /* Replaying it would create a second owner, subscription and invoice. */
-    expect(step?.isRetryable).toBe(false);
+  /*
+   * This assertion used to read "never marks the identity and billing step as
+   * retryable", because replaying it created a second owner, subscription and
+   * invoice. That was true of the code and disastrous for the lifecycle: it is
+   * the only step that creates the business unit, the owner and the
+   * subscription, so a tenant failing at or before it could never obtain an
+   * owner and could never be activated — BUG-0015.
+   *
+   * `TenantIdentitiesProvisioningService` made the step converge on replay, so
+   * it is now retryable and the invariant worth pinning moved: exactly one step
+   * is non-retryable, and it is the one whose replay would create a rival
+   * tenant rather than repair this one.
+   */
+  it('keeps tenant-record as the only non-retryable step', () => {
+    const nonRetryable = TENANT_PROVISIONING_STEPS.filter(
+      (item) => !item.isRetryable,
+    ).map((item) => item.key);
+    expect(nonRetryable).toEqual(['tenant-record']);
   });
 
   it('marks the idempotent steps as retryable', () => {
     for (const key of [
       'workspace-domain',
       'rbac-defaults',
+      'identities-and-billing',
       'customization-defaults',
     ]) {
       expect(

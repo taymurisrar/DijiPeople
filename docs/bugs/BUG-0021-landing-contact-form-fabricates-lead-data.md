@@ -11,7 +11,7 @@ DetectedDate: 2026-08-15
 DetectedInSha: 7bbab3d
 AffectedModules: [apps/landing, services/api/src/modules/leads]
 OwnerAgent: frontend
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 QAReport: docs/qa/runs/2026-08-15-commercial-onboarding-e2e-7bbab3d.md
 RegressionId:
 RelatedBacklogItem:
@@ -113,3 +113,5 @@ Not applicable.
 
 - 2026-08-15 — found during the commercial onboarding E2E UI/UX assessment.
 - 2026-08-15 — recorded as OPEN, awaiting Architect triage.
+
+- 2026-08-15 — Architect triage: FIX_NOW. Bounded and technical — make the fabricated fields optional on the public lead DTO, or add a channel discriminator, and add the honeypot the sibling form already has. Explicitly not waiting on the product question the record raises: whether `/contact` should collect industry and company size is a conversion decision, but fabricating them is wrong under either answer, so the fix does not depend on it. Browser scenario A2 now proves the `/request-demo` honeypot works end to end, which gives the `/contact` fix a green reference to match.

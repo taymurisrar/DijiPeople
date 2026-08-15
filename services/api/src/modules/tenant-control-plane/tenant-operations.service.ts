@@ -11,6 +11,8 @@ import { CustomizationService } from '../customization/customization.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { PlatformEventsService } from '../platform-events/platform-events.service';
 import { TenantProvisioningService } from '../super-admin/tenant-provisioning.service';
+import { TenantIdentitiesProvisioningService } from '../super-admin/tenant-identities-provisioning.service';
+import { UserInvitationsService } from '../auth/user-invitations.service';
 import { TenantDomainService } from '../tenant-domains/tenant-domain.service';
 import {
   assertTenantPlatformAccess,
@@ -45,6 +47,8 @@ export class TenantOperationsService {
     private readonly auditService: AuditService,
     private readonly events: PlatformEventsService,
     private readonly tenantDomains: TenantDomainService,
+    private readonly identitiesProvisioning: TenantIdentitiesProvisioningService,
+    private readonly userInvitations: UserInvitationsService,
   ) {}
 
   async overview(user: AuthenticatedUser, tenantId: string) {
@@ -175,13 +179,19 @@ export class TenantOperationsService {
   }
 
   /**
-   * Replay the idempotent tail of provisioning.
+   * Replay provisioning until the tenant converges on a usable state.
    *
-   * The steps that create identities, subscriptions and invoices declare
-   * themselves non-retryable, so a retry never re-runs them — replaying that
-   * step would create a second owner and a second invoice. What a retry does
-   * re-run is domain reservation, the RBAC bootstrap and the customization
-   * publish, all of which are upserts.
+   * Every step the catalogue declares retryable is replayed in sequence order,
+   * including `identities-and-billing` — which is now anchored on database
+   * uniqueness rather than on being run exactly once, so a replay repairs a
+   * missing owner or subscription instead of creating a second one.
+   *
+   * A retry that finishes its steps is still not automatically a success. The
+   * defect this method used to have was not that it failed, but that it
+   * *succeeded*: it skipped the one step that creates the business unit, the
+   * owner and the subscription, reported SUCCEEDED, and left a tenant that
+   * could never be activated. The convergence assertion below is what stops a
+   * green run from meaning nothing — see `assertConvergence`.
    */
   async retryProvisioning(
     user: AuthenticatedUser,
@@ -228,10 +238,24 @@ export class TenantOperationsService {
     let failedStepKey: string | null = null;
     let failureMessage: string | null = null;
 
+    /*
+     * Threaded through the loop so `invitations` can address exactly the
+     * identities this recovery brought into existence. Re-issuing invitations
+     * wholesale would mail every provisioned account again; issuing none would
+     * leave a recovered owner with no way in.
+     */
+    const recovery: RecoveryContext = { createdIdentities: [] };
+
     for (const key of retryableKeys) {
       await this.runs.stepStarted(run?.id, key);
       try {
-        await this.runRetryableStep(key, tenant.id, tenant.slug, user.userId);
+        await this.runRetryableStep(
+          key,
+          tenant.id,
+          tenant.slug,
+          user.userId,
+          recovery,
+        );
         await this.runs.stepSucceeded(run?.id, key);
       } catch (error) {
         failedStepKey = key;
@@ -242,6 +266,21 @@ export class TenantOperationsService {
           `Provisioning retry for ${tenant.slug} failed at ${key}: ${failureMessage}`,
         );
         break;
+      }
+    }
+
+    /*
+     * Every step green is a claim about the run. This is the claim about the
+     * tenant, and it is the one an operator actually needs: a retry may not
+     * report SUCCEEDED unless the state provisioning exists to produce is
+     * present.
+     */
+    if (!failedStepKey) {
+      const divergence = await this.assertConvergence(tenant.id);
+      if (divergence) {
+        failedStepKey = 'identities-and-billing';
+        failureMessage = divergence;
+        await this.runs.stepFailed(run?.id, failedStepKey, divergence);
       }
     }
 
@@ -312,11 +351,40 @@ export class TenantOperationsService {
     return this.overview(user, tenant.id);
   }
 
+  /**
+   * The state provisioning is defined to produce, checked against the database.
+   *
+   * Deliberately narrow: only the facts without which the tenant is unusable
+   * and unrecoverable through any supported surface. Everything softer belongs
+   * in `readiness()`, which reports rather than gates.
+   */
+  private async assertConvergence(tenantId: string): Promise<string | null> {
+    const [businessUnits, owners, subscription] = await Promise.all([
+      this.prisma.businessUnit.count({ where: { tenantId } }),
+      this.prisma.user.count({
+        where: { tenantId, isServiceAccount: false },
+      }),
+      this.prisma.subscription.findUnique({
+        where: { tenantId },
+        select: { id: true },
+      }),
+    ]);
+
+    const missing: string[] = [];
+    if (!businessUnits) missing.push('a business unit');
+    if (!owners) missing.push('a tenant owner');
+    if (!subscription) missing.push('a subscription');
+    if (!missing.length) return null;
+
+    return `Provisioning steps completed but the tenant still has no ${missing.join(', no ')}. The run is reported as failed rather than leaving a tenant that cannot be activated.`;
+  }
+
   private async runRetryableStep(
     key: string,
     tenantId: string,
     slug: string,
     actorUserId: string,
+    recovery: RecoveryContext = { createdIdentities: [] },
   ) {
     if (key === 'workspace-domain') {
       await this.tenantProvisioning.provisionSystemDomain({
@@ -373,13 +441,71 @@ export class TenantOperationsService {
       }
       return;
     }
+    if (key === 'identities-and-billing') {
+      /*
+       * The step that used to be skipped. Without it a tenant that failed
+       * before step 5 had no business unit, so no owner could ever be added and
+       * activation was refused for ever (BUG-0015).
+       *
+       * The onboarding record is the source of truth for who the owner is and
+       * what they bought, and the forward path links it to the tenant before
+       * anything can fail — so it is reachable even for a tenant that died at
+       * step 3.
+       */
+      const onboarding =
+        await this.identitiesProvisioning.findOnboardingForTenant(tenantId);
+      if (!onboarding) {
+        throw new Error(
+          'No onboarding record is linked to this tenant, so its owner and subscription cannot be reconstructed. Recover it from the customer record.',
+        );
+      }
+
+      const planId =
+        onboarding.selectedPlanId ?? onboarding.customer.selectedPlanId;
+      const billingCycle =
+        onboarding.billingCycle ?? onboarding.customer.preferredBillingCycle;
+      if (!planId || !billingCycle) {
+        throw new Error(
+          'The onboarding record has no plan or billing cycle, so no subscription can be created.',
+        );
+      }
+
+      const outcome =
+        await this.identitiesProvisioning.ensureIdentitiesAndBilling({
+          tenantId,
+          onboardingId: onboarding.id,
+          actorUserId,
+          planId,
+          billingCycle,
+          createServiceAccount: Boolean(
+            onboarding.createServiceAccount && onboarding.serviceAccountEmail,
+          ),
+          serviceAccountEmail: onboarding.serviceAccountEmail,
+          serviceAccountDisplayName: onboarding.serviceAccountDisplayName,
+          assignServiceAccountSystemAdminRole:
+            onboarding.serviceAccountAssignSystemAdmin ?? true,
+        });
+
+      recovery.createdIdentities.push(...outcome.createdIdentities);
+      return;
+    }
     if (key === 'invitations') {
       /*
-       * Invitations are re-issued from the access surface, one identity at a
-       * time and with the operator choosing who. Replaying them wholesale here
-       * would mail every provisioned account again, so the step is recorded as
-       * satisfied and left to that surface.
+       * Only identities this run created are invited. Everyone else already has
+       * an invitation or an account, and re-issuing wholesale would mail every
+       * provisioned user again on every retry — which is why this step used to
+       * do nothing at all. Doing nothing was safe until retry started creating
+       * owners; a recovered owner with no invitation cannot reach the workspace.
        */
+      for (const identity of recovery.createdIdentities) {
+        await this.userInvitations.issueInvitation({
+          tenantId,
+          userId: identity.userId,
+          email: identity.email,
+          fullName: identity.fullName,
+          createdByUserId: actorUserId,
+        });
+      }
       return;
     }
     /*
@@ -416,3 +542,17 @@ export class TenantOperationsService {
 }
 
 export const PROVISIONING_STEP_STATUSES = TenantProvisioningStepStatus;
+
+/**
+ * Carries what a recovery run created from the step that created it to the step
+ * that must notify about it. Deliberately a value threaded through the loop
+ * rather than instance state: two retries of two tenants must not see each
+ * other's identities.
+ */
+type RecoveryContext = {
+  createdIdentities: Array<{
+    userId: string;
+    email: string;
+    fullName: string;
+  }>;
+};

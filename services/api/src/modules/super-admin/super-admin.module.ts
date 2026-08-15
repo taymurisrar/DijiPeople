@@ -24,6 +24,7 @@ import { PlatformOnboardingService } from './platform-onboarding.service';
 import { SuperAdminController } from './super-admin.controller';
 import { SuperAdminService } from './super-admin.service';
 import { TenantProvisioningService } from './tenant-provisioning.service';
+import { TenantIdentitiesProvisioningService } from './tenant-identities-provisioning.service';
 
 @Module({
   imports: [
@@ -50,11 +51,22 @@ import { TenantProvisioningService } from './tenant-provisioning.service';
     PlatformOnboardingService,
     PlatformLifecycleService,
     TenantProvisioningService,
+    TenantIdentitiesProvisioningService,
     SuperAdminService,
     JwtAuthGuard,
     RolesGuard,
     PlatformPermissionsGuard,
   ],
-  exports: [SuperAdminService, TenantProvisioningService],
+  /*
+   * `TenantIdentitiesProvisioningService` is exported so the tenant control
+   * plane's retry path can replay the identity and billing step. The import is
+   * one way — SuperAdminModule knows nothing about the control plane — which is
+   * what keeps the two out of a cycle.
+   */
+  exports: [
+    SuperAdminService,
+    TenantProvisioningService,
+    TenantIdentitiesProvisioningService,
+  ],
 })
 export class SuperAdminModule {}

@@ -26,6 +26,7 @@ import {
   PlatformCommunicationsService,
 } from '../platform-communications/platform-communications.service';
 import type { PartnerActor } from './partner-auth.guard';
+import { partnerOnboardingReviewRefusal } from './partner-onboarding.state-machine';
 import { PlatformEventsService } from '../platform-events/platform-events.service';
 import {
   CreatePartnerInquiryDto,
@@ -584,6 +585,21 @@ export class PartnerExperienceService {
       });
     if (!application)
       throw new NotFoundException('Partner onboarding was not found.');
+
+    /*
+     * The transition check this endpoint never had. Without it every decision
+     * was legal from every state in either direction, so an application still
+     * in INVITED — nothing submitted, no compliance data — could be approved,
+     * and an already-approved application could be flipped to REJECTED after
+     * activation, cascading a live partner to REJECTED. BUG-0016.
+     */
+    const refusal = partnerOnboardingReviewRefusal({
+      status: application.status,
+      submittedAt: application.submittedAt,
+      partnerStatus: application.partner.status,
+    });
+    if (refusal) throw new BadRequestException(refusal);
+
     const status =
       decision === 'approve'
         ? PartnerOnboardingStatus.APPROVED

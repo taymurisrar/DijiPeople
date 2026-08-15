@@ -3,13 +3,13 @@ ID: ITEM-0011
 aliases: [ITEM-0011]
 Title: Framework validation should catch false absence claims in context documents
 Type: TECH_DEBT
-Status: TRIAGE_REQUIRED
+Status: READY
 Priority: P3
 Severity: LOW
 AffectedModules: [.agent/context, scripts]
 Source: QA_RUN
 OwnerAgent: architect
-ArchitectDisposition: TRIAGE_REQUIRED
+ArchitectDisposition: FIX_NOW
 CreatedAt: 2026-08-15
 UpdatedAt: 2026-08-15
 RelatedBug: BUG-0023
@@ -75,3 +75,5 @@ architecture [[agent-engineering-architecture|Agent Engineering Architecture]].
 ## History
 
 - 2026-08-15 — raised alongside BUG-0023 as the generalisable half of it.
+
+- 2026-08-15 — Architect triage: FIX_NOW, with the record own warning treated as binding: keep it narrow. A validator that tries to interpret prose will produce false failures, and a validation nobody trusts gets bypassed. Implement the explicit-marker form or the `Last verified` refresh requirement — not an English parser.

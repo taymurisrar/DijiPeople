@@ -2,7 +2,7 @@
 ID: BUG-0016
 aliases: [BUG-0016]
 Title: Partner onboarding review has no state machine
-Status: PRODUCT_DECISION
+Status: FIXED
 Severity: HIGH
 Priority: P1
 Type: STATE_MACHINE
@@ -11,15 +11,15 @@ DetectedDate: 2026-08-15
 DetectedInSha: 7bbab3d
 AffectedModules: [services/api/src/modules/partner-experience]
 OwnerAgent: architect
-ArchitectDisposition: PRODUCT_DECISION
+ArchitectDisposition: FIX_NOW
 QAReport: docs/qa/runs/2026-08-15-commercial-onboarding-e2e-7bbab3d.md
-RegressionId:
+RegressionId: REG-014
 RelatedBacklogItem:
 RelatedDecision:
 RelatedImplementation:
 CreatedAt: 2026-08-15
 UpdatedAt: 2026-08-15
-ResolvedAt:
+ResolvedAt: 2026-08-15
 ---
 
 # BUG-0016 — Partner onboarding review has no state machine
@@ -131,3 +131,5 @@ this record.
   because the correct transition table is a product decision.
 - 2026-08-15 — re-verified against `main` `ad8f77f` and recorded awaiting a
   product decision.
+
+- 2026-08-15 — Architect triage: the record was filed PRODUCT_DECISION on three questions. Two were already answered elsewhere in the code and merely contradicted here, which makes them technical inconsistencies rather than product choices: `partnerTransition` already declares `reject` illegal from ACTIVE and already owns suspend/deactivate/reactivate, and `submitOnboarding` already validates the required compliance fields against `partner-settings`. Requiring a submission before a review therefore inherits the existing completeness rule instead of inventing one. Fixed to that extent. The genuinely undecided remainder — whether an APPROVED application may be re-opened, and what happens to a live referral link and its in-flight attributed leads on a post-activation demotion — is split out so it is tracked as a decision rather than as an unfixed defect.
