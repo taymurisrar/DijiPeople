@@ -7,6 +7,7 @@ How to work in the DijiPeople monorepo.
 | [`parallel-work.md`](parallel-work.md) | When work may run in parallel and when it must not |
 | [`git-worktrees.md`](git-worktrees.md) | Branch naming, worktrees, review and integration |
 | [`skills-assessment.md`](skills-assessment.md) | Recurring patterns worth automating as Skills |
+| [`release-publishing.md`](release-publishing.md) | Building, publishing and promoting application releases |
 
 Behavioural rules for AI agents: [`../../AGENTS.md`](../../AGENTS.md).
 Planning contract: [`../../PLANS.md`](../../PLANS.md).

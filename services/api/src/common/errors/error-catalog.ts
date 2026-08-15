@@ -598,6 +598,76 @@ export const ERROR_CATALOG = {
     'critical',
     'system',
   ),
+
+  // --- application release publishing --------------------------------------
+  //
+  // Publishing is machine-to-machine: the caller is a developer CLI or a CI
+  // job, never a person filling in a form. The descriptions are therefore
+  // written for whoever reads a failed pipeline log, and each one says what to
+  // do next rather than only what went wrong.
+  RELEASE_PUBLISH_UNAUTHORIZED: entry(
+    401,
+    'Release publishing not authorised',
+    'The release publishing credential is missing, malformed or does not match this environment.',
+    'warning',
+    'auth',
+    'Set DIJIPEOPLE_RELEASE_TOKEN to the value configured on the target environment.',
+  ),
+  RELEASE_ENVIRONMENT_MISMATCH: entry(
+    400,
+    'Release environment mismatch',
+    'The environment named by the publisher does not match the environment this API is running as.',
+    'error',
+    'validation',
+    'Re-run with --environment set to the environment the target API actually runs as.',
+  ),
+  RELEASE_ARTIFACT_INVALID: entry(
+    400,
+    'Release artefact invalid',
+    'The uploaded artefact is missing, empty, too large, or did not match the checksum the publisher calculated.',
+    'error',
+    'file',
+    'Rebuild the package and publish again.',
+  ),
+  RELEASE_METADATA_INVALID: entry(
+    400,
+    'Release metadata invalid',
+    'The release descriptor names an unknown application, channel, platform, architecture or version.',
+    'error',
+    'validation',
+  ),
+  RELEASE_VERSION_CONFLICT: entry(
+    409,
+    'Release already published with different content',
+    'A release already exists for this application, version, platform, architecture and channel, and its artefact differs from the one being published.',
+    'error',
+    'validation',
+    'Publish a new version. A released version is immutable and is never replaced in place.',
+  ),
+  RELEASE_REGISTRATION_FAILED: entry(
+    500,
+    'Release registration failed',
+    'The artefact was uploaded but the release record could not be created.',
+    'critical',
+    'system',
+    'Check the compensation details in the response before publishing again.',
+    true,
+  ),
+  RELEASE_VERIFICATION_FAILED: entry(
+    500,
+    'Release verification failed',
+    'The release record was created but reading it back did not return the expected artefact.',
+    'critical',
+    'system',
+    'Do not announce this release. Disable it and investigate before republishing.',
+  ),
+  RELEASE_SOURCE_NOT_FOUND: entry(
+    404,
+    'Release not found',
+    'No published release matches the application, version, platform, architecture and channel given.',
+    'error',
+    'validation',
+  ),
 } as const satisfies Record<string, ErrorCatalogEntry>;
 
 export type ErrorCode = keyof typeof ERROR_CATALOG;

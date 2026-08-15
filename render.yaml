@@ -50,6 +50,18 @@ services:
       # Set the value in the Render dashboard; never commit it.
       - key: SECRET_ENCRYPTION_KEY
         sync: false
+      # Machine credential for scripts/publish-release.mjs. Leave UNSET to keep
+      # release publishing closed on this environment: ReleasePublishTokenGuard
+      # fails closed, so an environment without this value cannot be published
+      # to at all. Set it in the Render dashboard only when this environment is
+      # meant to receive releases; never commit it.
+      - key: RELEASE_PUBLISH_TOKEN
+        sync: false
+      # Ceiling for a single release artefact, in bytes. Separate from
+      # FILE_UPLOAD_MAX_BYTES so raising it for a self-contained installer does
+      # not raise the limit on tenant document uploads. Default 512 MB.
+      - key: RELEASE_ARTIFACT_MAX_BYTES
+        sync: false
       # Platform and tenant email both fall back to this provider when no
       # per-tenant provider row exists. Without it resolveProvider returns null
       # in production and every outbound email fails — invitations, contract

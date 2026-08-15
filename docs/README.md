@@ -64,6 +64,7 @@ How to work in this repository.
 | [`parallel-work.md`](development/parallel-work.md) | Parallel vs sequential task rules |
 | [`git-worktrees.md`](development/git-worktrees.md) | Branch and worktree workflow |
 | [`skills-assessment.md`](development/skills-assessment.md) | Recommended automation Skills and why |
+| [`release-publishing.md`](development/release-publishing.md) | Publishing gateway/agent/utility releases |
 
 ### Existing top-level documents (pre-existing, kept)
 

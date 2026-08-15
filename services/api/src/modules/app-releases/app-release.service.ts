@@ -6,6 +6,7 @@ import {
   Prisma,
 } from '@prisma/client';
 
+import { AppError } from '../../common/errors/app-error';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { StorageService } from '../../common/storage/storage.service';
@@ -43,7 +44,7 @@ export const APP_KEYS = {
  * The diagnostic utility is a support tool that talks directly to customer
  * hardware, so it sits behind gateway management rather than general downloads.
  */
-const DEFAULT_APP_PERMISSION: Record<string, string> = {
+export const DEFAULT_APP_PERMISSION: Record<string, string> = {
   [APP_KEYS.INTEGRATION_GATEWAY]: 'gateways.manage',
   [APP_KEYS.AGENT_DESKTOP]: 'appDownloads.read',
   [APP_KEYS.ZKTECO_DIAGNOSTIC]: 'gateways.manage',
@@ -262,6 +263,44 @@ export class AppReleaseService {
     },
   ) {
     const channel = dto.channel ?? ApplicationReleaseChannel.STABLE;
+
+    // A published version is immutable CONTENT. Metadata may still be corrected
+    // — notes, minimum supported version, the display name — and the upsert
+    // below is what allows that. What it must never allow is a different binary
+    // arriving under a version somebody has already downloaded, because every
+    // checksum published alongside it becomes a lie.
+    //
+    // Only a genuine content change is rejected: both checksums present and
+    // different. A metadata-only re-publish carries the same checksum, or none,
+    // and still succeeds exactly as before.
+    const existing = await this.prisma.applicationRelease.findUnique({
+      where: {
+        appKey_version_platform_architecture_channel: {
+          appKey: dto.appKey,
+          version: dto.version,
+          platform: dto.platform,
+          architecture: dto.architecture,
+          channel,
+        },
+      },
+      select: { checksumSha256: true },
+    });
+
+    if (
+      existing?.checksumSha256 &&
+      dto.checksumSha256 &&
+      existing.checksumSha256.toLowerCase() !== dto.checksumSha256.toLowerCase()
+    ) {
+      throw new AppError('RELEASE_VERSION_CONFLICT', {
+        details: {
+          appKey: dto.appKey,
+          version: dto.version,
+          platform: dto.platform,
+          architecture: dto.architecture,
+          channel,
+        },
+      });
+    }
 
     const release = await this.prisma.applicationRelease.upsert({
       where: {
