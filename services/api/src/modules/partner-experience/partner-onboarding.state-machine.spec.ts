@@ -89,7 +89,10 @@ describe('partner onboarding review state machine', () => {
     ]) {
       expect(
         partnerOnboardingReviewRefusal(
-          subject({ status, partnerStatus: PartnerStatus.INFORMATION_APPROVED }),
+          subject({
+            status,
+            partnerStatus: PartnerStatus.INFORMATION_APPROVED,
+          }),
         ),
       ).not.toBeNull();
     }

@@ -47,14 +47,19 @@ describe('identities and billing provisioning is re-entrant', () => {
 
     const tx = {
       user: {
-        findUnique: jest.fn(({ where }: { where: { tenantId_email: { tenantId: string; email: string } } }) =>
-          Promise.resolve(
-            users.find(
-              (row) =>
-                row.tenantId === where.tenantId_email.tenantId &&
-                row.email === where.tenantId_email.email,
-            ) ?? null,
-          ),
+        findUnique: jest.fn(
+          ({
+            where,
+          }: {
+            where: { tenantId_email: { tenantId: string; email: string } };
+          }) =>
+            Promise.resolve(
+              users.find(
+                (row) =>
+                  row.tenantId === where.tenantId_email.tenantId &&
+                  row.email === where.tenantId_email.email,
+              ) ?? null,
+            ),
         ),
       },
       userRole: {
@@ -62,7 +67,8 @@ describe('identities and billing provisioning is re-entrant', () => {
           for (const row of data) {
             const duplicate = userRoles.some(
               (existing) =>
-                existing.userId === row.userId && existing.roleId === row.roleId,
+                existing.userId === row.userId &&
+                existing.roleId === row.roleId,
             );
             if (!duplicate) userRoles.push(row);
           }
@@ -71,19 +77,23 @@ describe('identities and billing provisioning is re-entrant', () => {
       },
       tenant: { update: jest.fn(() => Promise.resolve({})) },
       tenantFeature: {
-        upsert: jest.fn(({ where }: { where: { tenantId_key: { key: string } } }) => {
-          const key = where.tenantId_key.key;
-          if (!features.some((row) => row.key === key)) features.push({ key });
-          return Promise.resolve({});
-        }),
+        upsert: jest.fn(
+          ({ where }: { where: { tenantId_key: { key: string } } }) => {
+            const key = where.tenantId_key.key;
+            if (!features.some((row) => row.key === key))
+              features.push({ key });
+            return Promise.resolve({});
+          },
+        ),
       },
       customerAccount: { update: jest.fn(() => Promise.resolve({})) },
       customerOnboarding: { update: jest.fn(() => Promise.resolve({})) },
       invoice: {
         findFirst: jest.fn(({ where }: { where: { subscriptionId: string } }) =>
           Promise.resolve(
-            invoices.find((row) => row.subscriptionId === where.subscriptionId) ??
-              null,
+            invoices.find(
+              (row) => row.subscriptionId === where.subscriptionId,
+            ) ?? null,
           ),
         ),
       },
@@ -127,14 +137,16 @@ describe('identities and billing provisioning is re-entrant', () => {
         }
         return Promise.resolve(existing);
       }),
-      createInvoice: jest.fn((_db: unknown, input: { subscriptionId: string }) => {
-        const row = {
-          id: `invoice-${invoices.length + 1}`,
-          subscriptionId: input.subscriptionId,
-        };
-        invoices.push(row);
-        return Promise.resolve(row);
-      }),
+      createInvoice: jest.fn(
+        (_db: unknown, input: { subscriptionId: string }) => {
+          const row = {
+            id: `invoice-${invoices.length + 1}`,
+            subscriptionId: input.subscriptionId,
+          };
+          invoices.push(row);
+          return Promise.resolve(row);
+        },
+      ),
     };
 
     const service = new TenantIdentitiesProvisioningService(

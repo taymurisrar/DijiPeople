@@ -86,7 +86,11 @@ export type PartnerOnboardingReviewSubject = {
 export function partnerOnboardingReviewRefusal(
   subject: PartnerOnboardingReviewSubject,
 ): string | null {
-  if (PARTNER_LIFECYCLE_CLOSED_TO_ONBOARDING_REVIEW.includes(subject.partnerStatus)) {
+  if (
+    PARTNER_LIFECYCLE_CLOSED_TO_ONBOARDING_REVIEW.includes(
+      subject.partnerStatus,
+    )
+  ) {
     return `This partner is ${subject.partnerStatus} and is no longer governed by onboarding review. Use the partner lifecycle actions to suspend, deactivate or reactivate it.`;
   }
 

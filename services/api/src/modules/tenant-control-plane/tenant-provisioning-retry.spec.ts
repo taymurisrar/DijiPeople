@@ -118,9 +118,10 @@ describe('tenant provisioning retry step coverage', () => {
       ...context,
       identitiesProvisioning: {
         ...context.identitiesProvisioning,
-        ensureIdentitiesAndBilling: jest
-          .fn()
-          .mockResolvedValue({ identities: created, createdIdentities: created }),
+        ensureIdentitiesAndBilling: jest.fn().mockResolvedValue({
+          identities: created,
+          createdIdentities: created,
+        }),
       },
     };
     const recovery = { createdIdentities: [] as typeof created };
