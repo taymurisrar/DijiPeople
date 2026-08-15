@@ -92,7 +92,7 @@ _None. Nothing open at CRITICAL._
 
 ## Recent Engineering History
 
-_None yet — records begin with the next task._
+- [[2026-08-15-knowledge-backlog-framework-986ab10|Engineering History — Operational knowledge-management layer]]
 
 ## Recent Releases
 
@@ -138,7 +138,7 @@ _None. Nothing has been deployed through the release process._
 | Backlog items | 15 |
 | Known bug patterns | 17 |
 | QA runs | 3 |
-| Engineering history records | 0 |
+| Engineering history records | 1 |
 | Release records | 0 |
 | Module notes | 19 |
 | Architecture notes | 12 |
@@ -150,7 +150,6 @@ triaged is work nobody has decided about — the number that should stay near
 zero between tasks.
 
 **No release records exist.** Nothing has been deployed through the release process yet; this is a true statement about the repository, not a gap in the dashboard.
-**No engineering-history records exist yet.** The system was introduced with this framework; records accumulate from the next task onwards.
 
 ## How this is maintained
 
